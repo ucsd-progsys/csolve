@@ -1,0 +1,92 @@
+
+Goals to get to v.0
+
+- Link TP interface and Solver
+	- refactor push/valid/pop into set/filter
+- Compile!
+- Qualifier parsing/instantiation
+
+**************************************************************************************
+- consgen (branch info)
+	+ convert cilExpr to predicate
+
+- WF constraints
+- return values
+- formals
+- globals
+- pointers
+
+**************************************************************************************
+------------------------
+while e do:
+  s1
+s2
+
+---------equals---------
+
+while (1) do: 
+  if e: 
+    [] 
+  else: 
+    goto L:;
+  s1;
+L: s2
+
+---------equals---------
+
+while (1) do:
+  if (not e):
+    goto L:
+  else:
+    []
+  s1
+
+L: s2
+
+------------------------
+
+
+4. generate constraints using idoms:
+
+	for block i, transitively gather guards using idoms info:
+
+dom_guards: idoms -> int -> (int * bool) list
+
+let rec dom_guards gdoms i gs = 
+  let j, co = gdoms.(i) in
+  if j < 0 then gs else 
+    let gs' = match co with Some b -> (j,b)::gs | _ -> gs in
+    dom_guards gdoms j gs' 
+
+mk_constrs: idoms -> int -> constr list
+
+let mk_pred ifs (j,b) = 
+  match ifs.(j) with 
+  | Some e -> if b then e else Not e 
+  | None   -> True
+
+let rec mk_constrs ifs idoms i = 
+  let gs = dom_guards idoms i gs in
+  let ps = Misc.map mk_pred ifs gs in
+  (* generate constraints under guards ps *)
+
+
+type constraint = {
+  fid : int; 
+  guards : int list; 
+  lhs : frame; 
+  rhs : frame
+}
+
+class consI = 
+  val cs = ref []
+  method new_constraint c = failwith "TBD"
+  method print_constraints () = failwith "TBD"
+  method solve () = failwith "TBD"
+
+
+consgenVisitor
+
+
+
+

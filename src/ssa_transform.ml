@@ -1,0 +1,282 @@
+module E  = Errormsg
+module S  = Ssa
+module IH = Inthash
+module VS = Usedef.VS
+module IM = Misc.IntMap
+module H  = Hashtbl
+
+open Cil
+open Misc.Ops
+
+(************************************************************************
+ * out_t : (block * reg, regindex) H.t                                  *
+ * out_t.(b,r) = Undef      if r is unmodified (no write/phi) in b      *
+ *             = Phi b      if r is only phi-written in b               *
+ *             = Def (b, k) if r is written k times in block            *
+ *                                                                      *
+ * dramatis personae:                                                   *
+ * doms  : int list array;                                              *
+ * v2r   : varinfo -> S.reg;                                            *
+ * r2v   : S.reg   -> varinfo;                                          *
+ * out_t : (int * int, regindex) H.t;           block, reg |-> ri       *
+ * var_t : (string * regindex, varinfo) H.t;    var, ri    |-> varinfo  *
+ ************************************************************************)
+
+type regindex = Def of int * int                (* block, position *)
+              | Phi of int                      (* block *)
+
+type ssaCfgInfo = { 
+  fdec  : fundec;
+  cfg   : S.cfgInfo;                                                   
+  phis  : (varinfo * (int * varinfo) list) list array; (*  block |-> (var, (block, var) list) list *)
+  ifs   : Guards.ginfo array;
+  gdoms : (int * (bool option)) array;
+}
+
+let mk_ssa_name s = function
+  | Def (b, k) -> Printf.sprintf "%s_blk_%d_%d" s b k
+  | Phi b      -> Printf.sprintf "%s_phi_%d" s b
+
+let is_ssa_name s = 
+  Misc.is_substring s "_phi_" 
+
+(******************************* Printers *******************************)
+
+let print_blocks cfg =
+  let lvars_to_string lvs =
+    String.concat ","
+     (List.map (fun (i,j) -> Printf.sprintf "%s(%d) def at %d" 
+                             cfg.S.regToVarinfo.(i).vname i j) lvs) in
+  Array.iteri 
+    (fun i b -> 
+      ignore (E.log "\n ------> \n block %d [preds: %s] livevars: %s \n" 
+      i (Misc.map_to_string string_of_int cfg.S.predecessors.(i)) 
+      (lvars_to_string b.S.livevars));
+      Cil.dumpStmt Cil.defaultCilPrinter stderr 0 b.S.bstmt)
+    cfg.S.blocks
+ 
+let print_out_t r2v out_t = 
+  H.iter 
+    (fun (b,r) ri ->
+      let vn  = (r2v r).vname in
+      let ssn = mk_ssa_name vn ri in
+      ignore (E.log "out_t: block = %d : var = %s : reginfo = %s \n" b vn ssn))
+    out_t
+
+let print_phis phis = 
+  Array.iteri 
+    (fun i xs ->
+      List.iter 
+        (fun (v,vs) -> 
+          ignore (E.log "block %d: %s <- phi(%s) \n" i v.vname 
+          (String.concat "," (List.map (fun (j,v) -> Printf.sprintf "%d: %s" j v.vname) vs))))
+        xs)
+    phis
+ 
+let print_instrs i (us, ds) = 
+  let vs2s vs = String.concat "," (List.map (fun v -> v.vname) (VS.elements vs)) in
+  ignore (E.log "block = %d :uses= %s :defines= %s \n " i (vs2s us) (vs2s ds))
+
+(******************************* create CFG *******************************)
+
+let mk_var_reg_maps () = 
+  let n_r       = ref 0 in
+  let var_reg_m = IH.create 117 in
+  let reg_var_m = IH.create 117 in
+  ((fun () -> !n_r),
+   (fun r  -> IH.find reg_var_m r), 
+   (fun v  -> 
+     try IH.find var_reg_m v.vid with Not_found -> 
+       let n = !n_r in
+       let _ = incr n_r in
+       let _ = IH.add reg_var_m n v in
+       let _ = IH.add var_reg_m v.vid n in n))
+
+let proc_stmt cfg v2r s = 
+  let vs_to_regs vs = VS.fold (fun v acc -> (v2r v) :: acc) vs [] in
+  cfg.S.successors.(s.sid)   <- List.map (fun s' -> s'.sid) s.succs;
+  cfg.S.predecessors.(s.sid) <- List.map (fun s' -> s'.sid) s.preds;
+  cfg.S.blocks.(s.sid)       <- 
+    let uds =  
+      match s.skind with 
+      | Instr instrs -> 
+          List.map Usedef.computeUseDefInstr instrs 
+      | Return (Some e, _) | If (e,_,_,_) | Switch (e,_,_,_) ->
+          [(Usedef.computeUseExp e, VS.empty)]  
+      | Break _ | Continue _ | Goto _ | Block _ | Loop _ | Return _ -> 
+          []
+      | TryExcept _ | TryFinally _ -> 
+          assert false in
+    let ins = List.map (fun (us,ds) -> (* ignore(print_instrs s.sid (us, ds));*) 
+                                       (vs_to_regs ds, vs_to_regs us)) uds in
+    { S.bstmt     = s;
+      S.instrlist = ins;
+      S.livevars  = [];   (* set later *)
+      S.reachable = true; (* set later *)}
+
+
+let init_cfgInfo fdec = 
+  let n  = List.fold_left (fun c s -> s.sid <- c; c+1) 0 fdec.sallstmts in
+  let s0 = try List.hd fdec.sbody.bstmts 
+           with _ -> E.s (E.bug "Function %s with no body" fdec.svar.vname) in
+  let _  = asserts (s0.sid = 0) "ERROR: First block index nonzero" in
+  { S.name         = fdec.svar.vname;
+    S.start        = s0.sid;
+    S.size         = n;
+    S.successors   = Array.make n [];
+    S.predecessors = Array.make n [];
+    S.blocks       = Array.make n { S.bstmt     = s0; 
+                                    S.instrlist = [];
+                                    S.reachable = true;
+                                    S.livevars  = [] };
+    S.nrRegs       = 0;
+    S.regToVarinfo = Array.make 0 dummyFunDec.svar;}
+
+let mk_cfg fdec = 
+  let cfg  = init_cfgInfo fdec in
+  let cfg  = S.prune_cfg cfg in
+  let sz,r2v,v2r = mk_var_reg_maps () in
+  let _   = List.iter (proc_stmt cfg v2r) fdec.sallstmts;
+            cfg.S.regToVarinfo <- Array.init (sz ()) r2v;
+            cfg.S.nrRegs <- (sz ()) in
+  (cfg, r2v, v2r)
+
+(*********************** renaming helpers ********************************)
+
+let mk_out_name cfg =
+  let out_t = H.create 117 in
+  Array.iteri
+    (fun i b ->
+      List.iter 
+        (fun (r, j) -> if j=i then H.replace out_t (i, r) (Phi i))
+        b.S.livevars;
+      let wrs = Misc.flap (fun (ls,_) -> Misc.sort_and_compact ls) b.S.instrlist in
+      let cm  = Misc.count_map wrs in
+      IM.iter (fun r k -> H.replace out_t (i, r) (Def (i, k))) cm)
+    cfg.S.blocks;
+  out_t
+
+let out_name cfg out_t k = 
+  Misc.do_memo out_t 
+    (fun (i, r) ->
+      let b = cfg.S.blocks.(i) in  
+      let j = List.assoc r b.S.livevars in
+      H.find out_t (j, r))
+    k k
+
+let mk_renamed_var fdec var_t v ri =
+  try H.find var_t (v.vname, ri) with Not_found ->
+    let name = mk_ssa_name v.vname ri   in
+    let v'   = makeLocalVar fdec name v.vtype in
+    let _    = H.replace var_t (v.vname, ri) v' in
+    v'
+
+(*********************** compute phi assignments **************************)
+
+let mk_phi fdec cfg out_t var_t r2v i r =
+  let ps     = cfg.S.predecessors.(i) in
+  let _      = assert (ps != []) in
+  let v      = r2v r in
+  let ridefs = List.map (fun j -> (j, out_name cfg out_t (j, r))) ps in
+  let bvdefs = List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) ridefs in
+  let vphi   = mk_renamed_var fdec var_t v (Phi i) in
+  (vphi, bvdefs)
+
+let add_phis fdec cfg out_t var_t r2v i = function 
+  | [] -> [] 
+  | ps -> let b    = cfg.S.blocks.(i) in
+          let rs   = List.filter (fun (_,j) -> i=j) b.S.livevars in
+          List.map (fun (r,_) -> mk_phi fdec cfg out_t var_t r2v i r) rs 
+
+(*********************** ssa rename visitor *******************************)
+
+class ssaVisitor fdec cfg out_t var_t v2r = object(self)
+  inherit nopCilVisitor
+
+  val sid   = ref 0
+  val theta = ref IM.empty
+  val var_t = H.create 17
+
+  method private is_ssa_renamed v = 
+    not (v.vglob)
+
+  method private init_theta i = 
+    let b = cfg.S.blocks.(i) in  
+    List.fold_left 
+      (fun m (r,j) -> 
+        let ri = 
+          if i = j then Phi i else 
+            try out_name cfg out_t (j, r) 
+            with _ -> E.s (E.bug "mk_init_theta") in
+        IM.add r ri m)
+      IM.empty b.S.livevars
+
+  method private get_regindex read v =
+    let r  = v2r v in
+    let ri = IM.find r !theta in
+    if read then ri else 
+      let ri' = match ri with
+                | Def (b,k) when b = !sid -> Def (!sid, k+1)
+                | _ -> Def (!sid, 1) in
+      let _   = theta := IM.add r ri' !theta in
+      ri'
+
+  method private rename_var read v =
+    if not (self#is_ssa_renamed v) then v else
+      try 
+        let ri = self#get_regindex read v in
+        mk_renamed_var fdec var_t v ri 
+      with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
+                           read v.vname (Printexc.to_string e)) 
+
+  method vinst = function
+    | Set (((Var v), NoOffset) , e, l) ->
+        let e' = visitCilExpr (self :> cilVisitor) e in
+        let v' = self#rename_var false v in
+        let i' = Set (((Var v'), NoOffset), e', l) in
+        ChangeTo [i']
+    | Call (Some ((Var v), NoOffset), e, es, l) -> 
+        let e' = visitCilExpr (self :> cilVisitor) e in
+        let es'= List.map (visitCilExpr (self :> cilVisitor)) es in
+        let v' = self#rename_var false v in
+        let i' = Call (Some ((Var v'), NoOffset), e', es', l) in
+        ChangeTo [i']
+    | _ -> DoChildren
+ 
+  method vvrbl (v: varinfo) : varinfo visitAction =
+    ChangeTo (self#rename_var true v)
+
+  method vstmt (s: stmt) : stmt visitAction = 
+    theta := self#init_theta s.sid;
+    sid   := s.sid;
+    DoChildren
+end
+
+(**************************************************************************)
+
+let mk_gdominators fdec cfg =
+  let idom = S.compute_idom cfg in
+  let _    = Array.iteri (fun i id -> ignore (E.log "idom of %d = %d \n" i id)) idom in 
+  let n    = Array.length idom in
+  let ifs  = Guards.mk_ifs n fdec in
+  let gds  = Guards.mk_gdoms cfg.S.predecessors ifs idom in
+  (ifs, gds)
+  
+(* API *)
+let fdec_to_ssa_cfg fdec loc = 
+  let (cfg,r2v,v2r) = mk_cfg fdec in
+  let _     = print_blocks cfg in
+  let _     = S.add_ssa_info cfg in 
+  let out_t = mk_out_name cfg in
+  let var_t = H.create 117 in
+  let phis  = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.predecessors in
+  let _     = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r) fdec in
+  let gi    = mk_gdominators fdec cfg in
+  {fdec = fdec; cfg = cfg; phis = phis; ifs = fst gi; gdoms = snd gi} 
+
+(* API *)  
+let print_sci sci = 
+  print_phis sci.phis;
+  Guards.print_ifs sci.ifs;
+  Guards.print_gdoms sci.gdoms;
+  Cil.dumpGlobal Cil.defaultCilPrinter stdout (GFun (sci.fdec,Cil.locUnknown)) 
