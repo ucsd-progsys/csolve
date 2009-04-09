@@ -337,7 +337,7 @@ Copyright (C) 2006 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/rjhala/research/liquidC/external/cil'
+ac_pwd='/home/rjhala/research/liquidc/external/cil'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 # If no file are specified by the user, then we need to provide default
@@ -556,7 +556,7 @@ s,@GREP@,|#_!!_#|/bin/grep,g
 s,@EGREP@,|#_!!_#|/bin/grep -E,g
 s,@LIBOBJS@,|#_!!_#|,g
 s,@ARCHOS@,|#_!!_#|x86_LINUX,g
-s,@CILHOME@,|#_!!_#|/home/rjhala/research/liquidC/external/cil,g
+s,@CILHOME@,|#_!!_#|/home/rjhala/research/liquidc/external/cil,g
 s,@HAS_MSVC@,|#_!!_#|no,g
 s,@DEFAULT_COMPILER@,|#_!!_#|_GNUCC,g
 s,@DEFAULT_CIL_MODE@,|#_!!_#|GNUCC,g
@@ -564,7 +564,7 @@ s,@CIL_VERSION_MAJOR@,|#_!!_#|1,g
 s,@CIL_VERSION_MINOR@,|#_!!_#|3,g
 s,@CIL_VERSION_REV@,|#_!!_#|6,g
 s,@CIL_VERSION@,|#_!!_#|1.3.6,g
-s,@CYCLES_PER_USEC@,|#_!!_#|3040.741,g
+s,@CYCLES_PER_USEC@,|#_!!_#|3693.103,g
 s,@HAS_PERFCOUNT@,|#_!!_#|1,g
 s,@HAVE_BUILTIN_VA_LIST@,|#_!!_#|true,g
 s,@THREAD_IS_KEYWORD@,|#_!!_#|true,g
