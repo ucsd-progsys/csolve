@@ -57,11 +57,13 @@ module Sort :
     val print : Format.formatter -> t -> unit
   end
 
+type tag  (* externally opaque *)
+
 type brel = Eq | Ne | Gt | Ge | Lt | Le 
 
 type bop  = Plus | Minus | Times | Div
     
-type expr = expr_int * int
+type expr = expr_int * tag 
     
 and expr_int =
   | Con of Constant.t
@@ -71,7 +73,7 @@ and expr_int =
   | Ite of pred * expr * expr
   | Fld of Symbol.t * expr             (* NOTE: Fld (s, e) == App ("field"^s,[e]) *) 
       
-and pred = pred_int * int
+and pred = pred_int * tag
 
 and pred_int =
   | True
