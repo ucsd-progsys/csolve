@@ -37,6 +37,10 @@ module Ops = struct
 
   let (++) = List.rev_append 
 
+  let id = fun x -> x
+
+  let un = fun x -> ()
+
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
@@ -65,6 +69,9 @@ module StringMap =
 
 open Ops
 
+let get_option d = function  
+  | Some x -> x 
+  | None   -> d
 
 let map_partial f xs =
   List.rev 

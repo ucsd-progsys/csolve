@@ -36,11 +36,10 @@
 
 module Symbol : 
   sig 
-    type t = string
-    module Map : Map.S with type key = t
-
+    type t (* = string *)
     val to_string : t -> string 
     val print : Format.formatter -> t -> unit 
+    module SMap : Map.S with type key = t
   end
 
 module Constant :
@@ -86,7 +85,7 @@ and pred_int =
   | Bexp of expr
   | Forall of ((Symbol.t * Sort.t) list) * pred
 
-(** HERE Wrap and unwrap -- should not be exposed 
+(** Wrap and unwrap -- should be hidden 
 val ewr : expr_int -> expr
 val euw : expr -> expr_int
 val pwr : pred_int -> pred
@@ -117,31 +116,30 @@ val print_stats : unit -> unit
 
 module Expression : 
 sig
-  type t (* = expr *)
-  module Hash : Hashtbl.S with type key = t
+  module Hash : Hashtbl.S with type key = expr 
   
-  val print     : Format.formatter -> t -> unit
-  val show      : t -> unit
-  val to_string : t -> string
+  val print     : Format.formatter -> expr -> unit
+  val show      : expr -> unit
+  val to_string : expr -> string
   
   val support   : t -> Symbol.t list
-  val subst     : t * Symbol.t * t -> t 
-  val map       : (t -> t) -> t -> t 
+  val subst     : expr -> Symbol.t -> expr -> pred 
+  val map       : (pred -> pred) -> (expr -> expr) -> expr -> expr 
+  val iter      : (pred -> unit) -> (expr -> unit) -> expr -> unit 
 end
   
 module Predicate :
 sig
-  type t (* = pred *)
-  module Hash : Hashtbl.S with type key = t 
+  module Hash : Hashtbl.S with type key = pred 
  
-  val print     : Format.formatter -> t -> unit
-  val show      : t -> unit
-  val to_string : t -> string
+  val print     : Format.formatter -> pred -> unit
+  val show      : pred -> unit
+  val to_string : pred -> string
   
-  val support   : t -> Symbol.t list
-  val subst     : t * Symbol.t * t -> t 
-  val map       : (t -> t) -> t -> t 
-  
-  val elim_ite  : t -> t 
+  val support   : pred -> Symbol.t list
+  val subst     : pred -> Symbol.t -> expr -> pred 
+  val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 
+  val iter      : (pred -> unit) -> (expr -> unit) -> pred -> unit 
+
   val size      : t -> int
 end
