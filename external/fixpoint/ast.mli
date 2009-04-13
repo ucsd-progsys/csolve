@@ -77,12 +77,12 @@ and pred = pred_int * tag
 and pred_int =
   | True
   | False
-  | Atom of expr * brel * expr 
   | And  of pred list
   | Or   of pred list
   | Not  of pred
   | Imp  of pred * pred
   | Bexp of expr
+  | Atom of expr * brel * expr 
   | Forall of ((Symbol.t * Sort.t) list) * pred
 
 (** Wrap and unwrap -- should be hidden 
@@ -122,8 +122,8 @@ sig
   val show      : expr -> unit
   val to_string : expr -> string
   
-  val support   : t -> Symbol.t list
-  val subst     : expr -> Symbol.t -> expr -> pred 
+  val support   : expr -> Symbol.t list
+  val subst     : expr -> Symbol.t -> expr -> expr 
   val map       : (pred -> pred) -> (expr -> expr) -> expr -> expr 
   val iter      : (pred -> unit) -> (expr -> unit) -> expr -> unit 
 end
@@ -141,5 +141,5 @@ sig
   val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 
   val iter      : (pred -> unit) -> (expr -> unit) -> pred -> unit 
 
-  val size      : t -> int
+  (* val size      : pred -> int *)
 end

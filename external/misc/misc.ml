@@ -47,8 +47,8 @@ module Ops = struct
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
   
- (* let pretty_string f x = 
-    Printf.dprintf "%a" f x |> Pretty.sprint ~width:80 *)
+  let pretty_string f x = 
+    Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
 
 end
 

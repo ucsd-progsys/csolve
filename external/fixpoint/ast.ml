@@ -44,7 +44,7 @@ module Symbol =
       if is_safe s then s else "'" ^ s ^ "'"      
 
     let print fmt s =
-      to_string s |> Format.pp_print_string fmt 
+      to_string s |> Format.fprintf fmt "%s" 
       
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
@@ -58,9 +58,25 @@ module Constant =
       | Int i -> string_of_int i
  
     let print fmt s =
-      to_string s |> Format.pp_print_fmt 
+      to_string s |> Format.fprintf fmt "%s"
   end
-  
+ 
+module Sort = 
+  struct
+    type t = Int | Bool | Array of t * t | Unint of string | Func of t list
+
+    let to_string = function
+      | Int     -> "int"
+      | Bool    -> "bool"
+      | Unint s -> "uit "^s
+      | Func ts -> "func"
+      | Array _ -> failwith "TBD: Sort.to_string"
+
+    let print fmt t = 
+      to_string t |> Format.fprintf fmt "%s"
+  end
+
+
 type tag = int
 
 type brel = Eq | Ne | Gt | Ge | Lt | Le 
@@ -90,7 +106,8 @@ and pred_int =
   | Atom of expr * brel * expr 
   | Forall of ((Symbol.t * Sort.t) list) * pred
 
-let list_hash = List.fold_left (fun v (_,id) -> 2*v + id)
+let list_hash b xs = 
+  List.fold_left (fun v (_,id) -> 2*v + id) b xs
 
 module Hashcons (X : sig type t 
                          val sub_equal : t -> t -> bool 
@@ -105,8 +122,8 @@ module Hashcons (X : sig type t
   module Hash = Weak.Make(HashStruct)
   
   let wrap = 
-    let tab = Hash.create 251
-    let ctr = ref 0
+    let tab = Hash.create 251 in
+    let ctr = ref 0 in
     fun e -> 
       let res = Hash.merge tab (e, !ctr) in
       let _   = if snd res = !ctr then incr ctr in
@@ -141,7 +158,7 @@ module ExprHashconsStruct = struct
     | Var x -> 
         Hashtbl.hash x
     | App (s, es) -> 
-        list_hash ((Hashtbl.hash s) + 1)  es 
+        list_hash ((Hashtbl.hash s) + 1) es 
     | Bin ((_,id1), op, (_,id2)) -> 
         (Hashtbl.hash op) + 1 + (2 * id1) + id2 
     | Ite ((_,id1), (_,id2), (_,id3)) -> 
@@ -164,7 +181,7 @@ module PredHashconsStruct = struct
           (try List.for_all2 (==) p1s p2s with _ -> false)
       | Not p1, Not p2 -> 
           p1 == p2
-      | Imp (p1, p1'), Implies(p2, p2') -> 
+      | Imp (p1, p1'), Imp (p2, p2') -> 
           p1 == p2 && p1' == p2'
       | Bexp e1, Bexp e2 -> 
           e1 == e2
@@ -225,13 +242,13 @@ let pImp   = fun (p1,p2) -> pwr (Imp (p1,p2))
 let pForall= fun (qs, p) -> pwr (Forall (qs, p))
 
 module ExprHash = Hashtbl.Make(struct
-  type t = expression
+  type t = expr
   let equal (_,x) (_,y) = (x = y)
   let hash (_,x) = x
 end)
 
 module PredHash = Hashtbl.Make(struct
-  type t = predicate
+  type t = pred
   let equal (_,x) (_,y) = (x = y)
   let hash (_,x) = x
 end)
@@ -242,13 +259,16 @@ let bop_to_string = function
   | Times -> "*"
   | Div   -> "/"
 
-type brel_to_string = function 
+let brel_to_string = function 
   | Eq -> "="
   | Ne -> "!="
   | Gt -> ">"
   | Ge -> ">="
   | Lt -> "<"
   | Le -> "<="
+
+let bind_to_string (s,t) = 
+  Printf.sprintf "%s:%s" (Symbol.to_string s) (Sort.to_string t)
 
 let rec expr_to_string e = 
   match euw e with
@@ -265,6 +285,8 @@ let rec expr_to_string e =
   | Ite(ip,te,ee) -> 
       Printf.sprintf "%s ? %s : %s" 
       (pred_to_string ip) (expr_to_string te) (expr_to_string ee)
+  | Fld(s,e) -> 
+      Printf.sprintf "%s.%s" (expr_to_string e) s 
      
 and pred_to_string p = 
   match puw p with
@@ -303,11 +325,11 @@ let rec pred_map hp he fp fe p =
         | Not p -> 
             Not (pm p) 
         | Imp (p1, p2) -> 
-            Implies (pm p1, pm p2) 
+            Imp (pm p1, pm p2) 
         | Bexp e ->
-            Bexp (expr_map h he f fe e) 
+            Bexp (expr_map hp he fp fe e) 
         | Atom (e1, r, e2) ->
-            Atom (expr_map hp he fp fe e1, expr_map hp he fp fe e2)
+            Atom (expr_map hp he fp fe e1, r, expr_map hp he fp fe e2)
         | Forall (qs, p) ->
             Forall (qs, pm p) in
       let rv = fp (pwr p') in
@@ -320,7 +342,7 @@ and expr_map hp he fp fe e =
     try ExprHash.find he e with Not_found -> begin
       let e' = 
         match euw e with
-        | Cons _ | Var _ as e1 -> 
+        | Con _ | Var _ as e1 -> 
             e1
         | App (f, es) ->
             App (f, List.map em es)
@@ -343,7 +365,7 @@ let expr_subst hp he e x e' =
   expr_map hp he (fun p -> p) (esub x e') e 
 
 let pred_subst hp he p x e' =
-  pred_map hp he (fun p -> p) (esub x e') e 
+  pred_map hp he (fun p -> p) (esub x e') p 
 
 module Expression = 
   struct
@@ -362,7 +384,7 @@ module Expression =
       expr_map hp he fp fe e 
 
     let iter fp fe e =
-      map (fun p -> fp p; p) (fun e -> f e; e) e
+      ignore(map (fun p -> fp p; p) (fun e -> fe e; e) e)
 
     let subst e x e' =
       map id (esub x e') e
@@ -371,7 +393,7 @@ module Expression =
       let t = Hashtbl.create 251 in
       iter un (function (Var x), _ 
               | (App (x,_)),_ -> Hashtbl.replace t x () 
-              | _             -> ()) e in
+              | _             -> ()) e;
       Misc.hashtbl_keys t
 
   end
@@ -387,13 +409,13 @@ module Predicate =
       let show      = print Format.std_formatter
 			
       let map fp fe p =
-	let hp = Predhash.create 251 in
-	let he = Exprhash.create 251 in 
+	let hp = PredHash.create 251 in
+	let he = ExprHash.create 251 in 
         pred_map hp he fp fe p
 	
       let iter fp fe p =
-        map (fun p -> fp p; p) (fun e -> fe e; e) p
-    
+        ignore(map (fun p -> fp p; p) (fun e -> fe e; e) p)
+
       let subst p x e' =
         map id (esub x e') p
 	   
@@ -401,7 +423,7 @@ module Predicate =
         let t = Hashtbl.create 251 in
         iter un (function (Var x), _ 
                      | (App (x,_)),_ -> Hashtbl.replace t x () 
-                     | _             -> ()) p in
+                     | _             -> ()) p; 
         Misc.hashtbl_keys t
   
       let size p =
