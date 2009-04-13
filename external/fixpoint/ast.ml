@@ -416,20 +416,10 @@ module Predicate =
         !c
     end
 
-exception Foo
+let print_stats _ = 
+  Printf.printf "Ast Stats. [none] \n"
 
-let print_stats _ =
-  Printf.printf "preds: %d, exprs: %d" 
-  (PredHashcons.Hash.count PredHashcons.utab) 
-  (ExprHashcons.Hash.count ExprHashcons.utab);
-  print_newline ();
-  let cnt = ref 0 in
-    (try
-       PredHashcons.Hash.iter (fun p -> Predicate.print Format.std_formatter p;
-				 cnt := !cnt + 1;
-				 if !cnt = 100 then raise Foo)  PredHashcons.utab
-     with Foo -> ());
-    Format.print_newline ()
+
 
 (* {{{
 let rec expr_subst hp he e x e' =
