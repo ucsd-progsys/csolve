@@ -28,10 +28,12 @@ type atom = Conc of pred | Kvar of (Symbol.t * expr) list * Symbol.t
 type cstr = sort Symbol.Map.t * atom list * atom
 type soln = pred list Symbol.Map.t
 
-type ctx  
+type t 
 
-val add_sort : ctx -> sort -> unit
-val add_axiom: ctx -> pred -> unit
-val solve    : ctx -> cstr list -> soln -> soln 
+val make     : unit -> t option
+
+val add_sort : t -> sort -> unit
+val add_axiom: t -> pred -> unit
+val solve    : t -> cstr list -> soln -> soln 
 
 (* Temporal API: add_sort*.add_axiom*.solve *)
