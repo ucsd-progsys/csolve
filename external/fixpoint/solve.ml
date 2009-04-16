@@ -40,7 +40,11 @@ type environment  = (Ast.Sort.t * refinement) SM.t
 type lconstraint  = environment * P.t * refinement * refineatom * (id option) 
 type lsolution    = P.t list SM.t
 
-type ctx  = int (* TBD *)
+type t = int * TP.t
+
+let make =
+  let ct = ref 0 in
+  (fun () -> if c > 0 then None else incr c; Some (1, TP.t))
 
 (* Sections :
  * Iterative Refinement
