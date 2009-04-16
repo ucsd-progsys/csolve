@@ -32,6 +32,27 @@
 
 open Misc.Ops
 
+module Sort = 
+  struct
+    type t = 
+      | Int 
+      | Bool 
+      | Array of t * t 
+      | Unint of string 
+      | Func of t list
+
+    let to_string = function
+      | Int     -> "int"
+      | Bool    -> "bool"
+      | Unint s -> "uit "^s
+      | Func ts -> "func"
+      | Array _ -> failwith "TBD: Sort.to_string"
+
+    let print fmt t = 
+      to_string t |> Format.fprintf fmt "%s"
+  end
+
+
 module Symbol = 
   struct 
     type t = string
@@ -45,7 +66,10 @@ module Symbol =
 
     let print fmt s =
       to_string s |> Format.fprintf fmt "%s" 
-      
+
+    let value_variable t = 
+      "VV_"^(Sort.to_string t)
+
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
   end
@@ -61,21 +85,6 @@ module Constant =
       to_string s |> Format.fprintf fmt "%s"
   end
  
-module Sort = 
-  struct
-    type t = Int | Bool | Array of t * t | Unint of string | Func of t list
-
-    let to_string = function
-      | Int     -> "int"
-      | Bool    -> "bool"
-      | Unint s -> "uit "^s
-      | Func ts -> "func"
-      | Array _ -> failwith "TBD: Sort.to_string"
-
-    let print fmt t = 
-      to_string t |> Format.fprintf fmt "%s"
-  end
-
 
 type tag = int
 

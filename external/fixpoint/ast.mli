@@ -34,11 +34,19 @@
 (********************** Base Logic  ***********************)
 (**********************************************************)
 
+module Sort :
+  sig 
+    type t = Int | Bool | Array of t * t | Unint of string | Func of t list
+    val to_string : t -> string
+    val print : Format.formatter -> t -> unit
+  end
+
 module Symbol : 
   sig 
     type t (* = string *)
     val to_string : t -> string 
-    val print : Format.formatter -> t -> unit 
+    val print : Format.formatter -> t -> unit
+    val value_variable : Sort.t -> t
     module SMap : Map.S with type key = t
   end
 
@@ -49,12 +57,7 @@ module Constant :
     val print : Format.formatter -> t -> unit
   end
 
-module Sort :
-  sig 
-    type t = Int | Bool | Array of t * t | Unint of string | Func of t list
-    val to_string : t -> string
-    val print : Format.formatter -> t -> unit
-  end
+
 
 type tag  (* externally opaque *)
 
@@ -121,7 +124,7 @@ sig
   val print     : Format.formatter -> expr -> unit
   val show      : expr -> unit
   val to_string : expr -> string
-  
+ 
   val support   : expr -> Symbol.t list
   val subst     : expr -> Symbol.t -> expr -> expr 
   val map       : (pred -> pred) -> (expr -> expr) -> expr -> expr 
