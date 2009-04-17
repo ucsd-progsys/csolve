@@ -93,15 +93,14 @@ let environment_preds s env =
 (************************** Refinement *************************)
 (***************************************************************)
 
-let refine_simple s r1 k2 =
-  let _    = failwith "TBD: FIX" in
-  let q1t  = PH.create 17 in
-  let _    = refinment_kvars r1 |> 
-             Misc.flap (SM.find s) |> 
-             List.iter (fun q -> PH.add pt q ()) in
-  let q2s  = refine_sol_read s k2 in
-  let q2s' = List.filter (fun q -> PH.mem q1t q) q2s in
-  refine_sol_update s k2 q2s q2s'
+let is_simple_refatom = function 
+  | C.Kvar ([], _) -> true
+  | _ -> false
+
+let is_simple_constraint (_,_,(_,ra1s),(_,ra2s),_) = 
+  List.for_all is_simple_refatom ra1s &&
+  List.for_all is_simple_refatom ra2s &&
+  not (!Cf.no_simple || !Cf.verify_simple)
 
 let lhs_preds s env gp r1 =
   let envps = environment_preds s env in
@@ -114,6 +113,7 @@ let rhs_cands s = function
       List.map (fun q -> ((k,q), apply_substs xes q))
   | _ -> []
 
+(* JUNK BEGIN {{{ *)
 let check_tp senv lhs_ps x2 = 
   let dump s p = 
     let p = List.map (fun p -> P.big_and (List.filter (function P.Atom(p, P.Eq, p') when p = p' -> false | _ -> true) (P.conjuncts p))) p in
@@ -150,40 +150,40 @@ let refine_tp senv s env g r1 sub2s k2 =
   refine_sol_update s k2 rhs_qps (List.map fst rhs_qps') 
 
 
-let is_simple_refatom = function 
-  | C.Kvar ([], _) -> true
-  | _ -> false
-
-(* Optimizations :
-  * lhs_contra    : don't change RHS
-  * setup TP state
-        * lhs_simple    : subsumed by RHS match 
-        * lhs_non-simple: do non-simple on each RHS *)
+  (* JUNK END }}} *)
 
 let check_tp env lps rcs =
 
-let refine s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
-  let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
-  let _    = incr stat_refines in
-  if is_simple_constraint c && not (!Cf.no_simple || !Cf.verify_simple) then
-    let _ = incr stat_simple_refines in
-    refine_simple s c
-  else begin 
-    let lps  = lhs_preds s env g (vv1, ra1s) in
-    let rcs  = Misc.flap (rhs_cands s) ra2s in
-    if List.exists P.is_contra lps || rcs = [] then
-      let _ = stat_matches += (List.length rcs) in
-      (false, s)
-    else
-      let rcs'    = List.filter (fun (_,p) -> not (P.is_contra p)) rcs in
-      let lt      = PH.create 17 in
-      let _       = List.iter (fun p -> PH.add lt p ()) lps in
-      let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs' in
-      let _       = stat_matches += (List.length x1) in
-      let rcs'    = x1 ++ (check_tp env lps x2) in
-      group_and_update s rcs' (* TBD HERE*)
-  end
+let group_and_update s0 rcs = 
+  let t  = Hashtbl.create 17 in
+  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) rcs in
+  let ks = Misc.hashtbl_keys t in
+  List.fold_left 
+    (fun (b, s) k -> 
+      let qs       = Hashtbl.find_all t k in 
+      let (b', s') = refine_sol_update s k qs in
+      (b || b', s'))
+    (false, s0) ks
 
+let refine s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
+  let _  = asserts (vv1 = vv2) "ERROR: malformed constraint";
+           incr stat_refines in
+  let lps  = lhs_preds s env g (vv1, ra1s) in
+  let rcs  = Misc.flap (rhs_cands s) ra2s in
+  if (List.exists P.is_contra lps) || (rcs = []) then
+    let _ = stat_matches += (List.length rcs) in
+    (false, s)
+  else
+    let rcs     = List.filter (fun (_,p) -> not (P.is_contra p)) rcs in
+    let lt      = PH.create 17 in
+    let _       = List.iter (fun p -> PH.add lt p ()) lps in
+    let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs in
+    let _       = stat_matches += (List.length x1) in
+    let kqs1    = List.map fst xs in
+    (if is_simple_constraint c
+     then let _ = stat_simple_refines += 1 in kqs1 
+     else kqs1 ++ (check_tp env lps x2))
+    |> group_and_update s 
 
 (***************************************************************)
 (************************* Satisfaction ************************)

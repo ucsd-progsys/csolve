@@ -467,7 +467,8 @@ module Constraint =
       List.fold_left 
         (fun ks a -> match a with Kvar (_,k) -> k::ks | _ -> ks) 
         [] r 
-  end
+    
+ end
 
 
 let print_stats _ = 

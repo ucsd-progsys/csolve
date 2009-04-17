@@ -101,8 +101,6 @@ let tr_flatten xss =
 let tr_flap f xs = 
   List.rev (tr_flatten (List.rev_map f xs))
 
-(** hashtbl_keys tbl returns the list of keys with bindings in the table *)
-
 let hashtbl_keys t = 
   Hashtbl.fold (fun x y l -> x::l) t []
  
