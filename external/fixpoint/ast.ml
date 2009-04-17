@@ -447,6 +447,29 @@ module Predicate =
         !c
     end
 
+module Constraint = 
+  struct
+    type tag          = int
+    type substitution = (Symbol.t * Expression.t) list                  (* [x,e] *)
+    type refineatom   = Conc of Predicate.t | Kvar of subs * Symbol.t
+    type refinement   = Symbol.t * (refineatom list)                    (* VV,... *)
+
+    type environment  = (Sort.t * refinement) Symbol.SMap.t
+    type solution     = refpred list Symbol.SMap.t
+    type t            = environment * P.t * refinement * refinement * (tag option) 
+
+
+    let to_string = failwith "TBD" 
+    
+    let print     = failwith "TBD" 
+
+    let refinement_kvars r =
+      List.fold_left 
+        (fun ks a -> match a with Kvar (_,k) -> k::ks | _ -> ks) 
+        [] r 
+  end
+
+
 let print_stats _ = 
   Printf.printf "Ast Stats. [none] \n"
 

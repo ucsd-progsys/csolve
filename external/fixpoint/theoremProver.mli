@@ -25,7 +25,11 @@ type t
 
 val make : unit -> t option
 
-val push_axiom : t -> Sort.t Symbol.SMap.t -> pred -> unit
-val set_and_filter : t -> Sort.t Symbol.SMap.t -> pred list -> pred list -> pred list
+val push_axiom : t -> Sort.t Symbol.SMap.t -> Predicate.t -> unit
+
+val set_and_filter : t -> Sort.t Symbol.SMap.t 
+                       -> Predicate.t list 
+                       -> ('a * Predicate.t) list -> 'a list
+
 val print_stats : t -> unit
 val not_reset : t -> unit

@@ -30,21 +30,23 @@ module PH = Ast.Predicate.Hash
 module Sy = Ast.Symbol
 module SM = Sy.SMap
 module So = Ast.Sort
+module C  = Ast.Constraint
 
-type identifier   = int
-type substitution = (Sy.t * E.t) list 
-type refineatom   = Conc of P.t | Kvar of subs * Sy.t
-type refinement   = refineatom list
-
-type environment  = (Ast.Sort.t * refinement) SM.t
-type lconstraint  = environment * P.t * refinement * refineatom * (id option) 
-type lsolution    = P.t list SM.t
+(* JHALA: What the hell is this ? *)
 
 type t = int * TP.t
 
 let make =
   let ct = ref 0 in
   (fun () -> if c > 0 then None else incr c; Some (1, TP.t))
+
+
+(*************************************************************)
+(********************* Stats *********************************)
+(*************************************************************)
+
+let stat_refines = ref 0
+let stat_simple_refines = ref 0
 
 (* Sections :
  * Iterative Refinement
@@ -61,8 +63,8 @@ let make =
  * Qual Instantiation
  * Constraint Simplification/Splitting *)
 
-let apply_substs p xes = 
-  List.fold_left (fun p (x,e) -> P.subst p x e) p xes
+let apply_substs xes p = 
+  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
 
 let refine_sol_read s k = 
   try SM.find s k with Not_found -> 
@@ -74,24 +76,18 @@ let refine_sol_update s k qs qs' =
 
 let refineatom_preds s   = function
   | Conc p       -> [p]
-  | Kvar (xes,k) -> apply_substs (refine_sol_read s k) xes
+  | Kvar (xes,k) -> List.map (apply_substs xes) (refine_sol_read s k)
 
-let refinement_preds s r =
-  Misc.flap (refineatom_preds s) r 
+let refinement_preds s (_,ras) =
+  Misc.flap (refineatom_preds s) ras
 
 let environment_preds s env =
   SM.fold
-    (fun x (t, r) ps -> 
-      let vv  = value_variable t in
-      let vps = refinement_preds s r in
+    (fun x (t, (vv,ras)) ps -> 
+      let vps = refinement_preds s (vv, ras) in
       let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
       List.rev_append xps ps)
     [] env
-
-let refinement_kvars r =
-  List.fold_left 
-    (fun ks a -> match a with Kvar (_,k) -> k::ks | _ -> ks) 
-    [] r 
 
 (***************************************************************)
 (************************** Refinement *************************)
@@ -102,7 +98,7 @@ let refine_simple s r1 k2 =
   let _    = refinment_kvars r1 |> 
              Misc.flap (SM.find s) |> 
              List.iter (fun q -> PH.add pt q ()) in
-  let q2s  = Sol.find s k2 in
+  let q2s  = refine_sol_read s k2 in
   let q2s' = List.filter (fun q -> PH.mem q1t q) q2s in
   refine_sol_update s k2 q2s q2s'
 
@@ -111,14 +107,11 @@ let lhs_preds s env gp r1 =
   let r1ps  = refinement_preds  s r1 in
   List.rev_append envps (gp :: r1ps) 
 
-(* HEREHEREHEREHERE *)
-
-let rhs_cands sm subs k = 
-  List.map 
-    (fun q -> 
-      let r = F.mk_refinement subs [q] [] in
-      (q,F.refinement_predicate sm qual_test_expr r))
-    (sm k) 
+let rhs_cands s = function
+  | C.Kvar (xes, k) -> 
+      refine_sol_read s k |>
+      List.map (fun q -> ((k,q), apply_substs xes q))
+  | _ -> []
 
 let check_tp senv lhs_ps x2 = 
   let dump s p = 
@@ -155,12 +148,37 @@ let refine_tp senv s env g r1 sub2s k2 =
       match x2 with [] -> x1 | _ -> x1 @ (check_tp senv lhs_ps x2) in
   refine_sol_update s k2 rhs_qps (List.map fst rhs_qps') 
 
-let refine sri s c =
-  (incr stat_refines;
-   match c with 
-   | SubRef _ -> incr stat_sub_refines 
-   | WFRef _ -> incr stat_wf_refines); 
-  let sm = solution_map s in
+
+let is_simple_refatom = function 
+  | C.Kvar ([], _) -> true
+  | _ -> false
+
+(* Optimizations :
+  * lhs_contra    : don't change RHS
+  * setup TP state
+        * lhs_simple    : do simple on each RHS
+        * lhs_non-simple: do non-simple on each RHS *)
+
+let refine s (env, g, (vv1, ra1s), (vv2, ra2s), _) =
+  let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
+  let _    = incr stat_refines in
+  let lhs  = List.for_all is_simple_refatom ra1s in
+  let lps  = lhs_preds s env g (vv1, ra1s) in
+  let rcs  = Misc.flap (rhs_cands s) ra2s in
+  if List.exists P.is_contra lps || rcs = [] then
+    let _ = stat_matches := !stat_matches + List.length rcs in
+    (false, s)
+  else
+
+  (fun (res, s) ra2 -> 
+    
+  if is_simple_constraint c && not (!Cf.no_simple || !Cf.verify_simple) then
+    let _ = incr stat_simple_refines in
+    refine_simple s c
+  else if 
+
+let refine s c =
+ 
   match c with
   | SubRef (_, _, r1, ([], F.Qvar k2), _)
     when is_simple_constraint c && not (!Cf.no_simple || !Cf.verify_simple) ->
