@@ -35,6 +35,8 @@ module Ops = struct
   
   let (|>) x f = f x
 
+  let (+=) x n = x := !x + n
+
   let (++) = List.rev_append 
 
   let id = fun x -> x

@@ -70,9 +70,9 @@ let refine_sol_read s k =
   try SM.find s k with Not_found -> 
     failure "ERROR: refine_sol_read : unknown kvar %s \n" s
 
-let refine_sol_update s k qs qs' =
-  let s' = BS.time "sol replace" (SM.replace s k) qs' in
-  (not Misc.same_length qs qs', s')
+let refine_sol_update s k qs' =
+  let qs = refine_sol_read s k in
+  (not (Misc.same_length qs qs'), SM.replace s k qs')
 
 let refineatom_preds s   = function
   | Conc p       -> [p]
@@ -86,7 +86,7 @@ let environment_preds s env =
     (fun x (t, (vv,ras)) ps -> 
       let vps = refinement_preds s (vv, ras) in
       let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
-      List.rev_append xps ps)
+      xps ++ ps)
     [] env
 
 (***************************************************************)
@@ -94,6 +94,7 @@ let environment_preds s env =
 (***************************************************************)
 
 let refine_simple s r1 k2 =
+  let _    = failwith "TBD: FIX" in
   let q1t  = PH.create 17 in
   let _    = refinment_kvars r1 |> 
              Misc.flap (SM.find s) |> 
@@ -105,7 +106,7 @@ let refine_simple s r1 k2 =
 let lhs_preds s env gp r1 =
   let envps = environment_preds s env in
   let r1ps  = refinement_preds  s r1 in
-  List.rev_append envps (gp :: r1ps) 
+  envps ++ (gp :: r1ps) 
 
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
@@ -156,39 +157,32 @@ let is_simple_refatom = function
 (* Optimizations :
   * lhs_contra    : don't change RHS
   * setup TP state
-        * lhs_simple    : do simple on each RHS
+        * lhs_simple    : subsumed by RHS match 
         * lhs_non-simple: do non-simple on each RHS *)
 
-let refine s (env, g, (vv1, ra1s), (vv2, ra2s), _) =
+let check_tp env lps rcs =
+
+let refine s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
   let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
   let _    = incr stat_refines in
-  let lhs  = List.for_all is_simple_refatom ra1s in
-  let lps  = lhs_preds s env g (vv1, ra1s) in
-  let rcs  = Misc.flap (rhs_cands s) ra2s in
-  if List.exists P.is_contra lps || rcs = [] then
-    let _ = stat_matches := !stat_matches + List.length rcs in
-    (false, s)
-  else
-
-  (fun (res, s) ra2 -> 
-    
   if is_simple_constraint c && not (!Cf.no_simple || !Cf.verify_simple) then
     let _ = incr stat_simple_refines in
     refine_simple s c
-  else if 
-
-let refine s c =
- 
-  match c with
-  | SubRef (_, _, r1, ([], F.Qvar k2), _)
-    when is_simple_constraint c && not (!Cf.no_simple || !Cf.verify_simple) ->
-      incr stat_simple_refines; 
-      refine_simple s r1 k2
-  | SubRef (_, _, _, (_, F.Qvar k2), _) when C.empty_list (sm k2) ->
-      false
-  | SubRef (env,g,r1, (sub2s, F.Qvar k2), _)  ->
-      refine_tp (get_ref_fenv sri c) s env g r1 sub2s k2 
-  | _ -> false
+  else begin 
+    let lps  = lhs_preds s env g (vv1, ra1s) in
+    let rcs  = Misc.flap (rhs_cands s) ra2s in
+    if List.exists P.is_contra lps || rcs = [] then
+      let _ = stat_matches += (List.length rcs) in
+      (false, s)
+    else
+      let rcs'    = List.filter (fun (_,p) -> not (P.is_contra p)) rcs in
+      let lt      = PH.create 17 in
+      let _       = List.iter (fun p -> PH.add lt p ()) lps in
+      let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs' in
+      let _       = stat_matches += (List.length x1) in
+      let rcs'    = x1 ++ (check_tp env lps x2) in
+      group_and_update s rcs' (* TBD HERE*)
+  end
 
 
 (***************************************************************)
@@ -405,7 +399,6 @@ let solve_wf sri s =
   (function WFRef _ as c -> ignore (refine sri s c) | _ -> ())
 
 let solve qs env consts cs = 
-  (*let _  = JS.doTime := true in*)
   let cs = if !Cf.simpguard then List.map simplify_fc cs else cs in
   let _  = dump_constraints cs in
   let _  = dump_unsplit cs in
