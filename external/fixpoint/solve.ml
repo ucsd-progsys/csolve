@@ -45,8 +45,12 @@ let make =
 (********************* Stats *********************************)
 (*************************************************************)
 
-let stat_refines = ref 0
+let stat_refines        = ref 0
 let stat_simple_refines = ref 0
+let stat_tp_refines     = ref 0
+let stat_imp_queries    = ref 0
+let stat_valid_queries  = ref 0
+let stat_matches        = ref 0
 
 (* Sections :
  * Iterative Refinement
@@ -63,20 +67,40 @@ let stat_simple_refines = ref 0
  * Qual Instantiation
  * Constraint Simplification/Splitting *)
 
+
+(*************************************************************)
+(******************** Solution Management ********************)
+(*************************************************************)
+
+let sol_read s k = 
+  try SM.find s k with Not_found -> 
+    failure "ERROR: sol_read : unknown kvar %s \n" s
+
+let sol_update s k qs' =
+  let qs = sol_read s k in
+  (not (Misc.same_length qs qs'), SM.replace s k qs')
+
+let group_sol_update s0 kqs = 
+  let t  = Hashtbl.create 17 in
+  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
+  let ks = Misc.hashtbl_keys t in
+  List.fold_left 
+    (fun (b, s) k -> 
+      let qs       = Hashtbl.find_all t k in 
+      let (b', s') = sol_update s k qs in
+      (b || b', s'))
+    (false, s0) ks
+
+(*************************************************************)
+(*********************** Logic Embedding *********************)
+(*************************************************************)
+
 let apply_substs xes p = 
   List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
 
-let refine_sol_read s k = 
-  try SM.find s k with Not_found -> 
-    failure "ERROR: refine_sol_read : unknown kvar %s \n" s
-
-let refine_sol_update s k qs' =
-  let qs = refine_sol_read s k in
-  (not (Misc.same_length qs qs'), SM.replace s k qs')
-
 let refineatom_preds s   = function
   | Conc p       -> [p]
-  | Kvar (xes,k) -> List.map (apply_substs xes) (refine_sol_read s k)
+  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
 
 let refinement_preds s (_,ras) =
   Misc.flap (refineatom_preds s) ras
@@ -105,67 +129,24 @@ let is_simple_constraint (_,_,(_,ra1s),(_,ra2s),_) =
 let lhs_preds s env gp r1 =
   let envps = environment_preds s env in
   let r1ps  = refinement_preds  s r1 in
-  envps ++ (gp :: r1ps) 
+  gp :: (envps ++ r1ps) 
 
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
-      refine_sol_read s k |>
+      sol_read s k |> 
       List.map (fun q -> ((k,q), apply_substs xes q))
   | _ -> []
 
-(* JUNK BEGIN {{{ *)
-let check_tp senv lhs_ps x2 = 
-  let dump s p = 
-    let p = List.map (fun p -> P.big_and (List.filter (function P.Atom(p, P.Eq, p') when p = p' -> false | _ -> true) (P.conjuncts p))) p in
-    let p = List.filter (function P.True -> false | _ -> true) p in
-    C.cprintf C.ol_dump_prover "@[%s:@ %a@]@." s (C.pprint_many false " " P.pprint) p in
-  let dump s p = if C.ck_olev C.ol_dump_prover then dump s p else () in
-  let _ = dump "Assert" lhs_ps in
-  let _ = if C.ck_olev C.ol_dump_prover then dump "Ck" (snd (List.split x2)) in
-  let rv = 
-    try
-      TP.set_and_filter senv lhs_ps x2
-    with Failure x -> printf "%a@." pprint_fenv senv; raise (Failure x) in
-  let _ = if C.ck_olev C.ol_dump_prover then dump "OK" (snd (List.split rv)) in
-  incr stat_tp_refines;
-  stat_imp_queries   := !stat_imp_queries + (List.length x2);
-  stat_valid_queries := !stat_valid_queries + (List.length rv); rv
+let check_tp ctx env lps =  function [] -> [] | rcs ->
+  let env = (SM.map fst env)
+  let rv  = Misc.do_catch "ERROR: check_tp" 
+              (TP.set_and_filter ctx (SM.map fst env) lps) rcs in
+  let _   = stat_tp_refines += 1;
+            stat_imp_queries += (List.length rcs);
+            stat_valid_queries += (List.length rv) in
+  rv
 
-let check_tp senv lhs_ps x2 =
-  if C.empty_list x2 then (incr stat_tp_refines; []) else BS.time "check_tp" (check_tp senv lhs_ps) x2 
-
-let refine_tp senv s env g r1 sub2s k2 =
-  let sm = solution_map s in
-  let lhs_ps  = lhs_preds sm env g r1 in
-  let rhs_qps = rhs_cands sm sub2s k2 in
-  let rhs_qps' =
-    if List.exists P.is_contra lhs_ps 
-    then (stat_matches := !stat_matches + (List.length rhs_qps); rhs_qps) 
-    else
-      let rhs_qps = List.filter (fun (_,p) -> not (P.is_contra p)) rhs_qps in
-      let lhsm    = List.fold_left (fun pm p -> PM.add p true pm) PM.empty lhs_ps in
-      let (x1,x2) = List.partition (fun (_,p) -> PM.mem p lhsm) rhs_qps in
-      let _       = stat_matches := !stat_matches + (List.length x1) in 
-      match x2 with [] -> x1 | _ -> x1 @ (check_tp senv lhs_ps x2) in
-  refine_sol_update s k2 rhs_qps (List.map fst rhs_qps') 
-
-
-  (* JUNK END }}} *)
-
-let check_tp env lps rcs =
-
-let group_and_update s0 rcs = 
-  let t  = Hashtbl.create 17 in
-  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) rcs in
-  let ks = Misc.hashtbl_keys t in
-  List.fold_left 
-    (fun (b, s) k -> 
-      let qs       = Hashtbl.find_all t k in 
-      let (b', s') = refine_sol_update s k qs in
-      (b || b', s'))
-    (false, s0) ks
-
-let refine s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
+let refine ctx s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
   let _  = asserts (vv1 = vv2) "ERROR: malformed constraint";
            incr stat_refines in
   let lps  = lhs_preds s env g (vv1, ra1s) in

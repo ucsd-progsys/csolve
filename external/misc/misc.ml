@@ -84,6 +84,15 @@ let map_partial f xs =
         | None   -> acc
         | Some z -> (z::acc)) [] xs)
 
+let do_catch s f x =
+  try f x with ex -> 
+     (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); raise ex) 
+
+let do_catch_ret s f x y = 
+  try f x with ex -> 
+     (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); y) 
+
+
 let do_memo memo f args key = 
   try Hashtbl.find memo key with Not_found ->
     let rv = f args in
