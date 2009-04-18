@@ -67,52 +67,6 @@ let stat_matches        = ref 0
  * Qual Instantiation
  * Constraint Simplification/Splitting *)
 
-
-(*************************************************************)
-(******************** Solution Management ********************)
-(*************************************************************)
-
-let sol_read s k = 
-  try SM.find s k with Not_found -> 
-    failure "ERROR: sol_read : unknown kvar %s \n" s
-
-let sol_update s k qs' =
-  let qs = sol_read s k in
-  (not (Misc.same_length qs qs'), SM.replace s k qs')
-
-let group_sol_update s0 kqs = 
-  let t  = Hashtbl.create 17 in
-  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
-  let ks = Misc.hashtbl_keys t in
-  List.fold_left 
-    (fun (b, s) k -> 
-      let qs       = Hashtbl.find_all t k in 
-      let (b', s') = sol_update s k qs in
-      (b || b', s'))
-    (false, s0) ks
-
-(*************************************************************)
-(*********************** Logic Embedding *********************)
-(*************************************************************)
-
-let apply_substs xes p = 
-  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
-
-let refineatom_preds s   = function
-  | Conc p       -> [p]
-  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
-
-let refinement_preds s (_,ras) =
-  Misc.flap (refineatom_preds s) ras
-
-let environment_preds s env =
-  SM.fold
-    (fun x (t, (vv,ras)) ps -> 
-      let vps = refinement_preds s (vv, ras) in
-      let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
-      xps ++ ps)
-    [] env
-
 (***************************************************************)
 (************************** Refinement *************************)
 (***************************************************************)

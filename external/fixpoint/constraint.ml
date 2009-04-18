@@ -33,12 +33,6 @@ type solution     = refpred list Symbol.SMap.t
 type t            = environment * P.t * refinement * refinement * (tag option) 
 
 let to_string = failwith "TBD" 
-let print     = failwith "TBD" 
-
-let refinement_kvars r =
-  List.fold_left 
-    (fun ks a -> match a with Kvar (_,k) -> k::ks | _ -> ks) 
-    [] r 
 
 (*************************************************************)
 (******************** Solution Management ********************)
@@ -63,56 +57,59 @@ let group_sol_update s0 kqs =
       (b || b', s'))
     (false, s0) ks
 
+(*************************************************************)
+(*********************** Logic Embedding *********************)
+(*************************************************************)
+
+let apply_substs xes p = 
+  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
+
+let refineatom_preds s   = function
+  | Conc p       -> [p]
+  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
+
+let refinement_preds s (_,ras) =
+  Misc.flap (refineatom_preds s) ras
+
+let environment_preds s env =
+  SM.fold
+    (fun x (t, (vv,ras)) ps -> 
+      let vps = refinement_preds s (vv, ras) in
+      let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
+      xps ++ ps)
+    [] env
+
 (**************************************************************)
 (********************** Pretty Printing ***********************)
 (**************************************************************)
-(*
-   let pprint_local_binding f ppf = function
-  | (Path.Pident _ as k, v) -> 
-      fprintf ppf "@[%s@ =>@ %a@],@;<0 2>" 
-      (Path.unique_name k) f v
-  | _ -> ()
+let print_sub ppf (x,e) = 
+  Format.fprintf "[%s:=%a]" x E.print e
 
-let pprint_fenv ppf env =
-  Le.iter (fun p f -> fprintf ppf "@[%s@ ::@ %a@]@." (C.path_name p) F.pprint f) (F.prune_background env); fprintf ppf "==="
+let print_refineatom ppf = function
+  | Conc p        -> Format.fprintf "%a" P.print p
+  | Kvar (xes, k) -> Format.fprintf "%s[%a]" k 
+                       (Misc.pprint_many false "" print_sub) xes
 
-let pprint_fenv_shp ppf env =
-  Le.iter (fun p f -> fprintf ppf "@[%s@ ::@ %a@]@." (C.path_name p) F.pprint (F.shape f)) (F.prune_background env); fprintf ppf "==="
+let print_refinement ppf (v, ras) =
+  Format.fprintf ppf "@[{%s:%a@]" v 
+    (Misc.pprint_many false " /\ " print_refineatom) ras  
 
-let pprint_raw_fenv shp ppf env =
-  Le.iter (fun p f -> fprintf ppf "@[%s@ ::@ %a@]@." (C.path_name p) F.pprint (if shp then F.shape f else f)) env; fprintf ppf "==="
+let print_binding ppf (x, (t, r)) = 
+  Format.fprintf ppf "@[%s@ =>@ %a:%a@],@;<0 2>" x Sort.print t print_refinement r 
 
-let pprint_fenv_pred so ppf env =
-  Le.iter (fun x t -> pprint_local_binding F.pprint ppf (x, t)) env
-
-let pprint_renv_pred f so ppf env =
+let print_env so ppf env = 
   match so with
-  | Some s -> P.pprint ppf (P.big_and (environment_preds (solution_map s) env))
-  | _ -> Le.iter (fun x t -> pprint_local_binding F.pprint_refinement ppf (x, t)) env
-
-let pprint ppf = function
-  | SubFrame (e,g,f1,f2) ->
-      if C.ck_olev C.ol_verb_constrs then fprintf ppf "@[(Env)@.%a@]@." pprint_fenv e;
-      if C.ck_olev C.ol_verb_constrs then fprintf ppf "@[(Guard)@.%a@]@.@." P.pprint (guard_predicate () g);
-      fprintf ppf "@[%a@ <:@;<1 2>%a@]" F.pprint f1 F.pprint f2
-  | WFFrame (e,f) ->
-      if C.ck_olev C.ol_dump_wfs then begin
-        if C.ck_olev C.ol_verb_constrs then fprintf ppf "@[(Env)@.%a@]@." pprint_fenv e;
-        fprintf ppf "@[|- %a@]@." F.pprint f
-      end
+  | Some s -> P.print ppf (P.And (environment_preds s env))
+  | None   -> SM.iter (fun x y -> print_binding ppf (x, y)) env 
 
 let pprint_io ppf = function
-  | Some id -> fprintf ppf "(%d)" id
-  | None    -> fprintf ppf "()"
-*)
-let pprint_ref so ppf (renv,g,r1,sr2,io) =
-  failwith "TBD"
-  (*
-  let renv = F.prune_background renv in
-  fprintf ppf "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
-  pprint_io io (pprint_renv_pred F.pprint_refinement so) renv 
-  P.pprint (guard_predicate () g) 
-  F.pprint_refinement r1 F.pprint_refinement (F.ref_of_simple sr2)
-  *)
+  | Some id -> Format.fprintf ppf "(%d)" id
+  | None    -> Format.fprintf ppf "()"
 
-
+let print so ppf (env,g,r1,r2,io) =
+  Format.fprintf ppf "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
+    pprint_io io 
+    (print_env so) env 
+    P.print g
+    print_refinement r1
+    print_refinement r2

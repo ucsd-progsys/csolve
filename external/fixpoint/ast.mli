@@ -146,21 +146,3 @@ sig
 
   (* val size      : pred -> int *)
 end
-
-module Constraint :
-  sig 
-    type tag          = int
-    type substitution = (Symbol.t * Expression.t) list 
-    type refineatom   = Conc of Predicate.t | Kvar of subs * Symbol.t
-    type refinement   = refineatom list
-
-    type environment  = (Sort.t * refinement) Symbol.SMap.t
-    type solution     = Predicate.t list Symbol.SMap.t
-    type t            = environment * P.t * refinement * refineatom * (tag option) 
-
-    val to_string : t -> string
-    val print     : Format.formatter -> pred -> unit
-    
-    val refinement_kvars : refinement -> Symbol.t list
-
-  end
