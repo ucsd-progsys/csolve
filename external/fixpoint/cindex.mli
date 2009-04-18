@@ -21,13 +21,24 @@
  *
  *)
 
+(***************************************************************)
+(**** This module implements constraint indexing ***************)
+(***************************************************************)
 
-(** This module implements a fixpoint solver *)
+module C = Ast.Constraint
 
-type t 
-val make     : unit -> t option
-val add_sort : t -> sort -> unit
-val add_axiom: t -> pred -> unit
-val solve    : t -> cstr list -> soln -> soln 
+type t
+type wkl
 
-(* Temporal API: add_sort*.add_axiom*.solve *)
+(** indexing and dependencies *)
+val create      : C.t list -> t 
+val deps        : t -> C.t -> C.t list
+val iter        : t -> (C.t -> unit) -> unit
+
+(** worklist manipulation *)
+val push        : t -> wkl -> C.t list -> wkl 
+val pop         : t -> wkl -> (C.t option * wkl)
+val init        : t -> wkl
+
+
+
