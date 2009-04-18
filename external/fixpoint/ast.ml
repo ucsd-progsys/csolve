@@ -427,7 +427,10 @@ module Predicate =
 
       let subst p x e' =
         map id (esub x e') p
-	   
+
+      let substs xes p = 
+        List.fold_left (fun p' (x,e) -> subst p' x e) p xes
+
       let support p =
         let t = Hashtbl.create 251 in
         iter un (function (Var x), _ 
@@ -447,28 +450,6 @@ module Predicate =
         !c
     end
 
-module Constraint = 
-  struct
-    type tag          = int
-    type substitution = (Symbol.t * Expression.t) list                  (* [x,e] *)
-    type refineatom   = Conc of Predicate.t | Kvar of subs * Symbol.t
-    type refinement   = Symbol.t * (refineatom list)                    (* VV,... *)
-
-    type environment  = (Sort.t * refinement) Symbol.SMap.t
-    type solution     = refpred list Symbol.SMap.t
-    type t            = environment * P.t * refinement * refinement * (tag option) 
-
-
-    let to_string = failwith "TBD" 
-    
-    let print     = failwith "TBD" 
-
-    let refinement_kvars r =
-      List.fold_left 
-        (fun ks a -> match a with Kvar (_,k) -> k::ks | _ -> ks) 
-        [] r 
-    
- end
 
 
 let print_stats _ = 

@@ -170,193 +170,103 @@ let refine ctx s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
 (************************* Satisfaction ************************)
 (***************************************************************)
 
-let sat sri s c = 
-  match c with
-  | SubRef (env,g,r1, (sub2s, F.Qvar k2), _)  ->
-      true
-  | SubRef (env, g, r1, sr2, _) as c ->
-      let sm     = solution_map s in
-      let lhs_ps = lhs_preds sm env g r1 in
-      let rhs    = F.refinement_predicate sm qual_test_expr (F.ref_of_simple sr2) in
-      (1 = List.length (check_tp (get_ref_fenv sri c) lhs_ps [(0,rhs)]))
-  | WFRef (env,(subs, F.Qvar k), _) ->
-      true 
-  | _ -> true
+let unsat ctx s ((env, gp, (vv1, ra1s), (vv2, ra2s), _) as c) =
+  let _   = asserts (vv1 = vv2) "ERROR: malformed constraint" in
+  let lps = lhs_preds s env gp (vv1, ra1s) in
+  let rhs = [(0, P.And (Misc.flap (refineatom_preds s) ra2s))] in
+  not ((check_tp ctx env lps rhs) = [0])
 
-let unsat_constraints sri s =
-  C.map_partial
-    (fun c -> if sat sri s c then None else Some (c, get_ref_orig sri c))
-    (get_ref_constraints sri)
+let unsat_constraints ctx s sri =
+  Ci.to_list sri |> List.filter (unsat ctx s)
 
-(***************************************************************)
-(*************************** Indexing **************************)
-(***************************************************************)
-(* TBD BREAK THIS OUT INTO ITS OWN MODULE *)
+(**************************************************************)
+(****************** Debug/Profile Information *****************)
+(**************************************************************)
 
-module WH = 
-  Heap.Functional(struct 
-      type t = subref_id * int * (int * bool * fc_id)
-      let compare (_,ts,(i,j,k)) (_,ts',(i',j',k')) =
-        if i <> i' then compare i i' else
-          if ts <> ts' then -(compare ts ts') else
-            if j <> j' then compare j j' else 
-              compare k' k
-    end)
+(* TODO HEREHEREHEREHERE *)
 
-type ref_index = 
-  { orig: labeled_constraint SIM.t;     (* id -> orig *)
-    cnst: refinement_constraint SIM.t;  (* id -> refinement_constraint *) 
-    rank: (int * bool * fc_id) SIM.t;   (* id -> dependency rank *)
-    depm: subref_id list SIM.t;         (* id -> successor ids *)
-    pend: (subref_id,unit) Hashtbl.t;   (* id -> is in wkl ? *)
-  }
+let dump_ref_constraints sri =
+  if !Co.dump_ref_constraints then begin
+    Format.printf "Refinement Constraints \n";
+    Ci.iter sri (fun c -> Format.printf "@[%a@.@]" (pprint_ref None) c);
+    printf "@[SCC Ranked Refinement Constraints@.@\n@]";
+    sort_iter_ref_constraints sri (fun c -> printf "@[%a@.@]" (pprint_ref None) c);
+  end
 
-let get_ref_id = 
-  function WFRef (_,_,Some i) | SubRef (_,_,_,_,Some i) -> i | _ -> assert false
+let dump_ref_vars sri =
+  if !Cf.dump_ref_vars then
+  (printf "@[Refinement Constraint Vars@.@\n@]";
+  iter_ref_constraints sri (fun c -> printf "@[(%d)@ %s@.@]" (ref_id c) 
+    (match (ref_k c) with Some k -> Path.unique_name k | None -> "None")))
+   
+let dump_constraints cs =
+  if !Cf.dump_constraints then begin
+    printf "******************Frame Constraints****************@.@.";
+    let index = ref 0 in
+    List.iter (fun {lc_cstr = c; lc_orig = d} -> if (not (is_wfframe_constraint c)) || C.ck_olev C.ol_dump_wfs then 
+            (incr index; printf "@[(%d)(%a) %a@]@.@." !index pprint_orig d pprint c)) cs;
+    printf "@[*************************************************@]@.@.";
+  end
 
-let get_ref_rank sri c = 
-  try SIM.find (get_ref_id c) sri.rank with Not_found ->
-    (printf "ERROR: @[No@ rank@ for:@ %a@\n@]" (pprint_ref None) c; 
-     raise Not_found)
+let dump_solution_stats s = 
+  if C.ck_olev C.ol_solve_stats then
+    let kn  = Sol.length s in
+    let (sum, max, min) =   
+      (Sol.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
+      Sol.fold (fun _ qs x -> max x (List.length qs)) s min_int,
+      Sol.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
+    C.cprintf C.ol_solve_stats "@[Quals:@\n\tTotal:@ %d@\n\tAvg:@ %f@\n\tMax:@ %d@\n\tMin:@ %d@\n@\n@]"
+    sum ((float_of_int sum) /. (float_of_int kn)) max min;
+    print_flush ()
+  else ()
+  
+let dump_unsplit cs =
+  let cs = if C.ck_olev C.ol_solve_stats then List.rev_map (fun c -> c.lc_cstr) cs else [] in
+  let cc f = List.length (List.filter f cs) in
+  let (wf, sub) = (cc is_wfframe_constraint, cc is_subframe_constraint) in
+  C.cprintf C.ol_solve_stats "@.@[unsplit@ constraints:@ %d@ total@ %d@ wf@ %d@ sub@]@.@." (List.length cs) wf sub
 
-let get_ref_constraint sri i = 
-  C.do_catch "ERROR: get_constraint" (SIM.find i) sri.cnst
+let dump_solving sri s step =
+  if step = 0 then 
+    let cs   = get_ref_constraints sri in 
+    let kn   = Sol.length s in
+    let wcn  = List.length (List.filter is_wfref_constraint cs) in
+    let rcn  = List.length (List.filter is_subref_constraint cs) in
+    let scn  = List.length (List.filter is_simple_constraint cs) in
+    let scn2 = List.length (List.filter is_simple_constraint2 cs) in
+    (dump_ref_vars sri;
+     dump_ref_constraints sri;
+     C.cprintf C.ol_solve_stats "@[%d@ variables@\n@\n@]" kn;
+     C.cprintf C.ol_solve_stats "@[%d@ split@ wf@ constraints@\n@\n@]" wcn;
+     C.cprintf C.ol_solve_stats "@[%d@ split@ subtyping@ constraints@\n@\n@]" rcn;
+     C.cprintf C.ol_solve_stats "@[%d@ simple@ subtyping@ constraints@\n@\n@]" scn;
+     C.cprintf C.ol_solve_stats "@[%d@ simple2@ subtyping@ constraints@\n@\n@]" scn2;
+     dump_solution_stats s) 
+  else if step = 1 then
+    dump_solution_stats s
+  else if step = 2 then
+    (C.cprintf C.ol_solve_stats 
+      "@[Refine Iterations: %d@ total (= wf=%d + su=%d) sub includes si=%d tp=%d unsatLHS=%d)\n@\n@]"
+      !stat_refines !stat_wf_refines  !stat_sub_refines !stat_simple_refines !stat_tp_refines !stat_unsat_lhs;
+     C.cprintf C.ol_solve_stats "@[Implication Queries:@ %d@ match;@ %d@ to@ TP@ (%d@ valid)@]@.@." 
+       !stat_matches !stat_imp_queries !stat_valid_queries;
+     if C.ck_olev C.ol_solve_stats then TP.print_stats std_formatter () else ();
+     dump_solution_stats s;
+     flush stdout)
 
-let lhs_ks = function WFRef _ -> assert false | SubRef (env,_,r,_,_) ->
-  Le.fold (fun _ f l -> F.refinement_qvars f @ l) env (F.refinement_qvars r)
+let dump_solution s =
+  if C.ck_olev C.ol_solve then
+    Sol.iter (fun p r -> C.cprintf C.ol_solve "@[%s: %a@]@."
+              (Path.unique_name p) (Oprint.print_list Q.pprint C.space) r) s
+  else ()
 
-let rhs_k = function
-  | SubRef (_,_,_,(_, F.Qvar k),_) -> Some k
-  | _ -> None
+let dump_qualifiers cqs =
+  if C.ck_olev C.ol_insane then
+    (printf "Raw@ generated@ qualifiers:@.";
+    List.iter (fun (c, qs) -> List.iter (fun q -> printf "%a@." Qualifier.pprint q) qs;
+                              if not(C.empty_list qs) then printf "@.") cqs;
+     printf "done.@.")
 
-let wf_k = function
-  | WFRef (_, (_, F.Qvar k), _) -> Some k
-  | _ -> None
-
-let ref_k c =
-  match (rhs_k c, wf_k c) with
-  | (Some k, None)
-  | (None, Some k) -> Some k
-  | _ -> None
-
-let ref_id = function
-  | WFRef (_, (_, _), Some id)
-  | SubRef (_,_,_,(_, _), Some id) -> id
-  | _ -> -1
-
-let print_scc_edge rm (u,v) = 
-  let (scc_u,_,_) = SIM.find u rm in
-  let (scc_v,_,_) = SIM.find v rm in
-  let tag = if scc_u > scc_v then "entry" else "inner" in
-  C.cprintf C.ol_solve "@[SCC@ edge@ %d@ (%s)@ %d@ ====> %d@\n@]" scc_v tag u v
-
-let make_rank_map om cm =
-  let get vm k = try VM.find k vm with Not_found -> [] in
-  let upd id vm k = VM.add k (id::(get vm k)) vm in
-  let km = 
-    BS.time "step 1"
-    (SIM.fold 
-      (fun id c vm -> match c with WFRef _ -> vm 
-        | SubRef _ -> List.fold_left (upd id) vm (lhs_ks c))
-      cm) VM.empty in
-  let (dm,deps) = 
-    BS.time "step 2"
-    (SIM.fold
-      (fun id c (dm,deps) -> 
-        match (c, rhs_k c) with 
-        | (WFRef _,_) -> (dm,deps) 
-        | (_,None) -> (dm,(id,id)::deps) 
-        | (_,Some k) -> 
-          let kds = get km k in
-          let deps' = List.map (fun id' -> (id,id')) (id::kds) in
-          (SIM.add id kds dm, (List.rev_append deps' deps)))
-      cm) (SIM.empty,[]) in
-  let flabel i = C.io_to_string ((SIM.find i om).lc_id) in
-  let rm = 
-    let rank = BS.time "scc rank" (C.scc_rank flabel) deps in
-    BS.time "step 2"
-    (List.fold_left
-      (fun rm (id,r) -> 
-        let b = (not !Cf.psimple) || (is_simple_constraint (SIM.find id cm)) in
-        let fci = (SIM.find id om).lc_id in
-        SIM.add id (r,b,fci) rm)
-      SIM.empty) rank in
-  (dm,rm)
-
-let fresh_refc = 
-  let i = ref 0 in
-  fun c -> 
-    let i' = incr i; !i in
-    match c with  
-    | WFRef (env,r,None) -> WFRef (env,r,Some i')
-    | SubRef (env,g,r1,r2,None) -> SubRef (env,g,r1,r2,Some i')
-    | _ -> assert false
-
-(* API *)
-let make_ref_index ocs = 
-  let ics = List.map (fun (o,c) -> (o,fresh_refc c)) ocs in
-  let (om,cm) = 
-    List.fold_left 
-      (fun (om,cm) (o,c) ->
-        let i = get_ref_id c in 
-        (SIM.add i o om, SIM.add i c cm))
-      (SIM.empty, SIM.empty) ics in
-  let (dm,rm) = BS.time "make rank map" (make_rank_map om) cm in
-  {orig = om; cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
-
-let get_ref_orig sri c = 
-  C.do_catch "ERROR: get_ref_orig" (SIM.find (get_ref_id c)) sri.orig
-
-let get_ref_fenv sri c =
-  (function SubFrame (a, _, _, _) | WFFrame (a, _) -> a) (get_ref_orig sri c).lc_cstr
-
-(* API *)
-let get_ref_deps sri c =
-  let is' = try SIM.find (get_ref_id c) sri.depm with Not_found -> [] in
-  List.map (get_ref_constraint sri) is'
-
-(* API *)
-let get_ref_constraints sri = 
-  SIM.fold (fun _ c cs -> c::cs) sri.cnst [] 
-
-(* API *)
-let iter_ref_constraints sri f = 
-  SIM.iter (fun _ c -> f c) sri.cnst
-
-let iter_ref_origs sri f =
-  SIM.iter (fun i c -> f i c) sri.orig
-
-let sort_iter_ref_constraints sri f = 
-  let rids  = SIM.fold (fun id (r,_,_) ac -> (id,r)::ac) sri.rank [] in
-  let rids' = List.sort (fun x y -> compare (snd x) (snd y)) rids in 
-  List.iter (fun (id,_) -> f (SIM.find id sri.cnst)) rids' 
-
-(* API *)
-let push_worklist =
-  let timestamp = ref 0 in
-  fun sri w cs ->
-    incr timestamp;
-    List.fold_left 
-      (fun w c -> 
-        let id = get_ref_id c in
-        if Hashtbl.mem sri.pend id then w else 
-          (C.cprintf C.ol_solve "@[Pushing@ %d at %d@\n@]" id !timestamp; 
-           Hashtbl.replace sri.pend id (); 
-           WH.add (id,!timestamp,get_ref_rank sri c) w))
-      w cs
-
-(* API *)
-let pop_worklist sri w =
-  try 
-    let (id, _, _) = WH.maximum w in
-    let _ = Hashtbl.remove sri.pend id in
-    (Some (get_ref_constraint sri id), WH.remove w)
-  with Heap.EmptyHeap -> (None,w) 
-
-(* API *)
-let make_initial_worklist sri =
-  let cs = List.filter is_subref_constraint (get_ref_constraints sri) in
-  push_worklist sri WH.empty cs 
 
 
 (***************************************************************)

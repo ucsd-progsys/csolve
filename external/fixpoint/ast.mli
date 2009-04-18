@@ -140,7 +140,7 @@ sig
   val print     : Format.formatter -> pred -> unit
   
   val support   : pred -> Symbol.t list
-  val subst     : pred -> Symbol.t -> expr -> pred 
+  val subst     : pred -> Symbol.t -> expr -> pred  
   val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 
   val iter      : (pred -> unit) -> (expr -> unit) -> pred -> unit 
 
