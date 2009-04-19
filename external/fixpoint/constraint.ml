@@ -113,3 +113,96 @@ let print so ppf (env,g,r1,r2,io) =
     P.print g
     print_refinement r1
     print_refinement r2
+
+(**************************************************************)
+(****************** Debug/Profile Information *****************)
+(**************************************************************)
+
+(* TODO HEREHEREHEREHERE *)
+
+(* API: dump_solution, dump_solving, dump_constraints *)
+
+let dump_ref_constraints sri =
+  if !Co.dump_ref_constraints then begin
+    Format.printf "Refinement Constraints \n";
+    Ci.iter sri (fun c -> Format.printf "@[%a@.@]" (pprint_ref None) c);
+    printf "@[SCC Ranked Refinement Constraints@.@\n@]";
+    sort_iter_ref_constraints sri (fun c -> printf "@[%a@.@]" (pprint_ref None) c);
+  end
+
+let dump_ref_vars sri =
+  if !Cf.dump_ref_vars then
+  (printf "@[Refinement Constraint Vars@.@\n@]";
+  iter_ref_constraints sri (fun c -> printf "@[(%d)@ %s@.@]" (ref_id c) 
+    (match (ref_k c) with Some k -> Path.unique_name k | None -> "None")))
+   
+let dump_constraints cs =
+  if !Cf.dump_constraints then begin
+    printf "******************Frame Constraints****************@.@.";
+    let index = ref 0 in
+    List.iter (fun {lc_cstr = c; lc_orig = d} -> if (not (is_wfframe_constraint c)) || C.ck_olev C.ol_dump_wfs then 
+            (incr index; printf "@[(%d)(%a) %a@]@.@." !index pprint_orig d pprint c)) cs;
+    printf "@[*************************************************@]@.@.";
+  end
+
+let dump_solution_stats s = 
+  if C.ck_olev C.ol_solve_stats then
+    let kn  = Sol.length s in
+    let (sum, max, min) =   
+      (Sol.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
+      Sol.fold (fun _ qs x -> max x (List.length qs)) s min_int,
+      Sol.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
+    C.cprintf C.ol_solve_stats "@[Quals:@\n\tTotal:@ %d@\n\tAvg:@ %f@\n\tMax:@ %d@\n\tMin:@ %d@\n@\n@]"
+    sum ((float_of_int sum) /. (float_of_int kn)) max min;
+    print_flush ()
+  else ()
+  
+let dump_unsplit cs =
+  let cs = if C.ck_olev C.ol_solve_stats then List.rev_map (fun c -> c.lc_cstr) cs else [] in
+  let cc f = List.length (List.filter f cs) in
+  let (wf, sub) = (cc is_wfframe_constraint, cc is_subframe_constraint) in
+  C.cprintf C.ol_solve_stats "@.@[unsplit@ constraints:@ %d@ total@ %d@ wf@ %d@ sub@]@.@." (List.length cs) wf sub
+
+let dump_solving sri s step =
+  if step = 0 then 
+    let cs   = get_ref_constraints sri in 
+    let kn   = Sol.length s in
+    let wcn  = List.length (List.filter is_wfref_constraint cs) in
+    let rcn  = List.length (List.filter is_subref_constraint cs) in
+    let scn  = List.length (List.filter is_simple_constraint cs) in
+    let scn2 = List.length (List.filter is_simple_constraint2 cs) in
+    (dump_ref_vars sri;
+     dump_ref_constraints sri;
+     C.cprintf C.ol_solve_stats "@[%d@ variables@\n@\n@]" kn;
+     C.cprintf C.ol_solve_stats "@[%d@ split@ wf@ constraints@\n@\n@]" wcn;
+     C.cprintf C.ol_solve_stats "@[%d@ split@ subtyping@ constraints@\n@\n@]" rcn;
+     C.cprintf C.ol_solve_stats "@[%d@ simple@ subtyping@ constraints@\n@\n@]" scn;
+     C.cprintf C.ol_solve_stats "@[%d@ simple2@ subtyping@ constraints@\n@\n@]" scn2;
+     dump_solution_stats s) 
+  else if step = 1 then
+    dump_solution_stats s
+  else if step = 2 then
+    (C.cprintf C.ol_solve_stats 
+      "@[Refine Iterations: %d@ total (= wf=%d + su=%d) sub includes si=%d tp=%d unsatLHS=%d)\n@\n@]"
+      !stat_refines !stat_wf_refines  !stat_sub_refines !stat_simple_refines !stat_tp_refines !stat_unsat_lhs;
+     C.cprintf C.ol_solve_stats "@[Implication Queries:@ %d@ match;@ %d@ to@ TP@ (%d@ valid)@]@.@." 
+       !stat_matches !stat_imp_queries !stat_valid_queries;
+     if C.ck_olev C.ol_solve_stats then TP.print_stats std_formatter () else ();
+     dump_solution_stats s;
+     flush stdout)
+
+let dump_solution s =
+  if C.ck_olev C.ol_solve then
+    Sol.iter (fun p r -> C.cprintf C.ol_solve "@[%s: %a@]@."
+              (Path.unique_name p) (Oprint.print_list Q.pprint C.space) r) s
+  else ()
+
+let dump_qualifiers cqs =
+  if C.ck_olev C.ol_insane then
+    (printf "Raw@ generated@ qualifiers:@.";
+    List.iter (fun (c, qs) -> List.iter (fun q -> printf "%a@." Qualifier.pprint q) qs;
+                              if not(C.empty_list qs) then printf "@.") cqs;
+     printf "done.@.")
+
+
+

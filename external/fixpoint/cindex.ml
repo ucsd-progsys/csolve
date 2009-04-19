@@ -167,8 +167,8 @@ let sort_iter_ref_constraints sri f =
   let rids' = List.sort (fun x y -> compare (snd x) (snd y)) rids in 
   List.iter (fun (id,_) -> f (SIM.find id sri.cnst)) rids' 
 
-(* API: push *)
-let push =
+(* API *)
+let wpush =
   let timestamp = ref 0 in
   fun sri w cs ->
     incr timestamp;
@@ -182,7 +182,7 @@ let push =
       w cs
 
 (* API *)
-let pop sri w =
+let wpop sri w =
   try 
     let (id, _, _) = WH.maximum w in
     let _          = Hashtbl.remove sri.pend id in
@@ -194,8 +194,6 @@ let pop sri w =
   with Heap.EmptyHeap -> (None,w) 
 
 (* API *)
-let create_wkl sri =
-  let cs = List.filter is_subref_constraint (to_list sri) in
-  push sri WH.empty cs 
-
+let winit sri =
+  to_list sri |> wpush sri WH.empty  
 

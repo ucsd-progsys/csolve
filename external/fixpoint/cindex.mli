@@ -36,9 +36,9 @@ val deps        : t -> C.t -> C.t list
 val iter        : t -> (C.t -> unit) -> unit
 
 (** worklist manipulation *)
-val push        : t -> wkl -> C.t list -> wkl 
-val pop         : t -> wkl -> (C.t option * wkl)
-val init        : t -> wkl
+val wpush       : t -> wkl -> C.t list -> wkl 
+val wpop        : t -> wkl -> (C.t option * wkl)
+val winit       : t -> wkl
 
 
 

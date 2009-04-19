@@ -25,9 +25,6 @@
 (** This module implements a fixpoint solver *)
 
 type t 
-val make     : unit -> t option
-val add_sort : t -> sort -> unit
-val add_axiom: t -> pred -> unit
-val solve    : t -> cstr list -> soln -> soln 
+val create   : sort list -> pred list -> cstr list -> t
+val solve    : t -> soln -> (soln * bool) 
 
-(* Temporal API: add_sort*.add_axiom*.solve *)
