@@ -9,8 +9,10 @@ IFLAGS=-lflags -I,$(CILHOME)
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) 
 
+TARGETS=misc.cma misc.cmxa bstats.cma bstats.cmxa
+
 all:
-	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) misc.cma misc.cmxa
+	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)
 
 clean:
 	rm -rf *.byte *.native _build _log

@@ -22,22 +22,40 @@
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
-   
-type tag          = int
-type substitution = (Symbol.t * Expression.t) list                  (* [x,e] *)
-type refineatom   = Conc of Predicate.t | Kvar of subs * Symbol.t
-type refinement   = Symbol.t * (refineatom list)                    (* VV,... *)
 
-type environment  = (Sort.t * refinement) Symbol.SMap.t
-type solution     = refpred list Symbol.SMap.t
-type t            = environment * P.t * refinement * refinement * (tag option) 
+module S  = Ast.Symbol
+module E  = Ast.Expression
+module P  = Ast.Predicate
+module SM = S.SMap
 
-let to_string = failwith "TBD" 
+type tag  = int
+type subs = (S.t * E.t) list                    (* [x,e] *)
+type refa = Conc of P.t | Kvar of subs * S.t
+type reft = S.t * (refa list)                   (* VV, [ra] *)
+type envt = (Sort.t * reft) SM.t
+type soln = P.t list SM.t
+type t    = envt * P.t * reft * reft * (tag option) 
+
+
+(*************************************************************)
+(************************** Random ***************************)
+(*************************************************************)
+
+let is_simple_refatom = function 
+  | C.Kvar ([], _) -> true
+  | _ -> false
+
+(* API *)
+let is_simple (_,_,(_,ra1s),(_,ra2s),_) = 
+  List.for_all is_simple_refatom ra1s &&
+  List.for_all is_simple_refatom ra2s &&
+  not (!Co.no_simple || !Co.verify_simple)
 
 (*************************************************************)
 (******************** Solution Management ********************)
 (*************************************************************)
 
+(* API *)
 let sol_read s k = 
   try SM.find s k with Not_found -> 
     failure "ERROR: sol_read : unknown kvar %s \n" s
@@ -46,6 +64,7 @@ let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.replace s k qs')
 
+(* API *)
 let group_sol_update s0 kqs = 
   let t  = Hashtbl.create 17 in
   let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
@@ -57,31 +76,10 @@ let group_sol_update s0 kqs =
       (b || b', s'))
     (false, s0) ks
 
-(*************************************************************)
-(*********************** Logic Embedding *********************)
-(*************************************************************)
-
-let apply_substs xes p = 
-  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
-
-let refineatom_preds s   = function
-  | Conc p       -> [p]
-  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
-
-let refinement_preds s (_,ras) =
-  Misc.flap (refineatom_preds s) ras
-
-let environment_preds s env =
-  SM.fold
-    (fun x (t, (vv,ras)) ps -> 
-      let vps = refinement_preds s (vv, ras) in
-      let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
-      xps ++ ps)
-    [] env
-
 (**************************************************************)
 (********************** Pretty Printing ***********************)
 (**************************************************************)
+
 let print_sub ppf (x,e) = 
   Format.fprintf "[%s:=%a]" x E.print e
 
@@ -106,6 +104,7 @@ let pprint_io ppf = function
   | Some id -> Format.fprintf ppf "(%d)" id
   | None    -> Format.fprintf ppf "()"
 
+(* API *)
 let print so ppf (env,g,r1,r2,io) =
   Format.fprintf ppf "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
     pprint_io io 
@@ -113,3 +112,6 @@ let print so ppf (env,g,r1,r2,io) =
     P.print g
     print_refinement r1
     print_refinement r2
+
+(* API *) 
+let to_string c = Format.sprintf "%a" (print None) c

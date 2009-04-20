@@ -1,6 +1,8 @@
 ####### Tweak these
-OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
-EXTHOME=/home/rjhala/research/liquidc/external
+OCAMLLIBHOME=/usr/local/lib/ocaml
+EXTHOME=/home/jhala/research/liquidc/external
+#OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
+#EXTHOME=/home/rjhala/research/liquidc/external
 ####### End tweak
 
 MISCHOME=$(EXTHOME)/misc/_build
@@ -15,8 +17,10 @@ LFLAGS=-lflags -cc,g++ \
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(MISCHOME) 
 
+TARGETS=ast.cmo
+
 all:
-	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) ast.cmo
+	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)
 
 clean:
 	rm -rf *.byte *.native _build _log

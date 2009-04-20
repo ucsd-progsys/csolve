@@ -1,6 +1,15 @@
-rename "misc" to utils
-add bstats, miscellaneous pretty printers to utils
-merge utils/common.ml and utils/misc.ml
+- rename "misc/" to utils
+- add bstats, miscellaneous pretty printers to utils
+- merge utils/common.ml and utils/misc.ml
 
 
+Jhala:
+	ast.ml{i}		[write,compile]
+	solve.ml{i}		[write]
+	constraint.ml{i}	[write]
+
+	cindex.ml{i}
+
+Ming:
+	theoremProver.ml{i}
 

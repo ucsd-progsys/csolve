@@ -22,21 +22,22 @@
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
- 
-type tag          = int
-type substitution = (Symbol.t * Expression.t) list 
-type refineatom   = Conc of Predicate.t | Kvar of subs * Symbol.t
-type refinement   = refineatom list
 
-type environment  = (Sort.t * refinement) Symbol.SMap.t
-type solution     = Predicate.t list Symbol.SMap.t
-type t            = environment * P.t * refinement * refineatom * (tag option) 
+module S  = Ast.Symbol
+module E  = Ast.Expression
+module P  = Ast.Predicate
+module SM = S.SMap
 
-val refinement_preds : solution -> refinement -> P.t list
-val environment_preds : solution -> environment -> P.t list
+type tag  = int
+type subs = (S.t * E.t) list                    (* [x,e] *)
+type refa = Conc of P.t | Kvar of subs * S.t
+type reft = S.t * (refa list)                   (* VV, [ra] *)
+type envt = (Sort.t * reft) SM.t
+type soln = P.t list SM.t
+type t    = envt * P.t * reft * reft * (tag option) 
 
-val to_string : t -> string
-val print     : solution option -> Format.formatter -> t -> unit
-
-
-
+val is_simple        : t -> bool
+val sol_read         : soln -> S.t -> P.t list
+val group_sol_update : soln -> (S.t * P.t) list -> (bool * soln)
+val print            : soln option -> Format.formatter -> t -> unit
+val to_string        : t -> string 

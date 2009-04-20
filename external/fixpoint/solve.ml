@@ -18,28 +18,25 @@
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- *
  *)
 
 
 (** This module implements a fixpoint solver *)
 
+module F  = Format
+module Co = Constants
 module P  = Ast.Predicate
 module E  = Ast.Expression
+module S  = Ast.Sort
 module PH = Ast.Predicate.Hash
 module Sy = Ast.Symbol
 module SM = Sy.SMap
-module So = Ast.Sort
-module C  = Ast.Constraint
+module C  = Constraint
 
-(* JHALA: What the hell is this ? *)
-
-type t = int * TP.t
-
-let make =
-  let ct = ref 0 in
-  (fun () -> if c > 0 then None else incr c; Some (1, TP.t))
-
+type t = {
+  val tpc : TP.t;
+  val sri : Ci.t;
+}
 
 (*************************************************************)
 (********************* Stats *********************************)
@@ -52,33 +49,31 @@ let stat_imp_queries    = ref 0
 let stat_valid_queries  = ref 0
 let stat_matches        = ref 0
 
-(* Sections :
- * Iterative Refinement
- * Constraint Sat Checking
- * Refinement
- * Constraint Indexing
+(*************************************************************)
+(*********************** Logic Embedding *********************)
+(*************************************************************)
 
- * Debug/Profile
- * Stats/Printing
- * Misc Helpers
-  
- * TypeDefs 
- * Initial Solution
- * Qual Instantiation
- * Constraint Simplification/Splitting *)
+let apply_substs xes p = 
+  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
+
+let refineatom_preds s   = function
+  | Conc p       -> [p]
+  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
+
+let refinement_preds s (_,ras) =
+  Misc.flap (refineatom_preds s) ras
+
+let environment_preds s env =
+  SM.fold
+    (fun x (t, (vv,ras)) ps -> 
+      let vps = refinement_preds s (vv, ras) in
+      let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
+      xps ++ ps)
+    [] env
 
 (***************************************************************)
 (************************** Refinement *************************)
 (***************************************************************)
-
-let is_simple_refatom = function 
-  | C.Kvar ([], _) -> true
-  | _ -> false
-
-let is_simple_constraint (_,_,(_,ra1s),(_,ra2s),_) = 
-  List.for_all is_simple_refatom ra1s &&
-  List.for_all is_simple_refatom ra2s &&
-  not (!Cf.no_simple || !Cf.verify_simple)
 
 let lhs_preds s env gp r1 =
   let envps = environment_preds s env in
@@ -87,20 +82,20 @@ let lhs_preds s env gp r1 =
 
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
-      sol_read s k |> 
-      List.map (fun q -> ((k,q), apply_substs xes q))
+      C.sol_read s k |> 
+      List.map (fun q -> ((k,q), C.apply_substs xes q))
   | _ -> []
 
-let check_tp ctx env lps =  function [] -> [] | rcs ->
+let check_tp me env lps =  function [] -> [] | rcs ->
   let env = (SM.map fst env)
   let rv  = Misc.do_catch "ERROR: check_tp" 
-              (TP.set_and_filter ctx (SM.map fst env) lps) rcs in
+              (TP.set_and_filter me.tpc (SM.map fst env) lps) rcs in
   let _   = stat_tp_refines += 1;
             stat_imp_queries += (List.length rcs);
             stat_valid_queries += (List.length rv) in
   rv
 
-let refine ctx s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
+let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
   let _  = asserts (vv1 = vv2) "ERROR: malformed constraint";
            incr stat_refines in
   let lps  = lhs_preds s env g (vv1, ra1s) in
@@ -115,176 +110,118 @@ let refine ctx s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
     let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs in
     let _       = stat_matches += (List.length x1) in
     let kqs1    = List.map fst xs in
-    (if is_simple_constraint c
-     then let _ = stat_simple_refines += 1 in kqs1 
-     else kqs1 ++ (check_tp env lps x2))
-    |> group_and_update s 
+    (if C.is_simple c then stat_simple_refines += 1; kqs1 
+                      else kqs1 ++ (check_tp me env lps x2))
+    |> C.group_sol_update s 
 
 (***************************************************************)
 (************************* Satisfaction ************************)
 (***************************************************************)
 
-let unsat ctx s ((env, gp, (vv1, ra1s), (vv2, ra2s), _) as c) =
+let unsat me s ((env, gp, (vv1, ra1s), (vv2, ra2s), _) as c) =
   let _   = asserts (vv1 = vv2) "ERROR: malformed constraint" in
   let lps = lhs_preds s env gp (vv1, ra1s) in
   let rhs = [(0, P.And (Misc.flap (refineatom_preds s) ra2s))] in
-  not ((check_tp ctx env lps rhs) = [0])
+  not ((check_tp me env lps rhs) = [0])
 
-let unsat_constraints ctx s sri =
-  Ci.to_list sri |> List.filter (unsat ctx s)
+let unsat_constraints me s sri =
+  Ci.to_list sri |> List.filter (unsat me s)
 
-(**************************************************************)
-(****************** Debug/Profile Information *****************)
-(**************************************************************)
-
-(* TODO HEREHEREHEREHERE *)
-
-let dump_ref_constraints sri =
-  if !Co.dump_ref_constraints then begin
-    Format.printf "Refinement Constraints \n";
-    Ci.iter sri (fun c -> Format.printf "@[%a@.@]" (pprint_ref None) c);
-    printf "@[SCC Ranked Refinement Constraints@.@\n@]";
-    sort_iter_ref_constraints sri (fun c -> printf "@[%a@.@]" (pprint_ref None) c);
-  end
-
-let dump_ref_vars sri =
-  if !Cf.dump_ref_vars then
-  (printf "@[Refinement Constraint Vars@.@\n@]";
-  iter_ref_constraints sri (fun c -> printf "@[(%d)@ %s@.@]" (ref_id c) 
-    (match (ref_k c) with Some k -> Path.unique_name k | None -> "None")))
-   
-let dump_constraints cs =
-  if !Cf.dump_constraints then begin
-    printf "******************Frame Constraints****************@.@.";
-    let index = ref 0 in
-    List.iter (fun {lc_cstr = c; lc_orig = d} -> if (not (is_wfframe_constraint c)) || C.ck_olev C.ol_dump_wfs then 
-            (incr index; printf "@[(%d)(%a) %a@]@.@." !index pprint_orig d pprint c)) cs;
-    printf "@[*************************************************@]@.@.";
-  end
+(***************************************************************)
+(************************ Debugging/Stats **********************)
+(***************************************************************)
 
 let dump_solution_stats s = 
-  if C.ck_olev C.ol_solve_stats then
-    let kn  = Sol.length s in
+  if Co.ck_olev Co.ol_solve_stats then begin
     let (sum, max, min) =   
-      (Sol.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
-      Sol.fold (fun _ qs x -> max x (List.length qs)) s min_int,
-      Sol.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
-    C.cprintf C.ol_solve_stats "@[Quals:@\n\tTotal:@ %d@\n\tAvg:@ %f@\n\tMax:@ %d@\n\tMin:@ %d@\n@\n@]"
-    sum ((float_of_int sum) /. (float_of_int kn)) max min;
+      (SM.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
+       SM.fold (fun _ qs x -> max x (List.length qs)) s min_int,
+       SM.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
+    let avg = (float_of_int sum) /. (float_of_int (SM.length s)) in
+    Format.printf "Quals: \t Total=%d \t Avg=%f \t Max=%d \t Min=%d \n" sum avg max min;
     print_flush ()
-  else ()
-  
-let dump_unsplit cs =
-  let cs = if C.ck_olev C.ol_solve_stats then List.rev_map (fun c -> c.lc_cstr) cs else [] in
-  let cc f = List.length (List.filter f cs) in
-  let (wf, sub) = (cc is_wfframe_constraint, cc is_subframe_constraint) in
-  C.cprintf C.ol_solve_stats "@.@[unsplit@ constraints:@ %d@ total@ %d@ wf@ %d@ sub@]@.@." (List.length cs) wf sub
-
-let dump_solving sri s step =
-  if step = 0 then 
-    let cs   = get_ref_constraints sri in 
-    let kn   = Sol.length s in
-    let wcn  = List.length (List.filter is_wfref_constraint cs) in
-    let rcn  = List.length (List.filter is_subref_constraint cs) in
-    let scn  = List.length (List.filter is_simple_constraint cs) in
-    let scn2 = List.length (List.filter is_simple_constraint2 cs) in
-    (dump_ref_vars sri;
-     dump_ref_constraints sri;
-     C.cprintf C.ol_solve_stats "@[%d@ variables@\n@\n@]" kn;
-     C.cprintf C.ol_solve_stats "@[%d@ split@ wf@ constraints@\n@\n@]" wcn;
-     C.cprintf C.ol_solve_stats "@[%d@ split@ subtyping@ constraints@\n@\n@]" rcn;
-     C.cprintf C.ol_solve_stats "@[%d@ simple@ subtyping@ constraints@\n@\n@]" scn;
-     C.cprintf C.ol_solve_stats "@[%d@ simple2@ subtyping@ constraints@\n@\n@]" scn2;
-     dump_solution_stats s) 
-  else if step = 1 then
-    dump_solution_stats s
-  else if step = 2 then
-    (C.cprintf C.ol_solve_stats 
-      "@[Refine Iterations: %d@ total (= wf=%d + su=%d) sub includes si=%d tp=%d unsatLHS=%d)\n@\n@]"
-      !stat_refines !stat_wf_refines  !stat_sub_refines !stat_simple_refines !stat_tp_refines !stat_unsat_lhs;
-     C.cprintf C.ol_solve_stats "@[Implication Queries:@ %d@ match;@ %d@ to@ TP@ (%d@ valid)@]@.@." 
-       !stat_matches !stat_imp_queries !stat_valid_queries;
-     if C.ck_olev C.ol_solve_stats then TP.print_stats std_formatter () else ();
-     dump_solution_stats s;
-     flush stdout)
+  end
 
 let dump_solution s =
-  if C.ck_olev C.ol_solve then
-    Sol.iter (fun p r -> C.cprintf C.ol_solve "@[%s: %a@]@."
-              (Path.unique_name p) (Oprint.print_list Q.pprint C.space) r) s
-  else ()
+  if C.ck_olev C.ol_solve then 
+    s |> SM.iter (fun k qs -> 
+                    Format.printf "@[%s: %a@]@." k 
+                    (Misc.pprint_many false "," P.print) qs) 
 
-let dump_qualifiers cqs =
-  if C.ck_olev C.ol_insane then
-    (printf "Raw@ generated@ qualifiers:@.";
-    List.iter (fun (c, qs) -> List.iter (fun q -> printf "%a@." Qualifier.pprint q) qs;
-                              if not(C.empty_list qs) then printf "@.") cqs;
-     printf "done.@.")
-
-
+let dump me s = function
+  | 0 -> 
+      let kn   = Sol.length s in
+      let cs   = Ci.to_list me.sri in 
+      let cn   = List.length cs in
+      let scn  = List.length (List.filter C.is_simple cs) in
+      Ci.dump me.sri;
+      Co.cprintf C.ol_solve_stats "# variables   = %d \n" kn;
+      Co.cprintf C.ol_solve_stats "# constraints = %d \n" rcn;
+      Co.cprintf C.ol_solve_stats "# simple constraints = %d \n" scn;
+      C.dump_solution_stats s 
+  | 1 -> 
+      C.dump_solution_stats s
+  | 2 ->
+      if C.ck_olev C.ol_solve_stats then begin
+        F.printf "Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
+          !stat_refines !stat_simple_refines !stat_tp_refines !stat_unsat_lhs;
+        F.printf "Queries = %d@ (match= %d, TP=%d, valid=%d)\n" 
+          !stat_matches !stat_imp_queries !stat_valid_queries;
+        TP.print_stats me.tpc;
+        C.dump_solution_stats s;
+        flush stdout
+      end
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
 (***************************************************************)
 
-let rec solve_sub sri s w = 
-  (if !stat_refines mod 100 = 0 
-   then C.cprintf C.ol_solve "@[num@ refines@ =@ %d@\n@]" !stat_refines);
-  match pop_worklist sri w with (None,_) -> s | (Some c, w') ->
-    let (r,b,fci) = get_ref_rank sri c in
-    let _ = C.cprintf C.ol_solve "@.@[Refining@ %d@ at iter@ %d in@ scc@ (%d,%b,%s):@]@."
-            (get_ref_id c) !stat_refines r b (C.io_to_string fci) in
-    let _ = if C.ck_olev C.ol_insane then dump_solution s in
-    let w' = if BS.time "refine" (refine sri s) c 
-             then push_worklist sri w' (get_ref_deps sri c) else w' in
-    solve_sub sri s w'
+let rec acsolve me w s = 
+  let _ = if !stat_refines mod 100 = 0 
+          then Co.cprintf Co.ol_solve "num refines =%d \n" !stat_refines in
+  let _ = if Co.ck_olev Co.ol_insane then C.dump_solution s in
+  match Ci.pop me.sri si.wkl with (None,_) -> s | (Some c, w') ->
+    let ch  = BS.time "refine" (refine me s) c in
+    let w'' = if ch then Ci.get_ref_deps me.sri c |> Ci.push me.sri w' else w' in 
+    acsolve me w'' s 
 
-let solve_wf sri s =
-  iter_ref_constraints sri 
-  (function WFRef _ as c -> ignore (refine sri s c) | _ -> ())
+(* API *)
+let solve me s = 
+  let _ = Ci.dump me.sri;  
+          C.dump_solution s; 
+          dump me s 0 in
+  let w = BS.time "init wkl"    Ci.winit me.sri in 
+          BS.time "solving sub" (acsolve me s) w;
+          TP.reset ();
+          C.dump_solution s; 
+          dump me s 2 in
+  let u = BS.time "testing solution" (unsat_constraints sri) s in
+  let _ = if u != [] then Format.printf "Unsatisfied Constraints:\n %a"
+                          (Misc.pprint_many true "\n" (C.print None)) u in
+  (s, u)
 
-let solve qs env consts cs = 
-  let cs = if !Cf.simpguard then List.map simplify_fc cs else cs in
-  let _  = dump_constraints cs in
-  let _  = dump_unsplit cs in
-  let cs = BS.time "splitting constraints" split cs in
-  let max_env = List.fold_left 
-    (fun env (v, c, _) -> Le.combine (frame_env c.lc_cstr) env) Le.empty cs in
-(*  let _ = C.cprintf C.ol_insane "===@.Pruned Maximum Environment@.%a@.===@." pprint_fenv_shp max_env in
-  let _ = printf "%a@.@." (pprint_raw_fenv true) max_env; assert false in*)
-  let cs = List.map (fun (v, c, cstr) -> (set_labeled_constraint c (make_val_env v max_env), cstr)) cs in
-  (* let cs = if !Cf.esimple then 
-               BS.time "e-simplification" (List.map esimple) cs else cs in *)
-  (*let _ = printf "Qualifier@ patterns@.";
-    List.map (fun (_, {Parsetree.pqual_pat_desc = (_, _, p)}) -> printf "%a@." P.pprint_pattern p) qs in*)
-  let qs = BS.time "instantiating quals" (instantiate_per_environment env consts cs) qs in
-  (*let qs = List.map (fun qs -> List.filter Qualifier.may_not_be_tautology qs) qs in*)
-  let _ = if C.ck_olev C.ol_solve then
-          C.cprintf C.ol_solve "@[%i@ instantiation@ queries@ %i@ misses@]@." (List.length cs) !tr_misses in
-  let _ = if C.ck_olev C.ol_solve then
-          C.cprintf C.ol_solve_stats "@[%i@ qualifiers@ generated@]@." (List.length (List.flatten qs)) in
-  let _ = if C.ck_olev C.ol_insane then
-          dump_qualifiers (List.combine (strip_origins cs) qs) in
-(*let _ = assert false in*)
-  let sri = BS.time "making ref index" make_ref_index cs in
-  let s = BS.time "make initial sol" make_initial_solution (List.combine (strip_origins cs) qs) in
-  (*let _ = JS.print stdout "JanStats"; flush stdout in*)
+(* API *)
+let create ts ps cs =
+  let tpc = TP.create () in
+  let _   = BS.time "Adding sorts"     TP.new_sorts tpc ts in
+  let _   = BS.time "Adding axioms"   (TP.new_axioms tpc) ps in
+  let sri = BS.time "Making ref index" Ci.create cs in
+  { tpc = tpc; sri = src }
 
-  let _ = dump_solution s in
-  let _ = dump_solving sri s 0 in
-  let _ = BS.time "solving wfs" (solve_wf sri) s in
-  let _ = C.cprintf C.ol_solve "@[AFTER@ WF@]@." in
-  let _ = dump_solving sri s 1 in
-  let _ = dump_solution s in
-  let w = make_initial_worklist sri in
-  let _ = BS.time "solving sub" (solve_sub sri s) w in
-  let _ = dump_solving sri s 2 in
-  let _ = dump_solution s in
-  let _ = TP.reset () in
-  let unsat = BS.time "testing solution" (unsat_constraints sri) s in
-  (*let sat = List.for_all (fun x -> x) (BS.time "testing solution" (List.map (refine sri s)) cs') in*)
-  if List.length unsat > 0 then 
-    C.cprintf C.ol_solve_error "@[Ref_constraints@ still@ unsatisfied:@\n@]";
-    List.iter (fun (c, b) -> C.cprintf C.ol_solve_error "@[%a@.@\n@]" (pprint_ref None) c) unsat;
-  (solution_map s, List.map snd unsat)
+(*
+(***********************************************************************)
+(************** FUTURE WORK:  A Parallel Solver ************************)
+(***********************************************************************)
 
+let Par.reduce f = fun (x::xs) -> Par.fold_left f x xs
+
+let one_solve sis s = 
+  Par.map (fun si -> Solve.solve si s) sis |> 
+  Par.reduce (fun (s,b) (s',b') -> (Constraint.join s s', b || b'))
+
+(* API *)
+let psolve n ts axs cs s0 = 
+  let css = partition cs n in
+  let sis = pmap (Solve.create ts axs) css in
+  Misc.fixpoint (one_solve sis) s0
+*)
