@@ -17,8 +17,10 @@ LFLAGS=-lflags -cc,g++ \
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(MISCHOME) 
 
+TARGETS=ast.cmo
+
 all:
-	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) ast.cmo
+	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)
 
 clean:
 	rm -rf *.byte *.native _build _log

@@ -50,13 +50,13 @@ type t =
 let get_ref_id = 
   function WFRef (_,_,Some i) | SubRef (_,_,_,_,Some i) -> i | _ -> assert false
 
-let get_ref_rank sri c = 
-  try SIM.find (get_ref_id c) sri.rank with Not_found ->
+let get_ref_rank me c = 
+  try SIM.find (get_ref_id c) me.rank with Not_found ->
     (printf "ERROR: @[No@ rank@ for:@ %a@\n@]" (pprint_ref None) c; 
      raise Not_found)
 
-let get_ref_constraint sri i = 
-  C.do_catch "ERROR: get_constraint" (SIM.find i) sri.cnst
+let get_ref_constraint me i = 
+  C.do_catch "ERROR: get_constraint" (SIM.find i) me.cnst
 
 let lhs_ks = function WFRef _ -> assert false | SubRef (env,_,r,_,_) ->
   Le.fold (fun _ f l -> F.refinement_qvars f @ l) env (F.refinement_qvars r)
@@ -113,7 +113,7 @@ let make_rank_map om cm =
     BS.time "step 2"
     (List.fold_left
       (fun rm (id,r) -> 
-        let b = (not !Cf.psimple) || (is_simple_constraint (SIM.find id cm)) in
+        let b = (not !Cf.psimple) || (C.is_simple (SIM.find id cm)) in
         let fci = (SIM.find id om).lc_id in
         SIM.add id (r,b,fci) rm)
       SIM.empty) rank in
@@ -140,60 +140,71 @@ let create_t ocs =
   let (dm,rm) = BS.time "make rank map" (make_rank_map om) cm in
   {orig = om; cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
 
-let get_ref_orig sri c = 
-  C.do_catch "ERROR: get_ref_orig" (SIM.find (get_ref_id c)) sri.orig
+let get_ref_orig me c = 
+  C.do_catch "ERROR: get_ref_orig" (SIM.find (get_ref_id c)) me.orig
 
-let get_ref_fenv sri c =
-  (function SubFrame (a, _, _, _) | WFFrame (a, _) -> a) (get_ref_orig sri c).lc_cstr
+let get_ref_fenv me c =
+  (function SubFrame (a, _, _, _) | WFFrame (a, _) -> a) (get_ref_orig me c).lc_cstr
 
 (* API : deps *) 
-let deps sri c =
-  let is' = try SIM.find (get_ref_id c) sri.depm with Not_found -> [] in
-  List.map (get_ref_constraint sri) is'
+let deps me c =
+  let is' = try SIM.find (get_ref_id c) me.depm with Not_found -> [] in
+  List.map (get_ref_constraint me) is'
 
 (* API : to_list *)
-let to_list sri = 
-  SIM.fold (fun _ c cs -> c::cs) sri.cnst [] 
+let to_list me = 
+  SIM.fold (fun _ c cs -> c::cs) me.cnst [] 
 
 (* API : iter *)
-let iter sri f = 
-  SIM.iter (fun _ c -> f c) sri.cnst
+let iter me f = 
+  SIM.iter (fun _ c -> f c) me.cnst
 
-let iter_ref_origs sri f =
-  SIM.iter (fun i c -> f i c) sri.orig
+let iter_ref_origs me f =
+  SIM.iter (fun i c -> f i c) me.orig
 
-let sort_iter_ref_constraints sri f = 
-  let rids  = SIM.fold (fun id (r,_,_) ac -> (id,r)::ac) sri.rank [] in
+let sort_iter_ref_constraints me f = 
+  let rids  = SIM.fold (fun id (r,_,_) ac -> (id,r)::ac) me.rank [] in
   let rids' = List.sort (fun x y -> compare (snd x) (snd y)) rids in 
-  List.iter (fun (id,_) -> f (SIM.find id sri.cnst)) rids' 
+  List.iter (fun (id,_) -> f (SIM.find id me.cnst)) rids' 
 
 (* API *)
 let wpush =
   let timestamp = ref 0 in
-  fun sri w cs ->
+  fun me w cs ->
     incr timestamp;
     List.fold_left 
       (fun w c -> 
         let id = get_ref_id c in
-        if Hashtbl.mem sri.pend id then w else 
+        if Hashtbl.mem me.pend id then w else 
           (C.cprintf C.ol_solve "@[Pushing@ %d at %d@\n@]" id !timestamp; 
-           Hashtbl.replace sri.pend id (); 
-           WH.add (id,!timestamp,get_ref_rank sri c) w))
+           Hashtbl.replace me.pend id (); 
+           WH.add (id,!timestamp,get_ref_rank me c) w))
       w cs
 
 (* API *)
-let wpop sri w =
+let wpop me w =
   try 
     let (id, _, _) = WH.maximum w in
-    let _          = Hashtbl.remove sri.pend id in
-    let c          = get_ref_constraint sri id in
-    let (r,b,fci)  = get_ref_rank sri c in
+    let _          = Hashtbl.remove me.pend id in
+    let c          = get_ref_constraint me id in
+    let (r,b,fci)  = get_ref_rank me c in
     let _          = C.cprintf C.ol_solve "Popping %d at iter %d in scc (%d,%b,%s) \n"
                      (get_ref_id c) r b (Misc.io_to_string fci) in 
     (Some c, WH.remove w)
   with Heap.EmptyHeap -> (None,w) 
 
 (* API *)
-let winit sri =
-  to_list sri |> wpush sri WH.empty  
+let winit me =
+  to_list me |> wpush me WH.empty  
+
+(* API *) 
+let dump me = 
+  if !Co.dump_ref_constraints then begin
+    Format.printf "Refinement Constraints: \n" 
+    iter me (Format.printf "@[%a@.@]" (C.print None));
+    Format.printf "\n SCC Ranked Refinement Constraints: \n";
+    sort_iter_ref_constraints me (Format.printf "@[%a@.@]" (C.print None)); 
+  end
+
+
 
