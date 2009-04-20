@@ -35,6 +35,8 @@ module Ops = struct
   
   let (|>) x f = f x
 
+  let (+=) x n = x := !x + n
+
   let (++) = List.rev_append 
 
   let id = fun x -> x
@@ -46,9 +48,11 @@ module Ops = struct
 
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
-  
+
+(*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
+*)
 
 end
 
@@ -82,6 +86,14 @@ let map_partial f xs =
         | None   -> acc
         | Some z -> (z::acc)) [] xs)
 
+let do_catch s f x =
+  try f x with ex -> 
+     (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); raise ex) 
+
+let do_catch_ret s f x y = 
+  try f x with ex -> 
+     (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); y) 
+
 let do_memo memo f args key = 
   try Hashtbl.find memo key with Not_found ->
     let rv = f args in
@@ -89,6 +101,14 @@ let do_memo memo f args key =
     rv
 
 let map_pair f (x1, x2) = (f x1, f x2)
+
+let mapfold f xs b = 
+  List.fold_left 
+    (fun (ys, c) x -> 
+      let y', c' = f x b in 
+      (y'::ys, c'))
+    ([], b) xs 
+  |> (fun (ys, c) -> ((List.rev ys), c))
 
 let flap f xs = List.flatten (List.map f xs)
 
@@ -99,11 +119,19 @@ let tr_flatten xss =
 let tr_flap f xs = 
   List.rev (tr_flatten (List.rev_map f xs))
 
-(** hashtbl_keys tbl returns the list of keys with bindings in the table *)
-
 let hashtbl_keys t = 
   Hashtbl.fold (fun x y l -> x::l) t []
  
+let append_pref p s =
+  (p ^ "." ^ s)
+
+let app_fst f (a, b) = (f a, b)
+let app_snd f (a, b) = (a, f b)
+let app_pr f (a, b) = (f a, f b)
+
+let app_triple f (a, b, c) = (f a, f b, f c)
+
+
 let sort_and_compact ls =
   let rec _sorted_compact l = 
     match l with
@@ -174,4 +202,200 @@ let rec fixpoint f x =
 let is_prefix p s = 
   let reg = Str.regexp p in
   Str.string_match reg s 0
+
+let rec pprint_many brk s f ppf = function
+  | []     -> ()
+  | x::[]  -> Format.fprintf ppf "%a" f x
+  | x::xs' -> ((if brk 
+                then Format.fprintf ppf "%a %s@ " f x s 
+                else Format.fprintf ppf "%a %s" f x s); 
+                pprint_many brk s f ppf xs')
+
+let pprint_str ppf s =
+  Format.fprintf ppf "%s" s
+
+let fsprintf f p = 
+  Format.fprintf Format.str_formatter "@[%a@]" f p;
+  Format.flush_str_formatter ()
+
+let rec same_length l1 l2 = match l1, l2 with
+  | [], []           -> true
+  | _ :: xs, _ :: ys -> same_length xs ys
+  | _                -> false
+
+let only_one s = function
+    x :: [] -> Some x
+  | x :: xs -> failwith s
+  | [] -> None
+
+let maybe_one = function
+    [x] -> Some x
+  | _ -> None
+
+
+(*****************************************************************)
+(******************** Mem Management *****************************)
+(*****************************************************************)
+
+open Gc
+(* open Format *)
+
+let pprint_gc s =
+  (*printf "@[Gc@ Stats:@]@.";
+  printf "@[minor@ words:@ %f@]@." s.minor_words;
+  printf "@[promoted@ words:@ %f@]@." s.promoted_words;
+  printf "@[major@ words:@ %f@]@." s.major_words;*)
+  (*printf "@[total allocated:@ %fMB@]@." (floor ((s.major_words +. s.minor_words -. s.promoted_words) *. (4.0) /. (1024.0 *. 1024.0)));*)
+
+  Format.printf "@[total allocated:@ %fMB@]@." (floor ((allocated_bytes ()) /. (1024.0 *. 1024.0)));
+  Format.printf "@[minor@ collections:@ %i@]@." s.minor_collections;
+  Format.printf "@[major@ collections:@ %i@]@." s.major_collections;
+  Format.printf "@[heap@ size:@ %iMB@]@." (s.heap_words * 4 / (1024 * 1024));
+  (*printf "@[heap@ chunks:@ %i@]@." s.heap_chunks;
+  (*printf "@[live@ words:@ %i@]@." s.live_words;
+  printf "@[live@ blocks:@ %i@]@." s.live_blocks;
+  printf "@[free@ words:@ %i@]@." s.free_words;
+  printf "@[free@ blocks:@ %i@]@." s.free_blocks;
+  printf "@[largest@ free:@ %i@]@." s.largest_free;
+  printf "@[fragments:@ %i@]@." s.fragments;*)*)
+  Format.printf "@[compactions:@ %i@]@." s.compactions;
+  (*printf "@[top@ heap@ words:@ %i@]@." s.top_heap_words*) ()
+
+let dump_gc s =
+  Format.printf "@[%s@]@." s;
+  pprint_gc (Gc.quick_stat ())
+
+
+
+let append_to_file f s = 
+  let oc = Unix.openfile f [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 420  in
+  ignore (Unix.write oc s 0 ((String.length s)-1) ); 
+  Unix.close oc
+
+let write_to_file f s =
+  let oc = open_out f in
+  output_string oc s; 
+  close_out oc
+
+let get_unique =
+  let cnt = ref 0 in
+  (fun () -> let rv = !cnt in incr cnt; rv)
+
+let flip f x y =
+  f y x
+
+let maybe = function Some x -> x | _ -> assert false
+
+let maybe_cons m xs = match m with
+  | None -> xs
+  | Some x -> x :: xs
+
+let maybe_list xs = List.fold_right maybe_cons xs []
+
+let list_assoc_flip xs = 
+  let r (x, y) = (y, x) in
+    List.map r xs
+
+let fold_lefti f b xs =
+  List.fold_left (fun (i,b) x -> ((i+1), f i b x)) (0,b) xs
+
+let rec map3 f xs ys zs = match (xs, ys, zs) with
+  | ([], [], []) -> []
+  | (x :: xs, y :: ys, z :: zs) -> f x y z :: map3 f xs ys zs
+  | _ -> assert false
+
+let zip_partition xs bs =
+  let (xbs,xbs') = List.partition snd (List.combine xs bs) in
+  (List.map fst xbs, List.map fst xbs')
+
+let rec perms es =
+  match es with
+    | s :: [] ->
+        List.map (fun c -> [c]) s
+    | s :: es ->
+        flap (fun c -> List.map (fun d -> c :: d) (perms es)) s
+    | [] ->
+        []
+
+let flap2 f xs ys = 
+  List.flatten (List.map2 f xs ys)
+
+let flap3 f xs ys zs =
+  List.flatten (map3 f xs ys zs)
+
+let split3 lst =
+  List.fold_right (fun (x, y, z) (xs, ys, zs) -> (x :: xs, y :: ys, z :: zs)) lst ([], [], [])
+
+let combine3 xs ys zs =
+  map3 (fun x y z -> (x, y, z)) xs ys zs
+
+(* these do odd things with order for performance 
+ * it is possible that fast is a misnomer *)
+let fast_flatten xs =
+  List.fold_left (fun x xs -> List.rev_append x xs) [] xs
+
+let fast_append v v' =
+  let (v, v') = if List.length v > List.length v' then (v', v) else (v, v') in
+  List.rev_append v v'
+
+let fast_flap f xs =
+  List.fold_left (fun xs x -> List.rev_append (f x) xs) [] xs
+
+let rec fast_unflat ys = function
+  | x :: xs -> fast_unflat ([x] :: ys) xs
+  | [] -> ys
+
+let rec rev_perms s = function
+  | [] -> s
+  | e :: es -> rev_perms 
+    (fast_flap (fun e -> List.rev_map (fun s -> e :: s) s) e) es 
+
+let rev_perms = function
+  | e :: es -> rev_perms (fast_unflat [] e) es
+  | es -> es 
+
+let tflap2 (e1, e2) f =
+  List.fold_left (fun bs b -> List.fold_left (fun aas a -> f a b :: aas) bs e1) [] e2
+
+let tflap3 (e1, e2, e3) f =
+  List.fold_left (fun cs c -> List.fold_left (fun bs b -> List.fold_left (fun aas a -> f a b c :: aas) bs e1) cs e2) [] e3
+
+let rec expand f xs ys =
+  match xs with
+  | [] -> ys
+  | x::xs ->
+      let (xs',ys') = f x in
+      expand f (List.rev_append xs' xs) (List.rev_append ys' ys)
+
+
+
+
+
+
+let rec is_unique = function
+  | []      -> true
+  | x :: xs -> if List.mem x xs then false else is_unique xs
+
+let resl_opt f = function
+  | Some o -> f o
+  | None -> []
+
+let resi_opt f = function
+  | Some o -> f o
+  | None -> ()
+
+let opt_iter f l = 
+  List.iter (resi_opt f) l
+
+let array_to_index_list a =
+  Array.fold_left (fun (i,rv) v -> (i+1,(i,v)::rv)) (0,[]) a
+  |> snd
+  |> List.rev
+
+let compose f g a = f (g a)
+
+let maybe_bool = function
+  Some _ -> true
+  | None -> false
+
 

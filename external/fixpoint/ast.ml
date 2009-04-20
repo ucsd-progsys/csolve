@@ -429,7 +429,10 @@ module Predicate =
 
       let subst p x e' =
         map id (esub x e') p
-	   
+
+      let substs xes p = 
+        List.fold_left (fun p' (x,e) -> subst p' x e) p xes
+
       let support p =
         let t = Hashtbl.create 251 in
         iter un (function (Var x), _ 
@@ -451,6 +454,8 @@ module Predicate =
       let unwrap = puw
 
     end
+
+
 
 let print_stats _ = 
   Printf.printf "Ast Stats. [none] \n"

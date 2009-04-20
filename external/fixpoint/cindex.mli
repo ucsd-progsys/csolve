@@ -21,10 +21,24 @@
  *
  *)
 
+(***************************************************************)
+(**** This module implements constraint indexing ***************)
+(***************************************************************)
 
-(** This module implements a fixpoint solver *)
+module C = Ast.Constraint
 
-type t 
-val create   : sort list -> pred list -> cstr list -> t
-val solve    : t -> soln -> (soln * bool) 
+type t
+type wkl
 
+(** indexing and dependencies *)
+val create      : C.t list -> t 
+val deps        : t -> C.t -> C.t list
+val iter        : t -> (C.t -> unit) -> unit
+
+(** worklist manipulation *)
+val wpush       : t -> wkl -> C.t list -> wkl 
+val wpop        : t -> wkl -> (C.t option * wkl)
+val winit       : t -> wkl
+
+(** printing *)
+val print       : Format.formatter -> t -> unit  

@@ -88,6 +88,12 @@ and pred_int =
   | Atom of expr * brel * expr 
   | Forall of ((Symbol.t * Sort.t) list) * pred
 
+(** Wrap and unwrap -- should be hidden 
+val ewr : expr_int -> expr
+val euw : expr -> expr_int
+val pwr : pred_int -> pred
+val puw : pred -> pred_int*)
+
 (* Constructors : expressions *)
 val eCon : Constant.t -> expr
 val eVar : Symbol.t -> expr
@@ -124,7 +130,8 @@ sig
   val map       : (pred -> pred) -> (expr -> expr) -> expr -> expr 
   val iter      : (pred -> unit) -> (expr -> unit) -> expr -> unit 
 end
-  
+ 
+
 module Predicate :
 sig
   module Hash : Hashtbl.S with type key = pred 
@@ -135,7 +142,7 @@ sig
 
   val unwrap    : pred -> pred_int
   val support   : pred -> Symbol.t list
-  val subst     : pred -> Symbol.t -> expr -> pred 
+  val subst     : pred -> Symbol.t -> expr -> pred  
   val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 
   val iter      : (pred -> unit) -> (expr -> unit) -> pred -> unit 
 

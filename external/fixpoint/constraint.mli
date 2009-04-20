@@ -17,14 +17,22 @@
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
- * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONAst.Symbol.
  *
  *)
 
+(* This module implements basic datatypes and operations on constraints *)
 
-(** This module implements a fixpoint solver *)
+type tag  = int
+type subs = (Ast.Symbol.t * Ast.expr) list                    (* [x,e] *)
+type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
+type reft = Ast.Symbol.t * (refa list)                   (* VV, [ra] *)
+type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
+type soln = Ast.pred list Ast.Symbol.SMap.t
+type t    = envt * Ast.pred * reft * reft * (tag option) 
 
-type t 
-val create   : sort list -> pred list -> cstr list -> t
-val solve    : t -> soln -> (soln * bool) 
-
+val is_simple        : t -> bool
+val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
+val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
+val print            : soln option -> Format.formatter -> t -> unit
+val to_string        : t -> string 
