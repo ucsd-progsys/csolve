@@ -17,7 +17,7 @@ LFLAGS=-lflags -cc,g++ \
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(MISCHOME) 
 
-TARGETS=ast.cmo
+TARGETS=ast.cmo constraint.cmo
 
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)

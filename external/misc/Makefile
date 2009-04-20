@@ -9,7 +9,7 @@ IFLAGS=-lflags -I,$(CILHOME)
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) 
 
-TARGETS=misc.cma misc.cmxa bstats.cma bstats.cmxa
+TARGETS=misc.cma misc.cmxa bstats.cma bstats.cmxa flags.cma flags.cmxa
 
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)

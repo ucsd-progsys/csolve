@@ -25,7 +25,8 @@
 (**** This module implements constraint indexing ***************)
 (***************************************************************)
 
-module C = Ast.Constraint
+module Co = Common
+module C  = Ast.Constraint
 
 module WH = 
   Heap.Functional(struct 
@@ -146,16 +147,16 @@ let get_ref_orig me c =
 let get_ref_fenv me c =
   (function SubFrame (a, _, _, _) | WFFrame (a, _) -> a) (get_ref_orig me c).lc_cstr
 
-(* API : deps *) 
+(* API *) 
 let deps me c =
   let is' = try SIM.find (get_ref_id c) me.depm with Not_found -> [] in
   List.map (get_ref_constraint me) is'
 
-(* API : to_list *)
+(* API *)
 let to_list me = 
   SIM.fold (fun _ c cs -> c::cs) me.cnst [] 
 
-(* API : iter *)
+(* API *)
 let iter me f = 
   SIM.iter (fun _ c -> f c) me.cnst
 
@@ -198,12 +199,12 @@ let winit me =
   to_list me |> wpush me WH.empty  
 
 (* API *) 
-let dump me = 
+let print ppf me = 
   if !Co.dump_ref_constraints then begin
-    Format.printf "Refinement Constraints: \n" 
-    iter me (Format.printf "@[%a@.@]" (C.print None));
-    Format.printf "\n SCC Ranked Refinement Constraints: \n";
-    sort_iter_ref_constraints me (Format.printf "@[%a@.@]" (C.print None)); 
+    Format.fprintf ppf "Refinement Constraints: \n" 
+    iter me (Format.fprintf ppf "@[%a@.@]" (C.print None));
+    Format.fprintf ppf "\n SCC Ranked Refinement Constraints: \n";
+    sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print None)); 
   end
 
 

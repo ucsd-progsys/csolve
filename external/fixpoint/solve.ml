@@ -154,7 +154,7 @@ let dump me s = function
       let cs   = Ci.to_list me.sri in 
       let cn   = List.length cs in
       let scn  = List.length (List.filter C.is_simple cs) in
-      Ci.dump me.sri;
+      Format.printf "%a" Ci.print me.sri;
       Co.cprintf C.ol_solve_stats "# variables   = %d \n" kn;
       Co.cprintf C.ol_solve_stats "# constraints = %d \n" rcn;
       Co.cprintf C.ol_solve_stats "# simple constraints = %d \n" scn;
@@ -182,12 +182,12 @@ let rec acsolve me w s =
   let _ = if Co.ck_olev Co.ol_insane then C.dump_solution s in
   match Ci.pop me.sri si.wkl with (None,_) -> s | (Some c, w') ->
     let ch  = BS.time "refine" (refine me s) c in
-    let w'' = if ch then Ci.get_ref_deps me.sri c |> Ci.push me.sri w' else w' in 
+    let w'' = if ch then Ci.deps me.sri c |> Ci.push me.sri w' else w' in 
     acsolve me w'' s 
 
 (* API *)
 let solve me s = 
-  let _ = Ci.dump me.sri;  
+  let _ = Format.printf "%a" Ci.print me.sri;  
           C.dump_solution s; 
           dump me s 0 in
   let w = BS.time "init wkl"    Ci.winit me.sri in 

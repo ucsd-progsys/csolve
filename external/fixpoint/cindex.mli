@@ -40,5 +40,5 @@ val wpush       : t -> wkl -> C.t list -> wkl
 val wpop        : t -> wkl -> (C.t option * wkl)
 val winit       : t -> wkl
 
-
-
+(** printing *)
+val print       : Format.formatter -> t -> unit  

@@ -1,14 +1,19 @@
 - rename "misc/" to utils
-- add bstats, miscellaneous pretty printers to utils
-- merge utils/common.ml and utils/misc.ml
-
+- add bstats to utils
+- refactor utils/common.ml and utils/misc.ml
+	misc   = depends _only_ on Ocaml
+	common = depends on tool-specific constants/libraries
 
 Jhala:
 	ast.ml{i}		[write,compile]
-	solve.ml{i}		[write]
 	constraint.ml{i}	[write]
+	
+	HEREHEREHERE: run make to compile constraint.ml
 
+	solve.ml{i}		[write]
 	cindex.ml{i}
+
+
 
 Ming:
 	theoremProver.ml{i}

@@ -17,27 +17,22 @@
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
- * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONAst.Symbol.
  *
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
 
-module S  = Ast.Symbol
-module E  = Ast.Expression
-module P  = Ast.Predicate
-module SM = S.SMap
-
 type tag  = int
-type subs = (S.t * E.t) list                    (* [x,e] *)
-type refa = Conc of P.t | Kvar of subs * S.t
-type reft = S.t * (refa list)                   (* VV, [ra] *)
-type envt = (Sort.t * reft) SM.t
-type soln = P.t list SM.t
-type t    = envt * P.t * reft * reft * (tag option) 
+type subs = (Ast.Symbol.t * Ast.expr) list                    (* [x,e] *)
+type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
+type reft = Ast.Symbol.t * (refa list)                   (* VV, [ra] *)
+type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
+type soln = Ast.pred list Ast.Symbol.SMap.t
+type t    = envt * Ast.pred * reft * reft * (tag option) 
 
 val is_simple        : t -> bool
-val sol_read         : soln -> S.t -> P.t list
-val group_sol_update : soln -> (S.t * P.t) list -> (bool * soln)
+val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
+val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val print            : soln option -> Format.formatter -> t -> unit
 val to_string        : t -> string 

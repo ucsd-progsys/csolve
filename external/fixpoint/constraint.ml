@@ -23,18 +23,21 @@
 
 (* This module implements basic datatypes and operations on constraints *)
 
-module S  = Ast.Symbol
-module E  = Ast.Expression
-module P  = Ast.Predicate
+module A  = Ast
+module S  = A.Symbol
+module E  = A.Expression
+module P  = A.Predicate
 module SM = S.SMap
 
+open Misc.Ops
+
 type tag  = int
-type subs = (S.t * E.t) list                    (* [x,e] *)
-type refa = Conc of P.t | Kvar of subs * S.t
+type subs = (S.t * A.expr) list                    (* [x,e] *)
+type refa = Conc of A.pred | Kvar of subs * S.t
 type reft = S.t * (refa list)                   (* VV, [ra] *)
-type envt = (Sort.t * reft) SM.t
-type soln = P.t list SM.t
-type t    = envt * P.t * reft * reft * (tag option) 
+type envt = (A.Sort.t * reft) SM.t
+type soln = A.pred list SM.t
+type t    = envt * A.pred * reft * reft * (tag option) 
 
 
 (*************************************************************)
@@ -42,14 +45,14 @@ type t    = envt * P.t * reft * reft * (tag option)
 (*************************************************************)
 
 let is_simple_refatom = function 
-  | C.Kvar ([], _) -> true
-  | _ -> false
+  | Kvar ([], _) -> true
+  | _            -> false
 
 (* API *)
 let is_simple (_,_,(_,ra1s),(_,ra2s),_) = 
   List.for_all is_simple_refatom ra1s &&
   List.for_all is_simple_refatom ra2s &&
-  not (!Co.no_simple || !Co.verify_simple)
+  not (!Flags.no_simple || !Flags.verify_simple)
 
 (*************************************************************)
 (******************** Solution Management ********************)
@@ -58,7 +61,7 @@ let is_simple (_,_,(_,ra1s),(_,ra2s),_) =
 (* API *)
 let sol_read s k = 
   try SM.find s k with Not_found -> 
-    failure "ERROR: sol_read : unknown kvar %s \n" s
+    failure "ERROR: sol_read : unknown kvar %s \n" (S.to_string s)
 
 let sol_update s k qs' =
   let qs = sol_read s k in
