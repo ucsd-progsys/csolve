@@ -21,6 +21,7 @@
  *
  *)
 
+module TP = TheoremProver
 
 (** This module implements a fixpoint solver *)
 

@@ -88,13 +88,6 @@ and pred_int =
   | Atom of expr * brel * expr 
   | Forall of ((Symbol.t * Sort.t) list) * pred
 
-(** Wrap and unwrap -- should be hidden 
-val ewr : expr_int -> expr
-val euw : expr -> expr_int
-val pwr : pred_int -> pred
-val puw : pred -> pred_int
-*)
-
 (* Constructors : expressions *)
 val eCon : Constant.t -> expr
 val eVar : Symbol.t -> expr
@@ -124,7 +117,8 @@ sig
   val print     : Format.formatter -> expr -> unit
   val show      : expr -> unit
   val to_string : expr -> string
- 
+  
+  val unwrap    : expr -> expr_int
   val support   : expr -> Symbol.t list
   val subst     : expr -> Symbol.t -> expr -> expr 
   val map       : (pred -> pred) -> (expr -> expr) -> expr -> expr 
@@ -138,7 +132,8 @@ sig
   val print     : Format.formatter -> pred -> unit
   val show      : pred -> unit
   val to_string : pred -> string
-  
+
+  val unwrap    : pred -> pred_int
   val support   : pred -> Symbol.t list
   val subst     : pred -> Symbol.t -> expr -> pred 
   val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 

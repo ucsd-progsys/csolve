@@ -22,15 +22,23 @@
  *)
 
 (* Common theorem prover interface *)
-module P = Predicate
-module C = Common
 module Cl = Clflags
 module Prover = TheoremProverZ3.Prover
 module BS = Bstats
+module A = Ast
+module P = A.Predicate
+module E = A.Expression
 
 (********************************************************************************)
 (************************** Rationalizing Division ******************************)
 (********************************************************************************)
+
+(*let fixdiv p =
+  let ret = ref false in
+  let emp _ = () in
+  let f e = match E.unwrap e with 
+     
+  P.iter emp b p*)
 
 let rec fixdiv p = 
   let expr_isdiv = 
@@ -137,19 +145,6 @@ let reset () =
   nb_cache_hits := 0;
   nb_qp_miss := 0
 
-(*(* API *)
-let set env ps =
-  let _ = incr nb_push in 
-  let ps = List.map fixdiv ps in
-  (* C.cprintf C.ol_refine "@[TP implies: %a@ \n@]" P.pprint p *)
-  Prover.set env ps
-
-(* API *)
-let valid env q = 
-  incr nb_queries; 
-  let q = fixdiv q in
-  Prover.valid env q*)
-
 let is_not_taut p =
   not (P.is_taut p)
 
@@ -163,78 +158,5 @@ let set_and_filter env ps qs =
       let (qs, qs') = List.partition (fun (_, q) -> is_not_taut q) qs in
         List.rev_append qs' (BS.time "TP filter" (Prover.filter env) qs)
 
-(*(* API *)
-let finish () = 
-  Prover.finish ()
-  *)
-  
-(* 
-(* API *)
-let implies p = 
-  let _ = incr nb_push in
-  let p = fixdiv p in
-  let _ = C.cprintf C.ol_refine "@[TP implies: %a@ \n@]" P.pprint p in
-  let check_yi = Bstats.time "TP implies(1)" Prover.implies p in
-  (fun q -> 
-    let q = fixdiv q in
-    incr nb_queries; 
-    Bstats.time "TP implies(2)" check_yi q)
-*)
 
 
-(* {{{
-
-module Cl = Clflags
-
-exception Provers_disagree of bool * bool
-
-let check_result f g arg =
-  if not !Cl.check_queries then Bstats.time "calling PI" f arg else
-    let fres = f arg in
-    let gres = g arg in
-      if fres != gres then raise (Provers_disagree (fres, gres))
-      else fres
-
-let do_both_provers f g arg =
-  f arg; if !Cl.check_queries then g arg else ()
-
-let push p = do_both_provers DefaultProver.push BackupProver.push (fixdiv p)
-
-let pop () = do_both_provers DefaultProver.pop BackupProver.pop ()
-
-let valid p = check_result DefaultProver.valid BackupProver.valid (fixdiv p)
-
-let check_table p q =
-  let ipq = P.implies (p, q) in
-    if Hashtbl.mem qcache ipq then (incr hits;(true, Hashtbl.find qcache ipq))
-                              else (false, false)
-
-let check_imps p qs = 
-      List.map (fun q -> implies (p,q)) qs
-
-let check_implies default backup p q =
-  
-  let _ = incr num_queries in
-  let use_cache = !Cl.cache_queries in
-  let ipq = P.implies (p, q) in
-
-  let cached = (Bstats.time "cache lookup" (Hashtbl.mem qcache) ipq) && use_cache in
-  let _ = if cached then incr hits in
-
-  let (p, q) = Bstats.time "fixing div" (fun () -> (fixdiv p, fixdiv q)) () in
-  let res = if cached then Bstats.time "finding in cache " (Hashtbl.find qcache) ipq
-                else check_result default backup (p, q) in
-    if !Cl.dump_queries then
-      Format.printf "@[%s%a@;<1 0>=>@;<1 0>%a@;<1 2>(%B)@]@.@."
-        (if cached then "cached:" else "") P.pprint p P.pprint q res;
-    (if cached then () else if use_cache then Hashtbl.replace qcache ipq res); res
-
-let implies p q =
-  if !Cl.always_use_backup_prover then
-    Bstats.time "TP.ml prover query" (check_implies BackupProver.implies DefaultProver.implies p) q
-  else
-    Bstats.time "TP.ml prover query" (check_implies DefaultProver.implies BackupProver.implies p) q
-
-let backup_implies p q = check_implies BackupProver.implies DefaultProver.implies p q
-
- }}} *)

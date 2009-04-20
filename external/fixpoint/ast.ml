@@ -405,6 +405,8 @@ module Expression =
               | _             -> ()) e;
       Misc.hashtbl_keys t
 
+    let unwrap = euw
+
   end
     
 module Predicate =
@@ -445,11 +447,13 @@ module Predicate =
 	let c = ref 0 in
         let _ = iter (fun _ -> incr c) p in 
         !c
+
+      let unwrap = puw
+
     end
 
 let print_stats _ = 
   Printf.printf "Ast Stats. [none] \n"
-
 
 
 (* {{{
