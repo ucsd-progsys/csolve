@@ -25,6 +25,6 @@
 (** This module implements a fixpoint solver *)
 
 type t 
-val create   : sort list -> pred list -> cstr list -> t
-val solve    : t -> soln -> (soln * bool) 
+val create   : Ast.Sort.t list -> Ast.pred list -> Constraint.t list -> t
+val solve    : t -> Constraint.soln -> (Constraint.soln * bool) 
 

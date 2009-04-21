@@ -145,6 +145,6 @@ sig
   val subst     : pred -> Symbol.t -> expr -> pred  
   val map       : (pred -> pred) -> (expr -> expr) -> pred -> pred 
   val iter      : (pred -> unit) -> (expr -> unit) -> pred -> unit 
-
+  val is_contra : pred -> bool
   (* val size      : pred -> int *)
 end

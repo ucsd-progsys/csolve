@@ -25,18 +25,22 @@ module TP = TheoremProver
 (** This module implements a fixpoint solver *)
 
 module F  = Format
+module A  = Ast
 module Co = Constants
-module P  = Ast.Predicate
-module E  = Ast.Expression
-module S  = Ast.Sort
-module PH = Ast.Predicate.Hash
-module Sy = Ast.Symbol
+module P  = A.Predicate
+module E  = A.Expression
+module S  = A.Sort
+module PH = A.Predicate.Hash
+module Sy = A.Symbol
 module SM = Sy.SMap
 module C  = Constraint
 module Ci = Cindex
+
+open Misc.Ops
+
 type t = {
-  val tpc : TP.t;
-  val sri : Ci.t;
+  tpc : TP.t;
+  sri : Ci.t;
 }
 
 (*************************************************************)
@@ -56,8 +60,8 @@ let stat_matches        = ref 0
 (***************************************************************)
 
 let lhs_preds s env gp r1 =
-  let envps = environment_preds s env in
-  let r1ps  = refinement_preds  s r1 in
+  let envps = C.environment_preds s env in
+  let r1ps  = C.refinement_preds  s r1 in
   gp :: (envps ++ r1ps) 
 
 let rhs_cands s = function
@@ -67,9 +71,9 @@ let rhs_cands s = function
   | _ -> []
 
 let check_tp me env lps =  function [] -> [] | rcs ->
-  let env = (SM.map fst env)
+  let env = SM.map fst env in
   let rv  = Misc.do_catch "ERROR: check_tp" 
-              (TP.set_and_filter me.tpc (SM.map fst env) lps) rcs in
+              (TP.set_and_filter me.tpc env lps) rcs in
   let _   = stat_tp_refines += 1;
             stat_imp_queries += (List.length rcs);
             stat_valid_queries += (List.length rv) in
@@ -89,8 +93,8 @@ let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
     let _       = List.iter (fun p -> PH.add lt p ()) lps in
     let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs in
     let _       = stat_matches += (List.length x1) in
-    let kqs1    = List.map fst xs in
-    (if C.is_simple c then stat_simple_refines += 1; kqs1 
+    let kqs1    = List.map fst x1 in
+    (if C.is_simple c then (stat_simple_refines += 1; kqs1) 
                       else kqs1 ++ (check_tp me env lps x2))
     |> C.group_sol_update s 
 
@@ -98,11 +102,11 @@ let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
 (************************* Satisfaction ************************)
 (***************************************************************)
 
-let unsat me s ((env, gp, (vv1, ra1s), (vv2, ra2s), _) as c) =
-  let _   = asserts (vv1 = vv2) "ERROR: malformed constraint" in
-  let lps = lhs_preds s env gp (vv1, ra1s) in
-  let rhs = [(0, P.And (Misc.flap (refineatom_preds s) ra2s))] in
-  not ((check_tp me env lps rhs) = [0])
+let unsat me s (env, gp, (vv1, ra1s), (vv2, ra2s), _) =
+  let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
+  let lps  = lhs_preds s env gp (vv1, ra1s) in
+  let rhsp = ra2s |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
+  not ((check_tp me env lps [(0, rhsp)]) = [0])
 
 let unsat_constraints me s sri =
   Ci.to_list sri |> List.filter (unsat me s)
@@ -136,7 +140,7 @@ let dump me s = function
       let scn  = List.length (List.filter C.is_simple cs) in
       Format.printf "%a" Ci.print me.sri;
       Co.cprintf C.ol_solve_stats "# variables   = %d \n" kn;
-      Co.cprintf C.ol_solve_stats "# constraints = %d \n" rcn;
+      Co.cprintf C.ol_solve_stats "# constraints = %d \n" cn;
       Co.cprintf C.ol_solve_stats "# simple constraints = %d \n" scn;
       C.dump_solution_stats s 
   | 1 -> 
@@ -171,7 +175,7 @@ let solve me s =
           C.dump_solution s; 
           dump me s 0 in
   let w = BS.time "init wkl"    Ci.winit me.sri in 
-          BS.time "solving sub" (acsolve me s) w;
+  let _ = BS.time "solving sub" (acsolve me s) w;
           TP.reset ();
           C.dump_solution s; 
           dump me s 2 in
@@ -186,7 +190,7 @@ let create ts ps cs =
   let _   = BS.time "Adding sorts"     TP.new_sorts tpc ts in
   let _   = BS.time "Adding axioms"   (TP.new_axioms tpc) ps in
   let sri = BS.time "Making ref index" Ci.create cs in
-  { tpc = tpc; sri = src }
+  { tpc = tpc; sri = sri }
 
 (*
 (***********************************************************************)

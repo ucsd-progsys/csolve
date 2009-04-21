@@ -453,6 +453,8 @@ module Predicate =
 
       let unwrap = puw
 
+      let is_contra = fun p -> failwith "TBD: Predicate.is_contra" 
+
     end
 
 
