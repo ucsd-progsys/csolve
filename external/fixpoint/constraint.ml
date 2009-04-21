@@ -52,7 +52,7 @@ let is_simple_refatom = function
 let is_simple (_,_,(_,ra1s),(_,ra2s),_) = 
   List.for_all is_simple_refatom ra1s &&
   List.for_all is_simple_refatom ra2s &&
-  not (!Flags.no_simple || !Flags.verify_simple)
+  not (!Constants.no_simple || !Constants.verify_simple)
 
 (*************************************************************)
 (******************** Solution Management ********************)
@@ -60,12 +60,12 @@ let is_simple (_,_,(_,ra1s),(_,ra2s),_) =
 
 (* API *)
 let sol_read s k = 
-  try SM.find s k with Not_found -> 
-    failure "ERROR: sol_read : unknown kvar %s \n" (S.to_string s)
+  try SM.find k s with Not_found -> 
+    failure "ERROR: sol_read : unknown kvar %s \n" (S.to_string k)
 
 let sol_update s k qs' =
   let qs = sol_read s k in
-  (not (Misc.same_length qs qs'), SM.replace s k qs')
+  (not (Misc.same_length qs qs'), SM.add k qs' s)
 
 (* API *)
 let group_sol_update s0 kqs = 
@@ -79,29 +79,58 @@ let group_sol_update s0 kqs =
       (b || b', s'))
     (false, s0) ks
 
+(*************************************************************)
+(*********************** Logic Embedding *********************)
+(*************************************************************)
+
+(* API *)
+let apply_substs xes p = 
+  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
+
+(* API *)
+let refineatom_preds s   = function
+  | Conc p       -> [p]
+  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
+
+(* API *)
+let refinement_preds s (_,ras) =
+  Misc.flap (refineatom_preds s) ras
+
+(* API *)
+let environment_preds s env =
+  SM.fold
+    (fun x (t, (vv,ras)) ps -> 
+      let vps = refinement_preds s (vv, ras) in
+      let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
+      xps ++ ps)
+    env [] 
+
 (**************************************************************)
 (********************** Pretty Printing ***********************)
 (**************************************************************)
 
 let print_sub ppf (x,e) = 
-  Format.fprintf "[%s:=%a]" x E.print e
+  Format.fprintf ppf "[%a:=%a]" S.print x E.print e
 
 let print_refineatom ppf = function
-  | Conc p        -> Format.fprintf "%a" P.print p
-  | Kvar (xes, k) -> Format.fprintf "%s[%a]" k 
+  | Conc p        -> Format.fprintf ppf "%a" P.print p
+  | Kvar (xes, k) -> Format.fprintf ppf "%a[%a]" S.print k 
                        (Misc.pprint_many false "" print_sub) xes
 
 let print_refinement ppf (v, ras) =
-  Format.fprintf ppf "@[{%s:%a@]" v 
+  Format.fprintf ppf "@[{%a:%a@]" 
+    S.print v 
     (Misc.pprint_many false " /\ " print_refineatom) ras  
 
 let print_binding ppf (x, (t, r)) = 
-  Format.fprintf ppf "@[%s@ =>@ %a:%a@],@;<0 2>" x Sort.print t print_refinement r 
+  Format.fprintf ppf "@[%a => %a:%a@],@;<0 2>" 
+  S.print x Ast.Sort.print t print_refinement r 
 
 let print_env so ppf env = 
   match so with
-  | Some s -> P.print ppf (P.And (environment_preds s env))
   | None   -> SM.iter (fun x y -> print_binding ppf (x, y)) env 
+  | Some s -> environment_preds s env |> 
+              Format.fprintf ppf "%a" (Misc.pprint_many false "&&" P.print) 
 
 let pprint_io ppf = function
   | Some id -> Format.fprintf ppf "(%d)" id
@@ -109,7 +138,8 @@ let pprint_io ppf = function
 
 (* API *)
 let print so ppf (env,g,r1,r2,io) =
-  Format.fprintf ppf "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
+  Format.fprintf ppf 
+    "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
     pprint_io io 
     (print_env so) env 
     P.print g
@@ -117,4 +147,4 @@ let print so ppf (env,g,r1,r2,io) =
     print_refinement r2
 
 (* API *) 
-let to_string c = Format.sprintf "%a" (print None) c
+let to_string c = Misc.fsprintf (print None) c

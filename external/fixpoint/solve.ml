@@ -33,7 +33,7 @@ module PH = Ast.Predicate.Hash
 module Sy = Ast.Symbol
 module SM = Sy.SMap
 module C  = Constraint
-
+module Ci = Cindex
 type t = {
   val tpc : TP.t;
   val sri : Ci.t;
@@ -50,27 +50,6 @@ let stat_imp_queries    = ref 0
 let stat_valid_queries  = ref 0
 let stat_matches        = ref 0
 
-(*************************************************************)
-(*********************** Logic Embedding *********************)
-(*************************************************************)
-
-let apply_substs xes p = 
-  List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
-
-let refineatom_preds s   = function
-  | Conc p       -> [p]
-  | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
-
-let refinement_preds s (_,ras) =
-  Misc.flap (refineatom_preds s) ras
-
-let environment_preds s env =
-  SM.fold
-    (fun x (t, (vv,ras)) ps -> 
-      let vps = refinement_preds s (vv, ras) in
-      let xps = List.map (fun p -> P.subst p (vv, E.Var x)) vps in
-      xps ++ ps)
-    [] env
 
 (***************************************************************)
 (************************** Refinement *************************)
