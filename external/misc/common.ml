@@ -22,72 +22,7 @@
  *)
 
 module F = Format
-
-(*
-let rec maybe_list_from_singles = function
-  | x :: xs -> (match x with [a] -> Some a |  _ -> None) :: (maybe_list_from_singles xs)
-  | [] -> []
-
-let sub_from_list subs s =
-  try List.assoc s subs with Not_found -> s
-
-let strip_meas s =
-  let start = try 1 + (String.rindex s '.') with Not_found -> 0 in
-  try 
-    if String.sub s start 6 = "_meas_" then 
-      let pre  = String.sub s 0 start in
-      let post = String.sub s (start + 6) ((String.length s) - start - 6) in
-      pre ^ post
-    else s
-  with Invalid_argument _ -> s
-
-
-let sub_from s c =
-  try 
-    let x = String.rindex s c in
-      String.sub s x ((String.length s) - x)
-  with Not_found -> s
-
-let sub_to_r s c =
-  let x = String.rindex s c in
-    String.sub s 0 x
-
-let strip_meas_whole s =
-  if !Clflags.dsmeasures then s else
-  try 
-    let start = try String.rindex s '.'
-    
-    if String.sub s 0 6 = "_meas_" then 
-    String.sub s 6 (String.length s - 6) 
-  else s with Invalid_argument _ -> s 
-
-let rw_suff f s c =
-  let suff = f (sub_from s c) in
-    try (sub_to_r s c) ^ suff with Not_found -> suff
-
-let strip_meas s =
-  rw_suff strip_meas_whole s '.'
-*)
-(*
-let l_to_s l = String.concat "." (Longident.flatten l)
-let s_to_l s = Longident.parse s
-
-let l_is_id id = function
-  | Longident.Lident s -> s = id
-  | _ -> false
-
-let int_of_tag = function
-    Cstr_constant n -> 2*n
-  | Cstr_block n -> 2*n+1
-  | Cstr_exception _-> assert false
-                       
-let tag_of_int n = 
-  if 2*(n/2) = n then
-    Cstr_constant (n/2)
-  else
-    Cstr_block ((n-1)/2)
-*)
-
+module C = Constants
 
 (****************************************************************)
 (************* SCC Ranking **************************************)
@@ -110,9 +45,6 @@ module SCC = Graph.Components.Make(G)
 let io_to_string = function 
   | Some i -> string_of_int i 
   | None -> "*"
-
-let xs_to_string f xs =
-  "["^(String.concat "," (List.map f xs))^"]"
 
 module DotGraph =
 struct
@@ -137,6 +69,21 @@ let dump_graph g =
   Dot.output_graph oc g; 
   close_out oc
 
+let int_s_to_string ppf (i,s) = 
+  F.fprintf ppf "(%d,%s)" i s 
+
+let scc_print g a = 
+  C.cprintf C.ol_scc "dep graph: vertices= %d, sccs= %d \n" 
+    (G.nb_vertex g) (Array.length a);
+  C.cprintf C.ol_scc "scc sizes: \n";
+  Array.iteri 
+    (fun i xs -> 
+      C.cprintf C.ol_scc "%d : [%a] \n" 
+        i
+        (Misc.pprint_many false "," int_s_to_string) xs)        
+    a;
+  C.cprintf C.ol_scc "\n"
+
 
 (* Given list [(u,v)] returns a numbering [(ui,ri)] s.t. 
  * 1. if ui,uj in same SCC then ri = rj
@@ -144,19 +91,11 @@ let dump_graph g =
 let scc_rank f ijs = 
   let g = G.create () in
   let _ = Bstats.time "making graph" (List.iter (fun (i,j) -> G.add_edge g (i,(f i)) (j,(f j)))) ijs in
-  let _ = if !Clflags.dump_graph then dump_graph g in
+  let _ = if !Constants.dump_graph then dump_graph g in
   let a = SCC.scc_array g in
-  let _ = cprintf ol_scc "@[dep@ graph:@ vertices@ =@ @ %d,@ sccs@ =@ %d@ @\n@]" 
-          (G.nb_vertex g) (Array.length a);
-          cprintf ol_scc "@[scc@ sizes:@\n@]";
-          let int_s_to_string (i,s) = Printf.sprintf "(%d,%s)" i s in
-          Array.iteri 
-            (fun i xs -> 
-               cprintf ol_scc "@[%d@ :@ %s@ @\n@]" 
-                 i (xs_to_string int_s_to_string xs)) a;
-          cprintf ol_scc "@[@\n@]" in
-  let sccs = array_to_index_list a in
-  flap (fun (i,vs) -> List.map (fun (j,_) -> (j,i)) vs) sccs
+  let _ = scc_print g a in
+  let sccs = Misc.array_to_index_list a in
+  Misc.flap (fun (i,vs) -> List.map (fun (j,_) -> (j,i)) vs) sccs
 
 (*
 let g1 = [(1,2);(2,3);(3,1);(2,4);(3,4);(4,5)];;

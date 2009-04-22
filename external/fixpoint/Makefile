@@ -9,7 +9,7 @@ MISCHOME=$(EXTHOME)/misc/_build
 
 LIBS=-libs unix,str
 
-IFLAGS=-lflags -I,$(MISCHOME) 
+IFLAGS=-lflags -I,$(MISCHOME) -I,$(OCAMLGRAPHHOME) 
 
 LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-L$(OCAMLLIBHOME) 

@@ -22,9 +22,9 @@
 
 (** This module contains globals representing "flags" **************)
 
-let no_simple     = ref false               (* -no-simple *)
+let no_simple     = ref false           (* -no-simple *)
 let verify_simple = ref false           (* -verify-simple *)
-
+let dump_graph    = ref false           (* -dump-graph    *)
 (****************************************************************)
 (************* Output levels ************************************)
 (****************************************************************)
