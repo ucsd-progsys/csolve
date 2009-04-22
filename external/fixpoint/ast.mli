@@ -44,10 +44,11 @@ module Sort :
 module Symbol : 
   sig 
     type t (* = string *)
+    module SMap : Map.S with type key = t
     val to_string : t -> string 
     val print : Format.formatter -> t -> unit
     val value_variable : Sort.t -> t
-    module SMap : Map.S with type key = t
+    val sm_length : 'a SMap.t -> int
   end
 
 module Constant :

@@ -57,6 +57,9 @@ module Symbol =
   struct 
     type t = string
     
+    module SMap = Map.Make (struct type t = string 
+                                   let compare i1 i2 = compare i1 i2 end)
+    
     let is_safe s = 
       let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in
       Str.string_match re s 0
@@ -69,9 +72,10 @@ module Symbol =
 
     let value_variable t = 
       "VV_"^(Sort.to_string t)
+ 
+    let sm_length m = 
+      SMap.fold (fun _ _ i -> i+1) m 0
 
-    module SMap = Map.Make (struct type t = string 
-                                   let compare i1 i2 = compare i1 i2 end)
   end
 
 module Constant =

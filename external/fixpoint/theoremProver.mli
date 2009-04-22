@@ -22,14 +22,15 @@
  *)
 
 type t 
-
-val make : unit -> t option
-
-val push_axiom : t -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred -> unit
+(* 
+   val make : unit -> t option
+   val push_axiom : t -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred -> unit
+*)
 
 val set_and_filter : t -> Ast.Sort.t Ast.Symbol.SMap.t 
                        -> Ast.pred list 
                        -> ('a * Ast.pred) list -> 'a list
-
+                       
+val create : Ast.Sort.t list -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred list -> t
 val print_stats : t -> unit
-val not_reset : t -> unit
+val reset : t -> unit
