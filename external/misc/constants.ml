@@ -22,9 +22,12 @@
 
 (** This module contains globals representing "flags" **************)
 
+let dump_ref_constraints = ref false    (* -drconstr *)
+let psimple       = ref true            (* -psimple *)
+let dump_graph    = ref false           (* -dgraph *)
 let no_simple     = ref false           (* -no-simple *)
 let verify_simple = ref false           (* -verify-simple *)
-let dump_graph    = ref false           (* -dump-graph    *)
+
 (****************************************************************)
 (************* Output levels ************************************)
 (****************************************************************)

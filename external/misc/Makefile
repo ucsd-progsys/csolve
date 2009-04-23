@@ -15,8 +15,8 @@ CFLAGS=-cflags -dtypes \
 TARGETS=misc.cma misc.cmxa \
 	bstats.cma bstats.cmxa \
 	constants.cma constants.cmxa \
-	common.cma common.cmxa
-
+	common.cma common.cmxa \
+	heap.cma heap.cmxa
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)
 

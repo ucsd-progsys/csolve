@@ -20,7 +20,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(MISCHOME) \
        -cflags -I,$(OCAMLGRAPHHOME)
 
-TARGETS=cindex.cmo #make this solve.cma to compile all
+TARGETS=cindex.cma #make this solve.cma to compile all
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)
 

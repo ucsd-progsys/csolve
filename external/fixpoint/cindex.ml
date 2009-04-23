@@ -25,152 +25,110 @@
 (**** This module implements constraint indexing ***************)
 (***************************************************************)
 
-module Co = Common
-module C  = Ast.Constraint
-
+module F  = Format
+module BS = Bstats
+module Co = Constants
+module C  = Constraint
+module IM = Misc.IntMap
+module SM = Ast.Symbol.SMap 
+open Misc.Ops
 
 type fc_id = int option 
 type subref_id = int 
 
 module WH = 
   Heap.Functional(struct 
-      type t = subref_id * int * (int * bool * fc_id)
-      let compare (_,ts,(i,j,k)) (_,ts',(i',j',k')) =
+      type t = subref_id * int * (int * bool)
+      let compare (_,ts,(i,j)) (_,ts',(i',j')) =
         if i <> i' then compare i i' else
           if ts <> ts' then -(compare ts ts') else
-            if j <> j' then compare j j' else 
-              compare k' k
+            compare j j'
     end)
 
 type wkl = WH.t
 
 type t = 
-  { orig: labeled_constraint SIM.t;     (* id -> orig *)
-    cnst: refinement_constraint SIM.t;  (* id -> refinement_constraint *) 
-    rank: (int * bool * fc_id) SIM.t;   (* id -> dependency rank *)
-    depm: subref_id list SIM.t;         (* id -> successor ids *)
+  { cnst: Constraint.t IM.t;            (* id -> refinement_constraint *) 
+    rank: (int * bool) IM.t;            (* id -> dependency rank *)
+    depm: subref_id list IM.t;          (* id -> successor ids *)
     pend: (subref_id,unit) Hashtbl.t;   (* id -> is in wkl ? *)
   }
 
-let get_ref_id = 
-  function WFRef (_,_,Some i) | SubRef (_,_,_,_,Some i) -> i | _ -> assert false
-
-let get_ref_rank me c = 
-  try SIM.find (get_ref_id c) me.rank with Not_found ->
-    (printf "ERROR: @[No@ rank@ for:@ %a@\n@]" (pprint_ref None) c; 
-     raise Not_found)
+let get_ref_rank me c =
+  Misc.do_catch "ERROR: Cindex.get_ref_rank" (IM.find (C.get_id c)) me.rank
 
 let get_ref_constraint me i = 
-  C.do_catch "ERROR: get_constraint" (SIM.find i) me.cnst
+  Misc.do_catch "ERROR: Cindex.get_ref_constraint" (IM.find i) me.cnst
 
-let lhs_ks = function WFRef _ -> assert false | SubRef (env,_,r,_,_) ->
-  Le.fold (fun _ f l -> F.refinement_qvars f @ l) env (F.refinement_qvars r)
+let refa_ko = function C.Kvar (_,k) -> Some k | _ -> None
 
-let rhs_k = function
-  | SubRef (_,_,_,(_, F.Qvar k),_) -> Some k
-  | _ -> None
+let reft_ks = function (_,ras) -> Misc.map_partial refa_ko ras
 
-let wf_k = function
-  | WFRef (_, (_, F.Qvar k), _) -> Some k
-  | _ -> None
+let lhs_ks (env ,_ ,r1 ,_ ,_) = 
+  reft_ks r1 |> 
+  SM.fold (fun _ (_,r) l -> (reft_ks r) ++ l) env
 
-let ref_k c =
-  match (rhs_k c, wf_k c) with
-  | (Some k, None)
-  | (None, Some k) -> Some k
-  | _ -> None
-
-let ref_id = function
-  | WFRef (_, (_, _), Some id)
-  | SubRef (_,_,_,(_, _), Some id) -> id
-  | _ -> -1
+let rhs_ks (_,_,_,r2,_) =
+  reft_ks r2
 
 let print_scc_edge rm (u,v) = 
-  let (scc_u,_,_) = SIM.find u rm in
-  let (scc_v,_,_) = SIM.find v rm in
+  let (scc_u,_,_) = IM.find u rm in
+  let (scc_v,_,_) = IM.find v rm in
   let tag = if scc_u > scc_v then "entry" else "inner" in
-  C.cprintf C.ol_solve "@[SCC@ edge@ %d@ (%s)@ %d@ ====> %d@\n@]" scc_v tag u v
+  Co.cprintf Co.ol_solve "SCC edge %d (%s) %d ====> %d \n" scc_v tag u v
 
-let make_rank_map om cm =
-  let get vm k = try VM.find k vm with Not_found -> [] in
-  let upd id vm k = VM.add k (id::(get vm k)) vm in
+let make_rank_map () (cm : C.t IM.t) =
+  let get km k = try SM.find k km with Not_found -> [] in
+  let upd id km k = SM.add k (id::(get km k)) km in
   let km = 
-    BS.time "step 1"
-    (SIM.fold 
-      (fun id c vm -> match c with WFRef _ -> vm 
-        | SubRef _ -> List.fold_left (upd id) vm (lhs_ks c))
-      cm) VM.empty in
-  let (dm,deps) = 
-    BS.time "step 2"
-    (SIM.fold
-      (fun id c (dm,deps) -> 
-        match (c, rhs_k c) with 
-        | (WFRef _,_) -> (dm,deps) 
-        | (_,None) -> (dm,(id,id)::deps) 
-        | (_,Some k) -> 
-          let kds = get km k in
-          let deps' = List.map (fun id' -> (id,id')) (id::kds) in
-          (SIM.add id kds dm, (List.rev_append deps' deps)))
-      cm) (SIM.empty,[]) in
-  let flabel i = C.io_to_string ((SIM.find i om).lc_id) in
+    IM.fold 
+      (fun id (c:Constraint.t) vm -> lhs_ks c |> List.fold_left (upd id) vm) 
+      cm SM.empty in
+  let (dm, deps) = 
+    IM.fold
+      (fun id c (dm, deps) ->
+        rhs_ks c |> 
+        List.fold_left 
+          (fun (dm, deps) k -> 
+            let kds = get km k in
+            let deps' = List.map (fun id' -> (id,id')) (id::kds) in
+            (IM.add id kds dm, (deps' ++ deps)))
+          (dm, (id,id)::deps))
+      cm (IM.empty,[]) in
   let rm = 
-    let rank = BS.time "scc rank" (C.scc_rank flabel) deps in
-    BS.time "step 2"
-    (List.fold_left
+    let rank = Common.scc_rank string_of_int deps in
+    List.fold_left
       (fun rm (id,r) -> 
-        let b = (not !Cf.psimple) || (C.is_simple (SIM.find id cm)) in
-        let fci = (SIM.find id om).lc_id in
-        SIM.add id (r,b,fci) rm)
-      SIM.empty) rank in
+        let b = (not !Co.psimple) || (C.is_simple (IM.find id cm)) in
+        IM.add id (r,b) rm)
+      IM.empty rank in
   (dm,rm)
 
-let fresh_refc = 
-  let i = ref 0 in
-  fun c -> 
-    let i' = incr i; !i in
-    match c with  
-    | WFRef (env,r,None) -> WFRef (env,r,Some i')
-    | SubRef (env,g,r1,r2,None) -> SubRef (env,g,r1,r2,Some i')
-    | _ -> assert false
-
 (* API *)
-let create_t ocs = 
-  let ics = List.map (fun (o,c) -> (o,fresh_refc c)) ocs in
-  let (om,cm) = 
-    List.fold_left 
-      (fun (om,cm) (o,c) ->
-        let i = get_ref_id c in 
-        (SIM.add i o om, SIM.add i c cm))
-      (SIM.empty, SIM.empty) ics in
-  let (dm,rm) = BS.time "make rank map" (make_rank_map om) cm in
-  {orig = om; cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
-
-let get_ref_orig me c = 
-  C.do_catch "ERROR: get_ref_orig" (SIM.find (get_ref_id c)) me.orig
-
-let get_ref_fenv me c =
-  (function SubFrame (a, _, _, _) | WFFrame (a, _) -> a) (get_ref_orig me c).lc_cstr
+let create cs = 
+  let cm = List.fold_left 
+             (fun cm c -> IM.add (C.get_id c) c cm) 
+             IM.empty cs in
+  let (dm,rm) = BS.time "make rank map" (make_rank_map ()) cm in
+  {cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
 
 (* API *) 
 let deps me c =
-  let is' = try SIM.find (get_ref_id c) me.depm with Not_found -> [] in
+  let is' = try IM.find (C.get_id c) me.depm with Not_found -> [] in
   List.map (get_ref_constraint me) is'
 
 (* API *)
 let to_list me = 
-  SIM.fold (fun _ c cs -> c::cs) me.cnst [] 
+  IM.fold (fun _ c cs -> c::cs) me.cnst [] 
 
 (* API *)
 let iter me f = 
-  SIM.iter (fun _ c -> f c) me.cnst
-
-let iter_ref_origs me f =
-  SIM.iter (fun i c -> f i c) me.orig
+  IM.iter (fun _ c -> f c) me.cnst
 
 let sort_iter_ref_constraints me f = 
-  let rids  = SIM.fold (fun id (r,_,_) ac -> (id,r)::ac) me.rank [] in
+  let rids  = IM.fold (fun id (r,_) ac -> (id,r)::ac) me.rank [] in
   let rids' = List.sort (fun x y -> compare (snd x) (snd y)) rids in 
-  List.iter (fun (id,_) -> f (SIM.find id me.cnst)) rids' 
+  List.iter (fun (id,_) -> f (IM.find id me.cnst)) rids' 
 
 (* API *)
 let wpush =
@@ -179,9 +137,9 @@ let wpush =
     incr timestamp;
     List.fold_left 
       (fun w c -> 
-        let id = get_ref_id c in
+        let id = C.get_id c in
         if Hashtbl.mem me.pend id then w else 
-          (C.cprintf C.ol_solve "@[Pushing@ %d at %d@\n@]" id !timestamp; 
+          (Co.cprintf Co.ol_solve "Pushing %d at %d \n" id !timestamp; 
            Hashtbl.replace me.pend id (); 
            WH.add (id,!timestamp,get_ref_rank me c) w))
       w cs
@@ -189,12 +147,11 @@ let wpush =
 (* API *)
 let wpop me w =
   try 
-    let (id, _, _) = WH.maximum w in
-    let _          = Hashtbl.remove me.pend id in
-    let c          = get_ref_constraint me id in
-    let (r,b,fci)  = get_ref_rank me c in
-    let _          = C.cprintf C.ol_solve "Popping %d at iter %d in scc (%d,%b,%s) \n"
-                     (get_ref_id c) r b (Misc.io_to_string fci) in 
+    let (id,_,_) = WH.maximum w in
+    let _        = Hashtbl.remove me.pend id in
+    let c        = get_ref_constraint me id in
+    let (r,b)    = get_ref_rank me c in
+    let _        = Co.cprintf Co.ol_solve "popping %d in scc (%d,%b,%s) \n" id r b in 
     (Some c, WH.remove w)
   with Heap.EmptyHeap -> (None,w) 
 
@@ -205,7 +162,7 @@ let winit me =
 (* API *) 
 let print ppf me = 
   if !Co.dump_ref_constraints then begin
-    Format.fprintf ppf "Refinement Constraints: \n" 
+    Format.fprintf ppf "Refinement Constraints: \n";
     iter me (Format.fprintf ppf "@[%a@.@]" (C.print None));
     Format.fprintf ppf "\n SCC Ranked Refinement Constraints: \n";
     sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print None)); 

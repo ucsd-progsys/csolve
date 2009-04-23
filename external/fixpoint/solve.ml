@@ -165,6 +165,7 @@ let rec acsolve me w s =
   let _ = if !stat_refines mod 100 = 0 
           then Co.cprintf Co.ol_solve "num refines =%d \n" !stat_refines in
   let _ = if Co.ck_olev Co.ol_insane then dump_solution s in
+  let _ = Co.cprintf Co.ol_solve "At iter %d " !stat_refines in
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 

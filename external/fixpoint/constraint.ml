@@ -44,6 +44,10 @@ type t    = envt * A.pred * reft * reft * (tag option)
 (************************** Random ***************************)
 (*************************************************************)
 
+let get_id = function 
+  | (_,_,_,_,Some i) -> i 
+  | _                -> failure "MATCH FAILURE: Constraint.get_id"
+
 let is_simple_refatom = function 
   | Kvar ([], _) -> true
   | _            -> false

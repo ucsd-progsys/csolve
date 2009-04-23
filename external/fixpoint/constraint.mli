@@ -31,6 +31,7 @@ type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
 type soln = Ast.pred list Ast.Symbol.SMap.t
 type t    = envt * Ast.pred * reft * reft * (tag option) 
 
+val get_id           : t -> tag
 val apply_substs     : subs -> Ast.pred -> Ast.pred
 val refineatom_preds : soln -> refa -> Ast.pred list
 val refinement_preds : soln -> reft -> Ast.pred list
