@@ -109,3 +109,17 @@ let n2 = make_scc_num g2 ;;
 let n3 = make_scc_num g3 ;;
 let n4 = make_scc_num g4 ;; *)
 
+type fc_id = int option 
+type subref_id = int 
+
+module WH = 
+  Heap.Functional(struct 
+      type t = subref_id * int * (int * bool * fc_id)
+      let compare (_,ts,(i,j,k)) (_,ts',(i',j',k')) =
+        if i <> i' then compare i i' else
+          if ts <> ts' then -(compare ts ts') else
+            if j <> j' then compare j j' else 
+              compare k' k
+    end)
+
+

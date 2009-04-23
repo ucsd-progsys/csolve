@@ -28,6 +28,10 @@
 module Co = Common
 module C  = Ast.Constraint
 
+
+type fc_id = int option 
+type subref_id = int 
+
 module WH = 
   Heap.Functional(struct 
       type t = subref_id * int * (int * bool * fc_id)

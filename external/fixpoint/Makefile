@@ -1,6 +1,7 @@
 ####### Tweak these
 #OCAMLLIBHOME=/usr/local/lib/ocaml
 #EXTHOME=/home/jhala/research/liquidc/external
+OCAMLGRAPHHOME=/home/rjhala/research/dsolve/external/ocamlgraph
 OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
 EXTHOME=/home/rjhala/research/liquidc/external
 ####### End tweak
@@ -9,13 +10,15 @@ MISCHOME=$(EXTHOME)/misc/_build
 
 LIBS=-libs unix,str
 
-IFLAGS=-lflags -I,$(MISCHOME) -I,$(OCAMLGRAPHHOME) 
+IFLAGS=-lflags -I,$(MISCHOME) \
+       -lflags -I,$(OCAMLGRAPHHOME)
 
 LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-L$(OCAMLLIBHOME) 
 
 CFLAGS=-cflags -dtypes \
-       -cflags -I,$(MISCHOME) 
+       -cflags -I,$(MISCHOME) \
+       -cflags -I,$(OCAMLGRAPHHOME)
 
 TARGETS=cindex.cmo #make this solve.cma to compile all
 all:
