@@ -1,10 +1,3 @@
-####### Tweak these
-OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
-EXTHOME=/home/rjhala/research/liquidc/external
-CILHOME=$(EXTHOME)/cil/obj/x86_LINUX
-OCAMLGRAPHHOME=/home/rjhala/research/dsolve/external/ocamlgraph
-####### End tweak
-
 IFLAGS=-lflags -I,$(CILHOME) \
        -lflags -I,$(OCAMLGRAPHHOME) 
 

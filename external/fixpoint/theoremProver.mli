@@ -22,10 +22,6 @@
  *)
 
 type t 
-(* 
-   val make : unit -> t option
-   val push_axiom : t -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred -> unit
-*)
 
 val set_and_filter : t -> Ast.Sort.t Ast.Symbol.SMap.t 
                        -> Ast.pred list 
