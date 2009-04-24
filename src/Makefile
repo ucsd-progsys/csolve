@@ -1,8 +1,4 @@
-HOME=$(PWD)/../
-#Z3HOME=$(HOME)/external/z3
-Z3HOME=/home/rjhala/research/dsolve/external/z3
-CILHOME=$(HOME)/external/cil/obj/x86_LINUX
-OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
+include Configure
 
 LIBS=-libs unix,str,cil,z3
 
