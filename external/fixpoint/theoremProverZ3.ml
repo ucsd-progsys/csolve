@@ -18,34 +18,55 @@
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- *
  *)
 
-(* This file is part of the Dsolve Project.*)
+(* This file is part of the LiquidC Project *)
 
-open Format
-open Predef
+module Co = Constants
+module BS = Bstats
+module A = Ast
+module P = A.Predicate
+module E = A.Expression
 
-module P = Predicate
-module C = Common
-module F = Frame
-module Le = Lightenv
+(********************************************************************************)
+(********************************** Type Definitions ****************************)
+(********************************************************************************)
 
-module type PROVER = 
-sig
-  val axiom : F.t Le.t -> Predicate.t -> unit
-  val set: F.t Le.t -> P.t list -> bool
-  val filter: F.t Le.t -> ('a * P.t) list -> ('a * P.t) list
-  val finish: unit -> unit
-  val print_stats : Format.formatter -> unit -> unit
-  val embed_type : F.t * Parsetree.prover_t -> unit
-  val frame_of : Parsetree.prover_t -> F.t
-  type sort = Int | Array of sort * sort | Bool | Unint of string | Func of sort list
-end
+type sort = Int | Array of sort * sort | Bool | Unint of string | Func of sort list
 
-module Prover : PROVER = 
- struct
-   (* stats *)
+type decl = Vbl of Path.t | Fun of Path.t * int | Barrier
+type var_ast = Const of Z3.ast | Bound of int * sort
+
+type z3_instance = { 
+  c                 : Z3.context;
+  tint              : Z3.type_ast;
+  tbool             : Z3.type_ast;
+  vart              : (decl, var_ast) Hashtbl.t;
+  funt              : (decl, Z3.const_decl_ast) Hashtbl.t;
+  tydeclt           : (sort, Z3.type_ast) Hashtbl.t;
+  mutable vars      : decl list ;
+  mutable count     : int;
+  mutable bnd       : int;
+  mutable frtymap   : (F.t * sort) list;
+}
+
+(********************************************************************************)
+(*********************** Memo tables and Stats Counters  ************************)
+(********************************************************************************)
+
+let nb_push = ref 0
+let nb_queries = ref 0
+let nb_cache_misses = ref 0
+let nb_cache_hits = ref 0
+let nb_qp_miss = ref 0
+let qcachet: (string * string, bool) Hashtbl.t = Hashtbl.create 1009 
+let buftlhs = Buffer.create 300
+let buftrhs = Buffer.create 300
+let lhsform = Format.formatter_of_buffer buftlhs
+let rhsform = Format.formatter_of_buffer buftrhs
+(*let qcachet: (P.t * P.t, bool) Hashtbl.t = Hashtbl.create 1009*)
+
+(* from TPZ3 *)
     let nb_z3_push  = ref 0
     let nb_z3_unsat = ref 0
     let nb_z3_pop   = ref 0
@@ -420,5 +441,44 @@ module Prover : PROVER =
         axiom Le.empty 
           (P.Forall ([(x, itn)], P.Iff(P.Boolexp(func bofi x), P.Atom(P.Var x, P.Eq, P.PInt(1)))));
 end
-    
+
+
+
+(********************************************************************************)
+(************************************* API **************************************)
+(********************************************************************************)
+
+(* API-NOT *)
+let push_axiom env p =
+  C.cprintf C.ol_axioms "@[Pushing@ axiom:@ %a@]@." P.pprint p; Prover.axiom env p
+
+
+(* API *)
+let print_stats ppf () =
+  C.fcprintf ppf C.ol_solve_stats "@[TP@ API@ stats:@ %d@ pushes@ %d@ queries@ cache@ %d@ hits@ %d@ misses@]@." !nb_push !nb_queries !nb_cache_hits !nb_cache_misses;
+  C.fcprintf ppf C.ol_solve_stats "@[Prover @ TP@ stats:@ %a@]@." Prover.print_stats ()
+
+(* API *)
+let reset () =
+  Hashtbl.clear qcachet; 
+  nb_push  := 0;
+  nb_queries := 0; 
+  nb_cache_misses := 0;
+  nb_cache_hits := 0;
+  nb_qp_miss := 0
+
+let is_not_taut p =
+  not (P.is_taut p)
+
+let set_and_filter env ps qs =
+  let _ = incr nb_push in
+  let _ = nb_queries := !nb_queries + (List.length ps) in
+  let ps = List.rev_map fixdiv ps in
+  (*let ps = BS.time "TP taut" (List.filter is_not_taut) ps in*)
+  if BS.time "TP set" (Prover.set env) ps then (Prover.finish (); qs) else
+      let qs = List.rev_map (C.app_snd fixdiv) qs in
+      let (qs, qs') = List.partition (fun (_, q) -> is_not_taut q) qs in
+        List.rev_append qs' (BS.time "TP filter" (Prover.filter env) qs)
+
+
 
