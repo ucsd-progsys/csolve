@@ -21,12 +21,18 @@
  *
  *)
 
+
 type t 
 
-val set_and_filter : t -> Ast.Sort.t Ast.Symbol.SMap.t 
+val set_filter  : t -> Ast.Sort.t Ast.Symbol.SMap.t 
                        -> Ast.pred list 
                        -> ('a * Ast.pred) list -> 'a list
                        
-val create : Ast.Sort.t list -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred list -> t
+val create      : Ast.Sort.t list 
+                  -> Ast.Sort.t Ast.Symbol.SMap.t 
+                  -> Ast.pred list 
+                  -> t
+
 val print_stats : t -> unit
+
 val reset : t -> unit

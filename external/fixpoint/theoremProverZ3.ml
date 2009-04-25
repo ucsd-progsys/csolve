@@ -31,20 +31,18 @@ module C = Common
 module F = Frame
 module Le = Lightenv
 
-(***************************************************************)
-
-  module type PROVER = 
-  sig
-    (* usage: set.valid*.finish *)
-    val axiom : F.t Le.t -> Predicate.t -> unit
-    val set: F.t Le.t -> P.t list -> bool
-    val filter: F.t Le.t -> ('a * P.t) list -> ('a * P.t) list
-    val finish: unit -> unit
-    val print_stats : Format.formatter -> unit -> unit
-    val embed_type : F.t * Parsetree.prover_t -> unit
-    val frame_of : Parsetree.prover_t -> F.t
-    type sort = Int | Array of sort * sort | Bool | Unint of string | Func of sort list
-  end
+module type PROVER = 
+sig
+  (* usage: set.valid*.finish *)
+  val axiom : F.t Le.t -> Predicate.t -> unit
+  val set: F.t Le.t -> P.t list -> bool
+  val filter: F.t Le.t -> ('a * P.t) list -> ('a * P.t) list
+  val finish: unit -> unit
+  val print_stats : Format.formatter -> unit -> unit
+  val embed_type : F.t * Parsetree.prover_t -> unit
+  val frame_of : Parsetree.prover_t -> F.t
+  type sort = Int | Array of sort * sort | Bool | Unint of string | Func of sort list
+end
 
 module Prover : PROVER = 
  struct

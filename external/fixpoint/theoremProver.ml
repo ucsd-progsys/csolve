@@ -22,7 +22,7 @@
  *)
 
 (* Common theorem prover interface *)
-module Cl = Clflags
+module Co = Constants
 module Prover = TheoremProverZ3.Prover
 module BS = Bstats
 module A = Ast
@@ -32,13 +32,6 @@ module E = A.Expression
 (********************************************************************************)
 (************************** Rationalizing Division ******************************)
 (********************************************************************************)
-
-(*let fixdiv p =
-  let ret = ref false in
-  let emp _ = () in
-  let f e = match E.unwrap e with 
-     
-  P.iter emp b p*)
 
 let rec fixdiv p = 
   let expr_isdiv = 

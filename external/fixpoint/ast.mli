@@ -116,6 +116,7 @@ val pForall: ((Symbol.t * Sort. t) list) * pred -> pred
 
 (* Misc *)
 val print_stats : unit -> unit
+val fixdiv      : pred -> pred
 
 module Expression : 
 sig

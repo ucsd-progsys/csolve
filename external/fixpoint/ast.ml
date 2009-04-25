@@ -234,6 +234,7 @@ let pwr = PredHashcons.wrap
 let puw = PredHashcons.unwrap
 
 let zero = ewr (Con (Constant.Int(0)))
+let one  = ewr (Con (Constant.Int(1)))
 
 (* Constructors: Expressions *)
 let eCon = fun c -> ewr (Con c)
@@ -466,6 +467,65 @@ module Predicate =
 let print_stats _ = 
   Printf.printf "Ast Stats. [none] \n"
 
+
+(********************************************************************************)
+(************************** Rationalizing Division ******************************)
+(********************************************************************************)
+
+let expr_isdiv = function
+  | Bin (_, Div, _), _ -> true
+  | _                  -> false
+
+let pull_divisor = function 
+  | Bin (_, Div, (Con (Constant.Int i),_)), _ -> i 
+  | _ -> 1
+
+let calc_cm e1 e2 =
+    pull_divisor e1 * pull_divisor e2 
+
+let rec apply_mult m = function 
+  | Bin (e, Div,  (Con (Constant.Int d),_)), _ ->
+      let _   = assert ((m/d) * d = m) in
+      eBin ((eCon (eInt (m/d))), Mul, e) in 
+  | Bin (e1, op, e2), _ ->
+      eBin (apply_mult m e1, op, apply_mult m e2)
+  | Con (Constant.Int i), _ -> 
+      eCon (Constant.Int (i*m))
+  | e -> 
+      eBin (eCon (Constant.Int m), Mul, e)
+
+let rec pred_isdiv = function 
+  | True,_ | False,_ -> 
+      false
+  | And ps,_ | Or ps,_ -> 
+      List.exists pred_isdiv ps
+  | Not p, _ | Forall (_, p), _ -> 
+      pred_isdiv p
+  | Imp (p1, p2), _ ->
+      pred_isdiv p1 || pred_isdiv p2
+  | Bexp e, _ ->
+      expr_isdiv e
+  | Atom (e1, _, e2), _ -> 
+      expr_isdiv e1 || expr_isdiv e2
+       
+let bound m e e1 e2 =
+  pAnd [eAtom(apply_mult m e, Gt, apply_mult m e2);
+        eAtom(apply_mult m e, Le, apply_mult m e1)] 
+
+let rec fixdiv = function
+  | p when not (pred_isdiv p) -> 
+      p
+  | Atom (Var _ as e, Eq, e1), _ | Atom (Con _ as e, Eq, e1), _ ->
+      bound (calc_cm e e1) e e1 (eBin (e1, Minus, one))
+  | And ps, _ ->
+      pAnd (List.map fixdiv ps) 
+  | Or ps, _ ->
+      pOr (List.map fixdiv ps)
+  | Imp (p1, p2), _ ->
+      pImp (fixdiv p1, fixdiv p2)
+  | Not p -> 
+      pNot (fixdiv p) 
+  | p -> p
 
 (* {{{
 let rec expr_subst hp he e x e' =
