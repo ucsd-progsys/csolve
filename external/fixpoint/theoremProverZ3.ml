@@ -33,7 +33,6 @@ module Le = Lightenv
 
 module type PROVER = 
 sig
-  (* usage: set.valid*.finish *)
   val axiom : F.t Le.t -> Predicate.t -> unit
   val set: F.t Le.t -> P.t list -> bool
   val filter: F.t Le.t -> ('a * P.t) list -> ('a * P.t) list
@@ -46,25 +45,6 @@ end
 
 module Prover : PROVER = 
  struct
-
-    type sort = Int | Array of sort * sort | Bool | Unint of string | Func of sort list
-
-    type decl = Vbl of Path.t | Fun of Path.t * int | Barrier
-    type var_ast = Const of Z3.ast | Bound of int * sort
-    
-    type z3_instance = { 
-      c                 : Z3.context;
-      tint              : Z3.type_ast;
-      tbool             : Z3.type_ast;
-      vart              : (decl, var_ast) Hashtbl.t;
-      funt              : (decl, Z3.const_decl_ast) Hashtbl.t;
-      tydeclt           : (sort, Z3.type_ast) Hashtbl.t;
-      mutable vars      : decl list ;
-      mutable count     : int;
-      mutable bnd       : int;
-      mutable frtymap   : (F.t * sort) list;
-    }
-
    (* stats *)
     let nb_z3_push  = ref 0
     let nb_z3_unsat = ref 0
@@ -76,7 +56,7 @@ module Prover : PROVER =
       (fun v -> incr x; (v^(string_of_int !x)))
 
 (***************************************************************************************)
-(********************** Typing ************************************************************)
+(********************** Typing *********************************************************)
 (***************************************************************************************)
 
     let bofi = Path.mk_ident "_BOFI"
