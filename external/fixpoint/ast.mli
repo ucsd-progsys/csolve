@@ -45,6 +45,7 @@ module Symbol :
   sig 
     type t (* = string *)
     module SMap : Map.S with type key = t
+    val of_string : string -> t
     val to_string : t -> string 
     val print : Format.formatter -> t -> unit
     val value_variable : Sort.t -> t

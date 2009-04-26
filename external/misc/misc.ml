@@ -74,6 +74,10 @@ module StringMap =
 
 open Ops
 
+let chop_last = function
+  | [] -> failure "ERROR: Misc.chop_last"
+  | xs -> xs |> List.rev |> List.tl |> List.rev
+
 let get_option d = function  
   | Some x -> x 
   | None   -> d

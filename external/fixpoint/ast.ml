@@ -52,7 +52,6 @@ module Sort =
       to_string t |> Format.fprintf fmt "%s"
   end
 
-
 module Symbol = 
   struct 
     type t = string
@@ -63,6 +62,8 @@ module Symbol =
     let is_safe s = 
       let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in
       Str.string_match re s 0
+
+    let of_string s = s
 
     let to_string s = 
       if is_safe s then s else "'" ^ s ^ "'"      
@@ -486,13 +487,13 @@ let calc_cm e1 e2 =
 let rec apply_mult m = function 
   | Bin (e, Div,  (Con (Constant.Int d),_)), _ ->
       let _   = assert ((m/d) * d = m) in
-      eBin ((eCon (eInt (m/d))), Mul, e) in 
+      eBin ((eCon (eInt (m/d))), Times, e) in 
   | Bin (e1, op, e2), _ ->
       eBin (apply_mult m e1, op, apply_mult m e2)
   | Con (Constant.Int i), _ -> 
       eCon (Constant.Int (i*m))
   | e -> 
-      eBin (eCon (Constant.Int m), Mul, e)
+      eBin (eCon (Constant.Int m), Times, e)
 
 let rec pred_isdiv = function 
   | True,_ | False,_ -> 
