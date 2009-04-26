@@ -2,7 +2,8 @@
 OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
 ROOTHOME=/home/rjhala/research/liquidc
 OCAMLGRAPHHOME=/home/rjhala/research/dsolve/external/ocamlgraph
+Z3HOME=/home/rjhala/research/dsolve/external/z3
+#Z3HOME=$(ROOTHOME)/external/z3
 #######
-Z3HOME=$(ROOTHOME)/external/z3
 EXTHOME=$(ROOTHOME)/external
 CILHOME=$(EXTHOME)/cil/obj/x86_LINUX
