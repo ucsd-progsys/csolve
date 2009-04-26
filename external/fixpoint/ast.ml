@@ -490,7 +490,7 @@ let calc_cm e1 e2 =
 let rec apply_mult m = function 
   | Bin (e, Div,  (Con (Constant.Int d),_)), _ ->
       let _   = assert ((m/d) * d = m) in
-      eBin ((eCon (eInt (m/d))), Times, e) in 
+      eBin ((eCon (Constant.Int (m/d))), Times, e)  
   | Bin (e1, op, e2), _ ->
       eBin (apply_mult m e1, op, apply_mult m e2)
   | Con (Constant.Int i), _ -> 
@@ -513,13 +513,13 @@ let rec pred_isdiv = function
       expr_isdiv e1 || expr_isdiv e2
        
 let bound m e e1 e2 =
-  pAnd [eAtom(apply_mult m e, Gt, apply_mult m e2);
-        eAtom(apply_mult m e, Le, apply_mult m e1)] 
+  pAnd [pAtom (apply_mult m e, Gt, apply_mult m e2);
+        pAtom(apply_mult m e, Le, apply_mult m e1)] 
 
 let rec fixdiv = function
   | p when not (pred_isdiv p) -> 
       p
-  | Atom (Var _ as e, Eq, e1), _ | Atom (Con _ as e, Eq, e1), _ ->
+  | Atom ((Var _,_) as e, Eq, e1), _ | Atom ((Con _, _) as e, Eq, e1), _ ->
       bound (calc_cm e e1) e e1 (eBin (e1, Minus, one))
   | And ps, _ ->
       pAnd (List.map fixdiv ps) 
@@ -527,7 +527,7 @@ let rec fixdiv = function
       pOr (List.map fixdiv ps)
   | Imp (p1, p2), _ ->
       pImp (fixdiv p1, fixdiv p2)
-  | Not p -> 
+  | Not p, _ -> 
       pNot (fixdiv p) 
   | p -> p
 

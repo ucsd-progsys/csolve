@@ -1,4 +1,0 @@
-HOME=$(PWD)/../
-Z3HOME=$(HOME)/external/z3
-CILHOME=$(HOME)/external/cil/obj/x86_LINUX
-OCAMLLIBHOME=/usr/local/lib/ocaml/3.10.2/

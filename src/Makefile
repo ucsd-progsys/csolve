@@ -1,4 +1,4 @@
-include Configure
+include ../config.make 
 
 LIBS=-libs unix,str,cil,z3
 

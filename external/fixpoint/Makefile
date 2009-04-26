@@ -1,10 +1,4 @@
-####### Tweak these
-#OCAMLLIBHOME=/usr/local/lib/ocaml
-#EXTHOME=/home/jhala/research/liquidc/external
-OCAMLGRAPHHOME=/home/rjhala/research/dsolve/external/ocamlgraph
-OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
-EXTHOME=/home/rjhala/research/liquidc/external
-####### End tweak
+include ../../config.make
 
 MISCHOME=$(EXTHOME)/misc/_build
 
@@ -20,7 +14,8 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(MISCHOME) \
        -cflags -I,$(OCAMLGRAPHHOME)
 
-TARGETS=cindex.cma #make this solve.cma to compile all
+TARGETS=solve.cma
+
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)
 
