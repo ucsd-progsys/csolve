@@ -1,7 +1,7 @@
-####### Fill in these fields and then :w config.make
-OCAMLLIBHOME=     <path_to_ocaml_libs>
-ROOTHOME=         <expand ..> 
-OCAMLGRAPHHOME=   <path_to_ocamlgraph>
+####### Fill in these fields
+OCAMLLIBHOME=/home/rjhala/local/lib/ocaml
+ROOTHOME=/home/rjhala/research/liquidc
+OCAMLGRAPHHOME=/home/rjhala/research/dsolve/external/ocamlgraph
 #######
-EXTHOME=          $(ROOTHOME)/external 
-CILHOME=          $(EXTHOME)/cil/obj/x86_LINUX
+EXTHOME=$(ROOTHOME)/external
+CILHOME=$(EXTHOME)/cil/obj/x86_LINUX
