@@ -102,22 +102,22 @@ let tag_n  = Sy.of_string "_TAG"
 let axioms = 
   let x = Sy.of_string "x" in
   [A.pForall ([(x, So.Bool)],                            
-               A.pIff ((A.eAtom (A.eApp (iofb_n, [A.eVar x]), A.Eq, A.one)),
+               A.pIff ((A.pAtom (A.eApp (iofb_n, [A.eVar x]), A.Eq, A.one)),
                        (A.pBexp (A.eVar x))));
    A.pForall ([(x, So.Int)],
-               A.pIff (A.pBexp (A.eApp (eApp (bofi_n, [A.eVar x]))),
+               A.pIff (A.pBexp (A.eApp (bofi_n, [A.eVar x])),
                        A.pAtom (A.eVar x, A.Eq, A.one)))]
  
 let builtins = 
   SM.empty 
-  |> SM.add tag_n  (Func [So.Unint "obj"; So.Int])
-  |> SM.add div_n  (Func [So.Int; So.Int; So.Int]) 
-  |> SM.add iofb_n (Func [So.Bool; So.Int])
-  |> SM.add bofi_n (Func [So.Int; So.Bool])
+  |> SM.add tag_n  (So.Func [So.Unint "obj"; So.Int])
+  |> SM.add div_n  (So.Func [So.Int; So.Int; So.Int]) 
+  |> SM.add iofb_n (So.Func [So.Bool; So.Int])
+  |> SM.add bofi_n (So.Func [So.Int; So.Bool])
 
-let unint_t  = Unint "obj"
+let unint_t  = So.Unint "obj"
 
-let select_t = Func [So.Int; So.Int]
+let select_t = So.Func [So.Int; So.Int]
 
 let mk_select, is_select =
   let ss = "SELECT" in
@@ -152,10 +152,10 @@ let z3VarType me t =
   Misc.do_memo me.tydt (lookup me) t t
     
 let z3ArgTypes me = function 
-  | Func ts -> (match List.rev_map (z3VarType me) ts with
-                | x :: [] -> ([], x)
-                | x :: xs -> (List.rev xs, x)
-                | []      -> failure "MATCH ERROR: z3ArgTypes")
+  | So.Func ts -> (match List.rev_map (z3VarType me) ts with
+                  | x :: [] -> ([], x)
+                  | x :: xs -> (List.rev xs, x)
+                  | []      -> failure "MATCH ERROR: z3ArgTypes")
   | _ -> failure "MATCH ERROR: z3ArgTypes" 
 
 (***********************************************************************)
@@ -205,30 +205,30 @@ let z3Rel = function
   | A.Le -> Z3.mk_le
   | _    -> failure "MATCH FAILURE: TPZ3.z3Rel"
 
-let rec cast me env ast = function 
-  | ("bool", "int") -> z3App me env iofb [ast]
-  | ("int", "bool") -> z3App me env bofi [ast]
+let rec cast me env a = function 
+  | ("bool", "int") -> z3App me env iofb_n [a]
+  | ("int", "bool") -> z3App me env bofi_n [a]
   | _               -> failure "MATCH ERROR: TPZ3.cast" 
  
-and z3Cast me env arg t = 
-  let (st, st') = (Z3.get_type me.c a, z3VarType me f) 
-                  |> Misc.pair_map (ast_type_to_string me) in
+and z3Cast me env a t = 
+  let (st, st') = (Z3.get_type me.c a, z3VarType me t) 
+                  |> Misc.map_pair (ast_type_to_string me) in
   if st = st' then a else cast me env a (st, st')  
 
 and z3App me env p zes =
   match getFunType p env with
-  | Func ft ->
-      let cf  = z3Fun me env p (Func ft) (List.length zes) in
+  | So.Func ft ->
+      let cf  = z3Fun me env p (So.Func ft) (List.length zes) in
       let zes = List.map2 (z3Cast me env) zes (Misc.chop_last ft) in
       Z3.mk_app me.c cf (Array.of_list zes)
   | t -> 
-      failure "ERROR: TPZ3.z3App p=%s f=%s" (Sy.to_string p) (type_to_string t)
+      failure "ERROR: TPZ3.z3App p=%s f=%s" (Sy.to_string p) (So.to_string t)
 
 and z3Exp_int me env e =
   z3Cast me env (z3Exp me env e) So.Int 
   
 and z3Exp me env = function
-  | A.Con (Co.Int i), _ -> 
+  | A.Con (A.Constant.Int i), _ -> 
       Z3.mk_int me.c i me.tint 
   | A.Var s, _ -> 
       z3Var me env s
@@ -240,12 +240,12 @@ and z3Exp me env = function
       Z3.mk_sub me.c (Array.map (z3Exp me env) [|e1; e2|])
   | A.Bin (e1, A.Times, e2), _ ->
       Z3.mk_mul me.c (Array.map (z3Exp me env) [|e1; e2|])
-  | A.Bin (e1,P.Div,e2), _ -> 
-      z3App env me div_n (List.map (z3Exp me env) [e1;e2])  
+  | A.Bin (e1, A.Div, e2), _ -> 
+      z3App me env div_n (List.map (z3Exp me env) [e1;e2])  
   | A.Ite (e1, e2, e3), _ -> 
       Z3.mk_ite me.c (z3Pred me env e1) (z3Exp me env e2) (z3Exp me env e3)
-  | A.Fld (f, e) -> 
-      z3App env me (mk_select f) [(z3Exp me env e)] (** REQUIRES: disjoint field names *)
+  | A.Fld (f, e), _ -> 
+      z3App me env (mk_select f) [(z3Exp me env e)] (** REQUIRES: disjoint field names *)
 
 and z3Pred me env = function
   | A.True, _ -> 
@@ -253,7 +253,7 @@ and z3Pred me env = function
   | A.False, _ ->
       Z3.mk_false me.c
   | A.Not p, _ -> 
-      Z3.mk_not me.c (z3Pred env me p)
+      Z3.mk_not me.c (z3Pred me env p)
   | A.And ps, _ -> 
       Z3.mk_and me.c (Array.of_list (List.map (z3Pred me env) ps))
   | A.Or ps, _  -> 
@@ -297,7 +297,7 @@ let rec vpop (cs,s) =
   | Barrier :: t -> (cs,t)
   | h :: t -> vpop (h::cs,t) 
 
-let prep_preds env me ps =
+let prep_preds me env ps =
   let ps = List.rev_map (z3Pred me env) ps in
   let _  = me.vars <- Barrier :: me.vars in
   let _  = Z3.push me.c in
@@ -324,9 +324,9 @@ let clean_decls me =
   let (cs,vars') = vpop ([],me.vars) in
   let _          = me.vars <- vars'  in 
   List.iter 
-    (function Barrier -> failure "ERROR: TPZ3.clean_decls" 
-            | Vbl _ -> Hashtbl.remove me.vart d 
-            | Fun _ -> Hashtbl.remove me.funt d)
+    (function Barrier    -> failure "ERROR: TPZ3.clean_decls" 
+            | Vbl _ as d -> Hashtbl.remove me.vart d 
+            | Fun _ as d -> Hashtbl.remove me.funt d)
     cs
 
 let set me env vv ps =
@@ -336,7 +336,7 @@ let set me env vv ps =
 
 let filter me env ps =
   let rv = ps
-           |> List.rev_map (fun qp -> (qp, z3Pred env me (snd qp))) 
+           |> List.rev_map (fun qp -> (qp, z3Pred me env (snd qp))) 
            |> List.filter  (fun qp -> valid me (snd qp))  
            |> List.split |> fst in
   pop me; clean_decls me; rv 
@@ -364,21 +364,23 @@ let create ts env ps =
 
 (* API *)
 let set_filter me env vv ps qs =
-  let _ = nb_push += 1; nb_query += (List.length qs) in
-  let ps = List.rev_map A.fixdiv ps in
-  match BS.time "TP set" (set me env vv) ps with 
-  | true  -> 
-      pop me; qs
-  | false ->
-      let qs, qs' = qs 
-                    |> List.rev_map   (fun (x,q) -> (x, A.fixdiv q)) 
-                    |> List.partition (fun (_,q) -> not (A.is_taut q)) in
-      qs' ++ (BS.time "TP filter" (filter env) qs)
+  let _  = nb_push += 1; nb_query += (List.length qs) in
+  let ps  = List.rev_map A.fixdiv ps in
+  let qs' =
+    match BS.time "TP set" (set me env vv) ps with 
+    | true  -> 
+        pop me; qs
+    | false ->
+        let qs, qs' = qs 
+                      |> List.rev_map   (fun (x,q) -> (x, A.fixdiv q)) 
+                      |> List.partition (fun (_,q) -> not (P.is_tauto q)) in
+        (qs' ++ (BS.time "TP filter" (filter me env) qs)) in
+  List.map fst qs'
 
 (* API *)
-let print_stats ppf () =
-  Co.fcprintf ppf Co.ol_solve_stats 
-    "TP stats: sets=%d, pushes=%d, pops=%d, unsats=%s, queries=%d \n " 
+let print_stats _ =
+  Format.printf
+    "TP stats: sets=%d, pushes=%d, pops=%d, unsats=%d, queries=%d \n " 
     !nb_set !nb_push !nb_pop !nb_unsat !nb_query
 
 end

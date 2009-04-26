@@ -464,6 +464,7 @@ module Predicate =
 
       let is_contra = fun p -> failwith "TBD: Predicate.is_contra" 
 
+      let is_tauto  = fun p -> failwith "TBD: Predicate.is_tauto" 
     end
 
 

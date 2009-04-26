@@ -104,7 +104,9 @@ let do_memo memo f args key =
     let _ = Hashtbl.replace memo key rv in
     rv
 
-let map_pair f (x1, x2) = (f x1, f x2)
+let map_pair   = fun f (x1, x2)  -> (f x1, f x2)
+let map_triple = fun f (x1, x2, x3) -> (f x1, f x2, f x3)
+
 
 let mapfold f xs b = 
   List.fold_left 
@@ -131,9 +133,7 @@ let append_pref p s =
 
 let app_fst f (a, b) = (f a, b)
 let app_snd f (a, b) = (a, f b)
-let app_pr f (a, b) = (f a, f b)
 
-let app_triple f (a, b, c) = (f a, f b, f c)
 
 
 let sort_and_compact ls =

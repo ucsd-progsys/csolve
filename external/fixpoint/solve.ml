@@ -70,12 +70,12 @@ let rhs_cands s = function
       List.map (fun q -> ((k,q), C.apply_substs xes q))
   | _ -> []
 
-let check_tp me env lps =  function [] -> [] | rcs ->
+let check_tp me env vv lps =  function [] -> [] | rcs ->
   let env = SM.map fst env in
   let rv  = Misc.do_catch "ERROR: check_tp" 
               (TP.set_filter me.tpc env vv lps) rcs in
-  let _   = stat_tp_refines += 1;
-            stat_imp_queries += (List.length rcs);
+  let _   = stat_tp_refines    += 1;
+            stat_imp_queries   += (List.length rcs);
             stat_valid_queries += (List.length rv) in
   rv
 
@@ -106,7 +106,7 @@ let unsat me s (env, gp, (vv1, ra1s), (vv2, ra2s), _) =
   let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
   let lps  = lhs_preds s env gp (vv1, ra1s) in
   let rhsp = ra2s |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
-  not ((check_tp me env lps [(0, rhsp)]) = [0])
+  not ((check_tp me env vv1 lps [(0, rhsp)]) = [0])
 
 let unsat_constraints me s =
   Ci.to_list me.sri |> List.filter (unsat me s)
