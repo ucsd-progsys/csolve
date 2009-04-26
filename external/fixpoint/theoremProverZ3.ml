@@ -269,41 +269,41 @@ and z3Pred me env = function
 (********************** Low Level Interface **************************************)
 (*********************************************************************************)
 
+let unsat me =
+  let _ = incr nb_unsat in
+  let rv = (Bstats.time "Z3 unsat" Z3.check me.c) = Z3.L_FALSE in
+  rv
+
+let assert_axiom me p =
+  let _ = Bstats.time "Z3 assert" (Z3.assert_cnstr me.c) p in
+  let _ = Co.cprintf Co.ol_axioms "@[%s@]@." (Z3.ast_to_string me.c p) in
+  asserts (not(unsat me)) "ERROR: Axiom makes background theory inconsistent!"
+
+let rec vpop (cs,s) =
+  match s with 
+  | [] -> (cs,s)
+  | Barrier :: t -> (cs,t)
+  | h :: t -> vpop (h::cs,t) 
+
+let remove_decl me d = 
+  match d with 
+  | Barrier -> failure "TheoremProverZ3.remove_decl" 
+  | Vbl _ -> Hashtbl.remove me.vart d 
+  | Fun _ -> Hashtbl.remove me.funt d
+
+let prep_preds env me ps =
+  let ps = List.rev_map (z3Pred me env) ps in
+  let _  = me.vars <- Barrier :: me.vars in
+  let _  = Z3.push me.c in
+  ps
+
+let push me ps =
+  let _ = incr nb_push in
+  let _ = me.count <- me.count + 1 in
+  let _  = Z3.push me.c in
+  List.iter (fun p -> Z3.assert_cnstr me.c p) ps
+
 HEREHEREHERE
-
-    let unsat me =
-      let _ = incr nb_z3_unsat in
-      let rv = (Bstats.time "Z3 unsat" Z3.check me.c) = Z3.L_FALSE in
-      rv
-
-    let assert_axiom me p =
-      let _ = Bstats.time "Z3 assert" (Z3.assert_cnstr me.c) p in
-      let _ = Common.cprintf Common.ol_axioms "@[%s@]@." (Z3.ast_to_string me.c p) in
-        if unsat me then failwith "Background theory is inconsistent!"
-
-    let rec vpop (cs,s) =
-      match s with 
-      | [] -> (cs,s)
-      | Barrier :: t -> (cs,t)
-      | h :: t -> vpop (h::cs,t) 
-
-    let remove_decl me d = 
-      match d with 
-      | Barrier -> failure "TheoremProverZ3.remove_decl" 
-      | Vbl _ -> Hashtbl.remove me.vart d 
-      | Fun _ -> Hashtbl.remove me.funt d
-
-    let prep_preds env me ps =
-      let ps = List.rev_map (z3Pred env me) ps in
-      let _ = me.vars <- Barrier :: me.vars in
-      let _ = Z3.push me.c in
-        ps
-
-    let push me ps =
-      let _ = incr nb_z3_push in
-      let _ = me.count <- me.count + 1 in
-      let _  = Z3.push me.c in
-        List.iter (fun p -> Z3.assert_cnstr me.c p) ps
 
     let pop me =
       let _ = incr nb_z3_pop in
