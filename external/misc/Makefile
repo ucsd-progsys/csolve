@@ -1,3 +1,5 @@
+include ../config.make
+
 IFLAGS=-lflags -I,$(CILHOME) \
        -lflags -I,$(OCAMLGRAPHHOME) 
 
