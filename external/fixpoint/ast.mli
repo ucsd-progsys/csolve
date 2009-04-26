@@ -112,12 +112,15 @@ val pAnd   : pred list -> pred
 val pOr    : pred list -> pred
 val pNot   : pred -> pred
 val pImp   : (pred * pred) -> pred
+val pIff   : (pred * pred) -> pred
 val pBexp  : expr -> pred
 val pForall: ((Symbol.t * Sort. t) list) * pred -> pred
 
 (* Misc *)
 val print_stats : unit -> unit
 val fixdiv      : pred -> pred
+val zero        : expr
+val one         : expr
 
 module Expression : 
 sig

@@ -20,7 +20,6 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
-module TP = TheoremProver
 
 (** This module implements a fixpoint solver *)
 module BS = Bstats
@@ -35,6 +34,7 @@ module Sy = A.Symbol
 module SM = Sy.SMap
 module C  = Constraint
 module Ci = Cindex
+module TP = TheoremProverZ3.Prover
 
 open Misc.Ops
 
@@ -73,7 +73,7 @@ let rhs_cands s = function
 let check_tp me env lps =  function [] -> [] | rcs ->
   let env = SM.map fst env in
   let rv  = Misc.do_catch "ERROR: check_tp" 
-              (TP.set_and_filter me.tpc env lps) rcs in
+              (TP.set_filter me.tpc env vv lps) rcs in
   let _   = stat_tp_refines += 1;
             stat_imp_queries += (List.length rcs);
             stat_valid_queries += (List.length rv) in
@@ -95,7 +95,7 @@ let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
     let _       = stat_matches += (List.length x1) in
     let kqs1    = List.map fst x1 in
     (if C.is_simple c then (stat_simple_refines += 1; kqs1) 
-                      else kqs1 ++ (check_tp me env lps x2))
+                      else kqs1 ++ (check_tp me env vv1 lps x2))
     |> C.group_sol_update s 
 
 (***************************************************************)
@@ -122,7 +122,7 @@ let dump_solution_stats s =
        SM.fold (fun _ qs x -> max x (List.length qs)) s min_int,
        SM.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
     let avg = (float_of_int sum) /. (float_of_int (Sy.sm_length s)) in
-    Format.printf "Quals: \t Total=%d \t Avg=%f \t Max=%d \t Min=%d \n" sum avg max min;
+    Format.printf "Quals: Total=%d, Avg=%f, Max=%d, Min=%d \n" sum avg max min;
     Format.print_flush ()
   end
 
@@ -178,7 +178,7 @@ let solve me s =
            dump me s 0 in
   let w = BS.time "init wkl"    Ci.winit me.sri in 
   let s = BS.time "solving sub" (acsolve me w) s in
-  let _ = TP.reset me.tpc; dump_solution s; dump me s 2 in
+  let _ = (* TP.reset me.tpc; *) dump_solution s; dump me s 2 in
   let u = BS.time "testing solution" (unsat_constraints me) s in
   let _ = if u != [] then Format.printf "Unsatisfied Constraints:\n %a"
                           (Misc.pprint_many true "\n" (C.print None)) u in

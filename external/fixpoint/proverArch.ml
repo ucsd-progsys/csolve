@@ -26,19 +26,20 @@
 module type PROVER = 
 sig
   type t 
-  
-  val set_filter  : t 
-                    -> Ast.Sort.t Ast.Symbol.SMap.t 
-                    -> Ast.pred list 
-                    -> ('a * Ast.pred) list 
-                    -> 'a list
-                       
+ 
   val create      : Ast.Sort.t list 
                     -> Ast.Sort.t Ast.Symbol.SMap.t 
                     -> Ast.pred list 
                     -> t
-
+ 
+  val set_filter  : t 
+                    -> Ast.Sort.t Ast.Symbol.SMap.t 
+                    -> Ast.Symbol.t 
+                    -> Ast.pred list 
+                    -> ('a * Ast.pred) list 
+                    -> 'a list
+                       
   val print_stats : t -> unit
 
-  val reset : t -> unit
+  (* val reset : t -> unit      : what is this for ? *)
 end

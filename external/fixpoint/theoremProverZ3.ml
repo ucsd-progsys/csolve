@@ -30,6 +30,7 @@ module So = A.Sort
 module SM = Sy.SMap
 module P  = A.Predicate
 module E  = A.Expression
+open Misc.Ops
 
 module Prover : ProverArch.PROVER = struct
 
@@ -47,16 +48,16 @@ type t = {
   tbool             : Z3.type_ast;
   vart              : (decl, var_ast) Hashtbl.t;
   funt              : (decl, Z3.const_decl_ast) Hashtbl.t;
-  tydeclt           : (So.t, Z3.type_ast) Hashtbl.t;
+  tydt              : (So.t, Z3.type_ast) Hashtbl.t;
   mutable vars      : decl list ;
   mutable count     : int;
   mutable bnd       : int;
  (* mutable frtymap   : (Frame.t * So.t) list; *)
 }
 
-(********************************************************************************)
-(********************************* Pretty Printing ******************************)
-(********************************************************************************)
+(*************************************************************************)
+(************************** Pretty Printing ******************************)
+(*************************************************************************)
 
 let ast_type_to_string me a = 
   Z3.ast_to_string me.c (Z3.type_ast_to_ast me.c a)
@@ -79,31 +80,34 @@ let dump_ast me a =
 let dump_decls me =
   Format.printf "Vars: %a" (Misc.pprint_many true "," pprint_decl) me.vars       
 
-(********************************************************************************)
-(*********************** Memo tables and Stats Counters  ************************)
-(********************************************************************************)
+(************************************************************************)
+(***************************** Stats Counters  **************************)
+(************************************************************************)
 
+let nb_set  		= ref 0
 let nb_push 		= ref 0
 let nb_pop  		= ref 0
 let nb_unsat		= ref 0
-let nb_set  		= ref 0
-let nb_queries 		= ref 0
-let nb_cache_miss 	= ref 0
-let nb_cache_hit 	= ref 0
+let nb_query 		= ref 0
 
-let fresh = 
-  let x = ref 0 in
-  fun v -> incr x; (v^(string_of_int !x))
-
-(***************************************************************************************)
-(********************** Typing *********************************************************)
-(***************************************************************************************)
+(************************************************************************)
+(********************** Misc. Constants *********************************)
+(************************************************************************)
 
 let bofi_n = Sy.of_string "_BOFI"
 let iofb_n = Sy.of_string "_IOFB"
 let div_n  = Sy.of_string "_DIV"
 let tag_n  = Sy.of_string "_TAG"
 
+let axioms = 
+  let x = Sy.of_string "x" in
+  [A.pForall ([(x, So.Bool)],                            
+               A.pIff ((A.eAtom (A.eApp (iofb_n, [A.eVar x]), A.Eq, A.one)),
+                       (A.pBexp (A.eVar x))));
+   A.pForall ([(x, So.Int)],
+               A.pIff (A.pBexp (A.eApp (eApp (bofi_n, [A.eVar x]))),
+                       A.pAtom (A.eVar x, A.Eq, A.one)))]
+ 
 let builtins = 
   SM.empty 
   |> SM.add tag_n  (Func [So.Unint "obj"; So.Int])
@@ -119,6 +123,14 @@ let mk_select, is_select =
   let ss = "SELECT" in
   (fun f -> Sy.to_string f |> (^) (ss ^ "_") |> Sy.of_string),
   (fun s -> Sy.to_string s |> Misc.is_prefix ss)
+
+let fresh = 
+  let x = ref 0 in
+  fun v -> incr x; (v^(string_of_int !x))
+
+(*************************************************************************)
+(********************** Typing *******************************************)
+(*************************************************************************)
 
 let getVarType s env =
   try SM.find s env with Not_found -> 
@@ -137,7 +149,7 @@ let z3VarType me t =
     | So.Unint _ -> me.tint
     | So.Func _  -> me.tint 
     | So.Array _ -> failure "MATCH ERROR: TPZ3.z3VarType" in
-  Misc.do_memo me.tydeclt (lookup me) t t
+  Misc.do_memo me.tydt (lookup me) t t
     
 let z3ArgTypes me = function 
   | Func ts -> (match List.rev_map (z3VarType me) ts with
@@ -147,7 +159,7 @@ let z3ArgTypes me = function
   | _ -> failure "MATCH ERROR: z3ArgTypes" 
 
 (***********************************************************************)
-(********************** Vars *******************************************)
+(********************** Identifiers ************************************)
 (***********************************************************************)
 
 let z3Var_memo me env x =
@@ -265,9 +277,9 @@ and z3Pred me env = function
       let _        = me.bnd <- me.bnd - (List.length xs) in
       rv
 
-(*********************************************************************************)
-(********************** Low Level Interface **************************************)
-(*********************************************************************************)
+(***************************************************************************)
+(***************** Low Level Query Interface *******************************)
+(***************************************************************************)
 
 let unsat me =
   let _ = incr nb_unsat in
@@ -275,8 +287,8 @@ let unsat me =
   rv
 
 let assert_axiom me p =
-  let _ = Bstats.time "Z3 assert" (Z3.assert_cnstr me.c) p in
-  let _ = Co.cprintf Co.ol_axioms "@[%s@]@." (Z3.ast_to_string me.c p) in
+  Co.cprintf Co.ol_axioms "@[Pushing axiom %s@]@." (Z3.ast_to_string me.c p);
+  Bstats.time "Z3 assert axiom" (Z3.assert_cnstr me.c) p;
   asserts (not(unsat me)) "ERROR: Axiom makes background theory inconsistent!"
 
 let rec vpop (cs,s) =
@@ -284,12 +296,6 @@ let rec vpop (cs,s) =
   | [] -> (cs,s)
   | Barrier :: t -> (cs,t)
   | h :: t -> vpop (h::cs,t) 
-
-let remove_decl me d = 
-  match d with 
-  | Barrier -> failure "TheoremProverZ3.remove_decl" 
-  | Vbl _ -> Hashtbl.remove me.vart d 
-  | Fun _ -> Hashtbl.remove me.funt d
 
 let prep_preds env me ps =
   let ps = List.rev_map (z3Pred me env) ps in
@@ -302,118 +308,77 @@ let push me ps =
   let _ = me.count <- me.count + 1 in
   let _  = Z3.push me.c in
   List.iter (fun p -> Z3.assert_cnstr me.c p) ps
+    
+let pop me =
+  let _ = incr nb_pop in
+  let _ = me.count <- me.count - 1 in
+  Z3.pop me.c 1 
 
-HEREHEREHERE
+let valid me p =
+  let _ = push me [(Z3.mk_not me.c p)] in
+  let rv = unsat me in
+  let _ = pop me in
+  rv
 
-    let pop me =
-      let _ = incr nb_z3_pop in
-      let _ = me.count <- me.count - 1 in
-        Z3.pop me.c 1 
+let clean_decls me =
+  let (cs,vars') = vpop ([],me.vars) in
+  let _          = me.vars <- vars'  in 
+  List.iter 
+    (function Barrier -> failure "ERROR: TPZ3.clean_decls" 
+            | Vbl _ -> Hashtbl.remove me.vart d 
+            | Fun _ -> Hashtbl.remove me.funt d)
+    cs
 
-    let valid me p =
-      let _ = push me [(Z3.mk_not me.c p)] in
-      let rv = unsat me in
-      let _ = pop me in
-        rv
+let set me env vv ps =
+  Hashtbl.remove me.vart (Vbl vv); 
+  ps |> prep_preds me env |> push me;
+  unsat me
 
-    let me = 
-      let c = Z3.mk_context_x [|("MODEL", "false"); ("PARTIAL_MODELS", "true")|] in
-      (* types *)
-      let tint = Z3.mk_int_type c in
-      let tbool = Z3.mk_bool_type c in
-      (* memo tables *)
-      let vart = Hashtbl.create 37 in
-      let funt = Hashtbl.create 37 in
-      let tydeclt = Hashtbl.create 37 in
-      { c = c; tint = tint; tbool = tbool; tydeclt = tydeclt; frtymap = init_frtymap;
-        vart = vart; funt = funt; vars = []; count = 0; bnd = 0}
+let filter me env ps =
+  let rv = ps
+           |> List.rev_map (fun qp -> (qp, z3Pred env me (snd qp))) 
+           |> List.filter  (fun qp -> valid me (snd qp))  
+           |> List.split |> fst in
+  pop me; clean_decls me; rv 
 
-(*************************************************************************)
-(********************** API **********************************************)
-(*************************************************************************)
+(************************************************************************)
+(********************************* API **********************************)
+(************************************************************************)
 
-    let clean_decls () =
-      let (cs,vars') = vpop ([],me.vars) in
-      let _ = me.vars <- vars' in
-      let _ = List.iter (remove_decl me) cs in ()
+(* API *)
+let create ts env ps =
+  let _  = asserts (ts = []) "ERROR: TPZ3.create non-empty types!" in
+  let c  = Z3.mk_context_x [|("MODEL", "false"); 
+                             ("PARTIAL_MODELS", "true")|] in
+  let me = {c     = c; 
+            tint  = Z3.mk_int_type c; 
+            tbool = Z3.mk_bool_type c; 
+            tydt  = Hashtbl.create 37; 
+            vart  = Hashtbl.create 37; 
+            funt  = Hashtbl.create 37; 
+            vars  = []; count = 0; bnd = 0} in
+  let _  = List.iter 
+             (fun p -> p |> z3Pred me env |> assert_axiom me)
+             (axioms ++ ps) in
+  me
 
-    let set env ps =
-      let _   = Hashtbl.remove me.vart (Vbl C.qual_test_var) in
-      let ps  = prep_preds env me ps in
-      let _   = push me ps in
-        unsat me
-
-    let filter env ps =
-      let rv =
-        let ps = List.rev_map (fun (q, p) -> (z3Pred env me p, (q, p))) ps in
-        List.filter (fun (p, _) -> valid me p) ps in
-      let _ = pop me in
-      let _ = clean_decls () in
-        snd (List.split rv)
-
-    let finish () =
-      pop me
-
-    let axiom env p =
-      assert_axiom me (z3Pred env me p)
-
-    let embed_type (fr, t) =
-      me.frtymap <- (fr, transl_type me t) :: me.frtymap
-
-    let frame_of pt =
-      try
-        type_to_frame me (transl_type me pt)
-      with Not_found -> raise (Failure (C.prover_t_to_s pt))
-
-    let print_stats ppf () = 
-      Format.fprintf ppf "@[implies(API):@ %i,@ Z3@ {pushes:@ %i,@ pops:@ %i,@ unsats:@ %i}@]"
-      !nb_z3_set !nb_z3_push !nb_z3_pop !nb_z3_unsat
-
-    let _ = 
-      let (x, y) = Misc.pair_map Path.mk_ident ("x", "y") in
-      let bol = Parsetree.Pprover_abs "bool" in
-      let itn = Parsetree.Pprover_abs "int" in
-      let func s x = P.FunApp(s, [P.Var x]) in
-        axiom Le.empty
-          (P.Forall ([(x, bol)], P.Iff(P.Atom(func iofb x, P.Eq, P.PInt(1)), P.Boolexp(P.Var x))));
-        axiom Le.empty 
-          (P.Forall ([(x, itn)], P.Iff(P.Boolexp(func bofi x), P.Atom(P.Var x, P.Eq, P.PInt(1)))));
-end
-
-(********************************************************************************)
-(************************************* API **************************************)
-(********************************************************************************)
-
-(* API-NOT *)
-let push_axiom env p =
-  C.cprintf C.ol_axioms "@[Pushing@ axiom:@ %a@]@." P.pprint p; Prover.axiom env p
-
+(* API *)
+let set_filter me env vv ps qs =
+  let _ = nb_push += 1; nb_query += (List.length qs) in
+  let ps = List.rev_map A.fixdiv ps in
+  match BS.time "TP set" (set me env vv) ps with 
+  | true  -> 
+      pop me; qs
+  | false ->
+      let qs, qs' = qs 
+                    |> List.rev_map   (fun (x,q) -> (x, A.fixdiv q)) 
+                    |> List.partition (fun (_,q) -> not (A.is_taut q)) in
+      qs' ++ (BS.time "TP filter" (filter env) qs)
 
 (* API *)
 let print_stats ppf () =
-  C.fcprintf ppf C.ol_solve_stats "@[TP@ API@ stats:@ %d@ pushes@ %d@ queries@ cache@ %d@ hits@ %d@ misses@]@." !nb_push !nb_queries !nb_cac_hit !nb_cac_mis;
-  C.fcprintf ppf C.ol_solve_stats "@[Prover @ TP@ stats:@ %a@]@." Prover.print_stats ()
-
-(* API *)
-let reset () =
-  nb_push    := 0;
-  nb_queries := 0; 
-  nb_cac_mis := 0;
-  nb_cac_hit := 0;
-
-let is_not_taut p =
-  not (P.is_taut p)
-
-let set_and_filter env ps qs =
-  let _ = incr nb_push in
-  let _ = nb_queries := !nb_queries + (List.length ps) in
-  let ps = List.rev_map fixdiv ps in
-  (*let ps = BS.time "TP taut" (List.filter is_not_taut) ps in*)
-  if BS.time "TP set" (Prover.set env) ps then (Prover.finish (); qs) else
-      let qs = List.rev_map (C.app_snd fixdiv) qs in
-      let (qs, qs') = List.partition (fun (_, q) -> is_not_taut q) qs in
-        List.rev_append qs' (BS.time "TP filter" (Prover.filter env) qs)
+  Co.fcprintf ppf Co.ol_solve_stats 
+    "TP stats: sets=%d, pushes=%d, pops=%d, unsats=%s, queries=%d \n " 
+    !nb_set !nb_push !nb_pop !nb_unsat !nb_query
 
 end
-
-
