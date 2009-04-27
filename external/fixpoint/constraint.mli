@@ -24,9 +24,9 @@
 (* This module implements basic datatypes and operations on constraints *)
 
 type tag  = int
-type subs (* = (Ast.Symbol.t * Ast.expr) list                    (* [x,e] *) *)
+type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
-type reft = Ast.Symbol.t * (refa list)                   (* VV, [ra] *)
+type reft = Ast.Symbol.t * (refa list)                (* VV, [ra] *)
 type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
 type soln = Ast.pred list Ast.Symbol.SMap.t
 type t    = envt * Ast.pred * reft * reft * (tag option) 
