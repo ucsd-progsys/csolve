@@ -30,6 +30,7 @@ type reft = Ast.Symbol.t * (refa list)                (* VV, [ra] *)
 type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
 type soln = Ast.pred list Ast.Symbol.SMap.t
 type t    = envt * Ast.pred * reft * reft * (tag option) 
+  (*env, guard, lhs, rhs, cid*)
 
 val get_id           : t -> tag
 val apply_substs     : subs -> Ast.pred -> Ast.pred

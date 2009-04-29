@@ -1,15 +1,17 @@
 module ST = Ssa_transform
 module  E = Ast.Expression
 module  P = Ast.Predicate
-module  C = Ast.Constraint
-module  T = Ast.Template
+module  C = Constraint
 module SM = Misc.StringMap
 
 open Cil
 
+let d_tplt () (u, r) = 
+  Pretty.dprintf "{V: %a | %a}" d_type u d_refn r 
+
 type t = (ST.ssaCfgInfo * T.env * P.t list * C.t list) SM.t
 
-let get_kvars (cm: t) : T.kvar list = 
+let get_kvars (cm: t) : C.kvar list = 
   let ks = 
     SM.fold
       (fun _ (_,_,_,cs) ks -> 
@@ -22,22 +24,22 @@ let print_cmap (cm:t) =
   SM.iter
     (fun fn (sci, g, invs, cs) -> 
       ignore(Pretty.printf "Templates for %s \n" fn);
-      SM.iter (fun vn (t,_) -> ignore(Pretty.printf "%s |-> %a \n" vn T.d_tplt t)) g;
+      SM.iter (fun vn (t,_) -> ignore(Pretty.printf "%s |-> %a \n" vn d_tplt t)) g;
       ignore(Pretty.printf "Invariants for %s \n" fn);
       List.iter (fun p -> ignore(Pretty.printf "%a \n" P.d_pred p)) invs;
       ignore(Pretty.printf "Constraints for %s \n" fn);
-      List.iter (fun c -> ignore(Pretty.printf "%a \n" (C.d_constr sci.ST.ifs) c)) cs)
+      List.iter (fun c -> ignore(Pretty.printf "%a \n" (C.print ... sci.ST.ifs) c)) cs)
     cm
 
 (***************************************************************************)
 
 let fresh_kvar = 
   let r = ref 0 in
-  fun () -> incr r; T.Kvar (!r, [])
+  fun () -> incr r; C.Kvar (!r, [])
 
 let rec fresh ty =
   match ty with
-  | TInt _ -> T.mk_ty ty (fresh_kvar ())  
+  | TInt _ -> (ty, (fresh_kvar ()))  
   | _      -> failwith "Unhandled: fresh"
 
 let gen_decs g0 fdec = 
