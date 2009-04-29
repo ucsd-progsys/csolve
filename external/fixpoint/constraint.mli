@@ -30,6 +30,10 @@ type reft = Ast.Symbol.t * (refa list)                (* VV, [ra] *)
 type envt = (Ast.Sort.t * reft) Ast.Symbol.SMap.t
 type soln = Ast.pred list Ast.Symbol.SMap.t
 type t    = envt * Ast.pred * reft * reft * (tag option) 
+type deft = Srt of Ast.Sort.t 
+          | Axm of Ast.pred 
+          | Cst of t 
+          | Sol of Ast.Symbol.t * Ast.pred list
 
 val get_id           : t -> tag
 val apply_substs     : subs -> Ast.pred -> Ast.pred
@@ -41,4 +45,5 @@ val is_simple        : t -> bool
 val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
 val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val print            : soln option -> Format.formatter -> t -> unit
+val print_soln       : Format.formatter -> soln -> unit
 val to_string        : t -> string 

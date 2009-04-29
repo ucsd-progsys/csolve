@@ -61,13 +61,18 @@ rule token = parse
   | '&'                 { AND }
   | '|'                 { OR  }
   | '~'                 { NOT  }
+  | "!="		{ NE }
   | "="		        { EQ }
-  | "<="		{ LEQ }
+  | "<="		{ LE }
+  | "<"		        { LT }
+  | ">="		{ GE }
+  | ">"		        { GT }
+
   | "->"                { IMPL }
   | ';'                 { SEMI }
   | '+'                 { PLUS }
   | '-'                 { MINUS }
-  | '*'                 { MUL }
+  | '*'                 { TIMES }
   | '?'                 { QM }
   | '.'                 { DOT }
   | "false"             { FALSE }
