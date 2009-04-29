@@ -1,0 +1,9 @@
+constraint: env x:{v:int:true;}; 
+		y:{v:int:true;}; 
+		n:{v:int:k2;};  
+	    grd (0 < n)
+	    lhs {v : v = n+1; v > 5; k1[x:=y+1][y:=z+1];}
+	    rhs {v : k2;}
+
+solution: k1 :=  true; 
+solution: k2 :=  0 < v; 1 < v;

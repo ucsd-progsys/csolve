@@ -188,6 +188,7 @@ let solve me s =
 let create ts sm ps cs =
   let tpc = TP.create ts sm ps in
   let sri = BS.time "Making ref index" Ci.create cs in
+  let _   = Format.printf "TBD: Solve.create: check cs satisfy preconditions \n" in
   { tpc = tpc; sri = sri }
 
 (*

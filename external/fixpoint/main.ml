@@ -58,7 +58,7 @@ let main () =
   Array.to_list Sys.argv |> String.concat " " |> Printf.printf "FixPoint 0.1 $ %s \n" ;
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n"; 
-  (try Sys.argv.(0) with _ -> failure "ERROR: bad inputs") 
+  (try Sys.argv.(1) with _ -> failure "ERROR: bad inputs") 
   |> parse |> sift |> solve 
 
 let _ = main ()
