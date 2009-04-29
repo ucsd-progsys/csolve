@@ -1,11 +1,10 @@
 include ../../config.make
 
-MISCHOME=$(EXTHOME)/misc/_build
+LIBS=-libs unix,str,z3,graph
 
-LIBS=-libs unix,str
+DIRS=-I misc
 
-IFLAGS=-lflags -I,$(MISCHOME) \
-       -lflags -I,$(OCAMLGRAPHHOME) \
+IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
        -lflags -I,$(Z3HOME)/lib \
        -lflags -I,$(Z3HOME)/ocaml 
 
@@ -18,14 +17,14 @@ LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-lcamlidl
 
 CFLAGS=-cflags -dtypes \
-       -cflags -I,$(MISCHOME) \
-       -cflags -I,$(OCAMLGRAPHHOME) \
-       -cflags -I,$(Z3HOME)/ocaml
+       -cflags -I,$(Z3HOME)/ocaml \
+       -cflags -I,$(OCAMLGRAPHHOME)
 
-TARGETS=solve.cma
+OFLAGS=$(DIRS) $(IFLAGS) $(LFLAGS) $(CFLAGS)
 
 all:
-	ocamlbuild -r $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(TARGETS)
+	ocamlbuild -r $(LIBS) $(OFLAGS) main.native
+	ocamlbuild -r $(OFLAGS) fix.cmxa
 
 clean:
 	rm -rf *.byte *.native _build _log

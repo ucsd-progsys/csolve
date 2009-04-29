@@ -7,11 +7,6 @@ module E  = A.Expression
 module P  = A.Predicate
 module C  = Constraint
 
-type t = Srt of So.t 
-       | Axm of A.pred 
-       | Cst of C.t 
-       | Sol of Sy.t * A.pred list
-
 let parse_error msg =
   Errormsg.error (symbol_start ()) msg
 
@@ -26,7 +21,7 @@ let parse_error msg =
 %token EOF
 %token PLUS
 %token MINUS
-%token MUL
+%token TIMES 
 %token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
@@ -35,8 +30,8 @@ let parse_error msg =
 
 %start defs 
 
-%type <t list>                  defs 
-%type <t>                       def
+%type <Constraint.deft list>    defs 
+%type <Constraint.deft>         def
 %type <So.t list>               sorts 
 %type <So.t>                    sort
 %type <(Sy.t * So.t) list>      binds 
@@ -59,14 +54,14 @@ let parse_error msg =
 %%
 defs:
                                         { [] } 
-  | def DOT defs                        { $1 :: $3 }
+  | def defs                            { $1 :: $2 }
   ;
 
 def:
-    SRT sort                            { Srt $2 }
-  | AXM pred                            { Axm $2 }
-  | CST cstr                            { Cst $2 }
-  | SOL Id ASGN preds                   { Sol ((Sy.of_string $2), $4) }
+    SRT COLON sort                      { C.Srt $3 }
+  | AXM COLON pred                      { C.Axm $3 }
+  | CST COLON cstr                      { C.Cst $3 }
+  | SOL COLON Id ASGN preds             { C.Sol ((Sy.of_string $3), $5) }
   ;
 
 sorts:
@@ -77,8 +72,8 @@ sorts:
 sort:
     INT                                 { So.Int }
   | BOOL                                { So.Bool }
-  | UNINT Id                            { So.Unint }
-  | FUNC sorts                          { So.Func ($1) }
+  | UNINT Id                            { So.Unint ($2) }
+  | FUNC sorts                          { So.Func ($2) }
   ;
 
 binds: 
@@ -91,12 +86,13 @@ bind:
   ;
 
 rbind:
-  Id COLON LC sort COLON reft RC        { ((Sy.of_string $1), ($4, $6)) } 
+
+  Id COLON LC Id COLON sort COLON refas RC   { (Sy.of_string $1, ($6, (Sy.of_string $4, $8))) } 
   ;
 
 preds:
-	pred SEMI preds                 { $1 :: $3 }
-    |   pred                         	{ [ $1 ] }
+                                      { [] }
+    | pred SEMI preds                 { $1 :: $3 }
 ;
 
 pred:
@@ -110,19 +106,19 @@ pred:
   | LPAREN expr RPAREN                  { A.pBexp ($2) }
   | expr brel expr                      { A.pAtom ($1, $2, $3) }
   | FORALL binds DOT pred               { A.pForall ($2, $4) }
-;
+  ;
 
 exprs:
-    expr SEMI exprs                     { $1 :: $3 }
-  | expr                                { [ $1 ] }
-;
+                                        { [] }
+  | expr SEMI exprs                     { $1 :: $3 }
+  ;
 
 expr:
     Id				        { A.eVar (Sy.of_string $1) }
   | Num 				{ A.eCon (A.Constant.Int $1) }
   | expr bop expr                       { A.eBin ($1, $2, $3) }
   | Id LPAREN exprs RPAREN		{ A.eApp ((Sy.of_string $1), $3) }
-  | pred QM exp COLON exp               { A.eIte ($1,$3,$5) }
+  | pred QM expr COLON expr             { A.eIte ($1,$3,$5) }
   | expr DOT Id                         { A.eFld ((Sy.of_string $3), $1) }
   | LPAREN expr RPAREN                  { $2 }
   ;
@@ -154,7 +150,7 @@ env:
   ;
 
 reft: 
-  LPAREN Id COLON refas RPAREN          { ((Sy.of_string $2), $4) }
+  LC Id COLON refas RC { ((Sy.of_string $2), $4) }
   ;
 
 refas:

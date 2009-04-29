@@ -32,12 +32,16 @@ module SM = S.SMap
 open Misc.Ops
 
 type tag  = int
-type subs = (S.t * A.expr) list                    (* [x,e] *)
+type subs = (S.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * S.t
-type reft = S.t * (refa list)                   (* VV, [ra] *)
-type envt = (A.Sort.t * reft) SM.t
+type reft = S.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
+type envt = reft SM.t
 type soln = A.pred list SM.t
 type t    = envt * A.pred * reft * reft * (tag option) 
+type deft = Srt of Ast.Sort.t 
+          | Axm of Ast.pred 
+          | Cst of t 
+          | Sol of Ast.Symbol.t * Ast.pred list
 
 
 (*************************************************************)
@@ -152,3 +156,13 @@ let print so ppf (env,g,r1,r2,io) =
 
 (* API *) 
 let to_string c = Misc.fsprintf (print None) c
+
+(* API *)
+let print_soln ppf sm =
+  Format.fprintf ppf "Solution: \n";
+  SM.iter 
+    (fun x ps -> 
+       Format.fprintf ppf "%a := %a \n" 
+       Ast.Symbol.print x (Misc.pprint_many false "," P.print) ps)
+    sm
+

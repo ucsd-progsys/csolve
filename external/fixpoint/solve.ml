@@ -157,6 +157,42 @@ let dump me s = function
       end
   | _ -> asserts false "MATCH FAILURE: Solve.dump" 
 
+
+(***************************************************************)
+(********************** Input Validation ***********************)
+(***************************************************************)
+
+(* 1. check tags are distinct, return max tag *)
+let phase1 cs = 
+  let tags = Misc.map_partial (fun (_,_,_,_,x) -> x) cs in
+  let _    = asserts (Misc.distinct tags) "Solve.validate: distinctness" in
+  List.fold_left max 0 tags 
+
+(* 2. add distinct tags to each constraint *) 
+let phase2 cs tmax = 
+  List.fold_left 
+    (fun (cs, j) c -> match c with
+       | (_,_,_,_, Some i) -> (c::cs, j)
+       | (a,b,c,d, None)   -> ((a,b,c,d, Some j)::cs, j+1))
+    ([], tmax+1) cs
+  |> fst
+
+(* 3. check that sorts are consistent across constraints *)
+let phase3 cs =
+  let memo = Hashtbl.create 17 in
+  let _    = List.iter begin fun (env,_,_,_,_) -> 
+               SM.iter begin fun x t ->
+                 try asserts (t = (Hashtbl.find memo x)) 
+                     "Solve.validate: phase3 fails" 
+                 with Not_found -> 
+                   Hashtbl.replace memo x t
+               end env
+             end cs in
+  cs
+
+let validate cs = 
+  phase1 cs |> phase2 cs |> phase3
+
 (***************************************************************)
 (******************** Iterative Refinement *********************)
 (***************************************************************)
@@ -187,6 +223,7 @@ let solve me s =
 (* API *)
 let create ts sm ps cs =
   let tpc = TP.create ts sm ps in
+  let cs  = validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in
   { tpc = tpc; sri = sri }
 

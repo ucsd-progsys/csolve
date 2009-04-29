@@ -90,6 +90,9 @@ let map_partial f xs =
         | None   -> acc
         | Some z -> (z::acc)) [] xs)
 
+let list_max x xs = 
+  List.fold_left max x xs
+
 let do_catch s f x =
   try f x with ex -> 
      (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); raise ex) 
@@ -134,8 +137,6 @@ let append_pref p s =
 let app_fst f (a, b) = (f a, b)
 let app_snd f (a, b) = (a, f b)
 
-
-
 let sort_and_compact ls =
   let rec _sorted_compact l = 
     match l with
@@ -145,6 +146,11 @@ let sort_and_compact ls =
       | tl -> tl
   in
     _sorted_compact (List.sort compare ls)   
+
+let distinct xs = 
+ List.length xs = List.length (sort_and_compact xs)
+
+
 
 (** repeats f: unit - > unit i times *)
 let rec repeat_fn f i = 
