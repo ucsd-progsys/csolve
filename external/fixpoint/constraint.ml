@@ -32,10 +32,10 @@ module SM = S.SMap
 open Misc.Ops
 
 type tag  = int
-type subs = (S.t * A.expr) list                    (* [x,e] *)
+type subs = (S.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * S.t
-type reft = S.t * (refa list)                   (* VV, [ra] *)
-type envt = (A.Sort.t * reft) SM.t
+type reft = S.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
+type envt = reft SM.t
 type soln = A.pred list SM.t
 type t    = envt * A.pred * reft * reft * (tag option) 
 type deft = Srt of Ast.Sort.t 

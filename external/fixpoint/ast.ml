@@ -462,9 +462,17 @@ module Predicate =
 
       let unwrap = puw
 
-      let is_contra = fun p -> failwith "TBD: Predicate.is_contra" 
+      let is_contra = 
+        let t = PredHash.create 17 in
+        let _ = [pFalse; pNot pTrue; pAtom (zero, Eq, one); pAtom (one, Eq, zero)]
+                |> List.iter (fun p-> PredHash.replace t p ()) in 
+        fun p -> PredHash.mem t p 
+        
+      let is_tauto  = function
+        | Atom(e1, Eq, e2), _ -> e1 == e2
+        | True,_              -> true
+        | _                   -> false
 
-      let is_tauto  = fun p -> failwith "TBD: Predicate.is_tauto" 
     end
 
 
