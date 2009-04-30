@@ -16,7 +16,7 @@ let parse_error msg =
 %token <int> Num
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL SEMI COLON
+%token AND OR NOT IMPL FORALL SEMI COLON MID
 %token TRUE FALSE
 %token EOF
 %token PLUS
@@ -36,7 +36,7 @@ let parse_error msg =
 %type <So.t>                    sort
 %type <(Sy.t * So.t) list>      binds 
 %type <Sy.t * So.t>             bind 
-%type <Sy.t * (So.t * C.reft)>  rbind 
+%type <Sy.t * C.reft>           rbind 
 %type <A.pred list>             preds
 %type <A.pred>                  pred
 %type <A.expr list>             exprs
@@ -49,7 +49,6 @@ let parse_error msg =
 %type <C.refa list>             refas
 %type <C.refa>                  refa
 %type <C.subs>                  subs
-
 
 %%
 defs:
@@ -86,8 +85,7 @@ bind:
   ;
 
 rbind:
-
-  Id COLON LC Id COLON sort COLON refas RC   { (Sy.of_string $1, ($6, (Sy.of_string $4, $8))) } 
+  Id COLON reft                         { (Sy.of_string $1, $3) } 
   ;
 
 preds:
@@ -150,7 +148,7 @@ env:
   ;
 
 reft: 
-  LC Id COLON refas RC { ((Sy.of_string $2), $4) }
+  LC Id COLON sort MID refas RC         { ((Sy.of_string $2), $4, $6) }
   ;
 
 refas:

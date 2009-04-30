@@ -79,6 +79,7 @@ rule token = parse
   | "true"              { TRUE }
   | ":="                { ASGN }
   | ':'                 { COLON }
+  | '|'                 { MID }
   | "int"               { INT }
   | "bool"              { BOOL }
   | "unint"             { UNINT }

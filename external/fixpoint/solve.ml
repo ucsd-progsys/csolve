@@ -70,8 +70,8 @@ let rhs_cands s = function
       List.map (fun q -> ((k,q), C.apply_substs xes q))
   | _ -> []
 
-let check_tp me env vv lps =  function [] -> [] | rcs ->
-  let env = SM.map fst env in
+let check_tp me env vv t lps =  function [] -> [] | rcs ->
+  let env = SM.map snd3 env |> SM.add vv t in
   let rv  = Misc.do_catch "ERROR: check_tp" 
               (TP.set_filter me.tpc env vv lps) rcs in
   let _   = stat_tp_refines    += 1;
@@ -79,11 +79,10 @@ let check_tp me env vv lps =  function [] -> [] | rcs ->
             stat_valid_queries += (List.length rv) in
   rv
 
-let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
-  let _  = asserts (vv1 = vv2) "ERROR: malformed constraint";
-           incr stat_refines in
-  let lps  = lhs_preds s env g (vv1, ra1s) in
-  let rcs  = Misc.flap (rhs_cands s) ra2s in
+let refine me s ((env, g, ((vv1, t1, _) as r1), (_, _, ra2s), _) as c) =
+  let _   = stat_refines += 1 in
+  let lps = lhs_preds s env g r1 in
+  let rcs = Misc.flap (rhs_cands s) ra2s in
   if (List.exists P.is_contra lps) || (rcs = []) then
     let _ = stat_matches += (List.length rcs) in
     (false, s)
@@ -94,19 +93,19 @@ let refine me s ((env, g, (vv1, ra1s), (vv2, ra2s), _) as c) =
     let (x1,x2) = List.partition (fun (_,p) -> PH.mem lt p) rcs in
     let _       = stat_matches += (List.length x1) in
     let kqs1    = List.map fst x1 in
-    (if C.is_simple c then (stat_simple_refines += 1; kqs1) 
-                      else kqs1 ++ (check_tp me env vv1 lps x2))
+    (if C.is_simple c 
+     then (stat_simple_refines += 1; kqs1) 
+     else kqs1 ++ (check_tp me env vv1 t1 lps x2))
     |> C.group_sol_update s 
 
 (***************************************************************)
 (************************* Satisfaction ************************)
 (***************************************************************)
 
-let unsat me s (env, gp, (vv1, ra1s), (vv2, ra2s), _) =
-  let _    = asserts (vv1 = vv2) "ERROR: malformed constraint" in
-  let lps  = lhs_preds s env gp (vv1, ra1s) in
-  let rhsp = ra2s |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
-  not ((check_tp me env vv1 lps [(0, rhsp)]) = [0])
+let unsat me s (env, gp, ((vv,t,_) as r1), r2, _) =
+  let lps    = lhs_preds s env gp r1 in
+  let rhsp   = r2 |> thd3 |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
+  not ((check_tp me env vv t lps [(0, rhsp)]) = [0])
 
 let unsat_constraints me s =
   Ci.to_list me.sri |> List.filter (unsat me s)
@@ -165,7 +164,7 @@ let dump me s = function
 (* 1. check tags are distinct, return max tag *)
 let phase1 cs = 
   let tags = Misc.map_partial (fun (_,_,_,_,x) -> x) cs in
-  let _    = asserts (Misc.distinct tags) "Solve.validate: distinctness" in
+  let _    = asserts (Misc.distinct tags) "Invalid Constraints 3" in
   List.fold_left max 0 tags 
 
 (* 2. add distinct tags to each constraint *) 
@@ -180,10 +179,11 @@ let phase2 cs tmax =
 (* 3. check that sorts are consistent across constraints *)
 let phase3 cs =
   let memo = Hashtbl.create 17 in
-  let _    = List.iter begin fun (env,_,_,_,_) -> 
+  let _    = List.iter begin fun (env,_,(vv1,t1,_),(vv2,t2,_),_) ->
+               asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 1"; 
                SM.iter begin fun x t ->
                  try asserts (t = (Hashtbl.find memo x)) 
-                     "Solve.validate: phase3 fails" 
+                       "Invalid Constraints 2" 
                  with Not_found -> 
                    Hashtbl.replace memo x t
                end env

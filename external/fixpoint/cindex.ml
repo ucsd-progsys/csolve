@@ -62,13 +62,13 @@ let get_ref_constraint me i =
 
 let refa_ko = function C.Kvar (_,k) -> Some k | _ -> None
 
-let reft_ks = function (_,ras) -> Misc.map_partial refa_ko ras
+let reft_ks = function (_,_,ras) -> Misc.map_partial refa_ko ras
 
-let lhs_ks (env ,_ ,r1 ,_ ,_) = 
+let lhs_ks (env ,_ , (r1:C.reft) ,_ ,_) = 
   reft_ks r1 |> 
-  SM.fold (fun _ (_,r) l -> (reft_ks r) ++ l) env
+  SM.fold (fun _ (r:C.reft) l -> (reft_ks r) ++ l) env
 
-let rhs_ks (_,_,_,r2,_) =
+let rhs_ks (_,_,_,(r2:C.reft),_) =
   reft_ks r2
 
 let print_scc_edge rm (u,v) = 
