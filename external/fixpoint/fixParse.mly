@@ -16,7 +16,7 @@ let parse_error msg =
 %token <int> Num
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL SEMI COLON
+%token AND OR NOT IMPL FORALL SEMI COLON MID
 %token TRUE FALSE
 %token EOF
 %token PLUS
@@ -36,7 +36,6 @@ let parse_error msg =
 %type <So.t>                    sort
 %type <(Sy.t * So.t) list>      binds 
 %type <Sy.t * So.t>             bind 
-%type <Sy.t * (So.t * C.reft)>  rbind 
 %type <A.pred list>             preds
 %type <A.pred>                  pred
 %type <A.expr list>             exprs
@@ -49,7 +48,6 @@ let parse_error msg =
 %type <C.refa list>             refas
 %type <C.refa>                  refa
 %type <C.subs>                  subs
-
 
 %%
 defs:
@@ -83,11 +81,6 @@ binds:
 
 bind:
   Id COLON sort                         { ((Sy.of_string $1), $3) }
-  ;
-
-rbind:
-
-  Id COLON LC Id COLON sort COLON refas RC   { (Sy.of_string $1, ($6, (Sy.of_string $4, $8))) } 
   ;
 
 preds:
@@ -140,17 +133,20 @@ bop:
   ;
 
 cstr:
-    ENV env GRD pred LHS reft RHS reft  { ($2, $4, $6, $8, None) }
+    ENV env 
+    GRD pred 
+    LHS reft 
+    RHS reft                            { ($2, $4, $6, $8, None) }
   ;
 
 
 env:
                                         { Sy.SMap.empty }
-  | rbind SEMI env                      { Sy.SMap.add (fst $1) (snd $1) $3 }
+  | Id COLON reft SEMI env              { Sy.SMap.add (Sy.of_string $1) $3 $5 }
   ;
 
 reft: 
-  LC Id COLON refas RC { ((Sy.of_string $2), $4) }
+  LC Id COLON sort MID refas RC         { ((Sy.of_string $2), $4, $6) }
   ;
 
 refas:

@@ -17,24 +17,24 @@
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
- * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONSy.
  *
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
 
 module A  = Ast
-module S  = A.Symbol
 module E  = A.Expression
 module P  = A.Predicate
-module SM = S.SMap
+module Sy = A.Symbol
+module SM = Sy.SMap
 
 open Misc.Ops
 
 type tag  = int
-type subs = (S.t * A.expr) list                         (* [x,e] *)
-type refa = Conc of A.pred | Kvar of subs * S.t
-type reft = S.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
+type subs = (Sy.t * A.expr) list                         (* [x,e] *)
+type refa = Conc of A.pred | Kvar of subs * Sy.t
+type reft = Sy.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
 type envt = reft SM.t
 type soln = A.pred list SM.t
 type t    = envt * A.pred * reft * reft * (tag option) 
@@ -57,7 +57,7 @@ let is_simple_refatom = function
   | _            -> false
 
 (* API *)
-let is_simple (_,_,(_,ra1s),(_,ra2s),_) = 
+let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) = 
   List.for_all is_simple_refatom ra1s &&
   List.for_all is_simple_refatom ra2s &&
   not (!Constants.no_simple || !Constants.verify_simple)
@@ -69,7 +69,7 @@ let is_simple (_,_,(_,ra1s),(_,ra2s),_) =
 (* API *)
 let sol_read s k = 
   try SM.find k s with Not_found -> 
-    failure "ERROR: sol_read : unknown kvar %s \n" (S.to_string k)
+    failure "ERROR: sol_read : unknown kvar %s \n" (Sy.to_string k)
 
 let sol_update s k qs' =
   let qs = sol_read s k in
@@ -101,14 +101,14 @@ let refineatom_preds s   = function
   | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
 
 (* API *)
-let refinement_preds s (_,ras) =
+let refinement_preds s (_,_,ras) =
   Misc.flap (refineatom_preds s) ras
 
 (* API *)
 let environment_preds s env =
   SM.fold
-    (fun x (t, (vv,ras)) ps -> 
-      let vps = refinement_preds s (vv, ras) in
+    (fun x ((vv, t, ras) as r) ps -> 
+      let vps = refinement_preds s r in
       let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
       xps ++ ps)
     env [] 
@@ -118,21 +118,23 @@ let environment_preds s env =
 (**************************************************************)
 
 let print_sub ppf (x,e) = 
-  Format.fprintf ppf "[%a:=%a]" S.print x E.print e
+  Format.fprintf ppf "[%a:=%a]" Sy.print x E.print e
 
 let print_refineatom ppf = function
   | Conc p        -> Format.fprintf ppf "%a" P.print p
-  | Kvar (xes, k) -> Format.fprintf ppf "%a[%a]" S.print k 
+  | Kvar (xes, k) -> Format.fprintf ppf "%a[%a]" Sy.print k 
                        (Misc.pprint_many false "" print_sub) xes
 
-let print_refinement ppf (v, ras) =
-  Format.fprintf ppf "@[{%a:%a@]" 
-    S.print v 
+let print_refinement ppf (v, t, ras) =
+  Format.fprintf ppf "@[{%a : %a | %a}@]" 
+    Sy.print v
+    Ast.Sort.print t
     (Misc.pprint_many false " /\ " print_refineatom) ras  
 
-let print_binding ppf (x, (t, r)) = 
-  Format.fprintf ppf "@[%a => %a:%a@],@;<0 2>" 
-  S.print x Ast.Sort.print t print_refinement r 
+let print_binding ppf (x, r) = 
+  Format.fprintf ppf "@[%a => %a@],@;<0 2>" 
+    Sy.print x 
+    print_refinement r 
 
 let print_env so ppf env = 
   match so with
