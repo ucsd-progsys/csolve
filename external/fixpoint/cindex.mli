@@ -33,7 +33,7 @@ type wkl
 val to_list     : t -> Constraint.t list 
 val create      : Constraint.t list -> t 
 val deps        : t -> Constraint.t -> Constraint.t list
-val iter        : t -> (Constraint.t -> unit) -> unit
+val iter        : (Constraint.t -> unit) -> t -> unit
 
 (** worklist manipulation *)
 val wpush       : t -> wkl -> Constraint.t list -> wkl 

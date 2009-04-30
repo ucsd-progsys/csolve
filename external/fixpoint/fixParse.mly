@@ -30,22 +30,21 @@ let parse_error msg =
 
 %start defs 
 
-%type <Constraint.deft list>    defs 
+%type <Constraint.deft list>    defs
 %type <Constraint.deft>         def
-%type <So.t list>               sorts 
+%type <So.t list>               sorts, sortsne 
 %type <So.t>                    sort
-%type <(Sy.t * So.t) list>      binds 
-%type <Sy.t * So.t>             bind 
-%type <A.pred list>             preds
+%type <(Sy.t * So.t) list>      binds, bindsne 
+%type <A.pred list>             preds, predsne
 %type <A.pred>                  pred
-%type <A.expr list>             exprs
+%type <A.expr list>             exprs, exprsne
 %type <A.expr>                  expr
 %type <A.brel>                  brel 
 %type <A.bop>                   bop 
 %type <C.t>                     cstr
 %type <C.envt>                  env
 %type <C.reft>                  reft
-%type <C.refa list>             refas
+%type <C.refa list>             refas, refasne
 %type <C.refa>                  refa
 %type <C.subs>                  subs
 
@@ -63,9 +62,15 @@ def:
   ;
 
 sorts:
-    sort SEMI sorts                     { $1 :: $3 }
-  | sort                                { [$1] }
+    LB RB                               { [] }
+  | LB sortsne RB                       { $2 }
   ;
+
+sortsne:
+    sort                                { [$1] }
+  | sort SEMI sortsne                   { $1 :: $3 }
+  ;
+
 
 sort:
     INT                                 { So.Int }
@@ -74,36 +79,52 @@ sort:
   | FUNC sorts                          { So.Func ($2) }
   ;
 
-binds: 
-    bind SEMI binds                     { $1 :: $3 }
-  | bind                                { [$1] }
+
+binds:
+    LB RB                               { [] }
+  | LB bindsne RB                       { $2 }
   ;
+
+bindsne:
+    bind                                { [$1] }
+  | bind SEMI bindsne                   { $1::$3 }
+  ;
+
 
 bind:
   Id COLON sort                         { ((Sy.of_string $1), $3) }
   ;
 
 preds:
-                                      { [] }
-    | pred SEMI preds                 { $1 :: $3 }
+    LB RB                               { [] }
+  | LB predsne RB                       { $2 }
+  ;
+
+predsne:
+    pred                                { [$1] }
+  | pred SEMI predsne                   { $1 :: $3 }
 ;
 
 pred:
     TRUE				{ A.pTrue }
   | FALSE				{ A.pFalse }
-  | AND LB preds RB 			{ A.pAnd ($3) }
-  | OR LB preds RB			{ A.pOr  ($3) }
+  | AND preds   			{ A.pAnd ($2) }
+  | OR  preds 	        		{ A.pOr  ($2) }
   | NOT pred				{ A.pNot ($2) }
   | pred IMPL pred			{ A.pImp ($1, $3) }
-  | LPAREN pred RPAREN			{ $2 }
-  | LPAREN expr RPAREN                  { A.pBexp ($2) }
   | expr brel expr                      { A.pAtom ($1, $2, $3) }
   | FORALL binds DOT pred               { A.pForall ($2, $4) }
+  | LPAREN pred RPAREN			{ $2 }
   ;
 
 exprs:
-                                        { [] }
-  | expr SEMI exprs                     { $1 :: $3 }
+    LB RB                               { [] }
+  | LB exprsne RB                       { $2 }
+  ;
+
+exprsne:
+    expr                                { [$1] }
+  | expr SEMI exprsne                   { $1 :: $3 }
   ;
 
 expr:
@@ -133,16 +154,24 @@ bop:
   ;
 
 cstr:
-    ENV env 
+    ENV env  
     GRD pred 
     LHS reft 
-    RHS reft                            { ($2, $4, $6, $8, None) }
+    RHS reft                         { ($2, $4, $6, $8, None) }
   ;
 
-
 env:
-                                        { Sy.SMap.empty }
-  | Id COLON reft SEMI env              { Sy.SMap.add (Sy.of_string $1) $3 $5 }
+  LB RB                                 { C.env_of_list [] }
+  | LB envne RB                         { C.env_of_list $2 }
+  ;
+
+envne:
+    rbind                               { [$1] }
+  | rbind SEMI envne                    { $1 :: $3 }
+  ;
+
+rbind: 
+  Id COLON reft                         { (Sy.of_string $1, $3) }
   ;
 
 reft: 
@@ -150,8 +179,12 @@ reft:
   ;
 
 refas:
-                                        { [] }
-  | refa SEMI refas                     { $1 :: $3 }
+    LB RB                               { [] }
+  | LB refasne RB                       { $2 }
+  
+refasne:
+    refa                                { [$1] }
+  | refa SEMI refasne                   { $1 :: $3 }
   ;
   
 refa:

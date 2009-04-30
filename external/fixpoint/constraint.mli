@@ -43,6 +43,7 @@ val refineatom_preds : soln -> refa -> Ast.pred list
 val refinement_preds : soln -> reft -> Ast.pred list
 val environment_preds: soln -> envt -> Ast.pred list
 
+val env_of_list      : (Ast.Symbol.t * reft) list -> envt
 val is_simple        : t -> bool
 val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
 val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)

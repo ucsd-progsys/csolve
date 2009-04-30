@@ -50,7 +50,7 @@ let parse f =
 let solve (ts, ps, cs, s) = 
   let ctx     = S.create ts SM.empty ps cs in
   let s', cs' = S.solve ctx s in
-  F.printf "Solution: \n %a \n" C.print_soln s'; 
+  F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" (Misc.pprint_many true "\n" (C.print None)) cs';
   ()
 

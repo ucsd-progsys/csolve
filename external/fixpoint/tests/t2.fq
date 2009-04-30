@@ -1,8 +1,8 @@
-constraint: env x :{v : int | true;}; 
-		y :{v : int | true;}; 
-		n :{v : int | true;};  
+constraint: env [x :{v : int | [true]}; 
+		 y :{v : int | [true]}; 
+		 n :{v : int | [true]}]  
 	    grd (0 < n)
-	    lhs {v : int | v = n+1; v > 5; k1[x:=y+1][y:=z+1];}
-	    rhs {v : int | k2;}
-solution: k1 :=  true; 
-solution: k2 :=  0 < v; 1 < v; 50 < v;
+	    lhs {v : int | [v = n+1; v > 5; k1[x:=y+1][y:=z+1]]}
+	    rhs {v : int | [k2]}
+solution: k1 :=  [true] 
+solution: k2 :=  [0 < v; 1 < v; 50 < v]

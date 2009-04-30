@@ -57,6 +57,10 @@ let is_simple_refatom = function
   | _            -> false
 
 (* API *)
+let env_of_list xrs = 
+  List.fold_left (fun env (x,r) -> SM.add x r env) SM.empty xrs
+
+(* API *)
 let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) = 
   List.for_all is_simple_refatom ra1s &&
   List.for_all is_simple_refatom ra2s &&
