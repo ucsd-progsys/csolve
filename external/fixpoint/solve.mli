@@ -26,5 +26,6 @@
 
 type t 
 val create   : Ast.Sort.t list -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred list -> Constraint.t list -> t
-val solve    : t -> Constraint.soln -> (Constraint.soln * (Constraint.t list)) 
+val solve    : t -> Constraint.soln -> (Constraint.soln * (Constraint.t list))
+val save     : string -> t -> Constraint.soln -> unit 
 

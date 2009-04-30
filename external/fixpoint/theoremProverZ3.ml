@@ -378,8 +378,8 @@ let set_filter me env vv ps qs =
   List.map fst qs'
 
 (* API *)
-let print_stats _ =
-  Format.printf
+let print_stats ppf _ =
+  Format.fprintf ppf
     "TP stats: sets=%d, pushes=%d, pops=%d, unsats=%d, queries=%d \n " 
     !nb_set !nb_push !nb_pop !nb_unsat !nb_query
 

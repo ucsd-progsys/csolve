@@ -114,48 +114,31 @@ let unsat_constraints me s =
 (************************ Debugging/Stats **********************)
 (***************************************************************)
 
-let dump_solution_stats s = 
-  if Co.ck_olev Co.ol_solve_stats then begin
-    let (sum, max, min) =   
+let print_solution_stats ppf s = 
+  let (sum, max, min) =   
       (SM.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
        SM.fold (fun _ qs x -> max x (List.length qs)) s min_int,
        SM.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
-    let avg = (float_of_int sum) /. (float_of_int (Sy.sm_length s)) in
-    Format.printf "Quals: Total=%d, Avg=%f, Max=%d, Min=%d \n" sum avg max min;
-    Format.print_flush ()
-  end
+  let avg = (float_of_int sum) /. (float_of_int (Sy.sm_length s)) in
+  F.fprintf ppf "# variables   = %d \n" (Sy.sm_length s);
+  F.fprintf ppf "# Quals: Total=%d, Avg=%f, Max=%d, Min=%d \n" sum avg max min
 
-let dump_solution s =
-  if Co.ck_olev Co.ol_solve then 
-    s |> SM.iter (fun k qs -> 
-                    Format.printf "@[%a: %a@]@." Sy.print k 
-                    (Misc.pprint_many false "," P.print) qs) 
+let print_solver_stats ppf me = 
+  let cs   = Ci.to_list me.sri in 
+  let cn   = List.length cs in
+  let scn  = List.length (List.filter C.is_simple cs) in
+  (* F.fprintf ppf "%a" Ci.print me.sri; *)
+  F.fprintf ppf "# constraints = %d \n" cn;
+  F.fprintf ppf "# simple constraints = %d \n" scn;
+  F.fprintf ppf "# Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
+    !stat_refines !stat_simple_refines !stat_tp_refines !stat_matches;
+  F.fprintf ppf "#Queries = %d@ (TP=%d, valid=%d)\n" 
+    !stat_matches !stat_imp_queries !stat_valid_queries;
+  F.fprintf ppf "%a" TP.print_stats me.tpc
 
-let dump me s = function
-  | 0 -> 
-      let kn   = Sy.sm_length s in
-      let cs   = Ci.to_list me.sri in 
-      let cn   = List.length cs in
-      let scn  = List.length (List.filter C.is_simple cs) in
-      Format.printf "%a" Ci.print me.sri;
-      Co.cprintf Co.ol_solve_stats "# variables   = %d \n" kn;
-      Co.cprintf Co.ol_solve_stats "# constraints = %d \n" cn;
-      Co.cprintf Co.ol_solve_stats "# simple constraints = %d \n" scn;
-      dump_solution_stats s 
-  | 1 -> 
-      dump_solution_stats s
-  | 2 ->
-      if Co.ck_olev Co.ol_solve_stats then begin
-        F.printf "Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
-          !stat_refines !stat_simple_refines !stat_tp_refines !stat_matches;
-        F.printf "Queries = %d@ (TP=%d, valid=%d)\n" 
-          !stat_matches !stat_imp_queries !stat_valid_queries;
-        TP.print_stats me.tpc;
-        dump_solution_stats s;
-        flush stdout
-      end
-  | _ -> asserts false "MATCH FAILURE: Solve.dump" 
-
+let dump me s = 
+  F.printf "%a \n" print_solver_stats me;
+  F.printf "%a \n" print_solution_stats s
 
 (***************************************************************)
 (********************** Input Validation ***********************)
@@ -200,7 +183,7 @@ let validate cs =
 let rec acsolve me w s = 
   let _ = if !stat_refines mod 100 = 0 
           then Co.cprintf Co.ol_solve "num refines =%d \n" !stat_refines in
-  let _ = if Co.ck_olev Co.ol_insane then dump_solution s in
+  let _ = if Co.ck_olev Co.ol_insane then F.printf "%a" C.print_soln s in
   let _ = Co.cprintf Co.ol_solve "At iter %d " !stat_refines in
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
@@ -208,15 +191,15 @@ let rec acsolve me w s =
     acsolve me w'' s' 
 
 (* API *)
-let solve me s = 
-  let _ = Format.printf "%a" Ci.print me.sri;  
-           dump_solution s; 
-           dump me s 0 in
+let solve me (s : C.soln) = 
+  let _ = Co.cprintf Co.ol_solve "%a" Ci.print me.sri;  
+          Co.cprintf Co.ol_solve "%a" C.print_soln s;
+          dump me s in
   let w = BS.time "init wkl"    Ci.winit me.sri in 
   let s = BS.time "solving sub" (acsolve me w) s in
-  let _ = (* TP.reset me.tpc; *) dump_solution s; dump me s 2 in
+  let _ = dump me s in
   let u = BS.time "testing solution" (unsat_constraints me) s in
-  let _ = if u != [] then Format.printf "Unsatisfied Constraints:\n %a"
+  let _ = if u != [] then F.printf "Unsatisfied Constraints:\n %a"
                           (Misc.pprint_many true "\n" (C.print None)) u in
   (s, u)
 
@@ -226,6 +209,24 @@ let create ts sm ps cs =
   let cs  = validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in
   { tpc = tpc; sri = sri }
+
+
+
+let save fname me s =
+  let oc  = open_out fname in
+  let ppf = F.formatter_of_out_channel oc in
+  Ci.iter  
+    (fun c -> 
+      F.fprintf ppf "constraint: @[%a@] \n" (C.print None) c)
+    me.sri;
+  SM.iter 
+    (fun k ps -> 
+      F.fprintf ppf "solution: @[%a := %a@] \n"  
+        Sy.print k (Misc.pprint_many false ";" P.print) ps)
+    s
+
+
+
 
 (*
 (***********************************************************************)

@@ -122,7 +122,7 @@ let to_list me =
   IM.fold (fun _ c cs -> c::cs) me.cnst [] 
 
 (* API *)
-let iter me f = 
+let iter f me = 
   IM.iter (fun _ c -> f c) me.cnst
 
 let sort_iter_ref_constraints me f = 
@@ -163,7 +163,7 @@ let winit me =
 let print ppf me = 
   if !Co.dump_ref_constraints then begin
     Format.fprintf ppf "Refinement Constraints: \n";
-    iter me (Format.fprintf ppf "@[%a@.@]" (C.print None));
+    iter (Format.fprintf ppf "@[%a@.@]" (C.print None)) me;
     Format.fprintf ppf "\n SCC Ranked Refinement Constraints: \n";
     sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print None)); 
   end

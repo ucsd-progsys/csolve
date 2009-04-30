@@ -39,7 +39,7 @@ sig
                     -> ('a * Ast.pred) list 
                     -> 'a list
                        
-  val print_stats : t -> unit
+  val print_stats : Format.formatter -> t -> unit
 
   (* val reset : t -> unit      : what is this for ? *)
 end
