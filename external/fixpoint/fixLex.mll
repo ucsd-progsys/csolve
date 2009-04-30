@@ -58,18 +58,10 @@ rule token = parse
   | ')'			{ RPAREN }
   | '{'			{ LC }
   | '}'			{ RC }
-  | '&'                 { AND }
-  | '|'                 { OR  }
-  | '~'                 { NOT  }
-  | "!="		{ NE }
-  | "="		        { EQ }
-  | "<="		{ LE }
-  | "<"		        { LT }
-  | ">="		{ GE }
-  | ">"		        { GT }
-
-  | "->"                { IMPL }
+  | '~'                 { NOT }
   | ';'                 { SEMI }
+  | ':'                 { COLON }
+  | '|'                 { MID }
   | '+'                 { PLUS }
   | '-'                 { MINUS }
   | '*'                 { TIMES }
@@ -78,8 +70,15 @@ rule token = parse
   | "false"             { FALSE }
   | "true"              { TRUE }
   | ":="                { ASGN }
-  | ':'                 { COLON }
-  | '|'                 { MID }
+  | "&&"                { AND }
+  | "||"                { OR  }
+  | "!="		{ NE }
+  | "="		        { EQ }
+  | "<="		{ LE }
+  | "<"		        { LT }
+  | ">="		{ GE }
+  | ">"		        { GT }
+  | "->"                { IMPL }
   | "int"               { INT }
   | "bool"              { BOOL }
   | "unint"             { UNINT }

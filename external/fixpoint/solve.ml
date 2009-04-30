@@ -181,7 +181,7 @@ let phase3 cs =
   let memo = Hashtbl.create 17 in
   let _    = List.iter begin fun (env,_,(vv1,t1,_),(vv2,t2,_),_) ->
                asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 1"; 
-               SM.iter begin fun x t ->
+               SM.iter begin fun x (_,t,_) ->
                  try asserts (t = (Hashtbl.find memo x)) 
                        "Invalid Constraints 2" 
                  with Not_found -> 

@@ -36,7 +36,6 @@ let parse_error msg =
 %type <So.t>                    sort
 %type <(Sy.t * So.t) list>      binds 
 %type <Sy.t * So.t>             bind 
-%type <Sy.t * C.reft>           rbind 
 %type <A.pred list>             preds
 %type <A.pred>                  pred
 %type <A.expr list>             exprs
@@ -82,10 +81,6 @@ binds:
 
 bind:
   Id COLON sort                         { ((Sy.of_string $1), $3) }
-  ;
-
-rbind:
-  Id COLON reft                         { (Sy.of_string $1, $3) } 
   ;
 
 preds:
@@ -138,13 +133,16 @@ bop:
   ;
 
 cstr:
-    ENV env GRD pred LHS reft RHS reft  { ($2, $4, $6, $8, None) }
+    ENV env 
+    GRD pred 
+    LHS reft 
+    RHS reft                            { ($2, $4, $6, $8, None) }
   ;
 
 
 env:
                                         { Sy.SMap.empty }
-  | rbind SEMI env                      { Sy.SMap.add (fst $1) (snd $1) $3 }
+  | Id COLON reft SEMI env              { Sy.SMap.add (Sy.of_string $1) $3 $5 }
   ;
 
 reft: 
