@@ -38,6 +38,7 @@ type deft = Srt of Ast.Sort.t
           | Sol of Ast.Symbol.t * Ast.pred list
 
 val get_id           : t -> tag
+val get_kvars        : t -> (subs * Ast.Symbol.t) list
 val apply_substs     : subs -> Ast.pred -> Ast.pred
 val refineatom_preds : soln -> refa -> Ast.pred list
 val refinement_preds : soln -> reft -> Ast.pred list
