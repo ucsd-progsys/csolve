@@ -68,6 +68,7 @@ let gen_phis g fid doms cfg phis =
       (fun (j,v') ->
         Mm.mk_constr envTBA (*fid*) (Mm.expand_guard doms.(j) phis)
           (Mm.mk_const_reft (Ast.eVar v')) (??? vt) (*loc*)) bvs in
+  (* TODO: find or build cilenv, figure out RHS, grab and port expand_guard *)
   let _, cs = 
     Array.fold_left 
       (fun (i,cs) asgns -> 
