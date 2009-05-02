@@ -9,8 +9,9 @@ open Cil
 
 type t = (ST.ssaCfgInfo * Mm.cilenv * P.t list * C.t list) SM.t
 
-let d_tplt () (u, r) = 
-  Pretty.dprintf "{V: %a | %a}" d_type u C.print_refn r 
+(* TODO *)
+let print_tplt () (u, r) = 
+  Pretty.dprintf "{V: %a | %a}" d_type u C.print_refinement r 
 
 let get_kvars (cm: t) = 
   let ks = 
@@ -26,7 +27,7 @@ let print_cmap (cm:t) =
     (fun fn (sci, g, invs, cs) -> 
       ignore(Pretty.printf "Templates for %s \n" fn);
       SM.iter (fun vn (t, r, _) -> ignore(Pretty.printf "%s |-> %a \n" vn
-        d_tplt (t, r) g;
+        print_tplt (t, r) g;
       ignore(Pretty.printf "Invariants for %s \n" fn);
       List.iter (fun p -> ignore(Pretty.printf "%s \n" (P.to_string p))) invs;
       ignore(Pretty.printf "Constraints for %s \n" fn);
@@ -62,11 +63,12 @@ let phi_loc cfg i =
 
 let gen_phis g fid doms cfg phis = 
   let phi_cstr i (v,bvs) = 
-    let vt  = Mm.t_var g v in
-    let loc = phi_loc cfg i in
+    let vt  = Mm.ciltyp_of_var g v in
+    (*let loc = phi_loc cfg i in*)
     List.map
       (fun (j,v') ->
-        Mm.mk_constr envTBA (*fid*) doms.(j) (Mm.t_const (Ast.eVar v')) vt loc) bvs in
+        Mm.mk_constr envTBA (*fid*) (Mm.expand_guard doms.(j) phis)
+          (Mm.mk_const_reft (Ast.eVar v')) (??? vt) (*loc*)) bvs in
   let _, cs = 
     Array.fold_left 
       (fun (i,cs) asgns -> 

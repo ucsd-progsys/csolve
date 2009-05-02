@@ -45,24 +45,26 @@
         raise Unhandled
         *)
 
+module SM = Misc.StringMap
 module P = Ast.Predicate
 
 open Cil
 
 type cilenv = (Cil.typ * C.refa * Cil.varinfo) SM.t
 
+let value_var = "AA_"
+
 (* type extraction *)
 
-let t_var (g:cilenv) (v:varinfo) : t =
+let ciltyp_of_var (g:cilenv) (v:varinfo) =
   let vn = v.vname in
   try fst (SM.find vn g) with Not_found -> 
     failwith ("t_var: unknown var "^vn)
 
-let t_const e : t =
-  let u  = typeOf e in
-  let vv = Lval ((Var (value_var u)), NoOffset) in
-  let r  = Conc (Predicate.mk_eq vv e) in
-    mk_ty u r 
+let mk_const_reft e =
+  let vvt  = sort_of_type (typeOf e) in
+  let vv = Ast.eVar value_var in
+    (vv, vvt, Conc [P.mk_eq vv e])
 
 (* cil -> solver translation *)
 
@@ -71,11 +73,6 @@ let t_const e : t =
 let sort_of_typ = function
   | TInt (k, attrs) -> Int
   | _ -> assert false
-  (*| TVoid attrs -> 
-  | TFloat (fk, attrs) ->
-  | TPtr (ty, attrs) ->
-  | TArray (ty, exp, ?, attrs) -> 
-  | TFun (...)......*)
 
 (* expressions *)
 
@@ -110,4 +107,4 @@ let mk_constr =
 (* predicate constructors *)
 
 let mk_eq e1 e2 =
-  P.bAtom (expr_of_cilexpr e1) Eq (expr_of_cilexpr e2)
+  P.bAtom (expr_of_cilexpr e1) Ast.Eq (expr_of_cilexpr e2)
