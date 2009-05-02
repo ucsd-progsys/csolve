@@ -4,7 +4,8 @@ LIBS=-libs unix,str,cil,z3
 
 IFLAGS=-lflags -I,$(CILHOME) \
        -lflags -I,$(Z3HOME)/lib \
-       -lflags -I,$(Z3HOME)/ocaml 
+       -lflags -I,$(Z3HOME)/ocaml \
+			 -lflags -I,$(EXTHOME)/misc/_build \
 
 LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-L$(OCAMLLIBHOME) \

@@ -23,8 +23,8 @@ CFLAGS=-cflags -dtypes \
 OFLAGS=$(DIRS) $(IFLAGS) $(LFLAGS) $(CFLAGS)
 
 all:
-	ocamlbuild -r $(LIBS) $(OFLAGS) main.native
-	ocamlbuild -r $(OFLAGS) fix.cmxa
+	ocamlbuild $(LIBS) $(OFLAGS) main.native
+	ocamlbuild $(OFLAGS) fix.cmxa
 
 clean:
 	rm -rf *.byte *.native _build _log

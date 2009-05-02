@@ -32,7 +32,7 @@ let print_cmap (cm:t) =
       List.iter (fun p -> ignore(Pretty.printf "%s \n" (P.to_string p))) invs;
       ignore(Pretty.printf "Constraints for %s \n" fn);
       List.iter (fun c -> ignore(Pretty.printf "%a \n" 
-        (C.print None std_formatter) c)) cs)
+        (C.print None std_formatter) c)) cs)))
     cm
 
 (***************************************************************************)
