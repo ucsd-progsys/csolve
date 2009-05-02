@@ -1,5 +1,6 @@
 module SM = Misc.StringMap
 module P = Ast.Predicate
+module C = Constraint
 
 open Cil
 
@@ -17,7 +18,7 @@ let ciltyp_of_var (g:cilenv) (v:varinfo) =
 let mk_const_reft e =
   let vvt  = sort_of_type (typeOf e) in
   let vv = Ast.eVar value_var in
-    (vv, vvt, Conc [P.mk_eq vv e])
+    (vv, vvt, C.Conc [P.mk_eq vv e])
 
 (* cil -> solver translation *)
 
@@ -34,11 +35,11 @@ let con_of_cilcon = function
   | _ -> assert false
 
 let expr_of_lval (lh, _) = match lh with
-  | Var v -> P.eVar v
+  | Var v -> Ast.eVar v
   | _ -> assert false
 
 let expr_of_cilexpr = function
-  | Const c -> P.eCon (con_of_cilcon c)
+  | Const c -> Ast.eCon (con_of_cilcon c)
   | Lval lv -> expr_of_lval lv  
   | _ -> assert false
 
@@ -60,4 +61,4 @@ let mk_constr =
 (* predicate constructors *)
 
 let mk_eq e1 e2 =
-  P.bAtom (expr_of_cilexpr e1) Ast.Eq (expr_of_cilexpr e2)
+  Ast.bAtom (expr_of_cilexpr e1) Ast.Eq (expr_of_cilexpr e2)
