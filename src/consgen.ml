@@ -9,7 +9,6 @@ open Cil
 
 type t = (ST.ssaCfgInfo * Mm.cilenv * P.t list * C.t list) SM.t
 
-(* TODO *)
 let print_tplt () (u, r) = 
   Pretty.dprintf "{V: %a | %a}" d_type u C.print_refinement r 
 
@@ -27,12 +26,12 @@ let print_cmap (cm:t) =
     (fun fn (sci, g, invs, cs) -> 
       ignore(Pretty.printf "Templates for %s \n" fn);
       SM.iter (fun vn (t, r, _) -> ignore(Pretty.printf "%s |-> %a \n" vn
-        print_tplt (t, r) g;
+        print_tplt (t, r))) g;
       ignore(Pretty.printf "Invariants for %s \n" fn);
       List.iter (fun p -> ignore(Pretty.printf "%s \n" (P.to_string p))) invs;
       ignore(Pretty.printf "Constraints for %s \n" fn);
       List.iter (fun c -> ignore(Pretty.printf "%a \n" 
-        (C.print None std_formatter) c)) cs)))
+        (C.print None std_formatter) c)) cs)
     cm
 
 (***************************************************************************)
