@@ -85,21 +85,25 @@ type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
 
+let prectype_width: 'a prectype -> int = function
+  | CTInt (n, _) -> n
+  | CTRef (_)    -> 1
+
 type ctype = index prectype
 
-exception NoLUB
+exception NoLUB of ctype * ctype
 
 let ctype_lub (t1: ctype) (t2: ctype): ctype =
   match (t1, t2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) -> if n1 = n2 then CTInt (n1, index_lub i1 i2) else raise NoLUB
-    | (CTRef (s1, i1), CTRef (s2, i2)) -> if s1 = s2 then CTRef (s1, index_lub i1 i2) else raise NoLUB
-    | _                                -> raise NoLUB
+    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2 -> CTInt (n1, index_lub i1 i2)
+    | (CTRef (s1, i1), CTRef (s2, i2)) when s1 = s2 -> CTRef (s1, index_lub i1 i2)
+    | _                                             -> raise (NoLUB (t1, t2))
 
 let is_subctype (ct1: ctype) (ct2: ctype): bool =
   match (ct1, ct2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) -> n1 = n2 && is_subindex i1 i2
-    | (CTRef (s1, i1), CTRef (s2, i2)) -> s1 = s2 && is_subindex i1 i2
-    | _                                -> false
+    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2 -> is_subindex i1 i2
+    | (CTRef (s1, i1), CTRef (s2, i2)) when s1 = s2 -> is_subindex i1 i2
+    | _                                             -> false
 
 (******************************************************************************)
 (****************************** Type Constraints ******************************)
@@ -118,7 +122,7 @@ let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
     | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2 -> refine_index (IEVar iv1) iv2 is
     | (CTRef (s1, iv1), CTRef (s2, iv2)) when s1 = s2 -> refine_index (IEVar iv1) iv2 is
-    | _                                               -> raise NoLUB
+    | _                                               -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
 
 let equalize_ctypes (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   refine_ctype ctv2 ctv1 (refine_ctype ctv1 ctv2 is)
@@ -149,17 +153,14 @@ let ploc_periodic: ploc -> bool = function
 
 let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
   match (pl1, pl2) with
-    | (PLAt n1, PLAt n2) | (PLAt n1, PLSeq n2)   -> n1 = n2
+    | (PLAt n1, PLAt n2)                         -> n1 = n2
+    | (PLAt _, PLSeq _)                          -> false
     | (PLSeq n1, PLAt n2) | (PLSeq n1, PLSeq n2) -> n1 <= n2 && (n2 - n1) mod p = 0
 
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
     | PLAt n'  -> PLAt (n + n')
     | PLSeq n' -> PLSeq (n + n')
-
-let prectype_width: 'a prectype -> int = function
-  | CTInt (n, _) -> n
-  | CTRef (_)    -> 1
 
 let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prectype) (p: int): bool =
   let ((pl1, pct1), (pl2, pct2)) = if ploc_le pl1 pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
@@ -174,9 +175,9 @@ module LDesc = struct
   (* Invariants:
      - The period is non-negative if present.
      - If no period is present, the list contains no periodic locations.
-     - For all (pl1, ct1), (pl2, ct2) in the list, not (prectypes_collide pl1 ct1 pl2 ct2 period)
-       (if there is no period, then pl1 and pl2 are not periodic, and the period is irrelevant).
-     - All (pl, ct) in the list are sorted by pl according to ploc_le.
+     - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
+       (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
+     - All (pl, pct) in the list are sorted by pl according to ploc_le.
   *)
   type 'a t = (* period: *) int option * (ploc * 'a prectype) list
 
@@ -190,14 +191,14 @@ module LDesc = struct
     | None   -> 0
     | Some n -> n
 
-  let collide_filter (pl: ploc) (ct: 'a prectype) (po: int option) ((pl2, ct2): ploc * 'a prectype): bool =
-    prectypes_collide pl ct pl2 ct2 (get_period_default po)
+  let collides_with (pl1: ploc) (pct1: 'a prectype) (po: int option) ((pl2, pct2): ploc * 'a prectype): bool =
+    prectypes_collide pl1 pct1 pl2 pct2 (get_period_default po)
 
-  let collisions (pl: ploc) (ct: 'a prectype) ((po, cts): 'a t): (ploc * 'a prectype) list =
-    List.find_all (collide_filter pl ct po) cts
+  let collisions (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): (ploc * 'a prectype) list =
+    List.find_all (collides_with pl pct po) pcts
 
-  let fits (pl: ploc) (ct: 'a prectype) ((po, cts): 'a t): bool =
-    (not (ploc_periodic pl) || is_some po) && not (List.exists (collide_filter pl ct po) cts)
+  let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): bool =
+    (not (ploc_periodic pl) || is_some po) && not (List.exists (collides_with pl pct po) pcts)
 
   (* Don't use this directly - use add instead!  This does not check for collisions. *)
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
@@ -207,8 +208,8 @@ module LDesc = struct
   let add (pl: ploc) (pct: 'a prectype) ((po, pcts) as ld: 'a t): 'a t =
     if fits pl pct ld then (po, insert pl pct pcts) else raise TypeDoesntFit
 
-  let remove (pl: ploc) ((po, cts): 'a t): 'a t =
-    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) cts)
+  let remove (pl: ploc) ((po, pcts): 'a t): 'a t =
+    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
 
   let swallow_repeats (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) (pcts: (ploc * 'a prectype) list): (ploc * 'a prectype) list * 'b =
     try
@@ -234,8 +235,8 @@ module LDesc = struct
     let p = get_period_default po in
       List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
-  let map (f: 'a prectype -> 'b prectype) ((po, cts): 'a t): 'b t =
-    (po, List.map (fun (pl, ct) -> (pl, f ct)) cts)
+  let map (f: 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
+    (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
 end
 
 module SLM =
@@ -256,10 +257,10 @@ type store = ctype prestore
 (****************************** Store Constraints *****************************)
 (******************************************************************************)
 
-type storesol = indexvar prestore
-
 type storecstr =
   | SCInc of sloc * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
+
+type storesol = indexvar prestore
 
 let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
   SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
@@ -283,38 +284,34 @@ let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: st
             (* If this sequence is included in an existing one, there's nothing left to do *)
             (is, ss)
           else
-            (* Otherwise, remove "later", overlapping elements and add this sequence *)
+            (* Otherwise, remove "later", overlapping elements and add this sequence.
+               (Note if there's no including sequence, all the elements we found previously
+                come after this one.) *)
             let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld pcts in
             let ld = try LDesc.add pl ctv ld with TypeDoesntFit -> assert false in
               (is, SLM.add l ld ss)
 
 let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol): bool =
-  try
-    let ld = prestore_find l ss in
-    let ct = ctypevar_apply is ctv in
-      begin match indexsol_find iv is with
-        | IBot        -> true
-        | IInt n      ->
-            begin match LDesc.find (PLAt n) ld with
-              | [(_, ctv2)] -> ct = ctypevar_apply is ctv2
-              | _           -> false
-            end
-        | ISeq (n, m) ->
-            begin match LDesc.get_period ld with
-              | None   -> false
-              | Some p ->
-                  (* This is stricter than the formal algorithm requires - we actually
-                     enforce that a sequence is represented only by a sequence element,
-                     rather than by several individual elements followed by a sequence *)
-                  let pl = PLSeq n in
-                    begin match LDesc.find pl ld with
-                      | [(pl2, ctv2)] -> m mod p = 0 && ploc_periodic pl2 && ploc_le pl2 pl && ct = ctypevar_apply is ctv2
-                      | _                 -> false
-                  end
-            end
-      end
-  with Not_found ->
-    false
+  let ld = prestore_find l ss in
+  let ct = ctypevar_apply is ctv in
+    match indexsol_find iv is with
+      | IBot        -> true
+      | IInt n      ->
+          begin match LDesc.find (PLAt n) ld with
+            | [(_, ctv2)] -> ct = ctypevar_apply is ctv2
+            | _           -> false
+          end
+      | ISeq (n, m) ->
+          match LDesc.get_period ld with
+            | None   -> false
+            | Some p ->
+                (* This is stricter than the formal algorithm requires - we actually
+                   enforce that a sequence is represented only by a sequence element,
+                   rather than by several individual elements followed by a sequence *)
+                let pl = PLSeq n in
+                  match LDesc.find pl ld with
+                    | [(pl2, ctv2)] -> m mod p = 0 && ploc_contains pl2 pl p && ct = ctypevar_apply is ctv2
+                    | _             -> false
 
 (******************************************************************************)
 (*************************** Systems of Constraints ***************************)
