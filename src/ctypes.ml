@@ -66,7 +66,7 @@ let indexsol_find (iv: indexvar) (is: indexsol): index =
 let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEInt n           -> IInt n
   | IEVar iv          -> indexsol_find iv is
-  | IEPlus (iv1, iv2) -> index_plus (IVM.find iv1 is) (IVM.find iv2 is)
+  | IEPlus (iv1, iv2) -> index_plus (indexsol_find iv1 is) (indexsol_find iv2 is)
 
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
   IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
@@ -360,4 +360,36 @@ let ctv = CTInt (1, 0) in
 let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
   assert (LDesc.find (PLAt 6) (prestore_find 0 ss) = [(PLSeq 2, CTInt (1, 0))])
 
+let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
+  assert (IVM.find 0 is = IInt 4);
+  assert (IVM.find 1 is = IInt 2)
 
+let ctv1 = CTInt (1, 0) in
+let ctv2 = CTInt (1, 1) in
+let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+                      CSIndex (ICLess (IEInt 2, 1));
+                      CSStore (SCInc (0, 0, ctv1));
+                      CSStore (SCInc (0, 0, ctv2))]
+in
+  assert (ctypevar_apply is ctv1 = CTInt (1, ISeq (2, 2)));
+  assert (ctypevar_apply is ctv2 = CTInt (1, ISeq (2, 2)));
+  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 6) (prestore_find 0 ss)) = [CTInt (1, ISeq (2, 2))])
+
+let ctv1 = CTInt (1, 0) in
+let ctv2 = CTInt (1, 1) in
+let ctv3 = CTInt (1, 2) in
+let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+                      CSIndex (ICLess (IEInt 2, 1));
+                      CSStore (SCInc (0, 0, ctv1));
+                      CSStore (SCInc (0, 0, ctv2));
+                      CSCType (CTCSubtype (ctv2, ctv3))]
+in assert (ctypevar_apply is ctv3 = CTInt (1, ISeq (2, 2)))
+
+let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
+  assert (indexsol_find 0 is = IBot)
+
+let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
+  assert (indexsol_find 0 is = IInt 4)
+
+let (is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
+  assert (indexsol_find 0 is = ISeq (4, 1))
