@@ -27,6 +27,7 @@ let index_plus (i1: index) (i2: index): index =
     | (IBot, _) | (_, IBot)                         -> IBot
     | (IInt n, IInt m)                              -> IInt (n + m)
     | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (n + m, k)
+    | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (min n1 n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
 
 let is_subindex (i1: index) (i2: index): bool =
@@ -392,4 +393,4 @@ let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0
   assert (indexsol_find 0 is = IInt 4)
 
 let (is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
-  assert (indexsol_find 0 is = ISeq (4, 1))
+  assert (indexsol_find 0 is = ISeq (4, 4))
