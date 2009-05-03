@@ -122,6 +122,15 @@ let iteri f xs =
     | h::t -> ((f i h);(_m (i+1) t)) in
   _m 0 xs
 
+let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
+  let t        = Hashtbl.create 17 in
+  let lookup x = try Hashtbl.find t x with Not_found -> [] in
+    List.iter (fun x -> Hashtbl.replace t (f x) (x :: lookup (f x))) xs;
+    List.map List.rev (Hashtbl.fold (fun _ xs xxs -> xs :: xxs) t [])
+
+let exists_pair (f: 'a -> 'a -> bool) (xs: 'a list): bool =
+  fst (List.fold_left (fun (b, ys) x -> (b || List.exists (f x) ys, x :: ys)) (false, []) xs)
+
 exception FalseException
 let rec intmap_for_all f m =
   try 
@@ -157,6 +166,10 @@ let o2s f = function
   | Some x -> "Some "^ (f x)
   | None   -> "None"
 
+let is_some = function
+  | None   -> false
+  | Some _ -> true
+
 let rec fixpoint f x =
   let rec acf b x =
     let x', b' = f x in
@@ -167,3 +180,10 @@ let is_prefix p s =
   let reg = Str.regexp p in
   Str.string_match reg s 0
 
+let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
+  f (fst x) (fst y)
+
+(* Arithmetic *)
+
+let rec gcd (a: int) (b: int): int =
+  if b = 0 then a else gcd b (a mod b)
