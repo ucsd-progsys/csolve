@@ -32,6 +32,8 @@ module F  = Format
 
 open Misc.Ops
 
+let save_file = fun () -> "out"
+
 let sift xs = 
   List.fold_left 
     (fun (ts, ps, cs, s) -> function 
@@ -50,17 +52,21 @@ let parse f =
 let solve (ts, ps, cs, s) = 
   let ctx     = S.create ts SM.empty ps cs in
   let s', cs' = S.solve ctx s in
+  let _       = S.save (save_file ()) ctx s' in
   F.printf "%a" C.print_soln s'; 
-  F.printf "Unsat Constraints :\n %a" (Misc.pprint_many true "\n" (C.print None)) cs';
+  F.printf "Unsat Constraints :\n %a" 
+    (Misc.pprint_many true "\n" (C.print None)) cs';
   ()
 
 let main () =
-  Array.to_list Sys.argv |> String.concat " " |> Printf.printf "FixPoint 0.1 $ %s \n" ;
+  Array.to_list Sys.argv 
+  |> String.concat " " 
+  |> Printf.printf "FixPoint 0.1 $ %s \n" ;
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n"; 
   (try Sys.argv.(1) with _ -> failure "ERROR: bad inputs") 
-  |> parse |> sift |> solve 
+  |> parse 
+  |> sift 
+  |> solve 
 
 let _ = main ()
-
- 
