@@ -115,6 +115,7 @@ class memReadOrAddrOfFinderClass br = object(self)
 
 end
 
+
 (* exp -> bool *)
 let exp_has_mem_read e =
   let br = ref false in
@@ -127,7 +128,13 @@ let lval_has_mem_read lv =
   let vis = new memReadOrAddrOfFinderClass br in
   ignore(visitCilLval vis lv);
   !br
-   
+
+let offset_has_mem_read off =
+    let br = ref false in
+    let vis = new memReadOrAddrOfFinderClass br in
+    ignore(visitCilOffset vis off);
+    !br
+
 let lvh_kill_mem lvh =
   LvExpHash.iter (fun lv e ->
     match lv with
@@ -231,6 +238,12 @@ class addrOfOrGlobalFinderClass br = object(self)
     else DoChildren
 
 end
+
+let exp_has_addrof_or_global e =
+    let br = ref false in
+    let vis = new addrOfOrGlobalFinderClass br in
+    ignore(visitCilExpr vis e);
+    !br
 
 let lval_has_addrof_or_global lv =
   let br = ref false in

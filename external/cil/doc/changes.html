@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -21,8 +21,78 @@ function loadTop(url) {
 <A HREF="cil019.html"><IMG SRC="previous_motif.gif" ALT="Previous"></A>
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <HR>
-<H2 CLASS="section"><A NAME="htoc51">20</A>&#XA0;&#XA0;Changes</H2><P><A NAME="sec-changes"></A></P><UL CLASS="itemize"><LI CLASS="li-itemize">
-<B>February 5, 2007</B>: <B>Released version 1.3.6</B> (Subversion
+<H2 CLASS="section"><A NAME="htoc57">20</A>&#XA0;&#XA0;Changes</H2><P><A NAME="sec-changes"></A></P><UL CLASS="itemize"><LI CLASS="li-itemize">
+<B>April 24, 2009</B>: <B>Released version 1.3.7</B> (Subversion
+revision 10727). Includes change below and other miscellaneous bug fixes.
+</LI><LI CLASS="li-itemize"><B>April 22, 2009</B>: <TT>ocamlbuild</TT> make target added (thanks
+to Gabriel Kerneis).
+</LI><LI CLASS="li-itemize"><B>April 21, 2009</B>: <TT>__builtin_va_arg_pack</TT> support:
+calls to this builtin need to remain as the last argument to a
+function call. So to prevent CIL&#X2019;s usual rewriting, we internally
+represent calls to <TT>__builtin_va_arg_pack</TT> as
+<TT>sizeof(__builtin_va_arg_pack)</TT>&#X2026;</LI><LI CLASS="li-itemize"><B>April 21, 2009</B>: <TT>_Bool</TT> support, thanks to patches
+from Christopher Ian Stern (Sourceforge bug #1497763).<P>This leads to the addition of a new integer kind, <TT>IBool</TT> 
+which you might have to handle in some of your patterns. Note also, for
+those not familiar with <TT>_Bool</TT>, that casts/conversion to <TT>_Bool</TT>
+give the value 1 for non-zero values, and 0 otherwise (i.e. 
+<TT>(_Bool)x</TT> behaves like <TT>x </TT><TT>=</TT><TT> 0</TT>).</P></LI><LI CLASS="li-itemize"><B>April 20, 2009</B>: Update builtin support, including
+__builtin_strlen (Sourceforge bug #1873374), __builtin_choose_expr,
+__builtin_types_compatible_p (Sourceforge bug #1852730).
+For the latter two, we evaluate them in CIL (in line with the earlier handling
+of __builtin_constant_p).<P>Note that as part of these fixes, mkAddrOf no longer replaces
+<TT>&amp;a[0]</TT> with <TT>a</TT>, as this can break <TT>typeof</TT> (Sourceforge bug
+#1852730 involves a use of <TT>typeof(&amp;a[0])</TT>).</P><P>Typo fixes from Gabriel Kerneis.</P></LI><LI CLASS="li-itemize"><B>April 17, 2009</B>: Update extern inline handling to match
+current gcc versions (Sourceforge bug #1689503): the actual
+definition is always preferred over the extern inline one. CIL
+handles this by suppressing the extern inline definition (replacing
+it by a declaration) if it sees a real definition. However, if no
+real definition exists, you will get a CIL varinfo for an inline
+function with storage class extern&#X2026;<P>You can revert to CIL&#X2019;s previous handling of extern inline by setting
+<TT>oldstyleExternInline</TT> to true.
+</P></LI><LI CLASS="li-itemize"><B>April 16, 2009</B>: Add allStmts function to cfg.ml, and
+remove public visibility of nodeList and numNodes (Sourceforge bug
+#1819746).
+</LI><LI CLASS="li-itemize"><B>April 15, 2009</B>: Fix Sourceforge bugs #2265867 (bad constant
+folding of unary minus), #2134504 (truncation warning), #1811676 (typo).
+</LI><LI CLASS="li-itemize"><B>April 13, 2009</B>: Recognize gcc&#X2019;s -m32 and -m64 flags that select
+between 32 and 64 bit targets.
+</LI><LI CLASS="li-itemize"><B>April 8, 2009</B>: Rename libcil.a to libcil.o (ocaml 3.11 forces
+us to use the correct extension).
+</LI><LI CLASS="li-itemize"><B>April 7, 2009</B>: Add LLVM bitcode generator (partial C support, target
+32-bit x86 only).
+</LI><LI CLASS="li-itemize"><B>April 7, 2009</B>: Support enums over greater-than-int types (gcc
+extension).
+</LI><LI CLASS="li-itemize"><B>September 19, 2008</B>: Remove excess newlines in warnings and errors.
+</LI><LI CLASS="li-itemize"><B>August 30, 2008</B>: Added an install-findlib Make target for
+ocamlfind. Thanks to ploc for the patch.
+</LI><LI CLASS="li-itemize"><B>May 28, 2008</B>: Cross-compilation support: ability to
+select a machine model specified in an environment variable (CIL_MACHINE).
+See Section&#XA0;<A HREF="cil007.html#sec-cilmachine">7.4</A> for details.
+</LI><LI CLASS="li-itemize"><B>July 2, 2008</B>: Add a <TT>--gcc</TT> option to cilly to tell it to use
+a particular version of gcc (useful for cross-compilation environments).
+</LI><LI CLASS="li-itemize"><B>February 14, 2008</B>: Fixed a bug in temporary file
+creation. Thanks to J. Aaron Pendergrass for the patch.
+</LI><LI CLASS="li-itemize"><B>November 30, 2007</B>: Fixed a bug in assignment to lvalues that
+depend on themselves.
+</LI><LI CLASS="li-itemize"><B>April 4, 2007</B>: Benjamin Monate fixed a bug in
+<A HREF="api/Cfg.html">Cfg</A> for empty loop bodies.
+</LI><LI CLASS="li-itemize"><B>March 29, 2007</B>: Polyvios Pratikakis fixed a bug in 
+<TT>src/ext/pta/uref.ml</TT>.
+</LI><LI CLASS="li-itemize"><B>March 15, 2007</B>: Added support for
+<TT>__attribute__((aligned))</TT> and
+<TT>__attribute__((packed))</TT>.
+</LI><LI CLASS="li-itemize"><B>March 7, 2007</B>: <TT>typeOf(StartOf _)</TT> now preserves the
+attributes of the array.
+</LI><LI CLASS="li-itemize"><B>February 22, 2007</B>: Added an inliner (ext/inliner.ml)
+</LI><LI CLASS="li-itemize"><B>February 21, 2007</B>: We now constant-fold bitfield
+expressions. Thanks to Virgile Prevosto for the patch.
+</LI><LI CLASS="li-itemize"><B>February 13, 2007</B>: gcc preprocessor arguments passed
+using <TT>-Wp</TT> are now used only during initial preproccessing, not
+for the preprocessing after CIL. This fixes problems in the Linux
+makefiles with dependency generation.
+</LI><LI CLASS="li-itemize"><B>February 6, 2007</B>: Fixed <A HREF="api/Cil.html#VALparseInt">Cil.parseInt</A> for non-32
+bit architectures.
+</LI><LI CLASS="li-itemize"><B>February 5, 2007</B>: <B>Released version 1.3.6</B> (Subversion
 revision 9211)
 </LI><LI CLASS="li-itemize"><B>February 2, 2007</B>: Improved the way CIL gets configured for the
 actual definitions of <TT>size_t</TT> and <TT>wchar_t</TT>. 
@@ -31,7 +101,7 @@ attribute on labels. For now, we just drop this attribute since
 Rmtmps will remove unused labels anyways. Thanks to Peter Hawkins
 for the patch.
 </LI><LI CLASS="li-itemize"><B>January 18, 2007</B>: Require the destination of a <TT>Call</TT> to
-have the same type as the function's return type, even if it means
+have the same type as the function&#X2019;s return type, even if it means
 inserting a temporary. To get the old behavior, set
 <TT>Cabs2cil.doCollapseCallCast</TT> to true as described in
 Section&#XA0;<A HREF="cil007.html#sec-cilly-internal-options">7.3</A>.
@@ -48,7 +118,7 @@ can be moved to different computers.
 </LI><LI CLASS="li-itemize"><B>December 14, 2006</B>: Fixed various warnings and errors on
 64-bit architectures.
 </LI><LI CLASS="li-itemize"><B>November 26, 2006</B>: Christoph Spiel added &#X201C;<TT>--no</TT>&#X201D;
-options to many of CIL's command-line flags.
+options to many of CIL&#X2019;s command-line flags.
 </LI><LI CLASS="li-itemize"><B>November 21, 2006</B>: Merged <TT>gccBuiltins</TT> and
 <TT>msvcBuiltins</TT> into a single table <A HREF="api/Cil.html#VALbuiltinFunctions">Cil.builtinFunctions</A>
 that is initialized by <A HREF="api/Cil.html#VALinitCIL">Cil.initCIL</A>.
@@ -156,8 +226,8 @@ Nathan Cooprider for the patch.
 </LI><LI CLASS="li-itemize"><B>February 27, 2006</B>: Fix for extern inline functions when
 the output of CIL is fed back into CIL.
 </LI><LI CLASS="li-itemize"><B>January 30, 2006</B>: Fix parsing of <TT>switch</TT> without braces.
-</LI><LI CLASS="li-itemize"><B>January 30, 2006</B>: Allow `$' to appear in identifiers.
-</LI><LI CLASS="li-itemize"><B>January 13, 2006</B>: Added support for gcc's alias attribute
+</LI><LI CLASS="li-itemize"><B>January 30, 2006</B>: Allow &#X2018;$&#X2019; to appear in identifiers.
+</LI><LI CLASS="li-itemize"><B>January 13, 2006</B>: Added support for gcc&#X2019;s alias attribute
 on functions. See Section&#XA0;<A HREF="cil016.html#sec-ugly-gcc">16.2</A>, item 8. 
 </LI><LI CLASS="li-itemize"><B>December 9, 2005</B>: Christoph Spiel fixed the Golf and
 Olf modules so that Golf can be used with the points-to analysis.
@@ -179,7 +249,7 @@ the Points-to Analysis module. Thanks to Christoph Spiel for the
 patches.
 </LI><LI CLASS="li-itemize"><B>October 5, 2005</B>: CIL now builds on SPARC/Solaris. Thanks
 to Nick Petroni and Remco van Engelen for the patches.
-</LI><LI CLASS="li-itemize"><B>September 26, 2005</B>: CIL no longer uses the `<TT>-I-</TT>' flag
+</LI><LI CLASS="li-itemize"><B>September 26, 2005</B>: CIL no longer uses the &#X2018;<TT>-I-</TT>&#X2019; flag
 by default when preprocessing with gcc.
 </LI><LI CLASS="li-itemize"><B>August 24, 2005</B>: Added a command-line option
 &#X201C;--forceRLArgEval&#X201D; that forces function arguments to be evaluated
@@ -208,7 +278,7 @@ when the second argument was negative or too large.
 </LI><LI CLASS="li-itemize"><B>July 18, 2005</B>: Fixed bug where casts were not always
 inserted in function calls.
 </LI><LI CLASS="li-itemize"><B>June 10, 2005</B>: Fixed bug in the code that makes implicit
-returns explicit. We weren't handling switch blocks correctly.
+returns explicit. We weren&#X2019;t handling switch blocks correctly.
 </LI><LI CLASS="li-itemize"><B>June 1, 2005</B>: <B>Released version 1.3.3</B>
 </LI><LI CLASS="li-itemize"><B>May 31, 2005</B>: Fixed handling of noreturn attribute for function
 pointers. 
@@ -269,7 +339,7 @@ comparison without danger of nontermination.
 </LI><LI CLASS="li-itemize"><B>July 28, 2004</B>: Ocaml version 3.08 is required. Numerous small 
 changes while porting to Ocaml 3.08. 
 </LI><LI CLASS="li-itemize"><B>July 7, 2004</B>: <B>Released version 1.2.6</B>
-</LI><LI CLASS="li-itemize"><B>July 2, 2004</B>: Character constants such as <TT>'c'</TT> should
+</LI><LI CLASS="li-itemize"><B>July 2, 2004</B>: Character constants such as <TT>&#X2019;c&#X2019;</TT> should
 have type <TT>int</TT>, not <TT>char</TT>. Added a utility function
 <TT>Cil.charConstToInt</TT> that sign-extends chars greater than 128, if needed.
 </LI><LI CLASS="li-itemize"><B>July 2, 2004</B>: Fixed a bug that was casting values to int
@@ -323,7 +393,7 @@ only create a new name if we have not seen one.
 </LI><LI CLASS="li-itemize"><B>December 30, 2003</B> : Extended the <TT>cilly</TT> command to understand
 better linker command options <TT>-lfoo</TT>. 
 </LI><LI CLASS="li-itemize"><B>December 5, 2003</B>: Added markup commands to the pretty-printer
-module. Also, changed the &#X201C;@&lt;&#X201D; left-flush command into &#X201C;@''.
+module. Also, changed the &#X201C;@&lt;&#X201D; left-flush command into &#X201C;@'&#X2019;.
 </LI><LI CLASS="li-itemize"><B>December 4, 2003</B>: Wide string literals are now handled
 directly by Cil (rather than being exploded into arrays). This is
 apparently handy for Microsoft Device Driver APIs that use intrinsic
@@ -362,7 +432,7 @@ arguments to match the prototype.
 </LI><LI CLASS="li-itemize"><B>August 1, 2003</B>: A variety of fixes suggested by Steve Chamberlain:
 initializers for externs, prohibit float literals in enum, initializers for
 unsized arrays were not working always, an overflow problem in Ocaml, changed
-the processing of attributes before struct specifiers</LI><LI CLASS="li-itemize"><B>July 14, 2003</B>: Add basic support for GCC's "__thread" storage
+the processing of attributes before struct specifiers</LI><LI CLASS="li-itemize"><B>July 14, 2003</B>: Add basic support for GCC&#X2019;s "__thread" storage
 qualifier. If given, it will appear as a "thread" attribute at the top of the
 type of the declared object. Treatment is very similar to "__declspec(...)"
 in MSVC</LI><LI CLASS="li-itemize"><B>July 8, 2003</B>: Fixed some of the __alignof computations. Fixed
@@ -375,7 +445,7 @@ the GCC __typeof() was being converted to pointer type. Instead, it should
 be left alone, just like for sizeof. 
 </LI><LI CLASS="li-itemize"><B>July 7, 2003</B>: New Escape module provides utility functions
 for escaping characters and strings in accordance with C lexical
-rules.</LI><LI CLASS="li-itemize"><B>July 2, 2003</B>: Relax CIL's rules for when two enumeration types are
+rules.</LI><LI CLASS="li-itemize"><B>July 2, 2003</B>: Relax CIL&#X2019;s rules for when two enumeration types are
 considered compatible. Previously CIL considered two enums to be compatible if
 they were the same enum. Now we follow the C99 standard.</LI><LI CLASS="li-itemize"><B>June 28, 2003</B>: In the Formatparse module, Eric Haugh found and
 fixed a bug in the handling of lvalues of the form &#X201C;lv-&gt;field.more&#X201D;.</LI><LI CLASS="li-itemize"><B>June 28, 2003</B>: Extended the handling of gcc command lines
@@ -460,7 +530,7 @@ constructors. Relaxed the semantics of the patterns for variables.
 </LI><LI CLASS="li-itemize"><B>January 17, 2003</B>: Added built-in prototypes for the gcc built-in
 functions. Changed the <TT>pGlobal</TT> method in the printers to print the
 carriage return as well.
-</LI><LI CLASS="li-itemize"><B>January 9, 2003</B>: Reworked lexer and parser's strategy for
+</LI><LI CLASS="li-itemize"><B>January 9, 2003</B>: Reworked lexer and parser&#X2019;s strategy for
 tracking source file names and line numbers to more closely match
 typical native compiler behavior. The visible CIL interface is
 unchanged.

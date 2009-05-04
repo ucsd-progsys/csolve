@@ -94,7 +94,7 @@ let parseExtraFile (s: string) =
       in
         scan 0 (-1)
     done
-  with Sys_error _ -> E.s (E.error "Cannot find extra file: %s\n" s)
+  with Sys_error _ -> E.s (E.error "Cannot find extra file: %s" s)
   |  End_of_file -> () 
 
 
@@ -204,8 +204,20 @@ let options : (string * Arg.spec * string) list =
                 Cil.msvcMode := true;
                 Frontc.setMSVCMode ();
                 if not Machdep.hasMSVC then
-                  ignore (E.warn "Will work in MSVC mode but will be using machine-dependent parameters for GCC since you do not have the MSVC compiler installed\n")),
+                  ignore (E.warn "Will work in MSVC mode but will be using machine-dependent parameters for GCC since you do not have the MSVC compiler installed")),
     " Enable MSVC compatibility; default is GNU";
+
+   "--envmachine",
+   Arg.Unit (fun _ ->
+     try
+       let machineModel = Sys.getenv "CIL_MACHINE" in
+       Cil.envMachine := Some (Machdepenv.modelParse machineModel);
+     with 
+       Not_found ->
+	 ignore (E.error "CIL_MACHINE environment variable is not set")
+     | Failure msg ->
+	 ignore (E.error "CIL_MACHINE machine model is invalid: %s" msg)),
+   " Use machine model specified in CIL_MACHINE environment variable";
 
     "--testcil",
     Arg.String (fun s -> Cilutil.testcil := s),
@@ -320,6 +332,10 @@ let options : (string * Arg.spec * string) list =
     Arg.Int (fun n -> Pretty.printDepth := n),
     ("<n> Set max print depth (default: " ^
        string_of_int !Pretty.printDepth ^ ")");
+
+    "--decil",
+    Arg.Clear Cil.print_CIL_Input,
+    " Don't print CIL specific-features like __blockattribute__";
 
     (* Don't just add new flags at the end ... place options
        in the correct category *)

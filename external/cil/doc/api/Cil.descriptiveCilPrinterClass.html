@@ -24,7 +24,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Cil.descriptiveCilPrinterClass</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Cil.descriptiveCilPrinterClass</title>
 </head>
 <body>
 <div class="navbar"><a href="Cil.plainCilPrinterClass.html">Previous</a>
@@ -32,9 +32,15 @@
 &nbsp;</div>
 <center><h1>Class <a href="type_Cil.descriptiveCilPrinterClass.html">Cil.descriptiveCilPrinterClass</a></h1></center>
 <br>
-<pre><span class="keyword">class</span> <a name="TYPEdescriptiveCilPrinterClass"></a>descriptiveCilPrinterClass : <code class="type"></code><code class="type"><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a></code></pre>Like defaultCilPrinterClass, but instead of temporary variable
+<pre><span class="keyword">class</span> <a name="TYPEdescriptiveCilPrinterClass"></a>descriptiveCilPrinterClass : <code class="type">bool -> </code><code class="type"><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a></code></pre>Like defaultCilPrinterClass, but instead of temporary variable
       names it prints the description that was provided when the temp was
       created.  This is usually better for messages that are printed for end
-      users, although you may want the temporary names for debugging.<br>
+      users, although you may want the temporary names for debugging.
+<p>
+
+      The boolean here enables descriptive printing.  Usually use true
+      here, but you can set enable to false to make this class behave
+      like defaultCilPrinterClass. This allows subclasses to turn the
+      feature off.<br>
 <hr width="100%">
 </body></html>

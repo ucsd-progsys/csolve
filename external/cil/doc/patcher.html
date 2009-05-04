@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -22,7 +22,7 @@ function loadTop(url) {
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="cil015.html"><IMG SRC="next_motif.gif" ALT="Next"></A>
 <HR>
-<H2 CLASS="section"><A NAME="htoc42">14</A>&#XA0;&#XA0;Using the patcher</H2><P><A NAME="sec-patcher"></A></P><P>Occasionally we have needed to modify slightly the standard include files.
+<H2 CLASS="section"><A NAME="htoc48">14</A>&#XA0;&#XA0;Using the patcher</H2><P><A NAME="sec-patcher"></A></P><P>Occasionally we have needed to modify slightly the standard include files.
 So, we developed a simple mechanism that allows us to create modified copies
 of the include files and use them instead of the standard ones. For this
 purpose we specify a patch file and we run a program caller Patcher which
@@ -52,16 +52,16 @@ Options:
  right include files to be patched.
 </PRE><P>Based on the given <TT>mode</TT> and the current version of the compiler (which
 the patcher can print when given the <TT>dumpversion</TT> argument) the patcher
-will create a subdirectory of the <TT>dest</TT> directory (say <TT>/usr/home/necula/cil/include</TT>), such as:
-</P><PRE CLASS="verbatim">/usr/home/necula/cil/include/gcc_2.95.3-5
+will create a subdirectory of the <TT>dest</TT> directory, such as:
+</P><PRE CLASS="verbatim">  /usr/home/necula/cil/include/gcc_2.95.3-5
 </PRE><P>In that file the patcher will copy the modified versions of the include files
 specified with the <TT>ufile</TT> and <TT>sfile</TT> options. Each of these options can
 be specified multiple times. </P><P>The patch file (specified with the <TT>patch</TT> option) has a format inspired by
-the Unix <TT>patch</TT> tool. The file has the following grammar:</P><PRE CLASS="verbatim">&lt;&lt;&lt; flags
-patterns
-===
-replacement
-&gt;&gt;&gt;
+the Unix <TT>patch</TT> tool. The file has the following grammar:</P><PRE CLASS="verbatim">  &lt;&lt;&lt; flags
+  patterns
+  ===
+  replacement
+  &gt;&gt;&gt;
 </PRE><P>The flags are a comma separated, case-sensitive, sequence of keywords or
 keyword = value. The following flags are supported:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">

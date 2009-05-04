@@ -25,7 +25,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Cfg</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Cfg</title>
 </head>
 <body>
 <div class="navbar"><a href="Cillower.html">Previous</a>
@@ -62,10 +62,7 @@ Print control flow graph (in dot form) for fundec to file<br>
 <pre><span class="keyword">val</span> <a name="VALstart_id"></a>start_id : <code class="type">int ref</code></pre><div class="info">
 Next statement id that will be assigned.<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALnodeList"></a>nodeList : <code class="type"><a href="Cil.html#TYPEstmt">Cil.stmt</a> list ref</code></pre><div class="info">
-All of the nodes in a file.<br>
-</div>
-<pre><span class="keyword">val</span> <a name="VALnumNodes"></a>numNodes : <code class="type">int ref</code></pre><div class="info">
-number of nodes in the CFG<br>
+<pre><span class="keyword">val</span> <a name="VALallStmts"></a>allStmts : <code class="type"><a href="Cil.html#TYPEfile">Cil.file</a> -> <a href="Cil.html#TYPEstmt">Cil.stmt</a> list</code></pre><div class="info">
+Return all statements in a file - valid after computeFileCfg only<br>
 </div>
 </body></html>

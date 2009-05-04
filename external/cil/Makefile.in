@@ -31,7 +31,7 @@ Makefile: config.status Makefile.in
 config.status: configure
 	./$@ --recheck
 
-configure: configure.in
+configure: configure.in aclocal.m4
 	autoconf
 
 ocamlutil/perfcount.c: config.status ocamlutil/perfcount.c.in
@@ -50,6 +50,10 @@ ifndef ARCHOS
    ARCHOS=@ARCHOS@
 endif
 
+ifndef MINGW
+   MINGW=@MINGW@
+endif
+
 # Put here all the byproducts of make
 OBJDIR      := obj/$(ARCHOS)
 DEPENDDIR   := obj/.depend
@@ -58,14 +62,11 @@ CILLY_FEATURES :=
 ifdef USE_BLOCKINGGRAPH
   CILLY_FEATURES += blockinggraph
 endif
-ifdef USE_RAND
-  CILLY_FEATURES += rand
-endif
-ifdef USE_ARITHABS
-  CILLY_FEATURES += arithabs
-endif
 ifdef USE_ZRAPP
   CILLY_FEATURES += rmciltmps zrapp
+endif
+ifdef USE_LLVM
+  CILLY_FEATURES += llvmutils llvmgen llvmssa llvm
 endif
 # Add the EXTRAFEATURES
 CILLY_FEATURES += @EXTRAFEATURES@
@@ -73,7 +74,7 @@ CILLY_FEATURES += @EXTRAFEATURES@
     # Now rules to make cilly
 CILLY_LIBRARY_MODULES = pretty inthash errormsg alpha trace stats util clist \
               cilutil escape longarray growArray\
-              cabs cabshelper cabsvisit whitetrack cprint lexerhack machdep cparser clexer  \
+              cabs cabshelper cabsvisit whitetrack cprint lexerhack machdep machdepenv cparser clexer  \
               cilversion cil cillower formatparse formatlex formatcil cabs2cil \
               patch frontc check mergecil \
               dataflow dominators bitmap ssa ciltools \
@@ -106,6 +107,11 @@ BEFOREDEPS += $(OBJDIR)/feature_config.ml
     # Include now the common set of rules for OCAML
 include ocamlutil/Makefile.ocaml
 
+OBEXEEXT = $(EXEEXT:asm=native)
+ocamlbuild:
+	ocamlbuild -X obj -X doc -X test src/main$(OBEXEEXT) src/cil.$(CMXA)
+	cp _build/src/main$(OBEXEEXT) $(OBJDIR)/cilly$(EXE)
+	cp _build/src/cil.$(CMXA) $(OBJDIR)/
 
    # Now the rule to make cilly
 
@@ -119,11 +125,11 @@ $(OBJDIR)/cilly$(EXE) : $(CILLY_MODULES:%=$(OBJDIR)/%.$(CMO)) \
                     $^
 
 
-quickbuild: cilversion machdep cilly
+quickbuild: cilversion machdep cilly lib/Cilly.pm
 
 # Setup also makes the native code versions
 #
-# sm: cillib is only built with NATIVECAML=1 because it builds libcil.a,
+# sm: cillib is only built with NATIVECAML=1 because it builds libcil.o,
 # which requires native-code .cmx compiled modules... could break it
 # into two targets so we build cil.cma both ways, but no one is using
 # cil.cma now so I'll leave it alone
@@ -137,18 +143,19 @@ setup: cilversion machdep
 # If the cl command cannot be run then the MSVC part will be identical to GCC
 .PHONY : machdep 
 machdep: $(OBJDIR)/machdep.ml 
-$(OBJDIR)/machdep.ml : src/machdep.c configure.in Makefile.in
+$(OBJDIR)/machdep.ml : src/machdep-ml.c configure.in Makefile.in
 	rm -f $@
 	mkdir -p $(OBJDIR)
-	echo "(* This module was generated automatically by code in Makefile and machdep.c *)" >$@
+	echo "(* This module was generated automatically by code in Makefile and $(<F) *)" >$@
 # Now generate the type definition
 	echo "type mach = {" >> $@ 
 	echo "  version_major: int;     (* Major version number *)"    >> $@
 	echo "  version_minor: int;     (* Minor version number *)"    >> $@
-	echo "  version: string;        (* version number *)"          >> $@
+	echo "  version: string;        (* gcc version string *)"      >> $@
 	echo "  underscore_name: bool;  (* If assembly names have leading underscore *)" >> $@
 	echo "  sizeof_short: int;      (* Size of \"short\" *)"       >> $@
 	echo "  sizeof_int: int;        (* Size of \"int\" *)"         >> $@
+	echo "  sizeof_bool: int;       (* Size of \"_Bool\" *)"       >> $@
 	echo "  sizeof_long: int ;      (* Size of \"long\" *)"        >> $@
 	echo "  sizeof_longlong: int;   (* Size of \"long long\" *)"   >> $@
 	echo "  sizeof_ptr: int;        (* Size of pointers *)"        >> $@
@@ -162,6 +169,7 @@ $(OBJDIR)/machdep.ml : src/machdep.c configure.in Makefile.in
 	echo "  wchar_t: string;        (* Type of \"wchar_t\" *)"     >> $@ 
 	echo "  alignof_short: int;     (* Alignment of \"short\" *)"  >> $@
 	echo "  alignof_int: int;       (* Alignment of \"int\" *)"    >> $@
+	echo "  alignof_bool: int;      (* Alignment of \"_Bool\" *)"    >> $@
 	echo "  alignof_long: int;      (* Alignment of \"long\" *)"   >> $@
 	echo "  alignof_longlong: int;  (* Alignment of \"long long\" *)" >> $@
 	echo "  alignof_ptr: int;       (* Alignment of pointers *)"   >> $@
@@ -171,51 +179,54 @@ $(OBJDIR)/machdep.ml : src/machdep.c configure.in Makefile.in
 	echo "  alignof_longdouble: int;  (* Alignment of \"long double\" *)" >> $@
 	echo "  alignof_str: int;       (* Alignment of strings *)" >> $@
 	echo "  alignof_fun: int;       (* Alignment of function *)" >> $@
+	echo "  alignof_aligned: int;   (* Alignment of anything with the \"aligned\" attribute *)" >> $@
 	echo "  char_is_unsigned: bool; (* Whether \"char\" is unsigned *)">> $@
 	echo "  const_string_literals: bool; (* Whether string literals have const chars *)">> $@
 	echo "  little_endian: bool; (* whether the machine is little endian *)">>$@
+	echo "  __thread_is_keyword: bool; (* whether __thread is a keyword *)">>$@
+	echo "  __builtin_va_list: bool; (* whether __builtin_va_list is builtin (gccism) *)">>$@
 	echo "}" >> $@ 	
-	if gcc -D_GNUCC $< -o $(OBJDIR)/machdep.exe ;then \
-	    echo "machdep.exe created succesfully." \
+	if gcc -D_GNUCC $< -o $(OBJDIR)/machdep-ml.exe ;then \
+	    echo "machdep-ml.exe created succesfully." \
 	;else \
             rm -f $@; exit 1 \
         ;fi 
 	echo "let gcc = {" >>$@
-	$(OBJDIR)/machdep.exe >>$@
-	echo "	 underscore_name = @UNDERSCORE_NAME@ ;" >> $@
+	$(OBJDIR)/machdep-ml.exe >>$@
 	echo "}"          >>$@
-	if cl /D_MSVC $< /Fe$(OBJDIR)/machdep.exe /Fo$(OBJDIR)/machdep.obj ;then \
+	if cl /D_MSVC $< /Fe$(OBJDIR)/machdep-ml.exe /Fo$(OBJDIR)/machdep-ml.obj ;then \
            echo "let hasMSVC = true" >>$@ \
         ;else \
            echo "let hasMSVC = false" >>$@ ;fi
 	echo "let msvc = {" >>$@
-	$(OBJDIR)/machdep.exe >>$@
-	echo "	 underscore_name = true ;" >> $@
+	$(OBJDIR)/machdep-ml.exe >>$@
 	echo "}"          >>$@
-	echo "let gccHas__builtin_va_list = @HAVE_BUILTIN_VA_LIST@" >>$@
-	echo "let __thread_is_keyword = @THREAD_IS_KEYWORD@"  >>$@
+	echo "let theMachine : mach ref = ref gcc" >>$@
 
+
+lib/Cilly.pm: lib/Cilly.pm.in src/machdep-ml.c configure.in Makefile.in
+	cp lib/Cilly.pm.in lib/Cilly.pm
+	if gcc -m32 -D_GNUCC src/machdep-ml.c -o $(OBJDIR)/machdep-ml32.exe ;then \
+	  sed -i -e "s|nogcc32model|`$(OBJDIR)/machdep-ml32.exe --env`|" lib/Cilly.pm; \
+	fi
+	if gcc -m64 -D_GNUCC src/machdep-ml.c -o $(OBJDIR)/machdep-ml64.exe ;then \
+	  sed -i -e "s|nogcc64model|`$(OBJDIR)/machdep-ml64.exe --env`|" lib/Cilly.pm; \
+	fi
 
 #
 # Create the version information module
-.PHONY: cilversion 
+.PHONY: cilversion
 cilversion: $(OBJDIR)/cilversion.ml
-$(OBJDIR)/cilversion.ml: configure.in Makefile.in
+$(OBJDIR)/cilversion.ml: src/cilversion.ml.in config.status
 	rm -f $@
-	mkdir -p $(OBJDIR)
-	echo "(* This module was generated automatically by code in Makefile *)" >$@
-# Generate here the version information
-	echo "let cilVersionMajor = @CIL_VERSION_MAJOR@" >>$@
-	echo "let cilVersionMinor = @CIL_VERSION_MINOR@" >>$@
-	echo "let cilVersionRev   = @CIL_VERSION_REV@"   >>$@
-	echo "let cilVersion      = \"@CIL_VERSION@\""  >>$@ 
+	./config.status --file=$@:$<
 
 # build two libraries
 .PHONY: cillib libcil
 ifeq ($(NATIVECAML),1)
-cillib: $(OBJDIR)/cil.$(CMXA) $(OBJDIR)/libcil.a
+cillib: $(OBJDIR)/cil.$(CMXA) $(OBJDIR)/libcil.o lib/Cilly.pm
 else
-cillib: $(OBJDIR)/cil.$(CMXA) 
+cillib: $(OBJDIR)/cil.$(CMXA) lib/Cilly.pm
 endif
 
 
@@ -237,8 +248,11 @@ endif
 ifdef USE_ZRAPP
 	echo "   Zrapp.feature;" >> $@  
 endif
+ifdef USE_LLVM
+	echo "   Llvm.feature;" >> $@  
+endif
 # Now the extra features, with the first letter capitalized
-	echo -n " (* EXTRAFEATURES: *)" >> $@  
+	echo " (* EXTRAFEATURES: *)" >> $@  
 	echo \
           $(foreach f,@EXTRAFEATURES@, \
              "\n   "`echo $f | cut -c 1 | tr "[a-z]" "[A-Z]"``echo $f | cut -c 2-`".feature;") \
@@ -271,11 +285,11 @@ $(OBJDIR)/libperfcount.a: %: %($(OBJDIR)/perfcount.$(CMC))
 # be called from C code; this is like the target above, except
 # it is callable from C instead of from Ocaml
 ifeq ($(NATIVECAML),1)
-$(OBJDIR)/libcil.a: $(OCAML_CIL_LIB_CMODULES:%=$(OBJDIR)/lib%.a) \
+$(OBJDIR)/libcil.o: $(OCAML_CIL_LIB_CMODULES:%=$(OBJDIR)/lib%.a) \
                     $(OCAML_CIL_LIB_MODULES:%=$(OBJDIR)/%.$(CMO))
 	ocamlopt -output-obj -o $@ $(CILLY_LIBS:%=%.cmxa) $^
 else
-$(OBJDIR)/libcil.a:
+$(OBJDIR)/libcil.o:
 	@echo "Can only build $@ when NATIVECAML is 1."
 	exit 2
 endif
@@ -312,15 +326,15 @@ ODOC_FILES =        ocamlutil/pretty.mli ocamlutil/errormsg.mli \
 # Documentation generated by "ocamldoc"
 odoc: $(OBJDIR)/pretty.cmi $(OBJDIR)/cil.cmi
 	-rm -rf doc/html/cil/api doc/html/cil/api-latex
-	-mkdir doc/html/cil/api
-	-mkdir doc/html/cil/api-latex
+	-mkdir -p doc/html/cil/api
+	-mkdir -p doc/html/cil/api-latex
 	-rm -f doc/ocamldoc.sty
 	ocamldoc -d doc/html/cil/api -v -stars \
              -html \
              -t "CIL API Documentation (version @CIL_VERSION@)" \
 	     -I $(OBJDIR) -hide Pervasives $(ODOC_FILES)
 
-doc/cilpp.tex: doc/cilcode.pl doc/cil.tex 
+doc/cilpp.tex: doc/cilcode.pl doc/cil.tex lib/Cilly.pm
 	-rm -rf doc/html/cil
 	-mkdir doc/html/cil
 	-mkdir doc/html/cil/examples
@@ -344,10 +358,12 @@ pdfdoc: doc/cilpp.tex $(OBJDIR)/pretty.cmi $(OBJDIR)/cil.cmi
 	cd doc; echo "\def\ccuredversion{@CCURED_VERSION@}" >>cil.version.tex
 	cd doc; pdflatex cilpp.tex; pdflatex cilpp.tex
 	cd doc; mv cilpp.pdf html/cil/CIL.pdf
-	ocamldoc -o doc/cil-api.tex -v -stars \
+	ocamldoc -o doc/cil-api.tex.tmp -v -stars \
              -latex \
              -t "CIL API Documentation (version @CIL_VERSION@)" \
 	     -I $(OBJDIR) -hide Pervasives $(ODOC_FILES)
+	sed -e 's/\\usepackage\[T1\]{fontenc}/\\setlength{\\pdfpagewidth}{\\paperwidth} \\setlength{\\pdfpageheight}{\\paperheight}/' doc/cil-api.tex.tmp >doc/cil-api.tex
+	rm doc/cil-api.tex.tmp
 
 	cd doc ; TEXINPUTS="$$TEXINPUTS:/usr/local/lib/ocaml/ocamldoc:/usr/lib/ocaml/ocamldoc" pdflatex cil-api.tex
 	cd doc ; mv cil-api.pdf html/cil/CIL-API.pdf
@@ -372,19 +388,27 @@ distrib: distrib-nocheck checkdistrib
 TEMP_DIR = TEMP_cil-distrib
 
 # The tar archive members will be relative to this directory
-TOP_DIR = $(TEMP_DIR)/cil
+TOP_DIR = $(TEMP_DIR)/cil-@CIL_VERSION@
 
 DISTRIB_ROOT = README LICENSE INSTALL Makefile.in  \
                config.h.in config.mk.in Makefile.gcc Makefile.msvc \
 	       configure configure.in install-sh config.guess config.sub \
-	       cil.spec cil.spec.in
+	       cil.spec cil.spec.in \
+	       _tags \
+	       aclocal.m4 \
+	       cil.itarget \
+	       doc/cil.odocl \
+	       myocamlbuild.ml
 
 DISTRIB_SRC = cilutil.ml cil.ml cil.mli check.ml check.mli \
 	      rmtmps.ml rmtmps.mli formatlex.mll formatparse.mly \
 	      formatcil.mli formatcil.ml testcil.ml \
-	      mergecil.ml mergecil.mli main.ml machdep.c \
+	      mergecil.ml mergecil.mli main.ml machdep-ml.c.in machdepenv.ml \
 	      ciloptions.ml ciloptions.mli libmaincil.ml \
-	      escape.ml escape.mli cillower.mli cillower.ml
+	      escape.ml escape.mli cillower.mli cillower.ml \
+	      _tags \
+	      cil.mllib \
+	      cilversion.ml.in
 
 DISTRIB_OCAMLUTIL = pretty.ml pretty.mli errormsg.ml errormsg.mli \
                     trace.ml trace.mli stats.ml stats.mli util.ml util.mli \
@@ -392,7 +416,9 @@ DISTRIB_OCAMLUTIL = pretty.ml pretty.mli errormsg.ml errormsg.mli \
 		    intmap.ml intmap.mli clist.ml clist.mli \
                     longarray.ml longarray.mli \
                     growArray.ml growArray.mli \
-                    perfcount.c.in Makefile.ocaml
+                    bitmap.ml bitmap.mli \
+                    perfcount.c.in Makefile.ocaml \
+                    _tags
 
 
 DISTRIB_SRC_FRONTC = cabs.ml cabshelper.ml cprint.ml clexer.mli clexer.mll \
@@ -407,27 +433,28 @@ DISTRIB_SRC_EXT = logcalls.ml logcalls.mli \
                   deadcodeelim.ml availexps.ml \
                   dataflow.ml dataflow.mli \
 		  dominators.ml dominators.mli \
-		  bitmap.ml bitmap.mli \
 		  ssa.ml ssa.mli \
 	          stackoverflow.mli stackoverflow.ml \
 	          canonicalize.ml canonicalize.mli \
 	          oneret.ml oneret.mli sfi.ml \
-	          simplemem.ml simplify.ml \
+	          simplemem.ml simplify.ml simplify.mli \
 	          blockinggraph.ml blockinggraph.mli \
 		  dataslicing.ml dataslicing.mli \
+		  _tags \
 		  reachingdefs.ml \
 		  cfg.ml cfg.mli \
 		  liveness.ml \
 		  expcompare.ml \
 		  availexpslv.ml \
-		  predabst.ml
+		  predabst.ml \
+		  llvm.ml llvmgen.ml llvmssa.ml llvmutils.ml
 
 DISTRIB_SRC_EXT_PTA = setp.ml setp.mli golf.ml golf.mli \
                       ptranal.ml ptranal.mli \
 	              steensgaard.mli steensgaard.ml \
                       uref.ml uref.mli olf.ml olf.mli
 
-DISTRIB_LIB = Cilly.pm KeptFile.pm OutputFile.pm TempFile.pm
+DISTRIB_LIB = Cilly.pm.in KeptFile.pm OutputFile.pm TempFile.pm
 
 DISTRIB_BIN = CilConfig.pm.in cilly cilly.bat.in \
               patcher patcher.bat.in test-bad teetwo
@@ -473,10 +500,10 @@ distrib-nocheck: $(DISTRIB_ROOT) doc
 	cp debian/* $(TOP_DIR)/debian
 
 # Delete all Subversion metadata directories
-	find $(TEMP_DIR) -name .svn -print0 | xargs --null --no-run-if-empty rm -rf
+	find $(TEMP_DIR) -name .svn -print0 | xargs -0 rm -rf
 
 # Now make the TAR ball
-	cd $(TEMP_DIR); tar cfz $(CIL_TAR_GZ) cil
+	cd $(TEMP_DIR); tar cfz $(CIL_TAR_GZ) cil-@CIL_VERSION@
 	mv $(TEMP_DIR)/$(CIL_TAR_GZ) .
 
 #	rm -rf $(TEMP_DIR)
@@ -632,9 +659,14 @@ pkglibdir = $(libdir)/cil
 datadir = @datadir@
 pkgdatadir = $(datadir)/cil
 
-all_mli := $(filter %.mli, $(DISTRIB_OCAMLUTIL) $(DISTRIB_SRC) $(DISTRIB_SRC_FRONTC) $(DISTRIB_SRC_EXT) $(DISTRIB_SRC_EXT_PTA))
+all_distrib := $(DISTRIB_OCAMLUTIL) $(DISTRIB_SRC) $(DISTRIB_SRC_FRONTC) $(DISTRIB_SRC_EXT) $(DISTRIB_SRC_EXT_PTA)
+all_ml      := $(filter %.ml,  $(all_distrib))
+all_mli     := $(filter %.mli, $(all_distrib))
+install_ml  := $(filter $(OCAML_CIL_LIB_MODULES:=.ml), $(all_ml))
+install_cmx := $(install_ml:%.ml=$(OBJDIR)/%.cmx)
 install_mli := $(filter $(OCAML_CIL_LIB_MODULES:=.mli), $(all_mli))
 install_cmi := $(install_mli:%.mli=$(OBJDIR)/%.cmi)
+install_cmx := $(install_mli:%.mli=$(OBJDIR)/%.cmx)
 install_cma := $(addprefix $(OBJDIR)/cil., cma cmxa a)
 install_lib := $(OCAML_CIL_LIB_CMODULES:%=$(OBJDIR)/lib%.a)
 
@@ -642,6 +674,7 @@ install: $(install_cmi) $(install_cma) $(install_lib)
 	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
 	$(INSTALL_DATA) $(install_cma) $(DESTDIR)$(pkglibdir)
 	$(INSTALL_DATA) $(install_cmi) $(DESTDIR)$(pkglibdir)
+	$(INSTALL_DATA) $(install_cmx) $(DESTDIR)$(pkglibdir)
 	$(INSTALL_DATA) $(install_lib) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) -d $(DESTDIR)$(pkgdatadir)
 	$(INSTALL_DATA) $(addprefix lib/, $(filter %.pm, $(DISTRIB_LIB))) $(DESTDIR)$(pkgdatadir)
@@ -652,3 +685,8 @@ cil.spec: cil.spec.in
 rpms: distrib
 	rpmbuild -ta $(CIL_TAR_GZ)
 
+install-findlib: $(install_cmi) $(install_cma) $(install_cmx)
+	ocamlfind install cil META $(install_cma) $(install_cmi) $(install_cmx)
+
+uninstall-findlib:
+	ocamlfind remove cil

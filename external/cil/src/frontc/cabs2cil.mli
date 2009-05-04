@@ -62,6 +62,13 @@ val allowDuplication: bool ref
 *)
 val doCollapseCallCast: bool ref
 
+(** Disables caching of globals during parsing.  This is handy when we want
+  * to parse additional source files without hearing about confclits. *)
+val cacheGlobals: bool ref
+
+(** A hook into the code for processing typeof. *)
+val typeForTypeof: (Cil.typ -> Cil.typ) ref
+
 (** A hook into the code that creates temporary local vars.  By default this
   is the identity function, but you can overwrite it if you need to change the
   types of cabs2cil-introduced temp variables. *)

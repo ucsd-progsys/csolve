@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -34,9 +34,9 @@ is configured during installation with the path where CIL resides. This means
 that you can move it to any place you want. </P><P>A simple use of the driver is:
 </P><PRE CLASS="verbatim">bin/cilly --save-temps -D HAPPY_MOOD -I myincludes hello.c -o hello
 </PRE><P><FONT COLOR=blue>--save-temps</FONT> tells CIL to save the resulting output files in the
-current directory. Otherwise, they'll be put in <TT>/tmp</TT> and deleted
+current directory. Otherwise, they&#X2019;ll be put in <TT>/tmp</TT> and deleted
 automatically. Not that this is the only CIL-specific flag in the
-list &#X2013; the other flags use <TT>gcc</TT>'s syntax.</P><P>This performs the following actions: 
+list &#X2013; the other flags use <TT>gcc</TT>&#X2019;s syntax.</P><P>This performs the following actions: 
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 preprocessing using the -D and -I arguments with the resulting 
 file left in <TT>hello.i</TT>, 
@@ -53,9 +53,12 @@ argument is <TT>--mode=MSVC</TT>:
 </P><PRE CLASS="verbatim">bin/cilly --mode=MSVC /D HAPPY_MOOD /I myincludes hello.c /Fe hello.exe
 </PRE><P>(This in turn will pass a <TT>--MSVC</TT> flag to the underlying <TT>cilly.asm</TT>
 process which will make it understand the Microsoft Visual C extensions)</P><P><TT>cilly</TT> can also behave as the archiver <TT>ar</TT>, if it is passed an
-argument <TT>--mode=AR</TT>. Note that only the <TT>cr</TT> mode is supported (create a
-new archive and replace all files in there). Therefore the previous version of
-the archive is lost. </P><P>Furthermore, <TT>cilly</TT> allows you to pass some arguments on to the
+argument <TT>--mode=AR</TT>. Note that only the <TT>cr</TT> mode is supported
+(create a new archive and replace all files in there). Therefore the
+previous version of the archive is lost. You will also need to remove
+any other commands that operate on the generated library
+(e.g. <TT>ranlib</TT>, <TT>lorder</TT>), as the .a file is no longer an actual
+binary library.</P><P>Furthermore, <TT>cilly</TT> allows you to pass some arguments on to the
 underlying <TT>cilly.asm</TT> process. As a general rule all arguments that start
 with <TT>--</TT> and that <TT>cilly</TT> itself does not process, are passed on. For
 example, 
@@ -106,7 +109,7 @@ Section&#XA0;<A HREF="merger.html#sec-merger">13</A>) to produce <TT>hello.exe_c
 </LI></UL><P>Note that files that you specify with <TT>--leavealone</TT> are not merged and
 never presented to CIL. They are compiled as usual and then are linked in at
 the end. </P><P>And a final feature of <TT>cilly</TT> is that it can substitute copies of the
-system's include files:</P><PRE CLASS="verbatim">make CC="bin/cilly --includedir=myinclude"
+system&#X2019;s include files:</P><PRE CLASS="verbatim">make CC="bin/cilly --includedir=myinclude"
 </PRE><P>This will force the preprocessor to use the file <TT>myinclude/xxx/stdio.h</TT>
 (if it exists) whenever it encounters <TT>#include &lt;stdio.h&gt;</TT>. The <TT>xxx</TT> is
 a string that identifies the compiler version you are using. This modified
@@ -116,7 +119,11 @@ go in the command line of the compiler that <TT>cilly</TT> is impersonating.
 <TT>cilly</TT> will do its best to pass those options along to the appropriate
 subprocess. In addition, the following options are supported (a complete and
 up-to-date list can always be obtained by running <TT>cilly --help</TT>):</P><UL CLASS="itemize"><LI CLASS="li-itemize">
-<TT>--mode=mode</TT> This must be the first argument if present. It makes
+<TT>--gcc=command</TT> Tell <TT>cilly</TT> to use <TT>command</TT> to invoke
+gcc, e.g. <TT>--gcc=arm-elf-gcc</TT> to use a cross-compiler. See also
+the <TT>--envmachine</TT> option below that tells CIL to assume a
+different machine model.
+</LI><LI CLASS="li-itemize"><TT>--mode=mode</TT> This must be the first argument if present. It makes
 <TT>cilly</TT> behave as a given compiled. The following modes are recognized: 
 <UL CLASS="itemize"><LI CLASS="li-itemize">
 GNUCC - the GNU C Compiler. This is the default.
@@ -166,7 +173,7 @@ the default, as in &#X201C;<TT>--nowarnall</TT>&#X201D;.</P><P>&#XA0;&#XA0;&#XA0
 </LI><LI CLASS="li-itemize"><TT>--strictcheck</TT> Same as <TT>--check</TT>, but it treats
 consistency problems as errors instead of warnings.
 </LI><LI CLASS="li-itemize"><TT>--nocheck</TT> turns off consistency checking of CIL.
-</LI><LI CLASS="li-itemize"><TT>--noPrintLn</TT> Don't output #line directives in the output.
+</LI><LI CLASS="li-itemize"><TT>--noPrintLn</TT> Don&#X2019;t output #line directives in the output.
 </LI><LI CLASS="li-itemize"><TT>--commPrintLn</TT> Print #line directives in the output, but
 put them in comments.
 </LI><LI CLASS="li-itemize"><TT>--commPrintLnSparse</TT> Like <TT>--commPrintLn</TT> but print only new
@@ -179,13 +186,19 @@ a list of additional files to process, separated by whitespace.
 </LI><LI CLASS="li-itemize"><TT>--stats</TT> Print statistics about the running time of the
 parser, conversion to CIL, etc. Also prints memory-usage
 statistics. You can time parts of your own code as well. Calling
-(<TT>Stats.time &#X201C;label&#X201D; func arg</TT>) will evaluate <TT>(func arg)</TT>
+(<TT>Stats.time &#X2018;&#X2018;label&#X2019;&#X2019; func arg</TT>) will evaluate <TT>(func arg)</TT>
 and remember how long this takes. If you call <TT>Stats.time</TT>
 repeatedly with the same label, CIL will report the aggregate
 time.<P>If available, CIL uses the x86 performance counters for these
 stats. This is very precise, but results in &#X201C;wall-clock time.&#X201D;
 To report only user-mode time, find the call to <TT>Stats.reset</TT> in
-<TT>main.ml</TT>, and change it to <TT>Stats.reset Stats.SoftwareTimer</TT>.</P><P><B>Lowering Options</B>
+<TT>main.ml</TT>, and change it to <TT>Stats.reset Stats.SoftwareTimer</TT>.</P></LI><LI CLASS="li-itemize"><TT>--envmachine</TT>. Use machine model specified in
+<TT>CIL_MACHINE</TT> environment variable, rather than the one
+compiled into CIL. Note that you should not pass gcc&#X2019;s 32/64-bit
+<TT>-m32</TT> and <TT>-m64</TT> options to <TT>cilly</TT> if you use
+<TT>--envmachine</TT> (they use <TT>--envmachine</TT> under the hood).
+See Section&#XA0;<A HREF="#sec-cilmachine">7.4</A> for a description of <TT>CIL_MACHINE</TT>&#X2019;s
+format.<P><B>Lowering Options</B>
 </P></LI><LI CLASS="li-itemize"><TT>--noLowerConstants</TT> do not lower constant expressions.
 </LI><LI CLASS="li-itemize"><TT>--noInsertImplicitCasts</TT> do not insert implicit casts.
 </LI><LI CLASS="li-itemize"><TT>--forceRLArgEval</TT> Forces right to left evaluation of function arguments.
@@ -205,7 +218,7 @@ sets this for you.
 functions as are called. Implemented in <TT>src/ext/logcalls.ml</TT>.
 </LI><LI CLASS="li-itemize"><TT>--dologwrites</TT>. Insert code in the processed source to print the
 address of all memory writes. Implemented in <TT>src/ext/logwrites.ml</TT>.
-</LI><LI CLASS="li-itemize"><TT>--dooneRet</TT>. Make each function have at most one 'return'.
+</LI><LI CLASS="li-itemize"><TT>--dooneRet</TT>. Make each function have at most one &#X2019;return&#X2019;.
 Implemented in <TT>src/ext/oneret.ml</TT>. 
 </LI><LI CLASS="li-itemize"><TT>--dostackGuard</TT>. Instrument function calls and returns to
 maintain a separate stack for return addresses. Implemeted in
@@ -225,15 +238,66 @@ analyses:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 <TT>Cabs2cil.doCollapseCallCast</TT>:This is false by default. Set
 to true to replicate the behavior of CIL 1.3.5 and earlier.<P>When false, all casts in the program are made explicit using the
 <TT>CastE</TT> expression. Accordingly, the destination of a Call
-instruction will always have the same type as the function's return
+instruction will always have the same type as the function&#X2019;s return
 type.</P><P>If true, the destination type of a Call may differ from the return type, so
 there is an implicit cast. This is useful for analyses involving
 <TT>malloc</TT>. Without this option, CIL converts &#X201C;<TT>T* x = malloc(n);</TT>&#X201D;
-into &#X201C;<TT>void* tmp = malloc(n); T* x = (T*)tmp;</TT>&#X201D;. If you don't
+into &#X201C;<TT>void* tmp = malloc(n); T* x = (T*)tmp;</TT>&#X201D;. If you don&#X2019;t
 need all casts to be made explicit, you can set
-<TT>Cabs2cil.doCollapseCallCast</TT> to true so that CIL won't insert a
+<TT>Cabs2cil.doCollapseCallCast</TT> to true so that CIL won&#X2019;t insert a
 temporary and you can more easily determine the allocation type from
-calls to <TT>malloc</TT>.</P></LI></UL><HR>
+calls to <TT>malloc</TT>.</P></LI></UL><H3 CLASS="subsection"><A NAME="toc11"></A><A NAME="htoc19">7.4</A>&#XA0;&#XA0;Specifying a machine model</H3><P>
+<A NAME="sec-cilmachine"></A></P><P>The <TT>--envmachine</TT> option tells CIL to get its machine model from
+the <TT>CIL_MACHINE</TT> environment variable, rather than use the model
+compiled in to CIL itself. This is necessary when using CIL as part of
+a cross-compilation setup, and to handle gcc&#X2019;s <TT>-m32</TT> and <TT>-m64</TT>
+which select between a 32-bit and 64-bit machine model.</P><P><TT>CIL_MACHINE</TT> is a space-separated list of key=value pairs. Unknown
+keys are ignored. The following keys must be defined:
+</P><DIV CLASS="center">
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP> Key</TD><TD ALIGN=left NOWRAP>Value</TD></TR>
+<TR><TD ALIGN=left NOWRAP> bool</TD><TD ALIGN=left NOWRAP>sizeof(_Bool),alignof(_Bool)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> short</TD><TD ALIGN=left NOWRAP>sizeof(short),alignof(short)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> int</TD><TD ALIGN=left NOWRAP>sizeof(int),alignof(int)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> long</TD><TD ALIGN=left NOWRAP>sizeof(long),alignof(long)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> long_long</TD><TD ALIGN=left NOWRAP>sizeof(long long),alignof(long long)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> float</TD><TD ALIGN=left NOWRAP>sizeof(float),alignof(float)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> double</TD><TD ALIGN=left NOWRAP>sizeof(double),alignof(double)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> long_double</TD><TD ALIGN=left NOWRAP>sizeof(long double),alignof(long double)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> pointer</TD><TD ALIGN=left NOWRAP>sizeof(all pointers),alignof(all pointers)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> enum</TD><TD ALIGN=left NOWRAP>sizeof(all enums),alignof(all enums)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> fun</TD><TD ALIGN=left NOWRAP>sizeof(all fn ptrs),alignof(all fn ptrs)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> alignof_string</TD><TD ALIGN=left NOWRAP>alignof(all string constants)</TD></TR>
+<TR><TD ALIGN=left NOWRAP> max_alignment</TD><TD ALIGN=left NOWRAP>maximum alignment for any type</TD></TR>
+<TR><TD ALIGN=left NOWRAP> size_t</TD><TD ALIGN=left NOWRAP>the definition of size_t</TD></TR>
+<TR><TD ALIGN=left NOWRAP> wchar_t</TD><TD ALIGN=left NOWRAP>the definition of wchar_t</TD></TR>
+<TR><TD ALIGN=left NOWRAP> char_signed</TD><TD ALIGN=left NOWRAP>true if char is signed</TD></TR>
+<TR><TD ALIGN=left NOWRAP> big_endian</TD><TD ALIGN=left NOWRAP>true for big-endian machine models</TD></TR>
+<TR><TD ALIGN=left NOWRAP> const_string_literals</TD><TD ALIGN=left NOWRAP>true if string constants are const</TD></TR>
+<TR><TD ALIGN=left NOWRAP> __thread_is_keyword</TD><TD ALIGN=left NOWRAP>true if <TT>__thread</TT> is a keyword</TD></TR>
+<TR><TD ALIGN=left NOWRAP> __builtin_va_list</TD><TD ALIGN=left NOWRAP>true if <TT>__builtin_va_list</TT> is a builtin type</TD></TR>
+<TR><TD ALIGN=left NOWRAP> underscore_name</TD><TD ALIGN=left NOWRAP>true if generated symbols preceded by _</TD></TR>
+</TABLE>
+</DIV><P>Some notes:
+</P><UL CLASS="itemize"><LI CLASS="li-itemize">
+Values cannot contain spaces as spaces separate key/value pairs. 
+</LI><LI CLASS="li-itemize">The value of size_t is the text for the type defined as
+size_t, e.g. <TT>unsigned long</TT>. As spaces are not allowed in values,
+CIL will replace underscores by spaces: <TT>size_t=unsigned_long</TT>.
+</LI><LI CLASS="li-itemize">sizeof(t) and alignof(t) are respectively the size and alignment of
+type t.
+</LI><LI CLASS="li-itemize">The boolean-valued keys expect <TT>true</TT> for true, and <TT>false</TT>
+for false.
+</LI><LI CLASS="li-itemize">The <TT>src/machdep-ml.c</TT> program will print a <TT>CIL_MACHINE</TT> value
+when run with the <TT>--env</TT> option.
+</LI></UL><P>As an example, here&#X2019;s the <TT>CIL_MACHINE</TT> value for 64-bit targets on
+an x86-based Mac OS X machine:
+</P><PRE CLASS="verbatim">  short=2,2 int=4,4 long=8,8 long_long=8,8 pointer=8,8 enum=4,4
+  float=4,4 double=8,8 long_double=16,16 void=1 bool=1,1 fun=1,1
+  alignof_string=1 max_alignment=16 size_t=unsigned_long 
+  wchar_t=int char_signed=true const_string_literals=true 
+  big_endian=false __thread_is_keyword=true 
+  __builtin_va_list=true underscore_name=true
+</PRE><HR>
 <A HREF="attributes.html"><IMG SRC="previous_motif.gif" ALT="Previous"></A>
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="ext.html"><IMG SRC="next_motif.gif" ALT="Next"></A>

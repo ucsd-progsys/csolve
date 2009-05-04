@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -192,7 +192,7 @@ compiled into explicit conditionals:
   if(x &amp;&amp; y || z) { x ++; y ++; z ++; x ++; y ++; return z; }
 </FONT></PRE>
 See the <A HREF="examples/ex17.txt">CIL output</A> for this
-code fragment</LI><LI CLASS="li-enumerate">GCC's conditional expression with missing operands are also compiled
+code fragment</LI><LI CLASS="li-enumerate">GCC&#X2019;s conditional expression with missing operands are also compiled
 into conditionals:
 <PRE CLASS="verbatim"><FONT COLOR=blue>  int f();;
   return f() ? : 4;
@@ -214,7 +214,7 @@ able to print back the original:
    }
 </FONT></PRE>
 See the <A HREF="examples/ex19.txt">CIL output</A> for this
-code fragment</LI><LI CLASS="li-enumerate">GCC's block expressions are compiled away. (That's right there is an
+code fragment</LI><LI CLASS="li-enumerate">GCC&#X2019;s block expressions are compiled away. (That&#X2019;s right there is an
 infinite loop in this code.)<PRE CLASS="verbatim"><FONT COLOR=blue>   int x = 5, y = x;
    int z = ({ x++; L: y -= x; y;});
    return ({ goto L; 0; });

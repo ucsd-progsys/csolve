@@ -20,7 +20,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Cil</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Cil</title>
 </head>
 <body>
 <code class="code"><span class="keyword">sig</span><br>
@@ -64,6 +64,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IChar</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">ISChar</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IUChar</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IBool</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IInt</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IUInt</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IShort</span><br>
@@ -114,6 +115,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">mutable</span>&nbsp;eitems&nbsp;:&nbsp;(string&nbsp;*&nbsp;<span class="constructor">Cil</span>.exp&nbsp;*&nbsp;<span class="constructor">Cil</span>.location)&nbsp;list;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">mutable</span>&nbsp;eattr&nbsp;:&nbsp;<span class="constructor">Cil</span>.attributes;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">mutable</span>&nbsp;ereferenced&nbsp;:&nbsp;bool;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">mutable</span>&nbsp;ekind&nbsp;:&nbsp;<span class="constructor">Cil</span>.ikind;<br>
 &nbsp;&nbsp;}<br>
 &nbsp;&nbsp;<span class="keyword">and</span>&nbsp;typeinfo&nbsp;=&nbsp;{<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">mutable</span>&nbsp;tname&nbsp;:&nbsp;string;<br>
@@ -353,6 +355,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Cil</span>.fundec&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?insert:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.varinfo<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;makeTempVar&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Cil</span>.fundec&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?insert:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?name:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?descr:<span class="constructor">Pretty</span>.doc&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?descrpure:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.varinfo<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;makeGlobalVar&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.varinfo<br>
@@ -373,8 +376,11 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;isInteger&nbsp;:&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;option<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;i64_to_int&nbsp;:&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;isConstant&nbsp;:&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;isConstantOffset&nbsp;:&nbsp;<span class="constructor">Cil</span>.offset&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;isZero&nbsp;:&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;charConstToInt&nbsp;:&nbsp;char&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.constant<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;convertInts&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;*&nbsp;int64&nbsp;*&nbsp;<span class="constructor">Cil</span>.ikind<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;constFold&nbsp;:&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;constFoldBinOp&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.binop&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp<br>
@@ -469,6 +475,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Cil</span>.cilVisitor&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.attribute&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.attribute&nbsp;list<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;msvcMode&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;useLogicalOperators&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Pervasives</span>.ref<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;oldstyleExternInline&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;constFoldVisitor&nbsp;:&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.cilVisitor<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lineDirectiveStyle&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">LineComment</span><br>
@@ -559,7 +566,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;startTemps&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">method</span>&nbsp;stopTemps&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;<span class="keyword">class</span>&nbsp;descriptiveCilPrinterClass&nbsp;:&nbsp;descriptiveCilPrinter<br>
+&nbsp;&nbsp;<span class="keyword">class</span>&nbsp;descriptiveCilPrinterClass&nbsp;:&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;descriptiveCilPrinter<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;descriptiveCilPrinter&nbsp;:&nbsp;<span class="constructor">Cil</span>.descriptiveCilPrinter<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;printerForMaincil&nbsp;:&nbsp;<span class="constructor">Cil</span>.cilPrinter&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;printType&nbsp;:&nbsp;<span class="constructor">Cil</span>.cilPrinter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
@@ -624,14 +631,21 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;d_plainlval&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.lval&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;d_plaintype&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dd_exp&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dd_lval&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.lval&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;uniqueVarNames&nbsp;:&nbsp;<span class="constructor">Cil</span>.file&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;peepHole2&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Cil</span>.instr&nbsp;*&nbsp;<span class="constructor">Cil</span>.instr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.instr&nbsp;list&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.stmt&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;peepHole1&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Cil</span>.instr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.instr&nbsp;list&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.stmt&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">exception</span>&nbsp;<span class="constructor">SizeOfError</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;*&nbsp;<span class="constructor">Cil</span>.typ<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;unsignedVersionOf&nbsp;:&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.ikind<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;intKindForSize&nbsp;:&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.ikind<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;floatKindForSize&nbsp;:&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.fkind<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bytesSizeOfInt&nbsp;:&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bitsSizeOf&nbsp;:&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;truncateInteger64&nbsp;:&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;*&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;fitsInInt&nbsp;:&nbsp;<span class="constructor">Cil</span>.ikind&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;intKindForValue&nbsp;:&nbsp;int64&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.ikind<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sizeOf&nbsp;:&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.exp<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;alignOf_int&nbsp;:&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bitsOffset&nbsp;:&nbsp;<span class="constructor">Cil</span>.typ&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.offset&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;*&nbsp;int<br>
@@ -648,6 +662,8 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mapNoCopy&nbsp;:&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mapNoCopyList&nbsp;:&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;startsWith&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;endsWith&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;stripUnderscores&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;formatArg&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Fe</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Cil</span>.exp<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Feo</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Cil</span>.exp&nbsp;option<br>
@@ -676,4 +692,5 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">FX</span>&nbsp;<span class="keyword">of</span>&nbsp;string<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;d_formatarg&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cil</span>.formatArg&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Pretty</span>.doc<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warnTruncate&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Pervasives</span>.ref<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;envMachine&nbsp;:&nbsp;<span class="constructor">Machdep</span>.mach&nbsp;option&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 <span class="keyword">end</span></code></body></html>
