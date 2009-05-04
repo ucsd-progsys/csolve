@@ -1,11 +1,3 @@
-(* TODO:
-
-   1) Finish algorithm without unification
-   2) Test above
-   3) Add unification
-   4) Polish by adding exceptions + meaningful parameters in same
-*)
-
 (******************************************************************************)
 (*********************************** Indices **********************************)
 (******************************************************************************)
@@ -89,6 +81,10 @@ let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
   | CTRef (_)    -> 1
 
+let prectype_replace_sloc (s1: sloc) (s2: sloc): 'a prectype -> 'a prectype = function
+  | CTRef (s3, i) when s3 = s1 -> CTRef (s2, i)
+  | pct                        -> pct
+
 type ctype = index prectype
 
 exception NoLUB of ctype * ctype
@@ -111,12 +107,15 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
 
 type ctypevar = indexvar prectype
 
-type ctypecstr =
-  | CTCSubtype of ctypevar * ctypevar
-
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
   | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
   | CTRef (s, iv) -> CTRef (s, indexsol_find iv is)
+
+type ctypecstr =
+  | CTCSubtype of ctypevar * ctypevar
+
+let ctypecstr_replace_sloc (s1: sloc) (s2: sloc) (CTCSubtype (ctv1, ctv2): ctypecstr): ctypecstr =
+  CTCSubtype (prectype_replace_sloc s1 s2 ctv1, prectype_replace_sloc s1 s2 ctv2)
 
 let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
@@ -260,6 +259,9 @@ type store = ctype prestore
 type storecstr =
   | SCInc of sloc * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
 
+let storecstr_replace_sloc (s1: sloc) (s2: sloc) (SCInc (s3, iv, ctv): storecstr): storecstr =
+  SCInc ((if s3 = s1 then s2 else s3), iv, prectype_replace_sloc s1 s2 ctv)
+
 type storesol = indexvar prestore
 
 let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
@@ -322,52 +324,73 @@ type cstr =
   | CSCType of ctypecstr
   | CSStore of storecstr
 
-let cstr_sat (is: indexsol) (ss: storesol): cstr -> bool = function
+type store_unifier =
+  | SUnify of sloc * sloc
+
+type cstrsol = store_unifier list * indexsol * storesol
+
+let cstr_replace_sloc (s1: sloc) (s2: sloc): cstr -> cstr = function
+  | CSCType ctc -> CSCType (ctypecstr_replace_sloc s1 s2 ctc)
+  | CSStore sc  -> CSStore (storecstr_replace_sloc s1 s2 sc)
+  | CSIndex ic  -> CSIndex ic
+
+let cstr_sat ((_, is, ss): cstrsol): cstr -> bool = function
   | CSIndex ic  -> indexcstr_sat ic is
   | CSCType ctc -> ctypecstr_sat ctc is
   | CSStore sc  -> storecstr_sat sc is ss
 
-let refine (is: indexsol) (ss: storesol): cstr -> indexsol * storesol = function
+let refine ((is, ss): indexsol * storesol): cstr -> indexsol * storesol = function
   | CSIndex (ICLess (ie, iv))         -> (refine_index ie iv is, ss)
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCInc (l, iv, ctv))      -> refine_store l iv ctv is ss
 
-let rec solve_rec (cs: cstr list) ((is, ss): indexsol * storesol): indexsol * storesol =
-  match (try Some (List.find (fun c -> not (cstr_sat is ss c)) cs) with Not_found -> None) with
-    | None   -> (is, ss)
-    | Some c -> solve_rec cs (refine is ss c)
+let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
+  match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
+    | None   -> csol
+    | Some c ->
+        let (cs, sus, is, ss) =
+          try
+            let (is, ss) = refine (is, ss) c in
+              (cs, sus, is, ss)
+          with
+            | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
+                let cs = List.map (cstr_replace_sloc s1 s2) cs in
+                let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
+                  (cs, SUnify (s1, s2) :: sus, is, ss)
+            | _ -> assert false
+        in solve_rec cs (sus, is, ss)
 
-let solve (cs: cstr list): indexsol * storesol =
-  solve_rec cs (IVM.empty, SLM.empty)
+let solve (cs: cstr list): cstrsol =
+  solve_rec cs ([], IVM.empty, SLM.empty)
 
 (******************************************************************************)
 (************************************ Tests ***********************************)
 (******************************************************************************)
 
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
   assert (IVM.find 0 is = ISeq (2, 2))
 
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
   assert (IVM.find 0 is = ISeq (3, 1))
 
 let ctv = CTInt (1, 0) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
   assert (LDesc.find (PLAt 4) (prestore_find 0 ss) = [(PLAt 4, CTInt (1, 0))])
 
 let ctv = CTInt (1, 0) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
   assert (LDesc.find (PLAt 6) (prestore_find 0 ss) = [(PLSeq 2, CTInt (1, 0))])
 
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
   assert (IVM.find 0 is = IInt 4);
   assert (IVM.find 1 is = IInt 2)
 
 let ctv1 = CTInt (1, 0) in
 let ctv2 = CTInt (1, 1) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                      CSIndex (ICLess (IEInt 2, 1));
-                      CSStore (SCInc (0, 0, ctv1));
-                      CSStore (SCInc (0, 0, ctv2))]
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+                         CSIndex (ICLess (IEInt 2, 1));
+                         CSStore (SCInc (0, 0, ctv1));
+                         CSStore (SCInc (0, 0, ctv2))]
 in
   assert (ctypevar_apply is ctv1 = CTInt (1, ISeq (2, 2)));
   assert (ctypevar_apply is ctv2 = CTInt (1, ISeq (2, 2)));
@@ -376,18 +399,29 @@ in
 let ctv1 = CTInt (1, 0) in
 let ctv2 = CTInt (1, 1) in
 let ctv3 = CTInt (1, 2) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                      CSIndex (ICLess (IEInt 2, 1));
-                      CSStore (SCInc (0, 0, ctv1));
-                      CSStore (SCInc (0, 0, ctv2));
-                      CSCType (CTCSubtype (ctv2, ctv3))]
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+                         CSIndex (ICLess (IEInt 2, 1));
+                         CSStore (SCInc (0, 0, ctv1));
+                         CSStore (SCInc (0, 0, ctv2));
+                         CSCType (CTCSubtype (ctv2, ctv3))]
 in assert (ctypevar_apply is ctv3 = CTInt (1, ISeq (2, 2)))
 
-let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
   assert (indexsol_find 0 is = IBot)
 
-let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
   assert (indexsol_find 0 is = IInt 4)
 
-let (is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
   assert (indexsol_find 0 is = ISeq (4, 4))
+
+let (su, is, ss) = solve [CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
+  assert (su = [SUnify (0, 1)])
+
+let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
+                          CSIndex (ICLess (IEInt 1, 0));
+                          CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
+  assert (su = [SUnify (0, 1)]);
+  assert (prestore_find 0 ss = LDesc.empty);
+  assert (indexsol_find 0 is = IInt 1);
+  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
