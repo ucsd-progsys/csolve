@@ -22,7 +22,7 @@
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
-
+module F  = Format
 module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
@@ -60,6 +60,9 @@ let get_kvars_reft (_, _, rs) =
     (function Kvar (subs,k) -> Some (subs,k) 
             | _             -> None) 
     rs
+
+let list_of_env env = 
+  SM.fold (fun x y bs -> (x,y)::bs) env []
 
 (* API *)
 let env_of_list xrs = 
@@ -131,39 +134,42 @@ let environment_preds s env =
 (**************************************************************)
 
 let print_sub ppf (x,e) = 
-  Format.fprintf ppf "[%a:=%a]" Sy.print x E.print e
+  F.fprintf ppf "[%a:=%a]" Sy.print x E.print e
 
 let print_refineatom ppf = function
-  | Conc p        -> Format.fprintf ppf "%a" P.print p
-  | Kvar (xes, k) -> Format.fprintf ppf "%a[%a]" Sy.print k 
+  | Conc p        -> F.fprintf ppf "@[%a@]" P.print p
+  | Kvar (xes, k) -> F.fprintf ppf "@[%a%a@]" Sy.print k 
                        (Misc.pprint_many false "" print_sub) xes
 
 let print_refinement ppf (v, t, ras) =
-  Format.fprintf ppf "@[{%a : %a | %a}@]" 
+  F.fprintf ppf "@[{%a : %a | @[[%a]@]}@]" 
     Sy.print v
     Ast.Sort.print t
-    (Misc.pprint_many false " /\ " print_refineatom) ras  
+    (Misc.pprint_many false "; " print_refineatom) ras  
 
 let print_binding ppf (x, r) = 
-  Format.fprintf ppf "@[%a => %a@],@;<0 2>" 
+  F.fprintf ppf "@[%a:%a@]" 
     Sy.print x 
     print_refinement r 
 
 let print_env so ppf env = 
   match so with
-  | None   -> SM.iter (fun x y -> print_binding ppf (x, y)) env 
-  | Some s -> environment_preds s env |> 
-              Format.fprintf ppf "%a" (Misc.pprint_many false "&&" P.print) 
+  | None   -> 
+      list_of_env env 
+      |> F.fprintf ppf "@[%a@]" (Misc.pprint_many true ";" print_binding)    
+  | Some s -> 
+      environment_preds s env 
+      |> F.fprintf ppf "&&[%a]" (Misc.pprint_many false ";" P.print) 
 
 let pprint_io ppf = function
-  | Some id -> Format.fprintf ppf "(%d)" id
-  | None    -> Format.fprintf ppf "()"
+  | Some id -> F.fprintf ppf "(%d)" id
+  | None    -> F.fprintf ppf "()"
 
 (* API *)
 let print so ppf (env,g,r1,r2,io) =
-  Format.fprintf ppf 
-    "@[%a@ Env:@ @[%a@];@;<1 2>Guard:@ %a@\n|-@;<1 2>%a@;<1 2><:@;<1 2>%a@]"
-    pprint_io io 
+  F.fprintf ppf 
+  " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+    (* pprint_io io *) 
     (print_env so) env 
     P.print g
     print_refinement r1
@@ -174,10 +180,10 @@ let to_string c = Misc.fsprintf (print None) c
 
 (* API *)
 let print_soln ppf sm =
-  Format.fprintf ppf "Solution: \n";
+  F.fprintf ppf "Solution: \n";
   SM.iter 
     (fun x ps -> 
-       Format.fprintf ppf "%a := %a \n" 
+       F.fprintf ppf "%a := %a \n" 
        Ast.Symbol.print x (Misc.pprint_many false "," P.print) ps)
     sm
 

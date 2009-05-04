@@ -216,12 +216,11 @@ let save fname me s =
   let oc  = open_out fname in
   let ppf = F.formatter_of_out_channel oc in
   Ci.iter  
-    (fun c -> 
-      F.fprintf ppf "constraint: @[%a@] \n" (C.print None) c)
+    (F.fprintf ppf "constraint: @[%a@] \n" (C.print None))
     me.sri;
   SM.iter 
     (fun k ps -> 
-      F.fprintf ppf "solution: @[%a := %a@] \n"  
+      F.fprintf ppf "solution: @[%a := [%a]@] \n"  
         Sy.print k (Misc.pprint_many false ";" P.print) ps)
     s
 
