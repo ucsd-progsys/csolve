@@ -43,9 +43,8 @@ type deft = Srt of Ast.Sort.t
           | Cst of t 
           | Sol of Ast.Symbol.t * Ast.pred list
 
-
 (*************************************************************)
-(************************** Random ***************************)
+(************************** Misc.  ***************************)
 (*************************************************************)
 
 let get_id = function 
@@ -57,8 +56,10 @@ let is_simple_refatom = function
   | _            -> false
 
 let get_kvars_reft (_, _, rs) =
-  Misc.maybe_list
-    (List.rev_map (function Kvar a -> Some a | _ -> None) rs)
+  Misc.map_partial 
+    (function Kvar (subs,k) -> Some (subs,k) 
+            | _             -> None) 
+    rs
 
 (* API *)
 let env_of_list xrs = 
@@ -72,7 +73,7 @@ let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) =
 
 (* API *)
 let get_kvars (_, _, r1, r2, _) =
-  List.rev_append (get_kvars_reft r1) (get_kvars_reft r2)
+  (get_kvars_reft r1) ++ (get_kvars_reft r2)
 
 (*************************************************************)
 (******************** Solution Management ********************)

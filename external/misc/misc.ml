@@ -304,7 +304,8 @@ let maybe_cons m xs = match m with
   | None -> xs
   | Some x -> x :: xs
 
-let maybe_list xs = List.fold_right maybe_cons xs []
+let maybe_list xs = 
+  List.fold_right maybe_cons xs []
 
 let list_assoc_flip xs = 
   let r (x, y) = (y, x) in

@@ -2,3 +2,4 @@
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - change constraint printer to match parser format
 - add support for command line options
+- add regression test scripts 
