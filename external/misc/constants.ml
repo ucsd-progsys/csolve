@@ -22,11 +22,15 @@
 
 (** This module contains globals representing "flags" **************)
 
-let dump_ref_constraints = ref false    (* -drconstr *)
+let save_file            = ref "out"            (* -save *)
+let dump_ref_constraints = ref false            (* -drconstr *)
+let ol_default           = 2
+let verbose_level        = ref ol_default       (* -v *)
+(* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
-let dump_graph    = ref false           (* -dgraph *)
 let no_simple     = ref false           (* -no-simple *)
 let verify_simple = ref false           (* -verify-simple *)
+let dump_graph    = ref false           (* -dgraph *)
 
 (****************************************************************)
 (************* Output levels ************************************)
@@ -39,7 +43,6 @@ let ol_warning = 1
 let ol_solve_master = 2
 let ol_solve_stats = 2
 let ol_timing = 2
-let ol_default = 2
 let ol_warn_mlqs = 3
 let ol_normalized = 3
 let ol_dquals = 4 
@@ -56,7 +59,6 @@ let ol_dump_meas = 30
 let ol_dump_quals = 50
 let ol_insane = 200
 
-let verbose_level = ref ol_default
 let verb_stack = ref []
 let null_formatter = Format.make_formatter (fun a b c -> ()) ignore
 let nprintf a = Format.fprintf null_formatter a

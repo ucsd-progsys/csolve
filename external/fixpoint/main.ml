@@ -32,7 +32,39 @@ module F  = Format
 
 open Misc.Ops
 
-let save_file = fun () -> "out"
+
+(*****************************************************************)
+(********************* Command line options **********************)
+(*****************************************************************)
+
+let usage = "Usage: liquid <options> [source-files]\noptions are:"
+
+(* taken from dsolve/liquid/liquid.ml *)
+
+let arg_spec = 
+  [("-save", 
+    Arg.String (fun s -> Co.save_file := s), 
+    "Save constraints to file [out]"); 
+   ("-drconstr", 
+    Arg.Set Co.dump_ref_constraints, 
+    "Dump refinement constraints [false]");
+   ("-psimple", 
+    Arg.Set Co.psimple, 
+    "prioritize simple constraints [true]");
+   ("-dgraph", 
+    Arg.Set Co.dump_graph, 
+    "dump constraints SCC to constraints.dot [false]");
+   ("-v", Arg.Int (fun c -> Co.verbose_level := c), 
+              "<level> Set degree of analyzer verbosity:\n\
+               \032    0      No output\n\
+               \032    1      +Verbose errors\n\
+               \032    [2]    +Verbose stats, timing\n\
+               \032    3      +Print normalized source\n\
+               \032    11     +Verbose solver\n\
+               \032    13     +Dump constraint graph\n\
+               \032    64     +Drowning in output") 
+  ]
+
 
 let sift xs = 
   List.fold_left 
@@ -52,21 +84,17 @@ let parse f =
 let solve (ts, ps, cs, s) = 
   let ctx     = S.create ts SM.empty ps cs in
   let s', cs' = S.solve ctx s in
-  let _       = S.save (save_file ()) ctx s' in
+  let _       = S.save !Co.save_file ctx s' in
   F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" 
     (Misc.pprint_many true "\n" (C.print None)) cs';
   ()
 
 let main () =
-  Array.to_list Sys.argv 
-  |> String.concat " " 
-  |> Printf.printf "FixPoint 0.1 $ %s \n" ;
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
-  Printf.printf "All Rights Reserved.\n"; 
-  (try Sys.argv.(1) with _ -> failure "ERROR: bad inputs") 
-  |> parse 
-  |> sift 
-  |> solve 
+  Printf.printf "All Rights Reserved.\n";
+  let fs = ref [] in
+  let _  = Arg.parse arg_spec (fun s -> fs := s::!fs) usage in
+  !fs |> Misc.tr_flap parse |> sift |> solve 
 
 let _ = main ()
