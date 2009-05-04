@@ -1,15 +1,18 @@
 module ST = Ssa_transform
 module  E = Ast.Expression
 module  P = Ast.Predicate
-module  C = Ast.Constraint
-module  T = Ast.Template
+module  C = Constraint
+module Mm = Metamucil
 module SM = Misc.StringMap
 
 open Cil
 
-type t = (ST.ssaCfgInfo * T.env * P.t list * C.t list) SM.t
+type t = (ST.ssaCfgInfo * Mm.cilenv * P.t list * C.t list) SM.t
 
-let get_kvars (cm: t) : T.kvar list = 
+let print_tplt () (u, r) = 
+  Pretty.dprintf "{V: %a | %a}" d_type u C.print_refinement r 
+
+let get_kvars (cm: t) = 
   let ks = 
     SM.fold
       (fun _ (_,_,_,cs) ks -> 
@@ -22,22 +25,24 @@ let print_cmap (cm:t) =
   SM.iter
     (fun fn (sci, g, invs, cs) -> 
       ignore(Pretty.printf "Templates for %s \n" fn);
-      SM.iter (fun vn (t,_) -> ignore(Pretty.printf "%s |-> %a \n" vn T.d_tplt t)) g;
+      SM.iter (fun vn (t, r, _) -> ignore(Pretty.printf "%s |-> %a \n" vn
+        print_tplt (t, r))) g;
       ignore(Pretty.printf "Invariants for %s \n" fn);
-      List.iter (fun p -> ignore(Pretty.printf "%a \n" P.d_pred p)) invs;
+      List.iter (fun p -> ignore(Pretty.printf "%s \n" (P.to_string p))) invs;
       ignore(Pretty.printf "Constraints for %s \n" fn);
-      List.iter (fun c -> ignore(Pretty.printf "%a \n" (C.d_constr sci.ST.ifs) c)) cs)
+      List.iter (fun c -> ignore(Pretty.printf "%a \n" 
+        (C.print None std_formatter) c)) cs)
     cm
 
 (***************************************************************************)
 
 let fresh_kvar = 
   let r = ref 0 in
-  fun () -> incr r; T.Kvar (!r, [])
+  fun () -> incr r; C.Kvar ([], string_of_int !r)
 
 let rec fresh ty =
   match ty with
-  | TInt _ -> T.mk_ty ty (fresh_kvar ())  
+  | TInt _ -> (ty, (fresh_kvar ()))  
   | _      -> failwith "Unhandled: fresh"
 
 let gen_decs g0 fdec = 
@@ -57,9 +62,13 @@ let phi_loc cfg i =
 
 let gen_phis g fid doms cfg phis = 
   let phi_cstr i (v,bvs) = 
-    let vt  = T.t_var g v in
-    let loc = phi_loc cfg i in
-    List.map (fun (j,v') -> C.mk_constr fid doms.(j) (T.t_const (E.of_var v')) vt loc) bvs in
+    let vt  = Mm.ciltyp_of_var g v in
+    (*let loc = phi_loc cfg i in*)
+    List.map
+      (fun (j,v') ->
+        Mm.mk_constr envTBA (*fid*) (Mm.expand_guard doms.(j) phis)
+          (Mm.mk_const_reft (Ast.eVar v')) (??? vt) (*loc*)) bvs in
+  (* TODO: find or build cilenv, figure out RHS, grab and port expand_guard *)
   let _, cs = 
     Array.fold_left 
       (fun (i,cs) asgns -> 
@@ -78,7 +87,7 @@ class consGenVisitor fid doms invsr = object(self)
 
   method vinst = function
     | Set (((Var v), NoOffset) as lv , e, l) ->
-        invsr := (P.mk_eq (Lval lv) e) :: !invsr;
+        invsr := (Mm.mk_eq (Lval lv) e) :: !invsr;
         DoChildren 
     | _ -> 
         failwith "Unhandled: consGenVisitor vinst" 
