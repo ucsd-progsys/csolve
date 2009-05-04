@@ -427,3 +427,16 @@ let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
   assert (indexsol_find 0 is = IInt 1);
   assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
 *)
+
+(******************************************************************************)
+(**************************** Constraint Generation ***************************)
+(******************************************************************************)
+
+module ExpMap =
+  Map.Make (struct
+              type t      = (* statment id: *) int * Cil.exp
+              let compare = compare
+            end)
+
+let infer_shapes (f: Cil.fundec): Cil.fundec * ctype ExpMap.t * store =
+  assert false
