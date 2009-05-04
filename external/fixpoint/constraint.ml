@@ -168,7 +168,7 @@ let pprint_io ppf = function
 (* API *)
 let print so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-    "env  @[%a@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+  " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
     (print_env so) env 
     P.print g

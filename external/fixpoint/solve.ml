@@ -220,7 +220,7 @@ let save fname me s =
     me.sri;
   SM.iter 
     (fun k ps -> 
-      F.fprintf ppf "solution: @[%a := %a@] \n"  
+      F.fprintf ppf "solution: @[%a := [%a]@] \n"  
         Sy.print k (Misc.pprint_many false ";" P.print) ps)
     s
 
