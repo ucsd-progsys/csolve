@@ -15,11 +15,11 @@ sub new {
     my ($proto, $basis, $suffix) = @_;
     my $class = ref($proto) || $proto;
 
-    my ($fh, $filename) = tempfile('cil-XXXXXXXX',
-				   DIR => File::Spec->tmpdir,
-				   SUFFIX => ".$suffix",
-				   UNLINK => 1);
-    close($fh);
+    my (undef, $filename) = tempfile('cil-XXXXXXXX',
+				     DIR => File::Spec->tmpdir,
+				     SUFFIX => ".$suffix",
+				     UNLINK => 1);
+
     my $self = $class->SUPER::new($basis, $filename);
     return $self;
 }

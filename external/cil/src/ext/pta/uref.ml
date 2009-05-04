@@ -66,15 +66,15 @@ let unify f (p,q) =
   let p',q' = find p, find q in
     match (!p',!q') with 
       | (Ecr(px,pr),Ecr(qx,qr)) ->
-	let x () = f(px,qx) in
+	let x = f(px,qx) in
 	  if (p' == q') then
-	    p' := Ecr(x (),pr)
+	    p' := Ecr(x,pr)
 	  else if pr == qr then
-            (p' := Link q'; q' := Ecr(x (),qr+1))
+	    (q' := Ecr(x,qr+1); p' := Link q')
 	  else if pr < qr then
-            (p' := Link q'; q' := Ecr(x (),qr))
+	    (q' := Ecr(x,qr); p' := Link q')
 	  else (* pr > qr *)
-            (q' := Link p'; p' := Ecr(x (),pr))
+	    (p' := Ecr(x,pr); q' := Link p')
       | _ -> raise Bad_find
 	  
 let union (p,q) = 

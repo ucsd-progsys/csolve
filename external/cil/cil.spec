@@ -1,8 +1,8 @@
 Name: cil
-Version: 1.3.7
+Version: 1.3.6
 Release: 1
 License: BSD
-URL: http://hal.cs.berkeley.edu/cil/
+URL: http://manju.cs.berkeley.edu/cil/
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildRequires: gcc
@@ -79,7 +79,7 @@ make cillib NATIVECAML=1
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%buildroot install
+%makeinstall
 
 %clean
 rm -rf $RPM_BUILD_ROOT

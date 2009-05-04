@@ -78,29 +78,6 @@ let numNodes = ref 0 (* number of nodes in the CFG *)
 let nodeList : stmt list ref = ref [] (* All the nodes in a flat list *) (* ab: Added to change dfs from quadratic to linear *)
 let start_id = ref 0 (* for unique ids across many functions *)
 
-class caseLabeledStmtFinder slr = object(self)
-    inherit nopCilVisitor
-    
-    method vstmt s =
-        if List.exists (fun l ->
-            match l with | Case(_, _) | Default _ -> true | _ -> false)
-            s.labels
-        then begin
-            slr := s :: (!slr);
-            match s.skind with
-            | Switch(_,_,_,_) -> SkipChildren
-            | _ -> DoChildren
-        end else match s.skind with
-        | Switch(_,_,_,_) -> SkipChildren
-        | _ -> DoChildren
-end
-
-let findCaseLabeledStmts (b : block) : stmt list =
-    let slr = ref [] in
-    let vis = new caseLabeledStmtFinder slr in
-    ignore(visitCilBlock vis b);
-    !slr
-
 (* entry point *)
 
 (** Compute a control flow graph for fd.  Stmts in fd have preds and succs
@@ -133,7 +110,6 @@ and cfgBlock  (blk: block)
               (next:stmt option) (break:stmt option) (cont:stmt option) = 
    cfgStmts blk.bstmts next break cont
 
-
 (* Fill in the CFG info for a stmt
    Meaning of next, break, cont should be clear from earlier comment
 *)
@@ -154,11 +130,9 @@ and cfgStmt (s: stmt) (next:stmt option) (break:stmt option) (cont:stmt option) 
       None -> ()
     | Some n' -> addSucc n'
   in
-  let addBlockSucc (b: block) (n: stmt option) =
-    (* Add the first statement in b as a successor to the current stmt.
-       Or, if b is empty, add n as a successor *)
+  let addBlockSucc (b: block) =
     match b.bstmts with
-      [] -> addOptionSucc n
+      [] -> addOptionSucc next
     | hd::_ -> addSucc hd
   in
   let instrFallsThrough (i : instr) : bool = match i with
@@ -181,28 +155,26 @@ and cfgStmt (s: stmt) (next:stmt option) (break:stmt option) (cont:stmt option) 
   | Continue _ -> addOptionSucc cont
   | If (_, blk1, blk2, _) ->
       (* The succs of If is [true branch;false branch] *)
-      addBlockSucc blk2 next;
-      addBlockSucc blk1 next;
+      addBlockSucc blk2;
+      addBlockSucc blk1;
       cfgBlock blk1 next break cont;
       cfgBlock blk2 next break cont
   | Block b -> 
-      addBlockSucc b next;
+      addBlockSucc b;
       cfgBlock b next break cont
-  | Switch(_,blk,l,_) ->
-      let bl = findCaseLabeledStmts blk in
-      List.iter addSucc (List.rev bl(*l*)); (* Add successors in order *)
+  | Switch(_,blk,l,_) -> 
+      List.iter addSucc (List.rev l); (* Add successors in order *)
       (* sfg: if there's no default, need to connect s->next *)
       if not (List.exists 
                 (fun stmt -> List.exists 
                    (function Default _ -> true | _ -> false)
                    stmt.labels) 
-                bl) 
+                l) 
       then 
         addOptionSucc next;
       cfgBlock blk next next cont
-  | Loop(blk, loc, s1, s2) ->
-      s.skind <- Loop(blk, loc, (Some s), next);
-      addBlockSucc blk (Some s);
+  | Loop(blk,_,_,_) ->
+      addBlockSucc blk;
       cfgBlock blk (Some s) next (Some s)
       (* Since all loops have terminating condition true, we don't put
          any direct successor to stmt following the loop *)
@@ -317,11 +289,3 @@ let computeFileCFG (f : file) =
       numNodes := cfgFun fd;
       start_id := !start_id + !numNodes
     | _ -> ())
-
-let allStmts (f : file) : stmt list =
-  foldGlobals f
-    (fun accu g ->
-      match g with
-      | GFun (f,l) -> f.sallstmts @ accu
-      | _ -> accu
-    ) []

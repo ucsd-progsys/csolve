@@ -21,7 +21,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Index of values</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Index of values</title>
 </head>
 <body>
 <center><h1>Index of values</h1></center>
@@ -67,11 +67,6 @@ Mark the current column as the current indentation level.
 The minimum alignment (in bytes) for a type.
 </div>
 </td></tr>
-<tr><td><a href="Cfg.html#VALallStmts">allStmts</a> [<a href="Cfg.html">Cfg</a>]</td>
-<td><div class="info">
-Return all statements in a file - valid after computeFileCfg only
-</div>
-</td></tr>
 <tr><td><a href="Clist.html#VALappend">append</a> [<a href="Clist.html">Clist</a>]</td>
 <td><div class="info">
 Append two clists
@@ -111,8 +106,6 @@ The size of a type, in bits.
 </td></tr>
 <tr><td><a href="Cil.html#VALbitwiseLevel">bitwiseLevel</a> [<a href="Cil.html">Cil</a>]</td>
 <td></td></tr>
-<tr><td><a href="Errormsg.html#VALblueEscStr">blueEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td><a href="Pretty.html#VALbreak">break</a> [<a href="Pretty.html">Pretty</a>]</td>
 <td><div class="info">
 A document that consists of either a space or a line break.
@@ -137,11 +130,6 @@ A list of the built-in functions for the current compiler (GCC or
 <tr><td><a href="Cil.html#VALbuiltinLoc">builtinLoc</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 This is used as the location of the prototypes of builtin functions.
-</div>
-</td></tr>
-<tr><td><a href="Cil.html#VALbytesSizeOfInt">bytesSizeOfInt</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-The size in bytes of the given int kind.
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
@@ -238,11 +226,6 @@ clear the sid, succs, and preds fields of each statment in a function
 clear the sid, succs, and preds fields of each statement.
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALcolorFlag">colorFlag</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td><div class="info">
-Set to true if you want error and warning messages to be colored
-</div>
-</td></tr>
 <tr><td><a href="Dataflow.ForwardsTransfer.html#VALcombinePredecessors">combinePredecessors</a> [<a href="Dataflow.ForwardsTransfer.html">Dataflow.ForwardsTransfer</a>]</td>
 <td><div class="info">
 Take some old data for the start of a statement, and some new data for 
@@ -335,8 +318,6 @@ Do constant folding on a binary operation.
 A visitor that does constant folding.
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALconvertInts">convertInts</a> [<a href="Cil.html">Cil</a>]</td>
-<td></td></tr>
 <tr><td><a href="Dataflow.ForwardsTransfer.html#VALcopy">copy</a> [<a href="Dataflow.ForwardsTransfer.html">Dataflow.ForwardsTransfer</a>]</td>
 <td><div class="info">
 Make a deep copy of the data
@@ -357,12 +338,6 @@ Create a deep copy of a function.
 Make a shallow copy of a <code class="code">varinfo</code> and assign a new identifier
 </div>
 </td></tr>
-<tr><td><a href="Stats.html#VALcountCalls">countCalls</a> [<a href="Stats.html">Stats</a>]</td>
-<td><div class="info">
-Flag to indicate whether or not to count the number of calls of
-    to <a href="Stats.html#VALrepeattime"><code class="code">Stats.repeattime</code></a> or <a href="Stats.html#VALtime"><code class="code">Stats.time</code></a> for each label.
-</div>
-</td></tr>
 <tr><td><a href="Pretty.html#VALcountNewLines">countNewLines</a> [<a href="Pretty.html">Pretty</a>]</td>
 <td><div class="info">
 Keep a running count of the taken newlines.
@@ -378,8 +353,6 @@ A reference to the current global being visited
 A reference to the current location.
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALcyanEscStr">cyanEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td align="left"><br>D</td></tr>
 <tr><td><a href="Formatcil.html#VALdExp">dExp</a> [<a href="Formatcil.html">Formatcil</a>]</td>
 <td><div class="info">
@@ -590,8 +563,6 @@ Pretty-print an expression while printing descriptions rather than names
   of temporaries.
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALdd_lval">dd_lval</a> [<a href="Cil.html">Cil</a>]</td>
-<td></td></tr>
 <tr><td><a href="Dataflow.BackwardsTransfer.html#VALdebug">debug</a> [<a href="Dataflow.BackwardsTransfer.html">Dataflow.BackwardsTransfer</a>]</td>
 <td><div class="info">
 Whether to turn on debugging
@@ -784,16 +755,6 @@ The empty clist
 Make an empty function
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALendsWith">endsWith</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-return true if the first is a suffix of the second string
-</div>
-</td></tr>
-<tr><td><a href="Cil.html#VALenvMachine">envMachine</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-Machine model specified via CIL_MACHINE environment variable
-</div>
-</td></tr>
 <tr><td><a href="Pretty.html#VALeprintf">eprintf</a> [<a href="Pretty.html">Pretty</a>]</td>
 <td><div class="info">
 Like <a href="Pretty.html#VALfprintf"><code class="code">Pretty.fprintf</code></a> applied to <code class="code">stderr</code>
@@ -870,16 +831,6 @@ Returns (all_stmts, sink_stmts), where all_stmts is a list of the
 </td></tr>
 <tr><td><a href="Errormsg.html#VALfinishParsing">finishParsing</a> [<a href="Errormsg.html">Errormsg</a>]</td>
 <td></td></tr>
-<tr><td><a href="Cil.html#VALfitsInInt">fitsInInt</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-True if the integer fits within the kind's range
-</div>
-</td></tr>
-<tr><td><a href="Cil.html#VALfloatKindForSize">floatKindForSize</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-The float kind for a given size.
-</div>
-</td></tr>
 <tr><td><a href="Pretty.html#VALflushOften">flushOften</a> [<a href="Pretty.html">Pretty</a>]</td>
 <td><div class="info">
 If true the it flushes after every print
@@ -984,8 +935,6 @@ Return the location of a statement, or locUnknown
 Like <a href="Pretty.html#VALdprintf"><code class="code">Pretty.dprintf</code></a> but more general.
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALgreenEscStr">greenEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td align="left"><br>H</td></tr>
 <tr><td><a href="Errormsg.html#VALhadErrors">hadErrors</a> [<a href="Errormsg.html">Errormsg</a>]</td>
 <td><div class="info">
@@ -1036,17 +985,6 @@ A function that is useful with the <code class="code">printf</code>-like interfa
 Do insert implicit casts (default true)
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALintKindForSize">intKindForSize</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-The signed integer kind for a given size (unsigned if second argument
- is true).
-</div>
-</td></tr>
-<tr><td><a href="Cil.html#VALintKindForValue">intKindForValue</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-Return the smallest kind that will hold the integer's value.
-</div>
-</td></tr>
 <tr><td><a href="Cil.html#VALintPtrType">intPtrType</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 int *
@@ -1087,11 +1025,6 @@ Returns true if this is a complete type.
 True if the expression is a compile-time constant
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALisConstantOffset">isConstantOffset</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-True if the given offset contains only field nanmes or constant indices.
-</div>
-</td></tr>
 <tr><td><a href="Cil.html#VALisFunctionType">isFunctionType</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 True if the argument is a function type
@@ -1099,8 +1032,8 @@ True if the argument is a function type
 </td></tr>
 <tr><td><a href="Cil.html#VALisInteger">isInteger</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
-If the given expression is a (possibly cast'ed) 
-    character or an integer constant, return that integer.
+True if the given expression is a (possibly cast'ed) 
+    character or an integer constant
 </div>
 </td></tr>
 <tr><td><a href="Cil.html#VALisIntegralType">isIntegralType</a> [<a href="Cil.html">Cil</a>]</td>
@@ -1162,7 +1095,10 @@ Construct an integer of a given kind, using OCaml's int64 type.
 </td></tr>
 <tr><td align="left"><br>L</td></tr>
 <tr><td><a href="Stats.html#VALlastTime">lastTime</a> [<a href="Stats.html">Stats</a>]</td>
-<td></td></tr>
+<td><div class="info">
+Time a function and set lastTime to the time it took
+</div>
+</td></tr>
 <tr><td><a href="Pretty.html#VALleftflush">leftflush</a> [<a href="Pretty.html">Pretty</a>]</td>
 <td><div class="info">
 Use after a <a href="Pretty.html#VALline"><code class="code">Pretty.line</code></a> to prevent the indentation.
@@ -1440,6 +1376,11 @@ Constructs an empty document
 If set then will not memoize the parsed patterns
 </div>
 </td></tr>
+<tr><td><a href="Cfg.html#VALnodeList">nodeList</a> [<a href="Cfg.html">Cfg</a>]</td>
+<td><div class="info">
+All of the nodes in a file.
+</div>
+</td></tr>
 <tr><td><a href="Errormsg.html#VALnull">null</a> [<a href="Errormsg.html">Errormsg</a>]</td>
 <td><div class="info">
 Do not actually print (i.e.
@@ -1450,22 +1391,12 @@ Do not actually print (i.e.
 A document that prints an integer in decimal form
 </div>
 </td></tr>
-<tr><td><a href="Pretty.html#VALnum64">num64</a> [<a href="Pretty.html">Pretty</a>]</td>
+<tr><td><a href="Cfg.html#VALnumNodes">numNodes</a> [<a href="Cfg.html">Cfg</a>]</td>
 <td><div class="info">
-A document that prints a 64-bit int in decimal form
+number of nodes in the CFG
 </div>
 </td></tr>
 <tr><td align="left"><br>O</td></tr>
-<tr><td><a href="Cil.html#VALoldstyleExternInline">oldstyleExternInline</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-Set this to true to get old-style handling of gcc's extern inline C extension:
-   old-style: the extern inline definition is used until the actual definition is
-     seen (as long as optimization is enabled)
-   new-style: the extern inline definition is used only if there is no actual
-     definition (as long as optimization is enabled)
-   Note that CIL assumes that optimization is always enabled ;-)
-</div>
-</td></tr>
 <tr><td><a href="Cil.html#VALone">one</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 1
@@ -1488,12 +1419,12 @@ Partition the attributes into classes:name attributes, function type,
 <tr><td><a href="Cil.html#VALpeepHole1">peepHole1</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 Similar to <code class="code">peepHole2</code> except that the optimization window consists of 
-    one instruction, not two
+    one statement, not two
 </div>
 </td></tr>
 <tr><td><a href="Cil.html#VALpeepHole2">peepHole2</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
-A peephole optimizer that processes two adjacent instructions and possibly 
+A peephole optimizer that processes two adjacent statements and possibly 
     replaces them both.
 </div>
 </td></tr>
@@ -1618,8 +1549,6 @@ zra: This is the pretty printer that Maincil will use.
 Like <a href="Pretty.html#VALfprintf"><code class="code">Pretty.fprintf</code></a> applied to <code class="code">stdout</code>
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALpurpleEscStr">purpleEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td><a href="Errormsg.html#VALpushContext">pushContext</a> [<a href="Errormsg.html">Errormsg</a>]</td>
 <td><div class="info">
 Registers a context printing function
@@ -1642,8 +1571,6 @@ Records whether the stdin is open for reading the goal *
 A document that prints a real number
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALredEscStr">redEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td><a href="Alpha.html#VALregisterAlphaName">registerAlphaName</a> [<a href="Alpha.html">Alpha</a>]</td>
 <td><div class="info">
 Register a name with an alpha conversion table to ensure that when later 
@@ -1671,8 +1598,6 @@ repeattime is like time but runs the function several times until the total
 Resets all the timings and specifies the method to use for future timings.
 </div>
 </td></tr>
-<tr><td><a href="Errormsg.html#VALresetEscStr">resetEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td><a href="Clist.html#VALrev">rev</a> [<a href="Clist.html">Clist</a>]</td>
 <td><div class="info">
 Reverse a clist.
@@ -1811,11 +1736,6 @@ Removes casts from this expression, but ignores casts within
   other expression constructs.
 </div>
 </td></tr>
-<tr><td><a href="Cil.html#VALstripUnderscores">stripUnderscores</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-If string has leading and trailing __, strip them.
-</div>
-</td></tr>
 <tr><td align="left"><br>T</td></tr>
 <tr><td><a href="Formatcil.html#VALtest">test</a> [<a href="Formatcil.html">Formatcil</a>]</td>
 <td><div class="info">
@@ -1833,20 +1753,14 @@ Time a function and associate the time with the given string.
 </div>
 </td></tr>
 <tr><td><a href="Stats.html#VALtimethis">timethis</a> [<a href="Stats.html">Stats</a>]</td>
-<td><div class="info">
-Time a function and set lastTime to the time it took
-</div>
-</td></tr>
+<td></td></tr>
 <tr><td><a href="Clist.html#VALtoList">toList</a> [<a href="Clist.html">Clist</a>]</td>
 <td><div class="info">
 Convert a clist to an ordinary list
 </div>
 </td></tr>
 <tr><td><a href="Cil.html#VALtruncateInteger64">truncateInteger64</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-Represents an integer as for a given kind.
-</div>
-</td></tr>
+<td></td></tr>
 <tr><td><a href="Cil.html#VALtypeAddAttributes">typeAddAttributes</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">
 Add some attributes to a type
@@ -1959,11 +1873,6 @@ Unroll a type until it exposes a non
 <td><div class="info">
 Unroll all the TNamed in a type (even under type constructors such as 
  <code class="code">TPtr</code>, <code class="code">TFun</code> or <code class="code">TArray</code>.
-</div>
-</td></tr>
-<tr><td><a href="Cil.html#VALunsignedVersionOf">unsignedVersionOf</a> [<a href="Cil.html">Cil</a>]</td>
-<td><div class="info">
-Give the unsigned kind corresponding to any integer kind
 </div>
 </td></tr>
 <tr><td><a href="Cil.html#VALupointType">upointType</a> [<a href="Cil.html">Cil</a>]</td>
@@ -2126,8 +2035,6 @@ wchar_t (depends on architecture) and is set when you call
 </td></tr>
 <tr><td><a href="Cil.html#VALwcharType">wcharType</a> [<a href="Cil.html">Cil</a>]</td>
 <td></td></tr>
-<tr><td><a href="Errormsg.html#VALwhiteEscStr">whiteEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td><a href="Errormsg.html#VALwithContext">withContext</a> [<a href="Errormsg.html">Errormsg</a>]</td>
 <td><div class="info">
 To ensure that the context is registered and removed properly, use the 
@@ -2139,9 +2046,6 @@ To ensure that the context is registered and removed properly, use the
 Invokes a thunk, with printDepth temporarily set to the specified value
 </div>
 </td></tr>
-<tr><td align="left"><br>Y</td></tr>
-<tr><td><a href="Errormsg.html#VALyellowEscStr">yellowEscStr</a> [<a href="Errormsg.html">Errormsg</a>]</td>
-<td></td></tr>
 <tr><td align="left"><br>Z</td></tr>
 <tr><td><a href="Cil.html#VALzero">zero</a> [<a href="Cil.html">Cil</a>]</td>
 <td><div class="info">

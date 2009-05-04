@@ -123,7 +123,7 @@ begin
   (* now parse the file we came here to parse *)
   let cabs = parse_to_cabs_inner fname in
   if !E.hadErrors then 
-    E.s (E.error "There were parsing errors in %s" fname);
+    E.s (E.error "There were parsing errors in %s\n" fname);
 
   (* and apply the patch file, return transformed file *)
   let patched = match !patchFile with
@@ -187,6 +187,7 @@ and parse_to_cabs_inner (fname : string) =
   try
     if !E.verboseFlag then ignore (E.log "Frontc is parsing %s\n" fname);
     flush !E.logChannel;
+    E.hadErrors := false;
     let lexbuf = Clexer.init fname in
     let cabs = Stats.time "parse" (Cparser.interpret (Whitetrack.wraplexer clexer)) lexbuf in
     Whitetrack.setFinalWhite (Clexer.get_white ());
@@ -199,7 +200,7 @@ and parse_to_cabs_inner (fname : string) =
     raise (ParseError("Cannot open " ^ fname ^ ": " ^ msg ^ "\n"))
   end
   | Parsing.Parse_error -> begin
-      ignore (E.log "Parsing error");
+      ignore (E.log "Parsing error\n");
       Clexer.finish ();
       close_output ();
       raise (ParseError("Parse error"))

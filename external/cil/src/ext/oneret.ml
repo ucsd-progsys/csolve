@@ -112,9 +112,9 @@ let oneret (f: Cil.fundec) : unit =
                   d_loc l);
 *)
         if hasRet && retval = None then 
-          E.s (error "Found return without value in function %s" fname);
+          E.s (error "Found return without value in function %s\n" fname);
         if not hasRet && retval <> None then 
-          E.s (error "Found return in subroutine %s" fname);
+          E.s (error "Found return in subroutine %s\n" fname);
         (* Keep this statement because it might have labels. But change it to 
          * an instruction that sets the return value (if any). *)
         s.skind <- begin

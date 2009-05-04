@@ -41,7 +41,5 @@
 type checkFlags = 
     NoCheckGlobalIds   (* Do not check that the global ids have the proper 
                         * hash value *) 
-    | IgnoreInstructions of (Cil.instr -> bool) 
-                       (** Ignore the specified instructions *)
  
 val checkFile: checkFlags list -> Cil.file -> bool

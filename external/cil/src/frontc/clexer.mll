@@ -60,7 +60,7 @@ let addComment c =
 
 (* track whitespace for the current token *)
 let white = ref ""  
-let addWhite lexbuf = if not !Whitetrack.enabled then
+let addWhite lexbuf =
     let w = Lexing.lexeme lexbuf in 
     white := !white ^ w
 let clear_white () = white := ""
@@ -131,7 +131,6 @@ let init_lexicon _ =
       ("__volatile", fun loc -> VOLATILE loc);
       (* WW: see /usr/include/sys/cdefs.h for why __signed and __volatile
        * are accepted GCC-isms *)
-      ("_Bool", fun loc -> BOOL loc);
       ("char", fun loc -> CHAR loc);
       ("int", fun loc -> INT loc);
       ("float", fun loc -> FLOAT loc);
@@ -186,7 +185,6 @@ let init_lexicon _ =
       ("__label__", fun _ -> LABEL__);
       (*** weimer: GCC arcana ***)
       ("__restrict", fun loc -> RESTRICT loc);
-      ("__restrict__", fun loc -> RESTRICT loc);
       ("restrict", fun loc -> RESTRICT loc);
 (*      ("__extension__", EXTENSION); *)
       (**** MS VC ***)
@@ -214,7 +212,7 @@ let init_lexicon _ =
       ("__builtin_offsetof", fun loc -> BUILTIN_OFFSETOF loc);
       (* On some versions of GCC __thread is a regular identifier *)
       ("__thread", fun loc -> 
-                      if !Machdep.theMachine.Machdep.__thread_is_keyword then 
+                      if Machdep.__thread_is_keyword then 
                          THREAD loc
                        else 
                          IDENT ("__thread", loc));
@@ -258,9 +256,7 @@ let scan_ident id =
   let here = currentLoc () in
   try (H.find lexicon id) here
   (* default to variable name, as opposed to type *)
-  with Not_found ->
-    if id.[0] = '$' then QUALIFIER(id,here) else
-    dbgToken (IDENT (id, here))
+  with Not_found -> dbgToken (IDENT (id, here))
 
 
 (*
@@ -443,7 +439,6 @@ let no_parse_pragma =
              | "ident" | "section" | "option" | "asm" | "use_section" | "weak"
              | "redefine_extname"
              | "TCS_align"
-	     | "mark"
 
 
 rule initial =

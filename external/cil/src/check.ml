@@ -46,10 +46,8 @@ open Pretty
 type checkFlags = 
     NoCheckGlobalIds   (* Do not check that the global ids have the proper 
                         * hash value *)
-    | IgnoreInstructions of (instr -> bool) (* Ignore the specified instructions *)
-        
+
 let checkGlobalIds = ref true
-let ignoreInstr = ref (fun i -> false)
 
   (* Attributes must be sorted *)
 type ctxAttr = 
@@ -61,7 +59,7 @@ let valid = ref true
 
 let warn fmt =
   valid := false;
-  Cil.warn ("CIL invariant broken: "^^fmt)
+  Cil.warn fmt
 
 let warnContext fmt =
   valid := false;
@@ -100,7 +98,7 @@ let defineName s =
   if s = "" then
     E.s (bug "Empty name\n"); 
   if H.mem varNamesEnv s then
-    ignore (warn "Multiple definitions for %s" s);
+    ignore (warn "Multiple definitions for %s\n" s);
   H.add varNamesEnv s ()
 
 let defineVariable vi = 
@@ -109,7 +107,7 @@ let defineVariable vi =
   varNamesList := (vi.vname, vi.vid) :: !varNamesList;
   (* Check the id *)
   if H.mem allVarIds vi.vid then
-    ignore (warn "Id %d is already defined (%s)" vi.vid vi.vname);
+    ignore (warn "Id %d is already defined (%s)\n" vi.vid vi.vname);
   H.add allVarIds vi.vid vi;
   (* And register it in the current scope also *)
   H.add varIdsEnv vi.vid vi
@@ -121,13 +119,13 @@ let checkVariable vi =
     let old = H.find varIdsEnv vi.vid in
     if vi != old then begin
       if vi.vname = old.vname then
-        ignore (warnContext "varinfos for %s not shared" vi.vname)
+        ignore (warnContext "varinfos for %s not shared\n" vi.vname)
       else
-        ignore (warnContext "variables %s and %s share id %d"
+        ignore (warnContext "variables %s and %s share id %d\n"
                   vi.vname old.vname vi.vid )
     end
   with Not_found -> 
-    ignore (warn "Unknown id (%d) for %s" vi.vid vi.vname)
+    ignore (warn "Unknown id (%d) for %s\n" vi.vid vi.vname)
 
 
 let startEnv () = 
@@ -239,7 +237,7 @@ let rec checkType (t: typ) (ctx: ctxType) =
   | TNamed (ti, a) ->
       checkAttributes a;
       if ti.tname = "" then 
-        ignore (warnContext "Using a typeinfo for an empty-named type");
+        ignore (warnContext "Using a typeinfo for an empty-named type\n");
       checkTypeInfo Used ti
 
   | TComp (comp, a) ->
@@ -276,45 +274,44 @@ let rec checkType (t: typ) (ctx: ctxType) =
 (* Check that a type is a promoted integral type *)
 and checkIntegralType (t: typ) = 
   checkType t CTExp;
-  if not (isIntegralType t) then
-    ignore (warn "Non-integral type")
+  match unrollType t with
+    TInt _ -> ()
+  | _ -> ignore (warn "Non-integral type")
 
 (* Check that a type is a promoted arithmetic type *)
 and checkArithmeticType (t: typ) = 
   checkType t CTExp;
-  if not (isArithmeticType t) then
-    ignore (warn "Non-arithmetic type")
+  match unrollType t with
+    TInt _ | TFloat _ -> ()
+  | _ -> ignore (warn "Non-arithmetic type")
 
 (* Check that a type is a promoted boolean type *)
 and checkBooleanType (t: typ) = 
   checkType t CTExp;
   match unrollType t with
-    TInt _ | TEnum _ | TFloat _ | TPtr _ -> ()
+    TInt _ | TFloat _ | TPtr _ -> ()
   | _ -> ignore (warn "Non-boolean type")
 
 
 (* Check that a type is a pointer type *)
 and checkPointerType (t: typ) = 
   checkType t CTExp;
-  if not (isPointerType t) then
-    ignore (warn "Non-pointer type")
+  match unrollType t with
+    TPtr _ -> ()
+  | _ -> ignore (warn "Non-pointer type")
 
 
 and typeMatch (t1: typ) (t2: typ) = 
-  if !Cil.insertImplicitCasts then begin
-    (* Allow mismatches in const-ness, so that string literals can be used
-       as char*s *)
-    if typeSigIgnoreConst t1 <> typeSigIgnoreConst t2 then
-      match unrollType t1, unrollType t2 with
-        (* Allow free interchange of TInt and TEnum *)
-        TInt (ik, _), TEnum (ei, _) when ik = ei.ekind -> ()
-      | TEnum (ei, _), TInt (ik, _) when ik = ei.ekind -> ()
-          
-      | _, _ -> ignore (warn "Type mismatch:@!    %a@!and %a@!"
-                           d_type t1 d_type t2)
-  end else begin
-    (* Many casts are missing.  For now, just skip this check. *)
-  end
+  (* Allow mismatches in const-ness, so that string literals can be used
+     as char*s *)
+  if typeSigIgnoreConst t1 <> typeSigIgnoreConst t2 then
+    match unrollType t1, unrollType t2 with
+    (* Allow free interchange of TInt and TEnum *)
+      TInt (IInt, _), TEnum _ -> ()
+    | TEnum _, TInt (IInt, _) -> ()
+
+    | _, _ -> ignore (warn "Type mismatch:@!    %a@!and %a@!" 
+                        d_type t1 d_type t2)
 
 and checkCompInfo (isadef: defuse) comp = 
   let fullname = compFullName comp in
@@ -322,10 +319,10 @@ and checkCompInfo (isadef: defuse) comp =
     let oldci, olddef = H.find compUsed comp.ckey in
     (* Check that it is the same *)
     if oldci != comp then 
-      ignore (warnContext "compinfo for %s not shared" fullname);
+      ignore (warnContext "compinfo for %s not shared\n" fullname);
     (match !olddef, isadef with 
     | Defined, Defined -> 
-        ignore (warnContext "Multiple definition of %s" fullname)
+        ignore (warnContext "Multiple definition of %s\n" fullname)
     | _, Defined -> olddef := Defined
     | Defined, _ -> ()
     | _, Forward -> olddef := Forward
@@ -360,7 +357,7 @@ and checkCompInfo (isadef: defuse) comp =
             if w < 0 || w > bitsSizeOf (TInt(ik, a)) then
               ignore (warn "Wrong width (%d) in bitfield" w)
         | _, Some w -> 
-            ignore (E.error "Bitfield on a non integer type")
+            ignore (E.error "Bitfield on a non integer type\n")
         | _ -> ());
         checkAttributes f.fattr
       in
@@ -376,10 +373,10 @@ and checkEnumInfo (isadef: defuse) enum =
     let oldei, olddef = H.find enumUsed enum.ename in
     (* Check that it is the same *)
     if oldei != enum then 
-      ignore (warnContext "enuminfo for %s not shared" enum.ename);
+      ignore (warnContext "enuminfo for %s not shared\n" enum.ename);
     (match !olddef, isadef with 
       Defined, Defined -> 
-        ignore (warnContext "Multiple definition of enum %s" enum.ename)
+        ignore (warnContext "Multiple definition of enum %s\n" enum.ename)
     | _, Defined -> olddef := Defined
     | Defined, _ -> ()
     | _, Forward -> olddef := Forward
@@ -396,15 +393,15 @@ and checkTypeInfo (isadef: defuse) ti =
     let oldti, olddef = H.find typUsed ti.tname in
     (* Check that it is the same *)
     if oldti != ti then 
-      ignore (warnContext "typeinfo for %s not shared" ti.tname);
+      ignore (warnContext "typeinfo for %s not shared\n" ti.tname);
     (match !olddef, isadef with 
       Defined, Defined -> 
-        ignore (warnContext "Multiple definition of type %s" ti.tname)
+        ignore (warnContext "Multiple definition of type %s\n" ti.tname)
     | Defined, Used -> ()
     | Used, Defined -> 
-        ignore (warnContext "Use of type %s before its definition" ti.tname)
+        ignore (warnContext "Use of type %s before its definition\n" ti.tname)
     | _, _ -> 
-        ignore (warnContext "Bug in checkTypeInfo for %s" ti.tname))
+        ignore (warnContext "Bug in checkTypeInfo for %s\n" ti.tname))
   with Not_found -> begin (* This is the first time we see it *)
     if ti.tname = "" then
       ignore (warnContext "typeinfo with empty name");
@@ -557,7 +554,7 @@ and checkExp (isconst: bool) (e: exp) : typ =
           | (TInt _ | TFloat _ | TPtr _ | TComp _ | TFun _ | TArray _ ) -> 
               TPtr(tlv, [])
 
-          | TEnum (ei, _) -> TPtr(TInt(ei.ekind, []), [])
+          | TEnum _ -> intPtrType
           | _ -> E.s (bug "AddrOf on unknown type")
       end
 
@@ -616,7 +613,7 @@ and checkInit  (i: init) : typ =
 
                 | (Index(Const(CInt64(i', _, _)), NoOffset), ei) :: rest -> 
                     if i' <> i then 
-                      ignore (warn "Initializer for index %s when %s was expected"
+                      ignore (warn "Initializer for index %s when %s was expected\n"
                                 (Int64.format "%d" i') (Int64.format "%d" i));
                     checkInitType ei bt;
                     loopIndex (Int64.succ i) rest
@@ -635,7 +632,7 @@ and checkInit  (i: init) : typ =
                     [], [] -> ()   (* We are done *)
                   | f :: restf, (Field(f', NoOffset), i) :: resti -> 
                       if f.fname <> f'.fname then 
-                        ignore (warn "Expected initializer for field %s and found one for %s" f.fname f'.fname);
+                        ignore (warn "Expected initializer for field %s and found one for %s\n" f.fname f'.fname);
                       checkInitType i f.ftype;
                       loopFields restf resti
                   | [], _ :: _ -> 
@@ -711,7 +708,7 @@ and checkStmt (s: stmt) =
                   !gref.labels with
               Label (lab, _, _) :: _ -> lab
             | _ -> 
-                ignore (warn "Goto to block without a label");
+                ignore (warn "Goto to block without a label\n");
                 "<missing label>"
           in
           (* Remember it as a target *)
@@ -781,8 +778,6 @@ and checkBlock (b: block) : unit =
 
 
 and checkInstr (i: instr) = 
-  if !ignoreInstr i then ()
-  else
   match i with 
   | Set (dest, e, l) -> 
       currentLoc := l;
@@ -993,9 +988,7 @@ let checkFile flags fl =
   valid := true;
   List.iter 
     (function
-        NoCheckGlobalIds -> checkGlobalIds := false
-      | IgnoreInstructions f -> ignoreInstr := f
-    )
+        NoCheckGlobalIds -> checkGlobalIds := false)
     flags;
   iterGlobals fl (fun g -> try checkGlobal g with _ -> ());
   (* Check that for all struct/union tags there is a definition *)

@@ -74,8 +74,6 @@
   #              projects defined in the Makefile. 
   # MLYS       - a list of all .mly (ocamlyacc input) files for all 
   #              projects defined in the Makefile. 
-  # CP4S       - a list of all .p4 (ocamlp4 input) files for all 
-  #              projects defined in the Makefile. 
   # ECHO       - if specifically set to nothing then it will print 
   #              all of the commands issued. Set this in the command line
   #              if you want to see what is going on.
@@ -174,14 +172,8 @@
 CAMLLEX = ocamllex
 CAMLYACC= ocamlyacc -v
 CAMLDEP = ocamldep
-CAMLP4 = camlp4 pa_o.cmo pa_op.cmo pr_o.cmo
 
-# Internal versions of COMPILEFLAGS and LINKFLAGS.  We'll add additional flags
-# to these.
-COMPILE_FLAGS := $(COMPILEFLAGS)
-LINK_FLAGS    := $(LINKFLAGS)
-
-COMPILE_FLAGS += -I $(OBJDIR)
+COMPILEFLAGS += -dtypes -I $(OBJDIR)
 
 # sm: two styles for echoing compilation progress:
 #   style 1, by George:
@@ -216,7 +208,7 @@ else
 endif
 
 ifdef PREPROC
-  COMPILE_FLAGS  += -pp "$(PREPROC)"
+  COMPILEFLAGS += -pp "$(PREPROC)$"
   DEPFLAGS += -pp "$(PREPROC)"
 endif
 
@@ -237,21 +229,21 @@ export EXE
 
 ifdef NATIVECAML
  ifdef PROFILE
-   COMPILE_FLAGS  += -p
-   LINK_FLAGS     += -p
+   COMPILEFLAGS   += -p
+   LINKFLAGS      += -p
    COMPILEMSG     += (profile)
    LINKMSG        += (profile)
  endif
  ifdef ASSEMBLY
-   COMPILE_FLAGS  += -S
+   COMPILEFLAGS   += -S
  endif
  ifdef STATIC
-   COMPILE_FLAGS  += -ccopt -static
-   LINK_FLAGS     += -ccopt -static
+   COMPILEFLAGS   += -ccopt -static
+   LINKFLAGS      += -ccopt -static
  endif
  #foo := $(shell echo "I am in NATIVECAML mode" >&2; echo whatever)
- CAMLC          = $(CAMLDIR)ocamlopt  $(COMPILE_FLAGS)
- CAMLLINK       = $(CAMLDIR)ocamlopt  $(LINK_FLAGS)
+ CAMLC          = $(CAMLDIR)ocamlopt  $(COMPILEFLAGS)
+ CAMLLINK       = $(CAMLDIR)ocamlopt  $(LINKFLAGS)
  CMO            = cmx
  CMC            = opt.$(OBJ)  # compiled (and optimized) C
  CMXA           = cmxa
@@ -271,8 +263,8 @@ else
  EXEEXT         = .byte
  MOVEAFTERCAMLC = cmi cmo
  COMPILETOWHAT  = bytecode
- CAMLC          = $(CAMLDIR)ocamlc $(COMPILE_FLAGS)
- CAMLLINK       = $(CAMLDIR)ocamlc -custom  $(LINK_FLAGS)
+ CAMLC          = $(CAMLDIR)ocamlc $(COMPILEFLAGS)
+ CAMLLINK       = $(CAMLDIR)ocamlc -custom  $(LINKFLAGS)
  CAML_NOOPT     = 1
 endif
 
@@ -283,21 +275,17 @@ endif
 
 ifdef CAML_NOOPT
  ifdef WIN32
-   COMPILE_FLAGS    += -ccopt /Zi -ccopt /Od
-   LINK_FLAGS       += -ccopt /Zi -ccopt /Od
+   COMPILEFLAGS += -ccopt /Zi -ccopt /Od
+   LINKFLAGS    += -ccopt /Zi -ccopt /Od
  else
-   COMPILE_FLAGS    += -g -ccopt -g
-   ifdef MINGW
-     LINK_FLAGS       += -g
-   else
-     LINK_FLAGS       += -g -ccopt -g
-   endif
+   COMPILEFLAGS += -g -ccopt -g
+   LINKFLAGS    += -g -ccopt -g
  endif
 else
   ifdef WIN32
-    COMPILE_FLAGS   += -ccopt /Ox
+    COMPILEFLAGS    += -ccopt /Ox
   else
-    COMPILE_FLAGS   += -ccopt -O3
+    COMPILEFLAGS    += -ccopt -O3
   endif
 endif
 
@@ -309,8 +297,6 @@ vpath %.mly $(SOURCEDIRS)
 vpath %.ml  $(SOURCEDIRS) $(OBJDIR)
 vpath %.mli $(SOURCEDIRS) $(OBJDIR)
 vpath %.c   $(SOURCEDIRS)
-vpath %.p4  $(SOURCEDIRS)
-
 
 
 #  Secondaries are intermediates that we don't want make to delete
@@ -318,8 +304,7 @@ vpath %.p4  $(SOURCEDIRS)
 #  them if they are not already made. VERY USEFUL!!
 
 MLL_LYS:= $(MLLS:%.mll=$(OBJDIR)/%.ml)  \
-          $(MLYS:%.mly=$(OBJDIR)/%.ml) $(MLYS:%.mly=$(OBJDIR)/%.mli) \
-          $(CP4S:%.p4=$(OBJDIR)/%.ml)
+          $(MLYS:%.mly=$(OBJDIR)/%.ml) $(MLYS:%.mly=$(OBJDIR)/%.mli)
 
 .SECONDARY : $(MLL_LYS)
 
@@ -341,14 +326,7 @@ $(OBJDIR)/%.ml $(OBJDIR)/%.mli: %.mly
 	$(CAMLYACC) $(CAMLYACCFLAGS) $<
 	$(AT)mv -f $(basename $<).ml $(basename $<).mli $(OBJDIR)/
 
-$(OBJDIR)/%.ml: %.p4
-	$(CAMLP4) -impl $< > $@
-	$(ECHO)if test -f $(basename $<).mli ;then \
-		$(COMMAND) cp -f $(basename $<).mli $(OBJDIR); \
-		cp -f $(basename $<).mli $(OBJDIR) \
-       ;fi
-
-           # Compile an MLI file. After compilation move the result to OBJDIR
+         # Compile an MLI file. After compilation move the result to OBJDIR
 $(OBJDIR)/%.cmi: %.mli
 	@$(NARRATIVE) Compiling interface $<
 	$(AT)$(CAMLC) -c $<
@@ -412,9 +390,7 @@ cleancaml:
 	-rm -f $(MLLS:%.mll=$(OBJDIR)/%.ml) \
                $(MLLS:%.mll=$(OBJDIR)/%.mli) \
                $(MLYS:%.mly=$(OBJDIR)/%.ml) \
-               $(MLYS:%.mly=$(OBJDIR)/%.mli) \
-               $(CP4S:%.p4=$(OBJDIR)/%.ml)
-
+               $(MLYS:%.mly=$(OBJDIR)/%.mli)
 
 
 # Before we generate the dependencies, we must make sure to create all the 

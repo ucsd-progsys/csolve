@@ -36,7 +36,7 @@
  *)
 
 
-(* main.ml *)
+(* maincil *)
 (* this module is the program entry point for the 'cilly' program, *)
 (* which reads a C program file, parses it, translates it to the CIL *)
 (* intermediate language, and then renders that back into C *)
@@ -46,6 +46,7 @@ module C = Cil
 module CK = Check
 module E = Errormsg
 open Pretty
+open Trace
 
 type outfile = 
     { fname: string;
@@ -62,7 +63,7 @@ let parseOneFile (fname: string) : C.file =
   if (not !Epicenter.doEpicenter) then (
     (* sm: remove unused temps to cut down on gcc warnings  *)
     (* (Stats.time "usedVar" Rmtmps.removeUnusedTemps cil);  *)
-    (* (trace "sm" (dprintf "removing unused temporaries\n")); *)
+    (trace "sm" (dprintf "removing unused temporaries\n"));
     (Rmtmps.removeUnusedTemps cil)
   );
   cil
@@ -136,7 +137,7 @@ let rec processOneFile (cil: C.file) =
             if not (CK.checkFile [] cil) && !Cilutil.strictChecking then begin
               E.error ("Feature \"%s\" left CIL's internal data "
                        ^^"structures in an inconsistent state. "
-                       ^^"(See the warnings above)") fdesc.C.fd_name
+                       ^^"(See the warnings above)\n") fdesc.C.fd_name
             end
           end
         end)
@@ -202,7 +203,7 @@ let theMain () =
         [ 
           "--out", Arg.String (openFile "output" 
                                  (fun oc -> outChannel := Some oc)),
-              " the name of the output CIL file.\n\t\t\t\tThe cilly script sets this for you.";
+              " the name of the output CIL file.  The cilly script sets this for you.";
           "--mergedout", Arg.String (openFile "merged output"
                                        (fun oc -> mergedChannel := Some oc)),
               " specify the name of the merged file";
@@ -230,13 +231,13 @@ let theMain () =
       let one =
         match files with
           [one] -> one
-        | [] -> E.s (E.error "No arguments for CIL")
+        | [] -> E.s (E.error "No arguments for CIL\n")
         | _ ->
             let merged =
               Stats.time "merge" (Mergecil.merge files)
                 (if !outName = "" then "stdout" else !outName) in
             if !E.hadErrors then
-              E.s (E.error "There were errors during merging");
+              E.s (E.error "There were errors during merging\n");
             (* See if we must save the merged file *)
             (match !mergedChannel with
               None -> ()

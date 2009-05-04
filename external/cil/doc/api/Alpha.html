@@ -25,7 +25,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Alpha</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Alpha</title>
 </head>
 <body>
 <div class="navbar"><a href="Formatcil.html">Previous</a>
@@ -52,8 +52,8 @@ This is the type of the elements of the alpha renaming table. These
 
 <pre><span class="keyword">val</span> <a name="VALnewAlphaName"></a>newAlphaName : <code class="type">alphaTable:(string, 'a <a href="Alpha.html#TYPEalphaTableData">alphaTableData</a> ref) Hashtbl.t -><br>       undolist:'a <a href="Alpha.html#TYPEundoAlphaElement">undoAlphaElement</a> list ref option -><br>       lookupname:string -> data:'a -> string * 'a</code></pre><div class="info">
 Create a new name based on a given name. The new name is formed from a 
- prefix (obtained from the given name by stripping a suffix consisting of ___
- followed by up to 9 digits), followed by a special separator and then by a 
+ prefix (obtained from the given name by stripping a suffix consisting of _ 
+ followed by only digits), followed by a special separator and then by a 
  positive integer suffix. The first argument is a table mapping name 
  prefixes to some data that specifies what suffixes have been used and how 
  to create the new one. This function updates the table with the new 

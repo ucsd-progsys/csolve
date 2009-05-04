@@ -39,7 +39,7 @@ and oneSccInfo = {
   } 
 
 and sccInfo = oneSccInfo list 
-
+val compute_idom: cfgInfo -> idomInfo
 val add_ssa_info: cfgInfo -> unit
 val stronglyConnectedComponents: cfgInfo -> bool -> sccInfo 
 val prune_cfg: cfgInfo -> cfgInfo

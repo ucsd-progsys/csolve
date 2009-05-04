@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
-<META name="GENERATOR" content="hevea 1.10">
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.09">
 
 <base target="main">
 <script language="JavaScript">
@@ -21,7 +21,7 @@ function loadTop(url) {
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="cil002.html"><IMG SRC="next_motif.gif" ALT="Next"></A>
 <HR>
-<H2 CLASS="section"><A NAME="htoc1">1</A>&#XA0;&#XA0;Introduction</H2><P>CIL has a Source Forge page: 
+<H2 CLASS="section"><A NAME="htoc1">1</A>&#XA0;&#XA0;Introduction</H2><P>New: CIL now has a Source Forge page: 
 <A HREF="javascript:loadTop('http://sourceforge.net/projects/cil')">http://sourceforge.net/projects/cil</A>. </P><P>CIL (<B>C</B> <B>I</B>ntermediate <B>L</B>anguage) is a high-level representation
 along with a set of tools that permit easy analysis and source-to-source
 transformation of C programs.</P><P>CIL is both lower-level than abstract-syntax trees, by clarifying ambiguous
@@ -48,7 +48,7 @@ within function bodies. This structures the program in a manner more amenable
 to rapid analysis and transformation. CIL computes the types of all program
 expressions, and makes all type promotions and casts explicit. CIL supports
 all GCC and MSVC extensions except for nested functions and complex numbers.
-Finally, CIL organizes C&#X2019;s imperative features into expressions, instructions
+Finally, CIL organizes C's imperative features into expressions, instructions
 and statements based on the presence and absence of side-effects and
 control-flow. Every statement can be annotated with successor and predecessor
 information. Thus CIL provides an integrated program representation that can
@@ -76,7 +76,7 @@ they still run! We consider the compilation of Linux a major feat especially
 since Linux contains many of the ugly GCC extensions (see Section&#XA0;<A HREF="cil016.html#sec-ugly-gcc">16.2</A>).
 This adds to about 1,000,000 lines of code that we tested it on. It is also
 able to process the few Microsoft NT device drivers that we have had access
-to. CIL was tested against GCC&#X2019;s c-torture testsuite and (except for the tests
+to. CIL was tested against GCC's c-torture testsuite and (except for the tests
 involving complex numbers and inner functions, which CIL does not currently
 implement) CIL passes most of the tests. Specifically CIL fails 23 tests out
 of the 904 c-torture tests that it should pass. GCC itself fails 19 tests. A
