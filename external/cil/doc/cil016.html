@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -22,7 +22,7 @@ function loadTop(url) {
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="cil017.html"><IMG SRC="next_motif.gif" ALT="Next"></A>
 <HR>
-<H2 CLASS="section"><A NAME="htoc44">16</A>&#XA0;&#XA0;Who Says C is Simple?</H2><P><A NAME="sec-simplec"></A></P><P>When I (George) started to write CIL I thought it was going to take two weeks.
+<H2 CLASS="section"><A NAME="htoc50">16</A>&#XA0;&#XA0;Who Says C is Simple?</H2><P><A NAME="sec-simplec"></A></P><P>When I (George) started to write CIL I thought it was going to take two weeks.
 Exactly a year has passed since then and I am still fixing bugs in it. This
 gross underestimate was due to the fact that I thought parsing and making
 sense of C is simple. You probably think the same. What I did not expect was
@@ -31,10 +31,10 @@ real-world programs such as those written for GCC or if you are more ambitious
 and you want to parse the Linux or Windows NT sources (both of these were
 written without any respect for the standard and with the expectation that
 compilers will be changed to accommodate the program). </P><P>The following examples were actually encountered either in real programs or
-are taken from the ISO C99 standard or from the GCC's testcases. My first
+are taken from the ISO C99 standard or from the GCC&#X2019;s testcases. My first
 reaction when I saw these was: <EM>Is this C?</EM>. The second one was : <EM>What the hell does it mean?</EM>. </P><P>If you are contemplating doing program analysis for C on abstract-syntax
 trees then your analysis ought to be able to handle these things. Or, you can
-use CIL and let CIL translate them into clean C code. </P><H3 CLASS="subsection"><A NAME="toc26"></A><A NAME="htoc45">16.1</A>&#XA0;&#XA0;Standard C</H3><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">Why does the following code return 0 for most values of <TT>x</TT>? (This
+use CIL and let CIL translate them into clean C code. </P><H3 CLASS="subsection"><A NAME="toc32"></A><A NAME="htoc51">16.1</A>&#XA0;&#XA0;Standard C</H3><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">Why does the following code return 0 for most values of <TT>x</TT>? (This
 should be easy.)<PRE CLASS="verbatim"><FONT COLOR=blue>  int x;
   return x == (1 &amp;&amp; x);
 </FONT></PRE><P>
@@ -131,7 +131,7 @@ precedence you give to casts and unary minus:
 See the <A HREF="examples/ex38.txt">CIL output</A> for this
 code fragment<P>The correct interpretation is <TT>((unsigned long) - 1) / 8</TT>, which is a
 relatively large number, as opposed to <TT>(unsigned long) (- 1 / 8)</TT>, which
-is 0. </P></LI></OL><H3 CLASS="subsection"><A NAME="toc27"></A><A NAME="htoc46">16.2</A>&#XA0;&#XA0;GCC ugliness</H3><P><A NAME="sec-ugly-gcc"></A></P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">GCC has generalized lvalues. You can take the address of a lot of
+is 0. </P></LI></OL><H3 CLASS="subsection"><A NAME="toc33"></A><A NAME="htoc52">16.2</A>&#XA0;&#XA0;GCC ugliness</H3><P><A NAME="sec-ugly-gcc"></A></P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">GCC has generalized lvalues. You can take the address of a lot of
 strange things:<PRE CLASS="verbatim"><FONT COLOR=blue>  int x, y, z;
   return &amp;(x ? y : z) - &amp; (x++, x);
 </FONT></PRE><P>
@@ -222,7 +222,7 @@ function pointing to the specified target.
     int foo(int x, char y) __attribute__((alias("bar")));
 </FONT></PRE>
 See the <A HREF="examples/ex46.txt">CIL output</A> for this
-code fragment</LI></OL><H3 CLASS="subsection"><A NAME="toc28"></A><A NAME="htoc47">16.3</A>&#XA0;&#XA0;Microsoft VC ugliness</H3><P>This compiler has few extensions, so there is not much to say here.</P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+code fragment</LI></OL><H3 CLASS="subsection"><A NAME="toc34"></A><A NAME="htoc53">16.3</A>&#XA0;&#XA0;Microsoft VC ugliness</H3><P>This compiler has few extensions, so there is not much to say here.</P><OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
 Why does the following code return 0 and not -1? (Answer: because of a
 bug in Microsoft Visual C. It thinks that the shift is unsigned just because
 the second operator is unsigned. CIL reproduces this bug when in MSVC mode.)<PRE CLASS="verbatim"><FONT COLOR=blue> return -3 &gt;&gt; (8 * sizeof(int));

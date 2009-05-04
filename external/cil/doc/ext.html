@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -22,20 +22,20 @@ function loadTop(url) {
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="cil009.html"><IMG SRC="next_motif.gif" ALT="Next"></A>
 <HR>
-<H2 CLASS="section"><A NAME="htoc19">8</A>&#XA0;&#XA0;Library of CIL Modules</H2><P> <A NAME="sec-Extension"></A></P><P>We are developing a suite of modules that use CIL for program analyses and
+<H2 CLASS="section"><A NAME="htoc20">8</A>&#XA0;&#XA0;Library of CIL Modules</H2><P> <A NAME="sec-Extension"></A></P><P>We are developing a suite of modules that use CIL for program analyses and
 transformations that we have found useful. You can use these modules directly
 on your code, or generally as inspiration for writing similar modules. A
 particularly big and complex application written on top of CIL is CCured
-(<A HREF="../ccured/index.html"><TT>../ccured/index.html</TT></A>).</P><H3 CLASS="subsection"><A NAME="toc11"></A><A NAME="htoc20">8.1</A>&#XA0;&#XA0;Control-Flow Graphs</H3><P> <A NAME="sec-cfg"></A></P><P>The <A HREF="api/Cil.html#TYPEstmt">Cil.stmt</A> datatype includes fields for intraprocedural
+(<A HREF="../ccured/index.html"><TT>../ccured/index.html</TT></A>).</P><H3 CLASS="subsection"><A NAME="toc12"></A><A NAME="htoc21">8.1</A>&#XA0;&#XA0;Control-Flow Graphs</H3><P> <A NAME="sec-cfg"></A></P><P>The <A HREF="api/Cil.html#TYPEstmt">Cil.stmt</A> datatype includes fields for intraprocedural
 control-flow information: the predecessor and successor statements of
 the current statement. This information is not computed by default.
 If you want to use the control-flow graph, or any of the extensions in
 this section that require it, you have to explicitly ask CIL to
-compute the CFG using one of these two methods:</P><H4 CLASS="subsubsection"><A NAME="htoc21">8.1.1</A>&#XA0;&#XA0;The CFG module (new in CIL 1.3.5)</H4><P>The best way to compute the CFG is with the CFG module. Just invoke
+compute the CFG using one of these two methods:</P><H4 CLASS="subsubsection"><A NAME="htoc22">8.1.1</A>&#XA0;&#XA0;The CFG module (new in CIL 1.3.5)</H4><P>The best way to compute the CFG is with the CFG module. Just invoke
 <A HREF="api/Cfg.html#VALcomputeFileCFG">Cfg.computeFileCFG</A> on your file. The <A HREF="api/Cfg.html">Cfg</A> API
 describes the rest of actions you can take with this module, including
 computing the CFG for one function at a time, or printing the CFG in
-<TT>dot</TT> form.</P><H4 CLASS="subsubsection"><A NAME="htoc22">8.1.2</A>&#XA0;&#XA0;Simplified control flow</H4><P>CIL can reduce high-level C control-flow constructs like <TT>switch</TT> and
+<TT>dot</TT> form.</P><H4 CLASS="subsubsection"><A NAME="htoc23">8.1.2</A>&#XA0;&#XA0;Simplified control flow</H4><P>CIL can reduce high-level C control-flow constructs like <TT>switch</TT> and
 <TT>continue</TT> to lower-level <TT>goto</TT>s. This completely eliminates some
 possible classes of statements from the program and may make the result
 easier to analyze (e.g., it simplifies data-flow analysis).</P><P>You can invoke this transformation on the command line with
@@ -56,12 +56,12 @@ transforms the following code (note the fall-through in case 1): </P><PRE CLASS=
   }
 </FONT></PRE><P>
 See the <A HREF="examples/ex23.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc12"></A><A NAME="htoc23">8.2</A>&#XA0;&#XA0;Data flow analysis framework</H3><P>The <A HREF="api/Dataflow.html">Dataflow</A> module (click for the ocamldoc) contains a
+code fragment</P><H3 CLASS="subsection"><A NAME="toc13"></A><A NAME="htoc24">8.2</A>&#XA0;&#XA0;Data flow analysis framework</H3><P>The <A HREF="api/Dataflow.html">Dataflow</A> module (click for the ocamldoc) contains a
 parameterized framework for forward and backward data flow
 analyses. You provide the transfer functions and this module does the
 analysis. You must compute control-flow information (Section&#XA0;<A HREF="#sec-cfg">8.1</A>)
-before invoking the Dataflow module.</P><H3 CLASS="subsection"><A NAME="toc13"></A><A NAME="htoc24">8.3</A>&#XA0;&#XA0;Dominators</H3><P>The module <A HREF="api/Dominators.html">Dominators</A> contains the computation of immediate
-dominators. It uses the <A HREF="api/Dataflow.html">Dataflow</A> module. </P><H3 CLASS="subsection"><A NAME="toc14"></A><A NAME="htoc25">8.4</A>&#XA0;&#XA0;Points-to Analysis</H3><P>The module <TT>ptranal.ml</TT> contains two interprocedural points-to
+before invoking the Dataflow module.</P><H3 CLASS="subsection"><A NAME="toc14"></A><A NAME="htoc25">8.3</A>&#XA0;&#XA0;Inliner</H3><P>The file ext/inliner.ml contains a function inliner. </P><H3 CLASS="subsection"><A NAME="toc15"></A><A NAME="htoc26">8.4</A>&#XA0;&#XA0;Dominators</H3><P>The module <A HREF="api/Dominators.html">Dominators</A> contains the computation of immediate
+dominators. It uses the <A HREF="api/Dataflow.html">Dataflow</A> module. </P><H3 CLASS="subsection"><A NAME="toc16"></A><A NAME="htoc27">8.5</A>&#XA0;&#XA0;Points-to Analysis</H3><P>The module <TT>ptranal.ml</TT> contains two interprocedural points-to
 analyses for CIL: <TT>Olf</TT> and <TT>Golf</TT>. <TT>Olf</TT> is the default.
 (Switching from <TT>olf.ml</TT> to <TT>golf.ml</TT> requires a change in
 <TT>Ptranal</TT> and a recompiling <TT>cilly</TT>.)</P><P>The analyses have the following characteristics:
@@ -117,8 +117,11 @@ Make the most pessimistic assumptions about globals if an undefined
 function is present. Such a function can write to every global
 variable. Commandline option: <B>--ptr_conservative</B>
 </LI></UL><P>In practice, the best precision/efficiency tradeoff is achieved by
-setting <TT>Ptranal.no_sub</TT> to <TT>false</TT>, <TT>Ptranal.analyze_mono</TT> to
-<TT>true</TT>, and <TT>Ptranal.smart_aliases</TT> to <TT>false</TT>. These are the
+setting 
+</P><PRE CLASS="verbatim">  Ptranal.no_sub = false
+  Ptranal.analyze_mono = true
+  Ptranal.smart_aliases = false
+</PRE><P>These are the
 default values of the flags.</P><P>There are also a few flags that can be used to inspect or serialize
 the results of the analysis.
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
@@ -138,7 +141,7 @@ recursive types, so the print routine does not loop.
 If <TT>true</TT>, the analysis will print out the points-to set of each
 variable in the program. This will essentially serialize the
 points-to graph.
-</LI></UL><H3 CLASS="subsection"><A NAME="toc15"></A><A NAME="htoc26">8.5</A>&#XA0;&#XA0;StackGuard</H3><P>The module <TT>heapify.ml</TT> contains a transformation similar to the one
+</LI></UL><H3 CLASS="subsection"><A NAME="toc17"></A><A NAME="htoc28">8.6</A>&#XA0;&#XA0;StackGuard</H3><P>The module <TT>heapify.ml</TT> contains a transformation similar to the one
 described in &#X201C;StackGuard: Automatic Adaptive Detection and Prevention of
 Buffer-Overflow Attacks&#X201D;, <EM>Proceedings of the 7th USENIX Security
 Conference</EM>. In essence it modifies the program to maintain a separate
@@ -157,7 +160,7 @@ transforms the following dangerous code: </P><PRE CLASS="verbatim"><FONT COLOR=b
   }
 </FONT></PRE><P>
 See the <A HREF="examples/ex24.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc16"></A><A NAME="htoc27">8.6</A>&#XA0;&#XA0;Heapify</H3><P>The module <TT>heapify.ml</TT> also contains a transformation that moves all
+code fragment</P><H3 CLASS="subsection"><A NAME="toc18"></A><A NAME="htoc29">8.7</A>&#XA0;&#XA0;Heapify</H3><P>The module <TT>heapify.ml</TT> also contains a transformation that moves all
 dangerous local arrays to the heap. This also prevents a number of buffer
 overruns. </P><P>For a concrete example, you can see how <TT>cilly --doheapify</TT>
 transforms the following dangerous code: </P><PRE CLASS="verbatim"><FONT COLOR=blue>  int dangerous() {
@@ -170,7 +173,7 @@ transforms the following dangerous code: </P><PRE CLASS="verbatim"><FONT COLOR=b
   }
 </FONT></PRE><P>
 See the <A HREF="examples/ex25.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc17"></A><A NAME="htoc28">8.7</A>&#XA0;&#XA0;One Return</H3><P>The module <TT>oneret.ml</TT> contains a transformation the ensures that all
+code fragment</P><H3 CLASS="subsection"><A NAME="toc19"></A><A NAME="htoc30">8.8</A>&#XA0;&#XA0;One Return</H3><P>The module <TT>oneret.ml</TT> contains a transformation the ensures that all
 function bodies have at most one return statement. This simplifies a number
 of analyses by providing a canonical exit-point. </P><P>For a concrete example, you can see how <TT>cilly --dooneRet</TT>
 transforms the following code: </P><PRE CLASS="verbatim"><FONT COLOR=blue>  int foo (int predicate) {
@@ -184,7 +187,7 @@ transforms the following code: </P><PRE CLASS="verbatim"><FONT COLOR=blue>  int 
   }
 </FONT></PRE><P>
 See the <A HREF="examples/ex26.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc18"></A><A NAME="htoc29">8.8</A>&#XA0;&#XA0;Partial Evaluation and Constant Folding</H3><P>The <TT>partial.ml</TT> module provides a simple interprocedural partial
+code fragment</P><H3 CLASS="subsection"><A NAME="toc20"></A><A NAME="htoc31">8.9</A>&#XA0;&#XA0;Partial Evaluation and Constant Folding</H3><P>The <TT>partial.ml</TT> module provides a simple interprocedural partial
 evaluation and constant folding data-flow analysis and transformation.
 This transformation always requires the <TT>--domakeCFG</TT> option. It
 performs:
@@ -214,7 +217,7 @@ participate in the partial evaluation.
 Name of the function where the simplification starts. Default:
 <TT>main</TT>.
 </LI><LI CLASS="li-itemize"><TT>--partial_use_easy_alias</TT>
-Use Partial's built-in easy alias to analyze pointers. This is the
+Use Partial&#X2019;s built-in easy alias to analyze pointers. This is the
 default.
 </LI><LI CLASS="li-itemize"><TT>--partial_use_ptranal_alias</TT>
 Use feature Ptranal to analyze pointers. Setting this option
@@ -244,7 +247,7 @@ partial optimization of <TT>foo</TT>):</P><PRE CLASS="verbatim"><FONT COLOR=blue
   }
 </FONT></PRE><P>
 See the <A HREF="examples/ex27.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc19"></A><A NAME="htoc30">8.9</A>&#XA0;&#XA0;Reaching Definitions</H3><P>The <TT>reachingdefs.ml</TT> module uses the dataflow framework and CFG
+code fragment</P><H3 CLASS="subsection"><A NAME="toc21"></A><A NAME="htoc32">8.10</A>&#XA0;&#XA0;Reaching Definitions</H3><P>The <TT>reachingdefs.ml</TT> module uses the dataflow framework and CFG
 information to calculate the definitions that reach each
 statement. After computing the CFG (Section&#XA0;<A HREF="#sec-cfg">8.1</A>) and calling
 <TT>computeRDs</TT> on a 
@@ -276,7 +279,7 @@ either into or out of that instruction.
 can be extended such that the current reaching definition
 data is available when expressions are visited through
 the <TT>get_cur_iosh</TT> method of the class.
-</LI></UL><H3 CLASS="subsection"><A NAME="toc20"></A><A NAME="htoc31">8.10</A>&#XA0;&#XA0;Available Expressions</H3><P>The <TT>availexps.ml</TT> module uses the dataflow framework and CFG
+</LI></UL><H3 CLASS="subsection"><A NAME="toc22"></A><A NAME="htoc33">8.11</A>&#XA0;&#XA0;Available Expressions</H3><P>The <TT>availexps.ml</TT> module uses the dataflow framework and CFG
 information to calculate something similar to a traditional available
 expressions analysis. After <TT>computeAEs</TT> is called following a CFG
 calculation (Section&#XA0;<A HREF="#sec-cfg">8.1</A>), <TT>AvailableExps.stmtStartData</TT> will
@@ -304,7 +307,7 @@ on entering or exiting each instruction.
 can be extended such that the current available expressions
 data is available when expressions are visited through the
 <TT>get_cur_eh</TT> method of the class.
-</LI></UL><H3 CLASS="subsection"><A NAME="toc21"></A><A NAME="htoc32">8.11</A>&#XA0;&#XA0;Liveness Analysis</H3><P>The <TT>liveness.ml</TT> module uses the dataflow framework and
+</LI></UL><H3 CLASS="subsection"><A NAME="toc23"></A><A NAME="htoc34">8.12</A>&#XA0;&#XA0;Liveness Analysis</H3><P>The <TT>liveness.ml</TT> module uses the dataflow framework and
 CFG information to calculate which variables are live at
 each program point. After <TT>computeLiveness</TT> is called
 following a CFG calculation (Section&#XA0;<A HREF="#sec-cfg">8.1</A>), <TT>LiveFlow.stmtStartData</TT> will
@@ -327,7 +330,7 @@ liveness data is of interest. If <TT>--live_label</TT> is ommitted,
 then data for each statement is printed.
 </LI><LI CLASS="li-itemize"><TT>--live_label</TT> &#X2013; The name of the label at which
 the liveness data will be printed.
-</LI></UL><H3 CLASS="subsection"><A NAME="toc22"></A><A NAME="htoc33">8.12</A>&#XA0;&#XA0;Dead Code Elimination</H3><P>The module <TT>deadcodeelim.ml</TT> uses the reaching definitions
+</LI></UL><H3 CLASS="subsection"><A NAME="toc24"></A><A NAME="htoc35">8.13</A>&#XA0;&#XA0;Dead Code Elimination</H3><P>The module <TT>deadcodeelim.ml</TT> uses the reaching definitions
 analysis to eliminate assignment instructions whose results
 are not used. The interface is as follows:</P><UL CLASS="itemize"><LI CLASS="li-itemize">
 <TT>elim_dead_code</TT> &#X2013; Performs dead code elimination
@@ -336,7 +339,7 @@ been computed (Section&#XA0;<A HREF="#sec-cfg">8.1</A>).
 </LI><LI CLASS="li-itemize"><TT>dce</TT> &#X2013; Performs dead code elimination on an
 entire file. Requires that CFG information has already
 been computed.
-</LI></UL><H3 CLASS="subsection"><A NAME="toc23"></A><A NAME="htoc34">8.13</A>&#XA0;&#XA0;Simple Memory Operations</H3><P>The <TT>simplemem.ml</TT> module allows CIL lvalues that contain memory
+</LI></UL><H3 CLASS="subsection"><A NAME="toc25"></A><A NAME="htoc36">8.14</A>&#XA0;&#XA0;Simple Memory Operations</H3><P>The <TT>simplemem.ml</TT> module allows CIL lvalues that contain memory
 accesses to be even futher simplified via the introduction of
 well-typed temporaries. After this transformation all lvalues involve
 at most one memory reference.</P><P>For a concrete example, you can see how <TT>cilly --dosimpleMem</TT> 
@@ -347,7 +350,7 @@ transforms the following code:</P><PRE CLASS="verbatim"><FONT COLOR=blue>  int m
   } 
 </FONT></PRE><P>
 See the <A HREF="examples/ex28.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc24"></A><A NAME="htoc35">8.14</A>&#XA0;&#XA0;Simple Three-Address Code</H3><P>The <TT>simplify.ml</TT> module further reduces the complexity of program
+code fragment</P><H3 CLASS="subsection"><A NAME="toc26"></A><A NAME="htoc37">8.15</A>&#XA0;&#XA0;Simple Three-Address Code</H3><P>The <TT>simplify.ml</TT> module further reduces the complexity of program
 expressions and gives you a form of three-address code. After this
 transformation all expressions will adhere to the following grammar: 
 </P><PRE CLASS="verbatim"> basic::=
@@ -387,7 +390,7 @@ transforms the following code:</P><PRE CLASS="verbatim"><FONT COLOR=blue>  int m
   } 
 </FONT></PRE><P>
 See the <A HREF="examples/ex29.txt">CIL output</A> for this
-code fragment</P><H3 CLASS="subsection"><A NAME="toc25"></A><A NAME="htoc36">8.15</A>&#XA0;&#XA0;Converting C to C++</H3><P>The module canonicalize.ml performs several transformations to correct
+code fragment</P><H3 CLASS="subsection"><A NAME="toc27"></A><A NAME="htoc38">8.16</A>&#XA0;&#XA0;Converting C to C++</H3><P>The module canonicalize.ml performs several transformations to correct
 differences between C and C++, so that the output is (hopefully) valid
 C++ code. This may be incomplete &#X2014; certain fixes which are necessary
 for some programs are not yet implemented.</P><P>Using the <TT>--doCanonicalize</TT> option with CIL will perform the
@@ -404,8 +407,22 @@ from the function pointer to a type that matches the arguments. Of
 course, this does nothing to guarantee that the pointer actually has
 that type.
 </LI><LI CLASS="li-enumerate">Makes casts from int to enum types explicit. (CIL changes enum
-constants to int constants, but doesn't use a cast.)
-</LI></OL><HR>
+constants to int constants, but doesn&#X2019;t use a cast.)
+</LI></OL><H3 CLASS="subsection"><A NAME="toc28"></A><A NAME="htoc39">8.17</A>&#XA0;&#XA0;Generating LLVM code (new in 1.3.7)</H3><P>The llvm.ml module generates LLVM (&#X201C;Low Level Virtual Machine&#X201D;,
+<A HREF="javascript:loadTop('http://llvm.org')">http://llvm.org</A>) code from a CIL file. The
+current version only targets 32-bit x86 code (as of version 2.5,
+LLVM&#X2019;s 64-bit x86 support is still incomplete), and has a few significant
+limitations:
+</P><UL CLASS="itemize"><LI CLASS="li-itemize">
+No support for bitfields.
+</LI><LI CLASS="li-itemize">No support for inline assembly.
+</LI><LI CLASS="li-itemize">Ignores gcc pragmas and attributes (except those explicitly handled by CIL).
+</LI><LI CLASS="li-itemize">No support for variable-sized types.
+</LI></UL><P>LLVM support is enabled by running <TT>configure</TT> with the
+<TT>--with-llvm</TT> option before compiling CIL. You can then convert C
+code to LLVM assembly with <TT>cilly --dollvm somefile.c</TT>. Or you can
+call <TT>Llvm.generate</TT> on a CIL file to get LLVM assembly as a <TT>doc</TT>
+string.</P><HR>
 <A HREF="cil007.html"><IMG SRC="previous_motif.gif" ALT="Previous"></A>
 <A HREF="ciltoc.html"><IMG SRC="contents_motif.gif" ALT="Up"></A>
 <A HREF="cil009.html"><IMG SRC="next_motif.gif" ALT="Next"></A>

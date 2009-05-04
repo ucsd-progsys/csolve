@@ -60,6 +60,9 @@ use TempFile;
 
 $Cilly::savedSourceExt = "_saved.c";
 
+$Cilly::m32model = "nogcc32model";
+$Cilly::m64model = "nogcc64model";
+
 # Pass to new a list of command arguments
 sub new {
     my ($proto, @args) = @_;
@@ -77,7 +80,6 @@ sub new {
       LINKARGS => [],  # Linker args
       NATIVECAML => 1, # this causes the native code boxer to be used
       RELEASELIB => 0, # if true, use the release runtime library (if any)
-      # IDASHI => 1,     # if true, pass "-I-" to gcc's preprocessor
       IDASHDOT => 1,   # if true, pass "-I." to gcc's preprocessor
       VERBOSE => 0,    # when true, print extra detail
       TRACE_COMMANDS => 1, # when true, echo commands being run
@@ -94,12 +96,17 @@ sub new {
         exit 0;
     }
     # Look for the --mode argument first. If not found it is GCC
+    # Also parse the --gcc option which overrides the C compiler name
+    # (currently only used in the gcc case)
     my $mode = $::default_mode;
     {
         my @args1 = ();
         foreach my $arg (@args) {
             if($arg =~ m|--mode=(.+)$|) {
                 $mode = $1;
+	    }
+            elsif($arg =~ m|--gcc=(.+)$|) {
+                $::cc = $1;
             } else {
                 push @args1, $arg;
             }
@@ -276,9 +283,6 @@ sub collectOneArgument {
     if($arg eq "--bytecode") {
         $self->{NATIVECAML} = 0; return 1;
     }
-#     if($arg eq "--no-idashi") {
-#         $self->{IDASHI} = 0; return 1;
-#     }
     if($arg eq "--no-idashdot") {
         $self->{IDASHDOT} = 0; return 1;
     }
@@ -355,6 +359,13 @@ sub printVersion {
 sub printHelp {
     my($self) = @_;
     $self->usage();
+    my $nomergeisDefault = "";
+    my $mergeisDefault = "";
+    if ($::default_is_merge) {
+        $mergeisDefault = "\n               This is the default.";
+    } else {
+        $nomergeisDefault = "\n               This is the default.";
+    }
     print <<EOF;
 
 Options:
@@ -371,9 +382,8 @@ Options:
   --save-temps Keep temporary files in the current directory.
   --save-temps=xxx Keep temporary files in the given directory.
   
-  --nomerge    Apply CIL separately to each source file as they are compiled. 
-               By default CIL is applied to the whole program during linking.
-  --merge      Apply CIL to the merged program.
+  --nomerge    Apply CIL separately to each source file as they are compiled.$nomergeisDefault
+  --merge      Apply CIL to the merged program.$mergeisDefault
   --keepmerged  Save the merged file. Only useful if --nomerge is not given.
   --trueobj          Do not write preprocessed sources in .obj/.o files but
                      create some other files (e.g. foo.o_saved.c).
@@ -389,7 +399,6 @@ Options:
                      well the /P file
 
 EOF
-#   --no-idashi        Do not use '-I-' with the gcc preprocessor.
     $self->helpMessage();
 }
 
@@ -532,7 +541,7 @@ sub preprocess_compile {
         if($self->leaveAlone($src)) {
             print "Leaving alone $src\n";
             # We leave this alone. So just compile as usual
-            return $self->straight_compile($src, $dest, $early_ppargs, $ppargs, $ccargs);
+            return $self->straight_compile($src, $dest, [@{$early_ppargs}, @{$ppargs}], $ccargs);
         }
         my $out    = $self->preprocessOutputFile($src);
         $out = $self->preprocess($src, $out, 
@@ -889,8 +898,9 @@ sub link {
           return 0;   # sm: is this value used??
         }
     }
-    my $mergedobj = new OutputFile($destname, 
-                                   "${destname}_comb.$self->{OBJEXT}");
+    my $outname = ($self->{OPERATION} eq "TOASM") ? $destname 
+        : "${destname}_comb.$self->{OBJEXT}";
+    my $mergedobj = new OutputFile($destname, $outname);
 
     # We must merge
     if($self->{VERBOSE}) { 
@@ -929,6 +939,16 @@ sub link {
       DoMerge:
         $self->applyCilAndCompile($tomerge, $mergedobj, $ppargs, $ccargs);
     }
+    
+    if ($self->{OPERATION} eq "TOASM") {
+        if (@{$trueobjs} != ()) {
+            die "Error: binary file passed as input when assembly desired".
+                " for the output."
+        }
+        # Don't use ld on assembly files.  The -S in CCARGS has already
+        # generated the right format of output.
+	return;
+     }
 
     # Put the merged OBJ at the beginning because maybe some of the trueobjs
     # are libraries which like to be at the end
@@ -1105,7 +1125,9 @@ sub doit {
     # Now do the assembly language file
     foreach $file (@{$self->{SFILES}}) {
         $out = $self->assembleOutputFile($file);
-        $self->assemble($file, $out, $self->{PPARGS}, $self->{CCARGS});
+        $self->assemble($file, $out, 
+                        $self->{EARLY_PPARGS}, 
+                        $self->{PPARGS}, $self->{CCARGS});
         push @tolink, $out;
     }
     # Now add the original object files. Put them last because libraries like
@@ -1114,6 +1136,9 @@ sub doit {
 
     # See if we must stop after compilation
     if($self->{OPERATION} eq "TOOBJ") {
+        return;
+    }
+    if(($self->{OPERATION} eq "TOASM") && $self->{SEPARATE}) {
         return;
     }
 
@@ -1143,7 +1168,7 @@ sub doit {
     }
 
     # Now link all of the files into an executable
-    if($self->{OPERATION} eq "TOEXE") {
+    if($self->{OPERATION} eq "TOEXE" || $self->{OPERATION} eq "TOASM") {
         $out = $self->linkOutputFile(@tolink);
         $self->link(\@tolink,  $out, 
                     $self->{PPARGS}, $self->{CCARGS}, $self->{LINKARGS});
@@ -1894,58 +1919,104 @@ sub new {
       LINEPATTERN => "^#\\s+(\\d+)\\s+\"(.+)\"",
       
       OPTIONS => 
-          [ "[^-].*\\.($::cilbin|c|cpp|cc)\$" => { TYPE => 'CSOURCE' },
+          [ # Files
+            "[^-].*\\.($::cilbin|c|cpp|cc)\$" => { TYPE => 'CSOURCE' },
             "[^-].*\\.(s|S)\$" => { TYPE => 'ASMSOURCE' },
             "[^-].*\\.i\$" => { TYPE => 'ISOURCE' },
             # .o files can be linker scripts
             "[^-]" => { RUN => sub { &GNUCC::parseLinkerScript(@_); }},
-            "-E"   => { RUN => sub { $stub->{OPERATION} = "TOI"; }},
-	    "-pipe\$" => { TYPE => 'ALLARGS' },
-            "-[DIU]" => { ONEMORE => 1, TYPE => "PREPROC" },
-            "-isystem" => { ONEMORE => 1, TYPE => "PREPROC" },
-            '-undef$' => { TYPE => 'PREPROC' },
-            '-w$' => { TYPE => 'PREPROC' },
-	    '-M$' => { TYPE => 'SPECIAL' },
-	    '-MM$' => { TYPE => 'SPECIAL' },
-	    '-MF$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
-	    '-C$' =>  { TYPE => 'EARLY_PREPROC'}, # zra
-	    '-MG$' => { TYPE => 'EARLY_PREPROC' },
-	    '-MP$' => { TYPE => 'EARLY_PREPROC' },
-	    '-MT$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
-	    '-MQ$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
-	    '.*-MD.*' => { TYPE => 'EARLY_PREPROC' },
-	    '-MMD$' => { TYPE => 'EARLY_PREPROC' }, 
-            "-include" => { ONEMORE => 1, TYPE => "PREPROC" },  # sm
-            "-iwithprefix" => { ONEMORE => 1, TYPE => "PREPROC" },
-	    '-Wp,' => { TYPE => 'PREPROC' },
-            "-ansi" => { TYPE => 'ALLARGS' },
+
+	    # Overall Options
             "-c" => { RUN => sub { $stub->{OPERATION} = "TOOBJ"; }},
+            "-S" => { RUN => sub { $stub->{OPERATION} = "TOASM";
+                                   push @{$stub->{CCARGS}}, $_[1]; }},
+            "-E"   => { RUN => sub { $stub->{OPERATION} = "TOI"; }},
+            "-o" => { ONEMORE => 1, TYPE => 'OUT' },
+	    "-combine\$" => { TYPE => 'ALLARGS' },
+	    "-pipe\$" => { TYPE => 'ALLARGS' },
             "-x" => { ONEMORE => 1, TYPE => "CC" },
 	    "-v" => { TYPE => 'ALLARGS',
 		      RUN => sub { $stub->{TRACE_COMMANDS} = 1; } },
-            "^-e\$" => { ONEMORE => 1, TYPE => 'LINK' },
-            "^-T\$" => { ONEMORE => 1, TYPE => 'LINK' },
-            "^-T(bss|data|text)\$" => { ONEMORE => 1, TYPE => 'LINK' },
-            "^-N\$" => { TYPE => 'LINK' },
-             # GCC defines some more macros if the optimization is On so pass
-             # the -O to the preprocessor and the compiler
-            '-O' => { TYPE => 'ALLARGS' },
-            "-S" => { RUN => sub { $stub->{OPERATION} = "TOOBJ";
-                                   push @{$stub->{CCARGS}}, $_[1]; }},
-            "-o" => { ONEMORE => 1, TYPE => 'OUT' },
-            "-p\$" => { TYPE => 'LINKCC' },
-            "-pg" => { TYPE => 'LINKCC' },
-            "-a" => { TYPE => 'LINKCC' },
+	    # skipping -###, --help, --target-help, --version
+	    
+	    # C Language Options
+            "-ansi" => { TYPE => 'ALLARGS' },
+            '-std=' => { TYPE => 'ALLARGS' },
+	    "-aux-info\$" => { TYPE => 'CC', ONEMORE => 1 },
+            "-f" => { TYPE => 'CC' },
+
+	    # -Wx,blah options (placed before general -W warning options)
+            #matth: the handling of -Wp may be wrong.  We may need to
+            # break up the argument list and invoke the map on each argument,
+            # so that some are classified as PREPROC and others as
+            # EARLY_PREPROC
+	    '-Wp,' => { TYPE => 'EARLY_PREPROC' },
+	    '-Wl,--(no-)?whole-archive$' => { TYPE => 'OSOURCE' },
+            '-Wl,' =>
+            { RUN => sub { 
+                my ($linkargs) = ($_[1] =~ m|-Wl,(.*)$|);
+                #Split up the args
+                push @{$stub->{LINKARGS}}, split(/,/, $linkargs);
+            }},
+	    
+	    # Warning Options
             "-pedantic\$" => { TYPE => 'ALLARGS' },
+            "-pedantic-errors\$" => { TYPE => 'ALLARGS' },
             "-Wall" => { TYPE => 'CC', 
 			 RUN => sub { push @{$stub->{CILARGS}},"--warnall";}},
             "-W[-a-z0-9]*\$" => { TYPE => 'CC' },
+            "-w\$" => { TYPE => 'ALLARGS' },
+
+	    # Debugging Options
             '-g' => { TYPE => 'ALLARGS' },
 	    "-save-temps" => { TYPE => 'ALLARGS',
 			       RUN => sub { if(! defined $stub->{SAVE_TEMPS}) {
                                                 $stub->{SAVE_TEMPS} = '.'; } }},
 	    '--?print-' => { TYPE => 'SPECIAL' },
 	    '-dump' => { TYPE => 'SPECIAL' },
+            "-p\$" => { TYPE => 'LINKCC' },
+            "-pg" => { TYPE => 'LINKCC' },
+
+	    # Optimization Options
+             # GCC defines some more macros if the optimization is On so pass
+             # the -O to the preprocessor and the compiler
+            '-O' => { TYPE => 'ALLARGS' },
+	    '--param$' => { TYPE => 'CC', ONEMORE => 1 },
+
+	    # Preprocessor Options
+            "-A" => { ONEMORE => 1, TYPE => "PREPROC" },
+	    '-C$' =>  { TYPE => 'EARLY_PREPROC'}, # zra
+	    '-CC$' =>  { TYPE => 'EARLY_PREPROC'},
+	    '-d[DIMN]$' => { TYPE => 'EARLY_PREPROC' },
+            "-[DIU]" => { ONEMORE => 1, TYPE => "PREPROC" },
+	    '-H$' =>  { TYPE => 'EARLY_PREPROC'},
+            '-idirafter$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-include$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-imacros$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-iprefix$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-iquote$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-iwithprefix$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-iwithprefixbefore$' => { ONEMORE => 1, TYPE => "PREPROC" },
+            '-isystem$' => { ONEMORE => 1, TYPE => "PREPROC" },
+	    '-M$' => { TYPE => 'SPECIAL' },
+	    '-MM$' => { TYPE => 'SPECIAL' },
+	    '-MF$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
+	    '-MG$' => { TYPE => 'EARLY_PREPROC' },
+	    '-MP$' => { TYPE => 'EARLY_PREPROC' },
+	    '-MT$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
+	    '-MQ$' => { TYPE => 'EARLY_PREPROC', ONEMORE => 1 },
+	    '-MD$' => { TYPE => 'EARLY_PREPROC' },
+	    '-MMD$' => { TYPE => 'EARLY_PREPROC' }, 
+	    '-P$' =>  { TYPE => 'EARLY_PREPROC'},
+            '-nostdinc$' => { TYPE => 'PREPROC' },
+            '-remap$' => { TYPE => 'PREPROC' },
+            '-traditional$' => { TYPE => 'PREPROC' },
+            '-tradtional-cpp$' => { TYPE => 'PREPROC' },
+            '-trigraphs$' => { TYPE => 'PREPROC' },
+            '-undef$' => { TYPE => 'PREPROC' },
+            '-Xpreprocessor$' => { ONEMORE => 1, TYPE => "PREPROC" },
+
+            # Linker Options
             "-l" => 
             { RUN => sub { 
                 my ($libname) = ($_[1] =~ m|-l(.+)$|);
@@ -1964,6 +2035,23 @@ sub new {
                 # We get here when we cannot find the library in the LIBDIR
                 push @{$stub->{LINKARGS}}, $_[1];
             }},
+            '-nostartfiles$' => { TYPE => 'LINK' },
+            '-nodefaultlibs$' => { TYPE => 'LINK' },
+            '-nostdlib$' => { TYPE => 'LINK' },
+            '-pie$' => { TYPE => 'LINK' },
+            '-s$' => { TYPE => 'LINKCC' },
+	    '-rdynamic$' => { TYPE => 'LINK' },
+	    '-static$' => { TYPE => 'LINK' },
+	    '-static-libgcc$' => { TYPE => 'LINK' },
+	    '-shared$' => { TYPE => 'LINK' },
+	    '-shared-libgcc$' => { TYPE => 'LINK' },
+	    '-symbolic$' => { TYPE => 'LINK' },
+	    '-u' => { TYPE => 'LINK', ONEMORE => 1 },
+            "-Xlinker\$" => { ONEMORE => 1, TYPE => 'LINK' },
+
+            # Directory Options
+	    "-B" => { ONEMORE => 1, TYPE => 'ALLARGS' },
+	    "-specs=" => { TYPE => 'ALLARGS' },
             "-L" => 
             { RUN => sub { 
                 # Remember these directories in LIBDIR
@@ -1971,26 +2059,36 @@ sub new {
                 push @{$stub->{LIBDIR}}, $dir;
                 push @{$stub->{LINKARGS}}, $_[1];
             }},
-            "-f" => { TYPE => 'LINKCC' },
+
+	    # Target Options
+	    "-V" => { ONEMORE => 1, TYPE => 'ALLARGS' },
+	    "-b" => { ONEMORE => 1, TYPE => 'ALLARGS' },
+
+	    # Machine Dependent Options
+	    "-m32\$" => { TYPE => 'ALLARGS',
+			  RUN => sub {
+			      push @{$stub->{CILARGS}}, "--envmachine";
+			      $ENV{CIL_MACHINE} = $Cilly::m32model;
+			  }},
+	    "-m64\$" => { TYPE => 'ALLARGS',
+			  RUN => sub {
+			      push @{$stub->{CILARGS}}, "--envmachine";
+			      $ENV{CIL_MACHINE} = $Cilly::m64model;
+			  }},
+            "-m" => { TYPE => 'ALLARGS', ONEMORE => 1 },
+	    "-pthread\$" => { TYPE => 'ALLARGS' },
+
+	    # mysterious options
+            "^-e\$" => { ONEMORE => 1, TYPE => 'LINK' },
+            "^-T\$" => { ONEMORE => 1, TYPE => 'LINK' },
+            "^-T(bss|data|text)\$" => { ONEMORE => 1, TYPE => 'LINK' },
+            "^-N\$" => { TYPE => 'LINK' },
+            "-a" => { TYPE => 'LINKCC' },
             "-r\$" => { RUN => sub { $stub->{OPERATION} = "TOLIB"; }},
             "-i\$" => { RUN => sub { $stub->{OPERATION} = "TOLIB"; }},
-            "-m" => { TYPE => 'LINKCC', ONEMORE => 1 },
-            "-s\$" => { TYPE => 'LINKCC' },
-            "-Xlinker" => { ONEMORE => 1, TYPE => 'LINK' },
-            "-nostdlib" => { TYPE => 'LINK' },
-            "-nostdinc" => { TYPE => 'PREPROC' },
-	    '-rdynamic$' => { TYPE => 'LINK' },
-	    "-static" => { TYPE => 'LINK' },
-	    "-shared" => { TYPE => 'LINK' },
-	    "-static-libgcc" => { TYPE => 'LINK' },
-	    "-shared-libgcc" => { TYPE => 'LINK' },
-	    '-Wl,--(no-)?whole-archive$' => { TYPE => 'OSOURCE' },
-	    '-Wl,' => { TYPE => 'LINK' },
-            "-traditional" => { TYPE => 'PREPROC' },
-            '-std=' => { TYPE => 'ALLARGS' },
+
             "--start-group" => { RUN => sub { } },
             "--end-group" => { RUN => sub { }},
-	    "-pthread\$" => { TYPE => 'ALLARGS' },
             ],
                                   
       };
@@ -2100,7 +2198,8 @@ sub compileOutputFile {
     die "objectOutputFile: not a C source file: $src\n"
 	unless $src =~ /\.($::cilbin|c|cc|cpp|i|s|S)$/;
     
-    if ($self->{OPERATION} eq 'TOOBJ') {
+    if ($self->{OPERATION} eq 'TOOBJ'
+        || ($self->{OPERATION} eq 'TOASM')) {
 	if (defined $self->{OUTARG} 
             && "@{$self->{OUTARG}}" =~ m|^-o\s*(\S.+)$|) {
 	    return new OutputFile($src, $1);

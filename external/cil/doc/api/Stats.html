@@ -25,7 +25,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Stats</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Stats</title>
 </head>
 <body>
 <div class="navbar"><a href="Clist.html">Previous</a>
@@ -74,10 +74,17 @@ Whether to use the performance counters (on Pentium only)<br>
 <pre><span class="keyword">val</span> <a name="VALreset"></a>reset : <code class="type"><a href="Stats.html#TYPEtimerModeEnum">timerModeEnum</a> -> unit</code></pre><div class="info">
 Resets all the timings and specifies the method to use for future timings.
   Call this before doing any timing.
+<p>
+
  You will get an exception if you pass HardwareTimer to reset and the
  hardware counters are not available<br>
 </div>
 <pre><span class="keyword">exception</span> <a name="EXCEPTIONNoPerfCount"></a>NoPerfCount</pre>
+<pre><span class="keyword">val</span> <a name="VALcountCalls"></a>countCalls : <code class="type">bool ref</code></pre><div class="info">
+Flag to indicate whether or not to count the number of calls of
+    to <a href="Stats.html#VALrepeattime"><code class="code">Stats.repeattime</code></a> or <a href="Stats.html#VALtime"><code class="code">Stats.time</code></a> for each label.
+    (default: false)<br>
+</div>
 <pre><span class="keyword">val</span> <a name="VALhas_performance_counters"></a>has_performance_counters : <code class="type">unit -> bool</code></pre><div class="info">
 Check if we have performance counters<br>
 </div>
@@ -105,7 +112,7 @@ Print the current stats preceeded by a message<br>
 Return the cumulative time of all calls to <a href="Stats.html#VALtime"><code class="code">Stats.time</code></a> and
   <a href="Stats.html#VALrepeattime"><code class="code">Stats.repeattime</code></a> with the given label.<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALlastTime"></a>lastTime : <code class="type">float ref</code></pre><div class="info">
+<pre><span class="keyword">val</span> <a name="VALtimethis"></a>timethis : <code class="type">('a -> 'b) -> 'a -> 'b</code></pre><div class="info">
 Time a function and set lastTime to the time it took<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALtimethis"></a>timethis : <code class="type">('a -> 'b) -> 'a -> 'b</code></pre></body></html>
+<pre><span class="keyword">val</span> <a name="VALlastTime"></a>lastTime : <code class="type">float ref</code></pre></body></html>

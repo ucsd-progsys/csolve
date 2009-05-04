@@ -20,7 +20,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Stats</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Stats</title>
 </head>
 <body>
 <code class="code"><span class="keyword">sig</span><br>
@@ -31,6 +31,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">HardwareIfAvail</span><br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;reset&nbsp;:&nbsp;<span class="constructor">Stats</span>.timerModeEnum&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">exception</span>&nbsp;<span class="constructor">NoPerfCount</span><br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;countCalls&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;has_performance_counters&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sample_pentium_perfcount_20&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sample_pentium_perfcount_10&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
@@ -38,6 +39,6 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;repeattime&nbsp;:&nbsp;float&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;print&nbsp;:&nbsp;<span class="constructor">Pervasives</span>.out_channel&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lookupTime&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;float<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lastTime&nbsp;:&nbsp;float&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;timethis&nbsp;:&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lastTime&nbsp;:&nbsp;float&nbsp;<span class="constructor">Pervasives</span>.ref<br>
 <span class="keyword">end</span></code></body></html>

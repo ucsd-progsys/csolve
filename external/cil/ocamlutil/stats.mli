@@ -42,10 +42,16 @@ type timerModeEnum =
 
 (** Resets all the timings and specifies the method to use for future timings.
  *  Call this before doing any timing.
+
  * You will get an exception if you pass HardwareTimer to reset and the
  * hardware counters are not available *)
 val reset: timerModeEnum -> unit
 exception NoPerfCount
+
+(** Flag to indicate whether or not to count the number of calls of
+    to {!Stats.repeattime} or {!Stats.time} for each label.
+    (default: false) *)
+val countCalls: bool ref
 
 (** Check if we have performance counters *)
 val has_performance_counters: unit -> bool
@@ -76,8 +82,8 @@ val lookupTime: string -> float
 
 
 (** Time a function and set lastTime to the time it took *)
-val lastTime: float ref
 val timethis: ('a -> 'b) -> 'a -> 'b
+val lastTime: float ref
 
 
 

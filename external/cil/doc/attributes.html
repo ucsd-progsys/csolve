@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -23,7 +23,8 @@ function loadTop(url) {
 <A HREF="cil007.html"><IMG SRC="next_motif.gif" ALT="Next"></A>
 <HR>
 <H2 CLASS="section"><A NAME="htoc9">6</A>&#XA0;&#XA0;CIL API Documentation</H2><P><A NAME="sec-api"></A> </P><P>The CIL API is documented in the file <TT>src/cil.mli</TT>. We also have an
-<A HREF="api/index.html">online documentation</A> extracted from <TT>cil.mli</TT>. We
+<A HREF="api/index.html">online documentation</A> extracted from
+<TT>cil.mli</TT> and other useful modules. We
 index below the main types that are used to represent C programs in CIL: </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 <A HREF="api/index_types.html">An index of all types</A>
 </LI><LI CLASS="li-itemize"><A HREF="api/index_values.html">An index of all values</A>
@@ -40,7 +41,7 @@ or a union
 </LI><LI CLASS="li-itemize"><A HREF="api/Cil.html#TYPEvarinfo">Cil.varinfo</A> is the representation of a variable 
 </LI><LI CLASS="li-itemize"><A HREF="api/Cil.html#TYPEfundec">Cil.fundec</A> is the representation of a function
 </LI><LI CLASS="li-itemize"><A HREF="api/Cil.html#TYPElval">Cil.lval</A> is the representation of an lvalue.
-Values for <A HREF="api/Cil.html#VALmakeVarInfo">operating on lvalues</A>.
+Values for <A HREF="api/Cil.html#VALmakeVarinfo">operating on lvalues</A>.
 </LI><LI CLASS="li-itemize"><A HREF="api/Cil.html#TYPEexp">Cil.exp</A> is the representation of an expression without
 side-effects. 
 Values for <A HREF="api/Cil.html#VALzero">operating on expressions</A>.
@@ -218,7 +219,7 @@ In the grammar description above non-terminals are written with
 uppercase initial</LI><LI CLASS="li-itemize">All of the patterns consist of the <TT>%</TT> character followed by one or
 two letters, followed by &#X201C;:&#X201D; and an indentifier. For each such
 pattern there is a corresponding constructor of the <A HREF="api/Cil.html#TYPEformatArg">Cil.formatArg</A>
-type, whose name is the letter 'F' followed by the same one or two letters as
+type, whose name is the letter &#X2019;F&#X2019; followed by the same one or two letters as
 in the pattern. That constructor is used by the user code to pass a
 <A HREF="api/Cil.html#TYPEformatArg">Cil.formatArg</A> actual argument to the interpreted constructor and by
 the interpreted deconstructor to return what was matched for a pattern.</LI><LI CLASS="li-itemize">If the pattern name is uppercase, it designates a list of the elements
@@ -356,7 +357,7 @@ syntax for declarations is already quite complicated and after writing the
 parser and elaborator for declarations I am convinced that few C programmers
 understand it completely. Anyway, this seems to be the easiest way to support
 attributes. </P><P>Name attributes must be specified at the very end of the declaration, just
-before the <TT>=</TT> for the initializer or before the <TT>,</TT> the separates a
+before the <TT>=</TT> for the initializer or before the <TT>,</TT> that separates a
 declaration in a group of declarations or just before the <TT>;</TT> that
 terminates the declaration. A name attribute for a function being defined can
 be specified just before the brace that starts the function body.</P><P>For example (in the following examples <TT>A1</TT>,...,<TT>An</TT> are type attributes
@@ -418,7 +419,7 @@ attributes. Take for example the type of x0 from above. It should be written
 as: </P><PRE CLASS="verbatim"><FONT COLOR=blue>        int A2 (A1 )[]
 </FONT></PRE><P>But this will lead most C parsers into deep confusion because the parentheses
 around A1 will be confused for parentheses of a function designator. To push
-this problem around (I don't know a solution) whenever we are about to print a
+this problem around (I don&#X2019;t know a solution) whenever we are about to print a
 parenthesized declarator with no name but with attributes, we comment out the
 attributes so you can see them (for whatever is worth) without confusing the
 compiler. For example, here is how we would print the above type:</P><PRE CLASS="verbatim"><FONT COLOR=blue>        int A2 /*(A1 )*/[]

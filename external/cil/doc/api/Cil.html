@@ -25,7 +25,7 @@
 <link title="Cillower" rel="Chapter" href="Cillower.html">
 <link title="Cfg" rel="Chapter" href="Cfg.html">
 <link title="Dataflow" rel="Chapter" href="Dataflow.html">
-<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.6) : Cil</title>
+<link title="Dominators" rel="Chapter" href="Dominators.html"><title>CIL API Documentation (version 1.3.7) : Cil</title>
 </head>
 <body>
 <div class="navbar"><a href="Stats.html">Previous</a>
@@ -89,7 +89,7 @@ The top-level representation of a CIL source file (and the result of the
 <code><span class="keyword">mutable&nbsp;</span>globinit&nbsp;: <code class="type"><a href="Cil.html#TYPEfundec">fundec</a> option</code>;</code></td>
 <td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >An optional global initializer function. This is a function where 
  you can put stuff that must be executed before the program is 
- started. This function, is conceptually at the end of the file, 
+ started. This function is conceptually at the end of the file, 
  although it is not part of the globals list. Use <a href="Cil.html#VALgetGlobInit"><code class="code">Cil.getGlobInit</code></a> 
  to create/get one.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
 </tr>
@@ -397,6 +397,13 @@ certain type attributes then use <a href="Cil.html#VALtypeSigWithAttrs"><code cl
 <td align="left" valign="top" >
 <code><span class="constructor">IUChar</span></code></td>
 <td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">unsigned char</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">IBool</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">_Bool (C99)</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
 </tr>
 <tr>
 <td align="left" valign="top" >
@@ -814,6 +821,14 @@ Information about a struct/union field<br>
 <td align="left" valign="top" >
 <code><span class="keyword">mutable&nbsp;</span>ereferenced&nbsp;: <code class="type">bool</code>;</code></td>
 <td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >True if used. Initially set to false</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span class="keyword">mutable&nbsp;</span>ekind&nbsp;: <code class="type"><a href="Cil.html#TYPEikind">ikind</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The integer kind used to represent this enum. Per ANSI-C, this
+ should always be IInt, but gcc allows other integer kinds</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
 </tr></table>
 }
 
@@ -959,7 +974,7 @@ and a new unique identifier</li>
 <td align="left" valign="top" >
 <code><span class="keyword">mutable&nbsp;</span>vreferenced&nbsp;: <code class="type">bool</code>;</code></td>
 <td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >True if this variable is ever referenced. This is computed by 
- <code class="code">removeUnusedVars</code>. It is safe to just initialize this to False</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+ <code class="code">Rmtmps.removeUnusedTemps</code>. It is safe to just initialize this to False</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
 </tr>
 <tr>
 <td align="left" valign="top" >
@@ -2516,7 +2531,7 @@ Replace the attributes of a signature (only at top level)<br>
 Get the top-level attributes of a signature<br>
 </div>
 <br>
-LVALUES<br>
+<b>Lvalues</b><br>
 <pre><span class="keyword">val</span> <a name="VALmakeVarinfo"></a>makeVarinfo : <code class="type">bool -> string -> <a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEvarinfo">varinfo</a></code></pre><div class="info">
 Make a varinfo. Use this (rarely) to make a raw varinfo. Use other 
  functions to make locals (<a href="Cil.html#VALmakeLocalVar"><code class="code">Cil.makeLocalVar</code></a> or <a href="Cil.html#VALmakeFormalVar"><code class="code">Cil.makeFormalVar</code></a> or 
@@ -2536,11 +2551,20 @@ Make a local variable and add it to a function's slocals (only if insert =
     true, which is the default). Make sure you know what you are doing if you 
     set insert=false.<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALmakeTempVar"></a>makeTempVar : <code class="type"><a href="Cil.html#TYPEfundec">fundec</a> -><br>       ?name:string -><br>       ?descr:<a href="Pretty.html#TYPEdoc">Pretty.doc</a> -> ?descrpure:bool -> <a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEvarinfo">varinfo</a></code></pre><div class="info">
-Make a temporary variable and add it to a function's slocals. The name of 
-    the temporary variable will be generated based on the given name hint so 
-    that to avoid conflicts with other locals.  
-    Optionally, you can give the variable a description of its contents.<br>
+<pre><span class="keyword">val</span> <a name="VALmakeTempVar"></a>makeTempVar : <code class="type"><a href="Cil.html#TYPEfundec">fundec</a> -><br>       ?insert:bool -><br>       ?name:string -><br>       ?descr:<a href="Pretty.html#TYPEdoc">Pretty.doc</a> -> ?descrpure:bool -> <a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEvarinfo">varinfo</a></code></pre><div class="info">
+Make a temporary variable and add it to a function's slocals. CIL will
+    ensure that the name of the new variable is unique in this function, and
+    will generate this name by appending a number to the specified string
+    ("__cil_tmp" by default).
+<p>
+
+    The variable will be added to the function's slocals unless you explicitly
+    set insert=false.  (Make sure you know what you are doing if you set
+    insert=false.)
+<p>
+
+    Optionally, you can give the variable a description of its contents
+    that will be printed by descriptiveCilPrinter.<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALmakeGlobalVar"></a>makeGlobalVar : <code class="type">string -> <a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEvarinfo">varinfo</a></code></pre><div class="info">
 Make a global variable. Your responsibility to make sure that the name 
@@ -2603,8 +2627,9 @@ Construct an integer of kind IInt. You can use this always since the
     OCaml integers are 31 bits and are guaranteed to fit in an IInt<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALisInteger"></a>isInteger : <code class="type"><a href="Cil.html#TYPEexp">exp</a> -> int64 option</code></pre><div class="info">
-True if the given expression is a (possibly cast'ed) 
-    character or an integer constant<br>
+If the given expression is a (possibly cast'ed) 
+    character or an integer constant, return that integer.
+    Otherwise, return None.<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALi64_to_int"></a>i64_to_int : <code class="type">int64 -> int</code></pre><div class="info">
 Convert a 64-bit int to an OCaml int, or raise an exception if that
@@ -2612,6 +2637,9 @@ Convert a 64-bit int to an OCaml int, or raise an exception if that
 </div>
 <pre><span class="keyword">val</span> <a name="VALisConstant"></a>isConstant : <code class="type"><a href="Cil.html#TYPEexp">exp</a> -> bool</code></pre><div class="info">
 True if the expression is a compile-time constant<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALisConstantOffset"></a>isConstantOffset : <code class="type"><a href="Cil.html#TYPEoffset">offset</a> -> bool</code></pre><div class="info">
+True if the given offset contains only field nanmes or constant indices.<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALisZero"></a>isZero : <code class="type"><a href="Cil.html#TYPEexp">exp</a> -> bool</code></pre><div class="info">
 True if the given expression is a (possibly cast'ed) integer or character 
@@ -2623,7 +2651,7 @@ Given the character c in a (CChr c), sign-extend it to 32 bits.
   ISO C 6.4.4.4.10, which says that character constants are chars cast to ints)
   Returns CInt64(sign-extened c, IInt, None)<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALconstFold"></a>constFold : <code class="type">bool -> <a href="Cil.html#TYPEexp">exp</a> -> <a href="Cil.html#TYPEexp">exp</a></code></pre><div class="info">
+<pre><span class="keyword">val</span> <a name="VALconvertInts"></a>convertInts : <code class="type">int64 -> <a href="Cil.html#TYPEikind">ikind</a> -> int64 -> <a href="Cil.html#TYPEikind">ikind</a> -> int64 * int64 * <a href="Cil.html#TYPEikind">ikind</a></code></pre><pre><span class="keyword">val</span> <a name="VALconstFold"></a>constFold : <code class="type">bool -> <a href="Cil.html#TYPEexp">exp</a> -> <a href="Cil.html#TYPEexp">exp</a></code></pre><div class="info">
 Do constant folding on an expression. If the first argument is true then 
     will also compute compiler-dependent expressions such as sizeof.
     See also <a href="Cil.html#VALconstFoldVisitor"><code class="code">Cil.constFoldVisitor</code></a>, which will run constFold on all
@@ -2910,6 +2938,14 @@ Whether to use the logical operands LAnd and LOr. By default, do not use
  them because they are unlike other expressions and do not evaluate both of 
  their operands<br>
 </div>
+<pre><span class="keyword">val</span> <a name="VALoldstyleExternInline"></a>oldstyleExternInline : <code class="type">bool ref</code></pre><div class="info">
+Set this to true to get old-style handling of gcc's extern inline C extension:
+   old-style: the extern inline definition is used until the actual definition is
+     seen (as long as optimization is enabled)
+   new-style: the extern inline definition is used only if there is no actual
+     definition (as long as optimization is enabled)
+   Note that CIL assumes that optimization is always enabled ;-)<br>
+</div>
 <pre><span class="keyword">val</span> <a name="VALconstFoldVisitor"></a>constFoldVisitor : <code class="type">bool -> <a href="Cil.cilVisitor.html">cilVisitor</a></code></pre><div class="info">
 A visitor that does constant folding. Pass as argument whether you want 
  machine specific simplifications to be done, or not.<br>
@@ -2964,7 +3000,7 @@ Whether we print something that will only be used as input to our own
 Whether to print the CIL as they are, without trying to be smart and 
  print nicer code. Normally this is false, in which case the pretty 
  printer will turn the while(1) loops of CIL into nicer loops, will not 
- print empty "else" blocks, etc. These is one case howewer in which if you 
+ print empty "else" blocks, etc. There is one case howewer in which if you 
  turn this on you will get code that does not compile: if you use varargs 
  the __builtin_va_arg function will be printed in its internal form.<br>
 </div>
@@ -3044,7 +3080,7 @@ A printer interface for CIL trees.
 These are pretty-printers that will show you more details on the internal 
  CIL representation, without trying hard to make it look like C
 </div>
-<pre><span class="keyword">val</span> <a name="VALplainCilPrinter"></a>plainCilPrinter : <code class="type"><a href="Cil.cilPrinter.html">cilPrinter</a></code></pre><pre><span class="keyword">class type</span> <a name="TYPEdescriptiveCilPrinter"></a><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a> = <code class="code">object</code> <a href="Cil.descriptiveCilPrinter.html">..</a> <code class="code">end</code></pre><pre><span class="keyword">class</span> <a name="TYPEdescriptiveCilPrinterClass"></a><a href="Cil.descriptiveCilPrinterClass.html">descriptiveCilPrinterClass</a> : <code class="type"></code><code class="type"><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a></code></pre><div class="info">
+<pre><span class="keyword">val</span> <a name="VALplainCilPrinter"></a>plainCilPrinter : <code class="type"><a href="Cil.cilPrinter.html">cilPrinter</a></code></pre><pre><span class="keyword">class type</span> <a name="TYPEdescriptiveCilPrinter"></a><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a> = <code class="code">object</code> <a href="Cil.descriptiveCilPrinter.html">..</a> <code class="code">end</code></pre><pre><span class="keyword">class</span> <a name="TYPEdescriptiveCilPrinterClass"></a><a href="Cil.descriptiveCilPrinterClass.html">descriptiveCilPrinterClass</a> : <code class="type">bool -> </code><code class="type"><a href="Cil.descriptiveCilPrinter.html">descriptiveCilPrinter</a></code></pre><div class="info">
 Like defaultCilPrinterClass, but instead of temporary variable
       names it prints the description that was provided when the temp was
       created.
@@ -3229,9 +3265,15 @@ Pretty-print the internal representation of a type<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALdd_exp"></a>dd_exp : <code class="type">unit -> <a href="Cil.html#TYPEexp">exp</a> -> <a href="Pretty.html#TYPEdoc">Pretty.doc</a></code></pre><div class="info">
 Pretty-print an expression while printing descriptions rather than names
-  of temporaries.<br>
+  of temporaries.
+<p>
+Pretty-print an lvalue on the left side of an assignment.
+    If there is an offset or memory dereference, temporaries will
+    be replaced by descriptions as in dd_exp.  If the lval is a temp var,
+    that var will not be replaced by a description; use "dd_exp () (Lval lv)"
+    if that's what you want.<br>
 </div>
-<br>
+<pre><span class="keyword">val</span> <a name="VALdd_lval"></a>dd_lval : <code class="type">unit -> <a href="Cil.html#TYPElval">lval</a> -> <a href="Pretty.html#TYPEdoc">Pretty.doc</a></code></pre><br>
 <b>ALPHA conversion</b> has been moved to the Alpha module.<br>
 <pre><span class="keyword">val</span> <a name="VALuniqueVarNames"></a>uniqueVarNames : <code class="type"><a href="Cil.html#TYPEfile">file</a> -> unit</code></pre><div class="info">
 Assign unique names to local variables. This might be necessary after you 
@@ -3246,13 +3288,13 @@ Assign unique names to local variables. This might be necessary after you
 <br>
 <b>Optimization Passes</b><br>
 <pre><span class="keyword">val</span> <a name="VALpeepHole2"></a>peepHole2 : <code class="type">(<a href="Cil.html#TYPEinstr">instr</a> * <a href="Cil.html#TYPEinstr">instr</a> -> <a href="Cil.html#TYPEinstr">instr</a> list option) -> <a href="Cil.html#TYPEstmt">stmt</a> list -> unit</code></pre><div class="info">
-A peephole optimizer that processes two adjacent statements and possibly 
-    replaces them both. If some replacement happens, then the new statements 
+A peephole optimizer that processes two adjacent instructions and possibly 
+    replaces them both. If some replacement happens, then the new instructions
     are themselves subject to optimization<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALpeepHole1"></a>peepHole1 : <code class="type">(<a href="Cil.html#TYPEinstr">instr</a> -> <a href="Cil.html#TYPEinstr">instr</a> list option) -> <a href="Cil.html#TYPEstmt">stmt</a> list -> unit</code></pre><div class="info">
 Similar to <code class="code">peepHole2</code> except that the optimization window consists of 
-    one statement, not two<br>
+    one instruction, not two<br>
 </div>
 <br>
 <b>Machine dependency</b><br>
@@ -3264,13 +3306,39 @@ Raised when one of the bitsSizeOf functions cannot compute the size of a
  not defined (e.g. TFun or an undefined compinfo). The string is an 
  explanation of the error<br>
 </div>
+<pre><span class="keyword">val</span> <a name="VALunsignedVersionOf"></a>unsignedVersionOf : <code class="type"><a href="Cil.html#TYPEikind">ikind</a> -> <a href="Cil.html#TYPEikind">ikind</a></code></pre><div class="info">
+Give the unsigned kind corresponding to any integer kind<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALintKindForSize"></a>intKindForSize : <code class="type">int -> bool -> <a href="Cil.html#TYPEikind">ikind</a></code></pre><div class="info">
+The signed integer kind for a given size (unsigned if second argument
+ is true). Raises Not_found if no such kind exists<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALfloatKindForSize"></a>floatKindForSize : <code class="type">int -> <a href="Cil.html#TYPEfkind">fkind</a></code></pre><div class="info">
+The float kind for a given size. Raises Not_found
+  if no such kind exists<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALbytesSizeOfInt"></a>bytesSizeOfInt : <code class="type"><a href="Cil.html#TYPEikind">ikind</a> -> int</code></pre><div class="info">
+The size in bytes of the given int kind.<br>
+</div>
 <pre><span class="keyword">val</span> <a name="VALbitsSizeOf"></a>bitsSizeOf : <code class="type"><a href="Cil.html#TYPEtyp">typ</a> -> int</code></pre><div class="info">
 The size of a type, in bits. Trailing padding is added for structs and 
  arrays. Raises <a href="Cil.html#EXCEPTIONSizeOfError"><code class="code">Cil.SizeOfError</code></a> when it cannot compute the size. This 
  function is architecture dependent, so you should only call this after you 
  call <a href="Cil.html#VALinitCIL"><code class="code">Cil.initCIL</code></a>. Remember that on GCC sizeof(void) is 1!<br>
 </div>
-<pre><span class="keyword">val</span> <a name="VALtruncateInteger64"></a>truncateInteger64 : <code class="type"><a href="Cil.html#TYPEikind">ikind</a> -> int64 -> int64 * bool</code></pre><pre><span class="keyword">val</span> <a name="VALsizeOf"></a>sizeOf : <code class="type"><a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEexp">exp</a></code></pre><div class="info">
+<pre><span class="keyword">val</span> <a name="VALtruncateInteger64"></a>truncateInteger64 : <code class="type"><a href="Cil.html#TYPEikind">ikind</a> -> int64 -> int64 * bool</code></pre><div class="info">
+Represents an integer as for a given kind. 
+ Returns a flag saying whether the value was changed
+ during truncation (because it was too large to fit in k).<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALfitsInInt"></a>fitsInInt : <code class="type"><a href="Cil.html#TYPEikind">ikind</a> -> int64 -> bool</code></pre><div class="info">
+True if the integer fits within the kind's range<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALintKindForValue"></a>intKindForValue : <code class="type">int64 -> bool -> <a href="Cil.html#TYPEikind">ikind</a></code></pre><div class="info">
+Return the smallest kind that will hold the integer's value.
+  The kind will be unsigned if the 2nd argument is true<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALsizeOf"></a>sizeOf : <code class="type"><a href="Cil.html#TYPEtyp">typ</a> -> <a href="Cil.html#TYPEexp">exp</a></code></pre><div class="info">
 The size of a type, in bytes. Returns a constant expression or a "sizeof" 
  expression if it cannot compute the size. This function is architecture 
  dependent, so you should only call this after you call <a href="Cil.html#VALinitCIL"><code class="code">Cil.initCIL</code></a>.<br>
@@ -3328,6 +3396,12 @@ Like map but each call can return a list. Try not to make a copy of the
 </div>
 <pre><span class="keyword">val</span> <a name="VALstartsWith"></a>startsWith : <code class="type">string -> string -> bool</code></pre><div class="info">
 sm: return true if the first is a prefix of the second string<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALendsWith"></a>endsWith : <code class="type">string -> string -> bool</code></pre><div class="info">
+return true if the first is a suffix of the second string<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALstripUnderscores"></a>stripUnderscores : <code class="type">string -> string</code></pre><div class="info">
+If string has leading and trailing __, strip them.<br>
 </div>
 <br>
 <b>An Interpreter for constructing CIL constructs</b><br>
@@ -3517,5 +3591,8 @@ Pretty-prints a format arg<br>
 </div>
 <pre><span class="keyword">val</span> <a name="VALwarnTruncate"></a>warnTruncate : <code class="type">bool ref</code></pre><div class="info">
 Emit warnings when truncating integer constants (default true)<br>
+</div>
+<pre><span class="keyword">val</span> <a name="VALenvMachine"></a>envMachine : <code class="type">Machdep.mach option ref</code></pre><div class="info">
+Machine model specified via CIL_MACHINE environment variable<br>
 </div>
 </body></html>

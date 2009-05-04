@@ -179,14 +179,14 @@ let compute_idom (flowgraph: cfgInfo): idomInfo =
       let u = eval v in
       if sdno.(u) < sdno.(w) then sdno.(w) <- sdno.(u);)
       predecessors.(w);
-    B.set bucket.(ndfs.(sdno.(w))) w true;
+    B.setTo bucket.(ndfs.(sdno.(w))) w true;
     link parent.(w) w;
     while not (B.empty bucket.(parent.(w))) do
       let v =
 	match B.toList bucket.(parent.(w)) with
 	  x :: _ -> x
 	| [] -> ignore(print_string "Error in dominfast");0 in
-      B.set bucket.(parent.(w)) v false;
+      B.setTo bucket.(parent.(w)) v false;
       let u = eval v in
       idom.(v) <- if sdno.(u) < sdno.(v) then u else parent.(w);
     done;
@@ -200,6 +200,10 @@ let compute_idom (flowgraph: cfgInfo): idomInfo =
     end
   done;
   idom
+    
+    
+    
+    
     
 let dominance_frontier (flowgraph: cfgInfo) : dfInfo = 
   let idom = compute_idom flowgraph in
@@ -255,12 +259,13 @@ let add_phi_functions_info (flowgraph: cfgInfo) : unit =
   let df = dominance_frontier flowgraph in
   let size  = flowgraph.size in
   let nrRegs = flowgraph.nrRegs in 
+  
 
   let defs = Array.init size (fun i -> B.init nrRegs (fun j -> false)) in 
   for i = 0 to size-1 do 
     List.iter 
       (fun (lhs,rhs) ->
-        List.iter (fun (r: reg) -> B.set defs.(i) r true) lhs;
+        List.iter (fun (r: reg) -> B.setTo defs.(i) r true) lhs;
       ) 
       flowgraph.blocks.(i).instrlist
   done;
@@ -272,8 +277,7 @@ let add_phi_functions_info (flowgraph: cfgInfo) : unit =
     fun i -> 
       let defIn = B.make size in
       for j = 0 to size - 1 do 
-	if B.get defs.(j) i then 
-          B.set defIn j true
+	if B.test defs.(j) i then B.setTo defIn j true
       done;
       let res = ref [] in 
       incr iterCount;
@@ -292,7 +296,7 @@ let add_phi_functions_info (flowgraph: cfgInfo) : unit =
 	  end;
 		  ) df.(x)
       done;
-      (* res := List.filter (fun blkId -> B.get liveIn.(blkId) i) !res; *)
+      (* res := List.filter (fun blkId -> B.test liveIn.(blkId) i) !res; *)
       !res
    ) in
   let result = Array.create size ([]) in

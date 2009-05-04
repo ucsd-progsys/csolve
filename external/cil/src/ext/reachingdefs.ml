@@ -131,7 +131,8 @@ let iosh_equals iosh1 iosh2 =
   IH.length iosh2 = 0 && not(IH.length iosh1 = 0)*)
   if not(IH.length iosh1 = IH.length iosh2)
   then 
-    (if !debug then ignore(E.log "iosh_equals: length not same\n");
+    (if !debug then ignore(E.log "iosh_equals: length not same: %d %d\n"
+            (IH.length iosh1) (IH.length iosh2));
     false)
   else
     IH.fold (fun vid ios b ->
@@ -157,11 +158,12 @@ let iosh_replace iosh i vi =
     IH.add iosh vi.vid newset
 
 
-let iosh_filter_dead iosh vs =
-  IH.iter (fun vid _ ->
+let iosh_filter_dead iosh vs = iosh
+(*  IH.iter (fun vid _ ->
     if not(UD.VS.exists (fun vi -> vid = vi.vid) vs)
     then IH.remove iosh vid)
-    iosh
+    iosh;
+  iosh*)
 
 
 (* remove definitions that are killed.
@@ -172,8 +174,8 @@ let iosh_filter_dead iosh vs =
 let proc_defs vs iosh f = 
   let pd vi =
     let newi = f() in
-    (*if !debug then
-      ignore (E.log "proc_defs: genning %d\n" newi);*)
+    if !debug then
+      ignore (E.log "proc_defs: genning %d\n" newi);
     iosh_replace iosh newi vi
   in
   UD.VS.iter pd vs
@@ -251,10 +253,10 @@ let getDefRhs didstmh stmdat defId =
   if IH.mem rhsHtbl defId then IH.find rhsHtbl defId else
   let stm =
     try IH.find didstmh defId 
-    with Not_found -> E.s (E.error "getDefRhs: defId %d not found\n" defId) in
+    with Not_found -> E.s (E.error "getDefRhs: defId %d not found" defId) in
   let (_,s,iosh) = 
     try IH.find stmdat stm.sid
-    with Not_found -> E.s (E.error "getDefRhs: sid %d not found \n" stm.sid) in
+    with Not_found -> E.s (E.error "getDefRhs: sid %d not found" stm.sid) in
   match stm.skind with
     Instr il ->
       let ivihl = instrRDs il stm.sid ((),s,iosh) true in (* defs that reach out of each instr *)
@@ -278,7 +280,7 @@ let getDefRhs didstmh stmdat defId =
 	      Var(vi') -> 
 		(IH.add rhsHtbl defId (Some(RDExp(e),stm.sid,iosh_in));
 		 Some(RDExp(e), stm.sid, iosh_in))
-	    | _ -> E.s (E.error "Reaching Defs getDefRhs: right vi not first\n"))
+	    | _ -> E.s (E.error "Reaching Defs getDefRhs: right vi not first"))
 	| Call(lvo,e,el,_) -> 
 	    (IH.add rhsHtbl defId (Some(RDCall(i),stm.sid,iosh_in));
 	     Some(RDCall(i), stm.sid, iosh_in))
@@ -288,16 +290,16 @@ let getDefRhs didstmh stmdat defId =
 	   IH.add rhsHtbl defId None;
 	   None))
       with Invalid_argument _ -> None end
-  | _ -> E.s (E.error "getDefRhs: defining statement not an instruction list %d\n" defId)
+  | _ -> E.s (E.error "getDefRhs: defining statement not an instruction list %d" defId)
 	(*None*)
 
-let prettyprint didstmh stmdat () (_,s,iosh) = text ""
-  (*seq line (fun (vid,ios) ->
+let prettyprint didstmh stmdat () (_,s,iosh) = (*text ""*)
+  seq line (fun (vid,ios) ->
     num vid ++ text ": " ++
       IOS.fold (fun io d -> match io with
 	None -> d ++ text "None "
       | Some i ->
-	  let stm = IH.find didstmh i in
+	  (*let stm = IH.find didstmh i in*)
 	  match getDefRhs didstmh stmdat i with
 	    None -> d ++ num i
 	  | Some(RDExp(e),_,_) ->
@@ -305,7 +307,7 @@ let prettyprint didstmh stmdat () (_,s,iosh) = text ""
 	  | Some(RDCall(c),_,_) ->
 	      d ++ num i ++ text " " ++ (d_instr () c))
       ios nil)
-    (IH.tolist iosh)*)
+    (IH.tolist iosh)
 
 module ReachingDef =
   struct
@@ -376,20 +378,24 @@ module ReachingDef =
       in
       loop (numds - 1);
       nextDefId := startDefId + numds;
-      ((), startDefId, IH.copy iosh)
+      match L.getLiveSet stm.sid with
+      | None -> ((), startDefId, IH.copy iosh)
+      | Some vs -> ((), startDefId, iosh_filter_dead (IH.copy iosh) vs)
 
      
     let combinePredecessors (stm:stmt) ~(old:t) ((_, s, iosh):t) =
       match old with (_, os, oiosh) -> begin
-	if time "iosh_equals" (iosh_equals oiosh) iosh 
-	then None 
-	else
-	  Some((), os, time "iosh_combine" (iosh_combine oiosh) iosh)
+        if time "iosh_equals" (iosh_equals oiosh) iosh 
+        then None 
+        else begin
+            Some((), os, time "iosh_combine" (iosh_combine oiosh) iosh)
+        end
       end
 
     (* return an action that removes things that
        are redefinied and adds the generated defs *)
     let doInstr inst (_, s, iosh) =
+      if !debug then E.log "RD: looking at %a\n" d_instr inst;
       let transform (_, s', iosh') =
 	let _, defd = UD.computeUseDefInstr inst in
 	proc_defs defd iosh' (idMaker () s');
@@ -405,8 +411,8 @@ module ReachingDef =
       match L.getLiveSet stm.sid with
       | None -> DF.SDefault
       | Some vs -> begin
-	  iosh_filter_dead iosh vs;
-	  DF.SDefault
+	  DF.SUse((),s,iosh_filter_dead iosh vs)
+	  (*DF.SDefault*)
       end
 
 
@@ -447,10 +453,14 @@ let computeRDs fdec =
     ReachingDef.nextDefId := 0;
     let fst_stm = List.hd slst in
     let fst_iosh = IH.create 32 in
-    UD.onlyNoOffsetsAreDefs := false;
+    UD.onlyNoOffsetsAreDefs := true;
     IH.add ReachingDef.stmtStartData fst_stm.sid ((), 0, fst_iosh);
     time "liveness" L.computeLiveness fdec;
+    UD.onlyNoOffsetsAreDefs := true;
     ignore(ReachingDef.computeFirstPredecessor fst_stm ((), 0, fst_iosh));
+    (match L.getLiveSet fst_stm.sid with
+    | None -> if !debug then ignore(E.log "Nothing live at fst_stm\n")
+    | Some vs -> ignore(iosh_filter_dead fst_iosh vs));
     if !debug then
       ignore (E.log "computeRDs: fst_stm.sid=%d\n" fst_stm.sid);
     RD.compute [fst_stm];
@@ -467,7 +477,7 @@ let getRDs sid =
     Some (IH.find ReachingDef.stmtStartData sid)
   with Not_found ->
     None
-(*    E.s (E.error "getRDs: sid %d not found\n" sid) *)
+(*    E.s (E.error "getRDs: sid %d not found" sid) *)
 
 let getDefIdStmt defid =
   try

@@ -3,8 +3,8 @@
 <HTML>
 <HEAD>
 
-<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<META name="GENERATOR" content="hevea 1.09">
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
 
 <base target="main">
 <script language="JavaScript">
@@ -29,7 +29,7 @@ library. We highly recommend that you use <TT>cilly</TT>, our driver. </P><H3 CL
 analysis and transformation, which you then link into our boilerplate
 driver application called <TT>cilly</TT>. <TT>cilly</TT> is a Perl script that
 processes and mimics <TT>GCC</TT> and <TT>MSVC</TT> command-line arguments and then
-calls <TT>cilly.byte.exe</TT> or <TT>cilly.asm.exe</TT> (CIL's Ocaml executable). </P><P>An example of such module is <TT>logwrites.ml</TT>, a transformation that is
+calls <TT>cilly.byte.exe</TT> or <TT>cilly.asm.exe</TT> (CIL&#X2019;s Ocaml executable). </P><P>An example of such module is <TT>logwrites.ml</TT>, a transformation that is
 distributed with CIL and whose purpose is to instrument code to print the
 addresses of memory locations being written. (We plan to release a
 C-language interface to CIL so that you can write your analyses in C
@@ -59,7 +59,7 @@ all C files listed as arguments. </P></LI><LI CLASS="li-enumerate">Invoke <TT>co
 <PRE CLASS="verbatim">./configure EXTRASRCDIRS=/home/necula EXTRAFEATURES=logwrites
 </PRE><P>This step works if each feature is packaged into its own ML file, and the
 name of the entry point in the file is <TT>feature</TT>.</P><P>An alternative way to specify the new features is to change the build files
-yourself, as explained below. You'll need to use this method if a single
+yourself, as explained below. You&#X2019;ll need to use this method if a single
 feature is split across multiple files.</P><OL CLASS="enumerate" type=a><LI CLASS="li-enumerate">
 Put <TT>logwrites.ml</TT> in the <TT>src</TT> or <TT>src/ext</TT> directory. This
 will make sure that <TT>make</TT> can find it. If you want to put it in some
@@ -89,7 +89,7 @@ the global list of CIL features.
   ] 
   @ Feature_config.features 
 </PRE><P>Features are processed in the order they appear on this list. Put
-your feature last on the list if you plan to run any of CIL's
+your feature last on the list if you plan to run any of CIL&#X2019;s
 built-in features (such as makeCFGfeature) before your own.</P></LI></OL><P>Standard code in <TT>cilly</TT> takes care of adding command-line arguments,
 printing the description, and calling your function automatically. 
 Note: do not worry about introducing new bugs into CIL by adding a single
