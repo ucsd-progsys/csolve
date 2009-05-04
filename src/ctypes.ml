@@ -1,3 +1,5 @@
+module M = Misc
+
 (******************************************************************************)
 (*********************************** Indices **********************************)
 (******************************************************************************)
@@ -11,8 +13,8 @@ let index_lub (i1: index) (i2: index): index =
   match (i1, i2) with
     | (IBot, i) | (i, IBot)                         -> i
     | (IInt m, IInt n)                              -> if m = n then IInt m else ISeq (min n m, abs (n - m))
-    | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (min n m, gcd k (abs (n - m)))
-    | (ISeq (n, l), ISeq (m, k))                    -> ISeq (min n m, gcd l (gcd k (abs (n - m))))
+    | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (min n m, M.gcd k (abs (n - m)))
+    | (ISeq (n, l), ISeq (m, k))                    -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))))
 
 let index_plus (i1: index) (i2: index): index =
   match (i1, i2) with
@@ -186,9 +188,8 @@ module LDesc = struct
     po
 
   (* 0 is an ok default for all the functions we'll be calling by the above invariant. *)
-  let get_period_default: int option -> int = function
-    | None   -> 0
-    | Some n -> n
+  let get_period_default (po: int option): int =
+    M.get_option 0 po
 
   let collides_with (pl1: ploc) (pct1: 'a prectype) (po: int option) ((pl2, pct2): ploc * 'a prectype): bool =
     prectypes_collide pl1 pct1 pl2 pct2 (get_period_default po)
@@ -197,7 +198,7 @@ module LDesc = struct
     List.find_all (collides_with pl pct po) pcts
 
   let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): bool =
-    (not (ploc_periodic pl) || is_some po) && not (List.exists (collides_with pl pct po) pcts)
+    (not (ploc_periodic pl) || M.maybe_bool po) && not (List.exists (collides_with pl pct po) pcts)
 
   (* Don't use this directly - use add instead!  This does not check for collisions. *)
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
@@ -221,11 +222,11 @@ module LDesc = struct
       (pcts, b)
 
   let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
-    let p       = gcd (get_period_default po) p in
-    let gs      = groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
+    let p       = M.gcd (get_period_default po) p in
+    let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
     let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-    let pcts    = List.sort (liftfst2 ploc_compare) (List.concat gs) in
-      if not (exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
+    let pcts    = List.sort (M.Ops.liftfst2 ploc_compare) (List.concat gs) in
+      if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
         ((Some p, pcts), b)
       else
         assert false
@@ -366,7 +367,7 @@ let solve (cs: cstr list): cstrsol =
 (******************************************************************************)
 (************************************ Tests ***********************************)
 (******************************************************************************)
-
+(*
 let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
   assert (IVM.find 0 is = ISeq (2, 2))
 
@@ -425,3 +426,4 @@ let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
   assert (prestore_find 0 ss = LDesc.empty);
   assert (indexsol_find 0 is = IInt 1);
   assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
+*)

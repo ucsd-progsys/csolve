@@ -53,6 +53,9 @@ module Ops = struct
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
 
+  let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
+    f (fst x) (fst y)
+
 (*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
@@ -382,10 +385,14 @@ let rec expand f xs ys =
       let (xs',ys') = f x in
       expand f (List.rev_append xs' xs) (List.rev_append ys' ys)
 
+let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
+  let t        = Hashtbl.create 17 in
+  let lookup x = try Hashtbl.find t x with Not_found -> [] in
+    List.iter (fun x -> Hashtbl.replace t (f x) (x :: lookup (f x))) xs;
+    List.map List.rev (Hashtbl.fold (fun _ xs xxs -> xs :: xxs) t [])
 
-
-
-
+let exists_pair (f: 'a -> 'a -> bool) (xs: 'a list): bool =
+  fst (List.fold_left (fun (b, ys) x -> (b || List.exists (f x) ys, x :: ys)) (false, []) xs)
 
 let rec is_unique = function
   | []      -> true
@@ -413,3 +420,5 @@ let maybe_bool = function
   Some _ -> true
   | None -> false
 
+let rec gcd (a: int) (b: int): int =
+  if b = 0 then a else gcd b (a mod b)

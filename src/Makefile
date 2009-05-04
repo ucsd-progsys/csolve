@@ -1,5 +1,7 @@
 include ../config.make 
 
+DIRS=-I misc -I fixpoint
+
 LIBS=-libs unix,str,cil,z3
 
 IFLAGS=-lflags -I,$(CILHOME) \
@@ -19,7 +21,9 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(Z3HOME)/ocaml
 
 all:
-	ocamlbuild $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) main.native
+	ln -sf ../external/misc
+	ln -sf ../external/fixpoint
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) main.native
 
 clean:
 	rm -rf *.byte *.native _build _log
