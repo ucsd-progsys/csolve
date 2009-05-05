@@ -1,4 +1,7 @@
 module M = Misc
+module P = Pretty
+
+open M.Ops
 
 (******************************************************************************)
 (*********************************** Indices **********************************)
@@ -8,6 +11,11 @@ type index =
   | IBot               (* empty sequence *)
   | IInt of int        (* singleton *)
   | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
+
+let d_index: index -> P.doc = function
+  | IBot        -> P.text "⊥"
+  | IInt n      -> P.num n
+  | ISeq (n, m) -> P.dprintf "%d[%d]" n m
 
 let index_lub (i1: index) (i2: index): index =
   match (i1, i2) with
@@ -33,43 +41,6 @@ let is_subindex (i1: index) (i2: index): bool =
     | _                          -> false
 
 (******************************************************************************)
-(****************************** Index Constraints *****************************)
-(******************************************************************************)
-
-type indexvar = int
-
-type indexexp =
-  | IEInt of int
-  | IEVar of indexvar
-  | IEPlus of indexvar * indexvar
-
-type indexcstr =
-  | ICLess of indexexp * indexvar
-
-module IVM =
-  Map.Make
-    (struct
-       type t      = indexvar
-       let compare = compare
-     end)
-
-type indexsol = index IVM.t
-
-let indexsol_find (iv: indexvar) (is: indexsol): index =
-  try IVM.find iv is with Not_found -> IBot
-
-let indexexp_apply (is: indexsol): indexexp -> index = function
-  | IEInt n           -> IInt n
-  | IEVar iv          -> indexsol_find iv is
-  | IEPlus (iv1, iv2) -> index_plus (indexsol_find iv1 is) (indexsol_find iv2 is)
-
-let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
-  IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
-
-let indexcstr_sat (ICLess (ie, iv): indexcstr) (is: indexsol): bool =
-  is_subindex (indexexp_apply is ie) (indexsol_find iv is)
-
-(******************************************************************************)
 (************************************ Types ***********************************)
 (******************************************************************************)
 
@@ -78,6 +49,10 @@ type sloc = int (* store locations *)
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
+
+let d_prectype (d_i: 'a -> P.doc): 'a prectype -> P.doc = function
+  | CTInt (n, i) -> P.dprintf "int(%d, %a)" n (fun () -> d_i) i
+  | CTRef (s, i) -> P.dprintf "ref(%d, %a)" s (fun () -> d_i) i
 
 let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
@@ -88,6 +63,9 @@ let prectype_replace_sloc (s1: sloc) (s2: sloc): 'a prectype -> 'a prectype = fu
   | pct                        -> pct
 
 type ctype = index prectype
+
+let d_ctype (ct: ctype): P.doc =
+  d_prectype d_index ct
 
 exception NoLUB of ctype * ctype
 
@@ -104,35 +82,7 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
     | _                                             -> false
 
 (******************************************************************************)
-(****************************** Type Constraints ******************************)
-(******************************************************************************)
-
-type ctypevar = indexvar prectype
-
-let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
-  | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
-  | CTRef (s, iv) -> CTRef (s, indexsol_find iv is)
-
-type ctypecstr =
-  | CTCSubtype of ctypevar * ctypevar
-
-let ctypecstr_replace_sloc (s1: sloc) (s2: sloc) (CTCSubtype (ctv1, ctv2): ctypecstr): ctypecstr =
-  CTCSubtype (prectype_replace_sloc s1 s2 ctv1, prectype_replace_sloc s1 s2 ctv2)
-
-let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
-  match (ctv1, ctv2) with
-    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2 -> refine_index (IEVar iv1) iv2 is
-    | (CTRef (s1, iv1), CTRef (s2, iv2)) when s1 = s2 -> refine_index (IEVar iv1) iv2 is
-    | _                                               -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
-
-let equalize_ctypes (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
-  refine_ctype ctv2 ctv1 (refine_ctype ctv1 ctv2 is)
-
-let ctypecstr_sat (CTCSubtype (ctv1, ctv2): ctypecstr) (is: indexsol): bool =
-  is_subctype (ctypevar_apply is ctv1) (ctypevar_apply is ctv2)
-
-(******************************************************************************)
-(*********************************** Stores ***********************************)
+(***************************** Periodic Locations *****************************)
 (******************************************************************************)
 
 type ploc =
@@ -169,6 +119,10 @@ let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prec
   let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
   let (s1, s2)                   = (ploc_start pl1, ploc_start pl2) in
     s1 + prectype_width pct1 > s2 || (ploc_periodic pl1 && s2 + prectype_width pct2 > (s1 + p))
+
+(******************************************************************************)
+(*********************************** Stores ***********************************)
+(******************************************************************************)
 
 exception TypeDoesntFit
 
@@ -239,204 +193,16 @@ module LDesc = struct
     (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
 end
 
-module SLM =
-  Map.Make
-    (struct
-       type t      = sloc
-       let compare = compare
-     end)
+module SlocKey = struct
+  type t      = sloc
+  let compare = compare
+end
+
+module SLM = Map.Make (SlocKey)
 
 type 'a prestore = ('a LDesc.t) SLM.t
 
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
-type store = ctype prestore
-
-(******************************************************************************)
-(****************************** Store Constraints *****************************)
-(******************************************************************************)
-
-type storecstr =
-  | SCInc of sloc * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
-
-let storecstr_replace_sloc (s1: sloc) (s2: sloc) (SCInc (s3, iv, ctv): storecstr): storecstr =
-  SCInc ((if s3 = s1 then s2 else s3), iv, prectype_replace_sloc s1 s2 ctv)
-
-type storesol = indexvar prestore
-
-let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
-  SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
-
-let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
-  match indexsol_find iv is with
-    | IBot        -> (is, ss)
-    | IInt n      ->
-        let pl = PLAt n in
-          begin match LDesc.find pl (prestore_find l ss) with
-            | []          -> begin try (is, storesol_add l pl ctv ss) with TypeDoesntFit -> assert false end
-            | [(_, ctv2)] -> (equalize_ctypes ctv ctv2 is, ss)
-            | _           -> assert false
-        end
-    | ISeq (n, m) ->
-        let (ld, is) = LDesc.shrink_period m equalize_ctypes is (prestore_find l ss) in
-        let pl       = PLSeq n in
-        let pcts     = LDesc.find pl ld in
-        let is       = List.fold_left (fun is (_, ctv2) -> equalize_ctypes ctv ctv2 is) is pcts in
-          if List.exists (fun (pl2, _) -> ploc_periodic pl2 && ploc_le pl2 pl) pcts then
-            (* If this sequence is included in an existing one, there's nothing left to do *)
-            (is, ss)
-          else
-            (* Otherwise, remove "later", overlapping elements and add this sequence.
-               (Note if there's no including sequence, all the elements we found previously
-                come after this one.) *)
-            let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld pcts in
-            let ld = try LDesc.add pl ctv ld with TypeDoesntFit -> assert false in
-              (is, SLM.add l ld ss)
-
-let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol): bool =
-  let ld = prestore_find l ss in
-  let ct = ctypevar_apply is ctv in
-    match indexsol_find iv is with
-      | IBot        -> true
-      | IInt n      ->
-          begin match LDesc.find (PLAt n) ld with
-            | [(_, ctv2)] -> ct = ctypevar_apply is ctv2
-            | _           -> false
-          end
-      | ISeq (n, m) ->
-          match LDesc.get_period ld with
-            | None   -> false
-            | Some p ->
-                (* This is stricter than the formal algorithm requires - we actually
-                   enforce that a sequence is represented only by a sequence element,
-                   rather than by several individual elements followed by a sequence *)
-                let pl = PLSeq n in
-                  match LDesc.find pl ld with
-                    | [(pl2, ctv2)] -> m mod p = 0 && ploc_contains pl2 pl p && ct = ctypevar_apply is ctv2
-                    | _             -> false
-
-(******************************************************************************)
-(*************************** Systems of Constraints ***************************)
-(******************************************************************************)
-
-type cstr =
-  | CSIndex of indexcstr
-  | CSCType of ctypecstr
-  | CSStore of storecstr
-
-type store_unifier =
-  | SUnify of sloc * sloc
-
-type cstrsol = store_unifier list * indexsol * storesol
-
-let cstr_replace_sloc (s1: sloc) (s2: sloc): cstr -> cstr = function
-  | CSCType ctc -> CSCType (ctypecstr_replace_sloc s1 s2 ctc)
-  | CSStore sc  -> CSStore (storecstr_replace_sloc s1 s2 sc)
-  | CSIndex ic  -> CSIndex ic
-
-let cstr_sat ((_, is, ss): cstrsol): cstr -> bool = function
-  | CSIndex ic  -> indexcstr_sat ic is
-  | CSCType ctc -> ctypecstr_sat ctc is
-  | CSStore sc  -> storecstr_sat sc is ss
-
-let refine ((is, ss): indexsol * storesol): cstr -> indexsol * storesol = function
-  | CSIndex (ICLess (ie, iv))         -> (refine_index ie iv is, ss)
-  | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
-  | CSStore (SCInc (l, iv, ctv))      -> refine_store l iv ctv is ss
-
-let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
-  match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
-    | None   -> csol
-    | Some c ->
-        let (cs, sus, is, ss) =
-          try
-            let (is, ss) = refine (is, ss) c in
-              (cs, sus, is, ss)
-          with
-            | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
-                let cs = List.map (cstr_replace_sloc s1 s2) cs in
-                let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
-                  (cs, SUnify (s1, s2) :: sus, is, ss)
-            | _ -> assert false
-        in solve_rec cs (sus, is, ss)
-
-let solve (cs: cstr list): cstrsol =
-  solve_rec cs ([], IVM.empty, SLM.empty)
-
-(******************************************************************************)
-(************************************ Tests ***********************************)
-(******************************************************************************)
-(*
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
-  assert (IVM.find 0 is = ISeq (2, 2))
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
-  assert (IVM.find 0 is = ISeq (3, 1))
-
-let ctv = CTInt (1, 0) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
-  assert (LDesc.find (PLAt 4) (prestore_find 0 ss) = [(PLAt 4, CTInt (1, 0))])
-
-let ctv = CTInt (1, 0) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
-  assert (LDesc.find (PLAt 6) (prestore_find 0 ss) = [(PLSeq 2, CTInt (1, 0))])
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
-  assert (IVM.find 0 is = IInt 4);
-  assert (IVM.find 1 is = IInt 2)
-
-let ctv1 = CTInt (1, 0) in
-let ctv2 = CTInt (1, 1) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                         CSIndex (ICLess (IEInt 2, 1));
-                         CSStore (SCInc (0, 0, ctv1));
-                         CSStore (SCInc (0, 0, ctv2))]
-in
-  assert (ctypevar_apply is ctv1 = CTInt (1, ISeq (2, 2)));
-  assert (ctypevar_apply is ctv2 = CTInt (1, ISeq (2, 2)));
-  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 6) (prestore_find 0 ss)) = [CTInt (1, ISeq (2, 2))])
-
-let ctv1 = CTInt (1, 0) in
-let ctv2 = CTInt (1, 1) in
-let ctv3 = CTInt (1, 2) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                         CSIndex (ICLess (IEInt 2, 1));
-                         CSStore (SCInc (0, 0, ctv1));
-                         CSStore (SCInc (0, 0, ctv2));
-                         CSCType (CTCSubtype (ctv2, ctv3))]
-in assert (ctypevar_apply is ctv3 = CTInt (1, ISeq (2, 2)))
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
-  assert (indexsol_find 0 is = IBot)
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
-  assert (indexsol_find 0 is = IInt 4)
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
-  assert (indexsol_find 0 is = ISeq (4, 4))
-
-let (su, is, ss) = solve [CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
-  assert (su = [SUnify (0, 1)])
-
-let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
-                          CSIndex (ICLess (IEInt 1, 0));
-                          CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
-  assert (su = [SUnify (0, 1)]);
-  assert (prestore_find 0 ss = LDesc.empty);
-  assert (indexsol_find 0 is = IInt 1);
-  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
-*)
-
-(******************************************************************************)
-(**************************** Constraint Generation ***************************)
-(******************************************************************************)
-
-module ExpMap =
-  Map.Make (struct
-              type t      = (* statment id: *) int * Cil.exp
-              let compare = compare
-            end)
-
-let infer_shapes (f: Cil.fundec): Cil.fundec * ctype ExpMap.t * store =
-  assert false
+type store = index prestore

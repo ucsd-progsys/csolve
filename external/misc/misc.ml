@@ -35,6 +35,8 @@ module Ops = struct
   
   let (|>) x f = f x
 
+  let (<|) f x = f x
+
   let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
@@ -317,6 +319,12 @@ let list_assoc_flip xs =
 let fold_lefti f b xs =
   List.fold_left (fun (i,b) x -> ((i+1), f i b x)) (0,b) xs
 
+let flip f x y =
+  f y x
+
+let fold_left_flip f b xs =
+  List.fold_left (flip f) b xs
+
 let rec map3 f xs ys zs = match (xs, ys, zs) with
   | ([], [], []) -> []
   | (x :: xs, y :: ys, z :: zs) -> f x y z :: map3 f xs ys zs
@@ -422,3 +430,11 @@ let maybe_bool = function
 
 let rec gcd (a: int) (b: int): int =
   if b = 0 then a else gcd b (a mod b)
+
+let mk_int_factory () =
+  let id = ref (-1) in
+    ((fun () -> incr id; !id), (fun () -> id := -1))
+
+let mk_char_factory () =
+  let (fresh_int, reset_fresh_int) = mk_int_factory () in
+    ((fun () -> Char.chr (fresh_int () + Char.code 'a')), reset_fresh_int)
