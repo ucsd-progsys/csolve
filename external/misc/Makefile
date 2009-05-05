@@ -10,7 +10,7 @@ TARGETS=misc.cma misc.cmxa \
 	bstats.cma bstats.cmxa \
 	constants.cma constants.cmxa \
 	common.cma common.cmxa \
-	heap.cma heap.cmxa \
+	heaps.cma heaps.cmxa \
 	errorline.cma errorline.cmxa
 
 all:
