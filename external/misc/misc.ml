@@ -319,6 +319,12 @@ let list_assoc_flip xs =
 let fold_lefti f b xs =
   List.fold_left (fun (i,b) x -> ((i+1), f i b x)) (0,b) xs
 
+let flip f x y =
+  f y x
+
+let fold_left_flip f b xs =
+  List.fold_left (flip f) b xs
+
 let rec map3 f xs ys zs = match (xs, ys, zs) with
   | ([], [], []) -> []
   | (x :: xs, y :: ys, z :: zs) -> f x y z :: map3 f xs ys zs
