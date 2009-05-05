@@ -22,7 +22,7 @@
  *)
 
 {
-  module E = Errormsg
+  module E = Errorline
   open E
   open FixParse 
 	       

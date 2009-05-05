@@ -11,7 +11,7 @@ TARGETS=misc.cma misc.cmxa \
 	constants.cma constants.cmxa \
 	common.cma common.cmxa \
 	heap.cma heap.cmxa \
-	errormsg.cma errormsg.cmxa
+	errorline.cma errorline.cmxa
 
 all:
 	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)

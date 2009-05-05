@@ -37,7 +37,7 @@ type fc_id = int option
 type subref_id = int 
 
 module WH = 
-  Heap.Functional(struct 
+  Heaps.Functional(struct 
       type t = subref_id * int * (int * bool)
       let compare (_,ts,(i,j)) (_,ts',(i',j')) =
         if i <> i' then compare i i' else
@@ -153,7 +153,7 @@ let wpop me w =
     let (r,b)    = get_ref_rank me c in
     let _        = Co.cprintf Co.ol_solve "popping %d in scc (%d,%b,%s) \n" id r b in 
     (Some c, WH.remove w)
-  with Heap.EmptyHeap -> (None,w) 
+  with Heaps.EmptyHeap -> (None,w) 
 
 (* API *)
 let winit me =

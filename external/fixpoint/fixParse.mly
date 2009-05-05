@@ -8,7 +8,7 @@ module P  = A.Predicate
 module C  = Constraint
 
 let parse_error msg =
-  Errormsg.error (symbol_start ()) msg
+  Errorline.error (symbol_start ()) msg
 
 %}
 

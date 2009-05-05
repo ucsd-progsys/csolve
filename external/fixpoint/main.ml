@@ -76,7 +76,7 @@ let sift xs =
     ([], [], [], SM.empty) xs
 
 let parse f = 
-  let _ = Errormsg.startFile f in
+  let _ = Errorline.startFile f in
   open_in f 
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token

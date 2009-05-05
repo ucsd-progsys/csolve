@@ -113,7 +113,7 @@ type fc_id = int option
 type subref_id = int 
 
 module WH = 
-  Heap.Functional(struct 
+  Heaps.Functional(struct 
       type t = subref_id * int * (int * bool * fc_id)
       let compare (_,ts,(i,j,k)) (_,ts',(i',j',k')) =
         if i <> i' then compare i i' else

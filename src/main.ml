@@ -75,8 +75,7 @@ let mk_scis cil =
       | _ -> acc) [] 
 
 let mk_quals (f:string) : A.pred list =        
-  (* TBD: parse qualifiers from file *)
-  failwith "TBD" 
+  failwith "TBDNOW: parse qualifiers from file" 
 
 let mk_genv (cil: Cil.file) : W.cilenv =                       
   (* TBD: initialize with global variables *)

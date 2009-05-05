@@ -4,7 +4,6 @@ module ST = Ssa_transform
 module  A = Ast
 module  C = Constraint
 module  W = Wrapper 
-
 open Misc.Ops
 open Cil
 
@@ -97,19 +96,19 @@ let gen g sci =
   (g', cs)
   
 let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
-  failwith "TBD: inst_quals"
+  failwith "TBDNOW: inst_quals"
 
 let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
-  let ks  = Misc.tr_flap C.get_kvars cs' in
+  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
   let qs' = inst_quals g qs in
-  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs') s ks 
+  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
 
 (* API *)
 let mk_cons qs g0 scis = 
   List.fold_left
-    (fun (s, cs) sci -> 
+    (fun (cs, s) sci -> 
       let g, cs' = gen g0 sci in 
       let s'     = inst qs g cs s in
-      (s', cs' ++ cs))
-    (Ast.Symbol.SMap.empty, []) scis
+      ((cs' ++ cs), s'))
+    ([], Ast.Symbol.SMap.empty) scis
 

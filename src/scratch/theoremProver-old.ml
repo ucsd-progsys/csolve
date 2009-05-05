@@ -171,8 +171,6 @@ class ['a] prover env =
 (* expr *************************************************************)
 
   method private z3Exp = function
-    | Cil.Const (Cil.CInt64 (i, Cil.IInt, _)) ->
-        Z3.mk_int ctx (Int64.to_int i) tint
     | Cil.Lval ((Cil.Var v), Cil.NoOffset) -> 
         self#z3Var (v.Cil.vname)
     | Cil.UnOp (Cil.Neg, e, _) ->

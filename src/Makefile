@@ -2,9 +2,10 @@ include ../config.make
 
 DIRS=-I misc -I fixpoint
 
-LIBS=-libs unix,str,cil,z3
+LIBS=-libs unix,str,cil,z3,graph
 
-IFLAGS=-lflags -I,$(CILHOME) \
+IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
+       -lflags -I,$(CILHOME) \
        -lflags -I,$(Z3HOME)/lib \
        -lflags -I,$(Z3HOME)/ocaml
 
@@ -18,7 +19,8 @@ LFLAGS=-lflags -cc,g++ \
 
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \
-       -cflags -I,$(Z3HOME)/ocaml
+       -cflags -I,$(Z3HOME)/ocaml \
+       -cflags -I,$(OCAMLGRAPHHOME)
 
 TARGETS=main.native #consgen.cmo #ssa_transform.cmo #guards.cmo main.native
 
