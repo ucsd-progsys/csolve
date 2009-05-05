@@ -35,6 +35,8 @@ module Ops = struct
   
   let (|>) x f = f x
 
+  let (<|) f x = f x
+
   let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
@@ -422,3 +424,11 @@ let maybe_bool = function
 
 let rec gcd (a: int) (b: int): int =
   if b = 0 then a else gcd b (a mod b)
+
+let mk_int_factory () =
+  let id = ref (-1) in
+    ((fun () -> incr id; !id), (fun () -> id := -1))
+
+let mk_char_factory () =
+  let (fresh_int, reset_fresh_int) = mk_int_factory () in
+    ((fun () -> Char.chr (fresh_int () + Char.code 'a')), reset_fresh_int)
