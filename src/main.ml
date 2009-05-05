@@ -24,18 +24,17 @@
 (* This file is part of the liquidC Project.*)
 module E  = Errormsg
 module ST = Ssa_transform
-module C  = Ast.Constraint
-module P  = Ast.Predicate
-module T  = Ast.Template
+module A  = Ast
+module C  = Constraint
 module SM = Misc.StringMap
-module TP = TheoremProver
+module Sy = Ast.Symbol
+module W  = Wrapper
 
 open Misc.Ops
-(* Pre-passes from blastCilInterface.ml:
+
+ (* Pre-passes from blastCilInterface.ml:
   * one return value
   * simplify boolean expressions *)
-
-(******************************************************************************)
 
 let rename_locals cil =
   Cil.iterGlobals cil
@@ -56,19 +55,18 @@ let mk_cfg cil =
   | _ -> ())
 
 let mk_cil fname =
-  let _    = ignore (E.log "Parsing %s\n" fname) in
-  let cil0 = Frontc.parse fname () in
-  let cil  = Simplemem.simplemem cil0 in
-  let _    = Rmtmps.removeUnusedTemps cil; 
-             mk_cfg cil;
-             rename_locals cil in
+  let _   = ignore (E.log "Parsing %s\n" fname) in
+  let cil = Frontc.parse fname () |> Simplemem.simplemem in
+  let _   = Rmtmps.removeUnusedTemps cil; 
+            mk_cfg cil;
+            rename_locals cil in
   cil
 
 let mk_scis cil = 
   Cil.foldGlobals cil
     (fun acc g ->
       match g with 
-      | Cil.GFun(fd,loc) -> 
+      | Cil.GFun (fd,loc) -> 
           let _   = E.log "before fdec_to_ssa \n" in
           let sci = ST.fdec_to_ssa_cfg fd loc in
           let _   = E.log "after fdec_to_ssa \n";
@@ -76,12 +74,15 @@ let mk_scis cil =
           sci::acc
       | _ -> acc) [] 
 
-let mk_quals (f:string) (cil: Cil.file) : P.t list =        (* TBD *)
-  [] 
+let mk_quals (f:string) : A.pred list =        
+  (* TBD: parse qualifiers from file *)
+  failwith "TBD" 
 
-let mk_genv (cil: Cil.file) : T.env =                       (* TBD *)
-  SM.empty 
+let mk_genv (cil: Cil.file) : W.cilenv =                       
+  (* TBD: initialize with global variables *)
+  W.ce_empty 
 
+(*
 let mk_tp_env cil =
   Cil.foldGlobals cil 
     (fun env g -> 
@@ -95,16 +96,19 @@ let mk_tp_env cil =
             env (fd.Cil.sformals ++ fd.Cil.slocals)
       | _ -> env)
     SM.empty 
+*)
 
 let liquidate file =
-  let cil  = mk_cil file in
-  let qs   = mk_quals file cil in
-  let scis = mk_scis cil in
-  let g0   = mk_genv cil in
-  let cm   = Consgen.mk_cons g0 scis in 
-  let _    = Consgen.print_cmap cm in
-  let tpnv = mk_tp_env cil in 
-  Solver.solve tpnv cm qs 
+  let cil    = mk_cil file in
+  let qs     = mk_quals file in
+  let g0     = mk_genv cil in
+  let scis   = mk_scis cil in
+  let cs,s   = Consgen.mk_cons qs g0 scis in
+  let ctx    = Solve.create [] A.Symbol.SMap.empty [] cs in
+  let _      = Solve.save (file^".in.fq") ctx s in
+  let s',cs' = Solve.solve ctx s in 
+  let _      = Solve.save (file^".out.fq") ctx s' in
+  (cs' = [])
 
 let print_header () = 
   Printf.printf " \n \n";
@@ -127,6 +131,6 @@ let mk_options () =
 let main () = 
   let _ = print_header () in
   let f = mk_options () in
-  liquidate f
+  if liquidate f then print_string "SAFE" else print_string "UNSAFE"
 
 let _ = main ()

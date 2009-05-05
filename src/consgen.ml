@@ -95,12 +95,21 @@ let gen g sci =
   let ccs  = gen_phis g' doms cfg phis in
   let cs   = List.map (W.cstr_of_cilcstr sci invp) ccs in
   (g', cs)
+  
+let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
+  failwith "TBD: inst_quals"
+
+let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
+  let ks  = Misc.tr_flap C.get_kvars cs' in
+  let qs' = inst_quals g qs in
+  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs') s ks 
 
 (* API *)
-let mk_cons g0 scis = 
-  List.fold_left 
-    (fun m sci -> 
-      let k       = sci.ST.fdec.Cil.svar.Cil.vname in
-      let (g, cs) = gen g0 sci in
-      SM.add k (sci, g, cs) m)
-    SM.empty scis
+let mk_cons qs g0 scis = 
+  List.fold_left
+    (fun (s, cs) sci -> 
+      let g, cs' = gen g0 sci in 
+      let s'     = inst qs g cs s in
+      (s', cs' ++ cs))
+    (Ast.Symbol.SMap.empty, []) scis
+
