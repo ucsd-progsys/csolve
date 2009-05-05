@@ -187,3 +187,14 @@ let print_soln ppf sm =
        Ast.Symbol.print x (Misc.pprint_many false "," P.print) ps)
     sm
 
+(* API *)
+let make_reft   = fun v so ras -> (v, so, ras)
+let make_t      = fun env p r1 r2 -> (env, p, r1, r2, None)
+let vv_of_reft  = Misc.fst3
+let so_of_reft  = Misc.snd3
+let ras_of_reft = Misc.thd3
+let env_of_t    = fun (env,_,_,_,_) -> env
+let grd_of_t    = fun (_,grd,_,_,_) -> grd 
+let lhs_of_t    = fun (_,_,lhs,_,_) -> lhs 
+let rhs_of_t    = fun (_,_,_,_,rhs) -> rhs
+

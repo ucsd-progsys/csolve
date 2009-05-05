@@ -28,9 +28,10 @@ type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *)
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
 type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
 type envt = reft Ast.Symbol.SMap.t
-type soln = Ast.pred list Ast.Symbol.SMap.t
 type t    = envt * Ast.pred * reft * reft * (tag option) 
   (*env, guard, lhs, rhs, cid*)
+
+type soln = Ast.pred list Ast.Symbol.SMap.t
 
 type deft = Srt of Ast.Sort.t 
           | Axm of Ast.pred 
@@ -51,3 +52,15 @@ val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val print            : soln option -> Format.formatter -> t -> unit
 val print_soln       : Format.formatter -> soln -> unit
 val to_string        : t -> string 
+
+val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
+val make_t           : envt -> Ast.pred -> reft -> reft -> t
+val vv_of_reft       : reft -> Ast.Symbol.t
+val so_of_reft       : reft -> Ast.Sort.t
+val ras_of_reft      : reft -> refa list
+val env_of_t         : t -> envt
+val grd_of_t         : t -> Ast.pred
+val lhs_of_t         : t -> reft
+val rhs_of_t         : t -> reft
+
+

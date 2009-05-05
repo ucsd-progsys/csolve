@@ -35,7 +35,7 @@ module Ops = struct
   
   let (|>) x f = f x
 
-  let (+=) x n = x := !x + n
+  let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
 
@@ -129,8 +129,8 @@ let mapfold f xs b =
 let flap f xs = List.flatten (List.map f xs)
 
 let tr_flatten xss =
-  List.fold_left (fun acc xs -> List.rev_append xs acc) [] xss |>
-  List.rev
+  List.fold_left (fun acc xs -> xs ++ acc) [] xss 
+  |> List.rev
 
 let tr_flap f xs = 
   List.rev (tr_flatten (List.rev_map f xs))
@@ -350,7 +350,7 @@ let combine3 xs ys zs =
 (* these do odd things with order for performance 
  * it is possible that fast is a misnomer *)
 let fast_flatten xs =
-  List.fold_left (fun x xs -> List.rev_append x xs) [] xs
+  List.fold_left (++) [] xs
 
 let fast_append v v' =
   let (v, v') = if List.length v > List.length v' then (v', v) else (v, v') in

@@ -1,84 +1,52 @@
+module F  = Format
+module SM = Misc.StringMap
 module ST = Ssa_transform
 module  E = Ast.Expression
 module  P = Ast.Predicate
 module  C = Constraint
-module Mm = Metamucil
-module SM = Misc.StringMap
+module  W = Wrapper 
 
 open Cil
 
-type t = (ST.ssaCfgInfo * Mm.cilenv * P.t list * C.t list) SM.t
 
-let print_tplt () (u, r) = 
-  Pretty.dprintf "{V: %a | %a}" d_type u C.print_refinement r 
 
-let get_kvars (cm: t) = 
-  let ks = 
-    SM.fold
-      (fun _ (_,_,_,cs) ks -> 
-        let ks' = Misc.tr_flap C.get_kvars cs in
-        List.rev_append ks ks')
-      cm [] in
-  Misc.sort_and_compact ks
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
 
-let print_cmap (cm:t) = 
-  SM.iter
-    (fun fn (sci, g, invs, cs) -> 
-      ignore(Pretty.printf "Templates for %s \n" fn);
-      SM.iter (fun vn (t, r, _) -> ignore(Pretty.printf "%s |-> %a \n" vn
-        print_tplt (t, r))) g;
-      ignore(Pretty.printf "Invariants for %s \n" fn);
-      List.iter (fun p -> ignore(Pretty.printf "%s \n" (P.to_string p))) invs;
-      ignore(Pretty.printf "Constraints for %s \n" fn);
-      List.iter (fun c -> ignore(Pretty.printf "%a \n" 
-        (C.print None std_formatter) c)) cs)
+let print_cmap ppf (cm:t) = 
+  SM.iter 
+    (fun fn cs -> 
+      F.printf "Constraints for %s \n %a" 
+        fn (Misc.pprint_many true "\n" C.print) cs)
     cm
+
+(* NOTE: templates for formals should be in "global" g0 *)
+let gen_decs (g0 : W.cilenv) fdec = 
+  List.fold_left 
+    (fun g v ->
+      match v.vtype with
+      | TInt _ when ST.is_ssa_name v.vname ->
+          W.cilenv_add v (W.fresh v.vtype) g
+      | _      -> g)
+    g0 fdec.slocals
 
 (***************************************************************************)
 
-let fresh_kvar = 
-  let r = ref 0 in
-  fun () -> incr r; C.Kvar ([], string_of_int !r)
+let phi_cstr cenv doms cfg i (v, bvs) : W.cilcstr = 
+  let rhs = W.ce_find cenv v in
+  let loc = Cil.get_stmtLoc cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
+  List.map 
+    (fun (j,v') ->
+      let lhs = W.t_var v' in 
+      W.mk_cilcstr cenv doms.(j) lhs rhs loc)  
+    bvs
 
-let rec fresh ty =
-  match ty with
-  | TInt _ -> (ty, (fresh_kvar ()))  
-  | _      -> failwith "Unhandled: fresh"
-
-let gen_decs g0 fdec = 
-  let gen_var g v =
-    match v.vtype with
-    | TInt _ when ST.is_ssa_name v.vname -> SM.add v.vname ((fresh v.vtype), v) g
-    | _      -> g in
-  (* templates for formals should be in "global" g
-   * let g1 = List.fold_left gen_var g0 fdec.sformals in *)
-  let g2 = List.fold_left gen_var g0 fdec.slocals  in
-  g2
-
-(******************************************************************************)
-
-let phi_loc cfg i =
-  get_stmtLoc cfg.Ssa.blocks.(i).Ssa.bstmt.skind
-
-let gen_phis g fid doms cfg phis = 
-  let phi_cstr i (v,bvs) = 
-    let vt  = Mm.ciltyp_of_var g v in
-    (*let loc = phi_loc cfg i in*)
-    List.map
-      (fun (j,v') ->
-        Mm.mk_constr envTBA (*fid*) (Mm.expand_guard doms.(j) phis)
-          (Mm.mk_const_reft (Ast.eVar v')) (??? vt) (*loc*)) bvs in
-  (* TODO: find or build cilenv, figure out RHS, grab and port expand_guard *)
-  let _, cs = 
-    Array.fold_left 
-      (fun (i,cs) asgns -> 
-        let cs' = Misc.tr_flap (phi_cstr i) asgns in
-        let cs' = List.rev_append cs cs' in
-        (i+1, cs'))
-      (0, []) phis in
-  cs
-
-(******************************************************************************)
+let gen_phis env doms cfg phis : W.cilcstr list = 
+  phis
+  |> Array.mapi (fun i asgns -> Misc.tr_flap (phi_cstr cenv doms cfg i) asgns) 
+  |> Array.to_list 
+  |> Misc.tr_flatten
 
 class consGenVisitor fid doms invsr = object(self) 
   inherit nopCilVisitor
@@ -86,25 +54,24 @@ class consGenVisitor fid doms invsr = object(self)
   val sid = ref 0
 
   method vinst = function
-    | Set (((Var v), NoOffset) as lv , e, l) ->
-        invsr := (Mm.mk_eq (Lval lv) e) :: !invsr;
+    | Set (((Var v), NoOffset) as lv , e, _) ->
+        let p = A.pAtom ((W.expr_of_lval lv), A.Eq, (W.expr_of_cilexpr e)) in 
+        invsr := p :: !invsr;
         DoChildren 
     | _ -> 
-        failwith "Unhandled: consGenVisitor vinst" 
+        asserts false "TBD: consGenVisitor vinst" 
 
   method vstmt s =
     sid := s.sid;
     DoChildren
 end
 
-let gen_body fdec doms = 
+let gen_body fdec doms : A.pred list = 
   let fid   = fdec.svar.vname in
   let invsr = ref [] in
   let vis   = new consGenVisitor fid doms invsr in
   let _     = visitCilFunction vis fdec in
-  !invsr
-
-(******************************************************************************)
+  A.pAnd !invsr
 
 let guards_closure gdoms = 
   let n    = Array.length gdoms in
@@ -124,17 +91,16 @@ let gen g sci =
   let doms = guards_closure sci.ST.gdoms in
   let phis = sci.ST.phis in
   let g'   = gen_decs g  fdec in
-  let invs = gen_body fdec doms in
-  let cs   = gen_phis g' fid doms cfg phis in
-  (g', invs, cs)
+  let invp = gen_body fdec doms in
+  let ccs  = gen_phis g' doms cfg phis in
+  let cs   = List.map (W.cstr_of_cilcstr sci invp) ccs in
+  (g', cs)
 
 (* API *)
 let mk_cons g0 scis = 
   List.fold_left 
     (fun m sci -> 
-      let k             = sci.ST.fdec.Cil.svar.Cil.vname in
-      let (g, invs, cs) = gen g0 sci in
-      SM.add k (sci, g, invs, cs) m)
+      let k       = sci.ST.fdec.Cil.svar.Cil.vname in
+      let (g, cs) = gen g0 sci in
+      SM.add k (sci, g, cs) m)
     SM.empty scis
-
-

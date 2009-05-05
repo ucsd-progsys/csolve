@@ -20,10 +20,12 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \
        -cflags -I,$(Z3HOME)/ocaml
 
+TARGETS=consgen.cmo #ssa_transform.cmo #guards.cmo main.native
+
 all:
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) main.native
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $(TARGETS) 
 
 clean:
 	rm -rf *.byte *.native _build _log

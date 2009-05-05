@@ -100,7 +100,6 @@ module Template = struct
     | _ ->
         raise Unhandled
 
-
   (********************** solution accessors *******************************)
 
   let s_lookup s k = 
