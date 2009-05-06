@@ -381,5 +381,5 @@ let infer_shapes (fd: Cil.fundec): ctemap * store =
   let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty vars in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
   let (us, is, ss) = solve cs in
-    (ExpMap.map (M.compose (apply_unifiers us) (ctypevar_apply is)) ctvm,
-     SLM.map (LDesc.map (ctypevar_apply is)) ss)
+  let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
+    (ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
