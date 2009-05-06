@@ -359,14 +359,15 @@ let rec constrain_block (ve: ctvenv) (em: cstremap) (b: Cil.block): cstremap =
 (* pmr: set currentLoc so we can have reasonable error messages *)
 and constrain_stmt (ve: ctvenv) (em: cstremap) (s: Cil.stmt): cstremap =
   match s.Cil.skind with
-    | Cil.Block b           -> constrain_block ve em b
-    | Cil.Instr is          -> List.fold_left (constrain_instr ve) em is
-    | Cil.If (e, b1, b2, _) -> constrain_if ve em e b1 b2
-    | Cil.Loop (b, _, _, _) -> constrain_block ve em b
-    | Cil.Break _           -> em
-    | Cil.Continue _        -> em
-    | Cil.Return (eo, _)    -> em (* pmr: todo *)
-    | _                     -> failure "Don't know what to do with crazy statements!"
+    | Cil.Block b            -> constrain_block ve em b
+    | Cil.Instr is           -> List.fold_left (constrain_instr ve) em is
+    | Cil.If (e, b1, b2, _)  -> constrain_if ve em e b1 b2
+    | Cil.Loop (b, _, _, _)  -> constrain_block ve em b
+    | Cil.Break _            -> em
+    | Cil.Continue _         -> em
+    | Cil.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
+    | Cil.Return (None, _)   -> em
+    | _                      -> failure "Don't know what to do with crazy statements!"
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: Cil.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em 0 e in
@@ -374,7 +375,8 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: C
     constrain_block ve (constrain_block ve em b1) b2
 
 let infer_shapes (fd: Cil.fundec): ctemap * store =
-  let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty (fd.Cil.sformals @ fd.Cil.slocals) in
+  let vars         = fd.Cil.sformals @ fd.Cil.slocals in
+  let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty vars in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
   let (us, is, ss) = solve cs in
     (ExpMap.map (ctypevar_apply is) ctvm, SLM.map (LDesc.map (ctypevar_apply is)) ss)
