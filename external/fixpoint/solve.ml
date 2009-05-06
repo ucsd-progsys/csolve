@@ -74,9 +74,9 @@ let check_tp me env vv t lps =  function [] -> [] | rcs ->
   let env = SM.map snd3 env |> SM.add vv t in
   let rv  = Misc.do_catch "ERROR: check_tp" 
               (TP.set_filter me.tpc env vv lps) rcs in
-  let _   = stat_tp_refines    += 1;
-            stat_imp_queries   += (List.length rcs);
-            stat_valid_queries += (List.length rv) in
+  let _   = ignore(stat_tp_refines    += 1);
+            ignore(stat_imp_queries   += (List.length rcs));
+            ignore(stat_valid_queries += (List.length rv)) in
   rv
 
 let refine me s ((env, g, ((vv1, t1, _) as r1), (_, _, ra2s), _) as c) =
@@ -94,7 +94,7 @@ let refine me s ((env, g, ((vv1, t1, _) as r1), (_, _, ra2s), _) as c) =
     let _       = stat_matches += (List.length x1) in
     let kqs1    = List.map fst x1 in
     (if C.is_simple c 
-     then (stat_simple_refines += 1; kqs1) 
+     then (ignore(stat_simple_refines += 1); kqs1) 
      else kqs1 ++ (check_tp me env vv1 t1 lps x2))
     |> C.group_sol_update s 
 

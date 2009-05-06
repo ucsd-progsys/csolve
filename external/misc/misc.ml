@@ -51,6 +51,9 @@ module Ops = struct
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
 
+  let assertf fmt =
+    Printf.ksprintf failwith fmt
+
   let fst3 (x,_,_) = x
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
@@ -136,6 +139,25 @@ let tr_flatten xss =
 
 let tr_flap f xs = 
   List.rev (tr_flatten (List.rev_map f xs))
+
+let tr_rev_flatten xs =
+  List.fold_left (fun x xs -> List.rev_append x xs) [] xs
+
+let tr_rev_flap f xs =
+  List.fold_left (fun xs x -> List.rev_append (f x) xs) [] xs
+
+let rec fast_unflat ys = function
+  | x :: xs -> fast_unflat ([x] :: ys) xs
+  | [] -> ys
+
+let rec rev_perms s = function
+  | [] -> s
+  | e :: es -> rev_perms 
+    (tr_rev_flap (fun e -> List.rev_map (fun s -> e :: s) s) e) es 
+
+let rev_perms = function
+  | e :: es -> rev_perms (fast_unflat [] e) es
+  | es -> es 
 
 let hashtbl_keys t = 
   Hashtbl.fold (fun x y l -> x::l) t []

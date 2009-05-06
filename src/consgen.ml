@@ -4,6 +4,8 @@ module ST = Ssa_transform
 module  A = Ast
 module  C = Constraint
 module  W = Wrapper 
+module CI = CilInterface
+
 open Misc.Ops
 open Cil
 
@@ -54,7 +56,7 @@ class consGenVisitor fid doms invsr = object(self)
 
   method vinst = function
     | Set (((Var v), NoOffset), e, _) ->
-        let p = A.pAtom ((W.expr_of_var v), A.Eq, (W.expr_of_cilexp e)) in 
+        let p = A.pAtom ((CI.expr_of_var v), A.Eq, (CI.expr_of_cilexp e)) in 
         invsr := p :: !invsr;
         DoChildren 
     | _ -> 
@@ -94,9 +96,26 @@ let gen g sci =
   let ccs  = gen_phis g' doms cfg phis in
   let cs   = List.map (W.cstr_of_cilcstr sci invp) ccs in
   (g', cs)
+
+let inst_qual (e: string list) (q: Ast.pred) : Ast.pred list =
+  let ms  = ref [] in
+  let gms x = match Ast.Expression.unwrap x with
+    | Ast.Var x -> if Ast.Symbol.is_wild x then ms := x :: !ms
+    | _ -> () in
+  let ms  = Ast.Predicate.iter (fun _ -> ()) gms q; !ms in
+  let ms  = Misc.sort_and_compact ms in
+  let mms = List.rev_map (fun _ -> e) ms in
+  let pms = Misc.rev_perms mms in
+  let pms = List.rev_map (List.combine ms) pms in
+  let sub ys x =
+    match Ast.Expression.unwrap x with
+      | Ast.Var y ->
+         (try Ast.eVar (Ast.Symbol.of_string (List.assoc y ys)) with Not_found -> x)
+      | _ -> x in
+  List.rev_map (fun ys -> Ast.Predicate.map (fun x -> x) (sub ys) q) pms
   
 let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
-  qs
+  Misc.tr_flap (inst_qual (W.names_of_cilenv g)) qs
 
 let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
   let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
