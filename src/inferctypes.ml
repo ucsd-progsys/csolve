@@ -354,10 +354,10 @@ let constrain_instr (ve: ctvenv) (em: cstremap): Cil.instr -> cstremap = functio
   | _ -> failure "Can't handle fancy instructions yet"
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: Cil.block): cstremap =
-  M.fold_left_flip (constrain_stmt ve) em b.Cil.bstmts
+  List.fold_left (constrain_stmt ve) em b.Cil.bstmts
 
 (* pmr: set currentLoc so we can have reasonable error messages *)
-and constrain_stmt (ve: ctvenv) (s: Cil.stmt) (em: cstremap): cstremap =
+and constrain_stmt (ve: ctvenv) (em: cstremap) (s: Cil.stmt): cstremap =
   match s.Cil.skind with
     | Cil.Block b           -> constrain_block ve em b
     | Cil.Instr is          -> List.fold_left (constrain_instr ve) em is
