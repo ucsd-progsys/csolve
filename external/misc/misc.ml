@@ -51,6 +51,9 @@ module Ops = struct
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
 
+  let assertf fmt =
+    Printf.ksprintf failwith fmt
+
   let fst3 (x,_,_) = x
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x

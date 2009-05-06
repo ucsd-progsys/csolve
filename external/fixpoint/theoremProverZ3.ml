@@ -364,7 +364,8 @@ let create ts env ps =
 
 (* API *)
 let set_filter me env vv ps qs =
-  let _  = nb_push += 1; nb_query += (List.length qs) in
+  let _   = ignore(nb_push += 1); 
+            ignore(nb_query += List.length qs) in
   let ps  = List.rev_map A.fixdiv ps in
   let qs' =
     match BS.time "TP set" (set me env vv) ps with 
