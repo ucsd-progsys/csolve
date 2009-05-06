@@ -293,8 +293,8 @@ type ctvemap = ctypevar ExpMap.t
 
 type ctemap = ctype ExpMap.t
 
-let d_ctemap (em: ctemap): Pretty.doc =
-  ExpMapPrinter.d_map "\n" (fun () (_, e) -> Cil.d_exp () e) (fun () -> d_ctype) () em
+let d_ctemap () (em: ctemap): Pretty.doc =
+  ExpMapPrinter.d_map "\n" (fun () (_, e) -> Cil.d_exp () e) d_ctype () em
 
 module IM = M.IntMap
 

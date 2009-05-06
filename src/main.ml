@@ -83,7 +83,10 @@ let mk_shapes cil =
            let _       = E.log "Inferring function shapes\n" in
            let (em, s) = I.infer_shapes fd in
            let _       = E.log "Got function shapes\n" in
-           let _       = P.printf "%a@!@!" (fun () -> I.d_ctemap) em in
+           let _       = P.printf "Local types:@!" in
+           let _       = P.printf "%a@!@!" I.d_ctemap em in
+           let _       = P.printf "Store:@!" in
+           let _       = P.printf "%a@!@!" Ctypes.d_store s in
              (fd, em, s) :: acc
        | _ -> acc)
     []

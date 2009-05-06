@@ -64,9 +64,10 @@ type store = index prestore
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
 
-val d_index: index -> Pretty.doc
-val d_prectype: ('a -> Pretty.doc) -> 'a prectype -> Pretty.doc
-val d_ctype: ctype -> Pretty.doc
+val d_index: unit -> index -> Pretty.doc
+val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
+val d_ctype: unit -> ctype -> Pretty.doc
+val d_store: unit -> store -> Pretty.doc
 
 (******************************************************************************)
 (****************************** Index Operations ******************************)
