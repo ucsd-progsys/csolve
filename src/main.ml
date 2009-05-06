@@ -89,7 +89,12 @@ let mk_shapes cil =
     []
 
 let mk_quals (f:string) : A.pred list =        
-  failwith "TBDNOW: parse qualifiers from file" 
+  let qs =
+    open_in f
+    |> Lexing.from_channel
+    |> FixParse.defs FixLex.token in
+  let qs = List.rev_map (function C.Qul p -> Some p | _ -> None) qs in
+  Misc.maybe_list qs
 
 let mk_genv (cil: Cil.file) : W.cilenv =                       
   (* TBD: initialize with global variables *)

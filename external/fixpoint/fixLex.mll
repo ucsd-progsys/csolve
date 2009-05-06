@@ -87,6 +87,7 @@ rule token = parse
   | "axiom"             { AXM }
   | "constraint"        { CST }
   | "solution"          { SOL }
+  | "qualif"            { QUL }
   | "env"               { ENV }
   | "grd"               { GRD }
   | "lhs"               { LHS }
