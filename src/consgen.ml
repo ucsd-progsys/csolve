@@ -4,6 +4,8 @@ module ST = Ssa_transform
 module  A = Ast
 module  C = Constraint
 module  W = Wrapper 
+module CI = CilInterface
+
 open Misc.Ops
 open Cil
 
@@ -54,7 +56,7 @@ class consGenVisitor fid doms invsr = object(self)
 
   method vinst = function
     | Set (((Var v), NoOffset), e, _) ->
-        let p = A.pAtom ((W.expr_of_var v), A.Eq, (W.expr_of_cilexp e)) in 
+        let p = A.pAtom ((CI.expr_of_var v), A.Eq, (CI.expr_of_cilexp e)) in 
         invsr := p :: !invsr;
         DoChildren 
     | _ -> 

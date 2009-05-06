@@ -1,113 +1,132 @@
-(*
-BLAST is a tool for software model checking.
-This file is part of BLAST.
+module F  = Format
+module A  = Ast
+module E  = A.Expression
+module P  = A.Predicate
+module Sy = A.Symbol
+module So = A.Sort
 
-Copyright (c) 2002-2007, The BLAST Team.
-All rights reserved. 
+open Misc.Ops
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-3. Neither the name of the authors nor their organizations 
-   may be used to endorse or promote products
-   derived from this software without specific prior written permission.
+(****************************************************************)
+(********************* Sorts ************************************)
+(****************************************************************)
 
-THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+let sort_of_typ = function
+  | Cil.TInt _ -> 
+      So.Int
+  | _ -> 
+      assertf "TBD: Wrapper.sort_of_typ"
 
-(This is the Modified BSD License, see also
- http://www.opensource.org/licenses/bsd-license.php)
+(****************************************************************)
+(********************* Constants ********************************)
+(****************************************************************)
 
-The BLAST Team consists of
-        Dirk Beyer (SFU), Thomas A. Henzinger (EPFL),
-        Ranjit Jhala (UCSD), and Rupak Majumdar (UCLA).
-
-BLAST web page:
-        http://mtc.epfl.ch/blast/
-
-Bug reports:
-        Dirk Beyer:      firstname.lastname@sfu.ca or
-        Rupak Majumdar:  firstname@cs.ucla.edu or
-        Ranjit Jhala:    lastname@cs.ucla.edu
- *)
-
-module Constant = Ast.Constant
-module Expression = Ast.Expression
-module Predicate = Ast.Predicate
-
-(*
-module CilExpressionTranslator =
-struct
-(* Functions to convert from CIL representation to Expressions and Predicates *)
+let con_of_cilcon = function
+  | Cil.CInt64 (i, _, _) -> 
+      A.Constant.Int (Int64.to_int i)
+  | _ -> 
+      assertf "TBD: Wrapper.con_of_cilcon unhandled"
+(*  | Cil.CStr _        -> Constant.String str
+    | Cil.CChr _        -> Constant.Int (int_of_char c) 
+    | Cil.CReal (_,_,_) -> Constant.Float f
+    | Cil.CWStr _ -> failwith "CIL: Wide character constant not handled yet"
 *)
 
-let cilUOptoUnaryOp op =
-  match op with
-    Cil.Neg -> Expression.UnaryMinus
-  | Cil.BNot -> Expression.BitNot
-  | Cil.LNot -> Expression.Not
+(****************************************************************)
+(********************* Expressions ******************************)
+(****************************************************************)
 
-let cilBOptoBinaryOp op =
-  match op with
-    Cil.PlusA  -> Expression.Plus                              (** arithmetic + *)
-  | Cil.PlusPI -> Expression.Plus                             (** pointer + integer *)
-  | Cil.IndexPI -> Expression.Offset                          (** pointer[integer]. The difference 
-                                                                  form PlusPI is that in this case 
-                                                                  the integer is very likely 
-                                                                  positive *)
-  | Cil.MinusA -> Expression.Minus                             (** arithemtic - *)
-  | Cil.MinusPI -> Expression.Minus                            (** pointer - integer *)
-  | Cil.MinusPP -> Expression.Minus                            (** pointer - pointer *)
-  | Cil.Mult    -> Expression.Mul                            (** * *)
-  | Cil.Div     -> Expression.Div                            (** / *)
-  | Cil.Mod     -> Expression.Rem                            (** % *)
-  | Cil.Shiftlt -> Expression.LShift                            (** shift left *)
-  | Cil.Shiftrt -> Expression.RShift                            (** shift right *)
+type op = Bop of A.bop | Brl of A.brel 
 
-  | Cil.Lt      -> Expression.Lt                            (** <  (arithmetic comparison) *)
-  | Cil.Gt      -> Expression.Gt                            (** >  (arithmetic comparison) *)  
-  | Cil.Le      -> Expression.Le                            (** <= (arithmetic comparison) *)
-  | Cil.Ge      -> Expression.Ge                            (** >  (arithmetic comparison) *)
-  | Cil.Eq      -> Expression.Eq                            (** == (arithmetic comparison) *)
-  | Cil.Ne      -> Expression.Ne                            (** != (arithmetic comparison) *)            
-
-(* Not supported in CIL anymore 
-  | Cil.LtP     -> Expression.Lt                            (** <  (pointer comparison) *)
-  | Cil.GtP     -> Expression.Gt                          (** >  (pointer comparison) *)
-  | Cil.LeP     -> Expression.Le                            (** <= (pointer comparison) *)
-  | Cil.GeP     -> Expression.Ge                            (** >= (pointer comparison) *)
-  | Cil.EqP     -> Expression.Eq                            (** == (pointer comparison) *)
-  | Cil.NeP     -> Expression.Ne                            (** != (pointer comparison) *)
+(* 
+let unop_of_cilUOp = function
+  | Cil.Neg ->  A.UnaryMinus
+  | Cil.BNot -> A.BitNot
+  | Cil.LNot -> A.Not
 *)
 
-  | Cil.BAnd    -> Expression.BitAnd                            (** bitwise and *)
-  | Cil.BXor    -> Expression.Xor                            (** exclusive-or *)
-  | Cil.BOr     -> Expression.BitOr                            (** inclusive-or *)
+let op_of_cilBOp = function
+  | Cil.PlusA   -> Bop A.Plus    
+  | Cil.PlusPI  -> Bop A.Plus     
+  | Cil.MinusA  -> Bop A.Minus    
+  | Cil.MinusPI -> Bop A.Minus   
+  | Cil.MinusPP -> Bop A.Minus  
+  | Cil.Mult    -> Bop A.Times
+  | Cil.Div     -> Bop A.Div     
+  | Cil.Lt      -> Brl A.Lt  
+  | Cil.Gt      -> Brl A.Gt  
+  | Cil.Le      -> Brl A.Le  
+  | Cil.Ge      -> Brl A.Ge  
+  | Cil.Eq      -> Brl A.Eq
+  | Cil.Ne      -> Brl A.Ne 
+  | Cil.IndexPI    
+  | Cil.Mod       
+  | Cil.Shiftlt   
+  | Cil.Shiftrt   
+  | Cil.BAnd                         
+  | Cil.BXor                         
+  | Cil.BOr                          
   | Cil.LOr    
-  | Cil.LAnd    -> failwith "Logical Or/And not supported."
+  | Cil.LAnd    -> assertf "TBD: op_of_cilBop"
 
+let expr_of_var v = 
+  v.Cil.vname |> Sy.of_string |> A.eVar
+
+let expr_of_lval (lh, _) = match lh with
+  | Cil.Var v -> 
+      v.Cil.vname |> Sy.of_string |> Ast.eVar
+  | _ -> 
+      assertf "TBD: Wrapper.expr_of_lval" 
+
+let expr_of_cilexp = function
+  | Cil.Const c -> 
+      Ast.eCon (con_of_cilcon c)
+  | Cil.Lval lv -> 
+      expr_of_lval lv  
+  | _ -> 
+      assertf "TBD: Wrapper.expr_of_cilexp"
+
+(****************************************************************)
+(********************* Predicates *******************************)
+(****************************************************************)
+let pred_of_cilexp = assertf "TBDNOW: Wrapper.pred_of_cilexp"
+
+(* 
+let rec convertCilExpToPred e =
+  let rec convertExpToPred exp =
+    match exp with
+        Expression.Binary (bop, e1, e2) ->
+          if (Expression.isRelOp bop) then
+            Predicate.Atom exp
+          else 
+            Predicate.Atom (Expression.Binary(Expression.Ne,
+                                              exp,
+                                              Expression.Constant (Constant.Int 0)))
+      | Expression.Unary (uop, e1) ->
+          begin
+            match uop with
+                Expression.Not ->
+                  Predicate.negate (convertExpToPred e1)
+              | _ ->
+                  Predicate.Atom (Expression.Binary(Expression.Ne,
+                                                    exp,
+                                                    Expression.Constant (Constant.Int 0)))
+          end
+      | _ ->
+          Predicate.Atom (Expression.Binary(Expression.Ne,
+                                            exp,
+                                            Expression.Constant (Constant.Int 0)))
+  in
+  convertExpToPred (convertCilExp e)
+*)
+
+(* {{{
 let rec convertCilLval (lb, off) =
   let rec genOffset lvalue o =
     match o with
-      Cil.NoOffset -> lvalue
+    | Cil.NoOffset -> lvalue
     | Cil.Field (fid, o1) ->
 	begin
-	  (* try *)
-	  if Cil.hasAttribute "lock" fid.Cil.fattr then
-	    Message.msg_string Message.Normal ("Lock found! "^fid.Cil.fname) ;
 	  let ee = Expression.Access (Expression.Dot, Expression.Lval lvalue, fid.Cil.fname) in
 	  genOffset ee o1
 	end
@@ -118,8 +137,6 @@ let rec convertCilLval (lb, off) =
 	  genOffset ee o1
 	end
   in
-  
-  
   match lb with
     Cil.Var vinfo -> 
       begin
@@ -151,14 +168,6 @@ let rec convertCilLval (lb, off) =
 	_lval_mem_worker m off
       end
 
-and convertCilConst c =
-  match c with
-      Cil.CInt64 (i64, _, _) -> Constant.Int (Int64.to_int i64)
-    | Cil.CStr str -> Constant.String str
-    | Cil.CChr c   -> Constant.Int (int_of_char c) (* Check : why dont we have char constants? *)
-    | Cil.CReal (f,_,_) -> Constant.Float f
-    | Cil.CWStr i64list -> failwith "CIL: Wide character constant not handled yet"
-
 and convertCilExp e =
   match e with
     Cil.Const const ->
@@ -187,7 +196,8 @@ and convertCilExp e =
   | Cil.AlignOf t -> failwith "convertCilExp: align not handled"
   | Cil.AlignOfE e -> failwith "convertCilExp: AlignOfE not handled"
   | Cil.UnOp (op, exp, _) ->
-      let uop = cilUOptoUnaryOp op and e = convertCilExp exp in
+      let uop = cilUOptoUnaryOp op in
+      let e   = convertCilExp exp in
       Expression.Unary(uop, e)
   | Cil.BinOp (op, e1,e2,_) ->
       let bop = cilBOptoBinaryOp op in
@@ -257,37 +267,6 @@ let convertCilAttrToExpList a : (string * (Expression.expression list)) =
       Message.msg_string Message.Debug ("Name of attribute is "^name) ; 
       (name, List.map convertCilAttrparam alist)
 
-
-
-let rec convertCilExpToPred e =
-  (* Greg: I modify this to make use of convertCilExp.
-           This way, we just have to make sure convertCilExp works and then
-           this one will follow *)     
-  let rec convertExpToPred exp =
-    match exp with
-        Expression.Binary (bop, e1, e2) ->
-          if (Expression.isRelOp bop) then
-            Predicate.Atom exp
-          else 
-            Predicate.Atom (Expression.Binary(Expression.Ne,
-                                              exp,
-                                              Expression.Constant (Constant.Int 0)))
-      | Expression.Unary (uop, e1) ->
-          begin
-            match uop with
-                Expression.Not ->
-                  Predicate.negate (convertExpToPred e1)
-              | _ ->
-                  Predicate.Atom (Expression.Binary(Expression.Ne,
-                                                    exp,
-                                                    Expression.Constant (Constant.Int 0)))
-          end
-      | _ ->
-          Predicate.Atom (Expression.Binary(Expression.Ne,
-                                            exp,
-                                            Expression.Constant (Constant.Int 0)))
-  in
-  convertExpToPred (convertCilExp e)
 
 (*******************************************************************************)
 
@@ -591,4 +570,5 @@ let make_cil_file file_name =
       
 let cil_varinfo_to_symbol v = v.Cil.vname
 
+}}} *)
 
