@@ -89,7 +89,7 @@ let expr_of_cilexp = function
 (****************************************************************)
 (********************* Predicates *******************************)
 (****************************************************************)
-let pred_of_cilexp = assertf "TBDNOW: Wrapper.pred_of_cilexp"
+let pred_of_cilexp _ = assertf "TBDNOW: Wrapper.pred_of_cilexp"
 
 (* 
 let rec convertCilExpToPred e =
