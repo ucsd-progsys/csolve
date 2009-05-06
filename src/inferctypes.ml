@@ -151,18 +151,14 @@ type cstr =
   | CSCType of ctypecstr
   | CSStore of storecstr
 
-(* pmr: it's not clear we'll ever actually need the unifier for anything *)
-type store_unifier =
-  | SUnify of sloc * sloc
-
-type cstrsol = store_unifier list * indexsol * storesol
+type cstrsol = indexsol * storesol
 
 let cstr_replace_sloc (s1: sloc) (s2: sloc): cstr -> cstr = function
   | CSCType ctc -> CSCType (ctypecstr_replace_sloc s1 s2 ctc)
   | CSStore sc  -> CSStore (storecstr_replace_sloc s1 s2 sc)
   | CSIndex ic  -> CSIndex ic
 
-let cstr_sat ((_, is, ss): cstrsol): cstr -> bool = function
+let cstr_sat ((is, ss): cstrsol): cstr -> bool = function
   | CSIndex ic  -> indexcstr_sat ic is
   | CSCType ctc -> ctypecstr_sat ctc is
   | CSStore sc  -> storecstr_sat sc is ss
@@ -172,24 +168,25 @@ let refine ((is, ss): indexsol * storesol): cstr -> indexsol * storesol = functi
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCInc (l, iv, ctv))      -> refine_store l iv ctv is ss
 
-let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
+let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
   match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
     | None   -> csol
     | Some c ->
-        let (cs, sus, is, ss) =
+        let (cs, is, ss) =
           try
             let (is, ss) = refine (is, ss) c in
-              (cs, sus, is, ss)
+              (cs, is, ss)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
+                (* Need to unify two locations in the store *)
                 let cs = List.map (cstr_replace_sloc s1 s2) cs in
                 let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
-                  (cs, SUnify (s1, s2) :: sus, is, ss)
+                  (cs, is, ss)
             | _ -> assert false
-        in solve_rec cs (sus, is, ss)
+        in solve_rec cs (is, ss)
 
 let solve (cs: cstr list): cstrsol =
-  solve_rec cs ([], IVM.empty, SLM.empty)
+  solve_rec cs (IVM.empty, SLM.empty)
 
 (******************************************************************************)
 (************************************ Tests ***********************************)
@@ -359,14 +356,15 @@ let rec constrain_block (ve: ctvenv) (em: cstremap) (b: Cil.block): cstremap =
 (* pmr: set currentLoc so we can have reasonable error messages *)
 and constrain_stmt (ve: ctvenv) (em: cstremap) (s: Cil.stmt): cstremap =
   match s.Cil.skind with
-    | Cil.Block b           -> constrain_block ve em b
-    | Cil.Instr is          -> List.fold_left (constrain_instr ve) em is
-    | Cil.If (e, b1, b2, _) -> constrain_if ve em e b1 b2
-    | Cil.Loop (b, _, _, _) -> constrain_block ve em b
-    | Cil.Break _           -> em
-    | Cil.Continue _        -> em
-    | Cil.Return (eo, _)    -> em (* pmr: todo *)
-    | _                     -> failure "Don't know what to do with crazy statements!"
+    | Cil.Block b            -> constrain_block ve em b
+    | Cil.Instr is           -> List.fold_left (constrain_instr ve) em is
+    | Cil.If (e, b1, b2, _)  -> constrain_if ve em e b1 b2
+    | Cil.Loop (b, _, _, _)  -> constrain_block ve em b
+    | Cil.Break _            -> em
+    | Cil.Continue _         -> em
+    | Cil.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
+    | Cil.Return (None, _)   -> em
+    | _                      -> failure "Don't know what to do with crazy statements!"
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: Cil.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em 0 e in
@@ -374,7 +372,8 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: C
     constrain_block ve (constrain_block ve em b1) b2
 
 let infer_shapes (fd: Cil.fundec): ctemap * store =
-  let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty (fd.Cil.sformals @ fd.Cil.slocals) in
-  let (ctvm, cs)   = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
-  let (us, is, ss) = solve cs in
+  let vars       = fd.Cil.sformals @ fd.Cil.slocals in
+  let ve         = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty vars in
+  let (ctvm, cs) = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
+  let (is, ss)   = solve cs in
     (ExpMap.map (ctypevar_apply is) ctvm, SLM.map (LDesc.map (ctypevar_apply is)) ss)
