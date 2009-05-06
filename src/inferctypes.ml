@@ -151,9 +151,11 @@ type cstr =
   | CSCType of ctypecstr
   | CSStore of storecstr
 
-(* pmr: it's not clear we'll ever actually need the unifier for anything *)
 type store_unifier =
   | SUnify of sloc * sloc
+
+let apply_unifiers (us: store_unifier list) (pct: 'a prectype): 'a prectype =
+  List.fold_right (fun (SUnify (s1, s2)) pct -> prectype_replace_sloc s1 s2 pct) us pct
 
 type cstrsol = store_unifier list * indexsol * storesol
 
@@ -379,4 +381,5 @@ let infer_shapes (fd: Cil.fundec): ctemap * store =
   let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty vars in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
   let (us, is, ss) = solve cs in
-    (ExpMap.map (ctypevar_apply is) ctvm, SLM.map (LDesc.map (ctypevar_apply is)) ss)
+    (ExpMap.map (M.compose (apply_unifiers us) (ctypevar_apply is)) ctvm,
+     SLM.map (LDesc.map (ctypevar_apply is)) ss)
