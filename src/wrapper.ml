@@ -70,7 +70,7 @@ let expr_of_cilexp = function
 
 let pred_of_cilexp = function
   | _   -> 
-      asserts false "TBD: Wrapper.pred_of_cilexp"; 
+      asserts false "TBDNOW: Wrapper.pred_of_cilexp"; 
       assert false
 
 (* creating refinements *)

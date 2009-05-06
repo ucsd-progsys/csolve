@@ -59,14 +59,16 @@ module Symbol =
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
     
+    let is_wild = fun s -> s.[0] = '*'
+    
     let is_safe s = 
       let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in
-      Str.string_match re s 0
+      let i  = if is_wild s then 1 else 0 in
+      Str.string_match re s i 
 
-    let of_string s = s
+    let of_string = fun s -> s
 
-    let to_string s = 
-      if is_safe s then s else "'" ^ s ^ "'"      
+    let to_string = fun s -> if is_safe s then s else "'" ^ s ^ "'"      
 
     let print fmt s =
       to_string s |> Format.fprintf fmt "%s" 
@@ -76,6 +78,7 @@ module Symbol =
  
     let sm_length m = 
       SMap.fold (fun _ _ i -> i+1) m 0
+
 
   end
 
