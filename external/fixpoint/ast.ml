@@ -58,9 +58,11 @@ module Symbol =
     
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
+
+    let is_wild s = if s = "" then false else s.[0] = '*'
     
     let is_safe s = 
-      let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in
+      let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
       Str.string_match re s 0
 
     let of_string s = s

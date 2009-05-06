@@ -1,6 +1,8 @@
 type cilenv
 type cilcstr
 
+val names_of_cilenv: cilenv -> string list
+
 val ce_empty: cilenv
 val ce_add: Cil.varinfo -> Constraint.reft -> cilenv -> cilenv
 val ce_find: Cil.varinfo -> cilenv -> (Cil.varinfo * Constraint.reft)

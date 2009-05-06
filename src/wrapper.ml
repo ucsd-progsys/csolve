@@ -21,7 +21,6 @@ let ce_empty = SM.empty
 let ce_find  = fun v cenv -> SM.find v.vname cenv
 let ce_add   = fun v r cenv -> SM.add v.vname (v, r) cenv
 
-
 let fresh_kvar = 
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
@@ -33,6 +32,11 @@ let fresh ty : C.reft =
   | _      -> 
       asserts false "TBD: Consgen.fresh";
       assert false
+
+(* cilenv manipulation *)
+
+let names_of_cilenv c =
+  SM.fold (fun x _ xs -> x :: xs ) c []
 
 (* Cil.typ -> Ast.Sort.t *)
 
