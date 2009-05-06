@@ -31,8 +31,7 @@ let fresh ty : C.reft =
   | TInt _ ->
       C.make_reft (Sy.value_variable So.Int) So.Int [C.Kvar ([], fresh_kvar ())]
   | _      -> 
-      asserts false "TBD: Consgen.fresh";
-      assert false
+      assertf "TBD: Consgen.fresh"
 
 (* Cil.typ -> Ast.Sort.t *)
 
@@ -40,8 +39,7 @@ let sort_of_typ = function
   | TInt _ -> 
       So.Int
   | _ -> 
-      asserts false "TBD: Wrapper.sort_of_typ";
-      assert false
+      assertf "TBD: Wrapper.sort_of_typ"
 
 (* Cil.expr -> Ast.expr  *)
 
@@ -49,15 +47,13 @@ let con_of_cilcon = function
   | CInt64 (i, _, _) -> 
       A.Constant.Int (Int64.to_int i)
   | _ -> 
-      asserts false "TBD: Wrapper.con_of_cilcon";
-      assert false
+      assertf "TBD: Wrapper.con_of_cilcon"
 
 let expr_of_lval (lh, _) = match lh with
   | Var v -> 
       v.vname |> Sy.of_string |> Ast.eVar
   | _ -> 
-      asserts false "TBD: Wrapper.expr_of_lval"; 
-      assert false
+      assertf "TBD: Wrapper.expr_of_lval" 
 
 let expr_of_cilexp = function
   | Const c -> 
@@ -65,13 +61,11 @@ let expr_of_cilexp = function
   | Lval lv -> 
       expr_of_lval lv  
   | _ -> 
-      asserts false "TBD: Wrapper.expr_of_cilexp"; 
-      assert false
+      assertf "TBD: Wrapper.expr_of_cilexp"
 
 let pred_of_cilexp = function
   | _   -> 
-      asserts false "TBDNOW: Wrapper.pred_of_cilexp"; 
-      assert false
+      assertf "TBDNOW: Wrapper.pred_of_cilexp"
 
 (* creating refinements *)
 
@@ -95,8 +89,7 @@ let expand_guard ifs ibs =
                    let p  = pred_of_cilexp e in
                    if b then p else (A.pNot p)
                | _ -> 
-                   asserts false "ERROR: expand_guard";
-                   assert false)
+                   assertf "ERROR: expand_guard")
   |> A.pAnd
 
 let mk_cilcstr cenv ibs lhst rhst loc = 
