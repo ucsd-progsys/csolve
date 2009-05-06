@@ -192,27 +192,27 @@ let solve (cs: cstr list): cstrsol =
 (************************************ Tests ***********************************)
 (******************************************************************************)
 (*
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
   assert (IVM.find 0 is = ISeq (2, 2))
 
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
   assert (IVM.find 0 is = ISeq (3, 1))
 
 let ctv = CTInt (1, 0) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
   assert (LDesc.find (PLAt 4) (prestore_find 0 ss) = [(PLAt 4, CTInt (1, 0))])
 
 let ctv = CTInt (1, 0) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
   assert (LDesc.find (PLAt 6) (prestore_find 0 ss) = [(PLSeq 2, CTInt (1, 0))])
 
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
   assert (IVM.find 0 is = IInt 4);
   assert (IVM.find 1 is = IInt 2)
 
 let ctv1 = CTInt (1, 0) in
 let ctv2 = CTInt (1, 1) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
                          CSIndex (ICLess (IEInt 2, 1));
                          CSStore (SCInc (0, 0, ctv1));
                          CSStore (SCInc (0, 0, ctv2))]
@@ -224,25 +224,29 @@ in
 let ctv1 = CTInt (1, 0) in
 let ctv2 = CTInt (1, 1) in
 let ctv3 = CTInt (1, 2) in
-let (is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
+let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
                          CSIndex (ICLess (IEInt 2, 1));
                          CSStore (SCInc (0, 0, ctv1));
                          CSStore (SCInc (0, 0, ctv2));
                          CSCType (CTCSubtype (ctv2, ctv3))]
 in assert (ctypevar_apply is ctv3 = CTInt (1, ISeq (2, 2)))
 
-let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
   assert (indexsol_find 0 is = IBot)
 
-let (is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
   assert (indexsol_find 0 is = IInt 4)
 
-let (is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
+let (_, is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
   assert (indexsol_find 0 is = ISeq (4, 4))
 
-let (is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
+let (su, is, ss) = solve [CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
+  assert (su = [SUnify (0, 1)])
+
+let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
                           CSIndex (ICLess (IEInt 1, 0));
                           CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
+  assert (su = [SUnify (0, 1)]);
   assert (prestore_find 0 ss = LDesc.empty);
   assert (indexsol_find 0 is = IInt 1);
   assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
