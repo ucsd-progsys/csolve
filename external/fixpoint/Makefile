@@ -25,7 +25,7 @@ OFLAGS=$(DIRS) $(IFLAGS) $(LFLAGS) $(CFLAGS)
 all:
 	ln -sf ../misc
 	ocamlbuild -r $(LIBS) $(OFLAGS) main.native
-	ocamlbuild -r $(OFLAGS) fix.cmxa
+	#ocamlbuild -r $(OFLAGS) fix.cmxa
 
 clean:
 	rm -rf *.byte *.native _build _log

@@ -72,7 +72,8 @@ let sift xs =
       | C.Srt t       -> (t::ts, ps, cs, s) 
       | C.Axm p       -> (ts, p::ps, cs, s) 
       | C.Cst c       -> (ts, ps, c::cs, s)
-      | C.Sol (x, qs) -> (ts, ps, cs, SM.add x qs s))
+      | C.Sol (x, qs) -> (ts, ps, cs, SM.add x qs s)
+      | C.Qul _       -> (ts, ps, cs, s))
     ([], [], [], SM.empty) xs
 
 let parse f = 

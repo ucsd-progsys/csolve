@@ -25,7 +25,7 @@ let parse_error msg =
 %token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
-%token SRT AXM CST SOL
+%token SRT AXM CST SOL QUL
 %token ENV GRD LHS RHS
 
 %start defs 
@@ -59,6 +59,7 @@ def:
   | AXM COLON pred                      { C.Axm $3 }
   | CST COLON cstr                      { C.Cst $3 }
   | SOL COLON Id ASGN preds             { C.Sol ((Sy.of_string $3), $5) }
+  | QUL COLON pred                      { C.Qul $3 }
   ;
 
 sorts:

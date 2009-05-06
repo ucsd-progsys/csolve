@@ -42,6 +42,7 @@ type deft = Srt of Ast.Sort.t
           | Axm of Ast.pred 
           | Cst of t 
           | Sol of Ast.Symbol.t * Ast.pred list
+          | Qul of Ast.pred
 
 (*************************************************************)
 (************************** Misc.  ***************************)

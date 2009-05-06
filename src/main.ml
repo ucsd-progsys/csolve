@@ -29,6 +29,8 @@ module C  = Constraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module W  = Wrapper
+module P  = Pretty
+module I  = Inferctypes
 
 open Misc.Ops
 
@@ -74,8 +76,25 @@ let mk_scis cil =
           sci::acc
       | _ -> acc) [] 
 
+let mk_shapes cil =
+  Cil.foldGlobals cil
+    (fun acc -> function
+       | Cil.GFun (fd, loc) ->
+           let _       = E.log "Inferring function shapes\n" in
+           let (em, s) = I.infer_shapes fd in
+           let _       = E.log "Got function shapes\n" in
+           let _       = P.printf "%a@!@!" (fun () -> I.d_ctemap) em in
+             (fd, em, s) :: acc
+       | _ -> acc)
+    []
+
 let mk_quals (f:string) : A.pred list =        
-  failwith "TBDNOW: parse qualifiers from file" 
+  let qs =
+    open_in f
+    |> Lexing.from_channel
+    |> FixParse.defs FixLex.token in
+  let qs = List.rev_map (function C.Qul p -> Some p | _ -> None) qs in
+  Misc.maybe_list qs
 
 let mk_genv (cil: Cil.file) : W.cilenv =                       
   (* TBD: initialize with global variables *)
@@ -99,6 +118,7 @@ let mk_tp_env cil =
 
 let liquidate file =
   let cil    = mk_cil file in
+  let _      = mk_shapes cil in
   let qs     = mk_quals file in
   let g0     = mk_genv cil in
   let scis   = mk_scis cil in

@@ -96,7 +96,7 @@ let gen g sci =
   (g', cs)
   
 let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
-  failwith "TBDNOW: inst_quals"
+  qs
 
 let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
   let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
