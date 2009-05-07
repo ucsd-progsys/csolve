@@ -337,8 +337,18 @@ and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: 
       | _ -> failure "Type mismatch in constraining pointer plus"
 
 and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): Cil.lval -> ctypevar * cstremap = function
-  | (Cil.Var v, Cil.NoOffset) -> (IM.find v.Cil.vid ve, em)
-  | _                         -> failure "Don't know how to handle fancy lvals yet"
+  | (Cil.Var v, Cil.NoOffset)       -> (IM.find v.Cil.vid ve, em)
+  | (Cil.Mem e, Cil.NoOffset) as lv ->
+      let (ctv, (ctvm, cs)) = constrain_exp ve em sid e in
+      let ctv2              = fresh_ctvref () in
+        begin match ctv2 with
+          | CTRef (s, iv) ->
+              let ctvlv = fresh_ctypevar <| Cil.typeOfLval lv in
+              let cs    = CSStore (SCInc (s, iv, ctvlv)) :: CSCType (CTCSubtype (ctv, ctv2)) :: cs in
+                (ctvlv, (ctvm, cs))
+          | _ -> failure "fresh_ctvref gave back non-ref type"
+        end
+  | lv -> ignore (P.printf "Got crazy lval: %a@!@!" Cil.d_lval lv); failure "Don't know how to handle fancy lvals yet"
 
 and constrain_exp (ve: ctvenv) (em: cstremap) (sid: int) (e: Cil.exp): ctypevar * cstremap =
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em sid e in
@@ -376,10 +386,20 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: C
   let em                = (ctvm, CSCType (CTCSubtype (ctv, fresh_ctvint int_width)) :: cs) in
     constrain_block ve (constrain_block ve em b1) b2
 
+(* pmr: Possibly a hack for now just to get some store locations going *)
+let constrain_param: ctypevar -> cstr option = function
+  | CTRef (s, iv) -> Some (CSIndex (ICLess (IEInt 0, iv)))
+  | ctv           -> None
+
+let fresh_vars (vs: Cil.varinfo list): (int * ctypevar) list =
+  List.map (fun v -> (v.Cil.vid, fresh_ctypevar v.Cil.vtype)) vs
+
 let infer_shapes (fd: Cil.fundec): ctemap * store =
-  let vars         = fd.Cil.sformals @ fd.Cil.slocals in
-  let ve           = List.fold_left (fun ve v -> IM.add v.Cil.vid (fresh_ctypevar v.Cil.vtype) ve) IM.empty vars in
-  let (ctvm, cs)   = constrain_block ve (ExpMap.empty, []) fd.Cil.sbody in
+  let locals       = fresh_vars fd.Cil.slocals in
+  let formals      = fresh_vars fd.Cil.sformals in
+  let cs           = M.map_partial (M.compose constrain_param snd) formals in
+  let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
+  let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.Cil.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
     (ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
