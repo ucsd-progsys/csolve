@@ -259,6 +259,7 @@ let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): Cil.exp -> cty
   | Cil.BinOp (Cil.PlusA, e1, e2, _)                 -> constrain_plus ve em sid e1 e2
   | Cil.BinOp (Cil.PlusPI, e1, e2, Cil.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
   | Cil.BinOp (Cil.IndexPI, e1, e2, Cil.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
+  | Cil.CastE (_, e)                                 -> constrain_exp_aux ve em sid e
   | e                                                -> ignore (P.printf "Got crazy exp: %a@!@!" Cil.d_exp e); assert false
 
 and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
