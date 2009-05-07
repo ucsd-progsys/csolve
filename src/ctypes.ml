@@ -181,9 +181,9 @@ module LDesc = struct
       let (pl1, pct1) = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
       let (rs, us)    = List.partition (fun (pl2, _) -> not (ploc_le pl2 pl1)) pcts in
       let b           = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
-        (us @ [(pl1, pct1)], b)
+        (us, b)
     with Not_found ->
-      (* No repeats, so nothing to do *)
+      (* No periods, so nothing to do *)
       (pcts, b)
 
   let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
