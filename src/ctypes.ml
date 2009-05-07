@@ -32,6 +32,11 @@ let index_plus (i1: index) (i2: index): index =
     | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (n1 + n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
 
+let index_scale (x: int): index -> index = function
+  | IBot        -> IBot
+  | IInt n      -> IInt (n * x)
+  | ISeq (n, m) -> ISeq (n * x, m * x)
+
 let is_subindex (i1: index) (i2: index): bool =
   match (i1, i2) with
     | (IBot, _)                  -> true

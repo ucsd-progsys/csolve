@@ -18,7 +18,7 @@ type indexexp =
   | IEPlus of indexvar * indexvar
 
 type indexcstr =
-  | ICLess of indexexp * indexvar
+  | ICLess of (* LHS scale: *) int * indexexp * indexvar
 
 module IVM =
   Map.Make
@@ -37,11 +37,11 @@ let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEVar iv          -> indexsol_find iv is
   | IEPlus (iv1, iv2) -> index_plus (indexsol_find iv1 is) (indexsol_find iv2 is)
 
-let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
-  IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
+let refine_index (x: int) (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
+  IVM.add iv (index_lub (index_scale x <| indexexp_apply is ie) (indexsol_find iv is)) is
 
-let indexcstr_sat (ICLess (ie, iv): indexcstr) (is: indexsol): bool =
-  is_subindex (indexexp_apply is ie) (indexsol_find iv is)
+let indexcstr_sat (ICLess (x, ie, iv): indexcstr) (is: indexsol): bool =
+  is_subindex (index_scale x <| indexexp_apply is ie) (indexsol_find iv is)
 
 (******************************************************************************)
 (****************************** Type Constraints ******************************)
@@ -69,8 +69,8 @@ let ctypecstr_replace_sloc (s1: sloc) (s2: sloc) (CTCSubtype (ctv1, ctv2): ctype
 
 let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
-    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2 -> refine_index (IEVar iv1) iv2 is
-    | (CTRef (s1, iv1), CTRef (s2, iv2)) when s1 = s2 -> refine_index (IEVar iv1) iv2 is
+    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2 -> refine_index 1 (IEVar iv1) iv2 is
+    | (CTRef (s1, iv1), CTRef (s2, iv2)) when s1 = s2 -> refine_index 1 (IEVar iv1) iv2 is
     | _                                               -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
 
 let equalize_ctypes (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
@@ -170,7 +170,7 @@ let cstr_sat ((_, is, ss): cstrsol): cstr -> bool = function
   | CSStore sc  -> storecstr_sat sc is ss
 
 let refine ((is, ss): indexsol * storesol): cstr -> indexsol * storesol = function
-  | CSIndex (ICLess (ie, iv))         -> (refine_index ie iv is, ss)
+  | CSIndex (ICLess (x, ie, iv))      -> (refine_index x ie iv is, ss)
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCInc (l, iv, ctv))      -> refine_store l iv ctv is ss
 
@@ -204,6 +204,11 @@ let ikind_width: Cil.ikind -> int = function
   | Cil.IChar -> char_width
   | Cil.IInt  -> int_width
   | _         -> failure "We don't serve your kind here"
+
+let typ_width: Cil.typ -> int = function
+  | Cil.TInt (ik, _) -> ikind_width ik
+  | Cil.TPtr _       -> 1
+  | _                -> failure "Don't know type width"
 
 let fresh_ctypevar: Cil.typ -> ctypevar = function
   | Cil.TInt (ik, _) -> fresh_ctvint (ikind_width ik)
@@ -245,32 +250,32 @@ type cstremap = ctvemap * cstr list
 let constrain_const: Cil.constant -> ctypevar * cstr = function
   | Cil.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
-        (CTInt (ikind_width ik, iv), CSIndex (ICLess (IEInt (Int64.to_int v), iv)))
+        (CTInt (ikind_width ik, iv), CSIndex (ICLess (1, IEInt (Int64.to_int v), iv)))
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): Cil.exp -> ctypevar * cstremap * cstr list = function
-  | Cil.Const c                        -> let (ctv, c) = constrain_const c in (ctv, em, [c])
-  | Cil.Lval lv                        -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
-  | Cil.BinOp (Cil.PlusA, e1, e2, _)   -> constrain_plus ve em sid e1 e2
-  | Cil.BinOp (Cil.PlusPI, e1, e2, _)  -> constrain_ptrplus ve em sid e1 e2
-  | Cil.BinOp (Cil.IndexPI, e1, e2, _) -> constrain_ptrplus ve em sid e1 e2
-  | e                                  -> ignore (P.printf "Got crazy exp: %a@!@!" Cil.d_exp e); failure "Don't know how to handle fancy exps yet"
+  | Cil.Const c                                      -> let (ctv, c) = constrain_const c in (ctv, em, [c])
+  | Cil.Lval lv                                      -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
+  | Cil.BinOp (Cil.PlusA, e1, e2, _)                 -> constrain_plus ve em sid e1 e2
+  | Cil.BinOp (Cil.PlusPI, e1, e2, Cil.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
+  | Cil.BinOp (Cil.IndexPI, e1, e2, Cil.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
+  | e                                                -> ignore (P.printf "Got crazy exp: %a@!@!" Cil.d_exp e); assert false
 
 and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2, fresh_ctvint int_width) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
-          (ctv, em2, [CSIndex (ICLess (IEPlus (iv1, iv2), iv))])
+          (ctv, em2, [CSIndex (ICLess (1, IEPlus (iv1, iv2), iv))])
       | _ -> failure "Type mismatch in constraining arithmetic plus"
 
-and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
+and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: Cil.typ) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2) with
       | (CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           let iv = fresh_indexvar () in
-            (CTRef (s, iv), em2, [CSIndex (ICLess (IEPlus (iv1, iv2), iv))])
+            (CTRef (s, iv), em2, [CSIndex (ICLess (typ_width t, IEPlus (iv1, iv2), iv))])
       | _ -> failure "Type mismatch in constraining pointer plus"
 
 and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): Cil.lval -> ctypevar * cstremap = function
@@ -322,7 +327,7 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: C
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (s, iv) -> Some (CSIndex (ICLess (IEInt 0, iv)))
+  | CTRef (s, iv) -> Some (CSIndex (ICLess (1, IEInt 0, iv)))
   | ctv           -> None
 
 let fresh_vars (vs: Cil.varinfo list): (int * ctypevar) list =
