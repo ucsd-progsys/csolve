@@ -157,7 +157,8 @@ module LDesc = struct
     List.find_all (collides_with pl pct po) pcts
 
   let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): bool =
-    (not (ploc_periodic pl) || M.maybe_bool po) && not (List.exists (collides_with pl pct po) pcts)
+    (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width pct <= get_period_default po))
+      && not (List.exists (collides_with pl pct po) pcts)
 
   (* Don't use this directly - use add instead!  This does not check for collisions. *)
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function

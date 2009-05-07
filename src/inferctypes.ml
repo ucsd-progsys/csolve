@@ -194,70 +194,6 @@ let solve (cs: cstr list): cstrsol =
   solve_rec cs ([], IVM.empty, SLM.empty)
 
 (******************************************************************************)
-(************************************ Tests ***********************************)
-(******************************************************************************)
-(*
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0))] in
-  assert (IVM.find 0 is = ISeq (2, 2))
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 3, 0))] in
-  assert (IVM.find 0 is = ISeq (3, 1))
-
-let ctv = CTInt (1, 0) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSStore (SCInc (0, 0, ctv))] in
-  assert (LDesc.find (PLAt 4) (prestore_find 0 ss) = [(PLAt 4, CTInt (1, 0))])
-
-let ctv = CTInt (1, 0) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 0)); CSStore (SCInc (0, 0, ctv))] in
-  assert (LDesc.find (PLAt 6) (prestore_find 0 ss) = [(PLSeq 2, CTInt (1, 0))])
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0)); CSIndex (ICLess (IEInt 2, 1))] in
-  assert (IVM.find 0 is = IInt 4);
-  assert (IVM.find 1 is = IInt 2)
-
-let ctv1 = CTInt (1, 0) in
-let ctv2 = CTInt (1, 1) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                         CSIndex (ICLess (IEInt 2, 1));
-                         CSStore (SCInc (0, 0, ctv1));
-                         CSStore (SCInc (0, 0, ctv2))]
-in
-  assert (ctypevar_apply is ctv1 = CTInt (1, ISeq (2, 2)));
-  assert (ctypevar_apply is ctv2 = CTInt (1, ISeq (2, 2)));
-  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 6) (prestore_find 0 ss)) = [CTInt (1, ISeq (2, 2))])
-
-let ctv1 = CTInt (1, 0) in
-let ctv2 = CTInt (1, 1) in
-let ctv3 = CTInt (1, 2) in
-let (_, is, ss) = solve [CSIndex (ICLess (IEInt 4, 0));
-                         CSIndex (ICLess (IEInt 2, 1));
-                         CSStore (SCInc (0, 0, ctv1));
-                         CSStore (SCInc (0, 0, ctv2));
-                         CSCType (CTCSubtype (ctv2, ctv3))]
-in assert (ctypevar_apply is ctv3 = CTInt (1, ISeq (2, 2)))
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0))] in
-  assert (indexsol_find 0 is = IBot)
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEVar 0, 0)); CSIndex (ICLess (IEInt 4, 0))] in
-  assert (indexsol_find 0 is = IInt 4)
-
-let (_, is, ss) = solve [CSIndex (ICLess (IEPlus (0, 0), 0)); CSIndex (ICLess (IEInt 4, 0))] in
-  assert (indexsol_find 0 is = ISeq (4, 4))
-
-let (su, is, ss) = solve [CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
-  assert (su = [SUnify (0, 1)])
-
-let (su, is, ss) = solve [CSStore (SCInc (0, 0, CTInt (1, 0)));
-                          CSIndex (ICLess (IEInt 1, 0));
-                          CSCType (CTCSubtype (CTRef (0, 0), CTRef (1, 0)))] in
-  assert (su = [SUnify (0, 1)]);
-  assert (prestore_find 0 ss = LDesc.empty);
-  assert (indexsol_find 0 is = IInt 1);
-  assert (List.map (fun (_, ctv) -> ctypevar_apply is ctv) (LDesc.find (PLAt 1) (prestore_find 1 ss)) != [])
-*)
-
-(******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
@@ -313,11 +249,12 @@ let constrain_const: Cil.constant -> ctypevar * cstr = function
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): Cil.exp -> ctypevar * cstremap * cstr list = function
-  | Cil.Const c                       -> let (ctv, c) = constrain_const c in (ctv, em, [c])
-  | Cil.Lval lv                       -> let (ctvm, cs) = constrain_lval ve em sid lv in (ctvm, cs, [])
-  | Cil.BinOp (Cil.PlusA, e1, e2, _)  -> constrain_plus ve em sid e1 e2
-  | Cil.BinOp (Cil.PlusPI, e1, e2, _) -> constrain_ptrplus ve em sid e1 e2
-  | _                                 -> failure "Don't know how to handle fancy exps yet"
+  | Cil.Const c                        -> let (ctv, c) = constrain_const c in (ctv, em, [c])
+  | Cil.Lval lv                        -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
+  | Cil.BinOp (Cil.PlusA, e1, e2, _)   -> constrain_plus ve em sid e1 e2
+  | Cil.BinOp (Cil.PlusPI, e1, e2, _)  -> constrain_ptrplus ve em sid e1 e2
+  | Cil.BinOp (Cil.IndexPI, e1, e2, _) -> constrain_ptrplus ve em sid e1 e2
+  | e                                  -> ignore (P.printf "Got crazy exp: %a@!@!" Cil.d_exp e); failure "Don't know how to handle fancy exps yet"
 
 and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
@@ -359,9 +296,6 @@ let constrain_instr (ve: ctvenv) (em: cstremap): Cil.instr -> cstremap = functio
       (* pmr: going out on a limb, I'd say 0 is not the right value *)
       let (ctv1, em1)        = constrain_lval ve em 0 lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 0 e in
-        (* pmr: this probably needs to change to actually reflect the real typing rule *)
-        (* pmr: where "probably" means "definitely" *)
-        (* pmr: or we need a simpler rule for assingment *)
         (ctvm, CSCType (CTCSubtype (ctv2, ctv1)) :: cs)
   | _ -> failure "Can't handle fancy instructions yet"
 
