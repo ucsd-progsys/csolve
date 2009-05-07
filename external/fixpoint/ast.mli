@@ -45,6 +45,7 @@ module Symbol :
   sig 
     type t (* = string *)
     module SMap : Map.S with type key = t
+    val is_wild : t -> bool
     val of_string : string -> t
     val to_string : t -> string 
     val is_wild: t -> bool

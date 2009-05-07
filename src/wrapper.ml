@@ -33,6 +33,11 @@ let fresh ty : C.reft =
   | _      -> 
       assertf "TBD: Consgen.fresh"
 
+(* manipulating cilenvs *)
+
+let names_of_cilenv c =
+  SM.fold (fun x _ xs -> x :: xs ) c []
+
 (* creating refinements *)
 
 let t_single (e : Cil.exp) : C.reft =
