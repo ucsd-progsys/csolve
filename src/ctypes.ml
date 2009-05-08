@@ -12,7 +12,7 @@ type index =
   | IInt of int        (* singleton *)
   | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
 
-let d_index: index -> P.doc = function
+let d_index (): index -> P.doc = function
   | IBot        -> P.text "⊥"
   | IInt n      -> P.num n
   | ISeq (n, m) -> P.dprintf "%d[%d]" n m
@@ -32,6 +32,11 @@ let index_plus (i1: index) (i2: index): index =
     | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (n1 + n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
 
+let index_scale (x: int): index -> index = function
+  | IBot        -> IBot
+  | IInt n      -> IInt (n * x)
+  | ISeq (n, m) -> ISeq (n * x, m * x)
+
 let is_subindex (i1: index) (i2: index): bool =
   match (i1, i2) with
     | (IBot, _)                  -> true
@@ -50,9 +55,9 @@ type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
 
-let d_prectype (d_i: 'a -> P.doc): 'a prectype -> P.doc = function
-  | CTInt (n, i) -> P.dprintf "int(%d, %a)" n (fun () -> d_i) i
-  | CTRef (s, i) -> P.dprintf "ref(%d, %a)" s (fun () -> d_i) i
+let d_prectype (d_i: unit -> 'a -> P.doc) (): 'a prectype -> P.doc = function
+  | CTInt (n, i) -> P.dprintf "int(%d, %a)" n d_i i
+  | CTRef (s, i) -> P.dprintf "ref(%d, %a)" s d_i i
 
 let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
@@ -64,8 +69,8 @@ let prectype_replace_sloc (s1: sloc) (s2: sloc): 'a prectype -> 'a prectype = fu
 
 type ctype = index prectype
 
-let d_ctype (ct: ctype): P.doc =
-  d_prectype d_index ct
+let d_ctype () (ct: ctype): P.doc =
+  d_prectype d_index () ct
 
 exception NoLUB of ctype * ctype
 
@@ -88,6 +93,11 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
 type ploc =
   | PLAt of int   (* location n *)
   | PLSeq of int  (* location n plus periodic repeats *)
+
+let index_of_ploc (pl: ploc) (p: int) =
+  match pl with
+    | PLAt n  -> IInt n
+    | PLSeq n -> ISeq (n, p)
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq n -> n
@@ -152,7 +162,8 @@ module LDesc = struct
     List.find_all (collides_with pl pct po) pcts
 
   let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): bool =
-    (not (ploc_periodic pl) || M.maybe_bool po) && not (List.exists (collides_with pl pct po) pcts)
+    (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width pct <= get_period_default po))
+      && not (List.exists (collides_with pl pct po) pcts)
 
   (* Don't use this directly - use add instead!  This does not check for collisions. *)
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
@@ -170,9 +181,9 @@ module LDesc = struct
       let (pl1, pct1) = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
       let (rs, us)    = List.partition (fun (pl2, _) -> not (ploc_le pl2 pl1)) pcts in
       let b           = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
-        (us @ [(pl1, pct1)], b)
+        (us, b)
     with Not_found ->
-      (* No repeats, so nothing to do *)
+      (* No periods, so nothing to do *)
       (pcts, b)
 
   let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
@@ -191,6 +202,10 @@ module LDesc = struct
 
   let map (f: 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
     (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
+
+  let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, pcts): 'a t): P.doc =
+    let p = get_period_default po in
+      P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
 end
 
 module SlocKey = struct
@@ -206,3 +221,8 @@ let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
 type store = index prestore
+
+module SLMPrinter = P.MakeMapPrinter(SLM)
+
+let d_store () (s: store): P.doc =
+  SLMPrinter.d_map "\n" (fun () -> P.num) (LDesc.d_ldesc d_ctype) () s
