@@ -196,6 +196,9 @@ let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
                 let cs = List.map (cstr_replace_sloc s1 s2) cs in
                 let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
                   (cs, SUnify (s1, s2) :: sus, is, ss)
+            | NoLUB (ctv1, ctv2) ->
+                ignore (P.printf "Can't LUB types %a and %a@!@!" d_ctype ctv1 d_ctype ctv2);
+                assert false
             | _ -> assert false
         in solve_rec cs (sus, is, ss)
 
