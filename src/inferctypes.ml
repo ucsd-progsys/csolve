@@ -328,7 +328,7 @@ and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
     | C.Continue _         -> em
     | C.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
     | C.Return (None, _)   -> em
-    | _                      -> failure "Don't know what to do with crazy statements!"
+    | _                    -> failure "Don't know what to do with crazy statements!"
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em 0 e in
