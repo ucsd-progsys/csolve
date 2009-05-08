@@ -152,6 +152,15 @@ type cstr =
   | CSCType of ctypecstr
   | CSStore of storecstr
 
+let mk_iless (x: int) (ie: indexexp) (iv: indexvar) =
+  CSIndex (ICLess (x, ie, iv))
+
+let mk_subty (ctv1: ctypevar) (ctv2: ctypevar) =
+  CSCType (CTCSubtype (ctv1, ctv2))
+
+let mk_storeinc (s: sloc) (iv: indexvar) (ctv: ctypevar) =
+  CSStore (SCInc (s, iv, ctv))
+
 type store_unifier =
   | SUnify of sloc * sloc
 
@@ -188,6 +197,9 @@ let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
                 let cs = List.map (cstr_replace_sloc s1 s2) cs in
                 let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
                   (cs, SUnify (s1, s2) :: sus, is, ss)
+            | NoLUB (ctv1, ctv2) ->
+                ignore (P.printf "Can't LUB types %a and %a@!@!" d_ctype ctv1 d_ctype ctv2);
+                assert false
             | _ -> assert false
         in solve_rec cs (sus, is, ss)
 
@@ -251,7 +263,7 @@ type cstremap = ctvemap * cstr list
 let constrain_const: C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
-        (CTInt (ikind_width ik, iv), CSIndex (ICLess (1, IEInt (Int64.to_int v), iv)))
+        (CTInt (ikind_width ik, iv), mk_iless 1 (IEInt (Int64.to_int v)) iv)
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
@@ -268,7 +280,7 @@ and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: C.exp) (e2: C.exp
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2, fresh_ctvint int_width) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
-          (ctv, em2, [CSIndex (ICLess (1, IEPlus (iv1, iv2), iv))])
+          (ctv, em2, [mk_iless 1 (IEPlus (iv1, iv2)) iv])
       | _ -> failure "Type mismatch in constraining arithmetic plus"
 
 and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
@@ -277,7 +289,7 @@ and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: C.typ) (e1: C.e
     match (ctv1, ctv2) with
       | (CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           let iv = fresh_indexvar () in
-            (CTRef (s, iv), em2, [CSIndex (ICLess (typ_width t, IEPlus (iv1, iv2), iv))])
+            (CTRef (s, iv), em2, [mk_iless (typ_width t) (IEPlus (iv1, iv2)) iv])
       | _ -> failure "Type mismatch in constraining pointer plus"
 
 and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): C.lval -> ctypevar * cstremap = function
@@ -287,8 +299,12 @@ and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): C.lval -> ctypevar * 
       let ctv2              = fresh_ctvref () in
         begin match ctv2 with
           | CTRef (s, iv) ->
+(*<<<<<<< HEAD:src/inferctypes.ml
               let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
               let cs    = CSStore (SCInc (s, iv, ctvlv)) :: CSCType (CTCSubtype (ctv, ctv2)) :: cs in
+=======*)
+              let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
+              let cs    = mk_storeinc s iv ctvlv :: mk_subty ctv ctv2 :: cs in
                 (ctvlv, (ctvm, cs))
           | _ -> failure "fresh_ctvref gave back non-ref type"
         end
@@ -303,7 +319,7 @@ let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
       (* pmr: going out on a limb, I'd say 0 is not the right value *)
       let (ctv1, em1)        = constrain_lval ve em 0 lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 0 e in
-        (ctvm, CSCType (CTCSubtype (ctv2, ctv1)) :: cs)
+        (ctvm, mk_subty ctv2 ctv1 :: cs)
   | _ -> failure "Can't handle fancy instructions yet"
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
@@ -324,12 +340,12 @@ and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em 0 e in
-  let em                = (ctvm, CSCType (CTCSubtype (ctv, fresh_ctvint int_width)) :: cs) in
+  let em                = (ctvm, mk_subty ctv (fresh_ctvint int_width) :: cs) in
     constrain_block ve (constrain_block ve em b1) b2
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (s, iv) -> Some (CSIndex (ICLess (1, IEInt 0, iv)))
+  | CTRef (s, iv) -> Some (mk_iless 1 (IEInt 0) iv)
   | ctv           -> None
 
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
