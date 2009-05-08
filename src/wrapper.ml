@@ -68,6 +68,7 @@ let env_of_cilenv cenv =
     (fun x (_,r) env -> Sy.SMap.add (Sy.of_string x) r env) 
     cenv
     Sy.SMap.empty
+
 (*
 let cstr_of_cilcstr sci p (cenv, ibs, r1, r2, _) =
   failwith "TBDNOW"
@@ -77,4 +78,3 @@ let cstr_of_cilcstr sci p (cenv, ibs, r1, r2, _) =
   *)
 
 let cstr_of_cilcstr _ = failwith "TBDNOW"
-
