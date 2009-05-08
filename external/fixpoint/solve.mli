@@ -25,7 +25,21 @@
 (** This module implements a fixpoint solver *)
 
 type t 
-val create   : Ast.Sort.t list -> Ast.Sort.t Ast.Symbol.SMap.t -> Ast.pred list -> Constraint.t list -> t
-val solve    : t -> Constraint.soln -> (Constraint.soln * (Constraint.t list))
-val save     : string -> t -> Constraint.soln -> unit 
+
+val create      :  Ast.Sort.t list 
+                -> Ast.Sort.t Ast.Symbol.SMap.t 
+                -> Ast.pred list 
+                -> Constraint.t list 
+                -> t
+
+val inst        :  Constraint.wf list
+                -> Ast.pred list
+                -> Constraint.soln
+                -> Constraint.soln
+
+val solve       :  t 
+                -> Constraint.soln 
+                -> (Constraint.soln * (Constraint.t list))
+
+val save        : string -> t -> Constraint.soln -> unit 
 

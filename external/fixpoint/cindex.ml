@@ -55,7 +55,7 @@ type t =
   }
 
 let get_ref_rank me c =
-  Misc.do_catch "ERROR: Cindex.get_ref_rank" (IM.find (C.get_id c)) me.rank
+  Misc.do_catch "ERROR: Cindex.get_ref_rank" (IM.find (C.id_of_t c)) me.rank
 
 let get_ref_constraint me i = 
   Misc.do_catch "ERROR: Cindex.get_ref_constraint" (IM.find i) me.cnst
@@ -64,12 +64,14 @@ let refa_ko = function C.Kvar (_,k) -> Some k | _ -> None
 
 let reft_ks = function (_,_,ras) -> Misc.map_partial refa_ko ras
 
-let lhs_ks (env ,_ , (r1:C.reft) ,_ ,_) = 
-  reft_ks r1 |> 
-  SM.fold (fun _ (r:C.reft) l -> (reft_ks r) ++ l) env
+let lhs_ks c = 
+  c 
+  |> C.lhs_of_t
+  |> reft_ks 
+  |> SM.fold (fun _ (r:C.reft) l -> (reft_ks r) ++ l) (C.env_of_t c)
 
-let rhs_ks (_,_,_,(r2:C.reft),_) =
-  reft_ks r2
+let rhs_ks c =
+  c |> C.rhs_of_t |> reft_ks 
 
 let print_scc_edge rm (u,v) = 
   let (scc_u,_,_) = IM.find u rm in
@@ -107,14 +109,14 @@ let make_rank_map () (cm : C.t IM.t) =
 (* API *)
 let create cs = 
   let cm = List.fold_left 
-             (fun cm c -> IM.add (C.get_id c) c cm) 
+             (fun cm c -> IM.add (C.id_of_t c) c cm) 
              IM.empty cs in
   let (dm,rm) = BS.time "make rank map" (make_rank_map ()) cm in
   {cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
 
 (* API *) 
 let deps me c =
-  let is' = try IM.find (C.get_id c) me.depm with Not_found -> [] in
+  let is' = try IM.find (C.id_of_t c) me.depm with Not_found -> [] in
   List.map (get_ref_constraint me) is'
 
 (* API *)
@@ -137,7 +139,7 @@ let wpush =
     incr timestamp;
     List.fold_left 
       (fun w c -> 
-        let id = C.get_id c in
+        let id = C.id_of_t c in
         if Hashtbl.mem me.pend id then w else 
           (Co.cprintf Co.ol_solve "Pushing %d at %d \n" id !timestamp; 
            Hashtbl.replace me.pend id (); 

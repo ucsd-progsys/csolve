@@ -158,7 +158,7 @@ cstr:
     ENV env  
     GRD pred 
     LHS reft 
-    RHS reft                         { ($2, $4, $6, $8, None) }
+    RHS reft                            { C.make_t $2 $4 $6 $8 None }
   ;
 
 env:

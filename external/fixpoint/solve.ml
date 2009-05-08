@@ -79,9 +79,13 @@ let check_tp me env vv t lps =  function [] -> [] | rcs ->
             ignore(stat_valid_queries += (List.length rv)) in
   rv
 
-let refine me s ((env, g, ((vv1, t1, _) as r1), (_, _, ra2s), _) as c) =
+let refine me s c =
   let _   = stat_refines += 1 in
-  let lps = lhs_preds s env g r1 in
+  let env = C.env_of_t c in
+  let gp  = C.grd_of_t c in
+  let (vv1, t1, _) as r1 = C.lhs_of_t c in
+  let (_,_,ra2s) = C.rhs_of_t c in
+  let lps = lhs_preds s env gp r1 in
   let rcs = Misc.flap (rhs_cands s) ra2s in
   if (List.exists P.is_contra lps) || (rcs = []) then
     let _ = stat_matches += (List.length rcs) in
@@ -102,7 +106,11 @@ let refine me s ((env, g, ((vv1, t1, _) as r1), (_, _, ra2s), _) as c) =
 (************************* Satisfaction ************************)
 (***************************************************************)
 
-let unsat me s (env, gp, ((vv,t,_) as r1), r2, _) =
+let unsat me s c = 
+  let env    = C.env_of_t c in
+  let gp     = C.grd_of_t c in
+  let r2     = C.rhs_of_t c in
+  let (vv,t,_) as r1 = C.lhs_of_t c in
   let lps    = lhs_preds s env gp r1 in
   let rhsp   = r2 |> thd3 |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
   not ((check_tp me env vv t lps [(0, rhsp)]) = [0])
@@ -140,41 +148,91 @@ let dump me s =
   F.printf "%a \n" print_solver_stats me;
   F.printf "%a \n" print_solution_stats s
 
+
 (***************************************************************)
-(********************** Input Validation ***********************)
+(******************** Qualifier Instantiation ******************)
 (***************************************************************)
 
-(* 1. check tags are distinct, return max tag *)
-let phase1 cs = 
-  let tags = Misc.map_partial (fun (_,_,_,_,x) -> x) cs in
-  let _    = asserts (Misc.distinct tags) "Invalid Constraints 3" in
-  List.fold_left max 0 tags 
+(*
+let inst_qual (e: string list) (q: A.pred) : A.pred list =
+  let ms  = ref [] in
+  let gms x = match E.unwrap x with
+    | A.Var x -> if Sy.is_wild x then ms := x :: !ms
+    | _ -> () in
+  let ms  = P.iter (fun _ -> ()) gms q; !ms in
+  let ms  = Misc.sort_and_compact ms in
+  let mms = List.rev_map (fun _ -> e) ms in
+  let pms = Misc.rev_perms mms in
+  let pms = List.rev_map (List.combine ms) pms in
+  let sub ys x =
+    match Ast.Expression.unwrap x with
+      | Ast.Var y ->
+         (try Ast.eVar (Ast.Symbol.of_string (List.assoc y ys)) with Not_found -> x)
+      | _ -> x in
+  List.rev_map (fun ys -> Ast.Predicate.map (fun x -> x) (sub ys) q) pms
+ 
 
-(* 2. add distinct tags to each constraint *) 
-let phase2 cs tmax = 
-  List.fold_left 
-    (fun (cs, j) c -> match c with
-       | (_,_,_,_, Some i) -> (c::cs, j)
-       | (a,b,c,d, None)   -> ((a,b,c,d, Some j)::cs, j+1))
-    ([], tmax+1) cs
-  |> fst
+let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
+  Misc.tr_flap (inst_qual (W.names_of_cilenv g)) qs
 
-(* 3. check that sorts are consistent across constraints *)
-let phase3 cs =
-  let memo = Hashtbl.create 17 in
-  let _    = List.iter begin fun (env,_,(vv1,t1,_),(vv2,t2,_),_) ->
-               asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 1"; 
-               SM.iter begin fun x (_,t,_) ->
-                 try asserts (t = (Hashtbl.find memo x)) 
-                       "Invalid Constraints 2" 
-                 with Not_found -> 
-                   Hashtbl.replace memo x t
-               end env
-             end cs in
-  cs
+let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
+  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
+  let qs' = inst_quals g qs in
+  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
 
-let validate cs = 
-  phase1 cs |> phase2 cs |> phase3
+let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
+  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
+  let qs' = inst_quals g qs in
+  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
+  
+*)
+
+
+(* liquid DEMO worthy *)
+let inst_qual ys q : A.pred list =
+  let xs   = P.support q                         (* vars of q *) 
+             |> List.filter Sy.is_wild           (* placevs of q *)
+             |> Misc.sort_and_compact in         (* duplicate free placevs *)
+  let xyss = List.length xs                      (* for each placev *) 
+             |> Misc.clone ys                    (* clone the freev list *)
+             |> Misc.rev_perms                   (* generate freev combinations *) 
+             |> List.rev_map (List.combine xs) in(* generate placev-freev lists *)
+  List.rev_map 
+    (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) q)
+    xyss
+
+let inst_ext qs s wf = 
+  let k   = C.var_of_wf wf in
+  let ys  = SM.fold (fun y _ ys -> y::ys) (C.env_of_wf wf) [] in
+  let kqs = C.sol_query s k in
+  (kqs ++ qs) 
+  |> Misc.tr_flap (inst_qual ys) 
+  |> List.map (fun q -> (k,q)) 
+  |> C.group_sol_update s 
+  |> snd
+
+(* API *)
+let inst wfs qs s =
+  List.fold_left (inst_ext qs) s wfs
+
+
+(* FLESH THIS OUT INTO A LIQUIDDEMO
+
+let rec map f xs = 
+  match xs with 
+  | []     -> []
+  | x::xs' -> (f x) :: (map f xs')
+
+let rec clone x n =
+  if n <= 0 then [] else x::(clone x (n-1))
+
+let foo xs ys =
+  let n = len xs in
+  clone ys |> rev_perms
+
+*)
+
+
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
@@ -206,11 +264,9 @@ let solve me (s : C.soln) =
 (* API *)
 let create ts sm ps cs =
   let tpc = TP.create ts sm ps in
-  let cs  = validate cs in
+  let cs  = C.validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in
   { tpc = tpc; sri = sri }
-
-
 
 let save fname me s =
   let oc  = open_out fname in
@@ -223,7 +279,6 @@ let save fname me s =
       F.fprintf ppf "solution: @[%a := [%a]@] \n"  
         Sy.print k (Misc.pprint_many false ";" P.print) ps)
     s
-
 
 
 

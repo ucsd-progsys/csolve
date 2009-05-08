@@ -37,20 +37,19 @@ type refa = Conc of A.pred | Kvar of subs * Sy.t
 type reft = Sy.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
 type envt = reft SM.t
 type soln = A.pred list SM.t
-type t    = envt * A.pred * reft * reft * (tag option) 
+type t    = envt * A.pred * reft * reft * (tag option)
+type wf   = envt * Sy.t * (tag option)
+
 type deft = Srt of Ast.Sort.t 
           | Axm of Ast.pred 
-          | Cst of t 
+          | Cst of t
+          | Wfc of wf
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.pred
 
 (*************************************************************)
 (************************** Misc.  ***************************)
 (*************************************************************)
-
-let get_id = function 
-  | (_,_,_,_,Some i) -> i 
-  | _                -> failure "MATCH FAILURE: Constraint.get_id"
 
 let is_simple_refatom = function 
   | Kvar ([], _) -> true
@@ -82,6 +81,10 @@ let get_kvars (_, _, r1, r2, _) =
 (*************************************************************)
 (******************** Solution Management ********************)
 (*************************************************************)
+
+(* API *)
+let sol_query s k =
+  try SM.find k s with Not_found -> []
 
 (* API *)
 let sol_read s k = 
@@ -188,14 +191,63 @@ let print_soln ppf sm =
        Ast.Symbol.print x (Misc.pprint_many false "," P.print) ps)
     sm
 
+
+(***************************************************************)
+(*********************** Getter/Setter *************************)
+(***************************************************************)
+
 (* API *)
 let make_reft   = fun v so ras -> (v, so, ras)
-let make_t      = fun env p r1 r2 -> (env, p, r1, r2, None)
 let vv_of_reft  = fst3
 let so_of_reft  = snd3
 let ras_of_reft = thd3
+
+(* API *)
+let make_t      = fun env p r1 r2 io -> (env, p, r1, r2, io)
 let env_of_t    = fun (env,_,_,_,_) -> env
 let grd_of_t    = fun (_,grd,_,_,_) -> grd 
 let lhs_of_t    = fun (_,_,lhs,_,_) -> lhs 
 let rhs_of_t    = fun (_,_,_,rhs,_) -> rhs
+let id_of_t     = function (_,_,_,_,Some i) -> i | _ -> assertf "C.id_of_t"
 
+(* API *)
+let make_wf     = fun env k io -> (env, k, io)
+let env_of_wf   = fst3
+let var_of_wf   = snd3
+let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
+
+(***************************************************************)
+(********************** Input Validation ***********************)
+(***************************************************************)
+
+(* 1. check tags are distinct, return max tag *)
+let phase1 cs = 
+  let tags = Misc.map_partial (fun (_,_,_,_,x) -> x) cs in
+  let _    = asserts (Misc.distinct tags) "Invalid Constraints 1" in
+  List.fold_left max 0 tags 
+
+(* 2. add distinct tags to each constraint *) 
+let phase2 cs tmax = 
+  List.fold_left 
+    (fun (cs, j) c -> match c with
+       | (_,_,_,_, Some i) -> (c::cs, j)
+       | (a,b,c,d, None)   -> ((a,b,c,d, Some j)::cs, j+1))
+    ([], tmax+1) cs
+  |> fst
+
+(* 3. check that sorts are consistent across constraints *)
+let phase3 cs =
+  let memo = Hashtbl.create 17 in
+  List.iter begin fun (env,_,(vv1,t1,_),(vv2,t2,_),_) ->
+    asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
+    SM.iter begin fun x (_,t,_) ->
+      try asserts (t = (Hashtbl.find memo x)) 
+            "Invalid Constraints 3b" 
+      with Not_found -> 
+        Hashtbl.replace memo x t
+    end env
+  end cs;
+  cs
+
+let validate cs = 
+  phase1 cs |> phase2 cs |> phase3
