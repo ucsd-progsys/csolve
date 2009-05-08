@@ -299,10 +299,6 @@ and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): C.lval -> ctypevar * 
       let ctv2              = fresh_ctvref () in
         begin match ctv2 with
           | CTRef (s, iv) ->
-(*<<<<<<< HEAD:src/inferctypes.ml
-              let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
-              let cs    = CSStore (SCInc (s, iv, ctvlv)) :: CSCType (CTCSubtype (ctv, ctv2)) :: cs in
-=======*)
               let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
               let cs    = mk_storeinc s iv ctvlv :: mk_subty ctv ctv2 :: cs in
                 (ctvlv, (ctvm, cs))
