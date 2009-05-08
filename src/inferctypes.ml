@@ -14,7 +14,7 @@ type indexvar = int
 let (fresh_indexvar, reset_fresh_indexvars) = M.mk_int_factory ()
 
 type indexexp =
-  | IEInt of int
+  | IEConst of index
   | IEVar of indexvar
   | IEPlus of indexvar * (* RHS scale: *) int * indexvar
 
@@ -34,7 +34,7 @@ let indexsol_find (iv: indexvar) (is: indexsol): index =
   try IVM.find iv is with Not_found -> IBot
 
 let indexexp_apply (is: indexsol): indexexp -> index = function
-  | IEInt n              -> IInt n
+  | IEConst i            -> i
   | IEVar iv             -> indexsol_find iv is
   | IEPlus (iv1, x, iv2) -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
 
@@ -259,19 +259,23 @@ type cstremap = ctvemap * cstr list
 let constrain_const: C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
-        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless (IEInt (Int64.to_int v)) iv)
+        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless (IEConst (IInt (Int64.to_int v))) iv)
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
-  | C.Const c                                  -> let (ctv, c) = constrain_const c in (ctv, em, [c])
-  | C.Lval lv                                  -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
-  | C.BinOp (C.PlusA, e1, e2, _)               -> constrain_plus ve em sid e1 e2
-  | C.BinOp (C.PlusPI, e1, e2, C.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
-  | C.BinOp (C.IndexPI, e1, e2, C.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
-  | C.CastE (_, e)                             -> constrain_exp_aux ve em sid e
-  | e                                          -> ignore (P.printf "Got crazy exp: %a@!@!" C.d_exp e); assert false
+  | C.Const c                -> let (ctv, c) = constrain_const c in (ctv, em, [c])
+  | C.Lval lv                -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
+  | C.BinOp (bop, e1, e2, t) -> constrain_binop bop ve em sid t e1 e2
+  | C.CastE (_, e)           -> constrain_exp_aux ve em sid e
+  | e                        -> ignore (P.printf "Got crazy exp: %a@!@!" C.d_exp e); assert false
 
-and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
+and constrain_binop: C.binop -> ctvenv -> cstremap -> int -> C.typ -> C.exp -> C.exp -> ctypevar * cstremap * cstr list = function
+  | C.PlusA                                 -> constrain_plus
+  | C.PlusPI | C.IndexPI                    -> constrain_ptrplus
+  | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
+  | _                                       -> assert false
+
+and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (_: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2, fresh_ctvint int_width) with
@@ -279,14 +283,21 @@ and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: C.exp) (e2: C.exp
           (ctv, em2, [mk_iless (IEPlus (iv1, 1, iv2)) iv])
       | _ -> failure "Type mismatch in constraining arithmetic plus"
 
-and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
+and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (pt: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
-    match (ctv1, ctv2) with
-      | (CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
+    match (pt, ctv1, ctv2) with
+      | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           let iv = fresh_indexvar () in
             (CTRef (s, iv), em2, [mk_iless (IEPlus (iv1, typ_width t, iv2)) iv])
       | _ -> failure "Type mismatch in constraining pointer plus"
+
+and constrain_rel (ve: ctvenv) (em: cstremap) (sid: int) (_: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
+  let (_, em1) = constrain_exp ve em sid e1 in
+  let (_, em2) = constrain_exp ve em1 sid e2 in
+  let iv       = fresh_indexvar () in
+  let ctv      = CTInt (int_width, iv) in
+    (ctv, em2, [mk_iless (IEConst (ISeq (0, 1))) iv])
 
 and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): C.lval -> ctypevar * cstremap = function
   | (C.Var v, C.NoOffset)       -> (IM.find v.C.vid ve, em)
@@ -326,6 +337,7 @@ and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
     | C.Loop (b, _, _, _)  -> constrain_block ve em b
     | C.Break _            -> em
     | C.Continue _         -> em
+    | C.Goto _             -> em
     | C.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
     | C.Return (None, _)   -> em
     | _                    -> failure "Don't know what to do with crazy statements!"
@@ -337,7 +349,7 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.blo
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (s, iv) -> Some (mk_iless (IEInt 0) iv)
+  | CTRef (s, iv) -> Some (mk_iless (IEConst (IInt 0)) iv)
   | ctv           -> None
 
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
