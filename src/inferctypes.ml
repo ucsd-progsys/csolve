@@ -210,23 +210,17 @@ let solve (cs: cstr list): cstrsol =
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
-let char_width = 1
-let int_width  = 4
-
-let ikind_width: C.ikind -> int = function
-  | C.IChar -> char_width
-  | C.IInt  -> int_width
-  | _         -> failure "We don't serve your kind here"
+let int_width = C.bytesSizeOfInt C.IInt
 
 let typ_width: C.typ -> int = function
-  | C.TInt (ik, _) -> ikind_width ik
+  | C.TInt (ik, _) -> C.bytesSizeOfInt ik
   | C.TPtr _       -> 1
-  | _                -> failure "Don't know type width"
+  | _              -> failure "Don't know type width"
 
 let fresh_ctypevar: C.typ -> ctypevar = function
-  | C.TInt (ik, _) -> fresh_ctvint (ikind_width ik)
+  | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
   | C.TPtr (_, _)  -> fresh_ctvref ()
-  | _                -> failure "Tried to fresh crazy type"
+  | _              -> failure "Tried to fresh crazy type"
 
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
@@ -263,17 +257,17 @@ type cstremap = ctvemap * cstr list
 let constrain_const: C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
-        (CTInt (ikind_width ik, iv), mk_iless 1 (IEInt (Int64.to_int v)) iv)
+        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless 1 (IEInt (Int64.to_int v)) iv)
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
-  | C.Const c                                      -> let (ctv, c) = constrain_const c in (ctv, em, [c])
-  | C.Lval lv                                      -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
-  | C.BinOp (C.PlusA, e1, e2, _)                 -> constrain_plus ve em sid e1 e2
+  | C.Const c                                  -> let (ctv, c) = constrain_const c in (ctv, em, [c])
+  | C.Lval lv                                  -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
+  | C.BinOp (C.PlusA, e1, e2, _)               -> constrain_plus ve em sid e1 e2
   | C.BinOp (C.PlusPI, e1, e2, C.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
   | C.BinOp (C.IndexPI, e1, e2, C.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
-  | C.CastE (_, e)                                 -> constrain_exp_aux ve em sid e
-  | e                                                -> ignore (P.printf "Got crazy exp: %a@!@!" C.d_exp e); assert false
+  | C.CastE (_, e)                             -> constrain_exp_aux ve em sid e
+  | e                                          -> ignore (P.printf "Got crazy exp: %a@!@!" C.d_exp e); assert false
 
 and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in

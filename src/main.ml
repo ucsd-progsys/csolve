@@ -51,7 +51,7 @@ let rename_locals cil =
 let mk_cfg cil =
   Cil.iterGlobals cil 
   (function Cil.GFun(fd,_) as fundec ->
-    Simplify.doGlobal fundec; 
+    Psimplify.doGlobal fundec;
     Cil.prepareCFG fd; 
     Cil.computeCFGInfo fd false 
   | _ -> ())
@@ -80,7 +80,8 @@ let mk_shapes cil =
   Cil.foldGlobals cil
     (fun acc -> function
        | Cil.GFun (fd, loc) ->
-           let _       = E.log "Inferring function shapes\n" in
+           let _       = E.log "Inferring function shape:\n" in
+           let _       = Cil.dumpBlock Cil.defaultCilPrinter stdout 0 fd.Cil.sbody in
            let (em, s) = I.infer_shapes fd in
            let _       = E.log "Got function shapes\n" in
            let _       = P.printf "Local types:@!" in
