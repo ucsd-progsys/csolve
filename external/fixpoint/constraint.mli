@@ -57,12 +57,10 @@ val print            : soln option -> Format.formatter -> t -> unit
 val print_soln       : Format.formatter -> soln -> unit
 val to_string        : t -> string 
 
-(*
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t
 val so_of_reft       : reft -> Ast.Sort.t
 val ras_of_reft      : reft -> refa list
-*)
 
 val make_t           : envt -> Ast.pred -> reft -> reft -> tag option -> t
 val env_of_t         : t -> envt
