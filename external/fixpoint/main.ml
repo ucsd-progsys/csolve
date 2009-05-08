@@ -65,16 +65,16 @@ let arg_spec =
                \032    64     +Drowning in output") 
   ]
 
-
 let sift xs = 
   List.fold_left 
-    (fun (ts, ps, cs, s) -> function 
-      | C.Srt t       -> (t::ts, ps, cs, s) 
-      | C.Axm p       -> (ts, p::ps, cs, s) 
-      | C.Cst c       -> (ts, ps, c::cs, s)
-      | C.Sol (x, qs) -> (ts, ps, cs, SM.add x qs s)
-      | C.Qul _       -> (ts, ps, cs, s))
-    ([], [], [], SM.empty) xs
+    (fun (ts, ps, cs, ws, qs, s) -> function 
+      | C.Srt t       -> (t::ts, ps, cs, ws, qs, s) 
+      | C.Axm p       -> (ts, p::ps, cs, ws, qs, s) 
+      | C.Cst c       -> (ts, ps, c::cs, ws, qs, s)
+      | C.Wfc w       -> (ts, ps, cs, w::ws, qs, s)
+      | C.Qul q       -> (ts, ps, cs, ws, q::qs, s)
+      | C.Sol (x, qs) -> (ts, ps, cs, ws, qs, SM.add x qs s))
+    ([], [], [], [], [], SM.empty) xs
 
 let parse f = 
   let _ = Errorline.startFile f in
@@ -82,9 +82,9 @@ let parse f =
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
 
-let solve (ts, ps, cs, s) = 
+let solve (ts, ps, cs, ws, qs, s) = 
   let ctx     = S.create ts SM.empty ps cs in
-  let s', cs' = S.solve ctx s in
+  let s', cs' = S.inst ws qs s |> S.solve ctx in
   let _       = S.save !Co.save_file ctx s' in
   F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" 

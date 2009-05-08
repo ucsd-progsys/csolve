@@ -209,8 +209,9 @@ let rec intmap_for_all f m =
 let hashtbl_to_list t = 
    Hashtbl.fold (fun x y l -> (x,y)::l) t []
 
-let rec clone x n = 
-  if n <= 0 then [] else (x::(clone x (n-1)))
+let clone x n = 
+  let rec f n xs = if n <= 0 then xs else f (n-1) (x::xs) in
+  f n []
 
 let distinct xs = 
   List.length (sort_and_compact xs) = List.length xs
