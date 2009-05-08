@@ -44,7 +44,7 @@ Define:
       		       then k_x 
                        else reft_of_expr (def_expr x)
 
-Generate Constraints:
+Output (Constraints):
 
   foreach k_x, 
   	let gamma_x = reach (def_block x) |> proj gamma in
