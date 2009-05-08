@@ -212,10 +212,12 @@ let solve (cs: cstr list): cstrsol =
 
 let int_width = C.bytesSizeOfInt C.IInt
 
-let typ_width: C.typ -> int = function
-  | C.TInt (ik, _) -> C.bytesSizeOfInt ik
-  | C.TPtr _       -> 1
-  | _              -> failure "Don't know type width"
+let rec typ_width (t: C.typ): int =
+  match C.unrollType t with
+    | C.TInt (ik, _)                    -> C.bytesSizeOfInt ik
+    | C.TPtr _                          -> 1
+    | C.TComp (ci, _) when ci.C.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.C.ftype) 0 ci.C.cfields
+    | _                                 -> failure "Don't know type width"
 
 let fresh_ctypevar: C.typ -> ctypevar = function
   | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
