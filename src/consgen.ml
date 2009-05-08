@@ -31,7 +31,7 @@ let gen_decs (g0 : W.cilenv) fdec =
     g0 fdec.slocals
 
 (***************************************************************************)
-
+(* OLD CONSGEN *)
 let phi_cstr cenv doms cfg i (v, bvs) = 
   let rhs = snd (W.ce_find v cenv) in
   let loc = Cil.get_stmtLoc cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
@@ -92,40 +92,9 @@ let gen g sci =
   let g'   = gen_decs g  fdec in
   let invp = gen_body fdec doms in
   let ccs  = gen_phis g' doms cfg phis in
-  let cs   = List.map (W.cstr_of_cilcstr sci invp) ccs in
-  (g', cs)
-
-let inst_qual (e: string list) (q: Ast.pred) : Ast.pred list =
-  let ms  = ref [] in
-  let gms x = match Ast.Expression.unwrap x with
-    | Ast.Var x -> if Ast.Symbol.is_wild x then ms := x :: !ms
-    | _ -> () in
-  let ms  = Ast.Predicate.iter (fun _ -> ()) gms q; !ms in
-  let ms  = Misc.sort_and_compact ms in
-  let mms = List.rev_map (fun _ -> e) ms in
-  let pms = Misc.rev_perms mms in
-  let pms = List.rev_map (List.combine ms) pms in
-  let sub ys x =
-    match Ast.Expression.unwrap x with
-      | Ast.Var y ->
-         (try Ast.eVar (Ast.Symbol.of_string (List.assoc y ys)) with Not_found -> x)
-      | _ -> x in
-  List.rev_map (fun ys -> Ast.Predicate.map (fun x -> x) (sub ys) q) pms
-  
-let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
-  Misc.tr_flap (inst_qual (W.names_of_cilenv g)) qs
-
-let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
-  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
-  let qs' = inst_quals g qs in
-  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
+  let cs   = Misc.tr_map (W.cstr_of_cilcstr sci invp) ccs in
+  cs
 
 (* API *)
-let mk_cons qs g0 scis = 
-  List.fold_left
-    (fun (cs, s) sci -> 
-      let g, cs' = gen g0 sci in 
-      let s'     = inst qs g cs s in
-      ((cs' ++ cs), s'))
-    ([], Ast.Symbol.SMap.empty) scis
-
+let mk_cons g0 scis = 
+  ([], Misc.tr_flap (gen g0) scis)

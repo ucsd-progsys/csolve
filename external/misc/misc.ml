@@ -133,6 +133,10 @@ let mapfold f xs b =
 
 let flap f xs = List.flatten (List.map f xs)
 
+let tr_map f xs = 
+  List.rev_map f xs 
+  |> List.rev
+
 let tr_flatten xss =
   List.fold_left (fun acc xs -> xs ++ acc) [] xss 
   |> List.rev

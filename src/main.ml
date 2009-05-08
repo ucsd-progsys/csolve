@@ -103,33 +103,18 @@ let mk_genv (cil: Cil.file) : W.cilenv =
   (* TBD: initialize with global variables *)
   W.ce_empty 
 
-(*
-let mk_tp_env cil =
-  Cil.foldGlobals cil 
-    (fun env g -> 
-      match g with 
-      | Cil.GFun(fd,_) ->
-          List.fold_left 
-            (fun e v -> 
-              let vn = v.Cil.vname in
-              let vt = TP.embed_type v.Cil.vtype in
-              SM.add vn vt e) 
-            env (fd.Cil.sformals ++ fd.Cil.slocals)
-      | _ -> env)
-    SM.empty 
-*)
-
 let liquidate file =
-  let cil    = mk_cil file in
-  let _      = mk_shapes cil in
-  let qs     = mk_quals file in
-  let g0     = mk_genv cil in
-  let scis   = mk_scis cil in
-  let cs,s   = Consgen.mk_cons qs g0 scis in
-  let ctx    = Solve.create [] A.Symbol.SMap.empty [] cs in
-  let _      = Solve.save (file^".in.fq") ctx s in
-  let s',cs' = Solve.solve ctx s in 
-  let _      = Solve.save (file^".out.fq") ctx s' in
+  let cil     = mk_cil file in
+  let _       = mk_shapes cil in
+  let qs      = mk_quals file in
+  let g0      = mk_genv cil in
+  let scis    = mk_scis cil in
+  let (ws,cs) = Consgen.mk_cons g0 scis in
+  let s       = Solve.inst ws qs A.Symbol.SMap.empty in
+  let ctx     = Solve.create [] A.Symbol.SMap.empty [] cs in
+  let _       = Solve.save (file^".in.fq") ctx s in
+  let s',cs'  = Solve.solve ctx s in 
+  let _       = Solve.save (file^".out.fq") ctx s' in
   (cs' = [])
 
 let print_header () = 

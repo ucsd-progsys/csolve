@@ -1,5 +1,6 @@
 module M = Misc
 module P = Pretty
+module C = Cil
 
 open Ctypes
 open M.Ops
@@ -200,19 +201,19 @@ let solve (cs: cstr list): cstrsol =
 let char_width = 1
 let int_width  = 4
 
-let ikind_width: Cil.ikind -> int = function
-  | Cil.IChar -> char_width
-  | Cil.IInt  -> int_width
+let ikind_width: C.ikind -> int = function
+  | C.IChar -> char_width
+  | C.IInt  -> int_width
   | _         -> failure "We don't serve your kind here"
 
-let typ_width: Cil.typ -> int = function
-  | Cil.TInt (ik, _) -> ikind_width ik
-  | Cil.TPtr _       -> 1
+let typ_width: C.typ -> int = function
+  | C.TInt (ik, _) -> ikind_width ik
+  | C.TPtr _       -> 1
   | _                -> failure "Don't know type width"
 
-let fresh_ctypevar: Cil.typ -> ctypevar = function
-  | Cil.TInt (ik, _) -> fresh_ctvint (ikind_width ik)
-  | Cil.TPtr (_, _)  -> fresh_ctvref ()
+let fresh_ctypevar: C.typ -> ctypevar = function
+  | C.TInt (ik, _) -> fresh_ctvint (ikind_width ik)
+  | C.TPtr (_, _)  -> fresh_ctvref ()
   | _                -> failure "Tried to fresh crazy type"
 
 (******************************************************************************)
@@ -222,7 +223,7 @@ let fresh_ctypevar: Cil.typ -> ctypevar = function
 (* pmr: need some much better way of uniquely identifying expressions! *)
 (* pmr: need to catch lvals, too *)
 module ExpKey = struct
-  type t      = (* instruction location: *) int * Cil.exp
+  type t      = (* instruction location: *) int * C.exp
   let compare = compare
 end
 
@@ -235,7 +236,7 @@ type ctvemap = ctypevar ExpMap.t
 type ctemap = ctype ExpMap.t
 
 let d_ctemap () (em: ctemap): Pretty.doc =
-  ExpMapPrinter.d_map "\n" (fun () (_, e) -> Cil.d_exp () e) d_ctype () em
+  ExpMapPrinter.d_map "\n" (fun () (_, e) -> C.d_exp () e) d_ctype () em
 
 module IM = M.IntMap
 
@@ -247,22 +248,22 @@ type cstremap = ctvemap * cstr list
 (**************************** Constraint Generation ***************************)
 (******************************************************************************)
 
-let constrain_const: Cil.constant -> ctypevar * cstr = function
-  | Cil.CInt64 (v, ik, so) ->
+let constrain_const: C.constant -> ctypevar * cstr = function
+  | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
         (CTInt (ikind_width ik, iv), CSIndex (ICLess (1, IEInt (Int64.to_int v), iv)))
   | _ -> failure "Don't handle non-int constants yet"
 
-let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): Cil.exp -> ctypevar * cstremap * cstr list = function
-  | Cil.Const c                                      -> let (ctv, c) = constrain_const c in (ctv, em, [c])
-  | Cil.Lval lv                                      -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
-  | Cil.BinOp (Cil.PlusA, e1, e2, _)                 -> constrain_plus ve em sid e1 e2
-  | Cil.BinOp (Cil.PlusPI, e1, e2, Cil.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
-  | Cil.BinOp (Cil.IndexPI, e1, e2, Cil.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
-  | Cil.CastE (_, e)                                 -> constrain_exp_aux ve em sid e
-  | e                                                -> ignore (P.printf "Got crazy exp: %a@!@!" Cil.d_exp e); assert false
+let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
+  | C.Const c                                      -> let (ctv, c) = constrain_const c in (ctv, em, [c])
+  | C.Lval lv                                      -> let (ctv, em) = constrain_lval ve em sid lv in (ctv, em, [])
+  | C.BinOp (C.PlusA, e1, e2, _)                 -> constrain_plus ve em sid e1 e2
+  | C.BinOp (C.PlusPI, e1, e2, C.TPtr (t, _))  -> constrain_ptrplus ve em sid t e1 e2
+  | C.BinOp (C.IndexPI, e1, e2, C.TPtr (t, _)) -> constrain_ptrplus ve em sid t e1 e2
+  | C.CastE (_, e)                                 -> constrain_exp_aux ve em sid e
+  | e                                                -> ignore (P.printf "Got crazy exp: %a@!@!" C.d_exp e); assert false
 
-and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
+and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2, fresh_ctvint int_width) with
@@ -270,7 +271,7 @@ and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (e1: Cil.exp) (e2: Cil
           (ctv, em2, [CSIndex (ICLess (1, IEPlus (iv1, iv2), iv))])
       | _ -> failure "Type mismatch in constraining arithmetic plus"
 
-and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: Cil.typ) (e1: Cil.exp) (e2: Cil.exp): ctypevar * cstremap * cstr list =
+and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 sid e2 in
     match (ctv1, ctv2) with
@@ -279,49 +280,49 @@ and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (t: Cil.typ) (e1: C
             (CTRef (s, iv), em2, [CSIndex (ICLess (typ_width t, IEPlus (iv1, iv2), iv))])
       | _ -> failure "Type mismatch in constraining pointer plus"
 
-and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): Cil.lval -> ctypevar * cstremap = function
-  | (Cil.Var v, Cil.NoOffset)       -> (IM.find v.Cil.vid ve, em)
-  | (Cil.Mem e, Cil.NoOffset) as lv ->
+and constrain_lval (ve: ctvenv) (em: cstremap) (sid: int): C.lval -> ctypevar * cstremap = function
+  | (C.Var v, C.NoOffset)       -> (IM.find v.C.vid ve, em)
+  | (C.Mem e, C.NoOffset) as lv ->
       let (ctv, (ctvm, cs)) = constrain_exp ve em sid e in
       let ctv2              = fresh_ctvref () in
         begin match ctv2 with
           | CTRef (s, iv) ->
-              let ctvlv = fresh_ctypevar <| Cil.typeOfLval lv in
+              let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
               let cs    = CSStore (SCInc (s, iv, ctvlv)) :: CSCType (CTCSubtype (ctv, ctv2)) :: cs in
                 (ctvlv, (ctvm, cs))
           | _ -> failure "fresh_ctvref gave back non-ref type"
         end
-  | lv -> ignore (P.printf "Got crazy lval: %a@!@!" Cil.d_lval lv); failure "Don't know how to handle fancy lvals yet"
+  | lv -> ignore (P.printf "Got crazy lval: %a@!@!" C.d_lval lv); failure "Don't know how to handle fancy lvals yet"
 
-and constrain_exp (ve: ctvenv) (em: cstremap) (sid: int) (e: Cil.exp): ctypevar * cstremap =
+and constrain_exp (ve: ctvenv) (em: cstremap) (sid: int) (e: C.exp): ctypevar * cstremap =
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em sid e in
     (ctv, (ExpMap.add (sid, e) ctv ctvm, cs @ cs'))
 
-let constrain_instr (ve: ctvenv) (em: cstremap): Cil.instr -> cstremap = function
-  | Cil.Set (lv, e, _) ->
+let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
+  | C.Set (lv, e, _) ->
       (* pmr: going out on a limb, I'd say 0 is not the right value *)
       let (ctv1, em1)        = constrain_lval ve em 0 lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 0 e in
         (ctvm, CSCType (CTCSubtype (ctv2, ctv1)) :: cs)
   | _ -> failure "Can't handle fancy instructions yet"
 
-let rec constrain_block (ve: ctvenv) (em: cstremap) (b: Cil.block): cstremap =
-  List.fold_left (constrain_stmt ve) em b.Cil.bstmts
+let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
+  List.fold_left (constrain_stmt ve) em b.C.bstmts
 
 (* pmr: set currentLoc so we can have reasonable error messages *)
-and constrain_stmt (ve: ctvenv) (em: cstremap) (s: Cil.stmt): cstremap =
-  match s.Cil.skind with
-    | Cil.Block b            -> constrain_block ve em b
-    | Cil.Instr is           -> List.fold_left (constrain_instr ve) em is
-    | Cil.If (e, b1, b2, _)  -> constrain_if ve em e b1 b2
-    | Cil.Loop (b, _, _, _)  -> constrain_block ve em b
-    | Cil.Break _            -> em
-    | Cil.Continue _         -> em
-    | Cil.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
-    | Cil.Return (None, _)   -> em
+and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
+  match s.C.skind with
+    | C.Block b            -> constrain_block ve em b
+    | C.Instr is           -> List.fold_left (constrain_instr ve) em is
+    | C.If (e, b1, b2, _)  -> constrain_if ve em e b1 b2
+    | C.Loop (b, _, _, _)  -> constrain_block ve em b
+    | C.Break _            -> em
+    | C.Continue _         -> em
+    | C.Return (Some e, _) -> snd (constrain_exp ve em 0 e)
+    | C.Return (None, _)   -> em
     | _                      -> failure "Don't know what to do with crazy statements!"
 
-and constrain_if (ve: ctvenv) (em: cstremap) (e: Cil.exp) (b1: Cil.block) (b2: Cil.block): cstremap =
+and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em 0 e in
   let em                = (ctvm, CSCType (CTCSubtype (ctv, fresh_ctvint int_width)) :: cs) in
     constrain_block ve (constrain_block ve em b1) b2
@@ -331,15 +332,15 @@ let constrain_param: ctypevar -> cstr option = function
   | CTRef (s, iv) -> Some (CSIndex (ICLess (1, IEInt 0, iv)))
   | ctv           -> None
 
-let fresh_vars (vs: Cil.varinfo list): (int * ctypevar) list =
-  List.map (fun v -> (v.Cil.vid, fresh_ctypevar v.Cil.vtype)) vs
+let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
+  List.map (fun v -> (v.C.vid, fresh_ctypevar v.C.vtype)) vs
 
-let infer_shapes (fd: Cil.fundec): ctemap * store =
-  let locals       = fresh_vars fd.Cil.slocals in
-  let formals      = fresh_vars fd.Cil.sformals in
+let infer_shapes (fd: C.fundec): ctemap * store =
+  let locals       = fresh_vars fd.C.slocals in
+  let formals      = fresh_vars fd.C.sformals in
   let cs           = M.map_partial (M.compose constrain_param snd) formals in
   let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
-  let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.Cil.sbody in
+  let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.C.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
     (ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
