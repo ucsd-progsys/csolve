@@ -77,6 +77,7 @@ val d_store: unit -> store -> Pretty.doc
 val index_lub: index -> index -> index
 val index_plus: index -> index -> index
 val index_scale: int -> index -> index
+val index_mult: index -> index -> index
 val is_subindex: index -> index -> bool
 
 (******************************************************************************)

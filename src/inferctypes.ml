@@ -17,6 +17,7 @@ type indexexp =
   | IEConst of index
   | IEVar of indexvar
   | IEPlus of indexvar * (* RHS scale: *) int * indexvar
+  | IEMult of indexvar * indexvar
 
 type indexcstr =
   | ICLess of indexexp * indexvar
@@ -37,6 +38,7 @@ let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i            -> i
   | IEVar iv             -> indexsol_find iv is
   | IEPlus (iv1, x, iv2) -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
+  | IEMult (iv1, iv2)    -> index_mult (indexsol_find iv1 is) (indexsol_find iv2 is)
 
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
   IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
@@ -274,6 +276,7 @@ let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (sid: int): C.exp -> ctype
 and constrain_binop: C.binop -> ctvenv -> cstremap -> int -> C.typ -> C.exp -> C.exp -> ctypevar * cstremap * cstr list = function
   | C.PlusA                                 -> constrain_plus
   | C.PlusPI | C.IndexPI                    -> constrain_ptrplus
+  | C.Mult                                  -> constrain_mult
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
   | _                                       -> assert false
 
@@ -284,6 +287,14 @@ and constrain_plus (ve: ctvenv) (em: cstremap) (sid: int) (_: C.typ) (e1: C.exp)
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
           (ctv, em2, [mk_iless (IEPlus (iv1, 1, iv2)) iv])
       | _ -> failure "Type mismatch in constraining arithmetic plus"
+
+and constrain_mult (ve: ctvenv) (em: cstremap) (sid: int) (_: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
+  let (ctv1, em1) = constrain_exp ve em sid e1 in
+  let (ctv2, em2) = constrain_exp ve em1 sid e2 in
+    match (ctv1, ctv2, fresh_ctvint int_width) with
+      | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
+          (ctv, em2, [mk_iless (IEMult (iv1, iv2)) iv])
+      | _ -> failure "Type mismatch in constraining mult"
 
 and constrain_ptrplus (ve: ctvenv) (em: cstremap) (sid: int) (pt: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em sid e1 in
