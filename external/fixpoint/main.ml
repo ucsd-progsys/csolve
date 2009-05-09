@@ -96,6 +96,6 @@ let main () =
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse arg_spec (fun s -> fs := s::!fs) usage in
-  !fs |> Misc.tr_flap parse |> sift |> solve 
+  !fs |> Misc.flap parse |> sift |> solve 
 
 let _ = main ()

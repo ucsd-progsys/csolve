@@ -34,19 +34,19 @@ type t = {
   ssa_srca : (Cil.varinfo * Cil.varinfo) list array; (* block |-> (x, xi) list, 
                                                                   st. xi defined in block,
                                                                       x = phi(...xi...) *)
-  ssa_targa : Cil.varinfo list array;                 (* block |-> ssa-vars defined in block *)
+  ssa_targa : Cil.varinfo list array;                (* block |-> ssa-vars defined in block *)
+  vart     : (string, Cil.exp) H.t;                  (* var |-> defininng assignment *)
 }
 
 (* FIX *)
-class consGenVisitor fid doms invsr = object(self) 
+class consGenVisitor fid doms var_exprt = object(self) 
   inherit nopCilVisitor
   
   val sid = ref 0
 
   method vinst = function
     | Set (((Var v), NoOffset), e, _) ->
-        let p = A.pAtom ((CI.expr_of_var v), A.Eq, (CI.expr_of_cilexp e)) in 
-        invsr := p :: !invsr;
+        H.add var_exprt v.Cil.vname e;
         DoChildren 
     | _ -> 
         asserts false "TBD: consGenVisitor vinst";

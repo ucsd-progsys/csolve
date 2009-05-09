@@ -51,7 +51,8 @@ let rename_locals cil =
 let mk_cfg cil =
   Cil.iterGlobals cil 
   (function Cil.GFun(fd,_) as fundec ->
-    Psimplify.doGlobal fundec;
+    (* commenting out for now: 
+    Psimplify.doGlobal fundec; *)
     Cil.prepareCFG fd; 
     Cil.computeCFGInfo fd false 
   | _ -> ())
@@ -77,6 +78,8 @@ let mk_scis cil =
       | _ -> acc) [] 
 
 let mk_shapes cil =
+  failwith "TBD -- build broken"
+  (*
   Cil.foldGlobals cil
     (fun acc -> function
        | Cil.GFun (fd, loc) ->
@@ -91,6 +94,7 @@ let mk_shapes cil =
              (fd, em, s) :: acc
        | _ -> acc)
     []
+    *)
 
 let mk_quals (f:string) : A.pred list =        
   let qs =
