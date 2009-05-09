@@ -214,7 +214,8 @@ module LDesc = struct
       if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
         ((Some p, pcts), b)
       else
-        assert false
+        (* pmr: this is not quite descriptive enough *)
+        raise TypeDoesntFit
 
   let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
     let p = get_period_default po in

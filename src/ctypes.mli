@@ -55,6 +55,7 @@ module LDesc:
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
+    val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
 type 'a prestore = ('a LDesc.t) SLM.t
