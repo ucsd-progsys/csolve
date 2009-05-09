@@ -1,7 +1,7 @@
 type index =
   | IBot               (* empty sequence *)
-  | IInt of int        (* singleton *)
-  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
+  | IInt of int        (* singleton n >= 0 *)
+  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
   | ITop               (* sequence of all values (including negatives) *)
 
 type sloc = int (* store locations *)
