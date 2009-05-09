@@ -98,6 +98,7 @@ let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
 let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
   match indexsol_find iv is with
     | IBot   -> (is, ss)
+    | ITop   -> assert false
     | IInt n ->
         let pl = PLAt n in
           begin match LDesc.find pl (prestore_find l ss) with
@@ -126,6 +127,7 @@ let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol):
   let ct = ctypevar_apply is ctv in
     match indexsol_find iv is with
       | IBot   -> true
+      | ITop   -> false
       | IInt n ->
           begin match LDesc.find (PLAt n) ld with
             | [(_, ctv2)] -> ct = ctypevar_apply is ctv2

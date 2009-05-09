@@ -11,11 +11,13 @@ type index =
   | IBot               (* empty sequence *)
   | IInt of int        (* singleton *)
   | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
+  | ITop               (* sequence of all values (including negatives) *)
 
 let d_index (): index -> P.doc = function
   | IBot        -> P.text "⊥"
   | IInt n      -> P.num n
   | ISeq (n, m) -> P.dprintf "%d[%d]" n m
+  | ITop        -> P.text "⊤"
 
 let index_lub (i1: index) (i2: index): index =
   match (i1, i2) with
@@ -23,6 +25,7 @@ let index_lub (i1: index) (i2: index): index =
     | (IInt m, IInt n)                              -> if m = n then IInt m else ISeq (min n m, abs (n - m))
     | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (min n m, M.gcd k (abs (n - m)))
     | (ISeq (n, l), ISeq (m, k))                    -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))))
+    | (ITop, _) | (_, ITop)                         -> ITop
 
 let index_plus (i1: index) (i2: index): index =
   match (i1, i2) with
@@ -31,15 +34,18 @@ let index_plus (i1: index) (i2: index): index =
     | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (n + m, k)
     | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (n1 + n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
+    | (ITop, _) | (_, ITop)                         -> ITop
 
 let index_scale (x: int): index -> index = function
   | IBot        -> IBot
   | IInt n      -> IInt (n * x)
   | ISeq (n, m) -> ISeq (n * x, m * x)
+  | ITop        -> ITop
 
 let is_subindex (i1: index) (i2: index): bool =
   match (i1, i2) with
     | (IBot, _)                  -> true
+    | (_, ITop)                  -> true
     | (IInt n, IInt m)           -> n = m
     | (IInt n, ISeq (m, k))      -> m <= n && (n - m) mod k = 0
     | (ISeq (n, l), ISeq (m, k)) -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
