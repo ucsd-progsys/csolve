@@ -224,8 +224,8 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
   method private rename_var read v =
     if not (self#is_ssa_renamed v) then v else
       try 
-        let ri = self#get_regindex read v in
-        mk_renamed_var fdec var_t v ri 
+        self#get_regindex read v 
+        |> mk_renamed_var fdec var_t v 
       with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
                            read v.vname (Printexc.to_string e)) 
 

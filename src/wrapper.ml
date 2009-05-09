@@ -16,11 +16,20 @@ open Cil
 (*******************************************************************)
 
 type cilenv  = (Cil.varinfo * C.reft) SM.t
-type cilcstr = cilenv * (int * bool) list * C.reft * C.reft * Cil.location
 
-let ce_empty = SM.empty
-let ce_find  = fun v cenv -> SM.find v.vname cenv
-let ce_add   = fun v r cenv -> SM.add v.vname (v, r) cenv
+let ce_empty = 
+  SM.empty
+
+let ce_find v cenv = 
+  SM.find v.vname cenv
+
+let ce_add v r cenv = 
+  SM.add v.vname (v, r) cenv
+
+let ce_project cenv vs = 
+  List.fold_left 
+    (fun cenv' v -> SM.add v.vname (ce_find v cenv) cenv')
+    ce_empty vs
 
 let fresh_kvar = 
   let r = ref 0 in
@@ -32,11 +41,6 @@ let fresh ty : C.reft =
       C.make_reft (Sy.value_variable So.Int) So.Int [C.Kvar ([], fresh_kvar ())]
   | _      -> 
       assertf "TBD: Consgen.fresh"
-
-(* manipulating cilenvs *)
-
-let names_of_cilenv c =
-  SM.fold (fun x _ xs -> x :: xs ) c []
 
 (* creating refinements *)
 
@@ -50,24 +54,20 @@ let t_single (e : Cil.exp) : C.reft =
 let t_var (v : Cil.varinfo) : C.reft =
   t_single (Lval ((Var v), NoOffset))
 
-let expand_guard ifs ibs =
-  ibs  
-  |> List.map (fun (i,b) -> match ifs.(i) with 
-               | Some (e,_,_) -> 
-                   let p  = CI.pred_of_cilexp e in
-                   if b then p else (A.pNot p)
-               | _ -> 
-                   assertf "ERROR: expand_guard")
-  |> A.pAnd
-
-let mk_cilcstr cenv ibs lhst rhst loc = 
-  (cenv, ibs, lhst, rhst, loc)
-
 let env_of_cilenv cenv = 
   SM.fold 
     (fun x (_,r) env -> Sy.SMap.add (Sy.of_string x) r env) 
     cenv
     Sy.SMap.empty
+
+let make_ts env p lhsr rhsr loc = 
+  [C.make_t (env_of_cilenv env) p lhsr rhsr None]
+
+let make_wfs env r loc =
+  let env = env_of_cilenv env in
+  C.kvars_of_reft r 
+  |> List.map (fun (_,k) -> C.make_wf env k None)
+
 (*
 let cstr_of_cilcstr sci p (cenv, ibs, r1, r2, _) =
   failwith "TBDNOW"

@@ -55,7 +55,7 @@ let is_simple_refatom = function
   | Kvar ([], _) -> true
   | _            -> false
 
-let get_kvars_reft (_, _, rs) =
+let kvars_of_reft (_, _, rs) =
   Misc.map_partial 
     (function Kvar (subs,k) -> Some (subs,k) 
             | _             -> None) 
@@ -75,8 +75,8 @@ let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) =
   not (!Constants.no_simple || !Constants.verify_simple)
 
 (* API *)
-let get_kvars (_, _, r1, r2, _) =
-  (get_kvars_reft r1) ++ (get_kvars_reft r2)
+let kvars_of_t (_, _, r1, r2, _) =
+  (kvars_of_reft r1) ++ (kvars_of_reft r2)
 
 (*************************************************************)
 (******************** Solution Management ********************)

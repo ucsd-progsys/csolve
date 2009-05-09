@@ -86,6 +86,15 @@ module StringMap =
 
 open Ops
 
+let foldn f b n = 
+  let rec foo acc i = 
+    if i >= n then acc else foo (f acc i) (i+1) 
+  in foo b 0 
+
+let mapn f n = 
+  foldn (fun acc i -> (f i) :: acc) [] n 
+  |> List.rev
+
 let chop_last = function
   | [] -> failure "ERROR: Misc.chop_last"
   | xs -> xs |> List.rev |> List.tl |> List.rev
@@ -104,6 +113,14 @@ let map_partial f xs =
 
 let list_max x xs = 
   List.fold_left max x xs
+
+let getf a i fmt = 
+  try a.(i) with ex -> assertf fmt
+
+let do_catchf s f x =
+  try f x with ex -> 
+     (Printf.printf "%s hits exn: %s \n" s (Printexc.to_string ex); 
+      assert false)
 
 let do_catch s f x =
   try f x with ex -> 
@@ -131,24 +148,26 @@ let mapfold f xs b =
     ([], b) xs 
   |> (fun (ys, c) -> ((List.rev ys), c))
 
+(*
 let flap f xs = List.flatten (List.map f xs)
+*)
 
-let tr_map f xs = 
-  List.rev_map f xs 
+let map f xs = 
+  List.rev_map f xs |> List.rev
+
+let flatten xss =
+  xss
+  |> List.fold_left (fun acc xs -> xs ++ acc) []
   |> List.rev
 
-let tr_flatten xss =
-  List.fold_left (fun acc xs -> xs ++ acc) [] xss 
-  |> List.rev
-
-let tr_flap f xs = 
-  List.rev (tr_flatten (List.rev_map f xs))
+let flap f xs =
+  xs |> List.rev_map f |> flatten |> List.rev
 
 let tr_rev_flatten xs =
-  List.fold_left (fun x xs -> List.rev_append x xs) [] xs
+  List.fold_left (fun x xs -> x ++ xs) [] xs
 
 let tr_rev_flap f xs =
-  List.fold_left (fun xs x -> List.rev_append (f x) xs) [] xs
+  List.fold_left (fun xs x -> (f x) ++ xs) [] xs
 
 let rec fast_unflat ys = function
   | x :: xs -> fast_unflat ([x] :: ys) xs
@@ -465,3 +484,5 @@ let mk_int_factory () =
 let mk_char_factory () =
   let (fresh_int, reset_fresh_int) = mk_int_factory () in
     ((fun () -> Char.chr (fresh_int () + Char.code 'a')), reset_fresh_int)
+
+

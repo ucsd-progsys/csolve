@@ -170,7 +170,6 @@ let inst_qual (e: string list) (q: A.pred) : A.pred list =
          (try Ast.eVar (Ast.Symbol.of_string (List.assoc y ys)) with Not_found -> x)
       | _ -> x in
   List.rev_map (fun ys -> Ast.Predicate.map (fun x -> x) (sub ys) q) pms
- 
 
 let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
   Misc.tr_flap (inst_qual (W.names_of_cilenv g)) qs
@@ -184,11 +183,8 @@ let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln 
   let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
   let qs' = inst_quals g qs in
   List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
-  
 *)
 
-
-(* liquid DEMO worthy *)
 let inst_qual ys q : A.pred list =
   let xs   = P.support q                         (* vars of q *) 
              |> List.filter Sy.is_wild           (* placevs of q *)
@@ -196,7 +192,7 @@ let inst_qual ys q : A.pred list =
   let xyss = List.length xs                      (* for each placev *) 
              |> Misc.clone ys                    (* clone the freev list *)
              |> Misc.rev_perms                   (* generate freev combinations *) 
-             |> List.rev_map (List.combine xs) in(* generate placev-freev lists *)
+             |> Misc.map (List.combine xs) in(* generate placev-freev lists *)
   List.rev_map 
     (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) q)
     xyss
@@ -206,7 +202,7 @@ let inst_ext qs s wf =
   let ys  = SM.fold (fun y _ ys -> y::ys) (C.env_of_wf wf) [] in
   let kqs = C.sol_query s k in
   (kqs ++ qs) 
-  |> Misc.tr_flap (inst_qual ys) 
+  |> Misc.flap (inst_qual ys) 
   |> List.map (fun q -> (k,q)) 
   |> C.group_sol_update s 
   |> snd
@@ -214,25 +210,6 @@ let inst_ext qs s wf =
 (* API *)
 let inst wfs qs s =
   List.fold_left (inst_ext qs) s wfs
-
-
-(* FLESH THIS OUT INTO A LIQUIDDEMO
-
-let rec map f xs = 
-  match xs with 
-  | []     -> []
-  | x::xs' -> (f x) :: (map f xs')
-
-let rec clone x n =
-  if n <= 0 then [] else x::(clone x (n-1))
-
-let foo xs ys =
-  let n = len xs in
-  clone ys |> rev_perms
-
-*)
-
-
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
