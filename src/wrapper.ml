@@ -76,5 +76,3 @@ let cstr_of_cilcstr sci p (cenv, ibs, r1, r2, _) =
   C.make_t env (A.pAnd [p; gp]) r1 r2 
   *)
 
-let cstr_of_cilcstr _ = failwith "TBDNOW"
-
