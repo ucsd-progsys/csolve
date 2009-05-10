@@ -56,8 +56,14 @@ let index_scale (x: int): index -> index = function
   | IInt n      -> IInt (n * x)
   | ISeq (n, m) -> ISeq (n * x, m * x)
 
-let index_mult: index -> index -> index =
-  index_constop ( * )
+(* pmr: prove this has the appropriate monotonicity property *)
+let index_mult (i1: index) (i2: index): index =
+  match (i1, i2) with
+    | (IBot, _) | (_, IBot)                         -> IBot
+    | (ITop, _) | (_, ITop)                         -> ITop
+    | (IInt n, IInt m)                              -> IInt (n * m)
+    | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (n * m, n * k)
+    | _                                             -> ITop
 
 let index_div: index -> index -> index =
   index_constop (/)
