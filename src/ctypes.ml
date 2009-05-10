@@ -19,6 +19,9 @@ let d_index (): index -> P.doc = function
   | ISeq (n, m) -> P.dprintf "%d[%d]" n m
   | ITop        -> P.text "⊤"
 
+let index_of_int (i: int): index =
+  if i >= 0 then IInt i else ITop
+
 let index_lub (i1: index) (i2: index): index =
   match (i1, i2) with
     | (IBot, i) | (i, IBot)                         -> i

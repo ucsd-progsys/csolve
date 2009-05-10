@@ -278,7 +278,7 @@ type cstremap = ctvemap * cstr list
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
-        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (IInt (Int64.to_int v))) iv)
+        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
   | _ -> failure "Don't handle non-int constants yet"
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function

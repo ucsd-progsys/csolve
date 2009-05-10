@@ -75,6 +75,7 @@ val d_store: unit -> store -> Pretty.doc
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
+val index_of_int: int -> index
 val index_lub: index -> index -> index
 val index_plus: index -> index -> index
 val index_scale: int -> index -> index
