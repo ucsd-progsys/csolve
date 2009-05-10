@@ -30,7 +30,8 @@ module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module W  = Wrapper
 module P  = Pretty
-module I  = Inferctypes
+
+(* module I  = Inferctypes *)
 
 open Misc.Ops
 

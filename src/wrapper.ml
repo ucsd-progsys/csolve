@@ -31,6 +31,8 @@ let ce_project cenv vs =
     (fun cenv' v -> SM.add v.vname (ce_find v cenv) cenv')
     ce_empty vs
 
+(* templates *)
+
 let fresh_kvar = 
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
@@ -42,7 +44,7 @@ let fresh ty : C.reft =
   | _      -> 
       assertf "TBD: Consgen.fresh"
 
-(* creating refinements *)
+(* refinements *)
 
 let t_single (e : Cil.exp) : C.reft =
   let ty = Cil.typeOf e in
@@ -54,11 +56,15 @@ let t_single (e : Cil.exp) : C.reft =
 let t_var (v : Cil.varinfo) : C.reft =
   t_single (Lval ((Var v), NoOffset))
 
+(* environments *)
+
 let env_of_cilenv cenv = 
   SM.fold 
     (fun x (_,r) env -> Sy.SMap.add (Sy.of_string x) r env) 
     cenv
     Sy.SMap.empty
+
+(* constraints *)
 
 let make_ts env p lhsr rhsr loc = 
   [C.make_t (env_of_cilenv env) p lhsr rhsr None]
@@ -67,12 +73,4 @@ let make_wfs env r loc =
   let env = env_of_cilenv env in
   C.kvars_of_reft r 
   |> List.map (fun (_,k) -> C.make_wf env k None)
-
-(*
-let cstr_of_cilcstr sci p (cenv, ibs, r1, r2, _) =
-  failwith "TBDNOW"
-  let env = env_of_cilenv cenv in
-  let gp  = expand_guard  sci.ST.ifs ibs in
-  C.make_t env (A.pAnd [p; gp]) r1 r2 
-  *)
 

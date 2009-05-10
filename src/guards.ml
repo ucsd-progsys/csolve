@@ -75,7 +75,7 @@ let dom_by_else preds ifs i j =
 (** [mk_gdoms ifs doms] = block :-> block * (bool option) 
  *  s.t. i :-> j, Some true	if j is idom i and i is dom by "then" cond 
 	 i :-> j, Some false	if j is idom i and i is dom by "else" cond
-	 i :-> j, None 		o.w. *)
+	 i :-> j, None 		if j is idom i o.w. *)
 let mk_gdoms preds ifs idom = 
   Array.mapi 
     (fun i j -> 
