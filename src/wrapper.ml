@@ -46,15 +46,14 @@ let fresh ty : C.reft =
 
 (* refinements *)
 
-let t_single (e : Cil.exp) : C.reft =
-  let ty = Cil.typeOf e in
-  let so = CI.sort_of_typ ty in
+let t_single t e =
+  let so = CI.sort_of_typ t in
   let vv = Sy.value_variable so in
-  let p  = A.pAtom (A.eVar vv, A.Eq, CI.expr_of_cilexp e) in
-  (vv, so, [(C.Conc p)])
+  let e  = CI.expr_of_cilexp e in
+  C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))]
 
-let t_var (v : Cil.varinfo) : C.reft =
-  t_single (Lval ((Var v), NoOffset))
+let t_var v =
+  t_single v.Cil.vtype (Lval ((Var v), NoOffset))
 
 (* environments *)
 

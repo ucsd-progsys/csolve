@@ -22,6 +22,7 @@
  *)
 
 (* This file is part of the liquidC Project.*)
+
 module E  = Errormsg
 module ST = Ssa_transform
 module A  = Ast
@@ -52,6 +53,7 @@ let rename_locals cil =
 let mk_cfg cil =
   Cil.iterGlobals cil 
   (function Cil.GFun(fd,_) as fundec ->
+    let _ = fundec in
     (* commenting out for now: 
     Psimplify.doGlobal fundec; *)
     Cil.prepareCFG fd; 

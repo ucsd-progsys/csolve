@@ -1,10 +1,38 @@
+(*
+ * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ *
+ * Permission is hereby granted, without written agreement and without 
+ * license or royalty fees, to use, copy, modify, and distribute this 
+ * software and its documentation for any purpose, provided that the 
+ * above copyright notice and the following two paragraphs appear in 
+ * all copies of this software. 
+ * 
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY 
+ * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES 
+ * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN 
+ * IF THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY 
+ * OF SUCH DAMAGE. 
+ * 
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, 
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+ * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ *)
+
+(* This file is part of the liquidC Project.*)
+
+
+
 module F  = Format
 module SM = Misc.StringMap
 module ST = Ssa_transform
 module  A = Ast
 module  C = Constraint
 module  W = Wrapper 
-module CI = Consinfra
+module CI = CilInterface 
+module CF = Consinfra
 module H  = Hashtbl
 
 open Misc.Ops
@@ -18,32 +46,31 @@ let print_cmap ppf cm =
         fn (Misc.pprint_many true "\n" (C.print None)) cs)
     cm
 
-let rec reft_of_exp = function _ -> failwith "TBDNOW"
-
 let envt_of_fun me (genv : W.cilenv) fdec = 
   List.fold_left 
     (fun g v ->
-      let vr = if ST.is_ssa_name v.Cil.vname 
-               then W.fresh v.Cil.vtype 
-               else reft_of_exp (CI.var_exp me v) in
+      let vt = v.Cil.vtype in
+      let vn = v.Cil.vname in
+      let vr = if ST.is_ssa_name vn then W.fresh vt 
+               else W.t_single vt (CF.var_exp me v) in
       W.ce_add v vr g)
     genv fdec.Cil.slocals
 
 let wfs_of_block me env i = 
-  let envi = W.ce_project env (CI.reach_vars me i) in
-  let l    = CI.location me i in
-  CI.ssa_targs me i 
+  let envi = W.ce_project env (CF.reach_vars me i) in
+  let l    = CF.location me i in
+  CF.ssa_targs me i 
   |> Misc.flap (fun v -> W.make_wfs envi (snd (W.ce_find v env)) l)
 
 let cs_of_block me env i = 
-  let gi = W.ce_project env ((CI.def_vars me i) ++ (CI.reach_vars me i)) in
-  let p  = CI.guardp me i in
-  let l  = CI.location me i in
-  CI.ssa_srcs me i 
+  let gi = W.ce_project env ((CF.def_vars me i) ++ (CF.reach_vars me i)) in
+  let p  = CF.guardp me i in
+  let l  = CF.location me i in
+  CF.ssa_srcs me i 
   |> Misc.flap (fun (v,vi) -> W.make_ts gi p (W.t_var vi) (snd (W.ce_find v env)) l)
 
 let cons_of_fun genv sci =
-  let me  = CI.create sci in
+  let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
   let env = envt_of_fun me genv sci.ST.fdec in
   (Misc.mapn (wfs_of_block me env) n |> Misc.flatten, 
