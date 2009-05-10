@@ -158,10 +158,10 @@ and makeBasic (setTemp: taExp -> bExp) (e: exp) : bExp =
 
 and simplifyLval 
     (setTemp: taExp -> bExp) 
-    (lv: lval) : lval = 
-  (* Add, watching for a zero *)
-  let add (e1: exp) (e2: exp) = 
-    if isZero e2 then e1 else BinOp(PlusPI, e1, e2, charPtrType) 
+    (lv: lval) : lval =
+  let add_int (e1: exp) (e2: exp) =
+    (* Add, watching for a zero *)
+    if isZero e2 then e1 else BinOp(PlusA, e1, e2, !upointType)
   in
   (* Convert an offset to an integer, and possibly a residual bitfield offset*)
   let rec offsetToInt 
@@ -184,7 +184,7 @@ and simplifyLval
           zero, Field(fi, off')
         end else begin
           let next, restoff = offsetToInt fi.ftype off' in
-          add (integer (start / 8)) next,  restoff
+          add_int (integer (start / 8)) next,  restoff
         end
     end
     | Index(ei, off') -> begin
@@ -193,11 +193,15 @@ and simplifyLval
         | _ -> E.s (bug "Simplify: simplifyLval: index on a non-array")
         in
         let next, restoff = offsetToInt telem off' in
-        add 
+        add_int
           (BinOp(Mult, ei, SizeOf telem, !upointType)) 
           next,
         restoff
     end
+  in
+  (* Add, watching for a zero *)
+  let add (e1: exp) (e2: exp) =
+    if isZero e2 then e1 else BinOp(PlusPI, e1, e2, charPtrType)
   in
   let tres = TPtr(typeOfLval lv, []) in
   let typeForCast restOff: typ =
