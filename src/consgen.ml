@@ -20,12 +20,12 @@ let print_cmap ppf cm =
 
 let rec reft_of_exp = function _ -> failwith "TBDNOW"
 
-let envt_of_fun (genv : W.cilenv) fdec = 
+let envt_of_fun me (genv : W.cilenv) fdec = 
   List.fold_left 
     (fun g v ->
       let vr = if ST.is_ssa_name v.Cil.vname 
                then W.fresh v.Cil.vtype 
-               else reft_of_exp (var_exp v) in
+               else reft_of_exp (CI.var_exp me v) in
       W.ce_add v vr g)
     genv fdec.Cil.slocals
 
@@ -44,9 +44,10 @@ let cs_of_block me env i =
 
 let cons_of_fun genv sci =
   let me  = CI.create sci in
-  let env = envt_of_fun genv sci.ST.fdec in
-  (Misc.mapn (wfs_of_block me env) me.size |> Misc.flatten, 
-   Misc.mapn (cs_of_block  me env) me.size |> Misc.flatten)
+  let n   = Array.length sci.ST.phis in
+  let env = envt_of_fun me genv sci.ST.fdec in
+  (Misc.mapn (wfs_of_block me env) n |> Misc.flatten, 
+   Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
 
 (* NOTE: templates for formals should be in "global" genv *)
 (* API *)

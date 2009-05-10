@@ -5,19 +5,6 @@ module H  = Hashtbl
 open Misc.Ops
 open Cil
 
-(* MOVE TO misc *)
-let hashtbl_of_list xys = 
-  let t = Hashtbl.create 37 in
-  let _ = List.iter (fun x,y -> Hashtbl.add t x y) xys in
-  t
-
-(* MOVE TO misc *)
-let array_flapi f a =
-  Array.fold_left (fun (i, acc) x -> (i+1, (f i x) :: acc)) (0,[]) a
-  |> snd 
-  |> List.rev
-  |> Misc.flatten
-
 
 (*******************************************************************)
 (************* Constraint Generation Infrastructure ****************)
@@ -28,7 +15,6 @@ type t = {
   size    : int;                            (* number of blocks *)
   vart    : (string, Cil.varinfo) H.t;      (* string|-> var *) 
   expt    : (string, Cil.exp) H.t;          (* string|-> defining assignment *)
-  blockt  : (string, int) H.t;              (* string|-> defining block *)
   defa    : string list array;              (* block |-> vars defined inside block *)
   doma    : (int * bool option) list array; (* block |-> (dom guard * bool) list *)
   phidefa : (string * string) list array;   (* block |-> (x, xi) list, 
@@ -61,14 +47,13 @@ end
 
 let defa_of_bindings size binds = 
   let defa = Array.make size [] in
-  List.iter (fun (i, v, _) -> defa.(i) <- v.Cil.vname :: defa.(i)) binds;
+  List.iter (fun (i, vn, _) -> defa.(i) <- vn :: defa.(i)) binds;
   defa
 
 let var_expt_of_bindings binds = 
   let t = H.create 37 in
   let _ = List.iter 
-            (fun (_, v, e) -> 
-              let vn = v.Cil.vname in
+            (fun (_, vn, e) -> 
               asserts (not (H.mem t vn)) "duplicate binding";
               H.add t vn e) 
             binds in
@@ -82,7 +67,7 @@ let dom_closure gdoma =
   let n    = Array.length gdoma in
   let doma = Array.make n [] in 
   for i = 0 to n - 1 do 
-    Array.set doma i (gdoma.(i) :: doma.(j))
+    Array.set doma i (gdoma.(i) :: doma.(fst(gdoma.(i))))
   done;
   doma
 
@@ -91,7 +76,7 @@ let guard me = function
       None 
   | (i, Some b) -> begin 
       match me.sci.ST.ifs.(i) with 
-      | None _ -> 
+      | None -> 
           assertf "ERROR: expand_guard"
       | Some (e,_,_) -> 
           let p  = CilInterface.pred_of_cilexp e in
@@ -109,7 +94,8 @@ let phidefa_of_phis phia =
   let a       = Array.make (Array.length phia) [] in
   let phidefs = Misc.array_flapi begin fun _ asgns -> 
                   Misc.flap begin fun (v, ivis) -> 
-                    Misc.flap begin fun (i,vi) -> (i,v,vi)
+                    Misc.map begin fun (i,vi) -> 
+                      (i, v.Cil.vname, vi.Cil.vname)
                     end ivis
                   end asgns
                 end phia in
@@ -124,12 +110,12 @@ let phidefa_of_phis phia =
 let create sci =
   let n = Array.length sci.ST.gdoms in
   let bindsr = ref [] in
-  let vis    = new consInfraVisitor size bindsr in
+  let vis    = new consInfraVisitor n bindsr in
   let _      = Cil.visitCilFunction vis sci.ST.fdec in
   { sci     = sci;
     size    = n;
     doma    = dom_closure sci.ST.gdoms;
-    defa    = defa_of_bindings size !bindsr; 
+    defa    = defa_of_bindings n !bindsr; 
     expt    = var_expt_of_bindings !bindsr;
     phidefa = phidefa_of_phis sci.ST.phis;
     vart    = sci.ST.fdec.Cil.slocals 
@@ -144,7 +130,7 @@ let location me i =
 (* API *)
 let ssa_srcs me i = 
   Misc.do_catch "ssa_srcs" (Array.get me.phidefa) i 
-  |> List.map (Misc.map_pr (H.find me.vart))
+  |> List.map (Misc.map_pair (H.find me.vart))
 
 (* API *)
 let ssa_targs me i = 
@@ -157,12 +143,13 @@ let var_exp me v =
 
 (* API *)
 let def_vars me i = 
-  Misc.do_catch "defs" (Array.get me.defa) i 
-
+  Misc.do_catch "def_vars" (Array.get me.defa) i 
+  |> List.map (H.find me.vart)
 (* API *)
 let reach_vars me i = 
-  Misc.do_catch "reach" (Array.get me.doma) i 
-  |> Misc.flap (defs me)
+  Misc.do_catch "reach_vars" (Array.get me.doma) i 
+  |> Misc.map_partial (function (i, None) -> Some i | _ -> None)
+  |> Misc.flap (def_vars me)
 
 (* API *)
 let guardp me i = 

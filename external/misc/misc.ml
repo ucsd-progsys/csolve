@@ -468,6 +468,20 @@ let array_to_index_list a =
   |> snd
   |> List.rev
 
+let hashtbl_of_list xys = 
+  let t = Hashtbl.create 37 in
+  let _ = List.iter (fun (x,y) -> Hashtbl.add t x y) xys in
+  t
+
+let array_flapi f a =
+  Array.fold_left (fun (i, acc) x -> (i+1, (f i x) :: acc)) (0,[]) a
+  |> snd 
+  |> List.rev
+  |> flatten
+
+
+
+
 let compose f g a = f (g a)
 
 let maybe_bool = function
