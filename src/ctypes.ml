@@ -39,12 +39,6 @@ let index_plus (i1: index) (i2: index): index =
     | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (n1 + n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
 
-let index_scale (x: int): index -> index = function
-  | IBot        -> IBot
-  | ITop        -> ITop
-  | IInt n      -> IInt (n * x)
-  | ISeq (n, m) -> ISeq (n * x, m * x)
-
 (* pmr: can we do better on some ops and still have monotonicity? *)
 let index_constop (op: int -> int -> int) (i1: index) (i2: index): index =
   match (i1, i2) with
@@ -52,6 +46,15 @@ let index_constop (op: int -> int -> int) (i1: index) (i2: index): index =
     | (ITop, _) | (_, ITop) -> ITop
     | (IInt n, IInt m)      -> IInt (op n m)
     | _                     -> ITop
+
+let index_minus (i1: index) (i2: index): index =
+  index_constop (-) i1 i2
+
+let index_scale (x: int): index -> index = function
+  | IBot        -> IBot
+  | ITop        -> ITop
+  | IInt n      -> IInt (n * x)
+  | ISeq (n, m) -> ISeq (n * x, m * x)
 
 let index_mult: index -> index -> index =
   index_constop ( * )

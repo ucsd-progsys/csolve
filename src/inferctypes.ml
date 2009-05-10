@@ -18,6 +18,7 @@ type indexexp =
   | IEConst of index
   | IEVar of indexvar
   | IEPlus of indexvar * (* RHS scale: *) int * indexvar
+  | IEMinus of indexvar * (* RHS scale: *) int * indexvar
   | IEMult of indexvar * indexvar
 
 type indexcstr =
@@ -36,10 +37,11 @@ let indexsol_find (iv: indexvar) (is: indexsol): index =
   try IVM.find iv is with Not_found -> IBot
 
 let indexexp_apply (is: indexsol): indexexp -> index = function
-  | IEConst i            -> i
-  | IEVar iv             -> indexsol_find iv is
-  | IEPlus (iv1, x, iv2) -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
-  | IEMult (iv1, iv2)    -> index_mult (indexsol_find iv1 is) (indexsol_find iv2 is)
+  | IEConst i             -> i
+  | IEVar iv              -> indexsol_find iv is
+  | IEPlus (iv1, x, iv2)  -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
+  | IEMinus (iv1, x, iv2) -> index_minus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
+  | IEMult (iv1, iv2)     -> index_mult (indexsol_find iv1 is) (indexsol_find iv2 is)
 
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
   IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
@@ -219,7 +221,7 @@ let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
                 let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
                   (cs, SUnify (s1, s2) :: sus, is, ss)
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
-            | _                  -> E.s <| Cil.errorLoc c.cloc "Uknown error"
+            | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
         in solve_rec cs (sus, is, ss)
 
 let solve (cs: cstr list): cstrsol =
@@ -294,29 +296,25 @@ and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) 
     apply_op op em2 loc sid t ctv1 ctv2
 
 and apply_op: C.binop -> cstremap -> C.location -> int -> C.typ -> ctypevar -> ctypevar -> ctypevar * cstremap * cstr list = function
-  | C.PlusA                                 -> constrain_plus
-  | C.PlusPI | C.IndexPI                    -> constrain_ptrplus
-  | C.Mult                                  -> constrain_mult
+  | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
+  | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
+  | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
+  | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
+  | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
   | bop                                     -> E.s <| E.error "Can't handle binop %a@!@!" C.d_binop bop
 
-and constrain_plus (em: cstremap) (loc: C.location) (sid: int) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (sid: int) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (ctv1, ctv2, fresh_ctvint int_width) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
-          (ctv, em, [mk_iless loc (IEPlus (iv1, 1, iv2)) iv])
-      | _ -> failure "Type mismatch in constraining arithmetic plus"
+          (ctv, em, [mk_iless loc (f iv1 iv2) iv])
+      | _ -> failure "Type mismatch in constraining arithmetic operation"
 
-and constrain_mult (em: cstremap) (loc: C.location)  (sid: int) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
-    match (ctv1, ctv2, fresh_ctvint int_width) with
-      | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
-          (ctv, em, [mk_iless loc (IEMult (iv1, iv2)) iv])
-      | _ -> failure "Type mismatch in constraining mult"
-
-and constrain_ptrplus (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (pt, ctv1, ctv2) with
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           let iv = fresh_indexvar () in
-            (CTRef (s, iv), em, [mk_iless loc (IEPlus (iv1, typ_width t, iv2)) iv])
+            (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv])
       | _ -> failure "Type mismatch in constraining pointer plus"
 
 and constrain_rel (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
