@@ -291,7 +291,7 @@ let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: in
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc sid e1 in
   let (ctv2, em2) = constrain_exp ve em1 loc sid e2 in
-    apply_op op em loc sid t ctv1 ctv2
+    apply_op op em2 loc sid t ctv1 ctv2
 
 and apply_op: C.binop -> cstremap -> C.location -> int -> C.typ -> ctypevar -> ctypevar -> ctypevar * cstremap * cstr list = function
   | C.PlusA                                 -> constrain_plus
