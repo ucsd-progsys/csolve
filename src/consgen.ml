@@ -23,13 +23,9 @@
 
 (* This file is part of the liquidC Project.*)
 
-
-
 module F  = Format
 module SM = Misc.StringMap
 module ST = Ssa_transform
-module  A = Ast
-module  C = Constraint
 module  W = Wrapper 
 module CI = CilInterface 
 module CF = Consinfra
@@ -38,13 +34,8 @@ module H  = Hashtbl
 open Misc.Ops
 open Cil
 
-(* This is stale. Refresh or nuke. *)
-let print_cmap ppf cm = 
-  SM.iter 
-    (fun fn cs -> 
-      F.printf "Constraints for %s \n %a" 
-        fn (Misc.pprint_many true "\n" (C.print None)) cs)
-    cm
+(* Note that Consgen -- does not -- depend on Fixpoint [Ast, Constraint]
+ * All those dependencies are factored into Wrapper *)
 
 let envt_of_fun me (genv : W.cilenv) fdec = 
   List.fold_left 
@@ -73,15 +64,20 @@ let cons_of_fun genv sci =
   let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
   let env = envt_of_fun me genv sci.ST.fdec in
-  (Misc.mapn (wfs_of_block me env) n |> Misc.flatten, 
+  (env,
+   Misc.mapn (wfs_of_block me env) n |> Misc.flatten, 
    Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
 
 (* NOTE: templates for formals should be in "global" genv *)
 (* API *)
-let mk_cons genv scis = 
-  let xys = Misc.map (cons_of_fun genv) scis in 
-  (Misc.flap fst xys, Misc.flap snd xys)
-  
+let create genv scis = 
+  List.fold_left 
+    (fun me sci ->
+      let fn             = sci.ST.fdec.Cil.svar.Cil.vname in 
+      let (env, wfs, cs) = cons_of_fun genv sci in
+      W.add_t me fn sci wfs cs env)
+    W.empty_t scis
+ 
 (* {{{ 
 let phi_cstr cenv doms cfg i (v, bvs) = 
   let rhs = snd (W.ce_find v cenv) in

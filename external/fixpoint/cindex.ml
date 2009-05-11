@@ -165,9 +165,9 @@ let winit me =
 let print ppf me = 
   if !Co.dump_ref_constraints then begin
     Format.fprintf ppf "Refinement Constraints: \n";
-    iter (Format.fprintf ppf "@[%a@.@]" (C.print None)) me;
+    iter (Format.fprintf ppf "@[%a@.@]" (C.print_t None)) me;
     Format.fprintf ppf "\n SCC Ranked Refinement Constraints: \n";
-    sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print None)); 
+    sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print_t None)); 
   end
 
 

@@ -4,7 +4,7 @@ int main(){
   if (x > 0){
     y = x;
   } else {
-    y = -x;
+    y = 0-x;
   }
 
 //  assert(y >= 0);

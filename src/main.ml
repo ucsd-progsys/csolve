@@ -29,10 +29,9 @@ module A  = Ast
 module C  = Constraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
-module W  = Wrapper
 module P  = Pretty
 
-(* module I  = Inferctypes *)
+module I  = Inferctypes 
 
 open Misc.Ops
 
@@ -54,7 +53,7 @@ let mk_cfg cil =
   Cil.iterGlobals cil 
   (function Cil.GFun(fd,_) as fundec ->
     let _ = fundec in
-    (* Psimplify.doGlobal fundec; *) 
+    Psimplify.doGlobal fundec;
     Cil.prepareCFG fd; 
     Cil.computeCFGInfo fd false 
   | _ -> ())
@@ -80,8 +79,6 @@ let mk_scis cil =
       | _ -> acc) [] 
 
 let mk_shapes cil =
-  failwith "TBD -- build broken"
-  (*
   Cil.foldGlobals cil
     (fun acc -> function
        | Cil.GFun (fd, loc) ->
@@ -96,7 +93,6 @@ let mk_shapes cil =
              (fd, em, s) :: acc
        | _ -> acc)
     []
-    *)
 
 let mk_quals (f:string) : A.pred list =        
   let qs =
@@ -106,22 +102,27 @@ let mk_quals (f:string) : A.pred list =
   let qs = List.rev_map (function C.Qul p -> Some p | _ -> None) qs in
   Misc.maybe_list qs
 
-let mk_genv (cil: Cil.file) : W.cilenv =                       
-  (* TBD: initialize with global variables *)
-  W.ce_empty 
+let mk_genv (cil: Cil.file) =                       
+  Printf.printf "WARNING: mk_genv : TBD: initialize with global variables";
+  Wrapper.ce_empty 
 
 let liquidate file =
-  let cil     = mk_cil file in
-  let _       = mk_shapes cil in
-  let qs      = mk_quals file in
-  let g0      = mk_genv cil in
-  let scis    = mk_scis cil in
-  let (ws,cs) = Consgen.mk_cons g0 scis in
-  let s       = Solve.inst ws qs A.Symbol.SMap.empty in
-  let ctx     = Solve.create [] A.Symbol.SMap.empty [] cs in
-  let _       = Solve.save (file^".in.fq") ctx s in
-  let s',cs'  = Solve.solve ctx s in 
-  let _       = Solve.save (file^".out.fq") ctx s' in
+  let cil   = mk_cil file in
+  let _     = mk_shapes cil in
+  let qs    = mk_quals file in
+  let g0    = mk_genv cil in
+  let scis  = mk_scis cil in
+  let me    = Consgen.create g0 scis in
+  let _     = Wrapper.print_t (None) Format.std_formatter me in 
+  let ws    = Wrapper.wfs_of_t me in
+  let cs    = Wrapper.cs_of_t me in
+
+  let s     = Solve.inst ws qs A.Symbol.SMap.empty in
+  let ctx   = Solve.create [] A.Symbol.SMap.empty [] cs in
+  let _     = Solve.save (file^".in.fq") ctx s in
+  let s',cs'= Solve.solve ctx s in 
+  let _     = Solve.save (file^".out.fq") ctx s' in
+  let _     = Wrapper.print_t (Some s) Format.std_formatter me in 
   (cs' = [])
 
 let print_header () = 

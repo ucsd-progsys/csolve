@@ -24,15 +24,15 @@ BINDIR=${exec_prefix}/bin
 MANDIR=${prefix}/share/man
 
 # Other variables set by ./configure
-OCAMLC   = ocamlc
-OCAMLOPT = ocamlopt
+OCAMLC   = ocamlc.opt
+OCAMLOPT = ocamlopt.opt
 OCAMLDEP = ocamldep
-OCAMLDOC = ocamldoc
-OCAMLLEX = ocamllex
+OCAMLDOC = ocamldoc.opt
+OCAMLLEX = ocamllex.opt
 OCAMLYACC= ocamlyacc
-OCAMLLIB = /usr/lib/ocaml/3.10.2
+OCAMLLIB = /home/rjhala/local/lib/ocaml
 OCAMLBEST= opt
-OCAMLVERSION = 3.10.2
+OCAMLVERSION = 3.11.0
 OCAMLWEB = true
 OCAMLWIN32 = no
 OCAMLFIND = 

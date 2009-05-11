@@ -210,6 +210,7 @@ let inst_ext qs s wf =
 (* API *)
 let inst wfs qs s =
   List.fold_left (inst_ext qs) s wfs
+  |>  failwith "TBD: Solve.inst : typechecking WF"
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
@@ -235,7 +236,7 @@ let solve me (s : C.soln) =
   let _ = dump me s in
   let u = BS.time "testing solution" (unsat_constraints me) s in
   let _ = if u != [] then F.printf "Unsatisfied Constraints:\n %a"
-                          (Misc.pprint_many true "\n" (C.print None)) u in
+                          (Misc.pprint_many true "\n" (C.print_t None)) u in
   (s, u)
 
 (* API *)
@@ -249,7 +250,7 @@ let save fname me s =
   let oc  = open_out fname in
   let ppf = F.formatter_of_out_channel oc in
   Ci.iter  
-    (F.fprintf ppf "constraint: @[%a@] \n" (C.print None))
+    (F.fprintf ppf "constraint: @[%a@] \n" (C.print_t None))
     me.sri;
   SM.iter 
     (fun k ps -> 

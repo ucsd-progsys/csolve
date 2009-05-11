@@ -170,7 +170,14 @@ let pprint_io ppf = function
   | None    -> F.fprintf ppf "()"
 
 (* API *)
-let print so ppf (env,g,r1,r2,io) =
+let print_wf so ppf (env, k, io) = 
+  F.fprintf ppf 
+  " env @[[%a]@] @\n kvar %a @\n"
+  (print_env so) env
+  Sy.print k
+
+(* API *)
+let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
   " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
@@ -180,7 +187,7 @@ let print so ppf (env,g,r1,r2,io) =
     print_refinement r2
 
 (* API *) 
-let to_string c = Misc.fsprintf (print None) c
+let to_string c = Misc.fsprintf (print_t None) c
 
 (* API *)
 let print_soln ppf sm =
@@ -188,7 +195,8 @@ let print_soln ppf sm =
   SM.iter 
     (fun x ps -> 
        F.fprintf ppf "%a := %a \n" 
-       Ast.Symbol.print x (Misc.pprint_many false "," P.print) ps)
+       Sy.print x 
+       (Misc.pprint_many false "," P.print) ps)
     sm
 
 
