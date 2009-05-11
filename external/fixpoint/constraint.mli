@@ -22,7 +22,6 @@
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
-
 type tag  = int
 type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
@@ -39,7 +38,7 @@ type deft = Srt of Ast.Sort.t
           | Cst of t 
           | Wfc of wf 
           | Sol of Ast.Symbol.t * Ast.pred list
-          | Qul of Ast.pred
+          | Qul of Ast.Qualifier.t
 
 val kvars_of_reft    : reft -> (subs * Ast.Symbol.t) list
 val kvars_of_t       : t -> (subs * Ast.Symbol.t) list
@@ -72,10 +71,9 @@ val lhs_of_t         : t -> reft
 val rhs_of_t         : t -> reft
 val id_of_t          : t -> tag
 
-val make_wf          : envt -> Ast.Symbol.t -> tag option -> wf
+val make_wf          : envt -> reft -> tag option -> wf
 val env_of_wf        : wf -> envt
-val var_of_wf        : wf -> Ast.Symbol.t 
-
+val reft_of_wf       : wf -> reft
 
 val validate         : t list -> t list
 

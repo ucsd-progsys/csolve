@@ -37,33 +37,7 @@ open Misc.Ops
 (********************* Command line options **********************)
 (*****************************************************************)
 
-let usage = "Usage: liquid <options> [source-files]\noptions are:"
-
-(* taken from dsolve/liquid/liquid.ml *)
-
-let arg_spec = 
-  [("-save", 
-    Arg.String (fun s -> Co.save_file := s), 
-    "Save constraints to file [out]"); 
-   ("-drconstr", 
-    Arg.Set Co.dump_ref_constraints, 
-    "Dump refinement constraints [false]");
-   ("-psimple", 
-    Arg.Set Co.psimple, 
-    "prioritize simple constraints [true]");
-   ("-dgraph", 
-    Arg.Set Co.dump_graph, 
-    "dump constraints SCC to constraints.dot [false]");
-   ("-v", Arg.Int (fun c -> Co.verbose_level := c), 
-              "<level> Set degree of analyzer verbosity:\n\
-               \032    0      No output\n\
-               \032    1      +Verbose errors\n\
-               \032    [2]    +Verbose stats, timing\n\
-               \032    3      +Print normalized source\n\
-               \032    11     +Verbose solver\n\
-               \032    13     +Dump constraint graph\n\
-               \032    64     +Drowning in output") 
-  ]
+let usage = "Usage: fixpoint <options> [source-files]\noptions are:"
 
 let sift xs = 
   List.fold_left 
@@ -95,7 +69,7 @@ let main () =
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
-  let _  = Arg.parse arg_spec (fun s -> fs := s::!fs) usage in
+  let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
   !fs |> Misc.flap parse |> sift |> solve 
 
 let _ = main ()

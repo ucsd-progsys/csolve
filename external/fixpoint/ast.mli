@@ -61,8 +61,6 @@ module Constant :
     val print : Format.formatter -> t -> unit
   end
 
-
-
 type tag  (* externally opaque *)
 
 type brel = Eq | Ne | Gt | Ge | Lt | Le 
@@ -124,6 +122,9 @@ val fixdiv      : pred -> pred
 val zero        : expr
 val one         : expr
 
+val sortcheck_expr : (Symbol.t -> Sort.t) -> expr -> Sort.t option
+val sortcheck_pred : (Symbol.t -> Sort.t) -> pred -> bool
+
 module Expression : 
 sig
   module Hash : Hashtbl.S with type key = expr 
@@ -157,3 +158,12 @@ sig
   val is_tauto  : pred -> bool
   (* val size      : pred -> int *)
 end
+
+module Qualifier : 
+  sig
+    type t 
+    val create: Symbol.t option -> Sort.t -> pred -> t 
+    val sort_of_t: t -> Sort.t
+    val pred_of_t: t -> pred
+    val print     : Format.formatter -> t -> unit
+  end

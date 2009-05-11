@@ -152,6 +152,11 @@ let mapfold f xs b =
 let flap f xs = List.flatten (List.map f xs)
 *)
 
+let filter f xs = 
+  List.fold_left (fun xs' x -> if f x then x::xs' else xs') [] xs
+  |> List.rev
+
+
 let map f xs = 
   List.rev_map f xs |> List.rev
 
@@ -178,9 +183,17 @@ let rec rev_perms s = function
   | e :: es -> rev_perms 
     (tr_rev_flap (fun e -> List.rev_map (fun s -> e :: s) s) e) es 
 
-let rev_perms = function
+let product = function
   | e :: es -> rev_perms (fast_unflat [] e) es
   | es -> es 
+
+let cross_product xs ys = 
+  map begin fun x ->
+    map begin fun y ->
+      (x,y)
+    end ys
+  end xs
+  |> flatten
 
 let hashtbl_keys t = 
   Hashtbl.fold (fun x y l -> x::l) t []

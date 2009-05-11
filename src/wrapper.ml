@@ -83,8 +83,8 @@ let make_ts env p lhsr rhsr loc =
 
 let make_wfs env r loc =
   let env = env_of_cilenv env in
-  C.kvars_of_reft r 
-  |> List.map (fun (_,k) -> C.make_wf env k None)
+  [C.make_wf env r None]
+
 
 (****************************************************************)
 (********************** Constraint Indexing *********************)
@@ -126,9 +126,9 @@ let print_t so ppf me =
   | None -> (* print constraints *) 
       iter_t me 
         (fun fn (_, wfs, cs, _) ->
-           F.printf "Ref-Constraints for %s \n %a" 
+           F.fprintf ppf "Ref-Constraints for %s \n %a" 
            fn (Misc.pprint_many true "\n" (C.print_t None)) cs;
-           F.printf "WF-Constraints for %s \n %a"
+           F.fprintf ppf "WF-Constraints for %s \n %a"
            fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs)
   | Some s -> (* print solution *)
       iter_t me

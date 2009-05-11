@@ -25,8 +25,8 @@ let parse_error msg =
 %token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
-%token SRT AXM CST SOL QUL
-%token ENV GRD LHS RHS
+%token SRT AXM CST WF SOL QUL
+%token ENV GRD LHS RHS REF
 
 %start defs 
 
@@ -58,8 +58,11 @@ def:
     SRT COLON sort                      { C.Srt $3 }
   | AXM COLON pred                      { C.Axm $3 }
   | CST COLON cstr                      { C.Cst $3 }
+  | WF  COLON wf                        { C.Wfc $3 }
   | SOL COLON Id ASGN preds             { C.Sol ((Sy.of_string $3), $5) }
-  | QUL COLON pred                      { C.Qul $3 }
+  | QUL Id LPAREN Id COLON sort RPAREN COLON pred  
+                                        { let v = Sy.of_string $4 in
+                                          C.Qul (A.Qualifier.create (Some v) $6 $9) }
   ;
 
 sorts:
@@ -153,12 +156,13 @@ bop:
   | TIMES                               { A.Times }
   | DIV                                 { A.Div }
   ;
+  
+wf:
+  ENV env REF reft                     { C.make_wf $2 $4 None }
+  ;
 
 cstr:
-    ENV env  
-    GRD pred 
-    LHS reft 
-    RHS reft                            { C.make_t $2 $4 $6 $8 None }
+  ENV env GRD pred LHS reft RHS reft    { C.make_t $2 $4 $6 $8 None }
   ;
 
 env:

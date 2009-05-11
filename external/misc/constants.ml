@@ -77,3 +77,36 @@ let elevate_olev l = if ck_olev l then () else verb_stack := !verbose_level :: !
 
 let restore_olev = match !verb_stack with x :: xs -> verbose_level := x; verb_stack := xs | _ -> ()
 
+
+
+
+(*****************************************************************)
+(*********** Command Line Options ********************************)
+(*****************************************************************)
+
+(* taken from dsolve/liquid/liquid.ml *)
+
+let arg_spec = 
+  [("-save", 
+    Arg.String (fun s -> save_file := s), 
+    "Save constraints to file [out]"); 
+   ("-drconstr", 
+    Arg.Set dump_ref_constraints, 
+    "Dump refinement constraints [false]");
+   ("-psimple", 
+    Arg.Set psimple, 
+    "prioritize simple constraints [true]");
+   ("-dgraph", 
+    Arg.Set dump_graph, 
+    "dump constraints SCC to constraints.dot [false]");
+   ("-v", Arg.Int (fun c -> verbose_level := c), 
+              "<level> Set degree of analyzer verbosity:\n\
+               \032    0      No output\n\
+               \032    1      +Verbose errors\n\
+               \032    [2]    +Verbose stats, timing\n\
+               \032    3      +Print normalized source\n\
+               \032    11     +Verbose solver\n\
+               \032    13     +Dump constraint graph\n\
+               \032    64     +Drowning in output") 
+  ]
+

@@ -544,6 +544,80 @@ let rec fixdiv = function
       pNot (fixdiv p) 
   | p -> p
 
+
+let rec sortcheck_expr f e = 
+  match euw e with
+  | Con c -> 
+      Some Sort.Int 
+  | Var s -> 
+      (try Some (f s) with _ -> None)
+  | Bin (e1, op, e2) -> 
+      begin 
+        match Misc.map_pair (sortcheck_expr f) (e1,e2) with
+        | (Some Sort.Int, Some Sort.Int) -> Some Sort.Int
+        | _                              -> None 
+      end
+  | Ite(p,e1,e2) -> 
+      if sortcheck_pred f p then 
+        match Misc.map_pair (sortcheck_expr f) (e1, e2) with
+        | (Some t1, Some t2) when t1 = t2 -> Some t1 
+        | _ -> None
+      else None
+  | _ -> 
+      failwith "TBD: sortcheck_expr App"
+     
+and sortcheck_pred f p = 
+  match puw p with
+    | True  
+    | False -> 
+        true 
+    | Bexp e ->
+        sortcheck_expr f e = Some Sort.Bool 
+    | Not p -> 
+        sortcheck_pred f p
+    | Imp (p1, p2) -> 
+        List.for_all (sortcheck_pred f) [p1; p2]
+    | And ps  
+    | Or ps ->
+        List.for_all (sortcheck_pred f) ps
+    | Atom (e1, r, e2) ->
+      begin 
+        match Misc.map_pair (sortcheck_expr f) (e1, e2) with
+        | (Some t1, Some t2) -> t1 = t2
+        | _                  -> false 
+      end
+    | Forall (qs,p) ->
+        let f' = fun x -> try List.assoc x qs with _ -> f x in
+        sortcheck_pred f' p
+
+(********************************************************************************)
+(*********************************** Qualifiers *********************************)
+(********************************************************************************)
+
+module Qualifier = struct
+  
+  type t = Sort.t * pred
+  
+  let sort_of_t = fst 
+  
+  let pred_of_t = snd 
+  
+  let create vo t p =
+    match vo with 
+    | None -> 
+        (t, p)
+    | Some v ->
+      (t, Predicate.subst p v (eVar (Symbol.value_variable t)))
+
+  let print ppf (t, p) = 
+    Format.fprintf ppf "qualif qq(%a:%a):%a \n" 
+      Symbol.print (Symbol.value_variable t)
+      Sort.print t
+      Predicate.print p
+end
+
+
+
 (* {{{
 let rec expr_subst hp he e x e' =
   let rec esub e =

@@ -33,7 +33,7 @@ val create      :  Ast.Sort.t list
                 -> t
 
 val inst        :  Constraint.wf list
-                -> Ast.pred list
+                -> Ast.Qualifier.t list
                 -> Constraint.soln
                 -> Constraint.soln
 

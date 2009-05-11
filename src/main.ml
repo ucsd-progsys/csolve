@@ -94,13 +94,16 @@ let mk_shapes cil =
        | _ -> acc)
     []
 
-let mk_quals (f:string) : A.pred list =        
+let mk_quals (f:string) : Ast.Qualifier.t list =        
+  let _ = Printf.printf "Reading Qualifiers from: %s \n" f in
   let qs =
     open_in f
     |> Lexing.from_channel
     |> FixParse.defs FixLex.token in
-  let qs = List.rev_map (function C.Qul p -> Some p | _ -> None) qs in
-  Misc.maybe_list qs
+  let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
+  let _ = Format.printf "Read Qualifiers: %a \n" 
+          (Misc.pprint_many false ";" Ast.Qualifier.print) qs in
+  qs
 
 let mk_genv (cil: Cil.file) =                       
   Printf.printf "WARNING: mk_genv : TBD: initialize with global variables";
@@ -109,14 +112,15 @@ let mk_genv (cil: Cil.file) =
 let liquidate file =
   let cil   = mk_cil file in
   let _     = mk_shapes cil in
-  let qs    = mk_quals file in
+  let _     = Printf.printf "HEREHEREHEREHEREHEREHERHERHERHERHERHERHERHERHER" in
+  let qs    = mk_quals (file^".hquals") in
+  let _     = Printf.printf "HEREHEREHEREHEREHEREHERHERHERHERHERHERHERHERHER" in
   let g0    = mk_genv cil in
   let scis  = mk_scis cil in
   let me    = Consgen.create g0 scis in
   let _     = Wrapper.print_t (None) Format.std_formatter me in 
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
-
   let s     = Solve.inst ws qs A.Symbol.SMap.empty in
   let ctx   = Solve.create [] A.Symbol.SMap.empty [] cs in
   let _     = Solve.save (file^".in.fq") ctx s in
@@ -131,17 +135,14 @@ let print_header () =
   Printf.printf "© Copyright 2009 Regents of the University of California.";
   Printf.printf "All Rights Reserved.\n"
 
-let mk_options () = 
-  let n = ref 1 in
-  let _ = 
-    while !n < Array.length Sys.argv && 
-          String.length Sys.argv.(!n) > 0 && 
-          Sys.argv.(!n).[0] = '-' do
-      n := !n + 1
-    done in
-  if (Array.length Sys.argv - !n >= 1) then 
-    Sys.argv.(!n) 
-  else E.s (E.bug "No input file specified!")
+let mk_options () =
+  let fs = ref [] in
+  let us = "Usage: liquidc <options> [source-file] \n options are:" in
+  let _  = Arg.parse Constants.arg_spec (fun s -> fs := s::!fs) us in
+  match !fs with
+  | [fn] -> fn
+  | []   -> assertf "Bug: No input file specified!"
+  | _    -> assertf "Bug: More than one input file specified!"
 
 let main () = 
   let _ = print_header () in

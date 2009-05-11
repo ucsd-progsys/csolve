@@ -29,6 +29,7 @@ module Co = Constants
 module P  = A.Predicate
 module E  = A.Expression
 module S  = A.Sort
+module Q  = A.Qualifier
 module PH = A.Predicate.Hash
 module Sy = A.Symbol
 module SM = Sy.SMap
@@ -153,57 +154,39 @@ let dump me s =
 (******************** Qualifier Instantiation ******************)
 (***************************************************************)
 
-(*
-let inst_qual (e: string list) (q: A.pred) : A.pred list =
-  let ms  = ref [] in
-  let gms x = match E.unwrap x with
-    | A.Var x -> if Sy.is_wild x then ms := x :: !ms
-    | _ -> () in
-  let ms  = P.iter (fun _ -> ()) gms q; !ms in
-  let ms  = Misc.sort_and_compact ms in
-  let mms = List.rev_map (fun _ -> e) ms in
-  let pms = Misc.rev_perms mms in
-  let pms = List.rev_map (List.combine ms) pms in
-  let sub ys x =
-    match Ast.Expression.unwrap x with
-      | Ast.Var y ->
-         (try Ast.eVar (Ast.Symbol.of_string (List.assoc y ys)) with Not_found -> x)
-      | _ -> x in
-  List.rev_map (fun ys -> Ast.Predicate.map (fun x -> x) (sub ys) q) pms
+let wellformed env q = 
+  let t    = Q.sort_of_t q in
+  let v    = Sy.value_variable t in
+  let env' = SM.add v (v,t,[]) env in
+  A.sortcheck_pred (fun x -> snd3 (SM.find x env')) (Q.pred_of_t q) 
 
-let inst_quals (g: W.cilenv) (qs: Ast.pred list) = 
-  Misc.tr_flap (inst_qual (W.names_of_cilenv g)) qs
-
-let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
-  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
-  let qs' = inst_quals g qs in
-  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
-
-let inst (qs: Ast.pred list) (g : W.cilenv) (cs: C.t list) (s: C.soln) : C.soln =
-  let ks  = Misc.tr_flap C.get_kvars cs |> List.map snd in
-  let qs' = inst_quals g qs in
-  List.fold_left (fun s k -> Ast.Symbol.SMap.add k qs' s) s ks 
-*)
-
-let inst_qual ys q : A.pred list =
-  let xs   = P.support q                         (* vars of q *) 
+let inst_qual ys (q : Q.t) : Q.t list =
+  let p    = Q.pred_of_t q in
+  let t    = Q.sort_of_t q in
+  let xs   = p 
+             |> P.support                        (* vars of q *) 
              |> List.filter Sy.is_wild           (* placevs of q *)
              |> Misc.sort_and_compact in         (* duplicate free placevs *)
   let xyss = List.length xs                      (* for each placev *) 
              |> Misc.clone ys                    (* clone the freev list *)
-             |> Misc.rev_perms                   (* generate freev combinations *) 
+             |> Misc.product                     (* generate freev combinations *) 
              |> Misc.map (List.combine xs) in(* generate placev-freev lists *)
-  List.rev_map 
-    (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) q)
-    xyss
+  let ps'  = List.rev_map 
+               (List.fold_left (fun p' (x,y) -> P.subst p x (A.eVar y)) p)
+               xyss in
+  List.map (Q.create None t) ps'
 
-let inst_ext qs s wf = 
-  let k   = C.var_of_wf wf in
-  let ys  = SM.fold (fun y _ ys -> y::ys) (C.env_of_wf wf) [] in
-  let kqs = C.sol_query s k in
-  (kqs ++ qs) 
+
+let inst_ext (qs : Q.t list) s wf = 
+  let env = C.env_of_wf wf in
+  let r   = C.reft_of_wf wf in
+  let ks  = C.kvars_of_reft r |> List.map snd in
+  let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
+  qs 
   |> Misc.flap (inst_qual ys) 
-  |> List.map (fun q -> (k,q)) 
+  |> Misc.filter (wellformed env) 
+  |> Misc.map Q.pred_of_t 
+  |> Misc.cross_product ks 
   |> C.group_sol_update s 
   |> snd
 

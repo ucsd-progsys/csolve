@@ -38,14 +38,14 @@ type reft = Sy.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
 type envt = reft SM.t
 type soln = A.pred list SM.t
 type t    = envt * A.pred * reft * reft * (tag option)
-type wf   = envt * Sy.t * (tag option)
+type wf   = envt * reft * (tag option)
 
 type deft = Srt of Ast.Sort.t 
           | Axm of Ast.pred 
           | Cst of t
           | Wfc of wf
           | Sol of Ast.Symbol.t * Ast.pred list
-          | Qul of Ast.pred
+          | Qul of Ast.Qualifier.t
 
 (*************************************************************)
 (************************** Misc.  ***************************)
@@ -170,16 +170,15 @@ let pprint_io ppf = function
   | None    -> F.fprintf ppf "()"
 
 (* API *)
-let print_wf so ppf (env, k, io) = 
-  F.fprintf ppf 
-  " env @[[%a]@] @\n kvar %a @\n"
-  (print_env so) env
-  Sy.print k
+let print_wf so ppf (env, r, io) = 
+  F.fprintf ppf "wf: env @[[%a]@] @\n reft %a @\n"
+    (print_env so) env
+    (print_refinement) r
 
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-  " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+  " constraint: env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
     (print_env so) env 
     P.print g
@@ -219,11 +218,10 @@ let rhs_of_t    = fun (_,_,_,rhs,_) -> rhs
 let id_of_t     = function (_,_,_,_,Some i) -> i | _ -> assertf "C.id_of_t"
 
 (* API *)
-let make_wf     = fun env k io -> (env, k, io)
+let make_wf     = fun env r io -> (env, r, io)
 let env_of_wf   = fst3
-let var_of_wf   = snd3
+let reft_of_wf  = snd3
 let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
-
 (***************************************************************)
 (********************** Input Validation ***********************)
 (***************************************************************)

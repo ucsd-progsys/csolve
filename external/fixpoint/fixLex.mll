@@ -86,12 +86,14 @@ rule token = parse
   | "sort"              { SRT }
   | "axiom"             { AXM }
   | "constraint"        { CST }
+  | "wf"                { WF }
   | "solution"          { SOL }
   | "qualif"            { QUL }
   | "env"               { ENV }
   | "grd"               { GRD }
   | "lhs"               { LHS }
   | "rhs"               { RHS }
+  | "ref"               { REF }
   | (digit)+	        { let str = Lexing.lexeme lexbuf in
 			  let len = String.length str in
 			  let zero = Char.code '0' in
