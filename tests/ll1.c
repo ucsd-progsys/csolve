@@ -1,3 +1,5 @@
+extern char* malloc(int);
+
 typedef struct node {
   int x;
   int y;

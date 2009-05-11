@@ -1,6 +1,6 @@
 module ExpKey:
   sig
-    type t = int * Cil.exp
+    type t = Cil.exp
     val compare: t -> t -> int
   end
 
