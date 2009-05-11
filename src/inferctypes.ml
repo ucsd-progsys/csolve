@@ -340,13 +340,25 @@ and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int) (e: C
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em loc sid e in
     (ctv, (ExpMap.add (sid, e) ctv ctvm, cs @ cs'))
 
+let constrain_malloc (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval option) (elen: C.exp): cstremap =
+  let (_, em) = constrain_exp ve em loc 0 elen in
+    match lvo with
+      | None    -> em
+      | Some lv ->
+          let (ctv1, (ctvm, cs)) = constrain_lval ve em loc 0 lv in
+            match fresh_ctvref () with
+              | CTRef (s, iv) as ctv -> (ctvm, mk_iless loc (IEConst (IInt 0)) iv :: mk_subty loc ctv ctv1 :: cs)
+              | _                    -> E.s <| E.bug "Got non-ref type from fresh_ctvref"
+
 let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
   | C.Set (lv, e, loc) ->
       (* pmr: going out on a limb, I'd say 0 is not the right value *)
       let (ctv1, em1)        = constrain_lval ve em loc 0 lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc 0 e in
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
-  | _ -> failure "Can't handle fancy instructions yet"
+  | C.Call (lvo, C.Lval (C.Var {C.vname = "malloc"}, C.NoOffset), [elen], loc) ->
+      constrain_malloc ve em loc lvo elen
+  | i -> E.s <| E.bug "Unhandled instruction: %a@!@!" C.dn_instr i
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
   List.fold_left (constrain_stmt ve) em b.C.bstmts
