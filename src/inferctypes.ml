@@ -284,11 +284,12 @@ let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | c -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
-  | C.Const c                -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
-  | C.Lval lv                -> let (ctv, em) = constrain_lval ve em loc sid lv in (ctv, em, [])
-  | C.BinOp (bop, e1, e2, t) -> constrain_binop bop ve em loc sid t e1 e2
-  | C.CastE (_, e)           -> constrain_exp_aux ve em loc sid e
-  | e                        -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+  | C.Const c                     -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
+  | C.Lval lv                     -> let (ctv, em) = constrain_lval ve em loc sid lv in (ctv, em, [])
+  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc sid t e1 e2
+  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
+  | C.CastE (_, e)                -> constrain_exp_aux ve em loc sid e
+  | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc sid e1 in
@@ -321,6 +322,10 @@ and constrain_rel (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1:
   let iv  = fresh_indexvar () in
   let ctv = CTInt (int_width, iv) in
     (ctv, em, [mk_iless loc (IEConst (ISeq (0, 1))) iv])
+
+and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
+  | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero constant %a to pointer@!@!" C.d_const c
 
 and constrain_lval (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int): C.lval -> ctypevar * cstremap = function
   | (C.Var v, C.NoOffset)       -> (IM.find v.C.vid ve, em)
