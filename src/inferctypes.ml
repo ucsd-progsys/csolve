@@ -238,12 +238,12 @@ let rec typ_width (t: C.typ): int =
     | C.TInt (ik, _)                    -> C.bytesSizeOfInt ik
     | C.TPtr _                          -> 1
     | C.TComp (ci, _) when ci.C.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.C.ftype) 0 ci.C.cfields
-    | _                                 -> failure "Don't know type width"
+    | t                                 -> E.s <| E.bug "Unimplemented typ_width: %a@!@!" C.d_type t
 
 let fresh_ctypevar: C.typ -> ctypevar = function
   | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
   | C.TPtr (_, _)  -> fresh_ctvref ()
-  | _              -> failure "Tried to fresh crazy type"
+  | t              -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
 
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
@@ -281,14 +281,14 @@ let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, so) ->
       let iv = fresh_indexvar () in
         (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
-  | _ -> failure "Don't handle non-int constants yet"
+  | c -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int): C.exp -> ctypevar * cstremap * cstr list = function
   | C.Const c                -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
   | C.Lval lv                -> let (ctv, em) = constrain_lval ve em loc sid lv in (ctv, em, [])
   | C.BinOp (bop, e1, e2, t) -> constrain_binop bop ve em loc sid t e1 e2
   | C.CastE (_, e)           -> constrain_exp_aux ve em loc sid e
-  | e                        -> E.s <| E.error "Got crazy exp: %a@!@!" C.d_exp e
+  | e                        -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc sid e1 in
@@ -302,20 +302,20 @@ and apply_op: C.binop -> cstremap -> C.location -> int -> C.typ -> ctypevar -> c
   | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
-  | bop                                     -> E.s <| E.error "Can't handle binop %a@!@!" C.d_binop bop
+  | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
 and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (sid: int) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (ctv1, ctv2, fresh_ctvint int_width) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
           (ctv, em, [mk_iless loc (f iv1 iv2) iv])
-      | _ -> failure "Type mismatch in constraining arithmetic operation"
+      | _ -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
 
 and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (pt, ctv1, ctv2) with
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           let iv = fresh_indexvar () in
             (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv])
-      | _ -> failure "Type mismatch in constraining pointer plus"
+      | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and constrain_rel (em: cstremap) (loc: C.location) (sid: int) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
   let iv  = fresh_indexvar () in
@@ -332,9 +332,9 @@ and constrain_lval (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int): C.l
               let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
               let cs    = mk_storeinc loc s iv ctvlv :: mk_subty loc ctv ctv2 :: cs in
                 (ctvlv, (ctvm, cs))
-          | _ -> failure "fresh_ctvref gave back non-ref type"
+          | _ -> E.s <| E.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
-  | lv -> E.s <| E.error "Got crazy lval: %a@!@!" C.d_lval lv
+  | lv -> E.s <| E.error "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
 and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (sid: int) (e: C.exp): ctypevar * cstremap =
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em loc sid e in
@@ -358,7 +358,7 @@ let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
   | C.Call (lvo, C.Lval (C.Var {C.vname = "malloc"}, C.NoOffset), [elen], loc) ->
       constrain_malloc ve em loc lvo elen
-  | i -> E.s <| E.bug "Unhandled instruction: %a@!@!" C.dn_instr i
+  | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
   List.fold_left (constrain_stmt ve) em b.C.bstmts
@@ -374,7 +374,7 @@ and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
     | C.Goto _               -> em
     | C.Return (Some e, loc) -> snd (constrain_exp ve em loc 0 e)
     | C.Return (None, _)     -> em
-    | _                      -> failure "Don't know what to do with crazy statements!"
+    | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em Cil.builtinLoc 0 e in
