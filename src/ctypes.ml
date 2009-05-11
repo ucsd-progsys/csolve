@@ -9,17 +9,23 @@ open M.Ops
 
 type index =
   | IBot               (* empty sequence *)
-  | IInt of int        (* singleton *)
-  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
+  | IInt of int        (* singleton n >= 0 *)
+  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
+  | ITop               (* sequence of all values (including negatives) *)
 
 let d_index (): index -> P.doc = function
   | IBot        -> P.text "⊥"
   | IInt n      -> P.num n
   | ISeq (n, m) -> P.dprintf "%d[%d]" n m
+  | ITop        -> P.text "⊤"
+
+let index_of_int (i: int): index =
+  if i >= 0 then IInt i else ITop
 
 let index_lub (i1: index) (i2: index): index =
   match (i1, i2) with
     | (IBot, i) | (i, IBot)                         -> i
+    | (ITop, _) | (_, ITop)                         -> ITop
     | (IInt m, IInt n)                              -> if m = n then IInt m else ISeq (min n m, abs (n - m))
     | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (min n m, M.gcd k (abs (n - m)))
     | (ISeq (n, l), ISeq (m, k))                    -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))))
@@ -27,19 +33,45 @@ let index_lub (i1: index) (i2: index): index =
 let index_plus (i1: index) (i2: index): index =
   match (i1, i2) with
     | (IBot, _) | (_, IBot)                         -> IBot
+    | (ITop, _) | (_, ITop)                         -> ITop
     | (IInt n, IInt m)                              -> IInt (n + m)
     | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (n + m, k)
     | (ISeq (n1, k1), ISeq (n2, k2)) when k1 = k2   -> ISeq (n1 + n2, k1)
     | (ISeq (n1, _), ISeq (n2, _))                  -> ISeq (n1 + n2, 1)
 
+(* pmr: can we do better on some ops and still have monotonicity? *)
+let index_constop (op: int -> int -> int) (i1: index) (i2: index): index =
+  match (i1, i2) with
+    | (IBot, _) | (_, IBot) -> IBot
+    | (ITop, _) | (_, ITop) -> ITop
+    | (IInt n, IInt m)      -> IInt (op n m)
+    | _                     -> ITop
+
+let index_minus (i1: index) (i2: index): index =
+  index_constop (-) i1 i2
+
 let index_scale (x: int): index -> index = function
   | IBot        -> IBot
+  | ITop        -> ITop
   | IInt n      -> IInt (n * x)
   | ISeq (n, m) -> ISeq (n * x, m * x)
+
+(* pmr: prove this has the appropriate monotonicity property *)
+let index_mult (i1: index) (i2: index): index =
+  match (i1, i2) with
+    | (IBot, _) | (_, IBot)                         -> IBot
+    | (ITop, _) | (_, ITop)                         -> ITop
+    | (IInt n, IInt m)                              -> IInt (n * m)
+    | (IInt n, ISeq (m, k)) | (ISeq (m, k), IInt n) -> ISeq (n * m, n * k)
+    | _                                             -> ITop
+
+let index_div: index -> index -> index =
+  index_constop (/)
 
 let is_subindex (i1: index) (i2: index): bool =
   match (i1, i2) with
     | (IBot, _)                  -> true
+    | (_, ITop)                  -> true
     | (IInt n, IInt m)           -> n = m
     | (IInt n, ISeq (m, k))      -> m <= n && (n - m) mod k = 0
     | (ISeq (n, l), ISeq (m, k)) -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
@@ -194,7 +226,8 @@ module LDesc = struct
       if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
         ((Some p, pcts), b)
       else
-        assert false
+        (* pmr: this is not quite descriptive enough *)
+        raise TypeDoesntFit
 
   let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
     let p = get_period_default po in

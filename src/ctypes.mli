@@ -1,7 +1,8 @@
 type index =
   | IBot               (* empty sequence *)
-  | IInt of int        (* singleton *)
-  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k >= 0 *)
+  | IInt of int        (* singleton n >= 0 *)
+  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
+  | ITop               (* sequence of all values (including negatives) *)
 
 type sloc = int (* store locations *)
 
@@ -54,6 +55,7 @@ module LDesc:
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
+    val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
 type 'a prestore = ('a LDesc.t) SLM.t
@@ -73,9 +75,12 @@ val d_store: unit -> store -> Pretty.doc
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
+val index_of_int: int -> index
 val index_lub: index -> index -> index
 val index_plus: index -> index -> index
+val index_minus: index -> index -> index
 val index_scale: int -> index -> index
+val index_mult: index -> index -> index
 val is_subindex: index -> index -> bool
 
 (******************************************************************************)
