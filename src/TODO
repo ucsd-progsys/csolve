@@ -1,59 +1,14 @@
 Goals to get to v.0
 
 **************************************************************
-- consgen (branch info)
-	+ convert cilExpr to predicate
-
-- WF constraints
-
-**************************************************************
 - return values
 - formals
 - globals
 - pointers
 **************************************************************
-
-SSA based consgen
-
-Require:
-
-(* for each program *)
-  reach		: block -> var list
-  defs  	: block -> var list
-  guards	: block -> (block * bool) list
-  ssa_srcs	: block -> (var * var) list
-  ssa_targs	: block -> var list
-
-(* for language *)
-  tplt		: op -> expr list -> reft
-
-Define:
-  reft_of_expr	: expr -> reft
-  let reft_of_expr = function
-  | n	 -> { v = n }
-  | x 	 -> { v = x }
-  | c es -> tplt c es
-
-  
-  proj		: envt -> vars -> envt 
-  let proj = fun g xs -> SM.filter g (fun x -> List.mem x xs) 
-
-  gamma		: envt
-  let gamma = fun x -> if is_ssa x 
-      		       then k_x 
-                       else reft_of_expr (var_expr x)
-
-Output (Constraints):
- 
-  foreach k_x, 
-  	let gamma_x = reach (var_block x) |> proj gamma in
-  	C.make_wf gamma_x k_x
-  
-  foreach x := phi(...x_j...),
-  	let b_j     = var_block x_j in
-	let gamma_j = (live b_j ++ defs b_j) |> proj gamma in
-	C.make_t gamma_j (guards b_j) {v = x_j} { k_x } 
-
+SSA based consgen: 
+	requirements: see consinfra.mli
+	constraints:  see consgen.ml
 **************************************************************
 ------------------------
 while e do:
