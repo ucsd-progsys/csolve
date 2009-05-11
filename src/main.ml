@@ -54,8 +54,7 @@ let mk_cfg cil =
   Cil.iterGlobals cil 
   (function Cil.GFun(fd,_) as fundec ->
     let _ = fundec in
-    (* commenting out for now: 
-    Psimplify.doGlobal fundec; *)
+    (* Psimplify.doGlobal fundec; *) 
     Cil.prepareCFG fd; 
     Cil.computeCFGInfo fd false 
   | _ -> ())
