@@ -1,6 +1,8 @@
 open Cil
 open Misc.Ops
 
+module E = Errormsg
+
 (******************************************************************************)
 (*************************** Function Instantiation ***************************)
 (******************************************************************************)
@@ -66,6 +68,9 @@ let rec splitCallStmts: stmt list -> stmt list = function
   | {skind = Instr is} :: ss -> (List.map (fun is -> mkStmt (Instr is)) <| splitCallInstrs is) @ splitCallStmts ss
   | s :: ss                  -> s :: splitCallStmts ss
 
+let assertLoc p loc msg =
+  if not p then E.s <| errorLoc loc msg
+
 class inlineVisitor fds fi = object
   inherit nopCilVisitor
 
@@ -73,6 +78,7 @@ class inlineVisitor fds fi = object
     match s.skind with
       | Instr [Call (lvo, Lval (Var f, NoOffset), es, loc)] ->
           let (formals, locals, rv, b) = freshFunction fi (List.assoc f.vid fds) in
+          let _                        = assertLoc (List.length formals = List.length es) loc "Wrong number of parameters" in
           let set_formals              = List.map2 (fun f e -> mkSetLval (Var f, NoOffset) e loc) formals es in
           let b                        = {b with bstmts = set_formals @ b.bstmts} in
             (* pmr: patch up block structure afterward, i.e., merge blocks? *)
