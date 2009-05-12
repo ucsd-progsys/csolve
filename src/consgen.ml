@@ -42,12 +42,13 @@ let envt_of_fun me (genv : W.cilenv) fdec =
     (fun g v ->
       let vt = v.Cil.vtype in
       let vn = v.Cil.vname in
-      let vr = if ST.is_ssa_name vn then W.fresh vt 
-               else W.t_single vt (CF.var_exp me v) in
-      W.ce_add v vr g)
+      if ST.is_ssa_name vn then W.ce_add v (W.fresh vt) g else 
+        match CF.var_exp me v with 
+        | Some e -> W.ce_add v (W.t_single vt e) g
+        | _      -> g)
     genv fdec.Cil.slocals
 
-let wfs_of_block me env i = 
+let wfs_of_block me env i =
   let envi = W.ce_project env (CF.reach_vars me i) in
   let l    = CF.location me i in
   CF.ssa_targs me i 
@@ -74,7 +75,7 @@ let create genv scis =
   List.fold_left 
     (fun me sci ->
       let fn             = sci.ST.fdec.Cil.svar.Cil.vname in 
-      let (env, wfs, cs) = cons_of_fun genv sci in
+  let (env, wfs, cs) = cons_of_fun genv sci in
       W.add_t me fn sci wfs cs env)
     W.empty_t scis
  

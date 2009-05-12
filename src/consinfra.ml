@@ -92,8 +92,10 @@ let var_expt_of_bindings binds =
 let dom_closure gdoma = 
   let n    = Array.length gdoma in
   let doma = Array.make n [] in 
-  for i = 0 to n - 1 do 
-    Array.set doma i (gdoma.(i) :: doma.(fst(gdoma.(i))))
+  for i = 1 to n - 1 do
+    let j = fst (gdoma.(i)) in
+    asserts (0 <= j && j < n) "dom_closure bounds check";
+    Array.set doma i (gdoma.(i) :: doma.(j))
   done;
   doma
 
@@ -120,7 +122,7 @@ let phidefa_of_phis phia =
   let a       = Array.make (Array.length phia) [] in
   let phidefs = Misc.array_flapi begin fun _ asgns -> 
                   Misc.flap begin fun (v, ivis) -> 
-                    Misc.map begin fun (i,vi) -> 
+                    Misc.map begin fun (i, vi) -> 
                       (i, v.Cil.vname, vi.Cil.vname)
                     end ivis
                   end asgns
@@ -138,17 +140,20 @@ let create sci =
   let bindsr = ref [] in
   let vis    = new consInfraVisitor n bindsr in
   let _      = Cil.visitCilFunction vis sci.ST.fdec in
-  { sci     = sci;
-    size    = n;
-    doma    = dom_closure sci.ST.gdoms;
-    defa    = defa_of_bindings n !bindsr; 
-    expt    = var_expt_of_bindings !bindsr;
-    phidefa = phidefa_of_phis sci.ST.phis;
-    vart    = sci.ST.fdec.Cil.slocals 
+  let rv     =
+  { sci      = sci;
+    size     = n;
+    doma     = dom_closure sci.ST.gdoms;
+    defa     = 
+               defa_of_bindings n !bindsr; 
+    expt     = var_expt_of_bindings !bindsr;
+    phidefa  = phidefa_of_phis sci.ST.phis;
+    vart     = sci.ST.fdec.Cil.slocals 
               |> List.map (fun v -> (v.Cil.vname, v))
               |> Misc.hashtbl_of_list; 
-  }
- 
+  } in
+  rv
+
 (* API *)
 let location me i =
   Cil.get_stmtLoc me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt.skind
@@ -163,9 +168,12 @@ let ssa_targs me i =
   Misc.do_catch "ssa_targs" (Array.get me.sci.ST.phis) i
   |> List.map fst 
 
+
 (* API *)
-let var_exp me v = 
-  Misc.do_catch "var_exp" (H.find me.expt) v.Cil.vname 
+let var_exp me v =
+  try Some (H.find me.expt v.Cil.vname) 
+  with Not_found -> None
+
 
 (* API *)
 let def_vars me i = 

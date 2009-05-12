@@ -1,4 +1,6 @@
-Goals to get to v.0
+
+- Solve.save -- add the saving of WF constraints (?)
+- Add bindings for top level vars (e.g. x@main_phi_0 for tests/test00.c)
 
 **************************************************************
 - return values

@@ -50,9 +50,11 @@ val environment_preds: soln -> envt -> Ast.pred list
 val env_of_list      : (Ast.Symbol.t * reft) list -> envt
 val is_simple        : t -> bool
 
-val sol_query        : soln -> Ast.Symbol.t -> Ast.pred list
+val sol_cleanup      : soln -> soln
 val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
+val group_sol_add    : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
+
 val print_env        : soln option -> Format.formatter -> envt -> unit
 val print_wf         : soln option -> Format.formatter -> wf -> unit
 val print_t          : soln option -> Format.formatter -> t -> unit

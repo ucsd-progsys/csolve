@@ -24,7 +24,7 @@
 (* This file is part of the liquidC Project.*)
 
 type t
-val var_exp:    t -> Cil.varinfo -> Cil.exp
+val var_exp:    t -> Cil.varinfo -> Cil.exp option
 val location:   t -> int -> Cil.location
 val ssa_srcs:   t -> int -> (Cil.varinfo * Cil.varinfo) list
 val ssa_targs:  t -> int -> Cil.varinfo list

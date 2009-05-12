@@ -59,9 +59,8 @@ module Symbol =
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
 
-    let is_wild s = if s = "" then false else s.[0] = '*'
     
-    let is_wild = fun s -> s.[0] = '*'
+    let is_wild = fun s -> if s = "" then false else s.[0] = '~'
     
     let is_safe s = 
       let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
@@ -323,9 +322,9 @@ and pred_to_string p =
     | Imp (p1, p2) -> 
         Printf.sprintf "(%s -> %s)" (pred_to_string p1) (pred_to_string p2)
     | And ps -> 
-        Printf.sprintf "& [%s]" (List.map pred_to_string ps |> String.concat " ")
+        Printf.sprintf "&& [%s]" (List.map pred_to_string ps |> String.concat " ")
     | Or ps -> 
-        Printf.sprintf "| [%s]" (List.map pred_to_string ps |> String.concat " ")
+        Printf.sprintf "|| [%s]" (List.map pred_to_string ps |> String.concat " ")
     | Atom (e1, r, e2) ->
         Printf.sprintf "(%s %s %s)" 
         (expr_to_string e1) (brel_to_string r) (expr_to_string e2)
@@ -452,7 +451,7 @@ module Predicate =
                      | (App (x,_)),_ -> Hashtbl.replace t x () 
                      | _             -> ()) p; 
         Misc.hashtbl_keys t
-  
+
       let size p =
 	let c = ref 0 in
         let f = fun _ -> incr c in

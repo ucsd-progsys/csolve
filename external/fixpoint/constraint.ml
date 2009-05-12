@@ -83,6 +83,10 @@ let kvars_of_t (_, _, r1, r2, _) =
 (*************************************************************)
 
 (* API *)
+let sol_cleanup s = 
+  SM.map Misc.sort_and_compact s
+
+(* API *)
 let sol_query s k =
   try SM.find k s with Not_found -> []
 
@@ -91,21 +95,31 @@ let sol_read s k =
   try SM.find k s with Not_found -> 
     failure "ERROR: sol_read : unknown kvar %s \n" (Sy.to_string k)
 
+(* INV: qs' \subseteq qs *)
 let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.add k qs' s)
 
-(* API *)
-let group_sol_update s0 kqs = 
+let sol_add s k qs' = 
+  let qs   = sol_query s k in
+  let qs'' = qs' ++ qs in
+  (not (Misc.same_length qs qs''), SM.add k qs'' s)
+
+let group_sol_change addf s0 kqs = 
   let t  = Hashtbl.create 17 in
   let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
   let ks = Misc.hashtbl_keys t in
   List.fold_left 
     (fun (b, s) k -> 
       let qs       = Hashtbl.find_all t k in 
-      let (b', s') = sol_update s k qs in
+      let (b', s') = if addf then sol_add s k qs else sol_update s k qs in
       (b || b', s'))
     (false, s0) ks
+
+(* API *)
+let group_sol_update = group_sol_change false
+let group_sol_add    = group_sol_change true
+
 
 (*************************************************************)
 (*********************** Logic Embedding *********************)
@@ -178,7 +192,7 @@ let print_wf so ppf (env, r, io) =
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-  " constraint: env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+  " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
     (print_env so) env 
     P.print g
@@ -197,7 +211,6 @@ let print_soln ppf sm =
        Sy.print x 
        (Misc.pprint_many false "," P.print) ps)
     sm
-
 
 (***************************************************************)
 (*********************** Getter/Setter *************************)

@@ -164,36 +164,41 @@ let inst_qual ys (q : Q.t) : Q.t list =
   let p    = Q.pred_of_t q in
   let t    = Q.sort_of_t q in
   let xs   = p 
-             |> P.support                        (* vars of q *) 
+             |> P.support                        (* vars of q *)
              |> List.filter Sy.is_wild           (* placevs of q *)
              |> Misc.sort_and_compact in         (* duplicate free placevs *)
-  let xyss = List.length xs                      (* for each placev *) 
-             |> Misc.clone ys                    (* clone the freev list *)
-             |> Misc.product                     (* generate freev combinations *) 
-             |> Misc.map (List.combine xs) in(* generate placev-freev lists *)
-  let ps'  = List.rev_map 
-               (List.fold_left (fun p' (x,y) -> P.subst p x (A.eVar y)) p)
-               xyss in
-  List.map (Q.create None t) ps'
-
+  let rv = 
+  match xs with [] -> [q] | _ ->
+    let xyss = List.length xs                      (* for each placev *) 
+               |> Misc.clone ys                    (* clone the freev list *)
+               |> Misc.product                     (* generate freev combinations *) 
+               |> Misc.map (List.combine xs) in    (* generate placev-freev lists *)
+    let ps'  = List.rev_map 
+                 (List.fold_left (fun p' (x,y) -> P.subst p x (A.eVar y)) p)
+                 xyss in
+    List.map (Q.create None t) ps' in
+  let _    = Format.printf "inst_qual q=%a, out=%a \n" 
+                 Q.print q (Misc.pprint_many false "," Q.print) rv in
+    rv
 
 let inst_ext (qs : Q.t list) s wf = 
   let env = C.env_of_wf wf in
   let r   = C.reft_of_wf wf in
   let ks  = C.kvars_of_reft r |> List.map snd in
+  let _   = F.printf "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
   let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
   qs 
-  |> Misc.flap (inst_qual ys) 
+  |> Misc.flap (inst_qual ys)
   |> Misc.filter (wellformed env) 
+  |> (fun xs -> F.printf "q-wf = %a \n" (Misc.pprint_many false "," Q.print) xs; xs)
   |> Misc.map Q.pred_of_t 
   |> Misc.cross_product ks 
-  |> C.group_sol_update s 
+  |> C.group_sol_add s 
   |> snd
 
-(* API *)
 let inst wfs qs s =
+  Format.printf "%a" (Misc.pprint_many true "\n" (C.print_wf None)) wfs;
   List.fold_left (inst_ext qs) s wfs
-  |>  failwith "TBD: Solve.inst : typechecking WF"
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
@@ -223,12 +228,15 @@ let solve me (s : C.soln) =
   (s, u)
 
 (* API *)
-let create ts sm ps cs =
+let create ts sm ps cs ws qs =
   let tpc = TP.create ts sm ps in
   let cs  = C.validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in
-  { tpc = tpc; sri = sri }
+  let s   = inst ws qs SM.empty in
+  let _   = Format.printf "%a" C.print_soln s in 
+  ({ tpc = tpc; sri = sri }, s)
 
+(* API *)
 let save fname me s =
   let oc  = open_out fname in
   let ppf = F.formatter_of_out_channel oc in

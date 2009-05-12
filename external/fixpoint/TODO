@@ -1,8 +1,7 @@
-- rename "misc/" to utils
-- nuke the ghastly .bnd state threaded through theoremProverZ3.ml
+get tests/abs.fq to run!
 
-- change constraint printer to match parser format
-	- P.print
-	- C.print
-- add support for command line options
+	./_build/main.native tests/abs.fq
+
+
+- nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - add regression test scripts 

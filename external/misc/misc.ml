@@ -91,6 +91,9 @@ let foldn f b n =
     if i >= n then acc else foo (f acc i) (i+1) 
   in foo b 0 
 
+let dump s = 
+  print_string s; flush stdout
+
 let mapn f n = 
   foldn (fun acc i -> (f i) :: acc) [] n 
   |> List.rev

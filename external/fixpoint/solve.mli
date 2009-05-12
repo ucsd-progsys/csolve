@@ -30,12 +30,9 @@ val create      :  Ast.Sort.t list
                 -> Ast.Sort.t Ast.Symbol.SMap.t 
                 -> Ast.pred list 
                 -> Constraint.t list 
-                -> t
-
-val inst        :  Constraint.wf list
+                -> Constraint.wf list
                 -> Ast.Qualifier.t list
-                -> Constraint.soln
-                -> Constraint.soln
+                -> (t * Constraint.soln)
 
 val solve       :  t 
                 -> Constraint.soln 

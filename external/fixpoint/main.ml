@@ -47,7 +47,7 @@ let sift xs =
       | C.Cst c       -> (ts, ps, c::cs, ws, qs, s)
       | C.Wfc w       -> (ts, ps, cs, w::ws, qs, s)
       | C.Qul q       -> (ts, ps, cs, ws, q::qs, s)
-      | C.Sol (x, qs) -> (ts, ps, cs, ws, qs, SM.add x qs s))
+      | C.Sol (x, ps) -> (ts, ps, cs, ws, qs, SM.add x ps s))
     ([], [], [], [], [], SM.empty) xs
 
 let parse f = 
@@ -57,12 +57,12 @@ let parse f =
   |> FixParse.defs FixLex.token
 
 let solve (ts, ps, cs, ws, qs, s) = 
-  let ctx     = S.create ts SM.empty ps cs in
-  let s', cs' = S.inst ws qs s |> S.solve ctx in
+  let ctx, _  = S.create ts SM.empty ps cs ws qs in
+  let s', cs' = S.solve ctx s in
   let _       = S.save !Co.save_file ctx s' in
   F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" 
-    (Misc.pprint_many true "\n" (C.print None)) cs';
+    (Misc.pprint_many true "\n" (C.print_t None)) cs';
   ()
 
 let main () =

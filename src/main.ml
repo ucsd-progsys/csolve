@@ -95,14 +95,14 @@ let mk_shapes cil =
     []
 
 let mk_quals (f:string) : Ast.Qualifier.t list =        
-  let _ = Printf.printf "Reading Qualifiers from: %s \n" f in
+  let _ = Printf.printf "Reading Qualifiers from %s \n" f in
   let qs =
     open_in f
     |> Lexing.from_channel
     |> FixParse.defs FixLex.token in
   let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-  let _ = Format.printf "Read Qualifiers: %a \n" 
-          (Misc.pprint_many false ";" Ast.Qualifier.print) qs in
+  let _ = Format.printf "Read Qualifiers: \n%a" 
+          (Misc.pprint_many true "" Ast.Qualifier.print) qs in
   qs
 
 let mk_genv (cil: Cil.file) =                       
@@ -112,17 +112,15 @@ let mk_genv (cil: Cil.file) =
 let liquidate file =
   let cil   = mk_cil file in
   let _     = mk_shapes cil in
-  let _     = Printf.printf "HEREHEREHEREHEREHEREHERHERHERHERHERHERHERHERHER" in
   let qs    = mk_quals (file^".hquals") in
-  let _     = Printf.printf "HEREHEREHEREHEREHEREHERHERHERHERHERHERHERHERHER" in
   let g0    = mk_genv cil in
   let scis  = mk_scis cil in
+
   let me    = Consgen.create g0 scis in
-  let _     = Wrapper.print_t (None) Format.std_formatter me in 
+  (* let _     = Wrapper.print_t None Format.std_formatter me in *)
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
-  let s     = Solve.inst ws qs A.Symbol.SMap.empty in
-  let ctx   = Solve.create [] A.Symbol.SMap.empty [] cs in
+  let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in
