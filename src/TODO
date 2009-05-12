@@ -2,6 +2,9 @@
 - Solve.save -- add the saving of WF constraints (?)
 - Add bindings for top level vars (e.g. x@main_phi_0 for tests/test00.c)
 
+	how ? basically all vars that are "undefined" ie var_exp returns
+	"None" should have a default -true-type always..
+
 **************************************************************
 - return values
 - formals

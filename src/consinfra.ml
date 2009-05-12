@@ -179,9 +179,11 @@ let var_exp me v =
 let def_vars me i = 
   Misc.do_catch "def_vars" (Array.get me.defa) i 
   |> List.map (H.find me.vart)
+
+
 (* API *)
 let reach_vars me i = 
-  Misc.do_catch "reach_vars" (Array.get me.doma) i 
+  (Misc.do_catch "reach_vars" (Array.get me.doma) i)
   |> Misc.map_partial (function (i, None) -> Some i | _ -> None)
   |> Misc.flap (def_vars me)
 
