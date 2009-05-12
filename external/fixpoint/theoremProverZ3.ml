@@ -358,7 +358,7 @@ let create ts env ps =
             funt  = Hashtbl.create 37; 
             vars  = []; count = 0; bnd = 0} in
   let _  = List.iter 
-             (fun p -> p |> z3Pred me env |> assert_axiom me)
+             (fun p -> Format.printf "z3Pred: p = %a \n" P.print p; p |> z3Pred me env |> assert_axiom me)
              (axioms ++ ps) in
   me
 

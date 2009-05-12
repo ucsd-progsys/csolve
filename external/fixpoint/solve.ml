@@ -229,6 +229,7 @@ let solve me (s : C.soln) =
 
 (* API *)
 let create ts sm ps cs ws qs =
+  let _ = Format.printf "Solve.create ps = %a \n" (Misc.pprint_many false "," P.print) ps in
   let tpc = TP.create ts sm ps in
   let cs  = C.validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in

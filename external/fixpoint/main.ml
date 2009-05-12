@@ -41,13 +41,14 @@ let usage = "Usage: fixpoint <options> [source-files]\noptions are:"
 
 let sift xs = 
   List.fold_left 
-    (fun (ts, ps, cs, ws, qs, s) -> function 
-      | C.Srt t       -> (t::ts, ps, cs, ws, qs, s) 
-      | C.Axm p       -> (ts, p::ps, cs, ws, qs, s) 
-      | C.Cst c       -> (ts, ps, c::cs, ws, qs, s)
-      | C.Wfc w       -> (ts, ps, cs, w::ws, qs, s)
-      | C.Qul q       -> (ts, ps, cs, ws, q::qs, s)
-      | C.Sol (x, ps) -> (ts, ps, cs, ws, qs, SM.add x ps s))
+    (fun (ts, ps, cs, ws, qs, s) -> 
+      function 
+      | C.Srt t        -> (t::ts, ps, cs, ws, qs, s) 
+      | C.Axm p        -> (ts, p::ps, cs, ws, qs, s) 
+      | C.Cst c        -> (ts, ps, c::cs, ws, qs, s)
+      | C.Wfc w        -> (ts, ps, cs, w::ws, qs, s)
+      | C.Qul q        -> (ts, ps, cs, ws, q::qs, s)
+      | C.Sol (k, kps) -> (ts, ps, cs, ws, qs, SM.add k kps s))
     ([], [], [], [], [], SM.empty) xs
 
 let parse f = 
