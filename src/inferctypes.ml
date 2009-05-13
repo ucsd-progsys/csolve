@@ -12,6 +12,9 @@ open M.Ops
 
 type indexvar = int
 
+let d_indexvar () (iv: indexvar): P.doc =
+  P.text <| "i" ^ string_of_int iv
+
 let (fresh_indexvar, reset_fresh_indexvars) = M.mk_int_factory ()
 
 let with_fresh_indexvar (f: indexvar -> 'a): 'a =
