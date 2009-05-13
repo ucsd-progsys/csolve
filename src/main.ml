@@ -122,7 +122,6 @@ let liquidate file =
   let scis  = mk_scis cil in
 
   let me    = Consgen.create g0 scis in
-  (* let _     = Wrapper.print_t None Format.std_formatter me in *)
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in

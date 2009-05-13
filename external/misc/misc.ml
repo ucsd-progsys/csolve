@@ -198,9 +198,6 @@ let cross_product xs ys =
   end xs
   |> flatten
 
-let hashtbl_keys t = 
-  Hashtbl.fold (fun x y l -> x::l) t []
- 
 let append_pref p s =
   (p ^ "." ^ s)
 
@@ -216,6 +213,20 @@ let sort_and_compact ls =
       | tl -> tl
   in
     _sorted_compact (List.sort compare ls)   
+
+let sort_and_compact xs = 
+  List.sort compare xs 
+  |> List.fold_left 
+       (fun ys x -> match ys with
+        | y::_ when x=y -> ys
+        | _::_          -> x::ys
+        | []            -> [x])
+       [] 
+  |> List.rev
+
+let hashtbl_keys t = 
+  Hashtbl.fold (fun x y l -> x::l) t []
+  |> sort_and_compact
 
 let distinct xs = 
  List.length xs = List.length (sort_and_compact xs)
