@@ -1,7 +1,6 @@
-get tests/abs.fq to run!
+get tests/abs1.fq to produce the right output...
 
-	./_build/main.native tests/abs.fq
-
+	./_build/main.native tests/abs1.fq
 
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - add regression test scripts 

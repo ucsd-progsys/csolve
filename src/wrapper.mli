@@ -4,9 +4,11 @@ val ce_empty: cilenv
 val ce_add: Cil.varinfo -> Constraint.reft -> cilenv -> cilenv
 val ce_find: Cil.varinfo -> cilenv -> (Cil.varinfo * Constraint.reft)
 val ce_project: cilenv -> Cil.varinfo list -> cilenv
-val ce_iter: (Cil.varinfo -> Constraint.reft -> unit) -> cilenv -> unit
+(* val ce_iter: (Cil.varinfo -> Constraint.reft -> unit) -> cilenv -> unit *)
 
 val fresh: Cil.typ -> Constraint.reft
+
+val t_true: Cil.typ -> Constraint.reft
 val t_single: Cil.typ -> Cil.exp -> Constraint.reft
 val t_var: Cil.varinfo -> Constraint.reft
 

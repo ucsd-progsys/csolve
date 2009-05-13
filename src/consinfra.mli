@@ -23,8 +23,9 @@
 
 (* This file is part of the liquidC Project.*)
 
+type binding = Exp of Cil.exp | Phi | Undef 
 type t
-val var_exp:    t -> Cil.varinfo -> Cil.exp option
+val var_exp:    t -> Cil.varinfo -> binding 
 val location:   t -> int -> Cil.location
 val ssa_srcs:   t -> int -> (Cil.varinfo * Cil.varinfo) list
 val ssa_targs:  t -> int -> Cil.varinfo list

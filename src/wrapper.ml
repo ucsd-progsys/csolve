@@ -31,20 +31,32 @@ let ce_find v cenv =
 let ce_add v r cenv = 
   SM.add v.vname (v, r) cenv
 
-let ce_project cenv vs = 
-  List.fold_left 
-    (fun cenv' v -> SM.add v.vname (ce_find v cenv) cenv')
-    ce_empty vs
+let ce_project cenv vs =
+  let vm = List.fold_left (fun m v -> SM.add v.vname () m) SM.empty vs in
+  SM.mapi
+    (fun vn (t, r) -> (t, if SM.mem vn vm then r else C.shape_of_reft r))
+    cenv
 
 let ce_iter f cenv = 
   SM.iter (fun _ (v, r) -> f v r) cenv
-
 
 let env_of_cilenv cenv = 
   SM.fold 
     (fun x (_,r) env -> Sy.SMap.add (Sy.of_string x) r env) 
     cenv
     Sy.SMap.empty
+
+let print_ce_bind s ppf vn r = 
+  F.fprintf ppf "@[%s : %a @]\n" vn 
+    (Misc.pprint_many false "," A.Predicate.print)
+    (C.refinement_preds s r)
+
+let print_ce so ppf cenv = 
+  match so with
+  | None   -> 
+      F.fprintf ppf "%a" (C.print_env None) (env_of_cilenv cenv)
+  | Some s -> 
+      SM.iter (fun vn (_, r) -> print_ce_bind s ppf vn r) cenv 
 
 (*******************************************************************)
 (************************** Templates ******************************)
@@ -64,6 +76,11 @@ let fresh ty : C.reft =
 (*****************************************************************)
 (************************** Refinements **************************)
 (*****************************************************************)
+
+let t_true t =
+  let so = CI.sort_of_typ t in
+  let vv = Sy.value_variable so in
+  C.make_reft vv so []
 
 let t_single t e =
   let so = CI.sort_of_typ t in
@@ -132,9 +149,8 @@ let print_t so ppf me =
            fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs)
   | Some s -> (* print solution *)
       iter_t me
-        (fun fn (_, _, _, (env: cilenv)) ->
-          F.printf "Liquid Types for %s \n %a" fn
-          (C.print_env so) (env_of_cilenv env))
+        (fun fn (_, _, _, env) ->
+          F.printf "Liquid Types for %s \n%a" fn (print_ce so) env)
 
 (* API *)
 let wfs_of_t = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []

@@ -1,4 +1,4 @@
-int main(int x){
+int main(){
   int x,y;
   
   if (x > 0){

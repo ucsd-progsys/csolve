@@ -35,12 +35,13 @@ module CI = CilInterface
 open Misc.Ops
 open Cil
 
+type binding = Exp of Cil.exp | Phi | Undef 
 
 type t = {
   sci     : ST.ssaCfgInfo;
   size    : int;                            (* number of blocks *)
   vart    : (string, Cil.varinfo) H.t;      (* string|-> var *) 
-  expt    : (string, Cil.exp) H.t;          (* string|-> defining assignment *)
+  expt    : (string, binding) H.t;          (* string|-> defining assignment *)
   defa    : string list array;              (* block |-> vars defined inside block *)
   doma    : (int * bool option) list array; (* block |-> (dom guard * bool) list *)
   phidefa : (string * string) list array;   (* block |-> (x, xi) list, 
@@ -76,13 +77,14 @@ let defa_of_bindings size binds =
   List.iter (fun (i, vn, _) -> defa.(i) <- vn :: defa.(i)) binds;
   defa
 
-let var_expt_of_bindings binds = 
+let var_expt_of_bindings binds phia = 
   let t = H.create 37 in
-  let _ = List.iter 
-            (fun (_, vn, e) -> 
-              asserts (not (H.mem t vn)) "duplicate binding";
-              H.add t vn e) 
-            binds in
+  List.iter 
+    (fun (_, vn, e) -> 
+      asserts (not (H.mem t vn)) "duplicate binding";
+      H.add t vn (Exp e)) 
+    binds;
+  Array.iter (List.iter (fun (v,_) -> H.add t v.Cil.vname Phi)) phia;
   t 
 
 (*******************************************************************)
@@ -118,7 +120,7 @@ let guard me = function
 (********** and x = phi(...xi...)    *****************************) 
 (*****************************************************************)
 
-let phidefa_of_phis phia =
+let phidefa_of_phia phia =
   let a       = Array.make (Array.length phia) [] in
   let phidefs = Misc.array_flapi begin fun _ asgns -> 
                   Misc.flap begin fun (v, ivis) -> 
@@ -138,19 +140,19 @@ let phidefa_of_phis phia =
 let create sci =
   let n = Array.length sci.ST.gdoms in
   let bindsr = ref [] in
+  let vs     = sci.ST.fdec.Cil.slocals in
+  let phia   = sci.ST.phis in 
   let vis    = new consInfraVisitor n bindsr in
   let _      = Cil.visitCilFunction vis sci.ST.fdec in
   let rv     =
   { sci      = sci;
     size     = n;
     doma     = dom_closure sci.ST.gdoms;
-    defa     = 
-               defa_of_bindings n !bindsr; 
-    expt     = var_expt_of_bindings !bindsr;
-    phidefa  = phidefa_of_phis sci.ST.phis;
-    vart     = sci.ST.fdec.Cil.slocals 
-              |> List.map (fun v -> (v.Cil.vname, v))
-              |> Misc.hashtbl_of_list; 
+    defa     = defa_of_bindings n !bindsr; 
+    expt     = var_expt_of_bindings !bindsr phia;
+    phidefa  = phidefa_of_phia phia;
+    vart     = vs |> List.map (fun v -> (v.Cil.vname, v))
+                  |> Misc.hashtbl_of_list; 
   } in
   rv
 
@@ -168,18 +170,14 @@ let ssa_targs me i =
   Misc.do_catch "ssa_targs" (Array.get me.sci.ST.phis) i
   |> List.map fst 
 
-
 (* API *)
 let var_exp me v =
-  try Some (H.find me.expt v.Cil.vname) 
-  with Not_found -> None
-
+  try H.find me.expt v.Cil.vname with Not_found -> Undef
 
 (* API *)
 let def_vars me i = 
   Misc.do_catch "def_vars" (Array.get me.defa) i 
   |> List.map (H.find me.vart)
-
 
 (* API *)
 let reach_vars me i = 
