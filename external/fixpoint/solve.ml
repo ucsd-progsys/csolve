@@ -220,6 +220,7 @@ let solve me (s : C.soln) =
           Co.cprintf Co.ol_solve "%a" C.print_soln s;
           dump me s in
   let w = BS.time "init wkl"    Ci.winit me.sri in 
+  let s = BS.time "cleanup" SM.map (Misc.sort_and_compact) s in
   let s = BS.time "solving sub" (acsolve me w) s in
   let _ = dump me s in
   let u = BS.time "testing solution" (unsat_constraints me) s in

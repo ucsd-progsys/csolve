@@ -378,6 +378,16 @@ let set_filter me env vv ps qs =
         (qs' ++ (BS.time "TP filter" (filter me env) qs)) in
   List.map fst qs'
 
+let set_filter me env vv ps qs = 
+  let rv = set_filter me env vv ps qs in
+  Format.printf "set_filter \n ps = %a \n |qs| = %d |qs'| = %d \n" 
+    (Misc.pprint_many false "," P.print) ps
+    (List.length qs)
+    (List.length rv);
+  rv
+
+
+
 (* API *)
 let print_stats ppf _ =
   Format.fprintf ppf

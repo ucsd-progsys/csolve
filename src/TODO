@@ -1,9 +1,7 @@
-
+- inst is generating too many quals...? (also scopes are wrong in WFC)
 - Solve.save -- add the saving of WF constraints (?)
-- Add bindings for top level vars (e.g. x@main_phi_0 for tests/test00.c)
-
-	how ? basically all vars that are "undefined" ie var_exp returns
-	"None" should have a default -true-type always..
+- nuke the ghastly .bnd state threaded through theoremProverZ3.ml
+- add regression test scripts 
 
 **************************************************************
 - return values

@@ -124,7 +124,7 @@ let liquidate file =
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in
-  let _     = Wrapper.print_t (Some s) Format.std_formatter me in 
+  let _     = Wrapper.print_t (Some s') Format.std_formatter me in 
   (cs' = [])
 
 let print_header () = 
