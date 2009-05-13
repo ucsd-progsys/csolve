@@ -19,19 +19,26 @@ let renameLval (vmap: (int * varinfo) list): lval -> lval = function
       end
   | lv -> lv
 
-class freshVisitor vmap rv = object
+class freshVisitor vmap rvo = object
   inherit nopCilVisitor
 
   method vlval (lv: lval): lval visitAction =
-    ChangeTo (renameLval vmap lv)
+    ChangeDoChildrenPost (renameLval vmap lv, id)
 
   method vexpr: exp -> exp visitAction = function
-    | Lval lv -> ChangeTo (Lval (renameLval vmap lv))
+    | Lval lv -> ChangeDoChildrenPost (Lval (renameLval vmap lv), id)
     | _       -> DoChildren
 
   method vstmt: stmt -> stmt visitAction = function
-    | {skind = Return (Some e, loc)} -> ChangeDoChildrenPost (mkSetLval (Var rv, NoOffset) e loc, fun s -> s)
-    | _                              -> DoChildren
+    | {skind = Return (Some e, loc)} ->
+        begin match rvo with
+          | Some rv -> ChangeDoChildrenPost (mkSetLval (Var rv, NoOffset) e loc, id)
+          | None    -> E.s <| errorLoc loc "Attempting to return value from void function"
+        end
+    | {skind = Return (None, loc)} ->
+        (* pmr: surely there's a better way to make a nop *)
+        ChangeTo (mkStmt (Instr []))
+    | _ -> DoChildren
 end
 
 let freshVars (fin: fundec) (vs: varinfo list): varinfo list =
@@ -40,14 +47,14 @@ let freshVars (fin: fundec) (vs: varinfo list): varinfo list =
 let vids (vs: varinfo list): int list =
   List.map (fun v -> v.vid) vs
 
-let freshFunction (fin: fundec) (fd: fundec): varinfo list * varinfo list * varinfo * block =
+let freshFunction (fin: fundec) (fd: fundec): varinfo list * varinfo list * varinfo option * block =
   let fd = copyFunction fd "copiedFun" in
     match fd.svar.vtype with
       | TFun (rt, _, _, _) ->
           let (formals, locals) = (freshVars fin fd.sformals, freshVars fin fd.slocals) in
           let vmap              = List.combine (vids fd.sformals @ vids fd.slocals) (formals @ locals)  in
-          let rv                = makeTempVar fin rt in
-            (formals, locals, rv, visitCilBlock (new freshVisitor vmap rv) fd.sbody)
+          let rvo               = if isVoidType rt then None else Some (makeTempVar fin rt) in
+            (formals, locals, rvo, visitCilBlock (new freshVisitor vmap rvo) fd.sbody)
       | _ -> assert false
 
 (******************************************************************************)
@@ -77,19 +84,20 @@ class inlineVisitor fds fi = object
   method vstmt (s: stmt): stmt visitAction =
     match s.skind with
       | Instr [Call (lvo, Lval (Var f, NoOffset), es, loc)] ->
-          let (formals, locals, rv, b) = freshFunction fi (List.assoc f.vid fds) in
-          let _                        = assertLoc (List.length formals = List.length es) loc "Wrong number of parameters" in
-          let set_formals              = List.map2 (fun f e -> mkSetLval (Var f, NoOffset) e loc) formals es in
-          let b                        = {b with bstmts = set_formals @ b.bstmts} in
+          let (formals, locals, rvo, b) = freshFunction fi (List.assoc f.vid fds) in
+          let _                         = assertLoc (List.length formals = List.length es) loc "Wrong number of parameters" in
+          let set_formals               = List.map2 (fun f e -> mkSetLval (Var f, NoOffset) e loc) formals es in
+          let b                         = {b with bstmts = set_formals @ b.bstmts} in
             (* pmr: patch up block structure afterward, i.e., merge blocks? *)
-            begin match lvo with
-              | None    -> ChangeTo (mkStmt <| Block b)
-              | Some lv -> ChangeTo (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}))
+            begin match (lvo, rvo) with
+              | (None, None)       -> ChangeTo (mkStmt <| Block b)
+              | (Some lv, Some rv) -> ChangeTo (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}))
+              | _                  -> E.s <| errorLoc loc "Assigning void return type to a variable"
             end
-      | _ -> SkipChildren
+      | _ -> DoChildren
 
   method vblock (b: block): block visitAction =
-    ChangeDoChildrenPost ({b with bstmts = splitCallStmts b.bstmts}, fun a -> a)
+    ChangeDoChildrenPost ({b with bstmts = splitCallStmts b.bstmts}, id)
 end
 
 let doGlobal fds = function
