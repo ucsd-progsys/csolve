@@ -22,4 +22,5 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val create   : Wrapper.cilenv -> Ssa_transform.ssaCfgInfo list -> Wrapper.t 
+val create: Cil.file -> Wrapper.t
+

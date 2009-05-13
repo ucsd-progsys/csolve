@@ -71,18 +71,6 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
-let mk_scis cil = 
-  Cil.foldGlobals cil
-    (fun acc g ->
-      match g with 
-      | Cil.GFun (fd,loc) -> 
-          let _   = E.log "before fdec_to_ssa \n" in
-          let sci = ST.fdec_to_ssa_cfg fd loc in
-          let _   = E.log "after fdec_to_ssa \n";
-                    ST.print_sci sci in
-          sci::acc
-      | _ -> acc) [] 
-
 let mk_shapes cil =
   Cil.foldGlobals cil
     (fun acc -> function
@@ -110,18 +98,12 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
           (Misc.pprint_many true "" Ast.Qualifier.print) qs in
   qs
 
-let mk_genv (cil: Cil.file) =                       
-  Printf.printf "WARNING: mk_genv : TBD: initialize with global variables";
-  Wrapper.ce_empty 
 
 let liquidate file =
   let cil   = mk_cil file in
   let _     = mk_shapes cil in
   let qs    = mk_quals (file^".hquals") in
-  let g0    = mk_genv cil in
-  let scis  = mk_scis cil in
-
-  let me    = Consgen.create g0 scis in
+  let me    = Consgen.create cil in
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in

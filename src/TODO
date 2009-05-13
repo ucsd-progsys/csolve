@@ -11,12 +11,38 @@
 **************************************************************
 - return values
 - formals
+
+(1) connect formals to other local vars 
+    i.e. if x is a formal, 
+    make x the "first" dominating definition
+
+(2) add function templates to global environment
+
+(3) update Cil.exp -> reft to handle function calls
+	-- rename t_single to t_exp
+	-- t_exp :: W.cilenv -> Cil.typ -> Cil.expr -> C.reft  
+	-- t_exp will use the env passed in to 
+	   handle function calls (and ptr derefs etc)
+
+(4) update consgen to add constraints for:
+	-- callee params (via calls)
+	-- function outputs (returns)
+    
+    In consinfra.m, add: 
+    
+    type flow = Var of Cil.varinfo * Cil.varinfo | ... (* cells *)
+    
+    (* extend the visitor so that we can enrich the API with *)
+    block_flows : t -> int -> flow list
+
+    (* extend consgen.ml so it generates constraints for each "flow" 
+       inside a block *)
+
+    cs_of_flow : env -> flow -> C.t list
+
+**************************************************************
 - globals
 - pointers
-**************************************************************
-SSA based consgen: 
-	requirements: see consinfra.mli
-	constraints:  see consgen.ml
 **************************************************************
 ------------------------
 while e do:

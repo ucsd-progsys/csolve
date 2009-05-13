@@ -72,50 +72,27 @@ let cons_of_fun genv sci =
    Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
 
 (* NOTE: templates for formals should be in "global" genv *)
+let genv_of_file cil =                       
+  Printf.printf "WARNING: mk_genv : TBD: initialize with global variables";
+  Wrapper.ce_empty 
+
+let scis_of_file cil = 
+  Cil.foldGlobals cil
+    (fun acc g ->
+      match g with 
+      | Cil.GFun (fd,loc) -> 
+          let sci = ST.fdec_to_ssa_cfg fd loc in
+          let _   = ST.print_sci sci in
+          sci::acc
+      | _ -> acc) [] 
+
 (* API *)
-let create genv scis = 
+let create (cil: Cil.file) = 
+  let genv = genv_of_file cil in
+  let scis = scis_of_file cil in
   List.fold_left 
     (fun me sci ->
       let fn             = sci.ST.fdec.Cil.svar.Cil.vname in 
       let (env, wfs, cs) = cons_of_fun genv sci in
       W.add_t me fn sci wfs cs env)
     W.empty_t scis
- 
-(* {{{ 
-let phi_cstr cenv doms cfg i (v, bvs) = 
-  let rhs = snd (W.ce_find v cenv) in
-  let loc = Cil.get_stmtLoc cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
-  List.map 
-    (fun (j,v') ->
-      let lhs = W.t_var v' in 
-      W.mk_cilcstr cenv doms.(j) lhs rhs loc)  
-    bvs
-
-let gen_phis cenv doms cfg phis : W.cilcstr list = 
-  phis
-  |> Array.mapi (fun i asgns -> Misc.tr_flap (phi_cstr cenv doms cfg i) asgns) 
-  |> Array.to_list 
-  |> Misc.tr_flatten
-
-
-let gen_body fdec doms : A.pred = 
-  let fid   = fdec.svar.vname in
-  let invsr = ref [] in
-  let vis   = new consGenVisitor fid doms invsr in
-  let _     = visitCilFunction vis fdec in
-  A.pAnd !invsr
-
- 
-let gen g sci =
-  let fdec = sci.ST.fdec in
-  let cfg  = sci.ST.cfg in
-  let doma = guards_closure sci.ST.gdoms in
-  let phis = sci.ST.phis in
-  let g'   = gen_decs g  fdec in
-  let invp = gen_body fdec doma in
-  let ccs  = gen_phis g' doms cfg phis in
-  let cs   = Misc.tr_map (W.cstr_of_cilcstr sci invp) ccs in
-  cs
-
-  }}} *)
-
