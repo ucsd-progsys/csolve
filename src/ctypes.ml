@@ -44,7 +44,7 @@ let index_minus (i1: index) (i2: index): index =
   match (i1, i2) with
     | (IBot, _) | (_, IBot)             -> IBot
     | (ITop, _) | (_, ITop)             -> ITop
-    | (IInt n, IInt m)                  -> IInt (n - m)
+    | (IInt n, IInt m) (* when n >= m *) -> IInt (n - m)
     | (ISeq (m, k), IInt n) when m >= n -> ISeq (m - n, k)
     | _                                 -> ITop
 
