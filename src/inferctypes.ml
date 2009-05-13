@@ -317,7 +317,7 @@ and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cs
             (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv])
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
-and constrain_rel (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
   let iv  = fresh_indexvar () in
   let ctv = CTInt (int_width, iv) in
     (ctv, em, [mk_iless loc (IEConst (ISeq (0, 1))) iv])
@@ -389,9 +389,10 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.blo
     constrain_block ve (constrain_block ve em b1) b2
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
+(* pmr: Let's be honest here: the following is flat-out wrong. *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (s, iv) -> Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv)
-  | ctv           -> None
+  | CTRef (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv)
+  | CTInt (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst ITop) iv)
 
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
   List.map (fun v -> (v.C.vid, fresh_ctypevar v.C.vtype)) vs
