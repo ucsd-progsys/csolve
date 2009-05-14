@@ -83,9 +83,7 @@ class inlineVisitor fds fi = object
 
   method vstmt (s: stmt): stmt visitAction =
     match s.skind with
-      | Instr [Call (_, Lval (Var {vname = "malloc"}, NoOffset), _, _)] ->
-          DoChildren
-      | Instr [Call (lvo, Lval (Var f, NoOffset), es, loc)] ->
+      | Instr [Call (lvo, Lval (Var f, NoOffset), es, loc)] when List.mem_assoc f.vid fds ->
           let (formals, locals, rvo, b) = freshFunction fi (List.assoc f.vid fds) in
           let _                         = assertLoc (List.length formals = List.length es) loc "Wrong number of parameters" in
           let set_formals               = List.map2 (fun f e -> mkSetLval (Var f, NoOffset) e loc) formals es in
