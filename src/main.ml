@@ -113,11 +113,7 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
 let liquidate file =
   let cil   = mk_cil file in
   let qs    = mk_quals (file^".hquals") in
-  let g0    = mk_genv cil in
-  let scis  = mk_scis cil in
-  let _     = mk_shapes scis in
-
-  let me    = Consgen.create g0 scis in
+  let me    = Consgen.create cil in
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
