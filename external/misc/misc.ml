@@ -299,8 +299,8 @@ let rec pprint_many brk s f ppf = function
   | []     -> ()
   | x::[]  -> Format.fprintf ppf "%a" f x
   | x::xs' -> ((if brk 
-                then Format.fprintf ppf "%a %s@ " f x s 
-                else Format.fprintf ppf "%a %s" f x s); 
+                then Format.fprintf ppf "%a%s@," f x s 
+                else Format.fprintf ppf "%a%s" f x s); 
                 pprint_many brk s f ppf xs')
 
 let pprint_str ppf s =
@@ -505,9 +505,6 @@ let array_flapi f a =
   |> snd 
   |> List.rev
   |> flatten
-
-
-
 
 let compose f g a = f (g a)
 

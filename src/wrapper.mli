@@ -2,9 +2,10 @@ type cilenv
 
 val ce_empty: cilenv
 val ce_add: Cil.varinfo -> Constraint.reft -> cilenv -> cilenv
-val ce_find: Cil.varinfo -> cilenv -> (Cil.varinfo * Constraint.reft)
+val ce_find: Cil.varinfo -> cilenv -> Constraint.reft
 val ce_project: cilenv -> Cil.varinfo list -> cilenv
 (* val ce_iter: (Cil.varinfo -> Constraint.reft -> unit) -> cilenv -> unit *)
+val print_ce: Constraint.soln option -> Format.formatter -> cilenv -> unit
 
 val fresh: Cil.typ -> Constraint.reft
 

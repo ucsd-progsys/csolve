@@ -45,6 +45,8 @@ let rename_locals cil =
     let fn   = fd.Cil.svar.Cil.vname in
     let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.slocals in
     let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.sformals in
+    let _    = List.iter (fun v -> Format.printf "formal %s \n" v.Cil.vname) fmls in
+    let _    = List.iter (fun v -> Format.printf "local %s \n" v.Cil.vname) locs in
     fd.Cil.slocals <- locs ;
     fd.Cil.sformals <- fmls
   | _ -> ())
@@ -97,7 +99,6 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
   let _ = Format.printf "Read Qualifiers: \n%a" 
           (Misc.pprint_many true "" Ast.Qualifier.print) qs in
   qs
-
 
 let liquidate file =
   let cil   = mk_cil file in
