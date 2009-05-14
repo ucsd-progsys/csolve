@@ -1,7 +1,8 @@
-module M = Misc
-module P = Pretty
-module C = Cil
-module E = Errormsg
+module M  = Misc
+module P  = Pretty
+module C  = Cil
+module E  = Errormsg
+module ST = Ssa_transform
 
 open Ctypes
 open M.Ops
@@ -404,11 +405,19 @@ let constrain_param: ctypevar -> cstr option = function
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
   List.map (fun v -> (v.C.vid, fresh_ctypevar v.C.vtype)) vs
 
-let infer_shapes (fd: C.fundec): ctemap * store =
+let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
+  List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (IM.find vdef.C.vid ve) (IM.find vphi.C.vid ve)) vdefs
+
+let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
+  let defs = List.flatten <| Array.to_list phis in
+    List.concat <| List.map (mk_phi_defs_cs ve) defs
+
+let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
   let formals      = fresh_vars fd.C.sformals in
-  let cs           = M.map_partial (M.compose constrain_param snd) formals in
   let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
+  let cs           = M.map_partial (M.compose constrain_param snd) formals in
+  let cs           = mk_phis_cs ve phis @ cs in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.C.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in

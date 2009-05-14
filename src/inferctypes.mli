@@ -26,4 +26,4 @@ type ctemap = Ctypes.ctype ExpMap.t
 
 val d_ctemap: unit -> ctemap -> Pretty.doc
 
-val infer_shapes: Cil.fundec -> ctemap * Ctypes.store
+val infer_sci_shapes: Ssa_transform.ssaCfgInfo -> ctemap * Ctypes.store

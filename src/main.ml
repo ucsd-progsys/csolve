@@ -71,21 +71,28 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
-let mk_shapes cil =
+let mk_scis cil = 
   Cil.foldGlobals cil
-    (fun acc -> function
-       | Cil.GFun (fd, loc) ->
-           let _       = E.log "Inferring function shape:\n" in
-           let _       = Cil.dumpBlock Cil.defaultCilPrinter stdout 0 fd.Cil.sbody in
-           let (em, s) = I.infer_shapes fd in
-           let _       = E.log "Got function shapes\n" in
-           let _       = P.printf "Local types:@!" in
-           let _       = P.printf "%a@!@!" I.d_ctemap em in
-           let _       = P.printf "Store:@!" in
-           let _       = P.printf "%a@!@!" Ctypes.d_store s in
-             (fd, em, s) :: acc
-       | _ -> acc)
-    []
+    (fun acc g ->
+      match g with 
+      | Cil.GFun (fd,loc) -> 
+          let _   = E.log "before fdec_to_ssa \n" in
+          let sci = ST.fdec_to_ssa_cfg fd loc in
+          let _   = E.log "after fdec_to_ssa \n";
+                    ST.print_sci sci in
+          sci::acc
+      | _ -> acc) [] 
+
+let mk_shapes scis =
+  List.fold_left
+    (fun acc sci ->
+       let _       = E.log "Inferring function shape:@!" in
+       let (em, s) = I.infer_sci_shapes sci in
+       let _       = E.log "Got function shapes@!" in
+       let _       = E.log "Local types:@!%a@!@!" I.d_ctemap em in
+       let _       = E.log "Store:@!%a@!@!" Ctypes.d_store s in
+         (sci.ST.fdec, em, s) :: acc)
+    [] scis
 
 let mk_quals (f:string) : Ast.Qualifier.t list =        
   let _ = Printf.printf "Reading Qualifiers from %s \n" f in
@@ -105,9 +112,12 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
 
 let liquidate file =
   let cil   = mk_cil file in
-  let _     = mk_shapes cil in
   let qs    = mk_quals (file^".hquals") in
-  let me    = Consgen.create cil in
+  let g0    = mk_genv cil in
+  let scis  = mk_scis cil in
+  let _     = mk_shapes scis in
+
+  let me    = Consgen.create g0 scis in
   let ws    = Wrapper.wfs_of_t me in
   let cs    = Wrapper.cs_of_t me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
