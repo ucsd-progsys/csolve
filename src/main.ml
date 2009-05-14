@@ -71,29 +71,6 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
-let mk_scis cil = 
-  Cil.foldGlobals cil
-    (fun acc g ->
-      match g with 
-      | Cil.GFun (fd,loc) -> 
-          let _   = E.log "before fdec_to_ssa \n" in
-          let sci = ST.fdec_to_ssa_cfg fd loc in
-          let _   = E.log "after fdec_to_ssa \n";
-                    ST.print_sci sci in
-          sci::acc
-      | _ -> acc) [] 
-
-let mk_shapes scis =
-  List.fold_left
-    (fun acc sci ->
-       let _       = E.log "Inferring function shape:@!" in
-       let (em, s) = I.infer_sci_shapes sci in
-       let _       = E.log "Got function shapes@!" in
-       let _       = E.log "Local types:@!%a@!@!" I.d_ctemap em in
-       let _       = E.log "Store:@!%a@!@!" Ctypes.d_store s in
-         (sci.ST.fdec, em, s) :: acc)
-    [] scis
-
 let mk_quals (f:string) : Ast.Qualifier.t list =        
   let _ = Printf.printf "Reading Qualifiers from %s \n" f in
     try
