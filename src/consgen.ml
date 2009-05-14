@@ -67,6 +67,7 @@ let cs_of_block me env i =
 let cons_of_fun genv sci =
   let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
+  let (vs, st)       = Inferctypes.infer_sci_shapes sci in
   let env = envt_of_fun me genv sci.ST.fdec in
   let _   = F.printf "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
   (env,
@@ -94,7 +95,7 @@ let create (cil: Cil.file) =
   let scis = scis_of_file cil in
   List.fold_left 
     (fun me sci ->
-      let fn             = sci.ST.fdec.Cil.svar.Cil.vname in 
+      let fn             = sci.ST.fdec.Cil.svar.Cil.vname in
       let (env, wfs, cs) = cons_of_fun genv sci in
       W.add_t me fn sci wfs cs env)
     W.empty_t scis

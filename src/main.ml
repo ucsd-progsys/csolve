@@ -73,36 +73,23 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
-let mk_shapes cil =
-  Cil.foldGlobals cil
-    (fun acc -> function
-       | Cil.GFun (fd, loc) ->
-           let _       = E.log "Inferring function shape:\n" in
-           let _       = Cil.dumpBlock Cil.defaultCilPrinter stdout 0 fd.Cil.sbody in
-           let (em, s) = I.infer_shapes fd in
-           let _       = E.log "Got function shapes\n" in
-           let _       = P.printf "Local types:@!" in
-           let _       = P.printf "%a@!@!" I.d_ctemap em in
-           let _       = P.printf "Store:@!" in
-           let _       = P.printf "%a@!@!" Ctypes.d_store s in
-             (fd, em, s) :: acc
-       | _ -> acc)
-    []
-
 let mk_quals (f:string) : Ast.Qualifier.t list =        
   let _ = Printf.printf "Reading Qualifiers from %s \n" f in
-  let qs =
-    open_in f
-    |> Lexing.from_channel
-    |> FixParse.defs FixLex.token in
-  let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-  let _ = Format.printf "Read Qualifiers: \n%a" 
-          (Misc.pprint_many true "" Ast.Qualifier.print) qs in
-  qs
+    try
+      let qs =
+        open_in f
+        |> Lexing.from_channel
+        |> FixParse.defs FixLex.token in
+      let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
+      let _ = Format.printf "Read Qualifiers: \n%a"
+        (Misc.pprint_many true "" Ast.Qualifier.print) qs in
+        qs
+    with Sys_error s ->
+      E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
+      []
 
 let liquidate file =
   let cil   = mk_cil file in
-  let _     = mk_shapes cil in
   let qs    = mk_quals (file^".hquals") in
   let me    = Consgen.create cil in
   let ws    = Wrapper.wfs_of_t me in

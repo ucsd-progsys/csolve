@@ -1,7 +1,8 @@
-module M = Misc
-module P = Pretty
-module C = Cil
-module E = Errormsg
+module M  = Misc
+module P  = Pretty
+module C  = Cil
+module E  = Errormsg
+module ST = Ssa_transform
 
 open Ctypes
 open M.Ops
@@ -12,7 +13,13 @@ open M.Ops
 
 type indexvar = int
 
+let d_indexvar () (iv: indexvar): P.doc =
+  P.text <| "i" ^ string_of_int iv
+
 let (fresh_indexvar, reset_fresh_indexvars) = M.mk_int_factory ()
+
+let with_fresh_indexvar (f: indexvar -> 'a): 'a =
+  f <| fresh_indexvar ()
 
 type indexexp =
   | IEConst of index
@@ -236,7 +243,7 @@ let int_width = C.bytesSizeOfInt C.IInt
 let rec typ_width (t: C.typ): int =
   match C.unrollType t with
     | C.TInt (ik, _)                    -> C.bytesSizeOfInt ik
-    | C.TPtr _                          -> 1
+    | C.TPtr _                          -> typ_width !C.upointType
     | C.TComp (ci, _) when ci.C.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.C.ftype) 0 ci.C.cfields
     | t                                 -> E.s <| E.bug "Unimplemented typ_width: %a@!@!" C.d_type t
 
@@ -277,9 +284,8 @@ type cstremap = ctvemap * cstr list
 (******************************************************************************)
 
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
-  | C.CInt64 (v, ik, so) ->
-      let iv = fresh_indexvar () in
-        (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
+  | C.CInt64 (v, ik, _) ->
+      with_fresh_indexvar (fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv))
   | c -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
@@ -287,7 +293,7 @@ let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -
   | C.Lval lv                     -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
-  | C.CastE (_, e)                -> constrain_exp_aux ve em loc e
+  | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
@@ -313,18 +319,20 @@ and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (l
 and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (pt, ctv1, ctv2) with
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
-          let iv = fresh_indexvar () in
-            (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv])
+          with_fresh_indexvar (fun iv -> (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv]))
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  let iv  = fresh_indexvar () in
-  let ctv = CTInt (int_width, iv) in
-    (ctv, em, [mk_iless loc (IEConst (ISeq (0, 1))) iv])
+  with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero constant %a to pointer@!@!" C.d_const c
+
+and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
+  match (C.unrollType ct, C.unrollType <| C.typeOf e) with
+    | (C.TInt _, C.TPtr _) -> with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst ITop) iv]))
+    | _                    -> constrain_exp_aux ve em loc e
 
 and constrain_lval_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.lval -> ctypevar * cstremap = function
   | (C.Var v, C.NoOffset)       -> (IM.find v.C.vid ve, em)
@@ -397,11 +405,19 @@ let constrain_param: ctypevar -> cstr option = function
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
   List.map (fun v -> (v.C.vid, fresh_ctypevar v.C.vtype)) vs
 
-let infer_shapes (fd: C.fundec): ctemap * store =
+let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
+  List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (IM.find vdef.C.vid ve) (IM.find vphi.C.vid ve)) vdefs
+
+let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
+  let defs = List.flatten <| Array.to_list phis in
+    List.concat <| List.map (mk_phi_defs_cs ve) defs
+
+let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
   let formals      = fresh_vars fd.C.sformals in
-  let cs           = M.map_partial (M.compose constrain_param snd) formals in
   let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
+  let cs           = M.map_partial (M.compose constrain_param snd) formals in
+  let cs           = mk_phis_cs ve phis @ cs in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.C.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
