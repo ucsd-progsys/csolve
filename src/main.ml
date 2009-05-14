@@ -104,7 +104,7 @@ let liquidate file =
 let print_header () = 
   Printf.printf " \n \n";
   Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  Printf.printf "© Copyright 2009 Regents of the University of California.";
+  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
   Printf.printf "All Rights Reserved.\n"
 
 let mk_options () =
