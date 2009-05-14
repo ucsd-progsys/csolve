@@ -89,14 +89,18 @@ let mk_shapes cil =
 
 let mk_quals (f:string) : Ast.Qualifier.t list =        
   let _ = Printf.printf "Reading Qualifiers from %s \n" f in
-  let qs =
-    open_in f
-    |> Lexing.from_channel
-    |> FixParse.defs FixLex.token in
-  let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-  let _ = Format.printf "Read Qualifiers: \n%a" 
-          (Misc.pprint_many true "" Ast.Qualifier.print) qs in
-  qs
+    try
+      let qs =
+        open_in f
+        |> Lexing.from_channel
+        |> FixParse.defs FixLex.token in
+      let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
+      let _ = Format.printf "Read Qualifiers: \n%a"
+        (Misc.pprint_many true "" Ast.Qualifier.print) qs in
+        qs
+    with Sys_error s ->
+      E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
+      []
 
 
 let liquidate file =
