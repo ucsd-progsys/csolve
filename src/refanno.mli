@@ -1,5 +1,7 @@
 type cloc
 
+val cbot: cloc
+
 type annotation =
   RefGen of Ctypes.sloc | RefInst of cloc * Ctypes.sloc
 
