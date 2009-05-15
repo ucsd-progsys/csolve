@@ -24,13 +24,14 @@
 (* This file is part of the liquidC Project.*)
 
 module F  = Format
+module E  = Errormsg
 module SM = Misc.StringMap
 module ST = Ssa_transform
 module  W = Wrapper 
 module CI = CilInterface 
 module CF = Consinfra
 module H  = Hashtbl
-
+module Co = Constants
 open Misc.Ops
 open Cil
 
@@ -65,27 +66,40 @@ let cs_of_block me env i =
   |> Misc.flap (fun (v,vi) -> W.make_ts gi p (W.t_var vi) (W.ce_find v env) loc) 
 
 let cons_of_fun genv sci =
+  let _   = Inferctypes.infer_sci_shapes sci in
   let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
-  let (vs, st)       = Inferctypes.infer_sci_shapes sci in
   let env = envt_of_fun me genv sci.ST.fdec in
   let _   = F.printf "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
   (env,
    Misc.mapn (wfs_of_block me env) n |> Misc.flatten,
    Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
 
-(* NOTE: templates for formals should be in "global" genv *)
+
+(* NOTE: 1. templates for formals are in "global" genv, 
+         2. each function var is bound to its "output" *) 
 let genv_of_file cil =                       
-  Printf.printf "WARNING: mk_genv : TBD: initialize with global variables";
-  Wrapper.ce_empty 
+  Cil.foldGlobals cil begin
+    fun genv g ->
+      match g with
+      | GFun (fdec, _) ->
+          let rett = match fdec.svar.vtype with TFun (t,_,_,_) -> t 
+                                              | _ -> assertf "genv_of_file" in
+          let ret  = fdec.svar, W.fresh rett in
+          let fmls = Misc.map (fun v -> (v, W.fresh v.vtype)) fdec.sformals in
+          List.fold_left (fun ce (v, r) -> W.ce_add v r ce) genv (ret :: fmls) 
+      | _ -> 
+          ignore (E.warn "Ignoring global: %a \n" d_global g);
+          genv
+  end W.ce_empty 
 
 let scis_of_file cil = 
   Cil.foldGlobals cil
     (fun acc g ->
       match g with 
-      | Cil.GFun (fd,loc) -> 
-          let sci = ST.fdec_to_ssa_cfg fd loc in
-          let _   = ST.print_sci sci in
+      | Cil.GFun (fdec,loc) -> 
+          let sci = ST.fdec_to_ssa_cfg fdec loc in
+          let _   = if Co.ck_olev Co.ol_insane then ST.print_sci sci in
           sci::acc
       | _ -> acc) [] 
 
