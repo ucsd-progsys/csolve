@@ -72,9 +72,15 @@ class consInfraVisitor size bindr = object(self)
     DoChildren
 end
 
-let defa_of_bindings size binds = 
+let defa_of_bindings size binds phia = 
   let defa = Array.make size [] in
-  List.iter (fun (i, vn, _) -> defa.(i) <- vn :: defa.(i)) binds;
+  List.iter 
+    (fun (i, vn, _) -> defa.(i) <- vn :: defa.(i)) 
+    binds;
+  Array.iteri 
+    (fun i xs -> let vns = List.map (fun (v,_) -> v.Cil.vname) xs in
+                 defa.(i) <- vns ++ defa.(i)) 
+    phia;
   defa
 
 let var_expt_of_bindings binds phia = 
@@ -132,6 +138,10 @@ let phidefa_of_phia phia =
   List.iter (fun (i, v, vi) -> a.(i) <- (v, vi) :: (a.(i))) phidefs;
   a
 
+let var_of_name me vn =
+  try H.find me.vart vn with Not_found -> 
+    assertf "var_of_name: unknown var %s" vn
+
 (*****************************************************************)
 (************************ API ************************************)
 (*****************************************************************)
@@ -140,7 +150,6 @@ let phidefa_of_phia phia =
 let create sci =
   let n = Array.length sci.ST.gdoms in
   let bindsr = ref [] in
-  let vs     = sci.ST.fdec.Cil.slocals in
   let phia   = sci.ST.phis in 
   let vis    = new consInfraVisitor n bindsr in
   let _      = Cil.visitCilFunction vis sci.ST.fdec in
@@ -148,11 +157,12 @@ let create sci =
   { sci      = sci;
     size     = n;
     doma     = dom_closure sci.ST.gdoms;
-    defa     = defa_of_bindings n !bindsr; 
+    defa     = defa_of_bindings n !bindsr phia; 
     expt     = var_expt_of_bindings !bindsr phia;
     phidefa  = phidefa_of_phia phia;
-    vart     = vs |> List.map (fun v -> (v.Cil.vname, v))
-                  |> Misc.hashtbl_of_list; 
+    vart     = (sci.ST.fdec.Cil.slocals ++ sci.ST.fdec.Cil.sformals)
+               |> List.map (fun v -> (v.Cil.vname, v))
+               |> Misc.hashtbl_of_list; 
   } in
   rv
 
@@ -163,7 +173,7 @@ let location me i =
 (* API *)
 let ssa_srcs me i = 
   Misc.do_catch "ssa_srcs" (Array.get me.phidefa) i 
-  |> List.map (Misc.map_pair (H.find me.vart))
+  |> List.map (Misc.map_pair (var_of_name me))
 
 (* API *)
 let ssa_targs me i = 
@@ -177,13 +187,12 @@ let var_exp me v =
 (* API *)
 let def_vars me i = 
   Misc.do_catch "def_vars" (Array.get me.defa) i 
-  |> List.map (H.find me.vart)
+  |> List.map (var_of_name me)
 
 (* API *)
 let reach_vars me i = 
   (Misc.do_catch "reach_vars" (Array.get me.doma) i)
-  |> Misc.map_partial (function (i, None) -> Some i | _ -> None)
-  |> Misc.flap (def_vars me)
+  |> Misc.flap (fun (i,_) -> def_vars me i)
 
 (* API *)
 let guardp me i = 

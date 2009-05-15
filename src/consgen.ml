@@ -38,22 +38,23 @@ open Cil
  * All those dependencies are factored into Wrapper *)
 
 let envt_of_fun me (genv : W.cilenv) fdec = 
-  List.fold_left 
-    (fun g v ->
-      let vt = v.Cil.vtype in
-      let vr = match CF.var_exp me v with
-               | CF.Exp e -> W.t_single vt e 
-               | CF.Phi   -> W.fresh vt 
-               | CF.Undef -> W.t_true vt in
-      W.ce_add v vr g)
-    genv fdec.Cil.slocals
+  fdec.Cil.slocals ++ fdec.Cil.sformals
+  |> List.fold_left 
+      (fun g v ->
+        let vt = v.Cil.vtype in
+        let vr = match CF.var_exp me v with
+                 | CF.Exp e -> W.t_single vt e 
+                 | CF.Phi   -> W.fresh vt 
+                 | CF.Undef -> W.t_true vt in
+        W.ce_add v vr g)
+      genv 
 
 let wfs_of_block me env i =
   let vsi  = CF.reach_vars me i in
   let envi = W.ce_project env vsi in
   let loc  = CF.location me i in
   CF.ssa_targs me i 
-  |> Misc.flap (fun v -> W.make_wfs envi (snd (W.ce_find v env)) loc)
+  |> Misc.flap (fun v -> W.make_wfs envi (W.ce_find v env) loc)
 
 let cs_of_block me env i =
   let vsi = CF.def_vars me i ++ CF.reach_vars me i in
@@ -61,14 +62,16 @@ let cs_of_block me env i =
   let p   = CF.guardp me i in
   let loc = CF.location me i in
   CF.ssa_srcs me i 
-  |> Misc.flap (fun (v,vi) -> W.make_ts gi p (W.t_var vi) (snd (W.ce_find v env)) loc)
+  |> Misc.flap (fun (v,vi) -> W.make_ts gi p (W.t_var vi) (W.ce_find v env) loc) 
 
 let cons_of_fun genv sci =
   let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
+  let (vs, st)       = Inferctypes.infer_sci_shapes sci in
   let env = envt_of_fun me genv sci.ST.fdec in
+  let _   = F.printf "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
   (env,
-   Misc.mapn (wfs_of_block me env) n |> Misc.flatten, 
+   Misc.mapn (wfs_of_block me env) n |> Misc.flatten,
    Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
 
 (* NOTE: templates for formals should be in "global" genv *)
@@ -92,7 +95,7 @@ let create (cil: Cil.file) =
   let scis = scis_of_file cil in
   List.fold_left 
     (fun me sci ->
-      let fn             = sci.ST.fdec.Cil.svar.Cil.vname in 
+      let fn             = sci.ST.fdec.Cil.svar.Cil.vname in
       let (env, wfs, cs) = cons_of_fun genv sci in
       W.add_t me fn sci wfs cs env)
     W.empty_t scis

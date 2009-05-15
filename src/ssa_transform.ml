@@ -173,20 +173,24 @@ let mk_renamed_var fdec var_t v ri =
 
 (*********************** compute phi assignments **************************)
 
-let mk_phi fdec cfg out_t var_t r2v i r =
-  let ps     = cfg.S.predecessors.(i) in
-  let _      = assert (ps != []) in
-  let v      = r2v r in
-  let ridefs = List.map (fun j -> (j, out_name cfg out_t (j, r))) ps in
-  let bvdefs = List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) ridefs in
-  let vphi   = mk_renamed_var fdec var_t v (Phi i) in
-  (vphi, bvdefs)
+let mk_phi fdec cfg out_t var_t r2v i preds r =
+  let v    = Misc.do_catch "mk_phi" r2v r in
+  let vphi = mk_renamed_var fdec var_t v (Phi i) in
+  match preds with 
+  | [] -> (* entry-block, connect formal to phi-var *)
+      (vphi, [(i,v)])
+  | _  -> (* inside-block, connect local-defs to phi-var *) 
+      preds |> List.map (fun j -> (j, out_name cfg out_t (j, r))) 
+            |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
+            |> fun z -> (vphi, z)
 
-let add_phis fdec cfg out_t var_t r2v i = function 
-  | [] -> [] 
-  | ps -> let b    = cfg.S.blocks.(i) in
-          let rs   = List.filter (fun (_,j) -> i=j) b.S.livevars in
-          List.map (fun (r,_) -> mk_phi fdec cfg out_t var_t r2v i r) rs 
+let add_phis fdec cfg out_t var_t r2v i b =
+  let preds = cfg.S.predecessors.(i) in
+  b.S.livevars                                                    (* take the livevars *)
+  |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
+  |> Misc.map (mk_phi fdec cfg out_t var_t r2v i preds)              (* make phi-asgn *) 
+
+
 
 (*********************** ssa rename visitor *******************************)
 
@@ -195,7 +199,7 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
 
   val sid   = ref 0
   val theta = ref IM.empty
-  val var_t = H.create 17
+(*  val var_t = H.create 17 *)
 
   method private is_ssa_renamed v = 
     not (v.vglob)
@@ -266,10 +270,10 @@ let mk_gdominators fdec cfg =
 let fdec_to_ssa_cfg fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
   let _     = print_blocks cfg in
-  let _     = S.add_ssa_info cfg in 
+  let _     = S.add_ssa_info cfg in
   let out_t = mk_out_name cfg in
   let var_t = H.create 117 in
-  let phis  = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.predecessors in
+  let phis  = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
   let _     = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r) fdec in
   let gi    = mk_gdominators fdec cfg in
   {fdec = fdec; cfg = cfg; phis = phis; ifs = fst gi; gdoms = snd gi} 

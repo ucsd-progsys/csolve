@@ -26,7 +26,8 @@ let ce_empty =
   SM.empty
 
 let ce_find v cenv = 
-  SM.find v.vname cenv
+  try snd (SM.find v.vname cenv)
+  with _ -> assertf "Unknown variable! %s" v.vname
 
 let ce_add v r cenv = 
   SM.add v.vname (v, r) cenv
@@ -46,17 +47,16 @@ let env_of_cilenv cenv =
     cenv
     Sy.SMap.empty
 
-let print_ce_bind s ppf vn r = 
-  F.fprintf ppf "@[%s : %a @]\n" vn 
-    (Misc.pprint_many false "," A.Predicate.print)
-    (C.refinement_preds s r)
-
 let print_ce so ppf cenv = 
   match so with
   | None   -> 
-      F.fprintf ppf "%a" (C.print_env None) (env_of_cilenv cenv)
+      F.fprintf ppf "@[%a@]" (C.print_env None) (env_of_cilenv cenv)
   | Some s -> 
-      SM.iter (fun vn (_, r) -> print_ce_bind s ppf vn r) cenv 
+      SM.iter 
+        (fun vn (_, r) -> 
+          F.fprintf ppf "@[%s := %a@]\n" vn 
+            A.Predicate.print (A.pAnd (C.refinement_preds s r)))
+        cenv 
 
 (*******************************************************************)
 (************************** Templates ******************************)
@@ -150,7 +150,7 @@ let print_t so ppf me =
   | Some s -> (* print solution *)
       iter_t me
         (fun fn (_, _, _, env) ->
-          F.printf "Liquid Types for %s \n%a" fn (print_ce so) env)
+          F.printf "Liquid Types for %s \n @[%a@]" fn (print_ce so) env)
 
 (* API *)
 let wfs_of_t = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []

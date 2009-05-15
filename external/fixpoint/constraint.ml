@@ -155,15 +155,15 @@ let print_sub ppf (x,e) =
   F.fprintf ppf "[%a:=%a]" Sy.print x E.print e
 
 let print_refineatom ppf = function
-  | Conc p        -> F.fprintf ppf "@[%a@]" P.print p
-  | Kvar (xes, k) -> F.fprintf ppf "@[%a%a@]" Sy.print k 
+  | Conc p        -> F.fprintf ppf "%a" P.print p
+  | Kvar (xes, k) -> F.fprintf ppf "%a%a" Sy.print k 
                        (Misc.pprint_many false "" print_sub) xes
 
 let print_refinement ppf (v, t, ras) =
-  F.fprintf ppf "@[{%a : %a | @[[%a]@]}@]" 
+  F.fprintf ppf "@[{%a : %a | [%a]}@]" 
     Sy.print v
     Ast.Sort.print t
-    (Misc.pprint_many false "; " print_refineatom) ras  
+    (Misc.pprint_many false ";" print_refineatom) ras  
 
 let print_binding ppf (x, r) = 
   F.fprintf ppf "@[%a:%a@]" 
@@ -192,7 +192,7 @@ let print_wf so ppf (env, r, io) =
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-  " env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+  "constraint: env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
     (print_env so) env 
     P.print g

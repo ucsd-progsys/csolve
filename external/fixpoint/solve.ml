@@ -42,6 +42,7 @@ open Misc.Ops
 type t = {
   tpc : TP.t;
   sri : Ci.t;
+  ws  : C.wf list;
 }
 
 (*************************************************************)
@@ -234,15 +235,18 @@ let create ts sm ps cs ws qs =
   let sri = BS.time "Making ref index" Ci.create cs in
   let s   = inst ws qs SM.empty in
   let _   = Format.printf "%a" C.print_soln s in 
-  ({ tpc = tpc; sri = sri }, s)
+  ({ tpc = tpc; sri = sri; ws = ws}, s)
 
 (* API *)
 let save fname me s =
   let oc  = open_out fname in
   let ppf = F.formatter_of_out_channel oc in
   Ci.iter  
-    (F.fprintf ppf "constraint: @[%a@] \n" (C.print_t None))
+    (F.fprintf ppf "@[%a@] \n" (C.print_t None))
     me.sri;
+  List.iter
+    (F.fprintf ppf "@[%a@] \n" (C.print_wf None))
+    me.ws;
   SM.iter 
     (fun k ps -> 
       F.fprintf ppf "solution: @[%a := [%a]@] \n"  
