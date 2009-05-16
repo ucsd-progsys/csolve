@@ -35,11 +35,13 @@ module Co = Constants
 open Misc.Ops
 open Cil
 
+let mydebug = false
+
 (* Note that Consgen -- does not -- depend on Fixpoint [Ast, Constraint]
  * All those dependencies are factored into Wrapper *)
 
 let envt_of_fun me (genv : W.cilenv) fdec = 
-  fdec.Cil.slocals ++ fdec.Cil.sformals
+  fdec.Cil.slocals
   |> List.fold_left 
       (fun g v ->
         let vt = v.Cil.vtype in
@@ -57,6 +59,9 @@ let wfs_of_block me env i =
   CF.ssa_targs me i 
   |> Misc.flap (fun v -> W.make_wfs envi (W.ce_find v env) loc)
 
+let wfs_of_fun env fdec =
+  failwith "TBDNOW: wfs_of_fun"
+
 let cs_of_block me env i =
   let vsi = CF.def_vars me i ++ CF.reach_vars me i in
   let gi  = W.ce_project env vsi in
@@ -70,10 +75,11 @@ let cons_of_fun genv sci =
   let me  = CF.create sci in
   let n   = Array.length sci.ST.phis in
   let env = envt_of_fun me genv sci.ST.fdec in
-  let _   = F.printf "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
-  (env,
-   Misc.mapn (wfs_of_block me env) n |> Misc.flatten,
-   Misc.mapn (cs_of_block  me env) n |> Misc.flatten)
+  let _   = Co.bprintf mydebug "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
+  let pws = wfs_of_fun genv sci.ST.fdec in 
+  let bws = Misc.mapn (wfs_of_block me env) n |> Misc.flatten in
+  let cs  = Misc.mapn (cs_of_block  me env) n |> Misc.flatten in
+  (env, pws ++ bws, cs)
 
 
 (* NOTE: 1. templates for formals are in "global" genv, 

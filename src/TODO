@@ -19,7 +19,9 @@
 
 (2) add function templates to global environment
     HEREHEREHEREHEREHEREHEREHEREHEREHERE
+	Consgen.fresh
 
+	
 (3) update Cil.exp -> reft to handle function calls
 	-- rename t_single to t_exp
 	-- t_exp :: W.cilenv -> Cil.typ -> Cil.expr -> C.reft  

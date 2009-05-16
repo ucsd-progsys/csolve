@@ -34,6 +34,8 @@ open Misc.Ops
 
 module Prover : ProverArch.PROVER = struct
 
+let mydebug = false
+
 (********************************************************************************)
 (********************************** Type Definitions ****************************)
 (********************************************************************************)
@@ -287,7 +289,7 @@ let unsat me =
   rv
 
 let assert_axiom me p =
-  Co.cprintf Co.ol_axioms "@[Pushing axiom %s@]@." (Z3.ast_to_string me.c p);
+  Co.bprintf mydebug "@[Pushing axiom %s@]@." (Z3.ast_to_string me.c p);
   Bstats.time "Z3 assert axiom" (Z3.assert_cnstr me.c) p;
   asserts (not(unsat me)) "ERROR: Axiom makes background theory inconsistent!"
 
@@ -358,7 +360,7 @@ let create ts env ps =
             funt  = Hashtbl.create 37; 
             vars  = []; count = 0; bnd = 0} in
   let _  = List.iter 
-             (fun p -> Format.printf "z3Pred: p = %a \n" P.print p; p |> z3Pred me env |> assert_axiom me)
+             (fun p -> z3Pred me env p |> assert_axiom me)
              (axioms ++ ps) in
   me
 
@@ -380,7 +382,7 @@ let set_filter me env vv ps qs =
 
 let set_filter me env vv ps qs = 
   let rv = set_filter me env vv ps qs in
-  Format.printf "set_filter \n ps = %a \n |qs| = %d |qs'| = %d \n" 
+  Co.bprintf mydebug "set_filter \n ps = %a \n |qs| = %d |qs'| = %d \n" 
     (Misc.pprint_many false "," P.print) ps
     (List.length qs)
     (List.length rv);

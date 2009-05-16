@@ -159,16 +159,21 @@ let print_refineatom ppf = function
   | Kvar (xes, k) -> F.fprintf ppf "%a%a" Sy.print k 
                        (Misc.pprint_many false "" print_sub) xes
 
-let print_refinement ppf (v, t, ras) =
+let print_ras so ppf ras = 
+  match so with 
+  | None   -> F.fprintf ppf "%a" (Misc.pprint_many false ";" print_refineatom) ras
+  | Some s -> F.fprintf ppf "%a" P.print (A.pAnd (Misc.flap (refineatom_preds s) ras))
+
+let print_reft so ppf (v, t, ras) =
   F.fprintf ppf "@[{%a : %a | [%a]}@]" 
     Sy.print v
     Ast.Sort.print t
-    (Misc.pprint_many false ";" print_refineatom) ras  
+    (print_ras so) ras
 
 let print_binding ppf (x, r) = 
   F.fprintf ppf "@[%a:%a@]" 
     Sy.print x 
-    print_refinement r 
+    (print_reft None) r 
 
 let print_env so ppf env = 
   match so with
@@ -187,7 +192,7 @@ let pprint_io ppf = function
 let print_wf so ppf (env, r, io) = 
   F.fprintf ppf "wf: env @[[%a]@] @\n reft %a @\n"
     (print_env so) env
-    (print_refinement) r
+    (print_reft so) r
 
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
@@ -196,20 +201,18 @@ let print_t so ppf (env,g,r1,r2,io) =
     (* pprint_io io *) 
     (print_env so) env 
     P.print g
-    print_refinement r1
-    print_refinement r2
+    (print_reft so) r1
+    (print_reft so) r2
 
 (* API *) 
 let to_string c = Misc.fsprintf (print_t None) c
 
 (* API *)
 let print_soln ppf sm =
-  F.fprintf ppf "Solution: \n";
   SM.iter 
-    (fun x ps -> 
-       F.fprintf ppf "%a := %a \n" 
-       Sy.print x 
-       (Misc.pprint_many false "," P.print) ps)
+    (fun k ps -> 
+      F.fprintf ppf "solution: @[%a := [%a]@] \n"  
+        Sy.print k (Misc.pprint_many false ";" P.print) ps)
     sm
 
 (***************************************************************)

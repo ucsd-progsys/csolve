@@ -64,6 +64,8 @@ let null_formatter = Format.make_formatter (fun a b c -> ()) ignore
 let nprintf a = Format.fprintf null_formatter a
 let ck_olev l = l <= !verbose_level
 
+
+let bprintf b = if b then Format.printf else nprintf
 let cprintf l = if ck_olev l then Format.printf else nprintf
 let ecprintf l = if ck_olev l then Format.eprintf else nprintf
 

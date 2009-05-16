@@ -45,6 +45,7 @@ type t = {
   ws  : C.wf list;
 }
 
+let mydebug = false
 (*************************************************************)
 (********************* Stats *********************************)
 (*************************************************************)
@@ -147,8 +148,8 @@ let print_solver_stats ppf me =
   F.fprintf ppf "%a" TP.print_stats me.tpc
 
 let dump me s = 
-  F.printf "%a \n" print_solver_stats me;
-  F.printf "%a \n" print_solution_stats s
+  Co.cprintf Co.ol_insane "%a \n" print_solver_stats me;
+  Co.cprintf Co.ol_insane "%a \n" print_solution_stats s
 
 
 (***************************************************************)
@@ -168,7 +169,6 @@ let inst_qual ys (q : Q.t) : Q.t list =
              |> P.support                        (* vars of q *)
              |> List.filter Sy.is_wild           (* placevs of q *)
              |> Misc.sort_and_compact in         (* duplicate free placevs *)
-  let rv = 
   match xs with [] -> [q] | _ ->
     let xyss = List.length xs                      (* for each placev *) 
                |> Misc.clone ys                    (* clone the freev list *)
@@ -177,16 +177,14 @@ let inst_qual ys (q : Q.t) : Q.t list =
     let ps'  = List.rev_map 
                  (List.fold_left (fun p' (x,y) -> P.subst p x (A.eVar y)) p)
                  xyss in
-    List.map (Q.create None t) ps' in
-  let _    = Format.printf "inst_qual q=%a, out=%a \n" 
-                 Q.print q (Misc.pprint_many false "," Q.print) rv in
-    rv
+    List.map (Q.create None t) ps'
+
 
 let inst_ext (qs : Q.t list) s wf = 
   let env = C.env_of_wf wf in
   let r   = C.reft_of_wf wf in
   let ks  = C.kvars_of_reft r |> List.map snd in
-  let _   = F.printf "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
+  let _   = Co.bprintf mydebug "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
   let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
   qs 
   |> Misc.flap (inst_qual ys)
@@ -197,7 +195,7 @@ let inst_ext (qs : Q.t list) s wf =
   |> snd
 
 let inst wfs qs s =
-  Format.printf "%a" (Misc.pprint_many true "\n" (C.print_wf None)) wfs;
+  Co.bprintf mydebug "%a" (Misc.pprint_many true "\n" (C.print_wf None)) wfs;
   List.fold_left (inst_ext qs) s wfs
 
 (***************************************************************)
@@ -216,8 +214,8 @@ let rec acsolve me w s =
 
 (* API *)
 let solve me (s : C.soln) = 
-  let _ = Co.cprintf Co.ol_solve "%a" Ci.print me.sri;  
-          Co.cprintf Co.ol_solve "%a" C.print_soln s;
+  let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
+          Co.cprintf Co.ol_insane "%a" C.print_soln s;
           dump me s in
   let w = BS.time "init wkl"    Ci.winit me.sri in 
   let s = BS.time "cleanup" SM.map (Misc.sort_and_compact) s in
@@ -234,7 +232,7 @@ let create ts sm ps cs ws qs =
   let cs  = C.validate cs in
   let sri = BS.time "Making ref index" Ci.create cs in
   let s   = inst ws qs SM.empty in
-  let _   = Format.printf "%a" C.print_soln s in 
+  let _   = Co.bprintf mydebug "%a" C.print_soln s in 
   ({ tpc = tpc; sri = sri; ws = ws}, s)
 
 (* API *)
@@ -247,12 +245,7 @@ let save fname me s =
   List.iter
     (F.fprintf ppf "@[%a@] \n" (C.print_wf None))
     me.ws;
-  SM.iter 
-    (fun k ps -> 
-      F.fprintf ppf "solution: @[%a := [%a]@] \n"  
-        Sy.print k (Misc.pprint_many false ";" P.print) ps)
-    s
-
+  F.fprintf ppf "@[%a@] \n" C.print_soln s;
 
 
 (*

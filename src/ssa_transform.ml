@@ -8,6 +8,8 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
+let mydebug = false
+
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *
  * out_t.(b,r) = Undef      if r is unmodified (no write/phi) in b      *
@@ -74,8 +76,8 @@ let print_phis phis =
     phis
  
 let print_instrs i (us, ds) = 
-  let vs2s vs = String.concat "," (List.map (fun v -> v.vname) (VS.elements vs)) in
-  ignore (E.log "block = %d :uses= %s :defines= %s \n " i (vs2s us) (vs2s ds))
+    let vs2s vs = String.concat "," (List.map (fun v -> v.vname) (VS.elements vs)) in
+    ignore (E.log "block = %d :uses= %s :defines= %s \n " i (vs2s us) (vs2s ds))
 
 (******************************* create CFG *******************************)
 
@@ -107,8 +109,7 @@ let proc_stmt cfg v2r s =
           []
       | TryExcept _ | TryFinally _ -> 
           assert false in
-    let ins = List.map (fun (us,ds) -> (* ignore(print_instrs s.sid (us, ds));*) 
-                                       (vs_to_regs ds, vs_to_regs us)) uds in
+    let ins = List.map (fun (us,ds) -> (vs_to_regs ds, vs_to_regs us)) uds in
     { S.bstmt     = s;
       S.instrlist = ins;
       S.livevars  = [];   (* set later *)
@@ -188,7 +189,7 @@ let add_phis fdec cfg out_t var_t r2v i b =
   let preds = cfg.S.predecessors.(i) in
   b.S.livevars                                                    (* take the livevars *)
   |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
-  |> Misc.map (mk_phi fdec cfg out_t var_t r2v i preds)              (* make phi-asgn *) 
+  |> Misc.map (mk_phi fdec cfg out_t var_t r2v i preds)           (* make phi-asgn *) 
 
 
 
@@ -260,7 +261,7 @@ end
 
 let mk_gdominators fdec cfg =
   let idom = S.compute_idom cfg in
-  let _    = Array.iteri (fun i id -> ignore (E.log "idom of %d = %d \n" i id)) idom in 
+  let _    = if mydebug then Array.iteri (fun i id -> ignore (E.log "idom of %d = %d \n" i id)) idom in 
   let n    = Array.length idom in
   let ifs  = Guards.mk_ifs n fdec in
   let gds  = Guards.mk_gdoms cfg.S.predecessors ifs idom in
@@ -269,7 +270,7 @@ let mk_gdominators fdec cfg =
 (* API *)
 let fdec_to_ssa_cfg fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
-  let _     = print_blocks cfg in
+  let _     = if mydebug then print_blocks cfg in
   let _     = S.add_ssa_info cfg in
   let out_t = mk_out_name cfg in
   let var_t = H.create 117 in

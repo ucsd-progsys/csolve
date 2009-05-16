@@ -84,6 +84,12 @@ module StringMap =
       compare i1 i2
   end)
 
+let sm_filter f sm = 
+  StringMap.fold 
+    (fun x y sm -> if f x y then StringMap.add x y sm else sm) 
+    sm StringMap.empty 
+
+
 open Ops
 
 let foldn f b n = 
