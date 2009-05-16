@@ -1,0 +1,6 @@
+If this directory is empty, it is because you've got the SPEC-free version
+of the distribution.  Backprop can be located in the directory:
+
+  SPECFP92/benchspec/052.alvinn/
+
+Copy the file "backprop.c" to the "backprop/" directory.

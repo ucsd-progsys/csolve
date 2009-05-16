@@ -1,0 +1,66 @@
+These programs are available via anonymous ftp from:
+
+  http://www.cs.wisc.edu/~austin/austin.html
+
+The commands used for the experiments in the PLDI '94 ("Efficient Detection
+of All Pointer and Array Access Errors") paper are:
+
+        anagram:        anagram words < input.in
+        backprop:       backprop
+        bc:             bc < test.b
+        ft:             ft 1000 2000
+        ks:             ks KL-2.in
+        yacr2:          yacr2 input2.in
+
+There are also a few other inputs in each directory.
+
+There is now a unified Makefile system.  The Makefile in the top directory
+is included in all the benchmark Makefiles, the master Makefile supports
+the following targets:
+
+	make			- build the program
+	make clean		- delete all generated files
+	make test		- test the executable
+
+If you are building for a cross-development system or a simulator, define
+the variable SIM in the master Makefile to be the prefix command added to
+cross-executed commands.
+
+NOTE: This distribution has only been tested against GNU GCC and GNU make.
+      Without these programs, your mileage may vary.
+
+Here's a short description of the programs:
+
+	Anagram: an anagram generator, uses a clever bit-wise parallel
+		algorithm, contains lots of character pointer arithmetic,
+		very recursive, written by Raymond Chen, picked off of
+		alt.sources, some dynamic allocation, only frames are
+		deallocated
+
+	Backprop: a neural net simulator, lots of 2-d array manipulation,
+		no explicit dynamic allocation [omitted: grab this from your
+		SPEC '92 distribution]
+
+	BC: GNU BC calculator, lots of dynamic storage allocation and
+		deallocation throughout life of program, implements a
+		reference counting scheme internally to manage number and
+		AST nodes, lots of pointer manipulation
+
+	FT: min-span calculation, lots of dynamic storage allocation
+		and deallocation throughout life of program, very little
+		pointer arithmetic, written by Alain Kagi
+
+	KS: Kernighan-Schweikert graph partitioning tool, lots of pointer
+		and array dereferencing and arithmetic, some dynamic
+		storage allocation, no explicit dynamic storage deallocation
+
+	YACR-2: yet another channel routiner - version 2, lots of pointer
+		and array dereferencing and arithmetic, some dynamic
+                storage allocation, no explicit dynamic storage deallocation
+
+For more detailed analyses of these programs, see:
+
+  Efficient Detection of All Pointer and Array Access Errors, Todd M. Austin,
+  Scott E.  Breach, and Gurindar S. Sohi, Proceedings of the ACM SIGPLAN '94
+  Conference on Programming Language Design and Implementation, June 1994.
+
