@@ -40,63 +40,68 @@ let mydebug = false
 (* Note that Consgen -- does not -- depend on Fixpoint [Ast, Constraint]
  * All those dependencies are factored into Wrapper *)
 
-let envt_of_fun me (genv : W.cilenv) fdec = 
+let envt_of_fun me fdec = 
   fdec.Cil.slocals
   |> List.fold_left 
-      (fun g v ->
+      (fun env v ->
         let vt = v.Cil.vtype in
         let vr = match CF.var_exp me v with
                  | CF.Exp e -> W.t_single vt e 
-                 | CF.Phi   -> W.fresh vt 
+                 | CF.Phi   -> W.t_fresh vt 
                  | CF.Undef -> W.t_true vt in
-        W.ce_add v vr g)
-      genv 
+        W.ce_add v vr env)
+      W.ce_empty
 
-let wfs_of_block me env i =
+let wfs_of_block me gnv env i =
   let vsi  = CF.reach_vars me i in
-  let envi = W.ce_project env vsi in
+  let envi = W.ce_project gnv env vsi in
   let loc  = CF.location me i in
   CF.ssa_targs me i 
   |> Misc.flap (fun v -> W.make_wfs envi (W.ce_find v env) loc)
 
-let wfs_of_fun env fdec =
-  failwith "TBDNOW: wfs_of_fun"
-
-let cs_of_block me env i =
-  let vsi = CF.def_vars me i ++ CF.reach_vars me i in
-  let gi  = W.ce_project env vsi in
-  let p   = CF.guardp me i in
-  let loc = CF.location me i in
+let cs_of_block me gnv env i =
+  let vsi  = CF.def_vars me i ++ CF.reach_vars me i in
+  let envi = W.ce_project gnv env vsi in
+  let p    = CF.guardp me i in
+  let loc  = CF.location me i in
   CF.ssa_srcs me i 
-  |> Misc.flap (fun (v,vi) -> W.make_ts gi p (W.t_var vi) (W.ce_find v env) loc) 
+  |> Misc.flap (fun (v,vi) -> W.make_ts envi p (W.t_var vi) (myfind v env) loc) 
 
-let cons_of_fun genv sci =
-  let _   = Inferctypes.infer_sci_shapes sci in
-  let me  = CF.create sci in
-  let n   = Array.length sci.ST.phis in
-  let env = envt_of_fun me genv sci.ST.fdec in
-  let _   = Co.bprintf mydebug "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
-  let pws = wfs_of_fun genv sci.ST.fdec in 
-  let bws = Misc.mapn (wfs_of_block me env) n |> Misc.flatten in
-  let cs  = Misc.mapn (cs_of_block  me env) n |> Misc.flatten in
-  (env, pws ++ bws, cs)
+let cons_of_fun gnv sci =
+  let _    = Inferctypes.infer_sci_shapes sci in
+  let me   = CF.create sci in
+  let n    = Array.length sci.ST.phis in
+  let (gnv,_) = W.ce_unroll sci.ST.fdec.svar gnv in
+  let _    = Co.bprintf true "gnv_of_fun:@   @[%a@] @ " (W.print_ce None) gnv in
+  let env  = envt_of_fun me sci.ST.fdec in
+  let _    = Co.bprintf true "env_of_fun:@   @[%a@] @ " (W.print_ce None) env in
+  (env,   
+   Misc.mapn (wfs_of_block me gnv env) n |> Misc.flatten,
+   Misc.mapn (cs_of_block  me gnv env) n |> Misc.flatten)
 
+let type_of_fdec fdec = 
+  let fn = fdec.svar.vname in
+  match fdec.svar.vtype with 
+  | TFun (a,Some xts, b, c) ->
+      let xts' = List.map (fun (x,d,e) -> (x^"@"^fn, d, e)) xts in
+      TFun (a, Some xts', b, c)
+  | TFun (_,_,_,_) as t -> 
+      t
+  | _  -> 
+      assertf "type_of_fdec"
 
-(* NOTE: 1. templates for formals are in "global" genv, 
+(* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 
-let genv_of_file cil =                       
+let gnv_of_file cil =                       
   Cil.foldGlobals cil begin
-    fun genv g ->
+    fun gnv g ->
       match g with
       | GFun (fdec, _) ->
-          let rett = match fdec.svar.vtype with TFun (t,_,_,_) -> t 
-                                              | _ -> assertf "genv_of_file" in
-          let ret  = fdec.svar, W.fresh rett in
-          let fmls = Misc.map (fun v -> (v, W.fresh v.vtype)) fdec.sformals in
-          List.fold_left (fun ce (v, r) -> W.ce_add v r ce) genv (ret :: fmls) 
+          let t = type_of_fdec fdec in
+          W.ce_add fdec.svar (W.t_fresh t) gnv  
       | _ -> 
           ignore (E.warn "Ignoring global: %a \n" d_global g);
-          genv
+          gnv
   end W.ce_empty 
 
 let scis_of_file cil = 
@@ -105,17 +110,32 @@ let scis_of_file cil =
       match g with 
       | Cil.GFun (fdec,loc) -> 
           let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if Co.ck_olev Co.ol_insane then ST.print_sci sci in
+          let _   = if false then ST.print_sci sci in
           sci::acc
       | _ -> acc) [] 
 
-(* API *)
-let create (cil: Cil.file) = 
-  let genv = genv_of_file cil in
-  let scis = scis_of_file cil in
+let add_scis gnv scis me = 
   List.fold_left 
     (fun me sci ->
       let fn             = sci.ST.fdec.Cil.svar.Cil.vname in
-      let (env, wfs, cs) = cons_of_fun genv sci in
+      let (env, wfs, cs) = cons_of_fun gnv sci in
       W.add_t me fn sci wfs cs env)
-    W.empty_t scis
+  me scis
+
+let cons_of_globals gnv cil = 
+  Cil.foldGlobals cil begin
+    fun (ws, cs) g ->
+      match g with
+      | Cil.GFun (fdec, loc) ->
+          let ws' = (W.make_wfs gnv (W.ce_find fdec.svar gnv) loc) ++ ws in
+          (ws', cs)
+      | _ -> assertf "add_globals"
+  end ([], []) 
+
+(* API *)
+let create (cil: Cil.file) = 
+  let gnv = gnv_of_file cil in
+  let scis = scis_of_file cil in
+  cons_of_globals gnv cil
+  |> Misc.uncurry W.create_t
+  |> add_scis gnv scis 

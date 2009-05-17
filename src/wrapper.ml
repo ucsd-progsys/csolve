@@ -1,5 +1,4 @@
 module F  = Format
-module SM = Misc.StringMap
 module ST = Ssa_transform
 module  A = Ast
 module  P = Ast.Predicate
@@ -8,9 +7,11 @@ module Sy = Ast.Symbol
 module So = Ast.Sort
 module CI = CilInterface
 
+module YM = Sy.SMap
+module SM = Misc.StringMap
+
 open Misc.Ops
 open Cil
-
 
 (*******************************************************************)
 (**************** Wrapper between LiquidC and Fixpoint *************)
@@ -20,36 +21,55 @@ open Cil
 (*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
+type cilname = Sy.t
+let cilname_of_varinfo = fun v -> Sy.of_string v.vname
+let cilname_of_string = Sy.of_string
 
 type cilreft = Base of C.reft 
-             | Fun  of (varinfo * cilreft) list * cilreft  
+             | Fun  of (cilname * cilreft) list * cilreft  
 
-type cilenv  = (Cil.varinfo * cilreft) SM.t
+type cilenv  = cilreft YM.t
 
 let ce_empty = 
-  SM.empty
+  YM.empty
 
-let ce_find v cenv = 
-  try snd (SM.find v.vname cenv)
-  with _ -> assertf "Unknown variable! %s" v.vname
+let ce_find v (cenv : cilreft YM.t) =
+  try YM.find (Sy.of_string v.vname) cenv with Not_found -> 
+    assertf "Unknown variable! %s" v.vname 
 
 let ce_add v cr cenv = 
-  SM.add v.vname (v, cr) cenv
+  YM.add (cilname_of_varinfo v) cr cenv
 
-let ce_project cenv vs =
-  let vm = List.fold_left (fun m v -> SM.add v.vname () m) SM.empty vs in
-  Misc.sm_filter (fun vn _ -> SM.mem vn vm) cenv
+let ce_project base_env fun_env vs =
+  vs
+  |> Misc.map cilname_of_varinfo 
+  |> Misc.filter (fun vn -> not (YM.mem vn base_env))
+  |> List.fold_left begin 
+       fun env vn -> 
+         asserts (YM.mem vn fun_env) "ce_project";
+         YM.add vn (YM.find vn fun_env) env
+     end base_env
+
+let ce_unroll v env =
+  match ce_find v env with
+  | Fun (vcrs, cr) -> 
+      let env' = List.fold_left 
+                   (fun env (vn, cr) -> YM.add vn cr env) 
+                   env vcrs in
+      (env', cr)
+  | _ ->
+      assertf "ce_unroll"
 
 let ce_iter f cenv = 
-  SM.iter (fun _ (v, r) -> f v r) cenv
+  YM.iter (fun vn cr -> f vn cr) cenv
 
 let env_of_cilenv cenv = 
-  SM.fold begin
-    fun x (_, cr) env -> 
+  YM.fold begin
+    fun vn cr env -> 
       match cr with 
-      | Base r -> Sy.SMap.add (Sy.of_string x) r env
-      | _ -> env
-  end cenv Sy.SMap.empty
+      | Base r -> YM.add vn r env
+      | _      -> env
+  end cenv YM.empty
   
 let rec print_cilreft so ppf = function  
   | Base r -> 
@@ -59,13 +79,13 @@ let rec print_cilreft so ppf = function
         (Misc.pprint_many false "," (print_binding so)) args
         (print_cilreft so) ret
 
-and print_binding so ppf (v, cr) = 
-  F.fprintf ppf "%s:%a" v.vname (print_cilreft so) cr
+and print_binding so ppf (vn, cr) = 
+  F.fprintf ppf "%a : %a" Sy.print vn (print_cilreft so) cr
 
 let print_ce so ppf cenv =
-  SM.iter begin
-    fun vn (_, cr) -> 
-      F.fprintf ppf "@[%s := %a@]\n" vn (print_cilreft so) cr
+  YM.iter begin
+    fun vn cr -> 
+      F.fprintf ppf "@[%a@]@\n" (print_binding so) (vn, cr) 
   end cenv
 
 (*******************************************************************)
@@ -76,14 +96,24 @@ let fresh_kvar =
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
-let rec cilreft_of_type f t =
-  match t with
-  | TInt _ -> 
+let rec cilreft_of_type f = function
+  | TInt _  as t -> 
       let ras = f t in
       let vv  = Sy.value_variable So.Int in
       Base (C.make_reft vv So.Int ras )
+  | TFun (t, stso, _, _) ->
+      Fun (cilreft_of_bindings f stso,
+           cilreft_of_type f t)
   | _      -> 
       assertf "TBDNOW: Consgen.fresh"
+
+and cilreft_of_bindings f = function
+  | None -> 
+      []
+  | Some sts -> 
+      List.map begin
+        fun (s,t,_) -> (cilname_of_string s, cilreft_of_type f t) 
+      end sts
 
 let is_base = function
   | TInt _ -> true
@@ -101,7 +131,7 @@ let t_single t e =
   let vv  = Sy.value_variable so in
   let e   = CI.expr_of_cilexp e in
   let ras = [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
-  C.make_reft vv so ras
+  Base (C.make_reft vv so ras)
 
 let t_var v =
   t_single v.Cil.vtype (Lval ((Var v), NoOffset))
@@ -122,10 +152,9 @@ let rec make_wfs env cr loc =
   | Base r -> 
       [C.make_wf (env_of_cilenv env) r None]
   | Fun (args, ret) ->
-      let env'  = List.fold_left (fun env (v,cr) -> ce_add v cr env) env args in
-      let retws = make_wfs env' ret loc in
-      let argws = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) args in
-      retws ++ argws
+      let env' = List.fold_left (fun env (vn, cr) -> YM.add vn cr env) env args in
+      (make_wfs env' ret loc) ++ 
+      (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
 
 (****************************************************************)
 (********************** Constraint Indexing *********************)
@@ -139,10 +168,10 @@ type t = {
 }
 
 (* API *)
-let empty_t = 
-  { scim = SM.empty;
-    wfm  = SM.empty;
-    cm   = SM.empty;
+let create_t ws cs = 
+  { scim = Misc.StringMap.empty;
+    wfm  = Misc.StringMap.add Constants.global_name ws Misc.StringMap.empty;
+    cm   = Misc.StringMap.add Constants.global_name cs Misc.StringMap.empty;
     envm = SM.empty }
 
 (* API *)
@@ -174,7 +203,7 @@ let print_t so ppf me =
   | Some s -> (* print solution *)
       iter_t me
         (fun fn (_, _, _, env) ->
-          F.printf "Liquid Types for %s \n @[%a@]" fn (print_ce so) env)
+          F.printf "Liquid Types for %s \n%a" fn (print_ce so) env)
 
 (* API *)
 let wfs_of_t = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []

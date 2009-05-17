@@ -139,11 +139,11 @@ let print_solver_stats ppf me =
   let cn   = List.length cs in
   let scn  = List.length (List.filter C.is_simple cs) in
   (* F.fprintf ppf "%a" Ci.print me.sri; *)
-  F.fprintf ppf "# constraints = %d \n" cn;
-  F.fprintf ppf "# simple constraints = %d \n" scn;
-  F.fprintf ppf "# Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
+  F.fprintf ppf "#constraints = %d \n" cn;
+  F.fprintf ppf "#simple constraints = %d \n" scn;
+  F.fprintf ppf "#Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
     !stat_refines !stat_simple_refines !stat_tp_refines !stat_matches;
-  F.fprintf ppf "#Queries = %d@ (TP=%d, valid=%d)\n" 
+  F.fprintf ppf "#Queries = %d (TP=%d, valid=%d)\n" 
     !stat_matches !stat_imp_queries !stat_valid_queries;
   F.fprintf ppf "%a" TP.print_stats me.tpc
 

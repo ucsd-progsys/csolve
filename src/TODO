@@ -13,15 +13,12 @@
 - formals
 
 (1) connect formals to other local vars 
-    i.e. if x is a formal, 
-    make x the "first" dominating definition
-    [DONE -- add phi-assignment for block-without-predecessors]
+    i.e. if x is a formal, make x the "first" dominating definition
+    [DONE -- phi-var for 0-block is formal]
 
 (2) add function templates to global environment
-    HEREHEREHEREHEREHEREHEREHEREHEREHERE
-	Consgen.fresh
+    [DONE -- hellishly ugly. damn C]
 
-	
 (3) update Cil.exp -> reft to handle function calls
 	-- rename t_single to t_exp
 	-- t_exp :: W.cilenv -> Cil.typ -> Cil.expr -> C.reft  
@@ -32,7 +29,7 @@
 	-- callee params (via calls)
 	-- function outputs (returns)
     
-    In consinfra.m, add: 
+    In consinfra.ml, add: 
     
     type flow = Var of Cil.varinfo * Cil.varinfo | ... (* cells *)
     

@@ -21,7 +21,7 @@
  *)
 
 (** This module contains globals representing "flags" **************)
-
+let global_name          = "GLOBAL"
 let save_file            = ref "out"            (* -save *)
 let dump_ref_constraints = ref false            (* -drconstr *)
 let ol_default           = 2

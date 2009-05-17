@@ -8,7 +8,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false
+let mydebug = true 
 
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *
@@ -66,14 +66,12 @@ let print_out_t r2v out_t =
     out_t
 
 let print_phis phis = 
-  Array.iteri 
-    (fun i xs ->
-      List.iter 
-        (fun (v,vs) -> 
-          ignore (E.log "block %d: %s <- phi(%s) \n" i v.vname 
-          (String.concat "," (List.map (fun (j,v) -> Printf.sprintf "%d: %s" j v.vname) vs))))
-        xs)
-    phis
+  Array.iteri begin fun i xs ->
+    List.iter begin fun (v,vs) -> 
+      ignore (E.log "block %d: %s <- phi(%s) \n" i v.vname 
+      (String.concat "," (List.map (fun (j,v) -> Printf.sprintf "%d: %s" j v.vname) vs)))
+    end xs
+  end phis
  
 let print_instrs i (us, ds) = 
     let vs2s vs = String.concat "," (List.map (fun v -> v.vname) (VS.elements vs)) in
@@ -165,10 +163,17 @@ let out_name cfg out_t k =
       H.find out_t (j, r))
     k k
 
+let is_formal fdec v =
+  fdec.sformals
+  |> Misc.map (fun v -> v.vname)
+  |> List.mem v.vname 
+
 let mk_renamed_var fdec var_t v ri =
   try H.find var_t (v.vname, ri) with Not_found ->
-    let name = mk_ssa_name v.vname ri   in
-    let v'   = makeLocalVar fdec name v.vtype in
+    let v' = 
+      match ri with 
+      | Phi 0 -> asserts (is_formal fdec v) "mk_renamed_var"; v 
+      | _     -> makeLocalVar fdec (mk_ssa_name v.vname ri) v.vtype in
     let _    = H.replace var_t (v.vname, ri) v' in
     v'
 
@@ -177,19 +182,22 @@ let mk_renamed_var fdec var_t v ri =
 let mk_phi fdec cfg out_t var_t r2v i preds r =
   let v    = Misc.do_catch "mk_phi" r2v r in
   let vphi = mk_renamed_var fdec var_t v (Phi i) in
-  match preds with 
+  (* match preds with 
   | [] -> (* entry-block, connect formal to phi-var *)
       (vphi, [(i,v)])
-  | _  -> (* inside-block, connect local-defs to phi-var *) 
+  | _  -> (* inside-block, connect local-defs to phi-var *) *)
       preds |> List.map (fun j -> (j, out_name cfg out_t (j, r))) 
             |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
             |> fun z -> (vphi, z)
 
 let add_phis fdec cfg out_t var_t r2v i b =
-  let preds = cfg.S.predecessors.(i) in
-  b.S.livevars                                                    (* take the livevars *)
-  |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
-  |> Misc.map (mk_phi fdec cfg out_t var_t r2v i preds)           (* make phi-asgn *) 
+  match cfg.S.predecessors.(i) with
+  | [] -> 
+      []
+  | (_::_) as ps -> 
+      b.S.livevars                                                    (* take the livevars *)
+      |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
+      |> Misc.map (mk_phi fdec cfg out_t var_t r2v i ps)              (* make phi-asgn *) 
 
 
 
