@@ -65,7 +65,7 @@ let cs_of_block me gnv env i =
   let p    = CF.guardp me i in
   let loc  = CF.location me i in
   CF.ssa_srcs me i 
-  |> Misc.flap (fun (v,vi) -> W.make_ts envi p (W.t_var vi) (myfind v env) loc) 
+  |> Misc.flap (fun (v,vi) -> W.make_ts envi p (W.t_var vi) (W.ce_find v env) loc) 
 
 let cons_of_fun gnv sci =
   let _    = Inferctypes.infer_sci_shapes sci in
