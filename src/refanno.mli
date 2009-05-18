@@ -10,4 +10,4 @@ type annotated_block = (annotation option * annotation option) list
 
 (* takes an instruction list and returns a list of annotations of identical
  * size *)
-val annotate_block: Cil.instr list -> (annotated_block * (Cil.varinfo -> cloc))
+val annotate_block: Inferctypes.ctemap -> Cil.instr list -> (annotated_block * (Cil.varinfo -> cloc))
