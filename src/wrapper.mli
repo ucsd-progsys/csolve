@@ -38,7 +38,7 @@ val make_wfs: cilenv
            -> cilreft 
            -> Cil.location 
            -> Constraint.wf list
-
+(*
 type t
 
 val create_t: Constraint.wf list 
@@ -59,3 +59,4 @@ val print_t:  Constraint.soln option
            ->  unit
 val wfs_of_t: t -> Constraint.wf list 
 val cs_of_t: t -> Constraint.t list
+*)

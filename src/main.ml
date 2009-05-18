@@ -90,13 +90,13 @@ let liquidate file =
   let cil   = mk_cil file in
   let qs    = mk_quals (file^".hquals") in
   let me    = Consgen2.create cil in
-  let ws    = Consindex.wfs_of_t me in
-  let cs    = Consindex.cs_of_t me in
+  let ws    = Consindex.get_wfs me in
+  let cs    = Consindex.get_cs me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in
-  let _     = Consindex.print_t (Some s') Format.std_formatter me in 
+  let _     = Consindex.print (Some s') Format.std_formatter me in 
   (cs' = [])
 
 let print_header () = 

@@ -62,9 +62,22 @@ let stat_matches        = ref 0
 (************************** Refinement *************************)
 (***************************************************************)
 
+let preds_of_reft s (_,_,ras) =
+  Misc.flap (C.preds_of_refa s) ras
+
+let preds_of_envt s env =
+  SM.fold
+    (fun x ((vv, t, ras) as r) ps -> 
+      let vps = preds_of_reft s r in
+      let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
+      xps ++ ps)
+    env [] 
+
+
+
 let lhs_preds s env gp r1 =
-  let envps = C.environment_preds s env in
-  let r1ps  = C.refinement_preds  s r1 in
+  let envps = preds_of_envt s env in
+  let r1ps  = preds_of_reft  s r1 in
   gp :: (envps ++ r1ps) 
 
 let rhs_cands s = function
@@ -115,7 +128,7 @@ let unsat me s c =
   let r2     = C.rhs_of_t c in
   let (vv,t,_) as r1 = C.lhs_of_t c in
   let lps    = lhs_preds s env gp r1 in
-  let rhsp   = r2 |> thd3 |> Misc.flap (C.refineatom_preds s) |> A.pAnd in
+  let rhsp   = r2 |> thd3 |> Misc.flap (C.preds_of_refa s) |> A.pAnd in
   not ((check_tp me env vv t lps [(0, rhsp)]) = [0])
 
 let unsat_constraints me s =

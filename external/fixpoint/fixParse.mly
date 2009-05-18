@@ -166,8 +166,8 @@ cstr:
   ;
 
 env:
-  LB RB                                 { C.env_of_list [] }
-  | LB envne RB                         { C.env_of_list $2 }
+  LB RB                                 { C.env_of_bindings [] }
+  | LB envne RB                         { C.env_of_bindings $2 }
   ;
 
 envne:

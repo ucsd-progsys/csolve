@@ -43,11 +43,9 @@ type deft = Srt of Ast.Sort.t
 val kvars_of_reft    : reft -> (subs * Ast.Symbol.t) list
 val kvars_of_t       : t -> (subs * Ast.Symbol.t) list
 val apply_substs     : subs -> Ast.pred -> Ast.pred
-val refineatom_preds : soln -> refa -> Ast.pred list
-val refinement_preds : soln -> reft -> Ast.pred list
-val environment_preds: soln -> envt -> Ast.pred list
-
-val env_of_list      : (Ast.Symbol.t * reft) list -> envt
+val preds_of_refa    : soln -> refa -> Ast.pred list
+val env_of_bindings  : (Ast.Symbol.t * reft) list -> envt
+val bindings_of_env  : envt -> (Ast.Symbol.t * reft) list
 val is_simple        : t -> bool
 
 val sol_cleanup      : soln -> soln
