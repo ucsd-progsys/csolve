@@ -1,12 +1,9 @@
-void test(int* i) {
-    return;
-}
-
 void main() {
     int i;
+    int* j;
 
     i = 0;
-    test(&i);
+    j = &i;
 
     return;
 }
