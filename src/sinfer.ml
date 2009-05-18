@@ -44,7 +44,9 @@ let mk_cfg cil =
 
 let mk_cil fname =
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
-  let _   = Rmtmps.removeUnusedTemps cil; 
+  let _   = Heapify.heapifyNonArrays := true;
+            Heapify.default_heapify cil;
+            Rmtmps.removeUnusedTemps cil;
             mk_cfg cil;
             rename_locals cil in
   cil
