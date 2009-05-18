@@ -68,6 +68,10 @@ module Ops = struct
 
 end
 
+let curry f   = fun x y -> f (x,y)
+let uncurry f = fun (x,y) -> f x y
+
+
 module IntMap = 
   Map.Make 
   (struct
@@ -83,6 +87,12 @@ module StringMap =
     let compare i1 i2 = 
       compare i1 i2
   end)
+
+let sm_filter f sm = 
+  StringMap.fold 
+    (fun x y sm -> if f x y then StringMap.add x y sm else sm) 
+    sm StringMap.empty 
+
 
 open Ops
 

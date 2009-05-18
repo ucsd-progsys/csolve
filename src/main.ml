@@ -38,6 +38,7 @@ open Misc.Ops
  (* Pre-passes from blastCilInterface.ml:
   * one return value
   * simplify boolean expressions *)
+let mydebug = false
 
 let rename_locals cil =
   Cil.iterGlobals cil
@@ -45,8 +46,6 @@ let rename_locals cil =
     let fn   = fd.Cil.svar.Cil.vname in
     let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.slocals in
     let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.sformals in
-    let _    = List.iter (fun v -> Format.printf "formal %s \n" v.Cil.vname) fmls in
-    let _    = List.iter (fun v -> Format.printf "local %s \n" v.Cil.vname) locs in
     fd.Cil.slocals <- locs ;
     fd.Cil.sformals <- fmls
   | _ -> ())
@@ -74,16 +73,15 @@ let mk_cil fname =
   cil
 
 let mk_quals (f:string) : Ast.Qualifier.t list =        
-  let _ = Printf.printf "Reading Qualifiers from %s \n" f in
     try
       let qs =
         open_in f
         |> Lexing.from_channel
         |> FixParse.defs FixLex.token in
       let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-      let _ = Format.printf "Read Qualifiers: \n%a"
-        (Misc.pprint_many true "" Ast.Qualifier.print) qs in
-        qs
+      let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
+                (Misc.pprint_many true "" Ast.Qualifier.print) qs in
+      qs
     with Sys_error s ->
       E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
       []
