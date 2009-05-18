@@ -1,3 +1,0 @@
--obj gxclimag.o gxclpath.o
--include psl2cs
--init climag clpath

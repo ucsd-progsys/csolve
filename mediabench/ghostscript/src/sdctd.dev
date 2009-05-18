@@ -1,2 +1,0 @@
--obj sdctc.o sjpegc.o sdctd.o sjpegd.o
--include jpegd
