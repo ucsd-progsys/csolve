@@ -33,6 +33,9 @@ type cilenv  = cilreft YM.t
 let ce_empty = 
   YM.empty
 
+let ce_mem v cenv = 
+  YM.mem (Sy.of_string v.vname) cenv
+
 let ce_find v (cenv : cilreft YM.t) =
   try YM.find (Sy.of_string v.vname) cenv with Not_found -> 
     assertf "Unknown variable! %s" v.vname 
@@ -126,15 +129,16 @@ let is_base = function
 let t_fresh = cilreft_of_type (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
 let t_true  = cilreft_of_type (fun _ -> [])
 
-let t_single t e =
+let t_exp env t e =
   let so  = CI.sort_of_typ t in
   let vv  = Sy.value_variable so in
   let e   = CI.expr_of_cilexp e in
   let ras = [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
   Base (C.make_reft vv so ras)
 
-let t_var v =
-  t_single v.Cil.vtype (Lval ((Var v), NoOffset))
+let t_var env v =
+  asserts (ce_mem v env) "t_var: reading unbound var"; 
+  t_exp env v.Cil.vtype (Lval ((Var v), NoOffset))
 
 (****************************************************************)
 (********************** Constraints *****************************)

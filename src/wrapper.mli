@@ -24,8 +24,8 @@ val print_ce:   Constraint.soln option
 
 val t_fresh: Cil.typ -> cilreft
 val t_true: Cil.typ -> cilreft
-val t_single: Cil.typ -> Cil.exp -> cilreft
-val t_var: Cil.varinfo -> cilreft
+val t_exp: cilenv -> Cil.typ -> Cil.exp -> cilreft
+val t_var: cilenv -> Cil.varinfo -> cilreft
 
 val make_ts: cilenv 
            -> Ast.pred 

@@ -44,7 +44,7 @@ let tcons_of_phis me phia =
         let envj = CF.outenv_of_block me j in
         let pj   = CF.guard_of_block me j in
         let locj = CF.location_of_block me j in
-        let lhs  = W.t_var vj in
+        let lhs  = W.t_var envj vj in
         let rhs  = W.ce_find v (CF.outenv_of_block me i) in
         W.make_ts envj pj lhs rhs locj
       end srcs
@@ -57,7 +57,7 @@ let wcons_of_phi loc env grd v =
 
 let cons_of_instr loc env grd = function
   | Set (((Var v), NoOffset), e, _) ->
-      (W.ce_add v (W.t_single v.vtype e) env, [], []) 
+      (W.ce_add v (W.t_exp env v.vtype e) env, [], []) 
   | _ -> 
       assertf "TBD: cons_of_instr"
 

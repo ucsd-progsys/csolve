@@ -1,6 +1,8 @@
 int main(int x){
   int y;
-  
+
+  x++;
+
   if (x > 0){
     y = x;
   } else {

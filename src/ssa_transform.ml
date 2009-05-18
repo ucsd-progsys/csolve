@@ -44,16 +44,17 @@ let is_ssa_name s =
 
 (******************************* Printers *******************************)
 
-let print_blocks cfg =
-  let lvars_to_string lvs =
+let lvars_to_string cfg lvs =
     String.concat ","
      (List.map (fun (i,j) -> Printf.sprintf "%s(%d) def at %d" 
-                             cfg.S.regToVarinfo.(i).vname i j) lvs) in
-  Array.iteri 
+                             cfg.S.regToVarinfo.(i).vname i j) lvs) 
+
+let print_blocks cfg =
+    Array.iteri 
     (fun i b -> 
       ignore (E.log "\n ------> \n block %d [preds: %s] livevars: %s \n" 
       i (Misc.map_to_string string_of_int cfg.S.predecessors.(i)) 
-      (lvars_to_string b.S.livevars));
+      (lvars_to_string cfg b.S.livevars));
       Cil.dumpStmt Cil.defaultCilPrinter stderr 0 b.S.bstmt)
     cfg.S.blocks
  
@@ -172,7 +173,7 @@ let mk_renamed_var fdec var_t v ri =
   try H.find var_t (v.vname, ri) with Not_found ->
     let v' = 
       match ri with 
-      | Phi 0 -> asserts (is_formal fdec v) "mk_renamed_var"; v 
+      | Phi 0 -> v 
       | _     -> makeLocalVar fdec (mk_ssa_name v.vname ri) v.vtype in
     let _    = H.replace var_t (v.vname, ri) v' in
     v'
@@ -182,13 +183,11 @@ let mk_renamed_var fdec var_t v ri =
 let mk_phi fdec cfg out_t var_t r2v i preds r =
   let v    = Misc.do_catch "mk_phi" r2v r in
   let vphi = mk_renamed_var fdec var_t v (Phi i) in
-  (* match preds with 
-  | [] -> (* entry-block, connect formal to phi-var *)
-      (vphi, [(i,v)])
-  | _  -> (* inside-block, connect local-defs to phi-var *) *)
-      preds |> List.map (fun j -> (j, out_name cfg out_t (j, r))) 
-            |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
-            |> fun z -> (vphi, z)
+  let fml  = is_formal fdec v in
+  preds |> List.map (fun j -> (j, out_name cfg out_t (j, r)))
+        |> List.filter (function (_, Phi 0) -> fml | _ -> true)
+        |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
+        |> fun z -> (vphi, z)
 
 let add_phis fdec cfg out_t var_t r2v i b =
   match cfg.S.predecessors.(i) with
@@ -196,7 +195,9 @@ let add_phis fdec cfg out_t var_t r2v i b =
       []
   | (_::_) as ps -> 
       b.S.livevars                                                    (* take the livevars *)
+      |> (fun bs -> E.log "addphis for i = %d livevars= %s \n" i (lvars_to_string cfg bs); bs) 
       |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
+      |> Misc.map (fun r -> E.log "really add phi for i = %d livevar= %s \n" i (r2v r).vname; r)
       |> Misc.map (mk_phi fdec cfg out_t var_t r2v i ps)              (* make phi-asgn *) 
 
 
@@ -278,8 +279,8 @@ let mk_gdominators fdec cfg =
 (* API *)
 let fdec_to_ssa_cfg fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
-  let _     = if mydebug then print_blocks cfg in
   let _     = S.add_ssa_info cfg in
+  let _     = if mydebug then print_blocks cfg in
   let out_t = mk_out_name cfg in
   let var_t = H.create 117 in
   let phis  = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in

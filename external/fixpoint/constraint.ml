@@ -168,7 +168,7 @@ let print_binding so ppf (x, r) =
 
 let print_env so ppf env = 
   bindings_of_env env 
-  |> F.fprintf ppf "@[%a@]" (Misc.pprint_many true ";" (print_binding so))
+  |> F.fprintf ppf "%a" (Misc.pprint_many true ";" (print_binding so))
 
 let pprint_io ppf = function
   | Some id -> F.fprintf ppf "(%d)" id
