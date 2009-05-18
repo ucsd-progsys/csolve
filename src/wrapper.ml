@@ -70,7 +70,7 @@ let env_of_cilenv cenv =
       | Base r -> YM.add vn r env
       | _      -> env
   end cenv YM.empty
-  
+       
 let rec print_cilreft so ppf = function  
   | Base r -> 
       C.print_reft so ppf r 
@@ -155,7 +155,7 @@ let rec make_wfs env cr loc =
       let env' = List.fold_left (fun env (vn, cr) -> YM.add vn cr env) env args in
       (make_wfs env' ret loc) ++ 
       (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
-
+(*
 (****************************************************************)
 (********************** Constraint Indexing *********************)
 (****************************************************************)
@@ -164,28 +164,25 @@ type t = {
   scim : ST.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
-  envm : cilenv SM.t;
 }
 
 (* API *)
 let create_t ws cs = 
-  { scim = Misc.StringMap.empty;
-    wfm  = Misc.StringMap.add Constants.global_name ws Misc.StringMap.empty;
-    cm   = Misc.StringMap.add Constants.global_name cs Misc.StringMap.empty;
-    envm = SM.empty }
+  {scim = Misc.StringMap.empty;
+   wfm  = Misc.StringMap.add Constants.global_name ws Misc.StringMap.empty;
+   cm   = Misc.StringMap.add Constants.global_name cs Misc.StringMap.empty}
 
 (* API *)
 let add_t me fn sci wfs cs env =
   { scim = SM.add fn sci me.scim ;
     wfm  = SM.add fn wfs me.wfm ;
     cm   = SM.add fn cs  me.cm ;
-    envm = SM.add fn env me.envm }
+  }
 
 let find_t me fn = 
   (SM.find fn me.scim, 
    SM.find fn me.wfm,
-   SM.find fn me.cm,
-   SM.find fn me.envm)
+   SM.find fn me.cm)
 
 let iter_t me f = 
   SM.iter (fun fn _ -> f fn (find_t me fn)) me.scim
@@ -194,20 +191,23 @@ let iter_t me f =
 let print_t so ppf me = 
   match so with 
   | None -> (* print constraints *) 
-      iter_t me 
-        (fun fn (_, wfs, cs, _) ->
-           F.fprintf ppf "Ref-Constraints for %s \n %a" 
-           fn (Misc.pprint_many true "\n" (C.print_t None)) cs;
-           F.fprintf ppf "WF-Constraints for %s \n %a"
-           fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs)
-  | Some s -> (* print solution *)
-      iter_t me
-        (fun fn (_, _, _, env) ->
-          F.printf "Liquid Types for %s \n%a" fn (print_ce so) env)
+      iter_t me begin 
+        fun fn (_, wfs, cs) ->
+          F.fprintf ppf "Ref-Constraints for %s \n %a" 
+          fn (Misc.pprint_many true "\n" (C.print_t None)) cs;
+          F.fprintf ppf "WF-Constraints for %s \n %a"
+          fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs
+      end
+  | Some _ -> (* print solution *)
+      iter_t me begin
+        fun fn (_, ws, _) ->
+          ws |> env_of_ws 
+             |> F.printf "Liquid Types for %s \n%a" fn (C.print_env so)
+      end
 
 (* API *)
 let wfs_of_t = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 
 (* API *)
 let cs_of_t  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []
-
+*)

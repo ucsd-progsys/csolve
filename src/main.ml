@@ -38,7 +38,7 @@ open Misc.Ops
  (* Pre-passes from blastCilInterface.ml:
   * one return value
   * simplify boolean expressions *)
-let mydebug = false
+let mydebug = false 
 
 let rename_locals cil =
   Cil.iterGlobals cil
@@ -67,7 +67,9 @@ let mk_cfg cil =
 let mk_cil fname =
   let _   = ignore (E.log "Parsing %s\n" fname) in
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
-  let _   = Rmtmps.removeUnusedTemps cil; 
+  let _   = Heapify.heapifyNonArrays := true;
+            Heapify.default_heapify cil;
+            Rmtmps.removeUnusedTemps cil;
             mk_cfg cil;
             rename_locals cil in
   cil
@@ -89,14 +91,14 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
 let liquidate file =
   let cil   = mk_cil file in
   let qs    = mk_quals (file^".hquals") in
-  let me    = Consgen.create cil in
-  let ws    = Wrapper.wfs_of_t me in
-  let cs    = Wrapper.cs_of_t me in
+  let me    = Consgen2.create cil in
+  let ws    = Consindex.get_wfs me in
+  let cs    = Consindex.get_cs me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in
-  let _     = Wrapper.print_t (Some s') Format.std_formatter me in 
+  let _     = Consindex.print (Some s') Format.std_formatter me in 
   (cs' = [])
 
 let print_header () = 

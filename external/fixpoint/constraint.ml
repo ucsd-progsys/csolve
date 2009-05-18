@@ -61,12 +61,16 @@ let kvars_of_reft (_, _, rs) =
             | _             -> None) 
     rs
 
-let list_of_env env = 
-  SM.fold (fun x y bs -> (x,y)::bs) env []
+let env_of_bindings xrs =
+  List.fold_left begin
+    fun env (x, r) -> 
+      if SM.mem x env
+      then (asserts (r = SM.find x env) "env_of_bindings:duplicate check"; env) 
+      else SM.add x r env
+  end SM.empty xrs
 
-(* API *)
-let env_of_list xrs = 
-  List.fold_left (fun env (x,r) -> SM.add x r env) SM.empty xrs
+let bindings_of_env env = 
+  SM.fold (fun x y bs -> (x,y)::bs) env []
 
 (* API *)
 let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) = 
@@ -100,6 +104,7 @@ let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.add k qs' s)
 
+(* API *)
 let sol_add s k qs' = 
   let qs   = sol_query s k in
   let qs'' = qs' ++ qs in
@@ -119,8 +124,6 @@ let group_sol_change addf s0 kqs =
 (* API *)
 let group_sol_update = group_sol_change false
 let group_sol_add    = group_sol_change true
-
-
 (*************************************************************)
 (*********************** Logic Embedding *********************)
 (*************************************************************)
@@ -130,22 +133,9 @@ let apply_substs xes p =
   List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
 
 (* API *)
-let refineatom_preds s   = function
+let preds_of_refa s   = function
   | Conc p       -> [p]
   | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
-
-(* API *)
-let refinement_preds s (_,_,ras) =
-  Misc.flap (refineatom_preds s) ras
-
-(* API *)
-let environment_preds s env =
-  SM.fold
-    (fun x ((vv, t, ras) as r) ps -> 
-      let vps = refinement_preds s r in
-      let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
-      xps ++ ps)
-    env [] 
 
 (**************************************************************)
 (********************** Pretty Printing ***********************)
@@ -162,7 +152,8 @@ let print_refineatom ppf = function
 let print_ras so ppf ras = 
   match so with 
   | None   -> F.fprintf ppf "%a" (Misc.pprint_many false ";" print_refineatom) ras
-  | Some s -> F.fprintf ppf "%a" P.print (A.pAnd (Misc.flap (refineatom_preds s) ras))
+  | Some s -> ras |> Misc.flap (preds_of_refa s) |> A.pAnd
+                  |> F.fprintf ppf "%a" P.print 
 
 let print_reft so ppf (v, t, ras) =
   F.fprintf ppf "@[{%a : %a | [%a]}@]" 
@@ -170,19 +161,14 @@ let print_reft so ppf (v, t, ras) =
     Ast.Sort.print t
     (print_ras so) ras
 
-let print_binding ppf (x, r) = 
+let print_binding so ppf (x, r) = 
   F.fprintf ppf "@[%a:%a@]" 
     Sy.print x 
-    (print_reft None) r 
+    (print_reft so) r 
 
 let print_env so ppf env = 
-  match so with
-  | None   -> 
-      list_of_env env 
-      |> F.fprintf ppf "@[%a@]" (Misc.pprint_many true ";" print_binding)    
-  | Some s -> 
-      environment_preds s env 
-      |> F.fprintf ppf "&&[%a]" (Misc.pprint_many false ";" P.print) 
+  bindings_of_env env 
+  |> F.fprintf ppf "@[%a@]" (Misc.pprint_many true ";" (print_binding so))
 
 let pprint_io ppf = function
   | Some id -> F.fprintf ppf "(%d)" id
