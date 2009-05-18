@@ -22,7 +22,7 @@ void main(int n){
     root      = tmp;
   }
 
-  for(tmp = root; tmp = tmp->next; tmp!=NULL){
+  for(tmp = root; tmp!=NULL; tmp = tmp->next){
     assert(tmp->x >= 0);
   }
 }
