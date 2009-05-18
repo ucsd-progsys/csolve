@@ -104,6 +104,7 @@ let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.add k qs' s)
 
+(* API *)
 let sol_add s k qs' = 
   let qs   = sol_query s k in
   let qs'' = qs' ++ qs in
@@ -123,8 +124,6 @@ let group_sol_change addf s0 kqs =
 (* API *)
 let group_sol_update = group_sol_change false
 let group_sol_add    = group_sol_change true
-
-
 (*************************************************************)
 (*********************** Logic Embedding *********************)
 (*************************************************************)

@@ -50,6 +50,7 @@ val is_simple        : t -> bool
 
 val sol_cleanup      : soln -> soln
 val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
+val sol_add          : soln -> Ast.Symbol.t -> Ast.pred list -> (bool * soln)
 val group_sol_add    : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 

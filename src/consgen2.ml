@@ -62,7 +62,8 @@ let cons_of_instr loc env grd = function
       assertf "TBD: cons_of_instr"
 
 let cons_of_ret loc env grd e = 
-  assertf "TBDNOW: cons_of_ret"
+  Errormsg.warn "TBDNOW: cons_of_ret";
+  (env, [], [])
 
 let cons_fold f (env: W.cilenv) grd xs =
   List.fold_left begin

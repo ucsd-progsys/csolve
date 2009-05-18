@@ -197,6 +197,7 @@ let inst_ext (qs : Q.t list) s wf =
   let env = C.env_of_wf wf in
   let r   = C.reft_of_wf wf in
   let ks  = C.kvars_of_reft r |> List.map snd in
+  let s   = List.fold_left (fun s k -> C.sol_add s k [] |> snd) s ks in
   let _   = Co.bprintf mydebug "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
   let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
   qs 

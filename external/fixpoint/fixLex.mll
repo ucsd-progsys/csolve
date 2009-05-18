@@ -93,7 +93,7 @@ rule token = parse
   | "grd"               { GRD }
   | "lhs"               { LHS }
   | "rhs"               { RHS }
-  | "ref"               { REF }
+  | "reft"               { REF }
   | (digit)+	        { let str = Lexing.lexeme lexbuf in
 			  let len = String.length str in
 			  let zero = Char.code '0' in

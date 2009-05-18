@@ -8,6 +8,5 @@ int main(int x){
   }
 
 //  assert(y >= 0);
-
   return 0;
 }
