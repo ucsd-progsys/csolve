@@ -23,7 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
-type binding = Exp of Cil.exp | Phi | Undef 
+type binding = Exp of Cil.exp | App of Cil.exp * Cil.exp list | Phi | Undef 
 type t
 val var_exp:    t -> Cil.varinfo -> binding 
 val location:   t -> int -> Cil.location

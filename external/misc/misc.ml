@@ -96,7 +96,7 @@ let sm_filter f sm =
 
 open Ops
 
-let foldn f b n = 
+let foldn f n b = 
   let rec foo acc i = 
     if i >= n then acc else foo (f acc i) (i+1) 
   in foo b 0 
@@ -105,7 +105,7 @@ let dump s =
   print_string s; flush stdout
 
 let mapn f n = 
-  foldn (fun acc i -> (f i) :: acc) [] n 
+  foldn (fun acc i -> (f i) :: acc) n [] 
   |> List.rev
 
 let chop_last = function

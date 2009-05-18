@@ -32,6 +32,7 @@ module CI = CilInterface
 module CF = Consinfra
 module H  = Hashtbl
 module Co = Constants
+
 open Misc.Ops
 open Cil
 
@@ -47,10 +48,12 @@ let envt_of_fun me fdec =
         let vt = v.Cil.vtype in
         let vr = match CF.var_exp me v with
                  | CF.Exp e -> W.t_single vt e 
+                 | CF.
                  | CF.Phi   -> W.t_fresh vt 
                  | CF.Undef -> W.t_true vt in
         W.ce_add v vr env)
       W.ce_empty
+
 
 let wfs_of_block me gnv env i =
   let vsi  = CF.reach_vars me i in

@@ -160,11 +160,11 @@ let rec make_wfs env cr loc =
 (********************** Constraint Indexing *********************)
 (****************************************************************)
 
-type t = {
+type cindex = {
   scim : ST.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
-  envm : cilenv SM.t;
+(*  envm : cilenv SM.t; *)
 }
 
 (* API *)
@@ -179,7 +179,8 @@ let add_t me fn sci wfs cs env =
   { scim = SM.add fn sci me.scim ;
     wfm  = SM.add fn wfs me.wfm ;
     cm   = SM.add fn cs  me.cm ;
-    envm = SM.add fn env me.envm }
+    (* envm = SM.add fn env me.envm *)
+  }
 
 let find_t me fn = 
   (SM.find fn me.scim, 

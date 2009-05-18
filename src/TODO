@@ -1,12 +1,8 @@
-- Scopes not quite right in WFC (?)
-	- actually its ok -- those preds will be killed by solving.
-	- in general can have preds over "x" for _any_ "x" in scope inside
-	  a function...
-	- we may want to prune later if inst causes a blowup.
+- generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
 
-- Solve.save -- add the saving of WF constraints (?)
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - add regression test scripts 
+
 
 **************************************************************
 - return values
