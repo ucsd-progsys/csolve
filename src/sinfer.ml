@@ -71,7 +71,9 @@ let print_sci_shapes sci =
 let infer_shapes file =
   let cil  = mk_cil file in
   let scis = scis_of_file cil in
-    List.iter print_sci_shapes scis
+     scis
+      |> List.rev
+      |> List.iter print_sci_shapes
 
 let mk_options () =
   let fs = ref [] in
