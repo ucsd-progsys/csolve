@@ -1,3 +1,0 @@
--obj gximage4.o gximage5.o
--init gximage4 gximage5
--include colimlib psl2cs

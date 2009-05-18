@@ -1,3 +1,0 @@
--obj zcie.o zcrd.o
--oper zcie_l2 zcrd_l2
--include cielib

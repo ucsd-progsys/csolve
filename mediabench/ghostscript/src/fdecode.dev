@@ -1,3 +1,0 @@
--obj scantab.o sfilter2.o zfdecode.o
--include cfd lzwd pdiff pngp rld
--oper zfdecode

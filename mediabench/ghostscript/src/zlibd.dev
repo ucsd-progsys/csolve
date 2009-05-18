@@ -1,3 +1,0 @@
--obj infblock.o infcodes.o inffast.o
--obj inflate.o inftrees.o infutil.o
--include zlibc
