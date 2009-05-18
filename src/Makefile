@@ -22,7 +22,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(Z3HOME)/ocaml \
        -cflags -I,$(OCAMLGRAPHHOME)
 
-TARGETS=main.native #consgen.cmo #ssa_transform.cmo #guards.cmo main.native
+TARGETS=main.native sinfer.native #consgen.cmo #ssa_transform.cmo #guards.cmo main.native
 
 all:
 	ln -sf ../external/misc

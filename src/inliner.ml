@@ -90,8 +90,8 @@ class inlineVisitor fds fi = object
           let b                         = {b with bstmts = set_formals @ b.bstmts} in
             (* pmr: patch up block structure afterward, i.e., merge blocks? *)
             begin match (lvo, rvo) with
-              | (None, None)       -> ChangeTo (mkStmt <| Block b)
-              | (Some lv, Some rv) -> ChangeTo (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}))
+              | (None, None)       -> ChangeDoChildrenPost (mkStmt <| Block b, id)
+              | (Some lv, Some rv) -> ChangeDoChildrenPost (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}), id)
               | _                  -> E.s <| errorLoc loc "Assigning void return type to a variable"
             end
       | _ -> DoChildren

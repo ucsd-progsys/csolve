@@ -366,6 +366,9 @@ let constrain_malloc (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval 
               | CTRef (s, iv) as ctv -> (ctvm, mk_iless loc (IEConst (IInt 0)) iv :: mk_subty loc ctv ctv1 :: cs)
               | _                    -> E.s <| E.bug "Got non-ref type from fresh_ctvref"
 
+let constrain_free (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval option) (eobj: C.exp): cstremap =
+  snd <| constrain_exp ve em loc eobj
+
 let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
   | C.Set (lv, e, loc) ->
       let (ctv1, em1)        = constrain_lval ve em loc lv in
@@ -373,6 +376,8 @@ let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
   | C.Call (lvo, C.Lval (C.Var {C.vname = "malloc"}, C.NoOffset), [elen], loc) ->
       constrain_malloc ve em loc lvo elen
+  | C.Call (lvo, C.Lval (C.Var {C.vname = "free"}, C.NoOffset), [eobj], loc) ->
+      constrain_free ve em loc lvo eobj
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
