@@ -99,7 +99,9 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let _    = Inferctypes.infer_sci_shapes sci in
+  let (ctm, _)    = Inferctypes.infer_sci_shapes sci in
+  let _ = ctm in
+  (*let _ = Refanno.annotate_blo *)
   CF.create gnv sci
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 
