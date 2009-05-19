@@ -66,7 +66,7 @@ val vv_of_reft       : reft -> Ast.Symbol.t
 val sort_of_reft     : reft -> Ast.Sort.t
 val ras_of_reft      : reft -> refa list
 val shape_of_reft    : reft -> reft
-
+val theta            : subs -> reft -> reft
 
 val make_t           : envt -> Ast.pred -> reft -> reft -> tag option -> t
 val env_of_t         : t -> envt

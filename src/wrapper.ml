@@ -153,7 +153,17 @@ let t_name env n =
       Base (C.make_reft vv so ras)
   | cr -> cr
 
-let t_subs cr nes = failwith "TBDNOW: t_subs"
+let rec t_subs nes cr = 
+  match cr with
+  | Base r ->
+      let subs = Misc.map (fun (n, e) -> (n, CI.expr_of_cilexp e)) nes in
+      let r'   = C.theta subs r in
+      Base r'
+  | Fun (ncrs, r) -> 
+      let ncrs' = Misc.map (fun (n, cr) -> (n, t_subs nes cr)) ncrs in
+      let r'    = t_subs nes r in
+      Fun (ncrs', r')
+
 
 (****************************************************************)
 (********************** Constraints *****************************)

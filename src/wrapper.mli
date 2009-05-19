@@ -30,7 +30,7 @@ val t_fresh: Cil.typ -> cilreft
 val t_true: Cil.typ -> cilreft
 val t_exp: cilenv -> Cil.exp -> cilreft
 val t_name: cilenv -> name -> cilreft
-val t_subs: cilreft -> (name * Cil.exp) list -> cilreft
+val t_subs: (name * Cil.exp) list -> cilreft -> cilreft
 
 val make_cs: cilenv 
            -> Ast.pred 

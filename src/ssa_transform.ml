@@ -8,7 +8,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *
@@ -195,9 +195,7 @@ let add_phis fdec cfg out_t var_t r2v i b =
       []
   | (_::_) as ps -> 
       b.S.livevars                                                    (* take the livevars *)
-      |> (fun bs -> E.log "addphis for i = %d livevars= %s \n" i (lvars_to_string cfg bs); bs) 
       |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
-      |> Misc.map (fun r -> E.log "really add phi for i = %d livevar= %s \n" i (r2v r).vname; r)
       |> Misc.map (mk_phi fdec cfg out_t var_t r2v i ps)              (* make phi-asgn *) 
 
 
@@ -209,7 +207,6 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
 
   val sid   = ref 0
   val theta = ref IM.empty
-(*  val var_t = H.create 17 *)
 
   method private is_ssa_renamed v = 
     not (v.vglob)

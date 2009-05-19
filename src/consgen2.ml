@@ -86,7 +86,7 @@ let cons_of_call loc env grd lvo fn es =
                      env  
                  | Some ((Var v), NoOffset) ->
                      let vn  = W.name_of_varinfo v in
-                     let cr' = W.t_subs cr (List.combine ns es) in
+                     let cr' = W.t_subs (List.combine ns es) cr in
                      W.ce_add vn cr' env 
                  | _  -> assertf "TBDNOW: cons_of_call" in
       (env', [], cs)
@@ -136,7 +136,7 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let _    = Inferctypes.infer_sci_shapes sci in
+  let _ = if !Constants.ctypes then ignore(Inferctypes.infer_sci_shapes sci) in
   CF.create gnv sci
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 

@@ -205,13 +205,17 @@ let print_soln ppf sm =
 (*********************** Getter/Setter *************************)
 (***************************************************************)
 
+let theta_ra subs = function
+  | Conc p          -> Conc (apply_substs subs p)
+  | Kvar (subs', k) -> Kvar (subs ++ subs', k)
+
 (* API *)
 let make_reft     = fun v so ras -> (v, so, ras)
 let vv_of_reft    = fst3
 let sort_of_reft  = snd3
 let ras_of_reft   = thd3
 let shape_of_reft = fun (v, so, _) -> (v, so, [])
-
+let theta         = fun subs (v, so, ras) -> (v, so, Misc.map (theta_ra subs) ras)
 
 (* API *)
 let make_t      = fun env p r1 r2 io -> (env, p, r1, r2, io)

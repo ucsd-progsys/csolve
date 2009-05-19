@@ -57,7 +57,7 @@ let mk_cfg cil =
          | (Cil.GFun(fd,_) as fundec) ->
              let _ = fundec in
                Psimplify.doGlobal fundec;
-               Inliner.doGlobal fds fundec;
+               if !Constants.ctypes then Inliner.doGlobal fds fundec;
                Cil.prepareCFG fd;
                Cil.computeCFGInfo fd false;
                (fd.Cil.svar.Cil.vid, fd) :: fds
