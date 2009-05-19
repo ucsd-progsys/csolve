@@ -202,7 +202,10 @@ let cons_of_globals gnv cil =
           let fn = W.name_of_varinfo fdec.svar in
           let cr = W.ce_find fn gnv in
           ((W.make_wfs gnv cr loc) ++ ws, cs)
-      | _ -> assertf "add_globals"
+      | _ -> 
+          E.warn "Ignoring global %a \n" d_global g;
+          (ws, cs)
+
   end ([], []) 
 
 (************************************************************************************)

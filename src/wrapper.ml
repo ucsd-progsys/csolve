@@ -17,10 +17,10 @@ open Cil
 (**************** Wrapper between LiquidC and Fixpoint *************)
 (*******************************************************************)
 
+(*******************************************************************)
+(************************** Refined Types **************************)
+(*******************************************************************)
 
-(*******************************************************************)
-(************************** Environments ***************************)
-(*******************************************************************)
 type name = Sy.t
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 let name_of_string = Sy.of_string
@@ -28,10 +28,22 @@ let name_of_string = Sy.of_string
 type cilreft = Base of C.reft 
              | Fun  of (name * cilreft) list * cilreft  
 
-type cilenv  = cilreft YM.t
+let vv_int   = Sy.value_variable So.Int 
+let true_int = Base (C.make_reft vv_int So.Int [])
+let ne_0_int = let p = A.pAtom (A.eVar vv_int, A.Ne, A.zero) in 
+               Base (C.make_reft vv_int So.Int [C.Conc p])
 
-let ce_empty = 
-  YM.empty
+let builtins = 
+  [(Sy.of_string "assert", 
+      Fun ([(Sy.of_string "b", ne_0_int)], true_int));
+   (Sy.of_string "nondet", 
+      Fun ([], true_int))]
+
+
+(*******************************************************************)
+(************************** Environments ***************************)
+(*******************************************************************)
+type cilenv  = cilreft YM.t
 
 let ce_mem n cenv = 
   YM.mem n cenv
@@ -43,14 +55,18 @@ let ce_find n (cenv : cilreft YM.t) =
 let ce_add n cr cenv = 
   YM.add n cr cenv
 
+let ce_empty = 
+  List.fold_left begin 
+    fun env (n, cr) -> ce_add n cr env 
+  end YM.empty builtins  
+
 let ce_project base_env fun_env ns =
-  ns
-  |> Misc.filter (fun vn -> not (YM.mem vn base_env))
-  |> List.fold_left begin 
-       fun env n -> 
-         asserts (YM.mem n fun_env) "ce_project";
-         YM.add n (YM.find n fun_env) env
-     end base_env
+  ns |> Misc.filter (fun vn -> not (YM.mem vn base_env))
+     |> List.fold_left begin 
+         fun env n -> 
+           asserts (YM.mem n fun_env) "ce_project";
+           YM.add n (YM.find n fun_env) env
+        end base_env
 
 let ce_unroll n env =
   match ce_find n env with
@@ -101,13 +117,12 @@ let fresh_kvar =
 let rec cilreft_of_type f = function
   | TInt _  as t -> 
       let ras = f t in
-      let vv  = Sy.value_variable So.Int in
-      Base (C.make_reft vv So.Int ras )
+      Base (C.make_reft vv_int So.Int ras )
   | TFun (t, stso, _, _) ->
       Fun (cilreft_of_bindings f stso,
            cilreft_of_type f t)
   | TVoid _ ->
-      Base (C.make_reft (Sy.value_variable So.Int) So.Int [])
+      Base (C.make_reft vv_int So.Int [])
   | _      -> 
       assertf "TBDNOW: Consgen.fresh"
 
