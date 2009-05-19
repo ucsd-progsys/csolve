@@ -34,5 +34,5 @@ val add_env: int -> Wrapper.cilenv -> t -> t
 val add_cons: Constraint.wf list -> Constraint.t list -> t -> t
 val create: Wrapper.cilenv -> Ssa_transform.ssaCfgInfo -> t
 val get_cons: t -> Constraint.wf list * Constraint.t list
-
+val fname: t -> Wrapper.name
 

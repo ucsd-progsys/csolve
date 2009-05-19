@@ -90,7 +90,7 @@ let cons_of_call loc env grd lvo fn es =
                      W.ce_add vn cr' env 
                  | _  -> assertf "TBDNOW: cons_of_call" in
       (env', [], cs)
-  | _ -> assertf "cons_of_call: fname has wrong type"
+  | _ -> assertf "ERROR: cons_of_call: fname has wrong type"
 
 let cons_of_instr loc env grd = function
   | Set (lv, e, loc) ->
@@ -100,16 +100,19 @@ let cons_of_instr loc env grd = function
   | _ -> 
       assertf "TBD: cons_of_instr"
 
-let cons_of_ret loc env grd e = 
-  E.warn "TBDNOW: cons_of_ret";
-  (env, [], [])
+let cons_of_ret loc fn env grd e =
+  match W.ce_find fn env with
+  | W.Fun (_, cr) ->
+      (env, [], W.make_cs env grd (W.t_exp env e) cr loc) 
+  | _ ->
+      assertf "ERROR:cons_of_ret"
 
-let cons_of_stmt loc (env : W.cilenv) grd stmt = 
+let cons_of_stmt loc fn env grd stmt = 
   match stmt.skind with
   | Instr is -> 
       cons_fold (cons_of_instr loc) env grd is
   | Return ((Some e), _) ->
-      cons_of_ret loc env grd e
+      cons_of_ret loc fn env grd e
   | _ ->
       (env, [], [])
 
@@ -117,8 +120,10 @@ let cons_of_block me i =
   let env0             = CF.inenv_of_block me i in
   let grd              = CF.guard_of_block me i in
   let loc              = CF.location_of_block me i in
-  let (env1, ws1, cs1) = cons_fold (wcons_of_phi loc) env0 grd (CF.phis_of_block me i) in
-  let (env2, ws2, cs2) = cons_of_stmt loc env1 grd (CF.stmt_of_block me i) in
+  let phis             = CF.phis_of_block me i in
+  let fn               = CF.fname me in 
+  let (env1, ws1, cs1) = cons_fold (wcons_of_phi loc) env0 grd phis in
+  let (env2, ws2, cs2) = cons_of_stmt loc fn env1 grd (CF.stmt_of_block me i) in
   (env2, ws1 ++ ws2, cs1 ++ cs2)
 
 let process_block me i = 
