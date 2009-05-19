@@ -103,3 +103,6 @@ let guard_of_block me i =
     |> Misc.map_partial (function (i,Some b) -> Some (i,b) | _ -> None)
     |> Misc.map (pred_of_block me.sci.ST.ifs)
     |> Ast.pAnd
+
+let fname me = 
+  W.name_of_varinfo me.sci.ST.fdec.svar 

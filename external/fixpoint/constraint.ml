@@ -110,10 +110,9 @@ let sol_add s k qs' =
   let qs'' = qs' ++ qs in
   (not (Misc.same_length qs qs''), SM.add k qs'' s)
 
-let group_sol_change addf s0 kqs = 
+let group_sol_change addf s0 ks kqs = 
   let t  = Hashtbl.create 17 in
-  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
-  let ks = Misc.hashtbl_keys t in
+  let _  = List.iter (fun (k, q) -> Hashtbl.add t k q) kqs in
   List.fold_left 
     (fun (b, s) k -> 
       let qs       = Hashtbl.find_all t k in 
@@ -205,13 +204,17 @@ let print_soln ppf sm =
 (*********************** Getter/Setter *************************)
 (***************************************************************)
 
+let theta_ra subs = function
+  | Conc p          -> Conc (apply_substs subs p)
+  | Kvar (subs', k) -> Kvar (subs ++ subs', k)
+
 (* API *)
 let make_reft     = fun v so ras -> (v, so, ras)
 let vv_of_reft    = fst3
 let sort_of_reft  = snd3
 let ras_of_reft   = thd3
 let shape_of_reft = fun (v, so, _) -> (v, so, [])
-
+let theta         = fun subs (v, so, ras) -> (v, so, Misc.map (theta_ra subs) ras)
 
 (* API *)
 let make_t      = fun env p r1 r2 io -> (env, p, r1, r2, io)

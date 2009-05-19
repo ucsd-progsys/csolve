@@ -106,6 +106,8 @@ let rec cilreft_of_type f = function
   | TFun (t, stso, _, _) ->
       Fun (cilreft_of_bindings f stso,
            cilreft_of_type f t)
+  | TVoid _ ->
+      Base (C.make_reft (Sy.value_variable So.Int) So.Int [])
   | _      -> 
       assertf "TBDNOW: Consgen.fresh"
 
@@ -128,8 +130,8 @@ let is_base = function
 let t_fresh = cilreft_of_type (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
 let t_true  = cilreft_of_type (fun _ -> [])
 
-let t_exp env t e =
-  let so  = CI.sort_of_typ t in
+let t_exp env e =
+  let so  = CI.sort_of_typ (Cil.typeOf e) in
   let vv  = Sy.value_variable so in
   let e   = CI.expr_of_cilexp e in
   let ras = [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
@@ -151,11 +153,23 @@ let t_name env n =
       Base (C.make_reft vv so ras)
   | cr -> cr
 
+let rec t_subs nes cr = 
+  match cr with
+  | Base r ->
+      let subs = Misc.map (fun (n, e) -> (n, CI.expr_of_cilexp e)) nes in
+      let r'   = C.theta subs r in
+      Base r'
+  | Fun (ncrs, r) -> 
+      let ncrs' = Misc.map (fun (n, cr) -> (n, t_subs nes cr)) ncrs in
+      let r'    = t_subs nes r in
+      Fun (ncrs', r')
+
+
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
 
-let rec make_ts env p lhscr rhscr loc =
+let rec make_cs env p lhscr rhscr loc =
   match lhscr, rhscr with
   | Base lhsr, Base rhsr -> 
       [C.make_t (env_of_cilenv env) p lhsr rhsr None]

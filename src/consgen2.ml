@@ -37,6 +37,13 @@ let mydebug = false
 (* Note that Consgen -- does not -- depend on Fixpoint [Ast, Constraint]
  * All those dependencies are factored into Wrapper *)
 
+let cons_fold f (env: W.cilenv) grd xs =
+  List.fold_left begin
+    fun (env, ws, cs) x -> 
+      let (env', ws', cs') = f env grd x in
+      (env', ws' ++ ws, cs' ++ cs)
+  end (env, [], []) xs
+
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
     Misc.flap begin fun (v, srcs) ->
@@ -46,7 +53,7 @@ let tcons_of_phis me phia =
         let locj = CF.location_of_block me j in
         let lhs  = vj |> W.name_of_varinfo |> W.t_name envj in
         let rhs  = W.ce_find (W.name_of_varinfo v) (CF.outenv_of_block me i) in
-        W.make_ts envj pj lhs rhs locj
+        W.make_cs envj pj lhs rhs locj
       end srcs
     end asgns
   end phia
@@ -59,45 +66,53 @@ let wcons_of_phi loc env grd v =
 let cons_of_set loc env grd lv e =
   match lv with
   | (Var v), NoOffset -> 
-      let cr = W.t_exp env v.vtype e in
+      let cr = W.t_exp env e in
       (W.ce_add (W.name_of_varinfo v) cr env, [], []) 
   | _ -> assertf "TBD: cons_of_set"
 
-let cons_of_call loc env grd lvo e es =
-  failwith "TBDNOW: cons_of_call"
-  (*
-  let cs = ... in
-  let cr = ... in
-  match lvo with
-  | None                     -> (env, [], cs)
-  | Some ((Var v), NoOffset) -> (W.ce_add v cr env, [], cs)
-*)
+let cons_of_call loc env grd lvo fn es =
+  match W.ce_find fn env with
+  | W.Fun (ncrs, cr) ->
+      asserts (List.length ncrs = List.length es) "cons_of_call: params"; 
+      let ns   = Misc.map fst ncrs in
+      let cenv = List.fold_left2 
+                   (fun cenv n e -> W.ce_add n (W.t_exp env e) cenv)
+                   env ns es in
+      let cs   = Misc.flap 
+                   (fun (n, cr) -> W.make_cs cenv grd (W.t_name cenv n) cr loc)
+                 ncrs in
+      let env' = match lvo with 
+                 | None -> 
+                     env  
+                 | Some ((Var v), NoOffset) ->
+                     let vn  = W.name_of_varinfo v in
+                     let cr' = W.t_subs (List.combine ns es) cr in
+                     W.ce_add vn cr' env 
+                 | _  -> assertf "TBDNOW: cons_of_call" in
+      (env', [], cs)
+  | _ -> assertf "ERROR: cons_of_call: fname has wrong type"
 
 let cons_of_instr loc env grd = function
   | Set (lv, e, loc) ->
       cons_of_set loc env grd lv e
-  | Call (lvo, e, es, loc) ->
-      cons_of_call loc env grd lvo e es  
+  | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
+      cons_of_call loc env grd lvo (W.name_of_varinfo fv) es  
   | _ -> 
       assertf "TBD: cons_of_instr"
 
-let cons_of_ret loc env grd e = 
-  E.warn "TBDNOW: cons_of_ret";
-  (env, [], [])
+let cons_of_ret loc fn env grd e =
+  match W.ce_find fn env with
+  | W.Fun (_, cr) ->
+      (env, [], W.make_cs env grd (W.t_exp env e) cr loc) 
+  | _ ->
+      assertf "ERROR:cons_of_ret"
 
-let cons_fold f (env: W.cilenv) grd xs =
-  List.fold_left begin
-    fun (env, ws, cs) x -> 
-      let (env', ws', cs') = f env grd x in
-      (env', ws' ++ ws, cs' ++ cs)
-  end (env, [], []) xs
-
-let cons_of_stmt loc (env : W.cilenv) grd stmt = 
+let cons_of_stmt loc fn env grd stmt = 
   match stmt.skind with
   | Instr is -> 
       cons_fold (cons_of_instr loc) env grd is
   | Return ((Some e), _) ->
-      cons_of_ret loc env grd e
+      cons_of_ret loc fn env grd e
   | _ ->
       (env, [], [])
 
@@ -105,8 +120,10 @@ let cons_of_block me i =
   let env0             = CF.inenv_of_block me i in
   let grd              = CF.guard_of_block me i in
   let loc              = CF.location_of_block me i in
-  let (env1, ws1, cs1) = cons_fold (wcons_of_phi loc) env0 grd (CF.phis_of_block me i) in
-  let (env2, ws2, cs2) = cons_of_stmt loc env1 grd (CF.stmt_of_block me i) in
+  let phis             = CF.phis_of_block me i in
+  let fn               = CF.fname me in 
+  let (env1, ws1, cs1) = cons_fold (wcons_of_phi loc) env0 grd phis in
+  let (env2, ws2, cs2) = cons_of_stmt loc fn env1 grd (CF.stmt_of_block me i) in
   (env2, ws1 ++ ws2, cs1 ++ cs2)
 
 let process_block me i = 
@@ -119,7 +136,7 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let _    = Inferctypes.infer_sci_shapes sci in
+  let _ = if !Constants.ctypes then ignore(Inferctypes.infer_sci_shapes sci) in
   CF.create gnv sci
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 
