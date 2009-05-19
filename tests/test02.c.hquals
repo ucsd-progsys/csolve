@@ -1,0 +1,5 @@
+qualif GT(v:int): v >= ~a
+qualif POS(v:int): v >= 0
+qualif NEG(v:int): v <= 0
+
+
