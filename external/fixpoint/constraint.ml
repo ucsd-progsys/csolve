@@ -208,7 +208,7 @@ let print_soln ppf sm =
 (* API *)
 let make_reft     = fun v so ras -> (v, so, ras)
 let vv_of_reft    = fst3
-let so_of_reft    = snd3
+let sort_of_reft  = snd3
 let ras_of_reft   = thd3
 let shape_of_reft = fun (v, so, _) -> (v, so, [])
 

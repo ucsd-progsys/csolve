@@ -1,6 +1,9 @@
 - generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
 
+- remove consgen.ml*, consinfra.ml*
+
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
+
 - add regression test scripts 
 
 

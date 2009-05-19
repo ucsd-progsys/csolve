@@ -44,25 +44,45 @@ let tcons_of_phis me phia =
         let envj = CF.outenv_of_block me j in
         let pj   = CF.guard_of_block me j in
         let locj = CF.location_of_block me j in
-        let lhs  = W.t_var envj vj in
-        let rhs  = W.ce_find v (CF.outenv_of_block me i) in
+        let lhs  = vj |> W.name_of_varinfo |> W.t_name envj in
+        let rhs  = W.ce_find (W.name_of_varinfo v) (CF.outenv_of_block me i) in
         W.make_ts envj pj lhs rhs locj
       end srcs
     end asgns
   end phia
 
 let wcons_of_phi loc env grd v =
-  let cr = W.t_fresh v.vtype in 
-  (W.ce_add v cr env, W.make_wfs env cr loc, [])
+  let cr = W.t_fresh v.vtype in
+  let vn = W.name_of_varinfo v in
+  (W.ce_add vn cr env, W.make_wfs env cr loc, [])
+
+let cons_of_set loc env grd lv e =
+  match lv with
+  | (Var v), NoOffset -> 
+      let cr = W.t_exp env v.vtype e in
+      (W.ce_add (W.name_of_varinfo v) cr env, [], []) 
+  | _ -> assertf "TBD: cons_of_set"
+
+let cons_of_call loc env grd lvo e es =
+  failwith "TBDNOW: cons_of_call"
+  (*
+  let cs = ... in
+  let cr = ... in
+  match lvo with
+  | None                     -> (env, [], cs)
+  | Some ((Var v), NoOffset) -> (W.ce_add v cr env, [], cs)
+*)
 
 let cons_of_instr loc env grd = function
-  | Set (((Var v), NoOffset), e, _) ->
-      (W.ce_add v (W.t_exp env v.vtype e) env, [], []) 
+  | Set (lv, e, loc) ->
+      cons_of_set loc env grd lv e
+  | Call (lvo, e, es, loc) ->
+      cons_of_call loc env grd lvo e es  
   | _ -> 
       assertf "TBD: cons_of_instr"
 
 let cons_of_ret loc env grd e = 
-  Errormsg.warn "TBDNOW: cons_of_ret";
+  E.warn "TBDNOW: cons_of_ret";
   (env, [], [])
 
 let cons_fold f (env: W.cilenv) grd xs =
@@ -149,8 +169,9 @@ let gnv_of_file cil =
     fun gnv g ->
       match g with
       | GFun (fdec, _) ->
-          let t = type_of_fdec fdec in
-          W.ce_add fdec.svar (W.t_fresh t) gnv  
+          let t  = type_of_fdec fdec in
+          let fn = W.name_of_varinfo fdec.svar in
+          W.ce_add fn (W.t_fresh t) gnv  
       | _ -> 
           ignore (E.warn "Ignoring global: %a \n" d_global g);
           gnv
@@ -161,8 +182,9 @@ let cons_of_globals gnv cil =
     fun (ws, cs) g ->
       match g with
       | Cil.GFun (fdec, loc) ->
-          let ws' = (W.make_wfs gnv (W.ce_find fdec.svar gnv) loc) ++ ws in
-          (ws', cs)
+          let fn = W.name_of_varinfo fdec.svar in
+          let cr = W.ce_find fn gnv in
+          ((W.make_wfs gnv cr loc) ++ ws, cs)
       | _ -> assertf "add_globals"
   end ([], []) 
 

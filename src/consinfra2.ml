@@ -46,11 +46,12 @@ type t = {
 }
 
 let create env sci = 
+  let fn = W.name_of_varinfo sci.ST.fdec.svar in
   {sci  = sci;
    cs   = [];
    ws   = [];
    envm = IM.empty;
-   gnv  = W.ce_unroll sci.ST.fdec.svar env |> fst}
+   gnv  = W.ce_unroll fn env |> fst}
 
 let add_cons ws cs me =
   {sci  = me.sci; 
