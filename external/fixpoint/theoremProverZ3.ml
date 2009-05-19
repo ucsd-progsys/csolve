@@ -34,7 +34,7 @@ open Misc.Ops
 
 module Prover : ProverArch.PROVER = struct
 
-let mydebug = false
+let mydebug = false 
 
 (********************************************************************************)
 (********************************** Type Definitions ****************************)
@@ -101,7 +101,9 @@ let iofb_n = Sy.of_string "_IOFB"
 let div_n  = Sy.of_string "_DIV"
 let tag_n  = Sy.of_string "_TAG"
 
-let axioms = 
+let axioms = []
+(* THESE CAUSE Z3 to SEG-FAULT (tests/t6.fq), 
+ * most likely an error in the forall-translation
   let x = Sy.of_string "x" in
   [A.pForall ([(x, So.Bool)],                            
                A.pIff ((A.pAtom (A.eApp (iofb_n, [A.eVar x]), A.Eq, A.one)),
@@ -109,7 +111,8 @@ let axioms =
    A.pForall ([(x, So.Int)],
                A.pIff (A.pBexp (A.eApp (bofi_n, [A.eVar x])),
                        A.pAtom (A.eVar x, A.Eq, A.one)))]
- 
+ *)
+
 let builtins = 
   SM.empty 
   |> SM.add tag_n  (So.Func [So.Unint "obj"; So.Int])
@@ -349,6 +352,8 @@ let filter me env ps =
 
 (* API *)
 let create ts env ps =
+  let _  = Co.bprintf mydebug "TP.create ps = %a \n" (Misc.pprint_many false ","
+  P.print) ps in 
   let _  = asserts (ts = []) "ERROR: TPZ3.create non-empty types!" in
   let c  = Z3.mk_context_x [|("MODEL", "false"); 
                              ("PARTIAL_MODELS", "true")|] in

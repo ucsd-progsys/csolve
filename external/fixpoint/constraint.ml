@@ -110,10 +110,9 @@ let sol_add s k qs' =
   let qs'' = qs' ++ qs in
   (not (Misc.same_length qs qs''), SM.add k qs'' s)
 
-let group_sol_change addf s0 kqs = 
+let group_sol_change addf s0 ks kqs = 
   let t  = Hashtbl.create 17 in
-  let _  = List.iter (fun (k,q) -> Hashtbl.add t k q) kqs in
-  let ks = Misc.hashtbl_keys t in
+  let _  = List.iter (fun (k, q) -> Hashtbl.add t k q) kqs in
   List.fold_left 
     (fun (b, s) k -> 
       let qs       = Hashtbl.find_all t k in 

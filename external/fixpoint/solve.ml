@@ -100,7 +100,8 @@ let refine me s c =
   let env = C.env_of_t c in
   let gp  = C.grd_of_t c in
   let (vv1, t1, _) as r1 = C.lhs_of_t c in
-  let (_,_,ra2s) = C.rhs_of_t c in
+  let (_,_,ra2s) as r2 = C.rhs_of_t c in
+  let k2s = C.kvars_of_reft r2 |> List.map snd in
   let lps = lhs_preds s env gp r1 in
   let rcs = Misc.flap (rhs_cands s) ra2s in
   if (List.exists P.is_contra lps) || (rcs = []) then
@@ -116,7 +117,7 @@ let refine me s c =
     (if C.is_simple c 
      then (ignore(stat_simple_refines += 1); kqs1) 
      else kqs1 ++ (check_tp me env vv1 t1 lps x2))
-    |> C.group_sol_update s 
+    |> C.group_sol_update s k2s 
 
 (***************************************************************)
 (************************* Satisfaction ************************)
@@ -200,13 +201,12 @@ let inst_ext (qs : Q.t list) s wf =
   let s   = List.fold_left (fun s k -> C.sol_add s k [] |> snd) s ks in
   let _   = Co.bprintf mydebug "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
   let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
-  qs 
-  |> Misc.flap (inst_qual ys)
-  |> Misc.filter (wellformed env) 
-  |> Misc.map Q.pred_of_t 
-  |> Misc.cross_product ks 
-  |> C.group_sol_add s
-  |> snd
+  qs |> Misc.flap (inst_qual ys)
+     |> Misc.filter (wellformed env) 
+     |> Misc.map Q.pred_of_t 
+     |> Misc.cross_product ks 
+     |> C.group_sol_add s ks
+     |> snd
 
 let inst wfs qs s =
   Co.bprintf mydebug "%a" (Misc.pprint_many true "\n" (C.print_wf None)) wfs;
@@ -220,9 +220,9 @@ let rec acsolve me w s =
   let _ = if !stat_refines mod 100 = 0 
           then Co.cprintf Co.ol_solve "num refines =%d \n" !stat_refines in
   let _ = if Co.ck_olev Co.ol_insane then F.printf "%a" C.print_soln s in
-  let _ = Co.cprintf Co.ol_solve "At iter %d " !stat_refines in
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
+    let _ = Co.bprintf mydebug "At iter=%d constr=%d ch=%b \n" !stat_refines (C.id_of_t c) ch in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 
 
@@ -231,9 +231,9 @@ let solve me (s : C.soln) =
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;
           dump me s in
-  let w = BS.time "init wkl"    Ci.winit me.sri in 
-  let s = BS.time "cleanup" SM.map (Misc.sort_and_compact) s in
-  let s = BS.time "solving sub" (acsolve me w) s in
+  let w = BS.time "init wkl" Ci.winit me.sri in 
+  let s = BS.time "cleanup"  SM.map (Misc.sort_and_compact) s in
+  let s = BS.time "solving"  (acsolve me w) s in
   let _ = dump me s in
   let u = BS.time "testing solution" (unsat_constraints me) s in
   let _ = if u != [] then F.printf "Unsatisfied Constraints:\n %a"
