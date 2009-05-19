@@ -128,8 +128,8 @@ let is_base = function
 let t_fresh = cilreft_of_type (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
 let t_true  = cilreft_of_type (fun _ -> [])
 
-let t_exp env t e =
-  let so  = CI.sort_of_typ t in
+let t_exp env e =
+  let so  = CI.sort_of_typ (Cil.typeOf e) in
   let vv  = Sy.value_variable so in
   let e   = CI.expr_of_cilexp e in
   let ras = [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
@@ -151,11 +151,13 @@ let t_name env n =
       Base (C.make_reft vv so ras)
   | cr -> cr
 
+let t_subs cr nes = failwith "TBDNOW: t_subs"
+
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
 
-let rec make_ts env p lhscr rhscr loc =
+let rec make_cs env p lhscr rhscr loc =
   match lhscr, rhscr with
   | Base lhsr, Base rhsr -> 
       [C.make_t (env_of_cilenv env) p lhsr rhsr None]
