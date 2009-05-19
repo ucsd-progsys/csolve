@@ -106,6 +106,8 @@ let rec cilreft_of_type f = function
   | TFun (t, stso, _, _) ->
       Fun (cilreft_of_bindings f stso,
            cilreft_of_type f t)
+  | TVoid _ ->
+      Base (C.make_reft (Sy.value_variable So.Int) So.Int [])
   | _      -> 
       assertf "TBDNOW: Consgen.fresh"
 
