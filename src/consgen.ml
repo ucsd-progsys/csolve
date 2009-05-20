@@ -26,18 +26,15 @@
 module F  = Format
 module E  = Errormsg
 module ST = Ssa_transform
-module W  = Wrapper 
-module CF = Consinfra2
+module FI  = FixInterface 
+module CF = Consinfra
 
 open Misc.Ops
 open Cil
 
 let mydebug = false
 
-(* Note that Consgen -- does not -- depend on Fixpoint [Ast, Constraint]
- * All those dependencies are factored into Wrapper *)
-
-let cons_fold f (env: W.cilenv) grd xs =
+let cons_fold f (env: FI.cilenv) grd xs =
   List.fold_left begin
     fun (env, ws, cs) x -> 
       let (env', ws', cs') = f env grd x in
@@ -51,43 +48,43 @@ let tcons_of_phis me phia =
         let envj = CF.outenv_of_block me j in
         let pj   = CF.guard_of_block me j in
         let locj = CF.location_of_block me j in
-        let lhs  = vj |> W.name_of_varinfo |> W.t_name envj in
-        let rhs  = W.ce_find (W.name_of_varinfo v) (CF.outenv_of_block me i) in
-        W.make_cs envj pj lhs rhs locj
+        let lhs  = vj |> FI.name_of_varinfo |> FI.t_name envj in
+        let rhs  = FI.ce_find (FI.name_of_varinfo v) (CF.outenv_of_block me i) in
+        FI.make_cs envj pj lhs rhs locj
       end srcs
     end asgns
   end phia
 
 let wcons_of_phi loc env grd v =
-  let cr = W.t_fresh v.vtype in
-  let vn = W.name_of_varinfo v in
-  (W.ce_add vn cr env, W.make_wfs env cr loc, [])
+  let cr = FI.t_fresh v.vtype in
+  let vn = FI.name_of_varinfo v in
+  (FI.ce_add vn cr env, FI.make_wfs env cr loc, [])
 
 let cons_of_set loc env grd lv e =
   match lv with
   | (Var v), NoOffset -> 
-      let cr = W.t_exp env e in
-      (W.ce_add (W.name_of_varinfo v) cr env, [], []) 
+      let cr = FI.t_exp env e in
+      (FI.ce_add (FI.name_of_varinfo v) cr env, [], []) 
   | _ -> assertf "TBD: cons_of_set"
 
 let cons_of_call loc env grd lvo fn es =
-  match W.ce_find fn env with
-  | W.Fun (ncrs, cr) ->
+  match FI.ce_find fn env with
+  | FI.Fun (ncrs, cr) ->
       asserts (List.length ncrs = List.length es) "cons_of_call: params"; 
       let ns   = Misc.map fst ncrs in
       let cenv = List.fold_left2 
-                   (fun cenv n e -> W.ce_add n (W.t_exp env e) cenv)
+                   (fun cenv n e -> FI.ce_add n (FI.t_exp env e) cenv)
                    env ns es in
       let cs   = Misc.flap 
-                   (fun (n, cr) -> W.make_cs cenv grd (W.t_name cenv n) cr loc)
+                   (fun (n, cr) -> FI.make_cs cenv grd (FI.t_name cenv n) cr loc)
                  ncrs in
       let env' = match lvo with 
                  | None -> 
                      env  
                  | Some ((Var v), NoOffset) ->
-                     let vn  = W.name_of_varinfo v in
-                     let cr' = W.t_subs (List.combine ns es) cr in
-                     W.ce_add vn cr' env 
+                     let vn  = FI.name_of_varinfo v in
+                     let cr' = FI.t_subs (List.combine ns es) cr in
+                     FI.ce_add vn cr' env 
                  | _  -> assertf "TBDNOW: cons_of_call" in
       (env', [], cs)
   | _ -> assertf "ERROR: cons_of_call: fname has wrong type"
@@ -96,14 +93,14 @@ let cons_of_instr loc env grd = function
   | Set (lv, e, loc) ->
       cons_of_set loc env grd lv e
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      cons_of_call loc env grd lvo (W.name_of_varinfo fv) es  
+      cons_of_call loc env grd lvo (FI.name_of_varinfo fv) es  
   | _ -> 
       assertf "TBD: cons_of_instr"
 
 let cons_of_ret loc fn env grd e =
-  match W.ce_find fn env with
-  | W.Fun (_, cr) ->
-      (env, [], W.make_cs env grd (W.t_exp env e) cr loc) 
+  match FI.ce_find fn env with
+  | FI.Fun (_, cr) ->
+      (env, [], FI.make_cs env grd (FI.t_exp env e) cr loc) 
   | _ ->
       assertf "ERROR:cons_of_ret"
 
@@ -187,21 +184,21 @@ let gnv_of_file cil =
       match g with
       | GFun (fdec, _) ->
           let t  = type_of_fdec fdec in
-          let fn = W.name_of_varinfo fdec.svar in
-          W.ce_add fn (W.t_fresh t) gnv  
+          let fn = FI.name_of_varinfo fdec.svar in
+          FI.ce_add fn (FI.t_fresh t) gnv  
       | _ -> 
           ignore (E.warn "Ignoring global: %a \n" d_global g);
           gnv
-  end W.ce_empty 
+  end FI.ce_empty 
 
 let cons_of_globals gnv cil = 
   Cil.foldGlobals cil begin
     fun (ws, cs) g ->
       match g with
       | Cil.GFun (fdec, loc) ->
-          let fn = W.name_of_varinfo fdec.svar in
-          let cr = W.ce_find fn gnv in
-          ((W.make_wfs gnv cr loc) ++ ws, cs)
+          let fn = FI.name_of_varinfo fdec.svar in
+          let cr = FI.ce_find fn gnv in
+          ((FI.make_wfs gnv cr loc) ++ ws, cs)
       | _ -> 
           E.warn "Ignoring global %a \n" d_global g;
           (ws, cs)

@@ -27,12 +27,11 @@ type t
 val stmt_of_block: t -> int -> Cil.stmt
 val location_of_block: t -> int -> Cil.location
 val phis_of_block: t -> int -> Cil.varinfo list 
-val inenv_of_block: t -> int -> Wrapper.cilenv
-val outenv_of_block: t -> int -> Wrapper.cilenv
+val inenv_of_block: t -> int -> FixInterface.cilenv
+val outenv_of_block: t -> int -> FixInterface.cilenv
 val guard_of_block: t -> int -> Ast.pred
-val add_env: int -> Wrapper.cilenv -> t -> t
+val add_env: int -> FixInterface.cilenv -> t -> t
 val add_cons: Constraint.wf list -> Constraint.t list -> t -> t
-val create: Wrapper.cilenv -> Ssa_transform.ssaCfgInfo -> t
+val create: FixInterface.cilenv -> Ssa_transform.ssaCfgInfo -> t
 val get_cons: t -> Constraint.wf list * Constraint.t list
-val fname: t -> Wrapper.name
-
+val fname: t -> FixInterface.name
