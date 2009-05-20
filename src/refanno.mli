@@ -1,13 +1,18 @@
-type cloc
+type cloc = int
 
-val cbot: cloc
+type ctab = (Cil.varinfo, cloc) Hashtbl.t
 
-type annotation = RefGen of Ctypes.sloc | RefInst of cloc * Ctypes.sloc
+type refgen = Ctypes.sloc
+type refinst = Ctypes.sloc * cloc
+type annotation = (refgen option) * (refinst option)
 
-(* tuple denotes (before, after) instruction *) 
-type annotated_block = (annotation option * annotation option) list
+(* annotations precede corresponding instr *) 
+type block_annotation = annotation list
 
-(* takes an instruction list and returns a list of annotations of identical size *)
-val annotate_block: Cil.instr list -> (annotated_block * (Cil.varinfo -> cloc))
+(* input: instruction list (of size n) and corresponding ctypes
+ * output: list of annotations (of size n) and map from variables to
+ * concrete locations *)
+val annotate_block: ctab -> Inferctypes.ctemap -> Cil.instr list ->
+  (block_annotation * ctab)
 
-
+(*val annotate_cfg: Cil.cfgInfo ->*)
