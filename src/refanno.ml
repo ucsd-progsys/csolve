@@ -1,36 +1,48 @@
-module Ic = Inferctypes
+module Ct = Ctypes
 
 open Cil
 
 type cloc = int
+type ctab = (Cil.varinfo, cloc) Hashtbl.t
 
 type refgen = Ctypes.sloc
-type refinst = cloc * Ctypes.sloc
+type refinst = Ctypes.sloc * cloc
+type annotation = (refgen option) * (refinst option)
+type block_annotation = annotation list
 
 let fresh_cloc =
-  let i = ref cbot in
+  let i = ref 0 in
   (fun () -> incr i; !i)
 
-type annotated_block = ((refgen option) * (refinst option)) list
 
 let ens_opt = function
   | Some x -> x
   | None -> failwith "None passed to ens_opt"
 
-let rec loc_of_var_expr get_theta = function
-  | Lval (Var v, _) ->
-      Some (get_theta v)
-  | BinOp (_, e1, e2, _) ->
-      let l1 = loc_of_var_expr e1 in
-      let l2 = loc_of_var_expr e2 in
-      if l1 = l2 then l1 else None
-  | CastE (_, e) -> loc_of_var_expr e
-  | _ -> None
+let cloc_of_v th v =
+  try Hashtbl.find th v with
+    Not_found ->
+      let c = fresh_cloc () in
+      Hashtbl.replace th v c; c
+
+let set_cloc = Hashtbl.replace
+
+let loc_of_var_expr theta =
+  let rec loc_rec = function
+    | Lval (Var v, _) ->
+        Some (cloc_of_v theta v)
+    | BinOp (_, e1, e2, _) ->
+        let l1 = loc_rec e1 in
+        let l2 = loc_rec e2 in
+        if l1 = l2 then l1 else None
+    | CastE (_, e) -> loc_rec e
+    | _ -> None in
+  loc_rec
 
 let sloc_of_e ctm e =
-  match Ic.ExpMap.find e ctm with
-  | CTInt _ -> None
-  | CTRef (s, _) -> Some s
+  match Inferctypes.ExpMap.find e ctm with
+  | Ct.CTInt _ -> None
+  | Ct.CTRef (s, _) -> Some s
 
 let instantiate conc s c =
   if Hashtbl.mem conc s then
@@ -41,33 +53,30 @@ let instantiate conc s c =
       (Some s, Some (s, c))
   else
     let _ = Hashtbl.replace conc s c in
-    (None, Some (s, c)
+    (None, Some (s, c))
 
-let get_th th v =
-  try Hashtbl.find th t with
-    Not_found ->
-      let c = fresh_cloc () in
-      Hashtbl.replace th c; c
-
-let set_th = Hashtbl.replace
-
-let annotate_set theta conc ctm = function
-  | Cil.Set ((Var v1, _), Mem (Lval (Var v2, _) as e), _) ->
-      instantiate (ens_opt (sloc_of_e ctm e) (get_theta v2)
+let annotate_instr theta conc ctm = function
+    (* v1 := *v2 *)
+  | Cil.Set ((Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _), _) ->
+      instantiate conc (ens_opt (sloc_of_e ctm e)) (cloc_of_v theta v2)
+    (* v := e *)
   | Cil.Set ((Var v, _), e, _) ->
-      let _ = match loc_of_var_expr e with
-                | Some c -> set_theta v c
+      let _ = match loc_of_var_expr theta e with
+                | Some c -> set_cloc theta v c
                 | None -> () in
       (None, None)
+    (* *v := e *)
   | Cil.Set ((Mem (Lval(Var v, _) as e), _), _, _) ->
-      instantiate (ens_opt (sloc_of_e ctm e) (get_theta v)
+      instantiate conc (ens_opt (sloc_of_e ctm e)) (cloc_of_v theta v)
   | _ -> (None, None)
 
 let rec annotate_block theta conc ctm = function
   | instr :: instrs ->
-      let anno = annotation_instr theta conc ctm instr ::
-        annotate_block theta cons instrs
+      annotate_instr theta conc ctm instr
+      :: annotate_block theta conc ctm instrs
   | [] -> []
-
-let annotate_block theta =
-  (annotate_block theta (Hashtbl.create 17), theta)
+ 
+  (* API *)
+let annotate_block (theta: ctab) (ctm: Inferctypes.ctemap)
+                   (instrs: Cil.instr list) : (block_annotation * ctab) =
+  (annotate_block theta (Hashtbl.create 17) ctm instrs, theta)
