@@ -1,3 +1,4 @@
 test03.c
 join.c
 loop.c
+loop-simple.c
