@@ -32,7 +32,7 @@ module CF = Consinfra
 open Misc.Ops
 open Cil
 
-let mydebug = false
+let mydebug = true 
 
 let cons_fold f (env: FI.cilenv) grd xs =
   List.fold_left begin
@@ -158,7 +158,7 @@ let scis_of_file cil =
       match g with 
       | Cil.GFun (fdec,loc) -> 
           let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if false then ST.print_sci sci in
+          let _   = if mydebug then ST.print_sci sci in
           sci::acc
       | _ -> acc) [] 
 

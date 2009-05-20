@@ -1,9 +1,8 @@
 void main(){
-  int i; 
-  int z;
-
+  int i, z, n; 
+  n = nondet();
   z = 0;
-  for (i=0; i++; i < n){
+  for (i=0; i < n; i++){
     z += i;
   }
   assert (z >= 0);
