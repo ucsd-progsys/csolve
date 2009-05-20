@@ -159,7 +159,7 @@ let t_var env v =
 *)
 
 let t_name env n = 
-  asserts (YM.mem n env) "t_cilname: reading unbound var";
+  asserts (YM.mem n env) "t_cilname: reading unbound var -- return false reft";
   match YM.find n env with
   | Base r -> 
       let so  = C.sort_of_reft r in

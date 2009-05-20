@@ -30,9 +30,9 @@ constraint: env  [z@main_phi_3:{VV_int : int | [k_2]};
 constraint: env  [z@main_blk_0_1:{VV_int : int | [(VV_int = 0)]};
                        n@main_blk_0_1:{VV_int : int | []};
                        i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
-       grd && [] 
-       lhs {VV_int : int | [(VV_int = z@main_blk_0_1)]} 
-       rhs {VV_int : int | [k_2]} 
+            grd && [] 
+            lhs {VV_int : int | [(VV_int = z@main_blk_0_1)]} 
+            rhs {VV_int : int | [k_2]} 
        
 constraint: env  [z@main_phi_3:{VV_int : int | [k_2]};
                          z@main_blk_6_1:{VV_int : int | [(VV_int = z@main_phi_3 + i@main_phi_3)]};
@@ -41,25 +41,24 @@ constraint: env  [z@main_phi_3:{VV_int : int | [k_2]};
                          i@main_phi_3:{VV_int : int | [k_1]};
                          i@main_blk_6_1:{VV_int : int | [(VV_int = i@main_phi_3 + 1)]};
                          i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
-         grd && [(i@main_phi_3 < n@main_blk_0_1)] 
-         lhs {VV_int : int | [(VV_int = z@main_blk_6_1)]} 
-         rhs {VV_int : int | [k_2]} 
+            grd && [(i@main_phi_3 < n@main_blk_0_1)] 
+            lhs {VV_int : int | [(VV_int = z@main_blk_6_1)]} 
+            rhs {VV_int : int | [k_2]} 
          
 wf: env [z@main_blk_0_1:{VV_int : int | [(VV_int = 0)]};
-                  n@main_blk_0_1:{VV_int : int | []};
-                  i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
-           reft {VV_int : int | [k_1]} 
+         n@main_blk_0_1:{VV_int : int | []};
+         i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
+    reft {VV_int : int | [k_1]} 
            
 wf: env [z@main_blk_0_1:{VV_int : int | [(VV_int = 0)]};
-                    n@main_blk_0_1:{VV_int : int | []};
-                    i@main_phi_3:{VV_int : int | [k_1]};
-                    i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
-             reft {VV_int : int | [k_2]} 
+         n@main_blk_0_1:{VV_int : int | []};
+         i@main_phi_3:{VV_int : int | [k_1]};
+         i@main_blk_0_1:{VV_int : int | [(VV_int = 0)]}] 
+    reft {VV_int : int | [k_2]} 
              
 wf: env [] 
                reft {VV_int : int | []} 
                
 solution: k_1 := [(VV_int >= i@main_blk_0_1);(VV_int >= n@main_blk_0_1);(VV_int >= z@main_blk_0_1);(VV_int >= 0);(VV_int <= 0)] 
-solution: 
-                k_2 := [(VV_int >= i@main_blk_0_1);(VV_int >= i@main_phi_3);(VV_int >= n@main_blk_0_1);(VV_int >= z@main_blk_0_1);(VV_int >= 0);(VV_int <= 0)] 
+solution: k_2 := [(VV_int >= i@main_blk_0_1);(VV_int >= i@main_phi_3);(VV_int >= n@main_blk_0_1);(VV_int >= z@main_blk_0_1);(VV_int >= 0);(VV_int <= 0)] 
  

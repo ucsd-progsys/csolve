@@ -533,4 +533,15 @@ let mk_char_factory () =
   let (fresh_int, reset_fresh_int) = mk_int_factory () in
     ((fun () -> Char.chr (fresh_int () + Char.code 'a')), reset_fresh_int)
 
+(* ('a * (int * 'b) list) list -> (int * ('a * 'b) list) list *)
+let transpose x_iys_s = 
+  let t = H.create 17 in
+  List.iter (fun (x, iys) ->
+    List.iter (fun (i, y) -> 
+      H.add t i (x,y) 
+    ) iys
+  ) x_iys_s; 
+  H.keys t |> List.map (fun i -> (i, H.find_all t i))
+
+
 
