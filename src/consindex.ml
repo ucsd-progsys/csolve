@@ -64,11 +64,18 @@ let iter me f =
   SM.iter (fun fn _ -> f fn (find me fn)) me.scim
 
 (* DOG SLOW *)
-let env_of_ws ws = 
+let env_of_ws ws =
+  let bs = 
   ws |> Misc.map C.env_of_wf 
-     |> Misc.flap C.bindings_of_env
-     |> C.env_of_bindings  
+     |> Misc.flap C.bindings_of_env in
+  let _ = Printf.printf "env_of_ws: BOO |ws| = %d, |bs| = %d \n" (List.length ws)
+  (List.length bs) in 
+   C.env_of_bindings bs  
+(* API *)
+let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 
+(* API *)
+let get_cs  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []
 
 (* API *)
 let print so ppf me = 
@@ -82,14 +89,8 @@ let print so ppf me =
           fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs
       end
   | Some _ -> (* print solution *)
-      iter me begin
-        fun fn (_, ws, _) ->
-          ws |> env_of_ws 
-             |> F.printf "Liquid Types for %s \n%a" fn (C.print_env so)
-      end
+      get_wfs me 
+      |> env_of_ws 
+      |> F.printf "Liquid Types: \n%a" (C.print_env so)
 
-(* API *)
-let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 
-(* API *)
-let get_cs  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []

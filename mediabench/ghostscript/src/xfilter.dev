@@ -1,3 +1,0 @@
--obj sbhc.o sbwbs.o shcgen.o smtf.o zfilterx.o
--include pcxd
--oper zfilterx

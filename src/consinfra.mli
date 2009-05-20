@@ -23,13 +23,15 @@
 
 (* This file is part of the liquidC Project.*)
 
-type binding = Exp of Cil.exp | App of Cil.exp * Cil.exp list | Phi | Undef 
 type t
-val var_exp:    t -> Cil.varinfo -> binding 
-val location:   t -> int -> Cil.location
-val ssa_srcs:   t -> int -> (Cil.varinfo * Cil.varinfo) list
-val ssa_targs:  t -> int -> Cil.varinfo list
-val reach_vars: t -> int -> Cil.varinfo list
-val def_vars:   t -> int -> Cil.varinfo list
-val guardp:     t -> int -> Ast.pred
-val create: Ssa_transform.ssaCfgInfo -> t
+val stmt_of_block: t -> int -> Cil.stmt
+val location_of_block: t -> int -> Cil.location
+val phis_of_block: t -> int -> Cil.varinfo list 
+val inenv_of_block: t -> int -> FixInterface.cilenv
+val outenv_of_block: t -> int -> FixInterface.cilenv
+val guard_of_block: t -> int -> Ast.pred
+val add_env: int -> FixInterface.cilenv -> t -> t
+val add_cons: Constraint.wf list -> Constraint.t list -> t -> t
+val create: FixInterface.cilenv -> Ssa_transform.ssaCfgInfo -> t
+val get_cons: t -> Constraint.wf list * Constraint.t list
+val fname: t -> FixInterface.name

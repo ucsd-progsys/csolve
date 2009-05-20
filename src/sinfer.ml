@@ -7,6 +7,7 @@ open Misc.Ops
 
 (* pmr: This file is just a temporary addition until the main thing is in a state where
    we can use it to infer plain types. *)
+let mydebug = true 
 
 let scis_of_file cil = 
   Cil.foldGlobals cil
@@ -14,7 +15,7 @@ let scis_of_file cil =
       match g with 
       | Cil.GFun (fdec,loc) -> 
           let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if false then ST.print_sci sci in
+          let _   = if mydebug then ST.print_sci sci in
           sci::acc
       | _ -> acc) [] 
 

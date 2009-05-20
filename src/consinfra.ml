@@ -29,173 +29,80 @@
 
 module F  = Format
 module ST = Ssa_transform
-module H  = Hashtbl
+module IM = Misc.IntMap
+module C  = Constraint
+module FI = FixInterface 
 module CI = CilInterface
 
 open Misc.Ops
 open Cil
 
-type binding = Exp of Cil.exp | Phi | Undef 
-
 type t = {
-  sci     : ST.ssaCfgInfo;
-  size    : int;                            (* number of blocks *)
-  vart    : (string, Cil.varinfo) H.t;      (* string|-> var *) 
-  expt    : (string, binding) H.t;          (* string|-> defining assignment *)
-  defa    : string list array;              (* block |-> vars defined inside block *)
-  doma    : (int * bool option) list array; (* block |-> (dom guard * bool) list *)
-  phidefa : (string * string) list array;   (* block |-> (x, xi) list, 
-                                                            st. xi defined in block,
-                                                             x = phi(...xi...) *)
+  sci  : ST.ssaCfgInfo;
+  ws   : C.wf list;
+  cs   : C.t list;
+  envm : FI.cilenv IM.t;
+  gnv  : FI.cilenv; 
 }
 
-(*******************************************************************)
-(*************  Visitor: Gather block-binding information  *********)
-(*******************************************************************)
+let create env sci = 
+  let fn = FI.name_of_varinfo sci.ST.fdec.svar in
+  {sci  = sci;
+   cs   = [];
+   ws   = [];
+   envm = IM.empty;
+   gnv  = FI.ce_unroll fn env |> fst}
 
-class consInfraVisitor size bindr = object(self) 
-  inherit nopCilVisitor
-  
-  val sid = ref 0
+let add_cons ws cs me =
+  {sci  = me.sci; 
+   cs   = cs ++ me.cs; 
+   ws   = ws ++ me.ws; 
+   envm = me.envm;
+   gnv  = me.gnv}
 
-  method vinst = function
-    | Set (((Var v), NoOffset), e, _) ->
-        bindr := (!sid, v.Cil.vname, e) :: !bindr;
-        DoChildren 
-    | _ -> 
-        asserts false "TBD: consInfraVisitor vinst";
-        assert false
+let add_env i env me = 
+  {me with envm = IM.add i env me.envm}
 
-  method vstmt s =
-    asserts (0 <= s.Cil.sid && s.Cil.sid < size) "consInfraVisitor";
-    sid := s.sid;
-    DoChildren
-end
+let get_cons me =
+  (me.ws, me.cs)
 
-let defa_of_bindings size binds phia = 
-  let defa = Array.make size [] in
-  List.iter 
-    (fun (i, vn, _) -> defa.(i) <- vn :: defa.(i)) 
-    binds;
-  Array.iteri 
-    (fun i xs -> let vns = List.map (fun (v,_) -> v.Cil.vname) xs in
-                 defa.(i) <- vns ++ defa.(i)) 
-    phia;
-  defa
+let stmt_of_block me i =
+  me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
-let var_expt_of_bindings binds phia = 
-  let t = H.create 37 in
-  List.iter 
-    (fun (_, vn, e) -> 
-      asserts (not (H.mem t vn)) "duplicate binding";
-      H.add t vn (Exp e)) 
-    binds;
-  Array.iter (List.iter (fun (v,_) -> H.add t v.Cil.vname Phi)) phia;
-  t 
+let location_of_block me i =
+  Cil.get_stmtLoc (stmt_of_block me i).skind 
 
-(*******************************************************************)
-(********** Dom-Tree: Guards and Reaching Definitions **************) 
-(*******************************************************************)
+let phis_of_block me i = 
+  me.sci.ST.phis.(i) 
+  |> Misc.map fst
 
-let dom_closure gdoma = 
-  let n    = Array.length gdoma in
-  let doma = Array.make n [] in 
-  for i = 1 to n - 1 do
-    let j = fst (gdoma.(i)) in
-    asserts (0 <= j && j < n) "dom_closure bounds check";
-    Array.set doma i (gdoma.(i) :: doma.(j))
-  done;
-  doma
+let outenv_of_block me i =
+  IM.find i me.envm
 
-let guard me = function 
-  | (_, None)   -> 
-      None 
-  | (i, Some b) -> begin 
-      match me.sci.ST.ifs.(i) with 
-      | None -> 
-          assertf "ERROR: expand_guard"
-      | Some (e,_,_) -> 
-          let p  = CI.pred_of_cilexp e in
-          Some (if b then p else (Ast.pNot p))
-  end
+let inenv_of_block me i = 
+  if i = 0 then me.gnv else
+    let (idom, _) = me.sci.ST.gdoms.(i) in
+    outenv_of_block me idom
 
-(*****************************************************************)
-(********** (Inverted) Phi-bindings  *****************************)
-(********** block |-> (x, xi) list,  *****************************)
-(********** st. xi defined in block, *****************************) 
-(********** and x = phi(...xi...)    *****************************) 
-(*****************************************************************)
+let rec doms_of_block gdoms acc i =
+  if i <= 0 then acc else
+    let (idom,_) as x = gdoms.(i) in 
+    let _ = asserts (idom < i) "doms_of_block" in
+    doms_of_block gdoms (x::acc) idom 
 
-let phidefa_of_phia phia =
-  let a       = Array.make (Array.length phia) [] in
-  let phidefs = Misc.array_flapi begin fun _ asgns -> 
-                  Misc.flap begin fun (v, ivis) -> 
-                    Misc.map begin fun (i, vi) -> 
-                      (i, v.Cil.vname, vi.Cil.vname)
-                    end ivis
-                  end asgns
-                end phia in
-  List.iter (fun (i, v, vi) -> a.(i) <- (v, vi) :: (a.(i))) phidefs;
-  a
+let pred_of_block ifs (i,b) =
+  match ifs.(i) with 
+  | None         -> 
+      assertf "pred_of_block"
+  | Some (e,_,_) -> 
+      let p = CI.pred_of_cilexp e in
+      if b then p else (Ast.pNot p)
 
-let var_of_name me vn =
-  try H.find me.vart vn with Not_found -> 
-    assertf "var_of_name: unknown var %s" vn
+let guard_of_block me i = 
+  i |> doms_of_block me.sci.ST.gdoms []
+    |> Misc.map_partial (function (i,Some b) -> Some (i,b) | _ -> None)
+    |> Misc.map (pred_of_block me.sci.ST.ifs)
+    |> Ast.pAnd
 
-(*****************************************************************)
-(************************ API ************************************)
-(*****************************************************************)
-
-(* API *)
-let create sci =
-  let n = Array.length sci.ST.gdoms in
-  let bindsr = ref [] in
-  let phia   = sci.ST.phis in 
-  let vis    = new consInfraVisitor n bindsr in
-  let _      = Cil.visitCilFunction vis sci.ST.fdec in
-  let rv     =
-  { sci      = sci;
-    size     = n;
-    doma     = dom_closure sci.ST.gdoms;
-    defa     = defa_of_bindings n !bindsr phia; 
-    expt     = var_expt_of_bindings !bindsr phia;
-    phidefa  = phidefa_of_phia phia;
-    vart     = (sci.ST.fdec.Cil.slocals ++ sci.ST.fdec.Cil.sformals)
-               |> List.map (fun v -> (v.Cil.vname, v))
-               |> Misc.hashtbl_of_list; 
-  } in
-  rv
-
-(* API *)
-let location me i =
-  Cil.get_stmtLoc me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt.skind
-
-(* API *)
-let ssa_srcs me i = 
-  Misc.do_catch "ssa_srcs" (Array.get me.phidefa) i 
-  |> List.map (Misc.map_pair (var_of_name me))
-
-(* API *)
-let ssa_targs me i = 
-  Misc.do_catch "ssa_targs" (Array.get me.sci.ST.phis) i
-  |> List.map fst 
-
-(* API *)
-let var_exp me v =
-  try H.find me.expt v.Cil.vname with Not_found -> Undef
-
-(* API *)
-let def_vars me i = 
-  Misc.do_catch "def_vars" (Array.get me.defa) i 
-  |> List.map (var_of_name me)
-
-(* API *)
-let reach_vars me i = 
-  (Misc.do_catch "reach_vars" (Array.get me.doma) i)
-  |> Misc.flap (fun (i,_) -> def_vars me i)
-
-(* API *)
-let guardp me i = 
-  Misc.do_catch "guardp" (Array.get me.doma) i 
-  |> Misc.map_partial (guard me) 
-  |> Ast.pAnd
+let fname me = 
+  FI.name_of_varinfo me.sci.ST.fdec.svar 

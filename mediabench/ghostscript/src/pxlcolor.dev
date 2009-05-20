@@ -1,2 +1,0 @@
--dev pxlcolor -obj gdevpx.o
--include vector

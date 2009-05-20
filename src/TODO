@@ -1,41 +1,16 @@
-- generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
+Test support for functions by adding [builtins] inside wrapper.ml and then
+using assert
 
+- generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - add regression test scripts 
+
 
 
 **************************************************************
 - return values
 - formals
-
-(1) connect formals to other local vars 
-    i.e. if x is a formal, make x the "first" dominating definition
-    [DONE -- phi-var for 0-block is formal]
-
-(2) add function templates to global environment
-    [DONE -- hellishly ugly. damn C]
-
-(3) update Cil.exp -> reft to handle function calls
-	-- rename t_single to t_exp
-	-- t_exp :: W.cilenv -> Cil.typ -> Cil.expr -> C.reft  
-	-- t_exp will use the env passed in to 
-	   handle function calls (and ptr derefs etc)
-
-(4) update consgen to add constraints for:
-	-- callee params (via calls)
-	-- function outputs (returns)
-    
-    In consinfra.ml, add: 
-    
-    type flow = Var of Cil.varinfo * Cil.varinfo | ... (* cells *)
-    
-    (* extend the visitor so that we can enrich the API with *)
-    block_flows : t -> int -> flow list
-
-    (* extend consgen.ml so it generates constraints for each "flow" 
-       inside a block *)
-
-    cs_of_flow : env -> flow -> C.t list
+[DONE]
 
 **************************************************************
 - globals

@@ -1,3 +1,0 @@
--obj -include szlibe szlibd
--obj zfzlib.o
--oper zfzlib

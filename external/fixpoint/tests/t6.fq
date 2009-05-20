@@ -1,0 +1,6 @@
+constraint: env [x:{v : int | [] }] 
+	    grd (0 > x)
+	    lhs {v : int | []}
+	    rhs {v : int | [k1]}
+
+solution: k1 :=  [0 < v]

@@ -57,7 +57,7 @@ let mk_cfg cil =
          | (Cil.GFun(fd,_) as fundec) ->
              let _ = fundec in
                Psimplify.doGlobal fundec;
-               Inliner.doGlobal fds fundec;
+               if !Constants.ctypes then Inliner.doGlobal fds fundec;
                Cil.prepareCFG fd;
                Cil.computeCFGInfo fd false;
                (fd.Cil.svar.Cil.vid, fd) :: fds
@@ -91,7 +91,7 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
 let liquidate file =
   let cil   = mk_cil file in
   let qs    = mk_quals (file^".hquals") in
-  let me    = Consgen2.create cil in
+  let me    = Consgen.create cil in
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let ctx,s = Solve.create [] A.Symbol.SMap.empty [] cs ws qs in
@@ -119,6 +119,6 @@ let mk_options () =
 let main () = 
   let _ = print_header () in
   let f = mk_options () in
-  if liquidate f then print_string "SAFE" else print_string "UNSAFE"
+  if liquidate f then Format.printf "\nSAFE\n" else Format.printf "\nUNSAFE\n"
 
 let _ = main ()

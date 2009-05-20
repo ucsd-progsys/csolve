@@ -1,9 +1,9 @@
 void main() {
     int x;
+    int y;
 
-    x = 10;
-    while (1) {
-        x -= 1;
+    while (y) {
+        x = 0;
     }
 
     return;

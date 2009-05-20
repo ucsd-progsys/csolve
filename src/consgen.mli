@@ -22,5 +22,5 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val create: Cil.file -> Wrapper.t
+val create: Cil.file -> Consindex.t
 

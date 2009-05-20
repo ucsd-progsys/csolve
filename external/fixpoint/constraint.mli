@@ -51,8 +51,8 @@ val is_simple        : t -> bool
 val sol_cleanup      : soln -> soln
 val sol_read         : soln -> Ast.Symbol.t -> Ast.pred list
 val sol_add          : soln -> Ast.Symbol.t -> Ast.pred list -> (bool * soln)
-val group_sol_add    : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
-val group_sol_update : soln -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
+val group_sol_add    : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
+val group_sol_update : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 
 val print_env        : soln option -> Format.formatter -> envt -> unit
 val print_wf         : soln option -> Format.formatter -> wf -> unit
@@ -63,10 +63,10 @@ val to_string        : t -> string
 val print_reft       : soln option -> Format.formatter -> reft -> unit
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t
-val so_of_reft       : reft -> Ast.Sort.t
+val sort_of_reft     : reft -> Ast.Sort.t
 val ras_of_reft      : reft -> refa list
 val shape_of_reft    : reft -> reft
-
+val theta            : subs -> reft -> reft
 
 val make_t           : envt -> Ast.pred -> reft -> reft -> tag option -> t
 val env_of_t         : t -> envt
