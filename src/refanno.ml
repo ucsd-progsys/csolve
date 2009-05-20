@@ -2,8 +2,8 @@ module Ct = Ctypes
 
 open Cil
 
-type cloc = int
-type ctab = (Cil.varinfo, cloc) Hashtbl.t
+type cloc = string 
+type ctab = (string, cloc) Hashtbl.t
 
 type refgen = Ctypes.sloc
 type refinst = Ctypes.sloc * cloc
@@ -12,20 +12,19 @@ type block_annotation = annotation list
 
 let fresh_cloc =
   let i = ref 0 in
-  (fun () -> incr i; !i)
-
+  (fun () -> incr i; "s" ^ (string_of_int !i))
 
 let ens_opt = function
   | Some x -> x
   | None -> failwith "None passed to ens_opt"
 
 let cloc_of_v th v =
-  try Hashtbl.find th v with
+  try Hashtbl.find th v.vname with
     Not_found ->
       let c = fresh_cloc () in
-      Hashtbl.replace th v c; c
+      Hashtbl.replace th v.vname c; c
 
-let set_cloc = Hashtbl.replace
+let set_cloc th v c = Hashtbl.replace th v.vname c
 
 let loc_of_var_expr theta =
   let rec loc_rec = function
@@ -76,7 +75,22 @@ let rec annotate_block theta conc ctm = function
       :: annotate_block theta conc ctm instrs
   | [] -> []
  
+let annotate_block (theta: ctab) (conc: (Ctypes.sloc, cloc) Hashtbl.t) (ctm: Inferctypes.ctemap)
+                   (instrs: Cil.instr list) : block_annotation =
+  annotate_block theta conc ctm instrs
+
   (* API *)
-let annotate_block (theta: ctab) (ctm: Inferctypes.ctemap)
-                   (instrs: Cil.instr list) : (block_annotation * ctab) =
-  (annotate_block theta (Hashtbl.create 17) ctm instrs, theta)
+let annotate_cfg (c: Ssa.cfgInfo) (ctm: Inferctypes.ctemap): (block_annotation array * ctab) =
+  let (sa, i) = (Array.make (Array.length c.Ssa.blocks) [], ref 0) in
+  let (theta, conc) = (Hashtbl.create 17, Hashtbl.create 17) in
+  Array.iter
+    (fun b ->
+      match b.Ssa.bstmt.skind with
+        | Instr instrs ->
+            Array.set sa !i (annotate_block theta conc ctm instrs);
+            Hashtbl.clear conc; incr i
+        | _ -> failwith "non-basic block in annotate_cfg") c.Ssa.blocks;
+  (sa, theta)
+
+  (* API *)
+let cloc_of_v_pub (c: ctab) (v: Cil.varinfo) : cloc = Hashtbl.find c v.vname
