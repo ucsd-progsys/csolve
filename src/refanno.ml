@@ -89,7 +89,7 @@ let annotate_cfg (c: Ssa.cfgInfo) (ctm: Inferctypes.ctemap): (block_annotation a
         | Instr instrs ->
             Array.set sa !i (annotate_block theta conc ctm instrs);
             Hashtbl.clear conc; incr i
-        | _ -> failwith "non-basic block in annotate_cfg") c.Ssa.blocks;
+        | _ -> incr i) c.Ssa.blocks;
   (sa, theta)
 
   (* API *)
