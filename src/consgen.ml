@@ -94,7 +94,8 @@ let cons_of_instr loc env grd = function
       cons_of_set loc env grd lv e
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       cons_of_call loc env grd lvo (FI.name_of_varinfo fv) es  
-  | _ -> 
+  | i -> 
+      E.warn "cons_of_instr: %a \n" d_instr i;
       assertf "TBD: cons_of_instr"
 
 let cons_of_ret loc fn env grd e =
