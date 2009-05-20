@@ -12,6 +12,9 @@ type annotation = (refgen option) * (refinst option)
 (* annotations precede corresponding instr *) 
 type block_annotation = annotation list
 
+val print_block_anno: block_annotation -> unit
+val print_ctab: ctab -> unit
+
 (* input: cfg with n blocks of length l_i ... l_n
  * output: array of block annotations of length l_i ... l_n
  *         map from variable names to concrete locations *)

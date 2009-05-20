@@ -94,3 +94,17 @@ let annotate_cfg (c: Ssa.cfgInfo) (ctm: Inferctypes.ctemap): (block_annotation a
 
   (* API *)
 let cloc_of_v_pub (c: ctab) (v: Cil.varinfo) : cloc = Hashtbl.find c v.vname
+
+  (* API *)
+let print_block_anno a = ignore (List.fold_left
+  (fun i (gen, ins) ->
+    Format.printf "@[%i: " i;
+    (match gen with
+      Some s -> Format.printf "Generalize(%i) " i | None -> ());
+    (match ins with
+      Some (s, c) -> Format.printf "Instantiate(%i, %s)" s c | None -> ());
+    Format.printf "@]@.@."; i+1) 0 a)
+
+  (* API *)
+let print_ctab c = Hashtbl.iter
+  (fun v c -> Format.printf "@[Theta(%s) = %s@]@." v c) c
