@@ -33,7 +33,10 @@ let loc_of_var_expr theta =
     | BinOp (_, e1, e2, _) ->
         let l1 = loc_rec e1 in
         let l2 = loc_rec e2 in
-        if l1 = l2 then l1 else None
+        (match (l1, l2) with
+          | (None, l) | (l, None) -> l
+          | (l1, l2) when l1 = l2 -> l1
+          | _ -> None)
     | CastE (_, e) -> loc_rec e
     | _ -> None in
   loc_rec
