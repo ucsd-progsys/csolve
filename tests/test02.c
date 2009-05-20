@@ -1,10 +1,7 @@
-//SAFE
-void assert(int b){
-  return;
-}
+//UNSAFE
 
 int abs(int x){
-  if (x > 0){		//GOOD GUARD
+  if (x < 0){		//WRONG GUARD
     return x;
   } else {
     return (0-x);
@@ -14,7 +11,7 @@ int abs(int x){
 void main(){
   int x;
   int y;
-  x = nondet(); 
+  x = nondet();
   y = abs(x);
   assert(y >= 0);
   return;

@@ -44,7 +44,7 @@ let sort_of_typ = function
   | Cil.TInt _ -> 
       So.Int
   | _ -> 
-      assertf "TBD: Wrapper.sort_of_typ"
+      assertf "TBD: CilInterface.sort_of_typ"
 
 (****************************************************************)
 (********************* Constants ********************************)
@@ -54,7 +54,7 @@ let con_of_cilcon = function
   | Cil.CInt64 (i, _, _) -> 
       A.Constant.Int (Int64.to_int i)
   | _ -> 
-      assertf "TBD: Wrapper.con_of_cilcon unhandled"
+      assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str
     | Cil.CChr _        -> Constant.Int (int_of_char c) 
     | Cil.CReal (_,_,_) -> Constant.Float f
@@ -112,7 +112,7 @@ let expr_of_lval (lh, _) = match lh with
   | Cil.Var v -> 
       expr_of_var v
   | _ -> 
-      assertf "TBD: Wrapper.expr_of_lval" 
+      assertf "TBD: CilInterface.expr_of_lval" 
 
 (* convert_cilexp : Cil.exp -> exp_or_pred *)
 let rec convert_cilexp = function
@@ -125,7 +125,7 @@ let rec convert_cilexp = function
   | Cil.BinOp (op, e1, e2, _) -> 
       convert_cilbinexp (op, e1, e2)
   | _ -> 
-      assertf "TBD: Wrapper.expr_of_cilexp"
+      assertf "TBD: CilInterface.expr_of_cilexp"
 
 and convert_cilbinexp (op, e1, e2) = 
   match op_of_cilBOp op with

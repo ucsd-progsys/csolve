@@ -1,7 +1,8 @@
+Test support for functions by adding [builtins] inside wrapper.ml and then
+using assert
+
 - generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
-
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
-
 - add regression test scripts 
 
 
@@ -10,11 +11,6 @@
 - return values
 - formals
 [DONE]
-
-Code added, but the generated constraints crash fixpoint.
-See: 
-	fixpoint/main.native fixpoint/tests/t6.fq 	(seg-fault!)
-	fixpoint/main.native fixpoint/tests/t6a.fq	(unsat constraint)
 
 **************************************************************
 - globals

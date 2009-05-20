@@ -31,7 +31,7 @@ module F  = Format
 module ST = Ssa_transform
 module IM = Misc.IntMap
 module C  = Constraint
-module W  = Wrapper
+module FI = FixInterface 
 module CI = CilInterface
 
 open Misc.Ops
@@ -41,17 +41,17 @@ type t = {
   sci  : ST.ssaCfgInfo;
   ws   : C.wf list;
   cs   : C.t list;
-  envm : W.cilenv IM.t;
-  gnv  : W.cilenv; 
+  envm : FI.cilenv IM.t;
+  gnv  : FI.cilenv; 
 }
 
 let create env sci = 
-  let fn = W.name_of_varinfo sci.ST.fdec.svar in
+  let fn = FI.name_of_varinfo sci.ST.fdec.svar in
   {sci  = sci;
    cs   = [];
    ws   = [];
    envm = IM.empty;
-   gnv  = W.ce_unroll fn env |> fst}
+   gnv  = FI.ce_unroll fn env |> fst}
 
 let add_cons ws cs me =
   {sci  = me.sci; 
@@ -105,4 +105,4 @@ let guard_of_block me i =
     |> Ast.pAnd
 
 let fname me = 
-  W.name_of_varinfo me.sci.ST.fdec.svar 
+  FI.name_of_varinfo me.sci.ST.fdec.svar 
