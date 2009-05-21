@@ -119,6 +119,8 @@ let mk_options () =
 let main () = 
   let _ = print_header () in
   let f = mk_options () in
-  if liquidate f then Format.printf "\nSAFE\n" else Format.printf "\nUNSAFE\n"
+  let s = liquidate f in
+    if s then Format.printf "\nSAFE\n" else Format.printf "\nUNSAFE\n";
+    if s then exit 0 else exit 1
 
 let _ = main ()
