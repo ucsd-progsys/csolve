@@ -72,11 +72,8 @@ let annotate_instr theta conc ctm = function
       instantiate conc (ens_opt (sloc_of_e ctm e)) (cloc_of_v theta v)
   | _ -> (None, None)
 
-let rec annotate_block theta conc ctm = function
-  | instr :: instrs ->
-      annotate_instr theta conc ctm instr
-      :: annotate_block theta conc ctm instrs
-  | [] -> []
+let rec annotate_block theta conc ctm l =
+  List.map (annotate_instr theta conc ctm) l
  
 let annotate_block (theta: ctab) (conc: (Ctypes.sloc, cloc) Hashtbl.t) (ctm: Inferctypes.ctemap)
                    (instrs: Cil.instr list) : block_annotation =
@@ -84,15 +81,15 @@ let annotate_block (theta: ctab) (conc: (Ctypes.sloc, cloc) Hashtbl.t) (ctm: Inf
 
   (* API *)
 let annotate_cfg (c: Ssa.cfgInfo) (ctm: Inferctypes.ctemap): (block_annotation array * ctab) =
-  let (sa, i) = (Array.make (Array.length c.Ssa.blocks) [], ref 0) in
+  let sa = (Array.make (Array.length c.Ssa.blocks) []) in
   let (theta, conc) = (Hashtbl.create 17, Hashtbl.create 17) in
-  Array.iter
-    (fun b ->
+  ignore(Array.iteri
+    (fun i b ->
       match b.Ssa.bstmt.skind with
         | Instr instrs ->
-            Array.set sa !i (annotate_block theta conc ctm instrs);
-            Hashtbl.clear conc; incr i
-        | _ -> incr i) c.Ssa.blocks;
+            Array.set sa i (annotate_block theta conc ctm instrs);
+            Hashtbl.clear conc
+        | _ -> ()) c.Ssa.blocks);
   (sa, theta)
 
   (* API *)
@@ -103,7 +100,7 @@ let print_block_anno a = ignore (List.fold_left
   (fun i (gen, ins) ->
     Format.printf "@[%i: " i;
     (match gen with
-      Some s -> Format.printf "Generalize(%i) " i | None -> ());
+      Some s -> Format.printf "Generalize(%i) " s | None -> ());
     (match ins with
       Some (s, c) -> Format.printf "Instantiate(%i, %s)" s c | None -> ());
     Format.printf "@]@.@."; i+1) 0 a)
