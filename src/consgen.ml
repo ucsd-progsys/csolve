@@ -55,7 +55,6 @@ let extend_predenv envj vvjs =
     ((n,n')::nn's)
   end ([], envj) vvjs
 *)
-
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
     let envi   = CF.outenv_of_block me i in
@@ -66,7 +65,7 @@ let tcons_of_phis me phia =
       let envj = CF.outenv_of_block me j in
       let nnjs = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
-        if ST.is_origcilvar vj then [] else  
+        if CF.is_undefined me vj then [] else  
           let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
           let lhs   = FI.t_name envj nj in
           let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in

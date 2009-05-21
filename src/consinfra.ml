@@ -30,6 +30,7 @@
 module F  = Format
 module ST = Ssa_transform
 module IM = Misc.IntMap
+module SM = Misc.StringMap
 module C  = Constraint
 module FI = FixInterface 
 module CI = CilInterface
@@ -43,6 +44,7 @@ type t = {
   cs   : C.t list;
   envm : FI.cilenv IM.t;
   gnv  : FI.cilenv; 
+  formalm : unit SM.t
 }
 
 let env_of_fdec gnv fdec = 
@@ -52,19 +54,25 @@ let env_of_fdec gnv fdec =
        FI.ce_add (FI.name_of_varinfo v) (FI.t_true v.vtype) env
      end env0 
 
+let formalm_of_fdec fdec = 
+  List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
+
 let create gnv sci = 
-  {sci  = sci;
-   cs   = [];
-   ws   = [];
-   envm = IM.empty;
-   gnv  = env_of_fdec gnv sci.ST.fdec}
+  {sci     = sci;
+   cs      = [];
+   ws      = [];
+   envm    = IM.empty;
+   gnv     = env_of_fdec gnv sci.ST.fdec;
+   formalm = formalm_of_fdec sci.ST.fdec}
 
 let add_cons ws cs me =
   {sci  = me.sci; 
    cs   = cs ++ me.cs; 
    ws   = ws ++ me.ws; 
    envm = me.envm;
-   gnv  = me.gnv}
+   gnv  = me.gnv;
+   formalm = me.formalm;
+  }
 
 let add_env i env me = 
   {me with envm = IM.add i env me.envm}
@@ -112,3 +120,11 @@ let guard_of_block me i =
 
 let fname me = 
   FI.name_of_varinfo me.sci.ST.fdec.svar 
+
+let is_formal fdec v =
+  fdec.sformals
+  |> Misc.map (fun v -> v.vname)
+  |> List.mem v.vname 
+
+let is_undefined me v =
+  ST.is_origcilvar v && not (SM.mem v.vname me.formalm)

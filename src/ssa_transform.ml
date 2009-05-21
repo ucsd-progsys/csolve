@@ -163,11 +163,6 @@ let out_name cfg out_t k =
       H.find out_t (j, r))
     k k
 
-let is_formal fdec v =
-  fdec.sformals
-  |> Misc.map (fun v -> v.vname)
-  |> List.mem v.vname 
-
 let mk_renamed_var fdec var_t v ri =
   try H.find var_t (v.vname, ri) with Not_found ->
     let v' = 
