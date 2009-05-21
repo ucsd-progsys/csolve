@@ -46,28 +46,32 @@ let cons_fold f (env: FI.cilenv) xs =
 (********************** Constraints for Phis ********************************)
 (****************************************************************************)
 
+(*
 let extend_predenv envj vvjs =
   List.fold_left begin fun (nn's, env) (v, vj) ->
     let n   = FI.name_of_varinfo v in
-    let n'  = FI.nextname_of_varinfo v in
+    let nj  = FI.name_of_varinfo vj in
     let cr' = vj |> FI.name_of_varinfo |> FI.t_name envj in
-    ((n,n')::nn's, (FI.ce_add n' cr' env))
+    ((n,n')::nn's)
   end ([], envj) vvjs
-  
+*)
+
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
-    let asgns' = Misc.transpose asgns in
     let envi   = CF.outenv_of_block me i in
+    let asgns' = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
       let pj   = CF.guard_of_block me j in
       let locj = CF.location_of_block me j in
       let envj = CF.outenv_of_block me j in
-      let nn's, envj' = extend_predenv envj vvjs in
-      nn's |> Misc.flap begin fun (n, n') ->
-                let lhs = FI.t_name envj' n' in
-                let rhs = FI.ce_find n envi |> FI.t_subs_names nn's in
-                FI.make_cs envj' pj lhs rhs locj
-              end
+      let nnjs = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
+      Misc.flap begin fun (v, vj) ->
+        if ST.is_origcilvar vj then [] else  
+          let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
+          let lhs   = FI.t_name envj nj in
+          let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
+          FI.make_cs envj pj lhs rhs locj
+      end vvjs 
     end asgns' 
   end phia
 

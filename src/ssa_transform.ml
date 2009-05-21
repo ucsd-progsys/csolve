@@ -36,11 +36,10 @@ type ssaCfgInfo = {
 }
 
 let mk_ssa_name s = function
-  | Def (b, k) -> Printf.sprintf "%s_blk_%d_%d" s b k
-  | Phi b      -> Printf.sprintf "%s_phi_%d" s b
+  | Def (b, k) -> Printf.sprintf "%s#blk_%d_%d" s b k
+  | Phi b      -> Printf.sprintf "%s#phi_%d" s b
 
-let is_ssa_name s = 
-  Misc.is_substring s "_phi_" 
+let is_origcilvar = fun v -> not (String.contains v.Cil.vname '#')
 
 (******************************* Printers *******************************)
 
@@ -183,9 +182,9 @@ let mk_renamed_var fdec var_t v ri =
 let mk_phi fdec cfg out_t var_t r2v i preds r =
   let v    = Misc.do_catch "mk_phi" r2v r in
   let vphi = mk_renamed_var fdec var_t v (Phi i) in
-  let fml  = is_formal fdec v in 
+  (* let fml  = is_formal fdec v in *)
   preds |> List.map (fun j -> (j, out_name cfg out_t (j, r)))
-        |> List.filter (function (_, Phi 0) -> fml | _ -> true) 
+       (* |> List.map (function (_, Phi 0) -> fml | _ -> true) *) 
         |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
         |> fun z -> (vphi, z)
 

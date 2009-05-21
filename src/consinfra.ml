@@ -45,13 +45,19 @@ type t = {
   gnv  : FI.cilenv; 
 }
 
-let create env sci = 
-  let fn = FI.name_of_varinfo sci.ST.fdec.svar in
+let env_of_fdec gnv fdec = 
+  let env0 = FI.ce_unroll (FI.name_of_varinfo fdec.svar) gnv |> fst in
+  List.filter ST.is_origcilvar fdec.slocals 
+  |> List.fold_left begin fun env v -> 
+       FI.ce_add (FI.name_of_varinfo v) (FI.t_true v.vtype) env
+     end env0 
+
+let create gnv sci = 
   {sci  = sci;
    cs   = [];
    ws   = [];
    envm = IM.empty;
-   gnv  = FI.ce_unroll fn env |> fst}
+   gnv  = env_of_fdec gnv sci.ST.fdec}
 
 let add_cons ws cs me =
   {sci  = me.sci; 
