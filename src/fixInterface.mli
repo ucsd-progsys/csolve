@@ -3,7 +3,9 @@ type cilenv
 type cilreft = Base of Constraint.reft 
              | Fun  of (name * cilreft) list * cilreft  
 
+
 val name_of_varinfo: Cil.varinfo -> name
+val nextname_of_varinfo: Cil.varinfo -> name
 
 val ce_empty:   cilenv
 val ce_add:     name 
@@ -30,7 +32,8 @@ val t_fresh: Cil.typ -> cilreft
 val t_true: Cil.typ -> cilreft
 val t_exp: cilenv -> Cil.exp -> cilreft
 val t_name: cilenv -> name -> cilreft
-val t_subs: (name * Cil.exp) list -> cilreft -> cilreft
+val t_subs_exps: (name * Cil.exp) list -> cilreft -> cilreft
+val t_subs_names: (name * name) list -> cilreft -> cilreft
 
 val make_cs: cilenv 
            -> Ast.pred 

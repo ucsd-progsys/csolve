@@ -1,2 +1,4 @@
 test02.c
+loop-unsafe.c
+loop-unsafe-simple.c
 

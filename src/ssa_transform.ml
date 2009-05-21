@@ -8,7 +8,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true
 
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *
@@ -183,9 +183,9 @@ let mk_renamed_var fdec var_t v ri =
 let mk_phi fdec cfg out_t var_t r2v i preds r =
   let v    = Misc.do_catch "mk_phi" r2v r in
   let vphi = mk_renamed_var fdec var_t v (Phi i) in
-  let fml  = is_formal fdec v in
+  let fml  = is_formal fdec v in 
   preds |> List.map (fun j -> (j, out_name cfg out_t (j, r)))
-        |> List.filter (function (_, Phi 0) -> fml | _ -> true)
+        |> List.filter (function (_, Phi 0) -> fml | _ -> true) 
         |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
         |> fun z -> (vphi, z)
 

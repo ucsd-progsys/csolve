@@ -22,8 +22,9 @@ open Cil
 (*******************************************************************)
 
 type name = Sy.t
-let name_of_varinfo = fun v -> Sy.of_string v.vname
-let name_of_string = Sy.of_string
+let name_of_varinfo     = fun v -> Sy.of_string v.vname
+let nextname_of_varinfo = fun v -> Sy.of_string (v.vname ^ "#next") 
+let name_of_string      = fun s -> Sy.of_string s
 
 type cilreft = Base of C.reft 
              | Fun  of (name * cilreft) list * cilreft  
@@ -159,7 +160,7 @@ let t_var env v =
 *)
 
 let t_name env n = 
-  asserts (YM.mem n env) "t_cilname: reading unbound var";
+  asserts (YM.mem n env) "t_cilname: reading unbound var -- return false reft";
   match YM.find n env with
   | Base r -> 
       let so  = C.sort_of_reft r in
@@ -168,17 +169,22 @@ let t_name env n =
       Base (C.make_reft vv so ras)
   | cr -> cr
 
-let rec t_subs nes cr = 
+let rec cilreft_map f cr = 
   match cr with
   | Base r ->
-      let subs = Misc.map (fun (n, e) -> (n, CI.expr_of_cilexp e)) nes in
-      let r'   = C.theta subs r in
-      Base r'
+      Base (f r) 
   | Fun (ncrs, r) -> 
-      let ncrs' = Misc.map (fun (n, cr) -> (n, t_subs nes cr)) ncrs in
-      let r'    = t_subs nes r in
+      let ncrs' = Misc.map (fun (n, cr) -> (n, cilreft_map f cr)) ncrs in
+      let r'    = cilreft_map f r in
       Fun (ncrs', r')
 
+let cilreft_subs f nzs = 
+  nzs |> Misc.map (fun (n, z) -> (n, f z)) 
+      |> C.theta  
+      |> cilreft_map 
+
+let t_subs_exps  = cilreft_subs CI.expr_of_cilexp
+let t_subs_names = cilreft_subs A.eVar
 
 (****************************************************************)
 (********************** Constraints *****************************)

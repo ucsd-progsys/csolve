@@ -26,48 +26,74 @@
 module F  = Format
 module E  = Errormsg
 module ST = Ssa_transform
-module FI  = FixInterface 
+module FI = FixInterface 
 module CF = Consinfra
 
 open Misc.Ops
 open Cil
 
-let mydebug = false
+let mydebug = true 
 
-let cons_fold f (env: FI.cilenv) grd xs =
+let cons_fold f (env: FI.cilenv) xs =
   List.fold_left begin
     fun (env, ws, cs) x -> 
-      let (env', ws', cs') = f env grd x in
+      let (env', ws', cs') = f env x in
       (env', ws' ++ ws, cs' ++ cs)
   end (env, [], []) xs
 
+
+(****************************************************************************)
+(********************** Constraints for Phis ********************************)
+(****************************************************************************)
+
+let extend_predenv envj vvjs =
+  List.fold_left begin fun (nn's, env) (v, vj) ->
+    let n   = FI.name_of_varinfo v in
+    let n'  = FI.nextname_of_varinfo v in
+    let cr' = vj |> FI.name_of_varinfo |> FI.t_name envj in
+    ((n,n')::nn's, (FI.ce_add n' cr' env))
+  end ([], envj) vvjs
+  
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
-    Misc.flap begin fun (v, srcs) ->
-      Misc.flap begin fun (j, vj) -> 
-        let envj = CF.outenv_of_block me j in
-        let pj   = CF.guard_of_block me j in
-        let locj = CF.location_of_block me j in
-        let lhs  = vj |> FI.name_of_varinfo |> FI.t_name envj in
-        let rhs  = FI.ce_find (FI.name_of_varinfo v) (CF.outenv_of_block me i) in
-        FI.make_cs envj pj lhs rhs locj
-      end srcs
-    end asgns
+    let asgns' = Misc.transpose asgns in
+    let envi   = CF.outenv_of_block me i in
+    Misc.flap begin fun (j, vvjs) ->
+      let pj   = CF.guard_of_block me j in
+      let locj = CF.location_of_block me j in
+      let envj = CF.outenv_of_block me j in
+      let nn's, envj' = extend_predenv envj vvjs in
+      nn's |> Misc.flap begin fun (n, n') ->
+                let lhs = FI.t_name envj' n' in
+                let rhs = FI.ce_find n envi |> FI.t_subs_names nn's in
+                FI.make_cs envj' pj lhs rhs locj
+              end
+    end asgns' 
   end phia
 
-let wcons_of_phi loc env grd v =
+let bind_of_phi env v = 
   let cr = FI.t_fresh v.vtype in
   let vn = FI.name_of_varinfo v in
-  (FI.ce_add vn cr env, FI.make_wfs env cr loc, [])
+  (FI.ce_add vn cr env, [], [])
 
-let cons_of_set loc env grd lv e =
+let wcons_of_phi loc grd env v =
+  let vn = FI.name_of_varinfo v in
+  let cr = FI.ce_find vn env in 
+  (env, FI.make_wfs env cr loc, [])
+
+
+(****************************************************************************)
+(********************** Constraints for [instr] *****************************)
+(****************************************************************************)
+
+let cons_of_set loc grd env (lv, e) =
   match lv with
   | (Var v), NoOffset -> 
       let cr = FI.t_exp env e in
       (FI.ce_add (FI.name_of_varinfo v) cr env, [], []) 
   | _ -> assertf "TBD: cons_of_set"
 
-let cons_of_call loc env grd lvo fn es =
+let cons_of_call loc grd env (lvo, fn, es) =
   match FI.ce_find fn env with
   | FI.Fun (ncrs, cr) ->
       asserts (List.length ncrs = List.length es) "cons_of_call: params"; 
@@ -83,45 +109,59 @@ let cons_of_call loc env grd lvo fn es =
                      env  
                  | Some ((Var v), NoOffset) ->
                      let vn  = FI.name_of_varinfo v in
-                     let cr' = FI.t_subs (List.combine ns es) cr in
+                     let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
                      FI.ce_add vn cr' env 
                  | _  -> assertf "TBDNOW: cons_of_call" in
       (env', [], cs)
   | _ -> assertf "ERROR: cons_of_call: fname has wrong type"
 
-let cons_of_instr loc env grd = function
+let cons_of_instr loc grd env = function
   | Set (lv, e, loc) ->
-      cons_of_set loc env grd lv e
+      cons_of_set loc grd env (lv, e)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      cons_of_call loc env grd lvo (FI.name_of_varinfo fv) es  
-  | _ -> 
+      cons_of_call loc grd env (lvo, (FI.name_of_varinfo fv), es)  
+  | i -> 
+      E.warn "cons_of_instr: %a \n" d_instr i;
       assertf "TBD: cons_of_instr"
 
-let cons_of_ret loc fn env grd e =
+(****************************************************************************)
+(********************** Constraints for [stmt] ******************************)
+(****************************************************************************)
+
+let cons_of_ret loc fn grd env e =
   match FI.ce_find fn env with
   | FI.Fun (_, cr) ->
       (env, [], FI.make_cs env grd (FI.t_exp env e) cr loc) 
   | _ ->
       assertf "ERROR:cons_of_ret"
 
-let cons_of_stmt loc fn env grd stmt = 
+let cons_of_stmt loc fn grd env stmt = 
   match stmt.skind with
   | Instr is -> 
-      cons_fold (cons_of_instr loc) env grd is
+      cons_fold (cons_of_instr loc grd) env is
   | Return ((Some e), _) ->
-      cons_of_ret loc fn env grd e
+      cons_of_ret loc fn grd env e
   | _ ->
       (env, [], [])
 
+(****************************************************************************)
+(********************** Constraints for (cfg)block **************************)
+(****************************************************************************)
+
 let cons_of_block me i =
-  let env0             = CF.inenv_of_block me i in
-  let grd              = CF.guard_of_block me i in
-  let loc              = CF.location_of_block me i in
-  let phis             = CF.phis_of_block me i in
-  let fn               = CF.fname me in 
-  let (env1, ws1, cs1) = cons_fold (wcons_of_phi loc) env0 grd phis in
-  let (env2, ws2, cs2) = cons_of_stmt loc fn env1 grd (CF.stmt_of_block me i) in
-  (env2, ws1 ++ ws2, cs1 ++ cs2)
+  let grd           = CF.guard_of_block me i in
+  let loc           = CF.location_of_block me i in
+  let phis          = CF.phis_of_block me i in
+  let fn            = CF.fname me in 
+  let env           = CF.inenv_of_block me i in
+  let env, _  , _   = cons_fold bind_of_phi env phis in 
+  let env, ws1, cs1 = cons_fold (wcons_of_phi loc grd) env phis in
+  let env, ws2, cs2 = cons_of_stmt loc fn grd env (CF.stmt_of_block me i) in
+  (env, ws1 ++ ws2, cs1 ++ cs2)
+
+(****************************************************************************)
+(********************** Constraints for ST.ssaCfgInfo ***********************)
+(****************************************************************************)
 
 let process_block me i = 
   let env, ws, cs = cons_of_block me i in
@@ -133,7 +173,11 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let _ = if !Constants.ctypes then ignore(Inferctypes.infer_sci_shapes sci) in
+  let _ = if !Constants.ctypes then
+    let (ctm, _) = Inferctypes.infer_sci_shapes sci in
+    let (bs, th) = (Refanno.annotate_cfg sci.ST.cfg ctm) in
+    let _ = Array.iter (fun b -> Refanno.print_block_anno b) bs in
+    Refanno.print_ctab th in
   CF.create gnv sci
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 
@@ -157,7 +201,7 @@ let scis_of_file cil =
       match g with 
       | Cil.GFun (fdec,loc) -> 
           let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if false then ST.print_sci sci in
+          let _   = if mydebug then ST.print_sci sci in
           sci::acc
       | _ -> acc) [] 
 
