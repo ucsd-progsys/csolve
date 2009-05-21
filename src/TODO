@@ -1,6 +1,5 @@
-get the following to work:
-	tests/loop.c 
-	tests/join.c 
+- time to get regrtest working
+
 
 - generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
