@@ -10,7 +10,7 @@ void main(int n){
   node_t *tmp;
   int ctr;
 
-  root = NULL;
+  root = 0;
   ctr = 0;
 
   for(int i=0; i++; i<n){
@@ -20,7 +20,7 @@ void main(int n){
     root      = tmp;
   }
 
-  for(tmp = root; tmp = tmp->next; tmp!=NULL){
-    assert(tmp->x >= 0);
+  for(tmp = root; tmp = tmp->next; tmp!=0){
+    //assert(tmp->x >= 0);
   }
 }
