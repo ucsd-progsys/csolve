@@ -177,7 +177,11 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let _ = if !Constants.ctypes then ignore(Inferctypes.infer_sci_shapes sci) in
+  let _ = if !Constants.ctypes then
+    let (ctm, _) = Inferctypes.infer_sci_shapes sci in
+    let (bs, th) = (Refanno.annotate_cfg sci.ST.cfg ctm) in
+    let _ = Array.iter (fun b -> Refanno.print_block_anno b) bs in
+    Refanno.print_ctab th in
   CF.create gnv sci
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 
