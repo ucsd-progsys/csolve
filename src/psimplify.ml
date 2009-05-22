@@ -710,6 +710,9 @@ let doGlobal = function
       end
   | _ -> ()
 
+let simplify file =
+  iterGlobals file doGlobal
+
 let feature : featureDescr =
   { fd_name = "simplify";
     fd_enabled = ref false;

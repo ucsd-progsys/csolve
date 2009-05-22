@@ -13,4 +13,7 @@ val noStringConstantsBasics : bool ref
 (** Simplify a given global *)
 val doGlobal : Cil.global -> unit
 
+(** Simplify a file *)
+val simplify : Cil.file -> unit
+
 val feature : Cil.featureDescr

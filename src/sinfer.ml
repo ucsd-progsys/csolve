@@ -30,24 +30,20 @@ let rename_locals cil =
   | _ -> ())
 
 let mk_cfg cil =
-  let _ =
-    Cil.foldGlobals cil
-      (fun fds -> function
-         | (Cil.GFun(fd,_) as fundec) ->
-             let _ = fundec in
-               Psimplify.doGlobal fundec;
-               Inliner.doGlobal fds fundec;
-               Cil.prepareCFG fd;
-               Cil.computeCFGInfo fd false;
-               (fd.Cil.svar.Cil.vid, fd) :: fds
-         | _ -> fds) []
-  in ()
+  Cil.iterGlobals cil
+    (function
+       | Cil.GFun(fd,_) ->
+           Cil.prepareCFG fd;
+           Cil.computeCFGInfo fd false
+       | _ -> ())
 
 let mk_cil fname =
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
-  let _   = Heapify.heapifyNonArrays := true;
+  let _   = Inliner.inline cil;
+            Heapify.heapifyNonArrays := true;
             Heapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
+            Psimplify.simplify cil;
             mk_cfg cil;
             rename_locals cil in
   cil

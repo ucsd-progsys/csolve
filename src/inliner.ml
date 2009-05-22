@@ -100,6 +100,54 @@ class inlineVisitor fds fi = object
     ChangeDoChildrenPost ({b with bstmts = splitCallStmts b.bstmts}, id)
 end
 
-let doGlobal fds = function
-    GFun (fi, _) -> fi.sbody <- visitCilBlock (new inlineVisitor fds fi) fi.sbody
-  | _            -> ()
+let doInline (file: file): unit =
+  begin
+    foldGlobals file begin fun fds g ->
+      match g with
+        | GFun (fd, _) -> fd.sbody <- visitCilBlock (new inlineVisitor fds fd) fd.sbody; (fd.svar.vid, fd) :: fds
+        | _            -> fds
+    end []
+  end |> ignore
+
+(******************************************************************************)
+(******************************* Global Lowering ******************************)
+(******************************************************************************)
+
+module GIM = Misc.IntMap
+
+type globalinfo = varinfo * init option
+
+let shouldLower (v: varinfo): bool =
+  v.vglob && not (isFunctionType v.vtype)
+
+class renameVisitor (fgm: varinfo GIM.t) = object
+  inherit nopCilVisitor
+
+  method vvrbl (v: varinfo): varinfo visitAction =
+    if shouldLower v then ChangeTo (GIM.find v.vid fgm) else SkipChildren
+end
+
+let rec instrsOfInit (v: varinfo) (o: offset): init -> instr list = function
+  | SingleInit e             -> [Set ((Var v, o), e, v.vdecl)]
+  | CompoundInit (ct, inits) -> foldLeftCompound ~implicit:true ~doinit:(fun o i _ is -> instrsOfInit v o i @ is) ~ct:ct ~initl:inits ~acc:[]
+
+let localizeFunction (fd: fundec) (gim: globalinfo GIM.t): unit =
+  let fgm   = GIM.map (fun (v, _) -> makeLocalVar fd (v.vname ^ "#") v.vtype) gim in
+  let inits = GIM.fold (fun _ (v, io) is -> match io with Some i -> instrsOfInit v NoOffset i @ is | None -> is) gim [] in
+    fd.sbody <- {fd.sbody with bstmts = [mkStmt (Instr inits)] @ fd.sbody.bstmts};
+    fd.sbody <- visitCilBlock (new renameVisitor fgm) fd.sbody
+
+let doLocalize (file: file): unit =
+  begin
+    foldGlobals file begin fun gim g ->
+      match g with
+        | GFun (fd, _)                       -> localizeFunction fd gim; gim
+        | GVarDecl (v, _) when shouldLower v -> if not (GIM.mem v.vid gim) then GIM.add v.vid (v, None) gim else gim
+        | GVar (v, i, _) when shouldLower v  -> GIM.add v.vid (v, i.init) gim
+        | _                                  -> gim
+    end GIM.empty
+  end |> ignore
+
+let inline (file: file): unit =
+  doInline file;
+  doLocalize file
