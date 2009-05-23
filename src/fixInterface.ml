@@ -9,6 +9,7 @@ module CI = CilInterface
 
 module YM = Sy.SMap
 module SM = Misc.StringMap
+module  T = Ctypes
 
 open Misc.Ops
 open Cil
@@ -26,7 +27,7 @@ let name_of_varinfo     = fun v -> Sy.of_string v.vname
 let nextname_of_varinfo = fun v -> Sy.of_string (v.vname ^ "#next") 
 let name_of_string      = fun s -> Sy.of_string s
 
-type cilreft = Base of C.reft 
+type cilreft = Base of C.reft T.prectype
              | Fun  of (name * cilreft) list * cilreft  
 
 let vv_int   = Sy.value_variable So.Int 
