@@ -94,6 +94,9 @@ class inlineVisitor fds fi = object
               | (Some lv, Some rv) -> ChangeDoChildrenPost (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}), id)
               | _                  -> E.s <| errorLoc loc "Assigning void return type to a variable"
             end
+      | Instr [Call (_, _, _, loc)] ->
+          warnLoc loc "Unsoundly dropping recursive or forward call:@!%a@!" d_stmt s |> ignore;
+          ChangeDoChildrenPost (mkStmt (Instr []), id)
       | _ -> DoChildren
 
   method vblock (b: block): block visitAction =
