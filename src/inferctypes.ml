@@ -252,10 +252,11 @@ let rec typ_width (t: C.typ): int =
     | C.TComp (ci, _) when ci.C.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.C.ftype) 0 ci.C.cfields
     | t                                 -> E.s <| E.bug "Unimplemented typ_width: %a@!@!" C.d_type t
 
-let fresh_ctypevar: C.typ -> ctypevar = function
-  | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
-  | C.TPtr (_, _)  -> fresh_ctvref ()
-  | t              -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
+let fresh_ctypevar (t: C.typ): ctypevar =
+  match C.unrollType t with
+    | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
+    | C.TPtr (_, _)  -> fresh_ctvref ()
+    | _              -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
 
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
@@ -414,15 +415,20 @@ let constrain_param: ctypevar -> cstr option = function
   | CTRef (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv)
   | CTInt (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst ITop) iv)
 
+let maybe_fresh (v: C.varinfo): (int * ctypevar) option =
+  let t = C.unrollType v.C.vtype in
+    match t with
+      | C.TInt _ | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
+      | _                   -> C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
+
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
-  List.map (fun v -> (v.C.vid, fresh_ctypevar v.C.vtype)) vs
+  Misc.map_partial maybe_fresh vs
 
 let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
   List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (IM.find vdef.C.vid ve) (IM.find vphi.C.vid ve)) vdefs
 
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
-  let defs = List.flatten <| Array.to_list phis in
-    List.concat <| List.map (mk_phi_defs_cs ve) defs
+  Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
 let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
