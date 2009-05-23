@@ -416,8 +416,7 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
   List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (IM.find vdef.C.vid ve) (IM.find vphi.C.vid ve)) vdefs
 
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
-  let defs = List.flatten <| Array.to_list phis in
-    List.concat <| List.map (mk_phi_defs_cs ve) defs
+  Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
 let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
