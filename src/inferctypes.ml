@@ -19,7 +19,7 @@ let d_indexvar () (iv: indexvar): P.doc =
 let (fresh_indexvar, reset_fresh_indexvars) = M.mk_int_factory ()
 
 let with_fresh_indexvar (f: indexvar -> 'a): 'a =
-  f <| fresh_indexvar ()
+  fresh_indexvar () |> f
 
 type indexexp =
   | IEConst of index
@@ -67,6 +67,8 @@ let (fresh_sloc, reset_fresh_slocs) =
   let f'   = fun () -> ALoc (f ()) in
   (f', g)
 
+let with_fresh_sloc (f: sloc -> 'a): 'a =
+  fresh_sloc () |> f
 
 let fresh_ctvint (n: int): ctypevar =
   CTInt (n, fresh_indexvar ())
@@ -332,8 +334,15 @@ and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: 
   with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
+  | C.CStr _ ->
+      with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
+        (CTRef (s, ivr), em, [mk_iless loc (IEConst (IInt 0)) ivr;
+                              mk_iless loc (IEConst (ISeq (0, 1))) ivl;
+                              mk_iless loc (IEConst ITop) ivc;
+                              mk_storeinc loc s ivl (CTInt (typ_width C.charType, ivc))])
+      end
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
-  | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero constant %a to pointer@!@!" C.d_const c
+  | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
   match (C.unrollType ct, C.unrollType <| C.typeOf e) with
