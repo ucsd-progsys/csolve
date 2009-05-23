@@ -1,6 +1,7 @@
 module M  = Misc
 module P  = Pretty
 module C  = Cil
+module Cs = Constants
 module E  = Errormsg
 module ST = Ssa_transform
 
@@ -421,14 +422,14 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.blo
 (* pmr: Possibly a hack for now just to get some store locations going *)
 (* pmr: Let's be honest here: the following is flat-out wrong. *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv)
+  | CTRef (_, iv) -> if not !Cs.safe then Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv) else E.s <| E.error "Can't constrain reference parameter@!"
   | CTInt (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst ITop) iv)
 
 let maybe_fresh (v: C.varinfo): (int * ctypevar) option =
   let t = C.unrollType v.C.vtype in
     match t with
       | C.TInt _ | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
-      | _                   -> C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
+      | _                   -> C.warnLoc v.C.vdecl "Not freshing var %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
 
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
   Misc.map_partial maybe_fresh vs
