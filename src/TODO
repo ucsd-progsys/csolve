@@ -11,6 +11,9 @@
 **************************************************************
 The great merge:
 1. add cloc/sloc to pat's prectype
+	
+	-- HERE --
+
 2. add ctype info to Consinfra.t
 3. add refanno info to Consinfra.t
 4. Consinfra.prectype_of_varinfo: Consinfra.t -> Cil.varinfo -> "ourtype"

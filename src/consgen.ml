@@ -176,14 +176,13 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
- let _ = if !Constants.ctypes then begin
-    let (ctm, _) = Inferctypes.infer_sci_shapes sci in
-    let (ba, th) = Refanno.annotate_cfg sci.ST.cfg ctm in
-    Array.iteri (fun i b -> ignore(Pretty.printf "%i: %a" i
-    Refanno.d_block_annotation b)) ba; 
-    ignore(Pretty.printf "%a" Refanno.d_ctab th) 
-  end in
-  CF.create gnv sci
+  let (ctm, store)   = Inferctypes.infer_sci_shapes sci in
+  let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
+  let _ = Array.iteri begin fun i b -> 
+              ignore(Pretty.printf "%i: %a" i Refanno.d_block_annotation b)
+          end anna; 
+          ignore(Pretty.printf "%a" Refanno.d_ctab theta) in 
+  CF.create gnv sci (ctm, store) (anna, theta)
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis 
   |> CF.get_cons

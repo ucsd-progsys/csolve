@@ -44,7 +44,11 @@ type t = {
   cs   : C.t list;
   envm : FI.cilenv IM.t;
   gnv  : FI.cilenv; 
-  formalm : unit SM.t
+  formalm : unit SM.t;
+  ctm  : Inferctypes.ctemap;
+  store: Ctypes.store;
+  anna : Refanno.block_annotation array;
+  ctab : Refanno.ctab
 }
 
 let env_of_fdec gnv fdec = 
@@ -57,22 +61,20 @@ let env_of_fdec gnv fdec =
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
-let create gnv sci = 
+let create gnv sci (ctm, store) (anna, ctab) = 
   {sci     = sci;
    cs      = [];
    ws      = [];
    envm    = IM.empty;
    gnv     = env_of_fdec gnv sci.ST.fdec;
-   formalm = formalm_of_fdec sci.ST.fdec}
+   formalm = formalm_of_fdec sci.ST.fdec;
+   ctm     = ctm;
+   store   = store;
+   anna    = anna;
+   ctab    = ctab}
 
 let add_cons ws cs me =
-  {sci  = me.sci; 
-   cs   = cs ++ me.cs; 
-   ws   = ws ++ me.ws; 
-   envm = me.envm;
-   gnv  = me.gnv;
-   formalm = me.formalm;
-  }
+  {{me with cs = cs ++ me.cs} with ws = ws ++ me.ws}
 
 let add_env i env me = 
   {me with envm = IM.add i env me.envm}
