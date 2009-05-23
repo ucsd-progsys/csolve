@@ -62,7 +62,11 @@ let indexcstr_sat (ICLess (ie, iv): indexcstr) (is: indexsol): bool =
 
 type ctypevar = indexvar prectype
 
-let (fresh_sloc, reset_fresh_slocs) = M.mk_int_factory ()
+let (fresh_sloc, reset_fresh_slocs) = 
+  let f, g = M.mk_int_factory () in
+  let f'   = fun () -> ALoc (f ()) in
+  (f', g)
+
 
 let fresh_ctvint (n: int): ctypevar =
   CTInt (n, fresh_indexvar ())
@@ -211,7 +215,8 @@ let refine ((is, ss): indexsol * storesol): cstrdesc -> indexsol * storesol = fu
         let i  = indexsol_find iv is in
         let ct = ctypevar_apply is ctv in
         let ld = LDesc.map (ctypevar_apply is) (prestore_find l ss) in
-          E.error "Can't fit %a |-> %a in location %d: @!@!%a@!@!" d_index i d_ctype ct l (LDesc.d_ldesc d_ctype) ld;
+          E.error "Can't fit %a |-> %a in location %a: @!@!%a@!@!" 
+            d_index i d_ctype ct d_sloc l (LDesc.d_ldesc d_ctype) ld;
           raise TypeDoesntFit
 
 let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =

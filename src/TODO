@@ -1,20 +1,34 @@
-- time to get regrtest working
-
-
-- generalize consInfraVisitor to handle proper assignments, i.e. to LVAL RHS
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
-- add regression test scripts 
-
-
 
 **************************************************************
-- return values
-- formals
-[DONE]
+
+[pr] inline all functions (drop-recursive calls)
+[pr] add globals as locals after inlining
+
+[rj] add "array-bounds-assertion"
+[rj] combine: types + refanno + consgen
+
+**************************************************************
+The great merge:
+1. add cloc/sloc to pat's prectype
+2. add ctype info to Consinfra.t
+3. add refanno info to Consinfra.t
+4. Consinfra.prectype_of_varinfo: Consinfra.t -> Cil.varinfo -> "ourtype"
+5. Consinfra.annot_of_block:      Consinfra.t -> int -> annot list
+6. Then move to consgen using notes.
+	-- annstmt = (annotation * stmt)
+	-- stmt_of_block --> annstmt_of_block
+	-- cons_of_stmt --> cons_of_annstmt
+7.
+
+
+--^^^-- get small benchmarks working on above --^^^---
+
+- add functions
 
 **************************************************************
 - globals
-- pointers
+- functions
 **************************************************************
 ------------------------
 while e do:

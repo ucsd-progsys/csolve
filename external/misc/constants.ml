@@ -21,6 +21,8 @@
  *)
 
 (** This module contains globals representing "flags" **************)
+
+let safe                 = ref false            (* -safe *)
 let global_name          = "GLOBAL"
 let save_file            = ref "out"            (* -save *)
 let dump_ref_constraints = ref false            (* -drconstr *)
@@ -99,6 +101,9 @@ let arg_spec =
    ("-drconstr", 
     Arg.Set dump_ref_constraints, 
     "Dump refinement constraints [false]");
+   ("-safe", 
+    Arg.Set safe, 
+    "run in failsafe mode [false]");
    ("-psimple", 
     Arg.Set psimple, 
     "prioritize simple constraints [true]");

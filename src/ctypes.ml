@@ -86,15 +86,21 @@ let is_subindex (i1: index) (i2: index): bool =
 (************************************ Types ***********************************)
 (******************************************************************************)
 
-type sloc = int (* store locations *)
+(* type sloc = int (* store locations *) *)
+
+type sloc = ALoc of int | CLoc of int   (* store location *)
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
 
+let d_sloc (): sloc -> P.doc = function
+  | ALoc i -> P.dprintf "%d" i
+  | CLoc i -> P.dprintf "%d" i
+
 let d_prectype (d_i: unit -> 'a -> P.doc) (): 'a prectype -> P.doc = function
   | CTInt (n, i) -> P.dprintf "int(%d, %a)" n d_i i
-  | CTRef (s, i) -> P.dprintf "ref(%d, %a)" s d_i i
+  | CTRef (s, i) -> P.dprintf "ref(%a, %a)" d_sloc s d_i i
 
 let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
@@ -263,4 +269,4 @@ type store = index prestore
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
 let d_store () (s: store): P.doc =
-  SLMPrinter.d_map "\n" (fun () -> P.num) (LDesc.d_ldesc d_ctype) () s
+  SLMPrinter.d_map "\n" d_sloc (LDesc.d_ldesc d_ctype) () s

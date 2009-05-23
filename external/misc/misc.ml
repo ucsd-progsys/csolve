@@ -254,10 +254,12 @@ let is_substring s subs =
   with Not_found -> false
 
 let iteri f xs =
-  let rec _m i l = 
-    match l with [] -> ()
-    | h::t -> ((f i h);(_m (i+1) t)) in
-  _m 0 xs
+  List.fold_left (fun i x -> f i x; i+1) 0 xs
+  |> ignore
+
+let numbered_list xs = 
+  List.fold_left (fun (i, acc) x -> (i+1, (i,x)::acc)) (0,[]) xs
+  |> snd |> List.rev 
 
 exception FalseException
 let rec intmap_for_all f m =

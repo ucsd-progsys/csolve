@@ -1,19 +1,15 @@
-type cloc = string 
+type ctab 
 
-type ctab (*= (string, cloc) Hashtbl.t*)
+val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc (* CLoc *)
 
-(* throws Not_found *)
-val cloc_of_v_pub: ctab -> Cil.varinfo -> cloc
-
-type refgen = Ctypes.sloc
-type refinst = Ctypes.sloc * cloc
-type annotation = (refgen option) * (refinst option)
-
+type annotation = 
+  | Gen  of Ctypes.sloc * Ctypes.sloc      (* CLoc c, ALoc s *)
+  | Inst of Ctypes.sloc * Ctypes.sloc      (* ALoc s, CLoc c *)
+type block_annotation = annotation list list
 (* annotations precede corresponding instr *) 
-type block_annotation = annotation list
 
-val print_block_anno: block_annotation -> unit
-val print_ctab: ctab -> unit
+val d_block_annotation: unit -> block_annotation -> Pretty.doc
+val d_ctab: unit -> ctab -> Pretty.doc 
 
 (* input: cfg with n blocks of length l_i ... l_n
  * output: array of block annotations of length l_i ... l_n

@@ -4,7 +4,7 @@ type index =
   | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
   | ITop               (* sequence of all values (including negatives) *)
 
-type sloc = int (* store locations *)
+type sloc = ALoc of int | CLoc of int   (* store location *)
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
@@ -66,6 +66,7 @@ type store = index prestore
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
 
+val d_sloc: unit -> sloc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
