@@ -24,16 +24,24 @@ open Cil
 
 type name = Sy.t
 let name_of_varinfo     = fun v -> Sy.of_string v.vname
-let nextname_of_varinfo = fun v -> Sy.of_string (v.vname ^ "#next") 
 let name_of_string      = fun s -> Sy.of_string s
 
-type cilreft = Base of C.reft T.prectype
+type cilreft = Base of (T.index * C.reft) T.prectype
              | Fun  of (name * cilreft) list * cilreft  
 
-let vv_int   = Sy.value_variable So.Int 
-let true_int = Base (C.make_reft vv_int So.Int [])
-let ne_0_int = let p = A.pAtom (A.eVar vv_int, A.Ne, A.zero) in 
-               Base (C.make_reft vv_int So.Int [C.Conc p])
+let reft_of_prectype = function
+  | CTInt (_,(_,r)) 
+  | CTRef (_,(_,r)) -> r
+
+let width_int = Cil.bytesSizeOfInt Cil.IInt
+let vv_int    = Sy.value_variable So.Int in
+
+let int_cilreft_of_ras ras = 
+  let reft_int = C.make_reft vv_int So.Int ras in
+  Base (CTInt (width_int, (T.ITop, reft_int)))
+
+let true_int = int_cilreft_of_ras []
+let ne_0_int = int_cilreft_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
 let builtins = 
   [(Sy.of_string "assert", 
@@ -41,14 +49,12 @@ let builtins =
    (Sy.of_string "nondet", 
       Fun ([], true_int))]
 
-
 (*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
 type cilenv  = cilreft YM.t
 
-let ce_mem n cenv = 
-  YM.mem n cenv
+let ce_mem   = fun n cenv -> YM.mem n cenv
 
 let ce_find n (cenv : cilreft YM.t) =
   try YM.find n cenv with Not_found -> 

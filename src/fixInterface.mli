@@ -1,6 +1,7 @@
 type name
 type cilenv
-type cilreft = Base of Constraint.reft 
+
+type cilreft = Base of C.reft T.prectype
              | Fun  of (name * cilreft) list * cilreft  
 
 
