@@ -382,6 +382,15 @@ let constrain_malloc (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval 
               | CTRef (s, iv) as ctv -> (ctvm, mk_iless loc (IEConst (IInt 0)) iv :: mk_subty loc ctv ctv1 :: cs)
               | _                    -> E.s <| E.bug "Got non-ref type from fresh_ctvref"
 
+let constrain_nondet (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval option): cstremap =
+  match lvo with
+    | None    -> em
+    | Some lv ->
+        let (ctv, (ctvm, cs)) = constrain_lval ve em loc lv in
+          with_fresh_indexvar <| fun iv -> begin
+            (ctvm, mk_iless loc (IEConst ITop) iv :: mk_subty loc (CTInt (typ_width C.intType, iv)) ctv :: cs)
+          end
+
 let constrain_uninterpreted (ve: ctvenv) (em: cstremap) (loc: C.location) (eparam: C.exp): cstremap =
   snd <| constrain_exp ve em loc eparam
 
@@ -392,6 +401,8 @@ let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
   | C.Call (lvo, C.Lval (C.Var {C.vname = "malloc"}, C.NoOffset), [elen], loc) ->
       constrain_malloc ve em loc lvo elen
+  | C.Call (lvo, C.Lval (C.Var {C.vname = "nondet"}, C.NoOffset), [], loc) ->
+      constrain_nondet ve em loc lvo
   | C.Call (None, C.Lval (C.Var {C.vname = "free"}, C.NoOffset), [eobj], loc) ->
       constrain_uninterpreted ve em loc eobj
   | C.Call (None, C.Lval (C.Var {C.vname = "assert"}, C.NoOffset), [epred], loc) ->
