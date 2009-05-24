@@ -246,7 +246,8 @@ let solve (cs: cstr list): cstrsol =
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
-let int_width = C.bytesSizeOfInt C.IInt
+let int_width  = C.bytesSizeOfInt C.IInt
+let char_width = C.bytesSizeOfInt C.IChar
 
 let rec typ_width (t: C.typ): int =
   match C.unrollType t with
@@ -294,7 +295,7 @@ type cstremap = ctvemap * cstr list
 
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
-  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (typ_width C.charType, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
+  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (char_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
@@ -344,7 +345,7 @@ and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar 
         (CTRef (s, ivr), em, [mk_iless loc (IEConst (IInt 0)) ivr;
                               mk_iless loc (IEConst (ISeq (0, 1))) ivl;
                               mk_iless loc (IEConst ITop) ivc;
-                              mk_storeinc loc s ivl (CTInt (typ_width C.charType, ivc))])
+                              mk_storeinc loc s ivl (CTInt (char_width, ivc))])
       end
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
@@ -385,41 +386,64 @@ and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (e: C.exp): ctyp
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em loc e in
     (ctv, (ExpMap.add e ctv ctvm, cs @ cs'))
 
-let constrain_malloc (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval option) (elen: C.exp): cstremap =
-  let (_, em) = constrain_exp ve em loc elen in
-    match lvo with
-      | None    -> em
-      | Some lv ->
-          let (ctv1, (ctvm, cs)) = constrain_lval ve em loc lv in
-            match fresh_ctvref () with
-              | CTRef (s, iv) as ctv -> (ctvm, mk_iless loc (IEConst (IInt 0)) iv :: mk_subty loc ctv ctv1 :: cs)
-              | _                    -> E.s <| E.bug "Got non-ref type from fresh_ctvref"
+let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (IInt 0)) iv])
 
-let constrain_nondet (ve: ctvenv) (em: cstremap) (loc: C.location) (lvo: C.lval option): cstremap =
-  match lvo with
-    | None    -> em
-    | Some lv ->
-        let (ctv, (ctvm, cs)) = constrain_lval ve em loc lv in
-          with_fresh_indexvar <| fun iv -> begin
-            (ctvm, mk_iless loc (IEConst ITop) iv :: mk_subty loc (CTInt (typ_width C.intType, iv)) ctv :: cs)
-          end
+let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref ()], [])
 
-let constrain_uninterpreted (ve: ctvenv) (em: cstremap) (loc: C.location) (eparam: C.exp): cstremap =
-  snd <| constrain_exp ve em loc eparam
+let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_iless loc (IEConst ITop) iv])
+
+let assert_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvint int_width], [])
+
+let fopen_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (Some (fresh_ctvref ()), [fresh_ctvref (); fresh_ctvref ()], [])
+
+let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref ()], [])
+
+let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+
+let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+
+let constrain_args (ve: ctvenv) (em: cstremap) (loc: C.location) (es: C.exp list): ctypevar list * cstremap =
+  List.fold_right (fun e (ctvs, em) -> let (ctv, em) = constrain_exp ve em loc e in (ctv :: ctvs, em)) es ([], em)
+
+let fun_stubs =
+  [
+    ("malloc", malloc_stub);
+    ("free", free_stub);
+    ("nondet", nondet_stub);
+    ("assert", assert_stub);
+    ("fopen", fopen_stub);
+    ("fclose", fclose_stub);
+    ("feof", feof_stub);
+    ("fgetc", fgetc_stub);
+  ]
+
+let constrain_app (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap =
+  let (ctvs, (ctvm, cs)) = constrain_args ve em loc args in
+  let fstub              = try List.assoc f fun_stubs with Not_found -> E.s <| C.errorLoc loc "Unknown function: %s@!" f in
+  let (rtvo, atvs, fcs)  = fstub loc in
+  let (ctvm, cs)         = (ctvm, List.map2 (mk_subty loc) ctvs atvs @ fcs @ cs) in
+    match (lvo, rtvo) with
+      | (None, _)           -> (ctvm, cs)
+      | (Some _, None)      -> E.s <| C.errorLoc loc "Attempting to assign void value in call@!"
+      | (Some lv, Some rtv) ->
+          let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
+            (ctvm, mk_subty loc rtv lvctv :: cs)
 
 let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
   | C.Set (lv, e, loc) ->
       let (ctv1, em1)        = constrain_lval ve em loc lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc e in
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
-  | C.Call (lvo, C.Lval (C.Var {C.vname = "malloc"}, C.NoOffset), [elen], loc) ->
-      constrain_malloc ve em loc lvo elen
-  | C.Call (lvo, C.Lval (C.Var {C.vname = "nondet"}, C.NoOffset), [], loc) ->
-      constrain_nondet ve em loc lvo
-  | C.Call (None, C.Lval (C.Var {C.vname = "free"}, C.NoOffset), [eobj], loc) ->
-      constrain_uninterpreted ve em loc eobj
-  | C.Call (None, C.Lval (C.Var {C.vname = "assert"}, C.NoOffset), [epred], loc) ->
-      constrain_uninterpreted ve em loc epred
+  | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
+      constrain_app ve em loc f lvo args
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let rec constrain_block (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
