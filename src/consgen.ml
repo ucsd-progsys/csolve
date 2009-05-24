@@ -106,13 +106,13 @@ let cons_of_call me loc grd env (lvo, fn, es) =
   | _  -> assertf "TBDNOW: cons_of_call" 
 
 
-let cons_of_instr me loc grd env = function
-  | Set (lv, e, loc) ->
+let cons_of_annotinstr me loc grd env = function
+  | ann, Set (lv, e, loc) ->
       cons_of_set me loc grd env (lv, e)
-  | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
+  | ann, Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       cons_of_call me loc grd env (lvo, (FI.name_of_varinfo fv), es)  
-  | i -> 
-      E.warn "cons_of_instr: %a \n" d_instr i;
+  | _, i -> 
+      E.error "cons_of_instr: %a \n" d_instr i;
       assertf "TBD: cons_of_instr"
 
 (****************************************************************************)
@@ -124,11 +124,14 @@ let cons_of_ret me loc fn grd env e =
   let (_,rhs) = FI.ce_find_fn fn env in
   (env, [], FI.make_cs env grd lhs rhs loc) 
 
-let cons_of_stmt me loc fn grd env stmt = 
-  match stmt.skind with
-  | Instr is -> 
-      cons_fold (cons_of_instr me loc grd) env is
-  | Return ((Some e), _) ->
+let cons_of_annotstmt me loc fn grd env (stmt, anno) = 
+  match (stmt.skind, anno) with
+  | None, Instr _ ->
+      assertf "cons_of_stmt: missing annots"
+  | Some anns, Instr is -> 
+      List.combine anns is 
+      |> cons_fold (cons_of_annotinstr me loc grd) env 
+  | Return ((Some e), _), _ ->
       cons_of_ret me loc fn grd env e
   | _ ->
       (env, [], [])
@@ -141,11 +144,13 @@ let cons_of_block me i =
   let grd           = CF.guard_of_block me i in
   let loc           = CF.location_of_block me i in
   let phis          = CF.phis_of_block me i in
+  let astmt         = CF.annotstmt_of_block me i in
   let fn            = CF.fname me in 
   let env           = CF.inenv_of_block me i in
   let env           = phis |> List.map (bind_of_phi me) |> FI.ce_adds env in
   let env, ws1, cs1 = cons_fold (wcons_of_phi loc grd) env phis in
-  let env, ws2, cs2 = cons_of_stmt me loc fn grd env (CF.stmt_of_block me i) in
+  let env, ws2, cs2 = cons_of_annotstmt me loc fn grd env astmt
+  in
   (env, ws1 ++ ws2, cs1 ++ cs2)
 
 (****************************************************************************)

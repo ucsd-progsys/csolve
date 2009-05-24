@@ -17,12 +17,11 @@ The great merge:
  
 	-- HERE --
 
-4. Consinfra.prectype_of_varinfo: Consinfra.t -> Cil.varinfo -> "ourtype"
-5. Consinfra.annot_of_block:      Consinfra.t -> int -> annot list
-6. Then move to consgen using notes.
-	-- annstmt = (annotation * stmt)
-	-- stmt_of_block --> annstmt_of_block
-	-- cons_of_stmt --> cons_of_annstmt
+4. Implement new signatures of consinfra, fixInterface
+5. UPDATE: Consinfra.ctype_of_varinfo: Consinfra.t -> Cil.varinfo -> Ctypes.ctype
+   so that it uses the theta -- map and returns the concrete location...
+
+6. implement consgen using notes and new interfaces (4,5)
 
 
 --^^^-- get small benchmarks working on above --^^^---

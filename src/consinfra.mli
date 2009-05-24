@@ -24,17 +24,20 @@
 (* This file is part of the liquidC Project.*)
 
 type t
-val stmt_of_block: t -> int -> Cil.stmt
+val annotstmt_of_block:  Consinfra.t -> int -> (block_annotation option * stmt)
 val location_of_block: t -> int -> Cil.location
 val phis_of_block: t -> int -> Cil.varinfo list 
 val inenv_of_block: t -> int -> FixInterface.cilenv
 val outenv_of_block: t -> int -> FixInterface.cilenv
 val guard_of_block: t -> int -> Ast.pred
+
 val add_env: int -> FixInterface.cilenv -> t -> t
 val add_cons: Constraint.wf list -> Constraint.t list -> t -> t
 val get_cons: t -> Constraint.wf list * Constraint.t list
+
 val fname: t -> FixInterface.name
 val is_undefined: t -> Cil.varinfo -> bool
+
 val ctype_of_varinfo: t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr: t -> Cil.exp -> Ctypes.ctype
 val create: FixInterface.cilenv 
@@ -42,3 +45,7 @@ val create: FixInterface.cilenv
          -> (Inferctypes.ctemap * Ctypes.store) 
          -> (Refanno.block_annotation array * Refanno.ctab)
          -> t
+
+
+(* Deprecated *)         
+(* val stmt_of_block: t -> int -> Cil.stmt *)

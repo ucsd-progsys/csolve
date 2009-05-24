@@ -39,7 +39,6 @@ let name_of_string  = fun s -> Sy.of_string s
 type reftype = Base of (T.index * C.reft) T.prectype
              | Fun  of (name * reftype) list * reftype  
 
-
 let ctype_of_rctype = function
   | T.CTInt (x, (y, _)) -> T.CTInt (x, y) 
   | T.CTRef (x, (y, _)) -> T.CTRef (x, y)
@@ -48,9 +47,19 @@ let reft_of_rctype = function
   | T.CTInt (_,(_,r)) 
   | T.CTRef (_,(_,r)) -> r
 
-let reftype_of_reft r = function
+let reftype_of_reft_ctype r = function
   | T.CTInt (x,y) -> Base (T.CTInt (x, (y,r))) 
   | T.CTRef (x,y) -> Base (T.CTRef (x, (y,r))) 
+
+let rec reftype_map f cr = 
+  match cr with
+  | Base rct ->
+      Base (f rct) 
+  | Fun (ncrs, r) -> 
+      let ncrs' = Misc.map (Misc.app_snd (reftype_map f)) ncrs in
+      let r'    = reftype_map f r in
+      Fun (ncrs', r')
+
 
 let rec print_reftype so ppf = function  
   | Base rct ->
@@ -62,10 +71,6 @@ let rec print_reftype so ppf = function
 
 and print_binding so ppf (n, cr) = 
   F.fprintf ppf "%a : %a" Sy.print n (print_reftype so) cr
-
-let sort_of_prectype = function
-  | Ctypes.CTInt _ -> so_int 
-  | Ctypes.CTRef _ -> so_ref 
 
 (*******************************************************************)
 (*************************** Refined Stores ************************)
@@ -83,7 +88,7 @@ let ct_int = T.CTInt (Cil.bytesSizeOfInt Cil.IInt, T.ITop)
  
 let int_reftype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
-  reftype_of_reft r ct_int
+  reftype_of_reft_ctype r ct_int
 
 let true_int  = int_reftype_of_ras []
 let ne_0_int  = int_reftype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
@@ -173,6 +178,10 @@ let is_base = function
 (************************** Refinements *************************)
 (****************************************************************)
 
+let sort_of_prectype = function
+  | Ctypes.CTInt _ -> so_int 
+  | Ctypes.CTRef _ -> so_ref 
+
 let t_fresh = reftype_of_ctype (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
 
 let t_true  = reftype_of_ctype (fun _ -> [])
@@ -182,7 +191,7 @@ let t_exp ct e =
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
-  reftype_of_reft r ct 
+  reftype_of_reft_ctype r ct 
 
 let t_name env n = 
   asserts (YM.mem n env) "t_cilname: reading unbound var -- return false reft";
@@ -191,7 +200,7 @@ let t_name env n =
       let so = rct |> reft_of_rctype |> C.sort_of_reft in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-      reftype_of_reft r (ctype_of_rctype rct)
+      reftype_of_reft_ctype r (ctype_of_rctype rct)
   | cr -> cr
 
 let rec t_fresh_typ ty = 
@@ -206,14 +215,9 @@ let rec t_fresh_typ ty =
         Fun (args, t_fresh_typ t)
     | _ -> assertf "t_fresh_typ: fancy type" 
 
-let rec reftype_map f cr = 
-  match cr with
-  | Base rct ->
-      Base (f rct) 
-  | Fun (ncrs, r) -> 
-      let ncrs' = Misc.map (Misc.app_snd (reftype_map f)) ncrs in
-      let r'    = reftype_map f r in
-      Fun (ncrs', r')
+let t_ctype_reftype ct = function
+  | Fun _    -> assertf "merge_ctype_reftype: merge with funtype"
+  | Base rct -> reftype_of_reft_ctype (reft_of_rctype rct) ct 
 
 let reftype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
