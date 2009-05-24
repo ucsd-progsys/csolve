@@ -246,8 +246,9 @@ let solve (cs: cstr list): cstrsol =
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
-let int_width  = C.bytesSizeOfInt C.IInt
-let char_width = C.bytesSizeOfInt C.IChar
+let int_width    = C.bytesSizeOfInt C.IInt
+let short_width  = C.bytesSizeOfInt C.IShort
+let char_width   = C.bytesSizeOfInt C.IChar
 
 let rec typ_width (t: C.typ): int =
   match C.unrollType t with
@@ -290,6 +291,57 @@ type ctvenv = ctypevar IM.t
 type cstremap = ctvemap * cstr list
 
 (******************************************************************************)
+(************************ Function Stubs (REMOVE ASAP) ************************)
+(******************************************************************************)
+
+let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (IInt 0)) iv])
+
+let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref ()], [])
+
+let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_iless loc (IEConst ITop) iv])
+
+let assert_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvint int_width], [])
+
+let fopen_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (Some (fresh_ctvref ()), [fresh_ctvref (); fresh_ctvref ()], [])
+
+let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref ()], [])
+
+let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+
+let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst (ISeq (-1, 1))) iv])
+
+let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_sloc <| fun s1 -> with_fresh_indexvar <| fun iv1 ->
+    with_fresh_sloc <| fun s2 -> with_fresh_indexvar <| fun iv2 -> with_fresh_indexvar <| fun ic -> with_fresh_indexvar <| fun id ->
+      (Some (CTRef (s1, iv1)), [], [mk_iless loc (IEConst (IInt 0)) iv1;
+                                    mk_iless loc (IEConst (IInt 128)) iv2;
+                                    mk_storeinc loc s1 iv1 (CTRef (s2, iv2));
+                                    mk_iless loc (IEConst (ISeq (0, short_width))) id;
+                                    mk_iless loc (IEConst ITop) ic;
+                                    mk_storeinc loc s2 id (CTInt (short_width, ic))])
+
+let fun_stubs =
+  [
+    ("malloc", malloc_stub);
+    ("free", free_stub);
+    ("nondet", nondet_stub);
+    ("assert", assert_stub);
+    ("fopen", fopen_stub);
+    ("fclose", fclose_stub);
+    ("feof", feof_stub);
+    ("fgetc", fgetc_stub);
+    ("__ctype_b_loc", __ctype_b_loc_stub);
+  ]
+
+(******************************************************************************)
 (**************************** Constraint Generation ***************************)
 (******************************************************************************)
 
@@ -319,6 +371,7 @@ and apply_op: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
   | C.MinusPP                               -> constrain_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
+  | C.BAnd | C.BOr | C.BXor                 -> constrain_bitop
   | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
 and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
@@ -339,6 +392,9 @@ and constrain_ptrminus (em: cstremap) (loc: C.location) (pt: C.typ) (_: ctypevar
 and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
   with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
 
+and constrain_bitop (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CStr _ ->
       with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
@@ -352,14 +408,13 @@ and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar 
 
 and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
   match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-    | (C.TInt _, C.TPtr _)       -> with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst ITop) iv]))
+    | (C.TInt (ik, _), C.TPtr _) ->
+        with_fresh_indexvar (fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, [mk_iless loc (IEConst ITop) iv]))
     | (C.TInt (ik, _), C.TInt _) ->
         begin match constrain_exp_aux ve em loc e with
-          | (CTInt (n, _) as ctv, em, cs) ->
-              if n <= C.bytesSizeOfInt ik then
-                (ctv, em, cs)
-              else
-                with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc (IEConst ITop) iv :: cs)
+          | (CTInt (n, ive), em, cs) ->
+              let ivc = if n <= C.bytesSizeOfInt ik then IEVar ive else IEConst ITop in
+                with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
           | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end
     | _ -> constrain_exp_aux ve em loc e
@@ -386,44 +441,8 @@ and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (e: C.exp): ctyp
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em loc e in
     (ctv, (ExpMap.add e ctv ctvm, cs @ cs'))
 
-let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (IInt 0)) iv])
-
-let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref ()], [])
-
-let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_iless loc (IEConst ITop) iv])
-
-let assert_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvint int_width], [])
-
-let fopen_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (Some (fresh_ctvref ()), [fresh_ctvref (); fresh_ctvref ()], [])
-
-let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref ()], [])
-
-let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
-
-let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
-
 let constrain_args (ve: ctvenv) (em: cstremap) (loc: C.location) (es: C.exp list): ctypevar list * cstremap =
   List.fold_right (fun e (ctvs, em) -> let (ctv, em) = constrain_exp ve em loc e in (ctv :: ctvs, em)) es ([], em)
-
-let fun_stubs =
-  [
-    ("malloc", malloc_stub);
-    ("free", free_stub);
-    ("nondet", nondet_stub);
-    ("assert", assert_stub);
-    ("fopen", fopen_stub);
-    ("fclose", fclose_stub);
-    ("feof", feof_stub);
-    ("fgetc", fgetc_stub);
-  ]
 
 let constrain_app (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap =
   let (ctvs, (ctvm, cs)) = constrain_args ve em loc args in
@@ -464,8 +483,7 @@ and constrain_stmt (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
 
 and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
   let (ctv, (ctvm, cs)) = constrain_exp ve em Cil.builtinLoc e in
-  let em                = (ctvm, mk_subty Cil.builtinLoc ctv (fresh_ctvint int_width) :: cs) in
-    constrain_block ve (constrain_block ve em b1) b2
+    constrain_block ve (constrain_block ve (ctvm, cs) b1) b2
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
 (* pmr: Let's be honest here: the following is flat-out wrong. *)
