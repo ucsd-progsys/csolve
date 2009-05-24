@@ -1959,8 +1959,8 @@ char * pchDictionary;
 
 
 void Fatal(char *pchMsg, unsigned u) {
-    /*    fprintf(stderr, pchMsg, u);
-          exit(1); */
+    fprintf(stderr, pchMsg, u);
+    exit(1);
 }
 
 # 263 "../ptrdist/anagram/anagram.c"
@@ -1974,8 +1974,9 @@ void ReadDict(char *pchFile) {
     int ch;
     struct stat statBuf;
 
-    /* pmr: stat: */ statBuf.st_size = 1024;
-    if (/* pmr: stat(pchFile, &statBuf) */ nondet())
+    statBuf.st_size = 1024; // pmr: stat
+    // pmr: if (stat(pchFile, &statBuf))
+    if (nondet())
         Fatal("Cannot stat dictionary\n", 0);
 
     ulLen = statBuf.st_size + 2 * (unsigned long)26000;
@@ -1992,7 +1993,8 @@ void ReadDict(char *pchFile) {
         pch = pchBase+2;
         cLetters = 0;
         while ((ch = fgetc(fp)) != '\n' && ch != (-1)) {
-            if (/* pmr: ((*__ctype_b_loc ())[(int) ((ch))] & (unsigned short int) _ISalpha)*/ nondet()) cLetters++;
+            if (((*__ctype_b_loc ())[(int) ((ch))] & (unsigned short int) _ISalpha))
+                cLetters++;
             *pch++ = ch;
             }
         *pch++ = '\0';
@@ -2006,11 +2008,12 @@ void ReadDict(char *pchFile) {
 
     *pchBase++ = 0;
 
-    /* pmr: fprintf(stderr, "main dictionary has %u entries\n", cWords); */
+    fprintf(stderr, "main dictionary has %u entries\n", cWords);
     if (cWords >= 26000)
         Fatal("Dictionary too large; increase MAXWORDS\n", 0);
-    /* pmr: fprintf(stderr, "%lu bytes wasted\n", ulLen - (pchBase - pchDictionary)); */
+    fprintf(stderr, "%lu bytes wasted\n", ulLen - (pchBase - pchDictionary));
 }
+
 /*
 
 void BuildMask(char * pchPhrase) {
