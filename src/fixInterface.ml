@@ -33,11 +33,11 @@ let sorts  = [so_int; so_ref]
 (*******************************************************************)
 
 type name = Sy.t
-let name_of_varinfo     = fun v -> Sy.of_string v.vname
-let name_of_string      = fun s -> Sy.of_string s
+let name_of_varinfo = fun v -> Sy.of_string v.vname
+let name_of_string  = fun s -> Sy.of_string s
 
-type cilreft = Base of (T.index * C.reft) T.prectype
-             | Fun  of (name * cilreft) list * cilreft  
+type reftype = Base of (T.index * C.reft) T.prectype
+             | Fun  of (name * reftype) list * reftype  
 
 
 let ctype_of_rctype = function
@@ -48,37 +48,45 @@ let reft_of_rctype = function
   | T.CTInt (_,(_,r)) 
   | T.CTRef (_,(_,r)) -> r
 
-let cilreft_of_reft r = function
+let reftype_of_reft r = function
   | T.CTInt (x,y) -> Base (T.CTInt (x, (y,r))) 
   | T.CTRef (x,y) -> Base (T.CTRef (x, (y,r))) 
 
-let rec print_cilreft so ppf = function  
+let rec print_reftype so ppf = function  
   | Base rct ->
       C.print_reft so ppf (reft_of_rctype rct)
   | Fun (args, ret) ->
       F.fprintf ppf "(%a) -> %a"
         (Misc.pprint_many false "," (print_binding so)) args
-        (print_cilreft so) ret
+        (print_reftype so) ret
 
 and print_binding so ppf (n, cr) = 
-  F.fprintf ppf "%a : %a" Sy.print n (print_cilreft so) cr
+  F.fprintf ppf "%a : %a" Sy.print n (print_reftype so) cr
 
 let sort_of_prectype = function
   | Ctypes.CTInt _ -> so_int 
   | Ctypes.CTRef _ -> so_ref 
 
 (*******************************************************************)
+(*************************** Refined Stores ************************)
+(*******************************************************************)
+
+type refstore = (T.index * C.reft) T.prestore
+
+
+(*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
 (*******************************************************************)
 
+(* Move to its own module *)
 let ct_int = T.CTInt (Cil.bytesSizeOfInt Cil.IInt, T.ITop)
  
-let int_cilreft_of_ras ras =
+let int_reftype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
-  cilreft_of_reft r ct_int
+  reftype_of_reft r ct_int
 
-let true_int  = int_cilreft_of_ras []
-let ne_0_int  = int_cilreft_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
+let true_int  = int_reftype_of_ras []
+let ne_0_int  = int_reftype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
 let builtins = 
   [(Sy.of_string "assert", 
@@ -90,11 +98,11 @@ let builtins =
 (************************** Environments ***************************)
 (*******************************************************************)
 
-type cilenv  = cilreft YM.t
+type cilenv  = reftype YM.t
 
 let ce_mem   = fun n cenv -> YM.mem n cenv
 
-let ce_find n (cenv : cilreft YM.t) =
+let ce_find n (cenv : reftype YM.t) =
   try YM.find n cenv with Not_found -> 
     assertf "Unknown name! %s" (Sy.to_string n)
 
@@ -141,21 +149,7 @@ let fresh_kvar =
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
-(*
-let rec cilreft_of_type f = function
-  | TInt _  as t -> 
-      let ras = f t in
-      Base (C.make_reft vv_int So.Int ras )
-  | TFun (t, stso, _, _) ->
-      Fun (cilreft_of_bindings f stso,
-           cilreft_of_type f t)
-  | TVoid _ ->
-      Base (C.make_reft vv_int So.Int [])
-  | _      -> 
-      assertf "TBDNOW: Consgen.fresh"
-*)
-
-let rec cilreft_of_ctype f = function
+let rec reftype_of_ctype f = function
   | T.CTInt (i, x) as t ->
       let r = C.make_reft vv_int So.Int (f t) in
       Base (T.CTInt (i, (x, r))) 
@@ -163,12 +157,12 @@ let rec cilreft_of_ctype f = function
       let r = C.make_reft vv_int So.Int (f t) in
       Base (T.CTRef (l, (x, r))) 
 
-and cilreft_of_bindings f = function
+and reftype_of_bindings f = function
   | None -> 
       []
   | Some sts -> 
       List.map begin fun (s, t, _) -> 
-        (name_of_string s, cilreft_of_ctype f t) 
+        (name_of_string s, reftype_of_ctype f t) 
       end sts
 
 let is_base = function
@@ -178,15 +172,17 @@ let is_base = function
 (****************************************************************)
 (************************** Refinements *************************)
 (****************************************************************)
-let t_fresh = cilreft_of_ctype (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
-let t_true  = cilreft_of_ctype (fun _ -> [])
+
+let t_fresh = reftype_of_ctype (fun _ -> [C.Kvar ([], fresh_kvar ())]) 
+
+let t_true  = reftype_of_ctype (fun _ -> [])
 
 let t_exp ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
-  cilreft_of_reft r ct 
+  reftype_of_reft r ct 
 
 let t_name env n = 
   asserts (YM.mem n env) "t_cilname: reading unbound var -- return false reft";
@@ -195,7 +191,7 @@ let t_name env n =
       let so = rct |> reft_of_rctype |> C.sort_of_reft in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-      cilreft_of_reft r (ctype_of_rctype rct)
+      reftype_of_reft r (ctype_of_rctype rct)
   | cr -> cr
 
 let rec t_fresh_typ ty = 
@@ -210,24 +206,24 @@ let rec t_fresh_typ ty =
         Fun (args, t_fresh_typ t)
     | _ -> assertf "t_fresh_typ: fancy type" 
 
-let rec cilreft_map f cr = 
+let rec reftype_map f cr = 
   match cr with
   | Base rct ->
       Base (f rct) 
   | Fun (ncrs, r) -> 
-      let ncrs' = Misc.map (Misc.app_snd (cilreft_map f)) ncrs in
-      let r'    = cilreft_map f r in
+      let ncrs' = Misc.map (Misc.app_snd (reftype_map f)) ncrs in
+      let r'    = reftype_map f r in
       Fun (ncrs', r')
 
-let cilreft_subs f nzs = 
+let reftype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> C.theta
       |> Misc.app_snd
       |> T.prectype_map
-      |> cilreft_map 
+      |> reftype_map 
 
-let t_subs_exps  = cilreft_subs CI.expr_of_cilexp
-let t_subs_names = cilreft_subs A.eVar
+let t_subs_exps  = reftype_subs CI.expr_of_cilexp
+let t_subs_names = reftype_subs A.eVar
 
 (****************************************************************)
 (********************** Constraints *****************************)

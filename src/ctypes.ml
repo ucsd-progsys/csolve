@@ -266,6 +266,8 @@ module SLM = Map.Make (SlocKey)
 
 type 'a prestore = ('a LDesc.t) SLM.t
 
+let prestore_map = fun f -> f |> prectype_map |> LDesc.map |> SLM.map
+
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 

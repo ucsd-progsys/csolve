@@ -60,6 +60,7 @@ module LDesc:
 
 type 'a prestore = ('a LDesc.t) SLM.t
 
+
 type store = index prestore
 
 (******************************************************************************)
@@ -110,4 +111,5 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
+val prestore_map : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find: sloc -> 'a prestore -> 'a LDesc.t
