@@ -1982,16 +1982,16 @@ void ReadDict(char *pchFile) {
 
     pchBase = pchDictionary = (char *)malloc(ulLen);
 
-    if(/* pmr: pchDictionary == ((void *)0) */ nondet())
+    if(pchDictionary == ((void *)0))
         Fatal("Unable to allocate memory for dictionary\n", 0);
 
-    if (/* pmr: (fp = fopen(pchFile, "r")) == ((void *)0) */ nondet())
+    if ((fp = fopen(pchFile, "r")) == ((void *)0))
         Fatal("Cannot open dictionary\n", 0);
 
-    while (/* pmr: !feof(fp)*/ nondet()) {
+    while (!feof(fp)) {
         pch = pchBase+2;
         cLetters = 0;
-        while (/* pmr: (ch = fgetc(fp)) != '\n' && ch != (-1) */ nondet()) {
+        while ((ch = fgetc(fp)) != '\n' && ch != (-1)) {
             if (/* pmr: ((*__ctype_b_loc ())[(int) ((ch))] & (unsigned short int) _ISalpha)*/ nondet()) cLetters++;
             *pch++ = ch;
             }
@@ -2001,7 +2001,7 @@ void ReadDict(char *pchFile) {
         pchBase = pch;
         cWords++;
     }
-    /* pmr: fclose(fp); */
+    fclose(fp);
 
 
     *pchBase++ = 0;
