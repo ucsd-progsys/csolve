@@ -328,6 +328,9 @@ let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr
                                     mk_iless loc (IEConst ITop) ic;
                                     mk_storeinc loc s2 id (CTInt (short_width, ic))])
 
+let exit_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvint int_width], [])
+
 let fun_stubs =
   [
     ("malloc", malloc_stub);
@@ -339,7 +342,10 @@ let fun_stubs =
     ("feof", feof_stub);
     ("fgetc", fgetc_stub);
     ("__ctype_b_loc", __ctype_b_loc_stub);
+    ("exit", exit_stub);
   ]
+
+let printf_funs = ["printf"; "fprintf"]
 
 (******************************************************************************)
 (**************************** Constraint Generation ***************************)
@@ -461,6 +467,9 @@ let constrain_instr (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
       let (ctv1, em1)        = constrain_lval ve em loc lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc e in
         (ctvm, mk_subty loc ctv2 ctv1 :: cs)
+  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+      constrain_args ve em loc args |> snd
   | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
       constrain_app ve em loc f lvo args
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
