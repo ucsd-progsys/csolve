@@ -1,39 +1,22 @@
 type name
 type cilenv
-
-type cilreft = Base of C.reft T.prectype
-             | Fun  of (name * cilreft) list * cilreft  
-
+type cilreft
 
 val name_of_varinfo: Cil.varinfo -> name
-val nextname_of_varinfo: Cil.varinfo -> name
+val ce_empty  : cilenv
+val ce_adds   : cilenv -> (name * cilreft) list -> cilenv
+val ce_find   : name -> cilenv -> cilreft
+val ce_find_fn: name -> cilenv -> (name * cilreft) list * cilreft
+val ce_project: cilenv -> cilenv -> name list -> cilenv
+val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit
 
-val ce_empty:   cilenv
-val ce_add:     name 
-             -> cilreft 
-             -> cilenv 
-             -> cilenv
-val ce_find:    name 
-             -> cilenv 
-             -> cilreft
-val ce_project: cilenv 
-             -> cilenv 
-             -> name list 
-             -> cilenv
-val ce_unroll:  name
-             -> cilenv
-             -> (cilenv * cilreft)
+val t_fresh_typ : Cil.typ  -> cilreft
+val t_fresh     : Ctypes.ctype -> cilreft
+val t_true      : Ctypes.ctype -> cilreft
+val t_exp       : Ctypes.ctype -> Cil.exp -> cilreft
+val t_name      : cilenv -> name -> cilreft
 
-val print_ce:   Constraint.soln option 
-             -> Format.formatter 
-             -> cilenv 
-             -> unit
-
-val t_fresh: Cil.typ -> cilreft
-val t_true: Cil.typ -> cilreft
-val t_exp: cilenv -> Cil.exp -> cilreft
-val t_name: cilenv -> name -> cilreft
-val t_subs_exps: (name * Cil.exp) list -> cilreft -> cilreft
+val t_subs_exps : (name * Cil.exp) list -> cilreft -> cilreft
 val t_subs_names: (name * name) list -> cilreft -> cilreft
 
 val make_cs: cilenv 
@@ -47,3 +30,6 @@ val make_wfs: cilenv
            -> cilreft 
            -> Cil.location 
            -> Constraint.wf list
+
+val sorts: Ast.Sort.t list
+

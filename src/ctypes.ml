@@ -94,6 +94,10 @@ type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
 
+let prectype_map f = function
+  | CTInt (i, x) -> CTInt (i, f x)
+  | CTRef (l, x) -> CTRef (l, f x)
+
 let d_sloc (): sloc -> P.doc = function
   | ALoc i -> P.dprintf "%d" i
   | CLoc i -> P.dprintf "%d" i
@@ -111,6 +115,7 @@ let prectype_replace_sloc (s1: sloc) (s2: sloc): 'a prectype -> 'a prectype = fu
   | pct                        -> pct
 
 type ctype = index prectype
+
 
 let d_ctype () (ct: ctype): P.doc =
   d_prectype d_index () ct

@@ -34,6 +34,8 @@ module SM = Misc.StringMap
 module C  = Constraint
 module FI = FixInterface 
 module CI = CilInterface
+module EM = Inferctypes.ExpMap
+
 
 open Misc.Ops
 open Cil
@@ -51,12 +53,18 @@ type t = {
   ctab : Refanno.ctab
 }
 
-let env_of_fdec gnv fdec = 
-  let env0 = FI.ce_unroll (FI.name_of_varinfo fdec.svar) gnv |> fst in
-  List.filter ST.is_origcilvar fdec.slocals 
-  |> List.fold_left begin fun env v -> 
-       FI.ce_add (FI.name_of_varinfo v) (FI.t_true v.vtype) env
-     end env0 
+let ctype_of_varinfo ctm v = 
+  let e = Cil.Lval (Cil.Var v, Cil.NoOffset) in
+  try EM.find e ctm with Not_found -> 
+    assertf "ctype_of_varinfo: unknown var %s" v.Cil.vname
+
+let env_of_fdec gnv fdec ctm =
+  let (args, _) = FI.ce_find_fn (FI.name_of_varinfo fdec.svar) gnv in
+  let env0 = FI.ce_adds gnv args in
+    fdec.slocals 
+  |> List.filter ST.is_origcilvar
+  |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_varinfo ctm v)))
+  |> FI.ce_adds env0
 
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
@@ -66,7 +74,7 @@ let create gnv sci (ctm, store) (anna, ctab) =
    cs      = [];
    ws      = [];
    envm    = IM.empty;
-   gnv     = env_of_fdec gnv sci.ST.fdec;
+   gnv     = env_of_fdec gnv sci.ST.fdec ctm;
    formalm = formalm_of_fdec sci.ST.fdec;
    ctm     = ctm;
    store   = store;
@@ -130,3 +138,6 @@ let is_formal fdec v =
 
 let is_undefined me v =
   ST.is_origcilvar v && not (SM.mem v.vname me.formalm)
+
+let ctype_of_varinfo = fun me v -> ctype_of_varinfo me.ctm v
+let ctype_of_expr = fun me e -> EM.find e me.ctm

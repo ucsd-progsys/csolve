@@ -88,6 +88,7 @@ val is_subindex: index -> index -> bool
 (******************************* Type Operations ******************************)
 (******************************************************************************)
 
+val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype

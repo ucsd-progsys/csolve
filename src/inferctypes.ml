@@ -418,8 +418,9 @@ let constrain_param: ctypevar -> cstr option = function
 let maybe_fresh (v: C.varinfo): (int * ctypevar) option =
   let t = C.unrollType v.C.vtype in
     match t with
-      | C.TInt _ | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
-      | _                   -> C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
+      | C.TInt _ 
+      | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
+      | _        -> C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
 
 let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
   Misc.map_partial maybe_fresh vs
@@ -440,3 +441,7 @@ let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * s
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
     (ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
+
+
+
+

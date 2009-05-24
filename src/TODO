@@ -1,4 +1,5 @@
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
+- make the constraints "polymorphic" (so we can tag with src-locations *)
 
 **************************************************************
 
@@ -22,7 +23,6 @@ The great merge:
 	-- annstmt = (annotation * stmt)
 	-- stmt_of_block --> annstmt_of_block
 	-- cons_of_stmt --> cons_of_annstmt
-7.
 
 
 --^^^-- get small benchmarks working on above --^^^---
