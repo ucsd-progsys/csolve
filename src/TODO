@@ -11,18 +11,16 @@
 
 **************************************************************
 The great merge:
-1. add cloc/sloc to pat's prectype
-2. add ctype, refanno info to Consinfra.t
-3. redefine cilreft as an instance of prectype
- 
-	-- HERE --
 
 4. Implement new signatures of consinfra, fixInterface
 5. UPDATE: Consinfra.ctype_of_varinfo: Consinfra.t -> Cil.varinfo -> Ctypes.ctype
    so that it uses the theta -- map and returns the concrete location...
 
 6. implement consgen using notes and new interfaces (4,5)
-
+	-- halfway: have threaded "world" through the consgen functions
+	-- next: generate constraints in:
+		cons_of_set
+		cons_of_annot
 
 --^^^-- get small benchmarks working on above --^^^---
 

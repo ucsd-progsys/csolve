@@ -10,14 +10,6 @@ val ce_find_fn: name -> cilenv -> (name * reftype) list * reftype
 val ce_project: cilenv -> cilenv -> name list -> cilenv
 val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit
 
-type refldesc
-type refstore
-
-val refstore_set: refstore -> Ctypes.sloc -> Ctypes.index -> reftype -> refstore
-val refstore_get: refstore -> Ctypes.sloc -> Ctypes.index -> reftype
-val refldesc_subs: refldesc -> (Ctypes.index -> reftype -> reftype) -> refldesc 
-val ce_add_refldesc: cilenv -> Ctypes.sloc -> refldesc -> cilenv
-
 val t_fresh_typ         : Cil.typ  -> reftype
 val t_fresh             : Ctypes.ctype -> reftype
 val t_true              : Ctypes.ctype -> reftype
@@ -27,9 +19,14 @@ val t_ctype_reftype     : Ctypes.ctype -> reftype -> reftype
 val t_subs_exps         : (name * Cil.exp) list -> reftype -> reftype
 val t_subs_names        : (name * name) list -> reftype -> reftype
 
-val sorts: Ast.Sort.t list
-val make_cs: cilenv -> Ast.pred -> reftype -> reftype -> Cil.location -> Constraint.t list
-val make_wfs: cilenv -> reftype -> Cil.location -> Constraint.wf list
+val sorts               : Ast.Sort.t list
+val make_cs             : cilenv -> Ast.pred -> reftype -> reftype -> Cil.location -> Constraint.t list
+val make_wfs            : cilenv -> reftype -> Cil.location -> Constraint.wf list
 
+type refldesc
+type refstore
 
-
+val refstore_set        : refstore -> Ctypes.sloc -> Ctypes.index -> reftype -> refstore
+val refstore_get        : refstore -> Ctypes.sloc -> Ctypes.index -> reftype
+val refldesc_subs       : refldesc -> (Ctypes.index -> reftype -> reftype) -> refldesc 
+val ce_add_refldesc     : cilenv -> Ctypes.sloc -> refldesc -> cilenv

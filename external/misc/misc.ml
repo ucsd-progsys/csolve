@@ -152,7 +152,7 @@ let do_memo memo f args key =
 let map_pair   = fun f (x1, x2)  -> (f x1, f x2)
 let map_triple = fun f (x1, x2, x3) -> (f x1, f x2, f x3)
 
-
+(*
 let mapfold f xs b = 
   List.fold_left 
     (fun (ys, c) x -> 
@@ -160,10 +160,14 @@ let mapfold f xs b =
       (y'::ys, c'))
     ([], b) xs 
   |> (fun (ys, c) -> ((List.rev ys), c))
-
-(*
-let flap f xs = List.flatten (List.map f xs)
 *)
+
+let mapfold f b xs =
+  List.fold_left begin
+    fun (acc, ys) x -> let (acc', y) = f acc x in (acc', y::ys)
+  end (b, []) xs
+  |> app_snd rev 
+
 
 let filter f xs = 
   List.fold_left (fun xs' x -> if f x then x::xs' else xs') [] xs

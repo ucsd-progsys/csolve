@@ -41,16 +41,16 @@ open Misc.Ops
 open Cil
 
 type t = {
-  sci  : ST.ssaCfgInfo;
-  ws   : C.wf list;
-  cs   : C.t list;
-  envm : FI.cilenv IM.t;
-  gnv  : FI.cilenv; 
+  sci     : ST.ssaCfgInfo;
+  ws      : C.wf list;
+  cs      : C.t list;
+  envm    : FI.cilenv IM.t;
+  gnv     : FI.cilenv; 
   formalm : unit SM.t;
-  ctm  : Inferctypes.ctemap;
-  store: Ctypes.store;
-  anna : Refanno.block_annotation array;
-  ctab : Refanno.ctab
+  ctm     : Inferctypes.ctemap;
+  astore  : FI.refstore;
+  anna    : Refanno.block_annotation array;
+  ctab    : Refanno.ctab
 }
 
 let ctype_of_varinfo ctm v = 
@@ -69,15 +69,24 @@ let env_of_fdec gnv fdec ctm =
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
-let create gnv sci (ctm, store) (anna, ctab) = 
+(* val fresh_refstore: Ctypes.store -> refstore *)
+let fresh_refstore = failwith "TBDNOW"
+
+(* val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> Constraint.wf list *)
+let make_wfs_refstore = failwith "TBDNOW"
+
+let create gnv sci (ctm, store) (anna, ctab) =
+  let fdec   = sci.ST.fdec in
+  let env    = env_of_fdec gnv fdec ctm in
+  let astore = fresh_refstore store in 
   {sci     = sci;
    cs      = [];
-   ws      = [];
+   ws      = make_wfs_refstore env astore fdec.svar.vdecl;
    envm    = IM.empty;
-   gnv     = env_of_fdec gnv sci.ST.fdec ctm;
+   gnv     = env;
    formalm = formalm_of_fdec sci.ST.fdec;
    ctm     = ctm;
-   store   = store;
+   astore  = astore;
    anna    = anna;
    ctab    = ctab}
 

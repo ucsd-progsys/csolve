@@ -34,13 +34,14 @@ open Cil
 
 let mydebug = true 
 
-let cons_fold f (env: FI.cilenv) xs =
+(*
+let cons_fold f env xs =
   List.fold_left begin
-    fun (env, ws, cs) x -> 
-      let (env', ws', cs') = f env x in
-      (env', ws' ++ ws, cs' ++ cs)
-  end (env, [], []) xs
-
+    fun (env, cs) x -> 
+      let (env', cs') = f env x in
+      (env',  cs' ++ cs)
+  end (env, []) xs
+*)
 
 (****************************************************************************)
 (********************** Constraints for Phis ********************************)
@@ -48,13 +49,13 @@ let cons_fold f (env: FI.cilenv) xs =
 
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
-    let envi   = CF.outenv_of_block me i in
+    let envi,_ = CF.outwld_of_block me i in
     let asgns' = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
-      let pj   = CF.guard_of_block me j in
-      let locj = CF.location_of_block me j in
-      let envj = CF.outenv_of_block me j in
-      let nnjs = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
+      let pj     = CF.guard_of_block me j in
+      let locj   = CF.location_of_block me j in
+      let envj,_ = CF.outwld_of_block me j in
+      let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
         if CF.is_undefined me vj then [] else  
           let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
@@ -70,25 +71,27 @@ let bind_of_phi me v =
   let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
   (vn, cr)
 
-let wcons_of_phi loc grd env v =
+let wcons_of_phi loc env v =
   let vn = FI.name_of_varinfo v in
   let cr = FI.ce_find vn env in 
-  (env, FI.make_wfs env cr loc, [])
-
+  FI.make_wfs env cr loc
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_set me loc grd env (lv, e) =
+let cons_of_annot me loc grd wld = function
+  | _ -> failwith "TBDNOW"
+
+let cons_of_set me loc grd wld (lv, e) =
   match lv with
   | (Var v), NoOffset -> 
       let cr = FI.t_exp (CF.ctype_of_expr me e) e in
       let vn = FI.name_of_varinfo v in
-      (FI.ce_adds env [(vn, cr)], [], []) 
+      (FI.ce_adds env [(vn, cr)], []) 
   | _ -> assertf "TBD: cons_of_set"
 
-let cons_of_call me loc grd env (lvo, fn, es) =
+let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
   let (ncrs, cr) = FI.ce_find_fn fn env in
   let _    = asserts (List.length ncrs = List.length es) "cons_of_call: length" in
   let ns   = Misc.map fst ncrs in
@@ -98,68 +101,74 @@ let cons_of_call me loc grd env (lvo, fn, es) =
                 FI.make_cs cenv grd (FI.t_name cenv n) cr loc
              end ncrs in
   match lvo with 
-  | None -> (env, [], cs)  
+  | None -> ((env, cst), cs)  
   | Some ((Var v), NoOffset) ->
       let vn  = FI.name_of_varinfo v in
       let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
-      (FI.ce_adds env [vn, cr'], [], cs)
+      ((FI.ce_adds env [vn, cr'], cst), cs)
   | _  -> assertf "TBDNOW: cons_of_call" 
 
-
-let cons_of_annotinstr me loc grd env = function
-  | ann, Set (lv, e, loc) ->
-      cons_of_set me loc grd env (lv, e)
-  | ann, Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      cons_of_call me loc grd env (lvo, (FI.name_of_varinfo fv), es)  
-  | _, i -> 
-      E.error "cons_of_instr: %a \n" d_instr i;
+let cons_of_annotinstr me loc grd wld (ann, instr) = 
+  let wld, cs = cons_of_annot me loc grd wld ann in
+  match instr with 
+  | Set (lv, e, loc) ->
+      let wld, cs' = cons_of_set me loc grd wld (lv, e) in
+      (wld, cs ++ cs')
+  | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
+      let fn = FI.name_of_varinfo fv in
+      let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
+      (wld, cs ++ cs')
+  | _ -> 
+      E.error "cons_of_instr: %a \n" d_instr instr;
       assertf "TBD: cons_of_instr"
 
 (****************************************************************************)
 (********************** Constraints for [stmt] ******************************)
 (****************************************************************************)
 
-let cons_of_ret me loc fn grd env e =
+let cons_of_ret me loc grd (env,_) e =
+  let fn      = CF.get_fname me in
   let lhs     = FI.t_exp (CF.ctype_of_expr me e) e in 
   let (_,rhs) = FI.ce_find_fn fn env in
-  (env, [], FI.make_cs env grd lhs rhs loc) 
+  FI.make_cs env grd lhs rhs loc
 
-let cons_of_annotstmt me loc fn grd env (stmt, anno) = 
+
+let cons_of_annotstmt me loc grd wld (stmt, anno) = 
   match (stmt.skind, anno) with
   | None, Instr _ ->
       assertf "cons_of_stmt: missing annots"
   | Some anns, Instr is -> 
       List.combine anns is 
-      |> cons_fold (cons_of_annotinstr me loc grd) env 
-  | Return ((Some e), _), _ ->
-      cons_of_ret me loc fn grd env e
+      |> Misc.mapfold (cons_of_annotinstr me loc grd) wld 
+      |> Misc.app_snd Misc.flatten
+  | Some [ann], Return ((Some e), _) ->
+      (wld, cons_of_ret me loc grd wld e)
   | _ ->
-      (env, [], [])
+      let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
+      (wld, [])
 
 (****************************************************************************)
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
 let cons_of_block me i =
-  let grd           = CF.guard_of_block me i in
-  let loc           = CF.location_of_block me i in
-  let phis          = CF.phis_of_block me i in
-  let astmt         = CF.annotstmt_of_block me i in
-  let fn            = CF.fname me in 
-  let env           = CF.inenv_of_block me i in
-  let env           = phis |> List.map (bind_of_phi me) |> FI.ce_adds env in
-  let env, ws1, cs1 = cons_fold (wcons_of_phi loc grd) env phis in
-  let env, ws2, cs2 = cons_of_annotstmt me loc fn grd env astmt
-  in
-  (env, ws1 ++ ws2, cs1 ++ cs2)
+  let grd      = CF.guard_of_block me i in
+  let loc      = CF.location_of_block me i in
+  let phis     = CF.phis_of_block me i in
+  let astmt    = CF.annotstmt_of_block me i in
+  let env, cst = CF.inwld_of_block me i in
+  let env      = List.map (bind_of_phi me) phis |> Misc.app_fst (FI.ce_adds env) in
+  let ws       = Misc.flap (wcons_of_phi loc env) phis in
+  let wld, cs  = cons_of_annotstmt me loc grd (env, cst) astmt in
+  (wld, ws, cs)
 
 (****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)
 (****************************************************************************)
 
 let process_block me i = 
-  let env, ws, cs = cons_of_block me i in
-  me |> CF.add_env i env
+  let wld, ws, cs = cons_of_block me i in
+  me |> CF.add_wld i wld 
      |> CF.add_cons ws cs
 
 let process_phis phia me =
