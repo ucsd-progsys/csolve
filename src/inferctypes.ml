@@ -316,6 +316,7 @@ and apply_op: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar
   | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
   | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
+  | C.MinusPP                               -> constrain_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
   | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
@@ -330,6 +331,9 @@ and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cs
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           with_fresh_indexvar (fun iv -> (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv]))
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+
+and constrain_ptrminus (em: cstremap) (loc: C.location) (pt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+  with_fresh_indexvar <| fun iv -> (CTInt (typ_width !C.upointType, iv), em, [mk_iless loc (IEConst ITop) iv])
 
 and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
   with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
@@ -347,8 +351,17 @@ and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar 
 
 and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
   match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-    | (C.TInt _, C.TPtr _) -> with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst ITop) iv]))
-    | _                    -> constrain_exp_aux ve em loc e
+    | (C.TInt _, C.TPtr _)       -> with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst ITop) iv]))
+    | (C.TInt (ik, _), C.TInt _) ->
+        begin match constrain_exp_aux ve em loc e with
+          | (CTInt (n, _) as ctv, em, cs) ->
+              if n <= C.bytesSizeOfInt ik then
+                (ctv, em, cs)
+              else
+                with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc (IEConst ITop) iv :: cs)
+          | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+        end
+    | _ -> constrain_exp_aux ve em loc e
 
 and constrain_lval_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.lval -> ctypevar * cstremap = function
   | (C.Var v, C.NoOffset)       -> (IM.find v.C.vid ve, em)
