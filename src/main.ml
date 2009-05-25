@@ -63,8 +63,8 @@ let mk_cil fname =
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
   let _   = Psimplify.simplify cil;
             if !Constants.ctypes then Inliner.inline cil;
-            Heapify.heapifyNonArrays := true;
-            Heapify.default_heapify cil;
+            Pheapify.heapifyNonArrays := true;
+            Pheapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
             mk_cfg cil;
             rename_locals cil in

@@ -40,8 +40,8 @@ let mk_cfg cil =
 let mk_cil fname =
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
   let _   = Inliner.inline cil;
-            Heapify.heapifyNonArrays := true;
-            Heapify.default_heapify cil;
+            Pheapify.heapifyNonArrays := true;
+            Pheapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
             Psimplify.simplify cil;
             mk_cfg cil;
