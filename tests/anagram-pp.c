@@ -2095,7 +2095,6 @@ PWord NextWord(void) {
     return apwCand[cpwCand-1];
 }
 
-/*
 void BuildWord(char * pchWord) {
     unsigned char cchFrequency[26];
     int i;
@@ -2111,8 +2110,8 @@ void BuildWord(char * pchWord) {
             continue;
 
         i = ((tolower(i)-'a'));
-        //        if (++cchFrequency[i] > alPhrase[0].uFrequency)
-        //    ++cchLength;
+        if (++cchFrequency[i] > alPhrase[0].uFrequency)
+            ++cchLength;
     }
 
     for (i = 0; i < 26; i++)
@@ -2138,7 +2137,7 @@ AddWords(void) {
     while (*pch) {
         if ((pch[1] >= cchMinLength && pch[1]+cchMinLength <= cchPhraseLength)
             || pch[1] == cchPhraseLength)
-     BuildWord(pch+2);
+            BuildWord(pch+2);
         pch += *pch;
     }
 
@@ -2147,15 +2146,18 @@ AddWords(void) {
 
 void DumpCandidates(void) {
     unsigned u;
+    char c;
 
-    for (u = 0; u < cpwCand; u++)
-        printf("%15s%c", apwCand[u]->pchWord, (u % 4 == 3) ? '\n' : ' ');
+    for (u = 0; u < cpwCand; u++) {
+        // pmr: expanded out to assign to temp because CIL makes the temp an integer instead
+        c = (u % 4 == 3) ? '\n' : ' ';
+        printf("%15s%c", apwCand[u]->pchWord, c);
+    }
     printf("\n");
 }
-
+/*
 PWord apwSol[51];
 int cpwLast;
-
 
 # 481 "../ptrdist/anagram/anagram.c"
 void DumpWords(void) {
