@@ -1,5 +1,6 @@
 module M = Misc
 module P = Pretty
+module E = Errormsg
 
 open M.Ops
 
@@ -141,6 +142,11 @@ let index_of_ploc (pl: ploc) (p: int) =
   match pl with
     | PLAt n  -> IInt n
     | PLSeq n -> ISeq (n, p)
+
+let ploc_of_index: index -> ploc = function
+  | IInt n           -> PLAt n
+  | ISeq (n, _)      -> PLSeq n
+  | IBot | ITop as i -> E.s <| E.error "Can't convert %a to ploc" d_index i
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq n -> n
