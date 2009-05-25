@@ -21,13 +21,13 @@ val t_subs_names        : (name * name) list -> reftype -> reftype
 
 type refldesc
 type refstore
-val binds_of_refldesc   : sloc -> refldesc -> (name * reftype) list
-val refstore_set        : refstore -> sloc -> refldesc -> refstore
-val refstore_get        : refstore -> sloc -> refldesc
+val binds_of_refldesc   : Ctypes.sloc -> refldesc -> (name * reftype) list
+val refstore_set        : refstore -> Ctypes.sloc -> refldesc -> refstore
+val refstore_get        : refstore -> Ctypes.sloc -> refldesc
 val refldesc_subs       : refldesc -> (int -> reftype -> reftype) -> refldesc 
 val refstore_write      : refstore -> reftype -> reftype -> refstore
-val refstore_read       : refstore -> reftyp -> reftype
-val refstore_fresh      : Ctypes.cstore -> refstore
+val refstore_read       : refstore -> reftype -> reftype
+val refstore_fresh      : Ctypes.store -> refstore
 
 
 

@@ -25,7 +25,7 @@
 
 type t
 type wld = FixInterface.cilenv * FixInterface.refstore
-val annotstmt_of_block:  Consinfra.t -> int -> (block_annotation option * stmt)
+val annotstmt_of_block: t -> int -> (Refanno.block_annotation option * Cil.stmt)
 val location_of_block: t -> int -> Cil.location
 val phis_of_block: t -> int -> Cil.varinfo list 
 val inwld_of_block: t -> int -> wld 

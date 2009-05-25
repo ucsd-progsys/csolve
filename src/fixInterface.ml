@@ -1,15 +1,16 @@
-module F  = Format
-module ST = Ssa_transform
-module  A = Ast
-module  P = Ast.Predicate
-module  C = Constraint
-module Sy = Ast.Symbol
-module So = Ast.Sort
-module CI = CilInterface
+module F   = Format
+module ST  = Ssa_transform
+module  A  = Ast
+module  P  = Ast.Predicate
+module  C  = Constraint
+module Sy  = Ast.Symbol
+module So  = Ast.Sort
+module CI  = CilInterface
 
-module YM = Sy.SMap
-module SM = Misc.StringMap
-module  T = Ctypes
+module YM  = Sy.SMap
+module SM  = Misc.StringMap
+module  T  = Ctypes
+module SLM = T.SLM
 
 open Misc.Ops
 open Cil
@@ -113,17 +114,22 @@ let refldesc_subs rd f =
   end rd
 
 let addr_of_reftype = function
-  | Base (T.CTRef (l, (i,_))) -> l, T.ploc_of_index i
+  | Base (T.CTRef (l, (i,_))) -> (l, T.ploc_of_index i)
   | _ -> assertf "addr_of_reftype: bad args"
 
+let refdesc_find ploc rd = 
+  match T.LDesc.find ploc rd with
+  | [(ploc', rct)] when ploc = ploc' -> rct
+  | _ -> assertf "refdesc_find"
+
 let refstore_read sto cr = 
-  let (l, ploc) = addr_of_reftyp cr in 
-  let rct = try SLM.find l sto |> T.LDesc.find ploc 
+  let (l, ploc) = addr_of_reftype cr in 
+  let rct = try SLM.find l sto |> refdesc_find ploc 
             with _ -> assertf "refstore_read: bad address!" in
   Base rct
 
 let refstore_write sto cr cr' = 
-  let (l, ploc) = addr_of_reftyp cr in 
+  let (l, ploc) = addr_of_reftype cr in 
   match cr' with
   | Base rct' -> 
       let ld  = SLM.find l sto in
@@ -282,8 +288,12 @@ let t_subs_exps  = reftype_subs CI.expr_of_cilexp
 
 let t_subs_names = reftype_subs A.eVar
 
-let refstore_fresh = SLM.map t_fresh
-
+let refstore_fresh (st : T.store) : refstore = 
+  SLM.map begin fun ld -> 
+    T.LDesc.map begin fun ct -> 
+      match t_fresh ct with  Base rct -> rct | _ -> assertf "refstore_fresh"
+    end ld
+  end st
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -309,10 +319,10 @@ let rec make_wfs cenv cr loc =
       (make_wfs env' ret loc) ++ 
       (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
 
-let make_cs_block env p ncrs ncrs' bs loc =
+let make_cs_binds env p ncrs ncrs' bs loc =
   let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in
   let _    = asserts (List.length ncrs = List.length bs)    "make_cs_block 2" in
-  let env' = FI.ce_adds env ncrs in
+  let env' = ce_adds env ncrs in
   let subs = List.map2 (fun (n,_) (n',_)  -> (n', n) ) ncrs ncrs' in
   List.map2 (fun (n,_) (_,cr') -> (n, cr')) ncrs ncrs'
   |> List.combine bs
@@ -320,10 +330,10 @@ let make_cs_block env p ncrs ncrs' bs loc =
                   if not b then [] else
                     let lhs = t_name env' n in
                     let rhs = t_subs_names subs cr' in
-                    FI.make_cs env' p lhs rhs loc)
+                    make_cs env' p lhs rhs loc)
 
 let make_wfs_refstore env sto loc =
-  SLM.fold begin fun ws l rd ->
+  SLM.fold begin fun l rd ws ->
     let ncrs = binds_of_refldesc l rd in
     let env' = ce_adds env ncrs in
     let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in

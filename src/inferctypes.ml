@@ -505,7 +505,7 @@ let maybe_fresh (v: C.varinfo): (int * ctypevar) option =
   match t with
   | C.TInt _ 
   | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
-  | _        -> let _ = if !Constants.safe then E.error "not freshing local %s" V.C.vname in
+  | _        -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
                 C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t 
                 |> ignore; None
 

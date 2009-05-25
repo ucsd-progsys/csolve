@@ -151,6 +151,9 @@ let do_memo memo f args key =
 
 let map_pair   = fun f (x1, x2)  -> (f x1, f x2)
 let map_triple = fun f (x1, x2, x3) -> (f x1, f x2, f x3)
+let app_fst f (a, b) = (f a, b)
+let app_snd f (a, b) = (a, f b)
+
 
 (*
 let mapfold f xs b = 
@@ -166,7 +169,7 @@ let mapfold f b xs =
   List.fold_left begin
     fun (acc, ys) x -> let (acc', y) = f acc x in (acc', y::ys)
   end (b, []) xs
-  |> app_snd rev 
+  |> app_snd List.rev 
 
 
 let filter f xs = 
@@ -214,9 +217,6 @@ let cross_product xs ys =
 
 let append_pref p s =
   (p ^ "." ^ s)
-
-let app_fst f (a, b) = (f a, b)
-let app_snd f (a, b) = (a, f b)
 
 let sort_and_compact ls =
   let rec _sorted_compact l = 

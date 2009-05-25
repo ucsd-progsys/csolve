@@ -117,7 +117,7 @@ let cons_of_set me (env, cst) = function
   
   (* *v := e, where e is pure *)
   | Cil.Set ((Mem (Lval(Var v, NoOffset)), _), e, _) ->
-      let addr = FI.ce_find (FI.name_of_varinfo v) env 
+      let addr = FI.ce_find (FI.name_of_varinfo v) env in
       let sto' = FI.t_exp (CF.ctype_of_expr me e) e
                  |> FI.refstore_write cst addr cr in
       (env, sto')
