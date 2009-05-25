@@ -113,8 +113,7 @@ let refldesc_subs rd f =
   end rd
 
 let addr_of_reftype = function
-  | Base (T.CTRef (l, ((T.IInt i),_))) -> l, T.PLAt i
-  | Base (T.CTRef (l, ((T.ISeq (i,_)),_))) -> l, T.PLSeq i 
+  | Base (T.CTRef (l, (i,_))) -> l, T.ploc_of_index i
   | _ -> assertf "addr_of_reftype: bad args"
 
 let refstore_read sto cr = 
