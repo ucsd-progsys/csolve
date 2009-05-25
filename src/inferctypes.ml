@@ -395,6 +395,7 @@ and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctype
   | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
   | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
   | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
+  | C.Mod                                   -> constrain_mod
   | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
   | C.MinusPP                               -> constrain_ptrminus
@@ -425,6 +426,9 @@ and constrain_bitop (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (
   with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
 
 and constrain_shift (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+
+and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
   with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
