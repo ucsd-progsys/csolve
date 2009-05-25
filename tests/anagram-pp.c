@@ -1957,7 +1957,6 @@ char achByFrequency[26];
 
 char * pchDictionary;
 
-
 void Fatal(char *pchMsg, unsigned u) {
     fprintf(stderr, pchMsg, u);
     exit(1);
@@ -2005,7 +2004,6 @@ void ReadDict(char *pchFile) {
     }
     fclose(fp);
 
-
     *pchBase++ = 0;
 
     fprintf(stderr, "main dictionary has %u entries\n", cWords);
@@ -2013,8 +2011,6 @@ void ReadDict(char *pchFile) {
         Fatal("Dictionary too large; increase MAXWORDS\n", 0);
     fprintf(stderr, "%lu bytes wasted\n", ulLen - (pchBase - pchDictionary));
 }
-
-/*
 
 void BuildMask(char * pchPhrase) {
     int i;
@@ -2028,21 +2024,17 @@ void BuildMask(char * pchPhrase) {
     bzero(aqMainMask, sizeof(Quad)*2);
     bzero(aqMainSign, sizeof(Quad)*2);
 
-
-
-
-
-
-
     cchPhraseLength = 0;
+
     while ((ch = *pchPhrase++) != '\0') {
         if (((*__ctype_b_loc ())[(int) ((ch))] & (unsigned short int) _ISalpha)) {
+            // pmr: this next line sucks - we have to assume we get a nonnegative value
+            // pmr: so I make a totally unsound assumption instead
             ch = tolower(ch);
             alPhrase[((ch)-'a')].uFrequency++;
             cchPhraseLength++;
         }
     }
-
 
     iq = 0;
     cbtUsed = 0;
@@ -2052,17 +2044,22 @@ void BuildMask(char * pchPhrase) {
             auGlobalFrequency[i] = ~0;
         } else {
             auGlobalFrequency[i] = 0;
+
             for (cbtNeed = 1, qNeed = 1;
                  alPhrase[i].uFrequency >= qNeed;
                  cbtNeed++, qNeed <<= 1);
+
             if (cbtUsed + cbtNeed > 32) {
                 if (++iq >= 2)
-      Fatal("MAX_QUADS not large enough\n", 0);
+                    Fatal("MAX_QUADS not large enough\n", 0);
                 cbtUsed = 0;
             }
+
             alPhrase[i].uBits = qNeed-1;
+
             if (cbtUsed)
-  qNeed <<= cbtUsed;
+                qNeed <<= cbtUsed;
+
             aqMainSign[iq] |= qNeed;
             aqMainMask[iq] |= (Quad)alPhrase[i].uFrequency << cbtUsed;
             alPhrase[i].uShift = cbtUsed;
@@ -2082,59 +2079,44 @@ NewWord(void) {
     return pw;
 }
 
-
-
-
-
-
 void wprint(char * pch) {
     printf("%s ", pch);
 }
 
-PWord NextWord(void);
-
-
 PWord NextWord(void) {
     PWord pw;
+
     if (cpwCand >= 5000)
- Fatal("Too many candidates\n", 0);
+        Fatal("Too many candidates\n", 0);
     pw = apwCand[cpwCand++];
     if (pw != ((void *)0))
- return pw;
+        return pw;
     apwCand[cpwCand-1] = NewWord();
     return apwCand[cpwCand-1];
 }
 
-
-
-
+/*
 void BuildWord(char * pchWord) {
     unsigned char cchFrequency[26];
     int i;
+    int j;
     char * pch = pchWord;
     PWord pw;
     int cchLength = 0;
 
     bzero(cchFrequency, sizeof(unsigned char)*26);
 
-
-
     while ((i = *pch++) != '\0') {
-        if (!((*__ctype_b_loc ())[(int) ((i))] & (unsigned short int) _ISalpha)) continue;
-        i = ((tolower(i))-'a');
-        if (++cchFrequency[i] > alPhrase[i].uFrequency)
-     return;
-        ++cchLength;
+        if (!((*__ctype_b_loc ())[(int) ((i))] & (unsigned short int) _ISalpha))
+            continue;
+
+        i = ((tolower(i)-'a'));
+        //        if (++cchFrequency[i] > alPhrase[0].uFrequency)
+        //    ++cchLength;
     }
-
-   
-
 
     for (i = 0; i < 26; i++)
         auGlobalFrequency[i] += cchFrequency[i];
-
-
-
 
     pw = NextWord();
     bzero(pw->aqMask, sizeof(Quad)*2);
@@ -2146,7 +2128,6 @@ void BuildWord(char * pchWord) {
             (Quad)cchFrequency[i] << alPhrase[i].uShift;
     }
 }
-
 
 void
 AddWords(void) {
