@@ -19,17 +19,22 @@ val t_ctype_reftype     : Ctypes.ctype -> reftype -> reftype
 val t_subs_exps         : (name * Cil.exp) list -> reftype -> reftype
 val t_subs_names        : (name * name) list -> reftype -> reftype
 
-val sorts               : Ast.Sort.t list
-val make_cs             : cilenv -> Ast.pred -> reftype -> reftype -> Cil.location -> Constraint.t list
-val make_wfs            : cilenv -> reftype -> Cil.location -> Constraint.wf list
-val make_cs_binds       : cilenv -> Ast.pred -> (name * reftype) list -> (name * reftype) list -> bool list -> Cil.location -> Constraint.t list
-
-
 type refldesc
 type refstore
 val binds_of_refldesc   : sloc -> refldesc -> (name * reftype) list
 val refstore_set        : refstore -> sloc -> refldesc -> refstore
 val refstore_get        : refstore -> sloc -> refldesc
+val refldesc_subs       : refldesc -> (int -> reftype -> reftype) -> refldesc 
 val refstore_write      : refstore -> reftype -> reftype -> refstore
 val refstore_read       : refstore -> reftyp -> reftype
-val refldesc_subs       : refldesc -> (int -> reftype -> reftype) -> refldesc 
+val refstore_fresh      : Ctypes.cstore -> refstore
+
+
+
+val sorts               : Ast.Sort.t list
+val make_wfs            : cilenv -> reftype -> Cil.location -> Constraint.wf list
+val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> Constraint.wf list 
+val make_cs             : cilenv -> Ast.pred -> reftype -> reftype -> Cil.location -> Constraint.t list
+val make_cs_binds       : cilenv -> Ast.pred -> (name * reftype) list -> (name * reftype) list -> bool list -> Cil.location -> Constraint.t list
+
+

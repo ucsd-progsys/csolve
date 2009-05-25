@@ -138,7 +138,7 @@ let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
       let vn  = FI.name_of_varinfo v in
       let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
       ((FI.ce_adds env [vn, cr'], cst), cs)
-  | _  -> assertf "TBDNOW: cons_of_call" 
+  | _  -> assertf "TBD: cons_of_call" 
 
 let cons_of_annotinstr me loc grd wld (annots, instr) = 
   let wld, cs = cons_of_annots me loc grd wld annots in

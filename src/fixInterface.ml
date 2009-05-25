@@ -33,8 +33,16 @@ let sorts  = [so_int; so_ref]
 (*******************************************************************)
 
 type name = Sy.t
+
 let name_of_varinfo = fun v -> Sy.of_string v.vname
+
 let name_of_string  = fun s -> Sy.of_string s
+
+let name_of_sloc_ploc l p = 
+  let lt,li = match l with T.ALoc i -> "ALoc",i | T.CLoc i -> "CLoc", i in
+  let pt,pi = match p with T.PLAt i -> "PLAt",i | T.PLSeq i -> "PLSeq", i in
+  Printf.sprintf "%s#%d#%s#%d" lt li pt pi 
+  |> name_of_string
 
 (*******************************************************************)
 (************************** Refined Types **************************)
@@ -82,6 +90,47 @@ and print_binding so ppf (n, cr) =
 
 type refldesc = (T.index * C.reft) T.LDesc.t
 type refstore = (T.index * C.reft) T.prestore
+
+let refstore_set sto l rd = 
+  try SLM.add l rd sto with Not_found -> 
+    assertf "refstore_set"
+
+let refstore_get sto l =
+  try SLM.find l sto with Not_found ->
+    assertf "refstore_get"
+
+let binds_of_refldesc l rd = 
+  T.LDesc.foldn 
+    (fun i binds ploc rct -> (name_of_sloc_ploc l ploc, Base rct)::binds)
+    [] rd
+  |> List.rev
+
+let refldesc_subs rd f =
+  T.LDesc.mapn begin fun i _ rct -> 
+      match f i (Base rct) with 
+      | Base rct' -> rct' 
+      | _ -> assertf "refldesc_subs: bad substitution function" 
+  end rd
+
+let addr_of_reftype = function
+  | Base (T.CTRef (l, ((T.IInt i),_))) -> l, T.PLAt i
+  | Base (T.CTRef (l, ((T.ISeq (i,_)),_))) -> l, T.PLSeq i 
+  | _ -> assertf "addr_of_reftype: bad args"
+
+let refstore_read sto cr = 
+  let (l, ploc) = addr_of_reftyp cr in 
+  let rct = try SLM.find l sto |> T.LDesc.find ploc 
+            with _ -> assertf "refstore_read: bad address!" in
+  Base rct
+
+let refstore_write sto cr cr' = 
+  let (l, ploc) = addr_of_reftyp cr in 
+  match cr' with
+  | Base rct' -> 
+      let ld  = SLM.find l sto in
+      let ld' = T.LDesc.add ploc rct' ld in
+      SLM.add l ld' sto
+  | _ -> assertf "refstore_write: bad target!" 
 
 (*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
@@ -231,7 +280,11 @@ let reftype_subs f nzs =
       |> reftype_map 
 
 let t_subs_exps  = reftype_subs CI.expr_of_cilexp
+
 let t_subs_names = reftype_subs A.eVar
+
+let refstore_fresh = SLM.map t_fresh
+
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -257,7 +310,6 @@ let rec make_wfs cenv cr loc =
       (make_wfs env' ret loc) ++ 
       (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
 
-
 let make_cs_block env p ncrs ncrs' bs loc =
   let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in
   let _    = asserts (List.length ncrs = List.length bs)    "make_cs_block 2" in
@@ -270,3 +322,11 @@ let make_cs_block env p ncrs ncrs' bs loc =
                     let lhs = t_name env' n in
                     let rhs = t_subs_names subs cr' in
                     FI.make_cs env' p lhs rhs loc)
+
+let make_wfs_refstore env sto loc =
+  SLM.fold begin fun ws l rd ->
+    let ncrs = binds_of_refldesc l rd in
+    let env' = ce_adds env ncrs in
+    let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in
+    ws' ++ ws
+  end sto []

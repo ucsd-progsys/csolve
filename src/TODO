@@ -1,5 +1,6 @@
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - make the constraints "polymorphic" (so we can tag with src-locations *)
+- refactor [tcons_of_phis] to use [make_cs_block] instead of low-level loop.
 
 **************************************************************
 
@@ -8,9 +9,8 @@
 
 **************************************************************
 The great merge:
-- refactor [tcons_of_phis] to use [make_cs_block] instead of low-level loop.
 
-Implement new functions (store/ldesc related) of fixInterface.mli
+TBD: compile! 
 
 --^^^-- get small benchmarks working on above --^^^---
 

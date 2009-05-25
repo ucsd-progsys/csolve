@@ -69,19 +69,13 @@ let env_of_fdec gnv fdec ctm =
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
-(* val fresh_refstore: Ctypes.store -> refstore *)
-let fresh_refstore = failwith "TBDNOW"
-
-(* val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> Constraint.wf list *)
-let make_wfs_refstore = failwith "TBDNOW"
-
 let create gnv sci (ctm, store) (anna, ctab) =
   let fdec   = sci.ST.fdec in
   let env    = env_of_fdec gnv fdec ctm in
-  let astore = fresh_refstore store in 
+  let astore = FI.fresh_refstore store in 
   {sci     = sci;
    cs      = [];
-   ws      = make_wfs_refstore env astore fdec.svar.vdecl;
+   ws      = FI.make_wfs_refstore env astore fdec.svar.vdecl;
    envm    = IM.empty;
    gnv     = env;
    formalm = formalm_of_fdec sci.ST.fdec;
