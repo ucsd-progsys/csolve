@@ -3,6 +3,8 @@ type cilenv
 type reftype
 
 val name_of_varinfo: Cil.varinfo -> name
+val name_fresh: unit -> name
+
 val ce_empty  : cilenv
 val ce_adds   : cilenv -> (name * reftype) list -> cilenv
 val ce_find   : name -> cilenv -> reftype
@@ -21,14 +23,16 @@ val t_subs_names        : (name * name) list -> reftype -> reftype
 
 type refldesc
 type refstore
+val refstore_empty      : refstore
 val binds_of_refldesc   : Ctypes.sloc -> refldesc -> (name * reftype) list
+val refstore_mem        : Ctypes.sloc -> refstore -> bool
+val refstore_remove     : Ctypes.sloc -> refstore -> refstore
 val refstore_set        : refstore -> Ctypes.sloc -> refldesc -> refstore
 val refstore_get        : refstore -> Ctypes.sloc -> refldesc
 val refldesc_subs       : refldesc -> (int -> reftype -> reftype) -> refldesc 
 val refstore_write      : refstore -> reftype -> reftype -> refstore
 val refstore_read       : refstore -> reftype -> reftype
 val refstore_fresh      : Ctypes.store -> refstore
-
 
 
 val sorts               : Ast.Sort.t list

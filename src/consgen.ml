@@ -72,23 +72,23 @@ let wcons_of_phi loc env v =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annot me loc grd asto (env, sto) = function 
+let cons_of_annot loc grd asto (env, sto) = function 
   | Refanno.Gen  (cloc, aloc) -> 
-      let sto'   = SLM.remove cloc sto in
+      let sto'   = FI.refstore_remove cloc sto in
       let lbinds = FI.refstore_get sto  cloc |> FI.binds_of_refldesc cloc in
       let rbinds = FI.refstore_get asto aloc |> FI.binds_of_refldesc aloc in
       let bs     = Misc.clone true (List.length lbinds) in
       ((env, sto'), FI.make_cs_binds env grd lbinds rbinds bs loc)
 
   | Refanno.Inst (aloc, cloc) ->
-      let _      = asserts (not (SLM.mem cloc sto)) "cons_of_annot: loc uninst!" in
+      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: loc uninst!" in
       let aldesc = FI.refstore_get asto aloc in
-      let abinds = FI.binds_of_refldesc aldesc in
-      let subs   = List.map (fun (n,_) -> (n, FI.fresh_name ())) abinds in
+      let abinds = FI.binds_of_refldesc aloc aldesc in
+      let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) abinds in
       let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) abinds subs
                    |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                    |> FI.ce_adds env in
-      let im     = List.fold_left (fun (i,im) (_,n') -> IM.add i n' im) (0,IM.empty) subs in
+      let _,im   = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
       let sto'   = FI.refldesc_subs aldesc (fun i _ -> IM.find i im |> FI.t_name env') 
                    |> FI.refstore_set sto cloc in
       ((env', sto'), [])
@@ -100,7 +100,7 @@ let cons_of_annots me loc grd wld annots =
 
 let cons_of_set me (env, cst) = function 
   (* v := *v' *)
-  | Cil.Set ((Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _), _) ->
+  | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) ->
       let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let vn = FI.name_of_varinfo v in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
@@ -109,17 +109,17 @@ let cons_of_set me (env, cst) = function
       (FI.ce_adds env [(vn, cr)], cst) 
 
   (* v := e, where e is pure *)
-  | Cil.Set ((Var v, NoOffset), e, _) ->
+  | (Var v, NoOffset), e ->
       let vn = FI.name_of_varinfo v in
       let cr = FI.t_exp (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
       (FI.ce_adds env [(vn, cr)], cst)
   
   (* *v := e, where e is pure *)
-  | Cil.Set ((Mem (Lval(Var v, NoOffset)), _), e, _) ->
+  | (Mem (Lval(Var v, NoOffset)), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
       let sto' = FI.t_exp (CF.ctype_of_expr me e) e
-                 |> FI.refstore_write cst addr cr in
+                 |> FI.refstore_write cst addr in
       (env, sto')
   | _ -> assertf "TBD: cons_of_set"
 
@@ -164,15 +164,14 @@ let cons_of_ret me loc grd (env,_) e =
   let (_,rhs) = FI.ce_find_fn fn env in
   FI.make_cs env grd lhs rhs loc
 
-let cons_of_annotstmt me loc grd wld (stmt, anno) = 
-  match (stmt.skind, anno) with
-  | None, Instr _ ->
-      assertf "cons_of_stmt: missing annots"
-  | Some anns, Instr is -> 
+let cons_of_annotstmt me loc grd wld (anno, stmt) = 
+  match (anno, stmt.skind) with
+  | anns, Instr is -> 
+      asserts (List.length anns = List.length is) "cons_of_stmt: bad annots";
       List.combine anns is 
       |> Misc.mapfold (cons_of_annotinstr me loc grd) wld 
       |> Misc.app_snd Misc.flatten
-  | Some [ann], Return ((Some e), _) ->
+  | [ann], Return ((Some e), _) ->
       (wld, cons_of_ret me loc grd wld e)
   | _ ->
       let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
@@ -188,7 +187,7 @@ let cons_of_block me i =
   let phis     = CF.phis_of_block me i in
   let astmt    = CF.annotstmt_of_block me i in
   let env, cst = CF.inwld_of_block me i in
-  let env      = List.map (bind_of_phi me) phis |> Misc.app_fst (FI.ce_adds env) in
+  let env      = List.map (bind_of_phi me) phis |> FI.ce_adds env in
   let ws       = Misc.flap (wcons_of_phi loc env) phis in
   let wld, cs  = cons_of_annotstmt me loc grd (env, cst) astmt in
   (wld, ws, cs)

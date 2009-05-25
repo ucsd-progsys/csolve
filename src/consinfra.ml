@@ -40,11 +40,13 @@ module EM = Inferctypes.ExpMap
 open Misc.Ops
 open Cil
 
+type wld = FI.cilenv * FI.refstore
+
 type t = {
   sci     : ST.ssaCfgInfo;
   ws      : C.wf list;
   cs      : C.t list;
-  envm    : FI.cilenv IM.t;
+  wldm    : wld IM.t;
   gnv     : FI.cilenv; 
   formalm : unit SM.t;
   ctm     : Inferctypes.ctemap;
@@ -72,11 +74,11 @@ let formalm_of_fdec fdec =
 let create gnv sci (ctm, store) (anna, ctab) =
   let fdec   = sci.ST.fdec in
   let env    = env_of_fdec gnv fdec ctm in
-  let astore = FI.fresh_refstore store in 
+  let astore = FI.refstore_fresh store in 
   {sci     = sci;
    cs      = [];
    ws      = FI.make_wfs_refstore env astore fdec.svar.vdecl;
-   envm    = IM.empty;
+   wldm    = IM.empty;
    gnv     = env;
    formalm = formalm_of_fdec sci.ST.fdec;
    ctm     = ctm;
@@ -87,14 +89,20 @@ let create gnv sci (ctm, store) (anna, ctab) =
 let add_cons ws cs me =
   {{me with cs = cs ++ me.cs} with ws = ws ++ me.ws}
 
-let add_env i env me = 
-  {me with envm = IM.add i env me.envm}
+let add_wld i wld me = 
+  {me with wldm = IM.add i wld me.wldm}
 
 let get_cons me =
   (me.ws, me.cs)
 
+let get_astore me = 
+  me.astore
+
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
+
+let annotstmt_of_block me i = 
+  (me.anna.(i), stmt_of_block me i)
 
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
@@ -103,13 +111,17 @@ let phis_of_block me i =
   me.sci.ST.phis.(i) 
   |> Misc.map fst
 
-let outenv_of_block me i =
-  IM.find i me.envm
+let outwld_of_block me i =
+  IM.find i me.wldm
 
-let inenv_of_block me i = 
-  if i = 0 then me.gnv else
+let inwld_of_block me = function
+  | 0 -> 
+      (me.gnv, FI.refstore_empty)
+  | i ->
     let (idom, _) = me.sci.ST.gdoms.(i) in
-    outenv_of_block me idom
+    let (env,_)   = outwld_of_block me idom in
+    (env, FI.refstore_empty)
+
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
@@ -131,7 +143,7 @@ let guard_of_block me i =
     |> Misc.map (pred_of_block me.sci.ST.ifs)
     |> Ast.pAnd
 
-let fname me = 
+let get_fname me = 
   FI.name_of_varinfo me.sci.ST.fdec.svar 
 
 let is_formal fdec v =
@@ -147,12 +159,12 @@ let ctype_of_expr me e =
 
 let ctype_of_varinfo me v =
   match ctype_of_varinfo me.ctm v with
-  | T.CTInt (_, _) as ct -> 
+  | Ctypes.CTInt (_, _) as ct -> 
       ct
-  | T.CTRef (aloc, x)     -> 
+  | Ctypes.CTRef (aloc, x)     -> 
       try 
         let cloc = Refanno.cloc_of_varinfo me.ctab v in 
-        T.CTRef (cloc, x) 
+        Ctypes.CTRef (cloc, x) 
       with Not_found -> assertf "cloc_of_varinfo fails on: %s" v.vname 
      
 

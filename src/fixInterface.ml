@@ -9,8 +9,8 @@ module CI  = CilInterface
 
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
-module  T  = Ctypes
-module SLM = T.SLM
+(* module  T  = Ctypes *)
+module SLM = Ctypes.SLM
 
 open Misc.Ops
 open Cil
@@ -39,9 +39,14 @@ let name_of_varinfo = fun v -> Sy.of_string v.vname
 
 let name_of_string  = fun s -> Sy.of_string s
 
+let name_fresh = 
+  let r = ref 0 in
+  (fun _ -> ignore (r+=1); name_of_string ("lqn#"^(string_of_int !r)))
+
+
 let name_of_sloc_ploc l p = 
-  let lt,li = match l with T.ALoc i -> "ALoc",i | T.CLoc i -> "CLoc", i in
-  let pt,pi = match p with T.PLAt i -> "PLAt",i | T.PLSeq i -> "PLSeq", i in
+  let lt,li = match l with Ctypes.ALoc i -> "ALoc",i | Ctypes.CLoc i -> "CLoc", i in
+  let pt,pi = match p with Ctypes.PLAt i -> "PLAt",i | Ctypes.PLSeq i -> "PLSeq", i in
   Printf.sprintf "%s#%d#%s#%d" lt li pt pi 
   |> name_of_string
 
@@ -49,20 +54,20 @@ let name_of_sloc_ploc l p =
 (************************** Refined Types **************************)
 (*******************************************************************)
 
-type reftype = Base of (T.index * C.reft) T.prectype
+type reftype = Base of (Ctypes.index * C.reft) Ctypes.prectype
              | Fun  of (name * reftype) list * reftype  
 
 let ctype_of_rctype = function
-  | T.CTInt (x, (y, _)) -> T.CTInt (x, y) 
-  | T.CTRef (x, (y, _)) -> T.CTRef (x, y)
+  | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
+  | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
 
 let reft_of_rctype = function
-  | T.CTInt (_,(_,r)) 
-  | T.CTRef (_,(_,r)) -> r
+  | Ctypes.CTInt (_,(_,r)) 
+  | Ctypes.CTRef (_,(_,r)) -> r
 
 let reftype_of_reft_ctype r = function
-  | T.CTInt (x,y) -> Base (T.CTInt (x, (y,r))) 
-  | T.CTRef (x,y) -> Base (T.CTRef (x, (y,r))) 
+  | Ctypes.CTInt (x,y) -> Base (Ctypes.CTInt (x, (y,r))) 
+  | Ctypes.CTRef (x,y) -> Base (Ctypes.CTRef (x, (y,r))) 
 
 let rec reftype_map f cr = 
   match cr with
@@ -89,8 +94,13 @@ and print_binding so ppf (n, cr) =
 (*************************** Refined Stores ************************)
 (*******************************************************************)
 
-type refldesc = (T.index * C.reft) T.LDesc.t
-type refstore = (T.index * C.reft) T.prestore
+type refldesc = (Ctypes.index * C.reft) Ctypes.LDesc.t
+type refstore = (Ctypes.index * C.reft) Ctypes.prestore
+
+let refstore_empty = SLM.empty
+
+let refstore_mem l sto = SLM.mem l sto
+let refstore_remove l sto = SLM.remove l sto
 
 let refstore_set sto l rd = 
   try SLM.add l rd sto with Not_found -> 
@@ -101,24 +111,24 @@ let refstore_get sto l =
     assertf "refstore_get"
 
 let binds_of_refldesc l rd = 
-  T.LDesc.foldn 
+  Ctypes.LDesc.foldn 
     (fun i binds ploc rct -> (name_of_sloc_ploc l ploc, Base rct)::binds)
     [] rd
   |> List.rev
 
 let refldesc_subs rd f =
-  T.LDesc.mapn begin fun i _ rct -> 
+  Ctypes.LDesc.mapn begin fun i _ rct -> 
       match f i (Base rct) with 
       | Base rct' -> rct' 
       | _ -> assertf "refldesc_subs: bad substitution function" 
   end rd
 
 let addr_of_reftype = function
-  | Base (T.CTRef (l, (i,_))) -> (l, T.ploc_of_index i)
+  | Base (Ctypes.CTRef (l, (i,_))) -> (l, Ctypes.ploc_of_index i)
   | _ -> assertf "addr_of_reftype: bad args"
 
 let refdesc_find ploc rd = 
-  match T.LDesc.find ploc rd with
+  match Ctypes.LDesc.find ploc rd with
   | [(ploc', rct)] when ploc = ploc' -> rct
   | _ -> assertf "refdesc_find"
 
@@ -133,7 +143,7 @@ let refstore_write sto cr cr' =
   match cr' with
   | Base rct' -> 
       let ld  = SLM.find l sto in
-      let ld' = T.LDesc.add ploc rct' ld in
+      let ld' = Ctypes.LDesc.add ploc rct' ld in
       SLM.add l ld' sto
   | _ -> assertf "refstore_write: bad target!" 
 
@@ -142,7 +152,7 @@ let refstore_write sto cr cr' =
 (*******************************************************************)
 
 (* Move to its own module *)
-let ct_int = T.CTInt (Cil.bytesSizeOfInt Cil.IInt, T.ITop)
+let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
  
 let int_reftype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
@@ -213,12 +223,12 @@ let fresh_kvar =
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
 let rec reftype_of_ctype f = function
-  | T.CTInt (i, x) as t ->
+  | Ctypes.CTInt (i, x) as t ->
       let r = C.make_reft vv_int So.Int (f t) in
-      Base (T.CTInt (i, (x, r))) 
-  | T.CTRef (l, x) as t ->
+      Base (Ctypes.CTInt (i, (x, r))) 
+  | Ctypes.CTRef (l, x) as t ->
       let r = C.make_reft vv_int So.Int (f t) in
-      Base (T.CTRef (l, (x, r))) 
+      Base (Ctypes.CTRef (l, (x, r))) 
 
 and reftype_of_bindings f = function
   | None -> 
@@ -281,16 +291,16 @@ let reftype_subs f nzs =
   nzs |> Misc.map (Misc.app_snd f) 
       |> C.theta
       |> Misc.app_snd
-      |> T.prectype_map
+      |> Ctypes.prectype_map
       |> reftype_map 
 
 let t_subs_exps  = reftype_subs CI.expr_of_cilexp
 
 let t_subs_names = reftype_subs A.eVar
 
-let refstore_fresh (st : T.store) : refstore = 
+let refstore_fresh (st : Ctypes.store) : refstore = 
   SLM.map begin fun ld -> 
-    T.LDesc.map begin fun ct -> 
+    Ctypes.LDesc.map begin fun ct -> 
       match t_fresh ct with  Base rct -> rct | _ -> assertf "refstore_fresh"
     end ld
   end st
