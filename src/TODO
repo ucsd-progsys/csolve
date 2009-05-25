@@ -11,20 +11,15 @@
 
 **************************************************************
 The great merge:
+- refactor [tcons_of_phis] to use [make_cs_block] instead of low-level loop.
 
-4. Implement new signatures of consinfra, fixInterface
-5. UPDATE: Consinfra.ctype_of_varinfo: Consinfra.t -> Cil.varinfo -> Ctypes.ctype
-   so that it uses the theta -- map and returns the concrete location...
-
-6. implement consgen using notes and new interfaces (4,5)
-	-- halfway: have threaded "world" through the consgen functions
-	-- next: generate constraints in:
-		cons_of_set
-		cons_of_annot
+Implement new functions (store/ldesc related) of fixInterface.mli
 
 --^^^-- get small benchmarks working on above --^^^---
 
 - add functions
+
+foldn: (int -> 'a -> 'b prectype -> 'a) -> 'a -> 'b LDesc.t -> 'a
 
 **************************************************************
 - globals

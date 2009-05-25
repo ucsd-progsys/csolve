@@ -29,12 +29,16 @@ let vv_ref = Sy.value_variable so_ref
 let sorts  = [so_int; so_ref] 
 
 (*******************************************************************)
-(************************** Refined Types **************************)
+(******************************** Names ****************************)
 (*******************************************************************)
 
 type name = Sy.t
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 let name_of_string  = fun s -> Sy.of_string s
+
+(*******************************************************************)
+(************************** Refined Types **************************)
+(*******************************************************************)
 
 type reftype = Base of (T.index * C.reft) T.prectype
              | Fun  of (name * reftype) list * reftype  
@@ -76,8 +80,8 @@ and print_binding so ppf (n, cr) =
 (*************************** Refined Stores ************************)
 (*******************************************************************)
 
+type refldesc = (T.index * C.reft) T.LDesc.t
 type refstore = (T.index * C.reft) T.prestore
-
 
 (*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
@@ -252,3 +256,17 @@ let rec make_wfs cenv cr loc =
       let env' = ce_adds cenv args in
       (make_wfs env' ret loc) ++ 
       (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
+
+
+let make_cs_block env p ncrs ncrs' bs loc =
+  let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in
+  let _    = asserts (List.length ncrs = List.length bs)    "make_cs_block 2" in
+  let env' = FI.ce_adds env ncrs in
+  let subs = List.map2 (fun (n,_) (n',_)  -> (n', n) ) ncrs ncrs' in
+  List.map2 (fun (n,_) (_,cr') -> (n, cr')) ncrs ncrs'
+  |> List.combine bs
+  |> Misc.flap (fun (b, (n,cr')) -> 
+                  if not b then [] else
+                    let lhs = t_name env' n in
+                    let rhs = t_subs_names subs cr' in
+                    FI.make_cs env' p lhs rhs loc)

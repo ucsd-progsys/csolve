@@ -148,5 +148,17 @@ let is_formal fdec v =
 let is_undefined me v =
   ST.is_origcilvar v && not (SM.mem v.vname me.formalm)
 
-let ctype_of_varinfo = fun me v -> ctype_of_varinfo me.ctm v
-let ctype_of_expr = fun me e -> EM.find e me.ctm
+let ctype_of_expr me e = 
+  EM.find e me.ctm
+
+let ctype_of_varinfo me v =
+  match ctype_of_varinfo me.ctm v with
+  | T.CTInt (_, _) as ct -> 
+      ct
+  | T.CTRef (aloc, x)     -> 
+      try 
+        let cloc = Refanno.cloc_of_varinfo me.ctab v in 
+        T.CTRef (cloc, x) 
+      with Not_found -> assertf "cloc_of_varinfo fails on: %s" v.vname 
+     
+

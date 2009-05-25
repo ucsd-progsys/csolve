@@ -28,20 +28,12 @@ module E  = Errormsg
 module ST = Ssa_transform
 module FI = FixInterface 
 module CF = Consinfra
+module IM = Misc.IntMap
 
 open Misc.Ops
 open Cil
 
 let mydebug = true 
-
-(*
-let cons_fold f env xs =
-  List.fold_left begin
-    fun (env, cs) x -> 
-      let (env', cs') = f env x in
-      (env',  cs' ++ cs)
-  end (env, []) xs
-*)
 
 (****************************************************************************)
 (********************** Constraints for Phis ********************************)
@@ -80,15 +72,55 @@ let wcons_of_phi loc env v =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annot me loc grd wld = function
-  | _ -> failwith "TBDNOW"
+let cons_of_annot me loc grd asto (env, sto) = function 
+  | Refanno.Gen  (cloc, aloc) -> 
+      let sto'   = SLM.remove cloc sto in
+      let lbinds = FI.refstore_get sto  cloc |> FI.binds_of_refldesc cloc in
+      let rbinds = FI.refstore_get asto aloc |> FI.binds_of_refldesc aloc in
+      let bs     = Misc.clone true (List.length lbinds) in
+      ((env, sto'), FI.make_cs_binds env grd lbinds rbinds bs loc)
 
-let cons_of_set me loc grd wld (lv, e) =
-  match lv with
-  | (Var v), NoOffset -> 
-      let cr = FI.t_exp (CF.ctype_of_expr me e) e in
+  | Refanno.Inst (aloc, cloc) ->
+      let _      = asserts (not (SLM.mem cloc sto)) "cons_of_annot: loc uninst!" in
+      let aldesc = FI.refstore_get asto aloc in
+      let abinds = FI.binds_of_refldesc aldesc in
+      let subs   = List.map (fun (n,_) -> (n, FI.fresh_name ())) abinds in
+      let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) abinds subs
+                   |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
+                   |> FI.ce_adds env in
+      let im     = List.fold_left (fun (i,im) (_,n') -> IM.add i n' im) (0,IM.empty) subs in
+      let sto'   = FI.refldesc_subs aldesc (fun i _ -> IM.find i im |> FI.t_name env') 
+                   |> FI.refstore_set sto cloc in
+      ((env', sto'), [])
+
+let cons_of_annots me loc grd wld annots =
+  let asto = CF.get_astore me in
+  Misc.mapfold (cons_of_annot loc grd asto) wld annots
+  |> Misc.app_snd Misc.flatten 
+
+let cons_of_set me (env, cst) = function 
+  (* v := *v' *)
+  | Cil.Set ((Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _), _) ->
+      let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let vn = FI.name_of_varinfo v in
-      (FI.ce_adds env [(vn, cr)], []) 
+      let cr = FI.ce_find (FI.name_of_varinfo v') env 
+               |> FI.refstore_read cst 
+               |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
+      (FI.ce_adds env [(vn, cr)], cst) 
+
+  (* v := e, where e is pure *)
+  | Cil.Set ((Var v, NoOffset), e, _) ->
+      let vn = FI.name_of_varinfo v in
+      let cr = FI.t_exp (CF.ctype_of_expr me e) e  
+               |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
+      (FI.ce_adds env [(vn, cr)], cst)
+  
+  (* *v := e, where e is pure *)
+  | Cil.Set ((Mem (Lval(Var v, NoOffset)), _), e, _) ->
+      let addr = FI.ce_find (FI.name_of_varinfo v) env 
+      let sto' = FI.t_exp (CF.ctype_of_expr me e) e
+                 |> FI.refstore_write cst addr cr in
+      (env, sto')
   | _ -> assertf "TBD: cons_of_set"
 
 let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
@@ -108,14 +140,14 @@ let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
       ((FI.ce_adds env [vn, cr'], cst), cs)
   | _  -> assertf "TBDNOW: cons_of_call" 
 
-let cons_of_annotinstr me loc grd wld (ann, instr) = 
-  let wld, cs = cons_of_annot me loc grd wld ann in
+let cons_of_annotinstr me loc grd wld (annots, instr) = 
+  let wld, cs = cons_of_annots me loc grd wld annots in
   match instr with 
-  | Set (lv, e, loc) ->
-      let wld, cs' = cons_of_set me loc grd wld (lv, e) in
-      (wld, cs ++ cs')
+  | Set (lv, e, _) ->
+      let wld = cons_of_set me wld (lv, e) in
+      (wld, cs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      let fn = FI.name_of_varinfo fv in
+      let fn       = FI.name_of_varinfo fv in
       let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
       (wld, cs ++ cs')
   | _ -> 
@@ -131,7 +163,6 @@ let cons_of_ret me loc grd (env,_) e =
   let lhs     = FI.t_exp (CF.ctype_of_expr me e) e in 
   let (_,rhs) = FI.ce_find_fn fn env in
   FI.make_cs env grd lhs rhs loc
-
 
 let cons_of_annotstmt me loc grd wld (stmt, anno) = 
   match (stmt.skind, anno) with
