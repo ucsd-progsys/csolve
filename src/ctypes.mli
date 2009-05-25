@@ -79,6 +79,7 @@ val d_store: unit -> store -> Pretty.doc
 (******************************************************************************)
 
 val index_of_int: int -> index
+val index_of_ploc: ploc -> int -> index
 val index_lub: index -> index -> index
 val index_plus: index -> index -> index
 val index_minus: index -> index -> index
