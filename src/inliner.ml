@@ -2,6 +2,7 @@ open Cil
 open Misc.Ops
 
 module E = Errormsg
+module C = Constants
 
 (******************************************************************************)
 (*************************** Function Instantiation ***************************)
@@ -94,6 +95,15 @@ class inlineVisitor fds fi = object
               | (Some lv, Some rv) -> ChangeDoChildrenPost (mkStmt <| Block ({b with bstmts = b.bstmts @ [mkSetLval lv (Lval (Var rv, NoOffset)) loc]}), id)
               | _                  -> E.s <| errorLoc loc "Assigning void return type to a variable"
             end
+      | Instr [Call (_, Lval (Var f, NoOffset), _, loc)] when f.vstorage = Extern ->
+          DoChildren
+      | Instr [Call (_, _, _, loc)] ->
+          if !C.safe then
+            E.s <| errorLoc loc "Can't inline recursive or forward call:@!%a@!" d_stmt s
+          else begin
+            warnLoc loc "Unsoundly dropping recursive or forward call:@!%a@!" d_stmt s |> ignore;
+            ChangeDoChildrenPost (mkStmt (Instr []), id)
+          end
       | _ -> DoChildren
 
   method vblock (b: block): block visitAction =

@@ -54,7 +54,9 @@ module LDesc:
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
+    val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
+    val mapn: (int -> ploc -> 'a prectype -> 'b prectype) -> 'a t -> 'b t
     val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 

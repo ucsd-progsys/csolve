@@ -3,9 +3,6 @@
 
 **************************************************************
 
-[pr] inline all functions (drop-recursive calls)
-[pr] add globals as locals after inlining
-
 [rj] add "array-bounds-assertion"
 [rj] combine: types + refanno + consgen
 

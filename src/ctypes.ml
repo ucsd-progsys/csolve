@@ -252,6 +252,16 @@ module LDesc = struct
   let map (f: 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
     (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
 
+  let rec foldn_aux (f: int -> 'a -> ploc -> 'b prectype -> 'a) (n: int) (b: 'a): (ploc * 'b prectype) list -> 'a = function
+    | []                -> b
+    | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
+
+  let foldn (f: int -> 'a -> ploc -> 'b prectype -> 'a) (b: 'a) ((_, pcts): 'b t): 'a =
+    foldn_aux f 0 b pcts
+
+  let mapn (f: int -> ploc -> 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
+    (po, foldn_aux (fun n pcts pl pct -> (pl, f n pl pct) :: pcts) 0 [] pcts |> List.rev)
+
   let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, pcts): 'a t): P.doc =
     let p = get_period_default po in
       P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
