@@ -300,6 +300,9 @@ let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
 let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref ()], [])
 
+let bzero_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref (); fresh_ctvint int_width], [])
+
 let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_iless loc (IEConst ITop) iv])
 
@@ -331,10 +334,15 @@ let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr
 let exit_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvint int_width], [])
 
+let tolower_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  if !Constants.safe then E.s <| E.bug "Can't assume tolower's param is a letter@!" else C.warnLoc loc "Unsoundly assuming tolower is passed a letter@!" |> ignore;
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (ISeq (97, 1))) iv])
+
 let fun_stubs =
   [
     ("malloc", malloc_stub);
     ("free", free_stub);
+    ("bzero", bzero_stub);
     ("nondet", nondet_stub);
     ("assert", assert_stub);
     ("fopen", fopen_stub);
@@ -343,6 +351,7 @@ let fun_stubs =
     ("fgetc", fgetc_stub);
     ("__ctype_b_loc", __ctype_b_loc_stub);
     ("exit", exit_stub);
+    ("tolower", tolower_stub);
   ]
 
 let printf_funs = ["printf"; "fprintf"]
@@ -359,17 +368,30 @@ let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
   | C.Const c                     -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
   | C.Lval lv                     -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
+  | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
+and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
+  let (ctv, em) = constrain_exp ve em loc e in
+    match ctv with
+      | CTInt _ -> apply_unop op em loc t ctv
+      | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!"
+
+and apply_unop (op: C.unop) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv: ctypevar): ctypevar * cstremap * cstr list =
+  match op with
+    | C.LNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
+    | C.BNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+    | C.Neg  -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc e1 in
   let (ctv2, em2) = constrain_exp ve em1 loc e2 in
-    apply_op op em2 loc t ctv1 ctv2
+    apply_binop op em2 loc t ctv1 ctv2
 
-and apply_op: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar -> ctypevar * cstremap * cstr list = function
+and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar -> ctypevar * cstremap * cstr list = function
   | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
   | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
   | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
@@ -378,10 +400,11 @@ and apply_op: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar
   | C.MinusPP                               -> constrain_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
   | C.BAnd | C.BOr | C.BXor                 -> constrain_bitop
+  | C.Shiftlt | C.Shiftrt                   -> constrain_shift
   | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (_: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
-    match (ctv1, ctv2, fresh_ctvint int_width) with
+and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+    match (ctv1, ctv2, fresh_ctvint <| typ_width rt) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
           (ctv, em, [mk_iless loc (f iv1 iv2) iv])
       | _ -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
@@ -399,6 +422,9 @@ and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: 
   with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
 
 and constrain_bitop (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+
+and constrain_shift (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
   with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
