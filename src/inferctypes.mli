@@ -24,4 +24,4 @@ module ExpMap:
 
 type ctemap = Ctypes.ctype ExpMap.t
 val d_ctemap: unit -> ctemap -> Pretty.doc
-val infer_sci_shapes: Ssa_transform.ssaCfgInfo -> ctemap * Ctypes.store
+val infer_sci_shapes: Ssa_transform.ssaCfgInfo -> (Cil.varinfo * Ctypes.ctype) list * ctemap * Ctypes.store

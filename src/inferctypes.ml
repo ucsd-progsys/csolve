@@ -586,7 +586,7 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
-let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * store =
+let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (Cil.varinfo * Ctypes.ctype) list * ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
   let formals      = fresh_vars fd.C.sformals in
   let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
@@ -595,8 +595,4 @@ let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): ctemap * s
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.C.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
-    (ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
-
-
-
-
+    (List.map2 (fun v (_, ctv) -> (v, apply_sol ctv)) fd.C.slocals locals, ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
