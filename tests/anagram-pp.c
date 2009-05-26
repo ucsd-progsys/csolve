@@ -1940,7 +1940,6 @@ typedef Letter * PLetter;
 
 Letter alPhrase[26];
 
-
 int cchPhraseLength;
 
 Quad aqMainMask[2];
@@ -2155,24 +2154,26 @@ void DumpCandidates(void) {
     }
     printf("\n");
 }
-/*
+
 PWord apwSol[51];
 int cpwLast;
 
 # 481 "../ptrdist/anagram/anagram.c"
 void DumpWords(void) {
     int i;
-    for (i = 0; i < cpwLast; i++) wprint(apwSol[i]->pchWord);
+
+    for (i = 0; i < cpwLast; i++)
+        wprint(apwSol[i]->pchWord);
     printf("\n");
 }
-
-
 
 jmp_buf jbAnagram;
 # 498 "../ptrdist/anagram/anagram.c"
 void
-FindAnagram(Quad * pqMask, PPWord ppwStart, int iLetter)
+FindAnagram(Quad * pqMask, PPWord ppwStart /*, int iLetter */)
 {
+    // pmr: MOVE THIS BACK INTO PARAMS!
+    int iLetter = 26;
     Quad aqNext[2];
     register PWord pw;
     Quad qMask;
@@ -2180,11 +2181,7 @@ FindAnagram(Quad * pqMask, PPWord ppwStart, int iLetter)
     PPWord ppwEnd = &apwCand[0];
     ppwEnd += cpwCand;
 
-    ;
-
     if (0) longjmp(jbAnagram, 1);
-
-   
 
     for (;;) {
         iq = alPhrase[achByFrequency[iLetter]].iq;
@@ -2194,17 +2191,10 @@ FindAnagram(Quad * pqMask, PPWord ppwStart, int iLetter)
         iLetter++;
     }
 
-   
-
     while (ppwStart < ppwEnd) {
         pw = *ppwStart;
 
-       
-
-
         if ((aqNext[0] = pqMask[0] - pw->aqMask[0]) & aqMainSign[0]) { ppwStart++; continue; };
-
-
 
         if ((aqNext[1] = pqMask[1] - pw->aqMask[1]) & aqMainSign[1]) { ppwStart++; continue; };
 # 550 "../ptrdist/anagram/anagram.c"
@@ -2214,25 +2204,19 @@ FindAnagram(Quad * pqMask, PPWord ppwStart, int iLetter)
             continue;
         }
 
-
         apwSol[cpwLast++] = pw;
+
         if (cchPhraseLength -= pw->cchLength) {
-           
-
-
-
-     ppwEnd = &apwCand[0];
-     ppwEnd += cpwCand;
+            ppwEnd = &apwCand[0];
+            ppwEnd += cpwCand;
             FindAnagram(&aqNext[0],
-   ppwStart, iLetter);
+                        ppwStart, iLetter);
         } else DumpWords();
         cchPhraseLength += pw->cchLength;
         --cpwLast;
         ppwStart++;
         continue;
     }
-
-    ;
 }
 
 int CompareFrequency(char *pch1, char *pch2) {
@@ -2245,15 +2229,15 @@ int CompareFrequency(char *pch1, char *pch2) {
 void SortCandidates(void) {
     int i;
 
-
     for (i = 0; i < 26; i++) achByFrequency[i] = i;
     qsort(achByFrequency, 26, sizeof(char),
           (int (*)(const void *, const void *))CompareFrequency);
 
     fprintf(stderr, "Order of search will be ");
     for (i = 0; i < 26; i++)
- fputc(((achByFrequency[i])+'a'), stderr);
-    fputc('\n', stderr);
+        fputc(((achByFrequency[i])+'a'), stderr);
+    // pmr: used to be '\n' - need to fix constants
+    fputc(10, stderr);
 }
 
 int fInteractive;
@@ -2262,24 +2246,19 @@ char * GetPhrase(char * pch) {
     if (fInteractive) printf(">");
     fflush(stdout);
     if (gets(pch) == ((void *)0)) {
-
-
-
-
- exit(0);
+        exit(0);
     }
     return(pch);
 }
 
 char achPhrase[255];
-
+/*
 int main(int cpchArgc, char **ppchArgv) {
-
     if (cpchArgc != 2 && cpchArgc != 3)
         Fatal("Usage: anagram dictionary [length]\n", 0);
 
     if (cpchArgc == 3)
- cchMinLength = atoi(ppchArgv[2]);
+        cchMinLength = atoi(ppchArgv[2]);
 
     fInteractive = isatty(1);
 
@@ -2296,12 +2275,10 @@ int main(int cpchArgc, char **ppchArgv) {
             AddWords();
             if (cpwCand == 0 || cchPhraseLength == 0) continue;
 
-           
             cpwLast = 0;
             SortCandidates();
             if (_setjmp (jbAnagram) == 0)
                 FindAnagram(&aqMainMask[0], &apwCand[0], 0);
-           
         }
     }
     return 0;

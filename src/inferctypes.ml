@@ -315,11 +315,23 @@ let fopen_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
 let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref ()], [])
 
+let fflush_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+
 let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
 
 let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst (ISeq (-1, 1))) iv])
+
+let fputc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width; fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+
+let gets_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [CTRef (s, iv)], [])
+
+let atoi_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
 
 let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_sloc <| fun s1 -> with_fresh_indexvar <| fun iv1 ->
@@ -338,6 +350,18 @@ let tolower_stub (loc: C.location): ctypevar option * ctypevar list * cstr list 
   if !Constants.safe then E.s <| E.bug "Can't assume tolower's param is a letter@!" else C.warnLoc loc "Unsoundly assuming tolower is passed a letter@!" |> ignore;
   with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (ISeq (97, 1))) iv])
 
+let longjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref (); fresh_ctvint int_width], [])
+
+let _setjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref (); fresh_ctvint int_width], [mk_iless loc (IEConst ITop) iv])
+
+let qsort_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  (None, [fresh_ctvref (); fresh_ctvint int_width; fresh_ctvint int_width; fresh_ctvref ()], [])
+
+let isatty_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (ISeq (0, 1))) iv])
+
 let fun_stubs =
   [
     ("malloc", malloc_stub);
@@ -347,11 +371,19 @@ let fun_stubs =
     ("assert", assert_stub);
     ("fopen", fopen_stub);
     ("fclose", fclose_stub);
+    ("fflush", fflush_stub);
     ("feof", feof_stub);
     ("fgetc", fgetc_stub);
+    ("fputc", fputc_stub);
+    ("gets", gets_stub);
+    ("atoi", atoi_stub);
     ("__ctype_b_loc", __ctype_b_loc_stub);
     ("exit", exit_stub);
     ("tolower", tolower_stub);
+    ("longjmp", longjmp_stub);
+    ("_setjmp", _setjmp_stub);
+    ("qsort", qsort_stub);
+    ("isatty", isatty_stub);
   ]
 
 let printf_funs = ["printf"; "fprintf"]
@@ -372,6 +404,7 @@ let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
+  | C.AddrOf lv                   -> constrain_addrof ve em loc lv
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
@@ -406,12 +439,12 @@ and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctype
 
 and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (ctv1, ctv2, fresh_ctvint <| typ_width rt) with
-      | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) when n1 = n3 && n2 = n3 ->
+      | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) ->
           (ctv, em, [mk_iless loc (f iv1 iv2) iv])
       | _ -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
 
 and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
-    match (pt, ctv1, ctv2) with
+    match (C.unrollType pt, ctv1, ctv2) with
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
           with_fresh_indexvar (fun iv -> (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv]))
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
@@ -472,6 +505,11 @@ and constrain_lval_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.lval -> 
 and constrain_lval (ve: ctvenv) (em: cstremap) (loc: C.location) (lv: C.lval): ctypevar * cstremap =
   let (ctv, (ctvm, cs)) = constrain_lval_aux ve em loc lv in
     (ctv, (ExpMap.add (C.Lval lv) ctv ctvm, cs))
+
+and constrain_addrof (ve: ctvenv) (em: cstremap) (loc: C.location): C.lval -> ctypevar * cstremap * cstr list = function
+  | (C.Var f, C.NoOffset) when C.isFunctionType <| C.unrollType f.C.vtype ->
+      (fresh_ctvref (), em, [])
+  | lv -> E.s <| E.error "Don't know how to take address of %a@!@!" C.d_lval lv
 
 and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (e: C.exp): ctypevar * cstremap =
   let (ctv, (ctvm, cs), cs') = constrain_exp_aux ve em loc e in
