@@ -43,7 +43,7 @@ val ctype_of_varinfo: t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr: t -> Cil.exp -> Ctypes.ctype
 val create: FixInterface.cilenv 
          -> Ssa_transform.ssaCfgInfo 
-         -> (Inferctypes.ctemap * Ctypes.store) 
+         -> ((Cil.varinfo * Ctypes.ctype) list * Inferctypes.ctemap * Ctypes.store) 
          -> (Refanno.block_annotation array * Refanno.ctab)
          -> t
 
