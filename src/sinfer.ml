@@ -51,7 +51,7 @@ let mk_cil fname =
 let print_sci_shapes sci =
   let fname = sci.ST.fdec.C.svar.C.vname in
     try
-      let (ctem, st) = I.infer_sci_shapes sci in
+      let (_, ctem, st) = I.infer_sci_shapes sci in
       let _ = P.printf "%s@!" fname in
       let _ = P.printf "============@!@!" in
       let _ = P.printf "Locals:@!" in

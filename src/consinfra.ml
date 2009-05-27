@@ -60,20 +60,24 @@ let ctype_of_varinfo ctm v =
   try EM.find e ctm with Not_found -> 
     assertf "ctype_of_varinfo: unknown var %s" v.Cil.vname
 
-let env_of_fdec gnv fdec ctm =
+let ctype_of_local locals v =
+  try List.assoc v locals with 
+    Not_found -> assertf "ctype_of_local: unknown var %s" v.Cil.vname
+
+let env_of_fdec gnv fdec locals =
   let (args, _) = FI.ce_find_fn (FI.name_of_varinfo fdec.svar) gnv in
   let env0 = FI.ce_adds gnv args in
     fdec.slocals 
   |> List.filter ST.is_origcilvar
-  |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_varinfo ctm v)))
+  |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
   |> FI.ce_adds env0
 
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
-let create gnv sci (ctm, store) (anna, ctab) =
+let create gnv sci (locals, ctm, store) (anna, ctab) =
   let fdec   = sci.ST.fdec in
-  let env    = env_of_fdec gnv fdec ctm in
+  let env    = env_of_fdec gnv fdec locals in
   let astore = FI.refstore_fresh store in 
   {sci     = sci;
    cs      = [];

@@ -206,15 +206,15 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let (ctm, store)   = Inferctypes.infer_sci_shapes sci in
+  let (locals, ctm, store)   = Inferctypes.infer_sci_shapes sci in
   let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
   let _ = Array.iteri begin fun i b -> 
-              ignore(Pretty.printf "%i: %a" i Refanno.d_block_annotation b)
+              ignore(Pretty.printf "%i: %a\n" i Refanno.d_block_annotation b)
           end anna; 
-          ignore(Pretty.printf "%a" Refanno.d_ctab theta) in 
-  CF.create gnv sci (ctm, store) (anna, theta)
+          ignore(Pretty.printf "%a\n" Refanno.d_ctab theta) in 
+  CF.create gnv sci (locals, ctm, store) (anna, theta)
   |> Misc.foldn process_block (Array.length sci.ST.phis)
-  |> process_phis sci.ST.phis 
+  |> process_phis sci.ST.phis
   |> CF.get_cons
 
 (************************************************************************************)
@@ -225,7 +225,7 @@ let add_scis gnv scis ci =
   List.fold_left begin 
     fun ci sci ->
       let fn = sci.ST.fdec.Cil.svar.Cil.vname in
-      cons_of_sci gnv sci 
+      cons_of_sci gnv sci
       |> Misc.uncurry (Consindex.add ci fn sci)
   end ci scis
 
@@ -293,4 +293,4 @@ let create (cil: Cil.file) =
   let gnv = gnv_of_file cil in
   cons_of_globals gnv cil
   |> Misc.uncurry Consindex.create
-  |> add_scis gnv (scis_of_file cil)  
+  |> add_scis gnv (scis_of_file cil)
