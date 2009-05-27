@@ -206,7 +206,7 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let (ctm, store)   = Inferctypes.infer_sci_shapes sci in
+  let (_, ctm, store)  = Inferctypes.infer_sci_shapes sci in
   let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
   let _ = Array.iteri begin fun i b -> 
               ignore(Pretty.printf "%i: %a" i Refanno.d_block_annotation b)
