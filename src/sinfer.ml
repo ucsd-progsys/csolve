@@ -48,15 +48,18 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
+let print_local () (v, ct) =
+  P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct
+
 let print_sci_shapes sci =
   let fname = sci.ST.fdec.C.svar.C.vname in
     try
-      let (_, ctem, st) = I.infer_sci_shapes sci in
+      let (locals, _, st) = I.infer_sci_shapes sci in
       let _ = P.printf "%s@!" fname in
       let _ = P.printf "============@!@!" in
       let _ = P.printf "Locals:@!" in
       let _ = P.printf "-------@!@!" in
-      let _ = P.printf "%a@!@!" I.d_ctemap ctem in
+      let _ = P.printf "%a@!@!" (P.d_list "\n" print_local) locals in
       let _ = P.printf "Store:@!" in
       let _ = P.printf "------@!@!" in
       let _ = P.printf "%a@!@!" Ctypes.d_store st in
