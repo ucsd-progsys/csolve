@@ -397,7 +397,7 @@ let printf_funs = ["printf"; "fprintf"]
 
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
-  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (char_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
+  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
@@ -485,8 +485,15 @@ and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e:
     | (C.TInt (ik, _), C.TInt _) ->
         begin match constrain_exp_aux ve em loc e with
           | (CTInt (n, ive), em, cs) ->
-              let ivc = if n <= C.bytesSizeOfInt ik then IEVar ive else IEConst ITop in
-                with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
+              let ivc =
+                if n <= C.bytesSizeOfInt ik then
+                  IEVar ive
+                else if not !Constants.safe then begin
+                  C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                  IEVar ive
+                end else
+                  IEConst ITop
+              in with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
           | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end
     | _ -> constrain_exp_aux ve em loc e
