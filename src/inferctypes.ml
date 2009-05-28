@@ -485,8 +485,15 @@ and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e:
     | (C.TInt (ik, _), C.TInt _) ->
         begin match constrain_exp_aux ve em loc e with
           | (CTInt (n, ive), em, cs) ->
-              let ivc = if n <= C.bytesSizeOfInt ik then IEVar ive else IEConst ITop in
-                with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
+              let ivc =
+                if n <= C.bytesSizeOfInt ik then
+                  IEVar ive
+                else if not !Constants.safe then begin
+                  C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                  IEVar ive
+                end else
+                  IEConst ITop
+              in with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
           | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end
     | _ -> constrain_exp_aux ve em loc e
