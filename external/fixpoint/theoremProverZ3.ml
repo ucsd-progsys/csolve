@@ -354,7 +354,7 @@ let filter me env ps =
 let create ts env ps =
   let _  = Co.bprintf mydebug "TP.create ps = %a \n" (Misc.pprint_many false ","
   P.print) ps in 
-  let _  = asserts (ts = []) "ERROR: TPZ3.create non-empty types!" in
+  let _  = asserts (ts = []) "ERROR: TPZ3.create non-empty sorts!" in
   let c  = Z3.mk_context_x [|("MODEL", "false"); 
                              ("PARTIAL_MODELS", "true")|] in
   let me = {c     = c; 

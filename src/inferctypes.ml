@@ -568,16 +568,16 @@ let constrain_param: ctypevar -> cstr option = function
   | CTRef (_, iv) -> if not !Cs.safe then Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv) else E.s <| E.error "Can't constrain reference parameter@!"
   | CTInt (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst ITop) iv)
 
-let maybe_fresh (v: C.varinfo): (int * ctypevar) option =
+let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
   let t = C.unrollType v.C.vtype in
   match t with
   | C.TInt _ 
-  | C.TPtr _ -> Some (v.C.vid, fresh_ctypevar t)
+  | C.TPtr _ -> Some (v, fresh_ctypevar t)
   | _        -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
                 C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t 
                 |> ignore; None
 
-let fresh_vars (vs: C.varinfo list): (int * ctypevar) list =
+let fresh_vars (vs: C.varinfo list): (C.varinfo * ctypevar) list =
   Misc.map_partial maybe_fresh vs
 
 let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
@@ -586,13 +586,15 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
-let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (Cil.varinfo * Ctypes.ctype) list * ctemap * store =
+let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (C.varinfo * ctype) list * ctemap * store =
   let locals       = fresh_vars fd.C.slocals in
   let formals      = fresh_vars fd.C.sformals in
-  let ve           = List.fold_left (fun ve (vid, ctv) -> IM.add vid ctv ve) IM.empty <| locals @ formals in
+  let ve           = List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty <| locals @ formals in
   let cs           = M.map_partial (M.compose constrain_param snd) formals in
   let cs           = mk_phis_cs ve phis @ cs in
   let (ctvm, cs)   = constrain_block ve (ExpMap.empty, cs) fd.C.sbody in
   let (us, is, ss) = solve cs in
   let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
-    (List.map2 (fun v (_, ctv) -> (v, apply_sol ctv)) fd.C.slocals locals, ExpMap.map apply_sol ctvm, SLM.map (LDesc.map apply_sol) ss)
+    (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
+     ExpMap.map apply_sol ctvm,
+     SLM.map (LDesc.map apply_sol) ss)
