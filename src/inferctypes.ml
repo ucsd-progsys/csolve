@@ -284,6 +284,9 @@ type ctemap = ctype ExpMap.t
 let d_ctemap () (em: ctemap): Pretty.doc =
   ExpMapPrinter.d_map "\n" C.d_exp d_ctype () em
 
+let d_vartypes () vars =
+  P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
+
 module IM = M.IntMap
 
 type ctvenv = ctypevar IM.t
