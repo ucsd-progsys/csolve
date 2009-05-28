@@ -142,9 +142,10 @@ let refstore_write sto cr cr' =
   let (l, ploc) = addr_of_reftype cr in 
   match cr' with
   | Base rct' -> 
-      let ld  = SLM.find l sto in
-      let ld' = Ctypes.LDesc.add ploc rct' ld in
-      SLM.add l ld' sto
+      let ld = SLM.find l sto in
+      let ld = Ctypes.LDesc.remove ploc ld in
+      let ld = Ctypes.LDesc.add ploc rct' ld in
+      SLM.add l ld sto
   | _ -> assertf "refstore_write: bad target!" 
 
 (*******************************************************************)
