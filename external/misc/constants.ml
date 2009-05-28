@@ -34,6 +34,7 @@ let no_simple     = ref false           (* -no-simple *)
 let verify_simple = ref false           (* -verify-simple *)
 let dump_graph    = ref false           (* -dgraph *)
 let ctypes        = ref false           (* -ctypes *)
+let dropcalls     = ref false           (* -dropcalls *)
 
 (****************************************************************)
 (************* Output levels ************************************)
@@ -95,6 +96,9 @@ let arg_spec =
   [("-save", 
     Arg.String (fun s -> save_file := s), 
     "Save constraints to file [out]"); 
+   ("-dropcalls",
+     Arg.Set dropcalls,
+     "Ignore function calls during consgen [false]");
    ("-ctypes",
      Arg.Set ctypes,
      "Compute CTypes (also inlines functions) [false]");

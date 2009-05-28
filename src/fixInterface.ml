@@ -24,10 +24,10 @@ open Cil
 (****************************************************************)
 
 let so_int = So.Int
-let so_ref = So.Unint "ref"
+let so_ref = So.Int (* TBD: So.Unint "ref" *)
 let vv_int = Sy.value_variable so_int
 let vv_ref = Sy.value_variable so_ref
-let sorts  = [so_int; so_ref] 
+let sorts  = [] (* TBD: [so_int; so_ref] *)
 
 (*******************************************************************)
 (******************************** Names ****************************)

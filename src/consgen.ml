@@ -147,9 +147,10 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
       let wld = cons_of_set me wld (lv, e) in
       (wld, cs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      let fn       = FI.name_of_varinfo fv in
-      let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
-      (wld, cs ++ cs')
+      if !Constants.dropcalls then (wld, []) else
+        let fn       = FI.name_of_varinfo fv in
+        let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
+        (wld, cs ++ cs')
   | _ -> 
       E.error "cons_of_instr: %a \n" d_instr instr;
       assertf "TBD: cons_of_instr"

@@ -114,9 +114,11 @@ let rec convert_cilexp = function
       P (A.pNot (pred_of_cilexp e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
       convert_cilbinexp (op, e1, e2)
-  | _ -> 
-      assertf "TBD: CilInterface.expr_of_cilexp"
-
+  | Cil.CastE (_, e) ->
+      convert_cilexp e
+  | e -> 
+      Errormsg.error "Unimplemented convert_cilexp: %a@!@!" Cil.d_exp e;
+      assertf "crash"
 and convert_cilbinexp (op, e1, e2) = 
   match op_of_cilBOp op with
   | Bop op' ->
