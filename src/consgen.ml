@@ -147,8 +147,19 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
       let wld = cons_of_set me wld (lv, e) in
       (wld, cs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      if !Constants.dropcalls then (wld, []) else
-        let fn       = FI.name_of_varinfo fv in
+      let fn         = FI.name_of_varinfo fv in
+      let (env, cst) = wld in
+      (* START HACK: TO HANDLE MALLOC *)
+      if not (FI.ce_mem fn env) && !Constants.dropcalls then 
+        match lvo with
+        | Some ((Var v), NoOffset) ->
+            let vn = FI.name_of_varinfo v in
+            let cr = v |> CF.ctype_of_varinfo me |> FI.t_true in
+            (FI.ce_adds env [(vn, cr)], cst), []
+        | _ -> 
+            wld, []
+      else 
+      (* END HACK *)
         let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
         (wld, cs ++ cs')
   | _ -> 

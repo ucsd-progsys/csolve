@@ -5,6 +5,7 @@ type reftype
 val name_of_varinfo: Cil.varinfo -> name
 val name_fresh: unit -> name
 
+val ce_mem    : name -> cilenv -> bool 
 val ce_empty  : cilenv
 val ce_adds   : cilenv -> (name * reftype) list -> cilenv
 val ce_find   : name -> cilenv -> reftype
