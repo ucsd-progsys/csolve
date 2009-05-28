@@ -397,7 +397,7 @@ let printf_funs = ["printf"; "fprintf"]
 
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
-  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (char_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
+  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
