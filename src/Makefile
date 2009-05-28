@@ -20,7 +20,8 @@ LFLAGS=-lflags -cc,g++ \
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \
        -cflags -I,$(Z3HOME)/ocaml \
-       -cflags -I,$(OCAMLGRAPHHOME)
+       -cflags -I,$(OCAMLGRAPHHOME) \
+       -cflags -g
 
 TARGETS=main.native sinfer.native refanno.cmo #consgen.cmo #ssa_transform.cmo #guards.cmo main.native
 
