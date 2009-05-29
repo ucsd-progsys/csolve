@@ -1,6 +1,15 @@
+
+- embrace TOP
+- crunch deputy benchmarks into single file
+- handling functions properly
+
+
+- write simple callgraph SCC thing.
+- fix consgen bug to use ploc returned by find before remove/add.
+
+
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - make the constraints "polymorphic" (so we can tag with src-locations *)
-- refactor [tcons_of_phis] to use [make_cs_block] instead of low-level loop.
 
 **************************************************************
 
