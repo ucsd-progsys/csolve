@@ -37,8 +37,16 @@ let mydebug = false
 (**************** Check for Cycles ************************)
 (**********************************************************)
 
-let check_cycle funt es = failwith "TBDNOW"
+let self_cycle funt' es =
+  es |> Misc.map_partial (fun i,j -> if i = j then Some i else None) in
+     |> Misc.map (Hashtbl.find funt') 
+     |> Misc.map (fun s -> E.log "Function %s calls itself" s; s)
 
+let check_cycle funt es = 
+  let funt' = Misc.hashtbl_invert funt in
+  let selfs = self_cycle funt' es in
+  let sccs  = big_sccs funt' es in
+  selfs <> [] || sccs <> []
 
 (**********************************************************)
 (**************** Build Call Graph ************************)
@@ -74,7 +82,7 @@ let add_edges funt es file =
 (********************* Top-Level Build and Check ******************)
 (******************************************************************)
 
-let main () =
+let do_main () =
   Printf.printf "© Copyright 2009 Regents of the University of California.\n";
   Printf.printf "All Rights Reserved.\n"
   let fs = ref [] in
@@ -85,5 +93,8 @@ let main () =
   | files -> let funt  = Hashtbl.create 37 in
              List.fold_left (add_edges funt) [] files 
              |> check_cycle funt
-
-let _ = main ()
+let _ = 
+  if do_main () then
+    (Format.printf "\nRECURSION: YES\n"; exit 1)
+  else
+    (Format.printf "\nRECURSION: NO\n"; exit 0)

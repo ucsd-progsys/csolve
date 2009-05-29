@@ -242,6 +242,13 @@ let hashtbl_keys t =
   Hashtbl.fold (fun x y l -> x::l) t []
   |> sort_and_compact
 
+let hashtbl_invert t = 
+  let t' = Hashtbl.create 17 in
+  let _  = hashtbl_keys t 
+           |> List.iter (fun (x,y) -> Hashtbl.replace t y x) in
+  t'
+
+
 let distinct xs = 
  List.length xs = List.length (sort_and_compact xs)
 
