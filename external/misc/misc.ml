@@ -238,15 +238,18 @@ let sort_and_compact xs =
        [] 
   |> List.rev
 
+let hashtbl_to_list t = 
+  Hashtbl.fold (fun x y l -> (x,y)::l) t []
+
 let hashtbl_keys t = 
   Hashtbl.fold (fun x y l -> x::l) t []
   |> sort_and_compact
 
 let hashtbl_invert t = 
   let t' = Hashtbl.create 17 in
-  let _  = hashtbl_keys t 
-           |> List.iter (fun (x,y) -> Hashtbl.replace t y x) in
-  t'
+  hashtbl_to_list t 
+  |> List.iter (fun (x,y) -> Hashtbl.replace t' y x) 
+  |> fun _ -> t'
 
 
 let distinct xs = 
@@ -279,8 +282,8 @@ let rec intmap_for_all f m =
     true
   with FalseException -> false
 
-let hashtbl_to_list t = 
-   Hashtbl.fold (fun x y l -> (x,y)::l) t []
+let hashtbl_to_list_all t = 
+  hashtbl_keys t |> map (Hashtbl.find_all t) 
 
 let clone x n = 
   let rec f n xs = if n <= 0 then xs else f (n-1) (x::xs) in
