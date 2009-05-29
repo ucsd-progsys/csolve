@@ -117,7 +117,6 @@ let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
 let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
   match indexsol_find iv is with
     | IBot   -> (is, ss)
-    | ITop   -> raise TypeDoesntFit
     | IInt n ->
         let pl = PLAt n in
           begin match LDesc.find pl (prestore_find l ss) with
@@ -140,13 +139,21 @@ let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: st
             let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld pcts in
             let ld = LDesc.add pl ctv ld in
               (is, SLM.add l ld ss)
+    | ITop ->
+        let ld       = prestore_find l ss in
+        let (ld, is) = LDesc.foldn (fun _ (ld, is) pl ctv2 -> (LDesc.remove pl ld, equalize_ctypes ctv ctv2 is)) (ld, is) ld in
+          (is, SLM.add l (LDesc.add PLEverywhere ctv ld) ss)
 
 let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol): bool =
   let ld = prestore_find l ss in
   let ct = ctypevar_apply is ctv in
     match indexsol_find iv is with
-      | IBot   -> true
-      | ITop   -> false
+      | IBot -> true
+      | ITop ->
+          begin match LDesc.find PLEverywhere ld with
+            | [(PLEverywhere, ctv2)] -> ct = ctypevar_apply is ctv2
+            | _                      -> false
+          end
       | IInt n ->
           begin match LDesc.find (PLAt n) ld with
             | [(_, ctv2)] -> ct = ctypevar_apply is ctv2
