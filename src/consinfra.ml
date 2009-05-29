@@ -49,15 +49,15 @@ type t = {
   wldm    : wld IM.t;
   gnv     : FI.cilenv; 
   formalm : unit SM.t;
-  ctm     : Inferctypes.ctemap;
+  etm     : Inferctypes.ctemap;
+  ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;
   ctab    : Refanno.ctab
 }
 
-let ctype_of_varinfo ctm v = 
-  let e = Cil.Lval (Cil.Var v, Cil.NoOffset) in
-  try EM.find e ctm with Not_found -> 
+let ctype_of_varinfo ctl v =
+  try List.assoc v ctl with Not_found ->
     assertf "ctype_of_varinfo: unknown var %s" v.Cil.vname
 
 let ctype_of_local locals v =
@@ -75,9 +75,9 @@ let env_of_fdec gnv fdec locals =
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
-let create gnv sci (locals, ctm, store) (anna, ctab) =
+let create gnv sci (ltm, etm, store) (anna, ctab) =
   let fdec   = sci.ST.fdec in
-  let env    = env_of_fdec gnv fdec locals in
+  let env    = env_of_fdec gnv fdec ltm in
   let astore = FI.refstore_fresh store in 
   {sci     = sci;
    cs      = [];
@@ -85,7 +85,8 @@ let create gnv sci (locals, ctm, store) (anna, ctab) =
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm_of_fdec sci.ST.fdec;
-   ctm     = ctm;
+   etm     = etm;
+   ltm     = ltm;
    astore  = astore;
    anna    = anna;
    ctab    = ctab}
@@ -159,10 +160,10 @@ let is_undefined me v =
   ST.is_origcilvar v && not (SM.mem v.vname me.formalm)
 
 let ctype_of_expr me e = 
-  EM.find e me.ctm
+  EM.find e me.etm
 
 let ctype_of_varinfo me v =
-  match ctype_of_varinfo me.ctm v with
+  match ctype_of_varinfo me.ltm v with
   | Ctypes.CTInt (_, _) as ct -> 
       ct
   | Ctypes.CTRef (aloc, x)     -> 
