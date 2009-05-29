@@ -68,15 +68,22 @@ let annotate_instr ctm theta conc = function
   | Cil.Set ((Mem (Lval(Var v, _) as e), _), _, _) ->
       instantiate conc (ens_opt (sloc_of_expr ctm e)) (cloc_of_v theta v)
   | _ -> if !Constants.safe then assertf "annotate_instr" else (conc, [])
- 
+
+let annotate_end conc =
+  LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
+
 let annotate_block ctm theta instrs : block_annotation = 
-  List.fold_left 
-    (fun (conc, anns) instr -> 
-      let (conc', ann) = annotate_instr ctm theta conc instr in
-      (conc', ann::anns))
-    (LM.empty, []) instrs
-  |> snd
-  |> List.rev
+  let conc, anns = 
+    List.fold_left begin fun (conc, anns) instr -> 
+      let conc', ann = annotate_instr ctm theta conc instr in
+      (conc', ann::anns)
+    end (LM.empty, []) instrs in
+  let gens = annotate_end conc in
+  List.rev (gens :: anns)
+
+(*****************************************************************************)
+(********************************** API **************************************)
+(*****************************************************************************)
 
 (* API *)
 let annotate_cfg cfg ctm  =
@@ -90,13 +97,18 @@ let annotate_cfg cfg ctm  =
   (annota, theta)
 
 (* API *)
-let cloc_of_varinfo t v = 
+let cloc_of_varinfo theta v = 
   try 
-    match Hashtbl.find t v.vname with 
+    match Hashtbl.find theta v.vname with 
     | Ctypes.CLoc _ as l -> l 
     | Ctypes.ALoc _      -> assertf "cloc_of_varinfo: absloc! (%s)" v.vname
   with Not_found ->
     assertf "cloc_of_varinfo: unknown (%s)" v.vname
+
+
+(*****************************************************************************)
+(********************** Pretty Printing **************************************)
+(*****************************************************************************)
 
 let d_annotation () = function
   | Gen (cl, al) -> 
@@ -109,12 +121,15 @@ let d_annotations () anns =
     (fun ann -> Pretty.dprintf "%a" d_annotation ann) 
     anns
 
+let d_block_annotation () annss =
+  Misc.numbered_list annss
+  |> Pretty.d_list "\n" (fun () (i,x) -> Pretty.dprintf "%i: %a" i d_annotations x) ()
+
 (* API *)
-let d_block_annotation () annss = 
-  let iannss = Misc.numbered_list annss in
-  Pretty.seq (Pretty.text "\n") 
-    (fun (i, anns) -> Pretty.dprintf "%i: %a \n"  i d_annotations anns)
-    iannss
+let d_block_annotation_array =
+  Pretty.docArray 
+    ~sep:(Pretty.text "\n")
+    (fun i x -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
 
 (* API *)
 let d_ctab () t = 

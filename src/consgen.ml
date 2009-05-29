@@ -88,7 +88,7 @@ let cons_of_annot loc grd asto (env, sto) = function
       let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) abinds subs
                    |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                    |> FI.ce_adds env in
-      let _,im   = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
+      let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
       let sto'   = FI.refldesc_subs aldesc (fun i _ -> IM.find i im |> FI.t_name env') 
                    |> FI.refstore_set sto cloc in
       ((env', sto'), [])
@@ -176,14 +176,17 @@ let cons_of_ret me loc grd (env,_) e =
   let (_,rhs) = FI.ce_find_fn fn env in
   FI.make_cs env grd lhs rhs loc
 
-let cons_of_annotstmt me loc grd wld (anno, stmt) = 
-  match (anno, stmt.skind) with
-  | anns, Instr is -> 
-      asserts (List.length anns = List.length is) "cons_of_stmt: bad annots";
-      List.combine anns is 
-      |> Misc.mapfold (cons_of_annotinstr me loc grd) wld 
-      |> Misc.app_snd Misc.flatten
-  | [ann], Return ((Some e), _) ->
+let cons_of_annotstmt me loc grd wld (anns, stmt) = 
+  match stmt.skind with
+  | Instr is ->
+      let ann, anns = Misc.list_snoc anns in
+      asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
+      let wld, cs1 = List.combine anns is 
+                     |> Misc.mapfold (cons_of_annotinstr me loc grd) wld in
+      let wld, cs2 = cons_of_annots me loc grd wld ann in
+      (wld, cs2 ++ cs2)
+  | Return ((Some e), _) ->
+      asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
       (wld, cons_of_ret me loc grd wld e)
   | _ ->
       let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
@@ -220,10 +223,8 @@ let process_phis phia me =
 let cons_of_sci gnv sci =
   let (locals, ctm, store)   = Inferctypes.infer_sci_shapes sci in
   let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
-  let _ = Array.iteri begin fun i b -> 
-              ignore(Pretty.printf "%i: %a\n" i Refanno.d_block_annotation b)
-          end anna; 
-          ignore(Pretty.printf "%a\n" Refanno.d_ctab theta) in 
+  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array anna in
+  let _ = Pretty.printf "%a\n" Refanno.d_ctab theta in 
   CF.create gnv sci (locals, ctm, store) (anna, theta)
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
@@ -242,14 +243,16 @@ let add_scis gnv scis ci =
   end ci scis
 
 let scis_of_file cil = 
-  Cil.foldGlobals cil
-    (fun acc g ->
+  Cil.foldGlobals cil begin
+    fun acc g ->
       match g with 
       | Cil.GFun (fdec,loc) -> 
           let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if mydebug then ST.print_sci sci in
           sci::acc
-      | _ -> acc) [] 
+      | _ -> acc
+  end []
+  |> (fun scis -> let _ = if mydebug then ST.print_scis scis in scis)
+
 
 (************************************************************************************)
 (***************** Processing Globals ***********************************************)

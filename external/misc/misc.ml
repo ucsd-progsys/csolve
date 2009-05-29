@@ -112,6 +112,11 @@ let chop_last = function
   | [] -> failure "ERROR: Misc.chop_last"
   | xs -> xs |> List.rev |> List.tl |> List.rev
 
+let list_snoc xs = 
+  match List.rev xs with 
+  | [] -> assertf "list_snoc with empty list!"
+  | h::t  -> h, List.rev t
+
 let get_option d = function  
   | Some x -> x 
   | None   -> d

@@ -13,7 +13,8 @@ int main(){
     *r = y + 1;
   }
 
-  assert(*r >= 0);
+  y = *r;
+  assert(y >= 0);
 
   return 0;
 }

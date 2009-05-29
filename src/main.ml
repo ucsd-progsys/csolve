@@ -24,7 +24,6 @@
 (* This file is part of the liquidC Project.*)
 
 module E  = Errormsg
-module ST = Ssa_transform
 module A  = Ast
 module C  = Constraint
 module SM = Misc.StringMap
@@ -104,13 +103,11 @@ let print_header () =
   Printf.printf "All Rights Reserved.\n"
 
 let mk_options () =
-  let fs = ref [] in
   let us = "Usage: liquidc <options> [source-file] \n options are:" in
-  let _  = Arg.parse Constants.arg_spec (fun s -> fs := s::!fs) us in
-  match !fs with
-  | [fn] -> fn
-  | []   -> assertf "Bug: No input file specified!"
-  | _    -> assertf "Bug: More than one input file specified!"
+  let _  = Arg.parse Constants.arg_spec (fun s -> Constants.file := Some s) us in
+  match !Constants.file with
+  | Some fn -> fn
+  | None    -> assertf "Bug: No input file specified!"
 
 let main () = 
   let _ = print_header () in

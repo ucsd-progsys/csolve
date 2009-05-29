@@ -39,10 +39,9 @@ let name_of_varinfo = fun v -> Sy.of_string v.vname
 
 let name_of_string  = fun s -> Sy.of_string s
 
-let name_fresh = 
-  let r = ref 0 in
-  (fun _ -> ignore (r+=1); name_of_string ("lqn#"^(string_of_int !r)))
-
+let name_fresh =
+  let t, _ = Misc.mk_int_factory () in
+  (fun _ -> t () |> string_of_int |> (^) "lqn#" |> name_of_string)
 
 let name_of_sloc_ploc l p = 
   let lt,li = match l with Ctypes.ALoc i -> "ALoc",i | Ctypes.CLoc i -> "CLoc", i in

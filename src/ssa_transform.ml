@@ -8,7 +8,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = true
+let mydebug = false 
 
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *
@@ -279,9 +279,23 @@ let fdec_to_ssa_cfg fdec loc =
   let gi    = mk_gdominators fdec cfg in
   {fdec = fdec; cfg = cfg; phis = phis; ifs = fst gi; gdoms = snd gi} 
 
-(* API *)  
-let print_sci sci = 
+let print_sci oco sci = 
   print_phis sci.phis;
   Guards.print_ifs sci.ifs;
   Guards.print_gdoms sci.gdoms;
-  Cil.dumpGlobal Cil.defaultCilPrinter stdout (GFun (sci.fdec,Cil.locUnknown)) 
+  let oc = match oco with Some oc -> oc | None -> stdout in
+  Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
+
+(* API *)
+let print_scis scis =
+  match !Constants.file with 
+  | None -> 
+      List.iter (print_sci None) scis
+  | Some s -> 
+      let fn = s^".ssa.c" in
+      (* let _  = ignore(Unix.system ("rm -rf "^fn)) in 
+         let oc = open_out_gen [Open_creat; Open_append] 0777 fn in *)
+      let oc = open_out fn in
+      let _  = List.iter (print_sci (Some oc)) scis in
+      close_out oc
+

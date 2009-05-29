@@ -5,10 +5,15 @@ val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc (* CLoc *)
 type annotation = 
   | Gen  of Ctypes.sloc * Ctypes.sloc      (* CLoc c, ALoc s *)
   | Inst of Ctypes.sloc * Ctypes.sloc      (* ALoc s, CLoc c *)
-type block_annotation = annotation list list
-(* annotations precede corresponding instr *) 
 
-val d_block_annotation: unit -> block_annotation -> Pretty.doc
+(* 1. block_annotation length = block length + 1,
+ * 2. annotations precede corresponding instr 
+ * 3. n + 1th annotation list corresponds to generalizations at end of block *) 
+type block_annotation = annotation list list
+
+(* val d_block_annotation: unit -> block_annotation -> Pretty.doc *)
+val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
+
 val d_ctab: unit -> ctab -> Pretty.doc 
 
 (* input: cfg with n blocks of length l_i ... l_n

@@ -22,12 +22,13 @@
 
 (** This module contains globals representing "flags" **************)
 
-let safe                 = ref false            (* -safe *)
-let global_name          = "GLOBAL"
-let save_file            = ref "out"            (* -save *)
-let dump_ref_constraints = ref false            (* -drconstr *)
-let ol_default           = 2
-let verbose_level        = ref ol_default       (* -v *)
+let file: string option ref = ref None         (* last commandline param*)
+let safe                = ref false            (* -safe *)
+let global_name         = "GLOBAL"
+let save_file           = ref "out"            (* -save *)
+let dump_ref_constraints= ref false            (* -drconstr *)
+let ol_default          = 2
+let verbose_level       = ref ol_default       (* -v *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)

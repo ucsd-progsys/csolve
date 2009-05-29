@@ -10,15 +10,14 @@ open Misc.Ops
 let mydebug = true 
 
 let scis_of_file cil = 
-  Cil.foldGlobals cil
-    (fun acc g ->
+  Cil.foldGlobals cil begin
+    fun acc g ->
       match g with 
-      | Cil.GFun (fdec,loc) -> 
-          let sci = ST.fdec_to_ssa_cfg fdec loc in
-          let _   = if mydebug then ST.print_sci sci in
-          sci::acc
-      | _ -> acc) [] 
-
+      | Cil.GFun (fdec,loc) -> (ST.fdec_to_ssa_cfg fdec loc) :: acc 
+      | _                   -> acc
+  end []
+  |> (fun scis -> let _ = if mydebug then ST.print_scis scis in scis)
+  
 let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
