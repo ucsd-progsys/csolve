@@ -15,6 +15,7 @@ type ctype = index prectype
 type ploc =
   | PLAt of int   (* location n *)
   | PLSeq of int  (* location n plus periodic repeats *)
+  | PLEverywhere  (* location 0, plus repeats infinitely in both directions *)
 
 exception NoLUB of ctype * ctype
 
@@ -49,7 +50,6 @@ module LDesc:
     type 'a t
     val empty: 'a t
     val get_period: 'a t -> int option
-    val collisions: ploc -> 'a prectype -> 'a t -> (ploc * 'a prectype) list
     val add: ploc -> 'a prectype -> 'a t -> 'a t
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
@@ -61,7 +61,6 @@ module LDesc:
   end
 
 type 'a prestore = ('a LDesc.t) SLM.t
-
 
 type store = index prestore
 

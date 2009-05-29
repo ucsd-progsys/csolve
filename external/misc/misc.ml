@@ -510,6 +510,10 @@ let rec is_unique = function
   | []      -> true
   | x :: xs -> if List.mem x xs then false else is_unique xs
 
+let map_opt f = function
+  | Some o -> Some (f o)
+  | None -> None
+
 let resl_opt f = function
   | Some o -> f o
   | None -> []

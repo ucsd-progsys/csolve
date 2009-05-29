@@ -142,19 +142,23 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
 type ploc =
   | PLAt of int   (* location n *)
   | PLSeq of int  (* location n plus periodic repeats *)
+  | PLEverywhere  (* location 0, plus repeats infinitely in both directions *)
 
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
-    | PLAt n  -> IInt n
-    | PLSeq n -> ISeq (n, p)
+    | PLAt n       -> IInt n
+    | PLSeq n      -> ISeq (n, p)
+    | PLEverywhere -> ITop
 
 let ploc_of_index: index -> ploc = function
-  | IInt n           -> PLAt n
-  | ISeq (n, _)      -> PLSeq n
-  | IBot | ITop as i -> E.s <| E.error "Can't convert %a to ploc" d_index i
+  | IInt n      -> PLAt n
+  | ISeq (n, _) -> PLSeq n
+  | ITop        -> PLEverywhere
+  | IBot        -> E.s <| E.bug "Can't convert IBot to ploc@!@!"
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq n -> n
+  | PLEverywhere     -> E.s <| E.bug "PLEverywhere has no start@!@!"
 
 let ploc_compare (pl1: ploc) (pl2: ploc): int =
   compare (ploc_start pl1) (ploc_start pl2)
@@ -163,26 +167,34 @@ let ploc_le (pl1: ploc) (pl2: ploc): bool =
   ploc_start pl1 <= ploc_start pl2
 
 let ploc_periodic: ploc -> bool = function
-  | PLAt _  -> false
-  | PLSeq _ -> true
+  | PLAt _       -> false
+  | PLSeq _      -> true
+  | PLEverywhere -> true
 
 let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
   match (pl1, pl2) with
-    | (PLAt n1, PLAt n2)                         -> n1 = n2
-    | (PLAt _, PLSeq _)                          -> false
-    | (PLSeq n1, PLAt n2) | (PLSeq n1, PLSeq n2) -> n1 <= n2 && (n2 - n1) mod p = 0
+    | (PLAt n1, PLAt n2)                               -> n1 = n2
+    | (PLAt _, PLSeq _)                                -> false
+    | (PLSeq n1, PLAt n2) | (PLSeq n1, PLSeq n2)       -> n1 <= n2 && (n2 - n1) mod p = 0
+    | (PLEverywhere, PLEverywhere)                     -> true
+    | (PLEverywhere, PLAt n) | (PLEverywhere, PLSeq n) -> n mod p = 0
+    | (_, PLEverywhere)                                -> false
 
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
-    | PLAt n'  -> PLAt (n + n')
-    | PLSeq n' -> PLSeq (n + n')
+    | PLAt n'      -> PLAt (n + n')
+    | PLSeq n'     -> PLSeq (n + n')
+    | PLEverywhere -> E.s <| E.bug "Can't offset PLEverywhere@!@!"
 
 let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prectype) (p: int): bool =
-  let ((pl1, pct1), (pl2, pct2)) = if ploc_le pl1 pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
-  let d                          = ploc_start pl2 - ploc_start pl1 in
-  let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
-  let (s1, s2)                   = (ploc_start pl1, ploc_start pl2) in
-    s1 + prectype_width pct1 > s2 || (ploc_periodic pl1 && s2 + prectype_width pct2 > (s1 + p))
+  match (pl1, pl2) with
+    | (PLEverywhere, _) | (_, PLEverywhere) -> true
+    | _                                     ->
+        let ((pl1, pct1), (pl2, pct2)) = if ploc_le pl1 pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
+        let d                          = ploc_start pl2 - ploc_start pl1 in
+        let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
+        let (s1, s2)                   = (ploc_start pl1, ploc_start pl2) in
+          s1 + prectype_width pct1 > s2 || (ploc_periodic pl1 && s2 + prectype_width pct2 > (s1 + p))
 
 (******************************************************************************)
 (*********************************** Stores ***********************************)
@@ -191,19 +203,32 @@ let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prec
 exception TypeDoesntFit
 
 module LDesc = struct
-  (* Invariants:
+  (* Two data structures for the price of one!
+
+     The following is either:
+
+     A) Empty
+     B) A uniform LDesc, which contains one type at all locations (anchored at 0) or
+     C) A non-uniform LDesc, with different items at different positions, with the following invariants
+     - The list always contains at least one item.
      - The period is non-negative if present.
      - If no period is present, the list contains no periodic locations.
+     - The list does not contain the location PLEverywhere.
      - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
        (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
      - All (pl, pct) in the list are sorted by pl according to ploc_le.
   *)
-  type 'a t = (* period: *) int option * (ploc * 'a prectype) list
+  type 'a t =
+    | Empty
+    | Uniform of 'a prectype
+    | NonUniform of (* period: *) int option * (ploc * 'a prectype) list
 
-  let empty: 'a t = (None, [])
+  let empty: 'a t = Empty
 
-  let get_period ((po, _): 'a t): int option =
-    po
+  let get_period: 'a t -> int option = function
+    | Empty              -> None
+    | Uniform pct        -> Some (prectype_width pct)
+    | NonUniform (po, _) -> po
 
   (* 0 is an ok default for all the functions we'll be calling by the above invariant. *)
   let get_period_default (po: int option): int =
@@ -212,23 +237,29 @@ module LDesc = struct
   let collides_with (pl1: ploc) (pct1: 'a prectype) (po: int option) ((pl2, pct2): ploc * 'a prectype): bool =
     prectypes_collide pl1 pct1 pl2 pct2 (get_period_default po)
 
-  let collisions (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): (ploc * 'a prectype) list =
-    List.find_all (collides_with pl pct po) pcts
-
-  let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): bool =
+  let fits (pl: ploc) (pct: 'a prectype) ((po, pcts): int option * (ploc * 'a prectype) list): bool =
     (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width pct <= get_period_default po))
       && not (List.exists (collides_with pl pct po) pcts)
 
-  (* Don't use this directly - use add instead!  This does not check for collisions. *)
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
     | []                           -> [(pl, pct)]
     | (pl2, pct2) :: pcts' as pcts -> if ploc_le pl pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
 
-  let add (pl: ploc) (pct: 'a prectype) ((po, pcts) as ld: 'a t): 'a t =
-    if fits pl pct ld then (po, insert pl pct pcts) else raise TypeDoesntFit
+  let add (pl: ploc) (pct: 'a prectype) (ld: 'a t): 'a t =
+    match (ld, pl) with
+      | (Empty, PLEverywhere)        -> Uniform pct
+      | (Empty, _)                   -> NonUniform (None, insert pl pct [])
+      | (Uniform _, _)               -> raise TypeDoesntFit
+      | (NonUniform _, PLEverywhere) -> raise TypeDoesntFit
+      | (NonUniform (po, pcts), _)   -> if fits pl pct (po, pcts) then NonUniform (po, insert pl pct pcts) else raise TypeDoesntFit
 
-  let remove (pl: ploc) ((po, pcts): 'a t): 'a t =
-    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
+  let remove (pl: ploc): 'a t -> 'a t = function
+    | Empty                 -> Empty
+    | Uniform pct           -> if pl = PLEverywhere then Empty else Uniform pct
+    | NonUniform (po, pcts) ->
+        match List.filter (fun (pl2, _) -> not (pl = pl2)) pcts with
+          | []   -> Empty
+          | pcts -> NonUniform (po, pcts)
 
   let swallow_repeats (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) (pcts: (ploc * 'a prectype) list): (ploc * 'a prectype) list * 'b =
     try
@@ -240,37 +271,50 @@ module LDesc = struct
       (* No periods, so nothing to do *)
       (pcts, b)
 
-  let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
-    let p       = M.gcd (get_period_default po) p in
-    let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
-    let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-    let pcts    = List.sort (M.Ops.liftfst2 ploc_compare) (List.concat gs) in
-      if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
-        ((Some p, pcts), b)
-      else
-        (* pmr: this is not quite descriptive enough *)
-        raise TypeDoesntFit
+  let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b): 'a t -> 'a t * 'b = function
+    | Empty                 -> (Empty, b)
+    | Uniform pct           -> if prectype_width pct mod p = 0 then (Uniform pct, b) else raise TypeDoesntFit
+    | NonUniform (po, pcts) ->
+        let p       = M.gcd (get_period_default po) p in
+        let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
+        let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
+        let pcts    = List.sort (M.Ops.liftfst2 ploc_compare) (List.concat gs) in
+          if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
+            (NonUniform (Some p, pcts), b)
+          else
+            (* pmr: this is not quite descriptive enough *)
+            raise TypeDoesntFit
 
-  let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
-    let p = get_period_default po in
-      List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
-
-  let map (f: 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
-    (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
+  let find (pl1: ploc): 'a t -> (ploc * 'a prectype) list = function
+    | Empty                 -> []
+    | Uniform pct           -> if ploc_contains PLEverywhere pl1 (prectype_width pct) then [(PLEverywhere, pct)] else []
+    | NonUniform (po, pcts) ->
+        let p = get_period_default po in
+          List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
   let rec foldn_aux (f: int -> 'a -> ploc -> 'b prectype -> 'a) (n: int) (b: 'a): (ploc * 'b prectype) list -> 'a = function
     | []                -> b
     | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
 
-  let foldn (f: int -> 'a -> ploc -> 'b prectype -> 'a) (b: 'a) ((_, pcts): 'b t): 'a =
-    foldn_aux f 0 b pcts
+  let foldn (f: int -> 'a -> ploc -> 'b prectype -> 'a) (b: 'a): 'b t -> 'a = function
+    | Empty                -> b
+    | Uniform pct          -> f 0 b PLEverywhere pct
+    | NonUniform (_, pcts) -> foldn_aux f 0 b pcts
 
-  let mapn (f: int -> ploc -> 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
-    (po, foldn_aux (fun n pcts pl pct -> (pl, f n pl pct) :: pcts) 0 [] pcts |> List.rev)
+  let mapn (f: int -> ploc -> 'a prectype -> 'b prectype): 'a t -> 'b t = function
+    | Empty                 -> Empty
+    | Uniform pct           -> Uniform (f 0 PLEverywhere pct)
+    | NonUniform (po, pcts) -> NonUniform (po, foldn_aux (fun n pcts pl pct -> (pl, f n pl pct) :: pcts) 0 [] pcts |> List.rev)
 
-  let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, pcts): 'a t): P.doc =
-    let p = get_period_default po in
-      P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
+  let map (f: 'a prectype -> 'b prectype) (ld: 'a t): 'b t =
+    mapn (fun _ _ pct -> f pct) ld
+
+  let d_ldesc (pt: unit -> 'a prectype -> P.doc) (): 'a t -> P.doc = function
+    | Empty                 -> P.text ""
+    | Uniform pct           -> P.dprintf "*: %a" pt pct
+    | NonUniform (po, pcts) ->
+        let p = get_period_default po in
+          P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
 end
 
 module SlocKey = struct
@@ -282,7 +326,8 @@ module SLM = Map.Make (SlocKey)
 
 type 'a prestore = ('a LDesc.t) SLM.t
 
-let prestore_map = fun f -> f |> prectype_map |> LDesc.map |> SLM.map
+let prestore_map f =
+  f |> prectype_map |> LDesc.map |> SLM.map
 
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
