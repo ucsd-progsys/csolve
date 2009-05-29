@@ -25,7 +25,6 @@
 
 (* Checks whether a given set of C files contain (mutually) recursive functions
  * *)
-module E  = Errormsg
 module SM = Misc.StringMap
 
 open Cil
@@ -40,7 +39,7 @@ let mydebug = false
 let self_cycle funt' es =
   es |> Misc.map_partial (fun (i,j) -> if i = j then Some i else None) 
      |> Misc.map (Hashtbl.find funt') 
-     |> Misc.map (fun s -> E.log "Function %s calls itself" s; s)
+     |> Misc.map (fun s -> Printf.printf "Function %s calls itself" s; s)
 
 let big_sccs funt' es = 
   let fn   = fun i -> Misc.do_catch "big sccs" (Hashtbl.find funt') i in
@@ -50,7 +49,7 @@ let big_sccs funt' es =
   |> Misc.hashtbl_to_list_all
   |> List.filter (fun scc -> List.length scc > 1)
   |> Misc.map (fun scc -> Misc.map fn scc)
-  |> Misc.map (fun scc -> E.log "Big SCC: %s" (String.concat "," scc); scc)
+  |> Misc.map (fun scc -> Printf.printf "Big SCC: %s" (String.concat ", " scc); scc)
 
 let check_cycle funt es = 
   let funt' = Misc.hashtbl_invert funt in
@@ -93,7 +92,7 @@ let add_edges funt file =
 (******************************************************************)
 
 let do_main () =
-  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
+  Printf.printf "© Copyright 2009 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let us = "Usage: reccheck <options> [source-file] \n options are:" in

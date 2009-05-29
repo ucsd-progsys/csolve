@@ -1,5 +1,5 @@
-#define NVPAGES		2	/* number of virtual pages per environment */
-#define NPPAGES		1	/* number of physical pages per system */
+#define NVPAGES		2000	/* number of virtual pages per environment */
+#define NPPAGES		1000	/* number of physical pages per system */
 #define NULL		0
 
 /* in real life, NVPAGES >> NPPAGES */
