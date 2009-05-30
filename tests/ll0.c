@@ -1,7 +1,7 @@
 extern char* malloc(int);
 
 typedef struct node {
-  int x;
+  int data;
   struct node *next;
 } node_t;
 
@@ -13,14 +13,15 @@ void main(int n){
   root = 0;
   ctr = 0;
 
-  for(int i=0; i<n; i++){
+  for(int i=0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
-    tmp->x    = i;
+    tmp->data = i;
     tmp->next = root;
     root      = tmp;
   }
 
   for(tmp = root; tmp != 0; tmp = tmp->next){
-    assert(tmp->x >= 0);
+    assert(tmp->data >= 0);
+    //assert(tmp->data < n);
   }
 }
