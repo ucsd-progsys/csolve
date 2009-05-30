@@ -9,7 +9,7 @@ int main(){
   *r = 0;
 
   while (nondet()){
-   *r = *r + 1;
+   *r = *r - 1;
     //  y = *r; 
    // *r = y + 1;
   }
