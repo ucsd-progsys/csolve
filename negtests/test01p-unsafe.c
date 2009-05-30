@@ -10,7 +10,7 @@ int main(){
 
   y = *r;
 
-  assert(y >= 0);
+  assert(y >= 10);
 
   return 0;
 }

@@ -326,6 +326,12 @@ let is_prefix p s =
   let reg = Str.regexp p in
   Str.string_match reg s 0
 
+let rec pprint_many_box s f ppf = function
+  | []     -> ()
+  | x::[]  -> Format.fprintf ppf "%a" f x
+  | x::xs' -> (Format.fprintf ppf "%a%s@\n" f x s; 
+               pprint_many_box s f ppf xs')
+
 let rec pprint_many brk s f ppf = function
   | []     -> ()
   | x::[]  -> Format.fprintf ppf "%a" f x
