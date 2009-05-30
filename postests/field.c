@@ -20,7 +20,8 @@ void main(int n){
     root->data = i;
   }
 
-  //assert(root->data >= 0);
-  //assert(root->data >= i);
+  y = root->data;
+  //assert(y >= 0);
+  //assert(y >= i);
 
 }
