@@ -413,7 +413,7 @@ let get_unique =
 let flip f x y =
   f y x
 
-let maybe = function Some x -> x | _ -> assert false
+let maybe = function Some x -> x | _ -> assertf "maybe called with None" 
 
 let maybe_cons m xs = match m with
   | None -> xs

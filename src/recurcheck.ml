@@ -51,41 +51,14 @@ let big_sccs funt' es =
   |> Misc.map (fun scc -> Misc.map fn scc)
   |> Misc.map (fun scc -> Printf.printf "Big SCC: %s" (String.concat ", " scc); scc)
 
-let check_cycle funt es = 
-  let funt' = Misc.hashtbl_invert funt in
-  let selfs = self_cycle funt' es in
-  let sccs  = big_sccs funt' es in
+let check_cycle es =
+  let funt    = Hashtbl.create 17 in
+  let fresh,_ = Misc.mk_int_factory () in
+  let es      = es |> Misc.map (Misc.map_pair (Misc.do_memo funt fresh ())) in 
+  let funt'   = Misc.hashtbl_invert funt in
+  let selfs   = self_cycle funt' es in
+  let sccs    = big_sccs funt' es in
   selfs <> [] || sccs <> []
-
-(**********************************************************)
-(**************** Build Call Graph ************************)
-(**********************************************************)
-
-let fresh, _ = Misc.mk_int_factory ()
-
-let add_edge funt u v = 
-  Misc.map_pair (Misc.do_memo funt fresh ()) (u, v) 
-
-class calleeVisitor calleesr = object(self)
-  inherit nopCilVisitor
-    method vinst = function
-    | Call (_, Lval ((Var v), NoOffset), _, _) ->
-        calleesr := v.vname :: !calleesr; DoChildren
-    | _ -> DoChildren
-end
-
-let add_edges funt file = 
-  let cil = Frontc.parse file () in
-  Cil.foldGlobals cil begin
-    fun es g -> match g with
-    | Cil.GFun (fd,_) ->
-        let u    = fd.svar.vname in
-        let vsr  = ref [] in
-        let _    = visitCilFunction (new calleeVisitor vsr) fd in
-        let es'  = List.map (add_edge funt u) !vsr in
-        es' ++ es
-    | _ -> es
-  end [] 
 
 (******************************************************************)
 (********************* Top-Level Build and Check ******************)
@@ -99,9 +72,7 @@ let do_main () =
   let _  = Arg.parse Constants.arg_spec (fun s -> fs := s::!fs) us in
   match !fs with
   | []    -> assertf "Bug: No input file specified!"
-  | files -> let funt  = Hashtbl.create 37 in
-             Misc.flap (add_edges funt) files 
-             |> check_cycle funt
+  | files -> files |> CilMisc.callgraph_of_files |> check_cycle
 
 let _ = 
   if do_main () then

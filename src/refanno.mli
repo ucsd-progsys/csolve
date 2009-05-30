@@ -1,5 +1,4 @@
 type ctab 
-
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc (* CLoc *)
 
 type annotation = 

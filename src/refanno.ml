@@ -1,6 +1,5 @@
-module Ctypes = Ctypes
 module LM = Ctypes.SLM
-
+module SM = Misc.StringMap
 
 open Cil
 open Misc.Ops
@@ -14,12 +13,8 @@ type annotation =
 type block_annotation = annotation list list
 
 let fresh_cloc =
-  let i = ref 0 in
-  (fun () -> ignore(i += 1); Ctypes.CLoc !i)
-
-let ens_opt = function
-  | Some x -> x
-  | None -> failwith "None passed to ens_opt"
+  let t, _ = Misc.mk_int_factory () in
+  (fun () -> Ctypes.CLoc (t()))
 
 let cloc_of_v theta v =
   Misc.do_memo theta fresh_cloc () v.vname
@@ -57,17 +52,23 @@ let instantiate conc al cl =
 let annotate_instr ctm theta conc = function
     (* v1 := *v2 *)
   | Cil.Set ((Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _), _) ->
-      instantiate conc (ens_opt (sloc_of_expr ctm e)) (cloc_of_v theta v2)
+      instantiate conc (Misc.maybe (sloc_of_expr ctm e)) (cloc_of_v theta v2)
     (* v := e *)
   | Cil.Set ((Var v, _), e, _) ->
       let _ = match loc_of_var_expr theta e with
-                | Some c -> Hashtbl.replace theta v.vname c
-                | None -> () in
+              | Some c -> Hashtbl.replace theta v.vname c
+              | None -> () in
       (conc, []) 
     (* *v := _ *)
   | Cil.Set ((Mem (Lval(Var v, _) as e), _), _, _) ->
-      instantiate conc (ens_opt (sloc_of_expr ctm e)) (cloc_of_v theta v)
-  | _ -> if !Constants.safe then assertf "annotate_instr" else (conc, [])
+      instantiate conc (Misc.maybe (sloc_of_expr ctm e)) (cloc_of_v theta v)
+  | Cil.Call (_,_,_,_) ->
+      if !Constants.dropcalls then (conc, []) else
+        assertf "TBD: annotate_instr -- calls"
+  | instr -> 
+      Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
+      assertf "annotate_instr: unknown instr"
+      (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
 
 let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []

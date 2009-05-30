@@ -280,9 +280,11 @@ let fdec_to_ssa_cfg fdec loc =
   {fdec = fdec; cfg = cfg; phis = phis; ifs = fst gi; gdoms = snd gi} 
 
 let print_sci oco sci = 
-  print_phis sci.phis;
-  Guards.print_ifs sci.ifs;
-  Guards.print_gdoms sci.gdoms;
+  if mydebug then begin
+    print_phis sci.phis;
+    Guards.print_ifs sci.ifs;
+    Guards.print_gdoms sci.gdoms
+  end;
   let oc = match oco with Some oc -> oc | None -> stdout in
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
 
