@@ -59,3 +59,18 @@ let edges_of_file file =
 (* API *)
 let callgraph_of_files files = 
   Misc.flap edges_of_file files 
+
+(**********************************************************)
+(********** Stripping Casts from Exprs, Lvals *************)
+(**********************************************************)
+
+class castStripVisitor = object(self)
+  inherit nopCilVisitor
+    method vexpr = function
+      | CastE (_, e) -> ChangeDoChildrenPost (e, id)
+      | _            -> DoChildren
+end
+
+(* API *)
+let stripcasts_of_lval = visitCilLval (new castStripVisitor)
+let stripcasts_of_expr = visitCilExpr (new castStripVisitor)

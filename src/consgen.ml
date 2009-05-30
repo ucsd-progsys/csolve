@@ -144,6 +144,8 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
   let wld, cs = cons_of_annots me loc grd wld annots in
   match instr with 
   | Set (lv, e, _) ->
+      let lv  = CilMisc.stripcasts_of_lval lv in
+      let e   = CilMisc.stripcasts_of_expr e in
       let wld = cons_of_set me wld (lv, e) in
       (wld, cs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->

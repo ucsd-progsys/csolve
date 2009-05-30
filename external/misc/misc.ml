@@ -37,6 +37,8 @@ module Ops = struct
 
   let (<|) f x = f x
 
+  let (>>) () x = x
+
   let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
@@ -412,6 +414,8 @@ let get_unique =
 
 let flip f x y =
   f y x
+
+let maybe_iter f = function Some x -> f x | None -> ()
 
 let maybe = function Some x -> x | _ -> assertf "maybe called with None" 
 

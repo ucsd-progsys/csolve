@@ -49,26 +49,42 @@ let instantiate conc al cl =
   else
     (LM.add al cl conc, [Inst (al, cl)])
 
-let annotate_instr ctm theta conc = function
-    (* v1 := *v2 *)
-  | Cil.Set ((Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _), _) ->
-      instantiate conc (Misc.maybe (sloc_of_expr ctm e)) (cloc_of_v theta v2)
-    (* v := e *)
-  | Cil.Set ((Var v, _), e, _) ->
-      let _ = match loc_of_var_expr theta e with
-              | Some c -> Hashtbl.replace theta v.vname c
-              | None -> () in
-      (conc, []) 
-    (* *v := _ *)
-  | Cil.Set ((Mem (Lval(Var v, _) as e), _), _, _) ->
+let annotate_set ctm theta conc = function
+  (* v1 := *v2 *)
+  | (Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _) ->
+      let al = sloc_of_expr ctm e |> Misc.maybe in
+      let cl = cloc_of_v theta v2 in
+      instantiate conc al cl 
+  
+  (* v := e *)
+  | (Var v, _), e ->
+      loc_of_var_expr theta e
+      |> Misc.maybe_iter (Hashtbl.replace theta v.vname) 
+      >> (conc, [])
+  
+  (* *v := _ *)
+  | (Mem (Lval(Var v, _) as e), _), _ ->
       instantiate conc (Misc.maybe (sloc_of_expr ctm e)) (cloc_of_v theta v)
+    
+  (* Uh, oh! *)
+  | lv, e -> 
+      Errormsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
+      assertf "annotate_set: unknown set"
+      (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
+
+let annotate_instr ctm theta conc = function
   | Cil.Call (_,_,_,_) ->
       if !Constants.dropcalls then (conc, []) else
         assertf "TBD: annotate_instr -- calls"
-  | instr -> 
+ 
+  | Cil.Set (lv, e, _) -> 
+      let lv' = CilMisc.stripcasts_of_lval lv in
+      let e'  = CilMisc.stripcasts_of_expr e  in
+      annotate_set ctm theta conc (lv', e')
+  
+  | instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
-      assertf "annotate_instr: unknown instr"
-      (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
+      assertf "TBD: annotate_instr"
 
 let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
