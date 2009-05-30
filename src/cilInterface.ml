@@ -36,11 +36,6 @@ module So = A.Sort
 
 open Misc.Ops
 
-
-
-
-
-
 (****************************************************************)
 (********************* Constants ********************************)
 (****************************************************************)
@@ -103,11 +98,14 @@ let op_of_cilBOp = function
 let expr_of_var v =
   A.eVar (Sy.of_string v.Cil.vname)
 
-let expr_of_lval (lh, _) = match lh with
+let expr_of_lval ((lh, _) as lv) = match lh with
   | Cil.Var v -> 
       expr_of_var v
-  | _ -> 
-      assertf "TBD: CilInterface.expr_of_lval" 
+  | _ ->
+      let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
+      let _ = 10/0 in
+      assertf "TBD: CilInterface.expr_of_lval"
+
 
 (* convert_cilexp : Cil.exp -> exp_or_pred *)
 let rec convert_cilexp = function
