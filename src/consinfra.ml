@@ -160,16 +160,18 @@ let is_undefined me v =
   ST.is_origcilvar v && not (SM.mem v.vname me.formalm)
 
 let ctype_of_expr me e = 
-  EM.find e me.etm
+  try EM.find e me.etm with Not_found ->
+    let _ = Errormsg.error "ctype_of_expr: unknown expr = %a" Cil.d_exp e in
+    assertf "Not_found in ctype_of_expr"
 
 let ctype_of_varinfo me v =
-  match ctype_of_varinfo me.ltm v with
-  | Ctypes.CTInt (_, _) as ct -> 
+  let ct = ctype_of_varinfo me.ltm v in
+  match ct with
+  | Ctypes.CTInt (_, _) -> 
       ct
-  | Ctypes.CTRef (aloc, x)     -> 
-      try 
-        let cloc = Refanno.cloc_of_varinfo me.ctab v in 
-        Ctypes.CTRef (cloc, x) 
-      with Not_found -> assertf "cloc_of_varinfo fails on: %s" v.vname 
-     
-
+  | Ctypes.CTRef (_, x) -> 
+      begin
+        match Refanno.cloc_of_varinfo me.ctab v with
+        | Some cl -> Ctypes.CTRef (cl, x) 
+        | None    -> ct
+      end

@@ -63,9 +63,12 @@ let annotate_set ctm theta conc = function
       >> (conc, [])
   
   (* *v := _ *)
-  | (Mem (Lval(Var v, _) as e), _), _ ->
-      instantiate conc (Misc.maybe (sloc_of_expr ctm e)) (cloc_of_v theta v)
-    
+  | (Mem (Lval (Var v, _) as e), _), _ 
+  | (Mem (CastE (_, Lval (Var v, _)) as e), _), _ ->
+      let al = sloc_of_expr ctm e |> Misc.maybe in
+      let cl = cloc_of_v theta v in
+      instantiate conc al cl   
+
   (* Uh, oh! *)
   | lv, e -> 
       Errormsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
@@ -78,9 +81,9 @@ let annotate_instr ctm theta conc = function
         assertf "TBD: annotate_instr -- calls"
  
   | Cil.Set (lv, e, _) -> 
-      let lv' = CilMisc.stripcasts_of_lval lv in
-      let e'  = CilMisc.stripcasts_of_expr e  in
-      annotate_set ctm theta conc (lv', e')
+  (*  let lv = CilMisc.stripcasts_of_lval lv in
+      let e  = CilMisc.stripcasts_of_expr e  in *)
+      annotate_set ctm theta conc (lv, e)
   
   | instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
@@ -115,12 +118,10 @@ let annotate_cfg cfg ctm  =
 
 (* API *)
 let cloc_of_varinfo theta v = 
-  try 
-    match Hashtbl.find theta v.vname with 
-    | Ctypes.CLoc _ as l -> l 
-    | Ctypes.ALoc _      -> assertf "cloc_of_varinfo: absloc! (%s)" v.vname
-  with Not_found ->
-    assertf "cloc_of_varinfo: unknown (%s)" v.vname
+  try match Hashtbl.find theta v.vname with 
+      | Ctypes.CLoc _ as l -> Some l 
+      | Ctypes.ALoc _      -> assertf "cloc_of_varinfo: absloc! (%s)" v.vname
+  with Not_found -> None
 
 
 (*****************************************************************************)

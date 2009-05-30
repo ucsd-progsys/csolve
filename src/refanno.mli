@@ -1,5 +1,5 @@
 type ctab 
-val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc (* CLoc *)
+val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc option (* CLoc *)
 
 type annotation = 
   | Gen  of Ctypes.sloc * Ctypes.sloc      (* CLoc c, ALoc s *)

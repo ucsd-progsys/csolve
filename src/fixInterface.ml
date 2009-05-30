@@ -122,14 +122,15 @@ let refldesc_subs rd f =
       | _ -> assertf "refldesc_subs: bad substitution function" 
   end rd
 
-let addr_of_reftype = function
-  | Base (Ctypes.CTRef (l, (i,_))) -> (l, Ctypes.ploc_of_index i)
-  | _ -> assertf "addr_of_reftype: bad args"
-
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
   | [(ploc', rct)] when ploc = ploc' -> rct
   | _ -> assertf "refdesc_find"
+
+let addr_of_reftype = function
+  | Base (Ctypes.CTRef (Ctypes.CLoc l as cl, (i,_))) -> 
+      (cl, Ctypes.ploc_of_index i)
+  | _ -> assertf "addr_of_reftype: bad args"
 
 let refstore_read sto cr = 
   let (l, ploc) = addr_of_reftype cr in 
@@ -138,13 +139,13 @@ let refstore_read sto cr =
   Base rct
 
 let refstore_write sto cr cr' = 
-  let (l, ploc) = addr_of_reftype cr in 
+  let (cl, ploc) = addr_of_reftype cr in 
   match cr' with
   | Base rct' -> 
-      let ld = SLM.find l sto in
+      let ld = SLM.find cl sto in
       let ld = Ctypes.LDesc.remove ploc ld in
       let ld = Ctypes.LDesc.add ploc rct' ld in
-      SLM.add l ld sto
+      SLM.add cl ld sto
   | _ -> assertf "refstore_write: bad target!" 
 
 (*******************************************************************)
