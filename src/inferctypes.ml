@@ -140,7 +140,7 @@ let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: st
             let ld = LDesc.add pl ctv ld in
               (is, SLM.add l ld ss)
     | ITop ->
-        let ld       = prestore_find l ss in
+        let (ld, is) = LDesc.shrink_period (prectype_width ctv) equalize_ctypes is (prestore_find l ss) in
         let (ld, is) = LDesc.foldn (fun _ (ld, is) pl ctv2 -> (LDesc.remove pl ld, equalize_ctypes ctv ctv2 is)) (ld, is) ld in
           (is, SLM.add l (LDesc.add PLEverywhere ctv ld) ss)
 
