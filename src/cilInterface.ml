@@ -107,6 +107,7 @@ let expr_of_lval (lh, _) = match lh with
   | Cil.Var v -> 
       expr_of_var v
   | _ -> 
+      let _ = 10/ 0 in
       assertf "TBD: CilInterface.expr_of_lval" 
 
 (* convert_cilexp : Cil.exp -> exp_or_pred *)
