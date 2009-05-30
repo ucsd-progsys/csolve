@@ -9,12 +9,13 @@ int main(){
   *r = 0;
 
   while (nondet()){
-     y = *r; 
-    *r = y + 1;
+   *r = *r + 1;
+    //  y = *r; 
+   // *r = y + 1;
   }
 
   y = *r;
   assert(y >= 0);
-
+  
   return 0;
 }

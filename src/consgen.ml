@@ -184,7 +184,7 @@ let cons_of_annotstmt me loc grd wld (anns, stmt) =
       let wld, cs1 = List.combine anns is 
                      |> Misc.mapfold (cons_of_annotinstr me loc grd) wld in
       let wld, cs2 = cons_of_annots me loc grd wld ann in
-      (wld, cs2 ++ cs2)
+      (wld, cs2 ++ Misc.flatten cs1)
   | Return ((Some e), _) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
       (wld, cons_of_ret me loc grd wld e)
