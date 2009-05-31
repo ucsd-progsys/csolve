@@ -179,6 +179,7 @@ let ce_mem   = fun n cenv -> YM.mem n cenv
 
 let ce_find n (cenv : reftype YM.t) =
   try YM.find n cenv with Not_found -> 
+    let _ = 10/0 in
     assertf "Unknown name! %s" (Sy.to_string n)
 
 let ce_find_fn n env = 

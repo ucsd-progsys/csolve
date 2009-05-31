@@ -71,11 +71,11 @@ let bind_of_phi me v =
   (vn, cr)
 
 let wcons_of_phis me loc env vs =
-  let env = List.fold_left (weaken_undefined me) env vs in
+  let wenv = List.fold_left (weaken_undefined me) env vs in
   Misc.flap begin fun v -> 
     let vn  = FI.name_of_varinfo v in
     let cr  = FI.ce_find vn env in 
-    FI.make_wfs env cr loc
+    FI.make_wfs wenv cr loc
   end vs
 
 (****************************************************************************)
