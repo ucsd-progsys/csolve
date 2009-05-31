@@ -16,7 +16,7 @@ void main(int n){
   root->data = i;
   
   while (nondet()){
-    i++;
+    i--;
     root->data = i;
   }
 

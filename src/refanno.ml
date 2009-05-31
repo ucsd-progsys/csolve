@@ -51,13 +51,15 @@ let instantiate conc al cl =
 
 let annotate_set ctm theta conc = function
   (* v1 := *v2 *)
-  | (Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _) ->
+  | (Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _) 
+  | (Var v1, _), Lval (Mem (CastE (_, Lval (Var v2, _)) as e), _) ->
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta v2 in
       instantiate conc al cl 
   
   (* v := e *)
   | (Var v, _), e ->
+      let _ = CilMisc.check_pure_expr e in
       loc_of_var_expr theta e
       |> Misc.maybe_iter (Hashtbl.replace theta v.vname) 
       >> (conc, [])

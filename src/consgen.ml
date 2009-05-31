@@ -100,7 +100,8 @@ let cons_of_annots me loc grd wld annots =
 
 let cons_of_set me (env, cst) = function 
   (* v := *v' *)
-  | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) ->
+  | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) 
+  | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
       let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let vn = FI.name_of_varinfo v in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
@@ -110,6 +111,7 @@ let cons_of_set me (env, cst) = function
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
+      let _  = CilMisc.check_pure_expr e in
       let vn = FI.name_of_varinfo v in
       let cr = FI.t_exp (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
