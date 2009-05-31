@@ -70,10 +70,13 @@ let bind_of_phi me v =
   let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
   (vn, cr)
 
-let wcons_of_phi loc env v =
-  let vn = FI.name_of_varinfo v in
-  let cr = FI.ce_find vn env in 
-  FI.make_wfs env cr loc
+let wcons_of_phis me loc env vs =
+  let env = List.fold_left (weaken_undefined me) env vs in
+  Misc.flap begin fun v -> 
+    let vn  = FI.name_of_varinfo v in
+    let cr  = FI.ce_find vn env in 
+    FI.make_wfs env cr loc
+  end vs
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
@@ -215,7 +218,7 @@ let cons_of_block me i =
   let astmt    = CF.annotstmt_of_block me i in
   let env, cst = CF.inwld_of_block me i in
   let env      = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws       = Misc.flap (wcons_of_phi loc env) phis in
+  let ws       = wcons_of_phis me loc env phis in
   let wld, cs  = cons_of_annotstmt me loc grd (env, cst) astmt in
   (wld, ws, cs)
 

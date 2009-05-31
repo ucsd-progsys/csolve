@@ -322,9 +322,9 @@ and pred_to_string p =
     | Imp (p1, p2) -> 
         Printf.sprintf "(%s -> %s)" (pred_to_string p1) (pred_to_string p2)
     | And ps -> 
-        Printf.sprintf "&& [%s]" (List.map pred_to_string ps |> String.concat " ")
+        Printf.sprintf "&& [%s]" (List.map pred_to_string ps |> String.concat ";")
     | Or ps -> 
-        Printf.sprintf "|| [%s]" (List.map pred_to_string ps |> String.concat " ")
+        Printf.sprintf "|| [%s]" (List.map pred_to_string ps |> String.concat ";")
     | Atom (e1, r, e2) ->
         Printf.sprintf "(%s %s %s)" 
         (expr_to_string e1) (brel_to_string r) (expr_to_string e2)

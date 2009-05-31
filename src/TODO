@@ -1,4 +1,7 @@
 postests/ll0.c (crashes)
+	- because the "weaken_env" fix doesnt remove the offending phi-var
+	  from the WF constraints of that phi block...
+
 
 - crunch deputy benchmarks into single file
 - handling functions properly
