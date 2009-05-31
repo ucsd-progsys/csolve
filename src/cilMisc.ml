@@ -61,6 +61,26 @@ let callgraph_of_files files =
   Misc.flap edges_of_file files 
 
 (**********************************************************)
+(********** Check Expression/Lval Purity ******************)
+(**********************************************************)
+
+exception ContainsDeref
+
+class checkPureVisitor = object(self)
+  inherit nopCilVisitor
+  method vlval = function
+  | (Mem _), _ -> raise ContainsDeref 
+  | _          -> DoChildren
+end
+
+(* API *)
+let check_pure_expr e =
+  try visitCilExpr (new checkPureVisitor) e |> ignore
+  with ContainsDeref ->
+    let _ = Errormsg.error "impure expr: %a" Cil.d_exp e in
+    assertf "impure expr"
+
+(**********************************************************)
 (********** Stripping Casts from Exprs, Lvals *************)
 (**********************************************************)
 

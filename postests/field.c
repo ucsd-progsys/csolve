@@ -21,7 +21,6 @@ void main(int n){
   }
 
   y = root->data;
-  //assert(y >= 0);
-  //assert(y >= i);
-
+  assert(y >= 0);
+  //assert(y >= i);  store-scope-issue
 }
