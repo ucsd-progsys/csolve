@@ -39,6 +39,12 @@ let mydebug = true
 (********************** Constraints for Phis ********************************)
 (****************************************************************************)
 
+let weaken_undefined me env v = 
+  let n = FI.name_of_varinfo v in
+  if FI.ce_mem n env && CF.is_undefined me v 
+  then FI.ce_rem n env 
+  else env
+
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
     let envi,_ = CF.outwld_of_block me i in
@@ -50,6 +56,7 @@ let tcons_of_phis me phia =
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
         if CF.is_undefined me vj then [] else  
+          let envj  = weaken_undefined me envj v in
           let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
           let lhs   = FI.t_name envj nj in
           let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
@@ -63,10 +70,13 @@ let bind_of_phi me v =
   let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
   (vn, cr)
 
-let wcons_of_phi loc env v =
-  let vn = FI.name_of_varinfo v in
-  let cr = FI.ce_find vn env in 
-  FI.make_wfs env cr loc
+let wcons_of_phis me loc env vs =
+  let env = List.fold_left (weaken_undefined me) env vs in
+  Misc.flap begin fun v -> 
+    let vn  = FI.name_of_varinfo v in
+    let cr  = FI.ce_find vn env in 
+    FI.make_wfs env cr loc
+  end vs
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
@@ -208,7 +218,7 @@ let cons_of_block me i =
   let astmt    = CF.annotstmt_of_block me i in
   let env, cst = CF.inwld_of_block me i in
   let env      = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws       = Misc.flap (wcons_of_phi loc env) phis in
+  let ws       = wcons_of_phis me loc env phis in
   let wld, cs  = cons_of_annotstmt me loc grd (env, cst) astmt in
   (wld, ws, cs)
 

@@ -1,5 +1,8 @@
+postests/ll0.c (crashes)
+	- because the "weaken_env" fix doesnt remove the offending phi-var
+	  from the WF constraints of that phi block...
 
-- embrace TOP
+
 - crunch deputy benchmarks into single file
 - handling functions properly
 
@@ -7,6 +10,13 @@
 - write simple callgraph SCC thing.
 - fix consgen bug to use ploc returned by find before remove/add.
 
+- implicit assumption that C program is well-formed -- i.e. does not read
+  undefined variables, how ? 
+  	1. when undef var flows into phi, 
+	   drop phi-var binding from env when phi-var on RHS of flow constr.
+	2. ignore flows into phi-vars from undefined vars (ie no constraints)
+  why not just add constraints ? because Cil's desugaring messes up paths,
+  adds bogus flows into phi-var along infeasible paths 
 
 - nuke the ghastly .bnd state threaded through theoremProverZ3.ml
 - make the constraints "polymorphic" (so we can tag with src-locations *)

@@ -15,7 +15,7 @@ void main(int n){
 
   for(int i=0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
-    tmp->data = i;
+    tmp->data = i - 5;
     tmp->next = root;
     root      = tmp;
   }

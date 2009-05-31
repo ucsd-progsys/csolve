@@ -174,6 +174,7 @@ let builtins =
 
 type cilenv  = reftype YM.t
 
+let ce_rem   = fun n cenv -> YM.remove n cenv
 let ce_mem   = fun n cenv -> YM.mem n cenv
 
 let ce_find n (cenv : reftype YM.t) =
