@@ -23,7 +23,6 @@ import sys, time, os, os.path, subprocess
 import itertools as it
 
 solve = "./main.native".split()
-flags = []
 null  = open("/dev/null", "w")
 
 def logged_sys_call(args, out=None, err=None):
@@ -38,11 +37,9 @@ def solve_quals(file,bare,time,quiet,flags):
   else: time = []
   return logged_sys_call(time + solve + flags + [("%s.c" % bname)], out)
 
-testdirs = [("../postests", 0), ("../negtests", 1)]
-
-def runtest(file, expected_status):
+def runtest(file, expected_status, args):
   start = time.time()
-  status = solve_quals(file, True, False, True, [])
+  status = solve_quals(file, True, False, True, args)
   if status == 2: sys.exit(2)
   print "%f seconds" % (time.time() - start)
 
@@ -58,6 +55,9 @@ def runtests(dir, expected_status):
   files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
   return [runtest(file, expected_status) for file in files if file.endswith(".c")]
 
+#####################################################################################
+
+testdirs  = [("../postests", 0), ("../negtests", 1)]
 results   = [runtests(dir, expected_status) for (dir, expected_status) in testdirs]
 failed    = [result[0] for result in it.chain(*results) if result[1] == False]
 failcount = len(failed)
