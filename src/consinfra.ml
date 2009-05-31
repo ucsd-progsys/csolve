@@ -53,7 +53,8 @@ type t = {
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;
-  ctab    : Refanno.ctab
+  ctab    : Refanno.ctab;
+  undefm  : unit SM.t
 }
 
 let ctype_of_varinfo ctl v =
@@ -75,21 +76,35 @@ let env_of_fdec gnv fdec locals =
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
+let is_undef_var formalm v = 
+  ST.is_origcilvar v && not (SM.mem v.vname formalm)
+
+let make_undefm formalm phia =
+  Array.to_list phia
+  |> Misc.flatten
+  |> List.filter (fun (_,vjs) -> vjs |> List.map snd |> List.exists (is_undef_var formalm))
+  |> List.map fst
+  |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
+
+
 let create gnv sci (ltm, etm, store) (anna, ctab) =
   let fdec   = sci.ST.fdec in
   let env    = env_of_fdec gnv fdec ltm in
   let astore = FI.refstore_fresh store in 
+  let formalm = formalm_of_fdec sci.ST.fdec in
   {sci     = sci;
    cs      = [];
    ws      = FI.make_wfs_refstore env astore fdec.svar.vdecl;
    wldm    = IM.empty;
    gnv     = env;
-   formalm = formalm_of_fdec sci.ST.fdec;
+   formalm = formalm;
    etm     = etm;
    ltm     = ltm;
    astore  = astore;
    anna    = anna;
-   ctab    = ctab}
+   ctab    = ctab;
+   undefm  = make_undefm formalm sci.ST.phis
+  }
 
 let add_cons ws cs me =
   {{me with cs = cs ++ me.cs} with ws = ws ++ me.ws}
@@ -151,13 +166,15 @@ let guard_of_block me i =
 let get_fname me = 
   FI.name_of_varinfo me.sci.ST.fdec.svar 
 
+  (*
 let is_formal fdec v =
   fdec.sformals
   |> Misc.map (fun v -> v.vname)
   |> List.mem v.vname 
+*)
 
-let is_undefined me v =
-  ST.is_origcilvar v && not (SM.mem v.vname me.formalm)
+let is_undefined me v = 
+  is_undef_var me.formalm v || SM.mem v.vname me.undefm
 
 let ctype_of_expr me e = 
   try EM.find e me.etm with Not_found ->

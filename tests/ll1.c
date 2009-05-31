@@ -9,12 +9,10 @@ typedef struct node {
 void main(int n){
   node_t *root;
   node_t *tmp;
-  int ctr;
 
   root = (node_t*)0;
-  ctr = 0;
 
-  for (int i=0; i++; i < n) {
+  for (int i=0; i < n; i++) {
     tmp       = (node_t *) malloc(sizeof(node_t));
     tmp->x    = i;
     tmp->y    = i+1;
@@ -23,6 +21,7 @@ void main(int n){
   }
 
   for(tmp = root; tmp!=(node_t*)0; tmp = tmp->next){
-    assert(tmp->x >= 0);
+    assert(tmp->x < 0);
+    assert(tmp->x = tmp->y);
   }
 }

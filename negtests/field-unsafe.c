@@ -14,7 +14,7 @@ void main(int n){
  
   i = 0;
   root->data = i;
-  
+ 
   while (nondet()){
     i--;
     root->data = i;

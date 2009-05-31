@@ -10,8 +10,6 @@ int main(){
 
   while (nondet()){
    *r = *r - 1;
-    //  y = *r; 
-   // *r = y + 1;
   }
 
   y = *r;

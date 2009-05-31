@@ -39,6 +39,12 @@ let mydebug = true
 (********************** Constraints for Phis ********************************)
 (****************************************************************************)
 
+let weaken_undefined me env v = 
+  let n = FI.name_of_varinfo v in
+  if FI.ce_mem n env && CF.is_undefined me v 
+  then FI.ce_rem n env 
+  else env
+
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
     let envi,_ = CF.outwld_of_block me i in
@@ -50,6 +56,7 @@ let tcons_of_phis me phia =
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
         if CF.is_undefined me vj then [] else  
+          let envj  = weaken_undefined me envj v in
           let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
           let lhs   = FI.t_name envj nj in
           let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
