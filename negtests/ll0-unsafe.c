@@ -5,7 +5,7 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(int n){
+void main(/* int n */){
   node_t *root;
   node_t *tmp;
   int ctr;
@@ -13,7 +13,7 @@ void main(int n){
   root = 0;
   ctr = 0;
 
-  for(int i=0; i < n; i++){
+  for(int i=0; i < 100 /* n */; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
     tmp->data = i - 5;
     tmp->next = root;
