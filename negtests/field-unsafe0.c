@@ -6,7 +6,7 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(int n){
+void main(/* int n */){
   node_t *root;
   int i,y;
 
@@ -19,5 +19,5 @@ void main(int n){
   }
 
   y = root->data;
-  assert(y = 1);
+  assert(y == 1);
 }

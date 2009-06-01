@@ -2,8 +2,9 @@ type ctab
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Ctypes.sloc option (* CLoc *)
 
 type annotation = 
-  | Gen  of Ctypes.sloc * Ctypes.sloc      (* CLoc c, ALoc s *)
-  | Inst of Ctypes.sloc * Ctypes.sloc      (* ALoc s, CLoc c *)
+  | Gen of Ctypes.sloc * Ctypes.sloc      (* CLoc s , ALoc s' *)
+  | Ins of Ctypes.sloc * Ctypes.sloc      (* ALoc s', CLoc s  *)
+  | New of Ctypes.sloc * Ctypes.sloc      (* Aloc s', Cloc s  *) 
 
 (* 1. block_annotation length = block length + 1,
  * 2. annotations precede corresponding instr 

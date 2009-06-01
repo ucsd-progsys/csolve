@@ -7,8 +7,9 @@ open Misc.Ops
 type ctab = (string, Ctypes.sloc) Hashtbl.t
 
 type annotation = 
-  | Gen  of Ctypes.sloc * Ctypes.sloc      (* CLoc s, ALoc s' *)
-  | Inst of Ctypes.sloc * Ctypes.sloc      (* ALoc s', CLoc s *)
+  | Gen of Ctypes.sloc * Ctypes.sloc      (* CLoc s , ALoc s' *)
+  | Ins of Ctypes.sloc * Ctypes.sloc      (* ALoc s', CLoc s  *)
+  | New of Ctypes.sloc * Ctypes.sloc      (* Aloc s', Cloc s  *) 
 
 type block_annotation = annotation list list
 
@@ -39,15 +40,13 @@ let sloc_of_expr ctm e =
   | Ctypes.CTInt _ -> None
   | Ctypes.CTRef (s, _) -> Some s
 
-let instantiate conc al cl =
-  if LM.mem al conc then
-    let cl' = LM.find al conc in
-    if cl  = cl' then 
-      (conc, []) 
-    else 
-      (LM.add al cl conc, [Gen (cl', al); Inst (al, cl)])
-  else
-    (LM.add al cl conc, [Inst (al, cl)])
+let instantiate f conc al cl =
+  if not (LM.mem al conc) then 
+    (LM.add al cl conc, [f (al, cl)]) 
+  else if cl = LM.find al conc then 
+    (conc, []) 
+  else (* conc maps al to different cl' *) 
+    (LM.add al cl conc, [Gen ((LM.find al conc), al); f (al, cl)])
 
 let annotate_set ctm theta conc = function
   (* v1 := *v2 *)
@@ -55,7 +54,7 @@ let annotate_set ctm theta conc = function
   | (Var v1, _), Lval (Mem (CastE (_, Lval (Var v2, _)) as e), _) ->
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta v2 in
-      instantiate conc al cl 
+      instantiate (fun (x,y) -> Ins (x,y)) conc al cl 
   
   (* v := e *)
   | (Var v, _), e ->
@@ -69,7 +68,7 @@ let annotate_set ctm theta conc = function
   | (Mem (CastE (_, Lval (Var v, _)) as e), _), _ ->
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta v in
-      instantiate conc al cl   
+      instantiate (fun (x,y) -> Ins (x,y)) conc al cl   
 
   (* Uh, oh! *)
   | lv, e -> 
@@ -78,15 +77,18 @@ let annotate_set ctm theta conc = function
       (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
 
 let annotate_instr ctm theta conc = function
-  | Cil.Call (_,_,_,_) ->
-      if !Constants.dropcalls then (conc, []) else
-        assertf "TBD: annotate_instr -- calls"
- 
+  | Cil.Call (Some (((Var v), NoOffset) as lv), Lval ((Var fv), NoOffset), _, _) 
+      when fv.Cil.vname = "malloc" && !Constants.dropcalls -> 
+        let al = sloc_of_expr ctm (Lval lv) |> Misc.maybe in
+        let cl = cloc_of_v theta v in 
+        instantiate (fun (x,y) -> New (x,y)) conc al cl
+
   | Cil.Set (lv, e, _) -> 
-  (*  let lv = CilMisc.stripcasts_of_lval lv in
-      let e  = CilMisc.stripcasts_of_expr e  in *)
       annotate_set ctm theta conc (lv, e)
-  
+ 
+  | Cil.Call (_,_,_,_) when !Constants.dropcalls ->
+      (conc, [])
+
   | instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
       assertf "TBD: annotate_instr"
@@ -133,8 +135,12 @@ let cloc_of_varinfo theta v =
 let d_annotation () = function
   | Gen (cl, al) -> 
       Pretty.dprintf "Generalize(%a->%a) " Ctypes.d_sloc cl Ctypes.d_sloc al 
-  | Inst (al, cl) -> 
+  | Ins (al, cl) -> 
       Pretty.dprintf "Instantiate(%a->%a) " Ctypes.d_sloc al Ctypes.d_sloc cl 
+  | New (al, cl) -> 
+      Pretty.dprintf "New(%a->%a) " Ctypes.d_sloc al Ctypes.d_sloc cl 
+
+
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 

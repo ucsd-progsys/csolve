@@ -82,7 +82,25 @@ let wcons_of_phis me loc env vs =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annot loc grd asto (env, sto) = function 
+let group_annots xs = 
+  List.fold_left begin fun (gs, is, ns) a -> 
+    match a with 
+    | Refanno.Gen _ -> (a::gs, is, ns)
+    | Refanno.Ins _ -> (gs, a::is, ns)
+    | Refanno.New _ -> (gs, is, a::ns)
+  end ([], [], []) xs
+
+let extend_world ld binds loc (env, sto) = 
+  let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
+  let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
+               |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
+               |> FI.ce_adds env in
+  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
+  let sto'   = FI.refldesc_subs ld (fun i _ -> IM.find i im |> FI.t_name env') 
+               |> FI.refstore_set sto loc in
+  (env', sto')
+
+let cons_of_annot loc grd asto ((env, sto) as wld) = function 
   | Refanno.Gen  (cloc, aloc) -> 
       let sto'   = FI.refstore_remove cloc sto in
       let lbinds = FI.refstore_get sto  cloc |> FI.binds_of_refldesc cloc in
@@ -90,22 +108,20 @@ let cons_of_annot loc grd asto (env, sto) = function
       let bs     = Misc.clone true (List.length lbinds) in
       ((env, sto'), FI.make_cs_binds env grd lbinds rbinds bs loc)
 
-  | Refanno.Inst (aloc, cloc) ->
-      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: loc uninst!" in
+  | Refanno.Ins (aloc, cloc) ->
+      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get asto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
-      let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) abinds in
-      let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) abinds subs
-                   |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
-                   |> FI.ce_adds env in
-      let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
-      let sto'   = FI.refldesc_subs aldesc (fun i _ -> IM.find i im |> FI.t_name env') 
-                   |> FI.refstore_set sto cloc in
-      ((env', sto'), [])
+      let wld    = extend_world aldesc abinds cloc (env, sto) in
+      (wld, [])
+
+  | Refanno.New (aloc, cloc) ->
+      let _      = assertf "cons_of_annot: New!" in
+      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (New)!" in
+      (wld, [])
 
 let cons_of_annots me loc grd wld annots =
-  let asto = CF.get_astore me in
-  Misc.mapfold (cons_of_annot loc grd asto) wld annots
+  Misc.mapfold (cons_of_annot loc grd (CF.get_astore me)) wld annots
   |> Misc.app_snd Misc.flatten 
 
 let cons_of_set me (env, cst) = function 
@@ -154,27 +170,35 @@ let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
   | _  -> assertf "TBD: cons_of_call" 
 
 let cons_of_annotinstr me loc grd wld (annots, instr) = 
-  let wld, cs = cons_of_annots me loc grd wld annots in
   match instr with 
   | Set (lv, e, _) ->
-      (*let lv  = CilMisc.stripcasts_of_lval lv in
-        let e   = CilMisc.stripcasts_of_expr e in *)
-      let wld = cons_of_set me wld (lv, e) in
+      let gs, is, ns = group_annots annots in
+      let _          = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
+      let wld, cs    = cons_of_annots me loc grd wld (gs ++ is) in
+      let wld        = cons_of_set me wld (lv, e) in
       (wld, cs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       let fn         = FI.name_of_varinfo fv in
-      let (env, cst) = wld in
       (* START HACK: TO HANDLE MALLOC *)
-      if not (FI.ce_mem fn env) && !Constants.dropcalls then 
-        match lvo with
-        | Some ((Var v), NoOffset) ->
-            let vn = FI.name_of_varinfo v in
-            let cr = v |> CF.ctype_of_varinfo me |> FI.t_true in
-            (FI.ce_adds env [(vn, cr)], cst), []
-        | _ -> 
-            wld, []
+      if fv.Cil.vname = "malloc" && !Constants.dropcalls then 
+        let gs, is, ns = group_annots annots in
+        let _          = asserts (is = []) "cons_of_annotinstr: ins-in-call" in
+        let wld, cs    = cons_of_annots me loc grd wld gs in
+        match ns, lvo with
+        | [Refanno.New (aloc, cloc)], Some ((Var v), NoOffset) ->
+            (* step 1: add bindings for new cells *)
+            let aldesc     = FI.refstore_get (CF.get_astore me) aloc in
+            let abinds     = FI.binds_of_refldesc aloc aldesc 
+                             |> List.map (Misc.app_snd FI.t_true_reftype) in
+            let (env, sto) = extend_world aldesc abinds cloc wld in 
+            (* step 2: add bindings for returned ptr *)
+            let cr         = CF.ctype_of_varinfo me v |> FI.t_true in
+            let env        = FI.ce_adds env [FI.name_of_varinfo v, cr] in
+            (env, sto), []
+        | _ -> assertf "cons_of_annotinstr: malformed malloc call!" 
       else 
       (* END HACK *)
+        let wld, cs  = cons_of_annots me loc grd wld annots in
         let wld, cs' = cons_of_call me loc grd wld (lvo, fn, es) in
         (wld, cs ++ cs')
   | _ -> 
