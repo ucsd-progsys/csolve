@@ -1,3 +1,5 @@
+//! run with -dropcalls
+
 extern char* malloc(int);
 
 typedef struct node {

@@ -1,3 +1,5 @@
+//! run with -dropcalls
+
 void main(){
   int i, n; 
   n = nondet();

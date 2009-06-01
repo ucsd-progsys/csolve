@@ -19,11 +19,13 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import sys, time, os, os.path, subprocess
+import sys, time, os, os.path, subprocess, string
 import itertools as it
 
 solve = "./main.native".split()
 null  = open("/dev/null", "w")
+
+argcomment = "//! run with "
 
 def logged_sys_call(args, out=None, err=None):
   print "exec: " + " ".join(args)
@@ -37,8 +39,18 @@ def solve_quals(file,bare,time,quiet,flags):
   else: time = []
   return logged_sys_call(time + solve + flags + [("%s.c" % bname)], out)
 
-def runtest(file, expected_status, args):
-  start = time.time()
+def getfileargs(file):
+  f = open(file)
+  l = f.readline()
+  f.close()
+  if l.startswith(argcomment):
+    return l[len(argcomment):].strip().split(" ")
+  else:
+    return []
+
+def runtest(file, expected_status):
+  args   = getfileargs(file)
+  start  = time.time()
   status = solve_quals(file, True, False, True, args)
   if status == 2: sys.exit(2)
   print "%f seconds" % (time.time() - start)
