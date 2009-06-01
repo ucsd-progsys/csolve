@@ -349,3 +349,14 @@ module SLMPrinter = P.MakeMapPrinter(SLM)
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" d_sloc (LDesc.d_ldesc d_ctype) () s
+
+(******************************************************************************)
+(******************************* Function Types *******************************)
+(******************************************************************************)
+
+type 'a cfun =
+    sloc list *                   (* generalized slocs *)
+    'a prectype list *            (* arguments *)
+    'a prectype option *          (* return *)
+    ('a prestore * 'a prestore) * (* in, out abstract store *)
+    ('a prestore * 'a prestore)   (* in, out concrete store *)

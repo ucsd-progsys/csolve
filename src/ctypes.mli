@@ -64,6 +64,13 @@ type 'a prestore = ('a LDesc.t) SLM.t
 
 type store = index prestore
 
+type 'a cfun =
+    sloc list *                   (* generalized slocs *)
+    'a prectype list *            (* arguments *)
+    'a prectype option *          (* return *)
+    ('a prestore * 'a prestore) * (* in, out abstract store *)
+    ('a prestore * 'a prestore)   (* in, out concrete store *)
+
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
