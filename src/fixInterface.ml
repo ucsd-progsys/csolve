@@ -50,59 +50,32 @@ let name_of_sloc_ploc l p =
   |> name_of_string
 
 (*******************************************************************)
-(************************** Refined Types **************************)
+(********************* Refined Types and Stores ********************)
 (*******************************************************************)
-type rctype  = (Ctypes.index * C.reft) Ctypes.prectype
-type rcfun   = (Ctypes.index * C.reft) Ctypes.precfun
 
-(*
-type reftype = Base of rctype 
-             | Fun  of rcfun (* (name * reftype) list * reftype  *)
-*)
+type refctype  = (Ctypes.index * C.reft) Ctypes.prectype
+type refcfun   = (Ctypes.index * C.reft) Ctypes.precfun
+type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
+type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
 
-let ctype_of_rctype = function
-  | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
-  | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
-
-let reft_of_rctype = function
+let reft_of_refctype = function
   | Ctypes.CTInt (_,(_,r)) 
   | Ctypes.CTRef (_,(_,r)) -> r
 
-let rctype_of_reft_ctype r = function
+let refctype_of_reft_ctype r = function
   | Ctypes.CTInt (x,y) -> (Ctypes.CTInt (x, (y,r))) 
   | Ctypes.CTRef (x,y) -> (Ctypes.CTRef (x, (y,r))) 
 
-(*
-let reftype_of_reft_ctype r ct = 
-  Base (rctype_of_reft_ctype ct)
-*)
+let ctype_of_refctype = function
+  | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
+  | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
 
-let rec reftype_map f cr = 
-  match cr with
-  | Base rct ->
-      Base (f rct) 
-  | Fun (ncrs, r) -> 
-      let ncrs' = Misc.map (Misc.app_snd (reftype_map f)) ncrs in
-      let r'    = reftype_map f r in
-      Fun (ncrs', r')
-
-let rec print_reftype so ppf = function  
-  | Base rct ->
-      C.print_reft so ppf (reft_of_rctype rct)
-  | Fun (args, ret) ->
-      F.fprintf ppf "(%a) -> %a"
-        (Misc.pprint_many false "," (print_binding so)) args
-        (print_reftype so) ret
-
-and print_binding so ppf (n, cr) = 
-  F.fprintf ppf "%a : %a" Sy.print n (print_reftype so) cr
+(* API *)
+let cfun_of_refcfun = Ctypes.precfun_map ctype_of_refctype 
 
 (*******************************************************************)
-(*************************** Refined Stores ************************)
+(******************** Operations on Refined Stores *****************)
 (*******************************************************************)
-
-type refldesc = (Ctypes.index * C.reft) Ctypes.LDesc.t
-type refstore = (Ctypes.index * C.reft) Ctypes.prestore
 
 let refstore_empty = SLM.empty
 
@@ -119,42 +92,33 @@ let refstore_get sto l =
 
 let binds_of_refldesc l rd = 
   Ctypes.LDesc.foldn 
-    (fun i binds ploc rct -> (name_of_sloc_ploc l ploc, Base rct)::binds)
+    (fun i binds ploc rct -> (name_of_sloc_ploc l ploc, rct)::binds)
     [] rd
   |> List.rev
 
-let refldesc_subs rd f =
-  Ctypes.LDesc.mapn begin fun i _ rct -> 
-      match f i (Base rct) with 
-      | Base rct' -> rct' 
-      | _ -> assertf "refldesc_subs: bad substitution function" 
-  end rd
+let refldesc_subs = fun f rd -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
   | [(ploc', rct)] when ploc = ploc' -> rct
   | _ -> assertf "refdesc_find"
 
-let addr_of_reftype = function
-  | Base (Ctypes.CTRef (Ctypes.CLoc l as cl, (i,_))) -> 
+let addr_of_refctype = function
+  | Ctypes.CTRef (Ctypes.CLoc l as cl, (i,_)) -> 
       (cl, Ctypes.ploc_of_index i)
-  | _ -> assertf "addr_of_reftype: bad args"
+  | _ -> assertf "addr_of_refctype: bad args"
 
 let refstore_read sto cr = 
-  let (l, ploc) = addr_of_reftype cr in 
-  let rct = try SLM.find l sto |> refdesc_find ploc 
-            with _ -> assertf "refstore_read: bad address!" in
-  Base rct
+  let (l, ploc) = addr_of_refctype cr in 
+  try SLM.find l sto |> refdesc_find ploc 
+  with _ -> assertf "refstore_read: bad address!"
 
-let refstore_write sto cr cr' = 
-  let (cl, ploc) = addr_of_reftype cr in 
-  match cr' with
-  | Base rct' -> 
-      let ld = SLM.find cl sto in
-      let ld = Ctypes.LDesc.remove ploc ld in
-      let ld = Ctypes.LDesc.add ploc rct' ld in
-      SLM.add cl ld sto
-  | _ -> assertf "refstore_write: bad target!" 
+let refstore_write sto rct rct' = 
+  let (cl, ploc) = addr_of_refctype rct in 
+  let ld = SLM.find cl sto in
+  let ld = Ctypes.LDesc.remove ploc ld in
+  let ld = Ctypes.LDesc.add ploc rct' ld in
+  SLM.add cl ld sto
 
 (*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
@@ -163,42 +127,51 @@ let refstore_write sto cr cr' =
 (* Move to its own module *)
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
  
-let int_reftype_of_ras ras =
+let int_refctype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
-  Base (rctype_of_reft_ctype r ct_int)
+  (refctype_of_reft_ctype r ct_int)
 
-let true_int  = int_reftype_of_ras []
-let ne_0_int  = int_reftype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
+let true_int  = int_refctype_of_ras []
+let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
-let builtins = 
-  [(Sy.of_string "assert", 
-      Fun ([(Sy.of_string "b", ne_0_int)], true_int));
-   (Sy.of_string "nondet", 
-      Fun ([], true_int))]
+let mk_pure_cfun args reto = 
+  Ctypes.mk_cfun [] args reto 
+    refstore_empty refstore_empty refstore_empty refstore_empty
+
+let builtins    = []
+
+let builtins_fn =
+  [("assert", mk_pure_cfun [("b", ne_0_int)] None);
+   ("nondet", mk_pure_cfun [] (Some true_int))]
 
 (*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
 
-type cilenv  = reftype YM.t
+type cilenv  = refcfun SM.t * refctype YM.t
 
-let ce_rem   = fun n cenv -> YM.remove n cenv
-let ce_mem   = fun n cenv -> YM.mem n cenv
+let ce_rem   = fun n cenv     -> Misc.app_snd (YM.remove n) cenv
+let ce_mem   = fun n (_, vnv) -> YM.mem n vnv
 
-let ce_find n (cenv : reftype YM.t) =
+let ce_find n (cenv : refctype YM.t) =
   try YM.find n cenv with Not_found -> 
-    let _ = 10/0 in
     assertf "Unknown name! %s" (Sy.to_string n)
 
-let ce_find_fn n env = 
-  match ce_find n env with
-  | Fun (ncrs, cr) -> (ncrs, cr)
-  | _            -> assertf "ce_args: non-function type: %s" (Sy.to_string n)
+let ce_find_fn s (fnv, _) =
+  try SM.find s fnv with Not_found ->
+    assertf "Unknown function! %s" s
 
-let ce_adds env ncrs = 
-  List.fold_left (fun env (n, cr) -> YM.add n cr env) env ncrs
-             
-let ce_empty = ce_adds YM.empty builtins
+let ce_adds (fnv, vnv) ncrs =
+  (fnv, List.fold_left (fun env (n, cr) -> YM.add n cr env) vnv ncrs)
+ 
+let ce_adds_fn (fnv, vnv) sfrs = 
+  (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv)
+
+let ce_empty =
+  let ce = (SM.empty, YM.empty) in
+  let ce = ce_adds ce builtins in
+  let ce = ce_adds_fn ce builtins_fn in
+  ce
 
 (*
 let ce_project base_env fun_env ns =
@@ -208,24 +181,27 @@ let ce_project base_env fun_env ns =
            asserts (YM.mem n fun_env) "ce_project";
            YM.add n (YM.find n fun_env) env
         end base_env
-*)
 
 let ce_iter f cenv = 
   YM.iter (fun n cr -> f n cr) cenv
 
-let env_of_cilenv cenv = 
-  YM.fold begin
-    fun n cr env -> 
-      match cr with 
-      | Base rct -> YM.add n (reft_of_rctype rct) env
-      | _        -> env
-  end cenv YM.empty
-       
-let print_ce so ppf cenv =
-  YM.iter begin
-    fun n cr -> 
-      F.fprintf ppf "@[%a@]@\n" (print_binding so) (n, cr) 
-  end cenv
+*)
+
+let env_of_cilenv (_, vnv) = 
+  YM.fold begin fun n rct env -> 
+    YM.add n (reft_of_refctype rct) env
+  end vnv YM.empty
+
+let print_rctype so ppf rct =
+  rct |> reft_of_refctype |> C.print_reft so ppf 
+
+let print_binding so ppf (n, rct) = 
+  F.fprintf ppf "%a : %a" Sy.print n (print_rctype so) rct
+
+let print_ce so ppf (_, vnv) =
+  YM.iter begin fun n cr -> 
+    F.fprintf ppf "@[%a@]@\n" (print_binding so) (n, cr) 
+  end vnv
 
 (*******************************************************************)
 (************************** Templates ******************************)
@@ -235,7 +211,7 @@ let fresh_kvar =
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
-let rctype_of_ctype f = function
+let refctype_of_ctype f = function
   | Ctypes.CTInt (i, x) as t ->
       let r = C.make_reft vv_int so_int (f t) in
       (Ctypes.CTInt (i, (x, r))) 
@@ -266,36 +242,37 @@ let sort_of_prectype = function
   | Ctypes.CTRef _ -> so_ref 
 
 
-let ra_fresh       = fun _ -> [C.Kvar ([], fresh_kvar ())] 
-let ra_true        = fun _ -> []
-let t_fresh        = fun ct -> Base (rctype_of_ctype ra_fresh ct) 
-let t_true         = fun ct -> Base (rctype_of_ctype ra_true ct) 
-let t_true_reftype = reftype_map (fun rct -> ctype_of_rctype rct |> rctype_of_ctype ra_true)
+let ra_fresh        = fun _ -> [C.Kvar ([], fresh_kvar ())] 
+let ra_true         = fun _ -> []
+let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
+let t_true          = fun ct -> refctype_of_ctype ra_true ct 
+let t_true_refctype = fun rct -> rct |> ctype_of_refctype |> refctype_of_ctype ra_true
 
-(* convert {v : ct | p } into reftype *)
+(* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = P.subst p v (A.eVar vv) in
   let r  = C.make_reft vv so [C.Conc p] in
-  Base (rctype_of_reft_ctype r ct)
+  refctype_of_reft_ctype r ct
 
 let t_exp ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
-  Base (rctype_of_reft_ctype r ct)
+  refctype_of_reft_ctype r ct
 
-let t_name env n = 
-  asserts (YM.mem n env) "t_cilname: reading unbound var -- return false reft";
-  match YM.find n env with
-  | Base rct -> 
-      let so = rct |> reft_of_rctype |> C.sort_of_reft in
-      let vv = Sy.value_variable so in
-      let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-      Base (ctype_of_rctype rct |> rctype_of_reft_ctype r)
-  | cr -> cr
+let t_name (_, vnv) n = 
+  asserts (YM.mem n vnv) "t_cilname: reading unbound var -- return false reft";
+  let rct = YM.find n vnv in
+  let so = rct |> reft_of_refctype |> C.sort_of_reft in
+  let vv = Sy.value_variable so in
+  let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
+  rct |> ctype_of_refctype |> refctype_of_reft_ctype r
+
+
+(** STOPPED HERE **)
 
 let rec t_fresh_typ ty = 
   if !Constants.safe then assertf "t_fresh_typ" else 
@@ -309,20 +286,20 @@ let rec t_fresh_typ ty =
         Fun (args, t_fresh_typ t)
     | _ -> assertf "t_fresh_typ: fancy type" 
 
-let t_ctype_reftype ct = function
-  | Fun _    -> assertf "merge_ctype_reftype: merge with funtype"
-  | Base rct -> Base (rctype_of_reft_ctype (reft_of_rctype rct) ct)
+let t_ctype_refctype ct = function
+  | Fun _    -> assertf "merge_ctype_refctype: merge with funtype"
+  | Base rct -> Base (refctype_of_reft_ctype (reft_of_refctype rct) ct)
 
-let reftype_subs f nzs = 
+let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> C.theta
       |> Misc.app_snd
       |> Ctypes.prectype_map
-      |> reftype_map 
+      |> refctype_map 
 
-let t_subs_exps  = reftype_subs CI.expr_of_cilexp
+let t_subs_exps  = refctype_subs CI.expr_of_cilexp
 
-let t_subs_names = reftype_subs A.eVar
+let t_subs_names = refctype_subs A.eVar
 
 let refstore_fresh (st : Ctypes.store) : refstore = 
   SLM.map begin fun ld -> 
@@ -339,7 +316,7 @@ let rec make_cs cenv p lhscr rhscr loc =
   match lhscr, rhscr with
   | Base rct1, Base rct2 ->
       let env    = env_of_cilenv cenv in
-      let r1, r2 = Misc.map_pair reft_of_rctype (rct1, rct2) in
+      let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
       [C.make_t env p r1 r2 None]
   | _, _ ->
       assertf ("TBD:make_cs")
@@ -348,7 +325,7 @@ let rec make_wfs cenv cr loc =
   match cr with
   | Base rct ->
       let env = env_of_cilenv cenv in
-      let r   = reft_of_rctype rct in
+      let r   = reft_of_refctype rct in
       [C.make_wf env r None]
   | Fun (args, ret) ->
       let env' = ce_adds cenv args in

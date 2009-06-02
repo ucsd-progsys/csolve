@@ -3,6 +3,7 @@ type cilenv
 type refctype  = (Ctypes.index * Constraint.reft) Ctypes.prectype
 type refcfun   = (Ctypes.index * Constraint.reft) Ctypes.precfun
 
+
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
 
@@ -15,8 +16,7 @@ val ce_empty  : cilenv
 val ce_adds   : cilenv -> (name * refctype) list -> cilenv
 val ce_find   : name -> cilenv -> refctype
 val ce_adds_fn: cilenv -> (string * refcfun) list -> cilenv
-val ce_find_fn: name -> cilenv -> refcfun
-(* val ce_project: cilenv -> cilenv -> name list -> cilenv *)
+val ce_find_fn: string -> cilenv -> refcfun
 val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit
 
 val t_fresh_typ         : Cil.typ  -> refctype

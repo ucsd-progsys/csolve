@@ -373,3 +373,23 @@ type 'a precfun =
     con_in      : 'a prestore;                  (* in concrete store *)
     con_out     : 'a prestore;                  (* out concrete store *)
   }
+
+(* API *)
+let mk_cfun qslocs args reto a_in a_out c_in c_out = 
+  { qlocs   = qslocs; 
+    args    = args;
+    ret     = reto;
+    abs_in  = a_in;
+    abs_out = a_out;
+    con_in  = c_in; 
+    con_out = c_out;
+  }
+
+let precfun_map f ft =
+  { qlocs   = ft.qlocs;
+    args    = List.map (Misc.app_snd f) ft.args;
+    ret     = Misc.map_opt f ft.ret;
+    abs_in  = SLM.map (LDesc.map f) ft.abs_in;
+    abs_out = SLM.map (LDesc.map f) ft.abs_out;
+    con_in  = SLM.map (LDesc.map f) ft.con_in;
+    con_out = SLM.map (LDesc.map f) ft.con_out;}

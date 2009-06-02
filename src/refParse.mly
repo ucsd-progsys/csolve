@@ -14,16 +14,6 @@ let store_of_slocbinds sbs =
 let ldesc_of_plocbinds pbs = 
   List.fold_left (fun ld (x,y) -> Ct.LDesc.add x y ld) Ct.LDesc.empty pbs
 
-let mk_cfun qslocs args reto inst outst = 
-  { Ct.qlocs   = qslocs; 
-    Ct.args    = args;
-    Ct.ret     = reto;
-    Ct.abs_in  = inst;
-    Ct.abs_out = outst;
-    Ct.con_in  = Ct.SLM.empty;
-    Ct.con_out = Ct.SLM.empty;
-  }
-
 %}
 
 %token <string> Id
@@ -59,13 +49,13 @@ spec:
     ARG    argbinds 
     RET    reftype
     INST   refstore
-    OUTST  refstore                     { ($1, (mk_cfun $4 $6 (Some $8) $10 $12)) }
+    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 (Some $8) $10 $12)) }
   
   | Id DCOLON 
     FORALL slocs
     ARG    argbinds 
     INST   refstore
-    OUTST  refstore                     { ($1, (mk_cfun $4 $6 None $8 $10)) }
+    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 None $8 $10)) }
     ;
 
 slocs:

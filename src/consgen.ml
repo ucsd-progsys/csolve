@@ -96,8 +96,8 @@ let extend_world ld binds loc (env, sto) =
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                |> FI.ce_adds env in
   let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
-  let sto'   = FI.refldesc_subs ld (fun i _ -> IM.find i im |> FI.t_name env') 
-               |> FI.refstore_set sto loc in
+  let sto'   = ld |> FI.refldesc_subs (fun i _ -> IM.find i im |> FI.t_name env') 
+                  |> FI.refstore_set sto loc in
   (env', sto')
 
 let cons_of_annot loc grd asto ((env, sto) as wld) = function 

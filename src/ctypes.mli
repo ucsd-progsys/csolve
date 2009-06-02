@@ -75,6 +75,14 @@ type 'a precfun =
     con_out     : 'a prestore;                  (* out concrete store *)
   }
 
+val mk_cfun : sloc list 
+              -> (string * 'a prectype) list 
+              -> 'a prectype option 
+              -> 'a prestore -> 'a prestore -> 'a prestore -> 'a prestore 
+              -> 'a precfun
+
+val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
