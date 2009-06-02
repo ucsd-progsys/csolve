@@ -292,6 +292,16 @@ module LDesc = struct
               (* pmr: this is not quite descriptive enough *)
               raise TypeDoesntFit
 
+  let add_index (i: index) (pct: 'a prectype) (ld: 'a t): 'a t =
+    match i with
+      | ISeq (n, p) ->
+          let ld = shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst in
+            add (PLSeq n) pct ld
+      | _ -> add (ploc_of_index i) pct ld
+
+  let create (icts: (index * 'a prectype) list): 'a t =
+    List.fold_left (M.uncurry add_index |> M.flip) empty icts
+
   let find (pl1: ploc) ((po, cnts): 'a t): (ploc * 'a prectype) list =
     match cnts with
       | Empty           -> []
@@ -355,8 +365,11 @@ let d_store () (s: store): P.doc =
 (******************************************************************************)
 
 type 'a cfun =
-    sloc list *                   (* generalized slocs *)
-    'a prectype list *            (* arguments *)
-    'a prectype option *          (* return *)
-    ('a prestore * 'a prestore) * (* in, out abstract store *)
-    ('a prestore * 'a prestore)   (* in, out concrete store *)
+  { qlocs       : sloc list;                    (* generalized slocs *)
+    args        : (string * 'a prectype) list;  (* arguments *)
+    ret         : 'a prectype option;           (* return *)
+    abs_in      : 'a prestore;                  (* in abstract store *)
+    abs_out     : 'a prestore;                  (* out abstract store *)
+    con_in      : 'a prestore;                  (* in concrete store *)
+    con_out     : 'a prestore;                  (* out concrete store *)
+  }

@@ -51,6 +51,7 @@ module LDesc:
     val empty: 'a t
     val get_period: 'a t -> int option
     val add: ploc -> 'a prectype -> 'a t -> 'a t
+    val create: (index * 'a prectype) list -> 'a t
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
