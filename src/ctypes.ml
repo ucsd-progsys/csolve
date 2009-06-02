@@ -257,9 +257,6 @@ module LDesc = struct
       | (NonUniform _, PLEverywhere) -> raise TypeDoesntFit
       | (NonUniform pcts, _)         -> if fits pl pct po pcts then (po, NonUniform (insert pl pct pcts)) else raise TypeDoesntFit
 
-  let create (po: int option) (pcts: (ploc * 'a prectype) list): 'a t =
-    List.fold_left (M.flip <| M.uncurry add) (po, Empty) pcts
-
   let remove (pl: ploc) ((po, cnts): 'a t): 'a t =
     match cnts with
       | Empty           -> (po, Empty)
@@ -294,6 +291,16 @@ module LDesc = struct
             else
               (* pmr: this is not quite descriptive enough *)
               raise TypeDoesntFit
+
+  let add_index (i: index) (pct: 'a prectype) (ld: 'a t): 'a t =
+    match i with
+      | ISeq (n, p) ->
+          let ld = shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst in
+            add (PLSeq n) pct ld
+      | _ -> add (ploc_of_index i) pct ld
+
+  let create (icts: (index * 'a prectype) list): 'a t =
+    List.fold_left (M.uncurry add_index |> M.flip) empty icts
 
   let find (pl1: ploc) ((po, cnts): 'a t): (ploc * 'a prectype) list =
     match cnts with
