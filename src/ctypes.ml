@@ -292,6 +292,9 @@ module LDesc = struct
               (* pmr: this is not quite descriptive enough *)
               raise TypeDoesntFit
 
+  let create (po: int option) (pcts: (ploc * 'a prectype) list): 'a t =
+    List.fold_left (M.flip <| M.uncurry add) (po, Empty) pcts
+
   let find (pl1: ploc) ((po, cnts): 'a t): (ploc * 'a prectype) list =
     match cnts with
       | Empty           -> []
