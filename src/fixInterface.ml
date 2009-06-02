@@ -52,8 +52,9 @@ let name_of_sloc_ploc l p =
 (*******************************************************************)
 (************************** Refined Types **************************)
 (*******************************************************************)
+type rctype  = (Ctypes.index * C.reft) Ctypes.prectype
 
-type reftype = Base of (Ctypes.index * C.reft) Ctypes.prectype
+type reftype = Base of rctype 
              | Fun  of (name * reftype) list * reftype  
 
 let ctype_of_rctype = function
@@ -265,6 +266,14 @@ let ra_true        = fun _ -> []
 let t_fresh        = fun ct -> Base (rctype_of_ctype ra_fresh ct) 
 let t_true         = fun ct -> Base (rctype_of_ctype ra_true ct) 
 let t_true_reftype = reftype_map (fun rct -> ctype_of_rctype rct |> rctype_of_ctype ra_true)
+
+(* convert {v : ct | p } into reftype *)
+let t_pred ct v p = 
+  let so = sort_of_prectype ct in
+  let vv = Sy.value_variable so in
+  let p  = P.subst p v (A.eVar vv) in
+  let r  = C.make_reft vv so [C.Conc p] in
+  Base (rctype_of_reft_ctype r ct)
 
 let t_exp ct e =
   let so = sort_of_prectype ct in

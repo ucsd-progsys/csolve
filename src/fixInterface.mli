@@ -17,7 +17,8 @@ val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit
 val t_fresh_typ         : Cil.typ  -> reftype
 val t_fresh             : Ctypes.ctype -> reftype
 val t_true              : Ctypes.ctype -> reftype
-val t_true_reftype      : reftype -> reftype 
+val t_true_reftype      : reftype -> reftype
+val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> reftype
 val t_exp               : Ctypes.ctype -> Cil.exp -> reftype
 val t_name              : cilenv -> name -> reftype
 val t_ctype_reftype     : Ctypes.ctype -> reftype -> reftype
