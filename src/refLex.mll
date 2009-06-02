@@ -61,6 +61,7 @@ rule token = parse
   | '}'			{ RC }
   | '~'                 { NOT }
   | ';'                 { SEMI }
+  | ','                 { COMMA }
   | ':'                 { COLON }
   | '|'                 { MID }
   | '+'                 { PLUS }
@@ -70,6 +71,8 @@ rule token = parse
   | '.'                 { DOT }
   | "false"             { FALSE }
   | "true"              { TRUE }
+  | "|->"               { MAPSTO }
+  | "::"                { DCOLON }
   | ":="                { ASGN }
   | "&&"                { AND }
   | "||"                { OR  }
@@ -91,10 +94,14 @@ rule token = parse
   | "solution"          { SOL }
   | "qualif"            { QUL }
   | "env"               { ENV }
+  | "arg"               { ARG }
+  | "ret"               { RET }
+  | "store_in"          { INST }
+  | "store_out"         { OUTST }
   | "grd"               { GRD }
   | "lhs"               { LHS }
   | "rhs"               { RHS }
-  | "reft"               { REF }
+  | "reft"              { REF }
   | (digit)+	        { let str = Lexing.lexeme lexbuf in
 			  let len = String.length str in
 			  let zero = Char.code '0' in

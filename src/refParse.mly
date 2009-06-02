@@ -14,13 +14,24 @@ let store_of_slocbinds sbs =
 let ldesc_of_plocbinds pbs = 
   List.fold_left (fun ld (x,y) -> Ct.LDesc.add x y ld) Ct.LDesc.empty pbs
 
+let mk_cfun qslocs args reto inst outst = 
+  { Ct.qlocs   = qslocs; 
+    Ct.args    = args;
+    Ct.ret     = reto;
+    Ct.abs_in  = inst;
+    Ct.abs_out = outst;
+    Ct.con_in  = Ct.SLM.empty;
+    Ct.con_out = Ct.SLM.empty;
+  }
+
 %}
 
 %token <string> Id
 %token <int> Num
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL SEMI COLON MID
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON DCOLON MAPSTO MID
+%token ARG RET INST OUTST
 %token TRUE FALSE
 %token EOF
 %token PLUS
@@ -34,7 +45,7 @@ let ldesc_of_plocbinds pbs =
 
 %start specs 
 
-%type <Constraint.deft list>    specs 
+%type <(string * FixInterface.refcfun) list>    specs 
 
 %%
 specs:
@@ -43,13 +54,19 @@ specs:
   ;
 
 spec:
-  | Id DCOLON 
+    Id DCOLON 
     FORALL slocs
     ARG    binds 
     RET    reftype
-    INS    refstore
-    OUTS   refstore                     { ($1, (mk_cfun $4 $6 $8 $10 $12)) }
- ;
+    INST   refstore
+    OUTST  refstore                     { ($1, (mk_cfun $4 $6 (Some $8) $10 $12)) }
+  
+  | Id DCOLON 
+    FORALL slocs
+    ARG    binds 
+    INST   refstore
+    OUTST  refstore                     { ($1, (mk_cfun $4 $6 None $8 $10)) }
+    ;
 
 slocs:
     LB RB                               { [] }
@@ -62,7 +79,7 @@ slocsne:
   ;
 
 sloc:
-  Num                                   { $1 }
+  Num                                   { Ct.ALoc $1 }
   ;
 
 refstore:
@@ -76,21 +93,21 @@ slocbindsne:
   ;
 
 slocbind:
-  sloc MAPSTO plocbinds                 { ($1, ldesc_of_plocbinds $3) } 
+  sloc MAPSTO indbinds                  { ($1, Ct.LDesc.create $3) } 
   ;
 
-plocbinds:
-                                        { [] }
-  | plocbindsne                         { $1 }
+indbinds:
+    LB RB                               { [] }
+  | LB indbindsne RB                    { $2 }
   ;
 
-plocbindsne:
-    plocbind                            { [$1] }
-  | plocbind COMMA plocbindsne          { $1 :: $3 }
+indbindsne:
+    indbind                             { [$1] }
+  | indbind SEMI indbindsne             { $1 :: $3 }
   ;
 
-plocbind:
-    ploc COLON reftype                  { ($1, $3) }
+indbind:
+    index COLON reftype                 { ($1, $3) }
   ;
 
 reftype: 
@@ -98,15 +115,14 @@ reftype:
   ;
 
 ctype:
-    INT LPAREN Num COMMA index RPAREN   { CTInt ($3, $5) }
-  | REF LPAREN sloc COMMA index RPAREN  { CTRef ($3, $5) }
+    INT LPAREN Num COMMA index RPAREN   { Ct.CTInt ($3, $5) }
+  | REF LPAREN sloc COMMA index RPAREN  { Ct.CTRef ($3, $5) }
   ;
-
-ploc:
 
 index:
     Num                                 { Ct.IInt $1 }
-  | TOP                                 { Ct.ITop }
+  | Num LB Num RB                       { Ct.ISeq ($1, $3) }
+  | TRUE                                { Ct.ITop }
   ;
 
 binds:

@@ -53,9 +53,12 @@ let name_of_sloc_ploc l p =
 (************************** Refined Types **************************)
 (*******************************************************************)
 type rctype  = (Ctypes.index * C.reft) Ctypes.prectype
+type rcfun   = (Ctypes.index * C.reft) Ctypes.cfun
 
+(*
 type reftype = Base of rctype 
-             | Fun  of (name * reftype) list * reftype  
+             | Fun  of rcfun (* (name * reftype) list * reftype  *)
+*)
 
 let ctype_of_rctype = function
   | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
@@ -197,6 +200,7 @@ let ce_adds env ncrs =
              
 let ce_empty = ce_adds YM.empty builtins
 
+(*
 let ce_project base_env fun_env ns =
   ns |> Misc.filter (fun vn -> not (YM.mem vn base_env))
      |> List.fold_left begin 
@@ -204,6 +208,7 @@ let ce_project base_env fun_env ns =
            asserts (YM.mem n fun_env) "ce_project";
            YM.add n (YM.find n fun_env) env
         end base_env
+*)
 
 let ce_iter f cenv = 
   YM.iter (fun n cr -> f n cr) cenv
