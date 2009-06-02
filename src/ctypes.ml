@@ -364,7 +364,7 @@ let d_store () (s: store): P.doc =
 (******************************* Function Types *******************************)
 (******************************************************************************)
 
-type 'a cfun =
+type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype option;           (* return *)

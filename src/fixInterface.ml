@@ -53,7 +53,7 @@ let name_of_sloc_ploc l p =
 (************************** Refined Types **************************)
 (*******************************************************************)
 type rctype  = (Ctypes.index * C.reft) Ctypes.prectype
-type rcfun   = (Ctypes.index * C.reft) Ctypes.cfun
+type rcfun   = (Ctypes.index * C.reft) Ctypes.precfun
 
 (*
 type reftype = Base of rctype 

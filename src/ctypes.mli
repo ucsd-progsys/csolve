@@ -65,7 +65,7 @@ type 'a prestore = ('a LDesc.t) SLM.t
 
 type store = index prestore
 
-type 'a cfun =
+type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype option;           (* return *)

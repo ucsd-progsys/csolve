@@ -1,7 +1,10 @@
 type name
 type cilenv
 type refctype  = (Ctypes.index * Constraint.reft) Ctypes.prectype
-type refcfun   = (Ctypes.index * Constraint.reft) Ctypes.cfun
+type refcfun   = (Ctypes.index * Constraint.reft) Ctypes.precfun
+
+val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
+val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
 
 val name_of_varinfo: Cil.varinfo -> name
 val name_fresh: unit -> name
@@ -19,7 +22,7 @@ val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit
 val t_fresh_typ         : Cil.typ  -> refctype
 val t_fresh             : Ctypes.ctype -> refctype
 val t_true              : Ctypes.ctype -> refctype
-val t_true_refctype       : refctype -> refctype
+val t_true_refctype     : refctype -> refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> refctype
 val t_exp               : Ctypes.ctype -> Cil.exp -> refctype
 val t_name              : cilenv -> name -> refctype

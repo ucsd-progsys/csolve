@@ -56,14 +56,14 @@ specs:
 spec:
     Id DCOLON 
     FORALL slocs
-    ARG    binds 
+    ARG    argbinds 
     RET    reftype
     INST   refstore
     OUTST  refstore                     { ($1, (mk_cfun $4 $6 (Some $8) $10 $12)) }
   
   | Id DCOLON 
     FORALL slocs
-    ARG    binds 
+    ARG    argbinds 
     INST   refstore
     OUTST  refstore                     { ($1, (mk_cfun $4 $6 None $8 $10)) }
     ;
@@ -111,7 +111,7 @@ indbind:
   ;
 
 reftype: 
-  LC Id COLON ctype MID pred RC         { FI.t_pred (Sy.of_string $2) $4 $6 }
+  LC Id COLON ctype MID pred RC         { FI.t_pred $4 (Sy.of_string $2) $6 }
   ;
 
 ctype:
@@ -125,18 +125,18 @@ index:
   | TRUE                                { Ct.ITop }
   ;
 
-binds:
+argbinds:
     LB RB                               { [] }
-  | LB bindsne RB                       { $2 }
+  | LB argbindsne RB                    { $2 }
   ;
 
-bindsne:
-    bind                                { [$1] }
-  | bind SEMI bindsne                   { $1::$3 }
+argbindsne:
+    argbind                             { [$1] }
+  | argbind SEMI argbindsne             { $1::$3 }
   ;
 
-bind:
-  Id COLON reftype                      { ((Sy.of_string $1), $3) }
+argbind:
+  Id COLON reftype                      { ($1, $3) }
   ;
 
 
@@ -158,7 +158,6 @@ pred:
   | NOT pred				{ A.pNot ($2) }
   | pred IMPL pred			{ A.pImp ($1, $3) }
   | expr brel expr                      { A.pAtom ($1, $2, $3) }
-  | FORALL binds DOT pred               { A.pForall ($2, $4) }
   | LPAREN pred RPAREN			{ $2 }
   ;
 
