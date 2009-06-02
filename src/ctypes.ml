@@ -355,8 +355,11 @@ let d_store () (s: store): P.doc =
 (******************************************************************************)
 
 type 'a cfun =
-    sloc list *                   (* generalized slocs *)
-    'a prectype list *            (* arguments *)
-    'a prectype option *          (* return *)
-    ('a prestore * 'a prestore) * (* in, out abstract store *)
-    ('a prestore * 'a prestore)   (* in, out concrete store *)
+  { qlocs       : sloc list;                    (* generalized slocs *)
+    args        : (string * 'a prectype) list;  (* arguments *)
+    ret         : 'a prectype option;           (* return *)
+    abs_in      : 'a prestore;                  (* in abstract store *)
+    abs_out     : 'a prestore;                  (* out abstract store *)
+    con_in      : 'a prestore;                  (* in concrete store *)
+    con_out     : 'a prestore;                  (* out concrete store *)
+  }
