@@ -87,13 +87,13 @@ slocbind:
   ;
 
 indbinds:
-    LB RB                               { [] }
-  | LB indbindsne RB                    { $2 }
+                                        { [] }
+  | indbindsne                          { $1 }
   ;
 
 indbindsne:
     indbind                             { [$1] }
-  | indbind SEMI indbindsne             { $1 :: $3 }
+  | indbind COMMA indbindsne             { $1 :: $3 }
   ;
 
 indbind:
