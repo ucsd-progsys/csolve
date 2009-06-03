@@ -17,7 +17,6 @@ val ce_adds   : cilenv -> (name * refctype) list -> cilenv
 val ce_find   : name -> cilenv -> refctype
 val ce_adds_fn: cilenv -> (string * refcfun) list -> cilenv
 val ce_find_fn: string -> cilenv -> refcfun
-(* val print_ce  : Constraint.soln option -> Format.formatter -> cilenv -> unit *)
 
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype

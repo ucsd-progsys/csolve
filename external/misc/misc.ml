@@ -498,7 +498,13 @@ let tflap2 (e1, e2) f =
   List.fold_left (fun bs b -> List.fold_left (fun aas a -> f a b :: aas) bs e1) [] e2
 
 let tflap3 (e1, e2, e3) f =
-  List.fold_left (fun cs c -> List.fold_left (fun bs b -> List.fold_left (fun aas a -> f a b c :: aas) bs e1) cs e2) [] e3
+  List.fold_left begin fun cs c -> 
+    List.fold_left begin fun bs b -> 
+      List.fold_left begin fun aas a -> 
+        f a b c :: aas
+      end bs e1
+    end cs e2
+  end[] e3
 
 let rec expand f xs ys =
   match xs with

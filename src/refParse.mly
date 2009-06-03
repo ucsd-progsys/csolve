@@ -49,13 +49,7 @@ spec:
     ARG    argbinds 
     RET    reftype
     INST   refstore
-    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 (Some $8) $10 $12 Ct.SLM.empty Ct.SLM.empty)) }
-  
-  | Id DCOLON 
-    FORALL slocs
-    ARG    argbinds 
-    INST   refstore
-    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 None $8 $10 Ct.SLM.empty Ct.SLM.empty)) }
+    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 $10 $8 $12)) }
     ;
 
 slocs:

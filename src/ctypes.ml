@@ -370,24 +370,24 @@ let d_store () (s: store): P.doc =
 type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
-    ret         : 'a prectype option;           (* return *)
-    abs_in      : 'a prestore;                  (* in abstract store *)
-    abs_out     : 'a prestore;                  (* out abstract store *)
-    con_in      : 'a prestore;                  (* in concrete store *)
-    con_out     : 'a prestore;                  (* out concrete store *)
+    ret         : 'a prectype;                  (* return *)
+    sto_in      : 'a prestore;                  (* in store *)
+    sto_out     : 'a prestore;                  (* out store *)
+    (* con_in      : 'a prestore;               (* in concrete store *) *)
+    (* con_out     : 'a prestore;               (* out concrete store *) *)
   }
 
 type cfun = index precfun
 
 (* API *)
-let mk_cfun qslocs args reto a_in a_out c_in c_out = 
+let mk_cfun qslocs args sto_in reto sto_out = 
   { qlocs   = qslocs; 
     args    = args;
     ret     = reto;
-    abs_in  = a_in;
-    abs_out = a_out;
-    con_in  = c_in; 
-    con_out = c_out;
+    sto_in  = sto_in;
+    sto_out = sto_out;
+(*    con_in  = c_in; 
+    con_out = c_out; *)
   }
 
 let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
@@ -395,24 +395,27 @@ let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
 let precfun_map f ft =
   { qlocs   = ft.qlocs;
     args    = List.map (Misc.app_snd f) ft.args;
-    ret     = Misc.map_opt f ft.ret;
-    abs_in  = SLM.map (LDesc.map f) ft.abs_in;
-    abs_out = SLM.map (LDesc.map f) ft.abs_out;
-    con_in  = SLM.map (LDesc.map f) ft.con_in;
-    con_out = SLM.map (LDesc.map f) ft.con_out;}
+    ret     = (* Misc.map_opt *) f ft.ret;
+    sto_in  = SLM.map (LDesc.map f) ft.sto_in;
+    sto_out = SLM.map (LDesc.map f) ft.sto_out;
+    (* con_in  = SLM.map (LDesc.map f) ft.con_in;
+       con_out = SLM.map (LDesc.map f) ft.con_out; *)
+  }
 
 let d_slocs () slocs     = P.seq (P.text ";") (d_sloc ()) slocs
 let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
 let d_args d_i () args   = P.seq (P.text ", ") (d_arg d_i ()) args
 
+(*
 let d_ret d_i () = function
   | None -> P.dprintf ""
   | Some r -> P.dprintf "ret %a" (d_prectype d_i) r
+*)
 
 let d_precfun d_i () ft  = 
   P.dprintf "forall [%a] arg (%a) %a store_in %a store_out %a"
   d_slocs ft.qlocs
   (d_args d_i) ft.args
-  (d_ret d_i) ft.ret
-  (d_precstore d_i) ft.abs_in
-  (d_precstore d_i) ft.abs_out
+  (d_prectype d_i) ft.ret
+  (d_precstore d_i) ft.sto_in
+  (d_precstore d_i) ft.sto_out

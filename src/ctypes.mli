@@ -68,19 +68,21 @@ type store = index prestore
 type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
-    ret         : 'a prectype option;           (* return *)
-    abs_in      : 'a prestore;                  (* in abstract store *)
-    abs_out     : 'a prestore;                  (* out abstract store *)             
-    con_in      : 'a prestore;                  (* in concrete store *)
+    ret         : 'a prectype;                  (* return *)
+    sto_in      : 'a prestore;                  (* in abstract store *)
+    sto_out     : 'a prestore;                  (* out abstract store *)             
+(*    con_in      : 'a prestore;                (* in concrete store *)
     con_out     : 'a prestore;                  (* out concrete store *)
+  *)
   }
 
 type cfun = index precfun
 
 val mk_cfun : sloc list 
-              -> (string * 'a prectype) list 
-              -> 'a prectype option 
-              -> 'a prestore -> 'a prestore -> 'a prestore -> 'a prestore 
+              -> (string * 'a prectype) list
+              -> 'a prestore
+              -> 'a prectype 
+              -> 'a prestore  
               -> 'a precfun
 
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun

@@ -134,15 +134,14 @@ let int_refctype_of_ras ras =
 let true_int  = int_refctype_of_ras []
 let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
-let mk_pure_cfun args reto = 
-  Ctypes.mk_cfun [] args reto 
-    refstore_empty refstore_empty refstore_empty refstore_empty
+let mk_pure_cfun args ret = 
+  Ctypes.mk_cfun [] args refstore_empty ret refstore_empty
 
 let builtins    = []
 
 let builtins_fn =
-  [("assert", mk_pure_cfun [("b", ne_0_int)] None);
-   ("nondet", mk_pure_cfun [] (Some true_int))]
+  [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
+   ("nondet", mk_pure_cfun [] true_int)]
 
 (*******************************************************************)
 (************************** Environments ***************************)
@@ -318,7 +317,7 @@ let make_wfs_fn cenv rft loc =
   let args = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
   let ret  = rft.Ctypes.ret in
   let env' = ce_adds cenv args in
-  let rws  = match rft.Ctypes.ret with Some rct -> make_wfs env' rct loc | _ -> [] in
+  let rws  = make_wfs env' rft.Ctypes.ret loc in
   let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
   rws ++ aws
 
