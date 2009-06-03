@@ -357,6 +357,9 @@ type store = index prestore
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
+let d_precstore d_i () s  =
+  P.dprintf "@[[%a]@]" (SLMPrinter.d_map ";\n" d_sloc (LDesc.d_ldesc (d_prectype d_i))) s
+
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" d_sloc (LDesc.d_ldesc d_ctype) () s
 
@@ -397,3 +400,19 @@ let precfun_map f ft =
     abs_out = SLM.map (LDesc.map f) ft.abs_out;
     con_in  = SLM.map (LDesc.map f) ft.con_in;
     con_out = SLM.map (LDesc.map f) ft.con_out;}
+
+let d_slocs () slocs     = P.seq (P.text ";") (d_sloc ()) slocs
+let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
+let d_args d_i () args   = P.seq (P.text ", ") (d_arg d_i ()) args
+
+let d_ret d_i () = function
+  | None -> P.dprintf ""
+  | Some r -> P.dprintf "ret %a" (d_prectype d_i) r
+
+let d_precfun d_i () ft  = 
+  P.dprintf "forall [%a] arg (%a) ret %a store_in %a store_out %a"
+  d_slocs ft.qlocs
+  (d_args d_i) ft.args
+  (d_ret d_i) ft.ret
+  (d_precstore d_i) ft.abs_in
+  (d_precstore d_i) ft.abs_out

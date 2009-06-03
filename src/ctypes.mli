@@ -84,6 +84,7 @@ val mk_cfun : sloc list
               -> 'a precfun
 
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)

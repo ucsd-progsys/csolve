@@ -40,7 +40,12 @@ let read_spec files : FI.refcfun SM.t =
     |> List.fold_left (fun sm (x,y) -> SM.add x y sm) sm
   end SM.empty files
 
-let print_spec _ = Format.printf "spec parsed: OK \n"
+let print_spec sm = 
+  Format.printf "spec parsed: OK \n";
+  SM.iter begin fun s rft -> 
+    let ft = FI.cfun_of_refcfun rft in
+    Errormsg.log "%s :: %a \n" s (Ctypes.d_precfun Ctypes.d_index) ft
+  end sm
 
 let _ =
   Printf.printf "© Copyright 2009 Regents of the University of California. ";
