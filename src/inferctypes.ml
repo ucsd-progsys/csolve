@@ -30,7 +30,8 @@ type indexexp =
   | IEMult of indexvar * indexvar
 
 type indexcstr =
-  | ICLess of indexexp * indexvar
+  | ICVarLess of indexexp * indexvar
+  | ICConstLess of indexexp * index
 
 module IVM =
   Map.Make
@@ -54,8 +55,10 @@ let indexexp_apply (is: indexsol): indexexp -> index = function
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
   IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
 
-let indexcstr_sat (ICLess (ie, iv): indexcstr) (is: indexsol): bool =
-  is_subindex (indexexp_apply is ie) (indexsol_find iv is)
+let indexcstr_sat (ic: indexcstr) (is: indexsol): bool =
+  match ic with
+    | ICVarLess (ie, iv)  -> is_subindex (indexexp_apply is ie) (indexsol_find iv is)
+    | ICConstLess (ie, i) -> is_subindex (indexexp_apply is ie) i
 
 (******************************************************************************)
 (****************************** Type Constraints ******************************)
@@ -182,8 +185,11 @@ type cstrdesc =
 
 type cstr = {cdesc: cstrdesc; cloc: C.location}
 
-let mk_iless (loc: C.location) (ie: indexexp) (iv: indexvar) =
-  {cdesc = CSIndex (ICLess (ie, iv)); cloc = loc}
+let mk_ivarless (loc: C.location) (ie: indexexp) (iv: indexvar) =
+  {cdesc = CSIndex (ICVarLess (ie, iv)); cloc = loc}
+
+let mk_iconstless (loc: C.location) (ie: indexexp) (i: index) =
+  {cdesc = CSIndex (ICConstLess (ie, i)); cloc = loc}
 
 let mk_subty (loc: C.location) (ctv1: ctypevar) (ctv2: ctypevar) =
   {cdesc = CSCType (CTCSubtype (ctv1, ctv2)); cloc = loc}
@@ -216,7 +222,8 @@ let cstr_sat (csol: cstrsol) (c: cstr): bool =
   cstrdesc_sat csol c.cdesc
 
 let refine ((is, ss): indexsol * storesol): cstrdesc -> indexsol * storesol = function
-  | CSIndex (ICLess (ie, iv))         -> (refine_index ie iv is, ss)
+  | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
+  | CSIndex (ICConstLess (ie, i))     -> E.s <| E.error "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCInc (l, iv, ctv))      ->
       try
@@ -305,7 +312,7 @@ type cstremap = ctvemap * cstr list
 (******************************************************************************)
 
 let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (IInt 0)) iv])
+  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (IInt 0)) iv])
 
 let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref ()], [])
@@ -314,7 +321,7 @@ let bzero_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref (); fresh_ctvint int_width], [])
 
 let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_ivarless loc (IEConst ITop) iv])
 
 let assert_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvint int_width], [])
@@ -326,31 +333,31 @@ let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref ()], [])
 
 let fflush_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
 
 let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
 
 let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst (ISeq (-1, 1))) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst (ISeq (-1, 1))) iv])
 
 let fputc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width; fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width; fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
 
 let gets_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [CTRef (s, iv)], [])
 
 let atoi_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
 
 let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   with_fresh_sloc <| fun s1 -> with_fresh_indexvar <| fun iv1 ->
     with_fresh_sloc <| fun s2 -> with_fresh_indexvar <| fun iv2 -> with_fresh_indexvar <| fun ic -> with_fresh_indexvar <| fun id ->
-      (Some (CTRef (s1, iv1)), [], [mk_iless loc (IEConst (IInt 0)) iv1;
-                                    mk_iless loc (IEConst (IInt 128)) iv2;
+      (Some (CTRef (s1, iv1)), [], [mk_ivarless loc (IEConst (IInt 0)) iv1;
+                                    mk_ivarless loc (IEConst (IInt 128)) iv2;
                                     mk_storeinc loc s1 iv1 (CTRef (s2, iv2));
-                                    mk_iless loc (IEConst (ISeq (0, short_width))) id;
-                                    mk_iless loc (IEConst ITop) ic;
+                                    mk_ivarless loc (IEConst (ISeq (0, short_width))) id;
+                                    mk_ivarless loc (IEConst ITop) ic;
                                     mk_storeinc loc s2 id (CTInt (short_width, ic))])
 
 let exit_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
@@ -358,19 +365,19 @@ let exit_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
 
 let tolower_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   if !Constants.safe then E.s <| E.bug "Can't assume tolower's param is a letter@!" else C.warnLoc loc "Unsoundly assuming tolower is passed a letter@!" |> ignore;
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (ISeq (97, 1))) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (ISeq (97, 1))) iv])
 
 let longjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref (); fresh_ctvint int_width], [])
 
 let _setjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref (); fresh_ctvint int_width], [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref (); fresh_ctvint int_width], [mk_ivarless loc (IEConst ITop) iv])
 
 let qsort_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
   (None, [fresh_ctvref (); fresh_ctvint int_width; fresh_ctvint int_width; fresh_ctvref ()], [])
 
 let isatty_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_iless loc (IEConst (ISeq (0, 1))) iv])
+  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (ISeq (0, 1))) iv])
 
 let fun_stubs =
   [
@@ -403,8 +410,8 @@ let printf_funs = ["printf"; "fprintf"]
 (******************************************************************************)
 
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
-  | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_iless loc (IEConst (index_of_int (Int64.to_int v))) iv)
-  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_iless loc (IEConst (IInt (Char.code c))) iv)
+  | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_ivarless loc (IEConst (index_of_int (Int64.to_int v))) iv)
+  | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
@@ -425,9 +432,9 @@ and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t
 
 and apply_unop (op: C.unop) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv: ctypevar): ctypevar * cstremap * cstr list =
   match op with
-    | C.LNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
-    | C.BNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
-    | C.Neg  -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+    | C.LNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst (ISeq (0, 1))) iv]))
+    | C.BNot -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
+    | C.Neg  -> with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
 
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc e1 in
@@ -450,36 +457,36 @@ and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctype
 and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (ctv1, ctv2, fresh_ctvint <| typ_width rt) with
       | (CTInt (n1, iv1), CTInt (n2, iv2), (CTInt (n3, iv) as ctv)) ->
-          (ctv, em, [mk_iless loc (f iv1 iv2) iv])
+          (ctv, em, [mk_ivarless loc (f iv1 iv2) iv])
       | _ -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
 
 and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (C.unrollType pt, ctv1, ctv2) with
       | (C.TPtr (t, _), CTRef (s, iv1), CTInt (n, iv2)) when n = int_width ->
-          with_fresh_indexvar (fun iv -> (CTRef (s, iv), em, [mk_iless loc (f iv1 (typ_width t) iv2) iv]))
+          with_fresh_indexvar (fun iv -> (CTRef (s, iv), em, [mk_ivarless loc (f iv1 (typ_width t) iv2) iv]))
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and constrain_ptrminus (em: cstremap) (loc: C.location) (pt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  with_fresh_indexvar <| fun iv -> (CTInt (typ_width !C.upointType, iv), em, [mk_iless loc (IEConst ITop) iv])
+  with_fresh_indexvar <| fun iv -> (CTInt (typ_width !C.upointType, iv), em, [mk_ivarless loc (IEConst ITop) iv])
 
 and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_iless loc (IEConst (ISeq (0, 1))) iv]))
+  with_fresh_indexvar (fun iv -> (CTInt (int_width, iv), em, [mk_ivarless loc (IEConst (ISeq (0, 1))) iv]))
 
 and constrain_bitop (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
 
 and constrain_shift (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
 
 and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_iless loc (IEConst ITop) iv]))
+  with_fresh_indexvar (fun iv -> (CTInt (typ_width rt, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CStr _ ->
       with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
-        (CTRef (s, ivr), em, [mk_iless loc (IEConst (IInt 0)) ivr;
-                              mk_iless loc (IEConst (ISeq (0, 1))) ivl;
-                              mk_iless loc (IEConst ITop) ivc;
+        (CTRef (s, ivr), em, [mk_ivarless loc (IEConst (IInt 0)) ivr;
+                              mk_ivarless loc (IEConst (ISeq (0, 1))) ivl;
+                              mk_ivarless loc (IEConst ITop) ivc;
                               mk_storeinc loc s ivl (CTInt (char_width, ivc))])
       end
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
@@ -488,7 +495,7 @@ and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar 
 and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
   match (C.unrollType ct, C.unrollType <| C.typeOf e) with
     | (C.TInt (ik, _), C.TPtr _) ->
-        with_fresh_indexvar (fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, [mk_iless loc (IEConst ITop) iv]))
+        with_fresh_indexvar (fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, [mk_ivarless loc (IEConst ITop) iv]))
     | (C.TInt (ik, _), C.TInt _) ->
         begin match constrain_exp_aux ve em loc e with
           | (CTInt (n, ive), em, cs) ->
@@ -500,7 +507,7 @@ and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e:
                   IEVar ive
                 end else
                   IEConst ITop
-              in with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_iless loc ivc iv :: cs)
+              in with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_ivarless loc ivc iv :: cs)
           | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end
     | _ -> constrain_exp_aux ve em loc e
@@ -582,8 +589,8 @@ and constrain_if (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.blo
 (* pmr: Possibly a hack for now just to get some store locations going *)
 (* pmr: Let's be honest here: the following is flat-out wrong. *)
 let constrain_param: ctypevar -> cstr option = function
-  | CTRef (_, iv) -> if not !Cs.safe then Some (mk_iless Cil.builtinLoc (IEConst (IInt 0)) iv) else E.s <| E.error "Can't constrain reference parameter@!"
-  | CTInt (_, iv) -> Some (mk_iless Cil.builtinLoc (IEConst ITop) iv)
+  | CTRef (_, iv) -> if not !Cs.safe then Some (mk_ivarless Cil.builtinLoc (IEConst (IInt 0)) iv) else E.s <| E.error "Can't constrain reference parameter@!"
+  | CTInt (_, iv) -> Some (mk_ivarless Cil.builtinLoc (IEConst ITop) iv)
 
 let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
   let t = C.unrollType v.C.vtype in
