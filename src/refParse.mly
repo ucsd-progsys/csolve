@@ -100,8 +100,20 @@ indbind:
     index COLON reftype                 { ($1, $3) }
   ;
 
-reftype: 
-  LC Id COLON ctype MID pred RC         { FI.t_pred $4 (Sy.of_string $2) $6 }
+reftype:
+    INT LPAREN Num COMMA index COMMA LC Id MID pred RC RPAREN 
+                                        { let ct = Ct.CTInt ($3, $5) in
+                                          let v  = Sy.of_string $8 in 
+                                          FI.t_pred ct v $10 
+                                        }
+  
+  | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
+                                        { let ct = Ct.CTRef ($3, $5) in
+                                          let v  = Sy.of_string $8 in 
+                                          FI.t_pred ct v $10
+                                        }
+
+  | LC Id COLON ctype MID pred RC       { FI.t_pred $4 (Sy.of_string $2) $6 }
   ;
 
 ctype:

@@ -410,7 +410,7 @@ let d_ret d_i () = function
   | Some r -> P.dprintf "ret %a" (d_prectype d_i) r
 
 let d_precfun d_i () ft  = 
-  P.dprintf "forall [%a] arg (%a) ret %a store_in %a store_out %a"
+  P.dprintf "forall [%a] arg (%a) %a store_in %a store_out %a"
   d_slocs ft.qlocs
   (d_args d_i) ft.args
   (d_ret d_i) ft.ret
