@@ -7,13 +7,13 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(/* int n */){
+node_t *main(int n, int m){
   node_t *root;
   node_t *tmp;
 
   root = 0;
 
-  for(int i=0; i < 1000; i++){
+  for(int i=0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
     tmp->data = i;
     tmp->next = root;
@@ -24,4 +24,6 @@ void main(/* int n */){
     assert(tmp->data >= 0);
     //assert(tmp->data < n);
   }
+
+  return root;
 }
