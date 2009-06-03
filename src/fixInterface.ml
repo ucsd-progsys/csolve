@@ -96,7 +96,7 @@ let binds_of_refldesc l rd =
     [] rd
   |> List.rev
 
-let refldesc_subs = fun f rd -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
+let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
@@ -153,8 +153,8 @@ type cilenv  = refcfun SM.t * refctype YM.t
 let ce_rem   = fun n cenv     -> Misc.app_snd (YM.remove n) cenv
 let ce_mem   = fun n (_, vnv) -> YM.mem n vnv
 
-let ce_find n (cenv : refctype YM.t) =
-  try YM.find n cenv with Not_found -> 
+let ce_find n (_, vnv) =
+  try YM.find n vnv with Not_found -> 
     assertf "Unknown name! %s" (Sy.to_string n)
 
 let ce_find_fn s (fnv, _) =
@@ -271,9 +271,9 @@ let t_name (_, vnv) n =
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
   rct |> ctype_of_refctype |> refctype_of_reft_ctype r
 
+let t_fresh_fn = Ctypes.precfun_map t_fresh 
 
-(** STOPPED HERE **)
-
+(*
 let rec t_fresh_typ ty = 
   if !Constants.safe then assertf "t_fresh_typ" else 
     match ty with 
@@ -285,52 +285,42 @@ let rec t_fresh_typ ty =
         let args = List.map (fun (s,t,_) -> (name_of_string s, t_fresh_typ t)) sts in
         Fun (args, t_fresh_typ t)
     | _ -> assertf "t_fresh_typ: fancy type" 
+*)
 
-let t_ctype_refctype ct = function
-  | Fun _    -> assertf "merge_ctype_refctype: merge with funtype"
-  | Base rct -> Base (refctype_of_reft_ctype (reft_of_refctype rct) ct)
+let t_ctype_refctype ct rct = 
+  refctype_of_reft_ctype (reft_of_refctype rct) ct
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> C.theta
       |> Misc.app_snd
       |> Ctypes.prectype_map
-      |> refctype_map 
 
-let t_subs_exps  = refctype_subs CI.expr_of_cilexp
-
-let t_subs_names = refctype_subs A.eVar
-
-let refstore_fresh (st : Ctypes.store) : refstore = 
-  SLM.map begin fun ld -> 
-    Ctypes.LDesc.map begin fun ct -> 
-      match t_fresh ct with  Base rct -> rct | _ -> assertf "refstore_fresh"
-    end ld
-  end st
+let t_subs_exps    = refctype_subs CI.expr_of_cilexp
+let t_subs_names   = refctype_subs A.eVar
+let refstore_fresh = Ctypes.prestore_map_ct t_fresh
 
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
 
-let rec make_cs cenv p lhscr rhscr loc =
-  match lhscr, rhscr with
-  | Base rct1, Base rct2 ->
-      let env    = env_of_cilenv cenv in
-      let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-      [C.make_t env p r1 r2 None]
-  | _, _ ->
-      assertf ("TBD:make_cs")
+let rec make_cs cenv p rct1 rct2 loc =
+  let env    = env_of_cilenv cenv in
+  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
+  [C.make_t env p r1 r2 None]
 
-let rec make_wfs cenv cr loc =
-  match cr with
-  | Base rct ->
-      let env = env_of_cilenv cenv in
-      let r   = reft_of_refctype rct in
-      [C.make_wf env r None]
-  | Fun (args, ret) ->
-      let env' = ce_adds cenv args in
-      (make_wfs env' ret loc) ++ 
-      (Misc.flap (fun (_, cr) -> make_wfs env' cr loc) args)
+let make_wfs cenv rct loc =
+  let env = env_of_cilenv cenv in
+  let r   = reft_of_refctype rct in
+  [C.make_wf env r None]
+
+let make_wfs_fn cenv rft loc =
+  let args = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
+  let ret  = rft.Ctypes.ret in
+  let env' = ce_adds cenv args in
+  let rws  = match rft.Ctypes.ret with Some rct -> make_wfs env' rct loc | _ -> [] in
+  let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
+  rws ++ aws
 
 let make_cs_binds env p ncrs ncrs' bs loc =
   let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in

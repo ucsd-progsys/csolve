@@ -374,6 +374,8 @@ type 'a precfun =
     con_out     : 'a prestore;                  (* out concrete store *)
   }
 
+type cfun = index precfun
+
 (* API *)
 let mk_cfun qslocs args reto a_in a_out c_in c_out = 
   { qlocs   = qslocs; 
@@ -384,6 +386,8 @@ let mk_cfun qslocs args reto a_in a_out c_in c_out =
     con_in  = c_in; 
     con_out = c_out;
   }
+
+let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
 
 let precfun_map f ft =
   { qlocs   = ft.qlocs;

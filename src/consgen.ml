@@ -96,8 +96,8 @@ let extend_world ld binds loc (env, sto) =
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                |> FI.ce_adds env in
   let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
-  let sto'   = ld |> FI.refldesc_subs (fun i _ -> IM.find i im |> FI.t_name env') 
-                  |> FI.refstore_set sto loc in
+  let sto'   = FI.refldesc_subs ld (fun i _ -> IM.find i im |> FI.t_name env') 
+               |> FI.refstore_set sto loc in
   (env', sto')
 
 let cons_of_annot loc grd asto ((env, sto) as wld) = function 
@@ -132,7 +132,7 @@ let cons_of_set me (env, cst) = function
       let vn = FI.name_of_varinfo v in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
                |> FI.refstore_read cst 
-               |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
+               |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (FI.ce_adds env [(vn, cr)], cst) 
 
   (* v := e, where e is pure *)
@@ -140,7 +140,7 @@ let cons_of_set me (env, cst) = function
       let _  = CilMisc.check_pure_expr e in
       let vn = FI.name_of_varinfo v in
       let cr = FI.t_exp (CF.ctype_of_expr me e) e  
-               |> FI.t_ctype_reftype (CF.ctype_of_varinfo me v) in
+               |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (FI.ce_adds env [(vn, cr)], cst)
   
   (* *v := e, where e is pure *)
@@ -153,6 +153,8 @@ let cons_of_set me (env, cst) = function
   | _ -> assertf "TBD: cons_of_set"
 
 let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
+  assertf "TBDNOW: cons_of_call!"
+  (* 
   let (ncrs, cr) = FI.ce_find_fn fn env in
   let _    = asserts (List.length ncrs = List.length es) "cons_of_call: length" in
   let ns   = Misc.map fst ncrs in
@@ -168,6 +170,7 @@ let cons_of_call me loc grd (env, cst) (lvo, fn, es) =
       let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
       ((FI.ce_adds env [vn, cr'], cst), cs)
   | _  -> assertf "TBD: cons_of_call" 
+ *)
 
 let cons_of_annotinstr me loc grd wld (annots, instr) = 
   match instr with 
@@ -189,7 +192,7 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
             (* step 1: add bindings for new cells *)
             let aldesc     = FI.refstore_get (CF.get_astore me) aloc in
             let abinds     = FI.binds_of_refldesc aloc aldesc 
-                             |> List.map (Misc.app_snd FI.t_true_reftype) in
+                             |> List.map (Misc.app_snd FI.t_true_refctype) in
             let (env, sto) = extend_world aldesc abinds cloc wld in 
             (* step 2: add bindings for returned ptr *)
             let cr         = CF.ctype_of_varinfo me v |> FI.t_true in
@@ -210,10 +213,13 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
 (****************************************************************************)
 
 let cons_of_ret me loc grd (env,_) e =
+  assertf "TBDNOW: cons_of_ret"
+  (* 
   let fn      = CF.get_fname me in
   let lhs     = FI.t_exp (CF.ctype_of_expr me e) e in 
   let (_,rhs) = FI.ce_find_fn fn env in
   FI.make_cs env grd lhs rhs loc
+  *)
 
 let cons_of_annotstmt me loc grd wld (anns, stmt) = 
   match stmt.skind with
@@ -310,14 +316,16 @@ let type_of_fdec fdec =
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 
-let gnv_of_file cil =                       
+let gnv_of_file cil spec =                       
   Cil.foldGlobals cil begin
     fun gnv g ->
       match g with
       | GFun (fdec, _) ->
-          let fn = FI.name_of_varinfo fdec.svar in
-          let cr = type_of_fdec fdec |> FI.t_fresh_typ in
-          FI.ce_adds gnv [(fn, cr)] 
+          let fn = fdec.svar.vname in
+          let ft = Misc.StringMap.find fn spec 
+                   |> FI.cfun_of_refcfun
+                   |> FI.t_fresh_fn in 
+          FI.ce_adds_fn gnv [(fn, ft)] 
       | _ ->
           if !Constants.safe then assertf "gnv_of_file" else
             let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
@@ -343,8 +351,8 @@ let cons_of_globals gnv cil =
 (************************************************************************************)
 
 (* API *)
-let create (cil: Cil.file) = 
-  let gnv = gnv_of_file cil in
-  cons_of_globals gnv cil
+let create cil spec = 
+  let gnv = gnv_of_file cil spec in
+  cons_of_globals gnv cil 
   |> Misc.uncurry Consindex.create
   |> add_scis gnv (scis_of_file cil)

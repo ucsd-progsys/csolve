@@ -75,6 +75,8 @@ type 'a precfun =
     con_out     : 'a prestore;                  (* out concrete store *)
   }
 
+type cfun = index precfun
+
 val mk_cfun : sloc list 
               -> (string * 'a prectype) list 
               -> 'a prectype option 
@@ -133,5 +135,6 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
-val prestore_map : ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_find: sloc -> 'a prestore -> 'a LDesc.t
+val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
+val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t

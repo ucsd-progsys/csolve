@@ -22,5 +22,4 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val create: Cil.file -> Consindex.t
-
+val create: Cil.file -> FixInterface.refcfun Misc.StringMap.t -> Consindex.t

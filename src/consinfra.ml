@@ -66,9 +66,10 @@ let ctype_of_local locals v =
     Not_found -> assertf "ctype_of_local: unknown var %s" v.Cil.vname
 
 let env_of_fdec gnv fdec locals =
-  let (args, _) = FI.ce_find_fn (FI.name_of_varinfo fdec.svar) gnv in
-  let env0 = FI.ce_adds gnv args in
-    fdec.slocals 
+  let rft = FI.ce_find_fn fdec.svar.vname gnv in
+  let env0 = rft.Ctypes.args |> List.map (Misc.app_fst FI.name_of_string) 
+                             |> FI.ce_adds gnv in
+  fdec.slocals 
   |> List.filter ST.is_origcilvar
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
   |> FI.ce_adds env0

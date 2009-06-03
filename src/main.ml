@@ -29,7 +29,6 @@ module C  = Constraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
-
 module I  = Inferctypes 
 
 open Misc.Ops
@@ -86,7 +85,7 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
 let liquidate file =
   let cil   = mk_cil file in
   let qs    = mk_quals (file^".hquals") in
-  let me    = Consgen.create cil in
+  let me    = Consgen.create cil SM.empty (* TBDNOW: spec *) in
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let ctx,s = Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws qs in
