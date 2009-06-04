@@ -551,6 +551,9 @@ let array_flapi f a =
   |> List.rev
   |> flatten
 
+let array_fold_lefti f acc a =
+  Array.fold_left (fun (i, acc) x -> (i + 1, f i acc x)) (0, acc) a |> snd
+
 let compose f g a = f (g a)
 
 let maybe_bool = function
