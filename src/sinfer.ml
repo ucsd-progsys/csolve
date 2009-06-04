@@ -61,7 +61,7 @@ let walk_type: Ctypes.cfun = {Ctypes.qlocs   = [wloc];
                               Ctypes.con_in  = Ctypes.SLM.empty;
                               Ctypes.con_out = Ctypes.SLM.empty}
 
-let mloc = Ctypes.ALoc (-1)
+let mloc = Ctypes.CLoc (-1)
 
 let malloc_type: Ctypes.cfun = {Ctypes.qlocs   = [mloc];
                                 Ctypes.args    = [("sz", Ctypes.CTInt (4, Ctypes.ITop))];
