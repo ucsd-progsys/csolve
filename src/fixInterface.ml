@@ -125,11 +125,13 @@ let refstore_read sto cr =
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in 
+  let _  = match cl with Ctypes.ALoc _ -> assertf "refstore_write: abs" | _ -> () in
   (* let _  = assert (is_concrete cl) in *)
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in
   let ld = Ctypes.LDesc.add ploc rct' ld in
   SLM.add cl ld sto
+
 
 (*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
@@ -306,10 +308,12 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ctypes.prectype_map
 
-let t_subs_locs    = Ctypes.prectype_subs 
-let t_subs_exps    = refctype_subs CI.expr_of_cilexp
-let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = Ctypes.prestore_map_ct t_fresh
+let t_subs_locs        = Ctypes.prectype_subs 
+let t_subs_exps        = refctype_subs CI.expr_of_cilexp
+let t_subs_names       = refctype_subs A.eVar
+let refstore_fresh     = Ctypes.prestore_map_ct t_fresh
+let refstore_subs_exps = fun nes st -> Ctypes.prestore_map_ct (t_subs_exps nes) st
+
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -354,4 +358,3 @@ let make_wfs_refstore env sto loc =
   end sto []
 
 let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
-let refstore_subs    = failwith "TBDNOW: refstore_subs" 

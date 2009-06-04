@@ -48,7 +48,7 @@ val refldesc_subs       : refldesc -> (int -> refctype -> refctype) -> refldesc
 val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
-val refstore_subs       : (name * Cil.exp) list -> refstore -> refstore
+val refstore_subs_exps  : (name * Cil.exp) list -> refstore -> refstore
 
 val sorts               : Ast.Sort.t list
 

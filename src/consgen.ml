@@ -66,7 +66,7 @@ let extend_env v cr env =
 
 let rename_store lsubs subs sto = 
   sto |> Ctypes.prestore_subs lsubs 
-      |> FI.refstore_subs subs 
+      |> FI.refstore_subs_exps subs 
 
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
