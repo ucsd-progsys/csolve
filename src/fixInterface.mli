@@ -12,18 +12,17 @@ val ret_of_refcfun      : refcfun  -> refctype
 val stores_of_refcfun   : refcfun  -> refstore * refstore
 val mk_cfun             : Ctypes.sloc list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
+val name_of_string      : string -> name
+val name_of_varinfo     : Cil.varinfo -> name
+val name_fresh          : unit -> name
 
-val name_of_string: string -> name
-val name_of_varinfo: Cil.varinfo -> name
-val name_fresh: unit -> name
-
-val ce_rem    : name -> cilenv -> cilenv 
-val ce_mem    : name -> cilenv -> bool 
-val ce_empty  : cilenv
-val ce_adds   : cilenv -> (name * refctype) list -> cilenv
-val ce_find   : name -> cilenv -> refctype
-val ce_adds_fn: cilenv -> (string * refcfun) list -> cilenv
-val ce_find_fn: string -> cilenv -> refcfun
+val ce_rem              : name -> cilenv -> cilenv 
+val ce_mem              : name -> cilenv -> bool 
+val ce_empty            : cilenv
+val ce_adds             : cilenv -> (name * refctype) list -> cilenv
+val ce_find             : name -> cilenv -> refctype
+val ce_adds_fn          : cilenv -> (string * refcfun) list -> cilenv
+val ce_find_fn          : string -> cilenv -> refcfun
 
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype
@@ -55,8 +54,14 @@ val sorts               : Ast.Sort.t list
 val make_wfs            : cilenv -> refctype -> Cil.location -> Constraint.wf list
 val make_wfs_fn         : cilenv -> refcfun -> Cil.location -> Constraint.wf list
 val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> Constraint.wf list
-val make_cs             : cilenv -> Ast.pred -> refctype -> refctype -> Cil.location -> Constraint.t list
-val make_cs_binds       : cilenv -> Ast.pred -> (name * refctype) list -> (name * refctype) list -> bool list -> Cil.location -> Constraint.t list
-val make_cs_refstore    : cilenv -> Ast.pred -> refstore -> refstore -> Cil.location -> bool ->  Constraint.t list
+val make_cs             : cilenv -> Ast.pred -> 
+                          refctype -> refctype -> 
+                          Cil.location -> Constraint.t list
+val make_cs_refldesc    : cilenv -> Ast.pred -> 
+                          (Ctypes.sloc * refldesc) -> (Ctypes.sloc * refldesc) -> 
+                          Cil.location -> Constraint.t list
+val make_cs_refstore    : cilenv -> Ast.pred -> 
+                          refstore -> refstore -> bool ->
+                          Cil.location -> Constraint.t list
 
 

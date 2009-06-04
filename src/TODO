@@ -9,16 +9,8 @@ TODO
 ***************************************************************
 
 [functions]
- 
-
-ctypes.ml:let prestore_subs  = failwith "TBDNOW: prestore_subs"
-ctypes.ml:let prestore_split = failwith "TBDNOW: prestore_split"
-ctypes.ml:let prestore_upd   = failwith "TBDNOW: prestore_upd"
-ctypes.ml:let prectype_subs  = failwith "TBDNOW: prestore_subs"
 
 fixInterface.ml:let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
-fixInterface.ml:let refstore_subs    = failwith "TBDNOW: refstore_subs" 
-main.ml:  let me    = Consgen.create cil SM.empty (* TBDNOW: spec *) in
 
 
 ***************************************************************

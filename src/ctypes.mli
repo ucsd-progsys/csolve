@@ -69,11 +69,8 @@ type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a prestore;                  (* in abstract store *)
-    sto_out     : 'a prestore;                  (* out abstract store *)             
-(*    con_in      : 'a prestore;                (* in concrete store *)
-    con_out     : 'a prestore;                  (* out concrete store *)
-  *)
+    sto_in      : 'a prestore;                  (* in store *)
+    sto_out     : 'a prestore;                  (* out store *)             
   }
 
 type cfun = index precfun

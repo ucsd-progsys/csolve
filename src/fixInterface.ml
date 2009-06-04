@@ -318,12 +318,6 @@ let refstore_subs_exps = fun nes st -> Ctypes.prestore_map_ct (t_subs_exps nes) 
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
-
-let rec make_cs cenv p rct1 rct2 loc =
-  let env    = env_of_cilenv cenv in
-  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-  [C.make_t env p r1 r2 None]
-
 let make_wfs cenv rct loc =
   let env = env_of_cilenv cenv in
   let r   = reft_of_refctype rct in
@@ -336,19 +330,6 @@ let make_wfs_fn cenv rft loc =
   let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
   rws ++ aws
 
-let make_cs_binds env p ncrs ncrs' bs loc =
-  let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in
-  let _    = asserts (List.length ncrs = List.length bs)    "make_cs_block 2" in
-  let env' = ce_adds env ncrs in
-  let subs = List.map2 (fun (n,_) (n',_)  -> (n', n) ) ncrs ncrs' in
-  List.map2 (fun (n,_) (_,cr') -> (n, cr')) ncrs ncrs'
-  |> List.combine bs
-  |> Misc.flap (fun (b, (n,cr')) -> 
-                  if not b then [] else
-                    let lhs = t_name env' n in
-                    let rhs = t_subs_names subs cr' in
-                    make_cs env' p lhs rhs loc)
-
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
     let ncrs = binds_of_refldesc l rd in
@@ -357,4 +338,31 @@ let make_wfs_refstore env sto loc =
     ws' ++ ws
   end sto []
 
-let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
+let rec make_cs cenv p rct1 rct2 loc =
+  let env    = env_of_cilenv cenv in
+  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
+  [C.make_t env p r1 r2 None]
+
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
+  let ncrs1  = binds_of_refldesc sloc1 rd1 in
+  let ncrs2  = binds_of_refldesc sloc2 rd2 in
+  let _      = asserts (List.length ncrs1 = List.length ncrs2) "make_cs_refldesc" in
+  let env'   = ce_adds env ncrs1 in
+  let subs   = List.map2 (fun (n1,_) (n2,_)  -> (n2, n1) ) ncrs1 ncrs2 in
+  Misc.flap2 begin fun (n1, _) (_, cr2) -> 
+      let lhs = t_name env' n1 in
+      let rhs = t_subs_names subs cr2 in
+      make_cs env' p lhs rhs loc
+  end ncrs1 ncrs2
+
+let slocs_of_store st = 
+  Ctypes.SLM.fold (fun x _ xs -> x::xs) st []
+
+let make_cs_refstore env p st1 st2 polarity loc =
+  (if polarity then st2 else st1)
+  |> slocs_of_store 
+  |> Misc.flap begin fun sloc ->
+       let lhs = (sloc, refstore_get st1 sloc) in
+       let rhs = (sloc, refstore_get st2 sloc) in
+       make_cs_refldesc env p lhs rhs loc 
+     end

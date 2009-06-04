@@ -122,10 +122,10 @@ let wcons_of_phis me loc env vs =
 let cons_of_annot loc grd ((env, sto) as wld) = function 
   | Refanno.Gen  (cloc, aloc) -> 
       let sto'   = FI.refstore_remove cloc sto in
-      let lbinds = FI.refstore_get sto cloc |> FI.binds_of_refldesc cloc in
-      let rbinds = FI.refstore_get sto aloc |> FI.binds_of_refldesc aloc in
-      let bs     = Misc.clone true (List.length lbinds) in
-      ((env, sto'), FI.make_cs_binds env grd lbinds rbinds bs loc)
+      let ld1    = (cloc, FI.refstore_get sto cloc) in
+      let ld2    = (aloc, FI.refstore_get sto aloc) in
+      let cs     = FI.make_cs_refldesc env grd ld1 ld2 loc in
+      ((env, sto'), cs)
 
   | Refanno.Ins (aloc, cloc) ->
       let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
@@ -202,8 +202,8 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let oast, ocst = Ctypes.prestore_split ost in
 
   let cs1   = cons_of_call_params me loc grd env lsubs subs es args in 
-  let cs2   = FI.make_cs_refstore env grd st   ist loc true in
-  let cs3   = FI.make_cs_refstore env grd oast st  loc false in
+  let cs2   = FI.make_cs_refstore env grd st   ist true  loc in
+  let cs3   = FI.make_cs_refstore env grd oast st  false loc in
 
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
@@ -274,7 +274,7 @@ let cons_of_ret me loc grd (env, st) e =
   let rhs    = FI.ret_of_refcfun frt in
   let _, ost = FI.stores_of_refcfun frt in
   (FI.make_cs env grd lhs rhs loc) ++
-  (FI.make_cs_refstore env grd st ost loc true)
+  (FI.make_cs_refstore env grd st ost true loc)
 
 let cons_of_annotstmt me loc grd wld (anns, stmt) = 
   match stmt.skind with
