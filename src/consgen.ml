@@ -321,7 +321,7 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci =
-  let (locals, ctm, store)   = Inferctypes.infer_sci_shapes sci in
+  let (locals, ctm, store) = Inferctypes.infer_sci_shapes sci in
   let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
   let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array anna in
   let _ = Pretty.printf "%a\n" Refanno.d_ctab theta in 
@@ -406,7 +406,8 @@ let cons_of_globals gnv cil =
 (************************************************************************************)
 
 (* API *)
-let create cil spec = 
+let create cil spec =
+  let _   = failwith "TBDNOW: Consgen.create hookup with infer_shapes" in
   let gnv = gnv_of_file cil spec in
   cons_of_globals gnv cil 
   |> Misc.uncurry Consindex.create
