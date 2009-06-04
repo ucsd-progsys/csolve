@@ -100,6 +100,11 @@ let (fresh_sloc, reset_fresh_slocs) =
   let f'   = fun () -> ALoc (f ()) in
     (f', g)
 
+let (inst_sloc, reset_inst_slocs) =
+  let f, g = M.mk_int_factory () in
+  let f'   = function ALoc _ -> ALoc (f ()) | CLoc _ -> CLoc (f ()) in
+    (f', g)
+
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
@@ -464,7 +469,7 @@ let rename_prestore (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
 
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_out = oas; con_in = ics; con_out = ocs}: 'a precfun): 'a precfun * (sloc * sloc) list =
   let _          = assert (ics = SLM.empty && ocs = SLM.empty) in
-  let lmap       = List.map (fun l -> (l, fresh_sloc ())) ls in
+  let lmap       = List.map (fun l -> (l, inst_sloc l)) ls in
   let rename_pct = rename_prectype lmap in
   let rename_ps  = rename_prestore lmap in
     ({qlocs   = [];
