@@ -660,18 +660,20 @@ let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (C.varinfo
 
 type shape = (C.varinfo * ctype) list * ctemap * store (* * block_annotation array *)
 
-let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): shape =
+let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap =
+  M.array_fold_lefti (fun i em b -> constrain_stmt env vars em b.Ssa.bstmt) (ExpMap.empty, []) cfg.Ssa.blocks
+
+let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                 = fd.C.svar.C.vdecl in
   let (formals, formalcs) = instantiate_args loc argcts in
   let bodyformals         = fresh_vars fd.C.sformals in
   let bodyformalcs        = List.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
   let locals              = fresh_vars fd.C.slocals in
-  let ve                  = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
-  let phics               = mk_phis_cs ve phis in
+  let vars                = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
+  let phics               = mk_phis_cs vars phis in
   let storecs             = instantiate_store loc ias in
-  let (ctvm, bodycs)      = constrain_block env ve (ExpMap.empty, []) fd.C.sbody in
-  let cs                  = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] in
-  let (us, is, ss)        = solve cs in
+  let (ctvm, bodycs)      = constrain_cfg env vars cfg in
+  let (us, is, ss)        = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol           = M.compose (apply_unifiers us) (ctypevar_apply is) in
     (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
      ExpMap.map apply_sol ctvm,
