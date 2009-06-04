@@ -480,3 +480,8 @@ end
 module ExpMap = Map.Make (ExpKey)
 
 module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
+
+type ctemap = ctype ExpMap.t
+
+let d_ctemap () (em: ctemap): Pretty.doc =
+  ExpMapPrinter.d_map "\n" Cil.d_exp d_ctype () em

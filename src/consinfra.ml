@@ -49,7 +49,7 @@ type t = {
   wldm    : wld IM.t;
   gnv     : FI.cilenv; 
   formalm : unit SM.t;
-  etm     : Inferctypes.ctemap;
+  etm     : Ctypes.ctemap;
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;

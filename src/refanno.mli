@@ -19,4 +19,4 @@ val d_ctab: unit -> ctab -> Pretty.doc
 (* input: cfg with n blocks of length l_i ... l_n
  * output: array of block annotations of length l_i ... l_n
  *         map from variable names to concrete locations *)
-val annotate_cfg: Ssa.cfgInfo -> Inferctypes.ctemap -> block_annotation array * ctab
+val annotate_cfg: Ssa.cfgInfo -> Ctypes.ctemap -> block_annotation array * ctab
