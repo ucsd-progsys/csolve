@@ -466,3 +466,17 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_ou
 (******************************************************************************)
 
 type ctypeenv = cfun Misc.StringMap.t
+
+(******************************************************************************)
+(******************************* Expression Maps ******************************)
+(******************************************************************************)
+
+(* pmr: need to check that expressions have unique types (which should certainly hold anyway) *)
+module ExpKey = struct
+  type t      = Cil.exp
+  let compare = compare
+end
+
+module ExpMap = Map.Make (ExpKey)
+
+module ExpMapPrinter = P.MakeMapPrinter(ExpMap)

@@ -34,7 +34,7 @@ module SM = Misc.StringMap
 module C  = Constraint
 module FI = FixInterface 
 module CI = CilInterface
-module EM = Inferctypes.ExpMap
+module EM = Ctypes.ExpMap
 
 
 open Misc.Ops
