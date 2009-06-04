@@ -110,6 +110,8 @@ module ExpMapPrinter:
       (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
   end
 
+type ctemap = ctype ExpMap.t
+
 val mk_cfun : sloc list 
               -> (string * 'a prectype) list 
               -> 'a prectype option 
@@ -128,6 +130,7 @@ val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
+val d_ctemap: unit -> ctemap -> Pretty.doc
 
 (******************************************************************************)
 (****************************** Index Operations ******************************)
