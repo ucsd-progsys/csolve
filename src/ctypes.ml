@@ -433,7 +433,7 @@ let d_precfun d_i () ft  =
   (d_precstore d_i) ft.abs_out
 
 let rename_prectype (subs: (sloc * sloc) list) (pct: 'a prectype): 'a prectype =
-  List.fold_right prectype_replace_sloc subs pct
+  List.fold_right (M.uncurry <| prectype_replace_sloc) subs pct
 
 let rename_prestore (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
   let cns = LDesc.map (rename_prectype subs) in
