@@ -9,22 +9,16 @@ TODO
 ***************************************************************
 
 [functions]
+ 
 
-cons_of_call
+ctypes.ml:let prestore_subs  = failwith "TBDNOW: prestore_subs"
+ctypes.ml:let prestore_split = failwith "TBDNOW: prestore_split"
+ctypes.ml:let prestore_upd   = failwith "TBDNOW: prestore_upd"
+ctypes.ml:let prectype_subs  = failwith "TBDNOW: prestore_subs"
 
-cons_of_ret
-
-val store_split: 'a precstore -> 'a precstore * 'a precstore
-	
-val store_join: 'a precstore * 'a precstore -> 'a precstore
-	store_join(sto1, sto2) = sto s.t.
-	(1) locs(sto1) \cap locs(sto2) = \emptyset
-	(2) sto = "union" of sto1, sto2
-
-val make_cs_refstore: polarity -> cilenv -> Ast.pred -> refstore -> refstore -> location -> Constraint.t list
-
-val store_update: 'a precstore -> 'a precstore -> 'a precstore
-
+fixInterface.ml:let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
+fixInterface.ml:let refstore_subs    = failwith "TBDNOW: refstore_subs" 
+main.ml:  let me    = Consgen.create cil SM.empty (* TBDNOW: spec *) in
 
 
 ***************************************************************
@@ -91,5 +85,6 @@ while (1) do:
 L: s2
 
 ------------------------
+
 
 
