@@ -367,15 +367,12 @@ let prestore_map f =
 let prestore_map_ct f =
   SLM.map (LDesc.map f)
 
-<<<<<<< HEAD:src/ctypes.ml
-=======
 let prestore_fold f b ps =
   SLM.fold begin fun l ld b ->
     let p = LDesc.get_period ld |> M.get_option 0 in
       LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
   end ps b
 
->>>>>>> Merges with ctypes:src/ctypes.ml
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
@@ -419,8 +416,6 @@ type 'a precfun =
 
 type cfun = index precfun
 
-<<<<<<< HEAD:src/ctypes.ml
-=======
 (* API *)
 let mk_cfun qslocs args reto a_in a_out c_in c_out = 
   { qlocs   = qslocs; 
@@ -432,7 +427,6 @@ let mk_cfun qslocs args reto a_in a_out c_in c_out =
     con_out = c_out;
   }
 
->>>>>>> Merges with ctypes:src/ctypes.ml
 let precfun_map f ft =
   { qlocs   = ft.qlocs;
     args    = List.map (Misc.app_snd f) ft.args;
@@ -481,4 +475,13 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_ou
       con_in  = ics;
       con_out = ocs},
      lmap)
+<<<<<<< HEAD:src/ctypes.ml
 >>>>>>> Merges with ctypes:src/ctypes.ml
+=======
+
+(******************************************************************************)
+(******************************** Environments ********************************)
+(******************************************************************************)
+
+type ctypeenv = cfun Misc.StringMap.t
+>>>>>>> Use type annotations when inferring shapes:src/ctypes.ml

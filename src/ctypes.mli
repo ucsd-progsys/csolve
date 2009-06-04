@@ -75,6 +75,14 @@ type 'a precfun =
 
 type cfun = index precfun
 
+type ctypeenv = cfun Misc.StringMap.t
+
+val mk_cfun : sloc list 
+              -> (string * 'a prectype) list 
+              -> 'a prectype option 
+              -> 'a prestore -> 'a prestore -> 'a prestore -> 'a prestore 
+              -> 'a precfun
+
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 
