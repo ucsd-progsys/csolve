@@ -111,6 +111,14 @@ val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
+val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
+
+(******************************************************************************)
+(************************** Store Location Operations *************************)
+(******************************************************************************)
+
+val fresh_sloc: unit -> sloc
+val reset_fresh_slocs: unit -> unit
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)
