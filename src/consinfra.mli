@@ -35,7 +35,7 @@ val guard_of_block: t -> int -> Ast.pred
 val add_wld     : int -> wld -> t -> t
 val add_cons    : Constraint.wf list -> Constraint.t list -> t -> t
 val get_cons    : t -> Constraint.wf list * Constraint.t list
-val get_fname   : t -> FixInterface.name
+val get_fname   : t -> string 
 val get_astore  : t -> FixInterface.refstore
 val is_undefined: t -> Cil.varinfo -> bool
 

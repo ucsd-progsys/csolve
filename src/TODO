@@ -15,11 +15,7 @@ cons_of_call
 cons_of_ret
 
 val store_split: 'a precstore -> 'a precstore * 'a precstore
-	store_split sto = (asto, csto) s.t. 
-	(1) sto = store_join asto csto
-	(2) locs(asto) \in abslocs
-	(3) locs(csto) \in conlocs
-
+	
 val store_join: 'a precstore * 'a precstore -> 'a precstore
 	store_join(sto1, sto2) = sto s.t.
 	(1) locs(sto1) \cap locs(sto2) = \emptyset

@@ -71,7 +71,17 @@ let ctype_of_refctype = function
   | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
 
 (* API *)
-let cfun_of_refcfun = Ctypes.precfun_map ctype_of_refctype 
+let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
+let args_of_refcfun   = fun ft -> List.map (Misc.app_fst name_of_string) ft.Ctypes.args
+let ret_of_refcfun    = fun ft -> ft.Ctypes.ret
+let stores_of_refcfun = fun ft -> (ft.Ctypes.sto_in, ft.Ctypes.sto_out)
+let mk_cfun qslocs args ist ret ost = 
+  { Ctypes.qlocs   = qslocs; 
+    Ctypes.args    = args;
+    Ctypes.ret     = ret;
+    Ctypes.sto_in  = ist;
+    Ctypes.sto_out = ost; }
+
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
@@ -115,6 +125,7 @@ let refstore_read sto cr =
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in 
+  (* let _  = assert (is_concrete cl) in *)
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in
   let ld = Ctypes.LDesc.add ploc rct' ld in
@@ -135,7 +146,7 @@ let true_int  = int_refctype_of_ras []
 let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
 let mk_pure_cfun args ret = 
-  Ctypes.mk_cfun [] args refstore_empty ret refstore_empty
+  mk_cfun [] args refstore_empty ret refstore_empty
 
 let builtins    = []
 
@@ -295,6 +306,7 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ctypes.prectype_map
 
+let t_subs_locs    = Ctypes.prectype_subs 
 let t_subs_exps    = refctype_subs CI.expr_of_cilexp
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = Ctypes.prestore_map_ct t_fresh
@@ -341,3 +353,9 @@ let make_wfs_refstore env sto loc =
     let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in
     ws' ++ ws
   end sto []
+
+let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
+let refstore_subs    = failwith "TBDNOW: refstore_subs" 
+let refstore_lsubs   = Ctypes.prestore_subs
+let refstore_split   = Ctypes.prestore_split
+let refstore_upd     = Ctypes.prestore_upd

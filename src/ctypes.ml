@@ -379,17 +379,6 @@ type 'a precfun =
 
 type cfun = index precfun
 
-(* API *)
-let mk_cfun qslocs args sto_in reto sto_out = 
-  { qlocs   = qslocs; 
-    args    = args;
-    ret     = reto;
-    sto_in  = sto_in;
-    sto_out = sto_out;
-(*    con_in  = c_in; 
-    con_out = c_out; *)
-  }
-
 let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
 
 let precfun_map f ft =
@@ -419,3 +408,9 @@ let d_precfun d_i () ft  =
   (d_prectype d_i) ft.ret
   (d_precstore d_i) ft.sto_in
   (d_precstore d_i) ft.sto_out
+
+
+let prestore_subs  = failwith "TBDNOW: prestore_subs"
+let prestore_split = failwith "TBDNOW: prestore_split"
+let prestore_upd   = failwith "TBDNOW: prestore_upd"
+let prectype_subs  = failwith "TBDNOW: prestore_subs"

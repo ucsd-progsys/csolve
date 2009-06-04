@@ -78,13 +78,6 @@ type 'a precfun =
 
 type cfun = index precfun
 
-val mk_cfun : sloc list 
-              -> (string * 'a prectype) list
-              -> 'a prestore
-              -> 'a prectype 
-              -> 'a prestore  
-              -> 'a precfun
-
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 
@@ -141,3 +134,17 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t
+
+
+val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+(** [prestore_split sto] returns (asto, csto) s.t. 
+	(1) sto = asto + csto
+	(2) locs(asto) \in abslocs 
+	(3) locs(csto) \in conlocs *)
+
+val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
+(** [prestore_upd st1 st2] returns the store obtained by overwriting the
+    common locations of st1 and st2 with the blocks appearing in st2 *)
+
+val prestore_subs   : (sloc * sloc) list -> 'a prestore ->  'a prestore
+val prectype_subs   : (sloc * sloc) list -> 'a prectype ->  'a prectype
