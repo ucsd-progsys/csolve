@@ -77,6 +77,8 @@ type 'a precfun =
 
 type cfun = index precfun
 
+type ctypeenv = cfun Misc.StringMap.t
+
 val mk_cfun : sloc list 
               -> (string * 'a prectype) list 
               -> 'a prectype option 
