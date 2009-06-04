@@ -119,6 +119,14 @@ val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
+val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
+
+(******************************************************************************)
+(************************** Store Location Operations *************************)
+(******************************************************************************)
+
+val fresh_sloc: unit -> sloc
+val reset_fresh_slocs: unit -> unit
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)
@@ -136,6 +144,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
-val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t
+val prestore_map_ct: ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+val prestore_map: ('a -> 'b) -> 'a prestore -> 'b prestore
+val prestore_fold: ('a -> sloc -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
+val prestore_find: sloc -> 'a prestore -> 'a LDesc.t

@@ -91,6 +91,11 @@ let is_subindex (i1: index) (i2: index): bool =
 
 type sloc = ALoc of int | CLoc of int   (* store location *)
 
+let (fresh_sloc, reset_fresh_slocs) =
+  let f, g = M.mk_int_factory () in
+  let f'   = fun () -> ALoc (f ()) in
+    (f', g)
+
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
@@ -320,6 +325,9 @@ module LDesc = struct
       | Uniform pct     -> f 0 b PLEverywhere pct
       | NonUniform pcts -> foldn_aux f 0 b pcts
 
+  let fold (f: 'a -> ploc -> 'b prectype -> 'a) (b: 'a) (ld: 'b t): 'a =
+    foldn (fun _ b pl pct -> f b pl pct) b ld
+
   let mapn (f: int -> ploc -> 'a prectype -> 'b prectype) ((po, cnts): 'a t): 'b t =
     match cnts with
       | Empty           -> (po, Empty)
@@ -349,6 +357,15 @@ type 'a prestore = ('a LDesc.t) SLM.t
 
 let prestore_map f =
   f |> prectype_map |> LDesc.map |> SLM.map
+
+let prestore_map_ct f =
+  SLM.map (LDesc.map f)
+
+let prestore_fold f b ps =
+  SLM.fold begin fun l ld b ->
+    let p = LDesc.get_period ld |> M.get_option 0 in
+      LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
+  end ps b
 
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
@@ -390,8 +407,6 @@ let mk_cfun qslocs args reto a_in a_out c_in c_out =
     con_out = c_out;
   }
 
-let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
-
 let precfun_map f ft =
   { qlocs   = ft.qlocs;
     args    = List.map (Misc.app_snd f) ft.args;
@@ -416,3 +431,27 @@ let d_precfun d_i () ft  =
   (d_ret d_i) ft.ret
   (d_precstore d_i) ft.abs_in
   (d_precstore d_i) ft.abs_out
+
+let rename_prectype (subs: (sloc * sloc) list) (pct: 'a prectype): 'a prectype =
+  List.fold_right prectype_replace_sloc subs pct
+
+let rename_prestore (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
+  let cns = LDesc.map (rename_prectype subs) in
+    SLM.fold begin fun l ld sm ->
+      let l = try List.assoc l subs with Not_found -> l in
+        SLM.add l (cns ld) sm
+    end ps SLM.empty
+
+let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_out = oas; con_in = ics; con_out = ocs}: 'a precfun): 'a precfun * (sloc * sloc) list =
+  let _          = assert (ics = SLM.empty && ocs = SLM.empty) in
+  let lmap       = List.map (fun l -> (l, fresh_sloc ())) ls in
+  let rename_pct = rename_prectype lmap in
+  let rename_ps  = rename_prestore lmap in
+    ({qlocs   = [];
+      args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
+      ret     = M.map_opt rename_pct rcts;
+      abs_in  = rename_ps ias;
+      abs_out = rename_ps oas;
+      con_in  = ics;
+      con_out = ocs},
+     lmap)
