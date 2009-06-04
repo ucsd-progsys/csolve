@@ -91,6 +91,10 @@ let is_subindex (i1: index) (i2: index): bool =
 
 type sloc = ALoc of int | CLoc of int   (* store location *)
 
+let sloc_is_abstract: sloc -> bool = function
+  | ALoc _ -> true
+  | CLoc _ -> false
+
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
@@ -115,8 +119,10 @@ let prectype_replace_sloc (s1: sloc) (s2: sloc): 'a prectype -> 'a prectype = fu
   | CTRef (s3, i) when s3 = s1 -> CTRef (s2, i)
   | pct                        -> pct
 
-type ctype = index prectype
+let prectype_subs (subs: (sloc * sloc) list) (pct: 'a prectype): 'a prectype =
+  List.fold_right (M.uncurry prectype_replace_sloc) subs pct
 
+type ctype = index prectype
 
 let d_ctype () (ct: ctype): P.doc =
   d_prectype d_index () ct
@@ -350,8 +356,27 @@ type 'a prestore = ('a LDesc.t) SLM.t
 let prestore_map f =
   f |> prectype_map |> LDesc.map |> SLM.map
 
+let prestore_map_ct f =
+  SLM.map (LDesc.map f)
+
 let prestore_find (l: sloc) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
+
+let prestore_subs (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
+  prestore_map_ct (prectype_subs subs) ps
+
+let prestore_upd (ps1: 'a prestore) (ps2: 'a prestore): 'a prestore =
+  SLM.fold SLM.add ps2 ps1
+
+let prestore_filter (f: sloc -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestore * 'a prestore =
+  SLM.fold begin fun l ld (ps1, ps2) ->
+    if f l ld then
+      (SLM.add l ld ps1, ps2)
+    else (ps1, SLM.add l ld ps2)
+  end ps (SLM.empty, SLM.empty)
+
+let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+  prestore_filter (fun l _ -> sloc_is_abstract l) ps
 
 type store = index prestore
 
@@ -378,8 +403,6 @@ type 'a precfun =
   }
 
 type cfun = index precfun
-
-let prestore_map_ct = fun f -> SLM.map (LDesc.map f)
 
 let precfun_map f ft =
   { qlocs   = ft.qlocs;
@@ -410,7 +433,7 @@ let d_precfun d_i () ft  =
   (d_precstore d_i) ft.sto_out
 
 
-let prestore_subs  = failwith "TBDNOW: prestore_subs"
+
 let prestore_split = failwith "TBDNOW: prestore_split"
 let prestore_upd   = failwith "TBDNOW: prestore_upd"
 let prectype_subs  = failwith "TBDNOW: prestore_subs"
