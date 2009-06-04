@@ -327,7 +327,6 @@ let make_wfs cenv rct loc =
 
 let make_wfs_fn cenv rft loc =
   let args = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
-  let ret  = rft.Ctypes.ret in
   let env' = ce_adds cenv args in
   let rws  = make_wfs env' rft.Ctypes.ret loc in
   let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
@@ -356,6 +355,3 @@ let make_wfs_refstore env sto loc =
 
 let make_cs_refstore = failwith "TBDNOW: make_cs_refstore"
 let refstore_subs    = failwith "TBDNOW: refstore_subs" 
-let refstore_lsubs   = Ctypes.prestore_subs
-let refstore_split   = Ctypes.prestore_split
-let refstore_upd     = Ctypes.prestore_upd

@@ -398,8 +398,6 @@ type 'a precfun =
     ret         : 'a prectype;                  (* return *)
     sto_in      : 'a prestore;                  (* in store *)
     sto_out     : 'a prestore;                  (* out store *)
-    (* con_in      : 'a prestore;               (* in concrete store *) *)
-    (* con_out     : 'a prestore;               (* out concrete store *) *)
   }
 
 type cfun = index precfun
@@ -410,19 +408,11 @@ let precfun_map f ft =
     ret     = (* Misc.map_opt *) f ft.ret;
     sto_in  = SLM.map (LDesc.map f) ft.sto_in;
     sto_out = SLM.map (LDesc.map f) ft.sto_out;
-    (* con_in  = SLM.map (LDesc.map f) ft.con_in;
-       con_out = SLM.map (LDesc.map f) ft.con_out; *)
   }
 
 let d_slocs () slocs     = P.seq (P.text ";") (d_sloc ()) slocs
 let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
 let d_args d_i () args   = P.seq (P.text ", ") (d_arg d_i ()) args
-
-(*
-let d_ret d_i () = function
-  | None -> P.dprintf ""
-  | Some r -> P.dprintf "ret %a" (d_prectype d_i) r
-*)
 
 let d_precfun d_i () ft  = 
   P.dprintf "forall [%a] arg (%a) %a store_in %a store_out %a"
@@ -431,9 +421,3 @@ let d_precfun d_i () ft  =
   (d_prectype d_i) ft.ret
   (d_precstore d_i) ft.sto_in
   (d_precstore d_i) ft.sto_out
-
-
-
-let prestore_split = failwith "TBDNOW: prestore_split"
-let prestore_upd   = failwith "TBDNOW: prestore_upd"
-let prectype_subs  = failwith "TBDNOW: prestore_subs"
