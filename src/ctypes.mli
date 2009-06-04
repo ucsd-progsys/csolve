@@ -77,6 +77,39 @@ type cfun = index precfun
 
 type ctypeenv = cfun Misc.StringMap.t
 
+module ExpKey:
+  sig
+    type t = Cil.exp
+    val compare: t -> t -> int
+  end
+
+module ExpMap:
+  sig
+    type key = ExpKey.t
+    type 'a t = 'a Map.Make(ExpKey).t
+    val empty : 'a t
+    val is_empty : 'a t -> bool
+    val add : key -> 'a -> 'a t -> 'a t
+    val find : key -> 'a t -> 'a
+    val remove : key -> 'a t -> 'a t
+    val mem : key -> 'a t -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  end
+
+module ExpMapPrinter:
+  sig
+    val d_map:
+      ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
+      string ->
+      (unit -> ExpMap.key -> Pretty.doc) ->
+      (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
+  end
+
 val mk_cfun : sloc list 
               -> (string * 'a prectype) list 
               -> 'a prectype option 

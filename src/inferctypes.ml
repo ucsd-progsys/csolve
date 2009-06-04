@@ -294,16 +294,6 @@ let fresh_ctypevar (t: C.typ): ctypevar =
 (******************************* Shape Solutions ******************************)
 (******************************************************************************)
 
-(* pmr: need to check that expressions have unique types (which should certainly hold anyway) *)
-module ExpKey = struct
-  type t      = C.exp
-  let compare = compare
-end
-
-module ExpMap = Map.Make (ExpKey)
-
-module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
-
 type ctvemap = ctypevar ExpMap.t
 
 type ctemap = ctype ExpMap.t

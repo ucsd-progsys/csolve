@@ -36,7 +36,7 @@ let loc_of_var_expr theta =
   loc_rec
 
 let sloc_of_expr ctm e =
-  match Inferctypes.ExpMap.find e ctm with
+  match Ctypes.ExpMap.find e ctm with
   | Ctypes.CTInt _ -> None
   | Ctypes.CTRef (s, _) -> Some s
 

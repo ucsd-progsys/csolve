@@ -448,14 +448,9 @@ let d_precfun d_i () ft  =
   P.dprintf "forall [%a] arg (%a) %a store_in %a store_out %a"
   d_slocs ft.qlocs
   (d_args d_i) ft.args
-<<<<<<< HEAD:src/ctypes.ml
   (d_prectype d_i) ft.ret
   (d_precstore d_i) ft.sto_in
   (d_precstore d_i) ft.sto_out
-=======
-  (d_ret d_i) ft.ret
-  (d_precstore d_i) ft.abs_in
-  (d_precstore d_i) ft.abs_out
 
 let rename_prectype (subs: (sloc * sloc) list) (pct: 'a prectype): 'a prectype =
   List.fold_right (M.uncurry <| prectype_replace_sloc) subs pct
@@ -480,13 +475,24 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_ou
       con_in  = ics;
       con_out = ocs},
      lmap)
-<<<<<<< HEAD:src/ctypes.ml
->>>>>>> Merges with ctypes:src/ctypes.ml
-=======
 
 (******************************************************************************)
 (******************************** Environments ********************************)
 (******************************************************************************)
 
 type ctypeenv = cfun Misc.StringMap.t
->>>>>>> Use type annotations when inferring shapes:src/ctypes.ml
+
+(******************************************************************************)
+(******************************* Expression Maps ******************************)
+(******************************************************************************)
+
+(* pmr: need to check that expressions have unique types (which should certainly hold anyway) *)
+module ExpKey = struct
+  type t      = Cil.exp
+  let compare = compare
+end
+
+module ExpMap = Map.Make (ExpKey)
+
+module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
+>>>>>>> Move ExpMap into Ctypes to avoid circular dependencies:src/ctypes.ml
