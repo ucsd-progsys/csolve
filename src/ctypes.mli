@@ -165,6 +165,7 @@ val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
 
 val fresh_sloc: unit -> sloc
 val reset_fresh_slocs: unit -> unit
+val abstract_sloc: sloc -> sloc
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)

@@ -260,9 +260,11 @@ let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
               (cs, sus, is, ss)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
-                let cs = List.map (cstr_replace_sloc s1 s2) cs in
-                let ss = SLM.map (LDesc.map (prectype_replace_sloc s1 s2)) (SLM.remove s1 ss) in
-                  (cs, SUnify (s1, s2) :: sus, is, ss)
+                let s  = Ctypes.abstract_sloc s2 in
+                let cs = List.map (M.compose (cstr_replace_sloc s1 s) (cstr_replace_sloc s2 s)) cs in
+                let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
+                let ss = SLM.map (LDesc.map (M.compose (prectype_replace_sloc s1 s) (prectype_replace_sloc s2 s))) ss in
+                  (cs, SUnify (s1, s) :: SUnify (s2, s) :: sus, is, ss)
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
             | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
         in solve_rec cs (sus, is, ss)

@@ -101,6 +101,9 @@ let (inst_sloc, reset_inst_slocs) =
   let f'   = function ALoc _ -> ALoc (f ()) | CLoc _ -> CLoc (f ()) in
     (f', g)
 
+let abstract_sloc: sloc -> sloc = function
+  | ALoc l | CLoc l -> ALoc l
+
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of sloc * 'a (* reference *)
