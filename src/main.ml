@@ -121,7 +121,7 @@ let mk_options () =
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 
-let main () = 
+let main () =
   let _ = print_header () in
   let f = mk_options () in
     if liquidate f then begin

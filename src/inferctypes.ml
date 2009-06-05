@@ -460,8 +460,14 @@ let instantiate_ret (loc: C.location): ctype option -> ctypevar option * cstr li
 let instantiate_store (loc: C.location) (st: store): cstr list =
   prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st |> List.concat
 
+let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (sloc * sloc) list =
+  try
+    M.StringMap.find f env |> cfun_instantiate
+  with Not_found ->
+    E.s <| C.errorLoc loc "Couldn't find spec for function %s@!@!" f
+
 let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar option * ctypevar list * cstr list * RA.annotation list =
-  let ({args = argcts; ret = rcto; abs_out = oas}, subs) = M.StringMap.find f env |> cfun_instantiate in
+  let ({args = argcts; ret = rcto; abs_out = oas}, subs) = lookup_function loc env f in
     (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
   let (rctvo, rctocs)  = instantiate_ret loc rcto in
