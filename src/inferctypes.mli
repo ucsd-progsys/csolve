@@ -1,4 +1,4 @@
-type shape = (Cil.varinfo * Ctypes.ctype) list * Ctypes.ctemap * Ctypes.store (* * block_annotation array *)
+type shape = (Cil.varinfo * Ctypes.ctype) list * Ctypes.ctemap * Ctypes.store * Refanno.block_annotation array
 
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
 
