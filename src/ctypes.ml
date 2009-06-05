@@ -467,9 +467,9 @@ let rename_prestore (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
 
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_out = oas; con_in = ics; con_out = ocs}: 'a precfun): 'a precfun * (sloc * sloc) list =
   let _          = assert (ics = SLM.empty && ocs = SLM.empty) in
-  let lmap       = List.map (fun l -> (l, inst_sloc l)) ls in
-  let rename_pct = rename_prectype lmap in
-  let rename_ps  = rename_prestore lmap in
+  let subs       = List.map (fun l -> (l, inst_sloc l)) ls in
+  let rename_pct = rename_prectype subs in
+  let rename_ps  = rename_prestore subs in
     ({qlocs   = [];
       args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
       ret     = M.map_opt rename_pct rcts;
@@ -477,7 +477,7 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_ou
       abs_out = rename_ps oas;
       con_in  = ics;
       con_out = ocs},
-     lmap)
+     subs)
 
 (******************************************************************************)
 (******************************** Environments ********************************)
