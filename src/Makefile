@@ -29,8 +29,10 @@ all:
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
 	for t in $(TARGETS); \
-	 do ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t; \
+	 do \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t; \
 	 done
+	for t in $(TARGETS); do ln -sf _build/$$t; done
 
 clean:
 	rm -rf *.byte *.native _build _log
