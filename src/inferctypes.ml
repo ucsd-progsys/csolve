@@ -4,6 +4,7 @@ module C  = Cil
 module Cs = Constants
 module E  = Errormsg
 module ST = Ssa_transform
+module RA = Refanno
 
 open Ctypes
 open M.Ops
@@ -555,56 +556,54 @@ let instantiate_ret (loc: C.location): ctype option -> ctypevar option * cstr li
 let instantiate_store (loc: C.location) (st: store): cstr list =
   prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st |> List.concat
 
-let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar option * ctypevar list * cstr list =
+let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar option * ctypevar list * cstr list * RA.annotation list =
   let ({args = argcts; ret = rcto; abs_out = oas}, subs) = M.StringMap.find f env |> cfun_instantiate in
     (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
   let (rctvo, rctocs)  = instantiate_ret loc rcto in
   let storecs          = instantiate_store loc oas in
-    (rctvo, argctvs, List.concat [storecs; rctocs; argcs])
+    (rctvo, argctvs, List.concat [storecs; rctocs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
 
-let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap =
-  let (ctvs, (ctvm, argcs)) = constrain_args ve em loc args in
-  let (rtvo, atvs, ics)     = instantiate_function loc env f in
-  let (ctvm, cs)            = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
+let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
+  let (ctvs, (ctvm, argcs))    = constrain_args ve em loc args in
+  let (rtvo, atvs, ics, annot) = instantiate_function loc env f in
+  let (ctvm, cs)               = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
     match (lvo, rtvo) with
-      | (None, _)           -> (ctvm, cs)
+      | (None, _)           -> ((ctvm, cs), annot)
       | (Some _, None)      -> E.s <| C.errorLoc loc "Attempting to assign void value in call@!"
       | (Some lv, Some rtv) ->
           let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
-            (ctvm, mk_subty loc rtv lvctv :: cs)
+            ((ctvm, mk_subty loc rtv lvctv :: cs), annot)
 
-let constrain_instr (env: ctypeenv) (ve: ctvenv) (em: cstremap): C.instr -> cstremap = function
+let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.block_annotation): C.instr -> cstremap * RA.block_annotation = function
   | C.Set (lv, e, loc) ->
       let (ctv1, em1)        = constrain_lval ve em loc lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc e in
-        (ctvm, mk_subty loc ctv2 ctv1 :: cs)
+        ((ctvm, mk_subty loc ctv2 ctv1 :: cs), bas)
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
-      constrain_args ve em loc args |> snd
+      (constrain_args ve em loc args |> snd, bas)
   | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
-      constrain_app env ve em loc f lvo args
+      let (em, ba) = constrain_app env ve em loc f lvo args in
+        (em, ba :: bas)
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let rec constrain_block (env: ctypeenv) (ve: ctvenv) (em: cstremap) (b: C.block): cstremap =
-  List.fold_left (constrain_stmt env ve) em b.C.bstmts
+let constrain_instr (env: ctypeenv) (ve: ctvenv) (em: cstremap) (is: C.instr list): cstremap * RA.block_annotation =
+  let (em, bas) = List.fold_left (constrain_instr_aux env ve) (em, []) is in
+    (em, List.rev bas)
 
-and constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap =
+let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap * RA.block_annotation =
   match s.C.skind with
-    | C.Block b              -> constrain_block env ve em b
-    | C.Instr is             -> List.fold_left (constrain_instr env ve) em is
-    | C.If (e, b1, b2, _)    -> constrain_if env ve em e b1 b2
-    | C.Loop (b, _, _, _)    -> constrain_block env ve em b
-    | C.Break _              -> em
-    | C.Continue _           -> em
-    | C.Goto _               -> em
-    | C.Return (Some e, loc) -> snd (constrain_exp ve em loc e)
-    | C.Return (None, _)     -> em
+    | C.Instr is             -> constrain_instr env ve em is
+    | C.Break _              -> (em, [])
+    | C.Continue _           -> (em, [])
+    | C.Goto _               -> (em, [])
+    | C.Block _              -> (em, [])                              (* we'll visit this later as we iterate through blocks *)
+    | C.If (e, _, _, loc)    -> (snd (constrain_exp ve em loc e), []) (* we'll visit the subblocks on a later pass *)
+    | C.Loop (_, _, _, _)    -> (em, [])                              (* ditto *)
+    | C.Return (Some e, loc) -> (snd (constrain_exp ve em loc e), [])
+    | C.Return (None, _)     -> (em, [])
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
-
-and constrain_if (env: ctypeenv) (ve: ctvenv) (em: cstremap) (e: C.exp) (b1: C.block) (b2: C.block): cstremap =
-  let (ctv, (ctvm, cs)) = constrain_exp ve em Cil.builtinLoc e in
-    constrain_block env ve (constrain_block env ve (ctvm, cs) b1) b2
 
 (* pmr: Possibly a hack for now just to get some store locations going *)
 (* pmr: Let's be honest here: the following is flat-out wrong. *)
@@ -631,38 +630,37 @@ let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list arr
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
 let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (C.varinfo * ctype) list * ctemap * store =
-  let locals       = fresh_vars fd.C.slocals in
-  let formals      = fresh_vars fd.C.sformals in
-  let ve           = List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty <| locals @ formals in
-  let cs           = M.map_partial (M.compose constrain_param snd) formals in
-  let cs           = mk_phis_cs ve phis @ cs in
-  let (ctvm, cs)   = constrain_block M.StringMap.empty ve (ExpMap.empty, cs) fd.C.sbody in
-  let (us, is, ss) = solve cs in
-  let apply_sol    = M.compose (apply_unifiers us) (ctypevar_apply is) in
-    (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
-     ExpMap.map apply_sol ctvm,
-     SLM.map (LDesc.map apply_sol) ss)
+  E.s <| E.bug "infer_sci_shapes is deprecated@!@!"
 
-type shape = (C.varinfo * ctype) list * ctemap * store (* * block_annotation array *)
+type shape = (C.varinfo * ctype) list * ctemap * store * RA.block_annotation array
 
-let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap =
-  M.array_fold_lefti (fun i em b -> constrain_stmt env vars em b.Ssa.bstmt) (ExpMap.empty, []) cfg.Ssa.blocks
+let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
+  let blocks = cfg.Ssa.blocks in
+  let bas    = Array.make (Array.length blocks) [] in
+  let em     =
+    M.array_fold_lefti begin fun i em b ->
+        let (em, ba) = constrain_stmt env vars em b.Ssa.bstmt in
+          Array.set bas i ba;
+          em
+      end (ExpMap.empty, []) blocks
+  in (em, bas)
 
 let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
-  let loc                 = fd.C.svar.C.vdecl in
-  let (formals, formalcs) = instantiate_args loc argcts in
-  let bodyformals         = fresh_vars fd.C.sformals in
-  let bodyformalcs        = List.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
-  let locals              = fresh_vars fd.C.slocals in
-  let vars                = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
-  let phics               = mk_phis_cs vars phis in
-  let storecs             = instantiate_store loc ias in
-  let (ctvm, bodycs)      = constrain_cfg env vars cfg in
-  let (us, is, ss)        = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
-  let apply_sol           = M.compose (apply_unifiers us) (ctypevar_apply is) in
+  let loc                      = fd.C.svar.C.vdecl in
+  let (formals, formalcs)      = instantiate_args loc argcts in
+  let bodyformals              = fresh_vars fd.C.sformals in
+  let bodyformalcs             = List.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
+  let locals                   = fresh_vars fd.C.slocals in
+  let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
+  let phics                    = mk_phis_cs vars phis in
+  let storecs                  = instantiate_store loc ias in
+  let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
+  let (us, is, ss)             = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
+  let apply_sol                = M.compose (apply_unifiers us) (ctypevar_apply is) in
     (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
      ExpMap.map apply_sol ctvm,
-     SLM.map (LDesc.map apply_sol) ss)
+     SLM.map (LDesc.map apply_sol) ss,
+     annots)
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape Misc.StringMap.t =
   M.StringMap.map (fun (cft, sci) -> infer_shape env (fst (cfun_instantiate cft)) sci) scis

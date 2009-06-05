@@ -87,7 +87,7 @@ let funtys =
   ]
 
 let print_sci_shapes funs scis =
-  I.infer_shapes funs scis |> Misc.StringMap.iter begin fun fname (locals, _, st) ->
+  I.infer_shapes funs scis |> Misc.StringMap.iter begin fun fname (locals, _, st, _) ->
     let _ = P.printf "%s@!" fname in
     let _ = P.printf "============@!@!" in
     let _ = P.printf "Locals:@!" in
