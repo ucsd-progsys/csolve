@@ -425,14 +425,12 @@ type 'a precfun =
 type cfun = index precfun
 
 (* API *)
-let mk_cfun qslocs args reto a_in a_out c_in c_out = 
+let mk_cfun qslocs args reto sin sout =
   { qlocs   = qslocs; 
     args    = args;
     ret     = reto;
-    abs_in  = a_in;
-    abs_out = a_out;
-    con_in  = c_in; 
-    con_out = c_out;
+    sto_in  = sin;
+    sto_out = sout;
   }
 
 let precfun_map f ft =
@@ -465,18 +463,15 @@ let rename_prestore (subs: (sloc * sloc) list) (ps: 'a prestore): 'a prestore =
         SLM.add l (cns ld) sm
     end ps SLM.empty
 
-let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; abs_in = ias; abs_out = oas; con_in = ics; con_out = ocs}: 'a precfun): 'a precfun * (sloc * sloc) list =
-  let _          = assert (ics = SLM.empty && ocs = SLM.empty) in
+let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (sloc * sloc) list =
   let subs       = List.map (fun l -> (l, inst_sloc l)) ls in
   let rename_pct = rename_prectype subs in
   let rename_ps  = rename_prestore subs in
     ({qlocs   = [];
       args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
-      ret     = M.map_opt rename_pct rcts;
-      abs_in  = rename_ps ias;
-      abs_out = rename_ps oas;
-      con_in  = ics;
-      con_out = ocs},
+      ret     = rename_pct rcts;
+      sto_in  = rename_ps sin;
+      sto_out = rename_ps sout},
      subs)
 
 (******************************************************************************)

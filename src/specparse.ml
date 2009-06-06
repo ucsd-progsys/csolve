@@ -40,19 +40,12 @@ let read_spec files : FI.refcfun SM.t =
     |> List.fold_left (fun sm (x,y) -> SM.add x y sm) sm
   end SM.empty files
 
+let cfun_spec_of_spec spec : Ctypes.cfun SM.t =
+  SM.map FI.cfun_of_refcfun spec
+
 let print_spec sm = 
   Format.printf "spec parsed: OK \n";
   SM.iter begin fun s rft -> 
     let ft = FI.cfun_of_refcfun rft in
     Errormsg.log "%s :: %a \n" s (Ctypes.d_precfun Ctypes.d_index) ft
   end sm
-
-let _ =
-  Printf.printf "© Copyright 2009 Regents of the University of California. ";
-  Printf.printf "All Rights Reserved.\n";
-  let fs = ref [] in
-  let us = "Usage: specparse <options> [source-file] \n options are:" in
-  let _  = Arg.parse Constants.arg_spec (fun s -> fs := s::!fs) us in
-  match !fs with
-  | []    -> assertf "Bug: No input file specified!"
-  | files -> read_spec files |> print_spec

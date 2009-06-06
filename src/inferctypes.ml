@@ -466,22 +466,21 @@ let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (sloc 
   with Not_found ->
     E.s <| C.errorLoc loc "Couldn't find spec for function %s@!@!" f
 
-let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar option * ctypevar list * cstr list * RA.annotation list =
-  let ({args = argcts; ret = rcto; abs_out = oas}, subs) = lookup_function loc env f in
+let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar * ctypevar list * cstr list * RA.annotation list =
+  let ({args = argcts; ret = rct; sto_out = sout}, subs) = lookup_function loc env f in
     (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
-  let (rctvo, rctocs)  = instantiate_ret loc rcto in
-  let storecs          = instantiate_store loc oas in
-    (rctvo, argctvs, List.concat [storecs; rctocs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
+  let (rctv, rctcs)    = ctypevar_of_ctype loc rct in
+  let storecs          = instantiate_store loc sout in
+    (rctv, argctvs, List.concat [storecs; rctcs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
 
 let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
-  let (ctvs, (ctvm, argcs))    = constrain_args ve em loc args in
-  let (rtvo, atvs, ics, annot) = instantiate_function loc env f in
-  let (ctvm, cs)               = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
-    match (lvo, rtvo) with
-      | (None, _)           -> ((ctvm, cs), annot)
-      | (Some _, None)      -> E.s <| C.errorLoc loc "Attempting to assign void value in call@!"
-      | (Some lv, Some rtv) ->
+  let (ctvs, (ctvm, argcs))   = constrain_args ve em loc args in
+  let (rtv, atvs, ics, annot) = instantiate_function loc env f in
+  let (ctvm, cs)              = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
+    match lvo with
+      | None    -> ((ctvm, cs), annot)
+      | Some lv ->
           let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
             ((ctvm, mk_subty loc rtv lvctv :: cs), annot)
 
@@ -551,7 +550,7 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstr
       end (ExpMap.empty, []) blocks
   in (em, bas)
 
-let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
+let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                      = fd.C.svar.C.vdecl in
   let (formals, formalcs)      = instantiate_args loc argcts in
   let bodyformals              = fresh_vars fd.C.sformals in
@@ -559,7 +558,7 @@ let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec 
   let locals                   = fresh_vars fd.C.slocals in
   let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
   let phics                    = mk_phis_cs vars phis in
-  let storecs                  = instantiate_store loc ias in
+  let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
   let (us, is, ss)             = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol                = M.compose (apply_unifiers us) (ctypevar_apply is) in

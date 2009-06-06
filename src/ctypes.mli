@@ -178,7 +178,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t
-
+val prestore_fold   : ('a -> sloc -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
 
 val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 (** [prestore_split sto] returns (asto, csto) s.t. 

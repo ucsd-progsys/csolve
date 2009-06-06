@@ -70,7 +70,7 @@ let add_sci spec map sci =
 
 let infer_shapes file =
   let cil  = mk_cil file in
-  let spec = Specparse.read_cfun_spec ["lib.spec"; file ^ ".spec"] in
+  let spec = Specparse.read_spec ["lib.spec"; file ^ ".spec"] |> Specparse.cfun_spec_of_spec in
   let scis = scis_of_file cil |> List.fold_left (add_sci spec) Misc.StringMap.empty in
     print_sci_shapes spec scis
 
