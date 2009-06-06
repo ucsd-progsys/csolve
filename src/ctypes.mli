@@ -112,15 +112,6 @@ module ExpMapPrinter:
 
 type ctemap = ctype ExpMap.t
 
-val mk_cfun : sloc list 
-              -> (string * 'a prectype) list 
-              -> 'a prectype option 
-              -> 'a prestore -> 'a prestore -> 'a prestore -> 'a prestore 
-              -> 'a precfun
-
-val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
-
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
@@ -128,6 +119,7 @@ val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_sloc: unit -> sloc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
+val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
 val d_ctemap: unit -> ctemap -> Pretty.doc
@@ -155,7 +147,9 @@ val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
+val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
 val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
+val mk_cfun : sloc list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 
 (******************************************************************************)
 (************************** Store Location Operations *************************)
