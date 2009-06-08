@@ -71,7 +71,17 @@ let ctype_of_refctype = function
   | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
 
 (* API *)
-let cfun_of_refcfun = Ctypes.precfun_map ctype_of_refctype 
+let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
+let args_of_refcfun   = fun ft -> List.map (Misc.app_fst name_of_string) ft.Ctypes.args
+let ret_of_refcfun    = fun ft -> ft.Ctypes.ret
+let stores_of_refcfun = fun ft -> (ft.Ctypes.sto_in, ft.Ctypes.sto_out)
+let mk_cfun qslocs args ist ret ost = 
+  { Ctypes.qlocs   = qslocs; 
+    Ctypes.args    = args;
+    Ctypes.ret     = ret;
+    Ctypes.sto_in  = ist;
+    Ctypes.sto_out = ost; }
+
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
@@ -115,10 +125,13 @@ let refstore_read sto cr =
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in 
+  let _  = match cl with Ctypes.ALoc _ -> assertf "refstore_write: abs" | _ -> () in
+  (* let _  = assert (is_concrete cl) in *)
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in
   let ld = Ctypes.LDesc.add ploc rct' ld in
   SLM.add cl ld sto
+
 
 (*******************************************************************)
 (********************** (Basic) Builtin Types **********************)
@@ -134,15 +147,14 @@ let int_refctype_of_ras ras =
 let true_int  = int_refctype_of_ras []
 let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
-let mk_pure_cfun args reto = 
-  Ctypes.mk_cfun [] args reto 
-    refstore_empty refstore_empty refstore_empty refstore_empty
+let mk_pure_cfun args ret = 
+  mk_cfun [] args refstore_empty ret refstore_empty
 
 let builtins    = []
 
 let builtins_fn =
-  [("assert", mk_pure_cfun [("b", ne_0_int)] None);
-   ("nondet", mk_pure_cfun [] (Some true_int))]
+  [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
+   ("nondet", mk_pure_cfun [] true_int)]
 
 (*******************************************************************)
 (************************** Environments ***************************)
@@ -296,19 +308,16 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ctypes.prectype_map
 
-let t_subs_exps    = refctype_subs CI.expr_of_cilexp
-let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = Ctypes.prestore_map_ct t_fresh
+let t_subs_locs        = Ctypes.prectype_subs 
+let t_subs_exps        = refctype_subs CI.expr_of_cilexp
+let t_subs_names       = refctype_subs A.eVar
+let refstore_fresh     = Ctypes.prestore_map_ct t_fresh
+let refstore_subs_exps = fun nes st -> Ctypes.prestore_map_ct (t_subs_exps nes) st
+
 
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
-
-let rec make_cs cenv p rct1 rct2 loc =
-  let env    = env_of_cilenv cenv in
-  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-  [C.make_t env p r1 r2 None]
-
 let make_wfs cenv rct loc =
   let env = env_of_cilenv cenv in
   let r   = reft_of_refctype rct in
@@ -316,24 +325,10 @@ let make_wfs cenv rct loc =
 
 let make_wfs_fn cenv rft loc =
   let args = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
-  let ret  = rft.Ctypes.ret in
   let env' = ce_adds cenv args in
-  let rws  = match rft.Ctypes.ret with Some rct -> make_wfs env' rct loc | _ -> [] in
+  let rws  = make_wfs env' rft.Ctypes.ret loc in
   let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
   rws ++ aws
-
-let make_cs_binds env p ncrs ncrs' bs loc =
-  let _    = asserts (List.length ncrs = List.length ncrs') "make_cs_block 1" in
-  let _    = asserts (List.length ncrs = List.length bs)    "make_cs_block 2" in
-  let env' = ce_adds env ncrs in
-  let subs = List.map2 (fun (n,_) (n',_)  -> (n', n) ) ncrs ncrs' in
-  List.map2 (fun (n,_) (_,cr') -> (n, cr')) ncrs ncrs'
-  |> List.combine bs
-  |> Misc.flap (fun (b, (n,cr')) -> 
-                  if not b then [] else
-                    let lhs = t_name env' n in
-                    let rhs = t_subs_names subs cr' in
-                    make_cs env' p lhs rhs loc)
 
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
@@ -342,3 +337,32 @@ let make_wfs_refstore env sto loc =
     let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in
     ws' ++ ws
   end sto []
+
+let rec make_cs cenv p rct1 rct2 loc =
+  let env    = env_of_cilenv cenv in
+  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
+  [C.make_t env p r1 r2 None]
+
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
+  let ncrs1  = binds_of_refldesc sloc1 rd1 in
+  let ncrs2  = binds_of_refldesc sloc2 rd2 in
+  let _      = asserts (List.length ncrs1 = List.length ncrs2) "make_cs_refldesc" in
+  let env'   = ce_adds env ncrs1 in
+  let subs   = List.map2 (fun (n1,_) (n2,_)  -> (n2, n1) ) ncrs1 ncrs2 in
+  Misc.flap2 begin fun (n1, _) (_, cr2) -> 
+      let lhs = t_name env' n1 in
+      let rhs = t_subs_names subs cr2 in
+      make_cs env' p lhs rhs loc
+  end ncrs1 ncrs2
+
+let slocs_of_store st = 
+  Ctypes.SLM.fold (fun x _ xs -> x::xs) st []
+
+let make_cs_refstore env p st1 st2 polarity loc =
+  (if polarity then st2 else st1)
+  |> slocs_of_store 
+  |> Misc.flap begin fun sloc ->
+       let lhs = (sloc, refstore_get st1 sloc) in
+       let rhs = (sloc, refstore_get st2 sloc) in
+       make_cs_refldesc env p lhs rhs loc 
+     end

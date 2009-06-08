@@ -182,7 +182,7 @@ let print_wf so ppf (env, r, io) =
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-  "constraint: env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
+  "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
     (* pprint_io io *) 
     (print_env so) env 
     P.print g

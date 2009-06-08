@@ -56,7 +56,7 @@ let mk_cfg cil =
     | _ -> ()
   end
 
-let mk_cil fname =
+let cil_of_file fname =
   let _   = ignore (E.log "Parsing %s\n" fname) in
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
   let _   = Psimplify.simplify cil;
@@ -68,10 +68,11 @@ let mk_cil fname =
             rename_locals cil in
   cil
 
-let mk_quals (f:string) : Ast.Qualifier.t list =        
+let quals_of_file fname =        
     try
       let qs =
-        open_in f
+        (fname ^ ".hquals")
+        |> open_in 
         |> Lexing.from_channel
         |> FixParse.defs FixLex.token in
       let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
@@ -82,10 +83,22 @@ let mk_quals (f:string) : Ast.Qualifier.t list =
       E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
       []
 
+let spec_of_file fname =
+  try
+    (fname^ ".spec") 
+    |> open_in
+    |> Lexing.from_channel
+    |> RefParse.specs RefLex.token
+    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) SM.empty 
+  with Sys_error s ->
+    E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
+    SM.empty 
+
 let liquidate file =
-  let cil   = mk_cil file in
-  let qs    = mk_quals (file^".hquals") in
-  let me    = Consgen.create cil SM.empty (* TBDNOW: spec *) in
+  let cil   = cil_of_file file in
+  let qs    = quals_of_file file in
+  let spec  = spec_of_file file in
+  let me    = Consgen.create cil spec in
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let ctx,s = Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws qs in
@@ -108,7 +121,7 @@ let mk_options () =
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 
-let main () = 
+let main () =
   let _ = print_header () in
   let f = mk_options () in
     if liquidate f then begin

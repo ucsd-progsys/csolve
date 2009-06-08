@@ -28,7 +28,11 @@ TARGETS=main.native sinfer.native recurcheck.native specparse.native
 all:
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $(TARGETS) 
+	for t in $(TARGETS); \
+	 do \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t; \
+	 done
+	for t in $(TARGETS); do ln -sf _build/$$t; done
 
 clean:
 	rm -rf *.byte *.native _build _log

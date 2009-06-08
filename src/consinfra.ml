@@ -67,8 +67,7 @@ let ctype_of_local locals v =
 
 let env_of_fdec gnv fdec locals =
   let rft = FI.ce_find_fn fdec.svar.vname gnv in
-  let env0 = rft.Ctypes.args |> List.map (Misc.app_fst FI.name_of_string) 
-                             |> FI.ce_adds gnv in
+  let env0 = FI.args_of_refcfun rft |> FI.ce_adds gnv in
   fdec.slocals 
   |> List.filter ST.is_origcilvar
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
@@ -164,8 +163,7 @@ let guard_of_block me i =
     |> Misc.map (pred_of_block me.sci.ST.ifs)
     |> Ast.pAnd
 
-let get_fname me = 
-  FI.name_of_varinfo me.sci.ST.fdec.svar 
+let get_fname = fun me -> me.sci.ST.fdec.svar.vname 
 
   (*
 let is_formal fdec v =

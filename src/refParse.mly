@@ -2,17 +2,16 @@
 module A  = Ast
 module Sy = A.Symbol
 module SM = Misc.StringMap
-module Ct = Ctypes
 module FI = FixInterface
 
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
 let store_of_slocbinds sbs = 
-  List.fold_left (fun slm (x,y) -> Ct.SLM.add x y slm) Ct.SLM.empty sbs
+  List.fold_left (fun slm (x,y) -> Ctypes.SLM.add x y slm) Ctypes.SLM.empty sbs
 
 let ldesc_of_plocbinds pbs = 
-  List.fold_left (fun ld (x,y) -> Ct.LDesc.add x y ld) Ct.LDesc.empty pbs
+  List.fold_left (fun ld (x,y) -> Ctypes.LDesc.add x y ld) Ctypes.LDesc.empty pbs
 
 %}
 
@@ -49,13 +48,7 @@ spec:
     ARG    argbinds 
     RET    reftype
     INST   refstore
-    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 (Some $8) $10 $12 Ct.SLM.empty Ct.SLM.empty)) }
-  
-  | Id DCOLON 
-    FORALL slocs
-    ARG    argbinds 
-    INST   refstore
-    OUTST  refstore                     { ($1, (Ct.mk_cfun $4 $6 None $8 $10 Ct.SLM.empty Ct.SLM.empty)) }
+    OUTST  refstore                     { ($1, (FI.mk_cfun $4 $6 $10 $8 $12)) }
     ;
 
 slocs:
@@ -69,11 +62,11 @@ slocsne:
   ;
 
 sloc:
-  Num                                   { Ct.ALoc $1 }
+  Num                                   { Ctypes.ALoc $1 }
   ;
 
 refstore:
-    LB RB                               { Ct.SLM.empty }
+  LB RB                                 { Ctypes.SLM.empty }  
   | LB slocbindsne RB                   { store_of_slocbinds $2 }
   ;
 
@@ -83,7 +76,7 @@ slocbindsne:
   ;
 
 slocbind:
-  sloc MAPSTO indbinds                  { ($1, Ct.LDesc.create $3) } 
+  sloc MAPSTO indbinds                  { ($1, Ctypes.LDesc.create $3) } 
   ;
 
 indbinds:
@@ -102,13 +95,13 @@ indbind:
 
 reftype:
     INT LPAREN Num COMMA index COMMA LC Id MID pred RC RPAREN 
-                                        { let ct = Ct.CTInt ($3, $5) in
+                                        { let ct = Ctypes.CTInt ($3, $5) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10 
                                         }
   
   | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ct.CTRef ($3, $5) in
+                                        { let ct = Ctypes.CTRef ($3, $5) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10
                                         }
@@ -117,14 +110,14 @@ reftype:
   ;
 
 ctype:
-    INT LPAREN Num COMMA index RPAREN   { Ct.CTInt ($3, $5) }
-  | REF LPAREN sloc COMMA index RPAREN  { Ct.CTRef ($3, $5) }
+    INT LPAREN Num COMMA index RPAREN   { Ctypes.CTInt ($3, $5) }
+  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.CTRef ($3, $5) }
   ;
 
 index:
-    Num                                 { Ct.IInt $1 }
-  | Num LB Num RB                       { Ct.ISeq ($1, $3) }
-  | TRUE                                { Ct.ITop }
+    Num                                 { Ctypes.IInt $1 }
+  | Num LB Num RB                       { Ctypes.ISeq ($1, $3) }
+  | TRUE                                { Ctypes.ITop }
   ;
 
 argbinds:

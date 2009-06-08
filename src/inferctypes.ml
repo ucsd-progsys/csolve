@@ -309,104 +309,6 @@ type ctvenv = ctypevar IM.t
 type cstremap = ctvemap * cstr list
 
 (******************************************************************************)
-(************************ Function Stubs (REMOVE ASAP) ************************)
-(******************************************************************************)
-
-let malloc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (IInt 0)) iv])
-
-let free_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref ()], [])
-
-let bzero_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref (); fresh_ctvint int_width], [])
-
-let nondet_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [], [mk_ivarless loc (IEConst ITop) iv])
-
-let assert_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvint int_width], [])
-
-let fopen_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (Some (fresh_ctvref ()), [fresh_ctvref (); fresh_ctvref ()], [])
-
-let fclose_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref ()], [])
-
-let fflush_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
-
-let feof_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
-
-let fgetc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst (ISeq (-1, 1))) iv])
-
-let fputc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width; fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
-
-let gets_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun iv -> (Some (CTRef (s, iv)), [CTRef (s, iv)], [])
-
-let atoi_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref ()], [mk_ivarless loc (IEConst ITop) iv])
-
-let __ctype_b_loc_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_sloc <| fun s1 -> with_fresh_indexvar <| fun iv1 ->
-    with_fresh_sloc <| fun s2 -> with_fresh_indexvar <| fun iv2 -> with_fresh_indexvar <| fun ic -> with_fresh_indexvar <| fun id ->
-      (Some (CTRef (s1, iv1)), [], [mk_ivarless loc (IEConst (IInt 0)) iv1;
-                                    mk_ivarless loc (IEConst (IInt 128)) iv2;
-                                    mk_storeinc loc s1 iv1 (CTRef (s2, iv2));
-                                    mk_ivarless loc (IEConst (ISeq (0, short_width))) id;
-                                    mk_ivarless loc (IEConst ITop) ic;
-                                    mk_storeinc loc s2 id (CTInt (short_width, ic))])
-
-let exit_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvint int_width], [])
-
-let tolower_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  if !Constants.safe then E.s <| E.bug "Can't assume tolower's param is a letter@!" else C.warnLoc loc "Unsoundly assuming tolower is passed a letter@!" |> ignore;
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (ISeq (97, 1))) iv])
-
-let longjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref (); fresh_ctvint int_width], [])
-
-let _setjmp_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvref (); fresh_ctvint int_width], [mk_ivarless loc (IEConst ITop) iv])
-
-let qsort_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  (None, [fresh_ctvref (); fresh_ctvint int_width; fresh_ctvint int_width; fresh_ctvref ()], [])
-
-let isatty_stub (loc: C.location): ctypevar option * ctypevar list * cstr list =
-  with_fresh_indexvar <| fun iv -> (Some (CTInt (int_width, iv)), [fresh_ctvint int_width], [mk_ivarless loc (IEConst (ISeq (0, 1))) iv])
-
-let fun_stubs =
-  [
-    ("malloc", malloc_stub);
-    ("free", free_stub);
-    ("bzero", bzero_stub);
-    ("nondet", nondet_stub);
-    ("assert", assert_stub);
-    ("fopen", fopen_stub);
-    ("fclose", fclose_stub);
-    ("fflush", fflush_stub);
-    ("feof", feof_stub);
-    ("fgetc", fgetc_stub);
-    ("fputc", fputc_stub);
-    ("gets", gets_stub);
-    ("atoi", atoi_stub);
-    ("__ctype_b_loc", __ctype_b_loc_stub);
-    ("exit", exit_stub);
-    ("tolower", tolower_stub);
-    ("longjmp", longjmp_stub);
-    ("_setjmp", _setjmp_stub);
-    ("qsort", qsort_stub);
-    ("isatty", isatty_stub);
-  ]
-
-let printf_funs = ["printf"; "fprintf"]
-
-(******************************************************************************)
 (**************************** Constraint Generation ***************************)
 (******************************************************************************)
 
@@ -558,24 +460,31 @@ let instantiate_ret (loc: C.location): ctype option -> ctypevar option * cstr li
 let instantiate_store (loc: C.location) (st: store): cstr list =
   prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st |> List.concat
 
-let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar option * ctypevar list * cstr list * RA.annotation list =
-  let ({args = argcts; ret = rcto; abs_out = oas}, subs) = M.StringMap.find f env |> cfun_instantiate in
+let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (sloc * sloc) list =
+  try
+    M.StringMap.find f env |> cfun_instantiate
+  with Not_found ->
+    E.s <| C.errorLoc loc "Couldn't find spec for function %s@!@!" f
+
+let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar * ctypevar list * cstr list * RA.annotation list =
+  let ({args = argcts; ret = rct; sto_out = sout}, subs) = lookup_function loc env f in
     (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
-  let (rctvo, rctocs)  = instantiate_ret loc rcto in
-  let storecs          = instantiate_store loc oas in
-    (rctvo, argctvs, List.concat [storecs; rctocs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
+  let (rctv, rctcs)    = ctypevar_of_ctype loc rct in
+  let storecs          = instantiate_store loc sout in
+    (rctv, argctvs, List.concat [storecs; rctcs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
 
 let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
-  let (ctvs, (ctvm, argcs))    = constrain_args ve em loc args in
-  let (rtvo, atvs, ics, annot) = instantiate_function loc env f in
-  let (ctvm, cs)               = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
-    match (lvo, rtvo) with
-      | (None, _)           -> ((ctvm, cs), annot)
-      | (Some _, None)      -> E.s <| C.errorLoc loc "Attempting to assign void value in call@!"
-      | (Some lv, Some rtv) ->
+  let (ctvs, (ctvm, argcs))   = constrain_args ve em loc args in
+  let (rtv, atvs, ics, annot) = instantiate_function loc env f in
+  let (ctvm, cs)              = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
+    match lvo with
+      | None    -> ((ctvm, cs), annot)
+      | Some lv ->
           let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
             ((ctvm, mk_subty loc rtv lvctv :: cs), annot)
+
+let printf_funs = ["printf"; "fprintf"]
 
 let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.block_annotation): C.instr -> cstremap * RA.block_annotation = function
   | C.Set (lv, e, loc) ->
@@ -606,12 +515,6 @@ let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstr
     | C.Return (Some e, loc) -> (snd (constrain_exp ve em loc e), [])
     | C.Return (None, _)     -> (em, [])
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
-
-(* pmr: Possibly a hack for now just to get some store locations going *)
-(* pmr: Let's be honest here: the following is flat-out wrong. *)
-let constrain_param: ctypevar -> cstr option = function
-  | CTRef (_, iv) -> if not !Cs.safe then Some (mk_ivarless Cil.builtinLoc (IEConst (IInt 0)) iv) else E.s <| E.error "Can't constrain reference parameter@!"
-  | CTInt (_, iv) -> Some (mk_ivarless Cil.builtinLoc (IEConst ITop) iv)
 
 let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
   let t = C.unrollType v.C.vtype in
@@ -647,7 +550,7 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstr
       end (ExpMap.empty, []) blocks
   in (em, bas)
 
-let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
+let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                      = fd.C.svar.C.vdecl in
   let (formals, formalcs)      = instantiate_args loc argcts in
   let bodyformals              = fresh_vars fd.C.sformals in
@@ -655,7 +558,7 @@ let infer_shape (env: ctypeenv) ({args = argcts; abs_in = ias}: cfun) ({ST.fdec 
   let locals                   = fresh_vars fd.C.slocals in
   let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
   let phics                    = mk_phis_cs vars phis in
-  let storecs                  = instantiate_store loc ias in
+  let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
   let (us, is, ss)             = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol                = M.compose (apply_unifiers us) (ctypevar_apply is) in

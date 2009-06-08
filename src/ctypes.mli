@@ -68,11 +68,9 @@ type store = index prestore
 type 'a precfun =
   { qlocs       : sloc list;                    (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
-    ret         : 'a prectype option;           (* return *)
-    abs_in      : 'a prestore;                  (* in abstract store *)
-    abs_out     : 'a prestore;                  (* out abstract store *)             
-    con_in      : 'a prestore;                  (* in concrete store *)
-    con_out     : 'a prestore;                  (* out concrete store *)
+    ret         : 'a prectype;                  (* return *)
+    sto_in      : 'a prestore;                  (* in store *)
+    sto_out     : 'a prestore;                  (* out store *)             
   }
 
 type cfun = index precfun
@@ -114,15 +112,6 @@ module ExpMapPrinter:
 
 type ctemap = ctype ExpMap.t
 
-val mk_cfun : sloc list 
-              -> (string * 'a prectype) list 
-              -> 'a prectype option 
-              -> 'a prestore -> 'a prestore -> 'a prestore -> 'a prestore 
-              -> 'a precfun
-
-val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
-
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
@@ -130,6 +119,7 @@ val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_sloc: unit -> sloc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
+val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
 val d_ctemap: unit -> ctemap -> Pretty.doc
@@ -157,7 +147,9 @@ val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
+val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
 val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
+val mk_cfun : sloc list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 
 (******************************************************************************)
 (************************** Store Location Operations *************************)
@@ -183,7 +175,21 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
-val prestore_map_ct: ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-val prestore_map: ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_fold: ('a -> sloc -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
-val prestore_find: sloc -> 'a prestore -> 'a LDesc.t
+val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
+val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t
+val prestore_fold   : ('a -> sloc -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
+
+val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+(** [prestore_split sto] returns (asto, csto) s.t. 
+	(1) sto = asto + csto
+	(2) locs(asto) \in abslocs 
+	(3) locs(csto) \in conlocs *)
+
+val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
+(** [prestore_upd st1 st2] returns the store obtained by overwriting the
+    common locations of st1 and st2 with the blocks appearing in st2 *)
+
+val prestore_subs   : (sloc * sloc) list -> 'a prestore ->  'a prestore
+val prectype_subs   : (sloc * sloc) list -> 'a prectype ->  'a prectype
+

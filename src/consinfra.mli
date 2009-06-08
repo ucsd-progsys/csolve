@@ -35,7 +35,7 @@ val guard_of_block: t -> int -> Ast.pred
 val add_wld     : int -> wld -> t -> t
 val add_cons    : Constraint.wf list -> Constraint.t list -> t -> t
 val get_cons    : t -> Constraint.wf list * Constraint.t list
-val get_fname   : t -> FixInterface.name
+val get_fname   : t -> string 
 val get_astore  : t -> FixInterface.refstore
 val is_undefined: t -> Cil.varinfo -> bool
 
@@ -43,7 +43,7 @@ val ctype_of_varinfo: t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr: t -> Cil.exp -> Ctypes.ctype
 val create: FixInterface.cilenv 
          -> Ssa_transform.ssaCfgInfo 
-         -> ((Cil.varinfo * Ctypes.ctype) list * Ctypes.ctemap * Ctypes.store) 
+         -> ((Cil.varinfo * Ctypes.ctype) list * Ctypes.ctemap * Ctypes.store)
          -> (Refanno.block_annotation array * Refanno.ctab)
          -> t
 
