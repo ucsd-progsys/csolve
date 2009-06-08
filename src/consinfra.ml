@@ -107,7 +107,7 @@ let create gnv sci (ltm, etm, store) (anna, ctab) =
   }
 
 let add_cons ws cs me =
-  {{me with cs = cs ++ me.cs} with ws = ws ++ me.ws}
+  {me with cs = cs ++ me.cs; ws = ws ++ me.ws}
 
 let add_wld i wld me = 
   {me with wldm = IM.add i wld me.wldm}
