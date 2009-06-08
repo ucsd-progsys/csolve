@@ -5,6 +5,7 @@ module Cs = Constants
 module E  = Errormsg
 module ST = Ssa_transform
 module RA = Refanno
+module SM = Misc.StringMap
 
 open Ctypes
 open M.Ops
@@ -445,7 +446,7 @@ and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (e: C.exp): ctyp
 let constrain_args (ve: ctvenv) (em: cstremap) (loc: C.location) (es: C.exp list): ctypevar list * cstremap =
   List.fold_right (fun e (ctvs, em) -> let (ctv, em) = constrain_exp ve em loc e in (ctv :: ctvs, em)) es ([], em)
 
-type funmap = (cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
+type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
 let instantiate_args (loc: C.location) (argcts: (string * ctype) list): ctypevar list * cstr list =
   let (argctvs, argcts) = argcts |> List.map (M.compose (ctypevar_of_ctype loc) snd) |> List.split in
@@ -567,5 +568,5 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
      SLM.map (LDesc.map apply_sol) ss,
      annots)
 
-let infer_shapes (env: ctypeenv) (scis: funmap): shape Misc.StringMap.t =
+let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
   M.StringMap.map (fun (cft, sci) -> infer_shape env (fst (cfun_instantiate cft)) sci) scis
