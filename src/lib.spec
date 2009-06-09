@@ -4,3 +4,10 @@ malloc ::
   ret ref(0, 0, {v | true})
   store_in []
   store_out [0 |-> ]
+
+nondet ::
+  forall []
+  arg ()
+  ret int (4, true, {v | true})
+  store_in []
+  store_out []
