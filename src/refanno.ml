@@ -4,18 +4,17 @@ module SM = Misc.StringMap
 open Cil
 open Misc.Ops
 
-type ctab = (string, Ctypes.sloc) Hashtbl.t
+type ctab = (string, Sloc.t) Hashtbl.t
 
 type annotation = 
-  | Gen of Ctypes.sloc * Ctypes.sloc      (* CLoc s , ALoc s' *)
-  | Ins of Ctypes.sloc * Ctypes.sloc      (* ALoc s', CLoc s  *)
-  | New of Ctypes.sloc * Ctypes.sloc      (* Aloc s', Cloc s  *) 
+  | Gen of Sloc.t * Sloc.t      (* CLoc s , ALoc s' *)
+  | Ins of Sloc.t * Sloc.t      (* ALoc s', CLoc s  *)
+  | New of Sloc.t * Sloc.t      (* Aloc s', Cloc s  *) 
 
 type block_annotation = annotation list list
 
-let fresh_cloc =
-  let t, _ = Misc.mk_int_factory () in
-  (fun () -> Ctypes.CLoc (t()))
+let fresh_cloc () =
+  Sloc.fresh Sloc.Concrete
 
 let cloc_of_v theta v =
   Misc.do_memo theta fresh_cloc () v.vname
@@ -121,10 +120,13 @@ let annotate_cfg cfg ctm  =
   (annota, theta)
 
 (* API *)
-let cloc_of_varinfo theta v = 
-  try match Hashtbl.find theta v.vname with 
-      | Ctypes.CLoc _ as l -> Some l 
-      | Ctypes.ALoc _      -> assertf "cloc_of_varinfo: absloc! (%s)" v.vname
+let cloc_of_varinfo theta v =
+  try
+    let l = Hashtbl.find theta v.vname in
+      if not (Sloc.is_abstract l) then
+        Some l
+      else
+        assertf "cloc_of_varinfo: absloc! (%s)" v.vname
   with Not_found -> None
 
 
@@ -134,11 +136,11 @@ let cloc_of_varinfo theta v =
 
 let d_annotation () = function
   | Gen (cl, al) -> 
-      Pretty.dprintf "Generalize(%a->%a) " Ctypes.d_sloc cl Ctypes.d_sloc al 
+      Pretty.dprintf "Generalize(%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al 
   | Ins (al, cl) -> 
-      Pretty.dprintf "Instantiate(%a->%a) " Ctypes.d_sloc al Ctypes.d_sloc cl 
+      Pretty.dprintf "Instantiate(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | New (al, cl) -> 
-      Pretty.dprintf "New(%a->%a) " Ctypes.d_sloc al Ctypes.d_sloc cl 
+      Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
 
 
 
@@ -161,5 +163,5 @@ let d_block_annotation_array =
 let d_ctab () t = 
   let vcls = Misc.hashtbl_to_list t in
   Pretty.seq (Pretty.text ", ") 
-     (fun (vn, cl) -> Pretty.dprintf "[Theta(%s) = %a" vn Ctypes.d_sloc cl) 
+     (fun (vn, cl) -> Pretty.dprintf "[Theta(%s) = %a" vn Sloc.d_sloc cl) 
      vcls

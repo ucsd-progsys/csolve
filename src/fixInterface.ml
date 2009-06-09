@@ -44,9 +44,9 @@ let name_fresh =
   (fun _ -> t () |> string_of_int |> (^) "lqn#" |> name_of_string)
 
 let name_of_sloc_ploc l p = 
-  let lt,li = match l with Ctypes.ALoc i -> "ALoc",i | Ctypes.CLoc i -> "CLoc", i in
+  let ls    = Sloc.to_string l in
   let pt,pi = match p with Ctypes.PLAt i -> "PLAt",i | Ctypes.PLSeq i -> "PLSeq", i in
-  Printf.sprintf "%s#%d#%s#%d" lt li pt pi 
+  Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
 (*******************************************************************)
@@ -114,7 +114,7 @@ let refdesc_find ploc rd =
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
-  | Ctypes.CTRef (Ctypes.CLoc l as cl, (i,_)) -> 
+  | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
   | _ -> assertf "addr_of_refctype: bad args"
 
@@ -125,7 +125,6 @@ let refstore_read sto cr =
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in 
-  let _  = match cl with Ctypes.ALoc _ -> assertf "refstore_write: abs" | _ -> () in
   (* let _  = assert (is_concrete cl) in *)
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in

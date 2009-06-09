@@ -4,11 +4,9 @@ type index =
   | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
   | ITop               (* sequence of all values (including negatives) *)
 
-type sloc = ALoc of int | CLoc of int   (* store location *)
-
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
-  | CTRef of sloc * 'a (* reference *)
+  | CTRef of Sloc.t * 'a (* reference *)
 
 type ctype = index prectype
 
@@ -21,16 +19,10 @@ exception NoLUB of ctype * ctype
 
 exception TypeDoesntFit
 
-module SlocKey:
-  sig
-    type t = sloc
-    val compare: t -> t -> int
-  end
-
 module SLM:
   sig
-    type key = SlocKey.t
-    type 'a t = 'a Map.Make(SlocKey).t
+    type key = Sloc.t
+    type 'a t = 'a Map.Make(Sloc).t
     val empty : 'a t
     val is_empty : 'a t -> bool
     val add : key -> 'a -> 'a t -> 'a t
@@ -66,7 +58,7 @@ type 'a prestore = ('a LDesc.t) SLM.t
 type store = index prestore
 
 type 'a precfun =
-  { qlocs       : sloc list;                    (* generalized slocs *)
+  { qlocs       : Sloc.t list;                  (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
     sto_in      : 'a prestore;                  (* in store *)
@@ -116,7 +108,6 @@ type ctemap = ctype ExpMap.t
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
 
-val d_sloc: unit -> sloc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
@@ -144,20 +135,12 @@ val is_subindex: index -> index -> bool
 
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
-val prectype_replace_sloc: sloc -> sloc -> 'a prectype -> 'a prectype
+val prectype_replace_sloc: Sloc.t -> Sloc.t -> 'a prectype -> 'a prectype
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val cfun_instantiate: 'a precfun -> 'a precfun * (sloc * sloc) list
-val mk_cfun : sloc list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
-
-(******************************************************************************)
-(************************** Store Location Operations *************************)
-(******************************************************************************)
-
-val fresh_sloc: unit -> sloc
-val reset_fresh_slocs: unit -> unit
-val abstract_sloc: sloc -> sloc
+val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
+val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)
@@ -177,8 +160,8 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_find   : sloc -> 'a prestore -> 'a LDesc.t
-val prestore_fold   : ('a -> sloc -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
+val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
+val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
 
 val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -190,6 +173,5 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 (** [prestore_upd st1 st2] returns the store obtained by overwriting the
     common locations of st1 and st2 with the blocks appearing in st2 *)
 
-val prestore_subs   : (sloc * sloc) list -> 'a prestore ->  'a prestore
-val prectype_subs   : (sloc * sloc) list -> 'a prectype ->  'a prectype
-
+val prestore_subs   : (Sloc.t * Sloc.t) list -> 'a prestore -> 'a prestore
+val prectype_subs   : (Sloc.t * Sloc.t) list -> 'a prectype -> 'a prectype
