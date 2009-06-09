@@ -10,7 +10,7 @@ val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
 val args_of_refcfun     : refcfun  -> (name * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
-val mk_cfun             : Ctypes.sloc list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
+val mk_cfun             : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
@@ -35,14 +35,14 @@ val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype
 
 val t_subs_names        : (name * name) list -> refctype -> refctype
 val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype 
-val t_subs_locs         : (Ctypes.sloc * Ctypes.sloc) list -> refctype -> refctype 
+val t_subs_locs         : (Sloc.t * Sloc.t) list -> refctype -> refctype 
 
 val refstore_empty      : refstore
-val binds_of_refldesc   : Ctypes.sloc -> refldesc -> (name * refctype) list
-val refstore_mem        : Ctypes.sloc -> refstore -> bool
-val refstore_remove     : Ctypes.sloc -> refstore -> refstore
-val refstore_set        : refstore -> Ctypes.sloc -> refldesc -> refstore
-val refstore_get        : refstore -> Ctypes.sloc -> refldesc
+val binds_of_refldesc   : Sloc.t -> refldesc -> (name * refctype) list
+val refstore_mem        : Sloc.t -> refstore -> bool
+val refstore_remove     : Sloc.t -> refstore -> refstore
+val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
+val refstore_get        : refstore -> Sloc.t -> refldesc
 val refldesc_subs       : refldesc -> (int -> refctype -> refctype) -> refldesc 
 val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
@@ -58,7 +58,7 @@ val make_cs             : cilenv -> Ast.pred ->
                           refctype -> refctype -> 
                           Cil.location -> Constraint.t list
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
-                          (Ctypes.sloc * refldesc) -> (Ctypes.sloc * refldesc) -> 
+                          (Sloc.t * refldesc) -> (Sloc.t * refldesc) -> 
                           Cil.location -> Constraint.t list
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->

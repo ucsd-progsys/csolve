@@ -6,6 +6,7 @@ module E  = Errormsg
 module ST = Ssa_transform
 module RA = Refanno
 module SM = Misc.StringMap
+module S  = Sloc
 
 open Ctypes
 open M.Ops
@@ -68,14 +69,11 @@ let indexcstr_sat (ic: indexcstr) (is: indexsol): bool =
 
 type ctypevar = indexvar prectype
 
-let with_fresh_sloc (f: sloc -> 'a): 'a =
-  fresh_sloc () |> f
-
 let fresh_ctvint (n: int): ctypevar =
   CTInt (n, fresh_indexvar ())
 
 let fresh_ctvref (): ctypevar =
-  CTRef (fresh_sloc (), fresh_indexvar ())
+  CTRef (Sloc.fresh Sloc.Concrete, fresh_indexvar ())
 
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
   | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
@@ -84,14 +82,11 @@ let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
 type ctypecstr =
   | CTCSubtype of ctypevar * ctypevar
 
-let ctypecstr_replace_sloc (s1: sloc) (s2: sloc) (CTCSubtype (ctv1, ctv2): ctypecstr): ctypecstr =
-  CTCSubtype (prectype_replace_sloc s1 s2 ctv1, prectype_replace_sloc s1 s2 ctv2)
-
 let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
-    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2 -> refine_index (IEVar iv1) iv2 is
-    | (CTRef (s1, iv1), CTRef (s2, iv2)) when s1 = s2 -> refine_index (IEVar iv1) iv2 is
-    | _                                               -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
+    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2       -> refine_index (IEVar iv1) iv2 is
+    | (CTRef (s1, iv1), CTRef (s2, iv2)) when Sloc.eq s1 s2 -> refine_index (IEVar iv1) iv2 is
+    | _                                                     -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
 
 let equalize_ctypes (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   refine_ctype ctv2 ctv1 (refine_ctype ctv1 ctv2 is)
@@ -104,17 +99,14 @@ let ctypecstr_sat (CTCSubtype (ctv1, ctv2): ctypecstr) (is: indexsol): bool =
 (******************************************************************************)
 
 type storecstr =
-  | SCInc of sloc * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
-
-let storecstr_replace_sloc (s1: sloc) (s2: sloc) (SCInc (s3, iv, ctv): storecstr): storecstr =
-  SCInc ((if s3 = s1 then s2 else s3), iv, prectype_replace_sloc s1 s2 ctv)
+  | SCInc of Sloc.t * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
 
 type storesol = indexvar prestore
 
-let storesol_add (l: sloc) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
+let storesol_add (l: Sloc.t) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
   SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
 
-let refine_store (l: sloc) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
+let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
   match indexsol_find iv is with
     | IBot   -> (is, ss)
     | IInt n ->
@@ -191,8 +183,8 @@ let mk_iconstless (loc: C.location) (ie: indexexp) (i: index) =
 let mk_subty (loc: C.location) (ctv1: ctypevar) (ctv2: ctypevar) =
   {cdesc = CSCType (CTCSubtype (ctv1, ctv2)); cloc = loc}
 
-let mk_storeinc (loc: C.location) (s: sloc) (iv: indexvar) (ctv: ctypevar) =
-  {cdesc = CSStore (SCInc (s, iv, ctv)); cloc = loc}
+let mk_storeinc (loc: C.location) (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) =
+  {cdesc = CSStore (SCInc (l, iv, ctv)); cloc = loc}
 
 let mk_indexvar_eq_index (loc: C.location) (iv: indexvar) (i: index): cstr list =
   [mk_ivarless loc (IEConst i) iv; mk_iconstless loc (IEVar iv) i]
@@ -207,28 +199,14 @@ let ctypevar_of_ctype (loc: C.location): ctype -> ctypevar * cstr list = functio
         let ctv = CTRef (s, iv) in
           (ctv, mk_indexvar_eq_index loc iv i)
 
-let mk_const_storeinc (loc: C.location) (l: sloc) (i: index) (ct: ctype): cstr list =
+let mk_const_storeinc (loc: C.location) (l: Sloc.t) (i: index) (ct: ctype): cstr list =
   with_fresh_indexvar <| fun iv ->
     let (ctv, cs) = ctypevar_of_ctype loc ct in
       cs @ [mk_ivarless loc (IEConst i) iv; mk_storeinc loc l iv ctv]
 
-type store_unifier =
-  | SUnify of sloc * sloc
+type cstrsol = indexsol * storesol
 
-let apply_unifiers (us: store_unifier list) (pct: 'a prectype): 'a prectype =
-  List.fold_right (fun (SUnify (s1, s2)) pct -> prectype_replace_sloc s1 s2 pct) us pct
-
-type cstrsol = store_unifier list * indexsol * storesol
-
-let cstrdesc_replace_sloc (s1: sloc) (s2: sloc): cstrdesc -> cstrdesc = function
-  | CSCType ctc -> CSCType (ctypecstr_replace_sloc s1 s2 ctc)
-  | CSStore sc  -> CSStore (storecstr_replace_sloc s1 s2 sc)
-  | CSIndex ic  -> CSIndex ic
-
-let cstr_replace_sloc (s1: sloc) (s2: sloc) (c: cstr): cstr =
-  {c with cdesc = cstrdesc_replace_sloc s1 s2 c.cdesc}
-
-let cstrdesc_sat ((_, is, ss): cstrsol): cstrdesc -> bool = function
+let cstrdesc_sat ((is, ss): cstrsol): cstrdesc -> bool = function
   | CSIndex ic  -> indexcstr_sat ic is
   | CSCType ctc -> ctypecstr_sat ctc is
   | CSStore sc  -> storecstr_sat sc is ss
@@ -236,7 +214,7 @@ let cstrdesc_sat ((_, is, ss): cstrsol): cstrdesc -> bool = function
 let cstr_sat (csol: cstrsol) (c: cstr): bool =
   cstrdesc_sat csol c.cdesc
 
-let refine ((is, ss): indexsol * storesol): cstrdesc -> indexsol * storesol = function
+let refine ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
   | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
   | CSIndex (ICConstLess (ie, i))     -> E.s <| E.error "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
@@ -248,30 +226,28 @@ let refine ((is, ss): indexsol * storesol): cstrdesc -> indexsol * storesol = fu
         let ct = ctypevar_apply is ctv in
         let ld = LDesc.map (ctypevar_apply is) (prestore_find l ss) in
           E.error "Can't fit %a |-> %a in location %a: @!@!%a@!@!" 
-            d_index i d_ctype ct d_sloc l (LDesc.d_ldesc d_ctype) ld;
+            d_index i d_ctype ct Sloc.d_sloc l (LDesc.d_ldesc d_ctype) ld;
           raise TypeDoesntFit
 
-let rec solve_rec (cs: cstr list) ((sus, is, ss) as csol: cstrsol): cstrsol =
+let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
   match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
     | None   -> csol
     | Some c ->
-        let (cs, sus, is, ss) =
+        let (cs, is, ss) =
           try
             let (is, ss) = refine (is, ss) c.cdesc in
-              (cs, sus, is, ss)
+              (cs, is, ss)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
-                let s  = Ctypes.abstract_sloc s2 in
-                let cs = List.map (M.compose (cstr_replace_sloc s1 s) (cstr_replace_sloc s2 s)) cs in
                 let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
-                let ss = SLM.map (LDesc.map (M.compose (prectype_replace_sloc s1 s) (prectype_replace_sloc s2 s))) ss in
-                  (cs, SUnify (s1, s) :: SUnify (s2, s) :: sus, is, ss)
+                let _  = Sloc.unify s1 s2 in
+                  (cs, is, ss)
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
             | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
-        in solve_rec cs (sus, is, ss)
+        in solve_rec cs (is, ss)
 
 let solve (cs: cstr list): cstrsol =
-  solve_rec cs ([], IVM.empty, SLM.empty)
+  solve_rec cs (IVM.empty, SLM.empty)
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -387,11 +363,12 @@ and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_:
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CStr _ ->
-      with_fresh_sloc <| fun s -> with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
-        (CTRef (s, ivr), em, [mk_ivarless loc (IEConst (IInt 0)) ivr;
-                              mk_ivarless loc (IEConst (ISeq (0, 1))) ivl;
-                              mk_ivarless loc (IEConst ITop) ivc;
-                              mk_storeinc loc s ivl (CTInt (char_width, ivc))])
+      let s = Sloc.fresh Sloc.Concrete in
+        with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
+          (CTRef (s, ivr), em, [mk_ivarless loc (IEConst (IInt 0)) ivr;
+                                mk_ivarless loc (IEConst (ISeq (0, 1))) ivl;
+                                mk_ivarless loc (IEConst ITop) ivc;
+                                mk_storeinc loc s ivl (CTInt (char_width, ivc))])
       end
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (fresh_ctvref (), em, [])
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
@@ -461,7 +438,7 @@ let instantiate_ret (loc: C.location): ctype option -> ctypevar option * cstr li
 let instantiate_store (loc: C.location) (st: store): cstr list =
   prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st |> List.concat
 
-let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (sloc * sloc) list =
+let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (Sloc.t * Sloc.t) list =
   try
     M.StringMap.find f env |> cfun_instantiate
   with Not_found ->
@@ -561,8 +538,8 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let phics                    = mk_phis_cs vars phis in
   let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
-  let (us, is, ss)             = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
-  let apply_sol                = M.compose (apply_unifiers us) (ctypevar_apply is) in
+  let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
+  let apply_sol                = ctypevar_apply is in
     (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
      ExpMap.map apply_sol ctvm,
      SLM.map (LDesc.map apply_sol) ss,
