@@ -31,10 +31,10 @@ let eq (l1: t) (l2: t): bool =
   compare l1 l2 = 0
 
 let sloc_type (l: t): sloctype =
-  l.lty
+  (repr l).lty
 
 let is_abstract (l: t): bool =
-  l.lty = Abstract
+  (repr l).lty = Abstract
 
 let unify (l1: t) (l2: t): unit =
   let (l1, l2) = (repr l1, repr l2) in
@@ -42,24 +42,10 @@ let unify (l1: t) (l2: t): unit =
     l1.lparent <- Some l2
 
 let to_string (l: t): string =
-  match l.lty with
-    | Abstract -> "A" ^ string_of_int l.lid
-    | Concrete -> "C" ^ string_of_int l.lid
+  let l = repr l in
+    match l.lty with
+      | Abstract -> "A" ^ string_of_int l.lid
+      | Concrete -> "C" ^ string_of_int l.lid
 
 let d_sloc () (l: t): Pretty.doc =
   Pretty.text <| to_string l
-
-(*
-let sloc_is_abstract: Sloc.t -> bool = function
-  | ALoc _ -> true
-  | CLoc _ -> false
-
-let abstract_sloc: sloc -> sloc = function
-  | ALoc l | CLoc l -> ALoc l
-
-let (inst_sloc, reset_inst_slocs) =
-  let f, g = M.mk_int_factory () in
-  let f'   = function ALoc _ -> ALoc (f ()) | CLoc _ -> CLoc (f ()) in
-    (f', g)
-
-*)
