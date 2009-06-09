@@ -38,7 +38,7 @@ let is_abstract (l: t): bool =
 
 let unify (l1: t) (l2: t): unit =
   let (l1, l2) = (repr l1, repr l2) in
-    l2.lty     <- Abstract;
+    l2.lty     <- if not (eq l1 l2) then Abstract else l2.lty;
     l1.lparent <- Some l2
 
 let to_string (l: t): string =
