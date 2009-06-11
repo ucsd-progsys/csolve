@@ -1,0 +1,16 @@
+# -*- Mode: makefile -*-
+
+
+build: $(EXEBASE).exe
+
+clean: 
+	rm -f *.cil.c *.exe *.i *.s *.o *.obj
+
+CFLAGS:=-g -O3 -Wall
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+$(EXEBASE).exe: $(SOURCES:%.c=%.o)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+

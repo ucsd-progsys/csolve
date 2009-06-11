@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Configure Deputy
+echo "Configure Deputy..."
+cd deputy && ./configure $*

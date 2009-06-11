@@ -1,0 +1,18 @@
+#!/bin/sh
+# test a treeadd binary
+exe=./treeadd.exe
+
+# all of treeadd's output is to stderr
+echo "running: $exe 23 1 >output"
+if ! (time sh -c "$exe 23 1 >output"); then
+  echo "$exe failed directly"
+  exit 2
+fi
+
+if ! diff out.orig output >out.diff; then
+  echo "$exe got the wrong answer. See out.diff"
+  exit 4
+else
+  echo "$exe seems to work"
+fi
+ 

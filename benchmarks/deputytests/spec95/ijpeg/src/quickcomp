@@ -1,0 +1,6 @@
+#!/bin/sh
+# compile/link ijpeg with no opt
+
+set -x
+gcc -D_GNUCC -c  -D INFERBOX -D MANUALBOX -g -o ijpeg_combcured.o ./ijpeg_combcured.i
+gcc -D_GNUCC  -D INFERBOX -D MANUALBOX -g ijpeg_combcured.o /home/scott/wrk/safec/cil/lib/../obj/ccured_GNUCC_debug.a -g -o ijpeg

@@ -1,0 +1,13 @@
+#!/bin/sh
+# test a health binary
+exe=./tsp.exe
+
+# all of health's output is to stderr
+echo "running: $exe"
+if ! (time $exe); then
+  echo "$exe failed directly: error code $?"
+  exit 2
+fi
+
+echo "$exe seems to work"
+ 

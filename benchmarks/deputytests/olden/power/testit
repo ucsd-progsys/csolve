@@ -1,0 +1,23 @@
+#!/bin/sh
+# test a power binary
+exe=./power.exe
+
+# all of power's output is to stdout
+echo "running: $exe >output"
+if ! (time sh -c "$exe >output"); then
+  echo "$exe failed directly"
+  exit 2
+fi
+
+# must strip elapsed time
+# must truncate precision to only 4 decimal places, because gcc's optimizer
+# (even with -ffloat-store) seems to change the answer under boxing
+if ! grep -v "Elapsed time" <output | \
+     sed 's/\(\.[0-9]\{4\}\)[0-9]*/\1/g' | diff out.orig - >/dev/null; then
+  echo "$exe got the wrong answer"
+  exit 4
+else
+  echo "$exe seems to work"
+
+fi
+ 

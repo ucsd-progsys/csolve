@@ -1,0 +1,16 @@
+extern	void jupdate(int s,int c);
+extern	void jupdatec(int s,int c,int corner);
+extern	int firstjos(int corner,int color);
+extern	int nextjos(int sqr,int corner,int color);
+extern	int getlastcolor(int corner);
+extern	int getflag(int ptr);
+extern	void getxyjlib(int ptr,int *x,int *y);
+extern	int j2next(int ptr);
+extern	int j2skip(int *ptr);
+extern	int j2more(int ptr);
+extern	int sibling(int ptr);
+extern	void joseki(void);
+extern	int findurgentjoseki(void);
+extern	void fire_joseki(int ptr,int s,int jflg,int cflag,int corner);
+extern	int notjoseki(int s);
+extern	int evaljoseki(int s,int ptr,int corner);

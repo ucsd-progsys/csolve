@@ -1,0 +1,21 @@
+#!/bin/sh
+# test a perimeter binary
+exe=./perimeter.exe
+
+# all of perimeter's output is to stdout
+echo "running: $exe >output"
+if ! (time sh -c "$exe >output"); then
+  echo "$exe failed directly"
+  exit 2
+fi
+
+if ! grep -v "Time elapsed" <output | diff out.orig - >out.diff 2>&1  ; then
+  # For some reason diff returns error code but an empty diff !
+  if test -s out.diff; then 
+     echo "$exe got the wrong answer. See out.diff."
+     exit 4
+  fi
+fi
+echo "$exe seems to work"
+rm -f out.diff
+ 

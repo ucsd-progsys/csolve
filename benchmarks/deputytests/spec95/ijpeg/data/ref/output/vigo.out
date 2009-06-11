@@ -1,0 +1,2432 @@
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   159544
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94322
+L2 norm = 906856
+checksum: 197
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   157495
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94322
+L2 norm = 906856
+checksum: 197
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   163884
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90710
+L2 norm = 818262
+checksum: 27
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   161880
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90710
+L2 norm = 818262
+checksum: 27
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   168657
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86781
+L2 norm = 728057
+checksum: 56
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   166642
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86781
+L2 norm = 728057
+checksum: 56
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   173858
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82886
+L2 norm = 646994
+checksum: 185
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   171975
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82886
+L2 norm = 646994
+checksum: 185
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   179652
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79375
+L2 norm = 579339
+checksum: 248
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   177724
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79375
+L2 norm = 579339
+checksum: 248
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   185556
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76417
+L2 norm = 527575
+checksum: 34
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   183478
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76417
+L2 norm = 527575
+checksum: 34
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   191996
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73778
+L2 norm = 483880
+checksum: 41
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   189930
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73778
+L2 norm = 483880
+checksum: 41
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   198131
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71894
+L2 norm = 456098
+checksum: 13
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   196039
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71894
+L2 norm = 456098
+checksum: 13
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   108527
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 100434
+L2 norm = 991402
+checksum: 207
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   107563
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 100434
+L2 norm = 991402
+checksum: 207
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   111151
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97549
+L2 norm = 914445
+checksum: 82
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   110262
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97549
+L2 norm = 914445
+checksum: 82
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   113897
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93891
+L2 norm = 829299
+checksum: 234
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   112943
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93891
+L2 norm = 829299
+checksum: 234
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   116738
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91124
+L2 norm = 764998
+checksum: 213
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   115797
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91124
+L2 norm = 764998
+checksum: 213
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   120062
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 88235
+L2 norm = 704897
+checksum: 150
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   119121
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 88235
+L2 norm = 704897
+checksum: 150
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   123295
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86062
+L2 norm = 660600
+checksum: 225
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   122348
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86062
+L2 norm = 660600
+checksum: 225
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   126931
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84297
+L2 norm = 624599
+checksum: 180
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   126012
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84297
+L2 norm = 624599
+checksum: 180
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   130579
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83060
+L2 norm = 598592
+checksum: 47
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   129596
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83060
+L2 norm = 598592
+checksum: 47
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   86575
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105217
+L2 norm = 1076157
+checksum: 228
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   85300
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105217
+L2 norm = 1076157
+checksum: 228
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   88503
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102349
+L2 norm = 993957
+checksum: 250
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   87293
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102349
+L2 norm = 993957
+checksum: 250
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   90456
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99149
+L2 norm = 916461
+checksum: 58
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   89310
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99149
+L2 norm = 916461
+checksum: 58
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   92525
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96629
+L2 norm = 853041
+checksum: 112
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   91412
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96629
+L2 norm = 853041
+checksum: 112
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   94856
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94515
+L2 norm = 797443
+checksum: 38
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   93707
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94515
+L2 norm = 797443
+checksum: 38
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   97050
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92510
+L2 norm = 751524
+checksum: 175
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   96050
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92510
+L2 norm = 751524
+checksum: 175
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   99649
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91058
+L2 norm = 719886
+checksum: 63
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   98586
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91058
+L2 norm = 719886
+checksum: 63
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   102293
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89702
+L2 norm = 693098
+checksum: 211
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   101226
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89702
+L2 norm = 693098
+checksum: 211
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   72999
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 110061
+L2 norm = 1147579
+checksum: 228
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   71105
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 110061
+L2 norm = 1147579
+checksum: 228
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   74470
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107166
+L2 norm = 1071738
+checksum: 213
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   72602
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107166
+L2 norm = 1071738
+checksum: 213
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   76047
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 104505
+L2 norm = 1004615
+checksum: 226
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   74228
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 104505
+L2 norm = 1004615
+checksum: 226
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   77639
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102117
+L2 norm = 945389
+checksum: 190
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   75810
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102117
+L2 norm = 945389
+checksum: 190
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   79402
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99641
+L2 norm = 886769
+checksum: 38
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   77622
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99641
+L2 norm = 886769
+checksum: 38
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   81181
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97983
+L2 norm = 842107
+checksum: 230
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   79450
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97983
+L2 norm = 842107
+checksum: 230
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   83108
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96389
+L2 norm = 806513
+checksum: 62
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   81432
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96389
+L2 norm = 806513
+checksum: 62
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   85132
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96075
+L2 norm = 793737
+checksum: 204
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   83464
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96075
+L2 norm = 793737
+checksum: 204
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   64194
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 114771
+L2 norm = 1236351
+checksum: 134
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   61890
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 114771
+L2 norm = 1236351
+checksum: 134
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   65493
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 111936
+L2 norm = 1155992
+checksum: 141
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   63225
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 111936
+L2 norm = 1155992
+checksum: 141
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   66728
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109474
+L2 norm = 1087326
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   64505
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109474
+L2 norm = 1087326
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   68085
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107085
+L2 norm = 1030715
+checksum: 92
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   65888
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107085
+L2 norm = 1030715
+checksum: 92
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   69519
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105355
+L2 norm = 979871
+checksum: 72
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   67345
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105355
+L2 norm = 979871
+checksum: 72
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   70964
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 103664
+L2 norm = 933184
+checksum: 113
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   68827
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 103664
+L2 norm = 933184
+checksum: 113
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   72493
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102635
+L2 norm = 904141
+checksum: 220
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   70299
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 102635
+L2 norm = 904141
+checksum: 220
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   74062
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101964
+L2 norm = 882870
+checksum: 149
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   71875
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101964
+L2 norm = 882870
+checksum: 149
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   56033
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 119889
+L2 norm = 1333541
+checksum: 236
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   53205
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 119889
+L2 norm = 1333541
+checksum: 236
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   57032
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 117879
+L2 norm = 1273773
+checksum: 166
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   54227
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 117879
+L2 norm = 1273773
+checksum: 166
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   58122
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 115287
+L2 norm = 1200217
+checksum: 246
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   55282
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 115287
+L2 norm = 1200217
+checksum: 246
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   59257
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 113572
+L2 norm = 1149600
+checksum: 209
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   56414
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 113572
+L2 norm = 1149600
+checksum: 209
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   60388
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 111376
+L2 norm = 1084058
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   57534
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 111376
+L2 norm = 1084058
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   61572
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 110044
+L2 norm = 1051064
+checksum: 111
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   58759
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 110044
+L2 norm = 1051064
+checksum: 111
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   62826
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109329
+L2 norm = 1029525
+checksum: 10
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   60032
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109329
+L2 norm = 1029525
+checksum: 10
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   64231
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108394
+L2 norm = 1002992
+checksum: 2
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   61483
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108394
+L2 norm = 1002992
+checksum: 2
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   47701
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 127798
+L2 norm = 1474078
+checksum: 101
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   44106
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 127798
+L2 norm = 1474078
+checksum: 101
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   48481
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 125923
+L2 norm = 1419411
+checksum: 248
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   45007
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 125923
+L2 norm = 1419411
+checksum: 248
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   49322
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124122
+L2 norm = 1368106
+checksum: 105
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   45765
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124122
+L2 norm = 1368106
+checksum: 105
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   50183
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122830
+L2 norm = 1328994
+checksum: 191
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   46658
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122830
+L2 norm = 1328994
+checksum: 191
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   51137
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 121752
+L2 norm = 1288156
+checksum: 183
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   47646
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 121752
+L2 norm = 1288156
+checksum: 183
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   52072
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 120147
+L2 norm = 1239401
+checksum: 230
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   48588
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 120147
+L2 norm = 1239401
+checksum: 230
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   53001
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 119150
+L2 norm = 1208482
+checksum: 3
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   49602
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 119150
+L2 norm = 1208482
+checksum: 3
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   54009
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 118584
+L2 norm = 1187172
+checksum: 137
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   50606
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 118584
+L2 norm = 1187172
+checksum: 137
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   37988
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 142937
+L2 norm = 1786467
+checksum: 149
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   33309
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 142937
+L2 norm = 1786467
+checksum: 149
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   38537
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 141391
+L2 norm = 1721171
+checksum: 93
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   33881
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 141391
+L2 norm = 1721171
+checksum: 93
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   39078
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 140358
+L2 norm = 1685504
+checksum: 99
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   34425
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 140358
+L2 norm = 1685504
+checksum: 99
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   39666
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 138809
+L2 norm = 1647871
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   35054
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 138809
+L2 norm = 1647871
+checksum: 59
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   40323
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 137193
+L2 norm = 1592341
+checksum: 29
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   35657
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 137193
+L2 norm = 1592341
+checksum: 29
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   40943
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 136589
+L2 norm = 1575383
+checksum: 191
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   36311
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 136589
+L2 norm = 1575383
+checksum: 191
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   41627
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 135699
+L2 norm = 1533175
+checksum: 18
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   37013
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 135699
+L2 norm = 1533175
+checksum: 18
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   42305
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 134673
+L2 norm = 1507893
+checksum: 236
+
+image filename: "vigo.ppm"
+compression statistics:
+	uncompressed data size:   2359296
+	compressed data size:   37734
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 134673
+L2 norm = 1507893
+checksum: 236

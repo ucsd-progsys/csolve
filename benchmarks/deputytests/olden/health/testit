@@ -1,0 +1,23 @@
+#!/bin/sh
+# test a health binary
+exe=./health.exe
+
+# all of health's output is to stderr
+echo "running: $exe 5 500 1 1"
+if ! (time sh -c "$exe 5 500 1 1 | grep -v Runtime >output"); then
+  echo "$exe failed directly: error code $?"
+  exit 2
+fi
+
+if ! diff out.orig output >out.diff 2>&1 ; then
+  if ! diff out.orig.msvc output >/dev/null ; then 
+    if ! diff out.orig.darwin output >/dev/null ; then 
+      echo "$exe got the wrong answer. See out.diff"
+      exit 4
+    fi
+  fi
+fi
+
+echo "$exe seems to work"
+rm -f out.diff
+ 

@@ -1,0 +1,159 @@
+
+
+
+
+
+		     Li Benchmark Specifications
+
+  1.  GENERAL
+  1.1.  Classification
+      Li is a CPU intensive integer benchmark  written  in  C.  The
+      benchmark performs minimal I/O.
+  1.2  Description
+      Li is a Lisp interpreter written in C.  The workload used is
+		a translation of the Gabriel benchmarks by John Shakshober of DEC.
+		These are boyer, browse, ctak, dderiv, deriv, destru-mod,
+		destru, div2, fft, puzzle, tak, takl, takr, triang.
+		These are from the public domain and are described in the "Performance
+		Evaluation of Lisp Systems" by Richard Gabriel.
+  1.3  Source/Author
+      This benchmark has been developed at Sun Microsystems and  is
+      based  on XLISP 1.6 written by David Michael Betz. XLISP is a
+      small implementation of Lisp  with  object-oriented  program-
+      ming.
+	Michael Paton from Motorola converted the C sources to ANSI C.
+  1.4  Version/Date
+      Benchmark Version 1.0, Date 11/22/88.
+  1.5  Other Information
+      The original program has been successfully run on all Sun  machines,
+      Micro  VAX  II,  SGI IRIS-4D/80 GT, DECstation 3100, and MIPS
+      M2000.
+
+  2.  PERFORMANCE
+  2.1.  Metrics
+      The metric used is the  elapsed  (real)  time  as  output  by
+      /bin/time.
+  2.2.  Elapsed Time
+      As above. The reference time is approximately 9 minutes on a
+		200MHz DEC Alpha.
+  2.3.  Reports
+      The output of the XLISP interpreter is directed
+      to "li.out" under normal circumstances.  We recommend  that
+      at least 5 runs be made.
+  2.4  Additional Performance Considerations
+      Variations of the elapsed time between  runs  should  not  be
+      more  than  5%  under  normal  circumstances.  This benchmark
+      should be run on an idle machine or one in  single-user  mode
+      since elapsed time is sensitive to other activities on the
+      machine.
+
+
+
+
+
+
+
+
+				    2
+
+
+  3.  SOFTWARE
+  3.1  Language
+      The XLISP interpreter is written in ANSI C. It cannot be compiled
+      on a K&R compiler.
+  3.2  Operating System
+      The benchmark runs on a variety of UNIX-based  systems.  Some
+      support  files for MS-DOS, etc. are provided by the author of
+      XLISP but have not been tried out yet.
+  3.3  Portability
+      The benchmark has been run on both 4.2 BSD and System V based
+      machines.   No OS dependencies (e.g. BSD or System V specific
+      include files) are known to exist so  porting  it  should  be
+      easy.
+  3.4  Vectorizability/Multi-Processor Issues
+      Non Vectorizable.
+  3.5  Miscellaneous Software
+      None needed for execution of the benchmark.
+  3.6  Known Bugs
+      None.
+  3.7  Additional Software Considerations
+      None.
+
+  4.  HARDWARE
+  4.1  Memory
+      The performance of this benchmark is not memory dependent. It
+      has been run on 4 MB systems.
+  4.2  Disks
+      No special requirements.
+  4.3  Communication
+      None.
+  4.4  Special Hardware
+      None.
+  4.5  Additional Hardware Considerations
+      None
+
+
+
+
+
+
+
+
+
+
+
+
+
+				     3
+
+
+  5.  OPERATIONAL
+  5.1  Disk Space
+      Total disk space required is < 4MB.  Size  of  executable  is
+      about 150 KB.
+  5.2  Installation
+      Retrieve "li" directory using shar  or  tar  (or  appropriate
+      utilities). No special installation procedures required.
+  5.3  Execution
+      Compile at the highest level of optimization  possible.   The
+      script executes the following command:
+
+	 % /bin/time xlisp li-input.lsp > result.out 2> time.out
+
+  5.4  Correctness Verification
+      Correctness validation is performed as follows:
+
+	 % diff result.ref/result.out result/result.out
+
+  5.5  Additional Operational Considerations
+      Since the amount of program output is small (< 20 KB).
+  5.6 Profile
+		A profile on a DEC Alpha is
+
+
+NB. Since this profile, a floating point component has been removed. It is
+reported that the profile does not change significantly.
+----------------------------------------------------------------------------
+*  -p[rocedures] using pc-sampling;                                        *
+*  sorted in descending order by total time spent in each procedure;       *
+*  unexecuted procedures excluded                                          *
+----------------------------------------------------------------------------
+
+%time     seconds  cum %   cum sec  procedure (file)
+
+ 17.8     87.4326   17.8     87.43 mark (xlisp.c)
+ 15.7     77.4424   33.5    164.87 xlsave (xlisp.c)
+ 10.0     49.0400   43.5    213.92 sweep (xlisp.c)
+  8.1     40.0176   51.6    253.93 xlygetvalue (xlisp.c)
+  7.3     35.7852   58.9    289.72 livecar (xlisp.c)
+  7.1     34.7852   66.0    324.50 livecdr (xlisp.c)
+  5.1     25.0957   71.1    349.60 xleval (xlisp.c)
+  5.0     24.6201   76.1    374.22 newnode (xlisp.c)
+  3.7     17.9932   79.7    392.21 xlxgetvalue (xlisp.c)
+  3.2     15.9785   83.0    408.19 xlobgetvalue (xlisp.c)
+  2.6     12.7842   85.6    420.97 evform (xlisp.c)
+  2.1     10.5547   87.7    431.53 vmark (xlisp.c)
+  1.3      6.3867   89.0    437.92 xlarg (xlisp.c)
+  1.3      6.2705   90.3    444.19 xlevlist (xlisp.c)
+  1.2      6.1162   91.5    450.30 xlgetvalue (xlisp.c)
+

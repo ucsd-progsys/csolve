@@ -1,0 +1,7 @@
+caught buffer underrun (reading 256 bytes from 12 byte array)
+caught buffer underrun (reading 256 bytes from 162 byte array)
+caught buffer underrun (reading 256 bytes from 12 byte array)
+caught buffer underrun (reading 256 bytes from 162 byte array)
+L1 norm = 4575945
+L2 norm = 20366051
+checksum: 151

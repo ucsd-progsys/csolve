@@ -1,0 +1,24 @@
+#!/bin/sh
+# test a bh binary
+exe=./bisort.exe
+
+#First, correctness.  The "1" means to print output
+echo "running: $exe 1000 1"
+if ! ($exe 1000 1 | grep -v 'Time to sort' >& out.tmp); then
+  echo "$exe failed directly"
+  exit 2
+fi
+if ! (diff out.tmp out.reference >& /dev/null); then
+  echo "$exe returned a different answer."
+  exit 3
+fi
+rm -f out.tmp
+
+#Now a perf test
+echo "running: $exe 1000000"
+if ! (time $exe 1000000); then
+  echo "$exe failed directly"
+  exit 4
+fi
+
+

@@ -1,0 +1,15 @@
+extern	void adplib(int s,int gb,int c);
+extern	void deplib(int s,int gb);
+extern	void adlibs(int s,int g);
+extern	void delibs(int s,int g);
+extern	void resurrect(int g,int c);
+extern	void newgrouparmy(int g);
+extern	void dndate(int dnptr);
+extern	void make_army_free(int army);
+extern	void split(int i,int j);
+extern	int real_update(int upptr,int nosuicide);
+extern	void finds(int mptr);
+extern	int update(int upptr,int nosuicide);
+extern	int makenewgroup(int s,int c,int upptr);
+extern	void kilgrp(int g,int c);
+extern	void combine(int i,int j,int upptr);

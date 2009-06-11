@@ -1,0 +1,22 @@
+#!/bin/sh
+# test an mst binary
+
+exe=./mst.exe
+
+# all of mst's output is to stderr
+echo "running: $exe 2048 1"
+if ! (time sh -c "$exe 2048 1 >output"); then
+  echo "$exe failed directly"
+  exit 2
+fi
+
+# mst prints sizes of its structures, which increase after boxing
+if ! sed 's/size = [0-9][0-9]/size = xx/' <output | diff out.orig - >out.diff; then
+    if test -s out.diff; then 
+      echo "$exe got the wrong answer. See out.diff"
+      exit 4
+    fi
+fi
+echo "$exe seems to work"
+rm -f out.diff
+ 

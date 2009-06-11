@@ -1,0 +1,17 @@
+extern	void fixli(void);
+extern	void evalopenlineeye(int s,int c);
+extern	void addeyerec(int s);
+extern	void findeyelist(void);
+extern	int can_be_eye(int s,int g);
+extern	void evalonepteye(int s,int c);
+extern	void evalcornereyes(void);
+extern	void deallocate_eye(int rn);
+extern	int getcount(int s,int c,int rn,int vital,int ldrno);
+extern	void deadshape(int g,int rn);
+extern	void evaldeadgroupeye(int s,int g,int c);
+extern	void evaloneptdeadeye(int s,int g,int c,int rn,int ldrno);
+extern	void evalmanyeyespots(int rn,int sopen,int c,int numopenspots,int numenemyspots,int ldrno);
+extern	void eval2pointeye(int s,int sopen,int c);
+extern	void eval_line_eye(int s,int sopen,int c);
+extern	void evalbigeye(int s,int sopen,int c);
+extern	int onelibnbr(int g);

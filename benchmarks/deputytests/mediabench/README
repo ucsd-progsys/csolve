@@ -1,0 +1,290 @@
+These are the mediabench benchmarks compiled under 
+the simplescalar 2.0 compiler. In each directory,
+there are typically two readme files:
+
+README.BEN: This is my log from recompiling 
+mediabench under simplescalar. 
+
+README.MB: This is the original mediabench
+readme.
+
+-Benjamin Bishop
+ bishop@cse.psu.edu
+
+
+
+--------------------------------------------------------------------------------
+
+Media Applications
+
+--------------------------------------------------------------------------------
+
+IJG JPEG 
+MSG MPEG 
+GSM 
+ADPCM 
+G.721 
+PGP 
+PEGWIT 
+NIST SPHERE + RASTA 
+Ghostscript 
+Mesa 
+EPIC 
+
+
+NOTE: All the applications used in the experimentation on Sun Solaris systems were complied using gcc and -mv8 and -static switches on. We did not make any changes on the optimization levels provided by the original authors.
+
+
+
+--------------------------------------------------------------------------------
+
+Here's one tarred and gzipped file containing all the benchmarks we used. It includes a set of data used in our profiling experiment. Here's a second data set. Note that we made a number of modifications to the original source files and they are described in each modified file. 
+
+--------------------------------------------------------------------------------
+
+JPEG
+Source: Independent JPEG Group
+
+Description: This package contains C software to implement JPEG image compression and decompression. JPEG (pronounced "jay-peg") is a standardized compression method for full-color and gray-scale images. JPEG is intended for compressing "real-world" scenes; line drawings, cartoons and other non-realistic images are not its strong suit. JPEG is lossy, meaning that the output image is not exactly identical to the input image. 
+
+Data files: testimg.jpg and testimg.ppm
+
+We use two demo programs included in the package: djpeg and cjpeg. Djpeg is for decoding jpg files to a variety of graphic file formats. Cjpeg encodes a file in other graphic file format than jpg to a jpg file. 
+
+Options used: 
+djpeg -dct int -ppm -outfile testout.ppm testimg.jpg 
+cjpeg -dct int -progressive -opt -outfile testout.jpg testimg.ppm 
+
+
+Shade analyzer output: cjpeg.shade (cjpeg.summary) and djpeg.shade (djpeg.summary)
+
+Spixstats output: cjpeg.stats and djpeg.stats
+
+Impact simulation output: cjpeg.base.sim and djpeg.base.sim
+
+
+
+--------------------------------------------------------------------------------
+
+
+MPEG
+Source: MPEG Software Simulation Group
+
+Description: mpeg2play is a player for MPEG-1 and MPEG-2 video bitstreams. It is based on mpeg2decode by the MPEG Software Simulation Group. In mpeg2decode the emphasis is on correct implementation of the MPEG standard and comprehensive code structure. The latter is not always easy to combine with high execution speed. Therefore a version has been derived which is optimized for higher decoding and display speed at the cost of a less straightforward implementation and slightly non-compliant decoding. In addition all conformance checks and some fault recovery procedures have been omitted from mpeg2play. 
+
+Data file: bitstream of YUV components (4 frame), encoding options file and mpeg2 bitstream
+See README. 
+
+Shade analyzer output: mpeg2decode.shade (mpeg2decode.summary) and mpeg2encode.shade (mpeg2encode.summary) 
+Spixstats output: mpeg2decode.stats and mpeg2decode.stats
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+GSM
+Source: The Communications and Operating Systems Research Group (KBS) at the Technische Universitaet Berlin See also Comp.dsp FAQ.
+
+Description: As part of this effort we are publishing an implementation of the European GSM 06.10 provisional standard for full-rate speech transcoding, prI-ETS 300 036, which uses RPE/LTP (residual pulse excitation/long term prediction) coding at 13 kbit/s. 
+
+GSM 06.10 compresses frames of 160 13-bit samples (8 kHz sampling rate, i.e. a frame rate of 50 Hz) into 260 bits; for compatibility with typical UNIX applications, our implementation turns frames of 160 16-bit linear samples into 33-byte frames (1650 Bytes/s). The quality of the algorithm is good enough for reliable speaker recognition; even music often survives transcoding in recognizable form (given the bandwidth limitations of 8 kHz sampling rate). 
+
+Data files: clinton.pcm (16 bit linear PCM) and clinton.pcm.gsm
+
+There are two programs included in the package: encoder (toast) and decoder (untoast). 
+
+Options used: 
+toast -fpl clinton.pcm 
+untoast -fpl clinton.pcm.gsm 
+
+
+Spixstats output: toast.stats and untoast.stats
+
+Shade analyzer output: toast.shade (toast.summary) and untoast.shade (untoast.summary)
+
+Impact simulation output: gsmencode.base.sim and gsmdecode.base.sim
+
+
+
+--------------------------------------------------------------------------------
+
+
+ADPCM
+Source: Jack Jansen (email Jack.Jansen@cwi.nl) See also Comp.dsp FAQ.
+
+Description: ADPCM stands for Adaptive Differential Pulse Code Modulation. It is a family of speech compression and decompression algorithms. A common implementation takes 16-bit linear PCM samples and converts them to 4-bit samples, yielding a compression rate of 4:1. The ADPCM code used is the Intel/DVI ADPCM code which is being recommended by the IMA Digital Audio Technical Working Group. Note that this is NOT a CCITT G722 coder. The CCITT ADPCM standard is much more complicated, probably resulting in better quality sound but also in much more computational overhead. 
+
+Data file: clinton.pcm and clinton.adpcm
+
+Options used:
+rawcaudio < clinton.pcm > out.adpcm 
+rawdaudio < clinton.adpcm > out.pcm 
+
+Spixstats output: rawcaudio.stats and rawdaudio.stats
+
+Shade analyzer output: rawcaudio.shade (rawcaudio.summary) and rawdaudio.shade (rawdaudio.summary)
+
+Impact simulation results: rawcaudio.base.sim and rawdaudio.base.sim
+
+
+
+--------------------------------------------------------------------------------
+
+
+G.721
+Source: Sun Microsystems, Inc.
+
+Description: The files in this package comprise ANSI-C language reference implementations of the CCITT (International Telegraph and Telephone Consultative Committee) G.711, G.721 and G.723 voice compressions. They have been tested on Sun SPARCstations and passed 82 out of 84 test vectors published by CCITT (Dec. 20, 1988) for G.721 and G.723. [The two remaining test vectors, which the G.721 decoder implementation for u-law samples did not pass, may be in error because they are identical to two other vectors for G.723_40.] This source code is released by Sun Microsystems, Inc. to the public domain. Please give your acknowledgement in product literature if this code is used in your product implementation. 
+
+Data file: clinton.pcm and clinton.g721
+
+Options used: 
+encode -4 -l < pcmfile > g721file 
+decode -4 -l < g721file > pcmfile 
+
+
+Spixstats output: encode.stats and decode.stats
+
+Shade analyzer output: encode.shade (encode.summary) and decode.shade (decode.summary)
+
+Impact simulation results: encode.base.sim and decode.base.sim
+
+
+
+--------------------------------------------------------------------------------
+
+
+PGP
+Source: MIT distribution site for PGP
+
+Description: PGP uses "message digests" to form signatures. A message digest is a 128-bit cryptographically strong one-way hash function of the message (MD5). To encrypt data, it uses a block-cipher IDEA, RSA for key management and digital signatures. A session key is generated for an individual message and the message is encrypted by IDEA using the session key and the session key is encrypted using RSA.
+
+Data files: public key, private key, plain text, and encrypted text (To download files depress SHIFT and click the links)
+
+Options used: 
+pgp -fes Bill -zbillms -u Bill < pgptest.plain > pgptext.pgp 
+pgp -fdb -zbillms < pgptext.pgp > pgptest.dec
+
+To include the test key into your key rings: 
+1. Create a sub-directory ".pgp" in your home directory if you have not done so already. 
+2. pgp -ka billms_prv.pgp $(HOME)/.pgp/secring.pgp
+3. pgp -ka billms_pub.pgp $(HOME)/.pgp/pubring.pgp
+
+
+Spixstats outputs: pgpencode.stats and pgpdecode.stats
+
+Shade analyzer outputs: pgpencode.shade (pgpencode.summary) and pgpdecode.shade (pgpdecode.summary)
+
+Impact simulation results: pgpencode.base.sim and pgpdecode.base.sim
+
+
+
+--------------------------------------------------------------------------------
+
+
+PEGWIT
+Source: George Barwood
+
+Description: Pegwit is a program for performing public key encryption and authentication. It uses an elliptic curve over GF(2^255), SHA1 for hashing, and the symmetric block cipher square.
+
+Data file: secret key(plain ASCII), public key, encryption noise file , plain text, and encrypted text (To download files depress SHIFT and click the links) 
+
+Options used: see README 
+
+Spixstats output: pegwit.enc.stats and pegwit.dec.stats 
+Shade analyzer outputs: pegwitdec.shade (pegwitdec.summary) and pegwitenc.shade (pegwitenc.summary)
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+Ghostscript
+Source: Aladdin Software
+
+Description: Ghostscript is the name of a set of software that provides: (1) An interpreter for the PostScript (TM) language, and (2) A set of C procedures (the Ghostscript library) that implement the graphics capabilities that appear as primitive operations in the PostScript language, and (3) An interpreter for Portable Document Format (PDF) files. 
+
+Data file: tiger.ps
+
+Options used: 
+gs -sDEVICE=ppm -sOutputFile=test.ppm -dNOPAUSE -q -- tiger.ps
+
+Shade analyzer output: gs.shade (gs.summary)
+
+Spixtools output: tiger.ps
+
+
+
+--------------------------------------------------------------------------------
+
+
+Mesa
+Source: http://www.ssec.wisc.edu/~brianp/Mesa.html
+
+Description: Mesa is a 3-D graphics library with an API which is very similar to that of OpenGL*. 
+
+Data files: N/A
+
+We eliminated all X11 display routines out of the library and modified demo programs included in the package. 
+
+Spixstats outputs: mipmap.stats, osdemo.stats, and texgen.stats
+
+Shade analyzer outputs: mipmap.shade (mipmap.summary), osdemo.shade (osdemo.summary), and texgen.shade (texgen.summary)
+
+Impact simulation results:
+
+
+
+--------------------------------------------------------------------------------
+
+
+SPHERE
+Source: NIST 
+
+Description: SPeech HEader REsources (SPHERE) is a set of library functions and command-level programs which can be used to read and modify NIST-formatted speech waveform files. 
+
+
+--------------------------------------------------------------------------------
+
+
+RASTA
+Source: ICSI at UC Berkeley 
+
+Description: RASTA is a program for the rasta-plp processing and it supports the following front-end techniques: PLP, RASTA, and Jah-RASTA with fixed Jah-value. The Jah-Rasta technique handles two different types of harmful effects for speech recognition systems, namely additive noise and spectral distortion, simultaneously, by bandpass filtering the temporal trajectories of a non-linearly transformed critical band spectrum. 
+
+Data files: map_weights.dat (mapping coefficient file for 8KHz 15 critical bands) and speech in SPHERE format (To download files depress SHIFT and click the links)
+
+Options used:
+rasta -z -A -J -S 8000 -n 12 -f map_weights.dat < ex5_c1.wav > ex5.asc 
+(To compute 12th order J-RASTA-PLP (which handles additive noise in addition to the convolutional), using automatic noise estimation, and with SPHERE input and ASCII output and a 8 kHz sampling rate.)
+
+
+Note: In order to use SPHERE format files RASTA needs to be compiled SPHERE option turned on. It requires SPHERE libraries.
+
+Spixstats output: rasta.stats
+
+
+
+--------------------------------------------------------------------------------
+
+
+EPIC
+Source: Eero Simoncelli
+
+Description: EPIC (Efficient Pyramid Image Coder) is an experimental image data compression utility written in the C programming language. The compression algorithms are based on a biorthogonal critically-sampled dyadic wavelet decomposition and a combined run-length/Huffman entropy coder. The filters have been designed to allow extremely fast decoding on conventional (ie, non-floating point) hardware, at the expense of slower encoding and a slight degradation in compression quality (as compared to a good orthogonal wavelet decomposition). 
+
+Data file: The package includes a gray scale 256 x 256 image which is converted from a 512 x 512 image.
+
+Options used: 
+epic test_image -b 25 
+unepic test_image.E 
+
+
+Shade analyser outputs: epic.shade (epic.summary) and unepic.shade (unepic.summary)
+
+Spixstats output: epic and unepic
+
+Impact simulation results: epic.base.sim and unepic.base.sim

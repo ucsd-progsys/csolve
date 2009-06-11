@@ -1,0 +1,11 @@
+- ANSI C does not define if a 'char' is signed or not and code uses values<0.
+If you get differing results (run works but compare finds diffs) then
+consider recompiling with a flag that tells your compiler to treat 'char'
+as 'signed char' [-127, 128]
+	[Fixed 10/26/94 ACA]
+
+- This code does have some potential for indexing beyond array sizes.  I
+believe that this will not occur, but it is theoretically possible that
+some differences could be due to how perticular compilers layout data
+structures (i.e.what values get returned when indexing beyond the end of
+an array).

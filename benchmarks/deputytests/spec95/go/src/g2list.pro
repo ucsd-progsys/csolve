@@ -1,0 +1,13 @@
+extern	int gtflist(int *head);
+extern	int comlist(int l1,int l2);
+extern	void cpylist(int list1,int *list2);
+extern	int mrglist(int list1,int *list2);
+extern	int andlist(int list1,int list2,int *head);
+extern	int addlist(int value,int *head);
+extern	int adflist(int value,int *head);
+extern	int dlflist(int value,int *head);
+extern	int dellist(int value,int *head);
+extern	void killist(int *head);
+extern	int cntlist(int *head);
+extern	int newlist(int l1,int l2);
+extern	int inlist(int val,int *head);

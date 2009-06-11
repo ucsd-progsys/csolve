@@ -1,0 +1,21 @@
+#!/bin/bash
+# test an ijpeg binary
+
+if [ "$1" = "" ]; then
+  echo "usage: $0 ijpeg-binary"
+  exit 0
+fi
+
+time ./$1 -image_file ../data/ref/input/vigo.ppm -GO > output
+if [ "$?" = 0 ]; then
+  true
+else
+  exit $?
+fi
+
+if ! diff output correct.output; then
+  echo "$1 got the wrong answer"
+  exit 2
+else
+  echo "$1 got the right anser"
+fi

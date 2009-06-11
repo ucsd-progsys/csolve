@@ -1,0 +1,2432 @@
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   123398
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 62805
+L2 norm = 343133
+checksum: 111
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   121796
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 62805
+L2 norm = 343133
+checksum: 111
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   126209
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 61466
+L2 norm = 326738
+checksum: 176
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   124692
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 61466
+L2 norm = 326738
+checksum: 176
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   129054
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 60714
+L2 norm = 316850
+checksum: 84
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   127509
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 60714
+L2 norm = 316850
+checksum: 84
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   132073
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 59713
+L2 norm = 306579
+checksum: 121
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   130567
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 59713
+L2 norm = 306579
+checksum: 121
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   135332
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 58815
+L2 norm = 297225
+checksum: 57
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   133875
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 58815
+L2 norm = 297225
+checksum: 57
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   138584
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 58120
+L2 norm = 289618
+checksum: 188
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   137133
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 58120
+L2 norm = 289618
+checksum: 188
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   142576
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 57823
+L2 norm = 288553
+checksum: 133
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   141155
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 57823
+L2 norm = 288553
+checksum: 133
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   146773
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 57925
+L2 norm = 289531
+checksum: 175
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   145390
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 57925
+L2 norm = 289531
+checksum: 175
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   82143
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 68124
+L2 norm = 403450
+checksum: 240
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   81019
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 68124
+L2 norm = 403450
+checksum: 240
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   83588
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 67327
+L2 norm = 391987
+checksum: 91
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   82476
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 67327
+L2 norm = 391987
+checksum: 91
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   85155
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 66432
+L2 norm = 380980
+checksum: 138
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   84090
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 66432
+L2 norm = 380980
+checksum: 138
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   86889
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 65671
+L2 norm = 372961
+checksum: 127
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   85801
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 65671
+L2 norm = 372961
+checksum: 127
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   88715
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 65081
+L2 norm = 365537
+checksum: 193
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   87659
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 65081
+L2 norm = 365537
+checksum: 193
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   90491
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64778
+L2 norm = 360856
+checksum: 114
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   89462
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64778
+L2 norm = 360856
+checksum: 114
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   92670
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64549
+L2 norm = 358631
+checksum: 99
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   91481
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64549
+L2 norm = 358631
+checksum: 99
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   95015
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64565
+L2 norm = 360217
+checksum: 211
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   93819
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 64565
+L2 norm = 360217
+checksum: 211
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   64807
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 72680
+L2 norm = 460338
+checksum: 26
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   63278
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 72680
+L2 norm = 460338
+checksum: 26
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   65824
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71823
+L2 norm = 446623
+checksum: 81
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   64287
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71823
+L2 norm = 446623
+checksum: 81
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   66907
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71173
+L2 norm = 437657
+checksum: 143
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   65376
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71173
+L2 norm = 437657
+checksum: 143
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   68079
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 70816
+L2 norm = 431284
+checksum: 226
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   66515
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 70816
+L2 norm = 431284
+checksum: 226
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   69318
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 70185
+L2 norm = 423873
+checksum: 85
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   67758
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 70185
+L2 norm = 423873
+checksum: 85
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   70516
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69903
+L2 norm = 421121
+checksum: 145
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   68961
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69903
+L2 norm = 421121
+checksum: 145
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   72007
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69695
+L2 norm = 419055
+checksum: 157
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   70432
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69695
+L2 norm = 419055
+checksum: 157
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   73582
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69620
+L2 norm = 420176
+checksum: 182
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   71959
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69620
+L2 norm = 420176
+checksum: 182
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   54139
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76200
+L2 norm = 504466
+checksum: 198
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   52218
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76200
+L2 norm = 504466
+checksum: 198
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   54925
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75752
+L2 norm = 496018
+checksum: 188
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   53013
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75752
+L2 norm = 496018
+checksum: 188
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   55735
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75323
+L2 norm = 487657
+checksum: 131
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   53764
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75323
+L2 norm = 487657
+checksum: 131
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   56628
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74848
+L2 norm = 480970
+checksum: 228
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   54639
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74848
+L2 norm = 480970
+checksum: 228
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   57567
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74220
+L2 norm = 470296
+checksum: 90
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   55546
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74220
+L2 norm = 470296
+checksum: 90
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   58463
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74131
+L2 norm = 468997
+checksum: 49
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   56411
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74131
+L2 norm = 468997
+checksum: 49
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   59492
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73899
+L2 norm = 465711
+checksum: 89
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   57436
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73899
+L2 norm = 465711
+checksum: 89
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   60551
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73521
+L2 norm = 463171
+checksum: 179
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   58509
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 73521
+L2 norm = 463171
+checksum: 179
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   47394
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79953
+L2 norm = 553565
+checksum: 115
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   44815
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79953
+L2 norm = 553565
+checksum: 115
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   48022
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79210
+L2 norm = 546414
+checksum: 234
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   45486
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79210
+L2 norm = 546414
+checksum: 234
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   48696
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78756
+L2 norm = 536126
+checksum: 158
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   46209
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78756
+L2 norm = 536126
+checksum: 158
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   49321
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78430
+L2 norm = 531116
+checksum: 96
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   46831
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78430
+L2 norm = 531116
+checksum: 96
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   50036
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77938
+L2 norm = 523716
+checksum: 176
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   47581
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77938
+L2 norm = 523716
+checksum: 176
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   50706
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77871
+L2 norm = 522179
+checksum: 233
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   48277
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77871
+L2 norm = 522179
+checksum: 233
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   51571
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77849
+L2 norm = 518969
+checksum: 49
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   49149
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77849
+L2 norm = 518969
+checksum: 49
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   52447
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78005
+L2 norm = 523529
+checksum: 37
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   50044
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78005
+L2 norm = 523529
+checksum: 37
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   41273
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84859
+L2 norm = 624703
+checksum: 23
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   38064
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84859
+L2 norm = 624703
+checksum: 23
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   41745
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84156
+L2 norm = 614184
+checksum: 86
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   38542
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84156
+L2 norm = 614184
+checksum: 86
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   42245
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83820
+L2 norm = 604874
+checksum: 198
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   39080
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83820
+L2 norm = 604874
+checksum: 198
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   42755
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83390
+L2 norm = 595932
+checksum: 136
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   39613
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83390
+L2 norm = 595932
+checksum: 136
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   43342
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82926
+L2 norm = 592374
+checksum: 64
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   40247
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82926
+L2 norm = 592374
+checksum: 64
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   43888
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82660
+L2 norm = 589244
+checksum: 20
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   40776
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82660
+L2 norm = 589244
+checksum: 20
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   44503
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82807
+L2 norm = 590429
+checksum: 195
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   41435
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82807
+L2 norm = 590429
+checksum: 195
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   45110
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82900
+L2 norm = 591590
+checksum: 52
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   42067
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82900
+L2 norm = 591590
+checksum: 52
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   35224
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92545
+L2 norm = 733179
+checksum: 61
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   31354
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92545
+L2 norm = 733179
+checksum: 61
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   35555
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92200
+L2 norm = 727920
+checksum: 172
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   31694
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92200
+L2 norm = 727920
+checksum: 172
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   35902
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91597
+L2 norm = 715659
+checksum: 109
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   32064
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91597
+L2 norm = 715659
+checksum: 109
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   36301
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91630
+L2 norm = 712936
+checksum: 92
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   32462
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91630
+L2 norm = 712936
+checksum: 92
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   36688
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91053
+L2 norm = 705461
+checksum: 233
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   32889
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91053
+L2 norm = 705461
+checksum: 233
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   37075
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91025
+L2 norm = 704115
+checksum: 241
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   33280
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91025
+L2 norm = 704115
+checksum: 241
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   37517
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90789
+L2 norm = 701899
+checksum: 221
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   33711
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90789
+L2 norm = 701899
+checksum: 221
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   37972
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90924
+L2 norm = 702316
+checksum: 178
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   34199
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90924
+L2 norm = 702316
+checksum: 178
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   28099
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106232
+L2 norm = 958798
+checksum: 86
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   23421
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106232
+L2 norm = 958798
+checksum: 86
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   28313
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106069
+L2 norm = 951457
+checksum: 11
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   23644
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106069
+L2 norm = 951457
+checksum: 11
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   28541
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105548
+L2 norm = 939342
+checksum: 240
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   23859
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105548
+L2 norm = 939342
+checksum: 240
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   28773
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105308
+L2 norm = 935054
+checksum: 114
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   24093
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105308
+L2 norm = 935054
+checksum: 114
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   29029
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105007
+L2 norm = 928021
+checksum: 9
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   24343
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105007
+L2 norm = 928021
+checksum: 9
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   29267
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105230
+L2 norm = 930626
+checksum: 144
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   24600
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105230
+L2 norm = 930626
+checksum: 144
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   29565
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105045
+L2 norm = 927229
+checksum: 63
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   24884
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105045
+L2 norm = 927229
+checksum: 63
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   29843
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105127
+L2 norm = 930307
+checksum: 159
+
+image filename: "specmun.ppm"
+compression statistics:
+	uncompressed data size:   2113536
+	compressed data size:   25180
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105127
+L2 norm = 930307
+checksum: 159

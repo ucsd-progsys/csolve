@@ -1,0 +1,12 @@
+extern	int main(int argc, char * NTS * COUNT(argc) argv);
+extern	void readfile(char * NTS name);
+extern	int check(void);
+extern	void getmove(void);
+extern	void init(int obdflag,int handicapflag);
+extern	void g2exit(int i);
+extern	void fixplaylevel(int p);
+extern	void initinit(int l, int s);
+extern	void turnoffcplay(void);
+extern	void outerror(int line,char * NTS str);
+extern	void psqr(int s);
+extern	void ssqr(int s,char * NT COUNT(9) str);

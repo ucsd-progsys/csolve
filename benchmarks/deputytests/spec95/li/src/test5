@@ -1,0 +1,6 @@
+#!/bin/sh
+# run a binary 5 times and print times
+
+for n in 1 2 3 4 5; do
+  (./testit $1 >/dev/null) 2>&1 | grep real | sed 's/real	0m/    /'
+done

@@ -1,0 +1,43 @@
+#!/bin/sh
+# test a go binary against the reference output
+
+if [ "$1" = "" ]; then
+  echo "usage: $0 go-binary"
+  exit 0
+fi
+binary="$1"
+
+tryIt()
+{ 
+  # tell user what's happening
+  echo "$binary" "$@"
+
+  # run the program
+  if "$binary" "$@" > test.out; then
+    true
+  else
+    echo "Failed with code $? on input $@"
+    exit 2
+  fi
+
+  # compare the output
+  if ! diff orig.$1.$2 test.out >/dev/null; then
+    echo "Output differs for input $@"
+    exit 2
+  fi
+  
+  rm test.out
+}
+
+tryIt 5 5
+
+# this one behaves differently after removing an array overrun bug
+#tryIt 5 4
+
+tryIt 20 9
+tryIt 50 9
+
+echo "$1 seems to work"
+echo "Running perf test:"
+
+time bash -c "$binary 50 9; $binary 20 9; $binary 5 5" >& /dev/null

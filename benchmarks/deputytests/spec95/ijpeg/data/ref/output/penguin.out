@@ -1,0 +1,2432 @@
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   145078
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75910
+L2 norm = 478686
+checksum: 154
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   143316
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75910
+L2 norm = 478686
+checksum: 154
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   148270
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74267
+L2 norm = 458249
+checksum: 213
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   146524
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 74267
+L2 norm = 458249
+checksum: 213
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   151378
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 72845
+L2 norm = 441635
+checksum: 171
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   149650
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 72845
+L2 norm = 441635
+checksum: 171
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   154825
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71324
+L2 norm = 424304
+checksum: 14
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   153118
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 71324
+L2 norm = 424304
+checksum: 14
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   158513
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69997
+L2 norm = 408765
+checksum: 253
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   156807
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69997
+L2 norm = 408765
+checksum: 253
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   161961
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69108
+L2 norm = 399172
+checksum: 56
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   160279
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 69108
+L2 norm = 399172
+checksum: 56
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   166128
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 68328
+L2 norm = 390176
+checksum: 254
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   164498
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 68328
+L2 norm = 390176
+checksum: 254
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   170342
+compression parameters:
+	quality	        : 90
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 67949
+L2 norm = 387593
+checksum: 183
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   168610
+compression parameters:
+	quality	        : 90
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 67949
+L2 norm = 387593
+checksum: 183
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   97474
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81617
+L2 norm = 547123
+checksum: 215
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   95895
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81617
+L2 norm = 547123
+checksum: 215
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   99432
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 80471
+L2 norm = 530397
+checksum: 189
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   97919
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 80471
+L2 norm = 530397
+checksum: 189
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   101383
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79432
+L2 norm = 516912
+checksum: 6
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   99895
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 79432
+L2 norm = 516912
+checksum: 6
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   103508
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78122
+L2 norm = 502590
+checksum: 240
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   102002
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 78122
+L2 norm = 502590
+checksum: 240
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   105675
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77272
+L2 norm = 492270
+checksum: 50
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   104153
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 77272
+L2 norm = 492270
+checksum: 50
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   107817
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76148
+L2 norm = 479768
+checksum: 126
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   106337
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 76148
+L2 norm = 479768
+checksum: 126
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   110356
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75532
+L2 norm = 474610
+checksum: 102
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   108820
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75532
+L2 norm = 474610
+checksum: 102
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   112813
+compression parameters:
+	quality	        : 80
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75048
+L2 norm = 468800
+checksum: 190
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   111318
+compression parameters:
+	quality	        : 80
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 75048
+L2 norm = 468800
+checksum: 190
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   77063
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87478
+L2 norm = 618268
+checksum: 100
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   74807
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87478
+L2 norm = 618268
+checksum: 100
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   78500
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86354
+L2 norm = 603342
+checksum: 94
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   76295
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86354
+L2 norm = 603342
+checksum: 94
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   79952
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84950
+L2 norm = 587290
+checksum: 52
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   77811
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84950
+L2 norm = 587290
+checksum: 52
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   81455
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84046
+L2 norm = 575068
+checksum: 118
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   79340
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 84046
+L2 norm = 575068
+checksum: 118
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   83108
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83240
+L2 norm = 563000
+checksum: 150
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   80982
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 83240
+L2 norm = 563000
+checksum: 150
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   84690
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82201
+L2 norm = 552819
+checksum: 27
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   82566
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 82201
+L2 norm = 552819
+checksum: 27
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   86528
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81761
+L2 norm = 545889
+checksum: 219
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   84441
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81761
+L2 norm = 545889
+checksum: 219
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   88397
+compression parameters:
+	quality	        : 70
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81439
+L2 norm = 542057
+checksum: 81
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   86348
+compression parameters:
+	quality	        : 70
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 81439
+L2 norm = 542057
+checksum: 81
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   64490
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91902
+L2 norm = 678440
+checksum: 14
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   61436
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91902
+L2 norm = 678440
+checksum: 14
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   65637
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90864
+L2 norm = 662496
+checksum: 28
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   62526
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 90864
+L2 norm = 662496
+checksum: 28
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   66733
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89981
+L2 norm = 652963
+checksum: 27
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   63699
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89981
+L2 norm = 652963
+checksum: 27
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   67882
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89243
+L2 norm = 644383
+checksum: 187
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   64894
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 89243
+L2 norm = 644383
+checksum: 187
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   69138
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 88216
+L2 norm = 629736
+checksum: 244
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   66129
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 88216
+L2 norm = 629736
+checksum: 244
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   70361
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87602
+L2 norm = 622508
+checksum: 34
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   67317
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87602
+L2 norm = 622508
+checksum: 34
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   71778
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87326
+L2 norm = 617306
+checksum: 132
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   68744
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 87326
+L2 norm = 617306
+checksum: 132
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   73196
+compression parameters:
+	quality	        : 60
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86780
+L2 norm = 609978
+checksum: 146
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   70192
+compression parameters:
+	quality	        : 60
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 86780
+L2 norm = 609978
+checksum: 146
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   56326
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96350
+L2 norm = 738898
+checksum: 162
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   52633
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 96350
+L2 norm = 738898
+checksum: 162
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   57222
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 95225
+L2 norm = 722875
+checksum: 249
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   53563
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 95225
+L2 norm = 722875
+checksum: 249
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   58176
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94497
+L2 norm = 710193
+checksum: 15
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   54513
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 94497
+L2 norm = 710193
+checksum: 15
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   59162
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93863
+L2 norm = 703445
+checksum: 253
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   55484
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93863
+L2 norm = 703445
+checksum: 253
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   60238
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93078
+L2 norm = 692318
+checksum: 46
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   56570
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 93078
+L2 norm = 692318
+checksum: 46
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   61289
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92693
+L2 norm = 685535
+checksum: 197
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   57659
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 92693
+L2 norm = 685535
+checksum: 197
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   62424
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91846
+L2 norm = 677914
+checksum: 34
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   58777
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91846
+L2 norm = 677914
+checksum: 34
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   63608
+compression parameters:
+	quality	        : 50
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91767
+L2 norm = 677841
+checksum: 81
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   59956
+compression parameters:
+	quality	        : 50
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 91767
+L2 norm = 677841
+checksum: 81
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   48789
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101681
+L2 norm = 818257
+checksum: 31
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   44356
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101681
+L2 norm = 818257
+checksum: 31
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   49535
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101124
+L2 norm = 808886
+checksum: 100
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   45135
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 101124
+L2 norm = 808886
+checksum: 100
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   50296
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99999
+L2 norm = 792599
+checksum: 53
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   45921
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99999
+L2 norm = 792599
+checksum: 53
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   51058
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99060
+L2 norm = 778042
+checksum: 56
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   46725
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 99060
+L2 norm = 778042
+checksum: 56
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   51905
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 98592
+L2 norm = 774096
+checksum: 154
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   47577
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 98592
+L2 norm = 774096
+checksum: 154
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   52733
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 98095
+L2 norm = 764565
+checksum: 211
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   48468
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 98095
+L2 norm = 764565
+checksum: 211
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   53726
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97638
+L2 norm = 761492
+checksum: 226
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   49491
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97638
+L2 norm = 761492
+checksum: 226
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   54671
+compression parameters:
+	quality	        : 40
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97892
+L2 norm = 761448
+checksum: 98
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   50449
+compression parameters:
+	quality	        : 40
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 97892
+L2 norm = 761448
+checksum: 98
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   41010
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109927
+L2 norm = 958659
+checksum: 165
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   35838
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109927
+L2 norm = 958659
+checksum: 165
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   41564
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109364
+L2 norm = 947024
+checksum: 48
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   36427
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 109364
+L2 norm = 947024
+checksum: 48
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   42153
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108362
+L2 norm = 929922
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   37042
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108362
+L2 norm = 929922
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   42796
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108048
+L2 norm = 922450
+checksum: 104
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   37633
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 108048
+L2 norm = 922450
+checksum: 104
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   43425
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107025
+L2 norm = 906051
+checksum: 145
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   38259
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 107025
+L2 norm = 906051
+checksum: 145
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   44076
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106673
+L2 norm = 898775
+checksum: 191
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   38911
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106673
+L2 norm = 898775
+checksum: 191
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   44778
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106362
+L2 norm = 893236
+checksum: 0
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   39611
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 106362
+L2 norm = 893236
+checksum: 0
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   45525
+compression parameters:
+	quality	        : 30
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105870
+L2 norm = 891114
+checksum: 112
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   40361
+compression parameters:
+	quality	        : 30
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 105870
+L2 norm = 891114
+checksum: 112
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   31876
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124172
+L2 norm = 1185718
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   25933
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 90
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124172
+L2 norm = 1185718
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   32280
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124011
+L2 norm = 1181319
+checksum: 85
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   26329
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 80
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 124011
+L2 norm = 1181319
+checksum: 85
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   32665
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 123259
+L2 norm = 1168943
+checksum: 17
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   26703
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 70
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 123259
+L2 norm = 1168943
+checksum: 17
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   33048
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122750
+L2 norm = 1162712
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   27102
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 60
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122750
+L2 norm = 1162712
+checksum: 80
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   33468
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 123052
+L2 norm = 1164234
+checksum: 92
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   27516
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 50
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 123052
+L2 norm = 1164234
+checksum: 92
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   33900
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122730
+L2 norm = 1161616
+checksum: 50
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   27926
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 40
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122730
+L2 norm = 1161616
+checksum: 50
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   34355
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122176
+L2 norm = 1154150
+checksum: 158
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   28399
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 30
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 122176
+L2 norm = 1154150
+checksum: 158
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   34817
+compression parameters:
+	quality	        : 20
+	optimize_coding : 0
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 121791
+L2 norm = 1151173
+checksum: 129
+
+image filename: "penguin.ppm"
+compression statistics:
+	uncompressed data size:   2270208
+	compressed data size:   28833
+compression parameters:
+	quality	        : 20
+	optimize_coding : 1
+	smoothing_factor: 20
+	subimage    	: ul(0,0) lr(1,1)
+decompression parameters:
+	quantize_colors         : 0
+	do_fancy_upsampling     : 0
+	desired_number_of_colors: 0
+	two_pass_quantize       : 0
+	dither_mode             : 0
+L1 norm = 121791
+L2 norm = 1151173
+checksum: 129

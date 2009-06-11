@@ -1,0 +1,21 @@
+#!/bin/sh
+# test and time an 'li'  binary
+
+if [ "$1" = "" ]; then
+  echo "usage: $0 trial_li-binary"
+  exit 0
+fi
+
+# run the program
+time $1 < `dirname $1`/../data/train/input/train.lsp > test.output
+
+# verify it gets the right answer
+if ! diff correct.output test.output >/dev/null; then
+  echo "WRONG OUTPUT"
+  echo "  diff correct.output test.output"
+  echo "to see differences"
+  exit 1
+else
+  echo "looks ok"
+  exit 0
+fi

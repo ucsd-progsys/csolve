@@ -1,0 +1,31 @@
+#!/bin/sh
+# test a bh binary
+exe=./code.exe
+
+if [ "$exe" = "" ]; then 
+  echo "usage: $0 ./code.exe"
+  exit 0
+fi
+
+echo "running: $exe <data.in >data.out"
+if ! (time sh -c "$exe <data.in >data.out"); then
+  echo "$1 failed directly"
+  exit 2
+fi
+
+#cygwin gets slightly different answers.  Maybe it uses a different 
+# random number seed?
+export REFERENCE_FILE=data.orig.out
+if [ `uname -s` = "Darwin" ]; then
+   export REFERENCE_FILE=data.orig_darwin.out
+elif [ `uname -o` = "Cygwin" ]; then
+   export REFERENCE_FILE=data.orig_cygwin.out
+fi
+
+if ! perl ./normalize.pl <data.out | diff - $REFERENCE_FILE >data.diff; then
+  echo "$exe got the wrong answer"
+  exit 4
+else
+  echo "$exe seems to work"
+fi
+
