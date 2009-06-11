@@ -335,8 +335,8 @@ let cons_of_sci gnv sci =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let add_scis gnv scim shpm ci = let _ = failwith "TBDNOW" in
-  (* List.fold_left begin 
+let add_scis gnv scim shpm ci = failwith "TBDNOW" 
+(* List.fold_left begin 
     fun ci sci ->
       let fn = sci.ST.fdec.Cil.svar.Cil.vname in
       cons_of_sci gnv sci
@@ -345,42 +345,31 @@ let add_scis gnv scim shpm ci = let _ = failwith "TBDNOW" in
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 
+let decs_of_file cil = 
+  Cil.foldGlobals cil begin fun acc g -> match g with
+    | GFun (fdec, loc) -> (fdec.svar.vname, loc) :: acc 
+    | _                -> if !Constants.safe then assertf "decs_of_file" else
+                          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
+                          acc
+  end []
+
 let gnv_of_spec spec gnv = 
   SM.fold begin fun fn ft gnv ->
     if FI.ce_mem_fn fn gnv then gnv else 
       FI.ce_adds_fn gnv [(fn, ft)] 
-  end spec
+  end spec gnv
 
-let gnv_of_file spec cil =
-  Cil.foldGlobals cil begin fun gnv g -> match g with
-    | GFun (fdec, _) ->
-        let fn = fdec.svar.vname in
-        let ft = SM.find fn spec 
-                 |> FI.cfun_of_refcfun
-                 |> FI.t_fresh_fn in 
-        FI.ce_adds_fn gnv [(fn, ft)] 
-    | _ ->
-        if !Constants.safe then assertf "gnv_of_file" else
-          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
-          gnv
-   end
+let gnv_of_decs spec decs : FI.cilenv =
+  decs |> List.fold_left begin fun gnv (fn,_) ->
+            let ft = SM.find fn spec |> FI.cfun_of_refcfun |> FI.t_fresh_fn in 
+            FI.ce_adds_fn gnv [(fn, ft)] 
+          end FI.ce_empty 
+       |> gnv_of_spec spec
 
-let decls_of_file cil = 
-
-
-let cons_of_globals gnv cil = 
-  Cil.foldGlobals cil begin
-    fun (ws, cs) g ->
-      match g with
-      | Cil.GFun (fdec, loc) ->
-          let fn = FI.name_of_varinfo fdec.svar in
-          let cr = FI.ce_find fn gnv in
-          ((FI.make_wfs gnv cr loc) ++ ws, cs)
-      | _ -> 
-          E.warn "Ignoring global %a \n" d_global g;
-          (ws, cs)
-
-  end ([], []) 
+let cons_of_decs gnv decs =
+  List.fold_left begin fun (ws, cs) (fn, loc) -> 
+      ((FI.make_wfs_fn gnv (FI.ce_find_fn fn gnv) loc) ++ ws, cs)
+  end ([], []) decs
 
 let scim_of_file cil =
   cil |> ST.scis_of_file 
@@ -396,10 +385,11 @@ let shapem_of_scim spec scim = failwith "TBDNOW"
 (************************************************************************************)
 
 (* API *)
-let create spec cil =
+let create cil spec =
   let scim = scim_of_file cil in
   let shpm = shapem_of_scim spec scim in
-  let gnv  = gnv_of_file spec cil in
-  cons_of_globals gnv cil 
+  let decs = decs_of_file cil in
+  let gnv  = gnv_of_decs spec decs in
+  cons_of_decs gnv decs 
   |> Misc.uncurry Consindex.create
   |> add_scis gnv scim shpm

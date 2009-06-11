@@ -164,6 +164,7 @@ type cilenv  = refcfun SM.t * refctype YM.t
 let ce_rem   = fun n cenv     -> Misc.app_snd (YM.remove n) cenv
 let ce_mem   = fun n (_, vnv) -> YM.mem n vnv
 
+
 let ce_find n (_, vnv) =
   try YM.find n vnv with Not_found -> 
     assertf "Unknown name! %s" (Sy.to_string n)
@@ -177,6 +178,8 @@ let ce_adds (fnv, vnv) ncrs =
  
 let ce_adds_fn (fnv, vnv) sfrs = 
   (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv)
+
+let ce_mem_fn = fun s (fnv, _) -> SM.mem s fnv
 
 let ce_empty =
   let ce = (SM.empty, YM.empty) in
