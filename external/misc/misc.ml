@@ -560,6 +560,9 @@ let array_flapi f a =
 let array_fold_lefti f acc a =
   Array.fold_left (fun (i, acc) x -> (i + 1, f i acc x)) (0, acc) a |> snd
 
+let array_map2 f xa ya = 
+  Array.mapi (fun i x -> f x (ya.(i))) xa
+
 let compose f g a = f (g a)
 
 let maybe_bool = function

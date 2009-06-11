@@ -41,11 +41,7 @@ val is_undefined: t -> Cil.varinfo -> bool
 
 val ctype_of_varinfo: t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr: t -> Cil.exp -> Ctypes.ctype
-val create: FixInterface.cilenv 
-         -> Ssa_transform.ssaCfgInfo 
-         -> ((Cil.varinfo * Ctypes.ctype) list * Ctypes.ctemap * Ctypes.store)
-         -> (Refanno.block_annotation array * Refanno.ctab)
-         -> t
+val create: FixInterface.cilenv -> Ssa_transform.ssaCfgInfo -> Inferctypes.shape -> t
 
 
 (* Deprecated *)         

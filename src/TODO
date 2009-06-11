@@ -8,9 +8,9 @@ TODO
 
 ***************************************************************
 
-[functions]
+[functions] : hookup with pat's code
+- ensure pat produces proper annots. right now they are broken
 
-Testing!
 
 ***************************************************************
 Fixing the malloc/init/unsoundness error

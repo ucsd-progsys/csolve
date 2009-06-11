@@ -321,12 +321,10 @@ let process_phis phia me =
   let cs = tcons_of_phis me phia in
   CF.add_cons [] cs me 
 
-let cons_of_sci gnv sci =
-  let (locals, ctm, store) = Inferctypes.infer_sci_shapes sci in
-  let (anna, theta) = Refanno.annotate_cfg sci.ST.cfg ctm in
-  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array anna in
-  let _ = Pretty.printf "%a\n" Refanno.d_ctab theta in 
-  CF.create gnv sci (locals, ctm, store) (anna, theta)
+let cons_of_sci gnv sci shp =
+  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
+  let _ = Pretty.printf "%a\n" Refanno.d_ctab shp.Inferctypes.theta in 
+  CF.create gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
   |> CF.get_cons
@@ -335,13 +333,11 @@ let cons_of_sci gnv sci =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let add_scis gnv scim shpm ci = failwith "TBDNOW" 
-(* List.fold_left begin 
-    fun ci sci ->
-      let fn = sci.ST.fdec.Cil.svar.Cil.vname in
-      cons_of_sci gnv sci
-      |> Misc.uncurry (Consindex.add ci fn sci)
-  end ci scis *)
+let add_scis gnv scim shpm ci = 
+  SM.fold begin fun fn sci ci ->
+    cons_of_sci gnv sci (SM.find fn shpm)
+    |> Misc.uncurry (Consindex.add ci fn sci)
+  end scim ci 
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 

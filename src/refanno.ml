@@ -130,6 +130,15 @@ let cloc_of_varinfo theta v =
   with Not_found -> None
 
 
+(* API *)
+let merge_annots a1 a2 = 
+  let _ = asserts (Array.length a1 = Array.length a2) "merge_annots 1" in
+  Misc.array_map2 begin fun anns anns' -> 
+    let _ = asserts (List.length anns = List.length anns') "merge_annots 2" in
+    List.map2 (++) anns anns'
+  end a1 a2
+
+
 (*****************************************************************************)
 (********************** Pretty Printing **************************************)
 (*****************************************************************************)

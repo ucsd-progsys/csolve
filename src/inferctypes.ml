@@ -468,10 +468,10 @@ let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.b
   | C.Set (lv, e, loc) ->
       let (ctv1, em1)        = constrain_lval ve em loc lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc e in
-        ((ctvm, mk_subty loc ctv2 ctv1 :: cs), bas)
+      ((ctvm, mk_subty loc ctv2 ctv1 :: cs), [] :: bas)
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
-      (constrain_args ve em loc args |> snd, bas)
+      (constrain_args ve em loc args |> snd, [] :: bas)
   | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
       let (em, ba) = constrain_app env ve em loc f lvo args in
         (em, ba :: bas)
@@ -479,7 +479,7 @@ let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.b
 
 let constrain_instr (env: ctypeenv) (ve: ctvenv) (em: cstremap) (is: C.instr list): cstremap * RA.block_annotation =
   let (em, bas) = List.fold_left (constrain_instr_aux env ve) (em, []) is in
-    (em, List.rev bas)
+  (em, List.rev ([]::bas))
 
 let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap * RA.block_annotation =
   match s.C.skind with
@@ -512,10 +512,12 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
-let infer_sci_shapes ({ST.fdec = fd; ST.phis = phis}: ST.ssaCfgInfo): (C.varinfo * ctype) list * ctemap * store =
-  E.s <| E.bug "infer_sci_shapes is deprecated@!@!"
-
-type shape = (C.varinfo * ctype) list * ctemap * store * RA.block_annotation array
+type shape = 
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap; 
+   store : Ctypes.store; 
+   anna  : Refanno.block_annotation array;
+   theta : Refanno.ctab }
 
 let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
   let blocks = cfg.Ssa.blocks in
@@ -540,10 +542,13 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
   let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol                = ctypevar_apply is in
-    (List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals,
-     ExpMap.map apply_sol ctvm,
-     SLM.map (LDesc.map apply_sol) ss,
-     annots)
+  let etypm                    = ExpMap.map apply_sol ctvm in
+  let anna, theta              = RA.annotate_cfg cfg etypm in
+  {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
+   etypm = etypm;
+   store = SLM.map (LDesc.map apply_sol) ss;
+   anna  = RA.merge_annots anna annots;
+   theta = theta }
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
   M.StringMap.map (fun (cft, sci) -> infer_shape env (fst (cfun_instantiate cft)) sci) scis

@@ -35,7 +35,7 @@ module C  = Constraint
 module FI = FixInterface 
 module CI = CilInterface
 module EM = Ctypes.ExpMap
-
+module IC = Inferctypes
 
 open Misc.Ops
 open Cil
@@ -86,11 +86,10 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
-
-let create gnv sci (ltm, etm, store) (anna, ctab) =
+let create gnv sci shp = 
   let fdec   = sci.ST.fdec in
-  let env    = env_of_fdec gnv fdec ltm in
-  let astore = FI.refstore_fresh store in 
+  let env    = env_of_fdec gnv fdec shp.IC.vtyps in
+  let astore = FI.refstore_fresh shp.IC.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
   {sci     = sci;
    cs      = [];
@@ -98,11 +97,11 @@ let create gnv sci (ltm, etm, store) (anna, ctab) =
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
-   etm     = etm;
-   ltm     = ltm;
+   etm     = shp.IC.etypm;
+   ltm     = shp.IC.vtyps;
    astore  = astore;
-   anna    = anna;
-   ctab    = ctab;
+   anna    = shp.IC.anna;
+   ctab    = shp.IC.theta;
    undefm  = make_undefm formalm sci.ST.phis
   }
 
