@@ -10,16 +10,7 @@ open Misc.Ops
 (* pmr: This file is just a temporary addition until the main thing is in a state where
    we can use it to infer plain types. *)
 let mydebug = true 
-
-let scis_of_file cil = 
-  Cil.foldGlobals cil begin
-    fun acc g ->
-      match g with 
-      | Cil.GFun (fdec,loc) -> (ST.fdec_to_ssa_cfg fdec loc) :: acc 
-      | _                   -> acc
-  end []
-  |> (fun scis -> let _ = if mydebug then ST.print_scis scis in scis)
-  
+ 
 let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
@@ -71,7 +62,7 @@ let add_sci spec map sci =
 let infer_shapes file =
   let cil  = mk_cil file in
   let spec = Specparse.read_spec ["lib.spec"; file ^ ".spec"] |> Specparse.cfun_spec_of_spec in
-  let scis = scis_of_file cil |> List.fold_left (add_sci spec) Misc.StringMap.empty in
+  let scis = ST.scis_of_file cil |> List.fold_left (add_sci spec) Misc.StringMap.empty in
     print_sci_shapes spec scis
 
 let mk_options () =

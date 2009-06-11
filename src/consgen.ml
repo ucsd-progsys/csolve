@@ -29,6 +29,7 @@ module ST = Ssa_transform
 module FI = FixInterface 
 module CF = Consinfra
 module IM = Misc.IntMap
+module SM = Misc.StringMap
 
 open Misc.Ops
 open Cil
@@ -331,61 +332,38 @@ let cons_of_sci gnv sci =
   |> CF.get_cons
 
 (***************************************************************************)
-(*************** Processing SCIs *******************************************)
+(*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let add_scis gnv scis ci = 
-  List.fold_left begin 
+let add_scis gnv scim shpm ci = let _ = failwith "TBDNOW" in
+  (* List.fold_left begin 
     fun ci sci ->
       let fn = sci.ST.fdec.Cil.svar.Cil.vname in
       cons_of_sci gnv sci
       |> Misc.uncurry (Consindex.add ci fn sci)
-  end ci scis
-
-let scis_of_file cil = 
-  Cil.foldGlobals cil begin
-    fun acc g ->
-      match g with 
-      | Cil.GFun (fdec,loc) -> 
-          let sci = ST.fdec_to_ssa_cfg fdec loc in
-          sci::acc
-      | _ -> acc
-  end []
-  |> (fun scis -> let _ = if mydebug then ST.print_scis scis in scis)
-
-
-(************************************************************************************)
-(***************** Processing Globals ***********************************************)
-(************************************************************************************)
-
-let type_of_fdec fdec = 
-  let fn = fdec.svar.vname in
-  match fdec.svar.vtype with 
-  | TFun (a,Some xts, b, c) ->
-      let xts' = List.map (fun (x,d,e) -> (x^"@"^fn, d, e)) xts in
-      TFun (a, Some xts', b, c)
-  | TFun (_,_,_,_) as t -> 
-      t
-  | _  -> 
-      assertf "type_of_fdec"
+  end ci scis *)
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 
-let gnv_of_file cil spec =                       
-  Cil.foldGlobals cil begin
-    fun gnv g ->
-      match g with
-      | GFun (fdec, _) ->
-          let fn = fdec.svar.vname in
-          let ft = Misc.StringMap.find fn spec 
-                   |> FI.cfun_of_refcfun
-                   |> FI.t_fresh_fn in 
-          FI.ce_adds_fn gnv [(fn, ft)] 
-      | _ ->
-          if !Constants.safe then assertf "gnv_of_file" else
-            let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
-            gnv
-  end FI.ce_empty 
+let gnv_of_file spec cil =
+  FI.ce_empty
+  |>
+  (SM.fold begin fun fn ft gnv -> 
+    FI.ce_adds_fn gnv [(fn, ft)] 
+   end builtins)
+  |> 
+  (Cil.foldGlobals cil begin fun gnv g -> match g with
+    | GFun (fdec, _) ->
+        let fn = fdec.svar.vname in
+        let ft = SM.find fn spec 
+                 |> FI.cfun_of_refcfun
+                 |> FI.t_fresh_fn in 
+        FI.ce_adds_fn gnv [(fn, ft)] 
+    | _ ->
+        if !Constants.safe then assertf "gnv_of_file" else
+          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
+          gnv
+   end)  
 
 let cons_of_globals gnv cil = 
   Cil.foldGlobals cil begin
@@ -401,14 +379,24 @@ let cons_of_globals gnv cil =
 
   end ([], []) 
 
+let scim_of_file cil =
+  cil |> ST.scis_of_file 
+      |> List.fold_left begin fun acc sci -> 
+           let fn = sci.ST.fdec.svar.vname in
+           SM.add fn sci acc
+         end SM.empty
+
+let shapem_of_scim spec scim = failwith "TBDNOW"
+
 (************************************************************************************)
 (******************************** API ***********************************************)
 (************************************************************************************)
 
 (* API *)
-let create cil spec =
-  let _   = failwith "TBDNOW: Consgen.create hookup with infer_shapes" in
-  let gnv = gnv_of_file cil spec in
+let create spec cil =
+  let scim = scim_of_file cil in
+  let shpm = shapem_of_scim spec scim in
+  let gnv  = gnv_of_file spec cil in
   cons_of_globals gnv cil 
   |> Misc.uncurry Consindex.create
-  |> add_scis gnv (scis_of_file cil)
+  |> add_scis gnv scim shpm

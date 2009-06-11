@@ -295,9 +295,15 @@ let print_scis scis =
       List.iter (print_sci None) scis
   | Some s -> 
       let fn = s^".ssa.c" in
-      (* let _  = ignore(Unix.system ("rm -rf "^fn)) in 
-         let oc = open_out_gen [Open_creat; Open_append] 0777 fn in *)
       let oc = open_out fn in
       let _  = List.iter (print_sci (Some oc)) scis in
       close_out oc
 
+(* API *)
+let scis_of_file cil = 
+  Cil.foldGlobals cil begin fun acc g -> 
+    match g with 
+    | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg fdec loc)::acc
+    | _                   -> acc
+  end []
+  |> (fun scis -> let _ = if mydebug then print_scis scis in scis)
