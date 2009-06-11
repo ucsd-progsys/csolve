@@ -345,14 +345,14 @@ let add_scis gnv scim shpm ci = let _ = failwith "TBDNOW" in
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
          2. each function var is bound to its "output" *) 
+let gnv_of_spec spec gnv = 
+  SM.fold begin fun fn ft gnv ->
+    if FI.ce_mem_fn fn gnv then gnv else 
+      FI.ce_adds_fn gnv [(fn, ft)] 
+  end spec
+
 let gnv_of_file spec cil =
-  FI.ce_empty
-  |>
-  (SM.fold begin fun fn ft gnv -> 
-    FI.ce_adds_fn gnv [(fn, ft)] 
-   end builtins)
-  |> 
-  (Cil.foldGlobals cil begin fun gnv g -> match g with
+  Cil.foldGlobals cil begin fun gnv g -> match g with
     | GFun (fdec, _) ->
         let fn = fdec.svar.vname in
         let ft = SM.find fn spec 
@@ -363,7 +363,10 @@ let gnv_of_file spec cil =
         if !Constants.safe then assertf "gnv_of_file" else
           let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
           gnv
-   end)  
+   end
+
+let decls_of_file cil = 
+
 
 let cons_of_globals gnv cil = 
   Cil.foldGlobals cil begin

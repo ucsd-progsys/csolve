@@ -21,6 +21,7 @@ val ce_mem              : name -> cilenv -> bool
 val ce_empty            : cilenv
 val ce_adds             : cilenv -> (name * refctype) list -> cilenv
 val ce_find             : name -> cilenv -> refctype
+val ce_mem_fn           : string -> cilenv -> bool
 val ce_adds_fn          : cilenv -> (string * refcfun) list -> cilenv
 val ce_find_fn          : string -> cilenv -> refcfun
 
