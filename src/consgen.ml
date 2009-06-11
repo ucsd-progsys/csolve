@@ -374,7 +374,15 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
-let shapem_of_scim spec scim = failwith "TBDNOW"
+let shapem_of_scim spec scim =
+  (SM.empty, SM.empty)
+  |> SM.fold begin fun fn rf (bm, fm) ->
+       let cf = FI.cfun_of_refcfun rf in
+       if SM.mem fn scim 
+       then (bm, (SM.add fn (cf, SM.find fn scim) fm))
+       else ((SM.add fn cf bm), fm)
+     end spec
+  |> Misc.uncurry Inferctypes.infer_shapes 
 
 (************************************************************************************)
 (******************************** API ***********************************************)
