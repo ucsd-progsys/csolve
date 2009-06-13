@@ -83,16 +83,21 @@ let quals_of_file fname =
       E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
       []
 
-let spec_of_file fname =
+let add_spec spec fname =
+  let _ = E.log "Parsing spec: %s \n" fname in
   try
-    (fname^ ".spec") 
-    |> open_in
+    open_in fname
     |> Lexing.from_channel
     |> RefParse.specs RefLex.token
-    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) SM.empty 
+    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) spec 
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    SM.empty 
+    spec
+
+let spec_of_file fname = 
+  [Constants.lib_name; fname]
+  |> List.map (fun s -> s^".spec")
+  |> List.fold_left add_spec SM.empty 
 
 let liquidate file =
   let cil   = cil_of_file file in

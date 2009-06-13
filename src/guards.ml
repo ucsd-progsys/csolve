@@ -5,27 +5,28 @@ open Cil
 open Misc.Ops
 
 (* Assume: all guards are from "if" statements. *)
+let mydebug = false
 
 type ginfo = (exp * int option * int option) option
 
 (****************************************************************)             
 let print_ifs ifs = 
-  Array.iteri 
-    (fun i ginfo -> match ginfo with
-    | None -> 
-        ()
-    | Some (e,tbo,ebo) -> 
-        let ts = Misc.o2s string_of_int tbo in 
-        let es = Misc.o2s string_of_int ebo in
-        ignore(E.log "block i = %d, grd = (%a), thn = (%s), els = (%s)\n" i d_exp e ts es))
-    ifs
+  if mydebug then 
+    Array.iteri begin fun i -> function 
+      | None -> 
+          ()
+      | Some (e,tbo,ebo) -> 
+          let ts = Misc.o2s string_of_int tbo in 
+          let es = Misc.o2s string_of_int ebo in
+          ignore(E.log "block i = %d, grd = (%a), thn = (%s), els = (%s)\n" i d_exp e ts es)
+  end ifs
 
-let print_gdoms gdoms = 
-  Array.iteri 
-    (fun i (j, bo) -> 
-      Printf.printf "block i = %d, idom = %d, guard = %s \n" 
-      i j (Misc.o2s string_of_bool bo))
-    gdoms
+let print_gdoms gdoms =
+  if mydebug then
+    Array.iteri begin fun i (j, bo) -> 
+        Printf.printf "block i = %d, idom = %d, guard = %s \n" 
+        i j (Misc.o2s string_of_bool bo)
+    end gdoms
 
 (****************************************************************)             
 

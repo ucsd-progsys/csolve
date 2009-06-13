@@ -60,8 +60,8 @@ let annotate_set ctm theta conc = function
       let _ = CilMisc.check_pure_expr e in
       loc_of_var_expr theta e
       |> Misc.maybe_iter (Hashtbl.replace theta v.vname) 
-      >> (conc, [])
-  
+      |> fun _ -> (conc, [])
+
   (* *v := _ *)
   | (Mem (Lval (Var v, _) as e), _), _ 
   | (Mem (CastE (_, Lval (Var v, _)) as e), _), _ ->

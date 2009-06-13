@@ -1,5 +1,9 @@
 TODO
 - [functions]	handling functions properly
+- [specgen]	use C types to generate a "spec" file for each program,
+		that is, create a candidate input type for each function.
+		can be refined later.
+
 - [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
 - [arrays]  	array-bounds checking assertions.
 - [arrays]	null-deref assertion.
@@ -9,8 +13,6 @@ TODO
 ***************************************************************
 
 [functions] : hookup with pat's code
-- ensure pat produces proper annots. right now they are broken
-
 
 ***************************************************************
 Fixing the malloc/init/unsoundness error

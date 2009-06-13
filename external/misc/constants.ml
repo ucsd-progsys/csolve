@@ -22,9 +22,11 @@
 
 (** This module contains globals representing "flags" **************)
 
+let lib_name            = "lib"
+let global_name         = "GLOBAL"
+
 let file: string option ref = ref None         (* last commandline param*)
 let safe                = ref false            (* -safe *)
-let global_name         = "GLOBAL"
 let save_file           = ref "out"            (* -save *)
 let dump_ref_constraints= ref false            (* -drconstr *)
 let ol_default          = 2

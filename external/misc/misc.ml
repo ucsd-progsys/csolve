@@ -37,7 +37,7 @@ module Ops = struct
 
   let (<|) f x = f x
 
-  let (>>) () x = x
+  let (>>) x f = f x; x
 
   let (+=) x n = x := !x + n; !x
 
@@ -94,6 +94,9 @@ let sm_filter f sm =
   StringMap.fold 
     (fun x y sm -> if f x y then StringMap.add x y sm else sm) 
     sm StringMap.empty 
+
+let sm_to_list sm = 
+  StringMap.fold (fun k v acc -> (k,v)::acc) sm [] 
 
 
 open Ops

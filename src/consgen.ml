@@ -34,7 +34,7 @@ module SM = Misc.StringMap
 open Misc.Ops
 open Cil
 
-let mydebug = true 
+let mydebug = false 
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)
@@ -355,9 +355,10 @@ let gnv_of_spec spec gnv =
       FI.ce_adds_fn gnv [(fn, ft)] 
   end spec gnv
 
-let gnv_of_decs spec decs : FI.cilenv =
+let gnv_of_decs spec decs =
   decs |> List.fold_left begin fun gnv (fn,_) ->
-            let ft = SM.find fn spec |> FI.cfun_of_refcfun |> FI.t_fresh_fn in 
+            let fr = Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec in 
+            let ft = fr |> FI.cfun_of_refcfun |> FI.t_fresh_fn in 
             FI.ce_adds_fn gnv [(fn, ft)] 
           end FI.ce_empty 
        |> gnv_of_spec spec
@@ -374,6 +375,12 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
+let print_keys name sm =
+  sm |> Misc.sm_to_list 
+     |> List.map fst 
+     |> String.concat ", "
+     |> Printf.printf "%s : %s \n" name
+
 let shapem_of_scim spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn rf (bm, fm) ->
@@ -382,7 +389,10 @@ let shapem_of_scim spec scim =
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else ((SM.add fn cf bm), fm)
      end spec
+  |> (fun (bm, fm) -> print_keys "builtins" bm; print_keys "non-builtins" fm; (bm, fm))
   |> Misc.uncurry Inferctypes.infer_shapes 
+
+
 
 (************************************************************************************)
 (******************************** API ***********************************************)

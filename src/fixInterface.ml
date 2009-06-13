@@ -98,7 +98,7 @@ let refstore_set sto l rd =
 
 let refstore_get sto l =
   try SLM.find l sto with Not_found ->
-    assertf "refstore_get"
+    ignore(0/0); assertf "refstore_get"
 
 let binds_of_refldesc l rd = 
   Ctypes.LDesc.foldn 
@@ -149,11 +149,12 @@ let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zer
 let mk_pure_cfun args ret = 
   mk_cfun [] args refstore_empty ret refstore_empty
 
+(* Added to lib.spec
 let builtins    = []
-
-let builtins_fn =
+let builtins_fn = []
   [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
    ("nondet", mk_pure_cfun [] true_int)]
+*)
 
 (*******************************************************************)
 (************************** Environments ***************************)
@@ -181,11 +182,7 @@ let ce_adds_fn (fnv, vnv) sfrs =
 
 let ce_mem_fn = fun s (fnv, _) -> SM.mem s fnv
 
-let ce_empty =
-  let ce = (SM.empty, YM.empty) in
-  let ce = ce_adds ce builtins in
-  let ce = ce_adds_fn ce builtins_fn in
-  ce
+let ce_empty = (SM.empty, YM.empty) 
 
 (*
 let ce_project base_env fun_env ns =
