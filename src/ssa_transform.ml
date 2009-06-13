@@ -291,8 +291,8 @@ let print_sci oco sci =
 (* API *)
 let print_scis scis =
   match !Constants.file with 
-  | None -> 
-      List.iter (print_sci None) scis
+  | None ->
+      if mydebug then List.iter (print_sci None) scis
   | Some s -> 
       let fn = s^".ssa.c" in
       let oc = open_out fn in
@@ -306,4 +306,4 @@ let scis_of_file cil =
     | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg fdec loc)::acc
     | _                   -> acc
   end []
-  |> (fun scis -> let _ = if mydebug then print_scis scis in scis)
+  |> (fun scis -> let _ = print_scis scis in scis)

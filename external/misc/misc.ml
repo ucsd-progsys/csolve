@@ -516,6 +516,22 @@ let rec expand f xs ys =
       let (xs',ys') = f x in
       expand f (List.rev_append xs' xs) (List.rev_append ys' ys)
 
+let rec get_first f = function
+  | x::xs when f x -> Some x 
+  | _::xs          -> get_first f xs
+  | []             -> None
+
+let join f xs ys = 
+  let rec fuse acc xs ys = 
+    match xs, ys with 
+    | [],_ | _, []                              -> List.rev acc
+    | ((kx, _)::xs', (ky,_)::_  ) when kx < ky  -> fuse acc xs' ys
+    | ((kx, _)::_  , (ky,_)::ys') when kx > ky  -> fuse acc xs  ys' 
+    | ((kx, x)::xs', (ky,y)::ys') (* kx = ky *) -> fuse ((x,y)::acc) xs' ys' in
+  let xs' = List.map (fun x -> (f x, x)) xs |> List.sort compare in
+  let ys' = List.map (fun y -> (f y, y)) ys |> List.sort compare in
+  fuse [] xs' ys'
+
 let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
   let t        = Hashtbl.create 17 in
   let lookup x = try Hashtbl.find t x with Not_found -> [] in

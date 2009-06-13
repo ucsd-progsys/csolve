@@ -100,11 +100,13 @@ let refstore_get sto l =
   try SLM.find l sto with Not_found ->
     ignore(0/0); assertf "refstore_get"
 
-let binds_of_refldesc l rd = 
-  Ctypes.LDesc.foldn 
-    (fun i binds ploc rct -> (name_of_sloc_ploc l ploc, rct)::binds)
-    [] rd
+let sloc_binds_of_refldesc l rd = 
+  Ctypes.LDesc.foldn begin fun i binds ploc rct -> 
+    ((name_of_sloc_ploc l ploc, rct), ploc)::binds
+  end [] rd
   |> List.rev
+
+let binds_of_refldesc l rd = sloc_binds_of_refldesc l rd |> List.map fst
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
 
@@ -343,21 +345,24 @@ let rec make_cs cenv p rct1 rct2 loc =
   [C.make_t env p r1 r2 None]
 
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
-  let ncrs1  = binds_of_refldesc sloc1 rd1 in
-  let ncrs2  = binds_of_refldesc sloc2 rd2 in
-  let _      = asserts (List.length ncrs1 = List.length ncrs2) "make_cs_refldesc" in
-  let env'   = ce_adds env ncrs1 in
-  let subs   = List.map2 (fun (n1,_) (n2,_)  -> (n2, n1) ) ncrs1 ncrs2 in
-  Misc.flap2 begin fun (n1, _) (_, cr2) -> 
+  let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
+  let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
+  let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
+  let _      = asserts (List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in
+  let env'   = List.map fst ncrs1 |> ce_adds env in
+  let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
+  Misc.flap begin fun ((n1, _), (_, cr2)) -> 
       let lhs = t_name env' n1 in
       let rhs = t_subs_names subs cr2 in
       make_cs env' p lhs rhs loc
-  end ncrs1 ncrs2
+  end ncrs12
 
 let slocs_of_store st = 
   Ctypes.SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity loc =
+  let _ = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
+          polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
   (if polarity then st2 else st1)
   |> slocs_of_store 
   |> Misc.flap begin fun sloc ->

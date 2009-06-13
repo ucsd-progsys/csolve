@@ -113,6 +113,7 @@ val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
+val d_prestore_addrs: unit -> 'a prestore -> Pretty.doc
 val d_ctemap: unit -> ctemap -> Pretty.doc
 
 (******************************************************************************)

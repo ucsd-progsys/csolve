@@ -193,6 +193,7 @@ let env_of_retbind lsubs subs env lvo cr =
   | _                        -> env
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
+  let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt in
   let lsubs = lsubs_of_annots ns in
@@ -298,14 +299,14 @@ let cons_of_annotstmt me loc grd wld (anns, stmt) =
 (****************************************************************************)
 
 let cons_of_block me i =
-  let grd      = CF.guard_of_block me i in
-  let loc      = CF.location_of_block me i in
-  let phis     = CF.phis_of_block me i in
-  let astmt    = CF.annotstmt_of_block me i in
-  let env, cst = CF.inwld_of_block me i in
-  let env      = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws       = wcons_of_phis me loc env phis in
-  let wld, cs  = cons_of_annotstmt me loc grd (env, cst) astmt in
+  let grd     = CF.guard_of_block me i in
+  let loc     = CF.location_of_block me i in
+  let phis    = CF.phis_of_block me i in
+  let astmt   = CF.annotstmt_of_block me i in
+  let env, st = CF.inwld_of_block me i in
+  let env     = List.map (bind_of_phi me) phis |> FI.ce_adds env in
+  let ws      = wcons_of_phis me loc env phis in
+  let wld, cs = cons_of_annotstmt me loc grd (env, st) astmt in
   (wld, ws, cs)
 
 (****************************************************************************)
@@ -324,6 +325,7 @@ let process_phis phia me =
 let cons_of_sci gnv sci shp =
   let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
   let _ = Pretty.printf "%a\n" Refanno.d_ctab shp.Inferctypes.theta in 
+  let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
   CF.create gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis

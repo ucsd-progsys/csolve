@@ -76,17 +76,17 @@ let annotate_set ctm theta conc = function
       (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
 
 let annotate_instr ctm theta conc = function
-  | Cil.Call (Some (((Var v), NoOffset) as lv), Lval ((Var fv), NoOffset), _, _) 
+  | Cil.Call (_,_,_,_) -> (* ignore, handled by inferctypes *)
+      (conc, [])
+
+(*  | Cil.Call (Some (((Var v), NoOffset) as lv), Lval ((Var fv), NoOffset), _, _) 
       when fv.Cil.vname = "malloc" && !Constants.dropcalls -> 
         let al = sloc_of_expr ctm (Lval lv) |> Misc.maybe in
         let cl = cloc_of_v theta v in 
         instantiate (fun (x,y) -> New (x,y)) conc al cl
-
+*)
   | Cil.Set (lv, e, _) -> 
       annotate_set ctm theta conc (lv, e)
- 
-  | Cil.Call (_,_,_,_) when !Constants.dropcalls ->
-      (conc, [])
 
   | instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;

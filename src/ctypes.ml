@@ -355,8 +355,16 @@ let prestore_fold f b ps =
 let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
+let prestore_subs_addrs subs ps = 
+  List.fold_left begin fun ps (l1, l2) ->
+    if not (SLM.mem l1 ps) then ps else
+      ps |> SLM.remove l1 
+         |> SLM.add l2 (SLM.find l1 ps) 
+  end ps subs
+
 let prestore_subs (subs: (S.t * S.t) list) (ps: 'a prestore): 'a prestore =
-  prestore_map_ct (prectype_subs subs) ps
+  ps |> prestore_map_ct (prectype_subs subs) 
+     |> prestore_subs_addrs subs
 
 let prestore_upd (ps1: 'a prestore) (ps2: 'a prestore): 'a prestore =
   SLM.fold SLM.add ps2 ps1
@@ -380,6 +388,13 @@ let d_precstore d_i () s  =
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
+
+let d_prestore_addrs () st =
+  let slocs = SLM.fold (fun k _ acc -> k :: acc) st [] in
+  Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) slocs
+
+
+
 
 (******************************************************************************)
 (******************************* Function Types *******************************)
