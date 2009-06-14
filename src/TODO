@@ -13,9 +13,20 @@ TODO
 ***************************************************************
 
 [functions] : hookup with pat's code
--- refparser 
--- rewrite malloc defn in lib.spec
 -- run postests/*.c [those that have a spec, then others]
+test01p.c
+test02p.c
+field.c
+^^^ DONE ^^^ 
+ll3.c
+ll0.c
+ll1.c
+ll2.c
+loop.c
+loop-simple.c
+loop2.c
+
+
 
 ***************************************************************
 Fixing the malloc/init/unsoundness error
