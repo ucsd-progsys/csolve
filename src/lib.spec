@@ -1,9 +1,9 @@
 malloc ::
-  forall [0]
+  forall [C0]
   arg (sz: int (4, true, {v | true}))
-  ret ref(0, 0, {v | true})
+  ret ref(C0, 0, {v | true})
   store_in []
-  store_out [0 |-> ]
+  store_out [C0 |-> ]
 
 nondet ::
   forall    []

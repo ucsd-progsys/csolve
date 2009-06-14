@@ -29,7 +29,7 @@ let loc_of_var_expr theta =
         let l2 = loc_rec e2 in
         (match (l1, l2) with
           | (None, l) | (l, None) -> l
-          | (l1, l2) when l1 = l2 -> l1
+          | (Some l1, Some l2) when Sloc.eq l1 l2 -> Some l1
           | _ -> None)
     | CastE (_, e) -> loc_rec e
     | _ -> None in
@@ -37,16 +37,20 @@ let loc_of_var_expr theta =
 
 let sloc_of_expr ctm e =
   match Ctypes.ExpMap.find e ctm with
-  | Ctypes.CTInt _ -> None
+  | Ctypes.CTInt _      -> None
   | Ctypes.CTRef (s, _) -> Some s
 
+let cloc_of_aloc conc al =
+  try LM.find al conc with Not_found -> al
+
 let instantiate f conc al cl =
-  if not (LM.mem al conc) then 
-    (LM.add al cl conc, [f (al, cl)]) 
-  else if cl = LM.find al conc then 
-    (conc, []) 
-  else (* conc maps al to different cl' *) 
-    (LM.add al cl conc, [Gen ((LM.find al conc), al); f (al, cl)])
+  let cl' = cloc_of_aloc conc al in
+  if Sloc.eq cl' al then 
+    (LM.add al cl conc, [f (al, cl)])
+  else if Sloc.eq cl' cl then
+    (conc, [])
+  else 
+    (LM.add al cl conc, [Gen (cl', al); f (al, cl)])
 
 let annotate_set ctm theta conc = function
   (* v1 := *v2 *)
@@ -69,13 +73,11 @@ let annotate_set ctm theta conc = function
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta v in
       instantiate (fun (x,y) -> Ins (x,y)) conc al cl   
-
+  
   (* Uh, oh! *)
   | lv, e -> 
       Errormsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
       assertf "annotate_set: unknown set"
-      (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
-
 
 let concretize_new conc = function
   | New (x,y) -> 
@@ -87,17 +89,28 @@ let concretize_new conc = function
         instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl
   | _ -> assertf "concretize_new 2"
 
-let annotate_instr ctm theta conc = function
-  | ns, Cil.Call (_,_,_,_) ->
-      let conc, anns = Misc.mapfold concretize_new conc ns in
-      (conc, Misc.flatten anns)
+let rec new_cloc_of_aloc al = function
+  | NewC (_,al',cl) :: ns when Sloc.eq al al' -> Some cl
+  | _ :: ns -> new_cloc_of_aloc al ns
+  | []  -> None
 
-(*  | Cil.Call (Some (((Var v), NoOffset) as lv), Lval ((Var fv), NoOffset), _, _) 
-      when fv.Cil.vname = "malloc" && !Constants.dropcalls -> 
-        let al = sloc_of_expr ctm (Lval lv) |> Misc.maybe in
-        let cl = cloc_of_v theta v in 
-        instantiate (fun (x,y) -> New (x,y)) conc al cl
-*)
+let sloc_of_ret ctm theta (conc, anns) = function 
+  | (Var v, NoOffset) as lv ->
+      Lval lv
+      |>  sloc_of_expr ctm 
+      |>> fun al -> new_cloc_of_aloc al anns
+      |>> fun cl -> Hashtbl.replace theta v.vname cl; None
+      |>> fun _  -> None 
+  | _ ->
+      assertf "sloc_of_ret"
+
+let annotate_instr ctm theta conc = function
+  | ns, Cil.Call (lvo,_,_,_) ->
+      let conc, anns = Misc.mapfold concretize_new conc ns in
+      let conc_anns  = (conc, Misc.flatten anns) in
+      let _          = lvo |>> sloc_of_ret ctm theta conc_anns in
+      conc_anns
+
   | _, Cil.Set (lv, e, _) -> 
       annotate_set ctm theta conc (lv, e)
 

@@ -94,10 +94,10 @@ let add_spec spec fname =
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     spec
 
-let spec_of_file fname = 
+let spec_of_file fname =
   [Constants.lib_name; fname]
   |> List.map (fun s -> s^".spec")
-  |> List.fold_left add_spec SM.empty 
+  |> List.fold_left add_spec SM.empty
 
 let liquidate file =
   let cil   = cil_of_file file in

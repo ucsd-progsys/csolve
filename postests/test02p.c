@@ -5,13 +5,10 @@ int main(){
   int y;
 
   r = (int*) malloc(4);
-
   *r = 0;
 
   while (nondet()){
    *r = *r + 1;
-    //  y = *r; 
-   // *r = y + 1;
   }
 
   y = *r;

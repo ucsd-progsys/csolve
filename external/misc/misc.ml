@@ -39,6 +39,8 @@ module Ops = struct
 
   let (>>) x f = f x; x
 
+  let (|>>) xo f = match xo with None -> None | Some x -> f x
+
   let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
@@ -308,6 +310,8 @@ let trunc i j =
 
 let map_to_string f xs = 
   String.concat "," (List.map f xs)
+
+let suffix_of_string = fun s i -> String.sub s i (String.length s - 1)
 
 (* [count_map xs] = fun x -> number of times x appears in xs if non-zero *)
 let count_map rs =

@@ -26,16 +26,16 @@
   module E = Errorline
   open E
   open RefParse 
-	       
+	      
+  open Misc.Ops
+
   let lexerror msg lexbuf = 
     E.error (Lexing.lexeme_start lexbuf) msg
-      
+     
 }
 
 let digit    = ['0'-'9']
 let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' '#']
-(* let othersyms =[ '-' '$' '#' '!' '+' '=' '<' '>' ',' '?' '\''] *)
-
 let alphlet  = ['A'-'Z' 'a'-'z' '~' '_' ]
 let capital  = ['A'-'Z']
 let small    = ['a'-'z' '$' '_']
@@ -83,6 +83,10 @@ rule token = parse
   | ">="		{ GE }
   | ">"		        { GT }
   | "->"                { IMPL }
+  | "A"(digit)+	        { let str = Lexing.lexeme lexbuf in 
+                          ABS (Misc.suffix_of_string str 1 |> int_of_string) } 
+  | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
+                          CONC (Misc.suffix_of_string str 1 |> int_of_string) } 
   | "int"               { INT }
   | "bool"              { BOOL }
   | "unint"             { UNINT }
@@ -103,21 +107,8 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "ref"               { REF }
-  | (digit)+	        { let str = Lexing.lexeme lexbuf in
-			  let len = String.length str in
-			  let zero = Char.code '0' in
-			  let rec accum a d =
-			    let acc c = a + (d * ((Char.code c) - zero)) in
-			    function
-			      0 -> let c = str.[0] in
-				   if c='~' then - a else (acc c)
-			    | i -> accum (acc str.[i]) (d * 10) (i - 1)
-			  in
-			  Num (accum 0 1 (len-1)) }
+  | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
-  | '''[^''']*'''          { let str = Lexing.lexeme lexbuf in
-			     let len = String.length str in
-			       Id (String.sub str 1 (len-2)) }
   | eof			{ EOF }
   | _			{ 
                           begin

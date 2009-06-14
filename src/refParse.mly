@@ -17,6 +17,8 @@ let ldesc_of_plocbinds pbs =
 
 %token <string> Id
 %token <int> Num
+%token <int> ABS 
+%token <int> CONC 
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON DCOLON MAPSTO MID
@@ -62,7 +64,8 @@ slocsne:
   ;
 
 sloc:
-  "C" Num                              { Sloc.create $2 Sloc.Abstract }
+    ABS                                 { Sloc.create $1 Sloc.Abstract }
+  | CONC                                { Sloc.create $1 Sloc.Concrete }
   ;
 
 refstore:
