@@ -516,8 +516,8 @@ type shape =
   {vtyps : (Cil.varinfo * Ctypes.ctype) list;
    etypm : Ctypes.ctemap; 
    store : Ctypes.store; 
-   anna  : Refanno.block_annotation array;
-   theta : Refanno.ctab }
+   anna  : RA.block_annotation array;
+   theta : RA.ctab }
 
 let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
   let blocks = cfg.Ssa.blocks in
@@ -543,11 +543,11 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
-  let anna, theta              = RA.annotate_cfg cfg etypm in
+  let anna, theta              = RA.annotate_cfg cfg etypm annots in
   {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
    etypm = etypm;
    store = SLM.map (LDesc.map apply_sol) ss;
-   anna  = RA.merge_annots anna annots;
+   anna  = anna;
    theta = theta }
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =

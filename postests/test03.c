@@ -1,10 +1,6 @@
-//SAFE
-void assert(int b){
-  return;
-}
 
 int abs(int x){
-  if (x > 0){		//GOOD GUARD
+  if (x > 0){		
     return x;
   } else {
     return (0-x);

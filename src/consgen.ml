@@ -43,14 +43,16 @@ let mydebug = false
 let group_annots xs = 
   List.fold_left begin fun (gs, is, ns) a -> 
     match a with 
-    | Refanno.Gen _ -> (a::gs, is, ns)
-    | Refanno.Ins _ -> (gs, a::is, ns)
-    | Refanno.New _ -> (gs, is, a::ns)
+    | Refanno.Gen _  -> (a::gs, is, ns)
+    | Refanno.Ins _  -> (gs, a::is, ns)
+    | Refanno.New _  
+    | Refanno.NewC _ -> (gs, is, a::ns)
   end ([], [], []) xs
 
 let lsubs_of_annots ns = 
-  List.map (function Refanno.New (x,y) -> (x,y) 
-                     | _               -> assertf "cons_of_call: bad ns") ns
+  List.map (function Refanno.New (x,y)    -> (x,y)
+                   | Refanno.NewC (x,_,y) -> (x,y)
+                   | _               -> assertf "cons_of_call: bad ns") ns
 
 let extend_world ld binds loc (env, sto) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
@@ -120,7 +122,7 @@ let wcons_of_phis me loc env vs =
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
 
-let cons_of_annot loc grd ((env, sto) as wld) = function 
+let cons_of_annot loc grd (env, sto) = function 
   | Refanno.Gen  (cloc, aloc) -> 
       let sto'   = FI.refstore_remove cloc sto in
       let ld1    = (cloc, FI.refstore_get sto cloc) in
@@ -135,11 +137,9 @@ let cons_of_annot loc grd ((env, sto) as wld) = function
       let wld    = extend_world aldesc abinds cloc (env, sto) in
       (wld, [])
 
-  | Refanno.New (aloc, cloc) ->
-      let _      = assertf "cons_of_annot: New!" in
-      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (New)!" in
-      (wld, [])
+  | _ -> assertf "cons_of_annot: New/NewC" 
 
+  
 let cons_of_annots me loc grd wld annots =
   Misc.mapfold (cons_of_annot loc grd) wld annots
   |> Misc.app_snd Misc.flatten 
@@ -192,6 +192,20 @@ let env_of_retbind lsubs subs env lvo cr =
   | _  when !Constants.safe  -> assertf "env_of_retbind"
   | _                        -> env
 
+let poly_clocs_of_store ocst ns = 
+  Misc.map_partial begin function 
+    | Refanno.NewC (_,a,c) ->
+        let _ = asserts (not (Sloc.is_abstract c)) "poly_clocs_of_store" in
+        (match FI.binds_of_refldesc c (FI.refstore_get ocst c) with [] -> Some (a,c) | _ -> None)
+    | _ -> None
+  end ns
+
+let instantiate_cloc me wld (aloc, cloc) = 
+  let aldesc = FI.refstore_get (CF.get_astore me) aloc in
+  let abinds = FI.binds_of_refldesc aloc aldesc 
+               |> List.map (Misc.app_snd FI.t_true_refctype) in
+  extend_world aldesc abinds cloc wld
+
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
@@ -209,8 +223,12 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
 
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
-  ((env', st'), cs1 ++ cs2 ++ cs3)
-  
+  let wld'  = poly_clocs_of_store ocst ns 
+              |> List.fold_left (instantiate_cloc me) (env', st') in
+  (wld', cs1 ++ cs2 ++ cs3)
+ 
+
+
   (* {{{ OLD CODE FOR CONS_OF_CALL
   let (ncrs, cr) = FI.ce_find_fn fn env in
   let _    = asserts (List.length ncrs = List.length es) "cons_of_call: length" in
@@ -235,10 +253,12 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
    match ns, lvo with
    | [Refanno.New (aloc, cloc)], Some ((Var v), NoOffset) ->
        (* step 1: add bindings for new cells *)
+
        let aldesc     = FI.refstore_get (CF.get_astore me) aloc in
        let abinds     = FI.binds_of_refldesc aloc aldesc 
                         |> List.map (Misc.app_snd FI.t_true_refctype) in
-       let (env, sto) = extend_world aldesc abinds cloc wld in 
+       let (env, sto) = extend_world aldesc abinds cloc wld in
+
        (* step 2: add bindings for returned ptr *)
        let cr         = CF.ctype_of_varinfo me v |> FI.t_true in
        let env        = FI.ce_adds env [FI.name_of_varinfo v, cr] in

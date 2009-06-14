@@ -2,9 +2,10 @@ type ctab
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
 
 type annotation = 
-  | Gen of Sloc.t * Sloc.t      (* CLoc s , ALoc s' *)
-  | Ins of Sloc.t * Sloc.t      (* ALoc s', CLoc s  *)
-  | New of Sloc.t * Sloc.t      (* Aloc s', Cloc s  *) 
+  | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
+  | Ins  of Sloc.t * Sloc.t             (* ALoc, CLoc *)
+  | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
+  | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
 (* 1. block_annotation length = block length + 1,
  * 2. annotations precede corresponding instr 
@@ -19,6 +20,10 @@ val d_ctab: unit -> ctab -> Pretty.doc
 (* input: cfg with n blocks of length l_i ... l_n
  * output: array of block annotations of length l_i ... l_n
  *         map from variable names to concrete locations *)
-val annotate_cfg: Ssa.cfgInfo -> Ctypes.ctemap -> block_annotation array * ctab
-val merge_annots: block_annotation array -> block_annotation array -> block_annotation array
+val annotate_cfg: Ssa.cfgInfo -> Ctypes.ctemap -> block_annotation array -> block_annotation array * ctab
+(* val merge_annots: 
+      block_annotation array -> 
+      block_annotation array -> 
+      block_annotation array 
+*)
 

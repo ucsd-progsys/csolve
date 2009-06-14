@@ -1,5 +1,3 @@
-//! run with -dropcalls
-
 extern char* malloc(int);
 
 typedef struct node {
@@ -8,7 +6,7 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(int n){
+int main(){
   node_t *root;
   int i,y;
 
@@ -25,4 +23,7 @@ void main(int n){
   y = root->data;
   assert(y >= 0);
   //assert(y >= i);  store-scope-issue
+
+  return 0;
+   
 }

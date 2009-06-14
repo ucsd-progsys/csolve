@@ -1,4 +1,4 @@
-void main(){
+int main(){
   int i, z, n; 
   n = nondet();
   z = 0;
@@ -6,4 +6,5 @@ void main(){
     z += i;
   }
   assert (z >= 0);
+  return 0;
 }

@@ -7,9 +7,10 @@ open Misc.Ops
 type ctab = (string, Sloc.t) Hashtbl.t
 
 type annotation = 
-  | Gen of Sloc.t * Sloc.t      (* CLoc s , ALoc s' *)
-  | Ins of Sloc.t * Sloc.t      (* ALoc s', CLoc s  *)
-  | New of Sloc.t * Sloc.t      (* Aloc s', Cloc s  *) 
+  | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
+  | Ins  of Sloc.t * Sloc.t             (* ALoc, CLoc *)
+  | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
+  | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
 type block_annotation = annotation list list
 
@@ -75,9 +76,21 @@ let annotate_set ctm theta conc = function
       assertf "annotate_set: unknown set"
       (* if !Constants.safe then assertf "annotate_instr" else (conc, []) *)
 
+
+let concretize_new conc = function
+  | New (x,y) -> 
+      if Sloc.is_abstract x then  
+        (conc, [New (x,y)])
+      else
+        let _  = asserts (Sloc.is_abstract y) "concretize_new" in
+        let cl = Sloc.fresh Sloc.Concrete in
+        instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl
+  | _ -> assertf "concretize_new 2"
+
 let annotate_instr ctm theta conc = function
-  | Cil.Call (_,_,_,_) -> (* ignore, handled by inferctypes *)
-      (conc, [])
+  | ns, Cil.Call (_,_,_,_) ->
+      let conc, anns = Misc.mapfold concretize_new conc ns in
+      (conc, Misc.flatten anns)
 
 (*  | Cil.Call (Some (((Var v), NoOffset) as lv), Lval ((Var fv), NoOffset), _, _) 
       when fv.Cil.vname = "malloc" && !Constants.dropcalls -> 
@@ -85,36 +98,39 @@ let annotate_instr ctm theta conc = function
         let cl = cloc_of_v theta v in 
         instantiate (fun (x,y) -> New (x,y)) conc al cl
 *)
-  | Cil.Set (lv, e, _) -> 
+  | _, Cil.Set (lv, e, _) -> 
       annotate_set ctm theta conc (lv, e)
 
-  | instr ->
+  | _, instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
       assertf "TBD: annotate_instr"
 
 let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
 
-let annotate_block ctm theta instrs : block_annotation = 
-  let conc, anns = 
-    List.fold_left begin fun (conc, anns) instr -> 
-      let conc', ann = annotate_instr ctm theta conc instr in
-      (conc', ann::anns)
-    end (LM.empty, []) instrs in
+let annotate_block ctm theta anns instrs = 
+  let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block"
+  in
+  let ainstrs = List.combine (Misc.chop_last anns) instrs in
+  let conc, anns' =
+    List.fold_left begin fun (conc, anns') ainstr -> 
+      let conc', ann = annotate_instr ctm theta conc ainstr in
+      (conc', ann::anns')
+    end (LM.empty, []) ainstrs in
   let gens = annotate_end conc in
-  List.rev (gens :: anns)
+  List.rev (gens :: anns')
 
 (*****************************************************************************)
 (********************************** API **************************************)
 (*****************************************************************************)
 
 (* API *)
-let annotate_cfg cfg ctm  =
+let annotate_cfg cfg ctm anna  =
   let theta  = Hashtbl.create 17 in
   let annota =
     Array.mapi begin fun i b -> 
       match b.Ssa.bstmt.skind with
-      | Instr is -> annotate_block ctm theta is
+      | Instr is -> annotate_block ctm theta anna.(i) is
       | _ -> []
     end cfg.Ssa.blocks in
   (annota, theta)
@@ -150,6 +166,9 @@ let d_annotation () = function
       Pretty.dprintf "Instantiate(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | New (al, cl) -> 
       Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
+  | NewC (cl, al, cl') -> 
+      Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
+
 
 
 

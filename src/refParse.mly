@@ -62,7 +62,7 @@ slocsne:
   ;
 
 sloc:
-  Num                                   { Sloc.create $1 Sloc.Abstract }
+  "C" Num                              { Sloc.create $2 Sloc.Abstract }
   ;
 
 refstore:

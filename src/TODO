@@ -14,6 +14,27 @@ TODO
 
 [functions] : hookup with pat's code
 
+-- refparser 
+
+-- refanno:
+	-- update inferctypes
+
+	-- gets passed in New annots from Pat
+	
+	-- uses above to generate "real" new/gen/ins annots (we trust conc/abs only of thes) 
+		-- spec says: forall A6 ...
+		   pat  says: New (A6, A9)
+		   then  out: New (A6, A9)
+		-- spec says: forall C6 ...
+		   pat  says: New (C6#0, A9)
+		   then  out: New (C6#0, C9#j)
+		   at end of block -- or whenever, we have a Gen (C9#j, A9)
+
+	-- uses above to generate CTAB etc.
+
+-- consgen
+	-- Ctypes.poly_clocs_of_store: 'a prestore -> Sloc.t list
+
 ***************************************************************
 Fixing the malloc/init/unsoundness error
 	- idea: when [Ins] is paired with a function-call instr, it refers to new
