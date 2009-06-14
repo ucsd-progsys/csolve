@@ -73,7 +73,7 @@ let fresh_ctvint (n: int): ctypevar =
   CTInt (n, fresh_indexvar ())
 
 let fresh_ctvref (): ctypevar =
-  CTRef (Sloc.fresh Sloc.Concrete, fresh_indexvar ())
+  CTRef (Sloc.fresh Sloc.Abstract, fresh_indexvar ())
 
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
   | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
@@ -363,7 +363,7 @@ and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_:
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CStr _ ->
-      let s = Sloc.fresh Sloc.Concrete in
+      let s = Sloc.fresh Sloc.Abstract in
         with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
           (CTRef (s, ivr), em, [mk_ivarless loc (IEConst (IInt 0)) ivr;
                                 mk_ivarless loc (IEConst (ISeq (0, 1))) ivl;
