@@ -1,5 +1,3 @@
-//! run with -dropcalls
-
 extern char* malloc(int);
 
 typedef struct node {
@@ -7,7 +5,7 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(/* int n */){
+int main(){
   node_t *root;
   node_t *tmp;
 
@@ -24,4 +22,6 @@ void main(/* int n */){
     assert(tmp->data >= 0);
     //assert(tmp->data < n);
   }
+  
+  return 0;
 }

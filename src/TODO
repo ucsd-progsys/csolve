@@ -14,17 +14,20 @@ TODO
 
 [functions] : hookup with pat's code
 -- run postests/*.c [those that have a spec, then others]
+
 test01p.c
 test02p.c
 field.c
-^^^ DONE ^^^ 
 ll3.c
+loop-simple.c
+loop.c
+loop2.c
+
+^^^ DONE ^^^ 
+
 ll0.c
 ll1.c
 ll2.c
-loop.c
-loop-simple.c
-loop2.c
 
 
 

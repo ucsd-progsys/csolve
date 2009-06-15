@@ -1,4 +1,4 @@
-//! run with -dropcalls
+// this is a junk test, see ll2.c
 
 extern char* malloc(int);
 

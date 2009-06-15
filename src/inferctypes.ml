@@ -543,7 +543,9 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
+  let _                        = ignore(0/0); E.log "DONE: ctype inference" in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
+  let _                        = E.log "DONE: GEN/INST annotation" in
   {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
    etypm = etypm;
    store = SLM.map (LDesc.map apply_sol) ss;
