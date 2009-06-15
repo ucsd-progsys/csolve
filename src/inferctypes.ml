@@ -540,7 +540,9 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let phics                    = mk_phis_cs vars phis in
   let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
+  let _                        = E.log "DONE: infer_shape A \n" in
   let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
+  let _                        = ignore(0/0); E.log "DONE: infer_shape B \n" in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
   let _                        = ignore(0/0); E.log "DONE: ctype inference" in
