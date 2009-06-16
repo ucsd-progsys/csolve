@@ -36,9 +36,12 @@ let is_abstract (l: t): bool =
 
 let unify (l1: t) (l2: t): unit =
   let (l1, l2) = (repr l1, repr l2) in
-    l2.lty     <- if not (eq l1 l2) then Abstract else l2.lty;
-    asserts (l1.lparent = None) "unify";
-    l1.lparent <- Some l2
+    if eq l1 l2 then
+      ()
+    else begin
+      l2.lty     <- Abstract;
+      l1.lparent <- Some l2
+    end
 
 let to_string (l: t): string =
   let l = repr l in
