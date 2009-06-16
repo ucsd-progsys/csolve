@@ -111,6 +111,11 @@ let prectype_replace_sloc (s1: S.t) (s2: S.t): 'a prectype -> 'a prectype = func
 let prectype_subs (subs: (S.t * S.t) list) (pct: 'a prectype): 'a prectype =
   List.fold_right (M.uncurry prectype_replace_sloc) subs pct
 
+let prectype_eq (pct1: 'a prectype) (pct2: 'a prectype): bool =
+  match (pct1, pct2) with
+    | (CTRef (l1, i1), CTRef (l2, i2)) -> S.eq l1 l2 && i1 = i2
+    | _                                -> pct1 = pct2
+
 type ctype = index prectype
 
 let d_ctype () (ct: ctype): P.doc =

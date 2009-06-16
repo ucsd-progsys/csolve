@@ -143,12 +143,12 @@ let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol):
       | IBot -> true
       | ITop ->
           begin match LDesc.find PLEverywhere ld with
-            | [(PLEverywhere, ctv2)] -> ct = ctypevar_apply is ctv2
+            | [(PLEverywhere, ctv2)] -> prectype_eq ct (ctypevar_apply is ctv2)
             | _                      -> false
           end
       | IInt n ->
           begin match LDesc.find (PLAt n) ld with
-            | [(_, ctv2)] -> ct = ctypevar_apply is ctv2
+            | [(_, ctv2)] -> prectype_eq ct (ctypevar_apply is ctv2)
             | _           -> false
           end
       | ISeq (n, m) ->
@@ -160,7 +160,7 @@ let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol):
                    rather than by several individual elements followed by a sequence *)
                 let pl = PLSeq n in
                   match LDesc.find pl ld with
-                    | [(pl2, ctv2)] -> m mod p = 0 && ploc_contains pl2 pl p && ct = ctypevar_apply is ctv2
+                    | [(pl2, ctv2)] -> m mod p = 0 && ploc_contains pl2 pl p && prectype_eq ct (ctypevar_apply is ctv2)
                     | _             -> false
 
 (******************************************************************************)
@@ -540,14 +540,10 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let phics                    = mk_phis_cs vars phis in
   let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
-  let _                        = E.log "DONE: infer_shape A \n" in
   let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
-  let _                        = ignore(0/0); E.log "DONE: infer_shape B \n" in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
-  let _                        = ignore(0/0); E.log "DONE: ctype inference" in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
-  let _                        = E.log "DONE: GEN/INST annotation" in
   {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
    etypm = etypm;
    store = SLM.map (LDesc.map apply_sol) ss;
