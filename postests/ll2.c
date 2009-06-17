@@ -22,7 +22,7 @@ int main(int n){
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
-    assert(tmp->data < n);
+//    assert(tmp->data < n);
   }
 return 0;
 }

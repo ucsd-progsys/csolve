@@ -23,11 +23,11 @@ loop-simple.c
 loop.c
 loop2.c
 ll0.c
+ll1.c
 
 ^^^ DONE ^^^ 
 
-ll1.c
-ll2.c
+ll2.c wrong n@main gets added to initial environment
 
 
 
