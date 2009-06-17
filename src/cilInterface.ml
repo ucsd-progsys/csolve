@@ -103,7 +103,6 @@ let expr_of_lval ((lh, _) as lv) = match lh with
       expr_of_var v
   | _ ->
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
-      let _ = 10/0 in
       assertf "TBD: CilInterface.expr_of_lval"
 
 (* convert_cilexp : Cil.exp -> exp_or_pred *)

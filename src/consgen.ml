@@ -427,7 +427,7 @@ let create cil spec =
   let shpm = shapem_of_scim spec scim in
   let _    = E.log "DONE: Shape Inference \n" in
   let decs = decs_of_file cil in
-  let _    = ignore (10/0); E.log "DONE: Decls of File \n" in
+  let _    = E.log "DONE: Decls of File \n" in
   let gnv  = gnv_of_decs spec decs in
   let _    = E.log "DONE: Global Environment \n" in
   cons_of_decs gnv decs 

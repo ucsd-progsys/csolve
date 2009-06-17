@@ -98,7 +98,7 @@ let refstore_set sto l rd =
 
 let refstore_get sto l =
   try SLM.find l sto with Not_found ->
-    ignore(0/0); assertf "refstore_get"
+    assertf "refstore_get"
 
 let sloc_binds_of_refldesc l rd = 
   Ctypes.LDesc.foldn begin fun i binds ploc rct -> 

@@ -7,7 +7,7 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-void main(int n){
+int main(int n){
   node_t *root;
   node_t *tmp;
 
@@ -22,6 +22,7 @@ void main(int n){
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
-    //assert(tmp->data < n);
+    assert(tmp->data < n);
   }
+return 0;
 }
