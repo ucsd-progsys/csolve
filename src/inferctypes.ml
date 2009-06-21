@@ -544,11 +544,11 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
-  {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
-   etypm = etypm;
-   store = SLM.map (LDesc.map apply_sol) ss;
-   anna  = anna;
-   theta = theta }
+    {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
+     etypm = etypm;
+     store = SLM.map (LDesc.map apply_sol) ss;
+     anna  = anna;
+     theta = theta }
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
   M.StringMap.map (fun (cft, sci) -> infer_shape env (fst (cfun_instantiate cft)) sci) scis
