@@ -111,6 +111,7 @@ type ctemap = ctype ExpMap.t
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
+val d_cfun    : unit -> cfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
 val d_prestore_addrs: unit -> 'a prestore -> Pretty.doc
@@ -129,6 +130,12 @@ val index_minus: index -> index -> index
 val index_scale: int -> index -> index
 val index_mult: index -> index -> index
 val is_subindex: index -> index -> bool
+
+(******************************************************************************)
+(********************************* Type Values ********************************)
+(******************************************************************************)
+
+val void_ctype: ctype
 
 (******************************************************************************)
 (******************************* Type Operations ******************************)

@@ -135,6 +135,8 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
     | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> is_subindex i1 i2
     | _                                                -> false
 
+let void_ctype = CTInt (0, ITop)
+
 (******************************************************************************)
 (***************************** Periodic Locations *****************************)
 (******************************************************************************)
@@ -443,6 +445,9 @@ let d_precfun d_i () ft  =
   (d_prectype d_i) ft.ret
   (d_precstore d_i) ft.sto_in
   (d_precstore d_i) ft.sto_out
+
+let d_cfun () ft =
+  d_precfun d_index () ft
 
 let rename_prectype (subs: (S.t * S.t) list) (pct: 'a prectype): 'a prectype =
   List.fold_right (M.uncurry <| prectype_replace_sloc) subs pct
