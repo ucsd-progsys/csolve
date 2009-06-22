@@ -148,6 +148,7 @@ val prectype_eq: 'a prectype -> 'a prectype -> bool
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+val precfun_slocset : 'a precfun -> Sloc.SlocSet.t
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 

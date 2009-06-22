@@ -104,6 +104,10 @@ let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
   | CTRef (_)    -> 1
 
+let prectype_sloc: 'a prectype -> S.t option = function
+  | CTRef (s, _) -> Some s
+  | CTInt _      -> None
+
 let prectype_replace_sloc (s1: S.t) (s2: S.t): 'a prectype -> 'a prectype = function
   | CTRef (s3, i) when S.eq s3 s1 -> CTRef (s2, i)
   | pct                           -> pct
@@ -369,6 +373,13 @@ let prestore_subs_addrs subs ps =
          |> SLM.add l2 (SLM.find l1 ps) 
   end ps subs
 
+let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
+  prestore_fold begin fun ss _ _ pct ->
+    match prectype_sloc pct with
+      | Some s -> S.SlocSet.add s ss
+      | None   -> ss
+  end S.SlocSet.empty ps
+
 let prestore_subs (subs: (S.t * S.t) list) (ps: 'a prestore): 'a prestore =
   ps |> prestore_map_ct (prectype_subs subs) 
      |> prestore_subs_addrs subs
@@ -430,6 +441,13 @@ let precfun_map f ft =
     sto_in  = SLM.map (LDesc.map f) ft.sto_in;
     sto_out = SLM.map (LDesc.map f) ft.sto_out;
   }
+
+let precfun_slocset (pcf: 'a precfun): S.SlocSet.t =
+  let args = List.map snd pcf.args in
+  let sos  = pcf.ret :: args |> List.map prectype_sloc in
+  let ss1  = M.fold_left_partial (S.SlocSet.add |> M.flip) S.SlocSet.empty sos in
+  let ss2  = prestore_slocset pcf.sto_out in
+    S.SlocSet.union ss1 ss2
 
 let d_slocs () slocs     = P.seq (P.text ";") (S.d_sloc ()) slocs
 let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct

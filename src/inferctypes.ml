@@ -550,5 +550,49 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
      anna  = anna;
      theta = theta }
 
+let match_slocs (ct1: ctype) (ct2: ctype): unit =
+  match (ct1, ct2) with
+    | (CTRef (s1, _), CTRef (s2, _)) -> S.unify s1 s2
+    | _                              -> ()
+
+let check_expected_subtype (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
+  match_slocs atyp etyp;
+  is_subctype atyp etyp ||
+    (C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore; false)
+
+let check_returns (rt: ctype) (cfg: Ssa.cfgInfo) (etypm: ctemap): bool =
+  cfg.Ssa.blocks |> M.array_forall begin fun {Ssa.bstmt = s} ->
+    match s.C.skind with
+      | C.Return (Some e, loc) -> check_expected_subtype loc rt (ExpMap.find e etypm)
+      | C.Return (None, loc)   -> check_expected_subtype loc rt void_ctype
+      | _                      -> true
+  end
+
+let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
+  prestore_fold begin fun ok l i ct ->
+    try
+      let ct2 = prestore_find l sto_out_actual |> LDesc.find (ploc_of_index i) |> List.hd |> snd in
+        ok && check_expected_subtype loc ct ct2 && check_expected_subtype loc ct2 ct
+    with _ ->
+      false
+  end true sto_out_formal
+
+let check_shape (cf: cfun) (sci: ST.ssaCfgInfo) (shp: shape) (ss: S.SlocSet.t): bool =
+     check_returns cf.ret sci.ST.cfg shp.etypm
+  && check_out_store sci.ST.fdec.C.svar.C.vdecl cf.sto_out shp.store
+     (* It's vital to do the "location isomorphism" test last because
+        the previous two checks perform destructive unification *)
+  && not (M.exists_pair S.eq <| S.SlocSet.elements ss)
+
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
-  M.StringMap.map (fun (cft, sci) -> infer_shape env (fst (cfun_instantiate cft)) sci) scis
+  scis |> M.StringMap.map begin fun (cft, sci) ->
+    let cf  = cfun_instantiate cft |> fst in
+    let ss  = precfun_slocset cf in
+    let shp = infer_shape env cf sci in
+      if check_shape cf sci shp ss then
+        shp
+      else
+        let sv = sci.ST.fdec.C.svar in
+        let _  = C.errorLoc sv.C.vdecl "Could not verify ctype of %s, expected:\n%a\n\n" sv.C.vname d_cfun cft in
+          assert false
+  end

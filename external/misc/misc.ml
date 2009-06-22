@@ -136,6 +136,13 @@ let map_partial f xs =
         | None   -> acc
         | Some z -> (z::acc)) [] xs)
 
+let fold_left_partial f b xs =
+  List.fold_left begin fun b xo ->
+    match xo with
+      | Some x -> f b x
+      | None   -> b
+  end b xs
+
 let list_max x xs = 
   List.fold_left max x xs
 
@@ -585,6 +592,14 @@ let array_fold_lefti f acc a =
 
 let array_map2 f xa ya = 
   Array.mapi (fun i x -> f x (ya.(i))) xa
+
+exception NotForall
+
+let array_forall f a =
+  try
+    Array.iter (fun e -> if f e then () else raise NotForall) a; true
+  with NotForall ->
+    false
 
 let compose f g a = f (g a)
 
