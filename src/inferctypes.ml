@@ -240,7 +240,7 @@ let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
                 let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
-                let _  = Sloc.unify s1 s2 in
+                let _  = S.unify s1 s2 in
                   (cs, is, ss)
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
             | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
