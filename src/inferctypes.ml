@@ -106,6 +106,9 @@ type storesol = indexvar prestore
 let storesol_add (l: Sloc.t) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
   SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
 
+let storesol_apply (is: indexsol) (ss: storesol): store =
+  SLM.map (LDesc.map <| ctypevar_apply is) ss
+
 let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
   match indexsol_find iv is with
     | IBot   -> (is, ss)
@@ -182,6 +185,14 @@ let mk_iconstless (loc: C.location) (ie: indexexp) (i: index) =
 
 let mk_subty (loc: C.location) (ctv1: ctypevar) (ctv2: ctypevar) =
   {cdesc = CSCType (CTCSubtype (ctv1, ctv2)); cloc = loc}
+
+let mk_const_subty (loc: C.location) (ctv: ctypevar): ctype -> cstr list = function
+  | CTInt (n, i) ->
+      with_fresh_indexvar <| fun iv ->
+        [mk_subty loc ctv (CTInt (n, iv)); mk_iconstless loc (IEVar iv) i]
+  | CTRef (s, i) ->
+      with_fresh_indexvar <| fun iv ->
+        [mk_subty loc ctv (CTRef (s, iv)); mk_iconstless loc (IEVar iv) i]
 
 let mk_storeinc (loc: C.location) (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) =
   {cdesc = CSStore (SCInc (l, iv, ctv)); cloc = loc}
@@ -481,7 +492,14 @@ let constrain_instr (env: ctypeenv) (ve: ctvenv) (em: cstremap) (is: C.instr lis
   let (em, bas) = List.fold_left (constrain_instr_aux env ve) (em, []) is in
   (em, List.rev ([]::bas))
 
-let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstremap * RA.block_annotation =
+
+let constrain_return (env: ctypeenv) (ve: ctvenv) ((ctvm, cs): cstremap) (rt: ctype) (loc: C.location): C.exp option -> cstremap * RA.block_annotation = function
+  | None   -> if rt = void_ctype then ((ctvm, cs), []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
+  | Some e ->
+      let (ctv, (ctvm, cs)) = constrain_exp ve (ctvm, cs) loc e in
+        ((ctvm, mk_const_subty loc ctv rt @ cs), [])
+
+let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (rt: ctype) (s: C.stmt): cstremap * RA.block_annotation =
   match s.C.skind with
     | C.Instr is             -> constrain_instr env ve em is
     | C.Break _              -> (em, [])
@@ -490,8 +508,7 @@ let constrain_stmt (env: ctypeenv) (ve: ctvenv) (em: cstremap) (s: C.stmt): cstr
     | C.Block _              -> (em, [])                              (* we'll visit this later as we iterate through blocks *)
     | C.If (e, _, _, loc)    -> (snd (constrain_exp ve em loc e), []) (* we'll visit the subblocks on a later pass *)
     | C.Loop (_, _, _, _)    -> (em, [])                              (* ditto *)
-    | C.Return (Some e, loc) -> (snd (constrain_exp ve em loc e), [])
-    | C.Return (None, _)     -> (em, [])
+    | C.Return (rexp, loc)   -> constrain_return env ve em rt loc rexp
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
@@ -519,18 +536,70 @@ type shape =
    anna  : RA.block_annotation array;
    theta : RA.ctab }
 
-let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
+let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
   let blocks = cfg.Ssa.blocks in
   let bas    = Array.make (Array.length blocks) [] in
   let em     =
     M.array_fold_lefti begin fun i em b ->
-        let (em, ba) = constrain_stmt env vars em b.Ssa.bstmt in
+        let (em, ba) = constrain_stmt env vars em rt b.Ssa.bstmt in
           Array.set bas i ba;
           em
       end (ExpMap.empty, []) blocks
   in (em, bas)
 
-let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
+type outstore_status =
+  | OSOk
+  | OSUnified
+  | OSFail
+
+let oss_and (oss1: outstore_status) (oss2: outstore_status) =
+  match (oss1, oss2) with
+    | (OSFail, _)    | (_, OSFail)    -> OSFail
+    | (OSUnified, _) | (_, OSUnified) -> OSUnified
+    | (OSOk, OSOk)                    -> OSOk
+
+let match_slocs (ct1: ctype) (ct2: ctype): outstore_status =
+  match (ct1, ct2) with
+    | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; OSUnified
+    | _                                                    -> OSOk
+
+let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_status =
+  let oss = match_slocs atyp etyp in
+    if prectype_eq atyp etyp then
+      oss
+    else begin
+      C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
+      OSFail
+    end
+
+let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): outstore_status =
+  prestore_fold begin fun oss l i ct ->
+    try
+      let ct2 = prestore_find l sto_out_actual |> LDesc.find (ploc_of_index i) |> List.hd |> snd in
+        oss_and oss <| check_expected_type loc ct ct2
+    with _ ->
+      C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
+      OSFail
+  end OSOk sto_out_formal
+
+let rec solve_and_check_rec (loc: C.location) (cf: cfun) (uss: S.SlocSet.t) (cs: cstr list): cstrsol =
+  let (is, ss)  = solve cs in
+  let out_store = storesol_apply is ss in
+    match check_out_store loc cf.sto_out out_store with
+      | OSFail    -> C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf |> ignore; assert false
+      | OSUnified -> solve_and_check_rec loc cf uss cs
+      | OSOk      ->
+          if not (M.exists_pair S.eq <| S.SlocSet.elements uss) then
+            (is, ss)
+          else begin
+            C.errorLoc loc "Function creates aliases not in the spec\n\n" |> ignore;
+            assert false
+          end
+
+let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
+  solve_and_check_rec loc cf (precfun_slocset cf) cs
+
+let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                      = fd.C.svar.C.vdecl in
   let (formals, formalcs)      = instantiate_args loc argcts in
   let bodyformals              = fresh_vars fd.C.sformals in
@@ -539,60 +608,16 @@ let infer_shape (env: ctypeenv) ({args = argcts; sto_in = sin}: cfun) ({ST.fdec 
   let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
   let phics                    = mk_phis_cs vars phis in
   let storecs                  = instantiate_store loc sin in
-  let ((ctvm, bodycs), annots) = constrain_cfg env vars cfg in
-  let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve in
+  let ((ctvm, bodycs), annots) = constrain_cfg env vars rt cfg in
+  let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve_and_check loc cf in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
     {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
      etypm = etypm;
-     store = SLM.map (LDesc.map apply_sol) ss;
+     store = storesol_apply is ss;
      anna  = anna;
      theta = theta }
 
-let match_slocs (ct1: ctype) (ct2: ctype): unit =
-  match (ct1, ct2) with
-    | (CTRef (s1, _), CTRef (s2, _)) -> S.unify s1 s2
-    | _                              -> ()
-
-let check_expected_subtype (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
-  match_slocs atyp etyp;
-  is_subctype atyp etyp ||
-    (C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore; false)
-
-let check_returns (rt: ctype) (cfg: Ssa.cfgInfo) (etypm: ctemap): bool =
-  cfg.Ssa.blocks |> M.array_forall begin fun {Ssa.bstmt = s} ->
-    match s.C.skind with
-      | C.Return (Some e, loc) -> check_expected_subtype loc rt (ExpMap.find e etypm)
-      | C.Return (None, loc)   -> check_expected_subtype loc rt void_ctype
-      | _                      -> true
-  end
-
-let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
-  prestore_fold begin fun ok l i ct ->
-    try
-      let ct2 = prestore_find l sto_out_actual |> LDesc.find (ploc_of_index i) |> List.hd |> snd in
-        ok && check_expected_subtype loc ct ct2 && check_expected_subtype loc ct2 ct
-    with _ ->
-      false
-  end true sto_out_formal
-
-let check_shape (cf: cfun) (sci: ST.ssaCfgInfo) (shp: shape) (ss: S.SlocSet.t): bool =
-     check_returns cf.ret sci.ST.cfg shp.etypm
-  && check_out_store sci.ST.fdec.C.svar.C.vdecl cf.sto_out shp.store
-     (* It's vital to do the "location isomorphism" test last because
-        the previous two checks perform destructive unification *)
-  && not (M.exists_pair S.eq <| S.SlocSet.elements ss)
-
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
-  scis |> M.StringMap.map begin fun (cft, sci) ->
-    let cf  = cfun_instantiate cft |> fst in
-    let ss  = precfun_slocset cf in
-    let shp = infer_shape env cf sci in
-      if check_shape cf sci shp ss then
-        shp
-      else
-        let sv = sci.ST.fdec.C.svar in
-        let _  = C.errorLoc sv.C.vdecl "Could not verify ctype of %s, expected:\n%a\n\n" sv.C.vname d_cfun cft in
-          assert false
-  end
+  scis |> M.StringMap.map (fun (cft, sci) -> infer_shape env (cfun_instantiate cft |> fst) sci)
