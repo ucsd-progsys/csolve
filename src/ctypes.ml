@@ -186,6 +186,13 @@ let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
     | (PLEverywhere, PLAt n) | (PLEverywhere, PLSeq n) -> n mod p = 0
     | (_, PLEverywhere)                                -> false
 
+let ploc_contains_index (pl: ploc) (p: int) (i: index): bool =
+  match (pl, i) with
+    | (PLEverywhere, _)      -> true
+    | (PLAt n, IInt m)       -> n = m
+    | (PLSeq n, ISeq (m, k)) -> k mod p = 0 && n <= m && (m - n) mod p = 0
+    | _                      -> false
+
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
     | PLAt n'      -> PLAt (n + n')
@@ -316,6 +323,11 @@ module LDesc = struct
           let p = get_period_default po in
             List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
+  let find_index (i: index) ((po, _) as ld: 'a t) =
+    let pcts = find (ploc_of_index i) ld in
+    let p    = get_period_default po in
+      List.filter (fun (pl, pct) -> ploc_contains_index pl p i) pcts
+
   let rec foldn_aux (f: int -> 'a -> ploc -> 'b prectype -> 'a) (n: int) (b: 'a): (ploc * 'b prectype) list -> 'a = function
     | []                -> b
     | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
@@ -366,6 +378,9 @@ let prestore_fold f b ps =
 let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
+let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list =
+   ps |> prestore_find l |> LDesc.find_index i |> List.map snd
+
 let prestore_subs_addrs subs ps = 
   List.fold_left begin fun ps (l1, l2) ->
     if not (SLM.mem l1 ps) then ps else
@@ -398,6 +413,13 @@ let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
   prestore_filter (fun l _ -> S.is_abstract l) ps
 
 type store = index prestore
+
+let store_closed (ps: store): bool =
+  prestore_fold begin fun closed _ _ pct ->
+    match pct with
+      | CTInt _      -> closed
+      | CTRef (l, i) -> prestore_find_index l i ps != [] && closed
+  end true ps
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 

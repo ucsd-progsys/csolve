@@ -47,6 +47,7 @@ module LDesc:
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
+    val find_index: index -> 'a t -> (ploc * 'a prectype) list
     val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
     val mapn: (int -> ploc -> 'a prectype -> 'b prectype) -> 'a t -> 'b t
@@ -145,6 +146,7 @@ val void_ctype: ctype
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: Sloc.t -> Sloc.t -> 'a prectype -> 'a prectype
+val prectype_subs        : (Sloc.t * Sloc.t) list -> 'a prectype -> 'a prectype
 val prectype_eq: 'a prectype -> 'a prectype -> bool
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
@@ -172,6 +174,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
+val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a prectype list
 val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
 
 val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
@@ -185,4 +188,5 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
     common locations of st1 and st2 with the blocks appearing in st2 *)
 
 val prestore_subs   : (Sloc.t * Sloc.t) list -> 'a prestore -> 'a prestore
-val prectype_subs   : (Sloc.t * Sloc.t) list -> 'a prectype -> 'a prectype
+
+val store_closed : index prestore -> bool

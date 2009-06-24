@@ -578,7 +578,7 @@ let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_
 let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): outstore_status =
   prestore_fold begin fun oss l i ct ->
     try
-      let ct2 = prestore_find l sto_out_actual |> LDesc.find (ploc_of_index i) |> List.hd |> snd in
+      let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
         oss_and oss <| check_expected_type loc ct ct2
     with _ ->
       C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
