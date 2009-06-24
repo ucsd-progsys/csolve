@@ -509,6 +509,7 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
      subs)
 
 let cfun_well_formed (cf: cfun): bool =
+     (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
      store_closed cf.sto_in
   && store_closed cf.sto_out
   && List.for_all (fun (_, ct) -> ctype_closed ct cf.sto_in) cf.args
