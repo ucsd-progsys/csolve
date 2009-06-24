@@ -279,9 +279,9 @@ let rec typ_width (t: C.typ): int =
 
 let fresh_ctypevar (t: C.typ): ctypevar =
   match C.unrollType t with
-    | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
-    | C.TPtr (_, _)  -> fresh_ctvref ()
-    | _              -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
+    | C.TInt (ik, _)        -> fresh_ctvint (C.bytesSizeOfInt ik)
+    | C.TPtr _ | C.TArray _ -> fresh_ctvref ()
+    | _                     -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
 
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
@@ -307,14 +307,18 @@ let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
+let constrain_sizeof (loc: C.location) (t: C.typ): ctypevar * cstr =
+  with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (C.bitsSizeOf t / 8))) iv)
+
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
   | C.Const c                     -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
-  | C.Lval lv                     -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
+  | C.Lval lv | C.StartOf lv      -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
   | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | C.AddrOf lv                   -> constrain_addrof ve em loc lv
+  | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c])
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
@@ -517,10 +521,11 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
   let t = C.unrollType v.C.vtype in
   match t with
   | C.TInt _ 
-  | C.TPtr _ -> Some (v, fresh_ctypevar t)
-  | _        -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
-                C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t 
-                |> ignore; None
+  | C.TPtr _
+  | C.TArray _ -> Some (v, fresh_ctypevar t)
+  | _          -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
+                    C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t
+                    |> ignore; None
 
 let fresh_vars (vs: C.varinfo list): (C.varinfo * ctypevar) list =
   Misc.map_partial maybe_fresh vs
