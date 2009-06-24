@@ -1,6 +1,6 @@
-int main(int a)
+/*int main(int a)
 {
-  (* crashes *)
+  //crashes
   for (; a; )
     0;
   return 0;
@@ -8,7 +8,7 @@ int main(int a)
 
 int main(int a)
 {
-  (* does not crash *)
+  //does not crash
   if (a)
     0;
   return 0;
@@ -16,9 +16,17 @@ int main(int a)
 
 int main(int a)
 {
-  (* does not crash *)
+  //does not crash
   int a;
   for (; a; )
+    0;
+  return 0;
+}*/
+
+int main(int a)
+{
+  //crashes
+  while(a)
     0;
   return 0;
 }
