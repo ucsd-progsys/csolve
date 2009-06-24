@@ -7,9 +7,9 @@ int main1(int bound)
   {
     if (2 * i / 2 == i)
       x++;
-    assert(2 * x < bound);
-    assert(i < bound);
-  }
+    //assert(2 * x < bound);
+    //assert(i < bound);
+   }
   return 0;
 }
 
