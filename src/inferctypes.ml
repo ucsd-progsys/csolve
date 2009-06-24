@@ -460,7 +460,6 @@ let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (Sloc.
 
 let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar * ctypevar list * cstr list * RA.annotation list =
   let ({args = argcts; ret = rct; sto_out = sout}, subs) = lookup_function loc env f in
-    (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
   let (rctv, rctcs)    = ctypevar_of_ctype loc rct in
   let storecs          = instantiate_store loc sout in
