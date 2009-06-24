@@ -64,6 +64,7 @@ let cil_of_file fname =
             Pheapify.heapifyNonArrays := true;
             Pheapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
+            CilMisc.purify cil;
             mk_cfg cil;
             rename_locals cil in
   cil

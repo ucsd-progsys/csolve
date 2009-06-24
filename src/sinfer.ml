@@ -35,6 +35,7 @@ let mk_cil fname =
             Pheapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
             Psimplify.simplify cil;
+            CilMisc.purify cil;
             mk_cfg cil;
             rename_locals cil in
   cil
