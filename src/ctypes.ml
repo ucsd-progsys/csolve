@@ -414,12 +414,13 @@ let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
 
 type store = index prestore
 
-let store_closed (ps: store): bool =
-  prestore_fold begin fun closed _ _ pct ->
-    match pct with
-      | CTInt _      -> closed
-      | CTRef (l, i) -> prestore_find_index l i ps != [] && closed
-  end true ps
+let ctype_closed (ct: ctype) (sto: store) =
+  match ct with
+    | CTInt _      -> true
+    | CTRef (l, i) -> prestore_find_index l i sto != []
+
+let store_closed (sto: store): bool =
+  prestore_fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
@@ -506,6 +507,14 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
       sto_in  = rename_ps sin;
       sto_out = rename_ps sout},
      subs)
+
+let cfun_well_formed (cf: cfun): bool =
+     store_closed cf.sto_in
+  && store_closed cf.sto_out
+  && List.for_all (fun (_, ct) -> ctype_closed ct cf.sto_in) cf.args
+  && match cf.ret with  (* we can return refs to uninitialized data *)
+        | CTRef (l, _) -> SLM.mem l cf.sto_out
+        | _            -> true
 
 (******************************************************************************)
 (******************************** Environments ********************************)

@@ -4,6 +4,8 @@ module Sy = A.Symbol
 module SM = Misc.StringMap
 module FI = FixInterface
 
+open Misc.Ops
+
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
@@ -50,7 +52,15 @@ spec:
     ARG    argbinds 
     RET    reftype
     INST   refstore
-    OUTST  refstore                     { ($1, (FI.mk_cfun $4 $6 $10 $8 $12)) }
+    OUTST  refstore {
+      let rcf = FI.mk_cfun $4 $6 $10 $8 $12 in
+        if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
+          ($1, rcf)
+        else begin
+          Format.printf "Error: %s has ill-formed spec\n\n" $1 |> ignore;
+          raise Parse_error
+        end
+    }
     ;
 
 slocs:
