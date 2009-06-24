@@ -5,13 +5,6 @@ malloc ::
   store_in []
   store_out [C0 |-> ]
 
-malloc2 ::
-  forall [C0]
-  arg (sz: int (4, true, {v | true}))
-  ret ref(C0, 0, {v | true})
-  store_in []
-  store_out [C0 |-> ]
-
 nondet ::
   forall    []
   arg       ()
