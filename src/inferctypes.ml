@@ -574,15 +574,27 @@ let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_
       OSFail
     end
 
+let check_out_store_complete (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
+  prestore_fold begin fun ok l i ct ->
+    if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
+      C.errorLoc loc "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
+      false
+    end else
+      ok
+  end true sto_out_actual
+
 let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): outstore_status =
-  prestore_fold begin fun oss l i ct ->
-    try
-      let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
-        oss_and oss <| check_expected_type loc ct ct2
-    with _ ->
-      C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
-      OSFail
-  end OSOk sto_out_formal
+  if check_out_store_complete loc sto_out_formal sto_out_actual then
+    prestore_fold begin fun oss l i ct ->
+      try
+        let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
+          oss_and oss <| check_expected_type loc ct ct2
+      with _ ->
+        C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
+        OSFail
+    end OSOk sto_out_formal
+  else
+    OSFail
 
 let rec solve_and_check_rec (loc: C.location) (cf: cfun) (uss: S.SlocSet.t) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in
