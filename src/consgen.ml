@@ -357,8 +357,9 @@ let cons_of_sci gnv sci shp =
 
 let add_scis gnv scim shpm ci = 
   SM.fold begin fun fn sci ci ->
-    cons_of_sci gnv sci (SM.find fn shpm)
-    |> Misc.uncurry (Consindex.add ci fn sci)
+    let _ = Pretty.printf "Constraining %s:\n\n%a\n\n" sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody in
+        cons_of_sci gnv sci (SM.find fn shpm)
+     |> Misc.uncurry (Consindex.add ci fn sci)
   end scim ci 
 
 (* NOTE: 1. templates for formals are in "global" gnv, 
