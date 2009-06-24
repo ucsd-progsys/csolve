@@ -31,6 +31,7 @@ type indexexp =
   | IEPlus of indexvar * (* RHS scale: *) int * indexvar
   | IEMinus of indexvar * (* RHS scale: *) int * indexvar
   | IEMult of indexvar * indexvar
+  | IEDiv of indexvar * indexvar
 
 type indexcstr =
   | ICVarLess of indexexp * indexvar
@@ -54,6 +55,7 @@ let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEPlus (iv1, x, iv2)  -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
   | IEMinus (iv1, x, iv2) -> index_minus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
   | IEMult (iv1, iv2)     -> index_mult (indexsol_find iv1 is) (indexsol_find iv2 is)
+  | IEDiv (iv1, iv2)      -> index_div (indexsol_find iv1 is) (indexsol_find iv2 is)
 
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
   IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
@@ -336,6 +338,7 @@ and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctype
   | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
   | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
   | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
+  | C.Div                                   -> constrain_arithmetic (fun iv1 iv2 -> IEDiv (iv1, iv2))
   | C.Mod                                   -> constrain_mod
   | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))

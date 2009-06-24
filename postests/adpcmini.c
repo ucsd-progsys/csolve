@@ -1,15 +1,16 @@
 
-void main1(int bound)
+int main1(int bound)
 {
   int i, x;
 
   for(i = 0; i < bound; i++)
   {
-    if (i & 1)
+    if (2 * i / 2 == i)
       x++;
     assert(2 * x < bound);
     assert(i < bound);
   }
+  return 0;
 }
 
 /*void main2(int bound)
