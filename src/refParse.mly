@@ -17,6 +17,7 @@ let ldesc_of_plocbinds pbs =
 
 %}
 
+%token DIV 
 %token <string> Id
 %token <int> Num
 %token <int> ABS 
@@ -30,7 +31,6 @@ let ldesc_of_plocbinds pbs =
 %token PLUS
 %token MINUS
 %token TIMES 
-%token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
 %token SRT AXM CST WF SOL QUL

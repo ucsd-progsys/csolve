@@ -1,15 +1,33 @@
 
-int main1(int bound)
+int main1()
 {
-  int i, x;
+  int i, x, bound;
+  int t1, t2;
+  int b, c;
 
-  for(i = 0; i < bound; i++)
+  i = x = bound = b = 0;
+  
+  do
+    bound = nondet();
+  while(bound < 0);
+
+  assert (bound >= 0);
+
+  i = 0;
+  for(; i < 2; i++)
   {
-    if (2 * i / 2 == i)
-      x++;
+    t2 = 2 * (i / 2);
+    if (t2 == i)
+    {
+      b = 1;
+      assert 
+    }
+    else
+      b = 0;
+    x += b;
     //assert(2 * x < bound);
-    //assert(i < bound);
-   }
+//    assert(i < bound);
+     }
   return 0;
 }
 

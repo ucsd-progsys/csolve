@@ -95,12 +95,12 @@ let tcons_of_phis me phia =
       let envj,_ = CF.outwld_of_block me j in
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
-        if CF.is_undefined me vj then [] else  
-          let envj  = weaken_undefined me envj v in
-          let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
-          let lhs   = FI.t_name envj nj in
-          let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
-          FI.make_cs envj pj lhs rhs locj
+        let envj  = weaken_undefined me envj v in
+        let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
+        let lhs   = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
+                      FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
+        let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
+        FI.make_cs envj pj lhs rhs locj
       end vvjs 
     end asgns' 
   end phia
