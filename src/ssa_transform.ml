@@ -33,6 +33,7 @@ type ssaCfgInfo = {
   phis  : (varinfo * (int * varinfo) list) list array; (*  block |-> (var, (block, var) list) list *)
   ifs   : Guards.ginfo array;
   gdoms : (int * (bool option)) array;
+  edoms : ((int * int), bool) Hashtbl.t;
 }
 
 let mk_ssa_name s = function
@@ -265,19 +266,20 @@ let mk_gdominators fdec cfg =
   let n    = Array.length idom in
   let ifs  = Guards.mk_ifs n fdec in
   let gds  = Guards.mk_gdoms cfg.S.predecessors ifs idom in
-  (ifs, gds)
+  let eds  = Guards.mk_edoms cfg.S.predecessors ifs idom in
+  (ifs, gds, eds)
   
 (* API *)
 let fdec_to_ssa_cfg fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
-  let _     = S.add_ssa_info cfg in
-  let _     = if mydebug then print_blocks cfg in
-  let out_t = mk_out_name cfg in
-  let var_t = H.create 117 in
-  let phis  = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
-  let _     = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r) fdec in
-  let gi    = mk_gdominators fdec cfg in
-  {fdec = fdec; cfg = cfg; phis = phis; ifs = fst gi; gdoms = snd gi} 
+  let _             = S.add_ssa_info cfg in
+  let _             = if mydebug then print_blocks cfg in
+  let out_t         = mk_out_name cfg in
+  let var_t         = H.create 117 in
+  let phis          = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
+  let _             = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r) fdec in
+  let ifs, gds, eds = mk_gdominators fdec cfg in
+  {fdec = fdec; cfg = cfg; phis = phis; ifs = ifs; gdoms = gds; edoms = eds} 
 
 let print_sci oco sci = 
   if mydebug then begin

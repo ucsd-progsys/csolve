@@ -30,7 +30,7 @@ val location_of_block: t -> int -> Cil.location
 val phis_of_block: t -> int -> Cil.varinfo list 
 val inwld_of_block: t -> int -> wld 
 val outwld_of_block: t -> int -> wld 
-val guard_of_block: t -> int -> Ast.pred
+val guard_of_block: t -> int -> int option -> Ast.pred
 
 val add_wld     : int -> wld -> t -> t
 val add_cons    : Constraint.wf list -> Constraint.t list -> t -> t

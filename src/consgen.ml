@@ -90,7 +90,7 @@ let tcons_of_phis me phia =
     let envi,_ = CF.outwld_of_block me i in
     let asgns' = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
-      let pj     = CF.guard_of_block me j in
+      let pj     = CF.guard_of_block me j (Some i) in
       let locj   = CF.location_of_block me j in
       let envj,_ = CF.outwld_of_block me j in
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
@@ -319,7 +319,7 @@ let cons_of_annotstmt me loc grd wld (anns, stmt) =
 (****************************************************************************)
 
 let cons_of_block me i =
-  let grd     = CF.guard_of_block me i in
+  let grd     = CF.guard_of_block me i None in
   let loc     = CF.location_of_block me i in
   let phis    = CF.phis_of_block me i in
   let astmt   = CF.annotstmt_of_block me i in
