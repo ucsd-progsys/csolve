@@ -11,9 +11,6 @@ type t =
 
 let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 
-let create (lid: slocid) (lty: sloctype): t =
-  {lid = lid; lty = lty; lparent = None}
-
 let fresh lty =
   {lid = fresh_slocid (); lty = lty; lparent = None}
 
