@@ -320,8 +320,11 @@ module LDesc = struct
       | Empty           -> []
       | Uniform pct     -> if ploc_contains PLEverywhere pl1 (prectype_width pct) then [(PLEverywhere, pct)] else []
       | NonUniform pcts ->
-          let p = get_period_default po in
-            List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+          if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+            []
+          else
+            let p = get_period_default po in
+              List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
   let find_index (i: index) ((po, _) as ld: 'a t) =
     let pcts = find (ploc_of_index i) ld in
