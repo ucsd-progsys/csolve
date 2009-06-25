@@ -18,7 +18,7 @@ LIBS =
 
 else
 
-CC		= gcc
+CC		= cilly --merge
 DEF   = -D
 CONLY = -c
 OBJOUT= -o
@@ -41,7 +41,7 @@ OBJS		= $(addsuffix $(OBJ),$(FILES))
 ASMS		= $(addsuffix $(ASM),$(FILES))
 
 $(BINARY):	$(OBJS)
-	$(CC) $(LDFALGS) $(OPTFLAGS) $(EXEOUT) $@ $(OBJS) $(LIBPATH) $(LIBS)
+	$(CC) --keepmerged $(LDFALGS) $(OPTFLAGS) $(EXEOUT) $@ $(OBJS) $(LIBPATH) $(LIBS)
 
 %$(OBJ) : %$(SRC)
 	$(CC) $(CDEFS) $(EXTRA_CDEFS) $(MY_CDEFS) $(OPTFLAGS) $(CONLY) $<
