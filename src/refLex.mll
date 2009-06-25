@@ -67,7 +67,7 @@ rule token = parse
   | '+'                 { PLUS }
   | '-'                 { MINUS }
   | '*'                 { TIMES }
-  | "div"                 { DIV }
+  | "/"                 { DIV }
   | '?'                 { QM }
   | '.'                 { DOT }
   | "false"             { FALSE }

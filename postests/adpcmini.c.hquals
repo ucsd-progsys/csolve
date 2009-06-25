@@ -1,0 +1,9 @@
+qualif A(v:int) : v = 0
+qualif A(v:int) : v = 1
+qualif A(v:int) : v < ~a
+qualif A(v:int) : v >= 0
+//qualif A(v:int) : v < 2
+
+//qualif A(v:int) : v = ~a / 2
+
+qualif A(v:int) : 1 = 0

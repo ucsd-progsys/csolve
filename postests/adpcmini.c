@@ -14,20 +14,18 @@ int main1()
   assert (bound >= 0);
 
   i = 0;
-  for(; i < 2; i++)
+  for(; i < bound; i++)
   {
-    t2 = 2 * (i / 2);
+    t1 = i / 2;
+    t2 = 2 * t1;
     if (t2 == i)
-    {
       b = 1;
-      assert 
-    }
     else
       b = 0;
     x += b;
-    //assert(2 * x < bound);
-//    assert(i < bound);
-     }
+    assert(2 * x < bound);
+    //assert(i < bound);
+  }
   return 0;
 }
 
