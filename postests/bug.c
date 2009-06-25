@@ -52,11 +52,16 @@ int main()
 int main()
 {
   int b = nondet(), c;
-  
+
+/*  if (b != 0)
+    b = 0;
+
+  assert(b==0);
+*/
   if (b != 0)
     b = 1; 
-  else
-    b = b;
+//  else
+//    b = b;
 
   if (b == 0)
     c = 0;

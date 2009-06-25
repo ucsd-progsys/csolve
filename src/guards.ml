@@ -92,7 +92,7 @@ let mk_edoms preds ifs idom =
     List.iter begin fun j ->
       match ifs.(j) with
       | Some (p, Some i', None) when i != i' ->
-          Hashtbl.add t (j, i) (p, false)
+          Hashtbl.add t (j, i) false
       | _ -> ()
     end js
   end preds;

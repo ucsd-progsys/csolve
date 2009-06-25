@@ -33,7 +33,7 @@ type ssaCfgInfo = {
   phis  : (varinfo * (int * varinfo) list) list array; (*  block |-> (var, (block, var) list) list *)
   ifs   : Guards.ginfo array;
   gdoms : (int * (bool option)) array;
-  edoms : ((int * int), (exp * bool)) Hashtbl.t;
+  edoms : ((int * int), bool) Hashtbl.t;
 }
 
 let mk_ssa_name s = function

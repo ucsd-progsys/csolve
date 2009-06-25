@@ -155,11 +155,19 @@ let pred_of_block ifs (i,b) =
       let p = CI.pred_of_cilexp e in
       if b then p else (Ast.pNot p)
 
-let guard_of_block me i = 
+let entry_guard_of_block me i = 
   i |> doms_of_block me.sci.ST.gdoms []
     |> Misc.map_partial (function (i,Some b) -> Some (i,b) | _ -> None)
     |> Misc.map (pred_of_block me.sci.ST.ifs)
     |> Ast.pAnd
+
+let guard_of_block me i jo = 
+  let p = entry_guard_of_block me i in
+  match jo with None -> p | Some j -> 
+    if not (Hashtbl.mem me.sci.ST.edoms (i, j)) then p else
+      let b' = Hashtbl.find me.sci.ST.edoms (i, j) in 
+      let p' = pred_of_block me.sci.ST.ifs (i, b') in
+      Ast.pAnd [p; p']
 
 let get_fname = fun me -> me.sci.ST.fdec.svar.vname 
 

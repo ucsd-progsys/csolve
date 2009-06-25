@@ -1,0 +1,4 @@
+qualif EQZ(v:int): v = 0
+qualif ZOO(v:int): ||[v = 0; v = 1]
+qualif EQ(v:int): v = ~a 
+qualif FALSE(v:int): 0 = 1
