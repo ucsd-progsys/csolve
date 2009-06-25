@@ -8,7 +8,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true
 
 (************************************************************************
  * out_t : (block * reg, regindex) H.t                                  *

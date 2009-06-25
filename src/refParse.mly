@@ -22,6 +22,7 @@ let mk_sloc =
 
 %}
 
+%token DIV 
 %token <string> Id
 %token <int> Num
 %token <int> ABS 
@@ -35,7 +36,6 @@ let mk_sloc =
 %token PLUS
 %token MINUS
 %token TIMES 
-%token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
 %token SRT AXM CST WF SOL QUL

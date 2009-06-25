@@ -69,17 +69,17 @@ let callgraph_of_files files =
 class purifyVisitor (fd: fundec) = object(self)
   inherit nopCilVisitor
 
-  method vlval = function
-    | (Mem _, _) as lv ->
+  method vexpr = function
+    | Lval ((Mem _, _) as lv) ->
         let tmp = makeTempVar fd (typeOfLval lv) in
         let tlv = (Var tmp, NoOffset) in
         let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
-          ChangeDoChildrenPost (tlv, id)
+          ChangeTo (Lval tlv)
     | _ -> DoChildren
 
-  method vexpr = function
-    | Lval _ -> SkipChildren
-    | _      -> DoChildren
+  method vinst = function
+    | Set (_, Lval _, _) -> SkipChildren
+    | _                  -> DoChildren
 end
 
 let doGlobal = function
