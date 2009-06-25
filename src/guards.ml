@@ -24,8 +24,8 @@ let print_ifs ifs =
 let print_gdoms gdoms =
   if mydebug then
     Array.iteri begin fun i (j, bo) -> 
-        Printf.printf "block i = %d, idom = %d, guard = %s \n" 
-        i j (Misc.o2s string_of_bool bo)
+      Printf.printf "block i = %d, idom = %d, guard = %s \n" 
+      i j (Misc.o2s string_of_bool bo)
     end gdoms
 
 (****************************************************************)             
@@ -58,7 +58,6 @@ let mk_ifs (n:int) (fdec:fundec) : ginfo array =
   let _   = visitCilFunction (new guardVisitor ifs) fdec in
   ifs
 
-(****************************************************************)
 (** [dom_by_then ifs i j] = true iff i has idom j and is dom by "then" cond of j *)
 let dom_by_then preds ifs i j =
   match ifs.(j) with
@@ -70,20 +69,32 @@ let dom_by_then preds ifs i j =
 let dom_by_else preds ifs i j = 
   match ifs.(j) with
   | Some (_, _, Some i')        -> i = i' 
-  | Some (_, (Some i'),None)    -> i != i' && preds.(i) = [j] 
+  | Some (_, (Some i'), None)   -> i != i' && preds.(i) = [j] 
   | _			        -> false
 
 (** [mk_gdoms ifs doms] = block :-> block * (bool option) 
- *  s.t. i :-> j, Some true	if j is idom i and i is dom by "then" cond 
+    s.t. i :-> j, Some true	if j is idom i and i is dom by "then" cond 
 	 i :-> j, Some false	if j is idom i and i is dom by "else" cond
 	 i :-> j, None 		if j is idom i o.w. *)
 let mk_gdoms preds ifs idom = 
-  Array.mapi 
-    (fun i j -> 
-      let _  = asserts (j < i) "ERROR: mk_gdoms: bad idom" in
-      if j < 0 then (j, None) else 
-        let tb = dom_by_then preds ifs i j in
-        let eb = dom_by_else preds ifs i j in
-        let _  = asserts  (not (tb && eb)) "ERROR: then/else dom! i=%d, j=%d" i j in
-        (j, if tb || eb then Some tb else None))
-    idom
+  Array.mapi begin fun i j -> 
+    let _  = asserts (j < i) "ERROR: mk_gdoms: bad idom" in
+    if j < 0 then (j, None) else 
+      let tb = dom_by_then preds ifs i j in
+      let eb = dom_by_else preds ifs i j in
+      let _  = asserts  (not (tb && eb)) "ERROR: then/else dom! i=%d, j=%d" i j in
+      (j, if tb || eb then Some tb else None)
+  end idom
+
+let mk_edoms preds ifs idom = 
+  let t = Hashtbl.create 17 in 
+  Array.iteri begin fun i js ->
+    List.iter begin fun j ->
+      match ifs.(j) with
+      | Some (p, Some i', None) when i != i' ->
+          Hashtbl.add t (j, i) (p, false)
+      | _ -> ()
+    end js
+  end preds;
+  t
+
