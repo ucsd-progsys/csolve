@@ -60,7 +60,7 @@ module Symbol =
                                    let compare i1 i2 = compare i1 i2 end)
 
     
-    let is_wild = fun s -> if s = "" then false else s.[0] = '~'
+    let is_wild = fun s -> if s = "" then false else (s.[0] = '~' || s.[1] ='~')
     
     let is_safe s = 
       let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
@@ -301,7 +301,7 @@ let rec expr_to_string e =
       Printf.sprintf "%s[%s]" 
       (Symbol.to_string s) (List.map expr_to_string es |> String.concat " ")
   | Bin (e1, op, e2) ->
-      Printf.sprintf "%s %s %s" 
+      Printf.sprintf "(%s %s %s)" 
       (expr_to_string e1) (bop_to_string op) (expr_to_string e2)
   | Ite(ip,te,ee) -> 
       Printf.sprintf "%s ? %s : %s" 
