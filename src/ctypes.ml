@@ -190,6 +190,7 @@ let ploc_contains_index (pl: ploc) (p: int) (i: index): bool =
   match (pl, i) with
     | (PLEverywhere, _)      -> true
     | (PLAt n, IInt m)       -> n = m
+    | (PLSeq n, IInt m)      -> (m - n) mod p = 0
     | (PLSeq n, ISeq (m, k)) -> k mod p = 0 && n <= m && (m - n) mod p = 0
     | _                      -> false
 
