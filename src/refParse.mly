@@ -15,6 +15,11 @@ let store_of_slocbinds sbs =
 let ldesc_of_plocbinds pbs = 
   List.fold_left (fun ld (x,y) -> Ctypes.LDesc.add x y ld) Ctypes.LDesc.empty pbs
 
+let mk_sloc =
+  let sloctable = Hashtbl.create 17 in
+    fun id sty ->
+      Misc.do_memo sloctable Sloc.fresh sty (id, sty)
+
 %}
 
 %token <string> Id
@@ -74,8 +79,8 @@ slocsne:
   ;
 
 sloc:
-    ABS                                 { Sloc.create $1 Sloc.Abstract }
-  | CONC                                { Sloc.create $1 Sloc.Concrete }
+    ABS                                 { mk_sloc $1 Sloc.Abstract }
+  | CONC                                { mk_sloc $1 Sloc.Concrete }
   ;
 
 refstore:

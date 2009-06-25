@@ -34,7 +34,6 @@ module SlocSet:
     val split : elt -> t -> t * bool * t
   end
 
-val create      : slocid -> sloctype -> t
 val fresh       : sloctype -> t
 val is_abstract : t -> bool
 val repr        : t -> t
