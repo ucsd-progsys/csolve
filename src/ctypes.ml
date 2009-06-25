@@ -320,8 +320,11 @@ module LDesc = struct
       | Empty           -> []
       | Uniform pct     -> if ploc_contains PLEverywhere pl1 (prectype_width pct) then [(PLEverywhere, pct)] else []
       | NonUniform pcts ->
-          let p = get_period_default po in
-            List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+          if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+            []
+          else
+            let p = get_period_default po in
+              List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
   let find_index (i: index) ((po, _) as ld: 'a t) =
     let pcts = find (ploc_of_index i) ld in
@@ -509,6 +512,7 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
      subs)
 
 let cfun_well_formed (cf: cfun): bool =
+     (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
      store_closed cf.sto_in
   && store_closed cf.sto_out
   && List.for_all (fun (_, ct) -> ctype_closed ct cf.sto_in) cf.args

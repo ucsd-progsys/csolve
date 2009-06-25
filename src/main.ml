@@ -60,10 +60,10 @@ let cil_of_file fname =
   let _   = ignore (E.log "Parsing %s\n" fname) in
   let cil = Frontc.parse fname () |> Simplemem.simplemem in
   let _   = Psimplify.simplify cil;
-            if !Constants.ctypes then Inliner.inline cil;
             Pheapify.heapifyNonArrays := true;
             Pheapify.default_heapify cil;
             Rmtmps.removeUnusedTemps cil;
+            CilMisc.purify cil;
             mk_cfg cil;
             rename_locals cil in
   cil

@@ -279,9 +279,9 @@ let rec typ_width (t: C.typ): int =
 
 let fresh_ctypevar (t: C.typ): ctypevar =
   match C.unrollType t with
-    | C.TInt (ik, _) -> fresh_ctvint (C.bytesSizeOfInt ik)
-    | C.TPtr (_, _)  -> fresh_ctvref ()
-    | _              -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
+    | C.TInt (ik, _)        -> fresh_ctvint (C.bytesSizeOfInt ik)
+    | C.TPtr _ | C.TArray _ -> fresh_ctvref ()
+    | _                     -> E.s <| E.bug "Unimplemented fresh_ctypevar: %a@!@!" C.d_type t
 
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
@@ -307,14 +307,18 @@ let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (Char.code c))) iv)
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
+let constrain_sizeof (loc: C.location) (t: C.typ): ctypevar * cstr =
+  with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (C.bitsSizeOf t / 8))) iv)
+
 let rec constrain_exp_aux (ve: ctvenv) (em: cstremap) (loc: C.location): C.exp -> ctypevar * cstremap * cstr list = function
   | C.Const c                     -> let (ctv, c) = constrain_const loc c in (ctv, em, [c])
-  | C.Lval lv                     -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
+  | C.Lval lv | C.StartOf lv      -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
   | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | C.AddrOf lv                   -> constrain_addrof ve em loc lv
+  | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c])
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e: C.exp): ctypevar * cstremap * cstr list =
@@ -460,7 +464,6 @@ let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (Sloc.
 
 let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar * ctypevar list * cstr list * RA.annotation list =
   let ({args = argcts; ret = rct; sto_out = sout}, subs) = lookup_function loc env f in
-    (* pmr: do we need oas = ias on the common parts? *)
   let (argctvs, argcs) = instantiate_args loc argcts in
   let (rctv, rctcs)    = ctypevar_of_ctype loc rct in
   let storecs          = instantiate_store loc sout in
@@ -518,10 +521,11 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
   let t = C.unrollType v.C.vtype in
   match t with
   | C.TInt _ 
-  | C.TPtr _ -> Some (v, fresh_ctypevar t)
-  | _        -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
-                C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t 
-                |> ignore; None
+  | C.TPtr _
+  | C.TArray _ -> Some (v, fresh_ctypevar t)
+  | _          -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
+                    C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t
+                    |> ignore; None
 
 let fresh_vars (vs: C.varinfo list): (C.varinfo * ctypevar) list =
   Misc.map_partial maybe_fresh vs
@@ -575,15 +579,27 @@ let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_
       OSFail
     end
 
+let check_out_store_complete (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
+  prestore_fold begin fun ok l i ct ->
+    if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
+      C.errorLoc loc "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
+      false
+    end else
+      ok
+  end true sto_out_actual
+
 let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): outstore_status =
-  prestore_fold begin fun oss l i ct ->
-    try
-      let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
-        oss_and oss <| check_expected_type loc ct ct2
-    with _ ->
-      C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
-      OSFail
-  end OSOk sto_out_formal
+  if check_out_store_complete loc sto_out_formal sto_out_actual then
+    prestore_fold begin fun oss l i ct ->
+      try
+        let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
+          oss_and oss <| check_expected_type loc ct ct2
+      with _ ->
+        C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
+        OSFail
+    end OSOk sto_out_formal
+  else
+    OSFail
 
 let rec solve_and_check_rec (loc: C.location) (cf: cfun) (uss: S.SlocSet.t) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in

@@ -60,6 +60,35 @@ let edges_of_file file =
 let callgraph_of_files files = 
   Misc.flap edges_of_file files 
 
+(******************************************************************************)
+(************************ Ensure Expression/Lval Purity ***********************)
+(******************************************************************************)
+
+(** Ensures no expression contains a memory access and another
+    operation. *)
+class purifyVisitor (fd: fundec) = object(self)
+  inherit nopCilVisitor
+
+  method vexpr = function
+    | Lval ((Mem _, _) as lv) ->
+        let tmp = makeTempVar fd (typeOfLval lv) in
+        let tlv = (Var tmp, NoOffset) in
+        let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
+          ChangeTo (Lval tlv)
+    | _ -> DoChildren
+
+  method vinst = function
+    | Set (_, Lval _, _) -> SkipChildren
+    | _                  -> DoChildren
+end
+
+let doGlobal = function
+  | GFun (fd, _) -> fd.sbody <- visitCilBlock (new purifyVisitor fd) fd.sbody
+  | _            -> ()
+
+let purify file =
+  iterGlobals file doGlobal
+
 (**********************************************************)
 (********** Check Expression/Lval Purity ******************)
 (**********************************************************)

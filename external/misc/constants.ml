@@ -36,7 +36,6 @@ let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
 let verify_simple = ref false           (* -verify-simple *)
 let dump_graph    = ref false           (* -dgraph *)
-let ctypes        = ref false           (* -ctypes *)
 let dropcalls     = ref false           (* -dropcalls *)
 
 (****************************************************************)
@@ -102,9 +101,6 @@ let arg_spec =
    ("-dropcalls",
      Arg.Set dropcalls,
      "Ignore function calls during consgen [false]");
-   ("-ctypes",
-     Arg.Set ctypes,
-     "Compute CTypes (also inlines functions) [false]");
    ("-drconstr", 
     Arg.Set dump_ref_constraints, 
     "Dump refinement constraints [false]");
