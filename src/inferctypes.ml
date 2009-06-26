@@ -126,7 +126,8 @@ let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: 
         let pl       = PLSeq n in
         let pcts     = LDesc.find pl ld in
         let is       = List.fold_left (fun is (_, ctv2) -> equalize_ctypes ctv ctv2 is) is pcts in
-          if List.exists (fun (pl2, _) -> ploc_periodic pl2 && ploc_le pl2 pl) pcts then
+        let p        = ld |> LDesc.get_period |> Misc.get_option 0 in
+          if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) pcts then
             (* If this sequence is included in an existing one, there's nothing left to do *)
             (is, ss)
           else

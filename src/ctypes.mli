@@ -163,7 +163,6 @@ val ctype_closed         : ctype -> store -> bool
 
 val ploc_start: ploc -> int
 val ploc_compare: ploc -> ploc -> int
-val ploc_le: ploc -> ploc -> bool
 val ploc_periodic: ploc -> bool
 val ploc_contains: ploc -> ploc -> int -> bool
 val ploc_offset: ploc -> int -> ploc

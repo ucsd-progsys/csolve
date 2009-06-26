@@ -169,9 +169,6 @@ let ploc_start: ploc -> int = function
 let ploc_compare (pl1: ploc) (pl2: ploc): int =
   compare (ploc_start pl1) (ploc_start pl2)
 
-let ploc_le (pl1: ploc) (pl2: ploc): bool =
-  ploc_start pl1 <= ploc_start pl2
-
 let ploc_periodic: ploc -> bool = function
   | PLAt _       -> false
   | PLSeq _      -> true
@@ -204,10 +201,10 @@ let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prec
   match (pl1, pl2) with
     | (PLEverywhere, _) | (_, PLEverywhere) -> true
     | _                                     ->
-        let ((pl1, pct1), (pl2, pct2)) = if ploc_le pl1 pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
-        let d                          = ploc_start pl2 - ploc_start pl1 in
-        let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
+        let ((pl1, pct1), (pl2, pct2)) = if ploc_start pl1 < ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
         let (s1, s2)                   = (ploc_start pl1, ploc_start pl2) in
+        let d                          = s2 - s1 in
+        let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
           s1 + prectype_width pct1 > s2 || (ploc_periodic pl1 && s2 + prectype_width pct2 > (s1 + p))
 
 (******************************************************************************)
@@ -231,7 +228,7 @@ module LDesc = struct
      - The list does not contain the location PLEverywhere.
      - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
        (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
-     - All (pl, pct) in the list are sorted by pl according to ploc_le.
+     - All (pl, pct) in the list are sorted by pl according to ploc_start.
 
      The period is always positive.
   *)
@@ -261,7 +258,7 @@ module LDesc = struct
 
   let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
     | []                           -> [(pl, pct)]
-    | (pl2, pct2) :: pcts' as pcts -> if ploc_le pl pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
+    | (pl2, pct2) :: pcts' as pcts -> if ploc_start pl < ploc_start pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
 
   let add (pl: ploc) (pct: 'a prectype) ((po, cnts): 'a t): 'a t =
     match (cnts, pl) with
@@ -283,7 +280,7 @@ module LDesc = struct
   let swallow_repeats (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) (pcts: (ploc * 'a prectype) list): (ploc * 'a prectype) list * 'b =
     try
       let (pl1, pct1) = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
-      let (rs, us)    = List.partition (fun (pl2, _) -> not (ploc_le pl2 pl1)) pcts in
+      let (rs, us)    = List.partition (fun (pl2, _) -> not (ploc_start pl2 < ploc_start pl1)) pcts in
       let b           = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
         (us, b)
     with Not_found ->
