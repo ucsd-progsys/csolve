@@ -7,8 +7,11 @@ TODO
 - [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
 - [arrays]  	array-bounds checking assertions.
 - [arrays]	null-deref assertion.
+
 - [benchmarks] 	crunch deputy benchmarks into single file
 - [globals]	fake with params
+
+
 
 ***************************************************************
 
@@ -27,7 +30,16 @@ ll1.c
 
 ^^^ DONE ^^^ 
 
-ll2.c wrong n@main gets added to initial environment
+
+***************************************************************
+Arrays
+
+1. update spec parser to handle malloc with BEG, END annotations
+
+2. BEG, END are uninterpreted functions -- how to embed in fixpoint?
+	
+	BEG:: ref -> int
+	END:: ref -> int
 
 
 
