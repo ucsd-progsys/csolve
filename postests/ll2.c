@@ -1,5 +1,3 @@
-//! run with -dropcalls
-
 extern char* malloc(int);
 
 typedef struct node {
@@ -7,22 +5,34 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-int main(int n){
+int foo(int n){
   node_t *root;
   node_t *tmp;
+  int i;
 
   root = 0;
+  
+  assert(0); //SANITY
 
-  for(int i=0; i < n; i++){
+  for(i = 0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
     tmp->data = i;
     tmp->next = root;
     root      = tmp;
   }
 
+  assert(0); //SANITY
+
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
-//    assert(tmp->data < n);
+    assert(tmp->data < n);
+    assert(0); //SANITY
   }
+
 return 0;
+}
+
+int main(){
+  foo(100);
+  return 0;
 }

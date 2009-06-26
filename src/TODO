@@ -1,14 +1,13 @@
 TODO
-- [functions]	handling functions properly
 - [specgen]	use C types to generate a "spec" file for each program,
 		that is, create a candidate input type for each function.
 		can be refined later.
 
+- [functions]	ll2.c
 - [qualifs]	$prefix wild-variables, inst with prog vars that match prefix
 
 - [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
 - [arrays]  	array-bounds checking assertions.
-- [arrays]	null-deref assertion.
 
 - [benchmarks] 	crunch deputy benchmarks into single file
 - [globals]	fake with params
@@ -30,7 +29,7 @@ ll1.c
 
 ^^^ DONE ^^^ 
 
-ll2.c
+ll2.c		param passing spec hassle. Unresolved!
 
 ***************************************************************
 Arrays
@@ -54,9 +53,10 @@ Arrays
 	   
     to initial empty environment in FixInterface
 
+>>>> HEREHEREHEREHEREHERE >>>>
+
 2c. update spec parser to handle refinements with UF applications.
 	(e.g. with BEG, END annotations)
-
 
 3a. update type for malloc (in lib.spec)
 
