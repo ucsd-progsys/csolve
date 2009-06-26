@@ -14,5 +14,5 @@ void main(){
  
   assert(p == q+i);
 
-  return 0;
+  return;
 }
