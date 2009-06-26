@@ -88,8 +88,12 @@ let annotate_set ctm theta conc = function
 
 let concretize_new conc = function
   | New (x,y) -> 
-      if Sloc.is_abstract x then  
-        (conc, [New (x,y)])
+      if Sloc.is_abstract x then 
+        let y' = cloc_of_aloc conc y in
+        if Sloc.eq y y' then 
+          (conc, [New (x,y)])
+        else
+          (LM.remove y conc, [Gen (y', y); New (x, y)]) 
       else
         let _  = asserts (Sloc.is_abstract y) "concretize_new" in
         let cl = Sloc.fresh Sloc.Concrete in

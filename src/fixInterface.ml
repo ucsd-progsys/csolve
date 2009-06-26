@@ -88,6 +88,7 @@ let refstore_set sto l rd =
 
 let refstore_get sto l =
   try SLM.find l sto with Not_found ->
+    Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
     assertf "refstore_get"
 
 let sloc_binds_of_refldesc l rd = 
@@ -137,8 +138,8 @@ let vv_ufs = Sy.value_variable so_ufs
 
 let sorts  = [] (* TBD: [so_int; so_ref] *)
 
-let uf_bbegin = name_of_string "B_BEG"
-let uf_bend   = name_of_string "B_END"
+let uf_bbegin = name_of_string "BLOCK_BEGIN"
+let uf_bend   = name_of_string "BLOCK_END"
 
 (* Move to its own module *)
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)

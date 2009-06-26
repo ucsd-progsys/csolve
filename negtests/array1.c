@@ -8,7 +8,7 @@ void main(){
   while(nondet()){
     validptr(x);
     *x = 0;
- //   x++;
+    x++;
   }
   
   return 0;

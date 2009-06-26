@@ -1,16 +1,16 @@
 malloc ::
   forall [C0]
   arg (sz: int (4, true, {v | 0 < v}))
-  ret ref(C0, 0, {v | && [BBEG([v]) = v; BEND([v]) = v + sz]})
+  ret ref(C0, 0, {v | && [BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
   store_in []
   store_out [C0 |-> ]
 
 validptr ::
-  forall    [C0]
-  arg       (x: ref (C0, true, {v| && [(BBEG([v]) <= v); (v < BEND([v]))]}))
+  forall    [A0]
+  arg       (x: ref (A0, true, {v| && [(BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]}))
   ret int   (4, true, {v | true})
-  store_in  [C0 |-> ]
-  store_out [C0 |-> ]
+  store_in  [A0 |-> ]
+  store_out []
 
 nondet ::
   forall    []
