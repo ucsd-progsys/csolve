@@ -4,14 +4,14 @@ TODO
 		that is, create a candidate input type for each function.
 		can be refined later.
 
+- [qualifs]	$prefix wild-variables, inst with prog vars that match prefix
+
 - [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
 - [arrays]  	array-bounds checking assertions.
 - [arrays]	null-deref assertion.
 
 - [benchmarks] 	crunch deputy benchmarks into single file
 - [globals]	fake with params
-
-
 
 ***************************************************************
 
@@ -30,6 +30,7 @@ ll1.c
 
 ^^^ DONE ^^^ 
 
+ll2.c
 
 ***************************************************************
 Arrays
