@@ -19,16 +19,6 @@ open Cil
 (************** Interface between LiquidC and Fixpoint *************)
 (*******************************************************************)
 
-(****************************************************************)
-(********************* Sorts ************************************)
-(****************************************************************)
-
-let so_int = So.Int
-let so_ref = So.Int (* TBD: So.Unint "ref" *)
-let vv_int = Sy.value_variable so_int
-let vv_ref = Sy.value_variable so_ref
-let sorts  = [] (* TBD: [so_int; so_ref] *)
-
 (*******************************************************************)
 (******************************** Names ****************************)
 (*******************************************************************)
@@ -135,8 +125,20 @@ let refstore_write sto rct rct' =
 
 
 (*******************************************************************)
-(********************** (Basic) Builtin Types **********************)
+(******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
+
+let so_int = So.Int
+let so_ref = So.Int (* TBD: So.Unint "ref" *)
+let so_ufs = So.Func [so_ref; so_int] 
+let vv_int = Sy.value_variable so_int
+let vv_ref = Sy.value_variable so_ref
+let vv_ufs = Sy.value_variable so_ufs
+
+let sorts  = [] (* TBD: [so_int; so_ref] *)
+
+let uf_bbegin = name_of_string "B_BEG"
+let uf_bend   = name_of_string "B_END"
 
 (* Move to its own module *)
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
@@ -151,8 +153,11 @@ let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zer
 let mk_pure_cfun args ret = 
   mk_cfun [] args refstore_empty ret refstore_empty
 
+let builtins    = 
+  [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
+   (uf_bend, C.make_reft vv_ufs so_ufs [])]
+
 (* Added to lib.spec
-let builtins    = []
 let builtins_fn = []
   [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
    ("nondet", mk_pure_cfun [] true_int)]
@@ -199,11 +204,13 @@ let ce_iter f cenv =
   YM.iter (fun n cr -> f n cr) cenv
 
 *)
+let builtin_env =
+  List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
 
 let env_of_cilenv (_, vnv) = 
   YM.fold begin fun n rct env -> 
     YM.add n (reft_of_refctype rct) env
-  end vnv YM.empty
+  end vnv builtin_env 
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
