@@ -35,24 +35,34 @@ ll2.c
 ***************************************************************
 Arrays
 
-1. update spec parser to handle malloc with BEG, END annotations
 
-2. BEG, END are uninterpreted functions -- how to embed in fixpoint?
+1. BEG, END are uninterpreted functions -- how to embed in fixpoint?
 	
 	BEG:: ref -> int
 	END:: ref -> int
 
    play around with this first (using just fixpoint)
 
-3. update type for malloc (in spec)
 
-4. update type for PTR-OP so the result has type: 
+2a. check constraint translation (FixInterface) so that refs get 
+    embedded as int (already happens!)
+
+2b. add bindings 
 	
-	{v = x1 op x2 /\ BEG(v) = BEG(x1) /\ END(v) = END(x1) }
+		BEG :: so_ref -> so_ref
+		END :: so_ref -> so_ref
+	   
+    to initial empty environment in FixInterface
 
-5. create a new spec function:
+2c. update spec parser to handle refinements with UF applications.
+	(e.g. with BEG, END annotations)
 
-validptr::
+
+3a. update type for malloc (in lib.spec)
+
+3b. create a new lib.spec function:
+
+    validptr::
         forall [C0]
         arg (x:ref(C0, true, {v| BEG(v) <= v /\ v < END(v) }))
         ret void
@@ -61,8 +71,15 @@ validptr::
 
 in benchmarks, manually insert calls to validptr for now.
 
+4. update type for PTR-OP so the result has type: 
+	
+	{v = x1 op x2 /\ BEG(v) = BEG(x1) /\ END(v) = END(x1) }
 
-give it a whirl!
+
+5. give it a whirl!
+	postests/array1.c
+
+
 
 ***************************************************************
 Fixing the malloc/init/unsoundness error
