@@ -306,12 +306,14 @@ module LDesc = struct
               (* pmr: this is not quite descriptive enough *)
               raise TypeDoesntFit
 
+  let shrink_period_fail_on_conflict (p: int) (ld: 'a t): 'a t =
+    shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
+
   let add_index (i: index) (pct: 'a prectype) (ld: 'a t): 'a t =
     match i with
-      | ISeq (n, p) ->
-          let ld = shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst in
-            add (PLSeq n) pct ld
-      | _ -> add (ploc_of_index i) pct ld
+      | ISeq (n, p) -> ld |> shrink_period_fail_on_conflict p |> add (PLSeq n) pct
+      | ITop        -> ld |> shrink_period_fail_on_conflict (prectype_width pct) |> add PLEverywhere pct
+      | _           -> add (ploc_of_index i) pct ld
 
   let create (icts: (index * 'a prectype) list): 'a t =
     List.fold_left (M.uncurry add_index |> M.flip) empty icts
