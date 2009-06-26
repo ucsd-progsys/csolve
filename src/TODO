@@ -42,7 +42,27 @@ Arrays
 	BEG:: ref -> int
 	END:: ref -> int
 
+   play around with this first (using just fixpoint)
 
+3. update type for malloc (in spec)
+
+4. update type for PTR-OP so the result has type: 
+	
+	{v = x1 op x2 /\ BEG(v) = BEG(x1) /\ END(v) = END(x1) }
+
+5. create a new spec function:
+
+validptr::
+        forall [C0]
+        arg (x:ref(C0, true, {v| BEG(v) <= v /\ v < END(v) }))
+        ret void
+        store_in [C0 |-> ]
+        store_in [C0 |-> ]
+
+in benchmarks, manually insert calls to validptr for now.
+
+
+give it a whirl!
 
 ***************************************************************
 Fixing the malloc/init/unsoundness error
