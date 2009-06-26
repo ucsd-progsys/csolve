@@ -5,7 +5,6 @@ typedef unsigned int size_t;
 typedef long long __quad_t;
 typedef long __off_t;
 typedef __quad_t __off64_t;
-typedef int wchar_t;
 struct _IO_FILE;
 typedef struct _IO_FILE FILE;
 typedef __builtin_va_list __gnuc_va_list;
@@ -110,1303 +109,139 @@ typedef __gnuc_va_list va_list;
    long __builtin_expect(long  , long  ) ;  */
 /* compiler builtin: 
    int __builtin_va_arg_pack(void) ;  */
-#pragma merger(0,"/tmp/cil-0A1LdKG4.i","-g,-Wall,-O3")
-__inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memcpy)(void * __restrict  __dest ,
-                                                                                                 void const   * __restrict  __src ,
-                                                                                                 size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memmove)(void * __restrict  __dest ,
-                                                                                                  void const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
 __inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memset)(void *__dest ,
                                                                                                  int __ch ,
                                                                                                  size_t __len )  __attribute__((__nonnull__(1))) ;
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strcpy)(char * __restrict  __dest ,
-                                                                                                 char const   * __restrict  __src )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strncpy)(char * __restrict  __dest ,
-                                                                                                  char const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strcat)(char * __restrict  __dest ,
-                                                                                                 char const   * __restrict  __src )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strncat)(char * __restrict  __dest ,
-                                                                                                  char const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) void ( __attribute__((__always_inline__)) bcopy)(void const   * __restrict  __src ,
-                                                                                               void * __restrict  __dest ,
-                                                                                               size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern  __attribute__((__nothrow__)) void ( __attribute__((__always_inline__)) bzero)(void *__dest ,
-                                                                                               size_t __len )  __attribute__((__nonnull__(1))) ;
-__inline extern size_t __strcspn_c1(char const   *__s , int __reject ) ;
-__inline extern size_t __strcspn_c1(char const   *__s , int __reject ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while (1) {
-    if ((int const   )*(__s + __result) != 0) {
-      if (! ((int const   )*(__s + __result) != (int const   )__reject)) {
-        break;
-      }
-    } else {
-      break;
-    }
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern size_t __strcspn_c2(char const   *__s , int __reject1 , int __reject2 ) ;
-__inline extern size_t __strcspn_c2(char const   *__s , int __reject1 , int __reject2 ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while (1) {
-    if ((int const   )*(__s + __result) != 0) {
-      if ((int const   )*(__s + __result) != (int const   )__reject1) {
-        if (! ((int const   )*(__s + __result) != (int const   )__reject2)) {
-          break;
-        }
-      } else {
-        break;
-      }
-    } else {
-      break;
-    }
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern size_t __strcspn_c3(char const   *__s , int __reject1 , int __reject2 ,
-                                    int __reject3 ) ;
-__inline extern size_t __strcspn_c3(char const   *__s , int __reject1 , int __reject2 ,
-                                    int __reject3 ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while (1) {
-    if ((int const   )*(__s + __result) != 0) {
-      if ((int const   )*(__s + __result) != (int const   )__reject1) {
-        if ((int const   )*(__s + __result) != (int const   )__reject2) {
-          if (! ((int const   )*(__s + __result) != (int const   )__reject3)) {
-            break;
-          }
-        } else {
-          break;
-        }
-      } else {
-        break;
-      }
-    } else {
-      break;
-    }
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern size_t __strspn_c1(char const   *__s , int __accept ) ;
-__inline extern size_t __strspn_c1(char const   *__s , int __accept ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while ((int const   )*(__s + __result) == (int const   )__accept) {
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern size_t __strspn_c2(char const   *__s , int __accept1 , int __accept2 ) ;
-__inline extern size_t __strspn_c2(char const   *__s , int __accept1 , int __accept2 ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while (1) {
-    if (! ((int const   )*(__s + __result) == (int const   )__accept1)) {
-      if (! ((int const   )*(__s + __result) == (int const   )__accept2)) {
-        break;
-      }
-    }
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern size_t __strspn_c3(char const   *__s , int __accept1 , int __accept2 ,
-                                   int __accept3 ) ;
-__inline extern size_t __strspn_c3(char const   *__s , int __accept1 , int __accept2 ,
-                                   int __accept3 ) 
-{ register size_t __result ;
-
-  {
-  __result = (size_t )0;
-  while (1) {
-    if (! ((int const   )*(__s + __result) == (int const   )__accept1)) {
-      if (! ((int const   )*(__s + __result) == (int const   )__accept2)) {
-        if (! ((int const   )*(__s + __result) == (int const   )__accept3)) {
-          break;
-        }
-      }
-    }
-    __result ++;
-  }
-  return (__result);
-}
-}
-__inline extern char *__strpbrk_c2(char const   *__s , int __accept1 , int __accept2 ) ;
-__inline extern char *__strpbrk_c2(char const   *__s , int __accept1 , int __accept2 ) 
-{ char *tmp ;
-
-  {
-  while (1) {
-    if ((int const   )*__s != 0) {
-      if ((int const   )*__s != (int const   )__accept1) {
-        if (! ((int const   )*__s != (int const   )__accept2)) {
-          break;
-        }
-      } else {
-        break;
-      }
-    } else {
-      break;
-    }
-    __s ++;
-  }
-  if ((int const   )*__s == 0) {
-    tmp = (char *)((void *)0);
-  } else {
-    tmp = (char *)((unsigned int )__s);
-  }
-  return (tmp);
-}
-}
-__inline extern char *__strpbrk_c3(char const   *__s , int __accept1 , int __accept2 ,
-                                   int __accept3 ) ;
-__inline extern char *__strpbrk_c3(char const   *__s , int __accept1 , int __accept2 ,
-                                   int __accept3 ) 
-{ char *tmp ;
-
-  {
-  while (1) {
-    if ((int const   )*__s != 0) {
-      if ((int const   )*__s != (int const   )__accept1) {
-        if ((int const   )*__s != (int const   )__accept2) {
-          if (! ((int const   )*__s != (int const   )__accept3)) {
-            break;
-          }
-        } else {
-          break;
-        }
-      } else {
-        break;
-      }
-    } else {
-      break;
-    }
-    __s ++;
-  }
-  if ((int const   )*__s == 0) {
-    tmp = (char *)((void *)0);
-  } else {
-    tmp = (char *)((unsigned int )__s);
-  }
-  return (tmp);
-}
-}
-__inline extern char *__strtok_r_1c(char *__s , char __sep , char **__nextp ) ;
-__inline extern char *__strtok_r_1c(char *__s , char __sep , char **__nextp ) 
-{ char *__result ;
-  char *tmp ;
-  char *tmp___0 ;
-
-  {
-  if ((unsigned int )__s == (unsigned int )((void *)0)) {
-    __s = *__nextp;
-  }
-  while ((int )*__s == (int )__sep) {
-    __s ++;
-  }
-  __result = (char *)((void *)0);
-  if ((int )*__s != 0) {
-    tmp = __s;
-    __s ++;
-    __result = tmp;
-    while ((int )*__s != 0) {
-      tmp___0 = __s;
-      __s ++;
-      if ((int )*tmp___0 == (int )__sep) {
-        *(__s + -1) = (char )'\000';
-        break;
-      }
-    }
-  }
-  *__nextp = __s;
-  return (__result);
-}
-}
-__inline extern char *__strsep_1c(char **__s , char __reject ) ;
-__inline extern char *__strsep_1c(char **__s , char __reject ) 
-{ register char *__retval ;
-  char *tmp ;
-  char *tmp___0 ;
-  char *tmp___2 ;
-
-  {
-  __retval = *__s;
-  if ((unsigned int )__retval != (unsigned int )((void *)0)) {
-    tmp___2 = __builtin_strchr(__retval, (int )__reject);
-    tmp___0 = tmp___2;
-    *__s = tmp___0;
-    if ((unsigned int )tmp___0 != (unsigned int )((void *)0)) {
-      tmp = *__s;
-      (*__s) ++;
-      *tmp = (char )'\000';
-    }
-  }
-  return (__retval);
-}
-}
-__inline extern char *__strsep_2c(char **__s , char __reject1 , char __reject2 ) ;
-__inline extern char *__strsep_2c(char **__s , char __reject1 , char __reject2 ) 
-{ register char *__retval ;
-  register char *__cp ;
-  char *tmp ;
-
-  {
-  __retval = *__s;
-  if ((unsigned int )__retval != (unsigned int )((void *)0)) {
-    __cp = __retval;
-    while (1) {
-      if ((int )*__cp == 0) {
-        __cp = (char *)((void *)0);
-        break;
-      }
-      if ((int )*__cp == (int )__reject1) {
-        tmp = __cp;
-        __cp ++;
-        *tmp = (char )'\000';
-        break;
-      } else {
-        if ((int )*__cp == (int )__reject2) {
-          tmp = __cp;
-          __cp ++;
-          *tmp = (char )'\000';
-          break;
-        }
-      }
-      __cp ++;
-    }
-    *__s = __cp;
-  }
-  return (__retval);
-}
-}
-__inline extern char *__strsep_3c(char **__s , char __reject1 , char __reject2 , char __reject3 ) ;
-__inline extern char *__strsep_3c(char **__s , char __reject1 , char __reject2 , char __reject3 ) 
-{ register char *__retval ;
-  register char *__cp ;
-  char *tmp ;
-
-  {
-  __retval = *__s;
-  if ((unsigned int )__retval != (unsigned int )((void *)0)) {
-    __cp = __retval;
-    while (1) {
-      if ((int )*__cp == 0) {
-        __cp = (char *)((void *)0);
-        break;
-      }
-      if ((int )*__cp == (int )__reject1) {
-        tmp = __cp;
-        __cp ++;
-        *tmp = (char )'\000';
-        break;
-      } else {
-        if ((int )*__cp == (int )__reject2) {
-          tmp = __cp;
-          __cp ++;
-          *tmp = (char )'\000';
-          break;
-        } else {
-          if ((int )*__cp == (int )__reject3) {
-            tmp = __cp;
-            __cp ++;
-            *tmp = (char )'\000';
-            break;
-          }
-        }
-      }
-      __cp ++;
-    }
-    *__s = __cp;
-  }
-  return (__retval);
-}
-}
-__inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memcpy)(void * __restrict  __dest ,
-                                                                                                 void const   * __restrict  __src ,
-                                                                                                 size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern void *( __attribute__((__always_inline__)) memcpy)(void * __restrict  __dest ,
-                                                                   void const   * __restrict  __src ,
-                                                                   size_t __len ) 
-{ unsigned int tmp ;
-  void *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 0);
-  tmp___0 = __builtin___memcpy_chk((void *)__dest, (void const   *)__src, __len, tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memmove)(void * __restrict  __dest ,
-                                                                                                  void const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern void *( __attribute__((__always_inline__)) memmove)(void * __restrict  __dest ,
-                                                                    void const   * __restrict  __src ,
-                                                                    size_t __len ) 
-{ unsigned int tmp ;
-  void *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 0);
-  tmp___0 = __builtin___memmove_chk((void *)__dest, (void const   *)__src, __len,
-                                    tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) void *( __attribute__((__always_inline__)) memset)(void *__dest ,
-                                                                                                 int __ch ,
-                                                                                                 size_t __len )  __attribute__((__nonnull__(1))) ;
-__inline extern void *( __attribute__((__always_inline__)) memset)(void *__dest ,
-                                                                   int __ch , size_t __len ) 
-{ unsigned int tmp ;
-  void *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size(__dest, 0);
-  tmp___0 = __builtin___memset_chk(__dest, __ch, __len, tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) void ( __attribute__((__always_inline__)) bcopy)(void const   * __restrict  __src ,
-                                                                                               void * __restrict  __dest ,
-                                                                                               size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern void ( __attribute__((__always_inline__)) bcopy)(void const   * __restrict  __src ,
-                                                                 void * __restrict  __dest ,
-                                                                 size_t __len ) 
-{ unsigned int tmp ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 0);
-  __builtin___memmove_chk((void *)__dest, (void const   *)__src, __len, tmp);
-  return;
-}
-}
-__inline extern  __attribute__((__nothrow__)) void ( __attribute__((__always_inline__)) bzero)(void *__dest ,
-                                                                                               size_t __len )  __attribute__((__nonnull__(1))) ;
-__inline extern void ( __attribute__((__always_inline__)) bzero)(void *__dest , size_t __len ) 
-{ unsigned int tmp ;
-
-  {
-  tmp = __builtin_object_size(__dest, 0);
-  __builtin___memset_chk(__dest, '\000', __len, tmp);
-  return;
-}
-}
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strcpy)(char * __restrict  __dest ,
-                                                                                                 char const   * __restrict  __src )  __attribute__((__nonnull__(1,2))) ;
-__inline extern char *( __attribute__((__always_inline__)) strcpy)(char * __restrict  __dest ,
-                                                                   char const   * __restrict  __src ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 1);
-  tmp___0 = __builtin___strcpy_chk((char *)__dest, (char const   *)__src, tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strncpy)(char * __restrict  __dest ,
-                                                                                                  char const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern char *( __attribute__((__always_inline__)) strncpy)(char * __restrict  __dest ,
-                                                                    char const   * __restrict  __src ,
-                                                                    size_t __len ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 1);
-  tmp___0 = __builtin___strncpy_chk((char *)__dest, (char const   *)__src, __len,
-                                    tmp);
-  return (tmp___0);
-}
-}
-extern  __attribute__((__nothrow__)) char *__stpncpy_chk(char *__dest , char const   *__src ,
-                                                         size_t __n , size_t __destlen ) ;
-extern  __attribute__((__nothrow__)) char *__stpncpy_alias(char *__dest , char const   *__src ,
-                                                           size_t __n )  __asm__("stpncpy")  ;
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) stpncpy)(char *__dest ,
-                                                                                                  char const   *__src ,
-                                                                                                  size_t __n ) ;
-__inline extern char *( __attribute__((__always_inline__)) stpncpy)(char *__dest ,
-                                                                    char const   *__src ,
-                                                                    size_t __n ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-  unsigned int tmp___1 ;
-  char *tmp___3 ;
-
-  {
-  tmp___1 = __builtin_object_size((void *)__dest, 1);
-  if (tmp___1 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__dest, 1);
-    tmp___0 = __stpncpy_chk(__dest, __src, __n, tmp);
-    return (tmp___0);
-  }
-  tmp___3 = __stpncpy_alias(__dest, __src, __n);
-  return (tmp___3);
-}
-}
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strcat)(char * __restrict  __dest ,
-                                                                                                 char const   * __restrict  __src )  __attribute__((__nonnull__(1,2))) ;
-__inline extern char *( __attribute__((__always_inline__)) strcat)(char * __restrict  __dest ,
-                                                                   char const   * __restrict  __src ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 1);
-  tmp___0 = __builtin___strcat_chk((char *)__dest, (char const   *)__src, tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) char *( __attribute__((__always_inline__)) strncat)(char * __restrict  __dest ,
-                                                                                                  char const   * __restrict  __src ,
-                                                                                                  size_t __len )  __attribute__((__nonnull__(1,2))) ;
-__inline extern char *( __attribute__((__always_inline__)) strncat)(char * __restrict  __dest ,
-                                                                    char const   * __restrict  __src ,
-                                                                    size_t __len ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__dest, 1);
-  tmp___0 = __builtin___strncat_chk((char *)__dest, (char const   *)__src, __len,
-                                    tmp);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) double atof(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
 __inline extern  __attribute__((__nothrow__)) int atoi(char const   *__nptr )  __attribute__((__warn_unused_result__,
 __pure__, __nonnull__(1))) ;
-__inline extern  __attribute__((__nothrow__)) long atol(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-__inline extern  __attribute__((__nothrow__)) long long atoll(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-extern  __attribute__((__nothrow__)) double strtod(char const   * __restrict  __nptr ,
-                                                   char ** __restrict  __endptr )  __attribute__((__warn_unused_result__,
-__nonnull__(1))) ;
-extern  __attribute__((__nothrow__)) long strtol(char const   * __restrict  __nptr ,
-                                                 char ** __restrict  __endptr , int __base )  __attribute__((__warn_unused_result__,
-__nonnull__(1))) ;
-extern  __attribute__((__nothrow__)) long long strtoll(char const   * __restrict  __nptr ,
-                                                       char ** __restrict  __endptr ,
-                                                       int __base )  __attribute__((__warn_unused_result__,
-__nonnull__(1))) ;
-__inline extern  __attribute__((__nothrow__)) double atof(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-__inline extern double atof(char const   *__nptr ) 
-{ double tmp ;
-
-  {
-  tmp = strtod((char const   * __restrict  )__nptr, (char ** __restrict  )((char **)((void *)0)));
-  return (tmp);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int atoi(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-__inline extern int atoi(char const   *__nptr ) 
-{ long tmp ;
-
-  {
-  tmp = strtol((char const   * __restrict  )__nptr, (char ** __restrict  )((char **)((void *)0)),
-               10);
-  return ((int )tmp);
-}
-}
-__inline extern  __attribute__((__nothrow__)) long atol(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-__inline extern long atol(char const   *__nptr ) 
-{ long tmp ;
-
-  {
-  tmp = strtol((char const   * __restrict  )__nptr, (char ** __restrict  )((char **)((void *)0)),
-               10);
-  return (tmp);
-}
-}
-__inline extern  __attribute__((__nothrow__)) long long atoll(char const   *__nptr )  __attribute__((__warn_unused_result__,
-__pure__, __nonnull__(1))) ;
-__inline extern long long atoll(char const   *__nptr ) 
-{ long long tmp ;
-
-  {
-  tmp = strtoll((char const   * __restrict  )__nptr, (char ** __restrict  )((char **)((void *)0)),
-                10);
-  return (tmp);
-}
-}
-__inline extern  __attribute__((__nothrow__)) unsigned int gnu_dev_major(unsigned long long __dev ) ;
-__inline extern  __attribute__((__nothrow__)) unsigned int gnu_dev_minor(unsigned long long __dev ) ;
-__inline extern  __attribute__((__nothrow__)) unsigned long long gnu_dev_makedev(unsigned int __major ,
-                                                                                 unsigned int __minor ) ;
-__inline extern  __attribute__((__nothrow__)) unsigned int gnu_dev_major(unsigned long long __dev ) ;
-__inline extern unsigned int gnu_dev_major(unsigned long long __dev ) 
-{ 
-
-  {
-  return ((unsigned int )(((__dev >> 8) & 4095ULL) | (unsigned long long )((unsigned int )(__dev >> 32) & 4294963200U)));
-}
-}
-__inline extern  __attribute__((__nothrow__)) unsigned int gnu_dev_minor(unsigned long long __dev ) ;
-__inline extern unsigned int gnu_dev_minor(unsigned long long __dev ) 
-{ 
-
-  {
-  return ((unsigned int )((__dev & 255ULL) | (unsigned long long )((unsigned int )(__dev >> 12) & 4294967040U)));
-}
-}
-__inline extern  __attribute__((__nothrow__)) unsigned long long gnu_dev_makedev(unsigned int __major ,
-                                                                                 unsigned int __minor ) ;
-__inline extern unsigned long long gnu_dev_makedev(unsigned int __major , unsigned int __minor ) 
-{ 
-
-  {
-  return (((unsigned long long )((__minor & 255U) | ((__major & 4095U) << 8)) | ((unsigned long long )(__minor & 4294967040U) << 12)) | ((unsigned long long )(__major & 4294963200U) << 32));
-}
-}
 extern  __attribute__((__nothrow__, __noreturn__)) void exit(int __status ) ;
-__inline extern  __attribute__((__nothrow__)) char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) realpath)(char const   * __restrict  __name ,
-                                                                                                                                            char * __restrict  __resolved )  __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) int __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) wctomb)(char *__s ,
-                                                                                                                                        wchar_t __wchar )  __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) size_t ( __attribute__((__always_inline__)) mbstowcs)(wchar_t * __restrict  __dst ,
-                                                                                                    char const   * __restrict  __src ,
-                                                                                                    size_t __len ) ;
-__inline extern  __attribute__((__nothrow__)) size_t ( __attribute__((__always_inline__)) wcstombs)(char * __restrict  __dst ,
-                                                                                                    wchar_t const   * __restrict  __src ,
-                                                                                                    size_t __len ) ;
-extern  __attribute__((__nothrow__)) char *__realpath_chk(char const   * __restrict  __name ,
-                                                          char * __restrict  __resolved ,
-                                                          size_t __resolvedlen )  __attribute__((__warn_unused_result__)) ;
-extern  __attribute__((__nothrow__)) char *__realpath_alias(char const   * __restrict  __name ,
-                                                            char * __restrict  __resolved )  __asm__("realpath") __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) realpath)(char const   * __restrict  __name ,
-                                                                                                                                            char * __restrict  __resolved )  __attribute__((__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) realpath)(char const   * __restrict  __name ,
-                                                                                                              char * __restrict  __resolved ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-  unsigned int tmp___1 ;
-  char *tmp___2 ;
 
-  {
-  tmp___1 = __builtin_object_size((void *)__resolved, 1);
-  if (tmp___1 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__resolved, 1);
-    tmp___0 = __realpath_chk(__name, __resolved, tmp);
-    return ((char __attribute__((__warn_unused_result__))  *)tmp___0);
-  }
-  tmp___2 = __realpath_alias(__name, __resolved);
-  return ((char __attribute__((__warn_unused_result__))  *)tmp___2);
-}
-}
-extern  __attribute__((__nothrow__)) int __ptsname_r_chk(int __fd , char *__buf ,
-                                                         size_t __buflen , size_t __nreal )  __attribute__((__nonnull__(2))) ;
-extern  __attribute__((__nothrow__)) int __ptsname_r_alias(int __fd , char *__buf ,
-                                                           size_t __buflen )  __asm__("ptsname_r") __attribute__((__nonnull__(2))) ;
-extern  __attribute__((__nothrow__)) int __ptsname_r_chk_warn(int __fd , char *__buf ,
-                                                              size_t __buflen , size_t __nreal )  __asm__("__ptsname_r_chk") __attribute__((__warning__("ptsname_r called with buflen bigger than size of buf"),
-__nonnull__(2))) ;
-__inline extern  __attribute__((__nothrow__)) int ( __attribute__((__always_inline__)) ptsname_r)(int __fd ,
-                                                                                                  char *__buf ,
-                                                                                                  size_t __buflen ) ;
-__inline extern int ( __attribute__((__always_inline__)) ptsname_r)(int __fd , char *__buf ,
-                                                                    size_t __buflen ) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-  unsigned int tmp___1 ;
-  int tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  int tmp___5 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__buf, 1);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__buf, 1);
-    tmp___0 = __ptsname_r_chk(__fd, __buf, __buflen, tmp);
-    return (tmp___0);
-    tmp___3 = __builtin_object_size((void *)__buf, 1);
-    if (__buflen > tmp___3) {
-      tmp___1 = __builtin_object_size((void *)__buf, 1);
-      tmp___2 = __ptsname_r_chk_warn(__fd, __buf, __buflen, tmp___1);
-      return (tmp___2);
-    }
-  }
-  tmp___5 = __ptsname_r_alias(__fd, __buf, __buflen);
-  return (tmp___5);
-}
-}
-extern  __attribute__((__nothrow__)) int __wctomb_chk(char *__s , wchar_t __wchar ,
-                                                      size_t __buflen )  __attribute__((__warn_unused_result__)) ;
-extern  __attribute__((__nothrow__)) int __wctomb_alias(char *__s , wchar_t __wchar )  __asm__("wctomb") __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) int __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) wctomb)(char *__s ,
-                                                                                                                                        wchar_t __wchar )  __attribute__((__warn_unused_result__)) ;
-__inline extern int __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) wctomb)(char *__s ,
-                                                                                                          wchar_t __wchar ) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-  unsigned int tmp___1 ;
-  unsigned int tmp___2 ;
-  int tmp___3 ;
-
-  {
-  tmp___1 = __builtin_object_size((void *)__s, 1);
-  if (tmp___1 != 4294967295U) {
-    tmp___2 = __builtin_object_size((void *)__s, 1);
-    if (16U > tmp___2) {
-      tmp = __builtin_object_size((void *)__s, 1);
-      tmp___0 = __wctomb_chk(__s, __wchar, tmp);
-      return (tmp___0);
-    }
-  }
-  tmp___3 = __wctomb_alias(__s, __wchar);
-  return (tmp___3);
-}
-}
-extern  __attribute__((__nothrow__)) size_t __mbstowcs_chk(wchar_t * __restrict  __dst ,
-                                                           char const   * __restrict  __src ,
-                                                           size_t __len , size_t __dstlen ) ;
-extern  __attribute__((__nothrow__)) size_t __mbstowcs_alias(wchar_t * __restrict  __dst ,
-                                                             char const   * __restrict  __src ,
-                                                             size_t __len )  __asm__("mbstowcs")  ;
-extern  __attribute__((__nothrow__)) size_t __mbstowcs_chk_warn(wchar_t * __restrict  __dst ,
-                                                                char const   * __restrict  __src ,
-                                                                size_t __len , size_t __dstlen )  __asm__("__mbstowcs_chk") __attribute__((__warning__("mbstowcs called with dst buffer smaller than len * sizeof (wchar_t)"))) ;
-__inline extern  __attribute__((__nothrow__)) size_t ( __attribute__((__always_inline__)) mbstowcs)(wchar_t * __restrict  __dst ,
-                                                                                                    char const   * __restrict  __src ,
-                                                                                                    size_t __len ) ;
-__inline extern size_t ( __attribute__((__always_inline__)) mbstowcs)(wchar_t * __restrict  __dst ,
-                                                                      char const   * __restrict  __src ,
-                                                                      size_t __len ) 
-{ unsigned int tmp ;
-  size_t tmp___0 ;
-  unsigned int tmp___1 ;
-  size_t tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  size_t tmp___5 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__dst, 1);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__dst, 1);
-    tmp___0 = __mbstowcs_chk(__dst, __src, __len, tmp / sizeof(wchar_t ));
-    return (tmp___0);
-    tmp___3 = __builtin_object_size((void *)__dst, 1);
-    if (__len > tmp___3 / sizeof(wchar_t )) {
-      tmp___1 = __builtin_object_size((void *)__dst, 1);
-      tmp___2 = __mbstowcs_chk_warn(__dst, __src, __len, tmp___1 / sizeof(wchar_t ));
-      return (tmp___2);
-    }
-  }
-  tmp___5 = __mbstowcs_alias(__dst, __src, __len);
-  return (tmp___5);
-}
-}
-extern  __attribute__((__nothrow__)) size_t __wcstombs_chk(char * __restrict  __dst ,
-                                                           wchar_t const   * __restrict  __src ,
-                                                           size_t __len , size_t __dstlen ) ;
-extern  __attribute__((__nothrow__)) size_t __wcstombs_alias(char * __restrict  __dst ,
-                                                             wchar_t const   * __restrict  __src ,
-                                                             size_t __len )  __asm__("wcstombs")  ;
-extern  __attribute__((__nothrow__)) size_t __wcstombs_chk_warn(char * __restrict  __dst ,
-                                                                wchar_t const   * __restrict  __src ,
-                                                                size_t __len , size_t __dstlen )  __asm__("__wcstombs_chk") __attribute__((__warning__("wcstombs called with dst buffer smaller than len"))) ;
-__inline extern  __attribute__((__nothrow__)) size_t ( __attribute__((__always_inline__)) wcstombs)(char * __restrict  __dst ,
-                                                                                                    wchar_t const   * __restrict  __src ,
-                                                                                                    size_t __len ) ;
-__inline extern size_t ( __attribute__((__always_inline__)) wcstombs)(char * __restrict  __dst ,
-                                                                      wchar_t const   * __restrict  __src ,
-                                                                      size_t __len ) 
-{ unsigned int tmp ;
-  size_t tmp___0 ;
-  unsigned int tmp___1 ;
-  size_t tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  size_t tmp___5 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__dst, 1);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__dst, 1);
-    tmp___0 = __wcstombs_chk(__dst, __src, __len, tmp);
-    return (tmp___0);
-    tmp___3 = __builtin_object_size((void *)__dst, 1);
-    if (__len > tmp___3) {
-      tmp___1 = __builtin_object_size((void *)__dst, 1);
-      tmp___2 = __wcstombs_chk_warn(__dst, __src, __len, tmp___1);
-      return (tmp___2);
-    }
-  }
-  tmp___5 = __wcstombs_alias(__dst, __src, __len);
-  return (tmp___5);
-}
-}
-extern int __uflow(_IO_FILE * ) ;
-extern int __overflow(_IO_FILE * , int  ) ;
-extern int _IO_getc(_IO_FILE *__fp ) ;
-extern int _IO_putc(int __c , _IO_FILE *__fp ) ;
-extern struct _IO_FILE *stdin ;
 extern struct _IO_FILE *stdout ;
-__inline extern int ( __attribute__((__always_inline__)) fprintf)(FILE * __restrict  __stream ,
-                                                                  char const   * __restrict  __fmt 
-                                                                  , ...) ;
-__inline extern int ( __attribute__((__always_inline__)) printf)(char const   * __restrict  __fmt 
-                                                                 , ...) ;
-__inline extern  __attribute__((__nothrow__)) int ( __attribute__((__always_inline__)) sprintf)(char * __restrict  __s ,
-                                                                                                char const   * __restrict  __fmt 
-                                                                                                , ...) ;
 __inline extern int ( __attribute__((__always_inline__)) vfprintf)(FILE * __restrict  __stream ,
                                                                    char const   * __restrict  __fmt ,
                                                                    __gnuc_va_list __ap ) ;
-__inline extern int ( __attribute__((__always_inline__)) vprintf)(char const   * __restrict  __fmt ,
-                                                                  __gnuc_va_list __ap ) ;
-__inline extern  __attribute__((__nothrow__)) int ( __attribute__((__always_inline__)) vsprintf)(char * __restrict  __s ,
-                                                                                                 char const   * __restrict  __fmt ,
-                                                                                                 __gnuc_va_list __ap ) ;
-__inline extern  __attribute__((__nothrow__)) int ( /* format attribute */ __attribute__((__always_inline__)) snprintf)(char * __restrict  __s ,
-                                                                                                                        size_t __n ,
-                                                                                                                        char const   * __restrict  __fmt 
-                                                                                                                        , ...) ;
-__inline extern  __attribute__((__nothrow__)) int ( /* format attribute */ __attribute__((__always_inline__)) vsnprintf)(char * __restrict  __s ,
-                                                                                                                         size_t __n ,
-                                                                                                                         char const   * __restrict  __fmt ,
-                                                                                                                         __gnuc_va_list __ap ) ;
-__inline extern int getchar(void) ;
-__inline extern int getc_unlocked(FILE *__fp ) ;
-__inline extern int getchar_unlocked(void) ;
-__inline extern int fgetc_unlocked(FILE *__fp ) ;
-__inline extern int putchar(int __c ) ;
-__inline extern int fputc_unlocked(int __c , FILE *__stream ) ;
-__inline extern int putc_unlocked(int __c , FILE *__stream ) ;
-__inline extern int putchar_unlocked(int __c ) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) fgets)(char * __restrict  __s ,
-                                                                                                           int __n ,
-                                                                                                           FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) gets)(char *__str )  __attribute__((__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread)(void * __restrict  __ptr ,
-                                                                                                            size_t __size ,
-                                                                                                            size_t __n ,
-                                                                                                            FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread_unlocked)(void * __restrict  __ptr ,
-                                                                                                                     size_t __size ,
-                                                                                                                     size_t __n ,
-                                                                                                                     FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) int feof_unlocked(FILE *__stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern  __attribute__((__nothrow__)) int ferror_unlocked(FILE *__stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern int getchar(void) 
-{ int tmp ;
 
-  {
-  tmp = _IO_getc(stdin);
-  return (tmp);
-}
-}
-__inline extern int fgetc_unlocked(FILE *__fp ) 
-{ int tmp___0 ;
-  char *tmp___1 ;
-  int tmp___2 ;
-  long tmp___3 ;
-
-  {
-  tmp___3 = __builtin_expect((long )((unsigned int )__fp->_IO_read_ptr >= (unsigned int )__fp->_IO_read_end),
-                             0L);
-  if (tmp___3) {
-    tmp___0 = __uflow(__fp);
-    tmp___2 = tmp___0;
-  } else {
-    tmp___1 = __fp->_IO_read_ptr;
-    (__fp->_IO_read_ptr) ++;
-    tmp___2 = (int )*((unsigned char *)tmp___1);
-  }
-  return (tmp___2);
-}
-}
-__inline extern int getchar_unlocked(void) 
-{ int tmp___0 ;
-  char *tmp___1 ;
-  int tmp___2 ;
-  long tmp___3 ;
-
-  {
-  tmp___3 = __builtin_expect((long )((unsigned int )stdin->_IO_read_ptr >= (unsigned int )stdin->_IO_read_end),
-                             0L);
-  if (tmp___3) {
-    tmp___0 = __uflow(stdin);
-    tmp___2 = tmp___0;
-  } else {
-    tmp___1 = stdin->_IO_read_ptr;
-    (stdin->_IO_read_ptr) ++;
-    tmp___2 = (int )*((unsigned char *)tmp___1);
-  }
-  return (tmp___2);
-}
-}
-__inline extern int putchar(int __c ) 
-{ int tmp ;
-
-  {
-  tmp = _IO_putc(__c, stdout);
-  return (tmp);
-}
-}
-__inline extern int fputc_unlocked(int __c , FILE *__stream ) 
-{ int tmp___0 ;
-  char *tmp___1 ;
-  char tmp___2 ;
-  int tmp___3 ;
-  long tmp___4 ;
-
-  {
-  tmp___4 = __builtin_expect((long )((unsigned int )__stream->_IO_write_ptr >= (unsigned int )__stream->_IO_write_end),
-                             0L);
-  if (tmp___4) {
-    tmp___0 = __overflow(__stream, (int )((unsigned char )__c));
-    tmp___3 = tmp___0;
-  } else {
-    tmp___1 = __stream->_IO_write_ptr;
-    (__stream->_IO_write_ptr) ++;
-    tmp___2 = (char )__c;
-    *tmp___1 = tmp___2;
-    tmp___3 = (int )((unsigned char )tmp___2);
-  }
-  return (tmp___3);
-}
-}
-__inline extern int putchar_unlocked(int __c ) 
-{ int tmp___0 ;
-  char *tmp___1 ;
-  char tmp___2 ;
-  int tmp___3 ;
-  long tmp___4 ;
-
-  {
-  tmp___4 = __builtin_expect((long )((unsigned int )stdout->_IO_write_ptr >= (unsigned int )stdout->_IO_write_end),
-                             0L);
-  if (tmp___4) {
-    tmp___0 = __overflow(stdout, (int )((unsigned char )__c));
-    tmp___3 = tmp___0;
-  } else {
-    tmp___1 = stdout->_IO_write_ptr;
-    (stdout->_IO_write_ptr) ++;
-    tmp___2 = (char )__c;
-    *tmp___1 = tmp___2;
-    tmp___3 = (int )((unsigned char )tmp___2);
-  }
-  return (tmp___3);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int feof_unlocked(FILE *__stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern int feof_unlocked(FILE *__stream ) 
-{ 
-
-  {
-  return ((__stream->_flags & 16) != 0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int ferror_unlocked(FILE *__stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern int ferror_unlocked(FILE *__stream ) 
-{ 
-
-  {
-  return ((__stream->_flags & 32) != 0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int ( __attribute__((__always_inline__)) sprintf)(char * __restrict  __s ,
-                                                                                                char const   * __restrict  __fmt 
-                                                                                                , ...) ;
-__inline extern int ( __attribute__((__always_inline__)) sprintf)(char * __restrict  __s ,
-                                                                  char const   * __restrict  __fmt 
-                                                                  , ...) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__s, 1);
-  tmp___0 = __builtin___sprintf_chk((char *)__s, 1, tmp, (char const   *)__fmt, __builtin_va_arg_pack());
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int ( __attribute__((__always_inline__)) vsprintf)(char * __restrict  __s ,
-                                                                                                 char const   * __restrict  __fmt ,
-                                                                                                 __gnuc_va_list __ap ) ;
-__inline extern int ( __attribute__((__always_inline__)) vsprintf)(char * __restrict  __s ,
-                                                                   char const   * __restrict  __fmt ,
-                                                                   __gnuc_va_list __ap ) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__s, 1);
-  tmp___0 = __builtin___vsprintf_chk((char *)__s, 1, tmp, (char const   *)__fmt, __ap);
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int ( /* format attribute */ __attribute__((__always_inline__)) snprintf)(char * __restrict  __s ,
-                                                                                                                        size_t __n ,
-                                                                                                                        char const   * __restrict  __fmt 
-                                                                                                                        , ...) ;
-__inline extern int ( /* format attribute */ __attribute__((__always_inline__)) snprintf)(char * __restrict  __s ,
-                                                                                          size_t __n ,
-                                                                                          char const   * __restrict  __fmt 
-                                                                                          , ...) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__s, 1);
-  tmp___0 = __builtin___snprintf_chk((char *)__s, __n, 1, tmp, (char const   *)__fmt,
-                                     __builtin_va_arg_pack());
-  return (tmp___0);
-}
-}
-__inline extern  __attribute__((__nothrow__)) int ( /* format attribute */ __attribute__((__always_inline__)) vsnprintf)(char * __restrict  __s ,
-                                                                                                                         size_t __n ,
-                                                                                                                         char const   * __restrict  __fmt ,
-                                                                                                                         __gnuc_va_list __ap ) ;
-__inline extern int ( /* format attribute */ __attribute__((__always_inline__)) vsnprintf)(char * __restrict  __s ,
-                                                                                           size_t __n ,
-                                                                                           char const   * __restrict  __fmt ,
-                                                                                           __gnuc_va_list __ap ) 
-{ unsigned int tmp ;
-  int tmp___0 ;
-
-  {
-  tmp = __builtin_object_size((void *)__s, 1);
-  tmp___0 = __builtin___vsnprintf_chk((char *)__s, __n, 1, tmp, (char const   *)__fmt,
-                                      __ap);
-  return (tmp___0);
-}
-}
-extern int __fprintf_chk(FILE * __restrict  __stream , int __flag , char const   * __restrict  __format 
-                         , ...) ;
-extern int __printf_chk(int __flag , char const   * __restrict  __format  , ...) ;
-extern int __vfprintf_chk(FILE * __restrict  __stream , int __flag , char const   * __restrict  __format ,
-                          __gnuc_va_list __ap ) ;
-__inline extern int ( __attribute__((__always_inline__)) fprintf)(FILE * __restrict  __stream ,
-                                                                  char const   * __restrict  __fmt 
-                                                                  , ...) 
-{ int tmp ;
-
-  {
-  tmp = __fprintf_chk(__stream, 1, __fmt, __builtin_va_arg_pack());
-  return (tmp);
-}
-}
-__inline extern int ( __attribute__((__always_inline__)) printf)(char const   * __restrict  __fmt 
-                                                                 , ...) 
-{ int tmp ;
-
-  {
-  tmp = __printf_chk(1, __fmt, __builtin_va_arg_pack());
-  return (tmp);
-}
-}
-__inline extern int ( __attribute__((__always_inline__)) vprintf)(char const   * __restrict  __fmt ,
-                                                                  __gnuc_va_list __ap ) 
-{ int tmp ;
-
-  {
-  tmp = __vfprintf_chk((FILE * __restrict  )stdout, 1, __fmt, __ap);
-  return (tmp);
-}
-}
-__inline extern int ( __attribute__((__always_inline__)) vfprintf)(FILE * __restrict  __stream ,
-                                                                   char const   * __restrict  __fmt ,
-                                                                   __gnuc_va_list __ap ) 
-{ int tmp ;
-
-  {
-  tmp = __vfprintf_chk(__stream, 1, __fmt, __ap);
-  return (tmp);
-}
-}
-extern char *__gets_chk(char *__str , size_t  )  __attribute__((__warn_unused_result__)) ;
-extern char *__gets_warn(char *__str )  __asm__("gets") __attribute__((__warning__("please use fgets or getline instead, gets can\'t specify buffer size"),
-__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) gets)(char *__str )  __attribute__((__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) gets)(char *__str ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-  unsigned int tmp___1 ;
-  char *tmp___2 ;
-
-  {
-  tmp___1 = __builtin_object_size((void *)__str, 1);
-  if (tmp___1 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__str, 1);
-    tmp___0 = __gets_chk(__str, tmp);
-    return ((char __attribute__((__warn_unused_result__))  *)tmp___0);
-  }
-  tmp___2 = __gets_warn(__str);
-  return ((char __attribute__((__warn_unused_result__))  *)tmp___2);
-}
-}
-extern char *__fgets_chk(char * __restrict  __s , size_t __size , int __n , FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-extern char *__fgets_alias(char * __restrict  __s , int __n , FILE * __restrict  __stream )  __asm__("fgets") __attribute__((__warn_unused_result__)) ;
-extern char *__fgets_chk_warn(char * __restrict  __s , size_t __size , int __n , FILE * __restrict  __stream )  __asm__("__fgets_chk") __attribute__((__warning__("fgets called with bigger size than length of destination buffer"),
-__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) fgets)(char * __restrict  __s ,
-                                                                                                           int __n ,
-                                                                                                           FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern char __attribute__((__warn_unused_result__))  *( __attribute__((__always_inline__)) fgets)(char * __restrict  __s ,
-                                                                                                           int __n ,
-                                                                                                           FILE * __restrict  __stream ) 
-{ unsigned int tmp ;
-  char *tmp___0 ;
-  unsigned int tmp___1 ;
-  char *tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  char *tmp___5 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__s, 1);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__s, 1);
-    tmp___0 = __fgets_chk(__s, tmp, __n, __stream);
-    return ((char __attribute__((__warn_unused_result__))  *)tmp___0);
-    tmp___3 = __builtin_object_size((void *)__s, 1);
-    if ((unsigned int )__n > tmp___3) {
-      tmp___1 = __builtin_object_size((void *)__s, 1);
-      tmp___2 = __fgets_chk_warn(__s, tmp___1, __n, __stream);
-      return ((char __attribute__((__warn_unused_result__))  *)tmp___2);
-    }
-  }
-  tmp___5 = __fgets_alias(__s, __n, __stream);
-  return ((char __attribute__((__warn_unused_result__))  *)tmp___5);
-}
-}
-extern size_t __fread_chk(void * __restrict  __ptr , size_t __ptrlen , size_t __size ,
-                          size_t __n , FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-extern size_t __fread_alias(void * __restrict  __ptr , size_t __size , size_t __n ,
-                            FILE * __restrict  __stream )  __asm__("fread") __attribute__((__warn_unused_result__)) ;
-extern size_t __fread_chk_warn(void * __restrict  __ptr , size_t __ptrlen , size_t __size ,
-                               size_t __n , FILE * __restrict  __stream )  __asm__("__fread_chk") __attribute__((__warning__("fread called with bigger size * nmemb than length of destination buffer"),
-__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread)(void * __restrict  __ptr ,
-                                                                                                            size_t __size ,
-                                                                                                            size_t __n ,
-                                                                                                            FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread)(void * __restrict  __ptr ,
-                                                                                                            size_t __size ,
-                                                                                                            size_t __n ,
-                                                                                                            FILE * __restrict  __stream ) 
-{ unsigned int tmp ;
-  size_t tmp___0 ;
-  unsigned int tmp___1 ;
-  size_t tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  size_t tmp___5 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__ptr, 0);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__ptr, 0);
-    tmp___0 = __fread_chk(__ptr, tmp, __size, __n, __stream);
-    return (tmp___0);
-    tmp___3 = __builtin_object_size((void *)__ptr, 0);
-    if (__size * __n > tmp___3) {
-      tmp___1 = __builtin_object_size((void *)__ptr, 0);
-      tmp___2 = __fread_chk_warn(__ptr, tmp___1, __size, __n, __stream);
-      return (tmp___2);
-    }
-  }
-  tmp___5 = __fread_alias(__ptr, __size, __n, __stream);
-  return (tmp___5);
-}
-}
-extern size_t __fread_unlocked_chk(void * __restrict  __ptr , size_t __ptrlen , size_t __size ,
-                                   size_t __n , FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-extern size_t __fread_unlocked_alias(void * __restrict  __ptr , size_t __size , size_t __n ,
-                                     FILE * __restrict  __stream )  __asm__("fread_unlocked") __attribute__((__warn_unused_result__)) ;
-extern size_t __fread_unlocked_chk_warn(void * __restrict  __ptr , size_t __ptrlen ,
-                                        size_t __size , size_t __n , FILE * __restrict  __stream )  __asm__("__fread_unlocked_chk") __attribute__((__warning__("fread_unlocked called with bigger size * nmemb than length of destination buffer"),
-__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread_unlocked)(void * __restrict  __ptr ,
-                                                                                                                     size_t __size ,
-                                                                                                                     size_t __n ,
-                                                                                                                     FILE * __restrict  __stream )  __attribute__((__warn_unused_result__)) ;
-__inline extern size_t __attribute__((__warn_unused_result__))  ( __attribute__((__always_inline__)) fread_unlocked)(void * __restrict  __ptr ,
-                                                                                                                     size_t __size ,
-                                                                                                                     size_t __n ,
-                                                                                                                     FILE * __restrict  __stream ) 
-{ unsigned int tmp ;
-  size_t tmp___0 ;
-  unsigned int tmp___1 ;
-  size_t tmp___2 ;
-  unsigned int tmp___3 ;
-  unsigned int tmp___4 ;
-  size_t tmp___11 ;
-
-  {
-  tmp___4 = __builtin_object_size((void *)__ptr, 0);
-  if (tmp___4 != 4294967295U) {
-    tmp = __builtin_object_size((void *)__ptr, 0);
-    tmp___0 = __fread_unlocked_chk(__ptr, tmp, __size, __n, __stream);
-    return (tmp___0);
-    tmp___3 = __builtin_object_size((void *)__ptr, 0);
-    if (__size * __n > tmp___3) {
-      tmp___1 = __builtin_object_size((void *)__ptr, 0);
-      tmp___2 = __fread_unlocked_chk_warn(__ptr, tmp___1, __size, __n, __stream);
-      return (tmp___2);
-    }
-  }
-  tmp___11 = __fread_unlocked_alias(__ptr, __size, __n, __stream);
-  return (tmp___11);
-}
-}
 void *HashLookup(unsigned int key , Hash hash ) ;
 Graph MakeGraph(int numvert ) ;
 void chatting(char *s  , ...) ;
-static BlueReturn BlueRule(Vertex inserted , Vertex vlist ) 
-{ BlueReturn retval ;
-  Vertex tmp ;
-  Vertex prev ;
-  Hash hash ;
-  int dist ;
-  int dist2 ;
-  int count ;
-  void *tmp___0 ;
-  Vertex next ;
-  void *tmp___1 ;
+/* static BlueReturn BlueRule(Vertex inserted , Vertex vlist )  */
+/* { BlueReturn retval ; */
+/*   Vertex tmp ; */
+/*   Vertex prev ; */
+/*   Hash hash ; */
+/*   int dist ; */
+/*   int dist2 ; */
+/*   int count ; */
+/*   void *tmp___0 ; */
+/*   Vertex next ; */
+/*   void *tmp___1 ; */
 
-  {
-  if (! vlist) {
-    retval.dist = 999999;
-    return (retval);
-  }
-  prev = vlist;
-  retval.vert = vlist;
-  retval.dist = vlist->mindist;
-  hash = vlist->edgehash;
-  tmp___0 = HashLookup((unsigned int )inserted, hash);
-  dist = (int )tmp___0;
-  if (dist) {
-    if (dist < retval.dist) {
-      vlist->mindist = dist;
-      retval.dist = dist;
-    }
-  } else {
-    chatting((char *)"Not found\n");
-  }
-  count = 0;
-  tmp = vlist->next;
-  while (tmp) {
-    count ++;
-    if ((unsigned int )tmp == (unsigned int )inserted) {
-      next = tmp->next;
-      prev->next = next;
-    } else {
-      hash = tmp->edgehash;
-      dist2 = tmp->mindist;
-      tmp___1 = HashLookup((unsigned int )inserted, hash);
-      dist = (int )tmp___1;
-      if (dist) {
-        if (dist < dist2) {
-          tmp->mindist = dist;
-          dist2 = dist;
-        }
-      } else {
-        chatting((char *)"Not found\n");
-      }
-      if (dist2 < retval.dist) {
-        retval.vert = tmp;
-        retval.dist = dist2;
-      }
-    }
-    prev = tmp;
-    tmp = tmp->next;
-  }
-  return (retval);
-}
-}
-static Vertex MyVertexList  =    (Vertex )((void *)0);
-static int ComputeMst(Graph graph , int numvert ) 
-{ Vertex inserted ;
-  Vertex tmp ;
-  int cost ;
-  int dist ;
-  BlueReturn br ;
+/*   { */
+/*   if (! vlist) { */
+/*     retval.dist = 999999; */
+/*     return (retval); */
+/*   } */
+/*   prev = vlist; */
+/*   retval.vert = vlist; */
+/*   retval.dist = vlist->mindist; */
+/*   hash = vlist->edgehash; */
+/*   tmp___0 = HashLookup((unsigned int )inserted, hash); */
+/*   dist = (int )tmp___0; */
+/*   if (dist) { */
+/*     if (dist < retval.dist) { */
+/*       vlist->mindist = dist; */
+/*       retval.dist = dist; */
+/*     } */
+/*   } else { */
+/*     chatting((char *)"Not found\n"); */
+/*   } */
+/*   count = 0; */
+/*   tmp = vlist->next; */
+/*   while (tmp) { */
+/*     count ++; */
+/*     if ((unsigned int )tmp == (unsigned int )inserted) { */
+/*       next = tmp->next; */
+/*       prev->next = next; */
+/*     } else { */
+/*       hash = tmp->edgehash; */
+/*       dist2 = tmp->mindist; */
+/*       tmp___1 = HashLookup((unsigned int )inserted, hash); */
+/*       dist = (int )tmp___1; */
+/*       if (dist) { */
+/*         if (dist < dist2) { */
+/*           tmp->mindist = dist; */
+/*           dist2 = dist; */
+/*         } */
+/*       } else { */
+/*         chatting((char *)"Not found\n"); */
+/*       } */
+/*       if (dist2 < retval.dist) { */
+/*         retval.vert = tmp; */
+/*         retval.dist = dist2; */
+/*       } */
+/*     } */
+/*     prev = tmp; */
+/*     tmp = tmp->next; */
+/*   } */
+/*   return (retval); */
+/* } */
+/* } */
+/* static Vertex MyVertexList  =    (Vertex )((void *)0); */
+/* static int ComputeMst(Graph graph , int numvert )  */
+/* { Vertex inserted ; */
+/*   Vertex tmp ; */
+/*   int cost ; */
+/*   int dist ; */
+/*   BlueReturn br ; */
 
-  {
-  cost = 0;
-  chatting((char *)"Compute phase 1\n");
-  inserted = graph->vlist;
-  tmp = inserted->next;
-  graph->vlist = tmp;
-  MyVertexList = tmp;
-  numvert --;
-  chatting((char *)"Compute phase 2\n");
-  while (numvert) {
-    if ((unsigned int )inserted == (unsigned int )MyVertexList) {
-      MyVertexList = MyVertexList->next;
-    }
-    br = BlueRule(inserted, MyVertexList);
-    inserted = br.vert;
-    dist = br.dist;
-    numvert --;
-    cost += dist;
-  }
-  return (cost);
-}
-}
-int dealwithargs(int argc , char **argv ) ;
-int main(int argc , char **argv ) 
-{ Graph graph ;
-  int dist ;
-  int size ;
+/*   { */
+/*   cost = 0; */
+/*   chatting((char *)"Compute phase 1\n"); */
+/*   inserted = graph->vlist; */
+/*   tmp = inserted->next; */
+/*   graph->vlist = tmp; */
+/*   MyVertexList = tmp; */
+/*   numvert --; */
+/*   chatting((char *)"Compute phase 2\n"); */
+/*   while (numvert) { */
+/*     if ((unsigned int )inserted == (unsigned int )MyVertexList) { */
+/*       MyVertexList = MyVertexList->next; */
+/*     } */
+/*     br = BlueRule(inserted, MyVertexList); */
+/*     inserted = br.vert; */
+/*     dist = br.dist; */
+/*     numvert --; */
+/*     cost += dist; */
+/*   } */
+/*   return (cost); */
+/* } */
+/* } */
+/* int dealwithargs(int argc , char **argv ) ; */
+/* int main(int argc , char **argv )  */
+/* { Graph graph ; */
+/*   int dist ; */
+/*   int size ; */
 
-  {
-  chatting((char *)"Hash entry size = %d\n", sizeof(struct hash_entry ));
-  chatting((char *)"Hash size = %d\n", sizeof(struct hash ));
-  chatting((char *)"Vertex size = %d\n", sizeof(struct vert_st ));
-  size = dealwithargs(argc, argv);
-  chatting((char *)"Making graph of size %d\n", size);
-  graph = MakeGraph(size);
-  chatting((char *)"Graph completed\n");
-  chatting((char *)"About to compute mst \n");
-  dist = ComputeMst(graph, size);
-  chatting((char *)"MST has cost %d\n", dist);
-  exit(0);
-}
-}
-#pragma merger(0,"/tmp/cil-Akj4DxxM.i","-g,-Wall,-O3")
-extern  __attribute__((__nothrow__)) void *malloc(size_t __size )  __attribute__((__warn_unused_result__,
-__malloc__)) ;
-Hash MakeHash(int size , int (*map)(unsigned int  ) ) ;
-void HashInsert(void *entry , unsigned int key , Hash hash ) ;
-static int HashRange  ;
-static int mult(int p , int q ) 
+/*   { */
+/*   chatting((char *)"Hash entry size = %d\n", sizeof(struct hash_entry )); */
+/*   chatting((char *)"Hash size = %d\n", sizeof(struct hash )); */
+/*   chatting((char *)"Vertex size = %d\n", sizeof(struct vert_st )); */
+/*   size = dealwithargs(argc, argv); */
+/*   chatting((char *)"Making graph of size %d\n", size); */
+/*   graph = MakeGraph(size); */
+/*   chatting((char *)"Graph completed\n"); */
+/*   chatting((char *)"About to compute mst \n"); */
+/*   dist = ComputeMst(graph, size); */
+/*   chatting((char *)"MST has cost %d\n", dist); */
+/*   exit(0); */
+/* } */
+/* } */
+/* extern  __attribute__((__nothrow__)) void *malloc(size_t __size )  __attribute__((__warn_unused_result__, */
+/* __malloc__)) ; */
+/* Hash MakeHash(int size , int (*map)(unsigned int  ) ) ; */
+/* void HashInsert(void *entry , unsigned int key , Hash hash ) ; */
+/* static int HashRange  ; */
+int mult(int p , int q )
 { int p1 ;
   int p0 ;
   int q1 ;
@@ -1420,7 +255,7 @@ static int mult(int p , int q )
   return (((p0 * q1 + p1 * q0) % 10000) * 10000 + p0 * q0);
 }
 }
-static int mst_random(int seed ) 
+int mst_random(int seed )
 { int tmp ;
   int tmp___0 ;
 
@@ -1430,7 +265,7 @@ static int mst_random(int seed )
   return (tmp);
 }
 }
-static int compute_dist(int i , int j , int numvert ) 
+int compute_dist(int i , int j , int numvert )
 { int less ;
   int gt ;
   int tmp ;
@@ -1447,203 +282,202 @@ static int compute_dist(int i , int j , int numvert )
   return (tmp % 2048 + 1);
 }
 }
-static int hashfunc(unsigned int key ) 
-{ 
+int hashfunc(unsigned int key )
+{
+    // pmr: "inlined" from global, need to fix
+    unsigned int HashRange = 100;
 
   {
   return ((int )((key >> 4) % (unsigned int )HashRange));
 }
 }
-static void AddEdges(Graph retval , int numvert ) 
-{ Vertex src ;
-  Vertex dest ;
-  Hash hash ;
-  int i ;
-  int j ;
-  int dist ;
-  int num_inserted ;
+/* static void AddEdges(Graph retval , int numvert )  */
+/* { Vertex src ; */
+/*   Vertex dest ; */
+/*   Hash hash ; */
+/*   int i ; */
+/*   int j ; */
+/*   int dist ; */
+/*   int num_inserted ; */
 
-  {
-  num_inserted = 0;
-  j = 0;
-  while (j < numvert) {
-    src = retval->vlist + j;
-    hash = src->edgehash;
-    i = 0;
-    while (i < numvert) {
-      if (i != j) {
-        dist = compute_dist(i, j, numvert);
-        dest = retval->vlist + i;
-        HashInsert((void *)dist, (unsigned int )dest, hash);
-        num_inserted ++;
-      }
-      i ++;
-    }
-    j ++;
-  }
-  chatting((char *)"%d edges inserted\n", num_inserted);
-  return;
-}
-}
-Graph MakeGraph(int numvert ) 
-{ int i ;
-  Vertex vf ;
-  Vertex vt ;
-  Graph retval ;
-  void *tmp ;
-  void *tmp___0 ;
+/*   { */
+/*   num_inserted = 0; */
+/*   j = 0; */
+/*   while (j < numvert) { */
+/*     src = retval->vlist + j; */
+/*     hash = src->edgehash; */
+/*     i = 0; */
+/*     while (i < numvert) { */
+/*       if (i != j) { */
+/*         dist = compute_dist(i, j, numvert); */
+/*         dest = retval->vlist + i; */
+/*         HashInsert((void *)dist, (unsigned int )dest, hash); */
+/*         num_inserted ++; */
+/*       } */
+/*       i ++; */
+/*     } */
+/*     j ++; */
+/*   } */
+/*   chatting((char *)"%d edges inserted\n", num_inserted); */
+/*   return; */
+/* } */
+/* } */
+/* Graph MakeGraph(int numvert )  */
+/* { int i ; */
+/*   Vertex vf ; */
+/*   Vertex vt ; */
+/*   Graph retval ; */
+/*   void *tmp ; */
+/*   void *tmp___0 ; */
 
-  {
-  tmp = malloc(sizeof(*retval));
-  retval = (struct graph_st *)tmp;
-  chatting((char *)"Make phase 1: Creating hash tables\n");
-  tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
-  retval->vlist = (struct vert_st *)tmp___0;
-  vt = (struct vert_st *)((void *)0);
-  i = numvert - 1;
-  while (i >= 0) {
-    vf = retval->vlist + i;
-    HashRange = numvert / 4;
-    vf->mindist = 9999999;
-    vf->edgehash = MakeHash(HashRange, & hashfunc);
-    vf->next = vt;
-    vt = vf;
-    i --;
-  }
-  chatting((char *)"Make phase 3: Creating graph\n");
-  AddEdges(retval, numvert);
-  chatting((char *)"Make returning\n");
-  return (retval);
-}
-}
-#pragma merger(0,"/tmp/cil-ItiH7HIo.i","-g,-Wall,-O3")
-void HashDelete(unsigned int key , Hash hash ) ;
-static void *localmalloc(int size ) ;
-static int remaining  =    0;
-static char *temp  ;
-static void *localmalloc(int size ) 
-{ char *blah ;
-  void *tmp ;
+/*   { */
+/*   tmp = malloc(sizeof(*retval)); */
+/*   retval = (struct graph_st *)tmp; */
+/*   chatting((char *)"Make phase 1: Creating hash tables\n"); */
+/*   tmp___0 = malloc((unsigned int )numvert * sizeof(*vf)); */
+/*   retval->vlist = (struct vert_st *)tmp___0; */
+/*   vt = (struct vert_st *)((void *)0); */
+/*   i = numvert - 1; */
+/*   while (i >= 0) { */
+/*     vf = retval->vlist + i; */
+/*     HashRange = numvert / 4; */
+/*     vf->mindist = 9999999; */
+/*     vf->edgehash = MakeHash(HashRange, & hashfunc); */
+/*     vf->next = vt; */
+/*     vt = vf; */
+/*     i --; */
+/*   } */
+/*   chatting((char *)"Make phase 3: Creating graph\n"); */
+/*   AddEdges(retval, numvert); */
+/*   chatting((char *)"Make returning\n"); */
+/*   return (retval); */
+/* } */
+/* } */
+/* void HashDelete(unsigned int key , Hash hash ) ; */
+/* static void *localmalloc(int size ) ; */
+/* static int remaining  =    0; */
+/* static char *temp  ; */
+/* static void *localmalloc(int size )  */
+/* { char *blah ; */
+/*   void *tmp ; */
 
-  {
-  if (size > remaining) {
-    tmp = malloc(32768U);
-    temp = (char *)tmp;
-    if (! temp) {
-      chatting((char *)"Error! malloc returns null\n");
-    }
-    remaining = 32768;
-  }
-  blah = temp;
-  temp += size;
-  remaining -= size;
-  return ((void *)blah);
-}
-}
-Hash MakeHash(int size , int (*map)(unsigned int  ) ) 
-{ Hash retval ;
-  void *tmp ;
-  void *tmp___0 ;
+/*   { */
+/*   if (size > remaining) { */
+/*     tmp = malloc(32768U); */
+/*     temp = (char *)tmp; */
+/*     if (! temp) { */
+/*       chatting((char *)"Error! malloc returns null\n"); */
+/*     } */
+/*     remaining = 32768; */
+/*   } */
+/*   blah = temp; */
+/*   temp += size; */
+/*   remaining -= size; */
+/*   return ((void *)blah); */
+/* } */
+/* } */
+/* Hash MakeHash(int size , int (*map)(unsigned int  ) )  */
+/* { Hash retval ; */
+/*   void *tmp ; */
+/*   void *tmp___0 ; */
 
-  {
-  tmp = localmalloc((int )sizeof(*retval));
-  retval = (struct hash *)tmp;
-  retval->size = size;
-  tmp___0 = localmalloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
-  retval->array = (HashEntry *)tmp___0;
-  memset((void *)((char *)retval->array), 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-  retval->mapfunc = map;
-  retval->padding = 0U;
-  return (retval);
-}
-}
-void *HashLookup(unsigned int key , Hash hash ) 
-{ int j ;
-  HashEntry ent ;
+/*   { */
+/*   tmp = localmalloc((int )sizeof(*retval)); */
+/*   retval = (struct hash *)tmp; */
+/*   retval->size = size; */
+/*   tmp___0 = localmalloc((int )((unsigned int )size * sizeof(*(retval->array + 0)))); */
+/*   retval->array = (HashEntry *)tmp___0; */
+/*   memset((void *)((char *)retval->array), 0, (unsigned int )size * sizeof(*(retval->array + 0))); */
+/*   retval->mapfunc = map; */
+/*   retval->padding = 0U; */
+/*   return (retval); */
+/* } */
+/* } */
+/* void *HashLookup(unsigned int key , Hash hash )  */
+/* { int j ; */
+/*   HashEntry ent ; */
 
-  {
-  j = (*(hash->mapfunc))(key);
-  ent = *(hash->array + j);
-  while (1) {
-    if (ent) {
-      if (! (ent->key != key)) {
-        break;
-      }
-    } else {
-      break;
-    }
-    ent = ent->next;
-  }
-  if (ent) {
-    return (ent->entry);
-  }
-  return ((void *)0);
-}
-}
-void HashInsert(void *entry , unsigned int key , Hash hash ) 
-{ HashEntry ent ;
-  int j ;
-  void *tmp ;
+/*   { */
+/*   j = (*(hash->mapfunc))(key); */
+/*   ent = *(hash->array + j); */
+/*   while (1) { */
+/*     if (ent) { */
+/*       if (! (ent->key != key)) { */
+/*         break; */
+/*       } */
+/*     } else { */
+/*       break; */
+/*     } */
+/*     ent = ent->next; */
+/*   } */
+/*   if (ent) { */
+/*     return (ent->entry); */
+/*   } */
+/*   return ((void *)0); */
+/* } */
+/* } */
+/* void HashInsert(void *entry , unsigned int key , Hash hash )  */
+/* { HashEntry ent ; */
+/*   int j ; */
+/*   void *tmp ; */
 
-  {
-  j = (*(hash->mapfunc))(key);
-  tmp = localmalloc((int )sizeof(*ent));
-  ent = (struct hash_entry *)tmp;
-  ent->next = *(hash->array + j);
-  *(hash->array + j) = ent;
-  ent->key = key;
-  ent->entry = entry;
-  return;
-}
-}
-void HashDelete(unsigned int key , Hash hash ) 
-{ HashEntry *ent ;
-  HashEntry tmp ;
-  int j ;
+/*   { */
+/*   j = (*(hash->mapfunc))(key); */
+/*   tmp = localmalloc((int )sizeof(*ent)); */
+/*   ent = (struct hash_entry *)tmp; */
+/*   ent->next = *(hash->array + j); */
+/*   *(hash->array + j) = ent; */
+/*   ent->key = key; */
+/*   ent->entry = entry; */
+/*   return; */
+/* } */
+/* } */
+/* void HashDelete(unsigned int key , Hash hash )  */
+/* { HashEntry *ent ; */
+/*   HashEntry tmp ; */
+/*   int j ; */
 
-  {
-  j = (*(hash->mapfunc))(key);
-  ent = hash->array + j;
-  while (1) {
-    if (*ent) {
-      if (! ((*ent)->key != key)) {
-        break;
-      }
-    } else {
-      break;
-    }
-    ent = & (*ent)->next;
-  }
-  tmp = *ent;
-  *ent = (*ent)->next;
-  return;
-}
-}
-#pragma merger(0,"/tmp/cil-CAGxdBxp.i","-g,-Wall,-O3")
-int dealwithargs(int argc , char **argv ) 
+/*   { */
+/*   j = (*(hash->mapfunc))(key); */
+/*   ent = hash->array + j; */
+/*   while (1) { */
+/*     if (*ent) { */
+/*       if (! ((*ent)->key != key)) { */
+/*         break; */
+/*       } */
+/*     } else { */
+/*       break; */
+/*     } */
+/*     ent = & (*ent)->next; */
+/*   } */
+/*   tmp = *ent; */
+/*   *ent = (*ent)->next; */
+/*   return; */
+/* } */
+/* } */
+int dealwithargs(int argc , char **argv )
 { int level ;
 
   {
   if (argc > 1) {
-    level = atoi((char const   *)*(argv + 1));
+      level = atoi((char const   *)*(argv + 1));
   } else {
     level = 1024;
   }
   return (level);
 }
 }
-/* compiler builtin: 
-   void __builtin_va_end(__builtin_va_list  ) ;  */
-/* compiler builtin: 
-   void __builtin_va_start(__builtin_va_list  ) ;  */
-#pragma merger(0,"/tmp/cil-dAxuWY3G.i","-g,-Wall,-O3")
-void chatting(char *s  , ...) 
-{ va_list ap ;
+/* /\* compiler builtin:  */
+/*    void __builtin_va_end(__builtin_va_list  ) ;  *\/ */
+/* /\* compiler builtin:  */
+/*    void __builtin_va_start(__builtin_va_list  ) ;  *\/ */
+/* void chatting(char *s  , ...)  */
+/* { va_list ap ; */
 
-  {
-  __builtin_va_start(ap, s);
-  vfprintf((FILE * __restrict  )stdout, (char const   * __restrict  )s, ap);
-  __builtin_va_end(ap);
-  return;
-}
-}
+/*   { */
+/*   __builtin_va_start(ap, s); */
+/*   vfprintf((FILE * __restrict  )stdout, (char const   * __restrict  )s, ap); */
+/*   __builtin_va_end(ap); */
+/*   return; */
+/* } */
+/* } */
