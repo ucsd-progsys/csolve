@@ -76,7 +76,7 @@ let quals_of_file fname =
         |> Lexing.from_channel
         |> FixParse.defs FixLex.token in
       let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-      let _ = Constants.bprintf true "Read Qualifiers: \n%a"
+      let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
                 (Misc.pprint_many true "" Ast.Qualifier.print) qs in
       qs
     with Sys_error s ->
