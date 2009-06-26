@@ -177,6 +177,11 @@ let wellformed env q =
   let env' = SM.add v (v,t,[]) env in
   A.sortcheck_pred (fun x -> snd3 (SM.find x env')) (Q.pred_of_t q) 
 
+let dupfree xys = 
+  let ys  = List.map snd xys in
+  let ys' = Misc.sort_and_compact ys in
+  List.length ys = List.length ys'
+
 let inst_qual ys (q : Q.t) : Q.t list =
   let p    = Q.pred_of_t q in
   let t    = Q.sort_of_t q in
@@ -187,7 +192,8 @@ let inst_qual ys (q : Q.t) : Q.t list =
     let xyss = List.length xs                      (* for each placev *) 
                |> Misc.clone ys                    (* clone the freev list *)
                |> Misc.product                     (* generate freev combinations *) 
-               |> Misc.map (List.combine xs) in    (* generate placev-freev lists *)
+               |> Misc.map (List.combine xs)       (* generate placev-freev lists *)
+               |> List.filter dupfree in           (* remove duplicate bindings *)
     let ps'  = List.rev_map 
                  (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) p)
                  xyss in

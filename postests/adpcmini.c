@@ -2,10 +2,13 @@ int main1()
 {
   int i, x;
   int b;
+  int bound;
+
+  bound = nondet();
 
   x = 0;
   b = 0;
-  i = 1000;
+  i = bound;
   
   for(; 0 < i; i--)
   {
@@ -16,8 +19,8 @@ int main1()
       b = 0;
     }
     if (i <= 0){ assert(0); }
-    if (2*x != b + 1000 - (i - 1)) {assert(0);} 
-    //if (2*x > 1000 + 1){ assert(0); }
+    if (2*x != b + bound - (i - 1)) {assert(0);} 
+    if (2*x > bound + 1){ assert(0); }
   }
   
   return 0;

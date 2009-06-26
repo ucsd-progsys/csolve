@@ -110,6 +110,7 @@ let liquidate file =
   let cs    = Consindex.get_cs me in
   let _     = E.log "DONE: constraint generation \n" in
   let ctx,s = Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws qs in
+  let _     = E.log "DONE: qualifier instantiation \n" in
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in

@@ -11,4 +11,8 @@ qualif A(v:int) : (2 * v) = (~a + ~b + 1)
 qualif A(v:int) : (2 * v) = (~a + 1000 - ~b)
 qualif A(v:int) : (2 * v) = (~a + 1000 - ~b - 1)
 
+qualif A(v:int) : (2 * v) = (~a + ~c - ~b)
+qualif A(v:int) : (2 * v) = (~a + ~c - ~b - 1)
+
+
 qualif A(v:int) : 1 = 0
