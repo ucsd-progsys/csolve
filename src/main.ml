@@ -29,7 +29,6 @@ module C  = Constraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
-module I  = Inferctypes 
 
 open Misc.Ops
 
@@ -103,6 +102,7 @@ let liquidate file =
   let cil   = cil_of_file file in
   let _     = E.log "DONE: cil parsing \n" in
   let qs    = quals_of_file file in
+  let _     = E.log "DONE: qualifier parsing \n" in
   let spec  = spec_of_file file in
   let _     = E.log "DONE: spec parsing \n" in
   let me    = Consgen.create cil spec in
@@ -110,6 +110,7 @@ let liquidate file =
   let cs    = Consindex.get_cs me in
   let _     = E.log "DONE: constraint generation \n" in
   let ctx,s = Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws qs in
+  let _     = E.log "DONE: qualifier instantiation \n" in
   let _     = Solve.save (file^".in.fq") ctx s in
   let s',cs'= Solve.solve ctx s in 
   let _     = Solve.save (file^".out.fq") ctx s' in

@@ -62,15 +62,19 @@ module Ops = struct
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
 
-  let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
-    f (fst x) (fst y)
-
 (*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
 *)
 
 end
+
+open Ops
+
+let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
+  f (fst x) (fst y)
+
+
 
 let curry f   = fun x y -> f (x,y)
 let uncurry f = fun (x,y) -> f x y
@@ -92,16 +96,25 @@ module StringMap =
       compare i1 i2
   end)
 
+let sm_extend sm1 sm2 =
+  StringMap.fold StringMap.add sm2 sm1 
+
 let sm_filter f sm = 
-  StringMap.fold 
-    (fun x y sm -> if f x y then StringMap.add x y sm else sm) 
-    sm StringMap.empty 
+  StringMap.fold begin fun x y sm -> 
+    if f x y then StringMap.add x y sm else sm 
+  end sm StringMap.empty 
+
+let sm_of_list kvs = 
+  List.fold_left (fun sm (k,v) -> StringMap.add k v sm) StringMap.empty kvs
 
 let sm_to_list sm = 
   StringMap.fold (fun k v acc -> (k,v)::acc) sm [] 
 
-
-open Ops
+let sm_print_keys name sm =
+  sm |> sm_to_list 
+     |> List.map fst 
+     |> String.concat ", "
+     |> Printf.printf "%s : %s \n" name
 
 let foldn f n b = 
   let rec foo acc i = 

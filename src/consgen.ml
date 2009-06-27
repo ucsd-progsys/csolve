@@ -54,14 +54,20 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x,y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
-let extend_world ld binds loc (env, sto) = 
+let extend_world ld binds loc newloc (env, sto) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
   let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                |> FI.ce_adds env in
-  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
-  let sto'   = FI.refldesc_subs ld (fun i _ -> IM.find i im |> FI.t_name env') 
-               |> FI.refstore_set sto loc in
+  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
+  let ld'    = FI.refldesc_subs ld begin fun i ploc rct ->
+                  if IM.mem i im then IM.find i im |> FI.t_name env' else
+                    match ploc with 
+                    | Ctypes.PLAt _ -> assertf "missing binding!"
+                    | _ when newloc -> FI.t_true_refctype rct
+                    | _             -> FI.t_subs_names subs rct
+               end in
+  let sto'   = FI.refstore_set sto loc ld' in
   (env', sto')
 
 let extend_env v cr env =
@@ -69,7 +75,7 @@ let extend_env v cr env =
 
 let rename_store lsubs subs sto = 
   sto |> Ctypes.prestore_subs lsubs 
-      |> FI.refstore_subs_exps subs 
+      |> FI.refstore_subs FI.t_subs_exps subs 
 
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
@@ -134,7 +140,7 @@ let cons_of_annot loc grd (env, sto) = function
       let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
-      let wld    = extend_world aldesc abinds cloc (env, sto) in
+      let wld    = extend_world aldesc abinds cloc false (env, sto) in
       (wld, [])
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -148,7 +154,7 @@ let cons_of_annots me loc grd wld annots =
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
 
-let cons_of_set me (env, sto) = function 
+let cons_of_set me loc grd (env, sto) = function 
   (* v := *v' *)
   | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) 
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
@@ -156,22 +162,27 @@ let cons_of_set me (env, sto) = function
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto)
+      (extend_env v cr env, sto), []
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
       let _  = CilMisc.check_pure_expr e in
       let cr = FI.t_exp (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto)
-  
+      (extend_env v cr env, sto), []
+
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, _))), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
-      let sto' = FI.t_exp (CF.ctype_of_expr me e) e
-                 |> FI.refstore_write sto addr in
-      (env, sto')
+      let cr'  = FI.t_exp (CF.ctype_of_expr me e) e in
+      if FI.is_soft_ptr sto addr then 
+        let cr   = FI.refstore_read sto addr in
+        ((env, sto), (FI.make_cs env grd cr' cr loc))
+      else
+        let sto' = FI.refstore_write sto addr cr' in
+        ((env, sto'), [])
+
   | _ -> assertf "TBD: cons_of_set"
 
 (****************************************************************************)
@@ -204,12 +215,12 @@ let instantiate_cloc me wld (aloc, cloc) =
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
                |> List.map (Misc.app_snd FI.t_true_refctype) in
-  extend_world aldesc abinds cloc wld
+  extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
-  let args  = FI.args_of_refcfun frt in
+  let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
   let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
               List.combine (List.map fst args) es in
@@ -226,46 +237,6 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let wld'  = poly_clocs_of_store ocst ns 
               |> List.fold_left (instantiate_cloc me) (env', st') in
   (wld', cs1 ++ cs2 ++ cs3)
- 
-
-
-  (* {{{ OLD CODE FOR CONS_OF_CALL
-  let (ncrs, cr) = FI.ce_find_fn fn env in
-  let _    = asserts (List.length ncrs = List.length es) "cons_of_call: length" in
-  let ns   = Misc.map fst ncrs in
-  let crs  = List.map (fun e -> FI.t_exp (CF.ctype_of_expr me e) e) es in
-  let cenv = FI.ce_adds env (List.combine ns crs) in
-  let cs   = Misc.flap begin fun (n, cr) -> 
-                FI.make_cs cenv grd (FI.t_name cenv n) cr loc
-             end ncrs in
-  match lvo with 
-  | None -> ((env, cst), cs)  
-  | Some ((Var v), NoOffset) ->
-      let vn  = FI.name_of_varinfo v in
-      let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
-      ((FI.ce_adds env [vn, cr'], cst), cs)
-  | _  -> assertf "TBD: cons_of_call" 
- *)
- (*  OLD CODE TO HANDLE MALLOC
- if fv.Cil.vname = "malloc" && !Constants.dropcalls then 
-   let _          = asserts (is = []) "cons_of_annotinstr: ins-in-call" in
-   let wld, cs    = cons_of_annots me loc grd wld gs in
-   match ns, lvo with
-   | [Refanno.New (aloc, cloc)], Some ((Var v), NoOffset) ->
-       (* step 1: add bindings for new cells *)
-
-       let aldesc     = FI.refstore_get (CF.get_astore me) aloc in
-       let abinds     = FI.binds_of_refldesc aloc aldesc 
-                        |> List.map (Misc.app_snd FI.t_true_refctype) in
-       let (env, sto) = extend_world aldesc abinds cloc wld in
-
-       (* step 2: add bindings for returned ptr *)
-       let cr         = CF.ctype_of_varinfo me v |> FI.t_true in
-       let env        = FI.ce_adds env [FI.name_of_varinfo v, cr] in
-       (env, sto), []
-   | _ -> assertf "cons_of_annotinstr: malformed malloc call!" 
-  else 
-    END HACK }}} *)
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
@@ -277,8 +248,8 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
   match instr with 
   | Set (lv, e, _) ->
       let _       = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
-      let wld     = cons_of_set me wld (lv, e) in
-      (wld, anncs)
+      let wld, cs = cons_of_set me loc grd wld (lv, e) in
+      (wld, cs ++ anncs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       let wld, cs = cons_of_call me loc grd wld (lvo, fv.Cil.vname, es) ns in
       (wld, anncs ++ cs)
@@ -398,12 +369,6 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
-let print_keys name sm =
-  sm |> Misc.sm_to_list 
-     |> List.map fst 
-     |> String.concat ", "
-     |> Printf.printf "%s : %s \n" name
-
 let shapem_of_scim spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn rf (bm, fm) ->
@@ -412,10 +377,30 @@ let shapem_of_scim spec scim =
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else ((SM.add fn cf bm), fm)
      end spec
-  |> (fun (bm, fm) -> print_keys "builtins" bm; print_keys "non-builtins" fm; (bm, fm))
-  |> Misc.uncurry Inferctypes.infer_shapes 
+  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
+  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
 
+let rename_args rf sci : FI.refcfun =
+  let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
+  let xrs      = FI.args_of_refcfun rf in
+  let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
+  let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
+  let subs     = List.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
+  let qls'     = FI.qlocs_of_refcfun rf in
+  let args'    = List.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
+  let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
+  let hi', ho' = rf |> FI.stores_of_refcfun
+                    |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
+  FI.mk_refcfun qls' args' hi' ret' ho' 
 
+let rename_spec scim spec =
+  Misc.sm_to_list spec 
+  |> List.map begin fun (fn, rf) -> 
+      if SM.mem fn scim 
+      then (fn, rename_args rf (SM.find fn scim))
+      else (fn, rf)
+     end
+  |> Misc.sm_of_list
 
 (************************************************************************************)
 (******************************** API ***********************************************)
@@ -425,6 +410,7 @@ let shapem_of_scim spec scim =
 let create cil spec =
   let scim = scim_of_file cil in
   let _    = E.log "DONE: SSA conversion \n" in
+  let spec = rename_spec scim spec in
   let shpm = shapem_of_scim spec scim in
   let _    = E.log "DONE: Shape Inference \n" in
   let decs = decs_of_file cil in

@@ -126,7 +126,8 @@ let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: 
         let pl       = PLSeq n in
         let pcts     = LDesc.find pl ld in
         let is       = List.fold_left (fun is (_, ctv2) -> equalize_ctypes ctv ctv2 is) is pcts in
-          if List.exists (fun (pl2, _) -> ploc_periodic pl2 && ploc_le pl2 pl) pcts then
+        let p        = ld |> LDesc.get_period |> Misc.get_option 0 in
+          if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) pcts then
             (* If this sequence is included in an existing one, there's nothing left to do *)
             (is, ss)
           else
@@ -572,7 +573,7 @@ let match_slocs (ct1: ctype) (ct2: ctype): outstore_status =
 
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_status =
   let oss = match_slocs atyp etyp in
-    if prectype_eq atyp etyp then
+    if is_subctype atyp etyp then
       oss
     else begin
       C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
@@ -639,4 +640,5 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
      theta = theta }
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
+  let _ = M.sm_print_keys "infer_shapes env" env in 
   scis |> M.StringMap.map (fun (cft, sci) -> infer_shape env (cfun_instantiate cft |> fst) sci)

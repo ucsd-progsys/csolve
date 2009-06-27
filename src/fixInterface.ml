@@ -19,21 +19,13 @@ open Cil
 (************** Interface between LiquidC and Fixpoint *************)
 (*******************************************************************)
 
-(****************************************************************)
-(********************* Sorts ************************************)
-(****************************************************************)
-
-let so_int = So.Int
-let so_ref = So.Int (* TBD: So.Unint "ref" *)
-let vv_int = Sy.value_variable so_int
-let vv_ref = Sy.value_variable so_ref
-let sorts  = [] (* TBD: [so_int; so_ref] *)
-
 (*******************************************************************)
 (******************************** Names ****************************)
 (*******************************************************************)
 
 type name = Sy.t
+
+let string_of_name = Sy.to_string 
 
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 
@@ -72,10 +64,11 @@ let ctype_of_refctype = function
 
 (* API *)
 let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
-let args_of_refcfun   = fun ft -> List.map (Misc.app_fst name_of_string) ft.Ctypes.args
+let qlocs_of_refcfun  = fun ft -> ft.Ctypes.qlocs
+let args_of_refcfun   = fun ft -> ft.Ctypes.args
 let ret_of_refcfun    = fun ft -> ft.Ctypes.ret
 let stores_of_refcfun = fun ft -> (ft.Ctypes.sto_in, ft.Ctypes.sto_out)
-let mk_cfun qslocs args ist ret ost = 
+let mk_refcfun qslocs args ist ret ost = 
   { Ctypes.qlocs   = qslocs; 
     Ctypes.args    = args;
     Ctypes.ret     = ret;
@@ -98,21 +91,30 @@ let refstore_set sto l rd =
 
 let refstore_get sto l =
   try SLM.find l sto with Not_found ->
+    Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
     assertf "refstore_get"
 
+let is_soft_ploc = function
+  | Ctypes.PLAt _ -> false
+  | _             -> true
+
 let sloc_binds_of_refldesc l rd = 
-  Ctypes.LDesc.foldn begin fun i binds ploc rct -> 
+  Ctypes.LDesc.foldn begin fun i binds ploc rct ->
     ((name_of_sloc_ploc l ploc, rct), ploc)::binds
   end [] rd
   |> List.rev
 
-let binds_of_refldesc l rd = sloc_binds_of_refldesc l rd |> List.map fst
+let binds_of_refldesc l rd = 
+  sloc_binds_of_refldesc l rd 
+  |> List.filter (fun (_, ploc) -> not (is_soft_ploc ploc))
+  |> List.map fst
 
-let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
+let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
-  | [(ploc', rct)] when ploc = ploc' -> rct
+  | [(ploc', rct)] -> 
+      (rct, not (ploc = ploc') (* is_soft_ploc ploc' *) (* i.e. soft *))
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
@@ -120,14 +122,21 @@ let addr_of_refctype = function
       (cl, Ctypes.ploc_of_index i)
   | _ -> assertf "addr_of_refctype: bad args"
 
-let refstore_read sto cr = 
+let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
-  try SLM.find l sto |> refdesc_find ploc 
-  with _ -> assertf "refstore_read: bad address!"
+  SLM.find l sto |> refdesc_find ploc 
+
+(* API *)
+let refstore_read sto cr = 
+  ac_refstore_read sto cr |> fst
+
+(* API *)
+let is_soft_ptr sto cr = 
+  ac_refstore_read sto cr |> snd
 
 let refstore_write sto rct rct' = 
-  let (cl, ploc) = addr_of_refctype rct in 
-  (* let _  = assert (is_concrete cl) in *)
+  let (cl, ploc) = addr_of_refctype rct in
+  let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in
   let ld = Ctypes.LDesc.add ploc rct' ld in
@@ -135,8 +144,20 @@ let refstore_write sto rct rct' =
 
 
 (*******************************************************************)
-(********************** (Basic) Builtin Types **********************)
+(******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
+
+let so_int = So.Int
+let so_ref = So.Int (* TBD: So.Unint "ref" *)
+let so_ufs = So.Func [so_ref; so_int] 
+let vv_int = Sy.value_variable so_int
+let vv_ref = Sy.value_variable so_ref
+let vv_ufs = Sy.value_variable so_ufs
+
+let sorts  = [] (* TBD: [so_int; so_ref] *)
+
+let uf_bbegin = name_of_string "BLOCK_BEGIN"
+let uf_bend   = name_of_string "BLOCK_END"
 
 (* Move to its own module *)
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
@@ -149,10 +170,13 @@ let true_int  = int_refctype_of_ras []
 let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
 let mk_pure_cfun args ret = 
-  mk_cfun [] args refstore_empty ret refstore_empty
+  mk_refcfun [] args refstore_empty ret refstore_empty
+
+let builtins    = 
+  [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
+   (uf_bend, C.make_reft vv_ufs so_ufs [])]
 
 (* Added to lib.spec
-let builtins    = []
 let builtins_fn = []
   [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
    ("nondet", mk_pure_cfun [] true_int)]
@@ -199,11 +223,13 @@ let ce_iter f cenv =
   YM.iter (fun n cr -> f n cr) cenv
 
 *)
+let builtin_env =
+  List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
 
 let env_of_cilenv (_, vnv) = 
   YM.fold begin fun n rct env -> 
     YM.add n (reft_of_refctype rct) env
-  end vnv YM.empty
+  end vnv builtin_env 
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -269,11 +295,27 @@ let t_pred ct v p =
   let r  = C.make_reft vv so [C.Conc p] in
   refctype_of_reft_ctype r ct
 
+let mk_eq_uf uf xs ys =
+  let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
+  A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
+
+let t_exp_ptr ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+  match ct, A.Expression.support e with
+  | (Ctypes.CTRef _), [x]  ->
+      let x  = A.eVar x  in
+      let vv = A.eVar vv in
+      [C.Conc (mk_eq_uf uf_bbegin [vv] [x]);
+       C.Conc (mk_eq_uf uf_bend   [vv] [x])]
+  | _ -> 
+      []
+
+
 let t_exp ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
-  let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let rs = (t_exp_ptr ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
 let t_name (_, vnv) n = 
@@ -309,12 +351,11 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ctypes.prectype_map
 
-let t_subs_locs        = Ctypes.prectype_subs 
-let t_subs_exps        = refctype_subs CI.expr_of_cilexp
-let t_subs_names       = refctype_subs A.eVar
-let refstore_fresh     = Ctypes.prestore_map_ct t_fresh
-let refstore_subs_exps = fun nes st -> Ctypes.prestore_map_ct (t_subs_exps nes) st
-
+let t_subs_locs    = Ctypes.prectype_subs 
+let t_subs_exps    = refctype_subs CI.expr_of_cilexp
+let t_subs_names   = refctype_subs A.eVar
+let refstore_fresh = Ctypes.prestore_map_ct t_fresh
+let refstore_subs  = fun f subs st -> Ctypes.prestore_map_ct (f subs) st
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -333,9 +374,11 @@ let make_wfs_fn cenv rft loc =
 
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
-    let ncrs = binds_of_refldesc l rd in
-    let env' = ce_adds env ncrs in
-    let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in
+    let ncrs = sloc_binds_of_refldesc l rd in
+    let env' = ncrs |> List.filter (fun (_,ploc) -> not (is_soft_ploc ploc)) 
+                    |> List.map fst
+                    |> ce_adds env in 
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr loc) ncrs in
     ws' ++ ws
   end sto []
 

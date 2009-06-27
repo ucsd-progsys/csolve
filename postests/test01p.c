@@ -1,6 +1,7 @@
 extern char* malloc(int);
 
 int main(){
+  int jhala = 1000;
   int *r;
   int y;
 

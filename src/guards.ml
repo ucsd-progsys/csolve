@@ -5,7 +5,7 @@ open Cil
 open Misc.Ops
 
 (* Assume: all guards are from "if" statements. *)
-let mydebug =  true
+let mydebug = false 
 
 type ginfo = (exp * int option * int option) option
 

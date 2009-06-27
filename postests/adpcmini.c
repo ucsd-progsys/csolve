@@ -1,49 +1,60 @@
-
 int main1()
 {
-  int i, x, bound;
-  int t1, t2;
-  int b, c;
+  int i, x;
+  int b;
+  int bound;
 
-  i = x = bound = b = 0;
+  bound = nondet();
+
+  x = 0;
+  b = 0;
+  i = bound;
   
-  do
-    bound = nondet();
-  while(bound < 0);
-
-  assert (bound >= 0);
-
-  i = 0;
-  for(; i < bound; i++)
+  for(; 0 < i; i--)
   {
-    t1 = i / 2;
-    t2 = 2 * t1;
-    if (t2 == i)
+    if (b==0){
       b = 1;
-    else
+      x++;
+    } else {
       b = 0;
-    x += b;
-    assert(2 * x < bound);
-    //assert(i < bound);
+    }
+    if (i <= 0){ assert(0); }
+    if (2*x != b + bound - (i - 1)) {assert(0);} 
+    if (2*x > bound + 1){ assert(0); }
   }
+  
   return 0;
 }
 
-/*void main2(int bound)
+/*
+int main2()
 {
-  int i, x, flag = 1;
+  int i, x, bound, twox;
+  int b;
 
-  for(i = 0; i < bound; i++)
+  bound = nondet();
+  x = 0;
+  b = 0;
+  i = 0;
+  
+  for(; i < bound; i++)
   {
-    if (flag)
+    if (b==0){
+      b = 1;
       x++;
-    flag = !flag; 
-    assert(2 * x < bound);
-    assert(i < bound);
-    //assert(2 * x = i + flag);
+    } else {
+      b = 0;
+    }
+    if (i >= bound){ assert(0); }
+    if (2*x != b + (i + 1)) {assert(0);} 
+    if (2*x > bound + 1){ assert(0); }
   }
+  
+  return 0;
 }
+*/
 
+/*
 void main3(int bound)
 {
   int i, x, flag = 1;

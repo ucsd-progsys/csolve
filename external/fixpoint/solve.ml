@@ -45,7 +45,8 @@ type t = {
   ws  : C.wf list;
 }
 
-let mydebug = false
+let mydebug = false  
+
 (*************************************************************)
 (********************* Stats *********************************)
 (*************************************************************)
@@ -176,20 +177,37 @@ let wellformed env q =
   let env' = SM.add v (v,t,[]) env in
   A.sortcheck_pred (fun x -> snd3 (SM.find x env')) (Q.pred_of_t q) 
 
+let dupfree_binding xys : bool = 
+  let ys  = List.map snd xys in
+  let ys' = Misc.sort_and_compact ys in
+  List.length ys = List.length ys'
+
+let varmatch_binding xys : bool = 
+  List.for_all begin fun (x,y) ->
+    let (x,y) = Misc.map_pair Sy.to_string (x,y) in
+    if x.[0] = '@' then
+      let x' = Misc.suffix_of_string x 1 in
+      Misc.is_prefix x' y
+    else true
+  end xys
+
+let valid_binding xys = 
+  (dupfree_binding xys) && (varmatch_binding xys)
+
 let inst_qual ys (q : Q.t) : Q.t list =
   let p    = Q.pred_of_t q in
   let t    = Q.sort_of_t q in
-  let xs   = p 
-             |> P.support                        (* vars of q *)
-             |> List.filter Sy.is_wild           (* placevs of q *)
-             |> Misc.sort_and_compact in         (* duplicate free placevs *)
+  let xs   = p |> P.support                        (* vars of q *)
+               |> List.filter Sy.is_wild           (* placevs of q *)
+               |> Misc.sort_and_compact in         (* duplicate free placevs *)
   match xs with [] -> [q] | _ ->
     let xyss = List.length xs                      (* for each placev *) 
                |> Misc.clone ys                    (* clone the freev list *)
                |> Misc.product                     (* generate freev combinations *) 
-               |> Misc.map (List.combine xs) in    (* generate placev-freev lists *)
+               |> Misc.map (List.combine xs)       (* generate placev-freev lists *)
+               |> List.filter valid_binding in     (* remove bogus bindings *)
     let ps'  = List.rev_map 
-                 (List.fold_left (fun p' (x,y) -> P.subst p x (A.eVar y)) p)
+                 (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) p)
                  xyss in
     List.map (Q.create None t) ps'
 
@@ -202,7 +220,7 @@ let inst_ext (qs : Q.t list) s wf =
   let _   = Co.bprintf mydebug "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in
   let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
   qs |> Misc.flap (inst_qual ys)
-     |> Misc.filter (wellformed env) 
+     |> Misc.filter (wellformed env)
      |> Misc.map Q.pred_of_t 
      |> Misc.cross_product ks 
      |> C.group_sol_add s ks

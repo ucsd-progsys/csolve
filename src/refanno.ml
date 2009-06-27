@@ -6,11 +6,18 @@ open Misc.Ops
 
 type ctab = (string, Sloc.t) Hashtbl.t
 
+(** Gen: Generalize a concrete location into an abstract location
+ *  Ins: Instantiate an abstract location with a concrete location
+ *  New: Call-site instantiation of abs-loc-var with abs-loc-param
+ *  NewC: Call-site instantiation of conc-loc-var NewC = (New;Ins) 
+ NewC is an artifact of the fact that Sinfer only creates abstract locations *)
 type annotation = 
   | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
   | Ins  of Sloc.t * Sloc.t             (* ALoc, CLoc *)
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
+
+
 
 type block_annotation = annotation list list
 
@@ -81,8 +88,12 @@ let annotate_set ctm theta conc = function
 
 let concretize_new conc = function
   | New (x,y) -> 
-      if Sloc.is_abstract x then  
-        (conc, [New (x,y)])
+      if Sloc.is_abstract x then 
+        let y' = cloc_of_aloc conc y in
+        if Sloc.eq y y' then 
+          (conc, [New (x,y)])
+        else
+          (LM.remove y conc, [Gen (y', y); New (x, y)]) 
       else
         let _  = asserts (Sloc.is_abstract y) "concretize_new" in
         let cl = Sloc.fresh Sloc.Concrete in

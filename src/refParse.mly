@@ -58,7 +58,7 @@ spec:
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      let rcf = FI.mk_cfun $4 $6 $10 $8 $12 in
+      let rcf = FI.mk_refcfun $4 $6 $10 $8 $12 in
         if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
           ($1, rcf)
         else begin

@@ -7,10 +7,12 @@ type refstore = (Ctypes.index * Constraint.reft) Ctypes.prestore
 
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
-val args_of_refcfun     : refcfun  -> (name * refctype) list
+
+val qlocs_of_refcfun    : refcfun  -> Sloc.t list
+val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
-val mk_cfun             : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
+val mk_refcfun          : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
@@ -44,11 +46,12 @@ val refstore_mem        : Sloc.t -> refstore -> bool
 val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
-val refldesc_subs       : refldesc -> (int -> refctype -> refctype) -> refldesc 
+val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
 val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
-val refstore_subs_exps  : (name * Cil.exp) list -> refstore -> refstore
+val refstore_subs       : ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
+val is_soft_ptr         : refstore -> refctype -> bool 
 
 val sorts               : Ast.Sort.t list
 

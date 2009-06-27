@@ -109,6 +109,7 @@ type ctemap = ctype ExpMap.t
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
 
+val d_ploc : unit -> ploc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
@@ -163,7 +164,6 @@ val ctype_closed         : ctype -> store -> bool
 
 val ploc_start: ploc -> int
 val ploc_compare: ploc -> ploc -> int
-val ploc_le: ploc -> ploc -> bool
 val ploc_periodic: ploc -> bool
 val ploc_contains: ploc -> ploc -> int -> bool
 val ploc_offset: ploc -> int -> ploc

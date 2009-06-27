@@ -1,0 +1,6 @@
+constraint: env [f:{v : func [int; int] | [] }; 
+		 x:{v : int | []     }; 
+		 y:{v : int | [v=x]   }] 
+	    grd && []
+	    lhs {v : int | [v = f([x])]}
+	    rhs {v : int | [v = f([y])]}

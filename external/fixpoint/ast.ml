@@ -60,15 +60,17 @@ module Symbol =
                                    let compare i1 i2 = compare i1 i2 end)
 
     
-    let is_wild = fun s -> if s = "" then false else s.[0] = '~'
-    
+    let is_wild s = 
+      if s = "" then false else 
+        (s.[0] = '~' || s.[0] = '@')
+
     let is_safe s = 
       let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
       Str.string_match re s 0
 
     let of_string = fun s -> s
 
-    let to_string = fun s -> if is_safe s then s else "'" ^ s ^ "'"      
+    let to_string = fun s -> s (* if is_safe s then s else "'" ^ s ^ "'" *)
 
     let print fmt s =
       to_string s |> Format.fprintf fmt "%s" 
@@ -301,7 +303,7 @@ let rec expr_to_string e =
       Printf.sprintf "%s[%s]" 
       (Symbol.to_string s) (List.map expr_to_string es |> String.concat " ")
   | Bin (e1, op, e2) ->
-      Printf.sprintf "%s %s %s" 
+      Printf.sprintf "(%s %s %s)" 
       (expr_to_string e1) (bop_to_string op) (expr_to_string e2)
   | Ite(ip,te,ee) -> 
       Printf.sprintf "%s ? %s : %s" 
@@ -562,9 +564,22 @@ let rec sortcheck_expr f e =
         | (Some t1, Some t2) when t1 = t2 -> Some t1 
         | _ -> None
       else None
-  | _ -> 
-      failwith "TBD: sortcheck_expr App"
-     
+  | App (uf, es) -> begin
+      let ft = try f uf with _ -> assertf "ERROR: unknown uf = %s" (Symbol.to_string uf) in
+      match ft with
+      | Sort.Func ts when List.length ts = 1 + List.length es -> begin
+        match List.rev ts with
+        | ret_t :: arg_ts ->
+            let par_ts = List.rev_map (sortcheck_expr f) es in
+            if List.for_all2 (fun tp ta -> tp = Some ta) par_ts arg_ts then 
+              Some ret_t
+            else 
+              None
+        | _ -> assertf "impossible"
+      end
+  end
+  | _ -> None
+
 and sortcheck_pred f p = 
   match puw p with
     | True  

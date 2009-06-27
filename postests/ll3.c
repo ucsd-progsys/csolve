@@ -1,5 +1,3 @@
-// this is a junk test, see ll2.c
-
 extern char* malloc(int);
 
 typedef struct node {
@@ -7,23 +5,39 @@ typedef struct node {
   struct node *next;
 } node_t;
 
-node_t *main(int n, int m){
+node_t *foo(int n){
   node_t *root;
   node_t *tmp;
+  int i;
 
   root = 0;
 
-  for(int i=0; i < n; i++){
+  for(i = 0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
     tmp->data = i;
     tmp->next = root;
     root      = tmp;
   }
 
-  for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-    assert(tmp->data >= 0);
-    //assert(tmp->data < n);
-  }
+//  assert(0); //SANITY
 
   return root;
+}
+
+int main(){
+  node_t *root;
+  node_t *tmp;
+  int n;
+  
+  n = nondet();
+
+  root = foo(n);
+
+  for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
+    assert(tmp->data >= 0);
+    assert(tmp->data < n);
+//    assert(0); //SANITY
+  }
+
+  return 0;
 }
