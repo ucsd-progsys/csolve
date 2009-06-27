@@ -562,9 +562,21 @@ let rec sortcheck_expr f e =
         | (Some t1, Some t2) when t1 = t2 -> Some t1 
         | _ -> None
       else None
-  | _ -> 
-      failwith "TBD: sortcheck_expr App"
-     
+  | App (uf, es) ->
+      let ft = try f uf with _ -> assertf "ERROR: unknown uf = %s" (Symbol.to_string uf) in
+      match ft with
+      | Sort.Func ts when List.length ts = 1 + List.length es -> begin
+        match List.rev ts with
+        | ret_t :: arg_ts ->
+            let par_ts = List.rev_map (sortcheck_expr f) es in
+            if List.for_all2 (fun tp ta -> tp = Some ta) par_ts arg_ts then 
+              Some ret_t
+            else 
+              None
+        | _ -> assertf "impossible"
+      end
+      | _ -> None
+
 and sortcheck_pred f p = 
   match puw p with
     | True  

@@ -277,11 +277,27 @@ let t_pred ct v p =
   let r  = C.make_reft vv so [C.Conc p] in
   refctype_of_reft_ctype r ct
 
+let mk_eq_uf uf xs ys =
+  let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
+  A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
+
+let t_exp_ptr ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+  match ct, A.Expression.support e with
+  | (Ctypes.CTRef _), [x]  ->
+      let x  = A.eVar x  in
+      let vv = A.eVar vv in
+      [C.Conc (mk_eq_uf uf_bbegin [vv] [x]);
+       C.Conc (mk_eq_uf uf_bend   [vv] [x])]
+  | _ -> 
+      []
+
+
 let t_exp ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
-  let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let rs = (t_exp_ptr ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
 let t_name (_, vnv) n = 
