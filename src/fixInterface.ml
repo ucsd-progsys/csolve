@@ -110,7 +110,8 @@ let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
-  | [(ploc', rct)] -> (rct, ploc != ploc' (* i.e. soft *))
+  | [(ploc', rct)] -> 
+      (rct, not (ploc = ploc') (* is_soft_ploc ploc' *) (* i.e. soft *))
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
@@ -132,15 +133,10 @@ let is_soft_ptr sto cr =
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in
-  let _  = Errormsg.log "DONE: refstore_write 0: %a \n" Ctypes.d_ploc ploc in  
-  (* let _  = assert (is_concrete cl) in *)
-  let _  = Errormsg.log "DONE: refstore_write 1 \n" in
+  let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = SLM.find cl sto in
-  let _  = Errormsg.log "DONE: refstore_write 2 \n" in
   let ld = Ctypes.LDesc.remove ploc ld in
-  let _  = Errormsg.log "DONE: refstore_write 3 \n" in
   let ld = Ctypes.LDesc.add ploc rct' ld in
-  let _  = Errormsg.log "DONE: refstore_write 4 \n" in
   SLM.add cl ld sto
 
 

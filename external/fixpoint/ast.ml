@@ -60,15 +60,17 @@ module Symbol =
                                    let compare i1 i2 = compare i1 i2 end)
 
     
-    let is_wild = fun s -> if s = "" then false else s.[0] = '~'
-    
+    let is_wild s = 
+      if s = "" then false else 
+        (s.[0] = '~' || s.[0] = '@')
+
     let is_safe s = 
       let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
       Str.string_match re s 0
 
     let of_string = fun s -> s
 
-    let to_string = fun s -> if is_safe s then s else "'" ^ s ^ "'"      
+    let to_string = fun s -> s (* if is_safe s then s else "'" ^ s ^ "'" *)
 
     let print fmt s =
       to_string s |> Format.fprintf fmt "%s" 

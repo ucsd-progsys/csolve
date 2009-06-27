@@ -1,10 +1,11 @@
 TODO: 
 
 qualifs (easy hack)
-	1. postests/adpcmini.c [reduce time from 2m25s!]
+	1. postests/adpcmini.c [reduce time from 2m25s! to 5s]
 
 functions 
-	1. ll2.c 
+	0. postests/test03.c
+	1. postests/ll2.c 
 	2. deputy-esop example (ptr-copying) with functions
 	
 benchmarks
@@ -16,8 +17,12 @@ benchmarks
 - [specgen]	use C types to generate a "spec" file for each program,
 		that is, create a candidate input type for each function.
 		can be refined later.
+
 - [functions]	ll2.c 
-- [qualifs]	$prefix wild-variables, inst with prog vars that match prefix
+
+- [qualifs]	@prefix wild-variables, inst with prog vars that match prefix
+		see postests/adpmini.c
+
 - [benchmarks] 	crunch deputy benchmarks into single file
 ***************************************************************
 - [globals]	fake with params
