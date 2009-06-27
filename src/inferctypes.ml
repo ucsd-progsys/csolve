@@ -640,4 +640,5 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
      theta = theta }
 
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
+  let _ = M.sm_print_keys "infer_shapes env" env in 
   scis |> M.StringMap.map (fun (cft, sci) -> infer_shape env (cfun_instantiate cft |> fst) sci)

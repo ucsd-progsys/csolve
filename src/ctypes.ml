@@ -301,7 +301,7 @@ module LDesc = struct
           let p       = M.gcd (get_period_default po) p in
           let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
           let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-          let pcts    = List.sort (M.Ops.liftfst2 ploc_compare) (List.concat gs) in
+          let pcts    = List.sort (M.liftfst2 ploc_compare) (List.concat gs) in
             if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
               ((Some p, NonUniform pcts), b)
             else

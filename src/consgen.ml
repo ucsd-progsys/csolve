@@ -369,12 +369,6 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
-let print_keys name sm =
-  sm |> Misc.sm_to_list 
-     |> List.map fst 
-     |> String.concat ", "
-     |> Printf.printf "%s : %s \n" name
-
 let shapem_of_scim spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn rf (bm, fm) ->
@@ -383,7 +377,7 @@ let shapem_of_scim spec scim =
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else ((SM.add fn cf bm), fm)
      end spec
-  |> (fun (bm, fm) -> print_keys "builtins" bm; print_keys "non-builtins" fm; (bm, fm))
+  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   |> Misc.uncurry Inferctypes.infer_shapes 
 
 
