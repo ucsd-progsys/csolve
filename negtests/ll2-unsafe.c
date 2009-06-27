@@ -25,8 +25,8 @@ int foo(int n){
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
-    assert(tmp->data < n);
-    assert(tmp->data < 100);
+    assert(tmp->data <  n); 
+    assert(tmp->data < 10); //SHOULD FAIL
 //    assert(0); //SANITY
   }
 

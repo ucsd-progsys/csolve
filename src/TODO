@@ -1,6 +1,6 @@
 IMMEDIATE: 
 [functions] (also see below)
-	- postests/test03.c
+	- postests/test03.c [OK]
 	- postests/ll2.c 
 	- deputy-esop example (ptr-copying) with functions
 	
