@@ -1,9 +1,9 @@
 type name
 type cilenv
-type refctype = (Ctypes.index * Constraint.reft) Ctypes.prectype
-type refcfun  (*= (Ctypes.index * Constraint.reft) Ctypes.precfun *)
-type refldesc (*= (Ctypes.index * Constraint.reft) Ctypes.precfun *)
-type refstore = (Ctypes.index * Constraint.reft) Ctypes.prestore
+type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
+type refcfun  (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
+type refldesc (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
+type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
 
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
@@ -55,15 +55,15 @@ val is_soft_ptr         : refstore -> refctype -> bool
 
 val sorts               : Ast.Sort.t list
 
-val make_wfs            : cilenv -> refctype -> Cil.location -> Constraint.wf list
-val make_wfs_fn         : cilenv -> refcfun -> Cil.location -> Constraint.wf list
-val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> Constraint.wf list
+val make_wfs            : cilenv -> refctype -> Cil.location -> FixConstraint.wf list
+val make_wfs_fn         : cilenv -> refcfun -> Cil.location -> FixConstraint.wf list
+val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> FixConstraint.wf list
 val make_cs             : cilenv -> Ast.pred -> 
                           refctype -> refctype -> 
-                          Cil.location -> Constraint.t list
+                          Cil.location -> FixConstraint.t list
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
                           (Sloc.t * refldesc) -> (Sloc.t * refldesc) -> 
-                          Cil.location -> Constraint.t list
+                          Cil.location -> FixConstraint.t list
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
-                          Cil.location -> Constraint.t list
+                          Cil.location -> FixConstraint.t list
