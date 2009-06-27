@@ -49,6 +49,7 @@ val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
 val refstore_subs_exps  : (name * Cil.exp) list -> refstore -> refstore
+val is_soft_ptr         : refstore -> refctype -> bool 
 
 val sorts               : Ast.Sort.t list
 

@@ -9,8 +9,7 @@ TODO
 - [globals]	fake with params
 
 ***************************************************************
-- [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
-
+- [arrays] 	soften-array-writes
 
 1. when instantiating, 
 	don't create fresh name for (soft) i+ index
@@ -19,8 +18,9 @@ TODO
 	where x is the (fresh) name created for (hard) index i
    [see extend_world, refldesc_binds]
 
-HEREHEREHEREHEREHEREHERE
 2. reads as before (remove the lame "when" in refstore_read)
+
+HEREHEREHEREHEREHEREHERE
 
 3. distinguish between hard and soft writes
 	- FixInterface.is_soft_pointer: heap -> type -> bool

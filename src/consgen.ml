@@ -154,7 +154,7 @@ let cons_of_annots me loc grd wld annots =
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
 
-let cons_of_set me (env, sto) = function 
+let cons_of_set me loc grd (env, sto) = function 
   (* v := *v' *)
   | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) 
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
@@ -162,22 +162,27 @@ let cons_of_set me (env, sto) = function
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto)
+      (extend_env v cr env, sto), []
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
       let _  = CilMisc.check_pure_expr e in
       let cr = FI.t_exp (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto)
-  
+      (extend_env v cr env, sto), []
+
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, _))), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
-      let sto' = FI.t_exp (CF.ctype_of_expr me e) e
-                 |> FI.refstore_write sto addr in
-      (env, sto')
+      let cr'  = FI.t_exp (CF.ctype_of_expr me e) e in
+      if FI.is_soft_ptr sto addr then 
+        let cr   = FI.refstore_read sto addr in
+        ((env, sto), (FI.make_cs env grd cr' cr loc))
+      else
+        let sto' = FI.refstore_write sto addr cr' in
+        ((env, sto'), [])
+
   | _ -> assertf "TBD: cons_of_set"
 
 (****************************************************************************)
@@ -243,8 +248,8 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
   match instr with 
   | Set (lv, e, _) ->
       let _       = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
-      let wld     = cons_of_set me wld (lv, e) in
-      (wld, anncs)
+      let wld, cs = cons_of_set me loc grd wld (lv, e) in
+      (wld, cs ++ anncs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       let wld, cs = cons_of_call me loc grd wld (lvo, fv.Cil.vname, es) ns in
       (wld, anncs ++ cs)

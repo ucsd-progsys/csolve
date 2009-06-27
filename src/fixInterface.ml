@@ -110,7 +110,7 @@ let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
-  | [(ploc', rct)] when ploc = ploc' -> rct
+  | [(ploc', rct)] -> (rct, ploc != ploc' (* i.e. soft *))
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
@@ -118,10 +118,17 @@ let addr_of_refctype = function
       (cl, Ctypes.ploc_of_index i)
   | _ -> assertf "addr_of_refctype: bad args"
 
-let refstore_read sto cr = 
+let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
-  try SLM.find l sto |> refdesc_find ploc 
-  with _ -> assertf "refstore_read: bad address!"
+  SLM.find l sto |> refdesc_find ploc 
+
+(* API *)
+let refstore_read sto cr = 
+  ac_refstore_read sto cr |> fst
+
+(* API *)
+let is_soft_ptr sto cr = 
+  ac_refstore_read sto cr |> snd
 
 let refstore_write sto rct rct' = 
   let (cl, ploc) = addr_of_refctype rct in
