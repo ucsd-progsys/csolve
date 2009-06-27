@@ -378,7 +378,7 @@ let shapem_of_scim spec scim =
        else ((SM.add fn cf bm), fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
-  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
+  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm |> fst)
 
 let rename_args rf sci : FI.refcfun =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
