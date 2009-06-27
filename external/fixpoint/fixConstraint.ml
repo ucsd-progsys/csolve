@@ -123,6 +123,7 @@ let group_sol_change addf s0 ks kqs =
 (* API *)
 let group_sol_update = group_sol_change false
 let group_sol_add    = group_sol_change true
+
 (*************************************************************)
 (*********************** Logic Embedding *********************)
 (*************************************************************)
