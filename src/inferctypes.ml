@@ -573,7 +573,7 @@ let match_slocs (ct1: ctype) (ct2: ctype): outstore_status =
 
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_status =
   let oss = match_slocs atyp etyp in
-    if prectype_eq atyp etyp then
+    if is_subctype atyp etyp then
       oss
     else begin
       C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
