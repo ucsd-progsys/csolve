@@ -376,9 +376,11 @@ let make_wfs_fn cenv rft loc =
 
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
-    let ncrs = binds_of_refldesc l rd in
-    let env' = ce_adds env ncrs in
-    let ws'  = Misc.flap (fun (_,cr) -> make_wfs env' cr loc) ncrs in
+    let ncrs = sloc_binds_of_refldesc l rd in
+    let env' = ncrs |> List.filter (fun (_,ploc) -> not (is_soft_ploc ploc)) 
+                    |> List.map fst
+                    |> ce_adds env in 
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr loc) ncrs in
     ws' ++ ws
   end sto []
 

@@ -20,7 +20,6 @@ TODO
 
 2. reads as before (remove the lame "when" in refstore_read)
 
-HEREHEREHEREHEREHEREHERE
 
 3. distinguish between hard and soft writes
 	- FixInterface.is_soft_pointer: heap -> type -> bool
@@ -29,6 +28,8 @@ HEREHEREHEREHEREHEREHERE
 		- heap remains same
 		- let t+ = refstore_read heap x in
 		- constraint: env |- {v=e} <: t+ 
+
+HEREHEREHEREHEREHEREHERE
 
 ***************************************************************
 
