@@ -1,4 +1,16 @@
-TODO: functions, qualifs
+TODO: 
+
+qualifs (easy hack)
+	1. postests/adpcmini.c [reduce time from 2m25s!]
+
+functions 
+	1. ll2.c 
+	2. deputy-esop example (ptr-copying) with functions
+	
+benchmarks
+	3. adpcm working
+	4. pmapdistilled (!)
+
 
 ***************************************************************
 - [specgen]	use C types to generate a "spec" file for each program,

@@ -60,7 +60,7 @@ module Symbol =
                                    let compare i1 i2 = compare i1 i2 end)
 
     
-    let is_wild = fun s -> if s = "" then false else (s.[0] = '~' || s.[1] ='~')
+    let is_wild = fun s -> if s = "" then false else s.[0] = '~'
     
     let is_safe s = 
       let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
