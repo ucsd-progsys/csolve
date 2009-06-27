@@ -99,7 +99,6 @@ rule token = parse
   | "wf"                { WF }
   | "solution"          { SOL }
   | "qualif"            { QUL }
-  | "env"               { ENV }
   | "arg"               { ARG }
   | "ret"               { RET }
   | "store_in"          { INST }
