@@ -29,7 +29,6 @@ module C  = Constraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
-module I  = Inferctypes 
 
 open Misc.Ops
 

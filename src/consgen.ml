@@ -377,7 +377,7 @@ let shapem_of_scim spec scim =
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else ((SM.add fn cf bm), fm)
      end spec
-  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
+  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (SM.map FI.cfun_of_refcfun spec, fm))
   |> Misc.uncurry Inferctypes.infer_shapes 
 
 
