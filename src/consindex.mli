@@ -25,8 +25,8 @@
 
 
 type t
-val create: Constraint.wf list -> Constraint.t list -> t
-val add: t -> string -> Ssa_transform.ssaCfgInfo -> Constraint.wf list -> Constraint.t list -> t
-val print: Constraint.soln option -> Format.formatter -> t -> unit
-val get_wfs: t -> Constraint.wf list 
-val get_cs: t -> Constraint.t list
+val create: FixConstraint.wf list -> FixConstraint.t list -> t
+val add: t -> string -> Ssa_transform.ssaCfgInfo -> FixConstraint.wf list -> FixConstraint.t list -> t
+val print: FixConstraint.soln option -> Format.formatter -> t -> unit
+val get_wfs: t -> FixConstraint.wf list 
+val get_cs: t -> FixConstraint.t list

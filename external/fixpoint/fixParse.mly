@@ -5,7 +5,7 @@ module So = A.Sort
 module Sy = A.Symbol
 module E  = A.Expression
 module P  = A.Predicate
-module C  = Constraint
+module C  = FixConstraint
 
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
@@ -30,8 +30,8 @@ let parse_error msg =
 
 %start defs 
 
-%type <Constraint.deft list>    defs
-%type <Constraint.deft>         def
+%type <FixConstraint.deft list>    defs
+%type <FixConstraint.deft>         def
 %type <So.t list>               sorts, sortsne 
 %type <So.t>                    sort
 %type <(Sy.t * So.t) list>      binds, bindsne 

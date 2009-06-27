@@ -41,16 +41,20 @@ let mk_cil fname =
   cil
 
 let print_sci_shapes spec scis =
-  I.infer_shapes spec scis |> Misc.StringMap.iter begin fun fname {I.vtyps = locals; I.store = st} ->
-    let _ = P.printf "%s@!" fname in
-    let _ = P.printf "============@!@!" in
-    let _ = P.printf "Locals:@!" in
-    let _ = P.printf "-------@!@!" in
-    let _ = P.printf "%a@!@!" I.d_vartypes locals in
-    let _ = P.printf "Store:@!" in
-    let _ = P.printf "------@!@!" in
-    let _ = P.printf "%a@!@!" Ctypes.d_store st in
-      ()
+  let (scim, env) = I.infer_shapes spec scis in
+    scim |> Misc.StringMap.iter begin fun fname {I.vtyps = locals; I.store = st} ->
+      let _ = P.printf "%s@!" fname in
+      let _ = P.printf "============@!@!" in
+      let _ = P.printf "Signature:@!" in
+      let _ = P.printf "----------@!@!" in
+      let _ = P.printf "%a@!@!" Ctypes.d_cfun <| Misc.StringMap.find fname env in
+      let _ = P.printf "Locals:@!" in
+      let _ = P.printf "-------@!@!" in
+      let _ = P.printf "%a@!@!" I.d_vartypes locals in
+      let _ = P.printf "Store:@!" in
+      let _ = P.printf "------@!@!" in
+      let _ = P.printf "%a@!@!" Ctypes.d_store st in
+        ()
   end
 
 let add_sci spec map sci =

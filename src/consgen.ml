@@ -337,25 +337,13 @@ let shapem_of_scim spec scim =
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
 
-let gnv_of_spec spec gnv = 
-  SM.fold begin fun fn ft gnv ->
-    if FI.ce_mem_fn fn gnv then gnv else 
-      FI.ce_adds_fn gnv [(fn, ft)] 
-  end spec gnv
-
-let gnv_of_decs spec decs =
-  decs |> List.fold_left begin fun gnv (fn,_) ->
-            let fr = Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec in 
-            let ft = fr |> FI.cfun_of_refcfun |> FI.t_fresh_fn in 
-            FI.ce_adds_fn gnv [(fn, ft)] 
-          end FI.ce_empty 
-       |> gnv_of_spec spec
-
 let mk_gnv spec cenv decs = 
   let decm = decs |> List.map (fun x -> (x,())) |> Misc.sm_of_list in
   Misc.sm_to_list cenv
   |> List.map begin fun (fn, ft) -> 
-      (fn, if SM.mem fn decm then FI.t_fresh_fn ft else SM.find fn spec)
+      (fn, if SM.mem fn decm 
+           then FI.t_fresh_fn ft 
+           else Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec)
      end
   |> FI.ce_adds_fn FI.ce_empty 
 

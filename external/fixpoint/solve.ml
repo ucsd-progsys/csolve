@@ -33,9 +33,9 @@ module Q  = A.Qualifier
 module PH = A.Predicate.Hash
 module Sy = A.Symbol
 module SM = Sy.SMap
-module C  = Constraint
+module C  = FixConstraint
 module Ci = Cindex
-module TP = TheoremProverZ3.Prover
+module TP = TpZ3.Prover
 
 open Misc.Ops
 

@@ -25,7 +25,7 @@
 
 module E  = Errormsg
 module A  = Ast
-module C  = Constraint
+module C  = FixConstraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
