@@ -5,6 +5,13 @@ malloc ::
   store_in []
   store_out [C0 |-> ]
 
+free ::
+  forall [C0]
+  arg (ptr: ref (C0, 0, {v | 0 < v}))
+  ret int(0, true, {v | true})
+  store_in [C0 |-> ]
+  store_out [C0 |-> ]
+
 validptr ::
   forall    [A0]
   arg       (x: ref (A0, true, {v| && [(BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]}))
