@@ -32,4 +32,4 @@ type shape =
 
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
 val d_vartypes: unit -> (Cil.varinfo * Ctypes.ctype) list -> Pretty.doc
-val infer_shapes: Ctypes.ctypeenv -> funmap -> shape Misc.StringMap.t
+val infer_shapes: Ctypes.ctypeenv -> funmap -> shape Misc.StringMap.t * Ctypes.ctypeenv

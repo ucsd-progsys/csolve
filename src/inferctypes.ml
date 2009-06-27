@@ -639,6 +639,8 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
      anna  = anna;
      theta = theta }
 
-let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t =
-  let _ = M.sm_print_keys "infer_shapes env" env in 
-  scis |> M.StringMap.map (fun (cft, sci) -> infer_shape env (cfun_instantiate cft |> fst) sci)
+let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t * ctypeenv =
+  SM.fold begin fun fn (cft, sci) (sm, env) ->
+    let cfi = cfun_instantiate cft |> fst in
+      (SM.add fn (infer_shape env cfi sci ) sm, SM.add fn cfi env)
+  end scis (SM.empty, env)
