@@ -21,12 +21,6 @@
  *
  *)
 
-(* ignore this line:
-  * it's a silly hack to get ocamlbuild to compile
-  * our alias for FixConstraint *)
-(*
-module Unused = FixFixConstraint
-*)
 
 (** read a set of constraints, solve, and dump out the solution *)
 
