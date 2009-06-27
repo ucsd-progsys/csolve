@@ -91,15 +91,22 @@ let refstore_get sto l =
     Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
     assertf "refstore_get"
 
+let is_soft_ploc = function
+  | Ctypes.PLAt _ -> false
+  | _             -> true
+
 let sloc_binds_of_refldesc l rd = 
-  Ctypes.LDesc.foldn begin fun i binds ploc rct -> 
+  Ctypes.LDesc.foldn begin fun i binds ploc rct ->
     ((name_of_sloc_ploc l ploc, rct), ploc)::binds
   end [] rd
   |> List.rev
 
-let binds_of_refldesc l rd = sloc_binds_of_refldesc l rd |> List.map fst
+let binds_of_refldesc l rd = 
+  sloc_binds_of_refldesc l rd 
+  |> List.filter (fun (_, ploc) -> not (is_soft_ploc ploc))
+  |> List.map fst
 
-let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn (fun i _ rct -> f i rct) rd
+let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
@@ -117,11 +124,16 @@ let refstore_read sto cr =
   with _ -> assertf "refstore_read: bad address!"
 
 let refstore_write sto rct rct' = 
-  let (cl, ploc) = addr_of_refctype rct in 
+  let (cl, ploc) = addr_of_refctype rct in
+  let _  = Errormsg.log "DONE: refstore_write 0: %a \n" Ctypes.d_ploc ploc in  
   (* let _  = assert (is_concrete cl) in *)
+  let _  = Errormsg.log "DONE: refstore_write 1 \n" in
   let ld = SLM.find cl sto in
+  let _  = Errormsg.log "DONE: refstore_write 2 \n" in
   let ld = Ctypes.LDesc.remove ploc ld in
+  let _  = Errormsg.log "DONE: refstore_write 3 \n" in
   let ld = Ctypes.LDesc.add ploc rct' ld in
+  let _  = Errormsg.log "DONE: refstore_write 4 \n" in
   SLM.add cl ld sto
 
 

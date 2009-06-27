@@ -54,14 +54,20 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x,y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
-let extend_world ld binds loc (env, sto) = 
+let extend_world ld binds loc newloc (env, sto) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
   let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                |> FI.ce_adds env in
-  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0,IM.empty) subs in
-  let sto'   = FI.refldesc_subs ld (fun i _ -> IM.find i im |> FI.t_name env') 
-               |> FI.refstore_set sto loc in
+  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
+  let ld'    = FI.refldesc_subs ld begin fun i ploc rct ->
+                  if IM.mem i im then IM.find i im |> FI.t_name env' else
+                    match ploc with 
+                    | Ctypes.PLAt _ -> assertf "missing binding!"
+                    | _ when newloc -> FI.t_true_refctype rct
+                    | _             -> FI.t_subs_names subs rct
+               end in
+  let sto'   = FI.refstore_set sto loc ld' in
   (env', sto')
 
 let extend_env v cr env =
@@ -134,7 +140,7 @@ let cons_of_annot loc grd (env, sto) = function
       let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
-      let wld    = extend_world aldesc abinds cloc (env, sto) in
+      let wld    = extend_world aldesc abinds cloc false (env, sto) in
       (wld, [])
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -204,7 +210,7 @@ let instantiate_cloc me wld (aloc, cloc) =
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
                |> List.map (Misc.app_snd FI.t_true_refctype) in
-  extend_world aldesc abinds cloc wld
+  extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
@@ -226,46 +232,6 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let wld'  = poly_clocs_of_store ocst ns 
               |> List.fold_left (instantiate_cloc me) (env', st') in
   (wld', cs1 ++ cs2 ++ cs3)
- 
-
-
-  (* {{{ OLD CODE FOR CONS_OF_CALL
-  let (ncrs, cr) = FI.ce_find_fn fn env in
-  let _    = asserts (List.length ncrs = List.length es) "cons_of_call: length" in
-  let ns   = Misc.map fst ncrs in
-  let crs  = List.map (fun e -> FI.t_exp (CF.ctype_of_expr me e) e) es in
-  let cenv = FI.ce_adds env (List.combine ns crs) in
-  let cs   = Misc.flap begin fun (n, cr) -> 
-                FI.make_cs cenv grd (FI.t_name cenv n) cr loc
-             end ncrs in
-  match lvo with 
-  | None -> ((env, cst), cs)  
-  | Some ((Var v), NoOffset) ->
-      let vn  = FI.name_of_varinfo v in
-      let cr' = cr |> FI.t_subs_exps (List.combine ns es) in
-      ((FI.ce_adds env [vn, cr'], cst), cs)
-  | _  -> assertf "TBD: cons_of_call" 
- *)
- (*  OLD CODE TO HANDLE MALLOC
- if fv.Cil.vname = "malloc" && !Constants.dropcalls then 
-   let _          = asserts (is = []) "cons_of_annotinstr: ins-in-call" in
-   let wld, cs    = cons_of_annots me loc grd wld gs in
-   match ns, lvo with
-   | [Refanno.New (aloc, cloc)], Some ((Var v), NoOffset) ->
-       (* step 1: add bindings for new cells *)
-
-       let aldesc     = FI.refstore_get (CF.get_astore me) aloc in
-       let abinds     = FI.binds_of_refldesc aloc aldesc 
-                        |> List.map (Misc.app_snd FI.t_true_refctype) in
-       let (env, sto) = extend_world aldesc abinds cloc wld in
-
-       (* step 2: add bindings for returned ptr *)
-       let cr         = CF.ctype_of_varinfo me v |> FI.t_true in
-       let env        = FI.ce_adds env [FI.name_of_varinfo v, cr] in
-       (env, sto), []
-   | _ -> assertf "cons_of_annotinstr: malformed malloc call!" 
-  else 
-    END HACK }}} *)
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)

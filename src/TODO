@@ -5,11 +5,30 @@ TODO
 
 - [functions]	ll2.c
 - [qualifs]	$prefix wild-variables, inst with prog vars that match prefix
-
-- [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
-
 - [benchmarks] 	crunch deputy benchmarks into single file
 - [globals]	fake with params
+
+***************************************************************
+- [arrays] 	fix consgen bug to use ploc returned by find before remove/add.
+
+
+1. when instantiating, 
+	don't create fresh name for (soft) i+ index
+	gen type of i+:t+
+	ins type of i+:t+[x.../ni...]
+	where x is the (fresh) name created for (hard) index i
+   [see extend_world, refldesc_binds]
+
+HEREHEREHEREHEREHEREHERE
+2. reads as before (remove the lame "when" in refstore_read)
+
+3. distinguish between hard and soft writes
+	- FixInterface.is_soft_pointer: heap -> type -> bool
+	- *x = e  when x is hard: as before 
+	- *x = e  when x is soft: 
+		- heap remains same
+		- let t+ = refstore_read heap x in
+		- constraint: env |- {v=e} <: t+ 
 
 ***************************************************************
 

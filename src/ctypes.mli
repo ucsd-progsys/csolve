@@ -109,6 +109,7 @@ type ctemap = ctype ExpMap.t
 (******************************* Pretty Printers ******************************)
 (******************************************************************************)
 
+val d_ploc : unit -> ploc -> Pretty.doc
 val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc

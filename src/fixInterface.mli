@@ -44,7 +44,7 @@ val refstore_mem        : Sloc.t -> refstore -> bool
 val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
-val refldesc_subs       : refldesc -> (int -> refctype -> refctype) -> refldesc 
+val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
 val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore

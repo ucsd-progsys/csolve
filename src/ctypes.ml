@@ -150,6 +150,11 @@ type ploc =
   | PLSeq of int  (* location n plus periodic repeats *)
   | PLEverywhere  (* location 0, plus repeats infinitely in both directions *)
 
+let d_ploc (): ploc -> P.doc = function
+  | PLAt i      -> P.dprintf "PLAt %d" i
+  | PLSeq i     -> P.dprintf "PLSeq %d" i
+  | PLEverywhere-> P.text "⊥"
+
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
     | PLAt n       -> IInt n
