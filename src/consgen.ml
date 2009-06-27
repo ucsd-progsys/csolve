@@ -267,7 +267,7 @@ let cons_of_ret me loc grd (env, st) e =
   let rhs    = FI.ret_of_refcfun frt in
   let _, ost = FI.stores_of_refcfun frt in
   (FI.make_cs env grd lhs rhs loc) ++
-  (FI.make_cs_refstore env grd st ost true loc)
+  (FI.make_cs_refstore env grd st ost true loc; 1/0; assert false)
 
 let cons_of_annotstmt me loc grd wld (anns, stmt) = 
   match stmt.skind with
@@ -326,22 +326,16 @@ let cons_of_sci gnv sci shp =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let add_scis gnv scim shpm ci = 
-  SM.fold begin fun fn sci ci ->
-    let _ = Pretty.printf "Constraining %s:\n\n%a\n\n" sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody in
-        cons_of_sci gnv sci (SM.find fn shpm)
-     |> Misc.uncurry (Consindex.add ci fn sci)
-  end scim ci 
-
-(* NOTE: 1. templates for formals are in "global" gnv, 
-         2. each function var is bound to its "output" *) 
-let decs_of_file cil = 
-  Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc) -> (fdec.svar.vname, loc) :: acc 
-    | _                -> if !Constants.safe then assertf "decs_of_file" else
-                          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
-                          acc
-  end []
+let shapem_of_scim spec scim =
+  (SM.empty, SM.empty)
+  |> SM.fold begin fun fn rf (bm, fm) ->
+       let cf = FI.cfun_of_refcfun rf in
+       if SM.mem fn scim 
+       then (bm, (SM.add fn (cf, SM.find fn scim) fm))
+       else ((SM.add fn cf bm), fm)
+     end spec
+  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
+  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
 
 let gnv_of_spec spec gnv = 
   SM.fold begin fun fn ft gnv ->
@@ -357,28 +351,17 @@ let gnv_of_decs spec decs =
           end FI.ce_empty 
        |> gnv_of_spec spec
 
-let cons_of_decs gnv decs =
-  List.fold_left begin fun (ws, cs) (fn, loc) -> 
-      ((FI.make_wfs_fn gnv (FI.ce_find_fn fn gnv) loc) ++ ws, cs)
-  end ([], []) decs
+let mk_gnv spec cenv decs = 
+  let decm = decs |> List.map (fun x -> (x,())) |> Misc.sm_of_list in
+  Misc.sm_to_list cenv
+  |> List.map begin fun (fn, ft) -> 
+      (fn, if SM.mem fn decm then FI.t_fresh_fn ft else SM.find fn spec)
+     end
+  |> FI.ce_adds_fn FI.ce_empty 
 
-let scim_of_file cil =
-  cil |> ST.scis_of_file 
-      |> List.fold_left begin fun acc sci -> 
-           let fn = sci.ST.fdec.svar.vname in
-           SM.add fn sci acc
-         end SM.empty
-
-let shapem_of_scim spec scim =
-  (SM.empty, SM.empty)
-  |> SM.fold begin fun fn rf (bm, fm) ->
-       let cf = FI.cfun_of_refcfun rf in
-       if SM.mem fn scim 
-       then (bm, (SM.add fn (cf, SM.find fn scim) fm))
-       else ((SM.add fn cf bm), fm)
-     end spec
-  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
-  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
+(********************************************************************************)
+(*************************** Unify Spec Names and CIL names *********************)
+(********************************************************************************)
 
 let rename_args rf sci : FI.refcfun =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
@@ -403,20 +386,53 @@ let rename_spec scim spec =
   |> Misc.sm_of_list
 
 (************************************************************************************)
+(***************** Generate Constraints for each Function ***************************)
+(************************************************************************************)
+
+let cons_of_decs gnv decs =
+  List.fold_left begin fun (ws, cs) (fn, loc) -> 
+      ((FI.make_wfs_fn gnv (FI.ce_find_fn fn gnv) loc) ++ ws, cs)
+  end ([], []) decs
+
+let cons_of_scis gnv scim shpm ci = 
+  SM.fold begin fun fn sci ci ->
+    let _ = if mydebug then 
+      Pretty.printf "Generating Constraints for %s:\n\n%a\n\n" 
+      sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody in
+        cons_of_sci gnv sci (SM.find fn shpm)
+     |> Misc.uncurry (Consindex.add ci fn sci)
+  end scim ci 
+
+(************************************************************************************)
 (******************************** API ***********************************************)
 (************************************************************************************)
 
+let decs_of_file cil = 
+  Cil.foldGlobals cil begin fun acc g -> match g with
+    | GFun (fdec, loc) -> (fdec.svar.vname, loc) :: acc 
+    | _                -> if !Constants.safe then assertf "decs_of_file" else
+                          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
+                          acc
+  end []
+
+let scim_of_file cil =
+  cil |> ST.scis_of_file 
+      |> List.fold_left begin fun acc sci -> 
+           let fn = sci.ST.fdec.svar.vname in
+           SM.add fn sci acc
+         end SM.empty
+
 (* API *)
 let create cil spec =
-  let scim = scim_of_file cil in
-  let _    = E.log "DONE: SSA conversion \n" in
-  let spec = rename_spec scim spec in
-  let shpm = shapem_of_scim spec scim in
-  let _    = E.log "DONE: Shape Inference \n" in
-  let decs = decs_of_file cil in
-  let _    = E.log "DONE: Decls of File \n" in
-  let gnv  = gnv_of_decs spec decs in
-  let _    = E.log "DONE: Global Environment \n" in
+  let scim     = scim_of_file cil in
+  let _        = E.log "DONE: SSA conversion \n" in
+  let spec     = rename_spec scim spec in
+  let shm, cnv = shapem_of_scim spec scim in
+  let _        = E.log "DONE: Shape Inference \n" in
+  let decs     = decs_of_file cil in 
+  let _        = E.log "DONE: Gathering Decs \n" in
+  let gnv      = mk_gnv spec cnv decs in
+  let _        = E.log "DONE: Global Environment \n" in
   cons_of_decs gnv decs 
   |> Misc.uncurry Consindex.create
-  |> add_scis gnv scim shpm
+  |> cons_of_scis gnv scim shpm
