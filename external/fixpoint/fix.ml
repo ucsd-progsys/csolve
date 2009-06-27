@@ -29,7 +29,7 @@ module Sort       = Ast.Sort
 module Predicate  = Ast.Sort
 module Expression = Ast.Expression
 
-module Constraint = Constraint
+module FixConstraint = FixConstraint
 module Solve      = Solve
 
 

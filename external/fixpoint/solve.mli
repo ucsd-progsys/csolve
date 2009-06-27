@@ -29,14 +29,14 @@ type t
 val create      :  Ast.Sort.t list 
                 -> Ast.Sort.t Ast.Symbol.SMap.t 
                 -> Ast.pred list 
-                -> Constraint.t list 
-                -> Constraint.wf list
+                -> FixConstraint.t list 
+                -> FixConstraint.wf list
                 -> Ast.Qualifier.t list
-                -> (t * Constraint.soln)
+                -> (t * FixConstraint.soln)
 
 val solve       :  t 
-                -> Constraint.soln 
-                -> (Constraint.soln * (Constraint.t list))
+                -> FixConstraint.soln 
+                -> (FixConstraint.soln * (FixConstraint.t list))
 
-val save        : string -> t -> Constraint.soln -> unit 
+val save        : string -> t -> FixConstraint.soln -> unit 
 

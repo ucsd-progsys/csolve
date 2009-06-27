@@ -30,14 +30,14 @@ type wkl
 
 (** indexing and dependencies *)
 
-val to_list     : t -> Constraint.t list 
-val create      : Constraint.t list -> t 
-val deps        : t -> Constraint.t -> Constraint.t list
-val iter        : (Constraint.t -> unit) -> t -> unit
+val to_list     : t -> FixConstraint.t list 
+val create      : FixConstraint.t list -> t 
+val deps        : t -> FixConstraint.t -> FixConstraint.t list
+val iter        : (FixConstraint.t -> unit) -> t -> unit
 
 (** worklist manipulation *)
-val wpush       : t -> wkl -> Constraint.t list -> wkl 
-val wpop        : t -> wkl -> (Constraint.t option * wkl)
+val wpush       : t -> wkl -> FixConstraint.t list -> wkl 
+val wpop        : t -> wkl -> (FixConstraint.t option * wkl)
 val winit       : t -> wkl
 
 (** printing *)

@@ -25,7 +25,7 @@
 
 
 module  F = Format
-module  C = Constraint
+module  C = FixConstraint
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 

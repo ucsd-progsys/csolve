@@ -28,7 +28,7 @@
 module F  = Format
 module BS = Bstats
 module Co = Constants
-module C  = Constraint
+module C  = FixConstraint
 module IM = Misc.IntMap
 module SM = Ast.Symbol.SMap 
 open Misc.Ops
@@ -48,7 +48,7 @@ module WH =
 type wkl = WH.t
 
 type t = 
-  { cnst: Constraint.t IM.t;            (* id -> refinement_constraint *) 
+  { cnst: FixConstraint.t IM.t;            (* id -> refinement_constraint *) 
     rank: (int * bool) IM.t;            (* id -> dependency rank *)
     depm: subref_id list IM.t;          (* id -> successor ids *)
     pend: (subref_id,unit) Hashtbl.t;   (* id -> is in wkl ? *)
@@ -84,7 +84,7 @@ let make_rank_map () (cm : C.t IM.t) =
   let upd id km k = SM.add k (id::(get km k)) km in
   let km = 
     IM.fold 
-      (fun id (c:Constraint.t) vm -> lhs_ks c |> List.fold_left (upd id) vm) 
+      (fun id (c:FixConstraint.t) vm -> lhs_ks c |> List.fold_left (upd id) vm) 
       cm SM.empty in
   let (dm, deps) = 
     IM.fold
