@@ -103,6 +103,7 @@ let liquidate file =
   let cil   = cil_of_file file in
   let _     = E.log "DONE: cil parsing \n" in
   let qs    = quals_of_file file in
+  let _     = E.log "DONE: qualifier parsing \n" in
   let spec  = spec_of_file file in
   let _     = E.log "DONE: spec parsing \n" in
   let me    = Consgen.create cil spec in

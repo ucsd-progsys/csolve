@@ -67,7 +67,9 @@ let ctype_of_local locals v =
 
 let env_of_fdec gnv fdec locals =
   let rft = FI.ce_find_fn fdec.svar.vname gnv in
-  let env0 = FI.args_of_refcfun rft |> FI.ce_adds gnv in
+  let env0 = FI.args_of_refcfun rft 
+             |> List.map (Misc.app_fst FI.name_of_string)
+             |> FI.ce_adds gnv in
   fdec.slocals 
   |> List.filter ST.is_origcilvar
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))

@@ -13,6 +13,6 @@ void main(){
   x = nondet(); 
   y = abs(x);
 
-  assert(y >= 0);
+  assert(y >= 10);
   return;
 }

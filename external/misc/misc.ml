@@ -96,10 +96,16 @@ module StringMap =
       compare i1 i2
   end)
 
+let sm_extend sm1 sm2 =
+  StringMap.fold StringMap.add sm2 sm1 
+
 let sm_filter f sm = 
-  StringMap.fold 
-    (fun x y sm -> if f x y then StringMap.add x y sm else sm) 
-    sm StringMap.empty 
+  StringMap.fold begin fun x y sm -> 
+    if f x y then StringMap.add x y sm else sm 
+  end sm StringMap.empty 
+
+let sm_of_list kvs = 
+  List.fold_left (fun sm (k,v) -> StringMap.add k v sm) StringMap.empty kvs
 
 let sm_to_list sm = 
   StringMap.fold (fun k v acc -> (k,v)::acc) sm [] 

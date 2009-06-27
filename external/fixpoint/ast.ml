@@ -564,7 +564,7 @@ let rec sortcheck_expr f e =
         | (Some t1, Some t2) when t1 = t2 -> Some t1 
         | _ -> None
       else None
-  | App (uf, es) ->
+  | App (uf, es) -> begin
       let ft = try f uf with _ -> assertf "ERROR: unknown uf = %s" (Symbol.to_string uf) in
       match ft with
       | Sort.Func ts when List.length ts = 1 + List.length es -> begin
@@ -577,7 +577,8 @@ let rec sortcheck_expr f e =
               None
         | _ -> assertf "impossible"
       end
-      | _ -> None
+  end
+  | _ -> None
 
 and sortcheck_pred f p = 
   match puw p with

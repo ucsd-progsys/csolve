@@ -75,7 +75,7 @@ let extend_env v cr env =
 
 let rename_store lsubs subs sto = 
   sto |> Ctypes.prestore_subs lsubs 
-      |> FI.refstore_subs_exps subs 
+      |> FI.refstore_subs FI.t_subs_exps subs 
 
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
@@ -220,7 +220,7 @@ let instantiate_cloc me wld (aloc, cloc) =
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
-  let args  = FI.args_of_refcfun frt in
+  let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
   let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
               List.combine (List.map fst args) es in
@@ -378,9 +378,29 @@ let shapem_of_scim spec scim =
        else ((SM.add fn cf bm), fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
-  |> Misc.uncurry Inferctypes.infer_shapes 
+  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
 
+let rename_args rf sci : FI.refcfun =
+  let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
+  let xrs      = FI.args_of_refcfun rf in
+  let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
+  let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
+  let subs     = List.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
+  let qls'     = FI.qlocs_of_refcfun rf in
+  let args'    = List.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
+  let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
+  let hi', ho' = rf |> FI.stores_of_refcfun
+                    |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
+  FI.mk_refcfun qls' args' hi' ret' ho' 
 
+let rename_spec scim spec =
+  Misc.sm_to_list spec 
+  |> List.map begin fun (fn, rf) -> 
+      if SM.mem fn scim 
+      then (fn, rename_args rf (SM.find fn scim))
+      else (fn, rf)
+     end
+  |> Misc.sm_of_list
 
 (************************************************************************************)
 (******************************** API ***********************************************)
@@ -390,6 +410,7 @@ let shapem_of_scim spec scim =
 let create cil spec =
   let scim = scim_of_file cil in
   let _    = E.log "DONE: SSA conversion \n" in
+  let spec = rename_spec scim spec in
   let shpm = shapem_of_scim spec scim in
   let _    = E.log "DONE: Shape Inference \n" in
   let decs = decs_of_file cil in

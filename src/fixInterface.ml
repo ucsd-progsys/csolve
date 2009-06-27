@@ -25,6 +25,8 @@ open Cil
 
 type name = Sy.t
 
+let string_of_name = Sy.to_string 
+
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 
 let name_of_string  = fun s -> Sy.of_string s
@@ -62,10 +64,11 @@ let ctype_of_refctype = function
 
 (* API *)
 let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
-let args_of_refcfun   = fun ft -> List.map (Misc.app_fst name_of_string) ft.Ctypes.args
+let qlocs_of_refcfun  = fun ft -> ft.Ctypes.qlocs
+let args_of_refcfun   = fun ft -> ft.Ctypes.args
 let ret_of_refcfun    = fun ft -> ft.Ctypes.ret
 let stores_of_refcfun = fun ft -> (ft.Ctypes.sto_in, ft.Ctypes.sto_out)
-let mk_cfun qslocs args ist ret ost = 
+let mk_refcfun qslocs args ist ret ost = 
   { Ctypes.qlocs   = qslocs; 
     Ctypes.args    = args;
     Ctypes.ret     = ret;
@@ -167,7 +170,7 @@ let true_int  = int_refctype_of_ras []
 let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
 
 let mk_pure_cfun args ret = 
-  mk_cfun [] args refstore_empty ret refstore_empty
+  mk_refcfun [] args refstore_empty ret refstore_empty
 
 let builtins    = 
   [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
@@ -348,12 +351,11 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ctypes.prectype_map
 
-let t_subs_locs        = Ctypes.prectype_subs 
-let t_subs_exps        = refctype_subs CI.expr_of_cilexp
-let t_subs_names       = refctype_subs A.eVar
-let refstore_fresh     = Ctypes.prestore_map_ct t_fresh
-let refstore_subs_exps = fun nes st -> Ctypes.prestore_map_ct (t_subs_exps nes) st
-
+let t_subs_locs    = Ctypes.prectype_subs 
+let t_subs_exps    = refctype_subs CI.expr_of_cilexp
+let t_subs_names   = refctype_subs A.eVar
+let refstore_fresh = Ctypes.prestore_map_ct t_fresh
+let refstore_subs  = fun f subs st -> Ctypes.prestore_map_ct (f subs) st
 
 (****************************************************************)
 (********************** Constraints *****************************)
