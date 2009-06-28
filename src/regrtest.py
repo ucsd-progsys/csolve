@@ -65,7 +65,7 @@ def runtest(file, expected_status):
 def runtests(dir, expected_status):
   print "Running tests from %s/" % dir
   files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
-  return [runtest(file, expected_status) for file in files if file.endswith(".c")]
+  return [runtest(file, expected_status) for file in files if file.endswith(".c") and not file.endswith(".ssa.c")]
 
 #####################################################################################
 
