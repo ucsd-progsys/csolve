@@ -577,6 +577,7 @@ let rec sortcheck_expr f e =
               None
         | _ -> assertf "impossible"
       end
+      | _ -> None
   end
   | _ -> None
 

@@ -23,5 +23,6 @@ node_t *main(){
 
 //  assert(0); //SANITY
 
+  n = 92;
   return root;
 }

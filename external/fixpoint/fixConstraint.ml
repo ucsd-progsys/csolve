@@ -64,9 +64,11 @@ let kvars_of_reft (_, _, rs) =
 let env_of_bindings xrs =
   List.fold_left begin
     fun env (x, r) -> 
-      if SM.mem x env
-      then (asserts (r = SM.find x env) "env_of_bindings:duplicate check"; env) 
-      else SM.add x r env
+      if not (SM.mem x env) then SM.add x r env else
+        ((if not (r = SM.find x env) then 
+          Printf.printf "WARNING: env_of_bindings : duplicate %s" (Sy.to_string x)); 
+         env) 
+       
   end SM.empty xrs
 
 let bindings_of_env env = 

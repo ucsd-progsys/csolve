@@ -210,6 +210,18 @@ let ce_mem_fn = fun s (fnv, _) -> SM.mem s fnv
 
 let ce_empty = (SM.empty, YM.empty) 
 
+let d_cilenv () (fnv, _) = failwith "TBD: d_cilenv"
+
+(* 
+let d_funbind () (fn, fr) = 
+  P.dprintf "%s :: \n %a" fn (Ctypes.d_precfun ...) fr
+
+let d_cilenv () (fnv, _) =
+  let fs = Misc.sm_to_list fnv in
+  Pretty.seq (Pretty.text "\n") (d_funbind ())  
+*)
+
+
 (*
 let ce_project base_env fun_env ns =
   ns |> Misc.filter (fun vn -> not (YM.mem vn base_env))
@@ -365,13 +377,6 @@ let make_wfs cenv rct loc =
   let r   = reft_of_refctype rct in
   [C.make_wf env r None]
 
-let make_wfs_fn cenv rft loc =
-  let args = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
-  let env' = ce_adds cenv args in
-  let rws  = make_wfs env' rft.Ctypes.ret loc in
-  let aws  = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
-  rws ++ aws
-
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
@@ -381,6 +386,15 @@ let make_wfs_refstore env sto loc =
     let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr loc) ncrs in
     ws' ++ ws
   end sto []
+
+let make_wfs_fn cenv rft loc =
+  let args  = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
+  let env'  = ce_adds cenv args in
+  let retws = make_wfs env' rft.Ctypes.ret loc in
+  let argws = Misc.flap (fun (_, rct) -> make_wfs env' rct loc) args in
+  let inws  = make_wfs_refstore env' rft.Ctypes.sto_in loc in
+  let outws = make_wfs_refstore env' rft.Ctypes.sto_out loc in
+  Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
 let rec make_cs cenv p rct1 rct2 loc =
   let env    = env_of_cilenv cenv in

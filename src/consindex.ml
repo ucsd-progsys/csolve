@@ -70,7 +70,8 @@ let env_of_ws ws =
      |> Misc.flap C.bindings_of_env in
   let _ = Printf.printf "env_of_ws: BOO |ws| = %d, |bs| = %d \n" (List.length ws)
   (List.length bs) in 
-   C.env_of_bindings bs  
+   C.env_of_bindings bs
+
 (* API *)
 let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 

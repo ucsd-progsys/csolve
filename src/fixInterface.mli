@@ -26,6 +26,9 @@ val ce_find             : name -> cilenv -> refctype
 val ce_mem_fn           : string -> cilenv -> bool
 val ce_adds_fn          : cilenv -> (string * refcfun) list -> cilenv
 val ce_find_fn          : string -> cilenv -> refcfun
+val d_cilenv            : unit -> cilenv -> Pretty.doc
+
+
 
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype

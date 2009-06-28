@@ -267,7 +267,7 @@ let cons_of_ret me loc grd (env, st) e =
   let rhs    = FI.ret_of_refcfun frt in
   let _, ost = FI.stores_of_refcfun frt in
   (FI.make_cs env grd lhs rhs loc) ++
-  (FI.make_cs_refstore env grd st ost true loc; 1/0; assert false)
+  (FI.make_cs_refstore env grd st ost true loc)
 
 let cons_of_annotstmt me loc grd wld (anns, stmt) = 
   match stmt.skind with
@@ -338,7 +338,7 @@ let shapem_of_scim spec scim =
   |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
 
 let mk_gnv spec cenv decs = 
-  let decm = decs |> List.map (fun x -> (x,())) |> Misc.sm_of_list in
+  let decm = Misc.sm_of_list decs in
   Misc.sm_to_list cenv
   |> List.map begin fun (fn, ft) -> 
       (fn, if SM.mem fn decm 
@@ -386,7 +386,9 @@ let cons_of_scis gnv scim shpm ci =
   SM.fold begin fun fn sci ci ->
     let _ = if mydebug then 
       Pretty.printf "Generating Constraints for %s:\n\n%a\n\n" 
-      sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody in
+      sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody 
+      |> ignore
+    in
         cons_of_sci gnv sci (SM.find fn shpm)
      |> Misc.uncurry (Consindex.add ci fn sci)
   end scim ci 
@@ -423,4 +425,4 @@ let create cil spec =
   let _        = E.log "DONE: Global Environment \n" in
   cons_of_decs gnv decs 
   |> Misc.uncurry Consindex.create
-  |> cons_of_scis gnv scim shpm
+  |> cons_of_scis gnv scim shm
