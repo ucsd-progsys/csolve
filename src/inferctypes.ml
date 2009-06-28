@@ -75,7 +75,7 @@ let fresh_ctvint (n: int): ctypevar =
   CTInt (n, fresh_indexvar ())
 
 let fresh_ctvref (): ctypevar =
-  CTRef (Sloc.fresh Sloc.Abstract, fresh_indexvar ())
+  CTRef (Sloc.fresh Sloc.Abstract Sloc.Free, fresh_indexvar ())
 
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
   | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
@@ -253,9 +253,13 @@ let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
               (cs, is, ss)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
-                let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
-                let _  = S.unify s1 s2 in
-                  (cs, is, ss)
+                begin try
+                  let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
+                  let _  = S.unify s1 s2 in
+                    (cs, is, ss)
+                with S.CantUnify (s1, s2) ->
+                  E.s <| Cil.errorLoc c.cloc "Can't unify parameters %a and %a@!@!" S.d_sloc s1 S.d_sloc s2
+                end
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
             | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
         in solve_rec cs (is, ss)
@@ -382,7 +386,7 @@ and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_:
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
   | C.CStr _ ->
-      let s = Sloc.fresh Sloc.Abstract in
+      let s = Sloc.fresh Sloc.Abstract Sloc.Free in
         with_fresh_indexvar <| fun ivr -> with_fresh_indexvar <| fun ivl -> with_fresh_indexvar begin fun ivc ->
           (CTRef (s, ivr), em, [mk_ivarless loc (IEConst (IInt 0)) ivr;
                                 mk_ivarless loc (IEConst (ISeq (0, 1))) ivl;
@@ -602,22 +606,16 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
   else
     OSFail
 
-let rec solve_and_check_rec (loc: C.location) (cf: cfun) (uss: S.SlocSet.t) (cs: cstr list): cstrsol =
+let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in
   let out_store = storesol_apply is ss in
     match check_out_store loc cf.sto_out out_store with
       | OSFail    -> C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf |> ignore; assert false
-      | OSUnified -> solve_and_check_rec loc cf uss cs
-      | OSOk      ->
-          if not (M.exists_pair S.eq <| S.SlocSet.elements uss) then
-            (is, ss)
-          else begin
-            C.errorLoc loc "Function creates aliases not in the spec\n\n" |> ignore;
-            assert false
-          end
+      | OSUnified -> solve_and_check_rec loc cf cs
+      | OSOk      -> (is, ss)
 
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
-  solve_and_check_rec loc cf (precfun_slocset cf) cs
+  solve_and_check_rec loc cf cs
 
 let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                      = fd.C.svar.C.vdecl in

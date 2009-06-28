@@ -22,7 +22,7 @@ type annotation =
 type block_annotation = annotation list list
 
 let fresh_cloc () =
-  Sloc.fresh Sloc.Concrete
+  Sloc.fresh Sloc.Concrete Sloc.Free
 
 let cloc_of_v theta v =
   Misc.do_memo theta fresh_cloc () v.vname
@@ -96,7 +96,7 @@ let concretize_new conc = function
           (LM.remove y conc, [Gen (y', y); New (x, y)]) 
       else
         let _  = asserts (Sloc.is_abstract y) "concretize_new" in
-        let cl = Sloc.fresh Sloc.Concrete in
+        let cl = Sloc.fresh Sloc.Concrete Sloc.Free in
         instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl
   | _ -> assertf "concretize_new 2"
 

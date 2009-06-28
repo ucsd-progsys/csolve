@@ -4,6 +4,10 @@ type slocid = int
 
 type sloctype = Abstract | Concrete
 
+type rigidity = Free | Rigid (* Rigid slocs cannot be unified with other Rigid slocs *)
+
+exception CantUnify of t * t
+
 module SlocSet:
   sig
     type elt = t
@@ -34,7 +38,7 @@ module SlocSet:
     val split : elt -> t -> t * bool * t
   end
 
-val fresh       : sloctype -> t
+val fresh       : sloctype -> rigidity -> t
 val is_abstract : t -> bool
 val repr        : t -> t
 val sloc_type   : t -> sloctype

@@ -506,7 +506,7 @@ let rename_prestore (subs: (S.t * S.t) list) (ps: 'a prestore): 'a prestore =
     end ps SLM.empty
 
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
-  let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
+  let subs       = List.map (fun l -> (l, S.fresh S.Abstract S.Rigid)) ls in
   let rename_pct = rename_prectype subs in
   let rename_ps  = rename_prestore subs in
     ({qlocs   = [];
