@@ -57,7 +57,41 @@ module SlocSet = Set.Make(struct
                             let compare = compare
                           end)
 
-module SlocMap = Map.Make (struct
-                             type t = sloc
-                             let compare = compare
-                           end)
+module SlocMap =
+  struct
+    type 'a t = (sloc * 'a) list
+    type key  = sloc
+
+    let empty = []
+
+    let key_eq (k: key) ((l, _): key * 'a): bool =
+      eq k l
+
+    let is_empty (sm: 'a t): bool =
+      sm = []
+
+    let rec remove (k: key): 'a t -> 'a t = function
+      | []           -> []
+      | (l, v) :: sm -> if eq l k then sm else (l, v) :: remove k sm
+
+    let add (k: key) (v: 'a) (sm: 'a t): 'a t =
+      (k, v) :: remove k sm
+
+    let find (k: key) (sm: 'a t): 'a =
+      List.find (key_eq k) sm |> snd
+
+    let mem (k: key) (sm: 'a t): bool =
+      List.exists (key_eq k) sm
+
+    let fold (f: key -> 'a -> 'b -> 'b) (sm: 'a t) (b: 'b): 'b =
+      List.fold_left (fun b (k, v) -> f k v b) b sm
+
+    let mapi (f: key -> 'a -> 'b) (sm: 'a t): 'b t =
+      fold (fun k v sm -> (k, f k v) :: sm) sm []
+
+    let map (f: 'a -> 'b) (sm: 'a t): 'b t =
+      mapi (fun _ v -> f v) sm
+
+    let iter (f: key -> 'a -> unit) (sm: 'a t): unit =
+      fold (fun k v _ -> f k v) sm ()
+  end
