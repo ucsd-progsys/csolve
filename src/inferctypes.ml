@@ -101,7 +101,8 @@ let ctypecstr_sat (CTCSubtype (ctv1, ctv2): ctypecstr) (is: indexsol): bool =
 (******************************************************************************)
 
 type storecstr =
-  | SCInc of Sloc.t * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
+  | SCInc of S.t * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
+  | SCUniq of S.t list                 (* for all l1, l2 in list, not S.eq l1 l2 *)
 
 type storesol = indexvar prestore
 
@@ -142,7 +143,7 @@ let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: 
         let (ld, is) = LDesc.foldn (fun _ (ld, is) pl ctv2 -> (LDesc.remove pl ld, equalize_ctypes ctv ctv2 is)) (ld, is) ld in
           (is, SLM.add l (LDesc.add PLEverywhere ctv ld) ss)
 
-let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol): bool =
+let storeinc_sat ((l, iv, ctv): S.t * indexvar * ctypevar) (is: indexsol) (ss: storesol): bool =
   let ld = prestore_find l ss in
   let ct = ctypevar_apply is ctv in
     match indexsol_find iv is with
@@ -168,6 +169,11 @@ let storecstr_sat (SCInc (l, iv, ctv): storecstr) (is: indexsol) (ss: storesol):
                   match LDesc.find pl ld with
                     | [(pl2, ctv2)] -> m mod p = 0 && ploc_contains pl2 pl p && prectype_eq ct (ctypevar_apply is ctv2)
                     | _             -> false
+
+let storecstr_sat (sc: storecstr) (is: indexsol) (ss: storesol): bool =
+  match sc with
+    | SCInc (l, iv, ctv) -> storeinc_sat (l, iv, ctv) is ss
+    | SCUniq ls -> not (M.exists_pair S.eq ls)
 
 (******************************************************************************)
 (*************************** Systems of Constraints ***************************)
@@ -218,6 +224,9 @@ let mk_const_storeinc (loc: C.location) (l: Sloc.t) (i: index) (ct: ctype): cstr
     let (ctv, cs) = ctypevar_of_ctype loc ct in
       cs @ [mk_ivarless loc (IEConst i) iv; mk_storeinc loc l iv ctv]
 
+let mk_uniqlocs (loc: C.location) (ls: S.t list) =
+  {cdesc = CSStore (SCUniq ls); cloc = loc}
+
 type cstrsol = indexsol * storesol
 
 let cstrdesc_sat ((is, ss): cstrsol): cstrdesc -> bool = function
@@ -232,6 +241,7 @@ let refine ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
   | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
   | CSIndex (ICConstLess (ie, i))     -> E.s <| E.error "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
+  | CSStore (SCUniq _)                -> failwith "Cannot refine store uniqueness constraint!\n\n"
   | CSStore (SCInc (l, iv, ctv))      ->
       try
         refine_store l iv ctv is ss
@@ -261,7 +271,13 @@ let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
         in solve_rec cs (is, ss)
 
 let solve (cs: cstr list): cstrsol =
-  solve_rec cs (IVM.empty, SLM.empty)
+  (* Defer checking uniqueness constraints until the very end *)
+  let (cs, uniqcs) = List.partition (function {cdesc = CSStore (SCUniq _)} -> false | _ -> true) cs in
+  let csol         = solve_rec cs (IVM.empty, SLM.empty) in
+   match (try Some (List.find (fun c -> not (cstr_sat csol c)) uniqcs) with Not_found -> None) with
+     | None                                           -> csol
+     | Some {cdesc = CSStore (SCUniq ls); cloc = loc} -> M.find_pair S.eq ls |> fun (l, _) -> E.s <| C.errorLoc loc "Parameter location %a aliased to another parameter location@!@!" S.d_sloc l
+     | _                                              -> failwith "Severe constraint weirdness"
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -467,7 +483,8 @@ let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar
   let ({args = argcts; ret = rct; sto_out = sout}, subs) = lookup_function loc env f in
   let (argctvs, argcs) = instantiate_args loc argcts in
   let (rctv, rctcs)    = ctypevar_of_ctype loc rct in
-  let storecs          = instantiate_store loc sout in
+  let sublocs          = List.map snd subs in
+  let storecs          = mk_uniqlocs loc sublocs :: instantiate_store loc sout in
     (rctv, argctvs, List.concat [storecs; rctcs; argcs], List.map (fun (s1, s2) -> RA.New (s1, s2)) subs)
 
 let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
@@ -602,22 +619,16 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
   else
     OSFail
 
-let rec solve_and_check_rec (loc: C.location) (cf: cfun) (uss: S.SlocSet.t) (cs: cstr list): cstrsol =
+let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in
   let out_store = storesol_apply is ss in
     match check_out_store loc cf.sto_out out_store with
       | OSFail    -> C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf |> ignore; assert false
-      | OSUnified -> solve_and_check_rec loc cf uss cs
-      | OSOk      ->
-          if not (M.exists_pair S.eq <| S.SlocSet.elements uss) then
-            (is, ss)
-          else begin
-            C.errorLoc loc "Function creates aliases not in the spec\n\n" |> ignore;
-            assert false
-          end
+      | OSUnified -> solve_and_check_rec loc cf cs
+      | OSOk      -> (is, ss)
 
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
-  solve_and_check_rec loc cf (precfun_slocset cf) cs
+  mk_uniqlocs loc (precfun_slocset cf |> S.SlocSet.elements) :: cs |> solve_and_check_rec loc cf
 
 let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
   let loc                      = fd.C.svar.C.vdecl in

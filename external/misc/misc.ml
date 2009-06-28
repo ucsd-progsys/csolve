@@ -565,6 +565,10 @@ let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
 let exists_pair (f: 'a -> 'a -> bool) (xs: 'a list): bool =
   fst (List.fold_left (fun (b, ys) x -> (b || List.exists (f x) ys, x :: ys)) (false, []) xs)
 
+let rec find_pair (f: 'a -> 'a -> bool): 'a list -> 'a * 'a = function
+  | []    -> raise Not_found
+  | x::xs -> try (x, List.find (f x) xs) with Not_found -> find_pair f xs
+
 let rec is_unique = function
   | []      -> true
   | x :: xs -> if List.mem x xs then false else is_unique xs
