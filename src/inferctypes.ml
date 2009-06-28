@@ -237,9 +237,9 @@ let cstrdesc_sat ((is, ss): cstrsol): cstrdesc -> bool = function
 let cstr_sat (csol: cstrsol) (c: cstr): bool =
   cstrdesc_sat csol c.cdesc
 
-let refine ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
+let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
   | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
-  | CSIndex (ICConstLess (ie, i))     -> E.s <| E.error "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
+  | CSIndex (ICConstLess (ie, i))     -> E.s <| C.errorLoc loc "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCUniq _)                -> failwith "Cannot refine store uniqueness constraint!\n\n"
   | CSStore (SCInc (l, iv, ctv))      ->
@@ -249,9 +249,8 @@ let refine ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
         let i  = indexsol_find iv is in
         let ct = ctypevar_apply is ctv in
         let ld = LDesc.map (ctypevar_apply is) (prestore_find l ss) in
-          E.error "Can't fit %a |-> %a in location %a: @!@!%a@!@!" 
-            d_index i d_ctype ct Sloc.d_sloc l (LDesc.d_ldesc d_ctype) ld;
-          raise TypeDoesntFit
+          E.s <| C.errorLoc loc "Can't fit %a |-> %a in location %a: @!@!%a@!@!"
+              d_index i d_ctype ct Sloc.d_sloc l (LDesc.d_ldesc d_ctype) ld
 
 let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
   match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
@@ -259,7 +258,7 @@ let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
     | Some c ->
         let (cs, is, ss) =
           try
-            let (is, ss) = refine (is, ss) c.cdesc in
+            let (is, ss) = refine c.cloc (is, ss) c.cdesc in
               (cs, is, ss)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
@@ -613,7 +612,7 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
         let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
           oss_and oss <| check_expected_type loc ct ct2
       with _ ->
-        C.errorLoc loc "Expected %a |-> %a: %a\n\n" S.d_sloc l d_index i d_ctype ct |> ignore;
+        C.errorLoc loc "Expected %a |-> %a: %a in store:\n\n%a\n\n" S.d_sloc l d_index i d_ctype ct d_store sto_out_actual |> ignore;
         OSFail
     end OSOk sto_out_formal
   else
