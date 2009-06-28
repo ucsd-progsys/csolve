@@ -66,7 +66,7 @@ let env_of_bindings xrs =
     fun env (x, r) -> 
       if not (SM.mem x env) then SM.add x r env else
         ((if not (r = SM.find x env) then 
-          Printf.printf "WARNING: env_of_bindings : duplicate %s" (Sy.to_string x)); 
+          Printf.printf "WARNING: env_of_bindings : duplicate %s \n" (Sy.to_string x)); 
          env) 
        
   end SM.empty xrs

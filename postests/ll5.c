@@ -19,25 +19,32 @@ node_t *foo(int n){
     root      = tmp;
   }
 
-//  assert(0); //SANITY
-
   return root;
 }
 
-int main(){
+int bar(int n){
   node_t *root;
   node_t *tmp;
-  int n;
   
-  n = 100;
-
   root = foo(n);
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
     assert(tmp->data < n);
-    //    assert(0); //SANITY
   }
-
+ 
   return 0;
 }
+
+int main(){
+  int n; 
+  
+  n = nondet();
+  
+  bar(n);
+  
+  return 0;
+}
+
+
+

@@ -217,11 +217,18 @@ let instantiate_cloc me wld (aloc, cloc) =
                |> List.map (Misc.app_snd FI.t_true_refctype) in
   extend_world aldesc abinds cloc true wld
 
+let d_lsub () (x,y) = 
+  Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
+
+let d_lsubs () xys =
+  Pretty.seq (Pretty.text ",") (d_lsub ()) xys
+
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
+  let _     = Pretty.printf "LSUBS = %a" d_lsubs lsubs in
   let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
               List.combine (List.map fst args) es in
 
