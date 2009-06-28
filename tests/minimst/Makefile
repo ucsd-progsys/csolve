@@ -18,7 +18,7 @@ LIBS =
 
 else
 
-CC		= gcc
+CC		= cilly --merge
 DEF   = -D
 CONLY = -c
 OBJOUT= -o
