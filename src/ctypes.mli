@@ -19,24 +19,6 @@ exception NoLUB of ctype * ctype
 
 exception TypeDoesntFit
 
-module SLM:
-  sig
-    type key = Sloc.t
-    type 'a t = 'a Map.Make(Sloc).t
-    val empty : 'a t
-    val is_empty : 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val find : key -> 'a t -> 'a
-    val remove : key -> 'a t -> 'a t
-    val mem : key -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-  end
-
 module LDesc:
   sig
     type 'a t
@@ -54,7 +36,7 @@ module LDesc:
     val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
-type 'a prestore = ('a LDesc.t) SLM.t
+type 'a prestore = ('a LDesc.t) Sloc.SlocMap.t
 
 type store = index prestore
 

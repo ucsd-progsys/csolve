@@ -1,12 +1,13 @@
-module M  = Misc
-module P  = Pretty
-module C  = Cil
-module Cs = Constants
-module E  = Errormsg
-module ST = Ssa_transform
-module RA = Refanno
-module SM = Misc.StringMap
-module S  = Sloc
+module M   = Misc
+module P   = Pretty
+module C   = Cil
+module Cs  = Constants
+module E   = Errormsg
+module ST  = Ssa_transform
+module RA  = Refanno
+module SM  = Misc.StringMap
+module S   = Sloc
+module SLM = Sloc.SlocMap
 
 open Ctypes
 open M.Ops

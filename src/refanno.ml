@@ -1,4 +1,4 @@
-module LM = Ctypes.SLM
+module LM = Sloc.SlocMap
 module SM = Misc.StringMap
 
 open Cil

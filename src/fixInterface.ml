@@ -10,7 +10,7 @@ module CI  = CilInterface
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
 (* module  T  = Ctypes *)
-module SLM = Ctypes.SLM
+module SLM = Sloc.SlocMap
 
 open Misc.Ops
 open Cil
@@ -416,7 +416,7 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
   end ncrs12
 
 let slocs_of_store st = 
-  Ctypes.SLM.fold (fun x _ xs -> x::xs) st []
+  SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity loc =
   let _ = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"

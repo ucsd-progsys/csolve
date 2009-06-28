@@ -367,7 +367,7 @@ module LDesc = struct
             P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
 end
 
-module SLM = Map.Make (Sloc)
+module SLM = S.SlocMap
 
 type 'a prestore = ('a LDesc.t) SLM.t
 

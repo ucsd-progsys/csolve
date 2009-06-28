@@ -49,10 +49,15 @@ let to_string (l: t): string =
 let d_sloc () (l: t): Pretty.doc =
   Pretty.text <| to_string l
 
-(* Avoiding non-cyclic types when making SlocSet *)
+(* Avoiding cyclic types when making SlocSet *)
 type sloc = t
 
 module SlocSet = Set.Make(struct
                             type t = sloc
                             let compare = compare
                           end)
+
+module SlocMap = Map.Make (struct
+                             type t = sloc
+                             let compare = compare
+                           end)
