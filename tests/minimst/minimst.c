@@ -5,15 +5,13 @@ struct vert_st {
    struct vert_st *next ;
 };
 typedef struct vert_st *Vertex;
+
 struct graph_st {
    int numvert ;
    Vertex vlist ;
 };
 typedef struct graph_st *Graph;
-Graph MakeGraph(int numvert ) ;
-/*
-int dealwithargs(int argc , char **argv ) ;
-*/
+
 void AddEdges(Graph retval, int numvert)
 { Vertex src ;
   Vertex dest ;
@@ -135,8 +133,8 @@ int dealwithargs(int argc , char **argv )
   return (level);
 }
 }
-/*
-int main(int argc , char **argv )
+
+void main(int argc , char **argv)
 { Graph graph ;
   int size ;
 
@@ -144,7 +142,6 @@ int main(int argc , char **argv )
   size = dealwithargs(argc, argv);
   graph = MakeGraph(size);
   ComputeMst(graph, size);
-  return (0);
+  return;
 }
 }
-*/
