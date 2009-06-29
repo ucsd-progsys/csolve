@@ -65,17 +65,21 @@ class heapifyModifyVisitor hvars = object(self)
 
   method vlval = function (* should we change this one? *)
     Var(vi), vi_offset when List.mem_assoc vi hvars -> (* check list *)
-      if isArrayType vi.vtype then
-        ChangeDoChildrenPost ((Var (List.assoc vi hvars), vi_offset), id)
-      else
-        let hvi      = List.assoc vi hvars in (* find corresponding heap var *)
-        let new_lval = (Mem (Lval (Var hvi, NoOffset)), vi_offset) in
-          ChangeDoChildrenPost(new_lval, (fun l -> l))
+      let hvi = List.assoc vi hvars in (* find corresponding heap var *)
+        begin match vi.vtype with
+          | TArray (t, _, _) ->
+              begin match vi_offset with
+                | Index (e, o) -> ChangeDoChildrenPost ((Mem (BinOp (PlusPI, Lval (Var hvi, NoOffset), e, TPtr (t, []))), o), id)
+                | _            -> ChangeDoChildrenPost ((Var hvi, vi_offset), id)
+              end
+          | _ -> ChangeDoChildrenPost((Mem (Lval (Var hvi, NoOffset)), vi_offset), (fun l -> l))
+        end
   | _ -> DoChildren (* ignore other lvalues *)
 end
 
-let heapifiedType t =
-  if isArrayType t then t else TPtr (t, [])
+let heapifiedType = function
+  | TArray (t, _, _) -> TPtr (t, [])
+  | t           -> TPtr (t, [])
 
 class heapifyAnalyzeVisitor f alloc free = object
   inherit nopCilVisitor (* only look at function bodies *)
