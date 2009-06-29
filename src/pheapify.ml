@@ -44,6 +44,7 @@
  * Don't bother freeing them because we don't care.
  *)
 open Cil
+open Misc.Ops
 
 let heapifyNonArrays = ref false
 
@@ -64,11 +65,17 @@ class heapifyModifyVisitor hvars = object(self)
 
   method vlval = function (* should we change this one? *)
     Var(vi), vi_offset when List.mem_assoc vi hvars -> (* check list *)
-      let hvi      = List.assoc vi hvars in (* find corresponding heap var *)
-      let new_lval = (Mem (Lval (Var hvi, NoOffset)), vi_offset) in
-        ChangeDoChildrenPost(new_lval, (fun l -> l))
+      if isArrayType vi.vtype then
+        ChangeDoChildrenPost ((Var (List.assoc vi hvars), vi_offset), id)
+      else
+        let hvi      = List.assoc vi hvars in (* find corresponding heap var *)
+        let new_lval = (Mem (Lval (Var hvi, NoOffset)), vi_offset) in
+          ChangeDoChildrenPost(new_lval, (fun l -> l))
   | _ -> DoChildren (* ignore other lvalues *)
 end
+
+let heapifiedType t =
+  if isArrayType t then t else TPtr (t, [])
 
 class heapifyAnalyzeVisitor f alloc free = object
   inherit nopCilVisitor (* only look at function bodies *)
@@ -81,7 +88,7 @@ class heapifyAnalyzeVisitor f alloc free = object
         (containsArray vi.vtype) || (vi.vaddrof && !heapifyNonArrays)
       end fundec.slocals in
       if (hvars <> []) then begin (* some local vars contain arrays *)
-        let newvars = List.map (fun vi -> makeLocalVar fundec (vi.vname ^ "#heapify") (TPtr (vi.vtype, []))) hvars in
+        let newvars = List.map (fun vi -> makeLocalVar fundec (vi.vname ^ "#heapify") (heapifiedType vi.vtype)) hvars in
         let varmap  = List.combine hvars newvars in
           fundec.sbody <- visitCilBlock (new heapifyModifyVisitor varmap) fundec.sbody; (* rewrite accesses to local vars *)
           let allocs = List.map (fun (vi, hvi) -> Call (Some (Var hvi, NoOffset), alloc, [SizeOf vi.vtype], funloc)) varmap in

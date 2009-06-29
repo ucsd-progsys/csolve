@@ -70,20 +70,21 @@ class purifyVisitor (fd: fundec) = object(self)
   inherit nopCilVisitor
 
   method vexpr = function
+    | Lval (Mem (Lval (Var _, _)), NoOffset) ->
+        SkipChildren
     | Lval ((Mem _, _) as lv) ->
         let tmp = makeTempVar fd (typeOfLval lv) in
         let tlv = (Var tmp, NoOffset) in
         let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
-          ChangeTo (Lval tlv)
+          ChangeDoChildrenPost (Lval tlv, id)
     | _ -> DoChildren
-
-  method vinst = function
-    | Set (_, Lval _, _) -> SkipChildren
-    | _                  -> DoChildren
 end
 
+let purifyFunction (fd: fundec) =
+  fd.sbody <- visitCilBlock (new purifyVisitor fd) fd.sbody
+
 let doGlobal = function
-  | GFun (fd, _) -> fd.sbody <- visitCilBlock (new purifyVisitor fd) fd.sbody
+  | GFun (fd, _) -> purifyFunction fd
   | _            -> ()
 
 let purify file =

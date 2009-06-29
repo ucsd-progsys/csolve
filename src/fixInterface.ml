@@ -37,7 +37,7 @@ let name_fresh =
 
 let name_of_sloc_ploc l p = 
   let ls    = Sloc.to_string l in
-  let pt,pi = match p with Ctypes.PLAt i -> "PLAt",i | Ctypes.PLSeq i -> "PLSeq", i in
+  let pt,pi = match p with Ctypes.PLAt i -> "PLAt",i | Ctypes.PLSeq i -> "PLSeq", i | Ctypes.PLEverywhere -> "PLEverywhere", 0 in
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
