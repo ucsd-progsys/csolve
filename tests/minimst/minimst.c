@@ -29,7 +29,7 @@ void AddEdges(Graph retval, int numvert)
     while (i < numvert) {
       if (i != j) {
         dest = retval->vlist + i;
-        validptr(dest)
+        validptr(dest);
         num_inserted ++;
       }
       i ++;
