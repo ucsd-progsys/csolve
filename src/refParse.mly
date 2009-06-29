@@ -18,7 +18,7 @@ let ldesc_of_plocbinds pbs =
 let sloctable = Hashtbl.create 17
 
 let mk_sloc id sty =
-      Misc.do_memo sloctable Sloc.fresh sty (id, sty)
+  Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 %}
 
