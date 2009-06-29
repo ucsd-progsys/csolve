@@ -15,9 +15,9 @@ let store_of_slocbinds sbs =
 let ldesc_of_plocbinds pbs = 
   List.fold_left (fun ld (x,y) -> Ctypes.LDesc.add x y ld) Ctypes.LDesc.empty pbs
 
-let mk_sloc =
-  let sloctable = Hashtbl.create 17 in
-    fun id sty ->
+let sloctable = Hashtbl.create 17
+
+let mk_sloc id sty =
       Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 %}
@@ -58,6 +58,7 @@ spec:
     RET    reftype
     INST   refstore
     OUTST  refstore {
+      let _ = Hashtbl.clear sloctable in
       let rcf = FI.mk_refcfun $4 $6 $10 $8 $12 in
         if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
           ($1, rcf)
