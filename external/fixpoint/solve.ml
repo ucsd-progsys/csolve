@@ -182,17 +182,23 @@ let dupfree_binding xys : bool =
   let ys' = Misc.sort_and_compact ys in
   List.length ys = List.length ys'
 
-let varmatch_binding xys : bool = 
-  List.for_all begin fun (x,y) ->
-    let (x,y) = Misc.map_pair Sy.to_string (x,y) in
-    if x.[0] = '@' then
-      let x' = Misc.suffix_of_string x 1 in
-      Misc.is_prefix x' y
-    else true
-  end xys
+let varmatch_ctr = ref 0
+
+let varmatch (x, y) = 
+  let _ = varmatch_ctr += 1 in
+  let (x,y) = Misc.map_pair Sy.to_string (x,y) in
+  if x.[0] = '@' then
+    let x' = Misc.suffix_of_string x 1 in
+    Misc.is_prefix x' y
+  else true
 
 let valid_binding xys = 
-  (dupfree_binding xys) && (varmatch_binding xys)
+  (dupfree_binding xys) && 
+  (List.for_all varmatch xys)
+
+let valid_bindings ys x = 
+  ys |> List.map (fun y -> (x,y)) 
+     |> List.filter varmatch 
 
 let inst_qual ys (q : Q.t) : Q.t list =
   let p    = Q.pred_of_t q in
@@ -201,10 +207,8 @@ let inst_qual ys (q : Q.t) : Q.t list =
                |> List.filter Sy.is_wild           (* placevs of q *)
                |> Misc.sort_and_compact in         (* duplicate free placevs *)
   match xs with [] -> [q] | _ ->
-    let xyss = List.length xs                      (* for each placev *) 
-               |> Misc.clone ys                    (* clone the freev list *)
-               |> Misc.product                     (* generate freev combinations *) 
-               |> Misc.map (List.combine xs)       (* generate placev-freev lists *)
+    let xyss = List.map (valid_bindings ys) xs     (* candidate bindings *)
+               |> Misc.product                     (* generate combinations *) 
                |> List.filter valid_binding in     (* remove bogus bindings *)
     let ps'  = List.rev_map 
                  (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) p)
@@ -228,7 +232,9 @@ let inst_ext (qs : Q.t list) s wf =
 
 let inst wfs qs s =
   Co.bprintf mydebug "%a" (Misc.pprint_many true "\n" (C.print_wf None)) wfs;
-  List.fold_left (inst_ext qs) s wfs
+  let rv = List.fold_left (inst_ext qs) s wfs in
+  let _ = Printf.printf "varmatch_ctr = %d \n" !varmatch_ctr in
+  rv
 
 (***************************************************************)
 (******************** Iterative Refinement *********************)
