@@ -335,12 +335,16 @@ void adpcm_decoder(char *indata , short *outdata , int nsample , struct adpcm_st
   stepsizeTable[86] = 27086;
   stepsizeTable[87] = 29794;
   stepsizeTable[88] = 32767;
+  
   outp = outdata;
+  
   inp = (signed char *)indata;
   valpred = (int )state->valprev;
   index = (int )state->index;
   step = stepsizeTable[index];
+  
   bufferstep = 0;
+  
   while (len > 0) {
     if (bufferstep) {
       delta = inputbuffer & 15;
