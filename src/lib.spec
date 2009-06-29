@@ -54,3 +54,10 @@ atoi ::
   ret       int (4, true, {v | true})
   store_in  [C0 |-> true: int (1, true, {v | true})]
   store_out []
+
+random ::
+  forall    []
+  arg       ()
+  ret       int (4, true, {v | true})
+  store_in  []
+  store_out []

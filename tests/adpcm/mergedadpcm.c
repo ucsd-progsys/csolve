@@ -393,7 +393,7 @@ void adpcm_decoder(char *indata , short *outdata , int nsample , struct adpcm_st
   return;
 }
 }
-/*
+
 int main(void) 
 { int i ;
   int count ;
@@ -427,4 +427,3 @@ int main(void)
   exit(0);
 }
 }
-*/
