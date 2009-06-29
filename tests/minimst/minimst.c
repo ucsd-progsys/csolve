@@ -24,10 +24,12 @@ void AddEdges(Graph retval, int numvert)
   j = 0;
   while (j < numvert) {
     src = retval->vlist + j;
+    validptr(src);
     i = 0;
     while (i < numvert) {
       if (i != j) {
         dest = retval->vlist + i;
+        validptr(dest)
         num_inserted ++;
       }
       i ++;
@@ -57,6 +59,7 @@ Graph MakeGraph(int numvert )
 
   while (i >= 0) {
       vf = retval->vlist + i;
+      validptr(vf);
       vf->next = vt;
       vt = vf;
       i--;
