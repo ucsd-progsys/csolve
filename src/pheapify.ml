@@ -63,23 +63,29 @@ let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
 class heapifyModifyVisitor hvars = object(self)
   inherit nopCilVisitor  (* visit lvalues *)
 
+  method vexpr = function
+    | StartOf (Var vi, NoOffset) when List.mem_assoc vi hvars -> ChangeTo (Lval (Var (List.assoc vi hvars), NoOffset))
+    | _                                                       -> DoChildren
+
   method vlval = function (* should we change this one? *)
     Var(vi), vi_offset when List.mem_assoc vi hvars -> (* check list *)
       let hvi = List.assoc vi hvars in (* find corresponding heap var *)
-        begin match vi.vtype with
-          | TArray (t, _, _) ->
+        begin match unrollType vi.vtype with
+          | TArray _ ->
               begin match vi_offset with
-                | Index (e, o) -> ChangeDoChildrenPost ((Mem (BinOp (PlusPI, Lval (Var hvi, NoOffset), e, TPtr (t, []))), o), id)
-                | _            -> ChangeDoChildrenPost ((Var hvi, vi_offset), id)
+                | Index (e, o) -> ChangeDoChildrenPost ((Mem (BinOp (PlusPI, Lval (Var hvi, NoOffset), e, hvi.vtype)), o), id)
+                | NoOffset     -> ChangeDoChildrenPost ((Var hvi, NoOffset), id)
+                | _            -> assert false
               end
-          | _ -> ChangeDoChildrenPost((Mem (Lval (Var hvi, NoOffset)), vi_offset), (fun l -> l))
+          | _ -> ChangeDoChildrenPost ((Mem (Lval (Var hvi, NoOffset)), vi_offset), id)
         end
   | _ -> DoChildren (* ignore other lvalues *)
 end
 
-let heapifiedType = function
-  | TArray (t, _, _) -> TPtr (t, [])
-  | t           -> TPtr (t, [])
+let heapifiedType t =
+  match unrollType t with
+    | TArray (t, _, _) -> TPtr (t, [])
+    | t                -> TPtr (t, [])
 
 class heapifyAnalyzeVisitor f alloc free = object
   inherit nopCilVisitor (* only look at function bodies *)
