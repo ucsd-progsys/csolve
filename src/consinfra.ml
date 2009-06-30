@@ -90,12 +90,14 @@ let make_undefm formalm phia =
 
 let create gnv sci shp = 
   let fdec   = sci.ST.fdec in
+  let loc    = fdec.svar.vdecl in
   let env    = env_of_fdec gnv fdec shp.IC.vtyps in
+  let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
   let astore = FI.refstore_fresh shp.IC.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
   {sci     = sci;
-   cs      = [];
-   ws      = FI.make_wfs_refstore env astore fdec.svar.vdecl;
+   cs      = FI.make_cs_refstore env Ast.pTrue istore astore false loc; 
+   ws      = FI.make_wfs_refstore env astore loc;
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;

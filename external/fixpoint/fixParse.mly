@@ -80,7 +80,7 @@ sort:
     INT                                 { So.Int }
   | BOOL                                { So.Bool }
   | UNINT Id                            { So.Unint ($2) }
-  | FUNC sorts                          { So.Func ($2) }
+  | FUNC LPAREN sorts RPAREN            { So.Func ($3) }
   ;
 
 

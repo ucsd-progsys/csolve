@@ -41,12 +41,20 @@ module Sort =
       | Unint of string 
       | Func of t list
 
-    let to_string = function
+    let rec to_string = function
+      | Int     -> "int"
+      | Bool    -> "bool"
+      | Unint s -> "uit "^s
+      | Func ts -> Printf.sprintf "func([%s])" (ts |> List.map to_string |> String.concat " ; ")
+      | Array _ -> failwith "TBD: Sort.to_string"
+
+    let to_string_short = function
       | Int     -> "int"
       | Bool    -> "bool"
       | Unint s -> "uit "^s
       | Func ts -> "func"
       | Array _ -> failwith "TBD: Sort.to_string"
+
 
     let print fmt t = 
       to_string t |> Format.fprintf fmt "%s"
@@ -76,7 +84,7 @@ module Symbol =
       to_string s |> Format.fprintf fmt "%s" 
 
     let value_variable t = 
-      "VV_"^(Sort.to_string t)
+      "VV_"^(Sort.to_string_short t)
  
     let sm_length m = 
       SMap.fold (fun _ _ i -> i+1) m 0
@@ -300,7 +308,7 @@ let rec expr_to_string e =
   | Var s -> 
       Symbol.to_string s
   | App (s, es) ->
-      Printf.sprintf "%s[%s]" 
+      Printf.sprintf "%s([%s])" 
       (Symbol.to_string s) (List.map expr_to_string es |> String.concat " ")
   | Bin (e1, op, e2) ->
       Printf.sprintf "(%s %s %s)" 

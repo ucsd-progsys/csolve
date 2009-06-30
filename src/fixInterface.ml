@@ -53,6 +53,15 @@ type refcfun   = (Ctypes.index * C.reft) Ctypes.precfun
 type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
 type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
 
+
+let d_index_reft () (_,r) = 
+  Misc.fsprintf (C.print_reft None) r 
+  |> Pretty.text
+
+let d_refstore = Ctypes.d_precstore d_index_reft 
+let d_refctype = Ctypes.d_prectype d_index_reft
+let d_refcfun  = Ctypes.d_precfun d_index_reft
+
 let reft_of_refctype = function
   | Ctypes.CTInt (_,(_,r)) 
   | Ctypes.CTRef (_,(_,r)) -> r
@@ -83,12 +92,6 @@ let mk_refcfun qslocs args ist ret ost =
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
-let d_index_reft () (_,r) = 
-  Misc.fsprintf (C.print_reft None) r 
-  |> Pretty.text
-
-let d_refstore  = Ctypes.d_precstore d_index_reft 
-
 let refstore_empty = SLM.empty
 
 let refstore_mem l sto = SLM.mem l sto
@@ -103,6 +106,10 @@ let refstore_get sto l =
     Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
     assertf "refstore_get"
 
+let plocs_of_refldesc rd = 
+  Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
+  |> List.rev
+
 let sloc_binds_of_refldesc l rd = 
   Ctypes.LDesc.foldn begin fun i binds ploc rct ->
     ((name_of_sloc_ploc l ploc, rct), ploc)::binds
@@ -113,7 +120,7 @@ let binds_of_refldesc l rd =
   sloc_binds_of_refldesc l rd 
   |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
   |> List.map fst
-  |> List.map (fun (n,r) -> 1/0; Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r))
+  |> List.map (fun (n,r) -> Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r))
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
@@ -126,7 +133,9 @@ let refdesc_find ploc rd =
 let addr_of_refctype = function
   | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
-  | _ -> assertf "addr_of_refctype: bad args"
+  | cr -> 
+      Errormsg.error "addr_of_refctype: bad arg = %a" d_refctype cr;
+      1/0;assertf "addr_of_refctype: bad args"
 
 let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
@@ -379,6 +388,31 @@ let t_subs_exps    = refctype_subs CI.expr_of_cilexp
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = Ctypes.prestore_map_ct t_fresh
 let refstore_subs  = fun f subs st -> Ctypes.prestore_map_ct (f subs) st
+
+(* 
+let refldesc_subs_ploc f rd = 
+  Ctypes.LDesc.mapn (fun _ pl rct -> f pl rct) rd
+
+let refstore_subs_ploc f sto =
+  Sloc.SlocMap.map (refldesc_subs_ploc f) sto
+*)
+
+let refstore_subs_locs lsubs sto = 
+  List.fold_left begin fun sto (l, l') -> 
+    let rv = 
+    if not (refstore_mem l sto) then sto else 
+      let plocs = refstore_get sto l |> plocs_of_refldesc in
+      let ns    = List.map (name_of_sloc_ploc l) plocs in
+      let ns'   = List.map (name_of_sloc_ploc l') plocs in
+      let subs  = List.combine ns ns' in
+      refstore_subs t_subs_names subs sto
+    in
+    let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
+            Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in
+    rv
+  end sto lsubs
+
+
 
 (****************************************************************)
 (********************** Constraints *****************************)

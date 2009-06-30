@@ -73,9 +73,17 @@ let extend_world ld binds loc newloc (env, sto) =
 let extend_env v cr env =
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
+let d_lsub () (x,y) = 
+  Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
+
+let d_lsubs () xys =
+  Pretty.seq (Pretty.text ",") (d_lsub ()) xys
+
+(* move into FI *)
 let rename_store lsubs subs sto = 
-  sto |> Ctypes.prestore_subs lsubs 
+  sto |> FI.refstore_subs_locs lsubs 
       |> FI.refstore_subs FI.t_subs_exps subs 
+      |> Ctypes.prestore_subs lsubs 
 
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
@@ -160,6 +168,7 @@ let cons_of_set me loc grd (env, sto) = function
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
       let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
+               |> (fun cr' -> Pretty.printf "cons_of_set: cr' = %a" FI.d_refctype cr'; cr')
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (extend_env v cr env, sto), []
@@ -216,12 +225,6 @@ let instantiate_cloc me wld (aloc, cloc) =
   let abinds = FI.binds_of_refldesc aloc aldesc 
                |> List.map (Misc.app_snd FI.t_true_refctype) in
   extend_world aldesc abinds cloc true wld
-
-let d_lsub () (x,y) = 
-  Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
-
-let d_lsubs () xys =
-  Pretty.seq (Pretty.text ",") (d_lsub ()) xys
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
   let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in

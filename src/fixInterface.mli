@@ -5,6 +5,10 @@ type refcfun  (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
 type refldesc (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
 type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
 
+val d_refstore          : unit -> refstore -> Pretty.doc
+val d_refctype          : unit -> refctype -> Pretty.doc
+val d_refcfun           : unit -> refcfun -> Pretty.doc
+
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
 
@@ -54,6 +58,8 @@ val refstore_write      : refstore -> refctype -> refctype -> refstore
 val refstore_read       : refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
 val refstore_subs       : ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
+val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> refstore -> refstore
+
 val is_soft_ptr         : refstore -> refctype -> bool 
 
 val sorts               : Ast.Sort.t list
