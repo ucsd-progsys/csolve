@@ -98,7 +98,7 @@ let make_rank_map () (cm : C.t IM.t) =
           (dm, (id,id)::deps))
       cm (IM.empty,[]) in
   let rm = 
-    let rank = Common.scc_rank string_of_int deps in
+    let rank = Fcommon.scc_rank string_of_int deps in
     List.fold_left
       (fun rm (id,r) -> 
         let b = (not !Co.psimple) || (C.is_simple (IM.find id cm)) in

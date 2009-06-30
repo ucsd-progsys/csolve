@@ -43,7 +43,7 @@ let self_cycle funt' es =
 
 let big_sccs funt' es = 
   let fn   = fun i -> Misc.do_catch "big sccs" (Hashtbl.find funt') i in
-  Common.scc_rank fn es
+  Fcommon.scc_rank fn es
   |> List.map (fun (x,y) -> (y,x))
   |> Misc.hashtbl_of_list
   |> Misc.hashtbl_to_list_all
