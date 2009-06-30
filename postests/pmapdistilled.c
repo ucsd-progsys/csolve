@@ -67,10 +67,9 @@ void env_check(env_t *env, env_t *envs, int pages[], int page_protected[])
     int i, found;
     env_t *walk;
 
-    env = env;
-    envs = envs;
+    env = env;	//THETA ISSUE
+    envs = envs;//THETA ISSUE
 
-    int bob = env->env_mypp;
     dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
 
     for (i = 0; i < 2000; i++){
@@ -157,11 +156,10 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
     page_protected[env_pp] = 1;
     env_check(env, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
-    //assert(0);
+    assert(0);
     return env;
 }
 
-/*
 void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
 {
     int i;
@@ -209,7 +207,7 @@ int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[
     mem_check(envs, pages, page_protected);
     return 0;
 }
-
+/*
 void page_unmap(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
 {
     assert(0 <= vp); assert(vp < 2000);
@@ -269,10 +267,10 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
 
     envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
-    
-    /*
+   
+    //TBD: wrap around a loop
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
-    } */
+    } 
 }
