@@ -23,7 +23,7 @@
 (* This file is part of the LiquidC Project *)
 
 module Co = Constants
-module BS = Bstats
+module BS = BNstats
 module A  = Ast
 module Sy = A.Symbol
 module So = A.Sort
@@ -288,12 +288,12 @@ and z3Pred me env = function
 
 let unsat me =
   let _ = incr nb_unsat in
-  let rv = (Bstats.time "Z3 unsat" Z3.check me.c) = Z3.L_FALSE in
+  let rv = (BS.time "Z3 unsat" Z3.check me.c) = Z3.L_FALSE in
   rv
 
 let assert_axiom me p =
   Co.bprintf mydebug "@[Pushing axiom %s@]@." (Z3.ast_to_string me.c p);
-  Bstats.time "Z3 assert axiom" (Z3.assert_cnstr me.c) p;
+  BS.time "Z3 assert axiom" (Z3.assert_cnstr me.c) p;
   asserts (not(unsat me)) "ERROR: Axiom makes background theory inconsistent!"
 
 let rec vpop (cs,s) =

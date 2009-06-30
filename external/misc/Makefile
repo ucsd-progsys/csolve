@@ -7,7 +7,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME)
 
 TARGETS=misc.cma misc.cmxa \
-	bstats.cma bstats.cmxa \
+	bNstats.cma bNstats.cmxa \
 	constants.cma constants.cmxa \
 	common.cma common.cmxa \
 	heaps.cma heaps.cmxa \

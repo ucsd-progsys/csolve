@@ -26,7 +26,7 @@
 (***************************************************************)
 
 module F  = Format
-module BS = Bstats
+module BS = BNstats
 module Co = Constants
 module C  = FixConstraint
 module IM = Misc.IntMap

@@ -22,7 +22,7 @@
 
 
 (** This module implements a fixpoint solver *)
-module BS = Bstats
+module BS = BNstats
 module F  = Format
 module A  = Ast
 module Co = Constants
