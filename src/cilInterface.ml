@@ -73,6 +73,7 @@ let unop_of_cilUOp = function
 
 let op_of_cilBOp = function
   | Cil.PlusA   -> Bop A.Plus    
+  | Cil.IndexPI              
   | Cil.PlusPI  -> Bop A.Plus   
   | Cil.MinusA  -> Bop A.Minus
   | Cil.MinusPI -> Bop A.Minus
@@ -87,7 +88,6 @@ let op_of_cilBOp = function
   | Cil.Ne      -> Brl A.Ne   
   | Cil.LOr     -> Bbl A.pOr   
   | Cil.LAnd    -> Bbl A.pAnd 
-  | Cil.IndexPI               
   | Cil.Mod       
   | Cil.Shiftlt   
   | Cil.Shiftrt   

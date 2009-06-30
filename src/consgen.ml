@@ -167,7 +167,7 @@ let cons_of_set me loc grd (env, sto) = function
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
       let _  = CilMisc.check_pure_expr e in
-      let cr = FI.t_exp (CF.ctype_of_expr me e) e  
+      let cr = FI.t_exp env (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (extend_env v cr env, sto), []
 
@@ -175,7 +175,7 @@ let cons_of_set me loc grd (env, sto) = function
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, _))), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
-      let cr'  = FI.t_exp (CF.ctype_of_expr me e) e in
+      let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       if FI.is_soft_ptr sto addr then 
         let cr   = FI.refstore_read sto addr in
         ((env, sto), (FI.make_cs env grd cr' cr loc))
@@ -191,7 +191,7 @@ let cons_of_set me loc grd (env, sto) = function
 
 let cons_of_call_params me loc grd env lsubs subs es args =
   Misc.flap2 begin fun e (_, cr) ->
-    let lhs = FI.t_exp (CF.ctype_of_expr me e) e in
+    let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in
     let rhs = rename_refctype lsubs subs cr in 
     FI.make_cs env grd lhs rhs loc
   end es args
@@ -270,7 +270,7 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
 
 let cons_of_ret me loc grd (env, st) e =
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
-  let lhs    = FI.t_exp (CF.ctype_of_expr me e) e in 
+  let lhs    = FI.t_exp env (CF.ctype_of_expr me e) e in 
   let rhs    = FI.ret_of_refcfun frt in
   let _, ost = FI.stores_of_refcfun frt in
   (FI.make_cs env grd lhs rhs loc) ++

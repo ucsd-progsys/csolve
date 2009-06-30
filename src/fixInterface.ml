@@ -37,7 +37,10 @@ let name_fresh =
 
 let name_of_sloc_ploc l p = 
   let ls    = Sloc.to_string l in
-  let pt,pi = match p with Ctypes.PLAt i -> "PLAt",i | Ctypes.PLSeq i -> "PLSeq", i | Ctypes.PLEverywhere -> "PLEverywhere", 0 in
+  let pt,pi = match p with 
+              | Ctypes.PLAt i -> "PLAt",i 
+              | Ctypes.PLSeq i -> "PLSeq", i 
+              | Ctypes.PLEverywhere -> "PLEverywhere", 0 in
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
@@ -80,6 +83,12 @@ let mk_refcfun qslocs args ist ret ost =
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
+let d_index_reft () (_,r) = 
+  Misc.fsprintf (C.print_reft None) r 
+  |> Pretty.text
+
+let d_refstore  = Ctypes.d_precstore d_index_reft 
+
 let refstore_empty = SLM.empty
 
 let refstore_mem l sto = SLM.mem l sto
@@ -94,10 +103,6 @@ let refstore_get sto l =
     Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
     assertf "refstore_get"
 
-let is_soft_ploc = function
-  | Ctypes.PLAt _ -> false
-  | _             -> true
-
 let sloc_binds_of_refldesc l rd = 
   Ctypes.LDesc.foldn begin fun i binds ploc rct ->
     ((name_of_sloc_ploc l ploc, rct), ploc)::binds
@@ -106,15 +111,16 @@ let sloc_binds_of_refldesc l rd =
 
 let binds_of_refldesc l rd = 
   sloc_binds_of_refldesc l rd 
-  |> List.filter (fun (_, ploc) -> not (is_soft_ploc ploc))
+  |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
   |> List.map fst
+  |> List.map (fun (n,r) -> 1/0; Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r))
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
   | [(ploc', rct)] -> 
-      (rct, not (ploc = ploc') (* is_soft_ploc ploc' *) (* i.e. soft *))
+      (rct, Ctypes.ploc_periodic ploc') (* not (ploc = ploc') *) (* i.e. soft *)
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
@@ -124,7 +130,8 @@ let addr_of_refctype = function
 
 let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
-  SLM.find l sto |> refdesc_find ploc 
+  SLM.find l sto 
+  |> refdesc_find ploc 
 
 (* API *)
 let refstore_read sto cr = 
@@ -292,7 +299,6 @@ let sort_of_prectype = function
   | Ctypes.CTInt _ -> so_int 
   | Ctypes.CTRef _ -> so_ref 
 
-
 let ra_fresh        = fun _ -> [C.Kvar ([], fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
@@ -311,8 +317,14 @@ let mk_eq_uf uf xs ys =
   let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
   A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
 
-let t_exp_ptr ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
-  match ct, A.Expression.support e with
+let is_reference cenv x = 
+  match ce_find x cenv with 
+  | Ctypes.CTRef (_,(_,_)) -> true
+  | _ -> false
+
+let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+  let erefs = A.Expression.support e |> List.filter (is_reference cenv) in
+  match ct, erefs with
   | (Ctypes.CTRef _), [x]  ->
       let x  = A.eVar x  in
       let vv = A.eVar vv in
@@ -321,12 +333,11 @@ let t_exp_ptr ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ -> 
       []
 
-
-let t_exp ct e =
+let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp e in
-  let rs = (t_exp_ptr ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let rs = (t_exp_ptr cenv ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
@@ -380,7 +391,7 @@ let make_wfs cenv rct loc =
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
-    let env' = ncrs |> List.filter (fun (_,ploc) -> not (is_soft_ploc ploc)) 
+    let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ctypes.ploc_periodic ploc)) 
                     |> List.map fst
                     |> ce_adds env in 
     let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr loc) ncrs in
@@ -419,12 +430,17 @@ let slocs_of_store st =
   SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity loc =
-  let _ = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
-          polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
+  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
+           polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
+  let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in
+  let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 
   |> Misc.flap begin fun sloc ->
        let lhs = (sloc, refstore_get st1 sloc) in
        let rhs = (sloc, refstore_get st2 sloc) in
        make_cs_refldesc env p lhs rhs loc 
-     end
+     end in
+  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in
+  rv

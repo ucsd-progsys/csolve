@@ -77,7 +77,15 @@ page_map ::
 
 main ::
   forall    [A0; A1; A2]
-  arg       (envs: ref (A2, 0, {v | true}), pages: ref (A0, true, {v | true}), page_protected: ref (A1, true, {v | true}))
+  arg       ()       
   ret       int (0, true, {v | true})
-  store_in  [A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: ref (A2, 0, {v | true}), 12[4]: int (4, true, {v | true}); A0 |-> true: int (4, true, {v | true}); A1 |-> true: int (4, true, {v | true})]
-  store_out [A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: ref (A2, 0, {v | true}), 12[4]: int (4, true, {v | true}); A0 |-> true: int (4, true, {v | true}); A1 |-> true: int (4, true, {v | true})]
+  store_in  []
+  store_out []
+
+
+//main ::
+//  forall    [A0; A1; A2]
+//  arg       (envs: ref (A2, 0, {v | true}), pages: ref (A0, true, {v | true}), page_protected: ref (A1, true, {v | true}))
+//  ret       int (0, true, {v | true})
+//  store_in  [A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: ref (A2, 0, {v | true}), 12[4]: int (4, true, {v | true}); A0 |-> true: int (4, true, {v | true}); A1 |-> true: int (4, true, {v | true})]
+//  store_out [A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: ref (A2, 0, {v | true}), 12[4]: int (4, true, {v | true}); A0 |-> true: int (4, true, {v | true}); A1 |-> true: int (4, true, {v | true})]

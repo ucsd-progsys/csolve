@@ -12,6 +12,13 @@ free ::
   store_in [C0 |-> ]
   store_out [C0 |-> ]
 
+atbegin::
+  forall    [A0]
+  arg       (x: ref (A0, true, {v| && [(BLOCK_BEGIN([v]) = v)]}))
+  ret int   (4, true, {v | true})
+  store_in  [A0 |-> ]
+  store_out []
+
 validptr ::
   forall    [A0]
   arg       (x: ref (A0, true, {v| && [(BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]}))

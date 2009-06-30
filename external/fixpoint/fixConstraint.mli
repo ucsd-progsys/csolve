@@ -61,6 +61,7 @@ val print_soln       : Format.formatter -> soln -> unit
 val to_string        : t -> string 
 
 val print_reft       : soln option -> Format.formatter -> reft -> unit
+
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t
 val sort_of_reft     : reft -> Ast.Sort.t
