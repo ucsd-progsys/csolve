@@ -31,6 +31,8 @@ let save_file           = ref "out"            (* -save *)
 let dump_ref_constraints= ref false            (* -drconstr *)
 let ol_default          = 2
 let verbose_level       = ref ol_default       (* -v *)
+let latex_file: string option ref = ref None   (* translate to LaTeX file *)
+let armc_file: string option ref  = ref None   (* translate to ARMC file *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -121,6 +123,25 @@ let arg_spec =
                \032    3      +Print normalized source\n\
                \032    11     +Verbose solver\n\
                \032    13     +Dump constraint graph\n\
-               \032    64     +Drowning in output") 
+               \032    64     +Drowning in output");
+   ("-latex", 
+    Arg.String (fun s -> 
+		  let l = String.length s in
+		    if l = 0 || String.sub s (l-4) 4 <> ".tex" then
+		      print_endline "-latex: invalid parameter"
+		    else
+		      latex_file := Some s),
+    "translate constraints to LaTeX file"
+   );
+   ("-armc", 
+    Arg.String (fun s -> 
+		  let l = String.length s in
+		    if l = 0 then
+		      print_endline "-armc: invalid parameter"
+		    else
+		      latex_file := Some s),
+    "translate constraints to ARMC file"
+   )
+
   ]
 

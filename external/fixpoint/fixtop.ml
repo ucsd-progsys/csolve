@@ -53,12 +53,27 @@ let parse f =
   open_in f 
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
+(* Andrey: TODO: need to close the file? *)
  
 let main () =
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
-  !fs |> Misc.flap parse |> sift
+  let _, _, cs, ws, _, _ =  !fs |> Misc.flap parse |> sift in
+    begin
+      match !Co.latex_file with
+	| Some f ->
+	    let out = open_out f in
+	      ToLatex.to_latex out cs ws;
+	      close_out out
+	| None -> ()
+    end;
+    begin
+      match !Co.armc_file with
+	| Some f -> failwith "-armc: not yet implemented"
+	| None -> ()
+    end
+
 
 let _ = main ()
