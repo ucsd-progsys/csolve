@@ -37,49 +37,57 @@ int page_getfree(int pages[])
     return rv2;
 }
 
-/*
 int page_free(int ppno, int pages[], int page_protected[])
 {
     assert(ppno >= 0 && ppno < 1000);
-    assert(pages[ppno] > 0 || page_protected[ppno] == 0);
+    dummyassert(pages[ppno] > 0 || page_protected[ppno] == 0);
     validptr(pages + ppno);
     return pages[ppno] == 0;
 }
 
 int is_page_protected(int ppno, int pages[], int page_protected[])
 {
-    assert(ppno >= 0 && ppno < 1000);
-    assert(page_protected[ppno] == 0 || pages[ppno] > 0);
+    assert(0 <= ppno);
+    assert(ppno < 1000);
+    dummyassert(page_protected[ppno] == 0 || pages[ppno] > 0);
     validptr(page_protected + ppno);
     return page_protected[ppno] != 0;
 }
 
 void page_decref(int ppno, int pages[], int page_protected[])
 {
-    assert(!page_free(ppno, pages, page_protected));
+    dummyassert(!page_free(ppno, pages, page_protected));
     validptr(pages + ppno);
     pages[ppno]--;
 }
+
 
 void env_check(env_t *env, env_t *envs, int pages[], int page_protected[])
 {
     int i, found;
     env_t *walk;
 
-    assert(is_page_protected(env->env_mypp, pages, page_protected));
+    env = env;
+    envs = envs;
 
-    for (i = 0; i < 2000; i++)
+    int bob = env->env_mypp;
+    dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
+
+    for (i = 0; i < 2000; i++){
         assert(0 <= i);
 	assert(i < 2000);
         if (env->env_pgdir[i] >= 0) {
-            assert(!page_free(env->env_pgdir[i], pages, page_protected));
-            assert(!is_page_protected(env->env_pgdir[i], pages, page_protected));
+            //dummyassert(!page_free(env->env_pgdir[i], pages, page_protected));
+            //dummyassert(!is_page_protected(env->env_pgdir[i], pages, page_protected));
         }
+    }
 
-    for (walk = envs, found = 0; walk; walk = walk->env_next)
-        if (walk == env)
+    for (walk = envs, found = 0; walk; walk = walk->env_next){
+        if (walk == env){
             found = 1;
-    assert(found);
+	}
+    }
+    dummyassert(found);
 }
 
 void mem_check(env_t *envs, int pages[], int page_protected[])
@@ -95,26 +103,27 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
         lpages[i] = 0;
 
     for (walk = envs; walk; walk = walk->env_next) {
-        assert(is_page_protected(walk->env_mypp, pages, page_protected));
+        dummyassert(is_page_protected(walk->env_mypp, pages, page_protected));
 
         validptr(lpages + walk->env_mypp);
         lpages[walk->env_mypp]++;
         for (i = 0; i < 2000; i++)
             assert(0 <= i); assert(i < 2000);
             if (walk->env_pgdir[i] >= 0) {
-                assert(!is_page_protected(walk->env_pgdir[i], pages, page_protected));
-                validptr(lpages + walk->env_pgdir[i]);
+                //dummyassert(!is_page_protected(walk->env_pgdir[i], pages, page_protected));
+                //validptr(lpages + walk->env_pgdir[i]);
                 lpages[walk->env_pgdir[i]]++;
             }
     }
     for (i = 0; i < 1000; i++) {
         validptr(lpages + i);
         validptr(pages + i);
-        assert(lpages[i] == pages[i]);
-        assert(lpages[i] > 0 || page_protected[i] == 0);
+        dummyassert(lpages[i] == pages[i]);
+        dummyassert(lpages[i] > 0 || page_protected[i] == 0);
     }
 }
-*/
+
+/* */
 /* */
 env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
 {
@@ -140,12 +149,14 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
         envs->env_prev = env;
     envs = env;
 
-    //validptr(pages + env_pp);
+    validptr(pages + env_pp);
     pages[env_pp]++;
-    //validptr(page_protected + env_pp);
+    
+    validptr(page_protected + env_pp);
     page_protected[env_pp] = 1;
-    //env_check(env, envs, pages, page_protected);
+    env_check(env, envs, pages, page_protected);
     //mem_check(envs, pages, page_protected);
+    //assert(0);
     return env;
 }
 

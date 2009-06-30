@@ -41,6 +41,14 @@ nondet ::
   store_in  []
   store_out []
 
+dummyassert ::
+  forall    []
+  arg 	    (b: int(4, true, {v | true}))
+  ret int   (4, true, {v | true})
+  store_in  []
+  store_out []
+
+
 assert ::
   forall    []
   arg 	    (b: int(4, true, {v | v != 0}))
