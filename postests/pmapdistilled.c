@@ -22,8 +22,6 @@ int page_getfree(int pages[])
     int jhalatemp;
 
     jhalatemp = pages[10];
-    assert(0);
-/*
     rv = 0-1;
 
     i = 0;
@@ -35,9 +33,8 @@ int page_getfree(int pages[])
 	//return i;
     }
     rv2 = rv;
-    assert(0 <= rv2);
+    assert(0 <= 1 + rv2);
     return rv2;
-*/
 }
 
 /*
@@ -118,19 +115,15 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
     }
 }
 */
-/*
+/* */
 env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
 {
     env_t *env;
     
-    
     int i, env_pp = page_getfree(pages);
-
-    assert(0);
     
     if (env_pp < 0)
         return 0;
-
 
     assert(0 <= env_pp);
     assert(env_pp < 1000);
@@ -155,7 +148,7 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
     //mem_check(envs, pages, page_protected);
     return env;
 }
-*/
+
 /*
 void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
 {
@@ -258,14 +251,14 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
       validptr(page_protected + i);
       page_protected[i] = 0;
     }
+
     jhalatemp = page_getfree(pages);
 
-    assert(0);
 
-    /*
     envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
     
+    /*
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
