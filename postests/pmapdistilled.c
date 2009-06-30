@@ -39,10 +39,11 @@ int page_getfree(int pages[])
 
 int page_free(int ppno, int pages[], int page_protected[])
 {
-    assert(ppno >= 0 && ppno < 1000);
-    dummyassert(pages[ppno] > 0 || page_protected[ppno] == 0);
-    validptr(pages + ppno);
-    return pages[ppno] == 0;
+  assert(0 <= ppno);
+  assert(ppno < 1000);
+  dummyassert(pages[ppno] > 0 || page_protected[ppno] == 0);
+  validptr(pages + ppno);
+  return pages[ppno] == 0;
 }
 
 int is_page_protected(int ppno, int pages[], int page_protected[])
@@ -105,6 +106,7 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
     for (walk = envs; walk; walk = walk->env_next) {
         dummyassert(is_page_protected(walk->env_mypp, pages, page_protected));
 
+	//assert(0); SANITY
         validptr(lpages + walk->env_mypp);
         lpages[walk->env_mypp]++;
         for (i = 0; i < 2000; i++){
@@ -156,25 +158,27 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
     page_protected[env_pp] = 1;
     env_check(env, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
-    assert(0);
+    // assert(0); SANITY
     return env;
 }
 
 void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
 {
     int i;
+    env = env;	//THETA ISSUE
+    envs = envs; //THETA ISSUE
     env_check(env, envs, pages, page_protected);
 
     for (i = 0; i < 2000; i++){
         assert(0 <= i); assert(i < 2000);
 	if (env->env_pgdir[i] >= 0){
-            page_decref(env->env_pgdir[i], pages, page_protected);
+            //page_decref(env->env_pgdir[i], pages, page_protected);
 	}
     }
     validptr(page_protected + env->env_mypp);
     page_protected[env->env_mypp] = 0;
     page_decref(env->env_mypp, pages, page_protected);
-    assert(page_free(env->env_mypp, pages, page_protected));
+    dummyassert(page_free(env->env_mypp, pages, page_protected));
 
     if (env->env_next)
         env->env_next->env_prev = env->env_prev;
@@ -183,7 +187,7 @@ void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
     else
         envs = env->env_next;
 
-    free(env);
+    //free(env); can't deal with concrete input -- fix Refanno
     mem_check(envs, pages, page_protected);
 }
 
@@ -269,6 +273,7 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     env_t *e = env_alloc(envs, pages, page_protected);
    
     //TBD: wrap around a loop
+    //TBD: hook to page_alloc, page_map, page_unmap
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
