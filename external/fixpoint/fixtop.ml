@@ -53,7 +53,6 @@ let parse f =
   open_in f 
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
-
  
 let main () =
   Printf.printf "© Copyright 2007 Regents of the University of California. ";

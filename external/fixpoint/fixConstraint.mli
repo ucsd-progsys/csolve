@@ -54,6 +54,20 @@ val sol_add          : soln -> Ast.Symbol.t -> Ast.pred list -> (bool * soln)
 val group_sol_add    : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 val group_sol_update : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) list -> (bool * soln)
 
+
+(* to print a constraint "c" do:
+   Format.printf "%a" (print_t None) c
+
+   to print an env "env" do:
+   Format.printf "%a" (print_env None) c
+
+   to print a wf constraint wf do:
+   Format.printf "%a" (print_wf None) wf
+
+   to convert a constraint c to a string do:
+   to_string c
+*)
+
 val print_env        : soln option -> Format.formatter -> envt -> unit
 val print_wf         : soln option -> Format.formatter -> wf -> unit
 val print_t          : soln option -> Format.formatter -> t -> unit
