@@ -572,30 +572,21 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cf
       end (ExpMap.empty, []) blocks
   in (em, bas)
 
-type outstore_status =
-  | OSOk
-  | OSUnified
-  | OSFail
+exception Unified
 
-let oss_and (oss1: outstore_status) (oss2: outstore_status) =
-  match (oss1, oss2) with
-    | (OSFail, _)    | (_, OSFail)    -> OSFail
-    | (OSUnified, _) | (_, OSUnified) -> OSUnified
-    | (OSOk, OSOk)                    -> OSOk
-
-let match_slocs (ct1: ctype) (ct2: ctype): outstore_status =
+let match_slocs (ct1: ctype) (ct2: ctype): bool =
   match (ct1, ct2) with
-    | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; OSUnified
-    | _                                                    -> OSOk
+    | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; raise Unified
+    | _                                                    -> true
 
-let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): outstore_status =
-  let oss = match_slocs atyp etyp in
-    if is_subctype atyp etyp then
-      oss
-    else begin
-      C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
-      OSFail
-    end
+let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
+  match_slocs atyp etyp;
+  if is_subctype atyp etyp then
+    true
+  else begin
+    C.errorLoc loc "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
+    false
+  end
 
 let check_out_store_complete (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
   prestore_fold begin fun ok l i ct ->
@@ -606,26 +597,31 @@ let check_out_store_complete (loc: C.location) (sto_out_formal: store) (sto_out_
       ok
   end true sto_out_actual
 
-let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): outstore_status =
-  if check_out_store_complete loc sto_out_formal sto_out_actual then
-    prestore_fold begin fun oss l i ct ->
+let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
+  let ok1 = check_out_store_complete loc sto_out_formal sto_out_actual in
+  let ok2 =
+    prestore_fold begin fun ok l i ct ->
       try
         let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
-          oss_and oss <| check_expected_type loc ct ct2
-      with _ ->
-        C.errorLoc loc "Expected %a |-> %a: %a in store:\n\n%a\n\n" S.d_sloc l d_index i d_ctype ct d_store sto_out_actual |> ignore;
-        OSFail
-    end OSOk sto_out_formal
-  else
-    OSFail
+        let ok2 = check_expected_type loc ct ct2 in
+          ok && ok2
+      with
+        | Unified -> raise Unified
+        | _       ->
+            C.errorLoc loc "Expected %a |-> %a: %a in store:\n\n%a\n\n" S.d_sloc l d_index i d_ctype ct d_store sto_out_actual |> ignore;
+            false
+    end true sto_out_formal
+  in ok1 && ok2
 
 let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in
   let out_store = storesol_apply is ss in
-    match check_out_store loc cf.sto_out out_store with
-      | OSFail    -> C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf |> ignore; assert false
-      | OSUnified -> solve_and_check_rec loc cf cs
-      | OSOk      -> (is, ss)
+    try
+      if check_out_store loc cf.sto_out out_store then
+        (is, ss)
+      else
+        E.s <| C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf
+    with Unified -> solve_and_check_rec loc cf cs
 
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   mk_uniqlocs loc (precfun_slocset cf |> S.SlocSet.elements) :: cs |> solve_and_check_rec loc cf

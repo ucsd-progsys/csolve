@@ -54,6 +54,9 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x,y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
+(* TBD: MALLOC HACK *)
+let new_block_reftype = FI.t_zero_refctype (* or, more soundly? FI.t_true_refctype *)
+
 let extend_world ld binds loc newloc (env, sto) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
   let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
@@ -64,7 +67,7 @@ let extend_world ld binds loc newloc (env, sto) =
                   if IM.mem i im then IM.find i im |> FI.t_name env' else
                     match ploc with 
                     | Ctypes.PLAt _ -> assertf "missing binding!"
-                    | _ when newloc -> FI.t_true_refctype rct
+                    | _ when newloc -> new_block_reftype rct
                     | _             -> FI.t_subs_names subs rct
                end in
   let sto'   = FI.refstore_set sto loc ld' in
@@ -220,10 +223,10 @@ let poly_clocs_of_store ocst ns =
     | _ -> None
   end ns
 
-let instantiate_cloc me wld (aloc, cloc) = 
+let instantiate_poly_cloc me wld (aloc, cloc) = 
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
-               |> List.map (Misc.app_snd FI.t_true_refctype) in
+               |> List.map (Misc.app_snd new_block_reftype) in
   extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
@@ -245,7 +248,7 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
   let wld'  = poly_clocs_of_store ocst ns 
-              |> List.fold_left (instantiate_cloc me) (env', st') in
+              |> List.fold_left (instantiate_poly_cloc me) (env', st') in
   (wld', cs1 ++ cs2 ++ cs3)
 
 (****************************************************************************)
