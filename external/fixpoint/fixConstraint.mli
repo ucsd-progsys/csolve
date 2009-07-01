@@ -66,7 +66,10 @@ val group_sol_update : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) li
 
    to convert a constraint c to a string do:
    to_string c
-*)
+
+   to print a list of constraints cs do: 
+   Format.printf "%a" (Misc.pprint_many true "\n" (C.print_t None)) cs
+   *)
 
 val print_env        : soln option -> Format.formatter -> envt -> unit
 val print_wf         : soln option -> Format.formatter -> wf -> unit
