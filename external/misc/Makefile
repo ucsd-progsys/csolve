@@ -9,7 +9,7 @@ CFLAGS=-cflags -dtypes \
 TARGETS=misc.cma misc.cmxa \
 	bNstats.cma bNstats.cmxa \
 	constants.cma constants.cmxa \
-	common.cma common.cmxa \
+	fcommon.cma fcommon.cmxa \
 	heaps.cma heaps.cmxa \
 	errorline.cma errorline.cmxa
 
