@@ -220,10 +220,10 @@ let poly_clocs_of_store ocst ns =
     | _ -> None
   end ns
 
-let instantiate_cloc me wld (aloc, cloc) = 
+let instantiate_poly_cloc me wld (aloc, cloc) = 
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
-               |> List.map (Misc.app_snd FI.t_true_refctype) in
+               |> List.map (Misc.app_snd FI.t_zero_refctype) in
   extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
@@ -245,7 +245,7 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
   let wld'  = poly_clocs_of_store ocst ns 
-              |> List.fold_left (instantiate_cloc me) (env', st') in
+              |> List.fold_left (instantiate_poly_cloc me) (env', st') in
   (wld', cs1 ++ cs2 ++ cs3)
 
 (****************************************************************************)

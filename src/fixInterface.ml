@@ -134,8 +134,8 @@ let addr_of_refctype = function
   | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
   | cr -> 
-      Errormsg.error "addr_of_refctype: bad arg = %a" d_refctype cr;
-      1/0;assertf "addr_of_refctype: bad args"
+      ignore(Errormsg.error "addr_of_refctype: bad arg = %a" d_refctype cr);
+      assertf "addr_of_refctype: bad args"
 
 let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
@@ -308,11 +308,18 @@ let sort_of_prectype = function
   | Ctypes.CTInt _ -> so_int 
   | Ctypes.CTRef _ -> so_ref 
 
+let ra_zero ct = 
+  let vv = ct |> sort_of_prectype |> Sy.value_variable in
+  [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
+
 let ra_fresh        = fun _ -> [C.Kvar ([], fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
-let t_true          = fun ct -> refctype_of_ctype ra_true ct 
-let t_true_refctype = fun rct -> rct |> ctype_of_refctype |> refctype_of_ctype ra_true
+let t_true          = fun ct -> refctype_of_ctype ra_true ct
+
+let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype f
+let t_true_refctype = t_conv_refctype ra_true
+let t_zero_refctype = t_conv_refctype ra_zero
 
 (* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
