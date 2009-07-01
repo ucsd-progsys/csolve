@@ -31,4 +31,4 @@ clean:
 	rm -rf *.byte *.native _build _log
 
 fixtop:
-	ocamlbuild -r $(LIBS) $(OFLAGS) fixtop.top
+	ocamlbuild -r $(LIBS) $(OFLAGS) fixtop.native
