@@ -54,7 +54,7 @@ let parse f =
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
 
-(* UNCOMMENT TO RUN AT COMMAND LINE  
+ 
 let main () =
   Printf.printf "© Copyright 2007 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
@@ -63,4 +63,3 @@ let main () =
   !fs |> Misc.flap parse |> sift
 
 let _ = main ()
-*)
