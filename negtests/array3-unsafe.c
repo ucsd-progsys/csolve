@@ -21,7 +21,7 @@ void main(){
   x = y;
   for (; i < 100; i++){
     z = *x;
-    assert(z >= 0);
+    assert(z >= 10);
     x++;
   }
   return 0;
