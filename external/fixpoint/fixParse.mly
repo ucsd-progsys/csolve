@@ -14,10 +14,11 @@ let parse_error msg =
 
 %token <string> Id
 %token <int> Num
+%token BEXP
+%token TRUE FALSE
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL SEMI COLON MID
-%token TRUE FALSE
 %token EOF
 %token PLUS
 %token MINUS
@@ -112,7 +113,7 @@ predsne:
 pred:
     TRUE				{ A.pTrue }
   | FALSE				{ A.pFalse }
-  | expr                                { A.pBexp $1 }
+  | BEXP expr                           { A.pBexp $2 }
   | AND preds   			{ A.pAnd ($2) }
   | OR  preds 	        		{ A.pOr  ($2) }
   | NOT pred				{ A.pNot ($2) }

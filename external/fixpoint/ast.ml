@@ -335,7 +335,7 @@ and pred_to_string p =
     | False -> 
         "false"
     | Bexp e ->
-        expr_to_string e
+        Printf.sprintf "(Bexp %s)" (expr_to_string e)
     | Not p -> 
         Printf.sprintf "~ (%s)" (pred_to_string p) 
     | Imp (p1, p2) -> 

@@ -68,6 +68,7 @@ rule token = parse
   | '*'                 { TIMES }
   | '?'                 { QM }
   | '.'                 { DOT }
+  | "Bexp"              { BEXP }
   | "false"             { FALSE }
   | "true"              { TRUE }
   | ":="                { ASGN }
@@ -80,6 +81,7 @@ rule token = parse
   | ">="		{ GE }
   | ">"		        { GT }
   | "->"                { IMPL }
+  
   | "int"               { INT }
   | "bool"              { BOOL }
   | "unint"             { UNINT }

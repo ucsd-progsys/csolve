@@ -1,5 +1,5 @@
-constraint: env [] 
-	    grd (0  = 0)
+constraint: env [x:{v: bool | []}] 
+	    grd (&& [(0 = 0); (Bexp x)])
 	    lhs {v : int | [v = 10]}
 	    rhs {v : int | [k1]}
 
