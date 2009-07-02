@@ -112,7 +112,8 @@ let sloc_of_ret ctm theta (conc, anns) = function
       |>> fun al -> new_cloc_of_aloc al anns
       |>> fun cl -> Hashtbl.replace theta v.vname cl; None
       |>> fun _  -> None 
-  | _ ->
+  | lv ->
+      Errormsg.error "sloc_of_ret: %a" Cil.d_lval lv;
       assertf "sloc_of_ret"
 
 let annotate_instr ctm theta conc = function
