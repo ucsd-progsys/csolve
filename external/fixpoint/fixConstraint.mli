@@ -96,6 +96,7 @@ val id_of_t          : t -> tag
 val make_wf          : envt -> reft -> tag option -> wf
 val env_of_wf        : wf -> envt
 val reft_of_wf       : wf -> reft
+val id_of_wf         : wf -> tag
 
 val validate         : t list -> t list
 

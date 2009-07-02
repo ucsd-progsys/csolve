@@ -41,7 +41,6 @@ let rec expr_to_latex (e, _) =
 	  (pred_to_latex ip) (expr_to_latex te) (expr_to_latex ee)
     | Ast.Fld (s, e) -> 
 	Printf.sprintf "%s.%s" (expr_to_latex e) (symbol_to_latex s)
-	  
 and pred_to_latex (p, _) = 
   match p with
     | Ast.True -> "\\ltrue"
@@ -50,19 +49,18 @@ and pred_to_latex (p, _) =
     | Ast.Not p -> Printf.sprintf "\\neg (%s)" (pred_to_latex p) 
     | Ast.Imp (p1, p2) -> 
 	Printf.sprintf "(%s \\limp %s)" (pred_to_latex p1) (pred_to_latex p2)
-    | Ast.And ps -> List.map pred_to_latex ps |> String.concat " \\land "
-    | Ast.Or ps -> List.map pred_to_latex ps |> String.concat " \\lor "
+    | Ast.And ps -> 
+	if ps = [] then "\\ltrue" else
+	  List.map pred_to_latex ps |> String.concat " \\land "
+    | Ast.Or ps -> 
+	if ps = [] then "\\lfalse" else
+	  List.map pred_to_latex ps |> String.concat " \\lor "
     | Ast.Atom (e1, r, e2) ->
 	Printf.sprintf "(%s %s %s)" 
           (expr_to_latex e1) (brel_to_latex r) (expr_to_latex e2)
     | Ast.Forall (qs,p) -> 
 	Printf.sprintf "\\forall %s: %s" 
           (List.map bind_to_latex qs |> String.concat ", ") (pred_to_latex p)
-
-(*
-let expr_to_latex e = Ast.Expression.to_string e
-let pred_to_latex p = Ast.Predicate.to_string p
-*)
 let subst_to_latex (s, e) = 
   Printf.sprintf "[%s/%s]" (expr_to_latex e) (symbol_to_latex s)
 let refa_to_latex refa =
@@ -72,13 +70,11 @@ let refa_to_latex refa =
 	Printf.sprintf "%s%s" 
 	  (symbol_to_latex sym)
 	  (List.map subst_to_latex subs |> String.concat "")
-  
 let reft_to_latex (v, b, r) = 
   Printf.sprintf "\\{ %s:%s \\mid %s \\}"
     (symbol_to_latex v) (sort_to_latex b) 
     (if r = [] then "\\ltrue" else
        (List.map refa_to_latex r |> String.concat " \\land "))
-
 let envt_to_latex envt = 
   if Ast.Symbol.SMap.is_empty envt then
     "\\ltrue;\\ "
@@ -92,30 +88,44 @@ let envt_to_latex envt =
 
 let c_to_latex out c = 
   Printf.fprintf out 
-"\\begin{footnotesize}
+    "\\begin{footnotesize}
   \\begin{verbatim}
 %s
   \\end{verbatim}
 \\end{footnotesize}
 " (C.to_string c);
-(* Andrey: old: aligned array ... *)
-(*   \\begin{array}[t]{l@{}l@{;\\ \\deriv\\ }c@{\\ <:\\ }l@{\\qquad}c} *)
-(*   %% envt & A.pred & reft & reft & (tag option) *)
-(*  Printf.fprintf out "  %s & %s & %s & %s & %s \\\\[\\jot]\n" *)
+  (* Andrey: old: aligned array ... *)
+  (*   \\begin{array}[t]{l@{}l@{;\\ \\deriv\\ }c@{\\ <:\\ }l@{\\qquad}c} *)
+  (*   %% envt & A.pred & reft & reft & (tag option) *)
+  (*  Printf.fprintf out "  %s & %s & %s & %s & %s \\\\[\\jot]\n" *)
   Printf.fprintf out
-"\\begin{displaymath}
+    "\\begin{displaymath}
   \\begin{array}[t]{l}
   %s %s\\ \\deriv\\\\ %s\\ <:\\\\ %s\\qquad %s
   \\end{array}
 \\end{displaymath}
 \\hrule
 " 
-    (C.env_of_t c |> envt_to_latex) 
+    (C.env_of_t c |> envt_to_latex)  
     (C.grd_of_t c |> pred_to_latex)
     (C.lhs_of_t c |> reft_to_latex) 
     (C.rhs_of_t c |> reft_to_latex)
     (try string_of_int (C.id_of_t c) with _ -> "")
-      
+
+(* type wf   = envt * reft * (tag option) *)
+let wf_to_latex out wf = 
+  Printf.fprintf out
+    "\\begin{displaymath}
+  \\begin{array}[t]{l}
+  %s\\ \\deriv\\ %s\\qquad %s
+  \\end{array}
+\\end{displaymath}
+\\hrule
+" 
+    (C.env_of_wf wf |> envt_to_latex)  
+    (C.reft_of_wf wf |> reft_to_latex)
+    (try string_of_int (C.id_of_wf wf) with _ -> "")
+
 
 let to_latex out cs ws = 
   Printf.printf "Translating to latex %d cs and %d ws.\n" 
@@ -131,6 +141,7 @@ let to_latex out cs ws =
 \\begin{document}
 ";
   List.iter (c_to_latex out) cs;
+  List.iter (wf_to_latex out) ws;
   Printf.fprintf out 
 "\\end{document}
 %%%%%% Local Variables: 
