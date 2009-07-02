@@ -43,7 +43,7 @@ module Sort :
 
 module Symbol : 
   sig 
-    type t (* = string *)
+    type t 
     module SMap : Map.S with type key = t
     val is_wild : t -> bool
     val of_string : string -> t

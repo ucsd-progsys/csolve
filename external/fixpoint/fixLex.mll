@@ -33,10 +33,10 @@
 }
 
 let digit    = ['0'-'9']
-let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' '#']
 (* let othersyms =[ '-' '$' '#' '!' '+' '=' '<' '>' ',' '?' '\''] *)
+let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' ''' '#']
 
-let alphlet  = ['A'-'Z' 'a'-'z' '~' '_' '@' ]
+let alphlet  = ['A'-'Z' 'a'-'z' '~' '_' ''' '@' ]
 let capital  = ['A'-'Z']
 let small    = ['a'-'z' '$' '_']
 let ws       = [' ' '\009' '\012']

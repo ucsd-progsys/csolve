@@ -635,6 +635,11 @@ let mk_char_factory () =
   let (fresh_int, reset_fresh_int) = mk_int_factory () in
     ((fun () -> Char.chr (fresh_int () + Char.code 'a')), reset_fresh_int)
 
+let mk_string_factory s =
+  let (fresh_int, reset_fresh_int) = mk_int_factory () in
+    ((fun () -> s^(string_of_int (fresh_int ()))), reset_fresh_int)
+
+
 (* ('a * (int * 'b) list) list -> (int * ('a * 'b) list) list *)
 let transpose x_iys_s = 
   let t = Hashtbl.create 17 in

@@ -66,18 +66,27 @@ module Symbol =
     
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
-
-    
     let is_wild s = 
       if s = "" then false else 
         (s.[0] = '~' || s.[0] = '@')
 
     let is_safe s = 
-      let re = Str.regexp "*?[a-zA-Z][a-z A-Z 0-9 _]*" in
+      (* let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in *)
+      let re = Str.regexp "[A-Za-z '~' '_' ''' '@' ][0-9 a-z A-Z '_' '@' ''''#']*$" in
       Str.string_match re s 0
-
-    let of_string = fun s -> s
-
+    
+    let of_string, to_string = 
+      let of_t = Hashtbl.create 117 in
+      let to_t = Hashtbl.create 117 in
+      let bind = fun s sy -> Hashtbl.replace of_t s sy; Hashtbl.replace to_t sy s in
+      let f,_  = Misc.mk_string_factory "FIXPOINTSYMBOL_" in
+      ((fun s -> 
+         if is_safe s then s else
+           try Hashtbl.find of_t s with Not_found ->
+             let sy = f () in
+             let _  = bind s sy in sy),
+       (fun sy -> try Hashtbl.find to_t sy with Not_found -> sy))
+                   
     let to_string = fun s -> s (* if is_safe s then s else "'" ^ s ^ "'" *)
 
     let print fmt s =
@@ -309,7 +318,7 @@ let rec expr_to_string e =
       Symbol.to_string s
   | App (s, es) ->
       Printf.sprintf "%s([%s])" 
-      (Symbol.to_string s) (List.map expr_to_string es |> String.concat " ")
+      (Symbol.to_string s) (List.map expr_to_string es |> String.concat ";")
   | Bin (e1, op, e2) ->
       Printf.sprintf "(%s %s %s)" 
       (expr_to_string e1) (bop_to_string op) (expr_to_string e2)
@@ -332,7 +341,7 @@ and pred_to_string p =
     | Imp (p1, p2) -> 
         Printf.sprintf "(%s -> %s)" (pred_to_string p1) (pred_to_string p2)
     | And ps -> 
-        Printf.sprintf "&& [%s]" (List.map pred_to_string ps |> String.concat ";")
+        Printf.sprintf "&& [%s]" (List.map pred_to_string ps |> String.concat " ; ")
     | Or ps -> 
         Printf.sprintf "|| [%s]" (List.map pred_to_string ps |> String.concat ";")
     | Atom (e1, r, e2) ->

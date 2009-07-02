@@ -112,6 +112,7 @@ predsne:
 pred:
     TRUE				{ A.pTrue }
   | FALSE				{ A.pFalse }
+  | expr                                { A.pBexp $1 }
   | AND preds   			{ A.pAnd ($2) }
   | OR  preds 	        		{ A.pOr  ($2) }
   | NOT pred				{ A.pNot ($2) }
