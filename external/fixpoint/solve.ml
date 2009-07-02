@@ -240,15 +240,15 @@ let inst wfs qs s =
 (******************** Constraint Validation ********************)
 (***************************************************************)
 
-let p_in_scope env subs p = List.for_all (fun v -> SM.mem v env)
-                                         (P.support (C.apply_substs subs p)) 
-let vs_oos env p     = List.filter (fun v -> not(SM.mem v env)) (P.support p)
+let vs_oos env p = List.filter (fun v -> not(SM.mem v env)) (P.support p)
 
-let phase1c soln t =
+let dfty = C.make_reft (Sy.value_variable S.Int) S.Int []
+
+let phase1c s t =
   let (env, g, r1, (_, _, r2)) =
     (C.env_of_t t, C.grd_of_t t, C.lhs_of_t t, C.rhs_of_t t) in
-  let lhs = lhs_preds soln env g r1 in
-  let rhs = List.map snd (Misc.flap (rhs_cands soln) r2) in
+  let lhs = lhs_preds s env g r1 in
+  let rhs = List.map snd (Misc.flap (rhs_cands s) r2) in
   let bvs = Misc.flap (vs_oos env) (lhs @ rhs) in
   if bvs != [] then Some (t, Misc.sort_and_compact bvs) else None
 
@@ -262,30 +262,17 @@ let phase1 soln cs =
     false
   else true
 
-let raspt = function
-  | C.Kvar (subs, k) -> [(subs, k)]
-  | _ -> []
- 
-let rtspt (_, _, ras) = Misc.flap raspt ras
-
-let prune_k env s (subs, k) =
-  SM.add k (List.filter (p_in_scope env subs) (SM.find k s)) s
-
-let force_phase1r s c =
-  let (env, rhs) = (C.env_of_t c, C.rhs_of_t c) in
-  List.fold_left (prune_k env) s (rtspt rhs)
-
-let force_phase1l s c =
-  let (env, lhs) = (C.env_of_t c, C.lhs_of_t c) in
-  let espt = SM.fold (fun _ r ks -> (rtspt r) @ ks) env [] in
-  List.fold_left (prune_k env) s (rtspt lhs @ espt)
-
+let force_phase1c s cs c =
+  match phase1c s c with
+  | Some (_, bvs) ->
+      let env =
+        List.fold_left (fun e v -> SM.add v dfty e) (C.env_of_t c) bvs in
+      (C.make_t env (C.grd_of_t c) (C.lhs_of_t c) (C.rhs_of_t c) (Some (C.id_of_t c))) :: cs
+  | None -> c :: cs
+      
 (* force solution into scope *)
 let force_phase1 soln cs =
-  let soln = List.fold_left force_phase1r soln cs in
-  List.fold_left force_phase1l soln cs
-
-let empty_sol soln = SM.map (fun _ -> []) soln
+  List.fold_left (force_phase1c soln) [] cs
 
 let validate soln cs = if not(phase1 soln cs) then assert false
 let force_validate soln cs = force_phase1 soln cs
@@ -307,8 +294,9 @@ let rec acsolve me w s =
 (* API *)
 let solve me (s : C.soln) = 
   let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
-  (*let s = force_validate s (Ci.to_list me.sri) in
-  let _ = validate s (Ci.to_list me.sri) in*)
+  (*let c = force_validate s (Ci.to_list me.sri) in
+  let me = {sri = Ci.create c; tpc = me.tpc; ws = me.ws} in
+  let _ = validate s c in*)
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;
           dump me s in
