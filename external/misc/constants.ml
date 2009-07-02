@@ -139,7 +139,7 @@ let arg_spec =
 		    if l = 0 then
 		      print_endline "-armc: invalid parameter"
 		    else
-		      latex_file := Some s),
+		      armc_file := Some s),
     "translates constraints to ARMC file"
    )
 

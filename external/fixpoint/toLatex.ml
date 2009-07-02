@@ -94,10 +94,6 @@ let c_to_latex out c =
   \\end{verbatim}
 \\end{footnotesize}
 " (C.to_string c);
-  (* Andrey: old: aligned array ... *)
-  (*   \\begin{array}[t]{l@{}l@{;\\ \\deriv\\ }c@{\\ <:\\ }l@{\\qquad}c} *)
-  (*   %% envt & A.pred & reft & reft & (tag option) *)
-  (*  Printf.fprintf out "  %s & %s & %s & %s & %s \\\\[\\jot]\n" *)
   Printf.fprintf out
     "\\begin{displaymath}
   \\begin{array}[t]{l}
@@ -112,7 +108,6 @@ let c_to_latex out c =
     (C.rhs_of_t c |> reft_to_latex)
     (try string_of_int (C.id_of_t c) with _ -> "")
 
-(* type wf   = envt * reft * (tag option) *)
 let wf_to_latex out wf = 
   Printf.fprintf out
     "\\begin{displaymath}
@@ -128,8 +123,7 @@ let wf_to_latex out wf =
 
 
 let to_latex out cs ws = 
-  Printf.printf "Translating to latex %d cs and %d ws.\n" 
-    (List.length cs) (List.length ws);
+  print_endline "Translating to LaTeX.";
   Printf.fprintf out 
 "\\documentclass[10pt]{llncs}
 \\pagestyle{plain}

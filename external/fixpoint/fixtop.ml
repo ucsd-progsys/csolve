@@ -71,7 +71,10 @@ let main () =
     end;
     begin
       match !Co.armc_file with
-	| Some f -> failwith "-armc: not yet implemented"
+	| Some f -> 
+	    let out = open_out f in
+	      ToARMC.to_armc out cs ws;
+	      close_out out
 	| None -> ()
     end
 
