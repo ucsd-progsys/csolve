@@ -1,0 +1,600 @@
+let rec len = fun xs -> match xs with | ([] as _'1) -> 0
+                                      | (x::xs' as _'4) -> let _'2 = 1  in let _'3 = (len (xs'))  in (+ (_'2) (_'3))
+                                       
+
+let
+test =
+  fun xs ->
+    let _'12 = (len (xs))  in let _'11 = (= (_'12) (15))  in assert _'11 ;
+    match xs with | ([] as _'5) -> ()
+                  | (x::xs as _'10) -> match xs with | ([] as _'6) -> ()
+                                                     | (y::_'8 as _'9) -> let _'7 = (> (y) (x))  in assert _'7
+                                                     
+                   
+
+(Pruned background env)
+::_0 ::
+(x_114:'a_107P) ->
+(x_115:«list_9» t_108. [] + ::(e0_110:'a_107P , e1_109: t_108)) -> {«list_9» t_108. [] + ::(e0_110:'a_107P , e1_109: t_108) | (V_282 = (::_0 x_114 x_115))}
+_meas_len_145 :: (x_154:«list_9» t_150. [] + ::(e0_152:'a_149P , e1_151: t_150)) -> {int_1 | (V_283 = (len_145 x_154))}
+===
+(Pruned background env)
+test_83 ::
+(a_138:{«list_9» t_140.  + (e0_144:{'a_143P | true} , e1_142:{«‹› ,‹(V_285 > e0_144) ,true›» t_140 | (1 = 1)}) | ((len_145 V_288) = 15)}) ->
+{unit_6. () | true}
+===
+##solve postests/recmlq.ml##
+
+unsplit constraints: 61 total 33 wf 28 sub
+
+122 instantiation queries 28 misses
+1776 qualifiers generated
+k_299: ((len_145 AA_0) = (1 + (len_145 xs_76))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_76))
+k_300: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_301: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_310) (AA_0 >= 0) (AA_0 > e0_310) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_310))
+k_302: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_310) (AA_0 >= 0) (AA_0 > e0_310) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_310))
+k_303: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_425: ((len_145 AA_0) = (1 + (len_145 xs_76))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_76))
+k_426: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_427: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_423) (AA_0 >= 0) (AA_0 > e0_423) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_423))
+k_428: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_423) (AA_0 >= 0) (AA_0 > e0_423) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_423))
+k_429: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_431: ((len_145 AA_0) = (1 + (len_145 xs_76))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_76))
+k_437: 
+k_438: 
+k_439: 
+k_440: 
+k_484: ((? (AA_0)) iff (-. (? (x_78)))) ((len_145 AA_0) = (1 + (len_145 xs_76))) 
+((len_145 AA_0) = 0) ((len_145 AA_0) = 15) ((x_78 >= 0) -> (AA_0 >= 0)) 
+(0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 = (len_145 x_78)) (AA_0 = (x_78 + 1)) 
+(AA_0 = (x_78 - 1)) (AA_0 >= 0) ((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_475)) 
+(AA_0 = (len_145 xs'_79)) (AA_0 = (len_145 x_78)) (AA_0 = (len_145 xs_76))
+k_495: 
+k_496: ((? (AA_0)) iff (-. (? (x_78)))) ((len_145 AA_0) = (1 + (len_145 xs_76))) 
+((len_145 AA_0) = 0) ((len_145 AA_0) = 15) ((x_78 >= 0) -> (AA_0 >= 0)) 
+(0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 = (len_145 x_78)) (AA_0 = (x_78 + 1)) 
+(AA_0 = (x_78 - 1)) (AA_0 >= 0) ((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_475)) 
+(AA_0 = (len_145 xs'_79)) (AA_0 = (len_145 x_78)) (AA_0 = (len_145 xs_76))
+k_497: 
+k_498: 
+k_499: 
+k_505: 
+k_506: 
+k_507: 
+k_508: 
+k_519: 
+k_520: 
+k_521: 
+k_523: 
+k_527: 
+k_538: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_84))
+k_539: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_540: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_536) (AA_0 >= 0) (AA_0 > e0_536) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_536))
+k_541: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) 
+(1 = 1) (AA_0 != 0) (AA_0 > e0_536) (AA_0 >= 0) (AA_0 > e0_536) ((len_145 AA_0) = 15) 
+(AA_0 = (len_145 e0_536))
+k_542: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) ((len_145 AA_0) = 15)
+k_544: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_84))
+k_557: 
+k_558: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_84))
+k_559: 
+k_560: 
+k_561: 
+k_567: 
+k_568: 
+k_569: 
+k_570: 
+k_575: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_84))
+k_584: 
+k_585: 
+k_586: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 xs_84))
+k_588: 
+k_598: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 test_predicate_603)) (AA_0 = (len_145 xs_84))
+k_600: 
+k_608: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 seq_606)) (AA_0 = (len_145 xs_84))
+k_614: 
+k_615: 
+k_616: 
+k_617: 
+k_632: ((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) 
+((len_145 AA_0) = 15) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_630)) (AA_0 = (len_145 seq_606)) 
+(AA_0 = (len_145 xs_84))
+k_655: ((? (AA_0)) iff (-. (? (x_88)))) ((len_145 AA_0) = (1 + (len_145 xs_89))) 
+((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) 
+((x_88 >= 0) -> (AA_0 >= 0)) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) 
+(AA_0 = (len_145 x_88)) (AA_0 = (x_88 + 1)) (AA_0 = (x_88 - 1)) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_653)) (AA_0 = (len_145 seq_606)) 
+(AA_0 = (len_145 xs_89)) (AA_0 = (len_145 x_88)) (AA_0 = (len_145 xs_84))
+k_661: 
+k_662: 
+k_663: 
+k_664: 
+k_679: ((? (AA_0)) iff (-. (? (x_88)))) ((len_145 AA_0) = (1 + (len_145 xs_89))) 
+((len_145 AA_0) = (1 + (len_145 xs_84))) ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) 
+((x_88 >= 0) -> (AA_0 >= 0)) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) 
+(AA_0 = (len_145 x_88)) (AA_0 = (x_88 + 1)) (AA_0 = (x_88 - 1)) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_677)) (AA_0 = (len_145 __measure_guard_653)) 
+(AA_0 = (len_145 seq_606)) (AA_0 = (len_145 xs_89)) (AA_0 = (len_145 x_88)) 
+(AA_0 = (len_145 xs_84))
+k_702: (((x_88 >= 0) and  (y_92 >= 0)) -> ((AA_0 >= 0) and  ((AA_0 <= x_88) and  (AA_0 <= y_92)))) 
+(((x_88 >= 0) and  (y_92 >= 0)) -> (AA_0 >= 0)) ((? (AA_0)) iff ((? (x_88)) and  (? (y_92)))) 
+((? (AA_0)) iff ((? (x_88)) or  (? (y_92)))) ((? (AA_0)) iff (-. (? (x_88)))) 
+((? (AA_0)) iff (x_88 != y_92)) ((? (AA_0)) iff (x_88 < y_92)) ((? (AA_0)) iff (x_88 <= y_92)) 
+((? (AA_0)) iff (x_88 = y_92)) ((? (AA_0)) iff (x_88 > y_92)) ((? (AA_0)) iff (x_88 >= y_92)) 
+((len_145 AA_0) = (1 + (len_145 xs_89))) ((len_145 AA_0) = (1 + (len_145 xs_84))) 
+((len_145 AA_0) = 0) ((len_145 AA_0) = 15) ((x_88 >= 0) -> (AA_0 >= 0)) 
+((y_92 > 0) -> (AA_0 < y_92)) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) 
+(AA_0 = (len_145 x_88)) (AA_0 = (len_145 y_92)) (AA_0 = (x_88 * y_92)) 
+(AA_0 = (x_88 + 1)) (AA_0 = (x_88 + y_92)) (AA_0 = (x_88 - (y_92 * (x_88 / y_92)))) 
+(AA_0 = (x_88 - 1)) (AA_0 = (x_88 - y_92)) (AA_0 = (x_88 / y_92)) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_700)) (AA_0 = (len_145 __measure_guard_653)) 
+(AA_0 = (len_145 seq_606)) (AA_0 = (len_145 y_92)) (AA_0 = (len_145 xs_89)) 
+(AA_0 = (len_145 x_88)) (AA_0 = (len_145 xs_84))
+k_712: 
+k_713: 
+k_714: (((x_88 >= 0) and  (y_92 >= 0)) -> ((AA_0 >= 0) and  ((AA_0 <= x_88) and  (AA_0 <= y_92)))) 
+(((x_88 >= 0) and  (y_92 >= 0)) -> (AA_0 >= 0)) ((? (AA_0)) iff ((? (x_88)) and  (? (y_92)))) 
+((? (AA_0)) iff ((? (x_88)) or  (? (y_92)))) ((? (AA_0)) iff (-. (? (x_88)))) 
+((? (AA_0)) iff (x_88 != y_92)) ((? (AA_0)) iff (x_88 < y_92)) ((? (AA_0)) iff (x_88 <= y_92)) 
+((? (AA_0)) iff (x_88 = y_92)) ((? (AA_0)) iff (x_88 > y_92)) ((? (AA_0)) iff (x_88 >= y_92)) 
+((len_145 AA_0) = (1 + (len_145 xs_89))) ((len_145 AA_0) = (1 + (len_145 xs_84))) 
+((len_145 AA_0) = 0) ((len_145 AA_0) = 15) ((x_88 >= 0) -> (AA_0 >= 0)) 
+((y_92 > 0) -> (AA_0 < y_92)) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) 
+(AA_0 = (len_145 x_88)) (AA_0 = (len_145 y_92)) (AA_0 = (x_88 * y_92)) 
+(AA_0 = (x_88 + 1)) (AA_0 = (x_88 + y_92)) (AA_0 = (x_88 - (y_92 * (x_88 / y_92)))) 
+(AA_0 = (x_88 - 1)) (AA_0 = (x_88 - y_92)) (AA_0 = (x_88 / y_92)) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 __measure_guard_700)) (AA_0 = (len_145 __measure_guard_653)) 
+(AA_0 = (len_145 seq_606)) (AA_0 = (len_145 y_92)) (AA_0 = (len_145 xs_89)) 
+(AA_0 = (len_145 x_88)) (AA_0 = (len_145 xs_84))
+k_717: 
+k_722: 
+k_727: (((x_88 >= 0) and  (y_92 >= 0)) -> ((AA_0 >= 0) and  ((AA_0 <= x_88) and  (AA_0 <= y_92)))) 
+(((x_88 >= 0) and  (y_92 >= 0)) -> (AA_0 >= 0)) ((? (AA_0)) iff ((? (x_88)) and  (? (y_92)))) 
+((? (AA_0)) iff ((? (x_88)) or  (? (y_92)))) ((? (AA_0)) iff (-. (? (x_88)))) 
+((? (AA_0)) iff (x_88 != y_92)) ((? (AA_0)) iff (x_88 < y_92)) ((? (AA_0)) iff (x_88 <= y_92)) 
+((? (AA_0)) iff (x_88 = y_92)) ((? (AA_0)) iff (x_88 > y_92)) ((? (AA_0)) iff (x_88 >= y_92)) 
+((len_145 AA_0) = (1 + (len_145 xs_89))) ((len_145 AA_0) = (1 + (len_145 xs_84))) 
+((len_145 AA_0) = 0) ((len_145 AA_0) = 15) ((x_88 >= 0) -> (AA_0 >= 0)) 
+((y_92 > 0) -> (AA_0 < y_92)) (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) 
+(AA_0 = (len_145 x_88)) (AA_0 = (len_145 y_92)) (AA_0 = (x_88 * y_92)) 
+(AA_0 = (x_88 + 1)) (AA_0 = (x_88 + y_92)) (AA_0 = (x_88 - (y_92 * (x_88 / y_92)))) 
+(AA_0 = (x_88 - 1)) (AA_0 = (x_88 - y_92)) (AA_0 = (x_88 / y_92)) (AA_0 >= 0) 
+((len_145 AA_0) = 15) (AA_0 = (len_145 test_predicate_732)) (AA_0 = (len_145 __measure_guard_700)) 
+(AA_0 = (len_145 __measure_guard_653)) (AA_0 = (len_145 seq_606)) (AA_0 = (len_145 y_92)) 
+(AA_0 = (len_145 xs_89)) (AA_0 = (len_145 x_88)) (AA_0 = (len_145 xs_84))
+k_729: 
+72 variables
+
+74 split wf constraints
+
+48 split subtyping constraints
+
+12 simple subtyping constraints
+
+7 simple2 subtyping constraints
+
+Quals:
+	Total: 423
+	Avg: 5.875000
+	Max: 40
+	Min: 0
+
+AFTER WF
+Quals:
+	Total: 105
+	Avg: 1.458333
+	Max: 7
+	Min: 0
+
+k_299: (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_300: (1 = 0) (1 = 1)
+k_301: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_302: (1 = 0) (1 = 1) (AA_0 > e0_310) (AA_0 > e0_310)
+k_303: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_425: (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_426: (1 = 0) (1 = 1)
+k_427: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_428: (1 = 0) (1 = 1) (AA_0 > e0_423) (AA_0 > e0_423)
+k_429: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_431: (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_437: 
+k_438: 
+k_439: 
+k_440: 
+k_484: (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs'_79)) (AA_0 = (len_145 xs_76))
+k_495: 
+k_496: (1 = 0) (1 = 1)
+k_497: 
+k_498: 
+k_499: 
+k_505: 
+k_506: 
+k_507: 
+k_508: 
+k_519: 
+k_520: 
+k_521: 
+k_523: 
+k_527: 
+k_538: (1 = 0) (1 = 1)
+k_539: (1 = 0) (1 = 1)
+k_540: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_541: (1 = 0) (1 = 1) (AA_0 > e0_536) (AA_0 > e0_536)
+k_542: ((len_145 AA_0) = 0) ((len_145 AA_0) = 15) (1 = 0) (1 = 1) ((len_145 AA_0) = 15)
+k_544: (1 = 0) (1 = 1)
+k_557: 
+k_558: (1 = 0) (1 = 1)
+k_559: 
+k_560: 
+k_561: 
+k_567: 
+k_568: 
+k_569: 
+k_570: 
+k_575: (1 = 0) (1 = 1)
+k_584: 
+k_585: 
+k_586: (0 <= AA_0) (1 = 0) (1 = 1) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_84))
+k_588: 
+k_598: (1 = 0) (1 = 1)
+k_600: 
+k_608: (1 = 0) (1 = 1)
+k_614: 
+k_615: 
+k_616: 
+k_617: 
+k_632: (1 = 0) (1 = 1)
+k_655: (1 = 0) (1 = 1)
+k_661: 
+k_662: 
+k_663: 
+k_664: 
+k_679: (1 = 0) (1 = 1)
+k_702: (1 = 0) (1 = 1)
+k_712: 
+k_713: 
+k_714: (1 = 0) (1 = 1)
+k_717: 
+k_722: 
+k_727: (1 = 0) (1 = 1)
+k_729: 
+Pushing 244 at 1
+Pushing 243 at 1
+Pushing 242 at 1
+Pushing 241 at 1
+Pushing 240 at 1
+Pushing 234 at 1
+Pushing 233 at 1
+Pushing 232 at 1
+Pushing 231 at 1
+Pushing 230 at 1
+Pushing 224 at 1
+Pushing 222 at 1
+Pushing 221 at 1
+Pushing 214 at 1
+Pushing 213 at 1
+Pushing 212 at 1
+Pushing 211 at 1
+Pushing 210 at 1
+Pushing 209 at 1
+Pushing 199 at 1
+Pushing 198 at 1
+Pushing 187 at 1
+Pushing 185 at 1
+Pushing 183 at 1
+Pushing 182 at 1
+Pushing 181 at 1
+Pushing 180 at 1
+Pushing 179 at 1
+Pushing 168 at 1
+Pushing 167 at 1
+Pushing 166 at 1
+Pushing 165 at 1
+Pushing 164 at 1
+Pushing 158 at 1
+Pushing 157 at 1
+Pushing 154 at 1
+Pushing 153 at 1
+Pushing 147 at 1
+Pushing 145 at 1
+Pushing 144 at 1
+Pushing 138 at 1
+Pushing 136 at 1
+Pushing 135 at 1
+Pushing 134 at 1
+Pushing 133 at 1
+Pushing 132 at 1
+Pushing 125 at 1
+Pushing 124 at 1
+
+Refining 243 at iter 74 in scc (37,false,78):
+
+Refining 183 at iter 75 in scc (36,false,39):
+
+Refining 242 at iter 76 in scc (35,false,78):
+
+Refining 241 at iter 77 in scc (34,false,78):
+
+Refining 240 at iter 78 in scc (33,false,78):
+
+Refining 182 at iter 79 in scc (32,false,39):
+
+Refining 181 at iter 80 in scc (31,false,39):
+
+Refining 180 at iter 81 in scc (30,true,39):
+
+Refining 179 at iter 82 in scc (29,true,39):
+
+Refining 233 at iter 83 in scc (28,true,35):
+
+Refining 230 at iter 84 in scc (28,true,35):
+
+Refining 213 at iter 85 in scc (28,false,21):
+
+Refining 209 at iter 86 in scc (28,false,21):
+
+Refining 211 at iter 87 in scc (28,false,21):
+
+Refining 212 at iter 88 in scc (28,false,21):
+
+Refining 231 at iter 89 in scc (28,false,35):
+Pushing 212 at 13
+Pushing 211 at 13
+Pushing 209 at 13
+
+Refining 232 at iter 90 in scc (28,false,35):
+Pushing 213 at 14
+
+Refining 212 at iter 91 in scc (28,false,21):
+
+Refining 209 at iter 92 in scc (28,false,21):
+
+Refining 211 at iter 93 in scc (28,false,21):
+
+Refining 213 at iter 94 in scc (28,false,21):
+Pushing 233 at 15
+
+Refining 233 at iter 95 in scc (28,true,35):
+Pushing 213 at 16
+Pushing 212 at 16
+Pushing 211 at 16
+Pushing 209 at 16
+
+Refining 213 at iter 96 in scc (28,false,21):
+
+Refining 212 at iter 97 in scc (28,false,21):
+
+Refining 209 at iter 98 in scc (28,false,21):
+
+Refining 211 at iter 99 in scc (28,false,21):
+num refines = 100
+
+Refining 222 at iter 100 in scc (27,false,31):
+
+Refining 214 at iter 101 in scc (26,false,28):
+
+Refining 221 at iter 102 in scc (26,false,32):
+
+Refining 224 at iter 103 in scc (26,false,34):
+
+Refining 234 at iter 104 in scc (26,false,35):
+Pushing 214 at 19
+
+Refining 214 at iter 105 in scc (26,false,28):
+Pushing 221 at 20
+
+Refining 221 at iter 106 in scc (26,false,32):
+
+Refining 167 at iter 107 in scc (25,false,42):
+
+Refining 166 at iter 108 in scc (24,false,42):
+
+Refining 165 at iter 109 in scc (23,false,43):
+
+Refining 164 at iter 110 in scc (22,false,43):
+
+Refining 158 at iter 111 in scc (21,false,46):
+
+Refining 168 at iter 112 in scc (20,true,49):
+
+Refining 147 at iter 113 in scc (19,true,53):
+
+Refining 154 at iter 114 in scc (18,false,72):
+
+Refining 157 at iter 115 in scc (17,false,47):
+
+Refining 210 at iter 116 in scc (16,false,21):
+
+Refining 199 at iter 117 in scc (15,false,25):
+
+Refining 198 at iter 118 in scc (14,false,26):
+
+Refining 138 at iter 119 in scc (13,true,56):
+
+Refining 145 at iter 120 in scc (12,false,69):
+
+Refining 135 at iter 121 in scc (11,false,60):
+
+Refining 134 at iter 122 in scc (10,false,60):
+
+Refining 133 at iter 123 in scc (9,false,61):
+
+Refining 132 at iter 124 in scc (8,false,61):
+
+Refining 125 at iter 125 in scc (7,false,64):
+
+Refining 124 at iter 126 in scc (6,false,65):
+
+Refining 136 at iter 127 in scc (5,true,67):
+
+Refining 144 at iter 128 in scc (4,true,70):
+
+Refining 153 at iter 129 in scc (3,true,73):
+
+Refining 185 at iter 130 in scc (2,true,75):
+
+Refining 187 at iter 131 in scc (1,true,77):
+
+Refining 244 at iter 132 in scc (0,false,78):
+Refine Iterations: 133 total (= wf=74 + su=59) sub includes si=13 tp=14 unsatLHS=0)
+
+Implication Queries: 68 match; 37 to TP (20 valid)
+
+TP API stats: 0 pushes 0 queries cache 0 hits 0 misses
+Prover  TP stats: implies(API): 0, Z3 {pushes: 48, pops: 48, unsats: 50}
+Quals:
+	Total: 53
+	Avg: 0.736111
+	Max: 5
+	Min: 0
+
+k_299: (0 <= AA_0) (1 = 1) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_300: (1 = 1)
+k_301: (1 = 1)
+k_302: (1 = 1) (AA_0 > e0_310) (AA_0 > e0_310)
+k_303: (1 = 1)
+k_425: (0 <= AA_0) (1 = 1) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_426: (1 = 1)
+k_427: (1 = 1)
+k_428: (1 = 1) (AA_0 > e0_423) (AA_0 > e0_423)
+k_429: (1 = 1)
+k_431: (1 = 1) (0 <= AA_0) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_437: 
+k_438: 
+k_439: 
+k_440: 
+k_484: (1 = 1) (0 <= AA_0) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_76))
+k_495: 
+k_496: (1 = 1)
+k_497: 
+k_498: 
+k_499: 
+k_505: 
+k_506: 
+k_507: 
+k_508: 
+k_519: 
+k_520: 
+k_521: 
+k_523: 
+k_527: 
+k_538: (1 = 1)
+k_539: (1 = 1)
+k_540: (1 = 1)
+k_541: (AA_0 > e0_536) (AA_0 > e0_536) (1 = 1)
+k_542: ((len_145 AA_0) = 15) ((len_145 AA_0) = 15) (1 = 1)
+k_544: (1 = 1)
+k_557: 
+k_558: (1 = 1)
+k_559: 
+k_560: 
+k_561: 
+k_567: 
+k_568: 
+k_569: 
+k_570: 
+k_575: (1 = 1)
+k_584: 
+k_585: 
+k_586: (1 = 1) (0 <= AA_0) (AA_0 != 0) (AA_0 >= 0) (AA_0 = (len_145 xs_84))
+k_588: 
+k_598: (1 = 1)
+k_600: 
+k_608: (1 = 1)
+k_614: 
+k_615: 
+k_616: 
+k_617: 
+k_632: 
+k_655: (1 = 1)
+k_661: 
+k_662: 
+k_663: 
+k_664: 
+k_679: 
+k_702: (1 = 1)
+k_712: 
+k_713: 
+k_714: (1 = 1)
+k_717: 
+k_722: 
+k_727: (1 = 1)
+k_729: 
+##time##
+
+Time to solve constraints:
+TOTAL                          0.072 s
+  testing solution               0.020 s
+    check_tp                       0.020 s
+      TP filter                      0.000 s
+        Z3 unsat                       0.000 s
+      TP set                         0.020 s
+        Z3 unsat                       0.004 s
+  solving sub                    0.032 s
+    refine                         0.032 s
+      sol replace                    0.000 s
+      check_tp                       0.024 s
+        TP filter                      0.008 s
+          Z3 unsat                       0.000 s
+        TP set                         0.016 s
+          Z3 unsat                       0.000 s
+  make rank map                  0.000 s
+    scc rank                       0.000 s
+      making graph                   0.000 s
+    step 2                         0.000 s
+    step 1                         0.000 s
+  solving wfs                    0.000 s
+    sol replace                    0.000 s
+    filter wf                      0.000 s
+      qual_wf                        0.000 s
+        pred_well_typed                0.000 s
+  make initial sol               0.000 s
+    elements                       0.000 s
+    sort and compact               0.000 s
+    app_sol                        0.000 s
+  making ref index               0.000 s
+    make rank map                  0.000 s
+      scc rank                       0.000 s
+        making graph                   0.000 s
+      step 2                         0.000 s
+      step 1                         0.000 s
+  instantiating quals            0.016 s
+    instquals                      0.016 s
+  splitting constraints           0.004 s
+##endtime##
+dsolve 0.1: Copyright (c) 2008 The Regents of the University of California, all rights reserved
+
+exec: ./liquid.opt -I theories -summarize /tmp/summary.scratch postests/recmlq.ml
+exec: ./depsplit /tmp/qual.scratch /tmp/summary.scratch postests/recmlq.quals
+exec: ./liquid.opt -dframes -I theories -v 10 postests/recmlq.ml
