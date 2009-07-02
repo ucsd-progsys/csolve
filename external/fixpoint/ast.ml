@@ -318,7 +318,7 @@ let rec expr_to_string e =
       Symbol.to_string s
   | App (s, es) ->
       Printf.sprintf "%s([%s])" 
-      (Symbol.to_string s) (List.map expr_to_string es |> String.concat ";")
+      (Symbol.to_string s) (List.map expr_to_string es |> String.concat "; ")
   | Bin (e1, op, e2) ->
       Printf.sprintf "(%s %s %s)" 
       (expr_to_string e1) (bop_to_string op) (expr_to_string e2)
