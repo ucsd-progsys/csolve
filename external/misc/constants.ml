@@ -124,7 +124,7 @@ let arg_spec =
                \032    11     +Verbose solver\n\
                \032    13     +Dump constraint graph\n\
                \032    64     +Drowning in output");
-   ("-latex filename.tex", 
+   ("-latex", 
     Arg.String (fun s -> 
 		  let l = String.length s in
 		    if l = 0 || String.sub s (l-4) 4 <> ".tex" then
@@ -133,7 +133,7 @@ let arg_spec =
 		      latex_file := Some s),
     "translates constraints to LaTeX file"
    );
-   ("-armc filename.pl", 
+   ("-armc", 
     Arg.String (fun s -> 
 		  let l = String.length s in
 		    if l = 0 then
