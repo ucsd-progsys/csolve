@@ -1,4 +1,4 @@
-constraint: env [f:{v : func [int; int] | [] }; 
+constraint: env [f:{v : func ([int; int]) | [] }; 
 		 x:{v : int | []     }; 
 		 y:{v : int | [v=x]   }] 
 	    grd && []
