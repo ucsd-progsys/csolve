@@ -34,7 +34,7 @@
 
 let digit    = ['0'-'9']
 (* let othersyms =[ '-' '$' '#' '!' '+' '=' '<' '>' ',' '?' '\''] *)
-let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' ''' '#']
+let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' ''' '.' '#']
 
 let alphlet  = ['A'-'Z' 'a'-'z' '~' '_' ''' '@' ]
 let capital  = ['A'-'Z']
@@ -66,6 +66,7 @@ rule token = parse
   | '+'                 { PLUS }
   | '-'                 { MINUS }
   | '*'                 { TIMES }
+  | '/'                 { DIV }
   | '?'                 { QM }
   | '.'                 { DOT }
   | "Bexp"              { BEXP }

@@ -72,7 +72,7 @@ module Symbol =
 
     let is_safe s = 
       (* let re = Str.regexp "[a-zA-Z][a-z A-Z 0-9 _]*" in *)
-      let re = Str.regexp "[A-Za-z '~' '_' ''' '@' ][0-9 a-z A-Z '_' '@' ''''#']*$" in
+      let re = Str.regexp "[A-Za-z '~' '_' '\'' '@' ][0-9 a-z A-Z '_' '@' '\'' '.' '#']*$" in
       Str.string_match re s 0
     
     let of_string, to_string = 
