@@ -12,11 +12,17 @@ let mk_data ?(suffix = "") vars =
 
 let mk_data_primed vars = mk_data ~suffix:"p" vars
 
+let kvars_of_t t = 
+  C.lhs_of_t t :: C.rhs_of_t t ::
+    (Ast.Symbol.SMap.fold
+       (fun _ reft sofar -> reft :: sofar) 
+       (C.env_of_t t) [])
+
 
 let to_armc out cs ws =
   print_endline "Translating to ARMC.";
   let kvars = 
-    List.map C.kvars_of_t cs |> List.flatten |> List.map snd
+    List.map kvars_of_t cs |> List.flatten |> List.map snd |>
       |> List.map Ast.Symbol.to_string |> List.sort compare
   in 
     Printf.printf "data vars: %s\n" (mk_data kvars);
