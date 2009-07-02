@@ -270,7 +270,7 @@ let force_phase1c s cs c =
       (C.make_t env (C.grd_of_t c) (C.lhs_of_t c) (C.rhs_of_t c) (Some (C.id_of_t c))) :: cs
   | None -> c :: cs
       
-(* force solution into scope *)
+(* force constraints to be well-scoped by manhandling envs *)
 let force_phase1 soln cs =
   List.fold_left (force_phase1c soln) [] cs
 
@@ -329,6 +329,7 @@ let save fname me s =
     (F.fprintf ppf "@[%a@] \n" (C.print_wf None))
     me.ws;
   F.fprintf ppf "@[%a@] \n" C.print_soln s;
+  close_out oc
 
 
 (*
