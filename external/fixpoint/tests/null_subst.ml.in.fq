@@ -14,7 +14,7 @@ constraint:
         f0_77:{AA_0 : func([int ; int]) | []};
         __tag_36:{AA_0 : func([int ; int]) | []};
         _'5_85:{AA_0 : int | [true;k_268[n_80:=n_84]]};
-        _'4_86:{AA_0 : bool | [&& [(AA_0 -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> AA_0)]]};
+        _'4_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> (Bexp AA_0))]]};
         _'3_82:{AA_0 : int | []};
         _'1_81:{AA_0 : bool | []};
         Some_0:{AA_0 : func([int ; int]) | []};
@@ -61,7 +61,7 @@ constraint:
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
  lhs {AA_0 : int | [true]} 
- rhs {AA_0 : int | [test_predicate_374]} 
+ rhs {AA_0 : int | [(Bexp test_predicate_374)]} 
  
 constraint:
   env  [z_78:{AA_0 : int | []};
@@ -79,7 +79,7 @@ constraint:
         f0_77:{AA_0 : func([int ; int]) | []};
         __tag_36:{AA_0 : func([int ; int]) | []};
         _'5_85:{AA_0 : int | [true;k_268[n_80:=n_84]]};
-        _'4_86:{AA_0 : bool | [&& [(AA_0 -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> AA_0)]]};
+        _'4_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> (Bexp AA_0))]]};
         _'3_82:{AA_0 : int | []};
         _'1_81:{AA_0 : bool | []};
         Some_0:{AA_0 : func([int ; int]) | []};
@@ -125,7 +125,7 @@ constraint:
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
- lhs {AA_0 : int | [test_predicate_374]} 
+ lhs {AA_0 : int | [(Bexp test_predicate_374)]} 
  rhs {AA_0 : int | [k_369]} 
  
 constraint:
@@ -404,7 +404,7 @@ constraint:
         f0_77:{AA_0 : func([int ; int]) | []};
         __tag_36:{AA_0 : func([int ; int]) | []};
         _'5_85:{AA_0 : int | [true;k_268[n_80:=n_84]]};
-        _'4_86:{AA_0 : bool | [&& [(AA_0 -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> AA_0)]]};
+        _'4_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_84 = _'5_85)) ; ((n_84 = _'5_85) -> (Bexp AA_0))]]};
         _'3_82:{AA_0 : int | []};
         _'1_81:{AA_0 : bool | []};
         Some_0:{AA_0 : func([int ; int]) | []};
@@ -601,7 +601,7 @@ constraint:
         _'5_85:{AA_0 : int | []};
         _'4_86:{AA_0 : bool | []};
         _'3_82:{AA_0 : int | [&& [(AA_0 = FIXPOINTSYMBOL_0) ; (__tag_36([AA_0]) = 0)];k_303]};
-        _'1_81:{AA_0 : bool | [&& [(AA_0 -> (n_80 = 0)) ; ((n_80 = 0) -> AA_0)]]};
+        _'1_81:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_80 = 0)) ; ((n_80 = 0) -> (Bexp AA_0))]]};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
         Open_trunc_0:{AA_0 : int | [(AA_0 = Open_trunc_0)]};
@@ -644,7 +644,7 @@ constraint:
         FIXPOINTSYMBOL_10:{AA_0 : func([int ; int ; bool]) | []};
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
- grd guard_299 
+ grd (Bexp guard_299) 
  lhs {AA_0 : int | [(AA_0 = _'3_82)]} 
  rhs {AA_0 : int | [k_258]} 
  
@@ -666,7 +666,7 @@ constraint:
         _'5_85:{AA_0 : int | []};
         _'4_86:{AA_0 : bool | []};
         _'3_82:{AA_0 : int | []};
-        _'1_81:{AA_0 : bool | [&& [(AA_0 -> (n_80 = 0)) ; ((n_80 = 0) -> AA_0)]]};
+        _'1_81:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_80 = 0)) ; ((n_80 = 0) -> (Bexp AA_0))]]};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
         Open_trunc_0:{AA_0 : int | [(AA_0 = Open_trunc_0)]};
@@ -709,7 +709,7 @@ constraint:
         FIXPOINTSYMBOL_10:{AA_0 : func([int ; int ; bool]) | []};
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
- grd guard_299 
+ grd (Bexp guard_299) 
  lhs {AA_0 : int | [true]} 
  rhs {AA_0 : int | [k_303]} 
  
@@ -731,7 +731,7 @@ constraint:
         _'5_85:{AA_0 : int | []};
         _'4_86:{AA_0 : bool | []};
         _'3_82:{AA_0 : int | [&& [(AA_0 = FIXPOINTSYMBOL_0) ; (__tag_36([AA_0]) = 0)];k_303]};
-        _'1_81:{AA_0 : bool | [&& [(AA_0 -> (n_80 = 0)) ; ((n_80 = 0) -> AA_0)]]};
+        _'1_81:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_80 = 0)) ; ((n_80 = 0) -> (Bexp AA_0))]]};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
         Open_trunc_0:{AA_0 : int | [(AA_0 = Open_trunc_0)]};
@@ -774,7 +774,7 @@ constraint:
         FIXPOINTSYMBOL_10:{AA_0 : func([int ; int ; bool]) | []};
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
- grd guard_299 
+ grd (Bexp guard_299) 
  lhs {AA_0 : int | [true;k_257[z_78:=_'3_82]]} 
  rhs {AA_0 : int | [k_301[supr_263:=supr_263]]} 
  
@@ -796,7 +796,7 @@ constraint:
         _'5_85:{AA_0 : int | []};
         _'4_86:{AA_0 : bool | []};
         _'3_82:{AA_0 : int | []};
-        _'1_81:{AA_0 : bool | [&& [(AA_0 -> (n_80 = 0)) ; ((n_80 = 0) -> AA_0)]]};
+        _'1_81:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_80 = 0)) ; ((n_80 = 0) -> (Bexp AA_0))]]};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
         Open_trunc_0:{AA_0 : int | [(AA_0 = Open_trunc_0)]};
@@ -839,7 +839,7 @@ constraint:
         FIXPOINTSYMBOL_10:{AA_0 : func([int ; int ; bool]) | []};
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
- grd ~ (guard_299) 
+ grd ~ ((Bexp guard_299)) 
  lhs {AA_0 : int | [(AA_0 = n_80)]} 
  rhs {AA_0 : int | [k_294[_0:=_0]]} 
  
@@ -861,7 +861,7 @@ constraint:
         _'5_85:{AA_0 : int | []};
         _'4_86:{AA_0 : bool | []};
         _'3_82:{AA_0 : int | []};
-        _'1_81:{AA_0 : bool | [&& [(AA_0 -> (n_80 = 0)) ; ((n_80 = 0) -> AA_0)]]};
+        _'1_81:{AA_0 : bool | [&& [((Bexp AA_0) -> (n_80 = 0)) ; ((n_80 = 0) -> (Bexp AA_0))]]};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
         Open_trunc_0:{AA_0 : int | [(AA_0 = Open_trunc_0)]};
@@ -904,7 +904,7 @@ constraint:
         FIXPOINTSYMBOL_10:{AA_0 : func([int ; int ; bool]) | []};
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
- grd guard_299 
+ grd (Bexp guard_299) 
  lhs {AA_0 : int | [true;k_301]} 
  rhs {AA_0 : int | [k_294[_0:=supr_263]]} 
  

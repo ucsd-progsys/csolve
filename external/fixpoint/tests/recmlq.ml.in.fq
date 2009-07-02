@@ -36,7 +36,7 @@ constraint:
         __measure_guard_445:{AA_0 : int | []};
         _'9_94:{AA_0 : int | [&& [(AA_0 = xs_89) ; (AA_0 = FIXPOINTSYMBOL_1([y_92; _'8_93]))]]};
         _'8_93:{AA_0 : int | [true;k_532[e0_676:=y_92][e0_528:=e0_676][e0_629:=x_88]]};
-        _'7_95:{AA_0 : bool | [&& [(AA_0 -> (y_92 > x_88)) ; ((y_92 > x_88) -> AA_0)]]};
+        _'7_95:{AA_0 : bool | [&& [((Bexp AA_0) -> (y_92 > x_88)) ; ((y_92 > x_88) -> (Bexp AA_0))]]};
         _'6_91:{AA_0 : int | []};
         _'5_87:{AA_0 : int | []};
         _'4_80:{AA_0 : int | []};
@@ -90,7 +90,7 @@ constraint:
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
  lhs {AA_0 : int | [true]} 
- rhs {AA_0 : int | [test_predicate_724]} 
+ rhs {AA_0 : int | [(Bexp test_predicate_724)]} 
  
 constraint:
   env  [y_92:{AA_0 : int | [true;k_531[e0_629:=x_88];k_533[e0_629:=x_88][e0_528:=e0_629]]};
@@ -130,7 +130,7 @@ constraint:
         __measure_guard_445:{AA_0 : int | []};
         _'9_94:{AA_0 : int | [&& [(AA_0 = xs_89) ; (AA_0 = FIXPOINTSYMBOL_1([y_92; _'8_93]))]]};
         _'8_93:{AA_0 : int | [true;k_532[e0_676:=y_92][e0_528:=e0_676][e0_629:=x_88]]};
-        _'7_95:{AA_0 : bool | [&& [(AA_0 -> (y_92 > x_88)) ; ((y_92 > x_88) -> AA_0)]]};
+        _'7_95:{AA_0 : bool | [&& [((Bexp AA_0) -> (y_92 > x_88)) ; ((y_92 > x_88) -> (Bexp AA_0))]]};
         _'6_91:{AA_0 : int | []};
         _'5_87:{AA_0 : int | []};
         _'4_80:{AA_0 : int | []};
@@ -183,7 +183,7 @@ constraint:
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
- lhs {AA_0 : int | [test_predicate_724]} 
+ lhs {AA_0 : int | [(Bexp test_predicate_724)]} 
  rhs {AA_0 : int | [k_719]} 
  
 constraint:
@@ -600,7 +600,7 @@ constraint:
         __measure_guard_445:{AA_0 : int | []};
         _'9_94:{AA_0 : int | [&& [(AA_0 = xs_89) ; (AA_0 = FIXPOINTSYMBOL_1([y_92; _'8_93]))]]};
         _'8_93:{AA_0 : int | [true;k_532[e0_676:=y_92][e0_528:=e0_676][e0_629:=x_88]]};
-        _'7_95:{AA_0 : bool | [&& [(AA_0 -> (y_92 > x_88)) ; ((y_92 > x_88) -> AA_0)]]};
+        _'7_95:{AA_0 : bool | [&& [((Bexp AA_0) -> (y_92 > x_88)) ; ((y_92 > x_88) -> (Bexp AA_0))]]};
         _'6_91:{AA_0 : int | []};
         _'5_87:{AA_0 : int | []};
         _'4_80:{AA_0 : int | []};
@@ -1266,7 +1266,7 @@ constraint:
         _'2_81:{AA_0 : int | []};
         _'1_77:{AA_0 : int | []};
         _'12_85:{AA_0 : int | [true;k_291[xs_76:=xs_84]]};
-        _'11_86:{AA_0 : bool | [&& [(AA_0 -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> AA_0)]]};
+        _'11_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> (Bexp AA_0))]]};
         _'10_90:{AA_0 : int | []};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
@@ -1312,7 +1312,7 @@ constraint:
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
  lhs {AA_0 : int | [true]} 
- rhs {AA_0 : int | [test_predicate_595]} 
+ rhs {AA_0 : int | [(Bexp test_predicate_595)]} 
  
 constraint:
   env  [y_92:{AA_0 : int | []};
@@ -1360,7 +1360,7 @@ constraint:
         _'2_81:{AA_0 : int | []};
         _'1_77:{AA_0 : int | []};
         _'12_85:{AA_0 : int | [true;k_291[xs_76:=xs_84]]};
-        _'11_86:{AA_0 : bool | [&& [(AA_0 -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> AA_0)]]};
+        _'11_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> (Bexp AA_0))]]};
         _'10_90:{AA_0 : int | []};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
@@ -1405,7 +1405,7 @@ constraint:
         FIXPOINTSYMBOL_1:{AA_0 : func([int ; int ; int]) | []};
         FIXPOINTSYMBOL_0:{AA_0 : int | [(AA_0 = FIXPOINTSYMBOL_0)]}] 
  grd true 
- lhs {AA_0 : int | [test_predicate_595]} 
+ lhs {AA_0 : int | [(Bexp test_predicate_595)]} 
  rhs {AA_0 : int | [k_590]} 
  
 constraint:
@@ -1830,7 +1830,7 @@ constraint:
         _'2_81:{AA_0 : int | []};
         _'1_77:{AA_0 : int | []};
         _'12_85:{AA_0 : int | [true;k_291[xs_76:=xs_84]]};
-        _'11_86:{AA_0 : bool | [&& [(AA_0 -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> AA_0)]]};
+        _'11_86:{AA_0 : bool | [&& [((Bexp AA_0) -> (_'12_85 = 15)) ; ((_'12_85 = 15) -> (Bexp AA_0))]]};
         _'10_90:{AA_0 : int | []};
         Some_0:{AA_0 : func([int ; int]) | []};
         Open_wronly_0:{AA_0 : int | [(AA_0 = Open_wronly_0)]};
