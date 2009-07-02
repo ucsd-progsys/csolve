@@ -615,7 +615,8 @@ and sortcheck_pred f p =
     | Atom (e1, r, e2) ->
       begin 
         match Misc.map_pair (sortcheck_expr f) (e1, e2) with
-        | (Some t1, Some t2) -> t1 = t2
+        (* | (Some Sort.Bool, Some Sort.Bool) -> (1/0; true) *)
+        | (Some t1, Some t2) -> (t1 = t2)
         | _                  -> false 
       end
     | Forall (qs,p) ->

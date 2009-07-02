@@ -137,6 +137,10 @@ let fresh =
 (********************** Typing *******************************************)
 (*************************************************************************)
 
+let varSort env s =
+  try SM.find s env with Not_found -> 
+    failure "ERROR: varSort cannot type %s in TPZ3 \n" (Sy.to_string s) 
+
 let getVarType s env =
   try SM.find s env with Not_found -> 
     failure "ERROR: could not type %s in TPZ3 \n" (Sy.to_string s) 
@@ -202,6 +206,16 @@ let z3Fun me env p t k =
 (********************** Pred/Expr Transl ********************************)
 (************************************************************************)
 
+let is_z3_bool me a =
+  a |> Z3.get_type me.c   
+    |> ast_type_to_string me
+    |> (=) "bool"
+ 
+let is_z3_int me a =
+  a |> Z3.get_type me.c   
+    |> ast_type_to_string me
+    |> (=) "int"
+
 let z3Rel = function
   | A.Eq -> Z3.mk_eq
   | A.Gt -> Z3.mk_gt
@@ -209,6 +223,7 @@ let z3Rel = function
   | A.Lt -> Z3.mk_lt
   | A.Le -> Z3.mk_le
   | _    -> failure "MATCH FAILURE: TPZ3.z3Rel"
+
 
 let rec cast me env a = function 
   | ("bool", "int") -> z3App me env iofb_n [a]
@@ -220,6 +235,21 @@ and z3Cast me env a t =
                   |> Misc.map_pair (ast_type_to_string me) in
   if st = st' then a else cast me env a (st, st')  
 
+and z3Rel me env (e1, r, e2) =
+  let t1o, t2o = Misc.map_pair (A.sortcheck_expr (varSort env)) (e1, e2) in
+  let a1 , a2  = Misc.map_pair (z3Exp me env) (e1, e2) in
+  match t1o, t2o with 
+  | Some t1, Some t2 when t1 = t2 -> begin
+    match r with
+    | A.Gt -> asserts (t1 = So.Int) "ERROR: z3Rel Gt"; Z3.mk_gt me.c a1 a2
+    | A.Ge -> asserts (t1 = So.Int) "ERROR: z3Rel Ge"; Z3.mk_ge me.c a1 a2
+    | A.Lt -> asserts (t1 = So.Int) "ERROR: z3Rel Lt"; Z3.mk_lt me.c a1 a2
+    | A.Le -> asserts (t1 = So.Int) "ERROR: z3Rel Le"; Z3.mk_le me.c a1 a2
+    | A.Eq -> Z3.mk_eq me.c a1 a2 
+    | A.Ne -> Z3.mk_distinct me.c [| a1; a2|]
+  end
+  | _ -> assertf "ERROR: type error in z3Rel"
+ 
 and z3App me env p zes =
   match getFunType p env with
   | So.Func ft ->
@@ -228,10 +258,11 @@ and z3App me env p zes =
       Z3.mk_app me.c cf (Array.of_list zes)
   | t -> 
       failure "ERROR: TPZ3.z3App p=%s f=%s" (Sy.to_string p) (So.to_string t)
-
+(*
 and z3Exp_int me env e =
   z3Cast me env (z3Exp me env e) So.Int 
-  
+ *)
+
 and z3Exp me env = function
   | A.Con (A.Constant.Int i), _ -> 
       Z3.mk_int me.c i me.tint 
@@ -265,15 +296,17 @@ and z3Pred me env = function
       Z3.mk_or me.c (Array.of_list (List.map (z3Pred me env) ps))
   | A.Imp (p1, p2), _ -> 
       Z3.mk_implies me.c (z3Pred me env p1) (z3Pred me env p2)
-  | A.Atom (e1, A.Ne, e2), _ ->
-      Z3.mk_distinct me.c [|(z3Exp_int me env e1); (z3Exp_int me env e2)|]
   | A.Atom (e1, r, e2), _ ->
-      (z3Rel r) me.c (z3Exp_int me env e1) (z3Exp_int me env e2)
-  | A.Bexp e, _ -> (* shady hack *)
+      z3Rel me env (e1, r, e2)
+  | A.Bexp e, _ -> 
       let a = z3Exp me env e in
-      let t = Z3.get_type me.c a in
-      let t = ast_type_to_string me t in
-      if t = "int" then cast me env a ("int", "bool") else a
+      let _ = asserts (is_z3_bool me a) "Bexp is not bool!" in
+      a
+      (* SHADY HACK 
+         let t = Z3.get_type me.c a in
+         let t = ast_type_to_string me t in
+         let _ = asserts (t = "bool") "Bexp is not bool!" in 
+         if not (t = "bool") then assertf cast me env a ("int", "bool") else a *)
   | A.Forall (xts, p), _ -> 
       let (xs, ts) = List.split xts in
       let zargs    = Array.of_list (List.map2 (z3Bind me) xs ts) in
