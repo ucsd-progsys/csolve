@@ -216,6 +216,7 @@ let is_z3_int me a =
     |> ast_type_to_string me
     |> (=) "int"
 
+    (* 
 let z3Rel = function
   | A.Eq -> Z3.mk_eq
   | A.Gt -> Z3.mk_gt
@@ -223,7 +224,7 @@ let z3Rel = function
   | A.Lt -> Z3.mk_lt
   | A.Le -> Z3.mk_le
   | _    -> failure "MATCH FAILURE: TPZ3.z3Rel"
-
+*)
 
 let rec cast me env a = function 
   | ("bool", "int") -> z3App me env iofb_n [a]

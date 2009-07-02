@@ -215,7 +215,6 @@ let inst_qual ys (q : Q.t) : Q.t list =
                  xyss in
     List.map (Q.create None t) ps'
 
-
 let inst_ext (qs : Q.t list) s wf = 
   let env = C.env_of_wf wf in
   let r   = C.reft_of_wf wf in

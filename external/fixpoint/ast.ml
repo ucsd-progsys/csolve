@@ -598,6 +598,17 @@ let rec sortcheck_expr f e =
   end
   | _ -> None
 
+and sortcheck_rel f (e1, r, e2) = 
+  let t1o, t2o = Misc.map_pair (sortcheck_expr f) (e1, e2) in
+  match (r, t1o, t2o) with
+  | Eq, Some t1, Some t2             -> t1 = t2
+  | Ne, Some t1, Some t2             -> t1 = t2
+  | Gt, Some Sort.Int, Some Sort.Int -> true 
+  | Ge, Some Sort.Int, Some Sort.Int -> true
+  | Lt, Some Sort.Int, Some Sort.Int -> true
+  | Le, Some Sort.Int, Some Sort.Int -> true
+  | _                                -> false 
+ 
 and sortcheck_pred f p = 
   match puw p with
     | True  
@@ -613,12 +624,7 @@ and sortcheck_pred f p =
     | Or ps ->
         List.for_all (sortcheck_pred f) ps
     | Atom (e1, r, e2) ->
-      begin 
-        match Misc.map_pair (sortcheck_expr f) (e1, e2) with
-        (* | (Some Sort.Bool, Some Sort.Bool) -> (1/0; true) *)
-        | (Some t1, Some t2) -> (t1 = t2)
-        | _                  -> false 
-      end
+        sortcheck_rel f (e1, r, e2)
     | Forall (qs,p) ->
         let f' = fun x -> try List.assoc x qs with _ -> f x in
         sortcheck_pred f' p
