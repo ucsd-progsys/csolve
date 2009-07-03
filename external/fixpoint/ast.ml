@@ -603,10 +603,10 @@ and sortcheck_rel f (e1, r, e2) =
   match (r, t1o, t2o) with
   | Eq, Some t1, Some t2             -> t1 = t2
   | Ne, Some t1, Some t2             -> t1 = t2
-  | Gt, Some Sort.Int, Some Sort.Int -> true 
-  | Ge, Some Sort.Int, Some Sort.Int -> true
-  | Lt, Some Sort.Int, Some Sort.Int -> true
-  | Le, Some Sort.Int, Some Sort.Int -> true
+  | Gt, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
+  | Ge, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
+  | Lt, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
+  | Le, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
   | _                                -> false 
  
 and sortcheck_pred f p = 
