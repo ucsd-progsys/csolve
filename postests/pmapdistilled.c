@@ -283,10 +283,11 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
 
     p = 0;
     while (nondet()) {
-        vp = 0;
-        vp++;
+        //vp = 0; vp++;
+	vp = nondetpos();
         if (0 <= vp && vp < 2000) {
-            p = page_alloc(e, vp, envs, pages, page_protected);
+	  assert(0);
+          p = page_alloc(e, vp, envs, pages, page_protected);
         }
     }
 }
