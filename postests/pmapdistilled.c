@@ -19,22 +19,14 @@ int page_getfree(int pages[])
     int i;
     int rv;
     int rv2;
-    int jhalatemp;
 
-    jhalatemp = pages[10];
-    rv = 0-1;
-
-    i = 0;
-    for (; i < 1000; i++){
+    for (i = 0; i < 1000; i++){
         validptr(pages + i);
         if (pages[i] == 0){
-            rv = i;
+            return i;
 	}
-	//return i;
     }
-    rv2 = rv;
-    assert(0 <= 1 + rv2);
-    return rv2;
+    return -1;
 }
 
 int page_free(int ppno, int pages[], int page_protected[])
@@ -117,8 +109,8 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
             assert(0 <= i); assert(i < 2000);
             ppi = walk->env_pgdir[i]; // RECHECK ISSUE
 	    if (ppi >= 0) {
-                //dummyassert(!is_page_protected(ppi, pages, page_protected));
-                //validptr(lpages + ppi);
+                dummyassert(!is_page_protected(ppi, pages, page_protected));
+                validptr(lpages + ppi);
                 lpages[ppi]++;
             }
 	}
