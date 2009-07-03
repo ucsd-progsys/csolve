@@ -194,6 +194,7 @@ void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
 int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
 {
     int pp;
+    // assert(vp < 1000); SANITY
 
     pp = page_getfree(pages);
     if (pp < 0)
@@ -209,6 +210,7 @@ int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[
 
     env_check(env, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
+    
     return 0;
 }
 /*
@@ -270,7 +272,6 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
 
     jhalatemp = page_getfree(pages);
 
-
     envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
    
@@ -282,12 +283,16 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     }
 
     p = 0;
+
+    vp = 0; 
+
     while (nondet()) {
-        //vp = 0; vp++;
-	vp = nondetpos();
-        if (0 <= vp && vp < 2000) {
-	  assert(0);
-          p = page_alloc(e, vp, envs, pages, page_protected);
+	//vp++;
+        vp = nondetpos();
+	
+	if (0 <= vp && vp < 2000) {
+          // assert(0); SANITY
+	  p = page_alloc(e, vp, envs, pages, page_protected);
         }
     }
 }
