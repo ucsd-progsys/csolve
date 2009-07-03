@@ -48,17 +48,13 @@ let mk_kv_scope out ts wfs =
     {kvs = kvs; kv_scope = kv_scope}
 
 let mk_data_var ?(suffix = "") kv v = 
-  Printf.sprintf "_%s_%s%s%s" 
-    kv v (if suffix = "" then "" else "_") suffix
+  Printf.sprintf "_%s_%s%s%s" kv v (if suffix = "" then "" else "_") suffix
 
 let mk_vs ?(suffix = "") s = 
   List.map 
     (fun kv ->
-       try
-	 StrMap.find kv s.kv_scope |>
-	     List.map (mk_data_var ~suffix:suffix kv)
-       with Not_found ->
-	 failure "ERROR: rel_state_vs: scope not found" kv
+       try StrMap.find kv s.kv_scope |> List.map (mk_data_var ~suffix:suffix kv)
+       with Not_found -> failure "ERROR: rel_state_vs: scope not found" kv
     ) s.kvs |> List.flatten
 
 let mk_var2names vs = 
@@ -73,8 +69,7 @@ let mk_var2names vs =
 let mk_update_str from_vs to_vs updates = 
   List.map2
     (fun v vp ->
-       Printf.sprintf "%s = %s"
-	 vp (try StrMap.find v updates with Not_found -> v)
+       Printf.sprintf "%s = %s" vp (try StrMap.find v updates with Not_found -> v)
     ) from_vs to_vs |> String.concat ", "
 
 let mk_rule from_pc from_vs to_pc to_vs guards updates id = 
