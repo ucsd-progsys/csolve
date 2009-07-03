@@ -19,16 +19,17 @@ let kvars_of_t t =
 
 let val_vname = "VVVV"
 let card_vname = "CARD"
+let exists_kv = "EX"
 
 let q s = Printf.sprintf "\'%s\'" s
 
-let HEHEHEE
+let sanitize_symbol = Str.global_replace (Str.regexp "@") "_at_" 
 
 let mk_data_var ?(suffix = "") kv v = 
-  Printf.sprintf "_%s_%s%s%s" kv v (if suffix = "" then "" else "_") suffix
+  Printf.sprintf "_%s_%s%s%s" 
+    (sanitize_symbol kv) (sanitize_symbol v) (if suffix = "" then "" else "_") suffix
 
-let symbol_to_armc ?(kv = "") s = 
-  Ast.Symbol.to_string s |> Str.global_replace (Str.regexp "@") "_at_" 
+let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
 let constant_to_armc = Ast.Constant.to_string
 let bop_to_armc = function 
@@ -43,54 +44,52 @@ let brel_to_armc = function
   | Ast.Ge -> ">="
   | Ast.Lt -> "+1 =<"
   | Ast.Le -> "=<"
-let bind_to_armc (s, t) = 
-  failure "ERROR: bind_to_armc %s:%s" (symbol_to_armc s) (Ast.Sort.to_string t)
-let rec expr_to_armc ?(kv = "EX") (e, _) = 
+let bind_to_armc (s, t) = (* Andrey: TODO support binders *)
+  Printf.sprintf "%s:%s" (symbol_to_armc s) (Ast.Sort.to_string t |> sanitize_symbol)
+let rec expr_to_armc (e, _) = 
   match e with
     | Ast.Con c -> constant_to_armc c
-    | Ast.Var s -> symbol_to_armc ~kv:kv s
+    | Ast.Var s -> mk_data_var exists_kv (symbol_to_armc s)
     | Ast.App (s, es) ->
-	let str = symbol_to_armc ~kv:kv s in
+	let str = symbol_to_armc s in
 	  if es = [] then str else
-	    Printf.sprintf "%s(%s)" str
-	      (List.map (expr_to_armc ~kv:kv) es |> String.concat " ")
+	    Printf.sprintf "%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
     | Ast.Bin (e1, op, e2) ->
 	Printf.sprintf "(%s %s %s)" 
-	  (expr_to_armc ~kv:kv e1) (bop_to_armc op) (expr_to_armc ~kv:kv e2)
+	  (expr_to_armc e1) (bop_to_armc op) (expr_to_armc e2)
     | Ast.Ite (ip, te, ee) -> 
 	Printf.sprintf "ite(%s, %s, %s)" 
-	  (pred_to_armc ~kv:kv ip) (expr_to_armc ~kv:kv te) (expr_to_armc ~kv:kv ee)
+	  (pred_to_armc ip) (expr_to_armc te) (expr_to_armc ee)
     | Ast.Fld (s, e) -> 
-	Printf.sprintf "fld(%s, %s)" (expr_to_armc ~kv:kv e) (symbol_to_armc ~kv:kv s)
-and pred_to_armc ?(kv = "EX") (p, _) = 
+	Printf.sprintf "fld(%s, %s)" (expr_to_armc e) (symbol_to_armc s)
+and pred_to_armc (p, _) = 
   match p with
     | Ast.True -> "1=1"
     | Ast.False -> "0=1"
-    | Ast.Bexp e -> expr_to_armc ~kv:kv e
+    | Ast.Bexp e -> expr_to_armc e
     | Ast.Not p -> (* Andrey: TODO support negation *)
-	Printf.sprintf "neg(%s)" (pred_to_armc ~kv:kv p) 
+	Printf.sprintf "neg(%s)" (pred_to_armc p) 
     | Ast.Imp (p1, p2) -> (* Andrey: TODO support implication *)
-	Printf.sprintf "imp(%s, %s)" 
-	  (pred_to_armc ~kv:kv p1) (pred_to_armc ~kv:kv p2)
+	Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
     | Ast.And ps -> 
 	if ps = [] then "1=1" else
-	  List.map (pred_to_armc ~kv:kv) ps |> String.concat ", "
+	  List.map pred_to_armc ps |> String.concat ", "
     | Ast.Or ps -> (* Andrey: TODO support disjunction *) 
 	begin
 	  match ps with
 	    | [] -> "0=1"
-	    | [p] -> pred_to_armc ~kv:kv p
+	    | [p] -> pred_to_armc p
 	    | _::_ ->
 		Printf.sprintf "(%s)" 
-		  (List.map (pred_to_armc ~kv:kv) ps |> String.concat "; ")
+		  (List.map pred_to_armc ps |> String.concat "; ")
 	end
     | Ast.Atom (e1, r, e2) ->
 	Printf.sprintf "(%s %s %s)" 
-          (expr_to_armc ~kv:kv e1) (brel_to_armc r) (expr_to_armc ~kv:kv e2)
+          (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
     | Ast.Forall (qs,p) -> (* Andrey: TODO support forall *) 
 	Printf.sprintf "forall([%s], %s)" 
           (List.map bind_to_armc qs |> String.concat ", ") 
-	  (pred_to_armc ~kv:kv p)
+	  (pred_to_armc p)
 
 
 let mk_kv_scope out ts wfs =
@@ -102,11 +101,11 @@ let mk_kv_scope out ts wfs =
       (fun m wf ->
 	 match C.reft_of_wf wf with
 	   | vv, sort, [C.Kvar([], kvar)] ->
-	       let v = mk_data_var kvar in
+	       let v = symbol_to_armc kvar in
 	       let scope = 
 		 card_vname :: val_vname ::
 		   (C.env_of_wf wf |> C.bindings_of_env |> 
-			List.map fst |> List.map mk_data_var |> 
+			List.map fst |> List.map symbol_to_armc |> 
 			    List.sort compare) in
 		 Printf.fprintf out "%% %s -> %s\n"
 		   v (String.concat ", " scope);
