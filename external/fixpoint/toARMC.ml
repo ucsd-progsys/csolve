@@ -204,12 +204,9 @@ let reft_to_armc state reft =
 
 let mk_rule from_pc from_vs to_pc to_vs annot_guards updates id = 
   let rec annout_guards_to_armc = function
-    | (gs, a) :: rest -> 
+    | (g, a) :: rest -> 
 	Printf.sprintf "\t%s%s \t%% %s%s%s" 
-	  (if gs = [] then "1=1" else String.concat ", " gs)
-	  (if rest = [] then "" else ",")
-	  a
-	  (if rest = [] then "" else "\n")
+	  g (if rest = [] then "" else ",") a (if rest = [] then "" else "\n")
 	  (annout_guards_to_armc rest)
     | [] -> ""
   in
@@ -238,12 +235,12 @@ let t_to_armc from_vs to_vs state t =
 	    mk_rule "loop" from_vs "loop" to_vs
 	      (List.map
 		 (fun (bv, reft) ->
-		    [reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft)],
+		    reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
 		    binding_to_string (bv, reft)
 		 ) (C.env_of_t t |> C.bindings_of_env) 
 	       ++
-		 [([pred_to_armc grd], Ast.Predicate.to_string grd); 
-		  ([reft_to_armc state lhs], reft_to_string lhs)]) (* add subst v/VVVV ?*)
+		 [(pred_to_armc grd, Ast.Predicate.to_string grd); 
+		  (reft_to_armc state lhs, reft_to_string lhs)]) (* add subst v/VVVV ?*)
 	      (kvar_to_updates state (subs, sym))
 	      tag
       | (_, _, rs) -> "Andrey: TODO t_to_armc "
