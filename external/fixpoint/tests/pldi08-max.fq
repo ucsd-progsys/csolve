@@ -1,13 +1,26 @@
-constraint: env [x:{v : int | [K_x]}; 
-                 y:{v : int | [K_y]}]
+constraint: env [x:{v : int | [Kx]}; 
+                 y:{v : int | [Ky]}]
 	    grd (x > y)
 	    lhs {v : int | [v = x]}
-	    rhs {v : int | [K_1]}
+	    rhs {v : int | [K1]}
 
-constraint: env [x:{v : int | [K_x]}; 
-                 y:{v : int | [K_y]}]
+constraint: env [x:{v : int | [Kx]}; 
+                 y:{v : int | [Ky]}]
 	    grd ~(x > y)
 	    lhs {v : int | [v = y]}
-	    rhs {v : int | [K_1]}
+	    rhs {v : int | [K1]}
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [Kx]} 
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [Ky]} 
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [K1]} 
+
 
 solution: k1 :=  [x <= v; y <= v]
