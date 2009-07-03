@@ -201,7 +201,7 @@ int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[
 
     assert(0 <= vp); assert(vp < 2000);
     if (env->env_pgdir[vp] >= 0){
-        page_decref(env->env_pgdir[vp], pages, page_protected);
+        //page_decref(env->env_pgdir[vp], pages, page_protected);
     }
     env->env_pgdir[vp] = pp;
     validptr(pages + pp);
@@ -256,6 +256,8 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     int *page_protected;
     int i;
     int jhalatemp;
+    int p;
+    int vp;
 
     pages = (int *) malloc(1000);
     page_protected = (int *) malloc(1000);
@@ -277,5 +279,14 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
-    } 
+    }
+
+    p = 0;
+    while (nondet()) {
+        vp = 0;
+        vp++;
+        if (0 <= vp && vp < 2000) {
+            p = page_alloc(e, vp, envs, pages, page_protected);
+        }
+    }
 }
