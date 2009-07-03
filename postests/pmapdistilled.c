@@ -202,18 +202,16 @@ void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
 int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
 {
     int pp;
-    // assert(vp < 1000); SANITY
-
-    int ppi; //RECHECK ISSUE
+    int tmp; // RECHECK ISSUE
 
     pp = page_getfree(pages);
     if (pp < 0)
         return -1;
 
     assert(0 <= vp); assert(vp < 2000);
-    ppi = env->env_pgdir[vp] ;
-    if (ppi >= 0){
-        page_decref(ppi, pages, page_protected);
+    tmp = env->env_pgdir[vp];
+    if (tmp >= 0){
+        page_decref(tmp, pages, page_protected);
     }
     
     assert(0 <= vp); assert(vp < 2000);
@@ -226,12 +224,15 @@ int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[
     
     return 0;
 }
-/*
+
 void page_unmap(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
 {
+    int tmp; // RECHECK ISSUE
+
     assert(0 <= vp); assert(vp < 2000);
-    if (env->env_pgdir[vp] >= 0){
-      page_decref(env->env_pgdir[vp], pages, page_protected);
+    tmp = env->env_pgdir[vp];
+    if (tmp >= 0){
+        page_decref(tmp, pages, page_protected);
     }
     env_check(env, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
@@ -239,22 +240,25 @@ void page_unmap(env_t *env, int vp, env_t *envs, int pages[], int page_protected
 
 int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t *envs, int pages[], int page_protected[])
 {
-    assert(srcvp >= 0 && srcvp < 2000);
-    assert(dstvp >= 0 && dstvp < 2000);
+    int tmp, tmp2; // RECHECK ISSUE
+
+    assert(srcvp >= 0); assert(srcvp < 2000);
+    assert(dstvp >= 0); assert(dstvp < 2000);
 
     env_check(srcenv, envs, pages, page_protected);
     env_check(dstenv, envs, pages, page_protected);
-    
-    assert(0 <= srcvp); assert(srcvp < 2000);
-    if (srcenv->env_pgdir[srcvp] < 0)
+
+    tmp2 = srcenv->env_pgdir[srcvp];
+    if (tmp2 < 0)
         return -1;
 
-    assert(0 <= dstvp); assert(dstvp < 2000);
-    if (dstenv->env_pgdir[dstvp] >= 0){
-        //page_decref(dstenv->env_pgdir[dstvp], pages, page_protected);
+    tmp = dstenv->env_pgdir[dstvp];
+    if (tmp >= 0){
+        page_decref(tmp, pages, page_protected);
     }
-    dstenv->env_pgdir[dstvp] = srcenv->env_pgdir[srcvp];
-    validptr(pages + dstenv->env_pgdir[dstvp]);
+
+    dstenv->env_pgdir[dstvp] = tmp2;
+    validptr(pages + tmp2);
     pages[dstenv->env_pgdir[dstvp]]++;
 
     env_check(dstenv, envs, pages, page_protected);
@@ -262,7 +266,6 @@ int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t *envs, in
 
     return 0;
 }
-*/
 
 void main(/* env_t *envs, int pages[], int page_protected[] */)
 {
@@ -272,7 +275,7 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     int i;
     int jhalatemp;
     int p;
-    int vp;
+    int vp, vp2;
 
     pages = (int *) malloc(1000);
     page_protected = (int *) malloc(1000);
@@ -288,8 +291,6 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
    
-    //TBD: wrap around a loop
-    //TBD: hook to page_alloc, page_map, page_unmap
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
@@ -298,13 +299,19 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     env_t *e2 = env_alloc(envs, pages, page_protected);
 
     p = 0;
-
     vp = 0; 
-
+    // Not having this line causes an unknown name error on some vp2 phi node!!!
+    vp2 = 0;
     while (nondet()) {
 	vp = nondetpos();
         if (0 <= vp && vp < 2000) {
           p = page_alloc(e, vp, envs, pages, page_protected);
+
+          vp2 = nondetpos();
+          if (0 <= vp2 && vp2 < 2000) {
+              page_map(e, vp, e2, vp2, envs, pages, page_protected);
+              page_unmap(e, vp, envs, pages, page_protected);
+          }
         }
     }
 }
