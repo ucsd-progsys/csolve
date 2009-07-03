@@ -1,14 +1,16 @@
-constraint: env [x:{v : int | [Kx]}; 
+constraint: env [x:{v : int | [Kx[y:=y+1]]}; 
                  y:{v : int | [Ky]}]
 	    grd (x > y)
 	    lhs {v : int | [Kx]}
-	    rhs {v : int | [K1]}
+	    rhs {v : int | [K1[y:=y+1]]}
+            tag 1
 
 constraint: env [x:{v : int | [Kx]}; 
                  y:{v : int | [Ky]}]
 	    grd ~(x > y)
 	    lhs {v : int | [v = y]}
 	    rhs {v : int | [K1]}
+            tag 2
 
 wf: env [x:{v : int | []};
          y:{v : int | []}]

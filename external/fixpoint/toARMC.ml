@@ -21,17 +21,19 @@ let kvars_of_t t =
 let refa_to_string = function
   | C.Conc p -> Ast.Predicate.to_string p
   | C.Kvar (subs, sym) ->
-      Printf.sprintf "%s%s" 
-	(Ast.Symbol.to_string sym)
-	(List.map (fun (s, e) -> 
-		     Printf.sprintf "[%s/%s]" 
-		       (Ast.Expression.to_string e) (Ast.Symbol.to_string s)
-		  ) subs |> String.concat "")
-let reft_to_string (vv, b, rs) =
+      Printf.sprintf "%s%s" (Ast.Symbol.to_string sym)
+	(List.map
+	   (fun (s, e) -> 
+	      Printf.sprintf "[%s/%s]" 
+		(Ast.Expression.to_string e) (Ast.Symbol.to_string s)
+	   ) subs |> String.concat "")
+let reft_to_string reft =
   Printf.sprintf "{%s:%s | [%s]}"
-    (Ast.Symbol.to_string vv)
-    (Ast.Sort.to_string b)
-    (List.map refa_to_string rs |> String.concat ", ")
+    (C.vv_of_reft reft |> Ast.Symbol.to_string)
+    (C.sort_of_reft reft |> Ast.Sort.to_string)
+    (C.ras_of_reft reft |> List.map refa_to_string |> String.concat ", ")
+let binding_to_string (vv, reft) =
+  Printf.sprintf "%s:%s" (Ast.Symbol.to_string vv) (reft_to_string reft)
 
 let val_vname = "VVVV"
 let card_vname = "CARD"
@@ -161,54 +163,44 @@ type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
 type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
 *)
 
-let split_scope = function
-  | card :: data -> card, data
-  | [] -> failure "ERROR: split_scope: empty scope"
-
-let refa_to_armc state = function
-  | C.Conc pred -> pred_to_armc pred
-  | C.Kvar (subs, sym) -> 
-      let kv = symbol_to_armc sym in
-      let card, data = StrMap.find kv state.kv_scope |> split_scope in
-	Printf.sprintf "%s = 1" (mk_data_var kv card)
-	:: List.map
-	  (fun v -> 
-	     Printf.sprintf "%s = %s"
-	       (mk_data_var kv v)
-	       (mk_data_var exists_kv v)
-	  ) data |> String.concat ", "
-(* Andrey: TODO apply substitutions 
-      Printf.sprintf "%s%s" 
-	(Ast.Symbol.to_string sym)
-	(List.map (fun (s, e) -> Printf.sprintf "[%s/%s]"
-		     (Ast.Expression.to_string e)
-		     (Ast.Symbol.to_string s)
-		  ) subs |> String.concat "")
-*)
-let reft_to_armc state (_, _, rs) = 
-  if rs = [] then "1=1" else
-    List.map (refa_to_armc state) rs |> String.concat ", "
-
-let binding_to_armc state bv ((vv, _, _) as reft) = 
-  reft_to_armc state (C.theta [(bv, Ast.eVar vv)] reft)
-
-(*
-let binding_to_armc state bv (vv, _, rs) = 
-  if rs = [] then "1=1" else
-    Printf.sprintf "%s = %s"
-      (mk_data_var exists_kv (symbol_to_armc bv))
-      (mk_data_var exists_kv (symbol_to_armc vv)) 
-    :: List.map (refa_to_armc state) rs |> String.concat ", "
-*)
+let split_scope scope = 
+  match scope with
+    | card :: value :: data -> card, value, data
+    | [] -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
 
 let kvar_to_updates state (subs, sym) = 
   let kv = symbol_to_armc sym in
-  let card, data = StrMap.find kv state.kv_scope |> split_scope in
+  let card, value, data = StrMap.find kv state.kv_scope |> split_scope in
     List.fold_left
       (fun m v ->
 	 StrMap.add (mk_data_var kv v) (mk_data_var exists_kv v) m
-      ) (StrMap.add (mk_data_var kv card) "1" StrMap.empty) data
-      (* Andrey: TODO apply substitutions *)
+      ) (StrMap.add (mk_data_var kv card) "1" StrMap.empty) (value::data)
+      (* Andrey: TODO apply substitutions, treat value variable!!! *)
+
+let reft_to_armc state reft = 
+  let vv = C.vv_of_reft reft |> symbol_to_armc in
+  let rs = C.ras_of_reft reft in
+    if rs = [] then "1=1" else
+      List.map
+	(function
+	   | C.Conc pred -> pred_to_armc pred
+	   | C.Kvar (subs, sym) -> 
+	       let subs_map = List.fold_left
+		 (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
+	       let find_subst v default = 
+		 try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
+	       let kv = symbol_to_armc sym in
+	       let card, value, data = StrMap.find kv state.kv_scope |> split_scope in
+		 Printf.sprintf "%s = 1" (mk_data_var kv card) ::
+		   Printf.sprintf "%s = %s" 
+		   (mk_data_var kv value) (find_subst vv (mk_data_var exists_kv vv)) ::
+		   List.map
+		   (fun v -> 
+		      Printf.sprintf "%s = %s"
+			(mk_data_var kv v)
+			(find_subst v (mk_data_var exists_kv v))
+		   ) data |> String.concat ", "
+	) rs |> String.concat ", "
 
 let mk_rule from_pc from_vs to_pc to_vs annot_guards updates id = 
   let rec annout_guards_to_armc = function
@@ -237,11 +229,8 @@ r(p(pc(%s), data(%s)),
       id
 
 let t_to_armc from_vs to_vs state t = 
-  (* Andrey: TODO
-     (try string_of_int (C.id_of_t t) with _ -> 
-     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t))
-  *)
-  let tag = "dummy_tag" in
+  let tag = try string_of_int (C.id_of_t t) with _ -> 
+    failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
     match C.rhs_of_t t with 
       | (_, _, [C.Kvar (subs, sym)]) ->
 	  let grd = C.grd_of_t t in
@@ -249,13 +238,12 @@ let t_to_armc from_vs to_vs state t =
 	    mk_rule "loop" from_vs "loop" to_vs
 	      (List.map
 		 (fun (bv, reft) ->
-		    [binding_to_armc state bv reft], 
-		    Printf.sprintf "%s:%s" (Ast.Symbol.to_string bv) (reft_to_string reft)
-		 )
-		 (C.env_of_t t |> C.bindings_of_env) 
+		    [reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft)],
+		    binding_to_string (bv, reft)
+		 ) (C.env_of_t t |> C.bindings_of_env) 
 	       ++
 		 [([pred_to_armc grd], Ast.Predicate.to_string grd); 
-		  ([reft_to_armc state lhs], reft_to_string lhs)])
+		  ([reft_to_armc state lhs], reft_to_string lhs)]) (* add subst v/VVVV ?*)
 	      (kvar_to_updates state (subs, sym))
 	      tag
       | (_, _, rs) -> "Andrey: TODO t_to_armc "
