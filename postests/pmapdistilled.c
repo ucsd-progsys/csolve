@@ -236,7 +236,7 @@ int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t *envs, in
 
     assert(0 <= dstvp); assert(dstvp < 2000);
     if (dstenv->env_pgdir[dstvp] >= 0){
-        page_decref(dstenv->env_pgdir[dstvp], pages, page_protected);
+        //page_decref(dstenv->env_pgdir[dstvp], pages, page_protected);
     }
     dstenv->env_pgdir[dstvp] = srcenv->env_pgdir[srcvp];
     validptr(pages + dstenv->env_pgdir[dstvp]);
@@ -281,12 +281,12 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
         env_free(e, envs, pages, page_protected);
     }
 
+    env_t *e2 = env_alloc(envs, pages, page_protected);
+
     p = 0;
     while (nondet()) {
-        //vp = 0; vp++;
 	vp = nondetpos();
         if (0 <= vp && vp < 2000) {
-	  assert(0);
           p = page_alloc(e, vp, envs, pages, page_protected);
         }
     }
