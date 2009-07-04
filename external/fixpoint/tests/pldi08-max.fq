@@ -1,7 +1,7 @@
 constraint: env [x:{v : int | [Kx]}; 
                  y:{v : int | [Ky]}]
 	    grd (x > y)
-	    lhs {v : int | [v = x]}
+	    lhs {v : int | [Kx]}
 	    rhs {v : int | [K1]}
 
 constraint: env [x:{v : int | [Kx]}; 
