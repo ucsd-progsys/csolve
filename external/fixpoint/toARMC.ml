@@ -31,6 +31,28 @@ let reft_to_string reft =
 let binding_to_string (vv, reft) =
   Printf.sprintf "%s:%s" (Ast.Symbol.to_string vv) (reft_to_string reft)
 
+(* Andrey: TODO move to ast.ml? *)
+let pred_is_atomic (p, _) =
+  match p with
+    | Ast.True | Ast.False | Ast.Bexp _ | Ast.Atom _ -> true
+    | Ast.And _ | Ast.Or _ | Ast.Not _ | Ast.Imp _ | Ast.Forall _ -> false
+
+let negate_brel = function
+  | Ast.Eq -> Ast.Ne
+  | Ast.Ne -> Ast.Eq
+  | Ast.Gt -> Ast.Le
+  | Ast.Ge -> Ast.Lt
+  | Ast.Lt -> Ast.Ge
+  | Ast.Le -> Ast.Gt
+
+let deep_negate_pred (p, t) =
+  match p with
+    | Ast.True -> Ast.pFalse
+    | Ast.False -> Ast.pTrue
+    | Ast.Atom (e1, r, e2) -> Ast.pAtom (e1, negate_brel r, e2)
+    | _ -> Ast.pNot (p, t)
+
+
 let start_pc = "start"
 let loop_pc = "loop"
 let error_pc = "error"
@@ -224,24 +246,31 @@ let t_to_armc from_data to_data state t =
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
   let rhs = C.rhs_of_t t in
+  let rhs_s = reft_to_string rhs in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
-    match rhs with 
-      | (_, _, [C.Kvar (_, sym)]) ->
+  let annot_guards = 
+    List.map
+      (fun (bv, reft) ->
+	 reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
+	 binding_to_string (bv, reft)
+      ) (C.env_of_t t |> C.bindings_of_env) 
+    ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
+	(reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))] in
+  let to_pc, annot_updates =
+    match C.ras_of_reft rhs with 
+      | [C.Kvar (_, sym)] ->
 	  let kv = symbol_to_armc sym in
-	    mk_rule "loop" from_data "loop" to_data
-	      (List.map
-		 (fun (bv, reft) ->
-		    reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-		    binding_to_string (bv, reft)
-		 ) (C.env_of_t t |> C.bindings_of_env) 
-	       ++
-		 [(pred_to_armc grd, Ast.Predicate.to_string grd); 
-		  (reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))])
-	      [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ (reft_to_string rhs));
-	       (List.filter (fun kv' -> kv <> kv') state.kvs |> mk_skip_update state, "skip")]
-	      tag
-      | (_, _, [C.conc p]) -> "Andrey: TODO t_to_armc "
+	    (loop_pc, 
+	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s);
+	      (List.filter (fun kv' -> kv <> kv') state.kvs |> mk_skip_update state, "skip")])
+      | [C.Conc p] when pred_is_atomic p -> 
+	  error_pc,
+	  [(deep_negate_pred p |> pred_to_armc, "<: " ^ rhs_s)]
+      | _ -> failure "ERROR: t_to_armc: unknown rhs %s" rhs_s
+  in
+    mk_rule loop_pc from_data to_pc to_data annot_guards annot_updates tag
+
 
 let to_armc out ts wfs =
   print_endline "Translating to ARMC.";
@@ -258,14 +287,18 @@ start(pc(%s)).
 error(pc(%s)).
 cutpoint(pc(%s)).
 
-preds(p(_, data(%s)), []).
+preds(p(_, data(%s)), [%s]).
 
 trans_preds(p(_, data(%s)), p(_, data(%s)), []).
 
 var2names(p(_, data(%s)), [%s]).
 "
-      start_pc loop_pc error_pc
-      from_data (* preds *)
+      start_pc error_pc loop_pc 
+      from_data (List.map (fun kv ->
+			     let card, _, _ = StrMap.find kv state.kv_scope |> split_scope in
+			     let kv_card = mk_data_var kv card in
+			       Printf.sprintf "%s = 0, %s = 1" kv_card kv_card
+			  ) state.kvs |> String.concat ", ") (* preds *)
       from_data to_data (* trans_preds *)
       from_data (mk_var2names state); (* var2names *)
     output_string out 

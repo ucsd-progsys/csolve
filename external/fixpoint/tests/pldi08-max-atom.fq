@@ -21,8 +21,12 @@ constraint: env [] grd true lhs {v: int | []}
             tag 4
 
 constraint: env [] grd true lhs {v : int | [K1]}
-	    rhs {v : int | [x <= v; y <=v ]}
+	    rhs {v : int | [x <= v]}
             tag 5
+
+constraint: env [] grd true lhs {v : int | [K1]}
+	    rhs {v : int | [y <= v]}
+            tag 6
 
 wf: env [x:{v : int | []};
          y:{v : int | []}]

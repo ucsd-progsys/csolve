@@ -1,0 +1,40 @@
+constraint: env [i:{v : int | [Ki]}]
+	    grd (i < n)
+	    lhs {v : int | [v = i+1]}
+	    rhs {v : int | [Ki]}
+            tag 31
+
+constraint: env [i:{v : int | [Ki]}]
+	    grd (i < n)
+	    lhs {v : int | [v = i]}
+	    rhs {v : int | [K3]}
+            tag 32
+
+constraint: env [i:{v : int | [Ki]}]
+	    grd (i < n)
+	    lhs {v : int | [v = 0]}
+	    rhs {v : int | [Ki]}
+            tag 33
+
+constraint: env [] grd true lhs {v : int | [v=n]}
+	    rhs {v : int | [Kn]}
+            tag 34
+
+constraint: env [] grd true lhs {v : int | [v=0]}
+	    rhs {v : int | [Ki]}
+            tag 35
+
+constraint: env [] grd true lhs {v : int | [K3]}
+	    rhs {v : int | [0 <= v; v < n]}
+            tag 36
+
+wf: env [n:{v : int | []}; i:{v : int | []}]
+    reft {v : int | [Kn]} 
+
+wf: env [n:{v : int | []}; i:{v : int | []}]
+    reft {v : int | [Ki]} 
+
+wf: env [n:{v : int | []}; i:{v : int | []}]
+    reft {v : int | [K3]} 
+
+solution: K3 :=  [0 <= v; v < n]

@@ -1,0 +1,38 @@
+constraint: env [k:{v : int | [Kk]}]
+	    grd (k < 0)
+	    lhs {v : int | [v = 0]}
+	    rhs {v : int | [K2]}
+            tag 21
+
+constraint: env [k:{v : int | [Kk]}]
+	    grd (k >= 0)
+	    lhs {v : int | [v = k-1]}
+	    rhs {v : int | [Kk]}
+            tag 22
+
+constraint: env [k:{v : int | [Kk]};
+	         s:{v : int | [K2[k:=k-1]]}]
+	    grd (k >= 0)
+	    lhs {v : int | [v = s+k]}
+	    rhs {v : int | [K2]}
+            tag 23
+
+constraint: env [] grd true lhs {v : int | []}
+	    rhs {v : int | [Kk]}
+            tag 24
+
+constraint: env [] grd true lhs {v : int | [K2]}
+	    rhs {v : int | [0 <= v]}
+            tag 251
+
+constraint: env [] grd true lhs {v : int | [K2]}
+	    rhs {v : int | [k <= v]}
+            tag 252
+
+wf: env [k:{v : int | []}]
+    reft {v : int | [Kk]} 
+
+wf: env [k:{v : int | []}]
+    reft {v : int | [K2]} 
+
+solution: K2 :=  [0 <= v; k <= v]
