@@ -35,6 +35,10 @@ let reft_to_string reft =
 let binding_to_string (vv, reft) =
   Printf.sprintf "%s:%s" (Ast.Symbol.to_string vv) (reft_to_string reft)
 
+let start_pc = "start"
+let loop_pc = "loop"
+let error_pc = "error"
+
 let val_vname = "VVVV"
 let card_vname = "CARD"
 let exists_kv = "EX"
@@ -150,34 +154,30 @@ let mk_var2names vs =
 	    (String.sub v 1 ((String.length v)-1) |> q)) vs |>
 	   String.concat ", ")
 
+(* TODO continue here 
+let mk_skip_update state kvs = 
+  List.map (fun kv ->
+	      let scope = StrMap.find kv state.kv_scope in
+		List.map 
+		  (fun v -> 
+		     Printf.sprintf "%s = %s"
+		       (mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
+		  )
+
+*)
+
 let mk_update_str from_vs to_vs updates = 
   List.map2
     (fun v vp ->
        Printf.sprintf "%s = %s" vp (try StrMap.find v updates with Not_found -> v)
     ) from_vs to_vs |> String.concat ", "
 
-(*
-type tag  = int
-type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
-type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
-type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
-*)
-
 let split_scope scope = 
   match scope with
     | card :: value :: data -> card, value, data
     | [] -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
 
-let kvar_to_updates state (subs, sym) = 
-  let kv = symbol_to_armc sym in
-  let card, value, data = StrMap.find kv state.kv_scope |> split_scope in
-    List.fold_left
-      (fun m v ->
-	 StrMap.add (mk_data_var kv v) (mk_data_var exists_kv v) m
-      ) (StrMap.add (mk_data_var kv card) "1" StrMap.empty) (value::data)
-      (* Andrey: TODO apply substitutions, treat value variable!!! *)
-
-let reft_to_armc state reft = 
+let reft_to_armc ?(suffix = "") state reft = 
   let vv = C.vv_of_reft reft |> symbol_to_armc in
   let rs = C.ras_of_reft reft in
     if rs = [] then "1=1" else
@@ -191,58 +191,64 @@ let reft_to_armc state reft =
 		 try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
 	       let kv = symbol_to_armc sym in
 	       let card, value, data = StrMap.find kv state.kv_scope |> split_scope in
-		 Printf.sprintf "%s = 1" (mk_data_var kv card) ::
-		   Printf.sprintf "%s = %s" 
-		   (mk_data_var kv value) (find_subst vv (mk_data_var exists_kv vv)) ::
-		   List.map
+		 Printf.sprintf "%s = 1" (mk_data_var ~suffix:suffix  kv card) 
+		 :: Printf.sprintf "%s = %s" 
+		   (mk_data_var ~suffix:suffix kv value) 
+		   (find_subst vv (mk_data_var exists_kv vv)) 
+		 :: List.map
 		   (fun v -> 
 		      Printf.sprintf "%s = %s"
-			(mk_data_var kv v)
+			(mk_data_var ~suffix:suffix kv v)
 			(find_subst v (mk_data_var exists_kv v))
 		   ) data |> String.concat ", "
 	) rs |> String.concat ", "
 
-let mk_rule from_pc from_vs to_pc to_vs annot_guards updates id = 
-  let rec annout_guards_to_armc = function
+let mk_rule from_pc from_vs to_pc to_vs annot_guards annot_updates id = 
+  let rec annot_conj_to_armc = function
     | (g, a) :: rest -> 
-	Printf.sprintf "\t%s%s \t%% %s%s%s" 
-	  g (if rest = [] then "" else ",") a (if rest = [] then "" else "\n")
-	  (annout_guards_to_armc rest)
-    | [] -> ""
+	if rest = [] then Printf.sprintf "\n   %s \t%% %s\n  ]," g a
+	else Printf.sprintf "\n   %s, \t%% %s%s" g a (annot_conj_to_armc rest)
+    | [] -> "],"
   in
     Printf.sprintf
       "
 r(p(pc(%s), data(%s)), 
   p(pc(%s), data(%s)), 
-  [%s
-  ], 
+  [%s 
   [%s], 
   %s).
 " 
       from_pc (String.concat ", " from_vs) 
       to_pc (String.concat ", " to_vs) 
-      (if annot_guards = [] then "1=1" else annout_guards_to_armc annot_guards)
-      (mk_update_str from_vs to_vs updates)
+      (annot_conj_to_armc annot_guards)
+      (annot_conj_to_armc annot_updates)
       id
 
 let t_to_armc from_vs to_vs state t = 
+  let grd = C.grd_of_t t in
+  let lhs = C.lhs_of_t t in
+  let rhs = C.rhs_of_t t in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
-    match C.rhs_of_t t with 
-      | (_, _, [C.Kvar (subs, sym)]) ->
-	  let grd = C.grd_of_t t in
-	  let lhs = C.lhs_of_t t in
-	    mk_rule "loop" from_vs "loop" to_vs
-	      (List.map
-		 (fun (bv, reft) ->
-		    reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-		    binding_to_string (bv, reft)
-		 ) (C.env_of_t t |> C.bindings_of_env) 
-	       ++
-		 [(pred_to_armc grd, Ast.Predicate.to_string grd); 
-		  (reft_to_armc state lhs, reft_to_string lhs)]) (* add subst v/VVVV ?*)
-	      (kvar_to_updates state (subs, sym))
-	      tag
+    match rhs with 
+      | (_, _, [C.Kvar _]) ->
+	  mk_rule "loop" from_vs "loop" to_vs
+	    (List.map
+	       (fun (bv, reft) ->
+		  reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
+		  binding_to_string (bv, reft)
+	       ) (C.env_of_t t |> C.bindings_of_env) 
+	     ++
+	       [(pred_to_armc grd, Ast.Predicate.to_string grd); 
+		(reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))])
+	    [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ (reft_to_string rhs))
+(* TODO continue here
+	     (Misc.map_partial
+		(fun kv' -> if kv = kv' then None else
+		   Some ((mk_data_var ~suffix:primed_suffix kv' ))) state.kvs |> String.concat ", ", "same")
+*)
+   ]
+	    tag
       | (_, _, rs) -> "Andrey: TODO t_to_armc "
 
 let to_armc out ts wfs =
@@ -257,9 +263,9 @@ let to_armc out ts wfs =
 refinement(inter).
 cube_size(1).
 
-start(pc(start)).
-error(pc(error)).
-cutpoint(pc(loop)).
+start(pc(%s)).
+error(pc(%s)).
+cutpoint(pc(%s)).
 
 preds(p(_, data(%s)), []).
 
@@ -267,18 +273,19 @@ trans_preds(p(_, data(%s)), p(_, data(%s)), []).
 
 var2names(p(_, data(%s)), [%s]).
 "
+      start_pc loop_pc error_pc
       from_data_str (* preds *)
       from_data_str (String.concat ", " to_vs) (* trans_preds *)
       from_data_str (mk_var2names from_vs); (* var2names *)
     output_string out 
-      (mk_rule "start" from_vs "loop" to_vs [] 
-	 (List.fold_left
-	    (fun m kv ->
-	       StrMap.add 
-		 (mk_data_var kv (StrMap.find kv state.kv_scope |> List.hd)) "0" m
-	    )
-	    StrMap.empty
-	    state.kvs) "t_init");
+      (mk_rule start_pc from_vs loop_pc to_vs [] 
+	 [(List.map 
+	     (fun kv -> 
+		let card, _, _ = StrMap.find kv state.kv_scope |> split_scope in
+		  Printf.sprintf "%s = 0" (mk_data_var ~suffix:primed_suffix kv card)
+	     ) state.kvs |> String.concat ", ", 
+	   "")]
+         "t_init");
     List.iter (fun t -> t_to_armc from_vs to_vs state t |> output_string out) ts
 
 

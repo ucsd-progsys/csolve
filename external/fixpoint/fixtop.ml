@@ -81,6 +81,7 @@ let main () =
       match !Co.armc_file with
 	| Some f -> 
 	    let out = open_out f in
+	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
 	      ToARMC.to_armc out cs ws;
 	      close_out out
 	| None -> ()
