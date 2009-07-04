@@ -242,14 +242,17 @@ and z3Rel me env (e1, r, e2) =
   match t1o, t2o with 
   | Some t1, Some t2 when t1 = t2 -> begin
     match r with
-    | A.Gt -> asserts (t1 = So.Int) "ERROR: z3Rel Gt"; Z3.mk_gt me.c a1 a2
-    | A.Ge -> asserts (t1 = So.Int) "ERROR: z3Rel Ge"; Z3.mk_ge me.c a1 a2
-    | A.Lt -> asserts (t1 = So.Int) "ERROR: z3Rel Lt"; Z3.mk_lt me.c a1 a2
-    | A.Le -> asserts (t1 = So.Int) "ERROR: z3Rel Le"; Z3.mk_le me.c a1 a2
+    | A.Gt -> asserts (t1 != So.Bool) "ERROR: z3Rel Gt"; Z3.mk_gt me.c a1 a2
+    | A.Ge -> asserts (t1 != So.Bool) "ERROR: z3Rel Ge"; Z3.mk_ge me.c a1 a2
+    | A.Lt -> asserts (t1 != So.Bool) "ERROR: z3Rel Lt"; Z3.mk_lt me.c a1 a2
+    | A.Le -> asserts (t1 != So.Bool) "ERROR: z3Rel Le"; Z3.mk_le me.c a1 a2
     | A.Eq -> Z3.mk_eq me.c a1 a2 
     | A.Ne -> Z3.mk_distinct me.c [| a1; a2|]
   end
-  | _ -> assertf "ERROR: type error in z3Rel"
+  | None, Some _ 
+  | Some _, None -> Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r,e2)); assertf "ERROR: type error in z3Rel 1"
+  | None, None -> assertf "ERROR: type error in z3Rel 2"
+  | Some _, Some _ -> assertf "ERROR: type error in z3Rel 3"
  
 and z3App me env p zes =
   match getFunType p env with

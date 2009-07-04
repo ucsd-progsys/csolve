@@ -261,6 +261,10 @@ let phase1 soln cs =
     false
   else true
 
+(* check that ALL conjuncts are well sorted
+let phase2 soln cs =*)
+  
+
 let force_phase1c s cs c =
   match phase1c s c with
   | Some (_, bvs) ->
