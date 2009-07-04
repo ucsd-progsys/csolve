@@ -172,25 +172,26 @@ let print_env so ppf env =
   bindings_of_env env 
   |> F.fprintf ppf "@[%a@]" (Misc.pprint_many_box ";" (print_binding so))
 
-let pprint_io ppf = function
-  | Some id -> F.fprintf ppf "(%d)" id
-  | None    -> F.fprintf ppf "()"
+let pprint_tag ppf = function
+  | Some id     -> F.fprintf ppf "tag %d" id
+  | None        -> F.fprintf ppf ""
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
-  F.fprintf ppf "wf: env @[[%a]@] @\n reft %a @\n"
+  F.fprintf ppf "wf: env @[[%a]@] @\n reft %a %a @\n"
     (print_env so) env
     (print_reft so) r
+    pprint_tag io
 
 (* API *)
 let print_t so ppf (env,g,r1,r2,io) =
   F.fprintf ppf 
-  "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n"
-    (* pprint_io io *) 
+  "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n %a @\n"
     (print_env so) env 
     P.print g
     (print_reft so) r1
     (print_reft so) r2
+    pprint_tag io
 
 (* API *) 
 let to_string c = Misc.fsprintf (print_t None) c
@@ -232,6 +233,7 @@ let make_wf     = fun env r io -> (env, r, io)
 let env_of_wf   = fst3
 let reft_of_wf  = snd3
 let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
+
 (***************************************************************)
 (********************** Input Validation ***********************)
 (***************************************************************)

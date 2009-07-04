@@ -1,0 +1,28 @@
+constraint: env [x:{v : int | [Kx]}; 
+                 y:{v : int | [Ky]}]
+	    grd (x > y)
+	    lhs {v : int | [Kx]}
+	    rhs {v : int | [K1]}
+	    tag 23
+
+constraint: env [x:{v : int | [Kx]}; 
+                 y:{v : int | [Ky]}]
+	    grd ~(x > y)
+	    lhs {v : int | [v = y]}
+	    rhs {v : int | [K1]}
+	    tag 12
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [Kx]} 
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [Ky]} 
+
+wf: env [x:{v : int | []};
+         y:{v : int | []}]
+    reft {v : int | [K1]} 
+
+
+solution: k1 :=  [x <= v; y <= v]

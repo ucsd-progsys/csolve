@@ -69,6 +69,7 @@ rule token = parse
   | '/'                 { DIV }
   | '?'                 { QM }
   | '.'                 { DOT }
+  | "tag"               { TAG }
   | "Bexp"              { BEXP }
   | "false"             { FALSE }
   | "true"              { TRUE }

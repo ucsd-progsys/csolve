@@ -67,7 +67,7 @@ let solve (ts, ps, cs, ws, qs, s) =
   ()
 
 let main () =
-  Printf.printf "© Copyright 2007 Regents of the University of California. ";
+  Printf.printf "© Copyright 2009 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in

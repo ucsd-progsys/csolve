@@ -54,14 +54,22 @@ let parse f =
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
 (* Andrey: TODO: need to close the file? *)
- 
+
+let dump cs ws =
+  Format.printf "Printing Out Parsed Constraints \n \n \n" ;
+  Format.printf "%a" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs; 
+  Format.printf "\n \n";
+  Format.printf "%a" (Misc.pprint_many true "\n" (FixConstraint.print_wf None)) ws;
+  Format.printf "\n \n"
+
 let main () =
-  Printf.printf "© Copyright 2007 Regents of the University of California. ";
+  Printf.printf "© Copyright 2009 Regents of the University of California. ";
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
   let _, _, cs, ws, _, _ =  !fs |> Misc.flap parse |> sift in
-    begin
+  let _ = dump cs ws in 
+  begin
       match !Co.latex_file with
 	| Some f ->
 	    let out = open_out f in

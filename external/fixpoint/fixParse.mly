@@ -14,6 +14,7 @@ let parse_error msg =
 
 %token <string> Id
 %token <int> Num
+%token TAG 
 %token BEXP
 %token TRUE FALSE
 %token LPAREN  RPAREN LB RB LC RC
@@ -160,11 +161,14 @@ bop:
   ;
   
 wf:
-  ENV env REF reft                     { C.make_wf $2 $4 None }
+  ENV env REF reft                      { C.make_wf $2 $4 None }
+  | ENV env REF reft TAG Num            { C.make_wf $2 $4 (Some $6) }
   ;
 
 cstr:
   ENV env GRD pred LHS reft RHS reft    { C.make_t $2 $4 $6 $8 None }
+  | ENV env GRD pred LHS reft RHS reft TAG Num   
+                                        { C.make_t $2 $4 $6 $8 (Some $10) }
   ;
 
 env:
