@@ -15,14 +15,16 @@ constraint: env [x:{v : int | [Kx]};
 wf: env [x:{v : int | []};
          y:{v : int | []}]
     reft {v : int | [Kx]} 
+    tag 98
 
 wf: env [x:{v : int | []};
          y:{v : int | []}]
     reft {v : int | [Ky]} 
+    tag 16
 
 wf: env [x:{v : int | []};
          y:{v : int | []}]
     reft {v : int | [K1]} 
-
+    tag 46
 
 solution: k1 :=  [x <= v; y <= v]

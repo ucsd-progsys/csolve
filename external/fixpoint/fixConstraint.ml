@@ -178,7 +178,7 @@ let pprint_tag ppf = function
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
-  F.fprintf ppf "wf: env @[[%a]@] @\n reft %a %a @\n"
+  F.fprintf ppf "wf: env @[[%a]@] @\n reft %a @\n %a @\n"
     (print_env so) env
     (print_reft so) r
     pprint_tag io
