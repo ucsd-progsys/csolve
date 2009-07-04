@@ -241,7 +241,7 @@ let t_to_armc from_data to_data state t =
 	      [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ (reft_to_string rhs));
 	       (List.filter (fun kv' -> kv <> kv') state.kvs |> mk_skip_update state, "skip")]
 	      tag
-      | (_, _, rs) -> "Andrey: TODO t_to_armc "
+      | (_, _, [C.conc p]) -> "Andrey: TODO t_to_armc "
 
 let to_armc out ts wfs =
   print_endline "Translating to ARMC.";
