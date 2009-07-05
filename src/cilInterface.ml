@@ -109,6 +109,8 @@ let expr_of_lval ((lh, _) as lv) = match lh with
 let rec convert_cilexp = function
   | Cil.Const c -> 
       E (A.eCon (con_of_cilcon c))
+  | Cil.SizeOf t ->
+      E (A.eCon (A.Constant.Int (Cil.bitsSizeOf t / 8)))
   | Cil.Lval lv -> 
       E (expr_of_lval lv)  
   | Cil.UnOp (Cil.Neg, e, _) ->
