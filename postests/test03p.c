@@ -4,7 +4,7 @@ int foo(int *x){
   int y;
   x = x;
   y = *x;
-  assert(0);
+  assert(y >= 0);
   return 0;
 }
 
