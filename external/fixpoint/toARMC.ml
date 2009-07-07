@@ -66,7 +66,9 @@ type kv_scope = {
   kv_scope : string list StrMap.t
 }
 
-let sanitize_symbol = Str.global_replace (Str.regexp "@") "_at_" 
+let sanitize_symbol s = 
+  Str.global_replace (Str.regexp "@") "_at_" s |>
+      Str.global_replace (Str.regexp "#") "_hash_" 
 
 let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
