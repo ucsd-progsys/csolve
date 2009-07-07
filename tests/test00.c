@@ -1,6 +1,8 @@
 void main(){
   int x,y;
-  
+
+  x = nondet();
+
   if (x > 0){
     y = x;
   } else {
