@@ -68,7 +68,7 @@ let main () =
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
   let _, _, cs, ws, _, _ =  !fs |> Misc.flap parse |> sift in
-  let _ = dump cs ws in 
+(*  let _ = dump cs ws in *)
   begin
       match !Co.latex_file with
 	| Some f ->

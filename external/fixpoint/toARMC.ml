@@ -315,4 +315,15 @@ var2names(p(_, data(%s)), [%s]).
 
 (*
   make -f Makefile.fixtop && ./f -latex /tmp/main.tex -armc /tmp/a.pl tests/pldi08-max.fq && cat /tmp/a.pl
+
+tests:
+
+for file in `ls pldi08-*-atom.fq`; do ../f -latex /tmp/main.tex -armc /tmp/a.pl $file; head -n 1 /tmp/a.pl; armc a.pl | grep correct; done
+
+pldi08-arraymax-atom.fq  pass
+pldi08-max-atom.fq       pass
+pldi08-foldn-atom.fq     pass
+pldi08-sum-atom.fq       pass
+mask-atom.fq             pass
+samples-atom.fq          pass but diverges from samples.pl
 *)

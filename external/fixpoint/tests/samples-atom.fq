@@ -1,0 +1,74 @@
+// c(0) b:float[] |- {v=0} <: K6
+constraint: env []
+	    grd true
+	    lhs {v:int|[v=0]}
+	    rhs {v:int|[K6]}
+            tag 0
+
+// c(1) b:float[], i:K6, l:List<int>, i < length(b) |- {v=i} <: {0 <= v < length(b)}
+constraint: env [i:{v:int|[K6]}]
+	    grd (i<len_b)
+	    lhs {v:int|[v=i]}
+	    rhs {v:int|[0<=v]}
+            tag 11
+constraint: env [i:{v:int|[K6]}]
+	    grd (i<len_b)
+	    lhs {v:int|[v=i]}
+	    rhs {v:int|[v<len_b]}
+            tag 12
+
+// c(2) b:float[], i:K6, l:List<int>, i < length(b) |- {v=i} <: K2
+constraint: env [i:{v:int|[K6]}]
+	    grd (i<len_b)
+	    lhs {v:int|[v=i]}
+	    rhs {v:int|[K2]}
+            tag 2
+
+// c(3) b:float[], i:K6, l:List<int>, i < length(b) |- {v=i+1} <: K6
+constraint: env [i:{v:int|[K6]}]
+	    grd (i<len_b)
+	    lhs {v:int|[v=i+1]}
+	    rhs {v:int|[K6]}
+            tag 3
+
+// c(5') a:float[] |- K2[a/b] <: K3
+constraint: env []
+	    grd true
+	    lhs {v:int|[K2[len_b:=len_a]]}
+	    rhs {v:int|[K3]}
+            tag 51
+
+// c(8) a:float[], vs:List<int>, itr:Iter<int>, j:K3 |- {v=j} <: {0 <= v < length(a)}
+constraint: env [j:{v:int|[K3]}]
+	    grd true
+	    lhs {v:int|[v=j]}
+	    rhs {v:int|[0<=v]}
+            tag 81
+
+constraint: env [j:{v:int|[K3]}]
+	    grd true
+	    lhs {v:int|[v=j]}
+	    rhs {v:int|[v<len_a]}
+            tag 82
+
+wf: env [i:{v:int | []};
+         j:{v:int | []};
+         len_l:{v:int | []};
+         len_a:{v:int | []};
+         len_b:{v:int | []}]
+    reft {v : int | [K2]} 
+
+wf: env [i:{v:int | []};
+         j:{v:int | []};
+         len_l:{v:int | []};
+         len_a:{v:int | []};
+         len_b:{v:int | []}]
+    reft {v : int | [K3]} 
+
+wf: env [i:{v:int | []};
+         j:{v:int | []};
+         len_l:{v:int | []};
+         len_a:{v:int | []};
+         len_b:{v:int | []}]
+    reft {v : int | [K6]} 
+
