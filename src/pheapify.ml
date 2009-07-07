@@ -63,12 +63,16 @@ let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
 class heapifyModifyVisitor hvars = object(self)
   inherit nopCilVisitor  (* visit lvalues *)
 
+  method private is_heapified vi =
+    List.mem_assoc vi hvars
+
   method vexpr = function
-    | StartOf (Var vi, NoOffset) when List.mem_assoc vi hvars -> ChangeTo (Lval (Var (List.assoc vi hvars), NoOffset))
-    | _                                                       -> DoChildren
+    | StartOf (Var vi, NoOffset)
+    | AddrOf (Var vi, NoOffset) when self#is_heapified vi -> ChangeTo (Lval (Var (List.assoc vi hvars), NoOffset))
+    | _                                                   -> DoChildren
 
   method vlval = function (* should we change this one? *)
-    Var(vi), vi_offset when List.mem_assoc vi hvars -> (* check list *)
+    Var(vi), vi_offset when self#is_heapified vi -> (* check list *)
       let hvi = List.assoc vi hvars in (* find corresponding heap var *)
         begin match unrollType vi.vtype with
           | TArray _ ->

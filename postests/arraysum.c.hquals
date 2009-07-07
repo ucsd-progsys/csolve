@@ -1,4 +1,5 @@
 qualif POS(v:int) : v >= 0
+qualif POS(v:int) : v > 0
 qualif PLUS(v:int) : v = (~a + ~b)
 
 
