@@ -1,0 +1,30 @@
+include ../config.make 
+
+DIRS=-I misc -I fixpoint
+
+LIBS=-libs unix,str,cil,graph
+
+IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
+       -lflags -I,$(CILHOME)
+
+LFLAGS=-lflags -cc,g++ \
+       -lflags -cclib,-L$(OCAMLLIBHOME) 
+
+CFLAGS=-cflags -dtypes \
+       -cflags -I,$(CILHOME) \
+       -cflags -I,$(OCAMLGRAPHHOME) \
+       -cflags -g
+
+TARGETS=maincons.native sinfer.native recurcheck.native genspec.native
+
+all:
+	ln -sf ../external/misc
+	ln -sf ../external/fixpoint
+	for t in $(TARGETS); \
+	 do \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $$t || exit 1; \
+	 done
+	for t in $(TARGETS); do ln -sf _build/$$t; done
+
+clean:
+	rm -rf *.byte *.native _build _log
