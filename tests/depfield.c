@@ -5,6 +5,8 @@ typedef struct {
 
 void test(str *s) {
     int x, y;
+    
+    s = s; //THETA ISSUE
 
     x = s->x;
     y = s->y;
