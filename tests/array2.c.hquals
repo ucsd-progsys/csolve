@@ -1,0 +1,6 @@
+qualif POS(v:int) : v >= 0
+qualif PLUS(v:int) : v = (~a + ~b)
+
+qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
+qualif FALSE(v:int) : 1 = 0

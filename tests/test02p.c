@@ -1,13 +1,5 @@
 extern char* malloc(int);
 
-int foo(int *x){
-  int y;
-  x = x;
-  y = *x;
-  assert(0);
-  return 0;
-}
-
 int main(){
   int *r;
   int y;
@@ -18,7 +10,9 @@ int main(){
   while (nondet()){
    *r = *r + 1;
   }
-  foo(r);
+
+  y = *r;
+  assert(y >= 0);
   
   return 0;
 }

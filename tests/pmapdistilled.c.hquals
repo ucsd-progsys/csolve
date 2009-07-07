@@ -1,0 +1,25 @@
+qualif FALSE(v:int) : 1 = 0
+qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@pag]) 
+qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([@pag]) 
+qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([v])
+qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + 1000
+qualif A(v:int) : 0 <= v
+qualif A(v:int) : 0 < v
+qualif A(v:int) : 0 <= v + 1 
+qualif A(v:int) : v <  1000
+qualif A(v:int) : v <  2000
+qualif A(v:int) : v <= 1000
+qualif A(v:int) : v <= 2000
+
+
+//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+//qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
+//qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([v])
+//qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([~a])
+//qualif A(v:int) : v <= ~a
+//qualif A(v:int) : ~a <= v 
+//qualif A(v:int) : v < ~a
+//qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([~a]) + 1000
+//qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([~a]) + 2000
+//qualif A(v:int) : v <= 1
+
