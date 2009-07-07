@@ -7,8 +7,7 @@ LIBS=-libs unix,str,cil,graph
 IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
        -lflags -I,$(CILHOME)
 
-LFLAGS=-lflags -cc,g++ \
-       -lflags -cclib,-L$(OCAMLLIBHOME) 
+LFLAGS=-lflags -cclib,-L$(OCAMLLIBHOME) 
 
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \
