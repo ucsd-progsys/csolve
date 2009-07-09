@@ -234,20 +234,30 @@ let t_to_armc from_data to_data state t =
       ) (C.env_of_t t |> C.bindings_of_env) 
     ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
 	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
-  let to_pc, to_data', annot_updates =
-    match C.ras_of_reft rhs with 
-      | [C.Kvar (_, sym)] ->
-	  let kv = symbol_to_armc sym in
-	  let skip_kvs = List.filter (fun kv' -> kv <> kv') state.kvs in
-	    (loop_pc,
-	     mk_data ~suffix:primed_suffix ~skip_kvs:skip_kvs state,
-	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)
-		(* (mk_skip_update state skip_kvs, "skip") *) ])
-      | [C.Conc p] -> 
-	  error_pc, to_data, [(pred_to_armc (Ast.pNot p), "<: " ^ rhs_s)]
-      | _ -> failure "ERROR: t_to_armc: unknown rhs %s" rhs_s
-  in
-    mk_rule loop_pc from_data to_pc to_data' annot_guards annot_updates tag
+  let ps, kvs =  
+    List.fold_left (fun (ps', kvs') refa ->
+		      match refa with
+			| C.Conc p -> p::ps', kvs'
+			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
+		   ) ([], []) (C.ras_of_reft rhs) in
+    (if ps <> [] then
+       [mk_rule loop_pc from_data error_pc to_data annot_guards 
+	  [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)]
+	  tag]
+     else 
+       [])
+    ++
+      (List.map 
+	 (fun (_, sym) ->
+	    let kv = symbol_to_armc sym in
+	    let skip_kvs = List.filter (fun kv' -> kv <> kv') state.kvs in
+	      mk_rule loop_pc from_data loop_pc 
+		(mk_data ~suffix:primed_suffix ~skip_kvs:skip_kvs state)
+		annot_guards 
+		[(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)]
+		tag
+	 ) kvs)
+
 
 
 let to_armc out ts wfs =
@@ -288,7 +298,7 @@ var2names(p(_, data(%s)), [%s]).
 	     ) state.kvs |> String.concat ", ", 
 	   "")]
          "t_init");
-    List.iter (fun t -> t_to_armc from_data to_data state t |> output_string out) ts
+    List.iter (fun t -> t_to_armc from_data to_data state t |> List.iter (output_string out)) ts
 
 
 (*

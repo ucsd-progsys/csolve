@@ -29,8 +29,8 @@ let t_to_edge t =
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_edge: anonymous constraint %s" (C.to_string t) in
   let from_kvs = "" in
-    ()
-(*
-    (Ast.Symbol.SMap.fold (fun _ reft sofar -> reft :: sofar) (List.map fst env) [lhs]
+    List.map (fun b -> snd b |> C.kvars_of_reft) (C.bindings_of_env env) |>
+	List.flatten |> List.map (fun kv -> snd kv |> Ast.Symbol.to_string)
 
-*)
+
+
