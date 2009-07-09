@@ -258,8 +258,6 @@ let t_to_armc from_data to_data state t =
 		tag
 	 ) kvs)
 
-
-
 let to_armc out ts wfs =
   print_endline "Translating to ARMC.";
   let state = mk_kv_scope out ts wfs in

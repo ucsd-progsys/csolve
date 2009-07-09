@@ -89,7 +89,9 @@ let main () =
     begin
       match !Co.dot_file with
 	| Some f -> 
-	    ignore ToDot.x
+	    let oc = open_out f in
+	      ToDot.to_dot oc cs;
+	      close_out oc
 	| None -> ()
     end
 
