@@ -1,7 +1,7 @@
 extern char *malloc(int);
 
 char *make_string(int n) {
-    if (n < 0)
+    if (n <= 0)
         return 0;
 
     char *str0 = (char *)malloc(n * sizeof(char));
@@ -38,12 +38,10 @@ void init_string(string *s, char c) {
 string *new_string(int n, char c) {
     string *s;
     char   *str;
-    int tmp;
 
-    if (n < 0)
+    if (n <= 0)
         return 0;
 
-    str    = make_string(n);
     s      = (string *)malloc(sizeof(string));
     s->len = n;
     str    = make_string(n);
@@ -82,11 +80,7 @@ slist *new_strings(int n) {
 }
 
 void main () {
-    // pmr: unfortunately, this needs to be positive; figure out why
-    int n = nondetpos();
-
-    char *str = make_string(n);
-    new_string (nondetpos (), (char) nondetpos ());
-
-    slist *sls = new_strings(n);
+    char *str = make_string(nondetpos());
+    new_string (nondetpos(), (char)nondetpos());
+    slist *sls = new_strings(nondetpos());
 }
