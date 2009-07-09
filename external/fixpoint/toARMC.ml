@@ -1,35 +1,14 @@
 (* translation to ARMC *)
 
 module C  = FixConstraint
-open Misc.Ops
 module StrMap = Map.Make (struct type t = string let compare = compare end)
+module StrSet = Set.Make (struct type t = string let compare = compare end)
+open Misc.Ops
 
 
 (* Andrey: TODO get rid of grd in t? grd p is a binding v:{v:b|p} *)
 (* Andrey: TODO move to fixConstraint.ml? *)
-let kvars_of_t t = 
-  List.fold_left
-    (fun sofar reft -> C.kvars_of_reft reft ++ sofar)
-    []
-    (Ast.Symbol.SMap.fold (fun _ reft sofar -> reft :: sofar) 
-       (C.env_of_t t) [C.lhs_of_t t; C.rhs_of_t t])
 
-let refa_to_string = function
-  | C.Conc p -> Ast.Predicate.to_string p
-  | C.Kvar (subs, sym) ->
-      Printf.sprintf "%s%s" (Ast.Symbol.to_string sym)
-	(List.map
-	   (fun (s, e) -> 
-	      Printf.sprintf "[%s/%s]" 
-		(Ast.Expression.to_string e) (Ast.Symbol.to_string s)
-	   ) subs |> String.concat "")
-let reft_to_string reft =
-  Printf.sprintf "{%s:%s | [%s]}"
-    (C.vv_of_reft reft |> Ast.Symbol.to_string)
-    (C.sort_of_reft reft |> Ast.Sort.to_string)
-    (C.ras_of_reft reft |> List.map refa_to_string |> String.concat ", ")
-let binding_to_string (vv, reft) =
-  Printf.sprintf "%s:%s" (Ast.Symbol.to_string vv) (reft_to_string reft)
 
 (* Andrey: TODO move to ast.ml? *)
 let pred_is_atomic (p, _) =
@@ -37,6 +16,7 @@ let pred_is_atomic (p, _) =
     | Ast.True | Ast.False | Ast.Bexp _ | Ast.Atom _ -> true
     | Ast.And _ | Ast.Or _ | Ast.Not _ | Ast.Imp _ | Ast.Forall _ -> false
 
+(* 
 let negate_brel = function
   | Ast.Eq -> Ast.Ne
   | Ast.Ne -> Ast.Eq
@@ -51,7 +31,7 @@ let deep_negate_pred (p, t) =
     | Ast.False -> Ast.pTrue
     | Ast.Atom (e1, r, e2) -> Ast.pAtom (e1, negate_brel r, e2)
     | _ -> Ast.pNot (p, t)
-
+*)
 
 let start_pc = "start"
 let loop_pc = "loop"
@@ -85,9 +65,9 @@ let bop_to_armc = function
 let brel_to_armc = function 
   | Ast.Eq -> "="
   | Ast.Ne -> "=\\="
-  | Ast.Gt -> ">= 1+"
+  | Ast.Gt -> ">" (*  ">= 1+" *)
   | Ast.Ge -> ">="
-  | Ast.Lt -> "+1 =<"
+  | Ast.Lt -> "<" (*  "+1 =<" *)
   | Ast.Le -> "=<"
 let bind_to_armc (s, t) = (* Andrey: TODO support binders *)
   Printf.sprintf "%s:%s" (symbol_to_armc s) (Ast.Sort.to_string t |> sanitize_symbol)
@@ -112,22 +92,14 @@ and pred_to_armc (p, _) =
     | Ast.True -> "1=1"
     | Ast.False -> "0=1"
     | Ast.Bexp e -> expr_to_armc e
-    | Ast.Not p -> (* Andrey: TODO support negation *)
-	Printf.sprintf "neg(%s)" (pred_to_armc p) 
-    | Ast.Imp (p1, p2) -> (* Andrey: TODO support implication *)
-	Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
-    | Ast.And ps -> 
-	if ps = [] then "1=1" else
-	  List.map pred_to_armc ps |> String.concat ", "
-    | Ast.Or ps -> (* Andrey: TODO support disjunction *) 
-	begin
-	  match ps with
-	    | [] -> "0=1"
-	    | [p] -> pred_to_armc p
-	    | _::_ ->
-		Printf.sprintf "(%s)" 
-		  (List.map pred_to_armc ps |> String.concat "; ")
-	end
+    | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
+    | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
+    | Ast.And [] -> "1=1"
+    | Ast.And [p] -> pred_to_armc p
+    | Ast.And (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
+    | Ast.Or [] -> "0=1"
+    | Ast.Or [p] -> pred_to_armc p
+    | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
     | Ast.Atom (e1, r, e2) ->
 	Printf.sprintf "%s %s %s" 
           (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
@@ -139,7 +111,7 @@ and pred_to_armc (p, _) =
 
 let mk_kv_scope out ts wfs =
   output_string out "% kv -> scope:\n";
-  let kvs = List.map kvars_of_t ts |> List.flatten |> List.map snd
+  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd
     |> List.map symbol_to_armc |> Misc.sort_and_compact in
   let kv_scope =
     List.fold_left
@@ -251,17 +223,17 @@ let t_to_armc from_data to_data state t =
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
   let rhs = C.rhs_of_t t in
-  let rhs_s = reft_to_string rhs in
+  let rhs_s = C.reft_to_string rhs in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
   let annot_guards = 
     List.map
       (fun (bv, reft) ->
 	 reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-	 binding_to_string (bv, reft)
+	 C.binding_to_string (bv, reft)
       ) (C.env_of_t t |> C.bindings_of_env) 
     ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
-	(reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))] in
+	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
   let to_pc, to_data', annot_updates =
     match C.ras_of_reft rhs with 
       | [C.Kvar (_, sym)] ->
@@ -271,10 +243,8 @@ let t_to_armc from_data to_data state t =
 	     mk_data ~suffix:primed_suffix ~skip_kvs:skip_kvs state,
 	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)
 		(* (mk_skip_update state skip_kvs, "skip") *) ])
-      | [C.Conc p] when pred_is_atomic p -> 
-	  error_pc,
-	  to_data,
-	  [(deep_negate_pred p |> pred_to_armc, "<: " ^ rhs_s)]
+      | [C.Conc p] -> 
+	  error_pc, to_data, [(pred_to_armc (Ast.pNot p), "<: " ^ rhs_s)]
       | _ -> failure "ERROR: t_to_armc: unknown rhs %s" rhs_s
   in
     mk_rule loop_pc from_data to_pc to_data' annot_guards annot_updates tag

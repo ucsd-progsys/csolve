@@ -85,6 +85,12 @@ let main () =
 	      ToARMC.to_armc out cs ws;
 	      close_out out
 	| None -> ()
+    end;
+    begin
+      match !Co.dot_file with
+	| Some f -> 
+	    ignore ToDot.x
+	| None -> ()
     end
 
 
