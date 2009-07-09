@@ -60,13 +60,15 @@ let val_vname = "VVVV"
 let card_vname = "CARD"
 let exists_kv = "EX"
 let primed_suffix = "p"
+let str__cil_tmp = "__cil_tmp"
 
 type kv_scope = {
   kvs : string list;
   kv_scope : string list StrMap.t
 }
 
-let sanitize_symbol = Str.global_replace (Str.regexp "@") "_at_" 
+let sanitize_symbol s = 
+  Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" 
 
 let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
@@ -96,7 +98,7 @@ let rec expr_to_armc (e, _) =
     | Ast.App (s, es) ->
 	let str = symbol_to_armc s in
 	  if es = [] then str else
-	    Printf.sprintf "%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
+	    Printf.sprintf "f_%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
     | Ast.Bin (e1, op, e2) ->
 	Printf.sprintf "(%s %s %s)" 
 	  (expr_to_armc e1) (bop_to_armc op) (expr_to_armc e2)
@@ -142,28 +144,30 @@ let mk_kv_scope out ts wfs =
   let kv_scope =
     List.fold_left
       (fun m wf ->
-	 match C.reft_of_wf wf with
-	   | vv, sort, [C.Kvar([], kvar)] ->
-	       let v = symbol_to_armc kvar in
-	       let scope = 
-		 card_vname :: val_vname ::
-		   (C.env_of_wf wf |> C.bindings_of_env |> 
-			List.map fst |> List.map symbol_to_armc |> 
-			    List.sort compare) in
-		 Printf.fprintf out "%% %s -> %s\n"
-		   v (String.concat ", " scope);
-		 StrMap.add v scope m
-	   | _ ->  (* Andrey: TODO print ill-formed wf *)
-	       failure "ERROR: kname_scope_map: ill-formed wf"
+	   match C.reft_of_wf wf |> C.ras_of_reft with
+	     | [C.Kvar([], kvar)] ->
+		 let v = symbol_to_armc kvar in
+		 let scope = 
+		   card_vname :: val_vname ::
+		     (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc
+		     |> List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
+		   Printf.fprintf out "%% %s -> %s\n"
+		     v (String.concat ", " scope);
+		   StrMap.add v scope m
+	     | _ ->  (* Andrey: TODO print ill-formed wf *)
+		 failure "ERROR: kname_scope_map: ill-formed wf"
       ) StrMap.empty wfs in
     {kvs = kvs; kv_scope = kv_scope}
 
-let mk_vs ?(suffix = "") s = 
-  List.map 
-    (fun kv ->
-       try StrMap.find kv s.kv_scope |> List.map (mk_data_var ~suffix:suffix kv)
-       with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
-    ) s.kvs |> List.flatten
+let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
+  Printf.sprintf "[%s]"
+    (List.map 
+       (fun kv ->
+	  try 
+	    StrMap.find kv s.kv_scope |> 
+		List.map (mk_data_var ~suffix:(if List.mem kv skip_kvs then "" else suffix) kv)
+	  with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
+       ) s.kvs |> List.flatten |> String.concat ", ")
 
 let mk_var2names state = 
   List.map
@@ -176,14 +180,15 @@ let mk_var2names state =
     ) state.kvs |> String.concat ", "
 
 let mk_skip_update state kvs = 
-  List.map
-    (fun kv ->
-       List.map 
-	 (fun v -> 
-	    Printf.sprintf "%s = %s"
-	      (mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
-	 ) (StrMap.find kv state.kv_scope) |> String.concat ", "
-    ) kvs |> String.concat ", "
+  if kvs = [] then "1=1" else
+    List.map
+      (fun kv ->
+	 List.map 
+	   (fun v -> 
+	      Printf.sprintf "%s = %s"
+		(mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
+	   ) (StrMap.find kv state.kv_scope) |> String.concat ", "
+      ) kvs |> String.concat ", "
 
 let mk_update_str from_vs to_vs updates = 
   List.map2
@@ -194,7 +199,7 @@ let mk_update_str from_vs to_vs updates =
 let split_scope scope = 
   match scope with
     | card :: value :: data -> card, value, data
-    | [] -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
+    | _ -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
 
 let reft_to_armc ?(suffix = "") state reft = 
   let vv = C.vv_of_reft reft |> symbol_to_armc in
@@ -257,26 +262,29 @@ let t_to_armc from_data to_data state t =
       ) (C.env_of_t t |> C.bindings_of_env) 
     ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
 	(reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))] in
-  let to_pc, annot_updates =
+  let to_pc, to_data', annot_updates =
     match C.ras_of_reft rhs with 
       | [C.Kvar (_, sym)] ->
 	  let kv = symbol_to_armc sym in
-	    (loop_pc, 
-	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s);
-	      (List.filter (fun kv' -> kv <> kv') state.kvs |> mk_skip_update state, "skip")])
+	  let skip_kvs = List.filter (fun kv' -> kv <> kv') state.kvs in
+	    (loop_pc,
+	     mk_data ~suffix:primed_suffix ~skip_kvs:skip_kvs state,
+	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)
+		(* (mk_skip_update state skip_kvs, "skip") *) ])
       | [C.Conc p] when pred_is_atomic p -> 
 	  error_pc,
+	  to_data,
 	  [(deep_negate_pred p |> pred_to_armc, "<: " ^ rhs_s)]
       | _ -> failure "ERROR: t_to_armc: unknown rhs %s" rhs_s
   in
-    mk_rule loop_pc from_data to_pc to_data annot_guards annot_updates tag
+    mk_rule loop_pc from_data to_pc to_data' annot_guards annot_updates tag
 
 
 let to_armc out ts wfs =
   print_endline "Translating to ARMC.";
   let state = mk_kv_scope out ts wfs in
-  let from_data = mk_vs state |> String.concat ", " in
-  let to_data = mk_vs ~suffix:primed_suffix state |> String.concat ", " in
+  let from_data =  mk_data state in
+  let to_data = mk_data ~suffix:primed_suffix state in
     Printf.fprintf out
       ":- multifile r/5,implicit_updates/0,var2names/2,preds/2,trans_preds/3,cube_size/1,start/1,error/1,refinement/1,cutpoint/1,invgen_template/2,invgen_template/1,cfg_exit_relation/1,stmtsrc/2,strengthening/2.
 
@@ -325,5 +333,8 @@ pldi08-max-atom.fq       pass
 pldi08-foldn-atom.fq     pass
 pldi08-sum-atom.fq       pass
 mask-atom.fq             pass
-samples-atom.fq          pass but diverges from samples.pl
+samples-atom.fq          pass 
+
+test00.c                 pass
+
 *)
