@@ -1,9 +1,5 @@
 qualif FALSE(v: int): 0 = 1
 
-qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@str])
-qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@str])
-qualif PI(v: int)   : v = @str + @i
-qualif GZA(v: int)  : 0 <= v
-qualif GZA(v: int)  : 0 < v
 qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
-qualif EQ(v: int)   : v = ~a
+qualif GZA(v: int)  : 0 < v
+qualif EQB(v: int)  : v = BLOCK_BEGIN([v])
