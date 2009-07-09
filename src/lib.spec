@@ -33,6 +33,12 @@ nondetpos ::
   store_in  []
   store_out []
 
+nondetnn ::
+  forall    []
+  arg       ()
+  ret int   (4, 0[1], {v | v >= 0})
+  store_in  []
+  store_out []
 
 nondet ::
   forall    []
