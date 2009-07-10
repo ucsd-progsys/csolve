@@ -37,3 +37,14 @@ new_strings ::
   store_out [A1 |-> 0: ref (A1, 0, {v | true}), 4: ref (A2, 0, {v | true});
              A2 |-> 0: int (4, true, {v | true}), 4: ref (A0, 0, {v | true});
              A0 |-> 0[1]: int (1, true, {v | true})]
+
+string_succs ::
+  forall    [A0; A1; A2]
+  arg	    (s: ref (A1, 4, {v | true}))
+  ret	    ref (A1, 0, {v | true})
+  store_in  [A1 |-> 0: ref (A1, 0, {v | true}), 4: ref (A2, 0, {v | true});
+             A2 |-> 0: int (4, true, {v | true}), 4: ref (A0, 0, {v | true});
+             A0 |-> 0[1]: int (1, true, {v | true})]
+  store_out [A1 |-> 0: ref (A1, 0, {v | true}), 4: ref (A2, 0, {v | true});
+             A2 |-> 0: int (4, true, {v | true}), 4: ref (A0, 0, {v | true});
+             A0 |-> 0[1]: int (1, true, {v | true})]

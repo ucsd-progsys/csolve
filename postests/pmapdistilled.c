@@ -51,6 +51,7 @@ void page_decref(int ppno, int pages[], int page_protected[])
 {
     dummyassert(!page_free(ppno, pages, page_protected));
     validptr(pages + ppno);
+    // pmr: TODO assert(pages[ppno] >= 0);
     pages[ppno]--;
 }
 
