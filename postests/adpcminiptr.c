@@ -20,7 +20,7 @@ int adpcm_coder()
   
   len = nsamples;
   
-  for(; 1 < len; len--)
+  for(; 0 < len; len--)
   {
     //if ((inp - inp0) != (nsamples - len)){ assert(0); }
     //if (len <= 0){ assert(0); }
