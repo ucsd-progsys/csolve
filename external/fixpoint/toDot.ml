@@ -34,13 +34,14 @@ module DotOutput = Graph.Graphviz.Dot(Display)
 module SCC = Graph.Components.Make(G) 
 
 let vertices_of_graph g = G.fold_vertex (fun v vs -> v::vs) g []
+let edges_e_of_graph g = G.fold_edges_e (fun e es -> e::es) g []
 
 let set_of_strings = List.fold_left (fun s x -> StrSet.add x s) StrSet.empty
 
 let set_to_string default s = 
   if StrSet.is_empty s then default else StrSet.elements s |> List.map String.escaped |> String.concat ", "
 
-let edges_to_graph es = List.fold_left (fun g e -> G.add_edge_e g e) G.empty es
+let edges_e_to_graph es = List.fold_left (fun g e -> G.add_edge_e g e) G.empty es
 
 (* k_1, ..., k_n <: k_0 depends on l_1, ..., l_m <: l_0 iff l_0 = k_i for some 1 \leq i \leq n *)
 
@@ -87,13 +88,24 @@ let mk_dep_graph ts =
 		if StrSet.is_empty inter then 
 		  None
 		else 
-		  Some(G.E.create tag (set_to_string "" inter) tag') (* tag depends on tag' via inter   *)
+		  begin
+		    Printf.printf "self loop %s\n" tag;
+		    Some(G.E.create tag (set_to_string "" inter) tag') (* tag depends on tag' via inter   *)
+		  end
 	   ) ds
-      ) ds |> List.flatten |> edges_to_graph in
+      ) ds |> List.flatten |> edges_e_to_graph in
   let oc = open_out "/tmp/dep.dot" in
     DotOutput.output_graph oc g;
     close_out oc;
-    sccs_to_dot g "dep"
+    sccs_to_dot g "dep";
+    print_endline "start deps";
+    List.iter (fun (src, tag, dst) -> 
+		 Printf.printf "%s <: %s  (%s)\n" (set_to_string "" src) (set_to_string "" dst) tag) ds;
+    print_endline "end deps";
+    print_endline "start dep graph";
+    List.iter (fun e -> 
+		 Printf.printf "%s - %s -> %s\n" (G.E.src e) (G.E.label e) (G.E.dst e)) (edges_e_of_graph g);
+    print_endline "end dep graph"
 
 
 let other_graph ts =
