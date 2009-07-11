@@ -33,6 +33,7 @@ let ol_default          = 2
 let verbose_level       = ref ol_default       (* -v *)
 let latex_file: string option ref = ref None   (* translate to LaTeX file *)
 let armc_file: string option ref  = ref None   (* translate to ARMC file *)
+let dot_file: string option ref  = ref None   (* translate to dot file *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -141,7 +142,15 @@ let arg_spec =
 		    else
 		      armc_file := Some s),
     "translates constraints to ARMC file"
+   );
+   ("-dot", 
+    Arg.String (fun s -> 
+		  let l = String.length s in
+		    if l = 0 || String.sub s (l-4) 4 <> ".dot" then
+		      print_endline "-dot: invalid parameter"
+		    else
+		      dot_file := Some s),
+    "translates constraints to dot file"
    )
-
   ]
 

@@ -61,6 +61,8 @@ let kvars_of_reft (_, _, rs) =
             | _             -> None) 
     rs
 
+
+
 let env_of_bindings xrs =
   List.fold_left begin
     fun env (x, r) -> 
@@ -81,8 +83,15 @@ let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) =
   not (!Constants.no_simple || !Constants.verify_simple)
 
 (* API *)
+let kvars_of_t (env, _, lhs, rhs, _) = 
+  List.fold_left
+    (fun sofar reft -> kvars_of_reft reft ++ sofar)
+    []
+    (SM.fold (fun _ reft sofar -> reft :: sofar) env [lhs; rhs])
+(* Andrey: replaced this implementation 
 let kvars_of_t (_, _, r1, r2, _) =
   (kvars_of_reft r1) ++ (kvars_of_reft r2)
+*)
 
 (*************************************************************)
 (******************** Solution Management ********************)
@@ -195,6 +204,27 @@ let print_t so ppf (env,g,r1,r2,io) =
 
 (* API *) 
 let to_string c = Misc.fsprintf (print_t None) c
+
+let refa_to_string = function
+  | Conc p -> P.to_string p
+  | Kvar (subs, sym) ->
+      Printf.sprintf "%s%s" (Sy.to_string sym)
+	(List.map
+	   (fun (s, e) -> 
+	      Printf.sprintf "[%s/%s]" 
+		(E.to_string e) (Sy.to_string s)
+	   ) subs |> String.concat "")
+
+let reft_to_string (vv, sort, ras) =
+  Printf.sprintf "{%s:%s | [%s]}"
+    (Sy.to_string vv)
+    (Ast.Sort.to_string sort)
+    (List.map refa_to_string ras |> String.concat ", ")
+
+let binding_to_string (vv, reft) =
+  Printf.sprintf "%s:%s" (Sy.to_string vv) (reft_to_string reft)
+
+
 
 (* API *)
 let print_soln ppf sm =

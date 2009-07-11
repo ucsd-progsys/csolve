@@ -14,7 +14,7 @@ TARGETS=misc.cma misc.cmxa \
 	errorline.cma errorline.cmxa
 
 all:
-	ocamlbuild $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)
+	ocamlbuild -r $(LIBS) $(IFLAGS) $(CFLAGS) $(TARGETS)
 
 clean:
 	rm -rf *.byte *.native _build _log

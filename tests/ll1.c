@@ -19,11 +19,12 @@ int main(/* int n */){
     tmp->next = root;
     root      = tmp;
   }
-
+  /*
   for(tmp = root; tmp!=(node_t*)0; tmp = tmp->next){
     assert(tmp->x >= 0);
     assert(tmp->x < tmp->y);
     
   }
+  */
   return 0;
 }

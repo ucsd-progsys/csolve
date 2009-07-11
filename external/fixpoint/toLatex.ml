@@ -11,7 +11,8 @@ let q_mathit = Printf.sprintf "\\mathit{%s}"
 let sort_to_latex s = Ast.Sort.to_string s |> q_mathit
 let symbol_to_latex s = 
   Ast.Symbol.to_string s
-  |> Str.global_replace (Str.regexp "_") "\\_" |> q_mathit
+  |> Str.global_replace (Str.regexp "_") "\\_" 
+  |> Str.global_replace (Str.regexp "#") "\\#" |> q_mathit
 let constant_to_latex = Ast.Constant.to_string
 
 let bop_to_latex = function 

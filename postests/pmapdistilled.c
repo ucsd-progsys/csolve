@@ -51,11 +51,11 @@ void page_decref(int ppno, int pages[], int page_protected[])
 {
     dummyassert(!page_free(ppno, pages, page_protected));
     validptr(pages + ppno);
+    // pmr: TODO assert(pages[ppno] >= 0);
     pages[ppno]--;
 }
 
-
-void env_check(env_t *env, env_t *envs, int pages[], int page_protected[])
+void env_check(env_t *env, env_t **envs, int pages[], int page_protected[])
 {
     int i, found;
     env_t *walk;
@@ -76,7 +76,7 @@ void env_check(env_t *env, env_t *envs, int pages[], int page_protected[])
         }
     }
 
-    for (walk = envs, found = 0; walk; walk = walk->env_next){
+    for (walk = *envs, found = 0; walk; walk = walk->env_next){
         if (walk == env){
             found = 1;
 	}
@@ -84,13 +84,15 @@ void env_check(env_t *env, env_t *envs, int pages[], int page_protected[])
     dummyassert(found);
 }
 
-void mem_check(env_t *envs, int pages[], int page_protected[])
+void mem_check(env_t **envs, int pages[], int page_protected[])
 {
     int i;
     int *lpages;
     env_t *walk;
 
     int ppi = 0;
+
+    envs = envs; // THETA ISSUE
 
     lpages = (int *)malloc(1000);
 
@@ -99,7 +101,7 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
         lpages[i] = 0;
     }
 
-    for (walk = envs; walk; walk = walk->env_next) {
+    for (walk = *envs; walk; walk = walk->env_next) {
         dummyassert(is_page_protected(walk->env_mypp, pages, page_protected));
 
 	//assert(0); SANITY
@@ -123,9 +125,12 @@ void mem_check(env_t *envs, int pages[], int page_protected[])
     }
 }
 
-env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
+env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
 {
     env_t *env;
+    env_t *tmp;
+
+    envs = envs; // THETA ISSUE
     
     int i, env_pp = page_getfree(pages);
     
@@ -141,12 +146,13 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
         assert(0 <= i); assert(i < 2000);
         env->env_pgdir[i] = -1;
     }
-    env->env_next = envs;
+    tmp = *envs; // PURIFIER ISSUE
+    env->env_next = tmp;
     env->env_prev = 0;
-    if (envs){
-        envs->env_prev = env;
+    if (*envs == 0){
+        (*envs)->env_prev = env;
     }
-    envs = env;
+    *envs = env;
 
     validptr(pages + env_pp);
     pages[env_pp]++;
@@ -159,7 +165,7 @@ env_t *env_alloc(env_t *envs, int pages[], int page_protected[])
     return env;
 }
 
-void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
+void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
 {
     int i;
     int ppi = 0;
@@ -185,13 +191,13 @@ void env_free(env_t *env, env_t *envs, int pages[], int page_protected[])
     if (env->env_prev)
         env->env_prev->env_next = env->env_next;
     else
-        envs = env->env_next;
+        *envs = env->env_next;
 
     //free(env); can't deal with concrete input -- fix Refanno
     mem_check(envs, pages, page_protected);
 }
 
-int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
+int page_alloc(env_t *env, int vp, env_t **envs, int pages[], int page_protected[])
 {
     int pp;
     int tmp; // RECHECK ISSUE
@@ -217,7 +223,7 @@ int page_alloc(env_t *env, int vp, env_t *envs, int pages[], int page_protected[
     return 0;
 }
 
-void page_unmap(env_t *env, int vp, env_t *envs, int pages[], int page_protected[])
+void page_unmap(env_t *env, int vp, env_t **envs, int pages[], int page_protected[])
 {
     int tmp; // RECHECK ISSUE
 
@@ -230,7 +236,7 @@ void page_unmap(env_t *env, int vp, env_t *envs, int pages[], int page_protected
     mem_check(envs, pages, page_protected);
 }
 
-int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t *envs, int pages[], int page_protected[])
+int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t **envs, int pages[], int page_protected[])
 {
     int tmp, tmp2; // RECHECK ISSUE
 
@@ -261,7 +267,7 @@ int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t *envs, in
 
 void main(/* env_t *envs, int pages[], int page_protected[] */)
 {
-    env_t *envs;
+    env_t **envs;
     int *pages;
     int *page_protected;
     int i;
@@ -280,9 +286,10 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
 
     jhalatemp = page_getfree(pages);
 
-    envs = (env_t *) 0;
+    envs = (env_t *) malloc(sizeof(env_t *));
+    *envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
-   
+
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);

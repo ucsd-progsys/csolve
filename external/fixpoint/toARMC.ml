@@ -1,35 +1,14 @@
 (* translation to ARMC *)
 
 module C  = FixConstraint
-open Misc.Ops
 module StrMap = Map.Make (struct type t = string let compare = compare end)
+module StrSet = Set.Make (struct type t = string let compare = compare end)
+open Misc.Ops
 
 
 (* Andrey: TODO get rid of grd in t? grd p is a binding v:{v:b|p} *)
 (* Andrey: TODO move to fixConstraint.ml? *)
-let kvars_of_t t = 
-  List.fold_left
-    (fun sofar reft -> C.kvars_of_reft reft ++ sofar)
-    []
-    (Ast.Symbol.SMap.fold (fun _ reft sofar -> reft :: sofar) 
-       (C.env_of_t t) [C.lhs_of_t t; C.rhs_of_t t])
 
-let refa_to_string = function
-  | C.Conc p -> Ast.Predicate.to_string p
-  | C.Kvar (subs, sym) ->
-      Printf.sprintf "%s%s" (Ast.Symbol.to_string sym)
-	(List.map
-	   (fun (s, e) -> 
-	      Printf.sprintf "[%s/%s]" 
-		(Ast.Expression.to_string e) (Ast.Symbol.to_string s)
-	   ) subs |> String.concat "")
-let reft_to_string reft =
-  Printf.sprintf "{%s:%s | [%s]}"
-    (C.vv_of_reft reft |> Ast.Symbol.to_string)
-    (C.sort_of_reft reft |> Ast.Sort.to_string)
-    (C.ras_of_reft reft |> List.map refa_to_string |> String.concat ", ")
-let binding_to_string (vv, reft) =
-  Printf.sprintf "%s:%s" (Ast.Symbol.to_string vv) (reft_to_string reft)
 
 (* Andrey: TODO move to ast.ml? *)
 let pred_is_atomic (p, _) =
@@ -37,6 +16,7 @@ let pred_is_atomic (p, _) =
     | Ast.True | Ast.False | Ast.Bexp _ | Ast.Atom _ -> true
     | Ast.And _ | Ast.Or _ | Ast.Not _ | Ast.Imp _ | Ast.Forall _ -> false
 
+(* 
 let negate_brel = function
   | Ast.Eq -> Ast.Ne
   | Ast.Ne -> Ast.Eq
@@ -51,7 +31,7 @@ let deep_negate_pred (p, t) =
     | Ast.False -> Ast.pTrue
     | Ast.Atom (e1, r, e2) -> Ast.pAtom (e1, negate_brel r, e2)
     | _ -> Ast.pNot (p, t)
-
+*)
 
 let start_pc = "start"
 let loop_pc = "loop"
@@ -60,6 +40,7 @@ let val_vname = "VVVV"
 let card_vname = "CARD"
 let exists_kv = "EX"
 let primed_suffix = "p"
+let str__cil_tmp = "__cil_tmp"
 
 type kv_scope = {
   kvs : string list;
@@ -67,7 +48,7 @@ type kv_scope = {
 }
 
 let sanitize_symbol s = 
-  Str.global_replace (Str.regexp "@") "_at_" s |> Str.global_replace (Str.regexp "#") "_hash_" 
+  Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" 
 
 let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
@@ -84,9 +65,9 @@ let bop_to_armc = function
 let brel_to_armc = function 
   | Ast.Eq -> "="
   | Ast.Ne -> "=\\="
-  | Ast.Gt -> ">= 1+"
+  | Ast.Gt -> ">" (*  ">= 1+" *)
   | Ast.Ge -> ">="
-  | Ast.Lt -> "+1 =<"
+  | Ast.Lt -> "<" (*  "+1 =<" *)
   | Ast.Le -> "=<"
 let bind_to_armc (s, t) = (* Andrey: TODO support binders *)
   Printf.sprintf "%s:%s" (symbol_to_armc s) (Ast.Sort.to_string t |> sanitize_symbol)
@@ -97,7 +78,7 @@ let rec expr_to_armc (e, _) =
     | Ast.App (s, es) ->
 	let str = symbol_to_armc s in
 	  if es = [] then str else
-	    Printf.sprintf "%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
+	    Printf.sprintf "f_%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
     | Ast.Bin (e1, op, e2) ->
 	Printf.sprintf "(%s %s %s)" 
 	  (expr_to_armc e1) (bop_to_armc op) (expr_to_armc e2)
@@ -111,22 +92,14 @@ and pred_to_armc (p, _) =
     | Ast.True -> "1=1"
     | Ast.False -> "0=1"
     | Ast.Bexp e -> expr_to_armc e
-    | Ast.Not p -> (* Andrey: TODO support negation *)
-	Printf.sprintf "neg(%s)" (pred_to_armc p) 
-    | Ast.Imp (p1, p2) -> (* Andrey: TODO support implication *)
-	Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
-    | Ast.And ps -> 
-	if ps = [] then "1=1" else
-	  List.map pred_to_armc ps |> String.concat ", "
-    | Ast.Or ps -> (* Andrey: TODO support disjunction *) 
-	begin
-	  match ps with
-	    | [] -> "0=1"
-	    | [p] -> pred_to_armc p
-	    | _::_ ->
-		Printf.sprintf "(%s)" 
-		  (List.map pred_to_armc ps |> String.concat "; ")
-	end
+    | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
+    | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
+    | Ast.And [] -> "1=1"
+    | Ast.And [p] -> pred_to_armc p
+    | Ast.And (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
+    | Ast.Or [] -> "0=1"
+    | Ast.Or [p] -> pred_to_armc p
+    | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
     | Ast.Atom (e1, r, e2) ->
 	Printf.sprintf "%s %s %s" 
           (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
@@ -138,33 +111,35 @@ and pred_to_armc (p, _) =
 
 let mk_kv_scope out ts wfs =
   output_string out "% kv -> scope:\n";
-  let kvs = List.map kvars_of_t ts |> List.flatten |> List.map snd
+  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd
     |> List.map symbol_to_armc |> Misc.sort_and_compact in
   let kv_scope =
     List.fold_left
       (fun m wf ->
-	 match C.reft_of_wf wf with
-	   | vv, sort, [C.Kvar([], kvar)] ->
-	       let v = symbol_to_armc kvar in
-	       let scope = 
-		 card_vname :: val_vname ::
-		   (C.env_of_wf wf |> C.bindings_of_env |> 
-			List.map fst |> List.map symbol_to_armc |> 
-			    List.sort compare) in
-		 Printf.fprintf out "%% %s -> %s\n"
-		   v (String.concat ", " scope);
-		 StrMap.add v scope m
-	   | _ ->  (* Andrey: TODO print ill-formed wf *)
-	       failure "ERROR: kname_scope_map: ill-formed wf"
+	   match C.reft_of_wf wf |> C.ras_of_reft with
+	     | [C.Kvar([], kvar)] ->
+		 let v = symbol_to_armc kvar in
+		 let scope = 
+		   card_vname :: val_vname ::
+		     (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc
+		     |> List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
+		   Printf.fprintf out "%% %s -> %s\n"
+		     v (String.concat ", " scope);
+		   StrMap.add v scope m
+	     | _ ->  (* Andrey: TODO print ill-formed wf *)
+		 failure "ERROR: kname_scope_map: ill-formed wf"
       ) StrMap.empty wfs in
     {kvs = kvs; kv_scope = kv_scope}
 
-let mk_vs ?(suffix = "") s = 
-  List.map 
-    (fun kv ->
-       try StrMap.find kv s.kv_scope |> List.map (mk_data_var ~suffix:suffix kv)
-       with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
-    ) s.kvs |> List.flatten
+let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
+  Printf.sprintf "[%s]"
+    (List.map 
+       (fun kv ->
+	  try 
+	    StrMap.find kv s.kv_scope |> 
+		List.map (mk_data_var ~suffix:(if List.mem kv skip_kvs then "" else suffix) kv)
+	  with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
+       ) s.kvs |> List.flatten |> String.concat ", ")
 
 let mk_var2names state = 
   List.map
@@ -177,14 +152,15 @@ let mk_var2names state =
     ) state.kvs |> String.concat ", "
 
 let mk_skip_update state kvs = 
-  List.map
-    (fun kv ->
-       List.map 
-	 (fun v -> 
-	    Printf.sprintf "%s = %s"
-	      (mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
-	 ) (StrMap.find kv state.kv_scope) |> String.concat ", "
-    ) kvs |> String.concat ", "
+  if kvs = [] then "1=1" else
+    List.map
+      (fun kv ->
+	 List.map 
+	   (fun v -> 
+	      Printf.sprintf "%s = %s"
+		(mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
+	   ) (StrMap.find kv state.kv_scope) |> String.concat ", "
+      ) kvs |> String.concat ", "
 
 let mk_update_str from_vs to_vs updates = 
   List.map2
@@ -195,7 +171,7 @@ let mk_update_str from_vs to_vs updates =
 let split_scope scope = 
   match scope with
     | card :: value :: data -> card, value, data
-    | [] -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
+    | _ -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
 
 let reft_to_armc ?(suffix = "") state reft = 
   let vv = C.vv_of_reft reft |> symbol_to_armc in
@@ -247,37 +223,46 @@ let t_to_armc from_data to_data state t =
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
   let rhs = C.rhs_of_t t in
-  let rhs_s = reft_to_string rhs in
+  let rhs_s = C.reft_to_string rhs in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
   let annot_guards = 
     List.map
       (fun (bv, reft) ->
 	 reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-	 binding_to_string (bv, reft)
+	 C.binding_to_string (bv, reft)
       ) (C.env_of_t t |> C.bindings_of_env) 
     ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
-	(reft_to_armc state lhs, "|- " ^ (reft_to_string lhs))] in
-  let to_pc, annot_updates =
-    match C.ras_of_reft rhs with 
-      | [C.Kvar (_, sym)] ->
-	  let kv = symbol_to_armc sym in
-	    (loop_pc, 
-	     [(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s);
-	      (List.filter (fun kv' -> kv <> kv') state.kvs |> mk_skip_update state, "skip")])
-      | [C.Conc p] when pred_is_atomic p -> 
-	  error_pc,
-	  [(deep_negate_pred p |> pred_to_armc, "<: " ^ rhs_s)]
-      | _ -> failure "ERROR: t_to_armc: unknown rhs %s" rhs_s
-  in
-    mk_rule loop_pc from_data to_pc to_data annot_guards annot_updates tag
-
+	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
+  let ps, kvs =  
+    List.fold_left (fun (ps', kvs') refa ->
+		      match refa with
+			| C.Conc p -> p::ps', kvs'
+			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
+		   ) ([], []) (C.ras_of_reft rhs) in
+    (if ps <> [] then
+       [mk_rule loop_pc from_data error_pc to_data annot_guards 
+	  [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)]
+	  tag]
+     else 
+       [])
+    ++
+      (List.map 
+	 (fun (_, sym) ->
+	    let kv = symbol_to_armc sym in
+	    let skip_kvs = List.filter (fun kv' -> kv <> kv') state.kvs in
+	      mk_rule loop_pc from_data loop_pc 
+		(mk_data ~suffix:primed_suffix ~skip_kvs:skip_kvs state)
+		annot_guards 
+		[(reft_to_armc ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)]
+		tag
+	 ) kvs)
 
 let to_armc out ts wfs =
   print_endline "Translating to ARMC.";
   let state = mk_kv_scope out ts wfs in
-  let from_data = mk_vs state |> String.concat ", " in
-  let to_data = mk_vs ~suffix:primed_suffix state |> String.concat ", " in
+  let from_data =  mk_data state in
+  let to_data = mk_data ~suffix:primed_suffix state in
     Printf.fprintf out
       ":- multifile r/5,implicit_updates/0,var2names/2,preds/2,trans_preds/3,cube_size/1,start/1,error/1,refinement/1,cutpoint/1,invgen_template/2,invgen_template/1,cfg_exit_relation/1,stmtsrc/2,strengthening/2.
 
@@ -311,7 +296,7 @@ var2names(p(_, data(%s)), [%s]).
 	     ) state.kvs |> String.concat ", ", 
 	   "")]
          "t_init");
-    List.iter (fun t -> t_to_armc from_data to_data state t |> output_string out) ts
+    List.iter (fun t -> t_to_armc from_data to_data state t |> List.iter (output_string out)) ts
 
 
 (*
@@ -326,5 +311,8 @@ pldi08-max-atom.fq       pass
 pldi08-foldn-atom.fq     pass
 pldi08-sum-atom.fq       pass
 mask-atom.fq             pass
-samples-atom.fq          pass but diverges from samples.pl
+samples-atom.fq          pass 
+
+test00.c                 pass
+
 *)

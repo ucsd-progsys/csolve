@@ -85,6 +85,14 @@ let main () =
 	      ToARMC.to_armc out cs ws;
 	      close_out out
 	| None -> ()
+    end;
+    begin
+      match !Co.dot_file with
+	| Some f -> 
+	    let oc = open_out f in
+	      ToDot.to_dot oc cs;
+	      close_out oc
+	| None -> ()
     end
 
 
