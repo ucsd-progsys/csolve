@@ -117,7 +117,7 @@ let mk_dep_graph ts =
     List.iter (fun e -> 
 		 Printf.printf "%s - %s -> %s\n" (G.E.src e) (G.E.label e) (G.E.dst e)) (edges_e_of_graph g);
     print_endline "end dep graph";
-    Printf.printf "Veanu %d sets\n%s" 
+    Printf.printf "Veanu %d sets\n%s\n" 
       (S3.cardinal veanu)
       (S3.fold (fun x s -> 
 		  (Printf.sprintf "{%s}" (set_to_string "empty" x))::s
