@@ -24,7 +24,7 @@ validptr ::
   arg       (x: ref (A0, true, {v| && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]}))
   ret int   (4, true, {v | true})
   store_in  [A0 |-> ]
-  store_out []
+  store_out [A0 |-> ]
 
 nondetpos ::
   forall    []
@@ -70,11 +70,11 @@ exit ::
   store_out []
 
 atoi ::
-  forall    [C0]
-  arg       (a: ref (C0, true, {v | true}))
+  forall    [A0]
+  arg       (a: ref (A0, true, {v | true}))
   ret       int (4, true, {v | true})
-  store_in  [C0 |-> true: int (1, true, {v | true})]
-  store_out []
+  store_in  [A0 |-> true: int (1, true, {v | true})]
+  store_out [A0 |-> true: int (1, true, {v | true})]
 
 random ::
   forall    []
