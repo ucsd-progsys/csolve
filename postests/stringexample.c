@@ -79,12 +79,12 @@ slist *new_strings(int n) {
     return sl;
 }
 
-slist *string_succs(string **s) {
+string *string_succ(string **s) {
     slist *sl;
 
     sl = ((slist **)s) - 1;
 
-    return sl->next;
+    return sl->next->s;
 }
 
 void main () {
@@ -92,8 +92,7 @@ void main () {
     new_string (nondetpos(), (char)nondetpos());
     slist *sls = new_strings(nondetpos());
 
-    slist *sl2 = string_succs(&sls->s);
-    string *s  = sl2->s;
+    string *s = string_succ(&sls->s);
     // assert(0); // Sanity
     init_string(s, 0);
 }
