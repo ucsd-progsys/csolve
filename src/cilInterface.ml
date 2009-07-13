@@ -63,6 +63,7 @@ type op =
   | Bop of A.bop  
   | Brl of A.brel 
   | Bbl of (A.pred list -> A.pred)
+  | Bunimpl
 
 (* 
 let unop_of_cilUOp = function
@@ -93,7 +94,7 @@ let op_of_cilBOp = function
   | Cil.Shiftrt   
   | Cil.BAnd                         
   | Cil.BXor                         
-  | Cil.BOr     -> assertf "TBD: op_of_cilBop"
+  | Cil.BOr     -> Bunimpl
 
 let expr_of_var v =
   A.eVar (Sy.of_string v.Cil.vname)
@@ -132,7 +133,9 @@ and convert_cilbinexp (op, e1, e2) =
       P (A.pAtom (e1', rel', e2'))
   | Bbl f -> 
       let p1', p2' = Misc.map_pair pred_of_cilexp (e1, e2) in
-      P (f [p1'; p2']) 
+      P (f [p1'; p2'])
+  | Bunimpl ->
+      P A.pTrue
 
 (* API *)
 and pred_of_cilexp e = 

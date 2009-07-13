@@ -11,7 +11,7 @@ constraint: env [l:{v : int | [Kl]};
                  len_a:{v : int | [KG]}]
 	    grd true
 	    lhs {v : int | [v = l]}
-	    rhs {v : int | [v < len_a]}
+	    rhs {v : int | [(v+1) <= len_a]}
             tag 412
 
 constraint: env [l:{v : int | [Kl]}; 
@@ -33,7 +33,7 @@ constraint: env []
 	    rhs {v : int | [K4]}
             tag 45
 
-constraint: env []
+constraint: env [len_a:{v : int | [KG]}]
 	    grd true
 	    lhs {v : int | [0 <= v; v < len_a]}
 	    rhs {v : int | [Kl]}
@@ -55,7 +55,7 @@ constraint: env [] grd true lhs {v : int | [K4]}
 	    rhs {v : int | [0 <= v]}
             tag 49
 
-constraint: env [] grd true lhs {v : int | []} rhs {v : int | [KG]}
+constraint: env [] grd true lhs {v : int | [0 <= v; v < len_a]} rhs {v : int | [KG]}
             tag 410
 
 
