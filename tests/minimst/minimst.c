@@ -19,6 +19,8 @@ void AddEdges(Graph retval, int numvert)
   int j ;
   int num_inserted ;
 
+  retval = retval; // THETA ISSUE
+
   {
   num_inserted = 0;
   j = 0;
@@ -77,6 +79,9 @@ Vertex BlueRule(Vertex inserted , Vertex vlist )
   int count ;
   Vertex next ;
 
+  inserted = inserted; // THETA ISSUE
+  vlist = vlist;       // THETA ISSUE
+
   {
       if (vlist == (Vertex) 0) {
           return ((struct vert_st *)((void *)0));
@@ -103,6 +108,8 @@ void ComputeMst(Graph graph , int numvert )
 { Vertex inserted ;
   Vertex tmp ;
   Vertex MyVertexList ;
+
+  graph = graph; // THETA ISSUE
 
   {
   MyVertexList = (Vertex )((void *)0);
