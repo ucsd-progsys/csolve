@@ -87,6 +87,15 @@ let main () =
 	| None -> ()
     end;
     begin
+      match !Co.qarmc_file with
+	| Some f -> 
+	    let out = open_out f in
+	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
+	      ToQARMC.to_qarmc out cs ws;
+	      close_out out
+	| None -> ()
+    end;
+    begin
       match !Co.dot_file with
 	| Some f -> 
 	    let oc = open_out f in
