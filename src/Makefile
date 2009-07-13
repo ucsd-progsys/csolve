@@ -23,7 +23,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g
 
-TARGETS=main.native sinfer.native recurcheck.native genspec.native
+TARGETS=main.native sinfer.native genspec.native
 
 all:
 	ln -sf ../external/misc
