@@ -1,16 +1,15 @@
 qualif FALSE(v: int): 0 = 1
 
+qualif EQB(v: int)  : v = BLOCK_BEGIN([v])
 qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@str])
-qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@str])
+qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
 qualif PI(v: int)   : v = @str + @i
 qualif GZA(v: int)  : 0 <= v
-qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
-qualif EQB(v: int)  : v = BLOCK_BEGIN([v])
-
-// Needed for validptr(s) in init_string
-// qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8
 
 // Needed for non-null but not bounds checking
 qualif GZ(v: int)   : 0 < v
+
+// Needed for validptr(s) in init_string
+// qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8
 
 //qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + ~a
