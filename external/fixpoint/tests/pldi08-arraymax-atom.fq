@@ -36,7 +36,7 @@ constraint: env []
 constraint: env []
 	    grd true
 	    lhs {v : int | [0 <= v; v < len_a]}
-	    rhs {v : int | [K4]}
+	    rhs {v : int | [Kl]}
             tag 46
 
 constraint: env []
