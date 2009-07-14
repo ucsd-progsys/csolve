@@ -202,8 +202,39 @@ void AddEdges(Graph retval, int numvert)
 }
 }
 
+Graph MakeGraph(int numvert )
+{ int i ;
+  Vertex vf ;
+  Vertex vt ;
+  Graph retval ;
+  void *tmp ;
+  void *tmp___0 ;
+  Hash htmp;
+
+  {
+  tmp = malloc(sizeof(*retval));
+  retval = (struct graph_st *)tmp;
+  retval->numvert = numvert;
+  tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
+  retval->vlist = (struct vert_st *)tmp___0;
+  vt = (struct vert_st *)((void *)0);
+  for (i = 0; i < numvert; i++) {
+    vf = retval->vlist + i;
+    vf->mindist = 9999999;
+    htmp = MakeHash(100);
+    vf->edgehash = htmp; // sloc_of_ret ISSUE
+  }
+  for (i = 0; i < numvert; i++) {
+      vf = retval->vlist + i;
+      vf->next = retval->vlist + i + 1;
+  }
+  vf->next = 0;
+  AddEdges(retval, numvert);
+  return (retval);
+}
+}
+
 /*
-Graph MakeGraph(int numvert ) ;
 static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 { BlueReturn retval ;
   Vertex tmp ;
@@ -303,34 +334,6 @@ int main(int argc , char **argv )
   graph = MakeGraph(size);
   dist = ComputeMst(graph, size);
   exit(0);
-}
-}
-Graph MakeGraph(int numvert )
-{ int i ;
-  Vertex vf ;
-  Vertex vt ;
-  Graph retval ;
-  void *tmp ;
-  void *tmp___0 ;
-
-  {
-  tmp = malloc(sizeof(*retval));
-  retval = (struct graph_st *)tmp;
-  retval->numvert = numvert;
-  tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
-  retval->vlist = (struct vert_st *)tmp___0;
-  vt = (struct vert_st *)((void *)0);
-  i = numvert - 1;
-  while (i >= 0) {
-    vf = retval->vlist + i;
-    vf->mindist = 9999999;
-    vf->edgehash = MakeHash(100);
-    vf->next = vt;
-    vt = vf;
-    i --;
-  }
-  AddEdges(retval, numvert);
-  return (retval);
 }
 }
 */
