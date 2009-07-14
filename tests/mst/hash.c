@@ -13,8 +13,6 @@
 #define assert(num,a)
 #define HashRange 100
 
-static void * (DALLOC(size) localmalloc)(int size);
-
 static int remaining = 0;
 static char * BND(__this, __auto) temp;
 
@@ -23,30 +21,15 @@ static int hashfunc(unsigned int key)
   return ((key>>4) % HashRange);
 }
 
-static void *localmalloc(int size) {
-  char *blah;
-
-  if (size>remaining)
-    {
-      temp = (char *) malloc(32768);
-      if (!temp) chatting("Error! malloc returns null\n");
-      remaining = 32768;
-    }
-  blah = temp;
-  temp += size;
-  remaining -= size;
-  return blah;
-}
-
 #define localfree(sz)
 
 Hash MakeHash(int size)
 {
   Hash retval;
 
-  retval = (Hash) localmalloc(sizeof(*retval));
+  retval = (Hash) malloc(sizeof(*retval));
   retval->size = size;
-  retval->array = (HashEntry *) localmalloc(size*sizeof(retval->array[0]));
+  retval->array = (HashEntry *) malloc(size*sizeof(retval->array[0]));
   {
     memset((char* FAT)TC(retval->array), 0, size * sizeof(retval->array[0]));
   }
@@ -79,7 +62,7 @@ void HashInsert(void *entry,unsigned int key,Hash hash)
 
   j = hashfunc(key);
 
-  ent = (HashEntry) localmalloc(sizeof(*ent));
+  ent = (HashEntry) malloc(sizeof(*ent));
   ent->next = hash->array[j];
   hash->array[j]=ent;
   ent->key = key;

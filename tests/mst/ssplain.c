@@ -6,14 +6,6 @@
 #include <stddef.h>
 #include "ssplain.h"
 
-void chatting(char * s, ...)
-{
-  va_list ap;
-  va_start(ap,s);
-  vfprintf(stdout, s, ap);
-  va_end(ap);
-}
-
 
 #ifdef SS_RAND
 double drand48()
