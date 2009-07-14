@@ -140,6 +140,8 @@ int HashLookup(unsigned int key , Hash hash )
 { int j ;
   HashEntry ent ;
 
+  hash = hash; // THETA ISSUE
+
   {
   j = hashfunc(key);
   ent = hash->array[j];
@@ -165,6 +167,8 @@ void HashInsert(int entry, unsigned int key, Hash hash )
   int j ;
   void *tmp ;
 
+  hash = hash; // THETA ISSUE
+
   {
   j = hashfunc(key);
   tmp = malloc(sizeof(*ent));
@@ -185,6 +189,8 @@ void AddEdges(Graph retval, int numvert)
   int j ;
   int dist ;
   int num_inserted ;
+
+  retval = retval; // THETA ISSUE
 
   {
   num_inserted = 0;
@@ -252,6 +258,9 @@ BlueReturn *BlueRule(Vertex inserted, Vertex vlist)
   Vertex next ;
   int tmp___1 ;
 
+  inserted = inserted;  // THETA ISSUE
+  vlist = vlist;  // THETA ISSUE
+
   retval = (BlueReturn *)malloc(sizeof(BlueReturn));
 
   {
@@ -308,6 +317,8 @@ int ComputeMst(Graph graph , int numvert)
   int dist ;
   Vertex MyVertexList ;
   BlueReturn *br ;
+
+  graph = graph;  // THETA ISSUE
 
   {
   cost = 0;
