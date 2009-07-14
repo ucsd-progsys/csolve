@@ -111,7 +111,7 @@ Hash MakeHash(int size )
   tmp = malloc(sizeof(*retval));
   retval = (struct hash *)tmp;
   retval->size = size;
-  tmp___0 = malloc((unsigned int )size * sizeof(*(retval->array + 0)));
+  tmp___0 = malloc(size);
   retval->array = (HashEntry *)tmp___0;
   // memset((void *)((char *)retval->array), 0, (unsigned int )size * sizeof(*(retval->array + 0)));
   // pmr: the following is a bogus "approximation" to memset
@@ -215,7 +215,7 @@ Graph MakeGraph(int numvert )
   tmp = malloc(sizeof(*retval));
   retval = (struct graph_st *)tmp;
   retval->numvert = numvert;
-  tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
+  tmp___0 = malloc(numvert);
   retval->vlist = (struct vert_st *)tmp___0;
   vt = (struct vert_st *)((void *)0);
   for (i = 0; i < numvert; i++) {
