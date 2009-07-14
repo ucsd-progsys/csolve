@@ -147,7 +147,7 @@ int HashLookup(unsigned int key , Hash hash )
   ent = hash->array[j];
   while (1) {
     if (ent) {
-      if (! (ent->key != key)) {
+      if ((ent->key == key)) {
         break;
       }
     } else {
@@ -166,14 +166,15 @@ void HashInsert(int entry, unsigned int key, Hash hash )
 { HashEntry ent ;
   int j ;
   void *tmp ;
+  HashEntry ht;
 
   hash = hash; // THETA ISSUE
 
   {
   j = hashfunc(key);
-  tmp = malloc(sizeof(*ent));
-  ent = (struct hash_entry *)tmp;
-  ent->next = hash->array[j];
+  ent = (struct hash_entry *)malloc(sizeof(*ent));
+  ht = hash->array[j]; // PURIFIER ISSUE
+  ent->next = ht;
   hash->array[j] = ent;
   ent->key = key;
   ent->entry = entry;
@@ -335,13 +336,14 @@ int ComputeMst(Graph graph , int numvert)
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
+    br = br;
     inserted = br->vert;
     dist = br->dist;
     numvert --;
     cost += dist;
   }
   return (cost);
-}
+  }
 }
 
 void main()
