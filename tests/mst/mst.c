@@ -5,17 +5,15 @@ extern void exit(int);
 
 struct hash_entry {
    unsigned int key ;
-   void *entry ;
+   int entry ;
    struct hash_entry *next ;
    unsigned int padding ;
 };
 typedef struct hash_entry *HashEntry;
 
 struct hash {
-   HashEntry *array ;
-   int (*mapfunc)(unsigned int  ) ;
    int size ;
-   unsigned int padding ;
+   HashEntry *array ;
 };
 typedef struct hash *Hash;
 
@@ -39,7 +37,141 @@ struct blue_return {
 };
 typedef struct blue_return BlueReturn;
 
-void *HashLookup(unsigned int key , Hash hash ) ;
+int dealwithargs(int argc , char **argv )
+{ int level ;
+
+  {
+  if (argc > 1) {
+    level = atoi((char const   *)*(argv + 1));
+  } else {
+    level = 1024;
+  }
+  return (level);
+}
+}
+
+int mult(int p , int q )
+{ int p1 ;
+  int p0 ;
+  int q1 ;
+  int q0 ;
+
+  {
+  p1 = p / 10000;
+  p0 = p % 10000;
+  q1 = q / 10000;
+  q0 = q % 10000;
+  return (((p0 * q1 + p1 * q0) % 10000) * 10000 + p0 * q0);
+}
+}
+
+int mst_random(int seed )
+{ int tmp ;
+  int tmp___0 ;
+
+  {
+  tmp___0 = mult(seed, 31415821);
+  tmp = tmp___0 + 1;
+  return (tmp);
+}
+}
+
+int compute_dist(int i , int j , int numvert )
+{ int less ;
+  int gt ;
+  int tmp ;
+
+  {
+  if (i < j) {
+    less = i;
+    gt = j;
+  } else {
+    less = j;
+    gt = i;
+  }
+  tmp = mst_random(less * numvert + gt);
+  return (tmp % 2048 + 1);
+}
+}
+
+int hashfunc(unsigned int key )
+{
+  return ((int )((key >> 4) % 100U));
+}
+
+Hash MakeHash(int size )
+{ Hash retval ;
+  void *tmp ;
+  void *tmp___0 ;
+  HashEntry e;
+  Hash rt;
+  int ndp;
+
+  {
+  tmp = malloc(sizeof(*retval));
+  retval = (struct hash *)tmp;
+  retval->size = size;
+  tmp___0 = malloc((unsigned int )size * sizeof(*(retval->array + 0)));
+  retval->array = (HashEntry *)tmp___0;
+  // memset((void *)((char *)retval->array), 0, (unsigned int )size * sizeof(*(retval->array + 0)));
+  // pmr: the following is a bogus "approximation" to memset
+  // pmr: we'll need to initialize all these fields somehow
+  for (int i = 0; i < size; i++) {
+      retval->array[nondet()] = (HashEntry)malloc(sizeof(struct hash_entry));
+      e                = retval->array[i];
+      ndp              = nondetpos (); // sloc_of_ret ISSUE
+      e->key           = ndp;
+      e->padding       = 0;
+      e->entry         = ndp;
+      e->next          = e;
+  }
+
+  return retval;
+}
+}
+
+int HashLookup(unsigned int key , Hash hash )
+{ int j ;
+  HashEntry ent ;
+
+  {
+  j = hashfunc(key);
+  ent = hash->array[j];
+  while (1) {
+    if (ent) {
+      if (! (ent->key != key)) {
+        break;
+      }
+    } else {
+      break;
+    }
+    ent = ent->next;
+  }
+  if (ent) {
+    return (ent->entry);
+  }
+  return 0;
+}
+}
+
+void HashInsert(int entry, unsigned int key, Hash hash )
+{ HashEntry ent ;
+  int j ;
+  void *tmp ;
+
+  {
+  j = hashfunc(key);
+  tmp = malloc(sizeof(*ent));
+  ent = (struct hash_entry *)tmp;
+  ent->next = hash->array[j];
+  hash->array[j] = ent;
+  ent->key = key;
+  ent->entry = entry;
+  return;
+}
+}
+
+/*
 Graph MakeGraph(int numvert ) ;
 static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 { BlueReturn retval ;
@@ -130,7 +262,6 @@ static int ComputeMst(Graph graph , int numvert )
   return (cost);
 }
 }
-int dealwithargs(int argc , char **argv ) ;
 int main(int argc , char **argv )
 { Graph graph ;
   int dist ;
@@ -141,49 +272,6 @@ int main(int argc , char **argv )
   graph = MakeGraph(size);
   dist = ComputeMst(graph, size);
   exit(0);
-}
-}
-Hash MakeHash(int size ) ;
-void HashInsert(void *entry , unsigned int key , Hash hash ) ;
-static int mult(int p , int q )
-{ int p1 ;
-  int p0 ;
-  int q1 ;
-  int q0 ;
-
-  {
-  p1 = p / 10000;
-  p0 = p % 10000;
-  q1 = q / 10000;
-  q0 = q % 10000;
-  return (((p0 * q1 + p1 * q0) % 10000) * 10000 + p0 * q0);
-}
-}
-static int mst_random(int seed )
-{ int tmp ;
-  int tmp___0 ;
-
-  {
-  tmp___0 = mult(seed, 31415821);
-  tmp = tmp___0 + 1;
-  return (tmp);
-}
-}
-static int compute_dist(int i , int j , int numvert )
-{ int less ;
-  int gt ;
-  int tmp ;
-
-  {
-  if (i < j) {
-    less = i;
-    gt = j;
-  } else {
-    less = j;
-    gt = i;
-  }
-  tmp = mst_random(less * numvert + gt);
-  return (tmp % 2048 + 1);
 }
 }
 static void AddEdges(Graph retval , int numvert )
@@ -244,101 +332,4 @@ Graph MakeGraph(int numvert )
   return (retval);
 }
 }
-void HashDelete(unsigned int key , Hash hash ) ;
-static int hashfunc(unsigned int key )
-{
-
-  {
-  return ((int )((key >> 4) % 100U));
-}
-}
-Hash MakeHash(int size )
-{ Hash retval ;
-  void *tmp ;
-  void *tmp___0 ;
-
-  {
-  tmp = malloc(sizeof(*retval));
-  retval = (struct hash *)tmp;
-  retval->size = size;
-  tmp___0 = malloc((unsigned int )size * sizeof(*(retval->array + 0)));
-  retval->array = (HashEntry *)tmp___0;
-  memset((void *)((char *)retval->array), 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-  retval->padding = 0U;
-  return (retval);
-}
-}
-void *HashLookup(unsigned int key , Hash hash )
-{ int j ;
-  HashEntry ent ;
-
-  {
-  j = hashfunc(key);
-  ent = *(hash->array + j);
-  while (1) {
-    if (ent) {
-      if (! (ent->key != key)) {
-        break;
-      }
-    } else {
-      break;
-    }
-    ent = ent->next;
-  }
-  if (ent) {
-    return (ent->entry);
-  }
-  return ((void *)0);
-}
-}
-void HashInsert(void *entry , unsigned int key , Hash hash )
-{ HashEntry ent ;
-  int j ;
-  void *tmp ;
-
-  {
-  j = hashfunc(key);
-  tmp = malloc(sizeof(*ent));
-  ent = (struct hash_entry *)tmp;
-  ent->next = *(hash->array + j);
-  *(hash->array + j) = ent;
-  ent->key = key;
-  ent->entry = entry;
-  return;
-}
-}
-void HashDelete(unsigned int key , Hash hash )
-{ HashEntry *ent ;
-  HashEntry tmp ;
-  int j ;
-
-  {
-  j = hashfunc(key);
-  ent = hash->array + j;
-  while (1) {
-    if (*ent) {
-      if (! ((*ent)->key != key)) {
-        break;
-      }
-    } else {
-      break;
-    }
-    ent = & (*ent)->next;
-  }
-  tmp = *ent;
-  *ent = (*ent)->next;
-  return;
-}
-}
-int dealwithargs(int argc , char **argv )
-{ int level ;
-
-  {
-  if (argc > 1) {
-    level = atoi((char const   *)*(argv + 1));
-  } else {
-    level = 1024;
-  }
-  return (level);
-}
-}
+*/
