@@ -295,14 +295,13 @@ BlueReturn *BlueRule(Vertex inserted, Vertex vlist)
 }
 }
 
-/*
-static int ComputeMst(Graph graph , int numvert )
+int ComputeMst(Graph graph , int numvert)
 { Vertex inserted ;
   Vertex tmp ;
   int cost ;
   int dist ;
   Vertex MyVertexList ;
-  BlueReturn br ;
+  BlueReturn *br ;
 
   {
   cost = 0;
@@ -319,14 +318,15 @@ static int ComputeMst(Graph graph , int numvert )
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
-    inserted = br.vert;
-    dist = br.dist;
+    inserted = br->vert;
+    dist = br->dist;
     numvert --;
     cost += dist;
   }
   return (cost);
 }
 }
+/*
 int main(int argc , char **argv )
 { Graph graph ;
   int dist ;
