@@ -104,7 +104,7 @@ MakeGraph ::
       A0 |-> 0: int (4, true, {v | true}), 4: int (4, true, {v | true}), 8: ref (A0, 0, {v | true}), 12: int (4, true, {v | true})]
 
 BlueRule ::
-  forall    [A0; A1; A2; A3]
+  forall    [A0; A1; A2; A3; A4]
   arg       (inserted: ref (A0, 0[16], {v | true}), vlist: ref (A0, 0[16], {v | true}))
   ret       ref (A4, 0, {v | true})
   store_in  [
