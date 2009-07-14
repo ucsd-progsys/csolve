@@ -102,3 +102,19 @@ MakeGraph ::
       A2 |-> 0: int (4, true, {v | true}), 4: ref (A1, 0, {v | true});
       A1 |-> true: ref (A0, 0, {v | true});
       A0 |-> 0: int (4, true, {v | true}), 4: int (4, true, {v | true}), 8: ref (A0, 0, {v | true}), 12: int (4, true, {v | true})]
+
+BlueRule ::
+  forall    [A0; A1; A2; A3]
+  arg       (inserted: ref (A0, 0[16], {v | true}), vlist: ref (A0, 0[16], {v | true}))
+  ret       ref (A4, 0, {v | true})
+  store_in  [
+      A0 |-> 0[16]: int (4, true, {v | true}), 4[16]: ref (A0, 0[16], {v | true}), 8[16]: ref (A1, 0, {v | true}), 12[16]: int (4, true, {v | true});
+      A1 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true});
+      A2 |-> true: ref (A3, 0, {v | true});
+      A3 |-> 0: int (4, true, {v | true}), 4: int (4, true, {v | true}), 8: ref (A3, 0, {v | true}), 12: int (4, true, {v | true})]
+  store_out [
+      A0 |-> 0[16]: int (4, true, {v | true}), 4[16]: ref (A0, 0[16], {v | true}), 8[16]: ref (A1, 0, {v | true}), 12[16]: int (4, true, {v | true});
+      A1 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true});
+      A2 |-> true: ref (A3, 0, {v | true});
+      A3 |-> 0: int (4, true, {v | true}), 4: int (4, true, {v | true}), 8: ref (A3, 0, {v | true}), 12: int (4, true, {v | true});
+      A4 |-> 0: ref (A0, 0[16], {v | true}), 4: int (4, true, {v | true})]

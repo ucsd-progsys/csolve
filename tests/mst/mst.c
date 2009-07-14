@@ -234,34 +234,35 @@ Graph MakeGraph(int numvert )
 }
 }
 
-/*
-static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
-{ BlueReturn retval ;
+BlueReturn *BlueRule(Vertex inserted, Vertex vlist)
+{ BlueReturn *retval ;
   Vertex tmp ;
   Vertex prev ;
   Hash hash ;
   int dist ;
   int dist2 ;
   int count ;
-  void *tmp___0 ;
+  int tmp___0 ;
   Vertex next ;
-  void *tmp___1 ;
+  int tmp___1 ;
+
+  retval = (BlueReturn *)malloc(sizeof(BlueReturn));
 
   {
-  if (! vlist) {
-    retval.dist = 999999;
-    return (retval);
-  }
+      if (vlist == (Vertex) 0) {
+          retval->dist = 999999;
+          return (retval);
+      }
   prev = vlist;
-  retval.vert = vlist;
-  retval.dist = vlist->mindist;
+  retval->vert = vlist;
+  retval->dist = vlist->mindist;
   hash = vlist->edgehash;
-  tmp___0 = HashLookup((unsigned int )inserted, hash);
+  tmp___0 = HashLookup((unsigned int ) nondetpos () /* inserted */, hash);
   dist = (int )tmp___0;
   if (dist) {
-    if (dist < retval.dist) {
+    if (dist < retval->dist) {
       vlist->mindist = dist;
-      retval.dist = dist;
+      retval->dist = dist;
     }
   }
   count = 0;
@@ -274,7 +275,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
     } else {
       hash = tmp->edgehash;
       dist2 = tmp->mindist;
-      tmp___1 = HashLookup((unsigned int )inserted, hash);
+      tmp___1 = HashLookup((unsigned int ) nondetpos() /* inserted */, hash);
       dist = (int )tmp___1;
       if (dist) {
         if (dist < dist2) {
@@ -282,9 +283,9 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
           dist2 = dist;
         }
       }
-      if (dist2 < retval.dist) {
-        retval.vert = tmp;
-        retval.dist = dist2;
+      if (dist2 < retval->dist) {
+        retval->vert = tmp;
+        retval->dist = dist2;
       }
     }
     prev = tmp;
@@ -293,6 +294,8 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
   return (retval);
 }
 }
+
+/*
 static int ComputeMst(Graph graph , int numvert )
 { Vertex inserted ;
   Vertex tmp ;
