@@ -84,4 +84,9 @@ AddEdges ::
       A2 |-> 0: int (4, true, {v | true}), 4: ref (A1, 0, {v | true});
       A1 |-> true: ref (A0, 0, {v | true});
       A0 |-> 0[16]: int (4, true, {v | true}), 4[16]: int (4, true, {v | true}), 8[16]: ref (A0, 0, {v | true}), 12[16]: int (4, true, {v | true})]
-  store_out []
+  store_out [
+      A3 |-> 0: int (4, true, {v | true}), 4: ref (A4, 0, {v | true});
+      A4 |-> 0[16]: int (4, true, {v | true}), 4[16]: ref (A4, 0, {v | true}), 8[16]: ref (A2, 0, {v | true}), 12[16]: int (4, true, {v | true});
+      A2 |-> 0: int (4, true, {v | true}), 4: ref (A1, 0, {v | true});
+      A1 |-> true: ref (A0, 0, {v | true});
+      A0 |-> 0[16]: int (4, true, {v | true}), 4[16]: int (4, true, {v | true}), 8[16]: ref (A0, 0, {v | true}), 12[16]: int (4, true, {v | true})]
