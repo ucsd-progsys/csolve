@@ -1,0 +1,2 @@
+qualif A(v:int) : 0 <= v
+qualif A(v:int) : 0 < v
