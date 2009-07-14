@@ -96,7 +96,13 @@ int compute_dist(int i , int j , int numvert )
 
 int hashfunc(unsigned int key )
 {
-  return ((int )((key >> 4) % 100U));
+    int ndp = nondetpos();
+    if (ndp < 100) {
+        return ndp;
+    }
+
+    return 0;
+    // return ((int )((key >> 4) % 100U));
 }
 
 Hash MakeHash(int size )
