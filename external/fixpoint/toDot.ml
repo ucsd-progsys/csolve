@@ -99,12 +99,15 @@ let mk_dep_graph ts =
 	   ) ds
       ) ds |> List.flatten |> edges_e_to_graph in
   let srcs = List.fold_left (fun xs (src, tag, dst) -> src::xs) [] ds' in
+
+(*
   let veanu = 
     List.fold_left (fun xs src ->
 		      S3.fold (fun x ys -> 
 				 ys |> S3.add (S2.diff x src) |> S3.add (S2.diff src x) |> S3.add (S2.inter x src) 
 			      ) xs S3.empty 
 		   ) (List.hd srcs |> S3.singleton) (List.tl srcs) in
+*)
   let oc = open_out "/tmp/dep.dot" in
     DotOutput.output_graph oc g;
     close_out oc;
@@ -116,13 +119,14 @@ let mk_dep_graph ts =
     print_endline "start dep graph";
     List.iter (fun e -> 
 		 Printf.printf "%s - %s -> %s\n" (G.E.src e) (G.E.label e) (G.E.dst e)) (edges_e_of_graph g);
-    print_endline "end dep graph";
+    print_endline "end dep graph"
+(*
     Printf.printf "Veanu %d sets\n%s\n" 
       (S3.cardinal veanu)
       (S3.fold (fun x s -> 
 		  (Printf.sprintf "{%s}" (set_to_string "empty" x))::s
 	       ) veanu [] |> String.concat ",\n")
-
+*)
 
 
 let other_graph ts =
