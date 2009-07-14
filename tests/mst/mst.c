@@ -21,7 +21,7 @@ struct vert_st {
    int mindist ;
    struct vert_st *next ;
    Hash edgehash ;
-   unsigned int padding ;
+    int pad;
 };
 typedef struct vert_st *Vertex;
 
@@ -171,6 +171,37 @@ void HashInsert(int entry, unsigned int key, Hash hash )
 }
 }
 
+void AddEdges(Graph retval, int numvert)
+{ Vertex src ;
+  Vertex dest ;
+  Hash hash ;
+  int i ;
+  int j ;
+  int dist ;
+  int num_inserted ;
+
+  {
+  num_inserted = 0;
+  j = 0;
+  while (j < numvert) {
+      src = &(retval->vlist[j]);
+    hash = src->edgehash;
+    i = 0;
+    while (i < numvert) {
+      if (i != j) {
+        dist = compute_dist(i, j, numvert);
+        dest = &(retval->vlist[i]);
+        HashInsert(dist, (unsigned int )dest, hash);
+        num_inserted ++;
+      }
+      i ++;
+    }
+    j ++;
+  }
+  return;
+}
+}
+
 /*
 Graph MakeGraph(int numvert ) ;
 static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
@@ -272,36 +303,6 @@ int main(int argc , char **argv )
   graph = MakeGraph(size);
   dist = ComputeMst(graph, size);
   exit(0);
-}
-}
-static void AddEdges(Graph retval , int numvert )
-{ Vertex src ;
-  Vertex dest ;
-  Hash hash ;
-  int i ;
-  int j ;
-  int dist ;
-  int num_inserted ;
-
-  {
-  num_inserted = 0;
-  j = 0;
-  while (j < numvert) {
-    src = retval->vlist + j;
-    hash = src->edgehash;
-    i = 0;
-    while (i < numvert) {
-      if (i != j) {
-        dist = compute_dist(i, j, numvert);
-        dest = retval->vlist + i;
-        HashInsert((void *)dist, (unsigned int )dest, hash);
-        num_inserted ++;
-      }
-      i ++;
-    }
-    j ++;
-  }
-  return;
 }
 }
 Graph MakeGraph(int numvert )
