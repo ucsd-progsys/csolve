@@ -130,3 +130,10 @@ ComputeMst ::
       A1 |-> true: ref (A0, 0, {v | true});
       A0 |-> 0: int (4, true, {v | true}), 4: int (4, true, {v | true}), 8: ref (A0, 0, {v | true}), 12: int (4, true, {v | true})]
   store_out []
+
+main ::
+  forall    []
+  arg       ()
+  ret       int (0, true, {v | true})
+  store_in  []
+  store_out []

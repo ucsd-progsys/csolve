@@ -36,7 +36,7 @@ struct blue_return {
    int dist ;
 };
 typedef struct blue_return BlueReturn;
-
+/*
 int dealwithargs(int argc , char **argv )
 { int level ;
 
@@ -49,7 +49,7 @@ int dealwithargs(int argc , char **argv )
   return (level);
 }
 }
-
+*/
 int mult(int p , int q )
 { int p1 ;
   int p0 ;
@@ -326,17 +326,15 @@ int ComputeMst(Graph graph , int numvert)
   return (cost);
 }
 }
-/*
-int main(int argc , char **argv )
+
+void main()
 { Graph graph ;
   int dist ;
   int size ;
 
   {
-  size = dealwithargs(argc, argv);
+      size = nondetpos(); // dealwithargs(argc, argv);
   graph = MakeGraph(size);
   dist = ComputeMst(graph, size);
-  exit(0);
 }
 }
-*/
