@@ -20,8 +20,6 @@ struct graph_t {
    node_t *h_nodes ;
 };
 typedef struct graph_t graph_t;
-void compute_nodes(node_t *nodelist ) ;
-graph_t initialize_graph(void) ;
 
 int gen_number(int range )
 { long tmp ;
@@ -133,6 +131,35 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
 }
 }
 
+void update_from_coeffs(node_t *nodelist)
+{ node_t *cur_node ;
+  int from_count ;
+  int k ;
+  void *tmp ;
+  void *tmp___0 ;
+  int tmp___1 ;
+
+  {
+  cur_node = nodelist;
+  while (cur_node) {
+    from_count = cur_node->from_count;
+    tmp = malloc((unsigned int )from_count * sizeof(node_t *));
+    cur_node->from_nodes = (node_t **)tmp;
+    tmp___0 = malloc((unsigned int )from_count * sizeof(int ));
+    cur_node->coeffs = (int *)tmp___0;
+    k = 0;
+    while (k < from_count) {
+        tmp___1 = nondet();
+      *(cur_node->coeffs + k) = (int )tmp___1;
+      k ++;
+    }
+    cur_node->from_count = 0;
+    cur_node = cur_node->next;
+  }
+  return;
+}
+}
+
 /*
 int main(int argc , char **argv )
 { int i ;
@@ -170,34 +197,6 @@ void compute_nodes(node_t *nodelist )
       i ++;
     }
     nodelist = nodelist->next;
-  }
-  return;
-}
-}
-void update_from_coeffs(node_t *nodelist )
-{ node_t *cur_node ;
-  int from_count ;
-  int k ;
-  void *tmp ;
-  void *tmp___0 ;
-  int tmp___1 ;
-
-  {
-  cur_node = nodelist;
-  while (cur_node) {
-    from_count = cur_node->from_count;
-    tmp = malloc((unsigned int )from_count * sizeof(node_t *));
-    cur_node->from_nodes = (node_t **)tmp;
-    tmp___0 = malloc((unsigned int )from_count * sizeof(int ));
-    cur_node->coeffs = (int *)tmp___0;
-    k = 0;
-    while (k < from_count) {
-        tmp___1 = nondet();
-      *(cur_node->coeffs + k) = (int )tmp___1;
-      k ++;
-    }
-    cur_node->from_count = 0;
-    cur_node = cur_node->next;
   }
   return;
 }
