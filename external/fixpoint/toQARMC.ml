@@ -1,6 +1,7 @@
 (* translation to Q'ARMC *)
 
 module C  = FixConstraint
+module Co = Constants 
 module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
 open Misc.Ops
@@ -43,9 +44,9 @@ let bop_to_armc = function
 let brel_to_armc = function 
   | Ast.Eq -> "="
   | Ast.Ne -> "=\\="
-  | Ast.Gt -> ">" (*  ">= 1+" *)
+  | Ast.Gt -> ">"
   | Ast.Ge -> ">="
-  | Ast.Lt -> "<" (*  "+1 =<" *)
+  | Ast.Lt -> "<"
   | Ast.Le -> "=<"
 let bind_to_armc (s, t) = (* Andrey: TODO support binders *)
   Printf.sprintf "%s:%s" (symbol_to_armc s) (Ast.Sort.to_string t |> sanitize_symbol)
@@ -54,9 +55,10 @@ let rec expr_to_armc (e, _) =
     | Ast.Con c -> constant_to_armc c
     | Ast.Var s -> mk_data_var exists_kv (symbol_to_armc s)
     | Ast.App (s, es) -> 
-	let str = symbol_to_armc s in
-	  if es = [] then str else
-	    Printf.sprintf "f_%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
+	if !Co.purify_function_application then "_" else
+	  let str = symbol_to_armc s in
+	    if es = [] then str else
+	      Printf.sprintf "f_%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
     | Ast.Bin (e1, op, e2) ->
 	Printf.sprintf "(%s %s %s)" 
 	  (expr_to_armc e1) (bop_to_armc op) (expr_to_armc e2)

@@ -35,7 +35,7 @@ let latex_file: string option ref = ref None   (* translate to LaTeX file *)
 let armc_file: string option ref  = ref None   (* translate to ARMC file *)
 let qarmc_file: string option ref = ref None   (* translate to QARMC file *)
 let dot_file: string option ref  = ref None   (* translate to dot file *)
-let purify_basic_block   = ref true  (* apply functionality axioms on basic block functions *)
+let purify_function_application   = ref true  (* replace function terms by existentially quantified variables *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -162,6 +162,10 @@ let arg_spec =
 		    else
 		      dot_file := Some s),
     "translates constraints to dot file"
+   );
+   ("-keepuif", 
+    Arg.Clear purify_function_application,
+    "do not replace function terms by existentially quantified variables"
    )
   ]
 
