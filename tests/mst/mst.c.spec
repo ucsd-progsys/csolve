@@ -76,7 +76,7 @@ HashInsert ::
 
 AddEdges ::
   forall    [A0; A1; A2; A3; A4]
-  arg       (retval: ref (A3, 0, {v | true}), numvert: int (4, true, {v | true}))
+  arg       (numvert: int (4, true, {v | true}), retval: ref (A3, 0, {v | true}))
   ret       int (0, true, {v | true})
   store_in  [
       A3 |-> 0: int (4, true, {v | true}), 4: ref (A4, 0, {v | true});
