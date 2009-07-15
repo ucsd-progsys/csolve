@@ -52,6 +52,7 @@ void fill_table(node_t **table , int size )
 { int i ;
   void *tmp ;
   int tmp___0 ;
+  node_t *ttmp;
 
   {
   i = 0;
@@ -62,7 +63,8 @@ void fill_table(node_t **table , int size )
     (*(table + i))->value = (int )tmp___0;
     (*(table + i))->from_count = 0;
     if (i > 0) {
-      (*(table + (i - 1)))->next = *(table + i);
+        ttmp = *(table + i);
+        (*(table + (i - 1)))->next = ttmp;
     }
     i ++;
   }
@@ -166,6 +168,8 @@ graph_t *initialize_graph(void)
   node_t **h_table ;
   node_t **e_table ;
   graph_t *retval ;
+  node_t *el;
+  node_t *hl;
 
   retval = (graph_t *)malloc(sizeof(graph_t));
 
@@ -176,14 +180,16 @@ graph_t *initialize_graph(void)
   fill_table(h_table, 666);
   e_table = make_table(num_e_nodes);
   fill_table(e_table, 666);
-  make_neighbors(*(h_table + 0), 666, e_table, 333);
-  make_neighbors(*(e_table + 0), 666, h_table, 333);
-  update_from_coeffs(*(h_table + 0));
-  update_from_coeffs(*(e_table + 0));
-  fill_from_fields(*(h_table + 0), 333);
-  fill_from_fields(*(e_table + 0), 333);
-  retval->e_nodes = *(e_table + 0);
-  retval->h_nodes = *(h_table + 0);
+  hl = *(h_table + 0);
+  make_neighbors(hl, 666, e_table, 333);
+  el = *(e_table + 0);
+  make_neighbors(el, 666, h_table, 333);
+  update_from_coeffs(hl);
+  update_from_coeffs(el);
+  fill_from_fields(hl, 333);
+  fill_from_fields(el, 333);
+  retval->e_nodes = el;
+  retval->h_nodes = hl;
   return (retval);
 }
 }
@@ -216,6 +222,7 @@ void main()
 
   {
   graph = initialize_graph();
+  graph = graph;
   // print_graph(graph);
   i = 0;
   while (i < 100) {
@@ -228,3 +235,4 @@ void main()
   }
 }
 }
+
