@@ -96,7 +96,7 @@ int compute_dist(int i , int j , int numvert )
 
 int hashfunc(unsigned int key )
 {
-    int ndp = nondetpos();
+    int ndp = nondetnn();
     if (ndp < 100) {
         return ndp;
     }
@@ -144,6 +144,7 @@ int HashLookup(unsigned int key , Hash hash )
 
   {
   j = hashfunc(key);
+  validptr(&(hash->array[j]));
   ent = hash->array[j];
   while (1) {
     if (ent) {
@@ -173,6 +174,7 @@ void HashInsert(int entry, unsigned int key, Hash hash )
   {
   j = hashfunc(key);
   ent = (struct hash_entry *)malloc(sizeof(*ent));
+  validptr(&(hash->array[j]));
   ht = hash->array[j]; // PURIFIER ISSUE
   ent->next = ht;
   hash->array[j] = ent;

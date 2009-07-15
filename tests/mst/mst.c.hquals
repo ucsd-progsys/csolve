@@ -1,2 +1,7 @@
 qualif A(v:int) : 0 <= v
 qualif A(v:int) : 0 < v
+qualif A(v:int) : v < 100
+qualif A(v:int) : v = 100
+
+qualif ISBS(v:int)  : v = BLOCK_BEGIN([v])
+qualif SZ(v:int)    : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 100
