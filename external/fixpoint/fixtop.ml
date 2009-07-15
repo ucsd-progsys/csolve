@@ -67,7 +67,7 @@ let main () =
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
-  let _, _, cs, ws, _, _ =  !fs |> Misc.flap parse |> sift in
+  let _, _, cs, ws, _, sol =  !fs |> Misc.flap parse |> sift in
 (*  let _ = dump cs ws in *)
   begin
       match !Co.latex_file with
@@ -91,7 +91,7 @@ let main () =
 	| Some f -> 
 	    let out = open_out f in
 	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
-	      ToQARMC.to_qarmc out cs ws;
+	      ToQARMC.to_qarmc out cs ws sol;
 	      close_out out
 	| None -> ()
     end;

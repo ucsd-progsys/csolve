@@ -22,7 +22,8 @@ let str__cil_tmp = "__cil_tmp"
 
 type kv_scope = {
   kvs : string list;
-  kv_scope : string list StrMap.t
+  kv_scope : string list StrMap.t;
+  sol : Ast.pred list Ast.Symbol.SMap.t;
 }
 
 let sanitize_symbol s = 
@@ -95,7 +96,7 @@ and pred_to_armc (p, _) =
 	  (pred_to_armc p)
 
 
-let mk_kv_scope out ts wfs =
+let mk_kv_scope out ts wfs sol =
   output_string out "% kv -> scope:\n";
   let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
       List.map symbol_to_armc |> (* (fun s -> Printf.sprintf "k%s" (symbol_to_armc s)) |> *)
@@ -119,7 +120,7 @@ let mk_kv_scope out ts wfs =
 		 failure "ERROR: kname_scope_map: ill-formed wf"
 *)
       ) StrMap.empty wfs in
-    {kvs = kvs; kv_scope = kv_scope}
+    {kvs = kvs; kv_scope = kv_scope; sol = sol}
 
 let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
   Printf.sprintf "[%s]"
@@ -177,22 +178,25 @@ let reft_to_armc ?(noquery = false) ?(suffix = "") state reft =
 	(function
 	   | C.Conc pred -> pred_to_armc pred
 	   | C.Kvar (subs, sym) -> 
-	       let subs_map = List.fold_left
-		 (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
-	       let find_subst v default = 
-		 try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
-	       let kv = symbol_to_armc sym in
-	       let value, data = StrMap.find kv state.kv_scope |> split_scope in
-		 Printf.sprintf "%s%s = %s" 
-		   (if noquery then "" else (mk_query ~suffix:suffix state kv) ^ ", ")
-		   (mk_data_var ~suffix:suffix kv value) 
-		   (find_subst vv (mk_data_var exists_kv vv)) 
-		 :: List.map
-		   (fun v -> 
-		      Printf.sprintf "%s = %s"
-			(mk_data_var ~suffix:suffix kv v)
-			(find_subst v (mk_data_var exists_kv v))
-		   ) data |> String.concat ", "
+	       if Ast.Symbol.SMap.mem sym state.sol && Ast.Symbol.SMap.find sym state.sol = [] then 
+		 		 (Printf.printf "True %s\n" (Ast.Symbol.to_string sym);
+		 "1=1") else
+		 let subs_map = List.fold_left
+		   (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
+		 let find_subst v default = 
+		   try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
+		 let kv = symbol_to_armc sym in
+		 let value, data = StrMap.find kv state.kv_scope |> split_scope in
+		   Printf.sprintf "%s%s = %s" 
+		     (if noquery then "" else (mk_query ~suffix:suffix state kv) ^ ", ")
+		     (mk_data_var ~suffix:suffix kv value) 
+		     (find_subst vv (mk_data_var exists_kv vv)) 
+		   :: List.map
+		     (fun v -> 
+			Printf.sprintf "%s = %s"
+			  (mk_data_var ~suffix:suffix kv v)
+			  (find_subst v (mk_data_var exists_kv v))
+		     ) data |> String.concat ", "
 	) rs |> String.concat ", "
 
 let mk_rule head annot_guards annot_updates id = 
@@ -246,9 +250,9 @@ let t_to_armc state t =
 	 ) kvs)
 
 
-let to_qarmc out ts wfs =
+let to_qarmc out ts wfs sol =
   print_endline "Translating to QARMC.";
-  let state = mk_kv_scope out ts wfs in
+  let state = mk_kv_scope out ts wfs sol in
     Printf.fprintf out
       ":- multifile hc/3, var2names/2, preds/2, error/1.
 
