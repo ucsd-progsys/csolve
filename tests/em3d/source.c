@@ -94,6 +94,45 @@ void fill_from_fields(node_t *nodelist , int degree )
 }
 }
 
+void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree )
+{ node_t *cur_node ;
+  node_t *other_node ;
+  int j ;
+  int k ;
+  void *tmp ;
+  int tmp___0 ;
+
+  {
+  cur_node = nodelist;
+  while (cur_node) {
+    tmp = malloc((unsigned int )degree * sizeof(node_t *));
+    cur_node->to_nodes = (node_t **)tmp;
+    j = 0;
+    while (j < degree) {
+      while (1) {
+        tmp___0 = gen_number(tablesz);
+        other_node = *(table + tmp___0);
+        k = 0;
+        while (k < j) {
+          if ((unsigned int )other_node == (unsigned int )*(cur_node->to_nodes + k)) {
+            break;
+          }
+          k ++;
+        }
+        if ((k >= j)) {
+          break;
+        }
+      }
+      *(cur_node->to_nodes + j) = other_node;
+      (other_node->from_count) ++;
+      j ++;
+    }
+    cur_node = cur_node->next;
+  }
+  return;
+}
+}
+
 /*
 int main(int argc , char **argv )
 { int i ;
@@ -131,44 +170,6 @@ void compute_nodes(node_t *nodelist )
       i ++;
     }
     nodelist = nodelist->next;
-  }
-  return;
-}
-}
-void make_neighbors(node_t *nodelist , node_t **table , int tablesz , int degree )
-{ node_t *cur_node ;
-  node_t *other_node ;
-  int j ;
-  int k ;
-  void *tmp ;
-  int tmp___0 ;
-
-  {
-  cur_node = nodelist;
-  while (cur_node) {
-    tmp = malloc((unsigned int )degree * sizeof(node_t *));
-    cur_node->to_nodes = (node_t **)tmp;
-    j = 0;
-    while (j < degree) {
-      while (1) {
-        tmp___0 = gen_number(tablesz);
-        other_node = *(table + tmp___0);
-        k = 0;
-        while (k < j) {
-          if ((unsigned int )other_node == (unsigned int )*(cur_node->to_nodes + k)) {
-            break;
-          }
-          k ++;
-        }
-        if (! (k < j)) {
-          break;
-        }
-      }
-      *(cur_node->to_nodes + j) = other_node;
-      (other_node->from_count) ++;
-      j ++;
-    }
-    cur_node = cur_node->next;
   }
   return;
 }
@@ -215,8 +216,8 @@ graph_t initialize_graph(void)
   fill_table(h_table, 666);
   e_table = make_table(num_e_nodes);
   fill_table(e_table, 666);
-  make_neighbors(*(h_table + 0), e_table, 666, 333);
-  make_neighbors(*(e_table + 0), h_table, 666, 333);
+  make_neighbors(*(h_table + 0), 666, e_table, 333);
+  make_neighbors(*(e_table + 0), 666, h_table, 333);
   update_from_coeffs(*(h_table + 0));
   update_from_coeffs(*(e_table + 0));
   fill_from_fields(*(h_table + 0), 333);
