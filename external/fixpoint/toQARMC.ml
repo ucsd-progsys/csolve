@@ -262,6 +262,13 @@ error(%s).
       error_pc
       (mk_var2names state);
     List.iter (fun t -> t_to_armc state t |> List.iter (output_string out)) ts
+(*
+    print_endline "sol map";
+    Ast.Symbol.SMap.iter (fun k v -> Printf.printf "%s -> %s\n" 
+			    (Ast.Symbol.to_string k)
+			    (List.map Ast.Predicate.to_string v |> String.concat ", "))
+      sol
+*)
 
 
 (*

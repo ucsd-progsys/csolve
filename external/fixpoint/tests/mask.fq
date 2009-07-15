@@ -1,0 +1,52 @@
+// (c1)  i:{T}; xs:{L(v) >= 0}; x:{T}; xs':{L(v) >= 0}; L(xs) = 1 + L(xs') |- {v=i} <: K1 
+constraint: env [i:{v:int|[]}; 
+                 len_xs:{v:int |[v>=0]};
+                 x:{v:int|[]}; 
+                 len_xsp:{v:int |[v>=0]}]
+	    grd (len_xs=1+len_xsp)
+	    lhs {v:int|[v=i]}
+	    rhs {v:int|[K1]}
+            tag 1
+
+// (c5') i:{T}; xs:{L(v) >= 0}; x:{T}; xs':{L(v) >= 0}; L(xs) = 1 + L(xs') |- K1[i+1/i][xs'/xs] <: K1
+constraint: env [i:{v:int|[]}; 
+                 len_xs:{v:int |[v>=0]};
+                 x:{v:int|[]}; 
+                 len_xsp:{v:int |[v>=0]}]
+	    grd (len_xs=1+len_xsp)
+	    lhs {v:int|[K1[i:=i+1][len_xs:=len_xsp]]}
+	    rhs {v:int|[K1]}
+            tag 51
+
+// (c6) a:{T}; xs:{L(v) >= 0}; j:K2 |- {v=j} <: {0 <= v < L(a)}
+constraint: env [len_xs:{v:int |[v>=0]};
+                 j:{v:int|[K2]}]
+	    grd true
+	    lhs {v:int|[v=j]}
+	    rhs {v:int|[0<=v; v<len_a]}
+            tag 61
+
+// (c9') a:{T}; xs:{L(v) >= 0}; L(a) = L(xs) |- K1[0/i][xs/xs] <: K2
+constraint: env [len_xs:{v:int |[v>=0]}]
+	    grd (len_a=len_xs)
+	    lhs {v:int|[K1[i:=0]]}
+	    rhs {v:int|[K2]}
+            tag 91
+
+
+wf: env [i:{v:int | []};
+         j:{v:int | []};
+         x:{v:int | []};
+         len_xs:{v:int | []};
+         len_xsp:{v:int | []};
+         len_a:{v:int | []}]
+    reft {v : int | [K1]} 
+
+wf: env [i:{v:int | []};
+         j:{v:int | []};
+         x:{v:int | []};
+         len_xs:{v:int | []};
+         len_xsp:{v:int | []};
+         len_a:{v:int | []}]
+    reft {v : int | [K2]} 
+
