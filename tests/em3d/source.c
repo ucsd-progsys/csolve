@@ -160,18 +160,46 @@ void update_from_coeffs(node_t *nodelist)
 }
 }
 
+graph_t *initialize_graph(void)
+{ int num_h_nodes ;
+  int num_e_nodes ;
+  node_t **h_table ;
+  node_t **e_table ;
+  graph_t *retval ;
+
+  retval = (graph_t *)malloc(sizeof(graph_t));
+
+  {
+  num_h_nodes = 666;
+  num_e_nodes = 666;
+  h_table = make_table(num_h_nodes);
+  fill_table(h_table, 666);
+  e_table = make_table(num_e_nodes);
+  fill_table(e_table, 666);
+  make_neighbors(*(h_table + 0), 666, e_table, 333);
+  make_neighbors(*(e_table + 0), 666, h_table, 333);
+  update_from_coeffs(*(h_table + 0));
+  update_from_coeffs(*(e_table + 0)); /*
+  fill_from_fields(*(h_table + 0), 333);
+  fill_from_fields(*(e_table + 0), 333); */
+  retval->e_nodes = *(e_table + 0);
+  retval->h_nodes = *(h_table + 0);
+  return (retval);
+}
+}
+
 /*
 int main(int argc , char **argv )
 { int i ;
-  graph_t graph ;
+  graph_t *graph ;
 
   {
   graph = initialize_graph();
   // print_graph(graph);
   i = 0;
   while (i < 100) {
-    compute_nodes(graph.e_nodes);
-    compute_nodes(graph.h_nodes);
+    compute_nodes(graph->e_nodes);
+    compute_nodes(graph->h_nodes);
     // fprintf((FILE * __restrict  )stderr, (char const   * __restrict  )"Completed a computation phase: %d\n",
     //        i);
     // print_graph(graph);
@@ -199,31 +227,6 @@ void compute_nodes(node_t *nodelist )
     nodelist = nodelist->next;
   }
   return;
-}
-}
-graph_t initialize_graph(void)
-{ int num_h_nodes ;
-  int num_e_nodes ;
-  node_t **h_table ;
-  node_t **e_table ;
-  graph_t retval ;
-
-  {
-  num_h_nodes = 666;
-  num_e_nodes = 666;
-  h_table = make_table(num_h_nodes);
-  fill_table(h_table, 666);
-  e_table = make_table(num_e_nodes);
-  fill_table(e_table, 666);
-  make_neighbors(*(h_table + 0), 666, e_table, 333);
-  make_neighbors(*(e_table + 0), 666, h_table, 333);
-  update_from_coeffs(*(h_table + 0));
-  update_from_coeffs(*(e_table + 0));
-  fill_from_fields(*(h_table + 0), 333);
-  fill_from_fields(*(e_table + 0), 333);
-  retval.e_nodes = *(e_table + 0);
-  retval.h_nodes = *(h_table + 0);
-  return (retval);
 }
 }
 */
