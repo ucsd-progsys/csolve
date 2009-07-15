@@ -86,7 +86,7 @@ rule token = parse
   
   | "int"               { INT }
   | "bool"              { BOOL }
-  | "unint"             { UNINT }
+  | "uit"               { UNINT }
   | "func"              { FUNC }
   | "sort"              { SRT }
   | "axiom"             { AXM }
