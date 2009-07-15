@@ -179,9 +179,9 @@ graph_t *initialize_graph(void)
   make_neighbors(*(h_table + 0), 666, e_table, 333);
   make_neighbors(*(e_table + 0), 666, h_table, 333);
   update_from_coeffs(*(h_table + 0));
-  update_from_coeffs(*(e_table + 0)); /*
+  update_from_coeffs(*(e_table + 0));
   fill_from_fields(*(h_table + 0), 333);
-  fill_from_fields(*(e_table + 0), 333); */
+  fill_from_fields(*(e_table + 0), 333);
   retval->e_nodes = *(e_table + 0);
   retval->h_nodes = *(h_table + 0);
   return (retval);
