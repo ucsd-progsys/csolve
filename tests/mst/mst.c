@@ -96,7 +96,7 @@ int compute_dist(int i , int j , int numvert )
 
 int hashfunc(unsigned int key )
 {
-    int ndp = nondetpos();
+    int ndp = nondetnn();
     if (ndp < 100) {
         return ndp;
     }
@@ -144,10 +144,11 @@ int HashLookup(unsigned int key , Hash hash )
 
   {
   j = hashfunc(key);
+  validptr(&(hash->array[j]));
   ent = hash->array[j];
   while (1) {
     if (ent) {
-      if (! (ent->key != key)) {
+      if ((ent->key == key)) {
         break;
       }
     } else {
@@ -166,14 +167,16 @@ void HashInsert(int entry, unsigned int key, Hash hash )
 { HashEntry ent ;
   int j ;
   void *tmp ;
+  HashEntry ht;
 
   hash = hash; // THETA ISSUE
 
   {
   j = hashfunc(key);
-  tmp = malloc(sizeof(*ent));
-  ent = (struct hash_entry *)tmp;
-  ent->next = hash->array[j];
+  ent = (struct hash_entry *)malloc(sizeof(*ent));
+  validptr(&(hash->array[j]));
+  ht = hash->array[j]; // PURIFIER ISSUE
+  ent->next = ht;
   hash->array[j] = ent;
   ent->key = key;
   ent->entry = entry;
@@ -181,7 +184,7 @@ void HashInsert(int entry, unsigned int key, Hash hash )
 }
 }
 
-void AddEdges(Graph retval, int numvert)
+void AddEdges(int numvert, Graph retval)
 { Vertex src ;
   Vertex dest ;
   Hash hash ;
@@ -197,12 +200,14 @@ void AddEdges(Graph retval, int numvert)
   j = 0;
   while (j < numvert) {
       src = &(retval->vlist[j]);
+      validptr(src);
     hash = src->edgehash;
     i = 0;
     while (i < numvert) {
       if (i != j) {
         dist = compute_dist(i, j, numvert);
         dest = &(retval->vlist[i]);
+        validptr(dest);
         HashInsert(dist, (unsigned int )dest, hash);
         num_inserted ++;
       }
@@ -231,17 +236,19 @@ Graph MakeGraph(int numvert )
   retval->vlist = (struct vert_st *)tmp___0;
   vt = (struct vert_st *)((void *)0);
   for (i = 0; i < numvert; i++) {
+      validptr(retval->vlist + i);
     vf = retval->vlist + i;
     vf->mindist = 9999999;
     htmp = MakeHash(100);
     vf->edgehash = htmp; // sloc_of_ret ISSUE
   }
   for (i = 0; i < numvert; i++) {
+      validptr(retval->vlist + i);
       vf = retval->vlist + i;
       vf->next = retval->vlist + i + 1;
   }
   vf->next = 0;
-  AddEdges(retval, numvert);
+  AddEdges(numvert, retval);
   return (retval);
 }
 }
@@ -335,13 +342,14 @@ int ComputeMst(Graph graph , int numvert)
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
+    br = br;
     inserted = br->vert;
     dist = br->dist;
     numvert --;
     cost += dist;
   }
   return (cost);
-}
+  }
 }
 
 void main()
