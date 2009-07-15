@@ -188,26 +188,6 @@ graph_t *initialize_graph(void)
 }
 }
 
-/*
-int main(int argc , char **argv )
-{ int i ;
-  graph_t *graph ;
-
-  {
-  graph = initialize_graph();
-  // print_graph(graph);
-  i = 0;
-  while (i < 100) {
-    compute_nodes(graph->e_nodes);
-    compute_nodes(graph->h_nodes);
-    // fprintf((FILE * __restrict  )stderr, (char const   * __restrict  )"Completed a computation phase: %d\n",
-    //        i);
-    // print_graph(graph);
-    i ++;
-  }
-  return (0);
-}
-}
 void compute_nodes(node_t *nodelist )
 { int i ;
   node_t *other_node ;
@@ -229,4 +209,22 @@ void compute_nodes(node_t *nodelist )
   return;
 }
 }
-*/
+
+void main()
+{ int i ;
+  graph_t *graph ;
+
+  {
+  graph = initialize_graph();
+  // print_graph(graph);
+  i = 0;
+  while (i < 100) {
+    compute_nodes(graph->e_nodes);
+    compute_nodes(graph->h_nodes);
+    // fprintf((FILE * __restrict  )stderr, (char const   * __restrict  )"Completed a computation phase: %d\n",
+    //        i);
+    // print_graph(graph);
+    i ++;
+  }
+}
+}

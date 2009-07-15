@@ -68,3 +68,33 @@ initialize_graph ::
              A6 |-> 0[4]: int (4, true, {v | true});
              A7 |-> true: ref (A2, 0, {v | true});
              A8 |-> 0[4]: int (4, true, {v | true})]
+
+compute_nodes ::
+  forall    [A0; A1; A2; A3; A4; A5; A6; A7; A8]
+  arg       (nodelist: ref (A1, 0, {v | true}))
+  ret       int (0, true, {v | true})
+  store_in  [A0 |-> 0: ref (A1, 0, {v | true}), 4: ref (A2, 0, {v | true});
+             A1 |-> 0: int (4, true, {v | true}), 4: ref (A1, 0, {v | true}), 8: int (4, true, {v | true}), 12: ref (A4, 0, {v | true}), 16: ref (A7, 0, {v | true}), 20: ref (A8, 0, {v | true});
+             A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: int (4, true, {v | true}), 12: ref (A3, 0, {v | true}), 16: ref (A5, 0, {v | true}), 20: ref (A6, 0, {v | true});
+             A3 |-> true: ref (A1, 0, {v | true});
+             A4 |-> true: ref (A2, 0, {v | true});
+             A5 |-> true: ref (A1, 0, {v | true});
+             A6 |-> 0[4]: int (4, true, {v | true});
+             A7 |-> true: ref (A2, 0, {v | true});
+             A8 |-> 0[4]: int (4, true, {v | true})]
+  store_out [A0 |-> 0: ref (A1, 0, {v | true}), 4: ref (A2, 0, {v | true});
+             A1 |-> 0: int (4, true, {v | true}), 4: ref (A1, 0, {v | true}), 8: int (4, true, {v | true}), 12: ref (A4, 0, {v | true}), 16: ref (A7, 0, {v | true}), 20: ref (A8, 0, {v | true});
+             A2 |-> 0: int (4, true, {v | true}), 4: ref (A2, 0, {v | true}), 8: int (4, true, {v | true}), 12: ref (A3, 0, {v | true}), 16: ref (A5, 0, {v | true}), 20: ref (A6, 0, {v | true});
+             A3 |-> true: ref (A1, 0, {v | true});
+             A4 |-> true: ref (A2, 0, {v | true});
+             A5 |-> true: ref (A1, 0, {v | true});
+             A6 |-> 0[4]: int (4, true, {v | true});
+             A7 |-> true: ref (A2, 0, {v | true});
+             A8 |-> 0[4]: int (4, true, {v | true})]
+
+main ::
+  forall    []
+  arg       ()
+  ret       int (0, true, {v | true})
+  store_in  []
+  store_out []
