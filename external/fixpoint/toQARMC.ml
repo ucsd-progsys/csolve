@@ -25,7 +25,8 @@ type kv_scope = {
 }
 
 let sanitize_symbol s = 
-  Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" 
+  Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" |>
+      Str.global_replace (Str.regexp "\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
 
 let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
@@ -52,7 +53,7 @@ let rec expr_to_armc (e, _) =
   match e with
     | Ast.Con c -> constant_to_armc c
     | Ast.Var s -> mk_data_var exists_kv (symbol_to_armc s)
-    | Ast.App (s, es) ->
+    | Ast.App (s, es) -> 
 	let str = symbol_to_armc s in
 	  if es = [] then str else
 	    Printf.sprintf "f_%s(%s)" str (List.map expr_to_armc es |> String.concat ", ")
@@ -68,7 +69,7 @@ and pred_to_armc (p, _) =
   match p with
     | Ast.True -> "1=1"
     | Ast.False -> "0=1"
-    | Ast.Bexp e -> expr_to_armc e
+    | Ast.Bexp e -> Printf.sprintf "%s = 1" (expr_to_armc e)
     | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
     | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
     | Ast.And [] -> "1=1"
@@ -110,9 +111,11 @@ let mk_kv_scope out ts wfs =
 		   Printf.fprintf out "%% %s -> %s\n"
 		     v (String.concat ", " scope);
 		   StrMap.add v scope m
-	     | _ ->  (* Andrey: TODO print ill-formed wf *)
-		 Format.printf "%a" (C.print_wf None) wf;
+	     | _ -> m
+		 (* Andrey: TODO handle ill-formed wf *)
+(*		 Format.printf "%a" (C.print_wf None) wf;
 		 failure "ERROR: kname_scope_map: ill-formed wf"
+*)
       ) StrMap.empty wfs in
     {kvs = kvs; kv_scope = kv_scope}
 
@@ -211,11 +214,14 @@ let t_to_armc state t =
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
   let annot_guards = 
-    List.map
+    Misc.map_partial
       (fun (bv, reft) ->
-	 reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-	 C.binding_to_string (bv, reft)
-      ) (C.env_of_t t |> C.bindings_of_env) 
+	 if C.ras_of_reft reft <> [] then
+	   Some (reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
+		 C.binding_to_string (bv, reft))
+	 else
+	   None
+      ) (C.env_of_t t |> C.bindings_of_env)
     ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
 	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
   let ps, kvs =  
