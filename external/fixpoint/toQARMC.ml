@@ -77,6 +77,12 @@ and pred_to_armc (p, _) =
     | Ast.Or [] -> "0=1"
     | Ast.Or [p] -> pred_to_armc p
     | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
+    | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) ->
+	let ip_str = pred_to_armc ip in
+	let e1_str = expr_to_armc e1 in
+	  Printf.sprintf "((%s, %s = %s); (neg(%s), %s = %s))"
+	    ip_str e1_str (expr_to_armc te) 
+	    ip_str e1_str (expr_to_armc ee) 
     | Ast.Atom (e1, r, e2) ->
 	Printf.sprintf "%s %s %s" 
           (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
@@ -105,6 +111,7 @@ let mk_kv_scope out ts wfs =
 		     v (String.concat ", " scope);
 		   StrMap.add v scope m
 	     | _ ->  (* Andrey: TODO print ill-formed wf *)
+		 Format.printf "%a" (C.print_wf None) wf;
 		 failure "ERROR: kname_scope_map: ill-formed wf"
       ) StrMap.empty wfs in
     {kvs = kvs; kv_scope = kv_scope}
@@ -224,12 +231,10 @@ let t_to_armc state t =
     ++
       (List.map 
 	 (fun (_, sym) ->
-	    let kv = symbol_to_armc sym in
-	    let skip_kvs = List.filter (fun kv' -> kv <> kv') state.kvs in
-	      mk_rule (mk_query ~suffix:primed_suffix state kv)
-		annot_guards 
-		[(reft_to_armc ~noquery:true ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)]
-		tag
+	    mk_rule (mk_query ~suffix:primed_suffix state (symbol_to_armc sym))
+	      annot_guards 
+	      [(reft_to_armc ~noquery:true ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)]
+	      tag
 	 ) kvs)
 
 

@@ -1,6 +1,6 @@
 constraint:
   env  [y_164:{AA_0 : int | []};
-        x_88:{AA_0 : uit unint | []};
+        x_88:{AA_0 : int | []};
         x_163:{AA_0 : int | []};
         true_0:{AA_0 : bool | [(AA_0 = true_0)]};
         test_predicate_462:{AA_0 : bool | []};
@@ -15,7 +15,7 @@ constraint:
         false_0:{AA_0 : bool | [(AA_0 = false_0)]};
         b_76:{AA_0 : bool | [true;k_271]};
         b_75:{AA_0 : bool | [&& [(AA_0 = true_0) ; (Bexp AA_0)];k_248]};
-        __tag_36:{AA_0 : func([uit unint ; int]) | []};
+        __tag_36:{AA_0 : func([int ; int]) | []};
         _'7_83:{AA_0 : bool | []};
         _'6_82:{AA_0 : bool | []};
         _'5_81:{AA_0 : bool | []};

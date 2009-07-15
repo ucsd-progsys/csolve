@@ -33,7 +33,7 @@ constraint: env []
 	    rhs {v : int | [K4]}
             tag 45
 
-constraint: env [len_a:{v : int | [KG]}]
+constraint: env [] // [len_a:{v : int | [KG]}]
 	    grd true
 	    lhs {v : int | [0 <= v; v < len_a]}
 	    rhs {v : int | [Kl]}
