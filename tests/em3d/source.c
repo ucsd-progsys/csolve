@@ -23,6 +23,78 @@ typedef struct graph_t graph_t;
 void compute_nodes(node_t *nodelist ) ;
 graph_t initialize_graph(void) ;
 
+int gen_number(int range )
+{ long tmp ;
+
+    int ndnn = nondetnn();
+
+    if (ndnn < range)
+        return ndnn;
+
+    return 0;
+}
+
+node_t **make_table(int size )
+{ node_t **retval ;
+  void *tmp ;
+
+  {
+  tmp = malloc((unsigned int )size * sizeof(node_t *));
+  retval = (node_t **)tmp;
+  if (retval == 0) {
+      // printf((char const   * __restrict  )"Assertion failure\n");
+    exit(-1);
+  }
+
+  return (retval);
+}
+}
+
+void fill_table(node_t **table , int size )
+{ int i ;
+  void *tmp ;
+  int tmp___0 ;
+
+  {
+  i = 0;
+  while (i < size) {
+    tmp = malloc(sizeof(node_t ));
+    *(table + i) = (node_t *)tmp;
+    tmp___0 = nondet();
+    (*(table + i))->value = (int )tmp___0;
+    (*(table + i))->from_count = 0;
+    if (i > 0) {
+      (*(table + (i - 1)))->next = *(table + i);
+    }
+    i ++;
+  }
+  (*(table + (size - 1)))->next = (struct node_t *)((void *)0);
+  return;
+}
+}
+
+void fill_from_fields(node_t *nodelist , int degree )
+{ node_t *cur_node ;
+  int j ;
+  node_t *other_node ;
+
+  {
+  cur_node = nodelist;
+  while (cur_node) {
+    j = 0;
+    while (j < degree) {
+      other_node = *(cur_node->to_nodes + j);
+      *(other_node->from_nodes + other_node->from_count) = cur_node;
+      (other_node->from_count) ++;
+      j ++;
+    }
+    cur_node = cur_node->next;
+  }
+  return;
+}
+}
+
+/*
 int main(int argc , char **argv )
 { int i ;
   graph_t graph ;
@@ -60,43 +132,6 @@ void compute_nodes(node_t *nodelist )
     }
     nodelist = nodelist->next;
   }
-  return;
-}
-}
-int gen_number(int range ) ;
-node_t **make_table(int size )
-{ node_t **retval ;
-  void *tmp ;
-
-  {
-  tmp = malloc((unsigned int )size * sizeof(node_t *));
-  retval = (node_t **)tmp;
-  if (! retval) {
-      // printf((char const   * __restrict  )"Assertion failure\n");
-    exit(-1);
-  }
-  return (retval);
-}
-}
-void fill_table(node_t **table , int size )
-{ int i ;
-  void *tmp ;
-  int tmp___0 ;
-
-  {
-  i = 0;
-  while (i < size) {
-    tmp = malloc(sizeof(node_t ));
-    *(table + i) = (node_t *)tmp;
-    tmp___0 = nondet();
-    (*(table + i))->value = (int )tmp___0;
-    (*(table + i))->from_count = 0;
-    if (i > 0) {
-      (*(table + (i - 1)))->next = *(table + i);
-    }
-    i ++;
-  }
-  (*(table + (size - 1)))->next = (struct node_t *)((void *)0);
   return;
 }
 }
@@ -166,26 +201,6 @@ void update_from_coeffs(node_t *nodelist )
   return;
 }
 }
-void fill_from_fields(node_t *nodelist , int degree )
-{ node_t *cur_node ;
-  int j ;
-  node_t *other_node ;
-
-  {
-  cur_node = nodelist;
-  while (cur_node) {
-    j = 0;
-    while (j < degree) {
-      other_node = *(cur_node->to_nodes + j);
-      *(other_node->from_nodes + other_node->from_count) = cur_node;
-      (other_node->from_count) ++;
-      j ++;
-    }
-    cur_node = cur_node->next;
-  }
-  return;
-}
-}
 graph_t initialize_graph(void)
 { int num_h_nodes ;
   int num_e_nodes ;
@@ -211,13 +226,4 @@ graph_t initialize_graph(void)
   return (retval);
 }
 }
-int gen_number(int range )
-{ long tmp ;
-
-    int ndnn = nondetnn();
-
-    if (ndnn < range)
-        return ndnn;
-
-    return 0;
-}
+*/
