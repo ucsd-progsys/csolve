@@ -2677,7 +2677,12 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
+<<<<<<< HEAD:external/fixpoint/tests/dsolve/bsearch.ml.in.fq
  grd && [&& [&& [~ ((Bexp guard_1092)) ; ~ ((Bexp guard_1045))] ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+=======
+// grd && [&& [&& [~ ((Bexp guard_1092)) ; ~ ((Bexp guard_1045))] ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [&& [ (guard_1092 = 0) ; (guard_1045 = 0)] ; (guard_997 = 0)] ; (Bexp guard_791)] 
+>>>>>>> 2801046b4954cd4303d9ce9f01989c3465812f84:external/fixpoint/tests/dsolve/bsearch.ml.in.fq
  lhs {AA_0 : int | [(AA_0 = 0-1)]} 
  rhs {AA_0 : int | [k_1087[_0:=supr_1101]]} 
  tag 22 
@@ -2799,7 +2804,8 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [&& [(Bexp guard_1092) ; ~ ((Bexp guard_1045))] ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+// grd && [&& [&& [(Bexp guard_1092) ; ~ ((Bexp guard_1045))] ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [&& [(Bexp guard_1092) ; (guard_1045 = 0)] ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = m_87)]} 
  rhs {AA_0 : int | [k_1087[_0:=_0]]} 
  tag 23 
@@ -2921,7 +2927,8 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+// grd && [&& [~ ((guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [ (guard_1045 = 0) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = key_76)]} 
  rhs {AA_0 : int | [k_1076[_0:=_0]]} 
  tag 24 
@@ -3043,7 +3050,8 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+// grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [ (guard_1045 = 0) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = key_76)]} 
  rhs {AA_0 : int | [true]} 
  tag 25 
@@ -3165,7 +3173,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [ (guard_1045 = 0) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = x_89)]} 
  rhs {AA_0 : int | [k_1076[x_188:=key_76][_0:=_0]]} 
  tag 26 
@@ -3287,7 +3295,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [ (guard_1045 = 0) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = x_89)]} 
  rhs {AA_0 : int | [true]} 
  tag 27 
@@ -3409,7 +3417,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [(Bexp guard_1045) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [(Bexp guard_1045) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = m_plus_93)]} 
  rhs {AA_0 : int | [k_344[_0:=_0]]} 
  tag 28 
@@ -3531,7 +3539,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [(Bexp guard_1045) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [(Bexp guard_1045) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = hi_80)]} 
  rhs {AA_0 : int | [k_343[lo_79:=m_plus_93][_0:=_0]]} 
  tag 29 
@@ -3653,7 +3661,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [~ ((Bexp guard_1045)) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [ (guard_1045 = 0) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [true;k_1087]} 
  rhs {AA_0 : int | [k_1040[_0:=_0]]} 
  tag 30 
@@ -3775,7 +3783,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [&& [(Bexp guard_1045) ; ~ ((Bexp guard_997))] ; (Bexp guard_791)] 
+ grd && [&& [(Bexp guard_1045) ; (guard_997 = 0)] ; (Bexp guard_791)] 
  lhs {AA_0 : int | [true;k_342[lo_79:=m_plus_93][hi_80:=hi_80]]} 
  rhs {AA_0 : int | [k_1040[_0:=_0]]} 
  tag 31 
@@ -3897,7 +3905,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [~ ((Bexp guard_997)) ; (Bexp guard_791)] 
+ grd && [ (guard_997 = 0) ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = 0)]} 
  rhs {AA_0 : int | [k_1028[_0:=supr_1033]]} 
  tag 32 
@@ -4019,7 +4027,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [~ ((Bexp guard_997)) ; (Bexp guard_791)] 
+ grd && [ (guard_997 = 0) ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = 0)]} 
  rhs {AA_0 : int | [true]} 
  tag 33 
@@ -4141,7 +4149,7 @@ constraint:
         Array_0.get:{AA_0 : func([uit unint ; int ; uit unint]) | []};
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
- grd && [~ ((Bexp guard_997)) ; (Bexp guard_791)] 
+ grd && [(guard_997 = 0) ; (Bexp guard_791)] 
  lhs {AA_0 : int | [(AA_0 = diff_91)]} 
  rhs {AA_0 : int | [k_1028[x_218:=0][_0:=_0]]} 
  tag 34 
@@ -7192,7 +7200,11 @@ constraint:
         Array_0.create:{AA_0 : func([int ; uit unint ; uit unint]) | []};
         Array_0.copy:{AA_0 : func([uit unint ; uit unint]) | []}] 
  grd ~ ((Bexp guard_791)) 
+<<<<<<< HEAD:external/fixpoint/tests/dsolve/bsearch.ml.in.fq
  lhs {AA_0 : int | [(AA_0 = 0 - 1 )]} 
+=======
+ lhs {AA_0 : int | [(AA_0 = 0-1)]} 
+>>>>>>> 2801046b4954cd4303d9ce9f01989c3465812f84:external/fixpoint/tests/dsolve/bsearch.ml.in.fq
  rhs {AA_0 : int | [k_786[_0:=supr_1106]]} 
  tag 59 
  
@@ -23181,6 +23193,7 @@ wf: env [vec_77:{AA_0 : uit unint | []};
                                                      reft {AA_0 : int | [k_330]} 
                                                       
                                                      
+<<<<<<< HEAD:external/fixpoint/tests/dsolve/bsearch.ml.in.fq
 solution: k_1005 := [] 
 solution: 
                                                       k_1006 := [] 
