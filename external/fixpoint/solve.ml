@@ -281,6 +281,27 @@ let validate soln cs = if not(phase1 soln cs) then assert false
 let force_validate soln cs = force_phase1 soln cs
 
 (***************************************************************)
+(****************** Pruning Unconstrained Vars *****************)
+(***************************************************************)
+
+let rhs_ks cs =
+     cs
+  |> Ci.to_list
+  |> Misc.flap (Misc.compose C.kvars_of_reft C.rhs_of_t)
+  |> List.fold_left (fun rhss (_, kv) -> Sy.SSet.add kv rhss) Sy.SSet.empty
+
+let unconstrained_kvars cs =
+  let rhss = rhs_ks cs in
+     cs
+  |> Ci.to_list
+  |> Misc.flap C.kvars_of_t
+  |> List.map snd
+  |> List.filter (fun kv -> not (Sy.SSet.mem kv rhss))
+
+let true_unconstrained me s =
+  unconstrained_kvars me.sri |> List.fold_left (fun s kv -> SM.add kv [] s) s
+
+(***************************************************************)
 (******************** Iterative Refinement *********************)
 (***************************************************************)
 
@@ -299,6 +320,8 @@ let solve me (s : C.soln) =
   let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
   let c = force_validate s (Ci.to_list me.sri) in
   let me = {sri = Ci.create c; tpc = me.tpc; ws = me.ws} in
+  let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
+  let s = true_unconstrained me s in
   let _ = validate s c in
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;

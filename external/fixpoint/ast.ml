@@ -66,6 +66,10 @@ module Symbol =
     
     module SMap = Map.Make (struct type t = string 
                                    let compare i1 i2 = compare i1 i2 end)
+
+    module SSet = Set.Make (struct type t = string
+                                   let compare i1 i2 = compare i1 i2 end)
+
     let is_wild s = 
       if s = "" then false else 
         (s.[0] = '~' || s.[0] = '@')
