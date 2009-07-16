@@ -103,6 +103,7 @@ let ctypecstr_sat (CTCSubtype (ctv1, ctv2): ctypecstr) (is: indexsol): bool =
 
 type storecstr =
   | SCInc of S.t * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
+  | SCMem of S.t                       (* l in dom(store) *)
   | SCUniq of S.t list                 (* for all l1, l2 in list, not S.eq l1 l2 *)
 
 type storesol = indexvar prestore
@@ -174,7 +175,8 @@ let storeinc_sat ((l, iv, ctv): S.t * indexvar * ctypevar) (is: indexsol) (ss: s
 let storecstr_sat (sc: storecstr) (is: indexsol) (ss: storesol): bool =
   match sc with
     | SCInc (l, iv, ctv) -> storeinc_sat (l, iv, ctv) is ss
-    | SCUniq ls -> not (M.exists_pair S.eq ls)
+    | SCMem l            -> SLM.mem l ss
+    | SCUniq ls          -> not (M.exists_pair S.eq ls)
 
 (******************************************************************************)
 (*************************** Systems of Constraints ***************************)
@@ -206,6 +208,9 @@ let mk_const_subty (loc: C.location) (ctv: ctypevar): ctype -> cstr list = funct
 
 let mk_storeinc (loc: C.location) (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) =
   {cdesc = CSStore (SCInc (l, iv, ctv)); cloc = loc}
+
+let mk_storemem (loc: C.location) (l: Sloc.t) =
+  {cdesc = CSStore (SCMem l); cloc = loc}
 
 let mk_indexvar_eq_index (loc: C.location) (iv: indexvar) (i: index): cstr list =
   [mk_ivarless loc (IEConst i) iv; mk_iconstless loc (IEVar iv) i]
@@ -243,6 +248,7 @@ let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storeso
   | CSIndex (ICConstLess (ie, i))     -> E.s <| C.errorLoc loc "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
   | CSStore (SCUniq _)                -> failwith "Cannot refine store uniqueness constraint!\n\n"
+  | CSStore (SCMem l)                 -> if SLM.mem l ss then (is, ss) else (is, SLM.add l LDesc.empty ss)
   | CSStore (SCInc (l, iv, ctv))      ->
       try
         refine_store l iv ctv is ss
@@ -471,7 +477,9 @@ let instantiate_ret (loc: C.location): ctype option -> ctypevar option * cstr li
   | None -> (None, [])
 
 let instantiate_store (loc: C.location) (st: store): cstr list =
-  prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st |> List.concat
+     prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st
+  |> List.concat
+  |> SLM.fold (fun l _ css -> mk_storemem loc l :: css) st
 
 let lookup_function (loc: C.location) (env: ctypeenv) (f: string): cfun * (Sloc.t * Sloc.t) list =
   try

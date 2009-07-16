@@ -1,0 +1,61 @@
+constraint: env [l:{v : int | [Kl]}; 
+                 m:{v : int | [Km]};
+                 len_a:{v : int | [KG]}]
+	    grd true
+	    lhs {v : int | [v = l]}
+	    rhs {v : int | [0 <= v; v < len_a]}
+            tag 41
+
+constraint: env [l:{v : int | [Kl]}; 
+                 m:{v : int | [Km]}]
+	    grd true
+	    lhs {v : int | [sub_a_l <= v; m <= v]}
+	    rhs {v : int | [K5]}
+            tag 42
+
+constraint: env []
+	    grd true
+	    lhs {v : int | [v = 0]}
+	    rhs {v : int | [K6]}
+            tag 43
+
+constraint: env []
+	    grd true
+	    lhs {v : int | [K6]}
+	    rhs {v : int | [K4]}
+            tag 45
+
+constraint: env [] // [len_a:{v : int | [KG]}]
+	    grd true
+	    lhs {v : int | [0 <= v; v < len_a]}
+	    rhs {v : int | [Kl]}
+            tag 46
+
+constraint: env []
+	    grd true
+	    lhs {v : int | [K6]}
+	    rhs {v : int | [Km]}
+            tag 47
+
+constraint: env []
+	    grd true
+	    lhs {v : int | [K5]}
+	    rhs {v : int | [K6]}
+            tag 48
+
+constraint: env [] grd true lhs {v : int | [K4]}
+	    rhs {v : int | [0 <= v]}
+            tag 49
+
+constraint: env [] grd true lhs {v : int | [0 <= v; v < len_a]} rhs {v : int | [KG]}
+            tag 410
+
+
+wf: env [l:{v : int | []}; m:{v : int | []}] reft {v : int | [Kl]} 
+wf: env [l:{v : int | []}; m:{v : int | []}] reft {v : int | [Km]} 
+wf: env [l:{v : int | []}; m:{v : int | []}] reft {v : int | [K4]} 
+wf: env [l:{v : int | []}; m:{v : int | []}] reft {v : int | [K5]} 
+wf: env [l:{v : int | []}; m:{v : int | []}] reft {v : int | [K6]} 
+wf: env [len_a:{v : int | []}] reft {v : int | [KG]} 
+
+solution: K4 :=  [0 <= v]

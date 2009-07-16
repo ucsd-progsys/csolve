@@ -1,0 +1,13 @@
+#!/bin/sh
+# test a health binary
+exe=./em3d.exe
+
+# all of health's output is to stderr
+echo "running: $exe 2000 200 50"
+if ! (time $exe 2000 200 50); then
+  echo "$exe failed directly: error code $?"
+  exit 2
+fi
+
+echo "$exe seems to work"
+ 
