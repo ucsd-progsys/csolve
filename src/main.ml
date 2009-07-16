@@ -67,20 +67,25 @@ let cil_of_file fname =
             rename_locals cil in
   cil
 
-let quals_of_file fname =        
+let add_quals quals fname =
     try
       let qs =
-        (fname ^ ".hquals")
+        fname
         |> open_in 
         |> Lexing.from_channel
         |> FixParse.defs FixLex.token in
       let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
       let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
                 (Misc.pprint_many true "" Ast.Qualifier.print) qs in
-      qs
+      qs @ quals
     with Sys_error s ->
       E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
-      []
+      quals
+
+let quals_of_file fname =
+  [Constants.lib_name; fname]
+  |> List.map (fun s -> s^".hquals")
+  |> List.fold_left add_quals []
 
 let add_spec spec fname =
   let _ = E.log "Parsing spec: %s \n" fname in
