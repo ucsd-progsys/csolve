@@ -250,9 +250,15 @@ and z3Rel me env (e1, r, e2) =
     | A.Ne -> Z3.mk_distinct me.c [| a1; a2|]
   end
   | None, Some _ 
-  | Some _, None -> Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r,e2)); assertf "ERROR: type error in z3Rel 1"
+  | Some _, None -> 
+      SM.iter (fun s t -> Format.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
+      Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
+      assertf "ERROR: type error in z3Rel 1"
   | None, None -> assertf "ERROR: type error in z3Rel 2"
-  | Some _, Some _ -> assertf "ERROR: type error in z3Rel 3"
+  | Some _, Some _ ->
+      SM.iter (fun s t -> Format.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
+      Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
+      assertf "ERROR: type error in z3Rel 3"
  
 and z3App me env p zes =
   match getFunType p env with
