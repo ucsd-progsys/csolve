@@ -1,0 +1,4 @@
+qualif FALSE(v: int)   : 1 = 0
+qualif ISBS(v:int)     : v = BLOCK_BEGIN([v])
+qualif A(v:int)        : 0 <= v
+qualif A(v:int)        : 0 < v
