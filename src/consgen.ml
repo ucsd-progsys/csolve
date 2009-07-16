@@ -274,13 +274,17 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
 (********************** Constraints for [stmt] ******************************)
 (****************************************************************************)
 
-let cons_of_ret me loc grd (env, st) e =
+let cons_of_ret me loc grd (env, st) e_o =
+  let _      = Pretty.printf "cons_of_ret: fn = %s \n" (CF.get_fname me) in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
-  let lhs    = FI.t_exp env (CF.ctype_of_expr me e) e in 
-  let rhs    = FI.ret_of_refcfun frt in
-  let _, ost = FI.stores_of_refcfun frt in
-  (FI.make_cs env grd lhs rhs loc) ++
-  (FI.make_cs_refstore env grd st ost true loc)
+  let st_cs  = 
+    let _, ost = FI.stores_of_refcfun frt in
+    (FI.make_cs_refstore env grd st ost true loc) in
+  let rv_cs  = match e_o with None -> [] 
+               | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
+                           let rhs = FI.ret_of_refcfun frt in
+                           (FI.make_cs env grd lhs rhs loc)  in
+  rv_cs ++ st_cs
 
 let cons_of_annotstmt me loc grd wld (anns, stmt) = 
   match stmt.skind with
@@ -291,9 +295,9 @@ let cons_of_annotstmt me loc grd wld (anns, stmt) =
                      |> Misc.mapfold (cons_of_annotinstr me loc grd) wld in
       let wld, cs2 = cons_of_annots me loc grd wld ann in
       (wld, cs2 ++ Misc.flatten cs1)
-  | Return ((Some e), _) ->
+  | Return (e_o, _) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
-      (wld, cons_of_ret me loc grd wld e)
+      (wld, cons_of_ret me loc grd wld e_o)
   | _ ->
       let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
       (wld, [])
