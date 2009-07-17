@@ -36,6 +36,7 @@ module SM = Sy.SMap
 module C  = FixConstraint
 module Ci = Cindex
 module TP = TpZ3.Prover
+module PP = Prepass
 
 open Misc.Ops
 
@@ -73,7 +74,6 @@ let preds_of_envt s env =
       let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
       xps ++ ps)
     env [] 
-
 
 
 let lhs_preds s env gp r1 =
@@ -236,72 +236,6 @@ let inst wfs qs s =
   rv
 
 (***************************************************************)
-(******************** Constraint Validation ********************)
-(***************************************************************)
-
-let vs_oos env p = List.filter (fun v -> not(SM.mem v env)) (P.support p)
-
-let dfty = C.make_reft (Sy.value_variable S.Int) S.Int []
-
-let phase1c s t =
-  let (env, g, r1, (_, _, r2)) =
-    (C.env_of_t t, C.grd_of_t t, C.lhs_of_t t, C.rhs_of_t t) in
-  let lhs = lhs_preds s env g r1 in
-  let rhs = List.map snd (Misc.flap (rhs_cands s) r2) in
-  let bvs = Misc.flap (vs_oos env) (lhs @ rhs) in
-  if bvs != [] then Some (t, Misc.sort_and_compact bvs) else None
-
-(* check that variables are in scope *)
-let phase1 soln cs =
-  let oos = Misc.maybe_list (List.map (phase1c soln) cs) in
-  if oos != [] then
-    let _ = F.printf "@[ERROR:@ variables@ out@ of@ scope@ in@ fixpoint.@.@]" in
-    let _ = List.map (fun (t, bvs) -> F.printf "@[%a@.Variables:%a@]@.@."
-      (C.print_t (Some soln)) t (Misc.pprint_many true "; " Sy.print) bvs) oos in
-    false
-  else true
-
-(* check that ALL conjuncts are well sorted
-let phase2 soln cs =*)
-  
-
-let force_phase1c s cs c =
-  match phase1c s c with
-  | Some (_, bvs) ->
-      let env =
-        List.fold_left (fun e v -> SM.add v dfty e) (C.env_of_t c) bvs in
-      (C.make_t env (C.grd_of_t c) (C.lhs_of_t c) (C.rhs_of_t c) (Some (C.id_of_t c))) :: cs
-  | None -> c :: cs
-      
-(* force constraints to be well-scoped by manhandling envs *)
-let force_phase1 soln cs =
-  List.fold_left (force_phase1c soln) [] cs
-
-let validate soln cs = if not(phase1 soln cs) then assert false
-let force_validate soln cs = force_phase1 soln cs
-
-(***************************************************************)
-(****************** Pruning Unconstrained Vars *****************)
-(***************************************************************)
-
-let rhs_ks cs =
-     cs
-  |> Ci.to_list
-  |> Misc.flap (Misc.compose C.kvars_of_reft C.rhs_of_t)
-  |> List.fold_left (fun rhss (_, kv) -> Sy.SSet.add kv rhss) Sy.SSet.empty
-
-let unconstrained_kvars cs =
-  let rhss = rhs_ks cs in
-     cs
-  |> Ci.to_list
-  |> Misc.flap C.kvars_of_t
-  |> List.map snd
-  |> List.filter (fun kv -> not (Sy.SSet.mem kv rhss))
-
-let true_unconstrained me s =
-  unconstrained_kvars me.sri |> List.fold_left (fun s kv -> SM.add kv [] s) s
-
-(***************************************************************)
 (******************** Iterative Refinement *********************)
 (***************************************************************)
 
@@ -321,7 +255,7 @@ let solve me (s : C.soln) =
   let c = BS.time "force_validate" (force_validate s) (Ci.to_list me.sri) in
   let me = {sri = Ci.create c; tpc = me.tpc; ws = me.ws} in
   let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
-  let s = true_unconstrained me s in
+  let s = BS.time (true_unconstrained me) s in
   let _ = BS.time "validate" (validate s) c in
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;
