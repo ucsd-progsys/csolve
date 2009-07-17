@@ -318,11 +318,11 @@ let rec acsolve me w s =
 (* API *)
 let solve me (s : C.soln) = 
   let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
-  let c = force_validate s (Ci.to_list me.sri) in
+  let c = BS.time "force_validate" (force_validate s) (Ci.to_list me.sri) in
   let me = {sri = Ci.create c; tpc = me.tpc; ws = me.ws} in
   let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
   let s = true_unconstrained me s in
-  let _ = validate s c in
+  let _ = BS.time "validate" (validate s) c in
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;
           dump me s in

@@ -74,3 +74,4 @@ let main () =
   !fs |> Misc.flap parse |> sift |> solve 
 
 let _ = main ()
+let _ = BNstats.print stdout "Fixpoint Solver Time" 
