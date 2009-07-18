@@ -233,20 +233,23 @@ let rec acsolve me w s =
 
 (* API *)
 let solve me (s : C.soln) = 
-  let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
-  let ok= BS.time "validation" (PP.validate s) me.sri in
-  let _ = asserts ok "Validation" in
-  let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
-  let s = PP.true_unconstrained s me.sri in
-  let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
-          Co.cprintf Co.ol_insane "%a" C.print_soln s;
-          dump me s in
-  let w = BS.time "init wkl" Ci.winit me.sri in 
-  let s = BS.time "cleanup"  SM.map (Misc.sort_and_compact) s in
-  let s = BS.time "solving"  (acsolve me w) s in
-  let _ = dump me s in
-  let u = BS.time "testing solution" (unsat_constraints me) s in
-  let _ = if u != [] then F.printf "Unsatisfied Constraints:\n %a"
+  let _  = F.printf "Fixpoint: Validating Initial Solution \n" in
+  let ok = BS.time "validation" (PP.validate s) me.sri in
+  let _  = asserts ok "Validation" in
+  let _  = F.printf "Fixpoint: Pruning unconstrained kvars \n" in
+  let s  = PP.true_unconstrained s me.sri in
+  let _  = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
+           Co.cprintf Co.ol_insane "%a" C.print_soln s;
+           dump me s in
+  let _  = F.printf "Fixpoint: Initialize Worklist \n" in
+  let w  = BS.time "init wkl" Ci.winit me.sri in 
+  let s  = BS.time "cleanup"  SM.map (Misc.sort_and_compact) s in
+  let _  = F.printf "Fixpoint: Refinement Loop \n" in
+  let s  = BS.time "solving"  (acsolve me w) s in
+  let _  = dump me s in
+  let _  = F.printf "Fixpoint: Testing Solution \n" in
+  let u  = BS.time "testing solution" (unsat_constraints me) s in
+  let _  = if u != [] then F.printf "Unsatisfied Constraints:\n %a"
                           (Misc.pprint_many true "\n" (C.print_t None)) u in
   (s, u)
 

@@ -328,7 +328,7 @@ let rec expr_to_string e =
       Printf.sprintf "(%s %s %s)" 
       (expr_to_string e1) (bop_to_string op) (expr_to_string e2)
   | Ite(ip,te,ee) -> 
-      Printf.sprintf "%s ? %s : %s" 
+      Printf.sprintf "(%s ? %s : %s)" 
       (pred_to_string ip) (expr_to_string te) (expr_to_string ee)
   | Fld(s,e) -> 
       Printf.sprintf "%s.%s" (expr_to_string e) s 

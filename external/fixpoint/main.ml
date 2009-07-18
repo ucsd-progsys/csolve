@@ -60,8 +60,11 @@ let parse f =
   |> FixParse.defs FixLex.token
 
 let solve (ts, ps, cs, ws, qs, s) = 
+  let _       = F.printf "Fixpoint: Creating  CI\n" in
   let ctx, _  = BS.time "create" (S.create ts SM.empty ps cs ws) qs in
+  let _       = F.printf "Fixpoint: Solving \n" in
   let s', cs' = BS.time "solve" (S.solve ctx) s in
+  let _       = F.printf "Fixpoint: Saving Result \n" in
   let _       = BS.time "save" (S.save !Co.save_file ctx) s' in
   F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" 
@@ -73,6 +76,7 @@ let main () =
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
+  let _  = F.printf "Fixpoint: Parsing \n" in
   let fq = BS.time "parse" (Misc.flap parse) !fs |> sift in 
   BS.time "solve" solve fq 
 
