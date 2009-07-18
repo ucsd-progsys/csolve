@@ -64,22 +64,7 @@ let stat_matches        = ref 0
 (************************** Refinement *************************)
 (***************************************************************)
 
-let preds_of_reft s (_,_,ras) =
-  Misc.flap (C.preds_of_refa s) ras
 
-let preds_of_envt s env =
-  SM.fold
-    (fun x ((vv, t, ras) as r) ps -> 
-      let vps = preds_of_reft s r in
-      let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
-      xps ++ ps)
-    env [] 
-
-
-let lhs_preds s env gp r1 =
-  let envps = preds_of_envt s env in
-  let r1ps  = preds_of_reft  s r1 in
-  gp :: (envps ++ r1ps) 
 
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
@@ -99,11 +84,10 @@ let check_tp me env vv t lps =  function [] -> [] | rcs ->
 let refine me s c =
   let _   = stat_refines += 1 in
   let env = C.env_of_t c in
-  let gp  = C.grd_of_t c in
-  let (vv1, t1, _) as r1 = C.lhs_of_t c in
+  let (vv1, t1, _) = C.lhs_of_t c in
   let (_,_,ra2s) as r2 = C.rhs_of_t c in
   let k2s = C.kvars_of_reft r2 |> List.map snd in
-  let lps = lhs_preds s env gp r1 in
+  let lps = C.preds_of_lhs s c in
   let rcs = Misc.flap (rhs_cands s) ra2s in
   if (List.exists P.is_contra lps) || (rcs = []) then
     let _ = stat_matches += (List.length rcs) in
@@ -125,12 +109,10 @@ let refine me s c =
 (***************************************************************)
 
 let unsat me s c = 
-  let env    = C.env_of_t c in
-  let gp     = C.grd_of_t c in
-  let r2     = C.rhs_of_t c in
-  let (vv,t,_) as r1 = C.lhs_of_t c in
-  let lps    = lhs_preds s env gp r1 in
-  let rhsp   = r2 |> thd3 |> Misc.flap (C.preds_of_refa s) |> A.pAnd in
+  let env      = C.env_of_t c in
+  let (vv,t,_) = C.lhs_of_t c in
+  let lps      = C.preds_of_lhs s c  in
+  let rhsp     = c |> C.rhs_of_t |> C.preds_of_reft s |> A.pAnd in
   not ((check_tp me env vv t lps [(0, rhsp)]) = [0])
 
 let unsat_constraints me s =
@@ -252,11 +234,9 @@ let rec acsolve me w s =
 (* API *)
 let solve me (s : C.soln) = 
   let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
-  let c = PP.force_validate s (Ci.to_list me.sri) in
-  let me = {sri = Ci.create c; tpc = me.tpc; ws = me.ws} in
+  let _ = asserts (PP.validate s me.sri) "Validation" in
   let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
-  let s = PP.true_unconstrained me.sri s in
-  let _ = PP.validate s c in
+  let s = PP.true_unconstrained s me.sri in
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
           Co.cprintf Co.ol_insane "%a" C.print_soln s;
           dump me s in

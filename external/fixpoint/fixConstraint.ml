@@ -61,8 +61,6 @@ let kvars_of_reft (_, _, rs) =
             | _             -> None) 
     rs
 
-
-
 let env_of_bindings xrs =
   List.fold_left begin
     fun env (x, r) -> 
@@ -83,15 +81,10 @@ let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) =
   not (!Constants.no_simple || !Constants.verify_simple)
 
 (* API *)
-let kvars_of_t (env, _, lhs, rhs, _) = 
-  List.fold_left
-    (fun sofar reft -> kvars_of_reft reft ++ sofar)
-    []
-    (SM.fold (fun _ reft sofar -> reft :: sofar) env [lhs; rhs])
-(* Andrey: replaced this implementation 
-let kvars_of_t (_, _, r1, r2, _) =
-  (kvars_of_reft r1) ++ (kvars_of_reft r2)
-*)
+let kvars_of_t (env, _, lhs, rhs, _) =
+  [lhs; rhs] 
+  |> SM.fold (fun _ r acc -> r :: acc) env
+  |> Misc.flap kvars_of_reft 
 
 (*************************************************************)
 (******************** Solution Management ********************)
@@ -147,6 +140,30 @@ let apply_substs xes p =
 let preds_of_refa s   = function
   | Conc p       -> [p]
   | Kvar (xes,k) -> List.map (apply_substs xes) (sol_read s k)
+
+(* API *)
+let preds_of_reft s (_,_,ras) =
+  Misc.flap (preds_of_refa s) ras
+
+let preds_of_envt s env =
+  SM.fold
+    (fun x ((vv, t, ras) as r) ps -> 
+      let vps = preds_of_reft s r in
+      let xps = List.map (fun p -> P.subst p vv (A.eVar x)) vps in
+      xps ++ ps)
+    env [] 
+
+(* API *)
+let preds_of_lhs s (env, gp, r1, _, _) =
+  let envps = preds_of_envt s env in
+  let r1ps  = preds_of_reft  s r1 in
+  gp :: (envps ++ r1ps) 
+
+(* API *)
+let vars_of_t s ((env, gp, r1, r2, _) as c) =
+  (preds_of_reft s r2) ++ (preds_of_lhs s c)
+  |> Misc.flap P.support
+  
 
 (**************************************************************)
 (********************** Pretty Printing ***********************)
@@ -223,8 +240,6 @@ let reft_to_string (vv, sort, ras) =
 
 let binding_to_string (vv, reft) =
   Printf.sprintf "%s:%s" (Sy.to_string vv) (reft_to_string reft)
-
-
 
 (* API *)
 let print_soln ppf sm =
