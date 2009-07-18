@@ -24,11 +24,13 @@
 
 (** read a set of constraints, solve, and dump out the solution *)
 
+module BS = BNstats
 module SM = Ast.Symbol.SMap
 module Co = Constants 
 module C  = FixConstraint
 module S  = Solve
 module F  = Format
+
 
 open Misc.Ops
 
@@ -58,9 +60,9 @@ let parse f =
   |> FixParse.defs FixLex.token
 
 let solve (ts, ps, cs, ws, qs, s) = 
-  let ctx, _  = S.create ts SM.empty ps cs ws qs in
-  let s', cs' = S.solve ctx s in
-  let _       = S.save !Co.save_file ctx s' in
+  let ctx, _  = BS.time "create" (S.create ts SM.empty ps cs ws) qs in
+  let s', cs' = BS.time "solve" (S.solve ctx) s in
+  let _       = BS.time "save" (S.save !Co.save_file ctx) s' in
   F.printf "%a" C.print_soln s'; 
   F.printf "Unsat Constraints :\n %a" 
     (Misc.pprint_many true "\n" (C.print_t None)) cs';
@@ -71,7 +73,8 @@ let main () =
   Printf.printf "All Rights Reserved.\n";
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
-  !fs |> Misc.flap parse |> sift |> solve 
+  let fq = BS.time "parse" (Misc.flap parse) !fs |> sift in 
+  BS.time "solve" solve fq 
 
-let _ = main ()
-let _ = BNstats.print stdout "Fixpoint Solver Time" 
+let _ = BNstats.time "main" main ()
+let _ = BNstats.print stdout "Fixpoint Solver Time \n" 

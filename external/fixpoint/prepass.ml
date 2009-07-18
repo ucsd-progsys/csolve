@@ -45,9 +45,10 @@ open Misc.Ops
 let validate s sri =
   Cindex.to_list sri 
   |> List.for_all begin fun c -> 
-       let vs  = C.vars_of_t s c in
-       let env = C.env_of_t c in
-       let oos = List.filter (fun v -> not (SM.mem v env)) vs in
+       let vs       = C.vars_of_t s c in
+       let (vv,t,_) as r = C.lhs_of_t c in
+       let env      = C.env_of_t c |> SM.add vv r in
+       let oos      = List.filter (fun v -> not (SM.mem v env)) vs in
        if oos = [] then true else 
          let _ = F.printf "@[ERROR:@ variables@ out@ of@ scope@ Vars@ %a in@ Constraint %a.@.@]" 
                  (Misc.pprint_many true "; " Sy.print) oos

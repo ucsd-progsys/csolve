@@ -234,7 +234,8 @@ let rec acsolve me w s =
 (* API *)
 let solve me (s : C.soln) = 
   let _ = Co.cprintf Co.ol_insane "Validating@ initial@ solution.@." in
-  let _ = asserts (PP.validate s me.sri) "Validation" in
+  let ok= BS.time "validation" (PP.validate s) me.sri in
+  let _ = asserts ok "Validation" in
   let _ = Co.cprintf Co.ol_insane "Pruning unconstrained kvars.@." in
   let s = PP.true_unconstrained s me.sri in
   let _ = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
