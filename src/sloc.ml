@@ -87,7 +87,7 @@ module SlocMap =
       List.fold_left (fun b (k, v) -> f k v b) b sm
 
     let mapi (f: key -> 'a -> 'b) (sm: 'a t): 'b t =
-      fold (fun k v sm -> (k, f k v) :: sm) sm []
+      fold (fun k v sm -> (k, f k v) :: sm) sm [] |> List.rev
 
     let map (f: 'a -> 'b) (sm: 'a t): 'b t =
       mapi (fun _ v -> f v) sm

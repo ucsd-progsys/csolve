@@ -615,9 +615,7 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
           ok && ok2
       with
         | Unified -> raise Unified
-        | _       ->
-            C.errorLoc loc "Expected %a |-> %a: %a in store:\n\n%a\n\n" S.d_sloc l d_index i d_ctype ct d_store sto_out_actual |> ignore;
-            false
+        | _       -> false
     end true sto_out_formal
   in ok1 && ok2
 
