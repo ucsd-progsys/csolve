@@ -626,7 +626,7 @@ let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrso
       if check_out_store loc cf.sto_out out_store then
         (is, ss)
       else
-        E.s <| C.errorLoc loc "Couldn't check store typing of function, expected %a\n\n" d_cfun cf
+        E.s <| C.errorLoc loc "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store out_store d_cfun cf
     with Unified -> solve_and_check_rec loc cf cs
 
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =

@@ -485,12 +485,12 @@ let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
 let d_args d_i () args   = P.seq (P.text ", ") (d_arg d_i ()) args
 
 let d_precfun d_i () ft  = 
-  P.dprintf "forall [%a] arg (%a) %a store_in %a store_out %a"
-  d_slocs ft.qlocs
-  (d_args d_i) ft.args
-  (d_prectype d_i) ft.ret
-  (d_precstore d_i) ft.sto_in
-  (d_precstore d_i) ft.sto_out
+  P.dprintf "forall    [%a]\narg       (%a)\nret       %a\nstore_in  %a\nstore_out %a"
+    d_slocs ft.qlocs
+    (d_args d_i) ft.args
+    (d_prectype d_i) ft.ret
+    (d_precstore d_i) ft.sto_in
+    (d_precstore d_i) ft.sto_out
 
 let d_cfun () ft =
   d_precfun d_index () ft
