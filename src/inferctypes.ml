@@ -596,10 +596,10 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cf
 
 exception Unified
 
-let match_slocs (ct1: ctype) (ct2: ctype): bool =
+let match_slocs (ct1: ctype) (ct2: ctype): unit =
   match (ct1, ct2) with
     | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; raise Unified
-    | _                                                    -> true
+    | _                                                    -> ()
 
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
   match_slocs atyp etyp;
