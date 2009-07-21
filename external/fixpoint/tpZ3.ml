@@ -325,6 +325,8 @@ and z3Pred me env = function
       let _        = me.bnd <- me.bnd - (List.length xs) in
       rv
 
+let z3Pred me env p = BS.time "z3Pred" (z3Pred me env) p
+
 (***************************************************************************)
 (***************** Low Level Query Interface *******************************)
 (***************************************************************************)

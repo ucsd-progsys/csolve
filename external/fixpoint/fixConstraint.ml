@@ -28,6 +28,7 @@ module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
 module SM = Sy.SMap
+module BS = BNstats
 
 open Misc.Ops
 
@@ -37,7 +38,7 @@ type refa = Conc of A.pred | Kvar of subs * Sy.t
 type reft = Sy.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
 type envt = reft SM.t
 type soln = A.pred list SM.t
-type t    = envt * A.pred * reft * reft * (tag option)
+type t    = (envt * envt) * A.pred * reft * reft * (tag option)
 type wf   = envt * reft * (tag option)
 
 type deft = Srt of Ast.Sort.t 
@@ -76,12 +77,13 @@ let bindings_of_env env =
 
 (* API *)
 let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) = 
-  List.for_all is_simple_refatom ra1s &&
-  List.for_all is_simple_refatom ra2s &&
-  not (!Constants.no_simple || !Constants.verify_simple)
+  List.for_all is_simple_refatom ra1s 
+  && List.for_all is_simple_refatom ra2s 
+  && (not !Constants.no_simple) 
+  && (not !Constants.verify_simple)
 
 (* API *)
-let kvars_of_t (env, _, lhs, rhs, _) =
+let kvars_of_t ((_,env), _, lhs, rhs, _) =
   [lhs; rhs] 
   |> SM.fold (fun _ r acc -> r :: acc) env
   |> Misc.flap kvars_of_reft 
@@ -132,6 +134,12 @@ let group_sol_add    = group_sol_change true
 (*********************** Logic Embedding *********************)
 (*************************************************************)
 
+let non_trivial env = 
+  SM.fold begin fun x r sm -> match thd3 r with 
+        | [] -> sm 
+        | _::_ -> SM.add x r sm
+  end env SM.empty
+
 (* API *)
 let apply_substs xes p = 
   List.fold_left (fun p' (x,e) -> P.subst p' x e) p xes
@@ -154,13 +162,13 @@ let preds_of_envt s env =
     env [] 
 
 (* API *)
-let preds_of_lhs s (env, gp, r1, _, _) =
+let preds_of_lhs s ((_,env), gp, r1, _, _) =
   let envps = preds_of_envt s env in
-  let r1ps  = preds_of_reft  s r1 in
+  let r1ps  = preds_of_reft s r1 in
   gp :: (envps ++ r1ps) 
 
 (* API *)
-let vars_of_t s ((env, gp, r1, r2, _) as c) =
+let vars_of_t s ((_, _, _, r2, _) as c) =
   (preds_of_reft s r2) ++ (preds_of_lhs s c)
   |> Misc.flap P.support
   
@@ -210,7 +218,7 @@ let print_wf so ppf (env, r, io) =
     pprint_tag io
 
 (* API *)
-let print_t so ppf (env,g,r1,r2,io) =
+let print_t so ppf ((env,_),g,r1,r2,io) =
   F.fprintf ppf 
   "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n %a @\n"
     (print_env so) env 
@@ -266,8 +274,8 @@ let shape_of_reft = fun (v, so, _) -> (v, so, [])
 let theta         = fun subs (v, so, ras) -> (v, so, Misc.map (theta_ra subs) ras)
 
 (* API *)
-let make_t      = fun env p r1 r2 io -> (env, p, r1, r2, io)
-let env_of_t    = fun (env,_,_,_,_) -> env
+let make_t      = fun env p r1 r2 io -> ((env, non_trivial env ), p, r1, r2, io)
+let env_of_t    = fun ((env,_),_,_,_,_) -> env
 let grd_of_t    = fun (_,grd,_,_,_) -> grd 
 let lhs_of_t    = fun (_,_,lhs,_,_) -> lhs 
 let rhs_of_t    = fun (_,_,_,rhs,_) -> rhs
@@ -301,7 +309,7 @@ let phase2 cs tmax =
 (* 3. check that sorts are consistent across constraints *)
 let phase3 cs =
   let memo = Hashtbl.create 17 in
-  List.iter begin fun (env,_,(vv1,t1,_),(vv2,t2,_),_) ->
+  List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_) ->
     asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
     SM.iter begin fun x (_,t,_) ->
       try asserts (t = (Hashtbl.find memo x)) 
@@ -314,3 +322,6 @@ let phase3 cs =
 
 let validate cs = 
   phase1 cs |> phase2 cs |> phase3
+
+let validate cs = 
+  BS.time "validate shapes" validate cs

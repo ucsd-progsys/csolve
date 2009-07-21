@@ -96,12 +96,14 @@ let rename_refctype lsubs subs cr =
 (********************** Constraints for Phis ********************************)
 (****************************************************************************)
 
-let weaken_undefined me env v = 
+let weaken_undefined me rm env v = 
   let n = FI.name_of_varinfo v in
-  if FI.ce_mem n env && CF.is_undefined me v 
-  then FI.ce_rem n env 
-(* WF ISSUE : FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true *)
-  else env
+  let b = FI.ce_mem n env && CF.is_undefined me v in
+  if not b then env else
+    if rm then FI.ce_rem n env else
+      let r    = FI.ce_find n env |> FI.t_true_refctype in
+      let env' = FI.ce_rem n env in
+      FI.ce_adds env' [(n,r)]
 
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
@@ -113,7 +115,7 @@ let tcons_of_phis me phia =
       let envj,_ = CF.outwld_of_block me j in
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
-        let envj  = weaken_undefined me envj v in
+        let envj  = weaken_undefined me false envj v in
         let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
         let lhs   = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
@@ -129,7 +131,7 @@ let bind_of_phi me v =
   (vn, cr)
 
 let wcons_of_phis me loc env vs =
-  let wenv = List.fold_left (weaken_undefined me) env vs in
+  let wenv = List.fold_left (weaken_undefined me true) env vs in
   Misc.flap begin fun v -> 
     let vn  = FI.name_of_varinfo v in
     let cr  = FI.ce_find vn env in 
@@ -172,7 +174,6 @@ let cons_of_set me loc grd (env, sto) = function
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
       let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
-               |> (fun cr' -> Pretty.printf "cons_of_set: cr' = %a" FI.d_refctype cr'; cr')
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (extend_env v cr env, sto), []
@@ -231,11 +232,9 @@ let instantiate_poly_cloc me wld (aloc, cloc) =
   extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc grd (env, st) (lvo, fn, es) ns = 
-  let _     = Pretty.printf "cons_of_call: fn = %s \n" fn in
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
-  let _     = Pretty.printf "LSUBS = %a" d_lsubs lsubs in
   let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
               List.combine (List.map fst args) es in
 
@@ -276,7 +275,6 @@ let cons_of_annotinstr me loc grd wld (annots, instr) =
 (****************************************************************************)
 
 let cons_of_ret me loc grd (env, st) e_o =
-  let _      = Pretty.printf "cons_of_ret: fn = %s \n" (CF.get_fname me) in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
   let st_cs  = 
     let _, ost = FI.stores_of_refcfun frt in

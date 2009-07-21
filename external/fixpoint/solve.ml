@@ -87,9 +87,9 @@ let refine me s c =
   let (vv1, t1, _) = C.lhs_of_t c in
   let (_,_,ra2s) as r2 = C.rhs_of_t c in
   let k2s = C.kvars_of_reft r2 |> List.map snd in
-  let lps = C.preds_of_lhs s c in
-  let rcs = Misc.flap (rhs_cands s) ra2s in
-  if (List.exists P.is_contra lps) || (rcs = []) then
+  let lps = BS.time "preds_of_lhs" (C.preds_of_lhs s) c in
+  let rcs = BS.time "rhs_cands" (Misc.flap (rhs_cands s)) ra2s in
+  if (BS.time "lhs_contra" (List.exists P.is_contra) lps) || (rcs = []) then
     let _ = stat_matches += (List.length rcs) in
     (false, s)
   else
@@ -101,7 +101,7 @@ let refine me s c =
     let kqs1    = List.map fst x1 in
     (if C.is_simple c 
      then (ignore(stat_simple_refines += 1); kqs1) 
-     else kqs1 ++ (check_tp me env vv1 t1 lps x2))
+     else kqs1 ++ (BS.time "check tp" (check_tp me env vv1 t1 lps) x2))
     |> C.group_sol_update s k2s 
 
 (***************************************************************)
@@ -135,7 +135,7 @@ let print_solver_stats ppf me =
   let cs   = Ci.to_list me.sri in 
   let cn   = List.length cs in
   let scn  = List.length (List.filter C.is_simple cs) in
-F.fprintf ppf "%a" Ci.print me.sri; (* DEBUG *) 
+  F.fprintf ppf "%a" Ci.print me.sri; (* DEBUG *) 
   F.fprintf ppf "#constraints = %d \n" cn;
   F.fprintf ppf "#simple constraints = %d \n" scn;
   F.fprintf ppf "#Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
@@ -145,8 +145,8 @@ F.fprintf ppf "%a" Ci.print me.sri; (* DEBUG *)
   F.fprintf ppf "%a" TP.print_stats me.tpc
 
 let dump me s = 
-  Co.cprintf Co.ol_insane "%a \n" print_solver_stats me;
-  Co.cprintf Co.ol_insane "%a \n" print_solution_stats s
+  Co.cprintf Co.ol_solve_stats "%a \n" print_solver_stats me;
+  Co.cprintf Co.ol_solve_stats "%a \n" print_solution_stats s
 
 
 (***************************************************************)
@@ -222,8 +222,8 @@ let inst wfs qs s =
 (***************************************************************)
 
 let rec acsolve me w s = 
-  let _ = if !stat_refines mod 100 = 0 
-          then Co.cprintf Co.ol_solve "num refines =%d \n" !stat_refines in
+  let _ = if !stat_refines mod 1000 = 0 
+          then (* Co.cprintf Co.ol_solve_stats *) Printf.printf "num refines =%d \n" !stat_refines in
   let _ = if Co.ck_olev Co.ol_insane then F.printf "%a" C.print_soln s in
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
@@ -235,6 +235,7 @@ let rec acsolve me w s =
 let solve me (s : C.soln) = 
   let _  = F.printf "Fixpoint: Validating Initial Solution \n" in
   let ok = BS.time "validation" (PP.validate s) me.sri in
+  let _  = BS.time "profile" PP.profile me.sri in
   let _  = asserts ok "Validation" in
   let _  = F.printf "Fixpoint: Pruning unconstrained kvars \n" in
   let s  = PP.true_unconstrained s me.sri in

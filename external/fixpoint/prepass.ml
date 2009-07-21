@@ -35,8 +35,11 @@ module Q  = A.Qualifier
 module PH = A.Predicate.Hash
 module Sy = A.Symbol
 module SM = Sy.SMap
+module IM = Misc.IntMap 
 module C  = FixConstraint
 open Misc.Ops
+
+let mydebug = true
 
 (***************************************************************)
 (******************** Constraint Validation ********************)
@@ -108,3 +111,34 @@ let true_unconstrained s sri =
   sri |> Cindex.to_list 
       |> unconstrained_kvars 
       |> List.fold_left (fun s kv -> SM.add kv [] s) s
+
+(***************************************************************)
+(*********************** Constraint Profiling  *****************)
+(***************************************************************)
+
+let profile_cstr im c = 
+  SM.fold begin fun _ (_,_,rs) ((a, b, c, d) as pfl) -> 
+    match rs with [] -> (a, b, c, d+1)  | _::_ -> begin 
+      List.fold_left begin fun (sz, csz, ksz, esz) r -> match r with 
+        | C.Conc _  -> (sz+1, csz+1, ksz, esz) 
+        | _         -> (sz+1, csz, ksz+1, esz)
+      end pfl rs
+    end
+  end (C.env_of_t c) (0,0,0,0)
+  |> fun pfl -> IM.add (C.id_of_t c) pfl im
+
+
+let dump_profile im =
+  if mydebug then 
+    let (tsz, tcsz, tksz, tesz) = 
+      IM.fold begin fun i (sz, csz, ksz, esz) (tsz, tcsz, tksz, tesz) -> 
+        Format.printf "ctag %d: binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" i sz csz ksz esz;
+        (tsz + sz, tcsz + csz, tksz + ksz, tesz + esz)
+      end im (0,0,0,0) in
+    Format.printf "Total binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" tsz tcsz tksz tesz
+
+let profile sri = 
+  sri |> Cindex.to_list
+      |> List.fold_left profile_cstr IM.empty
+      |> dump_profile
+
