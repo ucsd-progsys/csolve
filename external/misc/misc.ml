@@ -62,6 +62,10 @@ module Ops = struct
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
 
+  let print_now s = 
+    print_string s; 
+    flush stdout
+
 (*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 

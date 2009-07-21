@@ -120,14 +120,14 @@ let binds_of_refldesc l rd =
   sloc_binds_of_refldesc l rd 
   |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
   |> List.map fst
-  |> List.map (fun (n,r) -> Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r))
+  (* |> List.map (fun (n,r) -> Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r)) *)
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
 let refdesc_find ploc rd = 
   match Ctypes.LDesc.find ploc rd with
   | [(ploc', rct)] -> 
-      (rct, Ctypes.ploc_periodic ploc') (* not (ploc = ploc') *) (* i.e. soft *)
+      (rct, Ctypes.ploc_periodic ploc')
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype = function
@@ -414,8 +414,8 @@ let refstore_subs_locs lsubs sto =
       let subs  = List.combine ns ns' in
       refstore_subs t_subs_names subs sto
     in
-    let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
-            Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in
+    (* let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
+            Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in *)
     rv
   end sto lsubs
 
@@ -457,6 +457,8 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
+(*  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
+                       || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
   let env'   = List.map fst ncrs1 |> ce_adds env in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
   Misc.flap begin fun ((n1, _), (_, cr2)) -> 
@@ -469,10 +471,10 @@ let slocs_of_store st =
   SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity loc =
-  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
+  (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in *)
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 
@@ -481,5 +483,5 @@ let make_cs_refstore env p st1 st2 polarity loc =
        let rhs = (sloc, refstore_get st2 sloc) in
        make_cs_refldesc env p lhs rhs loc 
      end in
-  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in
+(*  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in *) 
   rv

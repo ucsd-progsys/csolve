@@ -26,3 +26,4 @@
 
 val validate: FixConstraint.soln -> Cindex.t -> bool
 val true_unconstrained: FixConstraint.soln -> Cindex.t ->  FixConstraint.soln
+val profile: Cindex.t -> unit

@@ -23,6 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
+module BS = BNstats
 module E  = Errormsg
 module A  = Ast
 module C  = FixConstraint
@@ -104,21 +105,21 @@ let spec_of_file fname =
   |> List.fold_left add_spec SM.empty
 
 let liquidate file =
-  let cil   = cil_of_file file in
+  let cil   = BS.time "Parse: source" cil_of_file file in
   let _     = E.log "DONE: cil parsing \n" in
-  let qs    = quals_of_file file in
+  let qs    = BS.time "Parse: quals" quals_of_file file in
   let _     = E.log "DONE: qualifier parsing \n" in
-  let spec  = spec_of_file file in
+  let spec  = BS.time "Parse: spec" spec_of_file file in
   let _     = E.log "DONE: spec parsing \n" in
-  let me    = Consgen.create cil spec in
+  let me    = BS.time "Cons: Generate" (Consgen.create cil) spec in
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let _     = E.log "DONE: constraint generation \n" in
-  let ctx,s = Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws qs in
+  let ctx,s = BS.time "Qual Inst" (Solve.create FixInterface.sorts A.Symbol.SMap.empty [] cs ws) qs in
   let _     = E.log "DONE: qualifier instantiation \n" in
-  let _     = Solve.save (file^".in.fq") ctx s in
-  let s',cs'= Solve.solve ctx s in 
-  let _     = Solve.save (file^".out.fq") ctx s' in
+  let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in
+  let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
+  let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
   let _     = Consindex.print (Some s') Format.std_formatter me in 
   (cs' = [])
 
@@ -136,14 +137,16 @@ let mk_options () =
   | None    -> assertf "Bug: No input file specified!"
 
 let main () =
-  let _ = print_header () in
-  let f = mk_options () in
-    if liquidate f then begin
-      Format.printf "\nSAFE\n";
-      exit 0
-    end else begin
-      Format.printf "\nUNSAFE\n";
-      exit 1
-    end
+  let _  = print_header () in
+  let f  = mk_options () in
+  let rv = liquidate f in 
+  let _  = BS.print stdout "LiquidC Time \n" in
+  if rv then begin
+    Format.printf "\nSAFE\n";
+    exit 0
+  end else begin
+    Format.printf "\nUNSAFE\n";
+    exit 1
+  end
 
 let _ = main ()
