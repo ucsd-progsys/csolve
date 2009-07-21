@@ -100,6 +100,7 @@ let weaken_undefined me env v =
   let n = FI.name_of_varinfo v in
   if FI.ce_mem n env && CF.is_undefined me v 
   then FI.ce_rem n env 
+(* WF ISSUE : FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true *)
   else env
 
 let tcons_of_phis me phia =  

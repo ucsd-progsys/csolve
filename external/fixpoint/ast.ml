@@ -342,7 +342,7 @@ and pred_to_string p =
     | Bexp e ->
         Printf.sprintf "(Bexp %s)" (expr_to_string e)
     | Not p -> 
-        Printf.sprintf "~ (%s)" (pred_to_string p) 
+        Printf.sprintf "(~ (%s))" (pred_to_string p) 
     | Imp (p1, p2) -> 
         Printf.sprintf "(%s -> %s)" (pred_to_string p1) (pred_to_string p2)
     | And ps -> 
