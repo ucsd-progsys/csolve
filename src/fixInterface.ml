@@ -457,8 +457,6 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
-  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
-                       || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in
   let env'   = List.map fst ncrs1 |> ce_adds env in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
   Misc.flap begin fun ((n1, _), (_, cr2)) -> 
