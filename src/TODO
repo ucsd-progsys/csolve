@@ -12,7 +12,10 @@ inline boolean guards
 	- nuke phi-names for cil_tmp
 	[fixpoint]
 	- create shadow, non-empty env with real bindings
-	
+	- from pmapdistilled.c
+		mem_	= 58
+		cil_tmp = 340
+		tmp___  = 43
 
 ** MAJOR TODO **************************************************
 - [false]	em3d
