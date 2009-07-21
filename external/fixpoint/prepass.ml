@@ -42,18 +42,38 @@ open Misc.Ops
 (******************** Constraint Validation ********************)
 (***************************************************************)
 
+exception Out_of_scope of Ast.Symbol.t 
+
+let validate_vars env msg vs = 
+  List.iter begin fun v -> 
+    if not(SM.mem v env) then 
+      let _ = F.printf "ERROR: out_of_scope variable %a (%s)" Sy.print v msg in
+      raise (Out_of_scope v)
+  end vs 
+
+let validate_reft s env msg r =
+  r |> C.preds_of_reft s 
+    |> Misc.flap P.support 
+    |> validate_vars env msg
+
+let validate_binding s env msg x r =
+  let msg = Format.sprintf "%s binding for %s " msg (Sy.to_string x) in
+  validate_reft s env msg r
+
 let validate s sri =
   Cindex.to_list sri 
-  |> List.for_all begin fun c -> 
-       let vs       = C.vars_of_t s c in
+  |> List.for_all begin fun c ->
+       let msg  = Format.sprintf "tag %d" (C.id_of_t c) in
        let (vv,t,_) as r = C.lhs_of_t c in
-       let env      = C.env_of_t c |> SM.add vv r in
-       let oos      = List.filter (fun v -> not (SM.mem v env)) vs in
-       if oos = [] then true else 
-         let _ = F.printf "@[ERROR:@ variables@ out@ of@ scope@ Vars@ %a in@ Constraint %a.@.@]" 
-                 (Misc.pprint_many true "; " Sy.print) oos
-                 (C.print_t None) c in
-         false
+       let env  = C.env_of_t c |> SM.add vv r in
+       let lhs  = C.lhs_of_t c in
+       let rhs  = C.rhs_of_t c in
+       try 
+         SM.iter (validate_binding s env msg) env;
+         validate_reft s env (" LHS "^msg) lhs;
+         validate_reft s env (" RHS "^msg) rhs;
+         true
+       with Out_of_scope _ -> false
      end 
 
 (*
