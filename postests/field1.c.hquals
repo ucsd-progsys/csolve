@@ -1,0 +1,4 @@
+qualif POS(v:int): v >= 0
+qualif GEQ(v:int): v >= ~a
+
+
