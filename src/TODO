@@ -19,6 +19,7 @@ inline boolean guards
 
 - [spec]
 	- generate constraints using "public" signatures
+	
 
 ** MAJOR TODO **************************************************
 - [false]	em3d
