@@ -29,7 +29,7 @@ let mk_sloc id sty =
 %token <int> CONC 
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON DCOLON MAPSTO MID
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
 %token ARG RET INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -43,7 +43,7 @@ let mk_sloc id sty =
 
 %start specs 
 
-%type <(string * FixInterface.refcfun) list>    specs 
+%type <(string * FixInterface.refcfun * bool) list>    specs 
 
 %%
 specs:
@@ -52,7 +52,7 @@ specs:
   ;
 
 spec:
-    Id DCOLON 
+    Id publ 
     FORALL slocs
     ARG    argbinds 
     RET    reftype
@@ -61,13 +61,19 @@ spec:
       let _ = Hashtbl.clear sloctable in
       let rcf = FI.mk_refcfun $4 $6 $10 $8 $12 in
         if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-          ($1, rcf)
+          ($1, rcf, $2)
         else begin
           Format.printf "Error: %s has ill-formed spec\n\n" $1 |> ignore;
           raise Parse_error
         end
     }
     ;
+
+publ:
+  | DCOLON                              {false}
+  | PCOLON                              {true}
+  ;
+
 
 slocs:
     LB RB                               { [] }
@@ -125,7 +131,7 @@ reftype:
                                           FI.t_pred ct v $10
                                         }
 
-  | LC Id COLON ctype MID pred RC       { FI.t_pred $4 (Sy.of_string $2) $6 }
+  | ctype                               { FI.t_true $1 }
   ;
 
 ctype:

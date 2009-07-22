@@ -17,6 +17,10 @@ inline boolean guards
 		cil_tmp = 340
 		tmp___  = 43
 
+- [spec]
+	- generate constraints using "public" signatures
+	
+
 ** MAJOR TODO **************************************************
 - [false]	em3d
 

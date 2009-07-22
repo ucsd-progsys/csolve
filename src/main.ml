@@ -94,7 +94,7 @@ let add_spec spec fname =
     open_in fname
     |> Lexing.from_channel
     |> RefParse.specs RefLex.token
-    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) spec 
+    |> List.fold_left (fun sm (x,y,b) -> SM.add x (y,b) sm) spec 
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     spec

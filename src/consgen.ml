@@ -344,7 +344,7 @@ let cons_of_sci gnv sci shp =
 
 let shapem_of_scim spec scim =
   (SM.empty, SM.empty)
-  |> SM.fold begin fun fn rf (bm, fm) ->
+  |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
        if SM.mem fn scim 
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
@@ -359,7 +359,7 @@ let mk_gnv spec cenv decs =
   |> List.map begin fun (fn, ft) -> 
       (fn, if SM.mem fn decm 
            then FI.t_fresh_fn ft 
-           else Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec)
+           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec))
      end
   |> FI.ce_adds_fn FI.ce_empty 
 
@@ -382,10 +382,10 @@ let rename_args rf sci : FI.refcfun =
 
 let rename_spec scim spec =
   Misc.sm_to_list spec 
-  |> List.map begin fun (fn, rf) -> 
+  |> List.map begin fun (fn, (rf,b)) -> 
       if SM.mem fn scim 
-      then (fn, rename_args rf (SM.find fn scim))
-      else (fn, rf)
+      then (fn, (rename_args rf (SM.find fn scim), b))
+      else (fn, (rf, b))
      end
   |> Misc.sm_of_list
 
@@ -429,7 +429,7 @@ let scim_of_file cil =
          end SM.empty
 
 (* API *)
-let create cil spec =
+let create cil (spec: (FI.refcfun * bool) SM.t) =
   let scim     = scim_of_file cil in
   let _        = E.log "DONE: SSA conversion \n" in
   let spec     = rename_spec scim spec in

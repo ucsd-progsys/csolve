@@ -73,6 +73,7 @@ rule token = parse
   | "false"             { FALSE }
   | "true"              { TRUE }
   | "|->"               { MAPSTO }
+  | "<:"                { PCOLON }
   | "::"                { DCOLON }
   | ":="                { ASGN }
   | "&&"                { AND }

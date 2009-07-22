@@ -31,21 +31,23 @@ open Misc.Ops
 
 let mydebug = false 
 
-let read_spec files : FI.refcfun SM.t =
+let read_spec files =
   List.fold_left begin fun sm f ->
     (f (* ^ ".spec" *) ) 
     |> open_in
     |> Lexing.from_channel
     |> RefParse.specs RefLex.token
-    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) sm
+    |> List.fold_left (fun sm (x,y,b) -> SM.add x (y,b) sm) sm
   end SM.empty files
 
 let cfun_spec_of_spec spec : Ctypes.cfun SM.t =
-  SM.map FI.cfun_of_refcfun spec
+  SM.map (fun (rf,_) -> FI.cfun_of_refcfun rf) spec
+
+let col_to_string = fun b -> if b then "public " else ""
 
 let print_spec sm = 
   Format.printf "spec parsed: OK \n";
-  SM.iter begin fun s rft -> 
+  SM.iter begin fun s (rft, b) -> 
     let ft = FI.cfun_of_refcfun rft in
-    Errormsg.log "%s :: %a \n" s (Ctypes.d_precfun Ctypes.d_index) ft
+    Errormsg.log "%s %s :: %a \n" (if b then "public " else "") s (Ctypes.d_precfun Ctypes.d_index) ft
   end sm
