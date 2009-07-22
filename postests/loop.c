@@ -1,6 +1,9 @@
-int main(){
-  int i, z, n; 
-  n = nondet();
+int main(int n){
+  int i, z; 
+  //n = nondet();
+  
+  assert(10 < n);
+
   z = 0;
   for (i=0; i < n; i++){
     z += i;
