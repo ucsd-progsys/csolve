@@ -17,6 +17,11 @@ inline boolean guards
 		cil_tmp = 340
 		tmp___  = 43
 
+- [spec]
+	- update parser to take in unrefined types etc.
+	- update parser to take in "public" tag
+	- generate constraints using "public" signatures
+
 ** MAJOR TODO **************************************************
 - [false]	em3d
 

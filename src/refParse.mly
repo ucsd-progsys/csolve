@@ -29,7 +29,7 @@ let mk_sloc id sty =
 %token <int> CONC 
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON DCOLON MAPSTO MID
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
 %token ARG RET INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -52,7 +52,7 @@ specs:
   ;
 
 spec:
-    Id DCOLON 
+    Id publ 
     FORALL slocs
     ARG    argbinds 
     RET    reftype
@@ -68,6 +68,12 @@ spec:
         end
     }
     ;
+
+publ:
+  | DCOLON                              {false}
+  | PCOLON                              {true}
+  ;
+
 
 slocs:
     LB RB                               { [] }
@@ -125,7 +131,7 @@ reftype:
                                           FI.t_pred ct v $10
                                         }
 
-  | LC Id COLON ctype MID pred RC       { FI.t_pred $4 (Sy.of_string $2) $6 }
+  | ctype                               { FI.t_true $1 }
   ;
 
 ctype:
