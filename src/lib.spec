@@ -17,7 +17,7 @@ atbegin::
   arg       (x: ref (A0, true, {v| && [(BLOCK_BEGIN([v]) = v)]}))
   ret int   (4, true, {v | true})
   store_in  [A0 |-> ]
-  store_out []
+  store_out [A0 |-> ]
 
 validptr ::
   forall    [A0]
