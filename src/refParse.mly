@@ -43,7 +43,7 @@ let mk_sloc id sty =
 
 %start specs 
 
-%type <(string * FixInterface.refcfun) list>    specs 
+%type <(string * FixInterface.refcfun * bool) list>    specs 
 
 %%
 specs:
@@ -61,7 +61,7 @@ spec:
       let _ = Hashtbl.clear sloctable in
       let rcf = FI.mk_refcfun $4 $6 $10 $8 $12 in
         if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-          ($1, rcf)
+          ($1, rcf, $2)
         else begin
           Format.printf "Error: %s has ill-formed spec\n\n" $1 |> ignore;
           raise Parse_error

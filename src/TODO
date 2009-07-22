@@ -18,8 +18,6 @@ inline boolean guards
 		tmp___  = 43
 
 - [spec]
-	- update parser to take in unrefined types etc.
-	- update parser to take in "public" tag
 	- generate constraints using "public" signatures
 
 ** MAJOR TODO **************************************************
