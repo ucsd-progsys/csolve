@@ -1,6 +1,6 @@
 extern char* malloc(int);
 
-int main(){
+void main(){
   int *r;
   int y;
 
@@ -15,5 +15,5 @@ int main(){
   y = *r;
   assert(y >= 0);
   
-  return 0;
+  return;
 }

@@ -31,20 +31,20 @@ int bar(int n){
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     assert(tmp->data >= 0);
     assert(tmp->data < n);
-    //assert(tmp->data < 100); UNSAFE
+    assert(tmp->data < 100);
   }
  
   return 0;
 }
 
-int main(){
+void main(){
   int n; 
   
   n = nondet();
   
   bar(n);
   
-  return 0;
+  return;
 }
 
 
