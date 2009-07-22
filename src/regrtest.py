@@ -52,7 +52,6 @@ def runtest(file, expected_status):
   args   = getfileargs(file)
   start  = time.time()
   status = solve_quals(file, True, False, True, args)
-  if status == 2: sys.exit(2)
   print "%f seconds" % (time.time() - start)
 
   ok = (status == expected_status)
