@@ -203,12 +203,19 @@ let cons_of_set me loc grd (env, sto) = function
 (********************** Constraints for Calls *******************************)
 (****************************************************************************)
 
+let cons_of_tuple env grd lsubs subs cr1s cr2s loc =
+  Misc.flap2 begin fun cr1 cr2 ->
+    FI.make_cs env grd cr1 (rename_refctype lsubs subs cr2) loc
+  end cr1s cr2s 
+
+(* 
 let cons_of_call_params me loc grd env lsubs subs es args =
   Misc.flap2 begin fun e (_, cr) ->
     let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in
     let rhs = rename_refctype lsubs subs cr in 
     FI.make_cs env grd lhs rhs loc
   end es args
+*)
 
 let env_of_retbind lsubs subs env lvo cr = 
   match lvo with 
@@ -241,7 +248,8 @@ let cons_of_call me loc grd (env, st) (lvo, fn, es) ns =
   let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
   let oast, ocst = Ctypes.prestore_split ost in
 
-  let cs1   = cons_of_call_params me loc grd env lsubs subs es args in 
+  let ecrs  = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
+  let cs1   = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) loc in 
   let cs2   = FI.make_cs_refstore env grd st   ist true  loc in
   let cs3   = FI.make_cs_refstore env grd oast st  false loc in
 
@@ -338,6 +346,32 @@ let cons_of_sci gnv sci shp =
   |> process_phis sci.ST.phis
   |> CF.get_cons
 
+(****************************************************************************)
+(********************** Constraints for Public Functions ********************)
+(****************************************************************************)
+
+(* Generate constraint: 0 |- rf <: rf' 
+ * where rf  = forall [...]. it/hi   -> ot/ho
+ *       rf' = forall [...]. it'/hi' -> ot'/ho'
+ *         0 |- it'/hi' <: it/hi
+ *   it',hi' |- ot/ho <: ot'/ho' *)
+
+let cons_of_refcfun gnv fn rf rf' loc = 
+  let it, it'     = Misc.map_pair FI.args_of_refcfun (rf, rf') in
+  let ocr, ocr'   = Misc.map_pair FI.ret_of_refcfun (rf, rf') in
+  let hi, ho      = FI.stores_of_refcfun rf in
+  let hi',ho'     = FI.stores_of_refcfun rf' in
+  let env         = it' |> List.map (Misc.app_fst FI.name_of_string)
+                        |> FI.ce_adds gnv in
+  let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
+  (* contravariant inputs *)
+     (cons_of_tuple env Ast.pTrue [] [] ircs' ircs loc)  
+  ++ (FI.make_cs_refstore env Ast.pTrue hi' hi true loc) 
+  (* covariant outputs *)
+  ++ (FI.make_cs env Ast.pTrue ocr ocr' loc)
+  ++ (FI.make_cs_refstore env Ast.pTrue ho ho' true loc)
+
+
 (***************************************************************************)
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
@@ -393,9 +427,13 @@ let rename_spec scim spec =
 (***************** Generate Constraints for each Function ***************************)
 (************************************************************************************)
 
-let cons_of_decs gnv decs =
-  List.fold_left begin fun (ws, cs) (fn, loc) -> 
-      ((FI.make_wfs_fn gnv (FI.ce_find_fn fn gnv) loc) ++ ws, cs)
+let cons_of_decs spec gnv decs =
+  List.fold_left begin fun (ws, cs) (fn, loc) ->
+    let irf    = FI.ce_find_fn fn gnv in
+    let ws'    = FI.make_wfs_fn gnv irf loc in
+    let srf, b = SM.find fn spec in
+    let cs'    = if b then cons_of_refcfun gnv fn irf srf loc else [] in    
+    (ws' ++ ws, cs' ++ cs)
   end ([], []) decs
 
 let cons_of_scis gnv scim shpm ci = 
@@ -440,6 +478,6 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let _        = E.log "DONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "DONE: Global Environment \n" in
-  cons_of_decs gnv decs 
+  cons_of_decs spec gnv decs 
   |> Misc.uncurry Consindex.create
   |> cons_of_scis gnv scim shm
