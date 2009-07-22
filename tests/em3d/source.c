@@ -37,7 +37,7 @@ node_t **make_table(int size )
   void *tmp ;
 
   {
-  tmp = malloc((unsigned int )size * sizeof(node_t *));
+  tmp = malloc(size);
   retval = (node_t **)tmp;
   if (retval == 0) {
       // printf((char const   * __restrict  )"Assertion failure\n");
@@ -58,16 +58,19 @@ void fill_table(node_t **table , int size )
   i = 0;
   while (i < size) {
     tmp = malloc(sizeof(node_t ));
+    validptr(table + i);
     *(table + i) = (node_t *)tmp;
     tmp___0 = nondet();
     (*(table + i))->value = (int )tmp___0;
     (*(table + i))->from_count = 0;
     if (i > 0) {
         ttmp = *(table + i);
+        validptr(table + i - 1);
         (*(table + (i - 1)))->next = ttmp;
     }
     i ++;
   }
+  validptr(table + size - 1);
   (*(table + (size - 1)))->next = (struct node_t *)((void *)0);
   return;
 }
@@ -83,7 +86,10 @@ void fill_from_fields(node_t *nodelist , int degree )
   while (cur_node) {
     j = 0;
     while (j < degree) {
+      validptr(cur_node->to_nodes + j);
+      // pmr: insanity here -- assert(0);
       other_node = *(cur_node->to_nodes + j);
+      validptr(other_node->from_nodes + other_node->from_count);
       *(other_node->from_nodes + other_node->from_count) = cur_node;
       (other_node->from_count) ++;
       j ++;
@@ -105,15 +111,17 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
   {
   cur_node = nodelist;
   while (cur_node) {
-    tmp = malloc((unsigned int )degree * sizeof(node_t *));
+    tmp = malloc(degree);
     cur_node->to_nodes = (node_t **)tmp;
     j = 0;
     while (j < degree) {
       while (1) {
         tmp___0 = gen_number(tablesz);
+        validptr(table + tmp___0);
         other_node = *(table + tmp___0);
         k = 0;
         while (k < j) {
+          validptr (cur_node->to_nodes + k);
           if ((unsigned int )other_node == (unsigned int )*(cur_node->to_nodes + k)) {
             break;
           }
@@ -123,6 +131,7 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
           break;
         }
       }
+      validptr(cur_node->to_nodes + j);
       *(cur_node->to_nodes + j) = other_node;
       (other_node->from_count) ++;
       j ++;
@@ -145,13 +154,14 @@ void update_from_coeffs(node_t *nodelist)
   cur_node = nodelist;
   while (cur_node) {
     from_count = cur_node->from_count;
-    tmp = malloc((unsigned int )from_count * sizeof(node_t *));
+    tmp = malloc(from_count);
     cur_node->from_nodes = (node_t **)tmp;
-    tmp___0 = malloc((unsigned int )from_count * sizeof(int ));
+    tmp___0 = malloc(from_count);
     cur_node->coeffs = (int *)tmp___0;
     k = 0;
     while (k < from_count) {
         tmp___1 = nondet();
+        validptr(cur_node->coeffs + k);
       *(cur_node->coeffs + k) = (int )tmp___1;
       k ++;
     }
@@ -204,7 +214,9 @@ void compute_nodes(node_t *nodelist )
   while (nodelist) {
     i = 0;
     while (i < nodelist->from_count) {
+      validptr(nodelist->from_nodes + i);
       other_node = *(nodelist->from_nodes + i);
+      validptr(nodelist->coeffs + i);
       coeff = *(nodelist->coeffs + i);
       value = other_node->value;
       nodelist->value = (int )(nodelist->value - coeff * value);

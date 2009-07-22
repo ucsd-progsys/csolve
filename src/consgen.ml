@@ -435,6 +435,7 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let spec     = rename_spec scim spec in
   let shm, cnv = shapem_of_scim spec scim in
   let _        = E.log "DONE: Shape Inference \n" in
+  let _        = if !Constants.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil in 
   let _        = E.log "DONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in

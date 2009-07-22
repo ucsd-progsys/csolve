@@ -29,6 +29,7 @@ let file: string option ref = ref None         (* last commandline param*)
 let safe                = ref false            (* -safe *)
 let save_file           = ref "out"            (* -save *)
 let dump_ref_constraints= ref false            (* -drconstr *)
+let ctypes_only         = ref false            (* -ctypes *)
 let ol_default          = 2
 let verbose_level       = ref ol_default       (* -v *)
 let latex_file: string option ref = ref None   (* translate to LaTeX file *)
@@ -56,6 +57,7 @@ let ol_solve_stats = 2
 let ol_timing = 2
 let ol_warn_mlqs = 3
 let ol_normalized = 3
+let ol_ctypes = 3
 let ol_dquals = 4 
 let ol_unique_names = 5 (* must be > ol_dquals *)
 let ol_solve = 10 
@@ -109,6 +111,9 @@ let arg_spec =
    ("-drconstr", 
     Arg.Set dump_ref_constraints, 
     "Dump refinement constraints [false]");
+   ("-ctypes",
+    Arg.Set ctypes_only,
+    "Infer ctypes only [false]");
    ("-safe", 
     Arg.Set safe, 
     "run in failsafe mode [false]");

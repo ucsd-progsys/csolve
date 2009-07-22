@@ -321,6 +321,27 @@ type ctvenv = ctypevar IM.t
 
 type cstremap = ctvemap * cstr list
 
+type shape =
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap;
+   store : Ctypes.store;
+   anna  : RA.block_annotation array;
+   theta : RA.ctab }
+
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape): unit =
+  let _ = P.printf "%s@!" fname in
+  let _ = P.printf "============@!@!" in
+  let _ = P.printf "Signature:@!" in
+  let _ = P.printf "----------@!@!" in
+  let _ = P.printf "%a@!@!" d_cfun cf in
+  let _ = P.printf "Locals:@!" in
+  let _ = P.printf "-------@!@!" in
+  let _ = P.printf "%a@!@!" d_vartypes locals in
+  let _ = P.printf "Store:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" d_store st in
+    ()
+
 (******************************************************************************)
 (**************************** Constraint Generation ***************************)
 (******************************************************************************)
@@ -562,13 +583,6 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
-type shape = 
-  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
-   etypm : Ctypes.ctemap; 
-   store : Ctypes.store; 
-   anna  : RA.block_annotation array;
-   theta : RA.ctab }
-
 let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cfgInfo): cstremap * RA.block_annotation array =
   let blocks = cfg.Ssa.blocks in
   let bas    = Array.make (Array.length blocks) [] in
@@ -582,10 +596,10 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cf
 
 exception Unified
 
-let match_slocs (ct1: ctype) (ct2: ctype): bool =
+let match_slocs (ct1: ctype) (ct2: ctype): unit =
   match (ct1, ct2) with
     | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; raise Unified
-    | _                                                    -> true
+    | _                                                    -> ()
 
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
   match_slocs atyp etyp;
@@ -646,11 +660,16 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
+  let shp                      =
     {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
      etypm = etypm;
      store = storesol_apply is ss;
      anna  = anna;
      theta = theta }
+  in
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp;
+    shp
 
+(* API *)
 let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t * ctypeenv =
   (scis |> SM.map (infer_shape env |> M.uncurry), env)
