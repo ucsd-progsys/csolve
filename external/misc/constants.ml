@@ -174,3 +174,11 @@ let arg_spec =
    )
   ]
 
+
+let is_prefix p s = 
+  let reg = Str.regexp p in
+  Str.string_match reg s 0
+
+let is_cil_tempvar s = 
+  Misc.is_prefix "__cil_tmp" s || 
+  Misc.is_prefix "tmp___" s 

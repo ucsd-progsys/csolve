@@ -9,17 +9,11 @@ inline boolean guards
 
 - [envprune]	
 	- nuke multiple SSA vars in env -- keep most recent
-	- nuke phi-names for cil_tmp
-	[fixpoint]
-	- create shadow, non-empty env with real bindings
-	- from pmapdistilled.c
+  
+  from pmapdistilled.c
 		mem_	= 58
 		cil_tmp = 340
 		tmp___  = 43
-
-- [spec]
-	- generate constraints using "public" signatures
-	
 
 ** MAJOR TODO **************************************************
 - [false]	em3d

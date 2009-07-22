@@ -42,6 +42,9 @@ let mk_ssa_name s = function
 
 let is_origcilvar = fun v -> not (String.contains v.Cil.vname '#')
 
+let is_ssa_renamable v =
+  not (v.vglob || Constants.is_cil_tempvar v.vname)
+
 (******************************* Printers *******************************)
 
 let lvars_to_string cfg lvs =
@@ -87,14 +90,19 @@ let mk_var_reg_maps () =
   ((fun () -> !n_r),
    (fun r  -> IH.find reg_var_m r), 
    (fun v  -> 
+     asserti (is_ssa_renamable v) "v2r: on non-renamable %s" v.vname;
      try IH.find var_reg_m v.vid with Not_found -> 
        let n = !n_r in
        let _ = incr n_r in
        let _ = IH.add reg_var_m n v in
        let _ = IH.add var_reg_m v.vid n in n))
 
+let vs_to_regs v2r vs = 
+  VS.fold begin fun v acc -> 
+    if is_ssa_renamable v then (v2r v) :: acc else acc
+  end vs []
+
 let proc_stmt cfg v2r s = 
-  let vs_to_regs vs = VS.fold (fun v acc -> (v2r v) :: acc) vs [] in
   cfg.S.successors.(s.sid)   <- List.map (fun s' -> s'.sid) s.succs;
   cfg.S.predecessors.(s.sid) <- List.map (fun s' -> s'.sid) s.preds;
   cfg.S.blocks.(s.sid)       <- 
@@ -108,7 +116,7 @@ let proc_stmt cfg v2r s =
           []
       | TryExcept _ | TryFinally _ -> 
           assert false in
-    let ins = List.map (fun (us,ds) -> (vs_to_regs ds, vs_to_regs us)) uds in
+    let ins = List.map (fun (us,ds) -> (vs_to_regs v2r ds, vs_to_regs v2r us)) uds in
     { S.bstmt     = s;
       S.instrlist = ins;
       S.livevars  = [];   (* set later *)
@@ -165,6 +173,7 @@ let out_name cfg out_t k =
     k k
 
 let mk_renamed_var fdec var_t v ri =
+  asserti (is_ssa_renamable v) "renaming non ssa-able var %s" v.vname;
   try H.find var_t (v.vname, ri) with Not_found ->
     let v' = 
       match ri with 
@@ -178,9 +187,7 @@ let mk_renamed_var fdec var_t v ri =
 let mk_phi fdec cfg out_t var_t r2v i preds r =
   let v    = Misc.do_catch "mk_phi" r2v r in
   let vphi = mk_renamed_var fdec var_t v (Phi i) in
-  (* let fml  = is_formal fdec v in *)
   preds |> List.map (fun j -> (j, out_name cfg out_t (j, r)))
-       (* |> List.map (function (_, Phi 0) -> fml | _ -> true) *) 
         |> List.map (fun (j, ri) -> (j, mk_renamed_var fdec var_t v ri)) 
         |> fun z -> (vphi, z)
 
@@ -193,8 +200,6 @@ let add_phis fdec cfg out_t var_t r2v i b =
       |> Misc.map_partial (fun (r,j) -> if i=j then Some r else None) (* filter the phi-vars *)
       |> Misc.map (mk_phi fdec cfg out_t var_t r2v i ps)              (* make phi-asgn *) 
 
-
-
 (*********************** ssa rename visitor *******************************)
 
 class ssaVisitor fdec cfg out_t var_t v2r = object(self)
@@ -202,9 +207,6 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
 
   val sid   = ref 0
   val theta = ref IM.empty
-
-  method private is_ssa_renamed v = 
-    not (v.vglob)
 
   method private init_theta i = 
     let b = cfg.S.blocks.(i) in  
@@ -228,7 +230,7 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
       ri'
 
   method private rename_var read v =
-    if not (self#is_ssa_renamed v) then v else
+    if not (is_ssa_renamable v) then v else
       try 
         self#get_regindex read v 
         |> mk_renamed_var fdec var_t v 

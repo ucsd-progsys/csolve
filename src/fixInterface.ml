@@ -358,7 +358,7 @@ let t_exp cenv ct e =
   refctype_of_reft_ctype r ct
 
 let t_name (_, vnv) n = 
-  asserts (YM.mem n vnv) "t_cilname: reading unbound var -- return false reft";
+  asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) ;
   let rct = YM.find n vnv in
   let so = rct |> reft_of_refctype |> C.sort_of_reft in
   let vv = Sy.value_variable so in

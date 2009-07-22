@@ -52,6 +52,9 @@ module Ops = struct
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
+  let asserti p fmt = 
+    Printf.ksprintf (fun x -> if not p then (print_string (x^"\n"); 0/0) else 0) fmt
+  
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
 
