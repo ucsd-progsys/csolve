@@ -27,7 +27,6 @@
 (************* Constraint Generation Infrastructure ****************)
 (*******************************************************************)
 
-module F  = Format
 module ST = Ssa_transform
 module IM = Misc.IntMap
 module SM = Misc.StringMap

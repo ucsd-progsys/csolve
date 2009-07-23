@@ -23,7 +23,6 @@
 
 (* This file is part of the liquidC Project.*)
 
-module F  = Format
 module E  = Errormsg
 module ST = Ssa_transform
 module FI = FixInterface 

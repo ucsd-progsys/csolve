@@ -27,7 +27,6 @@
 (******* Interface for converting from Cil to Fixpoint-Ast ******)
 (****************************************************************)
 
-module F  = Format
 module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate

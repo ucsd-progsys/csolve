@@ -27,7 +27,6 @@
 (************** Misc Operations on CIL entities *****************)
 (****************************************************************)
 
-module F  = Format
 open Cil
 open Misc.Ops
  
@@ -124,3 +123,11 @@ end
 (* API *)
 let stripcasts_of_lval = visitCilLval (new castStripVisitor)
 let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
+
+(******************************************************************************)
+(************************* Format to Pretty Conversion ************************)
+(******************************************************************************)
+
+(* API *)
+let doc_of_formatter f a =
+  Misc.fsprintf f a |> Pretty.text

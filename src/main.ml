@@ -120,14 +120,14 @@ let liquidate file =
   let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
-  let _     = Consindex.print (Some s') Format.std_formatter me in 
+  let _     = Pretty.printf "%a" (Consindex.print (Some s')) me in
   (cs' = [])
 
 let print_header () = 
-  Printf.printf " \n \n";
-  Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
-  Printf.printf "All Rights Reserved.\n"
+  Pretty.printf " \n \n";
+  Pretty.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
+  Pretty.printf "© Copyright 2009 Regents of the University of California.\n";
+  Pretty.printf "All Rights Reserved.\n"
 
 let mk_options () =
   let us = "Usage: liquidc <options> [source-file] \n options are:" in
@@ -142,10 +142,10 @@ let main () =
   let rv = liquidate f in 
   let _  = BS.print stdout "LiquidC Time \n" in
   if rv then begin
-    Format.printf "\nSAFE\n";
+    Pretty.printf "\nSAFE\n" |> ignore;
     exit 0
   end else begin
-    Format.printf "\nUNSAFE\n";
+    Pretty.printf "\nUNSAFE\n" |> ignore;
     exit 1
   end
 

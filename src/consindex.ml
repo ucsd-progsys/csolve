@@ -24,8 +24,9 @@
 (* This file is part of the liquidC Project.*)
 
 
-module  F = Format
+module  P = Pretty
 module  C = FixConstraint
+module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 
@@ -63,12 +64,15 @@ let find me fn =
 let iter me f = 
   SM.iter (fun fn _ -> f fn (find me fn)) me.scim
 
+let fold me f =
+  SM.fold (fun fn _ b -> f fn (find me fn) b) me.scim
+
 (* DOG SLOW *)
 let env_of_ws ws =
   let bs = 
   ws |> Misc.map C.env_of_wf 
      |> Misc.flap C.bindings_of_env in
-  let _ = Printf.printf "env_of_ws: BOO |ws| = %d, |bs| = %d \n" (List.length ws)
+  let _ = Pretty.printf "env_of_ws: BOO |ws| = %d, |bs| = %d \n" (List.length ws)
   (List.length bs) in 
    C.env_of_bindings bs
 
@@ -78,20 +82,22 @@ let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 (* API *)
 let get_cs  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []
 
+let (++) = P.concat
+
 (* API *)
-let print so ppf me = 
+let print so () me =
   match so with 
   | None -> (* print constraints *) 
-      iter me begin 
-        fun fn (_, wfs, cs) ->
-          F.fprintf ppf "Ref-Constraints for %s \n %a" 
-          fn (Misc.pprint_many true "\n" (C.print_t None)) cs;
-          F.fprintf ppf "WF-Constraints for %s \n %a"
-          fn (Misc.pprint_many true "\n" (C.print_wf None)) wfs
-      end
+      fold me begin
+        fun fn (_, wfs, cs) d ->
+          P.dprintf "Ref-Constraints for %s \n" fn ++
+          CM.doc_of_formatter (Misc.pprint_many true "\n" (C.print_t None)) cs ++
+          P.dprintf "WF-Constraints for %s \n" fn ++
+          CM.doc_of_formatter (Misc.pprint_many true "\n" (C.print_wf None)) wfs ++
+          d
+      end P.nil
   | Some _ -> (* print solution *)
-      get_wfs me 
-      |> env_of_ws 
-      |> F.printf "Liquid Types: \n%a" (C.print_env so)
-
-
+      get_wfs me
+   |> env_of_ws
+   |> CM.doc_of_formatter (C.print_env so)
+   |> P.concat (P.text "Liquid Types:\n\n")

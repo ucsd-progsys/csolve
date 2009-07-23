@@ -120,7 +120,7 @@ let binds_of_refldesc l rd =
   sloc_binds_of_refldesc l rd 
   |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
   |> List.map fst
-  (* |> List.map (fun (n,r) -> Printf.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r)) *)
+  (* |> List.map (fun (n,r) -> Pretty.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r)) *)
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 

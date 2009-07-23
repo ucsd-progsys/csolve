@@ -24,8 +24,8 @@ let print_ifs ifs =
 let print_gdoms gdoms =
   if mydebug then
     Array.iteri begin fun i (j, bo) -> 
-      Printf.printf "block i = %d, idom = %d, guard = %s \n" 
-      i j (Misc.o2s string_of_bool bo)
+      Pretty.printf "block i = %d, idom = %d, guard = %s \n"
+      i j (Misc.o2s string_of_bool bo) |> ignore
     end gdoms
 
 (****************************************************************)             

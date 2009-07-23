@@ -46,7 +46,7 @@ let cfun_spec_of_spec spec : Ctypes.cfun SM.t =
 let col_to_string = fun b -> if b then "public " else ""
 
 let print_spec sm = 
-  Format.printf "spec parsed: OK \n";
+  Pretty.printf "spec parsed: OK \n" |> ignore;
   SM.iter begin fun s (rft, b) -> 
     let ft = FI.cfun_of_refcfun rft in
     Errormsg.log "%s %s :: %a \n" (if b then "public " else "") s (Ctypes.d_precfun Ctypes.d_index) ft
