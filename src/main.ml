@@ -62,6 +62,7 @@ let cil_of_file fname =
   let _   = Psimplify.simplify cil;
             Pheapify.heapifyNonArrays := true;
             Pheapify.default_heapify cil;
+            Simpleret.simpleret cil;
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
             mk_cfg cil;

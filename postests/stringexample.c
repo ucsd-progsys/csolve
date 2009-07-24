@@ -44,8 +44,7 @@ string *new_string(int n, char c) {
 
     s      = (string *)malloc(sizeof(string));
     s->len = n;
-    str    = make_string(n);
-    s->str = str;
+    s->str = make_string(n);
 
     init_string(s, c);
     // assert(0); // Sanity
@@ -67,8 +66,7 @@ slist *new_strings(int n) {
     for (int i = 1; i < n; i++) {
         s      = (string *)malloc(sizeof(string));
         s->len = i;
-        str    = make_string(i); // sloc_of_ret ISSUE
-        s->str = str;
+        s->str = make_string(i);
 
         t       = (slist *)malloc(sizeof(slist));
         t->s    = s;
