@@ -166,7 +166,7 @@ void update_from_coeffs(node_t *nodelist)
   }
   return;
 }
-/*
+
 graph_t *initialize_graph(void)
 { int num_h_nodes ;
   int num_e_nodes ;
@@ -178,13 +178,12 @@ graph_t *initialize_graph(void)
 
   retval = (graph_t *)malloc(sizeof(graph_t));
 
-  {
   num_h_nodes = 666;
   num_e_nodes = 666;
   h_table = make_table(num_h_nodes);
-  fill_table(h_table, 666);
+  fill_table(666, h_table);
   e_table = make_table(num_e_nodes);
-  fill_table(e_table, 666);
+  fill_table(666, e_table);
   hl = *(h_table + 0);
   make_neighbors(hl, 666, e_table, 333);
   el = *(e_table + 0);
@@ -197,15 +196,13 @@ graph_t *initialize_graph(void)
   retval->h_nodes = hl;
   return (retval);
 }
-}
-*/
+
 void compute_nodes(node_t *nodelist )
 { int i ;
   node_t *other_node ;
   int coeff ;
   int value ;
 
-  {
   while (nodelist) {
     i = 0;
     while (i < nodelist->from_count) {
@@ -221,15 +218,14 @@ void compute_nodes(node_t *nodelist )
   }
   return;
 }
-}
-/*
+
 void main()
 { int i ;
   graph_t *graph ;
 
-  {
   graph = initialize_graph();
   graph = graph;
+  /*
   // print_graph(graph);
   i = 0;
   while (i < 100) {
@@ -240,6 +236,5 @@ void main()
     // print_graph(graph);
     i ++;
   }
+  */
 }
-}
-*/
