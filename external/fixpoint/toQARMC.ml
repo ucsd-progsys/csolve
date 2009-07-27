@@ -70,9 +70,9 @@ let rec expr_to_armc (e, _) =
 	Printf.sprintf "fld(%s, %s)" (expr_to_armc e) (symbol_to_armc s)
 and pred_to_armc (p, _) = 
   match p with
-    | Ast.True -> "1=1"
-    | Ast.False -> "0=1"
-    | Ast.Bexp e -> Printf.sprintf "%s = 1" (expr_to_armc e)
+    | Ast.True -> "true"
+    | Ast.False -> "false"
+    | Ast.Bexp e -> Printf.sprintf "bexp(%s)" (expr_to_armc e)
     | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
     | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
     | Ast.And [] -> "1=1"
