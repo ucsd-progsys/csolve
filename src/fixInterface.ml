@@ -192,12 +192,6 @@ let builtins    =
   [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
    (uf_bend, C.make_reft vv_ufs so_ufs [])]
 
-(* Added to lib.spec
-let builtins_fn = []
-  [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
-   ("nondet", mk_pure_cfun [] true_int)]
-*)
-
 (*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
