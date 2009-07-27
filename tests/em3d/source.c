@@ -225,7 +225,7 @@ void main()
 
   graph = initialize_graph();
   graph = graph;
-  /*
+
   // print_graph(graph);
   i = 0;
   while (i < 100) {
@@ -236,5 +236,4 @@ void main()
     // print_graph(graph);
     i ++;
   }
-  */
 }

@@ -75,12 +75,11 @@ update_from_coeffs <:
              A3 |-> true: int (4, true)]
 
 initialize_graph ::
-  forall    [A0; A1; A2; A3; A4]
+  forall    [A1; A2; A3; A4]
   arg       ()
   ret       ref (A4, 0, {v | true})
   store_in  []
-  store_out [A4 |-> 0: ref (A0, 0), 4: ref (A0, 0);
-             A0 |-> true: ref (A1, 0);
+  store_out [A4 |-> 0: ref (A1, 0), 4: ref (A1, 0);
              A1 |-> 0[24]: int (4, true), 4[24]: ref (A1, 0), 8[24]: int (4, true), 12[24]: ref (A2, 0), 16[24]: ref (A2, 0), 20[24]: ref (A3, 0);
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
