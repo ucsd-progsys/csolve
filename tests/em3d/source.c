@@ -55,19 +55,19 @@ void fill_table(int size, node_t **table)
   i = 0;
   while (i < size) {
       tmp = malloc(sizeof(node_t ));
-    // validptr(table + i);
+    validptr(table + i);
     *(table + i) = (node_t *)tmp;
     tmp___0 = nondet();
     (*(table + i))->value = (int )tmp___0;
     (*(table + i))->from_count = 0;
     if (i > 0) {
         ttmp = *(table + i);
-        // validptr(table + i - 1);
+        validptr(table + i - 1);
         (*(table + (i - 1)))->next = ttmp;
     }
     i ++;
   }
-  // validptr(table + size - 1);
+  validptr(table + size - 1);
   (*(table + (size - 1)))->next = (struct node_t *)((void *)0);
   return;
 }
@@ -111,12 +111,12 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
     while (j < degree) {
       while (1) {
         tmp___0 = gen_number(tablesz);
-        // validptr(table + tmp___0);
+        validptr(table + tmp___0);
         other_node = *(table + tmp___0);
         k = 0;
         while (k < j) {
           // pmr: annoyance, should be cur_node->to_nodes
-          // validptr (tmp + k);
+          validptr (tmp + k);
           if ((unsigned int )other_node == (unsigned int )*(cur_node->to_nodes + k)) {
             break;
           }
@@ -127,7 +127,7 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
         }
       }
       // pmr: annoyance, should be cur_node->to_nodes
-      // validptr(tmp + j);
+      validptr(tmp + j);
       *(cur_node->to_nodes + j) = other_node;
       (other_node->from_count) ++;
       j ++;
@@ -147,16 +147,19 @@ void update_from_coeffs(node_t *nodelist)
 
   cur_node = nodelist;
   while (cur_node) {
+      // pmr: manually expanded
+      from_count = cur_node->from_count;
     // pmr: requires modified malloc signature
-    tmp = malloc(cur_node->from_count);
+
+    tmp = malloc(from_count);
     cur_node->from_nodes = (node_t **)tmp;
-    tmp___0 = malloc(cur_node->from_count);
+    tmp___0 = malloc(from_count);
     cur_node->coeffs = (int *)tmp___0;
     k = 0;
     while (k < from_count) {
         tmp___1 = nondet();
         // pmr: annoyance of the same type
-        // validptr(tmp___0 + k);
+        validptr(tmp___0 + k);
       *(cur_node->coeffs + k) = (int )tmp___1;
       k ++;
     }
@@ -205,6 +208,7 @@ void compute_nodes(node_t *nodelist )
   while (nodelist) {
     i = 0;
     while (i < nodelist->from_count) {
+        // pmr: another case where dynamic checking seems inevitable?
         // validptr(nodelist->from_nodes + i);
       other_node = *(nodelist->from_nodes + i);
       // validptr(nodelist->coeffs + i);
