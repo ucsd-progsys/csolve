@@ -5,7 +5,7 @@ malloc ::
   store_in []
   store_out [C0 |-> ]
 
-gen_number <:
+gen_number ::
   forall    []
   arg       (range: int (4, true, {v | 0 < v}))
   ret       int (4, true, {v | && [0 <= v; v < range]})
@@ -13,7 +13,7 @@ gen_number <:
   store_out []
 
 // pmr: todo - fix store_in
-make_table <:
+make_table ::
   forall    [A0; A1; A2; A3]
   arg       (size: int (4, true, {v | 0 < v}))
   ret       ref (A0, 0, {v | && [0 < v; BLOCK_END([v]) = BLOCK_BEGIN([v]) + size; v = BLOCK_BEGIN([v])]})
@@ -26,7 +26,7 @@ make_table <:
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
 
-fill_table <:
+fill_table ::
   forall    [A0; A1; A2; A3]
   arg       (size: int (4, true, {v | 0 < v}), table: ref (A0, 0, {v | && [0 < v; BLOCK_END([v]) = BLOCK_BEGIN([v]) + size; v = BLOCK_BEGIN([v])]}))
   ret       int (0, true)
@@ -39,7 +39,7 @@ fill_table <:
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
 
-fill_from_fields <:
+fill_from_fields ::
   forall    [A1; A2; A3]
   arg       (nodelist: ref (A1, 0), degree: int (4, true, {v | v = 333}))
   ret       int (0, true)
@@ -50,7 +50,7 @@ fill_from_fields <:
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
 
-make_neighbors <:
+make_neighbors ::
   forall    [A0; A1; A2; A3]
   arg       (nodelist: ref (A1, 0), tablesz: int (4, true, {v | 0 < v}), table: ref (A0, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); BLOCK_END([v]) = v + tablesz]}), degree: int (4, true, {v | v = 333}))
   ret       int (0, true)
@@ -63,7 +63,7 @@ make_neighbors <:
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
 
-update_from_coeffs <:
+update_from_coeffs ::
   forall    [A1; A2; A3]
   arg       (nodelist: ref (A1, 0))
   ret       int (0, true, {v | true})
@@ -84,7 +84,7 @@ initialize_graph ::
              A2 |-> true: ref (A1, 0[24]);
              A3 |-> true: int (4, true)]
 
-compute_nodes <:
+compute_nodes ::
   forall    [A1; A2; A3]
   arg       (nodelist: ref (A1, 0))
   ret       int (0, true)
