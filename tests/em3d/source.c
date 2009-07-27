@@ -82,6 +82,9 @@ void fill_from_fields(node_t *nodelist , int degree )
   while (cur_node) {
     j = 0;
     while (j < degree) {
+        // pmr: For to_nodes, we only know
+        //   to_nodes = 0 || (0 < to_nodes && to_nodes = BLOCK_BEGIN(to_nodes) && BLOCK_END(to_nodes) = BLOCK_BEGIN(to_nodes) + 333)
+        // But this does does not check that to_nodes is not null
         // validptr(cur_node->to_nodes + j);
       other_node = *(cur_node->to_nodes + j);
       // pmr: Surrender to dynamic checking here --- this requires serious smarts!
