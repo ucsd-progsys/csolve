@@ -1,5 +1,6 @@
 (* translation to Q'ARMC *)
 
+
 module C  = FixConstraint
 module Co = Constants 
 module StrMap = Map.Make (struct type t = string let compare = compare end)
@@ -28,7 +29,7 @@ type kv_scope = {
 
 let sanitize_symbol s = 
   Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" |>
-      Str.global_replace (Str.regexp "\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
+      Str.global_replace (Str.regexp "\\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
 
 let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
 
@@ -74,11 +75,14 @@ and pred_to_armc (p, _) =
     | Ast.False -> "false"
     | Ast.Bexp e -> Printf.sprintf "bexp(%s)" (expr_to_armc e)
     | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
-    | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
-    | Ast.And [] -> "1=1"
+    | Ast.Imp (p1, p2) -> Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
+    | Ast.And [] -> "true"
     | Ast.And [p] -> pred_to_armc p
+    | Ast.And [Ast.Imp ((Ast.Bexp e1, _) as p, p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp e2, _)), _] when e1 = e2 && p1 = p2 -> 
+	Printf.sprintf "bexp_def(%s, %s)" (pred_to_armc p) (pred_to_armc p1)
     | Ast.And (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
-    | Ast.Or [] -> "0=1"
+    | Ast.Or [] -> "false"
     | Ast.Or [p] -> pred_to_armc p
     | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
     | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) ->
@@ -236,6 +240,9 @@ let t_to_armc state t =
 			| C.Conc p -> p::ps', kvs'
 			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
 		   ) ([], []) (C.ras_of_reft rhs) in
+    Printf.printf "Guard support %s: %s\n" 
+      (Ast.Predicate.to_string grd) 
+      (Ast.Predicate.support grd |> List.map Ast.Symbol.to_string |> String.concat ", ");
     (if ps <> [] then
        [mk_rule error_pc annot_guards [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)] tag]
      else 
