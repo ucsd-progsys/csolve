@@ -206,12 +206,12 @@ void compute_nodes(node_t *nodelist )
   while (nodelist) {
     i = 0;
     while (i < nodelist->from_count) {
-        /* validptr(nodelist->from_nodes + i);
+      validptr(nodelist->from_nodes + i);
       other_node = *(nodelist->from_nodes + i);
       validptr(nodelist->coeffs + i);
       coeff = *(nodelist->coeffs + i);
       value = other_node->value;
-      nodelist->value = (int )(nodelist->value - coeff * value); */
+      nodelist->value = (int )(nodelist->value - coeff * value);
       i ++;
     }
     nodelist = nodelist->next;
