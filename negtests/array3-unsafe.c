@@ -6,7 +6,7 @@ void main(){
   int i;
   int z;
 
-  y = (int *) malloc(100);
+  y = (int *) malloc(100 * sizeof(int));
   
   x = y;
   i = 0;

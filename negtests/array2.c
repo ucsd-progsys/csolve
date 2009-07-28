@@ -4,7 +4,7 @@ void main(){
   int *x;
   int i;
 
-  x = (int *) malloc(100);
+  x = (int *) malloc(100 * sizeof(int));
   
   i = 0;
   

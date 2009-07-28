@@ -34,7 +34,7 @@ node_t **make_table(int size )
   void *tmp ;
 
   {
-  tmp = malloc(size);
+      tmp = malloc(size * sizeof(node_t *));
   retval = (node_t **)tmp;
   if (retval == 0) {
       // printf((char const   * __restrict  )"Assertion failure\n");
@@ -108,7 +108,7 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
 
   cur_node = nodelist;
   while (cur_node) {
-      tmp = malloc(degree);
+      tmp = malloc(degree * sizeof(node_t *));
     cur_node->to_nodes = (node_t **)tmp;
     j = 0;
     while (j < degree) {
@@ -154,9 +154,9 @@ void update_from_coeffs(node_t *nodelist)
       from_count = cur_node->from_count;
     // pmr: requires modified malloc signature
 
-    tmp = malloc(from_count);
+      tmp = malloc(from_count * sizeof(node_t *));
     cur_node->from_nodes = (node_t **)tmp;
-    tmp___0 = malloc(from_count);
+    tmp___0 = malloc(from_count * sizeof(node_t *));
     cur_node->coeffs = (int *)tmp___0;
     k = 0;
     while (k < from_count) {

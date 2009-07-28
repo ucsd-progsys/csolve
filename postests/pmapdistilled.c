@@ -94,7 +94,7 @@ void mem_check(env_t **envs, int pages[], int page_protected[])
 
     envs = envs; // THETA ISSUE
 
-    lpages = (int *)malloc(1000);
+    lpages = (int *)malloc(1000 * sizeof(int));
 
     for (i = 0; i < 1000; i++){
         validptr(lpages + i);
@@ -275,8 +275,8 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     int p;
     int vp, vp2;
 
-    pages = (int *) malloc(1000);
-    page_protected = (int *) malloc(1000);
+    pages = (int *) malloc(1000 * sizeof(int));
+    page_protected = (int *) malloc(1000 * sizeof(int));
     for (i = 0; i < 1000; i++){
       validptr(pages + i);
       pages[i] = 0;

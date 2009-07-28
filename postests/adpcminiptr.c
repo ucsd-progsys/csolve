@@ -12,8 +12,8 @@ int adpcm_coder()
   n = nondetpos(); 
   nsamples = 2*n;
 
-  inp  = (int *)malloc(nsamples);
-  outp = (int *)malloc(n);
+  inp  = (int *)malloc(nsamples * sizeof(int));
+  outp = (int *)malloc(n * sizeof(int));
 
 
   bufferstep = 1;
@@ -60,8 +60,8 @@ int adpcm_decoder()
   n = nondetpos(); 
   nsamples = 2*n;
 
-  inp  = (int *)malloc(n);
-  outp = (int *)malloc(nsamples);
+  inp  = (int *)malloc(n * sizeof(int));
+  outp = (int *)malloc(nsamples * sizeof(int));
   
   bufferstep = 0;
   

@@ -131,3 +131,15 @@ let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
 (* API *)
 let doc_of_formatter f a =
   Misc.fsprintf f a |> Pretty.text
+
+(******************************************************************************)
+(***************************** Type Maniupulation *****************************)
+(******************************************************************************)
+
+let bytesSizeOf t =
+  Cil.bitsSizeOf t / 8
+
+let ptrRefType = function
+  | TPtr (t, _)      -> t
+  | TArray (t, _, _) -> t
+  | _                -> failwith "ptrRefType called with non-pointer argument"

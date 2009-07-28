@@ -284,15 +284,15 @@ adpcm_decoder(int nsample, char indata[], short outdata[], struct adpcm_state *s
 void main() {
   int n, nsamples;
 
-  int *inp;
-  int *outp;
+  short *inp;
+  char *outp;
   struct adpcm_state *state;
 
   n = nondetpos();
   nsamples = 2*n;
 
-  inp   = (int *)malloc(nsamples);
-  outp  = (int *)malloc(n);
+  inp   = (int *)malloc(nsamples * sizeof(short));
+  outp  = (char *)malloc(n * sizeof(char));
   state = (struct adpcm_state *)malloc(sizeof(struct adpcm_state));
 
   adpcm_coder(nsamples, inp, outp, state);
