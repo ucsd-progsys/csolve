@@ -20,6 +20,16 @@ let sloctable = Hashtbl.create 17
 let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
+let mk_spec fn public qslocs args ist ret ost =
+  let _ = Hashtbl.clear sloctable in
+  let rcf = FI.mk_refcfun qslocs args ist ret ost in
+    if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
+      (fn, rcf, public)
+    else begin
+      Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
+      raise Parse_error
+    end
+
 %}
 
 %token DIV 
@@ -30,7 +40,7 @@ let mk_sloc id sty =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
-%token ARG RET INST OUTST
+%token ARG RET ST INST OUTST
 %token TRUE FALSE
 %token EOF
 %token PLUS
@@ -58,14 +68,15 @@ spec:
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      let _ = Hashtbl.clear sloctable in
-      let rcf = FI.mk_refcfun $4 $6 $10 $8 $12 in
-        if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-          ($1, rcf, $2)
-        else begin
-          Format.printf "Error: %s has ill-formed spec\n\n" $1 |> ignore;
-          raise Parse_error
-        end
+      mk_spec $1 $2 $4 $6 $10 $8 $12
+    }
+  | Id publ
+    FORALL slocs
+    ARG    argbinds
+    RET    reftype
+    ST     refstore
+    {
+      mk_spec $1 $2 $4 $6 $10 $8 $10
     }
     ;
 
