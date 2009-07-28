@@ -34,6 +34,7 @@ let support_of_env sol env =
        in
 	 List.fold_left (fun sup' sym -> Sy.SSet.add sym sup') sup syms
     ) env Sy.SSet.empty
+
  
 
 let armc_true = "true"
@@ -61,6 +62,36 @@ let symbol_to_armc s = Sy.to_string s |> sanitize_symbol
 let mk_data_var ?(suffix = "") kv v = 
   Printf.sprintf "_%s_%s%s%s" 
     (sanitize_symbol v) (sanitize_symbol kv) (if suffix = "" then "" else "_") suffix
+
+(* Andrey: WARNING apply this function only on predicates extracted from refts inside env.
+   Otherwise unsound. *)
+(*
+let rec partition_env_pred_defs state ((p, _) as pred) = 
+  match p with
+    | Ast.Atom (Ast.Var v, Ast.Eq, e) -> Ast.pTrue, [(v, e)]
+    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
+	Ast.pTrue, [], [(v1, ]
+    | Ast.And preds -> 
+	let preds', defs = List.map partition_env_pred_defs preds |> List.split in
+	  (Ast.pAnd preds'), defs
+    | _ -> pred, []
+*)
+(*    | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) -> *)
+  
+(*
+let defs_of_env state env = 
+  Sy.SMap.fold 
+    (fun ksym reft defs ->
+       let vv = C.vv_of_reft reft in
+       let kv = Ast.eVar ksym in
+       let defs' = C.preds_of_reft state.sol reft |>
+	   List.map (fun p -> P.subst p vv kv) |> List.filter (fun p -> not(pred_is_true p)) |>
+	       List.map (defs_of_pred state) |> List.flatten
+       in
+	 defs' ++ defs
+    ) env []
+*)
 
 let constant_to_armc = Ast.Constant.to_string
 let bop_to_armc = function 
@@ -160,7 +191,13 @@ let mk_kv_scope out ts wfs sol =
     List.fold_left 
       (fun m (subs, kvar) ->
 	 let v = symbol_to_armc kvar in
-	 let scope = List.map fst subs |> List.map symbol_to_armc |> strlist_to_strset in
+	 let scope = 
+	   List.filter (fun (v, (e, _)) -> 
+			  match e with
+			    | Ast.Var v' -> v <> v'
+			    | _ -> true
+		       ) subs |> 
+	       List.map fst |> List.map symbol_to_armc |> strlist_to_strset in
 	 let scope' = try StrMap.find v m with Not_found -> StrSet.empty in
 	   StrMap.add v (StrSet.union scope scope') m
       ) StrMap.empty (List.map C.kvars_of_t ts |> List.flatten) in
@@ -269,6 +306,7 @@ let t_to_armc state t =
   let rhs_s = C.reft_to_string rhs in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
+(*   let defs = defs_of_env state env in *)
   let annot_guards = 
     Misc.map_partial
       (fun (bv, reft) ->
