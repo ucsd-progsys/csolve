@@ -9,6 +9,8 @@ module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
 open Misc.Ops
 
+let strlist_to_strset = List.fold_left (fun s x -> StrSet.add x s) StrSet.empty
+
 (* Andrey: TODO move to ast.ml? *)
 let pred_is_atomic (p, _) =
   match p with
@@ -100,6 +102,8 @@ and pred_to_armc ((p, _) as pred) =
       | Ast.True -> armc_true
       | Ast.False -> armc_false
       | Ast.Bexp e -> Printf.sprintf "bexp(%s)" (expr_to_armc e)
+      | Ast.Not (Ast.True, _) -> armc_false
+      | Ast.Not (Ast.False, _) -> armc_true
       | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
       | Ast.Imp (p1, p2) -> Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
       | Ast.And [] -> armc_true
@@ -107,7 +111,8 @@ and pred_to_armc ((p, _) as pred) =
       | Ast.And [Ast.Imp ((Ast.Bexp e1, _) as p, p1), _; 
 		 Ast.Imp (p2, (Ast.Bexp e2, _)), _] when e1 = e2 && p1 = p2 -> 
 	  Printf.sprintf "bexp_def(%s, %s)" (pred_to_armc p) (pred_to_armc p1)
-      | Ast.And (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
+      | Ast.And (_::_ as ps) -> 
+	  Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
       | Ast.Or [] -> armc_false
       | Ast.Or [p] -> pred_to_armc p
       | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
@@ -127,41 +132,44 @@ and pred_to_armc ((p, _) as pred) =
 
 
 let mk_kv_scope out ts wfs sol =
-  output_string out "% kv -> scope:\n";
+(* Andrey: obsolete code
   let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
       List.map symbol_to_armc |> (* (fun s -> Printf.sprintf "k%s" (symbol_to_armc s)) |> *)
 	  Misc.sort_and_compact in
   let kv_scope_wf =
     List.fold_left
       (fun m wf ->
-	   match C.reft_of_wf wf |> C.ras_of_reft with
-	     | [C.Kvar([], kvar)] ->
-		 let v = symbol_to_armc kvar in
-		 let scope = 
-		   val_vname ::
-		     (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc |> 
-			  List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
-		   Printf.fprintf out "%% %s -> %s\n"
-		     v (String.concat ", " scope);
-		   StrMap.add v scope m
-	     | _ -> m
-		 (* Andrey: TODO handle ill-formed wf *)
-(*		 Format.printf "%a" (C.print_wf None) wf;
-		 failure "ERROR: kname_scope_map: ill-formed wf"
-*)
+	 match C.reft_of_wf wf |> C.ras_of_reft with
+	   | [C.Kvar([], kvar)] ->
+	       let v = symbol_to_armc kvar in
+	       let scope = 
+		 val_vname ::
+		   (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc |> 
+			List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
+		 Printf.fprintf out "%% %s -> %s\n"
+		   v (String.concat ", " scope);
+		 StrMap.add v scope m
+	   | _ -> m
+	       (* Andrey: TODO handle ill-formed wf *)
+	       (*		 Format.printf "%a" (C.print_wf None) wf;
+				 failure "ERROR: kname_scope_map: ill-formed wf"
+	       *)
       ) StrMap.empty wfs in
-(* TODO continue here 
-  let kv_scope_t =
-    List.fold_left (fun m t ->
-		      let kvs = C.kvars_of_t t 
-		      (List.map (fun (subs, sym) -> 
-		   Printf.sprintf "%s(%s)"
-		     (Sy.to_string sym)
-		     (List.map fst subs |> List.map Sy.to_string |> String.concat ", ")
-		)  (C.kvars_of_t t )
-      )
 *)
-    {kvs = kvs; kv_scope = kv_scope_wf; sol = sol}
+  let kv_scope_t =
+    List.fold_left 
+      (fun m (subs, kvar) ->
+	 let v = symbol_to_armc kvar in
+	 let scope = List.map fst subs |> List.map symbol_to_armc |> strlist_to_strset in
+	 let scope' = try StrMap.find v m with Not_found -> StrSet.empty in
+	   StrMap.add v (StrSet.union scope scope') m
+      ) StrMap.empty (List.map C.kvars_of_t ts |> List.flatten) in
+  let kv_scope = 
+    StrMap.map (fun scope -> val_vname :: (StrSet.elements scope |> List.sort compare)) kv_scope_t in
+  let kvs = StrMap.fold (fun kv _ kvs -> kv :: kvs) kv_scope [] in
+    StrMap.iter (fun kv scope ->
+    		 Printf.fprintf out "%% %s -> %s\n" kv (String.concat ", " scope)) kv_scope;
+    {kvs = kvs; kv_scope = kv_scope; sol = sol}
 
 let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
   Printf.sprintf "[%s]"
@@ -170,7 +178,7 @@ let mk_data ?(suffix = "") ?(skip_kvs = []) s =
 	  try 
 	    StrMap.find kv s.kv_scope |> 
 		List.map (mk_data_var ~suffix:(if List.mem kv skip_kvs then "" else suffix) kv)
-	  with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
+	  with Not_found -> failure "ERROR: mk_data: scope not found for %s" kv
        ) s.kvs |> List.flatten |> String.concat ", ")
 
 let mk_query ?(suffix = "") s kv = 
@@ -190,7 +198,7 @@ let mk_var2names state =
     ) state.kvs |> String.concat "\n"
 
 let mk_skip_update state kvs = 
-  if kvs = [] then "1=1" else
+  if kvs = [] then armc_true else
     List.map
       (fun kv ->
 	 List.map 
@@ -214,13 +222,13 @@ let split_scope scope =
 let reft_to_armc ?(noquery = false) ?(suffix = "") state reft = 
   let vv = C.vv_of_reft reft |> symbol_to_armc in
   let rs = C.ras_of_reft reft in
-    if rs = [] then "1=1" else
+    if rs = [] then armc_true else
       List.map
 	(function
 	   | C.Conc pred -> pred_to_armc pred
 	   | C.Kvar (subs, sym) -> 
 	       if Sy.SMap.mem sym state.sol && Sy.SMap.find sym state.sol = [] then 
-		 "1=1"  (* skip true *)
+		 armc_true  (* skip true *)
 	       else
 		 let subs_map = List.fold_left
 		   (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
@@ -251,7 +259,7 @@ let mk_rule head annot_guards annot_updates id =
       "
 hc(%s, [%s  %s).
 " 
-      head (annot_guards @ annot_updates |> annot_conj_to_armc) id
+      head (annot_guards @ annot_updates |> List.filter (fun (g, _) -> g <> armc_true) |> annot_conj_to_armc) id
 
 let t_to_armc state t = 
   let env = C.env_of_t t in
@@ -278,6 +286,7 @@ let t_to_armc state t =
 			| C.Conc p -> p::ps', kvs'
 			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
 		   ) ([], []) (C.ras_of_reft rhs) in
+(* Andrey: obsolete code
   let env_sup = support_of_env state.sol env |> Sy.SSet.elements in
     Printf.printf "Rule %s\n" tag;
     Printf.printf "Env support #%d: %s\n" 
@@ -285,7 +294,7 @@ let t_to_armc state t =
     Printf.printf "Guard support %s: %s\n" 
       (P.to_string grd) 
       (P.support grd |> List.map Sy.to_string |> String.concat ", ");
-    
+*)    
     (if ps <> [] then
        [mk_rule error_pc annot_guards [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)] tag]
      else 
