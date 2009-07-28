@@ -71,6 +71,7 @@ let cil_of_file fname =
 
 let add_quals quals fname =
     try
+      let _ = Errorline.startFile fname in
       let qs =
         fname
         |> open_in 
@@ -91,6 +92,7 @@ let quals_of_file fname =
 
 let add_spec spec fname =
   let _ = E.log "Parsing spec: %s \n" fname in
+  let _ = Errorline.startFile fname in
   try
     open_in fname
     |> Lexing.from_channel
