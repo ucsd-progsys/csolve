@@ -44,6 +44,19 @@ let name_of_sloc_ploc l p =
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
+(******************************************************************************)
+(***************************** Tags and Locations *****************************)
+(******************************************************************************)
+
+let (fresh_tag, loc_of_tag) =
+  let tbl     = Hashtbl.create 17 in
+  let fint, _ = Misc.mk_int_factory () in
+    ((fun loc ->
+        let t = fint () in
+          Hashtbl.add tbl t loc;
+          t),
+     (fun t -> Hashtbl.find tbl t))
+
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
@@ -421,7 +434,7 @@ let refstore_subs_locs lsubs sto =
 let make_wfs cenv rct loc =
   let env = env_of_cilenv cenv in
   let r   = reft_of_refctype rct in
-  [C.make_wf env r None]
+  [C.make_wf env r (Some (fresh_tag loc))]
 
 let make_wfs_refstore env sto loc =
   SLM.fold begin fun l rd ws ->
@@ -445,7 +458,7 @@ let make_wfs_fn cenv rft loc =
 let rec make_cs cenv p rct1 rct2 loc =
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-  [C.make_t env p r1 r2 None]
+  [C.make_t env p r1 r2 (Some (fresh_tag loc))]
 
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) loc =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in

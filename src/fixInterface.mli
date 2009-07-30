@@ -77,3 +77,5 @@ val make_cs_refldesc    : cilenv -> Ast.pred ->
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
                           Cil.location -> FixConstraint.t list
+
+val loc_of_tag          : FixConstraint.tag -> Cil.location

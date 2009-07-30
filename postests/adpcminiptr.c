@@ -29,7 +29,7 @@ int adpcm_coder()
     validptr(inp);
     *inp = 0;
     inp++;
-    
+
     if (bufferstep == 0){
       validptr(outp);
       *outp = 0;

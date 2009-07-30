@@ -107,6 +107,14 @@ let spec_of_file fname =
   |> List.map (fun s -> s^".spec")
   |> List.fold_left add_spec SM.empty
 
+let print_unsat_locs s ucs =
+  List.iter begin fun c ->
+    P.printf "\nUnsatisfied at %a:\n\n%a\n"
+      Cil.d_loc (c |> FixConstraint.id_of_t |> FixInterface.loc_of_tag)
+      (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
+    |> ignore
+  end ucs
+
 let liquidate file =
   let cil   = BS.time "Parse: source" cil_of_file file in
   let _     = E.log "DONE: cil parsing \n" in
@@ -123,14 +131,15 @@ let liquidate file =
   let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
-  let _     = Pretty.printf "%a" (Consindex.print (Some s')) me in
+  let _     = P.printf "%a\n" (Consindex.print (Some s')) me in
+  let _     = print_unsat_locs s' cs' in
   (cs' = [])
 
 let print_header () = 
-  Pretty.printf " \n \n";
-  Pretty.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  Pretty.printf "© Copyright 2009 Regents of the University of California.\n";
-  Pretty.printf "All Rights Reserved.\n"
+  P.printf " \n \n";
+  P.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
+  P.printf "© Copyright 2009 Regents of the University of California.\n";
+  P.printf "All Rights Reserved.\n"
 
 let mk_options () =
   let us = "Usage: liquidc <options> [source-file] \n options are:" in
@@ -145,10 +154,10 @@ let main () =
   let rv = liquidate f in 
   let _  = BS.print stdout "LiquidC Time \n" in
   if rv then begin
-    Pretty.printf "\nSAFE\n" |> ignore;
+    P.printf "\nSAFE\n" |> ignore;
     exit 0
   end else begin
-    Pretty.printf "\nUNSAFE\n" |> ignore;
+    P.printf "\nUNSAFE\n" |> ignore;
     exit 1
   end
 
