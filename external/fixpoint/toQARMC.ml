@@ -53,6 +53,14 @@ type kv_scope = {
   sol : Ast.pred list Sy.SMap.t;
 }
 
+type horn_clause = {
+  body_pred : Ast.pred;
+  body_kvars : (C.subs * Sy.t) list;
+  head_pred : Ast.pred;
+  head_kvars : (C.subs * Sy.t) list;
+  tag : string;
+}
+
 let sanitize_symbol s = 
   Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" |>
       Str.global_replace (Str.regexp "\\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
@@ -65,20 +73,21 @@ let mk_data_var ?(suffix = "") kv v =
 
 (* Andrey: WARNING apply this function only on predicates extracted from refts inside env.
    Otherwise unsound. *)
-(*
-let rec partition_env_pred_defs state ((p, _) as pred) = 
+let rec partition_env_pred_defs state edefs pdefs ((p, _) as pred) = 
   match p with
-    | Ast.Atom (Ast.Var v, Ast.Eq, e) -> Ast.pTrue, [(v, e)]
+    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Ast.pTrue, Sy.SMap.add v e edefs, pdefs
     | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
 	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
-	Ast.pTrue, [], [(v1, ]
+	Ast.pTrue, edefs, Sy.SMap.add v1 p1 pdefs
     | Ast.And preds -> 
-	let preds', defs = List.map partition_env_pred_defs preds |> List.split in
-	  (Ast.pAnd preds'), defs
-    | _ -> pred, []
-*)
-(*    | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) -> *)
-  
+	let preds', edefs', pdefs' = List.fold_left 
+	  (fun (preds_sofar, edefs_sofar, pdefs_sofar) p ->
+	     let p'', edefs'', pdefs'' = partition_env_pred_defs state edefs_sofar pdefs_sofar p in
+	       p'' :: preds_sofar, edefs'', pdefs''
+	  ) ([], edefs, pdefs) preds in
+	  (Ast.pAnd preds'), edefs', pdefs'
+    | _ -> pred, edefs, pdefs
+	
 (*
 let defs_of_env state env = 
   Sy.SMap.fold 
@@ -298,6 +307,32 @@ hc(%s, [%s  %s).
 " 
       head (annot_guards @ annot_updates |> List.filter (fun (g, _) -> g <> armc_true) |> annot_conj_to_armc) id
 
+let preds_kvars_of_reft reft =
+  List.fold_left 
+    (fun (ps, ks) r ->
+       match r with
+	 | C.Conc p -> p :: ps, ks
+	 | C.Kvar (subs, kvar) -> ps, (subs, kvar) :: ks
+    ) ([], []) (C.ras_of_reft reft)
+
+let t_to_horn_clause t =
+  let lhs_ps, lhs_ks = C.lhs_of_t t |> preds_kvars_of_reft in
+  let body_ps, body_ks = 
+    Sy.SMap.fold 
+      (fun bv reft (ps, ks) -> 
+	 let ps', ks' = preds_kvars_of_reft (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft) in
+	   List.rev_append ps' ps, List.rev_append ks' ks
+      ) (C.env_of_t t) (C.grd_of_t t :: lhs_ps, lhs_ks) in
+  let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in
+    {
+      body_pred = Ast.pAnd body_ps; 
+      body_kvars = head_ks; 
+      head_pred = Ast.pAnd head_ps;
+      head_kvars = head_ks;
+      tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t)
+    }
+
+    
 let t_to_armc state t = 
   let env = C.env_of_t t in
   let grd = C.grd_of_t t in
