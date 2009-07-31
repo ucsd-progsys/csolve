@@ -497,7 +497,10 @@ module Predicate =
         
       let is_tauto  = function
         | Atom(e1, Eq, e2), _ -> e1 == e2
-        | True,_              -> true
+	| Imp (p1, p2), _ -> 
+	    (* matching (p -> p) && (p -> p)) *)
+	    p1 == p2
+        | True, _              -> true
         | _                   -> false
 
     end

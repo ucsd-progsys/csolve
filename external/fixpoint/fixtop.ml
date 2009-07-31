@@ -87,11 +87,11 @@ let main () =
 	| None -> ()
     end;
     begin
-      match !Co.qarmc_file with
+      match !Co.hc_armc_file with
 	| Some f -> 
 	    let out = open_out f in
 	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
-	      ToQARMC.to_qarmc out cs ws sol;
+	      ToHC.to_hc_armc out cs ws sol;
 	      close_out out
 	| None -> ()
     end;

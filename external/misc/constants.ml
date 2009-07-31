@@ -34,7 +34,7 @@ let ol_default          = 2
 let verbose_level       = ref ol_default       (* -v *)
 let latex_file: string option ref = ref None   (* translate to LaTeX file *)
 let armc_file: string option ref  = ref None   (* translate to ARMC file *)
-let qarmc_file: string option ref = ref None   (* translate to QARMC file *)
+let hc_armc_file: string option ref = ref None   (* translate to HC'ARMC file *)
 let dot_file: string option ref  = ref None   (* translate to dot file *)
 let purify_function_application   = ref true  (* replace function terms by existentially quantified variables *)
 (* JHALA: what do these do ? *)
@@ -148,16 +148,16 @@ let arg_spec =
 		      print_endline "-armc: invalid parameter"
 		    else
 		      armc_file := Some s),
-    "translates constraints to ARMC file"
+    "translate constraints to ARMC file"
    );
-   ("-qarmc", 
+   ("-hcarmc", 
     Arg.String (fun s -> 
 		  let l = String.length s in
 		    if l = 0 then
-		      print_endline "-qarmc: invalid parameter"
+		      print_endline "-hcarmc: invalid parameter"
 		    else
-		      qarmc_file := Some s),
-    "translates constraints to QARMC file"
+		      hc_armc_file := Some s),
+    "translate constraints to HC'ARMC file"
    );
    ("-dot", 
     Arg.String (fun s -> 
@@ -166,7 +166,7 @@ let arg_spec =
 		      print_endline "-dot: invalid parameter"
 		    else
 		      dot_file := Some s),
-    "translates constraints to dot file"
+    "translate constraints to dot file"
    );
    ("-keepuif", 
     Arg.Clear purify_function_application,
