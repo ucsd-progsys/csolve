@@ -5,6 +5,7 @@ module C  = FixConstraint
 module Co = Constants 
 module Sy = Ast.Symbol
 module P = Ast.Predicate
+module E = Ast.Expression
 module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
 open Misc.Ops
@@ -20,7 +21,7 @@ let pred_is_atomic (p, _) =
 let pred_is_true (p, _) = 
   match p with 
     | Ast.True -> true
-    | Ast.Atom (e1, Ast.Eq, e2) -> Ast.Expression.to_string e1 = Ast.Expression.to_string e2 
+    | Ast.Atom (e1, Ast.Eq, e2) -> E.to_string e1 = E.to_string e2 
     | _ -> false
 
 let neg_brel = function 
@@ -47,13 +48,14 @@ let rec push_neg ?(neg=false) ((p, _) as pred) =
     | Ast.Or ps -> List.map (push_neg ~neg:neg) ps |> if neg then Ast.pAnd else Ast.pOr
     | Ast.Atom (e1, brel, e2) -> if neg then Ast.pAtom (e1, neg_brel brel, e2) else pred
 
-let rec simplify_pred ((p, _) as pred) =
+(* Andrey: TODO flatten nested conjunctions/disjunctions *)
+let rec simplify_tauto ((p, _) as pred) =
   match p with
-    | Ast.Not p -> Ast.pNot (simplify_pred p)
-    | Ast.Imp (p, q) -> Ast.pImp (simplify_pred p, simplify_pred q) 
-    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_pred p)
+    | Ast.Not p -> Ast.pNot (simplify_tauto p)
+    | Ast.Imp (p, q) -> Ast.pImp (simplify_tauto p, simplify_tauto q) 
+    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_tauto p)
     | Ast.And ps -> 
-	let ps' = List.map simplify_pred ps |> List.filter (fun p -> not(P.is_tauto p)) in
+	let ps' = List.map simplify_tauto ps |> List.filter (fun p -> not(P.is_tauto p)) in
 	  if List.mem Ast.pFalse ps' then Ast.pFalse else
 	    begin
 	      match ps' with
@@ -62,7 +64,7 @@ let rec simplify_pred ((p, _) as pred) =
 		| _ :: _ -> Ast.pAnd ps'
 	    end
     | Ast.Or ps -> 
-	let ps' = List.map simplify_pred ps in
+	let ps' = List.map simplify_tauto ps in
 	  if List.exists P.is_tauto ps' then Ast.pTrue else 
 	    begin
 	      match ps' with
@@ -86,6 +88,22 @@ let rec partition_pred_defs edefs pdefs ((p, _) as pred) =
 	  ) ([], edefs, pdefs) preds in
 	  (Ast.pAnd preds'), edefs', pdefs'
     | _ -> pred, edefs, pdefs
+
+let rec defs_of_pred edefs pdefs (p, _) = 
+  match p with
+    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Sy.SMap.add v e edefs, pdefs
+    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
+	edefs, Sy.SMap.add v1 p1 pdefs
+    | Ast.And preds -> 
+	let edefs', pdefs' = List.fold_left 
+	  (fun (edefs_sofar, pdefs_sofar) p ->
+	     let edefs'', pdefs'' = defs_of_pred edefs_sofar pdefs_sofar p in
+	       edefs'', pdefs''
+	  ) (edefs, pdefs) preds in
+	  edefs', pdefs'
+    | _ -> edefs, pdefs
+
 
 let some_def_applied = ref false
 let rec expr_apply_defs edefs pdefs ((e, _) as expr) = 
@@ -143,6 +161,8 @@ and pred_apply_defs edefs pdefs ((p, _) as pred) =
 	| Ast.Imp (p, q) -> Ast.pImp (pred_apply_defs edefs pdefs p, pred_apply_defs edefs pdefs q)
 	| Ast.Bexp (Ast.Var v, _) ->
 	    begin
+	      Printf.printf "Applying on Bexp: %s\n" (P.to_string pred);
+	      (* Andrey: TODO also consider edefs *)
 	      try
 		let pred' = Sy.SMap.find v pdefs in
 		  some_def_applied := true;
@@ -455,18 +475,35 @@ let t_to_horn_clause t =
       ) (C.env_of_t t) (C.grd_of_t t :: lhs_ps, lhs_ks) in
   let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in
     {
-      body_pred = Ast.pAnd body_ps |> simplify_pred; 
+      body_pred = Ast.pAnd body_ps |> simplify_tauto; 
       body_kvars = body_ks; 
-      head_pred = Ast.pAnd head_ps |> simplify_pred;
+      head_pred = Ast.pAnd head_ps |> simplify_tauto;
       head_kvars = head_ks;
       tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t)
     }
 
 let simplify_horn_clause hc = 
+  let body_edefs, body_pdefs = defs_of_pred Sy.SMap.empty Sy.SMap.empty hc.body_pred in
+  let edefs, pdefs = defs_of_pred body_edefs body_pdefs hc.head_pred in
+    Sy.SMap.iter (fun v e ->
+		    Printf.printf "edefs: %s -> %s\n" (Sy.to_string v) (E.to_string e)
+		 ) edefs;
+    Sy.SMap.iter (fun v p ->
+		    Printf.printf "pdefs: %s -> %s\n" (Sy.to_string v) (P.to_string p)
+		 ) pdefs;
+    {
+      body_pred = pred_apply_defs edefs pdefs hc.body_pred |> simplify_tauto; 
+      body_kvars = hc.body_kvars; (* Andrey: TODO apply on subs?! *)
+      head_pred = pred_apply_defs edefs pdefs hc.head_pred |> simplify_tauto;
+      head_kvars = hc.head_kvars; (* Andrey: TODO apply on subs?! *)
+      tag = hc.tag
+    }
+
+let old_simplify_horn_clause hc = 
   let body_pred, body_edefs, body_pdefs = partition_pred_defs Sy.SMap.empty Sy.SMap.empty hc.body_pred in
   let head_pred, edefs, pdefs = partition_pred_defs body_edefs body_pdefs hc.head_pred in
     Sy.SMap.iter (fun v e ->
-		    Printf.printf "edefs: %s -> %s\n" (Sy.to_string v) (Ast.Expression.to_string e)
+		    Printf.printf "edefs: %s -> %s\n" (Sy.to_string v) (E.to_string e)
 		 ) edefs;
     Sy.SMap.iter (fun v p ->
 		    Printf.printf "pdefs: %s -> %s\n" (Sy.to_string v) (P.to_string p)
@@ -484,9 +521,9 @@ let print_horn_clause hc =
   let hc = simplify_horn_clause hc in
   Printf.printf "%s: %s, %s <- %s, #%d %s\n"
     hc.tag 
-    (push_neg hc.head_pred |> simplify_pred |> P.to_string)
+    (push_neg hc.head_pred |> simplify_tauto |> P.to_string)
     (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.head_kvars |> String.concat ", ")
-    (push_neg hc.body_pred |> simplify_pred |> P.to_string)
+    (push_neg hc.body_pred |> simplify_tauto |> P.to_string)
     (List.length hc.body_kvars)
     (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.body_kvars |> String.concat ", ")
 
