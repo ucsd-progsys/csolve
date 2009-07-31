@@ -23,6 +23,152 @@ let pred_is_true (p, _) =
     | Ast.Atom (e1, Ast.Eq, e2) -> Ast.Expression.to_string e1 = Ast.Expression.to_string e2 
     | _ -> false
 
+let neg_brel = function 
+  | Ast.Eq -> Ast.Ne
+  | Ast.Ne -> Ast.Eq
+  | Ast.Gt -> Ast.Le
+  | Ast.Ge -> Ast.Lt
+  | Ast.Lt -> Ast.Ge
+  | Ast.Le -> Ast.Gt
+
+let rec push_neg ?(neg=false) ((p, _) as pred) =
+  match p with
+    | Ast.True -> if neg then Ast.pFalse else pred
+    | Ast.False -> if neg then Ast.pTrue else pred
+    | Ast.Bexp _ -> if neg then Ast.pNot pred else pred
+    | Ast.Not p -> push_neg ~neg:(not neg) p
+    | Ast.Imp (p, q) -> 
+	if neg then Ast.pAnd [push_neg p; push_neg ~neg:true q]
+	else Ast.pImp (push_neg p, push_neg q)
+    | Ast.Forall (qs, p) -> 
+	let pred' = Ast.pForall (qs, push_neg ~neg:false p) in
+	  if neg then Ast.pNot pred' else pred'
+    | Ast.And ps -> List.map (push_neg ~neg:neg) ps |> if neg then Ast.pOr else Ast.pAnd
+    | Ast.Or ps -> List.map (push_neg ~neg:neg) ps |> if neg then Ast.pAnd else Ast.pOr
+    | Ast.Atom (e1, brel, e2) -> if neg then Ast.pAtom (e1, neg_brel brel, e2) else pred
+
+let rec simplify_pred ((p, _) as pred) =
+  match p with
+    | Ast.Not p -> Ast.pNot (simplify_pred p)
+    | Ast.Imp (p, q) -> Ast.pImp (simplify_pred p, simplify_pred q) 
+    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_pred p)
+    | Ast.And ps -> 
+	let ps' = List.map simplify_pred ps |> List.filter (fun p -> not(P.is_tauto p)) in
+	  if List.mem Ast.pFalse ps' then Ast.pFalse else
+	    begin
+	      match ps' with
+		| [] -> Ast.pTrue
+		| [p'] -> p'
+		| _ :: _ -> Ast.pAnd ps'
+	    end
+    | Ast.Or ps -> 
+	let ps' = List.map simplify_pred ps in
+	  if List.exists P.is_tauto ps' then Ast.pTrue else 
+	    begin
+	      match ps' with
+		| [] -> Ast.pFalse
+		| [p'] -> p'
+		| _ :: _ -> Ast.pOr ps'
+	    end
+    | _ -> pred
+
+let rec partition_pred_defs edefs pdefs ((p, _) as pred) = 
+  match p with
+    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Ast.pTrue, Sy.SMap.add v e edefs, pdefs
+    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
+	Ast.pTrue, edefs, Sy.SMap.add v1 p1 pdefs
+    | Ast.And preds -> 
+	let preds', edefs', pdefs' = List.fold_left 
+	  (fun (preds_sofar, edefs_sofar, pdefs_sofar) p ->
+	     let p'', edefs'', pdefs'' = partition_pred_defs edefs_sofar pdefs_sofar p in
+	       p'' :: preds_sofar, edefs'', pdefs''
+	  ) ([], edefs, pdefs) preds in
+	  (Ast.pAnd preds'), edefs', pdefs'
+    | _ -> pred, edefs, pdefs
+
+let some_def_applied = ref false
+let rec expr_apply_defs edefs pdefs ((e, _) as expr) = 
+  let current_some_def_applied = !some_def_applied in
+    some_def_applied := false;
+    let expr'' =
+      match e with
+	| Ast.Con _ -> expr
+	| Ast.Var v -> 
+	    begin
+	      try
+		let expr' = Sy.SMap.find v edefs in
+		  some_def_applied := true;
+		  expr'
+	      with Not_found -> expr
+	    end
+	| Ast.App (v, es) -> 
+	    let edefs' = Sy.SMap.remove v edefs in
+	      Ast.eApp (v, List.map (expr_apply_defs edefs' pdefs) es)
+	| Ast.Bin (e1, op, e2) -> 
+	    Ast.eBin (expr_apply_defs edefs pdefs e1, op, expr_apply_defs edefs pdefs e2)
+	| Ast.Ite (p, e1, e2) -> 
+	    Ast.eIte (pred_apply_defs edefs pdefs p, 
+		      expr_apply_defs edefs pdefs e1,
+		      expr_apply_defs edefs pdefs e2)
+	| Ast.Fld (v, e) -> 
+	    let v' = 
+	      try
+		match Sy.SMap.find v edefs with
+		  | (Ast.Var v'', _) -> 
+		      some_def_applied := true;
+		      v''
+		  | _ -> v
+	      with Not_found -> v
+	    in
+	      Ast.eFld (v', expr_apply_defs edefs pdefs e)
+    in
+      if !some_def_applied then
+	let expr''' = expr_apply_defs edefs pdefs expr'' in
+	  some_def_applied := current_some_def_applied;
+	  expr'''
+      else
+	begin
+	  some_def_applied := current_some_def_applied;
+	  expr''
+	end
+and pred_apply_defs edefs pdefs ((p, _) as pred) =
+  let current_some_def_applied = !some_def_applied in
+    some_def_applied := false;
+    let pred'' =
+      match p with
+	| Ast.And ps -> List.map (pred_apply_defs edefs pdefs) ps |> Ast.pAnd
+	| Ast.Or ps -> List.map (pred_apply_defs edefs pdefs) ps |> Ast.pOr
+	| Ast.Not p -> pred_apply_defs edefs pdefs p |> Ast.pNot
+	| Ast.Imp (p, q) -> Ast.pImp (pred_apply_defs edefs pdefs p, pred_apply_defs edefs pdefs q)
+	| Ast.Bexp (Ast.Var v, _) ->
+	    begin
+	      try
+		let pred' = Sy.SMap.find v pdefs in
+		  some_def_applied := true;
+		  pred'
+	      with Not_found -> pred
+	    end
+	| Ast.Atom (e1, brel, e2) ->
+	    Ast.pAtom (expr_apply_defs edefs pdefs e1, brel, expr_apply_defs edefs pdefs e2)
+	| Ast.Forall (qs, p) ->
+	    let vs = List.map fst qs in
+	    let edefs' = List.fold_left (fun defs v -> Sy.SMap.remove v defs) edefs vs in
+	    let pdefs' = List.fold_left (fun defs v -> Sy.SMap.remove v defs) pdefs vs in
+	      Ast.pForall (qs, pred_apply_defs edefs' pdefs' p)
+	| _ -> pred
+    in
+      if !some_def_applied then
+	let pred''' = pred_apply_defs edefs pdefs pred'' in
+	  some_def_applied := current_some_def_applied;
+	  pred'''
+      else 
+	begin
+	  some_def_applied := current_some_def_applied;
+	  pred''
+	end
+      
+
 let support_of_env sol env =
   Sy.SMap.fold
     (fun ksym reft sup -> 
@@ -35,7 +181,7 @@ let support_of_env sol env =
 	 List.fold_left (fun sup' sym -> Sy.SSet.add sym sup') sup syms
     ) env Sy.SSet.empty
 
- 
+
 
 let armc_true = "true"
 let armc_false = "false"
@@ -71,22 +217,6 @@ let mk_data_var ?(suffix = "") kv v =
   Printf.sprintf "_%s_%s%s%s" 
     (sanitize_symbol v) (sanitize_symbol kv) (if suffix = "" then "" else "_") suffix
 
-(* Andrey: WARNING apply this function only on predicates extracted from refts inside env.
-   Otherwise unsound. *)
-let rec partition_env_pred_defs state edefs pdefs ((p, _) as pred) = 
-  match p with
-    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Ast.pTrue, Sy.SMap.add v e edefs, pdefs
-    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
-	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
-	Ast.pTrue, edefs, Sy.SMap.add v1 p1 pdefs
-    | Ast.And preds -> 
-	let preds', edefs', pdefs' = List.fold_left 
-	  (fun (preds_sofar, edefs_sofar, pdefs_sofar) p ->
-	     let p'', edefs'', pdefs'' = partition_env_pred_defs state edefs_sofar pdefs_sofar p in
-	       p'' :: preds_sofar, edefs'', pdefs''
-	  ) ([], edefs, pdefs) preds in
-	  (Ast.pAnd preds'), edefs', pdefs'
-    | _ -> pred, edefs, pdefs
 	
 (*
 let defs_of_env state env = 
@@ -325,15 +455,44 @@ let t_to_horn_clause t =
       ) (C.env_of_t t) (C.grd_of_t t :: lhs_ps, lhs_ks) in
   let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in
     {
-      body_pred = Ast.pAnd body_ps; 
-      body_kvars = head_ks; 
-      head_pred = Ast.pAnd head_ps;
+      body_pred = Ast.pAnd body_ps |> simplify_pred; 
+      body_kvars = body_ks; 
+      head_pred = Ast.pAnd head_ps |> simplify_pred;
       head_kvars = head_ks;
       tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t)
     }
 
+let simplify_horn_clause hc = 
+  let body_pred, body_edefs, body_pdefs = partition_pred_defs Sy.SMap.empty Sy.SMap.empty hc.body_pred in
+  let head_pred, edefs, pdefs = partition_pred_defs body_edefs body_pdefs hc.head_pred in
+    Sy.SMap.iter (fun v e ->
+		    Printf.printf "edefs: %s -> %s\n" (Sy.to_string v) (Ast.Expression.to_string e)
+		 ) edefs;
+    Sy.SMap.iter (fun v p ->
+		    Printf.printf "pdefs: %s -> %s\n" (Sy.to_string v) (P.to_string p)
+		 ) pdefs;
+    {
+      body_pred = pred_apply_defs edefs pdefs body_pred; 
+      body_kvars = hc.body_kvars; (* Andrey: TODO apply on subs?! *)
+      head_pred = pred_apply_defs edefs pdefs head_pred;
+      head_kvars = hc.head_kvars; (* Andrey: TODO apply on subs?! *)
+      tag = hc.tag
+    }
+
+
+let print_horn_clause hc = 
+  let hc = simplify_horn_clause hc in
+  Printf.printf "%s: %s, %s <- %s, #%d %s\n"
+    hc.tag 
+    (push_neg hc.head_pred |> simplify_pred |> P.to_string)
+    (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.head_kvars |> String.concat ", ")
+    (push_neg hc.body_pred |> simplify_pred |> P.to_string)
+    (List.length hc.body_kvars)
+    (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.body_kvars |> String.concat ", ")
+
     
 let t_to_armc state t = 
+  t_to_horn_clause t |> print_horn_clause;
   let env = C.env_of_t t in
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
