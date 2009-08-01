@@ -64,8 +64,6 @@ let stat_matches        = ref 0
 (************************** Refinement *************************)
 (***************************************************************)
 
-
-
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
       C.sol_read s k |> 
@@ -122,13 +120,28 @@ let unsat_constraints me s =
 (************************ Debugging/Stats **********************)
 (***************************************************************)
 
+let key_of_quals qs = 
+  qs |> List.map P.to_string 
+     |> List.sort compare
+     |> String.concat ","
+
+let dump_solution_cluster s = 
+   s |> Sy.sm_to_list 
+     |> List.map snd 
+     |> Misc.groupby key_of_quals
+     |> List.map begin fun (ps::_ as pss) -> 
+         Co.cprintf Co.ol_solve_stats "SolnCluster: preds %d = size %d \n"
+           (List.length ps) (List.length pss)
+        end
+
 let print_solution_stats ppf s = 
-  let (sum, max, min) =   
-      (SM.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
-       SM.fold (fun _ qs x -> max x (List.length qs)) s min_int,
-       SM.fold (fun _ qs x -> min x (List.length qs)) s max_int) in
+  let (sum, max, min, bot) =   
+    (SM.fold (fun _ qs x -> (+) x (List.length qs)) s 0,
+     SM.fold (fun _ qs x -> max x (List.length qs)) s min_int,
+     SM.fold (fun _ qs x -> min x (List.length qs)) s max_int,
+     SM.fold (fun _ qs x -> x + (if List.exists P.is_contra qs then 1 else 0)) s 0) in
   let avg = (float_of_int sum) /. (float_of_int (Sy.sm_length s)) in
-  F.fprintf ppf "# variables   = %d \n" (Sy.sm_length s);
+  F.fprintf ppf "# Vars: Total=%d, False=%d \n" (Sy.sm_length s) bot;
   F.fprintf ppf "# Quals: Total=%d, Avg=%f, Max=%d, Min=%d \n" sum avg max min
 
 let print_solver_stats ppf me = 
@@ -146,8 +159,8 @@ let print_solver_stats ppf me =
 
 let dump me s = 
   Co.cprintf Co.ol_solve_stats "%a \n" print_solver_stats me;
-  Co.cprintf Co.ol_solve_stats "%a \n" print_solution_stats s
-
+  Co.cprintf Co.ol_solve_stats "%a \n" print_solution_stats s;
+  dump_solution_cluster s
 
 (***************************************************************)
 (******************** Qualifier Instantiation ******************)
@@ -258,8 +271,8 @@ let solve me (s : C.soln) =
 let create ts sm ps cs ws qs =
   let tpc = TP.create ts sm ps in
   let cs  = C.validate cs in
-  let sri = BS.time "Making ref index" Ci.create cs in
-  let s   = inst ws qs SM.empty in
+  let sri = BS.time "Ref index" Ci.create cs in
+  let s   = BS.time "Qual inst" (inst ws qs) SM.empty in
   let _   = Co.bprintf mydebug "%a" C.print_soln s in 
   ({ tpc = tpc; sri = sri; ws = ws}, s)
 

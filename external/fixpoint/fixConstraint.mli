@@ -29,7 +29,7 @@ type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
 type envt = reft Ast.Symbol.SMap.t
 
 type t  (* Do not expose, ever! *) 
-type wf (* Ditto                *)
+type wf (* Do not expose, ever! *)
 
 type soln = Ast.pred list Ast.Symbol.SMap.t
 

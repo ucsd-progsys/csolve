@@ -39,7 +39,7 @@ module IM = Misc.IntMap
 module C  = FixConstraint
 open Misc.Ops
 
-let mydebug = true
+let mydebug = false 
 
 (***************************************************************)
 (******************** Constraint Validation ********************)
@@ -72,9 +72,9 @@ let validate s sri =
        let lhs  = C.lhs_of_t c in
        let rhs  = C.rhs_of_t c in
        try 
-         SM.iter (validate_binding s env msg) env;
-         validate_reft s env (" LHS "^msg) lhs;
-         validate_reft s env (" RHS "^msg) rhs;
+         BS.time "valid binds" (SM.iter (validate_binding s env msg)) env;
+         BS.time "valid lhs" (validate_reft s env (" LHS "^msg)) lhs;
+         BS.time "valid rhs" (validate_reft s env (" RHS "^msg)) rhs;
          true
        with Out_of_scope _ -> false
      end 
@@ -127,18 +127,38 @@ let profile_cstr im c =
   end (C.env_of_t c) (0,0,0,0)
   |> fun pfl -> IM.add (C.id_of_t c) pfl im
 
-
 let dump_profile im =
-  if mydebug then 
-    let (tsz, tcsz, tksz, tesz) = 
-      IM.fold begin fun i (sz, csz, ksz, esz) (tsz, tcsz, tksz, tesz) -> 
-        Format.printf "ctag %d: binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" i sz csz ksz esz;
-        (tsz + sz, tcsz + csz, tksz + ksz, tesz + esz)
-      end im (0,0,0,0) in
-    Format.printf "Total binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" tsz tcsz tksz tesz
+  let (tsz, tcsz, tksz, tesz) = 
+    IM.fold begin fun i (sz, csz, ksz, esz) (tsz, tcsz, tksz, tesz) -> 
+      Co.cprintf Co.ol_solve
+        "ctag %d: binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" 
+         i sz csz ksz esz;
+      (tsz + sz, tcsz + csz, tksz + ksz, tesz + esz)
+    end im (0,0,0,0) in
+  Co.cprintf Co.ol_solve_stats 
+    "Total binds=%d, cbinds=%d, kbinds=%d, ebinds=%d \n" 
+    tsz tcsz tksz tesz
 
-let profile sri = 
+let profile1 sri = 
   sri |> Cindex.to_list
       |> List.fold_left profile_cstr IM.empty
       |> dump_profile
+
+let key_of_cstr c = 
+  c |> C.env_of_t 
+    |> C.bindings_of_env 
+    |> List.map fst 
+    |> List.map Sy.to_string 
+    |> List.sort compare 
+    |> String.concat "," 
+
+let profile2 sri =
+  sri |> Cindex.to_list
+      |> Misc.groupby key_of_cstr 
+      |> List.length
+      |> fun n -> Co.cprintf Co.ol_solve_stats "Constraint Clusters = %d \n" n
+
+let profile sri = 
+  profile1 sri;
+  profile2 sri
 

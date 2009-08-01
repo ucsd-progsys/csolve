@@ -53,6 +53,8 @@ module Symbol :
     val print : Format.formatter -> t -> unit
     val value_variable : Sort.t -> t
     val sm_length : 'a SMap.t -> int
+    val sm_filter : (t -> 'a -> bool) -> 'a SMap.t -> 'a SMap.t
+    val sm_to_list : 'a SMap.t -> (t * 'a) list
   end
 
 module Constant :

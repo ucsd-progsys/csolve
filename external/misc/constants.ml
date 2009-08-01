@@ -181,4 +181,5 @@ let is_prefix p s =
 
 let is_cil_tempvar s = 
   Misc.is_prefix "__cil_tmp" s || 
-  Misc.is_prefix "tmp___" s 
+  Misc.is_prefix "tmp___" s ||
+  Misc.is_prefix "mem_" s

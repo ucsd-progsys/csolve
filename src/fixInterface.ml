@@ -9,7 +9,7 @@ module CI  = CilInterface
 
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
-(* module  T  = Ctypes *)
+module Co  = Constants
 module SLM = Sloc.SlocMap
 
 open Misc.Ops
@@ -419,13 +419,15 @@ let refstore_subs_locs lsubs sto =
     rv
   end sto lsubs
 
-
-
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
+
+let non_tmp = fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not 
+
 let make_wfs cenv rct loc =
-  let env = env_of_cilenv cenv in
+  let env = env_of_cilenv cenv 
+            |> Ast.Symbol.sm_filter non_tmp in
   let r   = reft_of_refctype rct in
   [C.make_wf env r None]
 

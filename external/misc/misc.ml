@@ -49,6 +49,7 @@ module Ops = struct
 
   let un = fun x -> ()
 
+  let (<.>) f g  = fun x -> f (g x)
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
@@ -69,6 +70,7 @@ module Ops = struct
     print_string s; 
     flush stdout
 
+  let (<.>) f g = fun x -> f (g x) 
 (*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
@@ -566,8 +568,13 @@ let join f xs ys =
 let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
   let t        = Hashtbl.create 17 in
   let lookup x = try Hashtbl.find t x with Not_found -> [] in
-    List.iter (fun x -> Hashtbl.replace t (f x) (x :: lookup (f x))) xs;
-    List.map List.rev (Hashtbl.fold (fun _ xs xxs -> xs :: xxs) t [])
+  (* build table *)
+  List.iter begin fun x -> 
+    Hashtbl.replace t (f x) (x :: lookup (f x))
+  end xs;
+  (* build cluster *)
+  Hashtbl.fold (fun _ xs xxs -> xs :: xxs) t []
+  |> List.map List.rev 
 
 let exists_pair (f: 'a -> 'a -> bool) (xs: 'a list): bool =
   fst (List.fold_left (fun (b, ys) x -> (b || List.exists (f x) ys, x :: ys)) (false, []) xs)
@@ -656,6 +663,7 @@ let transpose x_iys_s =
     end iys
   end x_iys_s; 
   hashtbl_keys t |> List.map (fun i -> (i, Hashtbl.find_all t i))
+
 
 
 

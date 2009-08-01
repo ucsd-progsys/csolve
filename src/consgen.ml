@@ -337,9 +337,9 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci shp =
-  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-  let _ = Pretty.printf "%a\n" Refanno.d_ctab shp.Inferctypes.theta in 
-  let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
+(* let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
+   let _ = Pretty.printf "%a\n" Refanno.d_ctab shp.Inferctypes.theta in 
+   let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in *)
   CF.create gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
@@ -468,15 +468,15 @@ let scim_of_file cil =
 (* API *)
 let create cil (spec: (FI.refcfun * bool) SM.t) =
   let scim     = scim_of_file cil in
-  let _        = E.log "DONE: SSA conversion \n" in
+  let _        = E.log "\nDONE: SSA conversion \n" in
   let spec     = rename_spec scim spec in
   let shm, cnv = shapem_of_scim spec scim in
-  let _        = E.log "DONE: Shape Inference \n" in
+  let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil in 
-  let _        = E.log "DONE: Gathering Decs \n" in
+  let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
-  let _        = E.log "DONE: Global Environment \n" in
+  let _        = E.log "\nDONE: Global Environment \n" in
   cons_of_decs spec gnv decs 
   |> Misc.uncurry Consindex.create
   |> cons_of_scis gnv scim shm

@@ -102,7 +102,14 @@ module Symbol =
     let sm_length m = 
       SMap.fold (fun _ _ i -> i+1) m 0
 
+    let sm_filter f sm = 
+      SMap.fold begin fun x y sm -> 
+        if f x y then SMap.add x y sm else sm 
+    end sm SMap.empty 
 
+    let sm_to_list sm =
+      SMap.fold (fun x y acc -> (x,y)::acc) sm []
+  
   end
 
 module Constant =
