@@ -427,29 +427,25 @@ let print_horn_clause hc =
     (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.body_kvars |> String.concat ", ")
 
 
-let kvar_to_armc ?(suffix = "") state (subs, sym) = ""
-(*
+let kvar_to_armc ?(suffix = "") state (subs, sym) = 
   let subs_map = List.fold_left (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
   let find_subst v default = try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
   let kv = symbol_to_armc sym in
-  let value, data = StrMap.find kv state.kv_scope |> split_scope in
-    Printf.sprintf "%s, %s = %s" 
-      (mk_query ~suffix:suffix state kv)
-      (mk_data_var ~suffix:suffix kv value) 
-      (find_subst vv (mk_data_var exists_kv vv)) 
+  let scope = StrMap.find kv state.kv_scope in
+    Printf.sprintf "%s" (mk_query ~suffix:suffix state kv)
     :: List.map
       (fun v -> 
-	 Printf.sprintf "%s = %s"
-	   (mk_data_var ~suffix:suffix kv v)
-	   (find_subst v (mk_data_var exists_kv v))
-      ) data |> String.concat ", "
-*)
+	 Printf.sprintf "%s = %s" (mk_data_var ~suffix:suffix kv v) (find_subst v (mk_data_var exists_kv v))
+      ) scope |> String.concat ", "
+
 let hc_to_armc state hc =
   let body = pred_to_armc hc.body_pred :: List.map (kvar_to_armc state) hc.body_kvars |> String.concat ", " in
-    ()
+    body
     
 let t_to_armc state t = 
-  t_to_horn_clause t |> simplify_horn_clause |> print_horn_clause;
+  let hc = t_to_horn_clause t |> simplify_horn_clause in 
+  print_horn_clause hc; 
+  Printf.printf "hc: %s\n" (hc_to_armc state hc);
   let env = C.env_of_t t in
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
