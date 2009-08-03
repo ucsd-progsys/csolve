@@ -12,13 +12,6 @@ open Misc.Ops
 
 let strlist_to_strset = List.fold_left (fun s x -> StrSet.add x s) StrSet.empty
 
-
-let pred_is_true (p, _) = 
-  match p with 
-    | Ast.True -> true
-    | Ast.Atom (e1, Ast.Eq, e2) -> E.to_string e1 = E.to_string e2 
-    | _ -> false
-
 let neg_brel = function 
   | Ast.Eq -> Ast.Ne
   | Ast.Ne -> Ast.Eq
@@ -171,10 +164,16 @@ and pred_apply_defs edefs pdefs ((p, _) as pred) =
 	  some_def_applied := current_some_def_applied;
 	  pred''
 	end
-      
 
+let kvar_apply_defs edefs pdefs (subs, sym) = 
+  List.map (fun (s, e) -> s, expr_apply_defs edefs pdefs e) subs, sym
+
+let armc_true = "1=1"
+let armc_false = "0=1"
+(*
 let armc_true = "true"
 let armc_false = "false"
+*)
 let loop_pc = "loop"
 let start_pc = "start"
 let error_pc = "error"
@@ -269,12 +268,12 @@ and pred_to_armc (p, _) =
             (List.map bind_to_armc qs |> String.concat ", ") 
 	    (pred_to_armc p)
 
-
+(* Andrey: TODO pull variables from guards into scope *)
 let mk_kv_scope out ts wfs sol =
   let kv_scope_t =
     List.fold_left 
-      (fun m (subs, kvar) ->
-	 let v = symbol_to_armc kvar in
+      (fun m (subs, sym) ->
+	 let kv = symbol_to_armc sym in
 	 let scope = 
 	   List.filter (fun (v, (e, _)) -> 
 			  match e with
@@ -282,8 +281,8 @@ let mk_kv_scope out ts wfs sol =
 			    | _ -> true
 		       ) subs |> 
 	       List.map fst |> List.map symbol_to_armc |> strlist_to_strset in
-	 let scope' = try StrMap.find v m with Not_found -> StrSet.empty in
-	   StrMap.add v (StrSet.union scope scope') m
+	 let scope' = try StrMap.find kv m with Not_found -> StrSet.empty in
+	   StrMap.add kv (StrSet.union scope scope') m
       ) StrMap.empty (List.map C.kvars_of_t ts |> List.flatten) in
   let kv_scope = 
     StrMap.map (fun scope -> val_vname :: (StrSet.elements scope |> List.sort compare)) kv_scope_t in
@@ -291,20 +290,6 @@ let mk_kv_scope out ts wfs sol =
     StrMap.iter (fun kv scope ->
     		 Printf.fprintf out "%% %s -> %s\n" kv (String.concat ", " scope)) kv_scope;
     {kvs = kvs; kv_scope = kv_scope; sol = sol}
-
-let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
-  Printf.sprintf "[%s]"
-    (List.map 
-       (fun kv ->
-	  try 
-	    StrMap.find kv s.kv_scope |> 
-		List.map (mk_data_var ~suffix:(if List.mem kv skip_kvs then "" else suffix) kv)
-	  with Not_found -> failure "ERROR: mk_data: scope not found for %s" kv
-       ) s.kvs |> List.flatten |> String.concat ", ")
-
-let mk_query ?(suffix = "") s kv = 
-  Printf.sprintf "k%s(%s)" 
-    kv (List.map (mk_data_var ~suffix:suffix kv) (StrMap.find kv s.kv_scope) |> String.concat ", ")
 
 let mk_var2names state = 
   List.map
@@ -317,70 +302,6 @@ let mk_var2names state =
 	       Printf.sprintf "(%s, \'%s_%s\')" (mk_data_var kv v)  v kv
 	    ) (StrMap.find kv state.kv_scope) |> String.concat ", ")
     ) state.kvs |> String.concat "\n"
-
-let mk_skip_update state kvs = 
-  if kvs = [] then armc_true else
-    List.map
-      (fun kv ->
-	 List.map 
-	   (fun v -> 
-	      Printf.sprintf "%s = %s"
-		(mk_data_var ~suffix:primed_suffix kv v) (mk_data_var kv v)
-	   ) (StrMap.find kv state.kv_scope) |> String.concat ", "
-      ) kvs |> String.concat ", "
-
-let mk_update_str from_vs to_vs updates = 
-  List.map2
-    (fun v vp ->
-       Printf.sprintf "%s = %s" vp (try StrMap.find v updates with Not_found -> v)
-    ) from_vs to_vs |> String.concat ", "
-
-let split_scope scope = 
-  match scope with
-    | value :: data -> value, data
-    | _ -> failure "ERROR: split_scope: empty scope %s" (String.concat ", " scope)
-
-let reft_to_armc ?(noquery = false) ?(suffix = "") state reft = 
-  let vv = C.vv_of_reft reft |> symbol_to_armc in
-  let rs = C.ras_of_reft reft in
-    if rs = [] then armc_true else
-      List.map
-	(function
-	   | C.Conc pred -> pred_to_armc pred
-	   | C.Kvar (subs, sym) -> 
-	       if Sy.SMap.mem sym state.sol && Sy.SMap.find sym state.sol = [] then 
-		 armc_true  (* skip true *)
-	       else
-		 let subs_map = List.fold_left
-		   (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
-		 let find_subst v default = 
-		   try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
-		 let kv = symbol_to_armc sym in
-		 let value, data = StrMap.find kv state.kv_scope |> split_scope in
-		   Printf.sprintf "%s%s = %s" 
-		     (if noquery then "" else (mk_query ~suffix:suffix state kv) ^ ", ")
-		     (mk_data_var ~suffix:suffix kv value) 
-		     (find_subst vv (mk_data_var exists_kv vv)) 
-		   :: List.map
-		     (fun v -> 
-			Printf.sprintf "%s = %s"
-			  (mk_data_var ~suffix:suffix kv v)
-			  (find_subst v (mk_data_var exists_kv v))
-		     ) data |> String.concat ", "
-	) rs |> String.concat ", "
-
-let mk_rule head annot_guards annot_updates id = 
-  let rec annot_conj_to_armc = function
-    | (g, a) :: rest -> 
-	if rest = [] then Printf.sprintf "\n   %s \t%% %s\n  ]," g a
-	else Printf.sprintf "\n   %s, \t%% %s%s" g a (annot_conj_to_armc rest)
-    | [] -> "],"
-  in
-    Printf.sprintf
-      "
-hc(%s, [%s  %s).
-" 
-      head (annot_guards @ annot_updates |> List.filter (fun (g, _) -> g <> armc_true) |> annot_conj_to_armc) id
 
 let preds_kvars_of_reft reft =
   List.fold_left 
@@ -410,11 +331,12 @@ let t_to_horn_clause t =
 let simplify_horn_clause hc = 
   let body_edefs, body_pdefs = defs_of_pred Sy.SMap.empty Sy.SMap.empty hc.body_pred in
   let edefs, pdefs = defs_of_pred body_edefs body_pdefs hc.head_pred in
+    (* Sy.SMap.iter (fun s e -> Printf.printf "%s -> %s\n" (Sy.to_string s) (E.to_string e)) edefs; *)
     {
       body_pred = pred_apply_defs edefs pdefs hc.body_pred |> simplify_tauto; 
-      body_kvars = hc.body_kvars; (* Andrey: TODO apply defs to subs?! *)
+      body_kvars = List.map (kvar_apply_defs edefs pdefs) hc.body_kvars; 
       head_pred = pred_apply_defs edefs pdefs hc.head_pred |> simplify_tauto;
-      head_kvars = hc.head_kvars; (* Andrey: TODO apply defs to subs?! *)
+      head_kvars = List.map (kvar_apply_defs edefs pdefs) hc.head_kvars; 
       tag = hc.tag
     }
 
@@ -426,64 +348,40 @@ let print_horn_clause hc =
     (P.to_string hc.body_pred)
     (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.body_kvars |> String.concat ", ")
 
-
-let kvar_to_armc ?(suffix = "") state (subs, sym) = 
+let kvar_to_armcs ?(suffix = "") state (subs, sym) = 
   let subs_map = List.fold_left (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
   let find_subst v default = try StrMap.find v subs_map |> expr_to_armc with Not_found -> default in
   let kv = symbol_to_armc sym in
   let scope = StrMap.find kv state.kv_scope in
-    Printf.sprintf "%s" (mk_query ~suffix:suffix state kv)
-    :: List.map
-      (fun v -> 
-	 Printf.sprintf "%s = %s" (mk_data_var ~suffix:suffix kv v) (find_subst v (mk_data_var exists_kv v))
-      ) scope |> String.concat ", "
+    Printf.sprintf "k%s(%s)" 
+      kv (List.map (mk_data_var ~suffix:suffix kv) scope |> String.concat ", ")
+    :: List.map (fun v -> 
+		   Printf.sprintf "%s = %s" 
+		     (mk_data_var ~suffix:suffix kv v) (find_subst v (mk_data_var exists_kv v))
+		) scope  
 
 let hc_to_armc state hc =
-  let body = pred_to_armc hc.body_pred :: List.map (kvar_to_armc state) hc.body_kvars |> String.concat ", " in
-    body
+  let mk_rule head body tag = Printf.sprintf "hc(%s, [%s], %s)." head body tag in
+  let body = 
+    pred_to_armc hc.body_pred :: (List.map (kvar_to_armcs state) hc.body_kvars |> List.flatten) |> 
+	String.concat ", " in
+  let prules = 
+    if P.is_tauto hc.head_pred then []
+    else [mk_rule error_pc  (Printf.sprintf "%s, %s" body (Ast.pNot hc.head_pred |> pred_to_armc)) hc.tag] in
+  let single_kvar = List.length hc.head_kvars = 1 in
+  let rules, _ =
+    List.fold_left
+      (fun (rules, n) kvar -> 
+	 let head_armcs = kvar_to_armcs ~suffix:primed_suffix state kvar in
+	   mk_rule 
+	     (List.hd head_armcs)
+	     (body :: List.tl head_armcs |> String.concat ", ")
+	     (if single_kvar then hc.tag else Printf.sprintf "%s%d" hc.tag n)
+	   :: rules,
+	 n+1
+      ) (prules, 1) hc.head_kvars in
+    rules
     
-let t_to_armc state t = 
-  let hc = t_to_horn_clause t |> simplify_horn_clause in 
-  print_horn_clause hc; 
-  Printf.printf "hc: %s\n" (hc_to_armc state hc);
-  let env = C.env_of_t t in
-  let grd = C.grd_of_t t in
-  let lhs = C.lhs_of_t t in
-  let rhs = C.rhs_of_t t in
-  let rhs_s = C.reft_to_string rhs in
-  let tag = try string_of_int (C.id_of_t t) with _ -> 
-    failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
-  let annot_guards = 
-    Misc.map_partial
-      (fun (bv, reft) ->
-	 if C.ras_of_reft reft <> [] then
-	   Some (reft_to_armc state (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft),
-		 C.binding_to_string (bv, reft))
-	 else
-	   None
-      ) (env |> C.bindings_of_env)
-    ++ [(pred_to_armc grd, P.to_string grd); 
-	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
-  let ps, kvs =  
-    List.fold_left (fun (ps', kvs') refa ->
-		      match refa with
-			| C.Conc p -> p::ps', kvs'
-			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
-		   ) ([], []) (C.ras_of_reft rhs) in
-    (if ps <> [] then
-       [mk_rule error_pc annot_guards [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)] tag]
-     else 
-       [])
-    ++
-      (List.map 
-	 (fun (_, sym) ->
-	    mk_rule (mk_query ~suffix:primed_suffix state (symbol_to_armc sym))
-	      annot_guards 
-	      [(reft_to_armc ~noquery:true ~suffix:primed_suffix state rhs, "<: " ^ rhs_s)]
-	      tag
-	 ) kvs)
-
-
 let to_hc_armc out ts wfs sol =
   print_endline "Translating to HC'ARMC.";
   let state = mk_kv_scope out ts wfs sol in
@@ -495,9 +393,13 @@ error(%s).
 "
       error_pc
       (mk_var2names state);
-    List.iter (fun t -> t_to_armc state t |> List.iter (output_string out)) ts
-
-
+    List.iter (fun t -> 
+		 let hc = t_to_horn_clause t |> simplify_horn_clause in 
+		   List.iter (fun r -> 
+				output_string out r;
+				output_string out "\n\n"
+			     ) (hc_to_armc state hc)
+	      ) ts
 (*
   make -f Makefile.fixtop && ./f -latex /tmp/main.tex -armc /tmp/a.pl tests/pldi08-max.fq && cat /tmp/a.pl
 

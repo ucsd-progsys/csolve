@@ -328,10 +328,10 @@ and pred_to_armc ((p, _) as pred) =
 
 
 let mk_kv_scope out ts wfs sol =
-(* Andrey: obsolete code
-  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
+(*  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
       List.map symbol_to_armc |> (* (fun s -> Printf.sprintf "k%s" (symbol_to_armc s)) |> *)
 	  Misc.sort_and_compact in
+*)
   let kv_scope_wf =
     List.fold_left
       (fun m wf ->
@@ -351,7 +351,6 @@ let mk_kv_scope out ts wfs sol =
 				 failure "ERROR: kname_scope_map: ill-formed wf"
 	       *)
       ) StrMap.empty wfs in
-*)
   let kv_scope_t =
     List.fold_left 
       (fun m (subs, kvar) ->
@@ -366,7 +365,8 @@ let mk_kv_scope out ts wfs sol =
 	 let scope' = try StrMap.find v m with Not_found -> StrSet.empty in
 	   StrMap.add v (StrSet.union scope scope') m
       ) StrMap.empty (List.map C.kvars_of_t ts |> List.flatten) in
-  let kv_scope = 
+  let kv_scope = kv_scope_wf in
+  let kv_scope_old = 
     StrMap.map (fun scope -> val_vname :: (StrSet.elements scope |> List.sort compare)) kv_scope_t in
   let kvs = StrMap.fold (fun kv _ kvs -> kv :: kvs) kv_scope [] in
     StrMap.iter (fun kv scope ->
