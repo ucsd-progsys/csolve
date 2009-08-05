@@ -99,6 +99,7 @@ val env_of_t         : t -> envt
 val grd_of_t         : t -> Ast.pred
 val lhs_of_t         : t -> reft
 val rhs_of_t         : t -> reft
+val tagopt_of_t      : t -> tag option
 val id_of_t          : t -> tag
 
 val make_wf          : envt -> reft -> tag option -> wf

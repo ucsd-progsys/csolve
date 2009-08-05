@@ -37,13 +37,13 @@ let rec push_neg ?(neg=false) ((p, _) as pred) =
     | Ast.Atom (e1, brel, e2) -> if neg then Ast.pAtom (e1, neg_brel brel, e2) else pred
 
 (* Andrey: TODO flatten nested conjunctions/disjunctions *)
-let rec simplify_tauto ((p, _) as pred) =
+let rec simplify_pred ((p, _) as pred) =
   match p with
-    | Ast.Not p -> Ast.pNot (simplify_tauto p)
-    | Ast.Imp (p, q) -> Ast.pImp (simplify_tauto p, simplify_tauto q) 
-    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_tauto p)
+    | Ast.Not p -> Ast.pNot (simplify_pred p)
+    | Ast.Imp (p, q) -> Ast.pImp (simplify_pred p, simplify_pred q) 
+    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_pred p)
     | Ast.And ps -> 
-	let ps' = List.map simplify_tauto ps |> List.filter (fun p -> not(P.is_tauto p)) in
+	let ps' = List.map simplify_pred ps |> List.filter (fun p -> not(P.is_tauto p)) in
 	  if List.mem Ast.pFalse ps' then Ast.pFalse else
 	    begin
 	      match ps' with
@@ -52,7 +52,7 @@ let rec simplify_tauto ((p, _) as pred) =
 		| _ :: _ -> Ast.pAnd ps'
 	    end
     | Ast.Or ps -> 
-	let ps' = List.map simplify_tauto ps in
+	let ps' = List.map simplify_pred ps in
 	  if List.exists P.is_tauto ps' then Ast.pTrue else 
 	    begin
 	      match ps' with
@@ -165,8 +165,17 @@ and pred_apply_defs edefs pdefs ((p, _) as pred) =
 	  pred''
 	end
 
+let subs_apply_defs edefs pdefs subs =
+  List.map (fun (s, e) -> s, expr_apply_defs edefs pdefs e) subs
+
 let kvar_apply_defs edefs pdefs (subs, sym) = 
-  List.map (fun (s, e) -> s, expr_apply_defs edefs pdefs e) subs, sym
+  subs_apply_defs edefs pdefs subs, sym
+
+let simplify_subs subs =
+  List.filter (fun (s, e) -> not(P.is_tauto (Ast.pAtom (Ast.eVar s, Ast.Eq, e)))) subs
+
+let simplify_kvar (subs, sym) =
+  simplify_subs subs, sym
 
 let armc_true = "1=1"
 let armc_false = "0=1"
@@ -268,7 +277,7 @@ and pred_to_armc (p, _) =
             (List.map bind_to_armc qs |> String.concat ", ") 
 	    (pred_to_armc p)
 
-(* Andrey: TODO pull variables from guards into scope *)
+(* Andrey: TODO pull variables from guards into scope *) 
 let mk_kv_scope out ts wfs sol =
   let kv_scope_t =
     List.fold_left 
@@ -311,6 +320,36 @@ let preds_kvars_of_reft reft =
 	 | C.Kvar (subs, kvar) -> ps, (subs, kvar) :: ks
     ) ([], []) (C.ras_of_reft reft)
 
+let simplify_t t = 
+  let env_ps, pfree_env = 
+    Sy.SMap.fold 
+      (fun bv reft (ps, env) -> 
+	 let vv = C.vv_of_reft reft in
+	 let bv_expr = Ast.eVar bv in
+	 let sort = C.sort_of_reft reft in
+	 let reft_ps, reft_ks = preds_kvars_of_reft reft in
+	   (List.rev_append (List.map (fun p -> P.subst p vv bv_expr) reft_ps) ps,
+	    if reft_ks = [] then env 
+	    else Sy.SMap.add bv (vv, sort, reft_ks) env)
+      ) (C.env_of_t t) ([], Sy.SMap.empty) in
+  let lhs = C.lhs_of_t t in
+  let lhs_ps, lhs_ks = preds_kvars_of_reft lhs in
+  let body_pred = Ast.pAnd (C.grd_of_t t :: List.rev_append lhs_ps env_ps) in
+  let edefs, pdefs = defs_of_pred Sy.SMap.empty Sy.SMap.empty body_pred in
+  let kvar_to_simple_Kvar (subs, sym) = C.Kvar (subs_apply_defs edefs pdefs subs |> simplify_subs, sym) in
+  let senv = 
+    Sy.SMap.mapi (fun bv (vv, sort, ks) -> 
+		    List.map kvar_to_simple_Kvar ks |>	C.make_reft vv sort) pfree_env in
+  let sgrd = pred_apply_defs edefs pdefs body_pred |> simplify_pred in
+  let slhs = List.map kvar_to_simple_Kvar lhs_ks |> C.make_reft (C.vv_of_reft lhs) (C.sort_of_reft lhs) in
+  let rhs = C.rhs_of_t t in
+  let rhs_ps, rhs_ks = preds_kvars_of_reft rhs in
+  let srhs_pred = pred_apply_defs edefs pdefs (Ast.pAnd rhs_ps) |> simplify_pred in
+  let srhs_ks = List.map kvar_to_simple_Kvar rhs_ks in
+  let srhs =  (if P.is_tauto srhs_pred then srhs_ks else (C.Conc srhs_pred) :: srhs_ks) |> 
+      C.make_reft (C.vv_of_reft rhs) (C.sort_of_reft rhs) in
+    C.make_t senv sgrd slhs srhs (C.tagopt_of_t t)
+
 let t_to_horn_clause t =
   let lhs_ps, lhs_ks = C.lhs_of_t t |> preds_kvars_of_reft in
   let body_ps, body_ks = 
@@ -333,10 +372,10 @@ let simplify_horn_clause hc =
   let edefs, pdefs = defs_of_pred body_edefs body_pdefs hc.head_pred in
     (* Sy.SMap.iter (fun s e -> Printf.printf "%s -> %s\n" (Sy.to_string s) (E.to_string e)) edefs; *)
     {
-      body_pred = pred_apply_defs edefs pdefs hc.body_pred |> simplify_tauto; 
-      body_kvars = List.map (kvar_apply_defs edefs pdefs) hc.body_kvars; 
-      head_pred = pred_apply_defs edefs pdefs hc.head_pred |> simplify_tauto;
-      head_kvars = List.map (kvar_apply_defs edefs pdefs) hc.head_kvars; 
+      body_pred = pred_apply_defs edefs pdefs hc.body_pred |> simplify_pred; 
+      body_kvars = List.map (fun kvar -> kvar_apply_defs edefs pdefs kvar |> simplify_kvar) hc.body_kvars; 
+      head_pred = pred_apply_defs edefs pdefs hc.head_pred |> simplify_pred;
+      head_kvars = List.map (fun kvar -> kvar_apply_defs edefs pdefs kvar |> simplify_kvar) hc.head_kvars; 
       tag = hc.tag
     }
 

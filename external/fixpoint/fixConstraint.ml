@@ -279,6 +279,7 @@ let env_of_t    = fun ((env,_),_,_,_,_) -> env
 let grd_of_t    = fun (_,grd,_,_,_) -> grd 
 let lhs_of_t    = fun (_,_,lhs,_,_) -> lhs 
 let rhs_of_t    = fun (_,_,_,rhs,_) -> rhs
+let tagopt_of_t = fun (_,_,_,_,tagopt) -> tagopt
 let id_of_t     = function (_,_,_,_,Some i) -> i | _ -> assertf "C.id_of_t"
 
 (* API *)
