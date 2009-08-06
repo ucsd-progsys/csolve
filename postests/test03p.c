@@ -2,7 +2,7 @@ extern char* malloc(int);
 
 int foo(int *x){
   int y;
-  x = x;
+  //x = x;
   y = *x;
   assert(y >= 0);
   return 0;

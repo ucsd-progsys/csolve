@@ -21,9 +21,9 @@ val d_ctab: unit -> ctab -> Pretty.doc
  * output: array of block annotations of length l_i ... l_n
  *         map from variable names to concrete locations *)
 val annotate_cfg: Ssa.cfgInfo -> Ctypes.ctemap -> block_annotation array -> block_annotation array * ctab
+
 (* val merge_annots: 
       block_annotation array -> 
       block_annotation array -> 
       block_annotation array 
 *)
-

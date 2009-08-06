@@ -150,7 +150,7 @@ let annotate_block ctm theta anns instrs =
 (*****************************************************************************)
 
 (* API *)
-let annotate_cfg cfg ctm anna  =
+let annotate_cfg cfg ctm anna =
   let theta  = Hashtbl.create 17 in
   let annota =
     Array.mapi begin fun i b -> 
@@ -164,22 +164,21 @@ let annotate_cfg cfg ctm anna  =
 let cloc_of_varinfo theta v =
   try
     let l = Hashtbl.find theta v.vname in
-      if not (Sloc.is_abstract l) then
-        Some l
-      else
-        assertf "cloc_of_varinfo: absloc! (%s)" v.vname
-  with Not_found -> None
-
+    let _ = asserts (not (Sloc.is_abstract l)) "cloc_of_varinfo: absloc! (%s)" v.vname in
+    Some l
+  with Not_found -> 
+    let _ = Errormsg.warn "cloc_of_varinfo: unknown %s" v.vname in 
+    None
 
 (* API *)
+(* 
 let merge_annots a1 a2 = 
   let _ = asserts (Array.length a1 = Array.length a2) "merge_annots 1" in
   Misc.array_map2 begin fun anns anns' -> 
     let _ = asserts (List.length anns = List.length anns') "merge_annots 2" in
     List.map2 (++) anns anns'
   end a1 a2
-
-
+*)
 (*****************************************************************************)
 (********************** Pretty Printing **************************************)
 (*****************************************************************************)
@@ -193,9 +192,6 @@ let d_annotation () = function
       Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | NewC (cl, al, cl') -> 
       Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
-
-
-
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 
@@ -215,6 +211,6 @@ let d_block_annotation_array =
 (* API *)
 let d_ctab () t = 
   let vcls = Misc.hashtbl_to_list t in
-  Pretty.seq (Pretty.text ", ") 
-     (fun (vn, cl) -> Pretty.dprintf "[Theta(%s) = %a" vn Sloc.d_sloc cl) 
+  Pretty.seq (Pretty.text "\n") 
+     (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a" vn Sloc.d_sloc cl) 
      vcls

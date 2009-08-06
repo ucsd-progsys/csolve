@@ -61,7 +61,7 @@ void env_check(env_t *env, env_t **envs, int pages[], int page_protected[])
     env_t *walk;
     int ppi = 0;
 
-    env = env;	//THETA ISSUE
+    //env = env;	//THETA ISSUE
     envs = envs;//THETA ISSUE
 
     dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
