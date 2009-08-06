@@ -64,9 +64,21 @@ let ctype_of_local locals v =
   try List.assoc v locals with 
     Not_found -> assertf "ctype_of_local: unknown var %s" v.Cil.vname
 
-let env_of_fdec gnv fdec locals =
-  let rft = FI.ce_find_fn fdec.svar.vname gnv in
+let strengthen_cloc = function
+  | ct, None | (Ctypes.CTInt (_, _) as ct), _  -> ct
+  | (Ctypes.CTRef (_, x)), Some cl      -> Ctypes.CTRef (cl, x) 
+
+let strengthen_refs theta v (vn, cr) =
+  let ct  = FI.ctype_of_refctype cr in
+  let clo = Refanno.cloc_of_varinfo theta v in
+  let ct' = strengthen_cloc (ct, clo) in
+  let cr' = FI.t_ctype_refctype ct' cr in 
+  (vn, cr')
+
+let env_of_fdec gnv fdec locals theta =
+  let rft  = FI.ce_find_fn fdec.svar.vname gnv in
   let env0 = FI.args_of_refcfun rft 
+             |> List.map2 (strengthen_refs theta) fdec.Cil.sformals 
              |> List.map (Misc.app_fst FI.name_of_string)
              |> FI.ce_adds gnv in
   fdec.slocals 
@@ -90,7 +102,7 @@ let make_undefm formalm phia =
 let create gnv sci shp = 
   let fdec   = sci.ST.fdec in
   let loc    = fdec.svar.vdecl in
-  let env    = env_of_fdec gnv fdec shp.IC.vtyps in
+  let env    = env_of_fdec gnv fdec shp.IC.vtyps shp.IC.theta in
   let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
   let astore = FI.refstore_fresh shp.IC.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
@@ -190,13 +202,7 @@ let ctype_of_expr me e =
     assertf "Not_found in ctype_of_expr"
 
 let ctype_of_varinfo me v =
-  let ct = ctype_of_varinfo me.ltm v in
-  match ct with
-  | Ctypes.CTInt (_, _) -> 
-      ct
-  | Ctypes.CTRef (_, x) -> 
-      begin
-        match Refanno.cloc_of_varinfo me.ctab v with
-        | Some cl -> Ctypes.CTRef (cl, x) 
-        | None    -> ct
-      end
+  let ct  = ctype_of_varinfo me.ltm v in
+  let clo = Refanno.cloc_of_varinfo me.ctab v in
+  strengthen_cloc (ct, clo)
+   

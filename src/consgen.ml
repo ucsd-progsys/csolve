@@ -337,10 +337,10 @@ let process_phis phia me =
   CF.add_cons [] cs me 
 
 let cons_of_sci gnv sci shp =
-  let fn = sci.ST.fdec.Cil.svar.Cil.vname in
-(* let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-*) let _ = Pretty.printf "Ctab for %s \n%a" fn Refanno.d_ctab shp.Inferctypes.theta in 
-(* let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in *)
+  let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
+  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
+  let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
+  (* let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in *)
   CF.create gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
