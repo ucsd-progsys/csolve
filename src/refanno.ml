@@ -167,7 +167,7 @@ let cloc_of_varinfo theta v =
     let _ = asserts (not (Sloc.is_abstract l)) "cloc_of_varinfo: absloc! (%s)" v.vname in
     Some l
   with Not_found -> 
-    let _ = Errormsg.log "cloc_of_varinfo: unknown %s" v.vname in 
+    (* let _ = Errormsg.log "cloc_of_varinfo: unknown %s" v.vname in *)
     None
 
 (* API *)
