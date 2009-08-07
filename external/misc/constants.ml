@@ -37,7 +37,8 @@ let armc_file: string option ref  = ref None   (* translate to ARMC file *)
 let q_armc_file: string option ref = ref None   (* translate to Q'ARMC file *)
 let hc_armc_file: string option ref = ref None   (* translate to HC'ARMC file *)
 let dot_file: string option ref  = ref None   (* translate to dot file *)
-let purify_function_application   = ref true  (* replace function terms by existentially quantified variables *)
+let purify_function_application  = ref true  (* replace function terms by existentially quantified variables *)
+let simplify_t                   = ref true (* simplify and prune vacouos FixConstraint.t constraints *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -178,9 +179,13 @@ let arg_spec =
 		      dot_file := Some s),
     "translate constraints to dot file"
    );
-   ("-keepuif", 
+   ("-keep-uif", 
     Arg.Clear purify_function_application,
     "do not replace function terms by existentially quantified variables"
+   );
+   ("-no-simplify-t", 
+    Arg.Clear simplify_t,
+    "do not simplify and prune vacuously satisfiable FixConstraint.fit"
    )
   ]
 
