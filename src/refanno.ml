@@ -53,10 +53,13 @@ let cloc_of_aloc conc al =
 let instantiate f conc al cl =
   let cl' = cloc_of_aloc conc al in
   if Sloc.eq cl' al then 
+    (* al has no conc representative *) 
     (LM.add al cl conc, [f (al, cl)])
   else if Sloc.eq cl' cl then
+    (* al conc representative is cl *)
     (conc, [])
   else 
+    (* al conc representative is some other cl' *)
     (LM.add al cl conc, [Gen (cl', al); f (al, cl)])
 
 let annotate_set ctm theta conc = function
@@ -88,14 +91,17 @@ let annotate_set ctm theta conc = function
 
 let concretize_new conc = function
   | New (x,y) -> 
+      let _  = asserts (Sloc.is_abstract y) "concretize_new" in
       if Sloc.is_abstract x then 
         let y' = cloc_of_aloc conc y in
         if Sloc.eq y y' then 
+          (* y has no conc instance   *)  
           (conc, [New (x,y)])
         else
+          (* y has a conc instance y' *)
           (LM.remove y conc, [Gen (y', y); New (x, y)]) 
       else
-        let _  = asserts (Sloc.is_abstract y) "concretize_new" in
+        (* let _  = asserts (Sloc.is_abstract y) "concretize_new" in *)
         let cl = Sloc.fresh Sloc.Concrete in
         instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl
   | _ -> assertf "concretize_new 2"
@@ -107,8 +113,7 @@ let rec new_cloc_of_aloc al = function
 
 let sloc_of_ret ctm theta (conc, anns) = function 
   | (Var v, NoOffset) as lv ->
-      Lval lv
-      |>  sloc_of_expr ctm 
+      sloc_of_expr ctm (Lval lv) 
       |>> fun al -> new_cloc_of_aloc al anns
       |>> fun cl -> Hashtbl.replace theta v.vname cl; None
       |>> fun _  -> None 
@@ -134,8 +139,7 @@ let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
 
 let annotate_block ctm theta anns instrs = 
-  let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block"
-  in
+  let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block" in
   let ainstrs = List.combine (Misc.chop_last anns) instrs in
   let conc, anns' =
     List.fold_left begin fun (conc, anns') ainstr -> 
