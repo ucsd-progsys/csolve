@@ -141,7 +141,7 @@ let main () =
   let _  = print_header () in
   let f  = mk_options () in
   let rv = liquidate f in 
-  let _  = BS.print stdout "LiquidC Time \n" in
+  let _  = BS.print stdout "\nLiquidC Time \n" in
   if rv then begin
     Pretty.printf "\nSAFE\n" |> ignore;
     exit 0

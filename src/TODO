@@ -1,15 +1,11 @@
-- [refanno] 	add support for conc-locs in signature	
-		- write simple test + spec [postests/incp.c]
-		- write code
-		- make code run on test
+// Abs/Conc loc
 
 Note: Let [f] be a function in the code. [f] requires either  
   (1) a "set" of locations (use [forall [A0...]] in spec), or
   (2) a "single" location (use [forall [C0...]] in spec).
-	//either way, Rondon's annotation will mark the target as: 
+	//either way, Pat's annotation will mark the target as: 
 	//[New(_,Ai)]
 	//i.e. the instantiated location will be abstract
-
 
   if sig of [f] has
   (1) then body of [f] can un/fold locations from that set as before
@@ -17,23 +13,35 @@ Note: Let [f] be a function in the code. [f] requires either
   
   To enforce the above, need heap wf to ensure that any given sig 
   can either quantify over an absloc OR over a concloc, but not both.
-
-  Now, consider a callsite [f(x)]. 
-  if sig of [f] has
-  (1) then fold up whatever conc-loc [x] has (done already ?)
-  (2) then if 
-      (2a) [x] is the current owner, 
+ 
+  How to instantiate concrete locations?
+  One option, consider a callsite [f(x)]. If
+  (2a) [x] is the current owner, 
            do nothing i.e. don't fold
-      (2b) [x] is not the current owner, 
+  (2b) [x] is not the current owner, 
            fold up current owner and make [x] the owner.
+  This is useless, cannot just use the calling param, as can pass
+  concrete locations in as
+  	x->f1->f2 etc. 
+  hard to determine if thats really conc loc. This fanciness must
+  be done at Pat's level. i.e. the "New" annot must have a target 
+  concrete location. Right now, it doesn't and its too hard to 
+  recreate.
 
-  Note that (2a) is ok, because throughout the call [f(x)], 
-  the only use of the location will be through the concrete 
-  instance corresponding to [x] -- no danger of folding and 
-  then unfolding out a different location -- and so, can 
-  happily do strong update.
+  Instead, use "location instantiation" i.e. [New] annots at callsite.
+  That is, site is [[New(ci,li)]... f(...)]. 
+  Simply generate fresh conc loc [cli'] for each [li] and "instantiate"
+  the "li" with "cli'" (i.e. roll up existing instances etc.)
+
+  Proper solution is to do some matching at Pat's level. This requires
+  rethinking his algorithm.
 
   Now, implement the above and try [postests/incp.c]
+  This won't work, because in effect, all locations are treated as abstract
+  at a function callsite... Need to do a "deeper" heap-matching in the way
+  that pat generates the New annots. i.e. the 
+
+  In short, [refanno] needs to be merged with pat's analysis.
 
 ***************************************************************
 - [cluster] 	constraints by env in fixpoint
