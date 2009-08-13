@@ -66,10 +66,10 @@ let env_of_bindings xrs =
   List.fold_left begin
     fun env (x, r) -> 
       if not (SM.mem x env) then SM.add x r env else
-        ((if not (r = SM.find x env) then 
-          Printf.printf "WARNING: env_of_bindings : duplicate %s \n" (Sy.to_string x)); 
+        let r' = SM.find x env in
+        ((if not (r = r') then 
+          Printf.printf "WARNING: env_of_bindings : duplicate %s\n" (Sy.to_string x)); 
          env) 
-       
   end SM.empty xrs
 
 let bindings_of_env env = 
@@ -198,9 +198,7 @@ let print_reft so ppf (v, t, ras) =
     (print_ras so) ras
 
 let print_binding so ppf (x, r) = 
-  F.fprintf ppf "@[%a:%a@]" 
-    Sy.print x 
-    (print_reft so) r 
+  F.fprintf ppf "@[%a:%a@]" Sy.print x (print_reft so) r 
 
 let print_env so ppf env = 
   bindings_of_env env 

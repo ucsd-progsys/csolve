@@ -148,12 +148,6 @@ let funSort env s =
       if is_select s then select_t else 
         failure "ERROR: could not type function %s in TPZ3 \n" (Sy.to_string s) 
 
-(*
-let getVarType s env =
-  try SM.find s env with Not_found -> 
-    failure "ERROR: could not type %s in TPZ3 \n" (Sy.to_string s) 
-*)
-
 let z3VarType me t =
   let lookup me = function
     | So.Bool 	 -> me.tbool
@@ -271,10 +265,6 @@ and z3App me env p zes =
       Z3.mk_app me.c cf (Array.of_list zes)
   | t -> 
       failure "ERROR: TPZ3.z3App p=%s f=%s" (Sy.to_string p) (So.to_string t)
-(*
-and z3Exp_int me env e =
-  z3Cast me env (z3Exp me env e) So.Int 
- *)
 
 and z3Exp me env = function
   | A.Con (A.Constant.Int i), _ -> 
@@ -315,12 +305,7 @@ and z3Pred me env = function
       let a = z3Exp me env e in
       let _ = asserts (is_z3_bool me a) "Bexp is not bool!" in
       a
-      (* SHADY HACK 
-         let t = Z3.get_type me.c a in
-         let t = ast_type_to_string me t in
-         let _ = asserts (t = "bool") "Bexp is not bool!" in 
-         if not (t = "bool") then assertf cast me env a ("int", "bool") else a *)
-  | A.Forall (xts, p), _ -> 
+ | A.Forall (xts, p), _ -> 
       let (xs, ts) = List.split xts in
       let zargs    = Array.of_list (List.map2 (z3Bind me) xs ts) in
       let zts      = Array.of_list (List.map  (z3VarType me) ts) in 

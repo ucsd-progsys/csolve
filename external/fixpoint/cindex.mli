@@ -24,12 +24,10 @@
 (***************************************************************)
 (**** This module implements constraint indexing ***************)
 (***************************************************************)
-
 type t
 type wkl
 
 (** indexing and dependencies *)
-
 val to_list     : t -> FixConstraint.t list 
 val create      : FixConstraint.t list -> t 
 val deps        : t -> FixConstraint.t -> FixConstraint.t list

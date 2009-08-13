@@ -61,9 +61,6 @@ void env_check(env_t *env, env_t **envs, int pages[], int page_protected[])
     env_t *walk;
     int ppi = 0;
 
-    //env = env;	//THETA ISSUE
-    //envs = envs;	//THETA ISSUE
-
     dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
 
     for (i = 0; i < 2000; i++){
@@ -91,8 +88,6 @@ void mem_check(env_t **envs, int pages[], int page_protected[])
     env_t *walk;
 
     int ppi = 0;
-
-    //envs = envs; // THETA ISSUE
 
     lpages = (int *)malloc(1000);
 
@@ -129,8 +124,6 @@ env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
 {
     env_t *env;
     env_t *tmp;
-
-    //envs = envs; // THETA ISSUE
     
     int i, env_pp = page_getfree(pages);
     
@@ -169,8 +162,7 @@ void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
 {
     int i;
     int ppi = 0;
-    //env = env;	//THETA ISSUE
-    //envs = envs; //THETA ISSUE
+    
     env_check(env, envs, pages, page_protected);
 
     for (i = 0; i < 2000; i++){

@@ -1,20 +1,34 @@
 extern char* malloc(int);
 
-void inc(int *x){
-  *x = 100;
+void inca(int *x){
+  *x = *x + 1;
   return;
 }
 
-int main(){
+void incb(int *x){
+  *x = *x + 1;
+  return;
+}
+
+void incc(int *x){
+  *x = *x + 1;
+  return;
+}
+
+void main(){
   int *r;
   int y;
 
   r = (int*) malloc(4);
   *r = 0;
 
-  assert(*r == 0);
-  inc(r);
-  assert(*r == 100);
+  assert(*r >= 0);
   
-  return 0;
+  inca(r);
+  incb(r);
+  incc(r);
+
+  assert(*r >= 0);
+  
+  return;
 }

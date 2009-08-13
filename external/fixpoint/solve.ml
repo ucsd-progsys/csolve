@@ -59,6 +59,19 @@ let stat_imp_queries    = ref 0
 let stat_valid_queries  = ref 0
 let stat_matches        = ref 0
 let stat_unsatLHS       = ref 0
+let stat_cfreqt         = Hashtbl.create 37
+
+let hashtbl_incr_frequency t k = 
+  let n = try Hashtbl.find t k with Not_found -> 0 in
+  Hashtbl.replace t k (n+1)
+
+let hashtbl_print_frequency t = 
+  Misc.hashtbl_to_list t 
+  |> Misc.groupby snd
+  |> List.iter begin function ((_,n)::_) as xs -> 
+      Format.printf "ITERFREQ: %d times %d constraints \n" n (List.length xs)
+     end
+
 
 (***************************************************************)
 (************************** Refinement *************************)
@@ -156,7 +169,9 @@ let print_solver_stats ppf me =
     !stat_refines !stat_simple_refines !stat_tp_refines !stat_unsatLHS;
   F.fprintf ppf "#Queries: match=%d, ask=%d, valid=%d\n" 
     !stat_matches !stat_imp_queries !stat_valid_queries;
-  F.fprintf ppf "%a" TP.print_stats me.tpc
+  F.fprintf ppf "%a" TP.print_stats me.tpc;
+  F.fprintf ppf "Iteration Frequency: \n";
+  hashtbl_print_frequency stat_cfreqt
 
 let dump me s = 
   Co.cprintf Co.ol_solve_stats "%a \n" print_solver_stats me;
@@ -237,10 +252,11 @@ let inst wfs qs s =
 
 let rec acsolve me w s = 
   let _ = if !stat_refines mod 1000 = 0 
-          then (* Co.cprintf Co.ol_solve_stats *) Printf.printf "num refines =%d \n" !stat_refines in
+          then Printf.printf "num refines =%d \n" !stat_refines in
   let _ = if Co.ck_olev Co.ol_insane then F.printf "%a" C.print_soln s in
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
+    let _ = hashtbl_incr_frequency stat_cfreqt (C.id_of_t c) in  
     let _ = Co.bprintf mydebug "At iter=%d constr=%d ch=%b \n" !stat_refines (C.id_of_t c) ch in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 

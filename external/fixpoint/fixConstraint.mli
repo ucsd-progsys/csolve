@@ -79,13 +79,16 @@ val group_sol_update : soln -> Ast.Symbol.t list -> (Ast.Symbol.t * Ast.pred) li
 val print_env        : soln option -> Format.formatter -> envt -> unit
 val print_wf         : soln option -> Format.formatter -> wf -> unit
 val print_t          : soln option -> Format.formatter -> t -> unit
+val print_reft       : soln option -> Format.formatter -> reft -> unit
+val print_binding    : soln option -> Format.formatter -> (Ast.Symbol.t * reft) -> unit
 val print_soln       : Format.formatter -> soln -> unit
+
 val to_string        : t -> string 
 val refa_to_string   : refa -> string
 val reft_to_string   : reft -> string
-val binding_to_string : (Ast.Symbol.t * reft) -> string 
+val binding_to_string : (Ast.Symbol.t * reft) -> string
 
-val print_reft       : soln option -> Format.formatter -> reft -> unit
+
 
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t
@@ -107,4 +110,3 @@ val reft_of_wf       : wf -> reft
 val id_of_wf         : wf -> tag
 
 val validate         : t list -> t list
-

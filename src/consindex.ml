@@ -67,20 +67,12 @@ let iter me f =
 let fold me f =
   SM.fold (fun fn _ b -> f fn (find me fn) b) me.scim
 
-(* DOG SLOW *)
-let env_of_ws ws =
-  let bs = 
-  ws |> Misc.map C.env_of_wf 
-     |> Misc.flap C.bindings_of_env in
-  let _ = Pretty.printf "env_of_ws: BOO |ws| = %d, |bs| = %d \n" (List.length ws)
-  (List.length bs) in 
-   C.env_of_bindings bs
-
 (* API *)
 let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
 
 (* API *)
 let get_cs  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []
+
 
 let (++) = P.concat
 
@@ -97,7 +89,9 @@ let print so () me =
           d
       end P.nil
   | Some _ -> (* print solution *)
-      get_wfs me
-   |> env_of_ws
-   |> CM.doc_of_formatter (C.print_env so)
-   |> P.concat (P.text "Liquid Types:\n\n")
+      me |> get_wfs
+         |> Misc.map C.env_of_wf 
+         |> Misc.flap C.bindings_of_env 
+         |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
+         |> P.concat (P.text "Liquid Types:\n\n")
+

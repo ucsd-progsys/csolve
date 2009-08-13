@@ -24,6 +24,8 @@
 module F = Format
 module C = Constants
 
+let mydebug = true
+
 (****************************************************************)
 (************* SCC Ranking **************************************)
 (****************************************************************)
@@ -40,7 +42,7 @@ module G = Graph.Imperative.Digraph.Concrete(Int)
 
 module SCC = Graph.Components.Make(G)    
 
- (* Use of Graphviz *)
+(* Use of Graphviz *)
 
 let io_to_string = function 
   | Some i -> string_of_int i 
@@ -73,15 +75,11 @@ let int_s_to_string ppf (i,s) =
   F.fprintf ppf "(%d,%s)" i s 
 
 let scc_print g a = 
-  C.cprintf C.ol_scc "dep graph: vertices= %d, sccs= %d \n" 
-    (G.nb_vertex g) (Array.length a);
-  C.cprintf C.ol_scc "scc sizes: \n";
-  Array.iteri 
-    (fun i xs -> 
-      C.cprintf C.ol_scc "%d : [%a] \n" 
-        i
-        (Misc.pprint_many false "," int_s_to_string) xs)        
-    a;
+  C.bprintf mydebug "dep graph: vertices= %d, sccs= %d \n" (G.nb_vertex g) (Array.length a);
+  C.bprintf mydebug "scc sizes: \n";
+  Array.iteri begin fun i xs -> 
+    C.bprintf mydebug "%d : [%a] \n" i (Misc.pprint_many false "," int_s_to_string) xs
+  end a;
   C.cprintf C.ol_scc "\n"
 
 
