@@ -1,5 +1,9 @@
-[SCC issue] 
-all constraints fall into the same SCC!
+[Tag]   all constraints fall into the same SCC, 
+	add real "control-flow-tags" to the constraints	
+	Inside [CilTag.ml]
+		- tag = 10000 * fid + blockid
+		- fid = assign ids to funs after topo-sort the callgraph
+		- assumption: blocks are already sorted by dominator 
 
 [cluster] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]

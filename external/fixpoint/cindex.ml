@@ -39,16 +39,17 @@ type subref_id = int
 module WH = 
   Heaps.Functional(struct 
       type t = subref_id * int * (int * bool)
-      let compare (_,ts,(i,j)) (_,ts',(i',j')) =
+      let compare (id,ts,(i,j)) (id',ts',(i',j')) =
         if i <> i' then compare i i' else
-          if ts <> ts' then -(compare ts ts') else
-            compare j j'
+          if id <> id' then compare id id' else
+            if ts <> ts' then -(compare ts ts') else
+              compare j j'
     end)
 
 type wkl = WH.t
 
 type t = 
-  { cnst: FixConstraint.t IM.t;            (* id -> refinement_constraint *) 
+  { cnst: FixConstraint.t IM.t;         (* id -> refinement_constraint *) 
     rank: (int * bool) IM.t;            (* id -> dependency rank *)
     depm: subref_id list IM.t;          (* id -> successor ids *)
     pend: (subref_id,unit) Hashtbl.t;   (* id -> is in wkl ? *)
@@ -142,7 +143,7 @@ let wpush =
         if Hashtbl.mem me.pend id then w else 
           (Co.cprintf Co.ol_solve "Pushing %d at %d \n" id !timestamp; 
            Hashtbl.replace me.pend id (); 
-           WH.add (id,!timestamp,get_ref_rank me c) w))
+           WH.add (id, !timestamp, get_ref_rank me c) w))
       w cs
 
 (* API *)
