@@ -42,6 +42,7 @@ open Cil
 type wld = FI.cilenv * FI.refstore
 
 type t = {
+  tgr     : CilTag.o;
   sci     : ST.ssaCfgInfo;
   ws      : C.wf list;
   cs      : C.t list;
@@ -99,16 +100,17 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
-let create gnv sci shp = 
+let create tgr gnv sci shp = 
   let fdec   = sci.ST.fdec in
-  let loc    = fdec.svar.vdecl in
   let env    = env_of_fdec gnv fdec shp.IC.vtyps shp.IC.theta in
   let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
   let astore = FI.refstore_fresh shp.IC.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
-  {sci     = sci;
-   cs      = FI.make_cs_refstore env Ast.pTrue istore astore false loc; 
-   ws      = FI.make_wfs_refstore env astore loc;
+  let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 in 
+  {tgr     = tgr;
+   sci     = sci;
+   cs      = FI.make_cs_refstore env Ast.pTrue istore astore false tag; 
+   ws      = FI.make_wfs_refstore env astore tag;
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
@@ -138,8 +140,14 @@ let stmt_of_block me i =
 let annotstmt_of_block me i = 
   (me.anna.(i), stmt_of_block me i)
 
+let get_fname me = 
+  me.sci.ST.fdec.svar.vname 
+
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
+
+let tag_of_block me i = 
+  CilTag.make_t me.tgr (location_of_block me i) (get_fname me) i
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
@@ -184,7 +192,6 @@ let guard_of_block me i jo =
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
       Ast.pAnd [p; p']
 
-let get_fname = fun me -> me.sci.ST.fdec.svar.vname 
 
   (*
 let is_formal fdec v =

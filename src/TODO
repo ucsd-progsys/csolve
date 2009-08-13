@@ -15,10 +15,16 @@ all constraints fall into the same SCC!
 
 
 ***************************************************************
+- [ordering] 	linear-order all functions 1...n
+		linear-order all blocks within a function 1...m
+
+- [absLSub]	see tag 11, 14 in postests/incp.c -- both can be "simpl"ified
+		in general, absloc subtyping has unnecessary indirection
+
 - [concSpec]	make postests/incp.c work with "Conc" spec, 
 		throws an error now -- possibly to do with pat's code
 
-- [predefVars] 	instead of lazy vardef, 
+- [predefVars] 	instead of lazy vardef,
 		which has bizarre set/filter API
 
 - [envList]	make the environment a list instead of a map
@@ -28,12 +34,13 @@ all constraints fall into the same SCC!
 		- see how many bindings are there in (collapsed) tree structure
 
 - [inline] 	boolean guards
+
 - [specgen]	use C types to generate a "spec" file for each program,
 		that is, create a candidate input type for each function.
 		can be refined later.
 
-- [globals]	
 - [arrays]	add "memset" spec ?
+- [globals]	
 - [unions]
 
 ** CLEANUP ****************************************************

@@ -27,7 +27,7 @@ type t
 type wld = FixInterface.cilenv * FixInterface.refstore
 
 val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Cil.stmt
-val location_of_block   : t -> int -> Cil.location
+val tag_of_block        : t -> int -> CilTag.t 
 val phis_of_block       : t -> int -> Cil.varinfo list 
 val inwld_of_block      : t -> int -> wld 
 val outwld_of_block     : t -> int -> wld 
@@ -42,4 +42,7 @@ val is_undefined        : t -> Cil.varinfo -> bool
 
 val ctype_of_varinfo    : t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype
-val create              : FixInterface.cilenv -> Ssa_transform.ssaCfgInfo -> Inferctypes.shape -> t
+val create              : CilTag.o -> 
+                          FixInterface.cilenv -> 
+                          Ssa_transform.ssaCfgInfo -> 
+                          Inferctypes.shape -> t

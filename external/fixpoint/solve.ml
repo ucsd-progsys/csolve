@@ -257,7 +257,7 @@ let rec acsolve me w s =
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
     let _ = hashtbl_incr_frequency stat_cfreqt (C.id_of_t c) in  
-    let _ = Co.bprintf mydebug "At iter=%d constr=%d ch=%b \n" !stat_refines (C.id_of_t c) ch in
+    let _ = Co.bprintf true (* mydebug *) "iteration=%d constr=%d ch=%b \n" !stat_refines (C.id_of_t c) ch in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 
 

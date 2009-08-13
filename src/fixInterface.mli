@@ -1,5 +1,31 @@
+(*
+ * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ *
+ * Permission is hereby granted, without written agreement and without 
+ * license or royalty fees, to use, copy, modify, and distribute this 
+ * software and its documentation for any purpose, provided that the 
+ * above copyright notice and the following two paragraphs appear in 
+ * all copies of this software. 
+ * 
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY 
+ * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES 
+ * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN 
+ * IF THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY 
+ * OF SUCH DAMAGE. 
+ * 
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, 
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+ * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ *)
+
+(* This file is part of the liquidC Project.*)
+
 type name
 type cilenv
+
 type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
 type refcfun  (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
 type refldesc (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
@@ -60,18 +86,18 @@ val refstore_subs       : ('a -> refctype -> refctype) -> 'a -> refstore -> refs
 val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> refstore -> refstore
 
 val is_soft_ptr         : refstore -> refctype -> bool 
-
 val sorts               : Ast.Sort.t list
 
-val make_wfs            : cilenv -> refctype -> Cil.location -> FixConstraint.wf list
-val make_wfs_fn         : cilenv -> refcfun -> Cil.location -> FixConstraint.wf list
-val make_wfs_refstore   : cilenv -> refstore -> Cil.location -> FixConstraint.wf list
+val make_wfs            : cilenv -> refctype -> CilTag.t -> FixConstraint.wf list
+val make_wfs_fn         : cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list
+val make_wfs_refstore   : cilenv -> refstore -> CilTag.t -> FixConstraint.wf list
+
 val make_cs             : cilenv -> Ast.pred -> 
                           refctype -> refctype -> 
-                          Cil.location -> FixConstraint.t list
+                          CilTag.t -> FixConstraint.t list
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
                           (Sloc.t * refldesc) -> (Sloc.t * refldesc) -> 
-                          Cil.location -> FixConstraint.t list
+                          CilTag.t -> FixConstraint.t list
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
-                          Cil.location -> FixConstraint.t list
+                          CilTag.t -> FixConstraint.t list
