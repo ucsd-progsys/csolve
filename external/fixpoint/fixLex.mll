@@ -70,6 +70,7 @@ rule token = parse
   | '?'                 { QM }
   | '.'                 { DOT }
   | "tag"               { TAG }
+  | "id"                { ID }
   | "Bexp"              { BEXP }
   | "false"             { FALSE }
   | "true"              { TRUE }

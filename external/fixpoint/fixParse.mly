@@ -14,7 +14,7 @@ let parse_error msg =
 
 %token <string> Id
 %token <int> Num
-%token TAG 
+%token TAG ID 
 %token BEXP
 %token TRUE FALSE
 %token LPAREN  RPAREN LB RB LC RC
@@ -162,15 +162,26 @@ bop:
   ;
   
 wf:
-  ENV env REF reft                      { C.make_wf $2 $4 None }
-  | ENV env REF reft TAG Num            { C.make_wf $2 $4 (Some $6) }
+    ENV env REF reft                              { C.make_wf $2 $4 None }
+  | ENV env REF reft ID Num                       { C.make_wf $2 $4 (Some $6) }
+  ;
+
+tagsne:
+  Num                                             { [$1] }
+  | Num SEMI tagsne                               { $1 :: $3 }
+  ;
+
+info:
+  ID Num                                          { ((Some $2), []) }
+  | TAG LB tagsne RB                              { (None, $3)} 
+  | ID Num TAG LB tagsne RB                       { ((Some $2), $5) }
   ;
 
 cstr:
-  ENV env GRD pred LHS reft RHS reft    { C.make_t $2 $4 $6 $8 None }
-  | ENV env GRD pred LHS reft RHS reft TAG Num   
-                                        { C.make_t $2 $4 $6 $8 (Some $10) }
+    ENV env GRD pred LHS reft RHS reft          { C.make_t $2 $4 $6 $8 None [] }
+  | ENV env GRD pred LHS reft RHS reft info     { C.make_t $2 $4 $6 $8 (fst $9) (snd $9)}
   ;
+
 
 env:
   LB RB                                 { C.env_of_bindings [] }

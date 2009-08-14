@@ -59,17 +59,21 @@ let parse f =
   |> Lexing.from_channel 
   |> FixParse.defs FixLex.token
 
-let solve (ts, ps, cs, ws, qs, s) = 
-  let _       = print_now "Fixpoint: Creating  CI\n" in
-  let ctx, _  = BS.time "create" (S.create ts SM.empty ps cs ws) qs in
-  let _       = print_now "Fixpoint: Solving \n" in
-  let s', cs' = BS.time "solve" (S.solve ctx) s in
-  let _       = print_now "Fixpoint: Saving Result \n" in
-  let _       = BS.time "save" (S.save !Co.save_file ctx) s' in
-  F.printf "%a" C.print_soln s'; 
-  F.printf "Unsat Constraints :\n %a" 
-    (Misc.pprint_many true "\n" (C.print_t None)) cs';
-  ()
+let solve (ts, ps, cs, ws, qs, s) = match cs with 
+  | []   -> 
+      print_now "Fixpoint: NO Constraints!" |> ignore
+  | c::_ -> 
+      let _       = print_now "Fixpoint: Creating  CI\n" in
+      let a       = c |> C.tag_of_t |> List.length in
+      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a cs ws) qs in
+      let _       = print_now "Fixpoint: Solving \n" in
+      let s', cs' = BS.time "solve" (S.solve ctx) s in
+      let _       = print_now "Fixpoint: Saving Result \n" in
+      let _       = BS.time "save" (S.save !Co.save_file ctx) s' in
+      let _       = F.printf "%a \nUnsat Constraints:\n %a" 
+                      C.print_soln s' 
+                      (Misc.pprint_many true "\n" (C.print_t None)) cs' in
+      ()
 
 let main () =
   print_now "© Copyright 2009 Regents of the University of California. ";

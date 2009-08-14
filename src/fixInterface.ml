@@ -480,8 +480,7 @@ let make_wfs_fn cenv rft tag =
 let rec make_cs cenv p rct1 rct2 tag =
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-  let tgo    = Some (CilTag.int_of_t tag) in
-  [C.make_t env p r1 r2 tgo]
+  [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)]
 
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in

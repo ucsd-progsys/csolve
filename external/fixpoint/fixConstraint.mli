@@ -23,7 +23,9 @@
 
 (* This module implements basic datatypes and operations on constraints *)
 
-type tag  = int
+type tag  = int list    (* for ordering: must have same dim, lexico-ordered *)
+type id   = int         (* for identifying: must be unique *) 
+
 type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
 type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
@@ -96,16 +98,17 @@ val ras_of_reft      : reft -> refa list
 val shape_of_reft    : reft -> reft
 val theta            : subs -> reft -> reft
 
-val make_t           : envt -> Ast.pred -> reft -> reft -> tag option -> t
+val make_t           : envt -> Ast.pred -> reft -> reft -> id option -> tag -> t
 val env_of_t         : t -> envt
 val grd_of_t         : t -> Ast.pred
 val lhs_of_t         : t -> reft
 val rhs_of_t         : t -> reft
-val id_of_t          : t -> tag
+val id_of_t          : t -> id
+val tag_of_t         : t -> tag
 
-val make_wf          : envt -> reft -> tag option -> wf
+val make_wf          : envt -> reft -> id option -> wf
 val env_of_wf        : wf -> envt
 val reft_of_wf       : wf -> reft
-val id_of_wf         : wf -> tag
+val id_of_wf         : wf -> id 
 
-val validate         : t list -> t list
+val validate         : int -> t list -> t list

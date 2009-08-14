@@ -26,17 +26,17 @@
 
 type t 
 
-val create      :  Ast.Sort.t list 
-                -> Ast.Sort.t Ast.Symbol.SMap.t 
-                -> Ast.pred list 
-                -> FixConstraint.t list 
-                -> FixConstraint.wf list
-                -> Ast.Qualifier.t list
-                -> (t * FixConstraint.soln)
+val create  :  Ast.Sort.t list              (* New sorts, now = []*)  
+            -> Ast.Sort.t Ast.Symbol.SMap.t (* New operators, now = [] *)
+            -> Ast.pred list                (* New axioms, now = [] *)
+            -> int                          (* Tag arity *)
+            -> FixConstraint.t list         (* Subtyping Constraints *)
+            -> FixConstraint.wf list        (* WF Constraints *)
+            -> Ast.Qualifier.t list         (* Qualifiers *)
+            -> (t * FixConstraint.soln)     (* Solver Instance, Post-WF solution *) 
 
-val solve       :  t 
-                -> FixConstraint.soln 
-                -> (FixConstraint.soln * (FixConstraint.t list))
+val solve   :  t                                                (* Solver Instance *)
+            -> FixConstraint.soln                               (* Starting Solution *)
+            -> (FixConstraint.soln * (FixConstraint.t list))    (* Fixpoint Solution, Unsat Constraints *)
 
-val save        : string -> t -> FixConstraint.soln -> unit 
-
+val save    : string -> t -> FixConstraint.soln -> unit 

@@ -32,14 +32,16 @@ module BS = BNstats
 
 open Misc.Ops
 
-type tag  = int
+type tag  = int list
+type id   = int
+
 type subs = (Sy.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * Sy.t
 type reft = Sy.t * A.Sort.t * (refa list)                (* { VV: t | [ra] } *)
 type envt = reft SM.t
 type soln = A.pred list SM.t
-type t    = (envt * envt) * A.pred * reft * reft * (tag option)
-type wf   = envt * reft * (tag option)
+type t    = (envt * envt) * A.pred * reft * reft * (id option) * tag
+type wf   = envt * reft * (id option)
 
 type deft = Srt of Ast.Sort.t 
           | Axm of Ast.pred 
@@ -76,14 +78,14 @@ let bindings_of_env env =
   SM.fold (fun x y bs -> (x,y)::bs) env []
 
 (* API *)
-let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_) = 
+let is_simple (_,_,(_,_,ra1s),(_,_,ra2s),_,_) = 
   List.for_all is_simple_refatom ra1s 
   && List.for_all is_simple_refatom ra2s 
   && (not !Constants.no_simple) 
   && (not !Constants.verify_simple)
 
 (* API *)
-let kvars_of_t ((_,env), _, lhs, rhs, _) =
+let kvars_of_t ((_,env), _, lhs, rhs, _ ,_) =
   [lhs; rhs] 
   |> SM.fold (fun _ r acc -> r :: acc) env
   |> Misc.flap kvars_of_reft 
@@ -162,13 +164,13 @@ let preds_of_envt s env =
     env [] 
 
 (* API *)
-let preds_of_lhs s ((_,env), gp, r1, _, _) =
+let preds_of_lhs s ((_,env), gp, r1, _, _, _) =
   let envps = preds_of_envt s env in
   let r1ps  = preds_of_reft s r1 in
   gp :: (envps ++ r1ps) 
 
 (* API *)
-let vars_of_t s ((_, _, _, r2, _) as c) =
+let vars_of_t s ((_, _, _, r2, _,_) as c) =
   (preds_of_reft s r2) ++ (preds_of_lhs s c)
   |> Misc.flap P.support
   
@@ -204,26 +206,30 @@ let print_env so ppf env =
   bindings_of_env env 
   |> F.fprintf ppf "@[%a@]" (Misc.pprint_many_box ";" (print_binding so))
 
-let pprint_tag ppf = function
-  | Some id     -> F.fprintf ppf "tag %d" id
+let pprint_id ppf = function
+  | Some id     -> F.fprintf ppf "id %d" id
   | None        -> F.fprintf ppf ""
+
+let pprint_tag ppf is =
+  F.fprintf ppf "@[tag %a@]" (Misc.pprint_many_box ";" (fun ppf i -> F.fprintf ppf "%d" i)) is
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
   F.fprintf ppf "wf: env @[[%a]@] @\n reft %a @\n %a @\n"
     (print_env so) env
     (print_reft so) r
-    pprint_tag io
+    pprint_id io
 
 (* API *)
-let print_t so ppf ((env,_),g,r1,r2,io) =
+let print_t so ppf ((env,_),g,r1,r2,io,is) =
   F.fprintf ppf 
-  "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n %a @\n"
+  "constraint:@.  env  @[[%a]@] @\n grd @[%a@] @\n lhs @[%a@] @\n rhs @[%a@] @\n %a %a @\n"
     (print_env so) env 
     P.print g
     (print_reft so) r1
     (print_reft so) r2
-    pprint_tag io
+    pprint_id io
+    pprint_tag is
 
 (* API *) 
 let to_string c = Misc.fsprintf (print_t None) c
@@ -272,12 +278,13 @@ let shape_of_reft = fun (v, so, _) -> (v, so, [])
 let theta         = fun subs (v, so, ras) -> (v, so, Misc.map (theta_ra subs) ras)
 
 (* API *)
-let make_t      = fun env p r1 r2 io -> ((env, non_trivial env ), p, r1, r2, io)
-let env_of_t    = fun ((env,_),_,_,_,_) -> env
-let grd_of_t    = fun (_,grd,_,_,_) -> grd 
-let lhs_of_t    = fun (_,_,lhs,_,_) -> lhs 
-let rhs_of_t    = fun (_,_,_,rhs,_) -> rhs
-let id_of_t     = function (_,_,_,_,Some i) -> i | _ -> assertf "C.id_of_t"
+let make_t      = fun env p r1 r2 io is -> ((env, non_trivial env ), p, r1, r2, io, is)
+let env_of_t    = fun ((env,_),_,_,_,_,_) -> env
+let grd_of_t    = fun (_,grd,_,_,_,_) -> grd 
+let lhs_of_t    = fun (_,_,lhs,_,_,_) -> lhs 
+let rhs_of_t    = fun (_,_,_,rhs,_,_) -> rhs
+let tag_of_t    = fun (_,_,_,_,_,is) -> is 
+let id_of_t     = function (_,_,_,_,Some i,_) -> i | _ -> assertf "C.id_of_t"
 
 (* API *)
 let make_wf     = fun env r io -> (env, r, io)
@@ -289,37 +296,41 @@ let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
 (********************** Input Validation ***********************)
 (***************************************************************)
 
-(* 1. check tags are distinct, return max tag *)
+(* 1. check ids are distinct, return max id *)
 let phase1 cs = 
-  let tags = Misc.map_partial (fun (_,_,_,_,x) -> x) cs in
-  let _    = asserts (Misc.distinct tags) "Invalid Constraints 1" in
-  List.fold_left max 0 tags 
+  let ids = Misc.map_partial (fun (_,_,_,_,x,_) -> x) cs in
+  let _   = asserts (Misc.distinct ids) "Invalid Constraints 1" in
+  List.fold_left max 0 ids 
 
-(* 2. add distinct tags to each constraint *) 
+(* 2. add distinct ids to each constraint *) 
 let phase2 cs tmax = 
   List.fold_left 
     (fun (cs, j) c -> match c with
-       | (_,_,_,_, Some i) -> (c::cs, j)
-       | (a,b,c,d, None)   -> ((a,b,c,d, Some j)::cs, j+1))
+       | (_,_,_,_, Some i,_) -> (c::cs, j)
+       | (a,b,c,d, None,  e) -> ((a,b,c,d,Some j,e)::cs, j+1))
     ([], tmax+1) cs
   |> fst
 
 (* 3. check that sorts are consistent across constraints *)
 let phase3 cs =
   let memo = Hashtbl.create 17 in
-  List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_) ->
+  List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_,_) ->
     asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
     SM.iter begin fun x (_,t,_) ->
-      try asserts (t = (Hashtbl.find memo x)) 
-            "Invalid Constraints 3b" 
-      with Not_found -> 
-        Hashtbl.replace memo x t
+      try asserts (t = (Hashtbl.find memo x)) "Invalid Constraints 3b" 
+      with Not_found -> Hashtbl.replace memo x t
     end env
   end cs;
   cs
 
-let validate cs = 
-  phase1 cs |> phase2 cs |> phase3
+let phase4 a cs =
+  List.iter begin fun c -> 
+    asserts (a = List.length (tag_of_t c)) "Invalid Constraints 4"
+  end cs;
+  cs
 
-let validate cs = 
-  BS.time "validate shapes" validate cs
+let validate a cs = 
+  phase1 cs |> phase2 cs |> phase3 |> phase4 a
+
+let validate a cs = 
+  BS.time "validate shapes" (validate a) cs
