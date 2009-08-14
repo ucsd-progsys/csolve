@@ -116,7 +116,7 @@ let mk_var_reg_maps () =
   ((fun () -> !n_r),
    (fun r  -> IH.find reg_var_m r), 
    (fun v  -> 
-     asserti (is_ssa_renamable v) "v2r: on non-renamable %s" v.vname;
+     asserti (is_ssa_renamable v) "v2r: on non-renamable %s" v.vname; 
      try IH.find var_reg_m v.vid with Not_found -> 
        let n = !n_r in
        let _ = incr n_r in
@@ -199,7 +199,7 @@ let out_name cfg out_t k =
     k k
 
 let mk_renamed_var fdec var_t v ri =
-  asserti (is_ssa_renamable v) "renaming non ssa-able var %s" v.vname;
+  asserti (is_ssa_renamable v) "renaming non ssa-able var %s" v.vname; 
   try H.find var_t (v.vname, ri) with Not_found ->
     let v' = 
       match ri with 

@@ -33,30 +33,38 @@ module IM = Misc.IntMap
 module SM = Ast.Symbol.SMap 
 open Misc.Ops
 
-type fc_id = int option 
-type subref_id = int 
+type rank = {
+  id    : C.id;
+  scc   : int;
+  simpl : bool;
+  tag   : C.tag;
+}
+
+let pprint_rank ppf r =
+  Format.fprintf ppf "id=%d, scc=%d, simpl=%b, tag=%a" 
+    r.id r.scc r.simpl Misc.pprint_ints r.tag
 
 module WH = 
   Heaps.Functional(struct 
-      type t = subref_id * int * (int * bool)
-      let compare (id,ts,(i,j)) (id',ts',(i',j')) =
-        if i <> i' then compare i i' else
-          if id <> id' then compare id id' else
-            if ts <> ts' then -(compare ts ts') else
-              compare j j'
+      type t = int * rank 
+      let compare (ts,r) (ts',r') = 
+        if r.scc <> r'.scc then compare r.scc r'.scc else
+          if r.tag <> r'.tag then compare r.tag r'.tag else
+            if ts <> ts' then - (compare ts ts') else
+              compare r.simpl r'.simpl
     end)
 
 type wkl = WH.t
 
 type t = 
   { cnst: FixConstraint.t IM.t;         (* id -> refinement_constraint *) 
-    rank: (int * bool) IM.t;            (* id -> dependency rank *)
-    depm: subref_id list IM.t;          (* id -> successor ids *)
-    pend: (subref_id,unit) Hashtbl.t;   (* id -> is in wkl ? *)
+    rnkm: rank IM.t;                    (* id -> dependency rank *)
+    depm: C.id list IM.t;               (* id -> successor ids *)
+    pend: (C.id, unit) Hashtbl.t;       (* id -> is in wkl ? *)
   }
 
 let get_ref_rank me c =
-  Misc.do_catch "ERROR: Cindex.get_ref_rank" (IM.find (C.id_of_t c)) me.rank
+  Misc.do_catch "ERROR: Cindex.get_ref_rank" (IM.find (C.id_of_t c)) me.rnkm
 
 let get_ref_constraint me i = 
   Misc.do_catch "ERROR: Cindex.get_ref_constraint" (IM.find i) me.cnst
@@ -99,20 +107,22 @@ let make_rank_map () (cm : C.t IM.t) =
       cm (IM.empty,[]) in
   let rm = 
     let rank = Fcommon.scc_rank string_of_int deps in
-    List.fold_left
-      (fun rm (id,r) -> 
-        let b = (not !Co.psimple) || (C.is_simple (IM.find id cm)) in
-        IM.add id (r,b) rm)
-      IM.empty rank in
-  (dm,rm)
+    List.fold_left begin fun rm (id, r) -> 
+      let c = IM.find id cm in
+      IM.add id {id    = id; 
+                 scc   = r; 
+                 simpl = (not !Co.psimple) || (C.is_simple c); 
+                 tag   = C.tag_of_t c;} rm
+    end IM.empty rank in
+  (dm, rm)
 
 (* API *)
 let create cs = 
-  let cm = List.fold_left 
-             (fun cm c -> IM.add (C.id_of_t c) c cm) 
-             IM.empty cs in
+  let cm      = List.fold_left begin fun cm c -> 
+                  IM.add (C.id_of_t c) c cm 
+                end IM.empty cs in
   let (dm,rm) = BS.time "make rank map" (make_rank_map ()) cm in
-  {cnst = cm; rank = rm; depm = dm; pend = Hashtbl.create 17}
+  {cnst = cm; rnkm = rm; depm = dm; pend = Hashtbl.create 17}
 
 (* API *) 
 let deps me c =
@@ -128,9 +138,9 @@ let iter f me =
   IM.iter (fun _ c -> f c) me.cnst
 
 let sort_iter_ref_constraints me f = 
-  let rids  = IM.fold (fun id (r,_) ac -> (id,r)::ac) me.rank [] in
-  let rids' = List.sort (fun x y -> compare (snd x) (snd y)) rids in 
-  List.iter (fun (id,_) -> f (IM.find id me.cnst)) rids' 
+  IM.fold (fun id r acc -> (id, r)::acc) me.rnkm [] 
+  |> List.sort (fun (_,r) (_,r') -> compare r.tag r'.tag) 
+  |> List.iter (fun (id,_) -> f (IM.find id me.cnst)) 
 
 (* API *)
 let wpush =
@@ -143,19 +153,19 @@ let wpush =
         if Hashtbl.mem me.pend id then w else 
           (Co.cprintf Co.ol_solve "Pushing %d at %d \n" id !timestamp; 
            Hashtbl.replace me.pend id (); 
-           WH.add (id, !timestamp, get_ref_rank me c) w))
+           WH.add (!timestamp, get_ref_rank me c) w))
       w cs
 
 (* API *)
 let wpop me w =
   try 
-    let (id,_,_) = WH.maximum w in
-    let _        = Hashtbl.remove me.pend id in
-    let c        = get_ref_constraint me id in
-    let (r,b)    = get_ref_rank me c in
-    let _        = Co.cprintf Co.ol_solve "popping %d in scc (%d,%b,%s) \n" id r b in 
+    let _, r = WH.maximum w in
+    let _    = Hashtbl.remove me.pend r.id in
+    let c    = get_ref_constraint me r.id in
+    let _    = Co.cprintf Co.ol_solve "popping %d in scc (rank=%a) \n" 
+               r.id pprint_rank r in 
     (Some c, WH.remove w)
-  with Heaps.EmptyHeap -> (None,w) 
+  with Heaps.EmptyHeap -> (None, w) 
 
 (* API *)
 let winit me =

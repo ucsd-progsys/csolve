@@ -54,7 +54,7 @@ module Ops = struct
     Printf.ksprintf failwith fmt
 
   let asserti p fmt = 
-    Printf.ksprintf (fun x -> if not p then (print_string (x^"\n"); 0/0) else 0) fmt
+    Printf.ksprintf (fun x -> if not p then (print_string (x^"\n"); ignore(0/0)) else ()) fmt
   
   let asserts p fmt =
     Printf.ksprintf (fun x -> if not p then failwith x) fmt
@@ -380,6 +380,9 @@ let rec pprint_many brk s f ppf = function
 
 let pprint_str ppf s =
   Format.fprintf ppf "%s" s
+
+let pprint_ints ppf is = 
+  pprint_many_box ";" (fun ppf i -> Format.fprintf ppf "%d" i) ppf is
 
 let fsprintf f p = 
   Format.fprintf Format.str_formatter "@[%a@]" f p;

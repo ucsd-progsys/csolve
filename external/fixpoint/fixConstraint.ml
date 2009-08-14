@@ -211,7 +211,7 @@ let pprint_id ppf = function
   | None        -> F.fprintf ppf ""
 
 let pprint_tag ppf is =
-  F.fprintf ppf "@[tag %a@]" (Misc.pprint_many_box ";" (fun ppf i -> F.fprintf ppf "%d" i)) is
+  F.fprintf ppf "@[tag %a@]" Misc.pprint_ints is
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
