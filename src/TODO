@@ -1,9 +1,7 @@
 [Tag]   all constraints fall into the same SCC, 
-	add real "control-flow-tags" to the constraints	
-	Inside [CilTag.ml]
-		- tag = 10000 * fid + blockid
-		- fid = assign ids to funs after topo-sort the callgraph
-		- assumption: blocks are already sorted by dominator 
+	Remains: CilTag.blockranks_of_sci 
+	SCC rank by CFG edges -- after deleting backedge
+	backedge v -> u where u dominates v ...
 
 [cluster] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]

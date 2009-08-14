@@ -30,35 +30,6 @@
 open Cil
 open Misc.Ops
  
-(**********************************************************)
-(**************** Build Call Graph ************************)
-(**********************************************************)
-
-class calleeVisitor calleesr = object(self)
-  inherit nopCilVisitor
-    method vinst = function
-    | Call (_, Lval ((Var v), NoOffset), _, _) ->
-        calleesr := v.vname :: !calleesr; DoChildren
-    | _ -> DoChildren
-end
-
-let edges_of_file file = 
-  let cil = Frontc.parse file () in
-  Cil.foldGlobals cil begin
-    fun es g -> match g with
-    | Cil.GFun (fd,_) ->
-        let u    = fd.svar.vname in
-        let vsr  = ref [] in
-        let _    = visitCilFunction (new calleeVisitor vsr) fd in
-        let es'  = List.map (fun v -> (u,v)) !vsr in
-        es' ++ es
-    | _ -> es
-  end [] 
-
-(* API *)
-let callgraph_of_files files = 
-  Misc.flap edges_of_file files 
-
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)

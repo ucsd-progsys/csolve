@@ -101,8 +101,7 @@ module StringMap =
   Map.Make 
   (struct
     type t = string 
-    let compare i1 i2 = 
-      compare i1 i2
+    let compare i1 i2 = compare i1 i2
   end)
 
 let sm_extend sm1 sm2 =
