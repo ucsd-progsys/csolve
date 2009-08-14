@@ -22,6 +22,7 @@
  *)
 
 (* This module implements basic datatypes and operations on constraints *)
+
 type tag  = int
 type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
@@ -87,8 +88,6 @@ val to_string        : t -> string
 val refa_to_string   : refa -> string
 val reft_to_string   : reft -> string
 val binding_to_string : (Ast.Symbol.t * reft) -> string
-
-
 
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t
