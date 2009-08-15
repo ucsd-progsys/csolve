@@ -145,6 +145,11 @@ let list_snoc xs =
   | [] -> assertf "list_snoc with empty list!"
   | h::t  -> h, List.rev t
 
+let negfilter f xs = 
+  List.fold_left (fun acc x -> if f x then acc else x::acc) [] xs 
+  |> List.ref
+
+
 let get_option d = function  
   | Some x -> x 
   | None   -> d

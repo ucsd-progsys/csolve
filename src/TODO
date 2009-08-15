@@ -1,7 +1,5 @@
 [Tag]   all constraints fall into the same SCC, 
-	Remains: CilTag.blockranks_of_sci 
-	SCC rank by CFG edges -- after deleting backedge
-	backedge v -> u where u dominates v ...
+	all code is in. next: compile and test!
 
 [cluster] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]
