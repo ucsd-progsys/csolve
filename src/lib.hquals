@@ -1,4 +1,5 @@
 qualif FALSE(v: int)   : 1 = 0
 qualif ISBS(v:int)     : v = BLOCK_BEGIN([v])
-qualif A(v:int)        : 0 <= v
-qualif A(v:int)        : 0 < v
+qualif EQZ(v: int)     : v = 0
+qualif GEZ(v:int)      : 0 <= v
+qualif GTZ(v:int)      : 0 < v

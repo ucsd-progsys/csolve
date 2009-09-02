@@ -59,7 +59,8 @@ type exp_or_pred =
   | P of A.pred
 
 type op = 
-  | Bop of A.bop  
+  | Bop of A.bop
+  | Bpop of A.bop
   | Brl of A.brel 
   | Bbl of (A.pred list -> A.pred)
   | Bunimpl
@@ -74,9 +75,9 @@ let unop_of_cilUOp = function
 let op_of_cilBOp = function
   | Cil.PlusA   -> Bop A.Plus    
   | Cil.IndexPI              
-  | Cil.PlusPI  -> Bop A.Plus   
+  | Cil.PlusPI  -> Bpop A.Plus
   | Cil.MinusA  -> Bop A.Minus
-  | Cil.MinusPI -> Bop A.Minus
+  | Cil.MinusPI -> Bpop A.Minus
   | Cil.MinusPP -> Bop A.Minus
   | Cil.Mult    -> Bop A.Times
   | Cil.Div     -> Bop A.Div  
@@ -127,6 +128,10 @@ and convert_cilbinexp (op, e1, e2) =
   | Bop op' ->
       let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
       E (A.eBin (e1', op', e2'))
+  | Bpop pop ->
+      let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
+      let stride   = Cil.typeOf e1 |> Cil.unrollType |> CilMisc.ptrRefType |> CilMisc.bytesSizeOf in
+      E (A.eBin (e1', pop, A.eBin (A.eCon (A.Constant.Int (stride)), A.Times, e2')))
   | Brl rel' ->
       let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
       P (A.pAtom (e1', rel', e2'))

@@ -14,4 +14,4 @@ CFLAGS=-cflags -dtypes \
 OFLAGS=$(DIRS) $(IFLAGS) $(LFLAGS) $(CFLAGS)
 
 all:
-	ocamlbuild -r $(LIBS) $(OFLAGS) fixtop.native
+	ocamlbuild -quiet -r $(LIBS) $(OFLAGS) fixtop.native

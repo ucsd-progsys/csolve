@@ -102,6 +102,7 @@ rule token = parse
   | "qualif"            { QUL }
   | "arg"               { ARG }
   | "ret"               { RET }
+  | "store"             { ST }
   | "store_in"          { INST }
   | "store_out"         { OUTST }
   | "grd"               { GRD }

@@ -620,18 +620,18 @@ let check_out_store_complete (loc: C.location) (sto_out_formal: store) (sto_out_
   end true sto_out_actual
 
 let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: store): bool =
-  let ok1 = check_out_store_complete loc sto_out_formal sto_out_actual in
-  let ok2 =
-    prestore_fold begin fun ok l i ct ->
+  check_out_store_complete loc sto_out_formal sto_out_actual &&
+    prestore_fold begin fun ok l i ft ->
       try
-        let ct2 = prestore_find_index l i sto_out_actual |> List.hd in
-        let ok2 = check_expected_type loc ct ct2 in
-          ok && ok2
+        match prestore_find_index l i sto_out_actual with
+          | []   -> ok
+          | [at] -> check_expected_type loc ft at && ok (* order is important here for unification! *)
+          | _    -> failwith "Returned too many at index from prestore_find_index"
       with
-        | Unified -> raise Unified
-        | _       -> false
+        | Unified   -> raise Unified
+        | Not_found -> ok
+        | _         -> false
     end true sto_out_formal
-  in ok1 && ok2
 
 let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   let (is, ss)  = solve cs in

@@ -68,8 +68,16 @@ let main () =
   let fs = ref [] in
   let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
   let _, _, cs, ws, _, sol =  !fs |> Misc.flap parse |> sift in
-(*  let _ = dump cs ws in *)
-  begin
+    (*  let _ = dump cs ws in *)
+  let cs = 
+    if !Co.simplify_t then
+      Misc.map_partial 
+	(fun t -> 
+	   let st = Simplification.simplify_t t in
+	     if Simplification.is_tauto_t st then None else Some st
+	) cs
+    else cs in
+    begin
       match !Co.latex_file with
 	| Some f ->
 	    let out = open_out f in
@@ -87,11 +95,21 @@ let main () =
 	| None -> ()
     end;
     begin
-      match !Co.qarmc_file with
+      match !Co.q_armc_file with
 	| Some f -> 
 	    let out = open_out f in
 	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
 	      ToQARMC.to_qarmc out cs ws sol;
+	      close_out out
+	| None -> ()
+    end;
+    begin
+      match !Co.hc_armc_file with
+	| Some f -> 
+	    print_endline "here";
+	    let out = open_out f in
+	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
+	      ToHC.to_hc_armc out cs ws sol;
 	      close_out out
 	| None -> ()
     end;

@@ -1,0 +1,10 @@
+qualif RNG(v: int) : v < @range
+qualif SZ(v: int)  : v < @size
+qualif ATB(v: int) : v = BLOCK_BEGIN([v])
+qualif EVIL(v: int): v = 666
+qualif GOOD(v: int): v = 333
+qualif SZ(v:int)   : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4 * @size
+qualif SZ(v:int)   : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4 * @tablesz
+qualif SZ(v:int)   : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 24 * @degree
+qualif SZ(v:int)   : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 333 * 4
+qualif SZ(v:int)   : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 666 * 24

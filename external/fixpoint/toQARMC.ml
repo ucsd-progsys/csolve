@@ -1,10 +1,16 @@
 (* translation to Q'ARMC *)
 
+
 module C  = FixConstraint
 module Co = Constants 
+module Sy = Ast.Symbol
+module P = Ast.Predicate
+module E = Ast.Expression
 module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
 open Misc.Ops
+
+let strlist_to_strset = List.fold_left (fun s x -> StrSet.add x s) StrSet.empty
 
 (* Andrey: TODO move to ast.ml? *)
 let pred_is_atomic (p, _) =
@@ -12,6 +18,199 @@ let pred_is_atomic (p, _) =
     | Ast.True | Ast.False | Ast.Bexp _ | Ast.Atom _ -> true
     | Ast.And _ | Ast.Or _ | Ast.Not _ | Ast.Imp _ | Ast.Forall _ -> false
 
+let pred_is_true (p, _) = 
+  match p with 
+    | Ast.True -> true
+    | Ast.Atom (e1, Ast.Eq, e2) -> E.to_string e1 = E.to_string e2 
+    | _ -> false
+
+let neg_brel = function 
+  | Ast.Eq -> Ast.Ne
+  | Ast.Ne -> Ast.Eq
+  | Ast.Gt -> Ast.Le
+  | Ast.Ge -> Ast.Lt
+  | Ast.Lt -> Ast.Ge
+  | Ast.Le -> Ast.Gt
+
+let rec push_neg ?(neg=false) ((p, _) as pred) =
+  match p with
+    | Ast.True -> if neg then Ast.pFalse else pred
+    | Ast.False -> if neg then Ast.pTrue else pred
+    | Ast.Bexp _ -> if neg then Ast.pNot pred else pred
+    | Ast.Not p -> push_neg ~neg:(not neg) p
+    | Ast.Imp (p, q) -> 
+	if neg then Ast.pAnd [push_neg p; push_neg ~neg:true q]
+	else Ast.pImp (push_neg p, push_neg q)
+    | Ast.Forall (qs, p) -> 
+	let pred' = Ast.pForall (qs, push_neg ~neg:false p) in
+	  if neg then Ast.pNot pred' else pred'
+    | Ast.And ps -> List.map (push_neg ~neg:neg) ps |> if neg then Ast.pOr else Ast.pAnd
+    | Ast.Or ps -> List.map (push_neg ~neg:neg) ps |> if neg then Ast.pAnd else Ast.pOr
+    | Ast.Atom (e1, brel, e2) -> if neg then Ast.pAtom (e1, neg_brel brel, e2) else pred
+
+(* Andrey: TODO flatten nested conjunctions/disjunctions *)
+let rec simplify_tauto ((p, _) as pred) =
+  match p with
+    | Ast.Not p -> Ast.pNot (simplify_tauto p)
+    | Ast.Imp (p, q) -> Ast.pImp (simplify_tauto p, simplify_tauto q) 
+    | Ast.Forall (qs, p) -> Ast.pForall (qs, simplify_tauto p)
+    | Ast.And ps -> 
+	let ps' = List.map simplify_tauto ps |> List.filter (fun p -> not(P.is_tauto p)) in
+	  if List.mem Ast.pFalse ps' then Ast.pFalse else
+	    begin
+	      match ps' with
+		| [] -> Ast.pTrue
+		| [p'] -> p'
+		| _ :: _ -> Ast.pAnd ps'
+	    end
+    | Ast.Or ps -> 
+	let ps' = List.map simplify_tauto ps in
+	  if List.exists P.is_tauto ps' then Ast.pTrue else 
+	    begin
+	      match ps' with
+		| [] -> Ast.pFalse
+		| [p'] -> p'
+		| _ :: _ -> Ast.pOr ps'
+	    end
+    | _ -> pred
+
+let rec partition_pred_defs edefs pdefs ((p, _) as pred) = 
+  match p with
+    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Ast.pTrue, Sy.SMap.add v e edefs, pdefs
+    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
+	Ast.pTrue, edefs, Sy.SMap.add v1 p1 pdefs
+    | Ast.And preds -> 
+	let preds', edefs', pdefs' = List.fold_left 
+	  (fun (preds_sofar, edefs_sofar, pdefs_sofar) p ->
+	     let p'', edefs'', pdefs'' = partition_pred_defs edefs_sofar pdefs_sofar p in
+	       p'' :: preds_sofar, edefs'', pdefs''
+	  ) ([], edefs, pdefs) preds in
+	  (Ast.pAnd preds'), edefs', pdefs'
+    | _ -> pred, edefs, pdefs
+
+let rec defs_of_pred edefs pdefs (p, _) = 
+  match p with
+    | Ast.Atom ((Ast.Var v, _), Ast.Eq, e) -> Sy.SMap.add v e edefs, pdefs
+    | Ast.And [Ast.Imp ((Ast.Bexp (Ast.Var v1, _), _), p1), _; 
+	       Ast.Imp (p2, (Ast.Bexp (Ast.Var v2, _), _)), _] when v1 = v2 && p1 = p2 -> 
+	edefs, Sy.SMap.add v1 p1 pdefs
+    | Ast.And preds -> 
+	let edefs', pdefs' = List.fold_left 
+	  (fun (edefs_sofar, pdefs_sofar) p ->
+	     let edefs'', pdefs'' = defs_of_pred edefs_sofar pdefs_sofar p in
+	       edefs'', pdefs''
+	  ) (edefs, pdefs) preds in
+	  edefs', pdefs'
+    | _ -> edefs, pdefs
+
+
+let some_def_applied = ref false
+let rec expr_apply_defs edefs pdefs ((e, _) as expr) = 
+  let current_some_def_applied = !some_def_applied in
+    some_def_applied := false;
+    let expr'' =
+      match e with
+	| Ast.Con _ -> expr
+	| Ast.Var v -> 
+	    begin
+	      try
+		let expr' = Sy.SMap.find v edefs in
+		  some_def_applied := true;
+		  expr'
+	      with Not_found -> expr
+	    end
+	| Ast.App (v, es) -> 
+	    let edefs' = Sy.SMap.remove v edefs in
+	      Ast.eApp (v, List.map (expr_apply_defs edefs' pdefs) es)
+	| Ast.Bin (e1, op, e2) -> 
+	    Ast.eBin (expr_apply_defs edefs pdefs e1, op, expr_apply_defs edefs pdefs e2)
+	| Ast.Ite (p, e1, e2) -> 
+	    Ast.eIte (pred_apply_defs edefs pdefs p, 
+		      expr_apply_defs edefs pdefs e1,
+		      expr_apply_defs edefs pdefs e2)
+	| Ast.Fld (v, e) -> 
+	    let v' = 
+	      try
+		match Sy.SMap.find v edefs with
+		  | (Ast.Var v'', _) -> 
+		      some_def_applied := true;
+		      v''
+		  | _ -> v
+	      with Not_found -> v
+	    in
+	      Ast.eFld (v', expr_apply_defs edefs pdefs e)
+    in
+      if !some_def_applied then
+	let expr''' = expr_apply_defs edefs pdefs expr'' in
+	  some_def_applied := current_some_def_applied;
+	  expr'''
+      else
+	begin
+	  some_def_applied := current_some_def_applied;
+	  expr''
+	end
+and pred_apply_defs edefs pdefs ((p, _) as pred) =
+  let current_some_def_applied = !some_def_applied in
+    some_def_applied := false;
+    let pred'' =
+      match p with
+	| Ast.And ps -> List.map (pred_apply_defs edefs pdefs) ps |> Ast.pAnd
+	| Ast.Or ps -> List.map (pred_apply_defs edefs pdefs) ps |> Ast.pOr
+	| Ast.Not p -> pred_apply_defs edefs pdefs p |> Ast.pNot
+	| Ast.Imp (p, q) -> Ast.pImp (pred_apply_defs edefs pdefs p, pred_apply_defs edefs pdefs q)
+	| Ast.Bexp (Ast.Var v, _) ->
+	    begin
+	      Printf.printf "Applying on Bexp: %s\n" (P.to_string pred);
+	      (* Andrey: TODO also consider edefs *)
+	      try
+		let expr' = Sy.SMap.find v edefs in
+		  some_def_applied := true;
+		  Ast.pBexp expr'
+	      with Not_found ->
+		try
+		  let pred' = Sy.SMap.find v pdefs in
+		    some_def_applied := true;
+		    pred'
+		with Not_found ->
+		  pred
+	    end
+	| Ast.Atom (e1, brel, e2) ->
+	    Ast.pAtom (expr_apply_defs edefs pdefs e1, brel, expr_apply_defs edefs pdefs e2)
+	| Ast.Forall (qs, p) ->
+	    let vs = List.map fst qs in
+	    let edefs' = List.fold_left (fun defs v -> Sy.SMap.remove v defs) edefs vs in
+	    let pdefs' = List.fold_left (fun defs v -> Sy.SMap.remove v defs) pdefs vs in
+	      Ast.pForall (qs, pred_apply_defs edefs' pdefs' p)
+	| _ -> pred
+    in
+      if !some_def_applied then
+	let pred''' = pred_apply_defs edefs pdefs pred'' in
+	  some_def_applied := current_some_def_applied;
+	  pred'''
+      else 
+	begin
+	  some_def_applied := current_some_def_applied;
+	  pred''
+	end
+      
+
+let support_of_env sol env =
+  Sy.SMap.fold
+    (fun ksym reft sup -> 
+       let vv = C.vv_of_reft reft in
+       let kv = Ast.eVar ksym in
+       let syms = C.preds_of_reft sol reft |>
+	   List.map (fun p -> P.subst p vv kv) |> List.filter (fun p -> not(pred_is_true p)) |>
+	       List.map P.support |> List.flatten
+       in
+	 List.fold_left (fun sup' sym -> Sy.SSet.add sym sup') sup syms
+    ) env Sy.SSet.empty
+
+
+
+let armc_true = "true"
+let armc_false = "false"
 let loop_pc = "loop"
 let start_pc = "start"
 let error_pc = "error"
@@ -23,18 +222,41 @@ let str__cil_tmp = "__cil_tmp"
 type kv_scope = {
   kvs : string list;
   kv_scope : string list StrMap.t;
-  sol : Ast.pred list Ast.Symbol.SMap.t;
+  sol : Ast.pred list Sy.SMap.t;
+}
+
+type horn_clause = {
+  body_pred : Ast.pred;
+  body_kvars : (C.subs * Sy.t) list;
+  head_pred : Ast.pred;
+  head_kvars : (C.subs * Sy.t) list;
+  tag : string;
 }
 
 let sanitize_symbol s = 
   Str.global_replace (Str.regexp "@") "_at_"  s |> Str.global_replace (Str.regexp "#") "_hash_" |>
-      Str.global_replace (Str.regexp "\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
+      Str.global_replace (Str.regexp "\\.") "_dot_" |> Str.global_replace (Str.regexp "'") "_q_" 
 
-let symbol_to_armc s = Ast.Symbol.to_string s |> sanitize_symbol
+let symbol_to_armc s = Sy.to_string s |> sanitize_symbol
 
 let mk_data_var ?(suffix = "") kv v = 
   Printf.sprintf "_%s_%s%s%s" 
     (sanitize_symbol v) (sanitize_symbol kv) (if suffix = "" then "" else "_") suffix
+
+	
+(*
+let defs_of_env state env = 
+  Sy.SMap.fold 
+    (fun ksym reft defs ->
+       let vv = C.vv_of_reft reft in
+       let kv = Ast.eVar ksym in
+       let defs' = C.preds_of_reft state.sol reft |>
+	   List.map (fun p -> P.subst p vv kv) |> List.filter (fun p -> not(pred_is_true p)) |>
+	       List.map (defs_of_pred state) |> List.flatten
+       in
+	 defs' ++ defs
+    ) env []
+*)
 
 let constant_to_armc = Ast.Constant.to_string
 let bop_to_armc = function 
@@ -68,58 +290,87 @@ let rec expr_to_armc (e, _) =
 	  (pred_to_armc ip) (expr_to_armc te) (expr_to_armc ee)
     | Ast.Fld (s, e) -> 
 	Printf.sprintf "fld(%s, %s)" (expr_to_armc e) (symbol_to_armc s)
-and pred_to_armc (p, _) = 
-  match p with
-    | Ast.True -> "1=1"
-    | Ast.False -> "0=1"
-    | Ast.Bexp e -> Printf.sprintf "%s = 1" (expr_to_armc e)
-    | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
-    | Ast.Imp (p1, p2) -> Printf.sprintf "(neg(%s); %s)" (pred_to_armc p1) (pred_to_armc p2)
-    | Ast.And [] -> "1=1"
-    | Ast.And [p] -> pred_to_armc p
-    | Ast.And (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
-    | Ast.Or [] -> "0=1"
-    | Ast.Or [p] -> pred_to_armc p
-    | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
-    | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) ->
-	let ip_str = pred_to_armc ip in
-	let e1_str = expr_to_armc e1 in
-	  Printf.sprintf "((%s, %s = %s); (neg(%s), %s = %s))"
-	    ip_str e1_str (expr_to_armc te) 
-	    ip_str e1_str (expr_to_armc ee) 
-    | Ast.Atom (e1, r, e2) ->
-	Printf.sprintf "%s %s %s" 
-          (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
-    | Ast.Forall (qs,p) -> (* Andrey: TODO support forall *) 
-	Printf.sprintf "forall([%s], %s)" 
-          (List.map bind_to_armc qs |> String.concat ", ") 
-	  (pred_to_armc p)
+and pred_to_armc ((p, _) as pred) = 
+  if pred_is_true pred then 
+    armc_true
+  else
+    match p with
+      | Ast.True -> armc_true
+      | Ast.False -> armc_false
+      | Ast.Bexp e -> Printf.sprintf "bexp(%s)" (expr_to_armc e)
+      | Ast.Not (Ast.True, _) -> armc_false
+      | Ast.Not (Ast.False, _) -> armc_true
+      | Ast.Not p -> Printf.sprintf "neg(%s)" (pred_to_armc p) 
+      | Ast.Imp (p1, p2) -> Printf.sprintf "imp(%s, %s)" (pred_to_armc p1) (pred_to_armc p2)
+      | Ast.And [] -> armc_true
+      | Ast.And [p] -> pred_to_armc p
+      | Ast.And [Ast.Imp ((Ast.Bexp e1, _) as p, p1), _; 
+		 Ast.Imp (p2, (Ast.Bexp e2, _)), _] when e1 = e2 && p1 = p2 -> 
+	  Printf.sprintf "bexp_def(%s, %s)" (pred_to_armc p) (pred_to_armc p1)
+      | Ast.And (_::_ as ps) -> 
+	  Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat ", ")
+      | Ast.Or [] -> armc_false
+      | Ast.Or [p] -> pred_to_armc p
+      | Ast.Or (_::_ as ps) -> Printf.sprintf "(%s)" (List.map pred_to_armc ps |> String.concat "; ")
+      | Ast.Atom (e1, Ast.Eq, (Ast.Ite(ip, te, ee), _)) ->
+	  let ip_str = pred_to_armc ip in
+	  let e1_str = expr_to_armc e1 in
+	    Printf.sprintf "((%s, %s = %s); (neg(%s), %s = %s))"
+	      ip_str e1_str (expr_to_armc te) 
+	      ip_str e1_str (expr_to_armc ee) 
+      | Ast.Atom (e1, r, e2) ->
+	  Printf.sprintf "%s %s %s" 
+            (expr_to_armc e1) (brel_to_armc r) (expr_to_armc e2)
+      | Ast.Forall (qs,p) -> (* Andrey: TODO support forall *) 
+	  Printf.sprintf "forall([%s], %s)" 
+            (List.map bind_to_armc qs |> String.concat ", ") 
+	    (pred_to_armc p)
 
 
 let mk_kv_scope out ts wfs sol =
-  output_string out "% kv -> scope:\n";
-  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
+(*  let kvs = List.map C.kvars_of_t ts |> List.flatten |> List.map snd |> 
       List.map symbol_to_armc |> (* (fun s -> Printf.sprintf "k%s" (symbol_to_armc s)) |> *)
 	  Misc.sort_and_compact in
-  let kv_scope =
+*)
+  let kv_scope_wf =
     List.fold_left
       (fun m wf ->
-	   match C.reft_of_wf wf |> C.ras_of_reft with
-	     | [C.Kvar([], kvar)] ->
-		 let v = symbol_to_armc kvar in
-		 let scope = 
-		   val_vname ::
-		     (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc |> 
-			  List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
-		   Printf.fprintf out "%% %s -> %s\n"
-		     v (String.concat ", " scope);
-		   StrMap.add v scope m
-	     | _ -> m
-		 (* Andrey: TODO handle ill-formed wf *)
-(*		 Format.printf "%a" (C.print_wf None) wf;
-		 failure "ERROR: kname_scope_map: ill-formed wf"
-*)
+	 match C.reft_of_wf wf |> C.ras_of_reft with
+	   | [C.Kvar([], kvar)] ->
+	       let v = symbol_to_armc kvar in
+	       let scope = 
+		 val_vname ::
+		   (C.env_of_wf wf |> C.bindings_of_env |> List.map fst |> List.map symbol_to_armc |> 
+			List.filter (fun s -> not (Misc.is_prefix str__cil_tmp s)) |> List.sort compare) in
+		 Printf.fprintf out "%% %s -> %s\n"
+		   v (String.concat ", " scope);
+		 StrMap.add v scope m
+	   | _ -> m
+	       (* Andrey: TODO handle ill-formed wf *)
+	       (*		 Format.printf "%a" (C.print_wf None) wf;
+				 failure "ERROR: kname_scope_map: ill-formed wf"
+	       *)
       ) StrMap.empty wfs in
+  let kv_scope_t =
+    List.fold_left 
+      (fun m (subs, kvar) ->
+	 let v = symbol_to_armc kvar in
+	 let scope = 
+	   List.filter (fun (v, (e, _)) -> 
+			  match e with
+			    | Ast.Var v' -> v <> v'
+			    | _ -> true
+		       ) subs |> 
+	       List.map fst |> List.map symbol_to_armc |> strlist_to_strset in
+	 let scope' = try StrMap.find v m with Not_found -> StrSet.empty in
+	   StrMap.add v (StrSet.union scope scope') m
+      ) StrMap.empty (List.map C.kvars_of_t ts |> List.flatten) in
+  let kv_scope = kv_scope_wf in
+  let kv_scope_old = 
+    StrMap.map (fun scope -> val_vname :: (StrSet.elements scope |> List.sort compare)) kv_scope_t in
+  let kvs = StrMap.fold (fun kv _ kvs -> kv :: kvs) kv_scope [] in
+    StrMap.iter (fun kv scope ->
+    		 Printf.fprintf out "%% %s -> %s\n" kv (String.concat ", " scope)) kv_scope;
     {kvs = kvs; kv_scope = kv_scope; sol = sol}
 
 let mk_data ?(suffix = "") ?(skip_kvs = []) s = 
@@ -129,7 +380,7 @@ let mk_data ?(suffix = "") ?(skip_kvs = []) s =
 	  try 
 	    StrMap.find kv s.kv_scope |> 
 		List.map (mk_data_var ~suffix:(if List.mem kv skip_kvs then "" else suffix) kv)
-	  with Not_found -> failure "ERROR: rel_state_vs: scope not found for %s" kv
+	  with Not_found -> failure "ERROR: mk_data: scope not found for %s" kv
        ) s.kvs |> List.flatten |> String.concat ", ")
 
 let mk_query ?(suffix = "") s kv = 
@@ -149,7 +400,7 @@ let mk_var2names state =
     ) state.kvs |> String.concat "\n"
 
 let mk_skip_update state kvs = 
-  if kvs = [] then "1=1" else
+  if kvs = [] then armc_true else
     List.map
       (fun kv ->
 	 List.map 
@@ -173,14 +424,14 @@ let split_scope scope =
 let reft_to_armc ?(noquery = false) ?(suffix = "") state reft = 
   let vv = C.vv_of_reft reft |> symbol_to_armc in
   let rs = C.ras_of_reft reft in
-    if rs = [] then "1=1" else
+    if rs = [] then armc_true else
       List.map
 	(function
 	   | C.Conc pred -> pred_to_armc pred
 	   | C.Kvar (subs, sym) -> 
-	       if Ast.Symbol.SMap.mem sym state.sol && Ast.Symbol.SMap.find sym state.sol = [] then 
-		 		 (Printf.printf "True %s\n" (Ast.Symbol.to_string sym);
-		 "1=1") else
+	       if Sy.SMap.mem sym state.sol && Sy.SMap.find sym state.sol = [] then 
+		 armc_true  (* skip true *)
+	       else
 		 let subs_map = List.fold_left
 		   (fun m (s, e) -> StrMap.add (symbol_to_armc s) e m) StrMap.empty subs in
 		 let find_subst v default = 
@@ -210,15 +461,64 @@ let mk_rule head annot_guards annot_updates id =
       "
 hc(%s, [%s  %s).
 " 
-      head (annot_guards @ annot_updates |> annot_conj_to_armc) id
+      head (annot_guards @ annot_updates |> List.filter (fun (g, _) -> g <> armc_true) |> annot_conj_to_armc) id
 
+let preds_kvars_of_reft reft =
+  List.fold_left 
+    (fun (ps, ks) r ->
+       match r with
+	 | C.Conc p -> p :: ps, ks
+	 | C.Kvar (subs, kvar) -> ps, (subs, kvar) :: ks
+    ) ([], []) (C.ras_of_reft reft)
+
+let t_to_horn_clause t =
+  let lhs_ps, lhs_ks = C.lhs_of_t t |> preds_kvars_of_reft in
+  let body_ps, body_ks = 
+    Sy.SMap.fold 
+      (fun bv reft (ps, ks) -> 
+	 let ps', ks' = preds_kvars_of_reft (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft) in
+	   List.rev_append ps' ps, List.rev_append ks' ks
+      ) (C.env_of_t t) (C.grd_of_t t :: lhs_ps, lhs_ks) in
+  let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in
+    {
+      body_pred = Ast.pAnd body_ps |> simplify_tauto; 
+      body_kvars = body_ks; 
+      head_pred = Ast.pAnd head_ps |> simplify_tauto;
+      head_kvars = head_ks;
+      tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t)
+    }
+
+let simplify_horn_clause hc = 
+  let body_edefs, body_pdefs = defs_of_pred Sy.SMap.empty Sy.SMap.empty hc.body_pred in
+  let edefs, pdefs = defs_of_pred body_edefs body_pdefs hc.head_pred in
+    {
+      body_pred = pred_apply_defs edefs pdefs hc.body_pred |> simplify_tauto; 
+      body_kvars = hc.body_kvars; 
+      head_pred = pred_apply_defs edefs pdefs hc.head_pred |> simplify_tauto;
+      head_kvars = hc.head_kvars; 
+      tag = hc.tag
+    }
+
+let print_horn_clause hc = 
+  Printf.printf "%s: %s, %s :- %s, #%d %s\n"
+    hc.tag 
+    (P.to_string hc.head_pred)
+    (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.head_kvars |> String.concat ", ")
+    (P.to_string hc.body_pred)
+    (List.length hc.body_kvars)
+    (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.body_kvars |> String.concat ", ")
+
+    
 let t_to_armc state t = 
+  t_to_horn_clause t |> simplify_horn_clause |> print_horn_clause;
+  let env = C.env_of_t t in
   let grd = C.grd_of_t t in
   let lhs = C.lhs_of_t t in
   let rhs = C.rhs_of_t t in
   let rhs_s = C.reft_to_string rhs in
   let tag = try string_of_int (C.id_of_t t) with _ -> 
     failure "ERROR: t_to_armc: anonymous constraint %s" (C.to_string t) in
+(*   let defs = defs_of_env state env in *)
   let annot_guards = 
     Misc.map_partial
       (fun (bv, reft) ->
@@ -227,8 +527,8 @@ let t_to_armc state t =
 		 C.binding_to_string (bv, reft))
 	 else
 	   None
-      ) (C.env_of_t t |> C.bindings_of_env)
-    ++ [(pred_to_armc grd, Ast.Predicate.to_string grd); 
+      ) (env |> C.bindings_of_env)
+    ++ [(pred_to_armc grd, P.to_string grd); 
 	(reft_to_armc state lhs, "|- " ^ (C.reft_to_string lhs))] in
   let ps, kvs =  
     List.fold_left (fun (ps', kvs') refa ->
@@ -236,6 +536,15 @@ let t_to_armc state t =
 			| C.Conc p -> p::ps', kvs'
 			| C.Kvar (subs, sym) -> ps', (subs, sym)::kvs'
 		   ) ([], []) (C.ras_of_reft rhs) in
+(* Andrey: obsolete code
+  let env_sup = support_of_env state.sol env |> Sy.SSet.elements in
+    Printf.printf "Rule %s\n" tag;
+    Printf.printf "Env support #%d: %s\n" 
+      (List.length env_sup) (env_sup |> List.map Sy.to_string |> String.concat ", ");
+    Printf.printf "Guard support %s: %s\n" 
+      (P.to_string grd) 
+      (P.support grd |> List.map Sy.to_string |> String.concat ", ");
+*)    
     (if ps <> [] then
        [mk_rule error_pc annot_guards [(Ast.pAnd ps |> Ast.pNot |> pred_to_armc, "<: " ^ rhs_s)] tag]
      else 
@@ -264,9 +573,9 @@ error(%s).
     List.iter (fun t -> t_to_armc state t |> List.iter (output_string out)) ts
 (*
     print_endline "sol map";
-    Ast.Symbol.SMap.iter (fun k v -> Printf.printf "%s -> %s\n" 
-			    (Ast.Symbol.to_string k)
-			    (List.map Ast.Predicate.to_string v |> String.concat ", "))
+    Sy.SMap.iter (fun k v -> Printf.printf "%s -> %s\n" 
+			    (Sy.to_string k)
+			    (List.map P.to_string v |> String.concat ", "))
       sol
 *)
 

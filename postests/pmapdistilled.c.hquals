@@ -4,11 +4,11 @@ qualif A(v:int) : v <  2000
 //hand optimized
 //qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@pag]) 
 //qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([@pag]) 
-//qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + 1000
+//qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + 4000
 
 //unoptimized
 qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
 qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
-qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([~a]) + 1000
+qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([~a]) + 4000
 
 

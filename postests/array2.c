@@ -6,7 +6,7 @@ void main(){
 
   int i;
 
-  y = (int *) malloc(100);
+  y = (int *) malloc(100 * sizeof(int));
   
   x = y;
 
@@ -17,7 +17,6 @@ void main(){
     *x = 0;
     x++;
   }
- 
 
-  return 0;
+  return;
 }

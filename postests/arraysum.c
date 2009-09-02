@@ -18,7 +18,7 @@ int main(){
   int tmp;
 
   n = nondetpos();
-  z = (int *) malloc(n);
+  z = (int *) malloc(n * sizeof(int));
 
   x = z;
   int i = 0;

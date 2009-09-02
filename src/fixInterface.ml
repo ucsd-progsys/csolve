@@ -71,6 +71,19 @@ let name_of_sloc_ploc l p =
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
+(******************************************************************************)
+(***************************** Tags and Locations *****************************)
+(******************************************************************************)
+
+let (fresh_tag, loc_of_tag) =
+  let tbl     = Hashtbl.create 17 in
+  let fint, _ = Misc.mk_int_factory () in
+    ((fun loc ->
+        let t = fint () in
+          Hashtbl.add tbl t loc;
+          t),
+     (fun t -> Hashtbl.find tbl t))
+
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
@@ -218,12 +231,6 @@ let mk_pure_cfun args ret =
 let builtins    = 
   [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
    (uf_bend, C.make_reft vv_ufs so_ufs [])]
-
-(* Added to lib.spec
-let builtins_fn = []
-  [("assert", mk_pure_cfun [("b", ne_0_int)] true_int);
-   ("nondet", mk_pure_cfun [] true_int)]
-*)
 
 (*******************************************************************)
 (************************** Environments ***************************)
@@ -456,7 +463,7 @@ let make_wfs cenv rct _ =
   let env = env_of_cilenv cenv 
             |> Ast.Symbol.sm_filter non_tmp in
   let r   = reft_of_refctype rct in
-  [C.make_wf env r None]
+  [C.make_wf env r (Some (fresh_tag loc))]
 
 let make_wfs_refstore env sto tag =
   SLM.fold begin fun l rd ws ->

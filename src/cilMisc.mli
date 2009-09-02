@@ -3,3 +3,6 @@
 val purify: Cil.file -> unit
 val check_pure_expr: Cil.exp -> unit
 val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
+
+val bytesSizeOf : Cil.typ -> int
+val ptrRefType  : Cil.typ -> Cil.typ
