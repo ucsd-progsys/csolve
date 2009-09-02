@@ -1,5 +1,4 @@
 ####### Fill in these fields
-OCAMLLIBHOME=/usr/local/lib/ocaml
 ROOTHOME=/home/jhala/research/liquidc
 #######
 EXTHOME=$(ROOTHOME)/external
