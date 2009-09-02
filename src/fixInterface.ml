@@ -75,7 +75,7 @@ let name_of_sloc_ploc l p =
 (***************************** Tags and Locations *****************************)
 (******************************************************************************)
 
-let (fresh_tag, loc_of_tag) =
+let (fresh_tag, _ (* loc_of_tag *) ) =
   let tbl     = Hashtbl.create 17 in
   let fint, _ = Misc.mk_int_factory () in
     ((fun loc ->
@@ -463,7 +463,7 @@ let make_wfs cenv rct _ =
   let env = env_of_cilenv cenv 
             |> Ast.Symbol.sm_filter non_tmp in
   let r   = reft_of_refctype rct in
-  [C.make_wf env r (Some (fresh_tag loc))]
+  [C.make_wf env r None]
 
 let make_wfs_refstore env sto tag =
   SLM.fold begin fun l rd ws ->

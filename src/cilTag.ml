@@ -31,14 +31,14 @@ module SIM = Map.Make(struct type t = string * int
 open Cil
 open Misc.Ops
 
-type t = FixConstraint.tag (* {v: int list | len v = 3 && Hashtbl.mem invt v} *)
+type t = FixConstraint.tag (* {v: int list | Hashtbl.mem invt v} *)
 
 type o = {
   funm : int SM.t;
   blkm : int SIM.t;
 }
 
-let invt : (t, Cil.location * string * int) H.t = H.create 37
+let invt : (t (* {v: int list | len v = 3} *) , Cil.location * string * int) H.t = H.create 37
 
 (**********************************************************)
 (**************** Call Graph SCC Order ********************)
@@ -117,6 +117,7 @@ let loc_of_t    = fun me t -> H.find invt t |> fst3
 let fname_of_t  = fun me t -> H.find invt t |> snd3
 let block_of_t  = fun me t -> H.find invt t |> thd3
 let tag_of_t    = fun t -> t
+let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t 
 
 (* API *)
 let make_t me loc fn blk =

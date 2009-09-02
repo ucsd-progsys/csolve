@@ -430,13 +430,9 @@ let cons_of_decs tgr spec gnv decs =
 
 let cons_of_scis tgr gnv scim shpm ci = 
   SM.fold begin fun fn sci ci ->
-    let _ = if mydebug then 
-      Pretty.printf "Generating Constraints for %s:\n\n%a\n\n" 
-      sci.ST.fdec.svar.vname d_block sci.ST.fdec.sbody 
-      |> ignore
-    in
-        cons_of_sci tgr gnv sci (SM.find fn shpm)
-     |> Misc.uncurry (Consindex.add ci fn sci)
+    let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
+    cons_of_sci tgr gnv sci (SM.find fn shpm)
+    |> Misc.uncurry (Consindex.add ci fn sci)
   end scim ci 
 
 (************************************************************************************)
@@ -472,6 +468,6 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in
-  cons_of_decs tgr spec gnv decs 
-  |> Misc.uncurry Consindex.create
-  |> cons_of_scis tgr gnv scim shm
+  (tgr, cons_of_decs tgr spec gnv decs 
+        |> Misc.uncurry Consindex.create
+        |> cons_of_scis tgr gnv scim shm)

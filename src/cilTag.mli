@@ -31,3 +31,4 @@ val loc_of_t:   o -> t -> Cil.location
 val fname_of_t: o -> t -> string 
 val block_of_t: o -> t -> int
 val tag_of_t:   t -> FixConstraint.tag
+val t_of_tag:   FixConstraint.tag -> t  (* breaks representation hiding! *)

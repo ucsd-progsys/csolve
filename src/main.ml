@@ -107,10 +107,10 @@ let spec_of_file fname =
   |> List.map (fun s -> s^".spec")
   |> List.fold_left add_spec SM.empty
 
-let print_unsat_locs s ucs =
+let print_unsat_locs tgr s ucs =
   List.iter begin fun c ->
-    P.printf "\nUnsatisfied at %a:\n\n%a\n"
-      Cil.d_loc (c |> FixConstraint.id_of_t |> FixInterface.loc_of_tag)
+    let loc = c |> FixConstraint.tag_of_t |> CilTag.t_of_tag |> CilTag.loc_of_t tgr in
+    P.printf "\nUnsatisfied at %a:\n\n%a\n" Cil.d_loc loc 
       (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
     |> ignore
   end ucs
@@ -122,7 +122,7 @@ let liquidate file =
   let _     = E.log "DONE: qualifier parsing \n" in
   let spec  = BS.time "Parse: spec" spec_of_file file in
   let _     = E.log "DONE: spec parsing \n" in
-  let me    = BS.time "Cons: Generate" (Consgen.create cil) spec in
+  let tgr,me= BS.time "Cons: Generate" (Consgen.create cil) spec in
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let _     = E.log "DONE: constraint generation \n" in
@@ -132,7 +132,7 @@ let liquidate file =
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
   let _     = P.printf "%a\n" (Consindex.print (Some s')) me in
-  let _     = print_unsat_locs s' cs' in
+  let _     = print_unsat_locs tgr s' cs' in
   (cs' = [])
 
 let print_header () = 
