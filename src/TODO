@@ -1,5 +1,6 @@
 [Tag]   all constraints fall into the same SCC, 
-	all code is in. next: compile and test!
+
+
 
 [cluster] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]
