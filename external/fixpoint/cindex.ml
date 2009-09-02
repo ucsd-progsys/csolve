@@ -49,8 +49,8 @@ module WH =
       type t = int * rank 
       let compare (ts,r) (ts',r') = 
         if r.scc <> r'.scc then compare r.scc r'.scc else
-          if r.tag <> r'.tag then compare r.tag r'.tag else
-            if ts <> ts' then - (compare ts ts') else
+          if ts <> ts' then - (compare ts ts') else
+            if !Constants.ptag && r.tag <> r'.tag then compare r.tag r'.tag else
               compare r.simpl r'.simpl
     end)
 
@@ -91,20 +91,18 @@ let make_rank_map () (cm : C.t IM.t) =
   let get km k = try SM.find k km with Not_found -> [] in
   let upd id km k = SM.add k (id::(get km k)) km in
   let km = 
-    IM.fold 
-      (fun id (c:FixConstraint.t) vm -> lhs_ks c |> List.fold_left (upd id) vm) 
-      cm SM.empty in
+    IM.fold begin fun id (c:FixConstraint.t) vm -> 
+      lhs_ks c |> List.fold_left (upd id) vm
+    end cm SM.empty in
   let (dm, deps) = 
-    IM.fold
-      (fun id c (dm, deps) ->
-        rhs_ks c |> 
-        List.fold_left 
-          (fun (dm, deps) k -> 
-            let kds = get km k in
-            let deps' = List.map (fun id' -> (id,id')) (id::kds) in
-            (IM.add id kds dm, (deps' ++ deps)))
-          (dm, (id,id)::deps))
-      cm (IM.empty,[]) in
+    IM.fold begin fun id c (dm, deps) ->
+      rhs_ks c |> 
+      List.fold_left begin fun (dm, deps) k -> 
+        let kds = get km k in
+        let deps' = List.map (fun id' -> (id, id')) (id::kds) in
+        (IM.add id kds dm, (deps' ++ deps)) 
+      end (dm, (id,id)::deps) 
+    end cm (IM.empty,[]) in
   let rm = 
     let rank = Fcommon.scc_rank string_of_int deps in
     List.fold_left begin fun rm (id, r) -> 

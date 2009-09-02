@@ -36,7 +36,8 @@ let latex_file: string option ref = ref None   (* translate to LaTeX file *)
 let armc_file: string option ref  = ref None   (* translate to ARMC file *)
 let qarmc_file: string option ref = ref None   (* translate to QARMC file *)
 let dot_file: string option ref  = ref None   (* translate to dot file *)
-let purify_function_application   = ref true  (* replace function terms by existentially quantified variables *)
+let purify_function_application   = ref true  (* replace fun-terms by existentially quantified variables *)
+let ptag          = ref false           (* -ptag *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -117,6 +118,9 @@ let arg_spec =
    ("-safe", 
     Arg.Set safe, 
     "run in failsafe mode [false]");
+   ("-ptag", 
+    Arg.Set ptag, 
+    "prioritize constraints using tags [false]");
    ("-psimple", 
     Arg.Set psimple, 
     "prioritize simple constraints [true]");

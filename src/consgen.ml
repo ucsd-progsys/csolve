@@ -110,7 +110,7 @@ let tcons_of_phis me phia =
     let asgns' = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
       let pj     = CF.guard_of_block me j (Some i) in
-      let locj   = CF.tag_of_block me j in
+      let tagj   = CF.tag_of_block me j in
       let envj,_ = CF.outwld_of_block me j in
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
@@ -119,7 +119,7 @@ let tcons_of_phis me phia =
         let lhs   = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
         let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
-        FI.make_cs envj pj lhs rhs locj
+        FI.make_cs envj pj lhs rhs tagj 
       end vvjs 
     end asgns' 
   end phia

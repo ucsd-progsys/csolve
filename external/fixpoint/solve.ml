@@ -68,9 +68,9 @@ let hashtbl_incr_frequency t k =
 let hashtbl_print_frequency t = 
   Misc.hashtbl_to_list t 
   |> Misc.groupby snd
-  |> List.iter begin function ((_,n)::_) as xs -> 
-      Format.printf "ITERFREQ: %d times %d constraints \n" n (List.length xs)
-     end
+  |> List.map (function ((_,n)::_) as xs -> (n, List.length xs)) 
+  |> List.sort compare
+  |> List.iter (fun (n,m) -> Format.printf "ITERFREQ: %d times %d constraints \n" n m)
 
 
 (***************************************************************)
@@ -257,7 +257,8 @@ let rec acsolve me w s =
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
     let _ = hashtbl_incr_frequency stat_cfreqt (C.id_of_t c) in  
-    let _ = Co.bprintf true (* mydebug *) "iteration=%d constr=%d ch=%b \n" !stat_refines (C.id_of_t c) ch in
+    let _ = Co.bprintf true (* mydebug *) "iter=%d id=%d ch=%b %a \n" 
+            !stat_refines (C.id_of_t c) ch C.pprint_tag (C.tag_of_t c) in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 
 

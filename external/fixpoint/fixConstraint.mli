@@ -85,6 +85,7 @@ val print_t          : soln option -> Format.formatter -> t -> unit
 val print_reft       : soln option -> Format.formatter -> reft -> unit
 val print_binding    : soln option -> Format.formatter -> (Ast.Symbol.t * reft) -> unit
 val print_soln       : Format.formatter -> soln -> unit
+val pprint_tag       : Format.formatter -> tag -> unit
 
 val to_string        : t -> string 
 val refa_to_string   : refa -> string

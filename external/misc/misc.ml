@@ -147,7 +147,7 @@ let list_snoc xs =
 
 let negfilter f xs = 
   List.fold_left (fun acc x -> if f x then acc else x::acc) [] xs 
-  |> List.ref
+  |> List.rev
 
 
 let get_option d = function  

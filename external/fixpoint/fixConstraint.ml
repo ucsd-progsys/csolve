@@ -210,8 +210,11 @@ let pprint_id ppf = function
   | Some id     -> F.fprintf ppf "id %d" id
   | None        -> F.fprintf ppf ""
 
-let pprint_tag ppf is =
-  F.fprintf ppf "@[tag %a@]" Misc.pprint_ints is
+let pprint_tag ppf = function
+  | []          -> F.fprintf ppf ""
+  | is          -> is |> List.map string_of_int 
+                      |> String.concat ";" 
+                      |> F.fprintf ppf "tag [%s]" 
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
