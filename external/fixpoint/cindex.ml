@@ -169,6 +169,11 @@ let wpop me w =
 let winit me =
   to_list me |> wpush me WH.empty  
 
+(* API *)
+let wstring w = 
+  WH.
+
+
 (* API *) 
 let print ppf me = 
   if !Co.dump_ref_constraints then begin

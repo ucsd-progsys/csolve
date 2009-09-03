@@ -1,11 +1,13 @@
 extern char* malloc(int);
 
 void inca(int *x){
+  //if (nondet()) incb(x);
   *x = *x + 1;
   return;
 }
 
 void incb(int *x){
+  //if (nondet()) inca(x);
   *x = *x + 1;
   return;
 }
