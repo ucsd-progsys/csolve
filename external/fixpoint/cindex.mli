@@ -37,7 +37,7 @@ val iter        : (FixConstraint.t -> unit) -> t -> unit
 val wpush       : t -> wkl -> FixConstraint.t list -> wkl 
 val wpop        : t -> wkl -> (FixConstraint.t option * wkl)
 val winit       : t -> wkl
-val wstring     : wkl -> string
+(* val wstring     : wkl -> string *)
 
 (** printing *)
 val print       : Format.formatter -> t -> unit  

@@ -41,8 +41,8 @@ type rank = {
 }
 
 let pprint_rank ppf r =
-  Format.fprintf ppf "id=%d, scc=%d, simpl=%b, tag=%a" 
-    r.id r.scc r.simpl Misc.pprint_ints r.tag
+  Format.fprintf ppf "id=%d, scc=%d, tag=[%s]" 
+    r.id r.scc (Misc.map_to_string string_of_int r.tag)
 
 module WH = 
   Heaps.Functional(struct 
@@ -154,26 +154,25 @@ let wpush =
            WH.add (!timestamp, get_ref_rank me c) w))
       w cs
 
+let wstring w = 
+  WH.fold (fun (_,r) acc -> r.id :: acc) w [] 
+  |> List.sort compare
+  |> Misc.map_to_string string_of_int
+
 (* API *)
 let wpop me w =
   try 
     let _, r = WH.maximum w in
     let _    = Hashtbl.remove me.pend r.id in
     let c    = get_ref_constraint me r.id in
-    let _    = Co.cprintf Co.ol_solve "popping %d in scc (rank=%a) \n" 
-               r.id pprint_rank r in 
+    let _    = Co.cprintf Co.ol_solve_stats "popping %d (%a) \n" r.id pprint_rank r in
+    let _    = Co.cprintf Co.ol_solve_stats "popping from wkl = %s \n" (wstring w) in 
     (Some c, WH.remove w)
   with Heaps.EmptyHeap -> (None, w) 
 
 (* API *)
 let winit me =
   to_list me |> wpush me WH.empty  
-
-(* API *)
-let wstring w = 
-  WH.fold (fun (_,r) acc -> r.id :: acc) w [] 
-  |> List.sort compare
-  |> Misc.map_to_string string_of_int
 
 (* API *) 
 let print ppf me = 

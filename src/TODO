@@ -1,5 +1,9 @@
 [Tag]   all constraints fall into the same SCC, 
+	- look at order in which constraints are processed in incp.c
+	  can we beat it down to exactly once per constraint ?
+		- order by function etc. ?
 
+	- do we have to go the whole hog in fine-grained push/pop?
 
 
 [cluster] 
