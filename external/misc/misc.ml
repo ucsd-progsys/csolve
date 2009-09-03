@@ -149,7 +149,6 @@ let negfilter f xs =
   List.fold_left (fun acc x -> if f x then acc else x::acc) [] xs 
   |> List.rev
 
-
 let get_option d = function  
   | Some x -> x 
   | None   -> d

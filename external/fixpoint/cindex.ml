@@ -171,8 +171,9 @@ let winit me =
 
 (* API *)
 let wstring w = 
-  WH.
-
+  WH.fold (fun (_,r) acc -> r.id :: acc) w [] 
+  |> List.sort compare
+  |> Misc.map_to_string string_of_int
 
 (* API *) 
 let print ppf me = 
