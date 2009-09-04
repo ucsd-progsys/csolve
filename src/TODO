@@ -3,6 +3,12 @@
 	  can we beat it down to exactly once per constraint ?
 		- order by function etc. ?
 
+can we syntactically identify (based on posn in CFG etc) which 
+constraint dependencies are "back edges" ? and nuke those from SCC computation ?
+- find candidate "Back edges" in current graph,
+- see how to characterize them syntactically or by constraint (eg env is a prefix etc.)
+
+
 ***************************************************************
 
 

@@ -52,7 +52,7 @@ module WH =
       type t = int * rank 
       let compare (ts,r) (ts',r') = 
         if r.scc <> r'.scc then compare r.scc r'.scc else
-          if ts <> ts' then - (compare ts ts') else
+          (* if ts <> ts' then - (compare ts ts') else *)
             if !Constants.ptag && r.tag <> r'.tag then compare r.tag r'.tag else
               compare r.simpl r'.simpl
     end)
@@ -178,8 +178,8 @@ let wpop me w =
     let _, r = WH.maximum w in
     let _    = Hashtbl.remove me.pend r.id in
     let c    = get_ref_constraint me r.id in
-    let _    = Co.cprintf Co.ol_solve_stats "popping (%a) "pprint_rank r in
-    let _    = Co.cprintf Co.ol_solve_stats "from wkl = %s \n" (wstring w) in 
+    let _    = Co.cprintf Co.ol_solve "popping (%a) "pprint_rank r in
+    let _    = Co.cprintf Co.ol_solve "from wkl = %s \n" (wstring w) in 
     (Some c, WH.remove w)
   with Heaps.EmptyHeap -> (None, w) 
 
