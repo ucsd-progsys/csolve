@@ -31,8 +31,8 @@ module SIM = Map.Make(struct type t = string * int
 open Cil
 open Misc.Ops
 
-type t = FixConstraint.tag (* {v: int list | len v = 3 && Hashtbl.mem invt v} *)
-                           (* Each t is a [callgraph rank; block_id; fname_id] *)
+type t = FixConstraint.tag (* {v: int list | len v = 4 && Hashtbl.mem invt v} *)
+                           (* Each t is a [callgraph rank; block_id; instr_id; fname_id] *)
 type o = {
   funm : int SM.t;
   blkm : int SIM.t;
@@ -120,9 +120,9 @@ let tag_of_t    = fun t -> t
 let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t 
 
 (* API *)
-let make_t me loc fn blk =
+let make_t me loc fn blk instr =
   try
-    let rv = [SM.find fn me.funm; SIM.find (fn, blk) me.blkm; fn_to_i fn] in
+    let rv = [SM.find fn me.funm; SIM.find (fn, blk) me.blkm; instr; fn_to_i fn] in
     H.replace invt rv (loc, fn, blk); rv 
   with Not_found ->
     Errormsg.error "CilTag.make_t: bad args fn=%s, blk=%d" fn blk;

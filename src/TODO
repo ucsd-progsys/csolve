@@ -3,7 +3,8 @@
 	  can we beat it down to exactly once per constraint ?
 		- order by function etc. ?
 
-	- do we have to go the whole hog in fine-grained push/pop?
+***************************************************************
+
 
 
 [cluster] 
@@ -20,6 +21,9 @@
 
 
 ***************************************************************
+
+- [TPZ3-2]	do we have to go the whole hog in fine-grained push/pop?
+
 - [ordering] 	linear-order all functions 1...n
 		linear-order all blocks within a function 1...m
 

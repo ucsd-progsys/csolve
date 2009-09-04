@@ -55,10 +55,10 @@ struct
    module E = G.E
    let iter_vertex = G.iter_vertex
    let iter_edges_e = G.iter_edges_e
-   let graph_attributes g = []
+   let graph_attributes g = [`Size (11.0, 8.5); `Ratio (`Float 1.29)]
    let default_vertex_attributes g = [`Shape `Box]
-   let vertex_name (i,s) = Printf.sprintf "V_%d_%s" i s 
-   let vertex_attributes v = [`Label (vertex_name v)]
+   let vertex_name (i,_) = string_of_int i (* Printf.sprintf "V_%d" i *) 
+   let vertex_attributes (_,s) = [`Label s]
    let default_edge_attributes g = []
    let edge_attributes e = []
    let get_subgraph v = None
@@ -107,6 +107,7 @@ let n2 = make_scc_num g2 ;;
 let n3 = make_scc_num g3 ;;
 let n4 = make_scc_num g4 ;; *)
 
+(*
 type fc_id = int option 
 type subref_id = int 
 
@@ -119,5 +120,5 @@ module WH =
             if j <> j' then compare j j' else 
               compare k' k
     end)
-
+*)
 

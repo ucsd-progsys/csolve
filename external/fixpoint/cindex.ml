@@ -40,9 +40,12 @@ type rank = {
   tag   : C.tag;
 }
 
-let pprint_rank ppf r =
-  Format.fprintf ppf "id=%d, scc=%d, tag=[%s]" 
-    r.id r.scc (Misc.map_to_string string_of_int r.tag)
+let string_of_tag t = 
+  Printf.sprintf "[%s]" (Misc.map_to_string string_of_int t)
+
+let pprint_rank ppf r = 
+  Format.fprintf ppf "id=%d, scc=%d, tag=%s" 
+    r.id r.scc (string_of_tag r.tag)
 
 module WH = 
   Heaps.Functional(struct 
@@ -81,11 +84,21 @@ let lhs_ks c =
 let rhs_ks c =
   c |> C.rhs_of_t |> reft_ks 
 
+(*
 let print_scc_edge rm (u,v) = 
   let (scc_u,_,_) = IM.find u rm in
   let (scc_v,_,_) = IM.find v rm in
   let tag = if scc_u > scc_v then "entry" else "inner" in
   Co.cprintf Co.ol_solve "SCC edge %d (%s) %d ====> %d \n" scc_v tag u v
+*)
+
+let string_of_cid cm id = 
+  try 
+    IM.find id cm 
+    |> C.tag_of_t 
+    |> string_of_tag 
+    |> Printf.sprintf "%d: %s" id
+  with _ -> assertf "string_of_cid: impossible" 
 
 let make_rank_map () (cm : C.t IM.t) =
   let get km k = try SM.find k km with Not_found -> [] in
@@ -104,7 +117,7 @@ let make_rank_map () (cm : C.t IM.t) =
       end (dm, (id,id)::deps) 
     end cm (IM.empty,[]) in
   let rm = 
-    let rank = Fcommon.scc_rank string_of_int deps in
+    let rank = Fcommon.scc_rank (string_of_cid cm) deps in
     List.fold_left begin fun rm (id, r) -> 
       let c = IM.find id cm in
       IM.add id {id    = id; 
@@ -165,8 +178,8 @@ let wpop me w =
     let _, r = WH.maximum w in
     let _    = Hashtbl.remove me.pend r.id in
     let c    = get_ref_constraint me r.id in
-    let _    = Co.cprintf Co.ol_solve_stats "popping %d (%a) \n" r.id pprint_rank r in
-    let _    = Co.cprintf Co.ol_solve_stats "popping from wkl = %s \n" (wstring w) in 
+    let _    = Co.cprintf Co.ol_solve_stats "popping (%a) "pprint_rank r in
+    let _    = Co.cprintf Co.ol_solve_stats "from wkl = %s \n" (wstring w) in 
     (Some c, WH.remove w)
   with Heaps.EmptyHeap -> (None, w) 
 

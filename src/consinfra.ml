@@ -106,7 +106,7 @@ let create tgr gnv sci shp =
   let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
   let astore = FI.refstore_fresh shp.IC.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
-  let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 in 
+  let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   {tgr     = tgr;
    sci     = sci;
    cs      = FI.make_cs_refstore env Ast.pTrue istore astore false tag; 
@@ -146,8 +146,8 @@ let get_fname me =
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
-let tag_of_block me i = 
-  CilTag.make_t me.tgr (location_of_block me i) (get_fname me) i
+let tag_of_instr me block_id instr_id = 
+  CilTag.make_t me.tgr (location_of_block me block_id) (get_fname me) block_id instr_id
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 

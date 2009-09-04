@@ -110,7 +110,7 @@ let tcons_of_phis me phia =
     let asgns' = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
       let pj     = CF.guard_of_block me j (Some i) in
-      let tagj   = CF.tag_of_block me j in
+      let tagj   = CF.tag_of_instr me j 0 in
       let envj,_ = CF.outwld_of_block me j in
       let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
@@ -253,17 +253,18 @@ let cons_of_call me tag grd (env, st) (lvo, fn, es) ns =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annotinstr me tag grd wld (annots, instr) = 
+let cons_of_annotinstr me i grd (j, wld) (annots, instr) = 
   let gs, is, ns = group_annots annots in
+  let tag        = CF.tag_of_instr me i j in
   let wld, anncs = cons_of_annots me tag grd wld (gs ++ is) in
   match instr with 
   | Set (lv, e, _) ->
       let _       = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
       let wld, cs = cons_of_set me tag grd wld (lv, e) in
-      (wld, cs ++ anncs)
+      ((j+1, wld), cs ++ anncs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cs = cons_of_call me tag grd wld (lvo, fv.Cil.vname, es) ns in
-      (wld, anncs ++ cs)
+      ((j+1, wld), anncs ++ cs)
   | _ -> 
       E.error "cons_of_instr: %a \n" d_instr instr;
       assertf "TBD: cons_of_instr"
@@ -272,7 +273,8 @@ let cons_of_annotinstr me tag grd wld (annots, instr) =
 (********************** Constraints for [stmt] ******************************)
 (****************************************************************************)
 
-let cons_of_ret me tag grd (env, st) e_o =
+let cons_of_ret me i grd (env, st) e_o =
+  let tag    = CF.tag_of_instr me i 1 in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
   let st_cs  = 
     let _, ost = FI.stores_of_refcfun frt in
@@ -283,18 +285,18 @@ let cons_of_ret me tag grd (env, st) e_o =
                            (FI.make_cs env grd lhs rhs tag)  in
   rv_cs ++ st_cs
 
-let cons_of_annotstmt me tag grd wld (anns, stmt) = 
+let cons_of_annotstmt me i grd wld (anns, stmt) = 
   match stmt.skind with
   | Instr is ->
       let ann, anns = Misc.list_snoc anns in
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let wld, cs1 = List.combine anns is 
-                     |> Misc.mapfold (cons_of_annotinstr me tag grd) wld in
-      let wld, cs2 = cons_of_annots me tag grd wld ann in
+      let (n, wld), cs1 = List.combine anns is 
+                          |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
+      let wld, cs2      = cons_of_annots me (CF.tag_of_instr me i n) grd wld ann in
       (wld, cs2 ++ Misc.flatten cs1)
   | Return (e_o, _) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
-      (wld, cons_of_ret me tag grd wld e_o)
+      (wld, cons_of_ret me i grd wld e_o)
   | _ ->
       let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
       (wld, [])
@@ -305,13 +307,12 @@ let cons_of_annotstmt me tag grd wld (anns, stmt) =
 
 let cons_of_block me i =
   let grd     = CF.guard_of_block me i None in
-  let tag     = CF.tag_of_block me i in
   let phis    = CF.phis_of_block me i in
   let astmt   = CF.annotstmt_of_block me i in
   let env, st = CF.inwld_of_block me i in
   let env     = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws      = wcons_of_phis me tag env phis in
-  let wld, cs = cons_of_annotstmt me tag grd (env, st) astmt in
+  let ws      = wcons_of_phis me (CF.tag_of_instr me i 0) env phis in
+  let wld, cs = cons_of_annotstmt me i grd (env, st) astmt in
   (wld, ws, cs)
 
 (****************************************************************************)
@@ -420,7 +421,7 @@ let rename_spec scim spec =
 
 let cons_of_decs tgr spec gnv decs =
   List.fold_left begin fun (ws, cs) (fn, loc) ->
-    let tag    = CilTag.make_t tgr loc fn 0 in
+    let tag    = CilTag.make_t tgr loc fn 0 0 in
     let irf    = FI.ce_find_fn fn gnv in
     let ws'    = FI.make_wfs_fn gnv irf tag in
     let srf, b = SM.find fn spec in
