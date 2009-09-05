@@ -9,6 +9,15 @@ constraint dependencies are "back edges" ? and nuke those from SCC computation ?
 - see how to characterize them syntactically or by constraint (eg env is a prefix etc.)
 
 
+1. From dep graph, delete back edges (where src is):
+	- Generalization-Sub, Return-Caller-Sub
+2. Build SCC
+
+3. Init Wkl:
+	- 
+	- foreach SCC, pick "min" elt and add to wkl
+4. Select:
+
 ***************************************************************
 
 

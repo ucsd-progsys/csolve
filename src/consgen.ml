@@ -142,7 +142,7 @@ let wcons_of_phis me tag env vs =
 (****************************************************************************)
 
 let cons_of_annot tag grd (env, sto) = function 
-  | Refanno.Gen  (cloc, aloc) -> 
+  | Refanno.Gen  (cloc, aloc) ->
       let sto'   = FI.refstore_remove cloc sto in
       let ld1    = (cloc, FI.refstore_get sto cloc) in
       let ld2    = (aloc, FI.refstore_get sto aloc) in
@@ -228,7 +228,7 @@ let instantiate_poly_cloc me wld (aloc, cloc) =
                |> List.map (Misc.app_snd new_block_reftype) in
   extend_world aldesc abinds cloc true wld
 
-let cons_of_call me tag grd (env, st) (lvo, fn, es) ns = 
+let cons_of_call me i j grd (env, st) (lvo, fn, es) ns = 
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
@@ -238,10 +238,12 @@ let cons_of_call me tag grd (env, st) (lvo, fn, es) ns =
   let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
   let oast, ocst = Ctypes.prestore_split ost in
 
+  let tag   = CF.tag_of_instr me i j in
+  let tag'  = CF.tag_of_instr me i (j+1) in
   let ecrs  = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
   let cs1   = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) tag in 
-  let cs2   = FI.make_cs_refstore env grd st   ist true  tag in
-  let cs3   = FI.make_cs_refstore env grd oast st  false tag in
+  let cs2   = FI.make_cs_refstore env grd st   ist true  tag  in
+  let cs3   = FI.make_cs_refstore env grd oast st  false tag' in
 
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
@@ -255,16 +257,16 @@ let cons_of_call me tag grd (env, st) (lvo, fn, es) ns =
 
 let cons_of_annotinstr me i grd (j, wld) (annots, instr) = 
   let gs, is, ns = group_annots annots in
-  let tag        = CF.tag_of_instr me i j in
-  let wld, anncs = cons_of_annots me tag grd wld (gs ++ is) in
+  let tagj       = CF.tag_of_instr me i j in
+  let wld, anncs = cons_of_annots me tagj grd wld (gs ++ is) in
   match instr with 
   | Set (lv, e, _) ->
       let _       = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
-      let wld, cs = cons_of_set me tag grd wld (lv, e) in
+      let wld, cs = cons_of_set me tagj grd wld (lv, e) in
       ((j+1, wld), cs ++ anncs)
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
-      let wld, cs = cons_of_call me tag grd wld (lvo, fv.Cil.vname, es) ns in
-      ((j+1, wld), anncs ++ cs)
+      let wld, cs = cons_of_call me i j grd wld (lvo, fv.Cil.vname, es) ns in
+      ((j+2, wld), anncs ++ cs)
   | _ -> 
       E.error "cons_of_instr: %a \n" d_instr instr;
       assertf "TBD: cons_of_instr"
@@ -274,7 +276,7 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
 (****************************************************************************)
 
 let cons_of_ret me i grd (env, st) e_o =
-  let tag    = CF.tag_of_instr me i 1 in
+  let tag    = CF.tag_of_instr me i 1000 in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
   let st_cs  = 
     let _, ost = FI.stores_of_refcfun frt in
