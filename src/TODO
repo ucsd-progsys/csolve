@@ -13,6 +13,8 @@ constraint dependencies are "back edges" ? and nuke those from SCC computation ?
 	- Generalization-Sub, Return-Caller-Sub
 2. Build SCC
 
+
+
 3. Init Wkl:
 	- 
 	- foreach SCC, pick "min" elt and add to wkl
