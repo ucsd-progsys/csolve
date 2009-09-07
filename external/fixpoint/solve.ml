@@ -286,12 +286,11 @@ let solve me (s : C.soln) =
   (s, u)
 
 (* API *)
-let create ts sm ps a cs ws qs =
+let create ts sm ps a adeps ddeps cs ws qs =
   let tpc = TP.create ts sm ps in
   let cs  = C.validate a cs in
-  let sri = BS.time "Ref index" Ci.create cs in
+  let sri = BS.time "Ref index" Ci.create adeps ddeps cs in
   let s   = BS.time "Qual inst" (inst ws qs) SM.empty in
-(*  let _   = Co.bprintf mydebug "%a" C.print_soln s in  *)
   ({ tpc = tpc; sri = sri; ws = ws}, s)
 
 (* API *)

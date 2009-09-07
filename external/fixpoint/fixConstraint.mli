@@ -25,14 +25,15 @@
 
 type tag  = int list    (* for ordering: must have same dim, lexico-ordered *)
 type id   = int         (* for identifying: must be unique *) 
+type dep                (* dependencies between constraints *)
 
 type subs = (Ast.Symbol.t * Ast.expr) list            (* [x := e] *) 
 type refa = Conc of Ast.pred | Kvar of subs * Ast.Symbol.t
 type reft = Ast.Symbol.t * Ast.Sort.t * (refa list)   (* { VV: t | [ra] } *)
 type envt = reft Ast.Symbol.SMap.t
 
-type t          (* Do not expose, ever! *) 
-type wf         (* Do not expose, ever! *)
+type t          (* NEVER expose! *) 
+type wf         (* NEVER expose! *)
 
 type soln = Ast.pred list Ast.Symbol.SMap.t
 
@@ -42,6 +43,8 @@ type deft = Srt of Ast.Sort.t
           | Wfc of wf 
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.Qualifier.t
+          | Adp of dep (* Add dependency *)
+          | Ddp of dep (* Del dependency *)
 
 val kvars_of_reft    : reft -> (subs * Ast.Symbol.t) list
 val kvars_of_t       : t -> (subs * Ast.Symbol.t) list
@@ -113,3 +116,7 @@ val reft_of_wf       : wf -> reft
 val id_of_wf         : wf -> id 
 
 val validate         : int -> t list -> t list
+
+val make_dep         : tag -> tag -> dep
+val src_of_dep       : dep -> tag
+val dst_of_dep       : dep -> tag

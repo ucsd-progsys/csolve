@@ -34,6 +34,7 @@ open Misc.Ops
 
 type tag  = int list
 type id   = int
+type dep  = tag * tag
 
 type subs = (Sy.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * Sy.t
@@ -49,6 +50,8 @@ type deft = Srt of Ast.Sort.t
           | Wfc of wf
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.Qualifier.t
+          | Adp of dep
+          | Ddp of dep
 
 (*************************************************************)
 (************************** Misc.  ***************************)
@@ -337,3 +340,8 @@ let validate a cs =
 
 let validate a cs = 
   BS.time "validate shapes" (validate a) cs
+
+(* API *)
+let make_dep   = fun t t' -> (t,t')
+let src_of_dep = fst
+let dst_of_dep = snd 

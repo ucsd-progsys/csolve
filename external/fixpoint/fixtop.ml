@@ -30,31 +30,6 @@ module C  = FixConstraint
 module F  = Format
 open Misc.Ops
 
-(*****************************************************************)
-(********************* Command line options **********************)
-(*****************************************************************)
-
-let usage = "Usage: fixtop <options> [source-files]\noptions are:"
-
-let sift xs = 
-  List.fold_left 
-    (fun (ts, ps, cs, ws, qs, s) -> 
-      function 
-      | C.Srt t        -> (t::ts, ps, cs, ws, qs, s) 
-      | C.Axm p        -> (ts, p::ps, cs, ws, qs, s) 
-      | C.Cst c        -> (ts, ps, c::cs, ws, qs, s)
-      | C.Wfc w        -> (ts, ps, cs, w::ws, qs, s)
-      | C.Qul q        -> (ts, ps, cs, ws, q::qs, s)
-      | C.Sol (k, kps) -> (ts, ps, cs, ws, qs, SM.add k kps s))
-    ([], [], [], [], [], SM.empty) xs
-
-let parse f = 
-  let _ = Errorline.startFile f in
-  open_in f 
-  |> Lexing.from_channel 
-  |> FixParse.defs FixLex.token
-(* Andrey: TODO: need to close the file? *)
-
 let dump cs ws =
   Format.printf "Printing Out Parsed Constraints \n \n \n" ;
   Format.printf "%a" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs; 
@@ -62,13 +37,10 @@ let dump cs ws =
   Format.printf "%a" (Misc.pprint_many true "\n" (FixConstraint.print_wf None)) ws;
   Format.printf "\n \n"
 
+let usage = "Usage: fixtop <options> [source-files]\noptions are:"
+
 let main () =
-  Printf.printf "© Copyright 2009 Regents of the University of California. ";
-  Printf.printf "All Rights Reserved.\n";
-  let fs = ref [] in
-  let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
-  let _, _, cs, ws, _, sol =  !fs |> Misc.flap parse |> sift in
-    (*  let _ = dump cs ws in *)
+  let fs, (_,_,cs,ws,_,_,_,sol) = Main.read_inputs usage in
   let cs = 
     if !Co.simplify_t then
       Misc.map_partial 
@@ -89,7 +61,7 @@ let main () =
       match !Co.armc_file with
 	| Some f -> 
 	    let out = open_out f in
-	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
+	      Printf.fprintf out "%% %s\n" (String.concat ", " fs);
 	      ToARMC.to_armc out cs ws;
 	      close_out out
 	| None -> ()
@@ -98,7 +70,7 @@ let main () =
       match !Co.q_armc_file with
 	| Some f -> 
 	    let out = open_out f in
-	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
+	      Printf.fprintf out "%% %s\n" (String.concat ", " fs);
 	      ToQARMC.to_qarmc out cs ws sol;
 	      close_out out
 	| None -> ()
@@ -108,7 +80,7 @@ let main () =
 	| Some f -> 
 	    print_endline "here";
 	    let out = open_out f in
-	      Printf.fprintf out "%% %s\n" (String.concat ", " !fs);
+	      Printf.fprintf out "%% %s\n" (String.concat ", " fs);
 	      ToHC.to_hc_armc out cs ws sol;
 	      close_out out
 	| None -> ()
@@ -121,6 +93,5 @@ let main () =
 	      close_out oc
 	| None -> ()
     end
-
 
 let _ = main ()

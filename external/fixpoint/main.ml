@@ -31,7 +31,6 @@ module C  = FixConstraint
 module S  = Solve
 module F  = Format
 
-
 open Misc.Ops
 
 
@@ -39,33 +38,46 @@ open Misc.Ops
 (********************* Command line options **********************)
 (*****************************************************************)
 
-let usage = "Usage: fixpoint <options> [source-files]\noptions are:"
-
 let sift xs = 
-  List.fold_left 
-    (fun (ts, ps, cs, ws, qs, s) -> 
+  List.fold_left begin fun (ts, ps, cs, ws, ads, dds, qs, s) -> 
       function 
-      | C.Srt t        -> (t::ts, ps, cs, ws, qs, s) 
-      | C.Axm p        -> (ts, p::ps, cs, ws, qs, s) 
-      | C.Cst c        -> (ts, ps, c::cs, ws, qs, s)
-      | C.Wfc w        -> (ts, ps, cs, w::ws, qs, s)
-      | C.Qul q        -> (ts, ps, cs, ws, q::qs, s)
-      | C.Sol (k, kps) -> (ts, ps, cs, ws, qs, SM.add k kps s))
-    ([], [], [], [], [], SM.empty) xs
+      | C.Srt t        -> (t::ts, ps, cs, ws, ads, dds, qs, s) 
+      | C.Axm p        -> (ts, p::ps, cs, ws, ads, dds, qs, s) 
+      | C.Cst c        -> (ts, ps, c::cs, ws, ads, dds, qs, s)
+      | C.Wfc w        -> (ts, ps, cs, w::ws, ads, dds, qs, s)
+      | C.Adp d        -> (ts, ps, cs, ws, d::ads, dds, qs, s)
+      | C.Ddp d        -> (ts, ps, cs, ws, ads, d::dds, qs, s)
+      | C.Qul q        -> (ts, ps, cs, ws, ads, dds, q::qs, s)
+      | C.Sol (k, kps) -> (ts, ps, cs, ws, ads, dds, qs, SM.add k kps s)
+  end ([], [], [], [], [], [], [], SM.empty) xs
 
 let parse f = 
-  let _ = Errorline.startFile f in
-  open_in f 
-  |> Lexing.from_channel 
-  |> FixParse.defs FixLex.token
+  let _  = Errorline.startFile f in
+  let ic = open_in f in
+  let rv = Lexing.from_channel ic |> FixParse.defs FixLex.token in
+  let _  = close_in ic in
+  rv
 
-let solve (ts, ps, cs, ws, qs, s) = match cs with 
+let read_inputs usage = 
+  print_now "© Copyright 2009 Regents of the University of California. ";
+  print_now "All Rights Reserved.\n";
+  let fs = ref [] in
+  let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
+  let _  = print_now "Fixpoint: Parsing \n" in
+  let fq = BS.time "parse" (Misc.flap parse) !fs |> sift in 
+  (!fs, fq)
+
+(*****************************************************************)
+(********************* Hooking into Solver ***********************)
+(*****************************************************************)
+
+let solve (ts, ps, cs, ws, ads, dds, qs, s) = match cs with 
   | []   -> 
       print_now "Fixpoint: NO Constraints!" |> ignore
   | c::_ -> 
       let _       = print_now "Fixpoint: Creating  CI\n" in
       let a       = c |> C.tag_of_t |> List.length in
-      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a cs ws) qs in
+      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a ads dds cs ws) qs in
       let _       = print_now "Fixpoint: Solving \n" in
       let s', cs' = BS.time "solve" (S.solve ctx) s in
       let _       = print_now "Fixpoint: Saving Result \n" in
@@ -75,14 +87,10 @@ let solve (ts, ps, cs, ws, qs, s) = match cs with
                       (Misc.pprint_many true "\n" (C.print_t None)) cs' in
       ()
 
-let main () =
-  print_now "© Copyright 2009 Regents of the University of California. ";
-  print_now "All Rights Reserved.\n";
-  let fs = ref [] in
-  let _  = Arg.parse Co.arg_spec (fun s -> fs := s::!fs) usage in
-  let _  = print_now "Fixpoint: Parsing \n" in
-  let fq = BS.time "parse" (Misc.flap parse) !fs |> sift in 
-  BS.time "solve" solve fq 
+let usage = "Usage: fixpoint <options> [source-files]\noptions are:"
 
-let _ = BNstats.time "main" main ()
-let _ = BNstats.print stdout "Fixpoint Solver Time \n" 
+let main () =
+  let _ = read_inputs usage |> snd |> BS.time "solve" solve in
+  BNstats.print stdout "Fixpoint Solver Time \n"
+
+let _ = main ()

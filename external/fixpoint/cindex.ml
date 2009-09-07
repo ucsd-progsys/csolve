@@ -128,7 +128,7 @@ let make_rank_map () (cm : C.t IM.t) =
   (dm, rm)
 
 (* API *)
-let create cs = 
+let create ads dds cs = 
   let cm      = List.fold_left begin fun cm c -> 
                   IM.add (C.id_of_t c) c cm 
                 end IM.empty cs in

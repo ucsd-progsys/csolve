@@ -1,3 +1,8 @@
+[Sorts]	How to separate int and reference types while still allowing pointer arithmetic
+	i.e. create a separate "Z3-int" type called "ref"
+	- will help to speed up queries
+	- will help to speed up instantiation
+
 [Tag]   all constraints fall into the same SCC, 
 	- look at order in which constraints are processed in incp.c
 	  can we beat it down to exactly once per constraint ?
@@ -8,17 +13,28 @@ constraint dependencies are "back edges" ? and nuke those from SCC computation ?
 - find candidate "Back edges" in current graph,
 - see how to characterize them syntactically or by constraint (eg env is a prefix etc.)
 
+--> TRACKING INTERPROC DATA DEPENDENCIES IS HOPELESS ...
+tag = [fun_rank; fun_id; block_id; instr_id; 0 + 1; 0 + 1]
+	1st 0 + 1 = (delete + keep) edges with this cstr as source
+	2nd 0 + 1 = (non-root + root) constraint
 
-1. From dep graph, delete back edges (where src is):
-	- Generalization-Sub, Return-Caller-Sub
-2. Build SCC
+1. From dep graph:
+	(a) delete back edges (where src is):
+	    	- Generalization-Sub, Return-Caller-Sub
+		- put in a tag that denotes "deletable" constraint
 
+	(b) delete interprocedural edges
 
+	(c) add control dependency edges 
+		- intra block,
+		- block dominator 
+		  (i prec j then add edges from "i" constraints to "j" constraints)
+	    both can be done by first clustering constraints by block
 
-3. Init Wkl:
-	- 
-	- foreach SCC, pick "min" elt and add to wkl
-4. Select:
+2. cs |> List.filter is_root |> push wkl
+
+Next, just use the fun-rank as the top priority 
+in the heap order (not the dependency).
 
 ***************************************************************
 
