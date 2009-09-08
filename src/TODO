@@ -1,12 +1,14 @@
-[Sorts]	How to separate int and reference types while still allowing pointer arithmetic
+[Sorts]	How to separate int and reference types while still allowing ptr-arith
 	i.e. create a separate "Z3-int" type called "ref"
 	- will help to speed up queries
 	- will help to speed up instantiation
 
-[Tag]   all constraints fall into the same SCC, 
-	- look at order in which constraints are processed in incp.c
-	  can we beat it down to exactly once per constraint ?
-		- order by function etc. ?
+HEREHEREHEREHEREHERE
+[Dep]   all constraints fall into the same SCC, 
+	- added Dep mechanism. 
+	- generate constraints for incp.c
+	- add explicit add/del annotations in incp.c.in.fq
+	- debug and see what happens...
 
 can we syntactically identify (based on posn in CFG etc) which 
 constraint dependencies are "back edges" ? and nuke those from SCC computation ?
