@@ -27,7 +27,7 @@ let parse_error msg =
 %token DIV 
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
-%token SRT AXM CST WF SOL QUL
+%token SRT AXM CST WF SOL QUL ADP DDP
 %token ENV GRD LHS RHS REF
 
 %start defs 
@@ -65,6 +65,8 @@ def:
   | QUL Id LPAREN Id COLON sort RPAREN COLON pred  
                                         { let v = Sy.of_string $4 in
                                           C.Qul (A.Qualifier.create (Some v) $6 $9) }
+  | ADP dep                             { C.Adp $2}
+  | DDP dep                             { C.Ddp $2}
   ;
 
 sorts:
@@ -169,6 +171,12 @@ wf:
 tagsne:
   Num                                             { [$1] }
   | Num SEMI tagsne                               { $1 :: $3 }
+  ;
+
+dep:
+  LB tagsne RB IMPL LB tagsne RB                  {C.make_dep (Some $2) (Some $6) }
+  | TIMES IMPL LB tagsne RB                       {C.make_dep None (Some $4) }
+  | LB tagsne RB IMPL TIMES                       {C.make_dep (Some $2) None }
   ;
 
 info:
