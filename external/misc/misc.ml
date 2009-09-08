@@ -320,6 +320,10 @@ let numbered_list xs =
   |> snd |> List.rev 
 
 exception FalseException
+
+let intmap_bindings im =
+  IntMap.fold (fun k v acc -> (k,v) :: acc) im []
+
 let rec intmap_for_all f m =
   try 
     IntMap.iter (fun i v -> if not (f i v) then raise FalseException) m;

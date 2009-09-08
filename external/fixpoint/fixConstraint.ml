@@ -34,7 +34,7 @@ open Misc.Ops
 
 type tag  = int list
 type id   = int
-type dep  = tag * tag
+type dep  = tag option * tag option
 
 type subs = (Sy.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * Sy.t
@@ -50,9 +50,8 @@ type deft = Srt of Ast.Sort.t
           | Wfc of wf
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.Qualifier.t
-          | Adp of dep
           | Ddp of dep
-
+          | Adp of dep
 (*************************************************************)
 (************************** Misc.  ***************************)
 (*************************************************************)
