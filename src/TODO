@@ -3,13 +3,17 @@
 	- will help to speed up queries
 	- will help to speed up instantiation
 
-HEREHEREHEREHEREHERE
 [Dep]   all constraints fall into the same SCC, 
-	- added Dep mechanism. 
-	- generate constraints for incp.c
+	- added Dep mechanism, 
+	- generate constraints for incp.c, 
 	- add explicit add/del annotations in incp.c.in.fq
-	- debug and see what happens...
-
+	HEREHEREHEREHEREHERE
+	- generate add/dep within consgen
+		ADP: control deps within blocks i -> i+1 etc.
+		DDP: abs-loc subsumption. 
+			if i is a constraint due to absloc-subsumption
+			including at return-sites, then generate a 
+			DDP i -> *
 can we syntactically identify (based on posn in CFG etc) which 
 constraint dependencies are "back edges" ? and nuke those from SCC computation ?
 - find candidate "Back edges" in current graph,
