@@ -9,15 +9,7 @@ qualif A(v:int) : v <= 1
 qualif A(v:int) : (v - ~a) = (4 * (@nsa - @len))
 
 qualif A(v:int) : (2 * (v - @outp)) = 4 * ((@buf - 1) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @outp)) = 4 * ((0 - @buf) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @outp)) = 4 * ((0 - @buf) + @nsa - (@len - 1))
 qualif A(v:int) : (2 * (v - @inp)) = 4 * ((@buf) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @inp)) = 4 * ((1 - @buf) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @inp)) = 4 * ((1 - @buf) + @nsa - (@len - 1))
 
-// qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([v])
-// qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([~a])
-// qualif A(v:int) : v <= ~a
-// qualif A(v:int) : v < ~a
-// qualif A(v:int) : (2 * (v - @outp)) = (([+,-]*@buf [+,-]*1) [+,-]*@nsa [+,-]*@len [+,-]*1)
-// qualif A(v:int) : (2 * (v - @outp)) = ((@buf - 1) + @nsa - (@len-1))
-// qualif A(v:int) : (2 * (v - @inp)) = ((@buf) + @nsa - (@len-1))
-// qualif A(v:int) : (v - @outp) = (@nsa - @len)

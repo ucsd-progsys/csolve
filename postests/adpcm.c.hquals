@@ -11,9 +11,9 @@ qualif A(v:int)     : @outp <= v
 qualif A(v:int)     : @nsa <= v
 
 qualif A(v:int) : (2 * (v - @out)) = ((@buf - 1) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @out)) = ((0 - @buf) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @out)) = ((0 - @buf) + @nsa - (@len - 1))
 qualif A(v:int) : (2 * (v - @inp)) = ((@buf) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @inp)) = ((1 - @buf) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @inp)) = ((1 - @buf) + @nsa - (@len - 1))
 
 qualif A(v:int) : v <= 1
 qualif A(v:int) : (v - @indata) = 2 * (@nsa - @len)

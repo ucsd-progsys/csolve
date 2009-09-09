@@ -22,7 +22,7 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-
+module ST  = Ssa_transform
 module H   = Hashtbl
 module SM  = Misc.StringMap
 module SIM = Map.Make(struct type t = string * int 
@@ -54,7 +54,7 @@ end
 
 let callgraph_of_scis scis = 
   Misc.flap begin fun sci ->
-    let fd  = sci.Ssa_transform.fdec in
+    let fd  = sci.ST.fdec in
     let fn  = fd.svar.vname in
     let vsr = ref [] in
     let _   = visitCilFunction (new calleeVisitor vsr) fd in
@@ -71,10 +71,11 @@ let fn_to_i, i_to_fn =
         let _ = H.replace fn_i_t fn i; H.replace i_fn_t i fn in i), 
    (fun i  -> Misc.do_catch "CilTag.i_to_fn!" (H.find i_fn_t) i))
 
-let create_funm scis = 
+let create_funm scis =
+  let is = Misc.map (fun sci -> fn_to_i sci.ST.fdec.svar.vname) scis in 
   scis |> callgraph_of_scis
        |> Misc.map (Misc.map_pair fn_to_i)
-       |> Fcommon.scc_rank i_to_fn
+       |> Fcommon.scc_rank i_to_fn is 
        |> Misc.map (Misc.app_fst i_to_fn)
        |> List.fold_left (fun fm (fn, r) -> SM.add fn r fm) SM.empty
 
@@ -90,18 +91,19 @@ let rec is_dominator doma j i =
       is_dominator doma j idom
 
 let is_backedge sci (i,j) = 
-  is_dominator sci.Ssa_transform.gdoms j i
+  is_dominator sci.ST.gdoms j i
 
 (* returns edges, adds self edges, filters backedges *)
 let edges_of_sci sci : (int * int) list =
-  Misc.array_to_index_list sci.Ssa_transform.cfg.Ssa.successors
-  |> Misc.flap (fun (i,js) -> (i,i)::(List.map (fun j -> (i,j)) js))
+  Misc.array_to_index_list sci.ST.cfg.Ssa.successors
+  |> Misc.flap (fun (i,js) -> List.map (fun j -> (i,j)) js)
   |> Misc.negfilter (is_backedge sci)
 
 let blockranks_of_sci sci : ((string * int) * int) list =
-  let fn = sci.Ssa_transform.fdec.svar.vname in
+  let fn = sci.ST.fdec.svar.vname in
+  let is = Misc.array_to_index_list sci.ST.cfg.Ssa.successors |> Misc.map fst in
   sci |> edges_of_sci
-      |> Fcommon.scc_rank string_of_int 
+      |> Fcommon.scc_rank string_of_int is
       |> Misc.map (fun (i,r) -> ((fn, i), r))
 
 let create_blkm scis =
