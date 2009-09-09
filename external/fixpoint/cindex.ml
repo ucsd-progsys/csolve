@@ -64,10 +64,11 @@ module WH =
 type wkl = WH.t
 
 type t = 
-  { cnst: FixConstraint.t IM.t;         (* id -> refinement_constraint *) 
-    rnkm: rank IM.t;                    (* id -> dependency rank *)
-    depm: C.id list IM.t;               (* id -> successor ids *)
-    pend: (C.id, unit) H.t;       (* id -> is in wkl ? *)
+  { cnst : FixConstraint.t IM.t;   (* id   -> refinement_constraint *) 
+    rnkm : rank IM.t;              (* id   -> dependency rank *)
+    depm : C.id list IM.t;         (* id   -> successor ids *)
+    pend : (C.id, unit) H.t;       (* id   -> is in wkl ? *)
+    rtm  : unit IM.t;              (* rank -> unit, keys are "root" sccs *) 
   }
 
 let get_ref_rank me c =
@@ -99,7 +100,7 @@ let make_deps cm =
   IM.fold begin fun id c (dm, deps) ->
     List.fold_left begin fun (dm, deps) k -> 
       let kds = get km k in
-      let deps' = List.map (fun id' -> (id, id')) (id::kds) in
+      let deps' = List.map (fun id' -> (id, id')) kds in
       (IM.add id kds dm, (deps' ++ deps)) 
     end (dm, deps) (rhs_ks c) 
   end cm (IM.empty,[])
@@ -147,19 +148,32 @@ let string_of_cid cm id =
     |> Printf.sprintf "%d: %s" id
   with _ -> assertf "string_of_cid: impossible" 
 
+let make_rankm cm ranks = 
+  List.fold_left begin fun rm (id, r) -> 
+    let c = IM.find id cm in
+    IM.add id {id    = id; 
+               scc   = r; 
+               simpl = (not !Co.psimple) || (C.is_simple c); 
+               tag   = C.tag_of_t c;} rm
+  end IM.empty ranks 
+
+let make_rootm rankm ijs =
+  let sccs = rankm |> Misc.intmap_bindings |> Misc.map (fun (_,r) -> r.scc) in 
+  let sccm = List.fold_left (fun im scc -> IM.add scc () im) IM.empty sccs in
+  List.fold_left begin fun sccm (i,j) ->
+    let ir = (IM.find i rankm).scc in
+    let jr = (IM.find j rankm).scc in
+    if ir <> jr then IM.remove jr sccm else sccm
+  end sccm ijs
+
 let make_rank_map dds ads cm =
   let (dm, real_deps) = make_deps cm in
-  let deps = adjust_deps dds ads cm real_deps in
-  let ids  = cm |> Misc.intmap_bindings |> Misc.map fst in
-  let rank = Fcommon.scc_rank (string_of_cid cm) ids deps in
-  let rm   = List.fold_left begin fun rm (id, r) -> 
-               let c = IM.find id cm in
-               IM.add id {id    = id; 
-                          scc   = r; 
-                          simpl = (not !Co.psimple) || (C.is_simple c); 
-                          tag   = C.tag_of_t c;} rm
-             end IM.empty rank in
-  (dm, rm)
+  let deps  = adjust_deps dds ads cm real_deps in
+  let ids   = cm |> Misc.intmap_bindings |> Misc.map fst in
+  let ranks = Fcommon.scc_rank (string_of_cid cm) ids deps in
+  let rankm = make_rankm cm ranks in
+  let rootm = make_rootm rankm deps in
+  (dm, rankm, rootm)
 
 (***********************************************************************)
 (**************************** API **************************************)
@@ -167,11 +181,11 @@ let make_rank_map dds ads cm =
 
 (* API *)
 let create dds ads cs = 
-  let cm       = List.fold_left begin fun cm c -> 
-                  IM.add (C.id_of_t c) c cm 
-                end IM.empty cs in
-  let (dm, rm) = BS.time "make rank map" (make_rank_map dds ads) cm in
-  {cnst = cm; rnkm = rm; depm = dm; pend = H.create 17}
+  let cm           = List.fold_left begin fun cm c -> 
+                       IM.add (C.id_of_t c) c cm 
+                     end IM.empty cs in
+  let (dm, rm, rtm) = BS.time "make rank map" (make_rank_map dds ads) cm in
+  {cnst = cm; rnkm = rm; depm = dm; rtm = rtm; pend = H.create 17}
 
 (* API *) 
 let deps me c =
@@ -216,15 +230,16 @@ let wpop me w =
     let _, r = WH.maximum w in
     let _    = Hashtbl.remove me.pend r.id in
     let c    = get_ref_constraint me r.id in
-    let _    = Co.cprintf Co.ol_solve "popping (%a) "pprint_rank r in
-    let _    = Co.cprintf Co.ol_solve "from wkl = %s \n" (wstring w) in 
+    let _    = Co.cprintf Co.ol_solve_stats "popping (%a) "pprint_rank r in
+    let _    = Co.cprintf Co.ol_solve_stats "from wkl = %s \n" (wstring w) in 
     (Some c, WH.remove w)
   with Heaps.EmptyHeap -> (None, w) 
 
 let roots me =
   IM.fold begin fun id r sccm ->
-    let rs = try IM.find r.scc sccm with Not_found -> [] in
-    IM.add r.scc rs sccm
+    if not (IM.mem r.scc me.rtm) then sccm else
+      let rs = try IM.find r.scc sccm with Not_found -> [] in
+      IM.add r.scc (r::rs) sccm
   end me.rnkm IM.empty
   |> IM.map (List.hd <.> List.sort compare)
   |> Misc.intmap_bindings 

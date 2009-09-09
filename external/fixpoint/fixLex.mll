@@ -32,7 +32,7 @@
       
 }
 
-let digit    = ['0'-'9']
+let digit    = ['0'-'9' '-']
 (* let othersyms =[ '-' '$' '#' '!' '+' '=' '<' '>' ',' '?' '\''] *)
 let letdig   = ['0'-'9' 'a'-'z' 'A'-'Z' '_' '@' ''' '.' '#']
 
@@ -109,7 +109,7 @@ rule token = parse
 			    let acc c = a + (d * ((Char.code c) - zero)) in
 			    function
 			      0 -> let c = str.[0] in
-				   if c='~' then - a else (acc c)
+				   if c='-' then - a else (acc c)
 			    | i -> accum (acc str.[i]) (d * 10) (i - 1)
 			  in
 			  Num (accum 0 1 (len-1)) }

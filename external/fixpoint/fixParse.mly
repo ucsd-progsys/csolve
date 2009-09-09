@@ -65,8 +65,8 @@ def:
   | QUL Id LPAREN Id COLON sort RPAREN COLON pred  
                                         { let v = Sy.of_string $4 in
                                           C.Qul (A.Qualifier.create (Some v) $6 $9) }
-  | ADP dep                             { C.Adp $2}
-  | DDP dep                             { C.Ddp $2}
+  | ADP COLON dep                       { C.Adp $3}
+  | DDP COLON dep                       { C.Ddp $3}
   ;
 
 sorts:
