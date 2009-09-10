@@ -171,7 +171,8 @@ let make_rank_map ds cm =
 (***********************************************************************)
 
 (* API *)
-let create ds cs = 
+let create ds cs =
+  asserti (ds <> []) "\n \n CRASH bugger \n \n";
   let cm           = List.fold_left begin fun cm c -> 
                        IM.add (C.id_of_t c) c cm 
                      end IM.empty cs in
@@ -186,11 +187,6 @@ let deps me c =
 (* API *)
 let to_list me = 
   me.cnst |> Misc.intmap_bindings |> Misc.map snd
-
-(* API *)
-(* let iter f me = 
-  IM.iter (fun _ c -> f c) me.cnst
-*)
 
 let sort_iter_ref_constraints me f = 
   me.rnkm |> Misc.intmap_bindings
@@ -243,9 +239,9 @@ let winit me =
 
 (* API *) 
 let print ppf me =
-  IM.iter (fun _ c -> Format.fprintf ppf "@[%a@] \n" (C.print_t None) c) me.cnst;
   List.iter (Format.fprintf ppf "@[%a@] \n" C.print_dep) me.ds; 
-  ()
+  IM.iter (fun _ c -> Format.fprintf ppf "@[%a@] \n" (C.print_t None) c) me.cnst
+  
 (* iter (Format.fprintf ppf "@[%a@.@]" (C.print_t None)) me; *)
   (* if !Co.dump_ref_constraints then begin
     Format.fprintf ppf "Refinement Constraints: \n";

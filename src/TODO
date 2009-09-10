@@ -4,25 +4,10 @@
 	- will help to speed up instantiation
 
 [Dep]   all constraints fall into the same SCC, 
-	- added Dep mechanism, 
-	- generate constraints for incp.c, 
-	- add explicit add/del annotations in incp.c.in.fq
-	HEREHEREHEREHEREHERE
-	- generate add/dep within consgen
-		ADP: control deps within blocks i -> i+1 etc.
-		DDP: abs-loc subsumption. 
-			if i is a constraint due to absloc-subsumption
-			including at return-sites, then generate a 
-			DDP i -> *
-can we syntactically identify (based on posn in CFG etc) which 
-constraint dependencies are "back edges" ? and nuke those from SCC computation ?
-- find candidate "Back edges" in current graph,
-- see how to characterize them syntactically or by constraint (eg env is a prefix etc.)
-
---> TRACKING INTERPROC DATA DEPENDENCIES IS HOPELESS ...
-tag = [fun_rank; fun_id; block_id; instr_id; 0 + 1; 0 + 1]
-	1st 0 + 1 = (delete + keep) edges with this cstr as source
-	2nd 0 + 1 = (non-root + root) constraint
+	HEREHEREHEREHEREHEREHEREHERE
+	- look at fixpoint/tests/incp2.c.in.fq vs incp.c.in.fq
+	  why does former take 24 iters instead of latter's 20 ?
+	  even though the dep annots are the same ????
 
 1. From dep graph:
 	(a) delete back edges (where src is):
