@@ -258,7 +258,7 @@ let rec acsolve me w s =
     let (ch, s')  = BS.time "refine" (refine me s) c in
     let _ = hashtbl_incr_frequency stat_cfreqt (C.id_of_t c) in  
     let _ = Co.bprintf true (* mydebug *) "iter=%d id=%d ch=%b %a \n" 
-            !stat_refines (C.id_of_t c) ch C.pprint_tag (C.tag_of_t c) in
+            !stat_refines (C.id_of_t c) ch C.print_tag (C.tag_of_t c) in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 
 
@@ -297,12 +297,8 @@ let create ts sm ps a ds cs ws qs =
 let save fname me s =
   let oc  = open_out fname in
   let ppf = F.formatter_of_out_channel oc in
-  Ci.iter  
-    (F.fprintf ppf "@[%a@] \n" (C.print_t None))
-    me.sri;
-  List.iter
-    (F.fprintf ppf "@[%a@] \n" (C.print_wf None))
-    me.ws;
+  F.fprintf ppf "@[%a@] \n" Ci.print me.sri;
+  List.iter (F.fprintf ppf "@[%a@] \n" (C.print_wf None)) me.ws;
   F.fprintf ppf "@[%a@] \n" C.print_soln s;
   close_out oc
 

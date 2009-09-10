@@ -196,15 +196,18 @@ let print_ras so ppf ras =
   | Some s -> ras |> Misc.flap (preds_of_refa s) |> A.pAnd
                   |> F.fprintf ppf "%a" P.print 
 
+(* API *)
 let print_reft so ppf (v, t, ras) =
   F.fprintf ppf "@[{%a : %a | [%a]}@]" 
     Sy.print v
     Ast.Sort.print t
     (print_ras so) ras
 
+(* API *)
 let print_binding so ppf (x, r) = 
   F.fprintf ppf "@[%a:%a@]" Sy.print x (print_reft so) r 
 
+(* API *)
 let print_env so ppf env = 
   bindings_of_env env 
   |> F.fprintf ppf "@[%a@]" (Misc.pprint_many_box ";" (print_binding so))
@@ -213,11 +216,21 @@ let pprint_id ppf = function
   | Some id     -> F.fprintf ppf "id %d" id
   | None        -> F.fprintf ppf ""
 
-let pprint_tag ppf = function
+
+let string_of_intlist = (String.concat ";") <.> (List.map string_of_int)
+
+(* API *)
+let print_tag ppf = function
   | []          -> F.fprintf ppf ""
-  | is          -> is |> List.map string_of_int 
-                      |> String.concat ";" 
+  | is          -> is |> string_of_intlist 
                       |> F.fprintf ppf "tag [%s]" 
+
+(* API *)
+let print_dep ppf = function
+  | Adp (t, t') -> F.fprintf ppf "add_dep: [%s] -> [%s]" (string_of_intlist t) (string_of_intlist t')
+  | Ddp (t, t') -> F.fprintf ppf "del_dep: [%s] -> [%s]" (string_of_intlist t) (string_of_intlist t')
+  | Ddp_s t     -> F.fprintf ppf "del_dep: [%s] -> *" (string_of_intlist t) 
+  | Ddp_t t'    -> F.fprintf ppf "del_dep: * -> [%s]" (string_of_intlist t')
 
 (* API *)
 let print_wf so ppf (env, r, io) = 
@@ -235,7 +248,8 @@ let print_t so ppf ((env,_),g,r1,r2,io,is) =
     (print_reft so) r1
     (print_reft so) r2
     pprint_id io
-    pprint_tag is
+    print_tag is
+
 
 (* API *) 
 let to_string c = Misc.fsprintf (print_t None) c

@@ -173,10 +173,10 @@ tagsne:
   ;
 
 dep:
-  | ADP LB tagsne RB IMPL LB tagsne RB            {C.make_dep true (Some $3) (Some $7) }
-  | DDP LB tagsne RB IMPL LB tagsne RB            {C.make_dep false (Some $3) (Some $7) }
-  | DDP TIMES IMPL LB tagsne RB                   {C.make_dep false None (Some $5) }
-  | DDP LB tagsne RB IMPL TIMES                   {C.make_dep false (Some $3) None }
+  | ADP COLON LB tagsne RB IMPL LB tagsne RB            {C.make_dep true (Some $4) (Some $8) }
+  | DDP COLON LB tagsne RB IMPL LB tagsne RB            {C.make_dep false (Some $4) (Some $8) }
+  | DDP COLON TIMES IMPL LB tagsne RB                   {C.make_dep false None (Some $6) }
+  | DDP COLON LB tagsne RB IMPL TIMES                   {C.make_dep false (Some $4) None }
   ;
 
 info:

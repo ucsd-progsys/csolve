@@ -69,6 +69,7 @@ type t =
     depm : C.id list IM.t;         (* id   -> successor ids *)
     pend : (C.id, unit) H.t;       (* id   -> is in wkl ? *)
     rtm  : unit IM.t;              (* rank -> unit, keys are "root" sccs *) 
+    ds   : C.dep list;             (* add/del dep list *)
   }
 
 let get_ref_rank me c =
@@ -175,7 +176,7 @@ let create ds cs =
                        IM.add (C.id_of_t c) c cm 
                      end IM.empty cs in
   let (dm, rm, rtm) = BS.time "make rank map" (make_rank_map ds) cm in
-  {cnst = cm; rnkm = rm; depm = dm; rtm = rtm; pend = H.create 17}
+  {cnst = cm; ds = ds; rnkm = rm; depm = dm; rtm = rtm; pend = H.create 17}
 
 (* API *) 
 let deps me c =
@@ -187,8 +188,9 @@ let to_list me =
   me.cnst |> Misc.intmap_bindings |> Misc.map snd
 
 (* API *)
-let iter f me = 
+(* let iter f me = 
   IM.iter (fun _ c -> f c) me.cnst
+*)
 
 let sort_iter_ref_constraints me f = 
   me.rnkm |> Misc.intmap_bindings
@@ -240,10 +242,14 @@ let winit me =
   roots me |> wpush me WH.empty  
 
 (* API *) 
-let print ppf me = 
-  if !Co.dump_ref_constraints then begin
+let print ppf me =
+  IM.iter (fun _ c -> Format.fprintf ppf "@[%a@] \n" (C.print_t None) c) me.cnst;
+  List.iter (Format.fprintf ppf "@[%a@] \n" C.print_dep) me.ds; 
+  ()
+(* iter (Format.fprintf ppf "@[%a@.@]" (C.print_t None)) me; *)
+  (* if !Co.dump_ref_constraints then begin
     Format.fprintf ppf "Refinement Constraints: \n";
     iter (Format.fprintf ppf "@[%a@.@]" (C.print_t None)) me;
     Format.fprintf ppf "\n SCC Ranked Refinement Constraints: \n";
     sort_iter_ref_constraints me (Format.fprintf ppf "@[%a@.@]" (C.print_t None)); 
-  end
+  end *)

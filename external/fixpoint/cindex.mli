@@ -28,10 +28,10 @@ type t
 type wkl
 
 (** indexing and dependencies *)
+
 val to_list     : t -> FixConstraint.t list 
 val create      : FixConstraint.dep list -> FixConstraint.t list -> t 
 val deps        : t -> FixConstraint.t -> FixConstraint.t list
-val iter        : (FixConstraint.t -> unit) -> t -> unit
 
 (** worklist manipulation *)
 val wpush       : t -> wkl -> FixConstraint.t list -> wkl 
