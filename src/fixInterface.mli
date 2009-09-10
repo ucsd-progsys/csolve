@@ -101,3 +101,5 @@ val make_cs_refldesc    : cilenv -> Ast.pred ->
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
                           CilTag.t -> FixConstraint.t list
+
+val make_dep: bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 

@@ -521,3 +521,7 @@ let make_cs_refstore env p st1 st2 polarity tag =
      end in
 (*  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in *) 
   rv
+
+let make_dep pol xo yo =
+  (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
+           |> Misc.uncurry (C.make_dep pol)
