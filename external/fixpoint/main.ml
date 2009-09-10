@@ -39,17 +39,16 @@ open Misc.Ops
 (*****************************************************************)
 
 let sift xs = 
-  List.fold_left begin fun (ts, ps, cs, ws, ads, dds, qs, s) -> 
+  List.fold_left begin fun (ts, ps, cs, ws, ds, qs, s) -> 
       function 
-      | C.Srt t        -> (t::ts, ps, cs, ws, ads, dds, qs, s) 
-      | C.Axm p        -> (ts, p::ps, cs, ws, ads, dds, qs, s) 
-      | C.Cst c        -> (ts, ps, c::cs, ws, ads, dds, qs, s)
-      | C.Wfc w        -> (ts, ps, cs, w::ws, ads, dds, qs, s)
-      | C.Adp d        -> (ts, ps, cs, ws, d::ads, dds, qs, s)
-      | C.Ddp d        -> (ts, ps, cs, ws, ads, d::dds, qs, s)
-      | C.Qul q        -> (ts, ps, cs, ws, ads, dds, q::qs, s)
-      | C.Sol (k, kps) -> (ts, ps, cs, ws, ads, dds, qs, SM.add k kps s)
-  end ([], [], [], [], [], [], [], SM.empty) xs
+      | C.Srt t        -> (t::ts, ps, cs, ws, ds, qs, s) 
+      | C.Axm p        -> (ts, p::ps, cs, ws, ds, qs, s) 
+      | C.Cst c        -> (ts, ps, c::cs, ws, ds, qs, s)
+      | C.Wfc w        -> (ts, ps, cs, w::ws, ds, qs, s)
+      | C.Dep d        -> (ts, ps, cs, ws, d::ds, qs, s)
+      | C.Qul q        -> (ts, ps, cs, ws, ds, q::qs, s)
+      | C.Sol (k, kps) -> (ts, ps, cs, ws, ds, qs, SM.add k kps s)
+  end ([], [], [], [], [], [], SM.empty) xs
 
 let parse f = 
   let _  = Errorline.startFile f in
@@ -71,13 +70,13 @@ let read_inputs usage =
 (********************* Hooking into Solver ***********************)
 (*****************************************************************)
 
-let solve (ts, ps, cs, ws, ads, dds, qs, s) = match cs with 
+let solve (ts, ps, cs, ws, ds, qs, s) = match cs with 
   | []   -> 
       print_now "Fixpoint: NO Constraints!" |> ignore
   | c::_ -> 
       let _       = print_now "Fixpoint: Creating  CI\n" in
       let a       = c |> C.tag_of_t |> List.length in
-      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a ads dds cs ws) qs in
+      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a ds cs ws) qs in
       let _       = print_now "Fixpoint: Solving \n" in
       let s', cs' = BS.time "solve" (S.solve ctx) s in
       let _       = print_now "Fixpoint: Saving Result \n" in

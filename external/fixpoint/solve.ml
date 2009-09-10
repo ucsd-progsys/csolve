@@ -286,10 +286,10 @@ let solve me (s : C.soln) =
   (s, u)
 
 (* API *)
-let create ts sm ps a ddeps adeps cs ws qs =
+let create ts sm ps a ds cs ws qs =
   let tpc = TP.create ts sm ps in
   let cs  = C.validate a cs in
-  let sri = BS.time "Ref index" Ci.create adeps ddeps cs in
+  let sri = BS.time "Ref index" Ci.create ds cs in
   let s   = BS.time "Qual inst" (inst ws qs) SM.empty in
   ({ tpc = tpc; sri = sri; ws = ws}, s)
 

@@ -43,8 +43,7 @@ type deft = Srt of Ast.Sort.t
           | Wfc of wf 
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.Qualifier.t
-          | Ddp of dep (* Del dependency, higher priority *)
-          | Adp of dep (* Add dependency, lower priority *)
+          | Dep of dep 
 
 val kvars_of_reft    : reft -> (subs * Ast.Symbol.t) list
 val kvars_of_t       : t -> (subs * Ast.Symbol.t) list
@@ -117,6 +116,7 @@ val id_of_wf         : wf -> id
 
 val validate         : int -> t list -> t list
 
-val make_dep         : tag option -> tag option -> dep
-val src_of_dep       : dep -> tag option
-val dst_of_dep       : dep -> tag option
+val make_dep         : bool -> tag option -> tag option -> dep
+val matches_deps     : dep list -> tag * tag -> bool
+val tags_of_dep      : dep -> tag * tag
+val pol_of_dep       : dep -> bool 

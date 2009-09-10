@@ -23,6 +23,7 @@
 
 (* This module implements basic datatypes and operations on constraints *)
 module F  = Format
+module H  = Hashtbl
 module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
@@ -34,7 +35,7 @@ open Misc.Ops
 
 type tag  = int list
 type id   = int
-type dep  = tag option * tag option
+type dep  = Adp of tag * tag | Ddp of tag * tag | Ddp_s of tag | Ddp_t of tag
 
 type subs = (Sy.t * A.expr) list                         (* [x,e] *)
 type refa = Conc of A.pred | Kvar of subs * Sy.t
@@ -50,8 +51,8 @@ type deft = Srt of Ast.Sort.t
           | Wfc of wf
           | Sol of Ast.Symbol.t * Ast.pred list
           | Qul of Ast.Qualifier.t
-          | Ddp of dep
-          | Adp of dep
+          | Dep of dep
+
 (*************************************************************)
 (************************** Misc.  ***************************)
 (*************************************************************)
@@ -121,11 +122,11 @@ let sol_add s k qs' =
   (not (Misc.same_length qs qs''), SM.add k qs'' s)
 
 let group_sol_change addf s0 ks kqs = 
-  let t  = Hashtbl.create 17 in
-  let _  = List.iter (fun (k, q) -> Hashtbl.add t k q) kqs in
+  let t  = H.create 17 in
+  let _  = List.iter (fun (k, q) -> H.add t k q) kqs in
   List.fold_left 
     (fun (b, s) k -> 
-      let qs       = Hashtbl.find_all t k in 
+      let qs       = H.find_all t k in 
       let (b', s') = if addf then sol_add s k qs else sol_update s k qs in
       (b || b', s'))
     (false, s0) ks
@@ -318,12 +319,12 @@ let phase2 cs tmax =
 
 (* 3. check that sorts are consistent across constraints *)
 let phase3 cs =
-  let memo = Hashtbl.create 17 in
+  let memo = H.create 17 in
   List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_,_) ->
     asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
     SM.iter begin fun x (_,t,_) ->
-      try asserts (t = (Hashtbl.find memo x)) "Invalid Constraints 3b" 
-      with Not_found -> Hashtbl.replace memo x t
+      try asserts (t = (H.find memo x)) "Invalid Constraints 3b" 
+      with Not_found -> H.replace memo x t
     end env
   end cs;
   cs
@@ -341,6 +342,30 @@ let validate a cs =
   BS.time "validate shapes" (validate a) cs
 
 (* API *)
-let make_dep   = fun t t' -> (t,t')
-let src_of_dep = fst
-let dst_of_dep = snd 
+let matches_deps ds = 
+  let tt   = H.create 37 in
+  let s_tt = H.create 37 in
+  let t_tt = H.create 37 in
+  List.iter begin function  
+    | Adp (t, t') 
+    | Ddp (t, t') -> H.add tt (t,t') ()
+    | Ddp_s t     -> H.add s_tt t  ()
+    | Ddp_t t'    -> H.add t_tt t' ()
+  end ds;
+  (fun (t, t') -> H.mem tt (t, t') || H.mem s_tt t || H.mem t_tt t')
+
+(* API *)
+let pol_of_dep = function Adp (_,_) -> true | _ -> false
+
+(* API *)
+let tags_of_dep = function 
+  | Adp (t, t') | Ddp (t, t') -> t,t' 
+  | _ -> assertf "tags_of_dep"
+
+(* API *)
+let make_dep b xo yo =
+  match (b, xo, yo) with
+  | true , Some t, Some t' -> Adp (t, t')
+  | false, Some t, Some t' -> Ddp (t, t')
+  | false, Some t, None    -> Ddp_s t
+  | false, None  , Some t' -> Ddp_t t'

@@ -46,6 +46,7 @@ type t = {
   sci     : ST.ssaCfgInfo;
   ws      : C.wf list;
   cs      : C.t list;
+  ds      : C.dep list;
   wldm    : wld IM.t;
   gnv     : FI.cilenv; 
   formalm : unit SM.t;
@@ -111,6 +112,7 @@ let create tgr gnv sci shp =
    sci     = sci;
    cs      = FI.make_cs_refstore env Ast.pTrue istore astore false tag; 
    ws      = FI.make_wfs_refstore env astore tag;
+   ds      = [];
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
@@ -122,14 +124,14 @@ let create tgr gnv sci shp =
    undefm  = make_undefm formalm sci.ST.phis
   }
 
-let add_cons ws cs me =
-  {me with cs = cs ++ me.cs; ws = ws ++ me.ws}
+let add_cons (ws, cs, ds) me =
+  {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds}
 
 let add_wld i wld me = 
   {me with wldm = IM.add i wld me.wldm}
 
 let get_cons me =
-  (me.ws, me.cs)
+  (me.ws, me.cs, me.ds)
 
 let get_astore me = 
   me.astore

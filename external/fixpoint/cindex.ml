@@ -109,32 +109,22 @@ let make_deps cm =
 (************* Adjusting Dependencies with Provided Tag-Deps ***********)
 (***********************************************************************)
 
-let delete_deps cm dds ijs = 
-  let tt   = H.create 37 in
-  let s_tt = H.create 37 in
-  let t_tt = H.create 37 in
-  List.iter begin fun d -> match C.src_of_dep d, C.dst_of_dep d with
-    | Some st, Some st' -> H.add tt (st,st') () 
-    | Some st, None     -> H.add s_tt st ()
-    | None, Some st'    -> H.add t_tt st' ()
-    | _, _              -> assertf "delete_dep: bad dep"
-  end dds;
-  List.filter begin fun (i, j) ->
-    let it = IM.find i cm |> C.tag_of_t in
-    let jt = IM.find j cm |> C.tag_of_t in
-    not (H.mem tt (it, jt) || H.mem s_tt it || H.mem t_tt jt)
-  end ijs
+let delete_deps cm dds = 
+  let delf = C.matches_deps dds in
+  let tagf = fun x -> IM.find x cm |> C.tag_of_t in
+  List.filter (not <.> delf <.> Misc.map_pair tagf)
   
 let add_deps cm ads ijs = 
   let tt = H.create 37 in
   let _  = IM.iter (fun id c -> H.add tt (C.tag_of_t c) id) cm in
-  ads |> Misc.flap begin fun d -> match C.src_of_dep d, C.dst_of_dep d with
-           | Some st, Some st' -> Misc.cross_product (H.find_all tt st) (H.find_all tt st')
-           | _ -> assertf "add_dep: bad dep" 
-         end  
+  ads |> Misc.map C.tags_of_dep
+      |> Misc.map (Misc.map_pair (H.find_all tt))
+      |> Misc.flap (Misc.uncurry Misc.cross_product)
       |> (++) ijs
 
-let adjust_deps dds ads cm = add_deps cm ads <.> delete_deps cm dds 
+let adjust_deps cm ds = 
+  let ads, dds = List.partition C.pol_of_dep ds in
+  add_deps cm ads <.> delete_deps cm dds 
 
 (***********************************************************************)
 (**************************** Dependency SCCs **************************)
@@ -166,9 +156,9 @@ let make_rootm rankm ijs =
     if ir <> jr then IM.remove jr sccm else sccm
   end sccm ijs
 
-let make_rank_map dds ads cm =
+let make_rank_map ds cm =
   let (dm, real_deps) = make_deps cm in
-  let deps  = adjust_deps dds ads cm real_deps in
+  let deps  = adjust_deps cm ds real_deps in
   let ids   = cm |> Misc.intmap_bindings |> Misc.map fst in
   let ranks = Fcommon.scc_rank (string_of_cid cm) ids deps in
   let rankm = make_rankm cm ranks in
@@ -180,11 +170,11 @@ let make_rank_map dds ads cm =
 (***********************************************************************)
 
 (* API *)
-let create dds ads cs = 
+let create ds cs = 
   let cm           = List.fold_left begin fun cm c -> 
                        IM.add (C.id_of_t c) c cm 
                      end IM.empty cs in
-  let (dm, rm, rtm) = BS.time "make rank map" (make_rank_map dds ads) cm in
+  let (dm, rm, rtm) = BS.time "make rank map" (make_rank_map ds) cm in
   {cnst = cm; rnkm = rm; depm = dm; rtm = rtm; pend = H.create 17}
 
 (* API *) 

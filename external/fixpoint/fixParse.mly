@@ -65,8 +65,7 @@ def:
   | QUL Id LPAREN Id COLON sort RPAREN COLON pred  
                                         { let v = Sy.of_string $4 in
                                           C.Qul (A.Qualifier.create (Some v) $6 $9) }
-  | ADP COLON dep                       { C.Adp $3}
-  | DDP COLON dep                       { C.Ddp $3}
+  | dep                                 { C.Dep $1 }
   ;
 
 sorts:
@@ -174,9 +173,10 @@ tagsne:
   ;
 
 dep:
-  LB tagsne RB IMPL LB tagsne RB                  {C.make_dep (Some $2) (Some $6) }
-  | TIMES IMPL LB tagsne RB                       {C.make_dep None (Some $4) }
-  | LB tagsne RB IMPL TIMES                       {C.make_dep (Some $2) None }
+  | ADP LB tagsne RB IMPL LB tagsne RB            {C.make_dep true (Some $3) (Some $7) }
+  | DDP LB tagsne RB IMPL LB tagsne RB            {C.make_dep false (Some $3) (Some $7) }
+  | DDP TIMES IMPL LB tagsne RB                   {C.make_dep false None (Some $5) }
+  | DDP LB tagsne RB IMPL TIMES                   {C.make_dep false (Some $3) None }
   ;
 
 info:

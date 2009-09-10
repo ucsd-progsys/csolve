@@ -308,23 +308,22 @@ let cons_of_annotstmt me i grd wld (anns, stmt) =
 (****************************************************************************)
 
 let cons_of_block me i =
-  let grd     = CF.guard_of_block me i None in
-  let phis    = CF.phis_of_block me i in
-  let astmt   = CF.annotstmt_of_block me i in
-  let env, st = CF.inwld_of_block me i in
-  let env     = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws      = wcons_of_phis me (CF.tag_of_instr me i 0) env phis in
-  let wld, cs = cons_of_annotstmt me i grd (env, st) astmt in
-  (wld, ws, cs)
+  let grd         = CF.guard_of_block me i None in
+  let phis        = CF.phis_of_block me i in
+  let astmt       = CF.annotstmt_of_block me i in
+  let env, st     = CF.inwld_of_block me i in
+  let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
+  let ws          = wcons_of_phis me (CF.tag_of_instr me i 0) env phis in
+  let wld, cs, ds = cons_of_annotstmt me i grd (env, st) astmt in
+  (wld, (ws, cs, ds))
 
 (****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)
 (****************************************************************************)
 
 let process_block me i = 
-  let wld, ws, cs = cons_of_block me i in
-  me |> CF.add_wld i wld 
-     |> CF.add_cons ws cs
+  let wld, x = cons_of_block me i in
+  me |> CF.add_wld i wld |> CF.add_cons x
 
 let process_phis phia me =
   let cs = tcons_of_phis me phia in
@@ -435,7 +434,7 @@ let cons_of_scis tgr gnv scim shpm ci =
   SM.fold begin fun fn sci ci ->
     let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
     cons_of_sci tgr gnv sci (SM.find fn shpm)
-    |> Misc.uncurry (Consindex.add ci fn sci)
+    |> Consindex.add ci fn sci
   end scim ci 
 
 (************************************************************************************)
@@ -472,5 +471,5 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in
   (tgr, cons_of_decs tgr spec gnv decs 
-        |> Misc.uncurry Consindex.create
+        |> Consindex.create
         |> cons_of_scis tgr gnv scim shm)

@@ -41,19 +41,22 @@ type t = {
   scim : Ssa_transform.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
+  depm : C.dep list SM.t;
 }
 
 (* API *)
-let create ws cs = 
+let create (ws, cs, ds) = 
   { scim = SM.empty;
     wfm  = SM.empty |> SM.add Constants.global_name ws;
-    cm   = SM.empty |> SM.add Constants.global_name cs }
+    cm   = SM.empty |> SM.add Constants.global_name cs;
+    depm = SM.empty |> SM.add Constants.global_name ds }
 
 (* API *)
-let add me fn sci wfs cs =
+let add me fn sci (ws, cs, ds) =
   { scim = SM.add fn sci me.scim ;
-    wfm  = SM.add fn wfs me.wfm ;
+    wfm  = SM.add fn ws  me.wfm ;
     cm   = SM.add fn cs  me.cm ;
+    depm = SM.add fn ds  me.depm ;
   }
 
 let find me fn = 
@@ -68,11 +71,9 @@ let fold me f =
   SM.fold (fun fn _ b -> f fn (find me fn) b) me.scim
 
 (* API *)
-let get_wfs = fun me -> SM.fold (fun _ wfs acc -> wfs ++ acc) me.wfm []
-
-(* API *)
-let get_cs  = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm []
-
+let get_wfs  = fun me -> SM.fold (fun _ ws acc -> ws ++ acc) me.wfm  []
+let get_cs   = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm   []
+let get_deps = fun me -> SM.fold (fun _ ds acc -> ds ++ acc) me.depm []
 
 let (++) = P.concat
 
