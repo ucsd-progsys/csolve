@@ -56,7 +56,7 @@ let lsubs_of_annots ns =
 (* TBD: MALLOC HACK *)
 let new_block_reftype = FI.t_zero_refctype (* or, more soundly? FI.t_true_refctype *)
 
-let extend_world ld binds tag newloc (env, sto) = 
+let extend_world ld binds cloc newloc (env, sto, tago) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
   let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
@@ -69,8 +69,8 @@ let extend_world ld binds tag newloc (env, sto) =
                     | _ when newloc -> new_block_reftype rct
                     | _             -> FI.t_subs_names subs rct
                end in
-  let sto'   = FI.refstore_set sto tag ld' in
-  (env', sto')
+  let sto'   = FI.refstore_set sto cloc ld' in
+  (env', sto', tago)
 
 let extend_env v cr env =
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
@@ -106,19 +106,19 @@ let weaken_undefined me rm env v =
 
 let tcons_of_phis me phia =  
   Misc.array_flapi begin fun i asgns ->
-    let envi,_ = CF.outwld_of_block me i in
-    let asgns' = Misc.transpose asgns in
+    let envi,_,_   = CF.outwld_of_block me i in
+    let asgns'     = Misc.transpose asgns in
     Misc.flap begin fun (j, vvjs) ->
-      let pj     = CF.guard_of_block me j (Some i) in
-      let tagj   = CF.tag_of_instr me j 0 in
-      let envj,_ = CF.outwld_of_block me j in
-      let nnjs   = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
+      let pj       = CF.guard_of_block me j (Some i) in
+      let tagj     = CF.tag_of_instr me j 0 in
+      let envj,_,_ = CF.outwld_of_block me j in
+      let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap begin fun (v, vj) ->
-        let envj  = weaken_undefined me false envj v in
-        let n, nj = Misc.map_pair FI.name_of_varinfo (v, vj) in
-        let lhs   = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
-                      FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
-        let rhs   = FI.ce_find n envi |> FI.t_subs_names nnjs in
+        let envj   = weaken_undefined me false envj v in
+        let n, nj  = Misc.map_pair FI.name_of_varinfo (v, vj) in
+        let lhs    = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
+                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
+        let rhs    = FI.ce_find n envi |> FI.t_subs_names nnjs in
         FI.make_cs envj pj lhs rhs tagj 
       end vvjs 
     end asgns' 
@@ -141,20 +141,21 @@ let wcons_of_phis me tag env vs =
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
 
-let cons_of_annot tag grd (env, sto) = function 
+let cons_of_annot tag grd (env, sto, tago) = function 
   | Refanno.Gen  (cloc, aloc) ->
       let sto'   = FI.refstore_remove cloc sto in
       let ld1    = (cloc, FI.refstore_get sto cloc) in
       let ld2    = (aloc, FI.refstore_get sto aloc) in
       let cs     = FI.make_cs_refldesc env grd ld1 ld2 tag in
-      ((env, sto'), (cs, []))
+      ((env, sto', tago), (cs, []))
 
   | Refanno.Ins (aloc, cloc) ->
       let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
-      let wld    = extend_world aldesc abinds cloc false (env, sto) in
-      (wld, ([], []))
+      let wld'   = extend_world aldesc abinds cloc false (env, sto, tago) in
+      (wld', ([], []))
+      
 
   | _ -> assertf "cons_of_annot: New/NewC" 
 
@@ -167,7 +168,7 @@ let cons_of_annots me tag grd wld annots =
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
 
-let cons_of_set me tag grd (env, sto) = function 
+let cons_of_set me tag grd (env, sto, tago) = function 
   (* v := *v' *)
   | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) 
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
@@ -175,14 +176,14 @@ let cons_of_set me tag grd (env, sto) = function
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto), [], []
+      (extend_env v cr env, sto, tago), [], []
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
       let _  = CilMisc.check_pure_expr e in
       let cr = FI.t_exp env (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto), [], []
+      (extend_env v cr env, sto, tago), [], []
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
@@ -191,10 +192,10 @@ let cons_of_set me tag grd (env, sto) = function
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       if FI.is_soft_ptr sto addr then 
         let cr   = FI.refstore_read sto addr in
-        ((env, sto), (FI.make_cs env grd cr' cr tag), [])
+        ((env, sto, tago), (FI.make_cs env grd cr' cr tag), [])
       else
         let sto' = FI.refstore_write sto addr cr' in
-        ((env, sto'), [], [])
+        ((env, sto', tago), [], [])
 
   | _ -> assertf "TBD: cons_of_set"
 
@@ -228,7 +229,7 @@ let instantiate_poly_cloc me wld (aloc, cloc) =
                |> List.map (Misc.app_snd new_block_reftype) in
   extend_world aldesc abinds cloc true wld
 
-let cons_of_call me i j grd (env, st) (lvo, fn, es) ns = 
+let cons_of_call me i j grd (env, st, tago) (lvo, fn, es) ns = 
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
@@ -249,7 +250,7 @@ let cons_of_call me i j grd (env, st) (lvo, fn, es) ns =
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
   let wld'  = poly_clocs_of_store ocst ns 
-              |> List.fold_left (instantiate_poly_cloc me) (env', st') in
+              |> List.fold_left (instantiate_poly_cloc me) (env', st', Some tag) in
   (wld', cs1 ++ cs2 ++ cs3, ds3)
 
 (****************************************************************************)
@@ -276,12 +277,11 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
 (********************** Constraints for [stmt] ******************************)
 (****************************************************************************)
 
-let cons_of_ret me i grd (env, st) e_o =
+let cons_of_ret me i grd (env, st, tago) e_o =
   let tag    = CF.tag_of_instr me i 1000 in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
-  let st_cs  = 
-    let _, ost = FI.stores_of_refcfun frt in
-    (FI.make_cs_refstore env grd st ost true tag) in
+  let st_cs  = let _, ost = FI.stores_of_refcfun frt in
+               (FI.make_cs_refstore env grd st ost true tag) in
   let rv_cs  = match e_o with None -> [] 
                | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
                            let rhs = FI.ret_of_refcfun frt in
@@ -314,10 +314,10 @@ let cons_of_block me i =
   let grd         = CF.guard_of_block me i None in
   let phis        = CF.phis_of_block me i in
   let astmt       = CF.annotstmt_of_block me i in
-  let env, st     = CF.inwld_of_block me i in
+  let env,st,tag  = CF.inwld_of_block me i in
   let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
   let ws          = wcons_of_phis me (CF.tag_of_instr me i 0) env phis in
-  let wld, cs, ds = cons_of_annotstmt me i grd (env, st) astmt in
+  let wld, cs, ds = cons_of_annotstmt me i grd (env, st, tag) astmt in
   (wld, (ws, cs, ds))
 
 (****************************************************************************)

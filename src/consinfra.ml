@@ -39,7 +39,7 @@ module IC = Inferctypes
 open Misc.Ops
 open Cil
 
-type wld = FI.cilenv * FI.refstore
+type wld = FI.cilenv * FI.refstore * CilTag.t option 
 
 type t = {
   tgr     : CilTag.o;
@@ -160,11 +160,11 @@ let outwld_of_block me i =
 
 let inwld_of_block me = function
   | 0 -> 
-      (me.gnv, me.astore (* FI.refstore_empty *))
+      (me.gnv, me.astore, None)
   | i ->
       let (idom, _) = me.sci.ST.gdoms.(i) in
-      let (env,_)   = outwld_of_block me idom in
-      (env, me.astore (* FI.refstore_empty *))
+      let (env,_,t) = outwld_of_block me idom in
+      (env, me.astore, t) 
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else

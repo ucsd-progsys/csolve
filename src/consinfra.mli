@@ -24,19 +24,21 @@
 (* This file is part of the liquidC Project.*)
 
 type t
-type wld = FixInterface.cilenv * FixInterface.refstore
+
+type wld = FixInterface.cilenv * FixInterface.refstore * CilTag.t option
+
+val inwld_of_block      : t -> int -> wld 
+val outwld_of_block     : t -> int -> wld 
+val add_wld             : int -> wld -> t -> t
 
 val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Cil.stmt
 val tag_of_instr        : t -> int -> int -> CilTag.t 
 val phis_of_block       : t -> int -> Cil.varinfo list 
-val inwld_of_block      : t -> int -> wld 
-val outwld_of_block     : t -> int -> wld 
 val guard_of_block      : t -> int -> int option -> Ast.pred
 
-val add_wld             : int -> wld -> t -> t
 val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
-val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
 
+val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
 val get_fname           : t -> string 
 val get_astore          : t -> FixInterface.refstore
 val is_undefined        : t -> Cil.varinfo -> bool
