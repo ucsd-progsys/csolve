@@ -484,12 +484,23 @@ let make_wfs_fn cenv rft tag =
   let outws = make_wfs_refstore env' rft.Ctypes.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
-let rec make_cs cenv p rct1 rct2 tag =
+let make_dep pol xo yo =
+  (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
+           |> Misc.uncurry (C.make_dep pol)
+
+let add_deps tago tag = 
+  match tago with 
+  | Some t -> [make_dep true (Some t) (Some tag)] 
+  | _      -> [] 
+
+let rec make_cs cenv p rct1 rct2 tago tag =
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
-  [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)]
+  let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
+  let ds     = add_deps tago tag in
+  cs, ds
 
-let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tag =
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
@@ -497,16 +508,17 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tag =
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
   let env'   = List.map fst ncrs1 |> ce_adds env in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
-  Misc.flap begin fun ((n1, _), (_, cr2)) -> 
+  Misc.map begin fun ((n1, _), (_, cr2)) -> 
       let lhs = t_name env' n1 in
       let rhs = t_subs_names subs cr2 in
-      make_cs env' p lhs rhs tag 
+      make_cs env' p lhs rhs tago tag 
   end ncrs12
+  |> Misc.splitflatten
 
 let slocs_of_store st = 
   SLM.fold (fun x _ xs -> x::xs) st []
 
-let make_cs_refstore env p st1 st2 polarity tag =
+let make_cs_refstore env p st1 st2 polarity tago tag =
   (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
@@ -514,14 +526,12 @@ let make_cs_refstore env p st1 st2 polarity tag =
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 
-  |> Misc.flap begin fun sloc ->
+  |> Misc.map begin fun sloc ->
        let lhs = (sloc, refstore_get st1 sloc) in
        let rhs = (sloc, refstore_get st2 sloc) in
-       make_cs_refldesc env p lhs rhs tag 
-     end in
+       make_cs_refldesc env p lhs rhs tago tag 
+     end 
+  |> Misc.splitflatten in
 (*  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in *) 
   rv
 
-let make_dep pol xo yo =
-  (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
-           |> Misc.uncurry (C.make_dep pol)

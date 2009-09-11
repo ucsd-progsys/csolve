@@ -104,25 +104,26 @@ let weaken_undefined me rm env v =
       let env' = FI.ce_rem n env in
       FI.ce_adds env' [(n,r)]
 
-let tcons_of_phis me phia =  
-  Misc.array_flapi begin fun i asgns ->
+let tcons_of_phis me phia =
+  let iasgns = Misc.array_to_index_list phia in 
+  Misc.flap_pair begin fun (i, asgns) ->
     let envi,_,_   = CF.outwld_of_block me i in
     let asgns'     = Misc.transpose asgns in
-    Misc.flap begin fun (j, vvjs) ->
+    Misc.flap_pair begin fun (j, vvjs) ->
       let pj       = CF.guard_of_block me j (Some i) in
       let tagj     = CF.tag_of_instr me j 0 in
       let envj,_,_ = CF.outwld_of_block me j in
       let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
-      Misc.flap begin fun (v, vj) ->
+      Misc.flap_pair begin fun (v, vj) ->
         let envj   = weaken_undefined me false envj v in
         let n, nj  = Misc.map_pair FI.name_of_varinfo (v, vj) in
         let lhs    = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
                        FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
         let rhs    = FI.ce_find n envi |> FI.t_subs_names nnjs in
-        FI.make_cs envj pj lhs rhs tagj 
+        FI.make_cs envj pj lhs rhs None tagj 
       end vvjs 
     end asgns' 
-  end phia
+  end iasgns 
 
 let bind_of_phi me v =
   let vn = FI.name_of_varinfo v in
@@ -146,8 +147,8 @@ let cons_of_annot tag grd (env, sto, tago) = function
       let sto'   = FI.refstore_remove cloc sto in
       let ld1    = (cloc, FI.refstore_get sto cloc) in
       let ld2    = (aloc, FI.refstore_get sto aloc) in
-      let cs     = FI.make_cs_refldesc env grd ld1 ld2 tag in
-      ((env, sto', tago), (cs, []))
+      let cds    = FI.make_cs_refldesc env grd ld1 ld2 tago tag in
+      ((env, sto', tago), cds)
 
   | Refanno.Ins (aloc, cloc) ->
       let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
@@ -176,14 +177,14 @@ let cons_of_set me tag grd (env, sto, tago) = function
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
                |> FI.refstore_read sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto, tago), [], []
+      (extend_env v cr env, sto, Some tag), ([], [])
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
       let _  = CilMisc.check_pure_expr e in
       let cr = FI.t_exp env (CF.ctype_of_expr me e) e  
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
-      (extend_env v cr env, sto, tago), [], []
+      (extend_env v cr env, sto, Some tag), ([], [])
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
@@ -192,10 +193,10 @@ let cons_of_set me tag grd (env, sto, tago) = function
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       if FI.is_soft_ptr sto addr then 
         let cr   = FI.refstore_read sto addr in
-        ((env, sto, tago), (FI.make_cs env grd cr' cr tag), [])
+        (env, sto, Some tag), (FI.make_cs env grd cr' cr tago tag)
       else
         let sto' = FI.refstore_write sto addr cr' in
-        ((env, sto', tago), [], [])
+        (env, sto', Some tag), ([], [])
 
   | _ -> assertf "TBD: cons_of_set"
 
@@ -203,10 +204,11 @@ let cons_of_set me tag grd (env, sto, tago) = function
 (********************** Constraints for Calls *******************************)
 (****************************************************************************)
 
-let cons_of_tuple env grd lsubs subs cr1s cr2s tag =
-  Misc.flap2 begin fun cr1 cr2 ->
-    FI.make_cs env grd cr1 (rename_refctype lsubs subs cr2) tag 
+let cons_of_tuple env grd lsubs subs cr1s cr2s tago tag =
+  List.map2 begin fun cr1 cr2 ->
+    FI.make_cs env grd cr1 (rename_refctype lsubs subs cr2) tago tag 
   end cr1s cr2s 
+  |> Misc.splitflatten
 
 let env_of_retbind lsubs subs env lvo cr = 
   match lvo with 
@@ -242,16 +244,17 @@ let cons_of_call me i j grd (env, st, tago) (lvo, fn, es) ns =
   let tag   = CF.tag_of_instr me i j in
   let tag'  = CF.tag_of_instr me i (j+1) in
   let ecrs  = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
-  let cs1   = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) tag in 
-  let cs2   = FI.make_cs_refstore env grd st   ist true  tag  in
-  let cs3   = FI.make_cs_refstore env grd oast st  false tag' in
+  let cs1,_ = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) None tag in 
+  let cs2,_ = FI.make_cs_refstore env grd st   ist true  None tag  in
+  let cs3,_ = FI.make_cs_refstore env grd oast st  false None tag' in
   let ds3   = [FI.make_dep false (Some tag') None] in 
 
   let env'  = env_of_retbind lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'   = Ctypes.prestore_upd st ocst in
   let wld'  = poly_clocs_of_store ocst ns 
               |> List.fold_left (instantiate_poly_cloc me) (env', st', Some tag) in
-  (wld', cs1 ++ cs2 ++ cs3, ds3)
+  let wld'' = withthd3 wld' (Some tag') in
+  (wld'', cs1 ++ cs2 ++ cs3, ds3)
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
@@ -264,7 +267,7 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
   match instr with 
   | Set (lv, e, _) ->
       let _           = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
-      let wld, cs, ds = cons_of_set me tagj grd wld (lv, e) in
+      let wld,(cs,ds) = cons_of_set me tagj grd wld (lv, e) in
       (j+1, wld), (cs ++ acs, ds ++ ads)
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cs, ds = cons_of_call me i j grd wld (lvo, fv.Cil.vname, es) ns in
@@ -280,13 +283,13 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
 let cons_of_ret me i grd (env, st, tago) e_o =
   let tag    = CF.tag_of_instr me i 1000 in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
-  let st_cs  = let _, ost = FI.stores_of_refcfun frt in
-               (FI.make_cs_refstore env grd st ost true tag) in
-  let rv_cs  = match e_o with None -> [] 
+  let st_cds = let _, ost = FI.stores_of_refcfun frt in
+               (FI.make_cs_refstore env grd st ost true tago tag) in
+  let rv_cds = match e_o with None -> ([], []) 
                | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
                            let rhs = FI.ret_of_refcfun frt in
-                           (FI.make_cs env grd lhs rhs tag)  in
-  (rv_cs ++ st_cs, [])
+                           (FI.make_cs env grd lhs rhs tago tag) in
+  (st_cds +++ rv_cds) 
 
 let cons_of_annotstmt me i grd wld (anns, stmt) = 
   match stmt.skind with
@@ -329,8 +332,8 @@ let process_block me i =
   me |> CF.add_wld i wld |> CF.add_cons x
 
 let process_phis phia me =
-  let cs = tcons_of_phis me phia in
-  CF.add_cons ([], cs, []) me 
+  let cs, ds = tcons_of_phis me phia in
+  CF.add_cons ([], cs, ds) me 
 
 let cons_of_sci tgr gnv sci shp =
   let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
@@ -361,11 +364,11 @@ let cons_of_refcfun gnv fn rf rf' tag =
                         |> FI.ce_adds gnv in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
   (* contravariant inputs *)
-     (cons_of_tuple env Ast.pTrue [] [] ircs' ircs tag)  
-  ++ (FI.make_cs_refstore env Ast.pTrue hi' hi true tag) 
+     (cons_of_tuple env Ast.pTrue [] [] ircs' ircs None tag)  
+  +++ (FI.make_cs_refstore env Ast.pTrue hi' hi true None tag) 
   (* covariant outputs *)
-  ++ (FI.make_cs env Ast.pTrue ocr ocr' tag)
-  ++ (FI.make_cs_refstore env Ast.pTrue ho ho' true tag)
+  +++ (FI.make_cs env Ast.pTrue ocr ocr' None tag)
+  +++ (FI.make_cs_refstore env Ast.pTrue ho ho' true None tag)
 
 
 (***************************************************************************)
@@ -429,7 +432,7 @@ let cons_of_decs tgr spec gnv decs =
     let irf    = FI.ce_find_fn fn gnv in
     let ws'    = FI.make_wfs_fn gnv irf tag in
     let srf, b = SM.find fn spec in
-    let cs'    = if b then cons_of_refcfun gnv fn irf srf tag else [] in    
+    let cs',ds'= if b then cons_of_refcfun gnv fn irf srf tag else ([],[]) in    
     (ws' ++ ws, cs' ++ cs, [])
   end ([], [], []) decs
 

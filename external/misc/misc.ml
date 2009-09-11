@@ -44,7 +44,9 @@ module Ops = struct
   let (+=) x n = x := !x + n; !x
 
   let (++) = List.rev_append 
-
+  
+  let (+++)= fun (x1s, y1s) (x2s, y2s) -> (x1s ++ x2s, y1s ++ y2s)
+  
   let id = fun x -> x
 
   let un = fun x -> ()
@@ -65,6 +67,11 @@ module Ops = struct
   let fst3 (x,_,_) = x
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
+
+  let withfst3 (_,y,z) x = (x,y,z)
+  let withsnd3 (x,_,z) y = (x,y,z)
+  let withthd3 (x,y,_) z = (x,y,z)
+
 
   let print_now s = 
     print_string s; 
@@ -229,8 +236,14 @@ let flatten xss =
   |> List.fold_left (fun acc xs -> xs ++ acc) []
   |> List.rev
 
+let splitflatten xsyss = 
+  let xss, yss = List.split xsyss in
+  (flatten xss, flatten yss)
+
 let flap f xs =
   xs |> List.rev_map f |> flatten |> List.rev
+
+let flap_pair f = splitflatten <.> map f
 
 let tr_rev_flatten xs =
   List.fold_left (fun x xs -> x ++ xs) [] xs
@@ -242,9 +255,6 @@ let rec fast_unflat ys = function
   | x :: xs -> fast_unflat ([x] :: ys) xs
   | [] -> ys
 
-let splitflatten xsyss = 
-  let xss, yss = List.split xsyss in
-  (flatten xss, flatten yss)
 
 let rec rev_perms s = function
   | [] -> s
