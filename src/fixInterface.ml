@@ -497,7 +497,7 @@ let rec make_cs cenv p rct1 rct2 tago tag =
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
-  let ds     = add_deps tago tag in
+  let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
