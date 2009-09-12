@@ -289,8 +289,7 @@ let cons_of_ret me i grd (env, st, tago) e_o =
                | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
                            let rhs = FI.ret_of_refcfun frt in
                            (FI.make_cs env grd lhs rhs tago tag) in
-  let d_cds  = [], [] (* makes things worse: [FI.make_dep false (Some tag) None] *) in
-  (d_cds +++ st_cds +++ rv_cds) 
+  (st_cds +++ rv_cds) 
 
 let cons_of_annotstmt me i grd wld (anns, stmt) = 
   match stmt.skind with
