@@ -131,6 +131,13 @@ let adjust_deps cm ds =
 (**************************** Dependency SCCs **************************)
 (***********************************************************************)
 
+let fid_of_cid cm id = 
+  try 
+    IM.find id cm 
+    |> C.tag_of_t 
+    |> fun [_;_;_;i] -> i
+  with _ -> assertf "fid_of_cid: impossible" 
+
 let string_of_cid cm id = 
   try 
     IM.find id cm 
@@ -157,14 +164,20 @@ let make_rootm rankm ijs =
     if ir <> jr then IM.remove jr sccm else sccm
   end sccm ijs
 
+
+
 let make_rank_map ds cm =
   let (dm, real_deps) = make_deps cm in
   let deps  = adjust_deps cm ds real_deps in
   let ids   = cm |> Misc.intmap_bindings |> Misc.map fst in
-  let ranks = Fcommon.scc_rank (string_of_cid cm) ids deps in
+  let ranks = Fcommon.scc_rank "constraint" (string_of_cid cm) ids deps in
+  let _     = deps |> List.map_partial (fun (i,j) -> fid_of_cid cm i <> fid_of_cid cm j) 
+                   |> Fcommon.scc_rank "fconstraint" (string_of_int) [] in 
   let rankm = make_rankm cm ranks in
   let rootm = make_rootm rankm deps in
   (dm, rankm, rootm)
+
+
 
 (***********************************************************************)
 (**************************** API **************************************)

@@ -58,7 +58,7 @@ let callgraph_of_scis scis =
     let fn  = fd.svar.vname in
     let vsr = ref [] in
     let _   = visitCilFunction (new calleeVisitor vsr) fd in
-    Misc.map (fun v -> (fn, v)) (fn :: !vsr)
+    Misc.map (fun v -> (fn, v)) !vsr
   end scis 
 
 let fn_to_i, i_to_fn =
@@ -75,7 +75,7 @@ let create_funm scis =
   let is = Misc.map (fun sci -> fn_to_i sci.ST.fdec.svar.vname) scis in 
   scis |> callgraph_of_scis
        |> Misc.map (Misc.map_pair fn_to_i)
-       |> Fcommon.scc_rank i_to_fn is 
+       |> Fcommon.scc_rank "callgraph" (fun i -> Printf.sprintf "%d:%s" i (i_to_fn i)) is 
        |> Misc.map (Misc.app_fst i_to_fn)
        |> List.fold_left (fun fm (fn, r) -> SM.add fn r fm) SM.empty
 
@@ -103,7 +103,7 @@ let blockranks_of_sci sci : ((string * int) * int) list =
   let fn = sci.ST.fdec.svar.vname in
   let is = Misc.array_to_index_list sci.ST.cfg.Ssa.successors |> Misc.map fst in
   sci |> edges_of_sci
-      |> Fcommon.scc_rank string_of_int is
+      |> Fcommon.scc_rank ("blocks-"^fn) string_of_int is
       |> Misc.map (fun (i,r) -> ((fn, i), r))
 
 let create_blkm scis =

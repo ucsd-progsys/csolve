@@ -66,8 +66,8 @@ end
 
 module Dot = Graph.Graphviz.Dot(DotGraph) 
 
-let dump_graph g = 
-  let oc = open_out "constraints.dot" in
+let dump_graph s g = 
+  let oc = open_out (s^".dot") in
   Dot.output_graph oc g; 
   close_out oc
 
@@ -82,18 +82,18 @@ let scc_print g a =
   end a;
   C.cprintf C.ol_scc "\n"
 
-let make_graph f is ijs = 
+let make_graph s f is ijs = 
   let g = G.create () in
   let _ = List.iter (fun i -> G.add_vertex g (i, (f i))) is in
   let _ = List.iter (fun (i,j) -> G.add_edge g (i,(f i)) (j,(f j))) ijs in
-  let _ = if !Constants.dump_graph then dump_graph g in
+  let _ = if !Constants.dump_graph then dump_graph s g in
   g
  
 (* Given list [(u,v)] returns a numbering [(ui,ri)] s.t. 
  * 1. if ui,uj in same SCC then ri = rj
  * 2. if ui -> uj then ui >= uj *)
-let scc_rank f is ijs = 
-  let g = BNstats.time "making_graph" (make_graph f is) ijs in
+let scc_rank s f is ijs = 
+  let g = BNstats.time "making_graph" (make_graph s f is) ijs in
   let a = SCC.scc_array g in
   let _ = scc_print g a in
   let sccs = Misc.array_to_index_list a in

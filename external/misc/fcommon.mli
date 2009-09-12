@@ -21,4 +21,4 @@
  *
  *)
 
-val scc_rank : (int -> string) -> int list -> (int * int) list -> (int * int) list 
+val scc_rank : string -> (int -> string) -> int list -> (int * int) list -> (int * int) list 

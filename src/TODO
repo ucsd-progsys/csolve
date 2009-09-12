@@ -5,9 +5,9 @@
 
 [Dep]   all constraints fall into the same SCC, 
 	HEREHEREHEREHEREHEREHEREHERE
-	- look at fixpoint/tests/incp2.c.in.fq vs incp.c.in.fq
-	  why does former take 24 iters instead of latter's 20 ?
-	  even though the dep annots are the same ????
+	- "fconstraint.dot" why does pmap, after del-deps, generate an SCC
+	  that spans multiple functions ?
+
 
 1. From dep graph:
 	(a) delete back edges (where src is):
