@@ -7,6 +7,8 @@
 	HEREHEREHEREHEREHEREHEREHERE
 	- "fconstraint.dot" why does pmap, after del-deps, generate an SCC
 	  that spans multiple functions ?
+	- the "bad" edges are due to "return" constraints. see:
+	  fixpoint/tests/minipmap.c.in.fq
 
 
 1. From dep graph:
