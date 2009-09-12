@@ -78,7 +78,7 @@ adpcm_coder(int nsample, short indata[], char outdata[], struct adpcm_state *sta
         -1, -1, -1, -1, 2, 4, 6, 8,
     };
 
-    int stepsizeTable[89] = {
+    int stepsizeTable[89] /* JHALA HACK = {
         7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
         19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
         50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
@@ -88,7 +88,7 @@ adpcm_coder(int nsample, short indata[], char outdata[], struct adpcm_state *sta
         2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
         5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
         15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
-    };
+    } */ ;
 
     int len = nsample;
 
@@ -204,7 +204,7 @@ adpcm_decoder(int nsample, char indata[], short outdata[], struct adpcm_state *s
         -1, -1, -1, -1, 2, 4, 6, 8,
     };
 
-    int stepsizeTable[89] = {
+    int stepsizeTable[89] /* JHALA HACK = {
         7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
         19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
         50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
@@ -214,7 +214,7 @@ adpcm_decoder(int nsample, char indata[], short outdata[], struct adpcm_state *s
         2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
         5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
         15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
-    };
+    } */ ;
 
     int len = nsample;
 
