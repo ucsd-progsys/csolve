@@ -3,70 +3,44 @@
 	- will help to speed up queries
 	- will help to speed up instantiation
 
-[Dep]   all constraints fall into the same SCC, 
-	HEREHEREHEREHEREHEREHEREHERE
-	- "fconstraint.dot" why does pmap, after del-deps, generate an SCC
-	  that spans multiple functions ?
-	- the "bad" edges are due to "return" constraints. see:
-	  fixpoint/tests/minipmap.c.in.fq
-
-
-1. From dep graph:
+[depgraph]
 	(a) delete back edges (where src is):
-	    	- Generalization-Sub, Return-Caller-Sub
-		- put in a tag that denotes "deletable" constraint
+	    	- Return Store		[ok]
+		- Generalization-Sub	[tried, makes things worse]
 
-	(b) delete interprocedural edges
-
-	(c) add control dependency edges 
+	(b) [did not do] add control dependency edges 
 		- intra block,
 		- block dominator 
 		  (i prec j then add edges from "i" constraints to "j" constraints)
 	    both can be done by first clustering constraints by block
 
-2. cs |> List.filter is_root |> push wkl
 
-Next, just use the fun-rank as the top priority 
-in the heap order (not the dependency).
-
-***************************************************************
-
-
-
-[cluster] 
+-------------------------------------------------------------------------
+[tpz32] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]
 	- about 261 for pmap
 
-2. [predefvars] in TPZ32 -- if its ok/stable. Change solve.ml to point to TPZ32.
+2. [predefvars] instead of lazy vardef, which has bizarre set/filter API
+	- TPZ32 -- if its ok/stable. Change solve.ml to point to TPZ32.
 
-3. [elimGuard] in consgen -- replace all guards with special bindings
-
-4. [envList]	
+3. [envList]	
+	- make the environment a list instead of a map
 	- [fixCons2] make env a list instead of a map
 	- hookup with [solve2] and see if it works
 
+4. [cluster] 	constraints by env in fixpoint
+		- design simple (collapsed) tree structure
+		- see how many bindings are there in (collapsed) tree structure
 
-***************************************************************
+5. nuke the ghastly .bnd state threaded through theoremProverZ3.ml
+-------------------------------------------------------------------------
 
-- [TPZ3-2]	do we have to go the whole hog in fine-grained push/pop?
-
-- [ordering] 	linear-order all functions 1...n
-		linear-order all blocks within a function 1...m
-
-- [absLSub]	see tag 11, 14 in postests/incp.c -- both can be "simpl"ified
+- [absLSub]	simplify constraints, to minimize TP calls.
+		see tag 11, 14 in postests/incp.c -- both can be "simpl"ified
 		in general, absloc subtyping has unnecessary indirection
 
 - [concSpec]	make postests/incp.c work with "Conc" spec, 
 		throws an error now -- possibly to do with pat's code
-
-- [predefVars] 	instead of lazy vardef,
-		which has bizarre set/filter API
-
-- [envList]	make the environment a list instead of a map
-
-- [cluster] 	constraints by env in fixpoint
-		- design simple (collapsed) tree structure
-		- see how many bindings are there in (collapsed) tree structure
 
 - [inline] 	boolean guards
 
@@ -77,36 +51,6 @@ in the heap order (not the dependency).
 - [arrays]	add "memset" spec ?
 - [globals]	
 - [unions]
-
-** CLEANUP ****************************************************
-- nuke the ghastly .bnd state threaded through theoremProverZ3.ml
-- make the constraints "polymorphic" (so we can tag with src-locations *)
-**************************************************************
-------------------------
-while e do:
-  s1
-s2
-
----------equals---------
-
-while (1) do: 
-  if e: 
-    [] 
-  else: 
-    goto L:;
-  s1;
-L: s2
-
----------equals---------
-
-while (1) do:
-  if (not e):
-    goto L:
-  else:
-    []
-  s1
-
-L: s2
 
 ------------------------
 
