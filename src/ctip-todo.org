@@ -1,0 +1,41 @@
+* Interprocedural Ctypes: The Big TODO
+
+** Yet To Do
+
+*** Immutable slocs
+
+*** Generate a callgraph
+    Need to visit functions in topological order, need one heap var per SCC.
+
+*** Merge annotation and constraint generation
+    On paper, these are separate; in the implementation they need to be merged.
+
+*** Structures
+
+**** Heap variables
+
+**** Substitutions
+
+**** Function types over heaps, location sets
+
+**** Constraints
+     Need variants with constants on one side where it makes sense.
+
+***** Subheaping
+***** Heap dom inclusion
+***** Inclusion in location
+***** Subtyping
+***** WF substs
+
+**** Solutions
+
+***** Index solutions
+***** Index unifiers
+***** Location substitutions
+***** Heap domains
+***** Location solutions
+
+*** Consgen
+
+** Done
+   Nothing. ='(
