@@ -1,0 +1,11 @@
+*.o
+*.a
+*.cmxa
+*.cm[oxai]
+*.annot
+*.di?
+*.native
+*.ssa.c
+negtests/*.fq
+postests/*.fq
+_build
