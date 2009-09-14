@@ -1,7 +1,5 @@
 type t
 
-type slocid = int
-
 type sloctype = Abstract | Concrete
 
 module SlocSet:
@@ -52,7 +50,6 @@ module SlocMap:
 
 val fresh       : sloctype -> t
 val is_abstract : t -> bool
-val repr        : t -> t
 val sloc_type   : t -> sloctype
 val compare     : t -> t -> int
 val eq          : t -> t -> bool
