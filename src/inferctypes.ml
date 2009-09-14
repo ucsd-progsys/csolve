@@ -38,32 +38,31 @@ type indexcstr =
   | ICVarLess of indexexp * indexvar
   | ICConstLess of indexexp * index
 
-module IVM =
-  Map.Make
-    (struct
-       type t      = indexvar
-       let compare = compare
-     end)
+module IndexSol =
+  Misc.MapWithDefault(struct
+                        type t      = indexvar
+                        let compare = compare
 
-type indexsol = index IVM.t
+                        type v      = index
+                        let default = IBot
+                      end)
 
-let indexsol_find (iv: indexvar) (is: indexsol): index =
-  try IVM.find iv is with Not_found -> IBot
+type indexsol = index IndexSol.t
 
 let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i             -> i
-  | IEVar iv              -> indexsol_find iv is
-  | IEPlus (iv1, x, iv2)  -> index_plus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
-  | IEMinus (iv1, x, iv2) -> index_minus (indexsol_find iv1 is) (index_scale x <| indexsol_find iv2 is)
-  | IEMult (iv1, iv2)     -> index_mult (indexsol_find iv1 is) (indexsol_find iv2 is)
-  | IEDiv (iv1, iv2)      -> index_div (indexsol_find iv1 is) (indexsol_find iv2 is)
+  | IEVar iv              -> IndexSol.find iv is
+  | IEPlus (iv1, x, iv2)  -> index_plus (IndexSol.find iv1 is) (index_scale x <| IndexSol.find iv2 is)
+  | IEMinus (iv1, x, iv2) -> index_minus (IndexSol.find iv1 is) (index_scale x <| IndexSol.find iv2 is)
+  | IEMult (iv1, iv2)     -> index_mult (IndexSol.find iv1 is) (IndexSol.find iv2 is)
+  | IEDiv (iv1, iv2)      -> index_div (IndexSol.find iv1 is) (IndexSol.find iv2 is)
 
 let refine_index (ie: indexexp) (iv: indexvar) (is: indexsol): indexsol =
-  IVM.add iv (index_lub (indexexp_apply is ie) (indexsol_find iv is)) is
+  IndexSol.add iv (index_lub (indexexp_apply is ie) (IndexSol.find iv is)) is
 
 let indexcstr_sat (ic: indexcstr) (is: indexsol): bool =
   match ic with
-    | ICVarLess (ie, iv)  -> is_subindex (indexexp_apply is ie) (indexsol_find iv is)
+    | ICVarLess (ie, iv)  -> is_subindex (indexexp_apply is ie) (IndexSol.find iv is)
     | ICConstLess (ie, i) -> is_subindex (indexexp_apply is ie) i
 
 (******************************************************************************)
@@ -79,8 +78,8 @@ let fresh_ctvref (): ctypevar =
   CTRef (Sloc.fresh Sloc.Abstract, fresh_indexvar ())
 
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
-  | CTInt (n, iv) -> CTInt (n, indexsol_find iv is)
-  | CTRef (s, iv) -> CTRef (s, indexsol_find iv is)
+  | CTInt (n, iv) -> CTInt (n, IndexSol.find iv is)
+  | CTRef (s, iv) -> CTRef (s, IndexSol.find iv is)
 
 type ctypecstr =
   | CTCSubtype of ctypevar * ctypevar
@@ -115,7 +114,7 @@ let storesol_apply (is: indexsol) (ss: storesol): store =
   SLM.map (LDesc.map <| ctypevar_apply is) ss
 
 let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: storesol): indexsol * storesol =
-  match indexsol_find iv is with
+  match IndexSol.find iv is with
     | IBot   -> (is, ss)
     | IInt n ->
         let pl = PLAt n in
@@ -148,7 +147,7 @@ let refine_store (l: Sloc.t) (iv: indexvar) (ctv: ctypevar) (is: indexsol) (ss: 
 let storeinc_sat ((l, iv, ctv): S.t * indexvar * ctypevar) (is: indexsol) (ss: storesol): bool =
   let ld = prestore_find l ss in
   let ct = ctypevar_apply is ctv in
-    match indexsol_find iv is with
+    match IndexSol.find iv is with
       | IBot -> true
       | ITop ->
           begin match LDesc.find PLEverywhere ld with
@@ -253,7 +252,7 @@ let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storeso
       try
         refine_store l iv ctv is ss
       with TypeDoesntFit ->
-        let i  = indexsol_find iv is in
+        let i  = IndexSol.find iv is in
         let ct = ctypevar_apply is ctv in
         let ld = LDesc.map (ctypevar_apply is) (prestore_find l ss) in
           E.s <| C.errorLoc loc "Can't fit %a |-> %a in location %a: @!@!%a@!@!"
@@ -279,7 +278,7 @@ let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
 let solve (cs: cstr list): cstrsol =
   (* Defer checking uniqueness constraints until the very end *)
   let (cs, uniqcs) = List.partition (function {cdesc = CSStore (SCUniq _)} -> false | _ -> true) cs in
-  let csol         = solve_rec cs (IVM.empty, SLM.empty) in
+  let csol         = solve_rec cs (IndexSol.empty, SLM.empty) in
    match (try Some (List.find (fun c -> not (cstr_sat csol c)) uniqcs) with Not_found -> None) with
      | None                                           -> csol
      | Some {cdesc = CSStore (SCUniq ls); cloc = loc} -> M.find_pair S.eq ls |> fun (l, _) -> E.s <| C.errorLoc loc "Parameter location %a aliased to another parameter location@!@!" S.d_sloc l

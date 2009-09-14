@@ -95,6 +95,22 @@ let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
 let curry f   = fun x y -> f (x,y)
 let uncurry f = fun (x,y) -> f x y
 
+module type KeyValType =
+  sig
+    type t
+    val compare : t -> t -> int
+
+    type v
+    val default : v
+  end
+
+module MapWithDefault (K: KeyValType) =
+  struct
+    include Map.Make(K)
+
+    let find (i: K.t) (m: K.v t): K.v =
+      try find i m with Not_found -> K.default
+  end
 
 module IntMap = 
   Map.Make 
