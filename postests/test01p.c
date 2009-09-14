@@ -7,7 +7,7 @@ int main(){
 
   r = (int*) malloc(10 * sizeof(int));
   
-  //int r1[5] = { 1, 2, 3, 4};
+  int r1[5] = { 1, 2, 3, 4};
 
   *r = 5;
 
