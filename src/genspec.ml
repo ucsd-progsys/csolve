@@ -62,10 +62,10 @@ let specs_of_file cil =
   end [] 
 
 let mk_spec fname = 
-  let oc = open_out (fname^".spec") in
+  let oc = open_out (fname^".autospec") in
   Frontc.parse fname ()
   |> specs_of_file
-  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s ::@. %a @.@." fn Ctypes.d_cfun cf |> ignore)
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
 
 let _ = Toplevel.main "genspec.opt" mk_spec

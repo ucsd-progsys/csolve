@@ -154,6 +154,7 @@ index:
     Num                                 { Ctypes.IInt $1 }
   | Num LB Num RB                       { Ctypes.ISeq ($1, $3) }
   | TRUE                                { Ctypes.ITop }
+  | FALSE                               { Ctypes.IBot }
   ;
 
 argbinds:

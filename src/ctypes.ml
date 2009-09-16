@@ -16,10 +16,10 @@ type index =
   | ITop               (* sequence of all values (including negatives) *)
 
 let d_index (): index -> P.doc = function
-  | IBot        -> P.text "⊥"
+  | IBot        -> P.text "false"
   | IInt n      -> P.num n
   | ISeq (n, m) -> P.dprintf "%d[%d]" n m
-  | ITop        -> P.text "⊤"
+  | ITop        -> P.text "true"
 
 let index_of_int (i: int): index =
   if i >= 0 then IInt i else ITop
