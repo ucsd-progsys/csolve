@@ -66,20 +66,6 @@ let liquidate file =
   let _     = P.printf "%a\n" (Consindex.print (Some s')) me in
   let _     = print_unsat_locs tgr s' cs' in
   (cs' = [])
-(*
-let print_header () = 
-  P.printf " \n \n";
-  P.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  P.printf "© Copyright 2009 Regents of the University of California.\n";
-  P.printf "All Rights Reserved.\n"
-
-let mk_options () =
-  let us = "Usage: liquidc <options> [source-file] \n options are:" in
-  let _  = Arg.parse Constants.arg_spec (fun s -> Constants.file := Some s) us in
-  match !Constants.file with
-  | Some fn -> fn
-  | None    -> assertf "Bug: No input file specified!"
-*)
 
 let main () =
   let _  = Toplevel.print_header () in

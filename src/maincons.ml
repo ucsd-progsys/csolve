@@ -34,14 +34,11 @@ open Misc.Ops
 
 let mydebug = false 
 
-(**********************************************************************)
-(* API *)
 let cons_create ts sm ps cs ws =
   let cs  = FixConstraint.validate cs in
   let sri = Cindex.create cs in
   (sri, ws) 
 
-(* API *)
 let cons_save fname (sri, ws) =
   let oc  = open_out fname in
   let ppf = Format.formatter_of_out_channel oc in
@@ -52,74 +49,6 @@ let cons_save fname (sri, ws) =
     (Format.fprintf ppf "@[%a@] \n" (FixConstraint.print_wf None))
     ws;
   close_out oc
-
-(*
-(********************************************************************************)
-(****************** TBD: CIL Prepasses, Move into another module ****************)
-(********************************************************************************)
-
-let rename_locals cil =
-  Cil.iterGlobals cil
-  (function Cil.GFun(fd,_) -> 
-    let fn   = fd.Cil.svar.Cil.vname in
-    let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.slocals in
-    let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.sformals in
-    fd.Cil.slocals <- locs ;
-    fd.Cil.sformals <- fmls
-  | _ -> ())
-
-let mk_cfg cil =
-  Cil.iterGlobals cil begin function
-    | Cil.GFun(fd,_) ->
-        Cil.prepareCFG fd;
-        Cil.computeCFGInfo fd false
-    | _ -> ()
-  end
-
-let cil_of_file fname =
-  let _   = ignore (E.log "Parsing %s\n" fname) in
-  let cil = Frontc.parse fname () |> Simplemem.simplemem in
-  let _   = Psimplify.simplify cil;
-            Pheapify.heapifyNonArrays := true;
-            Pheapify.default_heapify cil;
-            Rmtmps.removeUnusedTemps cil;
-            CilMisc.purify cil;
-            mk_cfg cil;
-            rename_locals cil in
-  cil
-
-let quals_of_file fname =        
-    try
-      let qs =
-        (fname ^ ".hquals")
-        |> open_in 
-        |> Lexing.from_channel
-        |> FixParse.defs FixLex.token in
-      let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-      let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
-                (Misc.pprint_many true "" Ast.Qualifier.print) qs in
-      qs
-    with Sys_error s ->
-      E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
-      []
-
-let add_spec spec fname =
-  let _ = E.log "Parsing spec: %s \n" fname in
-  try
-    open_in fname
-    |> Lexing.from_channel
-    |> RefParse.specs RefLex.token
-    |> List.fold_left (fun sm (x,y) -> SM.add x y sm) spec 
-  with Sys_error s ->
-    E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    spec
-
-let spec_of_file fname =
-  [Constants.lib_name; fname]
-  |> List.map (fun s -> s^".spec")
-  |> List.fold_left add_spec SM.empty
-*)
-
 
 let conswrite file =
   let cil   = cil_of_file file in
