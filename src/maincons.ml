@@ -53,7 +53,7 @@ let cons_save fname (sri, ws) =
     ws;
   close_out oc
 
-
+(*
 (********************************************************************************)
 (****************** TBD: CIL Prepasses, Move into another module ****************)
 (********************************************************************************)
@@ -118,8 +118,8 @@ let spec_of_file fname =
   [Constants.lib_name; fname]
   |> List.map (fun s -> s^".spec")
   |> List.fold_left add_spec SM.empty
+*)
 
-(********************************************************************************)
 
 let conswrite file =
   let cil   = cil_of_file file in
@@ -133,23 +133,4 @@ let conswrite file =
   cons_create FixInterface.sorts A.Symbol.SMap.empty [] cs ws 
   |> cons_save (file^".in.fq") 
 
-let print_header () = 
-  Printf.printf " \n \n";
-  Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
-  Printf.printf "All Rights Reserved.\n"
-
-let mk_options toolname () =
-  let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
-  let _  = Arg.parse Constants.arg_spec (fun s -> Constants.file := Some s) us in
-  match !Constants.file with
-  | Some fn -> fn
-  | None    -> assertf "Bug: No input file specified!"
-
-let main f =
-  () |> print_header 
-     |> ignore
-     |> mk_options "maincons.opt"
-     |> f 
-
-let _ = main conswrite 
+let _ = Toplevel.main "maincons.native" conswrite 

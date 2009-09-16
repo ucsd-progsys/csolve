@@ -22,18 +22,91 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-(*
 module E  = Errormsg
 module A  = Ast
 module C  = FixConstraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
-*)
 
 open Misc.Ops
 
 let mydebug = false 
+
+(********************************************************************************)
+(****************** TBD: CIL Prepasses ******************************************)
+(********************************************************************************)
+
+let rename_locals cil =
+  Cil.iterGlobals cil
+  (function Cil.GFun(fd,_) -> 
+    let fn   = fd.Cil.svar.Cil.vname in
+    let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.slocals in
+    let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.sformals in
+    fd.Cil.slocals <- locs ;
+    fd.Cil.sformals <- fmls
+  | _ -> ())
+
+let mk_cfg cil =
+  Cil.iterGlobals cil begin function
+    | Cil.GFun(fd,_) ->
+        Cil.prepareCFG fd;
+        Cil.computeCFGInfo fd false
+    | _ -> ()
+  end
+
+let cil_of_file fname =
+  let _   = ignore (E.log "Parsing %s\n" fname) in
+  let cil = Frontc.parse fname () |> Simplemem.simplemem in
+  let _   = Pheapify.heapifyNonArrays := true;
+            Pheapify.default_heapify cil;
+            Psimplify.simplify cil;
+            Simpleret.simpleret cil;
+            Rmtmps.removeUnusedTemps cil;
+            CilMisc.purify cil;
+            mk_cfg cil;
+            rename_locals cil in
+  cil
+
+let add_quals quals fname =
+    try
+      let _ = Errorline.startFile fname in
+      let qs =
+        fname
+        |> open_in 
+        |> Lexing.from_channel
+        |> FixParse.defs FixLex.token in
+      let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
+      let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
+                (Misc.pprint_many true "" Ast.Qualifier.print) qs in
+      qs @ quals
+    with Sys_error s ->
+      E.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
+      quals
+
+let quals_of_file fname =
+  [Constants.lib_name; fname]
+  |> List.map (fun s -> s^".hquals")
+  |> List.fold_left add_quals []
+
+let add_spec spec fname =
+  let _ = E.log "Parsing spec: %s \n" fname in
+  let _ = Errorline.startFile fname in
+  try
+    open_in fname
+    |> Lexing.from_channel
+    |> RefParse.specs RefLex.token
+    |> List.fold_left (fun sm (x,y,b) -> SM.add x (y,b) sm) spec 
+  with Sys_error s ->
+    E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
+    spec
+
+let spec_of_file fname =
+  [Constants.lib_name; fname]
+  |> List.map (fun s -> s^".spec")
+  |> List.fold_left add_spec SM.empty
+
+
 
 let print_header () = 
   Printf.printf " \n \n";
@@ -48,10 +121,8 @@ let mk_options toolname () =
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 
-let main f =
+let main name f =
   () |> print_header 
      |> ignore
-     |> mk_options "maincons.opt"
+     |> mk_options name
      |> f 
-
-let _ = main conswrite 
