@@ -139,17 +139,17 @@ let print_header () =
   Printf.printf "© Copyright 2009 Regents of the University of California.\n";
   Printf.printf "All Rights Reserved.\n"
 
-let mk_options () =
-  let us = "Usage: maincons.opt <options> [source-file] \n options are:" in
+let mk_options toolname () =
+  let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
   let _  = Arg.parse Constants.arg_spec (fun s -> Constants.file := Some s) us in
   match !Constants.file with
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 
-let main () =
+let main f =
   () |> print_header 
      |> ignore
-     |> mk_options
-     |> conswrite
+     |> mk_options "maincons.opt"
+     |> f 
 
-let _ = main ()
+let _ = main conswrite 

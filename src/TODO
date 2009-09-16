@@ -1,7 +1,7 @@
 [Sorts]	How to separate int and reference types while still allowing ptr-arith
 	i.e. create a separate "Z3-int" type called "ref"
-	- will help to speed up queries
 	- will help to speed up instantiation
+	- will NOT help to speed up queries, since Z3 flattens it all out
 
 [depgraph]
 	(a) delete back edges (where src is):

@@ -11,25 +11,25 @@ let mk_type_string loc = function
   | TPtr _ | TArray _ -> warnLoc loc "Can't create spec for function over pointers" |> ignore; raise NoSpec
   | _                 -> warnLoc loc "Can't create spec for exotic type" |> ignore; raise NoSpec
 
-let mk_spec fname =
-  let cil = Frontc.parse fname () in
-    Cil.iterGlobals cil begin function
-      | GFun (fd, _) ->
-          let loc = fd.svar.vdecl in
-            begin try
+let ctype_of_ciltype (c: Cil.typ) loc : Ctypes.ctype = failwith "TBD"
 
-              let args            = List.map (fun f -> f.vname ^ ": " ^ mk_type_string loc f.vtype) fd.sformals in
-              let (ret, _, _, _)  = splitFunctionType fd.svar.vtype in
-                F.printf
-                  "%s ::@.  forall []@.  arg (%a)@.  ret %s@.  store_in []@.  store_out []@.@."
-                  fd.svar.vname
-                  (Misc.pprint_many false ", " (fun ppf arg -> F.fprintf ppf "%s" arg)) args
-                  (mk_type_string loc ret)
-            with NoSpec ->
-              warnLoc loc "Skipping spec for %s\n\n" fd.svar.vname |> ignore
-            end
-      | _ -> ()
-    end
+let cfun_of_fdec (fd: Cil.fdec) loc : Ctypes.cfun = failwith "TBD"
+
+let specs_of_file cil =
+  Cil.foldGlobals cil begin fun acc -> function
+    | GFun (fd, loc) -> 
+        try (fd.svar.vname, cfun_of_fdec fd loc) :: acc with NoSpec -> 
+          let _ = warnLoc loc "Skipping spec for %s\n\n" fd.svar.vname in 
+          acc
+    | _ -> acc
+  end [] 
+
+let mk_spec fname = 
+  let oc = open_out (fname^".spec") in
+  Frontc.parse fname ()
+  |> specs_of_file
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s ::@. %a @.@." fn Ctypes.d_cfun cf)
+  |> fun _ -> close_out oc 
 
 let mk_options () =
   let fs = ref [] in
