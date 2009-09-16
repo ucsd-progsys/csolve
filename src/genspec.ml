@@ -23,7 +23,6 @@
 
 (* This file is part of the liquidC Project.*)
 
-m
 module F  = Format
 module Ct = Ctypes
 open Cil
