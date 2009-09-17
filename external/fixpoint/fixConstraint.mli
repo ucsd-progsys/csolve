@@ -94,7 +94,7 @@ val print_dep        : Format.formatter -> dep -> unit
 val to_string        : t -> string 
 val refa_to_string   : refa -> string
 val reft_to_string   : reft -> string
-val binding_to_string : (Ast.Symbol.t * reft) -> string
+val binding_to_string: (Ast.Symbol.t * reft) -> string
 
 val make_reft        : Ast.Symbol.t -> Ast.Sort.t -> refa list -> reft
 val vv_of_reft       : reft -> Ast.Symbol.t

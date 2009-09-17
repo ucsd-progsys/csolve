@@ -6,7 +6,12 @@ DIRS=-I misc
 
 IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) 
 
-LFLAGS=-lflags -cclib,-L$(OCAMLLIBHOME) 
+LFLAGS=-lflags -cc,g++ \
+       -lflags -cclib,-L$(OCAMLLIBHOME) \
+       -lflags -cclib,-lstdc++ \
+       -lflags -cclib,-lcamlidl
+
+#LFLAGS=-lflags -cclib,-L$(OCAMLLIBHOME) 
 
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME)

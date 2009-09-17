@@ -40,7 +40,7 @@ let dump cs ws =
 let usage = "Usage: fixtop <options> [source-files]\noptions are:"
 
 let main () =
-  let fs, (_,_,cs,ws,_,_,sol) = Main.read_inputs usage in
+  let fs, (_,_,cs,ws,_,_,sol) = Toplevel.read_inputs usage in
   let cs = 
     if !Co.simplify_t then
       Misc.map_partial 
