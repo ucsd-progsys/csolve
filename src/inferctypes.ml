@@ -237,12 +237,15 @@ type ctvemap = ctypevar ExpMap.t
 type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
 
 type funenv = (indexexp precfun * heapvar) VM.t
+<<<<<<< HEAD:src/inferctypes.ml
 
 type env = funenv * heapvar * ctvenv
 
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
 type annotenv = (ctvemap * RA.block_annotation array) VM.t
+=======
+>>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
 
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
@@ -250,9 +253,12 @@ type annotenv = (ctvemap * RA.block_annotation array) VM.t
 
 (* somewhat messed-up; we don't need sto_in, sto_out... *)
 type cfunvar = indexexp precfun
+<<<<<<< HEAD:src/inferctypes.ml
 
 (* pmr: needs to go elsewhere fo sho *)
 type subst = (S.t * S.t) list
+=======
+>>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
 
 let d_subst () (sub: subst): P.doc =
   P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (s1, s2) -> P.dprintf "%a -> %a" S.d_sloc s1 S.d_sloc s2)) sub
@@ -770,6 +776,7 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     shp
 *)
 
+<<<<<<< HEAD:src/inferctypes.ml
 let mk_subty (loc: C.location) (ctv1: ctypevar) (sub: subst) (ctv2: ctypevar): cstr =
   {cdesc = `CSubtype (ctv1, sub, ctv2); cloc = loc}
 
@@ -949,11 +956,16 @@ let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr 
   match s.C.skind with
     | C.Instr is             -> constrain_instr env ctem is
     | C.If (e, _, _, loc)    -> let (_, cs, ss, ctem) = constrain_exp env ctem loc e in (cs, ss, ctem, []) (* we'll visit the subblocks later *)
+=======
+let constrain_stmt (fs: funenv) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
+  match s.C.skind with
+>>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
     | C.Break _              -> ([], [], ctem, [])
     | C.Continue _           -> ([], [], ctem, [])
     | C.Goto _               -> ([], [], ctem, [])
     | C.Block _              -> ([], [], ctem, [])                              (* we'll visit this later as we iterate through blocks *)
     | C.Loop (_, _, _, _)    -> ([], [], ctem, [])                              (* ditto *)
+<<<<<<< HEAD:src/inferctypes.ml
     | C.Return (rexp, loc)   -> constrain_return env ctem rtv loc rexp
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
@@ -997,6 +1009,21 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     (ctem, bas, ss, cs)
+=======
+    | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+
+let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
+  (* need formals -> actuals, phi node constraints *)
+  let blocks           = cfg.Ssa.blocks in
+  let bas              = Array.make (Array.length blocks) [] in
+  let (ctem, sss, css) =
+    M.array_fold_lefti begin fun i (ctem, sss, css) b ->
+        let (cs, ss, ctem, ba) = constrain_stmt fs ctem ftv.ret b.Ssa.bstmt in
+          Array.set bas i ba;
+          (ctem, ss :: sss, cs :: css)
+      end (ExpMap.empty, [], []) blocks
+  in (ctem, bas, List.concat sss, List.concat css)
+>>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
 
 let fresh_fun_typ (fd: C.fundec): cfunvar =
   let rty, ftyso, _, _ = C.splitFunctionType fd.C.svar.C.vtype in
