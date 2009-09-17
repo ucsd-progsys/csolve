@@ -205,7 +205,7 @@ let simplify_t t =
   let srhs_ks = List.map kvar_to_simple_Kvar rhs_ks in
   let srhs =  (if P.is_tauto srhs_pred then srhs_ks else (C.Conc srhs_pred) :: srhs_ks) |> 
       C.make_reft (C.vv_of_reft rhs) (C.sort_of_reft rhs) in
-    C.make_t senv sgrd slhs srhs (C.tagopt_of_t t)
+    C.make_t senv sgrd slhs srhs (Some (C.id_of_t t)) (C.tag_of_t t)
 
 let is_tauto_t t =
   match C.rhs_of_t t |> C.ras_of_reft with
