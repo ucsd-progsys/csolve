@@ -27,8 +27,11 @@ class callgraphVisitor (cg: G.t) = object
   inherit nopCilVisitor
 
   method vglob = function
-    GFun (fundec, _) -> visitCilBlock (new bodyVisitor cg fundec.svar) fundec.sbody |> ignore; SkipChildren
-  | _                -> DoChildren
+    GFun (fundec, _) ->
+      G.add_vertex cg fundec.svar;
+      visitCilBlock (new bodyVisitor cg fundec.svar) fundec.sbody |> ignore;
+      SkipChildren
+  | _ -> DoChildren
 end
 
 let sccs (f: file): t =
