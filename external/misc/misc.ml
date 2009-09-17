@@ -576,6 +576,9 @@ let flap3 f xs ys zs =
 let split3 lst =
   List.fold_right (fun (x, y, z) (xs, ys, zs) -> (x :: xs, y :: ys, z :: zs)) lst ([], [], [])
 
+let split4 lst =
+  List.fold_right (fun (w, x, y, z) (ws, xs, ys, zs) -> (w :: ws, x :: xs, y :: ys, z :: zs)) lst ([], [], [], [])
+
 let combine3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs
 
