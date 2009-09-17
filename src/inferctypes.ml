@@ -737,7 +737,7 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
 *)
 
 (* needs list of locations used *)
-let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
+let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
   assert false
 (*  let blocks = cfg.Ssa.blocks in
   let bas    = Array.make (Array.length blocks) [] in
@@ -754,18 +754,17 @@ let fresh_fun_typ (fd: C.fundec): cfunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_ctypevar fty)) ftys in
     mk_cfun [] fctys (fresh_ctypevar rty) SLM.empty SLM.empty
 
-let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * cstr list =
-  let fvs, scis               = List.split scc in
-  let ftvs                    = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
-  let hv                      = fresh_heapvar () in
-  let fs                      = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
-  let ctems, bass, locss, css = List.map2 (constrain_fun fs) ftvs scis |> M.split4 in
-  let fs                      = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
-  let ae                      = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
-    (fs, ae, List.concat (cs :: css))
+let constrain_scc ((fs, cs): funenv * cstr list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * cstr list =
+  let fvs, scis        = List.split scc in
+  let ftvs             = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
+  let hv               = fresh_heapvar () in
+  let fs               = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
+  let locss, css = List.map2 (constrain_fun fs) ftvs scis |> List.split in
+  let fs               = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
+    (fs, List.concat (cs :: css))
 
 (* API *)
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scis: index funmap): shape SM.t * ctypeenv =
-  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scis |> snd)) scc) cg in
-  let fs, ae, cs = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
+  let sccs   = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scis |> snd)) scc) cg in
+  let fs, cs = List.fold_left constrain_scc (VM.empty, []) sccs in
     assert false

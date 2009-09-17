@@ -46,14 +46,9 @@ let print_unsat_locs tgr s ucs =
     |> ignore
   end ucs
 
-let print_sccs sccs =
-  P.printf "Callgraph sccs:\n\n";
-  List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
-
 let liquidate file =
   let cil   = BS.time "Parse: source" Toplevel.cil_of_file file in
-  (* pmr: move this out of here, obviously *)
-  let _     = cil |> Callgraph.sccs |> print_sccs in
+  let cil   = BS.time "Parse: source" cil_of_file file in
   let _     = E.log "DONE: cil parsing \n" in
   let qs    = BS.time "Parse: quals" Toplevel.quals_of_file file in
   let _     = E.log "DONE: qualifier parsing \n" in
