@@ -8,3 +8,5 @@ val bytesSizeOf : Cil.typ -> int
 val ptrRefType  : Cil.typ -> Cil.typ
 
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
+
+module VarMap: Map.S with type key = Cil.varinfo

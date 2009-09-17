@@ -29,6 +29,7 @@ module FI = FixInterface
 module CF = Consinfra
 module IM = Misc.IntMap
 module SM = Misc.StringMap
+module P  = Pretty
 
 open Misc.Ops
 open Cil
@@ -379,7 +380,7 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim spec scim =
+let shapem_of_scim spec cg scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
@@ -472,8 +473,15 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
+let print_sccs sccs =
+  P.printf "Callgraph sccs:\n\n";
+  List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
+
 (* API *)
 let create cil (spec: (FI.refcfun * bool) SM.t) =
+  (* pmr: move this out of here, obviously *)
+  let cg       = cil |> Callgraph.sccs in
+  let _        = cg |> print_sccs in
   let scim     = scim_of_file cil in
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in

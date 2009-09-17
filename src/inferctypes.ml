@@ -9,6 +9,7 @@ module SM  = Misc.StringMap
 module S   = Sloc
 module SLM = Sloc.SlocMap
 module CG  = Callgraph
+module VM  = CilMisc.VarMap
 
 open Ctypes
 open M.Ops
@@ -123,6 +124,12 @@ let ctypecstr_sat (ctc: ctypecstr) (is: indexsol): bool =
 (****************************** Store Constraints *****************************)
 (******************************************************************************)
 
+type heapvar = int
+
+let (fresh_heapvar, reset_fresh_heapvars) = M.mk_int_factory ()
+
+type heapmap = heapvar VM.t
+
 type storecstr =
   | SCInc of S.t * indexvar * ctypevar (* (l, i, ct): (i, ct) in store(l) *)
   | SCMem of S.t                       (* l in dom(store) *)
@@ -201,15 +208,44 @@ let storecstr_sat (sc: storecstr) (is: indexsol) (ss: storesol): bool =
     | SCUniq ls          -> not (M.exists_pair S.eq ls)
 
 (******************************************************************************)
+(****************************** Misc Junk to Move *****************************)
+(******************************************************************************)
+
+module IM = M.IntMap
+
+(* change this to a varmap *)
+type ctvenv = ctypevar IM.t
+
+type ctvemap = ctypevar ExpMap.t
+
+(* should change to a vmap or something *)
+type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
+
+type funenv = (indexvar precfun * heapvar) VM.t
+
+(* somewhat messed-up; we don't need sto_in, sto_out... *)
+type cfunvar = indexvar precfun
+
+type cstrdesc = [
+  `CSNone
+]
+
+type cstr = {cdesc: cstrdesc; cloc: C.location}
+
+type cstremap = ctvemap * cstr list
+
+type shape =
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap;
+   store : Ctypes.store;
+   anna  : RA.block_annotation array;
+   theta : RA.ctab }
+
+(******************************************************************************)
 (*************************** Systems of Constraints ***************************)
 (******************************************************************************)
 
-type cstrdesc =
-  | CSIndex of indexcstr
-  | CSCType of ctypecstr
-  | CSStore of storecstr
-
-type cstr = {cdesc: cstrdesc; cloc: C.location}
+(*
 
 let mk_ivarless (loc: C.location) (ie: indexexp) (iv: indexvar) =
   {cdesc = CSIndex (ICVarLess (ie, iv)); cloc = loc}
@@ -310,7 +346,7 @@ let solve (cs: cstr list): cstrsol =
      | None                                           -> csol
      | Some {cdesc = CSStore (SCUniq ls); cloc = loc} -> M.find_pair S.eq ls |> fun (l, _) -> E.s <| C.errorLoc loc "Parameter location %a aliased to another parameter location@!@!" S.d_sloc l
      | _                                              -> failwith "Severe constraint weirdness"
-
+*)
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
@@ -335,26 +371,12 @@ let fresh_ctypevar (t: C.typ): ctypevar =
 (******************************************************************************)
 (******************************* Shape Solutions ******************************)
 (******************************************************************************)
-
-type ctvemap = ctypevar ExpMap.t
+(*
 
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
 
-module IM = M.IntMap
-
-type ctvenv = ctypevar IM.t
-
-type cstremap = ctvemap * cstr list
-
-type shape =
-  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
-   etypm : Ctypes.ctemap;
-   store : Ctypes.store;
-   anna  : RA.block_annotation array;
-   theta : RA.ctab }
-
-let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: dcheck list): unit =
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -370,11 +392,11 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape)
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" (P.d_list "\n" d_dcheck) ds in
     ()
-
+*)
 (******************************************************************************)
 (**************************** Constraint Generation ***************************)
 (******************************************************************************)
-
+(*
 let constrain_const (loc: C.location): C.constant -> ctypevar * cstr = function
   | C.CInt64 (v, ik, _) -> with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), mk_ivarless loc (IEConst (index_of_int (Int64.to_int v))) iv)
   | C.CChr c            -> with_fresh_indexvar <| fun iv -> (CTInt (int_width, iv), mk_ivarless loc (IEConst (IInt (Char.code c))) iv)
@@ -518,8 +540,6 @@ and constrain_exp (ve: ctvenv) (em: cstremap) (loc: C.location) (e: C.exp): ctyp
 
 let constrain_args (ve: ctvenv) (em: cstremap) (loc: C.location) (es: C.exp list): ctypevar list * cstremap =
   List.fold_right (fun e (ctvs, em) -> let (ctv, em) = constrain_exp ve em loc e in (ctv :: ctvs, em)) es ([], em)
-
-type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
 let instantiate_args (loc: C.location) (argcts: (string * ctype) list): ctypevar list * cstr list =
   let (argctvs, argcts) = argcts |> List.map (M.compose (ctypevar_of_ctype loc) snd) |> List.split in
@@ -708,9 +728,39 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
      anna  = anna;
      theta = theta }
   in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp ds;
-    (shp, ds)
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp;
+    shp
+*)
+
+(* needs list of locations used *)
+let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
+  assert false
+(*  let blocks = cfg.Ssa.blocks in
+  let bas    = Array.make (Array.length blocks) [] in
+  let em     =
+    M.array_fold_lefti begin fun i em b ->
+        let (cs, em, ba) = constrain_stmt env vars em rt b.Ssa.bstmt in
+          Array.set bas i ba;
+          em
+      end (ExpMap.empty, []) blocks
+  in (em, bas)
+*)
+let fresh_fun_typ (fd: C.fundec): cfunvar =
+  let rty, ftyso, _, _ = C.splitFunctionType fd.C.svar.C.vtype in
+  let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_ctypevar fty)) ftys in
+    mk_cfun [] fctys (fresh_ctypevar rty) SLM.empty SLM.empty
+
+let constrain_scc ((fs, cs): funenv * cstr list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * cstr list =
+  let fvs, scis        = List.split scc in
+  let ftvs             = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
+  let hv               = fresh_heapvar () in
+  let fs               = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
+  let locss, css = List.map2 (constrain_fun fs) ftvs scis |> List.split in
+  let fs               = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
+    (fs, List.concat (cs :: css))
 
 (* API *)
-let infer_shapes (env: ctypeenv) (scis: funmap): (shape * dcheck list) SM.t * ctypeenv =
-  (scis |> SM.map (infer_shape env |> M.uncurry), env)
+let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scis: index funmap): shape SM.t * ctypeenv =
+  let sccs   = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scis |> snd)) scc) cg in
+  let fs, cs = List.fold_left constrain_scc (VM.empty, []) sccs in
+    assert false

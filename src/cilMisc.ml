@@ -118,3 +118,12 @@ let ptrRefType = function
   | TPtr (t, _)      -> t
   | TArray (t, _, _) -> t
   | _                -> failwith "ptrRefType called with non-pointer argument"
+
+(******************************************************************************)
+(******************************** Variable Maps *******************************)
+(******************************************************************************)
+
+module VarMap = Map.Make(struct
+                           type t = varinfo
+                           let compare v1 v2 = compare v1.vid v2.vid
+                         end)

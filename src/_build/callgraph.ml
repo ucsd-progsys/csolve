@@ -1,6 +1,8 @@
 open Misc.Ops
 open Cil
 
+type t = varinfo list list
+
 module ComparableVar =
   struct
     type t      = varinfo
@@ -29,7 +31,7 @@ class callgraphVisitor (cg: G.t) = object
   | _                -> DoChildren
 end
 
-let sccs (f: file): varinfo list list =
+let sccs (f: file): t =
   let cg = G.create () in
   let _  = visitCilFile (new callgraphVisitor cg) f in
     SCC.scc_list cg
