@@ -244,6 +244,10 @@ type env = funenv * heapvar * ctvenv
    function locals *)
 type annotenv = (ctvemap * RA.block_annotation array) VM.t
 
+(* consider replacing with the vars instead of exps; we really only care about
+   function locals *)
+type annotenv = (ctvemap * RA.block_annotation array) VM.t
+
 (* somewhat messed-up; we don't need sto_in, sto_out... *)
 type cfunvar = indexexp precfun
 
@@ -1010,7 +1014,7 @@ let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo
     (fs, ae, List.concat (cs :: css))
 
 (* API *)
-let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
-  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
+let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scis: index funmap): shape SM.t * ctypeenv =
+  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scis |> snd)) scc) cg in
   let fs, ae, cs = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
     assert false
