@@ -71,17 +71,17 @@ let indexcstr_sat (ic: indexcstr) (is: indexsol): bool =
 (****************************** Type Constraints ******************************)
 (******************************************************************************)
 
-type ctypevar = indexvar prectype
+type ctypevar = indexexp prectype
 
 let fresh_ctvint (n: int): ctypevar =
-  CTInt (n, fresh_indexvar ())
+  CTInt (n, IEVar (fresh_indexvar ()))
 
 let fresh_ctvref (): ctypevar =
-  CTRef (Sloc.fresh Sloc.Abstract, fresh_indexvar ())
+  CTRef (Sloc.fresh Sloc.Abstract, IEVar (fresh_indexvar ()))
 
 let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
-  | CTInt (n, iv) -> CTInt (n, IndexSol.find iv is)
-  | CTRef (s, iv) -> CTRef (s, IndexSol.find iv is)
+  | CTInt (n, ie) -> CTInt (n, indexexp_apply is ie)
+  | CTRef (s, ie) -> CTRef (s, indexexp_apply is ie)
 
 type ctypecstr =
   | CTCSubtype of ctypevar * ctypevar
@@ -92,10 +92,11 @@ type dcheck = C.varinfo * FI.refctype
 let d_dcheck () ((vi, rt): dcheck): P.doc =
   P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
 
+(* pmr: better error report *)
 let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
-    | (CTInt (n1, iv1), CTInt (n2, iv2)) when n1 = n2       -> refine_index (IEVar iv1) iv2 is
-    | (CTRef (s1, iv1), CTRef (s2, iv2)) when Sloc.eq s1 s2 -> refine_index (IEVar iv1) iv2 is
+    | (CTInt (n1, ie1), CTInt (n2, IEVar (iv2))) when n1 = n2       -> refine_index ie1 iv2 is
+    | (CTRef (s1, ie1), CTRef (s2, IEVar (iv2))) when Sloc.eq s1 s2 -> refine_index ie1 iv2 is
     | _                                                     -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
 
 let refine_dctype (ctv1: ctypevar) (ctv2: ctypevar) (cbound: ctype) (v: C.varinfo) (t: FI.refctype) (is: indexsol): indexsol =
@@ -135,7 +136,7 @@ type storecstr =
   | SCMem of S.t                       (* l in dom(store) *)
   | SCUniq of S.t list                 (* for all l1, l2 in list, not S.eq l1 l2 *)
 
-type storesol = indexvar prestore
+type storesol = indexexp prestore
 
 let storesol_add (l: Sloc.t) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
   SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
@@ -219,16 +220,17 @@ type ctvenv = ctypevar IM.t
 type ctvemap = ctypevar ExpMap.t
 
 (* should change to a vmap or something *)
+(* is this thing even useful? *)
 type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
 
-type funenv = (indexvar precfun * heapvar) VM.t
+type funenv = (indexexp precfun * heapvar) VM.t
 
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
 type annotenv = (ctvemap * RA.block_annotation array) VM.t
 
 (* somewhat messed-up; we don't need sto_in, sto_out... *)
-type cfunvar = indexvar precfun
+type cfunvar = indexexp precfun
 
 type cstrdesc = [
   `CSNone
@@ -736,19 +738,27 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     shp
 *)
 
-(* needs list of locations used *)
+let constrain_stmt (fs: funenv) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
+  match s.C.skind with
+    | C.Break _              -> ([], [], ctem, [])
+    | C.Continue _           -> ([], [], ctem, [])
+    | C.Goto _               -> ([], [], ctem, [])
+    | C.Block _              -> ([], [], ctem, [])                              (* we'll visit this later as we iterate through blocks *)
+    | C.Loop (_, _, _, _)    -> ([], [], ctem, [])                              (* ditto *)
+    | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+
 let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
-  assert false
-(*  let blocks = cfg.Ssa.blocks in
-  let bas    = Array.make (Array.length blocks) [] in
-  let em     =
-    M.array_fold_lefti begin fun i em b ->
-        let (cs, em, ba) = constrain_stmt env vars em rt b.Ssa.bstmt in
+  (* need formals -> actuals, phi node constraints *)
+  let blocks           = cfg.Ssa.blocks in
+  let bas              = Array.make (Array.length blocks) [] in
+  let (ctem, sss, css) =
+    M.array_fold_lefti begin fun i (ctem, sss, css) b ->
+        let (cs, ss, ctem, ba) = constrain_stmt fs ctem ftv.ret b.Ssa.bstmt in
           Array.set bas i ba;
-          em
-      end (ExpMap.empty, []) blocks
-  in (em, bas)
-*)
+          (ctem, ss :: sss, cs :: css)
+      end (ExpMap.empty, [], []) blocks
+  in (ctem, bas, List.concat sss, List.concat css)
+
 let fresh_fun_typ (fd: C.fundec): cfunvar =
   let rty, ftyso, _, _ = C.splitFunctionType fd.C.svar.C.vtype in
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_ctypevar fty)) ftys in
