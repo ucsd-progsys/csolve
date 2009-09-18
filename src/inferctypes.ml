@@ -900,9 +900,10 @@ let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list arr
 let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let blocks           = cfg.Ssa.blocks in
   let bas              = Array.make (Array.length blocks) [] in
-  let formals          = fresh_vars fd.C.sformals in
+  let bodyformals      = fresh_vars fd.C.sformals in
   let locals           = fresh_vars fd.C.slocals in
-  let ve               = locals @ formals |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
+  let ve               = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
+  let formalcs         = List.map (fun (v, ctv) -> mk_subty fd.C.svar.C.vdecl (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
   let phics            = mk_phis_cs ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
@@ -911,7 +912,7 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
           (ctem, ss :: sss, cs :: css)
       end (ExpMap.empty, [], []) blocks
   in
-  let cs = List.concat (phics :: css) in
+  let cs = List.concat (phics :: formalcs :: css) in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     (ctem, bas, List.concat sss, cs)
