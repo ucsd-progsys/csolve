@@ -25,16 +25,21 @@
 
 module F  = Format
 module Ct = Ctypes
-module IM = Misc.IntMap
+module SM = Misc.StringMap
 
 open Cil
 open Misc.Ops
 
 exception NoSpec
 
-let id_of_ciltype (t: Cil.typ) : int = failwith "TBD: id_of_t"
-let ldesc_of_ctypes (ts: Ct.ctype list) : Ct.index Ct.LDesc.t = failwith "TBD: ldesc_of_ctypes"
-let locs_of_store (st: Ct.store) : Sloc.t list  = failwith "TBD: locs_of_store"
+let id_of_ciltype t : string = 
+  t |> Cil.typeSig 
+    |> Cil.d_typsig () 
+    |> Pretty.sprint ~width:80
+
+let ldesc_of_ctypes (ts: Ct.ctype list) : Ct.index Ct.LDesc.t =
+  ts|> Misc.mapfold (fun i t -> (i + Ct.prectype_width t), (Ct.index_of_int i,t)) 0  
+    |> snd |> Ct.LDesc.create 
 
 let unroll_ciltype = function
   | TComp (ci, _) -> asserti ci.cstruct "TBD conv_cilblock: unions";
@@ -53,9 +58,9 @@ let rec conv_ciltype loc (th, st) t =
       (th, st), ctype_of_cilbasetype t
   | TPtr (t,_) -> 
       let tid = id_of_ciltype t in
-      try (th, st), Ct.CTRef (IM.find tid th, Ct.IInt 0) with Not_found ->
+      try (th, st), Ct.CTRef (SM.find tid th, Ct.IInt 0) with Not_found ->
         let l'             = Sloc.fresh Sloc.Abstract in
-        let th'            = IM.add tid l' th in
+        let th'            = SM.add tid l' th in
         let (th'', st'), b = conv_cilblock loc (th', st) t in 
         let st''           = Sloc.SlocMap.add l' b st' in
         (th'', st''), Ct.CTRef (l', Ct.IInt 0)
@@ -73,10 +78,10 @@ let cfun_of_fundec loc fd =
       let emp = Sloc.SlocMap.empty in
       let xts = Cil.argsToList xtso in
       let (_,ist), ts  = Misc.map snd3 xts
-                         |> Misc.mapfold (conv_ciltype loc) (IM.empty, emp) in
+                         |> Misc.mapfold (conv_ciltype loc) (SM.empty, emp) in
       let args         = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
-      let (_,ost), ret = conv_ciltype loc (IM.empty, ist) t in
-      let qlocs        = locs_of_store ost in
+      let (_,ost), ret = conv_ciltype loc (SM.empty, ist) t in
+      let qlocs        = ost |> Ct.prestore_slocset |> Sloc.SlocSet.elements in
       Ct.mk_cfun qlocs args ret ist ost
   | _ -> 
       let _ = errorLoc loc "Non-fun type for %s\n\n" fd.svar.vname in
