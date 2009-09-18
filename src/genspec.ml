@@ -104,4 +104,5 @@ let mk_spec fname =
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
 
+
 let _ = Toplevel.main "genspec.opt" mk_spec
