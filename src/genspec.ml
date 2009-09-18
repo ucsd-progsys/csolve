@@ -30,10 +30,11 @@ open Cil
 open Misc.Ops
 
 exception NoSpec
+
 (*
 val conv_ciltype: location -> ('a * Cil.typ) -> store -> ('a * ctype) * store
 
-let rec conv_ciltype loc tlocm store t = 
+let rec conv_ciltype loc (tlocm store t = 
   match t with
   | TVoid _ 
   | TInt (_,_) -> ctype_of_cilbasetype t
