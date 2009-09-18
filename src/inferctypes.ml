@@ -44,6 +44,14 @@ let rec d_indexexp (): indexexp -> P.doc = function
   | IEMult (iv1, iv2)         -> P.dprintf "%a * %a" d_indexexp iv1 d_indexexp iv2
   | IEDiv (iv1, iv2)          -> P.dprintf "%a / %a" d_indexexp iv1 d_indexexp iv2
 
+let rec d_indexexp (): indexexp -> P.doc = function
+  | IEConst i                 -> d_index () i
+  | IEVar iv                  -> d_indexvar () iv
+  | IEPlus (iv1, scale, iv2)  -> P.dprintf "%a + %d * %a" d_indexvar iv1 scale d_indexvar iv2
+  | IEMinus (iv1, scale, iv2) -> P.dprintf "%a - %d * %a" d_indexvar iv1 scale d_indexvar iv2
+  | IEMult (iv1, iv2)         -> P.dprintf "%a * %a" d_indexvar iv1 d_indexvar iv2
+  | IEDiv (iv1, iv2)          -> P.dprintf "%a / %a" d_indexvar iv1 d_indexvar iv2
+
 type indexcstr =
   | ICVarLess of indexexp * indexvar
   | ICConstLess of indexexp * index
@@ -237,15 +245,12 @@ type ctvemap = ctypevar ExpMap.t
 type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
 
 type funenv = (indexexp precfun * heapvar) VM.t
-<<<<<<< HEAD:src/inferctypes.ml
 
 type env = funenv * heapvar * ctvenv
 
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
 type annotenv = (ctvemap * RA.block_annotation array) VM.t
-=======
->>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
 
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
@@ -253,12 +258,9 @@ type annotenv = (ctvemap * RA.block_annotation array) VM.t
 
 (* somewhat messed-up; we don't need sto_in, sto_out... *)
 type cfunvar = indexexp precfun
-<<<<<<< HEAD:src/inferctypes.ml
 
 (* pmr: needs to go elsewhere fo sho *)
 type subst = (S.t * S.t) list
-=======
->>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
 
 let d_subst () (sub: subst): P.doc =
   P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (s1, s2) -> P.dprintf "%a -> %a" S.d_sloc s1 S.d_sloc s2)) sub
@@ -776,7 +778,6 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     shp
 *)
 
-<<<<<<< HEAD:src/inferctypes.ml
 let mk_subty (loc: C.location) (ctv1: ctypevar) (sub: subst) (ctv2: ctypevar): cstr =
   {cdesc = `CSubtype (ctv1, sub, ctv2); cloc = loc}
 
@@ -952,20 +953,34 @@ let constrain_instr (env: env) (ctem: ctvemap) (is: C.instr list): cstr list * S
   let (ctem, css, sss, bas) = List.fold_left (constrain_instr_aux env ctem) (ctem, [], [], []) is in
     (List.concat css, List.concat sss, ctem, List.rev ([]::bas))
 
-let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
+let rec constrain_exp_aux (ve: ctvenv) (ctem: ctvemap) (loc: C.location): C.exp -> ctypevar * cstr list * S.t list * ctvemap = function
+  | C.Const c                     -> let ctv = ctypevar_of_const c in (ctv, [], [], ctem)
+(*  | C.Lval lv | C.StartOf lv      -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
+  | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
+  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
+  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
+  | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
+  | C.AddrOf lv                   -> constrain_addrof ve em loc lv
+  | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c]) *)
+  | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+
+let constrain_exp (ve: ctvenv) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+  let (ctv, cs, ss, ctem) = constrain_exp_aux ve ctem loc e in
+    (ctv, cs, ss, ExpMap.add e ctv ctem)
+
+let constrain_return (fs: funenv) (ve: ctvenv) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location): C.exp option -> cstr list * S.t list * ctvemap * RA.block_annotation = function
+    | None -> if is_void rtv then ([], [], ctem, []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
+    | Some e ->
+        let (ctv, cs, ss, ctem) = constrain_exp ve ctem loc e in
+          (mk_subty loc ctv [] rtv :: cs, ss, ctem, [])
+
+let constrain_stmt (fs: funenv) (ve: ctvenv) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
   match s.C.skind with
-    | C.Instr is             -> constrain_instr env ctem is
-    | C.If (e, _, _, loc)    -> let (_, cs, ss, ctem) = constrain_exp env ctem loc e in (cs, ss, ctem, []) (* we'll visit the subblocks later *)
-=======
-let constrain_stmt (fs: funenv) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
-  match s.C.skind with
->>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
     | C.Break _              -> ([], [], ctem, [])
     | C.Continue _           -> ([], [], ctem, [])
     | C.Goto _               -> ([], [], ctem, [])
     | C.Block _              -> ([], [], ctem, [])                              (* we'll visit this later as we iterate through blocks *)
     | C.Loop (_, _, _, _)    -> ([], [], ctem, [])                              (* ditto *)
-<<<<<<< HEAD:src/inferctypes.ml
     | C.Return (rexp, loc)   -> constrain_return env ctem rtv loc rexp
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
@@ -1009,21 +1024,44 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     (ctem, bas, ss, cs)
-=======
-    | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+
+let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
+  let t = C.unrollType v.C.vtype in
+  match t with
+  | C.TInt _
+  | C.TPtr _
+  | C.TArray _ -> Some (v, fresh_ctypevar t)
+  | _          -> let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
+                    C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t
+                    |> ignore; None
+
+let fresh_vars (vs: C.varinfo list): (C.varinfo * ctypevar) list =
+  Misc.map_partial maybe_fresh vs
+
+let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
+  List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (VM.find vdef ve) [] (VM.find vphi ve)) vdefs
+
+let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
+  Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
 let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
-  (* need formals -> actuals, phi node constraints *)
   let blocks           = cfg.Ssa.blocks in
   let bas              = Array.make (Array.length blocks) [] in
+  let formals          = fresh_vars fd.C.sformals in
+  let locals           = fresh_vars fd.C.slocals in
+  let ve               = locals @ formals |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
+  let phics            = mk_phis_cs ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
-        let (cs, ss, ctem, ba) = constrain_stmt fs ctem ftv.ret b.Ssa.bstmt in
+        let (cs, ss, ctem, ba) = constrain_stmt fs ve ctem ftv.ret b.Ssa.bstmt in
           Array.set bas i ba;
           (ctem, ss :: sss, cs :: css)
       end (ExpMap.empty, [], []) blocks
-  in (ctem, bas, List.concat sss, List.concat css)
->>>>>>> Change representation of typevars, outline a little more:src/inferctypes.ml
+  in
+  let cs = List.concat (phics :: css) in
+    P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
+    List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
+    (ctem, bas, List.concat sss, cs)
 
 let fresh_fun_typ (fd: C.fundec): cfunvar =
   let rty, ftyso, _, _ = C.splitFunctionType fd.C.svar.C.vtype in
@@ -1041,7 +1079,7 @@ let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo
     (fs, ae, List.concat (cs :: css))
 
 (* API *)
-let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scis: index funmap): shape SM.t * ctypeenv =
-  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scis |> snd)) scc) cg in
+let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
+  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
   let fs, ae, cs = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
     assert false
