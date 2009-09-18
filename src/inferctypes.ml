@@ -895,8 +895,29 @@ let constrain_return (env: env) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location
         let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
           (mk_subty loc ctv [] rtv :: cs, ss, ctem, [])
 
+let printf_funs = ["printf"; "fprintf"]
+
+let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss, bas): ctvemap * cstr list list * S.t list list * RA.block_annotation): C.instr -> ctvemap * cstr list list * S.t list list * RA.block_annotation = function
+  | C.Set (lv, e, loc) ->
+      let (ctv1, cs1, ss1, ctem) = constrain_lval env ctem loc lv in
+      let (ctv2, cs2, ss2, ctem) = constrain_exp env ctem loc e in
+        (ctem, (mk_subty loc ctv2 [] ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss, [] :: bas)
+(*  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+      (constrain_args ve em loc args |> snd, [] :: bas)
+  | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
+      let (em, ba) = constrain_app env ve em loc f lvo args in
+        (em, ba :: bas) *)
+  | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
+
+let constrain_instr (env: env) (ctem: ctvemap) (is: C.instr list): cstr list * S.t list * ctvemap * RA.block_annotation =
+  let (ctem, css, sss, bas) = List.fold_left (constrain_instr_aux env ctem) (ctem, [], [], []) is in
+    (List.concat css, List.concat sss, ctem, List.rev ([]::bas))
+
 let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
   match s.C.skind with
+    | C.Instr is             -> constrain_instr env ctem is
+    | C.If (e, _, _, loc)    -> let (_, cs, ss, ctem) = constrain_exp env ctem loc e in (cs, ss, ctem, []) (* we'll visit the subblocks later *)
     | C.Break _              -> ([], [], ctem, [])
     | C.Continue _           -> ([], [], ctem, [])
     | C.Goto _               -> ([], [], ctem, [])
