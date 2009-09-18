@@ -25,64 +25,57 @@
 
 module F  = Format
 module Ct = Ctypes
-open Cil
+module IM = Misc.IntMap
 
+open Cil
 open Misc.Ops
 
 exception NoSpec
 
-(*
-val conv_ciltype: location -> ('a * Cil.typ) -> store -> ('a * ctype) * store
+let id_of_ciltype (t: Cil.typ) : int = failwith "TBD: id_of_t"
+let ldesc_of_ctypes (ts: Ct.ctype list) : Ct.index Ct.LDesc.t = failwith "TBD: ldesc_of_ctypes"
+let locs_of_store (st: Ct.store) : Sloc.t list  = failwith "TBD: locs_of_store"
 
-let rec conv_ciltype loc (tlocm store t = 
-  match t with
-  | TVoid _ 
-  | TInt (_,_) -> ctype_of_cilbasetype t
-  | TPtr (t,_) -> let tid = id_of_t t in
-      try tlocm, store, Ct.CTRef (IM.find tid tlocm, 0) with Not_found ->
-        let l' = fresh_location () in
-        let tlocm', st', b' = conv_cilblock loc (IM.add tid l') store b in
-        tlocm', store[l' -> b'], REF(l',0)
-
-
-and conv_cilblock loc tlocm store ts =
-
-
-let conv_ciltype loc (x, t) st = 
-  let _, st', ct' = conv_ciltype loc empty t st in
-  (x, ct') st'
-*)
-
+let unroll_ciltype = function
+  | TComp (ci, _) -> asserti ci.cstruct "TBD conv_cilblock: unions";
+                     List.map (fun x -> x.ftype) ci.cfields
+  | t             -> [t]
 
 let ctype_of_cilbasetype = function 
   | TVoid _      -> Ct.CTInt (0, Ct.ITop)
   | TInt (ik, _) -> Ct.CTInt (bytesSizeOfInt ik, Ct.ITop)
   | _            -> assertf "ctype_of_cilbasetype: non-base!"
 
-(* {{{
-let cfun_of_fundec loc fd = 
-  match fd.svar.vtype with 
-  | TFun (t, xtso, _, _) -> 
-      let qlocs = [] in 
-      let args  = Cil.argsToList xtso
-                  |> List.map (fun (x,y,_) -> (x,y))
-                  |> List.map (Misc.app_snd (ctype_of_ciltype loc)) in
-      let ret   = ctype_of_ciltype loc t in 
-      let ist   = Sloc.SlocMap.empty in
-      let ost   = Sloc.SlocMap.empty in
-      Ct.mk_cfun qlocs args ret ist ost
-  | _ -> 
-      let _ = errorLoc loc "Non-fun type for %s\n\n" fd.svar.vname in
-      assert false
-}}} *)
+let rec conv_ciltype loc (th, st) t = 
+  match t with
+  | TVoid _ 
+  | TInt (_,_) -> 
+      (th, st), ctype_of_cilbasetype t
+  | TPtr (t,_) -> 
+      let tid = id_of_ciltype t in
+      try (th, st), Ct.CTRef (IM.find tid th, Ct.IInt 0) with Not_found ->
+        let l'             = Sloc.fresh Sloc.Abstract in
+        let th'            = IM.add tid l' th in
+        let (th'', st'), b = conv_cilblock loc (th', st) t in 
+        let st''           = Sloc.SlocMap.add l' b st' in
+        (th'', st''), Ct.CTRef (l', Ct.IInt 0)
+  | _          -> 
+      assertf "TBD: conv_ciltype"
+
+and conv_cilblock loc (th, st) t =
+  t |> unroll_ciltype 
+    |> Misc.mapfold (conv_ciltype loc) (th, st) 
+    |> Misc.app_snd ldesc_of_ctypes 
 
 let cfun_of_fundec loc fd = 
   match fd.svar.vtype with 
   | TFun (t, xtso, _, _) -> 
-      let emp          = Sloc.SlocMap.empty in
-      let args, ist    = xtso |> Cil.argsToList 
-                              |> Misc.mapfold (conv_ciltype loc) emp in
-      let (_,ret), ost = conv_ciltype loc ("ret", t) ist in
+      let emp = Sloc.SlocMap.empty in
+      let xts = Cil.argsToList xtso in
+      let (_,ist), ts  = Misc.map snd3 xts
+                         |> Misc.mapfold (conv_ciltype loc) (IM.empty, emp) in
+      let args         = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
+      let (_,ost), ret = conv_ciltype loc (IM.empty, ist) t in
       let qlocs        = locs_of_store ost in
       Ct.mk_cfun qlocs args ret ist ost
   | _ -> 
