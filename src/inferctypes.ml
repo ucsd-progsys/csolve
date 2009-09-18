@@ -791,8 +791,8 @@ let ctypevar_of_const: C.constant -> ctypevar = function
 let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp -> ctypevar * cstr list * S.t list * ctvemap = function
   | C.Const c                     -> let ctv = ctypevar_of_const c in (ctv, [], [], ctem)
   | C.Lval lv | C.StartOf lv      -> constrain_lval env ctem loc lv
-(*  | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
-  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
+  | C.UnOp (uop, e, t)            -> constrain_unop uop env ctem loc t e
+(*  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | C.AddrOf lv                   -> constrain_addrof ve em loc lv
@@ -815,6 +815,17 @@ and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.locatio
 and constrain_lval (env: env) (ctem: ctvemap) (loc: C.location) (lv: C.lval): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_lval_aux env ctem loc lv in
     (ctv, cs, ss, ExpMap.add (C.Lval lv) ctv ctem)
+
+and constrain_unop (op: C.unop) (env: env) (ctem: ctvemap) (loc: C.location) (t: C.typ) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+  let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
+    match ctv with
+      | CTInt _ -> (apply_unop t op, cs, ss, ctem)
+      | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!"
+
+and apply_unop (rt: C.typ): C.unop -> ctypevar = function
+  | C.LNot -> CTInt (typ_width rt, IEConst (ISeq (0, 1)))
+  | C.BNot -> CTInt (typ_width rt, IEConst ITop)
+  | C.Neg  -> CTInt (typ_width rt, IEConst ITop)
 
 and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
