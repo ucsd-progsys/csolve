@@ -140,6 +140,9 @@ type heapvar = int
 
 let (fresh_heapvar, reset_fresh_heapvars) = M.mk_int_factory ()
 
+let d_heapvar () (hv: heapvar): P.doc =
+  P.text <| "?h" ^ string_of_int hv
+
 type heapmap = heapvar VM.t
 
 type storecstr =
@@ -253,10 +256,14 @@ let d_subst () (sub: subst): P.doc =
 (* pmr: needs substitutions also *)
 type cstrdesc = [
   `CSubtype of ctypevar * subst * ctypevar
+| `CInHeap of S.t * heapvar
+| `CInLoc of indexexp * ctypevar * S.t
 ]
 
 let d_cstrdesc (): cstrdesc -> P.doc = function
   | `CSubtype (ctv1, sub, ctv2) -> P.dprintf "@[@[%a@] <: @[%a %a@]@]" d_ctypevar ctv1 d_subst sub d_ctypevar ctv2
+  | `CInHeap (s, hv)            -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
+  | `CInLoc (ie, ctv, s)        -> P.dprintf "(%a, %a) ∈ %a" d_indexexp ie d_ctypevar ctv S.d_sloc s
 
 type cstr = {cdesc: cstrdesc; cloc: C.location}
 
@@ -755,8 +762,14 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     shp
 *)
 
-let mk_subty (loc: C.location) (ctv1: ctypevar) (sub: subst) (ctv2: ctypevar) =
+let mk_subty (loc: C.location) (ctv1: ctypevar) (sub: subst) (ctv2: ctypevar): cstr =
   {cdesc = `CSubtype (ctv1, sub, ctv2); cloc = loc}
+
+let mk_heapinc (loc: C.location) (s: S.t) (hv: heapvar): cstr =
+  {cdesc = `CInHeap (s, hv); cloc = loc}
+
+let mk_locinc (loc: C.location) (ie: indexexp) (ctv: ctypevar) (s: S.t): cstr =
+  {cdesc = `CInLoc (ie, ctv, s); cloc = loc}
 
 let ctypevar_of_const: C.constant -> ctypevar = function
   | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, IEConst (index_of_int (Int64.to_int v)))
@@ -765,8 +778,8 @@ let ctypevar_of_const: C.constant -> ctypevar = function
 
 let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp -> ctypevar * cstr list * S.t list * ctvemap = function
   | C.Const c                     -> let ctv = ctypevar_of_const c in (ctv, [], [], ctem)
-(*  | C.Lval lv | C.StartOf lv      -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
-  | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
+  | C.Lval lv | C.StartOf lv      -> constrain_lval env ctem loc lv
+(*  | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
@@ -774,7 +787,24 @@ let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp ->
   | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c]) *)
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-let constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.location): C.lval -> ctypevar * cstr list * S.t list * ctvemap = function
+  | (C.Var v, C.NoOffset)       -> (VM.find v ve, [], [], ctem)
+  | (C.Mem e, C.NoOffset) as lv ->
+      let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
+        begin match ctv with
+          | CTRef (s, ie) ->
+              let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
+              let cs    = mk_heapinc loc s hv :: mk_locinc loc ie ctvlv s :: cs in
+                (ctvlv, cs, [s], ctem)
+          | _ -> E.s <| E.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
+        end
+  | lv -> E.s <| E.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
+
+and constrain_lval (env: env) (ctem: ctvemap) (loc: C.location) (lv: C.lval): ctypevar * cstr list * S.t list * ctvemap =
+  let (ctv, cs, ss, ctem) = constrain_lval_aux env ctem loc lv in
+    (ctv, cs, ss, ExpMap.add (C.Lval lv) ctv ctem)
+
+and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
     (ctv, cs, ss, ExpMap.add e ctv ctem)
 
