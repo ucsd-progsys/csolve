@@ -235,6 +235,8 @@ type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
 
 type funenv = (indexexp precfun * heapvar) VM.t
 
+type env = funenv * heapvar * ctvenv
+
 (* consider replacing with the vars instead of exps; we really only care about
    function locals *)
 type annotenv = (ctvemap * RA.block_annotation array) VM.t
@@ -761,7 +763,7 @@ let ctypevar_of_const: C.constant -> ctypevar = function
   | C.CChr c            -> CTInt (int_width, IEConst (IInt (Char.code c)))
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
-let rec constrain_exp_aux (ve: ctvenv) (ctem: ctvemap) (loc: C.location): C.exp -> ctypevar * cstr list * S.t list * ctvemap = function
+let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp -> ctypevar * cstr list * S.t list * ctvemap = function
   | C.Const c                     -> let ctv = ctypevar_of_const c in (ctv, [], [], ctem)
 (*  | C.Lval lv | C.StartOf lv      -> let (ctv, em) = constrain_lval ve em loc lv in (ctv, em, [])
   | C.UnOp (uop, e, t)            -> constrain_unop uop ve em loc t e
@@ -772,24 +774,24 @@ let rec constrain_exp_aux (ve: ctvenv) (ctem: ctvemap) (loc: C.location): C.exp 
   | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c]) *)
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-let constrain_exp (ve: ctvenv) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
-  let (ctv, cs, ss, ctem) = constrain_exp_aux ve ctem loc e in
+let constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+  let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
     (ctv, cs, ss, ExpMap.add e ctv ctem)
 
-let constrain_return (fs: funenv) (ve: ctvenv) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location): C.exp option -> cstr list * S.t list * ctvemap * RA.block_annotation = function
+let constrain_return (env: env) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location): C.exp option -> cstr list * S.t list * ctvemap * RA.block_annotation = function
     | None -> if is_void rtv then ([], [], ctem, []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
-        let (ctv, cs, ss, ctem) = constrain_exp ve ctem loc e in
+        let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
           (mk_subty loc ctv [] rtv :: cs, ss, ctem, [])
 
-let constrain_stmt (fs: funenv) (ve: ctvenv) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
+let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctypevar) (s: C.stmt): cstr list * S.t list * ctvemap * RA.block_annotation =
   match s.C.skind with
     | C.Break _              -> ([], [], ctem, [])
     | C.Continue _           -> ([], [], ctem, [])
     | C.Goto _               -> ([], [], ctem, [])
     | C.Block _              -> ([], [], ctem, [])                              (* we'll visit this later as we iterate through blocks *)
     | C.Loop (_, _, _, _)    -> ([], [], ctem, [])                              (* ditto *)
-    | C.Return (rexp, loc)   -> constrain_return fs ve ctem rtv loc rexp
+    | C.Return (rexp, loc)   -> constrain_return env ctem rtv loc rexp
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
@@ -811,7 +813,7 @@ let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) li
 let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
 
-let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
+let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let blocks           = cfg.Ssa.blocks in
   let bas              = Array.make (Array.length blocks) [] in
   let formals          = fresh_vars fd.C.sformals in
@@ -820,7 +822,7 @@ let constrain_fun (fs: funenv) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST
   let phics            = mk_phis_cs ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
-        let (cs, ss, ctem, ba) = constrain_stmt fs ve ctem ftv.ret b.Ssa.bstmt in
+        let (cs, ss, ctem, ba) = constrain_stmt (fs, hv, ve) ctem ftv.ret b.Ssa.bstmt in
           Array.set bas i ba;
           (ctem, ss :: sss, cs :: css)
       end (ExpMap.empty, [], []) blocks
@@ -840,7 +842,7 @@ let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo
   let ftvs                    = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
   let hv                      = fresh_heapvar () in
   let fs                      = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
-  let ctems, bass, locss, css = List.map2 (constrain_fun fs) ftvs scis |> M.split4 in
+  let ctems, bass, locss, css = List.map2 (constrain_fun fs hv) ftvs scis |> M.split4 in
   let fs                      = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
   let ae                      = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
     (fs, ae, List.concat (cs :: css))
