@@ -140,6 +140,7 @@ val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_well_formed     : cfun -> bool
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 val ctype_closed         : ctype -> store -> bool
+val is_void : 'a prectype -> bool
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)

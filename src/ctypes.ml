@@ -120,6 +120,10 @@ let prectype_eq (pct1: 'a prectype) (pct2: 'a prectype): bool =
     | (CTRef (l1, i1), CTRef (l2, i2)) -> S.eq l1 l2 && i1 = i2
     | _                                -> pct1 = pct2
 
+let is_void: 'a prectype -> bool = function
+  | CTInt (0, _) -> true
+  | _            -> false
+
 type ctype = index prectype
 
 let d_ctype () (ct: ctype): P.doc =
