@@ -44,14 +44,6 @@ let rec d_indexexp (): indexexp -> P.doc = function
   | IEMult (iv1, iv2)         -> P.dprintf "%a * %a" d_indexexp iv1 d_indexexp iv2
   | IEDiv (iv1, iv2)          -> P.dprintf "%a / %a" d_indexexp iv1 d_indexexp iv2
 
-let rec d_indexexp (): indexexp -> P.doc = function
-  | IEConst i                 -> d_index () i
-  | IEVar iv                  -> d_indexvar () iv
-  | IEPlus (iv1, scale, iv2)  -> P.dprintf "%a + %d * %a" d_indexvar iv1 scale d_indexvar iv2
-  | IEMinus (iv1, scale, iv2) -> P.dprintf "%a - %d * %a" d_indexvar iv1 scale d_indexvar iv2
-  | IEMult (iv1, iv2)         -> P.dprintf "%a * %a" d_indexvar iv1 d_indexvar iv2
-  | IEDiv (iv1, iv2)          -> P.dprintf "%a / %a" d_indexvar iv1 d_indexvar iv2
-
 type indexcstr =
   | ICVarLess of indexexp * indexvar
   | ICConstLess of indexexp * index
@@ -69,7 +61,7 @@ type indexsol = index IndexSol.t
 
 let rec indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i             -> i
-  | IEVar iv              -> indexsol_find iv is
+  | IEVar iv              -> IndexSol.find iv is
   | IEPlus (ie1, x, ie2)  -> index_plus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
   | IEMinus (ie1, x, ie2) -> index_minus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
   | IEMult (ie1, ie2)     -> index_mult (indexexp_apply is ie1) (indexexp_apply is ie2)
@@ -792,7 +784,7 @@ let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp ->
   | C.Const c                     -> let ctv = ctypevar_of_const c in (ctv, [], [], ctem)
   | C.Lval lv | C.StartOf lv      -> constrain_lval env ctem loc lv
   | C.UnOp (uop, e, t)            -> constrain_unop uop env ctem loc t e
-(*  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop ve em loc t e1 e2
+(*  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env ctem loc t e1 e2
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
   | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
   | C.AddrOf lv                   -> constrain_addrof ve em loc lv
@@ -826,7 +818,32 @@ and apply_unop (rt: C.typ): C.unop -> ctypevar = function
   | C.LNot -> CTInt (typ_width rt, IEConst (ISeq (0, 1)))
   | C.BNot -> CTInt (typ_width rt, IEConst ITop)
   | C.Neg  -> CTInt (typ_width rt, IEConst ITop)
+(*
+and constrain_binop (op: C.binop) (env: env) (ctem: ctvemap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+  let (ctv1, cs1, ss1, ctem) = constrain_exp env ctem loc e1 in
+  let (ctv2, cs2, ss2, ctem) = constrain_exp env ctem loc e2 in
+  let (ctv, cs3, ss3, ctem) = apply_binop op ctem loc t ctv1 ctv2 in
+    (ctv, List.concat [cs1; cs2; cs3], List.concat [ss1; ss2; ss3], ctem)
 
+and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar -> ctypevar * ctvemap * cstr list = function
+  | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
+  | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
+  | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
+  | C.Div                                   -> constrain_arithmetic (fun iv1 iv2 -> IEDiv (iv1, iv2))
+  | C.Mod                                   -> constrain_mod
+  | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
+  | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
+  | C.MinusPP                               -> constrain_ptrminus
+  | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
+  | C.BAnd | C.BOr | C.BXor                 -> constrain_bitop
+  | C.Shiftlt | C.Shiftrt                   -> constrain_shift
+  | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
+
+and constrain_arithmetic (f: indexvar -> indexvar -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+    match (ctv1, ctv2) with
+      | (CTInt (n1, ie1), CTInt (n2, ie2)) -> CTInt (typ_width rt, f ie1 ie2)
+      | _                                  -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
+*)
 and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
     (ctv, cs, ss, ExpMap.add e ctv ctem)
