@@ -781,10 +781,9 @@ let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp ->
   | C.Lval lv | C.StartOf lv      -> constrain_lval env ctem loc lv
   | C.UnOp (uop, e, t)            -> constrain_unop uop env ctem loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env ctem loc t e1 e2
-(*  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr em loc c
-  | C.CastE (ct, e)               -> constrain_cast ve em loc ct e
-  | C.AddrOf lv                   -> constrain_addrof ve em loc lv
-  | C.SizeOf t                    -> let (ctv, c) = constrain_sizeof loc t in (ctv, em, [c]) *)
+  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr ctem loc c
+  | C.CastE (ct, e)               -> constrain_cast env ctem loc ct e
+  | C.SizeOf t                    -> constrain_sizeof ctem loc t
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.location): C.lval -> ctypevar * cstr list * S.t list * ctvemap = function
@@ -857,6 +856,34 @@ and apply_unknown (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar =
 and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
     (ctv, cs, ss, ExpMap.add e ctv ctem)
+
+and constrain_constptr (ctem: ctvemap) (loc: C.location): C.constant -> ctypevar * cstr list * S.t list * ctvemap = function
+  | C.CStr _                                 -> E.s <| E.unimp "Haven't implemented string constants yet"
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IEConst IBot), [], [s], ctem)
+  | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+
+and constrain_cast (env: env) (ctem: ctvemap) (loc: C.location) (ct: C.typ) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
+  match (C.unrollType ct, C.unrollType <| C.typeOf e) with
+    | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [], [], ctem)
+    | (C.TInt (ik, _), C.TInt _) ->
+        begin match constrain_exp_aux env ctem loc e with
+          | (CTInt (n, ie), cs, ss, ctem) ->
+              let iec =
+                if n <= C.bytesSizeOfInt ik then
+                  (* pmr: what about the sign bit?  this may not always be safe *)
+                  ie
+                else if not !Constants.safe then begin
+                  C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                  ie
+                end else
+                  IEConst ITop
+              in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss, ctem)
+          | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+        end
+    | _ -> constrain_exp_aux env ctem loc e
+
+and constrain_sizeof (ctem: ctvemap) (loc: C.location) (t: C.typ): ctypevar * cstr list * S.t list * ctvemap =
+  (CTInt (int_width, IEConst (IInt (C.bitsSizeOf t / 8))), [], [], ctem)
 
 let constrain_return (env: env) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location): C.exp option -> cstr list * S.t list * ctvemap * RA.block_annotation = function
     | None -> if is_void rtv then ([], [], ctem, []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
