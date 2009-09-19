@@ -65,19 +65,24 @@ let liquidate file =
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
   let _     = P.printf "%a\n" (Consindex.print (Some s')) me in
   let _     = print_unsat_locs tgr s' cs' in
-  (cs' = [])
+  let _  = BS.print stdout "\nLiquidC Time \n" in
+  match cs' with 
+  | [] -> let _ = P.printf "\nSAFE\n"   in exit 0
+  | _  -> let _ = P.printf "\nUNSAFE\n" in exit 1
+
+let genspec fname = 
+  let oc = open_out (fname^".autospec") in
+  Frontc.parse fname ()
+  |> Genspec.specs_of_file
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
+  |> fun _ -> close_out oc 
 
 let main () =
   let _  = Toplevel.print_header () in
   let f  = Toplevel.mk_options "main.native" () in
-  let rv = liquidate f in 
-  let _  = BS.print stdout "\nLiquidC Time \n" in
-  if rv then begin
-    P.printf "\nSAFE\n" |> ignore;
-    exit 0
-  end else begin
-    P.printf "\nUNSAFE\n" |> ignore;
-    exit 1
-  end
+  if !Constants.genspec then 
+    genspec f 
+  else 
+    liquidate f 
 
 let _ = main ()

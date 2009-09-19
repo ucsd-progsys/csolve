@@ -38,7 +38,9 @@ let q_armc_file: string option ref = ref None   (* translate to Q'ARMC file *)
 let hc_armc_file: string option ref = ref None   (* translate to HC'ARMC file *)
 let dot_file: string option ref = ref None   (* translate to dot file *)
 let purify_function_application = ref true  (* replace fun-terms by existentially quantified variables *)
-let ptag                        = ref true (* -ptag *)
+let ptag                        = ref true  (* -ptag *)
+let genspec                     = ref false (* -genspec *)
+let autospec                    = ref false (* -autospec *)
 let simplify_t                  = ref true  (* simplify and prune vacouos FixConstraint.t constraints *)
 
 (* JHALA: what do these do ? *)
@@ -124,6 +126,12 @@ let arg_spec =
    ("-ptag", 
     Arg.Set ptag, 
     "prioritize constraints using lexico-ordering on tags [true]");
+   ("-genspec", 
+    Arg.Set genspec, 
+    "Generate spec file only [false]");
+   ("-autospec",
+    Arg.Set autospec,
+    "Generate and use spec for verification [false]"); 
    ("-psimple", 
     Arg.Set psimple, 
     "prioritize simple constraints [true]");
