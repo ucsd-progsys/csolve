@@ -42,7 +42,8 @@ let ldesc_of_ctypes (ts: Ct.ctype list) : Ct.index Ct.LDesc.t =
   ts|> Misc.mapfold (fun i t -> (i + Ct.prectype_width t), (Ct.index_of_int i,t)) 0  
     |> snd |> Ct.LDesc.create 
 
-let unroll_ciltype = function
+let unroll_ciltype t =
+  match Cil.unrollType t with
   | TComp (ci, _) -> asserti ci.cstruct "TBD conv_cilblock: unions";
                      List.map (fun x -> x.ftype) ci.cfields
   | t             -> [t]
@@ -59,19 +60,21 @@ let rec conv_ciltype loc (th, st) t =
       (th, st), ctype_of_cilbasetype t
   | TPtr (t,_) -> 
       let tid = id_of_ciltype t in
-      try (th, st), Ct.CTRef (SM.find tid th, Ct.IInt 0) with Not_found ->
+      if SM.mem tid th then (th, st), Ct.CTRef (SM.find tid th, Ct.IInt 0) else
         let l'             = Sloc.fresh Sloc.Abstract in
         let th'            = SM.add tid l' th in
         let (th'', st'), b = conv_cilblock loc (th', st) t in 
         let st''           = SLM.add l' b st' in
         (th'', st''), Ct.CTRef (l', Ct.IInt 0)
   | _          -> 
-      assertf "TBD: conv_ciltype"
+      assertf "TBD: conv_ciltype : %s" (id_of_ciltype t)
 
 and conv_cilblock loc (th, st) t =
-  t |> unroll_ciltype 
-    |> Misc.mapfold (conv_ciltype loc) (th, st) 
-    |> Misc.app_snd ldesc_of_ctypes 
+  let ts = t |> unroll_ciltype in
+  let _  = Pretty.printf "conv_cilblock: unroll %a \n" d_type t in
+  let _  = List.map (fun t' -> Pretty.printf "conv_cilblock: into %a \n" d_type t') ts in
+  ts |> Misc.mapfold (conv_ciltype loc) (th, st) 
+     |> Misc.app_snd ldesc_of_ctypes 
 
 let slocs_of_store st = 
   SLM.fold (fun l _ locs -> l :: locs) st []
