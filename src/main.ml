@@ -70,18 +70,12 @@ let liquidate file =
   | [] -> let _ = P.printf "\nSAFE\n"   in exit 0
   | _  -> let _ = P.printf "\nUNSAFE\n" in exit 1
 
-let genspec fname = 
-  let oc = open_out (fname^".autospec") in
-  Frontc.parse fname ()
-  |> Genspec.specs_of_file
-  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
-  |> fun _ -> close_out oc 
 
 let main () =
   let _  = Toplevel.print_header () in
   let f  = Toplevel.mk_options "main.native" () in
   if !Constants.genspec then 
-    genspec f 
+    Toplevel.genspec f 
   else 
     liquidate f 
 

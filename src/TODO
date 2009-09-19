@@ -1,3 +1,17 @@
+[genspec]
+
+(run regrtest.py modified with -autospec default)
+Failed 8 tests: 
+../postests/adpcm.c, 
+../postests/arraysum.c, 
+../postests/em3d.c, 
+../postests/loop.c,		["open" program, spec says input is > 10] 
+../postests/stringexample.c, 	[ ]
+../postests/minipmap.c, 	[ ]
+../postests/pmapdistilled.c, 	[ ]
+../negtests/arraysum-unsafe.c	[ ]
+
+
 [Sorts]	How to separate int and reference types while still allowing ptr-arith
 	i.e. create a separate "Z3-int" type called "ref"
 	- will help to speed up instantiation

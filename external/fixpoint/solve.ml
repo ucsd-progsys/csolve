@@ -162,7 +162,6 @@ let print_solver_stats ppf me =
   let cs   = Ci.to_list me.sri in 
   let cn   = List.length cs in
   let scn  = List.length (List.filter C.is_simple cs) in
-  F.fprintf ppf "%a" Ci.print me.sri; (* DEBUG *) 
   F.fprintf ppf "#constraints = %d \n" cn;
   F.fprintf ppf "#simple constraints = %d \n" scn;
   F.fprintf ppf "#Refine Iterations = %d (si=%d tp=%d unsatLHS=%d) \n"
@@ -257,7 +256,7 @@ let rec acsolve me w s =
   match Ci.wpop me.sri w with (None,_) -> s | (Some c, w') ->
     let (ch, s')  = BS.time "refine" (refine me s) c in
     let _ = hashtbl_incr_frequency stat_cfreqt (C.id_of_t c) in  
-    let _ = Co.bprintf true (* mydebug *) "iter=%d id=%d ch=%b %a \n" 
+    let _ = Co.bprintf mydebug "iter=%d id=%d ch=%b %a \n" 
             !stat_refines (C.id_of_t c) ch C.print_tag (C.tag_of_t c) in
     let w''       = if ch then Ci.deps me.sri c |> Ci.wpush me.sri w' else w' in 
     acsolve me w'' s' 

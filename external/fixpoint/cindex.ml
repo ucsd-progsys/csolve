@@ -180,10 +180,7 @@ let make_rank_map ds cm =
 
 (* API *)
 let create ds cs =
-  asserti (ds <> []) "\n \n CRASH bugger \n \n";
-  let cm           = List.fold_left begin fun cm c -> 
-                       IM.add (C.id_of_t c) c cm 
-                     end IM.empty cs in
+  let cm            = List.fold_left (fun cm c -> IM.add (C.id_of_t c) c cm) IM.empty cs in
   let (dm, rm, rtm) = BS.time "make rank map" (make_rank_map ds) cm in
   {cnst = cm; ds = ds; rnkm = rm; depm = dm; rtm = rtm; pend = H.create 17}
 

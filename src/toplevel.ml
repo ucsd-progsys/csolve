@@ -89,6 +89,13 @@ let quals_of_file fname =
   |> List.map (fun s -> s^".hquals")
   |> List.fold_left add_quals []
 
+let genspec fname = 
+  let oc = open_out (fname^".autospec") in
+  Frontc.parse fname ()
+  |> Genspec.specs_of_file
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
+  |> fun _ -> close_out oc 
+
 let add_spec spec fname =
   let _ = E.log "Parsing spec: %s \n" fname in
   let _ = Errorline.startFile fname in
@@ -102,11 +109,11 @@ let add_spec spec fname =
     spec
 
 let spec_of_file fname =
-  [Constants.lib_name; fname]
-  |> List.map (fun s -> s^".spec")
-  |> List.fold_left add_spec SM.empty
-
-
+  let f0 = Constants.lib_name ^ ".spec" in 
+  let f1 = if !Constants.autospec 
+           then (genspec fname; fname^".autospec") 
+           else (fname^".spec") in 
+  List.fold_left add_spec SM.empty [f0; f1]
 
 let print_header () = 
   Printf.printf " \n \n";
