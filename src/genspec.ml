@@ -55,10 +55,9 @@ let ctype_of_cilbasetype = function
 
 let rec conv_ciltype loc (th, st) t = 
   match t with
-  | TVoid _ 
-  | TInt (_,_) -> 
+  | TVoid _ | TInt (_,_) -> 
       (th, st), ctype_of_cilbasetype t
-  | TPtr (t,_) -> 
+  | TPtr (t,_) | TArray (t,_,_) ->
       let tid = id_of_ciltype t in
       if SM.mem tid th then (th, st), Ct.CTRef (SM.find tid th, Ct.IInt 0) else
         let l'             = Sloc.fresh Sloc.Abstract in
@@ -66,8 +65,10 @@ let rec conv_ciltype loc (th, st) t =
         let (th'', st'), b = conv_cilblock loc (th', st) t in 
         let st''           = SLM.add l' b st' in
         (th'', st''), Ct.CTRef (l', Ct.IInt 0)
+  
   | _          -> 
-      assertf "TBD: conv_ciltype : %s" (id_of_ciltype t)
+      let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type t in
+      assertf "TBD: conv_ciltype" 
 
 and conv_cilblock loc (th, st) t =
   let ts = t |> unroll_ciltype in
