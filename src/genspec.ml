@@ -23,9 +23,10 @@
 
 (* This file is part of the liquidC Project.*)
 
-module F  = Format
-module Ct = Ctypes
-module SM = Misc.StringMap
+module F   = Format
+module Ct  = Ctypes
+module SM  = Misc.StringMap
+module SLM = Sloc.SlocMap
 
 open Cil
 open Misc.Ops
@@ -62,7 +63,7 @@ let rec conv_ciltype loc (th, st) t =
         let l'             = Sloc.fresh Sloc.Abstract in
         let th'            = SM.add tid l' th in
         let (th'', st'), b = conv_cilblock loc (th', st) t in 
-        let st''           = Sloc.SlocMap.add l' b st' in
+        let st''           = SLM.add l' b st' in
         (th'', st''), Ct.CTRef (l', Ct.IInt 0)
   | _          -> 
       assertf "TBD: conv_ciltype"
@@ -72,16 +73,18 @@ and conv_cilblock loc (th, st) t =
     |> Misc.mapfold (conv_ciltype loc) (th, st) 
     |> Misc.app_snd ldesc_of_ctypes 
 
+let slocs_of_store st = 
+  SLM.fold (fun l _ locs -> l :: locs) st []
+
 let cfun_of_fundec loc fd = 
   match fd.svar.vtype with 
   | TFun (t, xtso, _, _) -> 
-      let emp = Sloc.SlocMap.empty in
-      let xts = Cil.argsToList xtso in
+      let xts          = Cil.argsToList xtso in
       let (_,ist), ts  = Misc.map snd3 xts
-                         |> Misc.mapfold (conv_ciltype loc) (SM.empty, emp) in
+                         |> Misc.mapfold (conv_ciltype loc) (SM.empty, SLM.empty) in
       let args         = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
       let (_,ost), ret = conv_ciltype loc (SM.empty, ist) t in
-      let qlocs        = ost |> Ct.prestore_slocset |> Sloc.SlocSet.elements in
+      let qlocs        = slocs_of_store ost in
       Ct.mk_cfun qlocs args ret ist ost
   | _ -> 
       let _ = errorLoc loc "Non-fun type for %s\n\n" fd.svar.vname in
@@ -104,5 +107,4 @@ let mk_spec fname =
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
 
-
-let _ = Toplevel.main "genspec.opt" mk_spec
+let _ = Toplevel.main "genspec.native" mk_spec
