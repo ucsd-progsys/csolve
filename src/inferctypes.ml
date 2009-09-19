@@ -255,15 +255,19 @@ let d_subst () (sub: subst): P.doc =
 
 (* pmr: needs substitutions also *)
 type cstrdesc = [
-  `CSubtype of ctypevar * subst * ctypevar
+| `CSubtype of ctypevar * subst * ctypevar
 | `CInHeap of S.t * heapvar
 | `CInLoc of indexexp * ctypevar * S.t
+| `CSubheap of heapvar * subst * heapvar
+| `CWFSubst of subst
 ]
 
 let d_cstrdesc (): cstrdesc -> P.doc = function
   | `CSubtype (ctv1, sub, ctv2) -> P.dprintf "@[@[%a@] <: @[%a %a@]@]" d_ctypevar ctv1 d_subst sub d_ctypevar ctv2
   | `CInHeap (s, hv)            -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
   | `CInLoc (ie, ctv, s)        -> P.dprintf "(%a, %a) ∈ %a" d_indexexp ie d_ctypevar ctv S.d_sloc s
+  | `CSubheap (hv1, sub, hv2)   -> P.dprintf "%a <: %a %a" d_heapvar hv1 d_subst sub d_heapvar hv2
+  | `CWFSubst (sub)             -> P.dprintf "WF(%a)" d_subst sub
 
 type cstr = {cdesc: cstrdesc; cloc: C.location}
 
@@ -771,6 +775,12 @@ let mk_heapinc (loc: C.location) (s: S.t) (hv: heapvar): cstr =
 let mk_locinc (loc: C.location) (ie: indexexp) (ctv: ctypevar) (s: S.t): cstr =
   {cdesc = `CInLoc (ie, ctv, s); cloc = loc}
 
+let mk_subheap (loc: C.location) (hv1: heapvar) (sub: subst) (hv2: heapvar): cstr =
+  {cdesc = `CSubheap (hv1, sub, hv2); cloc = loc}
+
+let mk_wfsubst (loc: C.location) (sub: subst): cstr =
+  {cdesc = `CWFSubst sub; cloc = loc}
+
 let ctypevar_of_const: C.constant -> ctypevar = function
   | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, IEConst (index_of_int (Int64.to_int v)))
   | C.CChr c            -> CTInt (int_width, IEConst (IInt (Char.code c)))
@@ -891,6 +901,27 @@ let constrain_return (env: env) (ctem: ctvemap) (rtv: ctypevar) (loc: C.location
         let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
           (mk_subty loc ctv [] rtv :: cs, ss, ctem, [])
 
+let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((ctvs, css, sss, ctem): ctypevar list * cstr list list * S.t list list * ctvemap): ctypevar list * cstr list list * S.t list list * ctvemap =
+  let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
+    (ctv :: ctvs, cs :: css, ss :: sss, ctem)
+
+let constrain_args (env: env) (ctem: ctvemap) (loc: C.location) (es: C.exp list): ctypevar list * cstr list list * S.t list list * ctvemap =
+  let (ctvs, css, sss, ctem) = List.fold_right (constrain_arg env loc) es ([], [], [], ctem) in
+    (ctvs, css, sss, ctem)
+
+let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list * S.t list * ctvemap * RA.annotation list =
+  let (ctvs, css, sss, ctem) = constrain_args env ctem loc args in
+  let (ftv, fhv)             = VM.find f fs in
+  let instslocs              = List.map (fun _ -> S.fresh S.Abstract) ftv.qlocs in
+  let sub                    = List.combine ftv.qlocs instslocs in
+  let ctvfs                  = List.map snd ftv.args in
+  let cs                     = mk_subheap loc hv sub fhv :: mk_wfsubst loc sub :: List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs in
+    match lvo with
+      | None    -> (List.concat (cs :: css), List.concat sss, ctem, [])
+      | Some lv ->
+          let (ctvlv, cs2, ss2, ctem) = constrain_lval env ctem loc lv in
+            (List.concat ((mk_subty loc ftv.ret sub ctvlv :: cs) :: css), List.concat (ss2 :: sss), ctem, [])
+
 let printf_funs = ["printf"; "fprintf"]
 
 let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss, bas): ctvemap * cstr list list * S.t list list * RA.block_annotation): C.instr -> ctvemap * cstr list list * S.t list list * RA.block_annotation = function
@@ -946,20 +977,22 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
   let bas              = Array.make (Array.length blocks) [] in
   let bodyformals      = fresh_vars fd.C.sformals in
   let locals           = fresh_vars fd.C.slocals in
-  let ve               = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
+  let vars             = locals @ bodyformals in
+  let ve               = vars |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
   let formalcs         = List.map (fun (v, ctv) -> mk_subty fd.C.svar.C.vdecl (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
   let phics            = mk_phis_cs ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
-        let (cs, ss, ctem, ba) = constrain_stmt (fs, hv, ve) ctem ftv.ret b.Ssa.bstmt in
-          Array.set bas i ba;
-          (ctem, ss :: sss, cs :: css)
-      end (ExpMap.empty, [], []) blocks
+      let (cs, ss, ctem, ba) = constrain_stmt (fs, hv, ve) ctem ftv.ret b.Ssa.bstmt in
+        Array.set bas i ba;
+        (ctem, ss :: sss, cs :: css)
+    end (ExpMap.empty, [], []) blocks
   in
   let cs = List.concat (phics :: formalcs :: css) in
+  let ss = List.concat (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list; sss) in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
-    (ctem, bas, List.concat sss, cs)
+    (ctem, bas, ss, cs)
 
 let fresh_fun_typ (fd: C.fundec): cfunvar =
   let rty, ftyso, _, _ = C.splitFunctionType fd.C.svar.C.vtype in

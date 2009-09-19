@@ -127,6 +127,7 @@ val void_ctype: ctype
 (******************************* Type Operations ******************************)
 (******************************************************************************)
 
+val prectype_sloc: 'a prectype -> Sloc.t option
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
 val prectype_replace_sloc: Sloc.t -> Sloc.t -> 'a prectype -> 'a prectype
