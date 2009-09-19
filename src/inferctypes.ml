@@ -913,32 +913,34 @@ let constrain_args (env: env) (ctem: ctvemap) (loc: C.location) (es: C.exp list)
   let (ctvs, css, sss, ctem) = List.fold_right (constrain_arg env loc) es ([], [], [], ctem) in
     (ctvs, css, sss, ctem)
 
-let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list * S.t list * ctvemap * RA.annotation list =
-  let (ctvs, css, sss, ctem) = constrain_args env ctem loc args in
-  let (ftv, fhv)             = VM.find f fs in
-  let instslocs              = List.map (fun _ -> S.fresh S.Abstract) ftv.qlocs in
-  let sub                    = List.combine ftv.qlocs instslocs in
-  let ctvfs                  = List.map snd ftv.args in
-  let cs                     = mk_subheap loc hv sub fhv :: mk_wfsubst loc sub :: List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs in
+let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list list * S.t list list * ctvemap * RA.annotation list =
+  let ctvs, css, sss, ctem = constrain_args env ctem loc args in
+  let (ftv, fhv)           = VM.find f fs in
+  let instslocs            = List.map (fun _ -> S.fresh S.Abstract) ftv.qlocs in
+  let sub                  = List.combine ftv.qlocs instslocs in
+  let sss                  = instslocs :: sss in
+  let ctvfs                = List.map snd ftv.args in
+  let cs                   = mk_subheap loc hv sub fhv :: mk_wfsubst loc sub :: List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs in
     match lvo with
-      | None    -> (List.concat (cs :: css), List.concat sss, ctem, [])
+      | None    -> (cs :: css, sss, ctem, [])
       | Some lv ->
-          let (ctvlv, cs2, ss2, ctem) = constrain_lval env ctem loc lv in
-            (List.concat ((mk_subty loc ftv.ret sub ctvlv :: cs) :: css), List.concat (ss2 :: sss), ctem, [])
+          let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
+            ((mk_subty loc ftv.ret sub ctvlv :: cs) :: css, ss2 :: sss, ctem, [])
 
 let printf_funs = ["printf"; "fprintf"]
 
 let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss, bas): ctvemap * cstr list list * S.t list list * RA.block_annotation): C.instr -> ctvemap * cstr list list * S.t list list * RA.block_annotation = function
   | C.Set (lv, e, loc) ->
-      let (ctv1, cs1, ss1, ctem) = constrain_lval env ctem loc lv in
-      let (ctv2, cs2, ss2, ctem) = constrain_exp env ctem loc e in
+      let ctv1, cs1, ss1, ctem = constrain_lval env ctem loc lv in
+      let ctv2, cs2, ss2, ctem = constrain_exp env ctem loc e in
         (ctem, (mk_subty loc ctv2 [] ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss, [] :: bas)
-(*  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
-      (constrain_args ve em loc args |> snd, [] :: bas)
-  | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
-      let (em, ba) = constrain_app env ve em loc f lvo args in
-        (em, ba :: bas) *)
+  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+      let _, css, sss, ctem = constrain_args env ctem loc args in
+        (ctem, css, sss, [] :: bas)
+  | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
+      let css, sss, ctem, ba = constrain_app env ctem loc f lvo args in
+        (ctem, css, sss, ba :: bas)
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (ctem: ctvemap) (is: C.instr list): cstr list * S.t list * ctvemap * RA.block_annotation =
@@ -996,6 +998,7 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
   let ss = List.concat (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list; sss) in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
+    P.printf "\n";
     (ctem, bas, ss, cs)
 
 let fresh_fun_typ (fd: C.fundec): cfunvar =
@@ -1015,6 +1018,6 @@ let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo
 
 (* API *)
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
-  let sccs       = List.map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
+  let sccs       = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
   let fs, ae, cs = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
     assert false
