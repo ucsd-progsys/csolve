@@ -251,6 +251,9 @@ type annotenv = (ctvemap * RA.block_annotation array) VM.t
 (* somewhat messed-up; we don't need sto_in, sto_out... *)
 type cfunvar = indexexp precfun
 
+let d_cfunvar: unit -> cfunvar -> P.doc =
+  d_precfun d_indexexp
+
 (* pmr: needs to go elsewhere fo sho *)
 type subst = (S.t * S.t) list
 
@@ -997,6 +1000,7 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
   let cs = List.concat (phics :: formalcs :: css) in
   let ss = List.concat (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list; sss) in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
+    P.printf "%a\nheapvar   %a\n\n" d_cfunvar ftv d_heapvar hv;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     P.printf "\n";
     (ctem, bas, ss, cs)
