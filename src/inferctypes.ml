@@ -835,8 +835,8 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
         (ctem, ss :: sss, cs :: css)
     end (ExpMap.empty, [], []) blocks
   in
-  let cs = List.concat (phics :: formalcs :: css) in
-  let ss = List.concat (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list; sss) in
+  let cs = phics :: formalcs :: css |> List.concat in
+  let ss = (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list) :: sss |> List.concat |> M.sort_and_compact in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     P.printf "%a\nheapvar   %a\n" d_cfunvar ftv d_heapvar hv;
     P.printf "vars      %a\n" (P.d_list ", " S.d_sloc) ss;
