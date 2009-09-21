@@ -70,13 +70,12 @@ let liquidate file =
   | [] -> let _ = P.printf "\nSAFE\n"   in exit 0
   | _  -> let _ = P.printf "\nUNSAFE\n" in exit 1
 
-
 let main () =
   let _  = Toplevel.print_header () in
   let f  = Toplevel.mk_options "main.native" () in
-  if !Constants.genspec then 
-    Toplevel.genspec f 
-  else 
-    liquidate f 
+  if !Constants.genspec then
+    Toplevel.genspec f
+  else
+    liquidate f
 
 let _ = main ()
