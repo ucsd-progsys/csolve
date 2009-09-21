@@ -862,9 +862,8 @@ let constrain_scc ((fs, ae, css): funenv * annotenv * (heapvar * cstr list) list
     (fs, ae, (hv, List.concat css2) :: css)
 
 (******************************************************************************)
-(***************************** Constraint Closure *****************************)
+(************************** Constraint Simplification *************************)
 (******************************************************************************)
-
 (* The following assumes that all locations are quantified, i.e., that
    no location in a callee's SCC also appears in a caller's SCC. *)
 
