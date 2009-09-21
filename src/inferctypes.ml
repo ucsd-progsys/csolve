@@ -299,13 +299,18 @@ let cstrdesc_subst (sub: subst): cstrdesc -> cstrdesc = function
   | `CSubheap (hv1, sub2, hv2)   -> `CSubheap (hv1, sub2 @ sub, hv2)
   | `CWFSubst sub2               -> `CWFSubst (sub2 @ sub)
 
-type cstr = {cdesc: cstrdesc; cloc: C.location}
+type cstr = {cid: int; cdesc: cstrdesc; cloc: C.location}
+
+let (fresh_cstrid, reset_fresh_cstrids) = M.mk_int_factory ()
+
+let mk_cstr (loc: C.location) (cdesc: cstrdesc): cstr =
+  {cid = fresh_cstrid (); cloc = loc; cdesc = cdesc}
 
 let cstr_subst (sub: subst) (c: cstr): cstr =
-  {c with cdesc = cstrdesc_subst sub c.cdesc}
+  mk_cstr c.cloc (cstrdesc_subst sub c.cdesc)
 
-let d_cstr () ({cdesc = cdesc; cloc = loc}: cstr): P.doc =
-  P.dprintf "%a:\t%a" C.d_loc loc d_cstrdesc cdesc
+let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
+  P.dprintf "%d\t%a:\t%a" cid C.d_loc loc d_cstrdesc cdesc
 
 let is_cstr_simple (c: cstr): bool =
   is_cstrdesc_simple c.cdesc
@@ -608,19 +613,19 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
 *)
 
 let mk_subty (loc: C.location) (ctv1: ctypevar) (sub: subst) (ctv2: ctypevar): cstr =
-  {cdesc = `CSubtype (ctv1, sub, ctv2); cloc = loc}
+  mk_cstr loc (`CSubtype (ctv1, sub, ctv2))
 
 let mk_heapinc (loc: C.location) (s: S.t) (hv: heapvar): cstr =
-  {cdesc = `CInHeap (s, hv); cloc = loc}
+  mk_cstr loc (`CInHeap (s, hv))
 
 let mk_locinc (loc: C.location) (ie: indexexp) (ctv: ctypevar) (s: S.t): cstr =
-  {cdesc = `CInLoc (ie, ctv, s); cloc = loc}
+  mk_cstr loc (`CInLoc (ie, ctv, s))
 
 let mk_subheap (loc: C.location) (hv1: heapvar) (sub: subst) (hv2: heapvar): cstr =
-  {cdesc = `CSubheap (hv1, sub, hv2); cloc = loc}
+  mk_cstr loc (`CSubheap (hv1, sub, hv2))
 
 let mk_wfsubst (loc: C.location) (sub: subst): cstr =
-  {cdesc = `CWFSubst sub; cloc = loc}
+  mk_cstr loc (`CWFSubst sub)
 
 let ctypevar_of_const: C.constant -> ctypevar = function
   | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, IEConst (index_of_int (Int64.to_int v)))
