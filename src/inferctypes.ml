@@ -645,7 +645,7 @@ and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.locatio
           | CTRef (s, ie) ->
               let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
               let cs    = mk_heapinc loc s hv :: mk_locinc loc ie ctvlv s :: cs in
-                (ctvlv, cs, [s], ctem)
+                (ctvlv, cs, M.maybe_cons (prectype_sloc ctvlv) [s], ctem)
           | _ -> E.s <| E.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
   | lv -> E.s <| E.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
@@ -809,11 +809,15 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * ctypevar) option =
 let fresh_vars (vs: C.varinfo list): (C.varinfo * ctypevar) list =
   Misc.map_partial maybe_fresh vs
 
-let mk_phi_defs_cs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
+let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
   List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (VM.find vdef ve) [] (VM.find vphi ve)) vdefs
 
-let mk_phis_cs (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
-  Array.to_list phis |> List.flatten |> List.map (mk_phi_defs_cs ve) |> List.concat
+let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
+  Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
+
+let constrain_formals (hv: heapvar) (loc: C.location) (ftv: cfunvar) (bodyformals: (C.varinfo * ctypevar) list): cstr list =
+  let cs = List.map (fun (v, ctv) -> mk_subty loc (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
+    List.fold_left (fun cs (_, ctv) -> M.maybe_cons (ctv |> prectype_sloc |> M.maybe_map (fun s -> mk_heapinc loc s hv)) cs) cs ftv.args
 
 let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let blocks           = cfg.Ssa.blocks in
@@ -822,8 +826,8 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
   let locals           = fresh_vars fd.C.slocals in
   let vars             = locals @ bodyformals in
   let ve               = vars |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
-  let formalcs         = List.map (fun (v, ctv) -> mk_subty fd.C.svar.C.vdecl (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
-  let phics            = mk_phis_cs ve phis in
+  let formalcs         = constrain_formals hv fd.C.svar.C.vdecl ftv bodyformals in
+  let phics            = constrain_phis ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
       let (cs, ss, ctem, ba) = constrain_stmt (fs, hv, ve) ctem ftv.ret b.Ssa.bstmt in
@@ -834,7 +838,8 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
   let cs = List.concat (phics :: formalcs :: css) in
   let ss = List.concat (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list; sss) in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
-    P.printf "%a\nheapvar   %a\n\n" d_cfunvar ftv d_heapvar hv;
+    P.printf "%a\nheapvar   %a\n" d_cfunvar ftv d_heapvar hv;
+    P.printf "vars      %a\n" (P.d_list ", " S.d_sloc) ss;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     P.printf "\n";
     (ctem, bas, ss, cs)
