@@ -1,0 +1,35 @@
+Add cilly To Your Path
+----------------------
+
+cilly is the general Cil Swiss army knife.
+Add it to your path; it's in
+  external/cil/bin/j
+
+Merging General Programs
+------------------------
+
+Converting from cfile.c -> cfile.o while merging:
+  cilly --merge cfile.c
+
+  cfile.o is now a merged (i.e., includes required headers and such) copy of cfile.c.
+
+To compile all cfile.o files into one big prog_comb.c:
+  cilly --merge --keepmerged prog [cfile.o files]
+
+  prog_comb.c now contains the entire program.
+
+Example From deputytests/olden/mst/Makefile
+-------------------------------------------
+
+Diff:
+-CC             = gcc
++CC             = cilly --merge
+ DEF   = -D
+ CONLY = -c
+ OBJOUT= -o
+@@ -41,7 +41,7 @@ OBJS          = $(addsuffix $(OBJ),$(FILES))
+ ASMS           = $(addsuffix $(ASM),$(FILES))
+ 
+ $(BINARY):     $(OBJS)
+-       $(CC) $(LDFALGS) $(OPTFLAGS) $(EXEOUT) $@ $(OBJS) $(LIBPATH) $(LIBS)
++       $(CC) --keepmerged $(LDFALGS) $(OPTFLAGS) $(EXEOUT) $@ $(OBJS) $(LIBPATH) $(LIBS)
