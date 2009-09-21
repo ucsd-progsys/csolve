@@ -898,7 +898,6 @@ module SCM = M.MapWithDefault(struct
 
 type scm = cstr list SCM.t
 
-(* pmr: results in duplicated InLoc constraints, shouldfix *)
 let close_inc (hd: heapdom) (scm: scm) (c: cstr): scm =
   match c.cdesc with
     | `CInLoc (_, _, s)       -> SCM.add s (c :: SCM.find s scm) scm
