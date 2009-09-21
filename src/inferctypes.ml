@@ -310,7 +310,7 @@ let cstr_subst (sub: subst) (c: cstr): cstr =
   mk_cstr c.cloc (cstrdesc_subst sub c.cdesc)
 
 let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
-  P.dprintf "%d\t%a:\t%a" cid C.d_loc loc d_cstrdesc cdesc
+  P.dprintf "%a: %a" C.d_loc loc d_cstrdesc cdesc
 
 let is_cstr_simple (c: cstr): bool =
   is_cstrdesc_simple c.cdesc
@@ -872,6 +872,13 @@ let constrain_scc ((fs, ae, css): funenv * annotenv * (heapvar * cstr list) list
 (* The following assumes that all locations are quantified, i.e., that
    no location in a callee's SCC also appears in a caller's SCC. *)
 
+type cstrmap = cstr IM.t
+
+module IMP = P.MakeMapPrinter(IM)
+
+let d_cstrmap =
+  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_cstr
+
 type heapdom = SS.t IM.t
 
 let d_heapdom () (hd: heapdom): P.doc =
@@ -923,17 +930,17 @@ let close_incs (hd: heapdom) (css: (heapvar * cstr list) list): cstr list list =
   let scm = List.fold_left (fun scm (_, cs) -> List.fold_left (close_inc hd) scm cs) SCM.empty css in
     SCM.fold (fun s cs css -> List.filter (is_not_inc s) cs :: css) scm (List.map snd css)
 
-let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstr list =
+let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstrmap =
   let css = List.rev css in
   let hd  = mk_heapdom css in
-  let cs  = css |> close_incs hd |> List.concat |> List.filter is_cstr_simple in
+  let cs  = css |> close_incs hd |> List.concat |> List.filter is_cstr_simple |> List.fold_left (fun cm c -> IM.add c.cid c cm) IM.empty in
     (hd, cs)
 
 (* API *)
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
   let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
   let fs, ae, css = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
-  let hd, cs      = simplify_cs css in
+  let hd, cm      = simplify_cs css in
   let _           = P.printf "Heap domains:@!@!%a@!@!" d_heapdom hd in
-  let _           = P.printf "Simplified closed constraints:@!@!%a@!@!" (P.d_list "\n" d_cstr) cs in
+  let _           = P.printf "Simplified closed constraints:@!@!%a@!@!" d_cstrmap cm in
     assert false
