@@ -8,6 +8,7 @@ module RA  = Refanno
 module SM  = Misc.StringMap
 module S   = Sloc
 module SLM = Sloc.SlocMap
+module SS  = Sloc.SlocSet
 module CG  = Callgraph
 module VM  = CilMisc.VarMap
 
@@ -260,14 +261,26 @@ type subst = (S.t * S.t) list
 let d_subst () (sub: subst): P.doc =
   P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (s1, s2) -> P.dprintf "%a -> %a" S.d_sloc s1 S.d_sloc s2)) sub
 
-(* pmr: needs substitutions also *)
-type cstrdesc = [
-| `CSubtype of ctypevar * subst * ctypevar
-| `CInHeap of S.t * heapvar
+(* pmr: probably should compact substs when concatenating *)
+(* pmr: this order is backwards from what I want *)
+let subst_sloc (sub: subst) (s: S.t) =
+  List.fold_right (fun (s1, s2) s -> if S.eq s1 s then s2 else s) sub s
+
+type simplecstrdesc = [
 | `CInLoc of indexexp * ctypevar * S.t
-| `CSubheap of heapvar * subst * heapvar
+| `CSubtype of ctypevar * subst * ctypevar
 | `CWFSubst of subst
 ]
+
+type cstrdesc = [
+| simplecstrdesc
+| `CInHeap of S.t * heapvar
+| `CSubheap of heapvar * subst * heapvar
+]
+
+let is_cstrdesc_simple: cstrdesc -> bool = function
+  | `CInHeap _ | `CSubheap _ -> false
+  | _                        -> true
 
 let d_cstrdesc (): cstrdesc -> P.doc = function
   | `CSubtype (ctv1, sub, ctv2) -> P.dprintf "@[@[%a@] <: @[%a %a@]@]" d_ctypevar ctv1 d_subst sub d_ctypevar ctv2
@@ -276,10 +289,26 @@ let d_cstrdesc (): cstrdesc -> P.doc = function
   | `CSubheap (hv1, sub, hv2)   -> P.dprintf "%a <: %a %a" d_heapvar hv1 d_subst sub d_heapvar hv2
   | `CWFSubst (sub)             -> P.dprintf "WF(%a)" d_subst sub
 
+(* pmr: need a subst module... *)
+(* pmr: compose substitutions more nicely (compression?) *)
+(* pmr: ^ will be necessary for handling CWFSubst correctly! *)
+let cstrdesc_subst (sub: subst): cstrdesc -> cstrdesc = function
+  | `CSubtype (ctv1, sub2, ctv2) -> `CSubtype (prectype_subs sub ctv1, sub2 @ sub, ctv2)
+  | `CInHeap (s, hv)             -> `CInHeap (subst_sloc sub s, hv)
+  | `CInLoc (ie, ctv, s)         -> `CInLoc (ie, prectype_subs sub ctv, subst_sloc sub s)
+  | `CSubheap (hv1, sub2, hv2)   -> `CSubheap (hv1, sub2 @ sub, hv2)
+  | `CWFSubst sub2               -> `CWFSubst (sub2 @ sub)
+
 type cstr = {cdesc: cstrdesc; cloc: C.location}
+
+let cstr_subst (sub: subst) (c: cstr): cstr =
+  {c with cdesc = cstrdesc_subst sub c.cdesc}
 
 let d_cstr () ({cdesc = cdesc; cloc = loc}: cstr): P.doc =
   P.dprintf "%a:\t%a" C.d_loc loc d_cstrdesc cdesc
+
+let is_cstr_simple (c: cstr): bool =
+  is_cstrdesc_simple c.cdesc
 
 type cstremap = ctvemap * cstr list
 
@@ -815,18 +844,81 @@ let fresh_fun_typ (fd: C.fundec): cfunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_ctypevar fty)) ftys in
     mk_cfun [] fctys (fresh_ctypevar rty) SLM.empty SLM.empty
 
-let constrain_scc ((fs, ae, cs): funenv * annotenv * cstr list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * cstr list =
-  let fvs, scis               = List.split scc in
-  let ftvs                    = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
-  let hv                      = fresh_heapvar () in
-  let fs                      = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
-  let ctems, bass, locss, css = List.map2 (constrain_fun fs hv) ftvs scis |> M.split4 in
-  let fs                      = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
-  let ae                      = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
-    (fs, ae, List.concat (cs :: css))
+let constrain_scc ((fs, ae, css): funenv * annotenv * (heapvar * cstr list) list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * (heapvar * cstr list) list =
+  let fvs, scis                = List.split scc in
+  let ftvs                     = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
+  let hv                       = fresh_heapvar () in
+  let fs                       = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
+  let ctems, bass, locss, css2 = List.map2 (constrain_fun fs hv) ftvs scis |> M.split4 in
+  let fs                       = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
+  let ae                       = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
+    (fs, ae, (hv, List.concat css2) :: css)
+
+(******************************************************************************)
+(***************************** Constraint Closure *****************************)
+(******************************************************************************)
+
+(* The following assumes that all locations are quantified, i.e., that
+   no location in a callee's SCC also appears in a caller's SCC. *)
+
+type heapdom = SS.t IM.t
+
+let d_heapdom () (hd: heapdom): P.doc =
+  IM.fold (fun hv ss d -> P.dprintf "%a: %a@!%t" d_heapvar hv (P.d_list ", " S.d_sloc) (SS.elements ss) (fun () -> d)) hd P.nil
+
+(* pmr: fix Set so this isn't necessary *)
+let slocset_map (f: S.t -> S.t) (ss: SS.t): SS.t =
+  SS.fold (fun s ss2 -> SS.add (f s) ss2) ss SS.empty
+
+let dom_trans (hd: heapdom) (c: cstr): heapdom =
+  match c.cdesc with
+    | `CInHeap (s, hv) ->
+        let ss = IM.find hv hd in
+          IM.add hv (SS.add s ss) hd
+    | `CSubheap (hv1, sub, hv2) ->
+        let ss1 = IM.find hv1 hd in
+        let ss2 = IM.find hv2 hd in
+          IM.add hv1 (SS.union (slocset_map (subst_sloc sub) ss2) ss1) hd
+    | _ -> hd
+
+let mk_heapdom (css: (heapvar * cstr list) list): heapdom =
+  List.fold_left (fun hd (hv, cs) -> List.fold_left dom_trans (IM.add hv SS.empty hd) cs) IM.empty css
+
+module SCM = M.MapWithDefault(struct
+                                type t = S.t
+                                type v = cstr list
+                                let compare = S.compare
+                                let default = []
+                              end)
+
+type scm = cstr list SCM.t
+
+(* pmr: results in duplicated InLoc constraints, shouldfix *)
+let close_inc (hd: heapdom) (scm: scm) (c: cstr): scm =
+  match c.cdesc with
+    | `CInLoc (_, _, s)       -> SCM.add s (c :: SCM.find s scm) scm
+    | `CSubheap (_, sub, hv2) ->
+        let ss = IM.find hv2 hd in
+          SS.fold (fun s scm ->
+                     let subs = subst_sloc sub s in
+                       SCM.add subs (List.map (cstr_subst sub) (SCM.find s scm) @ SCM.find subs scm) scm) ss scm
+    | _ -> scm
+
+let close_incs (hd: heapdom) (css: (heapvar * cstr list) list): cstr list list =
+  let scm = List.fold_left (fun scm (_, cs) -> List.fold_left (close_inc hd) scm cs) SCM.empty css in
+    SCM.fold (fun _ cs css -> cs :: css) scm (List.map snd css)
+
+let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstr list =
+  let css = List.rev css in
+  let hd  = mk_heapdom css in
+  let cs  = css |> close_incs hd |> List.concat |> List.filter is_cstr_simple in
+    (hd, cs)
 
 (* API *)
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
-  let sccs       = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
-  let fs, ae, cs = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
+  let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
+  let fs, ae, css = List.fold_left constrain_scc (VM.empty, VM.empty, []) sccs in
+  let hd, cs      = simplify_cs css in
+  let _           = P.printf "Heap domains:@!@!%a@!@!" d_heapdom hd in
+  let _           = P.printf "Simplified closed constraints:@!@!%a@!@!" (P.d_list "\n" d_cstr) cs in
     assert false
