@@ -644,8 +644,8 @@ and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.locatio
         begin match ctv with
           | CTRef (s, ie) ->
               let ctvlv = fresh_ctypevar <| C.typeOfLval lv in
-              let cs    = mk_heapinc loc s hv :: mk_locinc loc ie ctvlv s :: cs in
-                (ctvlv, cs, M.maybe_cons (prectype_sloc ctvlv) [s], ctem)
+              let cs    = mk_locinc loc ie ctvlv s :: cs in
+                (ctvlv, cs, M.maybe_cons (prectype_sloc ctvlv) (s :: ss), ctem)
           | _ -> E.s <| E.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
   | lv -> E.s <| E.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
@@ -757,12 +757,15 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
   let sub                  = List.combine ftv.qlocs instslocs in
   let sss                  = instslocs :: sss in
   let ctvfs                = List.map snd ftv.args in
-  let cs                   = mk_subheap loc hv sub fhv :: mk_wfsubst loc sub :: List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs in
+  (* pmr: can probably eliminate some constraints by substituting with actual parameter locations directly when possible *)
+  let css                  = [mk_subheap loc hv sub fhv; mk_wfsubst loc sub] ::
+                               List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs ::
+                               css in
     match lvo with
-      | None    -> (cs :: css, sss, ctem, [])
+      | None    -> (css, sss, ctem, [])
       | Some lv ->
           let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
-            ((mk_subty loc ftv.ret sub ctvlv :: cs) :: css, ss2 :: sss, ctem, [])
+            ((mk_subty loc ftv.ret sub ctvlv :: cs2) :: css, ss2 :: sss, ctem, [])
 
 let printf_funs = ["printf"; "fprintf"]
 
@@ -815,18 +818,15 @@ let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
-let constrain_formals (hv: heapvar) (loc: C.location) (ftv: cfunvar) (bodyformals: (C.varinfo * ctypevar) list): cstr list =
-  let cs = List.map (fun (v, ctv) -> mk_subty loc (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
-    List.fold_left (fun cs (_, ctv) -> M.maybe_cons (ctv |> prectype_sloc |> M.maybe_map (fun s -> mk_heapinc loc s hv)) cs) cs ftv.args
-
 let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let blocks           = cfg.Ssa.blocks in
   let bas              = Array.make (Array.length blocks) [] in
   let bodyformals      = fresh_vars fd.C.sformals in
   let locals           = fresh_vars fd.C.slocals in
   let vars             = locals @ bodyformals in
-  let ve               = vars |> List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty in
-  let formalcs         = constrain_formals hv fd.C.svar.C.vdecl ftv bodyformals in
+  let ve               = List.fold_left (fun ve (v, ctv) -> VM.add v ctv ve) VM.empty vars in
+  let loc              = fd.C.svar.C.vdecl in
+  let formalcs         = List.map (fun (v, ctv) -> mk_subty loc (List.assoc v.C.vname ftv.args) [] ctv) bodyformals in
   let phics            = constrain_phis ve phis in
   let (ctem, sss, css) =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
@@ -835,8 +835,9 @@ let constrain_fun (fs: funenv) (hv: heapvar) (ftv: cfunvar) ({ST.fdec = fd; ST.p
         (ctem, ss :: sss, cs :: css)
     end (ExpMap.empty, [], []) blocks
   in
-  let cs = phics :: formalcs :: css |> List.concat in
-  let ss = (List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list) :: sss |> List.concat |> M.sort_and_compact in
+  let sss = (ftv.ret :: List.map snd ftv.args @ List.map snd vars |> List.map prectype_sloc |> Misc.maybe_list) :: sss in
+  let ss  = sss |> List.concat |> M.sort_and_compact in
+  let cs  = List.map (fun s -> mk_heapinc loc s hv) ss :: formalcs :: phics :: css |> List.concat in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     P.printf "%a\nheapvar   %a\n" d_cfunvar ftv d_heapvar hv;
     P.printf "vars      %a\n" (P.d_list ", " S.d_sloc) ss;
@@ -850,13 +851,14 @@ let fresh_fun_typ (fd: C.fundec): cfunvar =
     mk_cfun [] fctys (fresh_ctypevar rty) SLM.empty SLM.empty
 
 let constrain_scc ((fs, ae, css): funenv * annotenv * (heapvar * cstr list) list) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * (heapvar * cstr list) list =
-  let fvs, scis                = List.split scc in
-  let ftvs                     = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
-  let hv                       = fresh_heapvar () in
-  let fs                       = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
-  let ctems, bass, locss, css2 = List.map2 (constrain_fun fs hv) ftvs scis |> M.split4 in
-  let fs                       = List.fold_left2 (fun fs fv locs -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = locs}, hv) fs) fs fvs locss in
-  let ae                       = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
+  let fvs, scis              = List.split scc in
+  let ftvs                   = List.map (fun sci -> fresh_fun_typ sci.ST.fdec) scis in
+  let hv                     = fresh_heapvar () in
+  let fs                     = List.fold_left2 (fun fs fv ftv -> VM.add fv (ftv, hv) fs) fs fvs ftvs in
+  let ctems, bass, sss, css2 = List.map2 (constrain_fun fs hv) ftvs scis |> M.split4 in
+  let ss                     = List.concat sss in
+  let fs                     = List.fold_left (fun fs fv -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = ss}, hv) fs) fs fvs in
+  let ae                     = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
     (fs, ae, (hv, List.concat css2) :: css)
 
 (******************************************************************************)
