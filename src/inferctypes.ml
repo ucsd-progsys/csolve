@@ -904,9 +904,14 @@ let close_inc (hd: heapdom) (scm: scm) (c: cstr): scm =
                        SCM.add subs (List.map (cstr_subst sub) (SCM.find s scm) @ SCM.find subs scm) scm) ss scm
     | _ -> scm
 
+let is_not_inc (s: S.t) (c: cstr): bool =
+  match c.cdesc with
+    | `CInLoc (_, _, s2) -> not (S.eq s s2)
+    | _                  -> true
+
 let close_incs (hd: heapdom) (css: (heapvar * cstr list) list): cstr list list =
   let scm = List.fold_left (fun scm (_, cs) -> List.fold_left (close_inc hd) scm cs) SCM.empty css in
-    SCM.fold (fun _ cs css -> cs :: css) scm (List.map snd css)
+    SCM.fold (fun s cs css -> List.filter (is_not_inc s) cs :: css) scm (List.map snd css)
 
 let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstr list =
   let css = List.rev css in
