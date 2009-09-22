@@ -139,6 +139,8 @@ let rec conv_ciltype me loc (th, st) c =
       conv_ptr me loc (th, st) (Some (byte_size_of_cil c)) c
   | TPtr (c,_) | TArray (c,_,_) ->
       conv_ptr me loc (th, st) None c
+  | TNamed (ti, _) ->
+      conv_ciltype me loc (th, st) ti.ttype
   | _          -> 
       let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
       assertf "TBD: conv_ciltype" 

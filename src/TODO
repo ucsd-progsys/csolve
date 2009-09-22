@@ -1,16 +1,10 @@
 [genspec]
-
 (run regrtest.py modified with -autospec default)
-Failed 8 tests: 
-../postests/adpcm.c, 
-../postests/arraysum.c, 
-../postests/em3d.c, 
+Failed tests: 
 ../postests/loop.c,		["open" program, spec says input is > 10] 
-../postests/stringexample.c, 	[ ]
-../postests/minipmap.c, 	[ ]
-../postests/pmapdistilled.c, 	[ ]
-../negtests/arraysum-unsafe.c	[ ]
-
+../postests/stringexample.c, 	[pointer arithmetic / struct embedding ]
+HEREHEREHERHERHERHERE../postests/pmapdistilled.c, 	[ see "dummy_fun" sig in postests/minipmap.c]
+../postests/em3d.c.	
 
 [Sorts]	How to separate int and reference types while still allowing ptr-arith
 	i.e. create a separate "Z3-int" type called "ref"

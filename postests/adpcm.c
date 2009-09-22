@@ -52,7 +52,7 @@ struct adpcm_state {
 };
 
 void
-adpcm_coder(int nsample, short indata[], char outdata[], struct adpcm_state *state)
+adpcm_coder(int nsample, short *__attribute__((array)) indata, char * __attribute__((array)) outdata, struct adpcm_state *state)
 {
     short *inp;			/* Input buffer pointer */
     signed char *outp;		/* output buffer pointer */
@@ -67,11 +67,11 @@ adpcm_coder(int nsample, short indata[], char outdata[], struct adpcm_state *sta
     int outputbuffer;		/* place to keep previous 4-bit value */
     int bufferstep;		/* toggle between outputbuffer/output */
 
-    /* THETA ISSUE ALL AROUND */
+    /* THETA ISSUE ALL AROUND 
     indata  = indata;
     outdata = outdata;
     state   = state;
-
+    */
     
     /* Intel ADPCM step variation table */
     
@@ -189,7 +189,7 @@ adpcm_coder(int nsample, short indata[], char outdata[], struct adpcm_state *sta
 }
 
 void
-adpcm_decoder(int nsample, char indata[], short outdata[], struct adpcm_state *state)
+adpcm_decoder(int nsample, char * __attribute__((array)) indata, short * __attribute__((array)) outdata, struct adpcm_state *state)
 {
     signed char *inp;		/* Input buffer pointer */
     short *outp;		/* output buffer pointer */

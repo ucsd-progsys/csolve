@@ -8,11 +8,16 @@ typedef struct env {
     int env_pgdir[2000];
 } env_t;
 
+
+typedef int *__attribute__((array)) int_array;
+
 /* Globals, now parameters passed around...
 int pages[1000];
 int page_protected[1000];
 env_t *envs = 0;
 */
+
+
 
 int page_getfree(int pages[])
 {
