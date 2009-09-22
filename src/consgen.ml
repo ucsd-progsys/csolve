@@ -446,13 +446,17 @@ let cons_of_scis tgr gnv scim shpm ci =
 (************************************************************************************)
 (******************************** API ***********************************************)
 (************************************************************************************)
+let tag_of_global = function
+  | GType (_,_)    -> "GType"
+  | GCompTag (_,_) -> "GCompTag"
+  | GType (_,_)    -> "GType"
+  | _              -> "Global"
 
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc) -> (fdec.svar.vname, loc) :: acc 
-    | _                -> if !Constants.safe then assertf "decs_of_file" else
-                          let _ = ignore (E.warn "Ignoring global: %a \n" d_global g) in 
-                          acc
+    | GFun (fdec, loc)       -> (fdec.svar.vname, loc) :: acc 
+    | _ when !Constants.safe -> assertf "decs_of_file"
+    | _ -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
   end []
 
 let scim_of_file cil =

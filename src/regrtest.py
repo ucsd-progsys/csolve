@@ -48,10 +48,10 @@ def getfileargs(file):
   else:
     return []
 
-def runtest(file, expected_status):
-  args   = getfileargs(file)
+def runtest(file, expected_status, dargs):
+  fargs   = getfileargs(file)
   start  = time.time()
-  status = solve_quals(file, True, False, True, args)
+  status = solve_quals(file, True, False, True, fargs + dargs)
   print "%f seconds" % (time.time() - start)
 
   ok = (status == expected_status)
@@ -61,15 +61,15 @@ def runtest(file, expected_status):
     print "\033[1;31mFAILURE :(\033[1;0m\n"
   return (file, ok)
 
-def runtests(dir, expected_status):
+def runtests(dir, expected_status, dargs):
   print "Running tests from %s/" % dir
   files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
-  return [runtest(file, expected_status) for file in files if file.endswith(".c") and not file.endswith(".ssa.c")]
+  return [runtest(file, expected_status, dargs) for file in files if file.endswith(".c") and not file.endswith(".ssa.c")]
 
 #####################################################################################
 
 testdirs  = [("../postests", 0), ("../negtests", 1)]
-results   = [runtests(dir, expected_status) for (dir, expected_status) in testdirs]
+results   = [runtests(dir, expected_status, sys.argv[1:]) for (dir, expected_status) in testdirs]
 failed    = [result[0] for result in it.chain(*results) if result[1] == False]
 failcount = len(failed)
 if failcount == 0:

@@ -1,6 +1,6 @@
 extern char* malloc(int);
 
-int sum(int *buf, int *end){
+int sum(int * __attribute__((array)) buf, int * __attribute__((array)) end){
   int sum = 0;
   while (buf <= end){
     validptr(buf);

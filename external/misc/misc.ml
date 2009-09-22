@@ -52,6 +52,7 @@ module Ops = struct
   let un = fun x -> ()
 
   let (<.>) f g  = fun x -> f (g x)
+
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
@@ -77,7 +78,6 @@ module Ops = struct
     print_string s; 
     flush stdout
 
-  let (<.>) f g = fun x -> f (g x) 
 (*  
   let pretty_string f x = 
     Pretty.dprintf "%a" f x |> Pretty.sprint ~width:80 
@@ -216,6 +216,12 @@ let mapfold f xs b =
   |> (fun (ys, c) -> ((List.rev ys), c))
 *)
 
+let twrap s f x =
+  let _  = Printf.printf "calling %s \n" s in
+  let rv = f x in
+  let _  = Printf.printf "returned from %s \n" s in
+  rv
+
 let mapfold f b xs =
   List.fold_left begin
     fun (acc, ys) x -> let (acc', y) = f acc x in (acc', y::ys)
@@ -335,6 +341,13 @@ let numbered_list xs =
 
 exception FalseException
 
+let sm_adds k v sm = 
+  let vs = try StringMap.find k sm with Not_found -> [] in
+  StringMap.add k (v::vs) sm
+
+let stringmap_bindings sm =
+  StringMap.fold (fun k v acc -> (k,v) :: acc) sm []
+  
 let intmap_bindings im =
   IntMap.fold (fun k v acc -> (k,v) :: acc) im []
 
