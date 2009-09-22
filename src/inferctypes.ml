@@ -233,10 +233,6 @@ type ctvenv = ctypevar VM.t
 
 type ctvemap = ctypevar ExpMap.t
 
-(* should change to a vmap or something *)
-(* is this thing even useful? *)
-type 'a funmap = ('a precfun * Ssa_transform.ssaCfgInfo) SM.t
-
 type funenv = (indexexp precfun * heapvar) VM.t
 
 type env = funenv * heapvar * ctvenv
@@ -282,7 +278,7 @@ let is_cstrdesc_simple: cstrdesc -> bool = function
   | `CInHeap _ | `CSubheap _ -> false
   | _                        -> true
 
-let d_cstrdesc (): cstrdesc -> P.doc = function
+let d_cstrdesc (): [< cstrdesc] -> P.doc = function
   | `CSubtype (ctv1, sub, ctv2) -> P.dprintf "@[@[%a@] <: @[%a %a@]@]" d_ctypevar ctv1 d_subst sub d_ctypevar ctv2
   | `CInHeap (s, hv)            -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
   | `CInLoc (ie, ctv, s)        -> P.dprintf "(%a, %a) ∈ %a" d_indexexp ie d_ctypevar ctv S.d_sloc s
@@ -299,7 +295,11 @@ let cstrdesc_subst (sub: subst): cstrdesc -> cstrdesc = function
   | `CSubheap (hv1, sub2, hv2)   -> `CSubheap (hv1, sub2 @ sub, hv2)
   | `CWFSubst sub2               -> `CWFSubst (sub2 @ sub)
 
-type cstr = {cid: int; cdesc: cstrdesc; cloc: C.location}
+type 'a precstr = {cid: int; cdesc: 'a; cloc: C.location}
+
+type cstr = cstrdesc precstr
+
+type simplecstr = simplecstrdesc precstr
 
 let (fresh_cstrid, reset_fresh_cstrids) = M.mk_int_factory ()
 
@@ -312,8 +312,16 @@ let cstr_subst (sub: subst) (c: cstr): cstr =
 let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
   P.dprintf "%a: %a" C.d_loc loc d_cstrdesc cdesc
 
-let is_cstr_simple (c: cstr): bool =
-  is_cstrdesc_simple c.cdesc
+let d_simplecstr () ({cid = cid; cdesc = cdesc; cloc = loc}: simplecstr): P.doc =
+  P.dprintf "%a: %a" C.d_loc loc d_cstrdesc cdesc
+
+let filter_simple_cstrs_aux (scs: simplecstr list) (c: cstr): simplecstr list =
+  match c.cdesc with
+    | #simplecstrdesc as sds -> {c with cdesc = sds} :: scs
+    | _                      -> scs
+
+let filter_simple_cstrs (cs: cstr list): simplecstr list =
+  List.fold_left filter_simple_cstrs_aux [] cs
 
 type cstremap = ctvemap * cstr list
 
@@ -872,12 +880,12 @@ let constrain_scc ((fs, ae, css): funenv * annotenv * (heapvar * cstr list) list
 (* The following assumes that all locations are quantified, i.e., that
    no location in a callee's SCC also appears in a caller's SCC. *)
 
-type cstrmap = cstr IM.t
+type cstrmap = simplecstr IM.t
 
 module IMP = P.MakeMapPrinter(IM)
 
 let d_cstrmap =
-  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_cstr
+  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_simplecstr
 
 type heapdom = SS.t IM.t
 
@@ -933,8 +941,27 @@ let close_incs (hd: heapdom) (css: (heapvar * cstr list) list): cstr list list =
 let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstrmap =
   let css = List.rev css in
   let hd  = mk_heapdom css in
-  let cs  = css |> close_incs hd |> List.concat |> List.filter is_cstr_simple |> List.fold_left (fun cm c -> IM.add c.cid c cm) IM.empty in
+  let cs  = css |> close_incs hd |> List.concat |> filter_simple_cstrs |> List.fold_left (fun cm c -> IM.add c.cid c cm) IM.empty in
     (hd, cs)
+
+(******************************************************************************)
+(*************************** Constraint Dependencies **************************)
+(******************************************************************************)
+
+type inddep = int list IM.t (* indexvar -> cstr deps *)
+
+type slocdep = int list SLM.t (* sloc -> cstr deps *)
+
+type depmap = inddep * slocdep
+(*
+let add_dep ((idm, sdm): depmap) (c: cstr): depmap =
+  match c.cdesc with
+    | `CSubtype _ -> assert false
+    | `CInLoc _ -> assert false
+    | `CWFSubst _ -> assert false
+*)
+let mk_depmap (cm: cstrmap): depmap =
+  assert false
 
 (* API *)
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape SM.t * ctypeenv =
