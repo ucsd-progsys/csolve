@@ -8,10 +8,11 @@
 
 void chatting(char * s, ...)
 {
-  va_list ap;
+/*  va_list ap;
   va_start(ap,s);
   vfprintf(stdout, s, ap);
   va_end(ap);
+  */
 }
 
 

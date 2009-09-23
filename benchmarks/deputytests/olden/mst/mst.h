@@ -10,6 +10,8 @@
 #define FAT
 #endif
 
+#define NULL 0
+
 #include "hash.h"
 #define MAXPROC 1
 
