@@ -36,8 +36,6 @@ exception NoSpec
 let id_of_ciltype   = fun t -> t |> Cil.typeSig |> Cil.d_typsig () |> Pretty.sprint ~width:80
 let name_of_ciltype = id_of_ciltype (* fun t -> t |> Cil.d_type () |> Pretty.sprint ~width:80 *)
 
-let byte_size_of_cil = fun c -> 1 + ((Cil.bitsSizeOf c - 1) / 8)
-
 (*************************************************************************************)
 
 (* {{{ DO NOT DELETE
@@ -116,7 +114,7 @@ let is_pos_attr   = function Attr ("pos",_) -> true | _ -> false
 
 
 let add_off off c =
-  let i = byte_size_of_cil c in
+  let i = CilMisc.bytesSizeOf c in
   match off with 
   | Ct.IInt i'    -> Ct.IInt (i+i')
   | Ct.ISeq (_,_) -> Errormsg.s <| Errormsg.error "add_off %d to periodic offset %a" i Ct.d_index off
@@ -148,11 +146,11 @@ let rec conv_ciltype me loc (th, st, off) c =
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
   | TPtr (c',a) ->
       let po = if List.exists is_array_attr a 
-               then Some (byte_size_of_cil c') else None in
+               then Some (CilMisc.bytesSizeOf c') else None in
       let (th', st'), t = conv_ptr me loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 
   | TArray (c',_,_) -> 
-      conv_cilblock me loc (th, st, off) (Some (byte_size_of_cil c')) c'
+      conv_cilblock me loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
 
   | TNamed (ti, _) ->
       conv_ciltype me loc (th, st, off) ti.ttype

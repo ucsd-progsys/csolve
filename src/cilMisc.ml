@@ -108,7 +108,7 @@ let doc_of_formatter f a =
 (******************************************************************************)
 
 let bytesSizeOf t =
-  Cil.bitsSizeOf t / 8
+  1 + ((Cil.bitsSizeOf t - 1) / 8)
 
 let ptrRefType = function
   | TPtr (t, _)      -> t
