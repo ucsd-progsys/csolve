@@ -78,7 +78,10 @@ page_map ::
   forall    [A0; A1; A2; A3]
   arg       (srcenv: ref (A2, 0), srcvp: int (4, 0[1]), dstenv: ref (A2, 0), dstvp: int (4, 0[1]), envs: ref (A3, 0), pages: ref (A0, true), page_protected: ref (A1, true))
   ret       int (4, true)
-  store_in  [A3 |-> 0: ref (A2, 0); A2 |-> 0: int (4, true), 4: ref (A2, 0), 8: ref (A2, 0), 12[4]: int (4, true); A0 |-> true: int (4, true); A1 |-> true: int (4, true)]
+  store_in  [A3 |-> 0: ref (A2, 0); 
+             A2 |-> 0: int (4, true), 4: ref (A2, 0), 8: ref (A2, 0), 12[4]: int (4, true); 
+	     A0 |-> true: int (4, true); 
+	     A1 |-> true: int (4, true)]
   store_out [A3 |-> 0: ref (A2, 0); A2 |-> 0: int (4, true), 4: ref (A2, 0), 8: ref (A2, 0), 12[4]: int (4, true); A0 |-> true: int (4, true); A1 |-> true: int (4, true)]
 
 main ::

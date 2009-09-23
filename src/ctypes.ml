@@ -361,7 +361,7 @@ module LDesc = struct
   let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, cnts): 'a t): P.doc =
     match cnts with
       | Empty           -> P.text ""
-      | Uniform pct     -> P.dprintf "*: %a" pt pct
+      | Uniform pct     -> P.dprintf "true: %a" pt pct
       | NonUniform pcts ->
           let p = get_period_default po in
             P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts

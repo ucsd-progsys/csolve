@@ -5,7 +5,7 @@ main :: forall    []
         store_out [] 
 
 page_map :: forall    [A23;A24;A25]
-            arg       (srcenv : ref(A23, 0), srcvp : int(4, true), dstenv : ref(A23, 0), dstvp : int(4, true), envs : ref(A24, 0), pages : ref(A25, 0[4]), page_protected : ref(A25, 0[4]))
+            arg       (srcenv : ref(A23, 0), srcvp : int(4, 0[1]), dstenv : ref(A23, 0), dstvp : int(4, 0[1]), envs : ref(A24, 0), pages : ref(A25, 0[4]), page_protected : ref(A25, 0[4]))
             ret       int(4, true)
             store_in  [A25 |-> 0[4]: int(4, true);
                       A24 |-> 0: ref(A23, 0);
@@ -15,7 +15,7 @@ page_map :: forall    [A23;A24;A25]
                       A23 |-> 0: int(4, true), 4: ref(A23, 0), 8: ref(A23, 0), 12[4]: int(4, true)] 
 
 page_unmap :: forall    [A20;A21;A22]
-              arg       (env : ref(A20, 0), vp : int(4, true), envs : ref(A21, 0), pages : ref(A22, 0[4]), page_protected : ref(A22, 0[4]))
+              arg       (env : ref(A20, 0), vp : int(4, 0[1]), envs : ref(A21, 0), pages : ref(A22, 0[4]), page_protected : ref(A22, 0[4]))
               ret       int(0, true)
               store_in  [A22 |-> 0[4]: int(4, true);
                         A21 |-> 0: ref(A20, 0);

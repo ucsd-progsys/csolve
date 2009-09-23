@@ -194,7 +194,7 @@ void env_free(env_t *env, env_t **envs, int_array pages, int_array page_protecte
     mem_check(envs, pages, page_protected);
 }
 
-int page_alloc(env_t *env, int vp, env_t **envs, int_array pages, int_array page_protected)
+int page_alloc(env_t *env, int __attribute__((pos)) vp, env_t **envs, int_array pages, int_array page_protected)
 {
     int pp;
     int tmp; // RECHECK ISSUE
@@ -220,12 +220,16 @@ int page_alloc(env_t *env, int vp, env_t **envs, int_array pages, int_array page
     return 0;
 }
 
-void page_unmap(env_t *env, int vp, env_t **envs, int_array pages, int_array page_protected)
+void page_unmap(env_t *env, int __attribute__((pos)) vp, env_t **envs, int_array pages, int_array page_protected)
 {
     int tmp; // RECHECK ISSUE
 
-    assert(0 <= vp); assert(vp < 2000);
+    assert(0 <= vp); 
+    
+    assert(vp < 2000);
+   
     tmp = env->env_pgdir[vp];
+
     if (tmp >= 0){
         page_decref(tmp, pages, page_protected);
     }
@@ -233,7 +237,7 @@ void page_unmap(env_t *env, int vp, env_t **envs, int_array pages, int_array pag
     mem_check(envs, pages, page_protected);
 }
 
-int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t **envs, int_array pages, int_array page_protected)
+int page_map(env_t *srcenv, int __attribute__((pos)) srcvp, env_t *dstenv, int __attribute__((pos)) dstvp, env_t **envs, int_array pages, int_array page_protected)
 {
     int tmp, tmp2; // RECHECK ISSUE
 
@@ -285,12 +289,14 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
 
     envs = (env_t *) malloc(sizeof(env_t *));
     *envs = (env_t *) 0;
+
     env_t *e = env_alloc(envs, pages, page_protected);
 
     if (e!=0) {
         env_check(e, envs, pages, page_protected);
         env_free(e, envs, pages, page_protected);
     }
+
 
     env_t *e2 = env_alloc(envs, pages, page_protected);
 
@@ -310,4 +316,5 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
           }
         }
     }
+
 }

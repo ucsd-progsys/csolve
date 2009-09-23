@@ -1,3 +1,5 @@
+//! run with -manspec
+
 int main(int n){
   int i, z; 
   //n = nondet();

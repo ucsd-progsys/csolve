@@ -112,6 +112,8 @@ let unroll_ciltype t =
 
 
 let is_array_attr = function Attr ("array",_) -> true | _ -> false
+let is_pos_attr   = function Attr ("pos",_) -> true | _ -> false
+
 
 let add_off off c =
   let i = byte_size_of_cil c in
@@ -125,14 +127,20 @@ let adj_period po idx =
   | Some n, Ct.IInt i -> Ct.ISeq (i, n)
   | _, _              -> assertf "adjust_period: adjusting a periodic index"
 
-let ldesc_of_index_ctypes po ts =
-  ts >> List.iter (fun (i,t) -> Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore)
-     |> Misc.twrap "Ldesc_create" Ct.LDesc.create  
+let ldesc_of_index_ctypes ts =
+  let _ = List.iter begin fun (i,t) -> 
+            Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore
+          end ts in
+  match ts with 
+  | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)]
+  | _                    -> Ct.LDesc.create ts 
+
+let index_of_attrs = fun ats -> if List.exists is_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
 
 let conv_cilbasetype = function 
-  | TVoid _      -> Ct.CTInt (0, Ct.ITop)
-  | TInt (ik, _) -> Ct.CTInt (bytesSizeOfInt ik, Ct.ITop)
-  | _            -> assertf "ctype_of_cilbasetype: non-base!"
+  | TVoid ats      -> Ct.CTInt (0, index_of_attrs ats)
+  | TInt (ik, ats) -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
+  | _              -> assertf "ctype_of_cilbasetype: non-base!"
 
 let rec conv_ciltype me loc (th, st, off) c = 
   match c with
@@ -163,7 +171,7 @@ and conv_ptr me loc (th, st) po c =
     let l                = Sloc.fresh Sloc.Abstract in
     let th'              = SM.add tid l th in
     let (th'', st', _), its = conv_cilblock me loc (th', st, Ct.IInt 0) po c in
-    let b                = ldesc_of_index_ctypes po its in
+    let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.CTRef (l, idx)
 
@@ -185,9 +193,10 @@ let cfun_of_fundec me loc fd =
       let xts   = Cil.argsToList xtso in
       let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
       let ist   = res |> fst |> snd3 in
+      let th    = res |> fst |> fst3 in
       let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
       let args  = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
-      let res'  = conv_ciltype me loc (SM.empty, ist, Ct.IInt 0) t in 
+      let res'  = conv_ciltype me loc (th, ist, Ct.IInt 0) t in 
       let ost   = res' |> fst |> snd3 in
       let ret   = res' |> snd |> function [(_,t)] -> t | _ -> assertf "multi outs" in
       let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
