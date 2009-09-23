@@ -5,10 +5,10 @@ type t = varinfo list list
 
 module ComparableVar =
   struct
-    type t      = varinfo
-    let compare = compare
-    let equal   = (=)
-    let hash    = Hashtbl.hash
+    type t            = varinfo
+    let compare v1 v2 = compare v1.vid v2.vid
+    let equal v1 v2   = v1.vid = v2.vid
+    let hash          = Hashtbl.hash
   end
 
 module G   = Graph.Imperative.Digraph.Concrete(ComparableVar)
