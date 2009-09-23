@@ -1,10 +1,14 @@
 [genspec]
-(run regrtest.py modified with -autospec default)
-Failed tests: 
-../postests/loop.c,		["open" program, spec says input is > 10] 
-../postests/stringexample.c, 	[pointer arithmetic / struct embedding ]
-HEREHEREHERHERHERHERE../postests/pmapdistilled.c, 	[ see "dummy_fun" sig in postests/minipmap.c]
-../postests/em3d.c.	
+
+Usage: 
+1. grep "attribute" to see hint language
+2. default uses automatically generated spec
+3. override with -manspec (which uses .spec file)
+
+Pending issues (add attribs etc. to allow):
+1. postests/stringexample.c (nested structures and ptr-arith)
+2. non-aliasing (eg don't alias two int * by default)
+3. "overriding" i.e. use supplied manual specs and generate rest (for other functions)
 
 -------------------------------------------------------------------------
 [tpz32] 
