@@ -138,15 +138,15 @@ let itypecstr_rhs_var ({itcdesc = ISubtype (_, itv); itcloc = loc} as itc: itype
 
 let itypecstr_sat (is: indexsol) ({itcdesc = ISubtype (itv1, itv2)}: itypecstr): bool =
   match itv1, itv2 with
-    | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> is_subindex (indexexp_apply is ie) (IndexSol.find iv is)
-    | CTRef (_, ie), CTRef (_, IEVar iv)                -> is_subindex (indexexp_apply is ie) (IndexSol.find iv is)
-    | _                                                 -> false
+    | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | _                                             -> false
 
-let refine_itypecstr (is: indexsol) ({itcid = id; itcdesc = ISubtype (itv1, itv2); itcloc = loc}: itypecstr): indexsol =
+let refine_itypecstr (is: indexsol) ({itcid = id; itcdesc = ISubtype (itv1, itv2); itcloc = loc} as itc: itypecstr): indexsol =
   match itv1, itv2 with
     | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
     | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
-    | _                                                 -> assert false
+    | _                                                 -> E.s <| C.errorLoc loc "Failed index constraint %a\n\n" d_itypecstr itc
 
 type cstrmap = itypecstr M.IntMap.t
 
