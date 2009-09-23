@@ -214,9 +214,11 @@ let solve (itcs: itypecstr list): indexsol =
 
 type varenv = itypevar VM.t
 
-type funenv = indexexp precfun VM.t
+type funenv = ifunvar VM.t
 
-type env = varenv * funenv
+type builtinenv = ifunvar SM.t
+
+type env = varenv * funenv * builtinenv
 
 (* pmr: should be in a common place *)
 let int_width    = C.bytesSizeOfInt C.IInt
@@ -236,7 +238,7 @@ let rec constrain_exp (env: env) (loc: C.location): C.exp -> itypevar * itypecst
   | C.SizeOf t                    -> constrain_sizeof loc t
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-and constrain_lval ((ve, _) as env: env) (loc: C.location): C.lval -> itypevar * itypecstr list = function
+and constrain_lval ((ve, _, _) as env: env) (loc: C.location): C.lval -> itypevar * itypecstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, [])
   | (C.Mem e, C.NoOffset) as lv ->
       let itv, cs = constrain_exp env loc e in
@@ -337,9 +339,9 @@ let constrain_arg (env: env) (loc: C.location) ((itvs, css): itypevar list * ity
 let constrain_args (env: env) (loc: C.location) (args: C.exp list): itypevar list * itypecstr list list =
   List.fold_left (constrain_arg env loc) ([], []) args
 
-let constrain_app ((_, fe) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
+let constrain_app ((_, fe, be) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
   let itvs, css = constrain_args env loc args in
-  let ftv       = VM.find f fe in
+  let ftv       = try VM.find f fe with Not_found -> SM.find f.C.vname be in
   let itvfs     = List.map snd ftv.args in
   let css       = List.map2 (fun itva itvf -> mk_isubtypecstr loc itva itvf) itvs itvfs :: css in
     match lvo with
@@ -397,7 +399,7 @@ let constrain_phi_defs (ve: varenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: varenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): itypecstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
-let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
+let constrain_fun (be: builtinenv) (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
   let blocks      = cfg.Ssa.blocks in
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
@@ -407,7 +409,7 @@ let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
   let ftv         = VM.find fd.C.svar fe in
   let formalcs    = List.map (fun (v, itv) -> mk_isubtypecstr loc (List.assoc v.C.vname ftv.args) itv) bodyformals in
   let phics       = constrain_phis ve phis in
-  let env         = (ve, fe) in
+  let env         = (ve, fe, be) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] blocks in
   let cs          = formalcs :: phics :: css |> List.concat in
   let _           = P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname in
@@ -421,12 +423,13 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_itypevar fty)) ftys in
     mk_cfun [] fctys (fresh_itypevar rty) SLM.empty SLM.empty
 
-let constrain_prog (scim: ST.ssaCfgInfo SM.t): itypecstr list =
+let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): itypecstr list =
+  let be = SM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
   let fe = SM.fold (fun _ {ST.fdec = fd} fe -> VM.add fd.C.svar (fresh_fun_typ fd) fe) scim VM.empty in
-    SM.fold (fun _ sci css -> (constrain_fun fe sci |> snd) :: css) scim [] |> List.concat
+    SM.fold (fun _ sci css -> (constrain_fun be fe sci |> snd) :: css) scim [] |> List.concat
 
 (* API *)
-let infer_indices (scim: ST.ssaCfgInfo SM.t): unit =
-  let is = constrain_prog scim |> solve in
+let infer_indices (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): unit =
+  let is = constrain_prog ctenv scim |> solve in
   let _  = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in
     ()
