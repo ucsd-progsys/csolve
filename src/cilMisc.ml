@@ -119,6 +119,13 @@ let ptrRefType = function
   | TArray (t, _, _) -> t
   | _                -> failwith "ptrRefType called with non-pointer argument"
 
+let rec typ_width (t: typ): int =
+  match unrollType t with
+    | TInt (ik, _)                  -> bytesSizeOfInt ik
+    | TPtr _                        -> typ_width !upointType
+    | TComp (ci, _) when ci.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.ftype) 0 ci.cfields
+    | t                             -> Errormsg.s <| Errormsg.bug "Unimplemented typ_width: %a@!@!" d_type t
+
 (******************************************************************************)
 (******************************** Variable Maps *******************************)
 (******************************************************************************)

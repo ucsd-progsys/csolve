@@ -11,6 +11,8 @@ module SLM = Sloc.SlocMap
 module SS  = Sloc.SlocSet
 module CG  = Callgraph
 module VM  = CilMisc.VarMap
+module II  = Inferindices
+module CM  = CilMisc
 
 open Ctypes
 open M.Ops
@@ -446,13 +448,6 @@ let int_width    = C.bytesSizeOfInt C.IInt
 let short_width  = C.bytesSizeOfInt C.IShort
 let char_width   = C.bytesSizeOfInt C.IChar
 
-let rec typ_width (t: C.typ): int =
-  match C.unrollType t with
-    | C.TInt (ik, _)                    -> C.bytesSizeOfInt ik
-    | C.TPtr _                          -> typ_width !C.upointType
-    | C.TComp (ci, _) when ci.C.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.C.ftype) 0 ci.C.cfields
-    | t                                 -> E.s <| E.bug "Unimplemented typ_width: %a@!@!" C.d_type t
-
 let fresh_ctypevar (t: C.typ): ctypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> fresh_ctvint (C.bytesSizeOfInt ik)
@@ -674,9 +669,9 @@ and constrain_unop (op: C.unop) (env: env) (ctem: ctvemap) (loc: C.location) (t:
       | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> ctypevar = function
-  | C.LNot -> CTInt (typ_width rt, IEConst (ISeq (0, 1)))
-  | C.BNot -> CTInt (typ_width rt, IEConst ITop)
-  | C.Neg  -> CTInt (typ_width rt, IEConst ITop)
+  | C.LNot -> CTInt (CM.typ_width rt, IEConst (ISeq (0, 1)))
+  | C.BNot -> CTInt (CM.typ_width rt, IEConst ITop)
+  | C.Neg  -> CTInt (CM.typ_width rt, IEConst ITop)
 
 and constrain_binop (op: C.binop) (env: env) (ctem: ctvemap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv1, cs1, ss1, ctem) = constrain_exp env ctem loc e1 in
@@ -700,22 +695,22 @@ and apply_binop: C.binop -> C.typ -> ctypevar -> ctypevar -> ctypevar = function
 
 and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar =
   match (ctv1, ctv2) with
-    | (CTInt (n1, ie1), CTInt (n2, ie2)) -> CTInt (typ_width rt, f ie1 ie2)
+    | (CTInt (n1, ie1), CTInt (n2, ie2)) -> CTInt (CM.typ_width rt, f ie1 ie2)
     | _                                  -> E.s <| E.bug "Type mismatch in apply_arithmetic@!@!"
 
 and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar =
   match (C.unrollType pt, ctv1, ctv2) with
-    | (C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2)) when n = int_width -> CTRef (s, f ie1 (typ_width t) ie2)
+    | (C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2)) when n = int_width -> CTRef (s, f ie1 (CM.typ_width t) ie2)
     | _                                                                  -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar =
-  CTInt (typ_width !C.upointType, IEConst ITop)
+  CTInt (CM.typ_width !C.upointType, IEConst ITop)
 
 and apply_rel (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar =
   CTInt (int_width, IEConst (ISeq (0, 1)))
 
 and apply_unknown (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar =
-  CTInt (typ_width rt, IEConst ITop)
+  CTInt (CM.typ_width rt, IEConst ITop)
 
 and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctypevar * cstr list * S.t list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
@@ -948,11 +943,9 @@ let simplify_cs (css: (heapvar * cstr list) list): heapdom * cstrmap =
 (*************************** Constraint Dependencies **************************)
 (******************************************************************************)
 
-type inddep = int list IM.t (* indexvar -> cstr deps *)
-
 type slocdep = int list SLM.t (* sloc -> cstr deps *)
 
-type depmap = inddep * slocdep
+type depmap = slocdep
 (*
 let add_dep ((idm, sdm): depmap) (c: cstr): depmap =
   match c.cdesc with

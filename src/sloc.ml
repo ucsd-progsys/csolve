@@ -11,6 +11,8 @@ let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 let fresh lty =
   Sloc (fresh_slocid (), lty)
 
+let none = Sloc (-1, Abstract)
+
 let compare (Sloc (lid1, _): t) (Sloc (lid2, _): t): int =
   compare lid1 lid2
 

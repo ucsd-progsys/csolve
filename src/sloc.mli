@@ -48,6 +48,7 @@ module SlocMap:
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   end
 
+val none        : t
 val fresh       : sloctype -> t
 val is_abstract : t -> bool
 val sloc_type   : t -> sloctype

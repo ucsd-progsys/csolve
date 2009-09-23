@@ -8,6 +8,7 @@ module S   = Sloc
 module SLM = Sloc.SlocMap
 module ST  = Ssa_transform
 module SM  = M.StringMap
+module Cs  = Constants
 
 open Ctypes
 open M.Ops
@@ -63,6 +64,11 @@ module IndexSol =
                       end)
 
 type indexsol = index IndexSol.t
+
+module ISPrinter = P.MakeMapPrinter(IndexSol)
+
+let d_indexsol =
+  ISPrinter.d_map "\n" d_indexvar d_index
 
 let rec indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i             -> i
@@ -124,6 +130,12 @@ let mk_isubtypecstr (loc: C.location) (itv1: itypevar) (itv2: itypevar): itypecs
 let itypecstr_id ({itcid = id}: itypecstr): int =
   id
 
+let itypecstr_rhs_var ({itcdesc = ISubtype (_, itv); itcloc = loc} as itc: itypecstr): indexvar option =
+  match itypevar_indexvars itv with
+    | []   -> None
+    | [iv] -> Some iv
+    | _    -> E.s <| C.errorLoc loc "Ill-formed constraint: %a\n" d_itypecstr itc
+
 let itypecstr_sat (is: indexsol) ({itcdesc = ISubtype (itv1, itv2)}: itypecstr): bool =
   match itv1, itv2 with
     | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> is_subindex (indexexp_apply is ie) (IndexSol.find iv is)
@@ -138,6 +150,11 @@ let refine_itypecstr (is: indexsol) ({itcid = id; itcdesc = ISubtype (itv1, itv2
 
 type cstrmap = itypecstr M.IntMap.t
 
+module CSMPrinter = P.MakeMapPrinter(M.IntMap)
+
+let d_cstrmap =
+  CSMPrinter.d_map "\n" (fun () -> P.num) d_itypecstr
+
 let mk_cstrmap (itcs: itypecstr list): cstrmap =
   List.fold_left (fun cm itc -> M.IntMap.add itc.itcid itc cm) M.IntMap.empty itcs
 
@@ -150,6 +167,11 @@ module IM = M.MapWithDefault(struct
                              end)
 
 type cstrdepmap = int list IM.t (* indexvar -> indexcstr deps *)
+
+module CDMPrinter = P.MakeMapPrinter(IM)
+
+let d_cstrdepmap =
+  CDMPrinter.d_map "\n" d_indexvar (P.d_list ", " (fun () -> P.num))
 
 let add_cstrdep (cdm: cstrdepmap) ({itcid = id; itcdesc = ISubtype (itv, _)}: itypecstr): cstrdepmap =
   itv |> itypevar_indexvars |> List.fold_left (fun cdm iv -> IM.add iv (id :: IM.find iv cdm) cdm) cdm
@@ -169,17 +191,20 @@ let wklist_push (wkl: WkList.t) (itcids: int list): WkList.t =
   List.fold_left (M.flip WkList.add) wkl itcids
 
 let rec iter_solve (cm: cstrmap) (cdm: cstrdepmap) (wkl: WkList.t) (is: indexsol): indexsol =
-  match try Some (WkList.maximum wkl) with Not_found -> None with
+  match try Some (WkList.maximum wkl) with Heaps.EmptyHeap -> None with
     | None       -> is
     | Some itcid ->
         let itc       = M.IntMap.find itcid cm in
         let wkl       = WkList.remove wkl in
-        let (wkl, is) = if itypecstr_sat is itc then (wkl, is) else (wklist_push wkl (IM.find itc.itcid cdm), refine_itypecstr is itc) in
-          iter_solve cm cdm (WkList.remove wkl) is
+        let succs     = itypecstr_rhs_var itc |> function Some iv -> IM.find iv cdm | None -> [] in
+        let (wkl, is) = if itypecstr_sat is itc then (wkl, is) else (wklist_push wkl succs, refine_itypecstr is itc) in
+          iter_solve cm cdm wkl is
 
 let solve (itcs: itypecstr list): indexsol =
   let cm  = mk_cstrmap itcs in
+  let _   = if Cs.ck_olev Cs.ol_solve then P.printf "Constraints:\n\n%a\n\n" d_cstrmap cm |> ignore in
   let cdm = mk_cstrdepmap itcs in
+  let _   = if Cs.ck_olev Cs.ol_solve then P.printf "Constraint dependencies:\n\n%a\n\n" d_cstrdepmap cdm |> ignore in
   let wkl = itcs |> List.map itypecstr_id |> wklist_push WkList.empty in
     iter_solve cm cdm wkl IndexSol.empty
 
@@ -333,9 +358,9 @@ let constrain_instr_aux (env: env) (css: itypecstr list list): C.instr -> itypec
         (mk_isubtypecstr loc itv2 itv1 :: cs1) :: cs2 :: css
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
-      constrain_args env loc args |> snd
+      (constrain_args env loc args |> snd |> List.concat) :: css
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
-      constrain_app env loc f lvo args
+      (constrain_app env loc f lvo args |> List.concat) :: css
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (is: C.instr list): itypecstr list =
@@ -399,3 +424,9 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
 let constrain_prog (scim: ST.ssaCfgInfo SM.t): itypecstr list =
   let fe = SM.fold (fun _ {ST.fdec = fd} fe -> VM.add fd.C.svar (fresh_fun_typ fd) fe) scim VM.empty in
     SM.fold (fun _ sci css -> (constrain_fun fe sci |> snd) :: css) scim [] |> List.concat
+
+(* API *)
+let infer_indices (scim: ST.ssaCfgInfo SM.t): unit =
+  let is = constrain_prog scim |> solve in
+  let _  = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in
+    ()
