@@ -332,12 +332,12 @@ let constrain_return (env: env) (rtv: itypevar) (loc: C.location): C.exp option 
         let itv, cs = constrain_exp env loc e in
           mk_isubtypecstr loc itv rtv :: cs
 
-let constrain_arg (env: env) (loc: C.location) ((itvs, css): itypevar list * itypecstr list list) (e: C.exp): itypevar list * itypecstr list list =
+let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((itvs, css): itypevar list * itypecstr list list): itypevar list * itypecstr list list =
   let itv, cs = constrain_exp env loc e in
     (itv :: itvs, cs :: css)
 
 let constrain_args (env: env) (loc: C.location) (args: C.exp list): itypevar list * itypecstr list list =
-  List.fold_left (constrain_arg env loc) ([], []) args
+  List.fold_right (constrain_arg env loc) args ([], [])
 
 let constrain_app ((_, fe, be) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
   let itvs, css = constrain_args env loc args in
