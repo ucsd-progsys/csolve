@@ -40,6 +40,9 @@ let byte_size_of_cil = fun c -> 1 + ((Cil.bitsSizeOf c - 1) / 8)
 
 (*************************************************************************************)
 
+(* {{{ DO NOT DELETE
+ * Unused code to determine if a type is recursive
+ 
 let rec unroll_typinfo ti tm =
   if SM.mem ti.tname tm then tm else 
     tm |> Misc.sm_adds ti.tname (name_of_ciltype ti.ttype) 
@@ -93,30 +96,13 @@ let is_cyclic =
     let _  = Printf.printf "is_cyclic %s = %b \n" trg rv in
     rv
 
-
-(*
-let idx_of_cil me c i =
-  if c |> id_of_ciltype |> is_cyclic me
-  then (Ct.IInt i)
-  else (Ct.ISeq (i, byte_size_of_cil c))
-
-let idx_of_cil seq c i = 
-  if seq then (Ct.ISeq (i, byte_size_of_cil c)) else (Ci.IInt i)
-
-*)
+ }}} *)
 
 let mk_idx po i =
   match po with 
   | None -> Ct.IInt i
   | Some n -> Ct.ISeq (i, n)
 
-let ldesc_of_ctypes po ts =
-  let _   = asserti (ts <> []) "ERROR: ldesc_of_types" in
-  ts |> Misc.mapfold (fun i t -> (i + Ct.prectype_width t), (i,t)) 0 
-     |> snd
-     |> List.map (Misc.app_fst (mk_idx po)) 
-     >> List.iter (fun (i,t) -> Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore)
-     |> Misc.twrap "Ldesc_create" Ct.LDesc.create  
 
 let unroll_ciltype t =
   match Cil.unrollType t with
@@ -124,23 +110,46 @@ let unroll_ciltype t =
                      List.map (fun x -> x.ftype) ci.cfields
   | t             -> [t]
 
-let ctype_of_cilbasetype = function 
+
+let is_array_attr = function Attr ("array",_) -> true | _ -> false
+
+let add_off off c =
+  let i = byte_size_of_cil c in
+  match off with 
+  | Ct.IInt i'    -> Ct.IInt (i+i')
+  | Ct.ISeq (_,_) -> Errormsg.s <| Errormsg.error "add_off %d to periodic offset %a" i Ct.d_index off
+
+let adj_period po idx = 
+  match po, idx with
+  | None  , _         -> idx
+  | Some n, Ct.IInt i -> Ct.ISeq (i, n)
+  | _, _              -> assertf "adjust_period: adjusting a periodic index"
+
+let ldesc_of_index_ctypes po ts =
+  ts >> List.iter (fun (i,t) -> Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore)
+     |> Misc.twrap "Ldesc_create" Ct.LDesc.create  
+
+let conv_cilbasetype = function 
   | TVoid _      -> Ct.CTInt (0, Ct.ITop)
   | TInt (ik, _) -> Ct.CTInt (bytesSizeOfInt ik, Ct.ITop)
   | _            -> assertf "ctype_of_cilbasetype: non-base!"
 
-let is_array_attr = function Attr ("array",_) -> true | _ -> false
-
-let rec conv_ciltype me loc (th, st) c = 
+let rec conv_ciltype me loc (th, st, off) c = 
   match c with
-  | TVoid _ | TInt (_,_) -> 
-      (th, st), ctype_of_cilbasetype c
-  | TPtr (c,a) | TArray (c,_,a) when List.exists is_array_attr a ->
-      conv_ptr me loc (th, st) (Some (byte_size_of_cil c)) c
-  | TPtr (c,_) | TArray (c,_,_) ->
-      conv_ptr me loc (th, st) None c
+  | TVoid _ | TInt (_,_) ->
+      (th, st, add_off off c), [(off, conv_cilbasetype c)]
+  | TPtr (c',a) ->
+      let po = if List.exists is_array_attr a 
+               then Some (byte_size_of_cil c') else None in
+      let (th', st'), t = conv_ptr me loc (th, st) po c' in
+      (th', st', add_off off c), [(off, t)] 
+  | TArray (c',_,_) -> 
+      conv_cilblock me loc (th, st, off) (Some (byte_size_of_cil c')) c'
+
   | TNamed (ti, _) ->
-      conv_ciltype me loc (th, st) ti.ttype
+      conv_ciltype me loc (th, st, off) ti.ttype
+  | TComp (_, _) ->
+      conv_cilblock me loc (th, st, off) None c
   | _          -> 
       let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
       assertf "TBD: conv_ciltype" 
@@ -149,21 +158,22 @@ and conv_ptr me loc (th, st) po c =
   let tid = id_of_ciltype c in
   let idx = mk_idx po 0 in
   if SM.mem tid th then
-    let l              = SM.find tid th in
-    (th, st), Ct.CTRef (l, idx) 
+    (th, st), Ct.CTRef (SM.find tid th, idx) 
   else
-    let l              = Sloc.fresh Sloc.Abstract in
-    let th'            = SM.add tid l th in
-    let (th'', st'), b = conv_cilblock me loc (th', st) po c in 
-    let st''           = SLM.add l b st' in
+    let l                = Sloc.fresh Sloc.Abstract in
+    let th'              = SM.add tid l th in
+    let (th'', st', _), its = conv_cilblock me loc (th', st, Ct.IInt 0) po c in
+    let b                = ldesc_of_index_ctypes po its in
+    let st''             = SLM.add l b st' in
     (th'', st''), Ct.CTRef (l, idx)
 
-and conv_cilblock me loc (th, st) po c =
+and conv_cilblock me loc (th, st, off) po c =
   let cs = c |> unroll_ciltype in
   let _  = Pretty.printf "conv_cilblock: unroll %a \n" d_type c in
   let _  = List.map (fun c' -> Pretty.printf "conv_cilblock: into %a \n" d_type c') cs in
-  cs |> Misc.mapfold (conv_ciltype me loc) (th, st) 
-     |> Misc.app_snd (ldesc_of_ctypes po) 
+  cs |> Misc.mapfold (conv_ciltype me loc) (th, st, off)
+     |> Misc.app_snd Misc.flatten
+     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
 let conv_ciltype x y z c = 
   Pretty.printf "conv_ciltype: %a \n" d_type c |> ignore;
@@ -172,19 +182,22 @@ let conv_ciltype x y z c =
 let cfun_of_fundec me loc fd = 
   match fd.svar.vtype with 
   | TFun (t, xtso, _, _) -> 
-      let xts          = Cil.argsToList xtso in
-      let (_,ist), ts  = Misc.map snd3 xts
-                         |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty) in
-      let args         = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
-      let (_,ost), ret = conv_ciltype me loc (SM.empty, ist) t in
-      let qlocs        = SLM.fold (fun l _ locs -> l :: locs) ost [] in
+      let xts   = Cil.argsToList xtso in
+      let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
+      let ist   = res |> fst |> snd3 in
+      let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
+      let args  = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
+      let res'  = conv_ciltype me loc (SM.empty, ist, Ct.IInt 0) t in 
+      let ost   = res' |> fst |> snd3 in
+      let ret   = res' |> snd |> function [(_,t)] -> t | _ -> assertf "multi outs" in
+      let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
       Ct.mk_cfun qlocs args ret ist ost
   | _ -> 
       let _ = errorLoc loc "Non-fun type for %s\n\n" fd.svar.vname in
       assert false
 
 let specs_of_file cil =
-  let me = mk_type_graph cil in
+  let me = () (* mk_type_graph cil *) in
   foldGlobals cil begin fun acc -> function
     | GFun (fd, loc) -> begin 
         try (fd.svar.vname, cfun_of_fundec me loc fd) :: acc with NoSpec -> 

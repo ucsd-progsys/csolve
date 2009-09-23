@@ -216,12 +216,13 @@ let do_memo memo f args key =
     let _ = Hashtbl.replace memo key rv in
     rv
 
-let map_pair   = fun f (x1, x2)  -> (f x1, f x2)
+let map_pair   = fun f (x1, x2)     -> (f x1, f x2)
 let map_triple = fun f (x1, x2, x3) -> (f x1, f x2, f x3)
-let app_fst f (a, b) = (f a, b)
-let app_snd f (a, b) = (a, f b)
-
-
+let app_fst    = fun f (a, b)       -> (f a, b)
+let app_snd    = fun f (a, b)       -> (a, f b)
+let app_fst3   = fun f (a, b, c)    -> (f a, b, c)
+let app_snd3   = fun f (a, b, c)    -> (a, f b, c)
+let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
 (*
 let mapfold f xs b = 
   List.fold_left 
@@ -257,6 +258,10 @@ let flatten xss =
   xss
   |> List.fold_left (fun acc xs -> xs ++ acc) []
   |> List.rev
+
+let flatsingles xss =
+  xss |> List.fold_left (fun acc -> function [x] -> x::acc | _ -> assertf "flatsingles") []
+      |> List.rev
 
 let splitflatten xsyss = 
   let xss, yss = List.split xsyss in

@@ -6,23 +6,6 @@ Failed tests:
 HEREHEREHERHERHERHERE../postests/pmapdistilled.c, 	[ see "dummy_fun" sig in postests/minipmap.c]
 ../postests/em3d.c.	
 
-[Sorts]	How to separate int and reference types while still allowing ptr-arith
-	i.e. create a separate "Z3-int" type called "ref"
-	- will help to speed up instantiation
-	- will NOT help to speed up queries, since Z3 flattens it all out
-
-[depgraph]
-	(a) delete back edges (where src is):
-	    	- Return Store		[ok]
-		- Generalization-Sub	[tried, makes things worse]
-
-	(b) [did not do] add control dependency edges 
-		- intra block,
-		- block dominator 
-		  (i prec j then add edges from "i" constraints to "j" constraints)
-	    both can be done by first clustering constraints by block
-
-
 -------------------------------------------------------------------------
 [tpz32] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]
@@ -60,9 +43,26 @@ HEREHEREHERHERHERHERE../postests/pmapdistilled.c, 	[ see "dummy_fun" sig in post
 - [globals]	
 - [unions]
 
-------------------------
+------------------------------ STALE ------------------------------
 
-// Abs/Conc loc
+[Sorts]	How to separate int and reference types while still allowing ptr-arith
+	i.e. create a separate "Z3-int" type called "ref"
+	- will help to speed up instantiation
+	- will NOT help to speed up queries, since Z3 flattens it all out
+
+[depgraph]
+	(a) delete back edges (where src is):
+	    	- Return Store		[ok]
+		- Generalization-Sub	[tried, makes things worse]
+
+	(b) [did not do] add control dependency edges 
+		- intra block,
+		- block dominator 
+		  (i prec j then add edges from "i" constraints to "j" constraints)
+	    both can be done by first clustering constraints by block
+
+
+[Abs-Conc]
 
 Note: Let [f] be a function in the code. [f] requires either  
   (1) a "set" of locations (use [forall [A0...]] in spec), or
