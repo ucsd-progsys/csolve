@@ -525,7 +525,7 @@ let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) 
           let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
             ((ctvm, mk_subty loc rtv lvctv :: cs), annot)
 
-let printf_funs = ["printf"; "fprintf"]
+let printf_funs = ["printf"; "fprintf"; "chatting"]
 
 let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.block_annotation): C.instr -> cstremap * RA.block_annotation = function
   | C.Set (lv, e, loc) ->
