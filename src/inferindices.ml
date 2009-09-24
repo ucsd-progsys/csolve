@@ -402,6 +402,12 @@ let constrain_phi_defs (ve: varenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: varenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): itypecstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
+let dump_constraints (fn: string) (ftv: ifunvar) (cs: itypecstr list): unit =
+  let _ = P.printf "Constraints for %s:\n\n" fn in
+  let _ = P.printf "%a\n" d_ifunvar ftv in
+  let _ = P.printf "%a\n\n" (P.d_list "\n" d_itypecstr) cs in
+    ()
+
 let constrain_fun (be: builtinenv) (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
   let blocks      = cfg.Ssa.blocks in
   let bodyformals = fresh_vars fd.C.sformals in
@@ -415,10 +421,7 @@ let constrain_fun (be: builtinenv) (fe: funenv) ({ST.fdec = fd; ST.phis = phis; 
   let env         = (ve, fe, be) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] blocks in
   let cs          = formalcs :: phics :: css |> List.concat in
-  let _           = P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname in
-  let _           = P.printf "%a\n" d_ifunvar ftv in
-  let _           = List.iter (fun c -> P.printf "%a\n" d_itypecstr c |> ignore) cs in
-  let _           = P.printf "\n" in
+  let _           = if Cs.ck_olev Cs.ol_solve then dump_constraints fd.C.svar.C.vname ftv cs in
     (ve, cs)
 
 let fresh_fun_typ (fd: C.fundec): ifunvar =
