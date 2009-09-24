@@ -134,3 +134,12 @@ module VarMap = Map.Make(struct
                            type t = varinfo
                            let compare v1 v2 = compare v1.vid v2.vid
                          end)
+
+module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
+
+(******************************************************************************)
+(**************************** Misc. Pretty Printers ***************************)
+(******************************************************************************)
+
+let d_var () (v: varinfo): Pretty.doc =
+  Pretty.text v.vname
