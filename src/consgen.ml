@@ -58,7 +58,7 @@ let new_block_reftype = FI.t_zero_refctype (* or, more soundly? FI.t_true_refcty
 
 let extend_world ld binds cloc newloc (env, sto, tago) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
-  let env'   = List.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
+  let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
                |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
                |> FI.ce_adds env in
   let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
@@ -205,7 +205,7 @@ let cons_of_set me tag grd (env, sto, tago) = function
 (****************************************************************************)
 
 let cons_of_tuple env grd lsubs subs cr1s cr2s tago tag =
-  List.map2 begin fun cr1 cr2 ->
+  Misc.map2 begin fun cr1 cr2 ->
     FI.make_cs env grd cr1 (rename_refctype lsubs subs cr2) tago tag 
   end cr1s cr2s 
   |> Misc.splitflatten
@@ -405,9 +405,9 @@ let rename_args rf sci : FI.refcfun =
   let xrs      = FI.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
-  let subs     = List.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
+  let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
   let qls'     = FI.qlocs_of_refcfun rf in
-  let args'    = List.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
+  let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
   let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
   let hi', ho' = rf |> FI.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in

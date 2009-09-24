@@ -518,7 +518,7 @@ let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar
 let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
   let (ctvs, (ctvm, argcs))   = constrain_args ve em loc args in
   let (rtv, atvs, ics, annot) = instantiate_function loc env f in
-  let (ctvm, cs)              = (ctvm, List.concat [List.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
+  let (ctvm, cs)              = (ctvm, List.concat [Misc.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
     match lvo with
       | None    -> ((ctvm, cs), annot)
       | Some lv ->
@@ -649,7 +649,7 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
   let loc                      = fd.C.svar.C.vdecl in
   let (formals, formalcs)      = instantiate_args loc argcts in
   let bodyformals              = fresh_vars fd.C.sformals in
-  let bodyformalcs             = List.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
+  let bodyformalcs             = Misc.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
   let locals                   = fresh_vars fd.C.slocals in
   let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
   let phics                    = mk_phis_cs vars phis in

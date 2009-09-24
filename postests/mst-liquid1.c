@@ -49,7 +49,7 @@ struct blue_return {
    int dist ;
 };
 
-typedef struct blue_return BlueReturn;
+typedef struct blue_return *BlueReturn;
 
 void *HashLookup(unsigned int key , Hash hash ) ;
 Graph MakeGraph(int numvert ) ;
@@ -67,23 +67,24 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
   Vertex next ;
   void *tmp___1 ;
 
+  retval = malloc(sizeof(*retval)); 	//JHALA
   {
   if (! vlist) {
-    retval.dist = 999999;
+    retval->dist = 999999; 		//JHALA
     return (retval);
   }
   validptr(vlist);
   prev = vlist;
-  retval.vert = vlist;
-  retval.dist = vlist->mindist;
+  retval->vert = vlist;			//JHALA
+  retval->dist = vlist->mindist;	//JHALA
   hash = vlist->edgehash;
   tmp___0 = HashLookup((unsigned int )inserted, hash);
   dist = (int )tmp___0;
   if (dist) {
-    if (dist < retval.dist) {
+    if (dist < retval->dist) {		//JHALA
       validptr(vlist);
       vlist->mindist = dist;
-      retval.dist = dist;
+      retval->dist = dist;		//JHALA
     }
   } else {
     chatting((char *)"Not found\n");
@@ -113,9 +114,9 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
       } else {
         chatting((char *)"Not found\n");
       }
-      if (dist2 < retval.dist) {
-        retval.vert = tmp;
-        retval.dist = dist2;
+      if (dist2 < retval->dist) {		//JHALA
+        retval->vert = tmp;			//JHALA
+        retval->dist = dist2;			//JHALA
       }
     }
     prev = tmp;
@@ -152,8 +153,8 @@ static int ComputeMst(Graph graph , int numvert )
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
-    inserted = br.vert;
-    dist = br.dist;
+    inserted = br->vert;
+    dist = br->dist;
     numvert --;
     cost += dist;
   }
@@ -411,8 +412,12 @@ void HashDelete(unsigned int key , Hash hash )
   validptr(ent);
   
   // JHALA: begin loop-unrolling
-  assert(5, ent->next); //o.w. list = empty and so key is not in list
-  if (ent->next->key == key){ ent->next = ent->next->next; /*localfree*/free(*(ent->next)); return };
+  assert(5, (*ent)->next); //o.w. list = empty and so key is not in list
+  if ((*ent)->key == key){ 
+    tmp = *ent; 
+    (*ent) = (*ent)->next; 
+    /*localfree*/free(tmp); 
+    return; }
   ent = & (*ent)->next;
   // JHALA: end loop-unrolling
   

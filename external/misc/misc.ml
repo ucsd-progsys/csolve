@@ -250,6 +250,9 @@ let filter f xs =
   List.fold_left (fun xs' x -> if f x then x::xs' else xs') [] xs
   |> List.rev
 
+let map2 f xs ys = 
+  let _ = asserti (List.length xs = List.length ys) "Misc.map2" in
+  List.map2 f xs ys
 
 let map f xs = 
   List.rev_map f xs |> List.rev

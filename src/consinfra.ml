@@ -80,7 +80,7 @@ let strengthen_refs theta v (vn, cr) =
 let env_of_fdec gnv fdec locals theta =
   let rft  = FI.ce_find_fn fdec.svar.vname gnv in
   let env0 = FI.args_of_refcfun rft 
-             |> List.map2 (strengthen_refs theta) fdec.Cil.sformals 
+             |> Misc.map2 (strengthen_refs theta) fdec.Cil.sformals 
              |> List.map (Misc.app_fst FI.name_of_string)
              |> FI.ce_adds gnv in
   fdec.slocals 

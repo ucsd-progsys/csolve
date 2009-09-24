@@ -185,7 +185,7 @@ let conv_ciltype x y z c =
   Pretty.printf "conv_ciltype: %a \n" d_type c |> ignore;
   conv_ciltype x y z c
 
-let cfun_of_fundec me loc fd = 
+let cfun_of_fundec me loc fd =
   match fd.svar.vtype with 
   | TFun (t, xtso, _, _) -> 
       let xts   = Cil.argsToList xtso in
@@ -193,10 +193,10 @@ let cfun_of_fundec me loc fd =
       let ist   = res |> fst |> snd3 in
       let th    = res |> fst |> fst3 in
       let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
-      let args  = List.map2 (fun (x,_,_) t -> (x,t)) xts ts in
+      let args  = Misc.map2 (fun (x,_,_) t -> (x,t)) xts ts in
       let res'  = conv_ciltype me loc (th, ist, Ct.IInt 0) t in 
       let ost   = res' |> fst |> snd3 in
-      let ret   = res' |> snd |> function [(_,t)] -> t | _ -> assertf "multi outs" in
+      let ret   = res' |> snd |> function [(_,t)] -> t | _ -> assertf "multi outs %s" fd.svar.vname in
       let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
       Ct.mk_cfun qlocs args ret ist ost
   | _ -> 
