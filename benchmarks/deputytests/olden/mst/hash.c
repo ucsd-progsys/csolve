@@ -59,6 +59,11 @@ void *HashLookup(unsigned int key, Hash hash)
   assert(2,j<hash->size);
 
   for (ent = hash->array[j]; ent && ent->key!=key; ent=ent->next) ;
+  /* This is:
+  ent = hash->array[j];
+  while (ent && ent->key!=key) ent=ent->next;
+  */
+
 
   if (ent) return ent->entry;
   return NULL;
@@ -88,7 +93,7 @@ void HashDelete(unsigned int key,Hash hash)
 
   j = (hash->mapfunc)(key);
   for (ent=&(hash->array[j]); (*ent) && (*ent)->key!=key; ent=&((*ent)->next));
-  assert(4,*ent);
+  assert(4,*ent); //RJ: else the element is not in the list
   tmp = *ent;
   *ent = (*ent)->next;
   localfree(tmp);

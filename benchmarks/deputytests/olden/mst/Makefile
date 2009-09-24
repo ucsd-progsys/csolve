@@ -18,7 +18,7 @@ LIBS =
 
 else
 
-CC		= cilly --merge
+CC		= cilly --merge --stdoutpp
 DEF   = -D
 CONLY = -c
 OBJOUT= -o

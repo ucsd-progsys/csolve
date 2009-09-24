@@ -1,5 +1,17 @@
-[genspec]
+[mst]
+Issues
 
+1. remove localmalloc
+
+2. remove globals
+
+3. remove fun ptr
+
+4. void * (generic hash-table)
+
+-------------------------------------------------------------------------
+
+[genspec]
 Usage: 
 1. grep "attribute" to see hint language
 2. default uses automatically generated spec
@@ -11,6 +23,7 @@ Pending issues (add attribs etc. to allow):
 3. "overriding" i.e. use supplied manual specs and generate rest (for other functions)
 
 -------------------------------------------------------------------------
+
 [tpz32] 
 1. how many distinct environments are there ? [grep "Constraint Clusters"]
 	- about 261 for pmap

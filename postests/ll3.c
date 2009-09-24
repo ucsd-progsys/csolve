@@ -5,6 +5,11 @@ typedef struct node {
   struct node *next;
 } node_t;
 
+typedef struct node {
+  int data;
+  struct node *next;
+} node_t;
+
 node_t *foo(int n){
   node_t *root;
   node_t *tmp;
