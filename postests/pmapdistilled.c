@@ -1,5 +1,3 @@
-//! run with -manspec
-
 extern char *malloc(int);
 extern void free(char *);
 

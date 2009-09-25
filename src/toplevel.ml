@@ -93,10 +93,6 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let specname_of_fname fname = 
-  (if !Constants.genspec || !Constants.autospec then ".autospec" else ".spec")
-  |> (^) fname
-
 let add_spec fn spec =
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
@@ -111,13 +107,12 @@ let add_spec fn spec =
     spec
 
 let generate_spec fname spec =  
-  if !Constants.genspec || !Constants.autospec then
-    let oc = open_out (fname^".autospec") in
-    Frontc.parse fname ()
-    |> Genspec.specs_of_file spec 
-    |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
-    |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
-    |> fun _ -> close_out oc 
+  let oc = open_out (fname^".autospec") in
+  Frontc.parse fname ()
+  |> Genspec.specs_of_file spec 
+  |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
+  |> fun _ -> close_out oc 
 
 (***********************************************************************************)
 (******************************** API **********************************************)
@@ -125,10 +120,10 @@ let generate_spec fname spec =
 
 let spec_of_file fname =
   SM.empty 
-  |> add_spec (Constants.lib_name^".spec")
-  |> add_spec (fname^".spec")
+  |> add_spec (fname^".spec")                   (* Add manual specs  *)
+  |> add_spec (Constants.lib_name^".spec")      (* Add default specs *)
   >> generate_spec fname
-  |> add_spec (fname^".autospec")
+  |> add_spec (fname^".autospec")               (* Add autogen specs *)
 
 let print_header () = 
   Printf.printf " \n \n";

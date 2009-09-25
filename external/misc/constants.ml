@@ -40,7 +40,6 @@ let dot_file: string option ref = ref None   (* translate to dot file *)
 let purify_function_application = ref true  (* replace fun-terms by existentially quantified variables *)
 let ptag                        = ref true  (* -ptag *)
 let genspec                     = ref false (* -genspec *)
-let autospec                    = ref true  (* -autospec[on] -manspec[off] *)
 let simplify_t                  = ref true  (* simplify and prune vacouos FixConstraint.t constraints *)
 
 (* JHALA: what do these do ? *)
@@ -129,13 +128,7 @@ let arg_spec =
    ("-genspec", 
     Arg.Set genspec, 
     "Generate spec file only [false]");
-   ("-autospec",
-    Arg.Set autospec,
-    "Generate and use spec for verification [true]"); 
-   ("-manspec",
-    Arg.Clear autospec,
-    "Use manual .spec for verification [false]"); 
-   ("-psimple", 
+ ("-psimple", 
     Arg.Set psimple, 
     "prioritize simple constraints [true]");
    ("-dgraph", 

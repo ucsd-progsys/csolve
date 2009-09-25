@@ -1,5 +1,3 @@
-//! run with -manspec
-
 extern char *malloc(int);
 
 char * __attribute__((array)) make_string(int n) {
