@@ -112,7 +112,7 @@ let add_spec fn spec =
 
 let generate_spec fname spec =  
   if !Constants.genspec || !Constants.autospec then
-    let oc = fname |> specname_of_fname |> open_out in
+    let oc = open_out (fname^".autospec") in
     Frontc.parse fname ()
     |> Genspec.specs_of_file spec 
     |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
@@ -126,8 +126,9 @@ let generate_spec fname spec =
 let spec_of_file fname =
   SM.empty 
   |> add_spec (Constants.lib_name^".spec")
+  |> add_spec (fname^".spec")
   >> generate_spec fname
-  |> add_spec (specname_of_fname fname)
+  |> add_spec (fname^".autospec")
 
 let print_header () = 
   Printf.printf " \n \n";

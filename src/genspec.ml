@@ -215,7 +215,6 @@ let argsToList xtso =
   |> Cil.argsToList 
   |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
 
-
 let upd_funm spec funm loc fn = function
   | _ when SM.mem fn spec -> funm
   | _ when is_bltn fn     -> funm
@@ -236,3 +235,4 @@ let specs_of_file spec cil =
   |> SM.mapi (cfun_of_args_ret ())
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
+
