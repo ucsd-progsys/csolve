@@ -22,6 +22,11 @@
  *)
 
 (* This file is part of the liquidC Project.*)
+
+(********************************************************************************)
+(*************** Generating Specifications **************************************)  
+(********************************************************************************)
+
 module E   = Errormsg 
 module F   = Format
 module Ct  = Ctypes
@@ -31,11 +36,12 @@ module SLM = Sloc.SlocMap
 open Cil
 open Misc.Ops
 
+let mydebug = false
+
 let id_of_ciltype   = fun t -> t |> Cil.typeSig |> Cil.d_typsig () |> Pretty.sprint ~width:80
 let name_of_ciltype = id_of_ciltype (* fun t -> t |> Cil.d_type () |> Pretty.sprint ~width:80 *)
 
 (*************************************************************************************)
-
 (* {{{ DO NOT DELETE
  * Unused code to determine if a type is recursive
  
@@ -99,7 +105,6 @@ let mk_idx po i =
   | None -> Ct.IInt i
   | Some n -> Ct.ISeq (i, n)
 
-
 let unroll_ciltype t =
   match Cil.unrollType t with
   | TComp (ci, _) -> asserti ci.cstruct "TBD unroll_ciltype: unions";
@@ -124,9 +129,9 @@ let adj_period po idx =
   | _, _              -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes ts =
-  let _ = List.iter begin fun (i,t) -> 
+(* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore
-          end ts in
+          end ts in (* }}} *)
   match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)]
   | _                    -> Ct.LDesc.create ts 
@@ -172,18 +177,22 @@ and conv_ptr me loc (th, st) po c =
     (th'', st''), Ct.CTRef (l, idx)
 
 and conv_cilblock me loc (th, st, off) po c =
-  let cs = c |> unroll_ciltype in
-  let _  = Pretty.printf "conv_cilblock: unroll %a \n" d_type c in
-  let _  = List.map (fun c' -> Pretty.printf "conv_cilblock: into %a \n" d_type c') cs in
-  cs |> Misc.mapfold (conv_ciltype me loc) (th, st, off)
-     |> Misc.app_snd Misc.flatten
-     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
+(* {{{  *)let _  =
+    if mydebug then 
+      (let cs = unroll_ciltype c in
+       ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
+       List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
+  c |> unroll_ciltype
+    |> Misc.mapfold (conv_ciltype me loc) (th, st, off)
+    |> Misc.app_snd Misc.flatten
+    |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
 let conv_ciltype x y z c = 
-  Pretty.printf "conv_ciltype: %a \n" d_type c |> ignore;
+  let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
   conv_ciltype x y z c
 
 let cfun_of_args_ret me fn (loc, t, xts) =
+  let _ = Pretty.printf "Generating spec for: %s defined at: %a \n" fn d_loc loc in
   try
     let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
@@ -199,7 +208,10 @@ let cfun_of_args_ret me fn (loc, t, xts) =
     let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
     None
 
-let upd_funm funm loc fn = function 
+let is_bltn = Misc.is_prefix "__builtin"
+
+let upd_funm funm loc fn = function
+  | _ when is_bltn fn -> funm
   | TFun (t,xtso,_,_) -> Misc.sm_protected_add false fn (loc, t, Cil.argsToList xtso) funm 
   | _                 -> funm 
 
@@ -210,10 +222,9 @@ let specs_of_file cil =
      | _                 -> funm 
      end 
   |> foldGlobals cil begin fun funm -> function
-     | GVarDecl (v, loc) when v.vreferenced -> upd_funm funm loc v.vname v.vtype
-     | _                 -> funm
+     | GVarDecl (v, loc) -> upd_funm funm loc v.vname v.vtype
+     | _                 -> funm 
      end
   |> SM.mapi (cfun_of_args_ret ())
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
-

@@ -74,7 +74,7 @@ let main () =
   let _  = Toplevel.print_header () in
   let f  = Toplevel.mk_options "main.native" () in
   if !Constants.genspec then
-    Toplevel.genspec f
+    f |> Toplevel.spec_of_file |> ignore 
   else
     liquidate f
 
