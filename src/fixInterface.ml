@@ -143,8 +143,8 @@ let refstore_set sto l rd =
 
 let refstore_get sto l =
   try SLM.find l sto with Not_found ->
-    Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
-    assertf "refstore_get"
+    (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
+     asserti false "refstore_get"; assert false)
 
 let plocs_of_refldesc rd = 
   Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
@@ -519,10 +519,10 @@ let slocs_of_store st =
   SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity tago tag =
-  (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
+  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in *)
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in 
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 

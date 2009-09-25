@@ -22,7 +22,7 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-
+module E   = Errormsg 
 module F   = Format
 module Ct  = Ctypes
 module SM  = Misc.StringMap
@@ -30,8 +30,6 @@ module SLM = Sloc.SlocMap
 
 open Cil
 open Misc.Ops
-
-exception NoSpec
 
 let id_of_ciltype   = fun t -> t |> Cil.typeSig |> Cil.d_typsig () |> Pretty.sprint ~width:80
 let name_of_ciltype = id_of_ciltype (* fun t -> t |> Cil.d_type () |> Pretty.sprint ~width:80 *)
@@ -117,7 +115,7 @@ let add_off off c =
   let i = CilMisc.bytesSizeOf c in
   match off with 
   | Ct.IInt i'    -> Ct.IInt (i+i')
-  | Ct.ISeq (_,_) -> Errormsg.s <| Errormsg.error "add_off %d to periodic offset %a" i Ct.d_index off
+  | Ct.ISeq (_,_) -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
 
 let adj_period po idx = 
   match po, idx with
@@ -185,31 +183,37 @@ let conv_ciltype x y z c =
   Pretty.printf "conv_ciltype: %a \n" d_type c |> ignore;
   conv_ciltype x y z c
 
-let cfun_of_fundec me loc fd =
-  match fd.svar.vtype with 
-  | TFun (t, xtso, _, _) -> 
-      let xts   = Cil.argsToList xtso in
-      let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
-      let ist   = res |> fst |> snd3 in
-      let th    = res |> fst |> fst3 in
-      let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
-      let args  = Misc.map2 (fun (x,_,_) t -> (x,t)) xts ts in
-      let res'  = conv_ciltype me loc (th, ist, Ct.IInt 0) t in 
-      let ost   = res' |> fst |> snd3 in
-      let ret   = res' |> snd |> function [(_,t)] -> t | _ -> assertf "multi outs %s" fd.svar.vname in
-      let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
-      Ct.mk_cfun qlocs args ret ist ost
-  | _ -> 
-      let _ = errorLoc loc "Non-fun type for %s\n\n" fd.svar.vname in
-      assert false
+let cfun_of_args_ret me fn (loc, t, xts) =
+  try
+    let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
+    let ist   = res |> fst |> snd3 in
+    let th    = res |> fst |> fst3 in
+    let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
+    let args  = Misc.map2 (fun (x,_,_) t -> (x,t)) xts ts in
+    let res'  = conv_ciltype me loc (th, ist, Ct.IInt 0) t in 
+    let ost   = res' |> fst |> snd3 in
+    let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
+    let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
+    Some (Ct.mk_cfun qlocs args ret ist ost)
+  with ex -> 
+    let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
+    None
+
+let upd_funm funm loc fn = function 
+  | TFun (t,xtso,_,_) -> Misc.sm_protected_add false fn (loc, t, Cil.argsToList xtso) funm 
+  | _                 -> funm 
 
 let specs_of_file cil =
-  let me = () (* mk_type_graph cil *) in
-  foldGlobals cil begin fun acc -> function
-    | GFun (fd, loc) -> begin 
-        try (fd.svar.vname, cfun_of_fundec me loc fd) :: acc with NoSpec -> 
-          let _ = warnLoc loc "Skipping spec for %s\n\n" fd.svar.vname in 
-          acc
-      end
-    | _ -> acc
-  end []
+  SM.empty 
+  |> foldGlobals cil begin fun funm -> function
+     | GFun (fd, loc)    -> upd_funm funm loc fd.svar.vname fd.svar.vtype
+     | _                 -> funm 
+     end 
+  |> foldGlobals cil begin fun funm -> function
+     | GVarDecl (v, loc) when v.vreferenced -> upd_funm funm loc v.vname v.vtype
+     | _                 -> funm
+     end
+  |> SM.mapi (cfun_of_args_ret ())
+  |> Misc.sm_bindings
+  |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
+

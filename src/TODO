@@ -1,3 +1,4 @@
+
 [mst]
 Issues
 
@@ -12,6 +13,14 @@ Issues
 -------------------------------------------------------------------------
 
 [genspec]
+
+HEREHEREHERE
+
+
+1. Generate specs for "prototypes" (no bodies), without overwriting specs 
+   in lib.spec
+
+
 Usage: 
 1. grep "attribute" to see hint language
 2. default uses automatically generated spec

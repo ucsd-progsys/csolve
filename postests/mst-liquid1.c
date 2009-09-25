@@ -8,7 +8,7 @@
 
 extern int ( /* missing proto */  atoi)() ;
 extern int ( /* missing proto */  exit)() ;
-extern int ( /* missing proto */  malloc)() ;
+extern char *malloc(int) ;
 extern int ( /* missing proto */  memset)() ;
 
 struct hash_entry {
@@ -53,7 +53,7 @@ typedef struct blue_return *BlueReturn;
 
 void *HashLookup(unsigned int key , Hash hash ) ;
 Graph MakeGraph(int numvert ) ;
-void chatting(char *s  , ...) ;
+//void chatting(char *s  , ...) ;
 
 static BlueReturn BlueRule(Vertex inserted , Vertex vlist ) 
 { BlueReturn retval ;
@@ -87,7 +87,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
       retval->dist = dist;		//JHALA
     }
   } else {
-    chatting((char *)"Not found\n");
+   // chatting((char *)"Not found\n");
   }
   count = 0;
   validptr(vlist);
@@ -112,7 +112,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
           dist2 = dist;
         }
       } else {
-        chatting((char *)"Not found\n");
+        //chatting((char *)"Not found\n");
       }
       if (dist2 < retval->dist) {		//JHALA
         retval->vert = tmp;			//JHALA
@@ -138,7 +138,7 @@ static int ComputeMst(Graph graph , int numvert )
   {
   Vertex MyVertexList  =    (Vertex )0;
   cost = 0;
-  chatting((char *)"Compute phase 1\n");
+  //chatting((char *)"Compute phase 1\n");
   validptr(graph);
   inserted = graph->vlist;
   validptr(inserted); //JHALA: Maybe NULL 
@@ -146,7 +146,7 @@ static int ComputeMst(Graph graph , int numvert )
   graph->vlist = tmp;
   MyVertexList = tmp;
   numvert --;
-  chatting((char *)"Compute phase 2\n");
+  //chatting((char *)"Compute phase 2\n");
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
       validptr(MyVertexList); //JHALA: Maybe NULL 
@@ -163,28 +163,12 @@ static int ComputeMst(Graph graph , int numvert )
 }
 
 
-int dealwithargs(int argc , char **argv ) ;
+typedef char * __attribute__((array)) * __attribute__((array)) string_array;
+
+int dealwithargs(int argc , string_array argv ) ;
 
 
-int main(int argc , char **argv ) 
-{ Graph graph ;
-  int dist ;
-  int size ;
 
-  {
-  chatting((char *)"Hash entry size = %d\n", sizeof(struct hash_entry ));
-  chatting((char *)"Hash size = %d\n", sizeof(struct hash ));
-  chatting((char *)"Vertex size = %d\n", sizeof(struct vert_st ));
-  size = dealwithargs(argc, argv);
-  chatting((char *)"Making graph of size %d\n", size);
-  graph = MakeGraph(size);
-  chatting((char *)"Graph completed\n");
-  chatting((char *)"About to compute mst \n");
-  dist = ComputeMst(graph, size);
-  chatting((char *)"MST has cost %d\n", dist);
-  exit(0);
-}
-}
 
 Hash MakeHash(int size/* , int (*map)(unsigned int  ) */) ;
 
@@ -269,7 +253,7 @@ static void AddEdges(Graph retval , int numvert )
     }
     j ++;
   }
-  chatting((char *)"%d edges inserted\n", num_inserted);
+  //chatting((char *)"%d edges inserted\n", num_inserted);
   return;
 }
 }
@@ -286,7 +270,7 @@ Graph MakeGraph(int numvert )
   HashRange = numvert / 4; //JHALA: hoisted from loop-body
   tmp = malloc(sizeof(*retval));
   retval = (struct graph_st *)tmp;
-  chatting((char *)"Make phase 1: Creating hash tables\n");
+  //chatting((char *)"Make phase 1: Creating hash tables\n");
   tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
   retval->vlist = (struct vert_st *)tmp___0;
   vt = (struct vert_st *)0;
@@ -300,9 +284,9 @@ Graph MakeGraph(int numvert )
     vt = vf;
     i --;
   }
-  chatting((char *)"Make phase 3: Creating graph\n");
+  //chatting((char *)"Make phase 3: Creating graph\n");
   AddEdges(retval, numvert);
-  chatting((char *)"Make returning\n");
+  //chatting((char *)"Make returning\n");
   return (retval);
 }
 }
@@ -344,7 +328,7 @@ Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ )
   retval->size = size;
   tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
   retval->array = (HashEntry *)tmp___0;
-  memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
+  //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
   /* retval->mapfunc = map; */
   retval->padding = 0U;
   return (retval);
@@ -441,7 +425,16 @@ void HashDelete(unsigned int key , Hash hash )
 }
 
 
-int dealwithargs(int argc , char **__attribute__((array)) argv ) 
+/*
+void chatting(char *s  , ...) 
+{ 
+
+  {
+  return;
+}
+} */
+
+int dealwithargs(int argc , string_array argv ) 
 { int level ;
 
   {
@@ -455,10 +448,23 @@ int dealwithargs(int argc , char **__attribute__((array)) argv )
 }
 }
 
-void chatting(char *s  , ...) 
-{ 
+int main(int argc , string_array argv ) 
+{ Graph graph ;
+  int dist ;
+  int size ;
 
   {
-  return;
+  //chatting((char *)"Hash entry size = %d\n", sizeof(struct hash_entry ));
+  //chatting((char *)"Hash size = %d\n", sizeof(struct hash ));
+  //chatting((char *)"Vertex size = %d\n", sizeof(struct vert_st ));
+  size = dealwithargs(argc, argv);
+  //chatting((char *)"Making graph of size %d\n", size);
+  graph = MakeGraph(size);
+  //chatting((char *)"Graph completed\n");
+  //chatting((char *)"About to compute mst \n");
+  dist = ComputeMst(graph, size);
+  //chatting((char *)"MST has cost %d\n", dist);
+  exit(0);
 }
 }
+

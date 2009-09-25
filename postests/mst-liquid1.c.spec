@@ -1,16 +1,10 @@
-chatting :: forall    [A44]
-            arg       (s : ref(A44, 0))
-            ret       int(0, true)
-            store_in  [A44 |-> 0: int(1, true)]
-            store_out [A44 |-> 0: int(1, true)] 
-
 dealwithargs :: forall    [A43;A42]
                 arg       (argc : int(4, true), argv : ref(A42, 0[4]))
                 ret       int(4, true)
-                store_in  [A42 |-> true: ref(A43, 0);
-                          A43 |-> 0: int(1, true)]
-                store_out [A42 |-> true: ref(A43, 0);
-                          A43 |-> 0: int(1, true)] 
+                store_in  [A42 |-> true: ref(A43, 0[1]);
+                          A43 |-> true: int(1, true)]
+                store_out [A42 |-> true: ref(A43, 0[1]);
+                          A43 |-> true: int(1, true)] 
 
 HashDelete :: forall    [A41;A40;A39;A38]
               arg       (key : int(4, true), hash : ref(A38, 0))
@@ -109,12 +103,12 @@ mult :: forall    []
         store_out [] 
 
 main :: forall    [A13;A12]
-        arg       (argc : int(4, true), argv : ref(A12, 0))
+        arg       (argc : int(4, true), argv : ref(A12, 0[4]))
         ret       int(4, true)
-        store_in  [A12 |-> 0: ref(A13, 0);
-                  A13 |-> 0: int(1, true)]
-        store_out [A12 |-> 0: ref(A13, 0);
-                  A13 |-> 0: int(1, true)] 
+        store_in  [A12 |-> true: ref(A13, 0);
+                  A13 |-> true: int(1, true)]
+        store_out [A12 |-> true: ref(A13, 0);
+                  A13 |-> true: int(1, true)] 
 
 ComputeMst :: forall    [A11;A10;A9;A8;A7;A6]
               arg       (graph : ref(A6, 0), numvert : int(4, true))

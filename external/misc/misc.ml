@@ -245,7 +245,6 @@ let mapfold f b xs =
   end (b, []) xs
   |> app_snd List.rev 
 
-
 let filter f xs = 
   List.fold_left (fun xs' x -> if f x then x::xs' else xs') [] xs
   |> List.rev
@@ -365,11 +364,16 @@ let numbered_list xs =
 
 exception FalseException
 
+let sm_protected_add fail k v sm = 
+  if not (StringMap.mem k sm) then StringMap.add k v sm else 
+    if not fail then sm else 
+      assertf "protected_add: duplicate binding for %s \n" k
+
 let sm_adds k v sm = 
   let vs = try StringMap.find k sm with Not_found -> [] in
   StringMap.add k (v::vs) sm
 
-let stringmap_bindings sm =
+let sm_bindings sm =
   StringMap.fold (fun k v acc -> (k,v) :: acc) sm []
   
 let intmap_bindings im =
