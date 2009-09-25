@@ -51,8 +51,10 @@ module Ops = struct
 
   let un = fun x -> ()
 
-  let (<.>) f g  = fun x -> f (g x)
-
+  let (<.>) f g  = fun x -> x |> g |> f 
+  
+  let (<+>) f g  = fun x -> x |> f |> g 
+  
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
@@ -534,6 +536,10 @@ let list_assoc_flip xs =
 
 let fold_lefti f b xs =
   List.fold_left (fun (i,b) x -> ((i+1), f i b x)) (0,b) xs
+
+let mapi f xs = 
+  xs |> fold_lefti (fun i acc x -> (f i x) :: acc) [] 
+     |> snd |> List.rev
 
 let flip f x y =
   f y x

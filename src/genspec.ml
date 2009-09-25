@@ -192,7 +192,7 @@ let conv_ciltype x y z c =
   conv_ciltype x y z c
 
 let cfun_of_args_ret me fn (loc, t, xts) =
-  let _ = Pretty.printf "Generating spec for: %s defined at: %a \n" fn d_loc loc in
+  let _ = Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
   try
     let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
@@ -210,19 +210,27 @@ let cfun_of_args_ret me fn (loc, t, xts) =
 
 let is_bltn = Misc.is_prefix "__builtin"
 
-let upd_funm funm loc fn = function
-  | _ when is_bltn fn -> funm
-  | TFun (t,xtso,_,_) -> Misc.sm_protected_add false fn (loc, t, Cil.argsToList xtso) funm 
-  | _                 -> funm 
+let argsToList xtso = 
+  xtso 
+  |> Cil.argsToList 
+  |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
 
-let specs_of_file cil =
+
+let upd_funm spec funm loc fn = function
+  | _ when SM.mem fn spec -> funm
+  | _ when is_bltn fn     -> funm
+  | TFun (t,xtso,_,_)     -> Misc.sm_protected_add false fn (loc, t, argsToList xtso) funm 
+  | _                     -> funm 
+
+let specs_of_file spec cil =
+  SM.iter (fun fn _ -> Printf.printf "specs_of_file spec has %s \n" fn) spec;
   SM.empty 
   |> foldGlobals cil begin fun funm -> function
-     | GFun (fd, loc)    -> upd_funm funm loc fd.svar.vname fd.svar.vtype
+     | GFun (fd, loc)    -> upd_funm spec funm loc fd.svar.vname fd.svar.vtype
      | _                 -> funm 
      end 
   |> foldGlobals cil begin fun funm -> function
-     | GVarDecl (v, loc) -> upd_funm funm loc v.vname v.vtype
+     | GVarDecl (v, loc) -> upd_funm spec funm loc v.vname v.vtype
      | _                 -> funm 
      end
   |> SM.mapi (cfun_of_args_ret ())

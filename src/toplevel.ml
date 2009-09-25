@@ -97,8 +97,7 @@ let specname_of_fname fname =
   (if !Constants.genspec || !Constants.autospec then ".autospec" else ".spec")
   |> (^) fname
 
-let add_spec fname spec =
-  let fn = specname_of_fname fname in
+let add_spec fn spec =
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
@@ -115,19 +114,21 @@ let generate_spec fname spec =
   if !Constants.genspec || !Constants.autospec then
     let oc = fname |> specname_of_fname |> open_out in
     Frontc.parse fname ()
-    |> Genspec.specs_of_file 
+    |> Genspec.specs_of_file spec 
     |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
     |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
     |> fun _ -> close_out oc 
 
-(* API *)
+(***********************************************************************************)
+(******************************** API **********************************************)
+(***********************************************************************************)
+
 let spec_of_file fname =
   SM.empty 
   |> add_spec (Constants.lib_name^".spec")
   >> generate_spec fname
-  |> add_spec fname
+  |> add_spec (specname_of_fname fname)
 
-(* API *)
 let print_header () = 
   Printf.printf " \n \n";
   Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
