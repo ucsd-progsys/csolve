@@ -26,6 +26,7 @@ typedef struct hash *Hash;
 /******************************************************************/
 /********************* Malloc Prototypes **************************/
 /******************************************************************/
+
 extern char *malloc(int);
 Hash malloc_Hash(int) ;
 HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
