@@ -96,12 +96,16 @@ let stripcasts_of_lval = visitCilLval (new castStripVisitor)
 let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
 
 (******************************************************************************)
-(************************* Format to Pretty Conversion ************************)
+(********************************** Printing **********************************)
 (******************************************************************************)
 
 (* API *)
 let doc_of_formatter f a =
   Misc.fsprintf f a |> Pretty.text
+
+let nprintf a = Pretty.gprintf (fun _ -> Pretty.nil) a
+
+let bprintf b = if b then Pretty.printf else nprintf
 
 (******************************************************************************)
 (***************************** Type Maniupulation *****************************)
