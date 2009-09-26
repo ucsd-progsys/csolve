@@ -1,23 +1,23 @@
 //! run with -manspec
 
-extern char *malloc(int);
-extern int nondet();
-extern int nondetnn();
+//extern char *malloc(int);
+//extern int nondet();
+//extern int nondetnn();
 extern void exit(int);
 
 struct node_t {
    int value ;
    struct node_t *next ;
    int from_count ;
-   struct node_t **to_nodes ;
-   struct node_t **from_nodes ;
-   int *coeffs ;
+   struct node_t **__attribute__((array)) to_nodes ;
+   struct node_t **__attribute__((array)) from_nodes ;
+   int *__attribute__((array)) coeffs ;
 };
 typedef struct node_t node_t;
 
 struct graph_t {
-   node_t *e_nodes ;
-   node_t *h_nodes ;
+   node_t *__attribute__((array)) e_nodes ;
+   node_t *__attribute__((array)) h_nodes ;
 };
 typedef struct graph_t graph_t;
 
@@ -100,7 +100,7 @@ void fill_from_fields(node_t *nodelist , int degree )
   return;
 }
 
-void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree )
+void make_neighbors(node_t *__attribute__((array)) nodelist , int tablesz , node_t **__attribute__((array)) table , int degree )
 { node_t *cur_node ;
   node_t *other_node ;
   int j ;
@@ -142,7 +142,7 @@ void make_neighbors(node_t *nodelist , int tablesz , node_t **table , int degree
   return;
 }
 
-void update_from_coeffs(node_t *nodelist)
+void update_from_coeffs(node_t *__attribute__((array)) nodelist)
 { node_t *cur_node ;
   int from_count ;
   int k ;
@@ -204,7 +204,7 @@ graph_t *initialize_graph(void)
   return (retval);
 }
 
-void compute_nodes(node_t *nodelist )
+void compute_nodes(node_t *__attribute__((array)) nodelist )
 { int i ;
   node_t *other_node ;
   int coeff ;

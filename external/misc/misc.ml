@@ -51,8 +51,10 @@ module Ops = struct
 
   let un = fun x -> ()
 
-  let (<.>) f g  = fun x -> f (g x)
-
+  let (<.>) f g  = fun x -> x |> g |> f 
+  
+  let (<+>) f g  = fun x -> x |> f |> g 
+  
   let failure fmt = 
     Printf.ksprintf failwith fmt
 
@@ -245,7 +247,6 @@ let mapfold f b xs =
   end (b, []) xs
   |> app_snd List.rev 
 
-
 let filter f xs = 
   List.fold_left (fun xs' x -> if f x then x::xs' else xs') [] xs
   |> List.rev
@@ -365,11 +366,16 @@ let numbered_list xs =
 
 exception FalseException
 
+let sm_protected_add fail k v sm = 
+  if not (StringMap.mem k sm) then StringMap.add k v sm else 
+    if not fail then sm else 
+      assertf "protected_add: duplicate binding for %s \n" k
+
 let sm_adds k v sm = 
   let vs = try StringMap.find k sm with Not_found -> [] in
   StringMap.add k (v::vs) sm
 
-let stringmap_bindings sm =
+let sm_bindings sm =
   StringMap.fold (fun k v acc -> (k,v) :: acc) sm []
   
 let intmap_bindings im =
@@ -530,6 +536,10 @@ let list_assoc_flip xs =
 
 let fold_lefti f b xs =
   List.fold_left (fun (i,b) x -> ((i+1), f i b x)) (0,b) xs
+
+let mapi f xs = 
+  xs |> fold_lefti (fun i acc x -> (f i x) :: acc) [] 
+     |> snd |> List.rev
 
 let flip f x y =
   f y x

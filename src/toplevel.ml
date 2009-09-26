@@ -89,31 +89,41 @@ let quals_of_file fname =
   |> List.map (fun s -> s^".hquals")
   |> List.fold_left add_quals []
 
-let genspec fname = 
-  let oc = open_out (fname^".autospec") in
-  Frontc.parse fname ()
-  |> Genspec.specs_of_file
-  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
-  |> fun _ -> close_out oc 
+(********************************************************************************)
+(*************** Generating Specifications **************************************)  
+(********************************************************************************)
 
-let add_spec spec fname =
-  let _ = E.log "Parsing spec: %s \n" fname in
-  let _ = Errorline.startFile fname in
+let add_spec fn spec =
+  let _  = E.log "Parsing spec: %s \n" fn in
+  let _  = Errorline.startFile fn in
   try
-    open_in fname
-    |> Lexing.from_channel
-    |> RefParse.specs RefLex.token
-    |> List.fold_left (fun sm (x,y,b) -> SM.add x (y,b) sm) spec 
+    let ic = open_in fn in
+    ic |> Lexing.from_channel
+       |> RefParse.specs RefLex.token
+       |> List.fold_left (fun sm (x,y,b) -> Misc.sm_protected_add false x (y,b) sm) spec
+       >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     spec
 
+let generate_spec fname spec =  
+  let oc = open_out (fname^".autospec") in
+  Frontc.parse fname ()
+  |> Genspec.specs_of_file spec 
+  |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
+  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
+  |> fun _ -> close_out oc 
+
+(***********************************************************************************)
+(******************************** API **********************************************)
+(***********************************************************************************)
+
 let spec_of_file fname =
-  let f0 = Constants.lib_name ^ ".spec" in 
-  let f1 = if !Constants.autospec 
-           then (genspec fname; fname^".autospec") 
-           else (fname^".spec") in 
-  List.fold_left add_spec SM.empty [f0; f1]
+  SM.empty 
+  |> add_spec (fname^".spec")                   (* Add manual specs  *)
+  |> add_spec (Constants.lib_name^".spec")      (* Add default specs *)
+  >> generate_spec fname
+  |> add_spec (fname^".autospec")               (* Add autogen specs *)
 
 let print_header () = 
   Printf.printf " \n \n";
@@ -128,8 +138,8 @@ let mk_options toolname () =
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 
-let main name f =
+let main toolname f =
   () |> print_header 
      |> ignore
-     |> mk_options name
+     |> mk_options toolname
      |> f 
