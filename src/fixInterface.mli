@@ -79,13 +79,15 @@ val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
 val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
-val refstore_write      : refstore -> refctype -> refctype -> refstore
-val refstore_read       : refstore -> refctype -> refctype
+
+val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
+val refstore_read       : Cil.location -> refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
+
 val refstore_subs       : ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> refstore -> refstore
 
-val is_soft_ptr         : refstore -> refctype -> bool 
+val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list
 
 val make_wfs            : cilenv -> refctype -> CilTag.t -> FixConstraint.wf list

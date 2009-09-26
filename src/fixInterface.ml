@@ -172,29 +172,30 @@ let refdesc_find ploc rd =
       (rct, Ctypes.ploc_periodic ploc')
   | _ -> assertf "refdesc_find"
 
-let addr_of_refctype = function
+let addr_of_refctype loc = function
   | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
   | cr ->
-      let s = cr |> d_refctype () |> Pretty.sprint ~width:80 in
-      asserti false "addr_of_refctype: bad arg %s \n" s;
+      let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
+      let l = loc |> d_loc () |> Pretty.sprint ~width:80 in
+      let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
       assert false
 
-let ac_refstore_read sto cr = 
-  let (l, ploc) = addr_of_refctype cr in 
+let ac_refstore_read loc sto cr = 
+  let (l, ploc) = addr_of_refctype loc cr in 
   SLM.find l sto 
   |> refdesc_find ploc 
 
 (* API *)
-let refstore_read sto cr = 
-  ac_refstore_read sto cr |> fst
+let refstore_read loc sto cr = 
+  ac_refstore_read loc sto cr |> fst
 
 (* API *)
-let is_soft_ptr sto cr = 
-  ac_refstore_read sto cr |> snd
+let is_soft_ptr loc sto cr = 
+  ac_refstore_read loc sto cr |> snd
 
-let refstore_write sto rct rct' = 
-  let (cl, ploc) = addr_of_refctype rct in
+let refstore_write loc sto rct rct' = 
+  let (cl, ploc) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = SLM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in

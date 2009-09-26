@@ -208,5 +208,5 @@ let d_block_annotation_array =
 let d_ctab () t = 
   let vcls = Misc.hashtbl_to_list t in
   Pretty.seq (Pretty.text "\n") 
-     (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a" vn Sloc.d_sloc cl) 
+     (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a \n" vn Sloc.d_sloc cl) 
      vcls

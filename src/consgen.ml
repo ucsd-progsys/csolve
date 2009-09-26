@@ -176,7 +176,7 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
       let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
       let cr = FI.ce_find (FI.name_of_varinfo v') env 
-               |> FI.refstore_read sto 
+               |> FI.refstore_read loc sto 
                |> FI.t_ctype_refctype (CF.ctype_of_varinfo me v) in
       (extend_env v cr env, sto, Some tag), ([], [])
 
@@ -192,16 +192,17 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   | (Mem (CastE (_, Lval (Var v, _))), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
-      let isp  = try FI.is_soft_ptr sto addr with ex ->
+      let isp  = try FI.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
-      if isp (* FI.is_soft_ptr sto addr *) then 
-        let cr   = FI.refstore_read sto addr in
+      if isp (* FI.is_soft_ptr loc sto addr *) then 
+        let cr   = FI.refstore_read loc sto addr in
         (env, sto, Some tag), (FI.make_cs env grd cr' cr tago tag loc)
       else
-        let sto' = FI.refstore_write sto addr cr' in
+        let sto' = FI.refstore_write loc sto addr cr' in
         (env, sto', Some tag), ([], [])
 
   | _ -> assertf "TBD: cons_of_set"
+
 
 (****************************************************************************)
 (********************** Constraints for Calls *******************************)
