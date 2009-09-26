@@ -94,14 +94,14 @@ val make_wfs_refstore   : cilenv -> refstore -> CilTag.t -> FixConstraint.wf lis
 
 val make_cs             : cilenv -> Ast.pred -> 
                           refctype -> refctype -> 
-                          CilTag.t option -> CilTag.t -> 
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
                           (Sloc.t * refldesc) -> (Sloc.t * refldesc) -> 
-                          CilTag.t option -> CilTag.t -> 
+                          CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
-                          CilTag.t option -> CilTag.t -> 
+                          CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 val make_dep: bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 

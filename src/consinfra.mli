@@ -31,6 +31,7 @@ val inwld_of_block      : t -> int -> wld
 val outwld_of_block     : t -> int -> wld 
 val add_wld             : int -> wld -> t -> t
 
+val location_of_block   : t -> int -> Cil.location
 val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Cil.stmt
 val tag_of_instr        : t -> int -> int -> CilTag.t 
 val phis_of_block       : t -> int -> Cil.varinfo list 

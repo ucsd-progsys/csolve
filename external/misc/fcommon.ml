@@ -24,7 +24,7 @@
 module F = Format
 module C = Constants
 
-let mydebug = true
+let mydebug = false 
 
 (****************************************************************)
 (************* SCC Ranking **************************************)

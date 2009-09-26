@@ -518,7 +518,8 @@ let instantiate_function (loc: C.location) (env: ctypeenv) (f: string): ctypevar
 let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) (f: string) (lvo: C.lval option) (args: C.exp list): cstremap * RA.annotation list =
   let (ctvs, (ctvm, argcs))   = constrain_args ve em loc args in
   let (rtv, atvs, ics, annot) = instantiate_function loc env f in
-  let (ctvm, cs)              = (ctvm, List.concat [Misc.map2 (mk_subty loc) ctvs atvs; ics; argcs]) in
+  let (ctvm, cs)              = try (ctvm, List.concat [Misc.map2 (mk_subty loc) ctvs atvs; ics; argcs]) 
+                                with ex -> E.s <| C.errorLoc loc "constrain_app: bad spec for %s" f in
     match lvo with
       | None    -> ((ctvm, cs), annot)
       | Some lv ->

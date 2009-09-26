@@ -317,22 +317,25 @@ static void *localmalloc(int size )
 }
 */
 
+Hash malloc_Hash(int) ;
+HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
+HashEntry malloc_HashEntry(int);
+
 Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
 { Hash retval ;
   void *tmp ;
   void *tmp___0 ;
-
   {
-  tmp = /* localmalloc */malloc((int )sizeof(*retval));
+    tmp = /* localmalloc */malloc_Hash((int )sizeof(*retval));
   retval = (struct hash *)tmp;
   retval->size = size;
-  tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
+  tmp___0 = /*localmalloc*/malloc_HashEntry_array((int )((unsigned int )size * sizeof(*(retval->array + 0))));
   retval->array = (HashEntry *)tmp___0;
   //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
   /* retval->mapfunc = map; */
   retval->padding = 0U;
   return (retval);
-}
+  }
 }
 
 void *HashLookup(unsigned int key , Hash hash ) 
@@ -368,14 +371,14 @@ void *HashLookup(unsigned int key , Hash hash )
 void HashInsert(void *entry , unsigned int key , Hash hash ) 
 { HashEntry ent ;
   int j ;
-  void *tmp ;
+  /* void *tmp; */
   {
   // assert(3,!HashLookup(key,hash));
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
   assert(j>=0);
   assert(j<hash->size);
-  tmp = /*localmalloc*/malloc((int )sizeof(*ent));
-  ent = (struct hash_entry *)tmp;
+  /*tmp*/ent = /*localmalloc*/malloc_HashEntry((int )sizeof(*ent));
+  //ent = (struct hash_entry *)tmp;
   validptr(hash->array + j);
   ent->next = *(hash->array + j);
   *(hash->array + j) = ent;

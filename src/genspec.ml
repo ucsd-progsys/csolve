@@ -192,7 +192,7 @@ let conv_ciltype x y z c =
   conv_ciltype x y z c
 
 let cfun_of_args_ret me fn (loc, t, xts) =
-  let _ = Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
+  let _ = if mydebug then ignore <| Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
   try
     let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
@@ -222,7 +222,8 @@ let upd_funm spec funm loc fn = function
   | _                     -> funm 
 
 let specs_of_file spec cil =
-  SM.iter (fun fn _ -> Printf.printf "specs_of_file spec has %s \n" fn) spec;
+  let _ = if mydebug then let _ = Printf.printf "specs_of_file spec has: " in 
+                          SM.iter (fun fn _ -> Printf.printf "%s, " fn) spec in
   SM.empty 
   |> foldGlobals cil begin fun funm -> function
      | GFun (fd, loc)    -> upd_funm spec funm loc fd.svar.vname fd.svar.vtype

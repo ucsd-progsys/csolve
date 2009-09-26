@@ -94,9 +94,11 @@ type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
 type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
 
 
-let d_index_reft () (_,r) = 
-  Misc.fsprintf (C.print_reft None) r 
-  |> Pretty.text
+let d_index_reft () (i,r) = 
+  let di = Ctypes.d_index () i in
+  let dc = Pretty.text " , " in
+  let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
+  Pretty.concat (Pretty.concat di dc) dr
 
 let d_refstore = Ctypes.d_precstore d_index_reft 
 let d_refctype = Ctypes.d_prectype d_index_reft
@@ -173,9 +175,10 @@ let refdesc_find ploc rd =
 let addr_of_refctype = function
   | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
-  | cr -> 
-      ignore(Errormsg.error "addr_of_refctype: bad arg = %a" d_refctype cr);
-      assertf "addr_of_refctype: bad args"
+  | cr ->
+      let s = cr |> d_refctype () |> Pretty.sprint ~width:80 in
+      asserti false "addr_of_refctype: bad arg %s \n" s;
+      assert false
 
 let ac_refstore_read sto cr = 
   let (l, ploc) = addr_of_refctype cr in 
@@ -518,9 +521,9 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
 let slocs_of_store st = 
   SLM.fold (fun x _ xs -> x::xs) st []
 
-let make_cs_refstore env p st1 st2 polarity tago tag =
-  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a \n"
-           polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 in
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
+  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+           polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in 
   let rv =
@@ -535,3 +538,21 @@ let make_cs_refstore env p st1 st2 polarity tago tag =
 (*  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) rv in *) 
   rv
 
+(* API *)
+let make_cs cenv p rct1 rct2 tago tag loc =
+  try make_cs cenv p rct1 rct2 tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs" in 
+    assert false
+
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
+  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_refstore" in 
+    assert false
+
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
+  try make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
+    let _ = asserti false "make_cs_refldesc" in 
+    assert false
