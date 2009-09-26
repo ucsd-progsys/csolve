@@ -442,15 +442,15 @@ let refstore_subs_ploc f sto =
   Sloc.SlocMap.map (refldesc_subs_ploc f) sto
 *)
 
-let refstore_subs_locs lsubs sto = 
+let refstore_subs_locs loc lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
     if not (refstore_mem l sto) then sto else 
-      let plocs = refstore_get sto l |> plocs_of_refldesc in
+      let plocs = refstore_get loc sto l |> plocs_of_refldesc in
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in
       let subs  = List.combine ns ns' in
-      refstore_subs t_subs_names subs sto
+      refstore_subs loc t_subs_names subs sto
     in
     (* let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
             Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in *)
