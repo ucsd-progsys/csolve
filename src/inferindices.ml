@@ -303,28 +303,29 @@ and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar =
 
 and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr list = function
   | C.CStr _                                 -> halt <| E.unimp "Haven't implemented string constants yet"
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst (IInt 0)), []) (* XXX pmr XXX: temporary hack *)
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
   | c                                        -> halt <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
-  match C.unrollType ct, C.unrollType <| C.typeOf e with
-    | C.TInt (ik, _), C.TPtr _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
-    | C.TInt (ik, _), C.TInt _ ->
-        begin match constrain_exp env loc e with
-          | CTInt (n, ie), cs ->
-              let iec =
-                if n <= C.bytesSizeOfInt ik then
-                  (* pmr: what about the sign bit?  this may not always be safe *)
-                  ie
-                else if not !Constants.safe then begin
-                  C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                  ie
-                end else
-                  IEConst ITop
-              in (CTInt (C.bytesSizeOfInt ik, iec), cs)
-          | _ -> halt <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
-        end
-    | _ -> constrain_exp env loc e
+  let ect = constrain_exp env loc e in
+    match C.unrollType ct, C.unrollType <| C.typeOf e with
+      | C.TInt (ik, _), C.TPtr _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
+      | C.TInt (ik, _), C.TInt _ ->
+          begin match ect with
+            | CTInt (n, ie), cs ->
+                let iec =
+                  if n <= C.bytesSizeOfInt ik then
+                    (* pmr: what about the sign bit?  this may not always be safe *)
+                    ie
+                  else if not !Constants.safe then begin
+                    C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                    ie
+                  end else
+                    IEConst ITop
+                in (CTInt (C.bytesSizeOfInt ik, iec), cs)
+            | _ -> halt <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+          end
+      | _ -> ect
 
 and constrain_sizeof (loc: C.location) (t: C.typ): itypevar * itypecstr list =
   (CTInt (int_width, IEConst (IInt (C.bitsSizeOf t / 8))), [])

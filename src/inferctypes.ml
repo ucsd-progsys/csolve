@@ -527,28 +527,29 @@ and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctype
 
 and constrain_constptr (ctem: ctvemap) (loc: C.location): C.constant -> ctype * cstr list * S.t list * ctvemap = function
   | C.CStr _                                 -> E.s <| E.unimp "Haven't implemented string constants yet"
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [], [s], ctem) (* pmr: temporary hack! *)
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [], [s], ctem)
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (ctem: ctvemap) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * cstr list * S.t list * ctvemap =
-  match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-    | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [], ctem)
-    | (C.TInt (ik, _), C.TInt _) ->
-        begin match constrain_exp_aux env ctem loc e with
-          | (CTInt (n, ie), cs, ss, ctem) ->
-              let iec =
-                if n <= C.bytesSizeOfInt ik then
-                  (* pmr: what about the sign bit?  this may not always be safe *)
-                  ie
-                else if not !Constants.safe then begin
-                  C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                  ie
-                end else
-                  ITop
-              in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss, ctem)
-          | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
-        end
-    | _ -> constrain_exp_aux env ctem loc e
+  let ect = constrain_exp_aux env ctem loc e in
+    match (C.unrollType ct, C.unrollType <| C.typeOf e) with
+      | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [], ctem)
+      | (C.TInt (ik, _), C.TInt _) ->
+          begin match ect with
+            | (CTInt (n, ie), cs, ss, ctem) ->
+                let iec =
+                  if n <= C.bytesSizeOfInt ik then
+                    (* pmr: what about the sign bit?  this may not always be safe *)
+                    ie
+                  else if not !Constants.safe then begin
+                    C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                    ie
+                  end else
+                    ITop
+                in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss, ctem)
+            | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+          end
+      | _ -> ect
 
 and constrain_sizeof (ctem: ctvemap) (loc: C.location) (t: C.typ): ctype * cstr list * S.t list * ctvemap =
   (CTInt (int_width, IInt (C.bitsSizeOf t / 8)), [], [], ctem)
@@ -603,11 +604,11 @@ let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss, bas): ctvem
         (ctem, (mk_subty loc ctv2 S.empty_subst ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss, [] :: bas)
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
-      let _, css, sss, ctem = constrain_args env ctem loc args in
-        (ctem, css, sss, [] :: bas)
+      let _, css2, sss, ctem = constrain_args env ctem loc args in
+        (ctem, css2 @ css, sss, [] :: bas)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
-      let css, sss, ctem, ba = constrain_app env ctem loc f lvo args in
-        (ctem, css, sss, ba :: bas)
+      let css2, sss, ctem, ba = constrain_app env ctem loc f lvo args in
+        (ctem, css2 @ css, sss, ba :: bas)
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (ctem: ctvemap) (is: C.instr list): cstr list * S.t list * ctvemap * RA.block_annotation =
