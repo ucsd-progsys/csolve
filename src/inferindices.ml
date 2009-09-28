@@ -444,12 +444,14 @@ let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): itypecstr list 
 
 type indextyping = (cfun * ctype VM.t) VM.t
 
-let d_indextyping: unit -> indextyping -> P.doc =
-  CM.VarMapPrinter.d_map
-    ~dmaplet:(fun d1 d2 -> P.dprintf "%t\n%t" (fun () -> d1) (fun () -> d2))
-    "\n\n"
-    CM.d_var
-    (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm)
+let d_indextyping () (it: indextyping): P.doc =
+     it
+  |> M.flip (VM.fold (fun f t it -> if f.C.vdecl.C.line > 0 && f.C.vstorage != C.Extern then VM.add f t it else it)) VM.empty
+  |> CM.VarMapPrinter.d_map
+      ~dmaplet:(fun d1 d2 -> P.dprintf "%t\n%t" (fun () -> d1) (fun () -> d2))
+      "\n\n"
+      CM.d_var
+      (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
 
 (* API *)
 let infer_indices (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): indextyping =

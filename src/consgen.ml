@@ -388,8 +388,7 @@ let shapem_of_scim cil spec cg scim =
        let cf = FI.cfun_of_refcfun rf in
        if SM.mem fn.vname scim
        then (bm, (SM.add fn.vname (cf, SM.find fn.vname scim) fm))
-       else
-         (VM.add fn cf bm, fm)
+       else (VM.add fn cf bm, fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
