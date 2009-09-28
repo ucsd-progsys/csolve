@@ -1,7 +1,8 @@
-module M = Misc
-module P = Pretty
-module E = Errormsg
-module S = Sloc
+module M  = Misc
+module P  = Pretty
+module E  = Errormsg
+module S  = Sloc
+module SS = S.SlocSet
 
 open M.Ops
 
@@ -108,12 +109,9 @@ let prectype_sloc: 'a prectype -> S.t option = function
   | CTRef (s, _) -> Some s
   | CTInt _      -> None
 
-let prectype_replace_sloc (s1: S.t) (s2: S.t): 'a prectype -> 'a prectype = function
-  | CTRef (s3, i) when S.eq s3 s1 -> CTRef (s2, i)
-  | pct                           -> pct
-
-let prectype_subs (subs: (S.t * S.t) list) (pct: 'a prectype): 'a prectype =
-  List.fold_right (M.uncurry prectype_replace_sloc) subs pct
+let prectype_subs (subs: S.subst): 'a prectype -> 'a prectype = function
+  | CTRef (s, i) -> CTRef (S.subst_apply subs s, i)
+  | pct          -> pct
 
 let prectype_eq (pct1: 'a prectype) (pct2: 'a prectype): bool =
   match (pct1, pct2) with
@@ -362,6 +360,9 @@ module LDesc = struct
   let map (f: 'a prectype -> 'b prectype) (ld: 'a t): 'b t =
     mapn (fun _ _ pct -> f pct) ld
 
+  let referenced_slocs (ld: 'a t): SS.t =
+    fold (fun rss _ pct -> match prectype_sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
+
   let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, cnts): 'a t): P.doc =
     match cnts with
       | Empty           -> P.text ""
@@ -373,6 +374,7 @@ end
 
 module SLM = S.SlocMap
 
+(* pmr: this should become a module at some point --- this isn't 1983 *)
 type 'a prestore = ('a LDesc.t) SLM.t
 
 let prestore_map f =
@@ -387,18 +389,18 @@ let prestore_fold f b ps =
       LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
   end ps b
 
+let prestore_domain (ps: 'a prestore): S.t list =
+  SLM.fold (fun s _ ss -> s :: ss) ps []
+
 let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
 let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list =
    ps |> prestore_find l |> LDesc.find_index i |> List.map snd
 
-let prestore_subs_addrs subs ps = 
-  List.fold_left begin fun ps (l1, l2) ->
-    if not (SLM.mem l1 ps) then ps else
-      ps |> SLM.remove l1 
-         |> SLM.add l2 (SLM.find l1 ps) 
-  end ps subs
+(* pmr: why is this not rename_prestore? *)
+let prestore_subs_addrs subs ps =
+  SLM.fold (fun s ld ps -> SLM.add (S.subst_apply subs s) ld ps) SLM.empty ps
 
 let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
   prestore_fold begin fun ss _ _ pct ->
@@ -407,7 +409,7 @@ let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
       | None   -> ss
   end S.SlocSet.empty ps
 
-let prestore_subs (subs: (S.t * S.t) list) (ps: 'a prestore): 'a prestore =
+let prestore_subs (subs: S.subst) (ps: 'a prestore): 'a prestore =
   ps |> prestore_map_ct (prectype_subs subs) 
      |> prestore_subs_addrs subs
 
@@ -423,6 +425,14 @@ let prestore_filter (f: S.t -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestor
 
 let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
   prestore_filter (fun l _ -> S.is_abstract l) ps
+
+let rec prestore_close_slocs (ps: 'a prestore) (ss: SS.t): SS.t =
+  let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> prestore_find s |> LDesc.referenced_slocs))) ss ss in
+    if SS.equal reqs ss then ss else prestore_close_slocs ps reqs
+
+let prestore_close_under (ps: 'a prestore) (ss: S.t list): 'a prestore =
+  let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> prestore_close_slocs ps in
+    SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
 type store = index prestore
 
@@ -499,26 +509,9 @@ let d_precfun d_i () ft  =
 let d_cfun () ft =
   d_precfun d_index () ft
 
-let rename_prectype (subs: (S.t * S.t) list) (pct: 'a prectype): 'a prectype =
-  List.fold_right (M.uncurry <| prectype_replace_sloc) subs pct
-
-let rename_prestore (subs: (S.t * S.t) list) (ps: 'a prestore): 'a prestore =
-  let cns = LDesc.map (rename_prectype subs) in
-    SLM.fold begin fun l ld sm ->
-      let l = try List.assoc l subs with Not_found -> l in
-        SLM.add l (cns ld) sm
-    end ps SLM.empty
-
-let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
-  let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
-  let rename_pct = rename_prectype subs in
-  let rename_ps  = rename_prestore subs in
-    ({qlocs   = [];
-      args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
-      ret     = rename_pct rcts;
-      sto_in  = rename_ps sin;
-      sto_out = rename_ps sout},
-     subs)
+let rename_prestore (subs: S.subst) (ps: 'a prestore): 'a prestore =
+  let cns = LDesc.map (prectype_subs subs) in
+    SLM.fold (fun l ld sm -> SLM.add (S.subst_apply subs l) (cns ld) sm) ps SLM.empty
 
 let cfun_well_formed (cf: cfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
@@ -533,7 +526,7 @@ let cfun_well_formed (cf: cfun): bool =
 (******************************** Environments ********************************)
 (******************************************************************************)
 
-type ctypeenv = cfun Misc.StringMap.t
+type ctypeenv = cfun CilMisc.VarMap.t
 
 (******************************************************************************)
 (******************************* Expression Maps ******************************)

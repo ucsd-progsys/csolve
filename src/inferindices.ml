@@ -3,9 +3,9 @@ module P   = Pretty
 module E   = Errormsg
 module C   = Cil
 module CM  = CilMisc
-module VM  = CilMisc.VarMap
+module VM  = CM.VarMap
 module S   = Sloc
-module SLM = Sloc.SlocMap
+module SLM = S.SlocMap
 module ST  = Ssa_transform
 module SM  = M.StringMap
 module Cs  = Constants
@@ -137,7 +137,7 @@ let itypecstr_rhs_var ({itcdesc = ISubtype (_, itv); itcloc = loc} as itc: itype
   match itypevar_indexvars itv with
     | []   -> None
     | [iv] -> Some iv
-    | _    -> E.s <| C.errorLoc loc "Ill-formed constraint: %a\n" d_itypecstr itc
+    | _    -> halt <| C.errorLoc loc "Ill-formed constraint: %a\n" d_itypecstr itc
 
 let itypecstr_sat (is: indexsol) ({itcdesc = ISubtype (itv1, itv2)}: itypecstr): bool =
   match itv1, itv2 with
@@ -149,7 +149,7 @@ let refine_itypecstr (is: indexsol) ({itcid = id; itcdesc = ISubtype (itv1, itv2
   match itv1, itv2 with
     | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
     | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
-    | _                                                 -> E.s <| C.errorLoc loc "Failed index constraint %a\n\n" d_itypecstr itc
+    | _                                                 -> halt <| C.errorLoc loc "Failed index constraint %a\n\n" d_itypecstr itc
 
 type cstrmap = itypecstr M.IntMap.t
 
@@ -219,9 +219,9 @@ type varenv = itypevar VM.t
 
 type funenv = ifunvar VM.t
 
-type builtinenv = ifunvar SM.t
+type builtinenv = ifunvar VM.t
 
-type env = varenv * funenv * builtinenv
+type env = varenv * funenv
 
 (* pmr: should be in a common place *)
 let int_width    = C.bytesSizeOfInt C.IInt
@@ -241,7 +241,7 @@ let rec constrain_exp (env: env) (loc: C.location): C.exp -> itypevar * itypecst
   | C.SizeOf t                    -> constrain_sizeof loc t
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-and constrain_lval ((ve, _, _) as env: env) (loc: C.location): C.lval -> itypevar * itypecstr list = function
+and constrain_lval ((ve, _) as env: env) (loc: C.location): C.lval -> itypevar * itypecstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, [])
   | (C.Mem e, C.NoOffset) as lv ->
       let itv, cs = constrain_exp env loc e in
@@ -302,9 +302,9 @@ and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar =
   CTInt (CM.typ_width rt, IEConst ITop)
 
 and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr list = function
-  | C.CStr _                                 -> E.s <| E.unimp "Haven't implemented string constants yet"
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
-  | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+  | C.CStr _                                 -> halt <| E.unimp "Haven't implemented string constants yet"
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst (IInt 0)), []) (* XXX pmr XXX: temporary hack *)
+  | c                                        -> halt <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
   match C.unrollType ct, C.unrollType <| C.typeOf e with
@@ -322,7 +322,7 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar
                 end else
                   IEConst ITop
               in (CTInt (C.bytesSizeOfInt ik, iec), cs)
-          | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+          | _ -> halt <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end
     | _ -> constrain_exp env loc e
 
@@ -330,7 +330,7 @@ and constrain_sizeof (loc: C.location) (t: C.typ): itypevar * itypecstr list =
   (CTInt (int_width, IEConst (IInt (C.bitsSizeOf t / 8))), [])
 
 let constrain_return (env: env) (rtv: itypevar) (loc: C.location): C.exp option -> itypecstr list = function
-    | None   -> if is_void rtv then [] else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
+    | None   -> if is_void rtv then [] else halt <| C.errorLoc loc "Returning void value for non-void function\n\n"
     | Some e ->
         let itv, cs = constrain_exp env loc e in
           mk_isubtypecstr loc itv rtv :: cs
@@ -342,9 +342,9 @@ let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((itvs, css): itypevar
 let constrain_args (env: env) (loc: C.location) (args: C.exp list): itypevar list * itypecstr list list =
   List.fold_right (constrain_arg env loc) args ([], [])
 
-let constrain_app ((_, fe, be) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
+let constrain_app ((_, fe) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
   let itvs, css = constrain_args env loc args in
-  let ftv       = try VM.find f fe with Not_found -> SM.find f.C.vname be in
+  let ftv       = try VM.find f fe with Not_found -> halt <| C.errorLoc loc "Couldn't find function %a (missing prototype?)\n\n" CM.d_var f in
   let itvfs     = List.map snd ftv.args in
   let css       = List.map2 (fun itva itvf -> mk_isubtypecstr loc itva itvf) itvs itvfs :: css in
     match lvo with
@@ -362,7 +362,7 @@ let constrain_instr_aux (env: env) (css: itypecstr list list): C.instr -> itypec
       let itv2, cs2 = constrain_exp env loc e in
         (mk_isubtypecstr loc itv2 itv1 :: cs1) :: cs2 :: css
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else halt <| C.errorLoc loc "Can't handle printf";
       (constrain_args env loc args |> snd |> List.concat) :: css
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
       (constrain_app env loc f lvo args |> List.concat) :: css
@@ -408,7 +408,7 @@ let dump_constraints (fn: string) (ftv: ifunvar) (cs: itypecstr list): unit =
   let _ = P.printf "%a\n\n" (P.d_list "\n" d_itypecstr) cs in
     ()
 
-let constrain_fun (be: builtinenv) (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
+let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
   let blocks      = cfg.Ssa.blocks in
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
@@ -418,7 +418,7 @@ let constrain_fun (be: builtinenv) (fe: funenv) ({ST.fdec = fd; ST.phis = phis; 
   let ftv         = VM.find fd.C.svar fe in
   let formalcs    = List.map (fun (v, itv) -> mk_isubtypecstr loc (List.assoc v.C.vname ftv.args) itv) bodyformals in
   let phics       = constrain_phis ve phis in
-  let env         = (ve, fe, be) in
+  let env         = (ve, fe) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] blocks in
   let cs          = formalcs :: phics :: css |> List.concat in
   let _           = if Cs.ck_olev Cs.ol_solve then dump_constraints fd.C.svar.C.vname ftv cs in
@@ -429,15 +429,16 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_itypevar fty)) ftys in
     mk_cfun [] fctys (fresh_itypevar rty) SLM.empty SLM.empty
 
-let constrain_prog_fold (be: builtinenv) (fe: funenv) (_: SM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypecstr list list * (ifunvar * itypevar VM.t) VM.t): itypecstr list list * (ifunvar * itypevar VM.t) VM.t =
-  let ve, cs = constrain_fun be fe sci in
+let constrain_prog_fold (fe: funenv) (_: SM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypecstr list list * (ifunvar * itypevar VM.t) VM.t): itypecstr list list * (ifunvar * itypevar VM.t) VM.t =
+  let ve, cs = constrain_fun fe sci in
   let fv     = sci.ST.fdec.C.svar in
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
 let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
-  let be      = SM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
-  let fe      = SM.fold (fun _ {ST.fdec = fd} fe -> VM.add fd.C.svar (fresh_fun_typ fd) fe) scim VM.empty in
-  let css, fm = SM.fold (constrain_prog_fold be fe) scim ([], VM.empty) in
+  let fe      = VM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
+  let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
+  let fe      = SM.fold (fun _ {ST.fdec = fd} fe -> VM.add fd.C.svar (fresh_fun_typ fd) fe) scim fe in
+  let css, fm = SM.fold (constrain_prog_fold fe) scim ([], fm) in
     (List.concat css, fm)
 
 type indextyping = (cfun * ctype VM.t) VM.t

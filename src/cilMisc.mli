@@ -19,3 +19,7 @@ module VarMapPrinter: sig
     (unit -> VarMap.key -> Pretty.doc) ->
     (unit -> 'a -> Pretty.doc) -> unit -> 'a VarMap.t -> Pretty.doc
 end
+
+val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
+val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
+val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list

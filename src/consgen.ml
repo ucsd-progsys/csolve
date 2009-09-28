@@ -29,6 +29,8 @@ module FI = FixInterface
 module CF = Consinfra
 module IM = Misc.IntMap
 module SM = Misc.StringMap
+module CM = CilMisc
+module VM = CM.VarMap
 module P  = Pretty
 
 open Misc.Ops
@@ -380,13 +382,14 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim spec cg scim =
-  (SM.empty, SM.empty)
-  |> SM.fold begin fun fn (rf, _) (bm, fm) ->
+let shapem_of_scim cil spec cg scim =
+  (VM.empty, SM.empty)
+  |> VM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
-       if SM.mem fn scim 
-       then (bm, (SM.add fn (cf, SM.find fn scim) fm))
-       else ((SM.add fn cf bm), fm)
+       if SM.mem fn.vname scim
+       then (bm, (SM.add fn.vname (cf, SM.find fn.vname scim) fm))
+       else
+         (VM.add fn cf bm, fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
@@ -394,12 +397,12 @@ let shapem_of_scim spec cg scim =
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 
-  let decm = Misc.sm_of_list decs in
-  Misc.sm_to_list cenv
+  let decm = CM.vm_of_list decs in
+  CM.vm_to_list cenv
   |> List.map begin fun (fn, ft) -> 
-      (fn, if SM.mem fn decm 
+      (fn.vname, if VM.mem fn decm
            then FI.t_fresh_fn ft 
-           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec))
+           else fst (Misc.do_catch ("missing spec: "^fn.vname) (VM.find fn) spec))
      end
   |> FI.ce_adds_fn FI.ce_empty 
 
@@ -421,14 +424,15 @@ let rename_args rf sci : FI.refcfun =
                     |> Misc.map_pair (FI.refstore_subs loc FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_spec scim spec =
+let rename_spec cil scim spec =
   Misc.sm_to_list spec 
-  |> List.map begin fun (fn, (rf,b)) -> 
+  |> List.map begin fun (fn, (rf,b)) ->
+      let fv = findOrCreateFunc cil fn voidType in
       if SM.mem fn scim 
-      then (fn, (rename_args rf (SM.find fn scim), b))
-      else (fn, (rf, b))
+      then (fv, (rename_args rf (SM.find fn scim), b))
+      else (fv, (rf, b))
      end
-  |> Misc.sm_of_list
+  |> CM.vm_of_list
 
 (************************************************************************************)
 (***************** Generate Constraints for each Function ***************************)
@@ -436,8 +440,8 @@ let rename_spec scim spec =
 
 let cons_of_decs tgr spec gnv decs =
   List.fold_left begin fun (ws, cs, _) (fn, loc) ->
-    let tag    = CilTag.make_t tgr loc fn 0 0 in
-    let irf    = FI.ce_find_fn fn gnv in
+    let tag    = CilTag.make_t tgr loc fn.vname 0 0 in
+    let irf    = FI.ce_find_fn fn.vname gnv in
     let ws'    = FI.make_wfs_fn gnv irf tag in
     let srf, b = SM.find fn spec in
     let cs',ds'= if b then cons_of_refcfun loc gnv fn irf srf tag else ([],[]) in    
@@ -447,7 +451,7 @@ let cons_of_decs tgr spec gnv decs =
 let cons_of_scis tgr gnv scim shpm ci = 
   SM.fold begin fun fn sci ci ->
     let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
-    cons_of_sci tgr gnv sci (SM.find fn shpm)
+    cons_of_sci tgr gnv sci (VM.find sci.ST.fdec.svar shpm)
     |> Consindex.add ci fn sci
   end scim ci 
 

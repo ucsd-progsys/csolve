@@ -27,6 +27,8 @@
 (************** Misc Operations on CIL entities *****************)
 (****************************************************************)
 
+module M = Misc
+
 open Cil
 open Misc.Ops
  
@@ -127,6 +129,13 @@ let rec typ_width (t: typ): int =
     | t                             -> Errormsg.s <| Errormsg.bug "Unimplemented typ_width: %a@!@!" d_type t
 
 (******************************************************************************)
+(**************************** Misc. Pretty Printers ***************************)
+(******************************************************************************)
+
+let d_var () (v: varinfo): Pretty.doc =
+  Pretty.text v.vname
+
+(******************************************************************************)
 (******************************** Variable Maps *******************************)
 (******************************************************************************)
 
@@ -137,9 +146,11 @@ module VarMap = Map.Make(struct
 
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
-(******************************************************************************)
-(**************************** Misc. Pretty Printers ***************************)
-(******************************************************************************)
+let vm_print_keys vm =
+  VarMapPrinter.d_map ~dmaplet:(fun d1 _ -> d1) ", " d_var (fun () _ -> Pretty.nil) vm
 
-let d_var () (v: varinfo): Pretty.doc =
-  Pretty.text v.vname
+let vm_of_list xs =
+  List.fold_left (M.flip (M.uncurry VarMap.add)) VarMap.empty xs
+
+let vm_to_list vm =
+  VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
