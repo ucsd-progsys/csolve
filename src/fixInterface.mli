@@ -84,8 +84,8 @@ val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> re
 val refstore_read       : Cil.location -> refstore -> refctype -> refctype
 val refstore_fresh      : Ctypes.store -> refstore
 
-val refstore_subs       : ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
-val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> refstore -> refstore
+val refstore_subs       : Cil.location -> ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
+val refstore_subs_locs  : Cil.location -> (Sloc.t * Sloc.t) list -> refstore -> refstore
 
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list

@@ -404,10 +404,11 @@ let mk_gnv spec cenv decs =
 (*************************** Unify Spec Names and CIL names *********************)
 (********************************************************************************)
 
-let rename_args loc rf sci : FI.refcfun =
+let rename_args rf sci : FI.refcfun =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
   let xrs      = FI.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
+  let loc      = sci.ST.fdec.Cil.svar.Cil.vdecl in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
   let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
   let qls'     = FI.qlocs_of_refcfun rf in
@@ -417,7 +418,7 @@ let rename_args loc rf sci : FI.refcfun =
                     |> Misc.map_pair (FI.refstore_subs loc FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_spec loc scim spec =
+let rename_spec scim spec =
   Misc.sm_to_list spec 
   |> List.map begin fun (fn, (rf,b)) -> 
       if SM.mem fn scim 

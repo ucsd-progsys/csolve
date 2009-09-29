@@ -432,7 +432,7 @@ let t_subs_locs    = Ctypes.prectype_subs
 let t_subs_exps    = refctype_subs CI.expr_of_cilexp
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = Ctypes.prestore_map_ct t_fresh
-let refstore_subs  = fun f subs st -> Ctypes.prestore_map_ct (f subs) st
+let refstore_subs  = fun loc f subs st -> Ctypes.prestore_map_ct (f subs) st
 
 (* 
 let refldesc_subs_ploc f rd = 
@@ -446,7 +446,7 @@ let refstore_subs_locs loc lsubs sto =
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
     if not (refstore_mem l sto) then sto else 
-      let plocs = refstore_get loc sto l |> plocs_of_refldesc in
+      let plocs = refstore_get sto l |> plocs_of_refldesc in
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in
       let subs  = List.combine ns ns' in
