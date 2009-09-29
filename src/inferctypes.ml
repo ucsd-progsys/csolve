@@ -52,14 +52,14 @@ type annotenv = (ctvemap * RA.block_annotation array) VM.t
 
 type simplecstrdesc = [
 | `CInLoc of index * ctype * S.t
-| `CSubtype of ctype * S.subst * ctype
+| `CSubtype of ctype * ctype
 | `CWFSubst of S.subst
 ]
 
 let simplecstrdesc_slocs: simplecstrdesc -> S.t list = function
-  | `CInLoc (_, ct, s)        -> M.maybe_cons (prectype_sloc ct) [s]
-  | `CSubtype (ct1, sub, ct2) -> M.maybe_cons (prectype_sloc ct1) (M.maybe_cons (prectype_sloc ct2) (S.subst_slocs sub))
-  | `CWFSubst (sub)           -> S.subst_slocs sub
+  | `CInLoc (_, ct, s)   -> M.maybe_cons (prectype_sloc ct) [s]
+  | `CSubtype (ct1, ct2) -> M.maybe_cons (prectype_sloc ct1) (M.maybe_cons (prectype_sloc ct2) [])
+  | `CWFSubst (sub)      -> S.subst_slocs sub
 
 type cstrdesc = [
 | simplecstrdesc
@@ -72,19 +72,19 @@ let is_cstrdesc_simple: cstrdesc -> bool = function
   | _                        -> true
 
 let d_cstrdesc (): [< cstrdesc] -> P.doc = function
-  | `CSubtype (ctv1, sub, ctv2) -> P.dprintf "@[@[%a@] <: @[%a %a@]@]" d_ctype ctv1 S.d_subst sub d_ctype ctv2
-  | `CInHeap (s, hv)            -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
-  | `CInLoc (i, ctv, s)         -> P.dprintf "(%a, %a) ∈ %a" d_index i d_ctype ctv S.d_sloc s
-  | `CSubheap (hv1, sub, hv2)   -> P.dprintf "%a <: %a %a" d_heapvar hv1 S.d_subst sub d_heapvar hv2
-  | `CWFSubst (sub)             -> P.dprintf "WF(%a)" S.d_subst sub
+  | `CSubtype (ctv1, ctv2)    -> P.dprintf "@[@[%a@] <: @[%a@]@]" d_ctype ctv1 d_ctype ctv2
+  | `CInHeap (s, hv)          -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
+  | `CInLoc (i, ctv, s)       -> P.dprintf "(%a, %a) ∈ %a" d_index i d_ctype ctv S.d_sloc s
+  | `CSubheap (hv1, sub, hv2) -> P.dprintf "%a <: %a %a" d_heapvar hv1 S.d_subst sub d_heapvar hv2
+  | `CWFSubst (sub)           -> P.dprintf "WF(%a)" S.d_subst sub
 
 let apply_subst_to_subst (appsub: S.subst) (sub: S.subst): S.subst =
   List.map (fun (sfrom, sto) -> (S.subst_apply appsub sfrom, S.subst_apply appsub sto)) sub
 
 let simplecstrdesc_subst (sub: S.subst): simplecstrdesc -> simplecstrdesc = function
-  | `CSubtype (ctv1, sub2, ctv2) -> `CSubtype (prectype_subs sub ctv1, apply_subst_to_subst sub sub2, prectype_subs sub ctv2)
-  | `CInLoc (ie, ctv, s)         -> `CInLoc (ie, prectype_subs sub ctv, S.subst_apply sub s)
-  | `CWFSubst sub2               -> `CWFSubst (apply_subst_to_subst sub sub2)
+  | `CSubtype (ctv1, ctv2) -> `CSubtype (prectype_subs sub ctv1, prectype_subs sub ctv2)
+  | `CInLoc (ie, ctv, s)   -> `CInLoc (ie, prectype_subs sub ctv, S.subst_apply sub s)
+  | `CWFSubst sub2         -> `CWFSubst (apply_subst_to_subst sub sub2)
 
 let cstrdesc_subst (sub: S.subst): cstrdesc -> cstrdesc = function
   | #simplecstrdesc as scd     -> (simplecstrdesc_subst sub scd :> cstrdesc)
@@ -147,9 +147,11 @@ let subst_transpose (sub: S.subst): S.subst =
 
 let simplecstr_sat (st: store) (sc: simplecstr): bool =
   match sc.cdesc with
-    | `CInLoc (i, ct, s)        -> inloc_sat st i s ct
-    | `CSubtype (ct1, sub, ct2) -> is_subctype ct1 (prectype_subs sub ct2)
-    | `CWFSubst (sub)           -> subst_well_defined sub && sub |> subst_transpose |> subst_well_defined
+    | `CInLoc (i, ct, s)   -> inloc_sat st i s ct
+    | `CSubtype (ct1, ct2) -> is_subctype ct1 ct2
+    | `CWFSubst (sub)      -> subst_well_defined sub && sub |> subst_transpose |> subst_well_defined
+
+exception Unify of ctype * ctype
 
 (* pmr: better error reporting *)
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.subst): S.subst =
@@ -157,7 +159,7 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.subst): S.subst =
     | CTRef (s1, _), CTRef (s2, _) when S.eq s1 s2 -> sub
     | CTRef (s1, _), CTRef (s2, _)                 -> S.subst_extend s1 s2 sub
     | CTInt (n1, _), CTInt (n2, _) when n1 = n2    -> sub
-    | _                                            -> assert false
+    | _                                            -> raise (Unify (ct1, ct2))
 
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
@@ -194,12 +196,6 @@ let refine_inloc (l: Sloc.t) (i: index) (ct: ctype) (sto: store): S.subst * stor
         let ld, sub = LDesc.foldn (fun _ (ld, sub) pl ct2 -> (LDesc.remove pl ld, unify_ctypes ct ct2 sub)) (ld, sub) ld in
           (sub, SLM.add l (LDesc.add PLEverywhere ct ld) sto)
 
-(* pmr: better error report; check subtyping really holds *)
-let refine_subtype (ct1: ctype) (sub: S.subst) (ct2: ctype): S.subst =
-  match ct1, ct2 with
-    | CTRef (s1, _), CTRef (s2, _) -> [(s1, S.subst_apply sub s2)]
-    | _                            -> assert false
-
 let unify_slocs: S.t list -> S.subst = function
   | []      -> []
   | s :: ss -> List.fold_left (fun sub s' -> S.subst_extend s' s sub) [] ss
@@ -211,10 +207,13 @@ let refine_wfsubst (sub: S.subst): S.subst =
   S.subst_compose (sub |> make_subst_well_defined) (sub |> subst_transpose |> make_subst_well_defined)
 
 let refine_aux (sc: simplecstr) (sto: store): S.subst * store =
-  match sc.cdesc with
-    | `CInLoc (i, ct, s)        -> refine_inloc s i ct sto
-    | `CSubtype (ct1, sub, ct2) -> (refine_subtype ct1 sub ct2, sto)
-    | `CWFSubst (sub)           -> (refine_wfsubst sub, sto)
+  try
+    match sc.cdesc with
+      | `CInLoc (i, ct, s)   -> refine_inloc s i ct sto
+      | `CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.empty_subst, sto)
+      | `CWFSubst (sub)      -> (refine_wfsubst sub, sto)
+  with
+    | Unify (ct1, ct2) -> halt <| C.errorLoc sc.cloc "Cannot unify %a with %a\n\n" d_ctype ct1 d_ctype ct2
 
 type slocdep = int list SLM.t (* sloc -> cstr deps *)
 
@@ -424,8 +423,8 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     shp
 *)
 
-let mk_subty (loc: C.location) (ctv1: ctype) (sub: S.subst) (ctv2: ctype): cstr =
-  mk_cstr loc (`CSubtype (ctv1, sub, ctv2))
+let mk_subty (loc: C.location) (ctv1: ctype) (ctv2: ctype): cstr =
+  mk_cstr loc (`CSubtype (ctv1, ctv2))
 
 let mk_heapinc (loc: C.location) (s: S.t) (hv: heapvar): cstr =
   mk_cstr loc (`CInHeap (s, hv))
@@ -558,7 +557,7 @@ let constrain_return (env: env) (ctem: ctvemap) (rtv: ctype) (loc: C.location): 
     | None -> if is_void rtv then ([], [], ctem, []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
         let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
-          (mk_subty loc ctv S.empty_subst rtv :: cs, ss, ctem, [])
+          (mk_subty loc ctv rtv :: cs, ss, ctem, [])
 
 let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((ctvs, css, sss, ctem): ctype list * cstr list list * S.t list list * ctvemap): ctype list * cstr list list * S.t list list * ctvemap =
   let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
@@ -583,17 +582,17 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
   let instslocs            = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
   let sub                  = List.combine cf.qlocs instslocs in
   let sss                  = instslocs :: sss in
-  let ctvfs                = List.map snd cf.args in
+  let ctvfs                = List.map (prectype_subs sub <.> snd) cf.args in
   let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.subst_apply sub s) :: ics) [] cf.sto_out in
   (* pmr: can probably eliminate some constraints by substituting with actual parameter locations directly when possible *)
   let css                  = (mk_wfsubst loc sub :: stoincs) ::
-                             List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs ::
+                             List.map2 (fun ctva ctvf -> mk_subty loc ctva ctvf) ctvs ctvfs ::
                              css in
     match lvo with
       | None    -> (css, sss, ctem, [])
       | Some lv ->
           let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
-            ((mk_subty loc cf.ret sub ctvlv :: cs2) :: css, ss2 :: sss, ctem, [])
+            ((mk_subty loc (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss, ctem, [])
 
 let printf_funs = ["printf"; "fprintf"]
 
@@ -601,7 +600,7 @@ let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss, bas): ctvem
   | C.Set (lv, e, loc) ->
       let ctv1, cs1, ss1, ctem = constrain_lval env ctem loc lv in
       let ctv2, cs2, ss2, ctem = constrain_exp env ctem loc e in
-        (ctem, (mk_subty loc ctv2 S.empty_subst ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss, [] :: bas)
+        (ctem, (mk_subty loc ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss, [] :: bas)
   | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
       let _, css2, sss, ctem = constrain_args env ctem loc args in
@@ -628,7 +627,7 @@ let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctype) (s: C.stmt): cstr lis
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
-  List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (VM.find vdef ve) S.empty_subst (VM.find vphi ve)) vdefs
+  List.map (fun (_, vdef) -> mk_subty vphi.C.vdecl (VM.find vdef ve) (VM.find vphi ve)) vdefs
 
 let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
@@ -638,7 +637,7 @@ let constrain_fun (fs: funenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.
   let bas            = Array.make (Array.length blocks) [] in
   let loc            = fd.C.svar.C.vdecl in
   let cf, ve         = VM.find fd.C.svar fs in
-  let formalcs       = List.map2 (fun (_, fct) bv -> mk_subty loc fct S.empty_subst (VM.find bv ve)) cf.args fd.C.sformals in
+  let formalcs       = List.map2 (fun (_, fct) bv -> mk_subty loc fct (VM.find bv ve)) cf.args fd.C.sformals in
   let phics          = constrain_phis ve phis in
   let ctem, sss, css =
     M.array_fold_lefti begin fun i (ctem, sss, css) b ->
