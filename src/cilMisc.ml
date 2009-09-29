@@ -154,3 +154,7 @@ let vm_of_list xs =
 
 let vm_to_list vm =
   VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
+
+
+let definedHere vi =
+  vi.vdecl.line > 0 && vi.vstorage != Extern

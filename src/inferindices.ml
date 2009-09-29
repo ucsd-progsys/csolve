@@ -446,7 +446,7 @@ type indextyping = (cfun * ctype VM.t) VM.t
 
 let d_indextyping () (it: indextyping): P.doc =
      it
-  |> M.flip (VM.fold (fun f t it -> if f.C.vdecl.C.line > 0 && f.C.vstorage != C.Extern then VM.add f t it else it)) VM.empty
+  |> M.flip (VM.fold (fun f t it -> if CM.definedHere f then VM.add f t it else it)) VM.empty
   |> CM.VarMapPrinter.d_map
       ~dmaplet:(fun d1 d2 -> P.dprintf "%t\n%t" (fun () -> d1) (fun () -> d2))
       "\n\n"

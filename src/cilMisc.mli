@@ -10,6 +10,8 @@ val typ_width   : Cil.typ -> int
 
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
+val definedHere : Cil.varinfo -> bool
+
 val d_var       : unit -> Cil.varinfo -> Pretty.doc
 
 module VarMap: Map.S with type key = Cil.varinfo
