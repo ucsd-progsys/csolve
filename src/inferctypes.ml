@@ -579,12 +579,12 @@ let instantiate_function (cf: cfun): S.subst * cfun =
 
 let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list list * S.t list list * ctvemap * RA.annotation list =
   let ctvs, css, sss, ctem = constrain_args env ctem loc args in
-  let ftv, _               = try VM.find f fs with Not_found -> halt <| P.printf "CAN'T FIND %a\n\n\n\n" CM.d_var f in
-  let instslocs            = List.map (fun _ -> S.fresh S.Abstract) ftv.qlocs in
-  let sub                  = List.combine ftv.qlocs instslocs in
+  let cf, _                = VM.find f fs in
+  let instslocs            = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
+  let sub                  = List.combine cf.qlocs instslocs in
   let sss                  = instslocs :: sss in
-  let ctvfs                = List.map snd ftv.args in
-  let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.subst_apply sub s) :: ics) [] ftv.sto_out in
+  let ctvfs                = List.map snd cf.args in
+  let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.subst_apply sub s) :: ics) [] cf.sto_out in
   (* pmr: can probably eliminate some constraints by substituting with actual parameter locations directly when possible *)
   let css                  = (mk_wfsubst loc sub :: stoincs) ::
                              List.map2 (fun ctva ctvf -> mk_subty loc ctva sub ctvf) ctvs ctvfs ::
@@ -593,7 +593,7 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
       | None    -> (css, sss, ctem, [])
       | Some lv ->
           let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
-            ((mk_subty loc ftv.ret sub ctvlv :: cs2) :: css, ss2 :: sss, ctem, [])
+            ((mk_subty loc cf.ret sub ctvlv :: cs2) :: css, ss2 :: sss, ctem, [])
 
 let printf_funs = ["printf"; "fprintf"]
 
@@ -753,7 +753,7 @@ let fresh_sloc_of (c: ctype): ctype =
     | CTInt _      -> c
 
 let fresh_indextyping (it: Inferindices.indextyping): Inferindices.indextyping =
-  VM.map (fun (ifv, vm) -> (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm)) it
+  VM.mapi (fun f (ifv, vm) -> if CM.definedHere f then (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm) else (ifv, vm)) it
 
 (******************************************************************************)
 (***************************** Constraint Solving *****************************)
