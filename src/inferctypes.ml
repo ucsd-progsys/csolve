@@ -125,6 +125,8 @@ type cstremap = ctvemap * cstr list
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
 
+exception Unify of ctype * ctype
+
 let inloc_sat (st: store) (i: index) (s: S.t) (ct1: ctype): bool =
   try
     match prestore_find_index s i st with
@@ -138,8 +140,6 @@ let simplecstr_sat (st: store) (sc: simplecstr): bool =
     | `CSubtype (ct1, ct2) -> is_subctype ct1 ct2
     | `CWFSubst (sub)      -> S.Subst.well_defined sub && sub |> S.Subst.transpose |> S.Subst.well_defined
 
-exception Unify of ctype * ctype
-
 (* pmr: better error reporting *)
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
@@ -152,36 +152,41 @@ let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
 
 (* pmr: This doesn't seem to check for partial overlap! *)
-let refine_inloc (l: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
-  match i with
-    | IBot   -> ([], sto)
-    | IInt n ->
-        let pl = PLAt n in
-          begin match LDesc.find pl (prestore_find l sto) with
-            | []         -> ([], store_add l pl ct sto)
-            | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
-            | _          -> assert false
-        end
-    | ISeq (n, m) ->
-        let ld, sub = LDesc.shrink_period m unify_ctypes [] (prestore_find l sto) in
-        let pl      = PLSeq n in
-        let cts     = LDesc.find pl ld in
-        let sub     = List.fold_left (fun sub (_, ct2) -> unify_ctypes ct ct2 sub) sub cts in
-        let p       = ld |> LDesc.get_period |> Misc.get_option 0 in
-          if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) cts then
-            (* If this sequence is included in an existing one, there's nothing left to do *)
-            (sub, sto)
-          else
-            (* Otherwise, remove "later", overlapping elements and add this sequence.
-               (Note if there's no including sequence, all the elements we found previously
-                come after this one.) *)
-            let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld cts in
-            let ld = LDesc.add pl ct ld in
-              (sub, SLM.add l ld sto)
-    | ITop ->
-        let ld, sub = LDesc.shrink_period (prectype_width ct) unify_ctypes [] (prestore_find l sto) in
-        let ld, sub = LDesc.foldn (fun _ (ld, sub) pl ct2 -> (LDesc.remove pl ld, unify_ctypes ct ct2 sub)) (ld, sub) ld in
-          (sub, SLM.add l (LDesc.add PLEverywhere ct ld) sto)
+let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
+  try
+    match i with
+      | IBot   -> ([], sto)
+      | IInt n ->
+          let pl = PLAt n in
+            begin match LDesc.find pl (prestore_find s sto) with
+              | []         -> ([], store_add s pl ct sto)
+              | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
+              | _          -> assert false
+            end
+      | ISeq (n, m) ->
+          let ld, sub = LDesc.shrink_period m unify_ctypes [] (prestore_find s sto) in
+          let pl      = PLSeq n in
+          let cts     = LDesc.find pl ld in
+          let sub     = List.fold_left (fun sub (_, ct2) -> unify_ctypes ct ct2 sub) sub cts in
+          let p       = ld |> LDesc.get_period |> Misc.get_option 0 in
+            if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) cts then
+              (* If this sequence is included in an existing one, there's nothing left to do *)
+              (sub, sto)
+            else
+              (* Otherwise, remove "later", overlapping elements and add this sequence.
+                 (Note if there's no including sequence, all the elements we found previously
+                 come after this one.) *)
+              let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld cts in
+              let ld = LDesc.add pl ct ld in
+                (sub, SLM.add s ld sto)
+      | ITop ->
+          let ld, sub = LDesc.shrink_period (prectype_width ct) unify_ctypes [] (prestore_find s sto) in
+          let ld, sub = LDesc.foldn (fun _ (ld, sub) pl ct2 -> (LDesc.remove pl ld, unify_ctypes ct ct2 sub)) (ld, sub) ld in
+            (sub, SLM.add s (LDesc.add PLEverywhere ct ld) sto)
+  with
+    | e ->
+        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (prestore_find s sto) |> ignore;
+        raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function
   | []      -> []
@@ -196,7 +201,7 @@ let refine_wfsubst (sub: S.Subst.t): S.Subst.t =
 let refine_aux (sc: simplecstr) (sto: store): S.Subst.t * store =
   try
     match sc.cdesc with
-      | `CInLoc (i, ct, s)   -> refine_inloc s i ct sto
+      | `CInLoc (i, ct, s)   -> refine_inloc sc.cloc s i ct sto
       | `CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.Subst.empty, sto)
       | `CWFSubst (sub)      -> (refine_wfsubst sub, sto)
   with
