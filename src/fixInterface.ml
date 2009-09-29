@@ -129,6 +129,9 @@ let mk_refcfun qslocs args ist ret ost =
     Ctypes.sto_in  = ist;
     Ctypes.sto_out = ost; }
 
+let slocs_of_store st = 
+  SLM.fold (fun x _ xs -> x::xs) st []
+
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
@@ -237,6 +240,62 @@ let builtins    =
    (uf_bend, C.make_reft vv_ufs so_ufs [])]
 
 (*******************************************************************)
+(****************** Tag/Annotation Generation **********************)
+(*******************************************************************)
+
+type binding = TVar of string * refctype
+             | TFun of string * refcfun
+             | TSto of string * refstore
+
+let tags_of_binds s binds = 
+  let s_typ = Ctypes.prectype_map (Misc.app_snd (C.apply_solution s)) in
+  let s_fun = Ctypes.precfun_map s_typ in
+  let s_sto = Ctypes.prestore_map_ct s_typ in
+  List.fold_left begin fun (d, kts) -> function
+    | TVar (x, cr) -> 
+        let k,t  = x, ("variable "^x) in
+        let d'   = Pretty.dprintf "%s :: @[%a@] \n \n" t d_refctype (s_typ cr) in
+        (Pretty.concat d d', (k,t)::kts)
+    | TFun (f, cf) -> 
+        let k,t  = f, ("function "^f) in
+        let d'   = Pretty.dprintf "%s :: @[%a@] \n \n" t d_refcfun (s_fun cf) in
+        (Pretty.concat d d', (k,t)::kts)
+    | TSto (f, st) -> 
+        let kts' =  slocs_of_store st 
+                 |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
+                 |> List.map (fun s -> (s, s^" |->")) in
+        let d'   = Pretty.dprintf "funstore %s :: @[%a@] \n \n" f d_refstore (s_sto st) in
+        (Pretty.concat d d', kts' ++ kts)
+  end (Pretty.nil, []) binds
+
+let generate_annots file d = 
+  let fn = file ^ ".annot" in
+  let oc = open_out fn in
+  let _  = Pretty.fprint ~width:80 oc d in
+  let _  = close_out oc in
+  ()
+
+let generate_tags file kts =
+  let fn = file ^ ".tags" in
+  let oc = open_out fn in
+  let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
+               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k file t) in
+  let _  = close_out oc in
+  ()
+
+let annotr    = ref [] 
+
+(* API *)
+let annot_var  = fun x cr   -> annotr := TVar ((string_of_name x), cr) :: !annotr
+let annot_fun  = fun f cf   -> annotr := TFun (f, cf) :: !annotr
+let annot_sto  = fun f st   -> annotr := TSto (f, st) :: !annotr
+let annot_dump = fun file s -> !annotr 
+                               |> tags_of_binds s 
+                               >> (fst <+> generate_annots file)
+                               >> (snd <+> generate_tags file) 
+                               |> ignore
+
+(*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
 
@@ -255,9 +314,11 @@ let ce_find_fn s (fnv, _) =
     assertf "Unknown function! %s" s
 
 let ce_adds (fnv, vnv) ncrs =
+  let _ = List.iter (Misc.uncurry annot_var) ncrs in
   (fnv, List.fold_left (fun env (n, cr) -> YM.add n cr env) vnv ncrs)
  
 let ce_adds_fn (fnv, vnv) sfrs = 
+  let _ = List.iter (Misc.uncurry annot_fun) sfrs in
   (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv)
 
 let ce_mem_fn = fun s (fnv, _) -> SM.mem s fnv
@@ -431,7 +492,7 @@ let refctype_subs f nzs =
 let t_subs_locs    = Ctypes.prectype_subs 
 let t_subs_exps    = refctype_subs CI.expr_of_cilexp
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = Ctypes.prestore_map_ct t_fresh
+let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
 let refstore_subs  = fun loc f subs st -> Ctypes.prestore_map_ct (f subs) st
 
 (* 
@@ -518,9 +579,6 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
       make_cs env' p lhs rhs tago tag 
   end ncrs12
   |> Misc.splitflatten
-
-let slocs_of_store st = 
-  SLM.fold (fun x _ xs -> x::xs) st []
 
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
   let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"

@@ -63,10 +63,10 @@ type ssaCfgInfo = {
 }
 
 let mk_ssa_name s = function
-  | Def (b, k) -> Printf.sprintf "%s#blk_%d_%d" s b k
-  | Phi b      -> Printf.sprintf "%s#phi_%d" s b
+  | Def (b, k) -> Printf.sprintf "%s__SSA__blk_%d_%d" s b k
+  | Phi b      -> Printf.sprintf "%s__SSA__phi_%d" s b
 
-let is_origcilvar = fun v -> not (String.contains v.Cil.vname '#')
+let is_origcilvar = fun v -> not (Misc.is_substring v.Cil.vname "__SSA__")
 
 let is_ssa_renamable v =
   not (v.vglob || Constants.is_cil_tempvar v.vname)

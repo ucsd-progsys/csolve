@@ -82,7 +82,7 @@ val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctyp
 
 val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
 val refstore_read       : Cil.location -> refstore -> refctype -> refctype
-val refstore_fresh      : Ctypes.store -> refstore
+val refstore_fresh      : string -> Ctypes.store -> refstore
 
 val refstore_subs       : Cil.location -> ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : Cil.location -> (Sloc.t * Sloc.t) list -> refstore -> refstore
@@ -106,4 +106,5 @@ val make_cs_refstore    : cilenv -> Ast.pred ->
                           refstore -> refstore -> bool ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
-val make_dep: bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
+val make_dep            : bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
+val annot_dump          : string -> FixConstraint.soln -> unit

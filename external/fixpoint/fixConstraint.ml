@@ -158,6 +158,11 @@ let preds_of_refa s   = function
 let preds_of_reft s (_,_,ras) =
   Misc.flap (preds_of_refa s) ras
 
+(* API *)
+let apply_solution s (v,t,ras) = 
+  let ras' = Misc.map (fun ra -> Conc (A.pAnd (preds_of_refa s ra))) ras in
+  (v, t, ras')
+
 let preds_of_envt s env =
   SM.fold
     (fun x ((vv, t, ras) as r) ps -> 

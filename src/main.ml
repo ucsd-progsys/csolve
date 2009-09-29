@@ -63,7 +63,7 @@ let liquidate file =
   let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
-  let _     = P.printf "%a\n" (Consindex.print (Some s')) me in
+  let _     = FixInterface.annot_dump file s' in
   let _     = print_unsat_locs tgr s' cs' in
   let _  = BS.print stdout "\nLiquidC Time \n" in
   match cs' with 

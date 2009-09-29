@@ -48,6 +48,7 @@ type deft = Srt of Ast.Sort.t
 val kvars_of_reft    : reft -> (subs * Ast.Symbol.t) list
 val kvars_of_t       : t -> (subs * Ast.Symbol.t) list
 val apply_substs     : subs -> Ast.pred -> Ast.pred
+val apply_solution   : soln -> reft -> reft
 
 val preds_of_refa    : soln -> refa -> Ast.pred list
 val preds_of_reft    : soln -> reft -> Ast.pred list
