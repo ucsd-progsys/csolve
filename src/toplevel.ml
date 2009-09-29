@@ -41,8 +41,8 @@ let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
     let fn   = fd.Cil.svar.Cil.vname in
-    let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.slocals in
-    let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"@"^fn));v) fd.Cil.sformals in
+    let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"_"^fn));v) fd.Cil.slocals in
+    let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"_"^fn));v) fd.Cil.sformals in
     fd.Cil.slocals <- locs ;
     fd.Cil.sformals <- fmls
   | _ -> ())
