@@ -522,6 +522,14 @@ let cfun_well_formed (cf: cfun): bool =
         | CTRef (l, _) -> SLM.mem l cf.sto_out
         | _            -> true
 
+let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
+  let apply_sub = prectype_subs sub in
+  mk_cfun (List.map (S.Subst.apply sub) cf.qlocs)
+          (List.map (M.app_snd apply_sub) cf.args)
+          (apply_sub cf.ret)
+          (prestore_subs sub cf.sto_in)
+          (prestore_subs sub cf.sto_out)
+
 (******************************************************************************)
 (******************************** Environments ********************************)
 (******************************************************************************)

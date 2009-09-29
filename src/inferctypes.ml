@@ -750,6 +750,21 @@ let fresh_indextyping (it: Inferindices.indextyping): Inferindices.indextyping =
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
 
+(* pmr: Why are we building up the subst?  Should we just build it up
+   incrementally?  Consider before solving multiple SCCs... *)
+let funenv_apply_subs (sub: S.Subst.t) (fe: funenv): funenv =
+  VM.map (fun (cf, ve) -> cfun_subs sub cf, VM.map (prectype_subs sub) ve) fe
+
+(* pmr: funenv and indextyping are eerily similar and share a whole lot of code *)
+let d_funenv () (fe: funenv): P.doc =
+     fe
+  |> M.flip (VM.fold (fun f t it -> if CM.definedHere f then VM.add f t it else it)) VM.empty
+  |> CM.VarMapPrinter.d_map
+      ~dmaplet:(fun d1 d2 -> P.dprintf "%t\n%t" (fun () -> d1) (fun () -> d2))
+      "\n\n"
+      CM.d_var
+      (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
+
 let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
   let fs, ae, _, cs    = constrain_scc fs ae scc in
@@ -758,8 +773,10 @@ let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
   let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
   let sd, cm, sub, sto = solve sd cm sub sto in
+  let fs               = funenv_apply_subs sub fs in
   let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
   let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
+  let _ = P.printf "ENV:\n\n%a\n\n" d_funenv fs in
     assert false
 
 (* API *)
