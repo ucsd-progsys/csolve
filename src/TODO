@@ -1,3 +1,8 @@
+[Sorts]	How to separate int and reference types while still allowing ptr-arith
+	i.e. create a separate Sort.t called "ptr"
+	- will help to speed up instantiation
+	- will NOT help to speed up queries, since Z3 flattens it all out
+
 
 [mst]
 Issues
@@ -10,6 +15,7 @@ Issues
 
 4. void * (generic hash-table)
 
+5. pesky int-to-ptr cast fails
 -------------------------------------------------------------------------
 
 [genspec]
@@ -70,11 +76,6 @@ Pending issues (add attribs etc. to allow):
 - [unions]
 
 ------------------------------ STALE ------------------------------
-
-[Sorts]	How to separate int and reference types while still allowing ptr-arith
-	i.e. create a separate "Z3-int" type called "ref"
-	- will help to speed up instantiation
-	- will NOT help to speed up queries, since Z3 flattens it all out
 
 [depgraph]
 	(a) delete back edges (where src is):

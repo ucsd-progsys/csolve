@@ -262,23 +262,36 @@ Graph MakeGraph(int numvert )
   Vertex vf ;
   Vertex vt ;
   Graph retval ;
-  int tmp ;
-  int tmp___0 ;
-  int HashRange; //JHALA
+  //int tmp ;		JHALA: bogus int->ptr cast
+  //int tmp___0 ;	JHALA:
+  int HashRange; 	//JHALA: making local
 
   {
   HashRange = numvert / 4; //JHALA: hoisted from loop-body
-  tmp = malloc(sizeof(*retval));
-  retval = (struct graph_st *)tmp;
+  //tmp = malloc(sizeof(*retval));
+  //retval = (struct graph_st *) tmp;
+  retval = (struct graph_st *) malloc(sizeof(*retval)); 
   //chatting((char *)"Make phase 1: Creating hash tables\n");
-  tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
-  retval->vlist = (struct vert_st *)tmp___0;
+  //tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
+  //retval->vlist = (struct vert_st *)tmp___0;
+  retval->vlist = (struct vert_st *) malloc((unsigned int )numvert * sizeof(*vf));
   vt = (struct vert_st *)0;
   i = numvert - 1;
   while (i >= 0) {
     vf = retval->vlist + i;
     validptr(vf);
+
+
+    
+    
+    
     vf->mindist = 9999999;
+    
+    
+
+
+
+    
     vf->edgehash = MakeHash(HashRange/*, & hashfunc*/);
     vf->next = vt;
     vt = vf;
@@ -317,26 +330,28 @@ static void *localmalloc(int size )
 }
 */
 
+extern char *malloc(int);
 Hash malloc_Hash(int) ;
 HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
 HashEntry malloc_HashEntry(int);
 
-Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
-{ Hash retval ;
-  void *tmp ;
-  void *tmp___0 ;
-  {
-    tmp = /* localmalloc */malloc_Hash((int )sizeof(*retval));
-  retval = (struct hash *)tmp;
-  retval->size = size;
-  tmp___0 = /*localmalloc*/malloc_HashEntry_array((int )((unsigned int )size * sizeof(*(retval->array + 0))));
-  retval->array = (HashEntry *)tmp___0;
-  //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-  /* retval->mapfunc = map; */
-  retval->padding = 0U;
-  return (retval);
-  }
-}
+//JHALA: EMPTY STORE ISSUE
+//Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
+//{ Hash retval ;
+//  void *tmp ;
+//  void *tmp___0 ;
+//  {
+//    tmp = /* localmalloc */malloc_Hash((int )sizeof(*retval));
+//  retval = (struct hash *)tmp;
+//  retval->size = size;
+//  tmp___0 = /*localmalloc*/malloc_HashEntry_array((int )((unsigned int )size * sizeof(*(retval->array + 0))));
+//  retval->array = (HashEntry *)tmp___0;
+//  //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
+//  /* retval->mapfunc = map; */
+//  retval->padding = 0U;
+//  return (retval);
+//  }
+//}
 
 void *HashLookup(unsigned int key , Hash hash ) 
 { int j ;
