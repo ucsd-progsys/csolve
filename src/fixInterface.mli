@@ -69,8 +69,8 @@ val t_name              : cilenv -> name -> refctype
 val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype
 
 val t_subs_names        : (name * name) list -> refctype -> refctype
-val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype 
-val t_subs_locs         : Sloc.subst -> refctype -> refctype
+val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype
+val t_subs_locs         : Sloc.Subst.t -> refctype -> refctype
 
 val refstore_empty      : refstore
 val binds_of_refldesc   : Sloc.t -> refldesc -> (name * refctype) list

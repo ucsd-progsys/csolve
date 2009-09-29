@@ -114,7 +114,7 @@ val void_ctype: ctype
 val prectype_sloc: 'a prectype -> Sloc.t option
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
-val prectype_subs        : Sloc.subst -> 'a prectype -> 'a prectype
+val prectype_subs        : Sloc.Subst.t -> 'a prectype -> 'a prectype
 val prectype_eq: 'a prectype -> 'a prectype -> bool
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
@@ -158,6 +158,6 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 (** [prestore_upd st1 st2] returns the store obtained by overwriting the
     common locations of st1 and st2 with the blocks appearing in st2 *)
 
-val prestore_subs   : Sloc.subst -> 'a prestore -> 'a prestore
+val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
 val store_closed : index prestore -> bool

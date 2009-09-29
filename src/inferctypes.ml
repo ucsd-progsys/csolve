@@ -53,18 +53,18 @@ type annotenv = (ctvemap * RA.block_annotation array) VM.t
 type simplecstrdesc = [
 | `CInLoc of index * ctype * S.t
 | `CSubtype of ctype * ctype
-| `CWFSubst of S.subst
+| `CWFSubst of S.Subst.t
 ]
 
 let simplecstrdesc_slocs: simplecstrdesc -> S.t list = function
   | `CInLoc (_, ct, s)   -> M.maybe_cons (prectype_sloc ct) [s]
   | `CSubtype (ct1, ct2) -> M.maybe_cons (prectype_sloc ct1) (M.maybe_cons (prectype_sloc ct2) [])
-  | `CWFSubst (sub)      -> S.subst_slocs sub
+  | `CWFSubst (sub)      -> S.Subst.slocs sub
 
 type cstrdesc = [
 | simplecstrdesc
 | `CInHeap of S.t * heapvar
-| `CSubheap of heapvar * S.subst * heapvar
+| `CSubheap of heapvar * S.Subst.t * heapvar
 ]
 
 let is_cstrdesc_simple: cstrdesc -> bool = function
@@ -75,21 +75,21 @@ let d_cstrdesc (): [< cstrdesc] -> P.doc = function
   | `CSubtype (ctv1, ctv2)    -> P.dprintf "@[@[%a@] <: @[%a@]@]" d_ctype ctv1 d_ctype ctv2
   | `CInHeap (s, hv)          -> P.dprintf "%a ∈ %a" S.d_sloc s d_heapvar hv
   | `CInLoc (i, ctv, s)       -> P.dprintf "(%a, %a) ∈ %a" d_index i d_ctype ctv S.d_sloc s
-  | `CSubheap (hv1, sub, hv2) -> P.dprintf "%a <: %a %a" d_heapvar hv1 S.d_subst sub d_heapvar hv2
-  | `CWFSubst (sub)           -> P.dprintf "WF(%a)" S.d_subst sub
+  | `CSubheap (hv1, sub, hv2) -> P.dprintf "%a <: %a %a" d_heapvar hv1 S.Subst.d_subst sub d_heapvar hv2
+  | `CWFSubst (sub)           -> P.dprintf "WF(%a)" S.Subst.d_subst sub
 
-let apply_subst_to_subst (appsub: S.subst) (sub: S.subst): S.subst =
-  List.map (fun (sfrom, sto) -> (S.subst_apply appsub sfrom, S.subst_apply appsub sto)) sub
+let apply_subst_to_subst (appsub: S.Subst.t) (sub: S.Subst.t): S.Subst.t =
+  List.map (fun (sfrom, sto) -> (S.Subst.apply appsub sfrom, S.Subst.apply appsub sto)) sub
 
-let simplecstrdesc_subst (sub: S.subst): simplecstrdesc -> simplecstrdesc = function
+let simplecstrdesc_subst (sub: S.Subst.t): simplecstrdesc -> simplecstrdesc = function
   | `CSubtype (ctv1, ctv2) -> `CSubtype (prectype_subs sub ctv1, prectype_subs sub ctv2)
-  | `CInLoc (ie, ctv, s)   -> `CInLoc (ie, prectype_subs sub ctv, S.subst_apply sub s)
+  | `CInLoc (ie, ctv, s)   -> `CInLoc (ie, prectype_subs sub ctv, S.Subst.apply sub s)
   | `CWFSubst sub2         -> `CWFSubst (apply_subst_to_subst sub sub2)
 
-let cstrdesc_subst (sub: S.subst): cstrdesc -> cstrdesc = function
+let cstrdesc_subst (sub: S.Subst.t): cstrdesc -> cstrdesc = function
   | #simplecstrdesc as scd     -> (simplecstrdesc_subst sub scd :> cstrdesc)
   | `CSubheap (hv1, sub2, hv2) -> `CSubheap (hv1, apply_subst_to_subst sub sub2, hv2)
-  | `CInHeap (s, hv)           -> `CInHeap (S.subst_apply sub s, hv)
+  | `CInHeap (s, hv)           -> `CInHeap (S.Subst.apply sub s, hv)
 
 type 'a precstr = {cid: int; cdesc: 'a; cloc: C.location}
 
@@ -102,7 +102,7 @@ let (fresh_cstrid, reset_fresh_cstrids) = M.mk_int_factory ()
 let mk_cstr (loc: C.location) (cdesc: cstrdesc): cstr =
   {cid = fresh_cstrid (); cloc = loc; cdesc = cdesc}
 
-let cstr_subst (sub: S.subst) (c: cstr): cstr =
+let cstr_subst (sub: S.Subst.t) (c: cstr): cstr =
   mk_cstr c.cloc (cstrdesc_subst sub c.cdesc)
 
 let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
@@ -132,32 +132,19 @@ let inloc_sat (st: store) (i: index) (s: S.t) (ct1: ctype): bool =
       | _     -> false
   with Not_found -> false
 
-let all_slocs_eq: S.t list -> bool = function
-  | []      -> true
-  | s :: ss -> List.fold_left (fun all_eq s' -> all_eq && S.eq s s') true ss
-
-let images_of_subst (sub: S.subst): S.t list list =
-  sub |> M.groupby fst |> List.map (List.map snd)
-
-let subst_well_defined (sub: S.subst): bool =
-  sub |> images_of_subst |> List.for_all all_slocs_eq
-
-let subst_transpose (sub: S.subst): S.subst =
-  List.map (fun (x, y) -> (y, x)) sub
-
 let simplecstr_sat (st: store) (sc: simplecstr): bool =
   match sc.cdesc with
     | `CInLoc (i, ct, s)   -> inloc_sat st i s ct
     | `CSubtype (ct1, ct2) -> is_subctype ct1 ct2
-    | `CWFSubst (sub)      -> subst_well_defined sub && sub |> subst_transpose |> subst_well_defined
+    | `CWFSubst (sub)      -> S.Subst.well_defined sub && sub |> S.Subst.transpose |> S.Subst.well_defined
 
 exception Unify of ctype * ctype
 
 (* pmr: better error reporting *)
-let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.subst): S.subst =
+let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
     | CTRef (s1, _), CTRef (s2, _) when S.eq s1 s2 -> sub
-    | CTRef (s1, _), CTRef (s2, _)                 -> S.subst_extend s1 s2 sub
+    | CTRef (s1, _), CTRef (s2, _)                 -> S.Subst.extend s1 s2 sub
     | CTInt (n1, _), CTInt (n2, _) when n1 = n2    -> sub
     | _                                            -> raise (Unify (ct1, ct2))
 
@@ -165,7 +152,7 @@ let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
 
 (* pmr: This doesn't seem to check for partial overlap! *)
-let refine_inloc (l: Sloc.t) (i: index) (ct: ctype) (sto: store): S.subst * store =
+let refine_inloc (l: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
   match i with
     | IBot   -> ([], sto)
     | IInt n ->
@@ -196,21 +183,21 @@ let refine_inloc (l: Sloc.t) (i: index) (ct: ctype) (sto: store): S.subst * stor
         let ld, sub = LDesc.foldn (fun _ (ld, sub) pl ct2 -> (LDesc.remove pl ld, unify_ctypes ct ct2 sub)) (ld, sub) ld in
           (sub, SLM.add l (LDesc.add PLEverywhere ct ld) sto)
 
-let unify_slocs: S.t list -> S.subst = function
+let unify_slocs: S.t list -> S.Subst.t = function
   | []      -> []
-  | s :: ss -> List.fold_left (fun sub s' -> S.subst_extend s' s sub) [] ss
+  | s :: ss -> List.fold_left (fun sub s' -> S.Subst.extend s' s sub) [] ss
 
-let make_subst_well_defined (sub: S.subst): S.subst =
-  sub |> images_of_subst |> List.fold_left (fun outsub rng -> S.subst_compose (unify_slocs rng) outsub) []
+let make_subst_well_defined (sub: S.Subst.t): S.Subst.t =
+  sub |> S.Subst.images |> List.fold_left (fun outsub rng -> S.Subst.compose (unify_slocs rng) outsub) []
 
-let refine_wfsubst (sub: S.subst): S.subst =
-  S.subst_compose (sub |> make_subst_well_defined) (sub |> subst_transpose |> make_subst_well_defined)
+let refine_wfsubst (sub: S.Subst.t): S.Subst.t =
+  S.Subst.compose (sub |> make_subst_well_defined) (sub |> S.Subst.transpose |> make_subst_well_defined)
 
-let refine_aux (sc: simplecstr) (sto: store): S.subst * store =
+let refine_aux (sc: simplecstr) (sto: store): S.Subst.t * store =
   try
     match sc.cdesc with
       | `CInLoc (i, ct, s)   -> refine_inloc s i ct sto
-      | `CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.empty_subst, sto)
+      | `CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.Subst.empty, sto)
       | `CWFSubst (sub)      -> (refine_wfsubst sub, sto)
   with
     | Unify (ct1, ct2) -> halt <| C.errorLoc sc.cloc "Cannot unify %a with %a\n\n" d_ctype ct1 d_ctype ct2
@@ -220,7 +207,7 @@ type slocdep = int list SLM.t (* sloc -> cstr deps *)
 type cstrmap = simplecstr IM.t (* cstr ident -> cstr map *)
 
 (* pmr: should make sure that subst is well-defined at this point *)
-let adjust_slocdep (sub: S.subst) (sd: slocdep): slocdep =
+let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
   List.fold_left begin fun sd (sfrom, sto) ->
     (* pmr: this find pattern is common; should be using a MapWithDefault *)
     let olddeps = try SLM.find sfrom sd with Not_found -> [] in
@@ -228,14 +215,14 @@ let adjust_slocdep (sub: S.subst) (sd: slocdep): slocdep =
       sd |> SLM.remove sfrom |> SLM.add sto (newdeps @ olddeps)
   end sd sub
 
-let refine (sd: slocdep) (cm: cstrmap) (sub: S.subst) (sc: simplecstr) (sto: store): slocdep * cstrmap * S.subst * store * int list =
+let refine (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: store): slocdep * cstrmap * S.Subst.t * store * int list =
   let refsub, sto   = refine_aux sc sto in
-  let invalid_slocs = S.subst_slocs refsub in
+  let invalid_slocs = S.Subst.slocs refsub in
   let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
   let cm            = IM.map (fun sc -> {sc with cdesc = simplecstrdesc_subst refsub sc.cdesc}) cm in
-    (sd, cm, S.subst_compose refsub sub, sto, succs)
+    (sd, cm, S.Subst.compose refsub sub, sto, succs)
 
 (* pmr: pull out worklist code? *)
 module WkList = Heaps.Functional(struct
@@ -246,7 +233,7 @@ module WkList = Heaps.Functional(struct
 let wklist_push (wkl: WkList.t) (itcids: int list): WkList.t =
   List.fold_left (M.flip WkList.add) wkl itcids
 
-let rec iter_solve (wkl: WkList.t) (sd: slocdep) (cm: cstrmap) (sub: S.subst) (sto: store): slocdep * cstrmap * S.subst * store =
+let rec iter_solve (wkl: WkList.t) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): slocdep * cstrmap * S.Subst.t * store =
   match try Some (WkList.maximum wkl) with Heaps.EmptyHeap -> None with
     | None     -> (sd, cm, sub, sto)
     | Some cid ->
@@ -259,7 +246,7 @@ let rec iter_solve (wkl: WkList.t) (sd: slocdep) (cm: cstrmap) (sub: S.subst) (s
             let wkl                     = wklist_push wkl succs in
               iter_solve wkl sd cm sub sto
 
-let solve (sd: slocdep) (cm: cstrmap) (sub: S.subst) (sto: store): slocdep * cstrmap * S.subst * store =
+let solve (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): slocdep * cstrmap * S.Subst.t * store =
   let wkl = IM.fold (fun cid _ cids -> cid :: cids) cm [] |> wklist_push WkList.empty in
     iter_solve wkl sd cm sub sto
 
@@ -432,10 +419,10 @@ let mk_heapinc (loc: C.location) (s: S.t) (hv: heapvar): cstr =
 let mk_locinc (loc: C.location) (i: index) (ctv: ctype) (s: S.t): cstr =
   mk_cstr loc (`CInLoc (i, ctv, s))
 
-let mk_subheap (loc: C.location) (hv1: heapvar) (sub: S.subst) (hv2: heapvar): cstr =
+let mk_subheap (loc: C.location) (hv1: heapvar) (sub: S.Subst.t) (hv2: heapvar): cstr =
   mk_cstr loc (`CSubheap (hv1, sub, hv2))
 
-let mk_wfsubst (loc: C.location) (sub: S.subst): cstr =
+let mk_wfsubst (loc: C.location) (sub: S.Subst.t): cstr =
   mk_cstr loc (`CWFSubst sub)
 
 let ctype_of_const: C.constant -> ctype = function
@@ -583,7 +570,7 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
   let sub                  = List.combine cf.qlocs instslocs in
   let sss                  = instslocs :: sss in
   let ctvfs                = List.map (prectype_subs sub <.> snd) cf.args in
-  let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.subst_apply sub s) :: ics) [] cf.sto_out in
+  let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
   (* pmr: can probably eliminate some constraints by substituting with actual parameter locations directly when possible *)
   let css                  = (mk_wfsubst loc sub :: stoincs) ::
                              List.map2 (fun ctva ctvf -> mk_subty loc ctva ctvf) ctvs ctvfs ::
@@ -695,7 +682,7 @@ let dom_trans (hd: heapdom) (c: cstr): heapdom =
     | `CSubheap (hv1, sub, hv2) ->
         let ss1 = IM.find hv1 hd in
         let ss2 = IM.find hv2 hd in
-          IM.add hv1 (SS.union (slocset_map (S.subst_apply sub) ss2) ss1) hd
+          IM.add hv1 (SS.union (slocset_map (S.Subst.apply sub) ss2) ss1) hd
     | _ -> hd
 
 let mk_heapdom (css: (heapvar * cstr list) list): heapdom =
@@ -716,7 +703,7 @@ let close_inc (hd: heapdom) (scm: scm) (c: cstr): scm =
     | `CSubheap (_, sub, hv2) ->
         let ss = IM.find hv2 hd in
           SS.fold (fun s scm ->
-                     let subs = S.subst_apply sub s in
+                     let subs = S.Subst.apply sub s in
                        SCM.add subs (List.map (cstr_subst sub) (SCM.find s scm) @ SCM.find subs scm) scm) ss scm
     | _ -> scm
 
@@ -758,7 +745,7 @@ let fresh_indextyping (it: Inferindices.indextyping): Inferindices.indextyping =
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
 
-let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap * S.subst * store) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * slocdep * cstrmap * S.subst * store =
+let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
   let fs, ae, _, cs    = constrain_scc fs ae scc in
     (* pmr: obviously wrong *)
@@ -766,7 +753,7 @@ let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
   let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
   let sd, cm, sub, sto = solve sd cm sub sto in
-  let _ = P.printf "SUBST: %a\n\n\n" S.d_subst sub in
+  let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
   let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
     assert false
 

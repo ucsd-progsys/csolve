@@ -63,37 +63,52 @@ module SMP = P.MakeMapPrinter(SlocMap)
 (***************************** Slocs Substitutions ****************************)
 (******************************************************************************)
 
-type subst = (t * t) list
+module Subst = struct
+  type t = (sloc * sloc) list
 
-let empty_subst = []
+  let empty = []
 
-let d_subst (): subst -> P.doc =
-  P.dprintf "[@[%a@]]" (P.d_list "," (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto))
+  let d_subst (): t -> P.doc =
+    P.dprintf "[@[%a@]]" (P.d_list "," (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto))
 
-let subst_apply (sub: subst) (s: t): t =
-  try List.assoc s sub with Not_found -> s
+  let apply (sub: t) (s: sloc): sloc =
+    try List.assoc s sub with Not_found -> s
 
-let subst_extend (sfrom: t) (sto: t) (sub: subst): subst =
-  let sub  = List.map (subst_apply [(sfrom, sto)] |> M.app_snd) sub in
-    if not (List.mem_assoc sfrom sub) then
-      (sfrom, sto) :: sub
-    else
-      sub
-
-let subst_compose (sub1: subst) (sub2: subst): subst =
-  let sub = List.map (subst_apply sub1 |> M.app_snd) sub2 in
-    List.fold_left begin fun sub (sfrom, sto) ->
-      if not (List.mem_assoc sfrom sub2) then
+  let extend (sfrom: sloc) (sto: sloc) (sub: t): t =
+    let sub  = List.map (apply [(sfrom, sto)] |> M.app_snd) sub in
+      if not (List.mem_assoc sfrom sub) then
         (sfrom, sto) :: sub
       else
         sub
-    end sub sub1
 
-let subst_dom (sub: subst): t list =
-  List.map fst sub
+  let compose (sub1: t) (sub2: t): t =
+    let sub = List.map (apply sub1 |> M.app_snd) sub2 in
+      List.fold_left begin fun sub (sfrom, sto) ->
+        if not (List.mem_assoc sfrom sub2) then
+          (sfrom, sto) :: sub
+        else
+          sub
+      end sub sub1
 
-let subst_rng (sub: subst): t list =
-  List.map snd sub
+  let dom (sub: t): sloc list =
+    List.map fst sub
 
-let subst_slocs (sub: subst): t list =
-  List.split sub |> M.uncurry (@) |> M.sort_and_compact
+  let rng (sub: t): sloc list =
+    List.map snd sub
+
+  let slocs (sub: t): sloc list =
+    List.split sub |> M.uncurry (@) |> M.sort_and_compact
+
+  let images (sub: t): sloc list list =
+    sub |> M.groupby fst |> List.map (List.map snd)
+
+  let all_slocs_eq: sloc list -> bool = function
+    | []      -> true
+    | s :: ss -> List.fold_left (fun all_eq s' -> all_eq && eq s s') true ss
+
+  let well_defined (sub: t): bool =
+    sub |> images |> List.for_all all_slocs_eq
+
+  let transpose (sub: t): t =
+    List.map (fun (x, y) -> (y, x)) sub
+end

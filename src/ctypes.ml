@@ -109,8 +109,8 @@ let prectype_sloc: 'a prectype -> S.t option = function
   | CTRef (s, _) -> Some s
   | CTInt _      -> None
 
-let prectype_subs (subs: S.subst): 'a prectype -> 'a prectype = function
-  | CTRef (s, i) -> CTRef (S.subst_apply subs s, i)
+let prectype_subs (subs: S.Subst.t): 'a prectype -> 'a prectype = function
+  | CTRef (s, i) -> CTRef (S.Subst.apply subs s, i)
   | pct          -> pct
 
 let prectype_eq (pct1: 'a prectype) (pct2: 'a prectype): bool =
@@ -400,7 +400,7 @@ let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list 
 
 (* pmr: why is this not rename_prestore? *)
 let prestore_subs_addrs subs ps =
-  SLM.fold (fun s ld ps -> SLM.add (S.subst_apply subs s) ld ps) SLM.empty ps
+  SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) SLM.empty ps
 
 let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
   prestore_fold begin fun ss _ _ pct ->
@@ -409,7 +409,7 @@ let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
       | None   -> ss
   end S.SlocSet.empty ps
 
-let prestore_subs (subs: S.subst) (ps: 'a prestore): 'a prestore =
+let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
   ps |> prestore_map_ct (prectype_subs subs) 
      |> prestore_subs_addrs subs
 
@@ -509,9 +509,9 @@ let d_precfun d_i () ft  =
 let d_cfun () ft =
   d_precfun d_index () ft
 
-let rename_prestore (subs: S.subst) (ps: 'a prestore): 'a prestore =
+let rename_prestore (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
   let cns = LDesc.map (prectype_subs subs) in
-    SLM.fold (fun l ld sm -> SLM.add (S.subst_apply subs l) (cns ld) sm) ps SLM.empty
+    SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
 let cfun_well_formed (cf: cfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
