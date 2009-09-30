@@ -115,11 +115,16 @@ let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.add k qs' s)
 
+
 (* API *)
 let sol_add s k qs' = 
   let qs   = sol_query s k in
   let qs'' = qs' ++ qs in
   (not (Misc.same_length qs qs''), SM.add k qs'' s)
+
+(* API *)
+let sol_merge s1 s2 =
+  SM.fold (fun k qs s -> sol_add s k qs |> snd) s1 s2 
 
 let group_sol_change addf s0 ks kqs = 
   let t  = H.create 17 in
@@ -162,6 +167,7 @@ let preds_of_reft s (_,_,ras) =
 let apply_solution s (v,t,ras) = 
   let ras' = Misc.map (fun ra -> Conc (A.pAnd (preds_of_refa s ra))) ras in
   (v, t, ras')
+
 
 let preds_of_envt s env =
   SM.fold
@@ -310,6 +316,7 @@ let lhs_of_t    = fun (_,_,lhs,_,_,_) -> lhs
 let rhs_of_t    = fun (_,_,_,rhs,_,_) -> rhs
 let tag_of_t    = fun (_,_,_,_,_,is) -> is 
 let id_of_t     = function (_,_,_,_,Some i,_) -> i | _ -> assertf "C.id_of_t"
+let ido_of_t    = fun (_,_,_,_,ido,_) -> ido
 
 (* API *)
 let make_wf     = fun env r io -> (env, r, io)
@@ -317,48 +324,6 @@ let env_of_wf   = fst3
 let reft_of_wf  = snd3
 let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
 
-(***************************************************************)
-(********************** Input Validation ***********************)
-(***************************************************************)
-
-(* 1. check ids are distinct, return max id *)
-let phase1 cs = 
-  let ids = Misc.map_partial (fun (_,_,_,_,x,_) -> x) cs in
-  let _   = asserts (Misc.distinct ids) "Invalid Constraints 1" in
-  List.fold_left max 0 ids 
-
-(* 2. add distinct ids to each constraint *) 
-let phase2 cs tmax = 
-  List.fold_left 
-    (fun (cs, j) c -> match c with
-       | (_,_,_,_, Some i,_) -> (c::cs, j)
-       | (a,b,c,d, None,  e) -> ((a,b,c,d,Some j,e)::cs, j+1))
-    ([], tmax+1) cs
-  |> fst
-
-(* 3. check that sorts are consistent across constraints *)
-let phase3 cs =
-  let memo = H.create 17 in
-  List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_,_) ->
-    asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
-    SM.iter begin fun x (_,t,_) ->
-      try asserts (t = (H.find memo x)) "Invalid Constraints 3b" 
-      with Not_found -> H.replace memo x t
-    end env
-  end cs;
-  cs
-
-let phase4 a cs =
-  List.iter begin fun c -> 
-    asserts (a = List.length (tag_of_t c)) "Invalid Constraints 4"
-  end cs;
-  cs
-
-let validate a cs = 
-  phase1 cs |> phase2 cs |> phase3 |> phase4 a
-
-let validate a cs = 
-  BS.time "validate shapes" (validate a) cs
 
 (* API *)
 let matches_deps ds = 
@@ -388,3 +353,4 @@ let make_dep b xo yo =
   | false, Some t, Some t' -> Ddp (t, t')
   | false, Some t, None    -> Ddp_s t
   | false, None  , Some t' -> Ddp_t t'
+  | _                      -> assertf "FixConstraint.make_dep: match failure"

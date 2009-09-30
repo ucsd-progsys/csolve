@@ -42,10 +42,61 @@ open Misc.Ops
 let mydebug = false 
 
 (***************************************************************)
-(******************** Constraint Validation ********************)
+(*********** Input Constraint & Solution Validation ************)
 (***************************************************************)
 
 exception Out_of_scope of Ast.Symbol.t 
+
+
+
+(* 1. check ids are distinct, return max id *)
+let phase1 cs =
+  let ids = Misc.map_partial C.ido_of_t cs in
+  let _   = asserts (Misc.distinct ids) "Invalid Constraints 1" in
+  (List.fold_left max 0 ids), cs
+
+(* 2. add distinct ids to each constraint *)
+let phase2 (tmax, cs) =
+  Misc.mapfold begin fun j c -> match C.ido_of_t c with
+    | None -> (j+1, C.make_t (C.env_of_t c) (C.grd_of_t c) (C.lhs_of_t c) (C.rhs_of_t c) (Some j) (C.tag_of_t c))
+    | _    -> (j, c)
+  end (tmax + 1) cs
+  |> snd
+(*
+  List.fold_left 
+    (fun (cs, j) c -> match c with
+       | (_,_,_,_, Some i,_) -> (c::cs, j)
+       | (a,b,c,d, None,  e) -> ((a,b,c,d,Some j,e)::cs, j+1))
+    ([], tmax+1) cs
+  |> fst
+ *)
+
+(* 3. check that sorts are consistent across constraints *)
+let phase3 cs =
+  let memo = Hashtbl.create 17 in
+  List.iter begin fun c ->
+    let env = C.env_of_t c in
+    let id  = C.id_of_t c in
+    let (vv1,t1,_) = C.lhs_of_t c in
+    let (vv2,t2,_) = C.rhs_of_t c in
+    let _ = if not (vv1 = vv2 && t1 = t2) then 
+      let _ = Format.printf "Invalid Constraints 3a in \n %a " (C.print_t None) c in
+      let _ = 0/0 in () in
+    SM.iter begin fun x (_,t,_) ->
+      try asserts (t = (Hashtbl.find memo x)) "Invalid Constraints 3b" 
+      with Not_found -> Hashtbl.replace memo x t
+    end env
+  end cs;
+  cs
+
+(* 4. check that each tag has the same arity [a] *)
+let phase4 a cs =
+  List.iter begin fun c -> 
+    asserts (a = List.length (C.tag_of_t c)) "Invalid Constraints 4"
+  end cs;
+  cs
+
+(* 5. check that all refinements are well-formed *)
 
 let validate_vars env msg vs = 
   List.iter begin fun v -> 
@@ -54,7 +105,8 @@ let validate_vars env msg vs =
       raise (Out_of_scope v)
   end vs 
 
-let validate_reft s env msg r =
+let validate_reft s env msg ((vv,t,_) as r) =
+  let env = SM.add vv r env in
   r |> C.preds_of_reft s 
     |> Misc.flap P.support 
     |> validate_vars env msg
@@ -63,21 +115,21 @@ let validate_binding s env msg x r =
   let msg = Format.sprintf "%s binding for %s " msg (Sy.to_string x) in
   validate_reft s env msg r
 
-let validate s sri =
-  Cindex.to_list sri 
-  |> List.for_all begin fun c ->
-       let msg  = Format.sprintf "tag %d" (C.id_of_t c) in
-       let (vv,t,_) as r = C.lhs_of_t c in
-       let env  = C.env_of_t c |> SM.add vv r in
-       let lhs  = C.lhs_of_t c in
-       let rhs  = C.rhs_of_t c in
-       try 
-         BS.time "valid binds" (SM.iter (validate_binding s env msg)) env;
-         BS.time "valid lhs" (validate_reft s env (" LHS "^msg)) lhs;
-         BS.time "valid rhs" (validate_reft s env (" RHS "^msg)) rhs;
-         true
-       with Out_of_scope _ -> false
-     end 
+let phase5 s cs =
+  Misc.filter begin fun c ->
+    let msg  = C.to_string c in
+    let env  = C.env_of_t c in
+    let lhs  = C.lhs_of_t c in
+    let rhs  = C.rhs_of_t c in
+    BS.time "valid binds" (SM.iter (validate_binding s env (msg^"\n BAD ENV"))) env;
+    BS.time "valid lhs" (validate_reft s env (msg^"\n BAD LHS")) lhs;
+    BS.time "valid rhs" (validate_reft s env (msg^"\n BAD RHS")) rhs;
+    true
+  end cs
+
+let validate a s cs =
+  let f a s = phase1 <+> phase2 <+> phase3 <+> phase4 a <+> phase5 s in 
+  BS.time "validate shapes" (f a s) cs
 
 (*
 let force_phase1c s cs c =

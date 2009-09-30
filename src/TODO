@@ -3,6 +3,15 @@
 	- will help to speed up instantiation
 	- will NOT help to speed up queries, since Z3 flattens it all out
 
+HEREHEREHEREHERE: 
+Failed 13 tests: 
+../postests/mst-scratch.c
+../postests/mst-liquid1.c
+../postests/mst-liquid.c
+../postests/em3d.c
+
+../postests/adpcminiptr.c
+../postests/adpcm.c
 
 [mst]
 Issues

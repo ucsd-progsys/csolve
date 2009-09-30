@@ -24,8 +24,6 @@ void init_string(string *s, char c) {
     int len;
     char *str;
 
-    // s = s; // THETA ISSUE
-
     // pmr: weirdness here, these need to be rolled out...
     len = s->len;
     str = s->str;

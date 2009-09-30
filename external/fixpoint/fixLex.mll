@@ -84,8 +84,8 @@ rule token = parse
   | ">="		{ GE }
   | ">"		        { GT }
   | "->"                { IMPL }
-  
   | "int"               { INT }
+  | "ptr"               { PTR }
   | "bool"              { BOOL }
   | "uit"               { UNINT }
   | "func"              { FUNC }

@@ -211,8 +211,8 @@ let refstore_write loc sto rct rct' =
 (*******************************************************************)
 
 let so_int = So.Int
-let so_ref = So.Int (* TBD: So.Unint "ref" *)
-let so_ufs = So.Func [so_ref; so_int] 
+let so_ref = So.Ptr 
+let so_ufs = So.Func [so_ref; so_ref] 
 let vv_int = Sy.value_variable so_int
 let vv_ref = Sy.value_variable so_ref
 let vv_ufs = Sy.value_variable so_ufs
@@ -222,15 +222,15 @@ let sorts  = [] (* TBD: [so_int; so_ref] *)
 let uf_bbegin = name_of_string "BLOCK_BEGIN"
 let uf_bend   = name_of_string "BLOCK_END"
 
-(* Move to its own module *)
+(*
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
- 
+
 let int_refctype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
   (refctype_of_reft_ctype r ct_int)
 
 let true_int  = int_refctype_of_ras []
-let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
+let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))] *)
 
 let mk_pure_cfun args ret = 
   mk_refcfun [] args refstore_empty ret refstore_empty
@@ -382,7 +382,7 @@ let refctype_of_ctype f = function
       let r = C.make_reft vv_int so_int (f t) in
       (Ctypes.CTInt (i, (x, r))) 
   | Ctypes.CTRef (l, x) as t ->
-      let r = C.make_reft vv_int so_ref (f t) in
+      let r = C.make_reft vv_ref so_ref (f t) in
       (Ctypes.CTRef (l, (x, r))) 
 
 (*
@@ -581,10 +581,10 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   |> Misc.splitflatten
 
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+(*  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in 
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in *)
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 

@@ -70,15 +70,15 @@ let read_inputs usage =
 (********************* Hooking into Solver ***********************)
 (*****************************************************************)
 
-let solve (ts, ps, cs, ws, ds, qs, s) = match cs with 
+let solve (ts, ps, cs, ws, ds, qs, s0) = match cs with 
   | []   -> 
       print_now "Fixpoint: NO Constraints!" |> ignore
   | c::_ -> 
       let _       = print_now "Fixpoint: Creating  CI\n" in
       let a       = c |> C.tag_of_t |> List.length in
-      let ctx, _  = BS.time "create" (S.create ts SM.empty ps a ds cs ws) qs in
+      let ctx,s1  = BS.time "create" (S.create ts SM.empty ps a ds cs ws) qs in
       let _       = print_now "Fixpoint: Solving \n" in
-      let s', cs' = BS.time "solve" (S.solve ctx) s in
+      let s', cs' = BS.time "solve" (S.solve ctx) (C.sol_merge s0 s1) in
       let _       = print_now "Fixpoint: Saving Result \n" in
       let _       = BS.time "save" (S.save !Co.save_file ctx) s' in
       let _       = F.printf "%a \nUnsat Constraints:\n %a" 

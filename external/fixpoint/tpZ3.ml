@@ -151,8 +151,9 @@ let funSort env s =
 let z3VarType me t =
   let lookup me = function
     | So.Bool 	 -> me.tbool
-    | So.Int 	 -> me.tint
-    | So.Unint _ -> me.tint
+    | So.Int 	 
+    | So.Ptr     
+    | So.Unint _ 
     | So.Func _  -> me.tint 
     | So.Array _ -> failure "MATCH ERROR: TPZ3.z3VarType" in
   Misc.do_memo me.tydt (lookup me) t t
@@ -214,7 +215,7 @@ let is_z3_int me a =
     |> (=) "int"
 
     (* 
-let z3Rel = function
+let z3Relf = function
   | A.Eq -> Z3.mk_eq
   | A.Gt -> Z3.mk_gt
   | A.Ge -> Z3.mk_ge
@@ -234,28 +235,20 @@ and z3Cast me env a t =
   if st = st' then a else cast me env a (st, st')  
 
 and z3Rel me env (e1, r, e2) =
-  let t1o, t2o = Misc.map_pair (A.sortcheck_expr (varSort env)) (e1, e2) in
   let a1 , a2  = Misc.map_pair (z3Exp me env) (e1, e2) in
-  match t1o, t2o with 
-  | Some t1, Some t2 when t1 = t2 -> begin
-    match r with
-    | A.Gt -> asserts (t1 != So.Bool) "ERROR: z3Rel Gt"; Z3.mk_gt me.c a1 a2
-    | A.Ge -> asserts (t1 != So.Bool) "ERROR: z3Rel Ge"; Z3.mk_ge me.c a1 a2
-    | A.Lt -> asserts (t1 != So.Bool) "ERROR: z3Rel Lt"; Z3.mk_lt me.c a1 a2
-    | A.Le -> asserts (t1 != So.Bool) "ERROR: z3Rel Le"; Z3.mk_le me.c a1 a2
-    | A.Eq -> Z3.mk_eq me.c a1 a2 
-    | A.Ne -> Z3.mk_distinct me.c [| a1; a2|]
-  end
-  | None, Some _ 
-  | Some _, None -> 
+  let t1o, t2o = (e1,e2) |> Misc.map_pair (A.sortcheck_expr (varSort env))
+                         |> Misc.map_pair (Misc.maybe_map (function So.Ptr -> So.Int | x -> x)) in
+  match r, t1o, t2o with 
+  | A.Eq, Some t1, Some t2 when t1 = t2                  -> Z3.mk_eq me.c a1 a2 
+  | A.Ne, Some t1, Some t2 when t1 = t2                  -> Z3.mk_distinct me.c [|a1; a2|]
+  | A.Gt, Some t1, Some t2 when t1 = t2 && t1 != So.Bool -> Z3.mk_gt me.c a1 a2
+  | A.Ge, Some t1, Some t2 when t1 = t2 && t1 != So.Bool -> Z3.mk_ge me.c a1 a2
+  | A.Lt, Some t1, Some t2 when t1 = t2 && t1 != So.Bool -> Z3.mk_lt me.c a1 a2
+  | A.Le, Some t1, Some t2 when t1 = t2 && t1 != So.Bool -> Z3.mk_le me.c a1 a2
+  | _, _, _ -> 
       SM.iter (fun s t -> Format.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
       Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
-      assertf "ERROR: type error in z3Rel 1"
-  | None, None -> assertf "ERROR: type error in z3Rel 2"
-  | Some _, Some _ ->
-      SM.iter (fun s t -> Format.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
-      Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
-      assertf "ERROR: type error in z3Rel 3"
+      assertf "ERROR: type error in z3Rel"
  
 and z3App me env p zes =
   match funSort env p with
