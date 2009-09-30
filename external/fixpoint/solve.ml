@@ -182,10 +182,10 @@ let dump me s =
 (***************************************************************)
 
 let wellformed env q = 
-  let t    = Q.sort_of_t q in
-  let v    = Sy.value_variable t in
-  let env' = SM.add v (v,t,[]) env in
-  A.sortcheck_pred (fun x -> snd3 (SM.find x env')) (Q.pred_of_t q) 
+  (* let t    = Q.sort_of_t q in
+     let v    = Sy.value_variable t in
+     let env' = SM.add v (v,t,[]) env in *)
+  A.sortcheck_pred (fun x -> snd3 (SM.find x env)) (Q.pred_of_t q) 
 
 let dupfree_binding xys : bool = 
   let ys  = List.map snd xys in
@@ -226,14 +226,14 @@ let inst_qual ys (q : Q.t) : Q.t list =
     List.map (Q.create None t) ps'
 
 let inst_ext (qs : Q.t list) s wf = 
-  let env = C.env_of_wf wf in
-  let r   = C.reft_of_wf wf in
-  let ks  = C.kvars_of_reft r |> List.map snd in
-  let s   = List.fold_left (fun s k -> C.sol_add s k [] |> snd) s ks in
-(*  let _   = Co.bprintf mydebug "ks = %a \n" (Misc.pprint_many false "," Sy.print) ks in *)
-  let ys  = SM.fold (fun y _ ys -> y::ys) env [] in
+  let r    = C.reft_of_wf wf in
+  let ks   = C.kvars_of_reft r |> List.map snd in
+  let s    = List.fold_left (fun s k -> C.sol_add s k [] |> snd) s ks in
+  let env  = C.env_of_wf wf in
+  let ys   = SM.fold (fun y _ ys -> y::ys) env [] in
+  let env' = SM.add (fst3 r) r env in 
   qs |> Misc.flap (inst_qual ys)
-     |> Misc.filter (wellformed env)
+     |> Misc.filter (wellformed env')
      |> Misc.map Q.pred_of_t 
      |> Misc.cross_product ks 
      |> C.group_sol_add s ks

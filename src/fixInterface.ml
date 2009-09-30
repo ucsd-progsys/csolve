@@ -382,7 +382,7 @@ let refctype_of_ctype f = function
       let r = C.make_reft vv_int so_int (f t) in
       (Ctypes.CTInt (i, (x, r))) 
   | Ctypes.CTRef (l, x) as t ->
-      let r = C.make_reft vv_int so_ref (f t) in
+      let r = C.make_reft vv_ref so_ref (f t) in
       (Ctypes.CTRef (l, (x, r))) 
 
 (*
