@@ -115,11 +115,16 @@ let sol_update s k qs' =
   let qs = sol_read s k in
   (not (Misc.same_length qs qs'), SM.add k qs' s)
 
+
 (* API *)
 let sol_add s k qs' = 
   let qs   = sol_query s k in
   let qs'' = qs' ++ qs in
   (not (Misc.same_length qs qs''), SM.add k qs'' s)
+
+(* API *)
+let sol_merge s1 s2 =
+  SM.fold (fun k qs s -> sol_add s k qs |> snd) s1 s2 
 
 let group_sol_change addf s0 ks kqs = 
   let t  = H.create 17 in
@@ -162,6 +167,7 @@ let preds_of_reft s (_,_,ras) =
 let apply_solution s (v,t,ras) = 
   let ras' = Misc.map (fun ra -> Conc (A.pAnd (preds_of_refa s ra))) ras in
   (v, t, ras')
+
 
 let preds_of_envt s env =
   SM.fold
@@ -388,3 +394,4 @@ let make_dep b xo yo =
   | false, Some t, Some t' -> Ddp (t, t')
   | false, Some t, None    -> Ddp_s t
   | false, None  , Some t' -> Ddp_t t'
+  | _                      -> assertf "FixConstraint.make_dep: match failure"

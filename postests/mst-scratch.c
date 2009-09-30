@@ -32,7 +32,7 @@ struct vert_st {
 typedef struct vert_st *Vertex;
 
 struct graph_st {
-   Vertex __attribute__((array)) vlist ; //JHALA: each cell=0 or validptr into array
+   struct vert_st *__attribute__((array)) vlist ; //JHALA: each cell=0 or validptr into array
 };
 
 typedef struct graph_st *Graph;
@@ -127,10 +127,11 @@ Graph MakeGraph(int numvert )
   //chatting((char *)"Make phase 1: Creating hash tables\n");
   //tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
   //retval->vlist = (struct vert_st *)tmp___0;
-  retval->vlist = (struct vert_st *__attribute__((array))) malloc((unsigned int )numvert * sizeof(*vf));
+  retval->vlist = (struct vert_st *) malloc((unsigned int )numvert * sizeof(*vf));
   vt = (struct vert_st *)0;
   i = numvert - 1;
   while (i >= 0) {
+    i  = nondetpos();
     vf = retval->vlist + i;
     validptr(vf);
     vf->mindist = 9999999;

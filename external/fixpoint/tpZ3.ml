@@ -151,8 +151,9 @@ let funSort env s =
 let z3VarType me t =
   let lookup me = function
     | So.Bool 	 -> me.tbool
-    | So.Int 	 -> me.tint
-    | So.Unint _ -> me.tint
+    | So.Int 	 
+    | So.Ptr     
+    | So.Unint _ 
     | So.Func _  -> me.tint 
     | So.Array _ -> failure "MATCH ERROR: TPZ3.z3VarType" in
   Misc.do_memo me.tydt (lookup me) t t

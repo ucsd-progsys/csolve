@@ -102,7 +102,7 @@ let is_cyclic =
 
 let mk_idx po i =
   match po with 
-  | None -> Ct.IInt i
+  | None   -> Ct.IInt i
   | Some n -> Ct.ISeq (i, n)
 
 let unroll_ciltype t =
@@ -165,12 +165,13 @@ let rec conv_ciltype me loc (th, st, off) c =
 
 and conv_ptr me loc (th, st) po c =
   let tid = id_of_ciltype c in
-  let idx = mk_idx po 0 in
   if SM.mem tid th then
-    (th, st), Ct.CTRef (SM.find tid th, idx) 
+    let l, idx           = SM.find tid th in 
+    (th, st), Ct.CTRef (l, idx) 
   else
     let l                = Sloc.fresh Sloc.Abstract in
-    let th'              = SM.add tid l th in
+    let idx              = mk_idx po 0 in
+    let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock me loc (th', st, Ct.IInt 0) po c in
     let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in

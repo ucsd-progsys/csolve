@@ -37,12 +37,14 @@ module Sort =
     type t = 
       | Int 
       | Bool 
+      | Ptr
       | Array of t * t 
       | Unint of string 
       | Func of t list
 
     let rec to_string = function
       | Int     -> "int"
+      | Ptr     -> "ptr" 
       | Bool    -> "bool"
       | Unint s -> "uit "^s
       | Func ts -> Printf.sprintf "func([%s])" (ts |> List.map to_string |> String.concat " ; ")
@@ -50,6 +52,7 @@ module Sort =
 
     let to_string_short = function
       | Int     -> "int"
+      | Ptr     -> "ptr"
       | Bool    -> "bool"
       | Unint s -> "uit "^s
       | Func ts -> "func"
@@ -577,7 +580,6 @@ let rec fixdiv = function
       pNot (fixdiv p) 
   | p -> p
 
-
 let rec sortcheck_expr f e = 
   match euw e with
   | Con c -> 
@@ -588,6 +590,8 @@ let rec sortcheck_expr f e =
       begin 
         match Misc.map_pair (sortcheck_expr f) (e1,e2) with
         | (Some Sort.Int, Some Sort.Int) -> Some Sort.Int
+        | (Some Sort.Int, Some Sort.Ptr) -> Some Sort.Ptr
+        | (Some Sort.Ptr, Some Sort.Int) -> Some Sort.Ptr
         | _                              -> None 
       end
   | Ite(p,e1,e2) -> 
@@ -616,13 +620,15 @@ let rec sortcheck_expr f e =
 and sortcheck_rel f (e1, r, e2) = 
   let t1o, t2o = Misc.map_pair (sortcheck_expr f) (e1, e2) in
   match (r, t1o, t2o) with
-  | Eq, Some t1, Some t2             -> t1 = t2
-  | Ne, Some t1, Some t2             -> t1 = t2
-  | Gt, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
-  | Ge, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
-  | Lt, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
-  | Le, Some t1, Some t2             -> t1 = t2 && t1 != Sort.Bool
-  | _                                -> false 
+  | Eq, Some t1, Some t2 
+  | Ne, Some t1, Some t2 when t1 = t2 -> true 
+  | Gt, Some t1, Some t2 
+  | Ge, Some t1, Some t2 
+  | Lt, Some t1, Some t2 
+  | Le, Some t1, Some t2 when t1 = t2 -> t1 != Sort.Bool
+  | Eq, Some Sort.Int, Some Sort.Ptr  
+  | Ne, Some Sort.Ptr, Some Sort.Int  -> true  
+  | _                                 -> false 
  
 and sortcheck_pred f p = 
   match puw p with
