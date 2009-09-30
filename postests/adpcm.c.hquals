@@ -1,20 +1,19 @@
 //qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@in])
 //qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@in])
-
 //qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@out])
 //qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@out])
 
-qualif SZ(v:int)    : BLOCK_END([v]) = BLOCK_BEGIN([v]) + (2 * @nsa)
-qualif SZ(v:int)    : (2 * (BLOCK_END([v]) - BLOCK_BEGIN([v]))) = @nsa
-qualif A(v:int)     : @inp <= v
-qualif A(v:int)     : @outp <= v
+qualif SZ(v:ptr)    : BLOCK_END([v]) = BLOCK_BEGIN([v]) + (2 * @nsa)
+qualif SZ(v:ptr)    : (2 * (BLOCK_END([v]) - BLOCK_BEGIN([v]))) = @nsa
+qualif A(v:ptr)     : @inp <= v
+qualif A(v:ptr)     : @outp <= v
 qualif A(v:int)     : @nsa <= v
 
-qualif A(v:int) : (2 * (v - @out)) = ((@buf - 1) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @out)) = ((0 - @buf) + @nsa - (@len - 1))
-qualif A(v:int) : (2 * (v - @inp)) = ((@buf) + @nsa - @len)
-qualif A(v:int) : (2 * (v - @inp)) = ((1 - @buf) + @nsa - (@len - 1))
+qualif A(v:ptr) : (2 * (v - @out)) = ((@buf - 1) + @nsa - @len)
+qualif A(v:ptr) : (2 * (v - @out)) = ((0 - @buf) + @nsa - (@len - 1))
+qualif A(v:ptr) : (2 * (v - @inp)) = ((@buf) + @nsa - @len)
+qualif A(v:ptr) : (2 * (v - @inp)) = ((1 - @buf) + @nsa - (@len - 1))
 
 qualif A(v:int) : v <= 1
-qualif A(v:int) : (v - @indata) = 2 * (@nsa - @len)
-qualif A(v:int) : (v - @outdata) = 2 * (@nsa - @len)
+qualif A(v:ptr) : (v - @indata) = 2 * (@nsa - @len)
+qualif A(v:ptr) : (v - @outdata) = 2 * (@nsa - @len)
