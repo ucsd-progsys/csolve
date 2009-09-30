@@ -8,6 +8,8 @@
 *** Clear up disaster in inferctypes constraint generation
     Lists of lists of constraints, etc, all in a very ad-hoc way.
     How to tame?
+*** Add deferred pointer arithmetic checks
+    As on 9/29...
 
 ** Done
 *** Immutable slocs
