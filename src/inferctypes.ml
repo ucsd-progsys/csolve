@@ -8,6 +8,8 @@ module RA  = Refanno
 module SM  = Misc.StringMap
 module S   = Sloc
 module SLM = Sloc.SlocMap
+module FI  = FixInterface
+module FC  = FixConstraint
 
 open Ctypes
 open M.Ops
@@ -91,6 +93,12 @@ let ctypevar_apply (is: indexsol): ctypevar -> ctype = function
 
 type ctypecstr =
   | CTCSubtype of ctypevar * ctypevar
+  | CTCDSubtype of ctypevar * ctypevar * (* bound: *) ctype * (* check: *) C.varinfo * FI.refctype
+
+type dcheck = C.varinfo * FI.refctype
+
+let d_dcheck () ((vi, rt): dcheck): P.doc =
+  P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
 
 let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   match (ctv1, ctv2) with
@@ -98,11 +106,27 @@ let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
     | (CTRef (s1, ie1), CTRef (s2, IEVar iv2)) when Sloc.eq s1 s2 -> refine_index ie1 iv2 is
     | _                                                           -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
 
+let refine_dctype (ctv1: ctypevar) (ctv2: ctypevar) (cbound: ctype) (v: C.varinfo) (t: FI.refctype) (is: indexsol): indexsol =
+  let (ct1, ct2) = (ctypevar_apply is ctv1, ctypevar_apply is ctv2) in
+    if is_subctype ct1 cbound then
+      refine_ctype ctv1 ctv2 is
+    else
+      match ctv2, cbound with
+        | CTInt (n1, IEVar iv), CTInt (n2, i) when n1 = n2    -> IndexSol.add iv i is
+        | CTRef (s1, IEVar iv), CTRef (s2, i) when S.eq s1 s2 -> IndexSol.add iv i is
+        | CTRef (s1, IEVar _), CTRef (s2, _)                  -> raise (NoLUB (ctypevar_apply is ctv1, ctypevar_apply is ctv2))
+        | _                                                   -> assert false
+
 let equalize_ctypes (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
   refine_ctype ctv2 ctv1 (refine_ctype ctv1 ctv2 is)
 
-let ctypecstr_sat (CTCSubtype (ctv1, ctv2): ctypecstr) (is: indexsol): bool =
-  is_subctype (ctypevar_apply is ctv1) (ctypevar_apply is ctv2)
+let ctypecstr_sat (ctc: ctypecstr) (is: indexsol): bool =
+  match ctc with
+    | CTCSubtype (ctv1, ctv2)                -> is_subctype (ctypevar_apply is ctv1) (ctypevar_apply is ctv2)
+    | CTCDSubtype (ctv1, ctv2, cbound, _, _) ->
+        let (ct1, ct2) = (ctypevar_apply is ctv1, ctypevar_apply is ctv2) in
+             (not (is_subctype ct1 cbound) && is_subctype ct2 cbound && is_subctype cbound ct2)
+          || is_subctype ct1 ct2
 
 (******************************************************************************)
 (****************************** Store Constraints *****************************)
@@ -205,6 +229,9 @@ let mk_iconstless (loc: C.location) (ie: indexexp) (i: index) =
 let mk_subty (loc: C.location) (ctv1: ctypevar) (ctv2: ctypevar) =
   {cdesc = CSCType (CTCSubtype (ctv1, ctv2)); cloc = loc}
 
+let mk_dsubty (loc: C.location) (ctv1: ctypevar) (ctv2: ctypevar) (cbound: ctype) (v: C.varinfo) (t: FI.refctype) =
+  {cdesc = CSCType (CTCDSubtype (ctv1, ctv2, cbound, v, t)); cloc = loc}
+
 let mk_const_subty (loc: C.location) (ctv: ctypevar): ctype -> cstr list = function
   | CTInt (n, i) -> [mk_subty loc ctv (CTInt (n, IEConst i))]
   | CTRef (s, i) -> [mk_subty loc ctv (CTRef (s, IEConst i))]
@@ -240,6 +267,7 @@ let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storeso
   | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
   | CSIndex (ICConstLess (ie, i))     -> E.s <| C.errorLoc loc "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
+  | CSCType (CTCDSubtype (ctv1, ctv2, cbound, v, t)) -> (refine_dctype ctv1 ctv2 cbound v t is, ss)
   | CSStore (SCUniq _)                -> failwith "Cannot refine store uniqueness constraint!\n\n"
   | CSStore (SCMem l)                 -> if SLM.mem l ss then (is, ss) else (is, SLM.add l LDesc.empty ss)
   | CSStore (SCInc (l, ie, ctv))      ->
@@ -321,7 +349,7 @@ type shape =
    anna  : RA.block_annotation array;
    theta : RA.ctab }
 
-let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape): unit =
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: dcheck list): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -333,6 +361,9 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape)
   let _ = P.printf "Store:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" d_store st in
+  let _ = P.printf "Deferred Checks:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" (P.d_list "\n" d_dcheck) ds in
     ()
 
 (******************************************************************************)
@@ -373,45 +404,48 @@ and apply_unop (op: C.unop) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv: c
 and constrain_binop (op: C.binop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctypevar * cstremap * cstr list =
   let (ctv1, em1) = constrain_exp ve em loc e1 in
   let (ctv2, em2) = constrain_exp ve em1 loc e2 in
-    apply_binop op em2 loc t ctv1 ctv2
+    apply_binop op em2 loc t ctv1 e2 ctv2
 
-and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> ctypevar -> ctypevar * cstremap * cstr list = function
+and apply_binop: C.binop -> cstremap -> C.location -> C.typ -> ctypevar -> C.exp -> ctypevar -> ctypevar * cstremap * cstr list = function
   | C.PlusA                                 -> constrain_arithmetic (fun iv1 iv2 -> IEPlus (iv1, 1, iv2))
   | C.MinusA                                -> constrain_arithmetic (fun iv1 iv2 -> IEMinus (iv1, 1, iv2))
   | C.Mult                                  -> constrain_arithmetic (fun iv1 iv2 -> IEMult (iv1, iv2))
   | C.Div                                   -> constrain_arithmetic (fun iv1 iv2 -> IEDiv (iv1, iv2))
-  | C.Mod                                   -> constrain_mod
+  | C.Mod                                   -> constrain_unknown
   | C.PlusPI | C.IndexPI                    -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEPlus (iv1, x, iv2))
   | C.MinusPI                               -> constrain_ptrarithmetic (fun iv1 x iv2 -> IEMinus (iv1, x, iv2))
   | C.MinusPP                               -> constrain_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> constrain_rel
-  | C.BAnd | C.BOr | C.BXor                 -> constrain_bitop
-  | C.Shiftlt | C.Shiftrt                   -> constrain_shift
+  | C.BAnd | C.BOr | C.BXor                 -> constrain_unknown
+  | C.Shiftlt | C.Shiftrt                   -> constrain_unknown
   | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and constrain_arithmetic (f: indexexp -> indexexp -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_arithmetic (f: indexexp -> indexexp -> indexexp) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv1: ctypevar) (_: C.exp) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match ctv1, ctv2 with
       | (CTInt (n1, ie1), CTInt (n2, ie2)) -> (CTInt (typ_width rt, f ie1 ie2), em, [])
       | _ -> E.s <| E.bug "Type mismatch in constrain_arithmetic@!@!"
 
-and constrain_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (em: cstremap) (loc: C.location) (pt: C.typ) (ctv1: ctypevar) (e2: C.exp) (ctv2: ctypevar): ctypevar * cstremap * cstr list =
     match (C.unrollType pt, ctv1, ctv2) with
-      | (C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2)) when n = int_width -> (CTRef (s, f ie1 (typ_width t) ie2), em, [])
+      | (C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2)) when n = int_width ->
+          begin match e2, ie2 with
+            | _, IEConst _ -> (CTRef (s, f ie1 (typ_width t) ie2), em, [])
+            | C.Lval (C.Var vi, C.NoOffset), IEVar _ ->
+                let ie3 = IEVar (fresh_indexvar ()) in
+                let vv  = Ast.Symbol.value_variable Ast.Sort.Int in
+                let rt  = CTInt (n, (ITop, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
+                  (CTRef (s, f ie1 (typ_width t) ie3), em, [mk_dsubty loc ctv2 (CTInt (n, ie3)) (CTInt (n, ISeq (0, 1))) vi rt])
+            | _ -> assert false
+          end
       | _                                                                  -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
-and constrain_ptrminus (em: cstremap) (loc: C.location) (pt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_ptrminus (em: cstremap) (loc: C.location) (pt: C.typ) (_: ctypevar) (_: C.exp) (_: ctypevar): ctypevar * cstremap * cstr list =
   (CTInt (typ_width !C.upointType, IEConst ITop), em, [])
 
-and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_rel (em: cstremap) (loc: C.location) (_: C.typ) (_: ctypevar) (_: C.exp) (_: ctypevar): ctypevar * cstremap * cstr list =
   (CTInt (int_width, IEConst (ISeq (0, 1))), em, [])
 
-and constrain_bitop (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  (CTInt (typ_width rt, IEConst ITop), em, [])
-
-and constrain_shift (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
-  (CTInt (typ_width rt, IEConst ITop), em, [])
-
-and constrain_mod (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: ctypevar): ctypevar * cstremap * cstr list =
+and constrain_unknown (em: cstremap) (loc: C.location) (rt: C.typ) (_: ctypevar) (_: C.exp) (_: ctypevar): ctypevar * cstremap * cstr list =
   (CTInt (typ_width rt, IEConst ITop), em, [])
 
 and constrain_constptr (em: cstremap) (loc: C.location): C.constant -> ctypevar * cstremap * cstr list = function
@@ -626,7 +660,11 @@ let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrso
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   mk_uniqlocs loc (precfun_slocset cf |> S.SlocSet.elements) :: cs |> solve_and_check_rec loc cf
 
-let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape =
+let get_cstr_dcheck (is: indexsol): cstr -> dcheck option = function
+  | {cdesc = CSCType (CTCDSubtype (ctv1, _, cbound, vi, rt))} when not (is_subctype (ctypevar_apply is ctv1) cbound) -> Some (vi, rt)
+  | _                                                                                                                -> None
+
+let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape * dcheck list =
   let loc                      = fd.C.svar.C.vdecl in
   let formals                  = instantiate_args loc argcts in
   let bodyformals              = fresh_vars fd.C.sformals in
@@ -636,7 +674,9 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
   let phics                    = mk_phis_cs vars phis in
   let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars rt cfg in
-  let (is, ss)                 = List.concat [bodyformalcs; phics; storecs; bodycs] |> solve_and_check loc cf in
+  let cs                       = List.concat [bodyformalcs; phics; storecs; bodycs] in
+  let (is, ss)                 = solve_and_check loc cf cs in
+  let ds                       = M.map_partial (get_cstr_dcheck is) cs in
   let apply_sol                = ctypevar_apply is in
   let etypm                    = ExpMap.map apply_sol ctvm in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
@@ -647,9 +687,9 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
      anna  = anna;
      theta = theta }
   in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp;
-    shp
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp ds;
+    (shp, ds)
 
 (* API *)
-let infer_shapes (env: ctypeenv) (scis: funmap): shape SM.t * ctypeenv =
+let infer_shapes (env: ctypeenv) (scis: funmap): (shape * dcheck list) SM.t * ctypeenv =
   (scis |> SM.map (infer_shape env |> M.uncurry), env)

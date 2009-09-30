@@ -478,6 +478,8 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let _        = E.log "\nDONE: TAG initialization\n" in
   let spec     = rename_spec scim spec in
   let shm, cnv = shapem_of_scim spec scim in
+  (* RJ: fixme *)
+  let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil in 

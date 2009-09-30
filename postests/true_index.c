@@ -21,7 +21,7 @@ void main(){
 
   junk 		= (int *) malloc(4);
 
-  i 		= nondetpos(); //crashes with nondet 
+  i 		= nondet(); //crashes with nondet 
   retval 	= (struct graph_st *) malloc(sizeof(*retval));
  
   retval->vlist = (Vertex __attribute__((array))) malloc(100 * sizeof(*vf));
