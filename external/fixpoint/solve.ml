@@ -264,9 +264,7 @@ let rec acsolve me w s =
 (* API *)
 let solve me (s : C.soln) = 
   let _  = F.printf "Fixpoint: Validating Initial Solution \n" in
-  let ok = BS.time "validation" (PP.validate s) me.sri in
   let _  = BS.time "profile" PP.profile me.sri in
-  let _  = asserts ok "Validation" in
   let _  = F.printf "Fixpoint: Pruning unconstrained kvars \n" in
   let s  = PP.true_unconstrained s me.sri in
   let _  = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
@@ -286,12 +284,13 @@ let solve me (s : C.soln) =
 
 (* API *)
 let create ts sm ps a ds cs ws qs =
-  let tpc = TP.create ts sm ps in
-  let cs  = C.validate a cs in
-  let sri = BS.time "Ref index" Ci.create ds cs in
   let s   = BS.time "Qual inst" (inst ws qs) SM.empty in
+  let cs' = BS.time "validation" (PP.validate a s) cs in
+  let _   = asserts (List.length cs = List.length cs') "Validation fails" in
+  let sri = BS.time "Ref index" Ci.create ds cs' in
+  let tpc = TP.create ts sm ps in
   ({ tpc = tpc; sri = sri; ws = ws}, s)
-
+ 
 (* API *)
 let save fname me s =
   let oc  = open_out fname in

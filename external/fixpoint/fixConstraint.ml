@@ -316,6 +316,7 @@ let lhs_of_t    = fun (_,_,lhs,_,_,_) -> lhs
 let rhs_of_t    = fun (_,_,_,rhs,_,_) -> rhs
 let tag_of_t    = fun (_,_,_,_,_,is) -> is 
 let id_of_t     = function (_,_,_,_,Some i,_) -> i | _ -> assertf "C.id_of_t"
+let ido_of_t    = fun (_,_,_,_,ido,_) -> ido
 
 (* API *)
 let make_wf     = fun env r io -> (env, r, io)
@@ -323,48 +324,6 @@ let env_of_wf   = fst3
 let reft_of_wf  = snd3
 let id_of_wf    = function (_,_,Some i) -> i | _ -> assertf "C.id_of_wf"
 
-(***************************************************************)
-(********************** Input Validation ***********************)
-(***************************************************************)
-
-(* 1. check ids are distinct, return max id *)
-let phase1 cs = 
-  let ids = Misc.map_partial (fun (_,_,_,_,x,_) -> x) cs in
-  let _   = asserts (Misc.distinct ids) "Invalid Constraints 1" in
-  List.fold_left max 0 ids 
-
-(* 2. add distinct ids to each constraint *) 
-let phase2 cs tmax = 
-  List.fold_left 
-    (fun (cs, j) c -> match c with
-       | (_,_,_,_, Some i,_) -> (c::cs, j)
-       | (a,b,c,d, None,  e) -> ((a,b,c,d,Some j,e)::cs, j+1))
-    ([], tmax+1) cs
-  |> fst
-
-(* 3. check that sorts are consistent across constraints *)
-let phase3 cs =
-  let memo = H.create 17 in
-  List.iter begin fun ((env,_),_,(vv1,t1,_),(vv2,t2,_),_,_) ->
-    asserts (vv1 = vv2 && t1 = t2) "Invalid Constraints 3a"; 
-    SM.iter begin fun x (_,t,_) ->
-      try asserts (t = (H.find memo x)) "Invalid Constraints 3b" 
-      with Not_found -> H.replace memo x t
-    end env
-  end cs;
-  cs
-
-let phase4 a cs =
-  List.iter begin fun c -> 
-    asserts (a = List.length (tag_of_t c)) "Invalid Constraints 4"
-  end cs;
-  cs
-
-let validate a cs = 
-  phase1 cs |> phase2 cs |> phase3 |> phase4 a
-
-let validate a cs = 
-  BS.time "validate shapes" (validate a) cs
 
 (* API *)
 let matches_deps ds = 

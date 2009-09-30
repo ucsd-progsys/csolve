@@ -3,6 +3,10 @@
 	- will help to speed up instantiation
 	- will NOT help to speed up queries, since Z3 flattens it all out
 
+HEREHEREHEREHERE: 
+
+./main.native ../postests/incp.c
+
 
 [mst]
 Issues

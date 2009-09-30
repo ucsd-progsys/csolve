@@ -211,8 +211,8 @@ let refstore_write loc sto rct rct' =
 (*******************************************************************)
 
 let so_int = So.Int
-let so_ref = So.Int (* TBD: So.Unint "ref" *)
-let so_ufs = So.Func [so_ref; so_int] 
+let so_ref = So.Ptr 
+let so_ufs = So.Func [so_ref; so_ref] 
 let vv_int = Sy.value_variable so_int
 let vv_ref = Sy.value_variable so_ref
 let vv_ufs = Sy.value_variable so_ufs
@@ -222,15 +222,15 @@ let sorts  = [] (* TBD: [so_int; so_ref] *)
 let uf_bbegin = name_of_string "BLOCK_BEGIN"
 let uf_bend   = name_of_string "BLOCK_END"
 
-(* Move to its own module *)
+(*
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
- 
+
 let int_refctype_of_ras ras =
   let r = C.make_reft vv_int So.Int ras in
   (refctype_of_reft_ctype r ct_int)
 
 let true_int  = int_refctype_of_ras []
-let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))]
+let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))] *)
 
 let mk_pure_cfun args ret = 
   mk_refcfun [] args refstore_empty ret refstore_empty

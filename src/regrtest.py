@@ -75,5 +75,5 @@ failcount = len(failed)
 if failcount == 0:
   print "\n\033[1;32mPassed all tests! :D\033[1;0m"
 else:
-  print "\n\033[1;31mFailed %d tests:\033[1;0m %s" % (failcount, ", ".join(failed))
+  print "\n\033[1;31mFailed %d tests:\033[1;0m %s" % (failcount, "\n".join(failed))
 sys.exit(failcount != 0)

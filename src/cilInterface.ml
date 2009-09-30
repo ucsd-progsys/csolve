@@ -31,7 +31,6 @@ module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
-module So = A.Sort
 
 open Misc.Ops
 
