@@ -58,10 +58,8 @@ let liquidate file =
   let cs    = Consindex.get_cs me in
   let ds    = Consindex.get_deps me in
   let _     = E.log "DONE: constraint generation \n" in
-  
-  let _     = List.iter (fun w -> Format.printf "%a" (C.print_wf None) w) ws in
-  let _     = List.iter (fun c -> Format.printf "%a" (C.print_t None) c) cs in
-
+ (* let _     = List.iter (fun w -> Format.printf "%a" (C.print_wf None) w) ws in
+    let _     = List.iter (fun c -> Format.printf "%a" (C.print_t None) c) cs in *)
   let ctx,s = BS.time "Qual Inst" (Solve.create FixInterface.sorts A.Symbol.SMap.empty [] 4 ds cs ws) qs in
   let _     = E.log "DONE: qualifier instantiation \n" in
   let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in

@@ -2,9 +2,11 @@ qualif FALSE(v: int)   : 1 = 0
 qualif EQZ(v: int)     : v = 0
 qualif GEZ(v:int)      : 0 <= v
 qualif GTZ(v:int)      : 0 < v
-
-qualif ISBS(v:int)     : v = BLOCK_BEGIN([v])
-qualif SIZE(v:int)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
-qualif BEGIN(v:int)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
-qualif END(v:int)      : BLOCK_END([v]) = BLOCK_END([~a]) 
-
+qualif GTZP(v:ptr)     : 0 < v
+qualif ISBS(v:ptr)     : v = BLOCK_BEGIN([v])
+qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
+qualif SIZE(v:ptr)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
+qualif BEGIN(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a]) 
+qualif LB(v:ptr)       : BLOCK_BEGIN([v]) <= v
+qualif UB(v:ptr)       : v < BLOCK_END([v]) 

@@ -1,8 +1,8 @@
-qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@in])
-qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@in])
+//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@in])
+//qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@in])
 
-qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@out])
-qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@out])
+//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@out])
+//qualif END(v:int)   : BLOCK_END([v]) = BLOCK_END([@out])
 
 qualif SZ(v:int)    : BLOCK_END([v]) = BLOCK_BEGIN([v]) + (2 * @nsa)
 qualif SZ(v:int)    : (2 * (BLOCK_END([v]) - BLOCK_BEGIN([v]))) = @nsa

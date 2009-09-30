@@ -592,6 +592,7 @@ let rec sortcheck_expr f e =
         | (Some Sort.Int, Some Sort.Int) -> Some Sort.Int
         | (Some Sort.Int, Some Sort.Ptr) -> Some Sort.Ptr
         | (Some Sort.Ptr, Some Sort.Int) -> Some Sort.Ptr
+        | (Some Sort.Ptr, Some Sort.Ptr) -> if op = Minus then Some Sort.Int else None 
         | _                              -> None 
       end
   | Ite(p,e1,e2) -> 

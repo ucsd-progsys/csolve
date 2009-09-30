@@ -1,5 +1,3 @@
-qualif FALSE(v: int): 0 = 1
-
-qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
-qualif GZA(v: int)  : 0 < v
-qualif EQB(v: int)  : v = BLOCK_BEGIN([v])
+qualif SIZE(v:ptr)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
+qualif GZA(v: ptr)  : 0 < v
+qualif EQB(v: ptr)  : v = BLOCK_BEGIN([v])
