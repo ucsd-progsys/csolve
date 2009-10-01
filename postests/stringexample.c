@@ -89,6 +89,6 @@ void main () {
     slist *sls = new_strings(nondetpos());
 
     string *s = string_succ(&sls->s);
-    // assert(0); // Sanity
+    assert(0); // Sanity
     init_string(s, 0);
 }
