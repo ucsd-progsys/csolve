@@ -388,7 +388,9 @@ let shapem_of_scim spec scim =
        else ((SM.add fn cf bm), fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
+  >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
   |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
+  >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 
   let decm = Misc.sm_of_list decs in
@@ -477,8 +479,8 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in
   let spec     = rename_spec scim spec in
+  let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim spec scim in
-  (* RJ: fixme *)
   let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in

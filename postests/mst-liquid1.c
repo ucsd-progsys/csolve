@@ -257,6 +257,7 @@ static void AddEdges(Graph retval , int numvert )
   return;
 }
 }
+
 Graph MakeGraph(int numvert ) 
 { int i ;
   Vertex vf ;
@@ -280,18 +281,7 @@ Graph MakeGraph(int numvert )
   while (i >= 0) {
     vf = retval->vlist + i;
     validptr(vf);
-
-
-    
-    
-    
     vf->mindist = 9999999;
-    
-    
-
-
-
-    
     vf->edgehash = MakeHash(HashRange/*, & hashfunc*/);
     vf->next = vt;
     vt = vf;
@@ -359,8 +349,8 @@ void *HashLookup(unsigned int key , Hash hash )
 
   {
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
-  assert(j>=0);
-  assert(j<hash->size);
+  assert(j >= 0);
+  assert(j < hash->size);
 
   validptr(hash->array + j);
   ent = *(hash->array + j);
@@ -414,7 +404,7 @@ void HashDelete(unsigned int key , Hash hash )
   validptr(ent);
   
   // JHALA: begin loop-unrolling
-  assert(5, (*ent)->next); //o.w. list = empty and so key is not in list
+  //assert(5, (*ent)->next); //o.w. list = empty and so key is not in list
   if ((*ent)->key == key){ 
     tmp = *ent; 
     (*ent) = (*ent)->next; 

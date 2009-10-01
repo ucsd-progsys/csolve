@@ -143,20 +143,19 @@ let conv_cilbasetype = function
   | TInt (ik, ats) -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
   | _              -> assertf "ctype_of_cilbasetype: non-base!"
 
-let rec conv_ciltype me loc (th, st, off) c = 
+let rec conv_ciltype me loc (th, st, off) (c, a) = 
   match c with
   | TVoid _ | TInt (_,_) ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
-  | TPtr (c',a) ->
-      let po = if List.exists is_array_attr a 
+  | TPtr (c',a') ->
+      let po = if List.exists is_array_attr (a' ++ a) 
                then Some (CilMisc.bytesSizeOf c') else None in
       let (th', st'), t = conv_ptr me loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 
   | TArray (c',_,_) -> 
       conv_cilblock me loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
-
-  | TNamed (ti, _) ->
-      conv_ciltype me loc (th, st, off) ti.ttype
+  | TNamed (ti, a') ->
+      conv_ciltype me loc (th, st, off) (ti.ttype, a' ++ a)
   | TComp (_, _) ->
       conv_cilblock me loc (th, st, off) None c
   | _          -> 
@@ -184,13 +183,14 @@ and conv_cilblock me loc (th, st, off) po c =
        ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
        List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype
+    |> Misc.map (fun c' -> (c', []))
     |> Misc.mapfold (conv_ciltype me loc) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
 let conv_ciltype x y z c = 
   let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-  conv_ciltype x y z c
+  conv_ciltype x y z (c, [])
 
 let cfun_of_args_ret me fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
