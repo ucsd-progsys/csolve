@@ -151,7 +151,6 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
 
-(* pmr: This doesn't seem to check for partial overlap! *)
 let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
   try
     match i with
