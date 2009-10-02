@@ -223,12 +223,9 @@ type builtinenv = ifunvar VM.t
 
 type env = varenv * funenv
 
-(* pmr: should be in a common place *)
-let int_width    = C.bytesSizeOfInt C.IInt
-
 let ctypevar_of_const: C.constant -> itypevar = function
   | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, IEConst (index_of_int (Int64.to_int v)))
-  | C.CChr c            -> CTInt (int_width, IEConst (IInt (Char.code c)))
+  | C.CChr c            -> CTInt (CM.int_width, IEConst (IInt (Char.code c)))
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp (env: env) (loc: C.location): C.exp -> itypevar * itypecstr list = function
@@ -289,14 +286,14 @@ and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (itv1: it
 
 and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar =
   match C.unrollType pt, itv1, itv2 with
-    | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = int_width -> CTRef (s, f ie1 (CM.typ_width t) ie2)
-    | _                                                                -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+    | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width -> CTRef (s, f ie1 (CM.typ_width t) ie2)
+    | _                                                                   -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: itypevar) (_: itypevar): itypevar =
   CTInt (CM.typ_width !C.upointType, IEConst ITop)
 
 and apply_rel (_: C.typ) (_: itypevar) (_: itypevar): itypevar =
-  CTInt (int_width, IEConst (ISeq (0, 1)))
+  CTInt (CM.int_width, IEConst (ISeq (0, 1)))
 
 and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar =
   CTInt (CM.typ_width rt, IEConst ITop)
@@ -328,7 +325,7 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar
       | _ -> ect
 
 and constrain_sizeof (loc: C.location) (t: C.typ): itypevar * itypecstr list =
-  (CTInt (int_width, IEConst (IInt (C.bitsSizeOf t / 8))), [])
+  (CTInt (CM.int_width, IEConst (IInt (CM.typ_width t))), [])
 
 let constrain_return (env: env) (rtv: itypevar) (loc: C.location): C.exp option -> itypecstr list = function
     | None   -> if is_void rtv then [] else halt <| C.errorLoc loc "Returning void value for non-void function\n\n"

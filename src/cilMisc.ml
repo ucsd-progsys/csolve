@@ -113,6 +113,10 @@ let bprintf b = if b then Pretty.printf else nprintf
 (***************************** Type Maniupulation *****************************)
 (******************************************************************************)
 
+let int_width   = bytesSizeOfInt IInt
+let short_width = bytesSizeOfInt IShort
+let char_width  = bytesSizeOfInt IChar
+
 let bytesSizeOf t =
   1 + ((Cil.bitsSizeOf t - 1) / 8)
 

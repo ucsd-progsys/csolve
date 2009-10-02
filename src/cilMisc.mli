@@ -7,6 +7,9 @@ val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 val bytesSizeOf : Cil.typ -> int
 val ptrRefType  : Cil.typ -> Cil.typ
 val typ_width   : Cil.typ -> int
+val int_width   : int
+val short_width : int
+val char_width  : int
 
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
