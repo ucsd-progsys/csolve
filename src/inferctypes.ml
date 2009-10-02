@@ -700,10 +700,11 @@ let fresh_sloc_of (c: ctype): ctype =
 let funenv_apply_subs (sub: S.Subst.t) (fe: funenv): funenv =
   VM.map (fun (cf, ve, hv) -> (cfun_subs sub cf, VM.map (prectype_subs sub) ve, hv)) fe
 
-let cfun_generalize (cf: cfun): cfun =
-  let rootlocs = M.maybe_cons (prectype_sloc cf.ret) (List.map (prectype_sloc <.> snd) cf.args |> M.maybe_list) in
-  let sto      = prestore_close_under cf.sto_out rootlocs in
-    {cf with sto_out = sto; qlocs = prestore_domain sto}
+let cfun_generalize (sto: store) (cf: cfun): cfun =
+  let argrootlocs = List.map (prectype_sloc <.> snd) cf.args |> M.maybe_list in
+  let sto_out     = prestore_close_under sto (M.maybe_cons (prectype_sloc cf.ret) argrootlocs) in
+  let sto_in      = prestore_close_under sto_out argrootlocs in
+    {cf with sto_in = sto_in; sto_out = sto_out; qlocs = prestore_domain sto_out}
 
 let d_funenv () (fe: funenv): P.doc =
      fe
@@ -738,7 +739,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, ae, sd, cm, sto): funenv * an
                       |> funenv_apply_subs sub
                       |> VM.mapi begin fun f ft ->
                            if CM.definedHere f then
-                             M.app_fst3 (fun cf -> cfun_generalize {cf with sto_out = sto}) ft
+                             M.app_fst3 (cfun_generalize sto) ft
                            else
                              ft
                          end in
