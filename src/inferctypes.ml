@@ -5,12 +5,12 @@ module Cs  = Constants
 module E   = Errormsg
 module ST  = Ssa_transform
 module RA  = Refanno
-module SM  = Misc.StringMap
+module SM  = M.StringMap
 module S   = Sloc
 module SLM = S.SlocMap
 module SS  = S.SlocSet
-module VM  = CilMisc.VarMap
 module CM  = CilMisc
+module VM  = CM.VarMap
 
 open Ctypes
 open M.Ops
