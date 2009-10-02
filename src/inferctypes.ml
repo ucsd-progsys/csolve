@@ -131,11 +131,15 @@ type cstremap = ctvemap * cstr list
 exception Unify of ctype * ctype
 
 let inloc_sat (st: store) (i: index) (s: S.t) (ct1: ctype): bool =
-  try
-    match prestore_find_index s i st with
-      | [ct2] -> prectype_eq ct1 ct2
-      | _     -> false
-  with Not_found -> false
+  match i with
+    | IBot -> true
+    | _    ->
+        try
+          match prestore_find_index s i st with
+            | [ct2] -> prectype_eq ct1 ct2
+            | []    -> false
+            | _     -> halt <| E.bug "Prestore has multiple bindings for the same location"
+        with Not_found -> false
 
 let simplecstr_sat (st: store) (sc: simplecstr): bool =
   match sc.cdesc with
@@ -712,8 +716,16 @@ let d_funenv () (fe: funenv): P.doc =
 
 type scc = (C.varinfo * ST.ssaCfgInfo) list
 
-let solve_scc ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * store) (scc: scc): funenv * annotenv * slocdep * cstrmap * store =
+let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
+  let hv = fresh_heapvar () in
+    List.fold_left begin fun fe (f, _) ->
+      let (ifv, vm) = VM.find f it in
+        VM.add f (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm, hv) fe
+    end fe scc
+
+let solve_scc (it: Inferindices.indextyping) ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * store) (scc: scc): funenv * annotenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
+  let fs               = fresh_scc it fs scc in
   let fs, ae, ss, cs   = constrain_scc fs ae scc in
   let scs              = filter_simple_cstrs cs in
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
@@ -724,19 +736,16 @@ let solve_scc ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * st
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
   let fs               = fs
                       |> funenv_apply_subs sub
-                      |> M.flip (List.fold_left (fun fs (f, _) -> fs |> VM.find f |> M.app_fst3 (fun cf -> {cf with sto_out = sto}) |> M.flip (VM.add f) fs)) scc
-                      |> VM.map (M.app_fst3 cfun_generalize) in
+                      |> VM.mapi begin fun f ft ->
+                           if CM.definedHere f then
+                             M.app_fst3 (fun cf -> cfun_generalize {cf with sto_out = sto}) ft
+                           else
+                             ft
+                         end in
   let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
   let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
   let _ = P.printf "ENV:\n\n%a\n\n" d_funenv fs in
     (fs, ae, sd, cm, sto)
-
-let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
-  let hv = fresh_heapvar () in
-    List.fold_left begin fun fe (f, _) ->
-      let (ifv, vm) = VM.find f it in
-        VM.add f (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm, hv) fe
-    end fe scc
 
 let fresh_builtin (it: Inferindices.indextyping) (fe: funenv) (f: C.varinfo): funenv =
   let (ifv, vm) = VM.find f it in
@@ -747,7 +756,6 @@ let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): s
   let it                     = Inferindices.infer_indices env scim in
   let cg, builtins           = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
   let sccs                   = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
-  let fs                     = List.fold_left (fresh_scc it) VM.empty sccs in
-  let fs                     = List.fold_left (fresh_builtin it) fs <| List.concat builtins in
-  let fs, ae, _, _, sto      = List.fold_left solve_scc (fs, VM.empty, SLM.empty, IM.empty, SLM.empty) sccs in
-    assert false
+  let fs                     = List.fold_left (fresh_builtin it) VM.empty <| List.concat builtins in
+  let fs, ae, _, _, sto      = List.fold_left (solve_scc it) (fs, VM.empty, SLM.empty, IM.empty, SLM.empty) sccs in
+    exit 0
