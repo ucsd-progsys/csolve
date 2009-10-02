@@ -402,13 +402,6 @@ let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list 
 let prestore_subs_addrs subs ps =
   SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) SLM.empty ps
 
-let prestore_slocset (ps: 'a prestore): S.SlocSet.t =
-  prestore_fold begin fun ss _ _ pct ->
-    match prectype_sloc pct with
-      | Some s -> S.SlocSet.add s ss
-      | None   -> ss
-  end S.SlocSet.empty ps
-
 let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
   ps |> prestore_map_ct (prectype_subs subs) 
      |> prestore_subs_addrs subs
@@ -486,13 +479,6 @@ let precfun_map f ft =
     sto_in  = SLM.map (LDesc.map f) ft.sto_in;
     sto_out = SLM.map (LDesc.map f) ft.sto_out;
   }
-
-let precfun_slocset (pcf: 'a precfun): S.SlocSet.t =
-  let args = List.map snd pcf.args in
-  let sos  = pcf.ret :: args |> List.map prectype_sloc in
-  let ss1  = M.fold_left_partial (S.SlocSet.add |> M.flip) S.SlocSet.empty sos in
-  let ss2  = prestore_slocset pcf.sto_out in
-    S.SlocSet.union ss1 ss2
 
 let d_slocs () slocs     = P.seq (P.text ";") (S.d_sloc ()) slocs
 let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct

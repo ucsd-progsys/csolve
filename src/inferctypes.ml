@@ -99,8 +99,11 @@ type simplecstr = simplecstrdesc precstr
 
 let (fresh_cstrid, reset_fresh_cstrids) = M.mk_int_factory ()
 
-let mk_cstr (loc: C.location) (cdesc: cstrdesc): cstr =
+let mk_cstr (loc: C.location) (cdesc: 'a): 'a precstr =
   {cid = fresh_cstrid (); cloc = loc; cdesc = cdesc}
+
+let simplecstr_subst (sub: S.Subst.t) (sc: simplecstr): simplecstr =
+  mk_cstr sc.cloc (simplecstrdesc_subst sub sc.cdesc)
 
 let cstr_subst (sub: S.Subst.t) (c: cstr): cstr =
   mk_cstr c.cloc (cstrdesc_subst sub c.cdesc)
@@ -225,7 +228,7 @@ let refine (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: s
   let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
-  let cm            = IM.map (fun sc -> {sc with cdesc = simplecstrdesc_subst refsub sc.cdesc}) cm in
+  let cm            = IM.map (simplecstr_subst refsub) cm in
     (sd, cm, S.Subst.compose refsub sub, sto, succs)
 
 (* pmr: pull out worklist code? *)
@@ -250,9 +253,9 @@ let rec iter_solve (wkl: WkList.t) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) 
             let wkl                     = wklist_push wkl succs in
               iter_solve wkl sd cm sub sto
 
-let solve (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): slocdep * cstrmap * S.Subst.t * store =
+let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.t * store =
   let wkl = IM.fold (fun cid _ cids -> cid :: cids) cm [] |> wklist_push WkList.empty in
-    iter_solve wkl sd cm sub sto
+    iter_solve wkl sd cm S.Subst.empty sto
 
 type shape =
   {vtyps : (Cil.varinfo * Ctypes.ctype) list;
@@ -643,20 +646,17 @@ let constrain_fun (fs: funenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.
   let cs     = List.map (fun s -> mk_heapinc loc s hv) ss :: formalcs :: phics :: css |> List.concat in
     P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
     P.printf "%a\nheapvar   %a\n" d_cfun cf d_heapvar hv;
-    P.printf "vars      %a\n" (P.d_list ", " S.d_sloc) ss;
+    P.printf "locs      %a\n" (P.d_list ", " S.d_sloc) ss;
     List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
     P.printf "\n";
     (ctem, bas, ss, cs)
 
-let constrain_scc (fs: funenv) (ae: annotenv) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * heapvar * cstr list =
-  let fvs, scis             = List.split scc in
-  let hv                    = fresh_heapvar () in
+let constrain_scc (fs: funenv) (ae: annotenv) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * S.t list * cstr list =
+  let fvs, scis        = List.split scc in
+  let hv               = fresh_heapvar () in
   let ctems, bass, sss, css = List.map (constrain_fun fs hv) scis |> M.split4 in
-  let ss                    = List.concat sss in
-    (* pmr: XXX: need to quantify over rather different locs *)
-(*  let fs                  = List.fold_left (fun fs fv -> VM.add fv ({(VM.find fv fs |> fst) with qlocs = ss}, hv) fs) fs fvs in *)
-  let ae                    = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
-    (fs, ae, hv, List.concat css)
+  let ae               = List.combine ctems bass |> List.fold_left2 (fun ae fv fa -> VM.add fv fa ae) ae fvs in
+    (fs, ae, List.concat sss, List.concat css)
 
 (******************************************************************************)
 (************************** Constraint Simplification *************************)
@@ -664,11 +664,13 @@ let constrain_scc (fs: funenv) (ae: annotenv) (scc: (C.varinfo * ST.ssaCfgInfo) 
 (* The following assumes that all locations are quantified, i.e., that
    no location in a callee's SCC also appears in a caller's SCC. *)
 
+(* pmr: the following is hopefully quite dead *)
+
 module IMP = P.MakeMapPrinter(IM)
 
 let d_cstrmap =
-  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_simplecstr
-
+  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_cstr
+(*
 type heapdom = SS.t IM.t
 
 let d_heapdom () (hd: heapdom): P.doc =
@@ -691,7 +693,7 @@ let dom_trans (hd: heapdom) (c: cstr): heapdom =
 
 let mk_heapdom (css: (heapvar * cstr list) list): heapdom =
   List.fold_left (fun hd (hv, cs) -> List.fold_left dom_trans (IM.add hv SS.empty hd) cs) IM.empty css
-
+*)
 module SCM = M.MapWithDefault(struct
                                 type t = S.t
                                 type v = cstr list
@@ -700,7 +702,7 @@ module SCM = M.MapWithDefault(struct
                               end)
 
 type scm = cstr list SCM.t
-
+(*
 let close_inc (hd: heapdom) (scm: scm) (c: cstr): scm =
   match c.cdesc with
     | `CInLoc (_, _, s)       -> SCM.add s (c :: SCM.find s scm) scm
@@ -725,13 +727,13 @@ let simplify_cs (css: (heapvar * cstr list) list): heapdom * simplecstr list =
   let hd  = mk_heapdom css in
   let cs  = css |> close_incs hd |> List.concat |> filter_simple_cstrs in
     (hd, cs)
-
+*)
 (******************************************************************************)
 (*************************** Constraint Dependencies **************************)
 (******************************************************************************)
 
-let mk_cstrmap (cs: simplecstr list): cstrmap =
-  List.fold_left (fun cm c -> IM.add c.cid c cm) IM.empty cs
+let mk_cstrmap (scs: simplecstr list): cstrmap =
+  List.fold_left (fun cm sc -> IM.add sc.cid sc cm) IM.empty scs
 
 let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
   let depcs = try SLM.find s sd with Not_found -> [] in
@@ -749,10 +751,13 @@ let fresh_indextyping (it: Inferindices.indextyping): Inferindices.indextyping =
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
 
-(* pmr: Why are we building up the subst?  Should we just build it up
-   incrementally?  Consider before solving multiple SCCs... *)
 let funenv_apply_subs (sub: S.Subst.t) (fe: funenv): funenv =
   VM.map (fun (cf, ve) -> cfun_subs sub cf, VM.map (prectype_subs sub) ve) fe
+
+let cfun_generalize (cf: cfun): cfun =
+  let rootlocs = M.maybe_cons (prectype_sloc cf.ret) (List.map (prectype_sloc <.> snd) cf.args |> M.maybe_list) in
+  let sto      = prestore_close_under cf.sto_out rootlocs in
+    {cf with sto_out = sto; qlocs = prestore_domain sto}
 
 (* pmr: funenv and indextyping are eerily similar and share a whole lot of code *)
 let d_funenv () (fe: funenv): P.doc =
@@ -764,15 +769,21 @@ let d_funenv () (fe: funenv): P.doc =
       CM.d_var
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
 
-let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * slocdep * cstrmap * S.Subst.t * store =
+let solve_scc ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * store) (scc: (C.varinfo * ST.ssaCfgInfo) list): funenv * annotenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
-  let fs, ae, _, cs    = constrain_scc fs ae scc in
-    (* pmr: obviously wrong *)
+  let fs, ae, ss, cs   = constrain_scc fs ae scc in
+    (* pmr: obviously wrong --- thanks, pmr, now what do I do?  how is this obviously wrong?? *)
   let scs              = filter_simple_cstrs cs in
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
   let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
-  let sd, cm, sub, sto = solve sd cm sub sto in
-  let fs               = funenv_apply_subs sub fs in
+  let sd, cm, sub, sto = solve sd cm sto in
+  let sto              = ss
+                      |> List.map (S.Subst.apply sub)
+                      |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
+  let fs               = fs
+                      |> funenv_apply_subs sub
+                      |> M.flip (List.fold_left (fun fs (f, _) -> fs |> VM.find f |> M.app_fst (fun cf -> {cf with sto_out = sto}) |> M.flip (VM.add f) fs)) scc
+                      |> VM.map (M.app_fst cfun_generalize) in
   let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
   let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
   let _ = P.printf "ENV:\n\n%a\n\n" d_funenv fs in
@@ -782,18 +793,7 @@ let solve_scc ((fs, ae, sd, cm, sub, sto): funenv * annotenv * slocdep * cstrmap
 let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape VM.t * ctypeenv =
   let fs                     = Inferindices.infer_indices env scim |> fresh_indextyping in
   let sccs                   = cg
-                            |> List.filter (function [fv] -> SM.mem fv.C.vname scim | _ -> true)
+                            |> List.filter (function [fv] -> CM.definedHere fv | _ -> true)
                             |> List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) in
-  let fs, ae, _, _, sub, sto = List.fold_left solve_scc (fs, VM.empty, SLM.empty, IM.empty, [], SLM.empty) sccs in
+  let fs, ae, _, _, sto      = List.fold_left solve_scc (fs, VM.empty, SLM.empty, IM.empty, SLM.empty) sccs in
     assert false
-    (*
-pmr: after solving all SCCs, add store locations to fs according to the heap domains
-pmr: when to compute heap doms?  *)
-
-(* pmr: we need to solve after each scc
-
-  let hd, cm      = simplify_cs css in
-  let _           = P.printf "Heap domains:@!@!%a@!@!" d_heapdom hd in
-  let _           = P.printf "Simplified closed constraints:@!@!%a@!@!" d_cstrmap cm in
-    assert false
-    *)
