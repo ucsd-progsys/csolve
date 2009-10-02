@@ -597,24 +597,6 @@ let constrain_scc (fs: funenv) (ae: annotenv) (scc: scc): funenv * annotenv * S.
     (fs, ae, List.concat sss, List.concat css)
 
 (******************************************************************************)
-(************************** Constraint Simplification *************************)
-(******************************************************************************)
-(* The following assumes that all locations are quantified, i.e., that
-   no location in a callee's SCC also appears in a caller's SCC. *)
-
-module IMP = P.MakeMapPrinter(IM)
-
-let d_cstrmap =
-  IMP.d_map ~dmaplet:(fun d1 d2 -> P.dprintf "%t\t%t" (fun () -> d1) (fun () -> d2)) "\n" (fun () cid -> P.num cid) d_cstr
-
-module SCM = M.MapWithDefault(struct
-                                type t = S.t
-                                type v = cstr list
-                                let compare = S.compare
-                                let default = []
-                              end)
-
-(******************************************************************************)
 (*************************** Constraint Dependencies **************************)
 (******************************************************************************)
 
