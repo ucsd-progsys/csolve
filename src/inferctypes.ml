@@ -649,6 +649,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, ae, sd, cm, sto): funenv * an
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
   let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
   let sd, cm, sub, sto = solve sd cm sto in
+  let ae               = VM.map (prectype_subs sub |> ExpMap.map |> M.app_fst) ae in
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
