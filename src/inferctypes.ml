@@ -730,7 +730,7 @@ let solve_scc ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * st
   let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
   let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
   let _ = P.printf "ENV:\n\n%a\n\n" d_funenv fs in
-    assert false
+    (fs, ae, sd, cm, sto)
 
 let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
   let hv = fresh_heapvar () in
