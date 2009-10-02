@@ -480,12 +480,15 @@ let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
   let sss    = (cf.ret :: List.map snd cf.args @ vartys |> List.map prectype_sloc |> Misc.maybe_list) :: sss in
   let ss     = sss |> List.concat |> M.sort_and_compact in
   let cs     = List.map (fun s -> mk_heapinc loc s hv) ss :: formalcs :: phics :: css |> List.concat in
-    P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
-    P.printf "%a\nheapvar   %a\n" d_cfun cf d_heapvar hv;
-    P.printf "locs      %a\n" (P.d_list ", " S.d_sloc) ss;
-    List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
-    P.printf "\n";
-    (ctem, ss, cs)
+  let _      =
+    if Cs.ck_olev Cs.ol_solve then begin
+      P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
+      P.printf "%a\nheapvar   %a\n" d_cfun cf d_heapvar hv;
+      P.printf "locs      %a\n" (P.d_list ", " S.d_sloc) ss;
+      List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
+      P.printf "\n" |> ignore
+    end else ()
+  in (ctem, ss, cs)
 
 type scc = (C.varinfo * ST.ssaCfgInfo) list
 
@@ -558,10 +561,13 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
                            else
                              ft
                          end in
-  let _ = P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub in
-  let _ = P.printf "STORE:\n\n%a\n\n" d_store sto in
-  let _ = P.printf "ENV:\n\n%a\n\n" d_funenv fs in
-    (fs, sd, cm, sto)
+  let _ =
+    if Cs.ck_olev Cs.ol_solve then begin
+      P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub;
+      P.printf "STORE:\n\n%a\n\n" d_store sto;
+      P.printf "ENV:\n\n%a\n\n" d_funenv fs |> ignore
+    end else ()
+  in (fs, sd, cm, sto)
 
 let fresh_builtin (it: Inferindices.indextyping) (fe: funenv) (f: C.varinfo): funenv =
   let (ifv, vm) = VM.find f it in
