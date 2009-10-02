@@ -228,6 +228,7 @@ let app_snd    = fun f (a, b)       -> (a, f b)
 let app_fst3   = fun f (a, b, c)    -> (f a, b, c)
 let app_snd3   = fun f (a, b, c)    -> (a, f b, c)
 let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
+
 (*
 let mapfold f xs b = 
   List.fold_left 
