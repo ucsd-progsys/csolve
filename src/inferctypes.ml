@@ -525,7 +525,6 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
   let sss                  = instslocs :: sss in
   let ctvfs                = List.map (prectype_subs sub <.> snd) cf.args in
   let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
-  (* pmr: can probably eliminate some constraints by substituting with actual parameter locations directly when possible *)
   let css                  = (mk_wfsubst loc sub :: mk_subheap loc hv sub hvf :: stoincs) ::
                              List.map2 (fun ctva ctvf -> mk_subty loc ctva ctvf) ctvs ctvfs ::
                              css in
