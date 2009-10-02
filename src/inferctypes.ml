@@ -143,7 +143,6 @@ let simplecstr_sat (st: store) (sc: simplecstr): bool =
     | `CSubtype (ct1, ct2) -> is_subctype ct1 ct2
     | `CWFSubst (sub)      -> S.Subst.well_defined sub && sub |> S.Subst.transpose |> S.Subst.well_defined
 
-(* pmr: better error reporting *)
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
     | CTRef (s1, _), CTRef (s2, _) when S.eq s1 s2 -> sub
@@ -326,23 +325,6 @@ and constrain_addrof (ve: ctvenv) (em: cstremap) (loc: C.location): C.lval -> ct
       (fresh_ctvref (), em, [])
   | lv -> E.s <| E.error "Don't know how to take address of %a@!@!" C.d_lval lv
 
-let instantiate_args (loc: C.location) (argcts: (string * ctype) list): ctype list * cstr list =
-  let (argctvs, argcts) = argcts |> List.map (M.compose (ctype_of_ctype loc) snd) |> List.split in
-    (argctvs, List.flatten argcts)
-
-let instantiate_ret (loc: C.location): ctype option -> ctype option * cstr list = function
-  | Some rct ->
-      let (ctv, cs) = ctype_of_ctype loc rct in
-        (Some ctv, cs)
-  | None -> (None, [])
-
-let instantiate_store (loc: C.location) (st: store): cstr list =
-     prestore_fold (fun css l i ct -> mk_const_storeinc loc l i ct :: css) [] st
-  |> List.concat
-  |> SLM.fold (fun l _ css -> mk_storemem loc l :: css) st
-
-exception Unified
-
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
   match_slocs atyp etyp;
   if is_subctype atyp etyp then
@@ -388,33 +370,7 @@ let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrso
 let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
   mk_uniqlocs loc (precfun_slocset cf |> S.SlocSet.elements) :: cs |> solve_and_check_rec loc cf
 
-let get_cstr_dcheck (is: indexsol): cstr -> dcheck option = function
-  | {cdesc = CSCType (CTCDSubtype (ctv1, _, cbound, vi, rt))} when not (is_subctype (ctypevar_apply is ctv1) cbound) -> Some (vi, rt)
-  | _                                                                                                                -> None
 
-let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape * dcheck list =
-  let loc                      = fd.C.svar.C.vdecl in
-  let (formals, formalcs)      = instantiate_args loc argcts in
-  let bodyformals              = fresh_vars fd.C.sformals in
-  let bodyformalcs             = Misc.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
-  let locals                   = fresh_vars fd.C.slocals in
-  let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
-  let phics                    = mk_phis_cs vars phis in
-  let storecs                  = instantiate_store loc sin in
-  let ((ctvm, bodycs), annots) = constrain_cfg env vars rt cfg in
-  let (is, ss)                 = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] |> solve_and_check loc cf in
-  let apply_sol                = ctype_apply is in
-  let etypm                    = ExpMap.map apply_sol ctvm in
-  let anna, theta              = RA.annotate_cfg cfg etypm annots in
-  let shp                      =
-    {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
-     etypm = etypm;
-     store = storesol_apply is ss;
-     anna  = anna;
-     theta = theta }
-  in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape fd.C.svar.C.vname cf shp;
-    shp
 *)
 
 let mk_subty (loc: C.location) (ctv1: ctype) (ctv2: ctype): cstr =
@@ -560,15 +516,6 @@ let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((ctvs, css, sss, ctem
 let constrain_args (env: env) (ctem: ctvemap) (loc: C.location) (es: C.exp list): ctype list * cstr list list * S.t list list * ctvemap =
   let (ctvs, css, sss, ctem) = List.fold_right (constrain_arg env loc) es ([], [], [], ctem) in
     (ctvs, css, sss, ctem)
-
-(* pmr: close functions over arg locations after each round of solving;
-        compress list of qlocs;
-        etc.
-let instantiate_function (cf: cfun): S.subst * cfun =
-  let sto = cf.args |> List.map snd |> M.map_partial prectype_sloc |> prestore_close_under cf.sto_out in
-  let sub = sto |> prestore_domain |> List.map (fun s -> (s, S.fresh S.Abstract)) in
-    (sub, {cf with sto_in = SLM.empty; sto_out = sto})
-*)
 
 let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list list * S.t list list * ctvemap * RA.annotation list =
   let ctvs, css, sss, ctem = constrain_args env ctem loc args in
@@ -769,7 +716,6 @@ type scc = (C.varinfo * ST.ssaCfgInfo) list
 let solve_scc ((fs, ae, sd, cm, sto): funenv * annotenv * slocdep * cstrmap * store) (scc: scc): funenv * annotenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
   let fs, ae, ss, cs   = constrain_scc fs ae scc in
-    (* pmr: obviously wrong --- thanks, pmr, now what do I do?  how is this obviously wrong?? *)
   let scs              = filter_simple_cstrs cs in
   let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
   let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
