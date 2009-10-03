@@ -7,7 +7,6 @@ module VM  = CM.VarMap
 module S   = Sloc
 module SLM = S.SlocMap
 module ST  = Ssa_transform
-module SM  = M.StringMap
 module Cs  = Constants
 
 open Ctypes
@@ -427,16 +426,16 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_itypevar fty)) ftys in
     mk_cfun [] fctys (fresh_itypevar rty) SLM.empty SLM.empty
 
-let constrain_prog_fold (fe: funenv) (_: SM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypecstr list list * (ifunvar * itypevar VM.t) VM.t): itypecstr list list * (ifunvar * itypevar VM.t) VM.t =
+let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypecstr list list * (ifunvar * itypevar VM.t) VM.t): itypecstr list list * (ifunvar * itypevar VM.t) VM.t =
   let ve, cs = constrain_fun fe sci in
   let fv     = sci.ST.fdec.C.svar in
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
-let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
+let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
   let fe      = VM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
   let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
-  let fe      = SM.fold (fun _ {ST.fdec = fd} fe -> VM.add fd.C.svar (fresh_fun_typ fd) fe) scim fe in
-  let css, fm = SM.fold (constrain_prog_fold fe) scim ([], fm) in
+  let fe      = VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim fe in
+  let css, fm = VM.fold (constrain_prog_fold fe) scim ([], fm) in
     (List.concat css, fm)
 
 type indextyping = (cfun * ctype VM.t) VM.t
@@ -451,7 +450,7 @@ let d_indextyping () (it: indextyping): P.doc =
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
 
 (* API *)
-let infer_indices (ctenv: ctypeenv) (scim: ST.ssaCfgInfo SM.t): indextyping =
+let infer_indices (ctenv: ctypeenv) (scim: ST.ssaCfgInfo VM.t): indextyping =
   let cs, fm = constrain_prog ctenv scim in
   let is     = solve cs in
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in

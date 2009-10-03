@@ -5,7 +5,6 @@ module Cs  = Constants
 module E   = Errormsg
 module ST  = Ssa_transform
 module RA  = Refanno
-module SM  = M.StringMap
 module S   = Sloc
 module SLM = S.SlocMap
 module SS  = S.SlocSet
@@ -581,10 +580,14 @@ type shape =
    theta : RA.ctab }
 
 (* API *)
-let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo SM.t): shape VM.t * ctypeenv =
+let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo Misc.StringMap.t): shape VM.t * ctypeenv =
+  assert false
+
+(* API *)
+let annot_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): Pretty.doc =
   let it            = Inferindices.infer_indices env scim in
   let cg, builtins  = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
-  let sccs          = List.rev_map (fun scc -> List.map (fun fv -> (fv, SM.find fv.C.vname scim)) scc) cg in
+  let sccs          = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
   let fs            = List.fold_left (fresh_builtin it) VM.empty <| List.concat builtins in
   let fs, _, _, sto = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
     exit 0

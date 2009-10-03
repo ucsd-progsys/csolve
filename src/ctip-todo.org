@@ -2,6 +2,8 @@
 
 ** Yet To Do
 *** Consgen
+*** Let local inference and whole-program spec inference coexist
+*** Revert Ranjit's code to its stringy gory
 *** Clear up disaster in consgen wrt stringmaps vs. varmaps
     No reason for stringmaps, potentially unsafe.
 
@@ -10,6 +12,9 @@
     How to tame?
 *** Add deferred pointer arithmetic checks
     As on 9/29...
+
+    *Will have to emit a warning!* Since we're not actually doing the
+    check, just emitting a check assuming the check gets done...
 
 ** Done
 *** Immutable slocs
