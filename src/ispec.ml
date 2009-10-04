@@ -15,4 +15,4 @@ let infer_spec fn =
        Inferctypes.specs_of_file spec cil
     |> P.printf "SPEC:\n\n%a" (P.d_list "\n\n" (fun () (fn, cf) -> P.dprintf "%s ::\n%a" fn Ctypes.d_cfun cf))
 
-let _ = Toplevel.main "ispec" infer_spec
+let _ = Toplevel.main "ispec.native" infer_spec
