@@ -341,9 +341,9 @@ let process_phis phia me =
 
 let cons_of_sci tgr gnv sci shp =
   let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
-  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-  let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
-  (* let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in *)
+  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.LocalInfer.anna in
+  let _ = Pretty.printf "%a" Refanno.d_ctab shp.LocalInfer.theta in 
+  (* let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.LocalInfer.store in *)
   CF.create tgr gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
@@ -389,7 +389,7 @@ let shapem_of_scim spec scim =
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
-  |> (fun (bm, fm) -> Inferctypes.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
+  |> (fun (bm, fm) -> LocalInfer.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 

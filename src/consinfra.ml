@@ -34,7 +34,7 @@ module C  = FixConstraint
 module FI = FixInterface 
 module CI = CilInterface
 module EM = Ctypes.ExpMap
-module IC = Inferctypes
+module LI = LocalInfer
 
 open Misc.Ops
 open Cil
@@ -103,9 +103,9 @@ let make_undefm formalm phia =
 
 let create tgr gnv sci shp = 
   let fdec   = sci.ST.fdec in
-  let env    = env_of_fdec gnv fdec shp.IC.vtyps shp.IC.theta in
+  let env    = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
   let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
-  let astore = FI.refstore_fresh fdec.svar.vname shp.IC.store in 
+  let astore = FI.refstore_fresh fdec.svar.vname shp.LI.store in 
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc    = fdec.svar.vdecl in
@@ -118,11 +118,11 @@ let create tgr gnv sci shp =
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
-   etm     = shp.IC.etypm;
-   ltm     = shp.IC.vtyps;
+   etm     = shp.LI.etypm;
+   ltm     = shp.LI.vtyps;
    astore  = astore;
-   anna    = shp.IC.anna;
-   ctab    = shp.IC.theta;
+   anna    = shp.LI.anna;
+   ctab    = shp.LI.theta;
    undefm  = make_undefm formalm sci.ST.phis
   }
 
