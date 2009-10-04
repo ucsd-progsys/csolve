@@ -10,6 +10,8 @@ module SLM = S.SlocMap
 module SS  = S.SlocSet
 module CM  = CilMisc
 module VM  = CM.VarMap
+module SM  = M.StringMap
+module FI  = FixInterface
 
 open Ctypes
 open M.Ops
@@ -584,10 +586,22 @@ let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo Misc.Str
   assert false
 
 (* API *)
-let annot_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): Pretty.doc =
-  let it            = Inferindices.infer_indices env scim in
-  let cg, builtins  = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
-  let sccs          = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
-  let fs            = List.fold_left (fresh_builtin it) VM.empty <| List.concat builtins in
-  let fs, _, _, sto = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
-    exit 0
+let infer_spec (env: ctypeenv) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
+  let it           = Inferindices.infer_indices env scim in
+  let cg, builtins = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
+  let sccs         = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
+  let fs           = List.fold_left (fresh_builtin it) VM.empty <| List.concat builtins in
+  let fs, _, _, _  = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
+    VM.fold begin fun f (cf, _, _) spec ->
+      if CM.definedHere f then
+        (f.C.vname, cf) :: spec
+      else
+        spec
+    end fs []
+
+let specs_of_file spec cil =
+  let cg   = Callgraph.sccs cil in
+  let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
+  let env  = SM.fold (fun fn (rf, _) vm -> VM.add (C.findOrCreateFunc cil fn C.voidType) (FI.cfun_of_refcfun rf) vm) spec VM.empty in
+    infer_spec env cg scis
+
