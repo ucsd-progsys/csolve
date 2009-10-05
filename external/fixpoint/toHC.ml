@@ -1,4 +1,4 @@
-(* translation to Q'ARMC *)
+(* translation to HC'ARMC *)
 
 
 module C  = FixConstraint
@@ -158,11 +158,10 @@ let preds_kvars_of_reft reft =
 
 let preds_to_pred ps =
   match ps with 
-    | [] -> Ast.pFalse
+    | [] -> Ast.pTrue
     | [p] -> p
     | _ :: _ -> Ast.pAnd ps	  
  
-
 
 let t_to_horn_clause t =
   let lhs_ps, lhs_ks = C.lhs_of_t t |> preds_kvars_of_reft in
@@ -172,17 +171,17 @@ let t_to_horn_clause t =
 	 let ps', ks' = preds_kvars_of_reft (C.theta [(C.vv_of_reft reft, Ast.eVar bv)] reft) in
 	   List.rev_append ps' ps, List.rev_append ks' ks
       ) (C.env_of_t t) (C.grd_of_t t :: lhs_ps, lhs_ks) in
-  let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in
+  let head_ps, head_ks = C.rhs_of_t t |> preds_kvars_of_reft in (* Andrey: TODO apply substs on the RHS *)
     {
       body_pred = preds_to_pred body_ps; 
       body_kvars = body_ks; 
       head_pred = preds_to_pred head_ps; 
       head_kvars = head_ks;
-      tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t)
+      tag = try string_of_int (C.id_of_t t) with _ -> failure "ERROR: t_to_horn_clause: anonymous constraint %s" (C.to_string t);
     }
 
-let print_horn_clause hc = 
-  Printf.printf "%s: %s, %s :- %s, %s\n"
+let horn_clause_to_string hc = 
+  Printf.sprintf "%s: %s, %s :- %s, %s."
     hc.tag 
     (P.to_string hc.head_pred)
     (List.map (fun (subs, kvar) -> C.refa_to_string (C.Kvar (subs, kvar))) hc.head_kvars |> String.concat ", ")
@@ -237,6 +236,7 @@ error(%s).
     List.iter (fun t -> 
 		 (C.to_string t |> print_endline);
 		 print_newline ();
+		 Printf.fprintf out "/*\n%s\n%s\n*/\n" (C.to_string t) (t_to_horn_clause t |> horn_clause_to_string);
 		 List.iter (fun r -> 
 			      output_string out r;
 			      output_string out "\n\n"
