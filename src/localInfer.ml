@@ -724,19 +724,19 @@ let solve_and_check (loc: C.location) (cf: cfun) (vars: (C.varinfo * ctypevar) l
   mk_uniqlocs loc (cfun_slocs cf) :: cs |> solve_and_check_rec loc cf vars ctem annots
 
 let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape * dcheck list =
-  let loc                      = fd.C.svar.C.vdecl in
-  let (formals, formalcs)      = instantiate_args loc argcts in
-  let bodyformals              = fresh_vars fd.C.sformals in
-  let bodyformalcs             = Misc.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
-  let locals                   = fresh_vars fd.C.slocals in
-  let vars                     = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
-  let phics                    = mk_phis_cs vars phis in
-  let storecs                  = instantiate_store loc sin in
-  let ((ctvm, bodycs), annots) = constrain_cfg env vars rt cfg in
-  let cs                       = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] in
+  let loc                            = fd.C.svar.C.vdecl in
+  let (formals, formalcs)            = instantiate_args loc argcts in
+  let bodyformals                    = fresh_vars fd.C.sformals in
+  let bodyformalcs                   = Misc.map2 (fun f (_, bf) -> mk_subty loc f bf) formals bodyformals in
+  let locals                         = fresh_vars fd.C.slocals in
+  let vars                           = locals @ bodyformals |> List.fold_left (fun ve (v, ctv) -> IM.add v.C.vid ctv ve) IM.empty in
+  let phics                          = mk_phis_cs vars phis in
+  let storecs                        = instantiate_store loc sin in
+  let ((ctvm, bodycs), annots)       = constrain_cfg env vars rt cfg in
+  let cs                             = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] in
   let (ss, vtyps, etypm, annots, ds) = solve_and_check loc cf locals ctvm annots cs in
-  let anna, theta              = RA.annotate_cfg cfg etypm annots in
-  let shp                      =
+  let anna, theta                    = RA.annotate_cfg cfg etypm annots in
+  let shp                            =
     {vtyps = vtyps;
      etypm = etypm;
      store = ss;
