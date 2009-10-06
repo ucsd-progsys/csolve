@@ -50,7 +50,7 @@ type 'a precfun =
 
 type cfun = index precfun
 
-type ctypeenv = cfun CilMisc.VarMap.t
+type ctypeenv = cfun Misc.StringMap.t
 
 module ExpKey:
   sig
@@ -114,12 +114,14 @@ val void_ctype: ctype
 val prectype_sloc: 'a prectype -> Sloc.t option
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
-val prectype_subs        : Sloc.Subst.t -> 'a prectype -> 'a prectype
+val prectype_subs : Sloc.Subst.t -> 'a prectype -> 'a prectype
 val prectype_eq: 'a prectype -> 'a prectype -> bool
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_well_formed     : cfun -> bool
+val cfun_slocs : cfun -> Sloc.t list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 val cfun_subs : Sloc.Subst.t -> cfun -> cfun
 val ctype_closed         : ctype -> store -> bool

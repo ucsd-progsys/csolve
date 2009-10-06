@@ -142,7 +142,7 @@ let refstore_empty = SLM.empty
 let refstore_mem l sto = SLM.mem l sto
 let refstore_remove l sto = SLM.remove l sto
 
-let refstore_set sto l rd = 
+let refstore_set sto l rd =
   try SLM.add l rd sto with Not_found -> 
     assertf "refstore_set"
 
@@ -506,7 +506,7 @@ let refstore_subs_ploc f sto =
 let refstore_subs_locs loc lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
-    if not (refstore_mem l sto) then sto else 
+    if not (refstore_mem l sto) then sto else
       let plocs = refstore_get sto l |> plocs_of_refldesc in
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in

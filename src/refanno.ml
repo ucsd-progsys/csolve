@@ -1,5 +1,6 @@
 module LM = Sloc.SlocMap
 module SM = Misc.StringMap
+module S  = Sloc
 
 open Cil
 open Misc.Ops
@@ -17,7 +18,13 @@ type annotation =
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
-
+let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
+  let app = S.Subst.apply sub in
+    match a with
+      | Gen (s1, s2)      -> Gen (app s1, app s2)
+      | Ins (s1, s2)      -> Ins (app s1, app s2)
+      | New (s1, s2)      -> New (app s1, app s2)
+      | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
 
 type block_annotation = annotation list list
 
@@ -153,6 +160,10 @@ let annotate_block ctm theta anns instrs =
 (*****************************************************************************)
 (********************************** API **************************************)
 (*****************************************************************************)
+
+(* API *)
+let subs (sub: S.Subst.t): block_annotation -> block_annotation =
+  List.map (List.map (annotation_subs sub))
 
 (* API *)
 let annotate_cfg cfg ctm anna =

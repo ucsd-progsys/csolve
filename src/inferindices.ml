@@ -431,7 +431,7 @@ let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm)
   let fv     = sci.ST.fdec.C.svar in
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
-let constrain_prog (ctenv: ctypeenv) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
+let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
   let fe      = VM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
   let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
   let fe      = VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim fe in
@@ -450,7 +450,7 @@ let d_indextyping () (it: indextyping): P.doc =
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
 
 (* API *)
-let infer_indices (ctenv: ctypeenv) (scim: ST.ssaCfgInfo VM.t): indextyping =
+let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
   let cs, fm = constrain_prog ctenv scim in
   let is     = solve cs in
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in

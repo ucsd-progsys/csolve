@@ -28,10 +28,6 @@ let sloc_type (Sloc (_, lty): t): sloctype =
 let is_abstract (l: t): bool =
   sloc_type l = Abstract
 
-let unify (l1: t) (l2: t): unit =
-  (* pmr: obviously this is going away *)
-  failwith "Unify no longer works on immutable slocs"
-
 let to_string (Sloc (lid, lty): t): string =
   match lty with
     | Abstract -> "A" ^ string_of_int lid
@@ -69,7 +65,7 @@ module Subst = struct
   let empty = []
 
   let d_subst (): t -> P.doc =
-    P.dprintf "[@[%a@]]" (P.d_list "," (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto))
+    P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto))
 
   let apply (sub: t) (s: sloc): sloc =
     try List.assoc s sub with Not_found -> s

@@ -582,11 +582,7 @@ type shape =
    theta : RA.ctab }
 
 (* API *)
-let infer_shapes (env: ctypeenv) (cg: Callgraph.t) (scim: ST.ssaCfgInfo Misc.StringMap.t): shape VM.t * ctypeenv =
-  assert false
-
-(* API *)
-let infer_spec (env: ctypeenv) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
+let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
   let it           = Inferindices.infer_indices env scim in
   let cg, builtins = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
   let sccs         = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
@@ -604,4 +600,3 @@ let specs_of_file spec cil =
   let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
   let env  = SM.fold (fun fn (rf, _) vm -> VM.add (C.findOrCreateFunc cil fn C.voidType) (FI.cfun_of_refcfun rf) vm) spec VM.empty in
     infer_spec env cg scis
-

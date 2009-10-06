@@ -400,7 +400,7 @@ let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list 
 
 (* pmr: why is this not rename_prestore? *)
 let prestore_subs_addrs subs ps =
-  SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) SLM.empty ps
+  SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
 
 let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
   ps |> prestore_map_ct (prectype_subs subs) 
@@ -499,6 +499,17 @@ let rename_prestore (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
   let cns = LDesc.map (prectype_subs subs) in
     SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
+let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
+  let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
+  let rename_pct = prectype_subs subs in
+  let rename_ps  = rename_prestore subs in
+    ({qlocs   = [];
+      args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
+      ret     = rename_pct rcts;
+      sto_in  = rename_ps sin;
+      sto_out = rename_ps sout},
+     subs)
+
 let cfun_well_formed (cf: cfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
      store_closed cf.sto_in
@@ -507,6 +518,13 @@ let cfun_well_formed (cf: cfun): bool =
   && match cf.ret with  (* we can return refs to uninitialized data *)
         | CTRef (l, _) -> SLM.mem l cf.sto_out
         | _            -> true
+
+let cfun_slocs (cf: cfun): S.t list =
+    List.concat [prestore_domain cf.sto_in;
+                 prestore_domain cf.sto_out;
+                 M.maybe_cons (prectype_sloc cf.ret) <|
+                     M.map_partial (prectype_sloc <.> snd) cf.args]
+ |> M.sort_and_compact
 
 let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
   let apply_sub = prectype_subs sub in
@@ -520,7 +538,7 @@ let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
 (******************************** Environments ********************************)
 (******************************************************************************)
 
-type ctypeenv = cfun CilMisc.VarMap.t
+type ctypeenv = cfun M.StringMap.t
 
 (******************************************************************************)
 (******************************* Expression Maps ******************************)

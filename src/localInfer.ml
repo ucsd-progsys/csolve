@@ -87,6 +87,12 @@ type ctypecstr =
   | CTCSubtype of ctypevar * ctypevar
   | CTCDSubtype of ctypevar * ctypevar * (* bound: *) ctype * (* check: *) C.varinfo * FI.refctype
 
+let ctypecstr_subs (sub: S.Subst.t) (ctc: ctypecstr): ctypecstr =
+  let appsub = prectype_subs sub in
+    match ctc with
+      | CTCSubtype (ctv1, ctv2)                -> CTCSubtype (appsub ctv1, appsub ctv2)
+      | CTCDSubtype (ctv1, ctv2, ct, vi, refc) -> CTCDSubtype (appsub ctv1, appsub ctv2, prectype_subs sub ct, vi, prectype_subs sub refc)
+
 type dcheck = C.varinfo * FI.refctype
 
 let d_dcheck () ((vi, rt): dcheck): P.doc =
@@ -130,6 +136,11 @@ type storecstr =
   | SCUniq of S.t list                 (* for all l1, l2 in list, not S.eq l1 l2 *)
 
 type storesol = indexvar prestore
+
+let storecstr_subs (sub: S.Subst.t): storecstr -> storecstr = function
+  | SCInc (s, iv, ctv) -> SCInc (S.Subst.apply sub s, iv, prectype_subs sub ctv)
+  | SCMem s            -> SCMem (S.Subst.apply sub s)
+  | SCUniq (ss)        -> SCUniq (List.map (S.Subst.apply sub) ss)
 
 let storesol_add (l: Sloc.t) (pl: ploc) (ctv: ctypevar) (ss: storesol): storesol =
   SLM.add l (LDesc.add pl ctv (prestore_find l ss)) ss
@@ -212,6 +223,12 @@ type cstrdesc =
 
 type cstr = {cdesc: cstrdesc; cloc: C.location}
 
+let cstr_subs (sub: S.Subst.t) (c: cstr): cstr =
+  match c.cdesc with
+    | CSIndex _   -> c
+    | CSCType ctc -> {c with cdesc = CSCType (ctypecstr_subs sub ctc)}
+    | CSStore scs -> {c with cdesc = CSStore (storecstr_subs sub scs)}
+
 let mk_ivarless (loc: C.location) (ie: indexexp) (iv: indexvar) =
   {cdesc = CSIndex (ICVarLess (ie, iv)); cloc = loc}
 
@@ -259,9 +276,9 @@ let mk_const_storeinc (loc: C.location) (l: Sloc.t) (i: index) (ct: ctype): cstr
 let mk_uniqlocs (loc: C.location) (ls: S.t list) =
   {cdesc = CSStore (SCUniq ls); cloc = loc}
 
-type cstrsol = indexsol * storesol
+type cstrsol = indexsol * storesol * S.Subst.t
 
-let cstrdesc_sat ((is, ss): cstrsol): cstrdesc -> bool = function
+let cstrdesc_sat ((is, ss, _): cstrsol): cstrdesc -> bool = function
   | CSIndex ic  -> indexcstr_sat ic is
   | CSCType ctc -> ctypecstr_sat ctc is
   | CSStore sc  -> storecstr_sat sc is ss
@@ -269,7 +286,7 @@ let cstrdesc_sat ((is, ss): cstrsol): cstrdesc -> bool = function
 let cstr_sat (csol: cstrsol) (c: cstr): bool =
   cstrdesc_sat csol c.cdesc
 
-let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storesol = function
+let refine (loc: C.location) ((is, ss, _): cstrsol): cstrdesc -> indexsol * storesol = function
   | CSIndex (ICVarLess (ie, iv))      -> (refine_index ie iv is, ss)
   | CSIndex (ICConstLess (ie, i))     -> E.s <| C.errorLoc loc "Index constraint violation: %a <= %a@!@!" d_index (indexexp_apply is ie) d_index i
   | CSCType (CTCSubtype (ctv1, ctv2)) -> (refine_ctype ctv1 ctv2 is, ss)
@@ -286,27 +303,27 @@ let refine (loc: C.location) ((is, ss): cstrsol): cstrdesc -> indexsol * storeso
           E.s <| C.errorLoc loc "Can't fit %a |-> %a in location %a: @!@!%a@!@!"
               d_index i d_ctype ct Sloc.d_sloc l (LDesc.d_ldesc d_ctype) ld
 
-let rec solve_rec (cs: cstr list) ((is, ss) as csol: cstrsol): cstrsol =
+let rec solve_rec (cs: cstr list) ((is, ss, sub) as csol: cstrsol): cstrsol =
   match (try Some (List.find (fun c -> not (cstr_sat csol c)) cs) with Not_found -> None) with
     | None   -> csol
     | Some c ->
-        let (cs, is, ss) =
+        let (cs, is, ss, sub) =
           try
-            let (is, ss) = refine c.cloc (is, ss) c.cdesc in
-              (cs, is, ss)
+            let (is, ss) = refine c.cloc (is, ss, sub) c.cdesc in
+              (cs, is, ss, sub)
           with
             | NoLUB (CTRef (s1, _), CTRef (s2, _)) ->
-                let ss = ss |> SLM.remove s1 |> SLM.remove s2 in
-                let _  = S.unify s1 s2 in
-                  (cs, is, ss)
+                let usub = [(s1, s2)] in
+                let ss  = ss |> SLM.remove s1 |> SLM.remove s2 |> prestore_subs usub in
+                  (List.map (cstr_subs usub) cs, is, ss, S.Subst.extend s1 s2 sub)
             | NoLUB (ctv1, ctv2) -> E.s <| Cil.errorLoc c.cloc "Incompatible types: %a, %a@!@!" d_ctype ctv1 d_ctype ctv2
             | _                  -> E.s <| Cil.errorLoc c.cloc "Unknown error"
-        in solve_rec cs (is, ss)
+        in solve_rec cs (is, ss, sub)
 
 let solve (cs: cstr list): cstrsol =
   (* Defer checking uniqueness constraints until the very end *)
   let (cs, uniqcs) = List.partition (function {cdesc = CSStore (SCUniq _)} -> false | _ -> true) cs in
-  let csol         = solve_rec cs (IndexSol.empty, SLM.empty) in
+  let csol         = solve_rec cs (IndexSol.empty, SLM.empty, S.Subst.empty) in
    match (try Some (List.find (fun c -> not (cstr_sat csol c)) uniqcs) with Not_found -> None) with
      | None                                           -> csol
      | Some {cdesc = CSStore (SCUniq ls); cloc = loc} -> M.find_pair S.eq ls |> fun (l, _) -> E.s <| C.errorLoc loc "Parameter location %a aliased to another parameter location@!@!" S.d_sloc l
@@ -630,11 +647,11 @@ let constrain_cfg (env: ctypeenv) (vars: ctypevar IM.t) (rt: ctype) (cfg: Ssa.cf
       end (ExpMap.empty, []) blocks
   in (em, bas)
 
-exception Unified
+exception Unify of S.t * S.t
 
 let match_slocs (ct1: ctype) (ct2: ctype): unit =
   match (ct1, ct2) with
-    | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> S.unify s1 s2; raise Unified
+    | (CTRef (s1, _), CTRef (s2, _)) when not (S.eq s1 s2) -> raise (Unify (s1, s2))
     | _                                                    -> ()
 
 let check_expected_type (loc: C.location) (etyp: ctype) (atyp: ctype): bool =
@@ -664,27 +681,47 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
           | [at] -> check_expected_type loc ft at && ok (* order is important here for unification! *)
           | _    -> failwith "Returned too many at index from prestore_find_index"
       with
-        | Unified   -> raise Unified
-        | Not_found -> ok
-        | _         -> false
+        | Unify (s1, s2) -> raise (Unify (s1, s2))
+        | Not_found      -> ok
+        | _              -> false
     end true sto_out_formal
 
-let rec solve_and_check_rec (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
-  let (is, ss)  = solve cs in
-  let out_store = storesol_apply is ss in
-    try
-      if check_out_store loc cf.sto_out out_store then
-        (is, ss)
-      else
-        E.s <| C.errorLoc loc "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store out_store d_cfun cf
-    with Unified -> solve_and_check_rec loc cf cs
-
-let solve_and_check (loc: C.location) (cf: cfun) (cs: cstr list): cstrsol =
-  mk_uniqlocs loc (precfun_slocset cf |> S.SlocSet.elements) :: cs |> solve_and_check_rec loc cf
+let revert_spec_names (sub: S.Subst.t) (cfspec: cfun): S.Subst.t =
+     cfspec.sto_out
+  |> prestore_domain
+  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply sub s) s sub) sub
 
 let get_cstr_dcheck (is: indexsol): cstr -> dcheck option = function
   | {cdesc = CSCType (CTCDSubtype (ctv1, _, cbound, vi, rt))} when not (is_subctype (ctypevar_apply is ctv1) cbound) -> Some (vi, rt)
   | _                                                                                                                -> None
+
+type soln = store * (C.varinfo * ctype) list * ctemap * RA.block_annotation array * dcheck list
+
+let rec solve_and_check_rec (loc: C.location) (cf: cfun) (vars: (C.varinfo * ctypevar) list) (ctem: ctvemap) (annots: RA.block_annotation array) (cs: cstr list): soln =
+  let (is, ss, sub) = solve cs in
+  let sub           = revert_spec_names sub cf in
+  let ss            = ss |> prestore_subs sub |> storesol_apply is in
+    try
+      if check_out_store loc cf.sto_out ss then
+        let annots    = Array.map (RA.subs sub) annots in
+        let apply_sol = prectype_subs sub <.> ctypevar_apply is in
+        let etypm     = ExpMap.map apply_sol ctem in
+        let varsol    = List.map (M.app_snd apply_sol) vars in
+        let ds        = cs |> List.map (cstr_subs sub) |> M.map_partial (get_cstr_dcheck is) in
+          (ss, varsol, etypm, annots, ds)
+      else
+        E.s <| C.errorLoc loc "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store ss d_cfun cf
+    with Unify (s1, s2) ->
+      let sub = [(s1, s2)] in
+        solve_and_check_rec loc
+          cf
+          (List.map (M.app_snd <| prectype_subs sub) vars)
+          (ExpMap.map (prectype_subs sub) ctem)
+          (Array.map (RA.subs sub) annots)
+          (List.map (cstr_subs sub) cs)
+
+let solve_and_check (loc: C.location) (cf: cfun) (vars: (C.varinfo * ctypevar) list) (ctem: ctvemap) (annots: RA.block_annotation array) (cs: cstr list): soln =
+  mk_uniqlocs loc (cfun_slocs cf) :: cs |> solve_and_check_rec loc cf vars ctem annots
 
 let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: cfun) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): shape * dcheck list =
   let loc                      = fd.C.svar.C.vdecl in
@@ -697,15 +734,12 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
   let storecs                  = instantiate_store loc sin in
   let ((ctvm, bodycs), annots) = constrain_cfg env vars rt cfg in
   let cs                       = List.concat [formalcs; bodyformalcs; phics; storecs; bodycs] in
-  let (is, ss)                 = solve_and_check loc cf cs in
-  let ds                       = M.map_partial (get_cstr_dcheck is) cs in
-  let apply_sol                = ctypevar_apply is in
-  let etypm                    = ExpMap.map apply_sol ctvm in
+  let (ss, vtyps, etypm, annots, ds) = solve_and_check loc cf locals ctvm annots cs in
   let anna, theta              = RA.annotate_cfg cfg etypm annots in
   let shp                      =
-    {vtyps = List.map (fun (v, ctv) -> (v, apply_sol ctv)) locals;
+    {vtyps = vtyps;
      etypm = etypm;
-     store = storesol_apply is ss;
+     store = ss;
      anna  = anna;
      theta = theta }
   in
