@@ -91,7 +91,7 @@ let heapifiedType t =
     | TArray (t, _, _) -> TPtr (t, [])
     | t                -> TPtr (t, [])
 
-class heapifyAnalyzeVisitor f alloc free = object
+class heapifyAnalyzeVisitor f alloc = object
   inherit nopCilVisitor (* only look at function bodies *)
 
   method vglob = function
@@ -114,13 +114,11 @@ class heapifyAnalyzeVisitor f alloc free = object
   | _ -> DoChildren
 end
 
-let heapify (f : file) (alloc : exp) (free : exp)  =
-  visitCilFile (new heapifyAnalyzeVisitor f alloc free) f;
+let heapify (f : file) (alloc : exp) =
+  visitCilFile (new heapifyAnalyzeVisitor f alloc) f;
   f
 
 let default_heapify (f : file) =
-  let alloc_fun = emptyFunction "malloc" in
-  let free_fun  = emptyFunction "free" in
-  let alloc_exp = Lval (Var alloc_fun.svar, NoOffset) in
-  let free_exp  = Lval (Var free_fun.svar, NoOffset) in
-    ignore (heapify f alloc_exp free_exp)
+  let alloc_fun = findOrCreateFunc f "malloc" voidType in
+  let alloc_exp = Lval (Var alloc_fun, NoOffset) in
+    ignore (heapify f alloc_exp)

@@ -216,6 +216,5 @@ let ctype_of_varinfo me v =
   let ct  = ctype_of_varinfo me.ltm v in
   let clo = Refanno.cloc_of_varinfo me.ctab v in
   let rv  = strengthen_cloc (ct, clo) in
-  let _   = Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.Cil.vname
-  Ctypes.d_ctype ct in
+  let _   = Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.Cil.vname Ctypes.d_ctype ct in
   rv

@@ -27,6 +27,8 @@
 (************** Misc Operations on CIL entities *****************)
 (****************************************************************)
 
+module M = Misc
+
 open Cil
 open Misc.Ops
  
@@ -111,6 +113,10 @@ let bprintf b = if b then Pretty.printf else nprintf
 (***************************** Type Maniupulation *****************************)
 (******************************************************************************)
 
+let int_width   = bytesSizeOfInt IInt
+let short_width = bytesSizeOfInt IShort
+let char_width  = bytesSizeOfInt IChar
+
 let bytesSizeOf t =
   1 + ((Cil.bitsSizeOf t - 1) / 8)
 
@@ -118,3 +124,41 @@ let ptrRefType = function
   | TPtr (t, _)      -> t
   | TArray (t, _, _) -> t
   | _                -> failwith "ptrRefType called with non-pointer argument"
+
+let rec typ_width (t: typ): int =
+  match unrollType t with
+    | TInt (ik, _)                  -> bytesSizeOfInt ik
+    | TPtr _                        -> typ_width !upointType
+    | TComp (ci, _) when ci.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.ftype) 0 ci.cfields
+    | t                             -> Errormsg.s <| Errormsg.bug "Unimplemented typ_width: %a@!@!" d_type t
+
+(******************************************************************************)
+(**************************** Misc. Pretty Printers ***************************)
+(******************************************************************************)
+
+let d_var () (v: varinfo): Pretty.doc =
+  Pretty.text v.vname
+
+(******************************************************************************)
+(******************************** Variable Maps *******************************)
+(******************************************************************************)
+
+module VarMap = Map.Make(struct
+                           type t = varinfo
+                           let compare v1 v2 = compare v1.vid v2.vid
+                         end)
+
+module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
+
+let vm_print_keys vm =
+  VarMapPrinter.d_map ~dmaplet:(fun d1 _ -> d1) ", " d_var (fun () _ -> Pretty.nil) vm
+
+let vm_of_list xs =
+  List.fold_left (M.flip (M.uncurry VarMap.add)) VarMap.empty xs
+
+let vm_to_list vm =
+  VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
+
+
+let definedHere vi =
+  vi.vdecl.line > 0 && vi.vstorage != Extern

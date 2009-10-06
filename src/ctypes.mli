@@ -58,23 +58,7 @@ module ExpKey:
     val compare: t -> t -> int
   end
 
-module ExpMap:
-  sig
-    type key = ExpKey.t
-    type 'a t = 'a Map.Make(ExpKey).t
-    val empty : 'a t
-    val is_empty : 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val find : key -> 'a t -> 'a
-    val remove : key -> 'a t -> 'a t
-    val mem : key -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-  end
+module ExpMap: Map.S with type key = ExpKey.t
 
 module ExpMapPrinter:
   sig
@@ -127,19 +111,21 @@ val void_ctype: ctype
 (******************************* Type Operations ******************************)
 (******************************************************************************)
 
+val prectype_sloc: 'a prectype -> Sloc.t option
 val prectype_map: ('a -> 'b) -> 'a prectype -> 'b prectype
 val prectype_width: 'a prectype -> int
-val prectype_replace_sloc: Sloc.t -> Sloc.t -> 'a prectype -> 'a prectype
-val prectype_subs        : (Sloc.t * Sloc.t) list -> 'a prectype -> 'a prectype
+val prectype_subs : Sloc.Subst.t -> 'a prectype -> 'a prectype
 val prectype_eq: 'a prectype -> 'a prectype -> bool
 val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val precfun_slocset : 'a precfun -> Sloc.SlocSet.t
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_well_formed     : cfun -> bool
+val cfun_slocs : cfun -> Sloc.t list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
+val cfun_subs : Sloc.Subst.t -> cfun -> cfun
 val ctype_closed         : ctype -> store -> bool
+val is_void : 'a prectype -> bool
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)
@@ -156,11 +142,13 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
+val prestore_domain : 'a prestore -> Sloc.t list
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
 val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a prectype list
 val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
+val prestore_close_under : 'a prestore -> Sloc.t list -> 'a prestore
 
 val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -172,6 +160,6 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 (** [prestore_upd st1 st2] returns the store obtained by overwriting the
     common locations of st1 and st2 with the blocks appearing in st2 *)
 
-val prestore_subs   : (Sloc.t * Sloc.t) list -> 'a prestore -> 'a prestore
+val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
 val store_closed : index prestore -> bool

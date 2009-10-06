@@ -1,0 +1,51 @@
+* Interprocedural Ctypes: The Big TODO
+
+** Yet To Do
+*** Consgen
+*** Let local inference and whole-program spec inference coexist
+*** Revert Ranjit's code to its stringy gory
+*** Clear up disaster in consgen wrt stringmaps vs. varmaps
+    No reason for stringmaps, potentially unsafe.
+
+*** Clear up disaster in inferctypes constraint generation
+    Lists of lists of constraints, etc, all in a very ad-hoc way.
+    How to tame?
+*** Add deferred pointer arithmetic checks
+    As on 9/29...
+
+    *Will have to emit a warning!* Since we're not actually doing the
+    check, just emitting a check assuming the check gets done...
+
+** Done
+*** Immutable slocs
+
+*** Generate a callgraph
+    Need to visit functions in topological order, need one heap var per SCC.
+
+*** Structures
+
+**** Heap variables
+
+**** Substitutions
+
+**** Function types over heaps, location sets
+
+**** Constraints
+     Need variants with constants on one side where it makes sense.
+
+***** Subheaping
+***** Heap dom inclusion
+***** Inclusion in location
+***** Subtyping
+***** WF substs
+
+**** Solutions
+
+***** Index solutions
+***** Index unifiers
+***** Location substitutions
+***** Heap domains
+***** Location solutions
+*** Merge annotation and constraint generation
+    On paper, these are separate; in the implementation they need to be merged.
+

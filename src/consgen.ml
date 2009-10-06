@@ -29,6 +29,8 @@ module FI = FixInterface
 module CF = Consinfra
 module IM = Misc.IntMap
 module SM = Misc.StringMap
+module M  = Misc
+module P  = Pretty
 
 open Misc.Ops
 open Cil
@@ -79,10 +81,10 @@ let d_lsubs () xys =
   Pretty.seq (Pretty.text ",") (d_lsub ()) xys
 
 (* move into FI *)
-let rename_store loc lsubs subs sto = 
+let rename_store loc lsubs subs sto =
   sto |> FI.refstore_subs_locs loc lsubs 
       |> FI.refstore_subs loc FI.t_subs_exps subs 
-      |> Ctypes.prestore_subs lsubs 
+      |> Ctypes.prestore_subs lsubs
 
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
@@ -228,13 +230,13 @@ let poly_clocs_of_store ocst ns =
     | _ -> None
   end ns
 
-let instantiate_poly_cloc me loc wld (aloc, cloc) = 
+let instantiate_poly_cloc me loc wld (aloc, cloc) =
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
                |> List.map (Misc.app_snd new_block_reftype) in
   extend_world aldesc abinds cloc true wld
 
-let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns = 
+let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
@@ -383,9 +385,9 @@ let shapem_of_scim spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
-       if SM.mem fn scim 
+       if SM.mem fn scim
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
-       else ((SM.add fn cf bm), fm)
+       else (SM.add fn cf bm, fm)
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
@@ -393,10 +395,10 @@ let shapem_of_scim spec scim =
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 
-  let decm = Misc.sm_of_list decs in
-  Misc.sm_to_list cenv
+  let decm = M.sm_of_list decs in
+  M.sm_to_list cenv
   |> List.map begin fun (fn, ft) -> 
-      (fn, if SM.mem fn decm 
+      (fn, if SM.mem fn decm
            then FI.t_fresh_fn ft 
            else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec))
      end
@@ -422,12 +424,12 @@ let rename_args rf sci : FI.refcfun =
 
 let rename_spec scim spec =
   Misc.sm_to_list spec 
-  |> List.map begin fun (fn, (rf,b)) -> 
+  |> List.map begin fun (fn, (rf,b)) ->
       if SM.mem fn scim 
       then (fn, (rename_args rf (SM.find fn scim), b))
       else (fn, (rf, b))
      end
-  |> Misc.sm_of_list
+  |> M.sm_of_list
 
 (************************************************************************************)
 (***************** Generate Constraints for each Function ***************************)
@@ -446,7 +448,7 @@ let cons_of_decs tgr spec gnv decs =
 let cons_of_scis tgr gnv scim shpm ci = 
   SM.fold begin fun fn sci ci ->
     let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
-    cons_of_sci tgr gnv sci (SM.find fn shpm)
+    cons_of_sci tgr gnv sci (SM.find sci.ST.fdec.svar.vname shpm)
     |> Consindex.add ci fn sci
   end scim ci 
 
@@ -471,6 +473,10 @@ let scim_of_file cil =
            let fn = sci.ST.fdec.svar.vname in
            SM.add fn sci acc
          end SM.empty
+
+let print_sccs sccs =
+  P.printf "Callgraph sccs:\n\n";
+  List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 
 (* API *)
 let create cil (spec: (FI.refcfun * bool) SM.t) =

@@ -17,6 +17,8 @@ val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc
 
 val d_ctab: unit -> ctab -> Pretty.doc 
 
+val subs : Sloc.Subst.t -> block_annotation -> block_annotation
+
 (* input: cfg with n blocks of length l_i ... l_n
  * output: array of block annotations of length l_i ... l_n
  *         map from variable names to concrete locations *)

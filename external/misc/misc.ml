@@ -67,6 +67,9 @@ module Ops = struct
   let assertf fmt =
     Printf.ksprintf failwith fmt
 
+  let halt _ =
+    assert false
+
   let fst3 (x,_,_) = x
   let snd3 (_,x,_) = x
   let thd3 (_,_,x) = x
@@ -225,6 +228,7 @@ let app_snd    = fun f (a, b)       -> (a, f b)
 let app_fst3   = fun f (a, b, c)    -> (f a, b, c)
 let app_snd3   = fun f (a, b, c)    -> (a, f b, c)
 let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
+
 (*
 let mapfold f xs b = 
   List.fold_left 
@@ -575,6 +579,9 @@ let flap3 f xs ys zs =
 
 let split3 lst =
   List.fold_right (fun (x, y, z) (xs, ys, zs) -> (x :: xs, y :: ys, z :: zs)) lst ([], [], [])
+
+let split4 lst =
+  List.fold_right (fun (w, x, y, z) (ws, xs, ys, zs) -> (w :: ws, x :: xs, y :: ys, z :: zs)) lst ([], [], [], [])
 
 let combine3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs
