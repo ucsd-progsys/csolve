@@ -600,7 +600,7 @@ let constrain_instr (env: ctypeenv) (ve: ctvenv) (em: cstremap) (is: C.instr lis
 
 
 let constrain_return (env: ctypeenv) (ve: ctvenv) ((ctvm, cs): cstremap) (rt: ctype) (loc: C.location): C.exp option -> cstremap * RA.block_annotation = function
-  | None   -> if rt = void_ctype then ((ctvm, cs), []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
+  | None   -> if is_void rt then ((ctvm, cs), []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
   | Some e ->
       let (ctv, (ctvm, cs)) = constrain_exp ve (ctvm, cs) loc e in
         ((ctvm, mk_const_subty loc ctv rt @ cs), [])

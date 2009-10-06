@@ -6,6 +6,8 @@
 *.di?
 *.native
 *.ssa.c
+*.c.autospec
+*.c.spec
 negtests/*.fq
 postests/*.fq
 _build

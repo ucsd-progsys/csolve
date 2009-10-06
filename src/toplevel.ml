@@ -106,10 +106,15 @@ let add_spec fn spec =
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     spec
 
+let spec_of_file spec fname =
+  if !Constants.typespec then
+    Frontc.parse fname () |> Genspec.specs_of_file spec
+  else
+    cil_of_file fname |> Inferctypes.specs_of_file spec
+
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
-  Frontc.parse fname ()
-  |> Genspec.specs_of_file spec 
+     spec_of_file spec fname
   |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
