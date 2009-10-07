@@ -427,15 +427,13 @@ let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f
           let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
             ((mk_subty loc (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss, ctem)
 
-let printf_funs = ["printf"; "fprintf"]
-
 let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss): ctvemap * cstr list list * S.t list list): C.instr -> ctvemap * cstr list list * S.t list list = function
   | C.Set (lv, e, loc) ->
       let ctv1, cs1, ss1, ctem = constrain_lval env ctem loc lv in
       let ctv2, cs2, ss2, ctem = constrain_exp env ctem loc e in
         (ctem, (mk_subty loc ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss)
-  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, loc) when CM.isVararg f.C.vtype ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.errorLoc loc "Can't handle varargs";
       let _, css2, sss, ctem = constrain_args env ctem loc args in
         (ctem, css2 @ css, sss)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->

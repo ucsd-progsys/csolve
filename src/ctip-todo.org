@@ -1,9 +1,6 @@
 * Interprocedural Ctypes: The Big TODO
 
 ** Yet To Do
-*** Ditch all variadic functions
-    No sense in having a special list of excluded functions; drop
-    all calls to vararg functions.
 *** Merge callgraph generators
     I have my own callgraph generation stuff, while cilTag uses
     something else...
@@ -11,6 +8,10 @@
     Lists of lists of constraints, etc, all in a very ad-hoc way.
     How to tame?
 ** Done
+*** Ditch all variadic functions
+    No sense in having a special list of excluded functions; drop
+    all calls to vararg functions.
+
 *** Add deferred pointer arithmetic checks
     As on 9/29...
 

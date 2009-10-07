@@ -10,6 +10,7 @@ module S   = Sloc
 module SLM = Sloc.SlocMap
 module FI  = FixInterface
 module FC  = FixConstraint
+module CM  = CilMisc
 
 open Ctypes
 open M.Ops
@@ -580,15 +581,13 @@ let constrain_app (env: ctypeenv) (ve: ctvenv) (em: cstremap) (loc: C.location) 
           let (lvctv, (ctvm, cs)) = constrain_lval ve (ctvm, cs) loc lv in
             ((ctvm, mk_subty loc rtv lvctv :: cs), annot)
 
-let printf_funs = ["printf"; "fprintf"; "chatting"]
-
 let constrain_instr_aux (env: ctypeenv) (ve: ctvenv) ((em, bas): cstremap * RA.block_annotation): C.instr -> cstremap * RA.block_annotation = function
   | C.Set (lv, e, loc) ->
       let (ctv1, em1)        = constrain_lval ve em loc lv in
       let (ctv2, (ctvm, cs)) = constrain_exp ve em1 loc e in
       ((ctvm, mk_subty loc ctv2 ctv1 :: cs), [] :: bas)
-  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call@!@!" |> ignore else E.s <| C.errorLoc loc "Can't handle printf";
+  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, loc) when CM.isVararg f.C.vtype ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.errorLoc loc "Can't handle varargs";
       (constrain_args ve em loc args |> snd, [] :: bas)
   | C.Call (lvo, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) ->
       let (em, ba) = constrain_app env ve em loc f lvo args in

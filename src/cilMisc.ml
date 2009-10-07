@@ -132,6 +132,11 @@ let rec typ_width (t: typ): int =
     | TComp (ci, _) when ci.cstruct -> List.fold_left (fun w fi -> w + typ_width fi.ftype) 0 ci.cfields
     | t                             -> Errormsg.s <| Errormsg.bug "Unimplemented typ_width: %a@!@!" d_type t
 
+let isVararg (t: typ): bool =
+  isFunctionType t &&
+    let _, _, vararg, _ = splitFunctionType t in
+      vararg
+
 (******************************************************************************)
 (**************************** Misc. Pretty Printers ***************************)
 (******************************************************************************)

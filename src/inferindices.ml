@@ -387,16 +387,13 @@ let constrain_app ((_, fe) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C
           let itvlv, cs2 = constrain_lval env loc lv in
             (mk_isubtypecstr loc ftv.ret itvlv :: cs2) :: css
 
-(* pmr: another candidate for a common lib *)
-let printf_funs = ["printf"; "fprintf"]
-
 let constrain_instr_aux (env: env) (css: itypecstr list list): C.instr -> itypecstr list list = function
   | C.Set (lv, e, loc) ->
       let itv1, cs1 = constrain_lval env loc lv in
       let itv2, cs2 = constrain_exp env loc e in
         (mk_isubtypecstr loc itv2 itv1 :: cs1) :: cs2 :: css
-  | C.Call (None, C.Lval (C.Var {C.vname = f}, C.NoOffset), args, loc) when List.mem f printf_funs ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring printf-style call to %s@!@!" f |> ignore else halt <| C.errorLoc loc "Can't handle printf";
+  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, loc) when CM.isVararg f.C.vtype ->
+      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.errorLoc loc "Can't handle varargs";
       (constrain_args env loc args |> snd |> List.concat) :: css
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
       (constrain_app env loc f lvo args |> List.concat) :: css
