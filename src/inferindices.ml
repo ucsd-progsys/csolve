@@ -80,6 +80,10 @@ let rec indexexp_apply (is: indexsol): indexexp -> index = function
 let refine_index (is: indexsol) (ie: indexexp) (iv: indexvar): indexsol =
   IndexSol.add iv (index_lub (indexexp_apply is ie) (IndexSol.find iv is)) is
 
+let bounded_refine_index (is: indexsol) (ie: indexexp) (iv: indexvar) (ibound: index): indexsol =
+  let is = refine_index is ie iv in
+    if is_subindex (IndexSol.find iv is) ibound then is else IndexSol.add iv ibound is
+
 (******************************************************************************)
 (****************************** Type Constraints ******************************)
 (******************************************************************************)
@@ -92,10 +96,14 @@ let d_itypevar: unit -> itypevar -> P.doc =
 let itypevar_indexvars: itypevar -> indexvar list = function
   | CTInt (_, ie) | CTRef (_, ie) -> indexexp_vars ie
 
+let itypevar_of_ctype: ctype -> itypevar = function
+  | CTInt (n, i) -> CTInt (n, IEConst i)
+  | CTRef (s, i) -> CTRef (s, IEConst i)
+
 let heap_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEConst ITop)
-    | C.TVoid _             -> CTInt (0, IEConst IBot)
+    | C.TVoid _             -> CTInt (0, IEConst ITop)
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEConst (IInt 0))
     | t                     -> E.s <| E.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
 
@@ -109,15 +117,24 @@ let fresh_itypevar (t: C.typ): itypevar =
 let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
   prectype_map (indexexp_apply is) itv
 
+let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
+  match itv1, itv2 with
+    | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | _                                             -> false
+
 type ifunvar = indexexp precfun
 
 let d_ifunvar: unit -> ifunvar -> P.doc =
   d_precfun d_indexexp
 
-type itypecstrdesc = ISubtype of itypevar * itypevar
+type itypecstrdesc =
+  | ISubtype of itypevar * itypevar
+  | IDSubtype of itypevar * itypevar * ctype
 
-let d_itypecstrdesc () (ISubtype (itv1, itv2): itypecstrdesc): P.doc =
-  P.dprintf "%a <: %a" d_itypevar itv1 d_itypevar itv2
+let d_itypecstrdesc (): itypecstrdesc -> P.doc = function
+  | ISubtype (itv1, itv2)      -> P.dprintf "%a <: %a" d_itypevar itv1 d_itypevar itv2
+  | IDSubtype (itv1, itv2, ct) -> P.dprintf "%a <: %a <: %a" d_itypevar itv1 d_itypevar itv2 d_ctype ct
 
 type itypecstr = {itcid: int; itcdesc: itypecstrdesc; itcloc: C.location}
 
@@ -129,26 +146,42 @@ let (fresh_itypecstrid, reset_fresh_itypecstrids) = M.mk_int_factory ()
 let mk_isubtypecstr (loc: C.location) (itv1: itypevar) (itv2: itypevar): itypecstr =
   {itcid = fresh_itypecstrid (); itcloc = loc; itcdesc = ISubtype (itv1, itv2)}
 
+let mk_idsubtypecstr (loc: C.location) (itv1: itypevar) (itv2: itypevar) (ctbound: ctype): itypecstr =
+  {itcid = fresh_itypecstrid (); itcloc = loc; itcdesc = IDSubtype (itv1, itv2, ctbound)}
+
 let itypecstr_id ({itcid = id}: itypecstr): int =
   id
 
-let itypecstr_rhs_var ({itcdesc = ISubtype (_, itv); itcloc = loc} as itc: itypecstr): indexvar option =
-  match itypevar_indexvars itv with
-    | []   -> None
-    | [iv] -> Some iv
-    | _    -> halt <| C.errorLoc loc "Ill-formed constraint: %a\n" d_itypecstr itc
+let itypecstr_rhs_var (itc: itypecstr): indexvar option =
+  match itc.itcdesc with
+    | ISubtype (_, itv) | IDSubtype (_, itv, _) ->
+        match itypevar_indexvars itv with
+          | []   -> None
+          | [iv] -> Some iv
+          | _    -> halt <| C.errorLoc itc.itcloc "Ill-formed constraint: %a\n" d_itypecstr itc
 
-let itypecstr_sat (is: indexsol) ({itcdesc = ISubtype (itv1, itv2)}: itypecstr): bool =
-  match itv1, itv2 with
-    | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
-    | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
-    | _                                             -> false
+let itypecstr_sat (is: indexsol) (itc: itypecstr): bool =
+  match itc.itcdesc with
+    | ISubtype (itv1, itv2)           -> is_subitypevar is itv1 itv2
+    | IDSubtype (itv1, itv2, ctbound) ->
+        let itvbound = itypevar_of_ctype ctbound in
+           (not (is_subitypevar is itv1 itvbound) && is_subitypevar is itv2 itvbound && is_subitypevar is itvbound itv2)
+        || is_subitypevar is itv1 itv2
 
-let refine_itypecstr (is: indexsol) ({itcid = id; itcdesc = ISubtype (itv1, itv2); itcloc = loc} as itc: itypecstr): indexsol =
-  match itv1, itv2 with
-    | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
-    | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
-    | _                                                 -> halt <| C.errorLoc loc "Failed index constraint %a\n\n" d_itypecstr itc
+let refine_itypecstr (is: indexsol) (itc: itypecstr): indexsol =
+  match itc.itcdesc with
+    | ISubtype (itv1, itv2) ->
+        begin match itv1, itv2 with
+          | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
+          | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
+          | _                                                 -> halt <| C.errorLoc itc.itcloc "Failed index constraint %a\n\n" d_itypecstr itc
+        end
+    | IDSubtype (itv1, itv2, ctbound) ->
+        begin match itv1, itv2, ctbound with
+          | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
+          | CTRef (_, ie), CTRef (_, IEVar iv), CTRef (_, ib)                            -> bounded_refine_index is ie iv ib
+          | _                                                                            -> halt <| C.errorLoc itc.itcloc "Failed index constraint %a\n\n" d_itypecstr itc
+        end
 
 type cstrmap = itypecstr M.IntMap.t
 
@@ -175,8 +208,10 @@ module CDMPrinter = P.MakeMapPrinter(IM)
 let d_cstrdepmap =
   CDMPrinter.d_map "\n" d_indexvar (P.d_list ", " (fun () -> P.num))
 
-let add_cstrdep (cdm: cstrdepmap) ({itcid = id; itcdesc = ISubtype (itv, _)}: itypecstr): cstrdepmap =
-  itv |> itypevar_indexvars |> List.fold_left (fun cdm iv -> IM.add iv (id :: IM.find iv cdm) cdm) cdm
+let add_cstrdep (cdm: cstrdepmap) (itc: itypecstr): cstrdepmap =
+  match itc.itcdesc with
+    | ISubtype (itv, _) | IDSubtype (itv, _, _) ->
+        itv |> itypevar_indexvars |> List.fold_left (fun cdm iv -> IM.add iv (itc.itcid :: IM.find iv cdm) cdm) cdm
 
 let mk_cstrdepmap (itcs: itypecstr list): cstrdepmap =
   List.fold_left add_cstrdep IM.empty itcs
@@ -261,10 +296,10 @@ and apply_unop (rt: C.typ): C.unop -> itypevar = function
 and constrain_binop (op: C.binop) (env: env) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypecstr list =
   let itv1, cs1 = constrain_exp env loc e1 in
   let itv2, cs2 = constrain_exp env loc e2 in
-  let itv       = apply_binop op t itv1 itv2 in
-    (itv, cs1 @ cs2)
+  let itv, co   = apply_binop op loc t itv1 itv2 in
+    (itv, M.maybe_cons co (cs1 @ cs2))
 
-and apply_binop: C.binop -> C.typ -> itypevar -> itypevar -> itypevar = function
+and apply_binop: C.binop -> C.location -> C.typ -> itypevar -> itypevar -> itypevar * itypecstr option = function
   | C.PlusA                                 -> apply_arithmetic (fun ie1 ie2 -> IEPlus (ie1, 1, ie2))
   | C.MinusA                                -> apply_arithmetic (fun ie1 ie2 -> IEMinus (ie1, 1, ie2))
   | C.Mult                                  -> apply_arithmetic (fun ie1 ie2 -> IEMult (ie1, ie2))
@@ -278,24 +313,26 @@ and apply_binop: C.binop -> C.typ -> itypevar -> itypevar -> itypevar = function
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
   | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar =
+and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (_: C.location) (rt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match itv1, itv2 with
-    | (CTInt (n1, ie1), CTInt (n2, ie2)) -> CTInt (CM.typ_width rt, f ie1 ie2)
+    | (CTInt (n1, ie1), CTInt (n2, ie2)) -> (CTInt (CM.typ_width rt, f ie1 ie2), None)
     | _                                  -> E.s <| E.bug "Type mismatch in apply_arithmetic@!@!"
 
-and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar =
+and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (loc: C.location) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match C.unrollType pt, itv1, itv2 with
-    | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width -> CTRef (s, f ie1 (CM.typ_width t) ie2)
-    | _                                                                   -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+    | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width ->
+        let iv = IEVar (fresh_indexvar ()) in
+          (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr loc (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1)))))
+    | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
-and apply_ptrminus (pt: C.typ) (_: itypevar) (_: itypevar): itypevar =
-  CTInt (CM.typ_width !C.upointType, IEConst ITop)
+and apply_ptrminus (_: C.location) (pt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+  (CTInt (CM.typ_width !C.upointType, IEConst ITop), None)
 
-and apply_rel (_: C.typ) (_: itypevar) (_: itypevar): itypevar =
-  CTInt (CM.int_width, IEConst (ISeq (0, 1)))
+and apply_rel (_: C.location) (_: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+  (CTInt (CM.int_width, IEConst (ISeq (0, 1))), None)
 
-and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar =
-  CTInt (CM.typ_width rt, IEConst ITop)
+and apply_unknown (_: C.location) (rt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+  (CTInt (CM.typ_width rt, IEConst ITop), None)
 
 and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr list = function
   | C.CStr _                                 -> halt <| E.unimp "Haven't implemented string constants yet"

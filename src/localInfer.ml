@@ -106,8 +106,9 @@ let refine_ctype (ctv1: ctypevar) (ctv2: ctypevar) (is: indexsol): indexsol =
 
 let refine_dctype (ctv1: ctypevar) (ctv2: ctypevar) (cbound: ctype) (v: C.varinfo) (t: FI.refctype) (is: indexsol): indexsol =
   let (ct1, ct2) = (ctypevar_apply is ctv1, ctypevar_apply is ctv2) in
-    if is_subctype ct1 cbound then
-      refine_ctype ctv1 ctv2 is
+  let is         = refine_ctype ctv1 ctv2 is in
+    if is_subctype (ctypevar_apply is ctv2) cbound then
+      is
     else
       match ctv2, cbound with
         | CTInt (n1, iv), CTInt (n2, i) when n1 = n2    -> IndexSol.add iv i is
