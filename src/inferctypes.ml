@@ -37,8 +37,6 @@ module IM = M.IntMap
 
 type ctvenv = ctype VM.t
 
-type ctvemap = ctype ExpMap.t
-
 type funenv = (cfun * ctvenv * heapvar) VM.t
 
 type env = funenv * heapvar * ctvenv
@@ -286,37 +284,33 @@ let ctype_of_const: C.constant -> ctype = function
   | C.CChr c            -> CTInt (CM.int_width, IInt (Char.code c))
   | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
-let rec constrain_exp_aux (env: env) (ctem: ctvemap) (loc: C.location): C.exp -> ctype * cstr list * S.t list * ctvemap = function
-  | C.Const c                     -> let ctv = ctype_of_const c in (ctv, [], [], ctem)
-  | C.Lval lv | C.StartOf lv      -> constrain_lval env ctem loc lv
-  | C.UnOp (uop, e, t)            -> constrain_unop uop env ctem loc t e
-  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env ctem loc t e1 e2
-  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr ctem loc c
-  | C.CastE (ct, e)               -> constrain_cast env ctem loc ct e
-  | C.SizeOf t                    -> constrain_sizeof ctem loc t
+let rec constrain_exp (env: env) (loc: C.location): C.exp -> ctype * cstr list * S.t list = function
+  | C.Const c                     -> let ctv = ctype_of_const c in (ctv, [], [])
+  | C.Lval lv | C.StartOf lv      -> constrain_lval env loc lv
+  | C.UnOp (uop, e, t)            -> constrain_unop uop env loc t e
+  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env loc t e1 e2
+  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr loc c
+  | C.CastE (ct, e)               -> constrain_cast env loc ct e
+  | C.SizeOf t                    -> constrain_sizeof loc t
   | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-and constrain_lval_aux ((_, hv, ve) as env: env) (ctem: ctvemap) (loc: C.location): C.lval -> ctype * cstr list * S.t list * ctvemap = function
-  | (C.Var v, C.NoOffset)       -> (VM.find v ve, [], [], ctem)
+and constrain_lval ((_, hv, ve) as env: env) (loc: C.location): C.lval -> ctype * cstr list * S.t list = function
+  | (C.Var v, C.NoOffset)       -> (VM.find v ve, [], [])
   | (C.Mem e, C.NoOffset) as lv ->
-      let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
+      let ctv, cs, ss = constrain_exp env loc e in
         begin match ctv with
           | CTRef (s, ie) ->
               let ctvlv = fresh_heaptype <| C.typeOfLval lv in
               let cs    = mk_locinc loc ie ctvlv s :: cs in
-                (ctvlv, cs, M.maybe_cons (prectype_sloc ctvlv) (s :: ss), ctem)
+                (ctvlv, cs, M.maybe_cons (prectype_sloc ctvlv) (s :: ss))
           | _ -> E.s <| E.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
         end
   | lv -> E.s <| E.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
-and constrain_lval (env: env) (ctem: ctvemap) (loc: C.location) (lv: C.lval): ctype * cstr list * S.t list * ctvemap =
-  let (ctv, cs, ss, ctem) = constrain_lval_aux env ctem loc lv in
-    (ctv, cs, ss, ExpMap.add (C.Lval lv) ctv ctem)
-
-and constrain_unop (op: C.unop) (env: env) (ctem: ctvemap) (loc: C.location) (t: C.typ) (e: C.exp): ctype * cstr list * S.t list * ctvemap =
-  let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
+and constrain_unop (op: C.unop) (env: env) (loc: C.location) (t: C.typ) (e: C.exp): ctype * cstr list * S.t list =
+  let ctv, cs, ss = constrain_exp env loc e in
     match ctv with
-      | CTInt _ -> (apply_unop t op, cs, ss, ctem)
+      | CTInt _ -> (apply_unop t op, cs, ss)
       | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> ctype = function
@@ -324,11 +318,11 @@ and apply_unop (rt: C.typ): C.unop -> ctype = function
   | C.BNot -> CTInt (CM.typ_width rt, ITop)
   | C.Neg  -> CTInt (CM.typ_width rt, ITop)
 
-and constrain_binop (op: C.binop) (env: env) (ctem: ctvemap) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctype * cstr list * S.t list * ctvemap =
-  let (ctv1, cs1, ss1, ctem) = constrain_exp env ctem loc e1 in
-  let (ctv2, cs2, ss2, ctem) = constrain_exp env ctem loc e2 in
-  let ctv                    = apply_binop op t ctv1 ctv2 in
-    (ctv, List.concat [cs1; cs2], List.concat [ss1; ss2], ctem)
+and constrain_binop (op: C.binop) (env: env) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): ctype * cstr list * S.t list =
+  let (ctv1, cs1, ss1) = constrain_exp env loc e1 in
+  let (ctv2, cs2, ss2) = constrain_exp env loc e2 in
+  let ctv              = apply_binop op t ctv1 ctv2 in
+    (ctv, List.concat [cs1; cs2], List.concat [ss1; ss2])
 
 and apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
   | C.PlusA                                 -> apply_arithmetic index_plus
@@ -363,22 +357,18 @@ and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
 and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
   CTInt (CM.typ_width rt, ITop)
 
-and constrain_exp (env: env) (ctem: ctvemap) (loc: C.location) (e: C.exp): ctype * cstr list * S.t list * ctvemap =
-  let (ctv, cs, ss, ctem) = constrain_exp_aux env ctem loc e in
-    (ctv, cs, ss, ExpMap.add e ctv ctem)
-
-and constrain_constptr (ctem: ctvemap) (loc: C.location): C.constant -> ctype * cstr list * S.t list * ctvemap = function
+and constrain_constptr (loc: C.location): C.constant -> ctype * cstr list * S.t list = function
   | C.CStr _                                 -> E.s <| E.unimp "Haven't implemented string constants yet"
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [], [s], ctem)
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [], [s])
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
-and constrain_cast (env: env) (ctem: ctvemap) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * cstr list * S.t list * ctvemap =
-  let ect = constrain_exp_aux env ctem loc e in
+and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * cstr list * S.t list =
+  let ect = constrain_exp env loc e in
     match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-      | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [], ctem)
+      | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [])
       | (C.TInt (ik, _), C.TInt _) ->
           begin match ect with
-            | (CTInt (n, ie), cs, ss, ctem) ->
+            | (CTInt (n, ie), cs, ss) ->
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
@@ -388,73 +378,72 @@ and constrain_cast (env: env) (ctem: ctvemap) (loc: C.location) (ct: C.typ) (e: 
                     ie
                   end else
                     ITop
-                in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss, ctem)
+                in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss)
             | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
           end
       | _ -> ect
 
-and constrain_sizeof (ctem: ctvemap) (loc: C.location) (t: C.typ): ctype * cstr list * S.t list * ctvemap =
-  (CTInt (CM.int_width, IInt (CM.typ_width t)), [], [], ctem)
+and constrain_sizeof (loc: C.location) (t: C.typ): ctype * cstr list * S.t list =
+  (CTInt (CM.int_width, IInt (CM.typ_width t)), [], [])
 
-let constrain_return (env: env) (ctem: ctvemap) (rtv: ctype) (loc: C.location): C.exp option -> cstr list * S.t list * ctvemap = function
-    | None   -> if is_void rtv then ([], [], ctem) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
+let constrain_return (env: env) (rtv: ctype) (loc: C.location): C.exp option -> cstr list * S.t list = function
+    | None   -> if is_void rtv then ([], []) else (C.errorLoc loc "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
-        let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
-          (mk_subty loc ctv rtv :: cs, ss, ctem)
+        let ctv, cs, ss = constrain_exp env loc e in
+          (mk_subty loc ctv rtv :: cs, ss)
 
-let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((ctvs, css, sss, ctem): ctype list * cstr list list * S.t list list * ctvemap): ctype list * cstr list list * S.t list list * ctvemap =
-  let (ctv, cs, ss, ctem) = constrain_exp env ctem loc e in
-    (ctv :: ctvs, cs :: css, ss :: sss, ctem)
+let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((ctvs, css, sss): ctype list * cstr list list * S.t list list): ctype list * cstr list list * S.t list list =
+  let (ctv, cs, ss) = constrain_exp env loc e in
+    (ctv :: ctvs, cs :: css, ss :: sss)
 
-let constrain_args (env: env) (ctem: ctvemap) (loc: C.location) (es: C.exp list): ctype list * cstr list list * S.t list list * ctvemap =
-  let (ctvs, css, sss, ctem) = List.fold_right (constrain_arg env loc) es ([], [], [], ctem) in
-    (ctvs, css, sss, ctem)
+let constrain_args (env: env) (loc: C.location) (es: C.exp list): ctype list * cstr list list * S.t list list =
+  List.fold_right (constrain_arg env loc) es ([], [], [])
 
-let constrain_app ((fs, hv, _) as env: env) (ctem: ctvemap) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list list * S.t list list * ctvemap =
-  let ctvs, css, sss, ctem = constrain_args env ctem loc args in
-  let cf, _, hvf           = VM.find f fs in
-  let instslocs            = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
-  let sub                  = List.combine cf.qlocs instslocs in
-  let sss                  = instslocs :: sss in
-  let ctvfs                = List.map (prectype_subs sub <.> snd) cf.args in
-  let stoincs              = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
-  let css                  = (mk_wfsubst loc sub :: mk_subheap loc hv sub hvf :: stoincs) ::
-                             List.map2 (fun ctva ctvf -> mk_subty loc ctva ctvf) ctvs ctvfs ::
-                             css in
+let constrain_app ((fs, hv, _) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): cstr list list * S.t list list =
+  let ctvs, css, sss = constrain_args env loc args in
+  let cf, _, hvf     = VM.find f fs in
+  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
+  let sub            = List.combine cf.qlocs instslocs in
+  let sss            = instslocs :: sss in
+  let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
+  let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc loc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
+  let css            = (mk_wfsubst loc sub :: mk_subheap loc hv sub hvf :: stoincs) ::
+                        List.map2 (fun ctva ctvf -> mk_subty loc ctva ctvf) ctvs ctvfs ::
+                        css in
     match lvo with
-      | None    -> (css, sss, ctem)
+      | None    -> (css, sss)
       | Some lv ->
-          let ctvlv, cs2, ss2, ctem = constrain_lval env ctem loc lv in
-            ((mk_subty loc (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss, ctem)
+          let ctvlv, cs2, ss2 = constrain_lval env loc lv in
+            ((mk_subty loc (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss)
 
-let constrain_instr_aux (env: env) (ctem: ctvemap) ((ctem, css, sss): ctvemap * cstr list list * S.t list list): C.instr -> ctvemap * cstr list list * S.t list list = function
+let constrain_instr_aux (env: env) ((css, sss): cstr list list * S.t list list): C.instr -> cstr list list * S.t list list = function
   | C.Set (lv, e, loc) ->
-      let ctv1, cs1, ss1, ctem = constrain_lval env ctem loc lv in
-      let ctv2, cs2, ss2, ctem = constrain_exp env ctem loc e in
-        (ctem, (mk_subty loc ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss)
+      let ctv1, cs1, ss1 = constrain_lval env loc lv in
+      let ctv2, cs2, ss2 = constrain_exp env loc e in
+        ((mk_subty loc ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, loc) when CM.isVararg f.C.vtype ->
       if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.errorLoc loc "Can't handle varargs";
-      let _, css2, sss, ctem = constrain_args env ctem loc args in
-        (ctem, css2 @ css, sss)
+      let _, css2, sss = constrain_args env loc args in
+        (css2 @ css, sss)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
-      let css2, sss, ctem = constrain_app env ctem loc f lvo args in
-        (ctem, css2 @ css, sss)
+      let css2, sss = constrain_app env loc f lvo args in
+        (css2 @ css, sss)
   | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr (env: env) (ctem: ctvemap) (is: C.instr list): cstr list * S.t list * ctvemap =
-  let (ctem, css, sss) = List.fold_left (constrain_instr_aux env ctem) (ctem, [], []) is in
-    (List.concat css, List.concat sss, ctem)
+let constrain_instr (env: env) (is: C.instr list): cstr list * S.t list =
+  let css, sss = List.fold_left (constrain_instr_aux env) ([], []) is in
+    (List.concat css, List.concat sss)
 
-let constrain_stmt (env: env) (ctem: ctvemap) (rtv: ctype) (s: C.stmt): cstr list * S.t list * ctvemap =
+let constrain_stmt (env: env) (rtv: ctype) (s: C.stmt): cstr list * S.t list =
   match s.C.skind with
-    | C.Instr is             -> constrain_instr env ctem is
-    | C.If (e, _, _, loc)    -> let _, cs, ss, ctem = constrain_exp env ctem loc e in (cs, ss, ctem) (* we'll visit the subblocks later *)
-    | C.Break _              -> ([], [], ctem)
-    | C.Continue _           -> ([], [], ctem)
-    | C.Goto _               -> ([], [], ctem)
-    | C.Block _              -> ([], [], ctem)                              (* we'll visit this later as we iterate through blocks *)
-    | C.Loop (_, _, _, _)    -> ([], [], ctem)                              (* ditto *)
-    | C.Return (rexp, loc)   -> constrain_return env ctem rtv loc rexp
+    | C.Instr is             -> constrain_instr env is
+    | C.If (e, _, _, loc)    -> let _, cs, ss = constrain_exp env loc e in (cs, ss) (* we'll visit the subblocks later *)
+    | C.Break _              -> ([], [])
+    | C.Continue _           -> ([], [])
+    | C.Goto _               -> ([], [])
+    | C.Block _              -> ([], [])                              (* we'll visit this later as we iterate through blocks *)
+    | C.Loop (_, _, _, _)    -> ([], [])                              (* ditto *)
+    | C.Return (rexp, loc)   -> constrain_return env rtv loc rexp
     | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): cstr list =
@@ -463,17 +452,17 @@ let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
-let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * S.t list * cstr list =
-  let blocks         = cfg.Ssa.blocks in
-  let loc            = fd.C.svar.C.vdecl in
-  let cf, ve, hv     = VM.find fd.C.svar fs in
-  let formalcs       = List.map2 (fun (_, fct) bv -> mk_subty loc fct (VM.find bv ve)) cf.args fd.C.sformals in
-  let phics          = constrain_phis ve phis in
-  let ctem, sss, css =
-    M.array_fold_lefti begin fun i (ctem, sss, css) b ->
-      let (cs, ss, ctem) = constrain_stmt (fs, hv, ve) ctem cf.ret b.Ssa.bstmt in
-        (ctem, ss :: sss, cs :: css)
-    end (ExpMap.empty, [], []) blocks
+let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
+  let blocks     = cfg.Ssa.blocks in
+  let loc        = fd.C.svar.C.vdecl in
+  let cf, ve, hv = VM.find fd.C.svar fs in
+  let formalcs   = List.map2 (fun (_, fct) bv -> mk_subty loc fct (VM.find bv ve)) cf.args fd.C.sformals in
+  let phics      = constrain_phis ve phis in
+  let sss, css   =
+    M.array_fold_lefti begin fun i (sss, css) b ->
+      let (cs, ss) = constrain_stmt (fs, hv, ve) cf.ret b.Ssa.bstmt in
+        (ss :: sss, cs :: css)
+    end ([], []) blocks
   in
   let vartys = VM.fold (fun _ ct cts -> ct :: cts) ve [] in
   let sss    = (cf.ret :: List.map snd cf.args @ vartys |> List.map prectype_sloc |> Misc.maybe_list) :: sss in
@@ -487,13 +476,13 @@ let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
       List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
       P.printf "\n" |> ignore
     end else ()
-  in (ctem, ss, cs)
+  in (ss, cs)
 
 type scc = (C.varinfo * ST.ssaCfgInfo) list
 
 let constrain_scc (fs: funenv) (scc: scc): funenv * S.t list * cstr list =
-  let fvs, scis       = List.split scc in
-  let ctems, sss, css = List.map (constrain_fun fs) scis |> M.split3 in
+  let fvs, scis = List.split scc in
+  let sss, css  = List.map (constrain_fun fs) scis |> List.split in
     (fs, List.concat sss, List.concat css)
 
 (******************************************************************************)
@@ -572,14 +561,6 @@ let fresh_builtin (it: Inferindices.indextyping) (fe: funenv) (f: C.varinfo): fu
   let (ifv, vm) = VM.find f it in
     VM.add f (ifv, vm, fresh_heapvar ()) fe
 
-type shape =
-  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
-   etypm : Ctypes.ctemap;
-   store : Ctypes.store;
-   anna  : RA.block_annotation array;
-   theta : RA.ctab }
-
-(* API *)
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
   let it           = Inferindices.infer_indices env scim in
   let cg, builtins = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
@@ -593,6 +574,7 @@ let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInf
         spec
     end fs []
 
+(* API *)
 let specs_of_file spec cil =
   let cg   = Callgraph.sccs cil in
   let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
