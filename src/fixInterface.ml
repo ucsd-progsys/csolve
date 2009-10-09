@@ -212,15 +212,18 @@ let refstore_write loc sto rct rct' =
 
 let so_int = So.Int
 let so_ref = So.Ptr 
-let so_ufs = So.Func [so_ref; so_ref] 
+let so_bls = So.Func [so_ref; so_ref] 
+let so_skl = So.Func [so_int; so_int]
 let vv_int = Sy.value_variable so_int
 let vv_ref = Sy.value_variable so_ref
-let vv_ufs = Sy.value_variable so_ufs
+let vv_bls = Sy.value_variable so_bls
+let vv_skl = Sy.value_variable so_skl
 
 let sorts  = [] (* TBD: [so_int; so_ref] *)
 
 let uf_bbegin = name_of_string "BLOCK_BEGIN"
 let uf_bend   = name_of_string "BLOCK_END"
+let uf_skolem = name_of_string "SKOLEM"
 
 (*
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
@@ -236,8 +239,13 @@ let mk_pure_cfun args ret =
   mk_refcfun [] args refstore_empty ret refstore_empty
 
 let builtins    = 
-  [(uf_bbegin, C.make_reft vv_ufs so_ufs []);
-   (uf_bend, C.make_reft vv_ufs so_ufs [])]
+  [(uf_bbegin, C.make_reft vv_bls so_bls []);
+   (uf_bend, C.make_reft vv_bls so_bls []);
+   (uf_skolem, C.make_reft vv_skl so_skl [])]
+
+let skolem =
+  let (fresh_int, _) = Misc.mk_int_factory () in
+    fun () -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int (fresh_int ()))])
 
 (*******************************************************************)
 (****************** Tag/Annotation Generation **********************)
@@ -432,10 +440,13 @@ let mk_eq_uf uf xs ys =
   let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
   A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
 
-let is_reference cenv x = 
-  match ce_find x cenv with 
-  | Ctypes.CTRef (_,(_,_)) -> true
-  | _ -> false
+let is_reference cenv x =
+  if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
+    false
+  else
+    match ce_find x cenv with 
+      | Ctypes.CTRef (_,(_,_)) -> true
+      | _ -> false
 
 let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let erefs = A.Expression.support e |> List.filter (is_reference cenv) in
@@ -451,7 +462,7 @@ let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
-  let e  = CI.expr_of_cilexp e in
+  let e  = CI.expr_of_cilexp skolem e in
   let rs = (t_exp_ptr cenv ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
@@ -490,7 +501,7 @@ let refctype_subs f nzs =
       |> Ctypes.prectype_map
 
 let t_subs_locs    = Ctypes.prectype_subs 
-let t_subs_exps    = refctype_subs CI.expr_of_cilexp
+let t_subs_exps    = refctype_subs (CI.expr_of_cilexp skolem)
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
 let refstore_subs  = fun loc f subs st -> Ctypes.prestore_map_ct (f subs) st

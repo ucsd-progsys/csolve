@@ -103,6 +103,7 @@ let itypevar_of_ctype: ctype -> itypevar = function
 let heap_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEConst ITop)
+    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
     | C.TVoid _             -> CTInt (0, IEConst ITop)
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEConst (IInt 0))
     | t                     -> E.s <| E.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
@@ -110,6 +111,7 @@ let heap_itypevar (t: C.typ): itypevar =
 let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
+    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
     | C.TVoid _             -> CTInt (0, IEVar (fresh_indexvar ()))
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
     | t                     -> E.s <| E.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
@@ -257,13 +259,8 @@ type builtinenv = ifunvar VM.t
 
 type env = varenv * funenv
 
-let ctypevar_of_const: C.constant -> itypevar = function
-  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, IEConst (index_of_int (Int64.to_int v)))
-  | C.CChr c            -> CTInt (CM.int_width, IEConst (IInt (Char.code c)))
-  | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
-
 let rec constrain_exp (env: env) (loc: C.location): C.exp -> itypevar * itypecstr list = function
-  | C.Const c                     -> let itv = ctypevar_of_const c in (itv, [])
+  | C.Const c                     -> let itv = c |> ctype_of_const |> itypevar_of_ctype in (itv, [])
   | C.Lval lv | C.StartOf lv      -> constrain_lval env loc lv
   | C.UnOp (uop, e, t)            -> constrain_unop uop env loc t e
   | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env loc t e1 e2
@@ -342,8 +339,9 @@ and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr lis
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
   let ect = constrain_exp env loc e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TInt (ik, _), C.TPtr _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
-      | C.TInt (ik, _), C.TInt _ ->
+      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
+      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), [])
+      | C.TInt (ik, _), C.TInt _     ->
           begin match ect with
             | CTInt (n, ie), cs ->
                 let iec =
@@ -418,6 +416,7 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * itypevar) option =
   let t = C.unrollType v.C.vtype in
     match t with
       | C.TInt _
+      | C.TFloat _
       | C.TPtr _
       | C.TArray _ -> Some (v, fresh_itypevar t)
       | _          ->

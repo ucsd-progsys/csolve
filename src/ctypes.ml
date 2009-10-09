@@ -3,6 +3,8 @@ module P  = Pretty
 module E  = Errormsg
 module S  = Sloc
 module SS = S.SlocSet
+module C  = Cil
+module CM = CilMisc
 
 open M.Ops
 
@@ -140,6 +142,12 @@ let is_subctype (ct1: ctype) (ct2: ctype): bool =
     | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> is_subindex i1 i2
     | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> is_subindex i1 i2
     | _                                                -> false
+
+let ctype_of_const: C.constant -> ctype = function
+  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, index_of_int (Int64.to_int v))
+  | C.CChr c            -> CTInt (CM.int_width, IInt (Char.code c))
+  | C.CReal (_, fk, _)  -> CTInt (CM.bytesSizeOfFloat fk, ITop)
+  | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
 (******************************************************************************)
 (***************************** Periodic Locations *****************************)

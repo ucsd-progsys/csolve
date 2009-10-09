@@ -260,6 +260,7 @@ let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.
 let fresh_heaptype (t: C.typ): ctype =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, ITop)
+    | C.TFloat _            -> CTInt (CM.typ_width t, ITop)
     | C.TVoid _             -> CTInt (0, IBot)
     | C.TPtr _ | C.TArray _ -> CTRef (S.fresh S.Abstract, IInt 0)
     | _                     -> E.s <| E.bug "Unimplemented fresh_ctype: %a@!@!" C.d_type t
@@ -278,11 +279,6 @@ let mk_subheap (loc: C.location) (hv1: heapvar) (sub: S.Subst.t) (hv2: heapvar):
 
 let mk_wfsubst (loc: C.location) (sub: S.Subst.t): cstr =
   mk_cstr loc (`CWFSubst sub)
-
-let ctype_of_const: C.constant -> ctype = function
-  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, index_of_int (Int64.to_int v))
-  | C.CChr c            -> CTInt (CM.int_width, IInt (Char.code c))
-  | c                   -> E.s <| E.bug "Unimplemented constrain_const: %a@!@!" C.d_const c
 
 let rec constrain_exp (env: env) (loc: C.location): C.exp -> ctype * cstr list * S.t list = function
   | C.Const c                     -> let ctv = ctype_of_const c in (ctv, [], [])
@@ -365,8 +361,9 @@ and constrain_constptr (loc: C.location): C.constant -> ctype * cstr list * S.t 
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * cstr list * S.t list =
   let ect = constrain_exp env loc e in
     match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-      | (C.TInt (ik, _), C.TPtr _) -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [])
-      | (C.TInt (ik, _), C.TInt _) ->
+      | (C.TInt (ik, _), C.TPtr _)   -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [])
+      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, ITop), [], [])
+      | (C.TInt (ik, _), C.TInt _)   ->
           begin match ect with
             | (CTInt (n, ie), cs, ss) ->
                 let iec =

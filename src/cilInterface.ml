@@ -38,10 +38,12 @@ open Misc.Ops
 (********************* Constants ********************************)
 (****************************************************************)
 
-let con_of_cilcon = function
+let exp_of_cilcon skolem = function
   | Cil.CInt64 (i, _, _) -> 
-      A.Constant.Int (Int64.to_int i)
-  | _ -> 
+      A.eCon (A.Constant.Int (Int64.to_int i))
+  | Cil.CReal _ ->
+      skolem ()
+  | _ ->
       assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str
     | Cil.CChr _        -> Constant.Int (int_of_char c) 
@@ -105,52 +107,54 @@ let expr_of_lval ((lh, _) as lv) = match lh with
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
       assertf "TBD: CilInterface.expr_of_lval"
 
-(* convert_cilexp : Cil.exp -> exp_or_pred *)
-let rec convert_cilexp = function
+(* convert_cilexp : (unit -> expr) -> Cil.exp -> exp_or_pred *)
+let rec convert_cilexp skolem = function
   | Cil.Const c -> 
-      E (A.eCon (con_of_cilcon c))
+      E (exp_of_cilcon skolem c)
   | Cil.SizeOf t ->
-      E (A.eCon (A.Constant.Int (Cil.bitsSizeOf t / 8)))
+      E (A.eCon (A.Constant.Int (CilMisc.bytesSizeOf t)))
   | Cil.Lval lv -> 
       E (expr_of_lval lv)  
   | Cil.UnOp (Cil.Neg, e, _) ->
-      P (A.pNot (pred_of_cilexp e)) 
+      P (A.pNot (pred_of_cilexp skolem e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
-      convert_cilbinexp (op, e1, e2)
+      convert_cilbinexp skolem (op, e1, e2)
   | Cil.CastE (_, e) ->
-      convert_cilexp e
+      convert_cilexp skolem e
   | e -> 
       Errormsg.error "Unimplemented convert_cilexp: %a@!@!" Cil.d_exp e;
       assertf "crash"
-and convert_cilbinexp (op, e1, e2) = 
+and convert_cilbinexp skolem (op, e1, e2) =
+  let convert_args = Misc.map_pair (expr_of_cilexp skolem) in
   match op_of_cilBOp op with
   | Bop op' ->
-      let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
+      let e1', e2' = convert_args (e1, e2) in
       E (A.eBin (e1', op', e2'))
   | Bpop pop ->
-      let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
+      let e1', e2' = convert_args (e1, e2) in
       let stride   = Cil.typeOf e1 |> Cil.unrollType |> CilMisc.ptrRefType |> CilMisc.bytesSizeOf in
       E (A.eBin (e1', pop, A.eBin (A.eCon (A.Constant.Int (stride)), A.Times, e2')))
   | Brl rel' ->
-      let e1', e2' = Misc.map_pair expr_of_cilexp (e1, e2) in
+      let e1', e2' = convert_args (e1, e2) in
       P (A.pAtom (e1', rel', e2'))
   | Bbl f -> 
-      let p1', p2' = Misc.map_pair pred_of_cilexp (e1, e2) in
+      let p1', p2' = Misc.map_pair (pred_of_cilexp skolem) (e1, e2) in
       P (f [p1'; p2'])
   | Bunimpl ->
+      (* pmr: skolem?  Look for bug... *)
       P A.pTrue
 
 (* API *)
-and pred_of_cilexp e = 
-  match convert_cilexp e with
+and pred_of_cilexp skolem e = 
+  match convert_cilexp skolem e with
   | E e when e = A.zero -> A.pFalse
   | E e when e = A.one  -> A.pTrue
   | E e                 -> A.pAtom (e, A.Ne, A.zero) 
   | P p                 -> p
 
 (* API *)
-and expr_of_cilexp e = 
-  match convert_cilexp e with
+and expr_of_cilexp skolem e = 
+  match convert_cilexp skolem e with
   | E e -> e
   | P p -> A.eIte (p, A.one, A.zero)
  
