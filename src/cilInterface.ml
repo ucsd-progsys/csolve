@@ -141,8 +141,7 @@ and convert_cilbinexp skolem (op, e1, e2) =
       let p1', p2' = Misc.map_pair (pred_of_cilexp skolem) (e1, e2) in
       P (f [p1'; p2'])
   | Bunimpl ->
-      (* pmr: skolem?  Look for bug... *)
-      P A.pTrue
+      E (skolem ())
 
 (* API *)
 and pred_of_cilexp skolem e = 
