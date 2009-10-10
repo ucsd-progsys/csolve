@@ -339,9 +339,10 @@ and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr lis
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
   let ect = constrain_exp env loc e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
-      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), [])
-      | C.TInt (ik, _), C.TInt _     ->
+      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), [])
+      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
+      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
+      | C.TInt (ik, _), C.TInt _   ->
           begin match ect with
             | CTInt (n, ie), cs ->
                 let iec =

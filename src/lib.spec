@@ -82,3 +82,17 @@ random ::
   ret       int (4, true, {v | true})
   store_in  []
   store_out []
+
+pow ::
+  forall    []
+  arg       (base: int (8, true), exp: int (8, true))
+  ret       int (8, true)
+  store_in  []
+  store_out []
+
+clock ::
+  forall    []
+  arg       ()
+  ret       int (4, true)
+  store_in  []
+  store_out []
