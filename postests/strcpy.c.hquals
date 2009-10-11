@@ -1,0 +1,2 @@
+qualif SZ(v:ptr): BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~A
+qualif SZ(v:ptr): BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
