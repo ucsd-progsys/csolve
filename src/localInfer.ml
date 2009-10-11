@@ -32,6 +32,7 @@ let with_fresh_indexvar (f: indexvar -> 'a): 'a =
 type indexexp =
   | IEConst of index
   | IEVar of indexvar
+  | IEUnsignVar of indexvar (* cast var to unsigned *)
   | IEPlus of indexvar * (* RHS scale: *) int * indexvar
   | IEMinus of indexvar * (* RHS scale: *) int * indexvar
   | IEMult of indexvar * indexvar
@@ -55,6 +56,7 @@ type indexsol = index IndexSol.t
 let indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i             -> i
   | IEVar iv              -> IndexSol.find iv is
+  | IEUnsignVar iv        -> index_unsign (IndexSol.find iv is)
   | IEPlus (iv1, x, iv2)  -> index_plus (IndexSol.find iv1 is) (index_scale x <| IndexSol.find iv2 is)
   | IEMinus (iv1, x, iv2) -> index_minus (IndexSol.find iv1 is) (index_scale x <| IndexSol.find iv2 is)
   | IEMult (iv1, iv2)     -> index_mult (IndexSol.find iv1 is) (IndexSol.find iv2 is)
@@ -489,12 +491,12 @@ and constrain_cast (ve: ctvenv) (em: cstremap) (loc: C.location) (ct: C.typ) (e:
           | (CTInt (n, ive), em, cs) ->
               let ivc =
                 if n <= C.bytesSizeOfInt ik then
-                  IEVar ive
+                  if C.isSigned ik then IEVar ive else IEUnsignVar ive
                 else if not !Constants.safe then begin
                   C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                  IEVar ive
+                  if C.isSigned ik then IEVar ive else IEUnsignVar ive
                 end else
-                  IEConst ITop
+                  if C.isSigned ik then IEConst ITop else IEConst (ISeq (0, 1))
               in with_fresh_indexvar <| fun iv -> (CTInt (C.bytesSizeOfInt ik, iv), em, mk_ivarless loc ivc iv :: cs)
           | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
         end

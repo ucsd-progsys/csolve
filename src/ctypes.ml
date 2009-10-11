@@ -78,6 +78,12 @@ let index_mult (i1: index) (i2: index): index =
 let index_div: index -> index -> index =
   index_constop (/)
 
+let index_unsign: index -> index = function
+  | ITop                   -> ISeq (0, 1)
+  | ISeq (m, k) when m < 0 -> ISeq (0, 1)
+  | IInt n when n < 0      -> ISeq (0, 1)
+  | i                      -> i
+
 let is_subindex (i1: index) (i2: index): bool =
   match (i1, i2) with
     | (IBot, _)                  -> true

@@ -33,6 +33,7 @@ type indexexp =
   | IEMinus of indexexp * (* RHS scale: *) int * indexexp
   | IEMult of indexexp * indexexp
   | IEDiv of indexexp * indexexp
+  | IEUnsign of indexexp
 
 let rec d_indexexp (): indexexp -> P.doc = function
   | IEConst i                 -> d_index () i
@@ -41,6 +42,7 @@ let rec d_indexexp (): indexexp -> P.doc = function
   | IEMinus (ie1, scale, ie2) -> P.dprintf "%a - %d * %a" d_indexexp ie1 scale d_indexexp ie2
   | IEMult (ie1, ie2)         -> P.dprintf "%a * %a" d_indexexp ie1 d_indexexp ie2
   | IEDiv (ie1, ie2)          -> P.dprintf "%a / %a" d_indexexp ie1 d_indexexp ie2
+  | IEUnsign ie               -> P.dprintf "(unsigned) %a" d_indexexp ie
 
 let indexexp_vars_aux: indexexp -> indexexp list * indexvar list = function
   | IEPlus (ie1, _, ie2)
@@ -49,6 +51,7 @@ let indexexp_vars_aux: indexexp -> indexexp list * indexvar list = function
   | IEDiv (ie1, ie2) -> ([ie1; ie2], [])
   | IEConst _        -> ([], [])
   | IEVar iv         -> ([], [iv])
+  | IEUnsign ie      -> ([ie], [])
 
 let indexexp_vars (ie: indexexp): indexvar list =
   M.expand indexexp_vars_aux [ie] []
@@ -72,6 +75,7 @@ let d_indexsol =
 let rec indexexp_apply (is: indexsol): indexexp -> index = function
   | IEConst i             -> i
   | IEVar iv              -> IndexSol.find iv is
+  | IEUnsign ie           -> index_unsign (indexexp_apply is ie)
   | IEPlus (ie1, x, ie2)  -> index_plus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
   | IEMinus (ie1, x, ie2) -> index_minus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
   | IEMult (ie1, ie2)     -> index_mult (indexexp_apply is ie1) (indexexp_apply is ie2)
@@ -348,10 +352,10 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
-                    ie
+                    if C.isSigned ik then ie else IEUnsign ie
                   else if not !Constants.safe then begin
                     C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                    ie
+                    if C.isSigned ik then ie else IEUnsign ie
                   end else
                     IEConst ITop
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs)

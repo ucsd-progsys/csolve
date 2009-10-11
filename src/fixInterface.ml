@@ -459,11 +459,16 @@ let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ -> 
       []
 
+let t_ctype vv = function
+  | Ctypes.CTInt (_, Ctypes.IInt n)      -> [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eCon (A.Constant.Int n)))]
+  | Ctypes.CTInt (_, Ctypes.ISeq (n, _)) -> [C.Conc (A.pAtom (A.eVar vv, A.Ge, A.eCon (A.Constant.Int n)))]
+  | _                                    -> []
+
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let e  = CI.expr_of_cilexp skolem e in
-  let rs = (t_exp_ptr cenv ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let rs = (t_ctype vv ct) ++ (t_exp_ptr cenv ct vv e) ++ [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 

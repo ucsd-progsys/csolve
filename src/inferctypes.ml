@@ -369,10 +369,10 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * 
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
-                    ie
+                    if C.isSigned ik then ie else index_unsign ie
                   else if not !Constants.safe then begin
                     C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                    ie
+                    if C.isSigned ik then ie else index_unsign ie
                   end else
                     ITop
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss)
