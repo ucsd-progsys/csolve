@@ -459,6 +459,7 @@ let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ -> 
       []
 
+(* Note this is only sound for pure expressions! *)
 let t_ctype vv = function
   | Ctypes.CTInt (_, Ctypes.IInt n)      -> [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eCon (A.Constant.Int n)))]
   | Ctypes.CTInt (_, Ctypes.ISeq (n, _)) -> [C.Conc (A.pAtom (A.eVar vv, A.Ge, A.eCon (A.Constant.Int n)))]
