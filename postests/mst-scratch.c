@@ -131,7 +131,7 @@ Graph MakeGraph(int numvert )
   vt = (struct vert_st *)0;
   i = numvert - 1;
   while (i >= 0) {
-    i  = nondetpos();
+    //i  = nondetpos();
     vf = retval->vlist + i;
     validptr(vf);
     vf->mindist = 9999999;

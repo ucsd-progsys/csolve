@@ -41,7 +41,7 @@ let mydebug = false
 let print_unsat_locs tgr s ucs =
   List.iter begin fun c ->
     let loc = c |> FixConstraint.tag_of_t |> CilTag.t_of_tag |> CilTag.loc_of_t tgr in
-    P.printf "\nUnsatisfied at %a:\n\n%a\n" Cil.d_loc loc 
+    P.printf "\nUnsafe Type at %a:\n\n%a\n" Cil.d_loc loc 
       (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
     |> ignore
   end ucs
