@@ -6,7 +6,7 @@ typedef char *__attribute__((array)) *__attribute__((array)) string_array;
 
 struct hash_entry {
    unsigned int key ;
-   void *entry ;
+   int entry ;		//JHALA POLY ISSUE
    struct hash_entry *next ;
    unsigned int padding ;
 };
@@ -49,10 +49,10 @@ typedef struct blue_return *BlueReturn;
 /******************************************************************/
 
 extern char *malloc(int);
-Hash malloc_Hash(int) ;
-HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
-HashEntry malloc_HashEntry(int);
-Hash MakeHash(int size);
+extern Hash malloc_Hash(int) ;
+extern HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
+extern HashEntry malloc_HashEntry(int);
+extern Hash MakeHash(int size);
 
 /******************************************************************/
 /****************************** Code ******************************/
@@ -78,10 +78,14 @@ Hash MakeHash(int size);
 
 static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
 { 
-  return ((int )((key >> 4) % (unsigned int )HashRange));
+  // JHALA MOD/SHIFT return ((int )((key >> 4) % (unsigned int )HashRange));
+  int r;
+  r = nondet();
+  if (0 <= r && r < HashRange) return r;
+  L: goto L;     
 }
-
-void HashInsert(void *entry , unsigned int key , Hash hash ) 
+//void HashInsert(void *entry , unsigned int key , Hash hash )  JHALA POLY ISSUE
+void HashInsert(int entry , unsigned int key , Hash hash ) 
 { HashEntry ent ;
   int j ;
   /* void *tmp; */
@@ -168,7 +172,7 @@ static void AddEdges(Graph retval , int numvert )
         dist = compute_dist(i, j, numvert);
         dest = retval->vlist + i;
 	validptr(dest);
-        HashInsert((void *)dist, (unsigned int )dest, hash);
+        HashInsert(/* JHALA POLY ISSUE (void *) */dist, (unsigned int )dest, hash);
         num_inserted ++;
       }
       i ++;
@@ -203,7 +207,11 @@ Graph MakeGraph(int numvert )
     vf = retval->vlist + i;
     validptr(vf);
     vf->mindist = 9999999;
+    
+    
     vf->edgehash = MakeHash(HashRange/*, & hashfunc*/);
+    
+
     vf->next = vt;
     vt = vf;
     i --;
