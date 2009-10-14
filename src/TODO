@@ -4,7 +4,8 @@
 	- will NOT help to speed up queries, since Z3 flattens it all out
 
 HEREHEREHEREHERE: 
-Failed 13 tests: 
+./main.native -typespec ../postests/mst-scratch.c
+>>>>>>>>
 ../postests/mst-scratch.c
 ../postests/mst-liquid1.c
 ../postests/mst-liquid.c
