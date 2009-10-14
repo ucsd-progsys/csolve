@@ -134,6 +134,7 @@ let ldesc_of_index_ctypes ts =
           end ts in (* }}} *)
   match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)]
+ (* | [(Ct.ISeq (0,n), t)] -> Ct.LDesc.create [(Ct.ISeq (0,n), t)] *)
   | _                    -> Ct.LDesc.create ts 
 
 let index_of_attrs = fun ats -> if List.exists is_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
