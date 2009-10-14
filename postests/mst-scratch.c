@@ -59,22 +59,22 @@ extern Hash MakeHash(int size);
 /******************************************************************/
 
 //JHALA: empty store issue
-//Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
-//{ Hash retval ;
-//  void *tmp ;
-//  void *tmp___0 ;
-//  {
-//    tmp = /* localmalloc */malloc((int )sizeof(*retval));
-//    retval = (struct hash *)tmp;
-//    retval->size = size;
-//    tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
-//    retval->array = (HashEntry *)tmp___0;
-//    //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-//    /* retval->mapfunc = map; */
-//    retval->padding = 0U;
-//    return (retval);
-//  }
-//}
+Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
+{ Hash retval ;
+  void *tmp ;
+  void *tmp___0 ;
+  {
+    tmp = /* localmalloc */malloc((int )sizeof(*retval));
+    retval = (struct hash *)tmp;
+    retval->size = size;
+    tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
+    retval->array = (HashEntry *)tmp___0;
+    //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
+    /* retval->mapfunc = map; */
+    retval->padding = 0U;
+    return (retval);
+  }
+}
 
 static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
 { 
@@ -224,7 +224,7 @@ Graph MakeGraph(int numvert )
 }
 
 
-int dealwithargs(int argc , string_array argv ) 
+int dealwithargs(int argc , string_array argv) 
 { int level ;
   if (argc > 1) {
     validptr(argv + 1);

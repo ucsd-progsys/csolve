@@ -15,6 +15,3 @@ void main(){
   assert(h >= 0);
   assert(h < size);
 }
-
-
-

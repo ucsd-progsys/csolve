@@ -132,10 +132,12 @@ let ldesc_of_index_ctypes ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore
           end ts in (* }}} *)
-  match ts with 
-  | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)]
- (* | [(Ct.ISeq (0,n), t)] -> Ct.LDesc.create [(Ct.ISeq (0,n), t)] *)
+Ct.LDesc.create ts
+(* match ts with 
+  | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
+  | [(Ct.ISeq (0,n), t)] -> Ct.LDesc.create [(Ct.ISeq (0,n), t)] 
   | _                    -> Ct.LDesc.create ts 
+*)
 
 let index_of_attrs = fun ats -> if List.exists is_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
 
@@ -144,26 +146,26 @@ let conv_cilbasetype = function
   | TInt (ik, ats) -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
   | _              -> assertf "ctype_of_cilbasetype: non-base!"
 
-let rec conv_ciltype me loc (th, st, off) (c, a) = 
+let rec conv_ciltype loc (th, st, off) (c, a) = 
   match c with
   | TVoid _ | TInt (_,_) ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
   | TPtr (c',a') ->
       let po = if List.exists is_array_attr (a' ++ a) 
                then Some (CilMisc.bytesSizeOf c') else None in
-      let (th', st'), t = conv_ptr me loc (th, st) po c' in
+      let (th', st'), t = conv_ptr loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 
   | TArray (c',_,_) -> 
-      conv_cilblock me loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
+      conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
   | TNamed (ti, a') ->
-      conv_ciltype me loc (th, st, off) (ti.ttype, a' ++ a)
+      conv_ciltype loc (th, st, off) (ti.ttype, a' ++ a)
   | TComp (_, _) ->
-      conv_cilblock me loc (th, st, off) None c
+      conv_cilblock loc (th, st, off) None c
   | _          -> 
       let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
       assertf "TBD: conv_ciltype" 
 
-and conv_ptr me loc (th, st) po c =
+and conv_ptr loc (th, st) po c =
   let tid = id_of_ciltype c in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
@@ -172,12 +174,12 @@ and conv_ptr me loc (th, st) po c =
     let l                = Sloc.fresh Sloc.Abstract in
     let idx              = mk_idx po 0 in
     let th'              = SM.add tid (l, idx) th in
-    let (th'', st', _), its = conv_cilblock me loc (th', st, Ct.IInt 0) po c in
+    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.IInt 0) po c in
     let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.CTRef (l, idx)
 
-and conv_cilblock me loc (th, st, off) po c =
+and conv_cilblock loc (th, st, off) po c =
 (* {{{  *)let _  =
     if mydebug then 
       (let cs = unroll_ciltype c in
@@ -185,23 +187,23 @@ and conv_cilblock me loc (th, st, off) po c =
        List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype
     |> Misc.map (fun c' -> (c', []))
-    |> Misc.mapfold (conv_ciltype me loc) (th, st, off)
+    |> Misc.mapfold (conv_ciltype loc) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
-let conv_ciltype x y z c = 
+let conv_ciltype y z c = 
   let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-  conv_ciltype x y z (c, [])
+  conv_ciltype y z (c, [])
 
-let cfun_of_args_ret me fn (loc, t, xts) =
+let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
   try
-    let res   = xts |> Misc.map snd3 |> Misc.mapfold (conv_ciltype me loc) (SM.empty, SLM.empty, Ct.IInt 0) in
+    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
-    let args  = Misc.map2 (fun (x,_,_) t -> (x,t)) xts ts in
-    let res'  = conv_ciltype me loc (th, ist, Ct.IInt 0) t in 
+    let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
+    let res'  = conv_ciltype loc (th, ist, Ct.IInt 0) t in 
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
@@ -216,6 +218,7 @@ let argsToList xtso =
   xtso 
   |> Cil.argsToList 
   |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
+  |> Misc.map (fun (x,y,_) -> (x,y))
 
 let upd_funm spec funm loc fn = function
   | _ when SM.mem fn spec -> funm
@@ -223,19 +226,38 @@ let upd_funm spec funm loc fn = function
   | TFun (t,xtso,_,_)     -> Misc.sm_protected_add false fn (loc, t, argsToList xtso) funm 
   | _                     -> funm 
 
-let specs_of_file spec cil =
-  let _ = if mydebug then let _ = Printf.printf "specs_of_file spec has: " in 
-                          SM.iter (fun fn _ -> Printf.printf "%s, " fn) spec in
-  SM.empty 
-  |> foldGlobals cil begin fun funm -> function
+let fundefs_of_file cil = 
+  foldGlobals cil begin fun acc -> function
+    | GFun (fd,_) as g -> SM.add fd.svar.vname g acc
+    | _                -> acc
+  end SM.empty
+
+let fundecs_of_file cil = 
+  let fdefm = fundefs_of_file cil in
+  foldGlobals cil begin fun acc -> function
+    | GVarDecl (v,_) as g -> if SM.mem v.vname fdefm then acc else SM.add v.vname g acc
+    | _                   -> acc
+  end SM.empty 
+
+let specs_of_funm spec funm =
+  SM.empty
+  |> SM.fold begin fun _ d funm -> match d with 
      | GFun (fd, loc)    -> upd_funm spec funm loc fd.svar.vname fd.svar.vtype
-     | _                 -> funm 
-     end 
-  |> foldGlobals cil begin fun funm -> function
      | GVarDecl (v, loc) -> upd_funm spec funm loc v.vname v.vtype
-     | _                 -> funm 
-     end
-  |> SM.mapi (cfun_of_args_ret ())
+     end funm 
+  |> SM.mapi cfun_of_args_ret
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
+
+(***************************************************************************)
+(********************************* API *************************************)
+(***************************************************************************)
+
+let specs_of_file_all spec cil =
+  Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) 
+  |> specs_of_funm spec 
+
+let specs_of_file_dec spec cil = 
+  fundecs_of_file cil 
+  |> specs_of_funm spec 
 

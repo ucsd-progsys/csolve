@@ -108,9 +108,10 @@ let add_spec fn spec =
 
 let spec_of_file spec fname =
   if !Constants.typespec then
-    Frontc.parse fname () |> Genspec.specs_of_file spec
+    Frontc.parse fname () |> Genspec.specs_of_file_all spec
   else
-    cil_of_file fname |> Inferctypes.specs_of_file spec
+    ((Frontc.parse fname () |> Genspec.specs_of_file_dec spec) ++ 
+    (cil_of_file fname |> Inferctypes.specs_of_file spec))
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
