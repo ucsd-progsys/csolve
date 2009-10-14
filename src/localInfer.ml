@@ -671,7 +671,7 @@ let check_out_store (loc: C.location) (sto_out_formal: store) (sto_out_actual: s
     prestore_fold begin fun ok l i ft ->
       try
         match prestore_find_index l i sto_out_actual with
-          | []   -> ok
+          | []   -> not (SLM.mem l sto_out_actual)
           | [at] -> check_expected_type loc ft at && ok (* order is important here for unification! *)
           | _    -> failwith "Returned too many at index from prestore_find_index"
       with
