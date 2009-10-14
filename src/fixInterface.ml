@@ -600,10 +600,10 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   |> Misc.splitflatten
 
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+ (* {{{ let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in *) 
+let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in }}}*)
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 
