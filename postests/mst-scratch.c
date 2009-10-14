@@ -58,7 +58,6 @@ extern Hash MakeHash(int size);
 /****************************** Code ******************************/
 /******************************************************************/
 
-//JHALA: empty store issue
 Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
 { Hash retval ;
   void *tmp ;
@@ -84,6 +83,7 @@ static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
   if (0 <= r && r < HashRange) return r;
   L: goto L;     
 }
+
 //void HashInsert(void *entry , unsigned int key , Hash hash )  JHALA POLY ISSUE
 void HashInsert(int entry , unsigned int key , Hash hash ) 
 { HashEntry ent ;

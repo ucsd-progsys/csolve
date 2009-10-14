@@ -342,10 +342,10 @@ let process_phis phia me =
   CF.add_cons ([], cs, ds) me 
 
 let cons_of_sci tgr gnv sci shp =
-  let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
+(*  let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
   let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.LocalInfer.anna in
   let _ = Pretty.printf "%a" Refanno.d_ctab shp.LocalInfer.theta in 
-  (* let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.LocalInfer.store in *)
+  let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.LocalInfer.store in *)
   CF.create tgr gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
