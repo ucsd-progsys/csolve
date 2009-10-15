@@ -58,23 +58,22 @@ extern Hash MakeHash(int size);
 /****************************** Code ******************************/
 /******************************************************************/
 
-//JHALA: empty store issue
-//Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
-//{ Hash retval ;
-//  void *tmp ;
-//  void *tmp___0 ;
-//  {
-//    tmp = /* localmalloc */malloc((int )sizeof(*retval));
-//    retval = (struct hash *)tmp;
-//    retval->size = size;
-//    tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
-//    retval->array = (HashEntry *)tmp___0;
-//    //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-//    /* retval->mapfunc = map; */
-//    retval->padding = 0U;
-//    return (retval);
-//  }
-//}
+Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
+{ Hash retval ;
+  void *tmp ;
+  void *tmp___0 ;
+  {
+    tmp = /* localmalloc */malloc((int )sizeof(*retval));
+    retval = (struct hash *)tmp;
+    retval->size = size;
+    tmp___0 = /*localmalloc*/malloc((int )((unsigned int )size * sizeof(*(retval->array + 0))));
+    retval->array = (HashEntry *)tmp___0;
+    //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
+    /* retval->mapfunc = map; */
+    retval->padding = 0U;
+    return (retval);
+  }
+}
 
 static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
 { 
@@ -84,6 +83,7 @@ static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
   if (0 <= r && r < HashRange) return r;
   L: goto L;     
 }
+
 //void HashInsert(void *entry , unsigned int key , Hash hash )  JHALA POLY ISSUE
 void HashInsert(int entry , unsigned int key , Hash hash ) 
 { HashEntry ent ;
@@ -223,8 +223,113 @@ Graph MakeGraph(int numvert )
 }
 }
 
+static BlueReturn BlueRule(Vertex inserted , Vertex vlist ) 
+{ BlueReturn retval ;
+  Vertex tmp ;
+  Vertex prev ;
+  Hash hash ;
+  int dist ;
+  int dist2 ;
+  int count ;
+  void *tmp___0 ;
+  Vertex next ;
+  void *tmp___1 ;
 
-int dealwithargs(int argc , string_array argv ) 
+  retval = malloc(sizeof(*retval)); 	//JHALA
+  {
+  if (! vlist) {
+    retval->dist = 999999; 		//JHALA
+    return (retval);
+  }
+  validptr(vlist);
+  prev = vlist;
+  retval->vert = vlist;			//JHALA
+  retval->dist = vlist->mindist;	//JHALA
+  hash = vlist->edgehash;
+  tmp___0 = HashLookup((unsigned int )inserted, hash);
+  dist = (int )tmp___0;
+  if (dist) {
+    if (dist < retval->dist) {		//JHALA
+      validptr(vlist);
+      vlist->mindist = dist;
+      retval->dist = dist;		//JHALA
+    }
+  } else {
+   // chatting((char *)"Not found\n");
+  }
+  count = 0;
+  validptr(vlist);
+  tmp = vlist->next;
+  while (tmp) {
+    count ++;
+    if ((unsigned int )tmp == (unsigned int )inserted) {
+      validptr(tmp);
+      next = tmp->next;
+      validptr(prev);
+      prev->next = next;
+    } else {
+      validptr(tmp);
+      hash = tmp->edgehash;
+      dist2 = tmp->mindist;
+      tmp___1 = HashLookup((unsigned int )inserted, hash);
+      dist = (int )tmp___1;
+      if (dist) {
+        if (dist < dist2) {
+          validptr(tmp);
+	  tmp->mindist = dist;
+          dist2 = dist;
+        }
+      } else {
+        //chatting((char *)"Not found\n");
+      }
+      if (dist2 < retval->dist) {		//JHALA
+        retval->vert = tmp;			//JHALA
+        retval->dist = dist2;			//JHALA
+      }
+    }
+    prev = tmp;
+    validptr(tmp);
+    tmp = tmp->next;
+  }
+  return (retval);
+}
+}
+
+
+static int ComputeMst(Graph graph , int numvert ) 
+{ Vertex inserted ;
+  Vertex tmp ;
+  int cost ;
+  int dist ;
+  BlueReturn br ;
+
+  {
+  Vertex MyVertexList  =    (Vertex )0;
+  cost = 0;
+  //chatting((char *)"Compute phase 1\n");
+  validptr(graph);
+  inserted = graph->vlist;
+  validptr(inserted); //JHALA: Maybe NULL 
+  tmp = inserted->next;
+  graph->vlist = tmp;
+  MyVertexList = tmp;
+  numvert --;
+  //chatting((char *)"Compute phase 2\n");
+  while (numvert) {
+    if ((unsigned int )inserted == (unsigned int )MyVertexList) {
+      validptr(MyVertexList); //JHALA: Maybe NULL 
+      MyVertexList = MyVertexList->next;
+    }
+    br = BlueRule(inserted, MyVertexList);
+    inserted = br->vert;
+    dist = br->dist;
+    numvert --;
+    cost += dist;
+  }
+  return (cost);
+}
+}
+int dealwithargs(int argc , string_array argv) 
 { int level ;
   if (argc > 1) {
     validptr(argv + 1);
@@ -242,7 +347,7 @@ int main(int argc, string_array argv ){
   {
   size  = dealwithargs(argc, argv);
   graph = MakeGraph(size);
-  //dist  = ComputeMst(graph, size);
+  dist  = ComputeMst(graph, size);
   exit(0);
 }
 }

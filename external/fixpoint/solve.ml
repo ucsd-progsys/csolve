@@ -144,7 +144,7 @@ let dump_solution_cluster s =
      |> List.map snd 
      |> Misc.groupby key_of_quals
      |> List.map begin fun (ps::_ as pss) -> 
-         Co.cprintf Co.ol_solve_stats "SolnCluster: preds %d = size %d \n"
+         Co.cprintf Co.ol_solve "SolnCluster: preds %d = size %d \n"
            (List.length ps) (List.length pss)
         end
 

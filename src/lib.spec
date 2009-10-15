@@ -71,10 +71,10 @@ exit ::
 
 atoi ::
   forall    [A0]
-  arg       (a: ref (A0, true, {v | true}))
+  arg       (a: ref (A0, 0[1], {v | true}))
   ret       int (4, true, {v | true})
-  store_in  [A0 |-> true: int (1, true, {v | true})]
-  store_out [A0 |-> true: int (1, true, {v | true})]
+  store_in  [A0 |-> 0[1]: int (1, true, {v | true})]
+  store_out [A0 |-> 0[1]: int (1, true, {v | true})]
 
 random ::
   forall    []
