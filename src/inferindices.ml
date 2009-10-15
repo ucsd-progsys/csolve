@@ -108,7 +108,7 @@ let heap_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEConst ITop)
     | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
-    | C.TVoid _             -> CTInt (0, IEConst ITop)
+    | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEConst (IInt 0))
     | t                     -> E.s <| E.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
 
@@ -116,7 +116,7 @@ let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
     | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
-    | C.TVoid _             -> CTInt (0, IEVar (fresh_indexvar ()))
+    | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
     | t                     -> E.s <| E.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
 

@@ -155,6 +155,8 @@ let ctype_of_const: C.constant -> ctype = function
   | C.CReal (_, fk, _)  -> CTInt (CM.bytesSizeOfFloat fk, ITop)
   | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
+let void_ctype = CTInt (0, ITop)
+
 (******************************************************************************)
 (***************************** Periodic Locations *****************************)
 (******************************************************************************)
