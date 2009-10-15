@@ -381,7 +381,7 @@ let constrain_args (env: env) (loc: C.location) (args: C.exp list): itypevar lis
 
 let constrain_app ((_, fe) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
   let itvs, css = constrain_args env loc args in
-  let ftv       = try VM.find f fe with Not_found -> halt <| C.errorLoc loc "Couldn't find function %a (missing prototype?)\n\n" CM.d_var f in
+  let ftv       = try VM.find f fe with Not_found -> halt <| C.errorLoc loc "Couldn't find function %a (missing prototype or spec?)\n\n" CM.d_var f in
   let itvfs     = List.map snd ftv.args in
   let css       = List.map2 (fun itva itvf -> mk_isubtypecstr loc itva itvf) itvs itvfs :: css in
     match lvo with
@@ -451,7 +451,7 @@ let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
   let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) VM.empty vars in
   let loc         = fd.C.svar.C.vdecl in
   let ftv         = VM.find fd.C.svar fe in
-  let formalcs    = List.map (fun (v, itv) -> mk_isubtypecstr loc (List.assoc v.C.vname ftv.args) itv) bodyformals in
+  let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr loc at itv) ftv.args bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] blocks in

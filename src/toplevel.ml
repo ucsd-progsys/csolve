@@ -114,14 +114,13 @@ let add_spec fn spec =
 
 let spec_of_file spec fname =
   let file = parse_file fname in
-  if !Constants.typespec then
-    Genspec.specs_of_file_all spec file
-  else
-(*
-    let autospecs = Genspec.specs_of_file_dec spec file
-                 |> List.fold_left (fun env (fn, cf) -> let _ = assert false in SM.add fn (FI.refcfun_of_cfun cf, true) env) SM.empty in
- *)
-      file |> preprocess |> Inferctypes.specs_of_file spec
+    if !Constants.typespec then
+      Genspec.specs_of_file_all spec file
+    else
+      let autospecs  = Genspec.specs_of_file_dec spec file in
+      let spec       = List.fold_left (fun env (fn, cf) -> SM.add fn (FI.refcfun_of_cfun cf, true) env) spec autospecs in
+      let inferspecs = file |> preprocess |> Inferctypes.specs_of_file spec in
+        autospecs @ inferspecs
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in

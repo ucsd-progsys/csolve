@@ -30,7 +30,7 @@ let d_heapvar () (hv: heapvar): P.doc =
 type heapmap = heapvar VM.t
 
 (******************************************************************************)
-(****************************** Misc Junk to Move *****************************)
+(******************************** Environments ********************************)
 (******************************************************************************)
 
 module IM = M.IntMap
@@ -527,8 +527,11 @@ let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
         VM.add f (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm, hv) fe
     end fe scc
 
+let d_scc () (scc: scc): P.doc =
+  (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) () scc
+
 let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
-  let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) scc |> ignore in
+  let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" d_scc scc |> ignore in
   let fs               = fresh_scc it fs scc in
   let fs, ss, cs       = constrain_scc fs scc in
   let scs              = filter_simple_cstrs cs in
@@ -554,16 +557,15 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
     end else ()
   in (fs, sd, cm, sto)
 
-let fresh_builtin (it: Inferindices.indextyping) (fe: funenv) (f: C.varinfo): funenv =
-  let (ifv, vm) = VM.find f it in
-    VM.add f (ifv, vm, fresh_heapvar ()) fe
+let fresh_builtin (f: C.varinfo) (cf: cfun) (fe: funenv): funenv =
+  VM.add f (cf, VM.empty, fresh_heapvar ()) fe
 
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
-  let it           = Inferindices.infer_indices env scim in
-  let cg, builtins = List.partition (function [fv] -> CM.definedHere fv | _ -> false) cg in
-  let sccs         = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
-  let fs           = List.fold_left (fresh_builtin it) VM.empty <| List.concat builtins in
-  let fs, _, _, _  = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
+  let it          = Inferindices.infer_indices env scim in
+  let cg          = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
+  let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
+  let fs          = VM.fold fresh_builtin env VM.empty in
+  let fs, _, _, _ = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
     VM.fold begin fun f (cf, _, _) spec ->
       if CM.definedHere f then
         (f.C.vname, cf) :: spec
@@ -571,9 +573,13 @@ let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInf
         spec
     end fs []
 
+let add_builtin (cil: C.file) (fn: string) ((rf, _): FI.refcfun * bool) (env: cfun VM.t): cfun VM.t =
+  let fv = C.findOrCreateFunc cil fn C.voidType in
+    if CM.definedHere fv then env else VM.add fv (FI.cfun_of_refcfun rf) env
+
 (* API *)
 let specs_of_file spec cil =
   let cg   = Callgraph.sccs cil in
   let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
-  let env  = SM.fold (fun fn (rf, _) vm -> VM.add (C.findOrCreateFunc cil fn C.voidType) (FI.cfun_of_refcfun rf) vm) spec VM.empty in
+  let env  = SM.fold (add_builtin cil) spec VM.empty in
     infer_spec env cg scis

@@ -37,6 +37,7 @@ val d_refcfun           : unit -> refcfun -> Pretty.doc
 
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
+val refcfun_of_cfun     : Ctypes.cfun -> refcfun
 
 val qlocs_of_refcfun    : refcfun  -> Sloc.t list
 val args_of_refcfun     : refcfun  -> (string * refctype) list
