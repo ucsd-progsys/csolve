@@ -7,6 +7,7 @@
 *.native
 *.ssa.c
 *.c.autospec
+*.c.tags
 negtests/*.fq
 postests/*.fq
 _build
