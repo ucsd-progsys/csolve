@@ -28,6 +28,7 @@ module C  = FixConstraint
 module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
+module FI = FixInterface
 
 open Misc.Ops
 
@@ -55,9 +56,11 @@ let mk_cfg cil =
     | _ -> ()
   end
 
-let cil_of_file fname =
-  let _   = ignore (E.log "Parsing %s\n" fname) in
-  let cil = Frontc.parse fname () |> Simplemem.simplemem in
+let parse_file fname =
+  let _ = ignore (E.log "Parsing %s\n" fname) in
+    Frontc.parse fname () |> Simplemem.simplemem
+
+let preprocess cil =
   let _   = Pheapify.heapifyNonArrays := true;
             Pheapify.default_heapify cil;
             Psimplify.simplify cil;
@@ -67,6 +70,9 @@ let cil_of_file fname =
             mk_cfg cil;
             rename_locals cil in
   cil
+
+let cil_of_file fname =
+  fname |> parse_file |> preprocess
 
 let add_quals quals fname =
     try
@@ -107,11 +113,15 @@ let add_spec fn spec =
     spec
 
 let spec_of_file spec fname =
+  let file = parse_file fname in
   if !Constants.typespec then
-    Frontc.parse fname () |> Genspec.specs_of_file_all spec
+    Genspec.specs_of_file_all spec file
   else
-    ((Frontc.parse fname () |> Genspec.specs_of_file_dec spec) ++ 
-    (cil_of_file fname |> Inferctypes.specs_of_file spec))
+(*
+    let autospecs = Genspec.specs_of_file_dec spec file
+                 |> List.fold_left (fun env (fn, cf) -> let _ = assert false in SM.add fn (FI.refcfun_of_cfun cf, true) env) SM.empty in
+ *)
+      file |> preprocess |> Inferctypes.specs_of_file spec
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
