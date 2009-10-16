@@ -409,7 +409,10 @@ and constrain_unop (op: C.unop) (ve: ctvenv) (em: cstremap) (loc: C.location) (t
   let (ctv, em) = constrain_exp ve em loc e in
     match ctv with
       | CTInt _ -> apply_unop op em loc t ctv
-      | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!"
+(*    | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!" *)
+      | _       -> E.s <| C.errorLoc loc "Unimplemented: Haven't considered how to apply unops to references@!"
+
+
 
 and apply_unop (op: C.unop) (em: cstremap) (loc: C.location) (rt: C.typ) (ctv: ctypevar): ctypevar * cstremap * cstr list =
   match op with

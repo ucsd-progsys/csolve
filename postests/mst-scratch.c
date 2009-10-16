@@ -29,10 +29,12 @@ struct vert_st {
    unsigned int padding ;
 };
 
-typedef struct vert_st *Vertex;
+typedef struct vert_st *__attribute__((array)) Vertex;
 
 struct graph_st {
-   struct vert_st *__attribute__((array)) vlist ; //JHALA: each cell=0 or validptr into array
+   //struct vert_st *__attribute__((array)) vlist ; //JHALA: each cell=0 or validptr into array
+   Vertex vlist ; //JHALA: each cell=0 or validptr into array
+
 };
 
 typedef struct graph_st *Graph;
@@ -84,6 +86,41 @@ static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
   L: goto L;     
 }
 
+
+//void *HashLookup(unsigned int key , Hash hash ) JHALA POLY ISSUE
+int HashLookup(unsigned int key , Hash hash ) 
+{ int j ;
+  HashEntry ent ;
+
+  {
+  j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
+  assert(j >= 0);
+  assert(j < hash->size);
+
+  validptr(hash->array + j);
+  ent = *(hash->array + j);
+  while (1) {
+    if (ent) {
+      validptr(ent);
+      //if (! (ent->key != key)) {	JHALA NOT NOT HANDLED IN cilInterface
+      if ((ent->key == key)) {
+         break;
+      }
+    } else {
+      break;
+    }
+    validptr(ent);
+    ent = ent->next;
+  }
+  if (ent) {
+    validptr(ent);
+    return (ent->entry);
+  }
+  return (/*(void *)*/0); //JHALA POLY ISSUE
+}
+}
+
+
 //void HashInsert(void *entry , unsigned int key , Hash hash )  JHALA POLY ISSUE
 void HashInsert(int entry , unsigned int key , Hash hash ) 
 { HashEntry ent ;
@@ -104,6 +141,10 @@ void HashInsert(int entry , unsigned int key , Hash hash )
   return;
 }
 }
+
+
+
+
 
 static int mult(int p , int q ) 
 { int p1 ;
@@ -237,17 +278,21 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 
   retval = malloc(sizeof(*retval)); 	//JHALA
   {
-  if (! vlist) {
+  if (/* ! vlist */ vlist == (Vertex) 0) {	//JHALA UNOP REFERENCE ISSUE
+    validptr(retval);
     retval->dist = 999999; 		//JHALA
     return (retval);
   }
   validptr(vlist);
   prev = vlist;
+  validptr(retval);
   retval->vert = vlist;			//JHALA
   retval->dist = vlist->mindist;	//JHALA
   hash = vlist->edgehash;
-  tmp___0 = HashLookup((unsigned int )inserted, hash);
-  dist = (int )tmp___0;
+  // JHALA POLY ISSUE
+  //tmp___0 = HashLookup((unsigned int )inserted, hash);
+  //dist = (int )tmp___0;
+  dist = HashLookup((unsigned int )inserted, hash);
   if (dist) {
     if (dist < retval->dist) {		//JHALA
       validptr(vlist);
@@ -271,8 +316,10 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
       validptr(tmp);
       hash = tmp->edgehash;
       dist2 = tmp->mindist;
-      tmp___1 = HashLookup((unsigned int )inserted, hash);
-      dist = (int )tmp___1;
+      // JHALA POLY ISSUE
+      // tmp___1 = HashLookup((unsigned int )inserted, hash);
+      // dist = (int )tmp___1;
+      dist = HashLookup((unsigned int )inserted, hash);
       if (dist) {
         if (dist < dist2) {
           validptr(tmp);
