@@ -101,8 +101,10 @@ int HashLookup(unsigned int key , Hash hash )
   ent = *(hash->array + j);
   while (1) {
     if (ent) {
-      if (! (ent->key != key)) {
-        break;
+      validptr(ent);
+      //if (! (ent->key != key)) {	JHALA NOT NOT HANDLED IN cilInterface
+      if ((ent->key == key)) {
+         break;
       }
     } else {
       break;
@@ -276,7 +278,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 
   retval = malloc(sizeof(*retval)); 	//JHALA
   {
-  if (! vlist) {
+  if (/* ! vlist */ vlist != (Vertex) 0) {	//JHALA UNOP REFERENCE ISSUE
     validptr(retval);
     retval->dist = 999999; 		//JHALA
     return (retval);
@@ -287,8 +289,10 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
   retval->vert = vlist;			//JHALA
   retval->dist = vlist->mindist;	//JHALA
   hash = vlist->edgehash;
-  tmp___0 = HashLookup((unsigned int )inserted, hash);
-  dist = (int )tmp___0;
+  // JHALA POLY ISSUE
+  //tmp___0 = HashLookup((unsigned int )inserted, hash);
+  //dist = (int )tmp___0;
+  dist = HashLookup((unsigned int )inserted, hash);
   if (dist) {
     if (dist < retval->dist) {		//JHALA
       validptr(vlist);
@@ -312,8 +316,10 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
       validptr(tmp);
       hash = tmp->edgehash;
       dist2 = tmp->mindist;
-      tmp___1 = HashLookup((unsigned int )inserted, hash);
-      dist = (int )tmp___1;
+      // JHALA POLY ISSUE
+      // tmp___1 = HashLookup((unsigned int )inserted, hash);
+      // dist = (int )tmp___1;
+      dist = HashLookup((unsigned int )inserted, hash);
       if (dist) {
         if (dist < dist2) {
           validptr(tmp);
