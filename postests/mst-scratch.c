@@ -278,7 +278,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 
   retval = malloc(sizeof(*retval)); 	//JHALA
   {
-  if (/* ! vlist */ vlist != (Vertex) 0) {	//JHALA UNOP REFERENCE ISSUE
+  if (/* ! vlist */ vlist == (Vertex) 0) {	//JHALA UNOP REFERENCE ISSUE
     validptr(retval);
     retval->dist = 999999; 		//JHALA
     return (retval);
