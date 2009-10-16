@@ -12,8 +12,6 @@ void main () {
 
     u = (unsigned char) nondet();
 
-    assert(0 <= u);
-
     t.n    = 15;
     t.s[u] = 16;
 }
