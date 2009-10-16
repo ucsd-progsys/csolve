@@ -2,28 +2,29 @@ extern char* malloc(int);
 
 struct foo {
   int data;
+//  struct foo *next;
 };
 
 struct foo *__attribute__((array)) main(){
   struct foo *a;
   struct foo *b;
 
-  int i,j;
+  int i;
   int n;
 
   n  = nondetpos();
-  a  = (struct foo *) malloc(100 * sizeof(struct foo));
+  a  = (struct foo *) malloc(n * sizeof(struct foo));
  
   i = n-1;
   while (i >= 0){
     b 	    = a + i;
-    b->data = 999;
+    b->data = 99999;
     i--;
   }
 
-  for (j=0; j < n; j++){
-    b       = a + j;
-    assert(b->data == 999);
+  for (i=0; i < n; i++){
+    b = a + i;
+    assert(b->data == 0);
   }
 
   return a;
