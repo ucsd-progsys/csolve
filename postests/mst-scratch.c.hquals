@@ -1,2 +1,1 @@
-
 qualif SIZE(v:ptr)     : ((v + (16 * ~a)) <= BLOCK_END([v]))

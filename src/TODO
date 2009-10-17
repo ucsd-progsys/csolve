@@ -1,7 +1,15 @@
+
+makegraph: ret:  ref(A56,0), where A56 |-> 0:ref(A55, 0[16], {v: validptr(v)})
+
+computeMst: inp: ref(A67,0), where A67 |-> 0:ref(A66, 0[16], without validptr...)
+
 HEREHEREHEREHERE: 
 ./main.native -typespec ../postests/mst-scratch.c
 [mst]
- down to the last two functions: BlueRule and ComputeMST...
+down to two validptr failures, can't figure out why the first one fails.
+a mock up, ../postests/structarr2.c passes,
+MakeGraph has the right type for the output store. Yet, the assert in 
+the "main" also fails...
 
 Issues
 1. remove localmalloc
