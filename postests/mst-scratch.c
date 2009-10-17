@@ -57,6 +57,10 @@ extern HashEntry malloc_HashEntry(int);
 extern Hash MakeHash(int size);
 
 /******************************************************************/
+
+void csolve_halt(){ exit(0);}
+
+/******************************************************************/
 /****************************** Code ******************************/
 /******************************************************************/
 
@@ -352,15 +356,17 @@ static int ComputeMst(Graph graph , int numvert )
   //chatting((char *)"Compute phase 1\n");
   validptr(graph);
   inserted = graph->vlist;
-  validptr(inserted); //JHALA: Maybe NULL 
+  validptr(inserted);			       
   tmp = inserted->next;
-  graph->vlist = tmp;
+  //graph->vlist = tmp;			       //JHALA: Gratuitous assignment! wrecks validptr(inserted)
+  					       //could be solved if we knew graph pointed to conc
   MyVertexList = tmp;
   numvert --;
   //chatting((char *)"Compute phase 2\n");
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
-      validptr(MyVertexList); //JHALA: Maybe NULL 
+      if (inserted == (Vertex) 0){ csolve_halt();}	//JHALA numvert = listlength... 
+      //validptr(MyVertexList); //JHALA: Maybe NULL LAST 
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
@@ -391,8 +397,8 @@ int main(int argc, string_array argv ){
   size  = dealwithargs(argc, argv);
   if (size > 0){                        //JHALA: Otherwise NN-error!
     graph = MakeGraph(size);
-    validptr(graph->vlist); //JHALA: Maybe NULL 
-    dist  = ComputeMst(graph, size);
+    validptr(graph->vlist); 		//JHALA: Maybe NULL LAST
+    dist  = ComputeMst(graph, size);  
   }
   exit(0);
 }
