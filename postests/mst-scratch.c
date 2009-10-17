@@ -46,17 +46,7 @@ struct blue_return {
 
 typedef struct blue_return *BlueReturn;
 
-/******************************************************************/
-/********************* Malloc Prototypes **************************/
-/******************************************************************/
-
 extern char *malloc(int);
-extern Hash malloc_Hash(int) ;
-extern HashEntry *__attribute__((array)) malloc_HashEntry_array(int) ;
-extern HashEntry malloc_HashEntry(int);
-extern Hash MakeHash(int size);
-
-/******************************************************************/
 
 void csolve_halt(){ exit(0);}
 
@@ -135,7 +125,7 @@ void HashInsert(int entry , unsigned int key , Hash hash )
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
   assert(j>=0);
   assert(j<hash->size);
-  /*tmp*/ent = /*localmalloc*/malloc_HashEntry((int )sizeof(*ent));
+  /*tmp*/ent = /*localmalloc*/(HashEntry *) malloc((int )sizeof(*ent));
   //ent = (struct hash_entry *)tmp;
   validptr(hash->array + j);
   ent->next = *(hash->array + j);

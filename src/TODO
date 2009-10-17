@@ -1,22 +1,21 @@
 
-makegraph: ret:  ref(A56,0), where A56 |-> 0:ref(A55, 0[16], {v: validptr(v)})
-
-computeMst: inp: ref(A67,0), where A67 |-> 0:ref(A66, 0[16], without validptr...)
-
-HEREHEREHEREHERE: 
 ./main.native -typespec ../postests/mst-scratch.c
 [mst]
-down to two validptr failures, can't figure out why the first one fails.
-a mock up, ../postests/structarr2.c passes,
-MakeGraph has the right type for the output store. Yet, the assert in 
-the "main" also fails...
+mst-scratch "completed" modulo many many tweaks. Major issues:
+1. Do ALL locations have to be abstract? Makes for weaker invariants.
+   conc locations can be tracked strongly but our analysis doesn't give us 
+   _any_ conc locations (except locally via unfold)
+2. One null-check depends on tracking the "length" of a list. 
 
 Issues
-1. remove localmalloc
-2. remove globals
+1. localmalloc -> malloc ... (no custom malloc) 
+2. globals
 3. remove fun ptr
 4. void * (generic hash-table)
 5. pesky int-to-ptr cast fails
+6. unop not (used in guards)
+7. wierd operations like >> and mask
+6. ??? (go through JHALA comments to get a full list)
 
 -------------------------------------------------------------------------
 [genspec]
