@@ -110,7 +110,7 @@ let nprintf a = Pretty.gprintf (fun _ -> Pretty.nil) a
 let bprintf b = if b then Pretty.printf else nprintf
 
 (******************************************************************************)
-(***************************** Type Maniupulation *****************************)
+(****************************** Type Manipulation *****************************)
 (******************************************************************************)
 
 let int_width   = bytesSizeOfInt IInt
