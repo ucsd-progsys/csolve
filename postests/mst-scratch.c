@@ -248,11 +248,7 @@ Graph MakeGraph(int numvert )
     vf = retval->vlist + i;
     validptr(vf);
     vf->mindist = 9999999;
-    
-    
     vf->edgehash = MakeHash(HashRange/*, & hashfunc*/);
-    
-
     vf->next = vt;
     vt = vf;
     i --;
@@ -393,8 +389,11 @@ int main(int argc, string_array argv ){
   int size ;
   {
   size  = dealwithargs(argc, argv);
-  graph = MakeGraph(size);
-  dist  = ComputeMst(graph, size);
+  if (size > 0){                        //JHALA: Otherwise NN-error!
+    graph = MakeGraph(size);
+    validptr(graph->vlist); //JHALA: Maybe NULL 
+    dist  = ComputeMst(graph, size);
+  }
   exit(0);
 }
 }
