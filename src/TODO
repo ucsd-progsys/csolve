@@ -1,7 +1,21 @@
+TBD
+[Annot] Readable Annotations
+
+1. Track source of SSA'ed vars to get better type viewing
+ 
+2. Print type of entire function store (not just input/output)
+
+-------------------------------------------------------------------------
+TBD
+[Ops]	refactor CilInterface to deal with unop and binop 
+        (make CilInterface.expr_of_cilexp return a refinement instead of expr)
+	(make CilInterface.pred_of_cilexp handle !)
+
+-------------------------------------------------------------------------
 
 ./main.native -typespec ../postests/mst-scratch.c
 [mst]
-mst-scratch "completed" modulo many many tweaks. Major issues:
+Major Issues
 1. Do ALL locations have to be abstract? Makes for weaker invariants.
    conc locations can be tracked strongly but our analysis doesn't give us 
    _any_ conc locations (except locally via unfold)
@@ -11,7 +25,7 @@ Issues
 1. localmalloc -> malloc ... (no custom malloc) 
 2. globals
 3. remove fun ptr
-4. void * (generic hash-table)
+4. void * Polymorphism (generic hash-table -- "instantiated to int")
 5. pesky int-to-ptr cast fails
 6. unop not (used in guards)
 7. wierd operations like >> and mask
