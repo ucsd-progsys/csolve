@@ -29,6 +29,7 @@ module SM = Misc.StringMap
 module Sy = Ast.Symbol
 module P  = Pretty
 module FI = FixInterface
+module Co = Constants
 
 open Misc.Ops
 
@@ -42,10 +43,12 @@ let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
     let fn   = fd.Cil.svar.Cil.vname in
-    let locs = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"_"^fn));v) fd.Cil.slocals in
-    let fmls = List.map (fun v -> (v.Cil.vname <- (v.Cil.vname^"_"^fn));v) fd.Cil.sformals in
-    fd.Cil.slocals <- locs ;
-    fd.Cil.sformals <- fmls
+    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.slocals;
+    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.sformals
+    (* let locs = List.map (fun v -> (v.Cil.vname <- Co.rename_local fn v.Cil.vname);v) fd.Cil.slocals in
+       let fmls = List.map (fun v -> (v.Cil.vname <- Co.rename_local fn v.Cil.vname);v) fd.Cil.sformals in
+       fd.Cil.slocals  <- locs ;
+       fd.Cil.sformals <- fmls *)
   | _ -> ())
 
 let mk_cfg cil =
@@ -83,7 +86,7 @@ let add_quals quals fname =
         |> Lexing.from_channel
         |> FixParse.defs FixLex.token in
       let qs = Misc.map_partial (function C.Qul p -> Some p | _ -> None) qs in
-      let _ = Constants.bprintf mydebug "Read Qualifiers: \n%a"
+      let _ = Co.bprintf mydebug "Read Qualifiers: \n%a"
                 (Misc.pprint_many true "" Ast.Qualifier.print) qs in
       qs @ quals
     with Sys_error s ->
@@ -91,7 +94,7 @@ let add_quals quals fname =
       quals
 
 let quals_of_file fname =
-  [Constants.lib_name; fname]
+  [Co.lib_name; fname]
   |> List.map (fun s -> s^".hquals")
   |> List.fold_left add_quals []
 
@@ -114,7 +117,7 @@ let add_spec fn spec =
 
 let spec_of_file spec fname =
   let file = parse_file fname in
-    if !Constants.typespec then
+    if !Co.typespec then
       Genspec.specs_of_file_all spec file
     else
       let autospecs  = Genspec.specs_of_file_dec spec file in
@@ -136,7 +139,7 @@ let generate_spec fname spec =
 let spec_of_file fname =
   SM.empty 
   |> add_spec (fname^".spec")                   (* Add manual specs  *)
-  |> add_spec (Constants.lib_name^".spec")      (* Add default specs *)
+  |> add_spec (Co.lib_name^".spec")             (* Add default specs *)
   >> generate_spec fname
   |> add_spec (fname^".autospec")               (* Add autogen specs *)
 
@@ -148,8 +151,8 @@ let print_header () =
 
 let mk_options toolname () =
   let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
-  let _  = Arg.parse Constants.arg_spec (fun s -> Constants.file := Some s) us in
-  match !Constants.file with
+  let _  = Arg.parse Co.arg_spec (fun s -> Co.file := Some s) us in
+  match !Co.file with
   | Some fn -> fn
   | None    -> assertf "Bug: No input file specified!"
 

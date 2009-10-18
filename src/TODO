@@ -3,13 +3,11 @@ TBD
 1. Track source of SSA'ed vars to get better type viewing
 2. Print type of entire function store (not just input/output)
 
-(1) Output:
-	{vname	: string;
-  	 vloc	: line;
-         ssaname: string} list
+(1) [DONE] Generated .vmap file:
+    ./main.native ../postests/loop.c
+    more ../postests/loop.c.vmap
 
-    write into a file foo.c.vmap
-
+HEREHEREHERHEREHERE
 (2) To hack vim:
 	write a function c_annot
 	that takes a key = string, line
@@ -27,8 +25,6 @@ TBD
 	  else:
 	    do :tag ssname
 
-Some progress: grep "SSA-RENAME" in source or generated logs, eg
-./main.native ../postests/loop.c > log 2>&1
 
 -------------------------------------------------------------------------
 TBD

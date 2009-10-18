@@ -348,17 +348,32 @@ let hashtbl_invert t =
 let distinct xs = 
  List.length xs = List.length (sort_and_compact xs)
 
-
-
 (** repeats f: unit - > unit i times *)
 let rec repeat_fn f i = 
   if i = 0 then ()
   else (f (); repeat_fn f (i-1))
 
+(* chop s chopper returns ([x;y;z...]) if s = x.chopper.y.chopper ...*)
+let chop s chopper = Str.split (Str.regexp chopper) s  
+
+(* like chop only the chop is by chop+ *)
+let chop_star chopper s = 
+    Str.split (Str.regexp (Printf.sprintf "[%s+]" chopper)) s
+
+let bounded_chop s chopper i = Str.bounded_split (Str.regexp chopper) s i 
+
+let is_prefix p s = 
+  Str.string_match (Str.regexp p) s 0
+
 let is_substring s subs = 
   let reg = Str.regexp subs in
   try ignore(Str.search_forward reg s 0); true
   with Not_found -> false
+
+let is_suffix suffix s = 
+  let k = String.length suffix
+  and n = String.length s in
+  (n-k >= 0) && Str.string_match (Str.regexp suffix) s (n-k)
 
 let iteri f xs =
   List.fold_left (fun i x -> f i x; i+1) 0 xs

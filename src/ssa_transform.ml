@@ -36,19 +36,20 @@ open Misc.Ops
 
 let mydebug =false 
 
-(************************************************************************
- * out_t : (block * reg, regindex) H.t                                  *
- * out_t.(b,r) = Undef      if r is unmodified (no write/phi) in b      *
- *             = Phi b      if r is only phi-written in b               *
- *             = Def (b, k) if r is written k times in block            *
- *                                                                      *
- * dramatis personae:                                                   *
- * doms  : int list array;                                              *
- * v2r   : varinfo -> S.reg;                                            *
- * r2v   : S.reg   -> varinfo;                                          *
- * out_t : (int * int, regindex) H.t;           block, reg |-> ri       *
- * var_t : (string * regindex, varinfo) H.t;    var, ri    |-> varinfo  *
- ************************************************************************)
+(**************************************************************************
+ * out_t : (block * reg, regindex) H.t                                    *
+ * out_t.(b,r) = Undef      if r is unmodified (no write/phi) in b        *
+ *             = Phi b      if r is only phi-written in b                 *
+ *             = Def (b, k) if r is written k times in block              *
+ *                                                                        *
+ * dramatis personae:                                                     *
+ * doms  : int list array;                                                *
+ * v2r   : varinfo -> S.reg;                                              *
+ * r2v   : S.reg   -> varinfo;                                            *
+ * out_t : (int * int, regindex) H.t;           block,reg     |-> ri      *
+ * var_t : (string * regindex, varinfo) H.t;    var,ri        |-> varinfo *
+ * vmap_t: (string * string * int, string) H.t; var,file,line |-> ssavar  *
+ **************************************************************************)
 
 type regindex = Def of int * int                (* block, position *)
               | Phi of int                      (* block *)
@@ -60,6 +61,7 @@ type ssaCfgInfo = {
   ifs   : Guards.ginfo array;
   gdoms : (int * (bool option)) array;
   edoms : ((int * int), bool) Hashtbl.t;
+  vmapt : (string * string * int, string) Hashtbl.t; 
 }
 
 let mk_ssa_name s = function
@@ -208,6 +210,10 @@ let mk_renamed_var fdec var_t v ri =
     let _    = H.replace var_t (v.vname, ri) v' in
     v'
 
+let log_renamed_var vmap_t loc v v' = 
+  (if mydebug then ignore <| E.log "SSA-RENAME: %s TO %s at %a \n" v.vname v'.vname d_loc loc);
+  Hashtbl.add vmap_t (v.vname, loc.file, loc.line) v'.vname
+
 (*********************** compute phi assignments **************************)
 
 let mk_phi fdec cfg out_t var_t r2v i preds r =
@@ -228,7 +234,7 @@ let add_phis fdec cfg out_t var_t r2v i b =
 
 (*********************** ssa rename visitor *******************************)
 
-class ssaVisitor fdec cfg out_t var_t v2r = object(self)
+class ssaVisitor fdec cfg out_t var_t v2r vmap_t = object(self)
   inherit nopCilVisitor
 
   val sid   = ref 0
@@ -260,9 +266,8 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
       try 
         self#get_regindex read v 
         |> mk_renamed_var fdec var_t v
-        >> fun v' -> ignore <| E.log "SSA-RENAME: %s TO %s at (line=%d, byte=%d) \n" 
-                               v.vname v'.vname !currentLoc.line !currentLoc.byte
-      with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
+        >> log_renamed_var vmap_t !currentLoc v 
+     with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
                            read v.vname (Printexc.to_string e)) 
 
   method vinst = function
@@ -299,17 +304,19 @@ let mk_gdominators fdec cfg =
   let eds  = Guards.mk_edoms cfg.S.predecessors ifs idom in
   (ifs, gds, eds)
   
-(* API *)
-let fdec_to_ssa_cfg fdec loc = 
+let fdec_to_ssa_cfg vmap_t fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
   let _             = S.add_ssa_info cfg in
   let _             = if mydebug then print_blocks cfg in
   let out_t         = mk_out_name cfg in
   let var_t         = H.create 117 in
+  let vmap_t        = H.create 37 in
   let phis          = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
-  let _             = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r) fdec in
+  let _             = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r vmap_t) fdec in
   let ifs, gds, eds = mk_gdominators fdec cfg in
-  {fdec = fdec; cfg = cfg; phis = phis; ifs = ifs; gdoms = gds; edoms = eds} 
+  {fdec = fdec; cfg = cfg; phis = phis; ifs = ifs; gdoms = gds; edoms = eds; vmapt = vmap_t} 
+
+(**************************************************************************)
 
 let print_sci oco sci = 
   if mydebug then begin
@@ -320,22 +327,39 @@ let print_sci oco sci =
   let oc = match oco with Some oc -> oc | None -> stdout in
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
 
-(* API *)
-let print_scis scis =
-  match !Constants.file with 
-  | None ->
-      if mydebug then List.iter (print_sci None) scis
-  | Some s -> 
-      let fn = s^".ssa.c" in
-      let oc = open_out fn in
-      let _  = List.iter (print_sci (Some oc)) scis in
-      close_out oc
+let print_scis fname scis =
+  fname^".ssa.c"
+  |> open_out 
+  >> (fun oc -> List.iter (print_sci (Some oc)) scis)
+  |> close_out 
+  
+(**************************************************************************)
+
+let print_vmap oc sci =
+  sci.vmapt 
+  |> Misc.hashtbl_to_list
+  |> Misc.sort_and_compact 
+  |> List.iter begin fun ((vname, file, line), ssaname) ->
+       let vname = Constants.unrename_local sci.fdec.svar.vname vname in
+       Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
+     end
+
+let print_vmaps fname scis =
+  fname^".vmap"
+  |> open_out
+  >> (fun oc -> List.iter (print_vmap oc) scis)
+  |> close_out
+
+(**************************************************************************)
 
 (* API *)
 let scis_of_file cil = 
+  let vmap_t = H.create 117 in
   Cil.foldGlobals cil begin fun acc g -> 
     match g with 
-    | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg fdec loc)::acc
+    | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg vmap_t fdec loc)::acc
     | _                   -> acc
   end []
-  |> (fun scis -> let _ = print_scis scis in scis)
+  >> print_scis cil.fileName
+  >> print_vmaps cil.fileName
+

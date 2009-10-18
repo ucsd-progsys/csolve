@@ -207,7 +207,18 @@ let is_prefix p s =
   let reg = Str.regexp p in
   Str.string_match reg s 0
 
+(****************************** CIL Specific ********************************)
+
 let is_cil_tempvar s = 
   Misc.is_prefix "__cil_tmp" s || 
   Misc.is_prefix "tmp___" s ||
   Misc.is_prefix "mem_" s
+
+let suffix_of_fn = fun fn -> "_" ^ fn
+
+let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+
+let unrename_local fn vn = 
+  let s = suffix_of_fn fn in 
+  if not (Misc.is_suffix s vn) then vn else 
+    String.sub vn 0 (String.length vn - (String.length s))
