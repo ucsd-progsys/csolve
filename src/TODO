@@ -1,9 +1,34 @@
 TBD
 [Annot] Readable Annotations
-
 1. Track source of SSA'ed vars to get better type viewing
- 
 2. Print type of entire function store (not just input/output)
+
+(1) Output:
+	{vname	: string;
+  	 vloc	: line;
+         ssaname: string} list
+
+    write into a file foo.c.vmap
+
+(2) To hack vim:
+	write a function c_annot
+	that takes a key = string, line
+	looks up the vmap at the key to find ssaname,
+ 	calls :tag ssaname
+	if no ssaname is found
+
+	def c_annot_init(): 
+	  //initializes the database
+
+	def c_annot_search(v, line):
+	  ssname = c_annot_ssname(v, line)
+	  if ssname == "":
+	    do :tag v
+	  else:
+	    do :tag ssname
+
+Some progress: grep "SSA-RENAME" in source or generated logs, eg
+./main.native ../postests/loop.c > log 2>&1
 
 -------------------------------------------------------------------------
 TBD

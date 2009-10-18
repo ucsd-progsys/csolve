@@ -7,6 +7,9 @@ int main(int n){
   z = 0;
   for (i=0; i < n; i++){
     z += i;
+    z += i;
+    z += i;
+    z += i;
   }
   assert (z >= 0);
   return 0;

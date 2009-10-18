@@ -259,7 +259,9 @@ class ssaVisitor fdec cfg out_t var_t v2r = object(self)
     if not (is_ssa_renamable v) then v else
       try 
         self#get_regindex read v 
-        |> mk_renamed_var fdec var_t v 
+        |> mk_renamed_var fdec var_t v
+        >> fun v' -> ignore <| E.log "SSA-RENAME: %s TO %s at (line=%d, byte=%d) \n" 
+                               v.vname v'.vname !currentLoc.line !currentLoc.byte
       with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
                            read v.vname (Printexc.to_string e)) 
 
