@@ -118,7 +118,7 @@ let heap_itypevar (t: C.typ): itypevar =
     | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEConst (IInt 0))
-    | t                     -> E.s <| E.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
+    | t                     -> E.s <| C.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
 
 let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
@@ -126,7 +126,7 @@ let fresh_itypevar (t: C.typ): itypevar =
     | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
-    | t                     -> E.s <| E.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
+    | t                     -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
 
 let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
   prectype_map (indexexp_apply is) itv
@@ -152,11 +152,11 @@ let d_itypecstr () ({itcid = id; itcdesc = itcd; itcloc = loc}: itypecstr): P.do
 
 let (fresh_itypecstrid, reset_fresh_itypecstrids) = M.mk_int_factory ()
 
-let mk_isubtypecstr (loc: C.location) (itv1: itypevar) (itv2: itypevar): itypecstr =
-  {itcid = fresh_itypecstrid (); itcloc = loc; itcdesc = ISubtype (itv1, itv2)}
+let mk_isubtypecstr (itv1: itypevar) (itv2: itypevar): itypecstr =
+  {itcid = fresh_itypecstrid (); itcloc = !C.currentLoc; itcdesc = ISubtype (itv1, itv2)}
 
-let mk_idsubtypecstr (loc: C.location) (itv1: itypevar) (itv2: itypevar) (ctbound: ctype): itypecstr =
-  {itcid = fresh_itypecstrid (); itcloc = loc; itcdesc = IDSubtype (itv1, itv2, ctbound)}
+let mk_idsubtypecstr (itv1: itypevar) (itv2: itypevar) (ctbound: ctype): itypecstr =
+  {itcid = fresh_itypecstrid (); itcloc = !C.currentLoc; itcdesc = IDSubtype (itv1, itv2, ctbound)}
 
 let itypecstr_id ({itcid = id}: itypecstr): int =
   id
@@ -266,44 +266,44 @@ type builtinenv = ifunvar VM.t
 
 type env = varenv * funenv
 
-let rec constrain_exp (env: env) (loc: C.location): C.exp -> itypevar * itypecstr list = function
+let rec constrain_exp (env: env): C.exp -> itypevar * itypecstr list = function
   | C.Const c                     -> let itv = c |> ctype_of_const |> itypevar_of_ctype in (itv, [])
-  | C.Lval lv | C.StartOf lv      -> constrain_lval env loc lv
-  | C.UnOp (uop, e, t)            -> constrain_unop uop env loc t e
-  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env loc t e1 e2
-  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr loc c
-  | C.CastE (ct, e)               -> constrain_cast env loc ct e
-  | C.SizeOf t                    -> constrain_sizeof loc t
-  | e                             -> E.s <| E.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+  | C.Lval lv | C.StartOf lv      -> constrain_lval env lv
+  | C.UnOp (uop, e, t)            -> constrain_unop uop env t e
+  | C.BinOp (bop, e1, e2, t)      -> constrain_binop bop env t e1 e2
+  | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr c
+  | C.CastE (ct, e)               -> constrain_cast env ct e
+  | C.SizeOf t                    -> constrain_sizeof t
+  | e                             -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
-and constrain_lval ((ve, _) as env: env) (loc: C.location): C.lval -> itypevar * itypecstr list = function
+and constrain_lval ((ve, _) as env: env): C.lval -> itypevar * itypecstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, [])
   | (C.Mem e, C.NoOffset) as lv ->
-      let itv, cs = constrain_exp env loc e in
+      let itv, cs = constrain_exp env e in
         begin match itv with
           | CTRef (s, ie) -> (heap_itypevar <| C.typeOfLval lv, cs)
-          | _             -> E.s <| E.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
+          | _             -> E.s <| C.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
-  | lv -> E.s <| E.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
+  | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
-and constrain_unop (op: C.unop) (env: env) (loc: C.location) (t: C.typ) (e: C.exp): itypevar * itypecstr list =
-  let itv, cs = constrain_exp env loc e in
+and constrain_unop (op: C.unop) (env: env) (t: C.typ) (e: C.exp): itypevar * itypecstr list =
+  let itv, cs = constrain_exp env e in
     match itv with
       | CTInt _ -> (apply_unop t op, cs)
-      | _       -> E.s <| C.errorLoc loc "Unimplemented: Haven't considered how to apply unops to references@!"
+      | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> itypevar = function
   | C.LNot -> CTInt (CM.typ_width rt, IEConst (ISeq (0, 1)))
   | C.BNot -> CTInt (CM.typ_width rt, IEConst ITop)
   | C.Neg  -> CTInt (CM.typ_width rt, IEConst ITop)
 
-and constrain_binop (op: C.binop) (env: env) (loc: C.location) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypecstr list =
-  let itv1, cs1 = constrain_exp env loc e1 in
-  let itv2, cs2 = constrain_exp env loc e2 in
-  let itv, co   = apply_binop op loc t itv1 itv2 in
+and constrain_binop (op: C.binop) (env: env) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypecstr list =
+  let itv1, cs1 = constrain_exp env e1 in
+  let itv2, cs2 = constrain_exp env e2 in
+  let itv, co   = apply_binop op t itv1 itv2 in
     (itv, M.maybe_cons co (cs1 @ cs2))
 
-and apply_binop: C.binop -> C.location -> C.typ -> itypevar -> itypevar -> itypevar * itypecstr option = function
+and apply_binop: C.binop -> C.typ -> itypevar -> itypevar -> itypevar * itypecstr option = function
   | C.PlusA                                 -> apply_arithmetic (fun ie1 ie2 -> IEPlus (ie1, 1, ie2))
   | C.MinusA                                -> apply_arithmetic (fun ie1 ie2 -> IEMinus (ie1, 1, ie2))
   | C.Mult                                  -> apply_arithmetic (fun ie1 ie2 -> IEMult (ie1, ie2))
@@ -315,36 +315,36 @@ and apply_binop: C.binop -> C.location -> C.typ -> itypevar -> itypevar -> itype
   | C.Mod                                   -> apply_unknown
   | C.BAnd | C.BOr | C.BXor                 -> apply_unknown
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
-  | bop                                     -> E.s <| E.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
+  | bop                                     -> E.s <| C.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (_: C.location) (rt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
+and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match itv1, itv2 with
     | (CTInt (n1, ie1), CTInt (n2, ie2)) -> (CTInt (CM.typ_width rt, f ie1 ie2), None)
-    | _                                  -> E.s <| E.bug "Type mismatch in apply_arithmetic@!@!"
+    | _                                  -> E.s <| C.bug "Type mismatch in apply_arithmetic@!@!"
 
-and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (loc: C.location) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
+and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match C.unrollType pt, itv1, itv2 with
     | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width ->
         let iv = IEVar (fresh_indexvar ()) in
-          (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr loc (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1)))))
-    | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+          (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1)))))
+    | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
-and apply_ptrminus (_: C.location) (pt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_ptrminus (pt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.typ_width !C.upointType, IEConst ITop), None)
 
-and apply_rel (_: C.location) (_: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_rel (_: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.int_width, IEConst (ISeq (0, 1))), None)
 
-and apply_unknown (_: C.location) (rt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.typ_width rt, IEConst ITop), None)
 
-and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr list = function
-  | C.CStr _                                 -> halt <| E.unimp "Haven't implemented string constants yet"
+and constrain_constptr: C.constant -> itypevar * itypecstr list = function
+  | C.CStr _                                 -> halt <| C.unimp "Haven't implemented string constants yet"
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
-  | c                                        -> halt <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+  | c                                        -> halt <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
-and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
-  let itv, cs = constrain_exp env loc e in
+and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
+  let itv, cs = constrain_exp env e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
       | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), cs)
       | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), cs)
@@ -357,70 +357,74 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar
                     (* pmr: what about the sign bit?  this may not always be safe *)
                     if C.isSigned ik then ie else IEUnsign ie
                   else if not !Constants.safe then begin
-                    C.warnLoc loc "Unsoundly assuming cast is lossless@!@!" |> ignore;
+                    C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
                     if C.isSigned ik then ie else IEUnsign ie
                   end else
                     IEConst ITop
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs)
-            | _ -> halt <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
+            | _ -> halt <| C.error "Got bogus type in contraining int-int cast@!@!"
           end
       | _ -> (itv, cs)
 
-and constrain_sizeof (loc: C.location) (t: C.typ): itypevar * itypecstr list =
+and constrain_sizeof (t: C.typ): itypevar * itypecstr list =
   (CTInt (CM.int_width, IEConst (IInt (CM.typ_width t))), [])
 
-let constrain_return (env: env) (rtv: itypevar) (loc: C.location): C.exp option -> itypecstr list = function
-    | None   -> if is_void rtv then [] else halt <| C.errorLoc loc "Returning void value for non-void function\n\n"
+let constrain_return (env: env) (rtv: itypevar): C.exp option -> itypecstr list = function
+    | None   -> if is_void rtv then [] else halt <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
-        let itv, cs = constrain_exp env loc e in
-          mk_isubtypecstr loc itv rtv :: cs
+        let itv, cs = constrain_exp env e in
+          mk_isubtypecstr itv rtv :: cs
 
-let constrain_arg (env: env) (loc: C.location) (e: C.exp) ((itvs, css): itypevar list * itypecstr list list): itypevar list * itypecstr list list =
-  let itv, cs = constrain_exp env loc e in
+let constrain_arg (env: env) (e: C.exp) ((itvs, css): itypevar list * itypecstr list list): itypevar list * itypecstr list list =
+  let itv, cs = constrain_exp env e in
     (itv :: itvs, cs :: css)
 
-let constrain_args (env: env) (loc: C.location) (args: C.exp list): itypevar list * itypecstr list list =
-  List.fold_right (constrain_arg env loc) args ([], [])
+let constrain_args (env: env) (args: C.exp list): itypevar list * itypecstr list list =
+  List.fold_right (constrain_arg env) args ([], [])
 
-let constrain_app ((_, fe) as env: env) (loc: C.location) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
-  let itvs, css = constrain_args env loc args in
-  let ftv       = try VM.find f fe with Not_found -> halt <| C.errorLoc loc "Couldn't find function %a (missing prototype or spec?)\n\n" CM.d_var f in
+let constrain_app ((_, fe) as env: env) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): itypecstr list list =
+  let itvs, css = constrain_args env args in
+  let ftv       = try VM.find f fe with Not_found -> halt <| C.error "Couldn't find function %a (missing prototype or spec?)\n\n" CM.d_var f in
   let itvfs     = List.map snd ftv.args in
-  let css       = List.map2 (fun itva itvf -> mk_isubtypecstr loc itva itvf) itvs itvfs :: css in
+  let css       = List.map2 (fun itva itvf -> mk_isubtypecstr itva itvf) itvs itvfs :: css in
     match lvo with
       | None    -> css
       | Some lv ->
-          let itvlv, cs2 = constrain_lval env loc lv in
-            (mk_isubtypecstr loc ftv.ret itvlv :: cs2) :: css
+          let itvlv, cs2 = constrain_lval env lv in
+            (mk_isubtypecstr ftv.ret itvlv :: cs2) :: css
 
-let constrain_instr_aux (env: env) (css: itypecstr list list): C.instr -> itypecstr list list = function
-  | C.Set (lv, e, loc) ->
-      let itv1, cs1 = constrain_lval env loc lv in
-      let itv2, cs2 = constrain_exp env loc e in
-        (mk_isubtypecstr loc itv2 itv1 :: cs1) :: cs2 :: css
-  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, loc) when CM.isVararg f.C.vtype ->
-      if not !Constants.safe then C.warnLoc loc "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.errorLoc loc "Can't handle varargs";
-      (constrain_args env loc args |> snd |> List.concat) :: css
-  | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, loc) ->
-      (constrain_app env loc f lvo args |> List.concat) :: css
-  | i -> E.s <| E.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
+let constrain_instr_aux (env: env) (css: itypecstr list list) (i: C.instr): itypecstr list list =
+  let _ = C.currentLoc := C.get_instrLoc i in
+    match i with
+      | C.Set (lv, e, _) ->
+          let itv1, cs1 = constrain_lval env lv in
+          let itv2, cs2 = constrain_exp env e in
+            (mk_isubtypecstr itv2 itv1 :: cs1) :: cs2 :: css
+      | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
+          if not !Constants.safe then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.error "Can't handle varargs";
+          (constrain_args env args |> snd |> List.concat) :: css
+      | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
+          (constrain_app env f lvo args |> List.concat) :: css
+      | _ -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (is: C.instr list): itypecstr list =
   is |> List.fold_left (constrain_instr_aux env) [] |> List.concat
 
 let constrain_stmt (env: env) (rtv: itypevar) (s: C.stmt): itypecstr list =
-  match s.C.skind with
-    | C.Instr is             -> constrain_instr env is
-    | C.If (e, _, _, loc)    -> constrain_exp env loc e |> snd  (* we'll visit the subblocks later *)
-    | C.Break _              -> []
-    | C.Continue _           -> []
-    | C.Goto _               -> []
-    | C.Block _              -> []                              (* we'll visit this later as we iterate through blocks *)
-    | C.Loop (_, _, _, _)    -> []                              (* ditto *)
-    | C.Return (rexp, loc)   -> constrain_return env rtv loc rexp
-    | _                      -> E.s <| E.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+  let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
+    match s.C.skind with
+      | C.Instr is             -> constrain_instr env is
+      | C.If (e, _, _, loc)    -> constrain_exp env e |> snd  (* we'll visit the subblocks later *)
+      | C.Break _              -> []
+      | C.Continue _           -> []
+      | C.Goto _               -> []
+      | C.Block _              -> []                              (* we'll visit this later as we iterate through blocks *)
+      | C.Loop (_, _, _, _)    -> []                              (* ditto *)
+      | C.Return (rexp, loc)   -> constrain_return env rtv rexp
+      | _                      -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let maybe_fresh (v: C.varinfo): (C.varinfo * itypevar) option =
+  let _ = C.currentLoc := v.C.vdecl in
   let t = C.unrollType v.C.vtype in
     match t with
       | C.TInt _
@@ -428,14 +432,15 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * itypevar) option =
       | C.TPtr _
       | C.TArray _ -> Some (v, fresh_itypevar t)
       | _          ->
-          let _ = if !Constants.safe then E.error "not freshing local %s" v.C.vname in
-            C.warnLoc v.C.vdecl "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
+          let _ = if !Constants.safe then C.error "not freshing local %s" v.C.vname |> ignore in
+            C.warn "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
 
 let fresh_vars (vs: C.varinfo list): (C.varinfo * itypevar) list =
   Misc.map_partial maybe_fresh vs
 
 let constrain_phi_defs (ve: varenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo) list): itypecstr list =
-  List.map (fun (_, vdef) -> mk_isubtypecstr vphi.C.vdecl (VM.find vdef ve) (VM.find vphi ve)) vdefs
+  let _ = C.currentLoc := vphi.C.vdecl in
+    List.map (fun (_, vdef) -> mk_isubtypecstr (VM.find vdef ve) (VM.find vphi ve)) vdefs
 
 let constrain_phis (ve: varenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): itypecstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
@@ -451,8 +456,8 @@ let constrain_fun (fe: funenv) (ftv: ifunvar) ({ST.fdec = fd; ST.phis = phis; ST
   let locals      = fresh_vars fd.C.slocals in
   let vars        = locals @ bodyformals in
   let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) VM.empty vars in
-  let loc         = fd.C.svar.C.vdecl in
-  let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr loc at itv) ftv.args bodyformals in
+  let _           = C.currentLoc := fd.C.svar.C.vdecl in
+  let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr at itv) ftv.args bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] cfg.Ssa.blocks in
