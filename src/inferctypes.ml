@@ -486,8 +486,8 @@ let constrain_sci (fs: funenv) (sci: ST.ssaCfgInfo): S.t list * cstr list =
     constrain_fun fs cf ve hv sci
 
 let constrain_scc (fs: funenv) (scc: scc): funenv * S.t list * cstr list =
-  let fvs, scis  = List.split scc in
-  let sss, css   = List.map (constrain_sci fs) scis |> List.split in
+  let fvs, scis = List.split scc in
+  let sss, css  = List.map (constrain_sci fs) scis |> List.split in
     (fs, List.concat sss, List.concat css)
 
 (******************************************************************************)
