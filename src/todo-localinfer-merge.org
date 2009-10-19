@@ -1,0 +1,9 @@
+* Merging local inference and full spec inference
+  The following things need to be added to the full spec inference
+  code:
+
+** TODO Return an expression -> ctype map
+** TODO Emit dynamic checks like localInfer
+** TODO Get all regrtests running
+** TODO Cheerily delete the localInfer code and merge
+** TODO Add annotation support for __array__ attribute types

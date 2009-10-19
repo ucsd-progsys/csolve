@@ -595,3 +595,27 @@ let specs_of_file spec cil =
   let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
   let env  = SM.fold (add_builtin cil) spec VM.empty in
     infer_spec env cg scis
+
+(******************************************************************************)
+(**************************** Local Shape Inference ***************************)
+(******************************************************************************)
+
+type shape =
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap;
+   store : Ctypes.store;
+   anna  : Refanno.block_annotation array;
+   theta : Refanno.ctab }
+
+type dcheck = C.varinfo * FI.refctype
+
+let infer_shape (fe: funenv) (cf: cfun) (ve: ctvenv) (sci: ST.ssaCfgInfo): shape * dcheck list =
+  let _, cs        = constrain_fun fe cf ve (fresh_heapvar ()) sci in
+  let scs          = filter_simple_cstrs cs in
+  let cm, sd       = update_deps scs IM.empty SLM.empty in
+  let _, _, _, sto = solve sd cm SLM.empty in
+    assert false
+
+(* API *)
+let infer_shapes (env: ctypeenv) (scis: (cfun * Ssa_transform.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t * ctypeenv =
+  assert false
