@@ -454,7 +454,6 @@ let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
 let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
-  let blocks     = cfg.Ssa.blocks in
   let _          = C.currentLoc := fd.C.svar.C.vdecl in
   let formalcs   = List.map2 (fun (_, fct) bv -> mk_subty fct (VM.find bv ve)) cf.args fd.C.sformals in
   let phics      = constrain_phis ve phis in
@@ -462,7 +461,7 @@ let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec =
     M.array_fold_lefti begin fun i (sss, css) b ->
       let (cs, ss) = constrain_stmt (fs, hv, ve) cf.ret b.Ssa.bstmt in
         (ss :: sss, cs :: css)
-    end ([], []) blocks
+    end ([], []) cfg.Ssa.blocks
   in
   let _      = C.currentLoc := fd.C.svar.C.vdecl in
   let vartys = VM.fold (fun _ ct cts -> ct :: cts) ve [] in
