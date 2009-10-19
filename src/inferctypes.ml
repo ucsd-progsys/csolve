@@ -449,10 +449,9 @@ let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
-let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
+let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): S.t list * cstr list =
   let blocks     = cfg.Ssa.blocks in
   let loc        = fd.C.svar.C.vdecl in
-  let cf, ve, hv = VM.find fd.C.svar fs in
   let formalcs   = List.map2 (fun (_, fct) bv -> mk_subty loc fct (VM.find bv ve)) cf.args fd.C.sformals in
   let phics      = constrain_phis ve phis in
   let sss, css   =
@@ -477,9 +476,13 @@ let constrain_fun (fs: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
 
 type scc = (C.varinfo * ST.ssaCfgInfo) list
 
+let constrain_sci (fs: funenv) (sci: ST.ssaCfgInfo): S.t list * cstr list =
+  let cf, ve, hv = VM.find sci.ST.fdec.C.svar fs in
+    constrain_fun fs cf ve hv sci
+
 let constrain_scc (fs: funenv) (scc: scc): funenv * S.t list * cstr list =
-  let fvs, scis = List.split scc in
-  let sss, css  = List.map (constrain_fun fs) scis |> List.split in
+  let fvs, scis  = List.split scc in
+  let sss, css   = List.map (constrain_sci fs) scis |> List.split in
     (fs, List.concat sss, List.concat css)
 
 (******************************************************************************)
@@ -530,13 +533,17 @@ let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
 let d_scc () (scc: scc): P.doc =
   (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) () scc
 
+let update_deps (scs: simplecstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep =
+  let cm = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
+  let sd = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
+    (cm, sd)
+
 let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" d_scc scc |> ignore in
   let fs               = fresh_scc it fs scc in
   let fs, ss, cs       = constrain_scc fs scc in
   let scs              = filter_simple_cstrs cs in
-  let cm               = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
-  let sd               = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
+  let cm, sd           = update_deps scs cm sd in
   let sd, cm, sub, sto = solve sd cm sto in
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
@@ -557,14 +564,14 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
     end else ()
   in (fs, sd, cm, sto)
 
-let fresh_builtin (f: C.varinfo) (cf: cfun) (fe: funenv): funenv =
-  VM.add f (cf, VM.empty, fresh_heapvar ()) fe
+let funenv_of_ctenv (env: cfun VM.t): funenv =
+  VM.fold (fun f cf fe -> VM.add f (cf, VM.empty, fresh_heapvar ()) fe) env VM.empty
 
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
   let it          = Inferindices.infer_indices env scim in
   let cg          = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
   let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
-  let fs          = VM.fold fresh_builtin env VM.empty in
+  let fs          = funenv_of_ctenv env in
   let fs, _, _, _ = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
     VM.fold begin fun f (cf, _, _) spec ->
       if CM.definedHere f then
