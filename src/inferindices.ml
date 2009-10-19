@@ -443,13 +443,12 @@ let dump_constraints (fn: string) (ftv: ifunvar) (cs: itypecstr list): unit =
   let _ = P.printf "%a\n\n" (P.d_list "\n" d_itypecstr) cs in
     ()
 
-let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
+let constrain_fun (fe: funenv) (ftv: ifunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
   let vars        = locals @ bodyformals in
   let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) VM.empty vars in
   let loc         = fd.C.svar.C.vdecl in
-  let ftv         = VM.find fd.C.svar fe in
   let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr loc at itv) ftv.args bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
@@ -464,14 +463,17 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
     mk_cfun [] fctys (fresh_itypevar rty) SLM.empty SLM.empty
 
 let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypecstr list list * (ifunvar * itypevar VM.t) VM.t): itypecstr list list * (ifunvar * itypevar VM.t) VM.t =
-  let ve, cs = constrain_fun fe sci in
+  let ve, cs = constrain_fun fe (VM.find sci.ST.fdec.C.svar fe) sci in
   let fv     = sci.ST.fdec.C.svar in
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
+let funenv_of_ctenv (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): funenv =
+  ctenv |> VM.map (precfun_map itypevar_of_ctype)
+        |> VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim
+
 let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
-  let fe      = VM.map (precfun_map (prectype_map (fun i -> IEConst i))) ctenv in
+  let fe      = funenv_of_ctenv ctenv scim in
   let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
-  let fe      = VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim fe in
   let css, fm = VM.fold (constrain_prog_fold fe) scim ([], fm) in
     (List.concat css, fm)
 
