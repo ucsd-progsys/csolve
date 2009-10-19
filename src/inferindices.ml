@@ -504,3 +504,10 @@ let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
   let it     = VM.map (fun (ifv, vm) -> (precfun_map (itypevar_apply is) ifv, VM.map (itypevar_apply is) vm)) fm in
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index typing:\n\n%a\n\n" d_indextyping it |> ignore in
     it
+
+(* API *)
+let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t =
+  let fe     = funenv_of_ctenv ctenv scim in
+  let ve, cs = constrain_fun fe (ifunvar_of_cfun cf) sci in
+  let is     = solve cs in
+    VM.map (itypevar_apply is) ve
