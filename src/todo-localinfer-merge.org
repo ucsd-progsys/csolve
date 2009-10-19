@@ -3,7 +3,14 @@
   code:
 
 ** TODO Return an expression -> ctype map
+   And change solve to apply the solution to the map.
+*** TODO Merge common envs into products
+    loc can totally be rolled into env; it's just as static as everything else
+    there and always present
 ** TODO Emit dynamic checks like localInfer
+   These should be coming out of inferindices.
 ** TODO Get all regrtests running
 ** TODO Cheerily delete the localInfer code and merge
 ** TODO Add annotation support for __array__ attribute types
+** TODO Can we cut down code duplication...
+*** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)
