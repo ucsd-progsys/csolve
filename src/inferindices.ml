@@ -94,8 +94,13 @@ let bounded_refine_index (is: indexsol) (ie: indexexp) (iv: indexvar) (ibound: i
 
 type itypevar = indexexp prectype
 
+type ifunvar = indexexp precfun
+
 let d_itypevar: unit -> itypevar -> P.doc =
   d_prectype d_indexexp
+
+let d_ifunvar: unit -> ifunvar -> P.doc =
+  d_precfun d_indexexp
 
 let itypevar_indexvars: itypevar -> indexvar list = function
   | CTInt (_, ie) | CTRef (_, ie) -> indexexp_vars ie
@@ -103,6 +108,9 @@ let itypevar_indexvars: itypevar -> indexvar list = function
 let itypevar_of_ctype: ctype -> itypevar = function
   | CTInt (n, i) -> CTInt (n, IEConst i)
   | CTRef (s, i) -> CTRef (s, IEConst i)
+
+let ifunvar_of_cfun (cf: cfun): ifunvar =
+  precfun_map itypevar_of_ctype cf
 
 let heap_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
@@ -128,11 +136,6 @@ let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
     | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | _                                             -> false
-
-type ifunvar = indexexp precfun
-
-let d_ifunvar: unit -> ifunvar -> P.doc =
-  d_precfun d_indexexp
 
 type itypecstrdesc =
   | ISubtype of itypevar * itypevar
@@ -468,7 +471,7 @@ let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm)
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
 let funenv_of_ctenv (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): funenv =
-  ctenv |> VM.map (precfun_map itypevar_of_ctype)
+  ctenv |> VM.map ifunvar_of_cfun
         |> VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim
 
 let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
@@ -493,6 +496,6 @@ let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
   let cs, fm = constrain_prog ctenv scim in
   let is     = solve cs in
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in
-  let it     = VM.map (fun (ifv, vm) -> (precfun_map (itypevar_apply is) ifv, VM.map (prectype_map (indexexp_apply is)) vm)) fm in
+  let it     = VM.map (fun (ifv, vm) -> (precfun_map (itypevar_apply is) ifv, VM.map (itypevar_apply is) vm)) fm in
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index typing:\n\n%a\n\n" d_indextyping it |> ignore in
     it
