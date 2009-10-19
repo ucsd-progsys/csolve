@@ -344,14 +344,14 @@ and constrain_constptr (loc: C.location): C.constant -> itypevar * itypecstr lis
   | c                                        -> halt <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar * itypecstr list =
-  let ect = constrain_exp env loc e in
+  let itv, cs = constrain_exp env loc e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), [])
-      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
-      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), [])
+      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), cs)
+      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), cs)
+      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), cs)
       | C.TInt (ik, _), C.TInt _   ->
-          begin match ect with
-            | CTInt (n, ie), cs ->
+          begin match itv with
+            | CTInt (n, ie) ->
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
@@ -364,7 +364,7 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): itypevar
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs)
             | _ -> halt <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
           end
-      | _ -> ect
+      | _ -> (itv, cs)
 
 and constrain_sizeof (loc: C.location) (t: C.typ): itypevar * itypecstr list =
   (CTInt (CM.int_width, IEConst (IInt (CM.typ_width t))), [])

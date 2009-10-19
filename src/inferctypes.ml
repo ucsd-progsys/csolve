@@ -359,13 +359,13 @@ and constrain_constptr (loc: C.location): C.constant -> ctype * cstr list * S.t 
   | c                                        -> E.s <| C.errorLoc loc "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * cstr list * S.t list =
-  let ect = constrain_exp env loc e in
+  let ctv, cs, ss = constrain_exp env loc e in
     match (C.unrollType ct, C.unrollType <| C.typeOf e) with
-      | (C.TInt (ik, _), C.TPtr _)   -> (CTInt (C.bytesSizeOfInt ik, ITop), [], [])
-      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, ITop), [], [])
+      | (C.TInt (ik, _), C.TPtr _)   -> (CTInt (C.bytesSizeOfInt ik, ITop), cs, ss)
+      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, ITop), cs, ss)
       | (C.TInt (ik, _), C.TInt _)   ->
-          begin match ect with
-            | (CTInt (n, ie), cs, ss) ->
+          begin match ctv with
+            | CTInt (n, ie) ->
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
@@ -378,7 +378,7 @@ and constrain_cast (env: env) (loc: C.location) (ct: C.typ) (e: C.exp): ctype * 
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs, ss)
             | _ -> E.s <| C.errorLoc loc "Got bogus type in contraining int-int cast@!@!"
           end
-      | _ -> ect
+      | _ -> (ctv, cs, ss)
 
 and constrain_sizeof (loc: C.location) (t: C.typ): ctype * cstr list * S.t list =
   (CTInt (CM.int_width, IInt (CM.typ_width t)), [], [])
