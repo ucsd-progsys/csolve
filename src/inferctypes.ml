@@ -307,7 +307,6 @@ and constrain_unop (op: C.unop) (env: env) (loc: C.location) (t: C.typ) (e: C.ex
   let ctv, cs, ss = constrain_exp env loc e in
     match ctv with
       | CTInt _ -> (apply_unop t op, cs, ss)
-(*      | _       -> E.s <| E.unimp "Haven't considered how to apply unops to references@!" *)
       | _       -> E.s <| C.errorLoc loc "Unimplemented: Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> ctype = function
