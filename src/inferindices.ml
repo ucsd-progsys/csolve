@@ -445,7 +445,6 @@ let dump_constraints (fn: string) (ftv: ifunvar) (cs: itypecstr list): unit =
     ()
 
 let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypecstr list =
-  let blocks      = cfg.Ssa.blocks in
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
   let vars        = locals @ bodyformals in
@@ -455,7 +454,7 @@ let constrain_fun (fe: funenv) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST
   let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr loc at itv) ftv.args bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
-  let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] blocks in
+  let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] cfg.Ssa.blocks in
   let cs          = formalcs :: phics :: css |> List.concat in
   let _           = if Cs.ck_olev Cs.ol_solve then dump_constraints fd.C.svar.C.vname ftv cs in
     (ve, cs)
