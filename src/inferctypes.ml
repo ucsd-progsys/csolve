@@ -217,6 +217,9 @@ type slocdep = int list SLM.t (* sloc -> cstr deps *)
 
 type cstrmap = simplecstr IM.t (* cstr ident -> cstr map *)
 
+let cstrmap_subs (sub: S.Subst.t) (cm: cstrmap): cstrmap =
+  IM.map (simplecstr_subst sub) cm
+
 (* pmr: should make sure that subst is well-defined at this point *)
 let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
   List.fold_left begin fun sd (sfrom, sto) ->
@@ -232,7 +235,7 @@ let refine (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cst
   let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
-  let cm            = IM.map (simplecstr_subst refsub) cm in
+  let cm            = cstrmap_subs refsub cm in
   let em            = ExpMap.map (prectype_subs refsub) em in
   let bas           = Array.map (RA.subs refsub) bas in
     (em, bas, sd, cm, S.Subst.compose refsub sub, sto, succs)
@@ -628,20 +631,88 @@ type shape =
 
 type dcheck = C.varinfo * FI.refctype
 
+exception Unify of S.t * S.t
+
+let match_slocs (ct1: ctype) (ct2: ctype): unit =
+  match ct1, ct2 with
+    | CTRef (s1, _), CTRef (s2, _) when not (S.eq s1 s2) -> raise (Unify (s1, s2))
+    | _                                                  -> ()
+
+let check_expected_type (etyp: ctype) (atyp: ctype): bool =
+  match_slocs atyp etyp;
+  if is_subctype atyp etyp then
+    true
+  else begin
+    C.error "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
+    false
+  end
+
+let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
+  prestore_fold begin fun ok l i ct ->
+    if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
+      C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
+      false
+    end else
+      ok
+  end true sto_out_actual
+
+let check_out_store (sto_out_formal: store) (sto_out_actual: store): bool =
+  check_out_store_complete sto_out_formal sto_out_actual &&
+    prestore_fold begin fun ok l i ft ->
+      try
+        match prestore_find_index l i sto_out_actual with
+          | []   -> not (SLM.mem l sto_out_actual)
+          | [at] -> check_expected_type ft at && ok (* order is important here for unification! *)
+          | _    -> failwith "Returned too many at index from prestore_find_index"
+      with
+        | Unify (s1, s2) -> raise (Unify (s1, s2))
+        | Not_found      -> ok
+        | _              -> false
+    end true sto_out_formal
+
+let revert_spec_names (sub: S.Subst.t) (cfspec: cfun): S.Subst.t =
+     cfspec.sto_out
+  |> prestore_domain
+  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply sub s) s sub) sub
+
+type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
+
+(* pmr: check this whole bit quite carefully *)
+let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
+  let em, bas, sd, cm, _, sto = solve em bas sd cm SLM.empty in
+  let sub         = revert_spec_names [] cf in
+  let sto         = prestore_subs sub sto in
+    try
+      if check_out_store cf.sto_out sto then
+        let bas    = Array.map (RA.subs sub) bas in
+        let varsol = VM.map (prectype_subs sub) vars in
+        let ds     = [] (* cs |> List.map (cstr_subs sub) |> M.map_partial (get_cstr_dcheck is) *) in
+          (sto, varsol, em, bas)
+      else
+        E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
+    with Unify (s1, s2) ->
+      let sub = [(s1, s2)] in
+        solve_and_check
+          cf
+          (VM.map (prectype_subs sub) vars)
+          (ExpMap.map (prectype_subs sub) em)
+          (Array.map (RA.subs sub) bas)
+          (adjust_slocdep sub sd)
+          (cstrmap_subs sub cm)
+
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
   let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
   let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs IM.empty SLM.empty in
-  let em, bas, _, _, sub, sto = solve em bas sd cm SLM.empty in
-  let annot, theta          = RA.annotate_cfg sci.ST.cfg em bas in
-  let dchecks               = [] in
-  let shp                   = {vtyps = VM.fold (fun vi ctv vtyps -> (vi, prectype_subs sub ctv) :: vtyps) ve [];
-                               etypm = em;
-                               store = sto;
-                               anna  = annot;
-                               theta = theta} in
-    (shp, dchecks)
+  let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
+  let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
+  let shp                 = {vtyps = CM.vm_to_list vtyps;
+                             etypm = em;
+                             store = sto;
+                             anna  = annot;
+                             theta = theta} in
+    (shp, [])
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
