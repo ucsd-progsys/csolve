@@ -744,5 +744,5 @@ let infer_shape (env: ctypeenv) ({args = argcts; ret = rt; sto_in = sin} as cf: 
     (shp, ds)
 
 (* API *)
-let infer_shapes (env: ctypeenv) (scis: funmap): (shape * dcheck list) SM.t * ctypeenv =
+let infer_shapes (_: C.file) (env: ctypeenv) (scis: funmap): (shape * dcheck list) SM.t * ctypeenv =
   (scis |> SM.map (infer_shape env |> M.uncurry), env)

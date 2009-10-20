@@ -34,4 +34,4 @@ type dcheck = Cil.varinfo * FixInterface.refctype
 
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
 val d_vartypes: unit -> (Cil.varinfo * Ctypes.ctype) list -> Pretty.doc
-val infer_shapes: Ctypes.ctypeenv -> funmap -> (shape * dcheck list) Misc.StringMap.t * Ctypes.ctypeenv
+val infer_shapes: Cil.file -> Ctypes.ctypeenv -> funmap -> (shape * dcheck list) Misc.StringMap.t * Ctypes.ctypeenv

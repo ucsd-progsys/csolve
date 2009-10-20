@@ -39,6 +39,12 @@ type ctvenv = ctype VM.t
 
 type funenv = (cfun * ctvenv * heapvar) VM.t
 
+let ctenv_of_funenv (fe: funenv): cfun VM.t =
+  VM.map fst3 fe
+
+let funenv_of_ctenv (env: cfun VM.t): funenv =
+  VM.fold (fun f cf fe -> VM.add f (cf, VM.empty, fresh_heapvar ()) fe) env VM.empty
+
 type env = funenv * heapvar * ctvenv
 
 type ctvemap = ctype ExpMap.t
@@ -220,7 +226,7 @@ let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
       sd |> SLM.remove sfrom |> SLM.add sto (newdeps @ olddeps)
   end sd sub
 
-let refine (em: ctvemap) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: store): ctvemap * slocdep * cstrmap * S.Subst.t * store * int list =
+let refine (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store * int list =
   let refsub, sto   = refine_aux sc sto in
   let invalid_slocs = S.Subst.slocs refsub in
   let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
@@ -228,7 +234,8 @@ let refine (em: ctvemap) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simpl
   let sd            = adjust_slocdep refsub sd in
   let cm            = IM.map (simplecstr_subst refsub) cm in
   let em            = ExpMap.map (prectype_subs refsub) em in
-    (em, sd, cm, S.Subst.compose refsub sub, sto, succs)
+  let bas           = Array.map (RA.subs refsub) bas in
+    (em, bas, sd, cm, S.Subst.compose refsub sub, sto, succs)
 
 (* pmr: pull out worklist code? *)
 module WkList = Heaps.Functional(struct
@@ -239,22 +246,25 @@ module WkList = Heaps.Functional(struct
 let wklist_push (wkl: WkList.t) (itcids: int list): WkList.t =
   List.fold_left (M.flip WkList.add) wkl itcids
 
-let rec iter_solve (wkl: WkList.t) (em: ctvemap) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): ctvemap * slocdep * cstrmap * S.Subst.t * store =
+let rec iter_solve (wkl: WkList.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store =
   match try Some (WkList.maximum wkl) with Heaps.EmptyHeap -> None with
-    | None     -> (em, sd, cm, sub, sto)
+    | None     -> (em, bas, sd, cm, sub, sto)
     | Some cid ->
         let sc  = M.IntMap.find cid cm in
         let wkl = WkList.remove wkl in
           if simplecstr_sat sto sc then
-            iter_solve wkl em sd cm sub sto
+            iter_solve wkl em bas sd cm sub sto
           else
-            let em, sd, cm, sub, sto, succs = refine em sd cm sub sc sto in
-            let wkl                         = wklist_push wkl succs in
-              iter_solve wkl em sd cm sub sto
+            let em, bas, sd, cm, sub, sto, succs = refine em bas sd cm sub sc sto in
+            let wkl                              = wklist_push wkl succs in
+              iter_solve wkl em bas sd cm sub sto
 
-let solve (em: ctvemap) (sd: slocdep) (cm: cstrmap) (sto: store): ctvemap * slocdep * cstrmap * S.Subst.t * store =
+(* pmr: probably harmless to just apply the sub at the very end,
+   leaving out ctvemap and block annotation - this is what we're doing
+   with the varmap anyway... *)
+let solve (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store =
   let wkl = IM.fold (fun cid _ cids -> cid :: cids) cm [] |> wklist_push WkList.empty in
-    iter_solve wkl em sd cm S.Subst.empty sto
+    iter_solve wkl em bas sd cm S.Subst.empty sto
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -391,11 +401,11 @@ and constrain_sizeof (em: ctvemap) (t: C.typ): ctype * ctvemap * cstr list * S.t
   (CTInt (CM.int_width, IInt (CM.typ_width t)), em, [], [])
 
 (* pmr: move loc earlier *)
-let constrain_return (env: env) (em: ctvemap) (rtv: ctype): C.exp option -> ctvemap * cstr list * S.t list = function
-    | None   -> if is_void rtv then (em, [], []) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
+let constrain_return (env: env) (em: ctvemap) (rtv: ctype): C.exp option -> ctvemap * RA.block_annotation * cstr list * S.t list = function
+    | None   -> if is_void rtv then (em, [], [], []) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
         let ctv, em, cs, ss = constrain_exp env em e in
-          (em, mk_subty ctv rtv :: cs, ss)
+          (em, [], mk_subty ctv rtv :: cs, ss)
 
 let constrain_arg (env: env) (e: C.exp) ((ctvs, em, css, sss): ctype list * ctvemap * cstr list list * S.t list list): ctype list * ctvemap * cstr list list * S.t list list =
   let ctv, em, cs, ss = constrain_exp env em e in
@@ -404,10 +414,11 @@ let constrain_arg (env: env) (e: C.exp) ((ctvs, em, css, sss): ctype list * ctve
 let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvemap * cstr list list * S.t list list =
   List.fold_right (constrain_arg env) es ([], em, [], [])
 
-let constrain_app ((fs, hv, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * cstr list list * S.t list list =
+let constrain_app ((fs, hv, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * RA.annotation list * cstr list list * S.t list list =
   let ctvs, em, css, sss = constrain_args env em args in
   let cf, _, hvf     = VM.find f fs in
   let instslocs      = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
+  let annot          = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs instslocs in
   let sub            = List.combine cf.qlocs instslocs in
   let sss            = instslocs :: sss in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
@@ -416,42 +427,42 @@ let constrain_app ((fs, hv, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C
                         List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs ctvfs ::
                         css in
     match lvo with
-      | None    -> (em, css, sss)
+      | None    -> (em, annot, css, sss)
       | Some lv ->
           let ctvlv, em, cs2, ss2 = constrain_lval env em lv in
           let em              = ExpMap.add (C.Lval lv) ctvlv em in
-            (em, (mk_subty (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss)
+            (em, annot, (mk_subty (prectype_subs sub cf.ret) ctvlv :: cs2) :: css, ss2 :: sss)
 
-let constrain_instr_aux (env: env) ((em, css, sss): ctvemap * cstr list list * S.t list list) (i: C.instr): ctvemap * cstr list list * S.t list list =
+let constrain_instr_aux (env: env) ((em, bas, css, sss): ctvemap * RA.block_annotation * cstr list list * S.t list list) (i: C.instr): ctvemap * RA.block_annotation * cstr list list * S.t list list =
   let _ = C.currentLoc := C.get_instrLoc i in
     match i with
       | C.Set (lv, e, _) ->
           let ctv1, em, cs1, ss1 = constrain_lval env em lv in
           let ctv2, em, cs2, ss2 = constrain_exp env em e in
-            (em, (mk_subty ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss)
+            (em, [] :: bas, (mk_subty ctv2 ctv1 :: cs1) :: cs2 :: css, ss1 :: ss2 :: sss)
       | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
           if not !Constants.safe then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.error "Can't handle varargs";
           let _, em, css2, sss = constrain_args env em args in
-            (em, css2 @ css, sss)
+            (em, [] :: bas, css2 @ css, sss)
       | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-          let em, css2, sss = constrain_app env em f lvo args in
-            (em, css2 @ css, sss)
+          let em, ba, css2, sss = constrain_app env em f lvo args in
+            (em, ba :: bas, css2 @ css, sss)
       | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr (env: env) (em: ctvemap) (is: C.instr list): ctvemap * cstr list * S.t list =
-  let em, css, sss = List.fold_left (constrain_instr_aux env) (em, [], []) is in
-    (em, List.concat css, List.concat sss)
+let constrain_instr (env: env) (em: ctvemap) (is: C.instr list): ctvemap * RA.block_annotation * cstr list * S.t list =
+  let em, bas, css, sss = List.fold_left (constrain_instr_aux env) (em, [], [], []) is in
+    (em, List.rev ([] :: bas), List.concat css, List.concat sss)
 
-let constrain_stmt (env: env) (em: ctvemap) (rtv: ctype) (s: C.stmt): ctvemap * cstr list * S.t list =
+let constrain_stmt (env: env) (em: ctvemap) (rtv: ctype) (s: C.stmt): ctvemap * RA.block_annotation * cstr list * S.t list =
   let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
     match s.C.skind with
       | C.Instr is          -> constrain_instr env em is
-      | C.If (e, _, _, _)   -> let _, em, cs, ss = constrain_exp env em e in (em, cs, ss) (* we'll visit the subblocks later *)
-      | C.Break _           -> (em, [], [])
-      | C.Continue _        -> (em, [], [])
-      | C.Goto _            -> (em, [], [])
-      | C.Block _           -> (em, [], [])                              (* we'll visit this later as we iterate through blocks *)
-      | C.Loop (_, _, _, _) -> (em, [], [])                              (* ditto *)
+      | C.If (e, _, _, _)   -> let _, em, cs, ss = constrain_exp env em e in (em, [], cs, ss) (* we'll visit the subblocks later *)
+      | C.Break _           -> (em, [], [], [])
+      | C.Continue _        -> (em, [], [], [])
+      | C.Goto _            -> (em, [], [], [])
+      | C.Block _           -> (em, [], [], [])                              (* we'll visit this later as we iterate through blocks *)
+      | C.Loop (_, _, _, _) -> (em, [], [], [])                              (* ditto *)
       | C.Return (rexp, _)  -> constrain_return env em rtv rexp
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
@@ -462,15 +473,18 @@ let constrain_phi_defs (ve: ctvenv) ((vphi, vdefs): C.varinfo * (int * C.varinfo
 let constrain_phis (ve: ctvenv) (phis: (C.varinfo * (int * C.varinfo) list) list array): cstr list =
   Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
 
-let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * S.t list * cstr list =
+let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let _          = C.currentLoc := fd.C.svar.C.vdecl in
   let formalcs   = List.map2 (fun (_, fct) bv -> mk_subty fct (VM.find bv ve)) cf.args fd.C.sformals in
   let phics      = constrain_phis ve phis in
+  let blocks     = cfg.Ssa.blocks in
+  let bas        = Array.make (Array.length blocks) [] in
   let em, sss, css =
     M.array_fold_lefti begin fun i (em, sss, css) b ->
-      let em, cs, ss = constrain_stmt (fs, hv, ve) em cf.ret b.Ssa.bstmt in
+      let em, ba, cs, ss = constrain_stmt (fs, hv, ve) em cf.ret b.Ssa.bstmt in
+        Array.set bas i ba;
         (em, ss :: sss, cs :: css)
-    end (ExpMap.empty, [], []) cfg.Ssa.blocks
+    end (ExpMap.empty, [], []) blocks
   in
   let _      = C.currentLoc := fd.C.svar.C.vdecl in
   let vartys = VM.fold (fun _ ct cts -> ct :: cts) ve [] in
@@ -485,17 +499,17 @@ let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec =
       List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
       P.printf "\n" |> ignore
     end else ()
-  in (em, ss, cs)
+  in (em, bas, ss, cs)
 
 type scc = (C.varinfo * ST.ssaCfgInfo) list
 
-let constrain_sci (fs: funenv) (sci: ST.ssaCfgInfo): ctvemap * S.t list * cstr list =
+let constrain_sci (fs: funenv) (sci: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let cf, ve, hv = VM.find sci.ST.fdec.C.svar fs in
     constrain_fun fs cf ve hv sci
 
 let constrain_scc (fs: funenv) (scc: scc): funenv * S.t list * cstr list =
-  let fvs, scis   = List.split scc in
-  let _, sss, css = List.map (constrain_sci fs) scis |> M.split3 in
+  let fvs, scis      = List.split scc in
+  let _, _, sss, css = List.map (constrain_sci fs) scis |> M.split4 in
     (fs, List.concat sss, List.concat css)
 
 (******************************************************************************)
@@ -557,7 +571,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
   let fs, ss, cs       = constrain_scc fs scc in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs cm sd in
-  let _, sd, cm, sub, sto = solve ExpMap.empty sd cm sto in
+  let _, _, sd, cm, sub, sto = solve ExpMap.empty [||] sd cm sto in
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
@@ -576,9 +590,6 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
       P.printf "ENV:\n\n%a\n\n" d_funenv fs |> ignore
     end else ()
   in (fs, sd, cm, sto)
-
-let funenv_of_ctenv (env: cfun VM.t): funenv =
-  VM.fold (fun f cf fe -> VM.add f (cf, VM.empty, fresh_heapvar ()) fe) env VM.empty
 
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
   let it          = Inferindices.infer_indices env scim in
@@ -617,13 +628,28 @@ type shape =
 
 type dcheck = C.varinfo * FI.refctype
 
-let infer_shape (fe: funenv) (cf: cfun) (ve: ctvenv) (sci: ST.ssaCfgInfo): shape * dcheck list =
-  let em, _, cs    = constrain_fun fe cf ve (fresh_heapvar ()) sci in
-  let scs          = filter_simple_cstrs cs in
-  let cm, sd       = update_deps scs IM.empty SLM.empty in
-  let em, _, _, _, sto = solve em sd cm SLM.empty in
-    assert false
+let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
+  let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
+  let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
+  let scs              = filter_simple_cstrs cs in
+  let cm, sd           = update_deps scs IM.empty SLM.empty in
+  let em, bas, _, _, sub, sto = solve em bas sd cm SLM.empty in
+  let annot, theta          = RA.annotate_cfg sci.ST.cfg em bas in
+  let dchecks               = [] in
+  let shp                   = {vtyps = VM.fold (fun vi ctv vtyps -> (vi, prectype_subs sub ctv) :: vtyps) ve [];
+                               etypm = em;
+                               store = sto;
+                               anna  = annot;
+                               theta = theta} in
+    (shp, dchecks)
 
+type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
+
+(* pmr: is fresh_heapvar pattern common enough? *)
 (* API *)
-let infer_shapes (env: ctypeenv) (scis: (cfun * Ssa_transform.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t * ctypeenv =
-  assert false
+let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t * ctypeenv =
+  let fe = VM.empty
+        |> SM.fold (fun f cf fe -> VM.add (C.findOrCreateFunc cil f C.voidType) (cf, VM.empty, fresh_heapvar ()) fe) env
+        |> SM.fold (fun _ (cf, {ST.fdec = fd}) fe -> VM.add fd.C.svar (cf, VM.empty, fresh_heapvar ()) fe) scis in
+  let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
+    (scis |> SM.map (infer_shape fe scim |> M.uncurry), env)
