@@ -1,36 +1,12 @@
 TBD
-[Annot] Readable Annotations
-1. Track source of SSA'ed vars to get better type viewing
-2. Print type of entire function store (not just input/output)
 
-(1) [DONE] Generated .vmap file:
-    ./main.native ../postests/loop.c
-    more ../postests/loop.c.vmap
+[Ops]	get postests/hashfunc.c working...
 
-HEREHEREHERHEREHERE
-(2) To hack vim:
-	write a function c_annot
-	that takes a key = string, line
-	looks up the vmap at the key to find ssaname,
- 	calls :tag ssaname
-	if no ssaname is found
-
-	def c_annot_init(): 
-	  //initializes the database
-
-	def c_annot_search(v, line):
-	  ssname = c_annot_ssname(v, line)
-	  if ssname == "":
-	    do :tag v
-	  else:
-	    do :tag ssname
-
-
--------------------------------------------------------------------------
-TBD
-[Ops]	refactor CilInterface to deal with unop and binop 
+	refactor CilInterface to deal with unop and binop 
         (make CilInterface.expr_of_cilexp return a refinement instead of expr)
 	(make CilInterface.pred_of_cilexp handle !)
+
+[Annot] Dump out the types for the entire store of a function (not just in/out?)
 
 -------------------------------------------------------------------------
 
@@ -51,6 +27,17 @@ Issues
 6. unop not (used in guards)
 7. wierd operations like >> and mask
 6. ??? (go through JHALA comments to get a full list)
+
+-------------------------------------------------------------------------
+[Annot] Readable Annotations: 
+Track source of SSA'ed vars to get better type viewing
+
+(1) Generated .vmap file:
+    ./main.native ../postests/loop.c
+    more ../postests/loop.c.vmap
+
+(2) hack vim (utils/csolve.py) to read above map as one level of
+indirection before "tags"
 
 -------------------------------------------------------------------------
 [genspec]
