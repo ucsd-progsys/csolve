@@ -457,7 +457,7 @@ and constrain_ptrarithmetic (f: indexvar -> int -> indexvar -> indexexp) (em: cs
                   (CTRef (s, iv),
                    em,
                    [mk_ivarless loc (f ie1 (CM.typ_width t) iv3) iv;
-                    mk_dsubty loc ctv2 (CTInt (n, iv3)) (CTInt (n, ISeq (0, CM.typ_width pt))) vi rt])
+                    mk_dsubty loc ctv2 (CTInt (n, iv3)) (CTInt (n, ISeq (0, 1))) vi rt])
             | _ -> assert false
           end
       | _ -> E.s <| E.bug "Type mismatch in constrain_ptrarithmetic@!@!"
