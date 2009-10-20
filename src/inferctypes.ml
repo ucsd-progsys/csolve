@@ -229,16 +229,14 @@ let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
       sd |> SLM.remove sfrom |> SLM.add sto (newdeps @ olddeps)
   end sd sub
 
-let refine (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store * int list =
+let refine (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: simplecstr) (sto: store): slocdep * cstrmap * S.Subst.t * store * int list =
   let refsub, sto   = refine_aux sc sto in
   let invalid_slocs = S.Subst.slocs refsub in
   let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
   let cm            = cstrmap_subs refsub cm in
-  let em            = ExpMap.map (prectype_subs refsub) em in
-  let bas           = Array.map (RA.subs refsub) bas in
-    (em, bas, sd, cm, S.Subst.compose refsub sub, sto, succs)
+    (sd, cm, S.Subst.compose refsub sub, sto, succs)
 
 (* pmr: pull out worklist code? *)
 module WkList = Heaps.Functional(struct
@@ -249,25 +247,22 @@ module WkList = Heaps.Functional(struct
 let wklist_push (wkl: WkList.t) (itcids: int list): WkList.t =
   List.fold_left (M.flip WkList.add) wkl itcids
 
-let rec iter_solve (wkl: WkList.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store =
+let rec iter_solve (wkl: WkList.t) (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sto: store): slocdep * cstrmap * S.Subst.t * store =
   match try Some (WkList.maximum wkl) with Heaps.EmptyHeap -> None with
-    | None     -> (em, bas, sd, cm, sub, sto)
+    | None     -> (sd, cm, sub, sto)
     | Some cid ->
         let sc  = M.IntMap.find cid cm in
         let wkl = WkList.remove wkl in
           if simplecstr_sat sto sc then
-            iter_solve wkl em bas sd cm sub sto
+            iter_solve wkl sd cm sub sto
           else
-            let em, bas, sd, cm, sub, sto, succs = refine em bas sd cm sub sc sto in
-            let wkl                              = wklist_push wkl succs in
-              iter_solve wkl em bas sd cm sub sto
+            let sd, cm, sub, sto, succs = refine sd cm sub sc sto in
+            let wkl                     = wklist_push wkl succs in
+              iter_solve wkl sd cm sub sto
 
-(* pmr: probably harmless to just apply the sub at the very end,
-   leaving out ctvemap and block annotation - this is what we're doing
-   with the varmap anyway... *)
-let solve (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap) (sto: store): ctvemap * RA.block_annotation array * slocdep * cstrmap * S.Subst.t * store =
+let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.t * store =
   let wkl = IM.fold (fun cid _ cids -> cid :: cids) cm [] |> wklist_push WkList.empty in
-    iter_solve wkl em bas sd cm S.Subst.empty sto
+    iter_solve wkl sd cm S.Subst.empty sto
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -574,7 +569,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
   let fs, ss, cs       = constrain_scc fs scc in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs cm sd in
-  let _, _, sd, cm, sub, sto = solve ExpMap.empty [||] sd cm sto in
+  let sd, cm, sub, sto = solve sd cm sto in
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
@@ -670,35 +665,30 @@ let check_out_store (sto_out_formal: store) (sto_out_actual: store): bool =
         | _              -> false
     end true sto_out_formal
 
-let revert_spec_names (sub: S.Subst.t) (cfspec: cfun): S.Subst.t =
+let revert_spec_names (cfspec: cfun): S.Subst.t =
      cfspec.sto_out
   |> prestore_domain
-  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply sub s) s sub) sub
+  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply sub s) s sub) []
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 (* pmr: check this whole bit quite carefully *)
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
-  let em, bas, sd, cm, _, sto = solve em bas sd cm SLM.empty in
-  let sub         = revert_spec_names [] cf in
-  let sto         = prestore_subs sub sto in
+  let sd, cm, sub, sto = solve sd cm SLM.empty in
+  let revsub      = revert_spec_names cf in
+  let sto         = prestore_subs revsub sto in
+  let sub         = S.Subst.compose revsub sub in
+  let em          = ExpMap.map (prectype_subs sub) em in
+  let bas         = Array.map (RA.subs sub) bas in
+  let vars        = VM.map (prectype_subs sub) vars in
     try
       if check_out_store cf.sto_out sto then
-        let bas    = Array.map (RA.subs sub) bas in
-        let varsol = VM.map (prectype_subs sub) vars in
-        let ds     = [] (* cs |> List.map (cstr_subs sub) |> M.map_partial (get_cstr_dcheck is) *) in
-          (sto, varsol, em, bas)
+        (sto, vars, em, bas)
       else
         E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
     with Unify (s1, s2) ->
       let sub = [(s1, s2)] in
-        solve_and_check
-          cf
-          (VM.map (prectype_subs sub) vars)
-          (ExpMap.map (prectype_subs sub) em)
-          (Array.map (RA.subs sub) bas)
-          (adjust_slocdep sub sd)
-          (cstrmap_subs sub cm)
+        solve_and_check cf vars em bas (adjust_slocdep sub sd) (cstrmap_subs sub cm)
 
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
   let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
