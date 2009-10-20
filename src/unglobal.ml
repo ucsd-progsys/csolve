@@ -32,7 +32,7 @@ class bodyVisitor (gbc: compinfo) (glob: varinfo) = object(self)
         SkipChildren
     | Call _ ->
         failwith "Can't handle non-var function pointers"
-    | _ -> SkipChildren
+    | _ -> DoChildren
 end
 
 class fileVisitor (gbc: compinfo) = object(self)
@@ -45,8 +45,8 @@ class fileVisitor (gbc: compinfo) = object(self)
     | _ -> SkipChildren
 end
 
-let allocate (malloc: exp) (lv: lval) (elen: exp) (loc: location): instr =
-  Call (Some lv, malloc, [elen], loc)
+let allocate (malloc: exp) (lv: lval) (t: typ) (count: exp) (loc: location): instr =
+  Call (Some lv, malloc, [BinOp (Mult, integer <| CM.bytesSizeOf t, count, !typeOfSizeOf)], loc)
 
 let rec instrsOfInit (vi: varinfo) (lv: lval): init -> instr list = function
   | SingleInit e            -> [Set (lv, e, vi.vdecl)]
@@ -54,8 +54,8 @@ let rec instrsOfInit (vi: varinfo) (lv: lval): init -> instr list = function
 
 let instrsOfGlobalInit (malloc: exp) (vi: varinfo) (lv: lval) (ini: init): instr list =
   match ini with
-    | CompoundInit (TArray (_, Some elen, _), _) -> allocate malloc lv elen vi.vdecl :: instrsOfInit vi lv ini
-    | CompoundInit (TComp _ as t, _)             -> allocate malloc lv (integer <| CM.bytesSizeOf t) vi.vdecl :: instrsOfInit vi lv ini
+    | CompoundInit (TArray (t, Some elen, _), _) -> allocate malloc lv t elen vi.vdecl :: instrsOfInit vi lv ini
+    | CompoundInit (TComp _ as t, _)             -> allocate malloc lv t one vi.vdecl :: instrsOfInit vi lv ini
     | _                                          -> instrsOfInit vi lv ini
 
 (* Awful name! *)
@@ -86,7 +86,7 @@ let makeGlobalInit (f: file) (gbc: compinfo): fundec =
     gbinit.sbody <-
       begin
         Instr begin
-            allocate malloc (var gb) (integer <| CM.bytesSizeOf gbtyp) locUnknown
+            allocate malloc (var gb) gbtyp one locUnknown
         :: (foldGlobals f (collectGlobalInits malloc gbc gb) [] |> List.concat)
         end |> mkStmt
       end
@@ -106,10 +106,10 @@ let unglobal (f: file): unit =
   let mainglob = makeLocalVar main globname (TPtr (TComp (gbc, []), [])) in
     main.sbody.bstmts <- mkStmt (Instr [Call (Some (var mainglob), Lval (var globinit.svar), [], locUnknown)]) :: main.sbody.bstmts;
     visitCilFunction (new bodyVisitor gbc mainglob) main |> ignore;
+    visitCilFile (new fileVisitor gbc) f;
     f.globals <- GCompTag (gbc, locUnknown)
               :: GFun (globinit, locUnknown)
-              :: List.filter (function GVar _ -> false | _ -> true) f.globals;
-    visitCilFile (new fileVisitor gbc) f
+              :: List.filter (function GVar _ -> false | _ -> true) f.globals
 
 let main fname =
   let file = Frontc.parse fname () in
