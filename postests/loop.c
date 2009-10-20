@@ -1,7 +1,6 @@
 int main(int n){
   int i, z; 
   //n = nondet();
-  
   assert(10 < n);
 
   z = 0;
