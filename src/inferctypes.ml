@@ -695,6 +695,7 @@ let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (
   let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs IM.empty SLM.empty in
+  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
