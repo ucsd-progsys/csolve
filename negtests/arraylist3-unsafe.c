@@ -1,3 +1,7 @@
+//This is actually safe but requires "range-predicates" like reasoning
+//beyond our current system
+
+
 extern char* malloc(int);
 
 struct foo {
@@ -21,7 +25,7 @@ struct foo *__attribute__((array)) main(){
     i--;
   }
 
-  for (j=0; j < 5; j++){
+  for (j=0; j < n; j++){
     b       = a + j;
     assert(b->data == 999);
   }
