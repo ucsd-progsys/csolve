@@ -1,6 +1,3 @@
-//This is actually safe but requires "range-predicates" like reasoning
-//beyond our current system
-
 extern char* malloc(int);
 
 struct foo {
@@ -25,7 +22,7 @@ struct foo *__attribute__((array)) main(){
     b 	    = a + i;
     b->data = 99999;
     b->next = vt;
-    //vt = b;
+    vt = b;
     i--;
   }
 
