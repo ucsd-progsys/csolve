@@ -23,6 +23,7 @@ struct foo *__attribute__((array)) main(){
     b->data = 99999;
     b->next = vt;
     vt = b;
+    i--;
   }
 
   for (i=0; i < n; i++){

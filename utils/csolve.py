@@ -1,3 +1,11 @@
+#In your .vimrc, add the following:
+#map <F4> :python printLiquidType("normal")<CR>
+#vmap <F4> :python printLiquidType("visual")<CR>
+#pyfile path/to/csolve.py
+#to "reparse", do
+#:python annot.parseLiquidType()
+
+
 #python << ENDPYTHON
 
 import vim
@@ -84,5 +92,6 @@ def printLiquidType(mode):
 
 def parseLiquidType():
   annot.parse(vim.current.buffer.name)
+
 
 #ENDPYTHON
