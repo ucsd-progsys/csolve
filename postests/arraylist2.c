@@ -14,7 +14,7 @@ struct foo *__attribute__((array)) main(){
   int n;
 
   n  = nondetpos();
-  a  = (struct foo *) malloc(100 * sizeof(struct foo));
+  a  = (struct foo *) malloc(n * sizeof(struct foo));
   vt = (struct foo *) 0;
   
   i = n-1;
