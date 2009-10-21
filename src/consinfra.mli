@@ -49,4 +49,4 @@ val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype
 val create              : CilTag.o -> 
                           FixInterface.cilenv -> 
                           Ssa_transform.ssaCfgInfo -> 
-                          LocalInfer.shape -> t
+                          Inferctypes.shape -> t

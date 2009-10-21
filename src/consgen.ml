@@ -381,7 +381,10 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim spec scim =
+let infer_shapes cil env scis =
+  (Inferctypes.infer_shapes cil env scis, env)
+
+let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
@@ -391,7 +394,7 @@ let shapem_of_scim spec scim =
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
-  |> (fun (bm, fm) -> LocalInfer.infer_shapes (Misc.sm_extend bm (SM.map fst fm)) fm)
+  |> (fun (bm, fm) -> infer_shapes cil (Misc.sm_extend bm (SM.map fst fm)) fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 
@@ -486,7 +489,7 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let _        = E.log "\nDONE: TAG initialization\n" in
   let spec     = rename_spec scim spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
-  let shm, cnv = shapem_of_scim spec scim in
+  let shm, cnv = shapem_of_scim cil spec scim in
   let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in

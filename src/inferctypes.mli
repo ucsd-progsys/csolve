@@ -23,4 +23,14 @@
 
 (* This file is part of the liquidC Project.*)
 
+type shape =
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap;
+   store : Ctypes.store;
+   anna  : Refanno.block_annotation array;
+   theta : Refanno.ctab }
+
+type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
+
 val specs_of_file: (FixInterface.refcfun * bool) Misc.StringMap.t -> Cil.file -> (string * Ctypes.cfun) list
+val infer_shapes: Cil.file -> Ctypes.ctypeenv -> funmap -> (shape * Inferindices.dcheck list) Misc.StringMap.t
