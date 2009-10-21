@@ -570,7 +570,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs cm sd in
   let sd, cm, sub, sto = solve sd cm sto in
-  (* pmr: why can't this be moved above solve without the substitution? *)
+  (* Can't be moved earlier because locations may be thrown out by solve when unifying *)
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
