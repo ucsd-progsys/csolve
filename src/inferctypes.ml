@@ -722,9 +722,9 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape)
     ()
 
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
-  let _ = P.printf "INFERRING AGAINST SHAPE\n\n %a\n\n" d_cfun  cf in
   let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
   let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
+  let cs               = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_in in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
