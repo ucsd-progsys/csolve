@@ -14,7 +14,7 @@
     The only (sane) way to do this is using the locs emitted by constraining...
 ** DONE Use sub for ctvemap, block annots rather than pushing through solve
 ** DONE Get all regrtests running
-** TODO Cheerily delete the localInfer code and merge
+** DONE Cheerily delete the localInfer code and merge
 ** DONE Don't return an env from local shape inference; it never changes
 ** TODO Add annotation support for __array__ attribute types
 ** TODO Can we cut down code duplication...
