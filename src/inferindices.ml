@@ -516,7 +516,7 @@ let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm)
 let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypevarcstr list * (ifunvar * itypevar VM.t) VM.t =
   let fe      = ctenv
              |> VM.map ifunvar_of_cfun
-             |> VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim in
+             |> VM.fold (fun f {ST.fdec = fd} fe -> if VM.mem f fe then fe else VM.add f (fresh_fun_typ fd) fe) scim in
   let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
   let css, fm = VM.fold (constrain_prog_fold fe) scim ([], fm) in
     (List.concat css, fm)

@@ -560,7 +560,7 @@ let update_deps (scs: simplecstr list) (cm: cstrmap) (sd: slocdep): cstrmap * sl
   let sd = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
     (cm, sd)
 
-let solve_scc (it: Ind.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
+let solve_scc (env: cfun VM.t) (it: Ind.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" d_scc scc |> ignore in
   let fs               = fresh_scc it fs scc in
   let fs, ss, cs       = constrain_scc fs scc in
@@ -574,7 +574,7 @@ let solve_scc (it: Ind.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrm
   let fs               = fs
                       |> funenv_apply_subs sub
                       |> VM.mapi begin fun f ft ->
-                           if CM.definedHere f then
+                           if not (VM.mem f env) then
                              M.app_fst3 (cfun_generalize sto) ft
                            else
                              ft
@@ -592,7 +592,7 @@ let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInf
   let cg          = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
   let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
   let fs          = funenv_of_ctenv env in
-  let fs, _, _, _ = List.fold_left (solve_scc it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
+  let fs, _, _, _ = List.fold_left (solve_scc env it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
     VM.fold begin fun f (cf, _, _) spec ->
       if CM.definedHere f then
         (f.C.vname, cf) :: spec
@@ -601,8 +601,7 @@ let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInf
     end fs []
 
 let add_builtin (cil: C.file) (fn: string) ((rf, _): FI.refcfun * bool) (env: cfun VM.t): cfun VM.t =
-  let fv = C.findOrCreateFunc cil fn C.voidType in
-    if CM.definedHere fv then env else VM.add fv (FI.cfun_of_refcfun rf) env
+  VM.add (C.findOrCreateFunc cil fn C.voidType) (FI.cfun_of_refcfun rf) env
 
 (* API *)
 let specs_of_file spec cil =
