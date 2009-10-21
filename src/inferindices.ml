@@ -10,6 +10,7 @@ module ST  = Ssa_transform
 module Cs  = Constants
 module FI  = FixInterface
 module FC  = FixConstraint
+module SI  = ShapeInfra
 
 open Ctypes
 open M.Ops
@@ -113,14 +114,6 @@ let itypevar_of_ctype: ctype -> itypevar = function
 
 let ifunvar_of_cfun (cf: cfun): ifunvar =
   precfun_map itypevar_of_ctype cf
-
-let heap_itypevar (t: C.typ): itypevar =
-  match C.unrollType t with
-    | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEConst ITop)
-    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
-    | C.TVoid _             -> itypevar_of_ctype void_ctype
-    | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEConst (IInt 0))
-    | t                     -> E.s <| C.bug "Unimplemented heap_itypevar: %a@!@!" C.d_type t
 
 let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
@@ -283,7 +276,7 @@ and constrain_lval ((ve, _) as env: env): C.lval -> itypevar * itypecstr list = 
   | (C.Mem e, C.NoOffset) as lv ->
       let itv, cs = constrain_exp env e in
         begin match itv with
-          | CTRef (s, ie) -> (heap_itypevar <| C.typeOfLval lv, cs)
+          | CTRef (s, ie) -> (lv |> C.typeOfLval |> SI.fresh_heaptype |> itypevar_of_ctype, cs)
           | _             -> E.s <| C.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv

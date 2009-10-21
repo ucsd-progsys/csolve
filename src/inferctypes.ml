@@ -13,6 +13,7 @@ module VM  = CM.VarMap
 module SM  = M.StringMap
 module FI  = FixInterface
 module Ind = Inferindices
+module SI  = ShapeInfra
 
 open Ctypes
 open M.Ops
@@ -272,14 +273,6 @@ let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
-let fresh_heaptype (t: C.typ): ctype =
-  match C.unrollType t with
-    | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, ITop)
-    | C.TFloat _            -> CTInt (CM.typ_width t, ITop)
-    | C.TVoid _             -> void_ctype
-    | C.TPtr _ | C.TArray _ -> CTRef (S.fresh S.Abstract, IInt 0)
-    | _                     -> E.s <| C.bug "Unimplemented fresh_ctype: %a@!@!" C.d_type t
-
 let mk_subty (ctv1: ctype) (ctv2: ctype): cstr =
   mk_cstr !C.currentLoc (`CSubtype (ctv1, ctv2))
 
@@ -315,7 +308,7 @@ and constrain_lval ((_, hv, ve) as env: env) (em: ctvemap): C.lval -> ctype * ct
       let ctv, em, cs, ss = constrain_exp env em e in
         begin match ctv with
           | CTRef (s, ie) ->
-              let ctvlv = fresh_heaptype <| C.typeOfLval lv in
+              let ctvlv = lv |> C.typeOfLval |> SI.fresh_heaptype in
               let cs    = mk_locinc ie ctvlv s :: cs in
                 (ctvlv, em, cs, M.maybe_cons (prectype_sloc ctvlv) (s :: ss))
           | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
