@@ -138,6 +138,12 @@ let isVararg (t: typ): bool =
     let _, _, vararg, _ = splitFunctionType t in
       vararg
 
+let is_array_attr = function Attr ("array",_) -> true | _ -> false
+let is_pos_attr   = function Attr ("pos",_) -> true | _ -> false
+
+let has_array_attr = fun a -> List.exists is_array_attr a
+let has_pos_attr   = fun a -> List.exists is_pos_attr a
+
 (******************************************************************************)
 (**************************** Misc. Pretty Printers ***************************)
 (******************************************************************************)

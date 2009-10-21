@@ -1,6 +1,6 @@
 extern char *malloc(int);
 
-char * __attribute__((array)) make_string(int n) {
+char *make_string(int n) {
     if (n <= 0)
         return 0;
 
@@ -17,7 +17,7 @@ char * __attribute__((array)) make_string(int n) {
 
 typedef struct {
     int  len;
-    char * __attribute__((array)) str;
+    char *str;
 } string;
 
 void init_string(string *s, char c) {
