@@ -570,6 +570,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs cm sd in
   let sd, cm, sub, sto = solve sd cm sto in
+  (* pmr: why can't this be moved above solve without the substitution? *)
   let sto              = ss
                       |> List.map (S.Subst.apply sub)
                       |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
@@ -665,18 +666,20 @@ let check_out_store (sto_out_formal: store) (sto_out_actual: store): bool =
         | _              -> false
     end true sto_out_formal
 
-let revert_spec_names (cfspec: cfun): S.Subst.t =
+let revert_spec_names (subaway: S.Subst.t) (cfspec: cfun): S.Subst.t =
      cfspec.sto_out
   |> prestore_domain
-  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply sub s) s sub) []
+  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 (* pmr: check this whole bit quite carefully *)
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let revsub      = revert_spec_names cf in
+  let revsub      = revert_spec_names sub cf in
   let sto         = prestore_subs revsub sto in
+  let sd          = adjust_slocdep revsub sd in
+  let cm          = cstrmap_subs revsub cm in
   let sub         = S.Subst.compose revsub sub in
   let em          = ExpMap.map (prectype_subs sub) em in
   let bas         = Array.map (RA.subs sub) bas in
@@ -688,21 +691,53 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
         E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
     with Unify (s1, s2) ->
       let sub = [(s1, s2)] in
-        solve_and_check cf vars em bas (adjust_slocdep sub sd) (cstrmap_subs sub cm)
+      let em          = ExpMap.map (prectype_subs sub) em in
+      let bas         = Array.map (RA.subs sub) bas in
+      let vars        = VM.map (prectype_subs sub) vars in
+      let sd          = adjust_slocdep sub sd in
+      let cm          = cstrmap_subs sub cm in
+        solve_and_check cf vars em bas sd cm
+
+let d_dcheck () ((vi, rt): dcheck): P.doc =
+  P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
+
+let d_vartypes () vars =
+  P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
+
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: dcheck list): unit =
+  let _ = P.printf "%s@!" fname in
+  let _ = P.printf "============@!@!" in
+  let _ = P.printf "Signature:@!" in
+  let _ = P.printf "----------@!@!" in
+  let _ = P.printf "%a@!@!" d_cfun cf in
+  let _ = P.printf "Locals:@!" in
+  let _ = P.printf "-------@!@!" in
+  let _ = P.printf "%a@!@!" d_vartypes locals in
+  let _ = P.printf "Store:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" d_store st in
+  let _ = P.printf "Deferred Checks:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" (P.d_list "\n" d_dcheck) ds in
+    ()
 
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
+  let _ = P.printf "INFERRING AGAINST SHAPE\n\n %a\n\n" d_cfun  cf in
   let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
   let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
   let scs              = filter_simple_cstrs cs in
   let cm, sd           = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
+  let sto              = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | CTInt _ -> sto) sto sto in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
+  let _           = P.printf "BLOCK ANNOT:\n\n%a\n\n" RA.d_block_annotation_array annot in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;
                              anna  = annot;
                              theta = theta} in
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf shp [];
     (shp, [])
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t

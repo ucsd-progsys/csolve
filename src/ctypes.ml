@@ -181,7 +181,7 @@ let ploc_of_index: index -> ploc = function
   | IInt n      -> PLAt n
   | ISeq (n, _) -> PLSeq n
   | ITop        -> PLEverywhere
-  | IBot        -> E.s <| E.bug "Can't convert IBot to ploc@!@!"
+  | IBot        -> halt <| E.bug "Can't convert IBot to ploc@!@!"
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq n -> n

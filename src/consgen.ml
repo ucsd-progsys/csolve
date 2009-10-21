@@ -382,10 +382,10 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (***************************************************************************)
 
 let infer_shapes cil env scis =
-  let _ = P.printf "RUNNING INFERCTYPES SHAPES\n\n" in
-  let _ = Inferctypes.infer_shapes cil env scis in
   let _ = P.printf "RUNNING LOCALINFER SHAPES\n\n" in
-    LocalInfer.infer_shapes cil env scis
+  let _ = P.printf "RUNNING INFERCTYPES SHAPES\n\n" in
+    Inferctypes.infer_shapes cil env scis
+
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)

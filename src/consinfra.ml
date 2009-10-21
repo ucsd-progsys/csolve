@@ -34,7 +34,7 @@ module C  = FixConstraint
 module FI = FixInterface 
 module CI = CilInterface
 module EM = Ctypes.ExpMap
-module LI = LocalInfer
+module LI = Inferctypes
 
 open Misc.Ops
 open Cil
