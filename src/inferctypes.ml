@@ -12,6 +12,7 @@ module CM  = CilMisc
 module VM  = CM.VarMap
 module SM  = M.StringMap
 module FI  = FixInterface
+module Ind = Inferindices
 
 open Ctypes
 open M.Ops
@@ -548,7 +549,7 @@ let d_funenv () (fe: funenv): P.doc =
       CM.d_var
       (fun () (cf, vm, hv) -> P.dprintf "%a\nheap      %a\n\nLocals:\n%a\n\n" d_cfun cf d_heapvar hv (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
 
-let fresh_scc (it: Inferindices.indextyping) (fe: funenv) (scc: scc): funenv =
+let fresh_scc (it: Ind.indextyping) (fe: funenv) (scc: scc): funenv =
   let hv = fresh_heapvar () in
     List.fold_left begin fun fe (f, _) ->
       let (ifv, vm) = VM.find f it in
@@ -563,7 +564,7 @@ let update_deps (scs: simplecstr list) (cm: cstrmap) (sd: slocdep): cstrmap * sl
   let sd = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
     (cm, sd)
 
-let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
+let solve_scc (it: Ind.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
   let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" d_scc scc |> ignore in
   let fs               = fresh_scc it fs scc in
   let fs, ss, cs       = constrain_scc fs scc in
@@ -591,7 +592,7 @@ let solve_scc (it: Inferindices.indextyping) ((fs, sd, cm, sto): funenv * slocde
   in (fs, sd, cm, sto)
 
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
-  let it          = Inferindices.infer_indices env scim in
+  let it          = Ind.infer_indices env scim in
   let cg          = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
   let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
   let fs          = funenv_of_ctenv env in
@@ -624,8 +625,6 @@ type shape =
    store : Ctypes.store;
    anna  : Refanno.block_annotation array;
    theta : Refanno.ctab }
-
-type dcheck = C.varinfo * FI.refctype
 
 exception Unify of S.t * S.t
 
@@ -698,13 +697,10 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
       let cm            = cstrmap_subs sub cm in
         solve_and_check cf vars em bas sd cm
 
-let d_dcheck () ((vi, rt): dcheck): P.doc =
-  P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
-
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
 
-let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: dcheck list): unit =
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: Ind.dcheck list): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -718,11 +714,11 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape)
   let _ = P.printf "%a@!@!" d_store st in
   let _ = P.printf "Deferred Checks:@!" in
   let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" (P.d_list "\n" d_dcheck) ds in
+  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
     ()
 
-let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
-  let ve                  = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
+let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
+  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) scim cf |> M.app_fst (VM.map fresh_sloc_of) in
   let em, bas, _, cs      = constrain_fun fe cf ve (fresh_heapvar ()) sci in
   let cs                  = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_in in
   let scs                 = filter_simple_cstrs cs in
@@ -736,14 +732,14 @@ let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (
                              store = sto;
                              anna  = annot;
                              theta = theta} in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf shp [];
-    (shp, [])
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf shp ds;
+    (shp, ds)
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
 (* pmr: is fresh_heapvar pattern common enough? *)
 (* API *)
-let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t =
+let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * Ind.dcheck list) SM.t =
   let fe = VM.empty
         |> SM.fold (fun f cf fe -> VM.add (C.findOrCreateFunc cil f C.voidType) (cf, VM.empty, fresh_heapvar ()) fe) env
         |> SM.fold (fun _ (cf, {ST.fdec = fd}) fe -> VM.add fd.C.svar (cf, VM.empty, fresh_heapvar ()) fe) scis in

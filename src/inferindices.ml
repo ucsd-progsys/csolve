@@ -8,6 +8,8 @@ module S   = Sloc
 module SLM = S.SlocMap
 module ST  = Ssa_transform
 module Cs  = Constants
+module FI  = FixInterface
+module FC  = FixConstraint
 
 open Ctypes
 open M.Ops
@@ -139,11 +141,11 @@ let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
 
 type itypecstrdesc =
   | ISubtype of itypevar * itypevar
-  | IDSubtype of itypevar * itypevar * ctype
+  | IDSubtype of itypevar * itypevar * ctype * C.varinfo * FI.refctype
 
 let d_itypecstrdesc (): itypecstrdesc -> P.doc = function
-  | ISubtype (itv1, itv2)      -> P.dprintf "%a <: %a" d_itypevar itv1 d_itypevar itv2
-  | IDSubtype (itv1, itv2, ct) -> P.dprintf "%a <: %a <: %a" d_itypevar itv1 d_itypevar itv2 d_ctype ct
+  | ISubtype (itv1, itv2)              -> P.dprintf "%a <: %a" d_itypevar itv1 d_itypevar itv2
+  | IDSubtype (itv1, itv2, ct, vi, ck) -> P.dprintf "%a <: %a <: %a (%a :: %a)" d_itypevar itv1 d_itypevar itv2 d_ctype ct CM.d_var vi FI.d_refctype ck
 
 type itypecstr = {itcid: int; itcdesc: itypecstrdesc; itcloc: C.location}
 
@@ -155,15 +157,15 @@ let (fresh_itypecstrid, reset_fresh_itypecstrids) = M.mk_int_factory ()
 let mk_isubtypecstr (itv1: itypevar) (itv2: itypevar): itypecstr =
   {itcid = fresh_itypecstrid (); itcloc = !C.currentLoc; itcdesc = ISubtype (itv1, itv2)}
 
-let mk_idsubtypecstr (itv1: itypevar) (itv2: itypevar) (ctbound: ctype): itypecstr =
-  {itcid = fresh_itypecstrid (); itcloc = !C.currentLoc; itcdesc = IDSubtype (itv1, itv2, ctbound)}
+let mk_idsubtypecstr (itv1: itypevar) (itv2: itypevar) (ctbound: ctype) (vi: C.varinfo) (ctcheck: FI.refctype): itypecstr =
+  {itcid = fresh_itypecstrid (); itcloc = !C.currentLoc; itcdesc = IDSubtype (itv1, itv2, ctbound, vi, ctcheck)}
 
 let itypecstr_id ({itcid = id}: itypecstr): int =
   id
 
 let itypecstr_rhs_var (itc: itypecstr): indexvar option =
   match itc.itcdesc with
-    | ISubtype (_, itv) | IDSubtype (_, itv, _) ->
+    | ISubtype (_, itv) | IDSubtype (_, itv, _, _, _) ->
         match itypevar_indexvars itv with
           | []   -> None
           | [iv] -> Some iv
@@ -171,8 +173,8 @@ let itypecstr_rhs_var (itc: itypecstr): indexvar option =
 
 let itypecstr_sat (is: indexsol) (itc: itypecstr): bool =
   match itc.itcdesc with
-    | ISubtype (itv1, itv2)           -> is_subitypevar is itv1 itv2
-    | IDSubtype (itv1, itv2, ctbound) ->
+    | ISubtype (itv1, itv2)                 -> is_subitypevar is itv1 itv2
+    | IDSubtype (itv1, itv2, ctbound, _, _) ->
         let itvbound = itypevar_of_ctype ctbound in
            (not (is_subitypevar is itv1 itvbound) && is_subitypevar is itv2 itvbound && is_subitypevar is itvbound itv2)
         || is_subitypevar is itv1 itv2
@@ -185,7 +187,7 @@ let refine_itypecstr (is: indexsol) (itc: itypecstr): indexsol =
           | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
           | _                                                 -> halt <| C.errorLoc itc.itcloc "Failed index constraint %a\n\n" d_itypecstr itc
         end
-    | IDSubtype (itv1, itv2, ctbound) ->
+    | IDSubtype (itv1, itv2, ctbound, _, _) ->
         begin match itv1, itv2, ctbound with
           | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
           | CTRef (_, ie), CTRef (_, IEVar iv), CTRef (_, ib)                            -> bounded_refine_index is ie iv ib
@@ -219,7 +221,7 @@ let d_cstrdepmap =
 
 let add_cstrdep (cdm: cstrdepmap) (itc: itypecstr): cstrdepmap =
   match itc.itcdesc with
-    | ISubtype (itv, _) | IDSubtype (itv, _, _) ->
+    | ISubtype (itv, _) | IDSubtype (itv, _, _, _, _) ->
         itv |> itypevar_indexvars |> List.fold_left (fun cdm iv -> IM.add iv (itc.itcid :: IM.find iv cdm) cdm) cdm
 
 let mk_cstrdepmap (itcs: itypecstr list): cstrdepmap =
@@ -300,10 +302,10 @@ and apply_unop (rt: C.typ): C.unop -> itypevar = function
 and constrain_binop (op: C.binop) (env: env) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypecstr list =
   let itv1, cs1 = constrain_exp env e1 in
   let itv2, cs2 = constrain_exp env e2 in
-  let itv, co   = apply_binop op t itv1 itv2 in
+  let itv, co   = apply_binop op t e2 itv1 itv2 in
     (itv, M.maybe_cons co (cs1 @ cs2))
 
-and apply_binop: C.binop -> C.typ -> itypevar -> itypevar -> itypevar * itypecstr option = function
+and apply_binop: C.binop -> C.typ -> C.exp -> itypevar -> itypevar -> itypevar * itypecstr option = function
   | C.PlusA                                 -> apply_arithmetic (fun ie1 ie2 -> IEPlus (ie1, 1, ie2))
   | C.MinusA                                -> apply_arithmetic (fun ie1 ie2 -> IEMinus (ie1, 1, ie2))
   | C.Mult                                  -> apply_arithmetic (fun ie1 ie2 -> IEMult (ie1, ie2))
@@ -317,25 +319,32 @@ and apply_binop: C.binop -> C.typ -> itypevar -> itypevar -> itypevar * itypecst
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
   | bop                                     -> E.s <| C.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
+and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (_: C.exp) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match itv1, itv2 with
     | (CTInt (n1, ie1), CTInt (n2, ie2)) -> (CTInt (CM.typ_width rt, f ie1 ie2), None)
     | _                                  -> E.s <| C.bug "Type mismatch in apply_arithmetic@!@!"
 
-and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
+and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (eoffset: C.exp) (itv1: itypevar) (itv2: itypevar): itypevar * itypecstr option =
   match C.unrollType pt, itv1, itv2 with
     | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width ->
-        let iv = IEVar (fresh_indexvar ()) in
-          (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1)))))
+        begin match eoffset with
+          | C.Const _                     -> (CTRef (s, f ie1 (CM.typ_width t) ie2), None)
+          | C.Lval (C.Var vi, C.NoOffset) ->
+              let iv = IEVar (fresh_indexvar ()) in
+              let vv = Ast.Symbol.value_variable Ast.Sort.Int in
+              let rt = CTInt (n, (ITop, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
+                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1))) vi rt))
+          | _ -> halt <| C.bug "Pointer arithmetic offset isn't variable or const\n"
+        end
     | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
-and apply_ptrminus (pt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_ptrminus (pt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.typ_width !C.upointType, IEConst ITop), None)
 
-and apply_rel (_: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_rel (_: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.int_width, IEConst (ISeq (0, 1))), None)
 
-and apply_unknown (rt: C.typ) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
+and apply_unknown (rt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypecstr option =
   (CTInt (CM.typ_width rt, IEConst ITop), None)
 
 and constrain_constptr: C.constant -> itypevar * itypecstr list = function
@@ -503,9 +512,18 @@ let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
   let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index typing:\n\n%a\n\n" d_indextyping it |> ignore in
     it
 
+type dcheck = C.varinfo * FI.refctype
+
+let d_dcheck () ((vi, rt): dcheck): P.doc =
+  P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
+
+let get_cstr_dcheck (is: indexsol): itypecstr -> dcheck option = function
+  | {itcdesc = IDSubtype (itv1, _, cbound, vi, rt)} when not (is_subctype (itypevar_apply is itv1) cbound) -> Some (vi, rt)
+  | _                                                                                                      -> None
+
 (* API *)
-let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t =
+let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t * dcheck list =
   let fe     = VM.map ifunvar_of_cfun ctenv in
   let ve, cs = constrain_fun fe (ifunvar_of_cfun cf) sci in
   let is     = solve cs in
-    VM.map (itypevar_apply is) ve
+    (VM.map (itypevar_apply is) ve, M.map_partial (get_cstr_dcheck is) cs)

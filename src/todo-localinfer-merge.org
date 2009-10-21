@@ -7,7 +7,7 @@
 *** DONE Merge common envs into products
     loc can totally be rolled into env; it's just as static as everything else
     there and always present
-** TODO Emit dynamic checks like localInfer
+** DONE Emit dynamic checks like localInfer
    These should be coming out of inferindices.
 ** DONE Pull final type checks from localInfer into inferctypes
 *** TODO Make sure all locations used in the spec get into the store

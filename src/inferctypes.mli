@@ -30,9 +30,7 @@ type shape =
    anna  : Refanno.block_annotation array;
    theta : Refanno.ctab }
 
-type dcheck = Cil.varinfo * FixInterface.refctype
-
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
 
 val specs_of_file: (FixInterface.refcfun * bool) Misc.StringMap.t -> Cil.file -> (string * Ctypes.cfun) list
-val infer_shapes: Cil.file -> Ctypes.ctypeenv -> funmap -> (shape * dcheck list) Misc.StringMap.t
+val infer_shapes: Cil.file -> Ctypes.ctypeenv -> funmap -> (shape * Inferindices.dcheck list) Misc.StringMap.t
