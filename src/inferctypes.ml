@@ -696,21 +696,24 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
 
-let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape) (ds: Ind.dcheck list): unit =
-  let _ = P.printf "%s@!" fname in
-  let _ = P.printf "============@!@!" in
-  let _ = P.printf "Signature:@!" in
-  let _ = P.printf "----------@!@!" in
-  let _ = P.printf "%a@!@!" d_cfun cf in
-  let _ = P.printf "Locals:@!" in
-  let _ = P.printf "-------@!@!" in
-  let _ = P.printf "%a@!@!" d_vartypes locals in
-  let _ = P.printf "Store:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" d_store st in
-  let _ = P.printf "Deferred Checks:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
+let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st; anna = annot}: shape) (ds: Ind.dcheck list): unit =
+  P.printf "%s@!" fname >>>
+  P.printf "============@!@!" >>>
+  P.printf "Signature:@!" >>>
+  P.printf "----------@!@!" >>>
+  P.printf "%a@!@!" d_cfun cf >>>
+  P.printf "Locals:@!" >>>
+  P.printf "-------@!@!" >>>
+  P.printf "%a@!@!" d_vartypes locals >>>
+  P.printf "Store:@!" >>>
+  P.printf "------@!@!" >>>
+  P.printf "%a@!@!" d_store st >>>
+  P.printf "Annotations:@!" >>>
+  P.printf "------@!@!" >>>
+  P.printf "%a@!@!" RA.d_block_annotation_array annot >>>
+  P.printf "Deferred Checks:@!" >>>
+  P.printf "------@!@!" >>>
+  P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds >>>
     ()
 
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
