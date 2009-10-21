@@ -294,8 +294,6 @@ let pImp   = fun (p1,p2) -> pwr (Imp (p1,p2))
 let pIff   = fun (p1,p2) -> pAnd [pImp (p1,p2); pImp (p2,p1)]
 let pForall= fun (qs, p) -> pwr (Forall (qs, p))
 
-
-
 module ExprHash = Hashtbl.Make(struct
   type t = expr
   let equal (_,x) (_,y) = (x = y)

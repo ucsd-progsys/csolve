@@ -26,4 +26,4 @@
 
 val expr_of_cilexp: (unit -> Ast.expr) -> Cil.exp -> Ast.expr
 val pred_of_cilexp: (unit -> Ast.expr) -> Cil.exp -> Ast.pred
-val reft_of_cilexp: 
+val reft_of_cilexp: Ast.Symbol.t -> Cil.exp -> Ast.pred

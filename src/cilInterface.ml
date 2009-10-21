@@ -1,5 +1,6 @@
 (*
- * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ * Copyright © 1990-2009 The Regents of the University of California. 
+ * All rights reserved. 
  *
  * Permission is hereby granted, without written agreement and without 
  * license or royalty fees, to use, copy, modify, and distribute this 
@@ -75,21 +76,25 @@ let unop_of_cilUOp = function
 
 let op_of_cilBOp = function
   | Cil.PlusA   -> Bop A.Plus    
-  | Cil.IndexPI              
-  | Cil.PlusPI  -> Bpop A.Plus
   | Cil.MinusA  -> Bop A.Minus
-  | Cil.MinusPI -> Bpop A.Minus
   | Cil.MinusPP -> Bop A.Minus
   | Cil.Mult    -> Bop A.Times
   | Cil.Div     -> Bop A.Div  
+
+  | Cil.IndexPI              
+  | Cil.PlusPI  -> Bpop A.Plus
+  | Cil.MinusPI -> Bpop A.Minus
+ 
   | Cil.Lt      -> Brl A.Lt   
   | Cil.Gt      -> Brl A.Gt   
   | Cil.Le      -> Brl A.Le   
   | Cil.Ge      -> Brl A.Ge   
   | Cil.Eq      -> Brl A.Eq   
-  | Cil.Ne      -> Brl A.Ne   
+  | Cil.Ne      -> Brl A.Ne  
+
   | Cil.LOr     -> Bbl A.pOr   
-  | Cil.LAnd    -> Bbl A.pAnd 
+  | Cil.LAnd    -> Bbl A.pAnd
+
   | Cil.Mod       
   | Cil.Shiftlt   
   | Cil.Shiftrt   
@@ -134,7 +139,7 @@ and convert_cilbinexp skolem (op, e1, e2) =
   | Bpop pop ->
       let e1', e2' = convert_args (e1, e2) in
       let stride   = Cil.typeOf e1 |> Cil.unrollType |> CilMisc.ptrRefType |> CilMisc.bytesSizeOf in
-      E (A.eBin (e1', pop, A.eBin (A.eCon (A.Constant.Int (stride)), A.Times, e2')))
+      E (A.eBin (e1', pop, A.eBin (A.eCon (A.Constant.Int stride), A.Times, e2')))
   | Brl rel' ->
       let e1', e2' = convert_args (e1, e2) in
       P (A.pAtom (e1', rel', e2'))
@@ -157,3 +162,76 @@ and expr_of_cilexp skolem e =
   match convert_cilexp skolem e with
   | E e -> e
   | P p -> A.eIte (p, A.one, A.zero)
+
+(*****************************************************************************************************)
+
+let bogusk = fun _ -> failwith "CI: bogus skolem"
+
+(** [reft_of_cilexp vv e] == a refinement predicate of the form {v = e} or an overapproximation thereof 
+ *  assumes that "e" is a-normalized *)
+let rec reft_of_cilexp vv e =
+  match e with
+  | Cil.CastE (_, e) -> 
+      reft_of_cilexp vv e
+  
+  | Cil.Const (Cil.CInt64 (_,_,_))
+  | Cil.SizeOf _
+  | Cil.Lval _
+  | Cil.BinOp (Cil.PlusA, _, _, _) 
+  | Cil.BinOp (Cil.MinusA, _, _, _) 
+  | Cil.BinOp (Cil.MinusPP, _, _, _) 
+  | Cil.BinOp (Cil.Mult, _, _, _) 
+  | Cil.BinOp (Cil.Div, _, _, _)
+  | Cil.BinOp (Cil.IndexPI, _, _, _)
+  | Cil.BinOp (Cil.PlusPI, _, _, _)
+  | Cil.BinOp (Cil.MinusPI, _, _, _)
+  | Cil.BinOp (Cil.Lt, _, _, _)
+  | Cil.BinOp (Cil.Gt, _, _, _)
+  | Cil.BinOp (Cil.Le, _, _, _)
+  | Cil.BinOp (Cil.Ge, _, _, _)
+  | Cil.BinOp (Cil.Eq, _, _, _)
+  | Cil.BinOp (Cil.Ne, _, _, _)
+  | Cil.BinOp (Cil.LOr, _, _, _)
+  | Cil.BinOp (Cil.LAnd, _, _, _) -> 
+      (* {v = e} *)
+      A.pAtom (A.eVar vv, A.Eq, expr_of_cilexp bogusk e)
+  
+  | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
+      (* {0 <= v < (abs e2) } *)
+      let e2'    = expr_of_cilexp bogusk e2 in
+      let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
+      A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')]
+  
+  | Cil.BinOp (Cil.Shiftlt, e1, e2, _) ->
+      (* {0 <= e2 => e1 <= v *)
+      let e1' = expr_of_cilexp bogusk e1 in
+      let e2' = expr_of_cilexp bogusk e2 in
+      A.pImp (A.pAtom (A.zero, A.Le, e2'), A.pAtom (e1', A.Le, A.eVar vv))
+
+  | Cil.BinOp (Cil.Shiftrt, e1, e2, _) ->
+      (* {0 <= e2 => e1 >= v *)
+      let e1' = expr_of_cilexp bogusk e1 in
+      let e2' = expr_of_cilexp bogusk e2 in
+      A.pImp (A.pAtom (A.zero, A.Le, e2'), A.pAtom (e1', A.Ge, A.eVar vv))
+
+  | Cil.UnOp (Cil.Neg, e1, _) ->
+      (* {v = 0 - e1} *)
+      let e1' = expr_of_cilexp bogusk e1 in 
+      A.pAtom (A.eVar vv, A.Eq, A.eBin (A.zero, A.Minus, e1'))
+
+  | Cil.UnOp (Cil.LNot, e1, _) ->
+      (* {v = (e1 = 0 ? 1 : 0)} *)
+      let e1' = expr_of_cilexp bogusk e1 in 
+      A.pAtom (A.eVar vv, A.Eq, (A.eIte (A.pAtom (e1', A.Eq, A.zero), A.one, A.zero)))
+
+  | Cil.BinOp (Cil.BAnd, _, _, _) 
+  | Cil.BinOp (Cil.BXor, _, _, _)  
+  | Cil.BinOp (Cil.BOr , _, _, _) 
+  | Cil.UnOp  (Cil.BNot, _, _) ->
+      (* Cop out, for now *)
+      let _ = Errormsg.warn "Unhandled operator: %a \n" Cil.d_exp e in
+      A.pTrue
+
+  | e -> 
+      Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e;
+      assertf "crash"
