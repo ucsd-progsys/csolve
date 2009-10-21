@@ -680,22 +680,22 @@ let subst_solstate (sub: S.Subst.t) ((vars, em, bas): solstate): solstate =
 
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let revsub      = revert_spec_names sub cf in
-  let sto         = prestore_subs revsub sto in
-  let sd          = adjust_slocdep revsub sd in
-  let cm          = cstrmap_subs revsub cm in
-  let sub         = S.Subst.compose revsub sub in
-  let vars, em, bas = subst_solstate sub (vars, em, bas) in
+  let revsub           = revert_spec_names sub cf in
+  let sto              = prestore_subs revsub sto in
+  let sd               = adjust_slocdep revsub sd in
+  let cm               = cstrmap_subs revsub cm in
+  let sub              = S.Subst.compose revsub sub in
+  let vars, em, bas    = subst_solstate sub (vars, em, bas) in
     try
       if check_out_store cf.sto_out sto then
         (sto, vars, em, bas)
       else
         E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
     with Unify (s1, s2) ->
-      let sub = [(s1, s2)] in
+      let sub           = [(s1, s2)] in
       let vars, em, bas = subst_solstate sub (vars, em, bas) in
-      let sd          = adjust_slocdep sub sd in
-      let cm          = cstrmap_subs sub cm in
+      let sd            = adjust_slocdep sub sd in
+      let cm            = cstrmap_subs sub cm in
         solve_and_check cf vars em bas sd cm
 
 let d_dcheck () ((vi, rt): dcheck): P.doc =
@@ -722,16 +722,15 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st}: shape)
     ()
 
 let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * dcheck list =
-  let ve               = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
-  let em, bas, _, cs   = constrain_fun fe cf ve (fresh_heapvar ()) sci in
-  let cs               = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_in in
-  let scs              = filter_simple_cstrs cs in
-  let cm, sd           = update_deps scs IM.empty SLM.empty in
+  let ve                  = Inferindices.infer_fun_indices (ctenv_of_funenv fe) scim cf sci |> VM.map fresh_sloc_of in
+  let em, bas, _, cs      = constrain_fun fe cf ve (fresh_heapvar ()) sci in
+  let cs                  = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_in in
+  let scs                 = filter_simple_cstrs cs in
+  let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
-  let sto              = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | CTInt _ -> sto) sto sto in
+  let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | CTInt _ -> sto) sto sto in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
-  let _           = P.printf "BLOCK ANNOT:\n\n%a\n\n" RA.d_block_annotation_array annot in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;
