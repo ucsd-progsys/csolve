@@ -316,6 +316,7 @@ let ce_mem   = fun n (_, vnv) -> YM.mem n vnv
 
 let ce_find n (_, vnv) =
   try YM.find n vnv with Not_found -> 
+    let _  = asserti false "Unknown name! %s" (Sy.to_string n) in
     assertf "Unknown name! %s" (Sy.to_string n)
 
 let ce_find_fn s (fnv, _) =
@@ -444,14 +445,15 @@ let mk_eq_uf uf xs ys =
 let is_reference cenv x =
   if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
     false
-  else
-    match ce_find x cenv with 
-      | Ctypes.CTRef (_,(_,_)) -> true
-      | _ -> false
+  else if not (ce_mem x cenv) then
+    false
+  else match ce_find x cenv with 
+    | Ctypes.CTRef (_,(_,_)) -> true
+    | _                      -> false
 
-let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
-  let erefs = A.Expression.support e |> List.filter (is_reference cenv) in
-  match ct, erefs with
+let t_exp_ptr cenv ct vv p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+  let refs = A.Predicate.support p |> List.filter (is_reference cenv) in
+  match ct, refs with
   | (Ctypes.CTRef _), [x]  ->
       let x  = A.eVar x  in
       let vv = A.eVar vv in
@@ -463,9 +465,8 @@ let t_exp_ptr cenv ct vv e = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
-  let e  = CI.expr_of_cilexp skolem e in
-  let rs = (t_exp_ptr cenv ct vv e) ++
-           [C.Conc (A.pAtom (A.eVar vv, A.Eq, e))] in
+  let p  = CI.reft_of_cilexp vv e in
+  let rs = [C.Conc p] ++ (t_exp_ptr cenv ct vv p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 

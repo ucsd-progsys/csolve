@@ -73,11 +73,11 @@ Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ )
 
 static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
 { 
-  // JHALA MOD/SHIFT return ((int )((key >> 4) % (unsigned int )HashRange));
-  int r;
+  return ((int )((key >> 4) % (unsigned int )HashRange));
+  /* int r;
   r = nondet();
   if (0 <= r && r < HashRange) return r;
-  L: goto L;     
+  L: goto L; */     
 }
 
 
