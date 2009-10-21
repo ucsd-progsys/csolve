@@ -475,12 +475,10 @@ let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm)
   let fv     = sci.ST.fdec.C.svar in
     (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
 
-let funenv_of_ctenv (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): funenv =
-  ctenv |> VM.map ifunvar_of_cfun
-        |> VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim
-
 let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypecstr list * (ifunvar * itypevar VM.t) VM.t =
-  let fe      = funenv_of_ctenv ctenv scim in
+  let fe      = ctenv
+             |> VM.map ifunvar_of_cfun
+             |> VM.fold (fun f {ST.fdec = fd} fe -> VM.add f (fresh_fun_typ fd) fe) scim in
   let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
   let css, fm = VM.fold (constrain_prog_fold fe) scim ([], fm) in
     (List.concat css, fm)
@@ -507,7 +505,7 @@ let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
 
 (* API *)
 let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t =
-  let fe     = funenv_of_ctenv ctenv scim in
+  let fe     = VM.map ifunvar_of_cfun ctenv in
   let ve, cs = constrain_fun fe (ifunvar_of_cfun cf) sci in
   let is     = solve cs in
     VM.map (itypevar_apply is) ve

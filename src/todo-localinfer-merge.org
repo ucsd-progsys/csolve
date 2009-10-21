@@ -10,6 +10,8 @@
 ** TODO Emit dynamic checks like localInfer
    These should be coming out of inferindices.
 ** DONE Pull final type checks from localInfer into inferctypes
+*** TODO Make sure all locations used in the spec get into the store
+    The only (sane) way to do this is using the locs emitted by constraining...
 ** DONE Use sub for ctvemap, block annots rather than pushing through solve
 ** TODO Get all regrtests running
 ** TODO Cheerily delete the localInfer code and merge
