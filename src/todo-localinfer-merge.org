@@ -15,7 +15,7 @@
 ** DONE Use sub for ctvemap, block annots rather than pushing through solve
 ** TODO Get all regrtests running
 ** TODO Cheerily delete the localInfer code and merge
-** TODO Don't return an env from local shape inference; it never changes
+** DONE Don't return an env from local shape inference; it never changes
 ** TODO Add annotation support for __array__ attribute types
 ** TODO Can we cut down code duplication...
 *** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)

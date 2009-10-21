@@ -744,9 +744,9 @@ type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
 (* pmr: is fresh_heapvar pattern common enough? *)
 (* API *)
-let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t * ctypeenv =
+let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * dcheck list) SM.t =
   let fe = VM.empty
         |> SM.fold (fun f cf fe -> VM.add (C.findOrCreateFunc cil f C.voidType) (cf, VM.empty, fresh_heapvar ()) fe) env
         |> SM.fold (fun _ (cf, {ST.fdec = fd}) fe -> VM.add fd.C.svar (cf, VM.empty, fresh_heapvar ()) fe) scis in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-    (scis |> SM.map (infer_shape fe scim |> M.uncurry), env)
+    scis |> SM.map (infer_shape fe scim |> M.uncurry)
