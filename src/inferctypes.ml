@@ -671,9 +671,13 @@ let revert_spec_names (subaway: S.Subst.t) (cfspec: cfun): S.Subst.t =
   |> prestore_domain
   |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
 
+type solstate = ctype VM.t * ctvemap * RA.block_annotation array
+
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
-(* pmr: check this whole bit quite carefully *)
+let subst_solstate (sub: S.Subst.t) ((vars, em, bas): solstate): solstate =
+  (VM.map (prectype_subs sub) vars, ExpMap.map (prectype_subs sub) em, Array.map (RA.subs sub) bas)
+
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
   let revsub      = revert_spec_names sub cf in
@@ -681,9 +685,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
   let sd          = adjust_slocdep revsub sd in
   let cm          = cstrmap_subs revsub cm in
   let sub         = S.Subst.compose revsub sub in
-  let em          = ExpMap.map (prectype_subs sub) em in
-  let bas         = Array.map (RA.subs sub) bas in
-  let vars        = VM.map (prectype_subs sub) vars in
+  let vars, em, bas = subst_solstate sub (vars, em, bas) in
     try
       if check_out_store cf.sto_out sto then
         (sto, vars, em, bas)
@@ -691,9 +693,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
         E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
     with Unify (s1, s2) ->
       let sub = [(s1, s2)] in
-      let em          = ExpMap.map (prectype_subs sub) em in
-      let bas         = Array.map (RA.subs sub) bas in
-      let vars        = VM.map (prectype_subs sub) vars in
+      let vars, em, bas = subst_solstate sub (vars, em, bas) in
       let sd          = adjust_slocdep sub sd in
       let cm          = cstrmap_subs sub cm in
         solve_and_check cf vars em bas sd cm
