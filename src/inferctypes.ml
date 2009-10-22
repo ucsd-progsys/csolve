@@ -412,9 +412,10 @@ let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvem
 let constrain_app ((fs, hv, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * RA.annotation list * cstr list list * S.t list list =
   let ctvs, em, css, sss = constrain_args env em args in
   let cf, _, hvf     = VM.find f fs in
-  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
-  let annot          = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs instslocs in
-  let sub            = List.combine cf.qlocs instslocs in
+  let qlocs          = List.filter (fun s -> not (S.is_ghost s)) cf.qlocs in
+  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) qlocs in
+  let annot          = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
+  let sub            = List.combine qlocs instslocs in
   let sss            = instslocs :: sss in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
   let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
@@ -587,12 +588,51 @@ let solve_scc (env: cfun VM.t) (it: Ind.indextyping) ((fs, sd, cm, sto): funenv 
     end else ()
   in (fs, sd, cm, sto)
 
+let add_subst_inclusion (incm: S.t list SLM.t) ((sfrom, sto): S.t * S.t): S.t list SLM.t =
+  let rest = try SLM.find sfrom incm with Not_found -> [] in
+    SLM.add sfrom (sto :: rest) incm
+
+let add_ghost (period: int option) (ld: index LDesc.t) (pl: ploc) (ct: ctype): index LDesc.t =
+  let ind = index_of_ploc pl (M.get_option 0 period) in
+    match ct, LDesc.find_index ind ld with
+      | CTInt (n, _), [] -> LDesc.add_index ind (CTInt (n, ITop)) ld
+      | CTRef (_, i), [] -> LDesc.add_index ind (CTRef (S.fresh S.Ghost, i)) ld
+      | _                -> ld
+
+let add_ghosts (incm: S.t list SLM.t) (sto: store) (s: S.t): store =
+  let lds  = prestore_find s sto in
+  let incs = try SLM.find s incm with Not_found -> [] in
+  let lds  = List.fold_left begin fun lds si ->
+    let ldsi = prestore_find si sto in
+      LDesc.fold (add_ghost (LDesc.get_period ldsi)) lds ldsi
+  end lds incs
+  in
+    SLM.add s lds sto
+
+let fix_inclusions (incm: S.t list SLM.t) (fs: funenv) (sto: store) (scc: scc): store =
+  match scc with
+    | []     -> sto
+    | f :: _ -> (* all functions in SCC have same outstore *)
+        let cf, _, _ = VM.find (fst f) fs in
+          cf.sto_out |> prestore_domain |> List.fold_left (add_ghosts incm) sto
+
+let repair_cfun (sto: store) (cf: cfun): cfun =
+  let sto_in, sto_out = M.map_pair (SLM.mapi (fun s _ -> prestore_find s sto)) (cf.sto_in, cf.sto_out) in
+  let qlocs           = prestore_fold (fun qlocs s _ ct -> M.maybe_cons (prectype_sloc ct) (s :: qlocs)) [] sto_out |> M.sort_and_compact in
+    {cf with qlocs = qlocs; sto_in = sto_in; sto_out = sto_out}
+
+let undo_physical_subtyping (sccs: scc list) (cm: cstrmap) (sto: store) (fs: funenv): funenv =
+  let incm = IM.fold (fun _ sc incm -> match sc.cdesc with `CWFSubst sub -> List.fold_left add_subst_inclusion incm sub | _ -> incm) cm SLM.empty in
+  let sto  = sccs |> List.rev |> List.fold_left (fix_inclusions incm fs) sto in
+    VM.map (repair_cfun sto |> M.app_fst3) fs
+
 let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
-  let it          = Ind.infer_indices env scim in
-  let cg          = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
-  let sccs        = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
-  let fs          = funenv_of_ctenv env in
-  let fs, _, _, _ = List.fold_left (solve_scc env it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
+  let it             = Ind.infer_indices env scim in
+  let cg             = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
+  let sccs           = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
+  let fs             = funenv_of_ctenv env in
+  let fs, _, cm, sto = List.fold_left (solve_scc env it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
+  let fs             = undo_physical_subtyping sccs cm sto fs in
     VM.fold begin fun f (cf, _, _) spec ->
       if CM.definedHere f then
         (f.C.vname, cf) :: spec
