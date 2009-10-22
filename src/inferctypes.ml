@@ -374,7 +374,8 @@ and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctve
   let ctv, em, cs, ss = constrain_exp env em e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
       | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, ITop), em, cs, ss)
-      | C.TFloat (fk, _), C.TFloat _ -> (CTInt (CM.bytesSizeOfFloat fk, ITop), em, cs, ss)
+      | C.TInt (ik, _), C.TFloat _   -> (CTInt (C.bytesSizeOfInt ik, ITop), em, cs, ss)
+      | C.TFloat (fk, _), _          -> (CTInt (CM.bytesSizeOfFloat fk, ITop), em, cs, ss)
       | C.TInt (ik, _), C.TInt _     ->
           begin match ctv with
             | CTInt (n, ie) ->

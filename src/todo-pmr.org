@@ -3,7 +3,8 @@
   code:
 
 ** DONE Merged version of KS benchmark
-** TODO Casts between doubles and ints
+** DONE Casts between doubles and ints
+** TODO Push POWER through
 ** TODO Fix weird unglobal problems in ADPCM
 ** TODO Can we cut down code duplication...
 *** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)
