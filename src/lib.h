@@ -19,6 +19,16 @@ extern char *strtok(char *, char *);
 
 extern FILE *fopen(char *, char *);
 extern int fprintf(FILE *, char *, ...);
+extern int printf(char *, ...);
 extern char *fgets(char *, int, FILE *);
 
 extern int sscanf(char *, char *, ...);
+
+#define CLOCKS_PER_SEC 1000
+
+typedef long int clock_t;
+
+extern clock_t clock(void);
+
+extern double sqrt(double);
+extern double fabs(double);
