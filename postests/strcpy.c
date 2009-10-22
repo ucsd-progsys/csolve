@@ -1,7 +1,7 @@
 extern char *malloc(int);
 extern int nondetpos();
 
-char * strncpy (char *dest, const char *src, unsigned int n)
+char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const char *__attribute__((array)) src, unsigned int n)
 {
   char c;
   char *s = dest;

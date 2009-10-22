@@ -1,14 +1,12 @@
 TBD
 
-[Ops]	get postests/hashfunc.c working...
-
-	refactor CilInterface to deal with unop and binop 
-        (make CilInterface.expr_of_cilexp return a refinement instead of expr)
-	(make CilInterface.pred_of_cilexp handle !)
-
 [Annot] Dump out the types for the entire store of a function (not just in/out?)
 
 -------------------------------------------------------------------------
+[Ops]	get postests/hashfunc.c working...
+	refactor CilInterface to deal with unop and binop 
+        (make CilInterface.expr_of_cilexp return a refinement instead of expr)
+	(make CilInterface.pred_of_cilexp handle !)
 
 ./main.native -typespec ../postests/mst-scratch.c
 [mst]
