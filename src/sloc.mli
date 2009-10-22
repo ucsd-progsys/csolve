@@ -1,6 +1,6 @@
 type t
 
-type sloctype = Abstract | Concrete
+type sloctype = Abstract | Concrete | Ghost
 
 module SlocSet: Set.S with type elt = t
 module SlocMap: Map.S with type key = t
@@ -8,6 +8,7 @@ module SlocMap: Map.S with type key = t
 val none          : t
 val fresh         : sloctype -> t
 val is_abstract   : t -> bool
+val is_ghost      : t -> bool
 val sloc_type     : t -> sloctype
 val compare       : t -> t -> int
 val eq            : t -> t -> bool

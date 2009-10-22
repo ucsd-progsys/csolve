@@ -9,7 +9,7 @@ void main () {
 
     q = (int *)malloc(sizeof(int) * 2);
     q[0] = 1;
-    q[1] = 2;
+    *((int **)(q + 1)) = q;
 
     test(q);
 }

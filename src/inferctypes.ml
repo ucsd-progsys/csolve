@@ -520,8 +520,8 @@ let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
 
 let fresh_sloc_of (c: ctype): ctype =
   match c with
-    | CTRef (_, i) -> CTRef (S.fresh S.Abstract, i)
-    | CTInt _      -> c
+    | CTRef (s, i) when not (S.is_ghost s) -> CTRef (S.fresh S.Abstract, i)
+    | _                                    -> c
 
 (******************************************************************************)
 (***************************** Constraint Solving *****************************)
