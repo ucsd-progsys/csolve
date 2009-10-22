@@ -39,8 +39,6 @@ module Ops = struct
 
   let (>>) x f = f x; x
 
-  let (>>>) x f = ignore x; f
-
   let (|>>) xo f = match xo with None -> None | Some x -> f x
 
   let (+=) x n = x := !x + n; !x
