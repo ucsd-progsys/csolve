@@ -173,6 +173,13 @@ let rec reft_of_cilexp vv e =
   match e with
   | Cil.CastE (_, e) -> 
       reft_of_cilexp vv e
+
+  | Cil.Const (Cil.CReal _)
+  | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
+  | Cil.BinOp (_, _, Cil.Const (Cil.CReal _), _)
+  | Cil.UnOp  (_, Cil.Const (Cil.CReal _), _) ->
+      (* Cop out when real constants are involved *)
+      A.pTrue
   
   | Cil.Const (Cil.CInt64 (_,_,_))
   | Cil.SizeOf _
