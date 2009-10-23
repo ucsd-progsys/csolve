@@ -281,6 +281,10 @@ let eApp = fun (s,es) -> ewr (App (s,es))
 let eBin = fun (e1, op, e2) -> ewr (Bin (e1, op, e2)) 
 let eIte = fun (ip,te,ee) -> ewr (Ite(ip,te,ee))
 let eFld = fun (s,e) -> ewr (Fld (s,e))
+let eTim = function 
+  | (Con (Constant.Int n1), _), (Con (Constant.Int n2), _) -> 
+      ewr (Con (Constant.Int (n1 * n2)))
+  | (e1, e2) -> eBin (e1, Times, e2)
 
 (* Constructors: Predicates *)
 let pTrue  = pwr True
@@ -537,13 +541,13 @@ let calc_cm e1 e2 =
 let rec apply_mult m = function 
   | Bin (e, Div,  (Con (Constant.Int d),_)), _ ->
       let _   = assert ((m/d) * d = m) in
-      eBin ((eCon (Constant.Int (m/d))), Times, e)  
+      eTim ((eCon (Constant.Int (m/d))), e)  
   | Bin (e1, op, e2), _ ->
       eBin (apply_mult m e1, op, apply_mult m e2)
   | Con (Constant.Int i), _ -> 
       eCon (Constant.Int (i*m))
   | e -> 
-      eBin (eCon (Constant.Int m), Times, e)
+      eTim (eCon (Constant.Int m), e)
 
 let rec pred_isdiv = function 
   | True,_ | False,_ -> 

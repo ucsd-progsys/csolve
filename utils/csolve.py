@@ -11,6 +11,7 @@
 import vim
 import time
 import re
+import os
 
 class AnnExc(Exception):
   def __init__(self, reason):

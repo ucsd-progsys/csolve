@@ -214,7 +214,7 @@ let is_z3_int me a =
     |> ast_type_to_string me
     |> (=) "int"
 
-    (* 
+(* 
 let z3Relf = function
   | A.Eq -> Z3.mk_eq
   | A.Gt -> Z3.mk_gt
@@ -270,6 +270,8 @@ and z3Exp me env = function
       Z3.mk_add me.c (Array.map (z3Exp me env) [|e1; e2|])
   | A.Bin (e1, A.Minus, e2), _ ->
       Z3.mk_sub me.c (Array.map (z3Exp me env) [|e1; e2|])
+  | A.Bin((A.Con (A.Constant.Int n1), _), A.Times, (A.Con (A.Constant.Int n2), _)),_ ->
+      Z3.mk_int me.c (n1 * n2) me.tint
   | A.Bin (e1, A.Times, e2), _ ->
       Z3.mk_mul me.c (Array.map (z3Exp me env) [|e1; e2|])
   | A.Bin (e1, A.Div, e2), _ -> 

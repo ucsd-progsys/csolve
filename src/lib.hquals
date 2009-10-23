@@ -7,6 +7,7 @@ qualif EQZ(v: ptr)     : v = 0
 qualif GTZP(v:ptr)     : 0 < v
 qualif ISBS(v:ptr)     : v = BLOCK_BEGIN([v])
 qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
+qualif SIZE(v:ptr)     : BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
 
 qualif SIZE(v:ptr)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
 //qualif SIZE(v:ptr)     : ((v + (4 * ~a)) < BLOCK_END([v]))
