@@ -692,7 +692,7 @@ let check_out_store (sto_out_formal: store) (sto_out_actual: store): bool =
     prestore_fold begin fun ok l i ft ->
       try
         match prestore_find_index l i sto_out_actual with
-          | []   -> not (SLM.mem l sto_out_actual)
+          | []   -> ok
           | [at] -> check_expected_type ft at && ok (* order is important here for unification! *)
           | _    -> failwith "Returned too many at index from prestore_find_index"
       with
