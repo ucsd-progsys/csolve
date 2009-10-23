@@ -266,7 +266,9 @@ void optimize_node(double pi_R , double pi_I )
       tmp___0 = make_orthogonal(grad_g, grad_h);
       magnitude *= tmp___0;
       total = g / magnitude;
+      validptr(&grad_g[0]);
       P -= total * grad_g[0];
+      validptr(&grad_g[1]);
       Q -= total * grad_g[1];
     }
     magnitude = find_gradient_f(pi_R, pi_I, grad_f);
@@ -274,6 +276,8 @@ void optimize_node(double pi_R , double pi_I )
     total = 0.0;
     i = 0;
     while (i < 2) {
+      validptr(&grad_f[i]);
+      validptr(&dd_grad_f[i]);
       total += grad_f[i] * dd_grad_f[i];
       i ++;
     }
@@ -286,6 +290,8 @@ void optimize_node(double pi_R , double pi_I )
     total = 0.0;
     i = 0;
     while (i < 2) {
+      validptr(&grad_f[i]);
+      validptr(&grad_g[i]);
       total += grad_f[i] * grad_g[i];
       i ++;
     }
@@ -296,7 +302,9 @@ void optimize_node(double pi_R , double pi_I )
         magnitude = max_dist;
       }
     }
+    validptr(&grad_f[0]);
     P += magnitude * grad_f[0];
+    validptr(&grad_f[1]);
     Q += magnitude * grad_f[1];
     h = find_h();
     g = find_g();
@@ -307,6 +315,10 @@ void optimize_node(double pi_R , double pi_I )
       if ((g > 0.000001) != 0) {
         tmp___5 = fabs(g);
         if (tmp___5 > 0.000001) {
+          validptr(&grad_f[0]);
+          validptr(&grad_h[1]);
+          validptr(&grad_f[1]);
+          validptr(&grad_h[0]);
           tmp___6 = fabs(grad_f[0] * grad_h[1] - grad_f[1] * grad_h[0]);
           if ((tmp___6 > 0.000001) != 0) {
             break;
@@ -478,6 +490,7 @@ Root build_tree(void)
   i = 0;
   while (i < 10) {
     l = build_lateral(i * 20, 20);
+    validptr(&t->feeders[i]);
     t->feeders[i] = l;
     i ++;
   }
@@ -533,6 +546,7 @@ Branch build_branch(int i , int j , int num )
   i = 0;
   while (i < 10) {
     l = build_leaf();
+    validptr(&b->leaves[i]);
     b->leaves[i] = l;
     i ++;
   }
