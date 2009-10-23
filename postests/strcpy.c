@@ -1,6 +1,7 @@
 extern char *malloc(int);
 extern int nondetpos();
 
+// pmr: Shape inference is fine without array annots; ditch?
 char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const char *__attribute__((array)) src, unsigned int n)
 {
   char c;
