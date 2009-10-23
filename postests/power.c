@@ -267,8 +267,6 @@ void optimize_node(double pi_R , double pi_I )
       P -= total * grad_g[0];
       Q -= total * grad_g[1];
     }
-    // pmr: HACK
-    grad_g[nondetpos()] = 0.0;
     magnitude = find_gradient_f(pi_R, pi_I, grad_f);
     find_dd_grad_f(pi_R, pi_I, dd_grad_f);
     total = 0.0;
@@ -301,8 +299,6 @@ void optimize_node(double pi_R , double pi_I )
     h = find_h();
     g = find_g();
     find_gradient_f(pi_R, pi_I, grad_f);
-    // pmr: HACK
-    grad_h[nondetpos()] = 0.0;
     find_gradient_h(grad_h);
     tmp___4 = fabs(h);
     if ((tmp___4 > 0.000001) != 0) {
@@ -483,6 +479,15 @@ Root build_tree(void)
     t->feeders[i] = l;
     i ++;
   }
+  // pmr: BEGIN HACK
+  t->D.P = 0.0;
+  t->D.Q = 0.0;
+  t->last.P = 0.0;
+  t->last.Q = 0.0;
+  t->last_theta_R = 0.0;
+  t->last_theta_I = 0.0;
+  // pmr: END HACK
+
   t->theta_R = 0.8;
   t->theta_I = 0.16;
   return (t);
@@ -552,8 +557,8 @@ Leaf build_leaf(void)
 extern int printf(char *  , ...) ;
 extern clock_t clock(void) ;
 int main(int argc , char **argv ) 
-{ double map_P[36] ;
-  double map_Q[36] ;
+{ double *map_P /* [36] */ ;
+    double *map_Q /* [36] */ ;
   double wallclock___0 ;
   Root r ;
   int i ;
@@ -566,6 +571,12 @@ int main(int argc , char **argv )
   clock_t tmp___2 ;
 
   {
+  // pmr: HACK
+  map_P = (double *)malloc(sizeof(double) * 36);
+  map_P[nondetpos()] = 0.0;
+  map_Q = (double *)malloc(sizeof(double) * 36);
+  map_Q[nondetpos()] = 0.0;
+  /*      
   map_P[0] = 8752.218091048;
   map_P[1] = 8446.106670416;
   map_P[2] = 8107.990680283;
@@ -638,6 +649,7 @@ int main(int argc , char **argv )
   map_Q[33] = 284.222260660;
   map_Q[34] = 257.068973074;
   map_Q[35] = 230.557938283;
+  */
   finished = 0;
   //  printf((char *)"Past initialization\n");
   tmp = clock();
