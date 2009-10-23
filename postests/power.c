@@ -254,7 +254,9 @@ void optimize_node(double pi_R , double pi_I )
     if (tmp > 0.000001) {
       magnitude = find_gradient_h(grad_h);
       total = h / magnitude;
+      validptr(&grad_h[0]);
       P -= total * grad_h[0];
+      validptr(&grad_h[1]);
       Q -= total * grad_h[1];
     }
     g = find_g();
@@ -684,6 +686,8 @@ int main(int argc , char **argv )
       if (i > 35) {
         i = 35;
       }
+      validptr(&map_P[i + 1]);
+      validptr(&map_P[i]);
       d_theta_R = - (r->theta_R - r->D.P / 10000.0) / ((double )1.0 - (map_P[i + 1] - map_P[i]) / (0.01 * 10000.0));
       i = (int )((r->theta_I - 0.13) / 0.002);
       if (i < 0) {
@@ -692,6 +696,8 @@ int main(int argc , char **argv )
       if (i > 35) {
         i = 35;
       }
+      validptr(&map_Q[i + 1]);
+      validptr(&map_Q[i]);
       d_theta_I = - (r->theta_I - r->D.Q / 10000.0) / ((double )1.0 - (map_Q[i + 1] - map_Q[i]) / (0.002 * 10000.0));
       //      printf((char *)"D TR-%13.9f, TI=%13.9f\n", d_theta_R, d_theta_I);
       r->last.P = r->D.P;

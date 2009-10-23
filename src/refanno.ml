@@ -97,7 +97,7 @@ let annotate_set ctm theta conc = function
       assertf "annotate_set: unknown set"
 
 let concretize_new conc = function
-  | New (x,y) -> 
+  | New (x,y) ->
       let _  = asserts (Sloc.is_abstract y) "concretize_new" in
       if Sloc.is_abstract x then 
         let y' = cloc_of_aloc conc y in
