@@ -1,37 +1,7 @@
-//qualif SZ(v:ptr): BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~A
-//qualif SZ(v:ptr): BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
+qualif SIZE(v:ptr)     : (v + ~a)      < BLOCK_END([v])
+qualif SIZE(v:ptr)     : (v + (4 *~a)) < BLOCK_END([v])
+qualif LEF(v:int)      : (~A + v)      < BLOCK_END([~A])
+qualif SIZE(v:ptr)     : (v + ~a)      < (BLOCK_END([v]) - @m)
+qualif SIZE(v:ptr)     : (v + (4 *~a)) < (BLOCK_END([v]) - @m)
+qualif LEF(v:int)      : (~A + v)      < (BLOCK_END([~A]) - @m)
 
-qualif SIZE(v:ptr)     : (v + ~a) <= BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + ~a) <  BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + (4 *~a)) <= BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + (4 *~a)) <  BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + ((4 *~a) - 4)) <= BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + ((4 *~a) - 4)) <  BLOCK_END([v])
-
-qualif LEF(v:int)      : (~A + v) < BLOCK_END([~A])
-qualif LEF(v:int)      : v <= 3
-qualif SIZE(v:ptr)     : (v + 4)  <= BLOCK_END([v])
-qualif SIZE(v:ptr)     : (v + 4) <  BLOCK_END([v])
-
-//qualifs: v + ~A     < END(v)
-//	   v + 4 * ~A < END(v)
-//INVARIANTS:
-//n4:           0 <= v
-//dest0: v + N    <  END(V)
-//src0:  v + N    <  END(V)
-//dest:  v + 4.n4 <  END(V)
-//src:   v + 4.n4 <  END(V) 
-//
-//POST:
-//n: dest + v < END(dest), src + v < END(src)
-//dest: v + n < END(v)
-//src:  v + n < END(v) 
-//
-//where:
-//(a) n = N - dest + dest0
-//(b) n = N mod 4
-//
-//case (a)
-//dest + n = dest + N - dest + dest0 = dest0 + N < END(dest0) = END(dest)
-//case (b)
-//dest + n = dest + (N mod 4) < dest + 4 = dest + 4.1 = dest + 4.n4 < END(dest)

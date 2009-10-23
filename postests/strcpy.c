@@ -6,9 +6,15 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
   char c;
   char *s = dest;
 
-  if (n >= 4)
+  unsigned int n4 = n / 4;	// JHALA
+  unsigned int m4 = n % 4;	// JHALA
+
+  //modular arith axiom: (n != (4 * n4) + m4), faked by assume
+  if (n != (4 * n4) + m4) { STUCK: goto STUCK;}
+
+  if (n4 >= 1) // n >= 4
     {
-        unsigned int n4 = n / 4;// n >> 2;
+      //unsigned int n4 = n / 4;// n >> 2;
 
       for (;;)
 	{
@@ -16,7 +22,7 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
           validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
-	  //dest = dest ? dest : dest; //JHALA
+	  
 	  if (c == 0)
 	    break;
           validptr(src);
@@ -24,7 +30,6 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
 	  c = *src++;
 	  *dest++ = c;
 	  
-	  //dest = dest ? dest : dest; //JHALA
 	  if (c == 0)
 	    break;
           validptr(src);
@@ -32,7 +37,6 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
 	  c = *src++;
 	  *dest++ = c;
 	  
-	  //dest = dest ? dest : dest; //JHALA
 	  if (c == 0)
 	    break;
           validptr(src);
@@ -40,41 +44,36 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
 	  c = *src++;
 	  *dest++ = c;
 	  
-	  //dest = dest ? dest : dest; //JHALA
 	  if (c == 0)
 	    break;
 	  if (--n4 == 0)
 	    goto last_chars;
 	}
-      // int junk = n4 ? n4: n4; //JHALA
       n -= dest - s;
-      int junk = n ? n : n ;
       goto zero_fill;
     }
- 
-  last_chars: goto last_chars;
-//  last_chars:
-//  //n &= 3; JHALA
-//  n = n % 4;
-//  if (n == 0)
-//    return dest;
-//
-//  for (;;)
-//    {
-//        //      validptr(src);
-//        //      validptr(dest);
-//      c = *src++;
-//      --n;
-//      *dest++ = c;
-//      if (c == 0)
-//	break;
-//      if (n == 0)
-//	return dest;
-//    }
+
+last_chars:
+  n = m4; // n &= 3; 
+  if (n == 0)
+    return dest;
+
+  for (;;)
+    {
+      validptr(src);
+      validptr(dest);
+      c = *src++;
+      --n;
+      *dest++ = c;
+      if (c == 0)
+	break;
+      if (n == 0)
+	return dest;
+    }
 
  zero_fill:
   while (n-- > 0) {
-    validptr(&dest[n]);
+   validptr(&dest[n]);
     dest[n] = 0;
   }
 
