@@ -356,16 +356,20 @@ double find_gradient_f(double pi_R , double pi_I , double *gradient )
 
   {
   magnitude = 0.0;
+  validptr(gradient);
   *(gradient + 0) = (double )1.0 / ((double )1.0 + P) - pi_R;
+  validptr(gradient + 1);
   *(gradient + 1) = (double )1.0 / ((double )1.0 + Q) - pi_I;
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     magnitude += *(gradient + i) * *(gradient + i);
     i ++;
   }
   magnitude = sqrt(magnitude);
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     *(gradient + i) /= magnitude;
     i ++;
   }
@@ -380,16 +384,20 @@ double find_gradient_g(double *gradient )
 
   {
   magnitude = 0.0;
+  validptr(gradient + 0);
   *(gradient + 0) = (double )2.0 * P;
+  validptr(gradient + 1);
   *(gradient + 1) = (double )2.0 * Q;
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     magnitude += *(gradient + i) * *(gradient + i);
     i ++;
   }
   magnitude = sqrt(magnitude);
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     *(gradient + i) /= magnitude;
     i ++;
   }
@@ -402,16 +410,20 @@ double find_gradient_h(double *gradient )
 
   {
   magnitude = 0.0;
+  validptr(gradient + 0);
   *(gradient + 0) = 1.0;
+  validptr(gradient + 1);
   *(gradient + 1) = - 5.0;
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     magnitude += *(gradient + i) * *(gradient + i);
     i ++;
   }
   magnitude = sqrt(magnitude);
   i = 0;
   while (i < 2) {
+    validptr(gradient + i);
     *(gradient + i) /= magnitude;
     i ++;
   }
@@ -435,7 +447,9 @@ void find_dd_grad_f(double pi_R , double pi_I , double *dd_grad )
   grad_mag = sqrt(P_grad_term * P_grad_term + Q_grad_term * Q_grad_term);
   // pmr: HACK
   *(dd_grad + nondetpos()) = 0.0;
+  validptr(dd_grad + 0);
   *(dd_grad + 0) = ((- P_plus_1_inv * P_plus_1_inv) * P_grad_term) / grad_mag;
+  validptr(dd_grad + 1);
   *(dd_grad + 1) = ((- Q_plus_1_inv * Q_plus_1_inv) * Q_grad_term) / grad_mag;
   return;
 }
