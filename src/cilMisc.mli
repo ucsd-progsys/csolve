@@ -13,6 +13,9 @@ val int_width        : int
 val short_width      : int
 val char_width       : int
 
+val has_array_attr   : Cil.attributes -> bool
+val has_pos_attr     : Cil.attributes -> bool
+
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
 val definedHere : Cil.varinfo -> bool

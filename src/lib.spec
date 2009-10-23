@@ -96,3 +96,17 @@ clock ::
   ret       int (4, true)
   store_in  []
   store_out []
+
+sqrt ::
+  forall    []
+  arg       (n: int (8, true))
+  ret       int (8, true)
+  store_in  []
+  store_out []
+
+fabs ::
+  forall    []
+  arg       (n: int (8, true))
+  ret       int (8, true)
+  store_in  []
+  store_out []

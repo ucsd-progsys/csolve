@@ -2,6 +2,13 @@
   The following things need to be added to the full spec inference
   code:
 
+** DONE Merged version of KS benchmark
+** DONE Casts between doubles and ints
+** TODO Push POWER through
+** TODO Fix weird unglobal problems in ADPCM
+** TODO Can we cut down code duplication...
+*** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)
+
 ** DONE Return an expression -> ctype map
    And change solve to apply the solution to the map.
 *** DONE Merge common envs into products
@@ -16,8 +23,6 @@
 ** DONE Get all regrtests running
 ** DONE Cheerily delete the localInfer code and merge
 ** DONE Don't return an env from local shape inference; it never changes
-** TODO Better error messages from inferindices
+** DONE Better error messages from inferindices
    No more "Failed index constraint [something with index vars]"
-** TODO Add annotation support for __array__ attribute types
-** TODO Can we cut down code duplication...
-*** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)
+** DONE Add annotation support for __array__ attribute types

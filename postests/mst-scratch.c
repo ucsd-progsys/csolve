@@ -24,7 +24,7 @@ typedef struct hash *Hash;
 
 struct vert_st {
    int mindist ;
-   struct vert_st *next ;
+   struct vert_st *__attribute__((array)) next ;
    Hash edgehash ;
    unsigned int padding ;
 };
@@ -368,6 +368,7 @@ static int ComputeMst(Graph graph , int numvert )
   return (cost);
 }
 }
+
 int dealwithargs(int argc , string_array argv) 
 { int level ;
   if (argc > 1) {

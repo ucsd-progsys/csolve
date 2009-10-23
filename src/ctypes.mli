@@ -25,12 +25,14 @@ module LDesc:
     val empty: 'a t
     val get_period: 'a t -> int option
     val add: ploc -> 'a prectype -> 'a t -> 'a t
+    val add_index: index -> 'a prectype -> 'a t -> 'a t
     val create: (index * 'a prectype) list -> 'a t
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
     val find_index: index -> 'a t -> (ploc * 'a prectype) list
     val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
+    val fold: ('a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
     val mapn: (int -> ploc -> 'a prectype -> 'b prectype) -> 'a t -> 'b t
     val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc

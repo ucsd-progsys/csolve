@@ -2,7 +2,7 @@ extern char* malloc(int);
 
 struct foo {
   int data;
-  struct foo *next;
+  struct foo *__attribute__((array)) next;
 };
 
 struct foo *__attribute__((array)) main(){

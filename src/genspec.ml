@@ -32,6 +32,7 @@ module F   = Format
 module Ct  = Ctypes
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
+module CM  = CilMisc
 
 open Cil
 open Misc.Ops
@@ -111,11 +112,6 @@ let unroll_ciltype t =
                      List.map (fun x -> x.ftype) ci.cfields
   | t             -> [t]
 
-
-let is_array_attr = function Attr ("array",_) -> true | _ -> false
-let is_pos_attr   = function Attr ("pos",_) -> true | _ -> false
-
-
 let add_off off c =
   let i = CilMisc.bytesSizeOf c in
   match off with 
@@ -139,19 +135,20 @@ Ct.LDesc.create ts
   | _                    -> Ct.LDesc.create ts 
 *)
 
-let index_of_attrs = fun ats -> if List.exists is_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
+let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
 
 let conv_cilbasetype = function 
-  | TVoid ats      -> Ct.CTInt (0, index_of_attrs ats)
-  | TInt (ik, ats) -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
-  | _              -> assertf "ctype_of_cilbasetype: non-base!"
+  | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
+  | TInt (ik, ats)   -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
+  | TFloat (fk, ats) -> Ct.CTInt (CM.bytesSizeOfFloat fk, index_of_attrs ats)
+  | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 let rec conv_ciltype loc (th, st, off) (c, a) = 
   match c with
-  | TVoid _ | TInt (_,_) ->
+  | TVoid _ | TInt (_,_) | TFloat _ ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
   | TPtr (c',a') ->
-      let po = if List.exists is_array_attr (a' ++ a) 
+      let po = if CM.has_array_attr (a' ++ a) 
                then Some (CilMisc.bytesSizeOf c') else None in
       let (th', st'), t = conv_ptr loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 

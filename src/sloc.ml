@@ -3,7 +3,7 @@ module M = Misc
 
 open Misc.Ops
 
-type sloctype = Abstract | Concrete 
+type sloctype = Abstract | Concrete | Ghost
 
 type slocid = int
 
@@ -14,7 +14,7 @@ let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 let fresh lty =
   Sloc (fresh_slocid (), lty)
 
-let none = Sloc (-1, Abstract)
+let none  = Sloc (-1, Abstract)
 
 let compare (Sloc (lid1, _): t) (Sloc (lid2, _): t): int =
   compare lid1 lid2
@@ -28,10 +28,14 @@ let sloc_type (Sloc (_, lty): t): sloctype =
 let is_abstract (l: t): bool =
   sloc_type l = Abstract
 
+let is_ghost (l: t): bool =
+  sloc_type l = Ghost
+
 let to_string (Sloc (lid, lty): t): string =
   match lty with
     | Abstract -> "A" ^ string_of_int lid
     | Concrete -> "C" ^ string_of_int lid
+    | Ghost    -> "G" ^ string_of_int lid
 
 let d_sloc () (l: t): Pretty.doc =
   Pretty.text <| to_string l
