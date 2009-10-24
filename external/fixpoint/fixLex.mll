@@ -48,7 +48,7 @@ rule token = parse
 			    E.startNewline (Lexing.lexeme_end lexbuf);
 			    token lexbuf 
 			  end }
-  | "//"[^'!''\n']*'\n'
+  | "//"[^'\n']*'\n'
                         { begin
                             E.startNewline (Lexing.lexeme_end lexbuf);
 			    token lexbuf
