@@ -77,7 +77,10 @@ void Compute_Tree(Root r )
   tmp.Q = 0.0;
   i = 0;
   while (i < 10) {
+    validptr(r);
+    validptr(&r->feeders[i]);
     l = r->feeders[i];
+    if (l == (Lateral)0) { DIVERGE: goto DIVERGE; } // pmr assume
     theta_R = r->theta_R;
     theta_I = r->theta_I;
     a = Compute_Lateral(l, theta_R, theta_I, theta_R, theta_I);
@@ -107,6 +110,7 @@ Demand *Compute_Lateral(Lateral l , double theta_R , double theta_I , double pi_
   void *tmp___0 ;
 
   {
+  validptr(l);
   new_pi_R = pi_R + l->alpha * (theta_R + (theta_I * l->X) / l->R);
   new_pi_I = pi_I + l->beta * (theta_I + (theta_R * l->R) / l->X);
   next = l->next_lateral;
@@ -161,6 +165,7 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   Leaf *leaves;
 
   {
+  // pmr: this should be unnecessary
   if (br == (struct branch *)0) { DIVERGE: goto DIVERGE; } // pmr assume
   new_pi_R = pi_R + br->alpha * (theta_R + (theta_I * br->X) / br->R);
   new_pi_I = pi_I + br->beta * (theta_I + (theta_R * br->R) / br->X);
@@ -173,18 +178,16 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   br = br;
   i = 0;
   while (i < 10) {
-    int pmr = nondet() ? br : br;
-      validptr(&br->leaves[i]);
-      // validptr(&(br->D.Q));
-      assert(br != (Branch)0);
+    validptr(&br->leaves[i]);
     l = br->leaves[i];
+    // pmr: Null ptr deref of a2 is ok here (was originally on the stack)
     a2 = Compute_Leaf(l, new_pi_R, new_pi_I);
     tmp.P += a2->P;
     tmp.Q += a2->Q;
     i ++;
   }
   if ((unsigned int )next != (unsigned int )((Branch )0)) {
-    // pmr: Potential null pointer derefs, watch out for these...
+    // pmr: Null ptr deref of a1 is ok here (was originally on the stack)
     br->D.P = a1->P + tmp.P;
     br->D.Q = a1->Q + tmp.Q;
   } else {
@@ -217,6 +220,7 @@ Demand *Compute_Leaf(Leaf l , double pi_R , double pi_I )
   void *tmp ;
 
   {
+
   P = l->D.P;
   Q = l->D.Q;
   optimize_node(pi_R, pi_I);
@@ -473,11 +477,15 @@ double make_orthogonal(double *v_mod , double *v_static )
   length = 0.0;
   i = 0;
   while (i < 2) {
+    validptr(v_mod + i);
+    validptr(v_static + i);
     total += *(v_mod + i) * *(v_static + i);
     i ++;
   }
   i = 0;
   while (i < 2) {
+    validptr(v_mod + i);
+    validptr(v_static + i);
     *(v_mod + i) -= total * *(v_static + i);
     length += *(v_mod + i) * *(v_mod + i);
     i ++;
@@ -485,6 +493,7 @@ double make_orthogonal(double *v_mod , double *v_static )
   length = sqrt(length);
   i = 0;
   while (i < 2) {
+    validptr(v_mod + i);
     *(v_mod + i) /= length;
     i ++;
   }
