@@ -165,8 +165,6 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   Leaf *leaves;
 
   {
-  // pmr: this should be unnecessary
-  if (br == (struct branch *)0) { DIVERGE: goto DIVERGE; } // pmr assume
   new_pi_R = pi_R + br->alpha * (theta_R + (theta_I * br->X) / br->R);
   new_pi_I = pi_I + br->beta * (theta_I + (theta_R * br->R) / br->X);
   next = br->next_branch;
@@ -549,9 +547,10 @@ Lateral build_lateral(int i , int num )
   if (num == 0) {
     return ((struct lateral *)0);
   }
+  // pmr: Moved from below l = ... to work around location unfolding (next and tmp are same absloc!)
+  next = build_lateral(i, num - 1);
   tmp = malloc((int )sizeof(*l));
   l = (struct lateral *)tmp;
-  next = build_lateral(i, num - 1);
   b = build_branch(i * 5, (num - 1) * 5, 5);
   l->next_lateral = next;
   l->branch = b;
