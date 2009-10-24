@@ -158,8 +158,10 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   double tmp___0 ;
   Demand *d ;
   void *tmp___1 ;
+  Leaf *leaves;
 
   {
+  if (br == (struct branch *)0) { DIVERGE: goto DIVERGE; } // pmr assume
   new_pi_R = pi_R + br->alpha * (theta_R + (theta_I * br->X) / br->R);
   new_pi_I = pi_I + br->beta * (theta_I + (theta_R * br->R) / br->X);
   next = br->next_branch;
@@ -168,8 +170,13 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   }
   tmp.P = 0.0;
   tmp.Q = 0.0;
+  br = br;
   i = 0;
   while (i < 10) {
+    int pmr = nondet() ? br : br;
+      validptr(&br->leaves[i]);
+      // validptr(&(br->D.Q));
+      assert(br != (Branch)0);
     l = br->leaves[i];
     a2 = Compute_Leaf(l, new_pi_R, new_pi_I);
     tmp.P += a2->P;
@@ -177,6 +184,7 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
     i ++;
   }
   if ((unsigned int )next != (unsigned int )((Branch )0)) {
+    // pmr: Potential null pointer derefs, watch out for these...
     br->D.P = a1->P + tmp.P;
     br->D.Q = a1->Q + tmp.Q;
   } else {

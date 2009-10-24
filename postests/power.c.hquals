@@ -1,1 +1,4 @@
-qualif DPAIR(v:ptr) : (v + 16) = BLOCK_END([v])
+qualif DPAIR(v:ptr)    : (v + 16) = BLOCK_END([v])
+qualif BSIZE(v:ptr)    : BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 92)
+qualif BSIZEDEP(v:ptr) : (v != 0) -> (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 92))
+qualif LT10(v:int)     : v <= 10
