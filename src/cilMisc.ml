@@ -82,6 +82,26 @@ let check_pure_expr e =
     let _ = Errormsg.error "impure expr: %a" Cil.d_exp e in
     assertf "impure expr"
 
+(******************************************************************************)
+(*************************** Wipe Float Expressions ***************************)
+(******************************************************************************)
+
+class unfloatVisitor = object(self)
+  inherit nopCilVisitor
+
+  method vexpr = function
+    | BinOp (_, _, _, TFloat (fk, _)) -> ChangeTo (Const (CReal (0.0, fk, Some "0.0")))
+    | Lval _                          -> SkipChildren
+    | _                               -> DoChildren
+end
+
+let unfloatGlobal = function
+  | GFun (fd, _) -> fd.sbody <- visitCilBlock (new unfloatVisitor) fd.sbody
+  | _            -> ()
+
+let unfloat file =
+  iterGlobals file unfloatGlobal
+
 (**********************************************************)
 (********** Stripping Casts from Exprs, Lvals *************)
 (**********************************************************)

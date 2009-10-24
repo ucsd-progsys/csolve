@@ -207,7 +207,7 @@ let valid_binding xys =
   (List.for_all varmatch xys)
 
 let valid_bindings ys x = 
-  ys |> List.map (fun y -> (x,y)) 
+  ys |> List.map (fun y -> (x,y))
      |> List.filter varmatch 
 
 let inst_qual ys (q : Q.t) : Q.t list =

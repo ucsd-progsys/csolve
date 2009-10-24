@@ -64,7 +64,8 @@ let parse_file fname =
     Frontc.parse fname () |> Simplemem.simplemem
 
 let preprocess cil =
-  let _   = Pheapify.heapifyNonArrays := true;
+  let _   = CilMisc.unfloat cil;
+            Pheapify.heapifyNonArrays := true;
             Pheapify.default_heapify cil;
             Psimplify.simplify cil;
             Simpleret.simpleret cil;
