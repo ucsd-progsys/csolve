@@ -5,17 +5,11 @@ typedef struct __str__ {
     int y;
 } str;
 
-void foo (str *t) {
-    if (t == (str *)0) { DIVERGE: goto DIVERGE; }
-    t->x = 0;
-    validptr(&(t->y));
-}
-
 void main () {
     str *s;
 
     s = nondet() ? (str *)malloc(sizeof(str)) : (str *)0;
+    if (s == (str *)0) { DIVERGE: goto DIVERGE; }
     s->x = 0;
-    foo(s);
-    
+    validptr(&(s->y));
 }
