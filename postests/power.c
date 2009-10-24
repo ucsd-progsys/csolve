@@ -84,6 +84,7 @@ void Compute_Tree(Root r )
     theta_R = r->theta_R;
     theta_I = r->theta_I;
     a = Compute_Lateral(l, theta_R, theta_I, theta_R, theta_I);
+    // pmr: a used to be on stack; don't check ptr validity
     tmp.P += a->P;
     tmp.Q += a->Q;
     i ++;
@@ -178,6 +179,7 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   while (i < 10) {
     validptr(&br->leaves[i]);
     l = br->leaves[i];
+    if (l == (Leaf)0) { DIVERGE: goto DIVERGE; } // pmr assume
     // pmr: Null ptr deref of a2 is ok here (was originally on the stack)
     a2 = Compute_Leaf(l, new_pi_R, new_pi_I);
     tmp.P += a2->P;
@@ -218,7 +220,7 @@ Demand *Compute_Leaf(Leaf l , double pi_R , double pi_I )
   void *tmp ;
 
   {
-
+  validptr(l);
   P = l->D.P;
   Q = l->D.Q;
   optimize_node(pi_R, pi_I);
