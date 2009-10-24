@@ -19,9 +19,18 @@ atbegin::
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
 
+validp8 ::
+  forall    [A0]
+  arg       (x: ref (A0, true, {v| && [(0 < v); ((BLOCK_BEGIN([v]) + 8) = BLOCK_END([v]))]}))
+  ret int   (4, true, {v | true})
+  store_in  [A0 |-> ]
+  store_out [A0 |-> ]
+
+
 validptr ::
   forall    [A0]
-  arg       (x: ref (A0, true, {v| && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]}))
+  arg       (x: ref (A0, true, {v| && [(0 < v); (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))
+                                      ]}))
   ret int   (4, true, {v | true})
   store_in  [A0 |-> ]
   store_out [A0 |-> ]

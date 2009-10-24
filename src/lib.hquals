@@ -5,6 +5,7 @@ qualif GTZ(v:int)      : 0 < v
 
 qualif EQZ(v: ptr)     : v = 0
 qualif GTZP(v:ptr)     : 0 < v
+qualif GTZP(v:ptr)     : 0 <= v
 qualif ISBS(v:ptr)     : v = BLOCK_BEGIN([v])
 qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
 qualif SIZE(v:ptr)     : BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
@@ -17,7 +18,9 @@ qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a])
 qualif LB(v:ptr)       : BLOCK_BEGIN([v]) <= v
 qualif UB(v:ptr)       : v < BLOCK_END([v]) 
 
+
 qualif NULLorVALID(v:ptr): (v != 0) -> && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+qualif NULLorBEGIN(v:ptr): (v != 0) -> (v = BLOCK_BEGIN([v]))
 qualif LEQ(v:int)      : v <= ~a
 qualif GEQ(v:int)      : v >= ~a
 qualif LT(v:int)       : v < ~a
