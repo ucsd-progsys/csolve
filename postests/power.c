@@ -81,7 +81,9 @@ void Compute_Tree(Root r )
     validptr(&r->feeders[i]);
     l = r->feeders[i];
     if (l == (Lateral)0) { DIVERGE: goto DIVERGE; } // pmr assume
+    validptr(&r->theta_R);
     theta_R = r->theta_R;
+    validptr(&r->theta_I);
     theta_I = r->theta_I;
     a = Compute_Lateral(l, theta_R, theta_I, theta_R, theta_I);
     // pmr: a used to be on stack; don't check ptr validity
@@ -89,7 +91,9 @@ void Compute_Tree(Root r )
     tmp.Q += a->Q;
     i ++;
   }
+  validptr(&r->D.P);
   r->D.P = tmp.P;
+  validptr(&r->D.Q);
   r->D.Q = tmp.Q;
   return;
 }
@@ -112,6 +116,10 @@ Demand *Compute_Lateral(Lateral l , double theta_R , double theta_I , double pi_
 
   {
   validptr(l);
+  validptr(&l->alpha);
+  validptr(&l->beta);
+  validptr(&l->X);
+  validptr(&l->R);
   new_pi_R = pi_R + l->alpha * (theta_R + (theta_I * l->X) / l->R);
   new_pi_I = pi_I + l->beta * (theta_I + (theta_R * l->R) / l->X);
   next = l->next_lateral;
@@ -120,6 +128,8 @@ Demand *Compute_Lateral(Lateral l , double theta_R , double theta_I , double pi_
   }
   br = l->branch;
   a2 = Compute_Branch(br, theta_R, theta_I, new_pi_R, new_pi_I);
+  validptr(&l->D.P);
+  validptr(&l->D.Q);
   if ((unsigned int )next != (unsigned int )((Lateral )0)) {
     l->D.P = a1->P + a2->P;
     l->D.Q = a1->Q + a2->Q;
