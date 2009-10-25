@@ -108,7 +108,7 @@ let validate_vars env msg vs =
 let validate_reft s env msg ((vv,t,_) as r) =
   let env = SM.add vv r env in
   r |> BS.time "preds_of_reft" (C.preds_of_reft s)
-    |> BS.time "support" (Misc.flap P.support)
+    |> Misc.flap (BS.time "support" (P.support))
     |> BS.time "validate_vars" (validate_vars env msg)
 
 let validate_binding s env msg x r =

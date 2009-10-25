@@ -447,11 +447,11 @@ module Expression =
       map id (esub x e') e
 
     let support e =
-      let t = Hashtbl.create 251 in
+      let xs = ref Symbol.SSet.empty in
       iter un (function (Var x), _ 
-              | (App (x,_)),_ -> Hashtbl.replace t x () 
+              | (App (x,_)),_ -> xs := Symbol.SSet.add x !xs
               | _             -> ()) e;
-      Misc.hashtbl_keys t
+      Symbol.SSet.elements !xs |> List.sort compare
 
     let unwrap = euw
 
@@ -482,11 +482,11 @@ module Predicate =
         map id (fun e -> List.fold_left (esub |> Misc.uncurry |> Misc.flip) e xes) p
 
       let support p =
-        let t = Hashtbl.create 251 in
+        let xs = ref Symbol.SSet.empty in
         iter un (function (Var x), _ 
-                     | (App (x,_)),_ -> Hashtbl.replace t x () 
+                     | (App (x,_)),_ -> xs := Symbol.SSet.add x !xs;
                      | _             -> ()) p; 
-        Misc.hashtbl_keys t
+        Symbol.SSet.elements !xs |> List.sort compare
 
       let size p =
 	let c = ref 0 in
