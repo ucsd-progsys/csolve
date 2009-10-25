@@ -4,11 +4,11 @@
 
 ** DONE Merged version of KS benchmark
 ** DONE Casts between doubles and ints
-** TODO Push POWER through
+** DONE Push POWER through
 ** TODO Use inferctypes for local inference only
 *** TODO Revert to typespec for spec generation
 *** TODO Change spec -> store constraints to use store_out instead of store_in
-** TODO Speed up qualifier validation
+** DONE Speed up qualifier validation
 ** TODO What's with em3d?
 ** TODO Fix weird unglobal problems in ADPCM
 ** TODO Can we cut down code duplication...
