@@ -80,7 +80,7 @@ let hashtbl_print_frequency t =
 let rhs_cands s = function
   | C.Kvar (xes, k) -> 
       C.sol_read s k |> 
-      List.map (fun q -> ((k,q), C.apply_substs xes q))
+      List.map (fun q -> ((k,q), P.substs q xes))
   | _ -> []
 
 let check_tp me env vv t lps =  function [] -> [] | rcs ->

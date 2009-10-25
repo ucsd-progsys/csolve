@@ -478,8 +478,8 @@ module Predicate =
       let subst p x e' =
         map id (esub x e') p
 
-      let substs xes p = 
-        List.fold_left (fun p' (x,e) -> subst p' x e) p xes
+      let substs p xes =
+        map id (fun e -> List.fold_left (esub |> Misc.uncurry |> Misc.flip) e xes) p
 
       let support p =
         let t = Hashtbl.create 251 in

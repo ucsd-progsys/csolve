@@ -101,18 +101,18 @@ let phase4 a cs =
 let validate_vars env msg vs = 
   List.iter begin fun v -> 
     if not(SM.mem v env) then 
-      let _ = F.printf "ERROR: out_of_scope variable %a (%s)" Sy.print v msg in
+      let _ = F.printf "ERROR: out_of_scope variable %a (%s)" Sy.print v (Lazy.force msg) in
       raise (Out_of_scope v)
   end vs 
 
 let validate_reft s env msg ((vv,t,_) as r) =
   let env = SM.add vv r env in
-  r |> C.preds_of_reft s 
-    |> Misc.flap P.support 
-    |> validate_vars env msg
+  r |> BS.time "preds_of_reft" (C.preds_of_reft s)
+    |> BS.time "support" (Misc.flap P.support)
+    |> BS.time "validate_vars" (validate_vars env msg)
 
 let validate_binding s env msg x r =
-  let msg = Format.sprintf "%s binding for %s " msg (Sy.to_string x) in
+  let msg = lazy (Format.sprintf "%s binding for %s " (Lazy.force msg) (Sy.to_string x)) in
   validate_reft s env msg r
 
 let phase5 s cs =
@@ -121,9 +121,9 @@ let phase5 s cs =
     let env  = C.env_of_t c in
     let lhs  = C.lhs_of_t c in
     let rhs  = C.rhs_of_t c in
-    BS.time "valid binds" (SM.iter (validate_binding s env (msg^"\n BAD ENV"))) env;
-    BS.time "valid lhs" (validate_reft s env (msg^"\n BAD LHS")) lhs;
-    BS.time "valid rhs" (validate_reft s env (msg^"\n BAD RHS")) rhs;
+    BS.time "valid binds" (SM.iter (validate_binding s env (lazy (msg^"\n BAD ENV")))) env;
+    BS.time "valid lhs" (validate_reft s env (lazy (msg^"\n BAD LHS"))) lhs;
+    BS.time "valid rhs" (validate_reft s env (lazy (msg^"\n BAD RHS"))) rhs;
     true
   end cs
 
