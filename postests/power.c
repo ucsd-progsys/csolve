@@ -122,10 +122,12 @@ Demand *Compute_Lateral(Lateral l , double theta_R , double theta_I , double pi_
   validptr(&l->R);
   new_pi_R = pi_R + l->alpha * (theta_R + (theta_I * l->X) / l->R);
   new_pi_I = pi_I + l->beta * (theta_I + (theta_R * l->R) / l->X);
+  validptr(&l->next_lateral);
   next = l->next_lateral;
   if ((unsigned int )next != (unsigned int )((Lateral )0)) {
     a1 = Compute_Lateral(next, theta_R, theta_I, new_pi_R, new_pi_I);
   }
+  validptr(&l->branch);
   br = l->branch;
   a2 = Compute_Branch(br, theta_R, theta_I, new_pi_R, new_pi_I);
   validptr(&l->D.P);
@@ -176,6 +178,11 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
   Leaf *leaves;
 
   {
+  validptr(&br->alpha);
+  validptr(&br->beta);
+  validptr(&br->X);
+  validptr(&br->R);
+  validptr(&br->next_branch);
   new_pi_R = pi_R + br->alpha * (theta_R + (theta_I * br->X) / br->R);
   new_pi_I = pi_I + br->beta * (theta_I + (theta_R * br->R) / br->X);
   next = br->next_branch;
@@ -196,6 +203,8 @@ Demand *Compute_Branch(Branch br , double theta_R , double theta_I , double pi_R
     tmp.Q += a2->Q;
     i ++;
   }
+  validptr(&br->D.P);
+  validptr(&br->D.Q);
   if ((unsigned int )next != (unsigned int )((Branch )0)) {
     // pmr: Null ptr deref of a1 is ok here (was originally on the stack)
     br->D.P = a1->P + tmp.P;
@@ -230,7 +239,8 @@ Demand *Compute_Leaf(Leaf l , double pi_R , double pi_I )
   void *tmp ;
 
   {
-  validptr(l);
+  validptr(&l->D.P);
+  validptr(&l->D.Q);
   P = l->D.P;
   Q = l->D.Q;
   optimize_node(pi_R, pi_I);
@@ -544,6 +554,8 @@ Root build_tree(void)
   t->last_theta_I = 0.0;
   // pmr: END HACK
 
+  validptr(&t->theta_R);
+  validptr(&t->theta_I);
   t->theta_R = 0.8;
   t->theta_I = 0.16;
   return (t);
@@ -566,10 +578,17 @@ Lateral build_lateral(int i , int num )
   b = build_branch(i * 5, (num - 1) * 5, 5);
   l->next_lateral = next;
   l->branch = b;
+  // pmr: investigate why the next line can't come before the assn to l->branch
+  validptr(&l->branch);
+  validptr(&l->R);
+  validptr(&l->X);
+  validptr(&l->alpha);
+  validptr(&l->beta);
   l->R = (double )1.0 / 300000.0;
   l->X = 0.000001;
   l->alpha = 0.0;
   l->beta = 0.0;
+  validptr(&l->next_lateral);
   return (l);
 }
 }
@@ -584,6 +603,7 @@ Branch build_branch(int i , int j , int num )
   }
   tmp = malloc((int )sizeof(*b));
   b = (struct branch *)tmp;
+  validptr(&b->next_branch);
   b->next_branch = build_branch(i, j, num - 1);
   i = 0;
   while (i < 10) {
@@ -592,6 +612,10 @@ Branch build_branch(int i , int j , int num )
     b->leaves[i] = l;
     i ++;
   }
+  validptr(&b->R);
+  validptr(&b->X);
+  validptr(&b->alpha);
+  validptr(&b->beta);
   b->R = 0.0001;
   b->X = 0.00002;
   b->alpha = 0.0;
@@ -606,6 +630,8 @@ Leaf build_leaf(void)
   {
   tmp = malloc((int )sizeof(*l));
   l = (struct leaf *)tmp;
+  validptr(&l->D.P);
+  validptr(&l->D.Q);
   l->D.P = 1.0;
   l->D.Q = 1.0;
   return (l);
@@ -616,7 +642,7 @@ extern int printf(char *  , ...) ;
 extern clock_t clock(void) ;
 int main(int argc , char **argv ) 
 { double *map_P /* [36] */ ;
-    double *map_Q /* [36] */ ;
+  double *map_Q /* [36] */ ;
   double wallclock___0 ;
   Root r ;
   int i ;
@@ -715,6 +741,14 @@ int main(int argc , char **argv )
   r = build_tree();
   //  printf((char *)"Built tree\n");
   Compute_Tree(r);
+  validptr(&r->last.P);
+  validptr(&r->last.Q);
+  validptr(&r->D.P);
+  validptr(&r->D.Q);
+  validptr(&r->last_theta_R);
+  validptr(&r->last_theta_I);
+  validptr(&r->theta_R);
+  validptr(&r->theta_I);
   r->last.P = r->D.P;
   r->last.Q = r->D.Q;
   r->last_theta_R = r->theta_R;
