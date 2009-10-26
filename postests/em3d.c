@@ -1,16 +1,16 @@
 //! run with -manspec
 
-//extern char *malloc(int);
+extern char *malloc(int);
 //extern int nondet();
 //extern int nondetnn();
 extern void exit(int);
 
 struct node_t {
    int value ;
-   struct node_t *next ;
+    struct node_t * __attribute__ ((array)) next ;
    int from_count ;
    struct node_t **__attribute__((array)) to_nodes ;
-   struct node_t **__attribute__((array)) from_nodes ;
+    struct node_t * __attribute__ ((array)) *__attribute__((array)) from_nodes ;
    int *__attribute__((array)) coeffs ;
 };
 typedef struct node_t node_t;
@@ -47,7 +47,7 @@ node_t **make_table(int size )
 }
 }
 
-void fill_table(int size, node_t **table)
+void fill_table(int size, node_t * __attribute__ ((array)) * __attribute__ ((array)) table)
 { int i ;
   void *tmp ;
   int tmp___0 ;
@@ -75,7 +75,7 @@ void fill_table(int size, node_t **table)
 }
 }
 
-void fill_from_fields(node_t *nodelist , int degree )
+void fill_from_fields(node_t * __attribute__ ((array)) nodelist , int degree )
 { node_t *cur_node ;
   int j ;
   node_t *other_node ;
