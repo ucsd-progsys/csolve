@@ -414,6 +414,28 @@ and expr_map hp he fp fe e =
       rv
     end in em e
 
+let rec pred_iter fp fe pw =
+  begin match puw pw with
+    | True | False -> ()
+    | Bexp e -> expr_iter fp fe e
+    | Not p -> pred_iter fp fe p
+    | Imp (p1, p2) -> pred_iter fp fe p1; pred_iter fp fe p2
+    | And ps | Or ps -> List.iter (pred_iter fp fe) ps
+    | Atom (e1, _, e2) -> expr_iter fp fe e1; expr_iter fp fe e2
+    | Forall (_, p) -> pred_iter fp fe p (* pmr: looks wrong, but so does pred_map *)
+  end;
+  fp pw
+
+and expr_iter fp fe ew =
+  begin match puw ew with
+    | Con _ | Var _ -> ()
+    | App (_, es) -> List.iter (expr_iter fp fe) es
+    | Bin (e1, _, e2) -> expr_iter fp fe e1; expr_iter fp fe e2
+    | Ite (ip, te, ee) -> pred_iter fp fe ip; expr_iter fp fe te; expr_iter fp fe ee
+    | Fld (_, e1) -> expr_iter fp fe e1
+  end;
+  fe ew
+
 let esub x e = function
   | (Var y), _ when x = y -> e
   | _ as e1 -> e1 
@@ -441,7 +463,7 @@ module Expression =
       expr_map hp he fp fe e 
 
     let iter fp fe e =
-      ignore(map (fun p -> fp p; p) (fun e -> fe e; e) e)
+      expr_iter fp fe e
 
     let subst e x e' =
       map id (esub x e') e
@@ -473,7 +495,7 @@ module Predicate =
         pred_map hp he fp fe p
 	
       let iter fp fe p =
-        ignore(map (fun p -> fp p; p) (fun e -> fe e; e) p)
+        pred_iter fp fe p
 
       let subst p x e' =
         map id (esub x e') p

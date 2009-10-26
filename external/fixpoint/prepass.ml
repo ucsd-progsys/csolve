@@ -97,7 +97,6 @@ let phase4 a cs =
   cs
 
 (* 5. check that all refinements are well-formed *)
-
 let validate_vars env msg vs = 
   List.iter begin fun v -> 
     if not(SM.mem v env) then 
@@ -108,7 +107,7 @@ let validate_vars env msg vs =
 let validate_reft s env msg ((vv,t,_) as r) =
   let env = SM.add vv r env in
   r |> BS.time "preds_of_reft" (C.preds_of_reft s)
-    |> Misc.flap (BS.time "support" (P.support))
+    |> Misc.flap (BS.time "support" P.support)
     |> BS.time "validate_vars" (validate_vars env msg)
 
 let validate_binding s env msg x r =
