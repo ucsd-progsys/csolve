@@ -662,22 +662,6 @@ type shape =
    anna  : Refanno.block_annotation array;
    theta : Refanno.ctab }
 
-exception Unify of S.t * S.t
-
-let match_slocs (ct1: ctype) (ct2: ctype): unit =
-  match ct1, ct2 with
-    | CTRef (s1, _), CTRef (s2, _) when not (S.eq s1 s2) -> raise (Unify (s1, s2))
-    | _                                                  -> ()
-
-let check_expected_type (etyp: ctype) (atyp: ctype): bool =
-  match_slocs atyp etyp;
-  if is_subctype atyp etyp then
-    true
-  else begin
-    C.error "Expected type %a, but got type %a\n\n" d_ctype etyp d_ctype atyp |> ignore;
-    false
-  end
-
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
   prestore_fold begin fun ok l i ct ->
     if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
@@ -686,20 +670,6 @@ let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bo
     end else
       ok
   end true sto_out_actual
-
-let check_out_store (sto_out_formal: store) (sto_out_actual: store): bool =
-  check_out_store_complete sto_out_formal sto_out_actual &&
-    prestore_fold begin fun ok l i ft ->
-      try
-        match prestore_find_index l i sto_out_actual with
-          | []   -> not (SLM.mem l sto_out_actual)
-          | [at] -> check_expected_type ft at && ok (* order is important here for unification! *)
-          | _    -> failwith "Returned too many at index from prestore_find_index"
-      with
-        | Unify (s1, s2) -> raise (Unify (s1, s2))
-        | Not_found      -> ok
-        | _              -> false
-    end true sto_out_formal
 
 let revert_spec_names (subaway: S.Subst.t) (cfspec: cfun): S.Subst.t =
      cfspec.sto_out
@@ -721,17 +691,10 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
   let cm               = cstrmap_subs revsub cm in
   let sub              = S.Subst.compose revsub sub in
   let vars, em, bas    = subst_solstate sub (vars, em, bas) in
-    try
-      if check_out_store cf.sto_out sto then
-        (sto, vars, em, bas)
-      else
-        E.s <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
-    with Unify (s1, s2) ->
-      let sub           = [(s1, s2)] in
-      let vars, em, bas = subst_solstate sub (vars, em, bas) in
-      let sd            = adjust_slocdep sub sd in
-      let cm            = cstrmap_subs sub cm in
-        solve_and_check cf vars em bas sd cm
+    if check_out_store_complete cf.sto_out sto then
+      (sto, vars, em, bas)
+    else
+      halt <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
 
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
