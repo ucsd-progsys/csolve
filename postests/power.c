@@ -477,8 +477,6 @@ void find_dd_grad_f(double pi_R , double pi_I , double *dd_grad )
   P_grad_term = P_plus_1_inv - pi_R;
   Q_grad_term = Q_plus_1_inv - pi_I;
   grad_mag = sqrt(P_grad_term * P_grad_term + Q_grad_term * Q_grad_term);
-  // pmr: HACK
-  *(dd_grad + nondetpos()) = 0.0;
   validptr(dd_grad + 0);
   *(dd_grad + 0) = ((- P_plus_1_inv * P_plus_1_inv) * P_grad_term) / grad_mag;
   validptr(dd_grad + 1);
@@ -545,14 +543,6 @@ Root build_tree(void)
     t->feeders[i] = l;
     i ++;
   }
-  // pmr: BEGIN HACK
-  t->D.P = 0.0;
-  t->D.Q = 0.0;
-  t->last.P = 0.0;
-  t->last.Q = 0.0;
-  t->last_theta_R = 0.0;
-  t->last_theta_I = 0.0;
-  // pmr: END HACK
 
   validptr(&t->theta_R);
   validptr(&t->theta_I);
