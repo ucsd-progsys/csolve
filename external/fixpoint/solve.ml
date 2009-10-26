@@ -219,10 +219,9 @@ let inst_qual ys (q : Q.t) : Q.t list =
   match xs with [] -> [q] | _ ->
     let xyss = List.map (valid_bindings ys) xs     (* candidate bindings *)
                |> Misc.product                     (* generate combinations *) 
-               |> List.filter valid_binding in     (* remove bogus bindings *)
-    let ps'  = List.rev_map 
-                 (List.fold_left (fun p (x,y) -> P.subst p x (A.eVar y)) p)
-                 xyss in
+               |> List.filter valid_binding        (* remove bogus bindings *)
+               |> List.map (List.map (Misc.app_snd A.eVar)) in (* instantiations *)
+    let ps'  = List.rev_map (P.substs p) xyss in
     List.map (Q.create None t) ps'
 
 let inst_ext (qs : Q.t list) s wf = 
