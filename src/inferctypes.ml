@@ -670,6 +670,12 @@ let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bo
       ok
   end true sto_out_actual
 
+let check_slocs_distinct (sub: S.Subst.t) (slocs: S.t list): unit =
+  try
+    let s1, s2 = Misc.find_pair (fun s1 s2 -> M.map_pair (S.Subst.apply sub) (s1, s2) |> M.uncurry S.eq) slocs in
+      halt <| C.error "Quantified locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+  with Not_found -> ()
+
 let revert_spec_names (subaway: S.Subst.t) (cfspec: cfun): S.Subst.t =
      cfspec.sto_out
   |> prestore_domain
@@ -679,6 +685,7 @@ type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
+  let _                = check_slocs_distinct sub cf.qlocs in
   let revsub           = revert_spec_names sub cf in
   let sto              = prestore_subs revsub sto in
   let sd               = adjust_slocdep revsub sd in

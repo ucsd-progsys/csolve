@@ -7,7 +7,7 @@ struct node_t {
    int value ;
     struct node_t * __attribute__ ((array)) next ;
    int from_count ;
-   struct node_t **__attribute__((array)) to_nodes ;
+    struct node_t * *__attribute__((array)) to_nodes ;
     struct node_t * __attribute__ ((array)) *__attribute__((array)) from_nodes ;
    int *__attribute__((array)) coeffs ;
 };
