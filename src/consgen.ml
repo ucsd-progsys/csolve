@@ -195,7 +195,7 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       let isp  = try FI.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
-      if isp (* FI.is_soft_ptr loc sto addr *) then 
+      if isp (* FI.is_soft_ptr loc sto addr *) then
         let cr   = FI.refstore_read loc sto addr in
         (env, sto, Some tag), (FI.make_cs env grd cr' cr tago tag loc)
       else

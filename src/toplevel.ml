@@ -116,19 +116,11 @@ let add_spec fn spec =
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     spec
 
-let spec_of_file spec fname =
-  let file = parse_file fname in
-    if !Co.typespec then
-      Genspec.specs_of_file_all spec file
-    else
-      let autospecs  = Genspec.specs_of_file_dec spec file in
-      let spec       = List.fold_left (fun env (fn, cf) -> SM.add fn (FI.refcfun_of_cfun cf, true) env) spec autospecs in
-      let inferspecs = file |> preprocess |> Inferctypes.specs_of_file spec in
-        autospecs @ inferspecs
-
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
-     spec_of_file spec fname
+     fname
+  |> parse_file
+  |> Genspec.specs_of_file_all spec
   |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
