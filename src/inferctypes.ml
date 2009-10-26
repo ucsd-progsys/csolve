@@ -151,7 +151,12 @@ let simplecstr_sat (st: store) (sc: simplecstr): bool =
   match sc.cdesc with
     | `CInLoc (i, ct, s)   -> inloc_sat st i s ct
     | `CSubtype (ct1, ct2) -> is_subctype ct1 ct2
-    | `CWFSubst (sub)      -> S.Subst.well_defined sub && sub |> S.Subst.transpose |> S.Subst.well_defined
+    | `CWFSubst (sub)      ->
+        try
+          let s1, s2 = sub |> S.Subst.dom |> M.find_pair S.eq in
+            halt <| C.error "Locations %a and %a get unified in call, not unified in spec"
+        with Not_found ->
+          true
 
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
@@ -207,7 +212,7 @@ let make_subst_well_defined (sub: S.Subst.t): S.Subst.t =
   sub |> S.Subst.images |> List.fold_left (fun outsub rng -> S.Subst.compose (unify_slocs rng) outsub) []
 
 let refine_wfsubst (sub: S.Subst.t): S.Subst.t =
-  S.Subst.compose (sub |> make_subst_well_defined) (sub |> S.Subst.transpose |> make_subst_well_defined)
+  sub |> S.Subst.transpose |> make_subst_well_defined
 
 let refine_aux (sc: simplecstr) (sto: store): S.Subst.t * store =
   try
@@ -497,16 +502,9 @@ let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) (hv: heapvar) ({ST.fdec =
     end else ()
   in (em, bas, ss, cs)
 
-type scc = (C.varinfo * ST.ssaCfgInfo) list
-
 let constrain_sci (fs: funenv) (sci: ST.ssaCfgInfo): ctvemap * RA.block_annotation array * S.t list * cstr list =
   let cf, ve, hv = VM.find sci.ST.fdec.C.svar fs in
     constrain_fun fs cf ve hv sci
-
-let constrain_scc (fs: funenv) (scc: scc): funenv * S.t list * cstr list =
-  let fvs, scis      = List.split scc in
-  let _, _, sss, css = List.map (constrain_sci fs) scis |> M.split4 in
-    (fs, List.concat sss, List.concat css)
 
 (******************************************************************************)
 (*************************** Constraint Dependencies **************************)
@@ -525,93 +523,6 @@ let fresh_sloc_of (c: ctype): ctype =
     | _                                    -> c
 
 (******************************************************************************)
-(***************************** Constraint Solving *****************************)
-(******************************************************************************)
-
-let funenv_apply_subs (sub: S.Subst.t) (fe: funenv): funenv =
-  VM.map (fun (cf, ve, hv) -> (cfun_subs sub cf, VM.map (prectype_subs sub) ve, hv)) fe
-
-let cfun_generalize (sto: store) (cf: cfun): cfun =
-  let argrootlocs = List.map (prectype_sloc <.> snd) cf.args |> M.maybe_list in
-  let sto_out     = prestore_close_under sto (M.maybe_cons (prectype_sloc cf.ret) argrootlocs) in
-  let sto_in      = prestore_close_under sto_out argrootlocs in
-    {cf with sto_in = sto_in; sto_out = sto_out; qlocs = prestore_domain sto_out}
-
-let d_funenv () (fe: funenv): P.doc =
-     fe
-  |> M.flip (VM.fold (fun f t it -> if CM.definedHere f then VM.add f t it else it)) VM.empty
-  |> CM.VarMapPrinter.d_map
-      ~dmaplet:(fun d1 d2 -> P.dprintf "%t\n%t" (fun () -> d1) (fun () -> d2))
-      "\n\n"
-      CM.d_var
-      (fun () (cf, vm, hv) -> P.dprintf "%a\nheap      %a\n\nLocals:\n%a\n\n" d_cfun cf d_heapvar hv (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
-
-let fresh_scc (it: Ind.indextyping) (fe: funenv) (scc: scc): funenv =
-  let hv = fresh_heapvar () in
-    List.fold_left begin fun fe (f, _) ->
-      let (ifv, vm) = VM.find f it in
-        VM.add f (precfun_map fresh_sloc_of ifv, VM.map fresh_sloc_of vm, hv) fe
-    end fe scc
-
-let d_scc () (scc: scc): P.doc =
-  (P.d_list "; " (fun () (fv, _) -> CM.d_var () fv)) () scc
-
-let update_deps (scs: simplecstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep =
-  let cm = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
-  let sd = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
-    (cm, sd)
-
-let solve_scc (env: cfun VM.t) (it: Ind.indextyping) ((fs, sd, cm, sto): funenv * slocdep * cstrmap * store) (scc: scc): funenv * slocdep * cstrmap * store =
-  let _                = if Cs.ck_olev Cs.ol_solve then P.printf "Solving scc [%a]...\n\n" d_scc scc |> ignore in
-  let fs               = fresh_scc it fs scc in
-  let fs, ss, cs       = constrain_scc fs scc in
-  let scs              = filter_simple_cstrs cs in
-  let cm, sd           = update_deps scs cm sd in
-  let sd, cm, sub, sto = solve sd cm sto in
-  (* Can't be moved earlier because locations may be thrown out by solve when unifying *)
-  let sto              = ss
-                      |> List.map (S.Subst.apply sub)
-                      |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
-  let fs               = fs
-                      |> funenv_apply_subs sub
-                      |> VM.mapi begin fun f ft ->
-                           if not (VM.mem f env) then
-                             M.app_fst3 (cfun_generalize sto) ft
-                           else
-                             ft
-                         end in
-  let _ =
-    if Cs.ck_olev Cs.ol_solve then begin
-      P.printf "SUBST: %a\n\n\n" S.Subst.d_subst sub;
-      P.printf "STORE:\n\n%a\n\n" d_store sto;
-      P.printf "ENV:\n\n%a\n\n" d_funenv fs |> ignore
-    end else ()
-  in (fs, sd, cm, sto)
-
-let infer_spec (env: cfun VM.t) (cg: Callgraph.t) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t): (string * cfun) list =
-  let it             = Ind.infer_indices env scim in
-  let cg             = List.filter (function [fv] -> CM.definedHere fv | _ -> true) cg in
-  let sccs           = List.rev_map (fun scc -> List.map (fun fv -> (fv, VM.find fv scim)) scc) cg in
-  let fs             = funenv_of_ctenv env in
-  let fs, _, cm, sto = List.fold_left (solve_scc env it) (fs, SLM.empty, IM.empty, SLM.empty) sccs in
-    VM.fold begin fun f (cf, _, _) spec ->
-      if CM.definedHere f then
-        (f.C.vname, cf) :: spec
-      else
-        spec
-    end fs []
-
-let add_builtin (cil: C.file) (fn: string) ((rf, _): FI.refcfun * bool) (env: cfun VM.t): cfun VM.t =
-  VM.add (C.findOrCreateFunc cil fn C.voidType) (FI.cfun_of_refcfun rf) env
-
-(* API *)
-let specs_of_file spec cil =
-  let cg   = Callgraph.sccs cil in
-  let scis = cil |> ST.scis_of_file |> List.fold_left (fun scim sci -> VM.add sci.ST.fdec.C.svar sci scim) VM.empty in
-  let env  = SM.fold (add_builtin cil) spec VM.empty in
-    infer_spec env cg scis
-
-(******************************************************************************)
 (**************************** Local Shape Inference ***************************)
 (******************************************************************************)
 
@@ -621,6 +532,11 @@ type shape =
    store : Ctypes.store;
    anna  : Refanno.block_annotation array;
    theta : Refanno.ctab }
+
+let update_deps (scs: simplecstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep =
+  let cm = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
+  let sd = List.fold_left (fun sd sc -> simplecstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
+    (cm, sd)
 
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
   prestore_fold begin fun ok l i ct ->
