@@ -60,7 +60,7 @@ let instrsOfGlobalInit (malloc: exp) (vi: varinfo) (lv: lval) (ini: init): instr
 
 (* Awful name! *)
 let globalizeType: typ -> typ = function
-  | TArray (t, _, attrs) -> TPtr (t, attrs)
+  | TArray (t, _, attrs) -> TPtr (t, addAttribute (Attr ("array", [])) attrs)
   | TComp _ as t         -> TPtr (t, [])
   | t                    -> t
 

@@ -9,8 +9,9 @@
 *** DONE Revert to typespec for spec generation
 *** DONE Change spec -> store constraints to use store_out instead of store_in
 ** DONE Speed up qualifier validation
-** TODO What's with em3d?
+** DONE What's with em3d?
 ** TODO Fix weird unglobal problems in ADPCM
+** TODO Check bounds for tables in ADPCM!
 ** TODO Can we cut down code duplication...
 *** TODO ...by lifting things like apply_unop? (i.e., adding a "lift to const" op?)
 
