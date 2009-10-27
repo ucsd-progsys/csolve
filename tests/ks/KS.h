@@ -82,11 +82,10 @@ extern ModuleList swapToA, swapToB;		/* swapped from A,B, ordered */
 
 typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
 
-extern Groups moduleToGroup[G_SZ];	/* current inverse mapping */
-
 #define GFORMALS unsigned long *numModules, unsigned long *numNets, \
-        float *GP, float *D, float *cost
-#define GACTUALS numModules, numNets, GP, D, cost
+        float *GP, float *D, float *cost, \
+        Groups *moduleToGroup
+#define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup
 
 void ReadNetList(char * NTS fname, GFORMALS);
 void NetsToModules(GFORMALS);

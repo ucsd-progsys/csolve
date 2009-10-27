@@ -23,8 +23,6 @@ ModulePtr nets[G_SZ];	     	/* all nets -> modules */
 ModuleList groupA, groupB;			/* current A, B */
 ModuleList swapToA, swapToB;			/* swapped from A,B, ordered */
 
-Groups moduleToGroup[G_SZ];	/* current inverse mapping */
-
 /* read the netlist into the nets[] structure */
 void
 ReadNetList(char *fname, GFORMALS)

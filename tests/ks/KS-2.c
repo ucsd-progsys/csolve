@@ -334,6 +334,7 @@ main(int argc, char **argv)
     float *GP;
     float *D;
     float *cost;
+    Groups *moduleToGroup;
     ;
 
     // pmr: global inits
@@ -344,6 +345,7 @@ main(int argc, char **argv)
     GP          = (float *)malloc(sizeof(float) * G_SZ);
     D           = (float *)malloc(sizeof(float) * G_SZ);
     cost        = (float *)malloc(sizeof(float) * G_SZ);
+    moduleToGroup = (Groups *)malloc(sizeof(Groups) * G_SZ);
     // pmr: end global inits
 
     /* parse argument */
