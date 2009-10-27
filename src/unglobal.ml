@@ -117,4 +117,4 @@ let main fname =
     unglobal file;
     dumpFile defaultCilPrinter stdout "" file
 
-let _ = Toplevel.main "unglobal" main
+let _ = Toplevel.mk_options "unglobal" () |> main
