@@ -118,6 +118,7 @@ let ifunvar_of_cfun (cf: cfun): ifunvar =
 let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
+    | C.TEnum (ei, _)       -> CTInt (C.bytesSizeOfInt ei.C.ekind, IEVar (fresh_indexvar ()))
     | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
@@ -468,7 +469,8 @@ let maybe_fresh (v: C.varinfo): (C.varinfo * itypevar) option =
       | C.TInt _
       | C.TFloat _
       | C.TPtr _
-      | C.TArray _ -> Some (v, fresh_itypevar t)
+      | C.TArray _
+      | C.TEnum _ -> Some (v, fresh_itypevar t)
       | _          ->
           let _ = if !Constants.safe then C.error "not freshing local %s" v.C.vname |> ignore in
             C.warn "Not freshing local %s of tricky type %a@!@!" v.C.vname C.d_type t |> ignore; None
