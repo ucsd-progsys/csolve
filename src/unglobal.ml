@@ -27,7 +27,7 @@ class bodyVisitor (gbc: compinfo) (glob: varinfo) = object(self)
 
   method vinst = function
     | Call (lvo, ((Lval (Var vi, NoOffset)) as f), args, loc) when CM.definedHere vi && vi.vglob ->
-        ChangeTo [Call (lvo, f, Lval (var glob) :: args, loc)]
+        ChangeDoChildrenPost ([Call (lvo, f, Lval (var glob) :: args, loc)], id)
     | Call (_, Lval (Var vi, NoOffset), _, _) when vi.vglob ->
         SkipChildren
     | Call _ ->
