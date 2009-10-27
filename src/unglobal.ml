@@ -113,6 +113,7 @@ let unglobal (f: file): unit =
 
 let main fname =
   let file = Frontc.parse fname () in
+  let _    = lineDirectiveStyle := None in
     unglobal file;
     dumpFile defaultCilPrinter stdout "" file
 
