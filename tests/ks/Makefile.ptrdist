@@ -1,0 +1,47 @@
+#
+# master makefile, editing the following variables will affect all benchmarks
+#
+
+# C compiler
+CC=gcc
+
+# execution prefix, e.g., simulator executable
+SIM=time
+
+# difference tester
+DIFF=diff -s
+
+# global optimization level
+#OPT_LEVEL = -g -O3
+# sm: removing -O3 for now to ease debugging
+ifdef _MSVC
+  #OPT_LEVEL = /Gm /GX /ZI
+  OPT_LEVEL := /O2 /DNO_UNISTD
+  CONLY := /c
+else
+  OPT_LEVEL := -g -O3
+  # OPT_LEVEL := -g -pg -a
+  CONLY := -c
+
+  # sm: why is CC set unconditionally to 'cl'?  hmm... I'm going
+  # to set it to 'gcc' here and hope for the best
+  CC=gcc
+endif
+
+
+#
+# END of user-modifiable variables.
+#
+
+CFLAGS = $(OPT_LEVEL) $(LOCAL_CFLAGS)
+
+$(PROG): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LOCAL_LIBS)
+
+.c.o:
+	$(CC) $(CFLAGS) $(CONLY) $<
+
+clean:
+	/bin/rm -f $(PROG) $(OBJS) *~ core *.qpt *.QCounts *.bak FOO \
+                   *.i *.cil.c
+
