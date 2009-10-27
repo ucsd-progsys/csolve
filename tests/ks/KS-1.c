@@ -20,7 +20,6 @@ NetPtr modules[G_SZ];		/* all modules -> nets */
 
 ModulePtr nets[G_SZ];	     	/* all nets -> modules */
 
-ModuleList groupA, groupB;			/* current A, B */
 ModuleList swapToA, swapToB;			/* swapped from A,B, ordered */
 
 /* read the netlist into the nets[] structure */
@@ -137,8 +136,8 @@ InitLists(GFORMALS)
     unsigned long p;
     ModuleRecPtr mr;
 
-    groupA.head = groupA.tail = NULL;
-    groupB.head = groupB.tail = NULL;
+    groupA->head = groupA->tail = NULL;
+    groupB->head = groupB->tail = NULL;
 
     /* for all modules */
     for (p = 0; p<*numModules/2; p++) {
@@ -149,16 +148,16 @@ InitLists(GFORMALS)
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
 	(*mr).module = p;
-	if (groupA.head == NULL) {
+	if (groupA->head == NULL) {
 	    /* first item */
-	    groupA.head = groupA.tail = mr;
+	    groupA->head = groupA->tail = mr;
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
 	    (*mr).next = NULL;
-	    (*groupA.tail).next = mr;
-	    groupA.tail = mr;
+	    (*groupA->tail).next = mr;
+	    groupA->tail = mr;
 	}
 	moduleToGroup[p] = GroupA;
 
@@ -168,16 +167,16 @@ InitLists(GFORMALS)
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
 	(*mr).module = (*numModules/2) + p;
-	if (groupB.head == NULL) {
+	if (groupB->head == NULL) {
 	    /* first item */
-	    groupB.head = groupB.tail = mr;
+	    groupB->head = groupB->tail = mr;
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
 	    (*mr).next = NULL;
-	    (*groupB.tail).next = mr;
-	    groupB.tail = mr;
+	    (*groupB->tail).next = mr;
+	    groupB->tail = mr;
 	}
 	moduleToGroup[(*numModules/2) + p] = GroupB;
     }

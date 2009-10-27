@@ -113,11 +113,11 @@ FindMaxGpAndSwap(GFORMALS)
 
     gpMax = -9999999;
     maxA = maxPrevA = maxB = maxPrevB = NULL;
-    for (mrA = groupA.head, mrPrevA = NULL;
+    for (mrA = groupA->head, mrPrevA = NULL;
 	 mrA != NULL;
 	 mrPrevA = mrA, mrA = (*mrA).next) {
 
-	for (mrB = groupB.head, mrPrevB = NULL;
+	for (mrB = groupB->head, mrPrevB = NULL;
 	     mrB != NULL;
 	     mrPrevB = mrB, mrB = (*mrB).next) {
 
@@ -136,9 +136,9 @@ FindMaxGpAndSwap(GFORMALS)
 
     /* swap the nodes out, into the swap lists */
     assert(maxA != NULL);
-    SwapNode(maxPrevA, maxA, &(groupA), &(swapToB), GACTUALS);
+    SwapNode(maxPrevA, maxA, groupA, &(swapToB), GACTUALS);
     assert(maxB != NULL);
-    SwapNode(maxPrevB, maxB, &(groupB), &(swapToA), GACTUALS);
+    SwapNode(maxPrevB, maxB, groupB, &(swapToA), GACTUALS);
 
 
     /* update the inverse mapping, these two node are now gone */
@@ -195,24 +195,24 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 
     if (mrA == NULL) {	
 	/* swap entire list */
-	groupA = swapToA;
-	groupB = swapToB;
+	*groupA = swapToA;
+	*groupB = swapToB;
     }
     else {
 	/* splice the lists */
 	(*mrPrevA).next = mrB;
-	groupA.head = swapToA.head;
-	groupA.tail = swapToB.tail;
+	groupA->head = swapToA.head;
+	groupA->tail = swapToB.tail;
 
 	(*mrPrevB).next = mrA;
-	groupB.head = swapToB.head;
-	groupB.tail = swapToA.tail;
+	groupB->head = swapToB.head;
+	groupB->tail = swapToA.tail;
     }
 
     /* reset the inverse mappings */
-    for (mrA = groupA.head; mrA != NULL; mrA = (*mrA).next)
+    for (mrA = groupA->head; mrA != NULL; mrA = (*mrA).next)
 	moduleToGroup[(*mrA).module] = GroupA;
-    for (mrB = groupB.head; mrB != NULL; mrB = (*mrB).next)
+    for (mrB = groupB->head; mrB != NULL; mrB = (*mrB).next)
 	moduleToGroup[(*mrB).module] = GroupB;
 
     /* clear the swap lists */
@@ -248,19 +248,19 @@ PrintResults(int verbose, GFORMALS)
     /* partitions */
     if (verbose) {
 	fprintf(stdout, "Group A:  \n");
-	for (mr = groupA.head; mr != NULL; mr = (*mr).next)
+	for (mr = groupA->head; mr != NULL; mr = (*mr).next)
 	    fprintf(stdout, "%3lu ", (*mr).module+1);
 	fprintf(stdout, "\n");
 
 	fprintf(stdout, "Group B:  \n");
-	for (mr = groupB.head; mr != NULL; mr = (*mr).next)
+	for (mr = groupB->head; mr != NULL; mr = (*mr).next)
 	    fprintf(stdout, "%3lu ", (*mr).module+1);
 	fprintf(stdout, "\n");
     }
 
     /* total edge cuts */
     cuts = 0;
-    for (mr = groupA.head; mr != NULL; mr = (*mr).next) {
+    for (mr = groupA->head; mr != NULL; mr = (*mr).next) {
 
 	assert(moduleToGroup[(*mr).module] == GroupA);
 
@@ -335,6 +335,8 @@ main(int argc, char **argv)
     float *D;
     float *cost;
     Groups *moduleToGroup;
+    ModuleList *groupA;
+    ModuleList *groupB;
     ;
 
     // pmr: global inits
@@ -346,6 +348,8 @@ main(int argc, char **argv)
     D           = (float *)malloc(sizeof(float) * G_SZ);
     cost        = (float *)malloc(sizeof(float) * G_SZ);
     moduleToGroup = (Groups *)malloc(sizeof(Groups) * G_SZ);
+    groupA      = (ModuleList *)malloc(sizeof(ModuleList));
+    groupB      = (ModuleList *)malloc(sizeof(ModuleList));
     // pmr: end global inits
 
     /* parse argument */
@@ -371,8 +375,8 @@ main(int argc, char **argv)
 
 #ifndef KS_MODE
 	/* compute the swap costs */
-	ComputeDs(&(groupA), GroupA, SwappedToA, GACTUALS);
-	ComputeDs(&(groupB), GroupB, SwappedToB, GACTUALS);
+	ComputeDs(groupA, GroupA, SwappedToA, GACTUALS);
+	ComputeDs(groupB, GroupB, SwappedToB, GACTUALS);
 #endif /* !KS_MODE */
 
 	/* for all pairs of nodes in A,B */
@@ -380,8 +384,8 @@ main(int argc, char **argv)
 
 #ifdef KS_MODE
 	    /* compute the swap costs */
-	    ComputeDs(&(groupA), GroupA, SwappedToA, GACTUALS);
-	    ComputeDs(&(groupB), GroupB, SwappedToB, GACTUALS);
+	    ComputeDs(groupA, GroupA, SwappedToA, GACTUALS);
+	    ComputeDs(groupB, GroupB, SwappedToB, GACTUALS);
 #endif /* KS_MODE */
 
 	    /* find the max swap opportunity, and swap */
@@ -389,8 +393,8 @@ main(int argc, char **argv)
 
 	}
 	/* lists should both be empty now */
-	assert(groupA.head == NULL && groupA.tail == NULL);
-	assert(groupB.head == NULL && groupB.tail == NULL);
+	assert(groupA->head == NULL && groupA->tail == NULL);
+	assert(groupB->head == NULL && groupB->tail == NULL);
 
 	gMax = FindGMax(&iMax, GACTUALS);
 
@@ -406,11 +410,11 @@ main(int argc, char **argv)
     } while (gMax > 0.0);	/* progress made? */
 
     /* all swaps rejected */
-    groupA = swapToB;
-    for (mr = groupA.head; mr != NULL; mr = (*mr).next)
+    *groupA = swapToB;
+    for (mr = groupA->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupA;
-    groupB = swapToA;
-    for (mr = groupB.head; mr != NULL; mr = (*mr).next)
+    *groupB = swapToA;
+    for (mr = groupB->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupB;
 
     ;
