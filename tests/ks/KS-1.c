@@ -17,10 +17,8 @@
 #include "KS.h"
 
 NetPtr modules[G_SZ];		/* all modules -> nets */
-unsigned long numModules;
 
 ModulePtr nets[G_SZ];	     	/* all nets -> modules */
-unsigned long numNets;
 
 ModuleList groupA, groupB;			/* current A, B */
 ModuleList swapToA, swapToB;			/* swapped from A,B, ordered */
@@ -32,7 +30,7 @@ float cost[G_SZ];			/* net costs */
 
 /* read the netlist into the nets[] structure */
 void
-ReadNetList(char *fname)
+ReadNetList(char *fname, GFORMALS)
 {
     FILE *inFile;
     char line[BUF_LEN];
@@ -58,11 +56,11 @@ ReadNetList(char *fname)
         exit(2);
     }
 
-    numModules = nModules;
-    numNets    = nNets;
+    *numModules = nModules;
+    *numNets    = nNets;
     // pmr: end added
 
-    for (net = 0; net < numNets; net++) {
+    for (net = 0; net < *numNets; net++) {
 	fgets(line, BUF_LEN, inFile);
 	
 	/* net connections for "dest" */
@@ -91,16 +89,16 @@ ReadNetList(char *fname)
 
 /* invert the previously read nets, into a module to net structure */
 void
-NetsToModules(void)
+NetsToModules(GFORMALS)
 {
     unsigned long net, mod;
     ModulePtr modNode;
     NetPtr netNode;
 
-    for (mod = 0; mod<numModules; mod++)
+    for (mod = 0; mod<*numModules; mod++)
 	modules[mod] = NULL;
 
-    for (net=0; net<numNets; net++) {
+    for (net=0; net<*numNets; net++) {
 	for (modNode = nets[net]; modNode != NULL; modNode = (*modNode).next) {
 	    TRY(netNode = (Net *)malloc(sizeof(Net)),
 		netNode != NULL, "NetsToModules",
@@ -116,7 +114,7 @@ NetsToModules(void)
 
 /* compute the net edge costs, based on the weighting strategy */
 void
-ComputeNetCosts(void)
+ComputeNetCosts(GFORMALS)
 {
 #ifdef WEIGHTED
     ModulePtr nn;
@@ -124,7 +122,7 @@ ComputeNetCosts(void)
 #endif /* WEIGHTED */
     unsigned long i;
 
-    for (i=0; i<numNets; i++) {
+    for (i=0; i<*numNets; i++) {
 #ifndef WEIGHTED
 	cost[i] = 1.0;
 #else
@@ -139,7 +137,7 @@ ComputeNetCosts(void)
 
 /* set up the initial groups, just split down the middle */
 void
-InitLists(void)
+InitLists(GFORMALS)
 {
     unsigned long p;
     ModuleRecPtr mr;
@@ -148,7 +146,7 @@ InitLists(void)
     groupB.head = groupB.tail = NULL;
 
     /* for all modules */
-    for (p = 0; p<numModules/2; p++) {
+    for (p = 0; p<*numModules/2; p++) {
 
 	/* build the group A module list */
 	TRY(mr = (ModuleRec *)malloc(sizeof(ModuleRec)),
@@ -174,7 +172,7 @@ InitLists(void)
 	    mr != NULL, "main",
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
-	(*mr).module = (numModules/2) + p;
+	(*mr).module = (*numModules/2) + p;
 	if (groupB.head == NULL) {
 	    /* first item */
 	    groupB.head = groupB.tail = mr;
@@ -186,7 +184,7 @@ InitLists(void)
 	    (*groupB.tail).next = mr;
 	    groupB.tail = mr;
 	}
-	moduleToGroup[(numModules/2) + p] = GroupB;
+	moduleToGroup[(*numModules/2) + p] = GroupB;
     }
 
     /* initially clear the swap chains */
@@ -197,7 +195,7 @@ InitLists(void)
 
 /* compute the cost of switching every node in group to the other group */
 void
-ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap)
+ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 {
 #ifdef KS_MODE
 

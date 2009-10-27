@@ -55,7 +55,6 @@ typedef struct _Net {
 typedef Net * NetPtr;
 
 extern NetPtr modules[G_SZ];	/* all modules -> nets */
-extern unsigned long numModules;
 
 /* net-ular view */
 typedef struct _Module {
@@ -65,7 +64,6 @@ typedef struct _Module {
 typedef Module * ModulePtr;
 
 extern ModulePtr nets[G_SZ];	/* all nets -> modules */
-extern unsigned long numNets;
 
 typedef struct _ModuleRec {
     struct _ModuleRec * next;
@@ -89,16 +87,19 @@ extern Groups moduleToGroup[G_SZ];	/* current inverse mapping */
 extern float D[G_SZ];		/* module costs */
 extern float cost[G_SZ];		/* net costs */
 
-void ReadNetList(char * NTS fname);
-void NetsToModules(void);
-void ComputeNetCosts(void);
-void InitLists(void);
-void ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap);
-float CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB);
+#define GFORMALS unsigned long *numModules, unsigned long *numNets
+#define GACTUALS numModules, numNets
+
+void ReadNetList(char * NTS fname, GFORMALS);
+void NetsToModules(GFORMALS);
+void ComputeNetCosts(GFORMALS);
+void InitLists(GFORMALS);
+void ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS);
+float CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB, GFORMALS);
 void SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
-	      ModuleListPtr group, ModuleListPtr swapTo);
-void UpdateDs(ModuleRecPtr max, Groups group);
-float FindMaxGpAndSwap();
-void SwapSubsetAndReset(unsigned long iMax);
-void PrintResults(int verbose);
+	      ModuleListPtr group, ModuleListPtr swapTo, GFORMALS);
+void UpdateDs(ModuleRecPtr max, Groups group, GFORMALS);
+float FindMaxGpAndSwap(GFORMALS);
+void SwapSubsetAndReset(unsigned long iMax, GFORMALS);
+void PrintResults(int verbose, GFORMALS);
 int main(int argc, char * NTS * NT COUNT(argc) argv);

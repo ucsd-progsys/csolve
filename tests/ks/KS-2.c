@@ -17,7 +17,7 @@
 
 /* handle special cases where both nodes are switched */
 float
-CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB)
+CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB, GFORMALS)
 {
     NetPtr netNode;
     ModulePtr modNode;
@@ -45,7 +45,7 @@ CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB)
 /* swap a node out of the current group, and into a target group */
 void
 SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
-	 ModuleListPtr group, ModuleListPtr swapTo)
+	 ModuleListPtr group, ModuleListPtr swapTo, GFORMALS)
 {
     if (maxPrev == NULL) {	/* found at head of list */
 	if ((*group).head == (*group).tail)	{ /* only one in the list */
@@ -82,7 +82,7 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 
 /* incrementally update the D values in Kernighan-Lin algorithm */
 void
-UpdateDs(ModuleRecPtr max, Groups group)
+UpdateDs(ModuleRecPtr max, Groups group, GFORMALS)
 {
     NetPtr net;
     ModulePtr mod;
@@ -105,7 +105,7 @@ UpdateDs(ModuleRecPtr max, Groups group)
 
 /* find the best swap available and do it */
 float
-FindMaxGpAndSwap()
+FindMaxGpAndSwap(GFORMALS)
 {
     ModuleRecPtr mrA, mrPrevA, mrB, mrPrevB;
     ModuleRecPtr maxA, maxPrevA, maxB, maxPrevB;
@@ -122,9 +122,9 @@ FindMaxGpAndSwap()
 	     mrPrevB = mrB, mrB = (*mrB).next) {
 
 #ifdef KS_MODE
-	    gp = D[(*mrA).module] + D[(*mrB).module] - CAiBj(mrA, mrB);
+	    gp = D[(*mrA).module] + D[(*mrB).module] - CAiBj(mrA, mrB, GACTUALS);
 #else /* !KS_MODE */
-	    gp = D[(*mrA).module] + D[(*mrB).module] - 2*CAiBj(mrA, mrB);
+	    gp = D[(*mrA).module] + D[(*mrB).module] - 2*CAiBj(mrA, mrB, GACTUALS);
 #endif /* !KS_MODE */
 	    if (gp > gpMax) {
 		gpMax = gp;
@@ -136,9 +136,9 @@ FindMaxGpAndSwap()
 
     /* swap the nodes out, into the swap lists */
     assert(maxA != NULL);
-    SwapNode(maxPrevA, maxA, &(groupA), &(swapToB));
+    SwapNode(maxPrevA, maxA, &(groupA), &(swapToB), GACTUALS);
     assert(maxB != NULL);
-    SwapNode(maxPrevB, maxB, &(groupB), &(swapToA));
+    SwapNode(maxPrevB, maxB, &(groupB), &(swapToA), GACTUALS);
 
 
     /* update the inverse mapping, these two node are now gone */
@@ -150,8 +150,8 @@ FindMaxGpAndSwap()
 
 #ifndef KS_MODE
     /* update the Ds */
-    UpdateDs(maxA, GroupA);
-    UpdateDs(maxB, GroupB);
+    UpdateDs(maxA, GroupA, GACTUALS);
+    UpdateDs(maxB, GroupB, GACTUALS);
 #endif /* !KS_MODE */
 
     return gpMax;
@@ -159,14 +159,14 @@ FindMaxGpAndSwap()
 
 /* find the best point, during the last numModules/2 swaps */
 float
-FindGMax(unsigned long * iMax)
+FindGMax(unsigned long * iMax, GFORMALS)
 {
     int i;
     float gMax;
 
     gMax = -9999999;
     *iMax = 0xffffffff;
-    for (i=0; i<numModules/2; i++) {
+    for (i=0; i<*numModules/2; i++) {
 	if (GP[i] > gMax) {
 	    gMax = GP[i];
 	    *iMax = i;
@@ -177,7 +177,7 @@ FindGMax(unsigned long * iMax)
 
 /* swap groupA and groupB from [0..iMax] */
 void
-SwapSubsetAndReset(unsigned long iMax)
+SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 {
     unsigned long i;
     ModuleRecPtr mrPrevA, mrA, mrPrevB, mrB;
@@ -230,7 +230,7 @@ long maxStat;
 
 /* print the current groups, and their edge and net cut counts */
 void
-PrintResults(int verbose)
+PrintResults(int verbose, GFORMALS)
 {
     ModuleRecPtr mr;
     NetPtr nn;
@@ -290,7 +290,7 @@ PrintResults(int verbose)
 
     /* total net cuts */
     cuts = 0;
-    for (i=0; i<numNets; i++) {
+    for (i=0; i<*numNets; i++) {
 
 	netSz = 0;
 	for (mn = nets[i]; mn != NULL; mn = (*mn).next)
@@ -329,7 +329,16 @@ main(int argc, char **argv)
     unsigned long p, iMax;
     float gMax, lastGMax;
     ModuleRecPtr mr;
+    unsigned long *numNets;
+    unsigned long *numModules;
     ;
+
+    // pmr: global inits
+    numNets     = (unsigned long *)malloc(sizeof(unsigned long));
+    *numNets    = 0;
+    numModules  = (unsigned long *)malloc(sizeof(unsigned long));
+    *numModules = 0;
+    // pmr: end global inits
 
     /* parse argument */
     if (argc != 2) {
@@ -339,14 +348,14 @@ main(int argc, char **argv)
     }
 
     /* prepare the data structures */
-    ReadNetList(argv[1]);
-    NetsToModules();
-    ComputeNetCosts();
+    ReadNetList(argv[1], GACTUALS);
+    NetsToModules(GACTUALS);
+    ComputeNetCosts(GACTUALS);
 
-    assert((numModules % 2) == 0);
+    assert((*numModules % 2) == 0);
 
     /* initial partition */
-    InitLists();
+    InitLists(GACTUALS);
     lastGMax = 0;
 
     /* do until we don't make any progress */
@@ -354,28 +363,28 @@ main(int argc, char **argv)
 
 #ifndef KS_MODE
 	/* compute the swap costs */
-	ComputeDs(&(groupA), GroupA, SwappedToA);
-	ComputeDs(&(groupB), GroupB, SwappedToB);
+	ComputeDs(&(groupA), GroupA, SwappedToA, GACTUALS);
+	ComputeDs(&(groupB), GroupB, SwappedToB, GACTUALS);
 #endif /* !KS_MODE */
 
 	/* for all pairs of nodes in A,B */
-	for (p = 0; p<numModules/2; p++) {
+	for (p = 0; p<*numModules/2; p++) {
 
 #ifdef KS_MODE
 	    /* compute the swap costs */
-	    ComputeDs(&(groupA), GroupA, SwappedToA);
-	    ComputeDs(&(groupB), GroupB, SwappedToB);
+	    ComputeDs(&(groupA), GroupA, SwappedToA, GACTUALS);
+	    ComputeDs(&(groupB), GroupB, SwappedToB, GACTUALS);
 #endif /* KS_MODE */
 
 	    /* find the max swap opportunity, and swap */
-	    GP[p] = FindMaxGpAndSwap();
+	    GP[p] = FindMaxGpAndSwap(GACTUALS);
 
 	}
 	/* lists should both be empty now */
 	assert(groupA.head == NULL && groupA.tail == NULL);
 	assert(groupB.head == NULL && groupB.tail == NULL);
 
-	gMax = FindGMax(&iMax);
+	gMax = FindGMax(&iMax, GACTUALS);
 
 	/* debug/statistics */
 	if (lastGMax == gMax)
@@ -384,8 +393,8 @@ main(int argc, char **argv)
 	fprintf(stdout, "gMax = %f, iMax = %lu\n", gMax, iMax);
 
 	if (gMax > 0.0)
-	    SwapSubsetAndReset(iMax);
-	PrintResults(0);
+	    SwapSubsetAndReset(iMax, GACTUALS);
+	PrintResults(0, GACTUALS);
     } while (gMax > 0.0);	/* progress made? */
 
     /* all swaps rejected */
@@ -399,7 +408,7 @@ main(int argc, char **argv)
     ;
 
     /* all done, show results */
-    PrintResults(1);
+    PrintResults(1, GACTUALS);
 #ifdef PLUS_STATS
     PrintDerefStats(stderr);
     PrintHeapSize(stderr);
