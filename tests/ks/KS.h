@@ -77,15 +77,15 @@ typedef struct _ModuleList {
 } ModuleList;
 typedef ModuleList * ModuleListPtr;
 
-extern ModuleList swapToA, swapToB;		/* swapped from A,B, ordered */
-
 typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
 
 #define GFORMALS unsigned long *numModules, unsigned long *numNets, \
         float *GP, float *D, float *cost, \
         Groups *moduleToGroup, \
-        ModuleList *groupA, ModuleList *groupB
-#define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup, groupA, groupB
+        ModuleList *groupA, ModuleList *groupB, \
+        ModuleList *swapToA, ModuleList *swapToB
+#define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup, groupA, groupB, \
+        swapToA, swapToB
 
 void ReadNetList(char * NTS fname, GFORMALS);
 void NetsToModules(GFORMALS);

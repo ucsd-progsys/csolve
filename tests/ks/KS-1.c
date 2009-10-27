@@ -20,8 +20,6 @@ NetPtr modules[G_SZ];		/* all modules -> nets */
 
 ModulePtr nets[G_SZ];	     	/* all nets -> modules */
 
-ModuleList swapToA, swapToB;			/* swapped from A,B, ordered */
-
 /* read the netlist into the nets[] structure */
 void
 ReadNetList(char *fname, GFORMALS)
@@ -182,8 +180,8 @@ InitLists(GFORMALS)
     }
 
     /* initially clear the swap chains */
-    swapToA.head = swapToA.tail = NULL;
-    swapToB.head = swapToB.tail = NULL;
+    swapToA->head = swapToA->tail = NULL;
+    swapToB->head = swapToB->tail = NULL;
 }
 
 

@@ -136,9 +136,9 @@ FindMaxGpAndSwap(GFORMALS)
 
     /* swap the nodes out, into the swap lists */
     assert(maxA != NULL);
-    SwapNode(maxPrevA, maxA, groupA, &(swapToB), GACTUALS);
+    SwapNode(maxPrevA, maxA, groupA, swapToB, GACTUALS);
     assert(maxB != NULL);
-    SwapNode(maxPrevB, maxB, groupB, &(swapToA), GACTUALS);
+    SwapNode(maxPrevB, maxB, groupB, swapToA, GACTUALS);
 
 
     /* update the inverse mapping, these two node are now gone */
@@ -183,8 +183,8 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
     ModuleRecPtr mrPrevA, mrA, mrPrevB, mrB;
 
     /* re-splice the lists @ iMax pointers into the lists */
-    for (mrPrevA = NULL, mrA = swapToA.head,
-	 mrPrevB = NULL, mrB = swapToB.head, i=0;
+    for (mrPrevA = NULL, mrA = swapToA->head,
+	 mrPrevB = NULL, mrB = swapToB->head, i=0;
 	 i <= iMax;
 	 mrPrevA = mrA, mrA = (*mrA).next,
 	 mrPrevB = mrB, mrB = (*mrB).next,
@@ -195,18 +195,18 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 
     if (mrA == NULL) {	
 	/* swap entire list */
-	*groupA = swapToA;
-	*groupB = swapToB;
+	*groupA = *swapToA;
+	*groupB = *swapToB;
     }
     else {
 	/* splice the lists */
 	(*mrPrevA).next = mrB;
-	groupA->head = swapToA.head;
-	groupA->tail = swapToB.tail;
+	groupA->head = swapToA->head;
+	groupA->tail = swapToB->tail;
 
 	(*mrPrevB).next = mrA;
-	groupB->head = swapToB.head;
-	groupB->tail = swapToA.tail;
+	groupB->head = swapToB->head;
+	groupB->tail = swapToA->tail;
     }
 
     /* reset the inverse mappings */
@@ -216,8 +216,8 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 	moduleToGroup[(*mrB).module] = GroupB;
 
     /* clear the swap lists */
-    swapToA.head = swapToA.tail = NULL;
-    swapToB.head = swapToB.tail = NULL;
+    swapToA->head = swapToA->tail = NULL;
+    swapToB->head = swapToB->tail = NULL;
 }
 
 
@@ -337,6 +337,8 @@ main(int argc, char **argv)
     Groups *moduleToGroup;
     ModuleList *groupA;
     ModuleList *groupB;
+    ModuleList *swapToA;
+    ModuleList *swapToB;
     ;
 
     // pmr: global inits
@@ -350,6 +352,8 @@ main(int argc, char **argv)
     moduleToGroup = (Groups *)malloc(sizeof(Groups) * G_SZ);
     groupA      = (ModuleList *)malloc(sizeof(ModuleList));
     groupB      = (ModuleList *)malloc(sizeof(ModuleList));
+    swapToA     = (ModuleList *)malloc(sizeof(ModuleList));
+    swapToB     = (ModuleList *)malloc(sizeof(ModuleList));
     // pmr: end global inits
 
     /* parse argument */
@@ -410,10 +414,10 @@ main(int argc, char **argv)
     } while (gMax > 0.0);	/* progress made? */
 
     /* all swaps rejected */
-    *groupA = swapToB;
+    *groupA = *swapToB;
     for (mr = groupA->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupA;
-    *groupB = swapToA;
+    *groupB = *swapToA;
     for (mr = groupB->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupB;
 
