@@ -27,6 +27,7 @@ ReadNetList(char *fname, GFORMALS)
     ModulePtr node, prev, head;
     unsigned long nNets;
     unsigned long nModules;
+    unsigned long m;
 
     TRY(inFile = fopen(fname, "r"),
 	inFile != NULL, "ReadData",
@@ -39,7 +40,7 @@ ReadNetList(char *fname, GFORMALS)
 	"unable to parse header in file [%s]", /* sm: also BUG!! inFile*/ fname, 0, 0,
 	exit(1));
 
-    // pmr: bdded
+    // pmr: added
     if (nNets < 0 || nModules < 0 || nNets > G_SZ || nModules > G_SZ) {
         exit(2);
     }
@@ -53,20 +54,37 @@ ReadNetList(char *fname, GFORMALS)
 	
 	/* net connections for "dest" */
 	dest = atol(strtok(line, " \t\n"))-1;
+        // pmr: begin added
+        if (dest < 0 || dest > G_SZ) {
+            exit(1);
+        }
+        // pmr: end added
 
 	/* parse out all the net module connections */
 	TRY(head = prev = (Module *)malloc(sizeof(Module)),
 	    prev != NULL, "ReadData",
 	    "unable to allocate a module list node", 0, 0, 0,
 	    exit(1));
-	(*prev).module = atol(strtok(NULL, " \t\n"))-1;
+        m = atol(strtok(NULL, " \t\n"))-1;
+        // pmr: begin added
+        if (m < 0 || m > G_SZ) {
+            exit(1);
+        }
+        // pmr: end added
+	(*prev).module = m;
 	(*prev).next = NULL;
 	while ((tok = strtok(NULL, " \t\n")) != NULL) {
 	    TRY(node = (Module *)malloc(sizeof(Module)),
 		node != NULL, "ReadData",
 		"unable to allocate a module list node", 0, 0, 0,
 		exit(1));
-	    (*node).module = atol(tok)-1;
+            m = atol(tok)-1;
+            // pmr: begin added
+            if (m < 0 || m > G_SZ) {
+                exit(1);
+            }
+            // pmr: end added
+	    (*node).module = m;
 	    (*node).next = NULL;
 	    (*prev).next = node;
 	    prev = node;
