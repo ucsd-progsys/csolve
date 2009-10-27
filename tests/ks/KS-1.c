@@ -30,8 +30,6 @@ Groups moduleToGroup[G_SZ];	/* current inverse mapping */
 float D[G_SZ];			/* module costs */
 float cost[G_SZ];			/* net costs */
 
-#define	READDATA sscanf(NTDROP(line), "%lu %lu", &numNets, &numModules) == 2
-
 /* read the netlist into the nets[] structure */
 void
 ReadNetList(char *fname)
@@ -41,6 +39,8 @@ ReadNetList(char *fname)
     char *tok;
     unsigned long net, dest;
     ModulePtr node, prev, head;
+    unsigned long nNets;
+    unsigned long nModules;
 
     TRY(inFile = fopen(fname, "r"),
 	inFile != NULL, "ReadData",
@@ -48,10 +48,19 @@ ReadNetList(char *fname)
 	exit(1));
 
     TRY(fgets(line, BUF_LEN, inFile),
-        READDATA,
+        sscanf(NTDROP(line), "%lu %lu", &nNets, &nModules) == 2,
         "ReadData",
 	"unable to parse header in file [%s]", /* sm: also BUG!! inFile*/ fname, 0, 0,
 	exit(1));
+
+    // pmr: bdded
+    if (nNets < 0 || nModules < 0 || nNets > G_SZ || nModules > G_SZ) {
+        exit(2);
+    }
+
+    numModules = nModules;
+    numNets    = nNets;
+    // pmr: end added
 
     for (net = 0; net < numNets; net++) {
 	fgets(line, BUF_LEN, inFile);
