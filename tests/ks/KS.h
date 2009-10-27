@@ -79,16 +79,14 @@ typedef ModuleList * ModuleListPtr;
 
 extern ModuleList groupA, groupB;		/* current A, B */
 extern ModuleList swapToA, swapToB;		/* swapped from A,B, ordered */
-extern float GP[G_SZ];		/* GPs, ordered */
 
 typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
 
 extern Groups moduleToGroup[G_SZ];	/* current inverse mapping */
-extern float D[G_SZ];		/* module costs */
-extern float cost[G_SZ];		/* net costs */
 
-#define GFORMALS unsigned long *numModules, unsigned long *numNets
-#define GACTUALS numModules, numNets
+#define GFORMALS unsigned long *numModules, unsigned long *numNets, \
+        float *GP, float *D, float *cost
+#define GACTUALS numModules, numNets, GP, D, cost
 
 void ReadNetList(char * NTS fname, GFORMALS);
 void NetsToModules(GFORMALS);

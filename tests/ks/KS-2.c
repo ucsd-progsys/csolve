@@ -331,6 +331,9 @@ main(int argc, char **argv)
     ModuleRecPtr mr;
     unsigned long *numNets;
     unsigned long *numModules;
+    float *GP;
+    float *D;
+    float *cost;
     ;
 
     // pmr: global inits
@@ -338,6 +341,9 @@ main(int argc, char **argv)
     *numNets    = 0;
     numModules  = (unsigned long *)malloc(sizeof(unsigned long));
     *numModules = 0;
+    GP          = (float *)malloc(sizeof(float) * G_SZ);
+    D           = (float *)malloc(sizeof(float) * G_SZ);
+    cost        = (float *)malloc(sizeof(float) * G_SZ);
     // pmr: end global inits
 
     /* parse argument */

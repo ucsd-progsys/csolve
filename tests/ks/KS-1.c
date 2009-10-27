@@ -22,11 +22,8 @@ ModulePtr nets[G_SZ];	     	/* all nets -> modules */
 
 ModuleList groupA, groupB;			/* current A, B */
 ModuleList swapToA, swapToB;			/* swapped from A,B, ordered */
-float GP[G_SZ];			/* GPs, ordered */
 
 Groups moduleToGroup[G_SZ];	/* current inverse mapping */
-float D[G_SZ];			/* module costs */
-float cost[G_SZ];			/* net costs */
 
 /* read the netlist into the nets[] structure */
 void
