@@ -16,10 +16,6 @@
 
 #include "KS.h"
 
-NetPtr modules[G_SZ];		/* all modules -> nets */
-
-ModulePtr nets[G_SZ];	     	/* all nets -> modules */
-
 /* read the netlist into the nets[] structure */
 void
 ReadNetList(char *fname, GFORMALS)

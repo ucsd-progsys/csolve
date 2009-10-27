@@ -54,16 +54,12 @@ typedef struct _Net {
 } Net;
 typedef Net * NetPtr;
 
-extern NetPtr modules[G_SZ];	/* all modules -> nets */
-
 /* net-ular view */
 typedef struct _Module {
     struct _Module * next;
     unsigned long module;
 } Module;
 typedef Module * ModulePtr;
-
-extern ModulePtr nets[G_SZ];	/* all nets -> modules */
 
 typedef struct _ModuleRec {
     struct _ModuleRec * next;
@@ -83,9 +79,11 @@ typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
         float *GP, float *D, float *cost, \
         Groups *moduleToGroup, \
         ModuleList *groupA, ModuleList *groupB, \
-        ModuleList *swapToA, ModuleList *swapToB
+        ModuleList *swapToA, ModuleList *swapToB, \
+        NetPtr *modules, ModulePtr *nets
 #define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup, groupA, groupB, \
-        swapToA, swapToB
+        swapToA, swapToB, \
+        modules, nets
 
 void ReadNetList(char * NTS fname, GFORMALS);
 void NetsToModules(GFORMALS);

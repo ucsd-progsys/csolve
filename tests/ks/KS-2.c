@@ -339,6 +339,8 @@ main(int argc, char **argv)
     ModuleList *groupB;
     ModuleList *swapToA;
     ModuleList *swapToB;
+    NetPtr     *modules;
+    ModulePtr  *nets;
     ;
 
     // pmr: global inits
@@ -354,6 +356,8 @@ main(int argc, char **argv)
     groupB      = (ModuleList *)malloc(sizeof(ModuleList));
     swapToA     = (ModuleList *)malloc(sizeof(ModuleList));
     swapToB     = (ModuleList *)malloc(sizeof(ModuleList));
+    modules     = (NetPtr *)malloc(sizeof(ModulePtr) * G_SZ);
+    nets        = (ModulePtr *)malloc(sizeof(ModulePtr) * G_SZ);
     // pmr: end global inits
 
     /* parse argument */
