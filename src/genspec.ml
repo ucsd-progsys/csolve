@@ -141,11 +141,12 @@ let conv_cilbasetype = function
   | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
   | TInt (ik, ats)   -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
   | TFloat (fk, ats) -> Ct.CTInt (CM.bytesSizeOfFloat fk, index_of_attrs ats)
+  | TEnum (ei, ats)  -> Ct.CTInt (bytesSizeOfInt ei.ekind, index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 let rec conv_ciltype loc (th, st, off) (c, a) = 
   match c with
-  | TVoid _ | TInt (_,_) | TFloat _ ->
+  | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
   | TPtr (c',a') ->
       let po = if CM.has_array_attr (a' ++ a) 
