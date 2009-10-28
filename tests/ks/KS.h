@@ -76,16 +76,16 @@ typedef ModuleList * ModuleListPtr;
 typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
 
 #define GFORMALS unsigned long *numModules, unsigned long *numNets, \
-        float *GP, float *D, float *cost, \
-        Groups *moduleToGroup, \
+        float * __attribute__ ((array)) GP, float * __attribute__ ((array)) D, float * __attribute__ ((array)) cost, \
+        Groups * __attribute__ ((array)) moduleToGroup, \
         ModuleList *groupA, ModuleList *groupB, \
         ModuleList *swapToA, ModuleList *swapToB, \
-        NetPtr *modules, ModulePtr *nets
+        NetPtr * __attribute__ ((array)) modules, ModulePtr * __attribute__ ((array)) nets
 #define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup, groupA, groupB, \
         swapToA, swapToB, \
         modules, nets
 
-void ReadNetList(char * NTS fname, GFORMALS);
+void ReadNetList(char * NTS __attribute__ ((array)) fname, GFORMALS);
 void NetsToModules(GFORMALS);
 void ComputeNetCosts(GFORMALS);
 void InitLists(GFORMALS);

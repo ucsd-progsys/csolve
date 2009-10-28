@@ -18,7 +18,7 @@
 
 /* read the netlist into the nets[] structure */
 void
-ReadNetList(char *fname, GFORMALS)
+ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 {
     FILE *inFile;
     char line[BUF_LEN];

@@ -324,7 +324,7 @@ PrintResults(int verbose, GFORMALS)
 }
 
 int     // sm: silence warning
-main(int argc, char **argv)
+main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
 {
     unsigned long p, iMax;
     float gMax, lastGMax;
