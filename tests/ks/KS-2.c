@@ -195,8 +195,12 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 
     if (mrA == NULL) {	
 	/* swap entire list */
-	*groupA = *swapToA;
-	*groupB = *swapToB;
+	// *groupA = *swapToA;
+        groupA->head = swapToA->head;
+        groupA->tail = swapToA->tail;
+	// *groupB = *swapToB;
+        groupB->head = swapToB->head;
+        groupB->tail = swapToB->tail;
     }
     else {
 	/* splice the lists */
@@ -418,10 +422,14 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     } while (gMax > 0.0);	/* progress made? */
 
     /* all swaps rejected */
-    *groupA = *swapToB;
+    // *groupA = *swapToB;
+    groupA->head = swapToB->head;
+    groupA->tail = swapToB->tail;
     for (mr = groupA->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupA;
-    *groupB = *swapToA;
+    // *groupB = *swapToA;
+    groupB->head = swapToA->head;
+    groupB->tail = swapToB->tail;
     for (mr = groupB->head; mr != NULL; mr = (*mr).next)
 	moduleToGroup[(*mr).module] = GroupB;
 
