@@ -224,14 +224,6 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
     swapToB->head = swapToB->tail = NULL;
 }
 
-
-struct {
-    unsigned long total;
-    unsigned long edgesCut;
-    unsigned long netsCut;
-} netStats[256];
-long maxStat;
-
 /* print the current groups, and their edge and net cut counts */
 void
 PrintResults(int verbose, GFORMALS)
@@ -242,6 +234,13 @@ PrintResults(int verbose, GFORMALS)
     unsigned long cuts;
     Groups grp;
     int i, netSz;
+    long maxStat;
+    struct {
+        unsigned long total;
+        unsigned long edgesCut;
+        unsigned long netsCut;
+    } netStats[256];
+
 
     fprintf(stdout, "----------------------------------------------\n");
 
