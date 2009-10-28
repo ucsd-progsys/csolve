@@ -34,6 +34,7 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 	"unable to open input file [%s]", /* gn: BUG!! inFile*/ fname, 0, 0,
 	exit(1));
 
+    // pmr: checking bounds for i/o here?
     TRY(fgets(line, BUF_LEN, inFile),
         sscanf(NTDROP(line), "%lu %lu", &nNets, &nModules) == 2,
         "ReadData",
@@ -216,7 +217,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
 
-	assert(moduleToGroup[(*groupNode).module] == myGroup);
+	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
 	/* for all nets on this module, check if groupNode move unifies net */
 	for (netNode = modules[(*groupNode).module];
@@ -259,7 +260,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
 
-	assert(moduleToGroup[(*groupNode).module] == myGroup);
+	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
 	/* initial conditions */
 	I = E = 0.0;

@@ -135,17 +135,17 @@ FindMaxGpAndSwap(GFORMALS)
     }
 
     /* swap the nodes out, into the swap lists */
-    assert(maxA != NULL);
+    // assert(maxA != NULL);
     SwapNode(maxPrevA, maxA, groupA, swapToB, GACTUALS);
-    assert(maxB != NULL);
+    // assert(maxB != NULL);
     SwapNode(maxPrevB, maxB, groupB, swapToA, GACTUALS);
 
 
     /* update the inverse mapping, these two node are now gone */
-    assert(moduleToGroup[(*maxA).module] == GroupA);
+    // assert(moduleToGroup[(*maxA).module] == GroupA);
     moduleToGroup[(*maxA).module] = SwappedToB;
 
-    assert(moduleToGroup[(*maxB).module] == GroupB);
+    // assert(moduleToGroup[(*maxB).module] == GroupB);
     moduleToGroup[(*maxB).module] = SwappedToA;
 
 #ifndef KS_MODE
@@ -191,7 +191,7 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 	 i++);
 
     /* must at least select one to swap, case where gMax is first */
-    assert(mrPrevA != NULL && mrPrevB != NULL);
+    // assert(mrPrevA != NULL && mrPrevB != NULL);
 
     if (mrA == NULL) {	
 	/* swap entire list */
@@ -265,7 +265,7 @@ PrintResults(int verbose, GFORMALS)
     cuts = 0;
     for (mr = groupA->head; mr != NULL; mr = (*mr).next) {
 
-	assert(moduleToGroup[(*mr).module] == GroupA);
+	// assert(moduleToGroup[(*mr).module] == GroupA);
 
 	/* for all nets on this module */
 	for (nn = modules[(*mr).module]; nn != NULL; nn = (*nn).next) {
@@ -273,7 +273,7 @@ PrintResults(int verbose, GFORMALS)
 	    netSz = 0;
 	    for (mn = nets[(*nn).net]; mn != NULL; mn = (*mn).next)
 		netSz++;
-	    assert(netSz >= 2);
+	    // assert(netSz >= 2);
 
 	    /* for all modules on this net */
 	    for (mn = nets[(*nn).net]; mn != NULL; mn = (*mn).next) {
@@ -298,7 +298,7 @@ PrintResults(int verbose, GFORMALS)
 	netSz = 0;
 	for (mn = nets[i]; mn != NULL; mn = (*mn).next)
 	    netSz++;
-	assert(netSz >= 2);
+	// assert(netSz >= 2);
 	netStats[netSz].total++;
 	if (netSz > maxStat)
 	    maxStat = netSz;
@@ -375,7 +375,7 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     NetsToModules(GACTUALS);
     ComputeNetCosts(GACTUALS);
 
-    assert((*numModules % 2) == 0);
+    // assert((*numModules % 2) == 0);
 
     /* initial partition */
     InitLists(GACTUALS);
@@ -404,8 +404,8 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
 
 	}
 	/* lists should both be empty now */
-	assert(groupA->head == NULL && groupA->tail == NULL);
-	assert(groupB->head == NULL && groupB->tail == NULL);
+	// assert(groupA->head == NULL && groupA->tail == NULL);
+	// assert(groupB->head == NULL && groupB->tail == NULL);
 
 	gMax = FindGMax(&iMax, GACTUALS);
 
