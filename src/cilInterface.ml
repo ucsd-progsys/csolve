@@ -120,7 +120,7 @@ let rec convert_cilexp skolem = function
       E (A.eCon (A.Constant.Int (CilMisc.bytesSizeOf t)))
   | Cil.Lval lv -> 
       E (expr_of_lval lv)  
-  | Cil.UnOp (Cil.Neg, e, _) ->
+  | Cil.UnOp (Cil.LNot, e, _) ->
       P (A.pNot (pred_of_cilexp skolem e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
       convert_cilbinexp skolem (op, e1, e2)
