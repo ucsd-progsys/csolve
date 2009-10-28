@@ -37,12 +37,9 @@
 #define TRY(exp, accpt_tst, fn, fail_fmt, arg1, arg2, arg3, fail_action) { \
               (exp); \
               if (!(accpt_tst)) { \
-                  fprintf(stderr, "(%s:%s():%d): ", __FILE__, fn, __LINE__); \
-                  fprintf(stderr, fail_fmt, arg1, arg2, arg3); \
-                  fprintf(stderr, "\n"); \
                   fail_action; \
                   } \
-                  }
+    }
 
 /*
  *      the network, first the modules, then the nets
@@ -84,6 +81,8 @@ typedef enum { GroupA, GroupB, SwappedToA, SwappedToB } Groups;
 #define GACTUALS numModules, numNets, GP, D, cost, moduleToGroup, groupA, groupB, \
         swapToA, swapToB, \
         modules, nets
+
+extern void validptr(void *);
 
 void ReadNetList(char * NTS __attribute__ ((array)) fname, GFORMALS);
 void NetsToModules(GFORMALS);
