@@ -174,6 +174,10 @@ let rec reft_of_cilexp vv e =
   | Cil.CastE (_, e) -> 
       reft_of_cilexp vv e
 
+  | Cil.Const (Cil.CStr str) ->
+      (* pmr: Can and should do more here - vv = block start, length = len (str) *)
+      A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
+
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
   | Cil.BinOp (_, _, Cil.Const (Cil.CReal _), _)
