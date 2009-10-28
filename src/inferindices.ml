@@ -378,7 +378,7 @@ and apply_unknown (rt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar *
   (CTInt (CM.typ_width rt, IEConst ITop), None)
 
 and constrain_constptr: C.constant -> itypevar * itypevarcstr list = function
-  | C.CStr _                                 -> halt <| C.unimp "Haven't implemented string constants yet"
+  | C.CStr _                                 -> (CTRef (S.none, IEConst (IInt 0)), [])
   | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
   | c                                        -> halt <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 

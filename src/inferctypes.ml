@@ -318,7 +318,7 @@ and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
   CTInt (CM.typ_width rt, ITop)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> E.s <| C.unimp "Haven't implemented string constants yet"
+  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [mk_locinc (ISeq (0, 1)) (CTInt (1, ITop)) s])
   | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
