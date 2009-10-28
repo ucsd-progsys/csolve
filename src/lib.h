@@ -5,24 +5,24 @@ extern void *malloc(int);
 extern void assert(int);
 extern void exit(int);
 
-extern long int atol(char *);
+extern long int atol(char * __attribute__ ((array)));
 
-extern char *strtok(char *, char *);
+extern char *strtok(char * __attribute__ ((array)), char * __attribute__ ((array)));
 
 #define NULL   0
 
 #define FILE   int
 
-#define stdout 0
-#define stdin  1
-#define stderr 2
+#define stdout (FILE *)0
+#define stdin  (FILE *)1
+#define stderr (FILE *)2
 
-extern FILE *fopen(char *, char *);
-extern int fprintf(FILE *, char *, ...);
-extern int printf(char *, ...);
-extern char *fgets(char *, int, FILE *);
+extern FILE *fopen(char * __attribute__ ((array)), char * __attribute__ ((array)));
+extern int fprintf(FILE *, char * __attribute__ ((array)), ...);
+extern int printf(char * __attribute__ ((array)), ...);
+extern char *fgets(char * __attribute__ ((array)), int, FILE *);
 
-extern int sscanf(char *, char *, ...);
+extern int sscanf(char * __attribute__ ((array)), char * __attribute__ ((array)), ...);
 
 #define CLOCKS_PER_SEC 1000
 
