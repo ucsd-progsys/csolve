@@ -32,3 +32,25 @@
 ** DONE Better error messages from inferindices
    No more "Failed index constraint [something with index vars]"
 ** DONE Add annotation support for __array__ attribute types
+
+* Post-Deadline Polish
+** TODO Handle bidirectional sequences
+   Handy for deferred pointer arithmetic checks
+** TODO Add handy macros to lib.h
+*** TODO ARRAY for __attribute__ ((array))
+*** TODO BOUNDS for checking array bounds
+    We should be able to annotate pointers for checking (or maybe for
+    *not checking*) rather than sprinkling validptr calls all over the
+    place.
+** TODO Soundly drop vararg functions?
+   Or at least degrade gracefully:
+*** Havoc heap contents?
+*** True'd-out return value
+*** ...or just ignore with a stern warning?
+*** ...or allow an annotation that lets us ignore a statement and barf on varargs?
+** TODO Make && in assert work right
+   cil blows it out into a temp + ITE + assignments(!)
+** TODO Make exit(n) do the proper thing to the CFG
+   Right now it just acts like exit will return, so we can't use exit
+   to make assumptions
+** TODO Figure out why validptr error lines are start of block, not location of call
