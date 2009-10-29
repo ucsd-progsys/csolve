@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-kh9BZAyY.i","")
+#pragma merger(0,"/tmp/cil-y1xKXFhF.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-l1jrb1RQ.i","")
+#pragma merger(0,"/tmp/cil-fNdDZC1S.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,
@@ -465,7 +465,7 @@ void SwapNode(ModuleRecPtr maxPrev , ModuleRecPtr max , ModuleListPtr group , Mo
               Groups * __attribute__((__array__)) moduleToGroup , ModuleList *groupA ,
               ModuleList *groupB , ModuleList *swapToA , ModuleList *swapToB , NetPtr * __attribute__((__array__)) modules ,
               ModulePtr * __attribute__((__array__)) nets ) 
-{ 
+{ ModuleRecPtr swapToTail ;
 
   {
   if ((unsigned int )maxPrev == (unsigned int )((ModuleRecPtr )0)) {
@@ -491,11 +491,13 @@ void SwapNode(ModuleRecPtr maxPrev , ModuleRecPtr max , ModuleListPtr group , Mo
     max->next = (struct _ModuleRec *)0;
   }
   validptr((void *)(& swapTo->tail));
-  if ((unsigned int )swapTo->tail == (unsigned int )((ModuleRecPtr )0)) {
+  swapToTail = swapTo->tail;
+  if ((unsigned int )swapToTail == (unsigned int )((ModuleRecPtr )0)) {
     swapTo->tail = max;
     swapTo->head = max;
   } else {
-    (swapTo->tail)->next = max;
+    validptr((void *)(& swapToTail->next));
+    swapToTail->next = max;
     swapTo->tail = max;
   }
   validptr((void *)(& max->next));
@@ -681,12 +683,16 @@ void SwapSubsetAndReset(unsigned long iMax , unsigned long *numModules , unsigne
   }
   mrA = groupA->head;
   while ((unsigned int )mrA != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mrA->next));
+    validptr((void *)(& mrA->module));
     validptr((void *)(moduleToGroup + mrA->module));
     *(moduleToGroup + mrA->module) = (enum __anonenum_Groups_1 )0;
     mrA = mrA->next;
   }
   mrB = groupB->head;
   while ((unsigned int )mrB != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mrB->next));
+    validptr((void *)(& mrB->module));
     validptr((void *)(moduleToGroup + mrB->module));
     *(moduleToGroup + mrB->module) = (enum __anonenum_Groups_1 )1;
     mrB = mrB->next;
@@ -735,20 +741,28 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
   if (verbose) {
     mr = groupA->head;
     while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
+      validptr((void *)(& mr->next));
+      validptr((void *)(& mr->module));
       mr = mr->next;
     }
     mr = groupB->head;
     while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
+      validptr((void *)(& mr->next));
+      validptr((void *)(& mr->module));
       mr = mr->next;
     }
   }
   cuts = 0UL;
   mr = groupA->head;
   while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mr->next));
+    validptr((void *)(& mr->module));
     validptr((void *)(modules + mr->module));
     nn = *(modules + mr->module);
     while ((unsigned int )nn != (unsigned int )((NetPtr )0)) {
+      validptr((void *)(& nn->next));
       netSz = 0;
+      validptr((void *)(& nn->net));
       validptr((void *)(nets + nn->net));
       mn = *(nets + nn->net);
       while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
@@ -758,9 +772,11 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
       }
       mn = *(nets + nn->net);
       while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
+        validptr((void *)(& mn->next));
         validptr((void *)(moduleToGroup + mr->module));
         validptr((void *)(moduleToGroup + mn->module));
         if ((unsigned int )*(moduleToGroup + mr->module) != (unsigned int )*(moduleToGroup + mn->module)) {
+          validptr((void *)(& mr->module));
           if (verbose) {
 
           }
@@ -780,6 +796,7 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
     validptr((void *)(nets + i));
     mn = *(nets + i);
     while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
+      validptr((void *)(& mn->next));
       netSz ++;
       mn = mn->next;
     }
@@ -791,6 +808,8 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
     grp = *(moduleToGroup + (*(nets + i))->module);
     mn = (*(nets + i))->next;
     while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
+      validptr((void *)(& mn->next));
+      validptr((void *)(& mn->module));
       validptr((void *)(moduleToGroup + mn->module));
       if ((unsigned int )grp != (unsigned int )*(moduleToGroup + mn->module)) {
         if (verbose) {

@@ -55,6 +55,8 @@ void
 SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 	 ModuleListPtr group, ModuleListPtr swapTo, GFORMALS)
 {
+    ModuleRecPtr swapToTail;
+
     if (maxPrev == NULL) {	/* found at head of list */
         validptr(&group->head);
         validptr(&group->tail);
@@ -81,7 +83,9 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 
     /* put max on the tail of swapTo */
     validptr(&swapTo->tail);
-    if ((*swapTo).tail == NULL) {	/* empty */
+    // pmr: Need a witness value not on the heap
+    swapToTail = (*swapTo).tail;
+    if (swapToTail == NULL) {	/* empty */
 #if 0
         validptr(&swapTo->head);
 	(*swapTo).head = (*swapTo).tail = max;
@@ -91,8 +95,8 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
     }
     else { /* end of list */
         // pmr: Should work, investigate
-        // validptr(&(swapTo->tail->next));
-	(*(*swapTo).tail).next = max;
+        validptr(&(swapToTail->next));
+	(*swapToTail).next = max;
 	(*swapTo).tail = max;
     }
     validptr(&max->next);
