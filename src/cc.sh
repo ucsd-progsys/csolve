@@ -4,7 +4,8 @@
 # Instead, use cilly --merge --keepmerged --noPrintLn
 
 TMP=`tempfile`.c
+BASE=`dirname $0`
 
 cpp -nostdinc -include `dirname $0`/lib.h $1 > $TMP
-cilly --merge --keepmerged --noPrintLn -E -P -c -o `basename $1 .c`.o $TMP
+$BASE/../external/cil/bin/cilly --merge --keepmerged --noPrintLn -E -P -c -o `basename $1 .c`.o $TMP
 rm $TMP
