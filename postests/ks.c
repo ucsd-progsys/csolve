@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-NdGxMkGA.i","")
+#pragma merger(0,"/tmp/cil-kh9BZAyY.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-P1yyDOsV.i","")
+#pragma merger(0,"/tmp/cil-l1jrb1RQ.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,
@@ -469,6 +469,9 @@ void SwapNode(ModuleRecPtr maxPrev , ModuleRecPtr max , ModuleListPtr group , Mo
 
   {
   if ((unsigned int )maxPrev == (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& group->head));
+    validptr((void *)(& group->tail));
+    validptr((void *)(& max->next));
     if ((unsigned int )group->head == (unsigned int )group->tail) {
       group->head = (ModuleRec *)0;
       group->tail = (ModuleRec *)0;
@@ -478,12 +481,16 @@ void SwapNode(ModuleRecPtr maxPrev , ModuleRecPtr max , ModuleListPtr group , Mo
       max->next = (struct _ModuleRec *)0;
     }
   } else {
+    validptr((void *)(& group->tail));
     if ((unsigned int )group->tail == (unsigned int )max) {
       group->tail = maxPrev;
     }
+    validptr((void *)(& maxPrev->next));
+    validptr((void *)(& max->next));
     maxPrev->next = max->next;
     max->next = (struct _ModuleRec *)0;
   }
+  validptr((void *)(& swapTo->tail));
   if ((unsigned int )swapTo->tail == (unsigned int )((ModuleRecPtr )0)) {
     swapTo->tail = max;
     swapTo->head = max;
@@ -491,6 +498,7 @@ void SwapNode(ModuleRecPtr maxPrev , ModuleRecPtr max , ModuleListPtr group , Mo
     (swapTo->tail)->next = max;
     swapTo->tail = max;
   }
+  validptr((void *)(& max->next));
   max->next = (struct _ModuleRec *)0;
   return;
 }
@@ -504,12 +512,17 @@ void UpdateDs(ModuleRecPtr max , Groups group , unsigned long *numModules , unsi
   ModulePtr mod ;
 
   {
+  validptr((void *)(& max->module));
   validptr((void *)(modules + max->module));
   net = *(modules + max->module);
   while ((unsigned int )net != (unsigned int )((NetPtr )0)) {
+    validptr((void *)(& net->next));
+    validptr((void *)(& net->net));
     validptr((void *)(nets + net->net));
     mod = *(nets + net->net);
     while ((unsigned int )mod != (unsigned int )((ModulePtr )0)) {
+      validptr((void *)(& mod->next));
+      validptr((void *)(& mod->module));
       validptr((void *)(moduleToGroup + mod->module));
       if ((unsigned int )*(moduleToGroup + mod->module) < 2U) {
         validptr((void *)(D + mod->module));
@@ -553,9 +566,13 @@ float FindMaxGpAndSwap(unsigned long *numModules , unsigned long *numNets , floa
   mrA = groupA->head;
   mrPrevA = (ModuleRec *)0;
   while ((unsigned int )mrA != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mrA->next));
     mrB = groupB->head;
     mrPrevB = (ModuleRec *)0;
     while ((unsigned int )mrB != (unsigned int )((ModuleRecPtr )0)) {
+      validptr((void *)(& mrB->next));
+      validptr((void *)(& mrA->module));
+      validptr((void *)(& mrB->module));
       validptr((void *)(D + mrA->module));
       validptr((void *)(D + mrB->module));
       tmp = CAiBj(mrA, mrB, numModules, numNets, GP, D, cost, moduleToGroup, groupA,
@@ -574,12 +591,22 @@ float FindMaxGpAndSwap(unsigned long *numModules , unsigned long *numNets , floa
     mrPrevA = mrA;
     mrA = mrA->next;
   }
+  if ((unsigned int )maxA == (unsigned int )((ModuleRecPtr )0)) {
+    HELL: 
+    goto HELL;
+  }
   SwapNode(maxPrevA, maxA, groupA, swapToB, numModules, numNets, GP, D, cost, moduleToGroup,
            groupA, groupB, swapToA, swapToB, modules, nets);
+  if ((unsigned int )maxB == (unsigned int )((ModuleRecPtr )0)) {
+    LIMBO: 
+    goto LIMBO;
+  }
   SwapNode(maxPrevB, maxB, groupB, swapToA, numModules, numNets, GP, D, cost, moduleToGroup,
            groupA, groupB, swapToA, swapToB, modules, nets);
+  validptr((void *)(& maxA->module));
   validptr((void *)(moduleToGroup + maxA->module));
   *(moduleToGroup + maxA->module) = (enum __anonenum_Groups_1 )3;
+  validptr((void *)(& maxB->module));
   validptr((void *)(moduleToGroup + maxB->module));
   *(moduleToGroup + maxB->module) = (enum __anonenum_Groups_1 )2;
   UpdateDs(maxA, (enum __anonenum_Groups_1 )0, numModules, numNets, GP, D, cost, moduleToGroup,
@@ -912,6 +939,8 @@ int main(int argc , char * __attribute__((__array__)) * __attribute__((__array__
   groupA->tail = swapToB->tail;
   mr = groupA->head;
   while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mr->next));
+    validptr((void *)(& mr->module));
     validptr((void *)(moduleToGroup + mr->module));
     *(moduleToGroup + mr->module) = (enum __anonenum_Groups_1 )0;
     mr = mr->next;
@@ -920,6 +949,8 @@ int main(int argc , char * __attribute__((__array__)) * __attribute__((__array__
   groupB->tail = swapToB->tail;
   mr = groupB->head;
   while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& mr->next));
+    validptr((void *)(& mr->module));
     validptr((void *)(moduleToGroup + mr->module));
     *(moduleToGroup + mr->module) = (enum __anonenum_Groups_1 )1;
     mr = mr->next;
