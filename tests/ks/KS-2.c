@@ -24,24 +24,24 @@ CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB, GFORMALS)
     float gain = 0.0;
     float netCost;
     unsigned long module = (*mrB).module;
-    // validptr(&mrB->module);
+    validptr(&mrB->module);
 
     /* is mrA connected to mrB? */
     /* mrA and mrB are both un-Swapped */
-    // validptr(&mrA->module);
+    validptr(&mrA->module);
     validptr(&modules[(*mrA).module]);
     for (netNode = modules[(*mrA).module];
 	 netNode != NULL;
 	 netNode = (*netNode).next) {
-        // validptr(&netNode->next);
-        // validptr(&netNode->net);
+        validptr(&netNode->next);
+        validptr(&netNode->net);
         validptr(&cost[(*netNode).net]);
 	netCost = cost[(*netNode).net];
 	for (modNode = nets[(*netNode).net];
 	     modNode != NULL;
 	     modNode = (*modNode).next) {
-            // validptr(&modNode->next);
-            // validptr(&modNode->module);
+            validptr(&modNode->next);
+            validptr(&modNode->module);
 	    if ((*modNode).module == module) {
 		gain = gain + netCost;
 	    }

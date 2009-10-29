@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-sOn55UwB.i","")
+#pragma merger(0,"/tmp/cil-NdGxMkGA.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-vmmpClOE.i","")
+#pragma merger(0,"/tmp/cil-P1yyDOsV.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,
@@ -436,13 +436,19 @@ float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , un
   {
   gain = (float )0.0;
   module = mrB->module;
+  validptr((void *)(& mrB->module));
+  validptr((void *)(& mrA->module));
   validptr((void *)(modules + mrA->module));
   netNode = *(modules + mrA->module);
   while ((unsigned int )netNode != (unsigned int )((NetPtr )0)) {
+    validptr((void *)(& netNode->next));
+    validptr((void *)(& netNode->net));
     validptr((void *)(cost + netNode->net));
     netCost = *(cost + netNode->net);
     modNode = *(nets + netNode->net);
     while ((unsigned int )modNode != (unsigned int )((ModulePtr )0)) {
+      validptr((void *)(& modNode->next));
+      validptr((void *)(& modNode->module));
       if (modNode->module == module) {
         gain += netCost;
       }
