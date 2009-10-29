@@ -3,7 +3,7 @@
 #
 
 # C compiler
-CC=/home/pmr/src/liquidc/src/cc.sh
+CC=../../src/cc.sh
 
 # execution prefix, e.g., simulator executable
 SIM=time
@@ -34,7 +34,7 @@ endif
 CFLAGS = $(OPT_LEVEL) $(LOCAL_CFLAGS)
 
 $(PROG): $(OBJS)
-	cilly --merge --keepmerged --noPrintLn $(CFLAGS) -o $@ $(OBJS) $(LOCAL_LIBS)
+	../../external/cil/bin/cilly --merge --keepmerged --noPrintLn $(CFLAGS) -o $@ $(OBJS) $(LOCAL_LIBS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(CONLY) $<
