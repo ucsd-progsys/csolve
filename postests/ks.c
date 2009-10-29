@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-Bna6RToW.i","")
+#pragma merger(0,"/tmp/cil-sOn55UwB.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -345,19 +345,28 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   ModuleRecPtr groupNode ;
 
   {
+  validptr((void *)(& group->head));
   groupNode = group->head;
   while ((unsigned int )groupNode != (unsigned int )((ModuleRecPtr )0)) {
+    validptr((void *)(& groupNode->next));
     E = (float )0.0;
     I = E;
+    validptr((void *)(& groupNode->module));
     validptr((void *)(modules + groupNode->module));
     netNode = *(modules + groupNode->module);
     while ((unsigned int )netNode != (unsigned int )((NetPtr )0)) {
+      validptr((void *)(& netNode->next));
+      validptr((void *)(& netNode->net));
       validptr((void *)(nets + netNode->net));
       modNode = *(nets + netNode->net);
       while ((unsigned int )modNode != (unsigned int )((ModulePtr )0)) {
+        validptr((void *)(& modNode->next));
+        validptr((void *)(& modNode->module));
+        validptr((void *)(& groupNode->module));
         validptr((void *)(moduleToGroup + modNode->module));
         if (modNode->module != groupNode->module) {
           if ((unsigned int )*(moduleToGroup + modNode->module) < 2U) {
+            validptr((void *)(& netNode->net));
             validptr((void *)(cost + netNode->net));
             if ((unsigned int )*(moduleToGroup + modNode->module) == (unsigned int )myGroup) {
               I += *(cost + netNode->net);
@@ -370,6 +379,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
       }
       netNode = netNode->next;
     }
+    validptr((void *)(& groupNode->module));
     validptr((void *)(D + groupNode->module));
     *(D + groupNode->module) = E - I;
     groupNode = groupNode->next;
@@ -377,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-K2TxD39y.i","")
+#pragma merger(0,"/tmp/cil-vmmpClOE.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,

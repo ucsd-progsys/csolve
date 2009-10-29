@@ -237,6 +237,7 @@ void
 ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 {
 #ifdef KS_MODE
+    // pmr: The following code is dead
 
     NetPtr netNode;
     ModulePtr modNode;
@@ -245,16 +246,16 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
     ModulePtr oneInG;
 
     /* for all modules in group */
-    // validptr(&group->head);
+    validptr(&group->head);
     for (groupNode = (*group).head;
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
-        // validptr(&groupNode->next);
+        validptr(&groupNode->next);
 
 	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
 	/* for all nets on this module, check if groupNode move unifies net */
-        // validptr(&groupNode->module);
+        validptr(&groupNode->module);
         validptr(&modules[(*groupNode).module]);
 	for (netNode = modules[(*groupNode).module];
 	     netNode != NULL;
@@ -270,8 +271,8 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	    for (modNode = nets[(*netNode).net];
 		 modNode != NULL;
 		 modNode = (*modNode).next) {
-                // validptr(&modNode->next);
-                // validptr(&modNode->module);
+                validptr(&modNode->next);
+                validptr(&modNode->module);
                 validptr(&moduleToGroup[(*modNode).module]);
 		if ((moduleToGroup[(*modNode).module] == myGroup) ||
 		    (moduleToGroup[(*modNode).module] == mySwap)) {
@@ -283,8 +284,8 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	    /* single node net? */
             // pmr: Separate if because of short-circuiting in next block
             if (numInG == 1) {
-                // validptr(&oneInG->module);
-                // validptr(&groupNode->module);
+                validptr(&oneInG->module);
+                validptr(&groupNode->module);
             }
 	    if ((numInG == 1) && ((*oneInG).module == (*groupNode).module)) {
                 validptr(&D[(*groupNode).module]);
@@ -292,7 +293,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
             }
 	    /* single partition net? */
 	    if (numInG == numInNet) {
-                // validptr(&groupNode->module);
+                validptr(&groupNode->module);
                 validptr(&D[(*groupNode).module]);
 		D[(*groupNode).module] = D[(*groupNode).module] - 1;
             }
@@ -308,11 +309,11 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
     ModuleRecPtr groupNode;
 
     /* for all modules in group */
-    // validptr(&group->head);
+    validptr(&group->head);
     for (groupNode = (*group).head;
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
-        // validptr(&groupNode->next);
+        validptr(&groupNode->next);
 
 	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
@@ -320,28 +321,28 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	I = E = 0.0;
 
 	/* for all nets on this module */
-        // validptr(&groupNode->module);
+        validptr(&groupNode->module);
         validptr(&modules[(*groupNode).module]);
 	for (netNode = modules[(*groupNode).module];
 	     netNode != NULL;
 	     netNode = (*netNode).next) {
-            // validptr(&netNode->next);
+            validptr(&netNode->next);
 	    
 	    /* for all modules on this net */
-            // validptr(&netNode->net);
+            validptr(&netNode->net);
             validptr(&nets[(*netNode).net]);
 	    for (modNode = nets[(*netNode).net];
 		 modNode != NULL;
 		 modNode = (*modNode).next) {
-                // validptr(&modNode->next);
+                validptr(&modNode->next);
 
 		/* only check nodes other than self, and not swapped */
-                // validptr(&modNode->module);
-                // validptr(&groupNode->module);
+                validptr(&modNode->module);
+                validptr(&groupNode->module);
                 validptr(&moduleToGroup[(*modNode).module]);
 		if (((*modNode).module != (*groupNode).module) &&
 		    (moduleToGroup[(*modNode).module] < SwappedToA)) {
-                    // validptr(&netNode->net);
+                    validptr(&netNode->net);
                     validptr(&cost[(*netNode).net]);
 		    if (moduleToGroup[(*modNode).module] == myGroup)
 			I = I + cost[(*netNode).net]; /* internal */
@@ -350,7 +351,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 		}
 	    }
 	}
-        // validptr(&groupNode->module);
+        validptr(&groupNode->module);
         validptr(&D[(*groupNode).module]);
 	D[(*groupNode).module] = E - I;
     }
