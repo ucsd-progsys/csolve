@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-BrQ9mAhb.i","")
+#pragma merger(0,"/tmp/cil-Bna6RToW.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -156,7 +156,9 @@ void ReadNetList(char * __attribute__((__array__)) fname , unsigned long *numMod
       }
     }
     prev->module = m;
+    validptr((void *)(& prev->module));
     prev->next = (struct _Module *)0;
+    validptr((void *)(& prev->next));
     while (1) {
       tok = strtok((char * __attribute__((__array__)) )0, (char * __attribute__((__array__)) )" \t\n");
       if (! ((unsigned int )tok != (unsigned int )((char *)0))) {
@@ -176,8 +178,11 @@ void ReadNetList(char * __attribute__((__array__)) fname , unsigned long *numMod
           goto HELL;
         }
       }
+      validptr((void *)(& node->module));
       node->module = m;
+      validptr((void *)(& node->next));
       node->next = (struct _Module *)0;
+      validptr((void *)(& prev->next));
       prev->next = node;
       prev = node;
     }
@@ -217,7 +222,10 @@ void NetsToModules(unsigned long *numModules , unsigned long *numNets , float * 
       if (! ((unsigned int )netNode != (unsigned int )((NetPtr )0))) {
         exit(1);
       }
+      validptr((void *)(& netNode->net));
       netNode->net = net;
+      validptr((void *)(& netNode->next));
+      validptr((void *)(& modNode->module));
       validptr((void *)(modules + modNode->module));
       netNode->next = *(modules + modNode->module);
       *(modules + modNode->module) = netNode;
@@ -277,13 +285,16 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
     if (! ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0))) {
       exit(1);
     }
+    validptr((void *)(& mr->module));
     mr->module = p;
     if ((unsigned int )groupA->head == (unsigned int )((ModuleRecPtr )0)) {
       tmp___2 = mr;
       groupA->tail = tmp___2;
       groupA->head = tmp___2;
+      validptr((void *)(& mr->next));
       mr->next = (struct _ModuleRec *)0;
     } else {
+      validptr((void *)(& mr->next));
       mr->next = (struct _ModuleRec *)0;
       (groupA->tail)->next = mr;
       groupA->tail = mr;
@@ -295,13 +306,16 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
     if (! ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0))) {
       exit(1);
     }
+    validptr((void *)(& mr->module));
     mr->module = (unsigned long )(numMods / 2U) + p;
     if ((unsigned int )groupB->head == (unsigned int )((ModuleRecPtr )0)) {
       tmp___4 = mr;
       groupB->tail = tmp___4;
       groupB->head = tmp___4;
+      validptr((void *)(& mr->next));
       mr->next = (struct _ModuleRec *)0;
     } else {
+      validptr((void *)(& mr->next));
       mr->next = (struct _ModuleRec *)0;
       (groupB->tail)->next = mr;
       groupB->tail = mr;
@@ -363,7 +377,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-TcGLsyi0.i","")
+#pragma merger(0,"/tmp/cil-K2TxD39y.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,

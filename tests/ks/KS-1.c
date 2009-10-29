@@ -73,9 +73,9 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
         }
         // pmr: end added
 	(*prev).module = m;
-        // validptr(&prev->module);
+        validptr(&prev->module);
 	(*prev).next = NULL;
-        // validptr(&prev->next);
+        validptr(&prev->next);
 	while ((tok = strtok(NULL, " \t\n")) != NULL) {
 	    TRY(node = (Module *)malloc(sizeof(Module)),
 		node != NULL, "ReadData",
@@ -87,11 +87,11 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
                 goto HELL; // exit(1) doesn't alter the CFG
             }
             // pmr: end added
-            // validptr(&node->module);
+            validptr(&node->module);
 	    (*node).module = m;
-            // validptr(&node->next);
+            validptr(&node->next);
 	    (*node).next = NULL;
-            // validptr(&prev->next);
+            validptr(&prev->next);
 	    (*prev).next = node;
 	    prev = node;
 	}
@@ -123,10 +123,10 @@ NetsToModules(GFORMALS)
 		netNode != NULL, "NetsToModules",
 		"unable to allocate net list node", 0, 0, 0,
 		exit(1));
-            // validptr(&netNode->net);
+            validptr(&netNode->net);
 	    (*netNode).net = net;
-            // validptr(&netNode->next);
-            // validptr(&modNode->module);
+            validptr(&netNode->next);
+            validptr(&modNode->module);
             validptr(&modules[modNode->module]);
 	    (*netNode).next = modules[(*modNode).module];
 	    modules[(*modNode).module] = netNode;
@@ -154,7 +154,7 @@ ComputeNetCosts(GFORMALS)
         validptr(&nets[i]);
 	for (nn = nets[i]; nn != NULL; nn = (*nn).next) {
 	    count++;
-            // validptr(&nn->next);
+            validptr(&nn->next);
         }
 
 	cost[i] = 1.0/((float)count - 1.0);
@@ -182,17 +182,17 @@ InitLists(GFORMALS)
 	    mr != NULL, "main",
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
-        // validptr(&mr->module);
+        validptr(&mr->module);
 	(*mr).module = p;
 	if (groupA->head == NULL) {
 	    /* first item */
 	    groupA->head = groupA->tail = mr;
-            // validptr(&mr->next);
+            validptr(&mr->next);
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
-            // validptr(&mr->next);
+            validptr(&mr->next);
 	    (*mr).next = NULL;
             // validptr(&groupA->tail->next);
 	    (*groupA->tail).next = mr;
@@ -206,17 +206,17 @@ InitLists(GFORMALS)
 	    mr != NULL, "main",
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
-        // validptr(&mr->module);
+        validptr(&mr->module);
 	(*mr).module = (numMods/2) + p;
 	if (groupB->head == NULL) {
 	    /* first item */
 	    groupB->head = groupB->tail = mr;
-            // validptr(&mr->next);
+            validptr(&mr->next);
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
-            // validptr(&mr->next);
+            validptr(&mr->next);
 	    (*mr).next = NULL;
             // validptr(&groupB->tail->next);
 	    (*groupB->tail).next = mr;
@@ -259,13 +259,13 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	for (netNode = modules[(*groupNode).module];
 	     netNode != NULL;
 	     netNode = (*netNode).next) {
-            // validptr(&netNode->next);
+            validptr(&netNode->next);
 
 	    /* look for single node nets, or single partition nets */
 	    numInG = numInNet = 0;
 	    oneInG = NULL;
 	    /* for all modules on this net */
-            // validptr(&netNode->net);
+            validptr(&netNode->net);
             validptr(&nets[(*netNode).net]);
 	    for (modNode = nets[(*netNode).net];
 		 modNode != NULL;
