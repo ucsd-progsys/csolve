@@ -36,14 +36,14 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 
     // pmr: checking bounds for i/o here?
     TRY(fgets(line, BUF_LEN, inFile),
-        sscanf(NTDROP(line), "%lu %lu", &nNets, &nModules) == 2,
+        /* sscanf(NTDROP(line), "%lu %lu", &nNets, &nModules) == 2 */ nondetpos(),
         "ReadData",
 	"unable to parse header in file [%s]", /* sm: also BUG!! inFile*/ fname, 0, 0,
 	exit(1));
 
     // pmr: added
     if (nNets < 0 || nModules < 0 || nNets > G_SZ || nModules > G_SZ) {
-        exit(2);
+        goto HELL; // exit(1) doesn't alter the CFG
     }
 
     *numModules = nModules;
@@ -56,8 +56,8 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 	/* net connections for "dest" */
 	dest = atol(strtok(line, " \t\n"))-1;
         // pmr: begin added
-        if (dest < 0 || dest > G_SZ) {
-            exit(1);
+        if (dest < 0 || dest >= G_SZ) {
+            goto HELL; // exit(1) doesn't alter the CFG
         }
         // pmr: end added
 
@@ -68,14 +68,14 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 	    exit(1));
         m = atol(strtok(NULL, " \t\n"))-1;
         // pmr: begin added
-        if (m < 0 || m > G_SZ) {
-            exit(1);
+        if (m < 0 || m >= G_SZ) {
+            goto HELL; // exit(1) doesn't alter the CFG
         }
         // pmr: end added
 	(*prev).module = m;
-        validptr(&prev->module);
+        // validptr(&prev->module);
 	(*prev).next = NULL;
-        validptr(&prev->next);
+        // validptr(&prev->next);
 	while ((tok = strtok(NULL, " \t\n")) != NULL) {
 	    TRY(node = (Module *)malloc(sizeof(Module)),
 		node != NULL, "ReadData",
@@ -83,21 +83,25 @@ ReadNetList(char * __attribute__ ((array)) fname, GFORMALS)
 		exit(1));
             m = atol(tok)-1;
             // pmr: begin added
-            if (m < 0 || m > G_SZ) {
-                exit(1);
+            if (m < 0 || m >= G_SZ) {
+                goto HELL; // exit(1) doesn't alter the CFG
             }
             // pmr: end added
-            validptr(&node->module);
+            // validptr(&node->module);
 	    (*node).module = m;
-            validptr(&node->next);
+            // validptr(&node->next);
 	    (*node).next = NULL;
-            validptr(&prev->next);
+            // validptr(&prev->next);
 	    (*prev).next = node;
 	    prev = node;
 	}
         validptr(&nets[dest]);
 	nets[dest] = head;
     }
+
+    return;
+
+ HELL: goto HELL;
 }
 
 /* invert the previously read nets, into a module to net structure */
@@ -119,10 +123,10 @@ NetsToModules(GFORMALS)
 		netNode != NULL, "NetsToModules",
 		"unable to allocate net list node", 0, 0, 0,
 		exit(1));
-            validptr(&netNode->net);
+            // validptr(&netNode->net);
 	    (*netNode).net = net;
-            validptr(&netNode->next);
-            validptr(&modNode->module);
+            // validptr(&netNode->next);
+            // validptr(&modNode->module);
             validptr(&modules[modNode->module]);
 	    (*netNode).next = modules[(*modNode).module];
 	    modules[(*modNode).module] = netNode;
@@ -150,7 +154,7 @@ ComputeNetCosts(GFORMALS)
         validptr(&nets[i]);
 	for (nn = nets[i]; nn != NULL; nn = (*nn).next) {
 	    count++;
-            validptr(&nn->next);
+            // validptr(&nn->next);
         }
 
 	cost[i] = 1.0/((float)count - 1.0);
@@ -164,31 +168,33 @@ InitLists(GFORMALS)
 {
     unsigned long p;
     ModuleRecPtr mr;
+    unsigned int numMods; // pmr: Strictly necessary?
 
     groupA->head = groupA->tail = NULL;
     groupB->head = groupB->tail = NULL;
 
     /* for all modules */
-    for (p = 0; p<*numModules/2; p++) {
+    numMods = *numModules;
+    for (p = 0; p<numMods/2; p++) {
 
 	/* build the group A module list */
 	TRY(mr = (ModuleRec *)malloc(sizeof(ModuleRec)),
 	    mr != NULL, "main",
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
-        validptr(&mr->module);
+        // validptr(&mr->module);
 	(*mr).module = p;
 	if (groupA->head == NULL) {
 	    /* first item */
 	    groupA->head = groupA->tail = mr;
-            validptr(&mr->next);
+            // validptr(&mr->next);
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
-            validptr(&mr->next);
+            // validptr(&mr->next);
 	    (*mr).next = NULL;
-            validptr(&groupA->tail->next);
+            // validptr(&groupA->tail->next);
 	    (*groupA->tail).next = mr;
 	    groupA->tail = mr;
 	}
@@ -200,24 +206,24 @@ InitLists(GFORMALS)
 	    mr != NULL, "main",
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
-        validptr(&mr->module);
-	(*mr).module = (*numModules/2) + p;
+        // validptr(&mr->module);
+	(*mr).module = (numMods/2) + p;
 	if (groupB->head == NULL) {
 	    /* first item */
 	    groupB->head = groupB->tail = mr;
-            validptr(&mr->next);
+            // validptr(&mr->next);
 	    (*mr).next = NULL;
 	}
 	else {
 	    /* add to tail */
-            validptr(&mr->next);
+            // validptr(&mr->next);
 	    (*mr).next = NULL;
-            validptr(&groupB->tail->next);
+            // validptr(&groupB->tail->next);
 	    (*groupB->tail).next = mr;
 	    groupB->tail = mr;
 	}
-        validptr(&moduleToGroup[(*numModules/2) + p]);
-	moduleToGroup[(*numModules/2) + p] = GroupB;
+        validptr(&moduleToGroup[(numMods/2) + p]);
+	moduleToGroup[(numMods/2) + p] = GroupB;
     }
 
     /* initially clear the swap chains */
@@ -239,33 +245,33 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
     ModulePtr oneInG;
 
     /* for all modules in group */
-    validptr(&group->head);
+    // validptr(&group->head);
     for (groupNode = (*group).head;
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
-        validptr(&groupNode->next);
+        // validptr(&groupNode->next);
 
 	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
 	/* for all nets on this module, check if groupNode move unifies net */
-        validptr(&groupNode->module);
+        // validptr(&groupNode->module);
         validptr(&modules[(*groupNode).module]);
 	for (netNode = modules[(*groupNode).module];
 	     netNode != NULL;
 	     netNode = (*netNode).next) {
-            validptr(&netNode->next);
+            // validptr(&netNode->next);
 
 	    /* look for single node nets, or single partition nets */
 	    numInG = numInNet = 0;
 	    oneInG = NULL;
 	    /* for all modules on this net */
-            validptr(&netNode->net);
+            // validptr(&netNode->net);
             validptr(&nets[(*netNode).net]);
 	    for (modNode = nets[(*netNode).net];
 		 modNode != NULL;
 		 modNode = (*modNode).next) {
-                validptr(&modNode->next);
-                validptr(&modNode->module);
+                // validptr(&modNode->next);
+                // validptr(&modNode->module);
                 validptr(&moduleToGroup[(*modNode).module]);
 		if ((moduleToGroup[(*modNode).module] == myGroup) ||
 		    (moduleToGroup[(*modNode).module] == mySwap)) {
@@ -277,8 +283,8 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	    /* single node net? */
             // pmr: Separate if because of short-circuiting in next block
             if (numInG == 1) {
-                validptr(&oneInG->module);
-                validptr(&groupNode->module);
+                // validptr(&oneInG->module);
+                // validptr(&groupNode->module);
             }
 	    if ((numInG == 1) && ((*oneInG).module == (*groupNode).module)) {
                 validptr(&D[(*groupNode).module]);
@@ -286,7 +292,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
             }
 	    /* single partition net? */
 	    if (numInG == numInNet) {
-                validptr(&groupNode->module);
+                // validptr(&groupNode->module);
                 validptr(&D[(*groupNode).module]);
 		D[(*groupNode).module] = D[(*groupNode).module] - 1;
             }
@@ -302,11 +308,11 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
     ModuleRecPtr groupNode;
 
     /* for all modules in group */
-    validptr(&group->head);
+    // validptr(&group->head);
     for (groupNode = (*group).head;
 	 groupNode != NULL;
 	 groupNode = (*groupNode).next) {
-        validptr(&groupNode->next);
+        // validptr(&groupNode->next);
 
 	// assert(moduleToGroup[(*groupNode).module] == myGroup);
 
@@ -314,28 +320,28 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 	I = E = 0.0;
 
 	/* for all nets on this module */
-        validptr(&groupNode->module);
+        // validptr(&groupNode->module);
         validptr(&modules[(*groupNode).module]);
 	for (netNode = modules[(*groupNode).module];
 	     netNode != NULL;
 	     netNode = (*netNode).next) {
-            validptr(&netNode->next);
+            // validptr(&netNode->next);
 	    
 	    /* for all modules on this net */
-            validptr(&netNode->net);
+            // validptr(&netNode->net);
             validptr(&nets[(*netNode).net]);
 	    for (modNode = nets[(*netNode).net];
 		 modNode != NULL;
 		 modNode = (*modNode).next) {
-                validptr(&modNode->next);
+                // validptr(&modNode->next);
 
 		/* only check nodes other than self, and not swapped */
-                validptr(&modNode->module);
-                validptr(&groupNode->module);
+                // validptr(&modNode->module);
+                // validptr(&groupNode->module);
                 validptr(&moduleToGroup[(*modNode).module]);
 		if (((*modNode).module != (*groupNode).module) &&
 		    (moduleToGroup[(*modNode).module] < SwappedToA)) {
-                    validptr(&netNode->net);
+                    // validptr(&netNode->net);
                     validptr(&cost[(*netNode).net]);
 		    if (moduleToGroup[(*modNode).module] == myGroup)
 			I = I + cost[(*netNode).net]; /* internal */
@@ -344,7 +350,7 @@ ComputeDs(ModuleListPtr group, Groups myGroup, Groups mySwap, GFORMALS)
 		}
 	    }
 	}
-        validptr(&groupNode->module);
+        // validptr(&groupNode->module);
         validptr(&D[(*groupNode).module]);
 	D[(*groupNode).module] = E - I;
     }

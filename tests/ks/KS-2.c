@@ -24,24 +24,24 @@ CAiBj(ModuleRecPtr mrA, ModuleRecPtr mrB, GFORMALS)
     float gain = 0.0;
     float netCost;
     unsigned long module = (*mrB).module;
-    validptr(&mrB->module);
+    // validptr(&mrB->module);
 
     /* is mrA connected to mrB? */
     /* mrA and mrB are both un-Swapped */
-    validptr(&mrA->module);
+    // validptr(&mrA->module);
     validptr(&modules[(*mrA).module]);
     for (netNode = modules[(*mrA).module];
 	 netNode != NULL;
 	 netNode = (*netNode).next) {
-        validptr(&netNode->next);
-        validptr(&netNode->net);
+        // validptr(&netNode->next);
+        // validptr(&netNode->net);
         validptr(&cost[(*netNode).net]);
 	netCost = cost[(*netNode).net];
 	for (modNode = nets[(*netNode).net];
 	     modNode != NULL;
 	     modNode = (*modNode).next) {
-            validptr(&modNode->next);
-            validptr(&modNode->module);
+            // validptr(&modNode->next);
+            // validptr(&modNode->module);
 	    if ((*modNode).module == module) {
 		gain = gain + netCost;
 	    }
@@ -56,9 +56,9 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 	 ModuleListPtr group, ModuleListPtr swapTo, GFORMALS)
 {
     if (maxPrev == NULL) {	/* found at head of list */
-        validptr(&group->head);
-        validptr(&group->tail);
-        validptr(&max->next);
+        // validptr(&group->head);
+        // validptr(&group->tail);
+        // validptr(&max->next);
 	if ((*group).head == (*group).tail)	{ /* only one in the list */
 	    (*group).head = NULL;
 	    (*group).tail = NULL;
@@ -70,31 +70,31 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 	}
     }
     else {	/* middle or end of list */
-        validptr(&group->tail);
+        // validptr(&group->tail);
 	if ((*group).tail == max)		/* end of list */
 	    (*group).tail = maxPrev;
-        validptr(&maxPrev->next);
-        validptr(&max->next);
+        // validptr(&maxPrev->next);
+        // validptr(&max->next);
 	(*maxPrev).next = (*max).next;
 	(*max).next = NULL;
     }
 
     /* put max on the tail of swapTo */
-    validptr(&swapTo->tail);
+    // validptr(&swapTo->tail);
     if ((*swapTo).tail == NULL) {	/* empty */
 #if 0
-        validptr(&swapTo->head);
+        // validptr(&swapTo->head);
 	(*swapTo).head = (*swapTo).tail = max;
 #endif
 	(*swapTo).tail = max;
 	(*swapTo).head = max;
     }
     else { /* end of list */
-        validptr(&swapTo->tail->next);
+        // validptr(&swapTo->tail->next);
 	(*(*swapTo).tail).next = max;
 	(*swapTo).tail = max;
     }
-    validptr(&max->next);
+    // validptr(&max->next);
     (*max).next = NULL;
 }
 
@@ -106,18 +106,18 @@ UpdateDs(ModuleRecPtr max, Groups group, GFORMALS)
     ModulePtr mod;
 
     /* for all nets this is connected to */
-    validptr(&max->module);
+    // validptr(&max->module);
     validptr(&modules[(*max).module]);
     for (net = modules[(*max).module]; net != NULL; net = (*net).next) {
-        validptr(&net->next);
+        // validptr(&net->next);
 
 	/* for a modules this net is connected to */
-        validptr(&net->net);
+        // validptr(&net->net);
         validptr(&nets[(*net).net]);
 	for (mod = nets[(*net).net]; mod != NULL; mod = (*mod).next) {
-            validptr(&mod->next);
+            // validptr(&mod->next);
 
-            validptr(&mod->module);
+            // validptr(&mod->module);
             validptr(&moduleToGroup[(*mod).module]);
 	    if (moduleToGroup[(*mod).module] < SwappedToA) {
                 validptr(&D[(*mod).module]);
@@ -144,15 +144,15 @@ FindMaxGpAndSwap(GFORMALS)
     for (mrA = groupA->head, mrPrevA = NULL;
 	 mrA != NULL;
 	 mrPrevA = mrA, mrA = (*mrA).next) {
-        validptr(&mrA->next);
+        // validptr(&mrA->next);
 
 	for (mrB = groupB->head, mrPrevB = NULL;
 	     mrB != NULL;
 	     mrPrevB = mrB, mrB = (*mrB).next) {
-            validptr(&mrB->next);
+            // validptr(&mrB->next);
 
-            validptr(&mrA->module);
-            validptr(&mrB->module);
+            // validptr(&mrA->module);
+            // validptr(&mrB->module);
             validptr(&D[(*mrA).module]);
             validptr(&D[(*mrB).module]);
 #ifdef KS_MODE
@@ -178,12 +178,12 @@ FindMaxGpAndSwap(GFORMALS)
 
     /* update the inverse mapping, these two node are now gone */
     // assert(moduleToGroup[(*maxA).module] == GroupA);
-    validptr(&maxA->module);
+    // validptr(&maxA->module);
     validptr(&moduleToGroup[(*maxA).module]);
     moduleToGroup[(*maxA).module] = SwappedToB;
 
     // assert(moduleToGroup[(*maxB).module] == GroupB);
-    validptr(&maxB->module);
+    // validptr(&maxB->module);
     validptr(&moduleToGroup[(*maxB).module]);
     moduleToGroup[(*maxB).module] = SwappedToA;
 
@@ -229,8 +229,8 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 	 mrPrevA = mrA, mrA = (*mrA).next,
 	 mrPrevB = mrB, mrB = (*mrB).next,
          i++) {
-        validptr(&mrA->next);
-        validptr(&mrB->next);
+        // validptr(&mrA->next);
+        // validptr(&mrB->next);
     }
 
     /* must at least select one to swap, case where gMax is first */
@@ -247,12 +247,12 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
     }
     else {
 	/* splice the lists */
-        validptr(&mrPrevA->next);
+        // validptr(&mrPrevA->next);
 	(*mrPrevA).next = mrB;
 	groupA->head = swapToA->head;
 	groupA->tail = swapToB->tail;
 
-        validptr(&mrPrevB->next);
+        // validptr(&mrPrevB->next);
 	(*mrPrevB).next = mrA;
 	groupB->head = swapToB->head;
 	groupB->tail = swapToA->tail;
@@ -260,14 +260,14 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 
     /* reset the inverse mappings */
     for (mrA = groupA->head; mrA != NULL; mrA = (*mrA).next) {
-        validptr(&mrA->next);
-        validptr(&mrA->module);
+        // validptr(&mrA->next);
+        // validptr(&mrA->module);
         validptr(&moduleToGroup[(*mrA).module]);
 	moduleToGroup[(*mrA).module] = GroupA;
     }
     for (mrB = groupB->head; mrB != NULL; mrB = (*mrB).next) {
-        validptr(&mrB->next);
-        validptr(&mrB->module);
+        // validptr(&mrB->next);
+        // validptr(&mrB->module);
         validptr(&moduleToGroup[(*mrB).module]);
 	moduleToGroup[(*mrB).module] = GroupB;
     }
@@ -309,30 +309,30 @@ PrintResults(int verbose, GFORMALS)
     if (verbose) {
         //	fprintf(stdout, "Group A:  \n");
 	for (mr = groupA->head; mr != NULL; mr = (*mr).next)
-	    validptr(&mr->next);//fprintf(stdout, "%3lu ", (*mr).module+1);
+	    ; // validptr(&mr->next);//fprintf(stdout, "%3lu ", (*mr).module+1);
         //	fprintf(stdout, "\n");
 
         //	fprintf(stdout, "Group B:  \n");
 	for (mr = groupB->head; mr != NULL; mr = (*mr).next)
-	    validptr(&mr->next); // fprintf(stdout, "%3lu ", (*mr).module+1);
+	    ; // validptr(&mr->next); // fprintf(stdout, "%3lu ", (*mr).module+1);
         //	fprintf(stdout, "\n");
     }
 
     /* total edge cuts */
     cuts = 0;
     for (mr = groupA->head; mr != NULL; mr = (*mr).next) {
-        validptr(&mr->next);
+        // validptr(&mr->next);
 
 	// assert(moduleToGroup[(*mr).module] == GroupA);
 
 	/* for all nets on this module */
-        validptr(&mr->module);
+        // validptr(&mr->module);
         validptr(&modules[(*mr).module]);
 	for (nn = modules[(*mr).module]; nn != NULL; nn = (*nn).next) {
-            validptr(&nn->next);
+            // validptr(&nn->next);
 	    
 	    netSz = 0;
-            validptr(&nn->net);
+            // validptr(&nn->net);
             validptr(&nets[(*nn).net]);
 	    for (mn = nets[(*nn).net]; mn != NULL; mn = (*mn).next) {
                 validptr(&mn->next);
@@ -342,7 +342,7 @@ PrintResults(int verbose, GFORMALS)
 
 	    /* for all modules on this net */
 	    for (mn = nets[(*nn).net]; mn != NULL; mn = (*mn).next) {
-                validptr(&mn->next);
+                // validptr(&mn->next);
 
 		/* only check nodes other than self, and not swapped */
                 validptr(&moduleToGroup[(*mr).module]);
@@ -351,7 +351,7 @@ PrintResults(int verbose, GFORMALS)
 		    if (verbose)
 			; //fprintf(stdout, "Conn %3lu - %3lu cut.\n",
                     // (*mr).module+1, (*mn).module+1);
-                    validptr(&netStats[netSz].edgesCut);
+                    // validptr(&netStats[netSz].edgesCut);
 		    netStats[netSz].edgesCut++;
 		    cuts++;
 		}
@@ -367,31 +367,33 @@ PrintResults(int verbose, GFORMALS)
 	netSz = 0;
         validptr(&nets[i]);
 	for (mn = nets[i]; mn != NULL; mn = (*mn).next) {
-            validptr(&mn->next);
+            // validptr(&mn->next);
 	    netSz++;
         }
 	// assert(netSz >= 2);
-        validptr(&netStats[netSz].total);
+        // pmr: TODO how to check that netsz is in the bounds??
+        // validptr(&netStats[netSz]);
+        // validptr(&netStats[netSz].total);
 	netStats[netSz].total++;
 	if (netSz > maxStat)
 	    maxStat = netSz;
 
-        validptr(&((*(nets[i])).module));
+        // validptr(&((*(nets[i])).module));
         validptr(&moduleToGroup[(*(nets[i])).module]);
-        validptr(&((*(nets[i])).next));
+        // validptr(&((*(nets[i])).next));
 	for (grp=moduleToGroup[(*(nets[i])).module],mn = (*(nets[i])).next;
 	     mn != NULL;
 	     mn = (*mn).next) {
-            validptr(&mn->next);
+            // validptr(&mn->next);
 	    
 	    /* only check nodes other than self, and not swapped */
-            validptr(&mn->module);
+            // validptr(&mn->module);
             validptr(&moduleToGroup[(*mn).module]);
 	    if (grp != moduleToGroup[(*mn).module]) {
 		if (verbose)
 		    ; // fprintf(stdout, "Net %3lu cut.\n", i+1);
 		cuts++;
-                validptr(&netStats[netSz].netsCut);
+                // validptr(&netStats[netSz].netsCut);
 		netStats[netSz].netsCut++;
 		break;
 	    }
@@ -508,8 +510,8 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     groupA->head = swapToB->head;
     groupA->tail = swapToB->tail;
     for (mr = groupA->head; mr != NULL; mr = (*mr).next) {
-        validptr(&mr->next);
-        validptr(&mr->module);
+        // validptr(&mr->next);
+        // validptr(&mr->module);
         validptr(&moduleToGroup[(*mr).module]);
 	moduleToGroup[(*mr).module] = GroupA;
     }
@@ -517,8 +519,8 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     groupB->head = swapToA->head;
     groupB->tail = swapToB->tail;
     for (mr = groupB->head; mr != NULL; mr = (*mr).next) {
-        validptr(&mr->next);
-        validptr(&mr->module);
+        // validptr(&mr->next);
+        // validptr(&mr->module);
         validptr(&moduleToGroup[(*mr).module]);
 	moduleToGroup[(*mr).module] = GroupB;
     }
