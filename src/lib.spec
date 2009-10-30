@@ -31,7 +31,7 @@ validptr ::
   forall    [A0]
   arg       (x: ref (A0, true, {v| && [(0 < v); (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))
                                       ]}))
-  ret int   (4, true, {v | true})
+  ret int   (0, true)
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
 
