@@ -140,7 +140,8 @@ void FixRank(HeapP *h , int delta , HeapP_array hTable) ;
 /******************************** CODE ***********************************/
 /*************************************************************************/
 
-int main(int argc , char **argv ) 
+
+int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv) 
 { int nVertex ;
   int nEdge ;
   Vertices *graph ;
@@ -188,11 +189,11 @@ Vertices *MST(Vertices *graph )
   Edges *edge ;
 
   {
-  InitFHeap();
+  HeapP_array hTable = InitFHeap(); //JHALA
   vertex = graph;
   vertex->key = 0;
-  heap = MakeHeap();
-  Insert(& heap, vertex);
+  heap = MakeHeap(hTable); 	 //JHALA
+  Insert(&heap, vertex, hTable); //JHALA
   vertex = vertex->next;
   while ((unsigned int )vertex != (unsigned int )graph) {
     vertex->key = 2147483647;
@@ -201,20 +202,20 @@ Vertices *MST(Vertices *graph )
   while ((unsigned int )vertex != (unsigned int )graph) {
 
   }
-  vertex = FindMin(heap);
+  vertex = FindMin(heap, hTable); //JHALA
   while ((unsigned int )vertex != (unsigned int )((void *)0)) {
-    heap = DeleteMin(heap);
+    heap = DeleteMin(heap, hTable); //JHALA
     vertex->key = (-0x7FFFFFFF-1);
     edge = vertex->edges;
     while ((unsigned int )edge != (unsigned int )((void *)0)) {
       if (edge->weight < (edge->vertex)->key) {
         (edge->vertex)->key = edge->weight;
         (edge->vertex)->chosenEdge = edge;
-        Insert(& heap, edge->vertex);
+        Insert(& heap, edge->vertex, hTable); //JHALA
       }
       edge = edge->next;
     }
-    vertex = FindMin(heap);
+    vertex = FindMin(heap, hTable); //JHALA
   }
   return (graph);
 }
@@ -376,7 +377,7 @@ Vertices *NewVertex(void)
   tmp = malloc(sizeof(Vertices ));
   vertex = (Vertices *)tmp;
   if ((unsigned int )vertex == (unsigned int )((Vertices *)0)) {
-    fprintf((int *)2, (char * __attribute__((__array__)) )"Could not malloc\n");
+    //JHALA fprintf((int *)2, (char * __attribute__((__array__)) )"Could not malloc\n");
     exit(1);
   }
   // JHALA tmp___0 = id;
@@ -396,7 +397,7 @@ Edges *NewEdge(void)
   tmp = malloc(sizeof(Edges ));
   edge = (Edges *)tmp;
   if ((unsigned int )edge == (unsigned int )((Edges *)0)) {
-    fprintf((int *)2, (char * __attribute__((__array__)) )"Could not malloc\n");
+    //JHALA fprintf((int *)2, (char * __attribute__((__array__)) )"Could not malloc\n");
     exit(1);
   }
   edge->weight = 0;
@@ -498,12 +499,12 @@ Item *FindMin(HeapP *h , HeapP_array hTable)
 }
 }
 
-HeapP *Insert(HeapP **h , Item *i , HeapP_array hTable) 
+HeapP *Insert(HeapP **h, Item *i , HeapP_array hTable) 
 { HeapP *h1 ;
 
   {
-  h1 = NewHeap(i, htable);
-  *h = Meld(*h, h1, htable);
+  h1 = NewHeap(i, hTable);
+  *h = Meld(*h, h1, hTable);
   return (h1);
 }
 }
@@ -518,8 +519,8 @@ HeapP *Meld(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
   if ((unsigned int )h1 == (unsigned int )((HeapP *)0)) {
     return (h2);
   }
-  CombineLists(h1, h2, htable);
-  tmp = LessThan(h1->item, h2->item, htable);
+  CombineLists(h1, h2, hTable);
+  tmp = LessThan(h1->item, h2->item);
   if (tmp) {
     return (h1);
   } else {
@@ -545,7 +546,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
   if ((unsigned int )h == (unsigned int )((HeapP *)0)) {
     return ((HeapP *)0);
   }
-  h1 = RemoveEntry(h, htable);
+  h1 = RemoveEntry(h, hTable);
   if ((unsigned int )h1 == (unsigned int )((HeapP *)0)) {
     free((void *)h);
     return ((HeapP *)0);
@@ -562,12 +563,12 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
     r = h2->rank;
     assert(r < 10000);
     while ((unsigned int )hTable[r] != (unsigned int )((HeapP *)0)) {
-      tmp = LessThan((hTable[r])->item, h2->item, htable);
+      tmp = LessThan((hTable[r])->item, h2->item);
       if (tmp) {
-        AddEntry(hTable[r], h2, htable);
+        AddEntry(hTable[r], h2, hTable);
         h2 = hTable[r];
       } else {
-        AddEntry(h2, hTable[r], htable);
+        AddEntry(h2, hTable[r], hTable);
       }
       hTable[r] = (HeapP *)0;
       r = h2->rank;
@@ -592,12 +593,12 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
       r = h2->rank;
       assert(r < 10000);
       while ((unsigned int )hTable[r] != (unsigned int )((HeapP *)0)) {
-        tmp___0 = LessThan((hTable[r])->item, h2->item, htable);
+        tmp___0 = LessThan((hTable[r])->item, h2->item);
         if (tmp___0) {
-          AddEntry(hTable[r], h2, htable);
+          AddEntry(hTable[r], h2, hTable);
           h2 = hTable[r];
         } else {
-          AddEntry(h2, hTable[r], htable);
+          AddEntry(h2, hTable[r], hTable);
         }
         hTable[r] = (HeapP *)0;
         r = h2->rank;
@@ -626,8 +627,8 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
   j ++;
   while (j <= rMax) {
     if ((unsigned int )hTable[j] != (unsigned int )((HeapP *)0)) {
-      CombineLists(h1, hTable[j], htable);
-      tmp___1 = LessThan((hTable[j])->item, min->item, htable);
+      CombineLists(h1, hTable[j], hTable);
+      tmp___1 = LessThan((hTable[j])->item, min->item);
       if (tmp___1) {
         min = hTable[j];
       }
@@ -647,11 +648,11 @@ HeapP *DecreaseKey(HeapP *h , HeapP *i , int delta , HeapP_array hTable)
   assert((unsigned int )h != (unsigned int )((HeapP *)0));
   assert((unsigned int )i != (unsigned int )((HeapP *)0));
   if (! ((unsigned int )i->parent == (unsigned int )((void *)0))) {
-    RemoveChild(i, htable);
-    CombineLists(h, i, htable);
+    RemoveChild(i, hTable);
+    CombineLists(h, i, hTable);
   }
-  i->item = Subtract(i->item, delta, htable);
-  tmp = LessThan(i->item, h->item, htable);
+  i->item = Subtract(i->item, delta);
+  tmp = LessThan(i->item, h->item);
   if (tmp) {
     return (i);
   } else {
@@ -674,8 +675,8 @@ void RemoveChild(HeapP *i , HeapP_array hTable)
       parent->child = i->forward;
     }
   }
-  RemoveEntry(i, htable);
-  FixRank(parent, i->rank + 1, htable);
+  RemoveEntry(i, hTable);
+  FixRank(parent, i->rank + 1, hTable);
   i->forward = i;
   i->backward = i;
   i->parent = (struct _Heap *)0;
@@ -710,13 +711,13 @@ HeapP *Delete(HeapP *h , HeapP *i , HeapP_array hTable)
   assert((unsigned int )h != (unsigned int )((HeapP *)0));
   assert((unsigned int )i != (unsigned int )((HeapP *)0));
   if ((unsigned int )h == (unsigned int )i) {
-    tmp = DeleteMin(h, htable);
+    tmp = DeleteMin(h, hTable);
     return (tmp);
   }
   if ((unsigned int )i->parent == (unsigned int )((void *)0)) {
-    RemoveEntry(i, htable);
+    RemoveEntry(i, hTable);
   } else {
-    RemoveChild(i, htable);
+    RemoveChild(i, hTable);
   }
   h1 = i->child;
   if ((unsigned int )h1 != (unsigned int )((HeapP *)0)) {
@@ -725,8 +726,8 @@ HeapP *Delete(HeapP *h , HeapP *i , HeapP_array hTable)
       h1->forward = h1;
       h1->backward = h1;
       h1->parent = (struct _Heap *)0;
-      CombineLists(h, h1, htable);
-      tmp___0 = LessThan(h1->item, h->item, htable);
+      CombineLists(h, h1, hTable);
+      tmp___0 = LessThan(h1->item, h->item);
       if (tmp___0) {
         h = h1;
       }
@@ -783,7 +784,7 @@ void AddEntry(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
   if ((unsigned int )h1->child == (unsigned int )((struct _Heap *)0)) {
     h1->child = h2;
   } else {
-    CombineLists(h1->child, h2, htable);
+    CombineLists(h1->child, h2, hTable);
   }
   h2->parent = h1;
   h1->rank = (h1->rank + h2->rank) + 1;
@@ -811,7 +812,7 @@ HeapP *NewHeap(Item *i , HeapP_array hTable)
   tmp = malloc(sizeof(HeapP ));
   h = (HeapP *)tmp;
   if ((unsigned int )h == (unsigned int )((HeapP *)0)) {
-    fprintf((int *)2, (char * __attribute__((__array__)) )"Oops, could not malloc\n");
+    //JHALA fprintf((int *)2, (char * __attribute__((__array__)) )"Oops, could not malloc\n");
     exit(1);
   }
   h->item = i;
@@ -844,13 +845,13 @@ HeapP *Find(HeapP *h , Item *item , HeapP_array hTable)
   }
   h1 = h;
   while (1) {
-    tmp___0 = Equal(h1->item, item, htable);
+    tmp___0 = Equal(h1->item, item, hTable);
     if (tmp___0) {
       return (h1);
     } else {
-      tmp = LessThan(h1->item, item, htable);
+      tmp = LessThan(h1->item, item);
       if (tmp) {
-        h2 = Find(h1->child, item, htable);
+        h2 = Find(h1->child, item, hTable);
         if ((unsigned int )h2 != (unsigned int )((HeapP *)0)) {
           return (h2);
         }

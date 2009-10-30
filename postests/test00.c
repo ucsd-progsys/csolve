@@ -1,5 +1,9 @@
 extern char* malloc(int);
 
+int *foo(int *x, int *__attribute__((array)) y){
+  return x;
+}
+
 void main(){
   int x;
 

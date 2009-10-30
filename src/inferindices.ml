@@ -425,7 +425,10 @@ let constrain_app ((_, fe) as env: env) (f: C.varinfo) (lvo: C.lval option) (arg
   let itvs, css = constrain_args env args in
   let ftv       = try VM.find f fe with Not_found -> halt <| C.error "Couldn't find function %a (missing prototype or spec?)\n\n" CM.d_var f in
   let itvfs     = List.map snd ftv.args in
-  let css       = List.map2 (fun itva itvf -> mk_isubtypecstr itva itvf) itvs itvfs :: css in
+  let _         = if not (List.length itvs = List.length itvfs) then 
+                  (halt <| C.errorLoc !C.currentLoc "bad-arguments") in
+  let css       = (Misc.do_catch "HERE3" (List.map2 (fun itva itvf -> mk_isubtypecstr itva itvf) itvs) itvfs) 
+                  :: css in
     match lvo with
       | None    -> css
       | Some lv ->
@@ -440,7 +443,9 @@ let constrain_instr_aux (env: env) (css: itypevarcstr list list) (i: C.instr): i
           let itv2, cs2 = constrain_exp env e in
             (mk_isubtypecstr itv2 itv1 :: cs1) :: cs2 :: css
       | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
-          if not !Constants.safe then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.error "Can't handle varargs";
+          if not !Constants.safe 
+          then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore 
+          else E.s <| C.error "Can't handle varargs";
           (constrain_args env args |> snd |> List.concat) :: css
       | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
           (constrain_app env f lvo args |> List.concat) :: css
@@ -497,7 +502,8 @@ let constrain_fun (fe: funenv) (ftv: ifunvar) ({ST.fdec = fd; ST.phis = phis; ST
   let vars        = locals @ bodyformals in
   let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) VM.empty vars in
   let _           = C.currentLoc := fd.C.svar.C.vdecl in
-  let formalcs    = List.map2 (fun (_, at) (_, itv) -> mk_isubtypecstr at itv) ftv.args bodyformals in
+  let formalcs    = Misc.do_catch "HERE4" (List.map2 (fun (_, at) (_, itv) ->
+    mk_isubtypecstr at itv) ftv.args) bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
   let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] cfg.Ssa.blocks in
