@@ -465,12 +465,11 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     if (argc != 2) {
 	; // fprintf(stderr, "Usage: KL <input_file>\n");
         ;
-	exit(1);
+    PURGATORY: goto PURGATORY; // exit(1);
     }
 
     /* prepare the data structures */
-    // pmr: TODO make the following valid
-    // validptr(&argv[1]);
+    validptr(&argv[1]);
     ReadNetList(argv[1], GACTUALS);
     NetsToModules(GACTUALS);
     ComputeNetCosts(GACTUALS);

@@ -168,12 +168,14 @@ InitLists(GFORMALS)
 {
     unsigned long p;
     ModuleRecPtr mr;
+    unsigned long numMods;
 
     groupA->head = groupA->tail = NULL;
     groupB->head = groupB->tail = NULL;
 
     /* for all modules */
-    for (p = 0; p<(*numModules)/2; p++) {
+    numMods = *numModules;
+    for (p = 0; p<(numMods)/2; p++) {
 
 	/* build the group A module list */
 	TRY(mr = (ModuleRec *)malloc(sizeof(ModuleRec)),
@@ -205,7 +207,7 @@ InitLists(GFORMALS)
 	    "unable to allocate ModuleRec", 0, 0, 0,
 	    exit(1));
         validptr(&mr->module);
-	(*mr).module = ((*numModules)/2) + p;
+	(*mr).module = ((numMods)/2) + p;
 	if (groupB->head == NULL) {
 	    /* first item */
 	    groupB->head = groupB->tail = mr;
@@ -220,8 +222,8 @@ InitLists(GFORMALS)
 	    (*groupB->tail).next = mr;
 	    groupB->tail = mr;
 	}
-        validptr(&moduleToGroup[((*numModules)/2) + p]);
-	moduleToGroup[((*numModules)/2) + p] = GroupB;
+        validptr(&moduleToGroup[((numMods)/2) + p]);
+	moduleToGroup[((numMods)/2) + p] = GroupB;
     }
 
     /* initially clear the swap chains */
