@@ -11,10 +11,19 @@
 # Also, on Sun machines, in order to use the SPIXTOOLS and SHADE,
 # uncomment this option: -static.
 #
-ifdef NODEPUTY
-CC = ../../../deputy/bin/deputy
-else
+
+NOLIQUID= # "yes"
+
+ifdef NOLIQUID
 CC = gcc
+else
+CC = ../../../src/cc.sh
+endif
+
+ifdef NOLIQUID
+MERGECC = gcc
+else
+MERGECC = cilly --merge --keepmerged --noPrintLn
 endif
 
 # LFLAGS = -mv8
@@ -22,7 +31,7 @@ endif
 #
 # End of addition
 ######################################################################
-CFLAGS = -O3
+CFLAGS =
 
 # May need this on a sun:
 # CFLAGS=-O -I/usr/demo/SOUND
@@ -32,18 +41,19 @@ ALLSRC=README adpcm.2 Makefile adpcm.h libst.h adpcm.c timing.c rawcaudio.c \
 
 all: adpcm.o rawcaudio.exe rawdaudio.exe timing.exe
 
+.c.o:
+	$(CC) $<
 
 adpcm.o: adpcm.h
 
-
 rawcaudio.exe: rawcaudio.o adpcm.o
-	$(CC) $(CFLAGS) rawcaudio.o adpcm.o -o rawcaudio.exe
+	$(MERGECC) $(CFLAGS) rawcaudio.o adpcm.o -o rawcaudio.exe
 
 rawdaudio.exe: rawdaudio.o adpcm.o
-	$(CC) $(CFLAGS) rawdaudio.o adpcm.o -o rawdaudio.exe
+	$(MERGECC) $(CFLAGS) rawdaudio.o adpcm.o -o rawdaudio.exe
 
 timing.exe: timing.o adpcm.o
-	$(CC) $(CFLAGS) timing.o adpcm.o -o timing.exe
+	$(MERGECC) $(CFLAGS) timing.o adpcm.o -o timing.exe
 
 # Added by C. Lee
 clean:
