@@ -105,11 +105,6 @@
 
 #define	MAX_TYPES	5	/* Max number of types above.  */
 
-static int degrees[MAX_TYPES] = { DEG_0, DEG_1, DEG_2, DEG_3, DEG_4 };
-static int seps[MAX_TYPES] = { SEP_0, SEP_1, SEP_2, SEP_3, SEP_4 };
-
-
-
 /* Initially, everything is set up as if from:
 	initstate(1, randtbl, 128);
    Note that this initialization takes advantage of the fact that srandom
@@ -129,52 +124,14 @@ static long randtbl[DEG_3 + 1] =
     -607508183, -205999574, -1696891592, 1492211999, -1528267240,
     -952028296, -189082757, 362343714, 1424981831, 2039449641,
   };
-
-/* FPTR and RPTR are two pointers into the state info, a front and a rear
-   pointer.  These two pointers are always rand_sep places aparts, as they
-   cycle through the state information.  (Yes, this does mean we could get
-   away with just one pointer, but the code for random is more efficient
-   this way).  The pointers are left positioned as they would be from the call:
-	initstate(1, randtbl, 128);
-   (The position of the rear pointer, rptr, is really 0 (as explained above
-   in the initialization of randtbl) because the state table pointer is set
-   to point to randtbl[1] (as explained below).)  */
-
 static long * BND(randtbl, randtbl + DEG_3 + 1) fptr = &randtbl[SEP_3 + 1];
 static long * BND(randtbl, randtbl + DEG_3 + 1) rptr = &randtbl[1];
-
-
-
-/* The following things are the pointer to the state information table,
-   the type of the current generator, the degree of the current polynomial
-   being used, and the separation between the two pointers.
-   Note that for efficiency of random, we remember the first location of
-   the state information, not the zeroeth.  Hence it is valid to access
-   state[-1], which is used to store the type of the R.N.G.
-   Also, we remember the last location, since this is more efficient than
-   indexing every time to find the address of the last element to see if
-   the front and rear pointers have wrapped.  */
-
 static long * BND(randtbl, randtbl + DEG_3 + 1) state = &randtbl[1];
-
 static int rand_type = TYPE_3;
 static int rand_deg = DEG_3;
 static int rand_sep = SEP_3;
+static long  *end_ptr = &randtbl[sizeof(randtbl) / sizeof(randtbl[0])]; //JHALA
 
-/* GN: end_ptr used to be a pointer which was infered to be safe. But 
- * setting it like in the line below would fail. So we make it a long since 
- * it is used oly in comparisons. */
-
-static long  end_ptr = &randtbl[sizeof(randtbl) / sizeof(randtbl[0])];
-
-/* Initialize the random number generator based on the given seed.  If the
-   type is the trivial no-state-information type, just remember the seed.
-   Otherwise, initializes state[] based on the given "seed" via a linear
-   congruential generator.  Then, the pointers are set to known locations
-   that are exactly rand_sep places apart.  Lastly, it cycles the state
-   information a given number of times to get rid of any initial dependencies
-   introduced by the L.C.R.N.G.  Note that the initialization of randtbl[]
-   for default usage relies on values produced by this routine.  */
 #ifdef __CYGWIN__
   #define srandom_return_type long
   #define random_return_type  int
@@ -270,7 +227,7 @@ size_t n;
 
   return ostate;
 }
-
+
 /* Restore the state from the given state array.
    Note: It is important that we also remember the locations of the pointers
    in the current state information, and restore the locations of the pointers
@@ -283,6 +240,10 @@ static char *
 setstate(arg_state)
 long * arg_state;
 {
+
+  static int degrees[MAX_TYPES] = { DEG_0, DEG_1, DEG_2, DEG_3, DEG_4 };
+  static int seps[MAX_TYPES] = { SEP_0, SEP_1, SEP_2, SEP_3, SEP_4 };
+
   register long *new_state = (long *) arg_state;
   register int type = new_state[0] % MAX_TYPES;
   register int rear = new_state[0] / MAX_TYPES;

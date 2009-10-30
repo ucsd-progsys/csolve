@@ -2,6 +2,16 @@ TBD
 
 [Annot] Dump out the types for the entire store of a function (not just in/out?)
 
+stringexample
+pmap
+adpcm
+power
+mst
+strncpy
+? em3d
+? health
+? ks 
+
 -------------------------------------------------------------------------
 [Ops]	get postests/hashfunc.c working...
 	refactor CilInterface to deal with unop and binop 
