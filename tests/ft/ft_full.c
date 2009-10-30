@@ -80,8 +80,6 @@ extern int fprintf(int * , char * __attribute__((__array__))   , ...) ;
 
 long random(void) ;
 
-static int generatedEdges  ;
-
 Vertices *GenTree(int nVertex ) ;
 
 Vertices *AddEdges(Vertices *graph , int nVertex , int nEdge ) ;
@@ -239,6 +237,7 @@ Vertices *GenGraph(int nVertex , int nEdge )
 { Vertices *graph ;
 
   {
+  int generatedEdges  ;
   assert(nEdge + 1 >= nVertex);
   assert(nEdge <= (nVertex * (nVertex - 1)) / 2);
   generatedEdges = 0;
@@ -468,7 +467,7 @@ Item *Subtract(Item *item , int delta )
 HeapP_array InitFHeap(void) 
 { int j ;
 
-  static HeapP *hTable[10000]  ;  //JHALA
+  HeapP *hTable[10000]  ;  //JHALA
   {
   j = 0;
   while (j < 10000) {
@@ -845,7 +844,7 @@ HeapP *Find(HeapP *h , Item *item , HeapP_array hTable)
   }
   h1 = h;
   while (1) {
-    tmp___0 = Equal(h1->item, item, hTable);
+    tmp___0 = Equal(h1->item, item);
     if (tmp___0) {
       return (h1);
     } else {
