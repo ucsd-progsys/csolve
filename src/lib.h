@@ -4,6 +4,7 @@ typedef unsigned int size_t;
 
 extern void *malloc(size_t);
 
+extern long random(void) ;
 extern void assert(int);
 extern void exit(int);
 
