@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-y1xKXFhF.i","")
+#pragma merger(0,"/tmp/cil-duGsaUBY.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -260,7 +260,7 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
                ModulePtr * __attribute__((__array__)) nets ) 
 { unsigned long p ;
   ModuleRecPtr mr ;
-  unsigned int numMods ;
+  unsigned long numMods ;
   ModuleRecPtr tmp ;
   ModuleRecPtr tmp___0 ;
   void *tmp___1 ;
@@ -277,9 +277,9 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
   tmp___0 = (ModuleRec *)0;
   groupB->tail = tmp___0;
   groupB->head = tmp___0;
-  numMods = (unsigned int )*numModules;
+  numMods = *numModules;
   p = 0UL;
-  while (p < (unsigned long )(numMods / 2U)) {
+  while (p < numMods / 2UL) {
     tmp___1 = malloc(sizeof(ModuleRec ));
     mr = (ModuleRec *)tmp___1;
     if (! ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0))) {
@@ -307,7 +307,7 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
       exit(1);
     }
     validptr((void *)(& mr->module));
-    mr->module = (unsigned long )(numMods / 2U) + p;
+    mr->module = numMods / 2UL + p;
     if ((unsigned int )groupB->head == (unsigned int )((ModuleRecPtr )0)) {
       tmp___4 = mr;
       groupB->tail = tmp___4;
@@ -320,8 +320,8 @@ void InitLists(unsigned long *numModules , unsigned long *numNets , float * __at
       (groupB->tail)->next = mr;
       groupB->tail = mr;
     }
-    validptr((void *)(moduleToGroup + ((unsigned long )(numMods / 2U) + p)));
-    *(moduleToGroup + ((unsigned long )(numMods / 2U) + p)) = (enum __anonenum_Groups_1 )1;
+    validptr((void *)(moduleToGroup + (numMods / 2UL + p)));
+    *(moduleToGroup + (numMods / 2UL + p)) = (enum __anonenum_Groups_1 )1;
     p ++;
   }
   tmp___5 = (ModuleRec *)0;
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-fNdDZC1S.i","")
+#pragma merger(0,"/tmp/cil-yrUGbkUy.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,

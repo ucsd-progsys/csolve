@@ -469,7 +469,6 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     }
 
     /* prepare the data structures */
-    // pmr: TODO make the following valid
     // validptr(&argv[1]);
     ReadNetList(argv[1], GACTUALS);
     NetsToModules(GACTUALS);
