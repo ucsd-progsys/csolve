@@ -309,7 +309,7 @@ let rec constrain_exp (env: env): C.exp -> itypevar * itypevarcstr list = functi
   | e                             -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 
 and constrain_lval ((ve, _) as env: env): C.lval -> itypevar * itypevarcstr list = function
-  | (C.Var v, C.NoOffset)       -> (VM.find v ve, [])
+  | (C.Var v, C.NoOffset)       -> begin try (VM.find v ve, []) with Not_found -> halt <| C.error "Variable not found: %s\n\n" v.C.vname end
   | (C.Mem e, C.NoOffset) as lv ->
       let itv, cs = constrain_exp env e in
         begin match itv with
