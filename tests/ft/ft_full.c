@@ -101,8 +101,6 @@ int Equal(Item *item1 , Item *item2 ) ;
 
 Item *Subtract(Item *item , int delta ) ;
 
-extern void free(void * ) ;
-
 HeapP *Meld(HeapP *h1 , HeapP *h2 , HeapP_array hTable) ;
 
 HeapP *DecreaseKey(HeapP *h , HeapP *i , int delta , HeapP_array hTable) ;
@@ -547,7 +545,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
   }
   h1 = RemoveEntry(h, hTable);
   if ((unsigned int )h1 == (unsigned int )((HeapP *)0)) {
-    free((void *)h);
+    // free((void *)h);
     return ((HeapP *)0);
   }
   if ((unsigned int )h1 == (unsigned int )h->child) {
@@ -635,7 +633,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
     }
     j ++;
   }
-  free((void *)h);
+  // free((void *)h);
   return (min);
 }
 }
@@ -736,7 +734,7 @@ HeapP *Delete(HeapP *h , HeapP *i , HeapP_array hTable)
       }
     }
   }
-  free((void *)i);
+  //  free((void *)i);
   return (h);
 }
 }
