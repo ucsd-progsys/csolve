@@ -38,7 +38,7 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-duGsaUBY.i","")
+#pragma merger(0,"/tmp/cil-SYpEh9rf.i","")
 extern void *malloc(size_t  ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-yrUGbkUy.i","")
+#pragma merger(0,"/tmp/cil-RHiUUT0i.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,
@@ -889,8 +889,10 @@ int main(int argc , char * __attribute__((__array__)) * __attribute__((__array__
   tmp___10 = malloc(sizeof(ModulePtr ) * 1024U);
   nets = (ModulePtr *)tmp___10;
   if (argc != 2) {
-    exit(1);
+    PURGATORY: 
+    goto PURGATORY;
   }
+  validptr((void *)(argv + 1));
   ReadNetList(*(argv + 1), numModules, numNets, (float * __attribute__((__array__)) )GP,
               (float * __attribute__((__array__)) )D, (float * __attribute__((__array__)) )cost,
               (Groups * __attribute__((__array__)) )moduleToGroup, groupA, groupB,
