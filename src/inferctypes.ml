@@ -366,13 +366,13 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
   let cf, _          = VM.find f fs in
   let qlocs          = List.filter (fun s -> not (S.is_ghost s)) cf.qlocs in
   let instslocs      = List.map (fun _ -> S.fresh S.Abstract) qlocs in
-  let annot          = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
+  let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs) instslocs in
   let sub            = List.combine qlocs instslocs in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
   let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
-  let css            = (mk_wfsubst sub :: stoincs) ::
-                        List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs ctvfs ::
-                        css in
+  let css            = (mk_wfsubst sub :: stoincs)
+                       :: ((List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs) ctvfs) 
+                       :: css in
     match lvo with
       | None    -> (em, annot, css)
       | Some lv ->
@@ -483,7 +483,8 @@ let update_deps (scs: cstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep 
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
   prestore_fold begin fun ok l i ct ->
     if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
-      C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
+      C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
+        S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
       false
     end else
       ok

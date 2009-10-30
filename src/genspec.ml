@@ -37,10 +37,7 @@ module CM  = CilMisc
 open Cil
 open Misc.Ops
 
-let mydebug = false
-
-let id_of_ciltype   = fun t -> t |> Cil.typeSig |> Cil.d_typsig () |> Pretty.sprint ~width:80
-let name_of_ciltype = id_of_ciltype (* fun t -> t |> Cil.d_type () |> Pretty.sprint ~width:80 *)
+let mydebug = true 
 
 (*************************************************************************************)
 (* {{{ DO NOT DELETE
@@ -164,7 +161,8 @@ let rec conv_ciltype loc (th, st, off) (c, a) =
       assertf "TBD: conv_ciltype" 
 
 and conv_ptr loc (th, st) po c =
-  let tid = id_of_ciltype c in
+  let tid = CM.id_of_ciltype c po in
+  let _   = Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
     (th, st), Ct.CTRef (l, idx) 
@@ -194,7 +192,7 @@ let conv_ciltype y z c =
   conv_ciltype y z (c, [])
 
 let cfun_of_args_ret fn (loc, t, xts) =
-  let _ = if mydebug then ignore <| Pretty.printf "%a GENSPEC for %s \n" d_loc loc fn in
+  let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
     let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in

@@ -120,7 +120,9 @@ let generate_spec fname spec =
   let oc = open_out (fname^".autospec") in
      fname
   |> parse_file
+  >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
   |> Genspec.specs_of_file_all spec
+  >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
   |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
