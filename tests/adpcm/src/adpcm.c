@@ -153,13 +153,13 @@ adpcm_coder(indata, outdata, nsample, state)
 	}
 	step >>= 1;
 	if ( diff >= step  ) {
-	    delta |= 2;
+	    delta = bor(delta, 2); // delta |= 2;
 	    diff -= step;
 	    vpdiff += step;
 	}
 	step >>= 1;
 	if ( diff >= step ) {
-	    delta |= 1;
+	    delta = bor(delta, 1); // delta |= 1;
 	    vpdiff += step;
 	}
 
@@ -176,8 +176,9 @@ adpcm_coder(indata, outdata, nsample, state)
 	  valpred = -32768;
 
 	/* Step 5 - Assemble value, update index and step values */
-	delta |= sign;
-	
+	delta = bor(delta, sign); // delta |= sign;
+
+        validptr(&indexTable[delta]);
 	index += indexTable[delta];
 	if ( index < 0 ) index = 0;
 	if ( index > 88 ) index = 88;
@@ -258,15 +259,16 @@ adpcm_decoder(indata, outdata, nsample, state)
 	
 	/* Step 1 - get the delta value */
 	if ( bufferstep ) {
-	    delta = inputbuffer & 0xf;
+	    delta = band(inputbuffer, 0xf);
 	} else {
             validptr(inp);
 	    inputbuffer = *inp++;
-	    delta = (inputbuffer >> 4) & 0xf;
+	    delta = band(inputbuffer >> 4, 0xf);
 	}
 	bufferstep = !bufferstep;
 
 	/* Step 2 - Find new index value (for later) */
+        validptr(&indexTable[delta]);
 	index += indexTable[delta];
 	if ( index < 0 ) index = 0;
 	if ( index > 88 ) index = 88;
