@@ -240,8 +240,8 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
-  let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
-              List.combine (List.map fst args) es in
+  let subs  = if (List.length args = List.length es) then List.combine (List.map fst args) es 
+              else (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
 
   let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store loc lsubs subs) in
   let oast, ocst = Ctypes.prestore_split ost in

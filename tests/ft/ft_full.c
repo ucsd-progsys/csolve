@@ -158,21 +158,21 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
     }
   }
   if (debug) {
-    printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
+    //printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
   }
   graph = GenGraph(nVertex, nEdge);
   if (debug) {
-    printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
+    //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
   }
   graph = MST(graph);
   if (debug) {
-    printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
+    //printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
     PrintGraph(graph);
-    printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
+    //printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
     PrintMST(graph);
   }
   if (debug) {
-    printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
+    //printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
   }
   exit(0);
   return (0);
@@ -224,7 +224,7 @@ void PrintMST(Vertices *graph )
   assert((unsigned int )graph != (unsigned int )((void *)0));
   vertex = graph->next;
   while ((unsigned int )vertex != (unsigned int )graph) {
-    printf((char * __attribute__((__array__)) )"vertex %d to %d\n", vertex->id, ((vertex->chosenEdge)->source)->id);
+    //printf((char * __attribute__((__array__)) )"vertex %d to %d\n", vertex->id, ((vertex->chosenEdge)->source)->id);
     vertex = vertex->next;
   }
   return;
@@ -411,9 +411,9 @@ void PrintGraph(Vertices *graph )
   assert((unsigned int )graph != (unsigned int )((Vertices *)0));
   vertex = graph;
   while (1) {
-    printf((char * __attribute__((__array__)) )"Vertex %d is connected to:", vertex->id);
+    //printf((char * __attribute__((__array__)) )"Vertex %d is connected to:", vertex->id);
     PrintNeighbors(vertex);
-    printf((char * __attribute__((__array__)) )"\n");
+    //printf((char * __attribute__((__array__)) )"\n");
     vertex = vertex->next;
     if (! ((unsigned int )vertex != (unsigned int )graph)) {
       break;
@@ -429,8 +429,7 @@ void PrintNeighbors(Vertices *vertex )
   {
   edge = vertex->edges;
   while ((unsigned int )edge != (unsigned int )((Edges *)0)) {
-    printf((char * __attribute__((__array__)) )" %d(%d)[%d]", (edge->vertex)->id,
-           edge->weight, (edge->source)->id);
+    // printf((char * __attribute__((__array__)) )" %d(%d)[%d]", (edge->vertex)->id, edge->weight, (edge->source)->id);
     edge = edge->next;
   }
   return;
