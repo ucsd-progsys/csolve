@@ -26,8 +26,10 @@ main() {
     short pcmdata_2[DATASIZE];
     struct adpcm_state coder_1_state, coder_2_state, decoder_state;
 
-    for(i=0; i<DATASIZE; i++)
+    for(i=0; i<DATASIZE; i++) {
+      validptr(&pcmdata[i]);
       pcmdata[i] = random() & 0xffff;
+    }
 
     for(i=0;i<ITERATIONS;i++) {
       adpcm_coder(pcmdata, adpcmdata, DATASIZE, &coder_1_state);

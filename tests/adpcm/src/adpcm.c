@@ -1,3 +1,4 @@
+
 /***********************************************************
 Copyright 1992 by Stichting Mathematisch Centrum, Amsterdam, The
 Netherlands.
@@ -72,8 +73,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
     
 void
 adpcm_coder(indata, outdata, nsample, state)
-    short indata[];
-    char outdata[];
+    short * ARRAY indata;
+    char * ARRAY outdata;
     int nsample;
     struct adpcm_state *state;
 {
@@ -94,33 +95,38 @@ adpcm_coder(indata, outdata, nsample, state)
     int len = nsample;
 
     /* Intel ADPCM step variation table */
-    static int indexTable[16] = {
-        -1, -1, -1, -1, 2, 4, 6, 8,
-        -1, -1, -1, -1, 2, 4, 6, 8,
-    };
+    /* int indexTable[16] = { */
+    /*     -1, -1, -1, -1, 2, 4, 6, 8, */
+    /*     -1, -1, -1, -1, 2, 4, 6, 8, */
+    /* }; */
+    int *indexTable = (int *)malloc(sizeof(int) * 16);
 
-    static int stepsizeTable[89] = {
-        7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
-        19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
-        50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
-        130, 143, 157, 173, 190, 209, 230, 253, 279, 307,
-        337, 371, 408, 449, 494, 544, 598, 658, 724, 796,
-        876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066,
-        2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
-        5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
-        15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
-    };
+    /* int stepsizeTable[89] = { */
+    /*     7, 8, 9, 10, 11, 12, 13, 14, 16, 17, */
+    /*     19, 21, 23, 25, 28, 31, 34, 37, 41, 45, */
+    /*     50, 55, 60, 66, 73, 80, 88, 97, 107, 118, */
+    /*     130, 143, 157, 173, 190, 209, 230, 253, 279, 307, */
+    /*     337, 371, 408, 449, 494, 544, 598, 658, 724, 796, */
+    /*     876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, */
+    /*     2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358, */
+    /*     5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899, */
+    /*     15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767 */
+    /* }; */
+    int *stepsizeTable = (int *)malloc(sizeof(int) * 89);
     
     outp = (signed char *)outdata;
     inp = indata;
 
     valpred = state->valprev;
     index = state->index;
+    // pmr: Amusingly, index is always 0!
+    validptr(&stepsizeTable[index]);
     step = stepsizeTable[index];
     
     bufferstep = 1;
 
     for ( ; len > 0 ; len-- ) {
+        validptr(inp);
 	val = *inp++;
 
 	/* Step 1 - compute difference with previous value */
@@ -175,20 +181,24 @@ adpcm_coder(indata, outdata, nsample, state)
 	index += indexTable[delta];
 	if ( index < 0 ) index = 0;
 	if ( index > 88 ) index = 88;
+        validptr(&stepsizeTable[index]);
 	step = stepsizeTable[index];
 
 	/* Step 6 - Output value */
 	if ( bufferstep ) {
 	    outputbuffer = (delta << 4) & 0xf0;
 	} else {
+            validptr(outp);
 	    *outp++ = (delta & 0x0f) | outputbuffer;
 	}
 	bufferstep = !bufferstep;
     }
 
     /* Output last step, if needed */
-    if ( !bufferstep )
+    if ( !bufferstep ) {
+      validptr(outp);
       *outp++ = outputbuffer;
+    }
     
     state->valprev = valpred;
     state->index = index;
@@ -196,8 +206,8 @@ adpcm_coder(indata, outdata, nsample, state)
 
 void
 adpcm_decoder(indata, outdata, nsample, state)
-    char indata[];
-    short outdata[];
+    char * ARRAY indata;
+    short * ARRAY outdata;
     int nsample;
     struct adpcm_state *state;
 {
@@ -215,28 +225,31 @@ adpcm_decoder(indata, outdata, nsample, state)
     int len = nsample;
 
     /* Intel ADPCM step variation table */
-    static int indexTable[16] = {
-        -1, -1, -1, -1, 2, 4, 6, 8,
-        -1, -1, -1, -1, 2, 4, 6, 8,
-    };
+    /* int indexTable[16] = { */
+    /*     -1, -1, -1, -1, 2, 4, 6, 8, */
+    /*     -1, -1, -1, -1, 2, 4, 6, 8, */
+    /* }; */
+    int *indexTable = (int *)malloc(sizeof(int) * 16);
 
-    static int stepsizeTable[89] = {
-        7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
-        19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
-        50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
-        130, 143, 157, 173, 190, 209, 230, 253, 279, 307,
-        337, 371, 408, 449, 494, 544, 598, 658, 724, 796,
-        876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066,
-        2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
-        5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
-        15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
-    };
+    /* int stepsizeTable[89] = { */
+    /*     7, 8, 9, 10, 11, 12, 13, 14, 16, 17, */
+    /*     19, 21, 23, 25, 28, 31, 34, 37, 41, 45, */
+    /*     50, 55, 60, 66, 73, 80, 88, 97, 107, 118, */
+    /*     130, 143, 157, 173, 190, 209, 230, 253, 279, 307, */
+    /*     337, 371, 408, 449, 494, 544, 598, 658, 724, 796, */
+    /*     876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, */
+    /*     2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358, */
+    /*     5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899, */
+    /*     15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767 */
+    /* }; */
+    int *stepsizeTable = (int *)malloc(sizeof(int) * 89);
     
     outp = outdata;
     inp = (signed char *)indata;
 
     valpred = state->valprev;
     index = state->index;
+    validptr(&stepsizeTable[index]);
     step = stepsizeTable[index];
 
     bufferstep = 0;
@@ -247,6 +260,7 @@ adpcm_decoder(indata, outdata, nsample, state)
 	if ( bufferstep ) {
 	    delta = inputbuffer & 0xf;
 	} else {
+            validptr(inp);
 	    inputbuffer = *inp++;
 	    delta = (inputbuffer >> 4) & 0xf;
 	}
@@ -283,9 +297,11 @@ adpcm_decoder(indata, outdata, nsample, state)
 	  valpred = -32768;
 
 	/* Step 6 - Update step value */
+        validptr(&stepsizeTable[index]);
 	step = stepsizeTable[index];
 
 	/* Step 7 - Output value */
+        validptr(outp);
 	*outp++ = valpred;
     }
 
