@@ -6,6 +6,6 @@
 TMP=`tempfile`.c
 BASE=`dirname $0`
 
-cpp -nostdinc -include `dirname $0`/lib.h $1 > $TMP
+cpp -nostdinc -include $BASE/lib.h $1 > $TMP
 $BASE/../external/cil/bin/cilly --merge --keepmerged --noPrintLn -E -P -c -o `basename $1 .c`.o $TMP
 rm $TMP
