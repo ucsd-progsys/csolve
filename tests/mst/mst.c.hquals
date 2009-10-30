@@ -1,5 +1,0 @@
-qualif A(v:int) : v < 100
-qualif A(v:int) : v = 100
-qualif A(v:int) : v < @numvert
-qualif HTSZ(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 100
-qualif GRPSZ(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + @numvert
