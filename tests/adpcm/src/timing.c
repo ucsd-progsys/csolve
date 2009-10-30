@@ -15,16 +15,16 @@
 
 #define ITERATIONS 2000
 
-short pcmdata[DATASIZE];
-char adpcmdata[DATASIZE/2];
-short pcmdata_2[DATASIZE];
-
-struct adpcm_state coder_1_state, coder_2_state, decoder_state;
-
 main() {
     int i;
     int t0, t1, t2, t3;
     int count = 0, count2;
+
+    // pmr: inlined
+    short pcmdata[DATASIZE];
+    char adpcmdata[DATASIZE/2];
+    short pcmdata_2[DATASIZE];
+    struct adpcm_state coder_1_state, coder_2_state, decoder_state;
 
     for(i=0; i<DATASIZE; i++)
       pcmdata[i] = random() & 0xffff;
