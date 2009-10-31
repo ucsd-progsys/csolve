@@ -31,7 +31,7 @@ validptr ::
   forall    [A0]
   arg       (x: ref (A0, true, {v| && [(0 < v); (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))
                                       ]}))
-  ret int   (4, true, {v | true})
+  ret int   (0, true)
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
 
@@ -124,5 +124,26 @@ fabs ::
   forall    []
   arg       (n: int (8, true))
   ret       int (8, true)
+  store_in  []
+  store_out []
+
+bor ::
+  forall    []
+  arg       (a: int (4, true, {v | v >= 0}), b: int (4, true, {v | v >= 0}))
+  ret       int (4, true, {v | && [a <= v; b <= v; v <= a + b]})
+  store_in  []
+  store_out []
+
+band ::
+  forall    []
+  arg       (a: int (4, true), b: int (4, true, {v | v >= 0}))
+  ret       int (4, true, {v | && [v <= a; v <= b; 0 <= v]})
+  store_in  []
+  store_out []
+
+assume ::
+  forall    []
+  arg 	    (b: int(4, true))
+  ret int   (4, true, {v | b = 1})
   store_in  []
   store_out []

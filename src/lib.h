@@ -4,9 +4,14 @@ typedef unsigned int size_t;
 
 extern void *malloc(size_t);
 
+extern int bor(int, int);
+extern int band(int, int);
+
+extern void validptr(void *);
+
 extern long random(void) ;
 extern void assert(int);
-
+extern int assume(int);
 extern void exit(int);
 extern int csolve_exit(int);
 

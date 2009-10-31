@@ -3,6 +3,7 @@
 *.cmxa
 *.cm[oxai]
 *.annot
+*.vmap
 *.di?
 *.native
 *.ssa.c

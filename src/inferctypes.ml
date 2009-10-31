@@ -508,6 +508,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.blo
   let _                = check_slocs_distinct sub cf.qlocs in
   let revsub           = revert_spec_names sub cf in
   let sto              = prestore_subs revsub sto in
+  let sto              = cf |> cfun_slocs |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else  SLM.add s LDesc.empty sto) sto in
   let sd               = adjust_slocdep revsub sd in
   let cm               = cstrmap_subs revsub cm in
   let sub              = S.Subst.compose revsub sub in

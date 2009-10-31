@@ -5,15 +5,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-struct adpcm_state state;
-
 #define NSAMPLES 1000
-
-char	abuf[NSAMPLES/2];
-short	sbuf[NSAMPLES];
 
 main() {
     int n;
+
+    // pmr: inlined
+    struct adpcm_state state;
+    char	abuf[NSAMPLES/2];
+    short	sbuf[NSAMPLES];
 
     while(1) {
 	n = read(0, abuf, NSAMPLES/2);

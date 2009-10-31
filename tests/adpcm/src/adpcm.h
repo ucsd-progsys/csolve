@@ -19,9 +19,12 @@ struct adpcm_state {
   #define COUNT(x)
   #define NONNULL
 #endif
-void adpcm_coder ARGS((short * COUNT(nsample) NONNULL,
-                       char * COUNT(nsample / 2)  NONNULL, int nsample,
+
+#define ARRAY __attribute__ ((array))
+
+void adpcm_coder ARGS((short * ARRAY,
+                       char * ARRAY, int nsample,
                        struct adpcm_state *));
-void adpcm_decoder ARGS((char * COUNT(nsample / 2)  NONNULL,
-                         short * COUNT(nsample)  NONNULL, int nsample,
+void adpcm_decoder ARGS((char * ARRAY,
+                         short * ARRAY, int nsample,
                          struct adpcm_state *));

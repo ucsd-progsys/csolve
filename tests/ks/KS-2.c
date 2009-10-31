@@ -532,7 +532,7 @@ main(int argc, char * __attribute__ ((array)) * __attribute__ ((array)) argv)
     }
     // *groupB = *swapToA;
     groupB->head = swapToA->head;
-    groupB->tail = swapToB->tail;
+    groupB->tail = swapToA->tail;
     for (mr = groupB->head; mr != NULL; mr = (*mr).next) {
         validptr(&mr->next);
         validptr(&mr->module);
