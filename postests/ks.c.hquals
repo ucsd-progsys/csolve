@@ -1,10 +1,13 @@
 qualif PTRARRSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4096
 qualif STATSSZ(v:ptr)  : BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 12)
+qualif NSSZ(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 3072
 qualif MANYSZ(v:ptr)   : (v != 0) -> (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 8))
 qualif BOUND(v:int)    : v < 1024
 qualif BOUND(v:int)    : v <= 1024
+qualif BOUND(v:int)    : v < 256
+qualif BOUND(v:int)    : v <= 256
 qualif NMODS(v:int)    : (2 * v) < @numMods
-qualif HEADDEP(v:ptr)  : (~A != 0) -> (v != 0)
+// qualif HEADDEP(v:ptr)  : (~A != 0) -> (v != 0)
 
 // Candidate for removal to lib.hquals
 qualif ARGV(v:ptr)     : BLOCK_END([v]) = (BLOCK_BEGIN([v]) + (4 * @argc))

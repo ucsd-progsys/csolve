@@ -94,7 +94,6 @@ SwapNode(ModuleRecPtr maxPrev, ModuleRecPtr max,
 	(*swapTo).head = max;
     }
     else { /* end of list */
-        // pmr: Should work, investigate
         validptr(&(swapToTail->next));
 	(*swapToTail).next = max;
 	(*swapTo).tail = max;
@@ -238,12 +237,15 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
 	 mrPrevB = mrB, mrB = (*mrB).next,
          i++) {
         // pmr: unlikely to work because it's indexed by i
-        // validptr(&mrA->next);
-        // validptr(&mrB->next);
+        // pmr: ASSUME validptr(&mrA->next);
+        // pmr: ASSUME validptr(&mrB->next);
     }
 
     /* must at least select one to swap, case where gMax is first */
     // assert(mrPrevA != NULL && mrPrevB != NULL);
+    // assumes based on above assert
+    if (mrPrevA == NULL) { DIS: goto DIS; }
+    if (mrPrevB == NULL) { BED: goto BED; }
 
     if (mrA == NULL) {	
 	/* swap entire list */
@@ -256,13 +258,12 @@ SwapSubsetAndReset(unsigned long iMax, GFORMALS)
     }
     else {
 	/* splice the lists */
-        // pmr: Bound to work if we know the loop above executes at least once.  Do we?
-        // validptr(&mrPrevA->next);
+        validptr(&mrPrevA->next);
 	(*mrPrevA).next = mrB;
 	groupA->head = swapToA->head;
 	groupA->tail = swapToB->tail;
 
-        // validptr(&mrPrevB->next);
+        validptr(&mrPrevB->next);
 	(*mrPrevB).next = mrA;
 	groupB->head = swapToB->head;
 	groupB->tail = swapToA->tail;
@@ -353,6 +354,7 @@ PrintResults(int verbose, GFORMALS)
 		netSz++;
             }
 	    // assert(netSz >= 2);
+            if (netSz > 255) { LALALAND: goto LALALAND; }
 
 	    /* for all modules on this net */
 	    for (mn = nets[(*nn).net]; mn != NULL; mn = (*mn).next) {
@@ -366,7 +368,7 @@ PrintResults(int verbose, GFORMALS)
 		    if (verbose)
 			; //fprintf(stdout, "Conn %3lu - %3lu cut.\n",
                     // (*mr).module+1, (*mn).module+1);
-                    // validptr(&netStats[netSz].edgesCut);
+                    validptr(&(netStats[netSz].edgesCut));
 		    netStats[netSz].edgesCut++;
 		    cuts++;
 		}
@@ -386,17 +388,22 @@ PrintResults(int verbose, GFORMALS)
 	    netSz++;
         }
 	// assert(netSz >= 2);
+        if (netSz > 255) { HOLLYWOOD: goto HOLLYWOOD; }
+
         // pmr: TODO how to check that netsz is in the bounds??
-        // validptr(&netStats[netSz]);
-        // validptr(&netStats[netSz].total);
+        validptr(&netStats[netSz]);
+        validptr(&(netStats[netSz].total));
 	netStats[netSz].total++;
 	if (netSz > maxStat)
 	    maxStat = netSz;
 
-        // pmr: How to verify these??  Probably can't...
-        // validptr(&((*(nets[i])).module));
-        validptr(&moduleToGroup[(*(nets[i])).module]);
-        // validptr(&((*(nets[i])).next));
+        // pmr: ASSUME
+        ModulePtr m = nets[i];
+        if (m == NULL) { OUTERSPACE: goto OUTERSPACE; }
+
+        validptr(&m->module);
+        validptr(&(moduleToGroup[(*(nets[i])).module]));
+        validptr(&m->next);
 	for (grp=moduleToGroup[(*(nets[i])).module],mn = (*(nets[i])).next;
 	     mn != NULL;
 	     mn = (*mn).next) {
@@ -409,7 +416,7 @@ PrintResults(int verbose, GFORMALS)
 		if (verbose)
 		    ; // fprintf(stdout, "Net %3lu cut.\n", i+1);
 		cuts++;
-                // validptr(&netStats[netSz].netsCut);
+                validptr(&(netStats[netSz].netsCut));
 		netStats[netSz].netsCut++;
 		break;
 	    }
@@ -417,7 +424,12 @@ PrintResults(int verbose, GFORMALS)
     }
     //    fprintf(stdout, "Total net cuts  = %lu\n", cuts);
 
-    for (i=2; i<=maxStat; i++)
+    for (i=2; i<=maxStat; i++) {
+        validptr(&netStats[i]);
+        validptr(&(netStats[i].total));
+        validptr(&(netStats[i].edgesCut));
+        validptr(&(netStats[i].netsCut));
+    }
 	/* fprintf(stdout,
 		"sz:%5lu     total:%5lu     edgesCut:%5lu     netsCuts:%5lu\n",
 		i, netStats[i].total,
