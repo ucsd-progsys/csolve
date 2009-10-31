@@ -42,6 +42,7 @@ let ptag                        = ref true  (* -ptag *)
 let genspec                     = ref false (* -genspec *)
 let typespec                    = ref false (* -typespec *)
 let simplify_t                  = ref true  (* simplify and prune vacouos FixConstraint.t constraints *)
+let root                        = ref ""    (* root function *)
 
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
@@ -132,7 +133,10 @@ let arg_spec =
    ("-typespec",
     Arg.Set typespec,
     "Use type-directed spec generation");
- ("-psimple", 
+   ("-root",
+    Arg.String (fun s -> root := s),
+    "Use root function []");
+   ("-psimple", 
     Arg.Set psimple, 
     "prioritize simple constraints [true]");
    ("-dgraph", 

@@ -6,7 +6,9 @@ extern void *malloc(size_t);
 
 extern long random(void) ;
 extern void assert(int);
+
 extern void exit(int);
+extern int csolve_exit(int);
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647

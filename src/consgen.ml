@@ -477,13 +477,27 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
+let reachable cil scim =
+  match !Constants.root with 
+  | "" -> 
+      (fun _ -> true)
+  | rootname ->
+      if not (SM.mem rootname scim) then assertf "Unknown root function: %s \n" rootname else
+        let root   = (SM.find rootname scim).ST.fdec.svar in
+        let reachm = Callgraph.reach cil root |> List.map (fun v -> (v.vname, ())) |> Misc.sm_of_list in
+        (fun fn -> SM.mem fn reachm) 
+
+(*
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
+*)
 
 (* API *)
 let create cil (spec: (FI.refcfun * bool) SM.t) =
   let scim     = scim_of_file cil in
+  let reachf   = reachable cil scim in
+  let scim     = Misc.sm_filter (fun fn _ -> reachf fn) scim in 
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in
@@ -493,7 +507,7 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
-  let decs     = decs_of_file cil in 
+  let decs     = decs_of_file cil |> Misc.filter (fun (vn,_) -> reachf vn) in 
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in

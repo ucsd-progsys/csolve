@@ -45,10 +45,7 @@ struct blue_return {
 };
 
 typedef struct blue_return *BlueReturn;
-
 extern char *malloc(int);
-
-void csolve_halt(){ exit(0);}
 
 /******************************************************************/
 /****************************** Code ******************************/
@@ -74,10 +71,6 @@ Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ )
 static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
 { 
   return ((int )((key >> 4) % (unsigned int )HashRange));
-  /* int r;
-  r = nondet();
-  if (0 <= r && r < HashRange) return r;
-  L: goto L; */     
 }
 
 
@@ -355,8 +348,8 @@ static int ComputeMst(Graph graph , int numvert )
   //chatting((char *)"Compute phase 2\n");
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
-      if (inserted == (Vertex) 0){ csolve_halt();}	//JHALA numvert = listlength... 
-      //validptr(MyVertexList); //JHALA: Maybe NULL LAST 
+      int assm = assume(inserted != (Vertex) 0);	//JHALA numvert = listlength... 
+      validptr(MyVertexList);  
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
