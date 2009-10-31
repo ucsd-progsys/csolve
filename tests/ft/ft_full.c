@@ -165,20 +165,20 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
     //printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
   }
   graph = GenGraph(nVertex, nEdge);
-  if (debug) {
-    //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
-  }
-  graph = MST(graph);
-  if (debug) {
-    //printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
-    PrintGraph(graph);
-    //printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
-    PrintMST(graph);
-  }
-  if (debug) {
-    //printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
-  }
-  exit(0);
+//  if (debug) {
+//    //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
+//  }
+//  graph = MST(graph);
+//  if (debug) {
+//    //printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
+//    PrintGraph(graph);
+//    //printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
+//    PrintMST(graph);
+//  }
+//  if (debug) {
+//    //printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
+//  }
+//  exit(0);
   return (0);
 }
 }
@@ -398,13 +398,15 @@ Vertices *NewVertex(void)
   {
   tmp = malloc(sizeof(Vertices ));
   vertex = (Vertices *)tmp;
-  if ((unsigned int )vertex == (unsigned int )((Vertices *)0)) {
+  //JHALA init issue, this breaks block, adds bogus-fold
+  //if ((unsigned int )vertex == (unsigned int )((Vertices *)0)) {
     //JHALA fprintf((int *)2, (char * __attribute__((__array__)) )"Could not malloc\n");
-    exit(1);
-  }
+  //  exit(1);
+  //}
   // JHALA tmp___0 = id;
   // JHALA id ++;
-  validptr(vertex);
+  // JHALA: the following is not necessary, vertex is "concrete" adds bogus-fold
+  //validptr(vertex);
   vertex->id = nondetpos() + 1; //JHALA tmp___0;
   vertex->edges = (Edges *)0;
   //vertex->next = (struct _Vertices *)0;

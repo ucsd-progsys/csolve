@@ -383,7 +383,7 @@ module LDesc = struct
       | Uniform pct     -> P.dprintf "true: %a" pt pct
       | NonUniform pcts ->
           let p = get_period_default po in
-          P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts
+          P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "@[%a: %a@]@!" d_index (index_of_ploc pl p) pt pct) pcts
 end
 
 module SLM = S.SlocMap

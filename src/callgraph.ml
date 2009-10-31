@@ -46,7 +46,6 @@ let reach (f: file) (root : varinfo) =
   let rv = ref [] in
   let _  = TRV.prefix_component (fun v -> rv := v :: !rv) cg root in
   let _  = Printf.printf "Reachable funs: %s \n" (String.concat "," (List.map (fun v -> v.vname) !rv)) in
-  let _  = exit 0 in
   !rv
 
 
