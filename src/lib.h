@@ -11,6 +11,7 @@ extern void validptr(void *);
 
 extern long random(void) ;
 extern void assert(int);
+extern void assume
 extern void exit(int);
 
 #define INT_MIN -2147483648

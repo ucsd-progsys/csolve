@@ -133,3 +133,10 @@ band ::
   ret       int (4, true, {v | && [v <= a; v <= b; 0 <= v]})
   store_in  []
   store_out []
+
+assume ::
+  forall    []
+  arg 	    (b: int(4, true))
+  ret int   (4, true, {v | b = 1})
+  store_in  []
+  store_out []
