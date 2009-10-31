@@ -806,7 +806,6 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //  return (h);
 //}
 //}
-//
 
 void CombineLists(HeapP *h1 , HeapP *h2 , HeapP_array hTable) 
 { HeapP *h ;

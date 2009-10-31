@@ -150,8 +150,8 @@ let get_fname me =
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
-let tag_of_instr me block_id instr_id = 
-  CilTag.make_t me.tgr (location_of_block me block_id) (get_fname me) block_id instr_id
+let tag_of_instr me block_id instr_id loc = 
+  CilTag.make_t me.tgr (* (location_of_block me block_id) *) loc (get_fname me) block_id instr_id
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
