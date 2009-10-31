@@ -130,6 +130,10 @@ let sloc_of_ret ctm theta (conc, anns) = function
 
 (* ns : New (al,_) list, with distinct al *)
 let annotate_instr ctm theta conc = function
+  | ns, Cil.Call (_, Lval ((Var fv), NoOffset), _,_) 
+    when Constants.is_pure_function fv.vname ->
+      conc, ns 
+
   | ns, Cil.Call (lvo,_,_,_) ->
       let conc, anns = Misc.mapfold concretize_new conc ns in
       let conc_anns  = (conc, Misc.flatten anns) in
