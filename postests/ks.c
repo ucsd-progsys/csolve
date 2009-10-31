@@ -38,14 +38,14 @@ struct __anonstruct_netStats_2 {
    unsigned long edgesCut ;
    unsigned long netsCut ;
 };
-#pragma merger(0,"/tmp/cil-SYpEh9rf.i","")
+#pragma merger(0,"/tmp/cil-Njq7l947.i","")
 extern void *malloc(size_t  ) ;
+extern void validptr(void * ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
 extern char *strtok(char * __attribute__((__array__))  , char * __attribute__((__array__))  ) ;
 extern int *fopen(char * __attribute__((__array__))  , char * __attribute__((__array__))  ) ;
 extern char *fgets(char * __attribute__((__array__))  , int  , int * ) ;
-extern void validptr(void * ) ;
 void ReadNetList(char * __attribute__((__array__)) fname , unsigned long *numModules ,
                  unsigned long *numNets , float * __attribute__((__array__)) GP ,
                  float * __attribute__((__array__)) D , float * __attribute__((__array__)) cost ,
@@ -387,7 +387,7 @@ void ComputeDs(ModuleListPtr group , Groups myGroup , Groups mySwap , unsigned l
   return;
 }
 }
-#pragma merger(0,"/tmp/cil-RHiUUT0i.i","")
+#pragma merger(0,"/tmp/cil-CBuNWwqL.i","")
 float CAiBj(ModuleRecPtr mrA , ModuleRecPtr mrB , unsigned long *numModules , unsigned long *numNets ,
             float * __attribute__((__array__)) GP , float * __attribute__((__array__)) D ,
             float * __attribute__((__array__)) cost , Groups * __attribute__((__array__)) moduleToGroup ,
@@ -668,15 +668,25 @@ void SwapSubsetAndReset(unsigned long iMax , unsigned long *numModules , unsigne
     mrB = mrB->next;
     i ++;
   }
+  if ((unsigned int )mrPrevA == (unsigned int )((ModuleRecPtr )0)) {
+    DIS: 
+    goto DIS;
+  }
+  if ((unsigned int )mrPrevB == (unsigned int )((ModuleRecPtr )0)) {
+    BED: 
+    goto BED;
+  }
   if ((unsigned int )mrA == (unsigned int )((ModuleRecPtr )0)) {
     groupA->head = swapToA->head;
     groupA->tail = swapToA->tail;
     groupB->head = swapToB->head;
     groupB->tail = swapToB->tail;
   } else {
+    validptr((void *)(& mrPrevA->next));
     mrPrevA->next = mrB;
     groupA->head = swapToA->head;
     groupA->tail = swapToB->tail;
+    validptr((void *)(& mrPrevB->next));
     mrPrevB->next = mrA;
     groupB->head = swapToB->head;
     groupB->tail = swapToA->tail;
@@ -723,6 +733,7 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
   struct __anonstruct_netStats_2 netStats[256] ;
   unsigned long tmp ;
   unsigned long tmp___0 ;
+  ModulePtr m ;
 
   {
   maxStat = -1L;
@@ -770,6 +781,10 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
         netSz ++;
         mn = mn->next;
       }
+      if (netSz > 255) {
+        LALALAND: 
+        goto LALALAND;
+      }
       mn = *(nets + nn->net);
       while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
         validptr((void *)(& mn->next));
@@ -780,6 +795,7 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
           if (verbose) {
 
           }
+          validptr((void *)(& netStats[netSz].edgesCut));
           (netStats[netSz].edgesCut) ++;
           cuts ++;
         }
@@ -800,11 +816,24 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
       netSz ++;
       mn = mn->next;
     }
+    if (netSz > 255) {
+      HOLLYWOOD: 
+      goto HOLLYWOOD;
+    }
+    validptr((void *)(& netStats[netSz]));
+    validptr((void *)(& netStats[netSz].total));
     (netStats[netSz].total) ++;
     if ((long )netSz > maxStat) {
       maxStat = (long )netSz;
     }
+    m = *(nets + i);
+    if ((unsigned int )m == (unsigned int )((ModulePtr )0)) {
+      OUTERSPACE: 
+      goto OUTERSPACE;
+    }
+    validptr((void *)(& m->module));
     validptr((void *)(moduleToGroup + (*(nets + i))->module));
+    validptr((void *)(& m->next));
     grp = *(moduleToGroup + (*(nets + i))->module);
     mn = (*(nets + i))->next;
     while ((unsigned int )mn != (unsigned int )((ModulePtr )0)) {
@@ -816,6 +845,7 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
 
         }
         cuts ++;
+        validptr((void *)(& netStats[netSz].netsCut));
         (netStats[netSz].netsCut) ++;
         break;
       }
@@ -825,6 +855,10 @@ void PrintResults(int verbose , unsigned long *numModules , unsigned long *numNe
   }
   i = 2;
   while ((long )i <= maxStat) {
+    validptr((void *)(& netStats[i]));
+    validptr((void *)(& netStats[i].total));
+    validptr((void *)(& netStats[i].edgesCut));
+    validptr((void *)(& netStats[i].netsCut));
     i ++;
   }
   return;
@@ -967,7 +1001,7 @@ int main(int argc , char * __attribute__((__array__)) * __attribute__((__array__
     mr = mr->next;
   }
   groupB->head = swapToA->head;
-  groupB->tail = swapToB->tail;
+  groupB->tail = swapToA->tail;
   mr = groupB->head;
   while ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0)) {
     validptr((void *)(& mr->next));
