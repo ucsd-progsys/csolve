@@ -13,6 +13,7 @@ module ComparableVar =
 
 module G   = Graph.Imperative.Digraph.Concrete(ComparableVar)
 module SCC = Graph.Components.Make(G)
+module TRV = Graph.Traverse.Dfs(G)
 
 class bodyVisitor (cg: G.t) (caller: varinfo) = object
   inherit nopCilVisitor
@@ -38,3 +39,14 @@ let sccs (f: file): t =
   let cg = G.create () in
   let _  = visitCilFile (new callgraphVisitor cg) f in
     SCC.scc_list cg
+
+let reach (f: file) (root : varinfo) =
+  let cg = G.create () in
+  let _  = visitCilFile (new callgraphVisitor cg) f in
+  let rv = ref [] in
+  let _  = TRV.prefix_component (fun v -> rv := v :: !rv) cg root in
+  let _  = Printf.printf "Reachable funs: %s \n" (String.concat "," (List.map (fun v -> v.vname) !rv)) in
+  let _  = exit 0 in
+  !rv
+
+

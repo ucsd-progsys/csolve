@@ -240,8 +240,8 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt   = FI.ce_find_fn fn env in
   let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs = lsubs_of_annots ns in
-  let subs  = asserts (List.length args = List.length es) "cons_of_call: bad params"; 
-              List.combine (List.map fst args) es in
+  let subs  = if (List.length args = List.length es) then List.combine (List.map fst args) es 
+              else (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
 
   let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store loc lsubs subs) in
   let oast, ocst = Ctypes.prestore_split ost in
@@ -477,13 +477,27 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
+let reachable cil scim =
+  match !Constants.root with 
+  | "" -> 
+      (fun _ -> true)
+  | rootname ->
+      if not (SM.mem rootname scim) then assertf "Unknown root function: %s \n" rootname else
+        let root   = (SM.find rootname scim).ST.fdec.svar in
+        let reachm = Callgraph.reach cil root |> List.map (fun v -> (v.vname, ())) |> Misc.sm_of_list in
+        (fun fn -> SM.mem fn reachm) 
+
+(*
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
+*)
 
 (* API *)
 let create cil (spec: (FI.refcfun * bool) SM.t) =
   let scim     = scim_of_file cil in
+  let reachf   = reachable cil scim in
+  let scim     = Misc.sm_filter (fun fn _ -> reachf fn) scim in 
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in
@@ -493,7 +507,7 @@ let create cil (spec: (FI.refcfun * bool) SM.t) =
   let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
-  let decs     = decs_of_file cil in 
+  let decs     = decs_of_file cil |> Misc.filter (fun (vn,_) -> reachf vn) in 
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in

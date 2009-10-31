@@ -37,7 +37,7 @@ module CM  = CilMisc
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 (*************************************************************************************)
 (* {{{ DO NOT DELETE
@@ -162,7 +162,7 @@ let rec conv_ciltype loc (th, st, off) (c, a) =
 
 and conv_ptr loc (th, st) po c =
   let tid = CM.id_of_ciltype c po in
-  let _   = Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
+  let _   = if mydebug then Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
     (th, st), Ct.CTRef (l, idx) 

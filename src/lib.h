@@ -11,8 +11,9 @@ extern void validptr(void *);
 
 extern long random(void) ;
 extern void assert(int);
-extern void assume(int);
+extern int assume(int);
 extern void exit(int);
+extern int csolve_exit(int);
 
 #define INT_MIN -2147483648
 #define INT_MAX 2147483647

@@ -71,10 +71,17 @@ assert ::
   store_in  []
   store_out []
 
+csolve_exit ::
+  forall    []
+  arg       (status: int (4, true, {v | true}))
+  ret int   (4, true, {v | 0=1})
+  store_in  []
+  store_out []
+
 exit ::
   forall    []
   arg       (status: int (4, true, {v | true}))
-  ret int   (0, true, {v | true})
+  ret int   (0, true, {v | 0=1})
   store_in  []
   store_out []
 
