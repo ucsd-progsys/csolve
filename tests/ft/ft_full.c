@@ -686,7 +686,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
     }
     j ++;
   }
-  validptr(&hTable[j]);
+  validptr(&hTable[j]);	//JHALA: seems like a valid overflow! BUG?
   h1 = hTable[j];
   min = h1;
   int assm = assume(min != (HeapP *) 0);
