@@ -383,7 +383,7 @@ module LDesc = struct
       | Uniform pct     -> P.dprintf "true: %a" pt pct
       | NonUniform pcts ->
           let p = get_period_default po in
-            P.seq (P.text ", ") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts
+            P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts)
 end
 
 module SLM = S.SlocMap
@@ -454,7 +454,7 @@ let store_closed (sto: store): bool =
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
 let d_precstore d_i () s  =
-  P.dprintf "@[[%a]@]" (SLMPrinter.d_map ";\n" S.d_sloc (LDesc.d_ldesc (d_prectype d_i))) s
+  P.dprintf "[@[%a@]]" (SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l ld -> P.printf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
@@ -496,10 +496,10 @@ let precfun_map f ft =
 
 let d_slocs () slocs     = P.seq (P.text ";") (S.d_sloc ()) slocs
 let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
-let d_args d_i () args   = P.seq (P.text ", ") (d_arg d_i ()) args
+let d_args d_i () args   = P.seq (P.dprintf ",@!") (d_arg d_i ()) args
 
 let d_precfun d_i () ft  = 
-  P.dprintf "forall    [%a]\narg       (%a)\nret       %a\nstore_in  %a\nstore_out %a"
+  P.dprintf "forall    [%a]\narg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a"
     d_slocs ft.qlocs
     (d_args d_i) ft.args
     (d_prectype d_i) ft.ret
