@@ -43,7 +43,7 @@ let genspec                     = ref false (* -genspec *)
 let typespec                    = ref false (* -typespec *)
 let simplify_t                  = ref true  (* simplify and prune vacouos FixConstraint.t constraints *)
 let root                        = ref ""    (* root function *)
-
+let true_unconstrained          = ref true  (* -true_unconstrained *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -142,6 +142,9 @@ let arg_spec =
    ("-dgraph", 
     Arg.Set dump_graph, 
     "dump constraints SCC to constraints.dot [false]");
+   ("-notruekvars",
+    Arg.Clear true_unconstrained,
+    "true unconstrained kvars [true]");
    ("-v", Arg.Int (fun c -> verbose_level := c), 
               "<level> Set degree of analyzer verbosity:\n\
                \032    0      No output\n\

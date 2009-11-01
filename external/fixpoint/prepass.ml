@@ -62,14 +62,6 @@ let phase2 (tmax, cs) =
     | _    -> (j, c)
   end (tmax + 1) cs
   |> snd
-(*
-  List.fold_left 
-    (fun (cs, j) c -> match c with
-       | (_,_,_,_, Some i,_) -> (c::cs, j)
-       | (a,b,c,d, None,  e) -> ((a,b,c,d,Some j,e)::cs, j+1))
-    ([], tmax+1) cs
-  |> fst
- *)
 
 (* 3. check that sorts are consistent across constraints *)
 let phase3 cs =
@@ -129,20 +121,6 @@ let phase5 s cs =
 let validate a s cs =
   let f a s = phase1 <+> phase2 <+> phase3 <+> phase4 a <+> phase5 s in 
   BS.time "validate shapes" (f a s) cs
-
-(*
-let force_phase1c s cs c =
-  match phase1c s c with
-  | Some (_, bvs) ->
-      let env =
-        List.fold_left (fun e v -> SM.add v dfty e) (C.env_of_t c) bvs in
-      (C.make_t env (C.grd_of_t c) (C.lhs_of_t c) (C.rhs_of_t c) (Some (C.id_of_t c))) :: cs
-  | None -> c :: cs 
-
-let force_phase1 soln cs = List.fold_left (force_phase1c soln) [] cs
-let validate soln cs = if not (phase1 soln cs) then assert false
-let force_validate soln cs = force_phase1 soln cs
-*)
 
 (***************************************************************)
 (****************** Pruning Unconstrained Vars *****************)

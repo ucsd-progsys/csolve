@@ -390,6 +390,7 @@ module LDesc = struct
           let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
           P.concat P.align (P.concat d P.unalign) *)
           P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts)
+end
 
 module SLM = S.SlocMap
 

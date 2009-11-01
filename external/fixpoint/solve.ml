@@ -264,8 +264,12 @@ let rec acsolve me w s =
 let solve me (s : C.soln) = 
   let _  = F.printf "Fixpoint: Validating Initial Solution \n" in
   let _  = BS.time "profile" PP.profile me.sri in
-  let _  = F.printf "Fixpoint: Pruning unconstrained kvars \n" in
-  let s  = PP.true_unconstrained s me.sri in
+  let s  = if !Co.true_unconstrained then 
+             let _ = F.printf "Fixpoint: Pruning unconstrained kvars \n" in
+             PP.true_unconstrained s me.sri
+           else 
+             let _ = F.printf "Fixpoint: NOT Pruning unconstrained kvars \n" in
+             s in
   let _  = Co.cprintf Co.ol_insane "%a" Ci.print me.sri;  
            Co.cprintf Co.ol_insane "%a" C.print_soln s;
            dump me s in
