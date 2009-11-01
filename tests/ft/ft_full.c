@@ -290,12 +290,16 @@ Vertices *GenTree(int nVertex )
     edge = NewEdge();
     validptr(edge);
     edge->weight = weight;
-    validptr(vertex->edges);
-    edge->source = (vertex->edges)->vertex;
+    Edges *vertexedges = vertex->edges; 			//JHALA constprop
+    int assm = assume(vertexedges != (Edges *) 0);		//JHALA delayed-init
+    validptr(vertexedges);					//JHALA constprop
+    edge->source = (vertexedges)->vertex;		   	//JHALA constprop
     edge->vertex = vertex;
-    validptr((vertex->edges)->vertex);
-    edge->next = ((vertex->edges)->vertex)->edges;
-    ((vertex->edges)->vertex)->edges = edge;
+    Vertices *vertexedgesvertex = (vertex->edges)->vertex; 	//JHALA constprop
+    int assm = assume(vertexedgesvertex != (Vertices *) 0);	//JHALA delayed-init
+    validptr(vertexedgesvertex);				//JHALA constprop	
+    edge->next = (vertexedgesvertex)->edges;			//JHALA constprop
+    (vertexedgesvertex)->edges = edge;				//JHALA constprop
     i ++;
   }
   return (graph);

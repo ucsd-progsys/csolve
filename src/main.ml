@@ -38,10 +38,14 @@ open Misc.Ops
   * simplify boolean expressions *)
 let mydebug = false 
 
+let location_of_constraint tgr = 
+  FixConstraint.tag_of_t <+> CilTag.t_of_tag <+> CilTag.loc_of_t tgr
+
 let print_unsat_locs tgr s ucs =
+  let ucs = Misc.fsort (location_of_constraint tgr) ucs in
   List.iter begin fun c ->
-    let loc = c |> FixConstraint.tag_of_t |> CilTag.t_of_tag |> CilTag.loc_of_t tgr in
-    P.printf "\nUnsafe Type at %a:\n\n%a\n" Cil.d_loc loc 
+    P.printf "\nUnsafe Type at %a:\n\n%a\n" 
+      Cil.d_loc (location_of_constraint tgr c) 
       (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
     |> ignore
   end ucs

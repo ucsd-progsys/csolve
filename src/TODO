@@ -1,21 +1,19 @@
 TBD
 
-[validptr-fold] make validptr calls NOT fold up stuff...
 
+Major Expressiveness Limitations:
+---------------------------------
+1. Function sigs must have concrete locations (to allow delayed initialization).
+2. Constprop issue.
+	-- Notion of a function being "pure" wrt abstract location
+	-- Don't fold up all abs-locs if sent into "pure" function 
 
 [Annot] Dump out the types for the entire store of a function (not just in/out?)
 
-stringexample
-pmap
-adpcm
-power
-mst
-strncpy
-? em3d
-? health
-? ks 
-
 -------------------------------------------------------------------------
+
+[validptr-fold] make validptr calls NOT fold up stuff...
+
 [Ops]	get postests/hashfunc.c working...
 	refactor CilInterface to deal with unop and binop 
         (make CilInterface.expr_of_cilexp return a refinement instead of expr)

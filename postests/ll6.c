@@ -8,8 +8,8 @@ typedef struct node {
 node_t *new_node(){
   node_t *n = (node_t *) malloc(sizeof(*n));
   validptr(n);
-  n -> data = 0;
-  n -> next = n ;
+  n-> data = 0;
+  n-> next = n ;
   return n;
 }
 
