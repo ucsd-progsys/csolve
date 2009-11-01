@@ -1,3 +1,5 @@
+//!run with -notruekvars
+
 extern char* malloc(int);
 
 typedef struct node {
