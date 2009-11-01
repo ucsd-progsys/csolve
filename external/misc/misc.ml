@@ -763,3 +763,15 @@ let transpose x_iys_s =
 
 
 
+let absolute_name name =
+  if not (Filename.is_relative name) then name else
+    let b    = Filename.basename name in
+    let d    = Filename.dirname name in
+    let dir  = Sys.getcwd () in
+    let _    = Sys.chdir (Filename.concat dir d) in
+    let dir' = Sys.getcwd () in
+    let rv   = Filename.concat dir' b in
+    let _    = Sys.chdir dir in
+    rv
+
+

@@ -1,5 +1,8 @@
 TBD
 
+[validptr-fold] make validptr calls NOT fold up stuff...
+
+
 [Annot] Dump out the types for the entire store of a function (not just in/out?)
 
 stringexample

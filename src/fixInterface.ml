@@ -567,10 +567,12 @@ let make_dep pol xo yo =
   (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
            |> Misc.uncurry (C.make_dep pol)
 
+(*
 let add_deps tago tag = 
   match tago with 
   | Some t -> [make_dep true (Some t) (Some tag)] 
   | _      -> [] 
+*)
 
 let rec make_cs cenv p rct1 rct2 tago tag =
   let env    = env_of_cilenv cenv in
@@ -594,7 +596,7 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   end ncrs12
   |> Misc.splitflatten
 
-let make_cs_refstore env p st1 st2 polarity tago tag loc =
+let make_cs_refstore env p st1 st2 polarity tago tag =
  (* {{{ let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
@@ -618,12 +620,14 @@ let make_cs cenv p rct1 rct2 tago tag loc =
     let _ = asserti false "make_cs" in 
     assert false
 
+(* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
+  try make_cs_refstore env p st1 st2 polarity tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
+(* API *)
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
   try make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 

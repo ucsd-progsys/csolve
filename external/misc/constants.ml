@@ -213,6 +213,11 @@ let is_prefix p s =
 
 (****************************** CIL Specific ********************************)
 
+let is_pure_function s =
+  s = "validptr" || 
+  s = "assert" || 
+  s = "assume"
+
 let is_cil_tempvar s = 
   Misc.is_prefix "__cil_tmp" s || 
   Misc.is_prefix "tmp___" s ||

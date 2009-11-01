@@ -111,7 +111,7 @@ let tcons_of_phis me phia =
     Misc.flap_pair begin fun (j, vvjs) ->
       let pj       = CF.guard_of_block me j (Some i) in
       let locj     = CF.location_of_block me j in
-      let tagj     = CF.tag_of_instr me j 0 in
+      let tagj     = CF.tag_of_instr me j 0 locj in
       let envj,_,_ = CF.outwld_of_block me j in
       let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
       Misc.flap_pair begin fun (v, vj) ->
@@ -246,8 +246,8 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store loc lsubs subs) in
   let oast, ocst = Ctypes.prestore_split ost in
 
-  let tag   = CF.tag_of_instr me i j in
-  let tag'  = CF.tag_of_instr me i (j+1) in
+  let tag   = CF.tag_of_instr me i j     loc in
+  let tag'  = CF.tag_of_instr me i (j+1) loc in
   let ecrs  = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
   let cs1,_ = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
   let cs2,_ = FI.make_cs_refstore env grd st   ist true  None tag  loc in
@@ -267,14 +267,15 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
 
 let cons_of_annotinstr me i grd (j, wld) (annots, instr) = 
   let gs, is, ns      = group_annots annots in
-  let tagj            = CF.tag_of_instr me i j in
   match instr with 
   | Set (lv, e, loc) ->
       let _         = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
+      let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
       let wld, cds  = cons_of_set me loc tagj grd wld (lv, e) in
       (j+1, wld), cds +++ acds 
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
+      let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
       let wld, cds  = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
       (j+2, wld), cds +++ acds 
@@ -286,7 +287,7 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
 (****************************************************************************)
 
 let cons_of_ret me loc i grd (env, st, tago) e_o =
-  let tag    = CF.tag_of_instr me i 1000 in
+  let tag    = CF.tag_of_instr me i 1000 loc in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
   let st_cds = let _, ost = FI.stores_of_refcfun frt in
                (FI.make_cs_refstore env grd st ost true tago tag loc) in
@@ -304,7 +305,7 @@ let cons_of_annotstmt me loc i grd wld (anns, stmt) =
       let (n, wld), cds   =  List.combine anns is 
                           |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
       let cs1, ds1        = Misc.splitflatten cds in  
-      let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n) grd wld ann in
+      let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in
       (wld, cs2 ++ cs1, ds2 ++ ds1)
   | Return (e_o, loc) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
@@ -325,7 +326,7 @@ let cons_of_block me i =
   let astmt       = CF.annotstmt_of_block me i in
   let env,st,tag  = CF.inwld_of_block me i in
   let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws          = wcons_of_phis me (CF.tag_of_instr me i 0) env phis in
+  let ws          = wcons_of_phis me (CF.tag_of_instr me i 0 loc) env phis in
   let wld, cs, ds = cons_of_annotstmt me loc i grd (env, st, tag) astmt in
   (wld, (ws, cs, ds))
 
@@ -342,10 +343,10 @@ let process_phis phia me =
   CF.add_cons ([], cs, ds) me 
 
 let cons_of_sci tgr gnv sci shp =
-(*  let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
-  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.LocalInfer.anna in
-  let _ = Pretty.printf "%a" Refanno.d_ctab shp.LocalInfer.theta in 
-  let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.LocalInfer.store in *)
+  let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
+  let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
+  let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
+  let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in 
   CF.create tgr gnv sci shp 
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis

@@ -148,7 +148,7 @@ let mk_options toolname () =
   let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
   let _  = Arg.parse Co.arg_spec (fun s -> Co.file := Some s) us in
   match !Co.file with
-  | Some fn -> fn
+  | Some fn -> Misc.absolute_name fn
   | None    -> assertf "Bug: No input file specified!"
 
 let main toolname f =
