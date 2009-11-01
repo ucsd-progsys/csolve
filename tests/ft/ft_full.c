@@ -165,20 +165,20 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
     //printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
   }
   graph = GenGraph(nVertex, nEdge);
-//  if (debug) {
-//    //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
-//  }
-//  graph = MST(graph);
-//  if (debug) {
-//    //printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
-//    PrintGraph(graph);
-//    //printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
-//    PrintMST(graph);
-//  }
-//  if (debug) {
-//    //printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
-//  }
-//  exit(0);
+  if (debug) {
+    //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
+  }
+  graph = MST(graph);
+  if (debug) {
+    //printf((char * __attribute__((__array__)) )"done\nThe graph:\n");
+    PrintGraph(graph);
+    //printf((char * __attribute__((__array__)) )"The minimum spanning tree:\n");
+    PrintMST(graph);
+  }
+  if (debug) {
+    //printf((char * __attribute__((__array__)) )"Time spent in finding the mininum spanning tree:\n");
+  }
+  exit(0);
   return (0);
 }
 }
