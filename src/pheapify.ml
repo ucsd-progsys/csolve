@@ -102,7 +102,7 @@ class heapifyAnalyzeVisitor f alloc = object
         (containsArray vi.vtype) || (vi.vaddrof && !heapifyNonArrays)
       end fundec.slocals in
       if (hvars <> []) then begin (* some local vars contain arrays *)
-        let newvars = List.map (fun vi -> makeLocalVar fundec (vi.vname ^ "#heapify") (heapifiedType vi.vtype)) hvars in
+        let newvars = List.map (fun vi -> makeLocalVar fundec (vi.vname ^ "_heapify") (heapifiedType vi.vtype)) hvars in
         let varmap  = List.combine hvars newvars in
           fundec.sbody <- visitCilBlock (new heapifyModifyVisitor varmap) fundec.sbody; (* rewrite accesses to local vars *)
           let allocs = List.map (fun (vi, hvi) -> Call (Some (Var hvi, NoOffset), alloc, [SizeOf vi.vtype], funloc)) varmap in

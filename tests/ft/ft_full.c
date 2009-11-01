@@ -651,7 +651,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
       hTr = hTable[r];						//JHALA: constprop
       while (hTr != ((HeapP *)0)) {				//JHALA: constprop
         validptr(hTr);
-	validptr(h2);
+	validptr(h2);	//JHALA fails constprop
 	tmp___0 = LessThan((hTr)->item, h2->item);		//JHALA: constprop
         if (tmp___0) {
           AddEntry(hTr, h2, hTable);				//JHALA: constprop
