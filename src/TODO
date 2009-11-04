@@ -1,12 +1,20 @@
-TBD
-
 
 Major Expressiveness Limitations:
----------------------------------
+
+0. Global Variables
+
 1. Function sigs must have concrete locations (to allow delayed initialization).
-2. Constprop issue.
-	-- Notion of a function being "pure" wrt abstract location
-	-- Don't fold up all abs-locs if sent into "pure" function 
+
+2. Constprop/Mods
+	-- Want notion of a function being "pure" wrt abstract location
+	-- Do not fold up all abs-locs if sent into "pure" function 
+
+Efficiency:
+
+How to find things for which you _dont_ want to generate Kvars 
+(i.e. just use "true" refinement)
+
+-------------------------------------------------------------------------
 
 [Annot] Dump out the types for the entire store of a function (not just in/out?)
 
