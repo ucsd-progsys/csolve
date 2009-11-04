@@ -80,7 +80,7 @@ void Compute_Tree(Root r )
     validptr(r);
     validptr(&r->feeders[i]);
     l = r->feeders[i];
-    if (l == (Lateral)0) { DIVERGE: goto DIVERGE; } // pmr assume
+    if (l == (Lateral)0) { DIVERGE: goto DIVERGE; } // pmr ASSUME
     validptr(&r->theta_R);
     theta_R = r->theta_R;
     validptr(&r->theta_I);

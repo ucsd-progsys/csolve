@@ -194,6 +194,7 @@ InitLists(GFORMALS)
 	    /* add to tail */
             validptr(&mr->next);
 	    (*mr).next = NULL;
+            // pmr: ASSUME
             // validptr(&groupA->tail->next);
 	    (*groupA->tail).next = mr;
 	    groupA->tail = mr;
@@ -218,6 +219,7 @@ InitLists(GFORMALS)
 	    /* add to tail */
             validptr(&mr->next);
 	    (*mr).next = NULL;
+            // pmr: ASSUME
             // validptr(&groupB->tail->next);
 	    (*groupB->tail).next = mr;
 	    groupB->tail = mr;
