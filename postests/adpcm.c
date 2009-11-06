@@ -138,13 +138,13 @@ adpcm_coder(int nsample, short *__attribute__((array)) indata, char * __attribut
 	}
 	step >>= 1;
 	if ( diff >= step  ) {
-	    delta |= 2;
+	    delta = bor(delta, 2);
 	    diff -= step;
 	    vpdiff += step;
 	}
 	step >>= 1;
 	if ( diff >= step ) {
-	    delta |= 1;
+	    delta = bor(delta, 1);
 	    vpdiff += step;
 	}
 
@@ -161,7 +161,7 @@ adpcm_coder(int nsample, short *__attribute__((array)) indata, char * __attribut
 	  valpred = -32768;
 
 	/* Step 5 - Assemble value, update index and step values */
-	delta |= sign;
+	delta = bor(delta, sign);
 
 	index += indexTable[delta];
 	if ( index < 0 ) index = 0;
@@ -246,9 +246,9 @@ adpcm_decoder(int nsample, char * __attribute__((array)) indata, short * __attri
 	if ( bufferstep == 0) {
             validptr(inp);
 	    inputbuffer = *inp++;
-	    delta = (inputbuffer >> 4) & 0xf;
+	    delta = band((inputbuffer >> 4), 0xf);
 	} else {
-	    delta = inputbuffer & 0xf;
+	    delta = band(inputbuffer, 0xf);
 	}
 	bufferstep = 1 - bufferstep;
 
@@ -258,8 +258,8 @@ adpcm_decoder(int nsample, char * __attribute__((array)) indata, short * __attri
 	if ( index > 88 ) index = 88;
 
 	/* Step 3 - Separate sign and magnitude */
-	sign = delta & 8;
-	delta = delta & 7;
+	sign = band(delta, 8);
+	delta = band(delta, 7);
 
 	/* Step 4 - Compute difference and new predicted value */
 	/*

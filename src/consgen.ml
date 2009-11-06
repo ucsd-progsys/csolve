@@ -174,13 +174,19 @@ let extend_env me v cr env =
   let cr = FI.t_ctype_refctype ct cr in
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
+let cons_of_mem loc tago tag grd env v =
+  if CilMisc.has_unchecked_attr v.vattr || !Constants.manual then
+    ([], [])
+  else
+    let rct = v |> FI.name_of_varinfo |> FI.t_name env in
+      FI.make_cs_validptr env grd rct tago tag loc
+
 let cons_of_set me loc tag grd (env, sto, tago) = function 
   (* v := *v' *)
-  | (Var v, NoOffset), Lval (Mem (Lval (Var v', offset)), _) 
-  | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', offset))), _) ->
-      let _  = asserts (offset = NoOffset) "cons_of_set: bad offset1" in
+  | (Var v, NoOffset), Lval (Mem (Lval (Var v', NoOffset)), _)
+  | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
       let cr = FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto in
-      (extend_env me v cr env, sto, Some tag), ([], [])
+      (extend_env me v cr env, sto, Some tag), (cons_of_mem loc tago tag grd env v')
 
   (* v := e, where e is pure *)
   | (Var v, NoOffset), e ->
@@ -190,7 +196,7 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
-  | (Mem (CastE (_, Lval (Var v, _))), _), e ->
+  | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
       let addr = FI.ce_find (FI.name_of_varinfo v) env in
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       let isp  = try FI.is_soft_ptr loc sto addr with ex ->
@@ -200,7 +206,7 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
         (env, sto, Some tag), (FI.make_cs env grd cr' cr tago tag loc)
       else
         let sto' = FI.refstore_write loc sto addr cr' in
-        (env, sto', Some tag), ([], [])
+        (env, sto', Some tag), (cons_of_mem loc tago tag grd env v)
 
   | _ -> assertf "TBD: cons_of_set"
 

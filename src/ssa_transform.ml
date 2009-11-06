@@ -207,6 +207,7 @@ let mk_renamed_var fdec var_t v ri =
       match ri with 
       | Phi 0 -> v 
       | _     -> makeLocalVar fdec (mk_ssa_name v.vname ri) v.vtype in
+    let _ = v'.vattr = v.vattr in
     let _    = H.replace var_t (v.vname, ri) v' in
     v'
 

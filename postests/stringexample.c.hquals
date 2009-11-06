@@ -1,5 +1,4 @@
-qualif PI(v: ptr)     : v = ~a + ~b
-
-//Needed for validptr(s) in init_string
-//qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8
-//qualif SIZE(v:int)  : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + ~a
+qualif PI(v: ptr)   : v = ~a + ~b
+qualif INS(v:ptr)   : (v != 0) -> (v = (BLOCK_BEGIN([v]) + 4))
+qualif MF(v:ptr)    : v > 4
+qualif SIZE(v:ptr)  : v != 0 -> BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8

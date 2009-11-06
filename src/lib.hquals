@@ -16,12 +16,12 @@ qualif NULLorBEGIN(v:ptr): (v != 0) -> (v = BLOCK_BEGIN([v]))
 
 //Commented out for tests/ft/ft_full.c 
 //Uncomment after that
-//qualif LEQ(v:int)      : v <= ~a
-//qualif GEQ(v:int)      : v >= ~a
-//qualif LT(v:int)       : v < ~a
-//qualif GT(v:int)       : v > ~a
-//qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
-//qualif SIZE(v:ptr)     : BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
-//qualif SIZE(v:ptr)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
-//qualif BEGIN(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
-//qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a]) 
+qualif LEQ(v:int)      : v <= ~a
+qualif GEQ(v:int)      : v >= ~a
+qualif LT(v:int)       : v < ~a
+qualif GT(v:int)       : v > ~a
+qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
+qualif SIZE(v:ptr)     : BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
+qualif SIZE(v:ptr)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
+qualif BEGIN(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a]) 

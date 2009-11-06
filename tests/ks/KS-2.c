@@ -354,6 +354,7 @@ PrintResults(int verbose, GFORMALS)
 		netSz++;
             }
 	    // assert(netSz >= 2);
+            // pmr: ASSUME
             if (netSz > 255) { LALALAND: goto LALALAND; }
 
 	    /* for all modules on this net */
@@ -388,6 +389,7 @@ PrintResults(int verbose, GFORMALS)
 	    netSz++;
         }
 	// assert(netSz >= 2);
+        // pmr: ASSUME
         if (netSz > 255) { HOLLYWOOD: goto HOLLYWOOD; }
 
         // pmr: TODO how to check that netsz is in the bounds??

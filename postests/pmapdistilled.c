@@ -65,6 +65,7 @@ void env_check(env_t *env, env_t **envs, int pages[], int page_protected[])
     int i, found;
     env_t *walk;
     int ppi = 0;
+    int a = assume(env != (env_t*) 0); // pmr: precondition
 
     dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
 
@@ -131,6 +132,8 @@ env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
     env_t *tmp;
     
     int i, env_pp = page_getfree(pages);
+
+    int a = assume(envs != (env_t **) 0); // pmr: precondition
     
     if (env_pp < 0)
         return 0;
@@ -147,8 +150,9 @@ env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
     tmp = *envs; // PURIFIER ISSUE
     env->env_next = tmp;
     env->env_prev = 0;
-    if (*envs == 0){
-        (*envs)->env_prev = env;
+    // pmr: Used to be tmp == 0!
+    if (tmp != 0){
+        tmp->env_prev = env;
     }
     *envs = env;
 
@@ -167,6 +171,9 @@ void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
 {
     int i;
     int ppi = 0;
+
+    int a = assume(env != (env_t*) 0); // pmr: precondition
+    int a = assume(envs != (env_t**) 0); // pmr: precondition
     
     env_check(env, envs, pages, page_protected);
 
@@ -183,10 +190,13 @@ void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
     page_decref(env->env_mypp, pages, page_protected);
     dummyassert(page_free(env->env_mypp, pages, page_protected));
 
-    if (env->env_next)
-        env->env_next->env_prev = env->env_prev;
-    if (env->env_prev)
-        env->env_prev->env_next = env->env_next;
+    env_t *t;
+    t = env->env_next;
+    if (t)
+        t->env_prev = env->env_prev;
+    t = env->env_prev;
+    if (t)
+        t->env_next = env->env_next;
     else
         *envs = env->env_next;
 
@@ -237,6 +247,9 @@ int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t **envs, i
 {
     int tmp, tmp2; // RECHECK ISSUE
 
+    int a = assume(srcenv != (env_t*) 0); // pmr: precondition
+    int a = assume(dstenv != (env_t*) 0); // pmr: precondition
+
     assert(srcvp >= 0); assert(srcvp < 2000);
     assert(dstvp >= 0); assert(dstvp < 2000);
 
@@ -254,7 +267,7 @@ int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t **envs, i
 
     dstenv->env_pgdir[dstvp] = tmp2;
     validptr(pages + tmp2);
-    pages[dstenv->env_pgdir[dstvp]]++;
+    pages[tmp2]++;
 
     env_check(dstenv, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
@@ -287,10 +300,11 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     *envs = (env_t *) 0;
     env_t *e = env_alloc(envs, pages, page_protected);
 
-    if (e!=0) {
-        env_check(e, envs, pages, page_protected);
-        env_free(e, envs, pages, page_protected);
-    }
+    if (e == 0)
+        return;
+
+    env_check(e, envs, pages, page_protected);
+    env_free(e, envs, pages, page_protected);
 
     env_t *e2 = env_alloc(envs, pages, page_protected);
 
