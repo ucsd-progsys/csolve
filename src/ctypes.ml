@@ -111,7 +111,7 @@ let d_prectype (d_i: unit -> 'a -> P.doc) (): 'a prectype -> P.doc = function
 
 let prectype_width: 'a prectype -> int = function
   | CTInt (n, _) -> n
-  | CTRef (_)    -> 1
+  | CTRef (_)    -> CM.int_width
 
 let prectype_sloc: 'a prectype -> S.t option = function
   | CTRef (s, _) -> Some s
