@@ -21,8 +21,8 @@ int main(){
   }
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-    assert(tmp->data >= 0);
-    assert(tmp->data < 1000);
+      assert(tmp->data >= 0);
+      assert(tmp->data < 1000);
   }
   
   return 0;

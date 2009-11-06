@@ -27,6 +27,7 @@ let global_name         = "GLOBAL"
 
 let file: string option ref = ref None         (* last commandline param*)
 let safe                = ref false            (* -safe *)
+let manual              = ref false            (* -manual *)
 let save_file           = ref "out"            (* -save *)
 let dump_ref_constraints= ref false            (* -drconstr *)
 let ctypes_only         = ref false            (* -ctypes *)
@@ -124,6 +125,9 @@ let arg_spec =
    ("-safe", 
     Arg.Set safe, 
     "run in failsafe mode [false]");
+   ("-manual",
+    Arg.Set manual,
+    "only verify manually-inserted checks");
    ("-ptag", 
     Arg.Set ptag, 
     "prioritize constraints using lexico-ordering on tags [true]");

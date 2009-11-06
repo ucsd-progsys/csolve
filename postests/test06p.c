@@ -1,7 +1,9 @@
+//! run with -manual
+
 extern int* imalloc();
 
 void main(){
-  int *t;
+  int * __attribute__ ((unchecked)) t;
   int x;
 
   t = imalloc();

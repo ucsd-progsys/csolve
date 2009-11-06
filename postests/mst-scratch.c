@@ -78,6 +78,7 @@ static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
 int HashLookup(unsigned int key , Hash hash ) 
 { int j ;
   HashEntry ent ;
+  int a = assume(hash != (Hash)0);
 
   {
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
@@ -113,6 +114,8 @@ void HashInsert(int entry , unsigned int key , Hash hash )
 { HashEntry ent ;
   int j ;
   /* void *tmp; */
+  int a = assume(hash != (Hash) 0); // pmr: needed for safe derefs to hash->
+
   {
   // assert(3,!HashLookup(key,hash));
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);

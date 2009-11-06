@@ -158,11 +158,15 @@ let isVararg (t: typ): bool =
     let _, _, vararg, _ = splitFunctionType t in
       vararg
 
-let is_array_attr = function Attr ("array",_) -> true | _ -> false
-let is_pos_attr   = function Attr ("pos",_) -> true | _ -> false
+let is_attr s = function Attr (s',_) when s = s' -> true | _ -> false
 
-let has_array_attr = fun a -> List.exists is_array_attr a
-let has_pos_attr   = fun a -> List.exists is_pos_attr a
+let is_array_attr     = is_attr "array"
+let is_pos_attr       = is_attr "pos"
+let is_unchecked_attr = is_attr "unchecked"
+
+let has_array_attr     = fun a -> List.exists is_array_attr a
+let has_pos_attr       = fun a -> List.exists is_pos_attr a
+let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 
 let id_of_po = function
   | None   -> ""

@@ -1,2 +1,3 @@
 qualif F(v: int): 0 = 1
 qualif A(v: int): v >= ~a
+qualif SZ(v:ptr): BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8

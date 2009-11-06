@@ -29,7 +29,7 @@ void init_string(string *s, char c) {
     str = s->str;
     for (int i = 0; i < len; i++) {
         validptr(str + i);
-        s->str[i] = c;
+        str[i] = c;
     }
 }
 
@@ -78,9 +78,16 @@ slist *new_strings(int n) {
 string *string_succ(string **s) {
     slist *sl;
 
-    sl = ((slist **)s) - 1;
+    if (s == (slist *) 0)
+        return (slist *) 0;
 
-    return sl->next->s;
+    sl = (slist **)s - 1;
+    sl = sl->next;
+
+    if (sl == (slist *) 0)
+        return (slist *) 0;
+
+    return sl->s;
 }
 
 void main () {
@@ -88,7 +95,10 @@ void main () {
     new_string (nondetpos(), (char)nondetpos());
     slist *sls = new_strings(nondetpos());
 
+    if (sls == (slist *) 0)
+        return;
+
     string *s = string_succ(&sls->s);
     // assert(0); // Sanity
-    init_string(s, 0);
+    // init_string(s, 0);
 }

@@ -442,6 +442,11 @@ let mk_eq_uf uf xs ys =
   let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
   A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
 
+let t_valid_ptr ct =
+  let vv = Sy.value_variable So.Ptr in
+    t_pred ct vv (A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero);
+                          A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Le, A.eVar vv);
+                          A.pAtom (A.eVar vv, A.Lt, A.eApp (uf_bend, [A.eVar vv]))])
 let is_reference cenv x =
   if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
     false
@@ -581,6 +586,10 @@ let rec make_cs cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
+let make_cs_validptr cenv p rct tago tag =
+  let rvp = rct |> ctype_of_refctype |> t_valid_ptr in
+    make_cs cenv p rct rvp tago tag
+
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
@@ -618,6 +627,13 @@ let make_cs cenv p rct1 rct2 tago tag loc =
   try make_cs cenv p rct1 rct2 tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
+    assert false
+
+(* API *)
+let make_cs_validptr cenv p rct tago tag loc =
+  try make_cs_validptr cenv p rct tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
