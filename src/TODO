@@ -3,11 +3,16 @@ Major Expressiveness Limitations:
 
 0. Global Variables
 
-1. Function sigs must have concrete locations (to allow delayed initialization).
+1. Function sigs must have conc locations (to allow delayed initialization).
 
 2. Constprop/Mods
 	-- Want notion of a function being "pure" wrt abstract location
 	-- Do not fold up all abs-locs if sent into "pure" function 
+	-- Vanilla interproc (../postests/ll8.c)
+
+3. Heap Stratification: allow lower level blocks to "refer to" upper level
+                        blocks. Currently, only dependencies are
+			intra-block.
 
 Efficiency:
 
