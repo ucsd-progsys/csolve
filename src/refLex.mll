@@ -111,6 +111,8 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "ref"               { REF }
+  | "chk"               { CHECKED }
+  | "nochk"             { UNCHECKED }
   | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
   | eof			{ EOF }

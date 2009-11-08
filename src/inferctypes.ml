@@ -113,10 +113,10 @@ let cstr_sat (st: store) (sc: cstr): bool =
 
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
-    | CTRef (s1, _), CTRef (s2, _) when S.eq s1 s2 -> sub
-    | CTRef (s1, _), CTRef (s2, _)                 -> S.Subst.extend s1 s2 sub
-    | CTInt (n1, _), CTInt (n2, _) when n1 = n2    -> sub
-    | _                                            -> raise (Unify (ct1, ct2))
+    | CTRef (s1, _, _), CTRef (s2, _, _) when S.eq s1 s2 -> sub
+    | CTRef (s1, _, _), CTRef (s2, _, _)                 -> S.Subst.extend s1 s2 sub
+    | CTInt (n1, _), CTInt (n2, _) when n1 = n2          -> sub
+    | _                                                  -> raise (Unify (ct1, ct2))
 
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
@@ -259,7 +259,7 @@ and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvema
   | (C.Mem e, C.NoOffset) as lv ->
       let ctv, em, cs = constrain_exp env em e in
         begin match ctv with
-          | CTRef (s, ie) ->
+          | CTRef (s, _, ie) ->
               let ctvlv = lv |> C.typeOfLval |> SI.fresh_heaptype in
               let cs    = mk_locinc ie ctvlv s :: cs in
                 (ctvlv, em, cs)
@@ -305,8 +305,8 @@ and apply_arithmetic (f: index -> index -> index) (rt: C.typ) (ctv1: ctype) (ctv
 
 and apply_ptrarithmetic (f: index -> int -> index -> index) (pt: C.typ) (ctv1: ctype) (ctv2: ctype): ctype =
   match (C.unrollType pt, ctv1, ctv2) with
-    | (C.TPtr (t, _), CTRef (s, i1), CTInt (n, i2)) when n = CM.int_width -> CTRef (s, f i1 (CM.typ_width t) i2)
-    | _                                                                   -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+    | (C.TPtr (t, _), CTRef (s, pk, i1), CTInt (n, i2)) when n = CM.int_width -> CTRef (s, pk, f i1 (CM.typ_width t) i2)
+    | _                                                                       -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
   CTInt (CM.typ_width !C.upointType, ITop)
@@ -318,8 +318,8 @@ and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
   CTInt (CM.typ_width rt, ITop)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [mk_locinc (ISeq (0, 1)) (CTInt (1, ITop)) s])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [])
+  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, Checked, IInt 0), [mk_locinc (ISeq (0, 1)) (CTInt (1, ITop)) s])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, Checked, IBot), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
@@ -461,8 +461,8 @@ let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
 
 let fresh_sloc_of (c: ctype): ctype =
   match c with
-    | CTRef (s, i) when not (S.is_ghost s) -> CTRef (S.fresh S.Abstract, i)
-    | _                                    -> c
+    | CTRef (s, pk, i) when not (S.is_ghost s) -> CTRef (S.fresh S.Abstract, pk, i)
+    | _                                        -> c
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
@@ -550,7 +550,7 @@ let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
-  let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
+  let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;

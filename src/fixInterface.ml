@@ -88,10 +88,10 @@ let (fresh_tag, _ (* loc_of_tag *) ) =
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
 
-type refctype  = (Ctypes.index * C.reft) Ctypes.prectype
-type refcfun   = (Ctypes.index * C.reft) Ctypes.precfun
-type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
-type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
+type refctype  = ((Ctypes.index * C.reft), Ctypes.ptrkind) Ctypes.prectype
+type refcfun   = ((Ctypes.index * C.reft), Ctypes.ptrkind) Ctypes.precfun
+type refldesc  = ((Ctypes.index * C.reft), Ctypes.ptrkind) Ctypes.LDesc.t
+type refstore  = ((Ctypes.index * C.reft), Ctypes.ptrkind) Ctypes.prestore
 
 
 let d_index_reft () (i,r) = 
@@ -100,21 +100,21 @@ let d_index_reft () (i,r) =
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
-let d_refstore = Ctypes.d_precstore d_index_reft 
-let d_refctype = Ctypes.d_prectype d_index_reft
-let d_refcfun  = Ctypes.d_precfun d_index_reft
+let d_refstore = Ctypes.d_precstore d_index_reft Ctypes.d_ptrkind
+let d_refctype = Ctypes.d_prectype d_index_reft Ctypes.d_ptrkind
+let d_refcfun  = Ctypes.d_precfun d_index_reft Ctypes.d_ptrkind
 
 let reft_of_refctype = function
   | Ctypes.CTInt (_,(_,r)) 
-  | Ctypes.CTRef (_,(_,r)) -> r
+  | Ctypes.CTRef (_,_,(_,r)) -> r
 
 let refctype_of_reft_ctype r = function
-  | Ctypes.CTInt (x,y) -> (Ctypes.CTInt (x, (y,r))) 
-  | Ctypes.CTRef (x,y) -> (Ctypes.CTRef (x, (y,r))) 
+  | Ctypes.CTInt (x,y)   -> (Ctypes.CTInt (x, (y,r)))
+  | Ctypes.CTRef (x,y,z) -> (Ctypes.CTRef (x, y, (z,r)))
 
 let ctype_of_refctype = function
-  | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
-  | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
+  | Ctypes.CTInt (x, (y, _))    -> Ctypes.CTInt (x, y)
+  | Ctypes.CTRef (x, y, (z, _)) -> Ctypes.CTRef (x, y, z)
 
 (* API *)
 let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
@@ -177,7 +177,7 @@ let refdesc_find ploc rd =
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype loc = function
-  | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
+  | Ctypes.CTRef (cl, _, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, Ctypes.ploc_of_index i)
   | cr ->
       let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
@@ -390,10 +390,10 @@ let fresh_kvar =
 let refctype_of_ctype f = function
   | Ctypes.CTInt (i, x) as t ->
       let r = C.make_reft vv_int so_int (f t) in
-      (Ctypes.CTInt (i, (x, r))) 
-  | Ctypes.CTRef (l, x) as t ->
+      (Ctypes.CTInt (i, (x, r)))
+  | Ctypes.CTRef (l, pk, x) as t ->
       let r = C.make_reft vv_ref so_ref (f t) in
-      (Ctypes.CTRef (l, (x, r))) 
+      (Ctypes.CTRef (l, pk, (x, r)))
 
 (*
 let reftype_of_bindings f = function
@@ -453,8 +453,8 @@ let is_reference cenv x =
   else if not (ce_mem x cenv) then
     false
   else match ce_find x cenv with 
-    | Ctypes.CTRef (_,(_,_)) -> true
-    | _                      -> false
+    | Ctypes.CTRef _ -> true
+    | _              -> false
 
 let t_exp_ptr cenv ct vv p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = A.Predicate.support p |> List.filter (is_reference cenv) in
