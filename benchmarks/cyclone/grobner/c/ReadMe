@@ -1,0 +1,11 @@
+Healthy sequential versions (cleaned CMU).
+Also see ~soumen/stanford.
+
+bb-* : Buchberger's extensive interreduction. Less readable.
+og-* : Without interreduction.
+og-pn: Runs on 1 node of CM-5, with CMMD-3.0.
+       og-*.c have lots of unused junk but the relevant parts are readable.
+
+Corresponding 3 makefiles.
+Most important files: bb.c og.c
+

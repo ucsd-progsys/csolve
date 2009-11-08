@@ -1,0 +1,39 @@
+CFLAGS = -g -q nosb -I$(INCLUDEDIR)
+LIBDIR=../../lib 
+BINDIR=../../bin
+INCLUDEDIR=../../include
+SRC = MPolAdd.c MExpo.c MPolIn.c MPolOut.c MPolFree.c MPolMult.c MPolUnit.c MPolCopy.c MPolSub.c
+
+libmultpol.a: $(SRC:c=o)
+	ar cr libmultpol.a $(SRC:c=o)
+	ranlib libmultpol.a
+
+# to read a polynomial : use of lex and yacc.
+
+lex.yy.c : lexpol.l
+	lex lexpol.l
+
+y.tab.c  : translate.y
+	yacc translate.y
+	
+MPolIn.o  :  lex.yy.c y.tab.c
+
+$(SRC:c=o) : multpol.h
+       
+
+install:	libmultpol.a  # jacobi legendre
+	-cd $(LIBDIR); rm -f libmultpol.a 
+	cp libmultpol.a $(LIBDIR)
+	-rm -f $(INCLUDEDIR)/multpol.h
+	cp multpol.h $(INCLUDEDIR)/multpol.h
+
+
+
+clean:	space
+	-rm -f libmultpol.a 
+
+space:
+	-rm -f *.o *.po *.pgo 
+
+
+

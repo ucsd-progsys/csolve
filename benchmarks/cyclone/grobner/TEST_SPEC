@@ -1,0 +1,5 @@
+TESTNAME	test1
+VAR	C	Cyclone	Cyclone-nochk	Cyc-faster	Cyc-faster-nochk
+PROG	c/og-sun c/og-sun c/og-sun c/og-sun c/og-sun c/og-sun	cyc/og-sun cyc/og-sun cyc/og-sun cyc/og-sun cyc/og-sun cyc/og-sun	cyc/og-sun-nochk cyc/og-sun-nochk cyc/og-sun-nochk cyc/og-sun-nochk cyc/og-sun-nochk cyc/og-sun-nochk	cyc-faster/og-sun cyc-faster/og-sun cyc-faster/og-sun cyc-faster/og-sun cyc-faster/og-sun cyc-faster/og-sun	cyc-faster/og-sun-nochk cyc-faster/og-sun-nochk cyc-faster/og-sun-nochk cyc-faster/og-sun-nochk cyc-faster/og-sun-nochk cyc-faster/og-sun-nochk
+ARGS	200#c/eg/eg01 200#c/eg/eg80 200#c/eg/eg81 200#c/eg/eg97 200#c/eg/eg98 200#c/eg/eg99
+FILES	{} {} {} {} {} {}

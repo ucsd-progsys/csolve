@@ -1,0 +1,39 @@
+# use gmake
+
+TARGET	:=	libcmump-sun.a
+GROBNER :=	/home/auspex/i/kygs/soumen/grobner
+BINDIR	:=	bin
+INCDIR	:=	$(GROBNER)/include
+LIBDIR	:=	$(GROBNER)/lib
+SRCDIR	:=	$(GROBNER)/shared
+
+CC		:=	gcc
+FLAGS	:=	-O4 -fdelayed-branch -finline -fschedule-insns\
+			-fstrength-reduce -funroll-loops
+#CC		=	cc
+#FLAGS	=	-O4 -I$(INCLUDEDIR)
+
+SRC		:=	Madd.c Mdiv.c Mgcd.c Mout.c Mpow.c Msqrt.c Mmult.c\
+			MExpo.c Mutil.c Mfloat.c Mstrtoul.c Mfatal.c  Mmod.c
+
+INCSTR	:=	${addprefix -I, ${INCDIR}}
+LIBSTR	:=	${addprefix -L, ${LIBDIR}}
+OBJ		:=	${addprefix ${BINDIR}/, ${addsuffix .o, ${basename ${SRC}}}}
+
+${TARGET}:	${BINDIR} ${OBJ}
+			ar cruv $@ $(OBJ)
+			ranlib $@
+			mv $(TARGET) $(LIBDIR)/
+
+${BINDIR}	:
+			mkdir ${BINDIR}
+
+${BINDIR}/%.o:	%.c ${INCDIR}/cmump.h
+			${CC} ${FLAGS} ${INCSTR} -o $@ -c $*.c
+
+${BINDIR}/%.o:	${SRCDIR}/%.c ${INCDIR}/cmump.h
+			${CC} ${FLAGS} ${INCSTR} -o $@ -c ${SRCDIR}/$*.c
+
+clean	:
+			rm -rf ${BINDIR} ${TARGET}
+

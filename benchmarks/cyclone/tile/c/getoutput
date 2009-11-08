@@ -1,0 +1,2 @@
+#!/bin/sh
+./tile$1 s2 s2 2>&1 >/dev/null

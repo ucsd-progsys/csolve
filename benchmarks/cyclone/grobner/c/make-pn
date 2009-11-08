@@ -1,0 +1,27 @@
+.KEEP_STATE:
+
+CMMD_ROOT= /usr/cm5/cmmd-3.0
+HOME	 = /home/auspex/i/kygs/soumen
+GROBNER	 = $(HOME)/grobner
+TARGET	 = og-pn
+
+SRCS	 = Time.c NewPairs.c NewSimp.c NewAddPol.c NewRed.c NewUtil.c\
+		og.c xalloc.c inter.c sparse.c
+
+OBJS	 = $(SRCS:%.c=%.o)
+INCDIRS	 = . $(CMMD_ROOT)/include /usr/cm5/include $(GROBNER)/include
+NODELIBS = multpol-sun cmump-sun
+LIBDIRS	 = /usr/cm5/lib $(GROBNER)/lib
+
+CC	 = gcc
+CFLAGS	 = -g -Doldpair_ -DNODE
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCDIRS:%=-I%) -c $<
+$(TARGET): $(OBJS)
+	$(CMMD_ROOT)/bin/cmmd-ld -comp $(CC) $(notdir $(OBJS))\
+	-g -o $(TARGET) -cmmd_root $(CMMD_ROOT)\
+	$(LIBDIRS:%=-L%) $(NODELIBS:%=-l%)
+
+clean:
+	rm -f $(TARGET) $(OBJS) *~ .make.state .nse_depinfo

@@ -1,0 +1,12 @@
+#!/bin/csh -f
+foreach  file  ( arnborg4 arnborg5 katsura4 lazard morgenstern pavelle4 robbiano rose trinks1 trinks2 )
+	echo $file
+	echo noint
+	noint < i/$file
+	noint < i/$file
+	echo inter
+	inter < i/$file
+	inter < i/$file
+	echo ""
+end
+

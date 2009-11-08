@@ -1,0 +1,94 @@
+#ifndef FN
+#define FN
+#endif
+
+#include "../cmump/cmump.h"
+
+/* We want to use different representations for the polynomials and be able
+** to choose it by a switch in the program.
+**
+** The exponents are given by an array of integers whose first member is
+**  the total degree of the exponent.
+**
+** The only variation in the representation is the order according to which 
+** the monomials are sorted ? The parameter is order_exp. We have the following 
+** possibilitites :
+**		- lexicographic ordering : order_exp = 0
+**		- total degree ordering refined by lexicographic : 
+**						order_exp = 1
+**		- total degree ordering refined by reverse lexicographic :
+**						order_exp = 2
+**		- we split the variables in two groups. The size of the first
+**		  group is determined by the parameter first_group.
+**		  We use the total degree ordering refined by reverse 
+**		  lexicographic ordering on the variables of the first group.
+**	  	  In case of equality, we do the same thing with the second
+**		  group :			order_exp = 3
+*/
+
+extern short nvars;
+extern int order_exp, first_group;
+
+
+/* Type declaration of MPOL */
+typedef struct
+{short nterms;
+ short maxterms; /* Set by POL_ALLOC to reflect space actually there */
+ MINT *coefs;
+ short *expos;
+ int done;
+} MPOL;
+
+
+/* Initialization macros--every new variable should 
+                                  be initialized with one of these macros */
+
+#define MPOLINIT(p) ((p)->nterms = (p)->maxterms = 0)
+#define MPOLMONSET(coef,expo,p) if ((coef)->len==0) {                 \
+                                   (p)->nterms = 0;                   \
+				   (p)->maxterms = 0;		      \
+                                } else {                              \
+				   (p)->nterms = 1;                   \
+				   POL_ALLOC(p,1);                    \
+				   MCOPY(coef,&((p)->coefs[0]));      \
+                                   expocopy(expo,(p)->expos);	      \
+				}
+#define MPOLMONMOVE(coef,expo,p) if ((coef)->len==0) {                 \
+                                    (p)->nterms = 0;                   \
+				    (p)->maxterms = 0;		       \
+                                 } else {                              \
+				    (p)->nterms = 1;                   \
+				    POL_ALLOC(p,1);                    \
+				    MMOVE(coef,&((p)->coefs[0]));      \
+                                    expocopy(expo,(p)->expos);}
+
+
+
+#define MPOLMOVE(p,q) (MPOLMOVEFREE(p,q),MPOLINIT(p))
+
+/* Other useful statement macros */
+
+#define mpolmonset(coef,expo,p)  mpolfree(p);MPOLMONSET(coef,expo,p)
+#define mpolmonmove(coef,expo,p) mpolfree(p);MPOLMONMOVE(coef,expo,p)
+			      
+                             
+/* Every MPOL should be garbage collected with mpolfree or one of these before
+   being abandoned */
+
+#define MPOLMOVEFREE(p,q) (*(q)= *(p))
+
+/* Test : is the polynomial equal to zero ? */
+#define MPOLZERO(p) ((p)->nterms==0)
+
+/* Users should avoid these. */
+
+#define POL_ALLOC(p,size) 						  \
+	((((p)->coefs= (MINT *)malloc((unsigned)(size)*sizeof(MINT)))==0) \
+				? valerr() : 0);			  \
+        ((((p)->expos=(short *)malloc((unsigned)(2*(size)*(nvars+1))))==0)\
+				? valerr() : 0);			  \
+	(p)->maxterms = size;
+
+
+#define MEXPO(p,it) (short *) ((p)->expos+(nvars+1)*(it))
+#define MPOW(p,it,ivar) (short *) ((p)->expos+(nvars+1)*(it)+(ivar)+1)

@@ -1,0 +1,19 @@
+build: compress$(EXE)
+
+ifdef DEBUG
+FLAGS:=-g -DDIRENT=1 -DSYSDIR=1 -DLSTAT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=20 -DIBUFSIZ=8192 -DOBUFSIZ=8192 -DBYTEORDER=4321 -DNOALLIGN=1 -DCOMPILE_DATE="\"`date`\"" $(EXTRACFLAGS)
+else
+FLAGS:=-O3 -DDIRENT=1 -DSYSDIR=1 -DLSTAT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=20 -DIBUFSIZ=8192 -DOBUFSIZ=8192 -DBYTEORDER=4321 -DNOALLIGN=1 -DCOMPILE_DATE="\"`date`\"" $(EXTRACFLAGS)
+endif
+
+
+compress$(EXE): compress42.o
+	$(CC) $(FLAGS)  -o $@ $^
+
+%.o : %.cyc
+	$(CC) $(FLAGS) -c $< 
+
+%.o : %.c
+	$(CC) $(FLAGS) -c $<
+clean:
+	rm -f *.o compress$(EXE) *~

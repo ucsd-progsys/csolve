@@ -1,0 +1,19 @@
+CC=	gcc
+CFLAGS  = -g -O3 -I.. $(EXTRACFLAGS)
+OBJS=	gctile.o gcmain.o token.o common.o
+LEX=	flex
+
+gctile: $(OBJS)
+	$(CC) -o gctile $(OBJS) $(EXTRALIBS) -lm -L/usr/sww/lib -lfl
+
+common.c: mkcommon
+	sh ./mkcommon > common.c
+
+token.c: token.l
+	flex -otoken.c token.l
+
+clean:
+	rm *.o htile common.c
+
+cleantarget:
+	rm htile

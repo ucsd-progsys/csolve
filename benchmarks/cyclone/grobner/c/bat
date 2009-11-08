@@ -1,0 +1,11 @@
+#!/bin/csh
+
+sg -a 09 < i/09
+sg -a arnborg4 < i/arnborg4
+sg -a lazard < i/lazard
+sg -a morgenstern < i/morgenstern
+sg -a pavelle4 < i/pavelle4
+sg -a robbiano < i/robbiano
+sg -a trinks1 < i/trinks1
+sg -a trinks2 < i/trinks2
+

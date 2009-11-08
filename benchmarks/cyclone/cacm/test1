@@ -1,0 +1,1231 @@
+for i in finger cacm http_get http_ping http_post ncompress-4.2.4 ppm http_load; do (EXE=.exe make -f ../Makefile.project -C $i clean) done
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+rm *.o finger.exe
+rm: cannot remove `*.o': No such file or directory
+rm: cannot remove `finger.exe': No such file or directory
+make[2]: *** [clean] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+rm *.o finger.exe
+rm: cannot remove `*.o': No such file or directory
+rm: cannot remove `finger.exe': No such file or directory
+make[2]: *** [clean] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+rm -f *.o encode.exe decode.exe *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+rm -f *.o encode.exe decode.exe *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+rm -f http_get.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+rm -f http_get.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+rm -f http_ping.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+rm -f http_ping.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+rm -f http_post.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+rm -f http_post.exe *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+rm -f *.o compress.exe *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+rm -f *.o compress.exe *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+rm *.o encode.exe decode.exe
+rm: cannot remove `*.o': No such file or directory
+rm: cannot remove `encode.exe': No such file or directory
+rm: cannot remove `decode.exe': No such file or directory
+make[2]: *** [clean] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+rm *.o encode.exe decode.exe
+rm: cannot remove `*.o': No such file or directory
+rm: cannot remove `encode.exe': No such file or directory
+rm: cannot remove `decode.exe': No such file or directory
+make[2]: *** [clean] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+make -C c clean ; \
+make -C cyc clean ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi; \
+rm report.test report.diff *.diff *.tmp
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+rm -f http_load *.o core core.* *.core
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+rm -f http_load *.o core core.* *.core *~
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+rm: cannot remove `report.test': No such file or directory
+rm: cannot remove `report.diff': No such file or directory
+rm: cannot remove `*.diff': No such file or directory
+rm: cannot remove `*.tmp': No such file or directory
+make[1]: *** [clean] Error 1
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+make: *** [clean] Error 2
+for i in finger cacm http_get http_ping http_post ncompress-4.2.4 ppm http_load; do (EXE=.exe make -f ../Makefile.project -C $i build) done
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+gcc    -c -o finger.o finger.c
+gcc -o finger.exe finger.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+cyclone -O2 -c finger.cyc
+***Warnings***
+finger.cyc(101:18-101:32): integral size mismatch; conversion supplied
+finger.cyc(141:19-141:21): implicit cast from Std::FILE * to Std::FILE @
+finger.cyc(159:9-159:11): implicit cast from Std::FILE * to Std::FILE @
+**************
+cyclone -O2 -o finger.exe finger.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+gcc    -c -o bit_output.o bit_output.c
+gcc    -c -o arithmetic_encode.o arithmetic_encode.c
+gcc    -c -o adaptive_model.o adaptive_model.c
+gcc    -c -o encode.o encode.c
+gcc -O2 -o encode.exe bit_output.o arithmetic_encode.o adaptive_model.o encode.o
+gcc    -c -o bit_input.o bit_input.c
+gcc    -c -o arithmetic_decode.o arithmetic_decode.c
+gcc    -c -o decode.o decode.c
+gcc -O2 -o decode.exe bit_input.o arithmetic_decode.o adaptive_model.o decode.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+cyclone -O2 -c bit_output.cyc 
+cyclone -O2 -c arithmetic_encode.cyc 
+cyclone -O2 -c adaptive_model.cyc 
+***Warnings***
+adaptive_model.cyc(19:29-19:30): integral size mismatch; conversion supplied
+adaptive_model.cyc(47:27-47:36): integral size mismatch; conversion supplied
+adaptive_model.cyc(48:32-48:36): integral size mismatch; conversion supplied
+**************
+cyclone -O2 -c encode.cyc 
+cyclone -O2 -o encode.exe bit_output.o arithmetic_encode.o adaptive_model.o encode.o
+cyclone -O2 -c bit_input.cyc 
+cyclone -O2 -c arithmetic_decode.cyc 
+cyclone -O2 -c decode.cyc 
+cyclone -O2 -o decode.exe bit_input.o arithmetic_decode.o adaptive_model.o decode.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+gcc -O2   http_get.c -s   -o http_get.exe
+http_get.c: In function `getURLbyParts':
+http_get.c:245: warning: passing arg 2 of `bcopy' from incompatible pointer type
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+cyclone -O2   http_get.cyc -s   -o http_get.exe
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+gcc -Wall -O2    -c http_ping.c
+http_ping.c: In function `start_connection':
+http_ping.c:456: warning: passing arg 2 of `bcopy' from incompatible pointer type
+gcc -Wall -s    http_ping.o   -o http_ping
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+cyclone -O2    http_ping.cyc -s   -o http_ping.exe
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+gcc -O2   http_post.c -s   -o http_post.exe
+http_post.c: In function `postURLbyParts':
+http_post.c:266: warning: passing arg 2 of `bcopy' from incompatible pointer type
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+cyclone -O2   http_post.cyc -s   -o http_post.exe
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+gcc -O2 -DDIRENT=1 -DSYSDIR=1 -DLSTAT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=20 -DIBUFSIZ=8192 -DOBUFSIZ=8192 -DBYTEORDER=4321 -DNOALLIGN=1 -DCOMPILE_DATE="\"`date`\"" -c compress42.c
+compress42.c: In function `main':
+compress42.c:705: warning: return type of `main' is not `int'
+gcc -O2 -DDIRENT=1 -DSYSDIR=1 -DLSTAT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=20 -DIBUFSIZ=8192 -DOBUFSIZ=8192 -DBYTEORDER=4321 -DNOALLIGN=1 -DCOMPILE_DATE="\"`date`\""  -o compress.exe compress42.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+cyclone -O2 -DDIRENT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=2 -DIBUFSIZ=1024 -DOBUFSIZ=1024 -DBYTEORDER=4321 -DCOMPILE_DATE="\"`date`\""  -c compress42.cyc 
+***Warnings***
+compress42.cyc(1327:9-1327:28): assignment in test
+compress42.cyc(1405:10-1405:16): implicit cast to shorter array
+compress42.cyc(1405:10-1405:16): implicit cast from char_type @{3072} to void *
+compress42.cyc(1415:9-1415:19): implicit cast to shorter array
+compress42.cyc(1415:9-1415:19): implicit cast from char_type @{524288} to void *
+compress42.cyc(1473:11-1473:21): implicit cast to shorter array
+compress42.cyc(1473:11-1473:21): implicit cast from char_type @{524288} to void *
+compress42.cyc(1474:35-1474:64): implicit cast from char_type ? to char_type @{3}
+compress42.cyc(1495:15-1495:21): implicit cast to shorter array
+compress42.cyc(1495:15-1495:21): implicit cast from char_type @{3072} to void *
+compress42.cyc(1495:23-1495:36): implicit cast from char_type ? to const void *
+compress42.cyc(1496:15-1496:42): implicit cast from char_type ? to void *
+compress42.cyc(1588:34-1588:63): implicit cast from char_type ? to char_type @{3}
+compress42.cyc(1624:35-1624:64): implicit cast from char_type ? to char_type @{3}
+compress42.cyc(1708:9-1708:16): implicit cast to shorter array
+compress42.cyc(1708:9-1708:16): implicit cast from unsigned short @{131072} to void *
+compress42.cyc(1760:36-1760:63): implicit cast from char_type ? to char_type @{3}
+compress42.cyc(1771:14-1771:21): implicit cast to shorter array
+compress42.cyc(1771:14-1771:21): implicit cast from unsigned short @{131072} to void *
+compress42.cyc(1828:11-1828:26): implicit cast from char_type ? to void *
+compress42.cyc(1828:28-1828:50): implicit cast from char_type ? to const void *
+compress42.cyc(1846:10-1846:25): implicit cast from char_type ? to void *
+compress42.cyc(1846:27-1846:49): implicit cast from char_type ? to const void *
+**************
+cyclone -O2 -DDIRENT=1 -DUTIME_H=1 -DUSERMEM=800000 -DREGISTERS=2 -DIBUFSIZ=1024 -DOBUFSIZ=1024 -DBYTEORDER=4321 -DCOMPILE_DATE="\"`date`\""   -o compress.exe compress42.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+gcc  -c encode.c
+gcc  -c model.c
+gcc  -c arithcode.c
+cyclone  -o encode.exe encode.o model.o arithcode.o
+gcc  -c decode.c
+decode.c: In function `main':
+decode.c:21: warning: return type of `main' is not `int'
+cyclone  -o decode.exe decode.o model.o arithcode.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+cyclone  -c encode.cyc 
+cyclone  -c model.cyc 
+cyclone  -c arithcode.cyc 
+cyclone  -o encode.exe encode.o model.o arithcode.o
+cyclone  -c decode.cyc 
+cyclone  -o decode.exe decode.o model.o arithcode.o
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+gcc -Wall -O2    -c http_load.c
+http_load.c: In function `start_socket':
+http_load.c:690: warning: passing arg 2 of `bcopy' from incompatible pointer type
+gcc -Wall -O2    -c timers.c
+gcc -Wall -O2    http_load.o timers.o -s   -o http_load
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+cyclone -O2    -c http_load.cyc
+
+http_load.cyc(733:55-733:63): undeclared identifier: SO_ERROR
+http_load.cyc(1570:11-1570:24): actual argument has type 
+const unsigned char *#703 
+ but formal has type 
+const %(829)::B *%(830)::R 
+	%(829)::B and unsigned char failed to unify. (kinds are incompatible)
+
+COMPILATION FAILED!
+make[2]: *** [http_load.o] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+for i in finger cacm http_get http_ping http_post ncompress-4.2.4 ppm http_load; do (EXE=.exe TESTNAME=$i make -f ../Makefile.project -C $i test) done
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+rm report.test ;\
+echo "Test: finger" >> report.test;\
+for i in "jgm19@cornell.edu"; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+(time ./finger jgm19@cornell.edu) 2>> ../report.test
+[cornell.edu]
+Information from Cornell's Network Identity Directory...
+--------------------------------------------------------
+
+Your query returned   1 match  :
+
+Name:           John Gregory Morrisett             Nickname:
+Send Email To:  jgm@cs.cornell.edu
+Campus Phone:   607-255-3009
+Campus Address: 4133 Upson Hall
+Local Phone:
+Local Address:
+Project:
+
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+(time ./finger jgm19@cornell.edu) 2>> ../report.test
+[cornell.edu]
+Information from Cornell's Network Identity Directory...
+--------------------------------------------------------
+
+Your query returned   1 match  :
+
+Name:           John Gregory Morrisett             Nickname:
+Send Email To:  jgm@cs.cornell.edu
+Campus Phone:   607-255-3009
+Campus Address: 4133 Upson Hall
+Local Phone:
+Local Address:
+Project:
+
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/finger'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+rm report.test ;\
+echo "Test: cacm" >> report.test;\
+for i in ../test1; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+echo "../test1 encode:" >> ../report.test ;\
+(time ./encode < ../test1 > ../test1.ar.tmp) 2>> ../report.test ;\
+echo "../test1 decode:" >> ../report.test ;\
+(time ./decode < ../test1.ar.tmp > ../test1.new.tmp) 2>> ../report.test ;\
+echo "../test1 differences:" >> ../report.test ;\
+diff --brief ../test1 ../test1.new.tmp >> ../report.test
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+echo "../test1 encode:" >> ../report.test ;\
+(time ./encode < ../test1 > ../test1.ar.tmp) 2>> ../report.test ;\
+echo "../test1 decode:" >> ../report.test ;\
+(time ./decode < ../test1.ar.tmp > ../test1.new.tmp) 2>> ../report.test ;\
+echo "../test1 differences:" >> ../report.test ;\
+diff --brief ../test1 ../test1.new.tmp >> ../report.test
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/cacm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+rm report.test ;\
+echo "Test: http_get" >> report.test;\
+for i in "http://www.amazon.com" "http://www.google.com"; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+(time ./http_get  http://www.amazon.com) 2>> ../report.test
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML><HEAD>
+<TITLE>302 Found</TITLE>
+</HEAD><BODY>
+<H1>Found</H1>
+The document has moved <A HREF="http://www.amazon.com:80/exec/obidos/subst/home/redirect.html">here</A>.<P>
+</BODY></HTML>
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+(time ./http_get  http://www.amazon.com) 2>> ../report.test
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML><HEAD>
+<TITLE>302 Found</TITLE>
+</HEAD><BODY>
+<H1>Found</H1>
+The document has moved <A HREF="http://www.amazon.com:80/exec/obidos/subst/home/redirect.html">here</A>.<P>
+</BODY></HTML>
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+(time ./http_get  http://www.google.com) 2>> ../report.test
+<html><head><META HTTP-EQUIV="content-type" CONTENT="text/html; charset=ISO-8859-1"><title>Google</title><style><!--
+body,td,a,p,.h{font-family:arial,sans-serif;} .h{font-size: 20px;} .h{color:} .q{text-decoration:none; color:#0000cc;}
+//--></style>
+<script>
+<!--
+function sf(){document.f.q.focus();}
+// -->
+</script>
+</head><body bgcolor=#ffffff text=#000000 link=#0000cc vlink=551a8b alink=#ff0000 onLoad=sf()><center><table border=0 cellspacing=0 cellpadding=0><tr><td><img src="images/logo.gif" width=276 height=110 alt="Google"></td></tr></table><br>
+<table border=0 cellspacing=0 cellpadding=0><tr><td width=15>&nbsp;</td><td id=0 bgcolor=#3366cc align=center width=120 nowrap><font color=#ffffff size=-1><b>Web</b></font></td><td width=15>&nbsp;</td><td id=1 bgcolor=#efefef align=center width=120 nowrap><a id=1a class=q href="/imghp?hl=en"><font size=-1>Images</font></a></td><td width=15>&nbsp;</td><td id=2 bgcolor=#efefef align=center width=120 nowrap><a id=2a class=q href="/grphp?hl=en"><font size=-1>Groups</font></a></td><td width=15>&nbsp;</td><td id=3 bgcolor=#efefef align=center width=120 nowrap><a id=3a class=q href="/dirhp?hl=en"><font size=-1>Directory</font></a></td><td width=15>&nbsp;</td></tr><tr><td colspan=10 bgcolor=#3366cc><img src="images/cleardot.gif" alt="" height=1></td></tr></table><br><form action="/search" name=f><table cellspacing=0 cellpadding=0><tr><td width=75>&nbsp;</td><td align=center><input maxLength=256 size=55 name=q value=""><br><input type=submit value="Google Search" name=btnG><input type=submit value="I'm Feeling Lucky" name=btnI></td><td valign=top nowrap><font size=-2>&nbsp;&#149;&nbsp;<a href=/advanced_search>Advanced&nbsp;Search</a><br>&nbsp;&#149;&nbsp;<a href=/preferences>Preferences</a><br>&nbsp;&#149;&nbsp;<a href=/language_tools>Language Tools</a></font></td></tr></table></form><br><br>
+<br><font size=-1><a href="/ads/">Advertise&nbsp;with&nbsp;Us</a> - <a href="/services/">Add&nbsp;Google&nbsp;to&nbsp;Your&nbsp;Site</a> - <a href="/news/">News and Resources</a> - <a href=/about.html>Jobs, Press, Cool Stuff...</a></font>
+<p><font size=-2>&copy;2001 Google</font><font size=-2> - Searching 1,610,476,000 web pages</font></center></body></html>
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+(time ./http_get  http://www.google.com) 2>> ../report.test
+<html><head><META HTTP-EQUIV="content-type" CONTENT="text/html; charset=ISO-8859-1"><title>Google</title><style><!--
+body,td,a,p,.h{font-family:arial,sans-serif;} .h{font-size: 20px;} .h{color:} .q{text-decoration:none; color:#0000cc;}
+//--></style>
+<script>
+<!--
+function sf(){document.f.q.focus();}
+// -->
+</script>
+</head><body bgcolor=#ffffff text=#000000 link=#0000cc vlink=551a8b alink=#ff0000 onLoad=sf()><center><table border=0 cellspacing=0 cellpadding=0><tr><td><img src="images/logo.gif" width=276 height=110 alt="Google"></td></tr></table><br>
+<table border=0 cellspacing=0 cellpadding=0><tr><td width=15>&nbsp;</td><td id=0 bgcolor=#3366cc align=center width=120 nowrap><font color=#ffffff size=-1><b>Web</b></font></td><td width=15>&nbsp;</td><td id=1 bgcolor=#efefef align=center width=120 nowrap><a id=1a class=q href="/imghp?hl=en"><font size=-1>Images</font></a></td><td width=15>&nbsp;</td><td id=2 bgcolor=#efefef align=center width=120 nowrap><a id=2a class=q href="/grphp?hl=en"><font size=-1>Groups</font></a></td><td width=15>&nbsp;</td><td id=3 bgcolor=#efefef align=center width=120 nowrap><a id=3a class=q href="/dirhp?hl=en"><font size=-1>Directory</font></a></td><td width=15>&nbsp;</td></tr><tr><td colspan=10 bgcolor=#3366cc><img src="images/cleardot.gif" alt="" height=1></td></tr></table><br><form action="/search" name=f><table cellspacing=0 cellpadding=0><tr><td width=75>&nbsp;</td><td align=center><input maxLength=256 size=55 name=q value=""><br><input type=submit value="Google Search" name=btnG><input type=submit value="I'm Feeling Lucky" name=btnI></td><td valign=top nowrap><font size=-2>&nbsp;&#149;&nbsp;<a href=/advanced_search>Advanced&nbsp;Search</a><br>&nbsp;&#149;&nbsp;<a href=/preferences>Preferences</a><br>&nbsp;&#149;&nbsp;<a href=/language_tools>Language Tools</a></font></td></tr></table></form><br><br>
+<br><font size=-1><a href="/ads/">Advertise&nbsp;with&nbsp;Us</a> - <a href="/services/">Add&nbsp;Google&nbsp;to&nbsp;Your&nbsp;Site</a> - <a href="/news/">News and Resources</a> - <a href=/about.html>Jobs, Press, Cool Stuff...</a></font>
+<p><font size=-2>&copy;2001 Google</font><font size=-2> - Searching 1,610,476,000 web pages</font></center></body></html>
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_get'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+rm report.test ;\
+echo "Test: http_ping" >> report.test;\
+for i in "http://www.amazon.com"; do (echo "Testing c:" >> report.test ; TESTOPTS="-count 1" TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS="-count 1" TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+(time ./http_ping -count 1 http://www.amazon.com) 2>> ../report.test
+241 bytes from http://www.amazon.com: 410 ms (230c/180r/0d)
+
+--- http://www.amazon.com http_ping statistics ---
+1 fetches started, 1 fetches completed, 0% failures, 0% timeouts
+total    min/avg/max = 410/410/410 ms
+connect  min/avg/max = 230/230/230 ms
+response min/avg/max = 180/180/180 ms
+data     min/avg/max = 0/0/0 ms
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+(time ./http_ping -count 1 http://www.amazon.com) 2>> ../report.test
+241 bytes from http://www.amazon.com: 290 ms (110c/180r/0d)
+
+--- http://www.amazon.com http_ping statistics ---
+1 fetches started, 1 fetches completed, 0% failures, 0% timeouts
+total    min/avg/max = 290/290/290 ms
+connect  min/avg/max = 110/110/110 ms
+response min/avg/max = 180/180/180 ms
+data     min/avg/max = 0/0/0 ms
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_ping'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+rm report.test ;\
+echo "Test: http_post" >> report.test;\
+for i in "http://www.cornell.edu"; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+(time ./http_post  http://www.cornell.edu) 2>> ../report.test
+<html>
+<head>
+<title>The Cornell Home Page</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<base href="http://www.info.cornell.edu/">
+<script language="JavaScript">
+<!--
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.0
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && document.getElementById) x=document.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+//-->
+</script>
+
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#000000" vlink="#FF0000">
+<table width="635" border="0" cellspacing="4" cellpadding="2">
+  <tr> 
+    <td colspan=3 width="635"><img src="../../CUHomePage/images/2banner.jpg" width="633" height="82" usemap="#HeaderMap" border="0"> 
+  <map name="HeaderMap">
+    <area shape="rect" coords="3,7,104,81" href="/clickthrough.php3?url=http://www.admissions.cornell.edu">
+    <area shape="rect" coords="106,7,208,82" href="/CUHomePage/Academics.html">
+    <area shape="rect" coords="212,6,314,81" href="/clickthrough.php3?url=http://www.alumni.cornell.edu">
+    <area shape="rect" coords="316,6,418,82" href="/clickthrough.php3?url=http://www.cornellbigred.com">
+    <area shape="rect" coords="420,6,522,81" href="/clickthrough.php3?url=http://sas.cornell.edu">
+    <area shape="rect" coords="528,7,627,81" href="/clickthrough.php3?url=http://www.research.cornell.edu">
+  </map>
+  
+  </td>
+  </tr>
+  <tr> 
+    <td rowspan="2" valign="top" width="133" nowrap><img src="CUHomePage/images/culogo_125.gif" width="125" height="124" valign="top" ALT="Cornell Logo"> 
+      <br>
+      <p><img src="CUHomePage/images/line2.jpg" width="145" height="12"> 
+        
+<br><a href="/clickthrough.php3?url=http://www.cuinfo.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('CUinfo','','/CUHomePage/images/ROLLOVERS/CUINFO2.jpg',1)"><img name="CUinfo" border="0" src="/CUHomePage/images/ROLLOVERS/CUINFO.jpg" width="130" height="19" ALT="CUINFO"></a> 
+<br><a href="/CUHomePage/Welcome.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Welcome','','/CUHomePage/images/ROLLOVERS/WELCOME2.jpg',1)"><img name="Welcome" border="0" src="/CUHomePage/images/ROLLOVERS/WELCOME.jpg" width="130" height="19" ALT="WELCOME"></a> 
+  <br>
+  <a href="/CUFACTS/default.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('CUFacts','','/CUHomePage/images/ROLLOVERS/CUFACTS2.jpg',1)"><img name="CUFacts" border="0" src="/CUHomePage/images/ROLLOVERS/CUFACTS.jpg" width="130" height="19" ALT="CUFACTS"></a> 
+  <br>
+  <a href="/helpsheet.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('The Help Sheet','','/CUHomePage/images/ROLLOVERS/HELPSHEET2.jpg',1)"><img name="The Help Sheet" border="0" src="/CUHomePage/images/ROLLOVERS/HELPSHEET.jpg" width="130" height="19" ALT="THE HELP SHEET"></a> 
+  <br>
+  <a href="/CUHomePage/Searches.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Directories','','/CUHomePage/images/ROLLOVERS/DIRECTORIES2.jpg',1)"><img name="Cornell Directories" border="0" src="/CUHomePage/images/ROLLOVERS/DIRECTORIES.jpg" width="130" height="19" ALT="CU DIRECTORIES"></a> 
+  <br>
+  <a href="/CUHomePage/contact.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Contact Cornell','','/CUHomePage/images/ROLLOVERS/CONTACT2.jpg',1)"><img name="Contact Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/CONTACT.jpg" width="130" height="19" ALT="CONTACT CU"></a> 
+  <br>
+  <a href="/CUHomePage/Visiting.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Visit Cornell','','/CUHomePage/images/ROLLOVERS/VISIT2.jpg',1)"><img name="Visit Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/VISIT.jpg" width="130" height="19" ALT="VISITING CORNELL"></a> 
+  <br>
+  <a href="/CUHomePage/Tour.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Take a Tour','','/CUHomePage/images/ROLLOVERS/TOUR2.jpg',1)"><img name="Take a Tour" border="0" src="/CUHomePage/images/ROLLOVERS/TOUR.jpg" width="130" height="19" ALT="TAKE A TOUR"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.cornell.edu/Calendar/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('University Calendar','','/CUHomePage/images/ROLLOVERS/CALENDAR2.jpg',1)"><img name="University Calendar" border="0" src="/CUHomePage/images/ROLLOVERS/calendar.jpg" width="130" height="19" ALT="EVENTS CALENDAR"></a> 
+  <br>
+  <a href="/CUHomePage/onthehill.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Sites on the Hill','','/CUHomePage/images/ROLLOVERS/SITES2.jpg',1)"><img name="Sites on the Hill" border="0" src="/CUHomePage/images/ROLLOVERS/SITES.jpg" width="130" height="19" ALT="SITES ON THE HILL"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.chimes.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Hear the Chimes','','/CUHomePage/images/ROLLOVERS/CHIMES2.jpg',1)"><img name="Hear the Chimes" border="0" src="/CUHomePage/images/ROLLOVERS/CHIMES.jpg" width="130" height="19" ALT="HEAR THE CHIMES"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.admissions.cornell.edu/AtoZ.cfm" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell A-Z','','/CUHomePage/images/ROLLOVERS/AZ2.jpg',1)"><img name="Cornell A-Z" border="0" src="/CUHomePage/images/ROLLOVERS/AZ.jpg" width="130" height="19" ALT="CORNELL A-Z"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://cuinfo.cornell.edu/Admin/JOBOPS/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Jobs@Cornell','','/CUHomePage/images/ROLLOVERS/JOBS2.jpg',1)"><img name="Jobs@Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/JOBS.jpg" width="130" height="19" ALT="JOBS@CORNELL"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.admissions.cornell.edu/postcard/pick/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('E-Postcards','','/CUHomePage/images/ROLLOVERS/ECARDS2.jpg',1)"><img name="E-Postcards" border="0" src="/CUHomePage/images/ROLLOVERS/ECARDS.jpg" width="130" height="19" ALT="E-POSTACRDS"></a> 
+  <br>
+  <a href="/CUHomePage/FAQ/default.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('FAQ','','/CUHomePage/images/ROLLOVERS/FAQ2.jpg',1)"><img name="FAQ" border="0" src="/CUHomePage/images/ROLLOVERS/FAQ.jpg" width="130" height="19" ALT="FAQ"></a>
+<br><a href="/clickthrough.php3?url=http://www.news.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('News Service','','/CUHomePage/images/ROLLOVERS/NEWS2.jpg',1)"><img name="News Service" border="0" src="/CUHomePage/images/ROLLOVERS/NEWS.jpg" width="130" height="19" ALT="NEWS SERVICE"></a>
+<br><a href="/CUHomePage/sitemap.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Site Index','','/CUHomePage/images/ROLLOVERS/SITEMAP2.jpg',1)"><img name="Site Index" border="0" src="/CUHomePage/images/ROLLOVERS/SITEMAP.jpg" width="130" height="19" ALT="SITE INDEX"></a>
+ <br> <a href="../feedback.php3" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Feedback','','/CUHomePage/images/ROLLOVERS/FEEDBACK2.jpg',1)"><img name="Feedback" border="0" src="/CUHomePage/images/ROLLOVERS/FEEDBACK.jpg" width="130" height="19" ALT="FEEDBACK"></a>
+<p>
+		<P>
+	  <p ALIGN="left"><a href="CUHomePage/copyright.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Copyright','','/CUHomePage/images/ROLLOVERS/copyright2.jpg',1)"><img name="Copyright" border="0" src="/CUHomePage/images/ROLLOVERS/copyright.jpg"></a> 
+    </td>
+	</tr>
+  <tr> 
+    <td valign="top" width="300"> 
+ <img src="CUHomePage/images/rotate/libraryfaces.jpg" ALT="Library Gargoyles" WIDTH="250" HEIGHT="194" ALIGN="top" BORDER="0"><BR><center><FONT SIZE="-2" FACE="MS Sans Serif, Helvetica, Helv, Arial, Swiss">Originally part of Boardman Hall, Cornell legend has it that these stone faces now gracing Olin Library were carved in the likeness of the masons who built Boardman, Uris Library, and Stimson.</FONT></center>
+
+
+ <p>
+  
+
+
+
+<a href="/clickthrough.php3?url=http://www.museum.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Art Museum','','/CUHomePage/images/ROLLOVERS/MUSEUM2.jpg',1)"><img name="Art Museum" border="0" src="/CUHomePage/images/ROLLOVERS/MUSEUM.jpg" width="226" height="19" ALT="ART MUSEUM"></a> 
+<br><a href="/clickthrough.php3?url=http://www.arts.cornell.edu/cca/arts/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Arts at Cornell','','/CUHomePage/images/ROLLOVERS/ARTS@CU2.jpg',1)"><img name="Arts at Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/ARTS@CU.jpg" width="178" height="19" ALT="ARTS AT CORNELL"></a> 
+<br><a href="/clickthrough.php3?url=http://www.ecornell.com" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Ecornell','','/CUHomePage/images/ROLLOVERS/ECORNELL2.jpg',1)"><img name="Ecornell" border="0" src="/CUHomePage/images/ROLLOVERS/ECORNELL.jpg" width="141" height="19" ALT="ECORNELL"></a> 
+<br><a href="/clickthrough.php3?url=http://www.plantations.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Plantations','','/CUHomePage/images/ROLLOVERS/PLANTATIONS2.jpg',1)"><img name="Cornell Plantations" border="0" src="/CUHomePage/images/ROLLOVERS/PLANTATIONS.jpg" width="203" height="19" ALT="CORNELL PLANTATIONS"></a> 
+<br><a href="/clickthrough.php3?url=http://www.store.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Store','','/CUHomePage/images/ROLLOVERS/STORE2.jpg',1)"><img name="Cornell Store" border="0" src="/CUHomePage/images/ROLLOVERS/STORE.jpg" width="152" height="19" ALT="CORNELL STORE"></a> 
+<br><a href="/clickthrough.php3?url=http://campusgw.library.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Library Gateway','','/CUHomePage/images/ROLLOVERS/LIBRARY2.jpg',1)"><img name="Library Gateway" border="0" src="/CUHomePage/images/ROLLOVERS/LIBRARY.jpg" width="170" height="19" ALT="LIBRARY GATEWAY"></a> 
+<br><a href="/CUHomePage/Administration.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Administration','','/CUHomePage/images/ROLLOVERS/ADMIN2.jpg',1)"><img name="Administration" border="0" src="/CUHomePage/images/ROLLOVERS/ADMIN.jpg" width="175" height="19" ALT="ADMINISTRATION"></a> 
+<br><a href="/clickthrough.php3?url=http://corporate.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Corporate Connections','','/CUHomePage/images/ROLLOVERS/CORPORATE2.jpg',1)"><img name="Corporate Connections" border="0" src="/CUHomePage/images/ROLLOVERS/CORPORATE.jpg" width="215" height="19" ALT="CORPORATE CONNECTIONS"></a>
+<br><a href="/CUHomePage/Mission.html#diversity" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Diversity & Inclusiveness','','/CUHomePage/images/ROLLOVERS/DIVERSITY2.jpg',1)"><img name="Diversity & Inclusiveness" border="0" src="/CUHomePage/images/ROLLOVERS/DIVERSITY.jpg" width="230" height="19" ALT="DIVERSITY & INCLUSIVENESS"></a> 
+<br><a href="/CUHomePage/Mission.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Mission','','/CUHomePage/images/ROLLOVERS/MISSION2.jpg',1)"><img name="Mission" border="0" src="/CUHomePage/images/ROLLOVERS/MISSION.jpg" width="106" height="19" ALT="MISSION"></a> 
+<br><a href="CUHomePage/Status.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Operating Status','','/CUHomePage/images/ROLLOVERS/STATUS2.jpg',1)"><img name="Operating Status" border="0" src="/CUHomePage/images/ROLLOVERS/STATUS.jpg" width="246" height="19" ALT="OPERATING STATUS"></a> 
+<br><a href="/clickthrough.php3?url=http://www.cuinfo.cornell.edu/Ithaca/Weather/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Weather','','/CUHomePage/images/ROLLOVERS/WEATHER2.jpg',1)"><img name="Weather" border="0" src="/CUHomePage/images/ROLLOVERS/WEATHER.jpg" width="181" height="19" ALT="WEATHER"></a> 
+ 
+
+</td>
+    <td valign="top" width="200" nowrap> 
+      <center>
+        <font face="Arial, Helvetica, sans-serif" color="#CC0000" size="2"><b>CU 
+        NEWS</b></font> 
+      </center>
+        
+        <FONT SIZE="-1" FACE="MS Sans Serif, Helvetica, Helv, Arial, Swiss">
+        
+    <P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Mars.Squyres.deb.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#000000">Mars Odyssey paves the way for Rover in 2003</font></a>
+
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/campus/stateofuniv0110.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#000000">Text of the president's State of the University address</font></a>
+        
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Rhodes.book.lgk.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">Former president Rhodes writes on future of higher ed</font></a>
+
+
+<P>
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/NSDLcore.ws.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">A national online science library</font></a>
+
+   
+<P>
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/SchwartzDedication.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">Performing Arts Center dedication</font></a>
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Ornith_grant.amw.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">New ornithology visitor center</font></a>
+
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/brain_trans.hrs.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">New brain cell transplant technology</font></a>
+  
+<p><IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.info.cornell.edu/CUHomePage/tragedyarchive.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">September 11 Crisis Updates</font></a>
+  
+<P>&nbsp; 
+</FONT> 
+
+      <p><center>
+          <a href="CUHomePage/CornellStream.html"><img src="CUHomePage/images/2liveview.jpg" width="87" height="60" border="0"></a> 
+        </center>
+    
+	 <center>
+          <h5><font face="Arial, Helvetica, sans-serif" color="#CC0000">FEATURED 
+            SITE</font> </h5>
+        </center>
+      <P> <a href="/clickthrough.php3?url=http://www.genomics.cornell.edu/"><img src="CUHomePage/images/genomics.jpg" width="190" height="146" border="0" ALT="The Genomics Initiative"></a>
+     
+    </td>
+  </tr>
+  <tr>
+  <td colspan="3"><hr></td></tr>
+  <tr>
+  	<tr>
+    <td width="199"> 
+      <center>
+      <form method="post" name="searchform" action="http://query.directory.cornell.edu/dsgw/bin/dosearch" onSubmit="return checkForNullString()">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">PEOPLE:</font> 
+          <input type="hidden" name="type" value="people">
+  <input type="hidden" name="mode" value="smart">
+  <input type="hidden" name="querytype" value="people">
+  <INPUT TYPE="hidden" NAME="context" VALUE="cupb">
+  
+
+
+  
+       <font SIZE="-1"> 
+        <input name="searchstring" size=15>
+        </FONT><font  face="MS Sans Serif, Helvetica, Helv, Arial, Swiss"><font size="-1">
+        <input type="hidden" value="Search" name="action2">
+        </font></font><font SIZE="-1"> </FONT> 
+      </form>
+</center></td>
+	  
+    <td width="136"> 
+      <center>
+<FORM ACTION = "http://cuinfo.cornell.edu/Direct/departments/">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">DEPARTMENTS:</font> 
+          <INPUT NAME="keyword" SIZE="15">
+          <INPUT TYPE="hidden" NAME="action" VALUE="Search">
+          <INPUT TYPE="hidden" NAME="case_sensitive" VALUE="No">
+      </FORM> </center></td>
+	  
+    <td width="275"> 
+      <center>
+<form name="seek1" method=GET action="http://query.cornell.edu:8765/query.html">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">WEB 
+          PAGES: </font> 
+          <input type=hidden name=ht value="0">
+          <input type=hidden name=qp value="">
+          <input type=text name=qt size=15 value="" maxlength=2033>
+          <input type=hidden name=qs value="">
+      </form></center></td></tr>
+  
+</table>
+</BODY>
+</html>
+
+
+  
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+(time ./http_post  http://www.cornell.edu) 2>> ../report.test
+<html>
+<head>
+<title>The Cornell Home Page</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<base href="http://www.info.cornell.edu/">
+<script language="JavaScript">
+<!--
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.0
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && document.getElementById) x=document.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+//-->
+</script>
+
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#000000" vlink="#FF0000">
+<table width="635" border="0" cellspacing="4" cellpadding="2">
+  <tr> 
+    <td colspan=3 width="635"><img src="../../CUHomePage/images/2banner.jpg" width="633" height="82" usemap="#HeaderMap" border="0"> 
+  <map name="HeaderMap">
+    <area shape="rect" coords="3,7,104,81" href="/clickthrough.php3?url=http://www.admissions.cornell.edu">
+    <area shape="rect" coords="106,7,208,82" href="/CUHomePage/Academics.html">
+    <area shape="rect" coords="212,6,314,81" href="/clickthrough.php3?url=http://www.alumni.cornell.edu">
+    <area shape="rect" coords="316,6,418,82" href="/clickthrough.php3?url=http://www.cornellbigred.com">
+    <area shape="rect" coords="420,6,522,81" href="/clickthrough.php3?url=http://sas.cornell.edu">
+    <area shape="rect" coords="528,7,627,81" href="/clickthrough.php3?url=http://www.research.cornell.edu">
+  </map>
+  
+  </td>
+  </tr>
+  <tr> 
+    <td rowspan="2" valign="top" width="133" nowrap><img src="CUHomePage/images/culogo_125.gif" width="125" height="124" valign="top" ALT="Cornell Logo"> 
+      <br>
+      <p><img src="CUHomePage/images/line2.jpg" width="145" height="12"> 
+        
+<br><a href="/clickthrough.php3?url=http://www.cuinfo.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('CUinfo','','/CUHomePage/images/ROLLOVERS/CUINFO2.jpg',1)"><img name="CUinfo" border="0" src="/CUHomePage/images/ROLLOVERS/CUINFO.jpg" width="130" height="19" ALT="CUINFO"></a> 
+<br><a href="/CUHomePage/Welcome.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Welcome','','/CUHomePage/images/ROLLOVERS/WELCOME2.jpg',1)"><img name="Welcome" border="0" src="/CUHomePage/images/ROLLOVERS/WELCOME.jpg" width="130" height="19" ALT="WELCOME"></a> 
+  <br>
+  <a href="/CUFACTS/default.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('CUFacts','','/CUHomePage/images/ROLLOVERS/CUFACTS2.jpg',1)"><img name="CUFacts" border="0" src="/CUHomePage/images/ROLLOVERS/CUFACTS.jpg" width="130" height="19" ALT="CUFACTS"></a> 
+  <br>
+  <a href="/helpsheet.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('The Help Sheet','','/CUHomePage/images/ROLLOVERS/HELPSHEET2.jpg',1)"><img name="The Help Sheet" border="0" src="/CUHomePage/images/ROLLOVERS/HELPSHEET.jpg" width="130" height="19" ALT="THE HELP SHEET"></a> 
+  <br>
+  <a href="/CUHomePage/Searches.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Directories','','/CUHomePage/images/ROLLOVERS/DIRECTORIES2.jpg',1)"><img name="Cornell Directories" border="0" src="/CUHomePage/images/ROLLOVERS/DIRECTORIES.jpg" width="130" height="19" ALT="CU DIRECTORIES"></a> 
+  <br>
+  <a href="/CUHomePage/contact.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Contact Cornell','','/CUHomePage/images/ROLLOVERS/CONTACT2.jpg',1)"><img name="Contact Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/CONTACT.jpg" width="130" height="19" ALT="CONTACT CU"></a> 
+  <br>
+  <a href="/CUHomePage/Visiting.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Visit Cornell','','/CUHomePage/images/ROLLOVERS/VISIT2.jpg',1)"><img name="Visit Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/VISIT.jpg" width="130" height="19" ALT="VISITING CORNELL"></a> 
+  <br>
+  <a href="/CUHomePage/Tour.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Take a Tour','','/CUHomePage/images/ROLLOVERS/TOUR2.jpg',1)"><img name="Take a Tour" border="0" src="/CUHomePage/images/ROLLOVERS/TOUR.jpg" width="130" height="19" ALT="TAKE A TOUR"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.cornell.edu/Calendar/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('University Calendar','','/CUHomePage/images/ROLLOVERS/CALENDAR2.jpg',1)"><img name="University Calendar" border="0" src="/CUHomePage/images/ROLLOVERS/calendar.jpg" width="130" height="19" ALT="EVENTS CALENDAR"></a> 
+  <br>
+  <a href="/CUHomePage/onthehill.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Sites on the Hill','','/CUHomePage/images/ROLLOVERS/SITES2.jpg',1)"><img name="Sites on the Hill" border="0" src="/CUHomePage/images/ROLLOVERS/SITES.jpg" width="130" height="19" ALT="SITES ON THE HILL"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.chimes.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Hear the Chimes','','/CUHomePage/images/ROLLOVERS/CHIMES2.jpg',1)"><img name="Hear the Chimes" border="0" src="/CUHomePage/images/ROLLOVERS/CHIMES.jpg" width="130" height="19" ALT="HEAR THE CHIMES"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.admissions.cornell.edu/AtoZ.cfm" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell A-Z','','/CUHomePage/images/ROLLOVERS/AZ2.jpg',1)"><img name="Cornell A-Z" border="0" src="/CUHomePage/images/ROLLOVERS/AZ.jpg" width="130" height="19" ALT="CORNELL A-Z"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://cuinfo.cornell.edu/Admin/JOBOPS/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Jobs@Cornell','','/CUHomePage/images/ROLLOVERS/JOBS2.jpg',1)"><img name="Jobs@Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/JOBS.jpg" width="130" height="19" ALT="JOBS@CORNELL"></a> 
+  <br>
+  <a href="/clickthrough.php3?url=http://www.admissions.cornell.edu/postcard/pick/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('E-Postcards','','/CUHomePage/images/ROLLOVERS/ECARDS2.jpg',1)"><img name="E-Postcards" border="0" src="/CUHomePage/images/ROLLOVERS/ECARDS.jpg" width="130" height="19" ALT="E-POSTACRDS"></a> 
+  <br>
+  <a href="/CUHomePage/FAQ/default.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('FAQ','','/CUHomePage/images/ROLLOVERS/FAQ2.jpg',1)"><img name="FAQ" border="0" src="/CUHomePage/images/ROLLOVERS/FAQ.jpg" width="130" height="19" ALT="FAQ"></a>
+<br><a href="/clickthrough.php3?url=http://www.news.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('News Service','','/CUHomePage/images/ROLLOVERS/NEWS2.jpg',1)"><img name="News Service" border="0" src="/CUHomePage/images/ROLLOVERS/NEWS.jpg" width="130" height="19" ALT="NEWS SERVICE"></a>
+<br><a href="/CUHomePage/sitemap.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Site Index','','/CUHomePage/images/ROLLOVERS/SITEMAP2.jpg',1)"><img name="Site Index" border="0" src="/CUHomePage/images/ROLLOVERS/SITEMAP.jpg" width="130" height="19" ALT="SITE INDEX"></a>
+ <br> <a href="../feedback.php3" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Feedback','','/CUHomePage/images/ROLLOVERS/FEEDBACK2.jpg',1)"><img name="Feedback" border="0" src="/CUHomePage/images/ROLLOVERS/FEEDBACK.jpg" width="130" height="19" ALT="FEEDBACK"></a>
+<p>
+		<P>
+	  <p ALIGN="left"><a href="CUHomePage/copyright.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Copyright','','/CUHomePage/images/ROLLOVERS/copyright2.jpg',1)"><img name="Copyright" border="0" src="/CUHomePage/images/ROLLOVERS/copyright.jpg"></a> 
+    </td>
+	</tr>
+  <tr> 
+    <td valign="top" width="300"> 
+ <img src="CUHomePage/images/rotate/lincoln_hall.jpg" ALT="Lincoln Hall" WIDTH="255" HEIGHT="190" ALIGN="top" BORDER="0"><BR><center><FONT SIZE="-2" FACE="MS Sans Serif, Helvetica, Helv, Arial, Swiss">The newly renovated Lincoln Hall</FONT></center>
+
+
+ <p>
+  
+
+
+
+<a href="/clickthrough.php3?url=http://www.museum.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Art Museum','','/CUHomePage/images/ROLLOVERS/MUSEUM2.jpg',1)"><img name="Art Museum" border="0" src="/CUHomePage/images/ROLLOVERS/MUSEUM.jpg" width="226" height="19" ALT="ART MUSEUM"></a> 
+<br><a href="/clickthrough.php3?url=http://www.arts.cornell.edu/cca/arts/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Arts at Cornell','','/CUHomePage/images/ROLLOVERS/ARTS@CU2.jpg',1)"><img name="Arts at Cornell" border="0" src="/CUHomePage/images/ROLLOVERS/ARTS@CU.jpg" width="178" height="19" ALT="ARTS AT CORNELL"></a> 
+<br><a href="/clickthrough.php3?url=http://www.ecornell.com" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Ecornell','','/CUHomePage/images/ROLLOVERS/ECORNELL2.jpg',1)"><img name="Ecornell" border="0" src="/CUHomePage/images/ROLLOVERS/ECORNELL.jpg" width="141" height="19" ALT="ECORNELL"></a> 
+<br><a href="/clickthrough.php3?url=http://www.plantations.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Plantations','','/CUHomePage/images/ROLLOVERS/PLANTATIONS2.jpg',1)"><img name="Cornell Plantations" border="0" src="/CUHomePage/images/ROLLOVERS/PLANTATIONS.jpg" width="203" height="19" ALT="CORNELL PLANTATIONS"></a> 
+<br><a href="/clickthrough.php3?url=http://www.store.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Cornell Store','','/CUHomePage/images/ROLLOVERS/STORE2.jpg',1)"><img name="Cornell Store" border="0" src="/CUHomePage/images/ROLLOVERS/STORE.jpg" width="152" height="19" ALT="CORNELL STORE"></a> 
+<br><a href="/clickthrough.php3?url=http://campusgw.library.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Library Gateway','','/CUHomePage/images/ROLLOVERS/LIBRARY2.jpg',1)"><img name="Library Gateway" border="0" src="/CUHomePage/images/ROLLOVERS/LIBRARY.jpg" width="170" height="19" ALT="LIBRARY GATEWAY"></a> 
+<br><a href="/CUHomePage/Administration.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Administration','','/CUHomePage/images/ROLLOVERS/ADMIN2.jpg',1)"><img name="Administration" border="0" src="/CUHomePage/images/ROLLOVERS/ADMIN.jpg" width="175" height="19" ALT="ADMINISTRATION"></a> 
+<br><a href="/clickthrough.php3?url=http://corporate.cornell.edu" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Corporate Connections','','/CUHomePage/images/ROLLOVERS/CORPORATE2.jpg',1)"><img name="Corporate Connections" border="0" src="/CUHomePage/images/ROLLOVERS/CORPORATE.jpg" width="215" height="19" ALT="CORPORATE CONNECTIONS"></a>
+<br><a href="/CUHomePage/Mission.html#diversity" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Diversity & Inclusiveness','','/CUHomePage/images/ROLLOVERS/DIVERSITY2.jpg',1)"><img name="Diversity & Inclusiveness" border="0" src="/CUHomePage/images/ROLLOVERS/DIVERSITY.jpg" width="230" height="19" ALT="DIVERSITY & INCLUSIVENESS"></a> 
+<br><a href="/CUHomePage/Mission.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Mission','','/CUHomePage/images/ROLLOVERS/MISSION2.jpg',1)"><img name="Mission" border="0" src="/CUHomePage/images/ROLLOVERS/MISSION.jpg" width="106" height="19" ALT="MISSION"></a> 
+<br><a href="CUHomePage/Status.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Operating Status','','/CUHomePage/images/ROLLOVERS/STATUS2.jpg',1)"><img name="Operating Status" border="0" src="/CUHomePage/images/ROLLOVERS/STATUS.jpg" width="246" height="19" ALT="OPERATING STATUS"></a> 
+<br><a href="/clickthrough.php3?url=http://www.cuinfo.cornell.edu/Ithaca/Weather/" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Weather','','/CUHomePage/images/ROLLOVERS/WEATHER2.jpg',1)"><img name="Weather" border="0" src="/CUHomePage/images/ROLLOVERS/WEATHER.jpg" width="181" height="19" ALT="WEATHER"></a> 
+ 
+
+</td>
+    <td valign="top" width="200" nowrap> 
+      <center>
+        <font face="Arial, Helvetica, sans-serif" color="#CC0000" size="2"><b>CU 
+        NEWS</b></font> 
+      </center>
+        
+        <FONT SIZE="-1" FACE="MS Sans Serif, Helvetica, Helv, Arial, Swiss">
+        
+    <P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Mars.Squyres.deb.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#000000">Mars Odyssey paves the way for Rover in 2003</font></a>
+
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/campus/stateofuniv0110.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#000000">Text of the president's State of the University address</font></a>
+        
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Rhodes.book.lgk.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">Former president Rhodes writes on future of higher ed</font></a>
+
+
+<P>
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/NSDLcore.ws.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">A national online science library</font></a>
+
+   
+<P>
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/SchwartzDedication.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">Performing Arts Center dedication</font></a>
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/Ornith_grant.amw.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">New ornithology visitor center</font></a>
+
+  
+<P> 
+
+<IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.news.cornell.edu/releases/Oct01/brain_trans.hrs.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">New brain cell transplant technology</font></a>
+  
+<p><IMG SRC="http://www.info.cornell.edu/CUHomePage/images/redbox.gif" HEIGHT="8" WIDTH="12" BORDER="0"><a href="http://www.info.cornell.edu/CUHomePage/tragedyarchive.html "style="text-decoration: none"><font face="Arial, Helvetica, sans-serif" size="2" color="#111111">September 11 Crisis Updates</font></a>
+  
+<P>&nbsp; 
+</FONT> 
+
+      <p><center>
+          <a href="CUHomePage/CornellStream.html"><img src="CUHomePage/images/2liveview.jpg" width="87" height="60" border="0"></a> 
+        </center>
+    
+	 <center>
+          <h5><font face="Arial, Helvetica, sans-serif" color="#CC0000">FEATURED 
+            SITE</font> </h5>
+        </center>
+      <P> <a href="/clickthrough.php3?url=http://www.genomics.cornell.edu/"><img src="CUHomePage/images/genomics.jpg" width="190" height="146" border="0" ALT="The Genomics Initiative"></a>
+     
+    </td>
+  </tr>
+  <tr>
+  <td colspan="3"><hr></td></tr>
+  <tr>
+  	<tr>
+    <td width="199"> 
+      <center>
+      <form method="post" name="searchform" action="http://query.directory.cornell.edu/dsgw/bin/dosearch" onSubmit="return checkForNullString()">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">PEOPLE:</font> 
+          <input type="hidden" name="type" value="people">
+  <input type="hidden" name="mode" value="smart">
+  <input type="hidden" name="querytype" value="people">
+  <INPUT TYPE="hidden" NAME="context" VALUE="cupb">
+  
+
+
+  
+       <font SIZE="-1"> 
+        <input name="searchstring" size=15>
+        </FONT><font  face="MS Sans Serif, Helvetica, Helv, Arial, Swiss"><font size="-1">
+        <input type="hidden" value="Search" name="action2">
+        </font></font><font SIZE="-1"> </FONT> 
+      </form>
+</center></td>
+	  
+    <td width="136"> 
+      <center>
+<FORM ACTION = "http://cuinfo.cornell.edu/Direct/departments/">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">DEPARTMENTS:</font> 
+          <INPUT NAME="keyword" SIZE="15">
+          <INPUT TYPE="hidden" NAME="action" VALUE="Search">
+          <INPUT TYPE="hidden" NAME="case_sensitive" VALUE="No">
+      </FORM> </center></td>
+	  
+    <td width="275"> 
+      <center>
+<form name="seek1" method=GET action="http://query.cornell.edu:8765/query.html">
+          <font face="Arial, Helvetica, sans-serif" size="1" color="000000">WEB 
+          PAGES: </font> 
+          <input type=hidden name=ht value="0">
+          <input type=hidden name=qp value="">
+          <input type=text name=qt size=15 value="" maxlength=2033>
+          <input type=hidden name=qs value="">
+      </form></center></td></tr>
+  
+</table>
+</BODY>
+</html>
+
+
+  
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_post'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+rm report.test ;\
+echo "Test: ncompress-4.2.4" >> report.test;\
+for i in ../test1; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+echo "../test1 compress:" >> ../report.test ;\
+(time ./compress ../test1 ) 2>> ../report.test ;\
+echo "../test1 uncompress:" >> ../report.test ;\
+(time ./compress -d ../test1) 2>> ../report.test
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+echo "../test1 compress:" >> ../report.test ;\
+(time ./compress ../test1 ) 2>> ../report.test ;\
+echo "../test1 uncompress:" >> ../report.test ;\
+(time ./compress -d ../test1) 2>> ../report.test
+make[2]: *** [test] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4/cyc'
+make[1]: *** [test] Error 2
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ncompress-4.2.4'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+rm report.test ;\
+echo "Test: ppm" >> report.test;\
+for i in ../test1; do (echo "Testing c:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS= TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+echo "../test1 encode:" >> ../report.test ;\
+(time ./encode < ../test1 > ../test1.ppm.tmp) 2>> ../report.test ;\
+echo "../test1 decode:" >> ../report.test ;\
+(time ./decode < ../test1.ppm.tmp > ../test1.new.tmp) 2>> ../report.test ;\
+echo "../test1 differences:" >> ../report.test ;\
+diff --brief ../test1 ../test1.new.tmp >> ../report.test
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+echo "../test1 encode:" >> ../report.test ;\
+(time ./encode < ../test1 > ../test1.ppm.tmp) 2>> ../report.test ;\
+echo "../test1 decode:" >> ../report.test ;\
+(time ./decode < ../test1.ppm.tmp > ../test1.new.tmp) 2>> ../report.test ;\
+echo "../test1 differences:" >> ../report.test ;\
+diff --brief ../test1 ../test1.new.tmp >> ../report.test
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm/cyc'
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/ppm'
+make[1]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+make -C c build ; \
+make -C cyc build ; \
+if [ -d "cyc-region" ]; then \
+  make -C cyc-region build; \
+fi
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+make[2]: Nothing to be done for `build'.
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+cyclone -O2    -c http_load.cyc
+
+http_load.cyc(733:55-733:63): undeclared identifier: SO_ERROR
+http_load.cyc(1570:11-1570:24): actual argument has type 
+const unsigned char *#703 
+ but formal has type 
+const %(829)::B *%(830)::R 
+	%(829)::B and unsigned char failed to unify. (kinds are incompatible)
+
+COMPILATION FAILED!
+make[2]: *** [http_load.o] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+rm report.test ;\
+echo "Test: http_load" >> report.test;\
+for i in ../test1; do (echo "Testing c:" >> report.test ; TESTOPTS="-parallel 10 -fetches 100" TEST=$i TESTREPORT=../report.test make -C c test; echo "Testing cyc:" >> report.test ; TESTOPTS="-parallel 10 -fetches 100" TEST=$i TESTREPORT=../report.test make -C cyc test) done
+rm: cannot remove `report.test': No such file or directory
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+(time ./http_load -parallel 10 -fetches 100 ../test1) 2>> ../report.test
+make[2]: *** [test] Error 1
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/c'
+make[2]: Entering directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+(time ./http_load -parallel 10 -fetches 100 ../test1) 2>> ../report.test
+make[2]: *** [test] Error 127
+make[2]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load/cyc'
+make[1]: *** [test] Error 2
+make[1]: Leaving directory `/home/mhicks/cyclone_internal/benchmarks/http_load'
+make: *** [test] Error 2
+=== cacm/report.test ====
+Test: cacm
+Testing c:
+../test1 encode:
+0.82user 0.01system 0:00.89elapsed 93%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 decode:
+0.93user 0.01system 0:00.96elapsed 97%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 differences:
+Testing cyc:
+../test1 encode:
+0.80user 0.03system 0:00.87elapsed 95%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 decode:
+1.02user 0.04system 0:01.08elapsed 98%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 differences:
+=== finger/report.test ====
+Test: finger
+Testing c:
+0.02user 0.05system 0:00.62elapsed 11%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+0.05user 0.03system 0:00.62elapsed 12%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== http_get/report.test ====
+Test: http_get
+Testing c:
+0.02user 0.06system 0:00.46elapsed 17%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+0.04user 0.04system 0:00.32elapsed 25%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing c:
+0.03user 0.06system 0:00.28elapsed 32%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+0.05user 0.02system 0:00.26elapsed 26%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== http_load/report.test ====
+Test: http_load
+Testing c:
+../test1: No such file or directory
+Command exited with non-zero status 1
+0.02user 0.02system 0:00.05elapsed 80%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+time: cannot run ./http_load: No such file or directory
+Command exited with non-zero status 127
+0.01user 0.01system 0:00.01elapsed 200%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== http_ping/report.test ====
+Test: http_ping
+Testing c:
+0.03user 0.04system 0:00.46elapsed 15%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+0.02user 0.01system 0:00.40elapsed 7%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== http_post/report.test ====
+Test: http_post
+Testing c:
+0.04user 0.04system 0:00.33elapsed 24%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+0.03user 0.04system 0:00.42elapsed 16%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== ncompress-4.2.4/report.test ====
+Test: ncompress-4.2.4
+Testing c:
+../test1 compress:
+0.12user 0.06system 0:00.20elapsed 90%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 uncompress:
+0.06user 0.04system 0:00.09elapsed 111%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+Testing cyc:
+../test1 compress:
+../test1: No such file or directory
+Command exited with non-zero status 1
+0.03user 0.00system 0:00.07elapsed 42%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 uncompress:
+Command exited with non-zero status 1
+0.02user 0.02system 0:00.04elapsed 100%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+=== ppm/report.test ====
+Test: ppm
+Testing c:
+../test1 encode:
+PPM* : 41155 bytes, 7.56 bpc, CF=1.06
+
+1.36user 0.01system 0:01.40elapsed 97%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 decode:
+1.49user 0.02system 0:01.53elapsed 98%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 differences:
+Testing cyc:
+../test1 encode:
+PPM* : 41155 bytes, 7.56 bpc, CF=1.06
+
+3.66user 0.15system 0:04.05elapsed 94%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 decode:
+3.93user 0.16system 0:04.32elapsed 94%CPU (0avgtext+0avgdata 0maxresident)k
+0inputs+0outputs (0major+0minor)pagefaults 0swaps
+../test1 differences:
