@@ -1,0 +1,5 @@
+TESTNAME	test1
+VAR	C	Cyclone	Cyclone-region	Cyclone-ptr
+PROG	c/cfrac	cyc/cfrac	cyc-region/cfrac	cyc-ptr/cfrac
+ARGS	4175764634412486014593803028771
+FILES	{}

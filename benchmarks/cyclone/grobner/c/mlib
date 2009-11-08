@@ -1,0 +1,3 @@
+cd cmu/src/cmump;make
+cd ../multpol;make
+cd ../../..

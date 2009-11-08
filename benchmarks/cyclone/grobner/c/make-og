@@ -1,0 +1,40 @@
+# use gmake
+# use sun or dec as TARGET
+
+TARGET	:= sun
+
+EXEC	:= og-$(TARGET)
+BINDIR	:= bin
+INCDIR	:= include
+
+SRCDIR	:= ../shared
+
+CC	   :=	gcc
+FLAGS	:= -Doldpair_ -g -pg
+
+SRC	:= Time.c NewPairs.c  NewSimp.c NewAddPol.c NewRed.c \
+	   NewUtil.c og.c xalloc.c inter.c sparse.c
+
+LIB	:= -Llib -lmultpol-$(TARGET) -lcmump-$(TARGET)
+
+# - ----- no need to change the following
+
+INCSTR	:= ${addprefix -I, ${INCDIR}}
+LIBSTR	:= ${addprefix -L, ${LIBDIR}}
+OBJ	:= ${addprefix ${BINDIR}/, ${addsuffix .o, ${basename ${SRC}}}}
+
+${EXEC}	:  ${BINDIR} ${OBJ}
+	   ${CC} -pg -o $@ ${OBJ} ${LIBSTR} ${LIB}
+
+${BINDIR}:
+	   mkdir ${BINDIR}
+
+${BINDIR}/%.o: %.c
+	   ${CC} ${FLAGS} ${INCSTR} -o $@ -c $*.c
+
+${BINDIR}/%.o: ${SRCDIR}/%.c
+	   ${CC} ${FLAGS} ${INCSTR} -o $@ -c ${SRCDIR}/$*.c
+
+clean	:
+	   rm -rf ${BINDIR} ${EXEC}
+

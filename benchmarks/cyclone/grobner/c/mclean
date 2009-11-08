@@ -1,0 +1,4 @@
+cd cmu/src/cmump;rm *.o
+cd ../multpol;rm *.o
+cd ../../..
+rm bin/*

@@ -1,0 +1,48 @@
+# use gmake
+
+TARGET	:=	libmultpol-dec.a
+GROBNER :=	/home/auspex/i/kygs/soumen/grobner
+BINDIR	:=	bin
+INCDIR	:=	$(GROBNER)/include
+LIBDIR	:=	$(GROBNER)/lib
+SRCDIR	:=	$(GROBNER)/shared
+
+#CC		:=	gcc
+#FLAGS	:=	-O4 -fdelayed-branch -fexpensive-optimizations -finline\
+			-finline-functions -fkeep-inline-functions\
+			-fstrength-reduce -funroll-all-loops
+
+CC		=	cc
+FLAGS	=	-g
+
+SRC		:=	MPolAdd.c MPolIn.c MPolOut.c MPolFree.c \
+			MPolMult.c MPolUnit.c MPolCopy.c MPolSub.c
+
+INCSTR	:=	${addprefix -I, ${INCDIR}}
+LIBSTR	:=	${addprefix -L, ${LIBDIR}}
+OBJ		:=	${addprefix ${BINDIR}/, ${addsuffix .o, ${basename ${SRC}}}}
+
+${TARGET}:	${BINDIR} ${OBJ}
+			ar cruv $@ $(OBJ)
+			ranlib $@
+			mv $(TARGET) $(LIBDIR)/
+
+${BINDIR}	:
+			mkdir ${BINDIR}
+
+# to read a polynomial : use of lex and yacc.
+lex.yy.c:	lexpol.l
+			lex lexpol.l
+y.tab.c:	translate.y
+			yacc translate.y
+${BINDIR}/MPolIn.o:	lex.yy.c y.tab.c
+
+${BINDIR}/%.o:	%.c ${INCDIR}/cmump.h ${INCDIR}/multpol.h
+			${CC} ${FLAGS} ${INCSTR} -o $@ -c $*.c
+
+${BINDIR}/%.o:	${SRCDIR}/%.c ${INCDIR}/cmump.h
+			${CC} ${FLAGS} ${INCSTR} -o $@ -c ${SRCDIR}/$*.c
+
+clean	:
+			rm -rf ${BINDIR} ${TARGET} lex.yy.c y.tab.c
+

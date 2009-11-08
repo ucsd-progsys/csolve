@@ -1,0 +1,36 @@
+# use gmake
+
+EXEC	:=	bb-sun
+BINDIR	:=	bin
+INCDIR	:=	../include
+LIBDIR	:=	../lib
+SRCDIR	:=	../shared
+
+CC		:=	gcc-2.2.2
+FLAGS	:=	-Doldpair_ -g
+
+SRC		:=	Time.c NewAddPol.c NewRed.c NewUtil.c bb.c xalloc.c
+
+LIB		:=	-lmultpol-sun -lcmump-sun
+
+# - ----- no need to change the following
+
+INCSTR	:=	${addprefix -I, ${INCDIR}}
+LIBSTR	:=	${addprefix -L, ${LIBDIR}}
+OBJ		:=	${addprefix ${BINDIR}/, ${addsuffix .o, ${basename ${SRC}}}}
+
+${EXEC}	:	${BINDIR} ${OBJ}
+			${CC} -o $@ ${OBJ} ${LIBSTR} ${LIB}
+
+${BINDIR}		:
+					mkdir ${BINDIR}
+
+${BINDIR}/%.o	:	%.c
+					${CC} ${FLAGS} ${INCSTR} -o $@ -c $*.c
+
+${BINDIR}/%.o	:	${SRCDIR}/%.c
+					${CC} ${FLAGS} ${INCSTR} -o $@ -c ${SRCDIR}/$*.c
+
+clean	:
+			rm -rf ${BINDIR} ${EXEC}
+

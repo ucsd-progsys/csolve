@@ -1,0 +1,10 @@
+This subdirectory contains the sources of functions to implement a dynamic
+allocation of memory different than the one existing in the cthreads
+package : with our policy, each processor has its own list of free spaces.
+A space can be allocated by one processor and deallocated by another one :
+it will return to the list of free spaces of the one which deallocates it.
+
+Changes by Stephen Schwab (schwab@cs.cmu.edu):
+
+Added alloc_par2.c, parallel version of standard powers-of-two allocator.
+(This should be selected by flag -a2 on the command line)
