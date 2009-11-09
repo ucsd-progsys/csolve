@@ -168,9 +168,6 @@ let has_array_attr     = fun a -> List.exists is_array_attr a
 let has_pos_attr       = fun a -> List.exists is_pos_attr a
 let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 
-let is_unchecked t =
-  t |> typeSig |> typeSigAttrs |> has_unchecked_attr
-
 let id_of_po = function
   | None   -> ""
   | Some n -> string_of_int n
