@@ -1,7 +1,7 @@
 malloc ::
   forall [C0]
   arg (sz: int (4, true, {v | 0 <= v}))
-  ret ref(C0, 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
+  ret ref(C0, nochk, 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
   store_in []
   store_out [C0 |-> ]
 
