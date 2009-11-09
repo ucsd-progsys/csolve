@@ -105,12 +105,6 @@ let d_ptrkind () = function
   | Checked   -> P.text "chk"
   | Unchecked -> P.text "nochk"
 
-let is_subptrkind (pk1: ptrkind) (pk2: ptrkind): bool =
-  match pk1, pk2 with
-    | Unchecked, _     -> true
-    | Checked, Checked -> true
-    | _                -> false
-
 (******************************************************************************)
 (************************************ Types ***********************************)
 (******************************************************************************)
