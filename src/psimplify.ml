@@ -70,8 +70,6 @@
 
 open Pretty
 open Cil
-open Misc.Ops
-
 module E = Errormsg
 module H = Hashtbl
 
@@ -91,10 +89,6 @@ let onlyVariableBasics = ref false
 let noStringConstantsBasics = ref false
 
 exception BitfieldAccess
-
-let ptrAttribsOfLval = function
-  | Mem a, _ -> a |> typeOf |> typeSig |> typeSigAttrs |> List.filter CilMisc.is_unchecked_attr
-  | _        -> []
 
 (* Turn an expression into a three address expression (and queue some
  * instructions in the process) *)
@@ -204,13 +198,11 @@ and simplifyLval
         restoff
     end
   in
-  let iattrs = ptrAttribsOfLval lv in
-  let tchar  = TPtr(charType, iattrs) in
   (* Add, watching for a zero *)
   let add (e1: exp) (e2: exp) =
-    if isZero e2 then e1 else BinOp(PlusPI, e1, e2, tchar)
+    if isZero e2 then e1 else BinOp(PlusPI, e1, e2, charPtrType)
   in
-  let tres = TPtr(typeOfLval lv, iattrs) in
+  let tres = TPtr(typeOfLval lv, []) in
   let typeForCast restOff: typ =
     (* in (e+i)-> restoff, what should we cast e+i to? *)
     match restOff with
@@ -225,7 +217,7 @@ and simplifyLval
       let offidx, restoff = offsetToInt (typeOfLval (Mem a, NoOffset)) off in
       let a' =
         if offidx <> zero then
-          add (mkCast a tchar) offidx
+          add (mkCast a charPtrType) offidx
         else
           a
       in
@@ -240,8 +232,8 @@ and simplifyLval
       let a' =
         if offidx = zero then a else
         if !simpleMem then
-	        add (mkCast a tchar) (makeBasic setTemp offidx)
-	    else add (mkCast a tchar) offidx
+	        add (mkCast a charPtrType) (makeBasic setTemp offidx)
+	    else add (mkCast a charPtrType) offidx
       in
       let a' = if !simpleMem then setTemp a' else a' in
       Mem (mkCast a' (typeForCast restoff)), restoff
