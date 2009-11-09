@@ -134,7 +134,7 @@ let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
 let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
   match itv1, itv2 with
     | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
-    | CTRef (_, pk1, ie1), CTRef (_, pk2, ie2)      -> is_subptrkind pk1 pk2 && is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTRef (_, _, ie1), CTRef (_, _, ie2)          -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | _                                             -> false
 
 type 'a pretypecstrdesc =
@@ -217,15 +217,15 @@ let refine_itypevarcstr (is: indexsol) (itc: itypevarcstr): indexsol =
   match itc.itcdesc with
     | ISubtype (itv1, itv2) ->
         begin match itv1, itv2 with
-          | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2                       -> refine_index is ie iv
-          | CTRef (_, pk1, ie), CTRef (_, pk2, IEVar iv) when is_subptrkind pk1 pk2 -> refine_index is ie iv
-          | _                                                                       -> fail_constraint is itc
+          | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
+          | CTRef (_, _, ie), CTRef (_, _, IEVar iv)          -> refine_index is ie iv
+          | _                                                 -> fail_constraint is itc
         end
     | IDSubtype (itv1, itv2, ctbound, _, _) ->
         begin match itv1, itv2, ctbound with
-          | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3              -> bounded_refine_index is ie iv ib
-          | CTRef (_, pk1, ie), CTRef (_, pk2, IEVar iv), CTRef (_, _, ib) when is_subptrkind pk1 pk2 -> bounded_refine_index is ie iv ib
-          | _                                                                                         -> fail_constraint is itc
+          | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
+          | CTRef (_, _, ie), CTRef (_, _, IEVar iv), CTRef (_, _, ib)                   -> bounded_refine_index is ie iv ib
+          | _                                                                            -> fail_constraint is itc
         end
 
 type cstrmap = itypevarcstr M.IntMap.t
