@@ -175,7 +175,7 @@ let extend_env me v cr env =
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
 let cons_of_mem loc tago tag grd env v =
-  if CilMisc.has_unchecked_attr v.vattr || !Constants.manual then
+  if !Constants.manual then
     ([], [])
   else
     let rct = v |> FI.name_of_varinfo |> FI.t_name env in

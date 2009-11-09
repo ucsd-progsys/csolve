@@ -3,6 +3,8 @@ qualif EQZ(v: int)     : v = 0
 qualif GEZ(v:int)      : 0 <= v
 qualif GTZ(v:int)      : 0 < v
 
+qualif UCH(v:ptr)      : UNCHECKED([v]) = 1
+
 qualif EQZ(v: ptr)     : v = 0
 qualif GTZP(v:ptr)     : 0 < v
 qualif GTZP(v:ptr)     : 0 <= v

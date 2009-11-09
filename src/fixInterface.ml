@@ -215,16 +215,19 @@ let so_int = So.Int
 let so_ref = So.Ptr 
 let so_bls = So.Func [so_ref; so_ref] 
 let so_skl = So.Func [so_int; so_int]
+let so_pun = So.Func [so_ref; so_int]
 let vv_int = Sy.value_variable so_int
 let vv_ref = Sy.value_variable so_ref
 let vv_bls = Sy.value_variable so_bls
 let vv_skl = Sy.value_variable so_skl
+let vv_pun = Sy.value_variable so_pun
 
 let sorts  = [] (* TBD: [so_int; so_ref] *)
 
-let uf_bbegin = name_of_string "BLOCK_BEGIN"
-let uf_bend   = name_of_string "BLOCK_END"
-let uf_skolem = name_of_string "SKOLEM"
+let uf_bbegin       = name_of_string "BLOCK_BEGIN"
+let uf_bend         = name_of_string "BLOCK_END"
+let uf_skolem       = name_of_string "SKOLEM"
+let uf_ptrunchecked = name_of_string "UNCHECKED"
 
 (*
 let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
@@ -242,7 +245,8 @@ let mk_pure_cfun args ret =
 let builtins    = 
   [(uf_bbegin, C.make_reft vv_bls so_bls []);
    (uf_bend, C.make_reft vv_bls so_bls []);
-   (uf_skolem, C.make_reft vv_skl so_skl [])]
+   (uf_skolem, C.make_reft vv_skl so_skl []);
+   (uf_ptrunchecked, C.make_reft vv_pun so_pun [])]
 
 let skolem =
   let (fresh_int, _) = Misc.mk_int_factory () in
@@ -444,9 +448,10 @@ let mk_eq_uf uf xs ys =
 
 let t_valid_ptr ct =
   let vv = Sy.value_variable So.Ptr in
-    t_pred ct vv (A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero);
-                          A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Le, A.eVar vv);
-                          A.pAtom (A.eVar vv, A.Lt, A.eApp (uf_bend, [A.eVar vv]))])
+    t_pred ct vv (A.pOr [A.pAtom (A.eApp (uf_ptrunchecked, [A.eVar vv]), A.Eq, A.one);
+                         A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero);
+                                 A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Le, A.eVar vv);
+                                 A.pAtom (A.eVar vv, A.Lt, A.eApp (uf_bend, [A.eVar vv]))]])
 let is_reference cenv x =
   if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
     false
@@ -456,22 +461,28 @@ let is_reference cenv x =
     | Ctypes.CTRef (_,(_,_)) -> true
     | _                      -> false
 
-let t_exp_ptr cenv ct vv p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+let t_exp_ptr cenv e ct vv p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = A.Predicate.support p |> List.filter (is_reference cenv) in
   match ct, refs with
   | (Ctypes.CTRef _), [x]  ->
-      let x  = A.eVar x  in
-      let vv = A.eVar vv in
-      [C.Conc (mk_eq_uf uf_bbegin [vv] [x]);
-       C.Conc (mk_eq_uf uf_bend   [vv] [x])]
-  | _ -> 
+      let x         = A.eVar x  in
+      let vv        = A.eVar vv in
+      let unchecked =
+        if e |> typeOf |> CilMisc.is_unchecked_ptr_type then
+          C.Conc (A.pAtom (A.eApp (uf_ptrunchecked, [vv]), A.Eq, A.one))
+        else
+          C.Conc (mk_eq_uf uf_ptrunchecked [vv] [x])
+      in [C.Conc (mk_eq_uf uf_bbegin       [vv] [x]);
+          C.Conc (mk_eq_uf uf_bend         [vv] [x]);
+          unchecked]
+  | _ ->
       []
 
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp vv e in
-  let rs = [C.Conc p] ++ (t_exp_ptr cenv ct vv p) in
+  let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
