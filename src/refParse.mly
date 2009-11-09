@@ -50,7 +50,7 @@ let mk_spec fn public qslocs args ist ret ost =
 %token QM DOT ASGN
 %token INT BOOL UNINT FUNC
 %token SRT AXM CST WF SOL QUL
-%token ENV GRD LHS RHS REF CHECKED UNCHECKED
+%token ENV GRD LHS RHS REF
 
 %start specs 
 
@@ -103,10 +103,6 @@ sloc:
   | GHOST                               { mk_sloc $1 Sloc.Ghost }
   ;
 
-pkind:
-    CHECKED                             { Ctypes.Checked }
-  | UNCHECKED                           { Ctypes.Unchecked }
-
 refstore:
   LB RB                                 { Sloc.SlocMap.empty }
   | LB slocbindsne RB                   { store_of_slocbinds $2 }
@@ -143,24 +139,17 @@ reftype:
                                         }
   
   | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ctypes.CTRef ($3, Ctypes.Checked, $5) in
+                                        { let ct = Ctypes.CTRef ($3, $5) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10
-                                        }
-
-  | REF LPAREN sloc COMMA pkind COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ctypes.CTRef ($3, $5, $7) in
-                                          let v  = Sy.of_string $10 in
-                                          FI.t_pred ct v $12
                                         }
 
   | ctype                               { FI.t_true $1 }
   ;
 
 ctype:
-    INT LPAREN Num COMMA index RPAREN               { Ctypes.CTInt ($3, $5) }
-  | REF LPAREN sloc COMMA index RPAREN              { Ctypes.CTRef ($3, Ctypes.Checked, $5) }
-  | REF LPAREN sloc COMMA pkind COMMA index RPAREN  { Ctypes.CTRef ($3, $5, $7) }
+    INT LPAREN Num COMMA index RPAREN   { Ctypes.CTInt ($3, $5) }
+  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.CTRef ($3, $5) }
   ;
 
 index:

@@ -95,38 +95,34 @@ let bounded_refine_index (is: indexsol) (ie: indexexp) (iv: indexvar) (ibound: i
 (****************************** Type Constraints ******************************)
 (******************************************************************************)
 
-type itypevar = (indexexp, ptrkind) prectype
+type itypevar = indexexp prectype
 
-type ifunvar = (indexexp, ptrkind) precfun
+type ifunvar = indexexp precfun
 
 let d_itypevar: unit -> itypevar -> P.doc =
-  d_prectype d_indexexp d_ptrkind
+  d_prectype d_indexexp
 
 let d_ifunvar: unit -> ifunvar -> P.doc =
-  d_precfun d_indexexp d_ptrkind
+  d_precfun d_indexexp
 
 let itypevar_indexvars: itypevar -> indexvar list = function
-  | CTInt (_, ie) | CTRef (_, _, ie) -> indexexp_vars ie
+  | CTInt (_, ie) | CTRef (_, ie) -> indexexp_vars ie
 
 let itypevar_of_ctype: ctype -> itypevar = function
-  | CTInt (n, i)     -> CTInt (n, IEConst i)
-  | CTRef (s, pk, i) -> CTRef (s, pk, IEConst i)
+  | CTInt (n, i) -> CTInt (n, IEConst i)
+  | CTRef (s, i) -> CTRef (s, IEConst i)
 
 let ifunvar_of_cfun (cf: cfun): ifunvar =
   precfun_map itypevar_of_ctype cf
 
 let fresh_itypevar (t: C.typ): itypevar =
-  t |> C.typeSig |> function
-    | C.TSPtr _ | C.TSArray _ -> CTRef (S.none, SI.ptrkind_of_ciltyp t, IEVar (fresh_indexvar ()))
-    | C.TSEnum _              -> CTInt (CM.int_width, IEVar (fresh_indexvar ()))
-    | C.TSBase t ->
-        begin match t with
-          | C.TInt (ik, _)  -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
-          | C.TFloat _      -> CTInt (CM.typ_width t, IEConst ITop)
-          | C.TVoid _       -> itypevar_of_ctype void_ctype
-          | _               -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
-        end
-    | _ -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
+  match C.unrollType t with
+    | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
+    | C.TEnum (ei, _)       -> CTInt (C.bytesSizeOfInt ei.C.ekind, IEVar (fresh_indexvar ()))
+    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
+    | C.TVoid _             -> itypevar_of_ctype void_ctype
+    | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
+    | t                     -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
 
 let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
   prectype_map (indexexp_apply is) itv
@@ -134,7 +130,7 @@ let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
 let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
   match itv1, itv2 with
     | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
-    | CTRef (_, _, ie1), CTRef (_, _, ie2)          -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | _                                             -> false
 
 type 'a pretypecstrdesc =
@@ -218,13 +214,13 @@ let refine_itypevarcstr (is: indexsol) (itc: itypevarcstr): indexsol =
     | ISubtype (itv1, itv2) ->
         begin match itv1, itv2 with
           | CTInt (n1, ie), CTInt (n2, IEVar iv) when n1 = n2 -> refine_index is ie iv
-          | CTRef (_, _, ie), CTRef (_, _, IEVar iv)          -> refine_index is ie iv
+          | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
           | _                                                 -> fail_constraint is itc
         end
     | IDSubtype (itv1, itv2, ctbound, _, _) ->
         begin match itv1, itv2, ctbound with
           | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
-          | CTRef (_, _, ie), CTRef (_, _, IEVar iv), CTRef (_, _, ib)                   -> bounded_refine_index is ie iv ib
+          | CTRef (_, ie), CTRef (_, IEVar iv), CTRef (_, ib)                            -> bounded_refine_index is ie iv ib
           | _                                                                            -> fail_constraint is itc
         end
 
@@ -317,8 +313,8 @@ and constrain_lval ((ve, _) as env: env): C.lval -> itypevar * itypevarcstr list
   | (C.Mem e, C.NoOffset) as lv ->
       let itv, cs = constrain_exp env e in
         begin match itv with
-          | CTRef _ -> (lv |> C.typeOfLval |> SI.fresh_heaptype |> itypevar_of_ctype, cs)
-          | _       -> E.s <| C.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
+          | CTRef (s, ie) -> (lv |> C.typeOfLval |> SI.fresh_heaptype |> itypevar_of_ctype, cs)
+          | _             -> E.s <| C.bug "fresh_ctvref gave back non-ref type in constrain_lval@!@!"
         end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
@@ -360,14 +356,14 @@ and apply_arithmetic (f: indexexp -> indexexp -> indexexp) (rt: C.typ) (_: C.exp
 
 and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ) (eoffset: C.exp) (itv1: itypevar) (itv2: itypevar): itypevar * itypevarcstr option =
   match C.unrollType pt, itv1, itv2 with
-    | C.TPtr (t, _), CTRef (s, pk, ie1), CTInt (n, ie2) when n = CM.int_width ->
+    | C.TPtr (t, _), CTRef (s, ie1), CTInt (n, ie2) when n = CM.int_width ->
         begin match eoffset with
-          | C.Const _                     -> (CTRef (s, pk, f ie1 (CM.typ_width t) ie2), None)
+          | C.Const _                     -> (CTRef (s, f ie1 (CM.typ_width t) ie2), None)
           | C.Lval (C.Var vi, C.NoOffset) ->
               let iv = IEVar (fresh_indexvar ()) in
               let vv = Ast.Symbol.value_variable Ast.Sort.Int in
               let rt = CTInt (n, (ITop, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
-                (CTRef (s, pk, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1))) vi rt))
+                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1))) vi rt))
           | _ -> halt <| C.bug "Pointer arithmetic offset isn't variable or const\n"
         end
     | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
@@ -382,8 +378,8 @@ and apply_unknown (rt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar *
   (CTInt (CM.typ_width rt, IEConst ITop), None)
 
 and constrain_constptr: C.constant -> itypevar * itypevarcstr list = function
-  | C.CStr _                                 -> (CTRef (S.none, Checked, IEConst (IInt 0)), [])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, Checked, IEConst IBot), [])
+  | C.CStr _                                 -> (CTRef (S.none, IEConst (IInt 0)), [])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
   | c                                        -> halt <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypevarcstr list =

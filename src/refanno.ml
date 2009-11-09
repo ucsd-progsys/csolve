@@ -51,8 +51,8 @@ let loc_of_var_expr theta =
 
 let sloc_of_expr ctm e =
   match Ctypes.ExpMap.find e ctm with
-  | Ctypes.CTInt _         -> None
-  | Ctypes.CTRef (s, _, _) -> Some s
+  | Ctypes.CTInt _      -> None
+  | Ctypes.CTRef (s, _) -> Some s
 
 let cloc_of_aloc conc al =
   try LM.find al conc with Not_found -> al

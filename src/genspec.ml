@@ -165,7 +165,7 @@ and conv_ptr loc (th, st) po c =
   let _   = if mydebug then Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
-    (th, st), Ct.CTRef (l, Ctypes.Checked, idx)
+    (th, st), Ct.CTRef (l, idx) 
   else
     let l                = Sloc.fresh Sloc.Abstract in
     let idx              = mk_idx po 0 in
@@ -173,7 +173,7 @@ and conv_ptr loc (th, st) po c =
     let (th'', st', _), its = conv_cilblock loc (th', st, Ct.IInt 0) po c in
     let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in
-    (th'', st''), Ct.CTRef (l, Ctypes.Checked, idx)
+    (th'', st''), Ct.CTRef (l, idx)
 
 and conv_cilblock loc (th, st, off) po c =
 (* {{{  *)let _  =
