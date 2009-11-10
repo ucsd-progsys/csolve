@@ -10,11 +10,14 @@
 main() {
     int n;
 
-    // pmr: inlined
-    struct adpcm_state state;
     char	abuf[NSAMPLES/2];
     short	sbuf[NSAMPLES];
 
+    struct adpcm_state state;
+
+    // pmr: hack around bug
+    int *p = (int *)malloc(sizeof(int));
+    *p = 0;
 
     while(1) {
 	n = read(0, sbuf, NSAMPLES*2);
@@ -26,7 +29,7 @@ main() {
 	adpcm_coder(sbuf, abuf, n/2, &state);
 	write(1, abuf, n/4);
     }
-    fprintf(stderr, "Final valprev=%d, index=%d\n",
-	    state.valprev, state.index);
+    fprintf(0, "Final valprev=%d, index=%d\n",
+            state.valprev, state.index);
     exit(0);
 }
