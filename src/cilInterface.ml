@@ -44,6 +44,8 @@ let exp_of_cilcon skolem = function
       A.eCon (A.Constant.Int (Int64.to_int i))
   | Cil.CReal _ ->
       skolem ()
+  | Cil.CStr s ->
+      skolem ()
   | _ ->
       assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str
