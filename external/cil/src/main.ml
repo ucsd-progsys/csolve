@@ -104,6 +104,7 @@ let features : C.featureDescr list =
     Logcalls.feature;
     Ptranal.feature;
     Liveness.feature;
+    RunLiquid.feature;
   ] 
   @ Feature_config.features 
 
