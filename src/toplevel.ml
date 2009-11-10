@@ -132,9 +132,10 @@ let generate_spec fname spec =
 (***********************************************************************************)
 
 let spec_of_file fname =
+  let libpath = Sys.executable_name |> Filename.dirname |> Filename.dirname in
   SM.empty 
   |> add_spec (fname^".spec")                   (* Add manual specs  *)
-  |> add_spec (Co.lib_name^".spec")             (* Add default specs *)
+  |> add_spec (Filename.concat libpath (Co.lib_name^".spec"))             (* Add default specs *)
   >> generate_spec fname
   |> add_spec (fname^".autospec")               (* Add autogen specs *)
 

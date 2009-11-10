@@ -14,4 +14,6 @@ extern char *fgets(char * __attribute__ ((array)), int, FILE *);
 
 extern int sscanf(char * __attribute__ ((array)), char * __attribute__ ((array)), ...);
 
+extern void perror ( const char * str );
+
 #endif
