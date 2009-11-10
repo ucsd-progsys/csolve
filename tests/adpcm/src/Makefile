@@ -17,7 +17,7 @@ else
 CC = gcc
 endif
 
-CC = /home/pmr/src/liquidc/src/cc.sh
+CC = ../../../src/cc.sh
 
 # LFLAGS = -mv8
 # LFLAGS = $(LFLAGS) -static
