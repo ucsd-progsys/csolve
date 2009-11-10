@@ -279,7 +279,12 @@ let cons_of_annotinstr me i grd (j, wld) (annots, instr) =
       let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
       let wld, cds  = cons_of_set me loc tagj grd wld (lv, e) in
-      (j+1, wld), cds +++ acds 
+      (j+1, wld), cds +++ acds
+  | Call (None, Lval (Var fv, NoOffset), _, loc) when CilMisc.isVararg fv.Cil.vtype ->
+      let tagj      = CF.tag_of_instr me i j loc in
+      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
+      let _         = Cil.warnLoc loc "Ignoring vararg call" in
+        (j+1, wld), acds
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
@@ -352,7 +357,7 @@ let cons_of_sci tgr gnv sci shp =
   begin if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-    let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in
+    let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
     let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
       ()
   end;
