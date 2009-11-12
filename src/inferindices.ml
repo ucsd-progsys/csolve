@@ -528,19 +528,6 @@ let fresh_fun_typ (fd: C.fundec): ifunvar =
   let fctys            = match ftyso with None -> [] | Some ftys -> List.map (fun (fn, fty, _) -> (fn, fresh_itypevar fty)) ftys in
     mk_cfun [] fctys (fresh_itypevar rty) SLM.empty SLM.empty
 
-let constrain_prog_fold (fe: funenv) (_: VM.key) (sci: ST.ssaCfgInfo) ((css, fm): itypevarcstr list list * (ifunvar * itypevar VM.t) VM.t): itypevarcstr list list * (ifunvar * itypevar VM.t) VM.t =
-  let ve, cs = constrain_fun fe (VM.find sci.ST.fdec.C.svar fe) sci in
-  let fv     = sci.ST.fdec.C.svar in
-    (cs :: css, VM.add fv (VM.find fv fe, ve) fm)
-
-let constrain_prog (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): itypevarcstr list * (ifunvar * itypevar VM.t) VM.t =
-  let fe      = ctenv
-             |> VM.map ifunvar_of_cfun
-             |> VM.fold (fun f {ST.fdec = fd} fe -> if VM.mem f fe then fe else VM.add f (fresh_fun_typ fd) fe) scim in
-  let fm      = VM.map (fun cf -> (cf, VM.empty)) fe in
-  let css, fm = VM.fold (constrain_prog_fold fe) scim ([], fm) in
-    (List.concat css, fm)
-
 type indextyping = (cfun * ctype VM.t) VM.t
 
 let d_indextyping () (it: indextyping): P.doc =
@@ -551,15 +538,6 @@ let d_indextyping () (it: indextyping): P.doc =
       "\n\n"
       CM.d_var
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var d_ctype) vm) ()
-
-(* API *)
-let infer_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t): indextyping =
-  let cs, fm = constrain_prog ctenv scim in
-  let is     = solve cs in
-  let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index solution:\n\n%a\n\n" d_indexsol is |> ignore in
-  let it     = VM.map (fun (ifv, vm) -> (precfun_map (itypevar_apply is) ifv, VM.map (itypevar_apply is) vm)) fm in
-  let _      = if Cs.ck_olev Cs.ol_solve then P.printf "Index typing:\n\n%a\n\n" d_indextyping it |> ignore in
-    it
 
 type dcheck = C.varinfo * FI.refctype
 
