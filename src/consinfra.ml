@@ -218,3 +218,6 @@ let ctype_of_varinfo me v =
   let rv  = strengthen_cloc (ct, clo) in
   (* let _   = Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct in*)  
   rv
+
+let refctype_of_global me v =
+  FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv

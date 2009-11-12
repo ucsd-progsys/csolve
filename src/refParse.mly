@@ -20,7 +20,7 @@ let sloctable = Hashtbl.create 17
 let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
-let mk_spec fn public qslocs args ist ret ost =
+let mk_funspec fn public qslocs args ist ret ost =
   let rcf = FI.mk_refcfun qslocs args ist ret ost in
     if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
       (fn, (rcf, public))
@@ -57,17 +57,18 @@ let mk_spec fn public qslocs args ist ret ost =
 %%
 specs:
                                         { Hashtbl.clear sloctable; Ctypes.PreSpec.empty }
-  | spec specs                          { let fn, sp = $1 in Ctypes.PreSpec.add_fun fn sp $2 }
+  | funspec specs                       { let fn, sp = $1 in Ctypes.PreSpec.add_fun fn sp $2 }
+  | varspec specs                       { let vn, sp = $1 in Ctypes.PreSpec.add_var vn sp $2 }
   ;
 
-spec:
+funspec:
     Id publ 
     FORALL slocs
     ARG    argbinds 
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      mk_spec $1 $2 $4 $6 $10 $8 $12
+      mk_funspec $1 $2 $4 $6 $10 $8 $12
     }
   | Id publ
     FORALL slocs
@@ -75,9 +76,16 @@ spec:
     RET    reftype
     ST     refstore
     {
-      mk_spec $1 $2 $4 $6 $10 $8 $10
+      mk_funspec $1 $2 $4 $6 $10 $8 $10
     }
     ;
+
+varspec:
+  Id DCOLON reftype
+  {
+    ($1, $3)
+  }
+  ;
 
 publ:
   | DCOLON                              {false}

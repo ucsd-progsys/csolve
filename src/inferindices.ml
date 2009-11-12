@@ -508,11 +508,11 @@ let dump_constraints (fn: string) (ftv: ifunvar) (cs: itypevarcstr list): unit =
   let _ = P.printf "%a\n\n" (P.d_list "\n" d_itypevarcstr) cs in
     ()
 
-let constrain_fun (fe: funenv) (ftv: ifunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypevarcstr list =
+let constrain_fun (fe: funenv) (ve: varenv) (ftv: ifunvar) ({ST.fdec = fd; ST.phis = phis; ST.cfg = cfg}: ST.ssaCfgInfo): varenv * itypevarcstr list =
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
   let vars        = locals @ bodyformals in
-  let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) VM.empty vars in
+  let ve          = List.fold_left (fun ve (v, itv) -> VM.add v itv ve) ve vars in
   let _           = C.currentLoc := fd.C.svar.C.vdecl in
   let formalcs    = Misc.do_catch "HERE4" (List.map2 (fun (_, at) (_, itv) ->
     mk_isubtypecstr at itv) ftv.args) bodyformals in
@@ -554,8 +554,8 @@ let get_cstr_dcheck (is: indexsol): itypevarcstr -> dcheck option = function
   | _ -> None
 
 (* API *)
-let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t * dcheck list =
-  let fe     = VM.map ifunvar_of_cfun ctenv in
-  let ve, cs = constrain_fun fe (ifunvar_of_cfun cf) sci in
+let infer_fun_indices (ctenv: cfun VM.t) (ve: ctype VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t * dcheck list =
+  let fe, ve = VM.map ifunvar_of_cfun ctenv, VM.map itypevar_of_ctype ve in
+  let ve, cs = constrain_fun fe ve (ifunvar_of_cfun cf) sci in
   let is     = solve cs in
     (VM.map (itypevar_apply is) ve, M.map_partial (get_cstr_dcheck is) cs)

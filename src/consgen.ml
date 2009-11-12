@@ -181,18 +181,27 @@ let cons_of_mem loc tago tag grd env v =
     let rct = v |> FI.name_of_varinfo |> FI.t_name env in
       FI.make_cs_validptr env grd rct tago tag loc
 
-let cons_of_set me loc tag grd (env, sto, tago) = function 
-  (* v := *v' *)
-  | (Var v, NoOffset), Lval (Mem (Lval (Var v', NoOffset)), _)
-  | (Var v, NoOffset), Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
-      let cr = FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto in
-      (extend_env me v cr env, sto, Some tag), (cons_of_mem loc tago tag grd env v')
-
-  (* v := e, where e is pure *)
-  | (Var v, NoOffset), e ->
+let cons_of_rval me loc tag grd (env, sto, tago) = function
+  (* *v *)
+  | Lval (Mem (Lval (Var v', NoOffset)), _)
+  | Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
+      (FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto, cons_of_mem loc tago tag grd env v')
+  (* e, where e is pure *)
+  | e ->
       let _  = CilMisc.check_pure_expr e in
-      let cr = FI.t_exp env (CF.ctype_of_expr me e) e in
-      (extend_env me v cr env, sto, Some tag), ([], [])
+      (FI.t_exp env (CF.ctype_of_expr me e) e, ([], []))
+
+let cons_of_set me loc tag grd (env, sto, tago) = function
+  (* v := e, where v is local *)
+  | (Var v, NoOffset), rv when not v.Cil.vglob ->
+      let cr, cds = cons_of_rval me loc tag grd (env, sto, tago) rv in
+        (extend_env me v cr env, sto, Some tag), cds
+
+  (* v := e, where v is global *)
+  | (Var v, NoOffset), rv when v.Cil.vglob ->
+      let cr, (cs1, _) = cons_of_rval me loc tag grd (env, sto, tago) rv in
+      let cs2, _       = FI.make_cs env grd cr (CF.refctype_of_global me v) tago tag loc in
+        (env, sto, Some tag), (cs1 ++ cs2, [FI.make_dep false tago (Some tag)])
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
@@ -415,15 +424,21 @@ let shapem_of_scim cil spec scim =
   |> (fun (bm, fm) -> infer_shapes cil spec fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
-let mk_gnv (funspec, _) cenv decs =
+let mk_gnv (funspec, varspec) cenv decs =
   let decm = M.sm_of_list decs in
-  M.sm_to_list cenv
-  |> List.map begin fun (fn, ft) -> 
-      (fn, if SM.mem fn decm
-           then FI.t_fresh_fn ft 
-           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
-     end
-  |> FI.ce_adds_fn FI.ce_empty 
+  let gnv0 =
+      varspec
+    |> M.sm_to_list
+    |> List.map (FI.name_of_string |> M.app_fst)
+    |> FI.ce_adds FI.ce_empty
+  in
+    M.sm_to_list cenv
+    |> List.map begin fun (fn, ft) ->
+         (fn, if SM.mem fn decm
+          then FI.t_fresh_fn ft
+          else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
+       end
+    |> FI.ce_adds_fn gnv0
 
 (********************************************************************************)
 (*************************** Unify Spec Names and CIL names *********************)

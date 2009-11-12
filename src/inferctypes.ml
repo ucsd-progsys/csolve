@@ -538,13 +538,14 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st; anna = 
   let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
     ()
 
-let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) scim cf |> M.app_fst (VM.map fresh_sloc_of) in
+let infer_shape (fe: funenv) (ve: ctvenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
+  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst (VM.map fresh_sloc_of) in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let scs                 = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_out in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
+  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
@@ -565,9 +566,19 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec): cspec) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * Ind.dcheck list) SM.t =
+let infer_shapes (cil: C.file) ((funspec, varspec): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
+  let ve = C.foldGlobals cil begin fun ve -> function
+             | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
+                 begin try
+                   VM.add vi (SM.find vi.C.vname varspec) ve
+                 with Not_found ->
+                   halt <| C.errorLoc loc "Could not find spec for global var %a\n" CM.d_var vi
+                 end
+             | _ -> ve
+           end VM.empty
+  in
   let fe = declared_funs cil
         |> List.map (fun f -> (f, SM.find f.C.vname funspec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-    scis |> SM.map (infer_shape fe scim |> M.uncurry)
+    scis |> SM.map (infer_shape fe ve scim |> M.uncurry)
