@@ -556,6 +556,9 @@ module PreSpec = struct
   let mem_fun (fn: string) ((funspec, _): 'a t): bool =
     SM.mem fn funspec
 
+  let mem_var (vn: string) ((_, varspec): 'a t): bool =
+    SM.mem vn varspec
+
   let add_var (vn: string) (pct: 'a prectype) ((funspec, varspec): 'a t): 'a t =
     (funspec, SM.add vn pct varspec)
 end

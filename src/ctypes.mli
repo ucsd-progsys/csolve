@@ -175,10 +175,11 @@ module PreSpec:
 
     val empty: 'a t
 
-    val map  : ('a -> 'b) -> 'a t -> 'b t
+    val map     : ('a -> 'b) -> 'a t -> 'b t
     val add_fun : string -> 'a precfun * bool -> 'a t -> 'a t
     val add_var : string -> 'a prectype -> 'a t -> 'a t
     val mem_fun : string -> 'a t -> bool
+    val mem_var : string -> 'a t -> bool
   end
 
 type cspec = index PreSpec.t

@@ -30,6 +30,8 @@ module Sy = Ast.Symbol
 module P  = Pretty
 module FI = FixInterface
 module Co = Constants
+module Sp = Ctypes.PreSpec
+module M  = Misc
 
 open Misc.Ops
 
@@ -126,9 +128,13 @@ let generate_spec fname spec =
   >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
   |> Genspec.specs_of_file_all spec
   >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> Misc.filter (fun (fn,_) -> not (Ctypes.PreSpec.mem_fun fn spec))
-  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
-  |> fun _ -> close_out oc 
+  |> begin fun (funspec, varspec) ->
+       let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
+       let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
+         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
+         close_out oc
+     end
 
 (***********************************************************************************)
 (******************************** API **********************************************)
