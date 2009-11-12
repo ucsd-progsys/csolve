@@ -30,7 +30,7 @@ type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
 type refcfun  = (Ctypes.index * FixConstraint.reft) Ctypes.precfun
 type refldesc (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
 type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
-type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.prespec
+type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
 
 val d_refstore          : unit -> refstore -> Pretty.doc
 val d_refctype          : unit -> refctype -> Pretty.doc
@@ -39,7 +39,7 @@ val d_refcfun           : unit -> refcfun -> Pretty.doc
 val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
 val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
 val refcfun_of_cfun     : Ctypes.cfun -> refcfun
-val cspec_of_refspec   : refspec -> Ctypes.cspec
+val cspec_of_refspec    : refspec -> Ctypes.cspec
 
 val qlocs_of_refcfun    : refcfun  -> Sloc.t list
 val args_of_refcfun     : refcfun  -> (string * refctype) list

@@ -105,18 +105,19 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let add_spec fn spec =
+let add_spec fn (funspec, varspec) =
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       |> SM.fold (fun fn sp sm -> Misc.sm_protected_add false fn sp sm) spec
+       |> SM.fold (fun fn sp (fs, vs) -> (Misc.sm_protected_add false fn sp fs, vs)) funspec
+       |> SM.fold (fun vn sp (fs, vs) -> (fs, Misc.sm_protected_add false vn sp vs)) varspec
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    spec
+    (funspec, varspec)
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
@@ -125,7 +126,7 @@ let generate_spec fname spec =
   >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
   |> Genspec.specs_of_file_all spec
   >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
+  |> Misc.filter (fun (fn,_) -> not (Ctypes.PreSpec.mem_fun fn spec))
   |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
   |> fun _ -> close_out oc 
 
@@ -134,7 +135,7 @@ let generate_spec fname spec =
 (***********************************************************************************)
 
 let spec_of_file fname =
-  SM.empty 
+  Ctypes.PreSpec.empty
   |> add_spec (fname^".spec")                   (* Add manual specs  *)
   |> add_spec (Filename.concat libpath (Co.lib_name^".spec"))             (* Add default specs *)
   >> generate_spec fname

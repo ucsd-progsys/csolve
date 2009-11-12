@@ -400,7 +400,7 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 
 let infer_shapes cil spec scis =
   let spec = FI.cspec_of_refspec spec in
-    (Inferctypes.infer_shapes cil spec scis, SM.map fst spec)
+    (Inferctypes.infer_shapes cil spec scis, spec |> fst |> SM.map fst)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -409,19 +409,19 @@ let shapem_of_scim cil spec scim =
        if SM.mem fn scim
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else (SM.add fn cf bm, fm)
-     end spec
+     end (fst spec)
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
   |> (fun (bm, fm) -> infer_shapes cil spec fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
-let mk_gnv spec cenv decs = 
+let mk_gnv (funspec, _) cenv decs =
   let decm = M.sm_of_list decs in
   M.sm_to_list cenv
   |> List.map begin fun (fn, ft) -> 
       (fn, if SM.mem fn decm
            then FI.t_fresh_fn ft 
-           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) spec))
+           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
      end
   |> FI.ce_adds_fn FI.ce_empty 
 
@@ -443,25 +443,24 @@ let rename_args rf sci : FI.refcfun =
                     |> Misc.map_pair (FI.refstore_subs loc FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_spec scim spec =
-  Misc.sm_to_list spec 
-  |> List.map begin fun (fn, (rf,b)) ->
-      if SM.mem fn scim 
-      then (fn, (rename_args rf (SM.find fn scim), b))
-      else (fn, (rf, b))
-     end
-  |> M.sm_of_list
+let rename_spec scim (funspec, varspec) =
+  (funspec |> SM.mapi begin fun fn (rf,b) ->
+     if SM.mem fn scim
+     then (rename_args rf (SM.find fn scim), b)
+     else (rf, b)
+   end,
+   varspec)
 
 (************************************************************************************)
 (***************** Generate Constraints for each Function ***************************)
 (************************************************************************************)
 
-let cons_of_decs tgr spec gnv decs =
+let cons_of_decs tgr (funspec, _) gnv decs =
   List.fold_left begin fun (ws, cs, _) (fn, loc) ->
     let tag    = CilTag.make_t tgr loc fn 0 0 in
     let irf    = FI.ce_find_fn fn gnv in
     let ws'    = FI.make_wfs_fn gnv irf tag in
-    let srf, b = SM.find fn spec in
+    let srf, b = SM.find fn funspec in
     let cs',ds'= if b then cons_of_refcfun loc gnv fn irf srf tag else ([],[]) in    
     (ws' ++ ws, cs' ++ cs, [])
   end ([], [], []) decs
@@ -512,7 +511,7 @@ let print_sccs sccs =
 *)
 
 (* API *)
-let create cil (spec: (FI.refcfun * bool) SM.t) =
+let create cil (spec: FI.refspec) =
   let scim     = scim_of_file cil in
   let reachf   = reachable cil scim in
   let scim     = Misc.sm_filter (fun fn _ -> reachf fn) scim in 

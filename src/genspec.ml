@@ -242,11 +242,11 @@ let fundecs_of_file cil =
     | _                   -> acc
   end SM.empty 
 
-let specs_of_funm spec funm =
+let specs_of_funm (funspec, varspec) funm =
   SM.empty
   |> SM.fold begin fun _ d funm -> match d with 
-     | GFun (fd, loc)    -> upd_funm spec funm loc fd.svar.vname fd.svar.vtype
-     | GVarDecl (v, loc) -> upd_funm spec funm loc v.vname v.vtype
+     | GFun (fd, loc)    -> upd_funm funspec funm loc fd.svar.vname fd.svar.vtype
+     | GVarDecl (v, loc) -> upd_funm funspec funm loc v.vname v.vtype
      end funm 
   |> SM.mapi cfun_of_args_ret
   |> Misc.sm_bindings
@@ -258,9 +258,9 @@ let specs_of_funm spec funm =
 
 let specs_of_file_all spec cil =
   Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) 
-  |> specs_of_funm spec 
+  |> specs_of_funm spec
 
 let specs_of_file_dec spec cil = 
   fundecs_of_file cil 
-  |> specs_of_funm spec 
+  |> specs_of_funm spec
 

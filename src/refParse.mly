@@ -56,8 +56,8 @@ let mk_spec fn public qslocs args ist ret ost =
 
 %%
 specs:
-                                        { Hashtbl.clear sloctable; SM.empty }
-  | spec specs                          { let fn, sp = $1 in SM.add fn sp $2 }
+                                        { Hashtbl.clear sloctable; Ctypes.PreSpec.empty }
+  | spec specs                          { let fn, sp = $1 in Ctypes.PreSpec.add_fun fn sp $2 }
   ;
 
 spec:

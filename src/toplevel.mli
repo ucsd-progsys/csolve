@@ -24,7 +24,7 @@
 
 val cil_of_file: string -> Cil.file
 val quals_of_file: string -> Ast.Qualifier.t list 
-val spec_of_file: string -> (FixInterface.refcfun * bool) Misc.StringMap.t 
+val spec_of_file: string -> FixInterface.refspec
 val print_header: unit -> unit 
 val mk_options: string -> unit -> string  
 val main: string -> (string -> 'a) -> 'a

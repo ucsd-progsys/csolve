@@ -541,9 +541,23 @@ let d_ctemap () (em: ctemap): Pretty.doc =
 (************************************ Specs ***********************************)
 (******************************************************************************)
 
-type 'a prespec = ('a precfun * bool) SM.t
+module PreSpec = struct
+  type 'a t = ('a precfun * bool) SM.t * 'a prectype SM.t
 
-type cspec = index prespec
+  let empty = (SM.empty, SM.empty)
 
-let prespec_map (f: 'a -> 'b) (psp: 'a prespec): 'b prespec =
-  SM.map (f |> prectype_map |> precfun_map |> M.app_fst) psp
+  let map (f: 'a -> 'b) ((funspec, varspec): 'a t): 'b t =
+    (SM.map (f |> prectype_map |> precfun_map |> M.app_fst) funspec,
+     SM.map (f |> prectype_map) varspec)
+
+  let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec): 'a t): 'a t =
+    (SM.add fn sp funspec, varspec)
+
+  let mem_fun (fn: string) ((funspec, _): 'a t): bool =
+    SM.mem fn funspec
+
+  let add_var (vn: string) (pct: 'a prectype) ((funspec, varspec): 'a t): 'a t =
+    (funspec, SM.add vn pct varspec)
+end
+
+type cspec = index PreSpec.t
