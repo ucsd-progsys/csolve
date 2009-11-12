@@ -91,6 +91,7 @@ type refctype  = (Ctypes.index * C.reft) Ctypes.prectype
 type refcfun   = (Ctypes.index * C.reft) Ctypes.precfun
 type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
 type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
+type refspec   = (Ctypes.index * C.reft) Ctypes.prespec
 
 
 let d_index_reft () (i,r) = 
@@ -118,6 +119,7 @@ let ctype_of_refctype = function
 (* API *)
 let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
 let refcfun_of_cfun   = Ctypes.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.Int, So.Int, []))
+let cspec_of_refspec  = Ctypes.prespec_map (fun (i,_) -> i)
 let qlocs_of_refcfun  = fun ft -> ft.Ctypes.qlocs
 let args_of_refcfun   = fun ft -> ft.Ctypes.args
 let ret_of_refcfun    = fun ft -> ft.Ctypes.ret

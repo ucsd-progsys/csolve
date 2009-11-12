@@ -398,8 +398,9 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let infer_shapes cil env scis =
-  (Inferctypes.infer_shapes cil env scis, env)
+let infer_shapes cil spec scis =
+  let spec = FI.cspec_of_refspec spec in
+    (Inferctypes.infer_shapes cil spec scis, SM.map fst spec)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -411,7 +412,7 @@ let shapem_of_scim cil spec scim =
      end spec
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
-  |> (fun (bm, fm) -> infer_shapes cil (Misc.sm_extend bm (SM.map fst fm)) fm)
+  |> (fun (bm, fm) -> infer_shapes cil spec fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv spec cenv decs = 

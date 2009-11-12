@@ -112,7 +112,7 @@ let add_spec fn spec =
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       |> List.fold_left (fun sm (x,y,b) -> Misc.sm_protected_add false x (y,b) sm) spec
+       |> SM.fold (fun fn sp sm -> Misc.sm_protected_add false fn sp sm) spec
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;

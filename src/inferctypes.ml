@@ -565,9 +565,9 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * Ind.dcheck list) SM.t =
+let infer_shapes (cil: C.file) (spec: (cfun * 'a) SM.t) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * Ind.dcheck list) SM.t =
   let fe = declared_funs cil
-        |> List.map (fun f -> (f, SM.find f.C.vname env))
+        |> List.map (fun f -> (f, SM.find f.C.vname spec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
     scis |> SM.map (infer_shape fe scim |> M.uncurry)

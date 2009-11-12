@@ -5,6 +5,7 @@ module S  = Sloc
 module SS = S.SlocSet
 module C  = Cil
 module CM = CilMisc
+module SM = M.StringMap
 
 open M.Ops
 
@@ -518,12 +519,6 @@ let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
           (prestore_subs sub cf.sto_out)
 
 (******************************************************************************)
-(******************************** Environments ********************************)
-(******************************************************************************)
-
-type ctypeenv = cfun M.StringMap.t
-
-(******************************************************************************)
 (******************************* Expression Maps ******************************)
 (******************************************************************************)
 
@@ -541,3 +536,14 @@ type ctemap = ctype ExpMap.t
 
 let d_ctemap () (em: ctemap): Pretty.doc =
   ExpMapPrinter.d_map "\n" Cil.d_exp d_ctype () em
+
+(******************************************************************************)
+(************************************ Specs ***********************************)
+(******************************************************************************)
+
+type 'a prespec = ('a precfun * bool) SM.t
+
+type cspec = index prespec
+
+let prespec_map (f: 'a -> 'b) (psp: 'a prespec): 'b prespec =
+  SM.map (f |> prectype_map |> precfun_map |> M.app_fst) psp

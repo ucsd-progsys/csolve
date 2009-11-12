@@ -54,8 +54,6 @@ type 'a precfun =
 
 type cfun = index precfun
 
-type ctypeenv = cfun Misc.StringMap.t
-
 module ExpKey:
   sig
     type t = Cil.exp
@@ -74,6 +72,10 @@ module ExpMapPrinter:
   end
 
 type ctemap = ctype ExpMap.t
+
+type 'a prespec = ('a precfun * bool) Misc.StringMap.t
+
+type cspec = index prespec
 
 (******************************************************************************)
 (******************************* Pretty Printers ******************************)
@@ -166,3 +168,9 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
 val store_closed : index prestore -> bool
+
+(******************************************************************************)
+(************************************ Specs ***********************************)
+(******************************************************************************)
+
+val prespec_map: ('a -> 'b) -> 'a prespec -> 'b prespec

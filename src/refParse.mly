@@ -23,7 +23,7 @@ let mk_sloc id sty =
 let mk_spec fn public qslocs args ist ret ost =
   let rcf = FI.mk_refcfun qslocs args ist ret ost in
     if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-      (fn, rcf, public)
+      (fn, (rcf, public))
     else begin
       Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
       raise Parse_error
@@ -52,12 +52,12 @@ let mk_spec fn public qslocs args ist ret ost =
 
 %start specs 
 
-%type <(string * FixInterface.refcfun * bool) list>    specs 
+%type <FixInterface.refspec>    specs
 
 %%
 specs:
-                                        { Hashtbl.clear sloctable; [] }
-  | spec specs                          { $1 :: $2 }
+                                        { Hashtbl.clear sloctable; SM.empty }
+  | spec specs                          { let fn, sp = $1 in SM.add fn sp $2 }
   ;
 
 spec:
