@@ -156,8 +156,8 @@ val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 	(3) locs(csto) \in conlocs *)
 
 val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
-(** [prestore_upd st1 st2] returns the store obtained by overwriting the
-    common locations of st1 and st2 with the blocks appearing in st2 *)
+(** [prestore_upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+    overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
 
 val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
