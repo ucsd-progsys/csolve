@@ -434,7 +434,7 @@ let mk_gnv (funspec, varspec) cenv decs =
   let gnv0 =
       varspec
     |> M.sm_to_list
-    |> List.map (fun (vn, vty) -> (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh))
+    |> List.map (fun (vn, (vty, _)) -> (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh))
     |> FI.ce_adds FI.ce_empty
   in
     M.sm_to_list cenv
@@ -487,10 +487,12 @@ let cons_of_decs tgr (funspec, varspec) gnv decs =
     | VarDec (vn, loc, init) ->
         let tag     = CilTag.make_global_t tgr loc in
         let vtyp    = FI.ce_find (FI.name_of_string vn) gnv in
+        let vspctyp = let vsp, chk = SM.find vn varspec in if chk then vsp else FI.t_true_refctype vtyp in
         let inittyp = match init with Some (SingleInit e) -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e | _ -> FI.t_zero_refctype vtyp in
         let cs',_   = FI.make_cs FI.ce_empty Ast.pTrue inittyp vtyp None tag loc in
+        let cs'',_  = FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
         let ws'     = FI.make_wfs FI.ce_empty vtyp tag in
-          (ws' ++ ws, cs' ++ cs, [])
+          (ws' ++ ws, cs'' ++ cs' ++ cs, [])
   end ([], [], []) decs
 
 let cons_of_scis tgr gnv scim shpm ci = 

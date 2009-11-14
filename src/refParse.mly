@@ -81,9 +81,9 @@ funspec:
     ;
 
 varspec:
-  Id DCOLON reftype
+  Id publ reftype
   {
-    ($1, $3)
+    ($1, ($3, $2))
   }
   ;
 

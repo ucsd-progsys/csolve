@@ -570,7 +570,7 @@ let infer_shapes (cil: C.file) ((funspec, varspec): cspec) (scis: funmap): (shap
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
-                   VM.add vi (SM.find vi.C.vname varspec) ve
+                   VM.add vi (SM.find vi.C.vname varspec |> fst) ve
                  with Not_found ->
                    halt <| C.errorLoc loc "Could not find spec for global var %a\n" CM.d_var vi
                  end
