@@ -29,6 +29,7 @@ module FI = FixInterface
 module CF = Consinfra
 module IM = Misc.IntMap
 module SM = Misc.StringMap
+module SS = Misc.StringSet
 module M  = Misc
 module P  = Pretty
 
@@ -135,7 +136,7 @@ let wcons_of_phis me tag env vs =
   Misc.flap begin fun v -> 
     let vn  = FI.name_of_varinfo v in
     let cr  = FI.ce_find vn env in 
-    FI.make_wfs wenv cr tag 
+    FI.make_wfs wenv cr tag
   end vs
 
 (****************************************************************************)
@@ -407,6 +408,10 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
+type dec =
+  | FunDec of string * location
+  | VarDec of string * location * init option
+
 let infer_shapes cil spec scis =
   let spec = FI.cspec_of_refspec spec in
     (Inferctypes.infer_shapes cil spec scis, spec |> fst |> SM.map fst)
@@ -425,16 +430,16 @@ let shapem_of_scim cil spec scim =
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
 let mk_gnv (funspec, varspec) cenv decs =
-  let decm = M.sm_of_list decs in
+  let decs = List.fold_left (fun decs -> function FunDec (fn, _) -> SS.add fn decs | _ -> decs) SS.empty decs in
   let gnv0 =
       varspec
     |> M.sm_to_list
-    |> List.map (FI.name_of_string |> M.app_fst)
+    |> List.map (fun (vn, vty) -> (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh))
     |> FI.ce_adds FI.ce_empty
   in
     M.sm_to_list cenv
     |> List.map begin fun (fn, ft) ->
-         (fn, if SM.mem fn decm
+         (fn, if SS.mem fn decs
           then FI.t_fresh_fn ft
           else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
        end
@@ -466,18 +471,26 @@ let rename_spec scim (funspec, varspec) =
    end,
    varspec)
 
-(************************************************************************************)
-(***************** Generate Constraints for each Function ***************************)
-(************************************************************************************)
+(******************************************************************************)
+(************** Generate Constraints for Each Function and Global *************)
+(******************************************************************************)
 
-let cons_of_decs tgr (funspec, _) gnv decs =
-  List.fold_left begin fun (ws, cs, _) (fn, loc) ->
-    let tag    = CilTag.make_t tgr loc fn 0 0 in
-    let irf    = FI.ce_find_fn fn gnv in
-    let ws'    = FI.make_wfs_fn gnv irf tag in
-    let srf, b = SM.find fn funspec in
-    let cs',ds'= if b then cons_of_refcfun loc gnv fn irf srf tag else ([],[]) in    
-    (ws' ++ ws, cs' ++ cs, [])
+let cons_of_decs tgr (funspec, varspec) gnv decs =
+  List.fold_left begin fun (ws, cs, _) -> function
+    | FunDec (fn, loc) ->
+        let tag    = CilTag.make_t tgr loc fn 0 0 in
+        let irf    = FI.ce_find_fn fn gnv in
+        let ws'    = FI.make_wfs_fn gnv irf tag in
+        let srf, b = SM.find fn funspec in
+        let cs',ds'= if b then cons_of_refcfun loc gnv fn irf srf tag else ([],[]) in
+          (ws' ++ ws, cs' ++ cs, [])
+    | VarDec (vn, loc, init) ->
+        let tag     = CilTag.make_global_t tgr loc in
+        let vtyp    = FI.ce_find (FI.name_of_string vn) gnv in
+        let inittyp = match init with Some (SingleInit e) -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e | _ -> FI.t_zero_refctype vtyp in
+        let cs',_   = FI.make_cs FI.ce_empty Ast.pTrue inittyp vtyp None tag loc in
+        let ws'     = FI.make_wfs FI.ce_empty vtyp tag in
+          (ws' ++ ws, cs' ++ cs, [])
   end ([], [], []) decs
 
 let cons_of_scis tgr gnv scim shpm ci = 
@@ -487,9 +500,6 @@ let cons_of_scis tgr gnv scim shpm ci =
     |> Consindex.add ci fn sci
   end scim ci 
 
-(************************************************************************************)
-(******************************** API ***********************************************)
-(************************************************************************************)
 let tag_of_global = function
   | GType (_,_)    -> "GType"
   | GCompTag (_,_) -> "GCompTag"
@@ -497,9 +507,11 @@ let tag_of_global = function
 
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc)       -> (fdec.svar.vname, loc) :: acc 
-    | _ when !Constants.safe -> assertf "decs_of_file"
-    | _ -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
+    | GFun (fdec, loc)                                    -> FunDec (fdec.svar.vname, loc) :: acc
+    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> VarDec (v.vname, loc, ii.init) :: acc
+    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> VarDec (v.vname, loc, None) :: acc
+    | _ when !Constants.safe                              -> assertf "decs_of_file"
+    | _                                                   -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
   end []
 
 let scim_of_file cil =
@@ -525,6 +537,10 @@ let print_sccs sccs =
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 *)
 
+(************************************************************************************)
+(******************************** API ***********************************************)
+(************************************************************************************)
+
 (* API *)
 let create cil (spec: FI.refspec) =
   let scim     = scim_of_file cil in
@@ -539,10 +555,10 @@ let create cil (spec: FI.refspec) =
   let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
-  let decs     = decs_of_file cil |> Misc.filter (fun (vn,_) -> reachf vn) in 
+  let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in
-  (tgr, cons_of_decs tgr spec gnv decs 
+  (tgr, cons_of_decs tgr spec gnv decs
         |> Consindex.create
         |> cons_of_scis tgr gnv scim shm)

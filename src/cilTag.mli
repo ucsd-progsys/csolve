@@ -25,10 +25,11 @@
 
 type o
 type t 
-val create:     Ssa_transform.ssaCfgInfo list -> o
-val make_t:     o -> Cil.location -> string -> int -> int -> t
-val loc_of_t:   o -> t -> Cil.location
-val fname_of_t: o -> t -> string 
-val block_of_t: o -> t -> int
-val tag_of_t:   t -> FixConstraint.tag
-val t_of_tag:   FixConstraint.tag -> t  (* breaks representation hiding! *)
+val create        : Ssa_transform.ssaCfgInfo list -> o
+val make_t        : o -> Cil.location -> string -> int -> int -> t
+val make_global_t : o -> Cil.location -> t
+val loc_of_t      : o -> t -> Cil.location
+val fname_of_t    : o -> t -> string
+val block_of_t    : o -> t -> int
+val tag_of_t      : t -> FixConstraint.tag
+val t_of_tag      : FixConstraint.tag -> t  (* breaks representation hiding! *)

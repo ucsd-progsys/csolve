@@ -130,5 +130,11 @@ let make_t me loc fn blk instr =
     Errormsg.error "CilTag.make_t: bad args fn=%s, blk=%d" fn blk;
     assertf "CilTag.make_t"
 
+let make_global_t me =
+  let glob_index = ref (-1) in
+    fun loc ->
+      glob_index := !glob_index - 1;
+      [!glob_index; -1; -1; -1]
+
 (* API *)
 let create = fun scis -> {funm = create_funm scis; blkm = create_blkm scis;}
