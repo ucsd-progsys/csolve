@@ -201,7 +201,7 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   | (Var v, NoOffset), rv when v.Cil.vglob ->
       let cr, (cs1, _) = cons_of_rval me loc tag grd (env, sto, tago) rv in
       let cs2, _       = FI.make_cs env grd cr (CF.refctype_of_global me v) tago tag loc in
-        (env, sto, Some tag), (cs1 ++ cs2, [FI.make_dep false tago (Some tag)])
+        (env, sto, Some tag), (cs1 ++ cs2, [])
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
