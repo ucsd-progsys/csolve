@@ -562,10 +562,17 @@ let infer_shape (fe: funenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
+let declared_funs (cil: C.file) =
+  C.foldGlobals cil begin fun fs -> function
+    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
+    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
+    | _                                                   -> fs
+  end []
+
 (* API *)
 let infer_shapes (cil: C.file) (env: ctypeenv) (scis: (cfun * ST.ssaCfgInfo) SM.t): (shape * Ind.dcheck list) SM.t =
-  let fe = VM.empty
-        |> SM.fold (fun f cf fe -> VM.add (C.findOrCreateFunc cil f C.voidType) (funenv_entry_of_cfun cf) fe) env
-        |> SM.fold (fun _ (cf, {ST.fdec = fd}) fe -> VM.add fd.C.svar (funenv_entry_of_cfun cf) fe) scis in
+  let fe = declared_funs cil
+        |> List.map (fun f -> (f, SM.find f.C.vname env))
+        |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
     scis |> SM.map (infer_shape fe scim |> M.uncurry)
