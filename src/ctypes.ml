@@ -424,7 +424,7 @@ let store_closed (sto: store): bool =
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
 let d_precstore d_i () s  =
-  P.dprintf "[@[%a@]]" (SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l ld -> P.printf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+  P.dprintf "[@[%a@]]" (SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
