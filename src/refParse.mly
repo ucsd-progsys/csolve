@@ -36,7 +36,6 @@ let mk_spec fn public qslocs args ist ret ost =
 %token <int> Num
 %token <int> ABS 
 %token <int> CONC
-%token <int> GHOST
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
@@ -99,7 +98,6 @@ slocsne:
 sloc:
     ABS                                 { mk_sloc $1 Sloc.Abstract }
   | CONC                                { mk_sloc $1 Sloc.Concrete }
-  | GHOST                               { mk_sloc $1 Sloc.Ghost }
   ;
 
 refstore:

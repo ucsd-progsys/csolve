@@ -453,7 +453,7 @@ type store = index prestore
 let ctype_closed (ct: ctype) (sto: store) =
   match ct with
     | CTInt _      -> true
-    | CTRef (l, _) -> S.is_ghost l || SLM.mem l sto
+    | CTRef (l, _) -> SLM.mem l sto
 
 let store_closed (sto: store): bool =
   prestore_fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto

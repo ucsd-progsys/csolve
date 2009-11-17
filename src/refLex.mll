@@ -89,8 +89,6 @@ rule token = parse
                           ABS (Misc.suffix_of_string str 1 |> int_of_string) } 
   | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
                           CONC (Misc.suffix_of_string str 1 |> int_of_string) }
-  | "G"(digit)+         { let str = Lexing.lexeme lexbuf in 
-                          GHOST (Misc.suffix_of_string str 1 |> int_of_string) }
   | "int"               { INT }
   | "bool"              { BOOL }
   | "unint"             { UNINT }

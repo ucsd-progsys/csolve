@@ -364,10 +364,9 @@ let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvem
 let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * RA.annotation list * cstr list list =
   let ctvs, em, css  = constrain_args env em args in
   let cf, _          = VM.find f fs in
-  let qlocs          = List.filter (fun s -> not (S.is_ghost s)) cf.qlocs in
-  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) qlocs in
-  let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs) instslocs in
-  let sub            = List.combine qlocs instslocs in
+  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
+  let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
+  let sub            = List.combine cf.qlocs instslocs in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
   let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
   let css            = (mk_wfsubst sub :: stoincs)
@@ -461,8 +460,8 @@ let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
 
 let fresh_sloc_of (c: ctype): ctype =
   match c with
-    | CTRef (s, i) when not (S.is_ghost s) -> CTRef (S.fresh S.Abstract, i)
-    | _                                    -> c
+    | CTRef (s, i) -> CTRef (S.fresh S.Abstract, i)
+    | _            -> c
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
