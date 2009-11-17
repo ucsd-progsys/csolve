@@ -21,7 +21,6 @@ let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 let mk_spec fn public qslocs args ist ret ost =
-  let _ = Hashtbl.clear sloctable in
   let rcf = FI.mk_refcfun qslocs args ist ret ost in
     if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
       (fn, rcf, public)
@@ -58,7 +57,7 @@ let mk_spec fn public qslocs args ist ret ost =
 
 %%
 specs:
-                                        { [] }
+                                        { Hashtbl.clear sloctable; [] }
   | spec specs                          { $1 :: $2 }
   ;
 
