@@ -523,7 +523,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
   let em               = ExpMap.map (prectype_subs sub) em in
   let bas              = Array.map (RA.subs sub) bas in
     if check_out_store_complete whole_store sto then
-      (sto, vars, em, bas)
+      (SLM.fold (fun s _ sto -> SLM.remove s sto) gst sto, vars, em, bas)
     else
       halt <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
 
