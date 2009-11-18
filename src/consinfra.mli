@@ -48,6 +48,7 @@ val ctype_of_varinfo    : t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype
 val refctype_of_global  : t -> Cil.varinfo -> FixInterface.refctype
 val create              : CilTag.o -> 
-                          FixInterface.cilenv -> 
+                          FixInterface.cilenv ->
+                          FixInterface.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
                           Inferctypes.shape -> t

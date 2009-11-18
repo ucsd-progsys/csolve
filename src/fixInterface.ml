@@ -120,6 +120,7 @@ let ctype_of_refctype = function
 let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
 let refcfun_of_cfun   = Ctypes.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.Int, So.Int, []))
 let cspec_of_refspec  = Ctypes.PreSpec.map (fun (i,_) -> i)
+let store_of_refstore = Ctypes.prestore_map_ct ctype_of_refctype
 let qlocs_of_refcfun  = fun ft -> ft.Ctypes.qlocs
 let args_of_refcfun   = fun ft -> ft.Ctypes.args
 let ret_of_refcfun    = fun ft -> ft.Ctypes.ret

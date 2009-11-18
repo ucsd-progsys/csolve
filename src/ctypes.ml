@@ -567,6 +567,9 @@ module PreSpec = struct
 
   let mem_var (vn: string) ((_, varspec, _): 'a t): bool =
     SM.mem vn varspec
+
+  let store ((_, _, storespec): 'a t): 'a prestore =
+    storespec
 end
 
 type cspec = index PreSpec.t

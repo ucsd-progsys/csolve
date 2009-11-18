@@ -181,6 +181,8 @@ module PreSpec:
     val add_loc : Sloc.t -> 'a LDesc.t -> 'a t -> 'a t
     val mem_fun : string -> 'a t -> bool
     val mem_var : string -> 'a t -> bool
+
+    val store   : 'a t -> 'a prestore
   end
 
 type cspec = index PreSpec.t

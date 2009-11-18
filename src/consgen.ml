@@ -365,7 +365,7 @@ let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
 
-let cons_of_sci tgr gnv sci shp =
+let cons_of_sci tgr gnv gst sci shp =
   begin if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
@@ -373,7 +373,7 @@ let cons_of_sci tgr gnv sci shp =
     let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
       ()
   end;
-  CF.create tgr gnv sci shp 
+  CF.create tgr gnv gst sci shp
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
   |> CF.get_cons
@@ -476,7 +476,15 @@ let rename_spec scim (funspec, varspec, storespec) =
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
-let cons_of_decs tgr (funspec, varspec, storespec) gnv decs =
+let cons_of_global_store tgr gst =
+  let tag   = CilTag.make_global_t tgr Cil.locUnknown in
+  let ws    = FI.make_wfs_refstore FI.ce_empty gst tag in
+  let zst   = Ctypes.prestore_map_ct FI.t_zero_refctype gst in
+  let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
+    (ws, cs)
+
+let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
+  let ws, cs = cons_of_global_store tgr gst in
   List.fold_left begin fun (ws, cs, _) -> function
     | FunDec (fn, loc) ->
         let tag    = CilTag.make_t tgr loc fn 0 0 in
@@ -494,12 +502,12 @@ let cons_of_decs tgr (funspec, varspec, storespec) gnv decs =
         let cs'',_  = FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
         let ws'     = FI.make_wfs FI.ce_empty vtyp tag in
           (ws' ++ ws, cs'' ++ cs' ++ cs, [])
-  end ([], [], []) decs
+  end (ws, cs, []) decs
 
-let cons_of_scis tgr gnv scim shpm ci = 
+let cons_of_scis tgr gnv gst scim shpm ci =
   SM.fold begin fun fn sci ci ->
     let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
-    cons_of_sci tgr gnv sci (SM.find sci.ST.fdec.svar.vname shpm)
+    cons_of_sci tgr gnv gst sci (SM.find sci.ST.fdec.svar.vname shpm)
     |> Consindex.add ci fn sci
   end scim ci 
 
@@ -562,6 +570,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in
-  (tgr, cons_of_decs tgr spec gnv decs
+  let gst      = spec |> Ctypes.PreSpec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
+  (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
-        |> cons_of_scis tgr gnv scim shm)
+        |> cons_of_scis tgr gnv gst scim shm)
