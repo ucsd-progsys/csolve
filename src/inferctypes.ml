@@ -485,32 +485,44 @@ let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bo
       ok
   end true sto_out_actual
 
-let check_slocs_distinct (sub: S.Subst.t) (slocs: S.t list): unit =
+let check_slocs_distinct (error: unit -> S.t * S.t -> P.doc) (sub: S.Subst.t) (slocs: S.t list): unit =
   try
     let s1, s2 = Misc.find_pair (fun s1 s2 -> M.map_pair (S.Subst.apply sub) (s1, s2) |> M.uncurry S.eq) slocs in
-      halt <| C.error "Quantified locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+      halt <| C.error "%a\n\n" error (s1, s2)
   with Not_found -> ()
 
-let revert_spec_names (subaway: S.Subst.t) (cfspec: cfun): S.Subst.t =
-     cfspec.sto_out
+let revert_spec_names (subaway: S.Subst.t) (st: store): S.Subst.t =
+     st
   |> prestore_domain
   |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
-let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
+let global_alias_error () ((s1, s2): S.t * S.t): P.doc =
+  C.error "Global locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+
+let quantification_error () ((s1, s2): S.t * S.t): P.doc =
+  C.error "Quantified locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+
+let global_quantification_error () ((s1, s2): S.t * S.t): P.doc =
+  C.error "Global and quantified locations get unified in function body (%a, %a)" S.d_sloc s1 S.d_sloc s2
+
+let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let _                = check_slocs_distinct sub cf.qlocs in
-  let revsub           = revert_spec_names sub cf in
+  let whole_store      = prestore_upd cf.sto_out gst in
+  let _                = check_slocs_distinct global_alias_error sub (prestore_domain gst) in
+  let _                = check_slocs_distinct quantification_error sub cf.qlocs in
+  let _                = check_slocs_distinct global_quantification_error sub (prestore_domain whole_store) in
+  let revsub           = revert_spec_names sub whole_store in
   let sto              = prestore_subs revsub sto in
-  let sto              = cf |> cfun_slocs |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else  SLM.add s LDesc.empty sto) sto in
+  let sto              = cf |> cfun_slocs |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
   let sd               = adjust_slocdep revsub sd in
   let cm               = cstrmap_subs revsub cm in
   let sub              = S.Subst.compose revsub sub in
   let vars             = VM.map (prectype_subs sub) vars in
   let em               = ExpMap.map (prectype_subs sub) em in
   let bas              = Array.map (RA.subs sub) bas in
-    if check_out_store_complete cf.sto_out sto then
+    if check_out_store_complete whole_store sto then
       (sto, vars, em, bas)
     else
       halt <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
@@ -538,13 +550,17 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st; anna = 
   let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
     ()
 
-let infer_shape (fe: funenv) (ve: ctvenv) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst (VM.map fresh_sloc_of) in
+let fresh_local_slocs (ve: ctvenv) =
+  VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
+
+let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
+  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
-  let scs                 = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs cf.sto_out in
+  let whole_store         = prestore_upd cf.sto_out gst in
+  let scs                 = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
-  let sto, vtyps, em, bas = solve_and_check cf ve em bas sd cm in
+  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
   let annot, theta        = RA.annotate_cfg sci.ST.cfg em bas in
@@ -566,7 +582,7 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec, _): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
+let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
@@ -581,4 +597,4 @@ let infer_shapes (cil: C.file) ((funspec, varspec, _): cspec) (scis: funmap): (s
         |> List.map (fun f -> (f, SM.find f.C.vname funspec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-    scis |> SM.map (infer_shape fe ve scim |> M.uncurry)
+    scis |> SM.map (infer_shape fe ve storespec scim |> M.uncurry)
