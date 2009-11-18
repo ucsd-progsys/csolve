@@ -413,13 +413,13 @@ let prestore_close_under (ps: 'a prestore) (ss: S.t list): 'a prestore =
 
 type store = index prestore
 
-let ctype_closed (ct: ctype) (sto: store) =
+let prectype_closed (ct: 'a prectype) (sto: 'a prestore) =
   match ct with
     | CTInt _      -> true
     | CTRef (l, _) -> SLM.mem l sto
 
-let store_closed (sto: store): bool =
-  prestore_fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
+let prestore_closed (sto: 'a prestore): bool =
+  prestore_fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
@@ -494,13 +494,15 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
       sto_out = rename_ps sout},
      subs)
 
-let cfun_well_formed (cf: cfun): bool =
+let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-     store_closed cf.sto_in
-  && store_closed cf.sto_out
-  && List.for_all (fun (_, ct) -> ctype_closed ct cf.sto_in) cf.args
+  let whole_instore  = prestore_upd cf.sto_in globstore in
+  let whole_outstore = prestore_upd cf.sto_out globstore in
+     prestore_closed whole_instore
+  && prestore_closed whole_outstore
+  && List.for_all (fun (_, ct) -> prectype_closed ct whole_instore) cf.args
   && match cf.ret with  (* we can return refs to uninitialized data *)
-        | CTRef (l, _) -> SLM.mem l cf.sto_out
+        | CTRef (l, _) -> SLM.mem l whole_outstore
         | _            -> true
 
 let cfun_slocs (cf: cfun): S.t list =
@@ -542,25 +544,29 @@ let d_ctemap () (em: ctemap): Pretty.doc =
 (******************************************************************************)
 
 module PreSpec = struct
-  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t
+  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a prestore
 
-  let empty = (SM.empty, SM.empty)
+  let empty = (SM.empty, SM.empty, SLM.empty)
 
-  let map (f: 'a -> 'b) ((funspec, varspec): 'a t): 'b t =
+  let map (f: 'a -> 'b) ((funspec, varspec, storespec): 'a t): 'b t =
     (SM.map (f |> prectype_map |> precfun_map |> M.app_fst) funspec,
-     SM.map (f |> prectype_map |> M.app_fst) varspec)
+     SM.map (f |> prectype_map |> M.app_fst) varspec,
+     prestore_map f storespec)
 
-  let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec): 'a t): 'a t =
-    (SM.add fn sp funspec, varspec)
+  let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec, storespec): 'a t): 'a t =
+    (SM.add fn sp funspec, varspec, storespec)
 
-  let mem_fun (fn: string) ((funspec, _): 'a t): bool =
+  let add_var (vn: string) (vspc: 'a prectype * bool) ((funspec, varspec, storespec): 'a t): 'a t =
+    (funspec, SM.add vn vspc varspec, storespec)
+
+  let add_loc (l: S.t) (ld: 'a LDesc.t) ((funspec, varspec, storespec): 'a t): 'a t =
+    (funspec, varspec, SLM.add l ld storespec)
+
+  let mem_fun (fn: string) ((funspec, _, _): 'a t): bool =
     SM.mem fn funspec
 
-  let mem_var (vn: string) ((_, varspec): 'a t): bool =
+  let mem_var (vn: string) ((_, varspec, _): 'a t): bool =
     SM.mem vn varspec
-
-  let add_var (vn: string) (vspc: 'a prectype * bool) ((funspec, varspec): 'a t): 'a t =
-    (funspec, SM.add vn vspc varspec)
 end
 
 type cspec = index PreSpec.t

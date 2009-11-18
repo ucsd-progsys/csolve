@@ -119,12 +119,12 @@ val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val ctype_of_const: Cil.constant -> ctype
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+val precfun_well_formed : 'a prestore -> 'a precfun -> bool
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
-val cfun_well_formed     : cfun -> bool
 val cfun_slocs : cfun -> Sloc.t list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 val cfun_subs : Sloc.Subst.t -> cfun -> cfun
-val ctype_closed         : ctype -> store -> bool
+val prectype_closed : 'a prectype -> 'a prestore -> bool
 val void_ctype: ctype
 val is_void : 'a prectype -> bool
 
@@ -163,7 +163,7 @@ val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 
 val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
-val store_closed : index prestore -> bool
+val prestore_closed : 'a prestore -> bool
 
 (******************************************************************************)
 (************************************ Specs ***********************************)
@@ -171,13 +171,14 @@ val store_closed : index prestore -> bool
 
 module PreSpec:
   sig
-    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t
+    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
 
     val empty: 'a t
 
     val map     : ('a -> 'b) -> 'a t -> 'b t
     val add_fun : string -> 'a precfun * bool -> 'a t -> 'a t
     val add_var : string -> 'a prectype * bool -> 'a t -> 'a t
+    val add_loc : Sloc.t -> 'a LDesc.t -> 'a t -> 'a t
     val mem_fun : string -> 'a t -> bool
     val mem_var : string -> 'a t -> bool
   end

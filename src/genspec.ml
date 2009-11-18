@@ -251,10 +251,15 @@ let funspecs_of_funm funspec funm =
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
-let upd_varm spec varm loc vn = function
-  | _ when SM.mem vn spec         -> varm
-  | t when not (isFunctionType t) -> Misc.sm_protected_add false vn (conv_cilbasetype t) varm
-  | _                             -> varm
+let upd_varm spec (th, st, varm) loc vn = function
+  | _ when SM.mem vn spec         -> (th, st, varm)
+  | t when not (isFunctionType t) ->
+      begin match conv_ciltype loc (th, st, Ct.IInt 0) t with
+        | (th, st, _), [(_, ct)] ->
+            (th, st, Misc.sm_protected_add false vn ct varm)
+        | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
+      end
+  | _ -> (th, st, varm)
 
 let vars_of_file cil =
   foldGlobals cil begin fun acc g -> match g with
@@ -262,23 +267,24 @@ let vars_of_file cil =
     | _                                                                  -> acc
   end SM.empty
 
-let varspecs_of_varm varspec varm =
-  SM.empty
-  |> SM.fold begin fun _ t varm -> match t with
-       | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec varm loc v.vname v.vtype
-       | _                                    -> varm
+let globalspecs_of_varm varspec varm =
+     (SM.empty, SLM.empty, SM.empty)
+  |> SM.fold begin fun _ t (th, st, varm) -> match t with
+       | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (th, st, varm) loc v.vname v.vtype
+       | _                                    -> (th, st, varm)
      end varm
-  |> Misc.sm_bindings
+  |> fun (_, st, varm) -> (st, Misc.sm_bindings varm)
 
 (***************************************************************************)
 (********************************* API *************************************)
 (***************************************************************************)
 
-let specs_of_file_all (funspec, varspec) cil =
-  (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
-   vars_of_file cil |> varspecs_of_varm varspec)
+let specs_of_file_all (funspec, varspec, storespec) cil =
+  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+    (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
+     varspec, storespec)
 
-let specs_of_file_dec (funspec, varspec) cil =
-  (fundecs_of_file cil |> funspecs_of_funm funspec,
-   vars_of_file cil |> varspecs_of_varm varspec)
+let specs_of_file_dec (funspec, varspec, storespec) cil =
+  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+    (fundecs_of_file cil |> funspecs_of_funm funspec, varspec, storespec)
 

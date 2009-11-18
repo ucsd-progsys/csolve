@@ -414,7 +414,7 @@ type dec =
 
 let infer_shapes cil spec scis =
   let spec = FI.cspec_of_refspec spec in
-    (Inferctypes.infer_shapes cil spec scis, spec |> fst |> SM.map fst)
+    (Inferctypes.infer_shapes cil spec scis, spec |> fst3 |> SM.map fst)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -423,13 +423,13 @@ let shapem_of_scim cil spec scim =
        if SM.mem fn scim
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else (SM.add fn cf bm, fm)
-     end (fst spec)
+     end (fst3 spec)
   |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
   |> (fun (bm, fm) -> infer_shapes cil spec fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
-let mk_gnv (funspec, varspec) cenv decs =
+let mk_gnv (funspec, varspec, storespec) cenv decs =
   let decs = List.fold_left (fun decs -> function FunDec (fn, _) -> SS.add fn decs | _ -> decs) SS.empty decs in
   let gnv0 =
       varspec
@@ -463,19 +463,20 @@ let rename_args rf sci : FI.refcfun =
                     |> Misc.map_pair (FI.refstore_subs loc FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_spec scim (funspec, varspec) =
+let rename_spec scim (funspec, varspec, storespec) =
   (funspec |> SM.mapi begin fun fn (rf,b) ->
      if SM.mem fn scim
      then (rename_args rf (SM.find fn scim), b)
      else (rf, b)
    end,
-   varspec)
+   varspec,
+   storespec)
 
 (******************************************************************************)
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
-let cons_of_decs tgr (funspec, varspec) gnv decs =
+let cons_of_decs tgr (funspec, varspec, storespec) gnv decs =
   List.fold_left begin fun (ws, cs, _) -> function
     | FunDec (fn, loc) ->
         let tag    = CilTag.make_t tgr loc fn 0 0 in

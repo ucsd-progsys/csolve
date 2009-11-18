@@ -566,7 +566,7 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
+let infer_shapes (cil: C.file) ((funspec, varspec, _): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try

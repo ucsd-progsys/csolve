@@ -107,19 +107,21 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let add_spec fn (funspec, varspec) =
+let add_spec fn (funspec, varspec, storespec) =
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       |> SM.fold (fun fn sp (fs, vs) -> (Misc.sm_protected_add false fn sp fs, vs)) funspec
-       |> SM.fold (fun vn sp (fs, vs) -> (fs, Misc.sm_protected_add false vn sp vs)) varspec
+       >> (fun (_, _, ss) -> if Ctypes.prestore_closed ss then () else halt <| E.error "Global store not closed")
+       |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
+       |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
+       |> (fun (fs, vs, ss) -> (fs, vs, Ctypes.prestore_upd ss storespec))
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    (funspec, varspec)
+    (funspec, varspec, storespec)
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
@@ -128,9 +130,12 @@ let generate_spec fname spec =
   >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
   |> Genspec.specs_of_file_all spec
   >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> begin fun (funspec, varspec) ->
+  |> begin fun (funspec, varspec, storespec) ->
        let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
        let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+         Sloc.SlocMap.iter
+           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a \n\n" Sloc.d_sloc l (Ctypes.LDesc.d_ldesc Ctypes.d_ctype) ld |> ignore)
+           storespec;
          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
          List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
          close_out oc

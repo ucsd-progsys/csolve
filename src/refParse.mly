@@ -21,13 +21,29 @@ let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 let mk_funspec fn public qslocs args ist ret ost =
-  let rcf = FI.mk_refcfun qslocs args ist ret ost in
-    if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-      (fn, (rcf, public))
+  let _ = Hashtbl.clear sloctable in
+    (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
+
+let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
+  if Ctypes.prestore_closed storespec then
+    if Ctypes.precfun_well_formed storespec rcf then
+      Ctypes.PreSpec.add_fun fn (rcf, public) spec
     else begin
       Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
       raise Parse_error
     end
+  else begin
+    Format.printf "Error: global store not closed\n\n" |> ignore;
+    raise Parse_error
+  end
+
+let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
+  if Ctypes.prectype_closed ty storespec then
+    Ctypes.PreSpec.add_var var (ty, public) spec
+  else begin
+    Format.printf "Error: %s has ill-formed spec\n\n" var |> ignore;
+    raise Parse_error
+  end
 
 %}
 
@@ -38,7 +54,7 @@ let mk_funspec fn public qslocs args ist ret ost =
 %token <int> CONC
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
 %token ARG RET ST INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -57,8 +73,9 @@ let mk_funspec fn public qslocs args ist ret ost =
 %%
 specs:
                                         { Hashtbl.clear sloctable; Ctypes.PreSpec.empty }
-  | funspec specs                       { let fn, sp = $1 in Ctypes.PreSpec.add_fun fn sp $2 }
-  | varspec specs                       { let vn, sp = $1 in Ctypes.PreSpec.add_var vn sp $2 }
+  | specs funspec                       { add_funspec $1 $2 }
+  | specs varspec                       { add_varspec $1 $2 }
+  | specs locspec                       { let lc, sp = $2 in Ctypes.PreSpec.add_loc lc sp $1 }
   ;
 
 funspec:
@@ -85,6 +102,10 @@ varspec:
   {
     ($1, ($3, $2))
   }
+  ;
+
+locspec:
+  LOCATION slocbind                     { $2 }
   ;
 
 publ:

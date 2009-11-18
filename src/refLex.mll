@@ -109,6 +109,7 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "ref"               { REF }
+  | "loc"               { LOCATION }
   | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
   | eof			{ EOF }
