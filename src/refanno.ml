@@ -113,6 +113,11 @@ let concretize_new conc = function
         instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl
   | _ -> assertf "concretize_new 2"
 
+let generalize_global conc al =
+  match cloc_of_aloc conc al with
+    | al' when Sloc.eq al al' -> (conc, [])
+    | al'                     -> (LM.remove al conc, [Gen (al', al)])
+
 let rec new_cloc_of_aloc al = function
   | NewC (_,al',cl) :: ns when Sloc.eq al al' -> Some cl
   | _ :: ns -> new_cloc_of_aloc al ns
@@ -129,15 +134,16 @@ let sloc_of_ret ctm theta (conc, anns) = function
       assertf "sloc_of_ret"
 
 (* ns : New (al,_) list, with distinct al *)
-let annotate_instr ctm theta conc = function
+let annotate_instr globalslocs ctm theta conc = function
   | ns, Cil.Call (_, Lval ((Var fv), NoOffset), _,_) 
     when Constants.is_pure_function fv.vname ->
       conc, ns 
 
   | ns, Cil.Call (lvo,_,_,_) ->
-      let conc, anns = Misc.mapfold concretize_new conc ns in
-      let conc_anns  = (conc, Misc.flatten anns) in
-      let _          = lvo |>> sloc_of_ret ctm theta conc_anns in
+      let conc, anns  = Misc.mapfold concretize_new conc ns in
+      let conc, anns' = Misc.mapfold generalize_global conc globalslocs in
+      let conc_anns   = (conc, Misc.flatten (anns ++ anns')) in
+      let _           = lvo |>> sloc_of_ret ctm theta conc_anns in
       conc_anns
 
   | _, Cil.Set (lv, e, _) -> 
@@ -150,12 +156,12 @@ let annotate_instr ctm theta conc = function
 let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
 
-let annotate_block ctm theta anns instrs = 
+let annotate_block globalslocs ctm theta anns instrs =
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block" in
   let ainstrs = List.combine (Misc.chop_last anns) instrs in
   let conc, anns' =
     List.fold_left begin fun (conc, anns') ainstr -> 
-      let conc', ann = annotate_instr ctm theta conc ainstr in
+      let conc', ann = annotate_instr globalslocs ctm theta conc ainstr in
       (conc', ann::anns')
     end (LM.empty, []) ainstrs in
   let gens = annotate_end conc in
@@ -170,12 +176,12 @@ let subs (sub: S.Subst.t): block_annotation -> block_annotation =
   List.map (List.map (annotation_subs sub))
 
 (* API *)
-let annotate_cfg cfg ctm anna =
+let annotate_cfg cfg globalslocs ctm anna =
   let theta  = Hashtbl.create 17 in
   let annota =
     Array.mapi begin fun i b -> 
       match b.Ssa.bstmt.skind with
-      | Instr is -> annotate_block ctm theta anna.(i) is
+      | Instr is -> annotate_block globalslocs ctm theta anna.(i) is
       | _ -> []
     end cfg.Ssa.blocks in
   (annota, theta)
