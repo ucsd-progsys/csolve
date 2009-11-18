@@ -134,10 +134,10 @@ let generate_spec fname spec =
        let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
        let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
          Sloc.SlocMap.iter
-           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a \n\n" Sloc.d_sloc l (Ctypes.LDesc.d_ldesc Ctypes.d_ctype) ld |> ignore)
+           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l (Ctypes.LDesc.d_ldesc Ctypes.d_ctype) ld |> ignore)
            storespec;
-         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
-         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
+         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
+         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
          close_out oc
      end
 
