@@ -207,11 +207,11 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
-      let addr     = FI.ce_find (FI.name_of_varinfo v) env in
-      let cr'      = FI.t_exp env (CF.ctype_of_expr me e) e in
+      let addr = if v.vglob then CF.refctype_of_global me v else FI.ce_find (FI.name_of_varinfo v) env in
+      let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       let cs1, ds1 = cons_of_mem loc tago tag grd env v in
-      let isp      = try FI.is_soft_ptr loc sto addr with ex ->
-                     Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
+      let isp  = try FI.is_soft_ptr loc sto addr with ex ->
+                   Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp (* FI.is_soft_ptr loc sto addr *) then
         let cr       = FI.refstore_read loc sto addr in
         let cs2, ds2 = FI.make_cs env grd cr' cr tago tag loc in
@@ -432,7 +432,7 @@ let shapem_of_scim cil spec scim =
 let mk_gnv (funspec, varspec, storespec) cenv decs =
   let decs = List.fold_left (fun decs -> function FunDec (fn, _) -> SS.add fn decs | _ -> decs) SS.empty decs in
   let gnv0 =
-      varspec
+       varspec
     |> M.sm_to_list
     |> List.map (fun (vn, (vty, _)) -> (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh))
     |> FI.ce_adds FI.ce_empty

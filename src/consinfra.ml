@@ -221,4 +221,4 @@ let ctype_of_varinfo me v =
   rv
 
 let refctype_of_global me v =
-  FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
+  strengthen_cloc (FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv, Refanno.cloc_of_varinfo me.ctab v)
