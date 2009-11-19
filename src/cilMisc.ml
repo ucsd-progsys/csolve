@@ -140,6 +140,9 @@ let char_width  = bytesSizeOfInt IChar
 let bytesSizeOf t =
   1 + ((Cil.bitsSizeOf t - 1) / 8)
 
+let bytesOffset t off =
+  fst (bitsOffset t off) / 8
+
 let ptrRefType = function
   | TPtr (t, _)      -> t
   | TArray (t, _, _) -> t

@@ -410,7 +410,7 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 
 type dec =
   | FunDec of string * location
-  | VarDec of string * location * init option
+  | VarDec of Cil.varinfo * location * init option
 
 let infer_shapes cil spec scis =
   let spec = FI.cspec_of_refspec spec in
@@ -483,6 +483,50 @@ let cons_of_global_store tgr gst =
   let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
     (ws, cs)
 
+let type_of_init vtyp = function
+  | None                       -> FI.t_true (FI.ctype_of_refctype vtyp)
+  | Some (SingleInit e)        -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e
+  | Some (CompoundInit (t, _)) -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (FI.ctype_of_refctype vtyp)
+
+let add_offset loc t ctptr off =
+  match ctptr with
+    | Ctypes.CTRef (s, (i, r)) ->
+        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.index_of_int |> Ctypes.index_plus i, r))
+    | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
+
+let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
+  | SingleInit e ->
+      let cr  = FI.refstore_read loc sto ctptr in
+      let ct  = FI.ctype_of_refctype cr in
+      let cr' = FI.t_exp env ct e in
+        if FI.is_soft_ptr loc sto ctptr then
+          (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
+        else
+          (FI.refstore_write loc sto ctptr cr', cs)
+  | CompoundInit (_, inits) ->
+      foldLeftCompound
+        ~implicit:true
+        ~doinit:(fun off init t' acc -> cons_of_init acc tag loc env cloc t' (add_offset loc t ctptr off) init)
+        ~ct:t
+        ~initl:inits
+        ~acc:(sto, cs)
+
+let cons_of_var_init tag loc sto v vtyp inito =
+  let cs1, _ = FI.make_cs FI.ce_empty Ast.pTrue (type_of_init vtyp inito) vtyp None tag loc in
+    match inito with
+      | Some (CompoundInit _ as init) ->
+          let cloc        = Sloc.fresh Sloc.Concrete in
+          let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) | _ -> assert false in
+          let aldesc      = FI.refstore_get sto aloc in
+          let abinds      = FI.binds_of_refldesc aloc aldesc in
+          let env, sto, _ = extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in
+          let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
+          let ld1         = (cloc, FI.refstore_get sto cloc) in
+          let ld2         = (aloc, FI.refstore_get sto aloc) in
+          let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
+            cs1 ++ cs2 ++ cs3
+      | _ -> cs1
+
 let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
   let ws, cs = cons_of_global_store tgr gst in
   List.fold_left begin fun (ws, cs, _) -> function
@@ -493,12 +537,11 @@ let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
         let srf, b = SM.find fn funspec in
         let cs',ds'= if b then cons_of_refcfun loc gnv fn irf srf tag else ([],[]) in
           (ws' ++ ws, cs' ++ cs, [])
-    | VarDec (vn, loc, init) ->
+    | VarDec (v, loc, init) ->
         let tag     = CilTag.make_global_t tgr loc in
-        let vtyp    = FI.ce_find (FI.name_of_string vn) gnv in
-        let vspctyp = let vsp, chk = SM.find vn varspec in if chk then vsp else FI.t_true_refctype vtyp in
-        let inittyp = match init with Some (SingleInit e) -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e | _ -> FI.t_zero_refctype vtyp in
-        let cs',_   = FI.make_cs FI.ce_empty Ast.pTrue inittyp vtyp None tag loc in
+        let vtyp    = FI.ce_find (FI.name_of_string v.vname) gnv in
+        let vspctyp = let vsp, chk = SM.find v.vname varspec in if chk then vsp else FI.t_true_refctype vtyp in
+        let cs'     = cons_of_var_init tag loc gst v vtyp init in
         let cs'',_  = FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
         let ws'     = FI.make_wfs FI.ce_empty vtyp tag in
           (ws' ++ ws, cs'' ++ cs' ++ cs, [])
@@ -519,8 +562,8 @@ let tag_of_global = function
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
     | GFun (fdec, loc)                                    -> FunDec (fdec.svar.vname, loc) :: acc
-    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> VarDec (v.vname, loc, ii.init) :: acc
-    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> VarDec (v.vname, loc, None) :: acc
+    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> VarDec (v, loc, ii.init) :: acc
+    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> VarDec (v, loc, None) :: acc
     | _ when !Constants.safe                              -> assertf "decs_of_file"
     | _                                                   -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
   end []

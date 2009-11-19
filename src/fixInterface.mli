@@ -70,6 +70,7 @@ val t_true              : Ctypes.ctype -> refctype
 val t_true_refctype     : refctype -> refctype
 val t_zero_refctype     : refctype -> refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> refctype
+val t_size_ptr          : Ctypes.ctype -> int -> refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> refctype
 val t_name              : cilenv -> name -> refctype
 val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype

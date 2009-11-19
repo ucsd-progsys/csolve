@@ -7,6 +7,7 @@ val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
+val bytesOffset      : Cil.typ -> Cil.offset -> int
 val ptrRefType       : Cil.typ -> Cil.typ
 val isVararg         : Cil.typ -> bool
 val typ_width        : Cil.typ -> int
