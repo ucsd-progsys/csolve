@@ -254,7 +254,7 @@ let funspecs_of_funm funspec funm =
 let upd_varm spec (th, st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (th, st, varm)
   | t when not (isFunctionType t) ->
-      begin match conv_ciltype loc (th, st, Ct.IInt 0) t with
+      begin match conv_ciltype loc TopLevel (th, st, Ct.IInt 0) t with
         | (th, st, _), [(_, ct)] ->
             (th, st, Misc.sm_protected_add false vn ct varm)
         | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
