@@ -141,7 +141,11 @@ let conv_cilbasetype = function
   | TEnum (ei, ats)  -> Ct.CTInt (bytesSizeOfInt ei.ekind, index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
-let rec conv_ciltype loc (th, st, off) (c, a) = 
+type type_level =
+  | TopLevel
+  | InStruct
+
+let rec conv_ciltype loc tlev (th, st, off) (c, a) =
   match c with
   | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
@@ -150,10 +154,13 @@ let rec conv_ciltype loc (th, st, off) (c, a) =
                then Some (CilMisc.bytesSizeOf c') else None in
       let (th', st'), t = conv_ptr loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 
-  | TArray (c',_,_) -> 
+  | TArray (c',_,_) when tlev = InStruct ->
       conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
+  | TArray (c',_,_) when tlev = TopLevel ->
+      let (th', st'), t = conv_ptr loc (th, st) (Some (CilMisc.bytesSizeOf c')) c' in
+      (th', st', add_off off c), [(off, t)] 
   | TNamed (ti, a') ->
-      conv_ciltype loc (th, st, off) (ti.ttype, a' ++ a)
+      conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
   | TComp (_, _) ->
       conv_cilblock loc (th, st, off) None c
   | _          -> 
@@ -183,23 +190,23 @@ and conv_cilblock loc (th, st, off) po c =
        List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype
     |> Misc.map (fun c' -> (c', []))
-    |> Misc.mapfold (conv_ciltype loc) (th, st, off)
+    |> Misc.mapfold (conv_ciltype loc InStruct) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
-let conv_ciltype y z c = 
+let conv_ciltype y tlev z c =
   let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-  conv_ciltype y z (c, [])
+  conv_ciltype y tlev z (c, [])
 
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc) (SM.empty, SLM.empty, Ct.IInt 0) in
+    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc InStruct) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
     let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
-    let res'  = conv_ciltype loc (th, ist, Ct.IInt 0) t in 
+    let res'  = conv_ciltype loc InStruct (th, ist, Ct.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
