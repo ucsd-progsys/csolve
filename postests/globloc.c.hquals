@@ -1,0 +1,1 @@
+qualif LT1k(v:int) : v <= 1000

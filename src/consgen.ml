@@ -187,6 +187,8 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   | Lval (Mem (Lval (Var v', NoOffset)), _)
   | Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
       (FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto, cons_of_mem loc tago tag grd env v')
+  | Lval (Var v, NoOffset) when v.vglob ->
+      (FI.ce_find (FI.name_of_varinfo v) env, ([], []))
   (* e, where e is pure *)
   | e ->
       let _  = CilMisc.check_pure_expr e in
