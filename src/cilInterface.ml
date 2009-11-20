@@ -108,8 +108,10 @@ let expr_of_var v =
   A.eVar (Sy.of_string v.Cil.vname)
 
 let expr_of_lval ((lh, _) as lv) = match lh with
-  | Cil.Var v -> 
+  | Cil.Var v when not v.Cil.vglob ->
       expr_of_var v
+  | Cil.Var v when v.Cil.vglob ->
+      halt <| Errormsg.error "Trying to convert global %a to expr\n\n" Cil.d_lval lv
   | _ ->
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
       assertf "TBD: CilInterface.expr_of_lval"
