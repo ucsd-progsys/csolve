@@ -121,7 +121,9 @@ let rec convert_cilexp skolem = function
   | Cil.SizeOf t ->
       E (A.eCon (A.Constant.Int (CilMisc.bytesSizeOf t)))
   | Cil.Lval lv -> 
-      E (expr_of_lval lv)  
+      E (expr_of_lval lv)
+  | Cil.StartOf lv ->
+      E (expr_of_lval lv)
   | Cil.UnOp (Cil.LNot, e, _) ->
       P (A.pNot (pred_of_cilexp skolem e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
