@@ -1,5 +1,3 @@
-extern char *malloc(int);
-
 int p[] = { 0, 1, 2 };
 
 void f() {
