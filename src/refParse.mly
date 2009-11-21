@@ -151,8 +151,9 @@ ctype:
 
 index:
     Num                                 { Ctypes.IInt $1 }
-  | Num LB Num RB                       { Ctypes.ISeq ($1, $3) }
-  | TRUE                                { Ctypes.ITop }
+  | Num LB Num RB                       { Ctypes.ISeq ($1, $3, Ctypes.Pos) }
+  | Num LC Num RC                       { Ctypes.ISeq ($1, $3, Ctypes.PosNeg) }
+  | TRUE                                { Ctypes.index_top }
   | FALSE                               { Ctypes.IBot }
   ;
 

@@ -1,8 +1,11 @@
+type seq_polarity = (* whether sequence extends positively only or in both directions *)
+  | Pos
+  | PosNeg
+
 type index =
-  | IBot               (* empty sequence *)
-  | IInt of int        (* singleton n >= 0 *)
-  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
-  | ITop               (* sequence of all values (including negatives) *)
+  | IBot                             (* empty sequence *)
+  | IInt of int                      (* singleton n >= 0 *)
+  | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
@@ -11,9 +14,8 @@ type 'a prectype =
 type ctype = index prectype
 
 type ploc =
-  | PLAt of int   (* location n *)
-  | PLSeq of int  (* location n plus periodic repeats *)
-  | PLEverywhere  (* location 0, plus repeats infinitely in both directions *)
+  | PLAt of int                 (* location n *)
+  | PLSeq of int * seq_polarity (* location n plus periodic repeats *)
 
 exception NoLUB of ctype * ctype
 
@@ -92,6 +94,8 @@ val d_ctemap: unit -> ctemap -> Pretty.doc
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
+val index_top: index
+val index_nonneg: index
 val index_of_int: int -> index
 val index_of_ploc: ploc -> int -> index
 val ploc_of_index: index -> ploc

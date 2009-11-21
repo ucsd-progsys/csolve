@@ -132,9 +132,9 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
               | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
               | _          -> assert false
             end
-      | ISeq (n, m) ->
+      | ISeq (n, m, p) ->
           let ld, sub = LDesc.shrink_period m unify_ctypes [] (prestore_find s sto) in
-          let pl      = PLSeq n in
+          let pl      = PLSeq (n, p) in
           let cts     = LDesc.find pl ld in
           let sub     = List.fold_left (fun sub (_, ct2) -> unify_ctypes ct ct2 sub) sub cts in
           let p       = ld |> LDesc.get_period |> Misc.get_option 0 in
@@ -148,10 +148,6 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
               let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld cts in
               let ld = LDesc.add pl ct ld in
                 (sub, SLM.add s ld sto)
-      | ITop ->
-          let ld, sub = LDesc.shrink_period (prectype_width ct) unify_ctypes [] (prestore_find s sto) in
-          let ld, sub = LDesc.foldn (fun _ (ld, sub) pl ct2 -> (LDesc.remove pl ld, unify_ctypes ct ct2 sub)) (ld, sub) ld in
-            (sub, SLM.add s (LDesc.add PLEverywhere ct ld) sto)
   with
     | e ->
         C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (prestore_find s sto) |> ignore;
@@ -274,9 +270,9 @@ and constrain_unop (op: C.unop) (env: env) (em: ctvemap) (t: C.typ) (e: C.exp): 
       | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> ctype = function
-  | C.LNot -> CTInt (CM.typ_width rt, ISeq (0, 1))
-  | C.BNot -> CTInt (CM.typ_width rt, ITop)
-  | C.Neg  -> CTInt (CM.typ_width rt, ITop)
+  | C.LNot -> CTInt (CM.typ_width rt, index_nonneg)
+  | C.BNot -> CTInt (CM.typ_width rt, index_top)
+  | C.Neg  -> CTInt (CM.typ_width rt, index_top)
 
 and constrain_binop (op: C.binop) (env: env) (em: ctvemap) (t: C.typ) (e1: C.exp) (e2: C.exp): ctype * ctvemap * cstr list =
   let ctv1, em, cs1 = constrain_exp env em e1 in
@@ -309,25 +305,25 @@ and apply_ptrarithmetic (f: index -> int -> index -> index) (pt: C.typ) (ctv1: c
     | _                                                                   -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.typ_width !C.upointType, ITop)
+  CTInt (CM.typ_width !C.upointType, index_top)
 
 and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.int_width, ISeq (0, 1))
+  CTInt (CM.int_width, index_nonneg)
 
 and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.typ_width rt, ITop)
+  CTInt (CM.typ_width rt, index_top)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [mk_locinc (ISeq (0, 1)) (CTInt (1, ITop)) s])
+  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [mk_locinc index_nonneg (CTInt (1, index_nonneg)) s])
   | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
   let ctv, em, cs = constrain_exp env em e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, ITop), em, cs)
-      | C.TInt (ik, _), C.TFloat _   -> (CTInt (C.bytesSizeOfInt ik, ITop), em, cs)
-      | C.TFloat (fk, _), _          -> (CTInt (CM.bytesSizeOfFloat fk, ITop), em, cs)
+      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, index_nonneg), em, cs)
+      | C.TInt (ik, _), C.TFloat _   -> (CTInt (C.bytesSizeOfInt ik, index_top), em, cs)
+      | C.TFloat (fk, _), _          -> (CTInt (CM.bytesSizeOfFloat fk, index_top), em, cs)
       | C.TInt (ik, _), C.TInt _     ->
           begin match ctv with
             | CTInt (n, ie) ->
@@ -339,7 +335,7 @@ and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctve
                     C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
                     if C.isSigned ik then ie else index_unsign ie
                   end else
-                    ITop
+                    index_top
                 in (CTInt (C.bytesSizeOfInt ik, iec), em, cs)
             | _ -> E.s <| C.error "Got bogus type in contraining int-int cast@!@!"
           end

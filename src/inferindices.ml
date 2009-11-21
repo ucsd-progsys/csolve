@@ -119,7 +119,7 @@ let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
     | C.TEnum (ei, _)       -> CTInt (C.bytesSizeOfInt ei.C.ekind, IEVar (fresh_indexvar ()))
-    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst ITop)
+    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst index_top)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
     | t                     -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
@@ -325,9 +325,9 @@ and constrain_unop (op: C.unop) (env: env) (t: C.typ) (e: C.exp): itypevar * ity
       | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> itypevar = function
-  | C.LNot -> CTInt (CM.typ_width rt, IEConst (ISeq (0, 1)))
-  | C.BNot -> CTInt (CM.typ_width rt, IEConst ITop)
-  | C.Neg  -> CTInt (CM.typ_width rt, IEConst ITop)
+  | C.LNot -> CTInt (CM.typ_width rt, IEConst index_nonneg)
+  | C.BNot -> CTInt (CM.typ_width rt, IEConst index_top)
+  | C.Neg  -> CTInt (CM.typ_width rt, IEConst index_top)
 
 and constrain_binop (op: C.binop) (env: env) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypevarcstr list =
   let itv1, cs1 = constrain_exp env e1 in
@@ -362,20 +362,20 @@ and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ)
           | C.Lval (C.Var vi, C.NoOffset) ->
               let iv = IEVar (fresh_indexvar ()) in
               let vv = Ast.Symbol.value_variable Ast.Sort.Int in
-              let rt = CTInt (n, (ITop, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
-                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, ISeq (0, 1))) vi rt))
+              let rt = CTInt (n, (index_top, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
+                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, index_nonneg)) vi rt))
           | _ -> halt <| C.bug "Pointer arithmetic offset isn't variable or const\n"
         end
     | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.typ_width !C.upointType, IEConst ITop), None)
+  (CTInt (CM.typ_width !C.upointType, IEConst index_top), None)
 
 and apply_rel (_: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.int_width, IEConst (ISeq (0, 1))), None)
+  (CTInt (CM.int_width, IEConst index_nonneg), None)
 
 and apply_unknown (rt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.typ_width rt, IEConst ITop), None)
+  (CTInt (CM.typ_width rt, IEConst index_top), None)
 
 and constrain_constptr: C.constant -> itypevar * itypevarcstr list = function
   | C.CStr _                                 -> (CTRef (S.none, IEConst (IInt 0)), [])
@@ -385,9 +385,9 @@ and constrain_constptr: C.constant -> itypevar * itypevarcstr list = function
 and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypevarcstr list =
   let itv, cs = constrain_exp env e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst ITop), cs)
-      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), cs)
-      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst ITop), cs)
+      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst index_top), cs)
+      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst index_top), cs)
+      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst index_nonneg), cs)
       | C.TInt (ik, _), C.TInt _   ->
           begin match itv with
             | CTInt (n, ie) ->
@@ -399,7 +399,7 @@ and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypevarcstr li
                     C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
                     if C.isSigned ik then ie else IEUnsign ie
                   end else
-                    IEConst ITop
+                    IEConst index_top
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs)
             | _ -> halt <| C.error "Got bogus type in contraining int-int cast@!@!"
           end

@@ -101,7 +101,7 @@ let is_cyclic =
 let mk_idx po i =
   match po with 
   | None   -> Ct.IInt i
-  | Some n -> Ct.ISeq (i, n)
+  | Some n -> Ct.ISeq (i, n, Ct.Pos)
 
 let unroll_ciltype t =
   match Cil.unrollType t with
@@ -112,13 +112,13 @@ let unroll_ciltype t =
 let add_off off c =
   let i = CilMisc.bytesSizeOf c in
   match off with 
-  | Ct.IInt i'    -> Ct.IInt (i+i')
-  | Ct.ISeq (_,_) -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
+  | Ct.IInt i' -> Ct.IInt (i+i')
+  | Ct.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
 
 let adj_period po idx = 
   match po, idx with
   | None  , _         -> idx
-  | Some n, Ct.IInt i -> Ct.ISeq (i, n)
+  | Some n, Ct.IInt i -> Ct.ISeq (i, n, Ct.Pos)
   | _, _              -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes ts =
@@ -132,7 +132,7 @@ Ct.LDesc.create ts
   | _                    -> Ct.LDesc.create ts 
 *)
 
-let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
+let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.index_nonneg else Ct.index_top
 
 let conv_cilbasetype = function 
   | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
