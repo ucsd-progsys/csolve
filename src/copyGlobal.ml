@@ -6,14 +6,9 @@ class funVisitor fd = object(self)
 
   val shadows = Hashtbl.create 17
 
-  method shadowGlobal glob =
-    let tmp = makeTempVar fd glob.vtype in
-      self#queueInstr [Set (var tmp, Lval (var glob), locUnknown)];
-      tmp
-
   method vvrbl v =
     if v.vglob && not (isFunctionType v.vtype) then
-      ChangeTo (Misc.do_memo shadows self#shadowGlobal v v)
+      ChangeTo (Misc.do_memo shadows (fun glob -> makeTempVar fd glob.vtype) v v)
     else
       SkipChildren
 
@@ -24,6 +19,12 @@ class funVisitor fd = object(self)
   method vstmt = function
     | {skind = Return _} -> self#revertShadows; DoChildren
     | _                  -> DoChildren
+
+  method addShadows =
+    Instr (Hashtbl.fold (fun glob shadow is -> Set (var shadow, Lval (var glob), locUnknown) :: is) shadows [])
+
+  method vfunc fd =
+    ChangeDoChildrenPost (fd, fun fd -> fd.sbody.bstmts <- (mkStmt self#addShadows) :: fd.sbody.bstmts; fd)
 end
 
 class globVisitor = object(self)
