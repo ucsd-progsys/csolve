@@ -66,8 +66,7 @@ let index_plus (i1: index) (i2: index): index =
     | (IBot, _) | (_, IBot)                               -> IBot
     | (IInt n, IInt m)                                    -> IInt (n + m)
     | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n + m, k, p)
-    | (ISeq (n1, k1, p1), ISeq (n2, k2, p2)) when k1 = k2 -> ISeq (n1 + n2, k1, seq_polarity_lub p1 p2)
-    | (ISeq (n1, _, p1), ISeq (n2, _, p2))                -> ISeq (n1 + n2, 1, seq_polarity_lub p1 p2)
+    | (ISeq (n1, k1, p1), ISeq (n2, k2, p2))              -> ISeq (n1 + n2, M.gcd k1 k2, seq_polarity_lub p1 p2)
 
 (* pmr: prove this has the appropriate monotonicity property *)
 let index_minus (i1: index) (i2: index): index =
