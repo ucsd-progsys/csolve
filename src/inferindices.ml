@@ -133,17 +133,30 @@ let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
     | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | _                                             -> false
 
+type boundfun = string * (ctype -> ctype * FI.refctype)
+
+let ctype_of_bound ((_, fbound): boundfun) (ctv: ctype): ctype =
+  ctv |> fbound |> fst
+
+let bound_nonneg (ct: ctype): ctype * FI.refctype =
+  match ct with
+    | CTInt (w, ISeq (n, p, PosNeg)) ->
+        let vv   = Ast.Symbol.value_variable Ast.Sort.Int in
+        let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
+          (CTInt (w, ISeq (n, p, Pos)), FI.t_pred ct vv pred)
+    | _ -> (ct, FI.t_true ct)
+
 type 'a pretypecstrdesc =
   | ISubtype of 'a * 'a
-  | IDSubtype of 'a * 'a * ctype * C.varinfo * FI.refctype
+  | IDSubtype of 'a * 'a * C.varinfo * boundfun
 
 let d_pretypecstrdesc (d_type: unit -> 'a -> P.doc) (): 'a pretypecstrdesc -> P.doc = function
-  | ISubtype (itv1, itv2)              -> P.dprintf "%a <: %a" d_type itv1 d_type itv2
-  | IDSubtype (itv1, itv2, ct, vi, ck) -> P.dprintf "%a <: %a <: %a (%a :: %a)" d_type itv1 d_type itv2 d_ctype ct CM.d_var vi FI.d_refctype ck
+  | ISubtype (itv1, itv2)                   -> P.dprintf "%a <: %a" d_type itv1 d_type itv2
+  | IDSubtype (itv1, itv2, v, (fbdesc, fb)) -> P.dprintf "%a <: %a :: %a <: %s (%a)" d_type itv1 CM.d_var v d_type itv2 fbdesc d_type itv1
 
 let pretypecstrdesc_apply (is: indexsol) (app_type: indexsol -> 'a -> 'b): 'a pretypecstrdesc -> 'b pretypecstrdesc = function
-  | ISubtype (t1, t2)              -> ISubtype (app_type is t1, app_type is t2)
-  | IDSubtype (t1, t2, ct, vi, ck) -> IDSubtype (app_type is t1, app_type is t2, ct, vi, ck)
+  | ISubtype (t1, t2)         -> ISubtype (app_type is t1, app_type is t2)
+  | IDSubtype (t1, t2, v, bf) -> IDSubtype (app_type is t1, app_type is t2, v, bf)
 
 type ctypecstrdesc = ctype pretypecstrdesc
 
@@ -184,15 +197,15 @@ let (fresh_itypevarcstrid, reset_fresh_itypevarcstrids) = M.mk_int_factory ()
 let mk_isubtypecstr (itv1: itypevar) (itv2: itypevar): itypevarcstr =
   {itcid = fresh_itypevarcstrid (); itcloc = !C.currentLoc; itcdesc = ISubtype (itv1, itv2)}
 
-let mk_idsubtypecstr (itv1: itypevar) (itv2: itypevar) (ctbound: ctype) (vi: C.varinfo) (ctcheck: FI.refctype): itypevarcstr =
-  {itcid = fresh_itypevarcstrid (); itcloc = !C.currentLoc; itcdesc = IDSubtype (itv1, itv2, ctbound, vi, ctcheck)}
+let mk_idsubtypecstr (itv1: itypevar) (itv2: itypevar) (v: C.varinfo) (bf: boundfun): itypevarcstr =
+  {itcid = fresh_itypevarcstrid (); itcloc = !C.currentLoc; itcdesc = IDSubtype (itv1, itv2, v, bf)}
 
 let itypevarcstr_id ({itcid = id}: itypevarcstr): int =
   id
 
 let itypevarcstr_rhs_var (itc: itypevarcstr): indexvar option =
   match itc.itcdesc with
-    | ISubtype (_, itv) | IDSubtype (_, itv, _, _, _) ->
+    | ISubtype (_, itv) | IDSubtype (_, itv, _, _) ->
         match itypevar_indexvars itv with
           | []   -> None
           | [iv] -> Some iv
@@ -200,11 +213,12 @@ let itypevarcstr_rhs_var (itc: itypevarcstr): indexvar option =
 
 let itypevarcstr_sat (is: indexsol) (itc: itypevarcstr): bool =
   match itc.itcdesc with
-    | ISubtype (itv1, itv2)                 -> is_subitypevar is itv1 itv2
-    | IDSubtype (itv1, itv2, ctbound, _, _) ->
-        let itvbound = itypevar_of_ctype ctbound in
-           (not (is_subitypevar is itv1 itvbound) && is_subitypevar is itv2 itvbound && is_subitypevar is itvbound itv2)
-        || is_subitypevar is itv1 itv2
+    | ISubtype (itv1, itv2)         -> is_subitypevar is itv1 itv2
+    | IDSubtype (itv1, itv2, _, bf) ->
+        let itvbound = itv1 |> itypevar_apply is |> ctype_of_bound bf |> itypevar_of_ctype in
+             is_subitypevar is itv2 itvbound
+          && ((is_subitypevar is itv1 itvbound && is_subitypevar is itv1 itv2)
+              || (not (is_subitypevar is itv1 itvbound) && is_subitypevar is itvbound itv2))
 
 let fail_constraint (is: indexsol) (itc: itypevarcstr): 'a =
   halt <| C.errorLoc itc.itcloc "Failed index constraint %a\n\n" d_ctypecstr (itypevarcstr_apply is itc)
@@ -217,12 +231,12 @@ let refine_itypevarcstr (is: indexsol) (itc: itypevarcstr): indexsol =
           | CTRef (_, ie), CTRef (_, IEVar iv)                -> refine_index is ie iv
           | _                                                 -> fail_constraint is itc
         end
-    | IDSubtype (itv1, itv2, ctbound, _, _) ->
-        begin match itv1, itv2, ctbound with
-          | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
-          | CTRef (_, ie), CTRef (_, IEVar iv), CTRef (_, ib)                            -> bounded_refine_index is ie iv ib
-          | _                                                                            -> fail_constraint is itc
-        end
+    | IDSubtype (itv1, itv2, _, bf) ->
+        let ctbound = itv1 |> itypevar_apply is |> ctype_of_bound bf in
+          match itv1, itv2, ctbound with
+            | CTInt (n1, ie), CTInt (n2, IEVar iv), CTInt (n3, ib) when n1 = n2 && n2 = n3 -> bounded_refine_index is ie iv ib
+            | CTRef (_, ie), CTRef (_, IEVar iv), CTRef (_, ib)                            -> bounded_refine_index is ie iv ib
+            | _                                                                            -> fail_constraint is itc
 
 type cstrmap = itypevarcstr M.IntMap.t
 
@@ -251,7 +265,7 @@ let d_cstrdepmap =
 
 let add_cstrdep (cdm: cstrdepmap) (itc: itypevarcstr): cstrdepmap =
   match itc.itcdesc with
-    | ISubtype (itv, _) | IDSubtype (itv, _, _, _, _) ->
+    | ISubtype (itv, _) | IDSubtype (itv, _, _, _) ->
         itv |> itypevar_indexvars |> List.fold_left (fun cdm iv -> IM.add iv (itc.itcid :: IM.find iv cdm) cdm) cdm
 
 let mk_cstrdepmap (itcs: itypevarcstr list): cstrdepmap =
@@ -361,9 +375,7 @@ and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ)
           | C.Const _                     -> (CTRef (s, f ie1 (CM.typ_width t) ie2), None)
           | C.Lval (C.Var vi, C.NoOffset) ->
               let iv = IEVar (fresh_indexvar ()) in
-              let vv = Ast.Symbol.value_variable Ast.Sort.Int in
-              let rt = CTInt (n, (index_top, FC.make_reft vv Ast.Sort.Int [FC.Conc (Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)))])) in
-                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) (CTInt (n, index_nonneg)) vi rt))
+                (CTRef (s, f ie1 (CM.typ_width t) iv), Some (mk_idsubtypecstr (CTInt (n, ie2)) (CTInt (n, iv)) vi ("NNEG", bound_nonneg)))
           | _ -> halt <| C.bug "Pointer arithmetic offset isn't variable or const\n"
         end
     | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
@@ -555,8 +567,13 @@ let d_dcheck () ((vi, rt): dcheck): P.doc =
   P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
 
 let get_cstr_dcheck (is: indexsol): itypevarcstr -> dcheck option = function
-  | {itcdesc = IDSubtype (itv1, _, cbound, vi, rt)} when not (is_subctype (itypevar_apply is itv1) cbound) -> Some (vi, rt)
-  | _                                                                                                      -> None
+  | {itcdesc = IDSubtype (itv1, _, v, ((_, fb) as bf))} ->
+      let ct = itypevar_apply is itv1 in
+        if is_subitypevar is itv1 (ct |> ctype_of_bound bf |> itypevar_of_ctype) then
+          None
+        else
+          Some (v, ct |> fb |> snd)
+  | _ -> None
 
 (* API *)
 let infer_fun_indices (ctenv: cfun VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t * dcheck list =
