@@ -13,3 +13,5 @@ qualif NUM(v:int) : v <= 8
 qualif NUM(v:int) : v <= 15
 qualif IND(v:int) : v <= 88
 qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4
+qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 64
+qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 356
