@@ -197,16 +197,18 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
-      let addr = FI.ce_find (FI.name_of_varinfo v) env in
-      let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
-      let isp  = try FI.is_soft_ptr loc sto addr with ex ->
-                   Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
+      let addr     = FI.ce_find (FI.name_of_varinfo v) env in
+      let cr'      = FI.t_exp env (CF.ctype_of_expr me e) e in
+      let cs1, ds1 = cons_of_mem loc tago tag grd env v in
+      let isp      = try FI.is_soft_ptr loc sto addr with ex ->
+                     Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp (* FI.is_soft_ptr loc sto addr *) then
-        let cr   = FI.refstore_read loc sto addr in
-        (env, sto, Some tag), (FI.make_cs env grd cr' cr tago tag loc)
+        let cr       = FI.refstore_read loc sto addr in
+        let cs2, ds2 = FI.make_cs env grd cr' cr tago tag loc in
+        (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
       else
         let sto' = FI.refstore_write loc sto addr cr' in
-        (env, sto', Some tag), (cons_of_mem loc tago tag grd env v)
+        (env, sto', Some tag), (cs1, ds1)
 
   | _ -> assertf "TBD: cons_of_set"
 

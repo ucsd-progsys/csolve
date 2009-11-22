@@ -1,3 +1,5 @@
+//! run with -manual
+
 extern int nondet();
 extern char *malloc(int);
 
