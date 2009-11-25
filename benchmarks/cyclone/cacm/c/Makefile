@@ -1,4 +1,6 @@
 
+CC=../../../../src/cc.sh
+
 ifdef DEBUG
 FLAGS=-g $(EXTRACFLAGS)
 else
