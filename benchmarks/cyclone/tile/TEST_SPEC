@@ -1,0 +1,5 @@
+TESTNAME	test1
+VAR	C	cyc	cyc-nocheck	faster	faster-nocheck	bzero	bzero-nocheck
+PROG	c/tile	cyc/tile	cyc/tile-nochk	cyc-faster/tile	cyc-faster/tile-nochk	cyc-bzero/tile	cyc-bzero/tile-nochk
+ARGS	-o#sample2
+FILES	{}

@@ -1,0 +1,5 @@
+TESTNAME	test1
+VAR	C	Cyclone	Cyclone-nobc	Cyclone-faster	Cyclone-faster-nobc
+PROG	c/encode c/decode	cyc/encode cyc/decode	cyc/encode-nochk cyc/decode-nochk	cyc-faster/encode cyc-faster/decode	cyc-faster/encode-nochk cyc-faster/decode-nochk
+ARGS	{} {}
+FILES	test2#test2.ar.tmp test2.ar.tmp#test2.new.tmp

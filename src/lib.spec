@@ -146,3 +146,17 @@ assume ::
   ret int   (4, true, {v | b = 1})
   store_in  []
   store_out []
+
+read ::
+  forall    [A1]
+  arg       (fd: int (4, true), dst: ref (A1, true), len: int (4, true))
+  ret       int (4, true)
+  store_in  [A1 |-> ]
+  store_out [A1 |-> ]
+
+write ::
+  forall    [A1]
+  arg       (fd: int (4, true), src: ref (A1, true), len: int (4, true))
+  ret       int (4, true)
+  store_in  [A1 |-> ]
+  store_out [A1 |-> ]

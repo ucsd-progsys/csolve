@@ -1,3 +1,5 @@
+//! run with -manual
+
 extern char *malloc(int);
 
 void test (int * __attribute__ ((array)) p) {

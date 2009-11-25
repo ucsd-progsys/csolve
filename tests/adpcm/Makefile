@@ -1,5 +1,7 @@
+CC=gcc
+
 build: 
-	$(MAKE) -C src
+	$(MAKE) -C src CC="$(CC)"
 
 clean: 
 	$(MAKE) -C src clean

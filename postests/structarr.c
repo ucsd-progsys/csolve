@@ -1,3 +1,5 @@
+//! run with -manual
+
 extern char *malloc(int);
 
 struct hash {

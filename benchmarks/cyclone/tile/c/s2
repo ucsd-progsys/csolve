@@ -1,0 +1,1155 @@
+\documentclass{article}
+\usepackage[dvips]{graphics}
+\usepackage{latexsym}
+\usepackage{color}
+\usepackage{semantic}
+\usepackage{fullpage}
+
+\parindent 0em
+\parskip 0.15cm
+
+\newcommand{\kw}[1]{{\tt #1}}
+\newcommand{\nil}{\kw{null}}
+\newcommand{\myfn}[1]{\mbox{\tt #1}}
+\newcommand{\texcomment}[1]{}
+\newcommand{\invis}[1]{\textcolor{white}{#1}}
+\newcommand{\C}{{\scriptstyle C}}
+\newcommand{\D}{{\scriptstyle D}}
+\newcommand{\N}{\mbox{N}}
+\newcommand{\R}{\mbox{R}}
+\newcommand{\fin}{{\scriptstyle I}}
+\newcommand{\fout}{{\scriptstyle O}}
+\newcommand{\logand}{\,\wedge}
+\newcommand{\logor}{\,\vee}
+\newcommand{\assignable}{\leftarrow}
+\newcommand{\dom}{\mbox{dom}}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+\begin{document}
+
+\title{Language Support for Regions} 
+
+\author{David Gay and Alex Aiken\thanks{This material is based in
+part upon work supported by NSF Young Investigator Award No. CCR-9457812,
+DARPA contract F30602-95-C-0136.}\\
+EECS Department \\
+University of California, Berkeley \\
+\{dgay,aiken\}@cs.berkeley.edu}
+
+\date{}
+
+\maketitle
+
+%\copyrightspace
+
+\begin{abstract}
+
+Region-based memory management systems bring structure to memory management
+by grouping objects in regions under program control. Memory can only be
+reclaimed by deleting regions, freeing all objects stored therein. Our
+compiler for C with regions, RC, prevents unsafe region deletions by
+keeping a count of references to each region. We introduce some new type
+annotations in RC that make the structure of a program's regions more
+explicit and reduce the overhead of reference counting. We generalise these
+annotations in a region type system whose main novelty is the use of
+\emph{existentially quantified} abstract regions. These abstract regions
+are used to represent pointers to objects whose region is partially or
+totally unknown.
+
+RC is from 13\% slower to 53\% faster than malloc/free on our benchmarks.
+
+\end{abstract}
+
+\section{Introduction}
+
+In \emph{region-based} memory management, an alternative to explicit
+allocation and deallocation (e.g., C's malloc/free) and garbage-collection,
+each allocated \emph{object} is placed in a program-specified
+\emph{region}. Objects cannot be freed individually; instead regions are
+deleted with all their contained objects. Figure~\ref{fig:simple-region} is
+a simple example that builds a list in a single region, outputs the list,
+then frees the region and therefore the list. The \kw{sameregion} qualifier
+is discussed below.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{minipage}{6in}
+\begin{verbatim}
+struct ilist {
+  struct ilist *sameregion next;
+  int ins;
+} *il, *l = NULL;
+region r = newregion();
+
+while (...) { /* build list */
+  il = ralloc(r, struct ilist); /* make element */
+  il->ins = ...; il->next = l; l = il; 
+}
+output_ilist(l);
+deleteregion(r);
+\end{verbatim}
+\end{minipage}
+\caption{An example of region-based allocation.}
+\end{center}
+\label{fig:simple-region}
+\end{figure}
+
+Simple region-based systems such as arenas~\cite{hans90} are unsafe:
+deleting a region may leave dangling pointers that are subsequently
+accessed. In this paper we present \emph{RC}, a dialect of C with regions
+that guarantees safety \emph{dynamically}. RC maintains for each region $r$
+a \emph{reference count} of the number of \emph{external} pointers to
+objects in $r$, i.e., of pointers not stored within $r$.  Calls to to {\tt
+deleteregion} fail if this count is not zero. Section~\ref{sec:rc} gives a
+short introduction to RC. While our results are presented in the context of
+a C dialect, our techniques can be used to add support for regions to
+languages other than C.
+
+We believe that region-based programming has several advantages over
+traditional memory management techniques. First, it brings structure to
+memory management by grouping related objects making programs clearer,
+easier to write and to understand (especially when compared to malloc and
+free). Second, regions provide safety with good performance: on our
+benchmarks, regions with reference counting are from 13\% slower to 53\%
+faster than the same programs using malloc and free. Finally,
+Stoutamire~\cite{stout97} and our earlier study of regions~\cite{ga98b}
+have shown that regions can be used to improve locality by providing a
+mechanism for programmers to specify which values should be colocated in
+memory, as well as which values should be kept separated.
+
+RC makes  contributions over earlier dynamically checked region-based
+systems such as our previous system C@~\cite{ga98b}:
+\begin{itemize}
+\item RC exploits some static information in the form of type annotations:
+\kw{sameregion} declares pointers that are never external, i.e., that are
+null or point to an object in the same region as the pointer's containing
+object. A pointer can be declared \kw{traditional} if it never points to an
+object allocated in a region, e.g., if it is the address of a local
+variable, or points to the malloc heap.  The type annotations both make the
+structure of an application's memory management more explicit and improve
+the performance of the reference counting (assignments to \kw{sameregion}
+or \kw{traditional} pointers never update reference counts). On four of our
+eight benchmarks, from 46\% to 99.93\% of all runtime assignments were of
+annotated types. The correctness of assignments to \kw{sameregion} pointers
+is enforced by runtime checks (Section~\ref{sec:user-types}).
+
+\item We propose a type system for dynamically checked region systems that
+provides a formal framework for annotations such as \kw{sameregion} and
+\kw{traditional}.  Analysis of the translation of RC programs into a
+language based on this type system allows us to statically eliminate checks
+from 27\% to 99.99\% of annotated runtime assignments
+(Section~\ref{sec:region-type-system}).
+\end{itemize}
+Reference counting in RC accounts for at most 20\% of runtime, but less
+than 11\% on all but one benchmark. RC always performs better than our
+previous system C@. Section~\ref{sec:benchmarks} analyses RC's performance.
+
+Region inference~\cite{toft97} systems transform an input program into a
+program with \emph{statically} checked regions. The type rules of the
+target language guarantee that all \kw{deleteregion} operations are safe.
+It would be possible to program with regions directly in this and other
+similar target languages. These programs would have lower runtime overhead
+than under a dynamically checked systems (no reference counts) and provide
+guarantees of safety, and to some extent memory usage, at compile-time.
+
+However, programming in dynamic systems is more flexible: types such as
+``array of pointers to objects in arbitrary regions'' (which is essentially
+the type of the parser value stack of {\tt yacc}~\cite{Johnson75}) are not
+expressible in the static region type systems proposed so far~\cite{cwm99,
+toft97}. This lack of expressibility of the statically checked region
+systems is of a different order than the usual dynamic vs static type
+system distinction: dynamically-typed programs are easily translated into
+equivalent statically-typed programs using a single variant type; there is
+no similar translation from a dynamically checked into a statically checked
+region system, as the {\tt yacc} example shows. Also, Dynamically checked
+region systems can handle parallelism in a fairly straightforward
+manner---they need only handle the issue of concurrent updates to data
+structures and reference counts. The static systems proposed so far are
+strictly for sequential programs.  These differences make dynamically
+checked region systems easier to use than explicit, statically-checked,
+region systems.
+
+\section{Related Work}
+\label{sec:related}
+
+In~\cite{ga98b} we compared explicit allocation and deallocation, garbage
+collection and dynamically checked regions. We found that safe regions had
+competitive performance and space usage (sometimes better, sometimes
+slightly worse), and that the overhead due to reference counting was
+reasonable (from negligible to 17\% of runtime). Our new system, RC, has
+lower reference count overhead (in absolute time), allows use of any C
+compiler rather than requiring modification of an existing compiler
+(lcc~\cite{Fraser:RCC95} in~\cite{ga98b}), and incorporates some static
+information about a program's region structure.
+
+Regions have been used for decades. Ross~\cite{ross67} presents a storage
+package that allows objects to be allocated in specific \emph{zones}. Each
+zone can have a different allocation policy, but deallocation is done on an
+object-by-object basis. Vo's~\cite{vo96} Vmalloc package is similar:
+allocations are done in \emph{regions} with specific allocation
+policies. Some regions allow object-by-object deallocation, some regions
+can only be freed all at once. Hanson's~\cite{hans90} \emph{arenas} are
+freed all at once.  Barrett and Zorn~\cite{barr93} use profiling to
+determine allocations that are short-lived, then place these allocations in
+fixed-size regions. A new region is created when the previous one fills up,
+and regions are deleted when all objects they contain are freed. This
+provides some of the performance advantages of regions without programmer
+intervention, but does not work for all programs. None of these proposals
+attempt to provide safe memory management.
+
+Stoutamire~\cite{stout97} adds \emph{zones}, which are garbage-collected
+regions, to Sather~\cite{ICSI-TR-96-012} to allow explicit programming for
+locality. His benchmarks compare zones with Sather's standard garbage
+collector.  Reclamation is still on an object-by-object basis.
+
+The statically checked region-based systems proposed so far,~\cite{toft97}
+and~\cite{cwm99}, are not designed for explicit user-level region
+programming. The region inference system of Tofte and Talpin~\cite{toft97}
+automatically infers for ML programs how many regions should be allocated,
+where these regions should be freed, and to which region each allocation
+site should write.  Unfortunately, region inference is not perfect.  To
+avoid leaking a great deal of memory it is necessary for the programmer to
+understand the regions inferred by the compiler and to adjust the program
+so that the compiler infers better region assignments. Crary, Walker and
+Morrisett~\cite{cwm99} propose a type system for regions that is more
+expressive than the target language of the Tofte-Talpin system. This system
+is designed to represent the results of region inference algorithms in
+low-level languages.
+
+Bobrow~\cite{bobr80} is the first to propose the use of regions to make
+reference counting tolerant of cycles. This idea is taken up by Ichisugi
+and Yonezawa in~\cite{ichi90} for use in distributed systems. Neither of
+these papers include any performance measurements.
+
+Surveys of memory management can be found in~\cite{wils92c} for garbage
+collection and~\cite{wils95} for explicit allocation and deallocation.
+
+\section{RC}
+\label{sec:rc}
+
+From the programmer's point of view, RC is essentially C with a region
+library (Figure~\ref{fig:region-lib}) and a few type annotations
+(Section~\ref{sec:user-types}). RC programs can reuse existing C code, and
+even in most cases object code (this is important as the C runtime library
+is not always available in source form), as long as the restrictions
+detailed in Section~\ref{sec:rc-restrictions} are met. The outlines of an
+implementation of RC are given in Section~\ref{sec:naive}. We stress that
+the ideas in RC are portable to other languages.
+
+RC is a subset of regular C: if the type annotations are removed (e.g., via
+the C preprocessor) and a region library is provided, any RC program can be
+compiled with a regular C compiler. Of course, \kw{deleteregion} is then
+unsafe.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{verbatim}
+typedef struct region *region;
+
+region newregion(void);
+void deleteregion(region r);
+/* ralloc, rarrayalloc are not real functions - they take
+   a type as last argument and return a pointer to that type */
+type *ralloc(region r, type); 
+type *rarrayalloc(region r, size_t n, type);
+region regionof(void *x); /* Return region of any pointer x */
+\end{verbatim}
+\caption{Region API}
+\label{fig:region-lib}
+\end{center}
+\end{figure}
+
+\subsection{RC restrictions}
+\label{sec:rc-restrictions}
+
+RC imposes a number of restrictions on programs due to the unsafe nature of
+the C language. None of these would apply if regions were added to, e.g.,
+Java:
+
+\begin{itemize}
+\item Integers that do not correspond to valid pointers may not be cast to
+a pointer type.
+\item Region pointers must always be updated explicitly. This has two
+consequences:
+\begin{itemize}
+\item Copying objects containing region pointers byte-by-byte with \kw{char
+*} pointers is not allowed.
+\item Unions containing pointers are only partially supported: RC must be
+able to track these pointers, so the programmer must provide functions to
+copy such unions in a type-safe way (i.e., by copying pointers from within
+the union iff these pointers are valid).
+\end{itemize}
+\item Object code compiled by compilers other than RC can be used so long
+as does not overwrite any region pointers in the heap or global variables.
+The C library \kw{memcpy} and \kw{memset} functions are common examples of
+this.
+\end{itemize}
+
+Our current implementation does not detect these situations. We expect to
+add some support for detecting and working around these situations in later
+versions of RC.
+
+\subsection{Type Annotations}
+\label{sec:user-types}
+
+Our previous version of C-with-regions, C@~\cite{ga98b} made a type
+distinction between pointers to objects in regions and traditional C
+pointers (to the stack, global data, or \kw{malloc} heap). Any conversion
+between these two kinds of pointers was potentially unsafe and could lead
+to incorrect behaviour. We found that this approach was too restrictive:
+existing code cannot be used with regions without modification; some code
+must be provided in both traditional pointer and region pointer
+versions. RC has one basic kind of pointer that can hold both region and
+traditional pointers. Traditional C pointers are pointers to a distinguished
+``traditional region'' which contains the stack, global data and
+\kw{malloc} heap.
+
+Examination of our benchmarks shows that particular pointers still have
+properties of interest to both the programmer (to make the intent of the
+program clearer and to catch violations of this intent) and to the RC
+compiler (to reduce the overhead of maintaining the reference counts). For
+example, in our {\tt moss} benchmark 94\% of runtime pointer assignments
+are of traditional pointers.  All of these traditional pointers are in code
+produced by the flex lexical analyser generator. RC has a \kw{traditional}
+type qualifier ({\tt int *traditional x}) which declares that a pointer is
+null, or points into the traditional region. Updating a \kw{traditional}
+pointer never changes any reference counts. The compiler guarantees, by
+static analysis or by insertion of a runtime check (whose failure aborts
+the program), that only pointers to the traditional region are written to
+\kw{traditional} pointers. Pointers declared \kw{traditional} can be used
+in any portion of a program where there is a need, for whatever reason, to
+use conventional C memory management.
+
+In our {\tt lcc} benchmark, 61\% of runtime pointer assignments write a
+pointer to an object in region $r$ into another object in the same
+region. Similar percentages are found in several other benchmarks. This
+lead us to add a \kw{sameregion} type qualifier declaring pointers that
+stay within the same region or are null, for instance the \kw{next} field
+of Figure~\ref{fig:simple-region}. We have found that \kw{sameregion}
+equates well with ``part of the same data structure'': data structures that
+are freed all at once can be allocated within the same region, and
+therefore all their internal pointers can be declared \kw{sameregion}. As
+with the \kw{traditional} annotation, updates to \kw{sameregion} pointers
+do not change any reference counts (they do not create or destroy any
+external references). The compiler ensures, as for \kw{traditional}
+pointers, that values written to \kw{sameregion} pointers are either null
+or belong to the correct region.
+
+In our benchmarks as a whole, up to 94\% of all runtime pointer assignments
+are annotated with \kw{traditional} and up to 46\% with \kw{sameregion}.
+
+\subsection{Implementation Outline}
+\label{sec:naive}
+
+The implementation of our region library is similar to the one
+in~\cite{ga98b}. The main difference between our region library and those
+presented in~\cite{vo96} or~\cite{hans90} is that we maintain a mapping of
+addresses to regions that allows efficient implementation of the
+\kw{regionof} function of Figure~\ref{fig:region-lib}.
+
+Most of the work in implementing RC is in managing the reference counts of
+regions.  Reference counts change as the result of two operations: pointer
+assignments\footnote{Copies of structured types containing pointers can be
+viewed as copying each field individually.} and deleting a region.
+
+Assignments in C are essentially all of the form {\tt *a = b}.  The
+simplest implementation of RC simply precedes each pointer assignment
+with the following code:
+
+\hspace*{.3in}\begin{tabular}{l}
+\tt t = *a; \\
+\tt if (regionof(t) != regionof(b)) \{ \\
+\tt \ \ if (regionof(t) != regionof(a)) \\
+\tt \ \ \ \ regionof(t)-$>$rc$--$; \\
+\tt \ \ if (regionof(b) != regionof(a)) \\
+\tt \ \ \ \ regionof(b)-$>$rc++; \\
+\tt \}
+\end{tabular}
+
+where {\tt r-$>$rc} is {\tt r}'s reference count.
+
+If the type of {\tt *a} is qualified with \kw{traditional} or
+\kw{sameregion}, this code is instead replaced by
+
+\hspace*{.3in}\begin{tabular}{l}
+\emph{sameregion}:  \tt if (regionof(b) != regionof(a)) abort(); \\
+\emph{traditional}: \tt if (regionof(b) != traditional\_region) abort();
+\end{tabular}
+
+This approach is slow (up to two times slower than C code with no reference
+counting). By exploting the fact that reference counts must only be exact
+when calling \kw{deleteregion} our implementation is able to remove the
+vast majority [include some \%'s?]  of reference count operations on local
+variables. Full details on how we achieve this are in~\cite{minrc-tr}.
+
+Sections~\ref{sec:xlation} discusses how we can eliminate a significant
+fraction of the \kw{sameregion} and \kw{traditional} runtime checks.
+
+When deleting a region, references from the now dead region are removed by
+scanning all the objects in the region, using type information recorded
+when the objects were allocated. Deleting a region is thus relatively
+expensive.  The conclusion proposes one way of reducing this cost.
+
+
+\section{A Region Type System}
+\label{sec:region-type-system}
+
+The type annotations of Section~\ref{sec:user-types} can be viewed as a
+simple way for the user to specify types from a more general region type
+language (Section~\ref{sec:typelang}) which partially tracks the regions
+of pointers. This type language is used in a simple region-based language
+\emph{rlang} (Section~\ref{sec:type-checking}). By translating RC programs
+into rlang, our compiler for RC can check the correctness of some
+annotations and reduce the reference count overheads in some programs
+(Section~\ref{sec:xlation}).
+
+\subsection{Region Types}
+\label{sec:typelang}
+
+Figure~\ref{fig:region-typelang} presents a simple region type language for
+C-like languages. This language has only pointers (but could be easily
+extended with non-pointer types): pointers to regions (\kw{region}), and
+pointers to named records with named fields. All types are annotated with a
+\emph{region expression} $\sigma$ which specifies the region to which
+values of that type point ($\ldots @ \sigma$). Only null pointers ``point''
+to the $\bot$ region.
+
+The set $C_R$ of region constants ($R, \bot$) contains regions that always
+exist and cannot be deleted, such as the ``traditional region''.  Region
+expressions can also be \emph{abstract regions} that denote any region from
+the set of currently existing regions $A = \{ r_1, \ldots, r_n \}$ (with
+$C_R \subseteq A$).\footnote{For simplicity of notation the source language
+names of the region constants are reused as names for the corresponding
+runtime regions.} We define a partial order on $A$: $r \leq r'$ if $r =
+\bot \logor r = r'$. Abstract regions are introduced existentially with the
+$\exists \rho \leq \sigma . \tau$ construct, which means that $\rho$ is a
+region in $A$ that meets the specified constraint. The scope of $\rho$
+includes the bound, so the type $\exists \rho \leq \rho . T[\ldots] @ \rho$
+represents an object of type $T$ in any region.  Structure definitions are
+parameterised over a set $\rho_1, \ldots, \rho_m$ of abstract regions;
+structure uses instantiate structure declarations with a set of region
+expressions. Function declarations also introduce abstract regions (see
+Section~\ref{sec:type-checking}).
+
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{ll}
+$\tau = \mu @ \sigma\ |\ \exists \rho \leq \sigma . \tau$ & (types) \\
+$\mu = \kw{region}\ |\ T[\sigma_1, \ldots, \sigma_m]$ & (base types) \\
+$\sigma = \rho\ |\ R\ |\ \bot$ & (region expressions) \\
+$\kw{struct}\ T[\rho_1, \ldots, \rho_m] \{ field_1 : \tau_1, \ldots, field_n : \tau_n \}$ & (structure declarations) \\
+\end{tabular}
+
+T : type names, $\rho$ : abstract regions, $R$ : region constant names
+\caption{Region type language}
+\label{fig:region-typelang}
+\end{center}
+\end{figure}
+
+If two values point to the same abstract region $\rho$ then the values must
+specify objects in the same region. As a consequence, if one of the values
+is null then $\rho = \bot$ so the other value is null too.  Existentially
+quantified regions must be used if two values can be null independently of
+each other, but point to the same region if non-null.  For instance, the
+structure definition
+\[ \kw{struct}\ L[\rho] \{ value : \exists \rho' \leq \rho' . \kw{region} @ \rho', 
+next : \exists \rho'' \leq \rho . L[\rho''] @ \rho''\} \] is a list of
+arbitrary regions stored in region $\rho$. Without the existentially
+quantified type the $next$ field could not be null as it would be in the
+same region as its parent (which is obviously not null if $next$ exists).
+
+The region types specify a consistency relation between values. This
+consistency relation is used below to define the soundness of rlang.
+Consistency is expressed in terms of the following semantic concepts:
+\begin{itemize}
+\item A \emph{heap} $H$ is a set of \emph{objects} $o$. Objects $o$ have an
+associated region, base type, and, for structured types, a set of field
+\emph{values}.
+
+\item A \emph{value} $w$ (with heap $H$) is either \nil\ or a pointer to an
+element of $H$.
+
+\item The regions of a heap $H$, $A_H$ is the set of all regions of objects
+in $H$. We assume that $C_R \subseteq A_H$, as above.
+
+\item Assuming value $w$ points to an object $o$, $\kw{regionof}(w)$
+returns $o$'s region, $\kw{typeof}(w)$ returns $o$'s base type, $H(w.f)$
+returns the value of the $f$ field of $o$. Also $\kw{regionof}(\nil) =
+\bot$.
+
+\item An \emph{abstract region map $f$ over abstract regions $X$}, $f : X
+\cup C_R \rightarrow A_H$ (in a heap $H$), is a map from region expressions
+to regions with $f r = r$ for all $r \in C_R$.
+\end{itemize}
+
+Let $v$ be a value of type $\tau$, let $X$ be the set of free abstract
+regions in $\tau$, let $f_r$ be an abstract region map over a superset of
+$X$. Then 
+\begin{definition}
+\rm \emph{$v : \tau$ is consistent with $H$ under $f_r$} if it is not
+inconsistent with $H$ under $f_r$.  \emph{$v : \tau$ is inconsistent with
+$H$ under $f_r$}:\footnote{A direct definition of consistency would not
+allow consistent circular data structures.}
+
+\begin{itemize}
+\item if $\tau = \kw{region} @ \sigma$ then $v \not= f_r \sigma$
+
+\item if $\tau = T[\sigma_1, \ldots, \sigma_m] @ \sigma$ then assume $T$ is
+defined by $\kw{struct}\ T[\rho_1, \ldots, \rho_m] \{ f_1 : \tau_1, \ldots,
+f_n : \tau_n \}$. The property holds if $\kw{regionof}(v) \not= f_r \sigma $
+or, if $v \not= \nil$, $\kw{typeof}(v) \not= T \logor \exists i
+. H(v.f_i):\tau_i$ is inconsistent with $H$ under $f_r[\rho_1 = f_r \sigma_1,
+\ldots, \rho_m = f_r \sigma_m]$
+
+\item if $\tau = \exists \rho \leq \sigma . \tau'$ then there for all $r \in
+A$ such that $r \leq f_r[\rho=r] \sigma$, $v : \tau'$ is inconsistent with
+$H$ under $f_r[\rho=r]$
+\end{itemize}
+\end{definition}
+\begin{definition}
+\rm
+A \emph{set of values $v_1 : \tau_1, \ldots, v_n : \tau_n$ is consistent
+with $H$ under $f_r$} if each $v_i : \tau_i$ is consistent with $H$ under
+$f_r$.
+\end{definition}
+
+\subsection{Region Typechecking in rlang}
+\label{sec:type-checking}
+
+\begin{inferencesymbols}
+
+Figure~\ref{fig:langdeff} defines \emph{rlang}, a simple imperative
+language using the region type language. Functions $f$ have arguments $v_1,
+\ldots, v_n$, local variables $v'_1, \ldots, v'_q$, body $s$ and are
+parameterised over abstract regions $\rho_1, \ldots, \rho_m$.  The result
+of $f$ is found in $v$ after $s$ has executed. The set of simple region
+expressions valid in the argument and result types of $f$ is $\{ \rho_1,
+\ldots, \rho_m \} \cup C_R$. The set of region expressions valid in the
+local variables of $f$ is $\{ \rho_1, \ldots, \rho_m, \rho'_1, \ldots,
+\rho'_p \} \cup C_R$. The meaning of the input and output \emph{constraint
+sets} $\C$ and $\C'$ is given below. The $\kw{chk}\ v_0 \leq v_1$ (or $R$)
+statement is a runtime check that $v_0$ is null or in the same region as
+$v_1$ (or in the region denoted by region constant $R$). If the check
+fails, the program is aborted. The rest of the language is straightforward:
+\kw{if} and \kw{while} statements assume \nil\ is false and everything else
+is true; \kw{new} statements specify values for the structure's fields; the
+program is executed by calling a function called \kw{main} with no
+arguments.  Figure~\ref{fig:predefined} gives signatures for the predefined
+\kw{newregion}, \kw{deleteregion} and $\kw{regionof\_}T$ (one for each
+structure type $T$) functions.
+
+\begin{figure}[t]
+
+\begin{center}
+\begin{minipage}{4.5in}
+\begin{tabular}{rrl}
+program & ::= & fn$^*$ \\
+fn & ::= & 
+\begin{minipage}[t]{3in}
+$f[\rho_1, \ldots, \rho_m][\C](v_1 : \tau_1, \ldots, v_n : \tau_n) : \tau, \C'$ \\
+$\kw{is}\ [\rho'_1, \ldots, \rho'_p] v'_1 : \tau'_1, \ldots, v'_q : \tau'_q, s, v$
+\end{minipage}
+\vspace*{.1in} \\
+
+$s$ & ::= & $s_1; s_2$ \\
+& $|$ & $\kw{if}\ v\ s_1\ s_2$ \\
+& $|$ & $\kw{while}\ v\ s$\\
+& $|$ & $v_0 = v_1$\\
+& $|$ & $v_0 = f[\sigma_1, \ldots, \sigma_m](v_1, \ldots, v_n)$\\
+& $|$ & $v_0 = v_1.field$\\
+& $|$ & $v_1.field = v_2$\\
+& $|$ & $v_0 = \nil$\\
+& $|$ & $v_0 = \kw{new}\ T[\sigma_1, \ldots, \sigma_m] (v_1, \ldots, v_n) @ v'$\\
+& $|$ & $\kw{chk}\ v_0 \leq v_1 $\\
+& $|$ & $\kw{chk}\ v_0 \leq R$
+\end{tabular}
+\end{minipage}
+\end{center}
+\caption{\emph{rlang}, a simple imperative language with regions}
+\label{fig:langdeff}
+\end{figure}
+
+\begin{figure}[t]
+
+\begin{center}
+\begin{minipage}{4in}
+$\kw{newregion}[][\emptyset]() :\exists \rho \leq \rho . \kw{region} @ \rho, \emptyset$ \\
+$\kw{deleteregion}[\rho][\emptyset](r : \kw{region} @ \rho) : \kw{region} @ \bot, \emptyset$ \\
+$\kw{regionof\_}T[\rho, \rho_1, \ldots, \rho_m][\emptyset](x : T[\rho_1, \ldots, \rho_m] @ \rho) : \kw{region} @ \rho, \emptyset$
+\end{minipage}
+\end{center}
+\caption{Predefined functions}
+\label{fig:predefined}
+\end{figure}
+
+A \emph{constraint set} ($\C, \D$, etc) specifies properties of a set of
+region expressions. The \emph{domain} of a constraint set, written
+$\dom(\C)$ is the set of region expressions appearing in $\C$. A constraint
+set can specify:
+\begin{itemize}
+\item That $\sigma$ is not the $\bot$ region. We write $\C |- \sigma \not=
+\bot$.
+\item That region $\sigma_1$ is $\leq \sigma_2$. We write $\C |- \sigma_1
+\leq \sigma_2$. $\C |- \sigma_1 = \sigma_2$ is shorthand for
+$\C |- \sigma_1 \leq \sigma_2 \logand \C |- \sigma_2 \leq \sigma_1$.
+\end{itemize}
+
+A function $f$ parameterised over abstract regions $\rho_1, \ldots, \rho_m$
+has an input constraint set $\C$ with domain $\{ \rho_1, \ldots, \rho_m \}
+\cup C_R$ which expresses requirements on the regions of $f$'s arguments
+that the callers of $f$ must respect, and an output constraint set $\C'$
+(with the same domain) which expresses the constraints that are known to
+hold when $f$ exits.
+
+A constraint set $\C$ must respect the following properties
+($\sigma_1, \sigma_2, \sigma_3$ are region expressions from $\dom(\C)$):
+\begin{itemize}
+\item $\C |- \sigma_1 \leq \sigma_1$ (reflexivity)
+\item $\C |- \sigma_1 \leq \sigma_2 \logand \C |- \sigma_2 \leq \sigma_3 => \C |- \sigma_1 \leq \sigma_3$
+(transitivity)
+\item $\C |- \bot \leq \sigma_1$
+\item $\C |- \sigma_1 \not= \bot \logand \C |- \sigma_1 \leq \sigma_2 => \C |- \sigma_2 \leq \sigma_1 \logand \C |- \sigma_2 \not= \bot$
+\end{itemize}
+
+Constraint sets form a lattice with the following partial order: $\C
+\leq \C'$ if \[ (\C |- \sigma_1 \not= \bot => \C' |- \sigma_1 \not= \bot)
+\logand (\C |- \sigma_1 \leq \sigma_2 => \C' |- \sigma_1 \leq \sigma_2) \]
+The least constraint set is represented by $\emptyset$.
+
+We define some transformations on constraint sets. In each case the
+resulting set is the smallest constraint set that meets the
+specified constraints ($\sigma_1, \sigma_2$ are any region expression from
+$\dom(\C)$):
+
+\begin{itemize}
+\item $\C[\neg \rho]$ (kill an abstract region): \\$(\sigma_1 \not= \rho
+\logand \C |- \sigma_1 \not= \bot => \C[\neg \rho] |- \sigma_1 \not= \bot)
+\logand (\sigma_1 \not= \rho \logand \sigma_2 \not= \rho \logand \C |-
+\sigma_1 \leq \sigma_2 => \C[\neg \rho] |- \sigma_1 \leq \sigma_2$
+
+\item $\C[\sigma_1 \leq \sigma_2]$ (assert order of abstract regions): 
+$(\C[\sigma_1 \leq \sigma_2] |- \sigma_1 \leq \sigma_2) \logand \C \leq \C[\sigma_1 \leq \sigma_2]$
+
+\item $\C[\sigma \not= \bot]$ (assert an abstract region is not $\bot$):
+$\C[\sigma \not= \bot] |- \sigma \not= \bot \logand \C \leq \C[\sigma \not=
+\bot]$.
+
+\item $\C[\sigma_1 = \sigma_2]$ is shorthand for $\C[\sigma_1 \leq \sigma_2][\sigma_2 \leq \sigma_1]$.
+
+\item $\C // S$ restricts $\C$'s domain to $S$.
+\end{itemize}
+
+We write $x[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m]$ for substitution of
+region expressions for (free) abstract regions in region expressions, types
+and constraint sets.  The notation $v : \tau$ and $v.field : \tau$ asserts
+that $v$, or a field of $v$, has type $\tau$.
+
+\begin{figure*}[ht]
+\newcommand{\p[1]}{#1, L}
+\newcommand{\pp[2]}{#1 #2}
+
+\begin{center}
+
+\mbox{\inference{
+$\pp[\C, L_s] |- s, \C'$ & $v : \tau$ & $\C'' \leq \C' // (\{ \rho_1, \ldots, \rho_m \} \cup C_R)$ &
+$w'_1, \ldots, w'_q$ are dead before $s$}
+{$|- f[\rho_1, \ldots, \rho_m][\C](v_1 : \tau_1, \ldots, v_n : \tau_n) : \tau, \C''\ \kw{is}\ [\rho'_1, \ldots, \rho'_p] v'_1 : \tau'_1, \ldots, v'_q : \tau'_q, s, v$} (fndef)}
+\vspace{.1in}
+
+\mbox{\inference{$f[\rho_1, \ldots, \rho_m][\D](w_1 : \tau'_1, \ldots w_n: \tau'_n) : \tau', \D'$ \\
+$v_i : \tau_i$ &
+$\C_i, L_i |- \tau'_i[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m] \assignable \tau_i, \C_{i+1}, L_{i+1}$ &
+$\D[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m] \leq \C_{n+1}$ \\
+$\C_{n+1} \sqcup \D'[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m], L_{n+1} \cup L_{\tau'} |- \tau_0 \assignable \tau'[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m], \C', L'$ \\
+$\sigma_i \in L_{\tau'} \iff \rho_i$ free in $\tau'$ and for all $k$, $\rho_i$ not free in $\tau'_k$ & $L_{\tau'} \cap L_{n+1} = \emptyset$
+}
+{$\pp[\C_1, L_1] |- v_0 = f[\sigma_1, \ldots, \sigma_m](v_1, \ldots, v_n),
+\C'$} (fncall)}
+\vspace{.1in}
+
+\mbox{\inference{$\p[\C] |- s_1, \C'$ &
+$\pp[\C', L_{s_2}] |- s_2, \C''$}
+{$\p[\C] |- s_1; s_2, \C''$}}
+\hspace{.1in}
+\mbox{\inference{$\pp[\C, L_{s_1}] |- s_1, \C'$ &
+$\pp[\C, L_{s_2}] |- s_2, \C''$}
+{$\p[\C] |- \kw{if}\ v\ s_1\ s_2, \C' \sqcap \C''$}}
+\hspace{.1in}
+\mbox{\inference{$\pp[\C', L_s] |- s, \C''$ & $\C' = \C \sqcap \C''$}
+{$\p[\C] |- \kw{while}\ v\ s, \C'$}}
+\vspace{.1in}
+
+\mbox{\inference{$v_0 : \tau_0$ & $v_1 : \tau_1$ & 
+$\C, L |- \tau_0 \assignable \tau_1, \C', L'$}
+{$\p[\C] |- v_0 = v_1, \C'$} (assign)}
+\vspace{.1in}
+
+\mbox{\inference{$v_0 : \tau_0$ & $v_1 : \mu_1 @ \sigma_1$ & $v_1.field :
+\tau'_1$ & $\C[\sigma_1 \not= \bot], L |- \tau_0 \assignable \tau'_1, \C',
+L'$} {$\p[\C] |- v_0 = v_1.field, \C'$} (read)}
+\vspace{.1in}
+
+\mbox{\inference{$v_1 : \mu_1 @ \sigma_1$ & $v_1.field : \tau'_1$ & $v_2 : \tau_2$ &
+$\C[\sigma_1 \not= \bot], L |- \tau'_1 \assignable \tau_2, \C', L'$}
+{$\p[\C] |- v_1.field = v_2, \C'$} (write)}
+\vspace{.1in}
+
+\mbox{\inference{struct $T[\rho_1, \ldots, \rho_m] \{ field_1 : \tau'_1, \ldots, field_n : \tau'_n \}$ \\
+$\C_1 = \C$ & $L_1 = L$ & $v_i : \tau_i$ & 
+$\C_i, L_i |- \tau'_i[\sigma_1/\rho_1, \ldots, \sigma_m/\rho_m] \assignable \tau_i, \C_{i+1}, L_{i+1}$ \\
+$v' : \kw{region} @ \sigma'$ &
+$v_0 : \tau_0$ & $\C_{n+1}, L_{n+1} |- \tau_0 \assignable T[\sigma_1, \ldots, \sigma_m] @ \sigma', \C', L'$}
+{$\p[\C] |- v_0 = \kw{new}\ T[\sigma_1, \ldots, \sigma_m](v_1, \ldots, v_n) @ v', \C'$} (new)}
+\vspace{.1in}
+
+\mbox{\inference{$v_0 : \mu_0 @ \sigma_0$ & $\C, L |- \mu_0 @ \sigma_0 \assignable \mu_0 @ \bot, \C', L'$}
+{$\p[\C] |- v_0 = \nil, \C'$} (null)}
+\vspace{.1in}
+
+\mbox{\inference{$v_0 : \mu_0 @ \sigma_0$ & $v_1 : \mu_1 @ \sigma_1$}
+{$\p[\C] |- \kw{chk}\ v_0 \leq v_1, \C[\sigma_0 \leq \sigma_1]$} (check)}
+\hspace{.3in}
+\mbox{\inference{$v_0 : \mu_0 @ \sigma_0$}
+{$\p[\C] |- \kw{chk}\ v_0 \leq R, \C[\sigma_0 \leq R]$} (check const)}
+\end{center}
+\caption{Region Typechecking}
+\label{fig:typechecking}
+\end{figure*}
+
+\begin{figure*}[ht]
+\begin{center}
+\mbox{\inference{$\sigma' \in L$ & $\sigma[\sigma'/\rho] \in L$ &
+$\C |- \sigma' \leq \sigma[\sigma' / \rho]$ &
+$\C, L |- \tau [\sigma' / \rho] \assignable \tau', \C', L'$}
+{$\C, L |- \exists \rho \leq \sigma . \tau \assignable \tau', \C', L'$}}\ \  (close)
+\vspace{.1in}
+
+\mbox{\inference{$\rho \not\in L$ & $\rho \in \dom(\C)$ &
+$\C[\neg \rho][\rho \leq \sigma'[\rho / \rho']], L \cup \{ \rho \} |- \tau \assignable \tau'[\rho/\rho'], \C', L'$
+}{$\C, L |- \tau \assignable \exists \rho' \leq \sigma' . \tau', \C', L'$}}\ \  (open)
+\vspace{.1in}
+
+\mbox{\inference{$\C, L |- \sigma \assignable \sigma', \C', L'$}
+{$\C, L |- \kw{region} @ \sigma \assignable \kw{region} @ \sigma', \C', L'$}}
+\vspace{.1in}
+
+\mbox{\inference{$\C, L |- \sigma \assignable \sigma', \C_1, L_1$ & $\C_i, L_i |- \sigma_i \assignable \sigma'_i, \C_{i+1}, L_{i+1}$}
+{$\C, L |- T[\sigma_1, \ldots, \sigma_m] @ \sigma \assignable T[\sigma'_1, \ldots, \sigma'_m] @ \sigma', \C_{m+1}, L_{m+1}$}}
+\vspace{.1in}
+
+\mbox{\inference{$\sigma \in L$ & $\C |- \sigma = \sigma'$}
+{$\C, L |- \sigma \assignable \sigma', \C, L$}}
+\hspace{.3in}
+\mbox{\inference{$\rho \not\in L$}
+{$\C, L |- \rho \assignable \sigma', \C[\neg \rho][\rho = \sigma'], L \cup \{ \rho \}$}}
+
+\end{center}
+\caption{Assignability}
+\label{fig:assignable}
+\end{figure*}
+
+Type checking for rlang (Figure~\ref{fig:typechecking}) relies extensively
+on constraint sets. Statements of a function $f$ are checked by the
+judgment $\C, L |- s, \C'$. These judgments take an input constraint set
+$\C$ with domain $\{ \rho_1, \ldots, \rho_m, \rho'_1, \ldots, \rho'_p \}
+\cup C_R$ (describing the properties of all arguments and live local
+variables) and produce an output constraint set $\C'$. Instead of an
+explicit binding construct for abstract regions, assignments may bind any
+abstract region of the assignment target which is not used in any function
+argument or live variable.  This set of region expressions that cannot be
+bound at entry to $s$ is called the \emph{live region expression} set and
+is denoted by $L$ (or $L_s$ where necessary for clarity). We assume that
+$L$ is precomputed for each statement using a standard liveness
+analysis. As the abstract regions of a function's arguments are in all sets
+$L$ they cannot be rebound. This guarantees that the properties asserted in
+a function's output constraint set actually apply to the region expressions
+used when calling a function.
+
+The judgments $\C, L |- \tau_1 \assignable \tau_2, \C', L'$ of
+Figure~\ref{fig:assignable} check that a value of type $\tau_2$ is
+assignable to a location of type $\tau_1$. These judgments take an input
+constraint set $\C$ and live region expression set $L$ and produce an
+updated (as a result of binding abstract regions) output constraint set
+$\C'$ and live region expression set $L'$. The (close) rule allows
+assignment as long as $\tau_2$ can be existentially quantified to match
+$\tau_1$. The (open) rule allows instantiation of an existentially
+quantified region into a dead abstract region $\rho$, and updates $\C$ to
+reflect $\rho$'s new properties. Base types are assignable if their region
+expressions match. Two region expressions match if they are equal according
+to $\C$ or if the abstract region $\rho$ of the assignment target is
+dead. In this last case $\C$ is updated to reflect $\rho$'s new properties.
+
+The rules for assigning local variables (assign), reading a field (read) or
+writing a field (write) check that the source is assignable to the
+target. Additionally, reading or writing a field of $v$ guarantees that $v$
+is not \nil, hence that $v$'s region is not $\bot$. Object creation (new)
+is essentially a sequence of assignments from the field values to the
+fields of the newly created object, and of the newly created object to the
+\kw{new} statement's target. Initialisation to \nil\ (null) requires only
+that the target variable's region be $\bot$. After execution of a runtime
+check, the checked relation holds (check and check const).
+
+The type system requires local variables of unquantified type
+($\mu@\sigma$). This is necessary for soundness in the case of writes to
+fields: assume structure $X$ is defined by $\kw{struct}\ X[\rho] \{ f :
+\kw{region} @ \rho \}$ and $v$ has type $\exists \rho \leq \rho.X[\rho] @
+\rho$. Thus $\kw{regionof}(v) = v.f$. The obvious type for $v.f$ is
+$\exists \rho \leq \rho . \kw{region} @ \rho$, but this would allow $v.f$
+to be assigned any region thus breaking the $\kw{regionof}(v) = v.f$
+property asserted by $v$'s type.
+
+The rules for constraint set flow through statement sequencing, \kw{if} and
+\kw{while} statements are the same as for a standard forward data-flow
+problem.
+
+Function definition (fndef) is straightforward: the result variable's type
+must match the function declaration and the function's output constraints
+must be a subset of the function body's output constraints.
+
+The most complicated rule is a call to a function $f$ (fncall). All
+references to elements of $f$'s signature must substitute the actual region
+expressions at a call for $f$'s formal region parameters. The second line
+checks that the call's arguments are assignable to $f$'s parameters and
+that the constraints at the call site match $f$'s input constraint. After
+the call, $f$'s output constraints are known to hold and $f$'s result must
+be assignable to the call's destination. The final requirement on function
+calls says that if any abstract region is mentioned solely in a function's
+return type then the corresponding region argument at the call must be a
+dead abstract region. Abstract regions mentioned solely in result types
+behave like existentially quantified regions, but make the translation from
+RC into rlang simpler (see Section~\ref{sec:xlation}). An alternative
+signature for \kw{newregion} is: $\kw{newregion}[\rho][\emptyset]() :
+\kw{region} @ \rho, \emptyset$.
+
+
+We are in the process of proving the soundness of our type system, based on
+a simple operational semantics for rlang and the notion of consistency
+introduced in Section~\ref{sec:typelang}.
+
+\begin{definition}
+\rm An abstract region map $f$ over $L$ is \emph{consistent with a
+constraint set $\C$} (with $L \subseteq \dom(\C)$) if $\forall \sigma,
+\sigma_1, \sigma_2 \in L$: $C |- \sigma \not= \bot => f \sigma \not= \bot$
+and $C |- \sigma_1 \leq \sigma_2 => f \sigma_1 \leq f \sigma_2$.
+\end{definition}
+
+\begin{conjecture}
+\rm Soundness of rlang: if $s$ is a statement with variables $v_1 : \tau_1,
+\ldots, v_n : \tau_n$ live at entry to $s$, $\C, L |- s, \C'$, $H$ is a
+possible state of the heap before execution of $s$ then there exists an
+abstract region map $f_r$ over $L$ such that $f_r$ is consistent with $C$
+and $v_1 : \tau_1, \ldots, v_n : \tau_n$ are consistent with $H$ under
+$f_r$.
+\end{conjecture}
+
+\end{inferencesymbols}
+
+\subsection{Translating RC to the Region Type System}
+\label{sec:xlation}
+
+There are severals ways RC can be translated to rlang. For instance, one
+could apply a ``region inference''-like algorithm to RC programs,
+representing the results in rlang, in an attempt to find a very precise
+description of the program's region structure. Our goal is different: we
+want to translate an RC program $p$ into an rlang program $p'$ that
+faithfully matches $p$, then analyse $p'$ to verify the correctness of
+\kw{sameregion} and \kw{traditional} annotations. We therefore perform a
+straightforward translation, while guaranteeing the following properties of
+$p'$:
+\begin{itemize}
+\item For every structured type $X$ in $p$ there is a structured type $X$
+in $p'$, parameterised by a single abstract region $\rho$. This abstract
+region represents the region in which the structure is stored. So pointers
+to $X$ in $p'$ are always of the form $X[\sigma]@\sigma$ for some region
+$\sigma$.
+
+A field $f$ in $X$ of type $T$ which is not \kw{sameregion} or
+\kw{traditional} in $p$ can point to any region. So its type in $p'$ is
+$\exists \rho' \leq \rho'. T[\rho']@\rho'$. If $f$ is \kw{traditional} then
+it can be \nil, or point to the traditional region so its type is $\exists
+\rho' \leq \rho'. T[\rho']@\rho'$. If $f$ is \kw{sameregion} then it can be
+\nil, or point to an object in $\rho$ (the structure's region parameter),
+so its type is $\exists \rho' \leq \rho. T[\rho']@\rho'$. For example, 
+\[ \mbox{\tt struct L\{region v;L *sameregion n;\}} \leadsto \kw{struct}\ L[\rho] \{ v : \exists \rho' \leq \rho'. \kw{region} @ \rho', 
+n : \exists \rho' \leq \rho . L[\rho'] @ \rho'\} \]
+
+\item Every field assignment $v_1.f = v_2$ is immediately preceded by an
+appropriate runtime check: $\kw{chk}\ v_2 \leq v_1$ if $f$ is
+\kw{sameregion} in $p$; $\kw{chk}\ v_2 \leq R_T$ if $f$ is \kw{traditional}
+($R_T$ is the region constant representing the traditional region).  This
+matches the model for these annotations given in
+Section~\ref{sec:user-types}: assignments will abort the program if the
+requirements of \kw{sameregion} or \kw{traditional} are not met.
+
+\item Every local variable and function argument $v$ in $p'$ is associated
+with a distinct abstract region $\rho_v$. If $v$ is of type $T$ in $p$, its
+type becomes $T[\rho_v] @ \rho_v$ in $p'$. Function arguments are never
+assigned or used directly as the function result, and the destination
+of an assignment is not used elsewhere in the assignment statement.
+\footnote{This last restriction is due to the rules for handling liveness
+in Figure~\ref{fig:typechecking}.}
+
+\item The result type of a function $f$ is parameterised by a distinct
+abstract region $\rho_f$. Combined with the previous rule, this implies
+that a function $f$ with arguments $T_1, \ldots, T_n$ and result $T$ always
+has signature
+\[ f[\rho_{v_1}, \ldots, \rho_{v_n}, \rho_f][\C](v_1 : T_1[\rho_1]@\rho_1, \ldots,
+v_n : T_n[\rho_{v_n}] @ \rho_{v_n}) : T[\rho_f] @ \rho_f, \C' \] for some
+constraint sets $\C$ and $\C'$. The use of a distinct abstract region for
+$f$'s result relies on the special handling of abstract regions not used in
+the function arguments (Figure~\ref{fig:typechecking}).
+\end{itemize}
+
+It is easy to verify that an rlang program with these properties can be
+type checked with the rules of Figures~\ref{fig:typechecking}
+and~\ref{fig:assignable}, under the assumption that all function input and
+output constraint sets are $\emptyset$. 
+
+However we can do better: the typechecking rules can be viewed as a
+function $\kappa$ transforming the constraint sets of each function and of
+each statement of the rlang program $p'$. As any fixed point of $\kappa$ is
+a valid typing, the greatest fixed point is the best typing since it
+asserts the most information about the abstract regions of $p'$ (the input
+constraint set of \kw{main} is always $\emptyset$ however). As all the
+operations transforming constraint sets are monotonic and constraint sets
+form a lattice, the greatest fixed point can be found (in traditional
+data-flow fashion) by iterating starting with the assumption that all
+constraint sets (except \kw{main}'s input) assert all possible facts
+(including contradictions such as $\bot \not= \bot$). Once the best
+constraint sets have been found, any \kw{chk}\ statement that asserts a
+relation that already holds in its input constraint set can be
+eliminated. Any field write that is not preceded by a \kw{chk}\ is safe.
+
+RC implements the transformation and analysis outlined above on a single
+source file. Calls to unknown functions are assumed to have the empty input
+and output constraint set, any function callable from other files is
+required to have the empty input constraint set. Results of this analysis
+are presented in Section~\ref{sec:bm-types}. A simple complexity argument
+suggests that running time could be at least the fifth power of the size of
+the largest function, however in practice analysis times are generally less
+than a second except on a few source files in our benchmarks. The largest
+analysis time was 16s (on a 333MHz UltraSparc II). Part of the reason for
+this good performance appears to be that the number of pointer variables
+does not grow with linearly with function size (our implementation of the
+inference eliminates all pointers that are temporaries\footnote{We define a
+temporary as a variable for which each use is reached by a single
+definition.}).
+
+\section{Results}
+\label{sec:benchmarks}
+
+We use a set of eight small to large C benchmarks to analyse the
+performance of RC: {\tt cfrac} and {\tt gr\"obner} perform numeric
+computations using large integers, {\tt mudlle}, {\tt lcc} and {\tt rc} are
+compilers, {\tt tile} and {\tt moss} process text and {\tt apache} is a web
+server. Half of these programs ({\tt mudlle}, {\tt lcc}, {\tt rc}, {\tt
+apache}) were already region-based (using simple region libraries with no
+safety guarantees), the other half were converted to use regions (details
+can be found in~\cite{ga98b}). Table~\ref{tab:bms} reports the benchmark's
+sizes (in lines of code) and summarises their memory allocation behaviour.
+
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+Name & Lines & Total & Total mem& Max mem \\
+& & allocs & alloc (kbytes) & use (kbytes) \\ \hline
+cfrac & 4203 & 3812425 & 56076 & 102\invis{.0} \\
+gr\"obner & 3219 & 805320 & 27672 & 27.1 \\
+mudlle & 5078 & 737611 & 10489 & 210\invis{.0} \\
+lcc & 12430 & 178425 & 9193 & 4581\invis{.0} \\
+moss & 2675 & 553986 & 6312 & 2185\invis{.0} \\
+tile & 926 & 40657 & 994 & 62.3 \\
+rc & 22823 & 76253 & 4513 & 4198\invis{.0} \\
+apache & 62289 & 35148 & 6220 & 78.5 \\ \hline
+\end{tabular}
+\caption{Benchmark characteristics.}
+\label{tab:bms}
+\end{center}
+\end{table}
+
+\subsection{Performance}
+\label{sec:bm-perf}
+
+We compared the performance of RC with our old system, C@, and with
+conventional malloc/free-based memory management. Measurements were made on
+a Sun Ultra 10 with a 333Mhz UltraSparc II processor, a 2MB L2 cache and
+256MB of memory.
+
+Figure~\ref{fig:bm-time} reports elapsed time (from the best of ten runs)
+for each benchmark for four compiler/allocator combinations: ``old'' is our
+previous region compiler, C@ (we did not convert {\tt rc} or {\tt apache}
+to run under C@) with reference counting enabled; ``lea'' is gcc 2.95.2
+with Doug Lea's malloc/free replacement library v2.6.6\footnote{This
+library can be found at ftp://g.oswego.edu/pub/misc/malloc.c, and has much
+better performance than Sun's default malloc library.}; ``norc'' is gcc
+2.95.2 with our RC compiler and reference counting disabled; ``std'' is gcc
+2.95.2 with our RC compiler and reference counting enabled. For the
+benchmarks which were originally not region-based ({\tt cfrac}, {\tt
+gr\"obner}, {\tt tile}, {\tt moss}), the ``lea'' column is the execution
+time obtained when running the original code. For those benchmarks which
+were region-based, the ``lea'' column uses a simple ``region-emulation''
+library that uses malloc and free to allocate and free each individual
+object.
+
+\begin{figure*}[ht]
+\begin{center}
+\includegraphics{time.eps}
+\caption{Execution time}
+\label{fig:bm-time}
+\end{center}
+\end{figure*}
+
+RC always performs better than C@, partly because of a better base compiler
+(gcc vs lcc), but also because the reference counting overhead is reduced.
+Table~\ref{tab:rc-overhead} shows the difference in execution time for both
+C@ and RC between our benchmarks with and without reference
+counting. Execution is actually faster with reference counting than without
+for {\tt tile} compiled by RC, reflecting the complex interaction between
+reference counting and the rest of the program's performance. Reference
+counting cost is highest by far in {\tt lcc} at 20\% of execution time, it
+is below 11\% on all other benchmarks.  RC with reference counting performs
+significantly better than malloc and free or {\tt mudlle} (27\% faster) and
+{\tt moss} (53\% faster). Performance is similar on the other benchmarks,
+ranging from 13\% slower on {\tt gr\"obner} to 15\% faster on {\tt cfrac}.
+
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{|l|r|r|} \hline
+Name & C@ (s) & RC (s) \\ \hline
+cfrac & 0.53 & $<$0.01 \\
+gr\"obner & 0.15 & 0.13 \\
+mudlle & 0.31 & 0.20 \\
+lcc & 0.16 & 0.16 \\
+moss & 0.07 & 0.06 \\
+tile & 0.01 & -0.03 \\
+rc &  & 0.20 \\
+apache &  & 0.07 \\ \hline
+\end{tabular}
+\caption{Reference counting overhead in RC and C@}
+\label{tab:rc-overhead}
+\end{center}
+\end{table}
+
+\subsection{Region Type System results}
+\label{sec:bm-types}
+
+We added some \kw{sameregion} and \kw{traditional} annotations to four of
+our benchmarks: {\tt mudlle}, {\tt lcc}, {\tt moss} and {\tt
+tile}. Table~\ref{tab:sr-static} reports the number of annotations we
+added, and the percentage of assignment statements whose safety we were
+able to check statically.  None of the types in {\tt cfrac} or {\tt
+gr\"obner} could be annotated with \kw{sameregion} or \kw{traditional}. We
+did not examine {\tt apache} or {\tt rc} to see if we could add any
+annotations.\footnote{We expect to do so for the final version of the
+paper.}
+
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{|l|r|r|} \hline
+Name & Keywords & \% safe assigns \\ \hline
+mudlle & 59 & 64 \\
+lcc & 49 & 19 \\
+moss & 19 & 89 \\
+tile & 20 &  84 \\ \hline
+\end{tabular}
+\caption{\kw{sameregion} and \kw{traditional}: static statistics}
+\label{tab:sr-static}
+\end{center}
+\end{table}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{ctypes.eps}
+\vspace*{-.3cm}
+\caption{Eliminating reference count operations}
+\label{fig:sr-dynamic}
+\end{center}
+\end{figure}
+
+Runtime assignments can be categorised as ``no-op'' (no reference count
+update occurred), ``annotated'' (assignment to a a \kw{sameregion} or
+\kw{traditional} pointer) and ``static'' (statically checked ``annotated''
+assignments). Obviously, all ``annotated'' assignments are also
+``no-op''. Figure~\ref{fig:sr-dynamic} reports the percentage of runtime
+assignments in each category. The percentage of ``annotated'' assignments
+ranges from 46\% and 99.9\% in {\tt mudlle}, {\tt lcc}, {\tt moss} and {\tt
+tile}. From 27\% to 99.99\% of these assignments occur at statically
+checked assignment statements.
+
+Flex, used in {\tt mudlle}, {\tt moss} and {\tt tile} uses \kw{traditional}
+pointers for which almost all checks can be eliminated. These account for
+94\% of pointer assignments in {\tt moss}, 89\% in {\tt tile} and 47\% in
+{\tt mudlle}. The most important (by execution count) runtime checks of
+\kw{sameregion} assignments in {\tt mudlle} can also be eliminated. We
+found that verification of some of the checks in {\tt moss} requires
+keeping track of pointers known to be null\footnote{Without this,
+verification depends on the order of local variable declarations.}. This
+was the motivation for explicitly tracking which abstract regions are
+$\bot$ or not $\bot$ in our region type system.
+
+In summary, we see in our benchmarks that at least two thirds of all
+pointer assignments involve no reference count updates. The \kw{sameregion}
+and \kw{traditional} annotation to a reasonable to very good job of
+catching these assignments, and our analysis does a reasonable to very good
+job of verifying \kw{sameregion} and \kw{traditional} annotations.
+
+\section{Conclusion and Future Work}
+
+We have designed and implemented RC, a dialect of C extended with safe
+regions. The overhead of safety is low (less than 11\%) on all but one
+benchmark (where it reaches 20\%). Even with this overhead, RC programs
+perform competitively with malloc/free based programs (from 13\% slower to
+53\% faster) on our benchmarks. Our main contributions are a type system
+for dynamically checked region systems that brings some structure to
+region-based programs and improves the performance of reference counting.
+
+There are still a number of issues open in RC. Our previous
+paper~\cite{ga98b} did a detailed breakdown of reference count overheads by
+counting the cost of each reference count operation using the UltraSparc's
+cycle counters. We could not repeat this approach when compiling to C
+because the C compiler's instruction scheduling mixes the instructions for
+updating reference counts with the surrounding code. We plan to perform a
+detailed analysis of the costs of reference counting in RC using other
+methods. We are particularly interested in the costs of reference counting
+in terms of the processor's instruction execution resource and its impact
+on caches.
+
+Deleting a region is relatively expensive. We have implemented a version of
+RC where counts are kept of the number of references between every pair of
+regions. This approach makes deleting a region very efficient, however it
+does not scale to programs which use large numbers of regions
+simultaneously. We plan to investigate this and other approaches for
+reducing the cost of \kw{deleteregion} further.
+
+The ordering relation between regions in our region type system could be
+extended to a tree of regions. Reference counts would not be kept from
+region $a$ to region $b$ if $b \leq a$. This would allow the creation of
+subregions that could be deleted independently, or automatically when the
+parent region is deleted. It is not yet clear if this is a useful concept
+or if it can be implemented efficiently enough.
+
+The current translation from RC into our region type system is very
+simple. There is scope for both a more elaborate translation and for more
+annotations in RC to make a program's region structure more explicit.
+
+\bibliography{gcbib,icsi,java,local,sigplan}
+
+\bibliographystyle{alpha}
+
+\end{document}
+% LocalWords:  C's malloc sameregion RC deleteregion Stoutamire pointer's gr vs
+% LocalWords:  bner RC's lcc Vo's Vmalloc Hanson's Sather Sather's Tofte Talpin
+% LocalWords:  Crary Morrisett Ichisugi Yonezawa memcpy memset analyser int rc
+% LocalWords:  regionof egionof egion rlang parameterised Typechecking fn fndef
+% LocalWords:  structure's newregion fncall struct const Assignability body's
+% LocalWords:  Initialisation call's typechecking chk tatement UltraSparc gcc
+% LocalWords:  unscan maximise Minimising cfrac mudlle summarises mem allocs na
+% LocalWords:  alloc ve Mhz MB lea Lea's norc std eps min asgn UltraSparc's ns
+% LocalWords:  categorised op ctypes init unscans clocals unscanning dom CCR cs
+% LocalWords:  EECS aiken berkeley edu ht ilist il ralloc rarrayalloc kbytes
+% LocalWords:  precomputed ftp oswego misc LocalWords generalise toft API
+% LocalWords:  unquantified

@@ -20,15 +20,30 @@ let sloctable = Hashtbl.create 17
 let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
-let mk_spec fn public qslocs args ist ret ost =
+let mk_funspec fn public qslocs args ist ret ost =
   let _ = Hashtbl.clear sloctable in
-  let rcf = FI.mk_refcfun qslocs args ist ret ost in
-    if rcf |> FI.cfun_of_refcfun |> Ctypes.cfun_well_formed then
-      (fn, rcf, public)
+    (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
+
+let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
+  if Ctypes.prestore_closed storespec then
+    if Ctypes.precfun_well_formed storespec rcf then
+      Ctypes.PreSpec.add_fun fn (rcf, public) spec
     else begin
       Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
       raise Parse_error
     end
+  else begin
+    Format.printf "Error: global store not closed\n\n" |> ignore;
+    raise Parse_error
+  end
+
+let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
+  if Ctypes.prectype_closed ty storespec then
+    Ctypes.PreSpec.add_var var (ty, public) spec
+  else begin
+    Format.printf "Error: %s has ill-formed spec\n\n" var |> ignore;
+    raise Parse_error
+  end
 
 %}
 
@@ -37,10 +52,9 @@ let mk_spec fn public qslocs args ist ret ost =
 %token <int> Num
 %token <int> ABS 
 %token <int> CONC
-%token <int> GHOST
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
 %token ARG RET ST INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -54,22 +68,24 @@ let mk_spec fn public qslocs args ist ret ost =
 
 %start specs 
 
-%type <(string * FixInterface.refcfun * bool) list>    specs 
+%type <FixInterface.refspec>    specs
 
 %%
 specs:
-                                        { [] }
-  | spec specs                          { $1 :: $2 }
+                                        { Hashtbl.clear sloctable; Ctypes.PreSpec.empty }
+  | specs funspec                       { add_funspec $1 $2 }
+  | specs varspec                       { add_varspec $1 $2 }
+  | specs locspec                       { let lc, sp = $2 in Ctypes.PreSpec.add_loc lc sp $1 }
   ;
 
-spec:
+funspec:
     Id publ 
     FORALL slocs
     ARG    argbinds 
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      mk_spec $1 $2 $4 $6 $10 $8 $12
+      mk_funspec $1 $2 $4 $6 $10 $8 $12
     }
   | Id publ
     FORALL slocs
@@ -77,9 +93,20 @@ spec:
     RET    reftype
     ST     refstore
     {
-      mk_spec $1 $2 $4 $6 $10 $8 $10
+      mk_funspec $1 $2 $4 $6 $10 $8 $10
     }
     ;
+
+varspec:
+  Id publ reftype
+  {
+    ($1, ($3, $2))
+  }
+  ;
+
+locspec:
+  LOCATION slocbind                     { $2 }
+  ;
 
 publ:
   | DCOLON                              {false}
@@ -100,7 +127,6 @@ slocsne:
 sloc:
     ABS                                 { mk_sloc $1 Sloc.Abstract }
   | CONC                                { mk_sloc $1 Sloc.Concrete }
-  | GHOST                               { mk_sloc $1 Sloc.Ghost }
   ;
 
 refstore:
@@ -154,8 +180,9 @@ ctype:
 
 index:
     Num                                 { Ctypes.IInt $1 }
-  | Num LB Num RB                       { Ctypes.ISeq ($1, $3) }
-  | TRUE                                { Ctypes.ITop }
+  | Num LB Num RB                       { Ctypes.ISeq ($1, $3, Ctypes.Pos) }
+  | Num LC Num RC                       { Ctypes.ISeq ($1, $3, Ctypes.PosNeg) }
+  | TRUE                                { Ctypes.index_top }
   | FALSE                               { Ctypes.IBot }
   ;
 

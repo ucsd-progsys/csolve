@@ -140,6 +140,9 @@ let char_width  = bytesSizeOfInt IChar
 let bytesSizeOf t =
   1 + ((Cil.bitsSizeOf t - 1) / 8)
 
+let bytesOffset t off =
+  fst (bitsOffset t off) / 8
+
 let ptrRefType = function
   | TPtr (t, _)      -> t
   | TArray (t, _, _) -> t
@@ -167,6 +170,9 @@ let is_unchecked_attr = is_attr "unchecked"
 let has_array_attr     = fun a -> List.exists is_array_attr a
 let has_pos_attr       = fun a -> List.exists is_pos_attr a
 let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
+
+let is_unchecked_ptr_type t =
+  isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
 
 let id_of_po = function
   | None   -> ""

@@ -647,9 +647,11 @@ int main(int argc , char **argv )
   {
   // pmr: HACK
   map_P = (double *)malloc(sizeof(double) * 36);
-  map_P[nondetpos()] = 0.0;
   map_Q = (double *)malloc(sizeof(double) * 36);
-  map_Q[nondetpos()] = 0.0;
+  for (int pmr = 0; pmr < 36; pmr++) {
+      map_P[pmr] = 0.0;
+      map_Q[pmr] = 0.0;
+  }
   /*      
   map_P[0] = 8752.218091048;
   map_P[1] = 8446.106670416;

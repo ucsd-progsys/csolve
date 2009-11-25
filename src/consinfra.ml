@@ -101,18 +101,19 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
-let create tgr gnv sci shp = 
+let create tgr gnv gst sci shp =
   let fdec   = sci.ST.fdec in
   let env    = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
-  let istore = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst in 
-  let astore = FI.refstore_fresh fdec.svar.vname shp.LI.store in 
+  let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> Ctypes.prestore_upd gst in
+  let lastore = FI.refstore_fresh fdec.svar.vname shp.LI.store in
+  let astore  = Ctypes.prestore_upd gst lastore in
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc    = fdec.svar.vdecl in
   let cs, ds = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
   {tgr     = tgr;
    sci     = sci;
-   ws      = FI.make_wfs_refstore env astore tag;
+   ws      = FI.make_wfs_refstore env lastore tag;
    cs      = cs;
    ds      = ds;
    wldm    = IM.empty;
@@ -218,3 +219,6 @@ let ctype_of_varinfo me v =
   let rv  = strengthen_cloc (ct, clo) in
   (* let _   = Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct in*)  
   rv
+
+let refctype_of_global me v =
+  FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv

@@ -1,0 +1,5 @@
+TESTNAME	test1
+VAR	C	Cyclone	Cyclone-nobc
+PROG	c/compress c/compress	cyc/compress cyc/compress	cyc/compress-nochk cyc/compress-nochk
+ARGS	-c#test1 -c#-d#foo.Z
+FILES	#foo.Z #/dev/null

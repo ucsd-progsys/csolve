@@ -7,6 +7,7 @@ val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
+val bytesOffset      : Cil.typ -> Cil.offset -> int
 val ptrRefType       : Cil.typ -> Cil.typ
 val isVararg         : Cil.typ -> bool
 val typ_width        : Cil.typ -> int
@@ -17,6 +18,8 @@ val char_width       : int
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool
 val has_unchecked_attr : Cil.attributes -> bool
+
+val is_unchecked_ptr_type : Cil.typ -> bool
 
 val id_of_ciltype    : Cil.typ -> int option -> string
 

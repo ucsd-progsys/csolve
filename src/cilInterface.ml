@@ -44,6 +44,8 @@ let exp_of_cilcon skolem = function
       A.eCon (A.Constant.Int (Int64.to_int i))
   | Cil.CReal _ ->
       skolem ()
+  | Cil.CStr s ->
+      skolem ()
   | _ ->
       assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str
@@ -106,8 +108,10 @@ let expr_of_var v =
   A.eVar (Sy.of_string v.Cil.vname)
 
 let expr_of_lval ((lh, _) as lv) = match lh with
-  | Cil.Var v -> 
+  | Cil.Var v when not v.Cil.vglob ->
       expr_of_var v
+  | Cil.Var v when v.Cil.vglob ->
+      halt <| Errormsg.error "Trying to convert global %a to expr\n\n" Cil.d_lval lv
   | _ ->
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
       assertf "TBD: CilInterface.expr_of_lval"
@@ -119,7 +123,9 @@ let rec convert_cilexp skolem = function
   | Cil.SizeOf t ->
       E (A.eCon (A.Constant.Int (CilMisc.bytesSizeOf t)))
   | Cil.Lval lv -> 
-      E (expr_of_lval lv)  
+      E (expr_of_lval lv)
+  | Cil.StartOf lv ->
+      E (expr_of_lval lv)
   | Cil.UnOp (Cil.LNot, e, _) ->
       P (A.pNot (pred_of_cilexp skolem e)) 
   | Cil.BinOp (op, e1, e2, _) -> 

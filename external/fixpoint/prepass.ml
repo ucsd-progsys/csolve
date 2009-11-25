@@ -75,7 +75,7 @@ let phase3 cs =
       let _ = Format.printf "Invalid Constraints 3a in \n %a " (C.print_t None) c in
       let _ = 0/0 in () in
     SM.iter begin fun x (_,t,_) ->
-      try asserts (t = (Hashtbl.find memo x)) "Invalid Constraints 3b" 
+      try asserts (t = (Hashtbl.find memo x)) "Invalid Constraints 3b"
       with Not_found -> Hashtbl.replace memo x t
     end env
   end cs;

@@ -119,6 +119,6 @@ let heapify (f : file) (alloc : exp) =
   f
 
 let default_heapify (f : file) =
-  let alloc_fun = findOrCreateFunc f "malloc" voidType in
+  let alloc_fun = findOrCreateFunc f "malloc" (TFun (voidPtrType, Some [("sz", !typeOfSizeOf, [])], false, [])) in
   let alloc_exp = Lval (Var alloc_fun, NoOffset) in
     ignore (heapify f alloc_exp)

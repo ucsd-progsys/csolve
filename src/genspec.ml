@@ -101,7 +101,7 @@ let is_cyclic =
 let mk_idx po i =
   match po with 
   | None   -> Ct.IInt i
-  | Some n -> Ct.ISeq (i, n)
+  | Some n -> Ct.ISeq (i, n, Ct.Pos)
 
 let unroll_ciltype t =
   match Cil.unrollType t with
@@ -112,13 +112,13 @@ let unroll_ciltype t =
 let add_off off c =
   let i = CilMisc.bytesSizeOf c in
   match off with 
-  | Ct.IInt i'    -> Ct.IInt (i+i')
-  | Ct.ISeq (_,_) -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
+  | Ct.IInt i' -> Ct.IInt (i+i')
+  | Ct.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
 
 let adj_period po idx = 
   match po, idx with
   | None  , _         -> idx
-  | Some n, Ct.IInt i -> Ct.ISeq (i, n)
+  | Some n, Ct.IInt i -> Ct.ISeq (i, n, Ct.Pos)
   | _, _              -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes ts =
@@ -132,7 +132,7 @@ Ct.LDesc.create ts
   | _                    -> Ct.LDesc.create ts 
 *)
 
-let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.ISeq (0, 1) else Ct.ITop 
+let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.index_nonneg else Ct.index_top
 
 let conv_cilbasetype = function 
   | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
@@ -141,7 +141,11 @@ let conv_cilbasetype = function
   | TEnum (ei, ats)  -> Ct.CTInt (bytesSizeOfInt ei.ekind, index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
-let rec conv_ciltype loc (th, st, off) (c, a) = 
+type type_level =
+  | TopLevel
+  | InStruct
+
+let rec conv_ciltype loc tlev (th, st, off) (c, a) =
   match c with
   | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
       (th, st, add_off off c), [(off, conv_cilbasetype c)]
@@ -150,10 +154,13 @@ let rec conv_ciltype loc (th, st, off) (c, a) =
                then Some (CilMisc.bytesSizeOf c') else None in
       let (th', st'), t = conv_ptr loc (th, st) po c' in
       (th', st', add_off off c), [(off, t)] 
-  | TArray (c',_,_) -> 
+  | TArray (c',_,_) when tlev = InStruct ->
       conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
+  | TArray (c',_,_) when tlev = TopLevel ->
+      let (th', st'), t = conv_ptr loc (th, st) (Some (CilMisc.bytesSizeOf c')) c' in
+      (th', st', add_off off c), [(off, t)] 
   | TNamed (ti, a') ->
-      conv_ciltype loc (th, st, off) (ti.ttype, a' ++ a)
+      conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
   | TComp (_, _) ->
       conv_cilblock loc (th, st, off) None c
   | _          -> 
@@ -183,23 +190,23 @@ and conv_cilblock loc (th, st, off) po c =
        List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype
     |> Misc.map (fun c' -> (c', []))
-    |> Misc.mapfold (conv_ciltype loc) (th, st, off)
+    |> Misc.mapfold (conv_ciltype loc InStruct) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
-let conv_ciltype y z c = 
+let conv_ciltype y tlev z c =
   let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-  conv_ciltype y z (c, [])
+  conv_ciltype y tlev z (c, [])
 
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc) (SM.empty, SLM.empty, Ct.IInt 0) in
+    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc InStruct) (SM.empty, SLM.empty, Ct.IInt 0) in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
     let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
-    let res'  = conv_ciltype loc (th, ist, Ct.IInt 0) t in 
+    let res'  = conv_ciltype loc InStruct (th, ist, Ct.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
@@ -219,7 +226,7 @@ let argsToList xtso =
 let upd_funm spec funm loc fn = function
   | _ when SM.mem fn spec -> funm
   | _ when is_bltn fn     -> funm
-  | TFun (t,xtso,_,_)     -> Misc.sm_protected_add false fn (loc, t, argsToList xtso) funm 
+  | TFun (t,xtso,_,_)     -> Misc.sm_protected_add false fn (cfun_of_args_ret fn (loc, t, argsToList xtso)) funm
   | _                     -> funm 
 
 let fundefs_of_file cil = 
@@ -235,25 +242,49 @@ let fundecs_of_file cil =
     | _                   -> acc
   end SM.empty 
 
-let specs_of_funm spec funm =
+let funspecs_of_funm funspec funm =
   SM.empty
   |> SM.fold begin fun _ d funm -> match d with 
-     | GFun (fd, loc)    -> upd_funm spec funm loc fd.svar.vname fd.svar.vtype
-     | GVarDecl (v, loc) -> upd_funm spec funm loc v.vname v.vtype
+     | GFun (fd, loc)    -> upd_funm funspec funm loc fd.svar.vname fd.svar.vtype
+     | GVarDecl (v, loc) -> upd_funm funspec funm loc v.vname v.vtype
      end funm 
-  |> SM.mapi cfun_of_args_ret
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
+
+let upd_varm spec (th, st, varm) loc vn = function
+  | _ when SM.mem vn spec         -> (th, st, varm)
+  | t when not (isFunctionType t) ->
+      begin match conv_ciltype loc TopLevel (th, st, Ct.IInt 0) t with
+        | (th, st, _), [(_, ct)] ->
+            (th, st, Misc.sm_protected_add false vn ct varm)
+        | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
+      end
+  | _ -> (th, st, varm)
+
+let vars_of_file cil =
+  foldGlobals cil begin fun acc g -> match g with
+    | GVarDecl (v, _) | GVar (v, _, _) when not (isFunctionType v.vtype) -> SM.add v.vname g acc
+    | _                                                                  -> acc
+  end SM.empty
+
+let globalspecs_of_varm varspec varm =
+     (SM.empty, SLM.empty, SM.empty)
+  |> SM.fold begin fun _ t (th, st, varm) -> match t with
+       | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (th, st, varm) loc v.vname v.vtype
+       | _                                    -> (th, st, varm)
+     end varm
+  |> fun (_, st, varm) -> (st, Misc.sm_bindings varm)
 
 (***************************************************************************)
 (********************************* API *************************************)
 (***************************************************************************)
 
-let specs_of_file_all spec cil =
-  Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) 
-  |> specs_of_funm spec 
+let specs_of_file_all (funspec, varspec, storespec) cil =
+  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+    (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
+     varspec, storespec)
 
-let specs_of_file_dec spec cil = 
-  fundecs_of_file cil 
-  |> specs_of_funm spec 
+let specs_of_file_dec (funspec, varspec, storespec) cil =
+  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+    (fundecs_of_file cil |> funspecs_of_funm funspec, varspec, storespec)
 

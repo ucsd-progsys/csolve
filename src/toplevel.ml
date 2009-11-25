@@ -30,10 +30,14 @@ module Sy = Ast.Symbol
 module P  = Pretty
 module FI = FixInterface
 module Co = Constants
+module Sp = Ctypes.PreSpec
+module M  = Misc
 
 open Misc.Ops
 
 let mydebug = false 
+
+let libpath = Sys.executable_name |> Filename.dirname |> Filename.dirname
 
 (********************************************************************************)
 (****************** TBD: CIL Prepasses ******************************************)
@@ -71,6 +75,7 @@ let preprocess cil =
             Simpleret.simpleret cil;
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
+            CopyGlobal.copyGlobal cil;
             mk_cfg cil;
             rename_locals cil in
   cil
@@ -95,7 +100,7 @@ let add_quals quals fname =
       quals
 
 let quals_of_file fname =
-  [Co.lib_name; fname]
+  [Filename.concat libpath Co.lib_name; fname]
   |> List.map (fun s -> s^".hquals")
   |> List.fold_left add_quals []
 
@@ -103,18 +108,21 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let add_spec fn spec =
+let add_spec fn (funspec, varspec, storespec) =
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       |> List.fold_left (fun sm (x,y,b) -> Misc.sm_protected_add false x (y,b) sm) spec
+       >> (fun (_, _, ss) -> if Ctypes.prestore_closed ss then () else halt <| E.error "Global store not closed")
+       |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
+       |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
+       |> (fun (fs, vs, ss) -> (fs, vs, Ctypes.prestore_upd ss storespec))
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    spec
+    (funspec, varspec, storespec)
 
 let generate_spec fname spec =  
   let oc = open_out (fname^".autospec") in
@@ -123,18 +131,25 @@ let generate_spec fname spec =
   >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
   |> Genspec.specs_of_file_all spec
   >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> Misc.filter (fun (fn,_) -> not (SM.mem fn spec))
-  |> List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@] \n\n" fn Ctypes.d_cfun cf |> ignore)
-  |> fun _ -> close_out oc 
+  |> begin fun (funspec, varspec, storespec) ->
+       let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
+       let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+         Sloc.SlocMap.iter
+           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l (Ctypes.LDesc.d_ldesc Ctypes.d_ctype) ld |> ignore)
+           storespec;
+         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
+         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
+         close_out oc
+     end
 
 (***********************************************************************************)
 (******************************** API **********************************************)
 (***********************************************************************************)
 
 let spec_of_file fname =
-  SM.empty 
+  Ctypes.PreSpec.empty
   |> add_spec (fname^".spec")                   (* Add manual specs  *)
-  |> add_spec (Co.lib_name^".spec")             (* Add default specs *)
+  |> add_spec (Filename.concat libpath (Co.lib_name^".spec"))             (* Add default specs *)
   >> generate_spec fname
   |> add_spec (fname^".autospec")               (* Add autogen specs *)
 

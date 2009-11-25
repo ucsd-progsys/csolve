@@ -1,8 +1,11 @@
+type seq_polarity = (* whether sequence extends positively only or in both directions *)
+  | Pos
+  | PosNeg
+
 type index =
-  | IBot               (* empty sequence *)
-  | IInt of int        (* singleton n >= 0 *)
-  | ISeq of int * int  (* arithmetic sequence (n, m): n + mk for all k, n, m >= 0 *)
-  | ITop               (* sequence of all values (including negatives) *)
+  | IBot                             (* empty sequence *)
+  | IInt of int                      (* singleton n >= 0 *)
+  | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
@@ -11,9 +14,8 @@ type 'a prectype =
 type ctype = index prectype
 
 type ploc =
-  | PLAt of int   (* location n *)
-  | PLSeq of int  (* location n plus periodic repeats *)
-  | PLEverywhere  (* location 0, plus repeats infinitely in both directions *)
+  | PLAt of int                 (* location n *)
+  | PLSeq of int * seq_polarity (* location n plus periodic repeats *)
 
 exception NoLUB of ctype * ctype
 
@@ -51,8 +53,6 @@ type 'a precfun =
   }
 
 type cfun = index precfun
-
-type ctypeenv = cfun Misc.StringMap.t
 
 module ExpKey:
   sig
@@ -92,6 +92,8 @@ val d_ctemap: unit -> ctemap -> Pretty.doc
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
+val index_top: index
+val index_nonneg: index
 val index_of_int: int -> index
 val index_of_ploc: ploc -> int -> index
 val ploc_of_index: index -> ploc
@@ -117,12 +119,12 @@ val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val ctype_of_const: Cil.constant -> ctype
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+val precfun_well_formed : 'a prestore -> 'a precfun -> bool
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
-val cfun_well_formed     : cfun -> bool
 val cfun_slocs : cfun -> Sloc.t list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
 val cfun_subs : Sloc.Subst.t -> cfun -> cfun
-val ctype_closed         : ctype -> store -> bool
+val prectype_closed : 'a prectype -> 'a prestore -> bool
 val void_ctype: ctype
 val is_void : 'a prectype -> bool
 
@@ -156,9 +158,31 @@ val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 	(3) locs(csto) \in conlocs *)
 
 val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
-(** [prestore_upd st1 st2] returns the store obtained by overwriting the
-    common locations of st1 and st2 with the blocks appearing in st2 *)
+(** [prestore_upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+    overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
 
 val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
 
-val store_closed : index prestore -> bool
+val prestore_closed : 'a prestore -> bool
+
+(******************************************************************************)
+(************************************ Specs ***********************************)
+(******************************************************************************)
+
+module PreSpec:
+  sig
+    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+
+    val empty: 'a t
+
+    val map     : ('a -> 'b) -> 'a t -> 'b t
+    val add_fun : string -> 'a precfun * bool -> 'a t -> 'a t
+    val add_var : string -> 'a prectype * bool -> 'a t -> 'a t
+    val add_loc : Sloc.t -> 'a LDesc.t -> 'a t -> 'a t
+    val mem_fun : string -> 'a t -> bool
+    val mem_var : string -> 'a t -> bool
+
+    val store   : 'a t -> 'a prestore
+  end
+
+type cspec = index PreSpec.t

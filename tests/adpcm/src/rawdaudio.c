@@ -10,10 +10,10 @@
 main() {
     int n;
 
-    // pmr: inlined
+    char  abuf[NSAMPLES/2];
+    short sbuf[NSAMPLES];
+
     struct adpcm_state state;
-    char	abuf[NSAMPLES/2];
-    short	sbuf[NSAMPLES];
 
     while(1) {
 	n = read(0, abuf, NSAMPLES/2);
@@ -25,7 +25,7 @@ main() {
 	adpcm_decoder(abuf, sbuf, n*2, &state);
 	write(1, sbuf, n*4);
     }
-    fprintf(stderr, "Final valprev=%d, index=%d\n",
+    fprintf(stdout, "Final valprev=%d, index=%d\n",
 	    state.valprev, state.index);
     exit(0);
 }

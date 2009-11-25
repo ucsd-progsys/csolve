@@ -1,0 +1,41 @@
+CFLAGS =  -g -q nosb -I$(INCLUDEDIR)
+LIBDIR=../../lib
+BINDIR=../../bin
+INCLUDEDIR=../../include
+MANDIR=../../man
+SRC = MPolsetUpdate.c Simplify.c Pairs.c Gbasis.c Util.c
+ 
+libgbas.a : $(SRC:c=o) Reduction.o
+	ar cr libgbas.a $(SRC:c=o) Reduction.o
+	ranlib libgbas.a
+
+$(SRC:c=o) : gbas.h
+Reduction.o : gbas.h Reduction.c
+	cc -c $(CFLAGS) Reduction.c
+
+Main.o : Main.c gbas.h
+	cc -c $(CFLAGS) Main.c
+
+gbas_p : libgbas.a Main.o gbas.h
+	ld -r Main.o libgbas.a $(LIBDIR)/libmultpol.a $(LIBDIR)/libcmump.a -o ../../bin/gbas_p.para  $(LIBDIR)/liballoc.a
+
+
+cleantd:	space
+	-rm -f libgbas.a 
+	
+install:	libgbas.a $(BINDIR)/gbas_p 
+	-cd $(LIBDIR); rm -f libgbas_p.a
+	cp libgbas.a $(LIBDIR)/libgbas_p.a
+	-rm -f $(INCLUDEDIR)/gbas_p.h
+	cp gbas.h $(INCLUDEDIR)/gbas_p.h
+
+
+space:
+	-rm -f *.o *.po *.pgo 
+
+
+
+c.o.:	cc -c $<
+
+
+
