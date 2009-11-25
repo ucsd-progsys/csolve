@@ -2872,7 +2872,7 @@ and doType (nameortype: attributeClass) (* This is AttrName if we are doing
                 end 
             end
           in
-          TPtr(bt, a')
+          TPtr(bt, Attr ("array", []) :: a')
         in
         let rec fixupArgumentTypes (argidx: int) (args: varinfo list) : unit = 
           match args with
