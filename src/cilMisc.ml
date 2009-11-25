@@ -215,6 +215,17 @@ let vm_of_list xs =
 let vm_to_list vm =
   VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
 
-
 let definedHere vi =
   vi.vdecl.line > 0 && vi.vstorage != Extern
+
+let assertLoc (loc: Cil.location) (b: bool) (fmt : ('a,unit,Pretty.doc) format) : 'a =
+  let f d = 
+    if b then Pretty.nil else begin
+      ignore (Pretty.eprintf "%a: Error: %a@!" Cil.d_loc loc Pretty.insert d);
+      assert false
+      (* ignore (0/0);
+         Pretty.nil *)
+    end in
+  Pretty.gprintf f fmt
+
+

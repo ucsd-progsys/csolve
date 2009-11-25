@@ -32,6 +32,7 @@ module SM = Misc.StringMap
 module SS = Misc.StringSet
 module M  = Misc
 module P  = Pretty
+module CM = CilMisc
 
 open Misc.Ops
 open Cil
@@ -152,12 +153,11 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
       ((env, sto', tago), cds)
 
   | Refanno.Ins (aloc, cloc) ->
-      let _      = asserts (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
+      let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
       let wld'   = extend_world aldesc abinds cloc false (env, sto, tago) in
       (wld', ([], []))
-      
 
   | _ -> assertf "cons_of_annot: New/NewC" 
 
