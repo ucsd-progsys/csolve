@@ -115,8 +115,8 @@ let concretize_new conc = function
 
 let generalize_global conc al =
   match cloc_of_aloc conc al with
-    | al' when Sloc.eq al al' -> (conc, [])
-    | al'                     -> (LM.remove al conc, [Gen (al', al)])
+  | al' when Sloc.eq al al' -> (conc, [])
+  | al'                     -> (LM.remove al conc, [Gen (al', al)])
 
 let rec new_cloc_of_aloc al = function
   | NewC (_,al',cl) :: ns when Sloc.eq al al' -> Some cl
