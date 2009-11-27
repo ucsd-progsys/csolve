@@ -7,4 +7,11 @@ void main(){
   *r = 10;
   validptr(r);
   assert(*r == 10);
+
+  *r = nondet();
+
+  int a = *r;
+  int b = *r;
+  assert(a == b);
+
 }

@@ -1,9 +1,33 @@
 
+Fold/Unfold
+
+1. if a block has a backedge as out edge then fold up all absloc
+2. otherwise, consider only "forward edges" (forms a dag)
+	- process nodes in order
+	- i.e. process "N" after processing all predecessors of N
+
+3. Given Conc(N, IN) compute Conc(N, OUT) (as before)
+4. How to compute Conc(N, IN) ?
+	- for each absloc L,
+		Conc(N, IN)(L)  = L' if Conc(N', OUT)(L) = L' for  _every_ pred N' of N
+				= \BOT otherwise 
+	- in the latter case "insert" a FOLD(L' --> L) at the end of each
+	  (relevant) predecessor N'
+	
+	- maintains inv that for each block, for each absloc either the
+	  preds have the same concloc, or there is no concloc
+	  
+5. Eschew "GEN" if the block is not "written" (track a "dirty" bit for each concloc in refanno)
+
+6. In Consgen, for each entry-loc that is non-BOT, generate subtyping over
+fresh names as with Phi-vars
+
+
+
+-------------------------------------------------------------------------
 - Ocaml Liquid Annot
 	- use 'a, 'b instead of Var(...)
 	- use int list instead of grisly recursive type
-
-
 -------------------------------------------------------------------------
 
 - fold/unfold analysis
