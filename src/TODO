@@ -1,12 +1,30 @@
 
+Refanno Output:
+
+type edge_annotation = int * int * annotation list
+
+val annotate_cfg: Ssa.cfgInfo -> 
+	          Sloc.t list -> 
+		  Ctypes.ctemap -> 
+		  block_annotation array -> 
+		  block_annotation array * edge_annotation list * ctab
+
+
+
 Fold/Unfold
 
+
+KEY: Can we annotate an "Edges" with Gen ?
+
+
 1. if a block has a backedge as out edge then fold up all absloc
+
 2. otherwise, consider only "forward edges" (forms a dag)
 	- process nodes in order
 	- i.e. process "N" after processing all predecessors of N
 
 3. Given Conc(N, IN) compute Conc(N, OUT) (as before)
+
 4. How to compute Conc(N, IN) ?
 	- for each absloc L,
 		Conc(N, IN)(L)  = L' if Conc(N', OUT)(L) = L' for  _every_ pred N' of N
@@ -19,8 +37,8 @@ Fold/Unfold
 	  
 5. Eschew "GEN" if the block is not "written" (track a "dirty" bit for each concloc in refanno)
 
-6. In Consgen, for each entry-loc that is non-BOT, generate subtyping over
-fresh names as with Phi-vars
+6. In Consgen, for each entry-loc that is non-BOT, 
+   generate subtyping over fresh names as with Phi-vars
 
 
 

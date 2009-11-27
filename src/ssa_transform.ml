@@ -150,7 +150,6 @@ let proc_stmt cfg v2r s =
       S.livevars  = [];   (* set later *)
       S.reachable = true; (* set later *)}
 
-
 let init_cfgInfo fdec = 
   let n  = List.fold_left (fun c s -> s.sid <- c; c+1) 0 fdec.sallstmts in
   let s0 = try List.hd fdec.sbody.bstmts 
@@ -172,9 +171,9 @@ let mk_cfg fdec =
   let cfg  = init_cfgInfo fdec in
   let cfg  = S.prune_cfg cfg in
   let sz,r2v,v2r = mk_var_reg_maps () in
-  let _   = List.iter (proc_stmt cfg v2r) fdec.sallstmts;
-            cfg.S.regToVarinfo <- Array.init (sz ()) r2v;
-            cfg.S.nrRegs <- (sz ()) in
+  List.iter (proc_stmt cfg v2r) fdec.sallstmts;
+  cfg.S.regToVarinfo <- Array.init (sz ()) r2v;
+  cfg.S.nrRegs <- (sz ()); 
   (cfg, r2v, v2r)
 
 (*********************** renaming helpers ********************************)
