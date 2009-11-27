@@ -36,7 +36,7 @@ let cloc_of_v theta v =
 
 let loc_of_var_expr theta =
   let rec loc_rec = function
-    | Lval (Var v, _) ->
+    | Lval (Var v, _) when isPointerType v.vtype ->
         Some (cloc_of_v theta v)
     | BinOp (_, e1, e2, _) ->
         let l1 = loc_rec e1 in
