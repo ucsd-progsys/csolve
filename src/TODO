@@ -6,14 +6,11 @@ INTRA-FOLD:
 	- update the inwld of block appropriately 
 		- Same as before, concrete-in-heap is empty
 	- add constraints by iterating over all edges
-	HEREHEREHERE
-
 (d) regrtest -- original tests
-
-Next: add real GEN/WGEN
-
+HEREHEREHERE
 --> Refanno
 (e) [in_conc] non-trivial  (i.e. intersection of predecessors outputs)
+
 (f) [mk_edgem] 
 	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
 	- WGEN: "weak" folds which will result in subtyping constraints without folding up the whatsits
@@ -21,7 +18,6 @@ Next: add real GEN/WGEN
 --> Consgen
 (g) [inwld_of_block] how to reconstruct input concrete store, env ?
 (h) [process_edgem] how to generate constraints for WGEN ? 
-
 (g) ... dirty bit
 
 
