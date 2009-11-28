@@ -1,22 +1,26 @@
 
 Refanno Output:
 
-type edge_annotation = int * int * annotation list
+(a) refactor types (interface/mli)
 
-val annotate_cfg: Ssa.cfgInfo -> 
-	          Sloc.t list -> 
-		  Ctypes.ctemap -> 
-		  block_annotation array -> 
-		  block_annotation array * edge_annotation list * ctab
+HEREHEREHERE
+
+(b) add edge annots (by removing n+1-th annot from each block and putting on out-edges)
+
+(c) rig consgen so that it generates sub-type constraints for each edge annot
+
+(d) regrtest -- original tests
+
+(e) make in_conc non-trivial  (i.e. intersection of predecessors outputs)
+
+(f) add edge annots 
+	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
+	- WGEN: "weak" folds which will result in subtyping constraints without folding up the whatsits
+
+(g) ... dirty bit
 
 
-
-Fold/Unfold
-
-
-KEY: Can we annotate an "Edges" with Gen ?
-
-
+--------------
 1. if a block has a backedge as out edge then fold up all absloc
 
 2. otherwise, consider only "forward edges" (forms a dag)

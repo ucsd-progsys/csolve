@@ -95,8 +95,6 @@ open Ops
 let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
   f (fst x) (fst y)
 
-
-
 let curry f   = fun x y -> f (x,y)
 let uncurry f = fun (x,y) -> f x y
 
@@ -124,6 +122,14 @@ module IntMap =
     let compare i1 i2 = 
       compare i1 i2
   end)
+
+module IntIntMap = 
+  Map.Make 
+  (struct
+    type t = int * int
+    let compare i1 i2 = 
+      compare i1 i2
+   end)
 
 module StringMap = 
   Map.Make 
@@ -450,12 +456,11 @@ let o2s f = function
   | Some x -> "Some "^ (f x)
   | None   -> "None"
 
-let rec fixpoint f x =
+let fixpoint f x =
   let rec acf b x =
     let x', b' = f x in
     if b' then acf true x' else (x', b) in
   acf false x
-
 
 let is_prefix p s = 
   let reg = Str.regexp p in

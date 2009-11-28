@@ -1,11 +1,39 @@
-module LM = Sloc.SlocMap
-module SM = Misc.StringMap
-module S  = Sloc
+(*
+ * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ *
+ * Permission is hereby granted, without written agreement and without 
+ * license or royalty fees, to use, copy, modify, and distribute this 
+ * software and its documentation for any purpose, provided that the 
+ * above copyright notice and the following two paragraphs appear in 
+ * all copies of this software. 
+ * 
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY 
+ * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES 
+ * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN 
+ * IF THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY 
+ * OF SUCH DAMAGE. 
+ * 
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, 
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+ * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ *)
+
+(* This file is part of the liquidC Project.*)
+
+module IIM = Misc.IntIntMap
+module LM  = Sloc.SlocMap
+module SM  = Misc.StringMap
+module S   = Sloc
 
 open Cil
 open Misc.Ops
 
 type ctab = (string, Sloc.t) Hashtbl.t
+type locm = Sloc.t Sloc.SlocMap.t       (* Aloc -> Cloc Map *)
+type soln = (locm * block_annotation) array
 
 (** Gen: Generalize a concrete location into an abstract location
  *  Ins: Instantiate an abstract location with a concrete location
@@ -156,16 +184,34 @@ let annotate_instr globalslocs ctm theta conc = function
 let annotate_end conc =
   LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
 
-let annotate_block globalslocs ctm theta anns instrs =
+let annotate_block globalslocs ctm theta anns instrs conc0 =
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block" in
   let ainstrs = List.combine (Misc.chop_last anns) instrs in
-  let conc, anns' =
+  let conc', anns' =
     List.fold_left begin fun (conc, anns') ainstr -> 
       let conc', ann = annotate_instr globalslocs ctm theta conc ainstr in
       (conc', ann::anns')
-    end (LM.empty, []) ainstrs in
-  let gens = annotate_end conc in
-  List.rev (gens :: anns')
+    end (conc0, []) ainstrs in
+  let gens = annotate_end conc' in
+  (conc', List.rev (gens :: anns'))
+  
+let lm_keys   = fun lm -> LM.fold (fun _ _ n -> n + 1) lm 0 
+let soln_size = Array.to_list <+> List.map (function (None,_) -> -1 | (Some lm, _) -> lm_keys lm)
+let soln_diff = Misc.map_pair soln_size <+> Misc.uncurry (<>)
+let soln_init = fun cfg anna -> Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
+(* TBD *)
+let in_conc   = fun cfg soln i -> LM.empty
+let mk_edgem  = fun cfg sol -> IIM.empty
+
+let annot_iter cfg globalslocs ctm theta anna (sol : soln) : sol * bool = 
+  sol |> Array.mapi begin fun i x -> 
+           match (cfg.Ssa.blocks.(i)).Ssa.bstmt.skind with
+           | Instr is -> 
+              let conc = in_conc cfg soln i in 
+              annotate_block globalslocs ctm theta anna.(i) is conc in
+           | _ -> x 
+         end
+      |> (fun sol' -> sol', (soln_diff sol sol'))
 
 (*****************************************************************************)
 (********************************** API **************************************)
@@ -178,13 +224,12 @@ let subs (sub: S.Subst.t): block_annotation -> block_annotation =
 (* API *)
 let annotate_cfg cfg globalslocs ctm anna =
   let theta  = Hashtbl.create 17 in
-  let annota =
-    Array.mapi begin fun i b -> 
-      match b.Ssa.bstmt.skind with
-      | Instr is -> annotate_block globalslocs ctm theta anna.(i) is
-      | _ -> []
-    end cfg.Ssa.blocks in
-  (annota, theta)
+  let sol    = soln_init cfg anna 
+               |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
+               |> fst in
+  let annota = Array.map snd sol in
+  let egenm  = mk_edgem cfg sol in  
+  (annota, egenm, theta)
 
 (* API *)
 let cloc_of_varinfo theta v =
@@ -231,3 +276,22 @@ let d_ctab () t =
   Pretty.seq (Pretty.text "\n") 
      (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a \n" vn Sloc.d_sloc cl) 
      vcls
+
+
+(***************************************************************************)
+(************************** Reconstruction *********************************)
+(***************************************************************************)
+(*
+let lesser_pred i =
+  try i |> preds |> List.filter ((>) i) |> List.hd
+  with _ -> assertf "lesser_pred" 
+
+let reconstruct A B = 
+   for i in 1..n :
+     Ci(i) := if i = 0 then emp else 
+                let j = lesser_pred i in
+                UPD(Co(j), A(j,i))
+     Co(i) := UPD(Ci(i), B(i))
+   return Ci, Co
+                 
+*)
