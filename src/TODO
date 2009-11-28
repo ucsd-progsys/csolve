@@ -1,12 +1,7 @@
-
 Refanno Output:
-
 (a) refactor types (interface/mli)
-
-HEREHEREHERE
-
 (b) add edge annots (by removing n+1-th annot from each block and putting on out-edges)
-
+HEREHEREHERE
 (c) rig consgen so that it generates sub-type constraints for each edge annot
 
 (d) regrtest -- original tests
