@@ -325,13 +325,13 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
 let cons_of_annotstmt me loc i grd wld (anns, stmt) = 
   match stmt.skind with
   | Instr is ->
-      let ann, anns = Misc.list_snoc anns in
+      (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
       let (n, wld), cds   =  List.combine anns is 
                           |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
       let cs1, ds1        = Misc.splitflatten cds in  
-      let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in
-      (wld, cs2 ++ cs1, ds2 ++ ds1)
+      (* INTRA-FOLD: let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in *)
+      (wld, (* INTRA-FOLD: cs2 ++ *) cs1, (* INTRA-FOLD: ds2 ++ *) ds1)
   | Return (e_o, loc) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
       let cs, ds        = cons_of_ret me loc i grd wld e_o in
@@ -367,17 +367,31 @@ let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
 
-let cons_of_sci tgr gnv gst sci shp =
-  begin if Constants.ck_olev Constants.ol_solve then
+let process_edgem em me =
+  Misc.IntIntMap.fold begin fun (i, j) ann me ->
+    let grd = CF.guard_of_block me i (Some j) in
+    let loc = CF.location_of_block me i in
+    let tag = CF.tag_of_instr me i 0 loc in
+    let wld = CF.outwld_of_block me i in
+    cons_of_annots me loc tag grd wld ann 
+    |> (fun (_,(cs,ds)) -> CF.add_cons ([], cs, ds) me)
+  end em me
+
+let log_of_sci sci shp = 
+  if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
+    let _ = Pretty.printf "%a\n" Refanno.d_edgem shp.Inferctypes.edgem in
     let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
     let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
-      ()
-  end;
+    ()
+
+let cons_of_sci tgr gnv gst sci shp =
+  let _ = log_of_sci sci shp in
   CF.create tgr gnv gst sci shp
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
+  |> process_edgem shp.Inferctypes.edgem 
   |> CF.get_cons
 
 (****************************************************************************)

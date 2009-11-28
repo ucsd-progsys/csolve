@@ -36,6 +36,7 @@ type annotation =
  * 3. gens for end of block placed on out-edges of block *) 
 type block_annotation = annotation list list
 
+val d_edgem: unit -> annotation list Misc.IntIntMap.t -> Pretty.doc 
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
 val d_ctab: unit -> ctab -> Pretty.doc 
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)

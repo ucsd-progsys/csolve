@@ -1,13 +1,16 @@
 Refanno Output:
 (a) refactor types (interface/mli)
 (b) add edge annots (by removing n+1-th annot from each block and putting on out-edges)
-HEREHEREHERE
 (c) rig consgen so that it generates sub-type constraints for each edge annot
+	- remove cons_of_annots from block-end
+	- update the inwld of block appropriately 
+		- Same as before, concrete-in-heap is empty
+	- add constraints by iterating over all edges
+	HEREHEREHERE
 
 (d) regrtest -- original tests
 
 (e) make in_conc non-trivial  (i.e. intersection of predecessors outputs)
-
 (f) add edge annots 
 	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
 	- WGEN: "weak" folds which will result in subtyping constraints without folding up the whatsits
