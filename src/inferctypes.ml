@@ -468,7 +468,8 @@ type shape =
    etypm : Ctypes.ctemap;
    store : Ctypes.store;
    anna  : Refanno.block_annotation array;
-   theta : Refanno.ctab }
+   edgem : Refanno.annotation list Misc.IntIntMap.t;
+   theta : Refanno.ctab}
 
 let update_deps (scs: cstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep =
   let cm = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
@@ -563,11 +564,12 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
-  let annot, theta        = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
+  let annot, edgem, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;
                              anna  = annot;
+                             edgem = edgem;
                              theta = theta} in
     if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf shp ds;
     (shp, ds)

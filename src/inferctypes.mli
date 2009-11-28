@@ -28,6 +28,7 @@ type shape =
    etypm : Ctypes.ctemap;
    store : Ctypes.store;
    anna  : Refanno.block_annotation array;
+   edgem : Refanno.annotation list Misc.IntIntMap.t;
    theta : Refanno.ctab }
 
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t

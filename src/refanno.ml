@@ -31,10 +31,6 @@ module S   = Sloc
 open Cil
 open Misc.Ops
 
-type ctab = (string, Sloc.t) Hashtbl.t
-type locm = Sloc.t Sloc.SlocMap.t       (* Aloc -> Cloc Map *)
-type soln = (locm * block_annotation) array
-
 (** Gen: Generalize a concrete location into an abstract location
  *  Ins: Instantiate an abstract location with a concrete location
  *  New: Call-site instantiation of abs-loc-var with abs-loc-param
@@ -46,6 +42,11 @@ type annotation =
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
+type block_annotation = annotation list list
+type ctab = (string, Sloc.t) Hashtbl.t
+type soln = (Sloc.t Sloc.SlocMap.t option * block_annotation) array
+
+
 let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
   let app = S.Subst.apply sub in
     match a with
@@ -54,7 +55,6 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | New (s1, s2)      -> New (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
 
-type block_annotation = annotation list list
 
 let fresh_cloc () =
   Sloc.fresh Sloc.Concrete
@@ -192,26 +192,32 @@ let annotate_block globalslocs ctm theta anns instrs conc0 =
       let conc', ann = annotate_instr globalslocs ctm theta conc ainstr in
       (conc', ann::anns')
     end (conc0, []) ainstrs in
-  let gens = annotate_end conc' in
-  (conc', List.rev (gens :: anns'))
+  (Some conc', List.rev anns')
   
 let lm_keys   = fun lm -> LM.fold (fun _ _ n -> n + 1) lm 0 
 let soln_size = Array.to_list <+> List.map (function (None,_) -> -1 | (Some lm, _) -> lm_keys lm)
 let soln_diff = Misc.map_pair soln_size <+> Misc.uncurry (<>)
 let soln_init = fun cfg anna -> Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
 (* TBD *)
-let in_conc   = fun cfg soln i -> LM.empty
-let mk_edgem  = fun cfg sol -> IIM.empty
+let in_conc   = fun cfg sol i -> LM.empty
+let mk_edgem  = fun cfg sol   -> IIM.empty
 
-let annot_iter cfg globalslocs ctm theta anna (sol : soln) : sol * bool = 
+let mk_edgem cfg sol =
+  Misc.array_fold_lefti begin fun i em js ->
+    let anns = sol.(i) |> fst |> Misc.get_option LM.empty |> annotate_end in 
+    let js   = cfg.Ssa.successors.(i) in
+    List.fold_left (fun em j -> IIM.add (i,j) anns em) em js 
+  end IIM.empty cfg.Ssa.successors
+
+let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
   sol |> Array.mapi begin fun i x -> 
            match (cfg.Ssa.blocks.(i)).Ssa.bstmt.skind with
            | Instr is -> 
-              let conc = in_conc cfg soln i in 
-              annotate_block globalslocs ctm theta anna.(i) is conc in
+              let conc = in_conc cfg sol i in 
+              annotate_block globalslocs ctm theta anna.(i) is conc
            | _ -> x 
          end
-      |> (fun sol' -> sol', (soln_diff sol sol'))
+      |> (fun sol' -> (sol', (soln_diff (sol, sol'))))
 
 (*****************************************************************************)
 (********************************** API **************************************)
