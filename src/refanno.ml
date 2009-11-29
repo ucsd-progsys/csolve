@@ -46,6 +46,9 @@ type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
 type soln = (Sloc.t Sloc.SlocMap.t option * block_annotation) array
 
+(*****************************************************************************)
+(********************** Substitution *****************************************)
+(*****************************************************************************)
 
 let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
   let app = S.Subst.apply sub in
@@ -55,6 +58,81 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | New (s1, s2)      -> New (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
 
+(* API *)
+let subs (sub: S.Subst.t): block_annotation -> block_annotation =
+  List.map (List.map (annotation_subs sub))
+
+(*****************************************************************************)
+(********************** Pretty Printing **************************************)
+(*****************************************************************************)
+
+let d_annotation () = function
+  | Gen (cl, al) -> 
+      Pretty.dprintf "Generalize(%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al 
+  | Ins (al, cl) -> 
+      Pretty.dprintf "Instantiate(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
+  | New (al, cl) -> 
+      Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
+  | NewC (cl, al, cl') -> 
+      Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
+
+let d_annotations () anns = 
+  Pretty.seq (Pretty.text ", ") 
+    (fun ann -> Pretty.dprintf "%a" d_annotation ann) 
+    anns
+
+let d_block_annotation () annss =
+  Misc.numbered_list annss
+  |> Pretty.d_list "\n" (fun () (i,x) -> Pretty.dprintf "%i: %a" i d_annotations x) ()
+
+(* API *)
+let d_block_annotation_array =
+  Pretty.docArray 
+    ~sep:(Pretty.text "\n")
+    (fun i x -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
+
+(* API *)
+let d_ctab () t = 
+  let vcls = Misc.hashtbl_to_list t in
+  Pretty.seq (Pretty.text "\n") 
+    (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a \n" vn Sloc.d_sloc cl) 
+    vcls
+
+(* API *)
+let d_edgem () em =
+  let eanns = IIM.fold (fun k v acc -> (k,v) :: acc) em [] in
+  Pretty.seq (Pretty.text "\n")
+    (fun ((i,j), anns) -> Pretty.dprintf "(%d -> %d) = %a \n" i j d_annotations anns)
+    eanns
+
+(******************************************************************************)
+(*********************** Operations on Solutions ******************************)
+(******************************************************************************)
+
+(* API *)
+let soln_diff (sol1, sol2) = 
+  let lm_keys   = fun lm -> LM.fold (fun _ _ n -> n + 1) lm 0 in 
+  let soln_size = Array.to_list <+> List.map fst <+> List.map (Misc.map_opt lm_keys) in
+  (sol1, sol2) |> Misc.map_pair soln_size |> Misc.uncurry (<>)
+
+(* API *)
+let soln_init cfg anna = 
+  Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
+
+let conc_join conc1 conc2 = 
+  LM.fold begin fun al cl conc ->
+    if not (LM.mem al conc2) then conc else
+      if not (Sloc.eq cl (LM.find al conc2)) then conc else
+        LM.add al cl conc
+  end conc1 LM.empty
+
+(* API *)
+let in_conc cfg sol = function
+  | [] -> Some LM.empty
+  | is -> is |> Misc.map_partial (Array.get sol <+> fst)    
+             |> (function [] -> None | concs -> Some (Misc.list_reduce conc_join concs))
+
+(***************************************************************************************)
 
 let fresh_cloc () =
   Sloc.fresh Sloc.Concrete
@@ -96,6 +174,10 @@ let instantiate f conc al cl =
   else 
     (* al conc representative is some other cl' *)
     (LM.add al cl conc, [Gen (cl', al); f (al, cl)])
+
+(******************************************************************************)
+(******************************** Visitors ************************************)
+(******************************************************************************)
 
 let annotate_set ctm theta conc = function
   (* v1 := *v2 *)
@@ -181,8 +263,9 @@ let annotate_instr globalslocs ctm theta conc = function
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
       assertf "TBD: annotate_instr"
 
-let annotate_end conc =
-  LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
+(*****************************************************************************)
+(******************************** Fixpoint ***********************************)
+(*****************************************************************************)
 
 let annotate_block globalslocs ctm theta anns instrs conc0 =
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block" in
@@ -193,39 +276,57 @@ let annotate_block globalslocs ctm theta anns instrs conc0 =
       (conc', ann::anns')
     end (conc0, []) ainstrs in
   (Some conc', List.rev anns')
-  
-let lm_keys   = fun lm -> LM.fold (fun _ _ n -> n + 1) lm 0 
-let soln_size = Array.to_list <+> List.map (function (None,_) -> -1 | (Some lm, _) -> lm_keys lm)
-let soln_diff = Misc.map_pair soln_size <+> Misc.uncurry (<>)
-let soln_init = fun cfg anna -> Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
-(* TBD *)
-let in_conc   = fun cfg sol i -> LM.empty
-let mk_edgem  = fun cfg sol   -> IIM.empty
-
-let mk_edgem cfg sol =
-  Misc.array_fold_lefti begin fun i em js ->
-    let anns = sol.(i) |> fst |> Misc.get_option LM.empty |> annotate_end in 
-    let js   = cfg.Ssa.successors.(i) in
-    List.fold_left (fun em j -> IIM.add (i,j) anns em) em js 
-  end IIM.empty cfg.Ssa.successors
 
 let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
-  sol |> Array.mapi begin fun i x -> 
-           match (cfg.Ssa.blocks.(i)).Ssa.bstmt.skind with
-           | Instr is -> 
-              let conc = in_conc cfg sol i in 
-              annotate_block globalslocs ctm theta anna.(i) is conc
-           | _ -> x 
+  sol |> Array.mapi begin fun i x ->
+           let sk  = cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
+           let cin = in_conc cfg sol cfg.Ssa.predecessors.(i) in
+           match cin, sk  with
+           | Some conc, Instr is -> annotate_block globalslocs ctm theta anna.(i) is conc
+           | _                   -> x 
          end
       |> (fun sol' -> (sol', (soln_diff (sol, sol'))))
 
 (*****************************************************************************)
-(********************************** API **************************************)
+(***************************** Edge Annotations ******************************)
 (*****************************************************************************)
 
-(* API *)
-let subs (sub: S.Subst.t): block_annotation -> block_annotation =
-  List.map (List.map (annotation_subs sub))
+let annotate_edge = function
+  | None, _ -> 
+      assertf "Refanno.annotate_edge: Undefined CONC (src)"
+  | _, None -> 
+      assertf "Refanno.annotate_edge: Undefined CONC (dst)"
+  | Some iconc, Some jconc ->
+      LM.fold begin fun al cl anns -> 
+        if LM.mem al jconc then anns else (Gen (cl, al) :: anns)
+      end iconc []
+
+let mk_edgem cfg sol =
+  Misc.array_fold_lefti begin fun j em is ->
+    let jconco = in_conc cfg sol is in
+    List.fold_left begin fun em i ->
+      let iconco = fst (sol.(i)) in
+      IIM.add (i,j) (annotate_edge (iconco, jconco)) em
+    end em is 
+  end IIM.empty cfg.Ssa.predecessors 
+  
+(* {{{ FOLD ALL conc-locs 
+
+let annotate_end conc =
+  LM.fold (fun al cl anns -> (Gen (cl, al)) :: anns) conc []
+
+Misc.array_fold_lefti begin fun i em js ->
+   let anns = sol.(i) |> fst |> Misc.get_option LM.empty |> annotate_end in 
+   let js   = cfg.Ssa.successors.(i) in
+   List.fold_left (fun em j -> IIM.add (i,j) anns em) em js 
+ end IIM.empty cfg.Ssa.successors
+ 
+ }}} *)
+
+
+(*****************************************************************************)
+(********************************** API **************************************)
+(*****************************************************************************)
 
 (* API *)
 let annotate_cfg cfg globalslocs ctm anna =
@@ -246,49 +347,6 @@ let cloc_of_varinfo theta v =
   with Not_found -> 
     (* let _ = Errormsg.log "cloc_of_varinfo: unknown %s" v.vname in *)
     None
-
-(*****************************************************************************)
-(********************** Pretty Printing **************************************)
-(*****************************************************************************)
-
-let d_annotation () = function
-  | Gen (cl, al) -> 
-      Pretty.dprintf "Generalize(%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al 
-  | Ins (al, cl) -> 
-      Pretty.dprintf "Instantiate(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
-  | New (al, cl) -> 
-      Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
-  | NewC (cl, al, cl') -> 
-      Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
-
-let d_annotations () anns = 
-  Pretty.seq (Pretty.text ", ") 
-    (fun ann -> Pretty.dprintf "%a" d_annotation ann) 
-    anns
-
-let d_block_annotation () annss =
-  Misc.numbered_list annss
-  |> Pretty.d_list "\n" (fun () (i,x) -> Pretty.dprintf "%i: %a" i d_annotations x) ()
-
-(* API *)
-let d_block_annotation_array =
-  Pretty.docArray 
-    ~sep:(Pretty.text "\n")
-    (fun i x -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
-
-(* API *)
-let d_ctab () t = 
-  let vcls = Misc.hashtbl_to_list t in
-  Pretty.seq (Pretty.text "\n") 
-    (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a \n" vn Sloc.d_sloc cl) 
-    vcls
-
-(* API *)
-let d_edgem () em =
-  let eanns = IIM.fold (fun k v acc -> (k,v) :: acc) em [] in
-  Pretty.seq (Pretty.text "\n")
-    (fun ((i,j), anns) -> Pretty.dprintf "(%d -> %d) = %a \n" i j d_annotations anns)
-    eanns
 
 (***************************************************************************)
 (************************** Reconstruction *********************************)

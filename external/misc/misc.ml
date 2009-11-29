@@ -209,6 +209,10 @@ let fold_left_partial f b xs =
       | None   -> b
   end b xs
 
+let list_reduce f = function
+  | []    -> assertf "ERROR: list_reduce with empty list"
+  | x::xs -> List.fold_left f x xs
+
 let list_max x xs = 
   List.fold_left max x xs
 

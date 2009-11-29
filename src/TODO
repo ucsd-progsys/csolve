@@ -13,7 +13,10 @@ HEREHEREHERE
 
 (f) [mk_edgem] 
 	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
-	- WGEN: "weak" folds which will result in subtyping constraints without folding up the whatsits
+
+	- [NOT REQD.] WGEN: "weak" folds which will result in subtyping constraints without folding up the whatsits
+
+(f') write a checker
 
 --> Consgen
 (g) [inwld_of_block] how to reconstruct input concrete store, env ?
