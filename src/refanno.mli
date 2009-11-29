@@ -60,13 +60,14 @@ val annotate_cfg: Ssa.cfgInfo ->
    
    Upd: locmap -> annot list -> locmap
 
-   INVARIANTS: 
-     - forall blocks i, 
-          Upd(Ci(i), B(i)) = Co(i)
-     
-     - forall blocks i, forall j in preds(j),
-          - Ci(i) = Upd(Co(j), A(j,i)) 
-          - Ci(i)(L) = l => Co(j)(L) = l && CGen(l,L) in A(j,i)
+   - INVARIANT 1:
+     forall blocks i, 
+        Upd(Ci(i), B(i)) = Co(i)
+   
+   - INVARIANT 2:
+     forall blocks i, forall j in preds(j),
+        - Ci(i) = Upd(Co(j), A(j,i)) 
+        - Ci(i)(L) = l => Co(j)(L) = l && CGen(l,L) in A(j,i)
    
    RECONSTRUCTION
    - From A and B we can reconstruct rest.

@@ -109,15 +109,8 @@ let d_edgem () em =
 (*********************** Operations on Solutions ******************************)
 (******************************************************************************)
 
-(* API *)
-let soln_diff (sol1, sol2) = 
-  let lm_keys   = fun lm -> LM.fold (fun _ _ n -> n + 1) lm 0 in 
-  let soln_size = Array.to_list <+> List.map fst <+> List.map (Misc.map_opt lm_keys) in
-  (sol1, sol2) |> Misc.map_pair soln_size |> Misc.uncurry (<>)
-
-(* API *)
-let soln_init cfg anna = 
-  Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
+let conc_size conc = 
+  LM.fold (fun _ _ n -> n + 1) conc 0 
 
 let conc_join conc1 conc2 = 
   LM.fold begin fun al cl conc ->
@@ -125,12 +118,24 @@ let conc_join conc1 conc2 =
       if not (Sloc.eq cl (LM.find al conc2)) then conc else
         LM.add al cl conc
   end conc1 LM.empty
+ 
+let conc_eq conc1 conc2 = 
+  (conc_size conc1) = (conc_size (conc_join conc1 conc2))
 
 (* API *)
-let in_conc cfg sol = function
+let conc_of_preds cfg sol = function
   | [] -> Some LM.empty
   | is -> is |> Misc.map_partial (Array.get sol <+> fst)    
              |> (function [] -> None | concs -> Some (Misc.list_reduce conc_join concs))
+
+(* API *)
+let soln_diff (sol1, sol2) = 
+  let soln_size = Array.to_list <+> List.map fst <+> List.map (Misc.map_opt conc_size) in
+  (sol1, sol2) |> Misc.map_pair soln_size |> Misc.uncurry (<>)
+
+(* API *)
+let soln_init cfg anna = 
+  Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
 
 (***************************************************************************************)
 
@@ -280,7 +285,7 @@ let annotate_block globalslocs ctm theta anns instrs conc0 =
 let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
   sol |> Array.mapi begin fun i x ->
            let sk  = cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
-           let cin = in_conc cfg sol cfg.Ssa.predecessors.(i) in
+           let cin = conc_of_preds cfg sol cfg.Ssa.predecessors.(i) in
            match cin, sk  with
            | Some conc, Instr is -> annotate_block globalslocs ctm theta anna.(i) is conc
            | _                   -> x 
@@ -303,7 +308,7 @@ let annotate_edge = function
 
 let mk_edgem cfg sol =
   Misc.array_fold_lefti begin fun j em is ->
-    let jconco = in_conc cfg sol is in
+    let jconco = conc_of_preds cfg sol is in
     List.fold_left begin fun em i ->
       let iconco = fst (sol.(i)) in
       IIM.add (i,j) (annotate_edge (iconco, jconco)) em
@@ -328,6 +333,31 @@ Misc.array_fold_lefti begin fun i em js ->
 (********************************** API **************************************)
 (*****************************************************************************)
 
+let apply_annot conc = function
+  | Gen (cl, al) -> LM.remove al conc
+  | Ins (al, cl) -> LM.add al cl conc
+  | _            -> conc
+
+let apply_annots conc anns =
+  List.fold_left apply_annot conc anns
+
+let reconstruct_conca cfg annota egenm = failwith "TBD"
+
+
+(** See refanno.mli for details on INVARIANTS *)
+let check_annots cfg annota egenm = 
+  let conca, conca' = reconstruct_conca cfg annota egenm in
+  Array.iteri begin fun i iconc ->
+    let iconc' =  List.flatten annota.(i) 
+               |> List.fold_left apply_annot iconc in
+    asserts (conc_eq iconc' conca'.(i)) "Refanno: INVARIANT 1 Fails on %d \n" i
+  end conca;
+  IIM.iter begin fun (i,j) anns ->
+    let ijconc = List.fold_left apply_annot (conca'.(i)) anns in
+    asserts (conc_eq ijconc conca.(i)) "Refanno: INVARIANT 2 Fails on (%d,%d) \n" i j
+  end egenm
+
+
 (* API *)
 let annotate_cfg cfg globalslocs ctm anna =
   let theta  = Hashtbl.create 17 in
@@ -336,6 +366,7 @@ let annotate_cfg cfg globalslocs ctm anna =
                |> fst in
   let annota = Array.map snd sol in
   let egenm  = mk_edgem cfg sol in  
+  let _      = check_annots cfg annota egenm in
   (annota, egenm, theta)
 
 (* API *)
@@ -363,5 +394,4 @@ let reconstruct A B =
                 UPD(Co(j), A(j,i))
      Co(i) := UPD(Ci(i), B(i))
    return Ci, Co
-                 
 *)
