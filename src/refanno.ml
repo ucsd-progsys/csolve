@@ -46,6 +46,33 @@ type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
 type soln = (Sloc.t Sloc.SlocMap.t option * block_annotation) array
 
+
+(************************************************************************************)
+(****************** (DAG) Orderered Iterating Over CFGs *****************************)
+(************************************************************************************)
+
+let cfg_check cfg = 
+  Array.iteri begin fun j is -> 
+    asserts (j = 0 || List.exists ((>) j) is) "refanno: cfg_check fails"
+  end cfg.Ssa.predecessors
+
+(** val cfg_dmap: 
+    cfg:Ssa.cfgInfo -> 
+    (j:int -> is: {v:int| v < j} list -> rva:{'a option array | 0 <= idx < j => v <> None} -> 'a) -> 
+    'a array *)
+(* TBD: Range-Context-Types *)
+let cfg_dmap cfg f = 
+  let rva = Array.make cfg.Ssa.size None in 
+  Misc.array_fold_lefti begin fun j rva is ->
+    let is = List.filter ((>) j) is in
+    asserts (List.for_all (fun i -> rva.(i) <> None) is) "refanno: cfg_dmap";
+    let _  = Array.set rva j (Some (f j is rva)) in
+    rva
+  end rva cfg.Ssa.predecessors  
+  |> Array.map Misc.maybe
+
+
+
 (*****************************************************************************)
 (********************** Substitution *****************************************)
 (*****************************************************************************)
@@ -119,13 +146,15 @@ let conc_join conc1 conc2 =
         LM.add al cl conc
   end conc1 LM.empty
  
-let conc_eq conc1 conc2 = 
-  (conc_size conc1) = (conc_size (conc_join conc1 conc2))
+let conc_eq conc1 conc2 =
+  let n1 = conc_size conc1 in
+  let n2 = conc_size (conc_join conc1 conc2) in 
+  n1 = n2
 
 (* API *)
-let conc_of_preds cfg sol = function
+let conc_of_predecessors fsol = function
   | [] -> Some LM.empty
-  | is -> is |> Misc.map_partial (Array.get sol <+> fst)    
+  | is -> is |> Misc.map_partial fsol     
              |> (function [] -> None | concs -> Some (Misc.list_reduce conc_join concs))
 
 (* API *)
@@ -282,10 +311,12 @@ let annotate_block globalslocs ctm theta anns instrs conc0 =
     end (conc0, []) ainstrs in
   (Some conc', List.rev anns')
 
+
+(* TBD: refactor using cfg_dmap *)
 let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
   sol |> Array.mapi begin fun i x ->
            let sk  = cfg.Ssa.blocks.(i).Ssa.bstmt.skind in
-           let cin = conc_of_preds cfg sol cfg.Ssa.predecessors.(i) in
+           let cin = conc_of_predecessors (Array.get sol <+> fst) cfg.Ssa.predecessors.(i) in
            match cin, sk  with
            | Some conc, Instr is -> annotate_block globalslocs ctm theta anna.(i) is conc
            | _                   -> x 
@@ -308,7 +339,7 @@ let annotate_edge = function
 
 let mk_edgem cfg sol =
   Misc.array_fold_lefti begin fun j em is ->
-    let jconco = conc_of_preds cfg sol is in
+    let jconco = conc_of_predecessors (Array.get sol <+> fst) is in
     List.fold_left begin fun em i ->
       let iconco = fst (sol.(i)) in
       IIM.add (i,j) (annotate_edge (iconco, jconco)) em
@@ -341,8 +372,13 @@ let apply_annot conc = function
 let apply_annots conc anns =
   List.fold_left apply_annot conc anns
 
-let reconstruct_conca cfg annota egenm = failwith "TBD"
-
+let reconstruct_conca cfg annota egenm = 
+  failwith "TBD"
+  (*
+  cfg_dmap cfg begin fun j cnca is ->
+    let inconc =  
+  end
+  *)
 
 (** See refanno.mli for details on INVARIANTS *)
 let check_annots cfg annota egenm = 

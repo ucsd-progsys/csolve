@@ -245,6 +245,8 @@ let app_snd    = fun f (a, b)       -> (a, f b)
 let app_fst3   = fun f (a, b, c)    -> (f a, b, c)
 let app_snd3   = fun f (a, b, c)    -> (a, f b, c)
 let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
+let pad_snd    = fun f x            -> (x, f x)
+let pad_fst    = fun f y            -> (f y, y)
 
 (*
 let mapfold f xs b = 
