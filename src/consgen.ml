@@ -57,9 +57,11 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x,y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
+(* TBD: move into FI -- so it can be used by CF.inwld_of_block *)
 (* TBD: MALLOC HACK *)
 let new_block_reftype = FI.t_zero_refctype (* or, more soundly? FI.t_true_refctype *)
 
+(* TBD: move into FI -- so it can be used by CF.inwld_of_block *)
 let extend_world ld binds cloc newloc (env, sto, tago) = 
   let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
   let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
@@ -353,8 +355,9 @@ let cons_of_block me i =
   let env,st,tag  = CF.inwld_of_block me i in
   let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
   let ws          = wcons_of_phis me (CF.tag_of_instr me i 0 loc) env phis in
+  let ws'         = wcons_of_cloc_phis me (failwith "TBD: FOLD-INTRA") in
   let wld, cs, ds = cons_of_annotstmt me loc i grd (env, st, tag) astmt in
-  (wld, (ws, cs, ds))
+  (wld, (ws ++ ws', cs, ds))
 
 (****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)
@@ -392,6 +395,7 @@ let cons_of_sci tgr gnv gst sci shp =
   CF.create tgr gnv gst sci shp
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
+  |> process_cloc_phis (failwith "TBDNOW")
   |> process_edgem shp.Inferctypes.edgem 
   |> CF.get_cons
 
@@ -498,7 +502,7 @@ let cons_of_global_store tgr gst =
   let ws    = FI.make_wfs_refstore FI.ce_empty gst tag in
   let zst   = Ctypes.prestore_map_ct FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
-    (ws, cs)
+  (ws, cs)
 
 let type_of_init vtyp = function
   | None                       -> FI.t_true (FI.ctype_of_refctype vtyp)

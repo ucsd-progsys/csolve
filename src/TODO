@@ -15,34 +15,26 @@ INTRA-FOLD:
 
 HEREHEREHERE
 --> Consgen
-(h) [inwld_of_block] how to "reconstruct" (in refanno?) input concrete store, env ?
-(i) [process_edgem]  how to detect and generate constraints for "weak fold" ? 
-(j) ... dirty bit
+(h) [CF.create]: update to create a store csto(j) st. for each
+    l in range(Cin(j)), csto(j) :-> fresh block of appropriate shape
+    this uses Cin(j) which can be built via [refanno.reconstruct]
 
+(i) [extend_world]: move into FI, so its callable from inwld_of_block
 
---------------
-1. if a block has a backedge as out edge then fold up all absloc
+(j) [CF.inwld_of_block]: use Cin(j) to generate proper inworld for block j
+	- if single predecessor i = idom(j), 
+	  then, as before inwld(j) := outwld(idom(j))
+	- if multi predecessore i..., 
+	  then, use extend_wld on outwld(idom(j)) 
+	        over each location in csto(j)
 
-2. otherwise, consider only "forward edges" (forms a dag)
-	- process nodes in order
-	- i.e. process "N" after processing all predecessors of N
+(k) [wcons_of_cloc_phis]: generate WF constraints for each csto(j) 
+(l) [process_cloc_phis]: generate SUB constraints for each 
+	- GEN annot on i --> j
+	- implicit WGEN annot on i --> j
 
-3. Given Conc(N, IN) compute Conc(N, OUT) (as before)
+(*) ... dirty bit
 
-4. How to compute Conc(N, IN) ?
-	- for each absloc L,
-		Conc(N, IN)(L)  = L' if Conc(N', OUT)(L) = L' for  _every_ pred N' of N
-				= \BOT otherwise 
-	- in the latter case "insert" a FOLD(L' --> L) at the end of each
-	  (relevant) predecessor N'
-	
-	- maintains inv that for each block, for each absloc either the
-	  preds have the same concloc, or there is no concloc
-	  
-5. Eschew "GEN" if the block is not "written" (track a "dirty" bit for each concloc in refanno)
-
-6. In Consgen, for each entry-loc that is non-BOT, 
-   generate subtyping over fresh names as with Phi-vars
 
 
 

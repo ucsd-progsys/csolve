@@ -143,6 +143,7 @@ let slocs_of_store st =
 let refstore_empty = SLM.empty
 
 let refstore_mem l sto = SLM.mem l sto
+
 let refstore_remove l sto = SLM.remove l sto
 
 let refstore_set sto l rd =
@@ -167,8 +168,8 @@ let sloc_binds_of_refldesc l rd =
 let binds_of_refldesc l rd = 
   sloc_binds_of_refldesc l rd 
   |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
+(*>> List.iter (fun (n,r) -> ignore <| Pretty.printf "binds_of_refldesc: %s \n" (Sy.to_string n)) *)
   |> List.map fst
-  (* |> List.map (fun (n,r) -> Pretty.printf "binds_of_refldesc: %s \n" (Sy.to_string n); (n,r)) *)
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
 
