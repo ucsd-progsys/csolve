@@ -248,16 +248,6 @@ let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
 let pad_snd    = fun f x            -> (x, f x)
 let pad_fst    = fun f y            -> (f y, y)
 
-(*
-let mapfold f xs b = 
-  List.fold_left 
-    (fun (ys, c) x -> 
-      let y', c' = f x b in 
-      (y'::ys, c'))
-    ([], b) xs 
-  |> (fun (ys, c) -> ((List.rev ys), c))
-*)
-
 let twrap s f x =
   let _  = Printf.printf "calling %s \n" s in
   let rv = f x in

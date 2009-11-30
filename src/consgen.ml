@@ -146,6 +146,7 @@ let wcons_of_phis me tag env vs =
 
 let cons_of_annot loc tag grd (env, sto, tago) = function 
   | Refanno.Gen  (cloc, aloc) ->
+      let _      = CM.assertLoc loc (FI.refstore_mem cloc sto) "cons_of_annot: (Gen)!" in
       let sto'   = FI.refstore_remove cloc sto in
       let ld1    = (cloc, FI.refstore_get sto cloc) in
       let ld2    = (aloc, FI.refstore_get sto aloc) in
