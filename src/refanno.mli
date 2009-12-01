@@ -29,6 +29,7 @@ type ctab
 
 type annotation = 
   | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
+  | WGen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
   | Ins  of Sloc.t * Sloc.t             (* ALoc, CLoc *)
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 

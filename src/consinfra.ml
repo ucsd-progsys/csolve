@@ -180,11 +180,7 @@ let inwld_of_block me = function
   | j ->
       let (idom, _) = me.sci.ST.gdoms.(j) in
       let (env,_,t) = outwld_of_block me idom in
-      let w0        = (env, me.astore, t) in 
-      begin match me.sci.ST.cfg.Ssa.predecessors.(j) with 
-      | [i] -> asserts (i = idom) "inwld_of_block: idom != unique predecessor!"; w0
-      | _   -> 
-      end
+      (env, me.astore, t)
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
