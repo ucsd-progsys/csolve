@@ -64,6 +64,12 @@ val ce_adds_fn          : cilenv -> (string * refcfun) list -> cilenv
 val ce_find_fn          : string -> cilenv -> refcfun
 val d_cilenv            : unit -> cilenv -> Pretty.doc
 
+val extend_world        : refldesc -> 
+                          (name * refctype) list -> 
+                          Sloc.t -> bool -> 
+                          (cilenv * refstore * 'a) -> 
+                          (cilenv * refstore * 'a)
+
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype
 val t_true              : Ctypes.ctype -> refctype
@@ -78,6 +84,8 @@ val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype
 val t_subs_names        : (name * name) list -> refctype -> refctype
 val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype
 val t_subs_locs         : Sloc.Subst.t -> refctype -> refctype
+
+val new_block_reftype   : refctype -> refctype
 
 val refstore_empty      : refstore
 val binds_of_refldesc   : Sloc.t -> refldesc -> (name * refctype) list

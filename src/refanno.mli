@@ -52,6 +52,11 @@ val annotate_cfg: Ssa.cfgInfo ->
                   block_annotation array -> 
 		  block_annotation array * annotation list Misc.IntIntMap.t * ctab
 
+val reconstruct_conca: Ssa.cfgInfo -> 
+                       block_annotation array -> 
+                       annotation list Misc.IntIntMap.t ->
+                       Sloc.t Sloc.SlocMap.t array * Sloc.t Sloc.SlocMap.t array 
+
 (*
    1. A : block * block -> annot list
    2. B : block -> annot list list

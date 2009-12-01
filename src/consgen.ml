@@ -58,25 +58,6 @@ let lsubs_of_annots ns =
                    | _               -> assertf "cons_of_call: bad ns") ns
 
 (* TBD: move into FI -- so it can be used by CF.inwld_of_block *)
-(* TBD: MALLOC HACK *)
-let new_block_reftype = FI.t_zero_refctype (* or, more soundly? FI.t_true_refctype *)
-
-(* TBD: move into FI -- so it can be used by CF.inwld_of_block *)
-let extend_world ld binds cloc newloc (env, sto, tago) = 
-  let subs   = List.map (fun (n,_) -> (n, FI.name_fresh ())) binds in
-  let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
-               |> Misc.map (Misc.app_snd (FI.t_subs_names subs))
-               |> FI.ce_adds env in
-  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
-  let ld'    = FI.refldesc_subs ld begin fun i ploc rct ->
-                  if IM.mem i im then IM.find i im |> FI.t_name env' else
-                    match ploc with 
-                    | Ctypes.PLAt _ -> assertf "missing binding!"
-                    | _ when newloc -> new_block_reftype rct
-                    | _             -> FI.t_subs_names subs rct
-               end in
-  let sto'   = FI.refstore_set sto cloc ld' in
-  (env', sto', tago)
 
 let d_lsub () (x,y) = 
   Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
@@ -142,6 +123,8 @@ let wcons_of_phis me tag env vs =
     FI.make_wfs wenv cr tag
   end vs
 
+let wcons_of_cloc_phis = failwith "TBD"
+
 (****************************************************************************)
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
@@ -159,7 +142,7 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
-      let wld'   = extend_world aldesc abinds cloc false (env, sto, tago) in
+      let wld'   = FI.extend_world aldesc abinds cloc false (env, sto, tago) in
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -256,8 +239,8 @@ let poly_clocs_of_store ocst ns =
 let instantiate_poly_cloc me loc wld (aloc, cloc) =
   let aldesc = FI.refstore_get (CF.get_astore me) aloc in
   let abinds = FI.binds_of_refldesc aloc aldesc 
-               |> List.map (Misc.app_snd new_block_reftype) in
-  extend_world aldesc abinds cloc true wld
+               |> List.map (Misc.app_snd FI.new_block_reftype) in
+  FI.extend_world aldesc abinds cloc true wld
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt   = FI.ce_find_fn fn env in
@@ -380,6 +363,8 @@ let process_edgem em me =
     cons_of_annots me loc tag grd wld ann 
     |> (fun (_,(cs,ds)) -> CF.add_cons ([], cs, ds) me)
   end em me
+
+let process_cloc_phis = failwith "TBD" 
 
 let log_of_sci sci shp = 
   if Constants.ck_olev Constants.ol_solve then
@@ -540,7 +525,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
           let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) | _ -> assert false in
           let aldesc      = FI.refstore_get sto aloc in
           let abinds      = FI.binds_of_refldesc aloc aldesc in
-          let env, sto, _ = extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in
+          let env, sto, _ = FI.extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in
           let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
           let ld1         = (cloc, FI.refstore_get sto cloc) in
           let ld2         = (aloc, FI.refstore_get sto aloc) in

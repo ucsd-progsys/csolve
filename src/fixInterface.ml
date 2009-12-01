@@ -25,6 +25,7 @@
 
 
 
+module IM  = Misc.IntMap
 module F   = Format
 module ST  = Ssa_transform
 module  A  = Ast
@@ -37,7 +38,7 @@ module CI  = CilInterface
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
 module Co  = Constants
-module SLM = Sloc.SlocMap
+module LM = Sloc.SlocMap
 
 open Misc.Ops
 open Cil
@@ -133,25 +134,25 @@ let mk_refcfun qslocs args ist ret ost =
     Ctypes.sto_out = ost; }
 
 let slocs_of_store st = 
-  SLM.fold (fun x _ xs -> x::xs) st []
+  LM.fold (fun x _ xs -> x::xs) st []
 
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
-let refstore_empty = SLM.empty
+let refstore_empty = LM.empty
 
-let refstore_mem l sto = SLM.mem l sto
+let refstore_mem l sto = LM.mem l sto
 
-let refstore_remove l sto = SLM.remove l sto
+let refstore_remove l sto = LM.remove l sto
 
 let refstore_set sto l rd =
-  try SLM.add l rd sto with Not_found -> 
+  try LM.add l rd sto with Not_found -> 
     assertf "refstore_set"
 
 let refstore_get sto l =
-  try SLM.find l sto with Not_found ->
+  try LM.find l sto with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
@@ -190,7 +191,7 @@ let addr_of_refctype loc = function
 
 let ac_refstore_read loc sto cr = 
   let (l, ploc) = addr_of_refctype loc cr in 
-  SLM.find l sto 
+  LM.find l sto 
   |> refdesc_find ploc 
 
 (* API *)
@@ -204,10 +205,10 @@ let is_soft_ptr loc sto cr =
 let refstore_write loc sto rct rct' = 
   let (cl, ploc) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = SLM.find cl sto in
+  let ld = LM.find cl sto in
   let ld = Ctypes.LDesc.remove ploc ld in
   let ld = Ctypes.LDesc.add ploc rct' ld in
-  SLM.add cl ld sto
+  LM.add cl ld sto
 
 
 (*******************************************************************)
@@ -536,6 +537,26 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
 let refstore_subs  = fun loc f subs st -> Ctypes.prestore_map_ct (f subs) st
 
+(* TBD: MALLOC HACK *)
+let new_block_reftype = t_zero_refctype (* or, more soundly? t_true_refctype *)
+
+let extend_world ld binds cloc newloc (env, sto, tago) = 
+  let subs   = List.map (fun (n,_) -> (n, name_fresh ())) binds in
+  let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
+               |> Misc.map (Misc.app_snd (t_subs_names subs))
+               |> ce_adds env in
+  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
+  let ld'    = refldesc_subs ld begin fun i ploc rct ->
+                  if IM.mem i im then IM.find i im |> t_name env' else
+                    match ploc with 
+                    | Ctypes.PLAt _ -> assertf "missing binding!"
+                    | _ when newloc -> new_block_reftype rct
+                    | _             -> t_subs_names subs rct
+               end in
+  let sto'   = refstore_set sto cloc ld' in
+  (env', sto', tago)
+
+
 (* 
 let refldesc_subs_ploc f rd = 
   Ctypes.LDesc.mapn (fun _ pl rct -> f pl rct) rd
@@ -572,7 +593,7 @@ let make_wfs cenv rct _ =
   [C.make_wf env r None]
 
 let make_wfs_refstore env sto tag =
-  SLM.fold begin fun l rd ws ->
+  LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ctypes.ploc_periodic ploc)) 
                     |> List.map fst

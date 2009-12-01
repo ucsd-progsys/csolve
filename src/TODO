@@ -13,15 +13,18 @@ INTRA-FOLD:
 	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
 (g) write a checker
 
-HEREHEREHERE
 --> Consgen
-(h) [CF.create]: update to create a store csto(j) st. for each
-    l in range(Cin(j)), csto(j) :-> fresh block of appropriate shape
+
+(h) [extend_world]: move into FI, so its callable from inwld_of_block
+
+(i) [CF.create]: update to create a store 
+      csto(j) st. for each l in range(Cin(j)), 
+        csto(j) :-> fresh block of appropriate shape
     this uses Cin(j) which can be built via [refanno.reconstruct]
 
-(i) [extend_world]: move into FI, so its callable from inwld_of_block
+HEREHEREHERE
 
-(j) [CF.inwld_of_block]: use Cin(j) to generate proper inworld for block j
+(j) [CF.inwld_of_block]: use csto(j) to generate proper inworld for block j
 	- if single predecessor i = idom(j), 
 	  then, as before inwld(j) := outwld(idom(j))
 	- if multi predecessore i..., 

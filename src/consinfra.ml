@@ -35,6 +35,7 @@ module FI = FixInterface
 module CI = CilInterface
 module EM = Ctypes.ExpMap
 module LI = Inferctypes
+module LM = Sloc.SlocMap
 
 open Misc.Ops
 open Cil
@@ -54,6 +55,7 @@ type t = {
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;
+  cstoa   : FI.refstore array; 
   ctab    : Refanno.ctab;
   undefm  : unit SM.t
 }
@@ -101,16 +103,26 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
+let cstoa_of_annots fname cfg anna edgem astore =
+  let conca = fst <| Refanno.reconstruct_conca cfg anna edgem in
+  Array.map begin fun (conc: Sloc.t LM.t) ->
+    FI.refstore_empty
+    |> LM.fold (fun al cl sto -> FI.refstore_get astore al |> FI.refstore_set sto cl) conc
+    |> FI.store_of_refstore 
+    |> FI.refstore_fresh fname
+  end conca
+
 let create tgr gnv gst sci shp =
-  let fdec   = sci.ST.fdec in
-  let env    = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
+  let fdec    = sci.ST.fdec in
+  let env     = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
   let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> Ctypes.prestore_upd gst in
   let lastore = FI.refstore_fresh fdec.svar.vname shp.LI.store in
   let astore  = Ctypes.prestore_upd gst lastore in
   let formalm = formalm_of_fdec sci.ST.fdec in
-  let tag    = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
-  let loc    = fdec.svar.vdecl in
-  let cs, ds = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
+  let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
+  let loc     = fdec.svar.vdecl in
+  let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
+  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.cfg shp.LI.anna shp.LI.edgem astore in
   {tgr     = tgr;
    sci     = sci;
    ws      = FI.make_wfs_refstore env lastore tag;
@@ -123,6 +135,7 @@ let create tgr gnv gst sci shp =
    ltm     = shp.LI.vtyps;
    astore  = astore;
    anna    = shp.LI.anna;
+   cstoa   = cstoa;
    ctab    = shp.LI.theta;
    undefm  = make_undefm formalm sci.ST.phis
   }

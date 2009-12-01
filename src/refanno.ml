@@ -401,18 +401,18 @@ let apply_edge_annots egenm (i,j) cnc =
   List.fold_left (apply_annot msg) cnc anns 
 
 let reconstruct_conca cfg annota egenm =
-    cfg_predmap cfg begin fun j icncs ->
-      let jconc = icncs |> List.map (fun (i, (_, icnc')) -> apply_edge_annots egenm (i,j) icnc')
-                        |> conc_of_predecessors in 
-      let msg  = Printf.sprintf "reconstruct_conca (block %d)" j in
-      let jconc'= annota.(j) |> List.flatten |> List.fold_left (apply_annot msg) jconc in
+  cfg_predmap cfg begin fun j icncs ->
+    let jconc = icncs |> List.map (fun (i, (_, icnc')) -> apply_edge_annots egenm (i,j) icnc')
+                      |> conc_of_predecessors in 
+    let msg  = Printf.sprintf "reconstruct_conca (block %d)" j in
+    let jconc'= annota.(j) |> List.flatten |> List.fold_left (apply_annot msg) jconc in
     (jconc, jconc')
   end
+  |> (fun a -> (Array.map fst a, Array.map snd a))
 
 (** See refanno.mli for details on INVARIANTS *)
 let check_annots cfg annota egenm = 
-  let conca, conca' = reconstruct_conca cfg annota egenm 
-                      |> fun a -> (Array.map fst a, Array.map snd a) in
+  let conca, conca' = reconstruct_conca cfg annota egenm in
   Array.iteri begin fun i iconc ->
     let imsg   =  Printf.sprintf "Refanno: INVARIANT 1 Fails on %d" i in
     let iconc' =  List.flatten annota.(i) 
