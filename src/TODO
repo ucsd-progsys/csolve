@@ -1,3 +1,5 @@
+RE-REFACTOR :: adding TAGS to refanno, changing sig to new sig
+
 INTRA-FOLD:
 (a) refactor types (interface/mli)
 (b) add edge annots (by removing n+1-th annot from each block and putting on out-edges)
@@ -32,6 +34,7 @@ HEREHEREHERE
 	        over each location in csto(j)
 
 (k) [wcons_of_cloc_phis]: generate WF constraints for each csto(j) 
+
 (l) [process_cloc_phis]: generate SUB constraints for each 
 	- GEN annot on i --> j
 	- implicit WGEN annot on i --> j

@@ -33,6 +33,19 @@ open Misc.Ops
 
 let mydebug = false 
 
+(************************************************************************************)
+(**************************** Location Tags******************************************)
+(************************************************************************************)
+
+type tag = int * bool
+let tag_fresh = let x = ref 0 in fun dirty -> let _ = incr x in (!x, dirty)
+let tag_eq    = (=)
+let tag_dirty = snd 
+
+(************************************************************************************)
+(**************************** Type Definitions **************************************)
+(************************************************************************************)
+
 (** Gen: Generalize a concrete location into an abstract location
  *  Ins: Instantiate an abstract location with a concrete location
  *  New: Call-site instantiation of abs-loc-var with abs-loc-param
@@ -46,7 +59,8 @@ type annotation =
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
-type soln = (Sloc.t Sloc.SlocMap.t option * block_annotation) array
+type cncm = (Sloc.t * tag) Sloc.SlocMap.t
+type soln = (cncm option * block_annotation) array
 
 
 (************************************************************************************)

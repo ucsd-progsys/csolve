@@ -23,6 +23,8 @@
 
 (* This file is part of the liquidC Project.*)
 
+type tag
+type cncm = (Sloc.t * tag) Sloc.SlocMap.t
 type ctab 
 
 type annotation = 
@@ -36,6 +38,7 @@ type annotation =
  * 3. gens for end of block placed on out-edges of block *) 
 type block_annotation = annotation list list
 
+val tag_eq : tag -> tag -> bool
 val d_edgem: unit -> annotation list Misc.IntIntMap.t -> Pretty.doc 
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
 val d_ctab: unit -> ctab -> Pretty.doc 
@@ -50,12 +53,7 @@ val annotate_cfg: Ssa.cfgInfo ->
                   Sloc.t list -> 
                   Ctypes.ctemap -> 
                   block_annotation array -> 
-		  block_annotation array * annotation list Misc.IntIntMap.t * ctab
-
-val reconstruct_conca: Ssa.cfgInfo -> 
-                       block_annotation array -> 
-                       annotation list Misc.IntIntMap.t ->
-                       Sloc.t Sloc.SlocMap.t array * Sloc.t Sloc.SlocMap.t array 
+		  block_annotation array * cncm array * ctab
 
 (*
    1. A : block * block -> annot list
