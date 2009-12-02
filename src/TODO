@@ -57,9 +57,10 @@ INTRA-FOLD:
 	- fold over bindings in csto(j):
 	    extend_wld ... 
 
-HEREHEREHERE
 
-(k) [wcons_of_cloc_phis]: generate WF constraints for each csto(j) 
+(k) [make_wfs_refstore]: generate WF constraints for each csto(j) 
+
+HEREHEREHERE
 
 (l) [process_cloc_phis]: generate SUB constraints for each 
 	- GEN annot on i --> j

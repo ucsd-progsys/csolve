@@ -57,8 +57,6 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x,y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
-(* TBD: move into FI -- so it can be used by CF.inwld_of_block *)
-
 let d_lsub () (x,y) = 
   Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
 
@@ -122,8 +120,6 @@ let wcons_of_phis me tag env vs =
     let cr  = FI.ce_find vn env in 
     FI.make_wfs wenv cr tag
   end vs
-
-let wcons_of_cloc_phis = failwith "TBD"
 
 (****************************************************************************)
 (********************** Constraints for Annots ******************************)
@@ -339,8 +335,9 @@ let cons_of_block me i =
   let astmt       = CF.annotstmt_of_block me i in
   let env,st,tag  = CF.inwld_of_block me i in
   let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let ws          = wcons_of_phis me (CF.tag_of_instr me i 0 loc) env phis in
-  let ws'         = wcons_of_cloc_phis me (failwith "TBD: FOLD-INTRA") in
+  let wtag        = CF.tag_of_instr me i 0 loc in
+  let ws          = wcons_of_phis me wtag env phis in
+  let ws'         = FI.make_wfs_refstore env wtag (CF.csto_of_block me i) in
   let wld, cs, ds = cons_of_annotstmt me loc i grd (env, st, tag) astmt in
   (wld, (ws ++ ws', cs, ds))
 
@@ -356,7 +353,7 @@ let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
 
-let process_cloc_phis = failwith "TBD" 
+let process_cloc_phis = failwith "TBDNOW" 
 (* let process_edgem em me =
   Misc.IntIntMap.fold begin fun (i, j) ann me ->
     let grd = CF.guard_of_block me i (Some j) in
@@ -523,7 +520,8 @@ let cons_of_var_init tag loc sto v vtyp inito =
     match inito with
       | Some (CompoundInit _ as init) ->
           let cloc        = Sloc.fresh Sloc.Concrete in
-          let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) | _ -> assert false in
+          let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) 
+                                          | _ -> assert false in
           let aldesc      = FI.refstore_get sto aloc in
           let abinds      = FI.binds_of_refldesc aloc aldesc in
           let env, sto, _ = FI.extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in
@@ -547,7 +545,8 @@ let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
     | VarDec (v, loc, init) ->
         let tag     = CilTag.make_global_t tgr loc in
         let vtyp    = FI.ce_find (FI.name_of_string v.vname) gnv in
-        let vspctyp = let vsp, chk = SM.find v.vname varspec in if chk then vsp else FI.t_true_refctype vtyp in
+        let vspctyp = let vsp, chk = SM.find v.vname varspec in 
+                      if chk then vsp else FI.t_true_refctype vtyp in
         let cs'     = cons_of_var_init tag loc gst v vtyp init in
         let cs'',_  = FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
         let ws'     = FI.make_wfs FI.ce_empty vtyp tag in
@@ -568,11 +567,14 @@ let tag_of_global = function
 
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc)                                    -> FunDec (fdec.svar.vname, loc) :: acc
-    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> VarDec (v, loc, ii.init) :: acc
-    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> VarDec (v, loc, None) :: acc
-    | _ when !Constants.safe                              -> assertf "decs_of_file"
-    | _                                                   -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
+    | GFun (fdec, loc)                  -> FunDec (fdec.svar.vname, loc) :: acc
+    | GVar (v, ii, loc) 
+      when not (isFunctionType v.vtype) -> VarDec (v, loc, ii.init) :: acc
+    | GVarDecl (v, loc) 
+      when not (isFunctionType v.vtype) -> VarDec (v, loc, None) :: acc
+    | _ when !Constants.safe            -> assertf "decs_of_file"
+    | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
+                                           |> fun _ -> acc
   end []
 
 let scim_of_file cil =
