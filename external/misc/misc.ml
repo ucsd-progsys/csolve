@@ -742,6 +742,11 @@ let array_forall f a =
   with NotForall ->
     false
 
+let array_combine a1 a2 = 
+  asserts (Array.length a1 = Array.length a2) "array_combine";
+  Array.init (Array.length a1) (fun i -> (a1.(i), a2.(i)))
+
+
 let compose f g a = f (g a)
 
 let maybe_bool = function

@@ -103,11 +103,20 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
-let cstoa_of_annots fname cfg anna edgem astore =
-  let conca = fst <| Refanno.reconstruct_conca cfg anna edgem in
-  Array.map begin fun (conc: Sloc.t LM.t) ->
-    FI.refstore_empty
-    |> LM.fold (fun al cl sto -> FI.refstore_get astore al |> FI.refstore_set sto cl) conc
+let diff_binding conc (al, (cl,t)) = 
+  if LM.mem al conc then
+    let cl', t' = LM.find al conc in 
+    not (Sloc.eq cl cl' && Refanno.tag_eq t t')
+  else true
+
+let cstoa_of_annots fname gdoms conca astore =
+  let emp = FI.refstore_empty in
+  Array.mapi begin fun i (conc,_) ->
+    let idom, _     = gdoms.(i) in 
+    let _,idom_conc = conca.(idom) in
+    Sloc.slm_bindings conc 
+    |> List.filter (diff_binding idom_conc)
+    |> List.fold_left (fun sto (al,(cl,_)) -> FI.refstore_get astore al |> FI.refstore_set sto cl) emp
     |> FI.store_of_refstore 
     |> FI.refstore_fresh fname
   end conca
@@ -122,7 +131,7 @@ let create tgr gnv gst sci shp =
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in
   let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
-  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.cfg shp.LI.anna shp.LI.edgem astore in
+  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
   {tgr     = tgr;
    sci     = sci;
    ws      = FI.make_wfs_refstore env lastore tag;

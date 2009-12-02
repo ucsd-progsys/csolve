@@ -134,6 +134,8 @@ let d_block_annotation () annss =
   Misc.numbered_list annss
   |> Pretty.d_list "\n" (fun () (i,x) -> Pretty.dprintf "%i: %a" i d_annotations x) ()
 
+
+
 (* API *)
 let d_block_annotation_array =
   Pretty.docArray 
@@ -160,23 +162,31 @@ let d_conc () (conc:cncm) =
     (fun (al, (cl, t)) -> Pretty.dprintf "(%a |-> %a, %a) " Sloc.d_sloc al Sloc.d_sloc cl d_tag t)
     binds 
 
+(* API *)
+let d_conca = 
+  Pretty.docArray 
+    ~sep:(Pretty.text "\n")
+    (fun i (cncm, cncm') -> Pretty.dprintf "block %i: @[CONC-In: %a@] @[CONC-Out: %a@]" i d_conc cncm d_conc cncm') 
+
+
 (******************************************************************************)
 (*********************** Operations on CONC-Maps ******************************)
 (******************************************************************************)
 
-let conc_bindings = fun conc -> LM.fold (fun k v acc -> (k,v)::acc) conc []
+let conc_size = Sloc.slm_bindings <+> List.length
 
-let conc_size     = conc_bindings <+> List.length
+let tag_join = function
+  | t1, t2 when t1 = t2   -> t1
+  | (_, Read), (_, Read)  -> tag_fresh Read
+  | _                     -> tag_fresh Write
 
-let tag_join t1 t2 =
-  if tag_eq t1 t2 then t1 else tag_fresh Write 
 
 let conc_join (conc1:cncm) (conc2:cncm) : cncm = 
   LM.fold begin fun al (cl1, t1) conc ->
     if not (LM.mem al conc2) then conc else
       let cl2, t2 = LM.find al conc2 in
       if not (Sloc.eq cl1 cl2) then conc else
-        LM.add al (cl1, tag_join t1 t2) conc
+        LM.add al (cl1, tag_join (t1, t2)) conc
   end conc1 LM.empty
  
 let conc_eq conc1 conc2 =
@@ -414,85 +424,24 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
 (********************************** API **************************************)
 (*****************************************************************************)
 
-let apply_annot s conc = function
-  | NewC (_,al,cl) -> asserts (not (LM.mem al conc)) "apply_annot: NewC: %s" s;
-                      LM.add al cl conc
-  | Ins (al,cl)    -> asserts (not (LM.mem al conc)) "apply_annot: Ins: %s" s;
-                      LM.add al cl conc
-  | Gen (cl,al)    -> asserts (LM.mem al conc) "apply_annot: Gen: %s" s; 
-                      LM.remove al conc
-  | _              -> conc
+let check_sol cfg globalslocs ctm theta anna sol (annota, conca, conca') = 
+  failwith "TBD"
 
-(* {{{
-let apply_edge_annots egenm (i,j) cnc =
-  let msg  = Printf.sprintf "reconstruct_conca (%d -> %d)" i j in
-  let anns = try IIM.find (i,j) egenm with Not_found -> [] in 
-  List.fold_left (apply_annot msg) cnc anns 
-
-let reconstruct_conca cfg annota egenm =
-  cfg_predmap cfg begin fun j icncs ->
-    let jconc = icncs |> List.map (fun (i, (_, icnc')) -> apply_edge_annots egenm (i,j) icnc')
-                      |> conc_of_predecessors in 
-    let msg  = Printf.sprintf "reconstruct_conca (block %d)" j in
-    let jconc'= annota.(j) |> List.flatten |> List.fold_left (apply_annot msg) jconc in
-    (jconc, jconc')
-  end
-  |> (fun a -> (Array.map fst a, Array.map snd a))
-
-let check_annots cfg annota egenm = 
-  let conca, conca' = reconstruct_conca cfg annota egenm in
-  Array.iteri begin fun i iconc ->
-    let imsg   =  Printf.sprintf "Refanno: INVARIANT 1 Fails on %d" i in
-    let iconc' =  List.flatten annota.(i) 
-               |> List.fold_left (apply_annot imsg) iconc in
-    asserts (conc_eq iconc' conca'.(i)) "Refanno: INVARIANT 1 (conc_eq) Fails on %d \n" i
-  end conca;
-  IIM.iter begin fun (i,j) anns ->
-    let ijmsg  = Printf.sprintf "Refanno: INVARIANT 2 Fails on (%d,%d) \n" i j in
-    let ijconc = List.fold_left (apply_annot ijmsg) (conca'.(i)) anns in
-    asserts (conc_eq ijconc conca.(j)) "Refanno: INVARIANT 2 (conc_eq) Fails on (%d,%d) \n" i j
-  end egenm;
-  ignore <| Errormsg.log "\n check_annots: %s OK \n" cfg.Ssa.name
-}}} *)
-
-let map_eq x y = failwith "TBD"
-
-let check_annots (conca : cncm array) (conca' : cncm array) annota =
-  let conca, conca' = Misc.map_pair (Array.map (LM.map fst)) (conca, conca') in
-  Array.iteri begin fun i iconc ->
-    let imsg   =  Printf.sprintf "Refanno: INVARIANT Fails on %d" i in
-    let iconc' =  List.flatten annota.(i) 
-               |> List.fold_left (apply_annot imsg) iconc in
-    asserts (map_eq iconc' conca'.(i)) "Refanno: INVARIANT (conc_eq) Fails on %d \n" i
-  end conca
- 
 let annots_of_sol cfg sol = 
   let conca' = sol |> Array.map (fst <+> Misc.maybe) in
   let annota = sol |> Array.map snd in
   let conca  = Array.map (List.map (Array.get conca') <+> conc_of_predecessors) cfg.Ssa.predecessors in
-  let _      = check_annots conca conca' annota in
-  (annota, conca)
+  (annota, (Misc.array_combine conca conca'))
 
 (* API *)
 let annotate_cfg cfg globalslocs ctm anna =
   let theta = Hashtbl.create 17 in
   soln_init cfg anna 
   |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
-  |> fst 
+  |> fst
   |> annots_of_sol cfg
+(* TBD >> check_sol cfg globalslocs ctm theta anna *)
   |> fun (annota, conca) -> (annota, conca, theta)
-
-(*let annotate_cfg cfg globalslocs ctm anna =
-  let theta  = Hashtbl.create 17 in
-  let sol    = soln_init cfg anna 
-               |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
-               |> fst in
-  let annota = Array.map snd sol in
-  let _      = if mydebug then ignore <| Pretty.printf "%a \n %a \n %a \n" 
-                                         d_block_annotation_array annota d_edgem egenm d_ctab theta in
-  let _      = check_annots cfg annota egenm in
-  (annota, egenm, theta)
-*)
 
 (* API *)
 let cloc_of_varinfo theta v =

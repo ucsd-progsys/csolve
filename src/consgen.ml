@@ -354,7 +354,8 @@ let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
 
-let process_edgem em me =
+let process_cloc_phis = failwith "TBD" 
+(* let process_edgem em me =
   Misc.IntIntMap.fold begin fun (i, j) ann me ->
     let grd = CF.guard_of_block me i (Some j) in
     let loc = CF.location_of_block me i in
@@ -363,14 +364,13 @@ let process_edgem em me =
     cons_of_annots me loc tag grd wld ann 
     |> (fun (_,(cs,ds)) -> CF.add_cons ([], cs, ds) me)
   end em me
-
-let process_cloc_phis = failwith "TBD" 
+*)
 
 let log_of_sci sci shp = 
   if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-    let _ = Pretty.printf "%a\n" Refanno.d_edgem shp.Inferctypes.edgem in
+    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Inferctypes.conca in
     let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
     let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
     ()
@@ -381,7 +381,6 @@ let cons_of_sci tgr gnv gst sci shp =
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
   |> process_cloc_phis (failwith "TBDNOW")
-  |> process_edgem shp.Inferctypes.edgem 
   |> CF.get_cons
 
 (****************************************************************************)

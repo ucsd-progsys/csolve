@@ -1,4 +1,29 @@
-RE-REFACTOR :: adding TAGS to refanno, changing sig to new sig
+
+
+
+checker: initialize each block with 0, X --> 
+         check at exit is it +ve, Y ?
+
+---------------------------------------------------------------------------------------
+BLOCK INVARIANT
+For each al -> cl in concm (must be same set in ORIG, CHECK)
+---------------------------------------------------------------------------------------
+         CHECK			ORIG
+	 A	A1		A	A2	OK if A=A1 <==> A=A2
+	 T	T1		T	T2	OK if T1 = T2	
+---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+EDGE INVARIANT
+For each al -> cl in concm (must be same set in ORIG, CHECK)
+---------------------------------------------------------------------------------------
+         CHECK			ORIG
+	 A1	A2		B1	B2	OK if A1=A2 <==> B1=B2
+
+	 Rd	Rd		T	T	
+	 Rd	Wr		_	Wr	
+---------------------------------------------------------------------------------------
+
+
 
 INTRA-FOLD:
 (a) refactor types (interface/mli)

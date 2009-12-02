@@ -13,6 +13,7 @@ val compare       : t -> t -> int
 val eq            : t -> t -> bool
 val to_string     : t -> string
 val d_sloc        : unit -> t -> Pretty.doc
+val slm_bindings   : 'a SlocMap.t -> (t * 'a) list
 
 type sloc = t
 

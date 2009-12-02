@@ -40,7 +40,7 @@ type annotation =
 type block_annotation = annotation list list
 
 val tag_eq : tag -> tag -> bool
-val d_edgem: unit -> annotation list Misc.IntIntMap.t -> Pretty.doc 
+val d_conca: unit -> (cncm * cncm) array -> Pretty.doc 
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
 val d_ctab: unit -> ctab -> Pretty.doc 
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
@@ -54,7 +54,7 @@ val annotate_cfg: Ssa.cfgInfo ->
                   Sloc.t list -> 
                   Ctypes.ctemap -> 
                   block_annotation array -> 
-		  block_annotation array * cncm array * ctab
+		  block_annotation array * (cncm * cncm) array * ctab
 
 (*
    1. A : block * block -> annot list
