@@ -28,7 +28,7 @@ type cilenv
 
 type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
 type refcfun  = (Ctypes.index * FixConstraint.reft) Ctypes.precfun
-type refldesc (*= (Ctypes.index * FixConstraint.reft) Ctypes.precfun *)
+type refldesc  (* = (Ctypes.index * C.reft) Ctypes.LDesc.t *)
 type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
 type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
 

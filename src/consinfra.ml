@@ -55,7 +55,7 @@ type t = {
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;
-  cstoa   : FI.refstore array; 
+  cstoa   : (FI.refstore * Sloc.t list) array; 
   ctab    : Refanno.ctab;
   undefm  : unit SM.t
 }
@@ -103,10 +103,12 @@ let make_undefm formalm phia =
   |> List.map fst
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
-let diff_binding conc (al, (cl,t)) = 
+let eq_tagcloc (cl,t) (cl',t') = 
+   Sloc.eq cl cl' && Refanno.tag_eq t t'
+
+let diff_binding conc (al, x) = 
   if LM.mem al conc then
-    let cl', t' = LM.find al conc in 
-    not (Sloc.eq cl cl' && Refanno.tag_eq t t')
+    LM.find al conc |> eq_tagcloc x |> not
   else true
 
 let cstoa_of_annots fname gdoms conca astore =
@@ -114,11 +116,15 @@ let cstoa_of_annots fname gdoms conca astore =
   Array.mapi begin fun i (conc,_) ->
     let idom, _     = gdoms.(i) in 
     let _,idom_conc = conca.(idom) in
-    Sloc.slm_bindings conc 
-    |> List.filter (diff_binding idom_conc)
-    |> List.fold_left (fun sto (al,(cl,_)) -> FI.refstore_get astore al |> FI.refstore_set sto cl) emp
-    |> FI.store_of_refstore 
-    |> FI.refstore_fresh fname
+    let joins, ins  = Sloc.slm_bindings conc |> List.partition (diff_binding idom_conc) in
+    let inclocs     = List.map (snd <+> fst) ins in
+    let sto         = joins 
+                      |> List.fold_left begin fun sto (al, (cl, _)) -> 
+                           FI.refstore_get astore al |> FI.refstore_set sto cl
+                         end emp
+                      |> FI.store_of_refstore 
+                      |> FI.refstore_fresh fname in
+    (sto, inclocs)
   end conca
 
 let create tgr gnv gst sci shp =
@@ -187,9 +193,18 @@ let inwld_of_block me = function
   | 0 -> 
       (me.gnv, me.astore, None)
   | j ->
-      let (idom, _) = me.sci.ST.gdoms.(j) in
-      let (env,_,t) = outwld_of_block me idom in
-      (env, me.astore, t)
+      let idom, _    = me.sci.ST.gdoms.(j) in
+      let env,sto,t  = outwld_of_block me idom in
+      let csto,incls = me.cstoa.(j) in
+      (env, me.astore, t)  
+      (* Copy "inherited" conc-locations *)
+      |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
+           (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
+         end) incls
+      (* Add fresh bindings for "joined" conc-locations *)
+      |> LM.fold begin fun cl ld wld ->
+           FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
+         end csto 
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
