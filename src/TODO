@@ -49,22 +49,15 @@ INTRA-FOLD:
         csto(j) :-> fresh block of appropriate shape
     this uses Cin(j) which can be built via [refanno.reconstruct]
 
-HEREHEREHERE
 
 (j) [CF.inwld_of_block]: use csto(j) to generate proper inworld for block j
-	- if single predecessor i = idom(j), 
-	  then, as before inwld(j) := outwld(idom(j))
-	- if multi predecessore i..., 
-	  then, use extend_wld on outwld(idom(j)) 
-	        over each location in csto(j)
-
-
-	NO!
 	- W0 = outwld of idom(j) (with empty store)
 	- fold over bindings in conca(j):
 	    if binding inherited from idom(j) then add it to W0
 	- fold over bindings in csto(j):
 	    extend_wld ... 
+
+HEREHEREHERE
 
 (k) [wcons_of_cloc_phis]: generate WF constraints for each csto(j) 
 

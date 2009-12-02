@@ -30,6 +30,7 @@ type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
 type refcfun  = (Ctypes.index * FixConstraint.reft) Ctypes.precfun
 type refldesc  (* = (Ctypes.index * C.reft) Ctypes.LDesc.t *)
 type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
+(* type refstore = refldesc Sloc.SlocMap.t *)
 type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
 
 val d_refstore          : unit -> refstore -> Pretty.doc
@@ -93,6 +94,7 @@ val refstore_mem        : Sloc.t -> refstore -> bool
 val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
+val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
 val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
 
 val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore

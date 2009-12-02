@@ -156,6 +156,9 @@ let refstore_get sto l =
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
+let refstore_fold = LM.fold
+(* let refstore_fold f sto x = LM.fold (fun k v x  -> f k v x) sto x *)
+
 let plocs_of_refldesc rd = 
   Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
   |> List.rev

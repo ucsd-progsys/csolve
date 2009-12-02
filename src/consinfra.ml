@@ -202,7 +202,7 @@ let inwld_of_block me = function
            (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
-      |> LM.fold begin fun cl ld wld ->
+      |> FI.refstore_fold begin fun cl ld wld ->
            FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
          end csto 
 
