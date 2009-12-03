@@ -150,12 +150,17 @@ val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
 val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a prectype list
 val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
 val prestore_close_under : 'a prestore -> Sloc.t list -> 'a prestore
+val prestore_partition: (Sloc.t -> 'a LDesc.t -> bool) -> 'a prestore -> ('a prestore * 'a prestore)
 
-val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+(* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
 (** [prestore_split sto] returns (asto, csto) s.t. 
 	(1) sto = asto + csto
 	(2) locs(asto) \in abslocs 
 	(3) locs(csto) \in conlocs *)
+let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+  prestore_partition (fun l _ -> S.is_abstract l) ps
+*)
+
 
 val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
 (** [prestore_upd st1 st2] returns the store obtained by adding the locations from st2 to st1,

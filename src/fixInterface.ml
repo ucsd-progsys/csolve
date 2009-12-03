@@ -156,8 +156,10 @@ let refstore_get sto l =
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
-let refstore_fold = LM.fold
+let refstore_fold      = LM.fold
 (* let refstore_fold f sto x = LM.fold (fun k v x  -> f k v x) sto x *)
+
+let refstore_partition = fun f -> Ctypes.prestore_partition (fun l _ -> f l) 
 
 let plocs_of_refldesc rd = 
   Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
@@ -538,7 +540,7 @@ let t_subs_locs    = Ctypes.prectype_subs
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp skolem)
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
-let refstore_subs  = fun loc f subs st -> Ctypes.prestore_map_ct (f subs) st
+let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) st
 
 (* TBD: MALLOC HACK *)
 let new_block_reftype = t_zero_refctype (* or, more soundly? t_true_refctype *)
@@ -560,15 +562,7 @@ let extend_world ld binds cloc newloc (env, sto, tago) =
   (env', sto', tago)
 
 
-(* 
-let refldesc_subs_ploc f rd = 
-  Ctypes.LDesc.mapn (fun _ pl rct -> f pl rct) rd
-
-let refstore_subs_ploc f sto =
-  Sloc.SlocMap.map (refldesc_subs_ploc f) sto
-*)
-
-let refstore_subs_locs loc lsubs sto = 
+let refstore_subs_locs (* loc *) lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
     if not (refstore_mem l sto) then sto else
@@ -576,7 +570,7 @@ let refstore_subs_locs loc lsubs sto =
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in
       let subs  = List.combine ns ns' in
-      refstore_subs loc t_subs_names subs sto
+      refstore_subs (* loc *) t_subs_names subs sto
     in
     (* let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
             Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in *)

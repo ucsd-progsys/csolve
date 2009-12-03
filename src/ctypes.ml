@@ -393,15 +393,12 @@ let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
 let prestore_upd (ps1: 'a prestore) (ps2: 'a prestore): 'a prestore =
   SLM.fold SLM.add ps2 ps1
 
-let prestore_filter (f: S.t -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestore * 'a prestore =
+let prestore_partition (f: S.t -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestore * 'a prestore =
   SLM.fold begin fun l ld (ps1, ps2) ->
     if f l ld then
       (SLM.add l ld ps1, ps2)
     else (ps1, SLM.add l ld ps2)
   end ps (SLM.empty, SLM.empty)
-
-let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-  prestore_filter (fun l _ -> S.is_abstract l) ps
 
 let rec prestore_close_slocs (ps: 'a prestore) (ss: SS.t): SS.t =
   let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> prestore_find s |> LDesc.referenced_slocs))) ss ss in

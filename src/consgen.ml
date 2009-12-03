@@ -64,9 +64,9 @@ let d_lsubs () xys =
   Pretty.seq (Pretty.text ",") (d_lsub ()) xys
 
 (* move into FI *)
-let rename_store loc lsubs subs sto =
-  sto |> FI.refstore_subs_locs loc lsubs 
-      |> FI.refstore_subs loc FI.t_subs_exps subs 
+let rename_store (* loc *) lsubs subs sto =
+  sto |> FI.refstore_subs_locs (* loc *) lsubs 
+      |> FI.refstore_subs (* loc *) FI.t_subs_exps subs 
       |> Ctypes.prestore_subs lsubs
 
 let rename_refctype lsubs subs cr =
@@ -252,8 +252,8 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let subs  = if (List.length args = List.length es) then List.combine (List.map fst args) es 
               else (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
 
-  let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store loc lsubs subs) in
-  let oast, ocst = Ctypes.prestore_split ost in
+  let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store (* loc *) lsubs subs) in
+  let oast, ocst = FI.refstore_partition Sloc.is_abstract ost in
 
   let tag   = CF.tag_of_instr me i j     loc in
   let tag'  = CF.tag_of_instr me i (j+1) loc in
@@ -469,7 +469,7 @@ let rename_args rf sci : FI.refcfun =
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
   let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
   let hi', ho' = rf |> FI.stores_of_refcfun
-                    |> Misc.map_pair (FI.refstore_subs loc FI.t_subs_names subs) in
+                    |> Misc.map_pair (FI.refstore_subs (* loc *) FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
 let rename_spec scim (funspec, varspec, storespec) =
