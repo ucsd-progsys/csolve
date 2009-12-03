@@ -116,17 +116,19 @@ let diff_binding conc (al, x) =
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
   Array.mapi begin fun i (conc,conc') ->
-    let idom, _     = gdoms.(i) in 
-    let _,idom_conc = conca.(idom) in
-    let joins, ins  = Sloc.slm_bindings conc |> List.partition (diff_binding idom_conc) in
-    let inclocs     = List.map (snd <+> fst) ins in
-    let sto         = joins 
-                      |> List.fold_left begin fun sto (al, (cl, _)) -> 
-                           FI.refstore_get astore al |> FI.refstore_set sto cl
-                         end emp
-                      |> FI.store_of_refstore 
-                      |> FI.refstore_fresh fname in
-    (sto, inclocs, conc')
+    if i = 0 then (emp, [], conc') else
+      let idom, _     = gdoms.(i) in 
+      let _,idom_conc = conca.(idom) in
+      let joins, ins  = Sloc.slm_bindings conc 
+                        |> List.partition (diff_binding idom_conc) in
+      let inclocs     = List.map (snd <+> fst) ins in
+      let sto         = joins 
+                        |> List.fold_left begin fun sto (al, (cl, _)) -> 
+                             FI.refstore_get astore al |> FI.refstore_set sto cl
+                           end emp
+                        |> FI.store_of_refstore 
+                        |> FI.refstore_fresh fname in
+      (sto, inclocs, conc')
   end conca
 
 let edge_asgnm_of_phia phia =

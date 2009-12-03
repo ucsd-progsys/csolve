@@ -1,89 +1,42 @@
+../postests/array1.c
+../postests/test02p.c
+../postests/structarr.c
+../postests/unsignedchar.c
+../postests/field1.c
+../negtests/field-unsafe.c
+../negtests/ll6-unsafe.c
+../negtests/test02p-unsafe.c
+../postests/structarr2.c
+../postests/test03p.c
 
+../postests/mst-scratch.c
+../postests/strcpy.c
+../postests/adpcm.c
+../postests/pmapdistilled.c
+../postests/stringexample.c
+../postests/power.c
+../postests/field.c
+../postests/ks.c
 
-
-checker: initialize each block with 0, X --> 
-         check at exit is it +ve, Y ?
-
----------------------------------------------------------------------------------------
+INFRA-FOLD: CHECKER
+-----------------------------------------------------------------------------------
 BLOCK INVARIANT
 For each al -> cl in concm (must be same set in ORIG, CHECK)
----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
          CHECK			ORIG
 	 A	A1		A	A2	OK if A=A1 <==> A=A2
 	 T	T1		T	T2	OK if T1 = T2	
----------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
 EDGE INVARIANT
 For each al -> cl in concm (must be same set in ORIG, CHECK)
----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
          CHECK			ORIG
 	 A1	A2		B1	B2	OK if A1=A2 <==> B1=B2
 
 	 Rd	Rd		T	T	
 	 Rd	Wr		_	Wr	
----------------------------------------------------------------------------------------
-
-
-
-INTRA-FOLD:
-(a) refactor types (interface/mli)
-(b) add edge annots (by removing n+1-th annot from each block and putting on out-edges)
-(c) rig consgen so that it generates sub-type constraints for each edge annot
-	- remove cons_of_annots from block-end
-	- update the inwld of block appropriately 
-		- Same as before, concrete-in-heap is empty
-	- add constraints by iterating over all edges
-(d) regrtest -- original tests
---> Refanno
-(e) [in_conc] non-trivial  (i.e. intersection of predecessors outputs)
-(f) [mk_edgem] 
-	- GEN : by looking at "diff" between "conc_in i" and "conc_out j" for each j in preds i)
-(g) write a checker
-
---> Consgen
-
-(h) [extend_world]: move into FI, so its callable from inwld_of_block
-
-(i) [CF.create]: update to create a store 
-      csto(j) st. for each l in range(Cin(j)), 
-        csto(j) :-> fresh block of appropriate shape
-    this uses Cin(j) which can be built via [refanno.reconstruct]
-
-
-(j) [CF.inwld_of_block]: use csto(j) to generate proper inworld for block j
-	- W0 = outwld of idom(j) (with empty store)
-	- fold over bindings in conca(j):
-	    if binding inherited from idom(j) then add it to W0
-	- fold over bindings in csto(j):
-	    extend_wld ... 
-
-
-(k) [make_wfs_refstore]: generate WF constraints for each csto(j) 
-
-HEREHEREHERE
-
-(l) [process_cloc_phis]: generate SUB constraints for each 
-	- GEN annot on i --> j
-
-	- implicit WGEN annot on i --> j
-	- subs_of_edge me (i,j) = list of SSA substitutions on edge
-		- use in tcons_of_phis as well
-
-	- sto_j  = CF.csto_of_block me j 
-	           |> FI.refstore_subs FI.t_subs_names (CF.subs_of_edge me i j)
-	- sto_i' = CF.outwld_of_block me i 
-	           |> snd3
-		   |> FI.refstore_partition (fun cl -> refstore_mem sto_j cl)
-	- FI.make_cs_refstore env grd sto_i' sto_j ?1 ?2 ?3
-
-
-
-
-
-(*) ... dirty bit
-
-
-
+------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------
 - Ocaml Liquid Annot
