@@ -709,6 +709,7 @@ REG2 char *argv[];
   REG3 char **filelist;
   REG4 char **fileptr;
 
+/* pmr: we are unfriendly toward function pointers
   if (fgnd_flag = (signal (SIGINT, SIG_IGN) != SIG_IGN))
     signal (SIGINT, (SIG_TYPE) abort_compress);
 
@@ -716,6 +717,7 @@ REG2 char *argv[];
 #ifndef DOS
   signal (SIGHUP, (SIG_TYPE) abort_compress);
 #endif
+*/
 
 #ifdef COMPATIBLE
   nomagic = 1;			/* Original didn't have a magic number */
