@@ -64,7 +64,21 @@ HEREHEREHERE
 
 (l) [process_cloc_phis]: generate SUB constraints for each 
 	- GEN annot on i --> j
+
 	- implicit WGEN annot on i --> j
+	- subs_of_edge me (i,j) = list of SSA substitutions on edge
+		- use in tcons_of_phis as well
+
+	- sto_j  = CF.csto_of_block me j 
+	           |> FI.refstore_subs FI.t_subs_names (CF.subs_of_edge me i j)
+	- sto_i' = CF.outwld_of_block me i 
+	           |> snd3
+		   |> FI.refstore_partition (fun cl -> refstore_mem sto_j cl)
+	- FI.make_cs_refstore env grd sto_i' sto_j ?1 ?2 ?3
+
+
+
+
 
 (*) ... dirty bit
 

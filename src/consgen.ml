@@ -46,6 +46,7 @@ let mydebug = false
 let group_annots xs = 
   List.fold_left begin fun (gs, is, ns) a -> 
     match a with 
+    | Refanno.WGen _  
     | Refanno.Gen _  -> (a::gs, is, ns)
     | Refanno.Ins _  -> (gs, a::is, ns)
     | Refanno.New _  
@@ -107,6 +108,13 @@ let tcons_of_phis me phia =
       end vvjs 
     end asgns' 
   end iasgns 
+
+
+
+let tcons_of_edges me
+
+
+
 
 let bind_of_phi me v =
   let vn = FI.name_of_varinfo v in
@@ -384,6 +392,8 @@ let cons_of_sci tgr gnv gst sci shp =
   CF.create tgr gnv gst sci shp
   |> Misc.foldn process_block (Array.length sci.ST.phis)
   |> process_phis sci.ST.phis
+  
+  |> (fun me -> let cs,ds = tcons_of_phis me sci.ST.phis in CF.add_cons ([],cs,ds) me)
   |> process_cloc_phis (failwith "TBDNOW")
   |> CF.get_cons
 
@@ -462,24 +472,21 @@ let rename_args rf sci : FI.refcfun =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
   let xrs      = FI.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
-  let loc      = sci.ST.fdec.Cil.svar.Cil.vdecl in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
   let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
   let qls'     = FI.qlocs_of_refcfun rf in
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
   let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
   let hi', ho' = rf |> FI.stores_of_refcfun
-                    |> Misc.map_pair (FI.refstore_subs (* loc *) FI.t_subs_names subs) in
+                    |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_spec scim (funspec, varspec, storespec) =
-  (funspec |> SM.mapi begin fun fn (rf,b) ->
-     if SM.mem fn scim
-     then (rename_args rf (SM.find fn scim), b)
-     else (rf, b)
-   end,
-   varspec,
-   storespec)
+let rename_funspec scim funspec = 
+  SM.mapi begin fun fn (rf,b) -> 
+    if SM.mem fn scim
+    then (rename_args rf (SM.find fn scim), b)
+    else (rf, b)
+  end funspec
 
 (******************************************************************************)
 (************** Generate Constraints for Each Function and Global *************)
@@ -617,7 +624,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in
-  let spec     = rename_spec scim spec in
+  let spec     = Misc.app_fst3 (rename_funspec scim) spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim cil spec scim in
   let shm      = SM.map fst shm in

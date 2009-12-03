@@ -141,11 +141,11 @@ let slocs_of_store st =
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
-let refstore_empty = LM.empty
-
-let refstore_mem l sto = LM.mem l sto
-
-let refstore_remove l sto = LM.remove l sto
+let refstore_fold      = LM.fold
+let refstore_partition = fun f -> Ctypes.prestore_partition (fun l _ -> f l) 
+let refstore_empty     = LM.empty
+let refstore_mem       = fun l sto -> LM.mem l sto
+let refstore_remove    = fun l sto -> LM.remove l sto
 
 let refstore_set sto l rd =
   try LM.add l rd sto with Not_found -> 
@@ -155,11 +155,6 @@ let refstore_get sto l =
   try LM.find l sto with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
-
-let refstore_fold      = LM.fold
-(* let refstore_fold f sto x = LM.fold (fun k v x  -> f k v x) sto x *)
-
-let refstore_partition = fun f -> Ctypes.prestore_partition (fun l _ -> f l) 
 
 let plocs_of_refldesc rd = 
   Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
