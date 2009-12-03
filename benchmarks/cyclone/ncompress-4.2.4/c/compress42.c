@@ -536,7 +536,6 @@ int exit_code = -1;		/* Exitcode of compress (-1 no file compressed) */
 char_type inbuf[IBUFSIZ + 64];	/* Input buffer                                                                 */
 char_type outbuf[OBUFSIZ + 2048];	/* Output buffer                                                           */
 
-struct stat infstat;		/* Input file status                                                    */
 char *ifname;			/* Input filename                                                               */
 int remove_ofname = 0;		/* Remove output file on a error                                */
 char ofname[MAXPATHLEN];	/* Output filename                                                              */
@@ -896,6 +895,7 @@ comprexx (fileptr)
   int fdin;
   int fdout;
   char tempname[MAXPATHLEN];
+  struct stat infstat;		/* Input file status */
 
   strcpy (tempname, *fileptr);
   errno = 0;
