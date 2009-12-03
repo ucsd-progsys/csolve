@@ -37,6 +37,8 @@ val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.t
 val phis_of_block       : t -> int -> Cil.varinfo list 
 val guard_of_block      : t -> int -> int option -> Ast.pred
 val csto_of_block       : t -> int -> FixInterface.refstore
+val succs_of_block      : t -> int -> int list
+val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
 
 val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
 

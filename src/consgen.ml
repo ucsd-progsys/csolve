@@ -74,10 +74,6 @@ let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
      |> FI.t_subs_exps subs
 
-(****************************************************************************)
-(********************** Constraints for Phis ********************************)
-(****************************************************************************)
-
 let weaken_undefined me rm env v = 
   let n = FI.name_of_varinfo v in
   let b = FI.ce_mem n env && CF.is_undefined me v in
@@ -87,47 +83,6 @@ let weaken_undefined me rm env v =
       let env' = FI.ce_rem n env in
       FI.ce_adds env' [(n,r)]
 
-let tcons_of_phis me phia =
-  let iasgns = Misc.array_to_index_list phia in 
-  Misc.flap_pair begin fun (i, asgns) ->
-    let envi,_,_   = CF.outwld_of_block me i in
-    let asgns'     = Misc.transpose asgns in
-    Misc.flap_pair begin fun (j, vvjs) ->
-      let pj       = CF.guard_of_block me j (Some i) in
-      let locj     = CF.location_of_block me j in
-      let tagj     = CF.tag_of_instr me j 0 locj in
-      let envj,_,_ = CF.outwld_of_block me j in
-      let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
-      Misc.flap_pair begin fun (v, vj) ->
-        let envj   = weaken_undefined me false envj v in
-        let n, nj  = Misc.map_pair FI.name_of_varinfo (v, vj) in
-        let lhs    = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
-                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
-        let rhs    = FI.ce_find n envi |> FI.t_subs_names nnjs in
-        FI.make_cs envj pj lhs rhs None tagj locj 
-      end vvjs 
-    end asgns' 
-  end iasgns 
-
-
-
-let tcons_of_edges me
-
-
-
-
-let bind_of_phi me v =
-  let vn = FI.name_of_varinfo v in
-  let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
-  (vn, cr)
-
-let wcons_of_phis me tag env vs =
-  let wenv = List.fold_left (weaken_undefined me true) env vs in
-  Misc.flap begin fun v -> 
-    let vn  = FI.name_of_varinfo v in
-    let cr  = FI.ce_find vn env in 
-    FI.make_wfs wenv cr tag
-  end vs
 
 (****************************************************************************)
 (********************** Constraints for Annots ******************************)
@@ -341,6 +296,19 @@ let cons_of_annotstmt me loc i grd wld (anns, stmt) =
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
+let bind_of_phi me v =
+  let vn = FI.name_of_varinfo v in
+  let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
+  (vn, cr)
+
+let wcons_of_phis me tag env vs =
+  let wenv = List.fold_left (weaken_undefined me true) env vs in
+  Misc.flap begin fun v -> 
+    let vn  = FI.name_of_varinfo v in
+    let cr  = FI.ce_find vn env in 
+    FI.make_wfs wenv cr tag
+  end vs
+
 let cons_of_block me i =
   let loc         = CF.location_of_block me i in
   let grd         = CF.guard_of_block me i None in
@@ -355,6 +323,52 @@ let cons_of_block me i =
   (wld, (ws ++ ws', cs, ds))
 
 (****************************************************************************)
+(********************** Constraints for (cfg)edge  **************************)
+(****************************************************************************)
+
+(* {{{
+let tcons_of_phis me phia =
+  let iasgns = Misc.array_to_index_list phia in 
+  Misc.flap_pair begin fun (i, asgns) ->
+    let envi,_,_   = CF.outwld_of_block me i in
+    let asgns'     = Misc.transpose asgns in
+    Misc.flap_pair begin fun (j, vvjs) ->
+      let pj       = CF.guard_of_block me j (Some i) in
+      let locj     = CF.location_of_block me j in
+      let tagj     = CF.tag_of_instr me j 0 locj in
+      let envj,_,_ = CF.outwld_of_block me j in
+      let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
+      Misc.flap_pair begin fun (v, vj) ->
+        let envj   = weaken_undefined me false envj v in
+        let n, nj  = Misc.map_pair FI.name_of_varinfo (v, vj) in
+        let lhs    = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
+                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
+        let rhs    = FI.ce_find n envi |> FI.t_subs_names nnjs in
+        FI.make_cs envj pj lhs rhs None tagj locj 
+      end vvjs 
+    end asgns' 
+  end iasgns 
+}}} *)
+
+let cons_of_edge me i j = 
+  let envi  = CF.outwld_of_block me i |> fst3 in
+  let loci  = CF.location_of_block me i in
+  let tagi  = CF.tag_of_instr me i 0 loci in
+  let grdij = CF.guard_of_block me i (Some j) in
+  let envj  = CF.outwld_of_block me j |> fst3 in
+  let vjvis = CF.asgns_of_edge me i j in
+  let subs  = List.map (Misc.map_pair FI.name_of_varinfo) vjvis in
+  Misc.flap_pair begin fun (vj, vi) ->
+    let envi = weaken_undefined me false envi vj in
+    let lhs  = let ni = FI.name_of_varinfo vi in
+               if not (CF.is_undefined me vi) then FI.t_name envi ni else  
+                  FI.ce_find ni envi |> FI.ctype_of_refctype |> FI.t_true in
+    let rhs  = let nj = FI.name_of_varinfo vj in
+               FI.ce_find nj envj |> FI.t_subs_names subs in
+    FI.make_cs envi grdij lhs rhs None tagi loci
+  end vjvis
+
+(****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)
 (****************************************************************************)
 
@@ -362,12 +376,21 @@ let process_block me i =
   let wld, x = cons_of_block me i in
   me |> CF.add_wld i wld |> CF.add_cons x
 
+let process_block_succs me i = 
+  let js = CF.succs_of_block me i in
+  List.fold_left begin fun me j -> 
+    let cs, ds = cons_of_edge me i j in
+    CF.add_cons ([], cs, ds) me
+  end me js 
+
+(* 
 let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
 
 let process_cloc_phis = failwith "TBDNOW" 
-(* let process_edgem em me =
+
+let process_edgem em me =
   Misc.IntIntMap.fold begin fun (i, j) ann me ->
     let grd = CF.guard_of_block me i (Some j) in
     let loc = CF.location_of_block me i in
@@ -389,12 +412,14 @@ let log_of_sci sci shp =
 
 let cons_of_sci tgr gnv gst sci shp =
   let _ = log_of_sci sci shp in
+  let n = Array.length sci.ST.phis in
   CF.create tgr gnv gst sci shp
-  |> Misc.foldn process_block (Array.length sci.ST.phis)
-  |> process_phis sci.ST.phis
-  
-  |> (fun me -> let cs,ds = tcons_of_phis me sci.ST.phis in CF.add_cons ([],cs,ds) me)
-  |> process_cloc_phis (failwith "TBDNOW")
+  |> Misc.foldn process_block n 
+(*  |> process_phis sci.ST.phis
+    |> (fun me -> let cs,ds = tcons_of_phis me sci.ST.phis in CF.add_cons ([],cs,ds) me)
+    |> process_cloc_phis (failwith "TBDNOW")
+*)  
+  |> Misc.foldn process_block_succs n 
   |> CF.get_cons
 
 (****************************************************************************)
@@ -443,26 +468,30 @@ let shapem_of_scim cil spec scim =
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else (SM.add fn cf bm, fm)
      end (fst3 spec)
-  |> (fun (bm, fm) -> Misc.sm_print_keys "builtins" bm; Misc.sm_print_keys "non-builtins" fm; (bm, fm))
+  >> (fst <+> Misc.sm_print_keys "builtins")
+  >> (snd <+> Misc.sm_print_keys "non-builtins")
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
-  |> (fun (bm, fm) -> infer_shapes cil spec fm)
+  |> (fun (_, fm) -> infer_shapes cil spec fm)
   >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
 
+
+(* TBD: UGLY *)
 let mk_gnv (funspec, varspec, storespec) cenv decs =
-  let decs = List.fold_left (fun decs -> function FunDec (fn, _) -> SS.add fn decs | _ -> decs) SS.empty decs in
-  let gnv0 =
-       varspec
-    |> M.sm_to_list
-    |> List.map (fun (vn, (vty, _)) -> (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh))
-    |> FI.ce_adds FI.ce_empty
-  in
-    M.sm_to_list cenv
-    |> List.map begin fun (fn, ft) ->
-         (fn, if SS.mem fn decs
-          then FI.t_fresh_fn ft
-          else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
-       end
-    |> FI.ce_adds_fn gnv0
+  let decs = decs |> Misc.map_partial (function FunDec (fn,_) -> Some fn | _ -> None)
+                  |> List.fold_left (Misc.flip SS.add) SS.empty in
+  let gnv0 = varspec
+             |> M.sm_to_list
+             |> List.map begin fun (vn, (vty, _)) -> 
+                 (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh) 
+                end
+             |> FI.ce_adds FI.ce_empty in
+  M.sm_to_list cenv
+  |> List.map begin fun (fn, ft) ->
+       (fn, if SS.mem fn decs
+            then FI.t_fresh_fn ft
+            else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
+     end
+  |> FI.ce_adds_fn gnv0
 
 (********************************************************************************)
 (*************************** Unify Spec Names and CIL names *********************)

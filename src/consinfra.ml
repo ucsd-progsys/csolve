@@ -27,15 +27,16 @@
 (************* Constraint Generation Infrastructure ****************)
 (*******************************************************************)
 
-module ST = Ssa_transform
-module IM = Misc.IntMap
-module SM = Misc.StringMap
-module C  = FixConstraint
-module FI = FixInterface 
-module CI = CilInterface
-module EM = Ctypes.ExpMap
-module LI = Inferctypes
-module LM = Sloc.SlocMap
+module ST  = Ssa_transform
+module IM  = Misc.IntMap
+module SM  = Misc.StringMap
+module C   = FixConstraint
+module FI  = FixInterface 
+module CI  = CilInterface
+module EM  = Ctypes.ExpMap
+module LI  = Inferctypes
+module LM  = Sloc.SlocMap
+module IIM = Misc.IntIntMap
 
 open Misc.Ops
 open Cil
@@ -57,7 +58,8 @@ type t = {
   anna    : Refanno.block_annotation array;
   cstoa   : (FI.refstore * Sloc.t list) array; 
   ctab    : Refanno.ctab;
-  undefm  : unit SM.t
+  undefm  : unit SM.t;
+  edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
 }
 
 let ctype_of_varinfo ctl v =
@@ -127,6 +129,15 @@ let cstoa_of_annots fname gdoms conca astore =
     (sto, inclocs)
   end conca
 
+let edge_asgnm_of_phia phia =
+  Misc.array_to_index_list phia
+  |> List.fold_left begin fun em (j, asgns) -> 
+       Misc.transpose asgns 
+       |> List.fold_left begin fun em (i, vvis) -> 
+            IIM.add (i,j) (vvis : (Cil.varinfo * Cil.varinfo) list) em 
+          end em  
+     end IIM.empty 
+ 
 let create tgr gnv gst sci shp =
   let fdec    = sci.ST.fdec in
   let env     = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
@@ -152,7 +163,8 @@ let create tgr gnv gst sci shp =
    anna    = shp.LI.anna;
    cstoa   = cstoa;
    ctab    = shp.LI.theta;
-   undefm  = make_undefm formalm sci.ST.phis
+   undefm  = make_undefm formalm sci.ST.phis;
+   edgem   = edge_asgnm_of_phia sci.ST.phis
   }
 
 let add_cons (ws, cs, ds) me =
@@ -236,6 +248,10 @@ let guard_of_block me i jo =
 
 let csto_of_block = fun me i -> me.cstoa.(i) |> fst
 
+let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
+
+let asgns_of_edge me i j = 
+  try IIM.find (i, j) me.edgem with Not_found -> []
 
   (*
 let is_formal fdec v =

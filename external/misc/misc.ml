@@ -768,6 +768,7 @@ let mk_string_factory s =
   let (fresh_int, reset_fresh_int) = mk_int_factory () in
     ((fun () -> s^(string_of_int (fresh_int ()))), reset_fresh_int)
 
+let swap (x,y) = (y,x)
 
 (* ('a * (int * 'b) list) list -> (int * ('a * 'b) list) list *)
 let transpose x_iys_s = 
