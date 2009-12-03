@@ -134,6 +134,11 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
       let cds    = FI.make_cs_refldesc env grd ld1 ld2 tago tag loc in
       ((env, sto', tago), cds)
 
+  | Refanno.WGen  (cloc, aloc) ->
+      let _      = CM.assertLoc loc (FI.refstore_mem cloc sto) "cons_of_annot: (WGen)!" in
+      let sto'   = FI.refstore_remove cloc sto in
+      ((env, sto', tago), ([],[]))
+
   | Refanno.Ins (aloc, cloc) ->
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let aldesc = FI.refstore_get sto aloc in
@@ -337,7 +342,7 @@ let cons_of_block me i =
   let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
   let wtag        = CF.tag_of_instr me i 0 loc in
   let ws          = wcons_of_phis me wtag env phis in
-  let ws'         = FI.make_wfs_refstore env wtag (CF.csto_of_block me i) in
+  let ws'         = FI.make_wfs_refstore env (CF.csto_of_block me i) wtag in
   let wld, cs, ds = cons_of_annotstmt me loc i grd (env, st, tag) astmt in
   (wld, (ws ++ ws', cs, ds))
 

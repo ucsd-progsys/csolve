@@ -234,6 +234,8 @@ let guard_of_block me i jo =
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
       Ast.pAnd [p; p']
 
+let csto_of_block = fun me i -> me.cstoa.(i) |> fst
+
 
   (*
 let is_formal fdec v =

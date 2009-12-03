@@ -36,6 +36,7 @@ val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Cil.stmt
 val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.t 
 val phis_of_block       : t -> int -> Cil.varinfo list 
 val guard_of_block      : t -> int -> int option -> Ast.pred
+val csto_of_block       : t -> int -> FixInterface.refstore
 
 val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
 
