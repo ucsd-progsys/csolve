@@ -56,7 +56,7 @@ type t = {
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
   anna    : Refanno.block_annotation array;
-  cstoa   : (FI.refstore * Sloc.t list) array; 
+  cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
   ctab    : Refanno.ctab;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
@@ -115,7 +115,7 @@ let diff_binding conc (al, x) =
 
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
-  Array.mapi begin fun i (conc,_) ->
+  Array.mapi begin fun i (conc,conc') ->
     let idom, _     = gdoms.(i) in 
     let _,idom_conc = conca.(idom) in
     let joins, ins  = Sloc.slm_bindings conc |> List.partition (diff_binding idom_conc) in
@@ -126,7 +126,7 @@ let cstoa_of_annots fname gdoms conca astore =
                          end emp
                       |> FI.store_of_refstore 
                       |> FI.refstore_fresh fname in
-    (sto, inclocs)
+    (sto, inclocs, conc')
   end conca
 
 let edge_asgnm_of_phia phia =
@@ -205,9 +205,9 @@ let inwld_of_block me = function
   | 0 -> 
       (me.gnv, me.astore, None)
   | j ->
-      let idom, _    = me.sci.ST.gdoms.(j) in
-      let env,sto,t  = outwld_of_block me idom in
-      let csto,incls = me.cstoa.(j) in
+      let idom, _      = me.sci.ST.gdoms.(j) in
+      let env,sto,t    = outwld_of_block me idom in
+      let csto,incls,_ = me.cstoa.(j) in
       (env, me.astore, t)  
       (* Copy "inherited" conc-locations *)
       |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
@@ -246,12 +246,22 @@ let guard_of_block me i jo =
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
       Ast.pAnd [p; p']
 
-let csto_of_block = fun me i -> me.cstoa.(i) |> fst
-
+let csto_of_block  = fun me i -> me.cstoa.(i) |> fst3
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
 
 let asgns_of_edge me i j = 
   try IIM.find (i, j) me.edgem with Not_found -> []
+
+let annots_of_edge me i j =
+  let iconc' = me.cstoa.(i) |> thd3 in
+  let jsto   = csto_of_block me j in
+  LM.fold begin fun al (cl, t) acc -> 
+    if FI.refstore_mem cl jsto then acc else 
+      if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
+        (Refanno.WGen (cl, al) :: acc)
+  end iconc' []  
+
+
 
   (*
 let is_formal fdec v =

@@ -42,8 +42,8 @@ type tag = int * op
 
 let tag_fresh = let x = ref 0 in fun o -> let _ = incr x in (!x, o)
 let tag_eq    = (=)
-let tag_dirty = function Write -> true | _ -> false 
-let d_tag     = fun () (d, o) -> Pretty.dprintf "(%d, %b) " d (tag_dirty o)
+let tag_dirty = function (_,Write) -> true | _ -> false 
+let d_tag     = fun () t -> Pretty.dprintf "(%d, %b) " (fst t) (tag_dirty t)
 
 (************************************************************************************)
 (**************************** Type Definitions **************************************)

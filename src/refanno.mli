@@ -39,6 +39,7 @@ type annotation =
  * 3. gens for end of block placed on out-edges of block *) 
 type block_annotation = annotation list list
 
+val tag_dirty : tag -> bool
 val tag_eq : tag -> tag -> bool
 val d_conca: unit -> (cncm * cncm) array -> Pretty.doc 
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 

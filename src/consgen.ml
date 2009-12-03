@@ -110,9 +110,6 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
-
-
-
   
 let cons_of_annots me loc tag grd wld annots =
   Misc.mapfold (cons_of_annot loc tag grd) wld annots
@@ -350,14 +347,7 @@ let tcons_of_phis me phia =
   end iasgns 
 }}} *)
 
-let cons_of_edge me i j = 
-  let envi  = CF.outwld_of_block me i |> fst3 in
-  let loci  = CF.location_of_block me i in
-  let tagi  = CF.tag_of_instr me i 0 loci in
-  let grdij = CF.guard_of_block me i (Some j) in
-  let envj  = CF.outwld_of_block me j |> fst3 in
-  let vjvis = CF.asgns_of_edge me i j in
-  let subs  = List.map (Misc.map_pair FI.name_of_varinfo) vjvis in
+let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
   Misc.flap_pair begin fun (vj, vi) ->
     let envi = weaken_undefined me false envi vj in
     let lhs  = let ni = FI.name_of_varinfo vi in
@@ -367,6 +357,28 @@ let cons_of_edge me i j =
                FI.ce_find nj envj |> FI.t_subs_names subs in
     FI.make_cs envi grdij lhs rhs None tagi loci
   end vjvis
+
+let gen_cons_of_edge me iwld' loci tagi grdij i j =
+  CF.annots_of_edge me i j 
+  |> cons_of_annots me loci tagi grdij iwld'
+  |> snd
+
+let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j = 
+  let rsto   = CF.csto_of_block me j |> FI.refstore_subs FI.t_subs_names subs  in 
+  let lsto,_ = FI.refstore_partition (fun cl -> FI.refstore_mem cl rsto) isto' in
+  FI.make_cs_refstore envi grdij lsto rsto true None tagi loci
+
+let cons_of_edge me i j = 
+  let iwld' = CF.outwld_of_block me i in
+  let loci  = CF.location_of_block me i in
+  let tagi  = CF.tag_of_instr me i 0 loci in
+  let grdij = CF.guard_of_block me i (Some j) in
+  let envj  = CF.outwld_of_block me j |> fst3 in
+  let vjvis = CF.asgns_of_edge me i j in
+  let subs  = List.map (Misc.map_pair FI.name_of_varinfo) vjvis in
+  (var_cons_of_edge me (fst3 iwld') loci tagi grdij envj subs vjvis) +++
+  (gen_cons_of_edge me iwld' loci tagi grdij i j) +++
+  (join_cons_of_edge me iwld' loci tagi grdij subs i j)
 
 (****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)
@@ -387,8 +399,6 @@ let process_block_succs me i =
 let process_phis phia me =
   let cs, ds = tcons_of_phis me phia in
   CF.add_cons ([], cs, ds) me 
-
-let process_cloc_phis = failwith "TBDNOW" 
 
 let process_edgem em me =
   Misc.IntIntMap.fold begin fun (i, j) ann me ->
@@ -417,7 +427,6 @@ let cons_of_sci tgr gnv gst sci shp =
   |> Misc.foldn process_block n 
 (*  |> process_phis sci.ST.phis
     |> (fun me -> let cs,ds = tcons_of_phis me sci.ST.phis in CF.add_cons ([],cs,ds) me)
-    |> process_cloc_phis (failwith "TBDNOW")
 *)  
   |> Misc.foldn process_block_succs n 
   |> CF.get_cons
