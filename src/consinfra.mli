@@ -27,6 +27,7 @@ type t
 
 type wld = FixInterface.cilenv * FixInterface.refstore * CilTag.t option
 
+val inenv_of_block      : t -> int -> FixInterface.cilenv 
 val inwld_of_block      : t -> int -> wld 
 val outwld_of_block     : t -> int -> wld 
 val add_wld             : int -> wld -> t -> t

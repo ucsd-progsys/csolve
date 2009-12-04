@@ -37,7 +37,7 @@ module CM = CilMisc
 open Misc.Ops
 open Cil
 
-let mydebug = false 
+let mydebug = true 
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)
@@ -293,11 +293,7 @@ let cons_of_annotstmt me loc i grd wld (anns, stmt) =
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
-let bind_of_phi me v =
-  let vn = FI.name_of_varinfo v in
-  let cr = CF.ctype_of_varinfo me v |> FI.t_fresh in
-  (vn, cr)
-
+(* 
 let wcons_of_phis me tag env vs =
   let wenv = List.fold_left (weaken_undefined me true) env vs in
   Misc.flap begin fun v -> 
@@ -305,19 +301,28 @@ let wcons_of_phis me tag env vs =
     let cr  = FI.ce_find vn env in 
     FI.make_wfs wenv cr tag
   end vs
+*)
+
+let wcons_of_block me loc i =
+  let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in
+  let tag  = CF.tag_of_instr me i 0 loc in
+  let phis = CF.phis_of_block me i in
+  let env  = CF.inenv_of_block me i in 
+  let wenv = List.fold_left (weaken_undefined me true) env phis in
+  let ws   = phis |> List.map  (fun v -> FI.ce_find (FI.name_of_varinfo v) env) 
+                  |> Misc.flap (fun cr -> FI.make_wfs wenv cr tag) in
+  let ws'  = FI.make_wfs_refstore wenv (CF.csto_of_block me i) tag in
+  ws ++ ws'
 
 let cons_of_block me i =
+  let _           = if mydebug then Printf.printf "cons_of_block: %d \n" i in
   let loc         = CF.location_of_block me i in
   let grd         = CF.guard_of_block me i None in
-  let phis        = CF.phis_of_block me i in
   let astmt       = CF.annotstmt_of_block me i in
-  let env,st,tag  = CF.inwld_of_block me i in
-  let env         = List.map (bind_of_phi me) phis |> FI.ce_adds env in
-  let wtag        = CF.tag_of_instr me i 0 loc in
-  let ws          = wcons_of_phis me wtag env phis in
-  let ws'         = FI.make_wfs_refstore env (CF.csto_of_block me i) wtag in
-  let wld, cs, ds = cons_of_annotstmt me loc i grd (env, st, tag) astmt in
-  (wld, (ws ++ ws', cs, ds))
+  let wld         = CF.inwld_of_block me i in
+  let ws          = wcons_of_block me loc i in
+  let wld, cs, ds = cons_of_annotstmt me loc i grd wld astmt in
+  (wld, (ws, cs, ds))
 
 (****************************************************************************)
 (********************** Constraints for (cfg)edge  **************************)
@@ -368,7 +373,8 @@ let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j =
   let lsto,_ = FI.refstore_partition (fun cl -> FI.refstore_mem cl rsto) isto' in
   FI.make_cs_refstore envi grdij lsto rsto true None tagi loci
 
-let cons_of_edge me i j = 
+let cons_of_edge me i j =
+  let _     = if mydebug then Printf.printf "cons_of_edge: %d --> %d \n" i j in 
   let iwld' = CF.outwld_of_block me i in
   let loci  = CF.location_of_block me i in
   let tagi  = CF.tag_of_instr me i 0 loci in
@@ -388,7 +394,7 @@ let process_block me i =
   let wld, x = cons_of_block me i in
   me |> CF.add_wld i wld |> CF.add_cons x
 
-let process_block_succs me i = 
+let process_block_succs me i =
   let js = CF.succs_of_block me i in
   List.fold_left begin fun me j -> 
     let cs, ds = cons_of_edge me i j in

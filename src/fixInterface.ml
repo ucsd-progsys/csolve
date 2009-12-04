@@ -593,6 +593,8 @@ let make_wfs_refstore env sto tag =
     let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr tag) ncrs in
     ws' ++ ws
   end sto []
+  >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
+
 
 let make_wfs_fn cenv rft tag =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
@@ -640,11 +642,12 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   end ncrs12
   |> Misc.splitflatten
 
-let make_cs_refstore env p st1 st2 polarity tago tag =
- (* {{{ let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
+ (* {{{ *) 
+  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in }}}*)
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in (*  }}}*)
   let rv =
   (if polarity then st2 else st1)
   |> slocs_of_store 
@@ -654,8 +657,16 @@ let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in }}}*)
        make_cs_refldesc env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten in
-  (* let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) (fst rv) in *) 
+  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) (fst rv) in 
   rv
+
+(* API *)
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
+  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_refstore" in 
+    assert false
+
 
 (* API *)
 let make_cs cenv p rct1 rct2 tago tag loc =
@@ -669,13 +680,6 @@ let make_cs_validptr cenv p rct tago tag loc =
   try make_cs_validptr cenv p rct tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_validptr" in
-    assert false
-
-(* API *)
-let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore env p st1 st2 polarity tago tag with ex ->
-    let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
-    let _ = asserti false "make_cs_refstore" in 
     assert false
 
 (* API *)

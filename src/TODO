@@ -1,5 +1,17 @@
-../postests/array1.c
+
+
+[OK] 1. Use the right input env in cons_of_block (for wf) should not include conc-loc bindings of the block
+
+HEREHEREHEREHERE
+2. Check fixpoint in refanno.ml
+
 ../postests/test02p.c
+The annots for block 4 are broken:
+Block annots are empty, (line 290)
+but (line 305)
+block 4: CONC-In: (A8 |-> C15, (14, true) )  CONC-Out: 
+
+../postests/array1.c
 ../postests/structarr.c
 ../postests/unsignedchar.c
 ../postests/field1.c

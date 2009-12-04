@@ -31,7 +31,7 @@ module S   = Sloc
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true 
 
 (************************************************************************************)
 (**************************** Location Tags******************************************)
@@ -133,8 +133,6 @@ let d_annotations () anns =
 let d_block_annotation () annss =
   Misc.numbered_list annss
   |> Pretty.d_list "\n" (fun () (i,x) -> Pretty.dprintf "%i: %a" i d_annotations x) ()
-
-
 
 (* API *)
 let d_block_annotation_array =
@@ -371,6 +369,7 @@ let d_instrucs () instrs =
   Pretty.seq (Pretty.text "; ") (fun i -> Pretty.dprintf "%a" d_instr i) instrs 
 
 let annotate_block globalslocs ctm theta j anns instrs (conc0 : cncm) =
+  let _ = if mydebug then Printf.printf "annotate_block  %d \n" j in
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block: %d" j in
   List.combine (Misc.chop_last anns) instrs
   |> Misc.mapfold (annotate_instr globalslocs ctm theta) conc0 

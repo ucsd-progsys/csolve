@@ -194,31 +194,7 @@ let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
 let tag_of_instr me block_id instr_id loc = 
-  CilTag.make_t me.tgr (* (location_of_block me block_id) *) loc (get_fname me) block_id instr_id
-
-let phis_of_block me i = 
-  me.sci.ST.phis.(i) 
-  |> Misc.map fst
-
-let outwld_of_block me i =
-  IM.find i me.wldm
-
-let inwld_of_block me = function
-  | 0 -> 
-      (me.gnv, me.astore, None)
-  | j ->
-      let idom, _      = me.sci.ST.gdoms.(j) in
-      let env,sto,t    = outwld_of_block me idom in
-      let csto,incls,_ = me.cstoa.(j) in
-      (env, me.astore, t)  
-      (* Copy "inherited" conc-locations *)
-      |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
-           (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
-         end) incls
-      (* Add fresh bindings for "joined" conc-locations *)
-      |> FI.refstore_fold begin fun cl ld wld ->
-           FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
-         end csto 
+  CilTag.make_t me.tgr loc (get_fname me) block_id instr_id
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
@@ -289,3 +265,44 @@ let ctype_of_varinfo me v =
 
 let refctype_of_global me v =
   FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
+
+let phis_of_block me i = 
+  me.sci.ST.phis.(i) 
+  |> Misc.map fst
+
+let outwld_of_block me i =
+  IM.find i me.wldm
+
+let bind_of_phi me v =
+  let vn = FI.name_of_varinfo v in
+  let cr = ctype_of_varinfo me v |> FI.t_fresh in
+  (vn, cr)
+
+let idom_of_block = fun me i -> fst (me.sci.ST.gdoms.(i))
+
+let inenv_of_block me = function
+  | 0 -> me.gnv
+  | i -> let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
+         let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
+         FI.ce_adds env0 phibs 
+
+let inwld_of_block me = function
+  | 0 -> 
+      (me.gnv, me.astore, None)
+  | j ->
+      let _,sto,_      = idom_of_block me j |> outwld_of_block me in 
+      let csto,incls,_ = me.cstoa.(j) in
+      let tag          = location_of_block me j |> tag_of_instr me j 0  in
+      (inenv_of_block me j, me.astore, Some tag)  
+      (* Copy "inherited" conc-locations *)
+      |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
+          let _ = Pretty.printf "inwld_of_block: inherited-loc %a \n" Sloc.d_sloc cl in
+          (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
+         end) incls
+      (* Add fresh bindings for "joined" conc-locations *)
+      |> FI.refstore_fold begin fun cl ld wld ->
+          let _ = Pretty.printf "inwld_of_block: joined-loc %a \n" Sloc.d_sloc cl in
+          FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
+         end csto 
+
+
