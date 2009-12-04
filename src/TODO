@@ -1,10 +1,3 @@
-//Unconstrained KVar 
-../postests/field1.c
-../postests/structarr.c
-../postests/structarr2.c
-../negtests/field-unsafe.c
-../negtests/ll6-unsafe.c
-
 //Wrong Answer ?
 ../postests/unsignedchar.c
 
@@ -44,8 +37,6 @@ For each al -> cl in concm (must be same set in ORIG, CHECK)
 	- use int list instead of grisly recursive type
 -------------------------------------------------------------------------
 
-- fold/unfold analysis
-
 - pretty printing annots using CTypes
 
 Major Expressiveness Limitations:
@@ -72,8 +63,6 @@ How to find things for which you _dont_ want to generate Kvars
 
 -------------------------------------------------------------------------
 
-[Global Vars]
-
 [validptr-fold] make validptr calls NOT fold up stuff...
 
 [Ops]	get postests/hashfunc.c working...
@@ -81,7 +70,6 @@ How to find things for which you _dont_ want to generate Kvars
         (make CilInterface.expr_of_cilexp return a refinement instead of expr)
 	(make CilInterface.pred_of_cilexp handle !)
 
-./main.native -typespec ../postests/mst-scratch.c
 [mst]
 Major Issues
 1. Do ALL locations have to be abstract? Makes for weaker invariants.
@@ -91,11 +79,9 @@ Major Issues
 
 Issues
 1. localmalloc -> malloc ... (no custom malloc) 
-2. globals
 3. remove fun ptr
 4. void * Polymorphism (generic hash-table -- "instantiated to int")
 5. pesky int-to-ptr cast fails
-6. unop not (used in guards)
 7. wierd operations like >> and mask
 6. ??? (go through JHALA comments to get a full list)
 

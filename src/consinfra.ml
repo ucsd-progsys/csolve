@@ -60,6 +60,7 @@ type t = {
   ctab    : Refanno.ctab;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
+  phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t
 }
 
 let ctype_of_varinfo ctl v =
@@ -166,8 +167,9 @@ let create tgr gnv gst sci shp =
    cstoa   = cstoa;
    ctab    = shp.LI.theta;
    undefm  = make_undefm formalm sci.ST.phis;
-   edgem   = edge_asgnm_of_phia sci.ST.phis
-  }
+   edgem   = edge_asgnm_of_phia sci.ST.phis;
+   phibt   = Hashtbl.create 17
+}
 
 let add_cons (ws, cs, ds) me =
   {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds}
@@ -274,13 +276,15 @@ let outwld_of_block me i =
   IM.find i me.wldm
 
 let bind_of_phi me v =
-  let vn = FI.name_of_varinfo v in
-  let cr = ctype_of_varinfo me v |> FI.t_fresh in
-  (vn, cr)
+  Misc.do_memo me.phibt begin fun v -> 
+    let vn = FI.name_of_varinfo v in
+    let cr = ctype_of_varinfo me v |> FI.t_fresh in
+    (vn, cr)
+  end v v.vname
 
 let idom_of_block = fun me i -> fst (me.sci.ST.gdoms.(i))
 
-let inenv_of_block me = function
+let inenv_of_block me = function 
   | 0 -> me.gnv
   | i -> let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
          let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
@@ -296,12 +300,10 @@ let inwld_of_block me = function
       (inenv_of_block me j, me.astore, Some tag)  
       (* Copy "inherited" conc-locations *)
       |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
-          let _ = Pretty.printf "inwld_of_block: inherited-loc %a \n" Sloc.d_sloc cl in
           (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          let _ = Pretty.printf "inwld_of_block: joined-loc %a \n" Sloc.d_sloc cl in
           FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
          end csto 
 

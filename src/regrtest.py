@@ -22,9 +22,9 @@
 import sys, time, os, os.path, subprocess, string
 import itertools as it
 
-solve = "./main.native".split()
-null  = open("/dev/null", "w")
-
+solve      = "./main.native".split()
+null       = open("/dev/null", "w")
+logfile    = "./regrtest.results"
 argcomment = "//! run with "
 
 def logged_sys_call(args, out=None, err=None):
@@ -48,17 +48,24 @@ def getfileargs(file):
   else:
     return []
 
+def logtest(file, ok, runtime):
+  if ok:
+    oks = "\033[1;32mSUCCESS!\033[1;0m\n"
+  else:
+    oks = "\033[1;31mFAILURE :(\033[1;0m\n"
+  outs = "test: %s \ntime: %f seconds \nresult: %s \n \n" % (file, runtime, oks) 
+  print outs
+  f = open(logfile, "a")
+  f.write(outs)
+  f.close
+
 def runtest(file, expected_status, dargs):
   fargs   = getfileargs(file)
-  start  = time.time()
-  status = solve_quals(file, True, False, True, fargs + dargs)
-  print "%f seconds" % (time.time() - start)
-
-  ok = (status == expected_status)
-  if ok:
-    print "\033[1;32mSUCCESS!\033[1;0m\n"
-  else:
-    print "\033[1;31mFAILURE :(\033[1;0m\n"
+  start   = time.time()
+  status  = solve_quals(file, True, False, True, fargs + dargs)
+  runtime = time.time() - start
+  ok      = (status == expected_status)
+  logtest(file, ok, runtime)
   return (file, ok)
 
 def runtests(dir, expected_status, dargs):

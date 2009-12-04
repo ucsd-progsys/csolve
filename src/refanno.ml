@@ -31,7 +31,7 @@ module S   = Sloc
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 (************************************************************************************)
 (**************************** Location Tags******************************************)
@@ -171,6 +171,15 @@ let d_theta () theta =
   |> Pretty.docList ~sep:(Pretty.text ",")
        (fun (vn,cl) -> Pretty.dprintf "(%s := %a)" vn Sloc.d_sloc cl) ()
 
+let d_cncms = Pretty.docList ~sep:(Pretty.text " --- ") (d_conc ())
+
+let d_instrucs () instrs = 
+  Pretty.seq (Pretty.text "; ") (fun i -> Pretty.dprintf "%a" d_instr i) instrs 
+
+let d_sol = 
+  Pretty.docArray 
+    ~sep:(Pretty.text "\n")
+    (fun i (_,x) -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
 
 (******************************************************************************)
 (*********************** Operations on CONC-Maps ******************************)
@@ -182,7 +191,6 @@ let tag_join = function
   | t1, t2 when t1 = t2   -> t1
   | (_, Read), (_, Read)  -> tag_fresh Read
   | _                     -> tag_fresh Write
-
 
 let conc_join (conc1:cncm) (conc2:cncm) : cncm = 
   LM.fold begin fun al (cl1, t1) conc ->
@@ -197,13 +205,9 @@ let conc_eq conc1 conc2 =
   let n2 = conc_size (conc_join conc1 conc2) in 
   n1 = n2
 
-let d_cncms = Pretty.docList ~sep:(Pretty.text " --- ") (d_conc ())
-
 let conc_of_predecessors = function
-  | [] -> let _ = Pretty.printf "conc_of_predecessors: EMPTY \n" in 
-          LM.empty 
-  | is -> let _ = Pretty.printf "conc_of_predecessors: %a \n" d_cncms is in
-          Misc.list_reduce conc_join is
+  | [] -> LM.empty 
+  | is -> Misc.list_reduce conc_join is
 
 (******************************************************************************)
 (*************************** Operations on Solns ******************************)
@@ -218,7 +222,7 @@ let soln_diff (sol1, sol2) =
 let soln_init cfg anna = 
   Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
 
-  (*
+  (* {{{
 let annots_of_edge iconc jconc =
   LM.fold begin fun al cl anns -> 
     if LM.mem al jconc then anns else (Gen (cl, al) :: anns)
@@ -233,22 +237,20 @@ let soln_edgem cfg sol =
       IIM.add (i,j) (annots_of_edge iconc jconc) em
     end em is 
   end IIM.empty cfg.Ssa.predecessors 
-*)
+}}} *)
 
 (***************************************************************************************)
 
 let cloc_of_v theta v =
-  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in
-  let rv = Misc.do_memo theta Sloc.fresh Sloc.Concrete v.vname in
-  let _  = Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc rv in
-  rv
+(*  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in *)
+  Misc.do_memo theta Sloc.fresh Sloc.Concrete v.vname 
+(* >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc *)
 
 let cloc_of_position theta (j,k,i) = 
-  let _  = Pretty.printf "cloc_of_position theta = %a \n" d_theta theta in
-  let vn = Printf.sprintf "#%d#%d#%d" j k i in
-  let rv = Misc.do_memo theta Sloc.fresh Sloc.Concrete vn in
-  let _  = Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc rv in
-  rv
+(*  let _  = Pretty.printf "cloc_of_position theta = %a \n" d_theta theta in *)
+  Printf.sprintf "#%d#%d#%d" j k i
+  |> Misc.do_memo theta Sloc.fresh Sloc.Concrete
+  >> Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc
 
 let loc_of_var_expr theta =
   let rec loc_rec = function
@@ -382,9 +384,6 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
 (******************************** Fixpoint ***********************************)
 (*****************************************************************************)
 
-let d_instrucs () instrs = 
-  Pretty.seq (Pretty.text "; ") (fun i -> Pretty.dprintf "%a" d_instr i) instrs 
-
 let annotate_block globalslocs ctm theta j anns instrs (conc0 : cncm) =
   let _ = if mydebug then ignore <| Pretty.printf "annotate_block  %d : CONC = %a \n" j d_conc conc0 in
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block: %d" j in
@@ -392,25 +391,8 @@ let annotate_block globalslocs ctm theta j anns instrs (conc0 : cncm) =
   List.combine ianns instrs
   |> Misc.mapfold (annotate_instr globalslocs ctm theta j) conc0 
 
-  (* {{{ 
-  List.fold_left begin fun (conc, anns') ainstr ->
-       let conc', ann = annotate_instr globalslocs ctm theta conc ainstr in
-       (conc', ann::anns')
-     end (conc0, []) 
-
-  let rv = (conc', List.rev anns') in
-  let _  = if mydebug then
-             ignore <| Pretty.printf 
-             "\n annotate_block (%d): conc0 = %a, block= \n %a \n yields: \n %a \n conc' = %a \n" j
-                         d_conc conc0 d_instrucs instrs 
-                         d_block_annotation (snd rv)
-                         d_conc (fst rv)
-  in
-  rv
-}}} *)
-
 let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
-  let _    = Pretty.printf "annot_iter: PRE theta = %a \n" d_theta theta in
+(*let _    = Pretty.printf "annot_iter: PRE theta = %a \n" d_theta theta in*)
   let sol' = Array.copy sol in 
   let sol' = Misc.array_fold_lefti begin fun j sol' (_, ans) ->
       let conc = cfg.Ssa.predecessors.(j) 
@@ -423,13 +405,8 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
       let _    = Array.set sol' j (Some conc', ans') in
       sol'
      end sol' sol in
-  let _    = Pretty.printf "annot_iter: POST theta = %a \n" d_theta theta in
+(* let _    = Pretty.printf "annot_iter: POST theta = %a \n" d_theta theta in *)
   (sol', (soln_diff (sol, sol')))
-
-let d_sol = 
-  Pretty.docArray 
-    ~sep:(Pretty.text "\n")
-    (fun i (_,x) -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
 
 (*****************************************************************************)
 (********************************** API **************************************)
@@ -438,12 +415,6 @@ let d_sol =
 let d_conca' () (cfg, conca') =
   let conca  = Array.map (List.map (Array.get conca') <+> conc_of_predecessors) cfg.Ssa.predecessors in
   d_conca () (Misc.array_combine conca conca')
-  (*
-    Pretty.docArray 
-    ~sep:(Pretty.text "\n")
-    (fun i cncm -> Pretty.dprintf "block %i: @[CONC-Out: %a@]" i d_conc cncm) 
-    ()
- *)
 
 let check_sol cfg globalslocs ctm theta anna (sol:soln) =
   let _ = (cfg, Array.map (fst <+> Misc.maybe) sol) 
@@ -468,7 +439,7 @@ let annotate_cfg cfg globalslocs ctm anna =
   soln_init cfg anna 
   |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
   |> fst
-  >> check_sol cfg globalslocs ctm theta anna 
+(*>> check_sol cfg globalslocs ctm theta anna *)
   |> annots_of_sol cfg
   |> fun (annota, conca) -> (annota, conca, theta)
 

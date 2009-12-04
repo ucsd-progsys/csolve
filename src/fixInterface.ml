@@ -579,8 +579,7 @@ let refstore_subs_locs (* loc *) lsubs sto =
 let non_tmp = fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not 
 
 let make_wfs cenv rct _ =
-  let env = env_of_cilenv cenv 
-            |> Ast.Symbol.sm_filter non_tmp in
+  let env = env_of_cilenv cenv |> Ast.Symbol.sm_filter non_tmp in
   let r   = reft_of_refctype rct in
   [C.make_wf env r None]
 
@@ -593,7 +592,7 @@ let make_wfs_refstore env sto tag =
     let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr tag) ncrs in
     ws' ++ ws
   end sto []
-  >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
+(* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
 
 
 let make_wfs_fn cenv rft tag =
@@ -643,12 +642,11 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   |> Misc.splitflatten
 
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
- (* {{{ *) 
+ (* {{{  
   let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in (*  }}}*)
-  let rv =
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  }}}*)
   (if polarity then st2 else st1)
   |> slocs_of_store 
   |> Misc.map begin fun sloc ->
@@ -656,9 +654,8 @@ let make_cs_refstore env p st1 st2 polarity tago tag loc =
        let rhs = (sloc, refstore_get st2 sloc) in
        make_cs_refldesc env p lhs rhs tago tag 
      end 
-  |> Misc.splitflatten in
-  let _ = F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) (fst rv) in 
-  rv
+  |> Misc.splitflatten 
+(*  >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) *)
 
 (* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =

@@ -37,7 +37,7 @@ module CM = CilMisc
 open Misc.Ops
 open Cil
 
-let mydebug = true 
+let mydebug = false 
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)
@@ -304,18 +304,16 @@ let wcons_of_phis me tag env vs =
 *)
 
 let wcons_of_block me loc i =
-  let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in
   let tag  = CF.tag_of_instr me i 0 loc in
   let phis = CF.phis_of_block me i in
   let env  = CF.inenv_of_block me i in 
   let wenv = List.fold_left (weaken_undefined me true) env phis in
-  let ws   = phis |> List.map  (fun v -> FI.ce_find (FI.name_of_varinfo v) env) 
+  let ws   = phis |> List.map  (fun v -> FI.ce_find  (FI.name_of_varinfo v) env) 
                   |> Misc.flap (fun cr -> FI.make_wfs wenv cr tag) in
   let ws'  = FI.make_wfs_refstore wenv (CF.csto_of_block me i) tag in
   ws ++ ws'
 
 let cons_of_block me i =
-  let _           = if mydebug then Printf.printf "cons_of_block: %d \n" i in
   let loc         = CF.location_of_block me i in
   let grd         = CF.guard_of_block me i None in
   let astmt       = CF.annotstmt_of_block me i in
