@@ -1,26 +1,14 @@
-
-
-[OK] 1. Use the right input env in cons_of_block (for wf) should not include conc-loc bindings of the block
-
-HEREHEREHEREHERE
-2. Check fixpoint in refanno.ml
-
-../postests/test02p.c
-The annots for block 4 are broken:
-Block annots are empty, (line 290)
-but (line 305)
-block 4: CONC-In: (A8 |-> C15, (14, true) )  CONC-Out: 
-
-../postests/array1.c
-../postests/structarr.c
-../postests/unsignedchar.c
+//Unconstrained KVar 
 ../postests/field1.c
+../postests/structarr.c
+../postests/structarr2.c
 ../negtests/field-unsafe.c
 ../negtests/ll6-unsafe.c
-../negtests/test02p-unsafe.c
-../postests/structarr2.c
-../postests/test03p.c
 
+//Wrong Answer ?
+../postests/unsignedchar.c
+
+//BIG Ones
 ../postests/mst-scratch.c
 ../postests/strcpy.c
 ../postests/adpcm.c

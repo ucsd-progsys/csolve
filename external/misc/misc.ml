@@ -394,9 +394,10 @@ let iteri f xs =
   List.fold_left (fun i x -> f i x; i+1) 0 xs
   |> ignore
 
-let numbered_list xs = 
-  List.fold_left (fun (i, acc) x -> (i+1, (i,x)::acc)) (0,[]) xs
-  |> snd |> List.rev 
+let numbered_list xs =
+  xs |> List.fold_left (fun (i, acc) x -> (i+1, (i,x)::acc)) (0,[]) 
+     |> snd 
+     |> List.rev 
 
 exception FalseException
 
