@@ -1,0 +1,4 @@
+qualif SIZE(v:ptr)     : (v + ~a)      < BLOCK_END([v])
+qualif SIZE(v:ptr)     : (v + ~a)      < (BLOCK_END([v]) - @m)
+qualif SIZE(v:ptr)     : (v + (4 *~a)) < (BLOCK_END([v]) - @m)
+
