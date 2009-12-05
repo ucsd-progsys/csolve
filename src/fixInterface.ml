@@ -459,7 +459,7 @@ let t_size_ptr ct size =
 
 let t_valid_ptr ct =
   let vv = Sy.value_variable So.Ptr in
-    t_pred ct vv (A.pOr [A.pAtom (A.eApp (uf_ptrunchecked, [A.eVar vv]), A.Eq, A.one);
+   t_pred ct vv (A.pOr [A.pAtom (A.eApp (uf_ptrunchecked, [A.eVar vv]), A.Eq, A.one);
                          A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero);
                                  A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Le, A.eVar vv);
                                  A.pAtom (A.eVar vv, A.Lt, A.eApp (uf_bend, [A.eVar vv]))]])

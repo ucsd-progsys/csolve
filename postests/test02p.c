@@ -6,6 +6,8 @@ int main(){
 
   r = (int*) malloc(4);
 
+  if (nondet()){ *r = -10; }
+
   *r = 0;
   while (nondet()){
    *r = *r + 1;
