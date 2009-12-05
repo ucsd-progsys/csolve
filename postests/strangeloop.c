@@ -1,6 +1,6 @@
-void strangeloop (unsigned int n)
+void main ()
 {
-  unsigned int n4 = nondet();
+  int n4 = nondet();
 
   if (n4 >= 1)
   {
@@ -12,8 +12,4 @@ void strangeloop (unsigned int n)
     }
   }
   return;
-}
-
-void main () {
-    strangeloop (5);
 }
