@@ -59,6 +59,14 @@ let parse_file fname =
   let _ = ignore (E.log "Parsing %s\n" fname) in
     Frontc.parse fname () |> Simplemem.simplemem
 
+let mk_cfg cil =
+  Cil.iterGlobals cil begin function
+    | Cil.GFun(fd,_) ->
+        Cil.prepareCFG fd;
+        Cil.computeCFGInfo fd false
+    | _ -> ()
+  end
+
 let preprocess cil =
   let _   = CilMisc.unfloat cil;
             Pheapify.heapifyNonArrays := true;
@@ -68,7 +76,7 @@ let preprocess cil =
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
             CopyGlobal.copyGlobal cil;
-            Cfg.computeFileCFG cil;
+            mk_cfg cil;
             rename_locals cil in
   cil
 

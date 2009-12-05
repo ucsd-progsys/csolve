@@ -34,7 +34,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = false
 
 (**************************************************************************
  * out_t : (block * reg, regindex) H.t                                    *
@@ -83,8 +83,10 @@ let lvars_to_string cfg lvs =
 let print_blocks cfg =
     Array.iteri 
     (fun i b -> 
-      ignore (E.log "\n ------> \n block %d [preds: %s] livevars: %s \n" 
-      i (Misc.map_to_string string_of_int cfg.S.predecessors.(i)) 
+      ignore (E.log "\n ------> \n block %d [preds: %s, succs: %s] livevars: %s \n"
+      i
+      (Misc.map_to_string string_of_int cfg.S.predecessors.(i))
+      (Misc.map_to_string string_of_int cfg.S.successors.(i))
       (lvars_to_string cfg b.S.livevars));
       Cil.dumpStmt Cil.defaultCilPrinter stderr 0 b.S.bstmt)
     cfg.S.blocks
@@ -169,7 +171,6 @@ let init_cfgInfo fdec =
 
 let mk_cfg fdec = 
   let cfg  = init_cfgInfo fdec in
-  let cfg  = S.prune_cfg cfg in
   let sz,r2v,v2r = mk_var_reg_maps () in
   List.iter (proc_stmt cfg v2r) fdec.sallstmts;
   cfg.S.regToVarinfo <- Array.init (sz ()) r2v;
@@ -306,6 +307,7 @@ let mk_gdominators fdec cfg =
   
 let fdec_to_ssa_cfg vmap_t fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
+  let cfg           = S.prune_cfg cfg in
   let _             = S.add_ssa_info cfg in
   let _             = if mydebug then print_blocks cfg in
   let out_t         = mk_out_name cfg in
