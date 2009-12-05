@@ -55,14 +55,6 @@ let rename_locals cil =
        fd.Cil.sformals <- fmls *)
   | _ -> ())
 
-let mk_cfg cil =
-  Cil.iterGlobals cil begin function
-    | Cil.GFun(fd,_) ->
-        Cil.prepareCFG fd;
-        Cil.computeCFGInfo fd false
-    | _ -> ()
-  end
-
 let parse_file fname =
   let _ = ignore (E.log "Parsing %s\n" fname) in
     Frontc.parse fname () |> Simplemem.simplemem
@@ -75,8 +67,8 @@ let preprocess cil =
             Simpleret.simpleret cil;
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
-            CopyGlobal.copyGlobal cil; 
-            mk_cfg cil;
+            CopyGlobal.copyGlobal cil;
+            Cfg.computeFileCFG cil;
             rename_locals cil in
   cil
 

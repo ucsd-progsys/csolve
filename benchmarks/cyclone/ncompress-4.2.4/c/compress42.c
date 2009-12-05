@@ -137,6 +137,8 @@
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<errno.h>
+#include    <stdlib.h>
+#include    <string.h>
 
 #ifdef DIRENT
 #	include	<dirent.h>
@@ -169,29 +171,29 @@ struct utimbuf
 #	define	SIG_TYPE	void (*)()
 #endif
 
-#ifndef NOFUNCDEF
-extern void *malloc LARGS ((int));
-extern void free LARGS ((void *));
-#ifndef _IBMR2
-extern int open LARGS ((char const *, int, ...));
-#endif
-extern int close LARGS ((int));
-extern int read LARGS ((int, void *, int));
-extern int write LARGS ((int, void const *, int));
-extern int chmod LARGS ((char const *, int));
-extern int unlink LARGS ((char const *));
-extern int chown LARGS ((char const *, int, int));
-extern int utime LARGS ((char const *, struct utimbuf const *));
-extern char *strcpy LARGS ((char *, char const *));
-extern char *strcat LARGS ((char *, char const *));
-extern int strcmp LARGS ((char const *, char const *));
-extern unsigned strlen LARGS ((char const *));
-extern void *memset LARGS ((void *, char, unsigned int));
-extern void *memcpy LARGS ((void *, void const *, unsigned int));
-extern int atoi LARGS ((char const *));
-extern void exit LARGS ((int));
-extern int isatty LARGS ((int));
-#endif
+// #ifndef NOFUNCDEF
+// extern void *malloc LARGS ((int));
+// extern void free LARGS ((void *));
+// #ifndef _IBMR2
+// extern int open LARGS ((char const *, int, ...));
+// #endif
+// extern int close LARGS ((int));
+// extern int read LARGS ((int, void *, int));
+// extern int write LARGS ((int, void const *, int));
+// extern int chmod LARGS ((char const *, int));
+// extern int unlink LARGS ((char const *));
+// extern int chown LARGS ((char const *, int, int));
+// extern int utime LARGS ((char const *, struct utimbuf const *));
+// extern char *strcpy LARGS ((char *, char const *));
+// extern char *strcat LARGS ((char *, char const *));
+// extern int strcmp LARGS ((char const *, char const *));
+// extern unsigned strlen LARGS ((char const *));
+// extern void *memset LARGS ((void *, char, unsigned int));
+// extern void *memcpy LARGS ((void *, void const *, unsigned int));
+// extern int atoi LARGS ((char const *));
+// extern void exit LARGS ((int));
+// extern int isatty LARGS ((int));
+// #endif
 
 #define	MARK(a)	{ asm(" .globl M.a"); asm("M.a:"); }
 
@@ -534,7 +536,6 @@ int exit_code = -1;		/* Exitcode of compress (-1 no file compressed) */
 char_type inbuf[IBUFSIZ + 64];	/* Input buffer                                                                 */
 char_type outbuf[OBUFSIZ + 2048];	/* Output buffer                                                           */
 
-struct stat infstat;		/* Input file status                                                    */
 char *ifname;			/* Input filename                                                               */
 int remove_ofname = 0;		/* Remove output file on a error                                */
 char ofname[MAXPATHLEN];	/* Output filename                                                              */
@@ -653,7 +654,7 @@ void comprexx ARGS ((char **));
 void compdir ARGS ((char *));
 void compress ARGS ((int, int));
 void decompress ARGS ((int, int));
-char *rindex ARGS ((char *, int));
+// char *rindex ARGS ((char *, int));
 void read_error ARGS ((void));
 void write_error ARGS ((void));
 void abort_compress ARGS ((void));
@@ -708,6 +709,7 @@ REG2 char *argv[];
   REG3 char **filelist;
   REG4 char **fileptr;
 
+/* pmr: we are unfriendly toward function pointers
   if (fgnd_flag = (signal (SIGINT, SIG_IGN) != SIG_IGN))
     signal (SIGINT, (SIG_TYPE) abort_compress);
 
@@ -715,6 +717,7 @@ REG2 char *argv[];
 #ifndef DOS
   signal (SIGHUP, (SIG_TYPE) abort_compress);
 #endif
+*/
 
 #ifdef COMPATIBLE
   nomagic = 1;			/* Original didn't have a magic number */
@@ -894,6 +897,7 @@ comprexx (fileptr)
   int fdin;
   int fdout;
   char tempname[MAXPATHLEN];
+  struct stat infstat;		/* Input file status */
 
   strcpy (tempname, *fileptr);
   errno = 0;
@@ -1841,19 +1845,19 @@ int fdout;
     write_error ();
 }
 
-char *
-rindex (s, c)			/* For those who don't have it in libc.a */
-  REG1 char *s;
-REG2 int c;
-{
-  char *p;
-
-  for (p = NULL; *s; s++)
-    if (*s == (char) c)
-      p = s;
-
-  return (p);
-}
+// char *
+// rindex (s, c)			/* For those who don't have it in libc.a */
+//   REG1 char *s;
+// REG2 int c;
+// {
+//   char *p;
+// 
+//   for (p = NULL; *s; s++)
+//     if (*s == (char) c)
+//       p = s;
+// 
+//   return (p);
+// }
 
 void
 read_error ()
