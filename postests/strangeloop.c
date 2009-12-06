@@ -1,4 +1,3 @@
-//! run with -nop
 
 void main ()
 {
