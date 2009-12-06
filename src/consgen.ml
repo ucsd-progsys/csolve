@@ -107,6 +107,7 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
       let aldesc = FI.refstore_get sto aloc in
       let abinds = FI.binds_of_refldesc aloc aldesc in
       let wld'   = FI.extend_world aldesc abinds cloc false (env, sto, tago) in
+   (* let wld'   = FI.extend_world sto aloc cloc false (env, sto, tago) *)
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -204,6 +205,8 @@ let instantiate_poly_cloc me loc wld (aloc, cloc) =
   let abinds = FI.binds_of_refldesc aloc aldesc 
                |> List.map (Misc.app_snd FI.new_block_reftype) in
   FI.extend_world aldesc abinds cloc true wld
+(*FI.extend_world (CF.get_astore me) aloc cloc true wld *)
+
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt   = FI.ce_find_fn fn env in
@@ -579,6 +582,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
           let aldesc      = FI.refstore_get sto aloc in
           let abinds      = FI.binds_of_refldesc aloc aldesc in
           let env, sto, _ = FI.extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in
+                         (* FI.extend_world sto aloc cloc false (FI.ce_empty, sto, None) *)
           let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
           let ld1         = (cloc, FI.refstore_get sto cloc) in
           let ld2         = (aloc, FI.refstore_get sto aloc) in

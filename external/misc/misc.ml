@@ -92,6 +92,8 @@ end
 
 open Ops
 
+let choose b f g = if b then f else g
+
 let liftfst2 (f: 'a -> 'a -> 'b) (x: 'a * 'c) (y: 'a * 'c): 'b =
   f (fst x) (fst y)
 

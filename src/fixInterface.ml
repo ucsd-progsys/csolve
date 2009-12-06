@@ -541,6 +541,12 @@ let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) 
 let new_block_reftype = t_zero_refctype (* or, more soundly? t_true_refctype *)
 
 let extend_world ld binds cloc newloc (env, sto, tago) = 
+ (* 
+let extend_world ssto sloc cloc newloc (env, sto, tago) = 
+  let ld    = refstore_get ssto sloc 
+  let binds = binds_of_refldesc sloc ld 
+              |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) Misc.id) 
+  *)
   let subs   = List.map (fun (n,_) -> (n, name_fresh ())) binds in
   let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
                |> Misc.map (Misc.app_snd (t_subs_names subs))
