@@ -79,6 +79,7 @@ let liquidate file =
 let main () =
   let _  = Toplevel.print_header () in
   let f  = Toplevel.mk_options "main.native" () in
+  let _  = if !Constants.do_nothing then exit 0 in
   if !Constants.genspec then
     f |> Toplevel.spec_of_file |> ignore 
   else

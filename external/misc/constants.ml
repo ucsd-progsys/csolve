@@ -45,6 +45,7 @@ let typespec                    = ref false (* -typespec *)
 let simplify_t                  = ref true  (* simplify and prune vacouos FixConstraint.t constraints *)
 let root                        = ref ""    (* root function *)
 let true_unconstrained          = ref true  (* -true_unconstrained *)
+let do_nothing                  = ref false (* -nop *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let no_simple     = ref false           (* -no-simple *)
@@ -210,7 +211,10 @@ let arg_spec =
    ("-no-simplify-t", 
     Arg.Clear simplify_t,
     "do not simplify and prune vacuously satisfiable FixConstraint.fit"
-   )
+   );
+   ("-nop",
+    Arg.Set do_nothing,
+    "do nothing (useful for regression tests known to be broken)")
   ]
 
 
