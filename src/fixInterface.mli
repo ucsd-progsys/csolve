@@ -72,7 +72,9 @@ val extend_world        : refldesc ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a)
 *)
-val extend_world        : refstore -> Sloc.t -> Sloc.t -> bool -> (cilenv * refstore * 'a) -> (cilenv * refstore * 'a)
+val extend_world        : refstore -> Sloc.t -> Sloc.t -> bool -> Cil.location -> 
+                          (cilenv * refstore * 'a) -> 
+                          (cilenv * refstore * 'a) * FixConstraint.t list
 
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype
@@ -92,7 +94,8 @@ val t_subs_locs         : Sloc.Subst.t -> refctype -> refctype
 val new_block_reftype   : refctype -> refctype
 
 val refstore_empty      : refstore
-val binds_of_refldesc   : Sloc.t -> refldesc -> (name * refctype) list
+(* val binds_of_refldesc   : Sloc.t -> refldesc -> (name * refctype) list *)
+
 val refstore_mem        : Sloc.t -> refstore -> bool
 val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
@@ -109,6 +112,7 @@ val refstore_fresh      : string -> Ctypes.store -> refstore
 val refstore_subs       : (* Cil.location -> *) ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> refstore -> refstore
 
+val is_poly_cloc        : refstore -> Sloc.t -> bool
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list
 

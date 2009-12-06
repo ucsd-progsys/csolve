@@ -1,15 +1,7 @@
-//Wrong Answer ?
-../postests/unsignedchar.c
+ARRAY-CONC-ISSUE:
 
-//BIG Ones
-../postests/mst-scratch.c
-../postests/strcpy.c
-../postests/adpcm.c
-../postests/pmapdistilled.c
-../postests/stringexample.c
-../postests/power.c
-../postests/field.c
-../postests/ks.c
+  -- [extend_world] use the reftype from src_store for array positions (not v=0)
+  -- instantiate_poly_cloc
 
 INFRA-FOLD: CHECKER
 -----------------------------------------------------------------------------------

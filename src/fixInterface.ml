@@ -199,6 +199,13 @@ let refstore_read loc sto cr =
   ac_refstore_read loc sto cr |> fst
 
 (* API *)
+let is_poly_cloc st cl =
+  let _ = asserts (not (Sloc.is_abstract cl)) "is_poly_cloc" in
+  refstore_get st cl 
+  |> binds_of_refldesc cl 
+  |> (=) []
+
+(* API *)
 let is_soft_ptr loc sto cr = 
   ac_refstore_read loc sto cr |> snd
 
@@ -539,7 +546,7 @@ let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) 
 
 let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
-let extend_world ssto sloc cloc newloc (env, sto, tago) = 
+let extend_world ssto sloc cloc newloc loc (env, sto, tago) = 
   let ld    = refstore_get ssto sloc in 
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
@@ -556,8 +563,7 @@ let extend_world ssto sloc cloc newloc (env, sto, tago) =
                   | _             -> t_subs_names subs rct
                end in
   let sto'  = refstore_set sto cloc ld' in
-  (env', sto', tago)
-
+  (env', sto', tago), (failwith "TBDNOW")
 
 let refstore_subs_locs (* loc *) lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 

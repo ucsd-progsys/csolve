@@ -104,10 +104,7 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
 
   | Refanno.Ins (aloc, cloc) ->
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
-   (*EW: let aldesc = FI.refstore_get sto aloc in
-      let abinds = FI.binds_of_refldesc aloc aldesc in
-      let wld'   = FI.extend_world aldesc abinds cloc false (env, sto, tago) in *)
-      let wld'   = FI.extend_world sto aloc cloc false (env, sto, tago) in 
+      let wld',_ = FI.extend_world sto aloc cloc false loc (env, sto, tago) in 
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -192,47 +189,35 @@ let env_of_retbind me lsubs subs env lvo cr =
   | _  when !Constants.safe  -> assertf "env_of_retbind"
   | _                        -> env
 
-let poly_clocs_of_store ocst ns = 
-  Misc.map_partial begin function 
-    | Refanno.NewC (_,a,c) ->
-        let _ = asserts (not (Sloc.is_abstract c)) "poly_clocs_of_store" in
-        (match FI.binds_of_refldesc c (FI.refstore_get ocst c) with [] -> Some (a,c) | _ -> None)
-    | _ -> None
-  end ns
-
-let instantiate_poly_cloc me loc wld (aloc, cloc) =
-  FI.extend_world (CF.get_astore me) aloc cloc true wld 
-  (* EW: let aldesc = FI.refstore_get (CF.get_astore me) aloc in
-  let abinds = FI.binds_of_refldesc aloc aldesc 
-               |> List.map (Misc.app_snd FI.new_block_reftype) in
-  FI.extend_world aldesc abinds cloc true wld
-*)
-
+let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
+  let asto = CF.get_astore me in
+  ns |> Misc.map_partial (function Refanno.NewC (_,al,cl) -> Some (al,cl) | _ -> None)
+     |> List.filter (snd <+> FI.is_poly_cloc st')
+     |> Misc.mapfold (fun wld (al, cl) -> FI.extend_world asto al cl true loc wld) wld
+     |> Misc.app_snd List.flatten
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
-  let frt   = FI.ce_find_fn fn env in
-  let args  = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
-  let lsubs = lsubs_of_annots ns in
-  let subs  = if (List.length args = List.length es) then List.combine (List.map fst args) es 
-              else (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
+  let frt       = FI.ce_find_fn fn env in
+  let args      = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
+  let lsubs     = lsubs_of_annots ns in
+  let subs      = try List.combine (List.map fst args) es 
+                  with _ -> (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
 
-  let ist, ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store (* loc *) lsubs subs) in
-  let oast, ocst = FI.refstore_partition Sloc.is_abstract ost in
+  let ist,ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store (* loc *) lsubs subs) in
+  let oast,ocst = FI.refstore_partition Sloc.is_abstract ost in
 
-  let tag   = CF.tag_of_instr me i j     loc in
-  let tag'  = CF.tag_of_instr me i (j+1) loc in
-  let ecrs  = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
-  let cs1,_ = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
-  let cs2,_ = FI.make_cs_refstore env grd st   ist true  None tag  loc in
-  let cs3,_ = FI.make_cs_refstore env grd oast st  false None tag' loc in
-  let ds3   = [FI.make_dep false (Some tag') None] in 
+  let tag       = CF.tag_of_instr me i j     loc in
+  let tag'      = CF.tag_of_instr me i (j+1) loc in
+  let ecrs      = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
+  let cs1,_     = cons_of_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
+  let cs2,_     = FI.make_cs_refstore env grd st   ist true  None tag  loc in
+  let cs3,_     = FI.make_cs_refstore env grd oast st  false None tag' loc in
+  let ds3       = [FI.make_dep false (Some tag') None] in 
 
-  let env'  = env_of_retbind me lsubs subs env lvo (FI.ret_of_refcfun frt) in
-  let st'   = Ctypes.prestore_upd st ocst in
-  let wld'  = poly_clocs_of_store ocst ns 
-              |> List.fold_left (instantiate_poly_cloc me loc) (env', st', Some tag) in
-  let wld'' = withthd3 wld' (Some tag') in
-  wld'', (cs1 ++ cs2 ++ cs3, ds3)
+  let env'      = env_of_retbind me lsubs subs env lvo (FI.ret_of_refcfun frt) in
+  let st'       = Ctypes.prestore_upd st ocst in
+  let wld', cs4 = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
+  wld', (cs1 ++ cs2 ++ cs3 ++ cs4, ds3)
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
@@ -580,15 +565,12 @@ let cons_of_var_init tag loc sto v vtyp inito =
           let cloc        = Sloc.fresh Sloc.Concrete in
           let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) 
                                           | _ -> assert false in
-(* EW:    let aldesc      = FI.refstore_get sto aloc in
-          let abinds      = FI.binds_of_refldesc aloc aldesc in
-          let env, sto, _ = FI.extend_world aldesc abinds cloc false (FI.ce_empty, sto, None) in *)
-          let env, sto, _ = FI.extend_world sto aloc cloc false (FI.ce_empty, sto, None) in 
+          let env, sto, _ = fst <| FI.extend_world sto aloc cloc false loc (FI.ce_empty, sto, None) in 
           let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
           let ld1         = (cloc, FI.refstore_get sto cloc) in
           let ld2         = (aloc, FI.refstore_get sto aloc) in
           let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
-            cs1 ++ cs2 ++ cs3
+          cs1 ++ cs2 ++ cs3
       | _ -> cs1
 
 let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
