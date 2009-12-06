@@ -1,3 +1,5 @@
+//! run with -nop
+
 void main ()
 {
   int n4 = nondet();
