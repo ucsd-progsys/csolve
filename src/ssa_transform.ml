@@ -34,7 +34,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 (**************************************************************************
  * out_t : (block * reg, regindex) H.t                                    *

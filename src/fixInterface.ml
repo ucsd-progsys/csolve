@@ -674,6 +674,7 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
 
 let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
+
 (* API: TBD: UGLY *)
 let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) = 
   let ld    = refstore_get ssto sloc in 
@@ -691,12 +692,13 @@ let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) =
                  (* | _ when newloc -> new_block_reftype rct *)
                   | _             -> t_subs_names subs rct
               end ld in
-  let cs    = if not newloc then [] else 
+  let cs    = if not newloc then [] else
                 Ctypes.LDesc.foldn begin fun i cs ploc rct ->
                   match ploc with
                   | Ctypes.PLSeq (_,_) -> 
                       let lhs = new_block_reftype rct in
-                      let cs' = fst <| make_cs env A.pTrue lhs rct None tag loc in
+                      let rhs = t_subs_names subs rct in
+                      let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs
                   | _ -> cs
                 end [] ld in
