@@ -537,27 +537,25 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
 let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) st
 
-(* TBD: MALLOC HACK *)
-let new_block_reftype = t_zero_refctype (* or, more soundly? t_true_refctype *)
+let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
-(* let extend_world ld binds cloc newloc (env, sto, tago) = *) 
 let extend_world ssto sloc cloc newloc (env, sto, tago) = 
-  let ld     = refstore_get ssto sloc in 
-  let binds  = binds_of_refldesc sloc ld 
-               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
-  let subs   = List.map (fun (n,_) -> (n, name_fresh ())) binds in
-  let env'   = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
-               |> Misc.map (Misc.app_snd (t_subs_names subs))
-               |> ce_adds env in
-  let _, im  = List.fold_left (fun (i,im) (_,n') -> (i+1, IM.add i n' im)) (0, IM.empty) subs in
-  let ld'    = refldesc_subs ld begin fun i ploc rct ->
-                  if IM.mem i im then IM.find i im |> t_name env' else
-                    match ploc with 
-                    | Ctypes.PLAt _ -> assertf "missing binding!"
-                    | _ when newloc -> new_block_reftype rct
-                    | _             -> t_subs_names subs rct
+  let ld    = refstore_get ssto sloc in 
+  let binds = binds_of_refldesc sloc ld 
+              |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
+  let subs  = List.map (fun (n,_) -> (n, name_fresh ())) binds in
+  let env'  = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
+              |> Misc.map (Misc.app_snd (t_subs_names subs))
+              |> ce_adds env in
+  let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
+  let ld'   = refldesc_subs ld begin fun i ploc rct ->
+                if IM.mem i im then IM.find i im |> t_name env' else
+                  match ploc with 
+                  | Ctypes.PLAt _ -> assertf "missing binding!"
+                  | _ when newloc -> new_block_reftype rct
+                  | _             -> t_subs_names subs rct
                end in
-  let sto'   = refstore_set sto cloc ld' in
+  let sto'  = refstore_set sto cloc ld' in
   (env', sto', tago)
 
 
