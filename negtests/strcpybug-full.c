@@ -23,7 +23,9 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
           validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
-	  
+	 
+	  //pmr: TOTALLY BOGUS
+	  assert(c == 0);
 	  if (c == 0)
 	    break;
           validptr(src);
