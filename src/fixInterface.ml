@@ -169,7 +169,6 @@ let sloc_binds_of_refldesc l rd =
 let binds_of_refldesc l rd = 
   sloc_binds_of_refldesc l rd 
   |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
-(*>> List.iter (fun (n,r) -> ignore <| Pretty.printf "binds_of_refldesc: %s \n" (Sy.to_string n)) *)
   |> List.map fst
 
 let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
@@ -544,27 +543,6 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
 let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) st
 
-let new_block_reftype = t_zero_refctype (* t_true_refctype *)
-
-let extend_world ssto sloc cloc newloc loc (env, sto, tago) = 
-  let ld    = refstore_get ssto sloc in 
-  let binds = binds_of_refldesc sloc ld 
-              |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
-  let subs  = List.map (fun (n,_) -> (n, name_fresh ())) binds in
-  let env'  = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
-              |> Misc.map (Misc.app_snd (t_subs_names subs))
-              |> ce_adds env in
-  let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
-  let ld'   = refldesc_subs ld begin fun i ploc rct ->
-                if IM.mem i im then IM.find i im |> t_name env' else
-                  match ploc with 
-                  | Ctypes.PLAt _ -> assertf "missing binding!"
-                  | _ when newloc -> new_block_reftype rct
-                  | _             -> t_subs_names subs rct
-               end in
-  let sto'  = refstore_set sto cloc ld' in
-  (env', sto', tago), (failwith "TBDNOW")
-
 let refstore_subs_locs (* loc *) lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
@@ -693,5 +671,36 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refldesc" in 
     assert false
+
+let new_block_reftype = t_zero_refctype (* t_true_refctype *)
+
+(* API: TBD: UGLY *)
+let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) = 
+  let ld    = refstore_get ssto sloc in 
+  let binds = binds_of_refldesc sloc ld 
+              |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
+  let subs  = List.map (fun (n,_) -> (n, name_fresh ())) binds in
+  let env'  = Misc.map2 (fun (_, cr) (_, n') -> (n', cr)) binds subs
+              |> Misc.map (Misc.app_snd (t_subs_names subs))
+              |> ce_adds env in
+  let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
+  let ld'   = Ctypes.LDesc.mapn begin fun i ploc rct ->
+                if IM.mem i im then IM.find i im |> t_name env' else
+                  match ploc with 
+                  | Ctypes.PLAt _ -> assertf "missing binding!"
+                 (* | _ when newloc -> new_block_reftype rct *)
+                  | _             -> t_subs_names subs rct
+              end ld in
+  let cs    = if not newloc then [] else 
+                Ctypes.LDesc.foldn begin fun i cs ploc rct ->
+                  match ploc with
+                  | Ctypes.PLSeq (_,_) -> 
+                      let lhs = new_block_reftype rct in
+                      let cs' = fst <| make_cs env A.pTrue lhs rct None tag loc in
+                      cs' ++ cs
+                  | _ -> cs
+                end [] ld in
+  let sto'  = refstore_set sto cloc ld' in
+  (env', sto', tago), cs
 
 

@@ -296,7 +296,6 @@ let inwld_of_block me = function
   | j ->
       let _,sto,_      = idom_of_block me j |> outwld_of_block me in 
       let csto,incls,_ = me.cstoa.(j) in
-      let joincls      = FI.refstore_fold (fun cl _ acc -> cl :: acc) csto in 
       let loc          = location_of_block me j in
       let tag          = tag_of_instr me j 0 loc in
       (inenv_of_block me j, me.astore, Some tag)  
@@ -306,7 +305,7 @@ let inwld_of_block me = function
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world csto cl cl false loc wld
+          fst <| FI.extend_world csto cl cl false loc tag wld
          end csto 
 
 

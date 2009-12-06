@@ -104,7 +104,7 @@ let cons_of_annot loc tag grd (env, sto, tago) = function
 
   | Refanno.Ins (aloc, cloc) ->
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
-      let wld',_ = FI.extend_world sto aloc cloc false loc (env, sto, tago) in 
+      let wld',_ = FI.extend_world sto aloc cloc false loc tag (env, sto, tago) in 
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
@@ -193,7 +193,7 @@ let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
   let asto = CF.get_astore me in
   ns |> Misc.map_partial (function Refanno.NewC (_,al,cl) -> Some (al,cl) | _ -> None)
      |> List.filter (snd <+> FI.is_poly_cloc st')
-     |> Misc.mapfold (fun wld (al, cl) -> FI.extend_world asto al cl true loc wld) wld
+     |> Misc.mapfold (fun wld (al, cl) -> FI.extend_world asto al cl true loc tag' wld) wld
      |> Misc.app_snd List.flatten
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
@@ -565,7 +565,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
           let cloc        = Sloc.fresh Sloc.Concrete in
           let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) 
                                           | _ -> assert false in
-          let env, sto, _ = fst <| FI.extend_world sto aloc cloc false loc (FI.ce_empty, sto, None) in 
+          let env, sto, _ = fst <| FI.extend_world sto aloc cloc false loc tag (FI.ce_empty, sto, None) in 
           let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
           let ld1         = (cloc, FI.refstore_get sto cloc) in
           let ld2         = (aloc, FI.refstore_get sto aloc) in
