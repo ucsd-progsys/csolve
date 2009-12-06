@@ -222,23 +222,6 @@ let soln_diff (sol1, sol2) =
 let soln_init cfg anna = 
   Array.init (Array.length cfg.Ssa.blocks) (fun i -> (None, anna.(i)))
 
-  (* {{{
-let annots_of_edge iconc jconc =
-  LM.fold begin fun al cl anns -> 
-    if LM.mem al jconc then anns else (Gen (cl, al) :: anns)
-  end iconc []
-
-(* API *)
-let soln_edgem cfg sol =
-  Misc.array_fold_lefti begin fun j em is ->
-    let jconc = is |> List.map (Array.get sol <+> fst) |> conc_of_predecessors in
-    List.fold_left begin fun em i ->
-      let iconc = fst (sol.(i)) in
-      IIM.add (i,j) (annots_of_edge iconc jconc) em
-    end em is 
-  end IIM.empty cfg.Ssa.predecessors 
-}}} *)
-
 (***************************************************************************************)
 
 let cloc_of_v theta v =
@@ -397,7 +380,6 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
   let sol' = Misc.array_fold_lefti begin fun j sol' (_, ans) ->
       let conc = cfg.Ssa.predecessors.(j) 
                    |> Misc.map_partial (Array.get sol' <+> fst)
-                   >> (fun cs -> asserts (j = 0 || cs <> []) "block without predecessors! %d" j)
                    |> conc_of_predecessors in
       let conc', ans' = match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
                    | Instr is -> annotate_block globalslocs ctm theta j anna.(j) is conc
@@ -405,7 +387,6 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
       let _    = Array.set sol' j (Some conc', ans') in
       sol'
      end sol' sol in
-(* let _    = Pretty.printf "annot_iter: POST theta = %a \n" d_theta theta in *)
   (sol', (soln_diff (sol, sol')))
 
 (*****************************************************************************)

@@ -117,8 +117,8 @@ let diff_binding conc (al, x) =
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
   Array.mapi begin fun i (conc,conc') ->
-    if i = 0 then (emp, [], conc') else
-      let idom, _     = gdoms.(i) in 
+    let idom, _ = gdoms.(i) in 
+    if idom < 0 then (emp, [], conc') else
       let _,idom_conc = conca.(idom) in
       let joins, ins  = Sloc.slm_bindings conc 
                         |> List.partition (diff_binding idom_conc) in
@@ -282,7 +282,7 @@ let bind_of_phi me v =
     (vn, cr)
   end v v.vname
 
-let idom_of_block = fun me i -> fst (me.sci.ST.gdoms.(i))
+let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
 let inenv_of_block me = function 
   | 0 -> me.gnv
@@ -308,4 +308,8 @@ let inwld_of_block me = function
           fst <| FI.extend_world csto cl cl false loc tag wld
          end csto 
 
+let is_reachable_block me i = 
+  i = 0 || idom_of_block me i >= 0
 
+
+ 

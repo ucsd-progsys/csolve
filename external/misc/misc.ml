@@ -172,6 +172,9 @@ let foldn f n b =
     if i >= n then acc else foo (f acc i) (i+1) 
   in foo b 0 
 
+let rec range i j = 
+  if i >= j then [] else i::(range (i+1) j)
+
 let dump s = 
   print_string s; flush stdout
 
@@ -434,6 +437,9 @@ let clone x n =
 let distinct xs = 
   List.length (sort_and_compact xs) = List.length xs
 
+let flip f x y =
+  f y x
+
 let trunc i j = 
   let (ai,aj) = (abs i, abs j) in
   if aj <= ai then j else ai*j/aj 
@@ -579,11 +585,11 @@ let mapi f xs =
   xs |> fold_lefti (fun i acc x -> (f i x) :: acc) [] 
      |> snd |> List.rev
 
-let flip f x y =
-  f y x
-
 let fold_left_flip f b xs =
   List.fold_left (flip f) b xs
+
+let fold_left_swap f xs b =
+  List.fold_left f b xs
 
 let rec map3 f xs ys zs = match (xs, ys, zs) with
   | ([], [], []) -> []

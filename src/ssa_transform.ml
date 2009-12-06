@@ -34,7 +34,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false
+let mydebug = true 
 
 (**************************************************************************
  * out_t : (block * reg, regindex) H.t                                    *
@@ -364,4 +364,12 @@ let scis_of_file cil =
   end []
   >> print_scis cil.fileName
   >> print_vmaps cil.fileName
+
+(* API *)
+let reachable_blocks_of_sci sci = 
+  sci.phis
+  |> Array.length 
+  |> Misc.range 0
+  |> List.filter (fun i -> i = 0 || fst sci.gdoms.(i) >= 0)
+  |> List.sort compare 
 

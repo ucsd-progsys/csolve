@@ -293,6 +293,7 @@ let wcons_of_phis me tag env vs =
 *)
 
 let wcons_of_block me loc i =
+  let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
   let tag  = CF.tag_of_instr me i 0 loc in
   let phis = CF.phis_of_block me i in
   let env  = CF.inenv_of_block me i in 
@@ -303,6 +304,7 @@ let wcons_of_block me loc i =
   ws ++ ws'
 
 let cons_of_block me i =
+  let _           = if mydebug then Printf.printf "cons_of_block: %d \n" i in 
   let loc         = CF.location_of_block me i in
   let grd         = CF.guard_of_block me i None in
   let astmt       = CF.annotstmt_of_block me i in
@@ -382,27 +384,10 @@ let process_block me i =
   me |> CF.add_wld i wld |> CF.add_cons x
 
 let process_block_succs me i =
-  let js = CF.succs_of_block me i in
   List.fold_left begin fun me j -> 
     let cs, ds = cons_of_edge me i j in
     CF.add_cons ([], cs, ds) me
-  end me js 
-
-(* 
-let process_phis phia me =
-  let cs, ds = tcons_of_phis me phia in
-  CF.add_cons ([], cs, ds) me 
-
-let process_edgem em me =
-  Misc.IntIntMap.fold begin fun (i, j) ann me ->
-    let grd = CF.guard_of_block me i (Some j) in
-    let loc = CF.location_of_block me i in
-    let tag = CF.tag_of_instr me i 0 loc in
-    let wld = CF.outwld_of_block me i in
-    cons_of_annots me loc tag grd wld ann 
-    |> (fun (_,(cs,ds)) -> CF.add_cons ([], cs, ds) me)
-  end em me
-*)
+  end me (CF.succs_of_block me i) 
 
 let log_of_sci sci shp = 
   if Constants.ck_olev Constants.ol_solve then
@@ -414,14 +399,11 @@ let log_of_sci sci shp =
     ()
 
 let cons_of_sci tgr gnv gst sci shp =
-  let _ = log_of_sci sci shp in
-  let n = Array.length sci.ST.phis in
+  let _  = log_of_sci sci shp in
+  let is = ST.reachable_blocks_of_sci sci in 
   CF.create tgr gnv gst sci shp
-  |> Misc.foldn process_block n 
-(*  |> process_phis sci.ST.phis
-    |> (fun me -> let cs,ds = tcons_of_phis me sci.ST.phis in CF.add_cons ([],cs,ds) me)
-*)  
-  |> Misc.foldn process_block_succs n 
+  |> Misc.flip (List.fold_left process_block) is
+  |> Misc.flip (List.fold_left process_block_succs) is 
   |> CF.get_cons
 
 (****************************************************************************)
