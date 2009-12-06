@@ -1,5 +1,3 @@
-//! run with -nop
-
 void main () {
     int s;
     switch (nondet()) {
