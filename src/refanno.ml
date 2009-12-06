@@ -397,7 +397,7 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
   let sol' = Misc.array_fold_lefti begin fun j sol' (_, ans) ->
       let conc = cfg.Ssa.predecessors.(j) 
                    |> Misc.map_partial (Array.get sol' <+> fst)
-                   >> (fun cs -> asserts (j = 0 || cs <> []) "annot_iter %d" j)
+                   >> (fun cs -> asserts (j = 0 || cs <> []) "block without predecessors! %d" j)
                    |> conc_of_predecessors in
       let conc', ans' = match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
                    | Instr is -> annotate_block globalslocs ctm theta j anna.(j) is conc
