@@ -65,11 +65,14 @@ val ce_adds_fn          : cilenv -> (string * refcfun) list -> cilenv
 val ce_find_fn          : string -> cilenv -> refcfun
 val d_cilenv            : unit -> cilenv -> Pretty.doc
 
+(* EW:
 val extend_world        : refldesc -> 
                           (name * refctype) list -> 
                           Sloc.t -> bool -> 
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a)
+*)
+val extend_world        : refstore -> Sloc.t -> Sloc.t -> bool -> (cilenv * refstore * 'a) -> (cilenv * refstore * 'a)
 
 val t_fresh_fn          : Ctypes.cfun  -> refcfun
 val t_fresh             : Ctypes.ctype -> refctype

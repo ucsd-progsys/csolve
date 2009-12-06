@@ -305,12 +305,8 @@ let inwld_of_block me = function
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          (* FI.extend_world csto cl cl false wld *)
-          FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld 
+          FI.extend_world csto cl cl false wld
+          (* EW: FI.extend_world ld (FI.binds_of_refldesc cl ld) cl false wld *)
          end csto 
-(*
-      |> (Misc.flip List.fold_left begin wld cl ->
-           FI.extend_world csto cl cl false wld 
-          end) joincls 
-*)
+
 
