@@ -284,14 +284,16 @@ let bind_of_phi me v =
 
 let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
-let inenv_of_block me = function 
-  | 0 -> me.gnv
-  | i -> let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
-         let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
-         FI.ce_adds env0 phibs 
+let inenv_of_block me i =
+  if idom_of_block me i < 0 then
+    me.gnv
+  else
+    let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
+    let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
+      FI.ce_adds env0 phibs
 
 let inwld_of_block me = function
-  | 0 -> 
+  | j when idom_of_block me j < 0 ->
       (me.gnv, me.astore, None)
   | j ->
       let _,sto,_      = idom_of_block me j |> outwld_of_block me in 

@@ -1,4 +1,3 @@
-
 void main ()
 {
   int n4 = nondet();
