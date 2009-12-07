@@ -34,7 +34,7 @@ module H  = Hashtbl
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = false
 
 (**************************************************************************
  * out_t : (block * reg, regindex) H.t                                    *
@@ -365,11 +365,18 @@ let scis_of_file cil =
   >> print_scis cil.fileName
   >> print_vmaps cil.fileName
 
-(* API *)
-let reachable_blocks_of_sci sci = 
-  sci.phis
-  |> Array.length 
-  |> Misc.range 0
-  |> List.filter (fun i -> i = 0 || fst sci.gdoms.(i) >= 0)
-  |> List.sort compare 
+let rec reachable_blocks_aux sci marked blockss wklist =
+  if wklist = [] then
+    blockss |> List.concat |> List.rev
+  else
+    let blockss = wklist :: blockss in
+    let marked  = List.fold_left (Misc.flip Misc.IntSet.add) marked wklist in
+      wklist
+   |> Misc.flap (fun i -> sci.cfg.S.successors.(i))
+   |> List.filter (fun j -> not (Misc.IntSet.mem j marked))
+   |> Misc.sort_and_compact
+   |> reachable_blocks_aux sci marked blockss
 
+(* API *)
+let reachable_blocks_of_sci sci =
+  reachable_blocks_aux sci Misc.IntSet.empty [] [0]

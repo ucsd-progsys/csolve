@@ -78,7 +78,6 @@ let dom_by_else preds ifs i j =
 	 i :-> j, None 		if j is idom i o.w. *)
 let mk_gdoms preds ifs idom = 
   Array.mapi begin fun i j -> 
-    let _  = asserts (j < i) "ERROR: mk_gdoms: bad idom" in
     if j < 0 then (j, None) else 
       let tb = dom_by_then preds ifs i j in
       let eb = dom_by_else preds ifs i j in
