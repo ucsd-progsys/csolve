@@ -1,8 +1,3 @@
-ARRAY-CONC-ISSUE:
-
-  -- [extend_world] use the reftype from src_store for array positions (not v=0)
-  -- instantiate_poly_cloc
-
 INFRA-FOLD: CHECKER
 -----------------------------------------------------------------------------------
 BLOCK INVARIANT
