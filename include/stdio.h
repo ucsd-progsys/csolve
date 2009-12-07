@@ -7,7 +7,7 @@
 
 #define stdout (FILE *)0
 #define stdin  (FILE *)0
-#define stderr (FILE *)2
+#define stderr (FILE *)0
 #define EOF	       0
 
 extern int sscanf(char * __attribute__ ((array)), char * __attribute__ ((array)), ...);

@@ -201,7 +201,6 @@ let tag_of_instr me block_id instr_id loc =
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
     let (idom,_) as x = gdoms.(i) in 
-    let _ = asserts (idom < i) "doms_of_block" in
     doms_of_block gdoms (x::acc) idom 
 
 let pred_of_block ifs (i,b) =

@@ -37,7 +37,7 @@ module CM = CilMisc
 open Misc.Ops
 open Cil
 
-let mydebug = false 
+let mydebug = false
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)

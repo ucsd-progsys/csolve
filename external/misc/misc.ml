@@ -125,6 +125,14 @@ module IntMap =
       compare i1 i2
   end)
 
+module IntSet =
+  Set.Make
+  (struct
+    type t = int
+    let compare i1 i2 =
+      compare i1 i2
+  end)
+
 module IntIntMap = 
   Map.Make 
   (struct
