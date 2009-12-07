@@ -127,6 +127,7 @@ val cfun_subs : Sloc.Subst.t -> cfun -> cfun
 val prectype_closed : 'a prectype -> 'a prestore -> bool
 val void_ctype: ctype
 val is_void : 'a prectype -> bool
+val is_ref : 'a prectype -> bool
 
 (******************************************************************************)
 (************************ Periodic Location Operations ************************)

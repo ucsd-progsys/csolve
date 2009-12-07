@@ -142,6 +142,10 @@ let is_void: 'a prectype -> bool = function
   | CTInt (0, _) -> true
   | _            -> false
 
+let is_ref: 'a prectype -> bool = function
+  | CTRef _ -> true
+  | _       -> false
+
 type ctype = index prectype
 
 let d_ctype () (ct: ctype): P.doc =

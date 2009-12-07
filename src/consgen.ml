@@ -512,10 +512,18 @@ let cons_of_global_store tgr gst =
   let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)
 
-let type_of_init vtyp = function
-  | None                       -> FI.t_true (FI.ctype_of_refctype vtyp)
+let type_of_init v vtyp = function
   | Some (SingleInit e)        -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e
   | Some (CompoundInit (t, _)) -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (FI.ctype_of_refctype vtyp)
+  | None                       ->
+      let ct = FI.ctype_of_refctype vtyp in
+        match Cil.unrollType v.vtype with
+          | TArray (t, (Some len as leno), _) ->
+              Cil.lenOfArray leno * CilMisc.bytesSizeOf t |> FI.t_size_ptr ct
+          | TPtr (t, _) ->
+              t |> CilMisc.bytesSizeOf |> FI.t_size_ptr ct
+          | _ ->
+              FI.t_true ct
 
 let add_offset loc t ctptr off =
   match ctptr with
@@ -541,7 +549,7 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
         ~acc:(sto, cs)
 
 let cons_of_var_init tag loc sto v vtyp inito =
-  let cs1, _ = FI.make_cs FI.ce_empty Ast.pTrue (type_of_init vtyp inito) vtyp None tag loc in
+  let cs1, _ = FI.make_cs FI.ce_empty Ast.pTrue (type_of_init v vtyp inito) vtyp None tag loc in
     match inito with
       | Some (CompoundInit _ as init) ->
           let cloc        = Sloc.fresh Sloc.Concrete in
