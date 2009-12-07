@@ -526,7 +526,11 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
     if check_out_store_complete whole_store sto then
       (SLM.fold (fun s _ sto -> SLM.remove s sto) gst sto, vars, em, bas)
     else
-      halt <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\n" d_store sto d_cfun cf
+         halt
+      <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
+          d_store sto
+          d_cfun cf
+          d_store gst
 
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
