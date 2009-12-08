@@ -50,7 +50,7 @@ class Cannotations:
       raise AnnExc("Empty buffer") 
     if vim.current.buffer.name != self.__filename or  \
       os.stat(self.__filename).st_mtime > self.__timestamp:
-	filename = vim.current.buffer.name
+	filename = self.__filename #vim.current.buffer.name
 	self.parse(filename)
 	vim.command("set tags=" + filename + ".tags")
     ssaname = varname
@@ -94,5 +94,6 @@ def printLiquidType(mode):
 def parseLiquidType():
   annot.parse(vim.current.buffer.name)
 
-
+def reparseLiquidType(x):
+  annot.parse(x)
 #ENDPYTHON

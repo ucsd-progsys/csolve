@@ -12,6 +12,7 @@ main()
         ch = getc(stdin);			/* Read the next character. */
         if (ch==EOF) break;			/* Exit loop on end-of-file.*/
         symbol = char_to_index[ch];		/* Translate to an index.   */
+	int assm = assume(symbol > 0);
         encode_symbol(symbol,cum_freq);		/* Encode that symbol.      */
         update_model(symbol);			/* Update the model.        */
     }

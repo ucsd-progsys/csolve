@@ -77,6 +77,7 @@ def runtests(dir, expected_status, dargs):
 
 #testdirs  = [("../postests", 0)]
 #testdirs  = [("../negtests", 1)]
+#testdirs  = [("../slowtests", 1)]
 testdirs  = [("../postests", 0), ("../negtests", 1)]
 
 results   = [runtests(dir, expected_status, sys.argv[1:]) for (dir, expected_status) in testdirs]

@@ -26,6 +26,11 @@ validp8 ::
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
 
+getc :: forall    [A11]
+        arg       (x0 : ref(A11, 0))
+        ret       int(4, 0{1}, {v | &&[0 <= v; v < 256]})
+        store_in  [A11 |-> 0: int(4, 0{1})]
+        store_out [A11 |-> 0: int(4, 0{1})]
 
 validptr ::
   forall    [A0]

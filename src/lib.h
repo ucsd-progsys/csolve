@@ -74,7 +74,7 @@ extern FILE *fopen(char * __attribute__ ((array)), char * __attribute__ ((array)
 extern int fprintf(FILE *, char * __attribute__ ((array)), ...);
 extern int printf(char * __attribute__ ((array)), ...);
 extern char *fgets(char * __attribute__ ((array)), int, FILE *);
-
+extern int *getc(FILE *);
 extern int sscanf(char * __attribute__ ((array)), char * __attribute__ ((array)), ...);
 
 #define CLOCKS_PER_SEC 1000
