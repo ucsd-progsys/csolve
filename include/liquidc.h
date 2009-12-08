@@ -7,4 +7,9 @@
 extern int bor(int, int);
 extern int band(int, int);
 
+int assume (int p) {
+    if (!p)
+    STUCK: goto STUCK;
+}
+
 #endif
