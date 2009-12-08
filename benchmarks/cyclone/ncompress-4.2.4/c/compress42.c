@@ -139,6 +139,7 @@
 #include	<errno.h>
 #include    <stdlib.h>
 #include    <string.h>
+#include    <liquidc.h>
 
 #ifdef DIRENT
 #	include	<dirent.h>
@@ -520,7 +521,7 @@ union bytes
 						}
 #endif
 
-char *progname;			/* Program name                                                                 */
+char * ARRAY progname;		/* Program name                                                                 */
 int silent = 0;			/* don't tell me about errors                                   */
 int quiet = 1;			/* don't tell me about compression                              */
 int do_decomp = 0;		/* Decompress mode                                                              */
@@ -536,7 +537,7 @@ int exit_code = -1;		/* Exitcode of compress (-1 no file compressed) */
 char_type inbuf[IBUFSIZ + 64];	/* Input buffer                                                                 */
 char_type outbuf[OBUFSIZ + 2048];	/* Output buffer                                                           */
 
-char *ifname;			/* Input filename                                                               */
+char * ARRAY ifname;	       	/* Input filename                                                               */
 int remove_ofname = 0;		/* Remove output file on a error                                */
 char ofname[MAXPATHLEN];	/* Output filename                                                              */
 int fgnd_flag = 0;		/* Running in background (SIGINT=SIGIGN)                */
@@ -648,9 +649,9 @@ int primetab[256] =		/* Special secudary hash table.         */
 };
 #endif
 
-void main ARGS ((int, char **));
+void main ARGS ((int, char * ARRAY * ARRAY));
 void Usage ARGS ((void));
-void comprexx ARGS ((char **));
+void comprexx ARGS ((char * ARRAY * ARRAY));
 void compdir ARGS ((char *));
 void compress ARGS ((int, int));
 void decompress ARGS ((int, int));
@@ -704,10 +705,10 @@ void about ARGS ((void));
 void
 main (argc, argv)
   REG1 int argc;
-REG2 char *argv[];
+REG2 char * ARRAY argv[];
 {
-  REG3 char **filelist;
-  REG4 char **fileptr;
+  REG3 char * ARRAY * ARRAY filelist;
+  REG4 char * ARRAY * ARRAY fileptr;
 
 /* pmr: we are unfriendly toward function pointers
   if (fgnd_flag = (signal (SIGINT, SIG_IGN) != SIG_IGN))
@@ -790,7 +791,8 @@ REG2 char *argv[];
 		  break;
 
 		case 'b':
-		  if (!ARGVAL ())
+                    // pmr: if (!ARGVAL ())
+                    if (ARGVAL () != 0)
 		    {
 		      fprintf (stderr, "Missing maxbits\n");
 		      Usage ();
@@ -892,7 +894,7 @@ Usage: %s [-dfvcVr] [-b maxbits] [file ...]\n\
 
 void
 comprexx (fileptr)
-  char **fileptr;
+  char * ARRAY * ARRAY fileptr;
 {
   int fdin;
   int fdout;

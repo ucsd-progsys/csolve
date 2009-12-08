@@ -160,3 +160,10 @@ write ::
   ret       int (4, true)
   store_in  [A1 |-> ]
   store_out [A1 |-> ]
+
+perror ::
+  forall    [A1]
+  arg       (err: ref (A1, 0[1]))
+  ret       int (0, true)
+  store_in  [A1 |-> 0[1]: int (1, true)]
+  store_out [A1 |-> 0[1]: int (1, true)]
