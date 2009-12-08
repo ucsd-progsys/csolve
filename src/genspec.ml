@@ -251,15 +251,15 @@ let funspecs_of_funm funspec funm =
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
-let upd_varm spec (th, st, varm) loc vn = function
-  | _ when SM.mem vn spec         -> (th, st, varm)
+let upd_varm spec (st, varm) loc vn = function
+  | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
-      begin match conv_ciltype loc TopLevel (th, st, Ct.IInt 0) t with
-        | (th, st, _), [(_, ct)] ->
-            (th, st, Misc.sm_protected_add false vn ct varm)
+      begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.IInt 0) t with
+        | (_, st, _), [(_, ct)] ->
+            (st, Misc.sm_protected_add false vn ct varm)
         | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
       end
-  | _ -> (th, st, varm)
+  | _ -> (st, varm)
 
 let vars_of_file cil =
   foldGlobals cil begin fun acc g -> match g with
@@ -268,12 +268,12 @@ let vars_of_file cil =
   end SM.empty
 
 let globalspecs_of_varm varspec varm =
-     (SM.empty, SLM.empty, SM.empty)
-  |> SM.fold begin fun _ t (th, st, varm) -> match t with
-       | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (th, st, varm) loc v.vname v.vtype
-       | _                                    -> (th, st, varm)
+     (SLM.empty, SM.empty)
+  |> SM.fold begin fun _ t (st, varm) -> match t with
+       | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (st, varm) loc v.vname v.vtype
+       | _                                    -> (st, varm)
      end varm
-  |> fun (_, st, varm) -> (st, Misc.sm_bindings varm)
+  |> fun (st, varm) -> (st, Misc.sm_bindings varm)
 
 (***************************************************************************)
 (********************************* API *************************************)
