@@ -10,6 +10,8 @@ extern int band(int, int);
 int assume (int p) {
     if (!p)
     STUCK: goto STUCK;
+
+    return 1;
 }
 
 #endif
