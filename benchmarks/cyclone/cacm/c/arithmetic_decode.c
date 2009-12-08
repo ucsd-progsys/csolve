@@ -32,7 +32,9 @@ int decode_symbol(cum_freq)
     range = (long)(high-low)+1;
     cum = 					/* Find cum freq for value. */
       (((long)(value-low)+1)*cum_freq[0]-1)/range;
-    for (symbol = 1; cum_freq[symbol]>cum; symbol++) ; /* Then find symbol. */
+    for (symbol = 1; cum_freq[symbol]>cum; symbol++) { /* Then find symbol. */
+      int assm = assume(symbol < 257);		//JHALA
+    }
     high = low +				/* Narrow the code region   */
       (range*cum_freq[symbol-1])/cum_freq[0]-1;	/* to that allotted to this */
     low = low + 				/* symbol.                  */
