@@ -80,7 +80,7 @@ m_out(MINT *a, int b, FILE *f)
 	m_out_b(a,b,f,0);
 }
 
-m_out_b(MINT *a, int b, FILE *f, int blanks)
+void m_out_b(MINT *a, int b, FILE *f, int blanks)
 {
 	int		sign, i;
 	short		r;
@@ -200,7 +200,7 @@ fmin(MINT *a, FILE *f) {
 
 
 
-Sm_out_b(char *s, MINT *a, int b, int blanks)
+void Sm_out_b(char *s, MINT *a, int b, int blanks)
 {
 	int		sign, i;
 	short		r;

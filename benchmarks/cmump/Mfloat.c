@@ -63,7 +63,7 @@ mlog(MINT *a)
 	return (bits);
 }
 
-mshiftl (MINT *a, int b)
+void mshiftl (MINT *a, int b)
 {	register big, q, p, bits;
 	register short *aval, *cval;
 	int alen, words, neg, clen, rest;
@@ -117,7 +117,7 @@ mshiftl (MINT *a, int b)
 	if (neg) mnegate(a);
 }
 
-mshiftr (MINT *a, int b)
+void mshiftr (MINT *a, int b)
 {
 	register bits, big, p, q, alen;
 	register short *aval;

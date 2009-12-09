@@ -36,7 +36,7 @@ m_add(MINT *a, MINT *b, MINT *c)
 	}
 	else c->len=a->len;
 	c->val=cval;
-	if(c->len==0) vfree(cval);
+        if(c->len==0) vfree(cval);
 }
 
 void madd(MINT *a, MINT *b, MINT *c)
@@ -57,9 +57,9 @@ void madd(MINT *a, MINT *b, MINT *c)
 		else
 		{	y.len= -y.len;
 			if (mcmp(&x,&y)>=0) m_sub(&x,&y,&z);
-			else 
-			{ 
-				sign = -1; 
+			else
+			{
+				sign = -1;
 				m_sub(&y,&x,&z);
 			}
 		}

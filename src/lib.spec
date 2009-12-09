@@ -6,11 +6,11 @@ malloc ::
   store_out [C0 |-> ]
 
 free ::
-  forall [C0]
-  arg (ptr: ref (C0, true, {v | 0 < v}))
+  forall [A0]
+  arg (ptr: ref (A0, true, {v | 0 < v}))
   ret int(0, true, {v | true})
-  store_in [C0 |-> ]
-  store_out [C0 |-> ]
+  store_in [A0 |-> ]
+  store_out [A0 |-> ]
 
 atbegin::
   forall    [A0]

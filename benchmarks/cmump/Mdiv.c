@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include "cmump.h"
 #include "multpol.h"
+#include <liquidc.h>
 
-m_dsb(int qq, int nn, short int *aa, short int *bb)
+m_dsb(int qq, int nn, short int * ARRAY aa, short int * ARRAY bb)
 {
 	register short *a, *b;
 	register x,q,j,n;

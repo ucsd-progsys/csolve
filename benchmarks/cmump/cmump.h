@@ -3,6 +3,9 @@
 // pmr: Revert new definitions of xalloc and xfree
 #define xalloc malloc
 #define xfree  free
+// pmr: Garbage-collecting allocation?
+#define galloc malloc
+#define gfree  free
 
 #define INTR 1 /* 0: poll, 1: intr */
 
@@ -34,7 +37,7 @@ typedef struct {
 /* Every MINT should be garbage collected with one of these before being 
 	abandoned */
 #define MFREE(x) (((x)->len!=0) ? xfree((x)->val) : 0)
-#define MMOVEFREE(x,y) (*(y) = *(x))
+#define MMOVEFREE(x,y) ((y)->len = (x)->len, (y)->val = (x)->val) /* pmr: was (*(y) = *(x)) --- make sure ok to eval args twice! */
 
 /* Other useful statement macros */
 #define mmove(x,y) (MFREE(y), MMOVE(x,y))
