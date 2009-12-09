@@ -219,7 +219,7 @@ refined by the same order on the other variables. */
 
 
 
-
+/* pmr: We don't handle function pointers yet
 int (*cmp_exp)();
 
 void init_order_exp(void)
@@ -236,4 +236,4 @@ void init_order_exp(void)
 	};
 };
 
-
+*/

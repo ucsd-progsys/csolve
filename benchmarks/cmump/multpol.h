@@ -112,7 +112,8 @@ void	Smpolout ( char *s, MPOL *p );
 void	mpolsub ( MPOL *p, MPOL *q, MPOL *r );
 void	mpolunit ( MPOL *p, MINT *c, MPOL *q );
 
-void	(*PollPtr)();
+// pmr: We don't handle function pointers yet
+//void	(*PollPtr)();
 
 #endif _proto_multpol_
 

@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "cmump.h"
+#include <liquidc.h>
 
 #undef	DEBUG
 
-mstrtoul(MINT *a, char *s, char **p, short int b)
+mstrtoul(MINT *a, char * ARRAY s, char * ARRAY * ARRAY p, short int b)
 {
 	MINT	y, base;
 	int	c, dectop, alphatop;

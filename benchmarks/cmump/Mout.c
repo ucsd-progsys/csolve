@@ -129,7 +129,8 @@ m_out_b(MINT *a, int b, FILE *f, int blanks)
 	MFREE(&x);
 }
 
-sdiv (MINT *a, int n, MINT *q, short int *r)
+// pmr: added return type
+void sdiv (MINT *a, int n, MINT *q, short int *r)
 {
 	register qlen,i,x,y;
 	register short *aval, *qval;

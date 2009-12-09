@@ -7,7 +7,7 @@ malloc ::
 
 free ::
   forall [C0]
-  arg (ptr: ref (C0, 0, {v | 0 < v}))
+  arg (ptr: ref (C0, true, {v | 0 < v}))
   ret int(0, true, {v | true})
   store_in [C0 |-> ]
   store_out [C0 |-> ]

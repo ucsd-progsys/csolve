@@ -1,3 +1,9 @@
+#include <liquidc.h>
+
+// pmr: Revert new definitions of xalloc and xfree
+#define xalloc malloc
+#define xfree  free
+
 #define INTR 1 /* 0: poll, 1: intr */
 
 #undef PARALLEL
@@ -13,7 +19,7 @@ extern (*free_f)();
 #ifndef	MINIT							/* 	Type declaration of MINT	*/
 typedef struct {
 	int len;
-	short *val;
+	short * ARRAY val;
 } MINT;
 
 /*	Initialization macros--every new variable 
@@ -114,7 +120,8 @@ void	mipow ( MINT *a, int n, MINT *b );
 void	mcopy ( MINT *a, MINT *b );
 int		mcmp ( MINT *a, MINT *b );
 
-void	(*PollPtr)();
+// pmr: Don't understand function pointers
+//void	(*PollPtr)();
 
 #endif	_proto_cmump_
 

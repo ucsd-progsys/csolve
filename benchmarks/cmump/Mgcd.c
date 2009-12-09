@@ -29,12 +29,13 @@ void mgcd(MINT *a, MINT *b, MINT *c)
 FN minvert(MINT *a, MINT *b, MINT *c)
 {	MINT x, y, z, w, Anew, Aold;
 	int i = 0;
-	static MINT one;
+	static MINT *one; // pmr: was record, but we don't handle record globals, changed alloc patter
 	static int oneinit = 1;
 
 	if (oneinit) {
 		oneinit = 0;
-		MSET(1,&one);
+                one = malloc(sizeof(MINT)); // pmr: see declaration note
+		MSET(1,one);
 	}
 	MINIT(&x);
 	MINIT(&y);
