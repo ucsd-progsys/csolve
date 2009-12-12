@@ -1,0 +1,44 @@
+del_dep: [1;1;-2;0] -> * 
+del_dep: [1;1;-4;0] -> * 
+del_dep: [1;1;-6;0] -> * 
+
+constraint:
+  env  [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = 1)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 1 tag [1;1;-1;0] 
+ 
+constraint:
+  env  [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = 1)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 2 tag [1;1;-3;0] 
+ 
+constraint:
+  env  [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = 0)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 3 tag [1;1;-5;0] 
+ 
+ 
+wf: env [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+             SKOLEM:{VV_func : func([int ; int]) | []};
+             BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+             BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+     reft {VV_int : int | [k_1]} 
+      
+     
+solution: k_1 := [(1 = 0);(VV_int = 0);(0 <= VV_int);(0 < VV_int)] 
+ 

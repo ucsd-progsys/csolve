@@ -1,0 +1,38 @@
+del_dep: [2;1;-2;0] -> * 
+del_dep: [2;1;-5;0] -> * 
+constraint:
+  env  [x_main:{VV_int : int | []};
+        tmp_main:{VV_int : int | []};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = 0)]} 
+ rhs {VV_int : int | [true]} 
+ id 1 tag [2;1;-1;0] 
+ 
+constraint:
+  env  [x_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp_main__SSA__blk_1_1)]};
+        x_main:{VV_int : int | []};
+        tmp_main__SSA__blk_1_1:{VV_int : int | [(0 = 1)]};
+        tmp_main:{VV_int : int | []};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = 0)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 2 tag [2;1;-4;0] 
+ 
+ 
+wf: env [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+             SKOLEM:{VV_func : func([int ; int]) | []};
+             BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+             BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+     reft {VV_int : int | [k_1]} 
+      
+     
+solution: k_1 := [(0 < VV_int);(0 <= VV_int);(1 = 0);(VV_int = 0)] 
+ 

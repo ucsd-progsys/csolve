@@ -1,0 +1,10 @@
+ 
+wf: env [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+           SKOLEM:{VV_func : func([int ; int]) | []};
+           BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+           BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+   reft {VV_int : int | [k_1]} 
+    
+   
+solution: k_1 := [(0 < VV_int);(0 <= VV_int);(1 = 0);(VV_int = 0)] 
+ 

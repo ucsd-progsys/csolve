@@ -72,7 +72,9 @@ let read_inputs usage =
 
 let solve (ts, ps, cs, ws, ds, qs, s0) = match cs with 
   | []   -> 
-      print_now "Fixpoint: NO Constraints!" |> ignore
+      print_now "Fixpoint: NO Constraints!" 
+      |> fun _ -> []
+
   | c::_ -> 
       let _       = print_now "Fixpoint: Creating  CI\n" in
       let a       = c |> C.tag_of_t |> List.length in
@@ -84,12 +86,16 @@ let solve (ts, ps, cs, ws, ds, qs, s0) = match cs with
       let _       = F.printf "%a \nUnsat Constraints:\n %a" 
                       C.print_soln s' 
                       (Misc.pprint_many true "\n" (C.print_t None)) cs' in
-      ()
+      cs'
+
 
 let usage = "Usage: fixpoint <options> [source-files]\noptions are:"
 
 let main () =
-  let _ = read_inputs usage |> snd |> BS.time "solve" solve in
-  BNstats.print stdout "Fixpoint Solver Time \n"
+  let cs' = read_inputs usage |> snd |> BS.time "solve" solve in
+  let _   = BNstats.print stdout "Fixpoint Solver Time \n" in
+  match cs' with 
+  | [] -> (F.printf "\nSAT\n" ; exit 0)
+  | _  -> (F.printf "\nUNSAT\n" ; exit 1)
 
 let _ = main ()

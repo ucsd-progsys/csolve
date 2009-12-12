@@ -1,0 +1,149 @@
+del_dep: [3;1;-2;0] -> * 
+del_dep: [3;1;-5;0] -> * 
+del_dep: [3;1;-8;0] -> * 
+
+del_dep: [3;1;-11;0] -> * 
+del_dep: [3;1;-15;0] -> * 
+constraint:
+  env  [tmp_main__SSA__blk_1_1:{VV_int : int | [(VV_int > 0)]};
+        tmp_main:{VV_int : int | []};
+        tmp___0_main:{VV_int : int | [(VV_int > 0)]};
+        size_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp_main__SSA__blk_1_1)]};
+        size_main:{VV_int : int | []};
+        k_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp___0_main)]};
+        k_main:{VV_int : int | []};
+        h_main:{VV_int : int | []};
+        __cil_tmp8_main:{VV_int : int | []};
+        __cil_tmp7_main:{VV_int : int | []};
+        __cil_tmp6_main:{VV_int : int | []};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = size_main__SSA__blk_1_1)]} 
+ rhs {VV_int : int | [k_3[key_hashfunc:=k_main__SSA__blk_1_1][HashRange_hashfunc:=size_main__SSA__blk_1_1]]} 
+ id 1 tag [3;1;-7;0] 
+ 
+constraint:
+  env  [tmp_main__SSA__blk_1_1:{VV_int : int | [(VV_int > 0)]};
+        tmp_main:{VV_int : int | []};
+        tmp___0_main:{VV_int : int | [(VV_int > 0)]};
+        size_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp_main__SSA__blk_1_1)]};
+        size_main:{VV_int : int | []};
+        k_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp___0_main)]};
+        k_main:{VV_int : int | []};
+        h_main:{VV_int : int | []};
+        __cil_tmp8_main:{VV_int : int | []};
+        __cil_tmp7_main:{VV_int : int | []};
+        __cil_tmp6_main:{VV_int : int | []};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = k_main__SSA__blk_1_1)]} 
+ rhs {VV_int : int | [k_4[key_hashfunc:=k_main__SSA__blk_1_1][HashRange_hashfunc:=size_main__SSA__blk_1_1]]} 
+ id 2 tag [3;1;-7;0] 
+ 
+constraint:
+  env  [tmp_main__SSA__blk_1_1:{VV_int : int | [(VV_int > 0)]};
+        tmp_main:{VV_int : int | []};
+        tmp___0_main:{VV_int : int | [(VV_int > 0)]};
+        size_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp_main__SSA__blk_1_1)]};
+        size_main:{VV_int : int | []};
+        k_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp___0_main)]};
+        k_main:{VV_int : int | []};
+        h_main__SSA__blk_1_1:{VV_int : int | [k_2[key_hashfunc:=k_main__SSA__blk_1_1][HashRange_hashfunc:=size_main__SSA__blk_1_1]]};
+        h_main:{VV_int : int | []};
+        __cil_tmp8_main:{VV_int : int | []};
+        __cil_tmp7_main:{VV_int : int | []};
+        __cil_tmp6_main:{VV_int : int | [(VV_int = ((h_main__SSA__blk_1_1 >= 0) ? 1 : 0))]};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = __cil_tmp6_main)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 3 tag [3;1;-10;0] 
+ 
+constraint:
+  env  [tmp_main__SSA__blk_1_1:{VV_int : int | [(VV_int > 0)]};
+        tmp_main:{VV_int : int | []};
+        tmp___0_main:{VV_int : int | [(VV_int > 0)]};
+        size_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp_main__SSA__blk_1_1)]};
+        size_main:{VV_int : int | []};
+        k_main__SSA__blk_1_1:{VV_int : int | [(VV_int = tmp___0_main)]};
+        k_main:{VV_int : int | []};
+        h_main__SSA__blk_1_1:{VV_int : int | [k_2[key_hashfunc:=k_main__SSA__blk_1_1][HashRange_hashfunc:=size_main__SSA__blk_1_1]]};
+        h_main:{VV_int : int | []};
+        __cil_tmp8_main:{VV_int : int | [(VV_int = ((__cil_tmp7_main < size_main__SSA__blk_1_1) ? 1 : 0))]};
+        __cil_tmp7_main:{VV_int : int | [(VV_int = h_main__SSA__blk_1_1)]};
+        __cil_tmp6_main:{VV_int : int | [(VV_int = ((h_main__SSA__blk_1_1 >= 0) ? 1 : 0))]};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = __cil_tmp8_main)]} 
+ rhs {VV_int : int | [(VV_int != 0)]} 
+ id 4 tag [3;1;-14;0] 
+ 
+constraint:
+  env  [key_hashfunc:{VV_int : int | [k_4]};
+        __cil_tmp4_hashfunc:{VV_int : int | [&& [(0 <= VV_int) ; (VV_int < ((0 <= HashRange_hashfunc) ? HashRange_hashfunc : (0 - HashRange_hashfunc)))]]};
+        __cil_tmp3_hashfunc:{VV_int : int | [((0 <= 4) -> (key_hashfunc >= VV_int))]};
+        UNCHECKED:{VV_func : func([ptr ; int]) | []};
+        SKOLEM:{VV_func : func([int ; int]) | []};
+        HashRange_hashfunc:{VV_int : int | [k_3]};
+        BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+        BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+ grd && [] 
+ lhs {VV_int : int | [(VV_int = __cil_tmp4_hashfunc)]} 
+ rhs {VV_int : int | [k_2]} 
+ id 5 tag [1;0;-1000;1] 
+ 
+ 
+wf: env [UNCHECKED:{VV_func : func([ptr ; int]) | []};
+             SKOLEM:{VV_func : func([int ; int]) | []};
+             BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+             BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+     reft {VV_int : int | [k_1]} 
+      
+     
+wf: env [key_hashfunc:{VV_int : int | [k_4]};
+               UNCHECKED:{VV_func : func([ptr ; int]) | []};
+               SKOLEM:{VV_func : func([int ; int]) | []};
+               HashRange_hashfunc:{VV_int : int | [k_3]};
+               BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+               BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+       reft {VV_int : int | [k_2]} 
+        
+       
+wf: env [key_hashfunc:{VV_int : int | [k_4]};
+                 UNCHECKED:{VV_func : func([ptr ; int]) | []};
+                 SKOLEM:{VV_func : func([int ; int]) | []};
+                 HashRange_hashfunc:{VV_int : int | [k_3]};
+                 BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+                 BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+         reft {VV_int : int | [k_3]} 
+          
+         
+wf: env [key_hashfunc:{VV_int : int | [k_4]};
+                   UNCHECKED:{VV_func : func([ptr ; int]) | []};
+                   SKOLEM:{VV_func : func([int ; int]) | []};
+                   HashRange_hashfunc:{VV_int : int | [k_3]};
+                   BLOCK_END:{VV_func : func([ptr ; ptr]) | []};
+                   BLOCK_BEGIN:{VV_func : func([ptr ; ptr]) | []}] 
+           reft {VV_int : int | [k_4]} 
+            
+           
+solution: k_1 := [(0 < VV_int);(0 <= VV_int);(1 = 0);(VV_int = 0)] 
+solution: 
+            k_2 := [(0 <= VV_int);(VV_int < HashRange_hashfunc);(VV_int <= HashRange_hashfunc)] 
+solution: 
+            k_3 := [(0 < VV_int);(0 <= VV_int);(VV_int >= HashRange_hashfunc);(VV_int <= HashRange_hashfunc)] 
+solution: 
+            k_4 := [(0 < VV_int);(0 <= VV_int);(VV_int >= key_hashfunc);(VV_int <= key_hashfunc)] 
+ 
