@@ -42,6 +42,8 @@ open Misc.Ops
 let exp_of_cilcon skolem = function
   | Cil.CInt64 (i, _, _) -> 
       A.eCon (A.Constant.Int (Int64.to_int i))
+  | Cil.CChr c ->
+      A.eCon (A.Constant.Int (Char.code c))
   | Cil.CReal _ ->
       skolem ()
   | Cil.CStr s ->
@@ -192,6 +194,7 @@ let rec reft_of_cilexp vv e =
       A.pTrue
   
   | Cil.Const (Cil.CInt64 (_,_,_))
+  | Cil.Const (Cil.CChr _)
   | Cil.SizeOf _
   | Cil.Lval _
   | Cil.BinOp (Cil.PlusA, _, _, _) 
