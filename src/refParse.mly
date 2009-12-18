@@ -21,8 +21,7 @@ let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 let mk_funspec fn public qslocs args ist ret ost =
-  let _ = Hashtbl.clear sloctable in
-    (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
+  (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
 
 let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
   if Ctypes.prestore_closed storespec then
