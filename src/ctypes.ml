@@ -380,6 +380,12 @@ let prestore_fold f b ps =
 let prestore_domain (ps: 'a prestore): S.t list =
   SLM.fold (fun s _ ss -> s :: ss) ps []
 
+let prestore_slocs (ps: 'a prestore): S.t list =
+    ps
+ |> prestore_domain
+ |> M.flip (prestore_fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
+ |> M.sort_and_compact  
+
 let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
@@ -431,8 +437,7 @@ let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
 
 let d_prestore_addrs () st =
-  let slocs = SLM.fold (fun k _ acc -> k :: acc) st [] in
-  Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) slocs
+  Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (prestore_domain st)
 
 (******************************************************************************)
 (******************************* Function Types *******************************)
@@ -507,8 +512,8 @@ let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
         | _            -> true
 
 let cfun_slocs (cf: cfun): S.t list =
-    List.concat [prestore_domain cf.sto_in;
-                 prestore_domain cf.sto_out;
+    List.concat [prestore_slocs cf.sto_in;
+                 prestore_slocs cf.sto_out;
                  M.maybe_cons (prectype_sloc cf.ret) <|
                      M.map_partial (prectype_sloc <.> snd) cf.args]
  |> M.sort_and_compact

@@ -145,6 +145,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (******************************************************************************)
 
 val prestore_domain : 'a prestore -> Sloc.t list
+val prestore_slocs  : 'a prestore -> Sloc.t list
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t

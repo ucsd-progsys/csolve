@@ -508,6 +508,9 @@ let quantification_error () ((s1, s2): S.t * S.t): P.doc =
 let global_quantification_error () ((s1, s2): S.t * S.t): P.doc =
   C.error "Global and quantified locations get unified in function body (%a, %a)" S.d_sloc s1 S.d_sloc s2
 
+let add_loc_if_missing (sto: store) (s: S.t): store =
+  if SLM.mem s sto then sto else SLM.add s LDesc.empty sto
+
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
   let whole_store      = prestore_upd cf.sto_out gst in
@@ -516,9 +519,8 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
   let _                = check_slocs_distinct global_quantification_error sub (prestore_domain whole_store) in
   let revsub           = revert_spec_names sub whole_store in
   let sto              = prestore_subs revsub sto in
-  let sto              = cf |> cfun_slocs |> List.fold_left (fun sto s -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto) sto in
-  let sd               = adjust_slocdep revsub sd in
-  let cm               = cstrmap_subs revsub cm in
+  let sto              = cf |> cfun_slocs |> List.fold_left add_loc_if_missing sto in
+  let sto              = List.fold_left add_loc_if_missing sto (prestore_slocs sto) in
   let sub              = S.Subst.compose revsub sub in
   let vars             = VM.map (prectype_subs sub) vars in
   let em               = ExpMap.map (prectype_subs sub) em in
@@ -535,7 +537,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
 
-let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st; anna = annot}: shape) (ds: Ind.dcheck list): unit =
+let print_shape (fname: string) (cf: cfun) (gst: store) ({vtyps = locals; store = st; anna = annot}: shape) (ds: Ind.dcheck list): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -547,6 +549,9 @@ let print_shape (fname: string) (cf: cfun) ({vtyps = locals; store = st; anna = 
   let _ = P.printf "Store:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" d_store st in
+  let _ = P.printf "Global Store:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" d_store gst in
   let _ = P.printf "Annotations:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
@@ -567,7 +572,6 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let sto                 = prestore_fold (fun sto _ _ -> function CTRef (s, _) -> if SLM.mem s sto then sto else SLM.add s LDesc.empty sto | _ -> sto) sto sto in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
@@ -575,7 +579,7 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
                              anna  = annot;
                              conca = conca;
                              theta = theta} in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf shp ds;
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp ds;
     (shp, ds)
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
