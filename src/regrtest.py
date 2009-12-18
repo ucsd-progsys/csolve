@@ -39,6 +39,11 @@ def solve_quals(file,bare,time,quiet,flags):
   else: time = []
   return logged_sys_call(time + solve + flags + [("%s.c" % bname)], out)
 
+def run_script(file,quiet):
+  if quiet: out = null
+  else: out = None
+  return logged_sys_call(file, out)
+
 def getfileargs(file):
   f = open(file)
   l = f.readline()
@@ -60,18 +65,24 @@ def logtest(file, ok, runtime):
   f.close
 
 def runtest(file, expected_status, dargs):
-  fargs   = getfileargs(file)
-  start   = time.time()
-  status  = solve_quals(file, True, False, True, fargs + dargs)
+  start = time.time()
+  if file.endswith(".c"):
+    fargs  = getfileargs(file)
+    status = solve_quals(file, True, False, True, fargs + dargs)
+  elif file.endswith(".sh"):
+    status = run_script(file, True)
   runtime = time.time() - start
   ok      = (status == expected_status)
   logtest(file, ok, runtime)
   return (file, ok)
 
+def istest(file):
+  return file.endswith(".sh") or (file.endswith(".c") and not file.endswith(".ssa.c"))
+
 def runtests(dir, expected_status, dargs):
   print "Running tests from %s/" % dir
   files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
-  return [runtest(file, expected_status, dargs) for file in files if file.endswith(".c") and not file.endswith(".ssa.c")]
+  return [runtest(file, expected_status, dargs) for file in files if istest(file)]
 
 #####################################################################################
 
