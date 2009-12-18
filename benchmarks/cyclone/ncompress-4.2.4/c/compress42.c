@@ -132,14 +132,15 @@
  */
 #include	<stdio.h>
 #include	<fcntl.h>
-#include	<ctype.h>
-#include	<signal.h>
+// #include	<ctype.h>
+// #include	<signal.h>
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<errno.h>
 #include    <stdlib.h>
 #include    <string.h>
 #include    <liquidc.h>
+#include    <unistd.h> // pmr
 
 #ifdef DIRENT
 #	include	<dirent.h>
@@ -583,21 +584,42 @@ unsigned short *codetab[5] =
 #	define	tab_prefixof(i)		codetabof(i)
 #	define	tab_suffixof(i)		((char_type *)htab[(i)>>15])[(i) & 0x7fff]
 #	define	de_stack			((char_type *)(&htab2[8191]))
+
+void memset_short_nondet (unsigned short *phtab, size_t sz) {
+    int o = nondetpos();
+
+    if (o > sz)
+        return;
+
+    phtab[o] = nondet();
+}
+
 void
 clear_htab ()
 {
-  memset (htab0, -1, sizeof (htab0));
-  memset (htab1, -1, sizeof (htab1));
-  memset (htab2, -1, sizeof (htab2));
-  memset (htab3, -1, sizeof (htab3));
-  memset (htab4, -1, sizeof (htab4));
-  memset (htab5, -1, sizeof (htab5));
-  memset (htab6, -1, sizeof (htab6));
-  memset (htab7, -1, sizeof (htab7));
-  memset (htab8, -1, sizeof (htab8));
+    // pmr: don't handle memset properly yet
+    memset_short_nondet (htab0, sizeof (htab0));
+    memset_short_nondet (htab1, sizeof (htab1));
+    memset_short_nondet (htab2, sizeof (htab2));
+    memset_short_nondet (htab3, sizeof (htab3));
+    memset_short_nondet (htab4, sizeof (htab4));
+    memset_short_nondet (htab5, sizeof (htab5));
+    memset_short_nondet (htab6, sizeof (htab6));
+    memset_short_nondet (htab7, sizeof (htab7));
+    memset_short_nondet (htab8, sizeof (htab8));
+
+    //  memset (htab0, -1, sizeof (htab0));
+    //  memset (htab1, -1, sizeof (htab1));
+    //  memset (htab2, -1, sizeof (htab2));
+    //  memset (htab3, -1, sizeof (htab3));
+    //  memset (htab4, -1, sizeof (htab4));
+    //  memset (htab5, -1, sizeof (htab5));
+    //  memset (htab6, -1, sizeof (htab6));
+    //  memset (htab7, -1, sizeof (htab7));
+    //  memset (htab8, -1, sizeof (htab8));
 }
 
-#	define	clear_tab_prefixof()	memset(code0tab, 0, 256);
+#	define	clear_tab_prefixof()	memset_short_nondet (code0tab, 256) /* pmr: don't handle memset right yet memset(code0tab, 0, 256); */
 #else /* Normal machine */
 count_int htab[HSIZE];
 unsigned short codetab[HSIZE];
@@ -652,7 +674,7 @@ int primetab[256] =		/* Special secudary hash table.         */
 void main ARGS ((int, char * ARRAY * ARRAY));
 void Usage ARGS ((void));
 void comprexx ARGS ((char * ARRAY * ARRAY));
-void compdir ARGS ((char *));
+void compdir ARGS ((char * ARRAY));
 void compress ARGS ((int, int));
 void decompress ARGS ((int, int));
 // char *rindex ARGS ((char *, int));
@@ -827,7 +849,7 @@ REG2 char * ARRAY argv[];
 	}
       else
 	{
-	  *fileptr++ = *argv;	/* Build input file list */
+          *fileptr++ = *argv;	/* Build input file list */
 	  *fileptr = NULL;
 	}
 
@@ -892,394 +914,401 @@ Usage: %s [-dfvcVr] [-b maxbits] [file ...]\n\
   exit (1);
 }
 
-void
-comprexx (fileptr)
-  char * ARRAY * ARRAY fileptr;
-{
-  int fdin;
-  int fdout;
-  char tempname[MAXPATHLEN];
-  struct stat infstat;		/* Input file status */
+/* void */
+/* comprexx (fileptr) */
+/*   char * ARRAY * ARRAY fileptr; */
+/* { */
+/*   int fdin; */
+/*   int fdout; */
+/*   char tempname[MAXPATHLEN]; */
+/*   struct stat infstat;		/\* Input file status *\/ */
 
-  strcpy (tempname, *fileptr);
-  errno = 0;
+/*   strcpy (tempname, *fileptr); */
+/*   errno = 0; */
 
-#ifdef	LSTAT
-  if (lstat (tempname, &infstat) == -1)
-#else
-    if (stat (tempname, &infstat) == -1)
-#endif
-      {
-	if (do_decomp)
-	  {
-	    switch (errno)
-	      {
-	      case ENOENT:	/* file doesn't exist */
-		/*
-		** if the given name doesn't end with .Z, try appending one
-		** This is obviously the wrong thing to do if it's a 
-		** directory, but it shouldn't do any harm.
-		*/
-		if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0)
-		  {
-		    strcat (tempname, ".Z");
-		    errno = 0;
-#ifdef	LSTAT
-		    if (lstat (tempname, &infstat) == -1)
-#else
-		      if (stat (tempname, &infstat) == -1)
-#endif
-			{
-			  perror (tempname);
-			  exit_code = 1;
-			  return;
-			}
+/* #ifdef	LSTAT */
+/*   if (lstat (tempname, &infstat) == -1) */
+/* #else */
+/*     if (stat (tempname, &infstat) == -1) */
+/* #endif */
+/*       { */
+/* 	if (do_decomp) */
+/* 	  { */
+/* 	    switch (errno) */
+/* 	      { */
+/* 	      case ENOENT:	/\* file doesn't exist *\/ */
+/* 		/\* */
+/* 		** if the given name doesn't end with .Z, try appending one */
+/* 		** This is obviously the wrong thing to do if it's a  */
+/* 		** directory, but it shouldn't do any harm. */
+/* 		*\/ */
+/* 		if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0) */
+/* 		  { */
+/* 		    strcat (tempname, ".Z"); */
+/* 		    errno = 0; */
+/* #ifdef	LSTAT */
+/* 		    if (lstat (tempname, &infstat) == -1) */
+/* #else */
+/* 		      if (stat (tempname, &infstat) == -1) */
+/* #endif */
+/* 			{ */
+/* 			  perror (tempname); */
+/* 			  exit_code = 1; */
+/* 			  return; */
+/* 			} */
 
-		    if ((infstat.st_mode & S_IFMT) != S_IFREG)
-		      {
-			fprintf (stderr, "%s: Not a regular file.\n", tempname);
-			exit_code = 1;
-			return;
-		      }
-		  }
-		else
-		  {
-		    perror (tempname);
-		    exit_code = 1;
-		    return;
-		  }
+/* 		    if ((infstat.st_mode & S_IFMT) != S_IFREG) */
+/* 		      { */
+/* 			fprintf (stderr, "%s: Not a regular file.\n", tempname); */
+/* 			exit_code = 1; */
+/* 			return; */
+/* 		      } */
+/* 		  } */
+/* 		else */
+/* 		  { */
+/* 		    perror (tempname); */
+/* 		    exit_code = 1; */
+/* 		    return; */
+/* 		  } */
 
-		break;
+/* 		break; */
 
-	      default:
-		perror (tempname);
-		exit_code = 1;
-		return;
-	      }
-	  }
-	else
-	  {
-	    perror (tempname);
-	    exit_code = 1;
-	    return;
-	  }
-      }
+/* 	      default: */
+/* 		perror (tempname); */
+/* 		exit_code = 1; */
+/* 		return; */
+/* 	      } */
+/* 	  } */
+/* 	else */
+/* 	  { */
+/* 	    perror (tempname); */
+/* 	    exit_code = 1; */
+/* 	    return; */
+/* 	  } */
+/*       } */
 
-  switch (infstat.st_mode & S_IFMT)
-    {
-    case S_IFDIR:		/* directory */
-#ifdef	RECURSIVE
-      if (recursive)
-	compdir (tempname);
-      else
-#endif
-	if (!quiet)
-	  fprintf (stderr, "%s is a directory -- ignored\n", tempname);
-      break;
+/*   switch (infstat.st_mode & S_IFMT) */
+/*     { */
+/*     case S_IFDIR:		/\* directory *\/ */
+/* #ifdef	RECURSIVE */
+/*       if (recursive) */
+/* 	compdir (tempname); */
+/*       else */
+/* #endif */
+/* 	if (!quiet) */
+/* 	  fprintf (stderr, "%s is a directory -- ignored\n", tempname); */
+/*       break; */
 
-    case S_IFREG:		/* regular file */
-      if (do_decomp != 0)
-	{			/* DECOMPRESSION */
-	  if (!zcat_flg)
-	    {
-	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0)
-		{
-		  if (!quiet)
-		    fprintf (stderr, "%s - no .Z suffix\n", tempname);
+/*     case S_IFREG:		/\* regular file *\/ */
+/*       if (do_decomp != 0) */
+/* 	{			/\* DECOMPRESSION *\/ */
+/* 	  if (!zcat_flg) */
+/* 	    { */
+/* 	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0) */
+/* 		{ */
+/* 		  if (!quiet) */
+/* 		    fprintf (stderr, "%s - no .Z suffix\n", tempname); */
 
-		  return;
-		}
-	    }
+/* 		  return; */
+/* 		} */
+/* 	    } */
 
-	  strcpy (ofname, tempname);
+/* 	  strcpy (ofname, tempname); */
 
-	  /* Strip of .Z suffix */
+/* 	  /\* Strip of .Z suffix *\/ */
 
-	  if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0)
-	    ofname[strlen (tempname) - 2] = '\0';
-	}
-      else
-	{			/* COMPRESSION */
-	  if (!zcat_flg)
-	    {
-	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0)
-		{
-		  fprintf (stderr, "%s: already has .Z suffix -- no change\n",
-			   tempname);
-		  return;
-		}
+/* 	  if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0) */
+/* 	    ofname[strlen (tempname) - 2] = '\0'; */
+/* 	} */
+/*       else */
+/* 	{			/\* COMPRESSION *\/ */
+/* 	  if (!zcat_flg) */
+/* 	    { */
+/* 	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0) */
+/* 		{ */
+/* 		  fprintf (stderr, "%s: already has .Z suffix -- no change\n", */
+/* 			   tempname); */
+/* 		  return; */
+/* 		} */
 
-	      if (infstat.st_nlink > 1 && (!force))
-		{
-		  fprintf (stderr, "%s has %d other links: unchanged\n",
-			   tempname, infstat.st_nlink - 1);
-		  exit_code = 1;
-		  return;
-		}
-	    }
+/* 	      if (infstat.st_nlink > 1 && (!force)) */
+/* 		{ */
+/* 		  fprintf (stderr, "%s has %d other links: unchanged\n", */
+/* 			   tempname, infstat.st_nlink - 1); */
+/* 		  exit_code = 1; */
+/* 		  return; */
+/* 		} */
+/* 	    } */
 
-	  strcpy (ofname, tempname);
-	  strcat (ofname, ".Z");
-	}
+/* 	  strcpy (ofname, tempname); */
+/* 	  strcat (ofname, ".Z"); */
+/* 	} */
 
-      if ((fdin = open (ifname = tempname, O_RDONLY | O_BINARY)) == -1)
-	{
-	  perror (tempname);
-	  exit_code = 1;
-	  return;
-	}
+/*       if ((fdin = open (ifname = tempname, O_RDONLY | O_BINARY)) == -1) */
+/* 	{ */
+/* 	  perror (tempname); */
+/* 	  exit_code = 1; */
+/* 	  return; */
+/* 	} */
 
-      if (zcat_flg == 0)
-	{
-	  int c;
-	  int s;
-	  struct stat statbuf;
-	  struct stat statbuf2;
+/*       if (zcat_flg == 0) */
+/* 	{ */
+/* 	  int c; */
+/* 	  int s; */
+/* 	  struct stat statbuf; */
+/* 	  struct stat statbuf2; */
 
-	  if (stat (ofname, &statbuf) == 0)
-	    {
-	      if ((s = strlen (ofname)) > 8)
-		{
-		  c = ofname[s - 1];
-		  ofname[s - 1] = '\0';
+/* 	  if (stat (ofname, &statbuf) == 0) */
+/* 	    { */
+/* 	      if ((s = strlen (ofname)) > 8) */
+/* 		{ */
+/* 		  c = ofname[s - 1]; */
+/* 		  ofname[s - 1] = '\0'; */
 
-		  statbuf2 = statbuf;
+/* 		  statbuf2 = statbuf; */
 
-		  if (!stat (ofname, &statbuf2) &&
-		      statbuf.st_mode == statbuf2.st_mode &&
-		      statbuf.st_ino == statbuf2.st_ino &&
-		      statbuf.st_dev == statbuf2.st_dev &&
-		      statbuf.st_uid == statbuf2.st_uid &&
-		      statbuf.st_gid == statbuf2.st_gid &&
-		      statbuf.st_size == statbuf2.st_size &&
-		      statbuf.st_atime == statbuf2.st_atime &&
-		      statbuf.st_mtime == statbuf2.st_mtime &&
-		      statbuf.st_ctime == statbuf2.st_ctime)
-		    {
-		      fprintf (stderr,
-			       "%s: filename too long to tack on .Z\n",
-			       tempname);
-		      exit_code = 1;
-		      return;
-		    }
+/* 		  if (!stat (ofname, &statbuf2) && */
+/* 		      statbuf.st_mode == statbuf2.st_mode && */
+/* 		      statbuf.st_ino == statbuf2.st_ino && */
+/* 		      statbuf.st_dev == statbuf2.st_dev && */
+/* 		      statbuf.st_uid == statbuf2.st_uid && */
+/* 		      statbuf.st_gid == statbuf2.st_gid && */
+/* 		      statbuf.st_size == statbuf2.st_size && */
+/* 		      statbuf.st_atime == statbuf2.st_atime && */
+/* 		      statbuf.st_mtime == statbuf2.st_mtime && */
+/* 		      statbuf.st_ctime == statbuf2.st_ctime) */
+/* 		    { */
+/* 		      fprintf (stderr, */
+/* 			       "%s: filename too long to tack on .Z\n", */
+/* 			       tempname); */
+/* 		      exit_code = 1; */
+/* 		      return; */
+/* 		    } */
 
-		  ofname[s - 1] = (char) c;
-		}
+/* 		  ofname[s - 1] = (char) c; */
+/* 		} */
 
-	      if (!force)
-		{
-		  inbuf[0] = 'n';
+/* 	      if (!force) */
+/* 		{ */
+/* 		  inbuf[0] = 'n'; */
 
-		  fprintf (stderr, "%s already exists.\n", ofname);
+/* 		  fprintf (stderr, "%s already exists.\n", ofname); */
 
-		  if (fgnd_flag && isatty (0))
-		    {
-		      fprintf (stderr,
-			       "Do you wish to overwrite %s (y or n)? ",
-			       ofname);
-		      fflush (stderr);
+/* 		  if (fgnd_flag && isatty (0)) */
+/* 		    { */
+/* 		      fprintf (stderr, */
+/* 			       "Do you wish to overwrite %s (y or n)? ", */
+/* 			       ofname); */
+/* 		      fflush (stderr); */
 
-		      if (read (0, inbuf, 1) > 0)
-			{
-			  if (inbuf[0] != '\n')
-			    {
-			      do
-				{
-				  if (read (0, inbuf + 1, 1) <= 0)
-				    {
-				      perror ("stdin");
-				      break;
-				    }
-				}
-			      while (inbuf[1] != '\n');
-			    }
-			}
-		      else
-			perror ("stdin");
-		    }
+/* 		      if (read (0, inbuf, 1) > 0) */
+/* 			{ */
+/* 			  if (inbuf[0] != '\n') */
+/* 			    { */
+/* 			      do */
+/* 				{ */
+/* 				  if (read (0, inbuf + 1, 1) <= 0) */
+/* 				    { */
+/* 				      perror ("stdin"); */
+/* 				      break; */
+/* 				    } */
+/* 				} */
+/* 			      while (inbuf[1] != '\n'); */
+/* 			    } */
+/* 			} */
+/* 		      else */
+/* 			perror ("stdin"); */
+/* 		    } */
 
-		  if (inbuf[0] != 'y')
-		    {
-		      fprintf (stderr, "%s not overwritten\n", ofname);
-		      exit_code = 1;
-		      return;
-		    }
-		}
+/* 		  if (inbuf[0] != 'y') */
+/* 		    { */
+/* 		      fprintf (stderr, "%s not overwritten\n", ofname); */
+/* 		      exit_code = 1; */
+/* 		      return; */
+/* 		    } */
+/* 		} */
 
-	      if (unlink (ofname))
-		{
-		  fprintf (stderr, "Can't remove old output file\n");
-		  perror (ofname);
-		  exit_code = 1;
-		  return;
-		}
-	    }
+/* 	      if (unlink (ofname)) */
+/* 		{ */
+/* 		  fprintf (stderr, "Can't remove old output file\n"); */
+/* 		  perror (ofname); */
+/* 		  exit_code = 1; */
+/* 		  return; */
+/* 		} */
+/* 	    } */
 
-	  if ((fdout =
-	       open (ofname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY,
-		     0600)) == -1)
-	    {
-	      perror (tempname);
-	      return;
-	    }
+/* 	  if ((fdout = */
+/* 	       open (ofname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, */
+/* 		     0600)) == -1) */
+/* 	    { */
+/* 	      perror (tempname); */
+/* 	      return; */
+/* 	    } */
 
-	  if ((s = strlen (ofname)) > 8)
-	    {
-	      if (fstat (fdout, &statbuf))
-		{
-		  fprintf (stderr, "Can't get status op output file\n");
-		  perror (ofname);
-		  exit_code = 1;
-		  return;
-		}
+/* 	  if ((s = strlen (ofname)) > 8) */
+/* 	    { */
+/* 	      if (fstat (fdout, &statbuf)) */
+/* 		{ */
+/* 		  fprintf (stderr, "Can't get status op output file\n"); */
+/* 		  perror (ofname); */
+/* 		  exit_code = 1; */
+/* 		  return; */
+/* 		} */
 
-	      c = ofname[s - 1];
-	      ofname[s - 1] = '\0';
-	      statbuf2 = statbuf;
+/* 	      c = ofname[s - 1]; */
+/* 	      ofname[s - 1] = '\0'; */
+/* 	      statbuf2 = statbuf; */
 
-	      if (!stat (ofname, &statbuf2) &&
-		  statbuf.st_mode == statbuf2.st_mode &&
-		  statbuf.st_ino == statbuf2.st_ino &&
-		  statbuf.st_dev == statbuf2.st_dev &&
-		  statbuf.st_uid == statbuf2.st_uid &&
-		  statbuf.st_gid == statbuf2.st_gid &&
-		  statbuf.st_size == statbuf2.st_size &&
-		  statbuf.st_atime == statbuf2.st_atime &&
-		  statbuf.st_mtime == statbuf2.st_mtime &&
-		  statbuf.st_ctime == statbuf2.st_ctime)
-		{
-		  fprintf (stderr, "%s: filename too long to tack on .Z\n",
-			   tempname);
+/* 	      if (!stat (ofname, &statbuf2) && */
+/* 		  statbuf.st_mode == statbuf2.st_mode && */
+/* 		  statbuf.st_ino == statbuf2.st_ino && */
+/* 		  statbuf.st_dev == statbuf2.st_dev && */
+/* 		  statbuf.st_uid == statbuf2.st_uid && */
+/* 		  statbuf.st_gid == statbuf2.st_gid && */
+/* 		  statbuf.st_size == statbuf2.st_size && */
+/* 		  statbuf.st_atime == statbuf2.st_atime && */
+/* 		  statbuf.st_mtime == statbuf2.st_mtime && */
+/* 		  statbuf.st_ctime == statbuf2.st_ctime) */
+/* 		{ */
+/* 		  fprintf (stderr, "%s: filename too long to tack on .Z\n", */
+/* 			   tempname); */
 
-		  if (unlink (ofname))
-		    {
-		      fprintf (stderr, "can't remove bad output file\n");
-		      perror (ofname);
-		    }
-		  exit_code = 1;
-		  return;
-		}
+/* 		  if (unlink (ofname)) */
+/* 		    { */
+/* 		      fprintf (stderr, "can't remove bad output file\n"); */
+/* 		      perror (ofname); */
+/* 		    } */
+/* 		  exit_code = 1; */
+/* 		  return; */
+/* 		} */
 
-	      ofname[s - 1] = (char) c;
-	    }
+/* 	      ofname[s - 1] = (char) c; */
+/* 	    } */
 
-	  if (!quiet)
-	    fprintf (stderr, "%s: ", tempname);
+/* 	  if (!quiet) */
+/* 	    fprintf (stderr, "%s: ", tempname); */
 
-	  remove_ofname = 1;
-	}
-      else
-	{
-	  fdout = 1;
-	  ofname[0] = '\0';
-	  remove_ofname = 0;
-	}
+/* 	  remove_ofname = 1; */
+/* 	} */
+/*       else */
+/* 	{ */
+/* 	  fdout = 1; */
+/* 	  ofname[0] = '\0'; */
+/* 	  remove_ofname = 0; */
+/* 	} */
 
-      if (do_decomp == 0)
-	compress (fdin, fdout);
-      else
-	decompress (fdin, fdout);
+/*       if (do_decomp == 0) */
+/* 	compress (fdin, fdout); */
+/*       else */
+/* 	decompress (fdin, fdout); */
 
-      close (fdin);
+/*       close (fdin); */
 
-      if (fdout != 1 && close (fdout))
-	write_error ();
+/*       if (fdout != 1 && close (fdout)) */
+/* 	write_error (); */
 
-      if (bytes_in == 0)
-	{
-	  if (remove_ofname)
-	    {
-	      if (unlink (ofname))	/* Remove input file */
-		{
-		  fprintf (stderr, "\nunlink error (ignored) ");
-		  perror (ofname);
-		  exit_code = 1;
-		}
+/*       if (bytes_in == 0) */
+/* 	{ */
+/* 	  if (remove_ofname) */
+/* 	    { */
+/* 	      if (unlink (ofname))	/\* Remove input file *\/ */
+/* 		{ */
+/* 		  fprintf (stderr, "\nunlink error (ignored) "); */
+/* 		  perror (ofname); */
+/* 		  exit_code = 1; */
+/* 		} */
 
-	      remove_ofname = 0;
-	    }
-	}
-      else if (zcat_flg == 0)
-	{
-	  struct utimbuf timep;
+/* 	      remove_ofname = 0; */
+/* 	    } */
+/* 	} */
+/*       else if (zcat_flg == 0) */
+/* 	{ */
+/* 	  struct utimbuf timep; */
 
-	  if (!do_decomp && bytes_out >= bytes_in && (!force))
-	    {			/* No compression: remove file.Z */
-	      if (!quiet)
-		fprintf (stderr, "No compression -- %s unchanged\n", ifname);
+/* 	  if (!do_decomp && bytes_out >= bytes_in && (!force)) */
+/* 	    {			/\* No compression: remove file.Z *\/ */
+/* 	      if (!quiet) */
+/* 		fprintf (stderr, "No compression -- %s unchanged\n", ifname); */
 
-	      if (unlink (ofname))
-		{
-		  fprintf (stderr, "unlink error (ignored) ");
-		  perror (ofname);
-		}
+/* 	      if (unlink (ofname)) */
+/* 		{ */
+/* 		  fprintf (stderr, "unlink error (ignored) "); */
+/* 		  perror (ofname); */
+/* 		} */
 
-	      remove_ofname = 0;
-	      exit_code = 2;
-	    }
-	  else
-	    {			/* ***** Successful Compression ***** */
-	      if (!quiet)
-		{
-		  fprintf (stderr, " -- replaced with %s", ofname);
+/* 	      remove_ofname = 0; */
+/* 	      exit_code = 2; */
+/* 	    } */
+/* 	  else */
+/* 	    {			/\* ***** Successful Compression ***** *\/ */
+/* 	      if (!quiet) */
+/* 		{ */
+/* 		  fprintf (stderr, " -- replaced with %s", ofname); */
 
-		  if (!do_decomp)
-		    {
-		      fprintf (stderr, " Compression: ");
-		      prratio (stderr, bytes_in - bytes_out, bytes_in);
-		    }
+/* 		  if (!do_decomp) */
+/* 		    { */
+/* 		      fprintf (stderr, " Compression: "); */
+/* 		      prratio (stderr, bytes_in - bytes_out, bytes_in); */
+/* 		    } */
 
-		  fprintf (stderr, "\n");
-		}
+/* 		  fprintf (stderr, "\n"); */
+/* 		} */
 
-	      timep.actime = infstat.st_atime;
-	      timep.modtime = infstat.st_mtime;
+/* 	      timep.actime = infstat.st_atime; */
+/* 	      timep.modtime = infstat.st_mtime; */
 
-	      if (utime (ofname, &timep))
-		{
-		  fprintf (stderr, "\nutime error (ignored) ");
-		  perror (ofname);
-		  exit_code = 1;
-		}
+/* 	      if (utime (ofname, &timep)) */
+/* 		{ */
+/* 		  fprintf (stderr, "\nutime error (ignored) "); */
+/* 		  perror (ofname); */
+/* 		  exit_code = 1; */
+/* 		} */
 
-#ifndef	AMIGA
-	      if (chmod (ofname, infstat.st_mode & 07777))	/* Copy modes */
-		{
-		  fprintf (stderr, "\nchmod error (ignored) ");
-		  perror (ofname);
-		  exit_code = 1;
-		}
-#ifndef	DOS
-	      chown (ofname, infstat.st_uid, infstat.st_gid);	/* Copy ownership */
-#endif
-#endif
-	      remove_ofname = 0;
+/* #ifndef	AMIGA */
+/* 	      if (chmod (ofname, infstat.st_mode & 07777))	/\* Copy modes *\/ */
+/* 		{ */
+/* 		  fprintf (stderr, "\nchmod error (ignored) "); */
+/* 		  perror (ofname); */
+/* 		  exit_code = 1; */
+/* 		} */
+/* #ifndef	DOS */
+/* 	      chown (ofname, infstat.st_uid, infstat.st_gid);	/\* Copy ownership *\/ */
+/* #endif */
+/* #endif */
+/* 	      remove_ofname = 0; */
 
-	      if (unlink (ifname))	/* Remove input file */
-		{
-		  fprintf (stderr, "\nunlink error (ignored) ");
-		  perror (ifname);
-		  exit_code = 1;
-		}
-	    }
-	}
+/* 	      if (unlink (ifname))	/\* Remove input file *\/ */
+/* 		{ */
+/* 		  fprintf (stderr, "\nunlink error (ignored) "); */
+/* 		  perror (ifname); */
+/* 		  exit_code = 1; */
+/* 		} */
+/* 	    } */
+/* 	} */
 
-      if (exit_code == -1)
-	exit_code = 0;
+/*       if (exit_code == -1) */
+/* 	exit_code = 0; */
 
-      break;
+/*       break; */
 
-    default:
-      fprintf (stderr, "%s is not a directory or a regular file - ignored\n",
-	       tempname);
-      break;
-    }
-}
+/*     default: */
+/*       fprintf (stderr, "%s is not a directory or a regular file - ignored\n", */
+/* 	       tempname); */
+/*       break; */
+/*     } */
+/* } */
+
+// pmr: workarounds for the use of string-manipulating functions that requires:
+//      1) paramterization over the start offset of a reference
+//      2) physical subtyping
+extern int dirent_strcmp(const char * ARRAY, const char * ARRAY);
+extern size_t dirent_strlen(const char * ARRAY);
+extern char * ARRAY dirent_strcat(char * ARRAY, const char * ARRAY);
 
 #ifdef	RECURSIVE
 void
 compdir (dir)
-  REG3 char *dir;
+  REG3 char * ARRAY dir;
 {
 #ifndef	DIRENT
   REG1 struct direct *dp;
@@ -1288,7 +1317,7 @@ compdir (dir)
 #endif
   REG2 DIR *dirp;
   char nbuf[MAXPATHLEN];
-  char *nptr = nbuf;
+  char * ARRAY nptr = nbuf;
 
   dirp = opendir (dir);
 
@@ -1311,19 +1340,19 @@ compdir (dir)
   ** think it's worth it. -- Dave Mack
   */
 
-  while (dp = readdir (dirp))
+  while ((dp = readdir (dirp)) != 0)
     {
       if (dp->d_ino == 0)
 	continue;
 
-      if (strcmp (dp->d_name, ".") == 0 || strcmp (dp->d_name, "..") == 0)
+      if (dirent_strcmp (dp->d_name, ".") == 0 || dirent_strcmp (dp->d_name, "..") == 0) // pmr
 	continue;
 
-      if ((strlen (dir) + strlen (dp->d_name) + 1) < (MAXPATHLEN - 1))
+      if ((strlen (dir) + dirent_strlen (dp->d_name) + 1) < (MAXPATHLEN - 1)) // pmr
 	{
 	  strcpy (nbuf, dir);
 	  strcat (nbuf, "/");
-	  strcat (nbuf, dp->d_name);
+	  dirent_strcat (nbuf, dp->d_name); // pmr
 	  comprexx (&nptr);
 	}
       else
@@ -1336,516 +1365,516 @@ compdir (dir)
 }
 #endif
 /*
- * compress fdin to fdout
- *
- * Algorithm:  use open addressing double hashing (no chaining) on the 
- * prefix code / next character combination.  We do a variant of Knuth's
- * algorithm D (vol. 3, sec. 6.4) along with G. Knott's relatively-prime
- * secondary probe.  Here, the modular division first probe is gives way
- * to a faster exclusive-or manipulation.  Also do block compression with
- * an adaptive reset, whereby the code table is cleared when the compression
- * ratio decreases, but after the table fills.  The variable-length output
- * codes are re-sized at this point, and a special CLEAR code is generated
- * for the decompressor.  Late addition:  construct the table according to
- * file size for noticeable speed improvement on small files.  Please direct
- * questions about this implementation to ames!jaw.
- */
-void
-compress (fdin, fdout)
-  int fdin;
-int fdout;
-{
-  REG2 long hp;
-  REG3 int rpos;
-#if REGISTERS >= 5
-  REG5 long fc;
-#endif
-  REG6 int outbits;
-  REG7 int rlop;
-  REG8 int rsize;
-  REG9 int stcode;
-  REG10 code_int free_ent;
-  REG11 int boff;
-  REG12 int n_bits;
-  REG13 int ratio;
-  REG14 long checkpoint;
-  REG15 code_int extcode;
-  union
-  {
-    long code;
-    struct
-    {
-      char_type c;
-      unsigned short ent;
-    }
-    e;
-  }
-  fcode;
-
-  ratio = 0;
-  checkpoint = CHECK_GAP;
-  extcode = MAXCODE (n_bits = INIT_BITS) + 1;
-  stcode = 1;
-  free_ent = FIRST;
-
-  memset (outbuf, 0, sizeof (outbuf));
-  bytes_out = 0;
-  bytes_in = 0;
-  outbuf[0] = MAGIC_1;
-  outbuf[1] = MAGIC_2;
-  outbuf[2] = (char) (maxbits | block_mode);
-  boff = outbits = (3 << 3);
-  fcode.code = 0;
-
-  clear_htab ();
-
-  while ((rsize = read (fdin, inbuf, IBUFSIZ)) > 0)
-    {
-      if (bytes_in == 0)
-	{
-	  fcode.e.ent = inbuf[0];
-	  rpos = 1;
-	}
-      else
-	rpos = 0;
-
-      rlop = 0;
-
-      do
-	{
-	  if (free_ent >= extcode && fcode.e.ent < FIRST)
-	    {
-	      if (n_bits < maxbits)
-		{
-		  boff = outbits = (outbits - 1) + ((n_bits << 3) -
-						    ((outbits - boff - 1 +
-						      (n_bits << 3)) %
-						     (n_bits << 3)));
-		  if (++n_bits < maxbits)
-		    extcode = MAXCODE (n_bits) + 1;
-		  else
-		    extcode = MAXCODE (n_bits);
-		}
-	      else
-		{
-		  extcode = MAXCODE (16) + OBUFSIZ;
-		  stcode = 0;
-		}
-	    }
-
-	  if (!stcode && bytes_in >= checkpoint && fcode.e.ent < FIRST)
-	    {
-	      REG1 long int rat;
-
-	      checkpoint = bytes_in + CHECK_GAP;
-
-	      if (bytes_in > 0x007fffff)
-		{		/* shift will overflow */
-		  rat = (bytes_out + (outbits >> 3)) >> 8;
-
-		  if (rat == 0)	/* Don't divide by zero */
-		    rat = 0x7fffffff;
-		  else
-		    rat = bytes_in / rat;
-		}
-	      else
-		rat = (bytes_in << 8) / (bytes_out + (outbits >> 3));	/* 8 fractional bits */
-	      if (rat >= ratio)
-		ratio = (int) rat;
-	      else
-		{
-		  ratio = 0;
-		  clear_htab ();
-		  output (outbuf, outbits, CLEAR, n_bits);
-		  boff = outbits = (outbits - 1) + ((n_bits << 3) -
-						    ((outbits - boff - 1 +
-						      (n_bits << 3)) %
-						     (n_bits << 3)));
-		  extcode = MAXCODE (n_bits = INIT_BITS) + 1;
-		  free_ent = FIRST;
-		  stcode = 1;
-		}
-	    }
-
-	  if (outbits >= (OBUFSIZ << 3))
-	    {
-	      if (write (fdout, outbuf, OBUFSIZ) != OBUFSIZ)
-		write_error ();
-
-	      outbits -= (OBUFSIZ << 3);
-	      boff = -(((OBUFSIZ << 3) - boff) % (n_bits << 3));
-	      bytes_out += OBUFSIZ;
-
-	      memcpy (outbuf, outbuf + OBUFSIZ, (outbits >> 3) + 1);
-	      memset (outbuf + (outbits >> 3) + 1, '\0', OBUFSIZ);
-	    }
-
-	  {
-	    REG1 int i;
-
-	    i = rsize - rlop;
-
-	    if ((code_int) i > extcode - free_ent)
-	      i = (int) (extcode - free_ent);
-	    if (i > ((sizeof (outbuf) - 32) * 8 - outbits) / n_bits)
-	      i = ((sizeof (outbuf) - 32) * 8 - outbits) / n_bits;
-
-	    if (!stcode && (long) i > checkpoint - bytes_in)
-	      i = (int) (checkpoint - bytes_in);
-
-	    rlop += i;
-	    bytes_in += i;
-	  }
-
-	  goto next;
-	hfound:fcode.e.ent = codetabof (hp);
-	next:if (rpos >= rlop)
-	  goto endlop;
-	next2:fcode.e.c = inbuf[rpos++];
-#ifndef FAST
-	  {
-	    REG1 code_int i;
-#if REGISTERS >= 5
-	    fc = fcode.code;
-#else
-#	define			fc fcode.code
-#endif
-	    hp = (((long) (fcode.e.c)) << (BITS - 8)) ^ (long) (fcode.e.ent);
-
-	    if ((i = htabof (hp)) == fc)
-	      goto hfound;
-
-	    if (i != -1)
-	      {
-		REG4 long disp;
-
-		disp = (HSIZE - hp) - 1;	/* secondary hash (after G. Knott) */
-
-		do
-		  {
-		    if ((hp -= disp) < 0)
-		      hp += HSIZE;
-
-		    if ((i = htabof (hp)) == fc)
-		      goto hfound;
-		  }
-		while (i != -1);
-	      }
-	  }
-#else
-	  {
-	    REG1 long i;
-	    REG4 long p;
-#if REGISTERS >= 5
-	    fc = fcode.code;
-#else
-#	define			fc fcode.code
-#endif
-	    hp =
-	      ((((long) (fcode.e.c)) << (HBITS - 8)) ^ (long) (fcode.e.ent));
-
-	    if ((i = htabof (hp)) == fc)
-	      goto hfound;
-	    if (i == -1)
-	      goto out;
-
-	    p = primetab[fcode.e.c];
-	  lookup:hp = (hp + p) & HMASK;
-	    if ((i = htabof (hp)) == fc)
-	      goto hfound;
-	    if (i == -1)
-	      goto out;
-	    hp = (hp + p) & HMASK;
-	    if ((i = htabof (hp)) == fc)
-	      goto hfound;
-	    if (i == -1)
-	      goto out;
-	    hp = (hp + p) & HMASK;
-	    if ((i = htabof (hp)) == fc)
-	      goto hfound;
-	    if (i == -1)
-	      goto out;
-	    goto lookup;
-	  }
-	out:;
-#endif
-	  output (outbuf, outbits, fcode.e.ent, n_bits);
-
-	  {
-#if REGISTERS < 5
-#	undef	fc
-	    REG1 long fc;
-	    fc = fcode.code;
-#endif
-	    fcode.e.ent = fcode.e.c;
-
-
-	    if (stcode)
-	      {
-		codetabof (hp) = (unsigned short) free_ent++;
-		htabof (hp) = fc;
-	      }
-	  }
-
-	  goto next;
-
-	endlop:if (fcode.e.ent >= FIRST && rpos < rsize)
-	  goto next2;
-
-	  if (rpos > rlop)
-	    {
-	      bytes_in += rpos - rlop;
-	      rlop = rpos;
-	    }
-	}
-      while (rlop < rsize);
-    }
-
-  if (rsize < 0)
-    read_error ();
-
-  if (bytes_in > 0)
-    output (outbuf, outbits, fcode.e.ent, n_bits);
-
-  if (write (fdout, outbuf, (outbits + 7) >> 3) != (outbits + 7) >> 3)
-    write_error ();
-
-  bytes_out += (outbits + 7) >> 3;
-
-  return;
-}
-
-/*
- * Decompress stdin to stdout.  This routine adapts to the codes in the
- * file building the "string" table on-the-fly; requiring no table to
- * be stored in the compressed file.  The tables used herein are shared
- * with those of the compress() routine.  See the definitions above.
- */
-
-void
-decompress (fdin, fdout)
-  int fdin;
-int fdout;
-{
-  REG2 char_type *stackp;
-  REG3 code_int code;
-  REG4 int finchar;
-  REG5 code_int oldcode;
-  REG6 code_int incode;
-  REG7 int inbits;
-  REG8 int posbits;
-  REG9 int outpos;
-  REG10 int insize;
-  REG11 int bitmask;
-  REG12 code_int free_ent;
-  REG13 code_int maxcode;
-  REG14 code_int maxmaxcode;
-  REG15 int n_bits;
-  REG16 int rsize;
-
-  bytes_in = 0;
-  bytes_out = 0;
-  insize = 0;
-
-  while (insize < 3 && (rsize = read (fdin, inbuf + insize, IBUFSIZ)) > 0)
-    insize += rsize;
-
-  if (insize < 3 || inbuf[0] != MAGIC_1 || inbuf[1] != MAGIC_2)
-    {
-      if (rsize < 0)
-	read_error ();
-
-      if (insize > 0)
-	{
-	  fprintf (stderr, "%s: not in compressed format\n",
-		   (ifname[0] != '\0' ? ifname : "stdin"));
-	  exit_code = 1;
-	}
-
-      return;
-    }
-
-  maxbits = inbuf[2] & BIT_MASK;
-  block_mode = inbuf[2] & BLOCK_MODE;
-  maxmaxcode = MAXCODE (maxbits);
-
-  if (maxbits > BITS)
-    {
-      fprintf (stderr,
-	       "%s: compressed with %d bits, can only handle %d bits\n",
-	       (*ifname != '\0' ? ifname : "stdin"), maxbits, BITS);
-      exit_code = 4;
-      return;
-    }
-
-  bytes_in = insize;
-  maxcode = MAXCODE (n_bits = INIT_BITS) - 1;
-  bitmask = (1 << n_bits) - 1;
-  oldcode = -1;
-  finchar = 0;
-  outpos = 0;
-  posbits = 3 << 3;
-
-  free_ent = ((block_mode) ? FIRST : 256);
-
-  clear_tab_prefixof ();	/* As above, initialize the first
-				   256 entries in the table. */
-
-  for (code = 255; code >= 0; --code)
-    tab_suffixof (code) = (char_type) code;
-
-  do
-    {
-    resetbuf:;
-      {
-	REG1 int i;
-	int e;
-	int o;
-
-	e = insize - (o = (posbits >> 3));
-
-	for (i = 0; i < e; ++i)
-	  inbuf[i] = inbuf[i + o];
-
-	insize = e;
-	posbits = 0;
-      }
-
-      if (insize < sizeof (inbuf) - IBUFSIZ)
-	{
-	  if ((rsize = read (fdin, inbuf + insize, IBUFSIZ)) < 0)
-	    read_error ();
-
-	  insize += rsize;
-	}
-
-      inbits = ((rsize > 0) ? (insize - insize % n_bits) << 3 :
-		(insize << 3) - (n_bits - 1));
-
-      while (inbits > posbits)
-	{
-	  if (free_ent > maxcode)
-	    {
-	      posbits = ((posbits - 1) + ((n_bits << 3) -
-					  (posbits - 1 +
-					   (n_bits << 3)) % (n_bits << 3)));
-
-	      ++n_bits;
-	      if (n_bits == maxbits)
-		maxcode = maxmaxcode;
-	      else
-		maxcode = MAXCODE (n_bits) - 1;
-
-	      bitmask = (1 << n_bits) - 1;
-	      goto resetbuf;
-	    }
-
-	  input (inbuf, posbits, code, n_bits, bitmask);
-
-	  if (oldcode == -1)
-	    {
-	      outbuf[outpos++] = (char_type) (finchar =
-					      (int) (oldcode = code));
-	      continue;
-	    }
-
-	  if (code == CLEAR && block_mode)
-	    {
-	      clear_tab_prefixof ();
-	      free_ent = FIRST - 1;
-	      posbits = ((posbits - 1) + ((n_bits << 3) -
-					  (posbits - 1 +
-					   (n_bits << 3)) % (n_bits << 3)));
-	      maxcode = MAXCODE (n_bits = INIT_BITS) - 1;
-	      bitmask = (1 << n_bits) - 1;
-	      goto resetbuf;
-	    }
-
-	  incode = code;
-	  stackp = de_stack;
-
-	  if (code >= free_ent)	/* Special case for KwKwK string.       */
-	    {
-	      if (code > free_ent)
-		{
-		  REG1 char_type *p;
-
-		  posbits -= n_bits;
-		  p = &inbuf[posbits >> 3];
-
-		  fprintf (stderr,
-			   "insize:%d posbits:%d inbuf:%02X %02X %02X %02X %02X (%d)\n",
-			   insize, posbits, p[-1], p[0], p[1], p[2], p[3],
-			   (posbits & 07));
-		  fprintf (stderr, "uncompress: corrupt input\n");
-		  abort_compress ();
-		}
-
-	      *--stackp = (char_type) finchar;
-	      code = oldcode;
-	    }
-
-	  while ((cmp_code_int) code >= (cmp_code_int) 256)
-	    {			/* Generate output characters in reverse order */
-	      *--stackp = tab_suffixof (code);
-	      code = tab_prefixof (code);
-	    }
-
-	  *--stackp = (char_type) (finchar = tab_suffixof (code));
-
-	  /* And put them out in forward order */
-
-	  {
-	    REG1 int i;
-
-	    if (outpos + (i = (de_stack - stackp)) >= OBUFSIZ)
-	      {
-		do
-		  {
-		    if (i > OBUFSIZ - outpos)
-		      i = OBUFSIZ - outpos;
-
-		    if (i > 0)
-		      {
-			memcpy (outbuf + outpos, stackp, i);
-			outpos += i;
-		      }
-
-		    if (outpos >= OBUFSIZ)
-		      {
-			if (write (fdout, outbuf, outpos) != outpos)
-			  write_error ();
-
-			outpos = 0;
-		      }
-		    stackp += i;
-		  }
-		while ((i = (de_stack - stackp)) > 0);
-	      }
-	    else
-	      {
-		memcpy (outbuf + outpos, stackp, i);
-		outpos += i;
-	      }
-	  }
-
-	  if ((code = free_ent) < maxmaxcode)	/* Generate the new entry. */
-	    {
-	      tab_prefixof (code) = (unsigned short) oldcode;
-	      tab_suffixof (code) = (char_type) finchar;
-	      free_ent = code + 1;
-	    }
-
-	  oldcode = incode;	/* Remember previous code.      */
-	}
-
-      bytes_in += rsize;
-    }
-  while (rsize > 0);
-
-  if (outpos > 0 && write (fdout, outbuf, outpos) != outpos)
-    write_error ();
-}
+/*  * compress fdin to fdout */
+/*  * */
+/*  * Algorithm:  use open addressing double hashing (no chaining) on the  */
+/*  * prefix code / next character combination.  We do a variant of Knuth's */
+/*  * algorithm D (vol. 3, sec. 6.4) along with G. Knott's relatively-prime */
+/*  * secondary probe.  Here, the modular division first probe is gives way */
+/*  * to a faster exclusive-or manipulation.  Also do block compression with */
+/*  * an adaptive reset, whereby the code table is cleared when the compression */
+/*  * ratio decreases, but after the table fills.  The variable-length output */
+/*  * codes are re-sized at this point, and a special CLEAR code is generated */
+/*  * for the decompressor.  Late addition:  construct the table according to */
+/*  * file size for noticeable speed improvement on small files.  Please direct */
+/*  * questions about this implementation to ames!jaw. */
+/*  *\/ */
+/* void */
+/* compress (fdin, fdout) */
+/*   int fdin; */
+/* int fdout; */
+/* { */
+/*   REG2 long hp; */
+/*   REG3 int rpos; */
+/* #if REGISTERS >= 5 */
+/*   REG5 long fc; */
+/* #endif */
+/*   REG6 int outbits; */
+/*   REG7 int rlop; */
+/*   REG8 int rsize; */
+/*   REG9 int stcode; */
+/*   REG10 code_int free_ent; */
+/*   REG11 int boff; */
+/*   REG12 int n_bits; */
+/*   REG13 int ratio; */
+/*   REG14 long checkpoint; */
+/*   REG15 code_int extcode; */
+/*   union */
+/*   { */
+/*     long code; */
+/*     struct */
+/*     { */
+/*       char_type c; */
+/*       unsigned short ent; */
+/*     } */
+/*     e; */
+/*   } */
+/*   fcode; */
+
+/*   ratio = 0; */
+/*   checkpoint = CHECK_GAP; */
+/*   extcode = MAXCODE (n_bits = INIT_BITS) + 1; */
+/*   stcode = 1; */
+/*   free_ent = FIRST; */
+
+/*   memset (outbuf, 0, sizeof (outbuf)); */
+/*   bytes_out = 0; */
+/*   bytes_in = 0; */
+/*   outbuf[0] = MAGIC_1; */
+/*   outbuf[1] = MAGIC_2; */
+/*   outbuf[2] = (char) (maxbits | block_mode); */
+/*   boff = outbits = (3 << 3); */
+/*   fcode.code = 0; */
+
+/*   clear_htab (); */
+
+/*   while ((rsize = read (fdin, inbuf, IBUFSIZ)) > 0) */
+/*     { */
+/*       if (bytes_in == 0) */
+/* 	{ */
+/* 	  fcode.e.ent = inbuf[0]; */
+/* 	  rpos = 1; */
+/* 	} */
+/*       else */
+/* 	rpos = 0; */
+
+/*       rlop = 0; */
+
+/*       do */
+/* 	{ */
+/* 	  if (free_ent >= extcode && fcode.e.ent < FIRST) */
+/* 	    { */
+/* 	      if (n_bits < maxbits) */
+/* 		{ */
+/* 		  boff = outbits = (outbits - 1) + ((n_bits << 3) - */
+/* 						    ((outbits - boff - 1 + */
+/* 						      (n_bits << 3)) % */
+/* 						     (n_bits << 3))); */
+/* 		  if (++n_bits < maxbits) */
+/* 		    extcode = MAXCODE (n_bits) + 1; */
+/* 		  else */
+/* 		    extcode = MAXCODE (n_bits); */
+/* 		} */
+/* 	      else */
+/* 		{ */
+/* 		  extcode = MAXCODE (16) + OBUFSIZ; */
+/* 		  stcode = 0; */
+/* 		} */
+/* 	    } */
+
+/* 	  if (!stcode && bytes_in >= checkpoint && fcode.e.ent < FIRST) */
+/* 	    { */
+/* 	      REG1 long int rat; */
+
+/* 	      checkpoint = bytes_in + CHECK_GAP; */
+
+/* 	      if (bytes_in > 0x007fffff) */
+/* 		{		/\* shift will overflow *\/ */
+/* 		  rat = (bytes_out + (outbits >> 3)) >> 8; */
+
+/* 		  if (rat == 0)	/\* Don't divide by zero *\/ */
+/* 		    rat = 0x7fffffff; */
+/* 		  else */
+/* 		    rat = bytes_in / rat; */
+/* 		} */
+/* 	      else */
+/* 		rat = (bytes_in << 8) / (bytes_out + (outbits >> 3));	/\* 8 fractional bits *\/ */
+/* 	      if (rat >= ratio) */
+/* 		ratio = (int) rat; */
+/* 	      else */
+/* 		{ */
+/* 		  ratio = 0; */
+/* 		  clear_htab (); */
+/* 		  output (outbuf, outbits, CLEAR, n_bits); */
+/* 		  boff = outbits = (outbits - 1) + ((n_bits << 3) - */
+/* 						    ((outbits - boff - 1 + */
+/* 						      (n_bits << 3)) % */
+/* 						     (n_bits << 3))); */
+/* 		  extcode = MAXCODE (n_bits = INIT_BITS) + 1; */
+/* 		  free_ent = FIRST; */
+/* 		  stcode = 1; */
+/* 		} */
+/* 	    } */
+
+/* 	  if (outbits >= (OBUFSIZ << 3)) */
+/* 	    { */
+/* 	      if (write (fdout, outbuf, OBUFSIZ) != OBUFSIZ) */
+/* 		write_error (); */
+
+/* 	      outbits -= (OBUFSIZ << 3); */
+/* 	      boff = -(((OBUFSIZ << 3) - boff) % (n_bits << 3)); */
+/* 	      bytes_out += OBUFSIZ; */
+
+/* 	      memcpy (outbuf, outbuf + OBUFSIZ, (outbits >> 3) + 1); */
+/* 	      memset (outbuf + (outbits >> 3) + 1, '\0', OBUFSIZ); */
+/* 	    } */
+
+/* 	  { */
+/* 	    REG1 int i; */
+
+/* 	    i = rsize - rlop; */
+
+/* 	    if ((code_int) i > extcode - free_ent) */
+/* 	      i = (int) (extcode - free_ent); */
+/* 	    if (i > ((sizeof (outbuf) - 32) * 8 - outbits) / n_bits) */
+/* 	      i = ((sizeof (outbuf) - 32) * 8 - outbits) / n_bits; */
+
+/* 	    if (!stcode && (long) i > checkpoint - bytes_in) */
+/* 	      i = (int) (checkpoint - bytes_in); */
+
+/* 	    rlop += i; */
+/* 	    bytes_in += i; */
+/* 	  } */
+
+/* 	  goto next; */
+/* 	hfound:fcode.e.ent = codetabof (hp); */
+/* 	next:if (rpos >= rlop) */
+/* 	  goto endlop; */
+/* 	next2:fcode.e.c = inbuf[rpos++]; */
+/* #ifndef FAST */
+/* 	  { */
+/* 	    REG1 code_int i; */
+/* #if REGISTERS >= 5 */
+/* 	    fc = fcode.code; */
+/* #else */
+/* #	define			fc fcode.code */
+/* #endif */
+/* 	    hp = (((long) (fcode.e.c)) << (BITS - 8)) ^ (long) (fcode.e.ent); */
+
+/* 	    if ((i = htabof (hp)) == fc) */
+/* 	      goto hfound; */
+
+/* 	    if (i != -1) */
+/* 	      { */
+/* 		REG4 long disp; */
+
+/* 		disp = (HSIZE - hp) - 1;	/\* secondary hash (after G. Knott) *\/ */
+
+/* 		do */
+/* 		  { */
+/* 		    if ((hp -= disp) < 0) */
+/* 		      hp += HSIZE; */
+
+/* 		    if ((i = htabof (hp)) == fc) */
+/* 		      goto hfound; */
+/* 		  } */
+/* 		while (i != -1); */
+/* 	      } */
+/* 	  } */
+/* #else */
+/* 	  { */
+/* 	    REG1 long i; */
+/* 	    REG4 long p; */
+/* #if REGISTERS >= 5 */
+/* 	    fc = fcode.code; */
+/* #else */
+/* #	define			fc fcode.code */
+/* #endif */
+/* 	    hp = */
+/* 	      ((((long) (fcode.e.c)) << (HBITS - 8)) ^ (long) (fcode.e.ent)); */
+
+/* 	    if ((i = htabof (hp)) == fc) */
+/* 	      goto hfound; */
+/* 	    if (i == -1) */
+/* 	      goto out; */
+
+/* 	    p = primetab[fcode.e.c]; */
+/* 	  lookup:hp = (hp + p) & HMASK; */
+/* 	    if ((i = htabof (hp)) == fc) */
+/* 	      goto hfound; */
+/* 	    if (i == -1) */
+/* 	      goto out; */
+/* 	    hp = (hp + p) & HMASK; */
+/* 	    if ((i = htabof (hp)) == fc) */
+/* 	      goto hfound; */
+/* 	    if (i == -1) */
+/* 	      goto out; */
+/* 	    hp = (hp + p) & HMASK; */
+/* 	    if ((i = htabof (hp)) == fc) */
+/* 	      goto hfound; */
+/* 	    if (i == -1) */
+/* 	      goto out; */
+/* 	    goto lookup; */
+/* 	  } */
+/* 	out:; */
+/* #endif */
+/* 	  output (outbuf, outbits, fcode.e.ent, n_bits); */
+
+/* 	  { */
+/* #if REGISTERS < 5 */
+/* #	undef	fc */
+/* 	    REG1 long fc; */
+/* 	    fc = fcode.code; */
+/* #endif */
+/* 	    fcode.e.ent = fcode.e.c; */
+
+
+/* 	    if (stcode) */
+/* 	      { */
+/* 		codetabof (hp) = (unsigned short) free_ent++; */
+/* 		htabof (hp) = fc; */
+/* 	      } */
+/* 	  } */
+
+/* 	  goto next; */
+
+/* 	endlop:if (fcode.e.ent >= FIRST && rpos < rsize) */
+/* 	  goto next2; */
+
+/* 	  if (rpos > rlop) */
+/* 	    { */
+/* 	      bytes_in += rpos - rlop; */
+/* 	      rlop = rpos; */
+/* 	    } */
+/* 	} */
+/*       while (rlop < rsize); */
+/*     } */
+
+/*   if (rsize < 0) */
+/*     read_error (); */
+
+/*   if (bytes_in > 0) */
+/*     output (outbuf, outbits, fcode.e.ent, n_bits); */
+
+/*   if (write (fdout, outbuf, (outbits + 7) >> 3) != (outbits + 7) >> 3) */
+/*     write_error (); */
+
+/*   bytes_out += (outbits + 7) >> 3; */
+
+/*   return; */
+/* } */
+
+/* /\* */
+/*  * Decompress stdin to stdout.  This routine adapts to the codes in the */
+/*  * file building the "string" table on-the-fly; requiring no table to */
+/*  * be stored in the compressed file.  The tables used herein are shared */
+/*  * with those of the compress() routine.  See the definitions above. */
+/*  *\/ */
+
+/* void */
+/* decompress (fdin, fdout) */
+/*   int fdin; */
+/* int fdout; */
+/* { */
+/*   REG2 char_type *stackp; */
+/*   REG3 code_int code; */
+/*   REG4 int finchar; */
+/*   REG5 code_int oldcode; */
+/*   REG6 code_int incode; */
+/*   REG7 int inbits; */
+/*   REG8 int posbits; */
+/*   REG9 int outpos; */
+/*   REG10 int insize; */
+/*   REG11 int bitmask; */
+/*   REG12 code_int free_ent; */
+/*   REG13 code_int maxcode; */
+/*   REG14 code_int maxmaxcode; */
+/*   REG15 int n_bits; */
+/*   REG16 int rsize; */
+
+/*   bytes_in = 0; */
+/*   bytes_out = 0; */
+/*   insize = 0; */
+
+/*   while (insize < 3 && (rsize = read (fdin, inbuf + insize, IBUFSIZ)) > 0) */
+/*     insize += rsize; */
+
+/*   if (insize < 3 || inbuf[0] != MAGIC_1 || inbuf[1] != MAGIC_2) */
+/*     { */
+/*       if (rsize < 0) */
+/* 	read_error (); */
+
+/*       if (insize > 0) */
+/* 	{ */
+/* 	  fprintf (stderr, "%s: not in compressed format\n", */
+/* 		   (ifname[0] != '\0' ? ifname : "stdin")); */
+/* 	  exit_code = 1; */
+/* 	} */
+
+/*       return; */
+/*     } */
+
+/*   maxbits = inbuf[2] & BIT_MASK; */
+/*   block_mode = inbuf[2] & BLOCK_MODE; */
+/*   maxmaxcode = MAXCODE (maxbits); */
+
+/*   if (maxbits > BITS) */
+/*     { */
+/*       fprintf (stderr, */
+/* 	       "%s: compressed with %d bits, can only handle %d bits\n", */
+/* 	       (*ifname != '\0' ? ifname : "stdin"), maxbits, BITS); */
+/*       exit_code = 4; */
+/*       return; */
+/*     } */
+
+/*   bytes_in = insize; */
+/*   maxcode = MAXCODE (n_bits = INIT_BITS) - 1; */
+/*   bitmask = (1 << n_bits) - 1; */
+/*   oldcode = -1; */
+/*   finchar = 0; */
+/*   outpos = 0; */
+/*   posbits = 3 << 3; */
+
+/*   free_ent = ((block_mode) ? FIRST : 256); */
+
+/*   clear_tab_prefixof ();	/\* As above, initialize the first */
+/* 				   256 entries in the table. *\/ */
+
+/*   for (code = 255; code >= 0; --code) */
+/*     tab_suffixof (code) = (char_type) code; */
+
+/*   do */
+/*     { */
+/*     resetbuf:; */
+/*       { */
+/* 	REG1 int i; */
+/* 	int e; */
+/* 	int o; */
+
+/* 	e = insize - (o = (posbits >> 3)); */
+
+/* 	for (i = 0; i < e; ++i) */
+/* 	  inbuf[i] = inbuf[i + o]; */
+
+/* 	insize = e; */
+/* 	posbits = 0; */
+/*       } */
+
+/*       if (insize < sizeof (inbuf) - IBUFSIZ) */
+/* 	{ */
+/* 	  if ((rsize = read (fdin, inbuf + insize, IBUFSIZ)) < 0) */
+/* 	    read_error (); */
+
+/* 	  insize += rsize; */
+/* 	} */
+
+/*       inbits = ((rsize > 0) ? (insize - insize % n_bits) << 3 : */
+/* 		(insize << 3) - (n_bits - 1)); */
+
+/*       while (inbits > posbits) */
+/* 	{ */
+/* 	  if (free_ent > maxcode) */
+/* 	    { */
+/* 	      posbits = ((posbits - 1) + ((n_bits << 3) - */
+/* 					  (posbits - 1 + */
+/* 					   (n_bits << 3)) % (n_bits << 3))); */
+
+/* 	      ++n_bits; */
+/* 	      if (n_bits == maxbits) */
+/* 		maxcode = maxmaxcode; */
+/* 	      else */
+/* 		maxcode = MAXCODE (n_bits) - 1; */
+
+/* 	      bitmask = (1 << n_bits) - 1; */
+/* 	      goto resetbuf; */
+/* 	    } */
+
+/* 	  input (inbuf, posbits, code, n_bits, bitmask); */
+
+/* 	  if (oldcode == -1) */
+/* 	    { */
+/* 	      outbuf[outpos++] = (char_type) (finchar = */
+/* 					      (int) (oldcode = code)); */
+/* 	      continue; */
+/* 	    } */
+
+/* 	  if (code == CLEAR && block_mode) */
+/* 	    { */
+/* 	      clear_tab_prefixof (); */
+/* 	      free_ent = FIRST - 1; */
+/* 	      posbits = ((posbits - 1) + ((n_bits << 3) - */
+/* 					  (posbits - 1 + */
+/* 					   (n_bits << 3)) % (n_bits << 3))); */
+/* 	      maxcode = MAXCODE (n_bits = INIT_BITS) - 1; */
+/* 	      bitmask = (1 << n_bits) - 1; */
+/* 	      goto resetbuf; */
+/* 	    } */
+
+/* 	  incode = code; */
+/* 	  stackp = de_stack; */
+
+/* 	  if (code >= free_ent)	/\* Special case for KwKwK string.       *\/ */
+/* 	    { */
+/* 	      if (code > free_ent) */
+/* 		{ */
+/* 		  REG1 char_type *p; */
+
+/* 		  posbits -= n_bits; */
+/* 		  p = &inbuf[posbits >> 3]; */
+
+/* 		  fprintf (stderr, */
+/* 			   "insize:%d posbits:%d inbuf:%02X %02X %02X %02X %02X (%d)\n", */
+/* 			   insize, posbits, p[-1], p[0], p[1], p[2], p[3], */
+/* 			   (posbits & 07)); */
+/* 		  fprintf (stderr, "uncompress: corrupt input\n"); */
+/* 		  abort_compress (); */
+/* 		} */
+
+/* 	      *--stackp = (char_type) finchar; */
+/* 	      code = oldcode; */
+/* 	    } */
+
+/* 	  while ((cmp_code_int) code >= (cmp_code_int) 256) */
+/* 	    {			/\* Generate output characters in reverse order *\/ */
+/* 	      *--stackp = tab_suffixof (code); */
+/* 	      code = tab_prefixof (code); */
+/* 	    } */
+
+/* 	  *--stackp = (char_type) (finchar = tab_suffixof (code)); */
+
+/* 	  /\* And put them out in forward order *\/ */
+
+/* 	  { */
+/* 	    REG1 int i; */
+
+/* 	    if (outpos + (i = (de_stack - stackp)) >= OBUFSIZ) */
+/* 	      { */
+/* 		do */
+/* 		  { */
+/* 		    if (i > OBUFSIZ - outpos) */
+/* 		      i = OBUFSIZ - outpos; */
+
+/* 		    if (i > 0) */
+/* 		      { */
+/* 			memcpy (outbuf + outpos, stackp, i); */
+/* 			outpos += i; */
+/* 		      } */
+
+/* 		    if (outpos >= OBUFSIZ) */
+/* 		      { */
+/* 			if (write (fdout, outbuf, outpos) != outpos) */
+/* 			  write_error (); */
+
+/* 			outpos = 0; */
+/* 		      } */
+/* 		    stackp += i; */
+/* 		  } */
+/* 		while ((i = (de_stack - stackp)) > 0); */
+/* 	      } */
+/* 	    else */
+/* 	      { */
+/* 		memcpy (outbuf + outpos, stackp, i); */
+/* 		outpos += i; */
+/* 	      } */
+/* 	  } */
+
+/* 	  if ((code = free_ent) < maxmaxcode)	/\* Generate the new entry. *\/ */
+/* 	    { */
+/* 	      tab_prefixof (code) = (unsigned short) oldcode; */
+/* 	      tab_suffixof (code) = (char_type) finchar; */
+/* 	      free_ent = code + 1; */
+/* 	    } */
+
+/* 	  oldcode = incode;	/\* Remember previous code.      *\/ */
+/* 	} */
+
+/*       bytes_in += rsize; */
+/*     } */
+/*   while (rsize > 0); */
+
+/*   if (outpos > 0 && write (fdout, outbuf, outpos) != outpos) */
+/*     write_error (); */
+/* } */
 
 // char *
 // rindex (s, c)			/* For those who don't have it in libc.a */
@@ -1853,11 +1882,11 @@ int fdout;
 // REG2 int c;
 // {
 //   char *p;
-// 
+//
 //   for (p = NULL; *s; s++)
 //     if (*s == (char) c)
 //       p = s;
-// 
+//
 //   return (p);
 // }
 
