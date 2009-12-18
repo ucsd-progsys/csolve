@@ -4,6 +4,54 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <liquidc.h>
+#include <types.h>
+
+# ifndef __gid_t_defined
+typedef __gid_t gid_t;
+#  define __gid_t_defined
+# endif
+
+# ifndef __uid_t_defined
+typedef __uid_t uid_t;
+#  define __uid_t_defined
+# endif
+
+# ifndef __off_t_defined
+#  ifndef __USE_FILE_OFFSET64
+typedef __off_t off_t;
+#  else
+typedef __off64_t off_t;
+#  endif
+#  define __off_t_defined
+# endif
+# if defined __USE_LARGEFILE64 && !defined __off64_t_defined
+typedef __off64_t off64_t;
+#  define __off64_t_defined
+# endif
+
+# ifndef __useconds_t_defined
+typedef __useconds_t useconds_t;
+#  define __useconds_t_defined
+# endif
+
+# ifndef __pid_t_defined
+typedef __pid_t pid_t;
+#  define __pid_t_defined
+# endif
+#endif	/* X/Open */
+
+#if defined __USE_MISC || defined __USE_XOPEN_EXTENDED
+# ifndef __intptr_t_defined
+typedef __intptr_t intptr_t;
+#  define __intptr_t_defined
+# endif
+#endif
+
+#if defined __USE_BSD || defined __USE_XOPEN
+# ifndef __socklen_t_defined
+typedef __socklen_t socklen_t;
+#  define __socklen_t_defined
+# endif
 
 extern int          access(const char * ARRAY, int);
 extern unsigned int alarm(unsigned int);
