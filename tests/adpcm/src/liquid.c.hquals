@@ -15,3 +15,4 @@ qualif IND(v:int) : v <= 88
 qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4
 qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 64
 qualif SSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 356
+qualif BOR(v:int) : v <= @a + @b
