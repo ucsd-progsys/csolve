@@ -318,7 +318,7 @@ let concretize_new theta j k conc = function
             (LM.remove y conc, [WGen (y', y); New (x, y)])
       else
         let cl = cloc_of_position theta (j,k,i) in
-        instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl Read
+        instantiate (fun (y,cl) -> NewC (x,y,cl)) conc y cl Write
   | _, _ -> assertf "concretize_new 2"
 
 let generalize_global conc al =
