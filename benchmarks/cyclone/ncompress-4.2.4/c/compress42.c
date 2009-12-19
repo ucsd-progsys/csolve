@@ -937,6 +937,7 @@ comprexx (fileptr)
   int fdout;
   char tempname[MAXPATHLEN];
   struct stat infstat;		/* Input file status */
+  int zoffset; // pmr
 
   strcpy (tempname, *fileptr);
   errno = 0;
@@ -1005,69 +1006,74 @@ comprexx (fileptr)
 	  }
       }
 
-/*   switch (infstat.st_mode & S_IFMT) */
-/*     { */
-/*     case S_IFDIR:		/\* directory *\/ */
-/* #ifdef	RECURSIVE */
-/*       if (recursive) */
-/* 	compdir (tempname); */
-/*       else */
-/* #endif */
-/* 	if (!quiet) */
-/* 	  fprintf (stderr, "%s is a directory -- ignored\n", tempname); */
-/*       break; */
+  switch (infstat.st_mode & S_IFMT)
+    {
+    case S_IFDIR:		/* directory */
+#ifdef	RECURSIVE
+      if (recursive)
+	compdir (tempname);
+      else
+#endif
+	if (!quiet)
+	  fprintf (stderr, "%s is a directory -- ignored\n", tempname);
+      break;
 
-/*     case S_IFREG:		/\* regular file *\/ */
-/*       if (do_decomp != 0) */
-/* 	{			/\* DECOMPRESSION *\/ */
-/* 	  if (!zcat_flg) */
-/* 	    { */
-/* 	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0) */
-/* 		{ */
-/* 		  if (!quiet) */
-/* 		    fprintf (stderr, "%s - no .Z suffix\n", tempname); */
+    case S_IFREG:		/* regular file */
+      if (do_decomp != 0)
+	{			/* DECOMPRESSION */
+	  if (!zcat_flg)
+	    {
+              // pmr: was strcmp (tempname + strlen (tempname) - 2, ".Z") != 0; see above note
+              if (!endswith(tempname, ".Z"))
+		{
+		  if (!quiet)
+		    fprintf (stderr, "%s - no .Z suffix\n", tempname);
 
-/* 		  return; */
-/* 		} */
-/* 	    } */
+		  return;
+		}
+	    }
 
-/* 	  strcpy (ofname, tempname); */
+	  strcpy (ofname, tempname);
 
-/* 	  /\* Strip of .Z suffix *\/ */
+	  /* Strip of .Z suffix */
+          // pmr: was strcmp (tempname + strlen (tempname) - 2, ".Z") == 0; see above note
+	  if (endswith(tempname, ".Z")) {
+              // pmr: added to appease ctype inference
+              zoffset = strlen (tempname) - 2;
+              ofname[(unsigned int) zoffset] = '\0';
+          }
+	}
+      else
+	{			/* COMPRESSION */
+	  if (!zcat_flg)
+	    {
+              // pmr: was strcmp (tempname + strlen (tempname) - 2, ".Z") == 0; see above note
+              if (endswith(tempname, ".Z"))
+		{
+		  fprintf (stderr, "%s: already has .Z suffix -- no change\n",
+			   tempname);
+		  return;
+		}
 
-/* 	  if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0) */
-/* 	    ofname[strlen (tempname) - 2] = '\0'; */
-/* 	} */
-/*       else */
-/* 	{			/\* COMPRESSION *\/ */
-/* 	  if (!zcat_flg) */
-/* 	    { */
-/* 	      if (strcmp (tempname + strlen (tempname) - 2, ".Z") == 0) */
-/* 		{ */
-/* 		  fprintf (stderr, "%s: already has .Z suffix -- no change\n", */
-/* 			   tempname); */
-/* 		  return; */
-/* 		} */
+	      if (infstat.st_nlink > 1 && (!force))
+		{
+		  fprintf (stderr, "%s has %d other links: unchanged\n",
+			   tempname, infstat.st_nlink - 1);
+		  exit_code = 1;
+		  return;
+		}
+	    }
 
-/* 	      if (infstat.st_nlink > 1 && (!force)) */
-/* 		{ */
-/* 		  fprintf (stderr, "%s has %d other links: unchanged\n", */
-/* 			   tempname, infstat.st_nlink - 1); */
-/* 		  exit_code = 1; */
-/* 		  return; */
-/* 		} */
-/* 	    } */
+	  strcpy (ofname, tempname);
+	  strcat (ofname, ".Z");
+	}
 
-/* 	  strcpy (ofname, tempname); */
-/* 	  strcat (ofname, ".Z"); */
-/* 	} */
-
-/*       if ((fdin = open (ifname = tempname, O_RDONLY | O_BINARY)) == -1) */
-/* 	{ */
-/* 	  perror (tempname); */
-/* 	  exit_code = 1; */
-/* 	  return; */
-/* 	} */
+      if ((fdin = open (ifname = tempname, O_RDONLY | O_BINARY)) == -1)
+	{
+	  perror (tempname);
+	  exit_code = 1;
+	  return;
+	}
 
 /*       if (zcat_flg == 0) */
 /* 	{ */
@@ -1309,11 +1315,11 @@ comprexx (fileptr)
 
 /*       break; */
 
-/*     default: */
-/*       fprintf (stderr, "%s is not a directory or a regular file - ignored\n", */
-/* 	       tempname); */
-/*       break; */
-/*     } */
+    default:
+      fprintf (stderr, "%s is not a directory or a regular file - ignored\n",
+	       tempname);
+      break;
+    }
 }
 
 // pmr: workarounds for the use of string-manipulating functions that requires:
