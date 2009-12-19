@@ -914,78 +914,96 @@ Usage: %s [-dfvcVr] [-b maxbits] [file ...]\n\
   exit (1);
 }
 
-/* void */
-/* comprexx (fileptr) */
-/*   char * ARRAY * ARRAY fileptr; */
-/* { */
-/*   int fdin; */
-/*   int fdout; */
-/*   char tempname[MAXPATHLEN]; */
-/*   struct stat infstat;		/\* Input file status *\/ */
+// pmr: added because the original way of checking for suffixes was unsafe
+int endswith(const char * ARRAY str, const char * ARRAY suffix) {
+    int offset;
 
-/*   strcpy (tempname, *fileptr); */
-/*   errno = 0; */
+    offset = strlen(str) - strlen(suffix);
+    if (offset < 0) {
+        return 0;
+    }
 
-/* #ifdef	LSTAT */
-/*   if (lstat (tempname, &infstat) == -1) */
-/* #else */
-/*     if (stat (tempname, &infstat) == -1) */
-/* #endif */
-/*       { */
-/* 	if (do_decomp) */
-/* 	  { */
-/* 	    switch (errno) */
-/* 	      { */
-/* 	      case ENOENT:	/\* file doesn't exist *\/ */
-/* 		/\* */
-/* 		** if the given name doesn't end with .Z, try appending one */
-/* 		** This is obviously the wrong thing to do if it's a  */
-/* 		** directory, but it shouldn't do any harm. */
-/* 		*\/ */
-/* 		if (strcmp (tempname + strlen (tempname) - 2, ".Z") != 0) */
-/* 		  { */
-/* 		    strcat (tempname, ".Z"); */
-/* 		    errno = 0; */
-/* #ifdef	LSTAT */
-/* 		    if (lstat (tempname, &infstat) == -1) */
-/* #else */
-/* 		      if (stat (tempname, &infstat) == -1) */
-/* #endif */
-/* 			{ */
-/* 			  perror (tempname); */
-/* 			  exit_code = 1; */
-/* 			  return; */
-/* 			} */
+    // pmr: needed to appease the shape checker; 0{1} is not a good index
+    // to pass to string comparison functions
+    offset = (unsigned int) suffix;
+    return strcmp(str + offset, suffix) == 0;
+}
 
-/* 		    if ((infstat.st_mode & S_IFMT) != S_IFREG) */
-/* 		      { */
-/* 			fprintf (stderr, "%s: Not a regular file.\n", tempname); */
-/* 			exit_code = 1; */
-/* 			return; */
-/* 		      } */
-/* 		  } */
-/* 		else */
-/* 		  { */
-/* 		    perror (tempname); */
-/* 		    exit_code = 1; */
-/* 		    return; */
-/* 		  } */
+void
+comprexx (fileptr)
+  char * ARRAY * ARRAY fileptr;
+{
+  int fdin;
+  int fdout;
+  char tempname[MAXPATHLEN];
+  struct stat infstat;		/* Input file status */
 
-/* 		break; */
+  strcpy (tempname, *fileptr);
+  errno = 0;
 
-/* 	      default: */
-/* 		perror (tempname); */
-/* 		exit_code = 1; */
-/* 		return; */
-/* 	      } */
-/* 	  } */
-/* 	else */
-/* 	  { */
-/* 	    perror (tempname); */
-/* 	    exit_code = 1; */
-/* 	    return; */
-/* 	  } */
-/*       } */
+#ifdef	LSTAT
+  if (lstat (tempname, &infstat) == -1)
+#else
+    if (stat (tempname, &infstat) == -1)
+#endif
+      {
+	if (do_decomp)
+	  {
+	    switch (errno)
+	      {
+	      case ENOENT:	/* file doesn't exist */
+		/*
+		** if the given name doesn't end with .Z, try appending one
+		** This is obviously the wrong thing to do if it's a
+		** directory, but it shouldn't do any harm.
+		*/
+                // pmr: was
+                //   strcmp (tempname + strlen (tempname) - 2, ".Z") != 0)
+                // but this is both unsafe and fails shape inference
+                if (endswith(tempname, ".Z"))
+		  {
+		    strcat (tempname, ".Z");
+		    errno = 0;
+#ifdef	LSTAT
+		    if (lstat (tempname, &infstat) == -1)
+#else
+		      if (stat (tempname, &infstat) == -1)
+#endif
+			{
+			  perror (tempname);
+			  exit_code = 1;
+			  return;
+			}
+
+		    if ((infstat.st_mode & S_IFMT) != S_IFREG)
+		      {
+			fprintf (stderr, "%s: Not a regular file.\n", tempname);
+			exit_code = 1;
+			return;
+		      }
+		  }
+		else
+		  {
+		    perror (tempname);
+		    exit_code = 1;
+		    return;
+		  }
+
+		break;
+
+	      default:
+		perror (tempname);
+		exit_code = 1;
+		return;
+	      }
+	  }
+	else
+	  {
+	    perror (tempname);
+	    exit_code = 1;
+	    return;
+	  }
+      }
 
 /*   switch (infstat.st_mode & S_IFMT) */
 /*     { */
@@ -1296,7 +1314,7 @@ Usage: %s [-dfvcVr] [-b maxbits] [file ...]\n\
 /* 	       tempname); */
 /*       break; */
 /*     } */
-/* } */
+}
 
 // pmr: workarounds for the use of string-manipulating functions that requires:
 //      1) paramterization over the start offset of a reference
