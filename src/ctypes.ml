@@ -72,10 +72,10 @@ let index_plus (i1: index) (i2: index): index =
 (* pmr: prove this has the appropriate monotonicity property *)
 let index_minus (i1: index) (i2: index): index =
   match (i1, i2) with
-    | (IBot, _) | (_, IBot)                -> IBot
-    | (IInt n, IInt m) (* when n >= m *)   -> IInt (n - m)
-    | (ISeq (m, k, p), IInt n) when m >= n -> ISeq (m - n, k, p)
-    | _                                    -> index_top
+    | (IBot, _) | (_, IBot)    -> IBot
+    | (IInt n, IInt m)         -> IInt (n - m)
+    | (ISeq (m, k, p), IInt n) -> ISeq (m - n, k, p)
+    | _                        -> index_top
 
 let index_constop (op: int -> int -> int) (i1: index) (i2: index): index =
   match (i1, i2) with
