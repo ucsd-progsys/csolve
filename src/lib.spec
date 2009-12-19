@@ -172,3 +172,9 @@ perror ::
   ret       int (0, true)
   store_in  [A1 |-> 0[1]: int (1, true)]
   store_out [A1 |-> 0[1]: int (1, true)]
+
+strlen ::
+  forall    [A1]
+  arg       (str: ref (A1, 0[1]))
+  ret       int (4, 0[1])
+  store     [A1 |-> 0[1]: int (1, true)]
