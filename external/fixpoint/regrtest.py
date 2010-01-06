@@ -22,25 +22,24 @@
 import sys, time, os, os.path, subprocess, string
 import itertools as it
 
+# App Specific Constants
 solve      = "_build/main.native".split()
+testdirs   = [("./tests/dsolve", 0),("./tests/csolve-postests", 0),("./tests/csolve-negtests", 1)]
 null       = open("/dev/null", "w")
 logfile    = "./regrtest.results"
 argcomment = "//! run with "
+
+########################################################################
 
 def logged_sys_call(args, out=None, err=None):
   print "exec: " + " ".join(args)
   return subprocess.call(args, stdout=out, stderr=err)
 
-########################################################################
-
-def solve_quals(file,bare,time,quiet,flags):
-  if quiet: out = null
-  else: out = None
-  if time: time = ["time"]
-  else: time = []
-  return logged_sys_call(time + solve + flags + [file], out)
-
-########################################################################
+def logstring(outs):
+  print outs
+  f = open(logfile, "a")
+  f.write(outs)
+  f.close
 
 def getfileargs(file):
   f = open(file)
@@ -57,37 +56,43 @@ def logtest(file, ok, runtime):
   else:
     oks = "\033[1;31mFAILURE :(\033[1;0m\n"
   outs = "test: %s \ntime: %f seconds \nresult: %s \n \n" % (file, runtime, oks) 
-  print outs
-  f = open(logfile, "a")
-  f.write(outs)
-  f.close
+  logstring(outs)
+
+def run_app(file,bare,time,quiet,flags):
+  if quiet: out = null
+  else: out = None
+  if time: time = ["time"]
+  else: time = []
+  return logged_sys_call(time + solve + flags + [file], out)
 
 def runtest(file, expected_status, dargs):
   fargs   = getfileargs(file)
   start   = time.time()
-  status  = solve_quals(file, True, False, True, fargs + dargs)
+  status  = run_app(file, True, False, True, fargs + dargs)
   runtime = time.time() - start
   ok      = (status == expected_status)
   logtest(file, ok, runtime)
   return (file, ok)
 
+#API
 def runtests(dir, expected_status, dargs):
   print "Running tests from %s/" % dir
   files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
   return [runtest(file, expected_status, dargs) for file in files if file.endswith(".fq") ]
 
+#API
+def logresults(results):
+  failed    = [result[0] for result in it.chain(*results) if result[1] == False]
+  failcount = len(failed)
+  if failcount == 0:
+    outs = "\n\033[1;32mPassed all tests! :D\033[1;0m"
+  else:
+    outs = "\n\033[1;31mFailed %d tests:\033[1;0m %s" % (failcount, "\n".join(failed))
+  logstring(outs)
+  sys.exit(failcount != 0)
+
 #####################################################################################
 
-#testdirs  = [("postests", 0)]
-#testdirs  = [("../negtests", 1)]
-#testdirs  = [("../slowtests", 1)]
-testdirs  = [("./tests/dsolve", 0)]
-
 results   = [runtests(dir, expected_status, sys.argv[1:]) for (dir, expected_status) in testdirs]
-failed    = [result[0] for result in it.chain(*results) if result[1] == False]
-failcount = len(failed)
-if failcount == 0:
-  print "\n\033[1;32mPassed all tests! :D\033[1;0m"
-else:
-  print "\n\033[1;31mFailed %d tests:\033[1;0m %s" % (failcount, "\n".join(failed))
-sys.exit(failcount != 0)
+logresults(results)
+

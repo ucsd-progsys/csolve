@@ -274,20 +274,21 @@ let tags_of_binds s binds =
   let s_typ = Ctypes.prectype_map (Misc.app_snd (C.apply_solution s)) in
   let s_fun = Ctypes.precfun_map s_typ in
   let s_sto = Ctypes.prestore_map_ct s_typ in
+  let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) -> function
     | TVar (x, cr) -> 
         let k,t  = x, ("variable "^x) in
-        let d'   = Pretty.dprintf "%s :: @[%a@] \n \n" t d_refctype (s_typ cr) in
+        let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refctype (s_typ cr) nl in
         (Pretty.concat d d', (k,t)::kts)
     | TFun (f, cf) -> 
         let k,t  = f, ("function "^f) in
-        let d'   = Pretty.dprintf "%s :: @[%a@] \n \n" t d_refcfun (s_fun cf) in
+        let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refcfun (s_fun cf) nl in
         (Pretty.concat d d', (k,t)::kts)
     | TSto (f, st) -> 
         let kts' =  slocs_of_store st 
                  |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
                  |> List.map (fun s -> (s, s^" |->")) in
-        let d'   = Pretty.dprintf "funstore %s :: @[%a@] \n \n" f d_refstore (s_sto st) in
+        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f d_refstore (s_sto st) nl in
         (Pretty.concat d d', kts' ++ kts)
   end (Pretty.nil, []) binds
 

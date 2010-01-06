@@ -21,7 +21,7 @@
  *)
 
 (** This module contains globals representing "flags" **************)
-
+let annotsep_name       = "\n\n=+=\n\n"
 let lib_name            = "lib"
 let global_name         = "GLOBAL"
 

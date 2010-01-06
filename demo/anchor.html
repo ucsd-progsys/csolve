@@ -1,0 +1,30 @@
+
+
+<head>
+    <script>
+        function SelectAnchorNode () {
+            if (window.getSelection) {        // Firefox, Opera, Safari
+                var selection = window.getSelection ();
+                if (selection.anchorNode) {
+                    var rangeToSelect = document.createRange ();
+                    rangeToSelect.selectNode (selection.anchorNode);
+
+                    selection.removeAllRanges ();
+                    selection.addRange (rangeToSelect);
+                }
+            } else {
+                alert ("Your browser does not support this example!");
+            }
+        }
+    </script>
+</head>
+<body>
+    <button onclick="SelectAnchorNode ();">Select the entire element where the selection begins!</button>
+    <br /><br />
+    <div>
+        <div>This is the first line.</div>
+        <div>This is the second line.</div>
+    </div>
+</body>
+
+

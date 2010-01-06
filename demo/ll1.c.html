@@ -1,0 +1,31 @@
+<pre><tt>
+<span name="line:1"> <font color="#000000">01:</font> <b><font color="#0000FF">extern</font></b> <font color="#009900">char</font><font color="#990000">*</font> <b><font color="#000000">malloc</font></b><font color="#990000">(</font><font color="#009900">int</font><font color="#990000">);</font> </span>
+<span name="line:2"> <font color="#000000">02:</font>  </span>
+<span name="line:3"> <font color="#000000">03:</font> <b><font color="#0000FF">typedef</font></b> <b><font color="#0000FF">struct</font></b> node <font color="#FF0000">{</font> </span>
+<span name="line:4"> <font color="#000000">04:</font>   <font color="#009900">int</font> x<font color="#990000">;</font> </span>
+<span name="line:5"> <font color="#000000">05:</font>   <font color="#009900">int</font> y<font color="#990000">;</font> </span>
+<span name="line:6"> <font color="#000000">06:</font>   <b><font color="#0000FF">struct</font></b> node <font color="#990000">*</font>next<font color="#990000">;</font> </span>
+<span name="line:7"> <font color="#000000">07:</font> <font color="#FF0000">}</font> node_t<font color="#990000">;</font> </span>
+<span name="line:8"> <font color="#000000">08:</font>  </span>
+<span name="line:9"> <font color="#000000">09:</font> <font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">(</font><i><font color="#9A1900">/* int n */</font></i><font color="#990000">)</font><font color="#FF0000">{</font> </span>
+<span name="line:10"> <font color="#000000">10:</font>   node_t <font color="#990000">*</font>root<font color="#990000">;</font> </span>
+<span name="line:11"> <font color="#000000">11:</font>   node_t <font color="#990000">*</font>tmp<font color="#990000">;</font> </span>
+<span name="line:12"> <font color="#000000">12:</font>  </span>
+<span name="line:13"> <font color="#000000">13:</font>   root <font color="#990000">=</font> <font color="#990000">(</font>node_t<font color="#990000">*)</font><font color="#993399">0</font><font color="#990000">;</font> </span>
+<span name="line:14"> <font color="#000000">14:</font>  </span>
+<span name="line:15"> <font color="#000000">15:</font>   <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i<font color="#990000">=</font><font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">100</font> <i><font color="#9A1900">/* n */</font></i><font color="#990000">;</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font> </span>
+<span name="line:16"> <font color="#000000">16:</font>     tmp       <font color="#990000">=</font> <font color="#990000">(</font>node_t <font color="#990000">*)</font> <b><font color="#000000">malloc</font></b><font color="#990000">(</font><b><font color="#0000FF">sizeof</font></b><font color="#990000">(</font>node_t<font color="#990000">));</font> </span>
+<span name="line:17"> <font color="#000000">17:</font>     tmp<font color="#990000">-&gt;</font>x    <font color="#990000">=</font> i<font color="#990000">;</font> </span>
+<span name="line:18"> <font color="#000000">18:</font>     tmp<font color="#990000">-&gt;</font>y    <font color="#990000">=</font> i<font color="#990000">+</font><font color="#993399">1</font><font color="#990000">;</font> </span>
+<span name="line:19"> <font color="#000000">19:</font>     tmp<font color="#990000">-&gt;</font>next <font color="#990000">=</font> root<font color="#990000">;</font> </span>
+<span name="line:20"> <font color="#000000">20:</font>     root      <font color="#990000">=</font> tmp<font color="#990000">;</font> </span>
+<span name="line:21"> <font color="#000000">21:</font>   <font color="#FF0000">}</font> </span>
+<span name="line:22"> <font color="#000000">22:</font>  </span>
+<span name="line:23"> <font color="#000000">23:</font>   <b><font color="#0000FF">for</font></b><font color="#990000">(</font>tmp <font color="#990000">=</font> root<font color="#990000">;</font> tmp<font color="#990000">!=(</font>node_t<font color="#990000">*)</font><font color="#993399">0</font><font color="#990000">;</font> tmp <font color="#990000">=</font> tmp<font color="#990000">-&gt;</font>next<font color="#990000">)</font><font color="#FF0000">{</font> </span>
+<span name="line:24"> <font color="#000000">24:</font>     <b><font color="#000000">assert</font></b><font color="#990000">(</font>tmp<font color="#990000">-&gt;</font>x <font color="#990000">&gt;=</font> <font color="#993399">0</font><font color="#990000">);</font> </span>
+<span name="line:25"> <font color="#000000">25:</font>     <b><font color="#000000">assert</font></b><font color="#990000">(</font>tmp<font color="#990000">-&gt;</font>x <font color="#990000">&lt;</font> tmp<font color="#990000">-&gt;</font>y<font color="#990000">);</font> </span>
+<span name="line:26"> <font color="#000000">26:</font>      </span>
+<span name="line:27"> <font color="#000000">27:</font>   <font color="#FF0000">}</font> </span>
+<span name="line:28"> <font color="#000000">28:</font>   <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font> </span>
+<span name="line:29"> <font color="#000000">29:</font> <font color="#FF0000">}</font> </span>
+<span name="line:30"> </tt></pre> </span>
