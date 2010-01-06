@@ -24,24 +24,8 @@ __extension__ typedef signed long long int __int64_t;
 __extension__ typedef unsigned long long int __uint64_t;
 #endif
 
-/* quad_t is also 64 bits.  */
-#if __WORDSIZE == 64
-typedef long int __quad_t;
-typedef unsigned long int __u_quad_t;
-#elif defined __GLIBC_HAVE_LONG_LONG
 __extension__ typedef long long int __quad_t;
 __extension__ typedef unsigned long long int __u_quad_t;
-#else
-typedef struct
-{
-  long __val[2];
-} __quad_t;
-typedef struct
-{
-  __u_long __val[2];
-} __u_quad_t;
-#endif
-
 
 /* The machine-dependent file <bits/typesizes.h> defines __*_T_TYPE
    macros for each of the OS types we define below.  The definitions
@@ -165,7 +149,7 @@ typedef char *__caddr_t;
 __STD_TYPE __SWORD_TYPE __intptr_t;
 
 /* Duplicate info from sys/socket.h.  */
-__STD_TYPE __U32_TYPE __socklen_t;
+//__STD_TYPE __U32_TYPE __socklen_t;
 
 #ifdef	__USE_BSD
 # ifndef __u_char_defined
@@ -269,16 +253,7 @@ typedef __key_t key_t;
 #define __need_clockid_t
 #include <time.h>
 
-#ifdef __USE_XOPEN
-# ifndef __useconds_t_defined
 typedef __useconds_t useconds_t;
-#  define __useconds_t_defined
-# endif
-# ifndef __suseconds_t_defined
-typedef __suseconds_t suseconds_t;
-#  define __suseconds_t_defined
-# endif
-#endif
 
 #define	__need_size_t
 #include <stddef.h>

@@ -1,0 +1,783 @@
+.TH CMUMP 3 02/12/87
+
+.SH "NAME"
+MINIT,MSET,MCOPY,MMOVE,MFREE,MMOVEFREE,madd,mcopy,mdiv,mgcd,minvert,mipow,mmove,mmult,mnegate,mpow,mset,mshiftl,mshiftr,msqrt,msub,mtod,sdiv,mcmp,mlog,mtest,fmin,fmout,hexmin,hexmout,min,mout,omin,omout,m_in,m_out,m_in_b,m_out_b,htonm,htonmb,ntohm,msize,mlegendre,mjacobi,modd,mlowbits,mlowzeros \- cmump: an arbitrary-precision integer arithmetic package
+
+.SH "SYNOPSIS"
+.B
+#include <cmump.h>
+.br
+\&...
+
+.B
+lint 
+files 
+.B
+-lcmump
+.br
+\&...
+
+.B
+cc 
+[ flags ] 
+files 
+.B
+-lcmump 
+[ libraries ]
+
+.SH "DESCRIPTION"
+
+.PP
+.I Cmump
+is a package of macros and functions in C implementing arbitrary-precision
+integers.
+Each such integer is of type MINT.
+
+.SH "INITIALIZATION"
+
+.PP
+Every newly created MINT
+.I must
+be initialized before it can be used in any way, even as the target of an 
+operation.
+This includes locally declared MINTs.
+
+.nf
+MINIT(a)
+MINT *a;
+.fi
+
+.RS
+initializes
+.I a
+to an undefined value.  (macro)
+.RE
+
+.nf
+MSET(i,a)
+int i;
+MINT *a;
+.fi
+
+.RS
+initializes
+.I a
+to (short) integer
+.IR i .
+(macro)
+.RE
+
+.nf
+MCOPY(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+copies
+.I a
+into
+.IR b .
+(macro)
+.RE
+
+.nf
+MMOVE(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+copies
+.I a
+into
+.IR b .
+.I a
+becomes undefined but remains initialized.  (macro)
+.RE
+
+.SH "DEINITIALIZATION"
+
+.PP
+Every MINT should be deinitialized before being 
+destroyed.  This permits garbage collection of dynamic data, which is part of
+every MINT.  In particular, local MINTs must be freed before a program returns
+from the scope in which they were declared.
+
+.nf
+MFREE(a)
+MINT *a;
+.fi
+
+.RS
+deinitializes
+.IR a .
+(macro)
+.RE
+
+.nf
+MMOVEFREE(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+copies
+.I a
+to
+.I b
+and deinitializes
+.IR a .
+(macro)
+.RE
+
+Note that the initializers do \fbnot\fp allocate any storage -- you should
+declare MINTs and initialize/deinitialize them as follows:
+
+.nf
+	void foo(a)
+	MINT *a;	
+	{
+		/* param assumed to be initialized by caller */
+		MINT b;
+
+		MINIT(&b);	/* initialize before use */
+		...		/* hack on the MINTs */
+		MFREE(&b);	/* deinitialize after use */
+	}
+.fi
+
+.SH "ARITHMETIC PROCEDURES"
+
+.nf
+madd(a,b,c)
+MINT *a, *b, *c;
+.fi
+
+.RS
+.I c
+is set to the sum of
+.I a
+and
+.IR b .
+.RE
+
+.nf
+mcopy(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+copies
+.I a
+into
+.IR b .  
+.RE
+
+.nf
+mdiv(a,b,q,r)
+MINT *a, *b, *q, *r;
+.fi
+
+.RS
+.I q
+is set to the quotient of
+.I a
+and
+.IR b .
+The remainder is placed in
+.IR r .
+.RE
+
+.nf
+mgcd(a,b,c)
+MINT *a, *b, *c;
+.fi
+
+.RS
+.I c
+is set to the gcd of
+.I a
+and
+.IR b .
+.RE
+
+.nf
+minvert(a,b,c)
+MINT *a, *b, *c;
+.fi
+
+.RS
+.I c
+is set to the inverse of
+.I a
+mod
+.I b
+if it exists, or 1 otherwise.
+.RE
+
+.nf
+mipow(a,n,b)
+MINT *a, *b;
+int n;
+.fi
+
+.RS
+.I b
+is set to a raised to the
+.IR n -th
+power.
+.RE
+
+.nf
+mmove(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+copies
+.I a to
+.IR b .
+The value of
+.I a
+is then undefined.  (macro)
+.RE
+
+.nf
+mmult(a,b,c)
+MINT *a, *b, *c;
+.fi
+
+.RS
+.I c
+is set to the product of
+.I a and
+.IR b .
+.RE
+
+.nf
+mnegate(a)
+MINT *a;
+.fi
+
+.RS
+.I a
+is negated.  (macro)
+.RE
+
+.nf
+mpow(a,b,c,d)
+MINT *a, *b, *c, *d;
+.fi
+
+.RS
+.I d
+is set to
+.I a
+raised to the
+.IR b -th
+power, mod
+.IR c .
+.RE
+
+.nf
+mset(i,a)
+short i;
+MINT *a;
+.fi
+
+.RS
+.I a
+is set to integer
+.IR i .
+(macro)
+.RE
+
+.nf
+mshiftl(a,i)
+MINT *a;
+int i;
+.fi
+
+.RS
+.I a
+is shifted left by
+.I i
+bits.
+.RE
+
+.nf
+mshiftr(a,i)
+MINT *a;
+int i;
+.fi
+
+.RS
+.I a
+is shifted right by
+.I i
+bits.
+.RE
+
+.nf
+msqrt(a,b,r)
+MINT *a, *b, *r;
+.fi
+
+.RS
+the square root of
+.I a
+is placed in
+.IR b ,
+with remainder
+.IR r .
+.RE
+
+.nf
+msub(a,b,c)
+MINT *a, *b, *c;
+.fi
+
+.RS
+.I c
+is set to
+.I a
+minus
+.IR b .
+.RE
+
+.nf
+int mtod(a,b,d)
+MINT *a, *b;
+double *d;
+.fi
+
+.RS
+.I d
+is set to an approximation of
+.IR a / b .
+mtod returns -1 if
+.I b
+is zero, -2 if
+.IR a / b
+exceeds the largest possible
+double, and 0 otherwise.
+.RE
+
+.nf
+sdiv(a,p,q,r)
+MINT *a, *q;
+short p, *r;
+.fi
+
+.RS
+.I a
+is divided by
+.IR p ,
+yielding quotient
+.I q
+and remainder
+.IR r .
+.RE
+
+.SH "FUNCTIONS RETURNING VALUES"
+
+.nf
+int mcmp(a,b)
+MINT *a, *b;
+.fi
+
+.RS
+returns zero if
+.I a
+and
+.I b
+are equal, a positive value if
+.I a
+is larger, and a negative value if
+.I b
+is larger.
+.RE
+
+.nf
+int mlog(a)
+MINT *a;
+.fi
+
+.RS
+returns the number of bits in the binary encoding of unsigned integer
+.IR a .
+.RE
+
+.nf
+int mtest(a)
+MINT *a;
+.fi
+
+.RS
+returns a positive value if
+.I a
+is positive, zero if
+.I a
+is zero, and a negative value is
+.I a
+is negative.  (macro)
+.RE
+
+.nf
+int mlegendre(p,q)
+MINT *p,*q;
+.fi
+
+.RS
+returns the legendre symbol L(p,q).
+.RE
+
+.nf
+int mjacobi(p,q)
+MINT *p,*q;
+.fi
+
+.RS
+returns the jacobi symbol J(p,q).
+.RE
+
+.nf
+int modd(p)
+MINT *p;
+.fi
+
+.RS
+returns 1 if p is odd, 0 otherwise.  (macro)
+.RE
+
+.nf
+int mlowbits(p)
+MINT *p;
+.fi
+
+.RS
+returns the low order bits of the binary representation of the number.
+The number of bits returned may be machine dependent;
+at least 15 bits are guaranteed.  (macro)
+.RE
+
+.nf
+int mlowzeros(p)
+MINT *p;
+.fi
+
+.RS
+returns the number of consecutive low-order zeros in the binary representation
+of the number.
+I.e., p = q * 2^mlowzeros(p) where p is odd.
+.RE
+
+.SH "I/O"
+
+.PP
+In all input routines except for m_in_b,
+spaces and tabs are ignored, and
+characters are read until a non-digit or a newline is encountered.
+Newlines are ignored if no digits have been seen.
+A "digit" depends on the input base:  0-9 and a-f or A-F may be used for
+hex input,
+0-7 may be used for octal,
+whereas 0-9 and a-z or A-Z may be used for base 37 input, etc.
+All input functions return EOF if end of file or error occurred
+or zero otherwise.
+In all output routines except for m_out_b,
+characters are written in blocks of ten digits separated by blanks.
+
+.nf
+int fmin(a,f)
+MINT *a;
+FILE *f;
+.fi
+
+.RS
+Reads
+.I a
+from FILE
+.IR f .
+Returns EOF on end of file or error.
+.RE
+
+.nf
+fmout(a,f)
+MINT *a;
+FILE *f;
+.fi
+
+.RS
+Writes
+.I a
+on FILE
+.IR f .
+.RE
+
+.nf
+int hexmin(a)
+MINT *a;
+.fi
+
+.RS
+Reads
+.I a
+from stdin as a hex string.
+Either A-F or a-f may be used for 10-15.
+Returns EOF on end of file or error.
+.RE
+
+.nf
+hexmout(a)
+MINT *a;
+.fi
+
+.RS
+Writes
+.I a
+on stdout as a hex string.
+.RE
+
+.nf
+int min(a)
+MINT *a;
+.fi
+
+.RS
+Reads
+.I a
+from stdin.
+Returns EOF on end of file or error.
+.RE
+
+.nf
+mout(a)
+MINT *a;
+.fi
+
+.RS
+Writes
+.I a
+on stdout.
+.RE
+
+.nf
+int omin(a)
+MINT *a;
+.fi
+
+.RS
+Reads
+.I a
+from stdin as an octal string.
+Returns EOF on end of file or error.
+.RE
+
+.nf
+omout(a)
+MINT *a;
+.fi
+
+.RS
+Write
+.I a
+on stdin as an octal string.
+.RE
+
+.nf
+int m_in(a,b,f)
+MINT *a;
+int b;
+FILE *f;
+.fi
+
+.RS
+Reads
+.I a
+from FILE
+.I f
+with input base
+.IR b .
+Returns EOF on end of file or error.
+.RE
+
+.nf
+m_out(a,b,f)
+MINT *a;
+int b;
+FILE *b;
+.fi
+
+.RS
+Writes MINT
+.I a
+on FILE
+.I f
+with output base
+.IR b .
+.RE
+
+.nf
+int m_in_b(a,b,f,bl)
+MINT *a;
+int b, bl;
+FILE *f;
+.fi
+
+.RS
+Reads MINT
+.I a
+from FILE
+.I f
+with base
+.IR b .
+Blanks are ignored if
+.I bl
+is nonzero,
+and will cause input to terminate if zero.
+Returns EOF on end of file or error.
+.RE
+
+.nf
+m_out_b(a,b,f,bl)
+MINT a;
+int b, bl;
+FILE *f;
+.fi
+
+.RS
+Writes MINT
+.I a
+on FILE
+.I f
+with base
+.IR b .
+Blanks are inserted to separate blocks of ten digits only if
+.I b
+is nonzero.
+These two functions is mainly for use with other arbitrary precision packages
+(like Common Lisp's bignums) which does not understand the extra blanks.
+.RE
+
+.SH "Interprocess Communication"
+
+.PP
+The following routines are intended for use with Mach port IPC.
+The data are reformatted to be position-independent and uses network-order.
+Socket I/O may use this also for efficiency,
+but just using fdopen(3) with fmout is sufficient.
+
+.nf
+int msize(a)
+MINT *a;
+.fi
+
+.RS
+Returns the amount of memory required to store MINT
+.I a
+in network format.
+.RE
+
+.nf
+char *htonm(a);
+MINT *a;
+.fi
+
+.RS
+Returns a pointer to a block of memory representing MINT
+.I a
+in a host-independent network format.
+The size of the area (for writing) can be determined by msize(a).
+The data pointed to by cp is malloced within htonm and should be free'd
+when no longer needed.
+.RE
+
+.nf
+ntohm(a,b)
+MINT *a;
+char *b;
+.fi
+
+.RS
+Converts the network format block pointed to by
+.I b
+into MINT
+.IR a .
+.RE
+
+.nf
+htonmb(a,b,s)
+MINT *a;
+char *b;
+int s;
+.fi
+.RS
+
+Performs the same thing as htonm(a)
+except that the arena to which the network format of the MINT is stored
+is provided by the user.
+The actual amount of memory used is returned
+if the area provided is large enough,
+and a zero is returned otherwise.
+.RE
+
+.SH "USE OF LINT"
+
+.PP
+The use of
+.I
+lint(1)
+for type-checking is strongly encouraged.
+A lint library file is provided to facilitate this.
+
+.SH "DIAGNOSTICS"
+On errors, messages are produced and execution terminates as default.
+The user may elect to supply a routine
+.I mpfatal
+which is called with a char * parameter upon fatal error (out of space,
+various sanity checks like msqrt of negative and divide by zero)
+and try to recover.
+
+.SH "BUGS"
+Not currently installed on all CS/RI machines.  Ask Gripe to install the 
+library on your machine or make a private copy from /../f/usr/misc/.cmump.
+
+The NAME section is ugly, but allows key(1) to work with names of the routines.
+
+.SH "See Also"
+
+bc(1), byteorder(3N), fdopen(3), malloc(3), 
+
+.SH "HISTORY"
+
+.TP
+20-Jan-87  Bennet Yee (bsy) at Carnegie-Mellon University
+Fixed minvert.
+Added mjacobi/mlegendre, modd, mlowbits, mlowzeros.
+.TP
+21-Jul-87  Bennet Yee (bsy) at Carnegie-Mellon University
+Updated to allow user to supply mpfatal.
+.TP
+12-Feb-87  Bennet Yee (bsy) at Carnegie-Mellon University
+Updated man page to use declaration stub format.
+.TP
+16-Jan-87  Bennet Yee (bsy) at Carnegie-Mellon University
+Updated to install
+.IR minvert .
+Added
+.IR hexmout ,
+.IR m_in_b ,
+.IR m_out_b ,
+.IR msize ,
+.IR htonm ,
+.IR ntohm ,
+and
+.IR htonmb .
+.TP
+09-Apr-86  Lyle McGeoch (magoo) at Carnegie-Mellon University
+Updated for Berkeley Unix 4.2.
+.TP
+03-Dec-84  Lyle McGeoch (magoo) at Carnegie-Mellon University
+Created.  Many of these routines are derived from the existing 
+.I
+mp 
+library.  Co-author with Rex Dwyer (rad).

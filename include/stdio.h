@@ -45,7 +45,6 @@ extern int      getc(FILE *);
 extern int      getchar(void);
 extern int      getc_unlocked(FILE *);
 extern int      getchar_unlocked(void);
-extern int      getopt(int, char * __attribute__((array)) const[], const char); //(LEGACY)
 extern char    *gets(char * __attribute__((array)));
 extern int      getw(FILE *);
 extern int      pclose(FILE *);

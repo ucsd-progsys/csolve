@@ -1,0 +1,65 @@
+# include ${HOME}/.makerc
+#
+# BEWARE:  hc generates bogus code for cmump.  Have yet to find out where,
+# but it screws up the fiat-shamir authentication.
+#
+
+CFLAGS = -g -q nosb -I$(INCLUDEDIR)
+LIBDIR= ../../lib
+BINDIR=../../bin
+INCLUDEDIR=../../include
+SRC = Madd.c Mdiv.c Mgcd.c Mout.c Mpow.c Msqrt.c Mmult.c Mutil.c Mfloat.c Mnetout.c  Mstrtoul.c Mfatal.c Mjacobi.c Mmod.c Mlegendre.c Mjacobi_util.c
+TESTPROGS = mdivtst miotest htonmtest jacobi legendre modtest minvtst
+
+libcmump.a: $(SRC:c=o) 
+	ar cr libcmump.a $(SRC:c=o) Mgcd.o
+	ranlib libcmump.a
+
+
+$(SRC:c=o) : cmump.h
+
+install:	libcmump.a  # jacobi legendre
+	-cd $(LIBDIR); rm -f $(LIBDIR)/libcmump.a 
+	cp libcmump.a $(LIBDIR)
+#	ranlib $(LIBDIR)/libcmump.a 
+	-rm -f $(INCLUDEDIR)/cmump.h
+#	-rm -f $(BINDIR)/jacobi
+#	ln jacobi $(BINDIR)/jacobi
+#	-rm -f $(BINDIR)/legendre
+#	ln legendre $(BINDIR)/legendre
+	cp cmump.h $(INCLUDEDIR)/cmump.h
+
+
+clean:	space
+	-rm -f libcmump.a 
+
+space:
+	-rm -f *.o 
+
+#
+# by no means exhaustive
+#
+test:	$(TESTPROGS)
+
+jacobi: libcmump.a jacobi.o
+	$(CC) $(CFLAGS) -o $@ $@.o libcmump.a $(LDFLAGS)
+
+legendre: libcmump.a legendre.c
+	$(CC) $(CFLAGS) -o $@ $@.c libcmump.a $(LDFLAGS)
+
+mdivtst: libcmump.a mdivtst.c 
+	$(CC) $(CFLAGS) -o $@ $@.c libcmump.a $(LDFLAGS)
+
+miotest: libcmump.a miotest.o
+	$(CC) $(CFLAGS) -o $@ $@.o libcmump.a $(LDFLAGS)
+
+htonmtest: libcmump.a htonmtest.o
+	$(CC) $(CFLAGS) -o $@ $@.o libcmump.a $(LDFLAGS)
+
+modtest: libcmump.a modtest.o
+	$(CC) -o $@ $@.o libcmump.a $(LDFLAGS)
+
+minvtst: libcmump.a minvtst.o
+	$(CC) -o $@ $@.o libcmump.a $(LDFLAGS)
+
+

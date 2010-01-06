@@ -19,14 +19,14 @@ struct stat {
     blkcnt_t  st_blocks;
 };
 
-int    chmod(const char *, mode_t);
+int    chmod(const char * ARRAY, mode_t);
 int    fchmod(int, mode_t);
 int    fstat(int, struct stat *);
-int    lstat(const char *, struct stat *);
-int    mkdir(const char *, mode_t);
-int    mkfifo(const char *, mode_t);
-int    mknod(const char *, mode_t, dev_t);
-int    stat(const char *, struct stat *);
+int    lstat(const char * ARRAY, struct stat *);
+int    mkdir(const char * ARRAY, mode_t);
+int    mkfifo(const char * ARRAY, mode_t);
+int    mknod(const char * ARRAY, mode_t, dev_t);
+int    stat(const char * ARRAY, struct stat *);
 mode_t umask(mode_t);
 
 #define	__S_IFMT	0170000	/* These bits determine file type.  */
