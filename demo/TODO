@@ -31,7 +31,11 @@ HEREHEREHERE
 	typeOfSrcVar(var, line) -> string 
 	typeOfName(var) 	-> string
 
-4. generate HTML file that includes the above (using PHP)
+4. generate a JS file that has the two functions listed above 
+
+HEREHEREHERE
+
+5. generate HTML file that includes the above (using PHP)
 
 5. add var stack so you can chase types around
 
