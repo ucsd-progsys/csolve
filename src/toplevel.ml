@@ -37,7 +37,6 @@ open Misc.Ops
 
 let mydebug = false 
 
-let libpath = Sys.executable_name |> Filename.dirname |> Filename.dirname
 
 (********************************************************************************)
 (****************** TBD: CIL Prepasses ******************************************)
@@ -100,9 +99,10 @@ let add_quals quals fname =
       quals
 
 let quals_of_file fname =
-  [Filename.concat libpath Co.lib_name; fname]
-  |> List.map (fun s -> s^".hquals")
+  [Co.get_lib_hquals (); (fname^".hquals")]
   |> List.fold_left add_quals []
+  (*[Filename.concat libpath Co.lib_name; fname]
+  |> List.map (fun s -> s^".hquals") *)
 
 (********************************************************************************)
 (*************** Generating Specifications **************************************)  
@@ -148,8 +148,9 @@ let generate_spec fname spec =
 
 let spec_of_file fname =
   Ctypes.PreSpec.empty
-  |> add_spec (fname^".spec")                   (* Add manual specs  *)
-  |> add_spec (Filename.concat libpath (Co.lib_name^".spec"))             (* Add default specs *)
+  |> add_spec (fname^".spec")         (* Add manual specs  *)
+  |> add_spec (Co.get_lib_spec ())    (* Add default specs *)
+   (* Filename.concat libpath (Co.lib_name^".spec")) *)
   >> generate_spec fname
   |> add_spec (fname^".autospec")               (* Add autogen specs *)
 

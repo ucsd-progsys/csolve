@@ -33,6 +33,7 @@ all:
 	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t || exit 1; \
 	 done
 	for t in $(TARGETS); do ln -sf _build/$$t; done
-
+	rm ./main.native
+	cp _build/main.native .
 clean:
 	rm -rf *.byte *.native _build _log

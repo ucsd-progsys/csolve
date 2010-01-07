@@ -26,6 +26,7 @@ all:
 	ln -sf ../misc
 	ocamlbuild -r $(LIBS) $(OFLAGS) main.native
 	ocamlbuild -r $(OFLAGS) fix.cmxa
+	cp _build/main.native .
 
 clean:
 	rm -rf *.byte *.native _build _log

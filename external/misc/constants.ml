@@ -1,7 +1,7 @@
 (*
- * Copyright © 2009 The Regents of the University of California. All rights reserved. 
- *
- * Permission is hereby granted, without written agreement and without 
+ * Copyright © 2009 The Regents of the University of California. 
+ * All rights reserved. Permission is hereby granted, without written 
+ * agreement and without 
  * license or royalty fees, to use, copy, modify, and distribute this 
  * software and its documentation for any purpose, provided that the 
  * above copyright notice and the following two paragraphs appear in 
@@ -20,10 +20,12 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
-(** This module contains globals representing "flags" **************)
+open Misc.Ops
+
+(******* This module contains globals representing "flags" **************)
 let annotsep_name       = "\n\n=+=\n\n"
-let lib_name            = "lib"
 let global_name         = "GLOBAL"
+let lib_path            = Sys.executable_name |> Filename.dirname |> ref
 
 let file: string option ref = ref None         (* last commandline param*)
 let safe                = ref false            (* -safe *)
@@ -212,6 +214,9 @@ let arg_spec =
     Arg.Clear simplify_t,
     "do not simplify and prune vacuously satisfiable FixConstraint.fit"
    );
+   ("-libpath",
+    Arg.String (fun s -> lib_path := s), 
+    ("library path for default spec, quals ["^(!lib_path)^"]"));
    ("-nop",
     Arg.Set do_nothing,
     "do nothing (useful for regression tests known to be broken)")
@@ -242,3 +247,15 @@ let unrename_local fn vn =
   let s = suffix_of_fn fn in 
   if not (Misc.is_suffix s vn) then vn else 
     String.sub vn 0 (String.length vn - (String.length s))
+
+(******************************************************************)
+(*************** Paths for builtin specs, quals etc ***************)
+(******************************************************************)
+
+let get_lib_hquals      = fun () -> Filename.concat !lib_path "lib.hquals"
+let get_lib_spec        = fun () -> Filename.concat !lib_path "lib.spec"
+let get_lib_h           = fun () -> Filename.concat !lib_path "lib.h"
+
+
+
+
