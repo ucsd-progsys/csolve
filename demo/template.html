@@ -1,0 +1,59 @@
+<script>
+  function keyOfVarLine(v, l){
+     return (v + " at " + l.toString());
+  }
+
+  function typeOfName(v){
+     return tt[v];
+  }
+
+  function typeOfSrcVar(v, l){
+    var ssa = vt[(keyOfVarLine(v,l))]
+    if (!ssa){
+      ssa = vt[(keyOfVarLine(v + "_heapify", l))]
+    }
+    return typeOfName(ssa);
+  }
+
+  function lineOfNode(n){
+    var nid;
+    if (n) {
+      if (n.id) { nid = n.id; } else { nid = "" };
+      if (nid.substr(0,5) == "line:") {
+        return parseInt(n.id.substr(5))
+      } else {
+        return (lineOfNode(n.parentNode))
+      } 
+    }
+    return (-1);
+  }
+   
+  function getText(sel){
+    if (sel) {
+      var s = typeOfName(sel);
+      if (s) return s;
+      
+      var l = lineOfNode(sel.anchorNode);
+      var s = typeOfSrcVar(sel, l);
+      if (s) return s;
+    } 
+    return "???";
+  }
+
+  function alertSelection(){
+    var sel = window.getSelection();
+    if (sel) alert(getText(sel));
+  }
+
+  function writeTypeOfSelectionLineToBox(){
+    var sel = window.getSelection();
+    if (sel) {
+      var text = getText(sel);
+      document.forms[2].liquidText.value = text;
+    }
+  }
+</script>
+
+<FORM>
+<TEXTAREA NAME="liquidText" ROWS=6 COLS=120 WRAP="virtual"></TEXTAREA>
+</FORM>

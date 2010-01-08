@@ -1,0 +1,56 @@
+
+
+demo for foo.c
+
+1. Convert C code to html using source-highlight
+
+	>> source-highlight --src-lang c --out-format html --line-number
+	                    --input ll1.c --output ll1.c.html
+
+more usage examples: 
+http://www.gnu.org/software/src-highlite/examples.html
+
+2. call "divpad.py" to add line number spans
+
+	>> divpad.py ll1.c.html
+
+
+3. write a python script that reads:
+
+	ll1.c.vmap
+	ll1.c.annot
+
+   and writes a JS file with all the code we want AND two tables:
+	
+	vtab:: var, line   :-> ac_var
+	ttab:: ac_var	   :-> liquid types (string)
+	
+   and two functions:
+
+	typeOfSrcVar(var, line) -> string 
+	typeOfName(var) 	-> string
+
+4. generate a JS file that has the two functions listed above 
+
+5. generate HTML file that includes the above (using PHP)
+
+HEREHEREHERE
+ 
+ Why the Fuck does the PYTHON file (c2html.py) not write the files? It
+ seems unable to do so!!!! Dammit. Have to pipe everything to stdout? ugh.
+
+write "template.html" the generic HTML file with:
+(A) a textbox into which the clicked types are written.
+(B) a function that gathers the type and writes it into the box above.
+writeTypeOfSelectionLineToBox()
+writeTypeOfSelectionToBox()
+
+6. add var stack so you can chase types around
+
+-----------
+
+Menu
+
+-----------
+
+

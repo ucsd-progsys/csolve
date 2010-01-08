@@ -1,0 +1,29 @@
+qualif FALSE(v: int)   : 1 = 0
+qualif EQZ(v: int)     : v = 0
+qualif GEZ(v:int)      : 0 <= v
+qualif GTZ(v:int)      : 0 < v
+
+qualif UCH(v:ptr)      : UNCHECKED([v]) = 1
+
+qualif EQZ(v: ptr)     : v = 0
+qualif GTZP(v:ptr)     : 0 < v
+qualif GTZP(v:ptr)     : 0 <= v
+qualif ISBS(v:ptr)     : v = BLOCK_BEGIN([v])
+
+qualif LB(v:ptr)       : BLOCK_BEGIN([v]) <= v
+qualif UB(v:ptr)       : v < BLOCK_END([v])
+
+qualif NULLorVALID(v:ptr): (v != 0) -> && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+qualif NULLorBEGIN(v:ptr): (v != 0) -> (v = BLOCK_BEGIN([v]))
+
+//Commented out for tests/ft/ft_full.c 
+//Uncomment after that
+qualif LEQ(v:int)      : v <= ~a
+qualif GEQ(v:int)      : v >= ~a
+qualif LT(v:int)       : v < ~a
+qualif GT(v:int)       : v > ~a
+qualif SIZE(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + ~a
+qualif SIZE(v:ptr)     : BLOCK_END([v]) >= BLOCK_BEGIN([v]) + ~A
+qualif SIZE(v:ptr)     : ((v + (4 * ~a)) <= BLOCK_END([v]))
+qualif BEGIN(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a]) 
