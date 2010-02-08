@@ -1,7 +1,0 @@
-####### Fill in these fields
-ROOTHOME=/home/jhala/research/liquidc
-#######
-EXTHOME=$(ROOTHOME)/external
-OCAMLGRAPHHOME=$(ROOTHOME)/external/ocamlgraph
-Z3HOME=$(ROOTHOME)/external/z3
-CILHOME=$(EXTHOME)/cil/obj/x86_LINUX

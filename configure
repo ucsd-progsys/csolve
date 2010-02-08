@@ -1,0 +1,27 @@
+#!/bin/bash
+
+ROOTHOME=`pwd`
+
+cat - > config.make <<EOF
+#######
+ROOTHOME=$ROOTHOME
+#######
+EXTHOME=$ROOTHOME/external
+OCAMLGRAPHHOME=$ROOTHOME/external/ocamlgraph
+Z3HOME=$ROOTHOME/external/z3
+CILHOME=$ROOTHOME/external/cil/obj/x86_LINUX
+EOF
+
+OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`
+
+cat - > build.sh <<EOF
+########################## Fill in these fields
+OCAMLLIB=$OCAMLLIB
+##########################
+cd external/cil/; ./configure; make; make check; cd ../../
+cd external/ocamlgraph/; ./configure; make; make install; cd ../../
+cd external/z3/ocaml; ./build.sh $OCAMLLIB; cd ../../../
+cd src; make; cd ../
+EOF
+
+chmod a+x build.sh

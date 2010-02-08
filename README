@@ -1,4 +1,5 @@
 To build liquidC after a fresh clone:
-1. Copy: config.make.template to config.make and set the appropriate params
-2. Copy: build.sh.template to build.sh and set the appropriate params
-3. Run : ./build.sh
+1. Run ./configure
+2. Run ./build.sh
+
+After this, you can build by simply doing "make" in src/.
