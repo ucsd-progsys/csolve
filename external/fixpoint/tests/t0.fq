@@ -1,6 +1,0 @@
-constraint: env [x:{v: bool | []}] 
-	    grd (&& [(0 = 0); (Bexp x)])
-	    lhs {v : int | [v = 10]}
-	    rhs {v : int | [k1]}
-
-solution: k1 :=  [0 < v; 10 < v; 100 < v]

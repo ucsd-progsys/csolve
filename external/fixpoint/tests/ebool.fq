@@ -1,6 +1,0 @@
-constraint: env [n  : {VV_int : int | []}; 
-                 g1 : {AA_0 : bool | [(AA_0 = b1)]};
-                 b1 : {AA_0 : bool | [&& [((Bexp AA_0) -> (n = 0)) ; ((n = 0) -> (Bexp AA_0))]]}] 
-	    grd (&& [(Bexp g1)])
-	    lhs {v : int | []}
-	    rhs {v : int | [n = 0]}
