@@ -6,14 +6,14 @@ Prerequisites
 
 CSolve requires a recent OCaml compiler and the CamlIDL library.
 
-dsolve can only be compiled on Linux at the moment.
+CSolve can only be compiled on Linux at the moment.
 
 Checking Out Of Git
 -------------------
 
 To clone CSolve from git:
 
-git clone meatwad.ucsd.edu:/git/csolve
+git clone meatwad.ucsd.edu:/git/liquidc
 
 Change into the csolve directory and execute:
 
@@ -55,3 +55,116 @@ configured, change into the src/ directory and run
 ./regrtest.py
 
 All tests should pass.
+
+Running CSolve On A Single C Source File
+----------------------------------------
+
+To run CSolve on a single C source file, run
+
+src/main.native file.c
+
+CSolve will typecheck file.c using the logical qualifiers found in
+file.c.hquals and produce one of two outputs:
+
+1) SAFE
+   The program is memory- and assertion-safe:
+   All pointer dereferences (including array accesses) are within the
+   bounds of an allocated region and all assertions pass.
+   Additionally, all function calls satisfy the specified
+   preconditions.
+
+2) UNSAFE
+   The program may contain memory safety, assertion, or function
+   precondition violations.  The locations of the errors are printed,
+   as well as the constraints that fail.
+
+For options, run
+
+src/main.native -help
+
+Running CSolve In Place Of gcc
+------------------------------
+
+CSolve can be run in place of gcc to typecheck an entire project.
+Simply replace the gcc command in your makefile with src/cc.sh.
+Logical qualifiers will be read from the file liquid.c.hquals
+in the directory containing your source files.
+
+Writing Logical Qualifier Files
+-------------------------------
+
+To typecheck programs, CSolve uses logical qualifier files that
+contain "hints" about how to typecheck the program, called logical
+qualifiers, or qualifiers for short.  Each qualifier is a predicate
+expressing some property of program values.  To make these qualifiers
+easier to express, they may contain wildcards that range over the
+names of variables in the program.  We begin with examples before
+defining the syntax of qualifiers.  Further examples can be found
+in src/lib.hquals.
+
+EXAMPLES
+
+qualif EQZ(v: int): v = 0
+
+  A qualifier named EQZ which expresses that "this" value (v) is an
+  integer which is equal to 0.
+
+qualif GT(v: int): v > x
+
+  A qualifier named GT which expresses that "this" value (v) is an
+  integer which is greater than the value of the variable named x.
+
+qualif GT(v: int): v > @prefix
+
+  A qualifier named GT which expresses that "this" value (v) is an
+  integer which is greater than the value of some variable whose name
+  begins with @prefix.
+
+qualif GT(v: int): v > ~a
+
+  A qualifier named GT which expresses that "this" value (v) is an
+  integer which is greater than the value of some program variable.
+
+qualif NONNULL(v: ptr): v != 0
+
+  A qualifier named NONNULL which expresses that "this" value (v) is a
+  pointer which is not NULL (i.e., equal to 0).
+
+qualif UB(v:ptr): v < BLOCK_END([v])
+
+  A qualifier named UB which expresses that "this" value (v) is a
+  pointer which is less than the pointer that points to the end of the
+  block that v points to (BLOCK_END([v])).
+
+SYNTAX
+
+Qualifiers are of the form
+
+qualif NAME(v: TYPE): PREDICATE
+
+NAME can be any alphanumeric string; it has no semantic
+interpretation.  TYPE is either "ptr" or "int", and determines whether
+this predicate applies to values v which are pointers or integers,
+respectively.  PREDICATE is a logical predicate over the value
+variable v, the program variables, and wildcard variables, containing
+the following constructs:
+
+* Integer constants (0, -2, etc.)
+
+* Program variables (x, y, i, etc.)
+
+* Metavariables ranging over program variables (~a, ~b, etc.)
+
+* Metavariables ranging over program variables with a prefix
+  @prefix instantiates to prefix1, prefix2, etc.
+
+* Binary comparisons x # y where # in {<, <=, =, !=, =>, >}
+
+* Arithmetic expressions x # y where # in {+, -, *}
+  Arithmetic expressions must be linear.
+
+* Conjunctions p && q where p and q are predicates
+
+* Disjunctions p || q where p and q are predicates
+
+* Implications p -> q where p and q are predicates
