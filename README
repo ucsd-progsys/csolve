@@ -4,9 +4,9 @@ CSolve
 Prerequisites
 -------------
 
-CSolve requires a recent OCaml compiler and the OCaml-IDL library.
+CSolve requires a recent OCaml compiler and the CamlIDL library.
 
-CSolve is only compilable on Linux at the moment.
+dsolve can only be compiled on Linux at the moment.
 
 Checking Out Of Git
 -------------------
