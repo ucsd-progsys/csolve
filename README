@@ -1,5 +1,57 @@
-To build liquidC after a fresh clone:
-1. Run ./configure
-2. Run ./build.sh
+CSolve
+======
 
-After this, you can build by simply doing "make" in src/.
+Prerequisites
+-------------
+
+CSolve requires a recent OCaml compiler and the OCaml-IDL library.
+
+CSolve is only compilable on Linux at the moment.
+
+Checking Out Of Git
+-------------------
+
+To clone CSolve from git:
+
+git clone meatwad.ucsd.edu:/git/csolve
+
+Change into the csolve directory and execute:
+
+1. git submodule init
+2. git submodule update
+
+Configuring and Compiling
+-------------------------
+
+NOTE:
+If you downloaded CSolve off the web, you need to download Z3 first.
+Please see the section below for instructions.
+
+To begin building CSolve, run the following commands in the root
+directory of the source distribution:
+
+1. ./configure
+2. ./build.sh
+
+To build CSolve after this step, run make in the src/ directory.
+
+Downloading Z3
+--------------
+
+For legal reasons, we cannot distribute the Z3 SMT solver that CSolve
+requires.  Instead, you must download Z3 2.4 for Linux from
+
+  http://research.microsoft.com/en-us/um/redmond/projects/z3/download.html
+
+Untar the file in the external/ subdirectory; this will create the
+directory external/z3.  You can now proceed to build CSolve.
+
+Testing CSolve
+--------------
+
+To ensure that everything compiled successfully and CSolve is properly
+configured, change into the src/ directory and run
+
+./regrtest.py
+
+All tests should pass.
