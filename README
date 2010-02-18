@@ -17,8 +17,7 @@ git clone meatwad.ucsd.edu:/git/liquidc
 
 Change into the csolve directory and execute:
 
-1. git submodule init
-2. git submodule update
+./getsubmodules.sh
 
 Configuring and Compiling
 -------------------------
