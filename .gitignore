@@ -12,5 +12,5 @@
 negtests/*.fq
 postests/*.fq
 _build
-external/cil/obj
+external/*
 *~
