@@ -17,7 +17,11 @@ git clone meatwad.ucsd.edu:/git/liquidc
 
 Change into the csolve directory and execute:
 
-./getsubmodules.sh
+./getsubmodules.sh [username]
+
+where the optional [username] is your username on the repository
+machine (e.g. meatwad) that must be supplied if your local username
+is different.
 
 Configuring and Compiling
 -------------------------
