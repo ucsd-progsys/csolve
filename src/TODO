@@ -1,5 +1,60 @@
-eh? now the tests pass... odd.
 
+
+ 
+test: ../postests/adpcmini2.c 
+time: 3.291152 seconds 
+ 
+test: ../postests/arraylist2.c 
+time: 4.150228 seconds 
+
+What is an "ebind" ? (fixpoint)
+
+Q: Can you simplify constraints (constaint prop, true elimination etc.) ?
+	Look at andrey's code.
+
+
+// This is useful for display too.
+Q: Can we precompute a "qualifier implication graph" (Edges means Q1 => Q2)
+   and use that to eliminate pointless queries? e.g. v>0 => v>=0 etc. ?
+
+	Hooray! Qualifier.t is already abstract!
+		add an explicit identifier? how to match free vars?
+
+	Change "solution" 
+		to make it abstract (FixConstraint.soln)
+		then make soln map back to original qualifs 
+
+	First, formalize the problem.
+		aq = Abstract Qualifier (with template vars)
+		cq = Concrete Qualifier (with no template vars)
+
+		Minimization: Given 
+		(1) an aq-implication-DAG D
+		(2) a qualifier set Q = {(cq1,aq1),...,(cqn,aqn)} 
+		Find a "minimal" qualifier set Q' \subseteq Q
+		such that 
+		(a) for each (cqi,aqi), (cqj,aqj) aqi -/-> aqj
+		(b) for each (cqj,aqj) in Q\Q', 
+		    there exists (cqi, aqi) in Q' such that
+		    aqi -> aqj
+
+		Generalize to hyper-edges in D. 
+		Note that even the single-edge case is basically
+		"SET-COVER", so can't get "best" solution.
+
+Q: Can you build a "direct" influence graph K1 <: K2 and see what the SCCs are?
+	But what is one supposed to do with such a graph?
+
+
+Q: What is the equivalent of "cycle elimination" in our setting ?
+
+Q: How far can we get by "statically" computing equalities? of course, this
+   would go into "simplification" where each equality set
+   is represented by a unique representative?
+
+Q: What is the equivalent of cone of influence?
+
+----------------------------------------------------------------------------------
 
 INFRA-FOLD: CHECKER
 -----------------------------------------------------------------------------------
@@ -20,13 +75,6 @@ For each al -> cl in concm (must be same set in ORIG, CHECK)
 	 Rd	Rd		T	T	
 	 Rd	Wr		_	Wr	
 ------------------------------------------------------------------------------------
-
--------------------------------------------------------------------------
-- Ocaml Liquid Annot
-	- use 'a, 'b instead of Var(...)
-	- use int list instead of grisly recursive type
--------------------------------------------------------------------------
-
 - pretty printing annots using CTypes
 
 Major Expressiveness Limitations:
