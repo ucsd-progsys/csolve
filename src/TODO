@@ -1,5 +1,17 @@
-eh? now the tests pass... odd.
 
+Hammer these down to sub-second?
+
+test: ../postests/stringexample.c 
+time: 2.973303 seconds 
+result: [1;32mSUCCESS![1;0m
+
+test: ../postests/adpcmini.c 
+time: 1.525206 seconds 
+result: [1;32mSUCCESS![1;0m
+ 
+test: ../postests/adpcminiptr.c 
+time: 4.508471 seconds 
+result: [1;32mSUCCESS![1;0m
 
 INFRA-FOLD: CHECKER
 -----------------------------------------------------------------------------------
