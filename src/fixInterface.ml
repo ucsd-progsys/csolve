@@ -348,8 +348,6 @@ let ce_adds cenv ncrs =
     fnv, env', livem'
   end cenv ncrs
 
-(*  (fnv, List.fold_left (fun env (n, cr) -> YM.add n cr env) vnv ncrs, livem) *)
-
 let ce_adds_fn (fnv, vnv, livem) sfrs = 
   let _ = List.iter (Misc.uncurry annot_fun) sfrs in
   (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv, livem)
@@ -373,7 +371,7 @@ let is_non_tmp = Sy.to_string <+> Co.is_cil_tempvar <+> not
 let env_of_cilenv b (_, vnv, livem) = 
   builtin_env
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
-  |> if b then Sy.sm_filter (fun n _ -> is_live_name livem n && is_non_tmp n) else id
+  |> if b then Sy.sm_filter (fun n _ -> is_non_tmp n && is_live_name livem n) else id
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -558,7 +556,7 @@ let refstore_subs_locs (* loc *) lsubs sto =
 
 let make_wfs ((_,_,livem) as cenv) rct _ =
     cenv 
-    |> env_of_cilenv true
+    |> env_of_cilenv !Co.prune_live 
     |> (fun env -> [C.make_wf env (reft_of_refctype rct) None])
 
 let make_wfs_refstore env sto tag =
