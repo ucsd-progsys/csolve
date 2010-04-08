@@ -24,7 +24,6 @@
 (* This file is part of the liquidC Project.*)
 
 
-
 module IM  = Misc.IntMap
 module F   = Format
 module ST  = Ssa_transform
@@ -52,11 +51,8 @@ open Cil
 (*******************************************************************)
 
 type name = Sy.t
-
 let string_of_name = Sy.to_string 
-
 let name_of_varinfo = fun v -> Sy.of_string v.vname
-
 let name_of_string  = fun s -> Sy.of_string s
 
 let name_fresh =
@@ -71,6 +67,11 @@ let name_of_sloc_ploc l p =
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
+let base_of_name n = 
+  match ST.deconstruct_ssa_name (string_of_name n) with
+  | None        -> None 
+  | Some (b, _) -> Some (name_of_string b)
+ 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
 (******************************************************************************)
@@ -323,65 +324,56 @@ let annot_dump = fun file s -> !annotr
 (************************** Environments ***************************)
 (*******************************************************************)
 
-type cilenv  = refcfun SM.t * refctype YM.t
+type cilenv  = refcfun SM.t * refctype YM.t * name YM.t
 
-let ce_rem   = fun n cenv     -> Misc.app_snd (YM.remove n) cenv
-let ce_mem   = fun n (_, vnv) -> YM.mem n vnv
+let ce_rem   = fun n cenv       -> Misc.app_snd3 (YM.remove n) cenv
+let ce_mem   = fun n (_, vnv,_) -> YM.mem n vnv
 
-
-let ce_find n (_, vnv) =
+let ce_find n (_, vnv, _) =
   try YM.find n vnv with Not_found -> 
     let _  = asserti false "Unknown name! %s" (Sy.to_string n) in
     assertf "Unknown name! %s" (Sy.to_string n)
 
-let ce_find_fn s (fnv, _) =
+let ce_find_fn s (fnv, _,_) =
   try SM.find s fnv with Not_found ->
     assertf "Unknown function! %s" s
 
-let ce_adds (fnv, vnv) ncrs =
+let ce_adds cenv ncrs =
   let _ = List.iter (Misc.uncurry annot_var) ncrs in
-  (fnv, List.fold_left (fun env (n, cr) -> YM.add n cr env) vnv ncrs)
- 
-let ce_adds_fn (fnv, vnv) sfrs = 
+  List.fold_left begin fun (fnv, env, livem) (n, cr) ->
+    let env'   = YM.add n cr env in
+    let livem' = match base_of_name n with 
+                 | None -> livem 
+                 | Some bn -> YM.add bn n livem in
+    fnv, env', livem'
+  end cenv ncrs
+
+(*  (fnv, List.fold_left (fun env (n, cr) -> YM.add n cr env) vnv ncrs, livem) *)
+
+let ce_adds_fn (fnv, vnv, livem) sfrs = 
   let _ = List.iter (Misc.uncurry annot_fun) sfrs in
-  (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv)
+  (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv, livem)
 
-let ce_mem_fn = fun s (fnv, _) -> SM.mem s fnv
+let ce_mem_fn = fun s (fnv, _, _) -> SM.mem s fnv
 
-let ce_empty = (SM.empty, YM.empty) 
+let ce_empty = (SM.empty, YM.empty, YM.empty) 
 
-let d_cilenv () (fnv, _) = failwith "TBD: d_cilenv"
+let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
 
-(* 
-let d_funbind () (fn, fr) = 
-  P.dprintf "%s :: \n %a" fn (Ctypes.d_precfun ...) fr
-
-let d_cilenv () (fnv, _) =
-  let fs = Misc.sm_to_list fnv in
-  Pretty.seq (Pretty.text "\n") (d_funbind ())  
-*)
-
-
-(*
-let ce_project base_env fun_env ns =
-  ns |> Misc.filter (fun vn -> not (YM.mem vn base_env))
-     |> List.fold_left begin 
-         fun env n -> 
-           asserts (YM.mem n fun_env) "ce_project";
-           YM.add n (YM.find n fun_env) env
-        end base_env
-
-let ce_iter f cenv = 
-  YM.iter (fun n cr -> f n cr) cenv
-
-*)
 let builtin_env =
   List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
 
-let env_of_cilenv (_, vnv) = 
-  YM.fold begin fun n rct env -> 
-    YM.add n (reft_of_refctype rct) env
-  end vnv builtin_env 
+let is_live_name livem n =
+  match base_of_name n with
+  | None    -> true
+  | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
+
+let is_non_tmp = Sy.to_string <+> Co.is_cil_tempvar <+> not
+
+let env_of_cilenv b (_, vnv, livem) = 
+  builtin_env
+  |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
+  |> if b then Sy.sm_filter (fun n _ -> is_live_name livem n && is_non_tmp n) else id
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -505,7 +497,7 @@ let t_exp cenv ct e =
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
-let t_name (_, vnv) n = 
+let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) in
   let rct = YM.find n vnv in
   let so = rct |> reft_of_refctype |> C.sort_of_reft in
@@ -563,12 +555,11 @@ let refstore_subs_locs (* loc *) lsubs sto =
 (********************** Constraints *****************************)
 (****************************************************************)
 
-let non_tmp = fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not 
 
-let make_wfs cenv rct _ =
-  let env = env_of_cilenv cenv |> Ast.Symbol.sm_filter non_tmp in
-  let r   = reft_of_refctype rct in
-  [C.make_wf env r None]
+let make_wfs ((_,_,livem) as cenv) rct _ =
+    cenv 
+    |> env_of_cilenv true
+    |> (fun env -> [C.make_wf env (reft_of_refctype rct) None])
 
 let make_wfs_refstore env sto tag =
   LM.fold begin fun l rd ws ->
@@ -603,7 +594,7 @@ let add_deps tago tag =
 *)
 
 let rec make_cs cenv p rct1 rct2 tago tag =
-  let env    = env_of_cilenv cenv in
+  let env    = env_of_cilenv false cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in

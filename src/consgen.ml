@@ -83,7 +83,6 @@ let weaken_undefined me rm env v =
       let env' = FI.ce_rem n env in
       FI.ce_adds env' [(n,r)]
 
-
 (****************************************************************************)
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
@@ -282,22 +281,12 @@ let cons_of_annotstmt me loc i grd wld (anns, stmt) =
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
-(* 
-let wcons_of_phis me tag env vs =
-  let wenv = List.fold_left (weaken_undefined me true) env vs in
-  Misc.flap begin fun v -> 
-    let vn  = FI.name_of_varinfo v in
-    let cr  = FI.ce_find vn env in 
-    FI.make_wfs wenv cr tag
-  end vs
-*)
-
 let wcons_of_block me loc i =
   let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
   let tag  = CF.tag_of_instr me i 0 loc in
   let phis = CF.phis_of_block me i in
-  let env  = CF.inenv_of_block me i in 
-  let wenv = List.fold_left (weaken_undefined me true) env phis in
+  let env  = CF.inenv_of_block me i in
+  let wenv = phis |> List.fold_left (weaken_undefined me true) env in
   let ws   = phis |> List.map  (fun v -> FI.ce_find  (FI.name_of_varinfo v) env) 
                   |> Misc.flap (fun cr -> FI.make_wfs wenv cr tag) in
   let ws'  = FI.make_wfs_refstore wenv (CF.csto_of_block me i) tag in

@@ -63,12 +63,28 @@ type ssaCfgInfo = {
   edoms : ((int * int), bool) Hashtbl.t;
   vmapt : (string * string * int, string) Hashtbl.t; 
 }
+let ssas = "__SSA__"
 
 let mk_ssa_name s = function
-  | Def (b, k) -> Printf.sprintf "%s__SSA__blk_%d_%d" s b k
-  | Phi b      -> Printf.sprintf "%s__SSA__phi_%d" s b
+  | Def (b, k) -> Printf.sprintf "%s%sblk_%d_%d" s ssas b k
+  | Phi b      -> Printf.sprintf "%s%sphi_%d" s ssas b
 
-let is_origcilvar = fun v -> not (Misc.is_substring v.Cil.vname "__SSA__")
+let regindex_of_string s = 
+  try match Misc.chop s "_" with
+      | ["blk"; bs; ks] -> Def (int_of_string bs, int_of_string ks)
+      | ["phi"; bs]     -> Phi (int_of_string bs)
+  with _ -> assertf "regindex_of_string"
+
+let deconstruct_ssa_name s =
+  match Misc.chop s ssas with
+  | []  -> assertf "chop returns empty list"
+  | [_] -> None
+  | xs  -> try xs |> Misc.list_snoc 
+                  |> Misc.app_snd (String.concat ssas) 
+                  |> Misc.app_fst regindex_of_string
+                  |> (fun (ri, b) -> Some (b, ri))
+           with _ -> None
+
 
 let is_ssa_renamable v =
   not (v.vglob || Constants.is_cil_tempvar v.vname)

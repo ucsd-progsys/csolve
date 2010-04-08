@@ -26,7 +26,9 @@ int main1()
   return 0;
 }
 
-/*
+/* {{{
+   
+   
 int main2()
 {
   int i, x, bound, twox;
@@ -52,9 +54,7 @@ int main2()
   
   return 0;
 }
-*/
 
-/*
 void main3(int bound)
 {
   int i, x, flag = 1;
@@ -75,4 +75,4 @@ void main3(int bound)
     //assert(i < bound);
     //assert(2 * x = i + flag);
   }
-}*/
+} }}} */

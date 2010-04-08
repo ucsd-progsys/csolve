@@ -1,5 +1,23 @@
+adpcmini.c stats:
+
+  Qual Inst                      0.472 s
+    validation                     0.388 s
+        valid binds                    0.296 s
+          preds_of_reft                  0.192 s
+
+Just the constraints:
+adpcmini.c.out.fq	
+    solve                          0.040 s
+adpcmini.c.in.fq	
+    solve                          0.752 s
+
+
 
 Hammer these down to sub-second?
+ 
+test: ../postests/arraylist2.c 
+time: 1.390772 seconds 
+result: [1;32mSUCCESS![1;0m
 
 test: ../postests/stringexample.c 
 time: 2.973303 seconds 
@@ -13,18 +31,12 @@ test: ../postests/adpcminiptr.c
 time: 4.508471 seconds 
 result: [1;32mSUCCESS![1;0m
 
- 
-test: ../postests/adpcmini2.c 
-time: 3.291152 seconds 
- 
-test: ../postests/arraylist2.c 
-time: 4.150228 seconds 
-
 What is an "ebind" ? (fixpoint)
+
+
 
 Q: Can you simplify constraints (constaint prop, true elimination etc.) ?
 	Look at andrey's code.
-
 
 // This is useful for display too.
 Q: Can we precompute a "qualifier implication graph" (Edges means Q1 => Q2)

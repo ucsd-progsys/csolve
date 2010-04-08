@@ -82,6 +82,11 @@ let strengthen_refs theta v (vn, cr) =
   let cr' = FI.t_ctype_refctype ct' cr in 
   (vn, cr')
 
+let is_origcilvar v = 
+  match ST.deconstruct_ssa_name v.vname with
+  | None -> true
+  | _    -> false
+
 let env_of_fdec gnv fdec locals theta =
   let rft  = FI.ce_find_fn fdec.svar.vname gnv in
   let env0 = FI.args_of_refcfun rft 
@@ -89,7 +94,7 @@ let env_of_fdec gnv fdec locals theta =
              |> List.map (Misc.app_fst FI.name_of_string)
              |> FI.ce_adds gnv in
   fdec.slocals 
-  |> List.filter ST.is_origcilvar
+  |> List.filter is_origcilvar
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
   |> FI.ce_adds env0
 
@@ -97,7 +102,7 @@ let formalm_of_fdec fdec =
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
 let is_undef_var formalm v = 
-  ST.is_origcilvar v && not (SM.mem v.vname formalm)
+  is_origcilvar v && not (SM.mem v.vname formalm)
 
 let make_undefm formalm phia =
   Array.to_list phia
@@ -289,7 +294,7 @@ let inenv_of_block me i =
   else
     let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
     let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
-      FI.ce_adds env0 phibs
+    FI.ce_adds env0 phibs
 
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
@@ -311,6 +316,4 @@ let inwld_of_block me = function
 
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0
-
-
  
