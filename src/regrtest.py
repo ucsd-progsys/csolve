@@ -24,7 +24,8 @@ import itertools as it
 
 solve      = "./main.native".split()
 null       = open("/dev/null", "w")
-logfile    = "./regrtest.results"
+now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
+logfile    = "../testlogs/regrtest_results_" + now
 argcomment = "//! run with "
 
 def logged_sys_call(args, out=None, err=None):
