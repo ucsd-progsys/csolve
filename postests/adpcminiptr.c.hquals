@@ -1,7 +1,3 @@
-
-//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
-//qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
-
 qualif A(v:int) : ~a <= v 
 qualif A(v:ptr) : ~a <= v 
 qualif A(v:int) : v <= 1

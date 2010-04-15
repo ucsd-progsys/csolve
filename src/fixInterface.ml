@@ -67,6 +67,10 @@ let name_of_sloc_ploc l p =
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
+let is_temp_name n =
+  let s = string_of_name n in
+  List.exists (Misc.is_substring s) ["#PLAt#"; "#PLSeq"; "lqn#"] 
+
 let base_of_name n = 
   match ST.deconstruct_ssa_name (string_of_name n) with
   | None        -> None 
@@ -361,17 +365,9 @@ let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
 let builtin_env =
   List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
 
-let is_live_name livem n =
-  match base_of_name n with
-  | None    -> true
-  | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
-
-let is_non_tmp = Sy.to_string <+> Co.is_cil_tempvar <+> not
-
-let env_of_cilenv b (_, vnv, livem) = 
+let env_of_cilenv (_, vnv, livem) = 
   builtin_env
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
-  |> if b then Sy.sm_filter (fun n _ -> is_non_tmp n && is_live_name livem n) else id
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -549,14 +545,51 @@ let refstore_subs_locs (* loc *) lsubs sto =
     rv
   end sto lsubs
 
+(**************************************************************)
+(*******************Constraint Simplification *****************)
+(**************************************************************)
+
+let is_var_def = function
+  | C.Conc (A.Atom ((A.Var x, _), A.Eq, (A.Var y, _)), _) 
+    when Sy.is_value_variable x -> Some y
+  | C.Conc (A.Atom ((A.Var x, _), A.Eq, (A.Var y, _)), _) 
+    when Sy.is_value_variable y -> Some x
+  | _                           -> None
+
+let str_reft env r = 
+  Misc.expand begin fun (_, t, ras) ->
+    ras |> Misc.map_partial is_var_def
+        |> List.filter (fun x -> YM.mem x env)
+        |> List.map (fun x -> YM.find x env)
+        |> (fun rs -> rs, ras)
+ end [r] []
+
+let is_temp_equality ra = 
+  match is_var_def ra with 
+  | Some x -> is_temp_name x
+  | _      -> false 
+
+let strengthen_reft env ((v, t, ras) as r) =
+  r |> str_reft env 
+    |> List.filter (not <.> is_temp_equality) 
+(*  |> List.filter (fun ra -> match is_var_def ra with None -> true | _ -> false) *)
+    |> Misc.sort_and_compact
+    |> (fun ras' -> v, t, ras')
+
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
 
+let is_live_name livem n =
+  match base_of_name n with
+  | None    -> true
+  | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
 let make_wfs ((_,_,livem) as cenv) rct _ =
     cenv 
-    |> env_of_cilenv !Co.prune_live 
+    |> env_of_cilenv 
+    |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
+    |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
     |> (fun env -> [C.make_wf env (reft_of_refctype rct) None])
 
 let make_wfs_refstore env sto tag =
@@ -591,9 +624,11 @@ let add_deps tago tag =
   | _      -> [] 
 *)
 
+
 let rec make_cs cenv p rct1 rct2 tago tag =
-  let env    = env_of_cilenv false cenv in
+  let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
+  let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in
   cs, ds

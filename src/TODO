@@ -1,3 +1,30 @@
+tweak consgen to eliminate _singleton_ constraints.
+
+That is, replace constraints of the form:
+
+    x:{[rs]},... |- {v=x,...} <: T'
+
+with constraints of the form:
+
+    x:{[rs]},... |- {rs, v=x,...} <: T'
+
+- Should do this inside solver too ?
+	"Simplify_lhs"
+
+
+(UNSAFE) 	./main.native ../postests/test02p.c	
+(SAFE) 		./main.native -no-simplify-t ../postests/test02p.c
+
+See constraint with "id 13" in 	../postests/test02p.c.out.fq
+				../postests/test02p.c.out.nosimp.fq
+
+	-- fix the lqn# business
+		--> refactor into cheaper, heavier parts
+	-- three paths (basic constants + guards) = lower bound on RHS
+	-- add kvar bindings
+
+	-- also think about splitting into direct/indirect flows
+
 adpcmini.c stats:
 
   Qual Inst                      0.472 s
@@ -11,7 +38,10 @@ adpcmini.c.out.fq
 adpcmini.c.in.fq	
     solve                          0.752 s
 
-
+$ grep "ropping" log.pmap | wc
+   2170    6510   41144
+$ grep "ropping" log.pmap | grep ": 0" | wc
+   1686    5058   31808
 
 Hammer these down to sub-second?
  
