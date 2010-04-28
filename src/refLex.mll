@@ -90,8 +90,8 @@ rule token = parse
   | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
                           CONC (Misc.suffix_of_string str 1 |> int_of_string) }
   | "int"               { INT }
+  | "ptr"               { PTR }
   | "bool"              { BOOL }
-  | "unint"             { UNINT }
   | "forall"            { FORALL }
   | "func"              { FUNC }
   | "sort"              { SRT }

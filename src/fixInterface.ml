@@ -33,7 +33,7 @@ module  C  = FixConstraint
 module Sy  = Ast.Symbol
 module So  = Ast.Sort
 module CI  = CilInterface
-
+module Ct  = Ctypes
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
 module Co  = Constants
@@ -62,8 +62,8 @@ let name_fresh =
 let name_of_sloc_ploc l p = 
   let ls    = Sloc.to_string l in
   let pt,pi = match p with 
-              | Ctypes.PLAt i -> "PLAt",i 
-              | Ctypes.PLSeq (i, _) -> "PLSeq", i in
+              | Ct.PLAt i -> "PLAt",i 
+              | Ct.PLSeq (i, _) -> "PLSeq", i in
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
@@ -93,50 +93,50 @@ let (fresh_tag, _ (* loc_of_tag *) ) =
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
 
-type refctype  = (Ctypes.index * C.reft) Ctypes.prectype
-type refcfun   = (Ctypes.index * C.reft) Ctypes.precfun
-type refldesc  = (Ctypes.index * C.reft) Ctypes.LDesc.t
-type refstore  = (Ctypes.index * C.reft) Ctypes.prestore
-type refspec   = (Ctypes.index * C.reft) Ctypes.PreSpec.t
+type refctype  = (Ct.index * C.reft) Ct.prectype
+type refcfun   = (Ct.index * C.reft) Ct.precfun
+type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
+type refstore  = (Ct.index * C.reft) Ct.prestore
+type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
 
 let d_index_reft () (i,r) = 
-  let di = Ctypes.d_index () i in
+  let di = Ct.d_index () i in
   let dc = Pretty.text " , " in
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
-let d_refstore = Ctypes.d_precstore d_index_reft 
-let d_refctype = Ctypes.d_prectype d_index_reft
-let d_refcfun  = Ctypes.d_precfun d_index_reft
+let d_refstore = Ct.d_precstore d_index_reft 
+let d_refctype = Ct.d_prectype d_index_reft
+let d_refcfun  = Ct.d_precfun d_index_reft
 
 let reft_of_refctype = function
-  | Ctypes.CTInt (_,(_,r)) 
-  | Ctypes.CTRef (_,(_,r)) -> r
+  | Ct.CTInt (_,(_,r)) 
+  | Ct.CTRef (_,(_,r)) -> r
 
 let refctype_of_reft_ctype r = function
-  | Ctypes.CTInt (x,y) -> (Ctypes.CTInt (x, (y,r))) 
-  | Ctypes.CTRef (x,y) -> (Ctypes.CTRef (x, (y,r))) 
+  | Ct.CTInt (x,y) -> (Ct.CTInt (x, (y,r))) 
+  | Ct.CTRef (x,y) -> (Ct.CTRef (x, (y,r))) 
 
 let ctype_of_refctype = function
-  | Ctypes.CTInt (x, (y, _)) -> Ctypes.CTInt (x, y) 
-  | Ctypes.CTRef (x, (y, _)) -> Ctypes.CTRef (x, y)
+  | Ct.CTInt (x, (y, _)) -> Ct.CTInt (x, y) 
+  | Ct.CTRef (x, (y, _)) -> Ct.CTRef (x, y)
 
 (* API *)
-let cfun_of_refcfun   = Ctypes.precfun_map ctype_of_refctype 
-let refcfun_of_cfun   = Ctypes.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.Int, So.Int, []))
-let cspec_of_refspec  = Ctypes.PreSpec.map (fun (i,_) -> i)
-let store_of_refstore = Ctypes.prestore_map_ct ctype_of_refctype
-let qlocs_of_refcfun  = fun ft -> ft.Ctypes.qlocs
-let args_of_refcfun   = fun ft -> ft.Ctypes.args
-let ret_of_refcfun    = fun ft -> ft.Ctypes.ret
-let stores_of_refcfun = fun ft -> (ft.Ctypes.sto_in, ft.Ctypes.sto_out)
+let cfun_of_refcfun   = Ct.precfun_map ctype_of_refctype 
+let refcfun_of_cfun   = Ct.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.Int, So.Int, []))
+let cspec_of_refspec  = Ct.PreSpec.map (fun (i,_) -> i)
+let store_of_refstore = Ct.prestore_map_ct ctype_of_refctype
+let qlocs_of_refcfun  = fun ft -> ft.Ct.qlocs
+let args_of_refcfun   = fun ft -> ft.Ct.args
+let ret_of_refcfun    = fun ft -> ft.Ct.ret
+let stores_of_refcfun = fun ft -> (ft.Ct.sto_in, ft.Ct.sto_out)
 let mk_refcfun qslocs args ist ret ost = 
-  { Ctypes.qlocs   = qslocs; 
-    Ctypes.args    = args;
-    Ctypes.ret     = ret;
-    Ctypes.sto_in  = ist;
-    Ctypes.sto_out = ost; }
+  { Ct.qlocs   = qslocs; 
+    Ct.args    = args;
+    Ct.ret     = ret;
+    Ct.sto_in  = ist;
+    Ct.sto_out = ost; }
 
 let slocs_of_store st = 
   LM.fold (fun x _ xs -> x::xs) st []
@@ -147,7 +147,7 @@ let slocs_of_store st =
 (*******************************************************************)
 
 let refstore_fold      = LM.fold
-let refstore_partition = fun f -> Ctypes.prestore_partition (fun l _ -> f l) 
+let refstore_partition = fun f -> Ct.prestore_partition (fun l _ -> f l) 
 let refstore_empty     = LM.empty
 let refstore_mem       = fun l sto -> LM.mem l sto
 let refstore_remove    = fun l sto -> LM.remove l sto
@@ -162,31 +162,31 @@ let refstore_get sto l =
      asserti false "refstore_get"; assert false)
 
 let plocs_of_refldesc rd = 
-  Ctypes.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
+  Ct.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
   |> List.rev
 
 let sloc_binds_of_refldesc l rd = 
-  Ctypes.LDesc.foldn begin fun i binds ploc rct ->
+  Ct.LDesc.foldn begin fun i binds ploc rct ->
     ((name_of_sloc_ploc l ploc, rct), ploc)::binds
   end [] rd
   |> List.rev
 
 let binds_of_refldesc l rd = 
   sloc_binds_of_refldesc l rd 
-  |> List.filter (fun (_, ploc) -> not (Ctypes.ploc_periodic ploc))
+  |> List.filter (fun (_, ploc) -> not (Ct.ploc_periodic ploc))
   |> List.map fst
 
-let refldesc_subs = fun rd f -> Ctypes.LDesc.mapn f rd 
+let refldesc_subs = fun rd f -> Ct.LDesc.mapn f rd 
 
 let refdesc_find ploc rd = 
-  match Ctypes.LDesc.find ploc rd with
+  match Ct.LDesc.find ploc rd with
   | [(ploc', rct)] -> 
-      (rct, Ctypes.ploc_periodic ploc')
+      (rct, Ct.ploc_periodic ploc')
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype loc = function
-  | Ctypes.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
-      (cl, Ctypes.ploc_of_index i)
+  | Ct.CTRef (cl, (i,_)) when not (Sloc.is_abstract cl) ->
+      (cl, Ct.ploc_of_index i)
   | cr ->
       let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
       let l = loc |> d_loc () |> Pretty.sprint ~width:80 in
@@ -217,8 +217,8 @@ let refstore_write loc sto rct rct' =
   let (cl, ploc) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = LM.find cl sto in
-  let ld = Ctypes.LDesc.remove ploc ld in
-  let ld = Ctypes.LDesc.add ploc rct' ld in
+  let ld = Ct.LDesc.remove ploc ld in
+  let ld = Ct.LDesc.add ploc rct' ld in
   LM.add cl ld sto
 
 
@@ -226,46 +226,40 @@ let refstore_write loc sto rct rct' =
 (******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
 
+let so_ref = fun l -> So.Ptr (Sloc.to_string l) 
 let so_int = So.Int
-let so_ref = So.Ptr 
-let so_bls = So.Func [so_ref; so_ref] 
-let so_skl = So.Func [so_int; so_int]
-let so_pun = So.Func [so_ref; so_int]
-let vv_int = Sy.value_variable so_int
-let vv_ref = Sy.value_variable so_ref
+let so_skl = So.Func (0, [so_int; so_int])
+let so_bls = So.Func (1, [So.Var 0; So.Var 0]) 
+let so_pun = So.Func (1, [So.Var 0; so_int])
+
+let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls
 let vv_skl = Sy.value_variable so_skl
 let vv_pun = Sy.value_variable so_pun
 
-let sorts  = [] (* TBD: [so_int; so_ref] *)
+(* API *)
+let sorts  = [] 
 
-let uf_bbegin       = name_of_string "BLOCK_BEGIN"
-let uf_bend         = name_of_string "BLOCK_END"
-let uf_skolem       = name_of_string "SKOLEM"
-let uf_ptrunchecked = name_of_string "UNCHECKED"
+let uf_bbegin    = name_of_string "BLOCK_BEGIN"
+let uf_bend      = name_of_string "BLOCK_END"
+let uf_skolem    = name_of_string "SKOLEM"
+let uf_uncheck   = name_of_string "UNCHECKED"
 
-(*
-let ct_int = Ctypes.CTInt (Cil.bytesSizeOfInt Cil.IInt, Ctypes.ITop)
-
-let int_refctype_of_ras ras =
-  let r = C.make_reft vv_int So.Int ras in
-  (refctype_of_reft_ctype r ct_int)
-
-let true_int  = int_refctype_of_ras []
-let ne_0_int  = int_refctype_of_ras [C.Conc (A.pAtom (A.eVar vv_int, A.Ne, A.zero))] *)
+(* API *)
+let eApp_bbegin  = fun so x -> A.eApp (uf_bbegin,  [so], [x])
+let eApp_bend    = fun so x -> A.eApp (uf_bend,    [so], [x])
+let eApp_uncheck = fun so x -> A.eApp (uf_uncheck, [so], [x])
+let eApp_skolem  = fun i    -> A.eApp (uf_skolem, [], [A.eCon (A.Constant.Int i)])
 
 let mk_pure_cfun args ret = 
   mk_refcfun [] args refstore_empty ret refstore_empty
 
-let builtins    = 
-  [(uf_bbegin, C.make_reft vv_bls so_bls []);
-   (uf_bend, C.make_reft vv_bls so_bls []);
-   (uf_skolem, C.make_reft vv_skl so_skl []);
-   (uf_ptrunchecked, C.make_reft vv_pun so_pun [])]
-
-let skolem =
-  let (fresh_int, _) = Misc.mk_int_factory () in
-    fun () -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int (fresh_int ()))])
+(* API *)
+let builtins = 
+  [(uf_bbegin,  C.make_reft vv_bls so_bls []);
+   (uf_bend,    C.make_reft vv_bls so_bls []);
+   (uf_skolem,  C.make_reft vv_skl so_skl []);
+   (uf_uncheck, C.make_reft vv_pun so_pun [])]
 
 (*******************************************************************)
 (****************** Tag/Annotation Generation **********************)
@@ -276,9 +270,9 @@ type binding = TVar of string * refctype
              | TSto of string * refstore
 
 let tags_of_binds s binds = 
-  let s_typ = Ctypes.prectype_map (Misc.app_snd (C.apply_solution s)) in
-  let s_fun = Ctypes.precfun_map s_typ in
-  let s_sto = Ctypes.prestore_map_ct s_typ in
+  let s_typ = Ct.prectype_map (Misc.app_snd (C.apply_solution s)) in
+  let s_fun = Ct.precfun_map s_typ in
+  let s_sto = Ct.prestore_map_ct s_typ in
   let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) -> function
     | TVar (x, cr) -> 
@@ -389,22 +383,14 @@ let fresh_kvar =
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
 let refctype_of_ctype f = function
-  | Ctypes.CTInt (i, x) as t ->
-      let r = C.make_reft vv_int so_int (f t) in
-      (Ctypes.CTInt (i, (x, r))) 
-  | Ctypes.CTRef (l, x) as t ->
-      let r = C.make_reft vv_ref so_ref (f t) in
-      (Ctypes.CTRef (l, (x, r))) 
-
-(*
-let reftype_of_bindings f = function
-  | None -> 
-      []
-  | Some sts -> 
-      List.map begin fun (s, t, _) -> 
-        (name_of_string s, reftype_of_ctype f t) 
-      end sts
-*)
+  | Ct.CTInt (i, x) as t ->
+      let r = C.make_reft vv_int So.Int (f t) in
+      Ct.CTInt (i, (x, r)) 
+  | Ct.CTRef (l, x) as t ->
+      let so = so_ref l in
+      let vv = Sy.value_variable so in
+      let r  = C.make_reft vv so (f t) in
+      Ct.CTRef (l, (x, r)) 
 
 let is_base = function
   | TInt _ -> true
@@ -415,8 +401,8 @@ let is_base = function
 (****************************************************************)
 
 let sort_of_prectype = function
-  | Ctypes.CTInt _ -> so_int 
-  | Ctypes.CTRef _ -> so_ref 
+  | Ct.CTInt _     -> So.Int 
+  | Ct.CTRef (l,_) -> so_ref l
 
 let ra_zero ct = 
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
@@ -439,23 +425,23 @@ let t_pred ct v p =
   let r  = C.make_reft vv so [C.Conc p] in
   refctype_of_reft_ctype r ct
 
-let mk_eq_uf uf xs ys =
-  let _ = asserts (List.length xs = List.length ys) "mk_eq_uf" in
-  A.pAtom ((A.eApp (uf, xs)), A.Eq, (A.eApp (uf , ys)))
-
 let t_size_ptr ct size =
-  let vv = Sy.value_variable So.Ptr in
-    t_pred ct vv
-      (A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
-               A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Eq, A.eVar vv);
-               A.pAtom (A.eApp (uf_bend, [A.eVar vv]), A.Eq, A.eBin (A.eVar vv, A.Plus, A.eCon (A.Constant.Int size)))])
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let evv = A.eVar vv in
+  t_pred ct vv
+    (A.pAnd [A.pAtom (evv, A.Gt, A.zero);
+             A.pAtom (eApp_bbegin so evv, A.Eq, evv);
+             A.pAtom (eApp_bend so evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
 
 let t_valid_ptr ct =
-  let vv = Sy.value_variable So.Ptr in
-   t_pred ct vv (A.pOr [A.pAtom (A.eApp (uf_ptrunchecked, [A.eVar vv]), A.Eq, A.one);
-                         A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero);
-                                 A.pAtom (A.eApp (uf_bbegin, [A.eVar vv]), A.Le, A.eVar vv);
-                                 A.pAtom (A.eVar vv, A.Lt, A.eApp (uf_bend, [A.eVar vv]))]])
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let evv = A.eVar vv in
+  t_pred ct vv (A.pOr [A.pAtom (eApp_uncheck so evv, A.Eq, A.one);
+                       A.pAnd [A.pAtom (evv, A.Ne, A.zero);
+                               A.pAtom (eApp_bbegin so evv, A.Le, evv);
+                               A.pAtom (evv, A.Lt, eApp_bend so evv)]])
 
 let is_reference cenv x =
   if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
@@ -463,22 +449,24 @@ let is_reference cenv x =
   else if not (ce_mem x cenv) then
     false
   else match ce_find x cenv with 
-    | Ctypes.CTRef (_,(_,_)) -> true
+    | Ct.CTRef (_,(_,_)) -> true
     | _                      -> false
 
-let t_exp_ptr cenv e ct vv p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
-  let refs = A.Predicate.support p |> List.filter (is_reference cenv) in
+let mk_eq_uf = fun f l x y -> A.pAtom (f l x, A.Eq, f l y)
+
+let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
+  let refs = P.support p |> List.filter (is_reference cenv) in
   match ct, refs with
-  | (Ctypes.CTRef _), [x]  ->
+  | (Ct.CTRef (_,_)), [x]  ->
       let x         = A.eVar x  in
       let vv        = A.eVar vv in
       let unchecked =
         if e |> typeOf |> CilMisc.is_unchecked_ptr_type then
-          C.Conc (A.pAtom (A.eApp (uf_ptrunchecked, [vv]), A.Eq, A.one))
+          C.Conc (A.pAtom (eApp_uncheck so vv, A.Eq, A.one))
         else
-          C.Conc (mk_eq_uf uf_ptrunchecked [vv] [x])
-      in [C.Conc (mk_eq_uf uf_bbegin       [vv] [x]);
-          C.Conc (mk_eq_uf uf_bend         [vv] [x]);
+          C.Conc (mk_eq_uf eApp_uncheck so vv x)
+      in [C.Conc (mk_eq_uf eApp_bbegin  so vv x);
+          C.Conc (mk_eq_uf eApp_bend    so vv x);
           unchecked]
   | _ ->
       []
@@ -487,7 +475,7 @@ let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp vv e in
-  let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv p) in
+  let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
@@ -499,21 +487,8 @@ let t_name (_,vnv,_) n =
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
   rct |> ctype_of_refctype |> refctype_of_reft_ctype r
 
-let t_fresh_fn = Ctypes.precfun_map t_fresh 
-
-(*
-let rec t_fresh_typ ty = 
-  if !Constants.safe then assertf "t_fresh_typ" else 
-    match ty with 
-    | TInt _ | TVoid _ -> 
-        t_fresh ct_int 
-    | TFun (t, None, _, _) -> 
-        Fun ([], t_fresh_typ t)
-    | TFun (t, Some sts, _, _) ->
-        let args = List.map (fun (s,t,_) -> (name_of_string s, t_fresh_typ t)) sts in
-        Fun (args, t_fresh_typ t)
-    | _ -> assertf "t_fresh_typ: fancy type" 
-*)
+let t_fresh_fn = 
+  Ct.precfun_map t_fresh 
 
 let t_ctype_refctype ct rct = 
   refctype_of_reft_ctype (reft_of_refctype rct) ct
@@ -522,15 +497,19 @@ let refctype_subs f nzs =
   nzs |> Misc.map (Misc.app_snd f) 
       |> C.theta
       |> Misc.app_snd
-      |> Ctypes.prectype_map
+      |> Ct.prectype_map
 
-let t_subs_locs    = Ctypes.prectype_subs 
+let skolem = 
+  let fresh_int, _ = Misc.mk_int_factory () in 
+  eApp_skolem <.> fresh_int 
+
+let t_subs_locs    = Ct.prectype_subs 
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp skolem)
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun fn st -> st |> Ctypes.prestore_map_ct t_fresh >> annot_sto fn 
-let refstore_subs  = fun (* loc *) f subs st -> Ctypes.prestore_map_ct (f subs) st
+let refstore_fresh = fun f st -> st |> Ct.prestore_map_ct t_fresh >> annot_sto f 
+let refstore_subs  = fun f subs st -> Ct.prestore_map_ct (f subs) st
 
-let refstore_subs_locs (* loc *) lsubs sto = 
+let refstore_subs_locs lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
     if not (refstore_mem l sto) then sto else
@@ -595,7 +574,7 @@ let make_wfs ((_,_,livem) as cenv) rct _ =
 let make_wfs_refstore env sto tag =
   LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
-    let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ctypes.ploc_periodic ploc)) 
+    let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ct.ploc_periodic ploc)) 
                     |> List.map fst
                     |> ce_adds env in 
     let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr tag) ncrs in
@@ -605,12 +584,12 @@ let make_wfs_refstore env sto tag =
 
 
 let make_wfs_fn cenv rft tag =
-  let args  = List.map (Misc.app_fst Sy.of_string) rft.Ctypes.args in
+  let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
-  let retws = make_wfs env' rft.Ctypes.ret tag in
+  let retws = make_wfs env' rft.Ct.ret tag in
   let argws = Misc.flap (fun (_, rct) -> make_wfs env' rct tag) args in
-  let inws  = make_wfs_refstore env' rft.Ctypes.sto_in tag in
-  let outws = make_wfs_refstore env' rft.Ctypes.sto_out tag in
+  let inws  = make_wfs_refstore env' rft.Ct.sto_in tag in
+  let outws = make_wfs_refstore env' rft.Ct.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
 let make_dep pol xo yo =
@@ -655,7 +634,7 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
  (* {{{  
   let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
-           polarity Ctypes.d_prestore_addrs st1 Ctypes.d_prestore_addrs st2 Cil.d_loc loc in
+           polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  }}}*)
   (if polarity then st2 else st1)
@@ -710,17 +689,17 @@ let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) =
               |> Misc.map (Misc.app_snd (t_subs_names subs))
               |> ce_adds env in
   let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
-  let ld'   = Ctypes.LDesc.mapn begin fun i ploc rct ->
+  let ld'   = Ct.LDesc.mapn begin fun i ploc rct ->
                 if IM.mem i im then IM.find i im |> t_name env' else
                   match ploc with 
-                  | Ctypes.PLAt _ -> assertf "missing binding!"
+                  | Ct.PLAt _ -> assertf "missing binding!"
                  (* | _ when newloc -> new_block_reftype rct *)
                   | _             -> t_subs_names subs rct
               end ld in
   let cs    = if not newloc then [] else
-                Ctypes.LDesc.foldn begin fun i cs ploc rct ->
+                Ct.LDesc.foldn begin fun i cs ploc rct ->
                   match ploc with
-                  | Ctypes.PLSeq (_,_) -> 
+                  | Ct.PLSeq (_,_) -> 
                       let lhs = new_block_reftype rct in
                       let rhs = t_subs_names subs rct in
                       let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in

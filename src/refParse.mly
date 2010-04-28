@@ -1,5 +1,6 @@
 %{
 module A  = Ast
+module So = Ast.Sort
 module Sy = A.Symbol
 module SM = Misc.StringMap
 module FI = FixInterface
@@ -61,7 +62,7 @@ let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
 %token MINUS
 %token TIMES 
 %token QM DOT ASGN
-%token INT BOOL UNINT FUNC
+%token INT BOOL PTR FUNC
 %token SRT AXM CST WF SOL QUL
 %token ENV GRD LHS RHS REF
 
@@ -166,7 +167,7 @@ reftype:
   | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
                                         { let ct = Ctypes.CTRef ($3, $5) in
                                           let v  = Sy.of_string $8 in 
-                                          FI.t_pred ct v $10
+                                          FI.t_pred ct v $10 
                                         }
 
   | ctype                               { FI.t_true $1 }
@@ -235,9 +236,8 @@ expr:
     Id				        { A.eVar (Sy.of_string $1) }
   | Num 				{ A.eCon (A.Constant.Int $1) }
   | expr bop expr                       { A.eBin ($1, $2, $3) }
-  | Id LPAREN exprs RPAREN		{ A.eApp ((Sy.of_string $1), $3) }
+  | Id LPAREN sorts COMMA exprs RPAREN  { A.eApp ((Sy.of_string $1), $3, $5) }
   | pred QM expr COLON expr             { A.eIte ($1,$3,$5) }
-  | expr DOT Id                         { A.eFld ((Sy.of_string $3), $1) }
   | LPAREN expr RPAREN                  { $2 }
   ;
 
@@ -256,3 +256,20 @@ bop:
   | TIMES                               { A.Times }
   | DIV                                 { A.Div }
   ;
+
+sorts:
+    LB RB                               { [] }
+  | LB sortsne RB                       { $2 }
+  ;
+
+sortsne:
+    sort                                { [$1] }
+  | sort SEMI sortsne                   { $1 :: $3 }
+  ;
+
+sort:
+  | INT                                 { So.Int }
+  | PTR Id                              { So.Ptr $2 }
+  ;
+
+
