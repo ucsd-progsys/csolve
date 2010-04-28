@@ -269,7 +269,7 @@ sortsne:
 
 sort:
   | INT                                 { So.Int }
-  | PTR Id                              { So.Ptr $2 }
+  | PTR LPAREN Id RPAREN                { So.Ptr $3 }
   ;
 
 
