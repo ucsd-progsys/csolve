@@ -1,7 +1,7 @@
 malloc ::
   forall [C0]
   arg (sz: int (4, true, {v | 0 <= v}))
-  ret ref(C0, 0, {v | && [0 < v; BLOCK_BEGIN([ptr(C0)], [v]) = v; BLOCK_END([ptr(C0)], [v]) = v + sz]})
+  ret ref(C0, 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
   store_in []
   store_out [C0 |-> ]
 
@@ -14,14 +14,14 @@ free ::
 
 atbegin::
   forall    [A0]
-  arg       (x: ref (A0, true, {v | && [(BLOCK_BEGIN([ptr(A0)], [v]) = v)]}))
+  arg       (x: ref (A0, true, {v | && [(BLOCK_BEGIN([v]) = v)]}))
   ret int   (4, true, {v | true})
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
 
 validp8 ::
   forall    [A0]
-  arg       (x: ref (A0, true, {v | && [(0 < v); ((BLOCK_BEGIN([ptr(A0)], [v]) + 8) = BLOCK_END([ptr(A0)], [v]))]}))
+  arg       (x: ref (A0, true, {v | && [(0 < v); ((BLOCK_BEGIN([v]) + 8) = BLOCK_END([v]))]}))
   ret int   (4, true, {v | true})
   store_in  [A0 |-> ]
   store_out [A0 |-> ]
@@ -34,7 +34,7 @@ getc :: forall    [A11]
 
 validptr ::
   forall    [A0]
-  arg       (x: ref (A0, true, {v | && [(0 < v); (BLOCK_BEGIN([ptr(A0)], [v]) <= v) ; (v < BLOCK_END([ptr(A0)], [v]))]}))
+  arg       (x: ref (A0, true, {v | && [(0 < v); (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))]}))
   ret int   (0, true)
   store_in  [A0 |-> ]
   store_out [A0 |-> ]

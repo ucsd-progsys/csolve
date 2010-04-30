@@ -164,7 +164,7 @@ let ctype_of_bound ((_, fbound): boundfun) (ctv: ctype): ctype =
 let bound_nonneg (ct: ctype): ctype * FI.refctype =
   match ct with
     | CTInt (w, ISeq (n, p, PosNeg)) ->
-        let vv   = Ast.Symbol.value_variable Ast.Sort.Int in
+        let vv   = Ast.Symbol.value_variable Ast.Sort.t_int in
         let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
           (CTInt (w, ISeq (n, p, Pos)), FI.t_pred ct vv pred)
     | _ -> (ct, FI.t_true ct)

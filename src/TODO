@@ -1,22 +1,12 @@
-tweak consgen to eliminate _singleton_ constraints.
+Polymorphic Qualifiers?
 
-That is, replace constraints of the form:
+qualif GTZP(v:'a_0)  : 0 < v
 
-    x:{[rs]},... |- {v=x,...} <: T'
+--> how to instantiate? At each site we have a concrete type for v?
 
-with constraints of the form:
-
-    x:{[rs]},... |- {rs, v=x,...} <: T'
-
-- Should do this inside solver too ?
-	"Simplify_lhs"
-
-
-(UNSAFE) 	./main.native ../postests/test02p.c	
-(SAFE) 		./main.native -no-simplify-t ../postests/test02p.c
-
-See constraint with "id 13" in 	../postests/test02p.c.out.fq
-				../postests/test02p.c.out.nosimp.fq
+qualif LB(v:'a_0)    : BLOCK_BEGIN(['a_0], [v]) <= v
+	
+--> do a make in fixpoint and see it crash...
 
 	-- fix the lqn# business
 		--> refactor into cheaper, heavier parts
@@ -25,45 +15,12 @@ See constraint with "id 13" in 	../postests/test02p.c.out.fq
 
 	-- also think about splitting into direct/indirect flows
 
-adpcmini.c stats:
-
-  Qual Inst                      0.472 s
-    validation                     0.388 s
-        valid binds                    0.296 s
-          preds_of_reft                  0.192 s
-
-Just the constraints:
-adpcmini.c.out.fq	
-    solve                          0.040 s
-adpcmini.c.in.fq	
-    solve                          0.752 s
-
 $ grep "ropping" log.pmap | wc
    2170    6510   41144
 $ grep "ropping" log.pmap | grep ": 0" | wc
    1686    5058   31808
 
-Hammer these down to sub-second?
- 
-test: ../postests/arraylist2.c 
-time: 1.390772 seconds 
-result: [1;32mSUCCESS![1;0m
-
-test: ../postests/stringexample.c 
-time: 2.973303 seconds 
-result: [1;32mSUCCESS![1;0m
-
-test: ../postests/adpcmini.c 
-time: 1.525206 seconds 
-result: [1;32mSUCCESS![1;0m
- 
-test: ../postests/adpcminiptr.c 
-time: 4.508471 seconds 
-result: [1;32mSUCCESS![1;0m
-
 What is an "ebind" ? (fixpoint)
-
-
 
 Q: Can you simplify constraints (constaint prop, true elimination etc.) ?
 	Look at andrey's code.

@@ -124,7 +124,7 @@ let ctype_of_refctype = function
 
 (* API *)
 let cfun_of_refcfun   = Ct.precfun_map ctype_of_refctype 
-let refcfun_of_cfun   = Ct.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.Int, So.Int, []))
+let refcfun_of_cfun   = Ct.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.t_int, So.t_int, []))
 let cspec_of_refspec  = Ct.PreSpec.map (fun (i,_) -> i)
 let store_of_refstore = Ct.prestore_map_ct ctype_of_refctype
 let qlocs_of_refcfun  = fun ft -> ft.Ct.qlocs
@@ -226,11 +226,11 @@ let refstore_write loc sto rct rct' =
 (******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
 
-let so_ref = fun l -> So.Ptr (Sloc.to_string l) 
-let so_int = So.Int
-let so_skl = So.Func (0, [so_int; so_int])
-let so_bls = So.Func (1, [So.Var 0; So.Var 0]) 
-let so_pun = So.Func (1, [So.Var 0; so_int])
+let so_ref = fun l -> So.t_ptr (So.Loc (Sloc.to_string l))
+let so_int = So.t_int
+let so_skl = So.t_func 0 [so_int; so_int]
+let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
+let so_pun = So.t_func 1 [So.t_generic 0; so_int]
 
 let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls
@@ -246,10 +246,10 @@ let uf_skolem    = name_of_string "SKOLEM"
 let uf_uncheck   = name_of_string "UNCHECKED"
 
 (* API *)
-let eApp_bbegin  = fun so x -> A.eApp (uf_bbegin,  [so], [x])
-let eApp_bend    = fun so x -> A.eApp (uf_bend,    [so], [x])
-let eApp_uncheck = fun so x -> A.eApp (uf_uncheck, [so], [x])
-let eApp_skolem  = fun i    -> A.eApp (uf_skolem, [], [A.eCon (A.Constant.Int i)])
+let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
+let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
+let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
+let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
 
 let mk_pure_cfun args ret = 
   mk_refcfun [] args refstore_empty ret refstore_empty
@@ -384,7 +384,7 @@ let fresh_kvar =
 
 let refctype_of_ctype f = function
   | Ct.CTInt (i, x) as t ->
-      let r = C.make_reft vv_int So.Int (f t) in
+      let r = C.make_reft vv_int So.t_int (f t) in
       Ct.CTInt (i, (x, r)) 
   | Ct.CTRef (l, x) as t ->
       let so = so_ref l in
@@ -401,7 +401,7 @@ let is_base = function
 (****************************************************************)
 
 let sort_of_prectype = function
-  | Ct.CTInt _     -> So.Int 
+  | Ct.CTInt _     -> so_int
   | Ct.CTRef (l,_) -> so_ref l
 
 let ra_zero ct = 
@@ -431,17 +431,17 @@ let t_size_ptr ct size =
   let evv = A.eVar vv in
   t_pred ct vv
     (A.pAnd [A.pAtom (evv, A.Gt, A.zero);
-             A.pAtom (eApp_bbegin so evv, A.Eq, evv);
-             A.pAtom (eApp_bend so evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
+             A.pAtom (eApp_bbegin evv, A.Eq, evv);
+             A.pAtom (eApp_bend evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
 
 let t_valid_ptr ct =
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let evv = A.eVar vv in
-  t_pred ct vv (A.pOr [A.pAtom (eApp_uncheck so evv, A.Eq, A.one);
+  t_pred ct vv (A.pOr [A.pAtom (eApp_uncheck evv, A.Eq, A.one);
                        A.pAnd [A.pAtom (evv, A.Ne, A.zero);
-                               A.pAtom (eApp_bbegin so evv, A.Le, evv);
-                               A.pAtom (evv, A.Lt, eApp_bend so evv)]])
+                               A.pAtom (eApp_bbegin evv, A.Le, evv);
+                               A.pAtom (evv, A.Lt, eApp_bend evv)]])
 
 let is_reference cenv x =
   if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
@@ -452,7 +452,7 @@ let is_reference cenv x =
     | Ct.CTRef (_,(_,_)) -> true
     | _                      -> false
 
-let mk_eq_uf = fun f l x y -> A.pAtom (f l x, A.Eq, f l y)
+let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = P.support p |> List.filter (is_reference cenv) in
@@ -462,11 +462,11 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       let vv        = A.eVar vv in
       let unchecked =
         if e |> typeOf |> CilMisc.is_unchecked_ptr_type then
-          C.Conc (A.pAtom (eApp_uncheck so vv, A.Eq, A.one))
+          C.Conc (A.pAtom (eApp_uncheck vv, A.Eq, A.one))
         else
-          C.Conc (mk_eq_uf eApp_uncheck so vv x)
-      in [C.Conc (mk_eq_uf eApp_bbegin  so vv x);
-          C.Conc (mk_eq_uf eApp_bend    so vv x);
+          C.Conc (mk_eq_uf eApp_uncheck vv x)
+      in [C.Conc (mk_eq_uf eApp_bbegin  vv x);
+          C.Conc (mk_eq_uf eApp_bend    vv x);
           unchecked]
   | _ ->
       []

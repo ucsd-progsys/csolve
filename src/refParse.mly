@@ -236,7 +236,7 @@ expr:
     Id				        { A.eVar (Sy.of_string $1) }
   | Num 				{ A.eCon (A.Constant.Int $1) }
   | expr bop expr                       { A.eBin ($1, $2, $3) }
-  | Id LPAREN sorts COMMA exprs RPAREN  { A.eApp ((Sy.of_string $1), $3, $5) }
+  | Id LPAREN exprs RPAREN              { A.eApp ((Sy.of_string $1), $3) }
   | pred QM expr COLON expr             { A.eIte ($1,$3,$5) }
   | LPAREN expr RPAREN                  { $2 }
   ;
@@ -268,8 +268,9 @@ sortsne:
   ;
 
 sort:
-  | INT                                 { So.Int }
-  | PTR LPAREN Id RPAREN                { So.Ptr $3 }
+  | INT                                 { So.t_int }
+  | PTR                                 { So.t_ptr (So.Lvar 0) }
+  | PTR LPAREN Num RPAREN               { So.t_ptr (So.Lvar $3) }
   ;
 
 
