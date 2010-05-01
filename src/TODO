@@ -1,7 +1,7 @@
 Polymorphic Qualifiers?
---> do a make in fixpoint and see it crash...
---> so_ref now takes a canonicizing function, 
-    that must be threaded through the code. (right now, compilation fails)
+--> PTR-LIFT: 
+	def: id-map, from gen/ins annots
+	use: transformation on constraints
 
 Constraint Simplification
 	-- fix the lqn# business
