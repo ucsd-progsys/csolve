@@ -99,7 +99,7 @@ type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
 type refstore  = (Ct.index * C.reft) Ct.prestore
 type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
-let id_alocmap = id
+let id_alocmap = (* id *) failwith "TBD: PTR-LIFT" 
 
 let d_index_reft () (i,r) = 
   let di = Ct.d_index () i in
