@@ -92,13 +92,14 @@ let (fresh_tag, _ (* loc_of_tag *) ) =
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
-
+type alocmap   = Sloc.t -> Sloc.t 
 type refctype  = (Ct.index * C.reft) Ct.prectype
 type refcfun   = (Ct.index * C.reft) Ct.precfun
 type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
 type refstore  = (Ct.index * C.reft) Ct.prestore
 type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
+let id_alocmap = id
 
 let d_index_reft () (i,r) = 
   let di = Ct.d_index () i in
@@ -487,7 +488,7 @@ let t_name (_,vnv,_) n =
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
   rct |> ctype_of_refctype |> refctype_of_reft_ctype r
 
-let t_fresh_fn = 
+let t_fresh_fn =  
   Ct.precfun_map t_fresh 
 
 let t_ctype_refctype ct rct = 
@@ -564,32 +565,33 @@ let is_live_name livem n =
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
-let make_wfs ((_,_,livem) as cenv) rct _ =
+let make_wfs (cf: alocmap) ((_,_,livem) as cenv) rct _ =
     cenv 
     |> env_of_cilenv 
     |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
     |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
+    |> (fun _   -> failwith "TBD: PTR-LIFT USE")
     |> (fun env -> [C.make_wf env (reft_of_refctype rct) None])
 
-let make_wfs_refstore env sto tag =
+let make_wfs_refstore (cf: alocmap) env sto tag =
   LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ct.ploc_periodic ploc)) 
                     |> List.map fst
                     |> ce_adds env in 
-    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' cr tag) ncrs in
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' cr tag) ncrs in
     ws' ++ ws
   end sto []
 (* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
 
 
-let make_wfs_fn cenv rft tag =
+let make_wfs_fn (cf: alocmap) cenv rft tag =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
-  let retws = make_wfs env' rft.Ct.ret tag in
-  let argws = Misc.flap (fun (_, rct) -> make_wfs env' rct tag) args in
-  let inws  = make_wfs_refstore env' rft.Ct.sto_in tag in
-  let outws = make_wfs_refstore env' rft.Ct.sto_out tag in
+  let retws = make_wfs cf env' rft.Ct.ret tag in
+  let argws = Misc.flap (fun (_, rct) -> make_wfs cf env' rct tag) args in
+  let inws  = make_wfs_refstore cf env' rft.Ct.sto_in tag in
+  let outws = make_wfs_refstore cf env' rft.Ct.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
 let make_dep pol xo yo =
@@ -604,19 +606,20 @@ let add_deps tago tag =
 *)
 
 
-let rec make_cs cenv p rct1 rct2 tago tag =
+let make_cs (cf: alocmap) cenv p rct1 rct2 tago tag =
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
+  let _      = failwith "TBD: HERE: PTR-LIFT USE" in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_validptr cenv p rct tago tag =
+let make_cs_validptr (cf: alocmap) cenv p rct tago tag =
   let rvp = rct |> ctype_of_refctype |> t_valid_ptr in
-    make_cs cenv p rct rvp tago tag
+  make_cs cf cenv p rct rvp tago tag
 
-let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
+let make_cs_refldesc (cf: alocmap) env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
@@ -627,11 +630,11 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   Misc.map begin fun ((n1, _), (_, cr2)) -> 
       let lhs = t_name env' n1 in
       let rhs = t_subs_names subs cr2 in
-      make_cs env' p lhs rhs tago tag 
+      make_cs cf env' p lhs rhs tago tag 
   end ncrs12
   |> Misc.splitflatten
 
-let make_cs_refstore env p st1 st2 polarity tago tag loc =
+let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
  (* {{{  
   let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
@@ -642,36 +645,36 @@ let make_cs_refstore env p st1 st2 polarity tago tag loc =
   |> Misc.map begin fun sloc ->
        let lhs = (sloc, refstore_get st1 sloc) in
        let rhs = (sloc, refstore_get st2 sloc) in
-       make_cs_refldesc env p lhs rhs tago tag 
+       make_cs_refldesc cf env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten 
 (*  >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) *)
 
 (* API *)
-let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
+let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
+  try make_cs_refstore cf env p st1 st2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
 
 (* API *)
-let make_cs cenv p rct1 rct2 tago tag loc =
-  try make_cs cenv p rct1 rct2 tago tag with ex ->
+let make_cs cf cenv p rct1 rct2 tago tag loc =
+  try make_cs cf cenv p rct1 rct2 tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
     assert false
 
 (* API *)
-let make_cs_validptr cenv p rct tago tag loc =
-  try make_cs_validptr cenv p rct tago tag with ex ->
+let make_cs_validptr (cf: alocmap) cenv p rct tago tag loc =
+  try make_cs_validptr cf cenv p rct tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
-let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
-  try make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
+let make_cs_refldesc (cf: alocmap) env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
+  try make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refldesc" in 
     assert false
@@ -680,7 +683,7 @@ let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 
 (* API: TBD: UGLY *)
-let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) = 
+let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) = 
   let ld    = refstore_get ssto sloc in 
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
@@ -693,7 +696,6 @@ let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) =
                 if IM.mem i im then IM.find i im |> t_name env' else
                   match ploc with 
                   | Ct.PLAt _ -> assertf "missing binding!"
-                 (* | _ when newloc -> new_block_reftype rct *)
                   | _             -> t_subs_names subs rct
               end ld in
   let cs    = if not newloc then [] else
@@ -702,7 +704,7 @@ let extend_world ssto sloc cloc newloc loc tag (env, sto, tago) =
                   | Ct.PLSeq (_,_) -> 
                       let lhs = new_block_reftype rct in
                       let rhs = t_subs_names subs rct in
-                      let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
+                      let cs' = fst <| make_cs cf env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs
                   | _ -> cs
                 end [] ld in

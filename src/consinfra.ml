@@ -46,6 +46,7 @@ type wld = FI.cilenv * FI.refstore * CilTag.t option
 type t = {
   tgr     : CilTag.o;
   sci     : ST.ssaCfgInfo;
+  cf      : FI.alocmap;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;
@@ -155,11 +156,13 @@ let create tgr gnv gst sci shp =
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in
-  let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
+  let cf      = failwith "TBD: PTR-LIFT: cloc-to-aloc map" in 
+  let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
   let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
   {tgr     = tgr;
    sci     = sci;
-   ws      = FI.make_wfs_refstore env lastore tag;
+   cf      = cf;
+   ws      = FI.make_wfs_refstore cf env lastore tag;
    cs      = cs;
    ds      = ds;
    wldm    = IM.empty;
@@ -196,6 +199,9 @@ let annotstmt_of_block me i =
 
 let get_fname me = 
   me.sci.ST.fdec.svar.vname 
+
+let get_alocmap me =
+  me.cf
 
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
@@ -311,7 +317,7 @@ let inwld_of_block me = function
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world csto cl cl false loc tag wld
+          fst <| FI.extend_world me.cf csto cl cl false loc tag wld
          end csto 
 
 let is_reachable_block me i = 

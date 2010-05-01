@@ -1,18 +1,13 @@
 Polymorphic Qualifiers?
-
-qualif GTZP(v:'a_0)  : 0 < v
-
---> how to instantiate? At each site we have a concrete type for v?
-
-qualif LB(v:'a_0)    : BLOCK_BEGIN(['a_0], [v]) <= v
-	
 --> do a make in fixpoint and see it crash...
+--> so_ref now takes a canonicizing function, 
+    that must be threaded through the code. (right now, compilation fails)
 
+Constraint Simplification
 	-- fix the lqn# business
 		--> refactor into cheaper, heavier parts
 	-- three paths (basic constants + guards) = lower bound on RHS
 	-- add kvar bindings
-
 	-- also think about splitting into direct/indirect flows
 
 $ grep "ropping" log.pmap | wc
