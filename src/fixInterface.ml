@@ -92,14 +92,13 @@ let (fresh_tag, _ (* loc_of_tag *) ) =
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
-type alocmap   = Sloc.t -> Sloc.t 
+
 type refctype  = (Ct.index * C.reft) Ct.prectype
 type refcfun   = (Ct.index * C.reft) Ct.precfun
 type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
 type refstore  = (Ct.index * C.reft) Ct.prestore
 type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
-let id_alocmap = (* id *) failwith "TBD: PTR-LIFT" 
 
 let d_index_reft () (i,r) = 
   let di = Ct.d_index () i in
@@ -141,7 +140,6 @@ let mk_refcfun qslocs args ist ret ost =
 
 let slocs_of_store st = 
   LM.fold (fun x _ xs -> x::xs) st []
-
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
@@ -227,7 +225,19 @@ let refstore_write loc sto rct rct' =
 (******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
 
-let so_ref = fun l -> So.t_ptr (So.Loc (Sloc.to_string l))
+(* API *)
+let string_of_sloc, sloc_of_string = 
+  let t = Hashtbl.create 37 in
+  begin fun l -> 
+    l |> Sloc.to_string 
+      >> (fun s -> if not (Hashtbl.mem t s) then Hashtbl.add t s l)
+  end,
+  begin fun s -> 
+    try Hashtbl.find t s with Not_found -> 
+      assertf "ERROR: unknown sloc-string"
+  end
+
+let so_ref = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
 let so_int = So.t_int
 let so_skl = So.t_func 0 [so_int; so_int]
 let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
@@ -359,10 +369,6 @@ let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
 
 let builtin_env =
   List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
-
-let env_of_cilenv (_, vnv, livem) = 
-  builtin_env
-  |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -556,6 +562,39 @@ let strengthen_reft env ((v, t, ras) as r) =
     |> Misc.sort_and_compact
     |> (fun ras' -> v, t, ras')
 
+(*******************************************************************)
+(********************** Pointer Canonicization *********************)
+(*******************************************************************)
+
+type alocmap   = Sloc.t LM.t 
+
+let id_alocmap = LM.empty 
+
+let canon_loc cf l = 
+  if LM.mem l cf 
+  then LM.find l cf 
+  else l
+
+let canon_sort cf t = 
+  match So.ptr_of_t t with
+  | Some (So.Loc s) -> s |> sloc_of_string |> canon_loc cf |> so_ref 
+  | _               -> t
+
+let canon_refa vv vv' = function
+  | C.Conc p -> C.Conc (P.subst p vv vv') 
+  | ra       -> ra
+
+let canon_reft cf r = 
+  let t  = C.sort_of_reft r in
+  let t' = canon_sort cf t in
+  if t = t' then r else begin 
+    let vv  = C.vv_of_reft r in
+    let vv' = Sy.value_variable t' in
+    r |> C.ras_of_reft 
+      |> List.map (canon_refa vv (A.eVar vv'))
+      |> C.make_reft vv' t'
+  end
+
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
@@ -565,13 +604,18 @@ let is_live_name livem n =
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
+let env_of_cilenv cf (_, vnv, livem) = 
+  builtin_env
+  |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
+  |> YM.map (canon_reft cf)
+
 let make_wfs (cf: alocmap) ((_,_,livem) as cenv) rct _ =
-    cenv 
-    |> env_of_cilenv 
-    |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
-    |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
-    |> (fun _   -> failwith "TBD: PTR-LIFT USE")
-    |> (fun env -> [C.make_wf env (reft_of_refctype rct) None])
+  let r   = rct |> reft_of_refctype |> canon_reft cf in
+  let env = cenv 
+            |> env_of_cilenv cf 
+            |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
+            |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
+  in [C.make_wf env r None]
 
 let make_wfs_refstore (cf: alocmap) env sto tag =
   LM.fold begin fun l rd ws ->
@@ -605,12 +649,10 @@ let add_deps tago tag =
   | _      -> [] 
 *)
 
-
 let make_cs (cf: alocmap) cenv p rct1 rct2 tago tag =
-  let env    = env_of_cilenv cenv in
-  let r1, r2 = Misc.map_pair reft_of_refctype (rct1, rct2) in
+  let env    = cenv |> env_of_cilenv cf in
+  let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft cf) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
-  let _      = failwith "TBD: HERE: PTR-LIFT USE" in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
