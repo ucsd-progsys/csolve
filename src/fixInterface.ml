@@ -46,10 +46,27 @@ open Cil
 (************** Interface between LiquidC and Fixpoint *************)
 (*******************************************************************)
 
+(******************************************************************************)
+(***************************** Tags and Locations *****************************)
+(******************************************************************************)
+
+let (fresh_tag, _ (* loc_of_tag *) ) =
+  let tbl     = Hashtbl.create 17 in
+  let fint, _ = Misc.mk_int_factory () in
+    ((fun loc ->
+        let t = fint () in
+          Hashtbl.add tbl t loc;
+          t),
+     (fun t -> Hashtbl.find tbl t))
+
+
 (*******************************************************************)
 (********************* CLOC-to-ALOC Maps Names *********************)
 (*******************************************************************)
 
+type alocmap = Sloc.t -> Sloc.t option 
+
+(* 
 module AlocMap = struct
   type t = Sloc.t LM.t 
  
@@ -64,7 +81,7 @@ module AlocMap = struct
     asserts (Sloc.is_abstract al) "ERROR: canonicize dst concrete ptr";
     LM.add cl al cf
 end
-
+*)
 (*******************************************************************)
 (******************************** Names ****************************)
 (*******************************************************************)
@@ -95,18 +112,58 @@ let base_of_name n =
   | None        -> None 
   | Some (b, _) -> Some (name_of_string b)
  
-(******************************************************************************)
-(***************************** Tags and Locations *****************************)
-(******************************************************************************)
+(*******************************************************************)
+(******************(Basic) Builtin Types and Sorts *****************)
+(*******************************************************************)
 
-let (fresh_tag, _ (* loc_of_tag *) ) =
-  let tbl     = Hashtbl.create 17 in
-  let fint, _ = Misc.mk_int_factory () in
-    ((fun loc ->
-        let t = fint () in
-          Hashtbl.add tbl t loc;
-          t),
-     (fun t -> Hashtbl.find tbl t))
+(* API *)
+let string_of_sloc, sloc_of_string = 
+  let t = Hashtbl.create 37 in
+  begin fun l -> 
+    l |> Sloc.to_string 
+      >> (fun s -> if not (Hashtbl.mem t s) then Hashtbl.add t s l)
+  end,
+  begin fun s -> 
+    try Hashtbl.find t s with Not_found -> 
+      assertf "ERROR: unknown sloc-string"
+  end
+
+let so_ref = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
+let so_int = So.t_int
+let so_skl = So.t_func 0 [so_int; so_int]
+let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
+let so_pun = So.t_func 1 [So.t_generic 0; so_int]
+
+let vv_int = Sy.value_variable so_int 
+let vv_bls = Sy.value_variable so_bls
+let vv_skl = Sy.value_variable so_skl
+let vv_pun = Sy.value_variable so_pun
+
+(* API *)
+let sorts  = [] 
+
+let uf_bbegin    = name_of_string "BLOCK_BEGIN"
+let uf_bend      = name_of_string "BLOCK_END"
+let uf_skolem    = name_of_string "SKOLEM"
+let uf_uncheck   = name_of_string "UNCHECKED"
+
+(* API *)
+let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
+let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
+let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
+let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
+
+(*
+let mk_pure_cfun args ret = 
+  mk_refcfun [] args refstore_empty ret refstore_empty
+*)
+
+(* API *)
+let builtins = 
+  [(uf_bbegin,  C.make_reft vv_bls so_bls []);
+   (uf_bend,    C.make_reft vv_bls so_bls []);
+   (uf_skolem,  C.make_reft vv_skl so_skl []);
+   (uf_uncheck, C.make_reft vv_pun so_pun [])]
 
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
@@ -119,6 +176,7 @@ type refstore  = (Ct.index * C.reft) Ct.prestore
 type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
 
+
 let d_index_reft () (i,r) = 
   let di = Ct.d_index () i in
   let dc = Pretty.text " , " in
@@ -129,13 +187,24 @@ let d_refstore = Ct.d_precstore d_index_reft
 let d_refctype = Ct.d_prectype d_index_reft
 let d_refcfun  = Ct.d_precfun d_index_reft
 
+let reft_of_reft r t' =
+  let vv   = C.vv_of_reft r in
+  let t    = C.sort_of_reft r in
+  let _    = asserts (So.ptr_of_t t  <> None) "reft_of_reft (src)" in
+  let _    = asserts (So.ptr_of_t t' <> None) "reft_of_reft (dst)" in
+  let vv'  = Sy.value_variable t' in
+  let evv' = A.eVar vv' in
+  r |> C.ras_of_reft 
+    |> List.map (function C.Conc p -> C.Conc (P.subst p vv evv') | ra -> ra)
+    |> C.make_reft vv' t' 
+
 let reft_of_refctype = function
   | Ct.CTInt (_,(_,r)) 
   | Ct.CTRef (_,(_,r)) -> r
 
 let refctype_of_reft_ctype r = function
-  | Ct.CTInt (x,y) -> (Ct.CTInt (x, (y,r))) 
-  | Ct.CTRef (x,y) -> (Ct.CTRef (x, (y,r))) 
+  | Ct.CTInt (w,k) -> Ct.CTInt (w, (k,r)) 
+  | Ct.CTRef (l,o) -> Ct.CTRef (l, (o, reft_of_reft r (so_ref l)))
 
 let ctype_of_refctype = function
   | Ct.CTInt (x, (y, _)) -> Ct.CTInt (x, y) 
@@ -238,58 +307,6 @@ let refstore_write loc sto rct rct' =
   let ld = Ct.LDesc.remove ploc ld in
   let ld = Ct.LDesc.add ploc rct' ld in
   LM.add cl ld sto
-
-
-(*******************************************************************)
-(******************(Basic) Builtin Types and Sorts *****************)
-(*******************************************************************)
-
-(* API *)
-let string_of_sloc, sloc_of_string = 
-  let t = Hashtbl.create 37 in
-  begin fun l -> 
-    l |> Sloc.to_string 
-      >> (fun s -> if not (Hashtbl.mem t s) then Hashtbl.add t s l)
-  end,
-  begin fun s -> 
-    try Hashtbl.find t s with Not_found -> 
-      assertf "ERROR: unknown sloc-string"
-  end
-
-let so_ref = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
-let so_int = So.t_int
-let so_skl = So.t_func 0 [so_int; so_int]
-let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
-let so_pun = So.t_func 1 [So.t_generic 0; so_int]
-
-let vv_int = Sy.value_variable so_int 
-let vv_bls = Sy.value_variable so_bls
-let vv_skl = Sy.value_variable so_skl
-let vv_pun = Sy.value_variable so_pun
-
-(* API *)
-let sorts  = [] 
-
-let uf_bbegin    = name_of_string "BLOCK_BEGIN"
-let uf_bend      = name_of_string "BLOCK_END"
-let uf_skolem    = name_of_string "SKOLEM"
-let uf_uncheck   = name_of_string "UNCHECKED"
-
-(* API *)
-let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
-let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
-let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
-let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
-
-let mk_pure_cfun args ret = 
-  mk_refcfun [] args refstore_empty ret refstore_empty
-
-(* API *)
-let builtins = 
-  [(uf_bbegin,  C.make_reft vv_bls so_bls []);
-   (uf_bend,    C.make_reft vv_bls so_bls []);
-   (uf_skolem,  C.make_reft vv_skl so_skl []);
-   (uf_uncheck, C.make_reft vv_pun so_pun [])]
 
 (*******************************************************************)
 (****************** Tag/Annotation Generation **********************)
@@ -529,11 +546,17 @@ let skolem =
   let fresh_int, _ = Misc.mk_int_factory () in 
   eApp_skolem <.> fresh_int 
 
-let t_subs_locs    = Ct.prectype_subs 
+(* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp skolem)
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> Ct.prestore_map_ct t_fresh >> annot_sto f 
 let refstore_subs  = fun f subs st -> Ct.prestore_map_ct (f subs) st
+
+(* API *)
+let t_subs_locs subs rct =
+  rct |> ctype_of_refctype
+      |> Ct.prectype_subs subs
+      |> refctype_of_reft_ctype (reft_of_refctype rct)
 
 let refstore_subs_locs lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
@@ -586,29 +609,25 @@ let strengthen_reft env ((v, t, ras) as r) =
 (*******************************************************************)
 
 let canon_loc cf l = 
-  if AlocMap.mem l cf 
-  then AlocMap.find l cf 
-  else l
+  match cf l with 
+  | Some al -> al 
+  | None    -> l
+  (* if AlocMap.mem l cf then AlocMap.find l cf else l *)
 
 let canon_sort cf t = 
-  match So.ptr_of_t t with
-  | Some (So.Loc s) -> s |> sloc_of_string |> canon_loc cf |> so_ref 
-  | _               -> t
-
-let canon_refa vv vv' = function
-  | C.Conc p -> C.Conc (P.subst p vv vv') 
-  | ra       -> ra
+  (match So.ptr_of_t t with
+   | Some (So.Loc s) -> s |> sloc_of_string |> canon_loc cf |> so_ref 
+   | _               -> t)
+  >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" 
+                So.print t So.print t')
 
 let canon_reft cf r = 
   let t  = C.sort_of_reft r in
   let t' = canon_sort cf t in
-  if t = t' then r else begin 
-    let vv  = C.vv_of_reft r in
-    let vv' = Sy.value_variable t' in
-    r |> C.ras_of_reft 
-      |> List.map (canon_refa vv (A.eVar vv'))
-      |> C.make_reft vv' t'
-  end
+  if t = t' then r else reft_of_reft r t'
+
+let canon_env cf env = 
+  YM.map (canon_reft cf) env
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -622,7 +641,7 @@ let is_live_name livem n =
 let env_of_cilenv cf (_, vnv, livem) = 
   builtin_env
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
-  |> YM.map (canon_reft cf)
+  |> canon_env cf
 
 let make_wfs cf ((_,_,livem) as cenv) rct _ =
   let r   = rct |> reft_of_refctype |> canon_reft cf in
@@ -676,6 +695,7 @@ let make_cs_validptr cf cenv p rct tago tag =
   let rvp = rct |> ctype_of_refctype |> t_valid_ptr in
   make_cs cf cenv p rct rvp tago tag
 
+
 let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
@@ -714,9 +734,9 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
-
 (* API *)
 let make_cs cf cenv p rct1 rct2 tago tag loc =
+  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
   try make_cs cf cenv p rct1 rct2 tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 

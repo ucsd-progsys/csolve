@@ -4,6 +4,7 @@ void main(){
   int *r;
   r = (int*) malloc(sizeof(*r));
   validptr(r);
+
   *r = 10;
   validptr(r);
   assert(*r == 10);
@@ -13,5 +14,6 @@ void main(){
   int a = *r;
   int b = *r;
   assert(a == b);
+
 
 }

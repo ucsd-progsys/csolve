@@ -37,7 +37,6 @@ module EM  = Ctypes.ExpMap
 module LI  = Inferctypes
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
-module AM  = FI.AlocMap
 
 open Misc.Ops
 open Cil
@@ -47,7 +46,7 @@ type wld = FI.cilenv * FI.refstore * CilTag.t option
 type t = {
   tgr     : CilTag.o;
   sci     : ST.ssaCfgInfo;
-  cf      : AM.t;
+  cf      : FI.alocmap;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;
@@ -121,7 +120,7 @@ let diff_binding conc (al, x) =
     LM.find al conc |> eq_tagcloc x |> not
   else true
 
-
+(*
 let canon_of_annot = function 
   | Refanno.WGen (cl, al) 
   | Refanno.Gen  (cl, al) 
@@ -137,7 +136,7 @@ let alocmap_of_anna a =
     >> List.iter (fun (cl, al) -> ignore <| Pretty.printf "canon: %a -> %a \n" Sloc.d_sloc cl Sloc.d_sloc al)
     |> List.fold_left (fun cf (cl, al) -> AM.add cl al cf) AM.id
 
-
+*)
 
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
@@ -175,7 +174,7 @@ let create tgr gnv gst sci shp =
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in
-  let cf      = alocmap_of_anna shp.LI.anna in 
+  let cf      = Refanno.aloc_of_cloc shp.LI.theta in
   let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
   let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
   {tgr     = tgr;
