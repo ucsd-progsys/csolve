@@ -182,9 +182,6 @@ let bogusk = fun _ -> failwith "CI: bogus skolem"
  *  assumes that "e" is a-normalized *)
 let rec reft_of_cilexp vv e =
   match e with
-  | Cil.CastE (_, e) -> 
-      reft_of_cilexp vv e
-
   | Cil.Const (Cil.CStr str) ->
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
       A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
@@ -195,7 +192,8 @@ let rec reft_of_cilexp vv e =
   | Cil.UnOp  (_, Cil.Const (Cil.CReal _), _) ->
       (* Cop out when real constants are involved *)
       A.pTrue
-  
+
+  | Cil.CastE (_, _)
   | Cil.Const (Cil.CInt64 (_,_,_))
   | Cil.Const (Cil.CChr _)
   | Cil.SizeOf _
