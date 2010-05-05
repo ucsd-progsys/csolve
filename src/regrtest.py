@@ -19,7 +19,7 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import sys, time, os, os.path, subprocess, string
+import sys, time, os, os.path, subprocess, string, Queue, optparse, threading
 import itertools as it
 
 solve      = "./main.native".split()
@@ -80,11 +80,6 @@ def runtest(file, expected_status, dargs):
 def istest(file):
   return file.endswith(".sh") or (file.endswith(".c") and not file.endswith(".ssa.c"))
 
-def runtests(dir, expected_status, dargs):
-  print "Running tests from %s/" % dir
-  files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
-  return [runtest(file, expected_status, dargs) for file in files if istest(file)]
-
 #####################################################################################
 
 #testdirs  = [("../postests", 0)]
@@ -92,7 +87,42 @@ def runtests(dir, expected_status, dargs):
 #testdirs  = [("../slowtests", 1)]
 testdirs  = [("../postests", 0), ("../negtests", 1)]
 
-results   = [runtests(dir, expected_status, sys.argv[1:]) for (dir, expected_status) in testdirs]
+class Worker(threading.Thread):
+  def __init__(self, testqueue):
+    threading.Thread.__init__(self)
+    self.results   = list ()
+    self.testqueue = testqueue
+
+  def run(self):
+    while not self.testqueue.empty():
+      (file, expected_status, dargs) = self.testqueue.get()
+      self.results.append(runtest(file, expected_status, dargs))
+      self.testqueue.task_done()
+
+def queuetests(testqueue, dir, expected_status, dargs):
+  print "Running tests from %s/" % dir
+  files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
+  for file in files:
+    if istest(file):
+      testqueue.put((file, expected_status, dargs))
+
+parser = optparse.OptionParser()
+parser.add_option("-p", "--parallel", dest="threadcount", default=1, type=int, help="spawn n threads")
+options, dargs = parser.parse_args()
+
+testqueue = Queue.Queue()
+for dir, expected_status in testdirs:
+  queuetests(testqueue, dir, expected_status, dargs)
+print "Queued %d tests" % (testqueue.qsize())
+
+print "Creating %d workers" % (options.threadcount)
+workers = [Worker(testqueue) for i in range(0, options.threadcount)]
+for worker in workers:
+  worker.daemon = True
+  worker.start()
+testqueue.join()
+
+results   = [worker.results for worker in workers]
 failed    = [result[0] for result in it.chain(*results) if result[1] == False]
 failcount = len(failed)
 if failcount == 0:
