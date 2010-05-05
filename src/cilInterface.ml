@@ -132,6 +132,9 @@ let rec convert_cilexp skolem = function
       P (A.pNot (pred_of_cilexp skolem e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
       convert_cilbinexp skolem (op, e1, e2)
+  | Cil.CastE (Cil.TInt (_,_), e) ->
+      let e' = match convert_cilexp skolem e with E e' -> e' | _ -> assertf "ERROR: CilInterface.convert_cilexp cast on pred!"
+      in E (A.eCst (e', A.Sort.t_int))
   | Cil.CastE (_, e) ->
       convert_cilexp skolem e
   | e -> 

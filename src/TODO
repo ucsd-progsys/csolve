@@ -1,7 +1,8 @@
 Polymorphic Qualifiers?
 --> PTR-LIFT: 
-	def: id-map, from gen/ins annots
 	BUG: ./main.native -v 13 ../postests/ll0.c > log 2>&1 
+	HEREHEREHERE: add "cast" to expression language, to be used in sortcheck
+
 
 Constraint Simplification
 	-- fix the lqn# business
