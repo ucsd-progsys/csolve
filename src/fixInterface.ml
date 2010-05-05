@@ -47,6 +47,25 @@ open Cil
 (*******************************************************************)
 
 (*******************************************************************)
+(********************* CLOC-to-ALOC Maps Names *********************)
+(*******************************************************************)
+
+module AlocMap = struct
+  type t = Sloc.t LM.t 
+ 
+  (* API *)
+  let id   = LM.empty
+  let mem  = LM.mem
+  let find = LM.find
+
+  (* API *)
+  let add cl al cf = 
+    asserts (not (Sloc.is_abstract cl)) "ERROR: canonicize src abstract ptr";
+    asserts (Sloc.is_abstract al) "ERROR: canonicize dst concrete ptr";
+    LM.add cl al cf
+end
+
+(*******************************************************************)
 (******************************** Names ****************************)
 (*******************************************************************)
 
@@ -566,13 +585,9 @@ let strengthen_reft env ((v, t, ras) as r) =
 (********************** Pointer Canonicization *********************)
 (*******************************************************************)
 
-type alocmap   = Sloc.t LM.t 
-
-let id_alocmap = LM.empty 
-
 let canon_loc cf l = 
-  if LM.mem l cf 
-  then LM.find l cf 
+  if AlocMap.mem l cf 
+  then AlocMap.find l cf 
   else l
 
 let canon_sort cf t = 
@@ -609,7 +624,7 @@ let env_of_cilenv cf (_, vnv, livem) =
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
   |> YM.map (canon_reft cf)
 
-let make_wfs (cf: alocmap) ((_,_,livem) as cenv) rct _ =
+let make_wfs cf ((_,_,livem) as cenv) rct _ =
   let r   = rct |> reft_of_refctype |> canon_reft cf in
   let env = cenv 
             |> env_of_cilenv cf 
@@ -617,7 +632,7 @@ let make_wfs (cf: alocmap) ((_,_,livem) as cenv) rct _ =
             |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
   in [C.make_wf env r None]
 
-let make_wfs_refstore (cf: alocmap) env sto tag =
+let make_wfs_refstore cf env sto tag =
   LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ct.ploc_periodic ploc)) 
@@ -629,7 +644,7 @@ let make_wfs_refstore (cf: alocmap) env sto tag =
 (* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
 
 
-let make_wfs_fn (cf: alocmap) cenv rft tag =
+let make_wfs_fn cf cenv rft tag =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
   let retws = make_wfs cf env' rft.Ct.ret tag in
@@ -649,7 +664,7 @@ let add_deps tago tag =
   | _      -> [] 
 *)
 
-let make_cs (cf: alocmap) cenv p rct1 rct2 tago tag =
+let make_cs cf cenv p rct1 rct2 tago tag =
   let env    = cenv |> env_of_cilenv cf in
   let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft cf) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
@@ -657,11 +672,11 @@ let make_cs (cf: alocmap) cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_validptr (cf: alocmap) cenv p rct tago tag =
+let make_cs_validptr cf cenv p rct tago tag =
   let rvp = rct |> ctype_of_refctype |> t_valid_ptr in
   make_cs cf cenv p rct rvp tago tag
 
-let make_cs_refldesc (cf: alocmap) env p (sloc1, rd1) (sloc2, rd2) tago tag =
+let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
@@ -708,14 +723,14 @@ let make_cs cf cenv p rct1 rct2 tago tag loc =
     assert false
 
 (* API *)
-let make_cs_validptr (cf: alocmap) cenv p rct tago tag loc =
+let make_cs_validptr cf cenv p rct tago tag loc =
   try make_cs_validptr cf cenv p rct tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
-let make_cs_refldesc (cf: alocmap) env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
+let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
   try make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refldesc" in 

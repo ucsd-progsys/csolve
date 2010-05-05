@@ -37,6 +37,7 @@ module EM  = Ctypes.ExpMap
 module LI  = Inferctypes
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
+module AM  = FI.AlocMap
 
 open Misc.Ops
 open Cil
@@ -46,7 +47,7 @@ type wld = FI.cilenv * FI.refstore * CilTag.t option
 type t = {
   tgr     : CilTag.o;
   sci     : ST.ssaCfgInfo;
-  cf      : FI.alocmap;
+  cf      : AM.t;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;
@@ -120,6 +121,18 @@ let diff_binding conc (al, x) =
     LM.find al conc |> eq_tagcloc x |> not
   else true
 
+let alocmap_of_anna a = 
+  a |> Array.to_list 
+    |> Misc.flatten
+    |> Misc.flatten
+    |> List.fold_left begin fun cf -> function 
+         | Refanno.WGen (cl, al) 
+         | Refanno.Gen  (cl, al) 
+         | Refanno.Ins  (al, cl) 
+         | Refanno.NewC (_, al, cl) -> AM.add cl al cf
+         | _                -> cf
+       end AM.id
+
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
   Array.mapi begin fun i (conc,conc') ->
@@ -146,7 +159,7 @@ let edge_asgnm_of_phia phia =
             IIM.add (i,j) (vvis : (Cil.varinfo * Cil.varinfo) list) em 
           end em  
      end IIM.empty 
- 
+
 let create tgr gnv gst sci shp =
   let fdec    = sci.ST.fdec in
   let env     = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
@@ -156,7 +169,7 @@ let create tgr gnv gst sci shp =
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in
-  let cf      = failwith "TBD: PTR-LIFT: cloc-to-aloc map" in 
+  let cf      = alocmap_of_anna shp.LI.anna in 
   let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
   let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
   {tgr     = tgr;

@@ -507,7 +507,7 @@ let rename_funspec scim funspec =
 (******************************************************************************)
 
 let cons_of_global_store tgr gst =
-  let cf    = FI.id_alocmap in
+  let cf    = FI.AlocMap.id in
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore cf FI.ce_empty gst tag in
   let zst   = Ctypes.prestore_map_ct FI.t_zero_refctype gst in
@@ -539,7 +539,7 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
       let ct  = FI.ctype_of_refctype cr in
       let cr' = FI.t_exp env ct e in
         if FI.is_soft_ptr loc sto ctptr then
-          (sto, cs ++ (FI.make_cs FI.id_alocmap env Ast.pTrue cr' cr None tag loc |> fst))
+          (sto, cs ++ (FI.make_cs FI.AlocMap.id env Ast.pTrue cr' cr None tag loc |> fst))
         else
           (FI.refstore_write loc sto ctptr cr', cs)
   | CompoundInit (_, inits) ->
@@ -551,7 +551,7 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
         ~acc:(sto, cs)
 
 let cons_of_var_init tag loc sto v vtyp inito =
-  let cf     = FI.id_alocmap in
+  let cf     = FI.AlocMap.id  in
   let cs1, _ = FI.make_cs cf FI.ce_empty Ast.pTrue (type_of_init v vtyp inito) vtyp None tag loc in
     match inito with
       | Some (CompoundInit _ as init) ->
@@ -567,7 +567,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
       | _ -> cs1
 
 let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
-  let cf     = FI.id_alocmap in
+  let cf     = FI.AlocMap.id in
   let ws, cs = cons_of_global_store tgr gst in
   List.fold_left begin fun (ws, cs, _) -> function
     | FunDec (fn, loc) ->

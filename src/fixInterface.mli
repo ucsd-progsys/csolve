@@ -22,7 +22,15 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-type alocmap
+
+module AlocMap : sig
+  type t
+  val id   : t
+  val add  : Sloc.t -> Sloc.t -> t -> t
+  val mem  : Sloc.t -> t -> bool
+  val find : Sloc.t -> t -> Sloc.t
+end
+
 type name
 type cilenv
 
@@ -33,7 +41,7 @@ type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
 (* type refstore = refldesc Sloc.SlocMap.t *)
 type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
 
-val id_alocmap          : alocmap
+
 
 val d_refstore          : unit -> refstore -> Pretty.doc
 val d_refctype          : unit -> refctype -> Pretty.doc
@@ -74,7 +82,7 @@ val extend_world        : refldesc ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a)
 *)
-val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil.location -> CilTag.t ->
+val extend_world        : AlocMap.t -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil.location -> CilTag.t ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a) * FixConstraint.t list
 
@@ -118,24 +126,25 @@ val is_poly_cloc        : refstore -> Sloc.t -> bool
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list
 
-val make_wfs            : alocmap -> cilenv -> refctype -> CilTag.t -> FixConstraint.wf list
-val make_wfs_fn         : alocmap -> cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list
-val make_wfs_refstore   : alocmap -> cilenv -> refstore -> CilTag.t -> FixConstraint.wf list
+val make_wfs            : AlocMap.t -> cilenv -> refctype -> CilTag.t -> FixConstraint.wf list
+val make_wfs_fn         : AlocMap.t -> cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list
+val make_wfs_refstore   : AlocMap.t -> cilenv -> refstore -> CilTag.t -> FixConstraint.wf list
 
-val make_cs             : alocmap -> cilenv -> Ast.pred -> 
+val make_cs             : AlocMap.t -> cilenv -> Ast.pred -> 
                           refctype -> refctype -> 
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_validptr    : alocmap -> cilenv -> Ast.pred ->
+val make_cs_validptr    : AlocMap.t -> cilenv -> Ast.pred ->
                           refctype -> CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_refldesc    : alocmap -> cilenv -> Ast.pred -> 
+val make_cs_refldesc    : AlocMap.t -> cilenv -> Ast.pred -> 
                           (Sloc.t * refldesc) -> (Sloc.t * refldesc) -> 
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
-val make_cs_refstore    : alocmap -> cilenv -> Ast.pred -> 
+
+val make_cs_refstore    : AlocMap.t -> cilenv -> Ast.pred -> 
                           refstore -> refstore -> bool ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list

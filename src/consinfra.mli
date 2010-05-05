@@ -46,7 +46,7 @@ val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
 
 val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
-val get_alocmap         : t -> FixInterface.alocmap
+val get_alocmap         : t -> FixInterface.AlocMap.t
 val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
 val get_fname           : t -> string 
 val get_astore          : t -> FixInterface.refstore
