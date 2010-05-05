@@ -1,7 +1,7 @@
 Polymorphic Qualifiers?
 --> PTR-LIFT: 
 	def: id-map, from gen/ins annots
-	use: transformation on constraints
+	BUG: ./main.native -v 13 ../postests/ll0.c > log 2>&1 
 
 Constraint Simplification
 	-- fix the lqn# business

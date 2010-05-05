@@ -121,17 +121,23 @@ let diff_binding conc (al, x) =
     LM.find al conc |> eq_tagcloc x |> not
   else true
 
+
+let canon_of_annot = function 
+  | Refanno.WGen (cl, al) 
+  | Refanno.Gen  (cl, al) 
+  | Refanno.Ins  (al, cl) 
+  | Refanno.NewC (_, al, cl) -> Some (cl, al)
+  | _                        -> None
+
 let alocmap_of_anna a = 
   a |> Array.to_list 
     |> Misc.flatten
     |> Misc.flatten
-    |> List.fold_left begin fun cf -> function 
-         | Refanno.WGen (cl, al) 
-         | Refanno.Gen  (cl, al) 
-         | Refanno.Ins  (al, cl) 
-         | Refanno.NewC (_, al, cl) -> AM.add cl al cf
-         | _                -> cf
-       end AM.id
+    |> Misc.map_partial canon_of_annot
+    >> List.iter (fun (cl, al) -> ignore <| Pretty.printf "canon: %a -> %a \n" Sloc.d_sloc cl Sloc.d_sloc al)
+    |> List.fold_left (fun cf (cl, al) -> AM.add cl al cf) AM.id
+
+
 
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
