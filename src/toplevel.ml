@@ -35,7 +35,7 @@ module M  = Misc
 
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true 
 
 
 (********************************************************************************)
