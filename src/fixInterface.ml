@@ -198,7 +198,7 @@ let reft_of_reft r t' =
     |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
                         | C.Kvar (s, k) -> C.Kvar (s @[(vv, evv')], k))
     |> C.make_reft vv' t'
-    >> F.printf "reft_of_reft: r = %a, r' = %a \n" (C.print_reft None) r (C.print_reft None) 
+    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
 
 
 let reft_of_refctype = function
@@ -565,7 +565,7 @@ let refstore_subs_locs lsubs sto =
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
     if not (refstore_mem l sto) then sto else
-      let plocs = refstore_get sto l |> plocs_of_refldesc in
+      let plocs = l |> refstore_get sto |> plocs_of_refldesc in
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in
       let subs  = List.combine ns ns' in
@@ -621,8 +621,7 @@ let canon_sort cf t =
   (match So.ptr_of_t t with
    | Some (So.Loc s) -> s |> sloc_of_string |> canon_loc cf |> so_ref 
    | _               -> t)
-  >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" 
-                So.print t So.print t')
+(*  >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" So.print t So.print t') *)
 
 let canon_reft cf r = 
   let t  = C.sort_of_reft r in
@@ -716,11 +715,10 @@ let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
   |> Misc.splitflatten
 
 let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
- (* {{{  
   let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  }}}*)
+  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
   (if polarity then st2 else st1)
   |> slocs_of_store 
   |> Misc.map begin fun sloc ->
@@ -729,7 +727,7 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
        make_cs_refldesc cf env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten 
-(*  >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) *)
+  >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) 
 
 (* API *)
 let make_cs_refstore cf env p st1 st2 polarity tago tag loc =

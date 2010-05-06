@@ -1,8 +1,8 @@
 Polymorphic Qualifiers?
 --> PTR-LIFT: 
-	BUG: ./main.native -v 13 ../postests/ll0.c > log 2>&1 
-	HEREHEREHERE: add "cast" to expression language, to be used in sortcheck
-
+	BUG: ./main.native -v 13 ../postests/test05p.c > log 2>&1 
+	HEREHEREHERE: likely bug is in not renaming locs in
+	make_cs_refstore (in cons_of_call)
 
 Constraint Simplification
 	-- fix the lqn# business
