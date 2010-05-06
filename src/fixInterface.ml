@@ -195,8 +195,11 @@ let reft_of_reft r t' =
   let vv'  = Sy.value_variable t' in
   let evv' = A.eVar vv' in
   r |> C.ras_of_reft 
-    |> List.map (function C.Conc p -> C.Conc (P.subst p vv evv') | ra -> ra)
-    |> C.make_reft vv' t' 
+    |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
+                        | C.Kvar (s, k) -> C.Kvar (s @[(vv, evv')], k))
+    |> C.make_reft vv' t'
+    >> F.printf "reft_of_reft: r = %a, r' = %a \n" (C.print_reft None) r (C.print_reft None) 
+
 
 let reft_of_refctype = function
   | Ct.CTInt (_,(_,r)) 
@@ -650,6 +653,7 @@ let make_wfs cf ((_,_,livem) as cenv) rct _ =
             |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
             |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
   in [C.make_wf env r None]
+  >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 
 let make_wfs_refstore cf env sto tag =
   LM.fold begin fun l rd ws ->
