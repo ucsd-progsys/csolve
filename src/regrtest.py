@@ -19,13 +19,14 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import sys, time, os, os.path, subprocess, string, Queue, optparse, threading
-import itertools as it
+import time, subprocess, optparse, sys, socket
+sys.path.append("../")
+import external.misc.rtest as rtest
 
 solve      = "./main.native".split()
 null       = open("/dev/null", "w")
 now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
-logfile    = "../testlogs/regrtest_results_" + now
+logfile    = "../testlogs/regrtest_results_%s_%s" % (socket.gethostname (), now)
 argcomment = "//! run with "
 
 def logged_sys_call(args, out=None, err=None):
@@ -54,31 +55,20 @@ def getfileargs(file):
   else:
     return []
 
-def logtest(file, ok, runtime):
-  if ok:
-    oks = "\033[1;32mSUCCESS!\033[1;0m\n"
-  else:
-    oks = "\033[1;31mFAILURE :(\033[1;0m\n"
-  outs = "test: %s \ntime: %f seconds \nresult: %s \n \n" % (file, runtime, oks) 
-  print outs
-  f = open(logfile, "a")
-  f.write(outs)
-  f.close
+class Config (rtest.TestConfig):
+  def __init__ (self, dargs, testdirs, logfile, threadcount):
+    rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
+    self.dargs = dargs
 
-def runtest(file, expected_status, dargs):
-  start = time.time()
-  if file.endswith(".c"):
-    fargs  = getfileargs(file)
-    status = solve_quals(file, True, False, True, fargs + dargs)
-  elif file.endswith(".sh"):
-    status = run_script(file, True)
-  runtime = time.time() - start
-  ok      = (status == expected_status)
-  logtest(file, ok, runtime)
-  return (file, ok)
+  def run_test (self, file):
+    if file.endswith(".c"):
+      fargs = getfileargs(file)
+      return solve_quals(file, True, False, True, fargs + dargs)
+    elif file.endswith(".sh"):
+      return run_script(file, True)
 
-def istest(file):
-  return file.endswith(".sh") or (file.endswith(".c") and not file.endswith(".ssa.c"))
+  def is_test (self, file):
+    return file.endswith(".sh") or (file.endswith(".c") and not file.endswith(".ssa.c"))
 
 #####################################################################################
 
@@ -87,46 +77,9 @@ def istest(file):
 #testdirs  = [("../slowtests", 1)]
 testdirs  = [("../postests", 0), ("../negtests", 1)]
 
-class Worker(threading.Thread):
-  def __init__(self, testqueue):
-    threading.Thread.__init__(self)
-    self.results   = list ()
-    self.testqueue = testqueue
-
-  def run(self):
-    while not self.testqueue.empty():
-      (file, expected_status, dargs) = self.testqueue.get()
-      self.results.append(runtest(file, expected_status, dargs))
-      self.testqueue.task_done()
-
-def queuetests(testqueue, dir, expected_status, dargs):
-  print "Running tests from %s/" % dir
-  files = it.chain(*[[os.path.join(dir, file) for file in files] for dir, dirs, files in os.walk(dir)])
-  for file in files:
-    if istest(file):
-      testqueue.put((file, expected_status, dargs))
-
 parser = optparse.OptionParser()
 parser.add_option("-p", "--parallel", dest="threadcount", default=1, type=int, help="spawn n threads")
 options, dargs = parser.parse_args()
 
-testqueue = Queue.Queue()
-for dir, expected_status in testdirs:
-  queuetests(testqueue, dir, expected_status, dargs)
-print "Queued %d tests" % (testqueue.qsize())
-
-print "Creating %d workers" % (options.threadcount)
-workers = [Worker(testqueue) for i in range(0, options.threadcount)]
-for worker in workers:
-  worker.daemon = True
-  worker.start()
-testqueue.join()
-
-results   = [worker.results for worker in workers]
-failed    = [result[0] for result in it.chain(*results) if result[1] == False]
-failcount = len(failed)
-if failcount == 0:
-  print "\n\033[1;32mPassed all tests! :D\033[1;0m"
-else:
-  print "\n\033[1;31mFailed %d tests:\033[1;0m %s" % (failcount, "\n".join(failed))
-sys.exit(failcount != 0)
+runner = rtest.TestRunner (Config (dargs, testdirs, logfile, options.threadcount))
+runner.run ()
