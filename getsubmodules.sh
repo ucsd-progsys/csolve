@@ -19,7 +19,6 @@ echo $og
 echo $mi
 echo $cl
 
-mkdir external
 cd external
 git clone "$z3"
 git clone "$fp"

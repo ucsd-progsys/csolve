@@ -13,4 +13,5 @@ negtests/*.fq
 postests/*.fq
 _build
 external/*
+!external/__init__.py
 *~
