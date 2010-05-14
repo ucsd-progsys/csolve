@@ -123,6 +123,7 @@ val refstore_fresh      : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> 
 val refstore_subs       : (* Cil.location -> *) ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> refstore -> refstore
 
+
 val is_poly_cloc        : refstore -> Sloc.t -> bool
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list

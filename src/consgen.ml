@@ -64,15 +64,20 @@ let d_lsub () (x,y) =
 let d_lsubs () xys =
   Pretty.seq (Pretty.text ",") (d_lsub ()) xys
 
-(* move into FI *)
-let rename_store (* loc *) lsubs subs sto =
-  sto |> FI.refstore_subs_locs (* loc *) lsubs 
-      |> FI.refstore_subs (* loc *) FI.t_subs_exps subs 
-      |> Ctypes.prestore_subs lsubs
-
 let rename_refctype lsubs subs cr =
   cr |> FI.t_subs_locs lsubs
      |> FI.t_subs_exps subs
+
+let rename_store lsubs subs sto =
+  sto |> FI.refstore_subs_locs lsubs 
+      |> FI.refstore_subs FI.t_subs_exps subs 
+      |> Ctypes.prestore_subs lsubs
+
+(*
+let rename_store lsubs subs st = 
+  st |> Ctypes.prestore_subs lsubs
+     |> Ctypes.prestore_map_ct (rename_refctype lsubs subs)
+*)
 
 let weaken_undefined me rm env v = 
   let n = FI.name_of_varinfo v in
@@ -211,7 +216,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let subs      = try List.combine (List.map fst args) es 
                   with _ -> (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
 
-  let ist,ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store (* loc *) lsubs subs) in
+  let ist,ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
   let oast,ocst = FI.refstore_partition Sloc.is_abstract ost in
 
   let tag       = CF.tag_of_instr me i j     loc in

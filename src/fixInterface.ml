@@ -556,11 +556,26 @@ let refstore_fresh = fun f st -> st |> Ct.prestore_map_ct t_fresh >> annot_sto f
 let refstore_subs  = fun f subs st -> Ct.prestore_map_ct (f subs) st
 
 (* API *)
-let t_subs_locs subs rct =
+let t_subs_locs lsubs rct =
   rct |> ctype_of_refctype
-      |> Ct.prectype_subs subs
+      |> Ct.prectype_subs lsubs
       |> refctype_of_reft_ctype (reft_of_refctype rct)
 
+let subs_of_lsubs lsubs sto = 
+  Misc.tr_rev_flap begin fun (l, l') -> 
+    if not (refstore_mem l sto) then [] else
+      let plocs = l |> refstore_get sto |> plocs_of_refldesc in
+      let ns    = List.map (name_of_sloc_ploc l)  plocs in
+      let ns'   = List.map (name_of_sloc_ploc l') plocs in
+      List.combine ns ns'
+  end lsubs
+
+let refstore_subs_locs lsubs sto =
+  let subs = subs_of_lsubs lsubs sto in
+  Ct.prestore_map_ct ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+
+  
+(*
 let refstore_subs_locs lsubs sto = 
   List.fold_left begin fun sto (l, l') -> 
     let rv = 
@@ -569,12 +584,18 @@ let refstore_subs_locs lsubs sto =
       let ns    = List.map (name_of_sloc_ploc l) plocs in
       let ns'   = List.map (name_of_sloc_ploc l') plocs in
       let subs  = List.combine ns ns' in
-      refstore_subs (* loc *) t_subs_names subs sto
+      Ct.prestore_map_ct (t_subs_names subs) sto
     in
     (* let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
             Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in *)
     rv
   end sto lsubs
+
+let refstore_subs_locs lsubs st = 
+  st |> Ct.prestore_subs lsubs
+     |> Ct.prestore_map_ct (t_subs_locs lsubs) 
+
+*)
 
 (**************************************************************)
 (*******************Constraint Simplification *****************)
