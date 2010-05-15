@@ -1,8 +1,7 @@
 Polymorphic Qualifiers?
 --> PTR-LIFT: 
-	BUG: ./main.native -v 13 ../postests/test05p.c > log 2>&1 
-	HEREHEREHERE: likely bug is in not renaming locs in
-	make_cs_refstore (in cons_of_call)
+	BUG: ./main.native -v 13 ../postests/ll10.c > log 2>&1 
+	HEREHEREHERE: bug due to different aloc given to NULL ptr. 
 
 Constraint Simplification
 	-- fix the lqn# business

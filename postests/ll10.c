@@ -4,23 +4,29 @@ typedef struct node {
   struct node *next;
 } node_t;
 
+/*
 void init(int **x){
   *x = (int *) malloc(sizeof(int));
   **x = 22;
   return;
 }
+*/
 
 void main(){
   int **y;
-  
+  int *z;
+
   y  = (int **) malloc(sizeof(int *));
-  *y = (int *) 0;
+  
+  //BAD
+  *y = (int *) 0; 
+  int t = (*y != 0);
 
-  init(y);
-
-  if (*y != (int *) 0){
-    assert(**y >= 0);
-  }
- 
+  //GOOD
+/*
+  z  = (int *) 0;
+  *y = z;
+  int t = (*y != 0);
+*/
   return; 
 }
