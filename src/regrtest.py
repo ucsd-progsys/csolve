@@ -63,7 +63,7 @@ class Config (rtest.TestConfig):
   def run_test (self, file):
     if file.endswith(".c"):
       fargs = getfileargs(file)
-      return solve_quals(file, True, False, True, fargs + dargs)
+      return solve_quals(file, True, False, True, fargs + self.dargs)
     elif file.endswith(".sh"):
       return run_script(file, True)
 
