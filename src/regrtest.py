@@ -58,7 +58,7 @@ def getfileargs(file):
 class Config (rtest.TestConfig):
   def __init__ (self, dargs, testdirs, logfile, threadcount):
     rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
-    self.dargs = dargs
+    self.dargs = dargs.split(" ")
 
   def run_test (self, file):
     if file.endswith(".c"):
@@ -79,7 +79,9 @@ testdirs  = [("../postests", 0), ("../negtests", 1)]
 
 parser = optparse.OptionParser()
 parser.add_option("-p", "--parallel", dest="threadcount", default=1, type=int, help="spawn n threads")
-options, dargs = parser.parse_args()
+parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to liquidc")
+parser.disable_interspersed_args()
+options, args = parser.parse_args()
 
-runner = rtest.TestRunner (Config (dargs, testdirs, logfile, options.threadcount))
+runner = rtest.TestRunner (Config (options.opts, testdirs, logfile, options.threadcount))
 runner.run ()
