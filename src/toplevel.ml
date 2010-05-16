@@ -74,6 +74,7 @@ let preprocess cil =
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
             CopyGlobal.copyGlobal cil;
+            NameNullPtrs.nameNullPtrs cil;
             mk_cfg cil;
             rename_locals cil in
   cil
