@@ -31,7 +31,7 @@ module S   = Sloc
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false
 
 (************************************************************************************)
 (**************************** Location Tags******************************************)
@@ -228,16 +228,18 @@ let alocmap_bind t al cl =
   if not (Hashtbl.mem t cl) then Hashtbl.add t cl al
 
 let cloc_of_v theta al v =
-  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in
+(*  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in *)
   Misc.do_memo (fst theta) Sloc.fresh Sloc.Concrete v.vname 
   >> alocmap_bind (snd theta) al  
-  >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc
+(*  >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc *)
+
 
 let cloc_of_position theta al (j,k,i) = 
   Printf.sprintf "#%d#%d#%d" j k i
   |> Misc.do_memo (fst theta) Sloc.fresh Sloc.Concrete
   >> alocmap_bind (snd theta) al  
-  >> Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc
+(*  >> Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc
+*)
 
 let sloc_of_expr ctm e =
   match Ctypes.ExpMap.find e ctm with

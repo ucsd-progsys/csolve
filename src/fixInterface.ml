@@ -198,8 +198,8 @@ let reft_of_reft r t' =
     |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
                         | C.Kvar (s, k) -> C.Kvar (s @[(vv, evv')], k))
     |> C.make_reft vv' t'
-    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
-
+(*    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
+*)
 
 let reft_of_refctype = function
   | Ct.CTInt (_,(_,r)) 
@@ -673,7 +673,8 @@ let make_wfs cf ((_,_,livem) as cenv) rct _ =
             |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
             |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
   in [C.make_wf env r None]
-  >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
+(* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
+*)
 
 let make_wfs_refstore cf env sto tag =
   LM.fold begin fun l rd ws ->
@@ -736,10 +737,11 @@ let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
   |> Misc.splitflatten
 
 let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
-  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+(*  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
+*)
   (if polarity then st2 else st1)
   |> slocs_of_store 
   |> Misc.map begin fun sloc ->
@@ -748,7 +750,8 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
        make_cs_refldesc cf env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten 
-  >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) 
+(* >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) 
+*)
 
 (* API *)
 let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
@@ -759,8 +762,8 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
 
 (* API *)
 let make_cs cf cenv p rct1 rct2 tago tag loc =
-  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
-  try make_cs cf cenv p rct1 rct2 tago tag with ex ->
+(*  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
+ *) try make_cs cf cenv p rct1 rct2 tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
     assert false

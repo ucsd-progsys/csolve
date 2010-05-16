@@ -297,7 +297,11 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     jhalatemp = page_getfree(pages);
 
     envs = (env_t *) malloc(sizeof(env_t *));
-    *envs = (env_t *) 0;
+    
+    //*envs = (env_t *) 0;
+    env_t *zz = (env_t *) 0;
+    *envs = zz;
+
     env_t *e = env_alloc(envs, pages, page_protected);
 
     if (e == 0)

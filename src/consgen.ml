@@ -126,9 +126,9 @@ let cons_of_annots me loc tag grd wld annots =
 let extend_env me v cr env =
   let ct = CF.ctype_of_varinfo me v in
   let cr = FI.t_ctype_refctype ct cr in
-  let _  = Pretty.printf "extend_env: v = %s, ct = %a, cr = %a \n" 
+(*let _  = Pretty.printf "extend_env: v = %s, ct = %a, cr = %a \n" 
            v.Cil.vname Ctypes.d_ctype ct FI.d_refctype cr in
-  FI.ce_adds env [(FI.name_of_varinfo v), cr]
+*)FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
 let cons_of_mem me loc tago tag grd env v =
   if !Constants.manual then
