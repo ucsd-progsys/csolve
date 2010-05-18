@@ -64,7 +64,6 @@ val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
 val name_fresh          : unit -> name
 
-val skolem              : unit -> Ast.expr
 
 val ce_rem              : name -> cilenv -> cilenv 
 val ce_mem              : name -> cilenv -> bool 

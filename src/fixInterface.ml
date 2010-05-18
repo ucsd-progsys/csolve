@@ -144,14 +144,15 @@ let sorts  = []
 
 let uf_bbegin    = name_of_string "BLOCK_BEGIN"
 let uf_bend      = name_of_string "BLOCK_END"
-let uf_skolem    = name_of_string "SKOLEM"
+(* let uf_skolem = name_of_string "SKOLEM" *)
 let uf_uncheck   = name_of_string "UNCHECKED"
 
 (* API *)
 let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
 let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
 let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
-let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
+(* let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
+ *)
 
 (*
 let mk_pure_cfun args ret = 
@@ -162,7 +163,7 @@ let mk_pure_cfun args ret =
 let builtins = 
   [(uf_bbegin,  C.make_reft vv_bls so_bls []);
    (uf_bend,    C.make_reft vv_bls so_bls []);
-   (uf_skolem,  C.make_reft vv_skl so_skl []);
+(* (uf_skolem,  C.make_reft vv_skl so_skl []); *)
    (uf_uncheck, C.make_reft vv_pun so_pun [])]
 
 (*******************************************************************)
@@ -517,10 +518,16 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ ->
       []
 
+(*
+let skolem = 
+  let fresh_int, _ = Misc.mk_int_factory () in 
+  eApp_skolem <.> fresh_int 
+*)
+
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
-  let p  = CI.reft_of_cilexp vv e in
+  let p  = CI.reft_of_cilexp (* skolem *) vv e in
   let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
@@ -545,12 +552,8 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> Ct.prectype_map
 
-let skolem = 
-  let fresh_int, _ = Misc.mk_int_factory () in 
-  eApp_skolem <.> fresh_int 
-
 (* API *)
-let t_subs_exps    = refctype_subs (CI.expr_of_cilexp skolem)
+let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> Ct.prestore_map_ct t_fresh >> annot_sto f 
 let refstore_subs  = fun f subs st -> Ct.prestore_map_ct (f subs) st

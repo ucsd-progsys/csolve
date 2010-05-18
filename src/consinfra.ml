@@ -237,7 +237,7 @@ let pred_of_block ifs (i,b) =
   | None         -> 
       assertf "pred_of_block"
   | Some (e,_,_) -> 
-      let p = CI.pred_of_cilexp FI.skolem e in
+      let p = CI.pred_of_cilexp e in
       if b then p else (Ast.pNot p)
 
 let entry_guard_of_block me i = 

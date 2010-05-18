@@ -183,6 +183,10 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
 
   | _ -> assertf "TBD: cons_of_set"
 
+let cons_of_set me loc tag grd (env, sto, tago) ((lv, e) as x) = 
+  Misc.do_catchu (cons_of_set me loc tag grd (env, sto, tago)) x 
+    (fun ex -> E.error "(%s) cons_of_set [%a] : %a := %a \n" 
+              (Printexc.to_string ex) d_loc loc d_lval lv d_exp e)
 
 (****************************************************************************)
 (********************** Constraints for Calls *******************************)
@@ -388,7 +392,7 @@ let cons_of_edge me i j =
 (********************** Constraints for ST.ssaCfgInfo ***********************)
 (****************************************************************************)
 
-let process_block me i = 
+let process_block me i =
   let wld, x = cons_of_block me i in
   me |> CF.add_wld i wld |> CF.add_cons x
 
