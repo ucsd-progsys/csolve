@@ -31,6 +31,7 @@ module  A  = Ast
 module  P  = Ast.Predicate
 module  C  = FixConstraint
 module Sy  = Ast.Symbol
+module Su  = Ast.Subst
 module So  = Ast.Sort
 module CI  = CilInterface
 module Ct  = Ctypes
@@ -197,7 +198,7 @@ let reft_of_reft r t' =
   let evv' = A.eVar vv' in
   r |> C.ras_of_reft 
     |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
-                        | C.Kvar (s, k) -> C.Kvar (s @[(vv, evv')], k))
+                        | C.Kvar (s, k) -> C.Kvar (Su.extend s (vv, evv'), k))
     |> C.make_reft vv' t'
 (*    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
 *)
@@ -455,7 +456,7 @@ let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
-let ra_fresh        = fun _ -> [C.Kvar ([], fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
@@ -548,6 +549,7 @@ let t_ctype_refctype ct rct =
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
+      |> Su.of_list
       |> C.theta
       |> Misc.app_snd
       |> Ct.prectype_map
