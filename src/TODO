@@ -1,24 +1,20 @@
-Polymorphic Qualifiers?
---> PTR-LIFT: 
-	BUG: ./main.native -v 13 ../postests/ll10.c > log 2>&1 
-	HEREHEREHERE: bug due to different aloc given to NULL ptr. 
 
-Constraint Simplification
-	-- fix the lqn# business
-		--> refactor into cheaper, heavier parts
-	-- three paths (basic constants + guards) = lower bound on RHS
-	-- add kvar bindings
-	-- also think about splitting into direct/indirect flows
+Constraint Simplification (FixSimplify.ml)
 
-$ grep "ropping" log.pmap | wc
-   2170    6510   41144
-$ grep "ropping" log.pmap | grep ": 0" | wc
-   1686    5058   31808
+(1) separate const-pred extraction (moving constant bindings into guard)
+    from andrey's equality-simplification, perhaps put constpred extraction 
+    into "FixConstraint.make_t" ? (will impact strengthening optimization
+    in LiquidC -- that should be moved into FixSimplify anyway...)
+
+(2) fix termination problem in equality-simplification
+	--> can be deferred and addressed later (just disable this step)
+
+(3) debug k-elimination (run C/ML regrtests)
+
+-- also think about splitting into direct/indirect flows
+
 
 What is an "ebind" ? (fixpoint)
-
-Q: Can you simplify constraints (constaint prop, true elimination etc.) ?
-	Look at andrey's code.
 
 // This is useful for display too.
 Q: Can we precompute a "qualifier implication graph" (Edges means Q1 => Q2)
