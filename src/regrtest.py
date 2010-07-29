@@ -81,7 +81,7 @@ class Config (rtest.TestConfig):
 testdirs  = [("../postests", 0), ("../negtests", 1)]
 
 parser = optparse.OptionParser()
-parser.add_option("-p", "--parallel", dest="threadcount", default=1, type=int, help="spawn n threads")
+parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")
 parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to liquidc")
 parser.disable_interspersed_args()
 options, args = parser.parse_args()
