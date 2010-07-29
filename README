@@ -15,6 +15,7 @@ Checking Out Of Git
 To clone CSolve from git:
 
 git clone meatwad.ucsd.edu:/git/liquidc
+cd liquidc
 git submodule update --init
 
 Configuring and Compiling
