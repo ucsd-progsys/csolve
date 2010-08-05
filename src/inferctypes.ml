@@ -37,6 +37,7 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Ind = Inferindices
 module SI  = ShapeInfra
+module FF  = FinalFields
 
 open Ctypes
 open M.Ops
@@ -596,6 +597,7 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
+  let _                   = FF.infer_final_fields sci.ST.cfg em conca theta annot in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;
