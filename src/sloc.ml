@@ -59,7 +59,6 @@ let to_string (Sloc (lid, lty): t): string =
 let d_sloc () (l: t): Pretty.doc =
   Pretty.text <| to_string l
 
-
 (******************************************************************************)
 (******************************* Maps Over Slocs ******************************)
 (******************************************************************************)
@@ -77,9 +76,17 @@ module SlocSet = Set.Make(ComparableSloc)
 
 module SlocMap = Map.Make(ComparableSloc)
 
+let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k,v)::acc) conc []
+
 module SMP = P.MakeMapPrinter(SlocMap)
 
-let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k,v)::acc) conc []
+let d_slocmap d_value () slm =
+  SMP.d_map "; " d_sloc d_value () slm
+
+module SSP = P.MakeSetPrinter(SlocSet)
+
+let d_slocset () ss =
+  SSP.d_set ", " d_sloc () ss
 
 (******************************************************************************)
 (***************************** Slocs Substitutions ****************************)
