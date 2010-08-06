@@ -1,11 +1,18 @@
+(* TODO
+   2. Test with globals
+   3. Annotations to, from spec files
+*)
+
 module S  = Sloc
 module CT = Ctypes
 module P  = Pretty
 module RA = Refanno
 module C  = Cil
 module M  = Misc
+module SM = M.StringMap
+module SI = ShapeInfra
 
-open Misc.Ops
+open M.Ops
 
 module IndexSet = Set.Make (struct
   type t = CT.index
@@ -15,6 +22,15 @@ end)
 
 module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
 
+let nonfinal_fields s nfm =
+  try S.SlocMap.find s nfm with Not_found -> IndexSet.empty
+
+let nonfinal_equal nfm1 nfm2 =
+  S.SlocMap.equal IndexSet.equal nfm1 nfm2
+
+let dump_nonfinal nfm =
+  Pretty.printf "%a\n\n" (S.d_slocmap (IndexSetPrinter.d_set ", " CT.d_index)) nfm
+
 module IntraprocNonFinalFields = struct
   type context = {
     cfg   : Ssa.cfgInfo;
@@ -23,9 +39,6 @@ module IntraprocNonFinalFields = struct
     ctab  : RA.ctab;
     annot : RA.block_annotation array;
   }
-
-  let nonfinal_fields s nf =
-    try S.SlocMap.find s nf with Not_found -> IndexSet.empty
 
   let process_annot fs = function
     | RA.Gen (s, _) | RA.WGen (s, _) -> S.SlocSet.remove s fs
@@ -75,7 +88,7 @@ module IntraprocNonFinalFields = struct
         | _ -> f.(j) <- fs; nf
 
   let fixed nf nf' f f' =
-    nf = nf' && M.array_fold_lefti (fun i b ss -> b && S.SlocSet.equal ss f'.(i)) true f
+    nonfinal_equal nf nf' && M.array_fold_lefti (fun i b ss -> b && S.SlocSet.equal ss f'.(i)) true f
 
   let nonfinal_iter ctx f nf =
     let f'  = Array.copy f in
@@ -90,23 +103,46 @@ module IntraprocNonFinalFields = struct
       end ss (List.concat annots)
     end S.SlocSet.empty annot
 
-  let dump_nonfinal nf =
-    Pretty.printf "%a\n\n" (S.d_slocmap (IndexSetPrinter.d_set ", " CT.d_index)) nf
-
   let dump_fresh f =
-    Array.iteri begin fun i fs ->
-      Pretty.printf "%d |-> %a\n\n" i S.d_slocset fs |> ignore
-    end f
+    Array.iteri (fun i fs -> Pretty.printf "%d |-> %a\n\n" i S.d_slocset fs |> ignore)
 
-  let find_nonfinal_fields cfg ctem conca ctab annot =
-    let f   = Array.create (Array.length annot) (all_clocs annot) in
-    let ctx = {cfg = cfg; ctem = ctem; conca = conca; ctab = ctab; annot = annot} in
+  let find_nonfinal_fields cfg shp =
+    let f   = Array.create (Array.length shp.SI.anna) (all_clocs shp.SI.anna) in
+    let ctx = {cfg = cfg; ctem = shp.SI.etypm; conca = shp.SI.conca; ctab = shp.SI.theta; annot = shp.SI.anna} in
     let res = S.SlocMap.empty |> Misc.fixpoint (nonfinal_iter ctx f) |> fst in
-    let _ = dump_nonfinal res in
-    let _ = dump_fresh f in
       res
 end
 
-let infer_final_fields cfg ctem conca ctab annot =
-  let _ = IntraprocNonFinalFields.find_nonfinal_fields cfg ctem conca ctab annot in
-    ()
+module InterprocNonFinalFields = struct
+  type inclusion = S.t * S.t (* A1 in A2 *)
+
+  let proc_nonfinal_fields shpm fname (_, {Ssa_transform.cfg = cfg}) nfm =
+    S.SlocMap.fold begin fun s nfs nfm ->
+      S.SlocMap.add s (IndexSet.union nfs (nonfinal_fields s nfm)) nfm
+    end (SM.find fname shpm |> fst |> IntraprocNonFinalFields.find_nonfinal_fields cfg) nfm
+
+  let inclusion_of_annot is = function
+    | RA.New (sfrom, sto) | RA.NewC (sfrom, sto, _) -> (sfrom, sto) :: is
+    | _                                             -> is
+
+  let proc_inclusions _ (shp, _) is =
+    Array.fold_left (List.fold_left (List.fold_left inclusion_of_annot)) is shp.SI.anna
+
+  let iter_inclusion incs nfm =
+    let nfm' = List.fold_left begin fun nfm (sfrom, sto) ->
+      S.SlocMap.add sto (IndexSet.union (nonfinal_fields sfrom nfm) (nonfinal_fields sto nfm)) nfm
+    end nfm incs in
+      (nfm', not (nonfinal_equal nfm nfm'))
+
+  let infer_nonfinal_fields fm shpm =
+    let incs = SM.fold proc_inclusions shpm [] in
+       S.SlocMap.empty
+    |> SM.fold (proc_nonfinal_fields shpm) fm
+    |> Misc.fixpoint (iter_inclusion incs)
+    |> fst
+end
+
+let infer_nonfinal_fields fm shpm =
+     InterprocNonFinalFields.infer_nonfinal_fields fm shpm
+  >> (fun _ -> P.printf "Interproc nonfinal fields:\n\n")
+  |> dump_nonfinal

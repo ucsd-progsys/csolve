@@ -405,10 +405,10 @@ let process_block_succs me i =
 let log_of_sci sci shp = 
   if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
-    let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Inferctypes.conca in
-    let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
-    let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
+    let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.ShapeInfra.anna in
+    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.ShapeInfra.conca in
+    let _ = Pretty.printf "%a" Refanno.d_ctab shp.ShapeInfra.theta in 
+    let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.ShapeInfra.store in
     ()
 
 let cons_of_sci tgr gnv gst sci shp =

@@ -28,6 +28,14 @@ module S  = Sloc
 open Ctypes
 open Misc.Ops
 
+type shape =
+  {vtyps : (Cil.varinfo * Ctypes.ctype) list;
+   etypm : Ctypes.ctemap;
+   store : Ctypes.store;
+   anna  : Refanno.block_annotation array;
+   conca : (Refanno.cncm * Refanno.cncm) array;
+   theta : Refanno.ctab}
+
 let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
   | _                -> []

@@ -59,4 +59,4 @@ val create              : CilTag.o ->
                           FixInterface.cilenv ->
                           FixInterface.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
-                          Inferctypes.shape -> t
+                          ShapeInfra.shape -> t
