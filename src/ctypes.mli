@@ -44,23 +44,41 @@ exception NoLUB of ctype * ctype
 
 exception TypeDoesntFit
 
+module Field:
+  sig
+    type finality =
+      | Final
+      | Nonfinal
+
+    type 'a t
+
+    val d_field      : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
+
+    val get_finality : 'a t -> finality
+    val is_final     : 'a t -> bool
+    val type_of      : 'a t -> 'a prectype
+    val create       : finality -> 'a prectype -> 'a t
+    val map_type     : ('a prectype -> 'b prectype) -> 'a t -> 'b t
+end
+
 module LDesc:
   sig
     type 'a t
-    val empty: 'a t
-    val get_period: 'a t -> int option
-    val add: ploc -> 'a prectype -> 'a t -> 'a t
-    val add_index: index -> 'a prectype -> 'a t -> 'a t
-    val create: (index * 'a prectype) list -> 'a t
-    val remove: ploc -> 'a t -> 'a t
-    val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
-    val find: ploc -> 'a t -> (ploc * 'a prectype) list
-    val find_index: index -> 'a t -> (ploc * 'a prectype) list
-    val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
-    val fold: ('a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
-    val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
-    val mapn: (int -> ploc -> 'a prectype -> 'b prectype) -> 'a t -> 'b t
-    val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
+
+    val empty         : 'a t
+    val get_period    : 'a t -> int option
+    val add           : ploc -> 'a Field.t -> 'a t -> 'a t
+    val add_index     : index -> 'a Field.t -> 'a t -> 'a t
+    val create        : (index * 'a Field.t) list -> 'a t
+    val remove        : ploc -> 'a t -> 'a t
+    val shrink_period : int -> ('a Field.t -> 'a Field.t -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
+    val find          : ploc -> 'a t -> (ploc * 'a Field.t) list
+    val find_index    : index -> 'a t -> (ploc * 'a Field.t) list
+    val foldn         : (int -> 'a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
+    val fold          : ('a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
+    val map           : ('a Field.t -> 'b Field.t) -> 'a t -> 'b t
+    val mapn          : (int -> ploc -> 'a Field.t -> 'b Field.t) -> 'a t -> 'b t
+    val d_ldesc       : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
 type 'a prestore = ('a LDesc.t) Sloc.SlocMap.t
@@ -72,7 +90,7 @@ type 'a precfun =
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
     sto_in      : 'a prestore;                  (* in store *)
-    sto_out     : 'a prestore;                  (* out store *)             
+    sto_out     : 'a prestore;                  (* out store *)
   }
 
 type cfun = index precfun
@@ -172,8 +190,8 @@ val prestore_slocs  : 'a prestore -> Sloc.t list
 val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
 val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
 val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
-val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a prectype list
-val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
+val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a Field.t list
+val prestore_fold   : ('a -> Sloc.t -> index -> 'b Field.t -> 'a) -> 'a -> 'b prestore -> 'a
 val prestore_close_under : 'a prestore -> Sloc.t list -> 'a prestore
 val prestore_partition: (Sloc.t -> 'a LDesc.t -> bool) -> 'a prestore -> ('a prestore * 'a prestore)
 

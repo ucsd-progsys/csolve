@@ -258,8 +258,8 @@ let plocs_of_refldesc rd =
   |> List.rev
 
 let sloc_binds_of_refldesc l rd = 
-  Ct.LDesc.foldn begin fun i binds ploc rct ->
-    ((name_of_sloc_ploc l ploc, rct), ploc)::binds
+  Ct.LDesc.foldn begin fun i binds ploc rfld ->
+    ((name_of_sloc_ploc l ploc, Ct.Field.type_of rfld), ploc)::binds
   end [] rd
   |> List.rev
 
@@ -268,12 +268,13 @@ let binds_of_refldesc l rd =
   |> List.filter (fun (_, ploc) -> not (Ct.ploc_periodic ploc))
   |> List.map fst
 
-let refldesc_subs = fun rd f -> Ct.LDesc.mapn f rd 
+let refldesc_subs rd f =
+  Ct.LDesc.mapn (fun i pl fld -> Ct.Field.map_type (f i pl) fld) rd
 
 let refdesc_find ploc rd = 
   match Ct.LDesc.find ploc rd with
-  | [(ploc', rct)] -> 
-      (rct, Ct.ploc_periodic ploc')
+  | [(ploc', rfld)] ->
+      (Ct.Field.type_of rfld, Ct.ploc_periodic ploc')
   | _ -> assertf "refdesc_find"
 
 let addr_of_refctype loc = function
@@ -310,7 +311,7 @@ let refstore_write loc sto rct rct' =
   let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = LM.find cl sto in
   let ld = Ct.LDesc.remove ploc ld in
-  let ld = Ct.LDesc.add ploc rct' ld in
+  let ld = Ct.LDesc.add ploc (Ct.Field.create Ct.Field.Nonfinal rct') ld in
   LM.add cl ld sto
 
 (*******************************************************************)
@@ -800,16 +801,17 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
               |> Misc.map (Misc.app_snd (t_subs_names subs))
               |> ce_adds env in
   let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
-  let ld'   = Ct.LDesc.mapn begin fun i ploc rct ->
-                if IM.mem i im then IM.find i im |> t_name env' else
+  let ld'   = Ct.LDesc.mapn begin fun i ploc rfld ->
+                if IM.mem i im then IM.find i im |> t_name env' |> Ct.Field.create Ct.Field.Nonfinal else
                   match ploc with 
                   | Ct.PLAt _ -> assertf "missing binding!"
-                  | _             -> t_subs_names subs rct
+                  | _         -> Ct.Field.map_type (t_subs_names subs) rfld
               end ld in
   let cs    = if not newloc then [] else
-                Ct.LDesc.foldn begin fun i cs ploc rct ->
+                Ct.LDesc.foldn begin fun i cs ploc rfld ->
                   match ploc with
-                  | Ct.PLSeq (_,_) -> 
+                  | Ct.PLSeq (_,_) ->
+                      let rct = Ct.Field.type_of rfld in
                       let lhs = new_block_reftype rct in
                       let rhs = t_subs_names subs rct in
                       let cs' = fst <| make_cs cf env' A.pTrue lhs rhs None tag loc in

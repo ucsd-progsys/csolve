@@ -113,13 +113,13 @@ let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
 
 exception Unify of ctype * ctype
 
-let inloc_sat (st: store) (i: index) (s: S.t) (ct1: ctype): bool =
+let inloc_sat (st: store) (i: index) (s: S.t) (ct: ctype): bool =
   match i with
     | IBot -> true
     | _    ->
         try
           match prestore_find_index s i st with
-            | [ct2] -> prectype_eq ct1 ct2
+            | [fld] -> prectype_eq ct (Field.type_of fld)
             | []    -> false
             | _     -> halt <| C.bug "Prestore has multiple bindings for the same location"
         with Not_found -> false
@@ -143,7 +143,10 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | _                                            -> raise (Unify (ct1, ct2))
 
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
-  SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
+  SLM.add l (LDesc.add pl (Field.create Field.Final ctv) (prestore_find l sto)) sto
+
+let unify_fields fld1 fld2 sub =
+  unify_ctypes (Field.type_of fld1) (Field.type_of fld2) sub
 
 let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
   try
@@ -153,24 +156,24 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
           let pl = PLAt n in
             begin match LDesc.find pl (prestore_find s sto) with
               | []         -> ([], store_add s pl ct sto)
-              | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
+              | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
               | _          -> assert false
             end
       | ISeq (n, m, p) ->
-          let ld, sub = LDesc.shrink_period m unify_ctypes [] (prestore_find s sto) in
+          let ld, sub = LDesc.shrink_period m unify_fields [] (prestore_find s sto) in
           let pl      = PLSeq (n, p) in
-          let cts     = LDesc.find pl ld in
-          let sub     = List.fold_left (fun sub (_, ct2) -> unify_ctypes ct ct2 sub) sub cts in
+          let flds    = LDesc.find pl ld in
+          let sub     = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) sub flds in
           let p       = ld |> LDesc.get_period |> Misc.get_option 0 in
-            if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) cts then
+            if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) flds then
               (* If this sequence is included in an existing one, there's nothing left to do *)
               (sub, sto)
             else
               (* Otherwise, remove "later", overlapping elements and add this sequence.
                  (Note if there's no including sequence, all the elements we found previously
                  come after this one.) *)
-              let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld cts in
-              let ld = LDesc.add pl ct ld in
+              let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld flds in
+              let ld = LDesc.add pl (Field.create Field.Final ct) ld in
                 (sub, SLM.add s ld sto)
   with
     | e ->
@@ -388,7 +391,9 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
   let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
   let sub            = List.combine cf.qlocs instslocs in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
-  let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
+  let stoincs        = prestore_fold begin fun ics s i fld ->
+                         mk_locinc i (prectype_subs sub (Field.type_of fld)) (S.Subst.apply sub s) :: ics
+                       end [] cf.sto_out in
   let css            = (mk_wfsubst sub :: stoincs)
                        :: ((List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs) ctvfs) 
                        :: css in
@@ -493,10 +498,10 @@ let update_deps (scs: cstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep 
     (cm, sd)
 
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
-  prestore_fold begin fun ok l i ct ->
+  prestore_fold begin fun ok l i fld ->
     if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-        S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
+        S.d_sloc l d_index i (Field.d_field d_ctype) fld S.d_sloc l |> ignore;
       false
     end else
       ok
@@ -583,7 +588,7 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = prestore_upd cf.sto_out gst in
-  let scs                 = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
+  let scs                 = prestore_fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in

@@ -269,6 +269,35 @@ let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prec
 
 exception TypeDoesntFit
 
+module Field = struct
+  type finality =
+    | Final
+    | Nonfinal
+
+  type 'a t = ('a * finality) prectype
+
+  let get_finality = function
+    | CTInt (_, (_, fnl)) | CTRef (_, (_, fnl)) -> fnl
+
+  let is_final fld =
+    get_finality fld = Final
+
+  let type_of = function
+    | CTInt (n, (a, _)) -> CTInt (n, a)
+    | CTRef (s, (a, _)) -> CTRef (s, a)
+
+  let create fnl = function
+    | CTInt (n, a) -> CTInt (n, (a, fnl))
+    | CTRef (s, a) -> CTRef (s, (a, fnl))
+
+  let map_type f fld =
+    fld |> type_of |> f |> create (get_finality fld)
+
+  let d_field d_pct () fld =
+    let pct = type_of fld in
+      if is_final fld then P.dprintf "final %a" d_pct pct else d_pct () pct
+end
+
 module LDesc = struct
   (* - The list always contains at least one item.
      - The period is non-negative if present.
@@ -280,7 +309,7 @@ module LDesc = struct
 
      The period is always positive.
   *)
-  type 'a contents = (ploc * 'a prectype) list
+  type 'a contents = (ploc * 'a Field.t) list
 
   type 'a t = (* period: *) int option * 'a contents
 
@@ -293,94 +322,96 @@ module LDesc = struct
   let get_period_default (po: int option): int =
     M.get_option 0 po
 
-  let collides_with (pl1: ploc) (pct1: 'a prectype) (po: int option) ((pl2, pct2): ploc * 'a prectype): bool =
-    prectypes_collide pl1 pct1 pl2 pct2 (get_period_default po)
+  let collides_with pl1 fld1 po (pl2, fld2) =
+    prectypes_collide pl1 fld1 pl2 fld2 (get_period_default po)
 
-  let fits (pl: ploc) (pct: 'a prectype) (po: int option) (pcts: (ploc * 'a prectype) list): bool =
-    (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width pct <= get_period_default po))
-      && not (List.exists (collides_with pl pct po) pcts)
+  let fits pl fld po flds =
+    (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width fld <= get_period_default po))
+      && not (List.exists (collides_with pl fld po) flds)
 
-  let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
-    | []                           -> [(pl, pct)]
-    | (pl2, pct2) :: pcts' as pcts -> if ploc_start pl <= ploc_start pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
+  let rec insert pl fld = function
+    | []                           -> [(pl, fld)]
+    | (pl2, fld2) :: flds' as flds -> if ploc_start pl <= ploc_start pl2 then (pl, fld) :: flds else (pl2, fld2) :: insert pl fld flds'
 
-  let add (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): 'a t =
-    if fits pl pct po pcts then (po, insert pl pct pcts) else raise TypeDoesntFit
+  let add pl fld (po, flds) =
+    if fits pl fld po flds then (po, insert pl fld flds) else raise TypeDoesntFit
 
-  let remove (pl: ploc) ((po, pcts): 'a t): 'a t =
-    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
+  let remove pl (po, flds) =
+    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) flds)
 
-  let swallow_repeats (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) (pcts: (ploc * 'a prectype) list): (ploc * 'a prectype) list * 'b =
+  let swallow_repeats f b flds =
     try
-      let (pl1, pct1) = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
-      let (rs, us)    = List.partition (fun (pl2, _) -> ploc_start pl1 < ploc_start pl2) pcts in
-      let b           = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
+      let (pl1, fld1) = List.find (fun (pl, _) -> ploc_periodic pl) flds in
+      let (rs, us)    = List.partition (fun (pl2, _) -> ploc_start pl1 < ploc_start pl2) flds in
+      let b           = List.fold_left (fun b (_, fld2) -> f fld1 fld2 b) b rs in
         (us, b)
     with Not_found ->
       (* No periods, so nothing to do *)
-      (pcts, b)
+      (flds, b)
 
-  let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
+  let shrink_period p f b (po, flds) =
     assert (p > 0);
     let p       = M.gcd (get_period_default po) p in
-    let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
+    let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) flds in
     let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-    let pcts    = List.sort (M.liftfst2 ploc_compare) (List.concat gs) in
-      if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
-        ((Some p, pcts), b)
+    let flds    = List.sort (M.liftfst2 ploc_compare) (List.concat gs) in
+      if not (M.exists_pair (fun (pl1, fld1) (pl2, fld2) -> prectypes_collide pl1 fld1 pl2 fld2 p) flds) then
+        ((Some p, flds), b)
       else
         (* pmr: this is not quite descriptive enough *)
         raise TypeDoesntFit
 
-  let shrink_period_fail_on_conflict (p: int) (ld: 'a t): 'a t =
+  let shrink_period_fail_on_conflict p ld =
     shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
 
-  let add_index (i: index) (pct: 'a prectype) (ld: 'a t): 'a t =
+  let add_index i fld ld =
     match i with
-      | ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) pct
-      | _              -> add (ploc_of_index i) pct ld
+      | ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) fld
+      | _              -> add (ploc_of_index i) fld ld
 
-  let create (icts: (index * 'a prectype) list): 'a t =
-    List.fold_left (M.uncurry add_index |> M.flip) empty icts
+  let create iflds =
+    List.fold_left (M.uncurry add_index |> M.flip) empty iflds
 
-  let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
+  let find pl1 (po, flds) =
     if ploc_periodic pl1 && not (Misc.maybe_bool po) then
       []
     else
       let p = get_period_default po in
-        List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+        List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) flds
 
-  let find_index (i: index) ((po, _) as ld: 'a t) =
-    let pcts = find (ploc_of_index i) ld in
+  let find_index i ((po, _) as ld) =
+    let flds = find (ploc_of_index i) ld in
     let p    = get_period_default po in
-      List.filter (fun (pl, pct) -> ploc_contains_index pl p i) pcts
+      List.filter (fun (pl, _) -> ploc_contains_index pl p i) flds
 
-  let rec foldn_aux (f: int -> 'a -> ploc -> 'b prectype -> 'a) (n: int) (b: 'a): (ploc * 'b prectype) list -> 'a = function
+  let rec foldn_aux f n b = function
     | []                -> b
-    | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
+    | (pl, fld) :: flds -> foldn_aux f (n + 1) (f n b pl fld) flds
 
-  let foldn (f: int -> 'a -> ploc -> 'b prectype -> 'a) (b: 'a) ((po, pcts): 'b t): 'a =
-    foldn_aux f 0 b pcts
+  let foldn f b (po, flds) =
+    foldn_aux f 0 b flds
 
-  let fold (f: 'a -> ploc -> 'b prectype -> 'a) (b: 'a) (ld: 'b t): 'a =
-    foldn (fun _ b pl pct -> f b pl pct) b ld
+  let fold f b ld =
+    foldn (fun _ b pl fld -> f b pl fld) b ld
 
-  let mapn (f: int -> ploc -> 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
-    (po, pcts |> foldn_aux (fun n pcts pl pct -> (pl, f n pl pct) :: pcts) 0 [] |> List.rev)
+  let mapn f (po, flds) =
+    (po, flds |> foldn_aux (fun n flds pl fld -> (pl, f n pl fld) :: flds) 0 [] |> List.rev)
 
-  let map (f: 'a prectype -> 'b prectype) (ld: 'a t): 'b t =
-    mapn (fun _ _ pct -> f pct) ld
+  let map f ld =
+    mapn (fun _ _ fld -> f fld) ld
 
-  let referenced_slocs (ld: 'a t): SS.t =
-    fold (fun rss _ pct -> match prectype_sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
+  let referenced_slocs ld =
+    fold (fun rss _ fld -> match prectype_sloc fld with None -> rss | Some s -> SS.add s rss) SS.empty ld
 
-  let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, pcts): 'a t): P.doc =
+  let d_ldesc pt () (po, flds) =
     let p = get_period_default po in
       (* JHALA
          let s = P.concat (P.text ",") P.break in
          let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
          P.concat P.align (P.concat d P.unalign) *)
-      P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts)
+      P.dprintf "@[%t@]"
+        (fun () -> P.seq (P.dprintf ",@!")
+           (fun (pl, fld) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) (Field.d_field pt) fld) flds)
 end
 
 module SLM = S.SlocMap
@@ -389,10 +420,10 @@ module SLM = S.SlocMap
 type 'a prestore = ('a LDesc.t) SLM.t
 
 let prestore_map f =
-  f |> prectype_map |> LDesc.map |> SLM.map
+  f |> prectype_map |> Field.map_type |> LDesc.map |> SLM.map
 
 let prestore_map_ct f =
-  SLM.map (LDesc.map f)
+  SLM.map (LDesc.map (Field.map_type f))
 
 let prestore_fold f b ps =
   SLM.fold begin fun l ld b ->
@@ -412,7 +443,7 @@ let prestore_slocs (ps: 'a prestore): S.t list =
 let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
   try SLM.find l ps with Not_found -> LDesc.empty
 
-let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list =
+let prestore_find_index l i ps =
    ps |> prestore_find l |> LDesc.find_index i |> List.map snd
 
 (* pmr: why is this not rename_prestore? *)
@@ -449,7 +480,7 @@ let prectype_closed (ct: 'a prectype) (sto: 'a prestore) =
     | CTRef (l, _) -> SLM.mem l sto
 
 let prestore_closed (sto: 'a prestore): bool =
-  prestore_fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
+  prestore_fold (fun closed _ _ fld -> closed && prectype_closed (Field.type_of fld) sto) true sto
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
@@ -489,8 +520,8 @@ let precfun_map f ft =
   { qlocs   = ft.qlocs;
     args    = List.map (Misc.app_snd f) ft.args;
     ret     = (* Misc.map_opt *) f ft.ret;
-    sto_in  = SLM.map (LDesc.map f) ft.sto_in;
-    sto_out = SLM.map (LDesc.map f) ft.sto_out;
+    sto_in  = prestore_map_ct f ft.sto_in;
+    sto_out = prestore_map_ct f ft.sto_out;
   }
 
 let d_slocs () slocs     = P.seq (P.text ";") (S.d_sloc ()) slocs

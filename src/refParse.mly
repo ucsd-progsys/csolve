@@ -154,7 +154,7 @@ indbindsne:
   ;
 
 indbind:
-    index COLON reftype                 { ($1, $3) }
+    index COLON reftype                 { ($1, Ctypes.Field.create Ctypes.Field.Nonfinal $3) }
   ;
 
 reftype:
