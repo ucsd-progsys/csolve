@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd ../benchmarks/cyclone/cacm/c/
+cd ../tests/cacm/
 make clean
 make
