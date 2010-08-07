@@ -70,13 +70,13 @@ module IntraprocNonFinalFields = struct
       (nf, fs)
 
   let merge_preds ctx f j =
-    if j = 0 then
-      S.SlocSet.empty
-    else
-         ctx.cfg.Ssa.predecessors.(j)
-      |> List.map (fun i -> f.(i))
-      |> M.list_reduce S.SlocSet.inter
-      |> S.SlocMap.fold (fun s _ fs -> S.SlocSet.remove s fs) (snd ctx.conca.(j))
+    match ctx.cfg.Ssa.predecessors.(j) with
+      | []    -> S.SlocSet.empty
+      | preds ->
+           preds
+        |> List.map (fun i -> f.(i))
+        |> M.list_reduce S.SlocSet.inter
+        |> S.SlocMap.fold (fun s _ fs -> S.SlocSet.remove s fs) (snd ctx.conca.(j))
 
   let process_block ctx f j nf b =
     let fs = merge_preds ctx f j in
