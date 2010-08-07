@@ -1,6 +1,19 @@
 (* TODO
-   2. Test with globals
-   3. Annotations to, from spec files
+   1. Test with globals
+   2. Annotations from spec files
+   3. Using spec file annotation without function present
+   4. Checking all present functions against spec annotation
+        Because genspec won't generate finality specs,
+        we have to check the inferred spec is a *refinement*
+        of the given spec.
+   5. Do-nothing test against regrtest
+        Don't use the final field info, just make sure no regression
+        test broke with all the refactoring.
+
+  QUIRKS
+   1. genspec can't produce final field declarations
+      genspec is totally type-driven and does no analysis
+      whatsoever.
 *)
 
 module S  = Sloc
