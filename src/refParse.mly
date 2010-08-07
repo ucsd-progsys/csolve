@@ -65,6 +65,7 @@ let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
 %token INT BOOL PTR FUNC
 %token SRT AXM CST WF SOL QUL
 %token ENV GRD LHS RHS REF
+%token FINAL
 
 %start specs 
 
@@ -155,6 +156,7 @@ indbindsne:
 
 indbind:
     index COLON reftype                 { ($1, Ctypes.Field.create Ctypes.Field.Nonfinal $3) }
+  | index COLON FINAL reftype           { ($1, Ctypes.Field.create Ctypes.Field.Final $4) }
   ;
 
 reftype:
