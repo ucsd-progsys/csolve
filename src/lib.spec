@@ -93,8 +93,7 @@ atoi ::
   forall    [A0]
   arg       (a: ref (A0, 0[1], {v | true}))
   ret       int (4, true, {v | true})
-  store_in  [A0 |-> 0[1]: int (1, true, {v | true})]
-  store_out [A0 |-> 0[1]: int (1, true, {v | true})]
+  store     [A0 |-> 0[1]: final int (1, true, {v | true})]
 
 random ::
   forall    []
@@ -170,11 +169,10 @@ perror ::
   forall    [A1]
   arg       (err: ref (A1, 0[1]))
   ret       int (0, true)
-  store_in  [A1 |-> 0[1]: int (1, true)]
-  store_out [A1 |-> 0[1]: int (1, true)]
+  store     [A1 |-> 0[1]: final int (1, true)]
 
 strlen ::
   forall    [A1]
   arg       (str: ref (A1, 0[1]))
   ret       int (4, 0[1])
-  store     [A1 |-> 0[1]: int (1, true)]
+  store     [A1 |-> 0[1]: final int (1, true)]
