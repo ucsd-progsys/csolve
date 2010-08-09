@@ -404,6 +404,9 @@ module LDesc = struct
   let map f ld =
     mapn (fun _ _ fld -> f fld) ld
 
+  let iter f ld =
+    fold (fun _ pl fld -> f pl fld) () ld
+
   let nonfinal_fields ld =
     fold (fun nfs pl fld -> if Field.is_final fld then nfs else (pl, fld) :: nfs) [] ld
 

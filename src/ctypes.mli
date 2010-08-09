@@ -79,6 +79,7 @@ module LDesc:
     val fold            : ('a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
     val map             : ('a Field.t -> 'b Field.t) -> 'a t -> 'b t
     val mapn            : (int -> ploc -> 'a Field.t -> 'b Field.t) -> 'a t -> 'b t
+    val iter            : (ploc -> 'a Field.t -> unit) -> 'a t -> unit
     val nonfinal_fields : 'a t -> (ploc * 'a Field.t) list
     val d_ldesc         : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
