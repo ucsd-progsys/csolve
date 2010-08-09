@@ -1,12 +1,5 @@
 (* TODO
    1. Test with globals
-   4. Checking all present functions against spec annotation
-        Because genspec won't generate finality specs,
-        we have to check the inferred spec is a *refinement*
-        of the given spec.
-   5. Do-nothing test against regrtest
-        Don't use the final field info, just make sure no regression
-        test broke with all the refactoring.
 
    QUIRKS/BUGS
    1. genspec can't produce final field declarations
@@ -215,7 +208,34 @@ let set_nonfinal_fields shpm fnfm =
     ({shp with SI.store = store_set_nonfinal_fields (SM.find fname fnfm) shp.SI.store}, ds)
   end shpm
 
+exception NotRefinement of S.t * CT.ploc
+
+let check_finality_refinement sto_refined sto =
+  S.SlocMap.iter begin fun s ld_refined ->
+    LD.iter begin fun pl fld ->
+      match F.get_finality fld with
+        | F.Final ->
+               sto_refined
+            |> S.SlocMap.find s
+            |> LD.find pl
+            |> List.iter (fun (_, fld) -> if F.get_finality fld != F.Final then raise (NotRefinement (s, pl)))
+        | _ -> ()
+    end ld_refined
+  end sto
+
+let check_finality_specs fspec shpm =
+  SM.iter begin fun fname (shp, _) ->
+    try
+      let cf = SM.find fname fspec |> fst in
+        check_finality_refinement shp.SI.store cf.CT.sto_in;
+        check_finality_refinement shp.SI.store cf.CT.sto_out
+    with NotRefinement (s, pl) ->
+      let _ = P.printf "Spec for %s declares field %a |-> %a final, but field is nonfinal\n" fname S.d_sloc s CT.d_ploc pl in
+        assert false
+  end shpm
+
 let infer_final_fields fspec fm shpm =
      shpm
   |> InterprocNonFinalFields.infer_nonfinal_fields fspec fm
   |> set_nonfinal_fields shpm
+  >> check_finality_specs fspec
