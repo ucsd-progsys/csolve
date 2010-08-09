@@ -26,7 +26,7 @@ module SI = ShapeInfra
 open M.Ops
 
 module IndexSet = Set.Make (struct
-  type t = CT.index
+  type t = CT.Index.t
 
   let compare = compare
 end)
@@ -40,7 +40,7 @@ let nonfinal_equal nfm1 nfm2 =
   S.SlocMap.equal IndexSet.equal nfm1 nfm2
 
 let dump_nonfinal nfm =
-  Pretty.printf "%a\n\n" (S.d_slocmap (IndexSetPrinter.d_set ", " CT.d_index)) nfm
+  Pretty.printf "%a\n\n" (S.d_slocmap (IndexSetPrinter.d_set ", " CT.Index.d_index)) nfm
 
 module IntraprocNonFinalFields = struct
   type context = {

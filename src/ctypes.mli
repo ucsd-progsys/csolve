@@ -25,16 +25,32 @@ type seq_polarity = (* whether sequence extends positively only or in both direc
   | Pos
   | PosNeg
 
-type index =
-  | IBot                             (* empty sequence *)
-  | IInt of int                      (* singleton n >= 0 *)
-  | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+module Index:
+  sig
+    type t =
+      | IBot                             (* empty sequence *)
+      | IInt of int                      (* singleton n >= 0 *)
+      | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+
+    val top         : t
+    val nonneg      : t
+    val of_int      : int -> t
+    val lub         : t -> t -> t
+    val plus        : t -> t -> t
+    val minus       : t -> t -> t
+    val scale       : int -> t -> t
+    val mult        : t -> t -> t
+    val div         : t -> t -> t
+    val unsign      : t -> t
+    val is_subindex : t -> t -> bool
+    val d_index     : unit -> t -> Pretty.doc
+  end
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of Sloc.t * 'a (* reference *)
 
-type ctype = index prectype
+type ctype = Index.t prectype
 
 type ploc =
   | PLAt of int                 (* location n *)
@@ -69,12 +85,12 @@ module LDesc:
     val empty           : 'a t
     val get_period      : 'a t -> int option
     val add             : ploc -> 'a Field.t -> 'a t -> 'a t
-    val add_index       : index -> 'a Field.t -> 'a t -> 'a t
-    val create          : (index * 'a Field.t) list -> 'a t
+    val add_index       : Index.t -> 'a Field.t -> 'a t -> 'a t
+    val create          : (Index.t * 'a Field.t) list -> 'a t
     val remove          : ploc -> 'a t -> 'a t
     val shrink_period   : int -> ('a Field.t -> 'a Field.t -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find            : ploc -> 'a t -> (ploc * 'a Field.t) list
-    val find_index      : index -> 'a t -> (ploc * 'a Field.t) list
+    val find_index      : Index.t -> 'a t -> (ploc * 'a Field.t) list
     val foldn           : (int -> 'a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
     val fold            : ('a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
     val map             : ('a Field.t -> 'b Field.t) -> 'a t -> 'b t
@@ -84,19 +100,48 @@ module LDesc:
     val d_ldesc         : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
-type 'a prestore = ('a LDesc.t) Sloc.SlocMap.t
+module PreStore:
+  sig
+    type 'a t = ('a LDesc.t) Sloc.SlocMap.t
 
-type store = index prestore
+    val domain      : 'a t -> Sloc.t list
+    val slocs       : 'a t -> Sloc.t list
+    val map_ct      : ('a prectype -> 'b prectype) -> 'a t -> 'b t
+    val map         : ('a -> 'b) -> 'a t -> 'b t
+    val find        : Sloc.t -> 'a t -> 'a LDesc.t
+    val find_index  : Sloc.t -> Index.t -> 'a t -> 'a Field.t list
+    val fold        : ('a -> Sloc.t -> Index.t -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
+    val close_under : 'a t -> Sloc.t list -> 'a t
+    val partition   : (Sloc.t -> 'a LDesc.t -> bool) -> 'a t -> ('a t * 'a t)
+    val upd         : 'a t -> 'a t -> 'a t
+      (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+          overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
+    val subs        : Sloc.Subst.t -> 'a t -> 'a t
+
+    val d_prestore_addrs : unit -> 'a t -> Pretty.doc
+    val d_prestore       : (unit -> 'a -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
+
+    (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+    (** [prestore_split sto] returns (asto, csto) s.t. 
+       (1) sto = asto + csto
+       (2) locs(asto) \in abslocs 
+       (3) locs(csto) \in conlocs *)
+       let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+       prestore_partition (fun l _ -> S.is_abstract l) ps
+    *)
+  end
+
+type store = Index.t PreStore.t
 
 type 'a precfun =
   { qlocs       : Sloc.t list;                  (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a prestore;                  (* in store *)
-    sto_out     : 'a prestore;                  (* out store *)
+    sto_in      : 'a PreStore.t;                (* in store *)
+    sto_out     : 'a PreStore.t;                (* out store *)
   }
 
-type cfun = index precfun
+type cfun = Index.t precfun
 
 module ExpKey:
   sig
@@ -122,33 +167,19 @@ type ctemap = ctype ExpMap.t
 (******************************************************************************)
 
 val d_ploc : unit -> ploc -> Pretty.doc
-val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_cfun    : unit -> cfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
-val d_precstore : (unit -> 'a -> Pretty.doc) -> unit -> 'a prestore -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
-val d_prestore_addrs: unit -> 'a prestore -> Pretty.doc
 val d_ctemap: unit -> ctemap -> Pretty.doc
 
 (******************************************************************************)
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
-val index_top: index
-val index_nonneg: index
-val index_of_int: int -> index
-val index_of_ploc: ploc -> int -> index
-val ploc_of_index: index -> ploc
-val index_lub: index -> index -> index
-val index_plus: index -> index -> index
-val index_minus: index -> index -> index
-val index_scale: int -> index -> index
-val index_mult: index -> index -> index
-val index_div: index -> index -> index
-val index_unsign: index -> index
-val is_subindex: index -> index -> bool
+val ploc_of_index : Index.t -> ploc
+val index_of_ploc : ploc -> int -> Index.t
 
 (******************************************************************************)
 (******************************* Type Operations ******************************)
@@ -163,12 +194,12 @@ val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val ctype_of_const: Cil.constant -> ctype
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val precfun_well_formed : 'a prestore -> 'a precfun -> bool
+val precfun_well_formed : 'a PreStore.t -> 'a precfun -> bool
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_slocs : cfun -> Sloc.t list
-val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
+val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a PreStore.t -> 'a PreStore.t -> 'a precfun
 val cfun_subs : Sloc.Subst.t -> cfun -> cfun
-val prectype_closed : 'a prectype -> 'a prestore -> bool
+val prectype_closed : 'a prectype -> 'a PreStore.t -> bool
 val void_ctype: ctype
 val is_void : 'a prectype -> bool
 val is_ref : 'a prectype -> bool
@@ -188,33 +219,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
-val prestore_domain : 'a prestore -> Sloc.t list
-val prestore_slocs  : 'a prestore -> Sloc.t list
-val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
-val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a Field.t list
-val prestore_fold   : ('a -> Sloc.t -> index -> 'b Field.t -> 'a) -> 'a -> 'b prestore -> 'a
-val prestore_close_under : 'a prestore -> Sloc.t list -> 'a prestore
-val prestore_partition: (Sloc.t -> 'a LDesc.t -> bool) -> 'a prestore -> ('a prestore * 'a prestore)
-
-(* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
-(** [prestore_split sto] returns (asto, csto) s.t. 
-	(1) sto = asto + csto
-	(2) locs(asto) \in abslocs 
-	(3) locs(csto) \in conlocs *)
-let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-  prestore_partition (fun l _ -> S.is_abstract l) ps
-*)
-
-
-val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
-(** [prestore_upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
-    overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
-
-val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
-
-val prestore_closed : 'a prestore -> bool
+val prestore_closed : 'a PreStore.t -> bool
 
 (******************************************************************************)
 (************************************ Specs ***********************************)
@@ -222,7 +227,7 @@ val prestore_closed : 'a prestore -> bool
 
 module PreSpec:
   sig
-    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a PreStore.t
 
     val empty: 'a t
 
@@ -233,7 +238,7 @@ module PreSpec:
     val mem_fun : string -> 'a t -> bool
     val mem_var : string -> 'a t -> bool
 
-    val store   : 'a t -> 'a prestore
+    val store   : 'a t -> 'a PreStore.t
   end
 
-type cspec = index PreSpec.t
+type cspec = Index.t PreSpec.t

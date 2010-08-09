@@ -100,8 +100,8 @@ let is_cyclic =
 
 let mk_idx po i =
   match po with 
-  | None   -> Ct.IInt i
-  | Some n -> Ct.ISeq (i, n, Ct.Pos)
+  | None   -> Ct.Index.IInt i
+  | Some n -> Ct.Index.ISeq (i, n, Ct.Pos)
 
 let unroll_ciltype t =
   match Cil.unrollType t with
@@ -112,18 +112,18 @@ let unroll_ciltype t =
 let add_off off c =
   let i = CilMisc.bytesSizeOf c in
   match off with 
-  | Ct.IInt i' -> Ct.IInt (i+i')
-  | Ct.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.d_index off
+  | Ct.Index.IInt i' -> Ct.Index.IInt (i+i')
+  | Ct.Index.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.Index.d_index off
 
 let adj_period po idx = 
   match po, idx with
-  | None  , _         -> idx
-  | Some n, Ct.IInt i -> Ct.ISeq (i, n, Ct.Pos)
-  | _, _              -> assertf "adjust_period: adjusting a periodic index"
+  | None  , _               -> idx
+  | Some n, Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.Pos)
+  | _, _                    -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
-            Pretty.printf "LDESC ON: %a : %a \n" Ct.d_index i Ct.d_ctype t |> ignore
+            Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
   |> List.map (fun (i, t) -> (i, Ct.Field.create Ct.Field.Nonfinal t))
@@ -134,7 +134,7 @@ let ldesc_of_index_ctypes ts =
   | _                    -> Ct.LDesc.create ts 
 *)
 
-let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.index_nonneg else Ct.index_top
+let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
 
 let conv_cilbasetype = function 
   | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
@@ -179,7 +179,7 @@ and conv_ptr loc (th, st) po c =
     let l                = Sloc.fresh Sloc.Abstract in
     let idx              = mk_idx po 0 in
     let th'              = SM.add tid (l, idx) th in
-    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.IInt 0) po c in
+    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) po c in
     let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.CTRef (l, idx)
@@ -203,12 +203,12 @@ let conv_ciltype y tlev z c =
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc InStruct) (SM.empty, SLM.empty, Ct.IInt 0) in
+    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc InStruct) (SM.empty, SLM.empty, Ct.Index.IInt 0) in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
     let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
-    let res'  = conv_ciltype loc InStruct (th, ist, Ct.IInt 0) t in
+    let res'  = conv_ciltype loc InStruct (th, ist, Ct.Index.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
@@ -256,7 +256,7 @@ let funspecs_of_funm funspec funm =
 let upd_varm spec (st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
-      begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.IInt 0) t with
+      begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
         | (_, st, _), [(_, ct)] ->
             (st, Misc.sm_protected_add false vn ct varm)
         | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t

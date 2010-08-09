@@ -69,7 +69,7 @@ type ctvemap = ctype ExpMap.t
 (******************************************************************************)
 
 type cstrdesc =
-  | CInLoc of index * ctype * S.t
+  | CInLoc of Index.t * ctype * S.t
   | CSubtype of ctype * ctype
   | CWFSubst of S.Subst.t
 
@@ -80,7 +80,7 @@ let cstrdesc_slocs: cstrdesc -> S.t list = function
 
 let d_cstrdesc (): cstrdesc -> P.doc = function
   | CSubtype (ctv1, ctv2) -> P.dprintf "@[@[%a@] <: @[%a@]@]" d_ctype ctv1 d_ctype ctv2
-  | CInLoc (i, ctv, s)    -> P.dprintf "(%a, %a) ∈ %a" d_index i d_ctype ctv S.d_sloc s
+  | CInLoc (i, ctv, s)    -> P.dprintf "(%a, %a) ∈ %a" Index.d_index i d_ctype ctv S.d_sloc s
   | CWFSubst (sub)        -> P.dprintf "WF(%a)" S.Subst.d_subst sub
 
 let apply_subst_to_subst (appsub: S.Subst.t) (sub: S.Subst.t): S.Subst.t =
@@ -112,12 +112,12 @@ let d_cstr () ({cid = cid; cdesc = cdesc; cloc = loc}: cstr): P.doc =
 
 exception Unify of ctype * ctype
 
-let inloc_sat (st: store) (i: index) (s: S.t) (ct: ctype): bool =
+let inloc_sat (st: store) (i: Index.t) (s: S.t) (ct: ctype): bool =
   match i with
-    | IBot -> true
-    | _    ->
+    | Index.IBot -> true
+    | _          ->
         try
-          match prestore_find_index s i st with
+          match PreStore.find_index s i st with
             | [fld] -> prectype_eq ct (Field.type_of fld)
             | []    -> false
             | _     -> halt <| C.bug "Prestore has multiple bindings for the same location"
@@ -142,24 +142,24 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | _                                            -> raise (Unify (ct1, ct2))
 
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
-  SLM.add l (LDesc.add pl (Field.create Field.Final ctv) (prestore_find l sto)) sto
+  SLM.add l (LDesc.add pl (Field.create Field.Final ctv) (PreStore.find l sto)) sto
 
 let unify_fields fld1 fld2 sub =
   unify_ctypes (Field.type_of fld1) (Field.type_of fld2) sub
 
-let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
+let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store): S.Subst.t * store =
   try
     match i with
-      | IBot   -> ([], sto)
-      | IInt n ->
+      | Index.IBot   -> ([], sto)
+      | Index.IInt n ->
           let pl = PLAt n in
-            begin match LDesc.find pl (prestore_find s sto) with
+            begin match LDesc.find pl (PreStore.find s sto) with
               | []         -> ([], store_add s pl ct sto)
               | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
               | _          -> assert false
             end
-      | ISeq (n, m, p) ->
-          let ld, sub = LDesc.shrink_period m unify_fields [] (prestore_find s sto) in
+      | Index.ISeq (n, m, p) ->
+          let ld, sub = LDesc.shrink_period m unify_fields [] (PreStore.find s sto) in
           let pl      = PLSeq (n, p) in
           let flds    = LDesc.find pl ld in
           let sub     = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) sub flds in
@@ -176,7 +176,7 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
                 (sub, SLM.add s ld sto)
   with
     | e ->
-        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (prestore_find s sto) |> ignore;
+        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" Index.d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (PreStore.find s sto) |> ignore;
         raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function
@@ -217,7 +217,7 @@ let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
 let refine (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: cstr) (sto: store): slocdep * cstrmap * S.Subst.t * store * int list =
   let refsub, sto   = refine_aux sc sto in
   let invalid_slocs = S.Subst.slocs refsub in
-  let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
+  let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> PreStore.subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
   let cm            = cstrmap_subs refsub cm in
@@ -256,7 +256,7 @@ let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.
 let mk_subty (ctv1: ctype) (ctv2: ctype): cstr =
   mk_cstr !C.currentLoc (CSubtype (ctv1, ctv2))
 
-let mk_locinc (i: index) (ctv: ctype) (s: S.t): cstr =
+let mk_locinc (i: Index.t) (ctv: ctype) (s: S.t): cstr =
   mk_cstr !C.currentLoc (CInLoc (i, ctv, s))
 
 let mk_wfsubst (sub: S.Subst.t): cstr =
@@ -296,9 +296,9 @@ and constrain_unop (op: C.unop) (env: env) (em: ctvemap) (t: C.typ) (e: C.exp): 
       | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
 
 and apply_unop (rt: C.typ): C.unop -> ctype = function
-  | C.LNot -> CTInt (CM.typ_width rt, index_nonneg)
-  | C.BNot -> CTInt (CM.typ_width rt, index_top)
-  | C.Neg  -> CTInt (CM.typ_width rt, index_top)
+  | C.LNot -> CTInt (CM.typ_width rt, Index.nonneg)
+  | C.BNot -> CTInt (CM.typ_width rt, Index.top)
+  | C.Neg  -> CTInt (CM.typ_width rt, Index.top)
 
 and constrain_binop (op: C.binop) (env: env) (em: ctvemap) (t: C.typ) (e1: C.exp) (e2: C.exp): ctype * ctvemap * cstr list =
   let ctv1, em, cs1 = constrain_exp env em e1 in
@@ -307,12 +307,12 @@ and constrain_binop (op: C.binop) (env: env) (em: ctvemap) (t: C.typ) (e1: C.exp
     (ctv, em, List.concat [cs1; cs2])
 
 and apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
-  | C.PlusA                                 -> apply_arithmetic index_plus
-  | C.MinusA                                -> apply_arithmetic index_minus
-  | C.Mult                                  -> apply_arithmetic index_mult
-  | C.Div                                   -> apply_arithmetic index_div
-  | C.PlusPI | C.IndexPI                    -> apply_ptrarithmetic (fun i1 x i2 -> index_plus i1 (index_scale x i2))
-  | C.MinusPI                               -> apply_ptrarithmetic (fun i1 x i2 -> index_minus i1 (index_scale x i2))
+  | C.PlusA                                 -> apply_arithmetic Index.plus
+  | C.MinusA                                -> apply_arithmetic Index.minus
+  | C.Mult                                  -> apply_arithmetic Index.mult
+  | C.Div                                   -> apply_arithmetic Index.div
+  | C.PlusPI | C.IndexPI                    -> apply_ptrarithmetic (fun i1 x i2 -> Index.plus i1 (Index.scale x i2))
+  | C.MinusPI                               -> apply_ptrarithmetic (fun i1 x i2 -> Index.minus i1 (Index.scale x i2))
   | C.MinusPP                               -> apply_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> apply_rel
   | C.Mod                                   -> apply_unknown
@@ -320,55 +320,55 @@ and apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
   | bop                                     -> E.s <| C.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
 
-and apply_arithmetic (f: index -> index -> index) (rt: C.typ) (ctv1: ctype) (ctv2: ctype): ctype =
+and apply_arithmetic f rt ctv1 ctv2 =
   match (ctv1, ctv2) with
     | (CTInt (n1, i1), CTInt (n2, i2)) -> CTInt (CM.typ_width rt, f i1 i2)
     | _                                -> E.s <| C.bug "Type mismatch in apply_arithmetic@!@!"
 
-and apply_ptrarithmetic (f: index -> int -> index -> index) (pt: C.typ) (ctv1: ctype) (ctv2: ctype): ctype =
+and apply_ptrarithmetic f pt ctv1 ctv2 =
   match (C.unrollType pt, ctv1, ctv2) with
     | (C.TPtr (t, _), CTRef (s, i1), CTInt (n, i2)) when n = CM.int_width -> CTRef (s, f i1 (CM.typ_width t) i2)
     | _                                                                   -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.typ_width !C.upointType, index_top)
+  CTInt (CM.typ_width !C.upointType, Index.top)
 
 and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.int_width, index_nonneg)
+  CTInt (CM.int_width, Index.nonneg)
 
 and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
-  CTInt (CM.typ_width rt, index_top)
+  CTInt (CM.typ_width rt, Index.top)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, IInt 0), [mk_locinc index_nonneg (CTInt (1, index_nonneg)) s])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, IBot), [])
+  | C.CStr _                                 -> let s = S.fresh S.Abstract in (CTRef (s, Index.IInt 0), [mk_locinc Index.nonneg (CTInt (1, Index.nonneg)) s])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (CTRef (s, Index.IBot), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
   let ctv, em, cs = constrain_exp env em e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, index_nonneg), em, cs)
-      | C.TInt (ik, _), C.TFloat _   -> (CTInt (C.bytesSizeOfInt ik, index_top), em, cs)
-      | C.TFloat (fk, _), _          -> (CTInt (CM.bytesSizeOfFloat fk, index_top), em, cs)
+      | C.TInt (ik, _), C.TPtr _     -> (CTInt (C.bytesSizeOfInt ik, Index.nonneg), em, cs)
+      | C.TInt (ik, _), C.TFloat _   -> (CTInt (C.bytesSizeOfInt ik, Index.top), em, cs)
+      | C.TFloat (fk, _), _          -> (CTInt (CM.bytesSizeOfFloat fk, Index.top), em, cs)
       | C.TInt (ik, _), C.TInt _     ->
           begin match ctv with
             | CTInt (n, ie) ->
                 let iec =
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
-                    if C.isSigned ik then ie else index_unsign ie
+                    if C.isSigned ik then ie else Index.unsign ie
                   else if not !Constants.safe then begin
                     C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
-                    if C.isSigned ik then ie else index_unsign ie
+                    if C.isSigned ik then ie else Index.unsign ie
                   end else
-                    index_top
+                    Index.top
                 in (CTInt (C.bytesSizeOfInt ik, iec), em, cs)
             | _ -> E.s <| C.error "Got bogus type in contraining int-int cast@!@!"
           end
       | _ -> (ctv, em, cs)
 
 and constrain_sizeof (em: ctvemap) (t: C.typ): ctype * ctvemap * cstr list =
-  (CTInt (CM.int_width, IInt (CM.typ_width t)), em, [])
+  (CTInt (CM.int_width, Index.IInt (CM.typ_width t)), em, [])
 
 let constrain_return (env: env) (em: ctvemap) (rtv: ctype): C.exp option -> ctvemap * RA.block_annotation * cstr list = function
     | None   -> if is_void rtv then (em, [], []) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
@@ -390,7 +390,7 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
   let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
   let sub            = List.combine cf.qlocs instslocs in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
-  let stoincs        = prestore_fold begin fun ics s i fld ->
+  let stoincs        = PreStore.fold begin fun ics s i fld ->
                          mk_locinc i (prectype_subs sub (Field.type_of fld)) (S.Subst.apply sub s) :: ics
                        end [] cf.sto_out in
   let css            = (mk_wfsubst sub :: stoincs)
@@ -497,10 +497,10 @@ let update_deps (scs: cstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep 
     (cm, sd)
 
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
-  prestore_fold begin fun ok l i fld ->
-    if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
+  PreStore.fold begin fun ok l i fld ->
+    if SLM.mem l sto_out_formal && PreStore.find_index l i sto_out_formal = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-        S.d_sloc l d_index i (Field.d_field d_ctype) fld S.d_sloc l |> ignore;
+        S.d_sloc l Index.d_index i (Field.d_field d_ctype) fld S.d_sloc l |> ignore;
       false
     end else
       ok
@@ -514,7 +514,7 @@ let check_slocs_distinct (error: unit -> S.t * S.t -> P.doc) (sub: S.Subst.t) (s
 
 let revert_spec_names (subaway: S.Subst.t) (st: store): S.Subst.t =
      st
-  |> prestore_domain
+  |> PreStore.domain
   |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
@@ -533,14 +533,14 @@ let add_loc_if_missing (sto: store) (s: S.t): store =
 
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let whole_store      = prestore_upd cf.sto_out gst in
-  let _                = check_slocs_distinct global_alias_error sub (prestore_domain gst) in
+  let whole_store      = PreStore.upd cf.sto_out gst in
+  let _                = check_slocs_distinct global_alias_error sub (PreStore.domain gst) in
   let _                = check_slocs_distinct quantification_error sub cf.qlocs in
-  let _                = check_slocs_distinct global_quantification_error sub (prestore_domain whole_store) in
+  let _                = check_slocs_distinct global_quantification_error sub (PreStore.domain whole_store) in
   let revsub           = revert_spec_names sub whole_store in
-  let sto              = prestore_subs revsub sto in
+  let sto              = PreStore.subs revsub sto in
   let sto              = cf |> cfun_slocs |> List.fold_left add_loc_if_missing sto in
-  let sto              = List.fold_left add_loc_if_missing sto (prestore_slocs sto) in
+  let sto              = List.fold_left add_loc_if_missing sto (PreStore.slocs sto) in
   let sub              = S.Subst.compose revsub sub in
   let vars             = VM.map (prectype_subs sub) vars in
   let em               = ExpMap.map (prectype_subs sub) em in
@@ -563,13 +563,13 @@ let fresh_local_slocs (ve: ctvenv) =
 let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): SI.shape * Ind.dcheck list =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
-  let whole_store         = prestore_upd cf.sto_out gst in
-  let scs                 = prestore_fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
+  let whole_store         = PreStore.upd cf.sto_out gst in
+  let scs                 = PreStore.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
+  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
   let shp                 = {SI.vtyps = CM.vm_to_list vtyps;
                              SI.etypm = em;
                              SI.store = sto;
