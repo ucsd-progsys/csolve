@@ -171,16 +171,16 @@ let builtins =
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
 
-type refctype  = (Ct.index * C.reft) Ct.prectype
-type refcfun   = (Ct.index * C.reft) Ct.precfun
-type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
-type refstore  = (Ct.index * C.reft) Ct.PreStore.t
-type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
+type refctype  = (Ct.Index.t * C.reft) Ct.prectype
+type refcfun   = (Ct.Index.t * C.reft) Ct.precfun
+type refldesc  = (Ct.Index.t * C.reft) Ct.LDesc.t
+type refstore  = (Ct.Index.t * C.reft) Ct.PreStore.t
+type refspec   = (Ct.Index.t * C.reft) Ct.PreSpec.t
 
 
 
 let d_index_reft () (i,r) = 
-  let di = Ct.d_index () i in
+  let di = Ct.Index.d_index () i in
   let dc = Pretty.text " , " in
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr

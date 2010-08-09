@@ -544,7 +544,7 @@ let type_of_init v vtyp = function
 let add_offset loc t ctptr off =
   match ctptr with
     | Ctypes.CTRef (s, (i, r)) ->
-        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.index_of_int |> Ctypes.index_plus i, r))
+        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.Index.of_int |> Ctypes.Index.plus i, r))
     | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function

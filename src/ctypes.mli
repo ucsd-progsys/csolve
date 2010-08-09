@@ -25,16 +25,32 @@ type seq_polarity = (* whether sequence extends positively only or in both direc
   | Pos
   | PosNeg
 
-type index =
-  | IBot                             (* empty sequence *)
-  | IInt of int                      (* singleton n >= 0 *)
-  | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+module Index:
+  sig
+    type t =
+      | IBot                             (* empty sequence *)
+      | IInt of int                      (* singleton n >= 0 *)
+      | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+
+    val top         : t
+    val nonneg      : t
+    val of_int      : int -> t
+    val lub         : t -> t -> t
+    val plus        : t -> t -> t
+    val minus       : t -> t -> t
+    val scale       : int -> t -> t
+    val mult        : t -> t -> t
+    val div         : t -> t -> t
+    val unsign      : t -> t
+    val is_subindex : t -> t -> bool
+    val d_index     : unit -> t -> Pretty.doc
+  end
 
 type 'a prectype =
   | CTInt of int * 'a  (* fixed-width integer *)
   | CTRef of Sloc.t * 'a (* reference *)
 
-type ctype = index prectype
+type ctype = Index.t prectype
 
 type ploc =
   | PLAt of int                 (* location n *)
@@ -50,12 +66,12 @@ module LDesc:
     val empty: 'a t
     val get_period: 'a t -> int option
     val add: ploc -> 'a prectype -> 'a t -> 'a t
-    val add_index: index -> 'a prectype -> 'a t -> 'a t
-    val create: (index * 'a prectype) list -> 'a t
+    val add_index: Index.t -> 'a prectype -> 'a t -> 'a t
+    val create: (Index.t * 'a prectype) list -> 'a t
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
-    val find_index: index -> 'a t -> (ploc * 'a prectype) list
+    val find_index: Index.t -> 'a t -> (ploc * 'a prectype) list
     val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val fold: ('a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val map: ('a prectype -> 'b prectype) -> 'a t -> 'b t
@@ -72,8 +88,8 @@ module PreStore:
     val map_ct      : ('a prectype -> 'b prectype) -> 'a t -> 'b t
     val map         : ('a -> 'b) -> 'a t -> 'b t
     val find        : Sloc.t -> 'a t -> 'a LDesc.t
-    val find_index  : Sloc.t -> index -> 'a t -> 'a prectype list
-    val fold        : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
+    val find_index  : Sloc.t -> Index.t -> 'a t -> 'a prectype list
+    val fold        : ('a -> Sloc.t -> Index.t -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
     val close_under : 'a t -> Sloc.t list -> 'a t
     val partition   : (Sloc.t -> 'a LDesc.t -> bool) -> 'a t -> ('a t * 'a t)
     val upd         : 'a t -> 'a t -> 'a t
@@ -94,7 +110,7 @@ module PreStore:
     *)
   end
 
-type store = index PreStore.t
+type store = Index.t PreStore.t
 
 type 'a precfun =
   { qlocs       : Sloc.t list;                  (* generalized slocs *)
@@ -104,7 +120,7 @@ type 'a precfun =
     sto_out     : 'a PreStore.t;                (* out store *)
   }
 
-type cfun = index precfun
+type cfun = Index.t precfun
 
 module ExpKey:
   sig
@@ -130,7 +146,6 @@ type ctemap = ctype ExpMap.t
 (******************************************************************************)
 
 val d_ploc : unit -> ploc -> Pretty.doc
-val d_index: unit -> index -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_cfun    : unit -> cfun -> Pretty.doc
@@ -142,19 +157,8 @@ val d_ctemap: unit -> ctemap -> Pretty.doc
 (****************************** Index Operations ******************************)
 (******************************************************************************)
 
-val index_top: index
-val index_nonneg: index
-val index_of_int: int -> index
-val index_of_ploc: ploc -> int -> index
-val ploc_of_index: index -> ploc
-val index_lub: index -> index -> index
-val index_plus: index -> index -> index
-val index_minus: index -> index -> index
-val index_scale: int -> index -> index
-val index_mult: index -> index -> index
-val index_div: index -> index -> index
-val index_unsign: index -> index
-val is_subindex: index -> index -> bool
+val ploc_of_index : Index.t -> ploc
+val index_of_ploc : ploc -> int -> Index.t
 
 (******************************************************************************)
 (******************************* Type Operations ******************************)
@@ -216,4 +220,4 @@ module PreSpec:
     val store   : 'a t -> 'a PreStore.t
   end
 
-type cspec = index PreSpec.t
+type cspec = Index.t PreSpec.t
