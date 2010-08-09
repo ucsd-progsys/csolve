@@ -279,6 +279,10 @@ module Field = struct
   let get_finality = function
     | CTInt (_, (_, fnl)) | CTRef (_, (_, fnl)) -> fnl
 
+  let set_finality fnl = function
+    | CTInt (i, (a, _)) -> CTInt (i, (a, fnl))
+    | CTRef (i, (a, _)) -> CTRef (i, (a, fnl))
+
   let is_final fld =
     get_finality fld = Final
 

@@ -21,6 +21,8 @@
 
 module S  = Sloc
 module CT = Ctypes
+module LD = CT.LDesc
+module F  = CT.Field
 module P  = Pretty
 module RA = Refanno
 module C  = Cil
@@ -191,10 +193,29 @@ let dump_proc_nonfinals fnfm =
       P.printf "\n\n" |> ignore
     end fnfm
 
-let infer_nonfinal_fields fspec fm shpm =
-     InterprocNonFinalFields.infer_nonfinal_fields fspec fm shpm
-  >> fun fnfm ->
-       if Constants.ck_olev Constants.ol_solve then begin
-         P.printf "Interproc nonfinal fields:\n\n" |> ignore;
-         dump_proc_nonfinals fnfm
-     end
+let ldesc_set_nonfinal_fields nfs ld =
+     ld
+  |> LD.mapn (fun _ pl fld -> if CT.ploc_periodic pl then F.set_finality F.Nonfinal fld else fld)
+  |> IndexSet.fold begin fun i ld ->
+         ld
+      |> LD.find_index i
+      |> List.fold_left (fun ld (pl, fld) -> ld |> LD.remove pl |> LD.add pl (F.set_finality F.Nonfinal fld)) ld
+     end nfs
+
+let store_set_nonfinal_fields nfm sto =
+  S.SlocMap.fold begin fun s ld sto ->
+    if S.is_abstract s then
+      S.SlocMap.add s (ldesc_set_nonfinal_fields (nonfinal_fields s nfm) ld) sto
+    else
+      S.SlocMap.add s ld sto
+  end sto S.SlocMap.empty
+
+let set_nonfinal_fields shpm fnfm =
+  SM.mapi begin fun fname (shp, ds) ->
+    ({shp with SI.store = store_set_nonfinal_fields (SM.find fname fnfm) shp.SI.store}, ds)
+  end shpm
+
+let infer_final_fields fspec fm shpm =
+     shpm
+  |> InterprocNonFinalFields.infer_nonfinal_fields fspec fm
+  |> set_nonfinal_fields shpm

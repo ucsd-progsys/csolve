@@ -37,7 +37,6 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Ind = Inferindices
 module SI  = ShapeInfra
-module FF  = FinalFields
 
 open Ctypes
 open M.Ops
@@ -558,6 +557,36 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ctypes.d_ctype ct) () vars
 
+let fresh_local_slocs (ve: ctvenv) =
+  VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
+
+let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): SI.shape * Ind.dcheck list =
+  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
+  let em, bas, cs         = constrain_fun fe cf ve sci in
+  let whole_store         = prestore_upd cf.sto_out gst in
+  let scs                 = prestore_fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
+  let cm, sd              = update_deps scs IM.empty SLM.empty in
+  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
+  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
+  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
+  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
+  let shp                 = {SI.vtyps = CM.vm_to_list vtyps;
+                             SI.etypm = em;
+                             SI.store = sto;
+                             SI.anna  = annot;
+                             SI.conca = conca;
+                             SI.theta = theta} in
+    (shp, ds)
+
+type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
+
+let declared_funs (cil: C.file) =
+  C.foldGlobals cil begin fun fs -> function
+    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
+    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
+    | _                                                   -> fs
+  end []
+
 let print_shape (fname: string) (cf: cfun) (gst: store) ({SI.vtyps = locals; SI.store = st; SI.anna = annot}: SI.shape) (ds: Ind.dcheck list): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
@@ -581,36 +610,9 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({SI.vtyps = locals; SI.
   let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
     ()
 
-let fresh_local_slocs (ve: ctvenv) =
-  VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
-
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): SI.shape * Ind.dcheck list =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
-  let em, bas, cs         = constrain_fun fe cf ve sci in
-  let whole_store         = prestore_upd cf.sto_out gst in
-  let scs                 = prestore_fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
-  let cm, sd              = update_deps scs IM.empty SLM.empty in
-  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
-  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
-  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
-  let shp                 = {SI.vtyps = CM.vm_to_list vtyps;
-                             SI.etypm = em;
-                             SI.store = sto;
-                             SI.anna  = annot;
-                             SI.conca = conca;
-                             SI.theta = theta} in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp ds;
-    (shp, ds)
-
-type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
-
-let declared_funs (cil: C.file) =
-  C.foldGlobals cil begin fun fs -> function
-    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
-    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
-    | _                                                   -> fs
-  end []
+let print_shapes funspec storespec shpm =
+  if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
+    SM.iter (fun fname (shp, ds) -> print_shape fname (SM.find fname funspec |> fst) storespec shp ds) shpm
 
 (* API *)
 let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): (SI.shape * Ind.dcheck list) SM.t =
@@ -628,6 +630,7 @@ let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: fun
         |> List.map (fun f -> (f, SM.find f.C.vname funspec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-  let shpm = scis |> SM.map (infer_shape fe ve storespec scim |> M.uncurry) in
-  let _    = FF.infer_nonfinal_fields funspec scis shpm in
-    shpm
+       scis
+    |> SM.map (infer_shape fe ve storespec scim |> M.uncurry)
+    |> FinalFields.infer_final_fields funspec scis
+    >> print_shapes funspec storespec

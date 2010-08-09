@@ -55,6 +55,7 @@ module Field:
     val d_field      : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
 
     val get_finality : 'a t -> finality
+    val set_finality : finality -> 'a t -> 'a t
     val is_final     : 'a t -> bool
     val type_of      : 'a t -> 'a prectype
     val create       : finality -> 'a prectype -> 'a t
