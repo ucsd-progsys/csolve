@@ -63,16 +63,45 @@ module LDesc:
     val d_ldesc: (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
-type 'a prestore = ('a LDesc.t) Sloc.SlocMap.t
+module PreStore:
+  sig
+    type 'a t = ('a LDesc.t) Sloc.SlocMap.t
 
-type store = index prestore
+    val domain      : 'a t -> Sloc.t list
+    val slocs       : 'a t -> Sloc.t list
+    val map_ct      : ('a prectype -> 'b prectype) -> 'a t -> 'b t
+    val map         : ('a -> 'b) -> 'a t -> 'b t
+    val find        : Sloc.t -> 'a t -> 'a LDesc.t
+    val find_index  : Sloc.t -> index -> 'a t -> 'a prectype list
+    val fold        : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a
+    val close_under : 'a t -> Sloc.t list -> 'a t
+    val partition   : (Sloc.t -> 'a LDesc.t -> bool) -> 'a t -> ('a t * 'a t)
+    val upd         : 'a t -> 'a t -> 'a t
+      (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+          overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
+    val subs        : Sloc.Subst.t -> 'a t -> 'a t
+
+    val d_prestore_addrs : unit -> 'a t -> Pretty.doc
+    val d_prestore       : (unit -> 'a -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
+
+    (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+    (** [prestore_split sto] returns (asto, csto) s.t. 
+       (1) sto = asto + csto
+       (2) locs(asto) \in abslocs 
+       (3) locs(csto) \in conlocs *)
+       let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+       prestore_partition (fun l _ -> S.is_abstract l) ps
+    *)
+  end
+
+type store = index PreStore.t
 
 type 'a precfun =
   { qlocs       : Sloc.t list;                  (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a prestore;                  (* in store *)
-    sto_out     : 'a prestore;                  (* out store *)             
+    sto_in      : 'a PreStore.t;                (* in store *)
+    sto_out     : 'a PreStore.t;                (* out store *)
   }
 
 type cfun = index precfun
@@ -106,9 +135,7 @@ val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_cfun    : unit -> cfun -> Pretty.doc
 val d_ctype: unit -> ctype -> Pretty.doc
-val d_precstore : (unit -> 'a -> Pretty.doc) -> unit -> 'a prestore -> Pretty.doc
 val d_store: unit -> store -> Pretty.doc
-val d_prestore_addrs: unit -> 'a prestore -> Pretty.doc
 val d_ctemap: unit -> ctemap -> Pretty.doc
 
 (******************************************************************************)
@@ -142,12 +169,12 @@ val ctype_lub: ctype -> ctype -> ctype
 val is_subctype: ctype -> ctype -> bool
 val ctype_of_const: Cil.constant -> ctype
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-val precfun_well_formed : 'a prestore -> 'a precfun -> bool
+val precfun_well_formed : 'a PreStore.t -> 'a precfun -> bool
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_slocs : cfun -> Sloc.t list
-val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a prestore -> 'a prestore -> 'a precfun
+val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a PreStore.t -> 'a PreStore.t -> 'a precfun
 val cfun_subs : Sloc.Subst.t -> cfun -> cfun
-val prectype_closed : 'a prectype -> 'a prestore -> bool
+val prectype_closed : 'a prectype -> 'a PreStore.t -> bool
 val void_ctype: ctype
 val is_void : 'a prectype -> bool
 val is_ref : 'a prectype -> bool
@@ -167,33 +194,7 @@ val prectypes_collide: ploc -> 'a prectype -> ploc -> 'a prectype -> int -> bool
 (****************************** Store Operations ******************************)
 (******************************************************************************)
 
-val prestore_domain : 'a prestore -> Sloc.t list
-val prestore_slocs  : 'a prestore -> Sloc.t list
-val prestore_map_ct : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-val prestore_map    : ('a -> 'b) -> 'a prestore -> 'b prestore
-val prestore_find   : Sloc.t -> 'a prestore -> 'a LDesc.t
-val prestore_find_index : Sloc.t -> index -> 'a prestore -> 'a prectype list
-val prestore_fold   : ('a -> Sloc.t -> index -> 'b prectype -> 'a) -> 'a -> 'b prestore -> 'a
-val prestore_close_under : 'a prestore -> Sloc.t list -> 'a prestore
-val prestore_partition: (Sloc.t -> 'a LDesc.t -> bool) -> 'a prestore -> ('a prestore * 'a prestore)
-
-(* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
-(** [prestore_split sto] returns (asto, csto) s.t. 
-	(1) sto = asto + csto
-	(2) locs(asto) \in abslocs 
-	(3) locs(csto) \in conlocs *)
-let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-  prestore_partition (fun l _ -> S.is_abstract l) ps
-*)
-
-
-val prestore_upd    : 'a prestore -> 'a prestore -> 'a prestore
-(** [prestore_upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
-    overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
-
-val prestore_subs   : Sloc.Subst.t -> 'a prestore -> 'a prestore
-
-val prestore_closed : 'a prestore -> bool
+val prestore_closed : 'a PreStore.t -> bool
 
 (******************************************************************************)
 (************************************ Specs ***********************************)
@@ -201,7 +202,7 @@ val prestore_closed : 'a prestore -> bool
 
 module PreSpec:
   sig
-    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+    type 'a t = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a PreStore.t
 
     val empty: 'a t
 
@@ -212,7 +213,7 @@ module PreSpec:
     val mem_fun : string -> 'a t -> bool
     val mem_var : string -> 'a t -> bool
 
-    val store   : 'a t -> 'a prestore
+    val store   : 'a t -> 'a PreStore.t
   end
 
 type cspec = index PreSpec.t

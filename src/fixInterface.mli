@@ -39,7 +39,7 @@ type alocmap  = Sloc.t -> Sloc.t option
 type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
 type refcfun  = (Ctypes.index * FixConstraint.reft) Ctypes.precfun
 type refldesc 
-type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
+type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.PreStore.t
 type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
 
 

@@ -117,7 +117,7 @@ let inloc_sat (st: store) (i: index) (s: S.t) (ct1: ctype): bool =
     | IBot -> true
     | _    ->
         try
-          match prestore_find_index s i st with
+          match PreStore.find_index s i st with
             | [ct2] -> prectype_eq ct1 ct2
             | []    -> false
             | _     -> halt <| C.bug "Prestore has multiple bindings for the same location"
@@ -142,7 +142,7 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | _                                            -> raise (Unify (ct1, ct2))
 
 let store_add (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
-  SLM.add l (LDesc.add pl ctv (prestore_find l sto)) sto
+  SLM.add l (LDesc.add pl ctv (PreStore.find l sto)) sto
 
 let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store): S.Subst.t * store =
   try
@@ -150,13 +150,13 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
       | IBot   -> ([], sto)
       | IInt n ->
           let pl = PLAt n in
-            begin match LDesc.find pl (prestore_find s sto) with
+            begin match LDesc.find pl (PreStore.find s sto) with
               | []         -> ([], store_add s pl ct sto)
               | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
               | _          -> assert false
             end
       | ISeq (n, m, p) ->
-          let ld, sub = LDesc.shrink_period m unify_ctypes [] (prestore_find s sto) in
+          let ld, sub = LDesc.shrink_period m unify_ctypes [] (PreStore.find s sto) in
           let pl      = PLSeq (n, p) in
           let cts     = LDesc.find pl ld in
           let sub     = List.fold_left (fun sub (_, ct2) -> unify_ctypes ct ct2 sub) sub cts in
@@ -173,7 +173,7 @@ let refine_inloc (loc: C.location) (s: S.t) (i: index) (ct: ctype) (sto: store):
                 (sub, SLM.add s ld sto)
   with
     | e ->
-        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (prestore_find s sto) |> ignore;
+        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" d_index i d_ctype ct S.d_sloc s (LDesc.d_ldesc d_ctype) (PreStore.find s sto) |> ignore;
         raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function
@@ -214,7 +214,7 @@ let adjust_slocdep (sub: S.Subst.t) (sd: slocdep): slocdep =
 let refine (sd: slocdep) (cm: cstrmap) (sub: S.Subst.t) (sc: cstr) (sto: store): slocdep * cstrmap * S.Subst.t * store * int list =
   let refsub, sto   = refine_aux sc sto in
   let invalid_slocs = S.Subst.slocs refsub in
-  let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> prestore_subs refsub in
+  let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> PreStore.subs refsub in
   let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
   let sd            = adjust_slocdep refsub sd in
   let cm            = cstrmap_subs refsub cm in
@@ -387,7 +387,7 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
   let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
   let sub            = List.combine cf.qlocs instslocs in
   let ctvfs          = List.map (prectype_subs sub <.> snd) cf.args in
-  let stoincs        = prestore_fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
+  let stoincs        = PreStore.fold (fun ics s i ct -> mk_locinc i (prectype_subs sub ct) (S.Subst.apply sub s) :: ics) [] cf.sto_out in
   let css            = (mk_wfsubst sub :: stoincs)
                        :: ((List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs) ctvfs) 
                        :: css in
@@ -500,8 +500,8 @@ let update_deps (scs: cstr list) (cm: cstrmap) (sd: slocdep): cstrmap * slocdep 
     (cm, sd)
 
 let check_out_store_complete (sto_out_formal: store) (sto_out_actual: store): bool =
-  prestore_fold begin fun ok l i ct ->
-    if SLM.mem l sto_out_formal && prestore_find_index l i sto_out_formal = [] then begin
+  PreStore.fold begin fun ok l i ct ->
+    if SLM.mem l sto_out_formal && PreStore.find_index l i sto_out_formal = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
         S.d_sloc l d_index i d_ctype ct S.d_sloc l |> ignore;
       false
@@ -517,7 +517,7 @@ let check_slocs_distinct (error: unit -> S.t * S.t -> P.doc) (sub: S.Subst.t) (s
 
 let revert_spec_names (subaway: S.Subst.t) (st: store): S.Subst.t =
      st
-  |> prestore_domain
+  |> PreStore.domain
   |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
@@ -536,14 +536,14 @@ let add_loc_if_missing (sto: store) (s: S.t): store =
 
 let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap) (bas: RA.block_annotation array) (sd: slocdep) (cm: cstrmap): soln =
   let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let whole_store      = prestore_upd cf.sto_out gst in
-  let _                = check_slocs_distinct global_alias_error sub (prestore_domain gst) in
+  let whole_store      = PreStore.upd cf.sto_out gst in
+  let _                = check_slocs_distinct global_alias_error sub (PreStore.domain gst) in
   let _                = check_slocs_distinct quantification_error sub cf.qlocs in
-  let _                = check_slocs_distinct global_quantification_error sub (prestore_domain whole_store) in
+  let _                = check_slocs_distinct global_quantification_error sub (PreStore.domain whole_store) in
   let revsub           = revert_spec_names sub whole_store in
-  let sto              = prestore_subs revsub sto in
+  let sto              = PreStore.subs revsub sto in
   let sto              = cf |> cfun_slocs |> List.fold_left add_loc_if_missing sto in
-  let sto              = List.fold_left add_loc_if_missing sto (prestore_slocs sto) in
+  let sto              = List.fold_left add_loc_if_missing sto (PreStore.slocs sto) in
   let sub              = S.Subst.compose revsub sub in
   let vars             = VM.map (prectype_subs sub) vars in
   let em               = ExpMap.map (prectype_subs sub) em in
@@ -589,13 +589,13 @@ let fresh_local_slocs (ve: ctvenv) =
 let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
-  let whole_store         = prestore_upd cf.sto_out gst in
-  let scs                 = prestore_fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
+  let whole_store         = PreStore.upd cf.sto_out gst in
+  let scs                 = PreStore.fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (prestore_domain gst) em bas in
+  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;

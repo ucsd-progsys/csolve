@@ -21,14 +21,17 @@
  *
  *)
 
-module M  = Misc
-module P  = Pretty
-module E  = Errormsg
-module S  = Sloc
-module SS = S.SlocSet
-module C  = Cil
-module CM = CilMisc
-module SM = M.StringMap
+module M   = Misc
+module P   = Pretty
+module E   = Errormsg
+module S   = Sloc
+module SS  = S.SlocSet
+module C   = Cil
+module CM  = CilMisc
+module SM  = M.StringMap
+module SLM = S.SlocMap
+
+module SLMPrinter = P.MakeMapPrinter(SLM)
 
 open M.Ops
 
@@ -383,84 +386,88 @@ module LDesc = struct
       P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts)
 end
 
-module SLM = S.SlocMap
+module PreStore = struct
+  type 'a t = ('a LDesc.t) SLM.t
 
-(* pmr: this should become a module at some point --- this isn't 1983 *)
-type 'a prestore = ('a LDesc.t) SLM.t
+  let map f =
+    f |> prectype_map |> LDesc.map |> SLM.map
 
-let prestore_map f =
-  f |> prectype_map |> LDesc.map |> SLM.map
+  let map_ct f =
+    SLM.map (LDesc.map f)
 
-let prestore_map_ct f =
-  SLM.map (LDesc.map f)
+  let fold f b ps =
+    SLM.fold begin fun l ld b ->
+      let p = LDesc.get_period ld |> M.get_option 0 in
+        LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
+    end ps b
 
-let prestore_fold f b ps =
-  SLM.fold begin fun l ld b ->
-    let p = LDesc.get_period ld |> M.get_option 0 in
-      LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
-  end ps b
+  let domain ps =
+    SLM.fold (fun s _ ss -> s :: ss) ps []
 
-let prestore_domain (ps: 'a prestore): S.t list =
-  SLM.fold (fun s _ ss -> s :: ss) ps []
+  let slocs ps =
+       ps
+    |> domain
+    |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
+    |> M.sort_and_compact
 
-let prestore_slocs (ps: 'a prestore): S.t list =
-    ps
- |> prestore_domain
- |> M.flip (prestore_fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
- |> M.sort_and_compact  
+  let find l ps =
+    try SLM.find l ps with Not_found -> LDesc.empty
 
-let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
-  try SLM.find l ps with Not_found -> LDesc.empty
+  let find_index l i ps =
+    ps |> find l |> LDesc.find_index i |> List.map snd
 
-let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list =
-   ps |> prestore_find l |> LDesc.find_index i |> List.map snd
+  (* pmr: why is this not rename_prestore? *)
+  let subs_addrs subs ps =
+    SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
 
-(* pmr: why is this not rename_prestore? *)
-let prestore_subs_addrs subs ps =
-  SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
+  let subs subs ps =
+    ps |> map_ct (prectype_subs subs)
+       |> subs_addrs subs
 
-let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
-  ps |> prestore_map_ct (prectype_subs subs) 
-     |> prestore_subs_addrs subs
+  let upd ps1 ps2 =
+    SLM.fold SLM.add ps2 ps1
 
-let prestore_upd (ps1: 'a prestore) (ps2: 'a prestore): 'a prestore =
-  SLM.fold SLM.add ps2 ps1
+  let partition f ps =
+    SLM.fold begin fun l ld (ps1, ps2) ->
+      if f l ld then
+        (SLM.add l ld ps1, ps2)
+      else (ps1, SLM.add l ld ps2)
+    end ps (SLM.empty, SLM.empty)
 
-let prestore_partition (f: S.t -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestore * 'a prestore =
-  SLM.fold begin fun l ld (ps1, ps2) ->
-    if f l ld then
-      (SLM.add l ld ps1, ps2)
-    else (ps1, SLM.add l ld ps2)
-  end ps (SLM.empty, SLM.empty)
+  let rec close_slocs ps ss =
+    let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> find s |> LDesc.referenced_slocs))) ss ss in
+      if SS.equal reqs ss then ss else close_slocs ps reqs
 
-let rec prestore_close_slocs (ps: 'a prestore) (ss: SS.t): SS.t =
-  let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> prestore_find s |> LDesc.referenced_slocs))) ss ss in
-    if SS.equal reqs ss then ss else prestore_close_slocs ps reqs
+  let close_under ps ss =
+    let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
+      SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
-let prestore_close_under (ps: 'a prestore) (ss: S.t list): 'a prestore =
-  let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> prestore_close_slocs ps in
-    SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
+  let rename subs ps =
+    let cns = LDesc.map (prectype_subs subs) in
+      SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
-type store = index prestore
+  let d_prestore_addrs () st =
+    Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
 
-let prectype_closed (ct: 'a prectype) (sto: 'a prestore) =
-  match ct with
-    | CTInt _      -> true
-    | CTRef (l, _) -> SLM.mem l sto
+  let d_prestore d_i () s  =
+    P.dprintf "[@[%a@]]"
+      (SLMPrinter.docMap ~sep:(P.dprintf ";@!")
+         (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+end
 
-let prestore_closed (sto: 'a prestore): bool =
-  prestore_fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
-
-module SLMPrinter = P.MakeMapPrinter(SLM)
-
-let d_precstore d_i () s  =
-  P.dprintf "[@[%a@]]" (SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+type store = index PreStore.t
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
 
-let d_prestore_addrs () st =
-  Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (prestore_domain st)
+let prectype_closed (ct: 'a prectype) (sto: 'a PreStore.t) =
+  match ct with
+    | CTInt _      -> true
+    | CTRef (l, _) -> SLM.mem l sto
+
+(* move into module *)
+let prestore_closed (sto: 'a PreStore.t): bool =
+  PreStore.fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
 
 (******************************************************************************)
 (******************************* Function Types *******************************)
@@ -470,8 +477,8 @@ type 'a precfun =
   { qlocs       : S.t list;                     (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a prestore;                  (* in store *)
-    sto_out     : 'a prestore;                  (* out store *)
+    sto_in      : 'a PreStore.t;                (* in store *)
+    sto_out     : 'a PreStore.t;                (* out store *)
   }
 
 type cfun = index precfun
@@ -502,20 +509,16 @@ let d_precfun d_i () ft  =
     d_slocs ft.qlocs
     (d_args d_i) ft.args
     (d_prectype d_i) ft.ret
-    (d_precstore d_i) ft.sto_in
-    (d_precstore d_i) ft.sto_out
+    (PreStore.d_prestore d_i) ft.sto_in
+    (PreStore.d_prestore d_i) ft.sto_out
 
 let d_cfun () ft =
   d_precfun d_index () ft
 
-let rename_prestore (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
-  let cns = LDesc.map (prectype_subs subs) in
-    SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
-
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
   let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
   let rename_pct = prectype_subs subs in
-  let rename_ps  = rename_prestore subs in
+  let rename_ps  = PreStore.rename subs in
     ({qlocs   = [];
       args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
       ret     = rename_pct rcts;
@@ -523,10 +526,10 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
       sto_out = rename_ps sout},
      subs)
 
-let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
+let precfun_well_formed (globstore: 'a PreStore.t) (cf: 'a precfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-  let whole_instore  = prestore_upd cf.sto_in globstore in
-  let whole_outstore = prestore_upd cf.sto_out globstore in
+  let whole_instore  = PreStore.upd cf.sto_in globstore in
+  let whole_outstore = PreStore.upd cf.sto_out globstore in
      prestore_closed whole_instore
   && prestore_closed whole_outstore
   && List.for_all (fun (_, ct) -> prectype_closed ct whole_instore) cf.args
@@ -535,8 +538,8 @@ let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
         | _            -> true
 
 let cfun_slocs (cf: cfun): S.t list =
-    List.concat [prestore_slocs cf.sto_in;
-                 prestore_slocs cf.sto_out;
+    List.concat [PreStore.slocs cf.sto_in;
+                 PreStore.slocs cf.sto_out;
                  M.maybe_cons (prectype_sloc cf.ret) <|
                      M.map_partial (prectype_sloc <.> snd) cf.args]
  |> M.sort_and_compact
@@ -546,8 +549,8 @@ let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
   mk_cfun (List.map (S.Subst.apply sub) cf.qlocs)
           (List.map (M.app_snd apply_sub) cf.args)
           (apply_sub cf.ret)
-          (prestore_subs sub cf.sto_in)
-          (prestore_subs sub cf.sto_out)
+          (PreStore.subs sub cf.sto_in)
+          (PreStore.subs sub cf.sto_out)
 
 (******************************************************************************)
 (******************************* Expression Maps ******************************)
@@ -573,14 +576,14 @@ let d_ctemap () (em: ctemap): Pretty.doc =
 (******************************************************************************)
 
 module PreSpec = struct
-  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a prestore
+  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a PreStore.t
 
   let empty = (SM.empty, SM.empty, SLM.empty)
 
   let map (f: 'a -> 'b) ((funspec, varspec, storespec): 'a t): 'b t =
     (SM.map (f |> prectype_map |> precfun_map |> M.app_fst) funspec,
      SM.map (f |> prectype_map |> M.app_fst) varspec,
-     prestore_map f storespec)
+     PreStore.map f storespec)
 
   let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec, storespec): 'a t): 'a t =
     (SM.add fn sp funspec, varspec, storespec)
@@ -597,7 +600,7 @@ module PreSpec = struct
   let mem_var (vn: string) ((_, varspec, _): 'a t): bool =
     SM.mem vn varspec
 
-  let store ((_, _, storespec): 'a t): 'a prestore =
+  let store ((_, _, storespec): 'a t): 'a PreStore.t =
     storespec
 end
 

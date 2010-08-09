@@ -174,7 +174,7 @@ let builtins =
 type refctype  = (Ct.index * C.reft) Ct.prectype
 type refcfun   = (Ct.index * C.reft) Ct.precfun
 type refldesc  = (Ct.index * C.reft) Ct.LDesc.t
-type refstore  = (Ct.index * C.reft) Ct.prestore
+type refstore  = (Ct.index * C.reft) Ct.PreStore.t
 type refspec   = (Ct.index * C.reft) Ct.PreSpec.t
 
 
@@ -185,7 +185,7 @@ let d_index_reft () (i,r) =
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
-let d_refstore = Ct.d_precstore d_index_reft 
+let d_refstore = Ct.PreStore.d_prestore d_index_reft 
 let d_refctype = Ct.d_prectype d_index_reft
 let d_refcfun  = Ct.d_precfun d_index_reft
 
@@ -219,7 +219,7 @@ let ctype_of_refctype = function
 let cfun_of_refcfun   = Ct.precfun_map ctype_of_refctype 
 let refcfun_of_cfun   = Ct.precfun_map (refctype_of_reft_ctype (Sy.value_variable So.t_int, So.t_int, []))
 let cspec_of_refspec  = Ct.PreSpec.map (fun (i,_) -> i)
-let store_of_refstore = Ct.prestore_map_ct ctype_of_refctype
+let store_of_refstore = Ct.PreStore.map_ct ctype_of_refctype
 let qlocs_of_refcfun  = fun ft -> ft.Ct.qlocs
 let args_of_refcfun   = fun ft -> ft.Ct.args
 let ret_of_refcfun    = fun ft -> ft.Ct.ret
@@ -231,15 +231,12 @@ let mk_refcfun qslocs args ist ret ost =
     Ct.sto_in  = ist;
     Ct.sto_out = ost; }
 
-let slocs_of_store st = 
-  LM.fold (fun x _ xs -> x::xs) st []
-
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
 let refstore_fold      = LM.fold
-let refstore_partition = fun f -> Ct.prestore_partition (fun l _ -> f l) 
+let refstore_partition = fun f -> Ct.PreStore.partition (fun l _ -> f l) 
 let refstore_empty     = LM.empty
 let refstore_mem       = fun l sto -> LM.mem l sto
 let refstore_remove    = fun l sto -> LM.remove l sto
@@ -324,7 +321,7 @@ type binding = TVar of string * refctype
 let tags_of_binds s binds = 
   let s_typ = Ct.prectype_map (Misc.app_snd (C.apply_solution s)) in
   let s_fun = Ct.precfun_map s_typ in
-  let s_sto = Ct.prestore_map_ct s_typ in
+  let s_sto = Ct.PreStore.map_ct s_typ in
   let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) -> function
     | TVar (x, cr) -> 
@@ -336,7 +333,7 @@ let tags_of_binds s binds =
         let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refcfun (s_fun cf) nl in
         (Pretty.concat d d', (k,t)::kts)
     | TSto (f, st) -> 
-        let kts' =  slocs_of_store st 
+        let kts' =  Ct.PreStore.domain st 
                  |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
                  |> List.map (fun s -> (s, s^" |->")) in
         let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f d_refstore (s_sto st) nl in
@@ -557,8 +554,8 @@ let refctype_subs f nzs =
 (* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun f st -> st |> Ct.prestore_map_ct t_fresh >> annot_sto f 
-let refstore_subs  = fun f subs st -> Ct.prestore_map_ct (f subs) st
+let refstore_fresh = fun f st -> st |> Ct.PreStore.map_ct t_fresh >> annot_sto f 
+let refstore_subs  = fun f subs st -> Ct.PreStore.map_ct (f subs) st
 
 (* API *)
 let t_subs_locs lsubs rct =
@@ -577,7 +574,7 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-  Ct.prestore_map_ct ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+  Ct.PreStore.map_ct ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
   
 (*
@@ -748,7 +745,7 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
 *)
   (if polarity then st2 else st1)
-  |> slocs_of_store 
+  |> Ct.PreStore.domain
   |> Misc.map begin fun sloc ->
        let lhs = (sloc, refstore_get st1 sloc) in
        let rhs = (sloc, refstore_get st2 sloc) in
