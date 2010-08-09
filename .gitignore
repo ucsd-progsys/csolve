@@ -9,6 +9,9 @@
 *.ssa.c
 *.c.autospec
 *.c.tags
+*.pyc
+build.sh
+config.make
 negtests/*.fq
 postests/*.fq
 _build
