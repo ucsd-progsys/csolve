@@ -629,5 +629,5 @@ let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: fun
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
   let shpm = scis |> SM.map (infer_shape fe ve storespec scim |> M.uncurry) in
-  let _    = FF.infer_nonfinal_fields scis shpm in
+  let _    = FF.infer_nonfinal_fields funspec scis shpm in
     shpm

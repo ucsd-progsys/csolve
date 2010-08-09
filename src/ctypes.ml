@@ -400,6 +400,9 @@ module LDesc = struct
   let map f ld =
     mapn (fun _ _ fld -> f fld) ld
 
+  let nonfinal_fields ld =
+    fold (fun nfs pl fld -> if Field.is_final fld then nfs else (pl, fld) :: nfs) [] ld
+
   let referenced_slocs ld =
     fold (fun rss _ fld -> match prectype_sloc fld with None -> rss | Some s -> SS.add s rss) SS.empty ld
 

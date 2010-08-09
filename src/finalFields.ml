@@ -1,7 +1,5 @@
 (* TODO
    1. Test with globals
-   2. Annotations from spec files
-   3. Using spec file annotation without function present
    4. Checking all present functions against spec annotation
         Because genspec won't generate finality specs,
         we have to check the inferred spec is a *refinement*
@@ -10,10 +8,15 @@
         Don't use the final field info, just make sure no regression
         test broke with all the refactoring.
 
-  QUIRKS
+   QUIRKS/BUGS
    1. genspec can't produce final field declarations
-      genspec is totally type-driven and does no analysis
-      whatsoever.
+        genspec is totally type-driven and does no analysis
+        whatsoever.
+   2. Functions like read (void * ) are hard to specify:
+        read () takes a pointer to a location A containing anything,
+        i.e., "A |-> ".  The fields in this location should be
+        non-final on account of the read, but we can't specify
+        that yet.
 *)
 
 module S  = Sloc
@@ -122,40 +125,76 @@ module IntraprocNonFinalFields = struct
   let find_nonfinal_fields cfg shp =
     let f   = Array.create (Array.length shp.SI.anna) (all_clocs shp.SI.anna) in
     let ctx = {cfg = cfg; ctem = shp.SI.etypm; conca = shp.SI.conca; ctab = shp.SI.theta; annot = shp.SI.anna} in
-    let res = S.SlocMap.empty |> Misc.fixpoint (nonfinal_iter ctx f) |> fst in
-      res
+      S.SlocMap.empty |> Misc.fixpoint (nonfinal_iter ctx f) |> fst
 end
 
 module InterprocNonFinalFields = struct
-  type inclusion = S.t * S.t (* A1 in A2 *)
+  let proc_nonfinal_fields shpm fname (_, {Ssa_transform.cfg = cfg}) fnfm =
+    SM.add fname (SM.find fname shpm |> fst |> IntraprocNonFinalFields.find_nonfinal_fields cfg) fnfm
 
-  let proc_nonfinal_fields shpm fname (_, {Ssa_transform.cfg = cfg}) nfm =
-    S.SlocMap.fold begin fun s nfs nfm ->
-      S.SlocMap.add s (IndexSet.union nfs (nonfinal_fields s nfm)) nfm
-    end (SM.find fname shpm |> fst |> IntraprocNonFinalFields.find_nonfinal_fields cfg) nfm
+  let process_call callee_nfm nfm annots =
+    List.fold_left begin fun nfm -> function
+      | RA.New (sfrom, sto) | RA.NewC (sfrom, sto, _) ->
+          S.SlocMap.add sto (IndexSet.union (nonfinal_fields sfrom callee_nfm) (nonfinal_fields sto nfm)) nfm
+      | _ -> nfm
+    end nfm annots
 
-  let inclusion_of_annot is = function
-    | RA.New (sfrom, sto) | RA.NewC (sfrom, sto, _) -> (sfrom, sto) :: is
-    | _                                             -> is
+  let process_instr fnfm nfm annots = function
+    | C.Call (_, C.Lval (C.Var vi, C.NoOffset), _, _) -> process_call (SM.find (vi.C.vname) fnfm) nfm annots
+    | C.Call _                                        -> assert false
+    | _                                               -> nfm
 
-  let proc_inclusions _ (shp, _) is =
-    Array.fold_left (List.fold_left (List.fold_left inclusion_of_annot)) is shp.SI.anna
+  let process_block fnfm nfm annotss b =
+    match b.Ssa.bstmt.C.skind with
+      | C.Instr is -> List.fold_left2 (process_instr fnfm) nfm annotss is
+      | _          -> nfm
 
-  let iter_inclusion incs nfm =
-    let nfm' = List.fold_left begin fun nfm (sfrom, sto) ->
-      S.SlocMap.add sto (IndexSet.union (nonfinal_fields sfrom nfm) (nonfinal_fields sto nfm)) nfm
-    end nfm incs in
-      (nfm', not (nonfinal_equal nfm nfm'))
+  let process_fun shpm fname (_, {Ssa_transform.cfg = cfg}) fnfm =
+    let anna = (SM.find fname shpm |> fst).SI.anna in
+    let nfm  = M.array_fold_lefti (fun i nfm b -> process_block fnfm nfm anna.(i) b) (SM.find fname fnfm) cfg.Ssa.blocks in
+      SM.add fname nfm fnfm
 
-  let infer_nonfinal_fields fm shpm =
-    let incs = SM.fold proc_inclusions shpm [] in
-       S.SlocMap.empty
+  let funspec_nonfinal_fields cf =
+    S.SlocMap.fold begin fun s ld nfm ->
+      if S.is_abstract s then
+        let nfs = nonfinal_fields s nfm in
+        let po  = CT.LDesc.get_period ld in
+             ld
+          |> CT.LDesc.nonfinal_fields
+          |> List.fold_left begin fun nfs (pl, _) ->
+               match pl, po with
+                 | CT.PLAt _, _       -> IndexSet.add (CT.index_of_ploc pl 0) nfs
+                 | CT.PLSeq _, Some p -> IndexSet.add (CT.index_of_ploc pl p) nfs
+                 | _                  -> assert false
+             end nfs
+          |> fun nfs -> S.SlocMap.add s nfs nfm
+      else
+        nfm
+    end cf.CT.sto_out S.SlocMap.empty
+
+  let iter_calls shpm fm fnfm =
+    let fnfm' = SM.fold (process_fun shpm) fm fnfm in
+      (fnfm', not (SM.equal nonfinal_equal fnfm fnfm'))
+
+  let infer_nonfinal_fields fspec fm shpm =
+       SM.empty
+    |> SM.fold (fun fname (cf, _) fnfm -> SM.add fname (funspec_nonfinal_fields cf) fnfm) fspec
     |> SM.fold (proc_nonfinal_fields shpm) fm
-    |> Misc.fixpoint (iter_inclusion incs)
+    |> Misc.fixpoint (iter_calls shpm fm)
     |> fst
 end
 
-let infer_nonfinal_fields fm shpm =
-     InterprocNonFinalFields.infer_nonfinal_fields fm shpm
-  >> (fun _ -> P.printf "Interproc nonfinal fields:\n\n")
-  |> dump_nonfinal
+let dump_proc_nonfinals fnfm =
+    SM.iter begin fun fname nfm ->
+      P.printf "Function %s:\n" fname |> ignore;
+      dump_nonfinal nfm |> ignore;
+      P.printf "\n\n" |> ignore
+    end fnfm
+
+let infer_nonfinal_fields fspec fm shpm =
+     InterprocNonFinalFields.infer_nonfinal_fields fspec fm shpm
+  >> fun fnfm ->
+       if Constants.ck_olev Constants.ol_solve then begin
+         P.printf "Interproc nonfinal fields:\n\n" |> ignore;
+         dump_proc_nonfinals fnfm
+     end

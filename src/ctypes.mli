@@ -65,20 +65,21 @@ module LDesc:
   sig
     type 'a t
 
-    val empty         : 'a t
-    val get_period    : 'a t -> int option
-    val add           : ploc -> 'a Field.t -> 'a t -> 'a t
-    val add_index     : index -> 'a Field.t -> 'a t -> 'a t
-    val create        : (index * 'a Field.t) list -> 'a t
-    val remove        : ploc -> 'a t -> 'a t
-    val shrink_period : int -> ('a Field.t -> 'a Field.t -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
-    val find          : ploc -> 'a t -> (ploc * 'a Field.t) list
-    val find_index    : index -> 'a t -> (ploc * 'a Field.t) list
-    val foldn         : (int -> 'a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
-    val fold          : ('a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
-    val map           : ('a Field.t -> 'b Field.t) -> 'a t -> 'b t
-    val mapn          : (int -> ploc -> 'a Field.t -> 'b Field.t) -> 'a t -> 'b t
-    val d_ldesc       : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
+    val empty           : 'a t
+    val get_period      : 'a t -> int option
+    val add             : ploc -> 'a Field.t -> 'a t -> 'a t
+    val add_index       : index -> 'a Field.t -> 'a t -> 'a t
+    val create          : (index * 'a Field.t) list -> 'a t
+    val remove          : ploc -> 'a t -> 'a t
+    val shrink_period   : int -> ('a Field.t -> 'a Field.t -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
+    val find            : ploc -> 'a t -> (ploc * 'a Field.t) list
+    val find_index      : index -> 'a t -> (ploc * 'a Field.t) list
+    val foldn           : (int -> 'a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
+    val fold            : ('a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
+    val map             : ('a Field.t -> 'b Field.t) -> 'a t -> 'b t
+    val mapn            : (int -> ploc -> 'a Field.t -> 'b Field.t) -> 'a t -> 'b t
+    val nonfinal_fields : 'a t -> (ploc * 'a Field.t) list
+    val d_ldesc         : (unit -> 'a prectype -> Pretty.doc) -> unit -> 'a t -> Pretty.doc
   end
 
 type 'a prestore = ('a LDesc.t) Sloc.SlocMap.t
