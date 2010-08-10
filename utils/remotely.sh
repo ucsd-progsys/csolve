@@ -18,4 +18,4 @@ cd \$LPATH;
 tar zxf -;
 export LD_LIBRARY_PATH=\$LPATH/external/z3/lib/;
 $WHAT"
-tar czf - -X utils/package-exclude . | ssh $WHERE $CMD
+tar czfh - -X utils/package-exclude . | ssh $WHERE $CMD
