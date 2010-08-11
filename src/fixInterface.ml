@@ -799,10 +799,11 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
               |> ce_adds env in
   let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
   let ld'   = Ct.LDesc.mapn begin fun i ploc rfld ->
-                if IM.mem i im then IM.find i im |> t_name env' |> Ct.Field.create Ct.Field.Nonfinal else
-                  match ploc with 
-                  | Ct.PLAt _ -> assertf "missing binding!"
-                  | _         -> Ct.Field.map_type (t_subs_names subs) rfld
+                let fnl = Ct.Field.get_finality rfld in
+                  if IM.mem i im then IM.find i im |> t_name env' |> Ct.Field.create fnl else
+                    match ploc with
+                      | Ct.PLAt _ -> assertf "missing binding!"
+                      | _         -> Ct.Field.map_type (t_subs_names subs) rfld
               end ld in
   let cs    = if not newloc then [] else
                 Ct.LDesc.foldn begin fun i cs ploc rfld ->
