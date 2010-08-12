@@ -134,11 +134,13 @@ let so_int = So.t_int
 let so_skl = So.t_func 0 [so_int; so_int]
 let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
 let so_pun = So.t_func 1 [So.t_generic 0; so_int]
+let so_fld = So.t_func 2 [So.t_generic 0; so_int; So.t_generic 1]
 
 let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls
 let vv_skl = Sy.value_variable so_skl
 let vv_pun = Sy.value_variable so_pun
+let vv_fld = Sy.value_variable so_fld
 
 (* API *)
 let sorts  = [] 
@@ -147,11 +149,13 @@ let uf_bbegin    = name_of_string "BLOCK_BEGIN"
 let uf_bend      = name_of_string "BLOCK_END"
 (* let uf_skolem = name_of_string "SKOLEM" *)
 let uf_uncheck   = name_of_string "UNCHECKED"
+let uf_field     = name_of_string "FIELD"
 
 (* API *)
-let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
-let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
-let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
+let eApp_bbegin  = fun x   -> A.eApp (uf_bbegin,  [x])
+let eApp_bend    = fun x   -> A.eApp (uf_bend,    [x])
+let eApp_uncheck = fun x   -> A.eApp (uf_uncheck, [x])
+let eApp_field   = fun x f -> A.eApp (uf_field,   [x; f])
 (* let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
  *)
 
@@ -165,7 +169,8 @@ let builtins =
   [(uf_bbegin,  C.make_reft vv_bls so_bls []);
    (uf_bend,    C.make_reft vv_bls so_bls []);
 (* (uf_skolem,  C.make_reft vv_skl so_skl []); *)
-   (uf_uncheck, C.make_reft vv_pun so_pun [])]
+   (uf_uncheck, C.make_reft vv_pun so_pun []);
+   (uf_field,   C.make_reft vv_fld so_fld [])]
 
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
@@ -454,6 +459,12 @@ let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
+let ra_field ct ptrname n =
+  let vv  = ct |> sort_of_prectype |> Sy.value_variable in
+  let var = ptrname |> Sy.of_string |> A.eVar in
+  let n   = A.eCon (A.Constant.Int n) in
+    [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_field var n))]
+
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
@@ -544,6 +555,13 @@ let t_fresh_fn =
 
 let t_ctype_refctype ct rct = 
   refctype_of_reft_ctype (reft_of_refctype rct) ct
+
+let strengthen_refctype mkreft rct =
+  let reft = reft_of_refctype rct in
+  let vv   = C.vv_of_reft reft in
+  let so   = C.sort_of_reft reft in
+  let ras  = C.ras_of_reft reft in
+    refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (ctype_of_refctype rct)
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
@@ -819,4 +837,13 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
   let sto'  = refstore_set sto cloc ld' in
   (env', sto', tago), cs
 
+let strengthen_final_field ptrname _ pl fld =
+  match pl, Ct.Field.get_finality fld with
+    | Ct.PLAt n, Ct.Field.Final -> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_field ct ptrname n)) fld
+    | _                         -> fld
 
+let strengthen_final_fields ptrname cloc (env, sto, tago) =
+     cloc
+  |> refstore_get sto
+  |> Ct.LDesc.mapn (strengthen_final_field ptrname)
+  |> fun ld -> (env, refstore_set sto cloc ld, tago)

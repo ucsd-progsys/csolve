@@ -86,6 +86,8 @@ val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a) * FixConstraint.t list
 
+val strengthen_final_fields : string -> Sloc.t -> (cilenv * refstore * 'a) -> (cilenv * refstore * 'a)
+
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
 val t_fresh             : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype
 val t_true              : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype

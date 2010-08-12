@@ -58,7 +58,7 @@ let d_tag     = fun () t -> Pretty.dprintf "(%d, %b) " (fst t) (tag_dirty t)
 type annotation = 
   | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
   | WGen of Sloc.t * Sloc.t             (* CLoc, ALoc *)
-  | Ins  of Sloc.t * Sloc.t             (* ALoc, CLoc *)
+  | Ins  of string * Sloc.t * Sloc.t    (* ptr var, ALoc, CLoc *)
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
@@ -101,7 +101,7 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
     match a with
       | Gen  (s1, s2)     -> Gen  (app s1, app s2)
       | WGen (s1, s2)     -> WGen (app s1, app s2)
-      | Ins  (s1, s2)     -> Ins  (app s1, app s2)
+      | Ins  (v, s1, s2)  -> Ins  (v, app s1, app s2)
       | New  (s1, s2)     -> New  (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
 
@@ -118,8 +118,8 @@ let d_annotation () = function
       Pretty.dprintf "Generalize(%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al 
   | WGen (cl, al) -> 
       Pretty.dprintf "WeakGeneralize(%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al 
-  | Ins (al, cl) -> 
-      Pretty.dprintf "Instantiate(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
+  | Ins (v, al, cl) ->
+      Pretty.dprintf "Instantiate(*%s:%a->%a) " v Sloc.d_sloc al Sloc.d_sloc cl
   | New (al, cl) -> 
       Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | NewC (cl, al, cl') -> 
@@ -289,7 +289,7 @@ let annotate_set ctm theta conc = function
   | (Var v1, _), Lval (Mem (CastE (_, Lval (Var v2, _)) as e), _) ->
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta al v2 in
-      instantiate (fun (x,y) -> Ins (x,y)) conc al cl Read
+      instantiate (fun (x,y) -> Ins (v2.vname,x,y)) conc al cl Read
 
   (* v := e *)
   | (Var v, _), e ->
@@ -303,7 +303,7 @@ let annotate_set ctm theta conc = function
   | (Mem (CastE (_, Lval (Var v, _)) as e), _), _ ->
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta al v in
-      instantiate (fun (x,y) -> Ins (x,y)) conc al cl Write
+      instantiate (fun (x,y) -> Ins (v.vname,x,y)) conc al cl Write
   
   (* Uh, oh! *)
   | lv, e -> 

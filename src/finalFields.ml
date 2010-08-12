@@ -109,8 +109,8 @@ module IntraprocNonFinalFields = struct
   let all_clocs annot =
     Array.fold_left begin fun ss annots ->
       List.fold_left begin fun ss -> function
-        | RA.Ins (_, s) | RA.NewC (_, _, s) -> S.SlocSet.add s ss
-        | _                                 -> ss
+        | RA.Ins (_, _, s) | RA.NewC (_, _, s) -> S.SlocSet.add s ss
+        | _                                    -> ss
       end ss (List.concat annots)
     end S.SlocSet.empty annot
 

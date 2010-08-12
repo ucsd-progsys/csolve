@@ -107,10 +107,11 @@ let cons_of_annot me loc tag grd (env, sto, tago) = function
       let sto'   = FI.refstore_remove cloc sto in
       ((env, sto', tago), ([],[]))
 
-  | Refanno.Ins (aloc, cloc) ->
+  | Refanno.Ins (ptr, aloc, cloc) ->
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let cf     = CF.get_alocmap me in
-      let wld',_ = FI.extend_world cf sto aloc cloc false loc tag (env, sto, tago) in 
+      let wld',_ = FI.extend_world cf sto aloc cloc false loc tag (env, sto, tago) in
+      let wld'   = FI.strengthen_final_fields ptr cloc wld' in
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
