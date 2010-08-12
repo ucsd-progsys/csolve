@@ -838,9 +838,12 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
   (env', sto', tago), cs
 
 let strengthen_final_field ptrname _ pl fld =
-  match pl, Ct.Field.get_finality fld with
-    | Ct.PLAt n, Ct.Field.Final -> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_field ct ptrname n)) fld
-    | _                         -> fld
+  if fld |> Ct.Field.type_of |> Ct.is_ref then
+    fld
+  else
+    match pl, Ct.Field.get_finality fld with
+      | Ct.PLAt n, Ct.Field.Final -> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_field ct ptrname n)) fld
+      | _                         -> fld
 
 let strengthen_final_fields ptrname cloc (env, sto, tago) =
      cloc
