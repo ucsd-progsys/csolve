@@ -188,12 +188,13 @@ let dump_proc_nonfinals fnfm =
 
 let ldesc_set_nonfinal_fields nfs ld =
      ld
-  |> LD.mapn (fun _ pl fld -> if CT.ploc_periodic pl then F.set_finality F.Nonfinal fld else fld)
-  |> IndexSet.fold begin fun i ld ->
-         ld
-      |> LD.find_index i
-      |> List.fold_left (fun ld (pl, fld) -> ld |> LD.remove pl |> LD.add pl (F.set_finality F.Nonfinal fld)) ld
-     end nfs
+  |> LD.mapn (fun _ pl fld -> F.set_finality F.Nonfinal fld)
+  (* |> LD.mapn (fun _ pl fld -> if CT.ploc_periodic pl then F.set_finality F.Nonfinal fld else fld) *)
+  (* |> IndexSet.fold begin fun i ld -> *)
+  (*        ld *)
+  (*     |> LD.find_index i *)
+  (*     |> List.fold_left (fun ld (pl, fld) -> ld |> LD.remove pl |> LD.add pl (F.set_finality F.Nonfinal fld)) ld *)
+  (*    end nfs *)
 
 let store_set_nonfinal_fields nfm sto =
   S.SlocMap.fold begin fun s ld sto ->
