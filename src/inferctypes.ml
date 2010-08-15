@@ -37,6 +37,7 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Ind = Inferindices
 module SI  = ShapeInfra
+module FF  = FinalFields
 
 open Ctypes
 open M.Ops
@@ -576,6 +577,14 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
                              SI.anna  = annot;
                              SI.conca = conca;
                              SI.theta = theta} in
+  let module X = struct
+    let ctab = theta
+    let cfg  = sci.ST.cfg
+    let shp  = shp
+    let nasa = NotAliased.non_aliased_locations sci.ST.cfg shp
+  end in
+  let module IFF = FF.IntraprocFinalFields (X) in
+  let _          = IFF.final_fields () in
     (shp, ds)
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
