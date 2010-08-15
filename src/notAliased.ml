@@ -62,18 +62,18 @@ let process_annot na = function
   | RA.New _ | RA.Ins _                -> na
 
 let process_set ctx na = function
-    | C.Mem ep ->
-        begin match CT.ExpMap.find ep ctx.ctem |> CT.prectype_sloc with
+    | C.Mem _, e ->
+        begin match CT.ExpMap.find e ctx.ctem |> CT.prectype_sloc with
           | Some s -> NASet.filter (fun (_, s2) -> not (S.eq s s2)) na
-          | None   -> assert false
+          | None   -> na
         end
     | _ -> na
 
 let process_instr ctx (nas, na) annot instr =
   let na = List.fold_left process_annot na annot in
     match instr with
-      | C.Set ((l, C.NoOffset), _, _) ->
-          let na = process_set ctx na l in
+      | C.Set ((l, C.NoOffset), e, _) ->
+          let na = process_set ctx na (l, e) in
             (na :: nas, na)
       | C.Call _          -> (na :: nas, na)
       | C.Set _ | C.Asm _ -> assert false
