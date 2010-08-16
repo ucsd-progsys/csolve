@@ -71,7 +71,7 @@ let rename_refctype lsubs subs cr =
 let rename_store lsubs subs sto =
   sto |> FI.refstore_subs_locs lsubs 
       |> FI.refstore_subs FI.t_subs_exps subs 
-      |> Ctypes.prestore_subs lsubs
+      |> Ctypes.PreStore.subs lsubs
 
 (*
 let rename_store lsubs subs st = 
@@ -234,7 +234,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
   let env'      = env_of_retbind me lsubs subs env lvo (FI.ret_of_refcfun frt) in
-  let st'       = Ctypes.prestore_upd st ocst in
+  let st'       = Ctypes.PreStore.upd st ocst in
   let wld', cs4 = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4, ds3)
 
@@ -408,7 +408,7 @@ let log_of_sci sci shp =
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
     let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Inferctypes.conca in
     let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
-    let _ = Pretty.printf "ICstore = %a\n" Ctypes.d_prestore_addrs shp.Inferctypes.store in
+    let _ = Pretty.printf "ICstore = %a\n" Ctypes.PreStore.d_prestore_addrs shp.Inferctypes.store in
     ()
 
 let cons_of_sci tgr gnv gst sci shp =
@@ -524,7 +524,7 @@ let cf0 = fun _ -> None
 let cons_of_global_store tgr gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore cf0 FI.ce_empty gst tag in
-  let zst   = Ctypes.prestore_map_ct FI.t_zero_refctype gst in
+  let zst   = Ctypes.PreStore.map_ct FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore cf0 FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)
 
@@ -544,7 +544,7 @@ let type_of_init v vtyp = function
 let add_offset loc t ctptr off =
   match ctptr with
     | Ctypes.CTRef (s, (i, r)) ->
-        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.index_of_int |> Ctypes.index_plus i, r))
+        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.Index.of_int |> Ctypes.Index.plus i, r))
     | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function

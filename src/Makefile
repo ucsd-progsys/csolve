@@ -23,7 +23,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g
 
-TARGETS=main.native genspec.native unglobal.native
+TARGETS=main.native
 
 all:
 	ln -sf ../external/misc
@@ -32,8 +32,6 @@ all:
 	 do \
 	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t || exit 1; \
 	 done
-	for t in $(TARGETS); do ln -sf _build/$$t; done
-	rm ./main.native
-	cp _build/main.native .
+
 clean:
 	rm -rf *.byte *.native _build _log

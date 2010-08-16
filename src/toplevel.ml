@@ -118,7 +118,7 @@ let add_spec fn (funspec, varspec, storespec) =
        >> (fun (_, _, ss) -> if Ctypes.prestore_closed ss then () else halt <| E.error "Global store not closed")
        |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
        |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
-       |> (fun (fs, vs, ss) -> (fs, vs, Ctypes.prestore_upd ss storespec))
+       |> (fun (fs, vs, ss) -> (fs, vs, Ctypes.PreStore.upd ss storespec))
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;

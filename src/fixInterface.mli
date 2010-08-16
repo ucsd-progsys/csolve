@@ -36,11 +36,11 @@ type name
 type cilenv
 
 type alocmap  = Sloc.t -> Sloc.t option
-type refctype = (Ctypes.index * FixConstraint.reft) Ctypes.prectype
-type refcfun  = (Ctypes.index * FixConstraint.reft) Ctypes.precfun
+type refctype = (Ctypes.Index.t * FixConstraint.reft) Ctypes.prectype
+type refcfun  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.precfun
 type refldesc 
-type refstore = (Ctypes.index * FixConstraint.reft) Ctypes.prestore
-type refspec  = (Ctypes.index * FixConstraint.reft) Ctypes.PreSpec.t
+type refstore = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreStore.t
+type refspec  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreSpec.t
 
 
 
@@ -48,8 +48,8 @@ val d_refstore          : unit -> refstore -> Pretty.doc
 val d_refctype          : unit -> refctype -> Pretty.doc
 val d_refcfun           : unit -> refcfun -> Pretty.doc
 
-val ctype_of_refctype   : refctype -> Ctypes.index Ctypes.prectype
-val cfun_of_refcfun     : refcfun  -> Ctypes.index Ctypes.precfun
+val ctype_of_refctype   : refctype -> Ctypes.ctype
+val cfun_of_refcfun     : refcfun  -> Ctypes.cfun
 val refcfun_of_cfun     : Ctypes.cfun -> refcfun
 val store_of_refstore   : refstore -> Ctypes.store
 val cspec_of_refspec    : refspec -> Ctypes.cspec

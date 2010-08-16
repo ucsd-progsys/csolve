@@ -179,11 +179,11 @@ ctype:
   ;
 
 index:
-    Num                                 { Ctypes.IInt $1 }
-  | Num LB Num RB                       { Ctypes.ISeq ($1, $3, Ctypes.Pos) }
-  | Num LC Num RC                       { Ctypes.ISeq ($1, $3, Ctypes.PosNeg) }
-  | TRUE                                { Ctypes.index_top }
-  | FALSE                               { Ctypes.IBot }
+    Num                                 { Ctypes.Index.IInt $1 }
+  | Num LB Num RB                       { Ctypes.Index.ISeq ($1, $3, Ctypes.Pos) }
+  | Num LC Num RC                       { Ctypes.Index.ISeq ($1, $3, Ctypes.PosNeg) }
+  | TRUE                                { Ctypes.Index.top }
+  | FALSE                               { Ctypes.Index.IBot }
   ;
 
 argbinds:

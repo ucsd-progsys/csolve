@@ -21,14 +21,17 @@
  *
  *)
 
-module M  = Misc
-module P  = Pretty
-module E  = Errormsg
-module S  = Sloc
-module SS = S.SlocSet
-module C  = Cil
-module CM = CilMisc
-module SM = M.StringMap
+module M   = Misc
+module P   = Pretty
+module E   = Errormsg
+module S   = Sloc
+module SS  = S.SlocSet
+module C   = Cil
+module CM  = CilMisc
+module SM  = M.StringMap
+module SLM = S.SlocMap
+
+module SLMPrinter = P.MakeMapPrinter(SLM)
 
 open M.Ops
 
@@ -40,93 +43,95 @@ type seq_polarity = (* whether sequence extends positively only or in both direc
   | Pos
   | PosNeg
 
-let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
-  match p1, p2 with
-    | PosNeg, _ | _, PosNeg -> PosNeg
-    | _                     -> Pos
+module Index = struct
+  let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
+    match p1, p2 with
+      | PosNeg, _ | _, PosNeg -> PosNeg
+      | _                     -> Pos
 
-type index =
-  | IBot                             (* empty sequence *)
-  | IInt of int                      (* singleton n >= 0 *)
-  | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+  type t =
+    | IBot                             (* empty sequence *)
+    | IInt of int                      (* singleton n >= 0 *)
+    | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
 
-let index_top = ISeq (0, 1, PosNeg)
+  let top = ISeq (0, 1, PosNeg)
 
-let index_nonneg = ISeq (0, 1, Pos)
+  let nonneg = ISeq (0, 1, Pos)
 
-let d_index (): index -> P.doc = function
-  | IBot                -> P.text "false"
-  | IInt n              -> P.num n
-  | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
-  | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
+  let d_index () = function
+    | IBot                -> P.text "false"
+    | IInt n              -> P.num n
+    | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
+    | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
 
-let is_subindex (i1: index) (i2: index): bool =
-  match (i1, i2) with
-    | (IBot, _)                             -> true
-    | (IInt n, IInt m)                      -> n = m
-    | (IInt n, ISeq (m, k, Pos))            -> m <= n && (n - m) mod k = 0
-    | (IInt n, ISeq (m, k, PosNeg))         -> (n - m) mod k = 0
-    | (ISeq (n, l, Pos), ISeq (m, k, Pos))  -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
-    | (ISeq (n, l, _), ISeq (m, k, PosNeg)) -> k <= l && l mod k = 0 && (n - m) mod k = 0
-    | _                                     -> false
+  let is_subindex i1 i2 =
+    match (i1, i2) with
+      | (IBot, _)                             -> true
+      | (IInt n, IInt m)                      -> n = m
+      | (IInt n, ISeq (m, k, Pos))            -> m <= n && (n - m) mod k = 0
+      | (IInt n, ISeq (m, k, PosNeg))         -> (n - m) mod k = 0
+      | (ISeq (n, l, Pos), ISeq (m, k, Pos))  -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
+      | (ISeq (n, l, _), ISeq (m, k, PosNeg)) -> k <= l && l mod k = 0 && (n - m) mod k = 0
+      | _                                     -> false
 
-let index_of_int (i: int): index =
-  if i >= 0 then IInt i else index_top
+  let of_int i =
+    if i >= 0 then IInt i else top
 
-let index_lub (i1: index) (i2: index): index =
-  if is_subindex i1 i2 then
-    i2
-  else if is_subindex i2 i1 then
-    i1
-  else
-    match i1, i2 with
-      | IInt m, IInt n                                  -> ISeq (min n m, abs (n - m), Pos)
-      | IInt n, ISeq (m, k, p) | ISeq (m, k, p), IInt n -> ISeq (min n m, M.gcd k (abs (n - m)), p)
-      | ISeq (n, l, p), ISeq (m, k, q)                  -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))), seq_polarity_lub p q)
-      | _                                               -> assert false
+  let lub i1 i2 =
+    if is_subindex i1 i2 then
+      i2
+    else if is_subindex i2 i1 then
+      i1
+    else
+      match i1, i2 with
+        | IInt m, IInt n                                  -> ISeq (min n m, abs (n - m), Pos)
+        | IInt n, ISeq (m, k, p) | ISeq (m, k, p), IInt n -> ISeq (min n m, M.gcd k (abs (n - m)), p)
+        | ISeq (n, l, p), ISeq (m, k, q)                  -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))), seq_polarity_lub p q)
+        | _                                               -> assert false
 
-let index_plus (i1: index) (i2: index): index =
-  match (i1, i2) with
-    | (IBot, _) | (_, IBot)                               -> IBot
-    | (IInt n, IInt m)                                    -> IInt (n + m)
-    | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n + m, k, p)
-    | (ISeq (n1, k1, p1), ISeq (n2, k2, p2))              -> ISeq (n1 + n2, M.gcd k1 k2, seq_polarity_lub p1 p2)
+  let plus i1 i2 =
+    match (i1, i2) with
+      | (IBot, _) | (_, IBot)                               -> IBot
+      | (IInt n, IInt m)                                    -> IInt (n + m)
+      | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n + m, k, p)
+      | (ISeq (n1, k1, p1), ISeq (n2, k2, p2))              -> ISeq (n1 + n2, M.gcd k1 k2, seq_polarity_lub p1 p2)
 
-(* pmr: prove this has the appropriate monotonicity property *)
-let index_minus (i1: index) (i2: index): index =
-  match (i1, i2) with
-    | (IBot, _) | (_, IBot)    -> IBot
-    | (IInt n, IInt m)         -> IInt (n - m)
-    | (ISeq (m, k, p), IInt n) when m >= n -> ISeq (m - n, k, p)
-    | _                        -> index_top
+  (* pmr: prove this has the appropriate monotonicity property *)
+  let minus i1 i2 =
+    match (i1, i2) with
+      | (IBot, _) | (_, IBot)                -> IBot
+      | (IInt n, IInt m)                     -> IInt (n - m)
+      | (ISeq (m, k, p), IInt n) when m >= n -> ISeq (m - n, k, p)
+      | _                                    -> top
 
-let index_constop (op: int -> int -> int) (i1: index) (i2: index): index =
-  match (i1, i2) with
-    | (IBot, _) | (_, IBot) -> IBot
-    | (IInt n, IInt m)      -> IInt (op n m)
-    | _                     -> index_top
+  let constop op i1 i2 =
+    match (i1, i2) with
+      | (IBot, _) | (_, IBot) -> IBot
+      | (IInt n, IInt m)      -> IInt (op n m)
+      | _                     -> top
 
-let index_scale (x: int): index -> index = function
-  | IBot           -> IBot
-  | IInt n         -> IInt (n * x)
-  | ISeq (n, m, p) -> ISeq (n * x, m * x, p)
+  let scale x = function
+    | IBot           -> IBot
+    | IInt n         -> IInt (n * x)
+    | ISeq (n, m, p) -> ISeq (n * x, m * x, p)
 
-(* pmr: prove this has the appropriate monotonicity property *)
-let index_mult (i1: index) (i2: index): index =
-  match (i1, i2) with
-    | (IBot, _) | (_, IBot)                               -> IBot
-    | (IInt n, IInt m)                                    -> IInt (n * m)
-    | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n * m, n * k, p)
-    | _                                                   -> index_top
+  (* pmr: prove this has the appropriate monotonicity property *)
+  let mult i1 i2 =
+    match (i1, i2) with
+      | (IBot, _) | (_, IBot)                               -> IBot
+      | (IInt n, IInt m)                                    -> IInt (n * m)
+      | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n * m, n * k, p)
+      | _                                                   -> top
 
-let index_div: index -> index -> index =
-  index_constop (/)
+  let div =
+    constop (/)
 
-let index_unsign: index -> index = function
-  | ISeq (m, k, _) when m < 0 -> index_nonneg
-  | ISeq (_, _, PosNeg)       -> index_nonneg
-  | IInt n when n < 0         -> index_nonneg
-  | i                         -> i
+  let unsign = function
+    | ISeq (m, k, _) when m < 0 -> nonneg
+    | ISeq (_, _, PosNeg)       -> nonneg
+    | IInt n when n < 0         -> nonneg
+    | i                         -> i
+end
 
 (******************************************************************************)
 (************************************ Types ***********************************)
@@ -169,33 +174,33 @@ let is_ref: 'a prectype -> bool = function
   | CTRef _ -> true
   | _       -> false
 
-type ctype = index prectype
+type ctype = Index.t prectype
 
 let d_ctype () (ct: ctype): P.doc =
-  d_prectype d_index () ct
+  d_prectype Index.d_index () ct
 
 exception NoLUB of ctype * ctype
 
 let ctype_lub (t1: ctype) (t2: ctype): ctype =
   match (t1, t2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> CTInt (n1, index_lub i1 i2)
-    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> CTRef (s1, index_lub i1 i2)
+    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> CTInt (n1, Index.lub i1 i2)
+    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> CTRef (s1, Index.lub i1 i2)
     | _                                                -> raise (NoLUB (t1, t2))
 
 let is_subctype (ct1: ctype) (ct2: ctype): bool =
   match (ct1, ct2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> is_subindex i1 i2
-    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> is_subindex i1 i2
+    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> Index.is_subindex i1 i2
+    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> Index.is_subindex i1 i2
     | _                                                -> false
 
 let ctype_of_const: C.constant -> ctype = function
-  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, index_of_int (Int64.to_int v))
-  | C.CChr c            -> CTInt (CM.int_width, IInt (Char.code c))
-  | C.CReal (_, fk, _)  -> CTInt (CM.bytesSizeOfFloat fk, index_top)
-  | C.CStr _            -> CTRef (S.fresh S.Abstract, IInt 0)
+  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, Index.of_int (Int64.to_int v))
+  | C.CChr c            -> CTInt (CM.int_width, Index.IInt (Char.code c))
+  | C.CReal (_, fk, _)  -> CTInt (CM.bytesSizeOfFloat fk, Index.top)
+  | C.CStr _            -> CTRef (S.fresh S.Abstract, Index.IInt 0)
   | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
-let void_ctype = CTInt (0, index_top)
+let void_ctype = CTInt (0, Index.top)
 
 (******************************************************************************)
 (***************************** Periodic Locations *****************************)
@@ -212,13 +217,13 @@ let d_ploc (): ploc -> P.doc = function
 
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
-    | PLAt n         -> IInt n
-    | PLSeq (n, pol) -> ISeq (n, p, pol)
+    | PLAt n         -> Index.IInt n
+    | PLSeq (n, pol) -> Index.ISeq (n, p, pol)
 
-let ploc_of_index: index -> ploc = function
-  | IInt n         -> PLAt n
-  | ISeq (n, _, p) -> PLSeq (n, p)
-  | IBot           -> halt <| E.bug "Can't convert IBot to ploc@!@!"
+let ploc_of_index = function
+  | Index.IInt n         -> PLAt n
+  | Index.ISeq (n, _, p) -> PLSeq (n, p)
+  | Index.IBot           -> halt <| E.bug "Can't convert IBot to ploc@!@!"
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq (n, _) -> n
@@ -240,16 +245,16 @@ let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
     | (PLSeq (n1, Pos), PLSeq (_, PosNeg)) -> false
     | (PLSeq (n1, PosNeg), PLSeq (n2, _))  -> (n2 - n1) mod p = 0
 
-let ploc_contains_index (pl: ploc) (p: int) (i: index): bool =
+let ploc_contains_index pl p i =
   match (pl, i) with
-    | (_, IBot)                             -> false
-    | (PLAt n, IInt m)                      -> n = m
-    | (PLAt _, ISeq _)                      -> false
-    | (PLSeq (n, Pos), IInt m)              -> n <= m && (m - n) mod p = 0
-    | (PLSeq (n, PosNeg), IInt m)           -> (m - n) mod p = 0
-    | (PLSeq (n, Pos), ISeq (m, k, Pos))    -> k mod p = 0 && n <= m && (m - n) mod p = 0
-    | (PLSeq (n, Pos), ISeq (m, k, PosNeg)) -> false
-    | (PLSeq (n, PosNeg), ISeq (m, k, _))   -> k mod p = 0 && (m - n) mod p = 0
+    | (_, Index.IBot)                             -> false
+    | (PLAt n, Index.IInt m)                      -> n = m
+    | (PLAt _, Index.ISeq _)                      -> false
+    | (PLSeq (n, Pos), Index.IInt m)              -> n <= m && (m - n) mod p = 0
+    | (PLSeq (n, PosNeg), Index.IInt m)           -> (m - n) mod p = 0
+    | (PLSeq (n, Pos), Index.ISeq (m, k, Pos))    -> k mod p = 0 && n <= m && (m - n) mod p = 0
+    | (PLSeq (n, Pos), Index.ISeq (m, k, PosNeg)) -> false
+    | (PLSeq (n, PosNeg), Index.ISeq (m, k, _))   -> k mod p = 0 && (m - n) mod p = 0
 
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
@@ -335,12 +340,12 @@ module LDesc = struct
   let shrink_period_fail_on_conflict (p: int) (ld: 'a t): 'a t =
     shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
 
-  let add_index (i: index) (pct: 'a prectype) (ld: 'a t): 'a t =
+  let add_index i pct ld =
     match i with
-      | ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) pct
-      | _              -> add (ploc_of_index i) pct ld
+      | Index.ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) pct
+      | _                    -> add (ploc_of_index i) pct ld
 
-  let create (icts: (index * 'a prectype) list): 'a t =
+  let create icts =
     List.fold_left (M.uncurry add_index |> M.flip) empty icts
 
   let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
@@ -350,7 +355,7 @@ module LDesc = struct
       let p = get_period_default po in
         List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
 
-  let find_index (i: index) ((po, _) as ld: 'a t) =
+  let find_index i ((po, _) as ld) =
     let pcts = find (ploc_of_index i) ld in
     let p    = get_period_default po in
       List.filter (fun (pl, pct) -> ploc_contains_index pl p i) pcts
@@ -380,87 +385,91 @@ module LDesc = struct
          let s = P.concat (P.text ",") P.break in
          let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
          P.concat P.align (P.concat d P.unalign) *)
-      P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" d_index (index_of_ploc pl p) pt pct) pcts)
+      P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" Index.d_index (index_of_ploc pl p) pt pct) pcts)
 end
 
-module SLM = S.SlocMap
+module PreStore = struct
+  type 'a t = ('a LDesc.t) SLM.t
 
-(* pmr: this should become a module at some point --- this isn't 1983 *)
-type 'a prestore = ('a LDesc.t) SLM.t
+  let map f =
+    f |> prectype_map |> LDesc.map |> SLM.map
 
-let prestore_map f =
-  f |> prectype_map |> LDesc.map |> SLM.map
+  let map_ct f =
+    SLM.map (LDesc.map f)
 
-let prestore_map_ct f =
-  SLM.map (LDesc.map f)
+  let fold f b ps =
+    SLM.fold begin fun l ld b ->
+      let p = LDesc.get_period ld |> M.get_option 0 in
+        LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
+    end ps b
 
-let prestore_fold f b ps =
-  SLM.fold begin fun l ld b ->
-    let p = LDesc.get_period ld |> M.get_option 0 in
-      LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
-  end ps b
+  let domain ps =
+    SLM.fold (fun s _ ss -> s :: ss) ps []
 
-let prestore_domain (ps: 'a prestore): S.t list =
-  SLM.fold (fun s _ ss -> s :: ss) ps []
+  let slocs ps =
+       ps
+    |> domain
+    |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
+    |> M.sort_and_compact
 
-let prestore_slocs (ps: 'a prestore): S.t list =
-    ps
- |> prestore_domain
- |> M.flip (prestore_fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
- |> M.sort_and_compact  
+  let find l ps =
+    try SLM.find l ps with Not_found -> LDesc.empty
 
-let prestore_find (l: S.t) (ps: 'a prestore): 'a LDesc.t =
-  try SLM.find l ps with Not_found -> LDesc.empty
+  let find_index l i ps =
+    ps |> find l |> LDesc.find_index i |> List.map snd
 
-let prestore_find_index (l: S.t) (i: index) (ps: 'a prestore): 'a prectype list =
-   ps |> prestore_find l |> LDesc.find_index i |> List.map snd
+  (* pmr: why is this not rename_prestore? *)
+  let subs_addrs subs ps =
+    SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
 
-(* pmr: why is this not rename_prestore? *)
-let prestore_subs_addrs subs ps =
-  SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
+  let subs subs ps =
+    ps |> map_ct (prectype_subs subs)
+       |> subs_addrs subs
 
-let prestore_subs (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
-  ps |> prestore_map_ct (prectype_subs subs) 
-     |> prestore_subs_addrs subs
+  let upd ps1 ps2 =
+    SLM.fold SLM.add ps2 ps1
 
-let prestore_upd (ps1: 'a prestore) (ps2: 'a prestore): 'a prestore =
-  SLM.fold SLM.add ps2 ps1
+  let partition f ps =
+    SLM.fold begin fun l ld (ps1, ps2) ->
+      if f l ld then
+        (SLM.add l ld ps1, ps2)
+      else (ps1, SLM.add l ld ps2)
+    end ps (SLM.empty, SLM.empty)
 
-let prestore_partition (f: S.t -> 'a LDesc.t -> bool) (ps: 'a prestore): 'a prestore * 'a prestore =
-  SLM.fold begin fun l ld (ps1, ps2) ->
-    if f l ld then
-      (SLM.add l ld ps1, ps2)
-    else (ps1, SLM.add l ld ps2)
-  end ps (SLM.empty, SLM.empty)
+  let rec close_slocs ps ss =
+    let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> find s |> LDesc.referenced_slocs))) ss ss in
+      if SS.equal reqs ss then ss else close_slocs ps reqs
 
-let rec prestore_close_slocs (ps: 'a prestore) (ss: SS.t): SS.t =
-  let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> prestore_find s |> LDesc.referenced_slocs))) ss ss in
-    if SS.equal reqs ss then ss else prestore_close_slocs ps reqs
+  let close_under ps ss =
+    let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
+      SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
-let prestore_close_under (ps: 'a prestore) (ss: S.t list): 'a prestore =
-  let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> prestore_close_slocs ps in
-    SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
+  let rename subs ps =
+    let cns = LDesc.map (prectype_subs subs) in
+      SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
-type store = index prestore
+  let d_prestore_addrs () st =
+    Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
 
-let prectype_closed (ct: 'a prectype) (sto: 'a prestore) =
-  match ct with
-    | CTInt _      -> true
-    | CTRef (l, _) -> SLM.mem l sto
+  let d_prestore d_i () s  =
+    P.dprintf "[@[%a@]]"
+      (SLMPrinter.docMap ~sep:(P.dprintf ";@!")
+         (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+end
 
-let prestore_closed (sto: 'a prestore): bool =
-  prestore_fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
-
-module SLMPrinter = P.MakeMapPrinter(SLM)
-
-let d_precstore d_i () s  =
-  P.dprintf "[@[%a@]]" (SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+type store = Index.t PreStore.t
 
 let d_store () (s: store): P.doc =
   SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
 
-let d_prestore_addrs () st =
-  Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (prestore_domain st)
+let prectype_closed (ct: 'a prectype) (sto: 'a PreStore.t) =
+  match ct with
+    | CTInt _      -> true
+    | CTRef (l, _) -> SLM.mem l sto
+
+(* move into module *)
+let prestore_closed (sto: 'a PreStore.t): bool =
+  PreStore.fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
 
 (******************************************************************************)
 (******************************* Function Types *******************************)
@@ -470,11 +479,11 @@ type 'a precfun =
   { qlocs       : S.t list;                     (* generalized slocs *)
     args        : (string * 'a prectype) list;  (* arguments *)
     ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a prestore;                  (* in store *)
-    sto_out     : 'a prestore;                  (* out store *)
+    sto_in      : 'a PreStore.t;                (* in store *)
+    sto_out     : 'a PreStore.t;                (* out store *)
   }
 
-type cfun = index precfun
+type cfun = Index.t precfun
 
 (* API *)
 let mk_cfun qslocs args reto sin sout =
@@ -502,20 +511,16 @@ let d_precfun d_i () ft  =
     d_slocs ft.qlocs
     (d_args d_i) ft.args
     (d_prectype d_i) ft.ret
-    (d_precstore d_i) ft.sto_in
-    (d_precstore d_i) ft.sto_out
+    (PreStore.d_prestore d_i) ft.sto_in
+    (PreStore.d_prestore d_i) ft.sto_out
 
 let d_cfun () ft =
-  d_precfun d_index () ft
-
-let rename_prestore (subs: S.Subst.t) (ps: 'a prestore): 'a prestore =
-  let cns = LDesc.map (prectype_subs subs) in
-    SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
+  d_precfun Index.d_index () ft
 
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
   let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
   let rename_pct = prectype_subs subs in
-  let rename_ps  = rename_prestore subs in
+  let rename_ps  = PreStore.rename subs in
     ({qlocs   = [];
       args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
       ret     = rename_pct rcts;
@@ -523,10 +528,10 @@ let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_ou
       sto_out = rename_ps sout},
      subs)
 
-let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
+let precfun_well_formed (globstore: 'a PreStore.t) (cf: 'a precfun): bool =
      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-  let whole_instore  = prestore_upd cf.sto_in globstore in
-  let whole_outstore = prestore_upd cf.sto_out globstore in
+  let whole_instore  = PreStore.upd cf.sto_in globstore in
+  let whole_outstore = PreStore.upd cf.sto_out globstore in
      prestore_closed whole_instore
   && prestore_closed whole_outstore
   && List.for_all (fun (_, ct) -> prectype_closed ct whole_instore) cf.args
@@ -535,8 +540,8 @@ let precfun_well_formed (globstore: 'a prestore) (cf: 'a precfun): bool =
         | _            -> true
 
 let cfun_slocs (cf: cfun): S.t list =
-    List.concat [prestore_slocs cf.sto_in;
-                 prestore_slocs cf.sto_out;
+    List.concat [PreStore.slocs cf.sto_in;
+                 PreStore.slocs cf.sto_out;
                  M.maybe_cons (prectype_sloc cf.ret) <|
                      M.map_partial (prectype_sloc <.> snd) cf.args]
  |> M.sort_and_compact
@@ -546,8 +551,8 @@ let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
   mk_cfun (List.map (S.Subst.apply sub) cf.qlocs)
           (List.map (M.app_snd apply_sub) cf.args)
           (apply_sub cf.ret)
-          (prestore_subs sub cf.sto_in)
-          (prestore_subs sub cf.sto_out)
+          (PreStore.subs sub cf.sto_in)
+          (PreStore.subs sub cf.sto_out)
 
 (******************************************************************************)
 (******************************* Expression Maps ******************************)
@@ -573,14 +578,14 @@ let d_ctemap () (em: ctemap): Pretty.doc =
 (******************************************************************************)
 
 module PreSpec = struct
-  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a prestore
+  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a PreStore.t
 
   let empty = (SM.empty, SM.empty, SLM.empty)
 
   let map (f: 'a -> 'b) ((funspec, varspec, storespec): 'a t): 'b t =
     (SM.map (f |> prectype_map |> precfun_map |> M.app_fst) funspec,
      SM.map (f |> prectype_map |> M.app_fst) varspec,
-     prestore_map f storespec)
+     PreStore.map f storespec)
 
   let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec, storespec): 'a t): 'a t =
     (SM.add fn sp funspec, varspec, storespec)
@@ -597,8 +602,8 @@ module PreSpec = struct
   let mem_var (vn: string) ((_, varspec, _): 'a t): bool =
     SM.mem vn varspec
 
-  let store ((_, _, storespec): 'a t): 'a prestore =
+  let store ((_, _, storespec): 'a t): 'a PreStore.t =
     storespec
 end
 
-type cspec = index PreSpec.t
+type cspec = Index.t PreSpec.t

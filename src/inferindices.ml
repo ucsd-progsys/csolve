@@ -53,7 +53,7 @@ let with_fresh_indexvar (f: indexvar -> 'a): 'a =
   fresh_indexvar () |> f
 
 type indexexp =
-  | IEConst of index
+  | IEConst of Index.t
   | IEVar of indexvar
   | IEPlus of indexexp * (* RHS scale: *) int * indexexp
   | IEMinus of indexexp * (* RHS scale: *) int * indexexp
@@ -62,7 +62,7 @@ type indexexp =
   | IEUnsign of indexexp
 
 let rec d_indexexp (): indexexp -> P.doc = function
-  | IEConst i                 -> d_index () i
+  | IEConst i                 -> Index.d_index () i
   | IEVar iv                  -> d_indexvar () iv
   | IEPlus (ie1, scale, ie2)  -> P.dprintf "%a + %d * %a" d_indexexp ie1 scale d_indexexp ie2
   | IEMinus (ie1, scale, ie2) -> P.dprintf "%a - %d * %a" d_indexexp ie1 scale d_indexexp ie2
@@ -87,32 +87,32 @@ module IndexSol =
                         type t      = indexvar
                         let compare = compare
 
-                        type v      = index
-                        let default = IBot
+                        type v      = Index.t
+                        let default = Index.IBot
                       end)
 
-type indexsol = index IndexSol.t
+type indexsol = Index.t IndexSol.t
 
 module ISPrinter = P.MakeMapPrinter(IndexSol)
 
 let d_indexsol =
-  ISPrinter.d_map "\n" d_indexvar d_index
+  ISPrinter.d_map "\n" d_indexvar Index.d_index
 
-let rec indexexp_apply (is: indexsol): indexexp -> index = function
+let rec indexexp_apply is = function
   | IEConst i             -> i
   | IEVar iv              -> IndexSol.find iv is
-  | IEUnsign ie           -> index_unsign (indexexp_apply is ie)
-  | IEPlus (ie1, x, ie2)  -> index_plus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
-  | IEMinus (ie1, x, ie2) -> index_minus (indexexp_apply is ie1) (index_scale x <| indexexp_apply is ie2)
-  | IEMult (ie1, ie2)     -> index_mult (indexexp_apply is ie1) (indexexp_apply is ie2)
-  | IEDiv (ie1, ie2)      -> index_div (indexexp_apply is ie1) (indexexp_apply is ie2)
+  | IEUnsign ie           -> Index.unsign (indexexp_apply is ie)
+  | IEPlus (ie1, x, ie2)  -> Index.plus (indexexp_apply is ie1) (Index.scale x <| indexexp_apply is ie2)
+  | IEMinus (ie1, x, ie2) -> Index.minus (indexexp_apply is ie1) (Index.scale x <| indexexp_apply is ie2)
+  | IEMult (ie1, ie2)     -> Index.mult (indexexp_apply is ie1) (indexexp_apply is ie2)
+  | IEDiv (ie1, ie2)      -> Index.div (indexexp_apply is ie1) (indexexp_apply is ie2)
 
 let refine_index (is: indexsol) (ie: indexexp) (iv: indexvar): indexsol =
-  IndexSol.add iv (index_lub (indexexp_apply is ie) (IndexSol.find iv is)) is
+  IndexSol.add iv (Index.lub (indexexp_apply is ie) (IndexSol.find iv is)) is
 
-let bounded_refine_index (is: indexsol) (ie: indexexp) (iv: indexvar) (ibound: index): indexsol =
+let bounded_refine_index (is: indexsol) (ie: indexexp) (iv: indexvar) (ibound: Index.t): indexsol =
   let is = refine_index is ie iv in
-    if is_subindex (IndexSol.find iv is) ibound then is else IndexSol.add iv ibound is
+    if Index.is_subindex (IndexSol.find iv is) ibound then is else IndexSol.add iv ibound is
 
 (******************************************************************************)
 (****************************** Type Constraints ******************************)
@@ -142,7 +142,7 @@ let fresh_itypevar (t: C.typ): itypevar =
   match C.unrollType t with
     | C.TInt (ik, _)        -> CTInt (C.bytesSizeOfInt ik, IEVar (fresh_indexvar ()))
     | C.TEnum (ei, _)       -> CTInt (C.bytesSizeOfInt ei.C.ekind, IEVar (fresh_indexvar ()))
-    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst index_top)
+    | C.TFloat _            -> CTInt (CM.typ_width t, IEConst Index.top)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
     | C.TPtr _ | C.TArray _ -> CTRef (S.none, IEVar (fresh_indexvar ()))
     | t                     -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
@@ -152,8 +152,8 @@ let itypevar_apply (is: indexsol) (itv: itypevar): ctype =
 
 let is_subitypevar (is: indexsol) (itv1: itypevar) (itv2: itypevar): bool =
   match itv1, itv2 with
-    | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
-    | CTRef (_, ie1), CTRef (_, ie2)                -> is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTInt (n1, ie1), CTInt (n2, ie2) when n1 = n2 -> Index.is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
+    | CTRef (_, ie1), CTRef (_, ie2)                -> Index.is_subindex (indexexp_apply is ie1) (indexexp_apply is ie2)
     | _                                             -> false
 
 type boundfun = string * (ctype -> ctype * FI.refctype)
@@ -163,10 +163,10 @@ let ctype_of_bound ((_, fbound): boundfun) (ctv: ctype): ctype =
 
 let bound_nonneg (ct: ctype): ctype * FI.refctype =
   match ct with
-    | CTInt (w, ISeq (n, p, PosNeg)) ->
+    | CTInt (w, Index.ISeq (n, p, PosNeg)) ->
         let vv   = Ast.Symbol.value_variable Ast.Sort.t_int in
         let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
-        (CTInt (w, ISeq (n, p, Pos)), FI.t_pred ct vv pred)
+        (CTInt (w, Index.ISeq (n, p, Pos)), FI.t_pred ct vv pred)
     | _ -> (ct, FI.t_true ct)
 
 type 'a pretypecstrdesc =
@@ -360,9 +360,9 @@ and constrain_unop (op: C.unop) (env: env) (t: C.typ) (e: C.exp): itypevar * ity
     (apply_unop t op, cs)
 
 and apply_unop (rt: C.typ): C.unop -> itypevar = function
-  | C.LNot -> CTInt (CM.typ_width rt, IEConst index_nonneg)
-  | C.BNot -> CTInt (CM.typ_width rt, IEConst index_top)
-  | C.Neg  -> CTInt (CM.typ_width rt, IEConst index_top)
+  | C.LNot -> CTInt (CM.typ_width rt, IEConst Index.nonneg)
+  | C.BNot -> CTInt (CM.typ_width rt, IEConst Index.top)
+  | C.Neg  -> CTInt (CM.typ_width rt, IEConst Index.top)
 
 and constrain_binop (op: C.binop) (env: env) (t: C.typ) (e1: C.exp) (e2: C.exp): itypevar * itypevarcstr list =
   let itv1, cs1 = constrain_exp env e1 in
@@ -402,25 +402,25 @@ and apply_ptrarithmetic (f: indexexp -> int -> indexexp -> indexexp) (pt: C.typ)
     | _ -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.typ_width !C.upointType, IEConst index_top), None)
+  (CTInt (CM.typ_width !C.upointType, IEConst Index.top), None)
 
 and apply_rel (_: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.int_width, IEConst index_nonneg), None)
+  (CTInt (CM.int_width, IEConst Index.nonneg), None)
 
 and apply_unknown (rt: C.typ) (_: C.exp) (_: itypevar) (_: itypevar): itypevar * itypevarcstr option =
-  (CTInt (CM.typ_width rt, IEConst index_top), None)
+  (CTInt (CM.typ_width rt, IEConst Index.top), None)
 
 and constrain_constptr: C.constant -> itypevar * itypevarcstr list = function
-  | C.CStr _                                 -> (CTRef (S.none, IEConst (IInt 0)), [])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst IBot), [])
+  | C.CStr _                                 -> (CTRef (S.none, IEConst (Index.IInt 0)), [])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> (CTRef (S.none, IEConst Index.IBot), [])
   | c                                        -> halt <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypevarcstr list =
   let itv, cs = constrain_exp env e in
     match C.unrollType ct, C.unrollType <| C.typeOf e with
-      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst index_top), cs)
-      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst index_top), cs)
-      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst index_nonneg), cs)
+      | C.TFloat (fk, _), _        -> (CTInt (CM.bytesSizeOfFloat fk, IEConst Index.top), cs)
+      | C.TInt (ik, _), C.TFloat _ -> (CTInt (C.bytesSizeOfInt ik, IEConst Index.top), cs)
+      | C.TInt (ik, _), C.TPtr _   -> (CTInt (C.bytesSizeOfInt ik, IEConst Index.nonneg), cs)
       | C.TInt (ik, _), C.TInt _   ->
           begin match itv with
             | CTInt (n, ie) ->
@@ -432,14 +432,14 @@ and constrain_cast (env: env) (ct: C.typ) (e: C.exp): itypevar * itypevarcstr li
                     C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
                     if C.isSigned ik then ie else IEUnsign ie
                   end else
-                    IEConst index_top
+                    IEConst Index.top
                 in (CTInt (C.bytesSizeOfInt ik, iec), cs)
             | _ -> halt <| C.error "Got bogus type in contraining int-int cast@!@!"
           end
       | _ -> (itv, cs)
 
 and constrain_sizeof (t: C.typ): itypevar * itypevarcstr list =
-  (CTInt (CM.int_width, IEConst (IInt (CM.typ_width t))), [])
+  (CTInt (CM.int_width, IEConst (Index.IInt (CM.typ_width t))), [])
 
 let constrain_return (env: env) (rtv: itypevar): C.exp option -> itypevarcstr list = function
     | None   -> if is_void rtv then [] else halt <| C.error "Returning void value for non-void function\n\n"
