@@ -288,9 +288,7 @@ and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvema
 
 and constrain_unop (op: C.unop) (env: env) (em: ctvemap) (t: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
   let ctv, em, cs = constrain_exp env em e in
-    match ctv with
-      | CTInt _ -> (apply_unop t op, em, cs)
-      | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
+    (apply_unop t op, em, cs)
 
 and apply_unop (rt: C.typ): C.unop -> ctype = function
   | C.LNot -> CTInt (CM.typ_width rt, index_nonneg)
