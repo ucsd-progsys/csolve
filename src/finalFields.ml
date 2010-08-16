@@ -303,7 +303,7 @@ module IntraprocFinalFields (X: Context) = struct
       (ffm :: ffms, ffm)
 
   let meet_finals ffm1 ffm2 =
-    LM.fold (fun l ps ffm -> LM.add l (PlocSet.inter ps (LM.find l ffm2)) ffm)
+    LM.fold (fun l ps ffm -> LM.add l (PlocSet.inter ps (LM.find l ffm2)) ffm) ffm1 LM.empty
 
   let merge_succs init_ffm ffmsa i =
     match X.cfg.Ssa.successors.(i) with
