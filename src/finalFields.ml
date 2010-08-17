@@ -43,6 +43,7 @@ module type Context = sig
   val cfg   : Ssa.cfgInfo
   val shp   : SI.shape
   val ffmm  : PlocSet.t LM.t SM.t
+  val sspec : CT.store
 end
 
 module IntraprocFinalFields (X: Context) = struct
@@ -161,9 +162,13 @@ module IntraprocFinalFields (X: Context) = struct
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let init_abstract_finals () =
-    LM.fold begin fun l ld ffm ->
-      LM.add l (CT.LDesc.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
-    end X.shp.SI.store LM.empty
+       LM.empty
+    |> LM.fold begin fun l ld ffm ->
+         LM.add l (CT.LDesc.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
+       end X.shp.SI.store
+    |> LM.fold begin fun l _ ffm ->
+         LM.add l PlocSet.empty ffm
+       end X.sspec
 
   let init_concrete_finals annots ffm =
     Array.fold_left begin fun ffm annotss ->
@@ -189,13 +194,14 @@ module IntraprocFinalFields (X: Context) = struct
 end
 
 module InterprocFinalFields = struct
-  let iter_final_fields scis shpm ffmm =
+  let iter_final_fields scis shpm storespec ffmm =
     SM.fold begin fun fname ffm (ffmm', reiter) ->
       if SM.mem fname shpm then
         let module X = struct
-	  let shp  = SM.find fname shpm |> fst
-	  let cfg  = (SM.find fname scis |> snd).Ssa_transform.cfg
-	  let ffmm = ffmm
+	  let shp   = SM.find fname shpm |> fst
+	  let cfg   = (SM.find fname scis |> snd).Ssa_transform.cfg
+          let sspec = storespec
+	  let ffmm  = ffmm
         end in
         let module FF = IntraprocFinalFields (X) in
         let ffm'      = FF.final_fields () in
@@ -219,14 +225,14 @@ module InterprocFinalFields = struct
   let set_nonfinal_fields shp =
     assert false
 
-  let final_fields fspecm scis shpm =
+  let final_fields fspecm storespec scis shpm =
        init_final_fields fspecm shpm
-    |> Misc.fixpoint (iter_final_fields scis shpm)
+    |> Misc.fixpoint (iter_final_fields scis shpm storespec)
     |> fst
 end
 
-let infer_final_fields fspecm scis shpm =
+let infer_final_fields fspecm storespec scis shpm =
      shpm
-  |> InterprocFinalFields.final_fields fspecm scis
+  |> InterprocFinalFields.final_fields fspecm storespec scis
   |> fun _ -> shpm
 (*   >> check_finality_specs fspec *)
