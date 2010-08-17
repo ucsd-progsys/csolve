@@ -168,7 +168,13 @@ module IntraprocFinalFields (X: Context) = struct
   let init_concrete_finals annots ffm =
     Array.fold_left begin fun ffm annotss ->
       List.fold_left begin fun ffm -> function
-        | RA.Ins (_, al, cl) | RA.NewC (_, al, cl) -> LM.add cl (LM.find al ffm) ffm
+        | RA.Ins (_, al, cl) | RA.NewC (_, al, cl) ->
+            begin try
+              LM.add cl (LM.find al ffm) ffm
+            with Not_found ->
+              (* If we can't find the aloc, it's never read or written in this function. *)
+              ffm |> LM.add cl PlocSet.empty |> LM.add al PlocSet.empty
+            end
         | _                                        -> ffm
       end ffm (List.concat annotss)
     end ffm annots
