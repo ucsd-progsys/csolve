@@ -49,8 +49,8 @@ end
 module IntraprocFinalFields (X: Context) = struct
   let kill_field_index l al i ffm =
     (* DEBUG *)
-    let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in
-    let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in
+(*     let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in *)
+(*     let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
     let ffs = LM.find l ffm in
     let ld  = CT.PreStore.find al X.shp.SI.store in
     let ffs = ld |> CT.LDesc.find_index i |> List.fold_left (fun ffs (pl, _) -> PlocSet.remove pl ffs) ffs in
@@ -78,6 +78,7 @@ module IntraprocFinalFields (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
+             let _ = P.printf "Processing call to %s\n\n" fname in
 	     let callee_ffm = SM.find fname X.ffmm in
 	       LM.add scaller (PlocSet.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
 	 | _ -> ffm
@@ -158,7 +159,7 @@ module IntraprocFinalFields (X: Context) = struct
 
   let iter_finals init_ffm ffmsa =
     let ffmsa' = Array.copy ffmsa in
-    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i; dump_final_fields ffmsa) X.cfg.Ssa.blocks in
+    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i(* ; dump_final_fields ffmsa *)) X.cfg.Ssa.blocks in
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let init_abstract_finals () =
