@@ -27,222 +27,6 @@ module NA = NotAliased
 
 open M.Ops
 
-module IndexSet = Set.Make (struct
-  type t = CT.Index.t
-
-  let compare = compare
-end)
-
-module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
-
-let nonfinal_fields s nfm =
-  try S.SlocMap.find s nfm with Not_found -> IndexSet.empty
-
-let nonfinal_equal nfm1 nfm2 =
-  S.SlocMap.equal IndexSet.equal nfm1 nfm2
-
-let dump_nonfinal nfm =
-  Pretty.printf "%a\n\n" (S.d_slocmap (IndexSetPrinter.d_set ", " CT.Index.d_index)) nfm
-
-module IntraprocNonFinalFields = struct
-  type context = {
-    cfg   : Ssa.cfgInfo;
-    ctem  : CT.ctemap;
-    conca : (RA.cncm * RA.cncm) array;
-    ctab  : RA.ctab;
-    annot : RA.block_annotation array;
-  }
-
-  let process_annot fs = function
-    | RA.Gen (s, _) | RA.WGen (s, _) -> S.SlocSet.remove s fs
-    | RA.NewC (_, _, s)              -> S.SlocSet.add s fs
-    | RA.Ins _ | RA.New _            -> fs
-
-  let process_set ctx fs nf = function
-    | C.Mem (C.Lval (C.Var vi, _) as e)
-    | C.Mem (C.CastE (_, C.Lval (C.Var vi, _)) as e) ->
-        let c = vi |> RA.cloc_of_varinfo ctx.ctab |> M.maybe in
-          begin match CT.ExpMap.find e ctx.ctem with
-            | CT.CTInt _      -> assert false
-            | CT.CTRef (a, i) ->
-                if S.SlocSet.mem c fs then
-                  nf
-                else
-                  S.SlocMap.add a (IndexSet.add i (nonfinal_fields a nf)) nf
-          end
-    | _ -> nf
-
-  let process_instr ctx fs nf = function
-    | C.Set ((l, C.NoOffset), _, _) -> process_set ctx fs nf l
-    | C.Call _                      -> nf
-    | C.Set _ | C.Asm _             -> assert false
-
-  let process_instr ctx (nf, fs) annot instr =
-    let fs = List.fold_left process_annot fs annot in
-    let nf = process_instr ctx fs nf instr in
-      (nf, fs)
-
-  let merge_preds ctx f j =
-    match ctx.cfg.Ssa.predecessors.(j) with
-      | []    -> S.SlocSet.empty
-      | preds ->
-           preds
-        |> List.map (fun i -> f.(i))
-        |> M.list_reduce S.SlocSet.inter
-        |> S.SlocMap.fold (fun s _ fs -> S.SlocSet.remove s fs) (snd ctx.conca.(j))
-
-  let process_block ctx f j nf b =
-    let fs = merge_preds ctx f j in
-      match b.Ssa.bstmt.C.skind with
-        | C.Instr is ->
-            let nf, fs = List.fold_left2 (process_instr ctx) (nf, fs) ctx.annot.(j) is in
-            let _      = f.(j) <- fs in
-              nf
-        | _ -> f.(j) <- fs; nf
-
-  let fixed nf nf' f f' =
-    nonfinal_equal nf nf' && M.array_fold_lefti (fun i b ss -> b && S.SlocSet.equal ss f'.(i)) true f
-
-  let nonfinal_iter ctx f nf =
-    let f'  = Array.copy f in
-    let nf' = Misc.array_fold_lefti (process_block ctx f) nf ctx.cfg.Ssa.blocks in
-      (nf', not (fixed nf nf' f f'))
-
-  let all_clocs annot =
-    Array.fold_left begin fun ss annots ->
-      List.fold_left begin fun ss -> function
-        | RA.Ins (_, _, s) | RA.NewC (_, _, s) -> S.SlocSet.add s ss
-        | _                                    -> ss
-      end ss (List.concat annots)
-    end S.SlocSet.empty annot
-
-  let dump_fresh f =
-    Array.iteri (fun i fs -> Pretty.printf "%d |-> %a\n\n" i S.d_slocset fs |> ignore)
-
-  let find_nonfinal_fields cfg shp =
-    let f   = Array.create (Array.length shp.SI.anna) (all_clocs shp.SI.anna) in
-    let ctx = {cfg = cfg; ctem = shp.SI.etypm; conca = shp.SI.conca; ctab = shp.SI.theta; annot = shp.SI.anna} in
-      S.SlocMap.empty |> Misc.fixpoint (nonfinal_iter ctx f) |> fst
-end
-
-module InterprocNonFinalFields = struct
-  let proc_nonfinal_fields shpm fname (_, {Ssa_transform.cfg = cfg}) fnfm =
-    SM.add fname (SM.find fname shpm |> fst |> IntraprocNonFinalFields.find_nonfinal_fields cfg) fnfm
-
-  let process_call callee_nfm nfm annots =
-    List.fold_left begin fun nfm -> function
-      | RA.New (sfrom, sto) | RA.NewC (sfrom, sto, _) ->
-          S.SlocMap.add sto (IndexSet.union (nonfinal_fields sfrom callee_nfm) (nonfinal_fields sto nfm)) nfm
-      | _ -> nfm
-    end nfm annots
-
-  let process_instr fnfm nfm annots = function
-    | C.Call (_, C.Lval (C.Var vi, C.NoOffset), _, _) -> process_call (SM.find (vi.C.vname) fnfm) nfm annots
-    | C.Call _                                        -> assert false
-    | _                                               -> nfm
-
-  let process_block fnfm nfm annotss b =
-    match b.Ssa.bstmt.C.skind with
-      | C.Instr is -> List.fold_left2 (process_instr fnfm) nfm annotss is
-      | _          -> nfm
-
-  let process_fun shpm fname (_, {Ssa_transform.cfg = cfg}) fnfm =
-    let anna = (SM.find fname shpm |> fst).SI.anna in
-    let nfm  = M.array_fold_lefti (fun i nfm b -> process_block fnfm nfm anna.(i) b) (SM.find fname fnfm) cfg.Ssa.blocks in
-      SM.add fname nfm fnfm
-
-  let funspec_nonfinal_fields cf =
-    S.SlocMap.fold begin fun s ld nfm ->
-      if S.is_abstract s then
-        let nfs = nonfinal_fields s nfm in
-        let po  = CT.LDesc.get_period ld in
-             ld
-          |> CT.LDesc.nonfinal_fields
-          |> List.fold_left begin fun nfs (pl, _) ->
-               match pl, po with
-                 | CT.PLAt _, _       -> IndexSet.add (CT.index_of_ploc pl 0) nfs
-                 | CT.PLSeq _, Some p -> IndexSet.add (CT.index_of_ploc pl p) nfs
-                 | _                  -> assert false
-             end nfs
-          |> fun nfs -> S.SlocMap.add s nfs nfm
-      else
-        nfm
-    end cf.CT.sto_out S.SlocMap.empty
-
-  let iter_calls shpm fm fnfm =
-    let fnfm' = SM.fold (process_fun shpm) fm fnfm in
-      (fnfm', not (SM.equal nonfinal_equal fnfm fnfm'))
-
-  let infer_nonfinal_fields fspec fm shpm =
-       SM.empty
-    |> SM.fold (fun fname (cf, _) fnfm -> SM.add fname (funspec_nonfinal_fields cf) fnfm) fspec
-    |> SM.fold (proc_nonfinal_fields shpm) fm
-    |> Misc.fixpoint (iter_calls shpm fm)
-    |> fst
-end
-
-let dump_proc_nonfinals fnfm =
-    SM.iter begin fun fname nfm ->
-      P.printf "Function %s:\n" fname |> ignore;
-      dump_nonfinal nfm |> ignore;
-      P.printf "\n\n" |> ignore
-    end fnfm
-
-let ldesc_set_nonfinal_fields nfs ld =
-     ld
-  |> LD.mapn (fun _ pl fld -> F.set_finality F.Nonfinal fld)
-  (* |> LD.mapn (fun _ pl fld -> if CT.ploc_periodic pl then F.set_finality F.Nonfinal fld else fld) *)
-  (* |> IndexSet.fold begin fun i ld -> *)
-  (*        ld *)
-  (*     |> LD.find_index i *)
-  (*     |> List.fold_left (fun ld (pl, fld) -> ld |> LD.remove pl |> LD.add pl (F.set_finality F.Nonfinal fld)) ld *)
-  (*    end nfs *)
-
-let store_set_nonfinal_fields nfm sto =
-  S.SlocMap.fold begin fun s ld sto ->
-    if S.is_abstract s then
-      S.SlocMap.add s (ldesc_set_nonfinal_fields (nonfinal_fields s nfm) ld) sto
-    else
-      S.SlocMap.add s ld sto
-  end sto S.SlocMap.empty
-
-let set_nonfinal_fields shpm fnfm =
-  SM.mapi begin fun fname (shp, ds) ->
-    ({shp with SI.store = store_set_nonfinal_fields (SM.find fname fnfm) shp.SI.store}, ds)
-  end shpm
-
-exception NotRefinement of S.t * CT.ploc
-
-let check_finality_refinement sto_refined sto =
-  S.SlocMap.iter begin fun s ld_refined ->
-    LD.iter begin fun pl fld ->
-      match F.get_finality fld with
-        | F.Final ->
-               sto_refined
-            |> S.SlocMap.find s
-            |> LD.find pl
-            |> List.iter (fun (_, fld) -> if F.get_finality fld != F.Final then raise (NotRefinement (s, pl)))
-        | _ -> ()
-    end ld_refined
-  end sto
-
-let check_finality_specs fspec shpm =
-  SM.iter begin fun fname (shp, _) ->
-    try
-      let cf = SM.find fname fspec |> fst in
-        check_finality_refinement shp.SI.store cf.CT.sto_in;
-        check_finality_refinement shp.SI.store cf.CT.sto_out
-    with NotRefinement (s, pl) ->
-      let _ = P.printf "Spec for %s declares field %a |-> %a final, but field is nonfinal\n" fname S.d_sloc s CT.d_ploc pl in
-        assert false
-  end shpm
-
-let infer_final_fields fspec fm shpm =
-     shpm
-  |> InterprocNonFinalFields.infer_nonfinal_fields fspec fm
-  |> set_nonfinal_fields shpm
-  >> check_finality_specs fspec
-
 module Ploc = struct
   type t = CT.ploc
 
@@ -256,28 +40,28 @@ let d_plocset () ps =
   PlocSetPrinter.d_set ", " CT.d_ploc () ps
 
 module type Context = sig
-  val ctab  : RA.ctab
   val cfg   : Ssa.cfgInfo
-  val nasa  : NA.NASet.t list array
   val shp   : SI.shape
+  val ffmm  : PlocSet.t LM.t SM.t
 end
 
-(* change program point info back to a store?
-   + passing the AL is annoying
-   - intersection gets harder *)
 module IntraprocFinalFields (X: Context) = struct
   let kill_field_index l al i ffm =
-    let ffs = try LM.find l ffm with Not_found -> PlocSet.empty in
+    (* DEBUG *)
+    let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in
+    let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in
+    let ffs = LM.find l ffm in
     let ld  = CT.PreStore.find al X.shp.SI.store in
     let ffs = ld |> CT.LDesc.find_index i |> List.fold_left (fun ffs (pl, _) -> PlocSet.remove pl ffs) ffs in
       LM.add l ffs ffm
 
-  let process_set ffm na = function
-    | C.Mem (C.Lval (C.Var vi, _) as e)
-    | C.Mem (C.CastE (_, C.Lval (C.Var vi, _)) as e) ->
-        let cl = vi |> RA.cloc_of_varinfo X.ctab |> M.maybe in
-        let al = cl |> RA.aloc_of_cloc X.ctab |> M.maybe in
-          begin match CT.ExpMap.find e X.shp.SI.etypm with
+  let process_set_lval na lval ffm =
+    match lval with
+      | (C.Mem (C.Lval (C.Var vi, _) as e), _)
+      | (C.Mem (C.CastE (_, (C.Lval (C.Var vi, _) as e))), _) ->
+          let cl = vi |> RA.cloc_of_varinfo X.shp.SI.theta |> M.maybe in
+          let al = cl |> RA.aloc_of_cloc X.shp.SI.theta |> M.maybe in
+            begin match CT.ExpMap.find e X.shp.SI.etypm with
               | CT.CTRef (_, i) ->
                   let ffm = kill_field_index cl al i ffm in
                     if NA.NASet.mem (cl, al) na then
@@ -285,38 +69,72 @@ module IntraprocFinalFields (X: Context) = struct
                     else
                       kill_field_index al al i ffm
               | _ -> assert false
-          end
-    | C.Mem _ -> assert false
-    | _       -> ffm
+            end
+      | (C.Var _, C.NoOffset) -> ffm
+      | _                     -> assert false
 
-  let process_call ffm =
-    (* TODO *)
-    ffm
+  let process_call na annots fname lvo ffm =
+       annots
+    |> List.fold_left begin fun ffm -> function
+	 | RA.New (scallee, scaller) ->
+	     let callee_ffm = SM.find fname X.ffmm in
+	       LM.add scaller (PlocSet.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
+	 | _ -> ffm
+       end ffm
+    |> fun ffm ->
+	 match lvo with
+	   | Some lval -> process_set_lval na lval ffm
+	   | None      -> ffm
 
-  let instr_update_finals ffm na = function
-    | C.Set ((l, C.NoOffset), _, _) -> process_set ffm na l
-    | C.Call _                      -> process_call ffm
-    | C.Set _ | C.Asm _             -> assert false
+  let instr_update_finals na annots i ffm =
+    match i with
+      | C.Set (lval, _, _)	  	                  -> process_set_lval na lval ffm
+      | C.Call (lvo, C.Lval (C.Var vi, C.NoOffset), _, _) -> process_call na annots vi.C.vname lvo ffm
+      | C.Asm _ | C.Call _			          -> assert false
 
-  let process_instr na i (ffms, ffm) =
-    let ffm = instr_update_finals ffm na i in
-      (ffm :: ffms, ffm)
+  let process_gen_inst annots ffm =
+    List.fold_left begin fun ffm -> function
+      | RA.Gen (cl, al) | RA.WGen (cl, al)      -> LM.add cl (LM.find al ffm) ffm
+      | RA.Ins (_, _, cl) | RA. NewC (_, _, cl) -> LM.remove cl ffm
+      | RA.New _                                -> ffm
+    end ffm annots
+
+  let process_instr na i annots (ffms, ffm) =
+       ffm
+    |> instr_update_finals na annots i
+    |> process_gen_inst annots
+    |> fun ffm -> (ffm :: ffms, ffm)
 
   let meet_finals ffm1 ffm2 =
-    LM.fold (fun l ps ffm -> LM.add l (PlocSet.inter ps (LM.find l ffm2)) ffm) ffm1 LM.empty
+    LM.fold begin fun l ps ffm ->
+      try
+        LM.add l (PlocSet.inter ps (LM.find l ffm2)) ffm
+      with Not_found ->
+        ffm
+    end ffm1 LM.empty
+
+  let add_succ_generalized_clocs conc_out succ_conc_in ffm =
+    LM.fold begin fun al (cl, _) ffm ->
+      if LM.mem al succ_conc_in && S.eq cl (LM.find al succ_conc_in |> fst) then
+        ffm
+      else
+        LM.add cl (LM.find al ffm) ffm
+    end conc_out ffm
 
   let merge_succs init_ffm ffmsa i =
-    match X.cfg.Ssa.successors.(i) with
-      | []    -> init_ffm
-      | succs ->
-           succs
-        |> List.map (fun j -> ffmsa.(j) |> snd)
-        |> M.list_reduce meet_finals
+    let conc_out = snd X.shp.SI.conca.(i) in
+      match X.cfg.Ssa.successors.(i) with
+        | []    -> add_succ_generalized_clocs conc_out LM.empty init_ffm
+        | succs ->
+             succs
+          |> List.map (fun j -> ffmsa.(j) |> snd)
+          |> M.list_reduce meet_finals
+          |> List.fold_right (fun j ffm -> add_succ_generalized_clocs conc_out (fst X.shp.SI.conca.(j)) ffm) succs
 
   let process_block init_ffm ffmsa i =
     let ffm = merge_succs init_ffm ffmsa i in
       match X.cfg.Ssa.blocks.(i).Ssa.bstmt.C.skind with
-        | C.Instr is -> List.fold_right2 process_instr (X.nasa.(i)) is ([], ffm)
+        | C.Instr is -> M.fold_right3 process_instr (X.shp.SI.nasa.(i)) is X.shp.SI.anna.(i) ([], ffm)
         | _          -> ([], ffm)
 
   let fixed ffmsa ffmsa' =
@@ -339,7 +157,7 @@ module IntraprocFinalFields (X: Context) = struct
 
   let iter_finals init_ffm ffmsa =
     let ffmsa' = Array.copy ffmsa in
-    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i) X.cfg.Ssa.blocks in
+    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i; dump_final_fields ffmsa) X.cfg.Ssa.blocks in
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let init_abstract_finals () =
@@ -347,23 +165,62 @@ module IntraprocFinalFields (X: Context) = struct
       LM.add l (CT.LDesc.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
     end X.shp.SI.store LM.empty
 
-  let init_finals () =
-    let ffm = init_abstract_finals () in
-      Array.fold_left begin fun ffm annotss ->
-        List.fold_left begin fun ffm -> function
-          | RA.Ins (_, _, cl) | RA.NewC (_, _, cl) ->
-              begin match RA.aloc_of_cloc X.ctab cl with
-                | Some al -> LM.add cl (LM.find al ffm) ffm
-                | None    -> ffm
-              end
-          | _ -> ffm
-        end ffm (List.concat annotss)
-      end ffm X.shp.SI.anna
+  let init_concrete_finals annots ffm =
+    Array.fold_left begin fun ffm annotss ->
+      List.fold_left begin fun ffm -> function
+        | RA.Ins (_, al, cl) | RA.NewC (_, al, cl) -> LM.add cl (LM.find al ffm) ffm
+        | _                                        -> ffm
+      end ffm (List.concat annotss)
+    end ffm annots
 
   let final_fields () =
-    let init_ffm = init_finals () in
-         Array.make (Array.length X.nasa) ([], init_ffm)
+    let init_ffm = () |> init_abstract_finals |> init_concrete_finals X.shp.SI.anna in
+         Array.make (Array.length X.shp.SI.nasa) ([], init_ffm)
       |> M.fixpoint (iter_finals init_ffm)
       |> fst
       >> dump_final_fields
+      |> fun ffmsa -> ffmsa.(0) |> snd
 end
+
+module InterprocFinalFields = struct
+  let iter_final_fields scis shpm ffmm =
+    SM.fold begin fun fname ffm (ffmm', reiter) ->
+      if SM.mem fname shpm then
+        let module X = struct
+	  let shp  = SM.find fname shpm |> fst
+	  let cfg  = (SM.find fname scis |> snd).Ssa_transform.cfg
+	  let ffmm = ffmm
+        end in
+        let module FF = IntraprocFinalFields (X) in
+        let ffm'      = FF.final_fields () in
+	  (SM.add fname ffm' ffmm', reiter || not (LM.equal PlocSet.equal ffm ffm'))
+      else (ffmm', reiter)
+    end ffmm (ffmm, false)
+
+  let spec_final_fields (cf, _) =
+    LM.map begin fun ld ->
+      LD.fold (fun ffs pl fld -> if F.is_final fld then PlocSet.add pl ffs else ffs) PlocSet.empty ld
+    end cf.CT.sto_out
+
+  let shape_init_final_fields (shp, _) =
+    LM.map (fun ld -> LD.fold (fun ffs pl fld -> PlocSet.add pl ffs) PlocSet.empty ld) shp.SI.store
+
+  let init_final_fields fspecm shpm =
+       SM.empty
+    |> SM.fold (fun fname spec ffmm -> SM.add fname (spec_final_fields spec) ffmm) fspecm
+    |> SM.fold (fun fname shp ffmm -> SM.add fname (shape_init_final_fields shp) ffmm) shpm
+
+  let set_nonfinal_fields shp =
+    assert false
+
+  let final_fields fspecm scis shpm =
+       init_final_fields fspecm shpm
+    |> Misc.fixpoint (iter_final_fields scis shpm)
+    |> fst
+end
+
+let infer_final_fields fspecm scis shpm =
+     shpm
+  |> InterprocFinalFields.final_fields fspecm scis
+  |> fun _ -> shpm
+(*   >> check_finality_specs fspec *)

@@ -571,20 +571,14 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
+  let nasa                = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
   let shp                 = {SI.vtyps = CM.vm_to_list vtyps;
                              SI.etypm = em;
                              SI.store = sto;
                              SI.anna  = annot;
                              SI.conca = conca;
-                             SI.theta = theta} in
-  let module X = struct
-    let ctab = theta
-    let cfg  = sci.ST.cfg
-    let shp  = shp
-    let nasa = NotAliased.non_aliased_locations sci.ST.cfg shp
-  end in
-  let module IFF = FF.IntraprocFinalFields (X) in
-  let _          = IFF.final_fields () in
+                             SI.theta = theta;
+			     SI.nasa  = nasa} in
     (shp, ds)
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t

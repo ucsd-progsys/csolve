@@ -27,6 +27,7 @@ type shape =
    store : Ctypes.store;
    anna  : Refanno.block_annotation array;
    conca : (Refanno.cncm * Refanno.cncm) array;
-   theta : Refanno.ctab}
+   theta : Refanno.ctab;
+   nasa  : NotAliased.NASet.t list array}
 
 val fresh_heaptype : Cil.typ -> Ctypes.ctype
