@@ -15,7 +15,6 @@ module M  = Misc
 module CT = Ctypes
 module RA = Refanno
 module C  = Cil
-module SI = ShapeInfra
 
 open M.Ops
 
@@ -40,6 +39,8 @@ module NASetPrinter = P.MakeSetPrinter (NASet)
 
 let d_naset () na =
   NASetPrinter.d_set ", " NotAliased.d_not_aliased () na
+
+type block_annotation = NASet.t list
 
 let dump_not_aliased nasa =
   Array.iteri begin fun i (nas, na) ->
@@ -85,7 +86,7 @@ let merge_preds ctx nasa j =
           preds
       |> List.map (fun i -> nasa.(i) |> snd)
       |> List.fold_left NASet.inter begin
-           S.SlocMap.fold (fun al (cl, _) na -> NASet.add (NotAliased.make cl al) na) (fst ctx.conca.(j)) NASet.empty
+           S.SlocMap.fold (fun al (cl, _) na -> NASet.add (NotAliased.make cl al) na) (snd ctx.conca.(j)) NASet.empty
          end
 
 let process_block ctx nasa j b =
@@ -119,8 +120,8 @@ let initial_nasa ctx =
   let ad    = all_disjoint annot in
     Array.init (Array.length annot) (fun i -> (List.map (fun _ -> ad) annot.(i), ad))
 
-let non_aliased_locations cfg shp =
-  let ctx = {cfg = cfg; ctem = shp.SI.etypm; conca = shp.SI.conca; annot = shp.SI.anna} in
+let non_aliased_locations cfg ctem conca annot =
+  let ctx = {cfg = cfg; ctem = ctem; conca = conca; annot = annot} in
        ctx
     |> initial_nasa
     |> Misc.fixpoint (non_aliased_iter ctx)
