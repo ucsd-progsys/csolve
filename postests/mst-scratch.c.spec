@@ -1,4 +1,4 @@
-MakeHash :: forall    [A21;A19;A18]
+MakeHash :: forall    [A19;A18]
             arg       (size : int(4, true))
             ret       ref(A18, 0)
             store_in  []
