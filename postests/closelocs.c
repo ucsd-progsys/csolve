@@ -7,7 +7,7 @@ void main (char * __attribute__((array)) argv[]) {
 
   fileptr = (char **) malloc (sizeof (char *));
 
-/*   if (**argv) { */
+  if (**argv) {
       *fileptr = *argv;
-/*   } */
+  }
 }
