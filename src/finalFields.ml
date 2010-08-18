@@ -162,14 +162,15 @@ module IntraprocFinalFields (X: Context) = struct
     let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i(* ; dump_final_fields ffmsa *)) X.cfg.Ssa.blocks in
       (ffmsa, not (fixed ffmsa ffmsa'))
 
+  let with_all_fields_final sto ffm =
+    LM.fold begin fun l ld ffm ->
+      LM.add l (LD.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
+    end sto ffm
+
   let init_abstract_finals () =
        LM.empty
-    |> LM.fold begin fun l ld ffm ->
-         LM.add l (CT.LDesc.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
-       end X.shp.Sh.store
-    |> LM.fold begin fun l _ ffm ->
-         LM.add l PlocSet.empty ffm
-       end X.sspec
+    |> with_all_fields_final X.shp.Sh.store
+    |> with_all_fields_final X.sspec
 
   let init_concrete_finals annots ffm =
     Array.fold_left begin fun ffm annotss ->
