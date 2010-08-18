@@ -223,17 +223,29 @@ module InterprocFinalFields = struct
     |> SM.fold (fun fname spec ffmm -> SM.add fname (spec_final_fields spec) ffmm) fspecm
     |> SM.fold (fun fname shp ffmm -> SM.add fname (shape_init_final_fields shp) ffmm) shpm
 
-  let set_nonfinal_fields shp =
-    assert false
+  let set_nonfinal_fields shpm ffmm =
+    SM.mapi begin fun fname shp ->
+      {shp with
+         Sh.store =
+          LM.mapi begin fun l ld ->
+            let ffs = SM.find fname ffmm |> LM.find l in
+              LD.mapn begin fun _ pl fld ->
+                if PlocSet.mem pl ffs then
+                  F.set_finality F.Final fld
+                else
+                  F.set_finality F.Nonfinal fld
+              end ld
+          end shp.Sh.store}
+    end shpm
 
   let final_fields fspecm storespec scis shpm =
        init_final_fields fspecm shpm
     |> Misc.fixpoint (iter_final_fields scis shpm storespec)
     |> fst
+    |> set_nonfinal_fields shpm
 end
 
 let infer_final_fields fspecm storespec scis shpm =
      shpm
   |> InterprocFinalFields.final_fields fspecm storespec scis
-  |> fun _ -> shpm
 (*   >> check_finality_specs fspec *)
