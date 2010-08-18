@@ -36,7 +36,7 @@ module VM  = CM.VarMap
 module SM  = M.StringMap
 module FI  = FixInterface
 module Ind = Inferindices
-module SI  = ShapeInfra
+module Sh  = Shape
 module FF  = FinalFields
 
 open Ctypes
@@ -283,7 +283,7 @@ and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvema
       let ctv, em, cs = constrain_exp env em e in
         begin match ctv with
           | CTRef (s, ie) ->
-              let ctvlv = lv |> C.typeOfLval |> SI.fresh_heaptype in
+              let ctvlv = lv |> C.typeOfLval |> ShapeInfra.fresh_heaptype in
               let cs    = mk_locinc ie ctvlv s :: cs in
                 (ctvlv, em, cs)
           | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
@@ -561,7 +561,7 @@ let d_vartypes () vars =
 let fresh_local_slocs (ve: ctvenv) =
   VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
 
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): SI.shape * Ind.dcheck list =
+let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): Sh.t =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = PreStore.upd cf.sto_out gst in
@@ -572,14 +572,14 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
   let nasa                = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-  let shp                 = {SI.vtyps = CM.vm_to_list vtyps;
-                             SI.etypm = em;
-                             SI.store = sto;
-                             SI.anna  = annot;
-                             SI.conca = conca;
-                             SI.theta = theta;
-			     SI.nasa  = nasa} in
-    (shp, ds)
+    {Sh.vtyps   = CM.vm_to_list vtyps;
+     Sh.etypm   = em;
+     Sh.store   = sto;
+     Sh.anna    = annot;
+     Sh.conca   = conca;
+     Sh.theta   = theta;
+     Sh.nasa    = nasa;
+     Sh.dchecks = ds}
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
@@ -590,7 +590,7 @@ let declared_funs (cil: C.file) =
     | _                                                   -> fs
   end []
 
-let print_shape (fname: string) (cf: cfun) (gst: store) ({SI.vtyps = locals; SI.store = st; SI.anna = annot}: SI.shape) (ds: Ind.dcheck list): unit =
+let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.dchecks = ds}: Sh.t): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -615,10 +615,10 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({SI.vtyps = locals; SI.
 
 let print_shapes funspec storespec shpm =
   if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
-    SM.iter (fun fname (shp, ds) -> print_shape fname (SM.find fname funspec |> fst) storespec shp ds) shpm
+    SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): (SI.shape * Ind.dcheck list) SM.t =
+let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): Sh.t SM.t =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try

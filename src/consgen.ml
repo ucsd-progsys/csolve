@@ -406,10 +406,10 @@ let process_block_succs me i =
 let log_of_sci sci shp = 
   if Constants.ck_olev Constants.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
-    let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.ShapeInfra.anna in
-    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.ShapeInfra.conca in
-    let _ = Pretty.printf "%a" Refanno.d_ctab shp.ShapeInfra.theta in 
-    let _ = Pretty.printf "ICstore = %a\n" Ctypes.PreStore.d_prestore_addrs shp.ShapeInfra.store in
+    let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Shape.anna in
+    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Shape.conca in
+    let _ = Pretty.printf "%a" Refanno.d_ctab shp.Shape.theta in
+    let _ = Pretty.printf "ICstore = %a\n" Ctypes.PreStore.d_prestore_addrs shp.Shape.store in
     ()
 
 let cons_of_sci tgr gnv gst sci shp =
@@ -663,7 +663,6 @@ let create cil (spec: FI.refspec) =
   let spec     = Misc.app_fst3 (rename_funspec scim) spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim cil spec scim in
-  let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in

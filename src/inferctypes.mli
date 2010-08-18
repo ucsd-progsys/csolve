@@ -25,4 +25,4 @@
 
 type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
 
-val infer_shapes: Cil.file -> Ctypes.cspec -> funmap -> (ShapeInfra.shape * Inferindices.dcheck list) Misc.StringMap.t
+val infer_shapes: Cil.file -> Ctypes.cspec -> funmap -> Shape.t Misc.StringMap.t
