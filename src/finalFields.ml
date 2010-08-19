@@ -78,7 +78,6 @@ module IntraprocFinalFields (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
-             let _ = P.printf "Processing call to %s\n\n" fname in
 	     let callee_ffm = SM.find fname X.ffmm in
 	       LM.add scaller (PlocSet.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
 	 | _ -> ffm
@@ -149,17 +148,18 @@ module IntraprocFinalFields (X: Context) = struct
     end true ffmsa
 
   let dump_final_fields ffmsa =
-    Array.iteri begin fun i (ffms, ffm) ->
-      let _ = P.printf "Block %d:\n" i in
-      let _ = P.printf "  I: %a\n" (S.d_slocmap d_plocset) ffm in
-      let _ = M.fold_lefti (fun i _ ffm -> P.printf "  %i: %a\n" i (S.d_slocmap d_plocset) ffm |> ignore) () ffms in
-      let _ = P.printf "\n" in
-        ()
-    end ffmsa
+    if !Constants.verbose_level >= Constants.ol_finals then
+      Array.iteri begin fun i (ffms, ffm) ->
+        let _ = P.printf "Block %d:\n" i in
+        let _ = P.printf "  I: %a\n" (S.d_slocmap d_plocset) ffm in
+        let _ = M.fold_lefti (fun i _ ffm -> P.printf "  %i: %a\n" i (S.d_slocmap d_plocset) ffm |> ignore) () ffms in
+        let _ = P.printf "\n" in
+          ()
+      end ffmsa
 
   let iter_finals init_ffm ffmsa =
     let ffmsa' = Array.copy ffmsa in
-    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i(* ; dump_final_fields ffmsa *)) X.cfg.Ssa.blocks in
+    let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i) X.cfg.Ssa.blocks in
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let with_all_fields_final sto ffm =

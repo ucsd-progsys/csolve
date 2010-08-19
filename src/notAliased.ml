@@ -43,12 +43,13 @@ let d_naset () na =
 type block_annotation = NASet.t list
 
 let dump_not_aliased nasa =
-  Array.iteri begin fun i (nas, na) ->
-    let _ = P.printf "Block %d:\n" i in
-    let _ = M.fold_lefti (fun i _ na -> P.printf "  %d: %a\n" i d_naset na |> ignore) () nas in
-    let _ = P.printf "  F: %a\n\n" d_naset na in
-      ()
-  end nasa
+  if !Constants.verbose_level >= Constants.ol_finals then
+    Array.iteri begin fun i (nas, na) ->
+      let _ = P.printf "Block %d:\n" i in
+      let _ = M.fold_lefti (fun i _ na -> P.printf "  %d: %a\n" i d_naset na |> ignore) () nas in
+      let _ = P.printf "  F: %a\n\n" d_naset na in
+        ()
+    end nasa
 
 type context = {
   cfg   : Ssa.cfgInfo;
