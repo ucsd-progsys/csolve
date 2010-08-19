@@ -6,7 +6,6 @@ do_submodules () {
     for SUBMODULE in $SUBMODULES; do
         $f $SUBMODULE || break
     done
-    exit
 }
 
 check_branch () {
