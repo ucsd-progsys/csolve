@@ -357,9 +357,7 @@ and constrain_lval ((ve, _) as env: env): C.lval -> itypevar * itypevarcstr list
 
 and constrain_unop (op: C.unop) (env: env) (t: C.typ) (e: C.exp): itypevar * itypevarcstr list =
   let itv, cs = constrain_exp env e in
-    match itv with
-      | CTInt _ -> (apply_unop t op, cs)
-      | _       -> E.s <| C.error "Unimplemented: Haven't considered how to apply unops to references@!"
+    (apply_unop t op, cs)
 
 and apply_unop (rt: C.typ): C.unop -> itypevar = function
   | C.LNot -> CTInt (CM.typ_width rt, IEConst Index.nonneg)

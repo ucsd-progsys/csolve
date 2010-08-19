@@ -16,7 +16,7 @@ To clone CSolve from git:
 
 git clone meatwad.ucsd.edu:/git/liquidc
 cd liquidc
-git submodule update --init
+./init-submodules.sh
 
 Configuring and Compiling
 -------------------------
@@ -86,7 +86,9 @@ Running CSolve In Place Of gcc
 CSolve can be run in place of gcc to typecheck an entire project.
 Simply replace the gcc command in your makefile with src/cc.sh.
 Logical qualifiers will be read from the file liquid.c.hquals
-in the directory containing your source files.
+in the directory containing your source files, while function
+specifications will be read from liquid.c.spec in the same
+directory.
 
 Writing Logical Qualifier Files
 -------------------------------

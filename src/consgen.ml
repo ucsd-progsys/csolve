@@ -620,6 +620,11 @@ let decs_of_file cil =
       when not (isFunctionType v.vtype) -> VarDec (v, loc, ii.init) :: acc
     | GVarDecl (v, loc) 
       when not (isFunctionType v.vtype) -> VarDec (v, loc, None) :: acc
+    | GVarDecl (v, _)
+      when (isFunctionType v.vtype)     -> acc
+    | GType _ | GCompTag _
+    | GCompTagDecl _| GText _
+    | GPragma _                         -> acc
     | _ when !Constants.safe            -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
