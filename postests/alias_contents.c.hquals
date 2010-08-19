@@ -1,0 +1,1 @@
+qualif FIELDEQ(v:ptr): FIELD([v; 0]) = FIELD([~A; 0])
