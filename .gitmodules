@@ -1,15 +1,20 @@
 [submodule "external/fixpoint"]
 	path = external/fixpoint
 	url = meatwad.ucsd.edu:/git/fixpoint.git
+        update = merge
 [submodule "external/misc"]
 	path = external/misc
 	url = meatwad.ucsd.edu:/git/misc.git
+        update = merge
 [submodule "external/ocamlgraph"]
 	path = external/ocamlgraph
 	url = meatwad.ucsd.edu:/git/external/ocamlgraph.git
+        update = merge
 [submodule "external/cil"]
 	path = external/cil
 	url = meatwad.ucsd.edu:/git/external/cil.git
+        update = merge
 [submodule "external/z3"]
 	path = external/z3
 	url = meatwad.ucsd.edu:/git/external/z3.git
+        update = merge
