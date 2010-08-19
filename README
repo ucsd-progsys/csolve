@@ -16,7 +16,7 @@ To clone CSolve from git:
 
 git clone meatwad.ucsd.edu:/git/liquidc
 cd liquidc
-git submodule update --init
+./init-submodules.sh
 
 Configuring and Compiling
 -------------------------
