@@ -246,7 +246,31 @@ module InterprocFinalFields = struct
     |> set_nonfinal_fields shpm
 end
 
+let check_location_finality fname l spec_store ld =
+  if LM.mem l spec_store then
+    let spec_ld = LM.find l spec_store in
+      LD.iter begin fun pl fld ->
+           spec_ld
+        |> LD.find pl
+        |> List.iter begin fun (_, spec_fld) ->
+             match F.get_finality spec_fld, F.get_finality fld with
+               | F.Final, F.Nonfinal ->
+                   P.printf "Error: Field %a -> %a of function %s specified final, inferred nonfinal\n" S.d_sloc l CT.d_ploc pl fname;
+                   assert false
+               | _ -> ()
+           end
+      end ld
+
+let check_finality_specs fspecm shpm =
+  SM.iter begin fun fname shp ->
+    let cf = SM.find fname fspecm |> fst in
+      LM.iter begin fun l ld ->
+        check_location_finality fname l cf.CT.sto_in ld;
+        check_location_finality fname l cf.CT.sto_out ld
+      end shp.Sh.store
+  end shpm
+
 let infer_final_fields fspecm storespec scis shpm =
      shpm
   |> InterprocFinalFields.final_fields fspecm storespec scis
-(*   >> check_finality_specs fspec *)
+  >> check_finality_specs fspecm
