@@ -121,12 +121,33 @@ module IntraprocFinalFields (X: Context) = struct
       | C.Instr is -> M.fold_left3 check_block_set ffm ffms nas is |> ignore
       | _          -> ()
 
+  let check_call_annots fname ffm annots =
+    let ffmcallee = SM.find fname X.ffmm in
+      List.iter begin function
+        | RA.New (scallee, scaller) -> assert (PlocSet.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
+        | _                         -> ()
+      end annots
+
+  let check_block_call ffm ffm' annots i =
+    begin match i with
+      | C.Call (_, C.Lval (C.Var vi, C.NoOffset), _, _) -> check_call_annots vi.C.vname ffm annots
+      | C.Call _                                        -> assert false
+      | _                                               -> ()
+    end;
+    ffm'
+
+  let check_block_calls b ffm ffms annotss is =
+    match b.Ssa.bstmt.C.skind with
+      | C.Instr _ -> M.fold_left3 check_block_call ffm ffms annotss is |> ignore
+      | _         -> ()
+
   let sanity_check_finals (ffmsa, _) =
     Array.iteri begin fun i b ->
       let ffms, ffm = ffmsa.(i) in
       let _         = List.fold_left check_final_inclusion LM.empty ffms in
       let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
       let _         = check_block_sets b ffm ffms (X.shp.Sh.nasa.(i)) in
+      let _         = check_block_calls b ffm ffms (X.shp.Sh.anna.(i)) in
         ()
     end X.cfg.Ssa.blocks
 
