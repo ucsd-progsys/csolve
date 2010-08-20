@@ -107,8 +107,7 @@ module IntraprocFinalFields (X: Context) = struct
   let process_instr na i annots (ffms, ffm) =
        ffm
     |> instr_update_finals na annots i
-    |> process_gen_inst annots
-    |> fun ffm -> (ffm :: ffms, ffm)
+    |> fun ffm -> (ffm :: ffms, process_gen_inst annots ffm)
 
   let meet_finals ffm1 ffm2 =
     LM.fold begin fun l ps ffm ->
