@@ -50,14 +50,14 @@ module type Context = sig
 end
 
 module IntraprocFinalFields (X: Context) = struct
+  let find_index_plocs al i =
+    CT.PreStore.find al X.shp.Sh.store |> CT.LDesc.find_index i |> List.map fst
+
   let kill_field_index l al i ffm =
     (* DEBUG *)
 (*     let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in *)
 (*     let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
-    let ffs = LM.find l ffm in
-    let ld  = CT.PreStore.find al X.shp.Sh.store in
-    let ffs = ld |> CT.LDesc.find_index i |> List.fold_left (fun ffs (pl, _) -> PlocSet.remove pl ffs) ffs in
-      LM.add l ffs ffm
+    LM.add l (List.fold_left (fun ffs pl -> PlocSet.remove pl ffs) (LM.find l ffm) (find_index_plocs al i)) ffm
 
   let locs_of_lval = function
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)
@@ -207,11 +207,11 @@ module IntraprocFinalFields (X: Context) = struct
     match locs_of_lval lval with
       | None             -> ()
       | Some (cl, al, i) ->
-          let _ = P.printf "Writing to cloc %a\n\n" S.d_sloc cl in
-                 (* not right! *)
-          let pl = CT.ploc_of_index i in
-            assert (not (PlocSet.mem pl (LM.find cl ffm)));
-            assert (NA.NASet.mem (cl, al) na || (not (PlocSet.mem pl (LM.find al ffm))))
+           find_index_plocs al i
+        |> List.iter begin fun pl ->
+             assert (not (PlocSet.mem pl (LM.find cl ffm)));
+             assert (NA.NASet.mem (cl, al) na || (not (PlocSet.mem pl (LM.find al ffm))))
+           end
 
   let check_block_annot ffm na i _ =
     match i with
@@ -221,7 +221,6 @@ module IntraprocFinalFields (X: Context) = struct
 
   let sanity_check_finals (ffmsa, _) =
     Array.iteri begin fun i b ->
-      let _ = P.printf "In block %d\n\n" i in
       let ffms, ffm = ffmsa.(i) in
       let _         = List.fold_left check_final_inclusion LM.empty ffms in
       let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
