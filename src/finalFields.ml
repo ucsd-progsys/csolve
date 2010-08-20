@@ -31,17 +31,6 @@ open M.Ops
 let add_ploc p ps =
   if CT.ploc_periodic p then ps else PS.add p ps
 
-(******************************************************************************)
-(****************************** Debugging Output ******************************)
-(******************************************************************************)
-
-let dump_final_fields () ffmsa =
-  P.docArray ~sep:P.line begin fun i ffms ->
-    P.dprintf "Block %d:\n%a"
-      i
-      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap CT.d_plocset) ffm)) ffms
-  end () ffmsa
-
 type block_annotation = PS.t LM.t list
 
 module type Context = sig
@@ -51,7 +40,14 @@ module type Context = sig
   val sspec : CT.store
 end
 
-module IntraprocFinalFields (X: Context) = struct
+let d_final_fields () ffmsa =
+  P.docArray ~sep:P.line begin fun i ffms ->
+    P.dprintf "Block %d:\n%a"
+      i
+      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap CT.d_plocset) ffm)) ffms
+  end () ffmsa
+
+module Intraproc (X: Context) = struct
   (******************************************************************************)
   (****************************** Type Manipulation *****************************)
   (******************************************************************************)
@@ -270,7 +266,7 @@ module IntraprocFinalFields (X: Context) = struct
       |> fun ffmsa -> (Array.map fst ffmsa, ffmsa.(0) |> snd)
 end
 
-module InterprocFinalFields = struct
+module Interproc = struct
   let iter_final_fields scis shpm storespec ffmm =
     SM.fold begin fun fname (_, ffm) (ffmm', reiter) ->
       if SM.mem fname shpm then
@@ -280,8 +276,8 @@ module InterprocFinalFields = struct
           let sspec = storespec
 	  let ffmm  = ffmm
         end in
-        let module FF   = IntraprocFinalFields (X) in
-        let ffmsa, ffm' = FF.final_fields () in
+        let module IP   = Intraproc (X) in
+        let ffmsa, ffm' = IP.final_fields () in
 	  (SM.add fname (ffmsa, ffm') ffmm', reiter || not (LM.equal PS.equal ffm ffm'))
       else (ffmm', reiter)
     end ffmm (ffmm, false)
@@ -349,5 +345,5 @@ let check_finality_specs fspecm shpm =
 
 let infer_final_fields fspecm storespec scis shpm =
      shpm
-  |> InterprocFinalFields.final_fields fspecm storespec scis
+  |> Interproc.final_fields fspecm storespec scis
   >> check_finality_specs fspecm
