@@ -56,23 +56,27 @@ module IntraprocFinalFields (X: Context) = struct
     let ffs = ld |> CT.LDesc.find_index i |> List.fold_left (fun ffs (pl, _) -> PlocSet.remove pl ffs) ffs in
       LM.add l ffs ffm
 
+  let locs_of_lval = function
+    | (C.Mem (C.Lval (C.Var vi, _) as e), _)
+    | (C.Mem (C.CastE (_, (C.Lval (C.Var vi, _) as e))), _) ->
+        let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
+        let al = cl |> RA.aloc_of_cloc X.shp.Sh.theta |> M.maybe in
+          begin match CT.ExpMap.find e X.shp.Sh.etypm with
+            | CT.CTRef (_, i) -> Some (cl, al, i)
+            | _               -> assert false
+          end
+    | (C.Var _, C.NoOffset) -> None
+    | _                     -> assert false
+
   let process_set_lval na lval ffm =
-    match lval with
-      | (C.Mem (C.Lval (C.Var vi, _) as e), _)
-      | (C.Mem (C.CastE (_, (C.Lval (C.Var vi, _) as e))), _) ->
-          let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
-          let al = cl |> RA.aloc_of_cloc X.shp.Sh.theta |> M.maybe in
-            begin match CT.ExpMap.find e X.shp.Sh.etypm with
-              | CT.CTRef (_, i) ->
-                  let ffm = kill_field_index cl al i ffm in
-                    if NA.NASet.mem (cl, al) na then
-                      ffm
-                    else
-                      kill_field_index al al i ffm
-              | _ -> assert false
-            end
-      | (C.Var _, C.NoOffset) -> ffm
-      | _                     -> assert false
+    match locs_of_lval lval with
+      | Some (cl, al, i) ->
+          let ffm = kill_field_index cl al i ffm in
+            if NA.NASet.mem (cl, al) na then
+              ffm
+            else
+              kill_field_index al al i ffm
+      | None -> ffm
 
   let process_call na annots fname lvo ffm =
        annots
