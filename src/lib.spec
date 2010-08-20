@@ -32,6 +32,12 @@ getc :: forall    [A11]
         store_in  [A11 |-> 0: int(4, 0{1})]
         store_out [A11 |-> 0: int(4, 0{1})]
 
+_IO_getc :: forall    [A22]
+        arg       (x0 : ref(A22, 0))
+        ret       int(4, 0{1}, {v | &&[(0-1) <= v; v < 256]})
+        store_in  [A22 |-> 0: int(4, 0{1})]
+        store_out [A22 |-> 0: int(4, 0{1})]
+
 validptr ::
   forall    [A0]
   arg       (x: ref (A0, true, {v | && [(0 < v); (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))]}))

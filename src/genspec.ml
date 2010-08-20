@@ -254,6 +254,7 @@ let funspecs_of_funm funspec funm =
 let upd_varm spec (st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
+      let _ = Format.printf "Trying to spec global %s@.@." vn in
       begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
         | (_, st, _), [(_, ct)] ->
             (st, Misc.sm_protected_add false vn ct varm)
@@ -280,7 +281,9 @@ let globalspecs_of_varm varspec varm =
 (***************************************************************************)
 
 let specs_of_file_all (funspec, varspec, storespec) cil =
+  let _ = Format.printf "Generating all specs@.@." in
   let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+  let _ = Format.printf "Got storespec@.@." in
     (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
      varspec, storespec)
 

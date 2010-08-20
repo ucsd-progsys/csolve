@@ -4,7 +4,7 @@ CC=../../src/cc.sh
 ifdef DEBUG
 FLAGS=-g $(EXTRACFLAGS)
 else
-FLAGS=-O3 $(EXTRACFLAGS)
+FLAGS=$(EXTRACFLAGS) -I/home/pmr/src/liquidc/include/ -U __USE_EXTERN_INLINES
 endif
 
 build: encode$(EXE) decode$(EXE)
