@@ -39,6 +39,9 @@ module PlocSetPrinter = P.MakeSetPrinter (PlocSet)
 let d_plocset () ps =
   PlocSetPrinter.d_set ", " CT.d_ploc () ps
 
+let add_ploc p ps =
+  if CT.ploc_periodic p then ps else PlocSet.add p ps
+
 module type Context = sig
   val cfg   : Ssa.cfgInfo
   val shp   : Sh.t
@@ -167,7 +170,7 @@ module IntraprocFinalFields (X: Context) = struct
 
   let with_all_fields_final sto ffm =
     LM.fold begin fun l ld ffm ->
-      LM.add l (LD.fold (fun pls pl _ -> PlocSet.add pl pls) PlocSet.empty ld) ffm
+      LM.add l (LD.fold (fun pls pl _ -> add_ploc pl pls) PlocSet.empty ld) ffm
     end sto ffm
 
   let init_abstract_finals () =
@@ -216,11 +219,11 @@ module InterprocFinalFields = struct
 
   let spec_final_fields (cf, _) =
     LM.map begin fun ld ->
-      LD.fold (fun ffs pl fld -> if F.is_final fld then PlocSet.add pl ffs else ffs) PlocSet.empty ld
+      LD.fold (fun ffs pl fld -> if F.is_final fld then add_ploc pl ffs else ffs) PlocSet.empty ld
     end cf.CT.sto_out
 
   let shape_init_final_fields shp =
-    LM.map (fun ld -> LD.fold (fun ffs pl fld -> PlocSet.add pl ffs) PlocSet.empty ld) shp.Sh.store
+    LM.map (fun ld -> LD.fold (fun ffs pl fld -> add_ploc pl ffs) PlocSet.empty ld) shp.Sh.store
 
   let init_final_fields fspecm shpm =
        SM.empty
