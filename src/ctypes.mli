@@ -56,6 +56,8 @@ type ploc =
   | PLAt of int                 (* location n *)
   | PLSeq of int * seq_polarity (* location n plus periodic repeats *)
 
+module PlocSet: Set.S with type elt = ploc
+
 exception NoLUB of ctype * ctype
 
 exception TypeDoesntFit
@@ -167,6 +169,7 @@ type ctemap = ctype ExpMap.t
 (******************************************************************************)
 
 val d_ploc : unit -> ploc -> Pretty.doc
+val d_plocset : unit -> PlocSet.t -> Pretty.doc
 val d_prectype: (unit -> 'a -> Pretty.doc) -> unit -> 'a prectype -> Pretty.doc
 val d_precfun : (unit -> 'a -> Pretty.doc) -> unit -> 'a precfun -> Pretty.doc
 val d_cfun    : unit -> cfun -> Pretty.doc

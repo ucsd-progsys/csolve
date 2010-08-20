@@ -577,6 +577,7 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
      Sh.conca   = conca;
      Sh.theta   = theta;
      Sh.nasa    = nasa;
+     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)
      Sh.dchecks = ds}
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
@@ -588,7 +589,7 @@ let declared_funs (cil: C.file) =
     | _                                                   -> fs
   end []
 
-let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.dchecks = ds}: Sh.t): unit =
+let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.dchecks = ds}: Sh.t): unit =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -606,6 +607,9 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.
   let _ = P.printf "Annotations:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
+  let _ = P.printf "Final Fields:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" FinalFields.dump_final_fields ffmsa in
   let _ = P.printf "Deferred Checks:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in

@@ -6,4 +6,5 @@ type t =
    conca   : (Refanno.cncm * Refanno.cncm) array;
    theta   : Refanno.ctab;
    nasa    : NotAliased.NASet.t list array;
+   ffmsa   : Ctypes.PlocSet.t Sloc.SlocMap.t list array;
    dchecks : Inferindices.dcheck list}

@@ -215,6 +215,18 @@ let d_ploc (): ploc -> P.doc = function
   | PLSeq (i, Pos)    -> P.dprintf "PLSeq %d+" i
   | PLSeq (i, PosNeg) -> P.dprintf "PLSeq %d+/-" i
 
+module Ploc = struct
+  type t = ploc
+
+  let compare = compare
+end
+
+module PlocSet        = Set.Make (Ploc)
+module PlocSetPrinter = P.MakeSetPrinter (PlocSet)
+
+let d_plocset () ps =
+  PlocSetPrinter.d_set ", " d_ploc () ps
+
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
     | PLAt n         -> Index.IInt n
