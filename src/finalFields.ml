@@ -104,24 +104,30 @@ module IntraprocFinalFields (X: Context) = struct
       | Some (cl, al, i) ->
            find_index_plocs al i
         |> List.iter begin fun pl ->
-             assert (not (PlocSet.mem pl (LM.find cl ffm)));
+             assert (not (LM.mem cl ffm) || not (PlocSet.mem pl (LM.find cl ffm)));
              assert (NA.NASet.mem (cl, al) na || (not (PlocSet.mem pl (LM.find al ffm))))
            end
 
-  let check_block_annot ffm na i _ =
-    match i with
+  let check_block_set ffm ffm' na i =
+    begin match i with
       | C.Set (lval, _, _)          -> check_lval_set ffm na lval
       | C.Call (Some lval, _, _, _) -> check_lval_set ffm na lval
       | _                           -> ()
+    end;
+    ffm'
+
+  let check_block_sets b ffm ffms nas =
+    match b.Ssa.bstmt.C.skind with
+      | C.Instr is -> M.fold_left3 check_block_set ffm ffms nas is |> ignore
+      | _          -> ()
 
   let sanity_check_finals (ffmsa, _) =
     Array.iteri begin fun i b ->
       let ffms, ffm = ffmsa.(i) in
       let _         = List.fold_left check_final_inclusion LM.empty ffms in
       let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
-        match b.Ssa.bstmt.C.skind with
-          | C.Instr is -> M.fold_right3 check_block_annot ffms (X.shp.Sh.nasa.(i)) is ()
-          | _          -> ()
+      let _         = check_block_sets b ffm ffms (X.shp.Sh.nasa.(i)) in
+        ()
     end X.cfg.Ssa.blocks
 
   (******************************************************************************)
@@ -173,7 +179,8 @@ module IntraprocFinalFields (X: Context) = struct
   let process_instr na i annots (ffms, ffm) =
        ffm
     |> instr_update_finals na annots i
-    |> fun ffm -> (ffm :: ffms, process_gen_inst annots ffm)
+    |> process_gen_inst annots
+    |> fun ffm' -> (ffm :: ffms, ffm')
 
   let meet_finals ffm1 ffm2 =
     LM.fold begin fun l ps ffm ->
