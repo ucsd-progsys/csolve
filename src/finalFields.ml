@@ -50,14 +50,26 @@ module type Context = sig
 end
 
 module IntraprocFinalFields (X: Context) = struct
+  (******************************************************************************)
+  (****************************** Debugging Output ******************************)
+  (******************************************************************************)
+
+  let dump_final_fields (ffmsa, _) =
+    if !Constants.verbose_level >= Constants.ol_finals then
+      Array.iteri begin fun i (ffms, ffm) ->
+        let _ = P.printf "Block %d:\n" i in
+        let _ = P.printf "  I: %a\n" (S.d_slocmap d_plocset) ffm in
+        let _ = M.fold_lefti (fun i _ ffm -> P.printf "  %i: %a\n" i (S.d_slocmap d_plocset) ffm |> ignore) () ffms in
+        let _ = P.printf "\n" in
+          ()
+      end ffmsa
+
+  (******************************************************************************)
+  (****************************** Type Manipulation *****************************)
+  (******************************************************************************)
+
   let find_index_plocs al i =
     CT.PreStore.find al X.shp.Sh.store |> CT.LDesc.find_index i |> List.map fst
-
-  let kill_field_index l al i ffm =
-    (* DEBUG *)
-(*     let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in *)
-(*     let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
-    LM.add l (List.fold_left (fun ffs pl -> PlocSet.remove pl ffs) (LM.find l ffm) (find_index_plocs al i)) ffm
 
   let locs_of_lval = function
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)
@@ -70,6 +82,57 @@ module IntraprocFinalFields (X: Context) = struct
           end
     | (C.Var _, C.NoOffset) -> None
     | _                     -> assert false
+
+  (******************************************************************************)
+  (**************************** Output Sanity Checks ****************************)
+  (******************************************************************************)
+
+  let check_final_inclusion ffm1 ffm2 =
+    LM.iter begin fun l ffs ->
+      if S.is_abstract l then assert (PlocSet.subset ffs (LM.find l ffm2))
+    end ffm1;
+    ffm2
+
+  let check_pred_inclusion ffmsa ffm i =
+    match ffmsa.(i) with
+      | [], ffm2 -> check_final_inclusion ffm2 ffm |> ignore
+      | ffms, _  -> check_final_inclusion (ffms |> List.rev |> List.hd) ffm |> ignore
+
+  let check_lval_set ffm na lval =
+    match locs_of_lval lval with
+      | None             -> ()
+      | Some (cl, al, i) ->
+           find_index_plocs al i
+        |> List.iter begin fun pl ->
+             assert (not (PlocSet.mem pl (LM.find cl ffm)));
+             assert (NA.NASet.mem (cl, al) na || (not (PlocSet.mem pl (LM.find al ffm))))
+           end
+
+  let check_block_annot ffm na i _ =
+    match i with
+      | C.Set (lval, _, _)          -> check_lval_set ffm na lval
+      | C.Call (Some lval, _, _, _) -> check_lval_set ffm na lval
+      | _                           -> ()
+
+  let sanity_check_finals (ffmsa, _) =
+    Array.iteri begin fun i b ->
+      let ffms, ffm = ffmsa.(i) in
+      let _         = List.fold_left check_final_inclusion LM.empty ffms in
+      let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
+        match b.Ssa.bstmt.C.skind with
+          | C.Instr is -> M.fold_right3 check_block_annot ffms (X.shp.Sh.nasa.(i)) is ()
+          | _          -> ()
+    end X.cfg.Ssa.blocks
+
+  (******************************************************************************)
+  (******************************* Analysis Proper ******************************)
+  (******************************************************************************)
+
+  let kill_field_index l al i ffm =
+    (* DEBUG *)
+(*     let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in *)
+(*     let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
+    LM.add l (List.fold_left (fun ffs pl -> PlocSet.remove pl ffs) (LM.find l ffm) (find_index_plocs al i)) ffm
 
   let process_set_lval na lval ffm =
     match locs_of_lval lval with
@@ -153,16 +216,6 @@ module IntraprocFinalFields (X: Context) = struct
             List.for_all2 (LM.equal PlocSet.equal) ffms ffms'
     end true ffmsa
 
-  let dump_final_fields (ffmsa, _) =
-    if !Constants.verbose_level >= Constants.ol_finals then
-      Array.iteri begin fun i (ffms, ffm) ->
-        let _ = P.printf "Block %d:\n" i in
-        let _ = P.printf "  I: %a\n" (S.d_slocmap d_plocset) ffm in
-        let _ = M.fold_lefti (fun i _ ffm -> P.printf "  %i: %a\n" i (S.d_slocmap d_plocset) ffm |> ignore) () ffms in
-        let _ = P.printf "\n" in
-          ()
-      end ffmsa
-
   let iter_finals init_ffm ffmsa =
     let ffmsa' = Array.copy ffmsa in
     let _      = M.array_rev_iteri (fun i _ -> ffmsa.(i) <- process_block init_ffm ffmsa i) X.cfg.Ssa.blocks in
@@ -191,43 +244,6 @@ module IntraprocFinalFields (X: Context) = struct
         | _ -> ffm
       end ffm (List.concat annotss)
     end ffm annots
-
-  let check_final_inclusion ffm1 ffm2 =
-    LM.iter begin fun l ffs ->
-      if S.is_abstract l then assert (PlocSet.subset ffs (LM.find l ffm2))
-    end ffm1;
-    ffm2
-
-  let check_pred_inclusion ffmsa ffm i =
-    match ffmsa.(i) with
-      | [], ffm2 -> check_final_inclusion ffm2 ffm |> ignore
-      | ffms, _  -> check_final_inclusion (ffms |> List.rev |> List.hd) ffm |> ignore
-
-  let check_lval_set ffm na lval =
-    match locs_of_lval lval with
-      | None             -> ()
-      | Some (cl, al, i) ->
-           find_index_plocs al i
-        |> List.iter begin fun pl ->
-             assert (not (PlocSet.mem pl (LM.find cl ffm)));
-             assert (NA.NASet.mem (cl, al) na || (not (PlocSet.mem pl (LM.find al ffm))))
-           end
-
-  let check_block_annot ffm na i _ =
-    match i with
-      | C.Set (lval, _, _)          -> check_lval_set ffm na lval
-      | C.Call (Some lval, _, _, _) -> check_lval_set ffm na lval
-      | _                           -> ()
-
-  let sanity_check_finals (ffmsa, _) =
-    Array.iteri begin fun i b ->
-      let ffms, ffm = ffmsa.(i) in
-      let _         = List.fold_left check_final_inclusion LM.empty ffms in
-      let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
-        match b.Ssa.bstmt.C.skind with
-          | C.Instr is -> M.fold_right3 check_block_annot ffms (X.shp.Sh.nasa.(i)) is ()
-          | _          -> ()
-    end X.cfg.Ssa.blocks
 
   let final_fields () =
     let init_ffm = () |> init_abstract_finals |> init_concrete_finals X.shp.Sh.anna in
