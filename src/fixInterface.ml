@@ -134,7 +134,7 @@ let so_int = So.t_int
 let so_skl = So.t_func 0 [so_int; so_int]
 let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
 let so_pun = So.t_func 1 [So.t_generic 0; so_int]
-let so_drf = So.t_func 1 [So.t_generic 0; so_int]
+let so_drf = So.t_func 1 [So.t_generic 0; So.t_generic 1]
 
 let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls
@@ -155,7 +155,7 @@ let uf_deref     = name_of_string "DEREF"
 let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
 let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
 let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
-let eApp_deref   = fun x -> A.eApp (uf_deref,   [x])
+let eApp_deref   = fun x -> A.eCst (A.eApp (uf_deref, [x]), so_int)
 (* let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
  *)
 
