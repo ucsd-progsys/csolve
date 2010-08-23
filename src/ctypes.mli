@@ -70,6 +70,7 @@ module LDesc:
     val create: (Index.t * 'a prectype) list -> 'a t
     val remove: ploc -> 'a t -> 'a t
     val shrink_period: int -> ('a prectype -> 'a prectype -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
+    val mem : ploc -> 'a t -> bool
     val find: ploc -> 'a t -> (ploc * 'a prectype) list
     val find_index: Index.t -> 'a t -> (ploc * 'a prectype) list
     val foldn: (int -> 'a -> ploc -> 'b prectype -> 'a) -> 'a -> 'b t -> 'a

@@ -584,6 +584,47 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({vtyps = locals; store 
 let fresh_local_slocs (ve: ctvenv) =
   VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
 
+exception LocationMismatch of S.t * Index.t LDesc.t * S.t * Index.t LDesc.t
+
+let assert_location_inclusion l1 ld1 l2 ld2 =
+  (* Polymorphism hack! *)
+  if ld2 = LDesc.empty then
+    ()
+  else
+    LDesc.fold begin fun _ pl _ ->
+      if LDesc.mem pl ld2 then () else raise (LocationMismatch (l1, ld1, l2, ld2))
+    end () ld1
+
+let assert_call_no_physical_subtyping fe f store gst annots =
+  let cf, _ = VM.find f fe in
+    List.iter begin function
+      | RA.New (scallee, scaller) ->
+          let sto = if SLM.mem scaller store then store else gst in
+            assert_location_inclusion
+              scaller (SLM.find scaller sto)
+              scallee (SLM.find scallee cf.sto_out)
+      | _ -> ()
+    end annots
+
+let assert_no_physical_subtyping fe cfg anna store gst =
+  try
+    Array.iteri begin fun i b ->
+      match b.Ssa.bstmt.C.skind with
+        | C.Instr is ->
+            List.iter2 begin fun i annots ->
+              let _  = C.currentLoc := C.get_instrLoc i in
+                match i with
+                  | C.Call (_, C.Lval (C.Var f, _), _, _) -> assert_call_no_physical_subtyping fe f store gst annots
+                  | _                                     -> ()
+            end is anna.(i)
+        | _ -> ()
+    end cfg.Ssa.blocks
+  with LocationMismatch (l1, ld1, l2, ld2) ->
+    ignore <|
+        C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+          S.d_sloc l1 (LDesc.d_ldesc d_ctype) ld1 S.d_sloc l2 (LDesc.d_ldesc d_ctype) ld2;
+    assert false
+
 let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
@@ -594,6 +635,7 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
+  let _                   = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;

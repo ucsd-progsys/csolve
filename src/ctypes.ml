@@ -348,6 +348,13 @@ module LDesc = struct
   let create icts =
     List.fold_left (M.uncurry add_index |> M.flip) empty icts
 
+  let mem pl1 (po, pcts) =
+    if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+      false
+    else
+      let p = get_period_default po in
+        List.exists (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+
   let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
     if ploc_periodic pl1 && not (Misc.maybe_bool po) then
       []

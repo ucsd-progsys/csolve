@@ -5,7 +5,7 @@ struct node_t {
 };
 typedef struct node_t node_t;
 
-node_t **make_table(int size )
+node_t * __attribute__ ((array)) * __attribute__ ((array)) make_table(int size )
 { node_t **retval ;
 
   retval = (node_t **)malloc(size * sizeof(node_t *));
