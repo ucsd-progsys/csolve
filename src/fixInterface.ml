@@ -155,7 +155,7 @@ let uf_deref     = name_of_string "DEREF"
 let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
 let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
 let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
-let eApp_deref   = fun x -> A.eCst (A.eApp (uf_deref, [x]), so_int)
+let eApp_deref   = fun x so -> A.eCst (A.eApp (uf_deref, [x]), so)
 (* let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
  *)
 
@@ -460,10 +460,11 @@ let ra_zero ct =
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
 let ra_deref ct base offset =
-  let vv   = ct |> sort_of_prectype |> Sy.value_variable in
+  let so   = sort_of_prectype ct in
+  let vv   = so |> Sy.value_variable in
   let bvar = base |> Sy.of_string |> A.eVar in
   let ptr  = A.eBin (bvar, A.Plus, A.eCon (A.Constant.Int offset)) in
-    [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_deref ptr))]
+    [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_deref ptr so))]
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
 let ra_true         = fun _ -> []
@@ -838,16 +839,13 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
   (env', sto', tago), cs
 
 let strengthen_final_field ffs ptrname pl fld =
-  if fld |> Ct.Field.type_of |> Ct.is_ref then
-    fld
-  else
-    match pl with
-      | Ct.PLSeq _ -> fld
-      | Ct.PLAt n  ->
-          if Ct.PlocSet.mem pl ffs then
-            Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
-          else
-            fld
+  match pl with
+    | Ct.PLSeq _ -> fld
+    | Ct.PLAt n  ->
+        if Ct.PlocSet.mem pl ffs then
+          Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
+        else
+          fld
 
 let refstore_strengthen loc sto ffm ptrname addr =
   let (cl, ploc) = addr_of_refctype loc addr in
