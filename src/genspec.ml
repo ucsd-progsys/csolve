@@ -254,7 +254,6 @@ let funspecs_of_funm funspec funm =
 let upd_varm spec (st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
-      let _ = Format.printf "Trying to spec global %s@.@." vn in
       begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
         | (_, st, _), [(_, ct)] ->
             (st, Misc.sm_protected_add false vn ct varm)
