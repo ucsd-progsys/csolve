@@ -11,11 +11,6 @@ int main () {
         x = y;
     }
 
-    // TODO: should work without this extra fold after we
-    // finalize the concrete pointer y
-    int z = *x;
-    int w = *y;
-
     if (x == y) {
         assert (*x == *y);
     }

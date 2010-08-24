@@ -848,3 +848,13 @@ let strengthen_final_field ffs ptrname pl fld =
             Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
           else
             fld
+
+let refstore_strengthen loc sto ffm ptrname addr =
+  let (cl, ploc) = addr_of_refctype loc addr in
+  let _   = assert (not (Sloc.is_abstract cl)) in
+  let ld  = LM.find cl sto in
+  let fld = Ct.LDesc.find ploc ld |> List.hd |> snd in
+  let ld  = Ct.LDesc.remove ploc ld in
+  let ffs = LM.find cl ffm in
+  let ld  = Ct.LDesc.add ploc (strengthen_final_field ffs ptrname ploc fld) ld in
+  LM.add cl ld sto

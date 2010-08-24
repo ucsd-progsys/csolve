@@ -158,7 +158,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
       let _  = CilMisc.check_pure_expr e in
       (FI.t_exp env (CF.ctype_of_expr me e) e, ([], []))
 
-let cons_of_set me loc tag grd (env, sto, tago) = function
+let cons_of_set me loc tag grd ffm (env, sto, tago) = function
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
       let cr, cds = cons_of_rval me loc tag grd (env, sto, tago) rv in
@@ -186,12 +186,13 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
         (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
       else
         let sto' = FI.refstore_write loc sto addr cr' in
+        let sto' = FI.refstore_strengthen loc sto' ffm v.vname addr in
         (env, sto', Some tag), (cs1, ds1)
 
   | _ -> assertf "TBD: cons_of_set"
 
-let cons_of_set me loc tag grd (env, sto, tago) ((lv, e) as x) = 
-  Misc.do_catchu (cons_of_set me loc tag grd (env, sto, tago)) x 
+let cons_of_set me loc tag grd ffm (env, sto, tago) ((lv, e) as x) =
+  Misc.do_catchu (cons_of_set me loc tag grd ffm (env, sto, tago)) x
     (fun ex -> E.error "(%s) cons_of_set [%a] : %a := %a \n" 
               (Printexc.to_string ex) d_loc loc d_lval lv d_exp e)
 
@@ -256,7 +257,7 @@ let cons_of_annotinstr me i grd (j, wld) (annots, ffm, instr) =
       let _         = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
       let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
-      let wld, cds  = cons_of_set me loc tagj grd wld (lv, e) in
+      let wld, cds  = cons_of_set me loc tagj grd ffm wld (lv, e) in
       (j+1, wld), cds +++ acds
   | Call (None, Lval (Var fv, NoOffset), _, loc) when CilMisc.isVararg fv.Cil.vtype ->
       let tagj      = CF.tag_of_instr me i j loc in
