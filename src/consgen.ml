@@ -92,7 +92,13 @@ let weaken_undefined me rm env v =
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
 
-let cons_of_annot me loc tag grd (env, sto, tago) = function 
+let strengthen_instantiated_cloc ffm ptrname cloc (env, sto, tago) =
+     cloc
+  |> FI.refstore_get sto
+  |> Ctypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find cloc ffm) ptrname pl fld)
+  |> fun ld -> (env, FI.refstore_set sto cloc ld, tago)
+
+let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
   | Refanno.Gen  (cloc, aloc) ->
       let _      = CM.assertLoc loc (FI.refstore_mem cloc sto) "cons_of_annot: (Gen)!" in
       let sto'   = FI.refstore_remove cloc sto in
@@ -111,13 +117,13 @@ let cons_of_annot me loc tag grd (env, sto, tago) = function
       let _      = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let cf     = CF.get_alocmap me in
       let wld',_ = FI.extend_world cf sto aloc cloc false loc tag (env, sto, tago) in
-      let wld'   = FI.strengthen_final_fields ptr cloc wld' in
+      let wld'   = strengthen_instantiated_cloc ffm ptr cloc wld' in
       (wld', ([], []))
 
   | _ -> assertf "cons_of_annot: New/NewC" 
   
-let cons_of_annots me loc tag grd wld annots =
-  Misc.mapfold (cons_of_annot me loc tag grd) wld annots
+let cons_of_annots me loc tag grd wld ffm annots =
+  Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
 (****************************************************************************)
@@ -243,23 +249,23 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annotinstr me i grd (j, wld) (annots, instr) = 
+let cons_of_annotinstr me i grd (j, wld) (annots, ffm, instr) =
   let gs, is, ns      = group_annots annots in
   match instr with 
   | Set (lv, e, loc) ->
       let _         = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
       let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
+      let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
       let wld, cds  = cons_of_set me loc tagj grd wld (lv, e) in
       (j+1, wld), cds +++ acds
   | Call (None, Lval (Var fv, NoOffset), _, loc) when CilMisc.isVararg fv.Cil.vtype ->
       let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
+      let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
       let _         = Cil.warnLoc loc "Ignoring vararg call" in
         (j+1, wld), acds
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
       let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
+      let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
       let wld, cds  = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
       (j+2, wld), cds +++ acds 
   | _ -> 
@@ -281,12 +287,12 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
                            (FI.make_cs cf env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
-let cons_of_annotstmt me loc i grd wld (anns, stmt) = 
+let cons_of_annotstmt me loc i grd wld (anns, ffms, stmt) =
   match stmt.skind with
   | Instr is ->
       (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let (n, wld), cds   =  List.combine anns is 
+      let (n, wld), cds   =  Misc.combine3 anns ffms is
                           |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
       let cs1, ds1        = Misc.splitflatten cds in  
       (* INTRA-FOLD: let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in *)
@@ -367,7 +373,7 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
   CF.annots_of_edge me i j 
-  |> cons_of_annots me loci tagi grdij iwld'
+  |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty
   |> snd
 
 let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j = 

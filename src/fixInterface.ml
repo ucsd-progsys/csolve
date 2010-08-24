@@ -837,16 +837,14 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
   let sto'  = refstore_set sto cloc ld' in
   (env', sto', tago), cs
 
-let strengthen_final_field ptrname _ pl fld =
+let strengthen_final_field ffs ptrname pl fld =
   if fld |> Ct.Field.type_of |> Ct.is_ref then
     fld
   else
-    match pl, Ct.Field.get_finality fld with
-      | Ct.PLAt n, Ct.Field.Final -> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
-      | _                         -> fld
-
-let strengthen_final_fields ptrname cloc (env, sto, tago) =
-     cloc
-  |> refstore_get sto
-  |> Ct.LDesc.mapn (strengthen_final_field ptrname)
-  |> fun ld -> (env, refstore_set sto cloc ld, tago)
+    match pl with
+      | Ct.PLSeq _ -> fld
+      | Ct.PLAt n  ->
+          if Ct.PlocSet.mem pl ffs then
+            Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
+          else
+            fld

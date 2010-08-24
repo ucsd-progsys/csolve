@@ -1,3 +1,7 @@
+type final_fields = Ctypes.PlocSet.t Sloc.SlocMap.t
+
+type final_fields_annot = final_fields list
+
 type t =
   {vtyps   : (Cil.varinfo * Ctypes.ctype) list;
    etypm   : Ctypes.ctemap;
@@ -6,5 +10,5 @@ type t =
    conca   : (Refanno.cncm * Refanno.cncm) array;
    theta   : Refanno.ctab;
    nasa    : NotAliased.NASet.t list array;
-   ffmsa   : Ctypes.PlocSet.t Sloc.SlocMap.t list array;
+   ffmsa   : final_fields_annot array;
    dchecks : Inferindices.dcheck list}

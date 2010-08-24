@@ -38,7 +38,7 @@ type cilenv
 type alocmap  = Sloc.t -> Sloc.t option
 type refctype = (Ctypes.Index.t * FixConstraint.reft) Ctypes.prectype
 type refcfun  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.precfun
-type refldesc 
+type refldesc = (Ctypes.Index.t * FixConstraint.reft) Ctypes.LDesc.t
 type refstore = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreStore.t
 type refspec  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreSpec.t
 
@@ -86,7 +86,12 @@ val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a) * FixConstraint.t list
 
-val strengthen_final_fields : string -> Sloc.t -> (cilenv * refstore * 'a) -> (cilenv * refstore * 'a)
+val strengthen_final_field :
+  Ctypes.PlocSet.t ->
+  string ->
+  Ctypes.ploc ->
+  ('a * FixConstraint.reft) Ctypes.Field.t ->
+  ('a * FixConstraint.reft) Ctypes.Field.t
 
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
 val t_fresh             : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype
