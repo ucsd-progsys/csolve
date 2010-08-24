@@ -186,7 +186,7 @@ let cons_of_set me loc tag grd ffm (env, sto, tago) = function
         (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
       else
         let sto' = FI.refstore_write loc sto addr cr' in
-        let sto' = FI.refstore_strengthen loc sto' ffm v.vname addr in
+        let sto' = FI.refstore_strengthen_finals loc sto' ffm v.vname addr in
         (env, sto', Some tag), (cs1, ds1)
 
   | _ -> assertf "TBD: cons_of_set"

@@ -122,10 +122,10 @@ val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
 
 val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
 
-val refstore_strengthen : Cil.location -> refstore -> Ctypes.PlocSet.t Sloc.SlocMap.t -> string -> refctype -> refstore
-val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
-val refstore_read       : Cil.location -> refstore -> refctype -> refctype
-val refstore_fresh      : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> refstore
+val refstore_strengthen_finals : Cil.location -> refstore -> Ctypes.PlocSet.t Sloc.SlocMap.t -> string -> refctype -> refstore
+val refstore_write             : Cil.location -> refstore -> refctype -> refctype -> refstore
+val refstore_read              : Cil.location -> refstore -> refctype -> refctype
+val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> refstore
 
 val refstore_subs       : (* Cil.location -> *) ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> refstore -> refstore

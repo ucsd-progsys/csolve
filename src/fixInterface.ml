@@ -847,7 +847,7 @@ let strengthen_final_field ffs ptrname pl fld =
         else
           fld
 
-let refstore_strengthen loc sto ffm ptrname addr =
+let refstore_strengthen_finals loc sto ffm ptrname addr =
   let (cl, ploc) = addr_of_refctype loc addr in
   let _   = assert (not (Sloc.is_abstract cl)) in
   let ld  = LM.find cl sto in
