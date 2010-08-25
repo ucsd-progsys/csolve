@@ -524,6 +524,9 @@ let d_precfun d_i () ft  =
 let d_cfun () ft =
   d_precfun Index.d_index () ft
 
+let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
+  {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
+
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
   let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
   let rename_pct = prectype_subs subs in
