@@ -623,7 +623,7 @@ let assert_no_physical_subtyping fe cfg anna store gst =
     ignore <|
         C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
           S.d_sloc l1 (LDesc.d_ldesc d_ctype) ld1 S.d_sloc l2 (LDesc.d_ldesc d_ctype) ld2;
-    assert false
+    exit 1
 
 let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
