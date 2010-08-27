@@ -1,1 +1,0 @@
-qualif FIELDEQ(v:ptr): DEREF([v]) = DEREF([~A])
