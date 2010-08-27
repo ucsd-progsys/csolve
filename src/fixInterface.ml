@@ -28,7 +28,9 @@ module IM  = Misc.IntMap
 module F   = Format
 module ST  = Ssa_transform
 module  A  = Ast
+module  Q  = A.Qualifier
 module  P  = Ast.Predicate
+module  E  = A.Expression
 module  C  = FixConstraint
 module Sy  = Ast.Symbol
 module Su  = Ast.Subst
@@ -259,7 +261,7 @@ let plocs_of_refldesc rd =
   Ct.LDesc.foldn begin fun _ plocs ploc _ -> ploc::plocs end [] rd
   |> List.rev
 
-let sloc_binds_of_refldesc l rd = 
+let sloc_binds_of_refldesc l rd =
   Ct.LDesc.foldn begin fun i binds ploc rfld ->
     ((name_of_sloc_ploc l ploc, Ct.Field.type_of rfld), ploc)::binds
   end [] rd
@@ -691,6 +693,47 @@ let canon_reft cf r =
 let canon_env cf env = 
   YM.map (canon_reft cf) env
 
+(******************************************************************************)
+(********************** WF For Dereferencing Expressions **********************)
+(******************************************************************************)
+
+let find_unfolded_loc cf l sto =
+  try
+    LM.find l sto
+  with Not_found ->
+    LM.find (canon_loc cf l) sto
+
+let points_to_final cf cenv sto p o =
+  match ce_find p cenv with
+    | Ct.CTRef (l, (Ct.Index.IInt n, _)) ->
+           sto
+        |> find_unfolded_loc cf l
+        |> Ct.LDesc.find (Ct.PLAt (n + o))
+        |> List.for_all (fun (_, fld) -> Ct.Field.is_final fld)
+    | _ -> false
+
+let expr_derefs_wf cf cenv sto e =
+  match E.unwrap e with
+    | A.App (f, [e]) when f = uf_deref ->
+        begin match E.unwrap e with
+          | A.Var p                -> points_to_final cf cenv sto p 0
+          | A.Bin (e1, A.Plus, e2) ->
+              begin match E.unwrap e1, E.unwrap e2 with
+                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cf cenv sto p n
+                | _                                 -> assert false
+              end
+          | _ -> assert false
+        end
+    | _ -> true
+
+let filter_store_derefs cf cenv sto rct q =
+  let cenv = ce_adds cenv [(Q.vv_of_t q, rct)] in
+  let wf   = ref true in
+       q
+    |> Q.pred_of_t
+    |> P.iter (fun _ -> ()) (fun e -> wf := !wf && expr_derefs_wf cf cenv sto e);
+    !wf
+
 (****************************************************************)
 (********************** Constraints *****************************)
 (****************************************************************)
@@ -705,13 +748,13 @@ let env_of_cilenv cf (_, vnv, livem) =
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
   |> canon_env cf
 
-let make_wfs cf ((_,_,livem) as cenv) rct _ =
+let make_wfs cf ((_,_,livem) as cenv) sto rct _ =
   let r   = rct |> reft_of_refctype |> canon_reft cf in
   let env = cenv 
             |> env_of_cilenv cf 
             |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
             |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
-  in [C.make_wf env r None]
+  in [C.make_filtered_wf env r None (filter_store_derefs cf cenv sto rct)]
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
 
@@ -721,7 +764,7 @@ let make_wfs_refstore cf env sto tag =
     let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ct.ploc_periodic ploc)) 
                     |> List.map fst
                     |> ce_adds env in 
-    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' cr tag) ncrs in
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' sto cr tag) ncrs in
     ws' ++ ws
   end sto []
 (* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
@@ -730,8 +773,8 @@ let make_wfs_refstore cf env sto tag =
 let make_wfs_fn cf cenv rft tag =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
-  let retws = make_wfs cf env' rft.Ct.ret tag in
-  let argws = Misc.flap (fun (_, rct) -> make_wfs cf env' rct tag) args in
+  let retws = make_wfs cf env' rft.Ct.sto_out rft.Ct.ret tag in
+  let argws = Misc.flap (fun (_, rct) -> make_wfs cf env' rft.Ct.sto_in rct tag) args in
   let inws  = make_wfs_refstore cf env' rft.Ct.sto_in tag in
   let outws = make_wfs_refstore cf env' rft.Ct.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]

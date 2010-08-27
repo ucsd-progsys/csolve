@@ -206,7 +206,7 @@ let cons_of_tuple cf env grd lsubs subs cr1s cr2s tago tag loc =
   end cr1s cr2s 
   |> Misc.splitflatten
 
-let env_of_retbind me loc grd tag lsubs subs env lvo cr =
+let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   match lvo with 
   | Some ((Var v), NoOffset) ->
       let rct = rename_refctype lsubs subs cr in
@@ -214,7 +214,7 @@ let env_of_retbind me loc grd tag lsubs subs env lvo cr =
           let frct   = rct |> FI.ctype_of_refctype |> FI.t_fresh in
           let cf     = CF.get_alocmap me in
           let cs, ds = FI.make_cs cf env grd rct frct None tag loc in
-          let ws     = FI.make_wfs cf env frct tag in
+          let ws     = FI.make_wfs cf env sto frct tag in
             (extend_env me v frct env, cs, ds, ws)
         else
           (extend_env me v rct env, [], [], [])
@@ -250,8 +250,8 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let cs3,_     = FI.make_cs_refstore cf env grd oast st  false None tag' loc in
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
-  let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env lvo (FI.ret_of_refcfun frt) in
   let st'                 = Ctypes.PreStore.upd st ocst in
+  let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (FI.ret_of_refcfun frt) in
   let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3 ++ ds4), wfs
 
@@ -322,7 +322,7 @@ let cons_of_annotstmt me loc i grd wld (anns, ffms, stmt) =
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
-let wcons_of_block me loc i =
+let wcons_of_block me loc (_, sto, _) i =
   let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
   let cf   = CF.get_alocmap me in
   let tag  = CF.tag_of_instr me i 0 loc in
@@ -330,7 +330,7 @@ let wcons_of_block me loc i =
   let env  = CF.inenv_of_block me i in
   let wenv = phis |> List.fold_left (weaken_undefined me true) env in
   let ws   = phis |> List.map  (fun v -> FI.ce_find  (FI.name_of_varinfo v) env) 
-                  |> Misc.flap (fun cr -> FI.make_wfs cf wenv cr tag) in
+                  |> Misc.flap (fun cr -> FI.make_wfs cf wenv sto cr tag) in
   let ws'  = FI.make_wfs_refstore cf wenv (CF.csto_of_block me i) tag in
   ws ++ ws'
 
@@ -340,7 +340,7 @@ let cons_of_block me i =
   let grd              = CF.guard_of_block me i None in
   let astmt            = CF.annotstmt_of_block me i in
   let wld              = CF.inwld_of_block me i in
-  let ws1              = wcons_of_block me loc i in
+  let ws1              = wcons_of_block me loc wld i in
   let wld, cs, ds, ws2 = cons_of_annotstmt me loc i grd wld astmt in
   (wld, (ws1 ++ ws2, cs, ds))
 
@@ -645,7 +645,7 @@ let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
                       if chk then vsp else FI.t_true_refctype vtyp in
         let cs'     = cons_of_var_init tag loc gst v vtyp init in
         let cs'',_  = FI.make_cs cf0 FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
-        let ws'     = FI.make_wfs cf0 FI.ce_empty vtyp tag in
+        let ws'     = FI.make_wfs cf0 FI.ce_empty gst vtyp tag in
           (ws' ++ ws, cs'' ++ cs' ++ cs, [])
   end (ws, cs, []) decs
 
