@@ -843,7 +843,9 @@ let strengthen_final_field ffs ptrname pl fld =
     | Ct.PLSeq _ -> fld
     | Ct.PLAt n  ->
         if Ct.PlocSet.mem pl ffs then
-          Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n)) fld
+             fld
+          |> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n))
+          |> Ct.Field.set_finality Ct.Field.Final
         else
           fld
 
