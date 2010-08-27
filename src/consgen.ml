@@ -522,6 +522,35 @@ let rename_funspec scim funspec =
     else (rf, b)
   end funspec
 
+
+(******************************************************************************)
+(********** Strengthen Final Fields in Fun Types from Inferred Shapes *********)
+(******************************************************************************)
+
+let finalize_store shp_sto sto =
+  Sloc.SlocMap.mapi begin fun l ld ->
+    try
+      let shp_ld = Sloc.SlocMap.find l shp_sto in
+        Ctypes.LDesc.mapn begin fun _ pl fld ->
+          match Ctypes.LDesc.find pl shp_ld with
+            | [(_, shp_fld)] -> Ctypes.Field.set_finality (Ctypes.Field.get_finality shp_fld) fld
+            | _              -> fld
+        end ld
+    with Not_found ->
+      ld
+  end sto
+
+let finalize_funtypes shm cnv =
+  SM.fold begin fun fname shp cnv ->
+    let cf = SM.find fname cnv in
+      SM.add
+        fname
+        {cf with
+           Ctypes.sto_in  = finalize_store shp.Shape.store cf.Ctypes.sto_in;
+           Ctypes.sto_out = finalize_store shp.Shape.store cf.Ctypes.sto_out}
+        cnv
+  end shm cnv
+
 (******************************************************************************)
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
@@ -677,6 +706,7 @@ let create cil (spec: FI.refspec) =
   let shm, cnv = shapem_of_scim cil spec scim in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
+  let cnv      = finalize_funtypes shm cnv in
   let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
