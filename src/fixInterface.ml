@@ -619,6 +619,23 @@ let refstore_subs_locs lsubs st =
 
 *)
 
+exception ContainsDeref
+
+let check_expr_is_deref e =
+  match A.Expression.unwrap e with
+    | A.App (f, _) when f = uf_deref -> raise ContainsDeref
+    | _                              -> ()
+
+let may_contain_deref rct =
+  match rct |> reft_of_refctype |> C.preds_kvars_of_reft with
+    | _, _ :: _ -> true
+    | ps, _     ->
+        try
+          List.iter (P.iter (fun _ -> ()) check_expr_is_deref) ps;
+          false
+        with ContainsDeref ->
+          true
+
 (**************************************************************)
 (*******************Constraint Simplification *****************)
 (**************************************************************)

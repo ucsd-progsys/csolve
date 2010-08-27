@@ -206,12 +206,21 @@ let cons_of_tuple cf env grd lsubs subs cr1s cr2s tago tag loc =
   end cr1s cr2s 
   |> Misc.splitflatten
 
-let env_of_retbind me lsubs subs env lvo cr = 
+let env_of_retbind me loc grd tag lsubs subs env lvo cr =
   match lvo with 
-  | Some ((Var v), NoOffset) -> extend_env me v (rename_refctype lsubs subs cr) env
-  | None                     -> env
+  | Some ((Var v), NoOffset) ->
+      let rct = rename_refctype lsubs subs cr in
+        if FI.may_contain_deref rct then
+          let frct   = rct |> FI.ctype_of_refctype |> FI.t_fresh in
+          let cf     = CF.get_alocmap me in
+          let cs, ds = FI.make_cs cf env grd rct frct None tag loc in
+          let ws     = FI.make_wfs cf env frct tag in
+            (extend_env me v frct env, cs, ds, ws)
+        else
+          (extend_env me v rct env, [], [], [])
+  | None                     -> (env, [], [], [])
   | _  when !Constants.safe  -> assertf "env_of_retbind"
-  | _                        -> env
+  | _                        -> (env, [], [], [])
 
 let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
   let asto = CF.get_astore me in
@@ -241,14 +250,17 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let cs3,_     = FI.make_cs_refstore cf env grd oast st  false None tag' loc in
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
-  let env'      = env_of_retbind me lsubs subs env lvo (FI.ret_of_refcfun frt) in
-  let st'       = Ctypes.PreStore.upd st ocst in
-  let wld', cs4 = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
-  wld', (cs1 ++ cs2 ++ cs3 ++ cs4, ds3)
+  let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env lvo (FI.ret_of_refcfun frt) in
+  let st'                 = Ctypes.PreStore.upd st ocst in
+  let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
+  wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3 ++ ds4), wfs
 
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
+
+let with_wfs (cs, ds) wfs =
+  (cs, ds, wfs)
 
 let cons_of_annotinstr me i grd (j, wld) (annots, ffm, instr) =
   let gs, is, ns      = group_annots annots in
@@ -258,17 +270,17 @@ let cons_of_annotinstr me i grd (j, wld) (annots, ffm, instr) =
       let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
       let wld, cds  = cons_of_set me loc tagj grd ffm wld (lv, e) in
-      (j+1, wld), cds +++ acds
+      (j+1, wld), with_wfs (cds +++ acds) []
   | Call (None, Lval (Var fv, NoOffset), _, loc) when CilMisc.isVararg fv.Cil.vtype ->
       let tagj      = CF.tag_of_instr me i j loc in
       let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
       let _         = Cil.warnLoc loc "Ignoring vararg call" in
-        (j+1, wld), acds
+        (j+1, wld), with_wfs acds []
   | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
-      let wld, cds  = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
-      (j+2, wld), cds +++ acds 
+      let tagj          = CF.tag_of_instr me i j loc in
+      let wld, acds     = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
+      let wld, cds, wfs = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
+      (j+2, wld), with_wfs (cds +++ acds) wfs
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
@@ -293,18 +305,18 @@ let cons_of_annotstmt me loc i grd wld (anns, ffms, stmt) =
   | Instr is ->
       (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let (n, wld), cds   =  Misc.combine3 anns ffms is
+      let (n, wld), cdws  =  Misc.combine3 anns ffms is
                           |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
-      let cs1, ds1        = Misc.splitflatten cds in  
+      let cs1, ds1, ws    = Misc.splitflatten3 cdws in
       (* INTRA-FOLD: let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in *)
-      (wld, (* INTRA-FOLD: cs2 ++ *) cs1, (* INTRA-FOLD: ds2 ++ *) ds1)
+      (wld, (* INTRA-FOLD: cs2 ++ *) cs1, (* INTRA-FOLD: ds2 ++ *) ds1, ws)
   | Return (e_o, loc) ->
       asserts (List.length anns = 0) "cons_of_stmt: bad annots return";
       let cs, ds        = cons_of_ret me loc i grd wld e_o in
-      (wld, cs, ds)
+      (wld, cs, ds, [])
   | _ ->
       let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
-      (wld, [], [])
+      (wld, [], [], [])
 
 (****************************************************************************)
 (********************** Constraints for (cfg)block **************************)
@@ -323,14 +335,14 @@ let wcons_of_block me loc i =
   ws ++ ws'
 
 let cons_of_block me i =
-  let _           = if mydebug then Printf.printf "cons_of_block: %d \n" i in 
-  let loc         = CF.location_of_block me i in
-  let grd         = CF.guard_of_block me i None in
-  let astmt       = CF.annotstmt_of_block me i in
-  let wld         = CF.inwld_of_block me i in
-  let ws          = wcons_of_block me loc i in
-  let wld, cs, ds = cons_of_annotstmt me loc i grd wld astmt in
-  (wld, (ws, cs, ds))
+  let _                = if mydebug then Printf.printf "cons_of_block: %d \n" i in
+  let loc              = CF.location_of_block me i in
+  let grd              = CF.guard_of_block me i None in
+  let astmt            = CF.annotstmt_of_block me i in
+  let wld              = CF.inwld_of_block me i in
+  let ws1              = wcons_of_block me loc i in
+  let wld, cs, ds, ws2 = cons_of_annotstmt me loc i grd wld astmt in
+  (wld, (ws1 ++ ws2, cs, ds))
 
 (****************************************************************************)
 (********************** Constraints for (cfg)edge  **************************)

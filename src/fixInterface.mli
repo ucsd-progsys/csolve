@@ -108,6 +108,8 @@ val t_subs_names        : (name * name) list -> refctype -> refctype
 val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype
 val t_subs_locs         : Sloc.Subst.t -> refctype -> refctype
 
+val may_contain_deref   : refctype -> bool
+
 val new_block_reftype   : (* (Sloc.t -> Sloc.t) -> *) refctype -> refctype
 
 val refstore_empty      : refstore
