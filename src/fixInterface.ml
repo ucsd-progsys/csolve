@@ -758,13 +758,13 @@ let make_wfs cf ((_,_,livem) as cenv) sto rct _ =
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
 
-let make_wfs_refstore cf env sto tag =
+let make_wfs_refstore cf env full_sto sto tag =
   LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,ploc) -> not (Ct.ploc_periodic ploc)) 
                     |> List.map fst
                     |> ce_adds env in 
-    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' sto cr tag) ncrs in
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' full_sto cr tag) ncrs in
     ws' ++ ws
   end sto []
 (* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
@@ -775,8 +775,8 @@ let make_wfs_fn cf cenv rft tag =
   let env'  = ce_adds cenv args in
   let retws = make_wfs cf env' rft.Ct.sto_out rft.Ct.ret tag in
   let argws = Misc.flap (fun (_, rct) -> make_wfs cf env' rft.Ct.sto_in rct tag) args in
-  let inws  = make_wfs_refstore cf env' rft.Ct.sto_in tag in
-  let outws = make_wfs_refstore cf env' rft.Ct.sto_out tag in
+  let inws  = make_wfs_refstore cf env' rft.Ct.sto_in rft.Ct.sto_in tag in
+  let outws = make_wfs_refstore cf env' rft.Ct.sto_out rft.Ct.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
 let make_dep pol xo yo =

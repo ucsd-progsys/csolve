@@ -331,7 +331,8 @@ let wcons_of_block me loc (_, sto, _) i =
   let wenv = phis |> List.fold_left (weaken_undefined me true) env in
   let ws   = phis |> List.map  (fun v -> FI.ce_find  (FI.name_of_varinfo v) env) 
                   |> Misc.flap (fun cr -> FI.make_wfs cf wenv sto cr tag) in
-  let ws'  = FI.make_wfs_refstore cf wenv (CF.csto_of_block me i) tag in
+  let csto = CF.csto_of_block me i in
+  let ws'  = FI.make_wfs_refstore cf wenv (Ctypes.PreStore.upd sto csto) csto tag in
   ws ++ ws'
 
 let cons_of_block me i =
@@ -572,7 +573,7 @@ let cf0 = fun _ -> None
 
 let cons_of_global_store tgr gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
-  let ws    = FI.make_wfs_refstore cf0 FI.ce_empty gst tag in
+  let ws    = FI.make_wfs_refstore cf0 FI.ce_empty gst gst tag in
   let zst   = Ctypes.PreStore.map_ct FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore cf0 FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)

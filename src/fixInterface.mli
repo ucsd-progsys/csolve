@@ -139,7 +139,7 @@ val sorts               : Ast.Sort.t list
 
 val make_wfs            : alocmap -> cilenv -> refstore -> refctype -> CilTag.t -> FixConstraint.wf list
 val make_wfs_fn         : alocmap -> cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list
-val make_wfs_refstore   : alocmap -> cilenv -> refstore -> CilTag.t -> FixConstraint.wf list
+val make_wfs_refstore   : alocmap -> cilenv -> refstore -> refstore -> CilTag.t -> FixConstraint.wf list
 
 val make_cs             : alocmap -> cilenv -> Ast.pred -> 
                           refctype -> refctype -> 
