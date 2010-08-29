@@ -82,7 +82,9 @@ val extend_world        : refldesc ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a)
 *)
-val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil.location -> CilTag.t ->
+val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool ->
+                          (refldesc -> refldesc) ->
+                          Cil.location -> CilTag.t ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a) * FixConstraint.t list
 

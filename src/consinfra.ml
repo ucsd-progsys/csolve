@@ -338,7 +338,7 @@ let inwld_of_block me = function
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world me.cf csto cl cl false loc tag wld
+          fst <| FI.extend_world me.cf csto cl cl false id loc tag wld
          end csto 
 
 let is_reachable_block me i = 

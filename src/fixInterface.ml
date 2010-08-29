@@ -867,8 +867,8 @@ let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 
 (* API: TBD: UGLY *)
-let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) = 
-  let ld    = refstore_get ssto sloc in 
+let extend_world cf ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
+  let ld    = sloc |> refstore_get ssto |> strengthen in
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
   let subs  = List.map (fun (n,_) -> (n, name_fresh ())) binds in
