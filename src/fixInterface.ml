@@ -462,10 +462,9 @@ let ra_zero ct =
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
 let ra_deref ct base offset =
-  let so   = sort_of_prectype ct in
-  let vv   = so |> Sy.value_variable in
-  let bvar = base |> Sy.of_string |> A.eVar in
-  let ptr  = A.eBin (bvar, A.Plus, A.eCon (A.Constant.Int offset)) in
+  let so  = sort_of_prectype ct in
+  let vv  = so |> Sy.value_variable in
+  let ptr = A.eBin (base, A.Plus, A.eCon (A.Constant.Int offset)) in
     [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_deref ptr so))]
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
@@ -899,15 +898,16 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
   (env', sto', tago), cs
 
 let strengthen_final_field ffs ptrname pl fld =
-  match pl with
-    | Ct.PLSeq _ -> fld
-    | Ct.PLAt n  ->
-        if Ct.PlocSet.mem pl ffs then
-             fld
-          |> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptrname n))
-          |> Ct.Field.set_finality Ct.Field.Final
-        else
-          fld
+  let ptr_base = ptrname |> Sy.of_string |> A.eVar |> eApp_bbegin in
+    match pl with
+      | Ct.PLSeq _ -> fld
+      | Ct.PLAt n  ->
+          if Ct.PlocSet.mem pl ffs then
+                fld
+            |> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
+            |> Ct.Field.set_finality Ct.Field.Final
+          else
+            fld
 
 let refstore_strengthen_finals loc sto ffm ptrname addr =
   let (cl, ploc) = addr_of_refctype loc addr in
