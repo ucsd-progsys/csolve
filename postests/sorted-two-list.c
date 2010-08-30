@@ -5,9 +5,12 @@ typedef struct _node {
     struct _node *next;
 } node;
 
-void test (node *hd) {
-    if (hd->next != (node *) 0) {
-        assert (hd->val < hd->next->val);
+void test_sorted (node *hd) {
+    node *cur = hd;
+
+    while (cur != (node *) 0 && cur->next != (node *) 0) {
+        assert (cur->val < cur->next->val);
+        cur = cur->next;
     }
 
     return;
@@ -26,7 +29,7 @@ int main () {
         hd->next = nxt;
     }
 
-    test (hd);
+    test_sorted (hd);
 
     return 0;
 }
