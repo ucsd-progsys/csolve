@@ -37,6 +37,7 @@ module Su  = Ast.Subst
 module So  = Ast.Sort
 module CI  = CilInterface
 module Ct  = Ctypes
+module Fl  = Ct.Field
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
 module Co  = Constants
@@ -461,6 +462,10 @@ let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
+let ra_equal v ct =
+  let vv = ct |> sort_of_prectype |> Sy.value_variable in
+  [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar v))]
+
 let ra_deref ct base offset =
   let so  = sort_of_prectype ct in
   let vv  = so |> Sy.value_variable in
@@ -471,6 +476,7 @@ let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())]
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
+let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 
 let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype = t_conv_refctype ra_true
@@ -904,17 +910,26 @@ let strengthen_final_field ffs ptrname pl fld =
       | Ct.PLAt n  ->
           if Ct.PlocSet.mem pl ffs then
                 fld
-            |> Ct.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
-            |> Ct.Field.set_finality Ct.Field.Final
+            |> Fl.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
+            |> Fl.set_finality Ct.Field.Final
           else
             fld
 
-let refstore_strengthen_finals loc sto ffm ptrname addr =
-  let (cl, ploc) = addr_of_refctype loc addr in
-  let _   = assert (not (Sloc.is_abstract cl)) in
-  let ld  = LM.find cl sto in
-  let fld = Ct.LDesc.find ploc ld |> List.hd |> snd in
-  let ld  = Ct.LDesc.remove ploc ld in
-  let ffs = LM.find cl ffm in
-  let ld  = Ct.LDesc.add ploc (strengthen_final_field ffs ptrname ploc fld) ld in
-  LM.add cl ld sto
+let finalized_name = "FINAL" |> Misc.mk_string_factory |> fst
+
+let refstore_strengthen_addr loc env sto ffm ptrname addr =
+  let cl, ploc = addr_of_refctype loc addr in
+  let _        = assert (not (Sloc.is_abstract cl)) in
+  let ffs      = LM.find cl ffm in
+    if Ct.PlocSet.mem ploc ffs then
+      let ld  = LM.find cl sto in
+      let fld = Ct.LDesc.find ploc ld |> List.hd |> snd in
+      let ld  = Ct.LDesc.remove ploc ld in
+      let sct = fld |> strengthen_final_field ffs ptrname ploc |> Fl.type_of in
+      let fn  = () |> finalized_name |> Sy.of_string in
+      let env = ce_adds env [(fn, sct)] in
+      let fld = t_equal (ctype_of_refctype sct) fn |> Fl.create Fl.Final in
+      let ld  = Ct.LDesc.add ploc fld ld in
+        (env, LM.add cl ld sto)
+    else
+      (env, sto)
