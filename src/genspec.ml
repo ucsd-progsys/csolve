@@ -103,11 +103,14 @@ let mk_idx po i =
   | None   -> Ct.Index.IInt i
   | Some n -> Ct.Index.ISeq (i, n, Ct.Pos)
 
-let unroll_ciltype t =
+let unroll_ciltype off t =
   match Cil.unrollType t with
-  | TComp (ci, _) -> asserti ci.cstruct "TBD unroll_ciltype: unions";
-                     List.map (fun x -> x.ftype) ci.cfields
-  | t             -> [t]
+  | TComp (ci, _) ->
+      asserti ci.cstruct "TBD unroll_ciltype: unions";
+      List.map begin fun x ->
+        (x.ftype, Ct.Index.plus off (mk_idx None (fst (bitsOffset t (Field (x, NoOffset))) / 8)))
+      end ci.cfields
+  | t -> [(t, off)]
 
 let add_off off c =
   let i = CilMisc.bytesSizeOf c in
@@ -165,7 +168,7 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
       conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
   | TComp (_, _) ->
       conv_cilblock loc (th, st, off) None c
-  | _          -> 
+  | _ -> 
       let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
       assertf "TBD: conv_ciltype" 
 
@@ -187,12 +190,11 @@ and conv_ptr loc (th, st) po c =
 and conv_cilblock loc (th, st, off) po c =
 (* {{{  *)let _  =
     if mydebug then 
-      (let cs = unroll_ciltype c in
+      (let cs = unroll_ciltype off c in
        ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
-       List.iter (fun c' -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
-  c |> unroll_ciltype
-    |> Misc.map (fun c' -> (c', []))
-    |> Misc.mapfold (conv_ciltype loc InStruct) (th, st, off)
+       List.iter (fun (c', _) -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
+  c |> unroll_ciltype off
+    |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype loc InStruct (th, st, off) (c', [])) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
@@ -282,7 +284,9 @@ let globalspecs_of_varm varspec varm =
 (***************************************************************************)
 
 let specs_of_file_all (funspec, varspec, storespec) cil =
+  let _ = Format.printf "Generating all specs@.@." in
   let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
+  let _ = Format.printf "Got storespec@.@." in
     (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
      varspec, storespec)
 

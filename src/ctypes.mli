@@ -91,6 +91,7 @@ module LDesc:
     val create          : (Index.t * 'a Field.t) list -> 'a t
     val remove          : ploc -> 'a t -> 'a t
     val shrink_period   : int -> ('a Field.t -> 'a Field.t -> 'b -> 'b) -> 'b -> 'a t -> 'a t * 'b
+    val mem             : ploc -> 'a t -> bool
     val find            : ploc -> 'a t -> (ploc * 'a Field.t) list
     val find_index      : Index.t -> 'a t -> (ploc * 'a Field.t) list
     val foldn           : (int -> 'a -> ploc -> 'b Field.t -> 'a) -> 'a -> 'b t -> 'a
@@ -198,6 +199,7 @@ val is_subctype: ctype -> ctype -> bool
 val ctype_of_const: Cil.constant -> ctype
 val precfun_map: ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
 val precfun_well_formed : 'a PreStore.t -> 'a precfun -> bool
+val prune_unused_qlocs : 'a precfun -> 'a precfun
 val cfun_instantiate: 'a precfun -> 'a precfun * (Sloc.t * Sloc.t) list
 val cfun_slocs : cfun -> Sloc.t list
 val mk_cfun : Sloc.t list -> (string * 'a prectype) list -> 'a prectype -> 'a PreStore.t -> 'a PreStore.t -> 'a precfun

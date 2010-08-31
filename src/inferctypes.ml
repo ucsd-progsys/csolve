@@ -619,6 +619,79 @@ let print_shapes funspec storespec shpm =
   if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
     SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
+let fresh_local_slocs (ve: ctvenv) =
+  VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
+
+exception LocationMismatch of S.t * Index.t LDesc.t * S.t * Index.t LDesc.t
+
+let assert_location_inclusion l1 ld1 l2 ld2 =
+  (* Polymorphism hack! *)
+  if ld2 = LDesc.empty then
+    ()
+  else
+    LDesc.fold begin fun _ pl _ ->
+      if LDesc.mem pl ld2 then () else raise (LocationMismatch (l1, ld1, l2, ld2))
+    end () ld1
+
+let assert_call_no_physical_subtyping fe f store gst annots =
+  let cf, _ = VM.find f fe in
+    List.iter begin function
+      | RA.New (scallee, scaller) ->
+          let sto = if SLM.mem scaller store then store else gst in
+            assert_location_inclusion
+              scaller (SLM.find scaller sto)
+              scallee (SLM.find scallee cf.sto_out)
+      | _ -> ()
+    end annots
+
+let assert_no_physical_subtyping fe cfg anna store gst =
+  try
+    Array.iteri begin fun i b ->
+      match b.Ssa.bstmt.C.skind with
+        | C.Instr is ->
+            List.iter2 begin fun i annots ->
+              let _  = C.currentLoc := C.get_instrLoc i in
+                match i with
+                  | C.Call (_, C.Lval (C.Var f, _), _, _) -> assert_call_no_physical_subtyping fe f store gst annots
+                  | _                                     -> ()
+            end is anna.(i)
+        | _ -> ()
+    end cfg.Ssa.blocks
+  with LocationMismatch (l1, ld1, l2, ld2) ->
+    ignore <|
+        C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+          S.d_sloc l1 (LDesc.d_ldesc d_ctype) ld1 S.d_sloc l2 (LDesc.d_ldesc d_ctype) ld2;
+    exit 1
+
+let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
+  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
+  let em, bas, cs         = constrain_fun fe cf ve sci in
+  let whole_store         = PreStore.upd cf.sto_out gst in
+  let scs                 = PreStore.fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
+  let cm, sd              = update_deps scs IM.empty SLM.empty in
+  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
+  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
+  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
+  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
+  let _                   = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
+  let shp                 = {vtyps = CM.vm_to_list vtyps;
+                             etypm = em;
+                             store = sto;
+                             anna  = annot;
+                             conca = conca;
+                             theta = theta} in
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp ds;
+    (shp, ds)
+
+type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
+
+let declared_funs (cil: C.file) =
+  C.foldGlobals cil begin fun fs -> function
+    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
+    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
+    | _                                                   -> fs
+  end []
+
 (* API *)
 let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): Sh.t SM.t =
   let ve = C.foldGlobals cil begin fun ve -> function

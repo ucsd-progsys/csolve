@@ -26,12 +26,13 @@ let mk_funspec fn public qslocs args ist ret ost =
 
 let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
   if Ctypes.prestore_closed storespec then
-    if Ctypes.precfun_well_formed storespec rcf then
-      Ctypes.PreSpec.add_fun fn (rcf, public) spec
-    else begin
-      Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
-      raise Parse_error
-    end
+    let rcf = Ctypes.prune_unused_qlocs rcf in
+      if Ctypes.precfun_well_formed storespec rcf then
+        Ctypes.PreSpec.add_fun fn (rcf, public) spec
+      else begin
+        Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
+        raise Parse_error
+      end
   else begin
     Format.printf "Error: global store not closed\n\n" |> ignore;
     raise Parse_error

@@ -45,7 +45,7 @@ extern void *malloc(size_t  ) ;
 extern void validptr(void * ) ;
 extern void exit(int  ) ;
 extern long atol(char * __attribute__((__array__))  ) ;
-extern char *strtok(char * __attribute__((__array__))  , char * __attribute__((__array__))  ) ;
+extern char * __attribute__((array))strtok(char * __attribute__((__array__))  , char * __attribute__((__array__))  ) ;
 extern int *fopen(char * __attribute__((__array__))  , char * __attribute__((__array__))  ) ;
 extern char *fgets(char * __attribute__((__array__))  , int  , int * ) ;
 void ReadNetList(char * __attribute__((__array__)) fname , unsigned long *numModules ,

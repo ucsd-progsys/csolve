@@ -393,6 +393,13 @@ module LDesc = struct
   let create iflds =
     List.fold_left (M.uncurry add_index |> M.flip) empty iflds
 
+  let mem pl1 (po, pcts) =
+    if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+      false
+    else
+      let p = get_period_default po in
+        List.exists (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+
   let find pl1 (po, flds) =
     if ploc_periodic pl1 && not (Misc.maybe_bool po) then
       []
@@ -569,6 +576,9 @@ let d_precfun d_i () ft  =
 
 let d_cfun () ft =
   d_precfun Index.d_index () ft
+
+let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
+  {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
 
 let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
   let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in

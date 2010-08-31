@@ -408,7 +408,7 @@ double find_gradient_f(double pi_R , double pi_I , double *gradient )
   return (magnitude);
 }
 }
-double find_gradient_g(double *gradient ) 
+double find_gradient_g(double * __attribute__ ((array)) gradient ) 
 { int i ;
   double magnitude ;
   double P ;
@@ -484,7 +484,7 @@ void find_dd_grad_f(double pi_R , double pi_I , double *dd_grad )
   return;
 }
 }
-double make_orthogonal(double *v_mod , double *v_static ) 
+double make_orthogonal(double * __attribute__ ((array)) v_mod , double * __attribute__ ((array)) v_static ) 
 { int i ;
   double total ;
   double length ;

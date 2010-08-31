@@ -8,7 +8,7 @@
 #define stdout (FILE *)0
 #define stdin  (FILE *)0
 #define stderr (FILE *)0
-#define EOF	       0
+#define EOF	       -1
 
 extern int sscanf(char * __attribute__ ((array)), char * __attribute__ ((array)), ...);
 extern FILE *fopen(char * __attribute__ ((array)), char * __attribute__ ((array)));

@@ -4,4 +4,4 @@
 
 BASE=`dirname $0`
 
-$BASE/../external/cil/bin/cilly --merge --doliquidc --includedir="$BASE/../include/" $@
+$BASE/../external/cil/bin/cilly --merge --doliquidc $@
