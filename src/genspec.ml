@@ -282,9 +282,7 @@ let globalspecs_of_varm varspec varm =
 (***************************************************************************)
 
 let specs_of_file_all (funspec, varspec, storespec) cil =
-  let _ = Format.printf "Generating all specs@.@." in
   let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
-  let _ = Format.printf "Got storespec@.@." in
     (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
      varspec, storespec)
 
