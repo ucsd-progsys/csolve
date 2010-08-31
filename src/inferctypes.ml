@@ -559,69 +559,6 @@ let d_vartypes () vars =
 let fresh_local_slocs (ve: ctvenv) =
   VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
 
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): Sh.t =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
-  let em, bas, cs         = constrain_fun fe cf ve sci in
-  let whole_store         = PreStore.upd cf.sto_out gst in
-  let scs                 = PreStore.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
-  let cm, sd              = update_deps scs IM.empty SLM.empty in
-  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
-  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
-  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
-  let nasa                = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-    {Sh.vtyps   = CM.vm_to_list vtyps;
-     Sh.etypm   = em;
-     Sh.store   = sto;
-     Sh.anna    = annot;
-     Sh.conca   = conca;
-     Sh.theta   = theta;
-     Sh.nasa    = nasa;
-     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)
-     Sh.dchecks = ds}
-
-type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
-
-let declared_funs (cil: C.file) =
-  C.foldGlobals cil begin fun fs -> function
-    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
-    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
-    | _                                                   -> fs
-  end []
-
-let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.dchecks = ds}: Sh.t): unit =
-  let _ = P.printf "%s@!" fname in
-  let _ = P.printf "============@!@!" in
-  let _ = P.printf "Signature:@!" in
-  let _ = P.printf "----------@!@!" in
-  let _ = P.printf "%a@!@!" d_cfun cf in
-  let _ = P.printf "Locals:@!" in
-  let _ = P.printf "-------@!@!" in
-  let _ = P.printf "%a@!@!" d_vartypes locals in
-  let _ = P.printf "Store:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" d_store st in
-  let _ = P.printf "Global Store:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" d_store gst in
-  let _ = P.printf "Annotations:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
-  let _ = P.printf "Final Fields:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
-  let _ = P.printf "Deferred Checks:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
-    ()
-
-let print_shapes funspec storespec shpm =
-  if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
-    SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
-
-let fresh_local_slocs (ve: ctvenv) =
-  VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
-
 exception LocationMismatch of S.t * Index.t LDesc.t * S.t * Index.t LDesc.t
 
 let assert_location_inclusion l1 ld1 l2 ld2 =
@@ -663,25 +600,64 @@ let assert_no_physical_subtyping fe cfg anna store gst =
           S.d_sloc l1 (LDesc.d_ldesc d_ctype) ld1 S.d_sloc l2 (LDesc.d_ldesc d_ctype) ld2;
     exit 1
 
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
+let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): Sh.t =
   let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = PreStore.upd cf.sto_out gst in
-  let scs                 = PreStore.fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
+  let scs                 = PreStore.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
   let cm, sd              = update_deps scs IM.empty SLM.empty in
   let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
   let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (PreStore.domain gst) em bas in
   let _                   = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
-  let shp                 = {vtyps = CM.vm_to_list vtyps;
-                             etypm = em;
-                             store = sto;
-                             anna  = annot;
-                             conca = conca;
-                             theta = theta} in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp ds;
-    (shp, ds)
+  let nasa                = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
+    {Sh.vtyps   = CM.vm_to_list vtyps;
+     Sh.etypm   = em;
+     Sh.store   = sto;
+     Sh.anna    = annot;
+     Sh.conca   = conca;
+     Sh.theta   = theta;
+     Sh.nasa    = nasa;
+     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)
+     Sh.dchecks = ds}
+
+let declared_funs (cil: C.file) =
+  C.foldGlobals cil begin fun fs -> function
+    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
+    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
+    | _                                                   -> fs
+  end []
+
+let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.dchecks = ds}: Sh.t): unit =
+  let _ = P.printf "%s@!" fname in
+  let _ = P.printf "============@!@!" in
+  let _ = P.printf "Signature:@!" in
+  let _ = P.printf "----------@!@!" in
+  let _ = P.printf "%a@!@!" d_cfun cf in
+  let _ = P.printf "Locals:@!" in
+  let _ = P.printf "-------@!@!" in
+  let _ = P.printf "%a@!@!" d_vartypes locals in
+  let _ = P.printf "Store:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" d_store st in
+  let _ = P.printf "Global Store:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" d_store gst in
+  let _ = P.printf "Annotations:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
+  let _ = P.printf "Final Fields:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
+  let _ = P.printf "Deferred Checks:@!" in
+  let _ = P.printf "------@!@!" in
+  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
+    ()
+
+let print_shapes funspec storespec shpm =
+  if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
+    SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
