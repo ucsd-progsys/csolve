@@ -33,7 +33,7 @@ module SM  = Misc.StringMap
 module C   = FixConstraint
 module FI  = FixInterface 
 module CI  = CilInterface
-module EM  = Ctypes.ExpMap
+module EM  = Ctypes.I.ExpMap
 module LI  = Inferctypes
 module Sh  = Shape
 module LM  = Sloc.SlocMap
@@ -75,8 +75,8 @@ let ctype_of_local locals v =
     Not_found -> assertf "ctype_of_local: unknown var %s" v.Cil.vname
 
 let strengthen_cloc = function
-  | ct, None | (Ctypes.CTInt (_, _) as ct), _  -> ct
-  | (Ctypes.CTRef (_, x)), Some cl      -> Ctypes.CTRef (cl, x) 
+  | ct, None | (Ctypes.Int (_, _) as ct), _  -> ct
+  | (Ctypes.Ref (_, x)), Some cl             -> Ctypes.Ref (cl, x) 
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = FI.ctype_of_refctype cr in
@@ -170,9 +170,9 @@ let edge_asgnm_of_phia phia =
 let create tgr gnv gst sci shp =
   let fdec    = sci.ST.fdec in
   let env     = env_of_fdec gnv fdec shp.Sh.vtyps shp.Sh.theta in
-  let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> Ctypes.PreStore.upd gst in
+  let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
   let lastore = FI.refstore_fresh fdec.svar.vname shp.Sh.store in
-  let astore  = Ctypes.PreStore.upd gst lastore in
+  let astore  = FI.RefCTypes.Store.upd gst lastore in
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in

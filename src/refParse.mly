@@ -1,9 +1,10 @@
 %{
-module A  = Ast
-module So = Ast.Sort
-module Sy = A.Symbol
-module SM = Misc.StringMap
-module FI = FixInterface
+module A   = Ast
+module So  = Ast.Sort
+module Sy  = A.Symbol
+module SM  = Misc.StringMap
+module FI  = FixInterface
+module RCt = FI.RefCTypes
 
 open Misc.Ops
 
@@ -13,8 +14,9 @@ let parse_error msg =
 let store_of_slocbinds sbs = 
   List.fold_left (fun slm (x,y) -> Sloc.SlocMap.add x y slm) Sloc.SlocMap.empty sbs
 
-let ldesc_of_plocbinds pbs = 
-  List.fold_left (fun ld (x,y) -> Ctypes.LDesc.add x y ld) Ctypes.LDesc.empty pbs
+let ldesc_of_plocbinds pbs =
+  (* pmr: TODO - better location *)
+  List.fold_left (fun ld (x,y) -> RCt.LDesc.add Cil.locUnknown x y ld) RCt.LDesc.empty pbs
 
 let sloctable = Hashtbl.create 17
 
@@ -25,10 +27,10 @@ let mk_funspec fn public qslocs args ist ret ost =
   (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
 
 let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
-  if Ctypes.prestore_closed storespec then
-    let rcf = Ctypes.prune_unused_qlocs rcf in
-      if Ctypes.precfun_well_formed storespec rcf then
-        Ctypes.PreSpec.add_fun fn (rcf, public) spec
+  if RCt.Store.closed storespec then
+    let rcf = RCt.CFun.prune_unused_qlocs rcf in
+      if RCt.CFun.well_formed storespec rcf then
+        RCt.Spec.add_fun fn (rcf, public) spec
       else begin
         Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
         raise Parse_error
@@ -39,8 +41,8 @@ let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
   end
 
 let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
-  if Ctypes.prectype_closed ty storespec then
-    Ctypes.PreSpec.add_var var (ty, public) spec
+  if RCt.Store.ctype_closed ty storespec then
+    RCt.Spec.add_var var (ty, public) spec
   else begin
     Format.printf "Error: %s has ill-formed spec\n\n" var |> ignore;
     raise Parse_error
@@ -74,10 +76,10 @@ let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
 
 %%
 specs:
-                                        { Hashtbl.clear sloctable; Ctypes.PreSpec.empty }
+                                        { Hashtbl.clear sloctable; RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
-  | specs locspec                       { let lc, sp = $2 in Ctypes.PreSpec.add_loc lc sp $1 }
+  | specs locspec                       { let lc, sp = $2 in RCt.Spec.add_loc lc sp $1 }
   ;
 
 funspec:
@@ -142,7 +144,7 @@ slocbindsne:
   ;
 
 slocbind:
-  sloc MAPSTO indbinds                  { ($1, Ctypes.LDesc.create $3) } 
+  sloc MAPSTO indbinds                  { ($1, RCt.LDesc.create Cil.locUnknown $3) (* pmr: TODO - better location *) } 
   ;
 
 indbinds:
@@ -156,19 +158,19 @@ indbindsne:
   ;
 
 indbind:
-    index COLON reftype                 { ($1, Ctypes.Field.create Ctypes.Field.Nonfinal $3) }
-  | index COLON FINAL reftype           { ($1, Ctypes.Field.create Ctypes.Field.Final $4) }
+    index COLON reftype                 { ($1, FI.RefCTypes.Field.create Ctypes.Nonfinal $3) }
+  | index COLON FINAL reftype           { ($1, FI.RefCTypes.Field.create Ctypes.Final $4) }
   ;
 
 reftype:
     INT LPAREN Num COMMA index COMMA LC Id MID pred RC RPAREN 
-                                        { let ct = Ctypes.CTInt ($3, $5) in
+                                        { let ct = Ctypes.Int ($3, $5) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10 
                                         }
   
   | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ctypes.CTRef ($3, $5) in
+                                        { let ct = Ctypes.Ref ($3, $5) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10 
                                         }
@@ -177,8 +179,8 @@ reftype:
   ;
 
 ctype:
-    INT LPAREN Num COMMA index RPAREN   { Ctypes.CTInt ($3, $5) }
-  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.CTRef ($3, $5) }
+    INT LPAREN Num COMMA index RPAREN   { Ctypes.Int ($3, $5) }
+  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.Ref ($3, $5) }
   ;
 
 index:

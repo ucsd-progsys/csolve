@@ -13,10 +13,10 @@
 *)
 
 module S  = Sloc
-module CT = Ctypes
+module CT = Ctypes.I
 module LD = CT.LDesc
 module F  = CT.Field
-module PS = CT.PlocSet
+module PS = Ctypes.PlocSet
 module P  = Pretty
 module RA = Refanno
 module C  = Cil
@@ -29,7 +29,7 @@ module NA = NotAliased
 open M.Ops
 
 let add_ploc p ps =
-  if CT.ploc_periodic p then ps else PS.add p ps
+  if Ctypes.ploc_periodic p then ps else PS.add p ps
 
 type block_annotation = PS.t LM.t list
 
@@ -37,14 +37,14 @@ module type Context = sig
   val cfg   : Ssa.cfgInfo
   val shp   : Sh.t
   val ffmm  : (block_annotation array * PS.t LM.t) SM.t
-  val sspec : CT.store
+  val sspec : CT.Store.t
 end
 
 let d_final_fields () ffmsa =
   P.docArray ~sep:P.line begin fun i ffms ->
     P.dprintf "Block %d:\n%a"
       i
-      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap CT.d_plocset) ffm)) ffms
+      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap Ctypes.d_plocset) ffm)) ffms
   end () ffmsa
 
 module Intraproc (X: Context) = struct
@@ -53,7 +53,7 @@ module Intraproc (X: Context) = struct
   (******************************************************************************)
 
   let find_index_plocs al i =
-    CT.PreStore.find al X.shp.Sh.store |> CT.LDesc.find_index i |> List.map fst
+    CT.Store.find al X.shp.Sh.store |> CT.LDesc.find_index i |> List.map fst
 
   let locs_of_lval = function
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)
@@ -61,8 +61,8 @@ module Intraproc (X: Context) = struct
         let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
         let al = cl |> RA.aloc_of_cloc X.shp.Sh.theta |> M.maybe in
           begin match CT.ExpMap.find e X.shp.Sh.etypm with
-            | CT.CTRef (_, i) -> Some (cl, al, i)
-            | _               -> assert false
+            | Ctypes.Ref (_, i) -> Some (cl, al, i)
+            | _                 -> assert false
           end
     | (C.Var _, C.NoOffset) -> None
     | _                     -> assert false
@@ -285,7 +285,7 @@ module Interproc = struct
   let spec_final_fields (cf, _) =
     LM.map begin fun ld ->
       LD.fold (fun ffs pl fld -> if F.is_final fld then add_ploc pl ffs else ffs) PS.empty ld
-    end cf.CT.sto_out
+    end cf.Ctypes.sto_out
 
   let shape_init_final_fields shp =
     LM.map (fun ld -> LD.fold (fun ffs pl fld -> add_ploc pl ffs) PS.empty ld) shp.Sh.store
@@ -305,9 +305,9 @@ module Interproc = struct
             let ffs = SM.find fname ffmm |> snd |> LM.find l in
               LD.mapn begin fun _ pl fld ->
                 if PS.mem pl ffs then
-                  F.set_finality F.Final fld
+                  F.set_finality Ctypes.Final fld
                 else
-                  F.set_finality F.Nonfinal fld
+                  F.set_finality Ctypes.Nonfinal fld
               end ld
           end shp.Sh.store}
     end shpm
@@ -327,8 +327,8 @@ let check_location_finality fname l spec_store ld =
         |> LD.find pl
         |> List.iter begin fun (_, spec_fld) ->
              match F.get_finality spec_fld, F.get_finality fld with
-               | F.Final, F.Nonfinal ->
-                   let _ = P.printf "Error: Field %a -> %a of function %s specified final, inferred nonfinal\n" S.d_sloc l CT.d_ploc pl fname in
+               | Ctypes.Final, Ctypes.Nonfinal ->
+                   let _ = P.printf "Error: Field %a -> %a of function %s specified final, inferred nonfinal\n" S.d_sloc l Ctypes.d_ploc pl fname in
                      assert false
                | _ -> ()
            end
@@ -338,8 +338,8 @@ let check_finality_specs fspecm shpm =
   SM.iter begin fun fname shp ->
     let cf = SM.find fname fspecm |> fst in
       LM.iter begin fun l ld ->
-        check_location_finality fname l cf.CT.sto_in ld;
-        check_location_finality fname l cf.CT.sto_out ld
+        check_location_finality fname l cf.Ctypes.sto_in ld;
+        check_location_finality fname l cf.Ctypes.sto_out ld
       end shp.Sh.store
   end shpm
 

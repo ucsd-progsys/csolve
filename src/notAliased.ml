@@ -12,7 +12,7 @@
 module S  = Sloc
 module P  = Pretty
 module M  = Misc
-module CT = Ctypes
+module CT = Ctypes.I
 module RA = Refanno
 module C  = Cil
 
@@ -65,7 +65,7 @@ let process_annot na = function
 
 let process_set ctx na = function
     | C.Mem _, e ->
-        begin match CT.ExpMap.find e ctx.ctem |> CT.prectype_sloc with
+        begin match CT.ExpMap.find e ctx.ctem |> CT.CType.sloc with
           | Some s -> NASet.filter (fun (_, s2) -> not (S.eq s s2)) na
           | None   -> na
         end

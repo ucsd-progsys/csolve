@@ -1,7 +1,7 @@
 type block_annotation = Ctypes.PlocSet.t Sloc.SlocMap.t list
 
 val infer_final_fields :
-  ('a Ctypes.precfun * 'b) Misc.StringMap.t ->
+  (Ctypes.I.CFun.t * 'b) Misc.StringMap.t ->
   Ctypes.store ->
   (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t ->
   Shape.t Misc.StringMap.t ->

@@ -35,12 +35,16 @@ end
 type name
 type cilenv
 
+module Reft      : Ctypes.CTYPE_REFINEMENT with type t = Ctypes.Index.t * FixConstraint.reft
+module RefCTypes : Ctypes.S with module R = Reft
+
 type alocmap  = Sloc.t -> Sloc.t option
-type refctype = (Ctypes.Index.t * FixConstraint.reft) Ctypes.prectype
-type refcfun  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.precfun
-type refldesc = (Ctypes.Index.t * FixConstraint.reft) Ctypes.LDesc.t
-type refstore = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreStore.t
-type refspec  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreSpec.t
+type refctype = RefCTypes.CType.t
+type refcfun  = RefCTypes.CFun.t
+type refldesc = RefCTypes.LDesc.t
+type refstore = RefCTypes.Store.t
+type refspec  = RefCTypes.Spec.t
+type reffield = RefCTypes.Field.t
 
 
 
@@ -92,8 +96,8 @@ val strengthen_final_field :
   Ctypes.PlocSet.t ->
   string ->
   Ctypes.ploc ->
-  ('a * FixConstraint.reft) Ctypes.Field.t ->
-  ('a * FixConstraint.reft) Ctypes.Field.t
+  reffield ->
+  reffield
 
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
 val t_fresh             : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype

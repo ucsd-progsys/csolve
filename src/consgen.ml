@@ -71,7 +71,7 @@ let rename_refctype lsubs subs cr =
 let rename_store lsubs subs sto =
   sto |> FI.refstore_subs_locs lsubs 
       |> FI.refstore_subs FI.t_subs_exps subs 
-      |> Ctypes.PreStore.subs lsubs
+      |> FI.RefCTypes.Store.subs lsubs
 
 (*
 let rename_store lsubs subs st = 
@@ -93,7 +93,7 @@ let weaken_undefined me rm env v =
 (****************************************************************************)
 
 let strengthen_instantiated_cloc ffm ptrname cloc ld =
-  Ctypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find cloc ffm) ptrname pl fld) ld
+  FI.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find cloc ffm) ptrname pl fld) ld
 
 let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
   | Refanno.Gen  (cloc, aloc) ->
@@ -247,7 +247,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let cs3,_     = FI.make_cs_refstore cf env grd oast st  false None tag' loc in
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
-  let st'                 = Ctypes.PreStore.upd st ocst in
+  let st'                 = FI.RefCTypes.Store.upd st ocst in
   let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (FI.ret_of_refcfun frt) in
   let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3 ++ ds4), wfs
@@ -329,7 +329,7 @@ let wcons_of_block me loc (_, sto, _) i =
   let ws   = phis |> List.map  (fun v -> FI.ce_find  (FI.name_of_varinfo v) env) 
                   |> Misc.flap (fun cr -> FI.make_wfs cf wenv sto cr tag) in
   let csto = CF.csto_of_block me i in
-  let ws'  = FI.make_wfs_refstore cf wenv (Ctypes.PreStore.upd sto csto) csto tag in
+  let ws'  = FI.make_wfs_refstore cf wenv (FI.RefCTypes.Store.upd sto csto) csto tag in
   ws ++ ws'
 
 let cons_of_block me i =
@@ -426,7 +426,7 @@ let log_of_sci sci shp =
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Shape.anna in
     let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Shape.conca in
     let _ = Pretty.printf "%a" Refanno.d_ctab shp.Shape.theta in
-    let _ = Pretty.printf "ICstore = %a\n" Ctypes.PreStore.d_prestore_addrs shp.Shape.store in
+    let _ = Pretty.printf "ICstore = %a\n" Ctypes.I.Store.d_store_addrs shp.Shape.store in
     ()
 
 let cons_of_sci tgr gnv gst sci shp =
@@ -541,9 +541,9 @@ let finalize_store shp_sto sto =
   Sloc.SlocMap.mapi begin fun l ld ->
     try
       let shp_ld = Sloc.SlocMap.find l shp_sto in
-        Ctypes.LDesc.mapn begin fun _ pl fld ->
-          match Ctypes.LDesc.find pl shp_ld with
-            | [(_, shp_fld)] -> Ctypes.Field.set_finality (Ctypes.Field.get_finality shp_fld) fld
+        Ctypes.I.LDesc.mapn begin fun _ pl fld ->
+          match Ctypes.I.LDesc.find pl shp_ld with
+            | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
             | _              -> fld
         end ld
     with Not_found ->
@@ -571,7 +571,7 @@ let cf0 = fun _ -> None
 let cons_of_global_store tgr gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore cf0 FI.ce_empty gst gst tag in
-  let zst   = Ctypes.PreStore.map_ct FI.t_zero_refctype gst in
+  let zst   = FI.RefCTypes.Store.map_ct FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore cf0 FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)
 
@@ -590,8 +590,8 @@ let type_of_init v vtyp = function
 
 let add_offset loc t ctptr off =
   match ctptr with
-    | Ctypes.CTRef (s, (i, r)) ->
-        Ctypes.CTRef (s, (off |> CilMisc.bytesOffset t |> Ctypes.Index.of_int |> Ctypes.Index.plus i, r))
+    | Ctypes.Ref (s, (i, r)) ->
+        Ctypes.Ref (s, (off |> CilMisc.bytesOffset t |> Ctypes.Index.of_int |> Ctypes.Index.plus i, r))
     | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
@@ -616,7 +616,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
     match inito with
       | Some (CompoundInit _ as init) ->
           let cloc        = Sloc.fresh Sloc.Concrete in
-          let aloc, ctptr = match vtyp with Ctypes.CTRef (al, r) -> (al, Ctypes.CTRef (cloc, r)) 
+          let aloc, ctptr = match vtyp with Ctypes.Ref (al, r) -> (al, Ctypes.Ref (cloc, r)) 
                                           | _ -> assert false in
           let env, sto, _ = fst <| FI.extend_world cf0 sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in
           let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
@@ -721,7 +721,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in
-  let gst      = spec |> Ctypes.PreSpec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst      = spec |> FI.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim shm)

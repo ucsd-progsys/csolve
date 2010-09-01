@@ -22,16 +22,17 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-module E  = Errormsg
-module A  = Ast
-module C  = FixConstraint
-module SM = Misc.StringMap
-module Sy = Ast.Symbol
-module P  = Pretty
-module FI = FixInterface
-module Co = Constants
-module Sp = Ctypes.PreSpec
-module M  = Misc
+module E   = Errormsg
+module A   = Ast
+module C   = FixConstraint
+module SM  = Misc.StringMap
+module Sy  = Ast.Symbol
+module P   = Pretty
+module FI  = FixInterface
+module Co  = Constants
+module Sp  = FI.RefCTypes.Spec
+module M   = Misc
+module RCt = FI.RefCTypes
 
 open Misc.Ops
 
@@ -115,10 +116,10 @@ let add_spec fn (funspec, varspec, storespec) =
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       >> (fun (_, _, ss) -> if Ctypes.prestore_closed ss then () else halt <| E.error "Global store not closed")
+       >> (fun (_, _, ss) -> if RCt.Store.closed ss then () else halt <| E.error "Global store not closed")
        |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
        |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
-       |> (fun (fs, vs, ss) -> (fs, vs, Ctypes.PreStore.upd ss storespec))
+       |> (fun (fs, vs, ss) -> (fs, vs, RCt.Store.upd ss storespec))
        >> fun _ -> close_in ic
   with Sys_error s ->
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
@@ -135,10 +136,10 @@ let generate_spec fname spec =
        let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
        let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
          Sloc.SlocMap.iter
-           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l (Ctypes.LDesc.d_ldesc Ctypes.d_ctype) ld |> ignore)
+           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore)
            storespec;
-         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.d_ctype ct |> ignore) varspec;
-         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.d_cfun cf |> ignore) funspec;
+         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
+         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
          close_out oc
      end
 
@@ -147,7 +148,7 @@ let generate_spec fname spec =
 (***********************************************************************************)
 
 let spec_of_file fname =
-  Ctypes.PreSpec.empty
+  RCt.Spec.empty
   |> add_spec (fname^".spec")         (* Add manual specs  *)
   |> add_spec (Co.get_lib_spec ())    (* Add default specs *)
    (* Filename.concat libpath (Co.lib_name^".spec")) *)
