@@ -35,12 +35,15 @@ end
 type name
 type cilenv
 
+module Reft      : Ctypes.CTYPE_REFINEMENT with type t = Ctypes.Index.t * FixConstraint.reft
+module RefCTypes : Ctypes.S with module R = Reft
+
 type alocmap  = Sloc.t -> Sloc.t option
-type refctype = (Ctypes.Index.t * FixConstraint.reft) Ctypes.prectype
-type refcfun  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.precfun
-type refldesc 
-type refstore = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreStore.t
-type refspec  = (Ctypes.Index.t * FixConstraint.reft) Ctypes.PreSpec.t
+type refctype = RefCTypes.CType.t
+type refcfun  = RefCTypes.CFun.t
+type refldesc
+type refstore = RefCTypes.Store.t
+type refspec  = RefCTypes.Spec.t
 
 
 

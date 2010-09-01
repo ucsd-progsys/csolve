@@ -134,75 +134,6 @@ module Index = struct
 end
 
 (******************************************************************************)
-(************************************ Types ***********************************)
-(******************************************************************************)
-
-type 'a prectype =
-  | CTInt of int * 'a  (* fixed-width integer *)
-  | CTRef of Sloc.t * 'a (* reference *)
-
-let prectype_map f = function
-  | CTInt (i, x) -> CTInt (i, f x)
-  | CTRef (l, x) -> CTRef (l, f x)
-
-let d_prectype (d_i: unit -> 'a -> P.doc) (): 'a prectype -> P.doc = function
-  | CTInt (n, i) -> P.dprintf "int(%d, %a)" n d_i i
-  | CTRef (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s d_i i
-
-let prectype_width: 'a prectype -> int = function
-  | CTInt (n, _) -> n
-  | CTRef (_)    -> CM.int_width
-
-let prectype_sloc: 'a prectype -> S.t option = function
-  | CTRef (s, _) -> Some s
-  | CTInt _      -> None
-
-let prectype_subs (subs: S.Subst.t): 'a prectype -> 'a prectype = function
-  | CTRef (s, i) -> CTRef (S.Subst.apply subs s, i)
-  | pct          -> pct
-
-let prectype_eq (pct1: 'a prectype) (pct2: 'a prectype): bool =
-  match (pct1, pct2) with
-    | (CTRef (l1, i1), CTRef (l2, i2)) -> S.eq l1 l2 && i1 = i2
-    | _                                -> pct1 = pct2
-
-let is_void: 'a prectype -> bool = function
-  | CTInt (0, _) -> true
-  | _            -> false
-
-let is_ref: 'a prectype -> bool = function
-  | CTRef _ -> true
-  | _       -> false
-
-type ctype = Index.t prectype
-
-let d_ctype () (ct: ctype): P.doc =
-  d_prectype Index.d_index () ct
-
-exception NoLUB of ctype * ctype
-
-let ctype_lub (t1: ctype) (t2: ctype): ctype =
-  match (t1, t2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> CTInt (n1, Index.lub i1 i2)
-    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> CTRef (s1, Index.lub i1 i2)
-    | _                                                -> raise (NoLUB (t1, t2))
-
-let is_subctype (ct1: ctype) (ct2: ctype): bool =
-  match (ct1, ct2) with
-    | (CTInt (n1, i1), CTInt (n2, i2)) when n1 = n2    -> Index.is_subindex i1 i2
-    | (CTRef (s1, i1), CTRef (s2, i2)) when S.eq s1 s2 -> Index.is_subindex i1 i2
-    | _                                                -> false
-
-let ctype_of_const: C.constant -> ctype = function
-  | C.CInt64 (v, ik, _) -> CTInt (C.bytesSizeOfInt ik, Index.of_int (Int64.to_int v))
-  | C.CChr c            -> CTInt (CM.int_width, Index.IInt (Char.code c))
-  | C.CReal (_, fk, _)  -> CTInt (CM.bytesSizeOfFloat fk, Index.top)
-  | C.CStr _            -> CTRef (S.fresh S.Abstract, Index.IInt 0)
-  | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
-
-let void_ctype = CTInt (0, Index.top)
-
-(******************************************************************************)
 (***************************** Periodic Locations *****************************)
 (******************************************************************************)
 
@@ -261,359 +192,607 @@ let ploc_offset (pl: ploc) (n: int): ploc =
     | PLAt n'       -> PLAt (n + n')
     | PLSeq (n', p) -> PLSeq (n + n', p)
 
-let prectypes_collide (pl1: ploc) (pct1: 'a prectype) (pl2: ploc) (pct2: 'a prectype) (p: int): bool =
-  let ((pl1, pct1), (pl2, pct2)) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
-  let (s1, s2)                   = (ploc_start pl1, ploc_start pl2) in
-  let d                          = s2 - s1 in
-  let pl1                        = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
-    s1 + prectype_width pct1 > s2 || (ploc_periodic pl1 && s2 + prectype_width pct2 > (s1 + p))
-
 (******************************************************************************)
-(*********************************** Stores ***********************************)
+(****************************** Type Refinements ******************************)
 (******************************************************************************)
 
-exception TypeDoesntFit
+module type CTYPE_REFINEMENT = sig
+  type t
 
-module LDesc = struct
-  (* - The list always contains at least one item.
-     - The period is non-negative if present.
-     - If no period is present, the list contains no periodic locations.
-     - The list does not contain the location PLEverywhere.
-     - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
-       (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
-     - All (pl, pct) in the list are sorted by pl according to ploc_start.
+  val lub          : t -> t -> t option
+  val is_subref    : t -> t -> bool
+  val of_const     : C.constant -> t
 
-     The period is always positive.
-  *)
-  type 'a contents = (ploc * 'a prectype) list
-
-  type 'a t = (* period: *) int option * 'a contents
-
-  let empty: 'a t = (None, [])
-
-  let get_period ((po, _): 'a t): int option =
-    po
-
-  (* 0 is an ok default for all the functions we'll be calling by the above invariant. *)
-  let get_period_default (po: int option): int =
-    M.get_option 0 po
-
-  let collides_with (pl1: ploc) (pct1: 'a prectype) (po: int option) ((pl2, pct2): ploc * 'a prectype): bool =
-    prectypes_collide pl1 pct1 pl2 pct2 (get_period_default po)
-
-  let fits (pl: ploc) (pct: 'a prectype) (po: int option) (pcts: (ploc * 'a prectype) list): bool =
-    (not (ploc_periodic pl) || (M.maybe_bool po && prectype_width pct <= get_period_default po))
-      && not (List.exists (collides_with pl pct po) pcts)
-
-  let rec insert (pl: ploc) (pct: 'a prectype): (ploc * 'a prectype) list -> (ploc * 'a prectype) list = function
-    | []                           -> [(pl, pct)]
-    | (pl2, pct2) :: pcts' as pcts -> if ploc_start pl <= ploc_start pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
-
-  let add (pl: ploc) (pct: 'a prectype) ((po, pcts): 'a t): 'a t =
-    if fits pl pct po pcts then (po, insert pl pct pcts) else raise TypeDoesntFit
-
-  let remove (pl: ploc) ((po, pcts): 'a t): 'a t =
-    (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
-
-  let swallow_repeats (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) (pcts: (ploc * 'a prectype) list): (ploc * 'a prectype) list * 'b =
-    try
-      let (pl1, pct1) = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
-      let (rs, us)    = List.partition (fun (pl2, _) -> ploc_start pl1 < ploc_start pl2) pcts in
-      let b           = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
-        (us, b)
-    with Not_found ->
-      (* No periods, so nothing to do *)
-      (pcts, b)
-
-  let shrink_period (p: int) (f: 'a prectype -> 'a prectype -> 'b -> 'b) (b: 'b) ((po, pcts): 'a t): 'a t * 'b =
-    assert (p > 0);
-    let p       = M.gcd (get_period_default po) p in
-    let gs      = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
-    let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-    let pcts    = List.sort (M.liftfst2 ploc_compare) (List.concat gs) in
-      if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> prectypes_collide pl1 pct1 pl2 pct2 p) pcts) then
-        ((Some p, pcts), b)
-      else
-        (* pmr: this is not quite descriptive enough *)
-        raise TypeDoesntFit
-
-  let shrink_period_fail_on_conflict (p: int) (ld: 'a t): 'a t =
-    shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
-
-  let add_index i pct ld =
-    match i with
-      | Index.ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) pct
-      | _                    -> add (ploc_of_index i) pct ld
-
-  let create icts =
-    List.fold_left (M.uncurry add_index |> M.flip) empty icts
-
-  let mem pl1 (po, pcts) =
-    if ploc_periodic pl1 && not (Misc.maybe_bool po) then
-      false
-    else
-      let p = get_period_default po in
-        List.exists (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
-
-  let find (pl1: ploc) ((po, pcts): 'a t): (ploc * 'a prectype) list =
-    if ploc_periodic pl1 && not (Misc.maybe_bool po) then
-      []
-    else
-      let p = get_period_default po in
-        List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
-
-  let find_index i ((po, _) as ld) =
-    let pcts = find (ploc_of_index i) ld in
-    let p    = get_period_default po in
-      List.filter (fun (pl, pct) -> ploc_contains_index pl p i) pcts
-
-  let rec foldn_aux (f: int -> 'a -> ploc -> 'b prectype -> 'a) (n: int) (b: 'a): (ploc * 'b prectype) list -> 'a = function
-    | []                -> b
-    | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
-
-  let foldn (f: int -> 'a -> ploc -> 'b prectype -> 'a) (b: 'a) ((po, pcts): 'b t): 'a =
-    foldn_aux f 0 b pcts
-
-  let fold (f: 'a -> ploc -> 'b prectype -> 'a) (b: 'a) (ld: 'b t): 'a =
-    foldn (fun _ b pl pct -> f b pl pct) b ld
-
-  let mapn (f: int -> ploc -> 'a prectype -> 'b prectype) ((po, pcts): 'a t): 'b t =
-    (po, pcts |> foldn_aux (fun n pcts pl pct -> (pl, f n pl pct) :: pcts) 0 [] |> List.rev)
-
-  let map (f: 'a prectype -> 'b prectype) (ld: 'a t): 'b t =
-    mapn (fun _ _ pct -> f pct) ld
-
-  let referenced_slocs (ld: 'a t): SS.t =
-    fold (fun rss _ pct -> match prectype_sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
-
-  let d_ldesc (pt: unit -> 'a prectype -> P.doc) () ((po, pcts): 'a t): P.doc =
-    let p = get_period_default po in
-      (* JHALA
-         let s = P.concat (P.text ",") P.break in
-         let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
-         P.concat P.align (P.concat d P.unalign) *)
-      P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" Index.d_index (index_of_ploc pl p) pt pct) pcts)
+  val d_refinement : unit -> t -> P.doc
 end
 
-module PreStore = struct
-  type 'a t = ('a LDesc.t) SLM.t
+module IndexRefinement = struct
+  type t = Index.t
 
-  let map f =
-    f |> prectype_map |> LDesc.map |> SLM.map
+  let lub i1 i2 =
+    Some (Index.lub i1 i2)
 
-  let map_ct f =
-    SLM.map (LDesc.map f)
+  let is_subref = Index.is_subindex
 
-  let fold f b ps =
-    SLM.fold begin fun l ld b ->
-      let p = LDesc.get_period ld |> M.get_option 0 in
-        LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
-    end ps b
+  let of_const = function
+    | C.CInt64 (v, ik, _) -> Index.of_int (Int64.to_int v)
+    | C.CChr c            -> Index.IInt (Char.code c)
+    | C.CReal (_, fk, _)  -> Index.top
+    | C.CStr _            -> Index.IInt 0
+    | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
-  let domain ps =
-    SLM.fold (fun s _ ss -> s :: ss) ps []
-
-  let slocs ps =
-       ps
-    |> domain
-    |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (prectype_sloc pct) acc)) ps
-    |> M.sort_and_compact
-
-  let find l ps =
-    try SLM.find l ps with Not_found -> LDesc.empty
-
-  let find_index l i ps =
-    ps |> find l |> LDesc.find_index i |> List.map snd
-
-  (* pmr: why is this not rename_prestore? *)
-  let subs_addrs subs ps =
-    SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
-
-  let subs subs ps =
-    ps |> map_ct (prectype_subs subs)
-       |> subs_addrs subs
-
-  let upd ps1 ps2 =
-    SLM.fold SLM.add ps2 ps1
-
-  let partition f ps =
-    SLM.fold begin fun l ld (ps1, ps2) ->
-      if f l ld then
-        (SLM.add l ld ps1, ps2)
-      else (ps1, SLM.add l ld ps2)
-    end ps (SLM.empty, SLM.empty)
-
-  let rec close_slocs ps ss =
-    let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> find s |> LDesc.referenced_slocs))) ss ss in
-      if SS.equal reqs ss then ss else close_slocs ps reqs
-
-  let close_under ps ss =
-    let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
-      SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
-
-  let rename subs ps =
-    let cns = LDesc.map (prectype_subs subs) in
-      SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
-
-  let d_prestore_addrs () st =
-    Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
-
-  let d_prestore d_i () s  =
-    P.dprintf "[@[%a@]]"
-      (SLMPrinter.docMap ~sep:(P.dprintf ";@!")
-         (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l (LDesc.d_ldesc (d_prectype d_i)) ld)) s
+  let d_refinement = Index.d_index
 end
 
-type store = Index.t PreStore.t
-
-let d_store () (s: store): P.doc =
-  SLMPrinter.d_map "\n" S.d_sloc (LDesc.d_ldesc d_ctype) () s
-
-let prectype_closed (ct: 'a prectype) (sto: 'a PreStore.t) =
-  match ct with
-    | CTInt _      -> true
-    | CTRef (l, _) -> SLM.mem l sto
-
-(* move into module *)
-let prestore_closed (sto: 'a PreStore.t): bool =
-  PreStore.fold (fun closed _ _ ct -> closed && prectype_closed ct sto) true sto
-
 (******************************************************************************)
-(******************************* Function Types *******************************)
+(***************************** Parameterized Types ****************************)
 (******************************************************************************)
+
+type 'a prectype =
+  | Int of int * 'a     (* fixed-width integer *)
+  | Ref of Sloc.t * 'a  (* reference *)
+
+type 'a contents = (ploc * 'a prectype) list
+
+type 'a preldesc = (* period: *) int option * 'a contents
+
+type 'a prestore = ('a preldesc) Sloc.SlocMap.t
 
 type 'a precfun =
-  { qlocs       : S.t list;                     (* generalized slocs *)
-    args        : (string * 'a prectype) list;  (* arguments *)
-    ret         : 'a prectype;                  (* return *)
-    sto_in      : 'a PreStore.t;                (* in store *)
-    sto_out     : 'a PreStore.t;                (* out store *)
-  }
+    { qlocs       : Sloc.t list;                  (* generalized slocs *)
+      args        : (string * 'a prectype) list;  (* arguments *)
+      ret         : 'a prectype;                  (* return *)
+      sto_in      : 'a prestore;                  (* in store *)
+      sto_out     : 'a prestore;                  (* out store *)
+    }
 
-type cfun = Index.t precfun
+type 'a prespec = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
 
-(* API *)
-let mk_cfun qslocs args reto sin sout =
-  { qlocs   = qslocs; 
-    args    = args;
-    ret     = reto;
-    sto_in  = sin;
-    sto_out = sout;
-  }
+module type S = sig
+  module R : CTYPE_REFINEMENT
 
-let precfun_map f ft =
-  { qlocs   = ft.qlocs;
-    args    = List.map (Misc.app_snd f) ft.args;
-    ret     = (* Misc.map_opt *) f ft.ret;
-    sto_in  = SLM.map (LDesc.map f) ft.sto_in;
-    sto_out = SLM.map (LDesc.map f) ft.sto_out;
-  }
+  module CType:
+  sig
+    type t = R.t prectype
 
-let d_slocs () slocs     = P.seq (P.text ";") (S.d_sloc ()) slocs
-let d_arg d_i () (x, ct) = P.dprintf "%s : %a" x (d_prectype d_i) ct
-let d_args d_i () args   = P.seq (P.dprintf ",@!") (d_arg d_i ()) args
+    exception NoLUB of t * t
 
-let d_precfun d_i () ft  = 
-  P.dprintf "forall    [%a]\narg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a"
-    d_slocs ft.qlocs
-    (d_args d_i) ft.args
-    (d_prectype d_i) ft.ret
-    (PreStore.d_prestore d_i) ft.sto_in
-    (PreStore.d_prestore d_i) ft.sto_out
+    val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val d_ctype     : unit -> t -> Pretty.doc
+    val of_const    : Cil.constant -> t
+    val is_subctype : t -> t -> bool
+    val width       : t -> int
+    val sloc        : t -> Sloc.t option
+    val subs        : Sloc.Subst.t -> t -> t
+    val eq          : t -> t -> bool
+    val collide     : ploc -> t -> ploc -> t -> int -> bool
+    val is_void     : t -> bool
+    val is_ref      : t -> bool
+  end
 
-let d_cfun () ft =
-  d_precfun Index.d_index () ft
+  exception TypeDoesntFit
 
-let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
-  {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
+  module LDesc:
+  sig
+    type t = R.t preldesc
 
-let cfun_instantiate ({qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout}: 'a precfun): 'a precfun * (S.t * S.t) list =
-  let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
-  let rename_pct = prectype_subs subs in
-  let rename_ps  = PreStore.rename subs in
-    ({qlocs   = [];
-      args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
-      ret     = rename_pct rcts;
-      sto_in  = rename_ps sin;
-      sto_out = rename_ps sout},
-     subs)
+    val empty         : t
+    val get_period    : t -> int option
+    val add           : ploc -> CType.t -> t -> t
+    val add_index     : Index.t -> CType.t -> t -> t
+    val create        : (Index.t * CType.t) list -> t
+    val remove        : ploc -> t -> t
+    val shrink_period : int -> (CType.t -> CType.t -> 'b -> 'b) -> 'b -> t -> t * 'b
+    val mem           : ploc -> t -> bool
+    val find          : ploc -> t -> (ploc * CType.t) list
+    val find_index    : Index.t -> t -> (ploc * CType.t) list
+    val foldn         : (int -> 'a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
+    val fold          : ('a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
+    val map           : ('a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
+    val mapn          : (int -> ploc -> 'a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
+    val d_ldesc       : unit -> t -> Pretty.doc
+  end
 
-let precfun_well_formed (globstore: 'a PreStore.t) (cf: 'a precfun): bool =
-     (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-  let whole_instore  = PreStore.upd cf.sto_in globstore in
-  let whole_outstore = PreStore.upd cf.sto_out globstore in
-     prestore_closed whole_instore
-  && prestore_closed whole_outstore
-  && List.for_all (fun (_, ct) -> prectype_closed ct whole_instore) cf.args
-  && match cf.ret with  (* we can return refs to uninitialized data *)
-        | CTRef (l, _) -> SLM.mem l whole_outstore
-        | _            -> true
+  module Store:
+  sig
+    type t = R.t prestore
 
-let cfun_slocs (cf: cfun): S.t list =
-    List.concat [PreStore.slocs cf.sto_in;
-                 PreStore.slocs cf.sto_out;
-                 M.maybe_cons (prectype_sloc cf.ret) <|
-                     M.map_partial (prectype_sloc <.> snd) cf.args]
- |> M.sort_and_compact
+    val domain       : t -> Sloc.t list
+    val slocs        : t -> Sloc.t list
+    val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
+    val find         : Sloc.t -> t -> LDesc.t
+    val find_index   : Sloc.t -> Index.t -> t -> CType.t list
+    val fold         : ('a -> Sloc.t -> Index.t -> CType.t -> 'a) -> 'a -> t -> 'a
+    val close_under  : t -> Sloc.t list -> t
+    val closed       : t -> bool
+    val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
+    val upd          : t -> t -> t
+      (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+          overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
+    val subs         : Sloc.Subst.t -> t -> t
+    val ctype_closed : CType.t -> t -> bool
 
-let cfun_subs (sub: S.Subst.t) (cf: cfun): cfun =
-  let apply_sub = prectype_subs sub in
-  mk_cfun (List.map (S.Subst.apply sub) cf.qlocs)
+    val d_store_addrs : unit -> t -> Pretty.doc
+    val d_store       : unit -> t -> Pretty.doc
+
+    (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+    (** [prestore_split sto] returns (asto, csto) s.t. 
+       (1) sto = asto + csto
+       (2) locs(asto) \in abslocs 
+       (3) locs(csto) \in conlocs *)
+       let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+       prestore_partition (fun l _ -> S.is_abstract l) ps
+    *)
+  end
+
+  module CFun:
+  sig
+    type t = R.t precfun
+
+    val d_cfun             : unit -> t -> Pretty.doc
+    val map                : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val well_formed        : Store.t -> t -> bool
+    val prune_unused_qlocs : t -> t
+    val instantiate        : t -> t * (Sloc.t * Sloc.t) list
+    val slocs              : t -> Sloc.t list
+    val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
+    val subs               : Sloc.Subst.t -> t -> t
+  end
+
+  module ExpKey:
+  sig
+    type t = Cil.exp
+    val compare: t -> t -> int
+  end
+
+  module ExpMap: Map.S with type key = ExpKey.t
+
+  module ExpMapPrinter:
+  sig
+    val d_map:
+      ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
+      string ->
+      (unit -> ExpMap.key -> Pretty.doc) ->
+      (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
+  end
+
+  type ctemap = CType.t ExpMap.t
+
+  val d_ctemap: unit -> ctemap -> Pretty.doc
+
+  module Spec:
+  sig
+    type t          = R.t prespec
+
+    val empty   : t
+
+    val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
+    val add_fun : string -> CFun.t * bool -> t -> t
+    val add_var : string -> CType.t * bool -> t -> t
+    val add_loc : Sloc.t -> LDesc.t -> t -> t
+    val mem_fun : string -> t -> bool
+    val mem_var : string -> t -> bool
+
+    val store   : t -> Store.t
+  end
+end
+
+module Make (R: CTYPE_REFINEMENT) = struct
+  module R = R
+
+  (******************************************************************************)
+  (************************************ Types ***********************************)
+  (******************************************************************************)
+
+  module CType = struct
+    type t = R.t prectype
+
+    let map f = function
+      | Int (i, x) -> Int (i, f x)
+      | Ref (l, x) -> Ref (l, f x)
+
+    let convert = map
+
+    let d_ctype () = function
+      | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
+      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
+
+    let width = function
+      | Int (n, _) -> n
+      | Ref (_)    -> CM.int_width
+
+    let sloc = function
+      | Ref (s, _) -> Some s
+      | Int _      -> None
+
+    let subs subs = function
+      | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
+      | pct        -> pct
+
+    exception NoLUB of t * t
+
+    let lub_refs t1 t2 r1 r2 =
+      match R.lub r1 r2 with
+        | Some r -> r
+        | None   -> raise (NoLUB (t1, t2))
+
+    let lub t1 t2 =
+      match t1, t2 with
+        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> Int (n1, lub_refs t1 t2 r1 r2)
+        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> Ref (s1, lub_refs t1 t2 r1 r2)
+        | _                                          -> raise (NoLUB (t1, t2))
+
+    let is_subctype pct1 pct2 =
+      match pct1, pct2 with
+        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> R.is_subref r1 r2
+        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> R.is_subref r1 r2
+        | _                                          -> false
+
+    let of_const c =
+      let r = R.of_const c in
+        match c with
+          | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
+          | C.CChr c            -> Int (CM.int_width, r)
+          | C.CReal (_, fk, _)  -> Int (CM.bytesSizeOfFloat fk, r)
+          | C.CStr _            -> Ref (S.fresh S.Abstract, r)
+          | _                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
+
+    let eq pct1 pct2 =
+      match (pct1, pct2) with
+        | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
+        | _                          -> pct1 = pct2
+
+    let collide pl1 pct1 pl2 pct2 p =
+      let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
+      let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
+      let d                        = s2 - s1 in
+      let pl1                      = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
+        s1 + width pct1 > s2 || (ploc_periodic pl1 && s2 + width pct2 > (s1 + p))
+
+    let is_void = function
+      | Int (0, _) -> true
+      | _          -> false
+
+    let is_ref = function
+      | Ref _ -> true
+      | _     -> false
+  end
+
+  (******************************************************************************)
+  (*********************************** Stores ***********************************)
+  (******************************************************************************)
+  exception TypeDoesntFit
+
+  module LDesc = struct
+    (* - The list always contains at least one item.
+       - The period is non-negative if present.
+       - If no period is present, the list contains no periodic locations.
+       - The list does not contain the location PLEverywhere.
+       - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
+       (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
+       - All (pl, pct) in the list are sorted by pl according to ploc_start.
+
+       The period is always positive.
+    *)
+    type t = R.t preldesc
+
+    let empty = (None, [])
+
+    let get_period (po, _) =
+      po
+
+    (* 0 is an ok default for all the functions we'll be calling by the above invariant. *)
+    let get_period_default (po: int option): int =
+      M.get_option 0 po
+
+    let collides_with pl1 pct1 po (pl2, pct2) =
+      CType.collide pl1 pct1 pl2 pct2 (get_period_default po)
+
+    let fits pl pct po pcts =
+      (not (ploc_periodic pl) || (M.maybe_bool po && CType.width pct <= get_period_default po))
+      && not (List.exists (collides_with pl pct po) pcts)
+
+    let rec insert pl pct = function
+      | []                           -> [(pl, pct)]
+      | (pl2, pct2) :: pcts' as pcts -> if ploc_start pl <= ploc_start pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
+
+    let add pl pct (po, pcts) =
+      if fits pl pct po pcts then (po, insert pl pct pcts) else raise TypeDoesntFit
+
+    let remove pl (po, pcts) =
+      (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
+
+    let swallow_repeats f b pcts =
+      try
+        let pl1, pct1 = List.find (fun (pl, _) -> ploc_periodic pl) pcts in
+        let rs, us    = List.partition (fun (pl2, _) -> ploc_start pl1 < ploc_start pl2) pcts in
+        let b         = List.fold_left (fun b (_, pct2) -> f pct1 pct2 b) b rs in
+          (us, b)
+      with Not_found ->
+        (* No periods, so nothing to do *)
+        (pcts, b)
+
+    let shrink_period p f b (po, pcts) =
+      assert (p > 0);
+      let p     = M.gcd (get_period_default po) p in
+      let gs    = M.groupby (fun (pl, _) -> (ploc_start pl) mod p) pcts in
+      let gs, b = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
+      let pcts  = List.sort (M.liftfst2 ploc_compare) (List.concat gs) in
+        if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> CType.collide pl1 pct1 pl2 pct2 p) pcts) then
+          ((Some p, pcts), b)
+        else
+          (* pmr: this is not quite descriptive enough *)
+          raise TypeDoesntFit
+
+    let shrink_period_fail_on_conflict p ld =
+      shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
+
+    let add_index i pct ld =
+      match i with
+        | Index.ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add (PLSeq (n, p)) pct
+        | _                    -> add (ploc_of_index i) pct ld
+
+    let create icts =
+      List.fold_left (M.uncurry add_index |> M.flip) empty icts
+
+    let mem pl1 (po, pcts) =
+      if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+        false
+      else
+        let p = get_period_default po in
+          List.exists (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+
+    let find pl1 (po, pcts) =
+      if ploc_periodic pl1 && not (Misc.maybe_bool po) then
+        []
+      else
+        let p = get_period_default po in
+          List.filter (fun (pl2, _) -> ploc_contains pl1 pl2 p || ploc_contains pl2 pl1 p) pcts
+
+    let find_index i ((po, _) as ld) =
+      let pcts = find (ploc_of_index i) ld in
+      let p    = get_period_default po in
+        List.filter (fun (pl, pct) -> ploc_contains_index pl p i) pcts
+
+    let rec foldn_aux f n b = function
+      | []                -> b
+      | (pl, pct) :: pcts -> foldn_aux f (n + 1) (f n b pl pct) pcts
+
+    let foldn f b (po, pcts) =
+      foldn_aux f 0 b pcts
+
+    let fold f b ld =
+      foldn (fun _ b pl pct -> f b pl pct) b ld
+
+    let mapn f (po, pcts) =
+      (po, M.mapi (fun n (pl, pct) -> (pl, f n pl pct)) pcts)
+
+    let map f (po, pcts) =
+      (po, List.map (fun (pl, pct) -> (pl, f pct)) pcts)
+
+    let referenced_slocs ld =
+      fold (fun rss _ pct -> match CType.sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
+
+    let d_ldesc () (po, pcts) =
+      let p = get_period_default po in
+        (* JHALA
+           let s = P.concat (P.text ",") P.break in
+           let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
+           P.concat P.align (P.concat d P.unalign) *)
+        P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, pct) -> P.dprintf "%a: %a" Index.d_index (index_of_ploc pl p) CType.d_ctype pct) pcts)
+  end
+
+  module Store = struct
+    type t = R.t prestore
+
+    let map f =
+      f |> CType.map |> LDesc.map |> SLM.map
+
+    let map_ct f =
+      SLM.map (LDesc.map f)
+
+    let fold f b ps =
+      SLM.fold begin fun l ld b ->
+        let p = LDesc.get_period ld |> M.get_option 0 in
+          LDesc.fold (fun b pl pct -> f b l (index_of_ploc pl p) pct) b ld
+      end ps b
+
+    let domain ps =
+      SLM.fold (fun s _ ss -> s :: ss) ps []
+
+    let slocs ps =
+         ps
+      |> domain
+      |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (CType.sloc pct) acc)) ps
+      |> M.sort_and_compact
+
+    let find l ps =
+      try SLM.find l ps with Not_found -> LDesc.empty
+
+    let find_index l i ps =
+      ps |> find l |> LDesc.find_index i |> List.map snd
+
+    (* pmr: why is this not rename_prestore? *)
+    let subs_addrs subs ps =
+      SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
+
+    let subs subs ps =
+      ps |> map_ct (CType.subs subs)
+         |> subs_addrs subs
+
+    let upd ps1 ps2 =
+      SLM.fold SLM.add ps2 ps1
+
+    let partition f ps =
+      SLM.fold begin fun l ld (ps1, ps2) ->
+        if f l ld then
+          (SLM.add l ld ps1, ps2)
+        else (ps1, SLM.add l ld ps2)
+      end ps (SLM.empty, SLM.empty)
+
+    let rec close_slocs ps ss =
+      let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> find s |> LDesc.referenced_slocs))) ss ss in
+        if SS.equal reqs ss then ss else close_slocs ps reqs
+
+    let close_under ps ss =
+      let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
+        SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
+
+    let ctype_closed ct sto =
+      match ct with
+        | Int _      -> true
+        | Ref (l, _) -> SLM.mem l sto
+
+    let closed sto =
+      fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
+
+    let rename subs ps =
+      let cns = LDesc.map (CType.subs subs) in
+        SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
+
+    let d_store_addrs () st =
+      Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
+
+    let d_store () s  =
+      P.dprintf "[@[%a@]]"
+        (SLMPrinter.docMap ~sep:(P.dprintf ";@!")
+           (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l LDesc.d_ldesc ld)) s
+  end
+
+  (******************************************************************************)
+  (******************************* Function Types *******************************)
+  (******************************************************************************)
+  module CFun = struct
+    type t = R.t precfun
+
+    (* API *)
+    let make qslocs args reto sin sout =
+      { qlocs   = qslocs; 
+        args    = args;
+        ret     = reto;
+        sto_in  = sin;
+        sto_out = sout;
+      }
+
+    let map f ft =
+      { qlocs   = ft.qlocs;
+        args    = List.map (Misc.app_snd f) ft.args;
+        ret     = (* Misc.map_opt *) f ft.ret;
+        sto_in  = SLM.map (LDesc.map f) ft.sto_in;
+        sto_out = SLM.map (LDesc.map f) ft.sto_out;
+      }
+
+    let d_slocs () slocs = P.seq (P.text ";") (S.d_sloc ()) slocs
+    let d_arg () (x, ct) = P.dprintf "%s : %a" x CType.d_ctype ct
+    let d_args () args   = P.seq (P.dprintf ",@!") (d_arg ()) args
+      
+    let d_cfun () ft  = 
+      P.dprintf "forall    [%a]\narg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a"
+        d_slocs ft.qlocs
+        d_args ft.args
+        CType.d_ctype ft.ret
+        Store.d_store ft.sto_in
+        Store.d_store ft.sto_out
+        
+    let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
+      {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
+
+    let instantiate {qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout} =
+      let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
+      let rename_pct = CType.subs subs in
+      let rename_ps  = Store.rename subs in
+        ({qlocs   = [];
+          args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
+          ret     = rename_pct rcts;
+          sto_in  = rename_ps sin;
+          sto_out = rename_ps sout},
+         subs)
+
+    let well_formed globstore cf =
+      (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
+      let whole_instore  = Store.upd cf.sto_in globstore in
+      let whole_outstore = Store.upd cf.sto_out globstore in
+     Store.closed whole_instore
+        && Store.closed whole_outstore
+        && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
+        && match cf.ret with  (* we can return refs to uninitialized data *)
+          | Ref (l, _) -> SLM.mem l whole_outstore
+          | _          -> true
+
+    let slocs cf =
+      List.concat [Store.slocs cf.sto_in;
+                   Store.slocs cf.sto_out;
+                   M.maybe_cons (CType.sloc cf.ret) <|
+                       M.map_partial (CType.sloc <.> snd) cf.args]
+          |> M.sort_and_compact
+
+    let subs sub cf =
+      let apply_sub = CType.subs sub in
+        make
+          (List.map (S.Subst.apply sub) cf.qlocs)
           (List.map (M.app_snd apply_sub) cf.args)
           (apply_sub cf.ret)
-          (PreStore.subs sub cf.sto_in)
-          (PreStore.subs sub cf.sto_out)
+          (Store.subs sub cf.sto_in)
+          (Store.subs sub cf.sto_out)
+  end
 
-(******************************************************************************)
-(******************************* Expression Maps ******************************)
-(******************************************************************************)
+  (******************************************************************************)
+  (******************************* Expression Maps ******************************)
+  (******************************************************************************)
+  module ExpKey = struct
+    type t      = Cil.exp
+    let compare = compare
+  end
 
-(* pmr: need to check that expressions have unique types (which should certainly hold anyway) *)
-module ExpKey = struct
-  type t      = Cil.exp
-  let compare = compare
+  module ExpMap = Map.Make (ExpKey)
+
+  module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
+
+  type ctemap = CType.t ExpMap.t
+
+  let d_ctemap () (em: ctemap): Pretty.doc =
+    ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
+
+  (******************************************************************************)
+  (************************************ Specs ***********************************)
+  (******************************************************************************)
+  module Spec = struct
+    type t = R.t prespec
+
+    let empty = (SM.empty, SM.empty, SLM.empty)
+
+    let map f (funspec, varspec, storespec) =
+      (SM.map (f |> CType.map |> CFun.map |> M.app_fst) funspec,
+       SM.map (f |> CType.map |> M.app_fst) varspec,
+       Store.map f storespec)
+
+    let add_fun fn sp (funspec, varspec, storespec) =
+      (SM.add fn sp funspec, varspec, storespec)
+
+    let add_var vn vspc (funspec, varspec, storespec) =
+      (funspec, SM.add vn vspc varspec, storespec)
+
+    let add_loc l ld (funspec, varspec, storespec) =
+      (funspec, varspec, SLM.add l ld storespec)
+
+    let mem_fun fn (funspec, _, _) =
+      SM.mem fn funspec
+
+    let mem_var vn (_, varspec, _) =
+      SM.mem vn varspec
+
+    let store (_, _, storespec) =
+      storespec
+  end
 end
 
-module ExpMap = Map.Make (ExpKey)
+module I = Make (IndexRefinement)
 
-module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
+type ctype  = I.CType.t
+type cfun   = I.CFun.t
+type store  = I.Store.t
+type cspec  = I.Spec.t
+type ctemap = I.ctemap
 
-type ctemap = ctype ExpMap.t
-
-let d_ctemap () (em: ctemap): Pretty.doc =
-  ExpMapPrinter.d_map "\n" Cil.d_exp d_ctype () em
-
-(******************************************************************************)
-(************************************ Specs ***********************************)
-(******************************************************************************)
-
-module PreSpec = struct
-  type 'a t = ('a precfun * bool) SM.t * ('a prectype * bool) SM.t * 'a PreStore.t
-
-  let empty = (SM.empty, SM.empty, SLM.empty)
-
-  let map (f: 'a -> 'b) ((funspec, varspec, storespec): 'a t): 'b t =
-    (SM.map (f |> prectype_map |> precfun_map |> M.app_fst) funspec,
-     SM.map (f |> prectype_map |> M.app_fst) varspec,
-     PreStore.map f storespec)
-
-  let add_fun (fn: string) (sp: 'a precfun * bool) ((funspec, varspec, storespec): 'a t): 'a t =
-    (SM.add fn sp funspec, varspec, storespec)
-
-  let add_var (vn: string) (vspc: 'a prectype * bool) ((funspec, varspec, storespec): 'a t): 'a t =
-    (funspec, SM.add vn vspc varspec, storespec)
-
-  let add_loc (l: S.t) (ld: 'a LDesc.t) ((funspec, varspec, storespec): 'a t): 'a t =
-    (funspec, varspec, SLM.add l ld storespec)
-
-  let mem_fun (fn: string) ((funspec, _, _): 'a t): bool =
-    SM.mem fn funspec
-
-  let mem_var (vn: string) ((_, varspec, _): 'a t): bool =
-    SM.mem vn varspec
-
-  let store ((_, _, storespec): 'a t): 'a PreStore.t =
-    storespec
-end
-
-type cspec = Index.t PreSpec.t
+let void_ctype = Int (0, Index.top)

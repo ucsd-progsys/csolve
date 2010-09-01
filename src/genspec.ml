@@ -126,9 +126,9 @@ let adj_period po idx =
 
 let ldesc_of_index_ctypes ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
-            Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.d_ctype t |> ignore
+            Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
-Ct.LDesc.create ts
+Ct.I.LDesc.create ts
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
   | [(Ct.ISeq (0,n), t)] -> Ct.LDesc.create [(Ct.ISeq (0,n), t)] 
@@ -138,10 +138,10 @@ Ct.LDesc.create ts
 let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
 
 let conv_cilbasetype = function 
-  | TVoid ats        -> Ct.CTInt (0, index_of_attrs ats)
-  | TInt (ik, ats)   -> Ct.CTInt (bytesSizeOfInt ik, index_of_attrs ats)
-  | TFloat (fk, ats) -> Ct.CTInt (CM.bytesSizeOfFloat fk, index_of_attrs ats)
-  | TEnum (ei, ats)  -> Ct.CTInt (bytesSizeOfInt ei.ekind, index_of_attrs ats)
+  | TVoid ats        -> Ct.Int (0, index_of_attrs ats)
+  | TInt (ik, ats)   -> Ct.Int (bytesSizeOfInt ik, index_of_attrs ats)
+  | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk, index_of_attrs ats)
+  | TEnum (ei, ats)  -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 type type_level =
@@ -175,7 +175,7 @@ and conv_ptr loc (th, st) po c =
   let _   = if mydebug then Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
-    (th, st), Ct.CTRef (l, idx) 
+    (th, st), Ct.Ref (l, idx) 
   else
     let l                = Sloc.fresh Sloc.Abstract in
     let idx              = mk_idx po 0 in
@@ -183,7 +183,7 @@ and conv_ptr loc (th, st) po c =
     let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) po c in
     let b                = ldesc_of_index_ctypes its in
     let st''             = SLM.add l b st' in
-    (th'', st''), Ct.CTRef (l, idx)
+    (th'', st''), Ct.Ref (l, idx)
 
 and conv_cilblock loc (th, st, off) po c =
 (* {{{  *)let _  =
@@ -212,7 +212,7 @@ let cfun_of_args_ret fn (loc, t, xts) =
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
-    Some (Ct.mk_cfun qlocs args ret ist ost)
+    Some (Ct.I.CFun.make qlocs args ret ist ost)
   with ex -> 
     let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
     None
