@@ -270,11 +270,11 @@ module type S = sig
     val is_ref      : t -> bool
   end
 
-  exception TypeDoesntFit
-
   module LDesc:
   sig
     type t = R.t preldesc
+
+    exception TypeDoesntFit of ploc * CType.t * t
 
     val empty         : t
     val get_period    : t -> int option
@@ -462,7 +462,6 @@ module Make (R: CTYPE_REFINEMENT) = struct
   (******************************************************************************)
   (*********************************** Stores ***********************************)
   (******************************************************************************)
-  exception TypeDoesntFit
 
   module LDesc = struct
     (* - The list always contains at least one item.
@@ -476,6 +475,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
        The period is always positive.
     *)
     type t = R.t preldesc
+
+    exception TypeDoesntFit of ploc * CType.t * t
 
     let empty = (None, [])
 
@@ -498,7 +499,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
       | (pl2, pct2) :: pcts' as pcts -> if ploc_start pl <= ploc_start pl2 then (pl, pct) :: pcts else (pl2, pct2) :: insert pl pct pcts'
 
     let add pl pct (po, pcts) =
-      if fits pl pct po pcts then (po, insert pl pct pcts) else raise TypeDoesntFit
+      if fits pl pct po pcts then (po, insert pl pct pcts) else raise (TypeDoesntFit (pl, pct, (po, pcts)))
 
     let remove pl (po, pcts) =
       (po, List.filter (fun (pl2, _) -> not (pl = pl2)) pcts)
@@ -522,11 +523,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
         if not (M.exists_pair (fun (pl1, pct1) (pl2, pct2) -> CType.collide pl1 pct1 pl2 pct2 p) pcts) then
           ((Some p, pcts), b)
         else
-          (* pmr: this is not quite descriptive enough *)
-          raise TypeDoesntFit
+          (* pmr: todo *)
+          assert false
 
     let shrink_period_fail_on_conflict p ld =
-      shrink_period p (fun _ _ _ -> raise TypeDoesntFit) () ld |> fst
+      (* pmr: todo - kill assert false *)
+      shrink_period p (fun _ _ _ -> assert false) () ld |> fst
 
     let add_index i pct ld =
       match i with

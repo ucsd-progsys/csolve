@@ -107,11 +107,11 @@ module type S = sig
     val is_ref      : t -> bool
   end
 
-  exception TypeDoesntFit
-
   module LDesc:
   sig
     type t = R.t preldesc
+
+    exception TypeDoesntFit of ploc * CType.t * t
 
     val empty         : t
     val get_period    : t -> int option

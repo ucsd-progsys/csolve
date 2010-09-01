@@ -39,6 +39,8 @@ open Misc.Ops
 
 let mydebug = false 
 
+exception CantConvert
+
 (*************************************************************************************)
 (* {{{ DO NOT DELETE
  * Unused code to determine if a type is recursive
@@ -128,7 +130,8 @@ let ldesc_of_index_ctypes ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
-Ct.I.LDesc.create ts
+    Ct.I.LDesc.create ts
+
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
   | [(Ct.ISeq (0,n), t)] -> Ct.LDesc.create [(Ct.ISeq (0,n), t)] 
@@ -149,26 +152,31 @@ type type_level =
   | InStruct
 
 let rec conv_ciltype loc tlev (th, st, off) (c, a) =
-  match c with
-  | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
-      (th, st, add_off off c), [(off, conv_cilbasetype c)]
-  | TPtr (c',a') ->
-      let po = if CM.has_array_attr (a' ++ a) 
-               then Some (CilMisc.bytesSizeOf c') else None in
-      let (th', st'), t = conv_ptr loc (th, st) po c' in
-      (th', st', add_off off c), [(off, t)] 
-  | TArray (c',_,_) when tlev = InStruct ->
-      conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
-  | TArray (c',_,_) when tlev = TopLevel ->
-      let (th', st'), t = conv_ptr loc (th, st) (Some (CilMisc.bytesSizeOf c')) c' in
-      (th', st', add_off off c), [(off, t)] 
-  | TNamed (ti, a') ->
-      conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
-  | TComp (_, _) ->
-      conv_cilblock loc (th, st, off) None c
-  | _ -> 
-      let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
-      assertf "TBD: conv_ciltype" 
+  try
+    match c with
+      | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
+          (th, st, add_off off c), [(off, conv_cilbasetype c)]
+      | TPtr (c',a') ->
+          let po = if CM.has_array_attr (a' ++ a) 
+          then Some (CilMisc.bytesSizeOf c') else None in
+          let (th', st'), t = conv_ptr loc (th, st) po c' in
+            (th', st', add_off off c), [(off, t)] 
+      | TArray (c',_,_) when tlev = InStruct ->
+          conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
+      | TArray (c',_,_) when tlev = TopLevel ->
+          let (th', st'), t = conv_ptr loc (th, st) (Some (CilMisc.bytesSizeOf c')) c' in
+            (th', st', add_off off c), [(off, t)] 
+      | TNamed (ti, a') ->
+          conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
+      | TComp (_, _) ->
+          conv_cilblock loc (th, st, off) None c
+      | _ -> 
+          let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
+            assertf "TBD: conv_ciltype"
+  with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
+    let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
+    let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
+      raise CantConvert
 
 and conv_ptr loc (th, st) po c =
   let tid = CM.id_of_ciltype c po in
@@ -197,18 +205,30 @@ and conv_cilblock loc (th, st, off) po c =
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
 
 let conv_ciltype y tlev z c =
-  let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-  conv_ciltype y tlev z (c, [])
+    let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
+      conv_ciltype y tlev z (c, [])
+
+let conv_arg loc z (name, c) =
+  try
+    conv_ciltype loc InStruct z c
+  with CantConvert ->
+    E.s <| errorLoc loc "Failed to generate type for argument %s\n" name
+
+let conv_ret fn loc z c =
+  try
+    conv_ciltype loc InStruct z c
+  with CantConvert ->
+    E.s <| errorLoc loc "Failed to generate type for return value of function %s\n" fn
 
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = xts |> Misc.map snd |> Misc.mapfold (conv_ciltype loc InStruct) (SM.empty, SLM.empty, Ct.Index.IInt 0) in
+    let res   = Misc.mapfold (conv_arg loc) (SM.empty, SLM.empty, Ct.Index.IInt 0) xts in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
     let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
-    let res'  = conv_ciltype loc InStruct (th, ist, Ct.Index.IInt 0) t in
+    let res'  = conv_ret fn loc (th, ist, Ct.Index.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
@@ -256,10 +276,14 @@ let funspecs_of_funm funspec funm =
 let upd_varm spec (st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
-      begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
-        | (_, st, _), [(_, ct)] ->
-            (st, Misc.sm_protected_add false vn ct varm)
-        | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
+      begin try
+        begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
+          | (_, st, _), [(_, ct)] ->
+              (st, Misc.sm_protected_add false vn ct varm)
+          | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
+        end
+      with CantConvert ->
+        E.s <| errorLoc loc "Failed to generate type for global %s\n" vn
       end
   | _ -> (st, varm)
 
