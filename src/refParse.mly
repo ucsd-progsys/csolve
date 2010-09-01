@@ -14,8 +14,9 @@ let parse_error msg =
 let store_of_slocbinds sbs = 
   List.fold_left (fun slm (x,y) -> Sloc.SlocMap.add x y slm) Sloc.SlocMap.empty sbs
 
-let ldesc_of_plocbinds pbs = 
-  List.fold_left (fun ld (x,y) -> RCt.LDesc.add x y ld) RCt.LDesc.empty pbs
+let ldesc_of_plocbinds pbs =
+  (* pmr: TODO - better location *)
+  List.fold_left (fun ld (x,y) -> RCt.LDesc.add Cil.locUnknown x y ld) RCt.LDesc.empty pbs
 
 let sloctable = Hashtbl.create 17
 
@@ -142,7 +143,7 @@ slocbindsne:
   ;
 
 slocbind:
-  sloc MAPSTO indbinds                  { ($1, RCt.LDesc.create $3) } 
+  sloc MAPSTO indbinds                  { ($1, RCt.LDesc.create Cil.locUnknown $3) (* pmr: TODO - better location *) } 
   ;
 
 indbinds:

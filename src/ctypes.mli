@@ -115,9 +115,9 @@ module type S = sig
 
     val empty         : t
     val get_period    : t -> int option
-    val add           : ploc -> CType.t -> t -> t
-    val add_index     : Index.t -> CType.t -> t -> t
-    val create        : (Index.t * CType.t) list -> t
+    val add           : Cil.location -> ploc -> CType.t -> t -> t
+    val add_index     : Cil.location -> Index.t -> CType.t -> t -> t
+    val create        : Cil.location -> (Index.t * CType.t) list -> t
     val remove        : ploc -> t -> t
     val shrink_period : int -> (CType.t -> CType.t -> 'b -> 'b) -> 'b -> t -> t * 'b
     val mem           : ploc -> t -> bool

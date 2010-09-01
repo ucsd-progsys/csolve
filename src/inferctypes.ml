@@ -146,8 +146,8 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
     | _                                        -> raise (Unify (ct1, ct2))
 
-let store_add l pl ctv sto =
-  SLM.add l (I.LDesc.add pl ctv (I.Store.find l sto)) sto
+let store_add loc l pl ctv sto =
+  SLM.add l (I.LDesc.add loc pl ctv (I.Store.find l sto)) sto
 
 let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store): S.Subst.t * store =
   try
@@ -156,7 +156,7 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
       | Index.IInt n ->
           let pl = PLAt n in
             begin match LDesc.find pl (Store.find s sto) with
-              | []         -> ([], store_add s pl ct sto)
+              | []         -> ([], store_add loc s pl ct sto)
               | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
               | _          -> assert false
             end
@@ -174,7 +174,7 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
                  (Note if there's no including sequence, all the elements we found previously
                  come after this one.) *)
               let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld cts in
-              let ld = LDesc.add pl ct ld in
+              let ld = LDesc.add loc pl ct ld in
                 (sub, SLM.add s ld sto)
   with
     | e ->

@@ -324,7 +324,7 @@ let refstore_write loc sto rct rct' =
   let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = LM.find cl sto in
   let ld = RCt.LDesc.remove ploc ld in
-  let ld = RCt.LDesc.add ploc rct' ld in
+  let ld = RCt.LDesc.add loc ploc rct' ld in
   LM.add cl ld sto
 
 (*******************************************************************)

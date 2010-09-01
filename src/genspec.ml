@@ -126,11 +126,11 @@ let adj_period po idx =
   | Some n, Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.Pos)
   | _, _                    -> assertf "adjust_period: adjusting a periodic index"
 
-let ldesc_of_index_ctypes ts =
+let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
-    Ct.I.LDesc.create ts
+    Ct.I.LDesc.create loc ts
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
@@ -189,7 +189,7 @@ and conv_ptr loc (th, st) po c =
     let idx              = mk_idx po 0 in
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) po c in
-    let b                = ldesc_of_index_ctypes its in
+    let b                = ldesc_of_index_ctypes loc its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.Ref (l, idx)
 
