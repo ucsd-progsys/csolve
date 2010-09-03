@@ -119,6 +119,15 @@ let cons_of_annots me loc tag grd wld annots =
   Misc.mapfold (cons_of_annot me loc tag grd) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
+(******************************************************************************)
+(*********************** Constraints for Deferred Checks **********************)
+(******************************************************************************)
+
+let cons_of_dcheck me loc grd tag (env, _, tago) (v, rct) =
+  let cf  = CF.get_alocmap me in
+  let vct = v |> FI.name_of_varinfo |> FI.t_name env in
+    FI.make_cs cf env grd vct rct tago tag loc
+
 (****************************************************************************)
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
@@ -242,25 +251,24 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
 
-let cons_of_annotinstr me i grd (j, wld) (annots, instr) = 
-  let gs, is, ns      = group_annots annots in
+let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
+  let gs, is, ns = group_annots annots in
+  let loc        = get_instrLoc instr in
+  let tagj       = CF.tag_of_instr me i j loc in
+  let wld, acds  = cons_of_annots me loc tagj grd wld (gs ++ is) in
+  let cks        = dcks |> List.map (cons_of_dcheck me loc grd tagj wld) |> Misc.splitflatten in
+  let cds'       = acds +++ cks in
   match instr with 
-  | Set (lv, e, loc) ->
-      let _         = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
-      let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
-      let wld, cds  = cons_of_set me loc tagj grd wld (lv, e) in
-      (j+1, wld), cds +++ acds
-  | Call (None, Lval (Var fv, NoOffset), _, loc) when CilMisc.isVararg fv.Cil.vtype ->
-      let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
-      let _         = Cil.warnLoc loc "Ignoring vararg call" in
-        (j+1, wld), acds
-  | Call (lvo, Lval ((Var fv), NoOffset), es, loc) ->
-      let tagj      = CF.tag_of_instr me i j loc in
-      let wld, acds = cons_of_annots me loc tagj grd wld (gs ++ is) in
-      let wld, cds  = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
-      (j+2, wld), cds +++ acds 
+  | Set (lv, e, _) ->
+      let _        = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
+      let wld, cds = cons_of_set me loc tagj grd wld (lv, e) in
+      (j+1, wld), cds +++ cds'
+  | Call (None, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype ->
+      let _ = Cil.warnLoc loc "Ignoring vararg call" in
+        (j+1, wld), cds'
+  | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
+      let wld, cds = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
+      (j+2, wld), cds +++ cds'
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
@@ -280,12 +288,12 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
                            (FI.make_cs cf env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
-let cons_of_annotstmt me loc i grd wld (anns, stmt) = 
+let cons_of_annotstmt me loc i grd wld (anns, dckss, stmt) = 
   match stmt.skind with
   | Instr is ->
       (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let (n, wld), cds   =  List.combine anns is 
+      let (n, wld), cds   =  Misc.combine3 anns dckss is 
                           |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
       let cs1, ds1        = Misc.splitflatten cds in  
       (* INTRA-FOLD: let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in *)
@@ -667,7 +675,6 @@ let create cil (spec: FI.refspec) =
   let spec     = Misc.app_fst3 (rename_funspec scim) spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim cil spec scim in
-  let shm      = SM.map fst shm in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Constants.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in

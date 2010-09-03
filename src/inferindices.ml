@@ -474,37 +474,52 @@ let constrain_app ((_, fe) as env) f lvo args =
           let itvlv, cs2 = constrain_lval env lv in
             (mk_isubtypecstr ftv.ret itvlv :: cs2) :: css
 
-let constrain_instr_aux env css i =
+let constrain_instr_aux env i =
   let _ = C.currentLoc := C.get_instrLoc i in
     match i with
       | C.Set (lv, e, _) ->
           let itv1, cs1 = constrain_lval env lv in
           let itv2, cs2 = constrain_exp env e in
-            (mk_isubtypecstr itv2 itv1 :: cs1) :: cs2 :: css
+            (mk_isubtypecstr itv2 itv1 :: cs1) @ cs2
       | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
           if not !Constants.safe 
           then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore 
           else E.s <| C.error "Can't handle varargs";
-          (constrain_args env args |> snd |> List.concat) :: css
+          (constrain_args env args |> snd |> List.concat)
       | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-          (constrain_app env f lvo args |> List.concat) :: css
+          (constrain_app env f lvo args |> List.concat)
       | _ -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr (env: env) (is: C.instr list): itypevarcstr list =
-  is |> List.fold_left (constrain_instr_aux env) [] |> List.concat
+let is_dsubtype = function
+  | {itcdesc = IDSubtype _} -> true
+  | _                       -> false
+
+let constrain_instr env i =
+  let cs    = constrain_instr_aux env i in
+  let dsubs = List.filter is_dsubtype cs in
+    (cs, dsubs)
+
+let constrain_instrs env is =
+  let css, dsubss = is |> List.map (constrain_instr env) |> List.split in
+    (List.concat css, dsubss)
 
 let constrain_stmt env rtv s =
-  let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
-    match s.C.skind with
-      | C.Instr is             -> constrain_instr env is
-      | C.If (e, _, _, loc)    -> constrain_exp env e |> snd  (* we'll visit the subblocks later *)
-      | C.Break _              -> []
-      | C.Continue _           -> []
-      | C.Goto _               -> []
-      | C.Block _              -> []                              (* we'll visit this later as we iterate through blocks *)
-      | C.Loop (_, _, _, _)    -> []                              (* ditto *)
-      | C.Return (rexp, loc)   -> constrain_return env rtv rexp
-      | _                      -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+  match s.C.skind with
+    | C.Instr is             -> constrain_instrs env is
+    | C.If (e, _, _, loc)    -> (constrain_exp env e |> snd, [])
+    | C.Break _              -> ([], [])
+    | C.Continue _           -> ([], [])
+    | C.Goto _               -> ([], [])
+    | C.Block _              -> ([], [])                        (* we'll visit this later as we iterate through blocks *)
+    | C.Loop (_, _, _, _)    -> ([], [])                        (* ditto *)
+    | C.Return (rexp, loc)   -> (constrain_return env rtv rexp, [])
+    | _                      -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
+
+let constrain_block i env bdsubs rtv s =
+  let _          = C.currentLoc := C.get_stmtLoc s.C.skind in
+  let cs, dsubss = constrain_stmt env rtv s in
+  let _          = bdsubs.(i) <- dsubss in
+    cs
 
 let maybe_fresh v =
   let _ = C.currentLoc := v.C.vdecl in
@@ -535,7 +550,7 @@ let dump_constraints fn ftv cs =
   let _ = P.printf "%a\n\n" (P.d_list "\n" d_itypevarcstr) cs in
     ()
 
-let constrain_fun fe ve ftv {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
+let constrain_fun fe ve ftv {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} bdsubs =
   let bodyformals = fresh_vars fd.C.sformals in
   let locals      = fresh_vars fd.C.slocals in
   let vars        = locals @ bodyformals in
@@ -545,7 +560,7 @@ let constrain_fun fe ve ftv {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
     mk_isubtypecstr at itv) ftv.args) bodyformals in
   let phics       = constrain_phis ve phis in
   let env         = (ve, fe) in
-  let css         = Array.fold_left (fun css b -> constrain_stmt env ftv.ret b.Ssa.bstmt :: css) [] cfg.Ssa.blocks in
+  let css         = M.array_fold_lefti (fun i css b -> constrain_block i env bdsubs ftv.ret b.Ssa.bstmt :: css) [] cfg.Ssa.blocks in
   let cs          = formalcs :: phics :: css |> List.concat in
   let _           = if Cs.ck_olev Cs.ol_solve then dump_constraints fd.C.svar.C.vname ftv cs in
     (ve, cs)
@@ -566,23 +581,43 @@ let d_indextyping () (it: indextyping): P.doc =
       CM.d_var
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" I.CFun.d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var I.CType.d_ctype) vm) ()
 
-type dcheck = C.varinfo * FI.refctype
+type dcheck        = C.varinfo * FI.refctype
+type block_dchecks = dcheck list list
 
 let d_dcheck () ((vi, rt): dcheck): P.doc =
   P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
 
-let get_cstr_dcheck (is: indexsol): itypevarcstr -> dcheck option = function
-  | {itcdesc = IDSubtype (itv1, _, v, ((_, fb) as bf))} ->
-      let ct = itypevar_apply is itv1 in
-        if is_subitypevar is itv1 (ct |> ctype_of_bound bf |> itypevar_of_ctype) then
-          None
-        else
-          Some (v, ct |> fb |> snd)
-  | _ -> None
+let d_instr_dchecks () dcks =
+  P.dprintf "  %a" (P.d_list ", " d_dcheck) dcks
+
+let d_blocks_dchecks () bdcks =
+  P.docArray ~sep:(P.text "\n") begin fun i dckss ->
+    P.dprintf "Block %d:\n%a\n" i (P.d_list "\n" d_instr_dchecks) dckss
+  end () bdcks
+
+let get_blocks_dchecks is bdsubs =
+  let bdcks = Array.create (Array.length bdsubs) [] in
+    Array.iteri begin fun i dsubss ->
+      bdcks.(i) <- begin
+        List.map begin fun dsubs ->
+          M.map_partial begin function
+            | {itcdesc = IDSubtype (itv1, _, v, ((_, fb) as bf))} ->
+                let ct = itypevar_apply is itv1 in
+                  if is_subitypevar is itv1 (ct |> ctype_of_bound bf |> itypevar_of_ctype) then
+                    None
+                  else
+                    Some (v, ct |> fb |> snd)
+            | _ -> None
+          end dsubs
+        end
+      end dsubss
+    end bdsubs;
+    bdcks
 
 (* API *)
-let infer_fun_indices (ctenv: cfun VM.t) (ve: ctype VM.t) (scim: ST.ssaCfgInfo VM.t) (cf: cfun) (sci: ST.ssaCfgInfo): ctype VM.t * dcheck list =
+let infer_fun_indices ctenv ve scim cf sci =
   let fe, ve = VM.map ifunvar_of_cfun ctenv, VM.map itypevar_of_ctype ve in
-  let ve, cs = constrain_fun fe ve (ifunvar_of_cfun cf) sci in
+  let bdsubs = Array.create (Array.length sci.ST.cfg.Ssa.blocks) [] in
+  let ve, cs = constrain_fun fe ve (ifunvar_of_cfun cf) sci bdsubs in
   let is     = solve cs in
-    (VM.map (itypevar_apply is) ve, M.map_partial (get_cstr_dcheck is) cs)
+    (VM.map (itypevar_apply is) ve, get_blocks_dchecks is bdsubs)

@@ -56,6 +56,7 @@ type t = {
   etm     : Ctypes.ctemap;
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
+  bdcks   : Inferindices.block_dchecks array;
   anna    : Refanno.block_annotation array;
   cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
   ctab    : Refanno.ctab;
@@ -189,6 +190,7 @@ let create tgr gnv gst sci shp =
    etm     = shp.LI.etypm;
    ltm     = shp.LI.vtyps;
    astore  = astore;
+   bdcks   = shp.LI.bdcks;
    anna    = shp.LI.anna;
    cstoa   = cstoa;
    ctab    = shp.LI.theta;
@@ -213,7 +215,7 @@ let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
 let annotstmt_of_block me i = 
-  (me.anna.(i), stmt_of_block me i)
+  (me.anna.(i), me.bdcks.(i), stmt_of_block me i)
 
 let get_fname me = 
   me.sci.ST.fdec.svar.vname 

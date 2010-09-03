@@ -493,6 +493,7 @@ type shape =
   {vtyps : (Cil.varinfo * Ctypes.ctype) list;
    etypm : Ctypes.ctemap;
    store : Ctypes.store;
+   bdcks : Inferindices.block_dchecks array;
    anna  : Refanno.block_annotation array;
    conca : (Refanno.cncm * Refanno.cncm) array;
    theta : Refanno.ctab}
@@ -563,7 +564,7 @@ let rec solve_and_check (cf: cfun) (vars: ctype VM.t) (gst: store) (em: ctvemap)
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
 
-let print_shape (fname: string) (cf: cfun) (gst: store) ({vtyps = locals; store = st; anna = annot}: shape) (ds: Ind.dcheck list): unit =
+let print_shape fname cf gst {vtyps = locals; store = st; anna = annot} bdcks =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -583,7 +584,7 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({vtyps = locals; store 
   let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
   let _ = P.printf "Deferred Checks:@!" in
   let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
+  let _ = P.printf "%a@!@!" Ind.d_blocks_dchecks bdcks in
     ()
 
 let fresh_local_slocs (ve: ctvenv) =
@@ -631,8 +632,8 @@ let assert_no_physical_subtyping fe cfg anna store gst =
           S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
     exit 1
 
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): shape * Ind.dcheck list =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
+let infer_shape fe ve gst scim cf sci =
+  let ve, bdcks           = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = Store.upd cf.sto_out gst in
   let scs                 = Store.fold (fun cs l i ct -> mk_locinc i ct l :: cs) cs whole_store in
@@ -645,11 +646,12 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
   let shp                 = {vtyps = CM.vm_to_list vtyps;
                              etypm = em;
                              store = sto;
+                             bdcks = bdcks;
                              anna  = annot;
                              conca = conca;
                              theta = theta} in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp ds;
-    (shp, ds)
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then print_shape sci.ST.fdec.C.svar.C.vname cf gst shp bdcks;
+    shp
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
@@ -661,7 +663,7 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): (shape * Ind.dcheck list) SM.t =
+let infer_shapes cil (funspec, varspec, storespec) scis =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
