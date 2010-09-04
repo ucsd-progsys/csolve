@@ -125,23 +125,22 @@ let add_spec fn (funspec, varspec, storespec) =
     E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
     (funspec, varspec, storespec)
 
-let generate_spec fname spec =  
-  let oc = open_out (fname^".autospec") in
-     fname
-  |> parse_file
-  >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-  |> Genspec.specs_of_file_all spec
-  >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> begin fun (funspec, varspec, storespec) ->
-       let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
-       let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
-         Sloc.SlocMap.iter
-           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore)
-           storespec;
-         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
-         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
-         close_out oc
-     end
+let generate_spec fn spec =  
+  let oc = open_out (fn^".autospec") in
+  fn |> parse_file
+     >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
+     |> Genspec.specs_of_file_all spec
+     >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
+     |> begin fun (funspec, varspec, storespec) ->
+          let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
+          let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+          Sloc.SlocMap.iter
+            (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore)
+            storespec;
+          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
+          List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
+          close_out oc
+        end
 
 (***********************************************************************************)
 (******************************** API **********************************************)

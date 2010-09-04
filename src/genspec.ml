@@ -37,7 +37,7 @@ module CM  = CilMisc
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true 
 
 exception CantConvert
 
