@@ -222,15 +222,18 @@ let reft_of_reft r t' =
 
 let reft_of_refctype = function
   | Ct.Int (_,(_,r)) 
-  | Ct.Ref (_,(_,r)) -> r
+  | Ct.Ref (_,(_,r)) 
+  | Ct.Top (_,r)     -> r
 
 let refctype_of_reft_ctype r = function
-  | Ct.Int (w,k) -> Ct.Int (w, (k,r)) 
+  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (so_ref l)))
+  | Ct.Top (o)   -> Ct.Top (o, r) 
 
 let ctype_of_refctype = function
   | Ct.Int (x, (y, _)) -> Ct.Int (x, y) 
   | Ct.Ref (x, (y, _)) -> Ct.Ref (x, y)
+  | Ct.Top (x,_)       -> Ct.Top (x) 
 
 (* API *)
 let cfun_of_refcfun   = It.CFun.map ctype_of_refctype 
@@ -453,6 +456,11 @@ let refctype_of_ctype f = function
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
       Ct.Ref (l, (x, r)) 
+  | Ct.Top (x) -> 
+      let so = so_int in
+      let vv = Sy.value_variable so in
+      let r  = C.make_reft vv so [] in
+      Ct.Top (x, r)
 
 let is_base = function
   | TInt _ -> true
@@ -463,8 +471,8 @@ let is_base = function
 (****************************************************************)
 
 let sort_of_prectype = function
-  | Ct.Int _     -> so_int
   | Ct.Ref (l,_) -> so_ref l
+  | _            -> so_int
 
 let ra_zero ct = 
   let vv = ct |> sort_of_prectype |> Sy.value_variable in

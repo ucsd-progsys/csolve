@@ -69,6 +69,7 @@ module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 type 'a prectype =
   | Int of int * 'a     (* fixed-width integer *)
   | Ref of Sloc.t * 'a  (* reference *)
+  | Top of 'a           (* "other" *)
 
 type 'a preldesc
 

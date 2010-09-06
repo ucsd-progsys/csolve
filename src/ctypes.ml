@@ -231,6 +231,7 @@ end
 type 'a prectype =
   | Int of int * 'a     (* fixed-width integer *)
   | Ref of Sloc.t * 'a  (* reference *)
+  | Top of 'a           (* "other", hack for function pointers *)
 
 type 'a contents = (ploc * C.location * 'a prectype) list
 
@@ -391,20 +392,23 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
+      | Top (x)    -> Top (f x)
 
     let convert = map
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
+      | Top (i)    -> P.dprintf "top(%a)" R.d_refinement i
 
     let width = function
       | Int (n, _) -> n
       | Ref (_)    -> CM.int_width
-
+      | Top (_)    -> assertf "width of top is undefined!" (* CM.int_width *) 
+    
     let sloc = function
       | Ref (s, _) -> Some s
-      | Int _      -> None
+      | _          -> None
 
     let subs subs = function
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
@@ -641,8 +645,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let ctype_closed ct sto =
       match ct with
-        | Int _      -> true
-        | Ref (l, _) -> SLM.mem l sto
+      | Int _      -> true
+      | Ref (l, _) -> SLM.mem l sto
 
     let closed sto =
       fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
