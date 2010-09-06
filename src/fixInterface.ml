@@ -180,17 +180,10 @@ let d_index_reft () (i,r) =
 
 module Reft = struct
   type t = Ctypes.Index.t * C.reft
-
   let d_refinement = d_index_reft
-
-  let lub ir1 ir2 =
-    assert false
-
-  let is_subref ir1 ir2 =
-    assert false
-
-  let of_const c =
-    assert false
+  let lub          = fun ir1 ir2 -> assert false
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
 end
 
 module RefCTypes = Ctypes.Make (Reft)

@@ -33,6 +33,7 @@ module Ct  = Ctypes
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module CM  = CilMisc
+module Cs  = FixInterface.RefCTypes.Spec
 
 open Cil
 open Misc.Ops
@@ -305,12 +306,15 @@ let globalspecs_of_varm varspec varm =
 (********************************* API *************************************)
 (***************************************************************************)
 
-let specs_of_file_all (funspec, varspec, storespec) cil =
-  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
-    (Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) |> funspecs_of_funm funspec,
-     varspec, storespec)
+let specs_of_file_all spec cil =
+  let st, vr = vars_of_file cil 
+               |> globalspecs_of_varm (Cs.varspec spec) in
+  let fn     = Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) 
+               |> funspecs_of_funm (Cs.funspec spec) in
+  (fn, vr, st)
 
-let specs_of_file_dec (funspec, varspec, storespec) cil =
-  let storespec, varspec = vars_of_file cil |> globalspecs_of_varm varspec in
-    (fundecs_of_file cil |> funspecs_of_funm funspec, varspec, storespec)
+let specs_of_file_dec spec cil =
+  let st, vr = vars_of_file cil    |> globalspecs_of_varm (Cs.varspec spec) in
+  let fn     = fundecs_of_file cil |> funspecs_of_funm (Cs.funspec spec) in 
+  (fn, vr, st)
 

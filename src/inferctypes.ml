@@ -45,6 +45,7 @@ module LDesc = I.LDesc
 module Store = I.Store
 module Ct    = I.CType
 module CFun  = I.CFun
+module CSpec = I.Spec 
 
 (******************************************************************************)
 (******************************** Environments ********************************)
@@ -663,11 +664,11 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes cil (funspec, varspec, storespec) scis =
+let infer_shapes cil spec (* (funspec, varspec, storespec) *) scis =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
-                   VM.add vi (SM.find vi.C.vname varspec |> fst) ve
+                   VM.add vi (CSpec.get_var vi.C.vname spec |> fst) ve
                  with Not_found ->
                    halt <| C.errorLoc loc "Could not find spec for global var %a\n" CM.d_var vi
                  end
@@ -675,7 +676,10 @@ let infer_shapes cil (funspec, varspec, storespec) scis =
            end VM.empty
   in
   let fe = declared_funs cil
-        |> List.map (fun f -> (f, SM.find f.C.vname funspec |> fst))
+        |> List.map (fun f -> (f, CSpec.get_fun f.C.vname spec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-    scis |> SM.map (infer_shape fe ve storespec scim |> M.uncurry)
+    scis |> SM.map (infer_shape fe ve (CSpec.store spec) scim |> M.uncurry)
+
+
+

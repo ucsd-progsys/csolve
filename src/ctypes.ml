@@ -247,7 +247,9 @@ type 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+type 'a prespec = ('a precfun * bool) Misc.StringMap.t 
+                * ('a prectype * bool) Misc.StringMap.t 
+                * 'a prestore
 
 module type S = sig
   module R : CTYPE_REFINEMENT
@@ -364,18 +366,27 @@ module type S = sig
 
   module Spec:
   sig
-    type t          = R.t prespec
+    type t      = R.t prespec
 
     val empty   : t
 
     val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
-    val add_fun : string -> CFun.t * bool -> t -> t
-    val add_var : string -> CType.t * bool -> t -> t
+    val add_fun : bool -> string -> CFun.t * bool -> t -> t
+    val add_var : bool -> string -> CType.t * bool -> t -> t
     val add_loc : Sloc.t -> LDesc.t -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-
+    val get_fun : string -> t -> CFun.t * bool
+    val get_var : string -> t -> CType.t * bool
     val store   : t -> Store.t
+    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+
+    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
+                  (R.t prectype * bool) Misc.StringMap.t -> 
+                  Store.t -> 
+                  t
+    val add     : t -> t -> t
   end
 end
 
@@ -771,11 +782,11 @@ module Make (R: CTYPE_REFINEMENT) = struct
        SM.map (f |> CType.map |> M.app_fst) varspec,
        Store.map f storespec)
 
-    let add_fun fn sp (funspec, varspec, storespec) =
-      (SM.add fn sp funspec, varspec, storespec)
+    let add_fun b fn sp (funspec, varspec, storespec) =
+      (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
 
-    let add_var vn vspc (funspec, varspec, storespec) =
-      (funspec, SM.add vn vspc varspec, storespec)
+    let add_var b vn sp (funspec, varspec, storespec) =
+      (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
 
     let add_loc l ld (funspec, varspec, storespec) =
       (funspec, varspec, SLM.add l ld storespec)
@@ -786,8 +797,27 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let mem_var vn (_, varspec, _) =
       SM.mem vn varspec
 
+    let get_fun fn (funspec, _, _) =
+      try SM.find fn funspec with Not_found -> 
+        assertf "Cannot find %s in fun spec" fn
+
+    let get_var vn (_, varspec, _) =
+      try SM.find vn varspec with Not_found -> 
+        assertf "Cannot find %s in var spec" vn
+
     let store (_, _, storespec) =
       storespec
+      
+    let funspec = fst3
+    let varspec = snd3
+    let make    = fun x y z -> (x, y, z)
+
+    let add (funspec, varspec, storespec) spec =  
+       spec
+       |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
+       |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
+       |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
+
   end
 end
 

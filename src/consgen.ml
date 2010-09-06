@@ -33,6 +33,8 @@ module SS = Misc.StringSet
 module M  = Misc
 module P  = Pretty
 module CM = CilMisc
+module CS = FI.RefCTypes.Spec
+
 
 open Misc.Ops
 open Cil
@@ -463,7 +465,7 @@ type dec =
 
 let infer_shapes cil spec scis =
   let spec = FI.cspec_of_refspec spec in
-    (Inferctypes.infer_shapes cil spec scis, spec |> fst3 |> SM.map fst)
+  (Inferctypes.infer_shapes cil spec scis, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -472,7 +474,7 @@ let shapem_of_scim cil spec scim =
        if SM.mem fn scim
        then (bm, (SM.add fn (cf, SM.find fn scim) fm))
        else (SM.add fn cf bm, fm)
-     end (fst3 spec)
+     end (CS.funspec spec)
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
   >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
@@ -481,10 +483,12 @@ let shapem_of_scim cil spec scim =
 
 
 (* TBD: UGLY *)
-let mk_gnv (funspec, varspec, storespec) cenv decs =
-  let decs = decs |> Misc.map_partial (function FunDec (fn,_) -> Some fn | _ -> None)
-                  |> List.fold_left (Misc.flip SS.add) SS.empty in
-  let gnv0 = varspec
+let mk_gnv spec cenv decs =
+  let decs = decs 
+             |> Misc.map_partial (function FunDec (fn,_) -> Some fn | _ -> None)
+             |> List.fold_left (Misc.flip SS.add) SS.empty in
+  let gnv0 = spec 
+             |> CS.varspec
              |> M.sm_to_list
              |> List.map begin fun (vn, (vty, _)) -> 
                  (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh) 
@@ -492,9 +496,7 @@ let mk_gnv (funspec, varspec, storespec) cenv decs =
              |> FI.ce_adds FI.ce_empty in
   M.sm_to_list cenv
   |> List.map begin fun (fn, ft) ->
-       (fn, if SS.mem fn decs
-            then FI.t_fresh_fn ft
-            else fst (Misc.do_catch ("missing spec: "^fn) (SM.find fn) funspec))
+       (fn, if SS.mem fn decs then FI.t_fresh_fn ft else (CS.get_fun fn spec |> fst))
      end
   |> FI.ce_adds_fn gnv0
 
@@ -515,12 +517,16 @@ let rename_args rf sci : FI.refcfun =
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
   FI.mk_refcfun qls' args' hi' ret' ho' 
 
-let rename_funspec scim funspec = 
-  SM.mapi begin fun fn (rf,b) -> 
-    if SM.mem fn scim
-    then (rename_args rf (SM.find fn scim), b)
-    else (rf, b)
-  end funspec
+let rename_funspec scim spec = 
+  spec 
+  |> CS.funspec
+  |> SM.mapi begin fun fn (rf,b) -> 
+       if SM.mem fn scim
+       then (rename_args rf (SM.find fn scim), b)
+       else (rf, b)
+     end
+  |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec))
+
 
 (******************************************************************************)
 (************** Generate Constraints for Each Function and Global *************)
@@ -587,20 +593,20 @@ let cons_of_var_init tag loc sto v vtyp inito =
           cs1 ++ cs2 ++ cs3
       | _ -> cs1
 
-let cons_of_decs tgr (funspec, varspec, _) gnv gst decs =
+let cons_of_decs tgr spec gnv gst decs =
   let ws, cs = cons_of_global_store tgr gst in
   List.fold_left begin fun (ws, cs, _) -> function
     | FunDec (fn, loc) ->
         let tag    = CilTag.make_t tgr loc fn 0 0 in
         let irf    = FI.ce_find_fn fn gnv in
         let ws'    = FI.make_wfs_fn cf0 gnv irf tag in
-        let srf, b = SM.find fn funspec in
+        let srf, b = CS.get_fun fn spec in
         let cs',ds'= if b then cons_of_refcfun cf0 loc gnv fn irf srf tag else ([],[]) in
           (ws' ++ ws, cs' ++ cs, [])
     | VarDec (v, loc, init) ->
         let tag     = CilTag.make_global_t tgr loc in
         let vtyp    = FI.ce_find (FI.name_of_string v.vname) gnv in
-        let vspctyp = let vsp, chk = SM.find v.vname varspec in 
+        let vspctyp = let vsp, chk = CS.get_var v.vname spec in 
                       if chk then vsp else FI.t_true_refctype vtyp in
         let cs'     = cons_of_var_init tag loc gst v vtyp init in
         let cs'',_  = FI.make_cs cf0 FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
@@ -672,7 +678,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in
-  let spec     = Misc.app_fst3 (rename_funspec scim) spec in
+  let spec     = rename_funspec scim spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim cil spec scim in
   let _        = E.log "\nDONE: Shape Inference \n" in
