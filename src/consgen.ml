@@ -650,16 +650,7 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
-let reachable cil scim =
-  match !Constants.root with 
-  | "" -> 
-      (fun _ -> true)
-  | rootname ->
-      if not (SM.mem rootname scim) then assertf "Unknown root function: %s \n" rootname else
-        let root   = (SM.find rootname scim).ST.fdec.svar in
-        let reachm = Callgraph.reach cil root |> List.map (fun v -> (v.vname, ())) |> Misc.sm_of_list in
-        (fun fn -> SM.mem fn reachm) 
-
+        
 (*
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
@@ -672,9 +663,8 @@ let print_sccs sccs =
 
 (* API *)
 let create cil (spec: FI.refspec) =
-  let scim     = scim_of_file cil in
-  let reachf   = reachable cil scim in
-  let scim     = Misc.sm_filter (fun fn _ -> reachf fn) scim in 
+  let reachf   = CM.reachable cil in
+  let scim     = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn) in 
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in

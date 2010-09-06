@@ -38,7 +38,7 @@ module Cs  = FixInterface.RefCTypes.Spec
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 exception CantConvert
 
