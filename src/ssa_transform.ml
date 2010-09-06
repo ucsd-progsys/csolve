@@ -284,8 +284,8 @@ class ssaVisitor fdec cfg out_t var_t v2r vmap_t = object(self)
         self#get_regindex read v 
         |> mk_renamed_var fdec var_t v
         >> log_renamed_var vmap_t !currentLoc v 
-     with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, exn = %s" 
-                           read v.vname (Printexc.to_string e)) 
+     with e -> E.s (E.bug "rename_var fails: read = %b,  v = %s, def = %a, exn = %s" 
+                           read v.vname d_loc v.vdecl (Printexc.to_string e)) 
 
   method vinst = function
     | Set (((Var v), NoOffset) , e, l) ->

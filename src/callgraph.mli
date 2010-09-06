@@ -20,9 +20,8 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *
  *)
-
+(*
 type t = Cil.varinfo list list
-
-val sccs : Cil.file -> t
+val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
-
+*)

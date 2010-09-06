@@ -21,6 +21,8 @@
  *
  *)
 
+(*
+
 open Misc.Ops
 open Cil
 
@@ -61,7 +63,7 @@ end
 let sccs (f: file): t =
   let cg = G.create () in
   let _  = visitCilFile (new callgraphVisitor cg) f in
-    SCC.scc_list cg
+  SCC.scc_list cg
 
 let reach (f: file) (root : varinfo) =
   let cg = G.create () in
@@ -71,4 +73,6 @@ let reach (f: file) (root : varinfo) =
   let _  = Printf.printf "Reachable funs: %s \n" (String.concat "," (List.map (fun v -> v.vname) !rv)) in
   !rv
 
+
+  *)
 

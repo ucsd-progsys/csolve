@@ -648,12 +648,16 @@ let reachable cil scim =
   match !Constants.root with 
   | "" -> 
       (fun _ -> true)
-  | rootname ->
-      if not (SM.mem rootname scim) then assertf "Unknown root function: %s \n" rootname else
-        let root   = (SM.find rootname scim).ST.fdec.svar in
-        let reachm = Callgraph.reach cil root |> List.map (fun v -> (v.vname, ())) |> Misc.sm_of_list in
-        (fun fn -> SM.mem fn reachm) 
-
+  | f0 when SM.mem f0 scim ->
+      (SM.find f0 scim).ST.fdec.svar
+      |> CM.reach cil 
+      |> List.map (fun v -> (v.vname, ())) 
+      >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" f0) 
+      |> Misc.sm_of_list
+      |> Misc.flip SM.mem 
+  | f0 -> 
+      assertf "Unknown root function: %s \n" f0 
+        
 (*
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
