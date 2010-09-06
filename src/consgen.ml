@@ -644,19 +644,6 @@ let scim_of_file cil =
            SM.add fn sci acc
          end SM.empty
 
-let reachable cil scim =
-  match !Constants.root with 
-  | "" -> 
-      (fun _ -> true)
-  | f0 when SM.mem f0 scim ->
-      (SM.find f0 scim).ST.fdec.svar
-      |> CM.reach cil 
-      |> List.map (fun v -> (v.vname, ())) 
-      >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" f0) 
-      |> Misc.sm_of_list
-      |> Misc.flip SM.mem 
-  | f0 -> 
-      assertf "Unknown root function: %s \n" f0 
         
 (*
 let print_sccs sccs =
@@ -670,9 +657,8 @@ let print_sccs sccs =
 
 (* API *)
 let create cil (spec: FI.refspec) =
-  let scim     = scim_of_file cil in
-  let reachf   = reachable cil scim in
-  let scim     = Misc.sm_filter (fun fn _ -> reachf fn) scim in 
+  let reachf   = CM.reachable cil in
+  let scim     = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn) in 
   let _        = E.log "\nDONE: SSA conversion \n" in
   let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
   let _        = E.log "\nDONE: TAG initialization\n" in

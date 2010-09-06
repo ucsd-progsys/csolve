@@ -65,6 +65,11 @@ val assertLoc : Cil.location -> bool -> ('a, unit, Pretty.doc) format -> 'a
 val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
 val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list
+
+(*
 val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
+*)
+val reachable: Cil.file -> string -> bool
+
 

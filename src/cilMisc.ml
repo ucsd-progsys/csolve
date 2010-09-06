@@ -27,7 +27,9 @@
 (********************* Misc Operations on CIL entities ************************)
 (******************************************************************************)
 
-module M = Misc
+module M  = Misc
+module SM = Misc.StringMap
+
 open Cil
 open Misc.Ops
  
@@ -280,4 +282,22 @@ let reach (f: file) (root : varinfo) =
   let _  = TRV.prefix_component (fun v -> rv := v :: !rv) cg root in
   let _  = Printf.printf "Reachable funs: %s \n" (String.concat "," (List.map (fun v -> v.vname) !rv)) in
   !rv
+
+let fdec_of_name cil fn = 
+  cil.globals 
+  |> List.filter (function GFun (f,_) -> f.svar.vname = fn | _ -> false)
+  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "Unknown function: %s \n" fn)
+
+let reachable cil =
+  match !Constants.root with 
+  | "" -> 
+      (fun _ -> true)
+  | fn -> 
+      fn 
+      |> fdec_of_name cil 
+      |> reach cil
+      |> List.map (fun v -> (v.vname, ())) 
+      >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" fn) 
+      |> Misc.sm_of_list
+      |> Misc.flip SM.mem 
 
