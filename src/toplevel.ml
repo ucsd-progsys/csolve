@@ -116,7 +116,7 @@ let add_spec fn spec_src =
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       >> (RCt.Spec.store <+> RCt.Store.closed <+> not <+> Misc.flip asserts "Global store not closed") 
+       >> (RCt.Spec.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
        >> (fun _ -> close_in ic)
        |> RCt.Spec.add spec_src 
   with Sys_error s ->
