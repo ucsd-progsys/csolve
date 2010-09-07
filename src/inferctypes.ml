@@ -416,7 +416,7 @@ let constrain_instr_aux (env: env) ((em, bas, css): ctvemap * RA.block_annotatio
       | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
           let em, ba, css2 = constrain_app env em f lvo args in
             (em, ba :: bas, css2 @ css)
-      | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
+      | i -> E.s <| C.bug "Unimplemented constrain_instr HEREHEREHEREHERE: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (em: ctvemap) (is: C.instr list): ctvemap * RA.block_annotation * cstr list =
   let em, bas, css = List.fold_left (constrain_instr_aux env) (em, [], []) is in
