@@ -140,6 +140,8 @@ let itypevar_indexvars = function
 let itypevar_of_ctype = function
   | Int (n, i) -> Int (n, IE.Const i)
   | Ref (s, i) -> Ref (s, IE.Const i)
+  | Top (i)    -> Top (IE.Const i)
+
 
 let ifunvar_of_cfun cf =
   I.CFun.map itypevar_of_ctype cf

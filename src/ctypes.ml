@@ -656,9 +656,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let ctype_closed ct sto =
       match ct with
-      | Int _      -> true
       | Ref (l, _) -> SLM.mem l sto
-
+      | _          -> true
+    
     let closed sto =
       fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
 
@@ -799,11 +799,11 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let get_fun fn (funspec, _, _) =
       try SM.find fn funspec with Not_found -> 
-        assertf "Cannot find %s in fun spec" fn
+        E.error "Cannot find %s in fun spec" fn |> halt
 
     let get_var vn (_, varspec, _) =
       try SM.find vn varspec with Not_found -> 
-        assertf "Cannot find %s in var spec" vn
+        E.error "Cannot find %s in var spec" vn |> halt
 
     let store (_, _, storespec) =
       storespec

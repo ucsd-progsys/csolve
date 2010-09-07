@@ -142,10 +142,11 @@ let ldesc_of_index_ctypes loc ts =
 let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
 
 let conv_cilbasetype = function 
-  | TVoid ats        -> Ct.Int (0, index_of_attrs ats)
-  | TInt (ik, ats)   -> Ct.Int (bytesSizeOfInt ik, index_of_attrs ats)
-  | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk, index_of_attrs ats)
-  | TEnum (ei, ats)  -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
+  | TVoid ats        -> Ct.Int (0,                       index_of_attrs ats)
+  | TInt (ik,   ats) -> Ct.Int (bytesSizeOfInt ik,       index_of_attrs ats)
+  | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,  index_of_attrs ats)
+  | TEnum (ei,  ats) -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
+  | TFun (_,_,_,ats) -> Ct.Top (index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 type type_level =
@@ -155,7 +156,7 @@ type type_level =
 let rec conv_ciltype loc tlev (th, st, off) (c, a) =
   try
     match c with
-      | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
+      | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ | TFun (_, Some _, _, _) ->
           (th, st, add_off off c), [(off, conv_cilbasetype c)]
       | TPtr (c',a') ->
           let po = if CM.has_array_attr (a' ++ a) 
@@ -171,9 +172,8 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
           conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
       | TComp (_, _) ->
           conv_cilblock loc (th, st, off) None c
-      | _ -> 
-          let _ = errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c in
-            assertf "TBD: conv_ciltype"
+     | _ -> 
+          halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
   with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
     let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
     let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
