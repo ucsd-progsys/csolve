@@ -1,8 +1,7 @@
 //#include <stdio.h>
 
 int wrap(int z, int (*f)(int a)){
-  return 0;
-  //return (*f)(z);
+  return (*f)(z);
 }
 
 

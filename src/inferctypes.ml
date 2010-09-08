@@ -144,6 +144,7 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
     | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> sub
     | Ref (s1, _), Ref (s2, _)                 -> S.Subst.extend s1 s2 sub
+    | _, _                     when ct1 = ct2  -> sub
     | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
     | _                                        -> raise (Unify (ct1, ct2))
 

@@ -34,7 +34,7 @@ module M  = Misc
 module P  = Pretty
 module CM = CilMisc
 module CS = FI.RefCTypes.Spec
-
+module Cs = Constants
 
 open Misc.Ops
 open Cil
@@ -142,7 +142,7 @@ let extend_env me v cr env =
 *)FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
 let cons_of_mem me loc tago tag grd env v =
-  if !Constants.manual then
+  if !Cs.manual then
     ([], [])
   else
     let rct = v |> FI.name_of_varinfo |> FI.t_name env in
@@ -213,7 +213,7 @@ let env_of_retbind me lsubs subs env lvo cr =
   match lvo with 
   | Some ((Var v), NoOffset) -> extend_env me v (rename_refctype lsubs subs cr) env
   | None                     -> env
-  | _  when !Constants.safe  -> assertf "env_of_retbind"
+  | _  when !Cs.safe  -> assertf "env_of_retbind"
   | _                        -> env
 
 let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
@@ -267,10 +267,14 @@ let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
       (j+1, wld), cds +++ cds'
   | Call (None, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype ->
       let _ = Cil.warnLoc loc "Ignoring vararg call" in
-        (j+1, wld), cds'
+      (j+1, wld), cds'
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
       (j+2, wld), cds +++ cds'
+  | Call (_, Lval (Mem _, _), _, _) ->
+      let _ = CM.g_errorLoc true loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt true in
+      let _ = CM.g_errorLoc !Cs.safe loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt !Cs.safe in
+      (j+2, wld), cds'  
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
@@ -305,7 +309,7 @@ let cons_of_annotstmt me loc i grd wld (anns, dckss, stmt) =
       let cs, ds        = cons_of_ret me loc i grd wld e_o in
       (wld, cs, ds)
   | _ ->
-      let _ = if !Constants.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
+      let _ = if !Cs.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
       (wld, [], [])
 
 (****************************************************************************)
@@ -413,7 +417,7 @@ let process_block_succs me i =
   end me (CF.succs_of_block me i) 
 
 let log_of_sci sci shp = 
-  if Constants.ck_olev Constants.ol_solve then
+  if Cs.ck_olev Cs.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
     let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Inferctypes.conca in
@@ -527,11 +531,9 @@ let rename_funspec scim spec =
      end
   |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec))
 
-
 (******************************************************************************)
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
-
 
 let cf0 = fun _ -> None
 
@@ -638,7 +640,7 @@ let decs_of_file cil =
     | GType _ | GCompTag _
     | GCompTagDecl _| GText _
     | GPragma _                         -> acc
-    | _ when !Constants.safe            -> assertf "decs_of_file"
+    | _ when !Cs.safe            -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
@@ -672,7 +674,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: SPEC rename \n" in
   let shm, cnv = shapem_of_scim cil spec scim in
   let _        = E.log "\nDONE: Shape Inference \n" in
-  let _        = if !Constants.ctypes_only then exit 0 else () in
+  let _        = if !Cs.ctypes_only then exit 0 else () in
   let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in

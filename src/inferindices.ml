@@ -263,6 +263,7 @@ let refine_itypevarcstr (is: indexsol) (itc: itypevarcstr): indexsol =
         begin match itv1, itv2 with
           | Int (n1, ie), Int (n2, IE.Var iv) when n1 = n2 -> refine_index is ie iv
           | Ref (_, ie), Ref (_, IE.Var iv)                -> refine_index is ie iv
+          | _, _ when itv1 = itv2                          -> is
           | _                                              -> fail_constraint is itc
         end
     | IDSubtype (itv1, itv2, _, bf) ->

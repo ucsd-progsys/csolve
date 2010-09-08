@@ -4,6 +4,13 @@ Function Pointers
     -- Create a dummy type ? int/ref/fun
     -- fix pattern match errors
     -- fix callgraph code	[skip calls through funptrs]
+    -- fix inferctypes code
+
+    HEREHEREHERE
+    ../main.native funptr0.c
+
+    bind "TRUE" or dummy refinement to lhs of fun-ptr-call assignment
+
     -- fix consgen code 	[""]
 
 (b) cone-of-influence to eliminate bogus definitions...
