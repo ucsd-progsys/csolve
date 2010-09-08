@@ -249,6 +249,14 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let wld', cs4 = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4, ds3)
 
+let cons_of_ptrcall me loc tag (env, sto, tago) = function
+  (* v := ( *f )(...), where v is local *)
+  | Some (Var v, NoOffset) when not v.Cil.vglob -> 
+      let cr  = CF.ctype_of_varinfo me v |> FI.t_true in
+      (extend_env me v cr env, sto, Some tag)
+  | _ -> 
+      (env, sto, Some tag) 
+
 (****************************************************************************)
 (********************** Constraints for [instr] *****************************)
 (****************************************************************************)
@@ -271,9 +279,9 @@ let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
       (j+2, wld), cds +++ cds'
-  | Call (_, Lval (Mem _, _), _, _) ->
-      let _ = CM.g_errorLoc true loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt true in
-      let _ = CM.g_errorLoc !Cs.safe loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt !Cs.safe in
+  | Call (lvo, Lval (Mem _, _), _, _) ->
+      let _   = CM.g_errorLoc !Cs.safe loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt !Cs.safe in
+      let wld = cons_of_ptrcall me loc tagj wld lvo in
       (j+2, wld), cds'  
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
