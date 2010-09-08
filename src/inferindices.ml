@@ -134,8 +134,10 @@ end
 
 module ITV = Ctypes.Make (IndexExpRefinement)
 
+let itypevar_top = Top (IE.Const Index.top)
+
 let itypevar_indexvars = function
-  | Int (_, ie) | Ref (_, ie) -> IE.vars ie
+  | Int (_, ie) | Ref (_, ie) | Top (ie) -> IE.vars ie
 
 let itypevar_of_ctype = function
   | Int (n, i) -> Int (n, IE.Const i)
@@ -152,6 +154,7 @@ let fresh_itypevar t =
     | C.TEnum (ei, _)       -> Int (C.bytesSizeOfInt ei.C.ekind, IE.Var (fresh_indexvar ()))
     | C.TFloat _            -> Int (CM.typ_width t, IE.Const Index.top)
     | C.TVoid _             -> itypevar_of_ctype void_ctype
+    | C.TPtr (C.TFun _ , _) -> Top (IE.Const Index.top)
     | C.TPtr _ | C.TArray _ -> Ref (S.none, IE.Var (fresh_indexvar ()))
     | t                     -> E.s <| C.bug "Unimplemented fresh_itypevar: %a@!@!" C.d_type t
 
@@ -343,7 +346,7 @@ type builtinenv = ITV.CFun.t VM.t
 
 type env = varenv * funenv
 
-let rec constrain_exp env = function
+let rec constrain_exp env e = match e with 
   | C.Const c                     -> let itv = c |> I.CType.of_const |> itypevar_of_ctype in (itv, [])
   | C.Lval lv | C.StartOf lv      -> constrain_lval env lv
   | C.UnOp (uop, e, t)            -> constrain_unop uop env t e
@@ -351,7 +354,13 @@ let rec constrain_exp env = function
   | C.CastE (C.TPtr _, C.Const c) -> constrain_constptr c
   | C.CastE (ct, e)               -> constrain_cast env ct e
   | C.SizeOf t                    -> constrain_sizeof t
-  | e                             -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+  | C.AddrOf lv                   -> constrain_addrof env lv
+  | e                             -> E.s <| C.error "Unimplemented constrain_exp: %a@!@!" C.d_exp e
+
+and constrain_addrof env = function
+  | (C.Var v, _) as lv when CM.is_fun v ->
+      let _ = CM.g_error !Cs.safe "constrain_exp cannot handle addrOf: %a@!@!" C.d_lval lv |> CM.g_halt !Cs.safe in
+      (itypevar_top, [])
 
 and constrain_lval ((ve, _) as env) = function
   | (C.Var v, C.NoOffset)       -> begin try (VM.find v ve, []) with Not_found -> halt <| C.error "Variable not found: %s\n\n" v.C.vname end
@@ -365,7 +374,7 @@ and constrain_lval ((ve, _) as env) = function
 
 and constrain_unop op env t e =
   let itv, cs = constrain_exp env e in
-    (apply_unop t op, cs)
+  (apply_unop t op, cs)
 
 and apply_unop rt = function
   | C.LNot -> Int (CM.typ_width rt, IE.Const Index.nonneg)
@@ -457,7 +466,7 @@ let constrain_return env rtv = function
 
 let constrain_arg env e (itvs, css) =
   let itv, cs = constrain_exp env e in
-    (itv :: itvs, cs :: css)
+  (itv :: itvs, cs :: css)
 
 let constrain_args env args =
   List.fold_right (constrain_arg env) args ([], [])
@@ -470,30 +479,27 @@ let constrain_app ((_, fe) as env) f lvo args =
                   (halt <| C.errorLoc !C.currentLoc "bad-arguments") in
   let css       = (Misc.do_catch "HERE3" (List.map2 (fun itva itvf -> mk_isubtypecstr itva itvf) itvs) itvfs) 
                   :: css in
-    match lvo with
-      | None    -> css
-      | Some lv ->
-          let itvlv, cs2 = constrain_lval env lv in
-            (mk_isubtypecstr ftv.ret itvlv :: cs2) :: css
+  match lvo with
+  | None    -> css
+  | Some lv -> let itvlv, cs2 = constrain_lval env lv in
+              (mk_isubtypecstr ftv.ret itvlv :: cs2) :: css
 
 let constrain_instr_aux env i =
-  let _ = C.currentLoc := C.get_instrLoc i in
-    match i with
-      | C.Set (lv, e, _) ->
-          let itv1, cs1 = constrain_lval env lv in
-          let itv2, cs2 = constrain_exp env e in
-            (mk_isubtypecstr itv2 itv1 :: cs1) @ cs2
-      | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
-          if not !Constants.safe 
-          then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore 
-          else E.s <| C.error "Can't handle varargs";
-          (constrain_args env args |> snd |> List.concat)
-      | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-          (constrain_app env f lvo args |> List.concat)
-      | C.Call (_, C.Lval (C.Mem _, _), _, _) ->
-          let _ = C.warn "Unsoundly ignoring funptr call to %a@!@!" C.dn_instr i in
-          []
-      | _ -> E.s <| C.bug "Unimplemented constrain_instr : %a@!@!" C.dn_instr i
+  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
+  match i with
+  | C.Set (lv, e, _) ->
+      let itv1, cs1 = constrain_lval env lv in
+      let itv2, cs2 = constrain_exp env e in
+      (mk_isubtypecstr itv2 itv1 :: cs1) @ cs2
+  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
+      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr_aux: vararg-call %a@!@!" C.dn_instr i |> CM.g_halt !Cs.safe in
+      (constrain_args env args |> snd |> List.concat)
+  | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
+      (constrain_app env f lvo args |> List.concat)
+  | C.Call (_, C.Lval (C.Mem _, _), _, _) ->
+      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr_aux: funptr-call %a@!@!" C.dn_instr i |> CM.g_halt !Cs.safe in
+      []
+  | _ -> E.s <| C.bug "Unimplemented constrain_instr : %a@!@!" C.dn_instr i
 
 let is_dsubtype = function
   | {itcdesc = IDSubtype _} -> true

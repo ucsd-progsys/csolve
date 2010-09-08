@@ -76,3 +76,6 @@ val reachable: Cil.file -> string -> bool
 val g_error:    bool -> ('a, unit, Pretty.doc) format -> 'a
 val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
 val g_halt:     bool -> 'a -> unit
+
+
+val is_fun: Cil.varinfo -> bool

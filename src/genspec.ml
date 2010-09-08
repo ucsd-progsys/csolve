@@ -146,7 +146,6 @@ let conv_cilbasetype = function
   | TInt (ik,   ats) -> Ct.Int (bytesSizeOfInt ik,       index_of_attrs ats)
   | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,  index_of_attrs ats)
   | TEnum (ei,  ats) -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
-  | TFun (_,_,_,ats) -> Ct.Top (index_of_attrs ats)
   | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 type type_level =
@@ -156,8 +155,10 @@ type type_level =
 let rec conv_ciltype loc tlev (th, st, off) (c, a) =
   try
     match c with
-      | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ | TFun (_, Some _, _, _) ->
+      | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
           (th, st, add_off off c), [(off, conv_cilbasetype c)]
+      | TPtr (TFun (_, Some _, _, ats), _) ->
+          (th, st, add_off off c), [(off, Ct.Top (index_of_attrs ats))]
       | TPtr (c',a') ->
           let po = if CM.has_array_attr (a' ++ a) 
           then Some (CilMisc.bytesSizeOf c') else None in
