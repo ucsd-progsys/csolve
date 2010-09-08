@@ -1,4 +1,4 @@
-//! run with -manual
+//! run with --manual
 
 extern char *malloc(int);
 

@@ -23,8 +23,9 @@
 (* This file is part of the liquidC Project.*)
 
 val cil_of_file: string -> Cil.file
+val preprocess_file : Cil.file -> Cil.file
 val quals_of_file: string -> Ast.Qualifier.t list 
-val spec_of_file: string -> FixInterface.refspec
+val spec_of_file: string -> Cil.file -> FixInterface.refspec
 val print_header: unit -> unit 
 val mk_options: string -> unit -> string  
 val main: string -> (string -> 'a) -> 'a

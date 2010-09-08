@@ -23,7 +23,7 @@ import time, subprocess, optparse, sys, socket
 sys.path.append("../")
 import external.misc.rtest as rtest
 
-solve      = "./main.native".split()
+solve      = "./lcc -c".split()
 null       = open("/dev/null", "w")
 now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
 logfile    = "../testlogs/regrtest_results_%s_%s" % (socket.gethostname (), now)
