@@ -56,11 +56,10 @@ type ploc =
 
 module type CTYPE_REFINEMENT = sig
   type t
-
   val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : Cil.constant -> t
-
+  val top          : t
   val d_refinement : unit -> t -> Pretty.doc
 end
 
@@ -106,6 +105,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val top         : t
   end
 
   module LDesc:

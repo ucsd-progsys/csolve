@@ -78,6 +78,8 @@ module IndexExp = struct
     | Div    of t * t
     | Unsign of t
 
+  let top = Const Index.top
+
   let rec d_indexexp () = function
     | Const i                 -> Index.d_index () i
     | Var iv                  -> d_indexvar () iv
@@ -124,9 +126,8 @@ let bounded_refine_index (is: indexsol) (ie: IE.t) (iv: indexvar) (ibound: Index
 
 module IndexExpRefinement = struct
   type t = IE.t
-
-  let d_refinement = IE.d_indexexp
-
+  let d_refinement  = IE.d_indexexp
+  let top           = IE.top
   let lub _ _       = assert false
   let is_subref _ _ = assert false
   let of_const _    = assert false
@@ -134,7 +135,9 @@ end
 
 module ITV = Ctypes.Make (IndexExpRefinement)
 
+(*
 let itypevar_top = Top (IE.Const Index.top)
+*)
 
 let itypevar_indexvars = function
   | Int (_, ie) | Ref (_, ie) | Top (ie) -> IE.vars ie
@@ -361,7 +364,7 @@ let rec constrain_exp env e = match e with
 and constrain_addrof env = function
   | (C.Var v, _) as lv when CM.is_fun v ->
       let _ = CM.g_error !Cs.safe "constrain_exp cannot handle addrOf: %a@!@!" C.d_lval lv |> CM.g_halt !Cs.safe in
-      (itypevar_top, [])
+      (ITV.CType.top, [])
 
 and constrain_lval ((ve, _) as env) = function
   | (C.Var v, C.NoOffset)       -> begin try (VM.find v ve, []) with Not_found -> halt <| C.error "Variable not found: %s\n\n" v.C.vname end

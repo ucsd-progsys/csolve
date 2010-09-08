@@ -224,13 +224,19 @@ let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
      |> Misc.mapfold (fun wld (al, cl) -> FI.extend_world cf asto al cl true loc tag' wld) wld
      |> Misc.app_snd List.flatten
 
+let bindings_of_call loc args es =
+  let _ = if (List.length args <> List.length es) then (E.s <| errorLoc loc "binds_of_call: bad params") in
+  Misc.map2 (fun (n, t) e -> if t = FI.RefCTypes.CType.top then None else Some ((n,t), e)) args es
+  |> Misc.map_partial id 
+  |> List.split 
+
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt       = FI.ce_find_fn fn env in
   let args      = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
-  let subs      = try List.combine (List.map fst args) es 
-                  with _ -> (Errormsg.s <| Cil.errorLoc loc "cons_of_call: bad params") in
-
+  let args, es  = bindings_of_call loc args es in
+  let subs      = List.combine (List.map fst args) es in
+ 
   let ist,ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
   let oast,ocst = FI.refstore_partition Sloc.is_abstract ost in
 

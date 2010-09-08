@@ -198,22 +198,21 @@ let ploc_offset (pl: ploc) (n: int): ploc =
 
 module type CTYPE_REFINEMENT = sig
   type t
-
   val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : C.constant -> t
-
+  val top          : t
   val d_refinement : unit -> t -> P.doc
 end
 
 module IndexRefinement = struct
   type t = Index.t
 
-  let lub i1 i2 =
-    Some (Index.lub i1 i2)
-
-  let is_subref = Index.is_subindex
-
+  let top          = Index.top
+  let lub          = fun i1 i2 -> Some (Index.lub i1 i2)
+  let is_subref    = Index.is_subindex
+  let d_refinement = Index.d_index
+  
   let of_const = function
     | C.CInt64 (v, ik, _) -> Index.of_int (Int64.to_int v)
     | C.CChr c            -> Index.IInt (Char.code c)
@@ -221,7 +220,7 @@ module IndexRefinement = struct
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
-  let d_refinement = Index.d_index
+
 end
 
 (******************************************************************************)
@@ -271,6 +270,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val top         : t
   end
 
   module LDesc:
@@ -391,11 +391,11 @@ module type S = sig
 end
 
 module Make (R: CTYPE_REFINEMENT) = struct
-  module R = R
+  module R = R (* TODO: huh? *)
 
-  (******************************************************************************)
-  (************************************ Types ***********************************)
-  (******************************************************************************)
+  (***********************************************************************)
+  (***************************** Types ***********************************)
+  (***********************************************************************)
 
   module CType = struct
     type t = R.t prectype
@@ -472,6 +472,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let is_ref = function
       | Ref _ -> true
       | _     -> false
+      
+    let top = Top (R.top)
   end
 
   (******************************************************************************)

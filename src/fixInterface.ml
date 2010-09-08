@@ -184,6 +184,7 @@ module Reft = struct
   let lub          = fun ir1 ir2 -> assert false
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
+  let top          = Ctypes.Index.top, C.make_reft (Sy.value_variable so_int) so_int [] 
 end
 
 module RefCTypes = Ctypes.Make (Reft)

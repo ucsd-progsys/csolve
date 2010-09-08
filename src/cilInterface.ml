@@ -138,8 +138,7 @@ let rec convert_cilexp  = function
   | Cil.CastE (_, e) ->
       convert_cilexp e
   | e -> 
-      Errormsg.error "Unimplemented convert_cilexp: %a@!@!" Cil.d_exp e;
-      assertf "crash"
+      Errormsg.s <| Errormsg.error "Unimplemented convert_cilexp: %a@!@!" Cil.d_exp e
 
 and convert_cilbinexp (op, e1, e2) =
   let convert_args = Misc.map_pair expr_of_cilexp in
@@ -255,8 +254,7 @@ let rec reft_of_cilexp vv e =
       A.pTrue
 
   | e -> 
-      Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e;
-      assertf "crash"
+      Errormsg.s <| Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e;
 
 
 

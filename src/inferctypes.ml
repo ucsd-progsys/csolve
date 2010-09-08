@@ -278,7 +278,16 @@ and constrain_exp_aux (env: env) (em: ctvemap): C.exp -> ctype * ctvemap * cstr 
   | C.CastE (C.TPtr _, C.Const c) -> let ctv, cs = constrain_constptr c in (ctv, em, cs)
   | C.CastE (ct, e)               -> constrain_cast env em ct e
   | C.SizeOf t                    -> constrain_sizeof em t
+  | C.AddrOf lv                   -> constrain_addrof em lv
   | e                             -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+
+and constrain_addrof em = function
+  | (C.Var v, C.NoOffset) when CM.is_fun v -> 
+      (Ct.top, em, [])
+  | lv -> 
+      E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
+
+
 
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, em, [])
@@ -378,15 +387,14 @@ let constrain_return (env: env) (em: ctvemap) (rtv: ctype): C.exp option -> ctve
         let ctv, em, cs = constrain_exp env em e in
           (em, [], mk_subty ctv rtv :: cs)
 
-(*
+(* RJ: inlining below
 let constrain_arg (env: env) (e: C.exp) ((ctvs, em, css): ctype list * ctvemap * cstr list list): ctype list * ctvemap * cstr list list =
   let ctv, em, cs = constrain_exp env em e in
     (ctv :: ctvs, em, cs :: css)
 *)
 
 let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvemap * cstr list list =
-(*  List.fold_right (constrain_arg env) es ([], em, [])
- *)
+(*  List.fold_right (constrain_arg env) es ([], em, []) *)
   List.fold_right begin fun e (ctvs, em, css) ->
     let ctv, em, cs = constrain_exp env em e in
     (ctv :: ctvs, em, cs :: css)
