@@ -138,7 +138,6 @@ sub CillyCommand {
     } else {
         if(defined $self->{CILLY_OUT}) {
             $aftercil = new OutputFile($dest, $self->{CILLY_OUT});
-            print "***** After cil: $aftercil\n\n";
             return ($aftercil, @cmd);
         }
 	$aftercil = $self->cilOutputFile($dest, 'cil.c');
