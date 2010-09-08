@@ -26,7 +26,7 @@
 (******************************************************************************)
 (********************* Misc Operations on CIL entities ************************)
 (******************************************************************************)
-
+module E  = Errormsg 
 module M  = Misc
 module SM = Misc.StringMap
 
@@ -88,7 +88,7 @@ end
 let check_pure_expr e =
   try visitCilExpr (new checkPureVisitor) e |> ignore
   with ContainsDeref ->
-    let _ = Errormsg.error "impure expr: %a" Cil.d_exp e in
+    let _ = error "impure expr: %a" Cil.d_exp e in
     assertf "impure expr"
 
 (******************************************************************************)
@@ -300,4 +300,18 @@ let reachable cil =
       >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" fn) 
       |> Misc.sm_of_list
       |> Misc.flip SM.mem 
+
+
+(****************************************************************************************)
+(************** Error Message Wrappers **************************************************)
+(****************************************************************************************)
+
+let g_error (b: bool) (fmt: ('a, unit, Pretty.doc) format) : 'a = 
+  if b then error fmt else warn fmt
+
+let g_errorLoc (b: bool) (loc: location) (fmt: ('a, unit, Pretty.doc) format) : 'a = 
+  if b then errorLoc loc fmt else warnLoc loc fmt
+
+let g_halt (b: bool) = 
+  if b then E.s else (fun _ -> ())
 

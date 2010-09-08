@@ -112,21 +112,19 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let add_spec fn (funspec, varspec, storespec) =
+let add_spec fn spec_src = 
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       >> (fun (_, _, ss) -> if RCt.Store.closed ss then () else halt <| E.error "Global store not closed")
-       |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
-       |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
-       |> (fun (fs, vs, ss) -> (fs, vs, RCt.Store.upd ss storespec))
-       >> fun _ -> close_in ic
+       >> (RCt.Spec.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
+       >> (fun _ -> close_in ic)
+       |> RCt.Spec.add spec_src 
   with Sys_error s ->
-    E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    (funspec, varspec, storespec)
+    let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
+    spec_src
 
 let generate_spec file fn spec =  
   let oc = open_out (fn^".autospec") in

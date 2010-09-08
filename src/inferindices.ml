@@ -140,6 +140,8 @@ let itypevar_indexvars = function
 let itypevar_of_ctype = function
   | Int (n, i) -> Int (n, IE.Const i)
   | Ref (s, i) -> Ref (s, IE.Const i)
+  | Top (i)    -> Top (IE.Const i)
+
 
 let ifunvar_of_cfun cf =
   I.CFun.map itypevar_of_ctype cf
@@ -488,7 +490,10 @@ let constrain_instr_aux env i =
           (constrain_args env args |> snd |> List.concat)
       | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
           (constrain_app env f lvo args |> List.concat)
-      | _ -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
+      | C.Call (_, C.Lval (C.Mem _, _), _, _) ->
+          let _ = C.warn "Unsoundly ignoring funptr call to %a@!@!" C.dn_instr i in
+          []
+      | _ -> E.s <| C.bug "Unimplemented constrain_instr : %a@!@!" C.dn_instr i
 
 let is_dsubtype = function
   | {itcdesc = IDSubtype _} -> true

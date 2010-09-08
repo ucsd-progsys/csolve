@@ -1,3 +1,27 @@
+Function Pointers
+
+(a) fun-ptrs:
+    -- Create a dummy type ? int/ref/fun
+    -- fix pattern match errors
+    -- fix callgraph code	[skip calls through funptrs]
+    -- fix consgen code 	[""]
+
+(b) cone-of-influence to eliminate bogus definitions...
+
+
+(c) scalar-consgen:
+  allows multiple finite arrays inside a struct, various other “local” forms of pointer arithmetic
+  refactors arith solving inside inferctypes and elsewhere
+  
+how to do it _without_ any alias/pointer/shape information? (over scalar variables only!)
+do i need to go over inferctypes code?
+
+make a “scalar-consgen” ? that ignores reads/writes from * -- i.e. treats as “true” ?
+what is input and output?
+
+
+-----------------------------------------------------------------------------
+
 
 Constraint Simplification (FixSimplify.ml)
 
