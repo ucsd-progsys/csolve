@@ -1,5 +1,5 @@
 
-CC=../../src/cc.sh
+CC=../../src/lcc --merge
 
 ifdef DEBUG
 FLAGS=-g $(EXTRACFLAGS)

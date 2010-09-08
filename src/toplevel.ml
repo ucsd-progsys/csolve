@@ -80,6 +80,9 @@ let preprocess cil =
             rename_locals cil in
   cil
 
+let preprocess_file file =
+  file |> Simplemem.simplemem |> preprocess
+
 let cil_of_file fname =
   fname |> parse_file |> preprocess
 
@@ -123,9 +126,9 @@ let add_spec fn spec_src =
     let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
     spec_src
 
-let generate_spec fn spec =  
+let generate_spec file fn spec =  
   let oc = open_out (fn^".autospec") in
-  fn |> parse_file
+        file
      >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
      |> Genspec.specs_of_file_all spec
      >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
@@ -144,13 +147,13 @@ let generate_spec fn spec =
 (******************************** API **********************************************)
 (***********************************************************************************)
 
-let spec_of_file fname =
+let spec_of_file outprefix file =
   RCt.Spec.empty
-  |> add_spec (fname^".spec")         (* Add manual specs  *)
+  |> add_spec (outprefix^".spec")         (* Add manual specs  *)
   |> add_spec (Co.get_lib_spec ())    (* Add default specs *)
-  (* Filename.concat libpath (Co.lib_name^".spec")) *)
-  >> generate_spec fname
-  |> add_spec (fname^".autospec")     (* Add autogen specs *)
+   (* Filename.concat libpath (Co.lib_name^".spec")) *)
+  >> generate_spec file outprefix
+  |> add_spec (outprefix^".autospec")               (* Add autogen specs *)
 
 let print_header () = 
   Printf.printf " \n \n";

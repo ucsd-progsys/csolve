@@ -23,14 +23,16 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g
 
-TARGETS=main.native
+BIN=main.native liquidc.native
+
+TARGETS=$(BIN)
 
 all:
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
 	for t in $(TARGETS); \
 	 do \
-	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $$t || exit 1; \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $(BIN) || exit 1; \
 	 done
 
 clean:
