@@ -209,13 +209,6 @@ let d_var () (v: varinfo): Pretty.doc =
 (******************************************************************************)
 
 module VarMap = Map.Make(ComparableVar)
-
-  (*
-  Map.Make(struct
-                           type t = varinfo
-                           let compare v1 v2 = compare v1.vid v2.vid
-                         end)
- *)
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
 let vm_print_keys vm =
@@ -321,4 +314,78 @@ let g_halt (b: bool) =
 
 let is_fun v = match v.vtype with TFun (_,_,_,_) -> true | _ -> false
 
+(***************************************************************************************)
+(*************** Cil Visitors **********************************************************)
+(***************************************************************************************)
+
+module type Visitor =
+sig
+  val doVisit: Cil.file -> unit 
+end
+
+module CopyGlobal =
+  (struct
+    class funVisitor fd = object(self)
+      inherit nopCilVisitor
+  
+      val shadows = Hashtbl.create 17
+  
+      method vvrbl v =
+        if v.vglob && not (isFunctionType v.vtype) then
+          ChangeTo (Misc.do_memo shadows (fun glob -> makeTempVar fd glob.vtype) v v)
+        else
+          SkipChildren
+  
+      method revertShadows =
+           Hashtbl.fold (fun glob shadow is -> Set (var glob, Lval (var shadow), locUnknown) :: is) shadows []
+        |> self#queueInstr
+  
+      method vstmt = function
+        | {skind = Return _} -> self#revertShadows; DoChildren
+        | _                  -> DoChildren
+  
+      method addShadows =
+        Instr (Hashtbl.fold (fun glob shadow is -> Set (var shadow, Lval (var glob), locUnknown) :: is) shadows [])
+  
+      method vfunc fd =
+        ChangeDoChildrenPost (fd, fun fd -> fd.sbody.bstmts <- (mkStmt self#addShadows) :: fd.sbody.bstmts; fd)
+    end
+  
+    class globVisitor = object(self)
+      inherit nopCilVisitor
+  
+      method vglob = function
+        | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
+        | _            -> SkipChildren
+    end
+  
+    let doVisit = visitCilFile (new globVisitor)
+  end : Visitor)
+
+module NameNullPtrs =
+  (struct
+    let fresh_ptr_name =
+      let counter = ref 0 in
+        fun () -> incr counter; "nullptr" ^ string_of_int !counter
+    
+    class funVisitor fd = object(self)
+      inherit nopCilVisitor
+    
+      method vexpr = function
+        | CastE (TPtr (t, attrs), (Const (CInt64 (i, _, _)) as cz)) when i = Int64.zero ->
+            let tptr = TPtr (t, addAttribute (Attr (fresh_ptr_name (), [])) attrs) in
+              ChangeDoChildrenPost (CastE (tptr, cz), id)
+        | _ -> DoChildren
+    end
+    
+    class globVisitor = object(self)
+      inherit nopCilVisitor
+    
+      method vglob = function
+        | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
+        | _            -> SkipChildren
+    end
+    
+    let doVisit = visitCilFile (new globVisitor)
+  end : Visitor)
 
