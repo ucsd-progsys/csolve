@@ -78,3 +78,11 @@ val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
 val g_halt:     bool -> 'a -> unit
 
 val is_fun: Cil.varinfo -> bool
+
+module type Visitor =
+sig
+  val doVisit: Cil.file -> unit 
+end
+
+module CopyGlobal: Visitor
+module NameNullPtrs: Visitor

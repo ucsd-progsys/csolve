@@ -74,8 +74,8 @@ let preprocess cil =
             Simpleret.simpleret cil;
             Rmtmps.removeUnusedTemps cil;
             CilMisc.purify cil;
-            CopyGlobal.copyGlobal cil;
-            NameNullPtrs.nameNullPtrs cil;
+            CilMisc.CopyGlobal.doVisit cil;
+            CilMisc.NameNullPtrs.doVisit cil;
             mk_cfg cil;
             rename_locals cil in
   cil
