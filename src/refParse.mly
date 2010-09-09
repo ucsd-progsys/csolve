@@ -26,11 +26,13 @@ let mk_sloc id sty =
 let mk_funspec fn public qslocs args ist ret ost =
   (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
 
-let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
+
+let add_funspec spec (fn, (rcf, public)) =
+  let storespec = RCt.Spec.store spec in
   if RCt.Store.closed storespec then
     let rcf = RCt.CFun.prune_unused_qlocs rcf in
       if RCt.CFun.well_formed storespec rcf then
-        RCt.Spec.add_fun fn (rcf, public) spec
+        RCt.Spec.add_fun true fn (rcf, public) spec
       else begin
         Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
         raise Parse_error
@@ -40,9 +42,10 @@ let add_funspec ((_, _, storespec) as spec) (fn, (rcf, public)) =
     raise Parse_error
   end
 
-let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
+let add_varspec spec (var, (ty, public)) =
+  let storespec = RCt.Spec.store spec in
   if RCt.Store.ctype_closed ty storespec then
-    RCt.Spec.add_var var (ty, public) spec
+    RCt.Spec.add_var true var (ty, public) spec
   else begin
     Format.printf "Error: %s has ill-formed spec\n\n" var |> ignore;
     raise Parse_error
@@ -67,7 +70,7 @@ let add_varspec ((_, _, storespec) as spec) (var, (ty, public)) =
 %token QM DOT ASGN
 %token INT BOOL PTR FUNC
 %token SRT AXM CST WF SOL QUL
-%token ENV GRD LHS RHS REF
+%token ENV GRD LHS RHS REF TOP
 %token FINAL
 
 %start specs 
@@ -181,6 +184,7 @@ reftype:
 ctype:
     INT LPAREN Num COMMA index RPAREN   { Ctypes.Int ($3, $5) }
   | REF LPAREN sloc COMMA index RPAREN  { Ctypes.Ref ($3, $5) }
+  | TOP LPAREN index RPAREN             { Ctypes.Top ($3) }
   ;
 
 index:

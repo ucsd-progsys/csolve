@@ -47,6 +47,7 @@ module Store = I.Store
 module Ct    = I.CType
 module CFun  = I.CFun
 module Field = I.Field
+module CSpec = I.Spec 
 
 (******************************************************************************)
 (******************************** Environments ********************************)
@@ -145,6 +146,7 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
     | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> sub
     | Ref (s1, _), Ref (s2, _)                 -> S.Subst.extend s1 s2 sub
+    | _, _                     when ct1 = ct2  -> sub
     | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
     | _                                        -> raise (Unify (ct1, ct2))
 
@@ -281,7 +283,16 @@ and constrain_exp_aux (env: env) (em: ctvemap): C.exp -> ctype * ctvemap * cstr 
   | C.CastE (C.TPtr _, C.Const c) -> let ctv, cs = constrain_constptr c in (ctv, em, cs)
   | C.CastE (ct, e)               -> constrain_cast env em ct e
   | C.SizeOf t                    -> constrain_sizeof em t
+  | C.AddrOf lv                   -> constrain_addrof em lv
   | e                             -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+
+and constrain_addrof em = function
+  | (C.Var v, C.NoOffset) when CM.is_fun v -> 
+      (Ct.top, em, [])
+  | lv -> 
+      E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
+
+
 
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, em, [])
@@ -362,7 +373,7 @@ and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctve
                   if n <= C.bytesSizeOfInt ik then
                     (* pmr: what about the sign bit?  this may not always be safe *)
                     if C.isSigned ik then ie else Index.unsign ie
-                  else if not !Constants.safe then begin
+                  else if not !Cs.safe then begin
                     C.warn "Unsoundly assuming cast is lossless@!@!" |> ignore;
                     if C.isSigned ik then ie else Index.unsign ie
                   end else
@@ -381,12 +392,19 @@ let constrain_return (env: env) (em: ctvemap) (rtv: ctype): C.exp option -> ctve
         let ctv, em, cs = constrain_exp env em e in
           (em, [], mk_subty ctv rtv :: cs)
 
+(* RJ: inlining below
 let constrain_arg (env: env) (e: C.exp) ((ctvs, em, css): ctype list * ctvemap * cstr list list): ctype list * ctvemap * cstr list list =
   let ctv, em, cs = constrain_exp env em e in
     (ctv :: ctvs, em, cs :: css)
+*)
 
 let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvemap * cstr list list =
-  List.fold_right (constrain_arg env) es ([], em, [])
+(*  List.fold_right (constrain_arg env) es ([], em, []) *)
+  List.fold_right begin fun e (ctvs, em, css) ->
+    let ctv, em, cs = constrain_exp env em e in
+    (ctv :: ctvs, em, cs :: css)
+  end es ([], em, [])
+
 
 let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * RA.annotation list * cstr list list =
   let ctvs, em, css  = constrain_args env em args in
@@ -409,20 +427,24 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
             (em, annot, (mk_subty (Ct.subs sub cf.ret) ctvlv :: cs2) :: css)
 
 let constrain_instr_aux (env: env) ((em, bas, css): ctvemap * RA.block_annotation * cstr list list) (i: C.instr): ctvemap * RA.block_annotation * cstr list list =
-  let _ = C.currentLoc := C.get_instrLoc i in
-    match i with
-      | C.Set (lv, e, _) ->
-          let ctv1, em, cs1 = constrain_lval env em lv in
-          let ctv2, em, cs2 = constrain_exp env em e in
-            (em, [] :: bas, (mk_subty ctv2 ctv1 :: cs1) :: cs2 :: css)
-      | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
-          if not !Constants.safe then C.warn "Unsoundly ignoring vararg call to %a@!@!" CM.d_var f |> ignore else E.s <| C.error "Can't handle varargs";
-          let _, em, css2 = constrain_args env em args in
-            (em, [] :: bas, css2 @ css)
-      | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-          let em, ba, css2 = constrain_app env em f lvo args in
-            (em, ba :: bas, css2 @ css)
-      | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
+  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in 
+  match i with
+  | C.Set (lv, e, _) ->
+      let ctv1, em, cs1 = constrain_lval env em lv in
+      let ctv2, em, cs2 = constrain_exp env em e in
+      (em, [] :: bas, (mk_subty ctv2 ctv1 :: cs1) :: cs2 :: css)
+  | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
+      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
+      let _, em, css2 = constrain_args env em args in
+      (em, [] :: bas, css2 @ css)
+  | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
+      let em, ba, css2 = constrain_app env em f lvo args in
+      (em, ba :: bas, css2 @ css)
+  | C.Call (lvo, C.Lval (C.Mem _, _), args, _) ->
+      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle funptr call: %a@!@!" Cil.d_instr i |> CM.g_halt !Cs.safe in
+      let _, em, css2 = constrain_args env em args in 
+      (em, [] :: bas, css2 @ css)
+  | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr (env: env) (em: ctvemap) (is: C.instr list): ctvemap * RA.block_annotation * cstr list =
   let em, bas, css = List.fold_left (constrain_instr_aux env) (em, [], []) is in
@@ -607,8 +629,8 @@ let assert_no_physical_subtyping fe cfg anna store gst =
           S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
     exit 1
 
-let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaCfgInfo CilMisc.VarMap.t) (cf: cfun) (sci: ST.ssaCfgInfo): Sh.t =
-  let ve, ds              = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
+let infer_shape fe ve gst scim cf sci =
+  let ve, bdcks           = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = Store.upd cf.sto_out gst in
   let scs                 = Store.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
@@ -623,11 +645,11 @@ let infer_shape (fe: funenv) (ve: ctvenv) (gst: store) (scim: Ssa_transform.ssaC
      Sh.etypm   = em;
      Sh.store   = sto;
      Sh.anna    = annot;
+     Sh.bdcks   = bdcks;
      Sh.conca   = conca;
      Sh.theta   = theta;
      Sh.nasa    = nasa;
-     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)
-     Sh.dchecks = ds}
+     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)}
 
 let declared_funs (cil: C.file) =
   C.foldGlobals cil begin fun fs -> function
@@ -636,7 +658,7 @@ let declared_funs (cil: C.file) =
     | _                                                   -> fs
   end []
 
-let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.dchecks = ds}: Sh.t): unit =
+let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.bdcks = bdcks} =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -659,28 +681,22 @@ let print_shape (fname: string) (cf: cfun) (gst: store) ({Sh.vtyps = locals; Sh.
   let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
   let _ = P.printf "Deferred Checks:@!" in
   let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" (P.d_list "\n" Ind.d_dcheck) ds in
+  let _ = P.printf "%a@!@!" Ind.d_blocks_dchecks bdcks in
     ()
 
-let print_shapes funspec storespec shpm =
-  if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
-    SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
+let print_shapes spec shpm =
+  let funspec, storespec = CSpec.funspec spec, CSpec.store spec in
+    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
+      SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
 type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
 
-let declared_funs (cil: C.file) =
-  C.foldGlobals cil begin fun fs -> function
-    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
-    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
-    | _                                                   -> fs
-  end []
-
 (* API *)
-let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: funmap): Sh.t SM.t =
+let infer_shapes cil spec scis =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
-                   VM.add vi (SM.find vi.C.vname varspec |> fst) ve
+                   VM.add vi (CSpec.get_var vi.C.vname spec |> fst) ve
                  with Not_found ->
                    halt <| C.errorLoc loc "Could not find spec for global var %a\n" CM.d_var vi
                  end
@@ -688,10 +704,10 @@ let infer_shapes (cil: C.file) ((funspec, varspec, storespec): cspec) (scis: fun
            end VM.empty
   in
   let fe = declared_funs cil
-        |> List.map (fun f -> (f, SM.find f.C.vname funspec |> fst))
+        |> List.map (fun f -> (f, CSpec.get_fun f.C.vname spec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
        scis
-    |> SM.map (infer_shape fe ve storespec scim |> M.uncurry)
-    |> FinalFields.infer_final_fields funspec storespec scis
-    >> print_shapes funspec storespec
+    |> SM.map (infer_shape fe ve (CSpec.store spec) scim |> M.uncurry)
+    |> FinalFields.infer_final_fields spec scis
+    >> print_shapes spec

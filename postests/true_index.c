@@ -1,4 +1,4 @@
-//! run with -manual
+//! run with --manual
 
 extern char *malloc(int);
 
@@ -23,7 +23,7 @@ void main(){
 
   junk 		= (int *) malloc(4);
 
-  i 		= nondet(); //crashes with nondet 
+  i 		= nondetnn(); //crashes with nondet 
   retval 	= (struct graph_st *) malloc(sizeof(*retval));
  
   retval->vlist = (Vertex __attribute__((array))) malloc(100 * sizeof(*vf));

@@ -23,9 +23,10 @@
 
 type indextyping = (Ctypes.cfun * Ctypes.ctype CilMisc.VarMap.t) CilMisc.VarMap.t
 
-type dcheck = Cil.varinfo * FixInterface.refctype
+type dcheck        = Cil.varinfo * FixInterface.refctype
+type block_dchecks = dcheck list list
 
-val d_dcheck          : unit -> dcheck -> Pretty.doc
+val d_blocks_dchecks : unit -> block_dchecks array -> Pretty.doc
 
 val infer_fun_indices :
   Ctypes.cfun CilMisc.VarMap.t ->
@@ -33,4 +34,4 @@ val infer_fun_indices :
   Ssa_transform.ssaCfgInfo CilMisc.VarMap.t ->
   Ctypes.cfun ->
   Ssa_transform.ssaCfgInfo ->
-  Ctypes.ctype CilMisc.VarMap.t * dcheck list
+  Ctypes.ctype CilMisc.VarMap.t * block_dchecks array

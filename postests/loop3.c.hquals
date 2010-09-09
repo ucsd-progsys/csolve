@@ -1,0 +1,6 @@
+qualif GT(v:int): v >= ~a
+qualif LE(v:int): v <= ~a
+qualif POS(v:int): v >= 0
+
+//qualif POS(v:int): v < 10
+qualif POS(v:int): v <= 10

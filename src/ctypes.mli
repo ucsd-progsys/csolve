@@ -58,11 +58,10 @@ module PlocSet: Set.S with type elt = ploc
 
 module type CTYPE_REFINEMENT = sig
   type t
-
   val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : Cil.constant -> t
-
+  val top          : t
   val d_refinement : unit -> t -> Pretty.doc
 end
 
@@ -71,6 +70,7 @@ module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 type 'a prectype =
   | Int of int * 'a     (* fixed-width integer *)
   | Ref of Sloc.t * 'a  (* reference *)
+  | Top of 'a           (* "other" *)
 
 type finality =
   | Final
@@ -90,7 +90,7 @@ type 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+type 'a prespec (* = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore *)
 
 (* can this be a functor? *)
 module type S = sig
@@ -113,6 +113,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val top         : t
   end
 
   module Field:
@@ -228,14 +229,25 @@ module type S = sig
     val empty   : t
 
     val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
-    val add_fun : string -> CFun.t * bool -> t -> t
-    val add_var : string -> CType.t * bool -> t -> t
+    val add_fun : bool -> string -> CFun.t * bool -> t -> t
+    val add_var : bool -> string -> CType.t * bool -> t -> t
     val add_loc : Sloc.t -> LDesc.t -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-
+    val get_fun : string -> t -> CFun.t * bool
+    val get_var : string -> t -> CType.t * bool
+    
     val store   : t -> Store.t
-  end
+    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+
+    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
+                  (R.t prectype * bool) Misc.StringMap.t -> 
+                  Store.t -> 
+                  t
+
+    val add     : t -> t -> t
+  end             
 end
 
 module Make (R: CTYPE_REFINEMENT) : S with module R = R

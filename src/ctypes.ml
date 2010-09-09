@@ -210,22 +210,21 @@ let ploc_offset (pl: ploc) (n: int): ploc =
 
 module type CTYPE_REFINEMENT = sig
   type t
-
   val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : C.constant -> t
-
+  val top          : t
   val d_refinement : unit -> t -> P.doc
 end
 
 module IndexRefinement = struct
   type t = Index.t
 
-  let lub i1 i2 =
-    Some (Index.lub i1 i2)
-
-  let is_subref = Index.is_subindex
-
+  let top          = Index.top
+  let lub          = fun i1 i2 -> Some (Index.lub i1 i2)
+  let is_subref    = Index.is_subindex
+  let d_refinement = Index.d_index
+  
   let of_const = function
     | C.CInt64 (v, ik, _) -> Index.of_int (Int64.to_int v)
     | C.CChr c            -> Index.IInt (Char.code c)
@@ -233,7 +232,7 @@ module IndexRefinement = struct
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
-  let d_refinement = Index.d_index
+
 end
 
 (******************************************************************************)
@@ -243,6 +242,7 @@ end
 type 'a prectype =
   | Int of int * 'a     (* fixed-width integer *)
   | Ref of Sloc.t * 'a  (* reference *)
+  | Top of 'a           (* "other", hack for function pointers *)
 
 type finality =
   | Final
@@ -264,7 +264,9 @@ type 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore
+type 'a prespec = ('a precfun * bool) Misc.StringMap.t 
+                * ('a prectype * bool) Misc.StringMap.t 
+                * 'a prestore
 
 module type S = sig
   module R : CTYPE_REFINEMENT
@@ -286,6 +288,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val top         : t
   end
 
   module Field:
@@ -396,27 +399,36 @@ module type S = sig
 
   module Spec:
   sig
-    type t          = R.t prespec
+    type t      = R.t prespec
 
     val empty   : t
 
     val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
-    val add_fun : string -> CFun.t * bool -> t -> t
-    val add_var : string -> CType.t * bool -> t -> t
+    val add_fun : bool -> string -> CFun.t * bool -> t -> t
+    val add_var : bool -> string -> CType.t * bool -> t -> t
     val add_loc : Sloc.t -> LDesc.t -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-
+    val get_fun : string -> t -> CFun.t * bool
+    val get_var : string -> t -> CType.t * bool
     val store   : t -> Store.t
+    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+
+    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
+                  (R.t prectype * bool) Misc.StringMap.t -> 
+                  Store.t -> 
+                  t
+    val add     : t -> t -> t
   end
 end
 
 module Make (R: CTYPE_REFINEMENT) = struct
-  module R = R
+  module R = R (* TODO: huh? *)
 
-  (******************************************************************************)
-  (************************************ Types ***********************************)
-  (******************************************************************************)
+  (***********************************************************************)
+  (***************************** Types ***********************************)
+  (***********************************************************************)
 
   module CType = struct
     type t = R.t prectype
@@ -424,20 +436,23 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
+      | Top (x)    -> Top (f x)
 
     let convert = map
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
+      | Top (i)    -> P.dprintf "top(%a)" R.d_refinement i
 
     let width = function
       | Int (n, _) -> n
       | Ref (_)    -> CM.int_width
-
+      | Top (_)    -> assertf "width of top is undefined!" (* CM.int_width *) 
+    
     let sloc = function
       | Ref (s, _) -> Some s
-      | Int _      -> None
+      | _          -> None
 
     let subs subs = function
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
@@ -490,6 +505,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let is_ref = function
       | Ref _ -> true
       | _     -> false
+      
+    let top = Top (R.top)
   end
 
   (******************************************************************************)
@@ -646,10 +663,6 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let d_ldesc () (po, flds) =
       let p = get_period_default po in
-        (* JHALA
-           let s = P.concat (P.text ",") P.break in
-           let d = P.seq s (fun (pl, pct) -> P.dprintf "@[%a: %a@]" d_index (index_of_ploc pl p) pt pct) pcts in
-           P.concat P.align (P.concat d P.unalign) *)
         P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, _, fld) -> P.dprintf "%a: %a" Index.d_index (index_of_ploc pl p) Field.d_field fld) flds)
   end
 
@@ -711,9 +724,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let ctype_closed ct sto =
       match ct with
-        | Int _      -> true
-        | Ref (l, _) -> SLM.mem l sto
-
+      | Ref (l, _) -> SLM.mem l sto
+      | _          -> true
+    
     let closed sto =
       fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
 
@@ -837,11 +850,11 @@ module Make (R: CTYPE_REFINEMENT) = struct
        SM.map (f |> CType.map |> M.app_fst) varspec,
        Store.map f storespec)
 
-    let add_fun fn sp (funspec, varspec, storespec) =
-      (SM.add fn sp funspec, varspec, storespec)
+    let add_fun b fn sp (funspec, varspec, storespec) =
+      (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
 
-    let add_var vn vspc (funspec, varspec, storespec) =
-      (funspec, SM.add vn vspc varspec, storespec)
+    let add_var b vn sp (funspec, varspec, storespec) =
+      (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
 
     let add_loc l ld (funspec, varspec, storespec) =
       (funspec, varspec, SLM.add l ld storespec)
@@ -852,8 +865,27 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let mem_var vn (_, varspec, _) =
       SM.mem vn varspec
 
+    let get_fun fn (funspec, _, _) =
+      try SM.find fn funspec with Not_found -> 
+        E.error "Cannot find %s in fun spec" fn |> halt
+
+    let get_var vn (_, varspec, _) =
+      try SM.find vn varspec with Not_found -> 
+        E.error "Cannot find %s in var spec" vn |> halt
+
     let store (_, _, storespec) =
       storespec
+      
+    let funspec = fst3
+    let varspec = snd3
+    let make    = fun x y z -> (x, y, z)
+
+    let add (funspec, varspec, storespec) spec =  
+       spec
+       |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
+       |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
+       |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
+
   end
 end
 

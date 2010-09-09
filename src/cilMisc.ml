@@ -23,15 +23,24 @@
 
 (* This file is part of the liquidC Project.*)
 
-(****************************************************************)
-(************** Misc Operations on CIL entities *****************)
-(****************************************************************)
-
-module M = Misc
+(******************************************************************************)
+(********************* Misc Operations on CIL entities ************************)
+(******************************************************************************)
+module E  = Errormsg 
+module M  = Misc
+module SM = Misc.StringMap
 
 open Cil
 open Misc.Ops
  
+module ComparableVar =
+  struct
+    type t            = varinfo
+    let compare v1 v2 = compare v1.vid v2.vid
+    let equal v1 v2   = v1.vid = v2.vid
+    let hash          = Hashtbl.hash
+  end
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
@@ -79,7 +88,7 @@ end
 let check_pure_expr e =
   try visitCilExpr (new checkPureVisitor) e |> ignore
   with ContainsDeref ->
-    let _ = Errormsg.error "impure expr: %a" Cil.d_exp e in
+    let _ = error "impure expr: %a" Cil.d_exp e in
     assertf "impure expr"
 
 (******************************************************************************)
@@ -199,11 +208,14 @@ let d_var () (v: varinfo): Pretty.doc =
 (******************************** Variable Maps *******************************)
 (******************************************************************************)
 
-module VarMap = Map.Make(struct
+module VarMap = Map.Make(ComparableVar)
+
+  (*
+  Map.Make(struct
                            type t = varinfo
                            let compare v1 v2 = compare v1.vid v2.vid
                          end)
-
+ *)
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
 let vm_print_keys vm =
@@ -227,5 +239,86 @@ let assertLoc (loc: Cil.location) (b: bool) (fmt : ('a,unit,Pretty.doc) format) 
          Pretty.nil *)
     end in
   Pretty.gprintf f fmt
+
+
+
+(******************************************************************************)
+(************************** Callgraph Construction ****************************)
+(******************************************************************************)
+
+module G   = Graph.Imperative.Digraph.Concrete(ComparableVar)
+module SCC = Graph.Components.Make(G)
+module TRV = Graph.Traverse.Dfs(G)
+
+class bodyVisitor (cg: G.t) (caller: varinfo) = object
+  inherit nopCilVisitor
+
+  method vinst = function
+    | Call (_, Lval (Var callee, NoOffset), _, _) -> G.add_edge cg caller callee; SkipChildren
+    | Call (_, _, _, _)                           -> failwith "Can't generate callgraph for non-variable function"
+    | _                                           -> SkipChildren
+end
+
+class callgraphVisitor (cg: G.t) = object
+  inherit nopCilVisitor
+
+  method vglob = function
+    GFun (fundec, _) ->
+      G.add_vertex cg fundec.svar;
+      visitCilBlock (new bodyVisitor cg fundec.svar) fundec.sbody |> ignore;
+      SkipChildren
+  | _ -> DoChildren
+end
+
+let sccs (f: file) =
+  let cg = G.create () in
+  let _  = visitCilFile (new callgraphVisitor cg) f in
+  SCC.scc_list cg
+
+let reach (f: file) (root : varinfo) =
+  let cg = G.create () in
+  let _  = visitCilFile (new callgraphVisitor cg) f in
+  let rv = ref [] in
+  let _  = TRV.prefix_component (fun v -> rv := v :: !rv) cg root in
+  let _  = Printf.printf "Reachable funs: %s \n" (String.concat "," (List.map (fun v -> v.vname) !rv)) in
+  !rv
+
+let fdec_of_name cil fn = 
+  cil.globals 
+  |> List.filter (function GFun (f,_) -> f.svar.vname = fn | _ -> false)
+  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "Unknown function: %s \n" fn)
+
+let reachable cil =
+  match !Constants.root with 
+  | "" -> 
+      (fun _ -> true)
+  | fn -> 
+      fn 
+      |> fdec_of_name cil 
+      |> reach cil
+      |> List.map (fun v -> (v.vname, ())) 
+      >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" fn) 
+      |> Misc.sm_of_list
+      |> Misc.flip SM.mem 
+
+
+(****************************************************************************************)
+(************** Error Message Wrappers **************************************************)
+(****************************************************************************************)
+
+let g_error (b: bool) (fmt: ('a, unit, Pretty.doc) format) : 'a = 
+  if b then error fmt else warn fmt
+
+let g_errorLoc (b: bool) (loc: location) (fmt: ('a, unit, Pretty.doc) format) : 'a = 
+  if b then errorLoc loc fmt else warnLoc loc fmt
+
+let g_halt (b: bool) = 
+  if b then E.s else (fun _ -> ())
+
+(***************************************************************************************)
+(*************** Misc. Predicates ******************************************************)
+(***************************************************************************************)
+
+let is_fun v = match v.vtype with TFun (_,_,_,_) -> true | _ -> false
 
 

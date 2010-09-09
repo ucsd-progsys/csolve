@@ -57,6 +57,7 @@ type t = {
   etm     : Ctypes.ctemap;
   ltm     : (varinfo * Ctypes.ctype) list;
   astore  : FI.refstore;
+  bdcks   : Inferindices.block_dchecks array;
   anna    : Refanno.block_annotation array;
   ffmsa   : Sh.final_fields_annot array;
   cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
@@ -75,8 +76,10 @@ let ctype_of_local locals v =
     Not_found -> assertf "ctype_of_local: unknown var %s" v.Cil.vname
 
 let strengthen_cloc = function
-  | ct, None | (Ctypes.Int (_, _) as ct), _  -> ct
-  | (Ctypes.Ref (_, x)), Some cl             -> Ctypes.Ref (cl, x) 
+  | ct, None 
+  | (Ctypes.Int (_, _) as ct), _  
+  | (Ctypes.Top (_) as ct), _    ->  ct
+  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x) 
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = FI.ctype_of_refctype cr in
@@ -192,6 +195,7 @@ let create tgr gnv gst sci shp =
    ltm     = shp.Sh.vtyps;
    astore  = astore;
    anna    = shp.Sh.anna;
+   bdcks   = shp.Sh.bdcks;
    ffmsa   = shp.Sh.ffmsa;
    cstoa   = cstoa;
    ctab    = shp.Sh.theta;
@@ -216,7 +220,7 @@ let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
 let annotstmt_of_block me i = 
-  (me.anna.(i), me.ffmsa.(i), stmt_of_block me i)
+  (me.anna.(i), me.bdcks.(i), me.ffmsa.(i), stmt_of_block me i)
 
 let get_fname me = 
   me.sci.ST.fdec.svar.vname 

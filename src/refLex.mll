@@ -109,6 +109,7 @@ rule token = parse
   | "grd"               { GRD }
   | "lhs"               { LHS }
   | "rhs"               { RHS }
+  | "top"               { TOP }
   | "ref"               { REF }
   | "loc"               { LOCATION }
   | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }

@@ -312,9 +312,9 @@ module Interproc = struct
           end shp.Sh.store}
     end shpm
 
-  let final_fields fspecm storespec scis shpm =
-       init_final_fields fspecm shpm
-    |> Misc.fixpoint (iter_final_fields scis shpm storespec)
+  let final_fields spec scis shpm =
+       init_final_fields (Ctypes.I.Spec.funspec spec) shpm
+    |> Misc.fixpoint (iter_final_fields scis shpm (Ctypes.I.Spec.store spec))
     |> fst
     |> set_nonfinal_fields shpm
 end
@@ -343,7 +343,7 @@ let check_finality_specs fspecm shpm =
       end shp.Sh.store
   end shpm
 
-let infer_final_fields fspecm storespec scis shpm =
+let infer_final_fields spec scis shpm =
      shpm
-  |> Interproc.final_fields fspecm storespec scis
-  >> check_finality_specs fspecm
+  |> Interproc.final_fields spec scis
+  >> check_finality_specs (Ctypes.I.Spec.funspec spec)

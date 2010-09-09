@@ -66,3 +66,15 @@ val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
 val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list
 
+(*
+val sccs : Cil.file -> Cil.varinfo list list 
+val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
+*)
+val reachable: Cil.file -> string -> bool
+
+
+val g_error:    bool -> ('a, unit, Pretty.doc) format -> 'a
+val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
+val g_halt:     bool -> 'a -> unit
+
+val is_fun: Cil.varinfo -> bool

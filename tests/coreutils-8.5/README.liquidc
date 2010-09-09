@@ -1,0 +1,7 @@
+How to funnel the code into liquidc
+
+1. ./configure; make
+2. cd src/ 
+3. edit Makefile.liquidc so that the MYCC is set appropriately (liquidc/src/cc.sh)
+4. touch tsort.c
+5. make -f Makefile.liquidc tsort

@@ -1,4 +1,4 @@
-//! run with -notruekvars
+//! run with --notruekvars
 
 extern char* malloc(int);
 

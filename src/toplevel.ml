@@ -80,6 +80,9 @@ let preprocess cil =
             rename_locals cil in
   cil
 
+let preprocess_file file =
+  file |> Simplemem.simplemem |> preprocess
+
 let cil_of_file fname =
   fname |> parse_file |> preprocess
 
@@ -109,51 +112,48 @@ let quals_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
-let add_spec fn (funspec, varspec, storespec) =
+let add_spec fn spec_src = 
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
        |> RefParse.specs RefLex.token
-       >> (fun (_, _, ss) -> if RCt.Store.closed ss then () else halt <| E.error "Global store not closed")
-       |> SM.fold (fun fn sp (fs, vs, ss) -> (Misc.sm_protected_add false fn sp fs, vs, ss)) funspec
-       |> SM.fold (fun vn sp (fs, vs, ss) -> (fs, Misc.sm_protected_add false vn sp vs, ss)) varspec
-       |> (fun (fs, vs, ss) -> (fs, vs, RCt.Store.upd ss storespec))
-       >> fun _ -> close_in ic
+       >> (RCt.Spec.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
+       >> (fun _ -> close_in ic)
+       |> RCt.Spec.add spec_src 
   with Sys_error s ->
-    E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s;
-    (funspec, varspec, storespec)
+    let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
+    spec_src
 
-let generate_spec fname spec =  
-  let oc = open_out (fname^".autospec") in
-     fname
-  |> parse_file
-  >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-  |> Genspec.specs_of_file_all spec
-  >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-  |> begin fun (funspec, varspec, storespec) ->
-       let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
-       let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
-         Sloc.SlocMap.iter
-           (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore)
-           storespec;
-         List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
-         List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
-         close_out oc
-     end
+let generate_spec file fn spec =  
+  let oc = open_out (fn^".autospec") in
+        file
+     >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
+     |> Genspec.specs_of_file_all spec
+     >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
+     |> begin fun (funspec, varspec, storespec) ->
+          let funspec = M.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
+          let varspec = M.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+          Sloc.SlocMap.iter
+            (fun l ld -> Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore)
+            storespec;
+          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
+          List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
+          close_out oc
+        end
 
 (***********************************************************************************)
 (******************************** API **********************************************)
 (***********************************************************************************)
 
-let spec_of_file fname =
+let spec_of_file outprefix file =
   RCt.Spec.empty
-  |> add_spec (fname^".spec")         (* Add manual specs  *)
+  |> add_spec (outprefix^".spec")         (* Add manual specs  *)
   |> add_spec (Co.get_lib_spec ())    (* Add default specs *)
    (* Filename.concat libpath (Co.lib_name^".spec")) *)
-  >> generate_spec fname
-  |> add_spec (fname^".autospec")               (* Add autogen specs *)
+  >> generate_spec file outprefix
+  |> add_spec (outprefix^".autospec")               (* Add autogen specs *)
 
 let print_header () = 
   Printf.printf " \n \n";
