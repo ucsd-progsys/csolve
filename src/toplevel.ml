@@ -68,8 +68,7 @@ let mk_cfg cil =
 
 let preprocess cil =
   let _   = CilMisc.unfloat cil;
-            Pheapify.heapifyNonArrays := true;
-            Pheapify.default_heapify cil;
+            CilMisc.Pheapify.doVisit cil;
             Psimplify.simplify cil;
             Simpleret.simpleret cil;
             Rmtmps.removeUnusedTemps cil;
