@@ -168,6 +168,8 @@ let builtins =
 (* (uf_skolem,  C.make_reft vv_skl so_skl []); *)
    (uf_uncheck, C.make_reft vv_pun so_pun [])]
 
+let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
+
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
@@ -184,7 +186,7 @@ module Reft = struct
   let lub          = fun ir1 ir2 -> assert false
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
-  let top          = Ctypes.Index.top, C.make_reft (Sy.value_variable so_int) so_int [] 
+  let top          = Ctypes.Index.top, reft_of_top 
 end
 
 module RefCTypes = Ctypes.Make (Reft)
@@ -441,6 +443,7 @@ let fresh_kvar =
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
+
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in
@@ -451,10 +454,7 @@ let refctype_of_ctype f = function
       let r  = C.make_reft vv so (f t) in
       Ct.Ref (l, (x, r)) 
   | Ct.Top (x) -> 
-      let so = so_int in
-      let vv = Sy.value_variable so in
-      let r  = C.make_reft vv so [] in
-      Ct.Top (x, r)
+     Ct.Top (x, reft_of_top)
 
 let is_base = function
   | TInt _ -> true

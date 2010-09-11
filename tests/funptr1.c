@@ -1,5 +1,7 @@
 //#include <stdio.h>
 
+//crashes in "safe" mode
+
 int wrap(int z, int (*f)(int a)){
   return (*f)(z);
 }
@@ -22,6 +24,7 @@ void main(){
   
   y = wrap(x, &inc);
   
+  assert(y >= y);
   assert(y >= x);
   //printf("hello world: x = %d, y = %d \n", x, y);
   
