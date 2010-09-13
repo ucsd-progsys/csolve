@@ -327,6 +327,9 @@ let g_halt (b: bool) =
 
 let is_fun v = match v.vtype with TFun (_,_,_,_) -> true | _ -> false
 
+
+
+
 (***************************************************************************************)
 (*************** Cil Visitors **********************************************************)
 (***************************************************************************************)
@@ -371,8 +374,10 @@ module CopyGlobal =
         | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
         | _            -> SkipChildren
     end
+    
+    let visitor = new globVisitor
   
-    let doVisit = visitCilFile (new globVisitor)
+    let doVisit = visitCilFile visitor
   end : Visitor)
 
 module NameNullPtrs =
@@ -399,7 +404,9 @@ module NameNullPtrs =
         | _            -> SkipChildren
     end
     
-    let doVisit = visitCilFile (new globVisitor)
+    let visitor = new globVisitor
+
+    let doVisit = visitCilFile visitor
   end : Visitor)
 
 (*
@@ -466,14 +473,11 @@ module Pheapify =
       | _ -> DoChildren
     end
     
-    let heapify (f : file) (alloc : exp) =
-      visitCilFile (new heapifyAnalyzeVisitor f alloc) f;
-      f
-    
     let default_heapify (f : file) =
       let alloc_fun = findOrCreateFunc f "malloc" (TFun (voidPtrType, Some [("sz", !typeOfSizeOf, [])], false, [])) in
       let alloc_exp = Lval (Var alloc_fun, NoOffset) in
-        ignore (heapify f alloc_exp)
+      let default_analyzer = new heapifyAnalyzeVisitor f alloc_exp in
+        visitCilFile default_analyzer f
     
     let doVisit = default_heapify
   end : Visitor)
