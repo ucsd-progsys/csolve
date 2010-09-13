@@ -15,6 +15,14 @@ EOF
 OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`
 
 cat - > build.sh <<EOF
+#!`which bash`
+
+########################## Exit if in an incompatible build environment
+if [[ \`uname -m\` = 'x86_64' || \`uname\` != 'Linux' ]]
+then
+    echo Error: Found a non-32-bit linux environment.
+    exit 1
+fi
 ########################## Fill in these fields
 OCAMLLIB=$OCAMLLIB
 ##########################
