@@ -177,6 +177,8 @@ let builtins =
 
 let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
 
+let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
+
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)

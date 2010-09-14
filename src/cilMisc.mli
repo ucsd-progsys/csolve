@@ -86,3 +86,4 @@ end
 
 module CopyGlobal: Visitor
 module NameNullPtrs: Visitor
+module Pheapify: Visitor
