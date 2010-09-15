@@ -31,19 +31,18 @@ open M.Ops
 let add_ploc p ps =
   if Ctypes.ploc_periodic p then ps else PS.add p ps
 
-type block_annotation = PS.t LM.t list
-
 module type Context = sig
   val cfg   : Ssa.cfgInfo
   val shp   : Sh.t
-  val ffmm  : (block_annotation array * PS.t LM.t) SM.t
+  val ffmm  : (PS.t LM.t * Sh.final_fields_annot array) SM.t
   val sspec : CT.Store.t
 end
 
 let d_final_fields () ffmsa =
-  P.docArray ~sep:P.line begin fun i ffms ->
-    P.dprintf "Block %d:\n%a"
+  P.docArray ~sep:P.line begin fun i (ffm, ffms) ->
+    P.dprintf "Block %d:\n  %a\n%a"
       i
+      (S.d_slocmap Ctypes.d_plocset) ffm
       (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap Ctypes.d_plocset) ffm)) ffms
   end () ffmsa
 
@@ -79,8 +78,8 @@ module Intraproc (X: Context) = struct
 
   let check_pred_inclusion ffmsa ffm i =
     match ffmsa.(i) with
-      | [], ffm2 -> check_final_inclusion ffm2 ffm |> ignore
-      | ffms, _  -> check_final_inclusion (ffms |> List.rev |> List.hd) ffm |> ignore
+      | ffm2, [] -> check_final_inclusion ffm2 ffm |> ignore
+      | _, ffms  -> check_final_inclusion (ffms |> List.rev |> List.hd) ffm |> ignore
 
   let check_lval_set ffm na lval =
     match locs_of_lval lval with
@@ -106,7 +105,7 @@ module Intraproc (X: Context) = struct
       | _          -> ()
 
   let check_call_annots fname ffm annots =
-    let ffmcallee = SM.find fname X.ffmm |> snd in
+    let ffmcallee = SM.find fname X.ffmm |> fst in
       List.iter begin function
         | RA.New (scallee, scaller) -> assert (PS.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
         | _                         -> ()
@@ -127,7 +126,7 @@ module Intraproc (X: Context) = struct
 
   let sanity_check_finals (ffmsa, _) =
     Array.iteri begin fun i b ->
-      let ffms, ffm = ffmsa.(i) in
+      let ffm, ffms = ffmsa.(i) in
       let _         = List.fold_left check_final_inclusion LM.empty ffms in
       let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
       let _         = check_block_sets b ffm ffms (X.shp.Sh.nasa.(i)) in
@@ -159,7 +158,7 @@ module Intraproc (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
-	     let callee_ffm = SM.find fname X.ffmm |> snd in
+	     let callee_ffm = SM.find fname X.ffmm |> fst in
 	       LM.add scaller (PS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
 	 | _ -> ffm
        end ffm
@@ -181,11 +180,11 @@ module Intraproc (X: Context) = struct
       | RA.New _                                -> ffm
     end ffm annots
 
-  let process_instr na i annots (ffms, ffm) =
+  let process_instr na i annots (ffm, ffms) =
        ffm
     |> instr_update_finals na annots i
     |> process_gen_inst annots
-    |> fun ffm' -> (ffm :: ffms, ffm')
+    |> fun ffm' -> (ffm', ffm :: ffms)
 
   let meet_finals ffm1 ffm2 =
     LM.fold begin fun l ps ffm ->
@@ -209,20 +208,20 @@ module Intraproc (X: Context) = struct
         | []    -> add_succ_generalized_clocs conc_out LM.empty init_ffm
         | succs ->
              succs
-          |> List.map (fun j -> ffmsa.(j) |> snd)
+          |> List.map (fun j -> ffmsa.(j) |> fst)
           |> M.list_reduce meet_finals
           |> List.fold_right (fun j ffm -> add_succ_generalized_clocs conc_out (fst X.shp.Sh.conca.(j)) ffm) succs
 
   let process_block init_ffm ffmsa i =
     let ffm = merge_succs init_ffm ffmsa i in
       match X.cfg.Ssa.blocks.(i).Ssa.bstmt.C.skind with
-        | C.Instr is -> M.fold_right3 process_instr (X.shp.Sh.nasa.(i)) is X.shp.Sh.anna.(i) ([], ffm)
-        | _          -> ([], ffm)
+        | C.Instr is -> M.fold_right3 process_instr (X.shp.Sh.nasa.(i)) is X.shp.Sh.anna.(i) (ffm, [])
+        | _          -> (ffm, [])
 
   let fixed ffmsa ffmsa' =
-    M.array_fold_lefti begin fun i b (ffms, ffm) ->
+    M.array_fold_lefti begin fun i b (ffm, ffms) ->
       b &&
-        let (ffms', ffm') = ffmsa'.(i) in
+        let (ffm', ffms') = ffmsa'.(i) in
           LM.equal PS.equal ffm ffm' &&
             M.same_length ffms ffms' &&
             List.for_all2 (LM.equal PS.equal) ffms ffms'
@@ -259,16 +258,16 @@ module Intraproc (X: Context) = struct
 
   let final_fields () =
     let init_ffm = () |> init_abstract_finals |> init_concrete_finals X.shp.Sh.anna in
-         Array.make (Array.length X.shp.Sh.nasa) ([], init_ffm)
+         Array.make (Array.length X.shp.Sh.nasa) (init_ffm, [])
       |> M.fixpoint (iter_finals init_ffm)
       >> sanity_check_finals
       |> fst
-      |> fun ffmsa -> (Array.map fst ffmsa, ffmsa.(0) |> snd)
+      |> fun ffmsa -> (ffmsa, ffmsa.(0) |> fst)
 end
 
 module Interproc = struct
   let iter_final_fields scis shpm storespec ffmm =
-    SM.fold begin fun fname (_, ffm) (ffmm', reiter) ->
+    SM.fold begin fun fname (ffm, _) (ffmm', reiter) ->
       if SM.mem fname shpm then
         let module X = struct
 	  let shp   = SM.find fname shpm
@@ -278,7 +277,7 @@ module Interproc = struct
         end in
         let module IP   = Intraproc (X) in
         let ffmsa, ffm' = IP.final_fields () in
-	  (SM.add fname (ffmsa, ffm') ffmm', reiter || not (LM.equal PS.equal ffm ffm'))
+	  (SM.add fname (ffm', ffmsa) ffmm', reiter || not (LM.equal PS.equal ffm ffm'))
       else (ffmm', reiter)
     end ffmm (ffmm, false)
 
@@ -291,18 +290,18 @@ module Interproc = struct
     LM.map (fun ld -> LD.fold (fun ffs pl fld -> add_ploc pl ffs) PS.empty ld) shp.Sh.store
 
   let init_final_fields fspecm shpm =
-    let empty_annot = Array.create 0 [] in
+    let empty_annot = Array.create 0 (LM.empty, []) in
          SM.empty
-      |> SM.fold (fun fname spec ffmm -> SM.add fname (empty_annot, spec_final_fields spec) ffmm) fspecm
-      |> SM.fold (fun fname shp ffmm -> SM.add fname (empty_annot, shape_init_final_fields shp) ffmm) shpm
+      |> SM.fold (fun fname spec ffmm -> SM.add fname (spec_final_fields spec, empty_annot) ffmm) fspecm
+      |> SM.fold (fun fname shp ffmm -> SM.add fname (shape_init_final_fields shp, empty_annot) ffmm) shpm
 
   let set_nonfinal_fields shpm ffmm =
     SM.mapi begin fun fname shp ->
       {shp with
-         Sh.ffmsa = SM.find fname ffmm |> fst;
+         Sh.ffmsa = SM.find fname ffmm |> snd;
          Sh.store =
           LM.mapi begin fun l ld ->
-            let ffs = SM.find fname ffmm |> snd |> LM.find l in
+            let ffs = SM.find fname ffmm |> fst |> LM.find l in
               LD.mapn begin fun _ pl fld ->
                 if PS.mem pl ffs then
                   F.set_finality Ctypes.Final fld

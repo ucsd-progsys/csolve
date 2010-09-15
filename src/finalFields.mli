@@ -1,5 +1,3 @@
-type block_annotation = Ctypes.PlocSet.t Sloc.SlocMap.t list
-
 val infer_final_fields :
   Ctypes.I.Spec.t ->
   (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t ->
@@ -8,5 +6,5 @@ val infer_final_fields :
 
 val d_final_fields :
   unit ->
-  block_annotation array ->
+  Shape.final_fields_annot array ->
   Pretty.doc

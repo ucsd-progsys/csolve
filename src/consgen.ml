@@ -325,7 +325,7 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
                            (FI.make_cs cf env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
-let cons_of_annotstmt me loc i grd wld (anns, dckss, ffms, stmt) =
+let cons_of_annotstmt me loc i grd wld (anns, dckss, (_, ffms), stmt) =
   match stmt.skind with
   | Instr is ->
       (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)

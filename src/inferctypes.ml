@@ -649,7 +649,7 @@ let infer_shape fe ve gst scim cf sci =
      Sh.conca   = conca;
      Sh.theta   = theta;
      Sh.nasa    = nasa;
-     Sh.ffmsa   = Array.create 0 []; (* filled in by finalFields *)}
+     Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
 
 let declared_funs (cil: C.file) =
   C.foldGlobals cil begin fun fs -> function
