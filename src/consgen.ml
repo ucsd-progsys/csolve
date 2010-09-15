@@ -94,8 +94,8 @@ let weaken_undefined me rm env v =
 (********************** Constraints for Annots ******************************)
 (****************************************************************************)
 
-let strengthen_instantiated_cloc ffm ptrname cloc ld =
-  FI.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find cloc ffm) ptrname pl fld) ld
+let strengthen_instantiated_aloc ffm ptrname aloc ld =
+  FI.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find aloc ffm) ptrname pl fld) ld
 
 let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
   | Refanno.Gen  (cloc, aloc) ->
@@ -115,7 +115,7 @@ let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
   | Refanno.Ins (ptr, aloc, cloc) ->
       let _          = CM.assertLoc loc (not (FI.refstore_mem cloc sto)) "cons_of_annot: (Ins)!" in
       let cf         = CF.get_alocmap me in
-      let strengthen = strengthen_instantiated_cloc ffm ptr cloc  in
+      let strengthen = strengthen_instantiated_aloc ffm ptr aloc in
       let wld',_     = FI.extend_world cf sto aloc cloc false strengthen loc tag (env, sto, tago) in
       (wld', ([], []))
 
@@ -284,28 +284,28 @@ let cons_of_ptrcall me loc tag (env, sto, tago) = function
 let with_wfs (cs, ds) wfs =
   (cs, ds, wfs)
 
-let cons_of_annotinstr me i grd (j, wld) (annots, dcks, ffm, instr) =
+let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
   let gs, is, ns = group_annots annots in
   let loc        = get_instrLoc instr in
   let tagj       = CF.tag_of_instr me i j loc in
-  let wld, acds  = cons_of_annots me loc tagj grd wld ffm (gs ++ is) in
+  let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm (gs ++ is) in
   let cks        = dcks |> List.map (cons_of_dcheck me loc grd tagj wld) |> Misc.splitflatten in
   let cds'       = acds +++ cks in
   match instr with 
   | Set (lv, e, _) ->
       let _         = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
       let wld, cds  = cons_of_set me loc tagj grd ffm wld (lv, e) in
-      (j+1, wld), with_wfs (cds +++ cds') []
+      (j+1, ffm, wld), with_wfs (cds +++ cds') []
   | Call (None, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype ->
       let _ = Cil.warnLoc loc "Ignoring vararg call" in
-        (j+1, wld), with_wfs acds []
+        (j+1, ffm, wld), with_wfs acds []
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds, wfs = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
-      (j+2, wld), with_wfs (cds +++ cds') wfs
+      (j+2, ffm, wld), with_wfs (cds +++ cds') wfs
   | Call (lvo, Lval (Mem _, _), _, _) ->
       let _   = CM.g_errorLoc !Cs.safe loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt !Cs.safe in
       let wld = cons_of_ptrcall me loc tagj wld lvo in
-      (j+2, wld), with_wfs cds' []
+      (j+2, ffm, wld), with_wfs cds' []
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
@@ -325,14 +325,14 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
                            (FI.make_cs cf env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
-let cons_of_annotstmt me loc i grd wld (anns, dckss, (_, ffms), stmt) =
+let cons_of_annotstmt me loc i grd wld (anns, dckss, (ffm, ffms), stmt) =
   match stmt.skind with
   | Instr is ->
       (* INTRA-FOLD: let ann, anns = Misc.list_snoc anns in *)
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let (n, wld), cdws   =  Misc.combine4 anns dckss ffms is 
-                          |> Misc.mapfold (cons_of_annotinstr me i grd) (1, wld) in
-      let cs1, ds1, ws    = Misc.splitflatten3 cdws in
+      let (n, _, wld), cdws     =  Misc.combine4 anns dckss ffms is
+                                |> Misc.mapfold (cons_of_annotinstr me i grd) (1, ffm, wld) in
+      let cs1, ds1, ws          = Misc.splitflatten3 cdws in
       (* INTRA-FOLD: let wld, (cs2, ds2) = cons_of_annots me loc (CF.tag_of_instr me i n loc) grd wld ann in *)
       (wld, (* INTRA-FOLD: cs2 ++ *) cs1, (* INTRA-FOLD: ds2 ++ *) ds1, ws)
   | Return (e_o, loc) ->
