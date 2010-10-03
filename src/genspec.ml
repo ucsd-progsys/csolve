@@ -42,6 +42,11 @@ let mydebug = false
 
 exception CantConvert
 
+type period = 
+  | Nop
+  | Unb of int          (* Unb m    == forall 0 <= i: m * i     *)
+  | Bnd of int * int    (* Bnd m, k == forall 0 <= i < k: m * i *)
+
 (*************************************************************************************)
 (* {{{ DO NOT DELETE
  * Unused code to determine if a type is recursive
@@ -101,31 +106,57 @@ let is_cyclic =
 
  }}} *)
 
-let mk_idx po i =
-  match po with 
-  | None   -> Ct.Index.IInt i
-  | Some n -> Ct.Index.ISeq (i, n, Ct.Pos)
+let period_of_ciltype = function
+  | TArray (c',_,_) as c -> 
+      let m = CM.bytesSizeOf c' in
+      let k = (CM.bytesSizeOf c) / m in
+      Bnd (m, k)
+  | _                   -> assertf "period_of_ciltype: non-array argument"
+
+let id_of_period = function
+  | Nop        -> ""
+  | Unb m      -> Printf.sprintf "[%d]" m
+  | Bnd (m, k) -> Printf.sprintf "[%d < %d]" m k 
+
+let id_of_ciltype t pd =  
+  Pretty.dprintf "%a ### %a ### %s" 
+    d_typsig (typeSig t) 
+    d_attrlist (typeAttrs t)
+    (id_of_period pd)
+  |> Pretty.sprint ~width:80
+(* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
+
+
+
+
+
+let mk_idx pd i =
+  match pd with 
+  | Nop        -> Ct.Index.IInt i
+  | Unb n      -> Ct.Index.ISeq (i, n, Ct.Pos)
+  | Bnd (n, k) -> Ct.Index.ISeq (i, n, Ct.PosB k)
 
 let unroll_ciltype off t =
   match Cil.unrollType t with
   | TComp (ci, _) ->
       asserti ci.cstruct "TBD unroll_ciltype: unions";
       List.map begin fun x ->
-        (x.ftype, Ct.Index.plus off (mk_idx None (fst (bitsOffset t (Field (x, NoOffset))) / 8)))
+        (x.ftype, Ct.Index.plus off (mk_idx Nop (fst (bitsOffset t (Field (x, NoOffset))) / 8)))
       end ci.cfields
   | t -> [(t, off)]
 
 let add_off off c =
-  let i = CilMisc.bytesSizeOf c in
+  let i = CM.bytesSizeOf c in
   match off with 
   | Ct.Index.IInt i' -> Ct.Index.IInt (i+i')
   | Ct.Index.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.Index.d_index off
 
-let adj_period po idx = 
-  match po, idx with
-  | None  , _               -> idx
-  | Some n, Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.Pos)
-  | _, _                    -> assertf "adjust_period: adjusting a periodic index"
+let adj_period pd idx = 
+  match pd, idx with
+  | Nop  , _                    -> idx
+  | Unb n,      Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.Pos)
+  | Bnd (n, k), Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.PosB k)
+  | _,          _               -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
@@ -160,19 +191,18 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
       | TPtr (TFun (_, Some _, _, ats), _) ->
           (th, st, add_off off c), [(off, Ct.Top (index_of_attrs ats))]
       | TPtr (c',a') ->
-          let po = if CM.has_array_attr (a' ++ a) 
-          then Some (CilMisc.bytesSizeOf c') else None in
-          let (th', st'), t = conv_ptr loc (th, st) po c' in
+          let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
+          let (th', st'), t = conv_ptr loc (th, st) pd c' in
             (th', st', add_off off c), [(off, t)] 
       | TArray (c',_,_) when tlev = InStruct ->
-          conv_cilblock loc (th, st, off) (Some (CilMisc.bytesSizeOf c')) c'
+          conv_cilblock loc (th, st, off) (period_of_ciltype c) c'
       | TArray (c',_,_) when tlev = TopLevel ->
-          let (th', st'), t = conv_ptr loc (th, st) (Some (CilMisc.bytesSizeOf c')) c' in
-            (th', st', add_off off c), [(off, t)] 
+          let (th', st'), t = conv_ptr loc (th, st) (period_of_ciltype c) c' in
+          (th', st', add_off off c), [(off, t)] 
       | TNamed (ti, a') ->
           conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
       | TComp (_, _) ->
-          conv_cilblock loc (th, st, off) None c
+          conv_cilblock loc (th, st, off) Nop c
      | _ -> 
           halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
   with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
@@ -180,22 +210,22 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
     let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
 
-and conv_ptr loc (th, st) po c =
-  let tid = CM.id_of_ciltype c po in
+and conv_ptr loc (th, st) pd c =
+  let tid = id_of_ciltype c pd in
   let _   = if mydebug then Format.printf "GENSPEC: id_of_ciltype: %s \n" tid in
   if SM.mem tid th then
     let l, idx           = SM.find tid th in 
     (th, st), Ct.Ref (l, idx) 
   else
     let l                = Sloc.fresh Sloc.Abstract in
-    let idx              = mk_idx po 0 in
+    let idx              = mk_idx pd 0 in
     let th'              = SM.add tid (l, idx) th in
-    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) po c in
+    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) pd c in
     let b                = ldesc_of_index_ctypes loc its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.Ref (l, idx)
 
-and conv_cilblock loc (th, st, off) po c =
+and conv_cilblock loc (th, st, off) pd c =
 (* {{{  *)let _  =
     if mydebug then 
       (let cs = unroll_ciltype off c in
@@ -204,7 +234,7 @@ and conv_cilblock loc (th, st, off) po c =
   c |> unroll_ciltype off
     |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype loc InStruct (th, st, off) (c', [])) (th, st, off)
     |> Misc.app_snd Misc.flatten
-    |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period po)))
+    |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period pd)))
 
 let conv_ciltype y tlev z c =
     let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in

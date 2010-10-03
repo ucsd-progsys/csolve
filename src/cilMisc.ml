@@ -196,18 +196,6 @@ let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
 
-let id_of_po = function
-  | None   -> ""
-  | Some n -> string_of_int n
-
-let id_of_ciltype t po =  
-  Pretty.dprintf "%a ### %a ### %s" 
-    Cil.d_typsig (Cil.typeSig t) 
-    Cil.d_attrlist (Cil.typeAttrs t)
-    (id_of_po po)
-  |> Pretty.sprint ~width:80
-(* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
-
 
 
 (******************************************************************************)

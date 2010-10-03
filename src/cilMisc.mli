@@ -46,8 +46,6 @@ val has_unchecked_attr : Cil.attributes -> bool
 
 val is_unchecked_ptr_type : Cil.typ -> bool
 
-val id_of_ciltype    : Cil.typ -> int option -> string
-
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
 val definedHere : Cil.varinfo -> bool

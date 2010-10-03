@@ -39,9 +39,11 @@ open M.Ops
 (*********************************** Indices **********************************)
 (******************************************************************************)
 
-type seq_polarity = (* whether sequence extends positively only or in both directions *)
-  | Pos
-  | PosNeg
+(* TODO: PMR, please check *)
+type seq_polarity =     (* direction in which sequence extends *)
+  | Pos                 (* +ve unbounded         *)
+  | PosNeg              (* +ve and -ve unbounded *)
+  | PosB of int         (* +ve upto k times      *)
 
 module Index = struct
   let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
@@ -63,7 +65,8 @@ module Index = struct
     | IInt n              -> P.num n
     | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
     | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
-
+    | ISeq (n, m, PosB k) -> P.dprintf "%d[%d < %d]" n m k
+  
   let is_subindex i1 i2 =
     match (i1, i2) with
       | (IBot, _)                             -> true
@@ -145,6 +148,7 @@ let d_ploc (): ploc -> P.doc = function
   | PLAt i            -> P.dprintf "PLAt %d" i
   | PLSeq (i, Pos)    -> P.dprintf "PLSeq %d+" i
   | PLSeq (i, PosNeg) -> P.dprintf "PLSeq %d+/-" i
+  | PLSeq (i, PosB k) -> P.dprintf "PLSeq %d+%d" i k
 
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
@@ -166,17 +170,30 @@ let ploc_periodic: ploc -> bool = function
   | PLAt _  -> false
   | PLSeq _ -> true
 
+(* TODO: PMR, please check *)
 let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
   match (pl1, pl2) with
-    | (PLAt n1, PLAt n2)                   -> n1 = n2
-    | (PLAt _, PLSeq _)                    -> false
-    | (PLSeq (n1, Pos), PLAt n2)           -> n1 <= n2 && (n2 - n1) mod p = 0
-    | (PLSeq (n1, PosNeg), PLAt n2)        -> (n2 - n1) mod p = 0
-    | (PLSeq (n1, Pos), PLSeq (n2, Pos))   -> n1 <= n2 && (n2 - n1) mod p = 0
-    | (PLSeq (n1, Pos), PLSeq (_, PosNeg)) -> false
-    | (PLSeq (n1, PosNeg), PLSeq (n2, _))  -> (n2 - n1) mod p = 0
+    | (PLAt n1, PLAt n2)                         -> n1 = n2
+    | (PLAt _,             PLSeq _)                          
+    | (PLSeq (_, PosB _),  PLSeq (_, Pos))        
+    | (PLSeq (_, Pos),    PLSeq (_, PosNeg)) 
+    | (PLSeq (_, PosB _), PLSeq (_, PosNeg))     -> false
+    | (PLSeq (n1, PosNeg), PLAt n2)              
+    | (PLSeq (n1, PosNeg), PLSeq (n2, _))        -> (n2 - n1) mod p = 0
+    | (PLSeq (n1, Pos), PLAt n2)                 
+    | (PLSeq (n1, Pos), PLSeq (n2, Pos))         
+    | (PLSeq (n1, Pos), PLSeq (n2, PosB _))      -> (n2 - n1) mod p = 0 && n1 <= n2 
+    | (PLSeq (n1, PosB k), PLAt n2)              -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 < n1 + (p * k)
+    | (PLSeq (n1, PosB k1), PLSeq (n2, PosB k2)) -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 + (p * k2) <= n1 + (p * k1)
+   
 
+(* TODO: PMR, please check *)
 let ploc_contains_index pl p i =
+  ploc_contains pl (ploc_of_index i) p && 
+  (match i with Index.ISeq (_, k, _) -> k mod p = 0 | _ -> true)
+
+(*
+
   match (pl, i) with
     | (_, Index.IBot)                             -> false
     | (PLAt n, Index.IInt m)                      -> n = m
@@ -186,7 +203,8 @@ let ploc_contains_index pl p i =
     | (PLSeq (n, Pos), Index.ISeq (m, k, Pos))    -> k mod p = 0 && n <= m && (m - n) mod p = 0
     | (PLSeq (n, Pos), Index.ISeq (m, k, PosNeg)) -> false
     | (PLSeq (n, PosNeg), Index.ISeq (m, k, _))   -> k mod p = 0 && (m - n) mod p = 0
-
+*)
+ 
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
     | PLAt n'       -> PLAt (n + n')

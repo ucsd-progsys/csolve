@@ -21,9 +21,10 @@
  *
  *)
 
-type seq_polarity = (* whether sequence extends positively only or in both directions *)
-  | Pos
-  | PosNeg
+type seq_polarity =     (* direction in which sequence extends *)
+  | Pos                 (* +ve unbounded         *)
+  | PosNeg              (* +ve and -ve unbounded *)
+  | PosB of int         (* +ve upto k times      *)
 
 module Index:
   sig
@@ -31,7 +32,7 @@ module Index:
       | IBot                             (* empty sequence *)
       | IInt of int                      (* singleton n >= 0 *)
       | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
-
+    
     val top         : t
     val nonneg      : t
     val of_int      : int -> t
