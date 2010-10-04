@@ -266,3 +266,5 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 val void_ctype : I.CType.t
+
+val is_unbounded : seq_polarity -> bool

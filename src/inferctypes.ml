@@ -154,7 +154,9 @@ let store_add loc l pl ctv sto =
 let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store): S.Subst.t * store =
   try
     match i with
-      | Index.IBot   -> ([], sto)
+      | Index.IBot   -> 
+          ([], sto)
+      
       | Index.IInt n ->
           let pl = PLAt n in
             begin match LDesc.find pl (Store.find s sto) with
@@ -162,7 +164,8 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
               | [(_, ct2)] -> (unify_ctypes ct ct2 [], sto)
               | _          -> assert false
             end
-      | Index.ISeq (n, m, p) ->
+      
+      | Index.ISeq (n, m, p) when Ctypes.is_unbounded p ->
           let ld, sub = LDesc.shrink_period m unify_ctypes [] (Store.find s sto) in
           let pl      = PLSeq (n, p) in
           let cts     = LDesc.find pl ld in
@@ -180,7 +183,8 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
                 (sub, SLM.add s ld sto)
   with
     | e ->
-        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
+        C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a" 
+          Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
         raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function

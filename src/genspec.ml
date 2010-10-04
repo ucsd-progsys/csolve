@@ -38,7 +38,7 @@ module Cs  = FixInterface.RefCTypes.Spec
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = true 
 
 exception CantConvert
 
@@ -193,12 +193,15 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
       | TPtr (c',a') ->
           let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
           let (th', st'), t = conv_ptr loc (th, st) pd c' in
-            (th', st', add_off off c), [(off, t)] 
+          (th', st', add_off off c), [(off, t)] 
+      
       | TArray (c',_,_) when tlev = InStruct ->
           conv_cilblock loc (th, st, off) (period_of_ciltype c) c'
+      
       | TArray (c',_,_) when tlev = TopLevel ->
           let (th', st'), t = conv_ptr loc (th, st) (period_of_ciltype c) c' in
           (th', st', add_off off c), [(off, t)] 
+      
       | TNamed (ti, a') ->
           conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
       | TComp (_, _) ->
@@ -206,8 +209,8 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
      | _ -> 
           halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
   with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
-    let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
-    let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
+    let _ = errorLoc loc "FOO Failed converting CIL type %a\n" d_type c in
+    let _ = errorLoc loc "FOO Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
 
 and conv_ptr loc (th, st) pd c =
