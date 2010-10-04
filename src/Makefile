@@ -10,7 +10,6 @@ IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
        -lflags -I,$(Z3HOME)/ocaml
 
 LFLAGS=-lflags -cc,g++ \
-       -lflags -cclib,-L$(OCAMLLIBHOME) \
        -lflags -cclib,-L$(Z3HOME)/lib \
        -lflags -cclib,-lz3 \
        -lflags -cclib,-lstdc++ \

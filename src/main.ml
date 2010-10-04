@@ -67,6 +67,8 @@ let liquidate file =
   let ctx,s = BS.time "Qual Inst" (Solve.create FixInterface.sorts A.Symbol.SMap.empty [] 4 ds cs ws) qs in
   let _     = E.log "DONE: qualifier instantiation \n" in
   let _     = BS.time "save in" (Solve.save (file^".in.fq") ctx) s in
+  let _     = if !Constants.dump_ref_constraints 
+              then (E.log "DONE: constraints in %s.in.fq \n" file; exit 0) in
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
   let _     = FixInterface.annot_dump file s' in
