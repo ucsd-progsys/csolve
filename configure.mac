@@ -1,0 +1,34 @@
+#!/bin/bash
+
+ROOTHOME=`pwd`
+
+cat - > config.make <<EOF
+#######
+ROOTHOME=$ROOTHOME
+#######
+EXTHOME=$ROOTHOME/external
+OCAMLGRAPHHOME=$ROOTHOME/external/ocamlgraph
+CILHOME=$ROOTHOME/external/cil/obj/x86_DARWIN
+EOF
+
+OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`
+
+cat - > build.sh <<EOF
+#!`which bash`
+
+########################## Exit if in an incompatible build environment
+if [[ \`uname -m\` != 'i386' || \`uname\` != 'Darwin' ]]
+then
+    echo Error: Found an incompatible MacOS environment.
+    exit 1
+fi
+########################## Fill in these fields
+OCAMLLIB=$OCAMLLIB
+##########################
+cd external/cil/; ./configure; make; make check; cd ../../
+#cd external/ocamlgraph/; ./configure; make; make install; cd ../../
+cd external/ocamlgraph/; ./configure; make; cd ../../
+cd src; make -f Makefile.mac; cd ../
+EOF
+
+chmod a+x build.sh
