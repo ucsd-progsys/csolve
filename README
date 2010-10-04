@@ -28,7 +28,7 @@ Please see the section below for instructions.
 To begin building CSolve, run the following commands in the root
 directory of the source distribution:
 
-1. ./configure
+1. ./configure (on a mac: ./configure.mac)
 2. ./build.sh
 
 To build CSolve after this step, run make in the src/ directory.

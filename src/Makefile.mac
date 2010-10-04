@@ -1,0 +1,30 @@
+include ../config.make 
+
+DIRS=-I misc -I fixpoint
+
+LIBS=-libs unix,str,cil,graph
+
+IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
+       -lflags -I,$(CILHOME) 
+
+LFLAGS=-lflags -cc,g++  
+
+CFLAGS=-cflags -dtypes \
+       -cflags -I,$(CILHOME) \
+       -cflags -I,$(OCAMLGRAPHHOME) \
+       -cflags -g
+
+BIN=main.native liquidc.native
+
+TARGETS=$(BIN)
+
+all:
+	ln -sf ../external/misc
+	ln -sf ../external/fixpoint
+	for t in $(TARGETS); \
+	 do \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(BIN) || exit 1; \
+	 done
+
+clean:
+	rm -rf *.byte *.native _build _log
