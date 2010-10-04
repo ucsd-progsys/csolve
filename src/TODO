@@ -25,15 +25,18 @@ Function Pointers
 
     >1> make a “scalar-consgen” ? that ignores reads/writes from * 
         i.e. treats as “true” ?
+
     >2> what is input/output? (i.e. how to hook scalar-consgen 
         into analysis flow)
+    
+    
     >3> extend type system to include "upper bounds" i.e. 
 		>> see new definition of Ctypes.seq_polarity
 		>> (fix all the match error!)
 		>> print to string	(ctypes.ml)
 		>> parse from string 	(refParse.mly)
+		HEREHERE <thwarted impenetrable inferctypes.ml>
 		>> type checking
-
 
 
 (c) cone-of-influence to eliminate bogus definitions...

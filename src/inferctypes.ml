@@ -291,8 +291,6 @@ and constrain_addrof em = function
   | lv -> 
       E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
 
-
-
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, em, [])
   | (C.Mem e, C.NoOffset) as lv ->
@@ -689,7 +687,7 @@ let declared_funs (cil: C.file) =
   end []
 
 (* API *)
-let infer_shapes cil spec (* (funspec, varspec, storespec) *) scis =
+let infer_shapes cil spec scis =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                  begin try
