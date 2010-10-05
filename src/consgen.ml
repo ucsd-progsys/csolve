@@ -53,11 +53,11 @@ let tag_of_global = function
 
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc)                  -> FunDec (fdec.svar.vname, loc) :: acc
+    | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
     | GVar (v, ii, loc) 
-      when not (isFunctionType v.vtype) -> VarDec (v, loc, ii.init) :: acc
+      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, ii.init) :: acc
     | GVarDecl (v, loc) 
-      when not (isFunctionType v.vtype) -> VarDec (v, loc, None) :: acc
+      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, None) :: acc
     | GVarDecl (v, _)
       when (isFunctionType v.vtype)     -> acc
     | GType _ | GCompTag _
@@ -102,7 +102,7 @@ let shapem_of_scim cil spec scim =
 (* TBD: UGLY *)
 let mk_gnv spec cenv decs =
   let decs = decs 
-             |> Misc.map_partial (function FunDec (fn,_) -> Some fn | _ -> None)
+             |> Misc.map_partial (function CM.FunDec (fn,_) -> Some fn | _ -> None)
              |> List.fold_left (Misc.flip SS.add) SS.empty in
   let gnv0 = spec 
              |> CS.varspec
@@ -170,7 +170,7 @@ let create cil (spec: FI.refspec) =
   let shm, cnv = shapem_of_scim cil spec scim in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Cs.ctypes_only then exit 0 else () in
-  let decs     = decs_of_file cil |> Misc.filter (function FunDec (vn,_) -> reachf vn | _ -> true) in
+  let decs     = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let _        = E.log "\nDONE: Gathering Decs \n" in
   let gnv      = mk_gnv spec cnv decs in
   let _        = E.log "\nDONE: Global Environment \n" in

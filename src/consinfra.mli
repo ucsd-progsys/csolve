@@ -60,5 +60,5 @@ val create              : CilTag.o ->
                           FixInterface.cilenv ->
                           FixInterface.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
-                          Inferctypes.shape option -> t
+                          Inferctypes.shape -> t
 
