@@ -52,6 +52,10 @@ val definedHere : Cil.varinfo -> bool
 
 val d_var       : unit -> Cil.varinfo -> Pretty.doc
 
+type dec =
+  | FunDec of string * location
+  | VarDec of Cil.varinfo * location * init option
+
 module VarMap: Map.S with type key = Cil.varinfo
 module VarMapPrinter: sig
   val d_map : ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->

@@ -35,6 +35,10 @@ open Misc.Ops
 
 let mydebug = true 
 
+type dec =
+  | FunDec of string * location
+  | VarDec of Cil.varinfo * location * init option
+
 module ComparableVar =
   struct
     type t            = varinfo
