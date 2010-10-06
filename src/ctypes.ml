@@ -889,3 +889,4 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype = Int (0, Index.top)
+let ptr_ctype  = Ref (S.fresh S.Abstract, Index.top) 
