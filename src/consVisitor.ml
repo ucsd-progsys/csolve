@@ -26,7 +26,7 @@
 module E  = Errormsg
 module ST = Ssa_transform
 module FI = FixInterface 
-module CF = Consinfra
+module CF = ConsInfra2
 module IM = Misc.IntMap
 module SM = Misc.StringMap
 module SS = Misc.StringSet
@@ -428,19 +428,20 @@ let process_block_succs me i =
     CF.add_cons ([], cs, ds) me
   end me (CF.succs_of_block me i) 
 
-let log_of_sci sci shp = 
+let log_of_sci sci sho = 
   if Cs.ck_olev Cs.ol_solve then
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
-    let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array shp.Inferctypes.anna in
-    let _ = Pretty.printf "%a\n" Refanno.d_conca shp.Inferctypes.conca in
-    let _ = Pretty.printf "%a" Refanno.d_ctab shp.Inferctypes.theta in 
-    let _ = Pretty.printf "ICstore = %a\n" Ctypes.I.Store.d_store_addrs shp.Inferctypes.store in
-    ()
+    match sho with None -> () | Some sh ->
+      let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array sh.Inferctypes.anna in
+      let _ = Pretty.printf "%a\n" Refanno.d_conca sh.Inferctypes.conca in
+      let _ = Pretty.printf "%a" Refanno.d_ctab sh.Inferctypes.theta in 
+      let _ = Pretty.printf "ICstore = %a\n" Ctypes.I.Store.d_store_addrs sh.Inferctypes.store in
+      ()
 
-let cons_of_sci tgr gnv gst sci shp =
-  let _  = log_of_sci sci shp in
+let cons_of_sci tgr gnv gst sci sho =
+  let _  = log_of_sci sci sho in
   let is = ST.reachable_blocks_of_sci sci in 
-  CF.create tgr gnv gst sci shp
+  CF.create tgr gnv gst sci sho
   |> Misc.flip (List.fold_left process_block) is
   |> Misc.flip (List.fold_left process_block_succs) is 
   |> CF.get_cons
@@ -562,9 +563,11 @@ let cons_of_decs tgr spec gnv gst decs =
   end (ws, cs, []) decs
 
 (* API *)
-let cons_of_scis tgr gnv gst scim shpm ci =
+let cons_of_scis tgr gnv gst scim shmo ci =
   SM.fold begin fun fn sci ci ->
-    let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in 
-    cons_of_sci tgr gnv gst sci (SM.find sci.ST.fdec.svar.vname shpm)
+    let _ = if mydebug then ignore(Pretty.printf "Generating Constraints for %s \n" fn) in
+    shmo
+    |> Misc.maybe_map (SM.find sci.ST.fdec.svar.vname) 
+    |> cons_of_sci tgr gnv gst sci 
     |> Consindex.add ci fn sci
   end scim ci 

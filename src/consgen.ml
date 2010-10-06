@@ -26,7 +26,7 @@
 module E  = Errormsg
 module ST = Ssa_transform
 module FI = FixInterface 
-module CF = Consinfra
+module CF = ConsInfra2
 module IM = Misc.IntMap
 module SM = Misc.StringMap
 module SS = Misc.StringSet
@@ -53,19 +53,20 @@ let tag_of_global = function
 
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
-    | GVar (v, ii, loc) 
-      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, ii.init) :: acc
-    | GVarDecl (v, loc) 
-      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, None) :: acc
-    | GVarDecl (v, _)
-      when (isFunctionType v.vtype)     -> acc
-    | GType _ | GCompTag _
-    | GCompTagDecl _| GText _
-    | GPragma _                         -> acc
-    | _ when !Cs.safe                   -> assertf "decs_of_file"
-    | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
-                                           |> fun _ -> acc
+    | GFun (fdec, loc) -> 
+        CM.FunDec (fdec.svar.vname, loc) :: acc
+    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> 
+        CM.VarDec (v, loc, ii.init) :: acc
+    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> 
+        CM.VarDec (v, loc, None) :: acc
+    | GVarDecl (v, _) when (isFunctionType v.vtype) -> 
+        acc
+    | GType _ | GCompTag _ | GCompTagDecl _| GText _ | GPragma _ -> 
+        acc
+    | _ when !Cs.safe -> 
+        assertf "decs_of_file"
+    | _ -> 
+        E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
   end []
 
 let scim_of_file cil =
@@ -175,4 +176,4 @@ let create cil (spec: FI.refspec) =
   let gst      = spec |> FI.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
-        |> cons_of_scis tgr gnv gst scim shm)
+        |> cons_of_scis tgr gnv gst scim (Some shm))

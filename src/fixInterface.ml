@@ -443,7 +443,6 @@ let fresh_kvar =
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
 
-
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in

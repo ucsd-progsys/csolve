@@ -32,8 +32,25 @@ module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
+module CM = CilMisc
+module Ct = Ctypes
 
 open Misc.Ops
+open Cil
+
+(****************************************************************)
+(************************* Types ********************************)
+(****************************************************************)
+
+let index_of_attrs ats = 
+  if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
+
+let ctype_of_cilbasetype = function 
+  | TVoid ats        -> Ct.Int (0,                       index_of_attrs ats)
+  | TInt (ik,   ats) -> Ct.Int (bytesSizeOfInt ik,       index_of_attrs ats)
+  | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,  index_of_attrs ats)
+  | TEnum (ei,  ats) -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
+  | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 (****************************************************************)
 (********************* Constants ********************************)

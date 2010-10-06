@@ -56,6 +56,3 @@ let scalarinv_of_scim cil spec scim =
   |> generate cil spec 
   |> Misc.uncurry solve
 
-
-
-

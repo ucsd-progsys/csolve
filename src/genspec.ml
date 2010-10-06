@@ -126,10 +126,6 @@ let id_of_ciltype t pd =
   |> Pretty.sprint ~width:80
 (* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
 
-
-
-
-
 let mk_idx pd i =
   match pd with 
   | Nop        -> Ct.Index.IInt i
@@ -170,14 +166,6 @@ let ldesc_of_index_ctypes loc ts =
   | _                    -> Ct.LDesc.create ts 
 *)
 
-let index_of_attrs = fun ats -> if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
-
-let conv_cilbasetype = function 
-  | TVoid ats        -> Ct.Int (0,                       index_of_attrs ats)
-  | TInt (ik,   ats) -> Ct.Int (bytesSizeOfInt ik,       index_of_attrs ats)
-  | TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,  index_of_attrs ats)
-  | TEnum (ei,  ats) -> Ct.Int (bytesSizeOfInt ei.ekind, index_of_attrs ats)
-  | _                -> assertf "ctype_of_cilbasetype: non-base!"
 
 type type_level =
   | TopLevel
@@ -187,7 +175,7 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
   try
     match c with
       | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
-          (th, st, add_off off c), [(off, conv_cilbasetype c)]
+          (th, st, add_off off c), [(off, CilInterface.ctype_of_cilbasetype c)]
       | TPtr (TFun (_, Some _, _, ats), _) ->
           (th, st, add_off off c), [(off, Ct.Top (index_of_attrs ats))]
       | TPtr (c',a') ->

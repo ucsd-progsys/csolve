@@ -168,7 +168,7 @@ let edge_asgnm_of_phia phia =
           end em  
      end IIM.empty 
 
-let create tgr gnv gst sci shp =
+let create tgr gnv gst sci = function None -> failwith "TBD: scalar" | Some shp ->
   let fdec    = sci.ST.fdec in
   let env     = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
   let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
