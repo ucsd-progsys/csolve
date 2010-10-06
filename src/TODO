@@ -23,8 +23,6 @@ Function Pointers
     how to do it _without_ any alias/pointer/shape information? 
     (over scalar variables only!) do i need to go over inferctypes code?
 
-    
-
     >1> what is input/output? (i.e. how to hook scalar-consgen 
         into analysis flow)
  	>> input : per-function: scim code spec

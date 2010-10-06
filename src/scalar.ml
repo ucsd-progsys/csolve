@@ -23,9 +23,38 @@
 
 (* This file is part of the liquidC Project.*)
 
+module CM = CilMisc
+module VM = CM.VarMap
+module Sy = Ast.Symbol
+module FI = FixInterface
+module SM = Misc.StringMap
+module ST = Ssa_transform
+module Ix = Ctypes.Index
 
-let scalarinv_of_scim (cil: Cil.file) 
-                      (sepc: FixInterface.refspec) 
-                      (scim: Ssa_transform.ssaCfgInfo Misc.StringMap.t) =
-  failwith "TBD: scalarinv_of_scim"
+
+(***************************************************************************)
+(************************ Generate Scalar Constraints **********************)
+(***************************************************************************)
+
+let generate cil spec scim : Consindex.t * Sy.t VM.t =
+  failwith "TBD"
+
+(***************************************************************************)
+(*************************** Solve Scalar Constraints **********************)
+(***************************************************************************)
+
+let solve ci km : Ix.t VM.t = 
+  failwith "TBD"
+  
+(***************************************************************************)
+(*********************************** API ***********************************)
+(***************************************************************************)
+
+let scalarinv_of_scim (cil: Cil.file) (spec: FI.refspec) (scim: ST.ssaCfgInfo SM.t) : Ix.t VM.t =
+  scim
+  |> generate cil spec 
+  |> Misc.curry solve
+
+
+
 
