@@ -164,9 +164,7 @@ let create cil (spec: FI.refspec) =
   let _        = E.log "\nDONE: TAG initialization\n" in
   let spec     = rename_funspec scim spec in
   let _        = E.log "\nDONE: SPEC rename \n" in
-
-  (* RJ: SCALAR-CONSGEN HERE: let sim = scalarinvm_of_scim cil spec scim *)
-
+  let sim      = Scalar.scalarinv_of_scim cil spec scim in
   let shm, cnv = shapem_of_scim cil spec scim in
   let _        = E.log "\nDONE: Shape Inference \n" in
   let _        = if !Cs.ctypes_only then exit 0 else () in

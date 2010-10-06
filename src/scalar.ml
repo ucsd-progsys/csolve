@@ -31,12 +31,13 @@ module SM = Misc.StringMap
 module ST = Ssa_transform
 module Ix = Ctypes.Index
 
+open Misc.Ops
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate cil spec scim : Consindex.t * Sy.t VM.t =
+let generate cil spec scim : Consindex.t * (Sy.t VM.t) =
   failwith "TBD"
 
 (***************************************************************************)
@@ -50,10 +51,10 @@ let solve ci km : Ix.t VM.t =
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim (cil: Cil.file) (spec: FI.refspec) (scim: ST.ssaCfgInfo SM.t) : Ix.t VM.t =
+let scalarinv_of_scim cil spec scim =
   scim
   |> generate cil spec 
-  |> Misc.curry solve
+  |> Misc.uncurry solve
 
 
 
