@@ -5,12 +5,8 @@ Function Pointers
     -- fix pattern match errors
     -- fix callgraph code	[skip calls through funptrs]
     -- fix inferctypes code
-
-    HEREHEREHERE
     ../main.native funptr0.c
-
     bind "TRUE" or dummy refinement to lhs of fun-ptr-call assignment
-
     -- fix consgen code 	[""]
 
 (b) SCALAR-CONSGEN:
@@ -36,11 +32,12 @@ Function Pointers
            val scalarcons_of_scim: cil -> spec -> CilTag.o * Consindex.t * kvar VarMap.t 
 
     >2> make a “scalar-consgen” ? that ignores reads/writes from * i.e. treats as “true” ?
-	HEREHEREHEREHERE
 	>> hack consinfra to split "me" into part that only has scalar info
 	>> hack create to take a "shape option" return a "me" appropriately
 	>> hack consinfra API calls so that they barf when asked about shape-y things
   	>> hack cons_of_* so as to ignore pointer-y operations
+	
+	HEREHEREHEREHERE
 	>> use the above to write: [scalarcons_of_scim]
 
     >3> extend type system to include "upper bounds" i.e. 
