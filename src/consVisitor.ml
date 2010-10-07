@@ -125,6 +125,7 @@ let cons_of_annots me loc tag grd wld annots =
 (*********************** Constraints for Deferred Checks **********************)
 (******************************************************************************)
 
+(* TODO: SCALAR *) 
 let cons_of_dcheck me loc grd tag (env, _, tago) (v, rct) =
   let cf  = CF.get_alocmap me in
   let vct = v |> FI.name_of_varinfo |> FI.t_name env in
@@ -166,14 +167,14 @@ let cons_of_set me loc tag grd (env, sto, tago) = function
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
       let cr, cds = cons_of_rval me loc tag grd (env, sto, tago) rv in
-        (extend_env me v cr env, sto, Some tag), cds
+      (extend_env me v cr env, sto, Some tag), cds
 
   (* v := e, where v is global *)
   | (Var v, NoOffset), rv when v.Cil.vglob ->
       let cr, (cs1, _) = cons_of_rval me loc tag grd (env, sto, tago) rv in
       let cf           = CF.get_alocmap me in
       let cs2, _       = FI.make_cs cf env grd cr (CF.refctype_of_global me v) tago tag loc in
-        (env, sto, Some tag), (cs1 ++ cs2, [])
+      (env, sto, Some tag), (cs1 ++ cs2, [])
 
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
@@ -292,6 +293,8 @@ let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
+let scalarcons_of_instr me i grd (j, wld) instr = failwith "TBD:scalarcons"
+
 (****************************************************************************)
 (********************** Constraints for [stmt] ******************************)
 (****************************************************************************)
@@ -324,6 +327,10 @@ let cons_of_annotstmt me loc i grd wld (anns, dckss, stmt) =
       let _ = if !Cs.safe then E.error "unknown annotstmt: %a" d_stmt stmt in
       (wld, [], [])
 
+let scalarcons_of_stmt me loc i grd wld (_, _, stmt) = failwith "TBD:scalarcons"
+
+let cons_of_annotstmt me = if CF.has_shape me then cons_of_annotstmt me else scalarcons_of_stmt me
+
 (****************************************************************************)
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
@@ -349,6 +356,10 @@ let cons_of_block me i =
   let ws          = wcons_of_block me loc i in
   let wld, cs, ds = cons_of_annotstmt me loc i grd wld astmt in
   (wld, (ws, cs, ds))
+
+let scalarcons_of_block me i = failwith "TBD:scalarcons"
+ 
+let cons_of_block me = if CF.has_shape me then cons_of_block me else scalarcons_of_block me
 
 (****************************************************************************)
 (********************** Constraints for (cfg)edge  **************************)
@@ -413,6 +424,10 @@ let cons_of_edge me i j =
   (var_cons_of_edge me (fst3 iwld') loci tagi grdij envj subs vjvis) +++
   (gen_cons_of_edge me iwld' loci tagi grdij i j) +++
   (join_cons_of_edge me iwld' loci tagi grdij subs i j)
+
+let scalarcons_of_edge me i j = failwith "TBD:scalarcons"
+
+let cons_of_edge me = if CF.has_shape me then cons_of_edge me else scalarcons_of_edge me
 
 (****************************************************************************)
 (********************** Constraints for ST.ssaCfgInfo ***********************)

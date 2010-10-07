@@ -182,14 +182,11 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
           let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
           let (th', st'), t = conv_ptr loc (th, st) pd c' in
           (th', st', add_off off c), [(off, t)] 
-      
       | TArray (c',_,_) when tlev = InStruct ->
           conv_cilblock loc (th, st, off) (period_of_ciltype c) c'
-      
       | TArray (c',_,_) when tlev = TopLevel ->
           let (th', st'), t = conv_ptr loc (th, st) (period_of_ciltype c) c' in
           (th', st', add_off off c), [(off, t)] 
-      
       | TNamed (ti, a') ->
           conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
       | TComp (_, _) ->
