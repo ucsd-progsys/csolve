@@ -493,7 +493,6 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let collide pl1 pct1 pl2 pct2 p =
       let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
       let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
-      let d                        = s2 - s1 in
       let k1                       = match pl1 with PLSeq (_, PosB k1) -> k1 | _ -> 1 in
       (s1 + (k1 * (width pct1)) > s2) ||
       (ploc_unbounded_periodic pl1 && s2 + width pct2 > (s1 + p))
@@ -888,5 +887,7 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-let void_ctype = Int (0, Index.top)
-let ptr_ctype  = Ref (S.fresh S.Abstract, Index.top) 
+let void_ctype   = Int (0, Index.top)
+let ptr_ctype    = Ref (S.fresh S.Abstract, Index.top) 
+let scalar_ctype = Int (0, Index.top)
+

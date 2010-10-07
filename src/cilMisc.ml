@@ -105,11 +105,14 @@ class checkPureVisitor = object(self)
 end
 
 (* API *)
-let check_pure_expr e =
-  try visitCilExpr (new checkPureVisitor) e |> ignore
+let is_pure_expr e =
+  try 
+    e |> visitCilExpr (new checkPureVisitor) >| true 
   with ContainsDeref ->
-    let _ = error "impure expr: %a" Cil.d_exp e in
+    false
+(* let _ = error "impure expr: %a" Cil.d_exp e in
     assertf "impure expr"
+*)
 
 (******************************************************************************)
 (*************************** Wipe Float Expressions ***************************)

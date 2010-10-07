@@ -25,10 +25,10 @@
 
 (* val stripcasts_of_expr: Cil.exp  -> Cil.exp
    val stripcasts_of_lval: Cil.lval -> Cil.lval *)
-val purify: Cil.file -> unit
-val unfloat: Cil.file -> unit
-val check_pure_expr: Cil.exp -> unit
-val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
+val purify           : Cil.file -> unit
+val unfloat          : Cil.file -> unit
+val is_pure_expr     : Cil.exp -> bool 
+val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
