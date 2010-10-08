@@ -97,7 +97,7 @@ let env_of_fdec gnv fdec locals theta =
              |> Misc.map2 (strengthen_refs theta) fdec.Cil.sformals 
              |> List.map (Misc.app_fst FI.name_of_string)
              |> FI.ce_adds gnv in
-  fdec.slocals 
+  fdec.slocals
   |> List.filter is_origcilvar
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
   |> FI.ce_adds env0
