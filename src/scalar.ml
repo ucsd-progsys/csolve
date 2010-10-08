@@ -37,22 +37,21 @@ open Misc.Ops
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate cil spec scim : Consindex.t * (Sy.t VM.t) =
-  failwith "TBD"
+let generate cil spec tgr scim : Consindex.t =
+  ([], [], [])
+  |> Consindex.create  
+  |> ConsVisitor.cons_of_scis tgr FI.ce_empty FI.refstore_empty scim None
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let solve ci km : Ix.t VM.t = 
+let solve ci : Ix.t VM.t = 
   failwith "TBD"
   
 (***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim cil spec scim =
-  scim
-  |> generate cil spec 
-  |> Misc.uncurry solve
-
+let scalarinv_of_scim cil spec tgr =
+  generate cil spec tgr <+> solve
