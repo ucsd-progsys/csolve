@@ -102,7 +102,7 @@ let env_of_fdec gnv fdec locals theta =
   |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
   |> FI.ce_adds env0
 
-let formalm_of_fdec fdec = 
+let formalm_of_fdec fdec =
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
 let is_undef_var formalm v = 
