@@ -75,7 +75,7 @@ let strengthen_cloc = function
   | ct, None 
   | (Ctypes.Int (_, _) as ct), _  
   | (Ctypes.Top (_) as ct), _    ->  ct
-  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x) 
+  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x)
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = FI.ctype_of_refctype cr in
