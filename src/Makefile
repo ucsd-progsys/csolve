@@ -22,7 +22,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g
 
-BIN=main.native liquidc.native
+BIN=liquidc.native
 
 TARGETS=$(BIN)
 
