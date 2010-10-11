@@ -1,16 +1,11 @@
 (*
  * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
  *
-<<<<<<< HEAD
  * Permission is hereby granted, without written agreement and without 
  * license or royalty fees, to use, copy, modify, and distribute this 
  * software and its documentation for any purpose, provided that the 
  * above copyright notice and the following two paragraphs appear in 
  * all copies of this software. 
-=======
- * Copyright © 1990-2010 The Regents of the University of California.
- * All rights reserved. 
->>>>>>> 05549777a50276b579ad91d197fa06c2caac3809
  * 
  * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY 
  * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES 
@@ -97,7 +92,6 @@ let liquidate file =
 
 let rec processOneFile (cil: C.file) =
   begin
-
     if !Cilutil.doCheck then begin
       ignore (E.log "First CIL check\n");
       if not (CK.checkFile [] cil) && !Cilutil.strictChecking then begin
