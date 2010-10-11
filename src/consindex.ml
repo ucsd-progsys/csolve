@@ -96,3 +96,15 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
+(* API *)
+let solve me qs fn = 
+  let ws     = get_wfs ci in
+  let cs     = get_cs ci in
+  let ds     = get_deps ci in
+  let ctx, s = BS.time "Qual Inst" (Solve.create FixInterface.sorts A.Symbol.SMap.empty [] 4 ds cs ws) qs in
+  let _      = E.log "DONE: qualifier instantiation \n" in
+  let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
+  let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
+  let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
+  s', cs'
+

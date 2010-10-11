@@ -58,6 +58,7 @@ let liquidate file =
   let spec  = BS.time "Parse: spec" (Toplevel.spec_of_file file) cil in
   let _     = E.log "DONE: spec parsing \n" in
   let tgr,me= BS.time "Cons: Generate" (Consgen.create cil) spec in
+  
   let ws    = Consindex.get_wfs me in
   let cs    = Consindex.get_cs me in
   let ds    = Consindex.get_deps me in
@@ -72,6 +73,7 @@ let liquidate file =
   let s',cs'= BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _     = BS.time "save out" (Solve.save (file^".out.fq") ctx) s' in
   let _     = FixInterface.annot_dump file s' in
+  
   let _     = print_unsat_locs tgr s' cs' in
   let _  = BS.print stdout "\nLiquidC Time \n" in
   match cs' with 

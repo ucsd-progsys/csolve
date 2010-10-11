@@ -28,6 +28,10 @@ type t
 val create: FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t
 val add: t -> string -> Ssa_transform.ssaCfgInfo -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t
 val print: FixConstraint.soln option -> unit -> t -> Pretty.doc
-val get_wfs: t -> FixConstraint.wf list 
-val get_cs: t -> FixConstraint.t list
-val get_deps: t -> FixConstraint.dep list
+
+(* val get_wfs: t -> FixConstraint.wf list 
+   val get_cs: t -> FixConstraint.t list
+   val get_deps: t -> FixConstraint.dep list *)
+
+val solve: t -> Ast.Qualifier.t list -> string -> FixConstraint.soln * FixConstraint.t list 
+

@@ -37,7 +37,8 @@ Function Pointers
 	>> hack consinfra API calls so that they barf when asked about shape-y things
   	>> hack cons_of_* so as to ignore pointer-y operations
 	
-	HEREHEREHEREHERE
+	>> we have a ConsIndex.t HEREHEREHEREHERE
+
 	>> use the above to write: [scalarcons_of_scim]
 
     >3> extend type system to include "upper bounds" i.e. 
