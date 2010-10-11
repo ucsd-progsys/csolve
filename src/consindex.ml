@@ -30,6 +30,7 @@ module  C = FixConstraint
 module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
+module  Q = Ast.Qualifier 
 
 open Misc.Ops
 open Cil
@@ -96,6 +97,7 @@ let print so () me =
          |> Misc.flap C.bindings_of_env 
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
+
 
 (* API *)
 let solve me qs fn = 
