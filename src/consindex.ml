@@ -24,6 +24,7 @@
 (* This file is part of the liquidC Project.*)
 
 
+module BS = BNstats
 module  P = Pretty
 module  C = FixConstraint
 module CM = CilMisc
@@ -98,13 +99,14 @@ let print so () me =
 
 (* API *)
 let solve me qs fn = 
-  let ws     = get_wfs ci in
-  let cs     = get_cs ci in
-  let ds     = get_deps ci in
-  let ctx, s = BS.time "Qual Inst" (Solve.create FixInterface.sorts A.Symbol.SMap.empty [] 4 ds cs ws) qs in
-  let _      = E.log "DONE: qualifier instantiation \n" in
+  let ws     = get_wfs me in
+  let cs     = get_cs me in
+  let ds     = get_deps me in
+  let ctx, s = BS.time "Qual Inst" (Solve.create FixInterface.sorts YM.empty [] 4 ds cs ws) qs in
+  let _      = Errormsg.log "DONE: qualifier instantiation \n" in
   let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
+  let _      = Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
   s', cs'
 
