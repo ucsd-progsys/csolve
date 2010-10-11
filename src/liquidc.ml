@@ -222,12 +222,12 @@ let print_unsat_locs tgr s ucs =
   end ucs
 
 let liquidate file =
-  let cil     = BS.time "Parse: source" Toplevel.preprocess_file file in
+  let cil     = BS.time "Parse: source" preprocess_file file in
   let _       = E.log "DONE: cil parsing \n" in
   let fn      = file.Cil.fileName in
-  let qs      = BS.time "Parse: quals" Toplevel.quals_of_file !spec_prefix in
+  let qs      = BS.time "Parse: quals" quals_of_file !spec_prefix in
   let _       = E.log "DONE: qualifier parsing \n" in
-  let spec    = BS.time "Parse: spec" (Toplevel.spec_of_file !spec_prefix) file in
+  let spec    = BS.time "Parse: spec" spec_of_file !spec_prefix file in
   let _       = E.log "DONE: spec parsing \n" in
   let tgr, ci = BS.time "Cons: Generate" (Consgen.create cil) spec in
   let _       = E.log "DONE: constraint generation \n" in
