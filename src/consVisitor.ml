@@ -39,7 +39,7 @@ module Cs = Constants
 open Misc.Ops
 open Cil
 
-let mydebug = false
+let mydebug = true 
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)
@@ -294,7 +294,9 @@ let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
-let scalarcons_of_instr me i grd (j, env) = function
+let scalarcons_of_instr me i grd (j, env) instr = 
+  let _ = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
+  match instr with
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
       let cr      = FI.t_exp env Ctypes.scalar_ctype e in

@@ -37,10 +37,10 @@ open Misc.Ops
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate cil spec tgr scim : Consindex.t =
+let generate cil spec tgr gnv scim : Consindex.t =
   ([], [], [])
   |> Consindex.create  
-  |> ConsVisitor.cons_of_scis tgr FI.ce_empty FI.refstore_empty scim None
+  |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)
@@ -53,5 +53,5 @@ let solve ci : Ix.t VM.t =
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim cil spec tgr =
-  generate cil spec tgr <+> solve
+let scalarinv_of_scim cil spec tgr gnv =
+  generate cil spec tgr gnv <+> solve

@@ -27,6 +27,7 @@ val scalarinv_of_scim :
   Cil.file -> 
   FixInterface.refspec ->  
   CilTag.o ->
+  FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
   Ctypes.Index.t CilMisc.VarMap.t
 
