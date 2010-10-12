@@ -401,7 +401,7 @@ let ce_find n (_, vnv, _) =
 
 let ce_find_fn s (fnv, _,_) =
   try SM.find s fnv with Not_found ->
-    assertf "Unknown function! %s" s
+    assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
   let _ = List.iter (Misc.uncurry annot_var) ncrs in

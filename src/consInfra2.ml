@@ -326,6 +326,7 @@ let refctype_of_global me v =
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
   |> Misc.map fst
+  >> List.iter (fun v -> ignore <| Pretty.printf "phis_of_block %d: %s \n" i v.Cil.vname)
 
 let outwld_of_block me i =
   IM.find i me.wldm
