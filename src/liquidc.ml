@@ -169,7 +169,6 @@ let main toolname f =
 
 let outChannel : outfile option ref    = ref None
 let mergedChannel : outfile option ref = ref None
-let spec_prefix   : string ref         = ref ""
 
 let parseOneFile (fname: string) : Cil.file =
   (* PARSE and convert to CIL *)
@@ -204,14 +203,14 @@ let liquidate file =
   let cil     = BS.time "Parse: source" preprocess_file file in
   let _       = E.log "DONE: cil parsing \n" in
   let fn      = file.Cil.fileName in
-  let qs      = Misc.flap FixInterface.quals_of_file [Co.get_lib_hquals (); (!spec_prefix ^ ".hquals")] in
+  let qs      = Misc.flap FixInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
   let _       = E.log "DONE: qualifier parsing \n" in
-  let spec    = BS.time "Parse: spec" spec_of_file !spec_prefix file in
+  let spec    = BS.time "Parse: spec" spec_of_file !Co.liquidc_file_prefix file in
   let _       = E.log "DONE: spec parsing \n" in
   let tgr, ci = BS.time "Cons: Generate" (Consgen.create cil) spec in
   let _       = E.log "DONE: constraint generation \n" in
   let s', cs' = Consindex.solve ci qs fn in 
-  let _       = FixInterface.annot_dump fn s' in
+  let _       = FixInterface.annot_dump s' in
   let _       = print_unsat_locs tgr s' cs' in
   let _       = BS.print stdout "\nLiquidC Time \n" in
   match cs' with 
@@ -271,8 +270,8 @@ let theMain () =
           "--mergedout", Arg.String (openFile "merged output"
                                        (fun oc -> mergedChannel := Some oc)),
               " specify the name of the merged file";
-          "--specprefix", Arg.Set_string spec_prefix,
-              " specify prefix to use for spec, hquals files"
+          "--liquidcprefix", Arg.Set_string Co.liquidc_file_prefix,
+              " specify prefix to use for spec, hquals, ssa, annot files"
         ] @ blankLine :: List.map (Misc.app_fst3 (fun s -> "-" ^ s)) Constants.arg_spec in
   begin
     (* this point in the code is the program entry point *)

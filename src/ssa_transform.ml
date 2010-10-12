@@ -30,6 +30,7 @@ module IH = Inthash
 module VS = Usedef.VS
 module IM = Misc.IntMap
 module H  = Hashtbl
+module Co = Constants
 
 open Cil
 open Misc.Ops
@@ -345,8 +346,8 @@ let print_sci oco sci =
   let oc = match oco with Some oc -> oc | None -> stdout in
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
 
-let print_scis fname scis =
-  fname^".ssa.c"
+let print_scis scis =
+  !Co.liquidc_file_prefix^".ssa.c"
   |> open_out 
   >> (fun oc -> List.iter (print_sci (Some oc)) scis)
   |> close_out 
@@ -362,8 +363,8 @@ let print_vmap oc sci =
        Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
      end
 
-let print_vmaps fname scis =
-  fname^".vmap"
+let print_vmaps scis =
+  !Co.liquidc_file_prefix^".vmap"
   |> open_out
   >> (fun oc -> List.iter (print_vmap oc) scis)
   |> close_out
@@ -378,8 +379,8 @@ let scis_of_file cil =
     | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg vmap_t fdec loc)::acc
     | _                   -> acc
   end []
-  >> print_scis cil.fileName
-  >> print_vmaps cil.fileName
+  >> print_scis
+  >> print_vmaps
 
 let rec reachable_blocks_aux sci marked blockss wklist =
   if wklist = [] then
