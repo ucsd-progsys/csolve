@@ -786,12 +786,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
       let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
-     Store.closed whole_instore
-        && Store.closed whole_outstore
-        && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
-        && match cf.ret with  (* we can return refs to uninitialized data *)
-          | Ref (l, _) -> SLM.mem l whole_outstore
-          | _          -> true
+        Store.closed whole_instore
+          && Store.closed whole_outstore
+          && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
+          && match cf.ret with  (* we can return refs to uninitialized data *)
+             | Ref (l, _) -> SLM.mem l whole_outstore
+             | _          -> true
 
     let slocs cf =
       List.concat [Store.slocs cf.sto_in;
