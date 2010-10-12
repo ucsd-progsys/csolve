@@ -154,3 +154,4 @@ val make_cs_refstore    : alocmap -> cilenv -> Ast.pred ->
                           FixConstraint.t list * FixConstraint.dep list
 val make_dep            : bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
 val annot_dump          : string -> FixConstraint.soln -> unit
+val quals_of_file       : string -> Ast.Qualifier.t list 

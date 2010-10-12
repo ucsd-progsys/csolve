@@ -295,7 +295,7 @@ let cons_of_annotinstr me i grd (j, wld) (annots, dcks, instr) =
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
 let scalarcons_of_instr me i grd (j, env) = function
-  | Set ((Var v, NoOffset), e, _) as instr 
+  | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
       let cr      = FI.t_exp env Ctypes.scalar_ctype e in
       (j+1, extend_env me v cr env)

@@ -23,16 +23,20 @@
 
 (* This file is part of the liquidC Project.*)
 
+(************** Interface between LiquidC and Fixpoint *************)
 
 module IM  = Misc.IntMap
 module F   = Format
 module ST  = Ssa_transform
-module  A  = Ast
-module  P  = Ast.Predicate
 module  C  = FixConstraint
-module Sy  = Ast.Symbol
-module Su  = Ast.Subst
-module So  = Ast.Sort
+
+module  A  = Ast
+module  P  = A.Predicate
+module Sy  = A.Symbol
+module Su  = A.Subst
+module So  = A.Sort
+module  Q  = A.Qualifier
+
 module CI  = CilInterface
 module Ct  = Ctypes
 module It  = Ctypes.I
@@ -44,9 +48,7 @@ module LM = Sloc.SlocMap
 open Misc.Ops
 open Cil
 
-(*******************************************************************)
-(************** Interface between LiquidC and Fixpoint *************)
-(*******************************************************************)
+let mydebug = false
 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
@@ -833,5 +835,19 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
                 end [] ld in
   let sto'  = refstore_set sto cloc ld' in
   (env', sto', tago), cs
+
+(* API *)
+let quals_of_file fname =
+    try
+      let _ = Errorline.startFile fname in
+        fname
+        |> open_in 
+        |> Lexing.from_channel
+        |> FixParse.defs FixLex.token
+        |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
+        >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
+    with Sys_error s ->
+      Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
+      []
 
 
