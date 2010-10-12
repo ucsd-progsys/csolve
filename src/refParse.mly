@@ -32,11 +32,8 @@ exception InvalidStoredSpecType
 let check_store_bind_valid (i, ct) =
   try
     match ct with
-      | CT.Int (_, (ti, _)) ->
-          if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, ct)
-      | CT.Ref (_, (ti, _)) ->
-          if not (CT.Index.is_subindex (CT.Index.IInt 0) ti) then raise InvalidStoredSpecType; (i, ct)
-      | CT.Top _ -> (i, ct)
+      | CT.Int (_, (ti, _)) -> if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, ct)
+      | _                   -> (i, ct)
   with InvalidStoredSpecType ->
           Errormsg.error "Invalid type in store spec: %a\n\n"
             RCt.CType.d_ctype ct;
