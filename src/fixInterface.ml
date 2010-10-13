@@ -376,10 +376,11 @@ let generate_tags kts =
 let annotr    = ref [] 
 
 (* API *)
-let annot_var  = fun x cr   -> annotr := TVar ((string_of_name x), cr) :: !annotr
-let annot_fun  = fun f cf   -> annotr := TFun (f, cf) :: !annotr
-let annot_sto  = fun f st   -> annotr := TSto (f, st) :: !annotr
-let annot_dump = fun s      -> !annotr 
+let annot_var   = fun x cr  -> annotr := TVar ((string_of_name x), cr) :: !annotr
+let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
+let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
+let annot_clear = fun _     -> annotr := []
+let annot_dump  = fun s     -> !annotr 
                                |> tags_of_binds s 
                                >> (fst <+> generate_annots)
                                >> (snd <+> generate_tags) 

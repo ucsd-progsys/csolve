@@ -41,6 +41,7 @@ let generate spec tgr gnv scim : Consindex.t =
   ([], [], [])
   |> Consindex.create  
   |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
+  >> FI.annot_clear
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)
