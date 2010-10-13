@@ -838,16 +838,15 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
 
 (* API *)
 let quals_of_file fname =
-    try
-      let _ = Errorline.startFile fname in
-        fname
-        |> open_in 
-        |> Lexing.from_channel
-        |> FixParse.defs FixLex.token
-        |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
-        >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
-    with Sys_error s ->
-      Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
-      []
+  try
+    let _ = Errorline.startFile fname in
+      fname
+      |> open_in 
+      |> Lexing.from_channel
+      |> FixParse.defs FixLex.token
+      |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
+      >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
+  with Sys_error s ->
+    Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
 

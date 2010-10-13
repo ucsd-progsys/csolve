@@ -47,8 +47,11 @@ let generate cil spec tgr gnv scim : Consindex.t =
 (***************************************************************************)
 
 let solve ci : Ix.t VM.t = 
-  failwith "TBD"
-  
+  Constants.get_lib_squals () 
+  |> FI.quals_of_file 
+  |> Misc.flip (Consindex.solve ci) "scalar"
+  >| (Errormsg.log "TODO: scalar_soln_of_fix_soln \n"; VM.empty)
+
 (***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)

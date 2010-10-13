@@ -299,7 +299,10 @@ let scalarcons_of_instr me i grd (j, env) instr =
   match instr with
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
-      let cr      = FI.t_exp env Ctypes.scalar_ctype e in
+      let cr = FI.t_exp env Ctypes.scalar_ctype e in
+      (j+1, extend_env me v cr env)
+  | Call (Some (Var v, NoOffset), _, _, _) ->
+      let cr = FI.t_true Ctypes.scalar_ctype in
       (j+1, extend_env me v cr env)
   | Set (_,_,_) | Call (None, _, _, _) ->
       (j+1, env)
