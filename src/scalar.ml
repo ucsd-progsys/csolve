@@ -37,7 +37,7 @@ open Misc.Ops
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate cil spec tgr gnv scim : Consindex.t =
+let generate spec tgr gnv scim : Consindex.t =
   ([], [], [])
   |> Consindex.create  
   |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
@@ -49,12 +49,12 @@ let generate cil spec tgr gnv scim : Consindex.t =
 let solve ci : Ix.t VM.t = 
   Constants.get_lib_squals () 
   |> FI.quals_of_file 
-  |> Misc.flip (Consindex.solve ci) "scalar"
+  |> Misc.flip (Consindex.solve ci) (!Constants.liquidc_file_prefix ^ ".scalar")
   >| (Errormsg.log "TODO: scalar_soln_of_fix_soln \n"; VM.empty)
 
 (***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim cil spec tgr gnv =
-  generate cil spec tgr gnv <+> solve
+let scalarinv_of_scim spec tgr gnv =
+  generate spec tgr gnv <+> solve 

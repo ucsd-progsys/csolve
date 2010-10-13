@@ -24,7 +24,6 @@
 (* This file is part of the liquidC Project.*)
 
 val scalarinv_of_scim : 
-  Cil.file -> 
   FixInterface.refspec ->  
   CilTag.o ->
   FixInterface.cilenv ->
