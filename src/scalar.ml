@@ -30,32 +30,83 @@ module FI = FixInterface
 module SM = Misc.StringMap
 module ST = Ssa_transform
 module Ix = Ctypes.Index
+module Co = Constants
+module Q  = Ast.Qualifier
+module Ci = Consindex
+module E  = Errormsg
 
 open Misc.Ops
+
+type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
+
+(***************************************************************************)
+(************************* Scrape Scalar Qualifiers ************************)
+(***************************************************************************)
+
+let consts_of_file (cil: Cil.file) : scalar_const list = 
+  failwith "TBD"
+
+(* val quals_of_scalar_const: scalar_const -> Q.t list *)
+let quals_of_scalar_const = function
+  | Offset c -> 
+      failwith "TBD" (* v = _ + c,  v = c *)
+  | UpperBound c ->
+      failwith "TBD" (* v < c, v < _ + c *)
+  | Periodic (c, d) ->
+      failwith "TBD" (* MODZ_c_d(v), MODZ_c_d(v - _) *)
+
+let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
+  failwith "TBD"
+
+let scalar_quals_of_file cil = 
+  cil 
+  |> consts_of_file
+  |> Misc.flap quals_of_scalar_const 
+  |> Misc.sort_and_compact
+  |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
+  >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
+
+(*
+(1) <bas> MODZ_c_d(c)
+(2) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x + d => MODZ_c_d(y)
+(3) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x - d => MODZ_c_d(y)
+*)
+
+(***************************************************************************)
+(********************* Convert Fix Solution To Indices *********************)
+(***************************************************************************)
+
+let scalar_soln_of_fix_soln (s: FixConstraint.soln) : Ix.t VM.t = 
+  failwith "TBD"
+
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate spec tgr gnv scim : Consindex.t =
+let generate spec tgr gnv scim : Ci.t =
   ([], [], [])
-  |> Consindex.create  
+  |> Ci.create  
   |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
-  >> FI.annot_clear
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let solve ci : Ix.t VM.t = 
-  Constants.get_lib_squals () 
-  |> FI.quals_of_file 
-  |> Misc.flip (Consindex.solve ci) (!Constants.liquidc_file_prefix ^ ".scalar")
-  >| (Errormsg.log "TODO: scalar_soln_of_fix_soln \n"; VM.empty)
+let solve cil ci : Ix.t VM.t = 
+  cil 
+  |> scalar_quals_of_file 
+  |> Misc.flip (Ci.solve ci) (!Co.liquidc_file_prefix ^ ".scalar")
+  |> (fst <+> scalar_soln_of_fix_soln)
 
 (***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim spec tgr gnv =
-  generate spec tgr gnv <+> solve 
+let scalarinv_of_scim cil spec tgr gnv ci =
+  ci 
+  >> FI.annot_clear 
+  |> generate spec tgr gnv 
+  |> solve cil 
+  >> FI.annot_clear
+

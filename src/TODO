@@ -38,10 +38,14 @@ Function Pointers
   	>> hack cons_of_* so as to ignore pointer-y operations
 	>> we have a ConsIndex.t
 	>> use the above to write: [scalarcons_of_scim]
-	>> HEREHEREHERE: bug, handle scalar output of call (see
-	    postests/test00.c -- handle output of nondet call, must bnid
-	    "true" reft to x
-
+	
+	HEREHEREHEREHERE
+	>> scalar_quals_of_file: Cil.file -> Qual.t list
+		
+		>> library: v {* =, !=, >,  >= *} 0
+		
+		>> file specific:
+	>> convert quals to invariants (see annot_of_...)
 
 
     >3> extend type system to include "upper bounds" i.e. 
