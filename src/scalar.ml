@@ -49,18 +49,17 @@ let const_var       = Ast.Symbol.mk_wild ()
 let param_var       = Ast.Symbol.mk_wild ()
 
 (* v = c *)
-let q_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
-                      |> Q.create value_var Ast.Sort.t_int
+let p_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
 (* v < c *)
-let q_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
-                      |> Q.create value_var Ast.Sort.t_int
+let p_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
 (* v = _ + c *)
-let q_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
-                      |> Q.create value_var Ast.Sort.t_int
+let p_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
 (* v < _ + c *)
-let q_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
-                      |> Q.create value_var Ast.Sort.t_int
- 
+let p_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
+
+let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [Ast.Sort.t_int]
+
+
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
 (***************************************************************************)
@@ -87,14 +86,14 @@ let scalar_consts_of_index = function
   | Ctypes.Index.IInt n          -> [Offset n] 
   | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
   
-let quals_of_scalar_const = function
+let preds_of_scalar_const = function
   | Offset c ->
-      [q_v_eq_c; q_v_eq_x_plus_c] 
-      |>: Q.subst (Ast.Subst.of_list [const_var, Ast.eInt c])
-
+      [p_v_eq_c; p_v_eq_x_plus_c] 
+      |>: (Misc.flip Ast.substs_pred) (Ast.Subst.of_list [const_var, Ast.eInt c])
+      
   | UpperBound c ->
-      [q_v_lt_c; q_v_lt_x_plus_c] 
-      |>: Q.subst (Ast.Subst.of_list [const_var, Ast.eInt c])
+      [p_v_lt_c; p_v_lt_x_plus_c] 
+      |>: (Misc.flip Ast.substs_pred) (Ast.Subst.of_list [const_var, Ast.eInt c])
   
   | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
@@ -117,17 +116,39 @@ let scalar_quals_of_file cil =
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
   |> Misc.flap (fun (ct, st) -> Ctypes.I.CType.refinements_of_t ct ++ Ctypes.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
-  |> Misc.flap quals_of_scalar_const 
   |> Misc.sort_and_compact
+  |> Misc.flap preds_of_scalar_const
+  |> Misc.flap quals_of_pred
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
 
 
 (***************************************************************************)
-(********************* Convert Fix Solution To Indices *********************)
+(********************** Convert Predicates To Indices **********************)
 (***************************************************************************)
 
-let index_of_pred (p: Ast.pred) : Ix.t = failwith "TBD" 
+let const_of_subst su =
+  su |> Ast.Subst.to_list
+     |> Misc.do_catch "Scalar.const_of_subst" (List.assoc const_var)
+     |> (function Ast.Con (Ast.Constant.Int i), _  -> i | _ -> assertf "Scalar.const_of_subst")
+
+let indexo_of_preds_iint (ps: Ast.pred list)  =
+  ps |> Misc.map_partial (Ast.unify_pred p_v_eq_c)
+     |> List.map const_of_subst
+     |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
+
+let indexo_of_preds_iseqb ps = None (* TODO *)
+let indexo_of_preds_iseq  ps = None (* TODO *) 
+
+let index_of_pred : Ast.pred -> Ix.t = function
+  
+  | Ast.And ps, _ -> 
+      [ indexo_of_preds_iint
+      ; indexo_of_preds_iseqb
+      ; indexo_of_preds_iseq ]
+      |> Misc.maybe_chain ps Ix.top 
+
+  | _ -> assertf "Scalar.index_of_pred"
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
