@@ -155,7 +155,7 @@ sub CillyCommand {
     }
 
     if(defined $spec_prefix) {
-        return ($aftercil, @cmd, '--specprefix', $spec_prefix, '--out', $aftercil);
+        return ($aftercil, @cmd, '--liquidcprefix', $spec_prefix, '--out', $aftercil);
     } else {
         return ($aftercil, @cmd, '--out', $aftercil);
     }

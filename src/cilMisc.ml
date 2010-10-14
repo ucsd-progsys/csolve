@@ -34,7 +34,7 @@ module SM = Misc.StringMap
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 type dec =
   | FunDec of string * location
@@ -265,6 +265,18 @@ class bodyVisitor (cg: G.t) (caller: varinfo) = object
     | _                                           -> SkipChildren
 end
 
+
+class varVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  
+  method vglob = function
+    | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
+    | GVar (v, _ , _) -> f v; SkipChildren
+end
+
+let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new varVisitor f) cil
+
 class callgraphVisitor (cg: G.t) = object
   inherit nopCilVisitor
 
@@ -292,7 +304,7 @@ let reach (f: file) (root : varinfo) =
 let fdec_of_name cil fn = 
   cil.globals 
   |> List.filter (function GFun (f,_) -> f.svar.vname = fn | _ -> false)
-  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "Unknown function: %s \n" fn)
+  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "fdec_of_name: Unknown function: %s \n" fn)
 
 let reachable cil =
   match !Constants.root with 

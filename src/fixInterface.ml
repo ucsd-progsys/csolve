@@ -358,31 +358,32 @@ let tags_of_binds s binds =
         (Pretty.concat d d', kts' ++ kts)
   end (Pretty.nil, []) binds
 
-let generate_annots file d = 
-  let fn = file ^ ".annot" in
+let generate_annots d = 
+  let fn = !Co.liquidc_file_prefix ^ ".annot" in
   let oc = open_out fn in
   let _  = Pretty.fprint ~width:80 oc d in
   let _  = close_out oc in
   ()
 
-let generate_tags file kts =
-  let fn = file ^ ".tags" in
+let generate_tags kts =
+  let fn = !Co.liquidc_file_prefix ^ ".tags" in
   let oc = open_out fn in
   let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
-               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k file t) in
+               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.liquidc_file_prefix t) in
   let _  = close_out oc in
   ()
 
 let annotr    = ref [] 
 
 (* API *)
-let annot_var  = fun x cr   -> annotr := TVar ((string_of_name x), cr) :: !annotr
-let annot_fun  = fun f cf   -> annotr := TFun (f, cf) :: !annotr
-let annot_sto  = fun f st   -> annotr := TSto (f, st) :: !annotr
-let annot_dump = fun file s -> !annotr 
+let annot_var   = fun x cr  -> annotr := TVar ((string_of_name x), cr) :: !annotr
+let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
+let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
+let annot_clear = fun _     -> annotr := []
+let annot_dump  = fun s     -> !annotr 
                                |> tags_of_binds s 
-                               >> (fst <+> generate_annots file)
-                               >> (snd <+> generate_tags file) 
+                               >> (fst <+> generate_annots)
+                               >> (snd <+> generate_tags) 
                                |> ignore
 
 (*******************************************************************)
@@ -401,7 +402,7 @@ let ce_find n (_, vnv, _) =
 
 let ce_find_fn s (fnv, _,_) =
   try SM.find s fnv with Not_found ->
-    assertf "Unknown function! %s" s
+    assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
   let _ = List.iter (Misc.uncurry annot_var) ncrs in
@@ -838,16 +839,15 @@ let extend_world cf ssto sloc cloc newloc loc tag (env, sto, tago) =
 
 (* API *)
 let quals_of_file fname =
-    try
-      let _ = Errorline.startFile fname in
-        fname
-        |> open_in 
-        |> Lexing.from_channel
-        |> FixParse.defs FixLex.token
-        |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
-        >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
-    with Sys_error s ->
-      Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s;
-      []
+  try
+    let _ = Errorline.startFile fname in
+      fname
+      |> open_in 
+      |> Lexing.from_channel
+      |> FixParse.defs FixLex.token
+      |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
+      >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
+  with Sys_error s ->
+    Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
 

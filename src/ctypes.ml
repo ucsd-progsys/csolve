@@ -301,6 +301,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val refinements_of_t : t -> R.t list
     val top         : t
   end
 
@@ -324,6 +325,7 @@ module type S = sig
     val fold          : ('a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
     val map           : ('a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> ploc -> 'a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
+    val indices_of_t  : t -> Index.t list
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -346,9 +348,9 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-
-    val d_store_addrs : unit -> t -> Pretty.doc
-    val d_store       : unit -> t -> Pretty.doc
+    val indices_of_t : t -> Index.t list 
+    val d_store_addrs: unit -> t -> Pretty.doc
+    val d_store      : unit -> t -> Pretty.doc
 
     (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
     (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -516,7 +518,10 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let is_ref = function
       | Ref _ -> true
       | _     -> false
-      
+     
+    let refinements_of_t = function
+      | Int (_, x) | Ref (_, x) | Top (x)    -> [x]
+
     let top = Top (R.top)
   end
 
@@ -649,11 +654,20 @@ module Make (R: CTYPE_REFINEMENT) = struct
       (po, List.map (fun (pl, loc, pct) -> (pl, loc, f pct)) pcts)
 
     let referenced_slocs ld =
-      fold (fun rss _ pct -> match CType.sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
+      fold begin fun rss _ pct -> match CType.sloc pct with 
+        | None -> rss 
+        | Some s -> SS.add s rss
+      end SS.empty ld
+
+    let indices_of_t (po, pcts) = 
+      match po with 
+      | None   -> List.map (function (PLAt n, _, _) -> Index.IInt n) pcts
+      | Some p -> List.map (fun (pl,_,_) -> index_of_ploc pl p) pcts
 
     let d_ldesc () (po, pcts) =
       let p = get_period_default po in
       P.dprintf "@[%t@]" (fun () -> P.seq (P.dprintf ",@!") (fun (pl, _, pct) -> P.dprintf "%a: %a" Index.d_index (index_of_ploc pl p) CType.d_ctype pct) pcts)
+ 
   end
 
   module Store = struct
@@ -723,6 +737,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let rename subs ps =
       let cns = LDesc.map (CType.subs subs) in
         SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
+
+    let indices_of_t st = 
+      SLM.fold (fun _ ld acc -> (LDesc.indices_of_t ld) ++ acc) st []
 
     let d_store_addrs () st =
       Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)

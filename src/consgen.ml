@@ -81,9 +81,9 @@ let scim_of_file cil =
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let infer_shapes cil spec scis =
+let infer_shapes cil spec scim =
   let spec = FI.cspec_of_refspec spec in
-  (Inferctypes.infer_shapes cil spec scis, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
+  (Inferctypes.infer_shapes cil spec scim, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -95,13 +95,12 @@ let shapem_of_scim cil spec scim =
      end (CS.funspec spec)
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
-  >> (fun _ -> ignore <| E.log "\nSTART: SHAPE infer \n") 
-  |> (fun (_, fm) -> infer_shapes cil spec fm)
-  >> (fun _ -> ignore <| E.log "\nDONE: SHAPE infer \n") 
+  |> snd 
+  |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
 
 
 (* TBD: UGLY *)
-let mk_gnv spec cenv decs =
+let mk_gnv spec decs cenv =
   let decs = decs 
              |> Misc.map_partial (function CM.FunDec (fn,_) -> Some fn | _ -> None)
              |> List.fold_left (Misc.flip SS.add) SS.empty in
@@ -158,22 +157,23 @@ let print_sccs sccs =
 
 (* API *)
 let create cil (spec: FI.refspec) =
-  let reachf   = CM.reachable cil in
-  let scim     = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn) in 
-  let _        = E.log "\nDONE: SSA conversion \n" in
-  let tgr      = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
-  let _        = E.log "\nDONE: TAG initialization\n" in
-  let spec     = rename_funspec scim spec in
-  let _        = E.log "\nDONE: SPEC rename \n" in
-  let decs     = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
-  let sim      = Scalar.scalarinv_of_scim cil spec tgr scim (* decs *) in
-  let shm, cnv = shapem_of_scim cil spec scim in
-  let _        = E.log "\nDONE: Shape Inference \n" in
-  let _        = if !Cs.ctypes_only then exit 0 else () in
-  let _        = E.log "\nDONE: Gathering Decs \n" in
-  let gnv      = mk_gnv spec cnv decs in
-  let _        = E.log "\nDONE: Global Environment \n" in
-  let gst      = spec |> FI.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
+  let reachf = CM.reachable cil in
+  let scim   = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn)  in
+  let _      = E.log "\nDONE: SSA conversion \n" in
+  let tgr    = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
+  let _      = E.log "\nDONE: TAG initialization\n" in
+  let spec   = rename_funspec scim spec in
+  let _      = E.log "\nDONE: SPEC rename \n" in
+  let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
+  let cspec  = FI.cspec_of_refspec spec in
+  let gnv    = cspec |> Ctypes.I.Spec.funspec |> SM.map fst |> mk_gnv spec decs in
+  let _      = if !Cs.scalar then (ignore <| Scalar.scalarinv_of_scim cil spec tgr gnv scim) in
+  let shm    = shapem_of_scim cil spec scim in
+  let _      = E.log "\nDONE: SHAPE infer \n" in
+  let _      = if !Cs.ctypes_only then exit 0 else () in
+  let _      = E.log "\nDONE: Gathering Decs \n" in
+  let _      = E.log "\nDONE: Global Environment \n" in
+  let gst    = spec |> FI.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

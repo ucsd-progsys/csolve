@@ -38,7 +38,7 @@ module Cs  = FixInterface.RefCTypes.Spec
 open Cil
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 exception CantConvert
 
@@ -194,8 +194,8 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
      | _ -> 
           halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
   with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
-    let _ = errorLoc loc "FOO Failed converting CIL type %a\n" d_type c in
-    let _ = errorLoc loc "FOO Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
+    let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
+    let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
 
 and conv_ptr loc (th, st) pd c =
@@ -314,7 +314,7 @@ let vars_of_file cil =
   end SM.empty
 
 let globalspecs_of_varm varspec varm =
-     (SLM.empty, SM.empty)
+  (SLM.empty, SM.empty)
   |> SM.fold begin fun _ t (st, varm) -> match t with
        | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (st, varm) loc v.vname v.vtype
        | _                                    -> (st, varm)
@@ -333,7 +333,16 @@ let specs_of_file_all spec cil =
   (fn, vr, st)
 
 let specs_of_file_dec spec cil =
-  let st, vr = vars_of_file cil    |> globalspecs_of_varm (Cs.varspec spec) in
-  let fn     = fundecs_of_file cil |> funspecs_of_funm (Cs.funspec spec) in 
+  let st, vr = vars_of_file cil    
+               |> globalspecs_of_varm (Cs.varspec spec) in
+  let fn     = fundecs_of_file cil 
+               |> funspecs_of_funm (Cs.funspec spec) in 
   (fn, vr, st)
+
+let spec_of_type loc t =
+  try match conv_ciltype loc TopLevel (SM.empty, SLM.empty, Ct.Index.IInt 0) t with
+      | (_, st, _), [(_, ct)] -> ct, st
+      | _ -> raise CantConvert 
+  with CantConvert -> 
+    (warnLoc loc "Genspec.spec_of_type fails on: %a \n" d_type t; raise CantConvert)
 
