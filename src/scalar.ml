@@ -28,6 +28,7 @@ module VM = CM.VarMap
 module Sy = Ast.Symbol
 module FI = FixInterface
 module SM = Misc.StringMap
+module YM = Ast.Symbol.SMap
 module ST = Ssa_transform
 module Ix = Ctypes.Index
 module Co = Constants
@@ -39,6 +40,27 @@ open Misc.Ops
 
 type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
 
+(***************************************************************************)
+(******************** Meta Qualifiers for Scalar Invariants ****************)
+(***************************************************************************)
+
+let value_var       = Ast.Symbol.value_variable Ast.Sort.t_int
+let const_var       = Ast.Symbol.mk_wild ()
+let param_var       = Ast.Symbol.mk_wild ()
+
+(* v = c *)
+let q_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
+                      |> Q.create value_var Ast.Sort.t_int
+(* v < c *)
+let q_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
+                      |> Q.create value_var Ast.Sort.t_int
+(* v = _ + c *)
+let q_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
+                      |> Q.create value_var Ast.Sort.t_int
+(* v < _ + c *)
+let q_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
+                      |> Q.create value_var Ast.Sort.t_int
+ 
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
 (***************************************************************************)
@@ -64,37 +86,8 @@ let scalar_consts_of_index = function
   | Ctypes.Index.IBot            -> []
   | Ctypes.Index.IInt n          -> [Offset n] 
   | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
-
-(*
-
-let quals_of_const f c =
-  let t  = Ast.Sort.t_int in 
-  let v  = Ast.Symbol.value_variable t in
-  let ec = Ast.eCon (Ast.Constant.Int c) in
-  let a  = () |> Ast.Symbol.mk_wild |> Ast.eVar in
-  [ec;  (Ast.eBin (a, Ast.Plus, ec))]
-  |> List.map (f v) 
-  |> List.map (Q.create v t)
-*)
-
-let value_var       = Ast.Symbol.value_variable Ast.Sort.t_int
-let const_var       = Ast.Symbol.mk_wild ()
-let param_var       = Ast.Symbol.mk_wild ()
-
-(* v = c *)
-let q_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
-                      |> Q.create value_var Ast.Sort.t_int
-(* v < c *)
-let q_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
-                      |> Q.create value_var Ast.Sort.t_int
-(* v = _ + c *)
-let q_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
-                      |> Q.create value_var Ast.Sort.t_int
-(* v < _ + c *)
-let q_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
-                      |> Q.create value_var Ast.Sort.t_int
-   
-let quals_of_scalar_const : scalar_const -> Q.t list = function
+  
+let quals_of_scalar_const = function
   | Offset c ->
       [q_v_eq_c; q_v_eq_x_plus_c] 
       |>: Q.subst (Ast.Subst.of_list [const_var, Ast.eInt c])
@@ -106,8 +99,17 @@ let quals_of_scalar_const : scalar_const -> Q.t list = function
   | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
 
+(* AXIOMS for MODZ
+(1) <bas> MODZ_c_d(c)
+(2) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x + d => MODZ_c_d(y)
+(3) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x - d => MODZ_c_d(y)
+*)
+
 let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
-  failwith "TBD"
+  let oc  = open_out fname in
+  let ppf = Format.formatter_of_out_channel oc in
+  Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
+  close_out oc
 
 let scalar_quals_of_file cil = 
   cil 
@@ -120,18 +122,12 @@ let scalar_quals_of_file cil =
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
 
-(*
-(1) <bas> MODZ_c_d(c)
-(2) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x + d => MODZ_c_d(y)
-(3) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x - d => MODZ_c_d(y)
-*)
 
 (***************************************************************************)
 (********************* Convert Fix Solution To Indices *********************)
 (***************************************************************************)
 
-let scalar_soln_of_fix_soln (s: FixConstraint.soln) : Ix.t VM.t = 
-  failwith "TBD"
+let index_of_pred (p: Ast.pred) : Ix.t = failwith "TBD" 
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
@@ -146,11 +142,11 @@ let generate spec tgr gnv scim : Ci.t =
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let solve cil ci : Ix.t VM.t = 
-  cil 
-  |> scalar_quals_of_file 
-  |> Misc.flip (Ci.solve ci) (!Co.liquidc_file_prefix ^ ".scalar")
-  |> (fst <+> scalar_soln_of_fix_soln)
+let solve cil ci : Ix.t YM.t = 
+  let qs = scalar_quals_of_file cil in 
+  FI.annot_binds () 
+  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar") qs 
+  |> YM.map index_of_pred
 
 (***************************************************************************)
 (*********************************** API ***********************************)
@@ -162,4 +158,3 @@ let scalarinv_of_scim cil spec tgr gnv ci =
   |> generate spec tgr gnv 
   |> solve cil 
   >> FI.annot_clear
-
