@@ -65,7 +65,7 @@ let scalar_consts_of_index = function
   | Ctypes.Index.IInt n          -> [Offset n] 
   | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
 
-let expr_of_int = fun c -> Ast.eCon (Ast.Constant.Int c)
+(*
 
 let quals_of_const f c =
   let t  = Ast.Sort.t_int in 
@@ -75,12 +75,34 @@ let quals_of_const f c =
   [ec;  (Ast.eBin (a, Ast.Plus, ec))]
   |> List.map (f v) 
   |> List.map (Q.create v t)
+*)
 
+let value_var       = Ast.Symbol.value_variable Ast.Sort.t_int
+let const_var       = Ast.Symbol.mk_wild ()
+let param_var       = Ast.Symbol.mk_wild ()
+
+(* v = c *)
+let q_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
+                      |> Q.create value_var Ast.Sort.t_int
+(* v < c *)
+let q_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
+                      |> Q.create value_var Ast.Sort.t_int
+(* v = _ + c *)
+let q_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
+                      |> Q.create value_var Ast.Sort.t_int
+(* v < _ + c *)
+let q_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
+                      |> Q.create value_var Ast.Sort.t_int
+   
 let quals_of_scalar_const : scalar_const -> Q.t list = function
-  | Offset c -> (* v = c, v = _ + c *)
-      quals_of_const (fun v e -> Ast.pEqual (Ast.eVar v, e)) c
-  | UpperBound c -> (* v < c, v < _ + c *)
-      quals_of_const (fun v e -> Ast.pAtom (Ast.eVar v, Ast.Lt, e)) c
+  | Offset c ->
+      [q_v_eq_c; q_v_eq_x_plus_c] 
+      |>: Q.subst (Ast.Subst.of_list [const_var, Ast.eInt c])
+
+  | UpperBound c ->
+      [q_v_lt_c; q_v_lt_x_plus_c] 
+      |>: Q.subst (Ast.Subst.of_list [const_var, Ast.eInt c])
+  
   | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
 
