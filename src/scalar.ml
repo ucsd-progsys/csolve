@@ -43,11 +43,29 @@ type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
 (************************* Scrape Scalar Qualifiers ************************)
 (***************************************************************************)
 
-let consts_of_file (cil: Cil.file) : scalar_const list = 
-  failwith "TBD"
+let hash_of_ciltype t = 
+  Pretty.dprintf "%a ### %a " Cil.d_typsig (Cil.typeSig t) Cil.d_attrlist (Cil.typeAttrs t)
+  |> Pretty.sprint ~width:80
 
-(* val quals_of_scalar_const: scalar_const -> Q.t list *)
-let quals_of_scalar_const = function
+let type_decs_of_file (cil: Cil.file) : (Cil.location * Cil.typ) list =
+  let x = ref [] in 
+  CM.iterVars cil begin fun v -> match v.Cil.vtype with 
+    | Cil.TFun (t,_,_,_) | t -> x := (v.Cil.vdecl, t) :: !x
+  end; 
+  !x 
+  |> Misc.kgroupby (snd <+> hash_of_ciltype)
+  |> Misc.map (function (_,x::_) -> x)
+
+let scalar_consts_of_polarity n m = function
+  | Ctypes.PosB k -> [UpperBound (n + m*k)]
+  | _             -> []
+
+let scalar_consts_of_index = function
+  | Ctypes.Index.IBot            -> []
+  | Ctypes.Index.IInt n          -> [Offset n] 
+  | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity po)
+
+let quals_of_scalar_const : scalar_const -> Q.t list = function
   | Offset c -> 
       failwith "TBD" (* v = _ + c,  v = c *)
   | UpperBound c ->
@@ -60,7 +78,10 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
 
 let scalar_quals_of_file cil = 
   cil 
-  |> consts_of_file
+  |> type_decs_of_file
+  |> Misc.map (Misc.uncurry Genspec.spec_of_type)
+  |> Misc.flap (fun (ct, st) -> Ctypes.I.CType.refinements_of_t ct ++ Ctypes.I.Store.indices_of_t st)
+  |> Misc.flap scalar_consts_of_index
   |> Misc.flap quals_of_scalar_const 
   |> Misc.sort_and_compact
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
@@ -78,7 +99,6 @@ let scalar_quals_of_file cil =
 
 let scalar_soln_of_fix_soln (s: FixConstraint.soln) : Ix.t VM.t = 
   failwith "TBD"
-
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)

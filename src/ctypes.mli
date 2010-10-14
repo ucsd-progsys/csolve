@@ -95,18 +95,19 @@ module type S = sig
 
     exception NoLUB of t * t
 
-    val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
-    val d_ctype     : unit -> t -> Pretty.doc
-    val of_const    : Cil.constant -> t
-    val is_subctype : t -> t -> bool
-    val width       : t -> int
-    val sloc        : t -> Sloc.t option
-    val subs        : Sloc.Subst.t -> t -> t
-    val eq          : t -> t -> bool
-    val collide     : ploc -> t -> ploc -> t -> int -> bool
-    val is_void     : t -> bool
-    val is_ref      : t -> bool
-    val top         : t
+    val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val d_ctype          : unit -> t -> Pretty.doc
+    val of_const         : Cil.constant -> t
+    val is_subctype      : t -> t -> bool
+    val width            : t -> int
+    val sloc             : t -> Sloc.t option
+    val subs             : Sloc.Subst.t -> t -> t
+    val eq               : t -> t -> bool
+    val collide          : ploc -> t -> ploc -> t -> int -> bool
+    val is_void          : t -> bool
+    val is_ref           : t -> bool
+    val refinements_of_t : t -> R.t list
+    val top              : t
   end
 
   module LDesc:
@@ -129,6 +130,7 @@ module type S = sig
     val fold          : ('a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
     val map           : ('a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> ploc -> 'a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
+    val indices_of_t  : t -> Index.t list 
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -151,9 +153,10 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-
-    val d_store_addrs : unit -> t -> Pretty.doc
-    val d_store       : unit -> t -> Pretty.doc
+    val indices_of_t : t -> Index.t list 
+    
+    val d_store_addrs: unit -> t -> Pretty.doc
+    val d_store      : unit -> t -> Pretty.doc
 
     (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
     (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -267,6 +270,4 @@ type ctemap = I.ctemap
 
 val void_ctype   : ctype 
 val scalar_ctype : ctype
-
 val is_unbounded : seq_polarity -> bool
-

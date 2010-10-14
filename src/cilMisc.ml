@@ -265,6 +265,18 @@ class bodyVisitor (cg: G.t) (caller: varinfo) = object
     | _                                           -> SkipChildren
 end
 
+
+class varVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  
+  method vglob = function
+    | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
+    | GVar (v, _ , _) -> f v; SkipChildren
+end
+
+let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new varVisitor f) cil
+
 class callgraphVisitor (cg: G.t) = object
   inherit nopCilVisitor
 
