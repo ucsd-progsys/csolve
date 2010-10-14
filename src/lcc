@@ -1,7 +1,8 @@
 #!/usr/bin/perl
-# Gruesome hack of cilly, leaving all original copyright notices in place.
+# Gruesome hack of cilly.
 #
-#
+# The original copyright notice follows; gruesome hacks, however,
+# are not the fault of the original, listed authors.
 #
 # Copyright (c) 2001-2002, 
 #  George C. Necula    <necula@cs.berkeley.edu>
