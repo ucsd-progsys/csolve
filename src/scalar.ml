@@ -63,15 +63,26 @@ let scalar_consts_of_polarity n m = function
 let scalar_consts_of_index = function
   | Ctypes.Index.IBot            -> []
   | Ctypes.Index.IInt n          -> [Offset n] 
-  | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity po)
+  | Ctypes.Index.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
+
+let expr_of_int = fun c -> Ast.eCon (Ast.Constant.Int c)
+
+let quals_of_const f c =
+  let t  = Ast.Sort.t_int in 
+  let v  = Ast.Symbol.value_variable t in
+  let ec = Ast.eCon (Ast.Constant.Int c) in
+  let a  = () |> Ast.Symbol.mk_wild |> Ast.eVar in
+  [ec;  (Ast.eBin (a, Ast.Plus, ec))]
+  |> List.map (f v) 
+  |> List.map (Q.create v t)
 
 let quals_of_scalar_const : scalar_const -> Q.t list = function
-  | Offset c -> 
-      failwith "TBD" (* v = _ + c,  v = c *)
-  | UpperBound c ->
-      failwith "TBD" (* v < c, v < _ + c *)
-  | Periodic (c, d) ->
-      failwith "TBD" (* MODZ_c_d(v), MODZ_c_d(v - _) *)
+  | Offset c -> (* v = c, v = _ + c *)
+      quals_of_const (fun v e -> Ast.pEqual (Ast.eVar v, e)) c
+  | UpperBound c -> (* v < c, v < _ + c *)
+      quals_of_const (fun v e -> Ast.pAtom (Ast.eVar v, Ast.Lt, e)) c
+  | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
+      []
 
 let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
   failwith "TBD"
