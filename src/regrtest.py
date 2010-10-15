@@ -39,7 +39,6 @@ def solve_quals(file,bare,time,quiet,flags):
   if time: time = ["time"]
   else: time = []
   hygiene_flags = [("--liquidcprefix=%s" % (file)), "-o", "/dev/null"]
-  print hygiene_flags
   return logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
 
 def run_script(file,quiet):
