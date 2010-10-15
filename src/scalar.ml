@@ -122,7 +122,6 @@ let scalar_quals_of_file cil =
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
 
-
 (***************************************************************************)
 (********************** Convert Predicates To Indices **********************)
 (***************************************************************************)
