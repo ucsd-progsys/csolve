@@ -132,22 +132,24 @@ let const_of_subst su =
      |> Misc.do_catch "Scalar.const_of_subst" (List.assoc const_var)
      |> (function Ast.Con (Ast.Constant.Int i), _  -> i | _ -> assertf "Scalar.const_of_subst")
 
-let indexo_of_preds_iint (ps: Ast.pred list)  =
+let indexo_of_preds_iint v ps =
+  let p_v_eq_c = [value_var, Ast.eVar v] |> Ast.Subst.of_list |> Ast.substs_pred p_v_eq_c in
   ps |> Misc.map_partial (Ast.unify_pred p_v_eq_c)
      |> List.map const_of_subst
      |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
 
-let indexo_of_preds_iseqb ps = None (* TODO *)
-let indexo_of_preds_iseq  ps = None (* TODO *) 
+let indexo_of_preds_iseqb v ps = 
+  None (* TODO *)
 
-let index_of_pred : Ast.pred -> Ix.t = function
-  
-  | Ast.And ps, _ -> 
-      [ indexo_of_preds_iint
-      ; indexo_of_preds_iseqb
-      ; indexo_of_preds_iseq ]
-      |> Misc.maybe_chain ps Ix.top 
+let indexo_of_preds_iseq  v ps = 
+  None (* TODO *) 
 
+let index_of_pred v = function
+  | Ast.And ps, _ ->
+    [ indexo_of_preds_iint v
+    ; indexo_of_preds_iseqb v
+    ; indexo_of_preds_iseq v ]
+    |> Misc.maybe_chain ps Ix.top
   | _ -> assertf "Scalar.index_of_pred"
 
 (***************************************************************************)
@@ -166,8 +168,8 @@ let generate spec tgr gnv scim : Ci.t =
 let solve cil ci : Ix.t YM.t = 
   let qs = scalar_quals_of_file cil in 
   FI.annot_binds () 
-  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar") qs 
-  |> YM.map index_of_pred
+  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar") qs
+  |> YM.mapi index_of_pred
 
 (***************************************************************************)
 (*********************************** API ***********************************)
