@@ -33,4 +33,13 @@ val print: FixConstraint.soln option -> unit -> t -> Pretty.doc
    val get_cs: t -> FixConstraint.t list
    val get_deps: t -> FixConstraint.dep list *)
 
+
 val solve: t -> Ast.Qualifier.t list -> string -> FixConstraint.soln * FixConstraint.t list 
+
+val force: t -> string -> Ast.Qualifier.t list -> (FixConstraint.envt * FixConstraint.reft) Ast.Symbol.SMap.t -> Ast.pred Ast.Symbol.SMap.t 
+
+(*
+ 
+val force: t -> Ast.Qualifier.t list -> string -> Ast.pred YM.t 
+val force: t -> FixConstraint.soln -> Ast.pred list -> FixConstraint.envt -> FixConstraint.reft -> Ast.pred list
+*)

@@ -99,7 +99,7 @@ let print so () me =
          |> P.concat (P.text "Liquid Types:\n\n")
 
 
-(* API *)
+
 let solve me qs fn = 
   let ws     = get_wfs me in
   let cs     = get_cs me in
@@ -108,7 +108,23 @@ let solve me qs fn =
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
   let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
-  let _      = Errormsg.log "DONE: constraint solving \n" in
+  let _      =  Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
-  s', cs'
+  s', cs', ctx
+
+(* API *)
+let force me fn qs vm = 
+  let s',cs',ctx = solve me qs fn in
+  let _          = asserts (cs' = []) "Consindex.force: unsolved constraints! \n" in
+  vm |> Ast.Symbol.sm_to_list
+     |> Solve.force_binds ctx s' qs 
+     |> Ast.Symbol.sm_of_list
+     >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
+
+(* API *)
+let solve me qs fn = solve me qs fn |> (fun (x,y,_) -> (x,y))
+
+
+
+
 

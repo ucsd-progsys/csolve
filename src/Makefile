@@ -36,3 +36,6 @@ all:
 
 clean:
 	rm -rf *.byte *.native _build _log
+
+vitags:
+	otags -vi *.ml fixpoint/*.ml misc/*.ml ../external/cil/src/*.ml
