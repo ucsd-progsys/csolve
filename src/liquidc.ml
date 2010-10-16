@@ -282,6 +282,7 @@ let theMain () =
     (* parse the command-line arguments *)
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
     Cil.initCIL ();
+    Cil.useLogicalOperators := true;
 
     Ciloptions.fileNames := List.rev !Ciloptions.fileNames;
 
