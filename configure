@@ -10,6 +10,7 @@ EXTHOME=$ROOTHOME/external
 OCAMLGRAPHHOME=$ROOTHOME/external/ocamlgraph
 Z3HOME=$ROOTHOME/external/z3
 CILHOME=$ROOTHOME/external/cil/obj/x86_LINUX
+SRCHOME=$ROOTHOME/src
 EOF
 
 OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`

@@ -341,6 +341,61 @@ let g_halt (b: bool) =
 let is_fun    = fun v -> match v.vtype with TFun (_,_,_,_) -> true | _ -> false
 let is_scalar = fun v -> match v.vtype with TInt (_,_) -> true | _ -> false
 
+(***************************************************************************************)
+(*************** Cil Summarizers *******************************************************)
+(***************************************************************************************)
+
+module type Summarizer =
+sig
+  type summary =
+    {has_prop: bool; metric: int}
+  val build_summary: Cil.file -> summary
+end
+
+module FunPtrDetector : Summarizer =
+  struct
+    type summary = {has_prop: bool; metric: int}
+
+    class t = object(self)
+      inherit nopCilVisitor
+    
+      val mutable has_funptr = false
+      method get_has_funptr = has_funptr
+
+      val mutable funptrness = 0
+      method get_funptrness = funptrness
+    
+      val typ_is_funptr = function
+        | TPtr (TFun _, _) -> true
+        | _                -> false
+    
+      val typ_is_func = function
+        | TFun _ -> true
+        | _      -> false
+    
+      method vtyp t : typ visitAction =
+        let _ = if typ_is_func t then
+          has_funptr <- true in
+        DoChildren
+    
+      method vlval lv =
+        let _ = if typeOfLval lv |> typ_is_funptr then
+          (has_funptr <- true; funptrness <- funptrness + 1) in
+        DoChildren
+    
+      method vexpr = function
+        | AddrOf lv ->
+            let _ = if typeOfLval lv |> typ_is_func then
+              has_funptr <- true in
+            DoChildren
+        | _ -> DoChildren
+    end
+
+    let build_summary cil =
+      let rv = new t in
+      let _  = visitCilFile (rv :> cilVisitor) cil in
+      {has_prop = rv#get_has_funptr; metric = rv#get_funptrness}
+  end
 
 (***************************************************************************************)
 (*************** Cil Visitors **********************************************************)
@@ -366,6 +421,7 @@ module CopyGlobal =
   
       method revertShadows =
            Hashtbl.fold (fun glob shadow is -> Set (var glob, Lval (var shadow), locUnknown) :: is) shadows []
+
         |> self#queueInstr
   
       method vstmt = function
