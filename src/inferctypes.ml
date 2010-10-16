@@ -328,6 +328,7 @@ and apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
   | C.MinusPI                               -> apply_ptrarithmetic (fun i1 x i2 -> Index.minus i1 (Index.scale x i2))
   | C.MinusPP                               -> apply_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> apply_rel
+  | C.LAnd | C.LOr                          -> apply_logical
   | C.Mod                                   -> apply_unknown
   | C.BAnd | C.BOr | C.BXor                 -> apply_unknown
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
@@ -347,6 +348,9 @@ and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.typ_width !C.upointType, Index.top)
 
 and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
+  Int (CM.int_width, Index.nonneg)
+
+and apply_logical (_: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.int_width, Index.nonneg)
 
 and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
