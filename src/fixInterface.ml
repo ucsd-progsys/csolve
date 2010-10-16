@@ -443,10 +443,6 @@ let print_ce so ppf (_, vnv) =
 (************************** Templates ******************************)
 (*******************************************************************)
 
-let fresh_kvar = 
-  let r = ref 0 in
-  fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
-
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in
@@ -475,7 +471,7 @@ let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct

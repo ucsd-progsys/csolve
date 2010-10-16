@@ -272,6 +272,7 @@ class varVisitor (f: Cil.varinfo -> unit) = object
   method vglob = function
     | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
     | GVar (v, _ , _) -> f v; SkipChildren
+    | _               -> SkipChildren
 end
 
 let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 

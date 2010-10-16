@@ -39,6 +39,7 @@ module LI  = Inferctypes
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
 module CM  = CilMisc
+module YM  = Ast.Symbol.SMap
 
 open Misc.Ops
 open Cil
@@ -64,7 +65,8 @@ type t    = {
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
   phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t;
-  shapeo  : t_sh option
+  shapeo  : t_sh option;
+  (* bindm   : (FI.cilenv * Ast.pred * FI.refctype) YM.t *)
 }
 
 let ctype_of_local locals v =
@@ -126,6 +128,13 @@ let diff_binding conc (al, x) =
   if LM.mem al conc then
     LM.find al conc |> eq_tagcloc x |> not
   else true
+
+(*
+let add_binding x env grd r me =
+  let n = FI.name_of_varinfo x in
+  if YM.mem n me.bindm then me else 
+    {me with bindm = YM.add n (env, grd, r)} 
+*)
 
 (*
 let canon_of_annot = function 
@@ -376,4 +385,22 @@ let inwld_of_block me = function
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0
 
-let has_shape = function {shapeo = Some _} -> true | _ -> false
+let has_shape = function 
+  | {shapeo = Some _} -> true 
+  | _                 -> false
+
+(*
+let defs_of_block me (i: int) : Cil.varinfo list = failwith "TODO"
+
+(* API *)
+let get_definitions me =
+  IM.fold (fun i wld acc ->
+    let env = env_of_wld wld in
+    let grd = guard_of_block me i in
+    i |> defs_of_block me
+      |> FI.name_of_string
+      |> List.map (Misc.app_snd (fun n -> get_reft wld n))
+      |> (fun xs -> (env, grd, xs) :: acc)
+  ) me.wldm 
+  *)  
+
