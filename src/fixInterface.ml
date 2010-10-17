@@ -23,18 +23,21 @@
 
 (* This file is part of the liquidC Project.*)
 
+(************** Interface between LiquidC and Fixpoint *************)
 
 module IM  = Misc.IntMap
 module F   = Format
 module ST  = Ssa_transform
-module  A  = Ast
-module  Q  = A.Qualifier
-module  P  = Ast.Predicate
-module  E  = A.Expression
 module  C  = FixConstraint
-module Sy  = Ast.Symbol
-module Su  = Ast.Subst
-module So  = Ast.Sort
+
+module  A  = Ast
+module  P  = A.Predicate
+module  E  = A.Expression
+module Sy  = A.Symbol
+module Su  = A.Subst
+module So  = A.Sort
+module  Q  = A.Qualifier
+
 module CI  = CilInterface
 module Ct  = Ctypes
 module It  = Ctypes.I
@@ -46,9 +49,7 @@ module LM = Sloc.SlocMap
 open Misc.Ops
 open Cil
 
-(*******************************************************************)
-(************** Interface between LiquidC and Fixpoint *************)
-(*******************************************************************)
+let mydebug = false
 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
@@ -91,6 +92,7 @@ end
 (*******************************************************************)
 
 type name = Sy.t
+
 let string_of_name = Sy.to_string 
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 let name_of_string  = fun s -> Sy.of_string s
@@ -207,6 +209,7 @@ type reffield = RCt.Field.t
 type refldesc = RCt.LDesc.t
 type refstore = RCt.Store.t
 type refspec  = RCt.Spec.t
+type cilenv   = refcfun SM.t * refctype YM.t * name YM.t
 
 let d_refstore = RCt.Store.d_store
 let d_refctype = RCt.CType.d_ctype
@@ -341,7 +344,7 @@ let refstore_write loc sto rct rct' =
 (****************** Tag/Annotation Generation **********************)
 (*******************************************************************)
 
-type binding = TVar of string * refctype
+type binding = TVar of string * cilenv * refctype
              | TFun of string * refcfun
              | TSto of string * refstore
 
@@ -351,7 +354,7 @@ let tags_of_binds s binds =
   let s_sto = RCt.Store.map_ct s_typ in
   let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) -> function
-    | TVar (x, cr) -> 
+    | TVar (x, _, cr) -> 
         let k,t  = x, ("variable "^x) in
         let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refctype (s_typ cr) nl in
         (Pretty.concat d d', (k,t)::kts)
@@ -367,38 +370,38 @@ let tags_of_binds s binds =
         (Pretty.concat d d', kts' ++ kts)
   end (Pretty.nil, []) binds
 
-let generate_annots file d = 
-  let fn = file ^ ".annot" in
+let generate_annots d = 
+  let fn = !Co.liquidc_file_prefix ^ ".annot" in
   let oc = open_out fn in
   let _  = Pretty.fprint ~width:80 oc d in
   let _  = close_out oc in
   ()
 
-let generate_tags file kts =
-  let fn = file ^ ".tags" in
+let generate_tags kts =
+  let fn = !Co.liquidc_file_prefix ^ ".tags" in
   let oc = open_out fn in
   let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
-               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k file t) in
+               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.liquidc_file_prefix t) in
   let _  = close_out oc in
   ()
 
 let annotr    = ref [] 
 
 (* API *)
-let annot_var  = fun x cr   -> annotr := TVar ((string_of_name x), cr) :: !annotr
-let annot_fun  = fun f cf   -> annotr := TFun (f, cf) :: !annotr
-let annot_sto  = fun f st   -> annotr := TSto (f, st) :: !annotr
-let annot_dump = fun file s -> !annotr 
+let annot_var   = fun x env cr  -> annotr := TVar (string_of_name x, env, cr) :: !annotr
+let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
+let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
+let annot_clear = fun _     -> annotr := []
+let annot_dump  = fun s     -> !annotr
                                |> tags_of_binds s 
-                               >> (fst <+> generate_annots file)
-                               >> (snd <+> generate_tags file) 
+                               >> (fst <+> generate_annots)
+                               >> (snd <+> generate_tags) 
                                |> ignore
 
 (*******************************************************************)
 (************************** Environments ***************************)
 (*******************************************************************)
 
-type cilenv  = refcfun SM.t * refctype YM.t * name YM.t
 
 let ce_rem   = fun n cenv       -> Misc.app_snd3 (YM.remove n) cenv
 let ce_mem   = fun n (_, vnv,_) -> YM.mem n vnv
@@ -410,10 +413,10 @@ let ce_find n (_, vnv, _) =
 
 let ce_find_fn s (fnv, _,_) =
   try SM.find s fnv with Not_found ->
-    assertf "Unknown function! %s" s
+    assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
-  let _ = List.iter (Misc.uncurry annot_var) ncrs in
+  let _ = List.iter (fun (n, cr) -> annot_var n cenv cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
     let livem' = match base_of_name n with 
@@ -453,7 +456,6 @@ let print_ce so ppf (_, vnv) =
 let fresh_kvar = 
   let r = ref 0 in
   fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
-
 
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
@@ -769,7 +771,7 @@ let is_live_name livem n =
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
-let env_of_cilenv cf (_, vnv, livem) = 
+let env_of_cilenv cf (_, vnv, _) = 
   builtin_env
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
   |> canon_env cf
@@ -954,3 +956,26 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
         (env, LM.add cl ld sto)
     else
       (env, sto)
+
+(* API *)
+let quals_of_file fname =
+  try
+    let _ = Errorline.startFile fname in
+      fname
+      |> open_in 
+      |> Lexing.from_channel
+      |> FixParse.defs FixLex.token
+      |> Misc.map_partial (function C.Qul p -> Some p | _ -> None) 
+      >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
+  with Sys_error s ->
+    Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
+
+(* API: shady hack -- remove when "Solve.force" properly implemented *)
+let annot_binds () = 
+  let cf = fun _ -> None in
+  !annotr
+  |> Misc.map_partial begin function 
+       | TVar (n, env, cr) -> Some (name_of_string n, (env_of_cilenv cf env, reft_of_refctype cr))
+       | _                 -> None
+     end 
+  |> Ast.Symbol.sm_of_list

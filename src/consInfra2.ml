@@ -27,6 +27,7 @@
 (************* Constraint Generation Infrastructure ****************)
 (*******************************************************************)
 
+module Cs  = Constants
 module ST  = Ssa_transform
 module IM  = Misc.IntMap
 module SM  = Misc.StringMap
@@ -38,38 +39,34 @@ module LI  = Inferctypes
 module Sh  = Shape
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
+module CM  = CilMisc
 
 open Misc.Ops
 open Cil
 
 type wld = FI.cilenv * FI.refstore * CilTag.t option 
 
-type t = {
+type t_sh = {
+  cf      : FI.alocmap;
+  astore  : FI.refstore;
+  cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
+  shp     : Shape.t;
+}
+
+type t    = {
   tgr     : CilTag.o;
   sci     : ST.ssaCfgInfo;
-  cf      : FI.alocmap;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;
   wldm    : wld IM.t;
   gnv     : FI.cilenv; 
   formalm : unit SM.t;
-  etm     : Ctypes.ctemap;
-  ltm     : (varinfo * Ctypes.ctype) list;
-  astore  : FI.refstore;
-  bdcks   : Inferindices.block_dchecks array;
-  anna    : Refanno.block_annotation array;
-  ffmsa   : Sh.final_fields_annot array;
-  cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
-  ctab    : Refanno.ctab;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
-  phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t
+  phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t;
+  shapeo  : t_sh option
 }
-
-let ctype_of_varinfo ctl v =
-  try List.assoc v ctl with Not_found ->
-    assertf "ctype_of_varinfo: unknown var %s" v.Cil.vname
 
 let ctype_of_local locals v =
   try List.assoc v locals with 
@@ -79,7 +76,7 @@ let strengthen_cloc = function
   | ct, None 
   | (Ctypes.Int (_, _) as ct), _  
   | (Ctypes.Top (_) as ct), _    ->  ct
-  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x) 
+  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x)
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = FI.ctype_of_refctype cr in
@@ -93,18 +90,24 @@ let is_origcilvar v =
   | None -> true
   | _    -> false
 
-let env_of_fdec gnv fdec locals theta =
-  let rft  = FI.ce_find_fn fdec.svar.vname gnv in
-  let env0 = FI.args_of_refcfun rft 
-             |> Misc.map2 (strengthen_refs theta) fdec.Cil.sformals 
-             |> List.map (Misc.app_fst FI.name_of_string)
-             |> FI.ce_adds gnv in
-  fdec.slocals
-  |> List.filter is_origcilvar
-  |> Misc.map (fun v -> (FI.name_of_varinfo v, FI.t_true (ctype_of_local locals v)))
-  |> FI.ce_adds env0
+let ctype_scalar = Ctypes.void_ctype
 
-let formalm_of_fdec fdec =
+let env_of_fdec gnv fdec sho = 
+  let strf, typf = match sho with
+    | None     -> (id, fun _ -> Ctypes.scalar_ctype)
+    | Some shp -> (Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals, ctype_of_local shp.Sh.vtyps) in
+  let env0 = 
+    FI.ce_find_fn fdec.svar.vname gnv 
+    |> FI.args_of_refcfun 
+    |> strf 
+    |> List.map (Misc.app_fst FI.name_of_string)
+    |> FI.ce_adds gnv in
+  fdec.slocals 
+  |> List.filter is_origcilvar 
+  |> Misc.map (FI.name_of_varinfo <*> (FI.t_true <.> typf))
+  |> FI.ce_adds env0 
+
+let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
 
 let is_undef_var formalm v = 
@@ -170,63 +173,72 @@ let edge_asgnm_of_phia phia =
           end em  
      end IIM.empty 
 
-let create tgr gnv gst sci = function None -> failwith "TBD: scalar" | Some shp ->
-  let fdec    = sci.ST.fdec in
-  let env     = env_of_fdec gnv fdec shp.Sh.vtyps shp.Sh.theta in
-  let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
-  let lastore = FI.refstore_fresh fdec.svar.vname shp.Sh.store in
-  let astore  = FI.RefCTypes.Store.upd gst lastore in
+let create_shapeo tgr gnv env gst sci = function
+  | None -> 
+      ([], [], [], None)
+  | Some shp ->
+      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
+                    |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
+      let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
+      let astore  = FI.RefCTypes.Store.upd gst lastore in
+      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
+      let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
+      let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
+      let loc     = sci.ST.fdec.svar.vdecl in
+      let ws      = FI.make_wfs_refstore cf env lastore lastore tag in
+      let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
+      ws, cs, ds, Some { cf = cf; astore  = astore; cstoa = cstoa; shp = shp }
+
+let create tgr gnv gst sci sho = 
   let formalm = formalm_of_fdec sci.ST.fdec in
-  let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
-  let loc     = fdec.svar.vdecl in
-  let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
-  let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
-  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
+  let env     = env_of_fdec gnv sci.ST.fdec sho in
+  let ws, cs, ds, sh_me = create_shapeo tgr gnv env gst sci sho in
   {tgr     = tgr;
    sci     = sci;
-   cf      = cf;
-   ws      = FI.make_wfs_refstore cf env lastore lastore tag;
+   ws      = ws;
    cs      = cs;
    ds      = ds;
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
-   etm     = shp.Sh.etypm;
-   ltm     = shp.Sh.vtyps;
-   astore  = astore;
-   anna    = shp.Sh.anna;
-   bdcks   = shp.Sh.bdcks;
-   ffmsa   = shp.Sh.ffmsa;
-   cstoa   = cstoa;
-   ctab    = shp.Sh.theta;
    undefm  = make_undefm formalm sci.ST.phis;
    edgem   = edge_asgnm_of_phia sci.ST.phis;
-   phibt   = Hashtbl.create 17
-}
+   phibt   = Hashtbl.create 17;
+   shapeo  = sh_me}
 
 let add_cons (ws, cs, ds) me =
   {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds}
 
-let add_wld i wld me =
+let add_wld i wld me = 
   {me with wldm = IM.add i wld me.wldm}
 
 let get_cons me =
   (me.ws, me.cs, me.ds)
 
-let get_astore me = 
-  me.astore
+let get_astore = function { shapeo = Some x } -> x.astore | _ -> FI.refstore_empty 
 
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
-let annotstmt_of_block me i = 
-  (me.anna.(i), me.bdcks.(i), me.ffmsa.(i), stmt_of_block me i)
-
 let get_fname me = 
   me.sci.ST.fdec.svar.vname 
 
-let get_alocmap me =
-  me.cf
+let length_of_stmt stmt = match stmt.skind with 
+  | Instr is -> List.length is
+  | Return _ -> 0 
+  | _        -> (if !Cs.safe then Errormsg.error "unknown stmt: %a" d_stmt stmt); 0 
+
+let annotstmt_of_block me i = 
+  match me.shapeo with 
+  | Some {shp = shp} ->  
+      (shp.Sh.anna.(i), shp.Sh.bdcks.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
+(*  | None     -> 
+      let stmt = stmt_of_block me i in
+      ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
+*)
+
+let get_alocmap = function {shapeo = Some shp} -> shp.cf 
+                      (* | _ -> (fun _ -> None) *)
 
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
@@ -261,24 +273,23 @@ let guard_of_block me i jo =
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
       Ast.pAnd [p; p']
 
-let csto_of_block  = fun me i -> me.cstoa.(i) |> fst3
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
-
-let asgns_of_edge me i j = 
-  try IIM.find (i, j) me.edgem with Not_found -> []
+let csto_of_block  = fun {shapeo = Some shp} i -> shp.cstoa.(i) |> fst3 
+let asgns_of_edge  = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -> []
 
 let annots_of_edge me i j =
-  let iconc' = me.cstoa.(i) |> thd3 in
-  let jsto   = csto_of_block me j in
-  LM.fold begin fun al (cl, t) acc -> 
-    if FI.refstore_mem cl jsto then acc else 
-      if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
-        (Refanno.WGen (cl, al) :: acc)
-  end iconc' []  
+  match me with 
+  | {shapeo = Some shp} ->
+      let iconc' = shp.cstoa.(i) |> thd3 in
+      let jsto   = shp.cstoa.(j) |> fst3 in
+      LM.fold begin fun al (cl, t) acc -> 
+        if FI.refstore_mem cl jsto then acc else 
+          if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
+            (Refanno.WGen (cl, al) :: acc)
+      end iconc' []  
+  (* | _ -> [] *)
 
-
-
-  (*
+(*
 let is_formal fdec v =
   fdec.sformals
   |> Misc.map (fun v -> v.vname)
@@ -289,23 +300,34 @@ let is_undefined me v =
   is_undef_var me.formalm v || SM.mem v.vname me.undefm
 
 let ctype_of_expr me e = 
-  try EM.find e me.etm with Not_found ->
-    let _ = Errormsg.error "ctype_of_expr: unknown expr = %a" Cil.d_exp e in
-    assertf "Not_found in ctype_of_expr"
+  match me.shapeo with 
+  | Some {shp = shp} -> begin 
+      try EM.find e shp.Sh.etypm with Not_found -> 
+        let _ = Errormsg.error "ctype_of_expr: unknown expr = %a" Cil.d_exp e in
+        assertf "Not_found in ctype_of_expr"
+    end
+  | _ -> assertf "ctype_of_expr" (* Ctypes.scalar_ctype *) 
+
+let ctype_of_varinfo ctl v =
+  try List.assoc v ctl with Not_found ->
+    assertf "ctype_of_varinfo: unknown var %s" v.Cil.vname
 
 let ctype_of_varinfo me v =
-  let ct  = ctype_of_varinfo me.ltm v in
-  let clo = Refanno.cloc_of_varinfo me.ctab v in
-  let rv  = strengthen_cloc (ct, clo) in
-  (* let _   = Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct in*)  
-  rv
-
+  match me.shapeo with 
+  | Some {shp = shp} ->
+      let ct  = ctype_of_varinfo shp.Sh.vtyps v in
+      let clo = Refanno.cloc_of_varinfo shp.Sh.theta v in
+      strengthen_cloc (ct, clo)
+      (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
+  | _ -> ctype_scalar
+ 
 let refctype_of_global me v =
   FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
   |> Misc.map fst
+  >> List.iter (fun v -> ignore <| Pretty.printf "phis_of_block %d: %s \n" i v.Cil.vname)
 
 let outwld_of_block me i =
   IM.find i me.wldm
@@ -327,24 +349,32 @@ let inenv_of_block me i =
     let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
     FI.ce_adds env0 phibs
 
-let inwld_of_block me = function
-  | j when idom_of_block me j < 0 ->
-      (me.gnv, me.astore, None)
-  | j ->
-      let _,sto,_      = idom_of_block me j |> outwld_of_block me in 
-      let csto,incls,_ = me.cstoa.(j) in
-      let loc          = location_of_block me j in
-      let tag          = tag_of_instr me j 0 loc in
-      (inenv_of_block me j, me.astore, Some tag)  
+let extend_wld_with_clocs me j loc tag wld = 
+  match me with
+  | {shapeo = Some shp} ->
+      let _, sto, _    = idom_of_block me j |> outwld_of_block me in 
+      let csto,incls,_ = shp.cstoa.(j) in
+      wld
       (* Copy "inherited" conc-locations *)
       |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
           (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world me.cf csto cl cl false id loc tag wld
+          fst <| FI.extend_world shp.cf csto cl cl false id loc tag wld
          end csto 
+  | _ -> assertf "extend_wld_with_clocs: shapeo = None"
+ 
+let inwld_of_block me = function
+  | j when idom_of_block me j < 0 ->
+      (me.gnv, get_astore me, None)
+  | j ->
+      let loc          = location_of_block me j in
+      let tag          = tag_of_instr me j 0 loc in
+      (inenv_of_block me j, get_astore me, Some tag)
+      |> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)
 
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0
- 
+
+let has_shape = function {shapeo = Some _} -> true | _ -> false

@@ -39,9 +39,15 @@ open M.Ops
 (*********************************** Indices **********************************)
 (******************************************************************************)
 
-type seq_polarity = (* whether sequence extends positively only or in both directions *)
-  | Pos
-  | PosNeg
+(* TODO: PMR, please check *)
+type seq_polarity =     (* direction in which sequence extends *)
+  | Pos                 (* +ve unbounded         *)
+  | PosNeg              (* +ve and -ve unbounded *)
+  | PosB of int         (* +ve upto k times      *)
+
+let is_unbounded = function
+  | PosB _ -> false 
+  | _      -> true
 
 module Index = struct
   let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
@@ -63,7 +69,8 @@ module Index = struct
     | IInt n              -> P.num n
     | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
     | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
-
+    | ISeq (n, m, PosB k) -> P.dprintf "%d[%d < %d]" n m k
+  
   let is_subindex i1 i2 =
     match (i1, i2) with
       | (IBot, _)                             -> true
@@ -145,6 +152,7 @@ let d_ploc (): ploc -> P.doc = function
   | PLAt i            -> P.dprintf "PLAt %d" i
   | PLSeq (i, Pos)    -> P.dprintf "PLSeq %d+" i
   | PLSeq (i, PosNeg) -> P.dprintf "PLSeq %d+/-" i
+  | PLSeq (i, PosB k) -> P.dprintf "PLSeq %d+%d" i k
 
 module Ploc = struct
   type t = ploc
@@ -174,21 +182,43 @@ let ploc_start: ploc -> int = function
 let ploc_compare (pl1: ploc) (pl2: ploc): int =
   compare (ploc_start pl1) (ploc_start pl2)
 
-let ploc_periodic: ploc -> bool = function
-  | PLAt _  -> false
+let ploc_periodic = function
   | PLSeq _ -> true
+  | PLAt _  -> false
 
+let ploc_bounded_periodic = function
+  | PLSeq (_, PosB _) -> true
+  | _                 -> false
+
+let ploc_unbounded_periodic = function
+  | PLSeq (_, Pos)    -> true
+  | PLSeq (_, PosNeg) -> true
+  | _                 -> false
+
+(* TODO: PMR, please check *)
 let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
   match (pl1, pl2) with
-    | (PLAt n1, PLAt n2)                   -> n1 = n2
-    | (PLAt _, PLSeq _)                    -> false
-    | (PLSeq (n1, Pos), PLAt n2)           -> n1 <= n2 && (n2 - n1) mod p = 0
-    | (PLSeq (n1, PosNeg), PLAt n2)        -> (n2 - n1) mod p = 0
-    | (PLSeq (n1, Pos), PLSeq (n2, Pos))   -> n1 <= n2 && (n2 - n1) mod p = 0
-    | (PLSeq (n1, Pos), PLSeq (_, PosNeg)) -> false
-    | (PLSeq (n1, PosNeg), PLSeq (n2, _))  -> (n2 - n1) mod p = 0
+    | (PLAt n1, PLAt n2)                         -> n1 = n2
+    | (PLAt _,             PLSeq _)                          
+    | (PLSeq (_, PosB _),  PLSeq (_, Pos))        
+    | (PLSeq (_, Pos),    PLSeq (_, PosNeg)) 
+    | (PLSeq (_, PosB _), PLSeq (_, PosNeg))     -> false
+    | (PLSeq (n1, PosNeg), PLAt n2)              
+    | (PLSeq (n1, PosNeg), PLSeq (n2, _))        -> (n2 - n1) mod p = 0
+    | (PLSeq (n1, Pos), PLAt n2)                 
+    | (PLSeq (n1, Pos), PLSeq (n2, Pos))         
+    | (PLSeq (n1, Pos), PLSeq (n2, PosB _))      -> (n2 - n1) mod p = 0 && n1 <= n2 
+    | (PLSeq (n1, PosB k), PLAt n2)              -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 < n1 + (p * k)
+    | (PLSeq (n1, PosB k1), PLSeq (n2, PosB k2)) -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 + (p * k2) <= n1 + (p * k1)
+   
 
+(* TODO: PMR, please check *)
 let ploc_contains_index pl p i =
+  ploc_contains pl (ploc_of_index i) p && 
+  (match i with Index.ISeq (_, k, _) -> k mod p = 0 | _ -> true)
+
+(*
+
   match (pl, i) with
     | (_, Index.IBot)                             -> false
     | (PLAt n, Index.IInt m)                      -> n = m
@@ -198,7 +228,8 @@ let ploc_contains_index pl p i =
     | (PLSeq (n, Pos), Index.ISeq (m, k, Pos))    -> k mod p = 0 && n <= m && (m - n) mod p = 0
     | (PLSeq (n, Pos), Index.ISeq (m, k, PosNeg)) -> false
     | (PLSeq (n, PosNeg), Index.ISeq (m, k, _))   -> k mod p = 0 && (m - n) mod p = 0
-
+*)
+ 
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
     | PLAt n'       -> PLAt (n + n')
@@ -288,6 +319,7 @@ module type S = sig
     val collide     : ploc -> t -> ploc -> t -> int -> bool
     val is_void     : t -> bool
     val is_ref      : t -> bool
+    val refinements_of_t : t -> R.t list
     val top         : t
   end
 
@@ -326,6 +358,7 @@ module type S = sig
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> ploc -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (ploc -> Field.t -> unit) -> t -> unit
+    val indices_of_t  : t -> Index.t list
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -348,9 +381,9 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-
-    val d_store_addrs : unit -> t -> Pretty.doc
-    val d_store       : unit -> t -> Pretty.doc
+    val indices_of_t : t -> Index.t list 
+    val d_store_addrs: unit -> t -> Pretty.doc
+    val d_store      : unit -> t -> Pretty.doc
 
     (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
     (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -491,12 +524,25 @@ module Make (R: CTYPE_REFINEMENT) = struct
         | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
         | _                          -> pct1 = pct2
 
+    (* TODO: PMR, please check *)
+    let collide pl1 pct1 pl2 pct2 p =
+      let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
+      let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
+      let k1                       = match pl1 with PLSeq (_, PosB k1) -> k1 | _ -> 1 in
+      (s1 + (k1 * (width pct1)) > s2) ||
+      (ploc_unbounded_periodic pl1 && s2 + width pct2 > (s1 + p))
+
+    (** RJ: Original code 
     let collide pl1 pct1 pl2 pct2 p =
       let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
       let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
       let d                        = s2 - s1 in
       let pl1                      = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
-        s1 + width pct1 > s2 || (ploc_periodic pl1 && s2 + width pct2 > (s1 + p))
+      (s1 + width pct1 > s2) ||
+      (ploc_periodic pl1 && s2 + width pct2 > (s1 + p))
+    *)
+
+
 
     let is_void = function
       | Int (0, _) -> true
@@ -505,7 +551,10 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let is_ref = function
       | Ref _ -> true
       | _     -> false
-      
+     
+    let refinements_of_t = function
+      | Int (_, x) | Ref (_, x) | Top (x)    -> [x]
+
     let top = Top (R.top)
   end
 
@@ -547,7 +596,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
        - The period is non-negative if present.
        - If no period is present, the list contains no periodic locations.
        - The list does not contain the location PLEverywhere.
-       - For all (pl1, pct1), (pl2, pct2) in the list, not (prectypes_collide pl1 pct1 pl2 pct2 period)
+       - For all (pl1, pct1), (pl2, pct2) in the list, not (Ctypes.collide pl1 pct1 pl2 pct2 period)
        (if there is no period, then pl1 and pl2 are not periodic, so the value used for the period is irrelevant).
        - All (pl, pct) in the list are sorted by pl according to ploc_start.
 
@@ -567,19 +616,27 @@ module Make (R: CTYPE_REFINEMENT) = struct
       M.get_option 0 po
 
     let collides_with pl1 fld1 po (pl2, _, fld2) =
-      CType.collide pl1 fld1 pl2 fld2 (get_period_default po)
-
-    let fits pl fld po flds =
-      (not (ploc_periodic pl) || (M.maybe_bool po && CType.width fld <= get_period_default po))
-      && not (List.exists (collides_with pl fld po) flds)
+      CType.collide pl1 (Field.type_of fld1) pl2 (Field.type_of fld2) (get_period_default po)
+      >> (function true -> ignore <| P.printf "collides_with: pl1, fld1 = %a, %a  pl2, fld2 = %a, %a po = %d \n" 
+            d_ploc pl1 Field.d_field fld1
+            d_ploc pl2 Field.d_field fld2
+            (get_period_default po)     
+          | _ -> ())
 
     let rec insert loc pl fld = function
       | []                                 -> [(pl, loc, fld)]
-      | (pl2, loc2, fld2) :: flds' as flds ->
-          if ploc_start pl <= ploc_start pl2 then (pl, loc, fld) :: flds else (pl2, loc2, fld2) :: insert loc pl fld flds'
+      | (pl2, loc2, fld2) :: flds' as flds -> if ploc_start pl <= ploc_start pl2 
+                                              then (pl, loc, fld) :: flds
+                                              else (pl2, loc2, fld2) :: insert loc pl fld flds'
 
-    let add loc pl fld ((po, flds) as ld) =
-      if fits pl fld po flds then (po, insert loc pl fld flds) else raise (TypeDoesntFit (pl, Field.type_of fld, ld))
+    let fits pl fld po flds =
+      (not (ploc_unbounded_periodic pl) || (M.maybe_bool po && CType.width (Field.type_of fld) <= get_period_default po))
+      && not (List.exists (collides_with pl fld po) flds)
+
+    let add loc pl fld (po, flds) =
+      if fits pl fld po flds then (po, insert loc pl fld flds) else 
+        (* let _ = asserti false "type doesnt fit!" in *) 
+        raise (TypeDoesntFit (pl, Field.type_of fld, (po, flds)))
 
     let remove pl (po, flds) =
       (po, List.filter (fun (pl2, _, _) -> not (pl = pl2)) flds)
@@ -595,12 +652,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
         (flds, b)
 
     let shrink_period p f b (po, flds) =
-      assert (p > 0);
-      let p       = M.gcd (get_period_default po) p in
-      let gs      = M.groupby (fun (pl, _, _) -> (ploc_start pl) mod p) flds in
-      let (gs, b) = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
-      let flds    = List.sort (fun (pl1, _, _) (pl2, _, _) -> ploc_compare pl1 pl2) (List.concat gs) in
-        if not (M.exists_pair (fun (pl1, _, fld1) (pl2, _, fld2) -> CType.collide pl1 fld1 pl2 fld2 p) flds) then
+      asserti (p > 0) "god damn assertion fails in shrink_period";
+      let p     = M.gcd (get_period_default po) p in
+      let gs    = M.groupby (fun (pl, _, _) -> (ploc_start pl) mod p) flds in
+      let gs, b = List.fold_left (fun (gs, b) g -> let (g, b) = swallow_repeats f b g in (g :: gs, b)) ([], b) gs in
+      let flds  = List.sort (fun (pl1, _, _) (pl2, _, _) -> ploc_compare pl1 pl2) (List.concat gs) in
+        if not (M.exists_pair (fun (pl1, loc1, fld1) (pl2, loc2, fld2) -> CType.collide pl1 fld1 pl2 fld2 p) flds) then
           ((Some p, flds), b)
         else
           (* pmr: TODO - better error here *)
@@ -612,8 +669,11 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let add_index loc i fld ld =
       match i with
-        | Index.ISeq (n, m, p) -> ld |> shrink_period_fail_on_conflict m |> add loc (PLSeq (n, p)) fld
-        | _                    -> add loc (ploc_of_index i) fld ld
+      | Index.ISeq (n, m, p) -> 
+          ld |> ((is_unbounded p) <?> shrink_period_fail_on_conflict m)
+             |> add loc (PLSeq (n, p)) fld
+      | _  -> 
+          add loc (ploc_of_index i) fld ld
 
     let create loc iflds =
       List.fold_left (add_index loc |> M.uncurry |> M.flip) empty iflds
@@ -659,7 +719,15 @@ module Make (R: CTYPE_REFINEMENT) = struct
       fold (fun _ pl fld -> f pl fld) () ld
 
     let referenced_slocs ld =
-      fold (fun rss _ pct -> match CType.sloc pct with None -> rss | Some s -> SS.add s rss) SS.empty ld
+      fold begin fun rss _ pct -> match CType.sloc pct with 
+        | None -> rss 
+        | Some s -> SS.add s rss
+      end SS.empty ld
+
+    let indices_of_t (po, pcts) = 
+      match po with 
+      | None   -> List.map (function (PLAt n, _, _) -> Index.IInt n) pcts
+      | Some p -> List.map (fun (pl,_,_) -> index_of_ploc pl p) pcts
 
     let d_ldesc () (po, flds) =
       let p = get_period_default po in
@@ -734,6 +802,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
       let cns = LDesc.map (CType.subs subs) in
         SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
+    let indices_of_t st = 
+      SLM.fold (fun _ ld acc -> (LDesc.indices_of_t ld) ++ acc) st []
+
     let d_store_addrs () st =
       Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
 
@@ -796,12 +867,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
       let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
-     Store.closed whole_instore
-        && Store.closed whole_outstore
-        && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
-        && match cf.ret with  (* we can return refs to uninitialized data *)
-          | Ref (l, _) -> SLM.mem l whole_outstore
-          | _          -> true
+        Store.closed whole_instore
+          && Store.closed whole_outstore
+          && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
+          && match cf.ret with  (* we can return refs to uninitialized data *)
+             | Ref (l, _) -> SLM.mem l whole_outstore
+             | _          -> true
 
     let slocs cf =
       List.concat [Store.slocs cf.sto_in;
@@ -897,4 +968,7 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-let void_ctype = Int (0, Index.top)
+let void_ctype   = Int (0, Index.top)
+let ptr_ctype    = Ref (S.fresh S.Abstract, Index.top) 
+let scalar_ctype = Int (0, Index.top)
+

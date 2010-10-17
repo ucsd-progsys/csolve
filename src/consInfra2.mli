@@ -27,37 +27,44 @@ type t
 
 type wld = FixInterface.cilenv * FixInterface.refstore * CilTag.t option
 
+(* Shape not needed *)
+val location_of_block   : t -> int -> Cil.location
+val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.t 
+val phis_of_block       : t -> int -> Cil.varinfo list 
+val guard_of_block      : t -> int -> int option -> Ast.pred
+val succs_of_block      : t -> int -> int list
+val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
+val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
+val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
+val get_fname           : t -> string 
+val is_undefined        : t -> Cil.varinfo -> bool
 
+(* Shape needed *)
 val inenv_of_block      : t -> int -> FixInterface.cilenv 
 val inwld_of_block      : t -> int -> wld 
 val outwld_of_block     : t -> int -> wld 
 val add_wld             : int -> wld -> t -> t
 
-val location_of_block   : t -> int -> Cil.location
-val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Inferindices.block_dchecks * Shape.final_fields_annot * Cil.stmt
-val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.t 
-val phis_of_block       : t -> int -> Cil.varinfo list 
-val guard_of_block      : t -> int -> int option -> Ast.pred
-val csto_of_block       : t -> int -> FixInterface.refstore
-val succs_of_block      : t -> int -> int list
-val csto_of_block       : t -> int -> FixInterface.refstore
-val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
+val stmt_of_block       : t -> int -> Cil.stmt
+val annotstmt_of_block  :
+  t ->
+  int ->
+  Refanno.block_annotation * Inferindices.block_dchecks * Shape.final_fields_annot * Cil.stmt
 val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
-
-val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
+val csto_of_block       : t -> int -> FixInterface.refstore
 val get_alocmap         : t -> FixInterface.alocmap
-val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
-val get_fname           : t -> string 
-val get_astore          : t -> FixInterface.refstore
-val is_undefined        : t -> Cil.varinfo -> bool
-
+val get_astore          : t -> FixInterface.refstore 
 val ctype_of_varinfo    : t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype
 val refctype_of_global  : t -> Cil.varinfo -> FixInterface.refctype
 
+
+(* Top-level *)
 val create              : CilTag.o -> 
                           FixInterface.cilenv ->
                           FixInterface.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
                           Shape.t option -> t
+
+val has_shape           : t -> bool

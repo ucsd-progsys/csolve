@@ -26,13 +26,20 @@
 (******************************************************************************)
 (********************* Misc Operations on CIL entities ************************)
 (******************************************************************************)
+
 module E  = Errormsg 
 module M  = Misc
 module SM = Misc.StringMap
 
 open Cil
 open Misc.Ops
- 
+
+let mydebug = false 
+
+type dec =
+  | FunDec of string * location
+  | VarDec of Cil.varinfo * location * init option
+
 module ComparableVar =
   struct
     type t            = varinfo
@@ -98,11 +105,14 @@ class checkPureVisitor = object(self)
 end
 
 (* API *)
-let check_pure_expr e =
-  try visitCilExpr (new checkPureVisitor) e |> ignore
+let is_pure_expr e =
+  try 
+    e |> visitCilExpr (new checkPureVisitor) >| true 
   with ContainsDeref ->
-    let _ = error "impure expr: %a" Cil.d_exp e in
+    false
+(* let _ = error "impure expr: %a" Cil.d_exp e in
     assertf "impure expr"
+*)
 
 (******************************************************************************)
 (*************************** Wipe Float Expressions ***************************)
@@ -161,6 +171,8 @@ let char_width  = bytesSizeOfInt IChar
 
 let bytesSizeOf t =
   1 + ((Cil.bitsSizeOf t - 1) / 8)
+  >> (bprintf mydebug "CM.bytesSizeOf %a = %d \n" d_type t)
+
 
 let bytesOffset t off =
   fst (bitsOffset t off) / 8
@@ -195,18 +207,6 @@ let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
-
-let id_of_po = function
-  | None   -> ""
-  | Some n -> string_of_int n
-
-let id_of_ciltype t po =  
-  Pretty.dprintf "%a ### %a ### %s" 
-    Cil.d_typsig (Cil.typeSig t) 
-    Cil.d_attrlist (Cil.typeAttrs t)
-    (id_of_po po)
-  |> Pretty.sprint ~width:80
-(* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
 
 
 
@@ -265,6 +265,18 @@ class bodyVisitor (cg: G.t) (caller: varinfo) = object
     | _                                           -> SkipChildren
 end
 
+
+class varVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  
+  method vglob = function
+    | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
+    | GVar (v, _ , _) -> f v; SkipChildren
+end
+
+let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new varVisitor f) cil
+
 class callgraphVisitor (cg: G.t) = object
   inherit nopCilVisitor
 
@@ -292,7 +304,7 @@ let reach (f: file) (root : varinfo) =
 let fdec_of_name cil fn = 
   cil.globals 
   |> List.filter (function GFun (f,_) -> f.svar.vname = fn | _ -> false)
-  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "Unknown function: %s \n" fn)
+  |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "fdec_of_name: Unknown function: %s \n" fn)
 
 let reachable cil =
   match !Constants.root with 
@@ -325,7 +337,8 @@ let g_halt (b: bool) =
 (*************** Misc. Predicates ******************************************************)
 (***************************************************************************************)
 
-let is_fun v = match v.vtype with TFun (_,_,_,_) -> true | _ -> false
+let is_fun    = fun v -> match v.vtype with TFun (_,_,_,_) -> true | _ -> false
+let is_scalar = fun v -> match v.vtype with TInt (_,_) -> true | _ -> false
 
 (***************************************************************************************)
 (*************** Cil Visitors **********************************************************)

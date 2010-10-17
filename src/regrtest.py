@@ -34,12 +34,12 @@ def logged_sys_call(args, out=None, err=None):
   return subprocess.call(args, stdout=out, stderr=err)
 
 def solve_quals(file,bare,time,quiet,flags):
-  bname = file[:-2]
   if quiet: out = null
   else: out = None
   if time: time = ["time"]
   else: time = []
-  return logged_sys_call(time + solve + flags + [("%s.c" % bname)], out)
+  hygiene_flags = [("--liquidcprefix=%s" % (file)), "-o", "/dev/null"]
+  return logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
 
 def run_script(file,quiet):
   if quiet: out = null

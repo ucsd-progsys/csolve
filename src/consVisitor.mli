@@ -22,10 +22,20 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val cil_of_file: string -> Cil.file
-val preprocess_file : Cil.file -> Cil.file
-val quals_of_file: string -> Ast.Qualifier.t list 
-val spec_of_file: string -> Cil.file -> FixInterface.refspec
-val print_header: unit -> unit 
-val mk_options: string -> unit -> string  
-val main: string -> (string -> 'a) -> 'a
+val cons_of_decs: 
+  CilTag.o -> 
+  FixInterface.refspec -> 
+  FixInterface.cilenv ->
+  FixInterface.refstore ->
+  CilMisc.dec list ->
+  FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
+
+val cons_of_scis: 
+  CilTag.o -> 
+  FixInterface.cilenv ->
+  FixInterface.refstore ->
+  Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
+  Shape.t Misc.StringMap.t option ->
+  Consindex.t ->
+  Consindex.t
+

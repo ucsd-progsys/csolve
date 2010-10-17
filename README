@@ -14,7 +14,7 @@ Checking Out Of Git
 
 To clone CSolve from git:
 
-git clone meatwad.ucsd.edu:/git/liquidc
+git clone goto.ucsd.edu:/git/liquidc
 cd liquidc
 ./init-submodules.sh
 
@@ -28,7 +28,7 @@ Please see the section below for instructions.
 To begin building CSolve, run the following commands in the root
 directory of the source distribution:
 
-1. ./configure
+1. ./configure (on a mac: ./configure.mac)
 2. ./build.sh
 
 To build CSolve after this step, run make in the src/ directory.
@@ -54,37 +54,11 @@ configured, change into the src/ directory and run
 
 All tests should pass.
 
-Running CSolve On A Single C Source File (DEPRECATING)
-------------------------------------------------------
-
-To run CSolve on a single C source file, run
-
-src/main.native file.c
-
-CSolve will typecheck file.c using the logical qualifiers found in
-file.c.hquals and produce one of two outputs:
-
-1) SAFE
-   The program is memory- and assertion-safe:
-   All pointer dereferences (including array accesses) are within the
-   bounds of an allocated region and all assertions pass.
-   Additionally, all function calls satisfy the specified
-   preconditions.
-
-2) UNSAFE
-   The program may contain memory safety, assertion, or function
-   precondition violations.  The locations of the errors are printed,
-   as well as the constraints that fail.
-
-For options, run
-
-src/main.native -help
-
-Running CSolve In Place Of gcc: lcc (PREFERRED METHOD)
+Running CSolve: lcc
 -------------------------------------------------
 
-CSolve includes a wrapper script, lcc, which can be used just as you
-would use gcc.  There are two common use cases:
+The CSolve executable, lcc, is used just like gcc.
+There are two common use cases:
 
 * Running on a single file
   Simply run
@@ -94,8 +68,18 @@ would use gcc.  There are two common use cases:
   to typecheck and compile code.c.  lcc will read qualifiers from
   code.c.hquals and function specifications from code.c.spec.
 
-  As above, lcc will halt with UNSAFE if code.c does not typecheck.
-  Otherwise, lcc will compile code.c using gcc.
+  lcc will do one of the following:
+
+  1) Output SAFE and compile the file
+     The program is memory- and assertion-safe: all pointer
+     dereferences (including array accesses) are within the bounds of
+     an allocated region and all assertions pass.  Additionally, all
+     function calls satisfy the specified preconditions.
+
+  2) Output UNSAFE and halt
+     The program may contain memory safety, assertion, or function
+     precondition violations.  The locations of the errors are
+     printed, as well as the constraints that fail.
 
   lcc takes the same arguments as gcc.  In particular, if you do not
   want to fully compile code.c - for example, if code.c would not link
@@ -119,6 +103,12 @@ would use gcc.  There are two common use cases:
 
   lcc will read qualifiers from fooboo.hquals and function
   specifications from fooboo.spec.
+
+Important Options
+-----------------
+
+* Verbosity can be set using the "--v=n" flag, where n is a numeric
+  verbosity level.  See the output of --help.
 
 Writing Logical Qualifier Files
 -------------------------------

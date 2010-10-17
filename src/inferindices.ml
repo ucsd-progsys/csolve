@@ -400,6 +400,7 @@ and apply_binop = function
   | C.MinusPI                               -> apply_ptrarithmetic (fun ie1 x ie2 -> IE.Minus (ie1, x, ie2))
   | C.MinusPP                               -> apply_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> apply_rel
+  | C.LAnd | C.LOr                          -> apply_logical
   | C.Mod                                   -> apply_unknown
   | C.BAnd | C.BOr | C.BXor                 -> apply_unknown
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
@@ -426,6 +427,9 @@ and apply_ptrminus pt _ _ _ =
   (Int (CM.typ_width !C.upointType, IE.Const Index.top), None)
 
 and apply_rel _ _ _ _ =
+  (Int (CM.int_width, IE.Const Index.nonneg), None)
+
+and apply_logical _ _ _ _ =
   (Int (CM.int_width, IE.Const Index.nonneg), None)
 
 and apply_unknown rt _ _ _ =

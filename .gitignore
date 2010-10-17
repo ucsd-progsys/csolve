@@ -16,3 +16,4 @@ negtests/*.fq
 postests/*.fq
 _build
 *~
+TAGS

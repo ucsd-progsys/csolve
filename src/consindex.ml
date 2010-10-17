@@ -24,11 +24,13 @@
 (* This file is part of the liquidC Project.*)
 
 
+module BS = BNstats
 module  P = Pretty
 module  C = FixConstraint
 module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
+module  Q = Ast.Qualifier 
 
 open Misc.Ops
 open Cil
@@ -95,4 +97,34 @@ let print so () me =
          |> Misc.flap C.bindings_of_env 
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
+
+
+
+let solve me qs fn = 
+  let ws     = get_wfs me in
+  let cs     = get_cs me in
+  let ds     = get_deps me in
+  let ctx, s = BS.time "Qual Inst" (Solve.create FixInterface.sorts YM.empty [] 4 ds cs ws) qs in
+  let _      = Errormsg.log "DONE: qualifier instantiation \n" in
+  let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
+  let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
+  let _      =  Errormsg.log "DONE: constraint solving \n" in
+  let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
+  s', cs', ctx
+
+(* API *)
+let force me fn qs vm = 
+  let s',cs',ctx = solve me qs fn in
+  let _          = asserts (cs' = []) "Consindex.force: unsolved constraints! \n" in
+  vm |> Ast.Symbol.sm_to_list
+     |> Solve.force_binds ctx s' qs 
+     |> Ast.Symbol.sm_of_list
+     >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
+
+(* API *)
+let solve me qs fn = solve me qs fn |> (fun (x,y,_) -> (x,y))
+
+
+
+
 

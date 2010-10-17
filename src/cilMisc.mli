@@ -25,10 +25,10 @@
 
 (* val stripcasts_of_expr: Cil.exp  -> Cil.exp
    val stripcasts_of_lval: Cil.lval -> Cil.lval *)
-val purify: Cil.file -> unit
-val unfloat: Cil.file -> unit
-val check_pure_expr: Cil.exp -> unit
-val doc_of_formatter: (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
+val purify           : Cil.file -> unit
+val unfloat          : Cil.file -> unit
+val is_pure_expr     : Cil.exp -> bool 
+val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
@@ -46,13 +46,15 @@ val has_unchecked_attr : Cil.attributes -> bool
 
 val is_unchecked_ptr_type : Cil.typ -> bool
 
-val id_of_ciltype    : Cil.typ -> int option -> string
-
 val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
 val definedHere : Cil.varinfo -> bool
 
 val d_var       : unit -> Cil.varinfo -> Pretty.doc
+
+type dec =
+  | FunDec of string * Cil.location
+  | VarDec of Cil.varinfo * Cil.location * Cil.init option
 
 module VarMap: Map.S with type key = Cil.varinfo
 module VarMapPrinter: sig
@@ -71,13 +73,14 @@ val sccs : Cil.file -> Cil.varinfo list list
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
 *)
 val reachable: Cil.file -> string -> bool
-
+val iterVars: Cil.file -> (Cil.varinfo -> unit) -> unit
 
 val g_error:    bool -> ('a, unit, Pretty.doc) format -> 'a
 val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
 val g_halt:     bool -> 'a -> unit
 
 val is_fun: Cil.varinfo -> bool
+val is_scalar: Cil.varinfo -> bool
 
 module type Visitor =
 sig
@@ -87,3 +90,5 @@ end
 module CopyGlobal: Visitor
 module NameNullPtrs: Visitor
 module Pheapify: Visitor
+
+

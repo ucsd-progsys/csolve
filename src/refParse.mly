@@ -5,6 +5,7 @@ module Sy  = A.Symbol
 module SM  = Misc.StringMap
 module FI  = FixInterface
 module RCt = FI.RefCTypes
+module CT  = Ctypes
 
 open Misc.Ops
 
@@ -26,6 +27,17 @@ let mk_sloc id sty =
 let mk_funspec fn public qslocs args ist ret ost =
   (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
 
+exception InvalidStoredSpecType
+
+let check_store_bind_valid (i, fld) =
+  try
+    match RCt.Field.type_of fld  with
+      | CT.Int (_, (ti, _)) -> if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, fld)
+      | _                   -> (i, fld)
+  with InvalidStoredSpecType ->
+          Errormsg.error "Invalid field in store spec: %a\n\n"
+            RCt.Field.d_field fld;
+      raise Parse_error
 
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
@@ -161,8 +173,12 @@ indbindsne:
   ;
 
 indbind:
-    index COLON reftype                 { ($1, FI.RefCTypes.Field.create Ctypes.Nonfinal $3) }
-  | index COLON FINAL reftype           { ($1, FI.RefCTypes.Field.create Ctypes.Final $4) }
+    index COLON reftype {
+      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Nonfinal $3)
+    }
+  | index COLON FINAL reftype {
+      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Final $4)
+    }
   ;
 
 reftype:
@@ -190,6 +206,7 @@ ctype:
 index:
     Num                                 { Ctypes.Index.IInt $1 }
   | Num LB Num RB                       { Ctypes.Index.ISeq ($1, $3, Ctypes.Pos) }
+  | Num LB Num LT Num RB                { Ctypes.Index.ISeq ($1, $3, Ctypes.PosB $5) }
   | Num LC Num RC                       { Ctypes.Index.ISeq ($1, $3, Ctypes.PosNeg) }
   | TRUE                                { Ctypes.Index.top }
   | FALSE                               { Ctypes.Index.IBot }

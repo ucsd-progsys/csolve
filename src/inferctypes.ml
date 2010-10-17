@@ -159,7 +159,8 @@ let unify_fields fld1 fld2 sub =
 let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store): S.Subst.t * store =
   try
     match i with
-      | Index.IBot   -> ([], sto)
+      | Index.IBot   -> 
+          ([], sto)
       | Index.IInt n ->
           let pl = PLAt n in
             begin match LDesc.find pl (Store.find s sto) with
@@ -167,7 +168,7 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
               | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
               | _          -> assert false
             end
-      | Index.ISeq (n, m, p) ->
+      | Index.ISeq (n, m, p) when Ctypes.is_unbounded p ->
           let ld, sub = LDesc.shrink_period m unify_fields [] (Store.find s sto) in
           let pl      = PLSeq (n, p) in
           let flds    = LDesc.find pl ld in
@@ -185,7 +186,8 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
                 (sub, SLM.add s ld sto)
   with
     | e ->
-        C.errorLoc loc "Can't fit %a: %a in location %a |-> %a" Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
+        C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a" 
+          Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
         raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function
@@ -292,8 +294,6 @@ and constrain_addrof em = function
   | lv -> 
       E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
 
-
-
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
   | (C.Var v, C.NoOffset)       -> (VM.find v ve, em, [])
   | (C.Mem e, C.NoOffset) as lv ->
@@ -331,6 +331,7 @@ and apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
   | C.MinusPI                               -> apply_ptrarithmetic (fun i1 x i2 -> Index.minus i1 (Index.scale x i2))
   | C.MinusPP                               -> apply_ptrminus
   | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> apply_rel
+  | C.LAnd | C.LOr                          -> apply_logical
   | C.Mod                                   -> apply_unknown
   | C.BAnd | C.BOr | C.BXor                 -> apply_unknown
   | C.Shiftlt | C.Shiftrt                   -> apply_unknown
@@ -350,6 +351,9 @@ and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.typ_width !C.upointType, Index.top)
 
 and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
+  Int (CM.int_width, Index.nonneg)
+
+and apply_logical (_: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.int_width, Index.nonneg)
 
 and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =

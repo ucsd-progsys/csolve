@@ -23,43 +23,10 @@
 
 (* This file is part of the liquidC Project.*)
 
-module E  = Errormsg
-module A  = Ast
-module C  = FixConstraint
-module SM = Misc.StringMap
-module Sy = Ast.Symbol
-module P  = Pretty
-
-open Misc.Ops
-
-let mydebug = false 
-
-let cons_create ts sm ps cs ws =
-  let cs  = FixConstraint.validate cs in
-  let sri = Cindex.create cs in
-  (sri, ws) 
-
-let cons_save fname (sri, ws) =
-  let oc  = open_out fname in
-  let ppf = Format.formatter_of_out_channel oc in
-  Cindex.iter  
-    (Format.fprintf ppf "@[%a@] \n" (FixConstraint.print_t None))
-    sri;
-  List.iter
-    (Format.fprintf ppf "@[%a@] \n" (FixConstraint.print_wf None))
-    ws;
-  close_out oc
-
-let conswrite file =
-  let cil   = cil_of_file file in
-  let _     = E.log "DONE: cil parsing \n" in
-  let spec  = spec_of_file file in
-  let _     = E.log "DONE: spec parsing \n" in
-  let me    = Consgen.create cil spec in
-  let ws    = Consindex.get_wfs me in
-  let cs    = Consindex.get_cs me in
-  let _     = E.log "DONE: constraint generation \n" in
-  cons_create FixInterface.sorts A.Symbol.SMap.empty [] cs ws 
-  |> cons_save (file^".in.fq") 
-
-let _ = Toplevel.main "maincons.native" conswrite 
+val scalarinv_of_scim : 
+  Cil.file -> 
+  FixInterface.refspec ->  
+  CilTag.o ->
+  FixInterface.cilenv ->
+  Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
+  Ctypes.Index.t Ast.Symbol.SMap.t

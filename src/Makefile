@@ -10,7 +10,6 @@ IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
        -lflags -I,$(Z3HOME)/ocaml
 
 LFLAGS=-lflags -cc,g++ \
-       -lflags -cclib,-L$(OCAMLLIBHOME) \
        -lflags -cclib,-L$(Z3HOME)/lib \
        -lflags -cclib,-lz3 \
        -lflags -cclib,-lstdc++ \
@@ -23,7 +22,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g
 
-BIN=main.native liquidc.native
+BIN=liquidc.native
 
 TARGETS=$(BIN)
 
@@ -37,3 +36,6 @@ all:
 
 clean:
 	rm -rf *.byte *.native _build _log
+
+vitags:
+	otags -vi *.ml fixpoint/*.ml misc/*.ml ../external/cil/src/*.ml

@@ -21,9 +21,10 @@
  *
  *)
 
-type seq_polarity = (* whether sequence extends positively only or in both directions *)
-  | Pos
-  | PosNeg
+type seq_polarity =     (* direction in which sequence extends *)
+  | Pos                 (* +ve unbounded         *)
+  | PosNeg              (* +ve and -ve unbounded *)
+  | PosB of int         (* +ve upto k times      *)
 
 module Index:
   sig
@@ -31,7 +32,7 @@ module Index:
       | IBot                             (* empty sequence *)
       | IInt of int                      (* singleton n >= 0 *)
       | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
-
+    
     val top         : t
     val nonneg      : t
     val of_int      : int -> t
@@ -102,18 +103,19 @@ module type S = sig
 
     exception NoLUB of t * t
 
-    val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
-    val d_ctype     : unit -> t -> Pretty.doc
-    val of_const    : Cil.constant -> t
-    val is_subctype : t -> t -> bool
-    val width       : t -> int
-    val sloc        : t -> Sloc.t option
-    val subs        : Sloc.Subst.t -> t -> t
-    val eq          : t -> t -> bool
-    val collide     : ploc -> t -> ploc -> t -> int -> bool
-    val is_void     : t -> bool
-    val is_ref      : t -> bool
-    val top         : t
+    val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val d_ctype          : unit -> t -> Pretty.doc
+    val of_const         : Cil.constant -> t
+    val is_subctype      : t -> t -> bool
+    val width            : t -> int
+    val sloc             : t -> Sloc.t option
+    val subs             : Sloc.Subst.t -> t -> t
+    val eq               : t -> t -> bool
+    val collide          : ploc -> t -> ploc -> t -> int -> bool
+    val is_void          : t -> bool
+    val is_ref           : t -> bool
+    val refinements_of_t : t -> R.t list
+    val top              : t
   end
 
   module Field:
@@ -151,6 +153,7 @@ module type S = sig
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> ploc -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (ploc -> Field.t -> unit) -> t -> unit
+    val indices_of_t  : t -> Index.t list 
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -173,9 +176,10 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-
-    val d_store_addrs : unit -> t -> Pretty.doc
-    val d_store       : unit -> t -> Pretty.doc
+    val indices_of_t : t -> Index.t list 
+    
+    val d_store_addrs: unit -> t -> Pretty.doc
+    val d_store      : unit -> t -> Pretty.doc
 
     (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
     (** [prestore_split sto] returns (asto, csto) s.t. 
@@ -288,4 +292,6 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-val void_ctype : I.CType.t
+val void_ctype   : ctype 
+val scalar_ctype : ctype
+val is_unbounded : seq_polarity -> bool

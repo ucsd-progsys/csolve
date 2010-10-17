@@ -3,6 +3,7 @@
 
 typedef struct foo {
   char a[1];
+  //double a;
   int b;
   //char b[1];
 } foo_t;
