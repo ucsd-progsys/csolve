@@ -19,34 +19,9 @@ Function Pointers
     how to do it _without_ any alias/pointer/shape information? 
     (over scalar variables only!) do i need to go over inferctypes code?
 
-    >1> what is input/output? (i.e. how to hook scalar-consgen 
-        into analysis flow)
- 	>> input : per-function: scim code spec
-	>> output: var :-> "invariant" map (invariant = index? interval?)
-	   see output type of: [Scalar.scalarinv_of_scim]
-
-	   (MW)
-	   val scalarcons_solve:  Consindex.t -> kvar CilMisc.VarMap.t -> Ctypes.Index.t VarMap.t
- 
-           (RJ, >2> below)
-           val scalarcons_of_scim: cil -> spec -> CilTag.o * Consindex.t * kvar VarMap.t 
-
-    >2> make a “scalar-consgen” ? that ignores reads/writes from * i.e. treats as “true” ?
-	>> hack consinfra to split "me" into part that only has scalar info
-	>> hack create to take a "shape option" return a "me" appropriately
-	>> hack consinfra API calls so that they barf when asked about shape-y things
-  	>> hack cons_of_* so as to ignore pointer-y operations
-	>> we have a ConsIndex.t
-	>> use the above to write: [scalarcons_of_scim]
-	
-	HEREHEREHEREHERE
-	>> scalar_quals_of_file: Cil.file -> Qual.t list
-		
-		>> library: v {* =, !=, >,  >= *} 0
-		
-		>> file specific:
-	>> convert quals to invariants (see annot_of_...)
-
+    >1> phi-bindings (SSA vars)
+    
+    >2> modular invariants
 
     >3> extend type system to include "upper bounds" i.e. 
 		>> see new definition of Ctypes.seq_polarity

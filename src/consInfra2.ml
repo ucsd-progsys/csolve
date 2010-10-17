@@ -64,7 +64,7 @@ type t    = {
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
-  phim    : (FI.name * FI.refctype) SM.t;
+  phim    : FI.refctype SM.t;
   shapeo  : t_sh option;
   des     : (Cil.varinfo * FI.refctype) list;
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
@@ -182,7 +182,6 @@ let edge_asgnm_of_phia phia =
             IIM.add (i,j) (vvis : (Cil.varinfo * Cil.varinfo) list) em 
           end em  
      end IIM.empty 
-
    
 let add_cons (ws, cs, des, ds) me =
   {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds; des = des ++ me.des}
@@ -301,21 +300,22 @@ let ctype_of_varinfo me v =
 let refctype_of_global me v =
   FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
 
-let bind_phi me phim v = 
-  let vn = FI.name_of_varinfo v in
-  let cr = ctype_of_varinfo me v |> FI.t_fresh in
-  SM.add v.vname (vn, cr) phim
+let get_phis me =
+  me.sci.ST.phis 
+  |> Array.map (List.map fst) 
+  |> Array.to_list 
+  |> Misc.flatten
 
 let bind_phis me =  
-  me.sci.ST.phis
-  |> Array.fold_left (fun phim iphis -> iphis |>: fst |> List.fold_left (bind_phi me) phim) SM.empty 
-  |> (fun x -> {me with phim = x})
+  me 
+  |> get_phis
+  |> List.map (fun v -> (v, v |> ctype_of_varinfo me |> FI.t_fresh))
+  |> (fun vcrs -> { me with des = vcrs ++ me.des; phim = vcrs |>: Misc.app_fst (fun v -> v.vname) |> Misc.sm_of_list })
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
   |> Misc.map fst
   >> List.iter (fun v -> ignore <| Pretty.printf "phis_of_block %d: %s \n" i v.Cil.vname)
-
 
 let outwld_of_block me i =
   IM.find i me.wldm
@@ -338,10 +338,12 @@ let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 let inenv_of_block me i =
   if idom_of_block me i < 0 then
     me.gnv
-  else
+  else begin
     let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
-    let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
-    FI.ce_adds env0 phibs
+    i |> phis_of_block me 
+      |> List.map (FI.name_of_varinfo <*> bind_of_phi me) 
+      |> FI.ce_adds env0 
+  end
 
 let extend_wld_with_clocs me j loc tag wld = 
   match me with
