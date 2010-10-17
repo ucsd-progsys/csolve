@@ -26,6 +26,7 @@
 module CM = CilMisc
 module VM = CM.VarMap
 module Sy = Ast.Symbol
+module Su = Ast.Subst
 module FI = FixInterface
 module SM = Misc.StringMap
 module YM = Ast.Symbol.SMap
@@ -128,7 +129,9 @@ let scalar_quals_of_file cil =
 
 let const_of_subst su =
   su |> Ast.Subst.to_list
-     |> Misc.do_catch "Scalar.const_of_subst" (List.assoc const_var)
+     >> (fun xs ->  let b = List.exists ((=) const_var) (List.map fst xs) in
+                    if not b then Format.printf "Const of subst %a \n" Su.print su)
+     |> Misc.do_catch (Format.sprintf "Scalar.const_of_subst") (List.assoc const_var)
      |> (function Ast.Con (Ast.Constant.Int i), _  -> i | _ -> assertf "Scalar.const_of_subst")
 
 let indexo_of_preds_iint v ps =
@@ -136,6 +139,14 @@ let indexo_of_preds_iint v ps =
   ps |> Misc.map_partial (Ast.unify_pred p_v_eq_c)
      |> List.map const_of_subst
      |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
+
+let indexo_of_preds_iint v ps = 
+  try indexo_of_preds_iint v ps with ex ->
+    (Printf.printf "indexo_of_preds_iint v = %s, ps =%s" 
+    (Sy.to_string v)
+    (Ast.Predicate.to_string (Ast.pAnd ps));
+    raise ex)
+
 
 let indexo_of_preds_iseqb v ps = 
   None (* TODO *)
@@ -169,6 +180,7 @@ let generate spec tgr gnv scim : Ci.t =
 let solve cil ci = 
   scalar_quals_of_file cil 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
+  >> (fun _ -> Errormsg.log "DONE: GOOBER GOOBER \n")
   |> SM.map (VM.mapi index_of_pred)
 
 (***************************************************************************)
@@ -179,7 +191,7 @@ let scalarinv_of_scim cil spec tgr gnv ci =
   ci 
   >> FI.annot_clear 
   |> generate spec tgr gnv 
-  |> solve cil 
+  |> solve cil
   >> FI.annot_clear
 
 (***************************************************************************)
