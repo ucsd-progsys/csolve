@@ -156,7 +156,7 @@ let index_of_pred v = function
 (***************************************************************************)
 
 let generate spec tgr gnv scim : Ci.t =
-  ([], [], [])
+  ([], [], [], [])
   |> Ci.create  
   |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
 
@@ -165,9 +165,8 @@ let generate spec tgr gnv scim : Ci.t =
 (***************************************************************************)
 
 let solve cil ci : Ix.t YM.t = 
-  let qs = scalar_quals_of_file cil in 
-  FI.annot_binds () 
-  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar") qs
+  scalar_quals_of_file cil 
+  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
   |> YM.mapi index_of_pred
 
 (***************************************************************************)
