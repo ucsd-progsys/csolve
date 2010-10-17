@@ -553,7 +553,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
       | _     -> false
      
     let refinements_of_t = function
-      | Int (_, x) | Ref (_, x) | Top (x)    -> [x]
+      | Int (_, x) | Ref (_, x) | Top (x) -> [x]
 
     let top = Top (R.top)
   end
