@@ -31,6 +31,7 @@ module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 module  Q = Ast.Qualifier 
+module FI = FixInterface
 
 open Misc.Ops
 open Cil
@@ -43,28 +44,27 @@ type t = {
   scim : Ssa_transform.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
+  defm : (varinfo * FI.refctype) list SM.t;
   depm : C.dep list SM.t;
 }
 
 (* API *)
-let create (ws, cs, ds) = 
-  { scim = SM.empty;
-    wfm  = SM.empty |> SM.add Constants.global_name ws;
-    cm   = SM.empty |> SM.add Constants.global_name cs;
-    depm = SM.empty |> SM.add Constants.global_name ds }
+let create (ws, cs, des, ds) = 
+  { scim  = SM.empty
+  ; wfm   = SM.empty |> SM.add Constants.global_name ws
+  ; cm    = SM.empty |> SM.add Constants.global_name cs
+  ; defm  = SM.empty |> SM.add Constants.global_name des
+  ; depm  = SM.empty |> SM.add Constants.global_name ds }
 
 (* API *)
-let add me fn sci (ws, cs, ds) =
-  { scim = SM.add fn sci me.scim ;
-    wfm  = SM.add fn ws  me.wfm ;
-    cm   = SM.add fn cs  me.cm ;
-    depm = SM.add fn ds  me.depm ;
-  }
+let add me fn sci (ws, cs, des, ds) =
+  { scim = SM.add fn sci me.scim 
+  ; wfm  = SM.add fn ws  me.wfm 
+  ; cm   = SM.add fn cs  me.cm 
+  ; defm = SM.add fn des me.defm
+  ; depm = SM.add fn ds  me.depm }
 
-let find me fn = 
-  (SM.find fn me.scim, 
-   SM.find fn me.wfm,
-   SM.find fn me.cm)
+let find me fn = (SM.find fn me.scim, SM.find fn me.wfm, SM.find fn me.cm)
 
 let iter me f = 
   SM.iter (fun fn _ -> f fn (find me fn)) me.scim
@@ -72,9 +72,9 @@ let iter me f =
 let fold me f =
   SM.fold (fun fn _ b -> f fn (find me fn) b) me.scim
 
-(* API *)
 let get_wfs  = fun me -> SM.fold (fun _ ws acc -> ws ++ acc) me.wfm  []
 let get_cs   = fun me -> SM.fold (fun _ cs acc -> cs ++ acc) me.cm   []
+let get_defs = fun me -> SM.fold (fun _ des acc -> des ++ acc) me.defm []
 let get_deps = fun me -> SM.fold (fun _ ds acc -> ds ++ acc) me.depm []
 
 let (++) = P.concat
@@ -98,9 +98,8 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
-
-
-let solve me qs fn = 
+(* API *)
+let solve me fn qs = 
   let ws     = get_wfs me in
   let cs     = get_cs me in
   let ds     = get_deps me in
@@ -110,21 +109,15 @@ let solve me qs fn =
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _      =  Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
-  s', cs', ctx
+  s', cs'
+
+
+let name_pred_of_reft s (v, cr) = failwith "TODO"
 
 (* API *)
-let force me fn qs vm = 
-  let s',cs',ctx = solve me qs fn in
-  let _          = asserts (cs' = []) "Consindex.force: unsolved constraints! \n" in
-  vm |> Ast.Symbol.sm_to_list
-     |> Solve.force_binds ctx s' qs 
+let force me fn qs = 
+  let s = solve me fn qs |> fst in
+  me |> get_defs
+     |> List.map (name_pred_of_reft s)
      |> Ast.Symbol.sm_of_list
      >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
-
-(* API *)
-let solve me qs fn = solve me qs fn |> (fun (x,y,_) -> (x,y))
-
-
-
-
-
