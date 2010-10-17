@@ -29,7 +29,7 @@ val create: FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInt
 val add: t -> string -> Ssa_transform.ssaCfgInfo -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list -> t
 val print: FixConstraint.soln option -> unit -> t -> Pretty.doc
 val solve: t -> string -> Ast.Qualifier.t list -> FixConstraint.soln * FixConstraint.t list 
-val force: t -> string -> Ast.Qualifier.t list -> Ast.pred Ast.Symbol.SMap.t 
+val force: t -> string -> Ast.Qualifier.t list -> (Ast.pred CilMisc.VarMap.t) Misc.StringMap.t
 
 (* val get_wfs: t -> FixConstraint.wf list 
    val get_cs: t -> FixConstraint.t list

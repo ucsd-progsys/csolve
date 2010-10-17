@@ -114,7 +114,7 @@ let solve me fn qs =
 (* API *)
 let force me fn qs = 
   let s = solve me fn qs |> fst in
-  me |> get_defs
-     |> List.map (fun (v, cr) -> FI.name_pred_of_refctype s v cr)
-     |> Ast.Symbol.sm_of_list
-     >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
+  me.defm 
+  |> SM.map (List.map (fun (v, cr) -> (v, FI.pred_of_refctype s v cr)))
+  |> SM.map CM.vm_of_list
+  >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
