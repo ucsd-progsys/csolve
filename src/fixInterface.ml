@@ -252,14 +252,13 @@ let mk_refcfun qslocs args ist ret ost =
     Ct.sto_out = ost; }
 
 (* API *)
-let name_pred_of_refctype s (v, cr) = 
+let pred_of_refctype s v cr = 
   let n        = name_of_varinfo v in
   let vv,_,ras = cr |> reft_of_refctype |> C.apply_solution s in
   let su       = Su.of_list [(vv, A.eVar n)] in
   ras |> Misc.flap (function C.Conc (A.And ps, _) -> ps | _ -> []) 
       |> A.pAnd
       |> Misc.flip A.substs_pred su
-      |> (fun p -> n, p)
 
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)

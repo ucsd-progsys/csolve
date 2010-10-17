@@ -155,9 +155,6 @@ let print_sccs sccs =
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 *)
 
-let scalar_hook cil spec tgr gnv scim shm = 
-  Scalar.scalarinv_of_scim cil spec tgr gnv scim
-
 (* API *)
 let create cil (spec: FI.refspec) =
   let reachf = CM.reachable cil in
@@ -171,7 +168,7 @@ let create cil (spec: FI.refspec) =
   let cspec  = FI.cspec_of_refspec spec in
   let gnv    = cspec |> Ctypes.I.Spec.funspec |> SM.map fst |> mk_gnv spec decs in
   let shm    = shapem_of_scim cil spec scim in
-  let _      = if !Cs.scalar then (ignore <| scalar_hook cil spec tgr gnv scim shm) in
+  let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv scim shm in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

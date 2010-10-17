@@ -32,7 +32,7 @@ module AlocMap : sig
 end
 *)
 
-type name
+type name = Ast.Symbol.t
 type cilenv
 
 module Reft      : Ctypes.CTYPE_REFINEMENT with type t = Ctypes.Index.t * FixConstraint.reft
@@ -63,7 +63,7 @@ val ret_of_refcfun      : refcfun  -> refctype
 val stores_of_refcfun   : refcfun  -> refstore * refstore
 val mk_refcfun          : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
-val name_pred_of_refctype : FixConstraint.soln -> (Cil.varinfo * refctype) -> (Ast.Symbol.t * Ast.pred)
+val pred_of_refctype    : FixConstraint.soln -> Cil.varinfo -> refctype -> Ast.pred
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
 val name_fresh          : unit -> name

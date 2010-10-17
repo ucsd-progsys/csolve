@@ -29,4 +29,14 @@ val scalarinv_of_scim :
   CilTag.o ->
   FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
-  Ctypes.Index.t Ast.Symbol.SMap.t Misc.StringMap.t
+  Ctypes.Index.t CilMisc.VarMap.t Misc.StringMap.t
+
+(* TESTING only *)
+val test: 
+  Cil.file -> 
+  FixInterface.refspec ->  
+  CilTag.o ->
+  FixInterface.cilenv ->
+  Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
+  Inferctypes.shape Misc.StringMap.t ->
+  unit

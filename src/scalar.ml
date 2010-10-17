@@ -143,7 +143,9 @@ let indexo_of_preds_iseqb v ps =
 let indexo_of_preds_iseq  v ps = 
   None (* TODO *) 
 
-let index_of_pred v = function
+let index_of_pred v = 
+  let v = FI.name_of_varinfo v in
+  function
   | Ast.And ps, _ ->
     [ indexo_of_preds_iint v
     ; indexo_of_preds_iseqb v
@@ -167,7 +169,7 @@ let generate spec tgr gnv scim : Ci.t =
 let solve cil ci = 
   scalar_quals_of_file cil 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
-  |> SM.map (YM.mapi index_of_pred)
+  |> SM.map (VM.mapi index_of_pred)
 
 (***************************************************************************)
 (*********************************** API ***********************************)
@@ -179,3 +181,39 @@ let scalarinv_of_scim cil spec tgr gnv ci =
   |> generate spec tgr gnv 
   |> solve cil 
   >> FI.annot_clear
+
+(***************************************************************************)
+(************************* TESTING SCALAR INVS *****************************)
+(***************************************************************************)
+
+type scalar_error = 
+  | MissingFun of string 
+  | MissingVar of string * Cil.varinfo 
+  | DiffIndex of string * Cil.varinfo * Ix.t * Ix.t
+
+let d_scalar_error () = function
+  | MissingFun fn -> 
+      Pretty.dprintf "[SCALAR ERROR in %s] Missing Function" fn
+  | MissingVar (fn, v) -> 
+      Pretty.dprintf "[SCALAR ERROR in %s] Missing Variable %s" fn v.Cil.vname 
+  | DiffIndex (fn, v, ix, ix') ->
+      Pretty.dprintf "[SCALAR ERROR in %s] Different Index %s [%a vs %a]" fn v.Cil.vname Ix.d_index ix Ix.d_index ix' 
+
+let check_scalar shm sim = 
+  SM.fold begin fun fn { Inferctypes.vtyps = vcts } errs ->
+    if not (SM.mem fn sim) then (MissingFun fn) :: errs else 
+      let im = SM.find fn sim in
+      List.fold_left begin fun errs (v, ct) ->
+        if not (VM.mem v im) then MissingVar (fn, v) :: errs else
+          let [ix] = Ctypes.I.CType.refinements_of_t ct in
+          let ix'  = VM.find v im in
+          if ix != ix' then DiffIndex (fn, v, ix, ix') :: errs else []
+      end errs vcts 
+  end shm []
+
+(* API *) 
+let test cil spec tgr gnv scim shm = 
+  let sim = scalarinv_of_scim cil spec tgr gnv scim in
+  check_scalar shm sim
+  >> (List.iter (fun e -> E.warn "%a \n" d_scalar_error e |> ignore))
+  |> (function [] -> exit 0 | _ -> exit 1)
