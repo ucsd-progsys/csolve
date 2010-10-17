@@ -64,10 +64,10 @@ val ret_of_refcfun      : refcfun  -> refctype
 val stores_of_refcfun   : refcfun  -> refstore * refstore
 val mk_refcfun          : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
+val name_pred_of_refctype : FixConstraint.soln -> Cil.varinfo -> refctype -> (Ast.Symbol.t * Ast.pred)
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
 val name_fresh          : unit -> name
-
 
 val ce_rem              : name -> cilenv -> cilenv 
 val ce_mem              : name -> cilenv -> bool 

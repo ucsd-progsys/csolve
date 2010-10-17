@@ -82,6 +82,15 @@ val g_halt:     bool -> 'a -> unit
 val is_fun: Cil.varinfo -> bool
 val is_scalar: Cil.varinfo -> bool
 
+module type Summarizer =
+sig
+  type summary =
+    {has_prop: bool; metric: int}
+  val build_summary: Cil.file -> summary
+end
+
+module FunPtrDetector : Summarizer
+
 module type Visitor =
 sig
   val doVisit: Cil.file -> unit 

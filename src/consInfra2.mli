@@ -34,8 +34,8 @@ val phis_of_block       : t -> int -> Cil.varinfo list
 val guard_of_block      : t -> int -> int option -> Ast.pred
 val succs_of_block      : t -> int -> int list
 val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
-val add_cons            : FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t -> t
-val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list
+val add_cons            : FixConstraint.wf list * FixConstraint.t list  * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list -> t -> t
+val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list
 val get_fname           : t -> string 
 val is_undefined        : t -> Cil.varinfo -> bool
 

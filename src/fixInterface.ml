@@ -260,6 +260,16 @@ let mk_refcfun qslocs args ist ret ost =
     Ct.sto_in  = ist;
     Ct.sto_out = ost; }
 
+(* API *)
+let name_pred_of_refctype s v cr = 
+  let n        = name_of_varinfo v in
+  let vv,_,ras = cr |> reft_of_refctype |> C.apply_solution s in
+  let su       = Su.of_list [(vv, A.eVar n)] in
+  ras |> Misc.flap (function C.Conc (A.And ps, _) -> ps | _ -> []) 
+      |> A.pAnd
+      |> Misc.flip A.substs_pred su
+      |> (fun p -> n, p)
+
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
@@ -453,10 +463,6 @@ let print_ce so ppf (_, vnv) =
 (************************** Templates ******************************)
 (*******************************************************************)
 
-let fresh_kvar = 
-  let r = ref 0 in
-  fun () -> r += 1 |> string_of_int |> (^) "k_" |> Sy.of_string
-
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in
@@ -495,7 +501,7 @@ let ra_deref ct base offset =
   let ptr = A.eBin (base, A.Plus, A.eCon (A.Constant.Int offset)) in
     [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_deref ptr so))]
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
