@@ -164,10 +164,10 @@ let generate spec tgr gnv scim : Ci.t =
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let solve cil ci : Ix.t YM.t = 
+let solve cil ci = 
   scalar_quals_of_file cil 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
-  |> YM.mapi index_of_pred
+  |> SM.map (YM.mapi index_of_pred)
 
 (***************************************************************************)
 (*********************************** API ***********************************)

@@ -29,4 +29,4 @@ val scalarinv_of_scim :
   CilTag.o ->
   FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
-  Ctypes.Index.t Ast.Symbol.SMap.t
+  Ctypes.Index.t Ast.Symbol.SMap.t Misc.StringMap.t
