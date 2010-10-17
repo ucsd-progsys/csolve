@@ -111,13 +111,10 @@ let solve me fn qs =
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
   s', cs'
 
-
-let name_pred_of_reft s (v, cr) = failwith "TODO"
-
 (* API *)
 let force me fn qs = 
   let s = solve me fn qs |> fst in
   me |> get_defs
-     |> List.map (name_pred_of_reft s)
+     |> List.map (fun (v, cr) -> FI.name_pred_of_refctype s v cr)
      |> Ast.Symbol.sm_of_list
      >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
