@@ -197,7 +197,8 @@ let d_scalar_error () = function
   | MissingVar (fn, v) -> 
       Pretty.dprintf "[SCALAR ERROR in %s] Missing Variable %s" fn v.Cil.vname 
   | DiffIndex (fn, v, ix, ix') ->
-      Pretty.dprintf "[SCALAR ERROR in %s] Different Index %s [%a vs %a]" fn v.Cil.vname Ix.d_index ix Ix.d_index ix' 
+      Pretty.dprintf "[SCALAR ERROR in %s] Different Index %s: inferctypes=%a vs scalar=%a" fn 
+      v.Cil.vname Ix.d_index ix Ix.d_index ix' 
 
 let check_scalar shm sim = 
   SM.fold begin fun fn { Inferctypes.vtyps = vcts } errs ->
