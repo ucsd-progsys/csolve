@@ -36,6 +36,7 @@ module FI  = FixInterface
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
 module LI  = Inferctypes
+module Sh  = Shape
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
 module CM  = CilMisc
@@ -50,7 +51,7 @@ type t_sh = {
   cf      : FI.alocmap;
   astore  : FI.refstore;
   cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
-  shp     : LI.shape;
+  shp     : Shape.t;
 }
 
 type t    = {
@@ -98,7 +99,7 @@ let ctype_scalar = Ctypes.void_ctype
 let env_of_fdec gnv fdec sho = 
   let strf, typf = match sho with
     | None     -> (id, fun _ -> Ctypes.scalar_ctype)
-    | Some shp -> (Misc.map2 (strengthen_refs shp.LI.theta) fdec.sformals, ctype_of_local shp.LI.vtyps) in
+    | Some shp -> (Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals, ctype_of_local shp.Sh.vtyps) in
   let env0 = 
     FI.ce_find_fn fdec.svar.vname gnv 
     |> FI.args_of_refcfun 
@@ -182,7 +183,7 @@ let edge_asgnm_of_phia phia =
             IIM.add (i,j) (vvis : (Cil.varinfo * Cil.varinfo) list) em 
           end em  
      end IIM.empty 
-   
+
 let add_cons (ws, cs, des, ds) me =
   {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds; des = des ++ me.des}
 
@@ -207,7 +208,7 @@ let length_of_stmt stmt = match stmt.skind with
 let annotstmt_of_block me i = 
   match me.shapeo with 
   | Some {shp = shp} ->  
-      (shp.LI.anna.(i), shp.LI.bdcks.(i), stmt_of_block me i)
+      (shp.Sh.anna.(i), shp.Sh.bdcks.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
 (*  | None     -> 
       let stmt = stmt_of_block me i in
       ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
@@ -278,7 +279,7 @@ let is_undefined me v =
 let ctype_of_expr me e = 
   match me.shapeo with 
   | Some {shp = shp} -> begin 
-      try EM.find e shp.LI.etypm with Not_found -> 
+      try EM.find e shp.Sh.etypm with Not_found -> 
         let _ = Errormsg.error "ctype_of_expr: unknown expr = %a" Cil.d_exp e in
         assertf "Not_found in ctype_of_expr"
     end
@@ -291,8 +292,8 @@ let ctype_of_varinfo ctl v =
 let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
-      let ct  = ctype_of_varinfo shp.LI.vtyps v in
-      let clo = Refanno.cloc_of_varinfo shp.LI.theta v in
+      let ct  = ctype_of_varinfo shp.Sh.vtyps v in
+      let clo = Refanno.cloc_of_varinfo shp.Sh.theta v in
       strengthen_cloc (ct, clo)
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> ctype_scalar
@@ -357,7 +358,7 @@ let extend_wld_with_clocs me j loc tag wld =
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world shp.cf csto cl cl false loc tag wld
+          fst <| FI.extend_world shp.cf csto cl cl false id loc tag wld
          end csto 
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
  
@@ -400,13 +401,13 @@ let create_shapeo tgr gnv env gst sci = function
   | Some shp ->
       let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
                     |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
-      let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.LI.store in
+      let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = FI.RefCTypes.Store.upd gst lastore in
-      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
-      let cf      = Refanno.aloc_of_cloc shp.LI.theta in
+      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
+      let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
-      let ws      = FI.make_wfs_refstore cf env lastore tag in
+      let ws      = FI.make_wfs_refstore cf env lastore lastore tag in
       let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
       ws, cs, ds, Some { cf = cf; astore  = astore; cstoa = cstoa; shp = shp }
 

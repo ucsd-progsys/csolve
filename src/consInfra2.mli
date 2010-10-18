@@ -46,7 +46,10 @@ val outwld_of_block     : t -> int -> wld
 val add_wld             : int -> wld -> t -> t
 
 val stmt_of_block       : t -> int -> Cil.stmt
-val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Inferindices.block_dchecks * Cil.stmt
+val annotstmt_of_block  :
+  t ->
+  int ->
+  Refanno.block_annotation * Inferindices.block_dchecks * Shape.final_fields_annot * Cil.stmt
 val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
 val csto_of_block       : t -> int -> FixInterface.refstore
@@ -62,6 +65,6 @@ val create              : CilTag.o ->
                           FixInterface.cilenv ->
                           FixInterface.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
-                          Inferctypes.shape option -> t
+                          Shape.t option -> t
 
 val has_shape           : t -> bool

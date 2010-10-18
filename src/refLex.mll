@@ -92,6 +92,7 @@ rule token = parse
   | "int"               { INT }
   | "ptr"               { PTR }
   | "bool"              { BOOL }
+  | "final"             { FINAL }
   | "forall"            { FORALL }
   | "func"              { FUNC }
   | "sort"              { SRT }

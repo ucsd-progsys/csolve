@@ -38,5 +38,5 @@ val test:
   CilTag.o ->
   FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
-  Inferctypes.shape Misc.StringMap.t ->
+  Shape.t Misc.StringMap.t ->
   unit

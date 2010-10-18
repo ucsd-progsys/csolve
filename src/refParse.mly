@@ -29,14 +29,14 @@ let mk_funspec fn public qslocs args ist ret ost =
 
 exception InvalidStoredSpecType
 
-let check_store_bind_valid (i, ct) =
+let check_store_bind_valid (i, fld) =
   try
-    match ct with
-      | CT.Int (_, (ti, _)) -> if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, ct)
-      | _                   -> (i, ct)
+    match RCt.Field.type_of fld  with
+      | CT.Int (_, (ti, _)) -> if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, fld)
+      | _                   -> (i, fld)
   with InvalidStoredSpecType ->
-          Errormsg.error "Invalid type in store spec: %a\n\n"
-            RCt.CType.d_ctype ct;
+          Errormsg.error "Invalid field in store spec: %a\n\n"
+            RCt.Field.d_field fld;
       raise Parse_error
 
 let add_funspec spec (fn, (rcf, public)) =
@@ -83,6 +83,7 @@ let add_varspec spec (var, (ty, public)) =
 %token INT BOOL PTR FUNC
 %token SRT AXM CST WF SOL QUL
 %token ENV GRD LHS RHS REF TOP
+%token FINAL
 
 %start specs 
 
@@ -172,7 +173,12 @@ indbindsne:
   ;
 
 indbind:
-    index COLON reftype                 { check_store_bind_valid ($1, $3) }
+    index COLON reftype {
+      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Nonfinal $3)
+    }
+  | index COLON FINAL reftype {
+      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Final $4)
+    }
   ;
 
 reftype:

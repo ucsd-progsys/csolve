@@ -41,9 +41,10 @@ module RefCTypes : Ctypes.S with module R = Reft
 type alocmap  = Sloc.t -> Sloc.t option
 type refctype = RefCTypes.CType.t
 type refcfun  = RefCTypes.CFun.t
-type refldesc
+type refldesc = RefCTypes.LDesc.t
 type refstore = RefCTypes.Store.t
 type refspec  = RefCTypes.Spec.t
+type reffield = RefCTypes.Field.t
 
 
 
@@ -85,9 +86,18 @@ val extend_world        : refldesc ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a)
 *)
-val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool -> Cil.location -> CilTag.t ->
+val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool ->
+                          (refldesc -> refldesc) ->
+                          Cil.location -> CilTag.t ->
                           (cilenv * refstore * 'a) -> 
                           (cilenv * refstore * 'a) * FixConstraint.t list
+
+val strengthen_final_field :
+  Ctypes.PlocSet.t ->
+  string ->
+  Ctypes.ploc ->
+  reffield ->
+  reffield
 
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
 val t_fresh             : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype
@@ -104,6 +114,8 @@ val t_subs_names        : (name * name) list -> refctype -> refctype
 val t_subs_exps         : (name * Cil.exp) list -> refctype -> refctype
 val t_subs_locs         : Sloc.Subst.t -> refctype -> refctype
 
+val may_contain_deref   : refctype -> bool
+
 val new_block_reftype   : (* (Sloc.t -> Sloc.t) -> *) refctype -> refctype
 
 val refstore_empty      : refstore
@@ -118,9 +130,18 @@ val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
 
 val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
 
-val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
-val refstore_read       : Cil.location -> refstore -> refctype -> refctype
-val refstore_fresh      : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> refstore
+val refstore_strengthen_addr :
+  Cil.location ->
+  cilenv ->
+  refstore ->
+  Ctypes.PlocSet.t Sloc.SlocMap.t ->
+  string ->
+  refctype ->
+  cilenv * refstore
+
+val refstore_write             : Cil.location -> refstore -> refctype -> refctype -> refstore
+val refstore_read              : Cil.location -> refstore -> refctype -> refctype
+val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> refstore
 
 val refstore_subs       : (* Cil.location -> *) ('a -> refctype -> refctype) -> 'a -> refstore -> refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> refstore -> refstore
@@ -130,9 +151,9 @@ val is_poly_cloc        : refstore -> Sloc.t -> bool
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val sorts               : Ast.Sort.t list
 
-val make_wfs            : alocmap -> cilenv -> refctype -> CilTag.t -> FixConstraint.wf list
+val make_wfs            : alocmap -> cilenv -> refstore -> refctype -> CilTag.t -> FixConstraint.wf list
 val make_wfs_fn         : alocmap -> cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list
-val make_wfs_refstore   : alocmap -> cilenv -> refstore -> CilTag.t -> FixConstraint.wf list
+val make_wfs_refstore   : alocmap -> cilenv -> refstore -> refstore -> CilTag.t -> FixConstraint.wf list
 
 val make_cs             : alocmap -> cilenv -> Ast.pred -> 
                           refctype -> refctype -> 

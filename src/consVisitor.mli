@@ -35,7 +35,7 @@ val cons_of_scis:
   FixInterface.cilenv ->
   FixInterface.refstore ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
-  Inferctypes.shape Misc.StringMap.t option ->
+  Shape.t Misc.StringMap.t option ->
   Consindex.t ->
   Consindex.t
 

@@ -213,7 +213,7 @@ let d_scalar_error () = function
       v.Cil.vname Ix.d_index ix Ix.d_index ix' 
 
 let check_scalar shm sim = 
-  SM.fold begin fun fn { Inferctypes.vtyps = vcts } errs ->
+  SM.fold begin fun fn { Shape.vtyps = vcts } errs ->
     if not (SM.mem fn sim) then (MissingFun fn) :: errs else 
       let im = SM.find fn sim in
       List.fold_left begin fun errs (v, ct) ->

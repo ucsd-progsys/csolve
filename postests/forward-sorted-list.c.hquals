@@ -1,0 +1,3 @@
+qualif NXT(v: ptr)  : (v != 0) -> (~A < (DEREF([v]): int))
+qualif SZ8(v: ptr)  : (v != 0) -> (BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8)
+qualif HDL(v: ptr)  : (v != 0) -> ((DEREF([v]): int) < ~A)
