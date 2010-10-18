@@ -157,17 +157,16 @@ let decs_of_file cil =
     | GType _ | GCompTag _
     | GCompTagDecl _| GText _
     | GPragma _                         -> acc
-    | _ when !Cs.safe            -> assertf "decs_of_file"
+    | _ when !Cs.safe                   -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
 
 let scim_of_file cil =
-  cil |> ST.scis_of_file 
-      |> List.fold_left begin fun acc sci -> 
-           let fn = sci.ST.fdec.svar.vname in
-           SM.add fn sci acc
-         end SM.empty
+  ST.scis_of_file cil
+  |> List.fold_left begin fun acc sci -> 
+       SM.add sci.ST.fdec.svar.vname sci acc
+     end SM.empty
 
 (*
 let print_sccs sccs =

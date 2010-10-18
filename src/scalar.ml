@@ -48,6 +48,11 @@ type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
 (******************** Meta Qualifiers for Scalar Invariants ****************)
 (***************************************************************************)
 
+let index_of_ctype ct =
+  match Ctypes.I.CType.refinements_of_t ct with
+  | [ix] -> ix
+  | _    -> assertf "Scalar.index_of_ctype"
+
 let value_var       = Ast.Symbol.value_variable Ast.Sort.t_int
 let const_var       = Ast.Symbol.mk_wild ()
 let param_var       = Ast.Symbol.mk_wild ()
@@ -123,7 +128,7 @@ let scalar_quals_of_file cil =
   cil 
   |> type_decs_of_file
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
-  |> Misc.flap (fun (ct, st) -> Ctypes.I.CType.refinements_of_t ct ++ Ctypes.I.Store.indices_of_t st)
+  |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ctypes.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
   |> Misc.sort_and_compact
   |> Misc.flap preds_of_scalar_const
@@ -208,7 +213,7 @@ let index_of_pred v =
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
 
-let generate spec tgr gnv scim : Ci.t =
+let generate tgr gnv scim : Ci.t =
   ([], [], [], [])
   |> Ci.create  
   |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
@@ -223,14 +228,45 @@ let solve cil ci =
   |> SM.map (VM.mapi index_of_pred)
 
 (***************************************************************************)
+(***** Close with Bindings for Params, Undef Vars Scalar Constraints *******)
+(***************************************************************************)
+
+let ix_binds_of_spec spec fn : (string * Ix.t) list =
+  spec |> FI.cspec_of_refspec 
+       |> Ctypes.I.Spec.get_fun fn
+       |> fst
+       |> (fun x -> x.Ctypes.args) 
+       |> List.map (Misc.app_snd (index_of_ctype))
+ 
+let close_formals args (formals : Cil.varinfo list) : Ix.t VM.t -> Ix.t VM.t = 
+  formals
+  |> List.map (fun v -> (v, List.assoc v.Cil.vname args))
+  |> CM.vm_of_list 
+  |> VM.fold (fun k v acc -> VM.add k v acc)
+
+let close_locals locals vm : Ix.t VM.t =
+  locals 
+  |> List.filter (fun v -> not (VM.mem v vm)) 
+  |> List.fold_left (fun vm v -> if VM.mem v vm then vm else VM.add v Ix.top vm) vm
+
+let close scim spec sim : Ix.t VM.t SM.t =
+  SM.mapi begin fun fn vm ->
+    let fdec = (SM.find fn scim).ST.fdec in
+    let args = ix_binds_of_spec spec fn in
+    vm |> close_formals args fdec.Cil.sformals 
+       |> close_locals fdec.Cil.slocals
+  end sim
+
+(***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)
 
-let scalarinv_of_scim cil spec tgr gnv ci =
-  ci 
+let scalarinv_of_scim cil spec tgr gnv scim =
+  scim 
   >> FI.annot_clear 
-  |> generate spec tgr gnv 
+  |> generate tgr gnv 
   |> solve cil
+  |> close scim spec
   >> FI.annot_clear
 
 (***************************************************************************)
@@ -264,7 +300,7 @@ let check_scalar shm sim =
     if not (SM.mem fn sim) then (MissingFun fn :: errs) else 
       let im = SM.find fn sim in
       List.fold_left begin fun errs (v, ct) ->
-        let [ix] = Ctypes.I.CType.refinements_of_t ct in
+        let ix = index_of_ctype ct in
         if ix = Ix.IBot then errs else
         if (not (VM.mem v im)) then (MissingVar (fn, v, ix) :: errs) else
           let ix'  = VM.find v im in
@@ -272,8 +308,6 @@ let check_scalar shm sim =
       end errs vcts 
    end shm [])
   >> (fun _ -> close_out oc)
-
-  
 
 let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
   let oc  = open_out fname in
