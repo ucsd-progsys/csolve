@@ -251,7 +251,7 @@ let close_locals locals vm : Ix.t VM.t =
 
 let close scim spec sim : Ix.t VM.t SM.t =
   SM.mapi begin fun fn vm ->
-    let fdec = (SM.find fn scim).ST.fdec in
+    let fdec = try (SM.find fn scim).ST.fdec with Not_found -> failwith "HITHER" in
     let args = ix_binds_of_spec spec fn in
     vm |> close_formals args fdec.Cil.sformals 
        |> close_locals fdec.Cil.slocals
