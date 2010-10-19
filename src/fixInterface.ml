@@ -353,30 +353,42 @@ let refstore_write loc sto rct rct' =
 (****************** Tag/Annotation Generation **********************)
 (*******************************************************************)
 
-type binding = TVar of string * cilenv * refctype
+type binding = TVar of string * refctype
              | TFun of string * refcfun
              | TSto of string * refstore
+
+let report_bad_binding = function 
+  | TVar (x, cr) ->
+      Errormsg.warn "\nBad TVar for %s :: \n\n@[%a@]" x d_refctype cr
+  | TFun (fn, cf) ->
+      Errormsg.warn "\nBad TFun for %s ::\n\n@[%a@]" fn d_refcfun cf
+  | TSto (fn, st) -> 
+      Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn d_refstore st 
 
 let tags_of_binds s binds = 
   let s_typ = RCt.CType.map (Misc.app_snd (C.apply_solution s)) in
   let s_fun = RCt.CFun.map s_typ in
   let s_sto = RCt.Store.map_ct s_typ in
   let nl    = Constants.annotsep_name in
-  List.fold_left begin fun (d, kts) -> function
-    | TVar (x, _, cr) -> 
-        let k,t  = x, ("variable "^x) in
-        let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refctype (s_typ cr) nl in
-        (Pretty.concat d d', (k,t)::kts)
-    | TFun (f, cf) -> 
-        let k,t  = f, ("function "^f) in
-        let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refcfun (s_fun cf) nl in
-        (Pretty.concat d d', (k,t)::kts)
-    | TSto (f, st) -> 
+  List.fold_left begin fun (d, kts) bind -> 
+    try
+      match bind with 
+      | TVar (x, cr) ->
+          let k,t  = x, ("variable "^x) in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refctype (s_typ cr) nl in
+          (Pretty.concat d d', (k,t)::kts)
+      | TFun (f, cf) -> 
+          let k,t  = f, ("function "^f) in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refcfun (s_fun cf) nl in
+          (Pretty.concat d d', (k,t)::kts)
+      | TSto (f, st) -> 
         let kts' =  RCt.Store.domain st 
                  |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
                  |> List.map (fun s -> (s, s^" |->")) in
         let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f d_refstore (s_sto st) nl in
         (Pretty.concat d d', kts' ++ kts)
+    with
+      C.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
   end (Pretty.nil, []) binds
 
 let generate_annots d = 
@@ -397,7 +409,7 @@ let generate_tags kts =
 let annotr    = ref [] 
 
 (* API *)
-let annot_var   = fun x env cr  -> annotr := TVar (string_of_name x, env, cr) :: !annotr
+let annot_var   = fun x cr  -> annotr := TVar (string_of_name x, cr) :: !annotr
 let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
 let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
 let annot_clear = fun _     -> annotr := []
@@ -425,7 +437,7 @@ let ce_find_fn s (fnv, _,_) =
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
-  let _ = List.iter (fun (n, cr) -> annot_var n cenv cr) ncrs in
+  let _ = List.iter (fun (n, cr) -> annot_var n cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
     let livem' = match base_of_name n with 
@@ -975,7 +987,7 @@ let quals_of_file fname =
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
-(* API: shady hack -- remove when "Solve.force" properly implemented *)
+(* API: shady hack -- remove when "Solve.force" properly implemented 
 let annot_binds () = 
   let cf = fun _ -> None in
   !annotr
@@ -984,3 +996,5 @@ let annot_binds () =
        | _                 -> None
      end 
   |> Ast.Symbol.sm_of_list
+
+  *)

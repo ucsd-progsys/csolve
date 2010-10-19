@@ -46,9 +46,12 @@ let mydebug = false
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
+(* PMRM: 
+
 let infer_shapes cil spec scim =
   let spec = FI.cspec_of_refspec spec in
   (Inferctypes.infer_shapes cil spec scim, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
+*)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -61,8 +64,8 @@ let shapem_of_scim cil spec scim =
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
   |> snd 
-  |> infer_shapes cil spec
-
+  (* PMRM: |> infer_shapes cil spec *)
+  |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
 
 (* TBD: UGLY *)
 let mk_gnv spec decs cenv =
@@ -154,17 +157,16 @@ let decs_of_file cil =
     | GType _ | GCompTag _
     | GCompTagDecl _| GText _
     | GPragma _                         -> acc
-    | _ when !Cs.safe            -> assertf "decs_of_file"
+    | _ when !Cs.safe                   -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
 
 let scim_of_file cil =
-  cil |> ST.scis_of_file 
-      |> List.fold_left begin fun acc sci -> 
-           let fn = sci.ST.fdec.svar.vname in
-           SM.add fn sci acc
-         end SM.empty
+  ST.scis_of_file cil
+  |> List.fold_left begin fun acc sci -> 
+       SM.add sci.ST.fdec.svar.vname sci acc
+     end SM.empty
 
 (*
 let print_sccs sccs =
@@ -182,10 +184,13 @@ let create cil (spec: FI.refspec) =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
-  let shm, cnv = shapem_of_scim cil spec scim in
-  let cnv    = finalize_funtypes shm cnv in
-  let gnv    = mk_gnv spec decs cnv in
-  let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv scim shm in
+  let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
+  let gnv0   = mk_gnv spec decs cnv0 in
+  (* RJ: scalar.* will be hoisted here after it is done, should not depend on shm *)
+  let shm    = shapem_of_scim cil spec scim in
+  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv spec decs in
+    
+  let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

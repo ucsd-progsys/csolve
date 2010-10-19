@@ -107,7 +107,7 @@ let solve me fn qs =
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
   let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
-  let _      =  Errormsg.log "DONE: constraint solving \n" in
+  let _      = Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
   s', cs'
 
