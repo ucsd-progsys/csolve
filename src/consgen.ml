@@ -46,13 +46,6 @@ let mydebug = false
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-(* PMRM: 
-
-let infer_shapes cil spec scim =
-  let spec = FI.cspec_of_refspec spec in
-  (Inferctypes.infer_shapes cil spec scim, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
-*)
-
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
@@ -64,7 +57,6 @@ let shapem_of_scim cil spec scim =
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
   |> snd 
-  (* PMRM: |> infer_shapes cil spec *)
   |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
 
 (* TBD: UGLY *)
