@@ -149,20 +149,18 @@ let vv_drf = Sy.value_variable so_drf
 
 (* API *)
 let sorts  = [] 
-
-let uf_bbegin    = name_of_string "BLOCK_BEGIN"
-let uf_bend      = name_of_string "BLOCK_END"
-(* let uf_skolem = name_of_string "SKOLEM" *)
-let uf_uncheck   = name_of_string "UNCHECKED"
-let uf_deref     = name_of_string "DEREF"
+let uf_bbegin  = name_of_string "BLOCK_BEGIN"
+let uf_bend    = name_of_string "BLOCK_END"
+let uf_skolem  = name_of_string "SKOLEM" 
+let uf_uncheck = name_of_string "UNCHECKED"
+let uf_deref   = name_of_string "DEREF"
 
 (* API *)
 let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
 let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
 let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
 let eApp_deref   = fun x so -> A.eCst (A.eApp (uf_deref, [x]), so)
-(* let eApp_skolem  = fun i -> A.eApp (uf_skolem, [A.eCon (A.Constant.Int i)])
- *)
+let eApp_skolem  = fun x -> A.eApp (uf_skolem, [x])
 
 (*
 let mk_pure_cfun args ret = 
@@ -173,7 +171,7 @@ let mk_pure_cfun args ret =
 let builtins = 
   [(uf_bbegin,  C.make_reft vv_bls so_bls []);
    (uf_bend,    C.make_reft vv_bls so_bls []);
-(* (uf_skolem,  C.make_reft vv_skl so_skl []); *)
+   (uf_skolem,  C.make_reft vv_skl so_skl []);
    (uf_uncheck, C.make_reft vv_pun so_pun []);
    (uf_deref,   C.make_reft vv_drf so_drf [])]
 
@@ -512,11 +510,20 @@ let ra_deref ct base offset =
   let ptr = A.eBin (base, A.Plus, A.eCon (A.Constant.Int offset)) in
     [C.Conc (A.pAtom (A.eVar vv, A.Eq, eApp_deref ptr so))]
 
+let ra_skolem, get_skolems =
+  let xr = ref 0 in
+  (fun ct ->
+    let vv = ct |> sort_of_prectype |> Sy.value_variable in
+    [C.Conc (A.pEqual (A.eVar vv, eApp_skolem (A.eInt (xr =+ 1))))]),
+  (fun _ -> Misc.range 0 !xr |>: A.eInt |>: eApp_skolem) 
+
+
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
+let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
 let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype = t_conv_refctype ra_true
@@ -576,11 +583,7 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ ->
       []
 
-(*
-let skolem = 
-  let fresh_int, _ = Misc.mk_int_factory () in 
-  eApp_skolem <.> fresh_int 
-*)
+
 
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
@@ -598,8 +601,12 @@ let t_name (_,vnv,_) n =
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
   rct |> ctype_of_refctype |> refctype_of_reft_ctype r
 
-let t_fresh_fn =  
-  It.CFun.map t_fresh 
+(* API *)
+let map_fn = RCt.CFun.map 
+
+(*
+let t_fresh_fn = It.CFun.map t_fresh 
+*)
 
 let t_ctype_refctype ct rct = 
   refctype_of_reft_ctype (reft_of_refctype rct) ct

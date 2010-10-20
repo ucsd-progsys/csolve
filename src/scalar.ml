@@ -48,6 +48,8 @@ type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
 (******************** Meta Qualifiers for Scalar Invariants ****************)
 (***************************************************************************)
 
+let into_of_expr = function Ast.Con (Ast.Constant.Int i), _  -> Some i | _ -> None
+
 let index_of_ctype ct =
   match Ctypes.I.CType.refinements_of_t ct with
   | [ix] -> ix
@@ -64,12 +66,18 @@ let p_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
 (* v >= c *)
 let p_v_ge_c        = Ast.pAtom (Ast.eVar value_var, Ast.Ge, Ast.eVar const_var)
 
-(* v = _ + c *)
-let p_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
-(* v < _ + c *)
-let p_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eBin (Ast.eVar param_var, Ast.Plus, Ast.eVar const_var))
 
-
+(* v = SKOLEM[_] + c *)
+let p_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, 
+                                  Ast.eBin (FI.eApp_skolem (Ast.eVar param_var), 
+                                            Ast.Plus, 
+                                            Ast.eVar const_var))
+(* v < SKOLEM[_] + c *)
+let p_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, 
+                                 Ast.Lt, 
+                                 Ast.eBin (FI.eApp_skolem (Ast.eVar param_var), 
+                                           Ast.Plus, 
+                                           Ast.eVar const_var))
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [Ast.Sort.t_int]
 
@@ -93,23 +101,25 @@ let type_decs_of_file (cil: Cil.file) : (Cil.location * Cil.typ) list =
 
 let scalar_consts_of_polarity n m = function
   | Ct.PosB k -> [UpperBound (n + m*k)]
-  | _             -> []
+  | _         -> []
 
 let scalar_consts_of_index = function
   | Ix.IBot            -> []
   | Ix.IInt n          -> [Offset n] 
   | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
-  
+ 
+let subst_of_k_c = fun k c -> Su.of_list [(const_var, Ast.eInt c); (param_var, k)]
+
 let preds_of_scalar_const = function
-  | Offset c ->
+  | k, Offset c ->
       [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
-      |>: (Misc.flip Ast.substs_pred) (Ast.Subst.of_list [const_var, Ast.eInt c])
+      |>: (Misc.flip Ast.substs_pred) (subst_of_k_c k c) 
       
-  | UpperBound c ->
+  | k, UpperBound c ->
       [p_v_lt_c; p_v_lt_x_plus_c] 
-      |>: (Misc.flip Ast.substs_pred) (Ast.Subst.of_list [const_var, Ast.eInt c])
+      |>: (Misc.flip Ast.substs_pred) (subst_of_k_c k c)
   
-  | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
+  | k, Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
 
 (* AXIOMS for MODZ
@@ -124,14 +134,29 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
-let scalar_quals_of_file cil = 
+let scalar_consts_of_typedecs cil = 
   cil 
   |> type_decs_of_file
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
   |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ctypes.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
-  |> Misc.sort_and_compact
-  |> Misc.flap preds_of_scalar_const
+
+let scalar_consts_of_code cil =
+  let xr = ref [] in
+  let _  = CilMisc.iterConsts cil (fun c -> xr := Cil.Const c :: !xr) in
+  !xr 
+  |> Misc.sort_and_compact 
+  |> List.map CilInterface.expr_of_cilexp  
+  |> Misc.map_partial into_of_expr
+  |> List.map (fun i -> Offset i)
+
+let scalar_quals_of_file cil =
+  let c1s = scalar_consts_of_typedecs cil in 
+  let c2s = scalar_consts_of_code cil in
+  let cs  = Misc.sort_and_compact (c1s ++ c2s) in
+  let ks  = FI.get_skolems () in
+  Misc.cross_product ks cs
+  |> Misc.flap preds_of_scalar_const 
   |> Misc.flap quals_of_pred
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
@@ -150,10 +175,12 @@ let ppp = Ast.substs_pred p_v_eq_c (Su.of_list [const_var, Ast.eInt 0])
 let _   = unify_pred p_v_eq_c ppp 
 *)
 
+
 let const_of_subst su =
   su |> Ast.Subst.to_list
      |> Misc.do_catch (Format.sprintf "Scalar.const_of_subst") (List.assoc const_var)
-     |> (function Ast.Con (Ast.Constant.Int i), _  -> Some i | _ -> None)
+     |> into_of_expr
+     (* |> (function Ast.Con (Ast.Constant.Int i), _  -> Some i | _ -> None) *)
 
 let const_of_preds p f v ps =
   let p = [value_var, Ast.eVar v] |> Ast.Subst.of_list |> Ast.substs_pred p in
@@ -173,23 +200,21 @@ let indexo_of_preds_lowerbound =
     | []    -> None 
   end
 
-(*
+(* {{{
 let indexo_of_preds_iint v ps =
   let p_v_eq_c = [value_var, Ast.eVar v] |> Ast.Subst.of_list |> Ast.substs_pred p_v_eq_c in
   ps |> Misc.map_partial (Ast.unify_pred p_v_eq_c)
      |> Misc.map_partial const_of_subst
      |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
-*)
 
 
-(*
 try indexo_of_preds_iint v ps with ex ->
   try indexo_of_preds_iint v ps with ex ->
     (Printf.printf "indexo_of_preds_iseq v = %s, ps =%s" 
     (Sy.to_string v)
     (P.to_string (Ast.pAnd ps));
     raise ex)
-*)
+}}}  *)
 
 let indexo_of_preds_iseqb v ps = 
   None (* TODO *)
@@ -207,7 +232,17 @@ let index_of_pred v =
     ; indexo_of_preds_lowerbound v 
     ]
     |> Misc.maybe_chain ps Ix.top
-  | _ -> assertf "Scalar.index_of_pred"
+  
+  | p when P.is_tauto p -> 
+      Ix.top
+  | p -> 
+      assertf "Scalar.index_of_pred %s" (P.to_string p) 
+
+(*
+let index_of_pred v p = 
+  index_of_pred v p
+  >> (fun ix -> Errormsg.log "Scalar.index_of_pred: v = %s, p = %s, ix = %a" v.Cil.vname (P.to_string p) Ix.d_index ix)
+*)
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
@@ -223,7 +258,7 @@ let generate tgr gnv scim : Ci.t =
 (***************************************************************************)
 
 let solve cil ci = 
-  scalar_quals_of_file cil 
+  (scalar_quals_of_file cil) 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
   |> SM.map (VM.mapi index_of_pred)
 
@@ -251,10 +286,13 @@ let close_locals locals vm : Ix.t VM.t =
 
 let close scim spec sim : Ix.t VM.t SM.t =
   SM.mapi begin fun fn vm ->
-    let fdec = try (SM.find fn scim).ST.fdec with Not_found -> failwith "HITHER" in
-    let args = ix_binds_of_spec spec fn in
-    vm |> close_formals args fdec.Cil.sformals 
-       |> close_locals fdec.Cil.slocals
+    if fn = Co.global_name then vm else
+      let _    = asserti (SM.mem fn scim) "Scalar.close: function %s missing from scim" fn in
+      let fdec = (SM.find fn scim).ST.fdec in
+      let args = ix_binds_of_spec spec fn in
+      (vm |> close_formals args fdec.Cil.sformals 
+          |> close_locals fdec.Cil.slocals)
+
   end sim
 
 (***************************************************************************)
@@ -291,7 +329,7 @@ let d_scalar_error () = function
 let check_index oc fn v ix ix' =
   Pretty.fprintf oc "%s : inferctypes = %a, scalar = %a \n" 
   v.Cil.vname Ix.d_index ix Ix.d_index ix';
-  ix = ix'
+  Ix.is_subindex ix' ix   (* ix' ==> ix *)
 
 let check_scalar shm sim = 
   let oc  = open_out (!Co.liquidc_file_prefix ^ ".scalarlog") in
@@ -314,7 +352,6 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
   let ppf = Format.formatter_of_out_channel oc in
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
-
 
 (* API *) 
 let test cil spec tgr gnv scim shm = 

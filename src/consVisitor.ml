@@ -36,6 +36,7 @@ module CM = CilMisc
 module CS = FI.RefCTypes.Spec
 module Cs = Constants
 module Sh = Shape
+module Ct = Ctypes
 
 open Misc.Ops
 open Cil
@@ -78,8 +79,8 @@ let rename_store lsubs subs sto =
 
 (*
 let rename_store lsubs subs st = 
-  st |> Ctypes.prestore_subs lsubs
-     |> Ctypes.prestore_map_ct (rename_refctype lsubs subs)
+  st |> Ct.prestore_subs lsubs
+     |> Ct.prestore_map_ct (rename_refctype lsubs subs)
 *)
 
 let weaken_undefined me rm env v = 
@@ -247,7 +248,7 @@ let bindings_of_call loc args es =
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt       = FI.ce_find_fn fn env in
-  let args      = FI.args_of_refcfun frt |> List.map (Misc.app_fst FI.name_of_string) in
+  let args      = frt |> FI.args_of_refcfun |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
@@ -310,6 +311,11 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
+let t_scalar rt =
+  match FI.ctype_of_refctype rt with
+   | Ct.Ref (_,Ct.Index.IInt 0) -> FI.t_skolem Ct.scalar_ctype 
+   | _                          -> FI.t_true Ct.scalar_ctype  
+
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
   match instr with
@@ -317,12 +323,13 @@ let scalarcons_of_instr me i grd (j, env) instr =
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
       let loc   = get_instrLoc instr in
       let tag   = CF.tag_of_instr me i j loc in 
-      let cr    = FI.t_exp env Ctypes.scalar_ctype e in
-      let cr'   = FI.t_fresh Ctypes.scalar_ctype in
+      let cr    = FI.t_exp env Ct.scalar_ctype e in
+      let cr'   = FI.t_fresh Ct.scalar_ctype in
       let cs,ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
       (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
-  | Call (Some (Var v, NoOffset), _, _, _) ->
-      let cr = FI.t_true Ctypes.scalar_ctype in
+  
+  | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
+      let cr = env |> FI.ce_find_fn fv.Cil.vname |> FI.ret_of_refcfun |> t_scalar in
       (j+1, extend_env me v cr env), ([], [], [])
   | Set (_,_,_) | Call (None, _, _, _) ->
       (j+1, env), ([], [], [])
@@ -510,7 +517,7 @@ let log_of_sci sci sho =
       let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array sh.Sh.anna in
       let _ = Pretty.printf "%a\n" Refanno.d_conca sh.Sh.conca in
       let _ = Pretty.printf "%a" Refanno.d_ctab sh.Sh.theta in 
-      let _ = Pretty.printf "ICstore = %a\n" Ctypes.I.Store.d_store_addrs sh.Sh.store in
+      let _ = Pretty.printf "ICstore = %a\n" Ct.I.Store.d_store_addrs sh.Sh.store in
       ()
 
 let cons_of_sci tgr gnv gst sci sho =
@@ -575,8 +582,8 @@ let type_of_init v vtyp = function
 
 let add_offset loc t ctptr off =
   match ctptr with
-  | Ctypes.Ref (s, (i, r)) ->
-      Ctypes.Ref (s, (off |> CilMisc.bytesOffset t |> Ctypes.Index.of_int |> Ctypes.Index.plus i, r))
+  | Ct.Ref (s, (i, r)) ->
+      Ct.Ref (s, (off |> CilMisc.bytesOffset t |> Ct.Index.of_int |> Ct.Index.plus i, r))
   | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
@@ -601,7 +608,7 @@ let cons_of_var_init tag loc sto v vtyp inito =
   match inito with
   | Some (CompoundInit _ as init) ->
       let cloc        = Sloc.fresh Sloc.Concrete in
-      let aloc, ctptr = match vtyp with Ctypes.Ref (al, r) -> (al, Ctypes.Ref (cloc, r)) 
+      let aloc, ctptr = match vtyp with Ct.Ref (al, r) -> (al, Ct.Ref (cloc, r)) 
                                       | _ -> assert false in
       let env, sto, _ = fst <| FI.extend_world cf0 sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in 
       let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
