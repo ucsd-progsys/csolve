@@ -39,26 +39,26 @@ open M.Ops
 (*********************************** Indices **********************************)
 (******************************************************************************)
 
-(* TODO: PMR, please check *)
 type seq_polarity =     (* direction in which sequence extends *)
   | Pos                 (* +ve unbounded         *)
   | PosNeg              (* +ve and -ve unbounded *)
-  | PosB of int         (* +ve upto k times      *)
+  | PosB of int         (* +ve fewer than k > 0 times *)
 
 let is_unbounded = function
   | PosB _ -> false 
   | _      -> true
 
-module Index = struct
-  let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
-    match p1, p2 with
-      | PosNeg, _ | _, PosNeg -> PosNeg
-      | _                     -> Pos
+let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
+  match p1, p2 with
+    | PosNeg, _ | _, PosNeg -> PosNeg
+    | Pos, _    | _, Pos    -> Pos
+    | PosB a, PosB b        -> PosB (max a b)
 
+module Index = struct
   type t =
     | IBot                             (* empty sequence *)
     | IInt of int                      (* singleton n >= 0 *)
-    | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+    | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n op mk for all n, m >= 0, k, op given by polarity *)
 
   let top = ISeq (0, 1, PosNeg)
 
@@ -69,17 +69,19 @@ module Index = struct
     | IInt n              -> P.num n
     | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
     | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
-    | ISeq (n, m, PosB k) -> P.dprintf "%d[%d < %d]" n m k
+    | ISeq (n, m, PosB k) -> P.dprintf "%d[%d < %d]" n m (m * k)
   
-  let is_subindex i1 i2 =
-    match (i1, i2) with
-      | (IBot, _)                             -> true
-      | (IInt n, IInt m)                      -> n = m
-      | (IInt n, ISeq (m, k, Pos))            -> m <= n && (n - m) mod k = 0
-      | (IInt n, ISeq (m, k, PosNeg))         -> (n - m) mod k = 0
-      | (ISeq (n, l, Pos), ISeq (m, k, Pos))  -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
-      | (ISeq (n, l, _), ISeq (m, k, PosNeg)) -> k <= l && l mod k = 0 && (n - m) mod k = 0
-      | _                                     -> false
+  let rec is_subindex i1 i2 =
+    match i1, i2 with
+      | IBot, _                                       -> true
+      | IInt n, IInt m                                -> n = m
+      | IInt n, ISeq (m, k, Pos)                      -> m <= n && (n - m) mod k = 0
+      | IInt n, ISeq (m, k, PosB b)                   -> is_subindex (IInt n) (ISeq (m, k, Pos)) && n < m + b * k
+      | IInt n, ISeq (m, k, PosNeg)                   -> (n - m) mod k = 0
+      | ISeq (n, l, (Pos | PosB _)), ISeq (m, k, Pos) -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
+      | ISeq (n, l, _), ISeq (m, k, PosNeg)           -> k <= l && l mod k = 0 && (n - m) mod k = 0
+      | ISeq (n, l, PosB a), ISeq (m, k, PosB b)      -> is_subindex (ISeq (n, l, Pos)) (ISeq (m, k, Pos)) && a <= b
+      | _                                             -> false
 
   let of_int i =
     if i >= 0 then IInt i else top
@@ -195,40 +197,24 @@ let ploc_unbounded_periodic = function
   | PLSeq (_, PosNeg) -> true
   | _                 -> false
 
-(* TODO: PMR, please check *)
 let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
   match (pl1, pl2) with
-    | (PLAt n1, PLAt n2)                         -> n1 = n2
+    | (PLAt n1, PLAt n2)                            -> n1 = n2
+    | (PLAt n, PLSeq (m, PosB 0))                   -> n = m
     | (PLAt _,             PLSeq _)                          
     | (PLSeq (_, PosB _),  PLSeq (_, Pos))        
     | (PLSeq (_, Pos),    PLSeq (_, PosNeg)) 
-    | (PLSeq (_, PosB _), PLSeq (_, PosNeg))     -> false
+    | (PLSeq (_, PosB _), PLSeq (_, PosNeg))        -> false
     | (PLSeq (n1, PosNeg), PLAt n2)              
-    | (PLSeq (n1, PosNeg), PLSeq (n2, _))        -> (n2 - n1) mod p = 0
+    | (PLSeq (n1, PosNeg), PLSeq (n2, _))           -> (n2 - n1) mod p = 0
     | (PLSeq (n1, Pos), PLAt n2)                 
-    | (PLSeq (n1, Pos), PLSeq (n2, Pos))         
-    | (PLSeq (n1, Pos), PLSeq (n2, PosB _))      -> (n2 - n1) mod p = 0 && n1 <= n2 
-    | (PLSeq (n1, PosB k), PLAt n2)              -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 < n1 + (p * k)
-    | (PLSeq (n1, PosB k1), PLSeq (n2, PosB k2)) -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 + (p * k2) <= n1 + (p * k1)
-   
+    | (PLSeq (n1, Pos), PLSeq (n2, (Pos | PosB _))) -> (n2 - n1) mod p = 0 && n1 <= n2 
+    | (PLSeq (n1, PosB k), PLAt n2)                 -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 < n1 + (p * k)
+    | (PLSeq (n1, PosB k1), PLSeq (n2, PosB k2))    -> (n2 - n1) mod p = 0 && n1 <= n2 && n2 + (p * k2) <= n1 + (p * k1)
 
-(* TODO: PMR, please check *)
 let ploc_contains_index pl p i =
   ploc_contains pl (ploc_of_index i) p && 
-  (match i with Index.ISeq (_, k, _) -> k mod p = 0 | _ -> true)
-
-(*
-
-  match (pl, i) with
-    | (_, Index.IBot)                             -> false
-    | (PLAt n, Index.IInt m)                      -> n = m
-    | (PLAt _, Index.ISeq _)                      -> false
-    | (PLSeq (n, Pos), Index.IInt m)              -> n <= m && (m - n) mod p = 0
-    | (PLSeq (n, PosNeg), Index.IInt m)           -> (m - n) mod p = 0
-    | (PLSeq (n, Pos), Index.ISeq (m, k, Pos))    -> k mod p = 0 && n <= m && (m - n) mod p = 0
-    | (PLSeq (n, Pos), Index.ISeq (m, k, PosNeg)) -> false
-    | (PLSeq (n, PosNeg), Index.ISeq (m, k, _))   -> k mod p = 0 && (m - n) mod p = 0
-*)
+    match i with Index.ISeq (_, k, _) -> k mod p = 0 | _ -> true
  
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
@@ -262,8 +248,6 @@ module IndexRefinement = struct
     | C.CReal (_, fk, _)  -> Index.top
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
-
-
 end
 
 (******************************************************************************)
@@ -524,25 +508,29 @@ module Make (R: CTYPE_REFINEMENT) = struct
         | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
         | _                          -> pct1 = pct2
 
-    (* TODO: PMR, please check *)
+    let rec closest_start_before p pl1 pl2 =
+      match pl1, pl2 with
+        | PLAt n, _                                                      -> n
+        | PLSeq (n, (Pos | PosNeg)), _ | PLSeq (n, _), PLSeq (_, PosNeg) -> p * ((ploc_start pl2 - n) / p)
+        | PLSeq (n, PosB k), _                                           -> if n + p * k >= ploc_start pl2 then closest_start_before p (PLSeq (n, Pos)) pl2 else n
+
+    (* TODO: RJ, please check *)
     let collide pl1 pct1 pl2 pct2 p =
       let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
-      let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
-      let k1                       = match pl1 with PLSeq (_, PosB k1) -> k1 | _ -> 1 in
-      (s1 + (k1 * (width pct1)) > s2) ||
-      (ploc_unbounded_periodic pl1 && s2 + width pct2 > (s1 + p))
-
-    (** RJ: Original code 
-    let collide pl1 pct1 pl2 pct2 p =
-      let (pl1, pct1), (pl2, pct2) = if ploc_start pl1 <= ploc_start pl2 then ((pl1, pct1), (pl2, pct2)) else ((pl2, pct2), (pl1, pct1)) in
-      let s1, s2                   = (ploc_start pl1, ploc_start pl2) in
-      let d                        = s2 - s1 in
-      let pl1                      = if ploc_periodic pl1 then ploc_offset pl1 (p * (d / p)) else pl1 in
-      (s1 + width pct1 > s2) ||
-      (ploc_periodic pl1 && s2 + width pct2 > (s1 + p))
-    *)
-
-
+      let w1, w2                   = width pct1, width pct2 in
+      let s1, s2                   = closest_start_before p pl1 pl2, ploc_start pl2 in
+      let forward_collision        = s1 + w1 > s2 &&
+                                       match pl1 with
+                                         | PLAt _                    -> false
+                                         | PLSeq (_, (Pos | PosNeg)) -> s2 + w2 > s1 + p
+                                         | PLSeq (n, PosB k)         ->
+                                             let s1 = s1 + p in
+                                               s1 < n + k * p && s2 + w2 > s1 in
+      let backward_collision      = match pl2 with
+                                       | PLAt _                    -> false
+                                       | PLSeq (_, (Pos | PosB _)) -> false
+                                       | PLSeq (_, PosNeg)         -> s2 + w2 > s1 + p
+      in forward_collision || backward_collision
 
     let is_void = function
       | Int (0, _) -> true
