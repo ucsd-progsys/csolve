@@ -10,6 +10,8 @@ int *foo(int *x, int *__attribute__((array)) y){
 
 void main(){
   int x;
+  int a;
+  int b;
 
   x = nondet();
 
@@ -17,6 +19,11 @@ void main(){
   if (x < 0) {
     x = -x;
   }
+
+  a = (x >= 0);
+  
+  a = 999;
+
 
   assert(x >= 0);
 

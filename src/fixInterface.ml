@@ -455,8 +455,8 @@ let ce_find_fn s (fnv, _,_) =
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
-  let _ = List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
-  (Sy.to_string n) d_refctype cr) ncrs in
+  let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
+  (Sy.to_string n) d_refctype cr) ncrs) in
   let _ = List.iter (fun (n, cr) -> annot_var n cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
@@ -591,7 +591,7 @@ let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp (* skolem *) vv e in
-  let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in
+(* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
   let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct

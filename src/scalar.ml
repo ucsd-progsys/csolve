@@ -155,7 +155,7 @@ let scalar_quals_of_file cil =
   let c1s = scalar_consts_of_typedecs cil in 
   let c2s = scalar_consts_of_code cil in
   let cs  = Misc.sort_and_compact (c1s ++ c2s) in
-  let ks  = FI.get_skolems () in
+  let ks  = FI.get_skolems () |> (function [] -> [A.eInt 0] | xs -> xs) in
   Misc.cross_product ks cs
   |> Misc.flap preds_of_scalar_const 
   |> Misc.flap quals_of_pred
@@ -220,19 +220,16 @@ let indexo_of_preds_iseqb v ps =
 let indexo_of_preds_iseq  v ps = 
   None (* TODO *) 
 
-let index_of_pred v p = 
-  let v  = FI.name_of_varinfo v in
-  [ indexo_of_preds_iint v
-  ; indexo_of_preds_iseqb v
-  ; indexo_of_preds_iseq v 
-  ; indexo_of_preds_lowerbound v 
-  ] |> Misc.maybe_chain (A.conjuncts p) Ix.top
-  
-  (*
-let index_of_pred v p = 
-  index_of_pred v p
-  >> (fun ix -> Errormsg.log "Scalar.index_of_pred: v = %s, p = %s, ix = %a" v.Cil.vname (P.to_string p) Ix.d_index ix)
-*)
+let index_of_pred v (cr, p) = 
+  let vv  = FI.name_of_varinfo v in
+  [ indexo_of_preds_iint vv
+  ; indexo_of_preds_iseqb vv
+  ; indexo_of_preds_iseq vv 
+  ; indexo_of_preds_lowerbound vv] 
+  |> Misc.maybe_chain (A.conjuncts p) Ix.top
+(*  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
+                v.Cil.vname FI.d_refctype cr (P.to_string p) Ix.d_index ix)
+ *)
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
@@ -282,7 +279,6 @@ let close scim spec sim : Ix.t VM.t SM.t =
       let args = ix_binds_of_spec spec fn in
       (vm |> close_formals args fdec.Cil.sformals 
           |> close_locals fdec.Cil.slocals)
-
   end sim
 
 (***************************************************************************)
@@ -348,5 +344,5 @@ let test cil spec tgr gnv scim shm =
   let sim = scalarinv_of_scim cil spec tgr gnv scim in
   check_scalar shm sim
   >> (List.iter (fun e -> E.warn "%a \n" d_scalar_error e |> ignore))
-  >> (fun _ -> Errormsg.log "DONE: scalar testing \n")
+  >> (fun _ -> E.log "DONE: scalar testing \n")
   |> (function [] -> exit 0 | _ -> exit 1)

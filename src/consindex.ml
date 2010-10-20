@@ -115,6 +115,6 @@ let solve me fn qs =
 let force me fn qs = 
   let s = solve me fn qs |> fst in
   me.defm 
-  |> SM.map (List.map (fun (v, cr) -> (v, FI.pred_of_refctype s v cr)))
+  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
   >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
