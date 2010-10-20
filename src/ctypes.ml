@@ -512,7 +512,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
       match pl1, pl2 with
         | PLAt n, _                                                      -> n
         | PLSeq (n, (Pos | PosNeg)), _ | PLSeq (n, _), PLSeq (_, PosNeg) -> p * ((ploc_start pl2 - n) / p)
-        | PLSeq (n, PosB k), _                                           -> if n + p * k >= ploc_start pl2 then closest_start_before p (PLSeq (n, Pos)) pl2 else n
+        | PLSeq (n, PosB k), _                                           ->
+            let s = n + p * k in
+              if s >= ploc_start pl2 then closest_start_before p (PLSeq (n, Pos)) pl2 else s
 
     (* TODO: RJ, please check *)
     let collide pl1 pct1 pl2 pct2 p =
