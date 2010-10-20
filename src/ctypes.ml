@@ -352,6 +352,7 @@ module type S = sig
 
     val domain       : t -> Sloc.t list
     val slocs        : t -> Sloc.t list
+    val mem          : t -> Sloc.t -> bool
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> LDesc.t
@@ -747,6 +748,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
       |> domain
       |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (CType.sloc pct) acc)) ps
       |> M.sort_and_compact
+
+    let mem st s =
+      SLM.mem s st
 
     let find l ps =
       try SLM.find l ps with Not_found -> LDesc.empty
