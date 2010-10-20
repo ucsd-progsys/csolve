@@ -311,11 +311,6 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
-let t_scalar rt =
-  match FI.ctype_of_refctype rt with
-  | Ct.Ref (_,Ct.Index.IInt 0) -> FI.t_skolem Ct.scalar_ctype 
-  | _                          -> FI.t_true Ct.scalar_ctype  
-
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   let cr'    = FI.t_fresh Ct.scalar_ctype in
   let cs, ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
@@ -329,11 +324,11 @@ let scalarcons_of_instr me i grd (j, env) instr =
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
       let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
-      e   |> FI.t_exp env Ct.scalar_ctype
+      e   |> FI.t_exp_scalar v 
           |> scalarcons_of_binding me loc tag (j, env) grd j v 
   
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
-      env |> (FI.ce_find_fn fv.Cil.vname <+> FI.ret_of_refcfun <+> t_scalar) 
+      env |> (FI.ce_find_fn fv.Cil.vname <+> FI.ret_of_refcfun <+> FI.ctype_of_refctype <+> FI.t_scalar) 
           |> scalarcons_of_binding me loc tag (j, env) grd j v 
   
   | Set (_,_,_) | Call (None, _, _, _) ->

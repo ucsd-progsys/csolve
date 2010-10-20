@@ -70,8 +70,8 @@ let p_v_lt_c        = p_v_r_c A.Lt
 (* v >= c *)
 let p_v_ge_c        = p_v_r_c A.Ge
 
-let p_v_r_x_plus_c r = 
-  A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_skolem (A.eVar param_var), A.Plus, A.eVar const_var))
+let p_v_r_x_plus_c r =  
+  A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
 (* v = SKOLEM[_] + c *)
 let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
@@ -109,6 +109,7 @@ let scalar_consts_of_index = function
   | Ix.IInt n          -> [Offset n] 
   | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
  
+(* WITH SKOLEMS 
 let subst_of_k_c = fun k c -> Su.of_list [(const_var, A.eInt c); (param_var, k)]
 
 let preds_of_scalar_const = function
@@ -122,6 +123,20 @@ let preds_of_scalar_const = function
   
   | k, Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
+*)
+
+let preds_of_scalar_const = function
+  | Offset c ->
+      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
+      |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
+      
+  | UpperBound c ->
+      [p_v_lt_c; p_v_lt_x_plus_c] 
+      |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
+  
+  | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
+      []
+
 
 (* AXIOMS for MODZ
 (1) <bas> MODZ_c_d(c)
@@ -155,8 +170,9 @@ let scalar_quals_of_file cil =
   let c1s = scalar_consts_of_typedecs cil in 
   let c2s = scalar_consts_of_code cil in
   let cs  = Misc.sort_and_compact (c1s ++ c2s) in
-  let ks  = FI.get_skolems () |> (function [] -> [A.eInt 0] | xs -> xs) in
-  Misc.cross_product ks cs
+  (* let ks  = FI.get_skolems () |> (function [] -> [A.eInt 0] | xs -> xs) in
+     Misc.cross_product ks *) 
+  cs
   |> Misc.flap preds_of_scalar_const 
   |> Misc.flap quals_of_pred
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))

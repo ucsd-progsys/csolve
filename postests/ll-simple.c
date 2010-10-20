@@ -10,7 +10,7 @@ int main(){
   node_t *tmp;
 
   root = 0;
-
+  
   for(int i=0; i < 1000; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
     validptr(tmp);
@@ -18,12 +18,9 @@ int main(){
     tmp->next = root;
     root      = tmp;
   }
-
-  /*
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
       assert(tmp->data >= 0);
       assert(tmp->data < 1000);
   }
-  */
   return 0;
 }

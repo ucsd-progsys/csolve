@@ -531,6 +531,18 @@ let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype
 let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
+
+let ra_bbegin ct =
+  ct 
+  |> sort_of_prectype 
+  |> Sy.value_variable 
+  |> A.eVar 
+  |> (fun vv -> [C.Conc (A.pEqual (vv, eApp_bbegin vv))])
+
+let t_scalar = function
+  | Ct.Ref (_,Ct.Index.IInt 0) -> refctype_of_ctype ra_bbegin Ct.scalar_ctype 
+  | _                          -> t_true Ct.scalar_ctype  
+
 (* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
   let so = sort_of_prectype ct in
@@ -585,16 +597,31 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | _ ->
       []
 
-
-
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
-  let p  = CI.reft_of_cilexp (* skolem *) vv e in
+  let p  = CI.reft_of_cilexp vv e in
 (* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
   let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
+
+
+let t_exp_scalar_ptr vv p = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
+  p |> P.support 
+    |> List.filter ((<>) vv) 
+    |> (function [x] ->[C.Conc (mk_eq_uf eApp_bbegin (A.eVar vv) (A.eVar x))] | _ -> [])
+
+let t_exp_scalar v e =
+  let ct = Ct.scalar_ctype in
+  let so = sort_of_prectype ct in
+  let vv = Sy.value_variable so in
+  let p  = CI.reft_of_cilexp vv e in
+  let rs = [C.Conc p] in
+  let rs = if Cil.isPointerType v.Cil.vtype then (rs ++ t_exp_scalar_ptr vv p) else rs in
+  let r  = C.make_reft vv so rs in
+  refctype_of_reft_ctype r ct
+
 
 let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) in
@@ -607,12 +634,12 @@ let t_name (_,vnv,_) n =
 (* API *)
 let map_fn = RCt.CFun.map 
 
-(*
-let t_fresh_fn = It.CFun.map t_fresh 
-*)
+(* let t_fresh_fn = It.CFun.map t_fresh  *)
 
-let t_ctype_refctype ct rct = 
-  refctype_of_reft_ctype (reft_of_refctype rct) ct
+let t_ctype_refctype ct rct =
+  rct 
+  |> reft_of_refctype
+  |> Misc.flip refctype_of_reft_ctype ct 
 
 let strengthen_refctype mkreft rct =
   let reft = reft_of_refctype rct in

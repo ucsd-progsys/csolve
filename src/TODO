@@ -21,13 +21,18 @@ Function Pointers
     
     >0> vanilla tests with fields
 	test00.c
-	nulljoin.c
-	field1.c 
+	scalar00.c
+	scalar01.c
 	loop-simple.c 
 	loop.c
 	loop2.c 
 	loop3.c
-
+	field1.c 
+	
+	scalar02.c
+	ll-simple.c
+	nulljoin.c
+	
 	>> HEREHEREHERE
 
 	ll0.c

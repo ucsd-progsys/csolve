@@ -101,12 +101,18 @@ val strengthen_final_field :
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
 *)
 
+(*
 val eApp_skolem         : Ast.expr -> Ast.expr 
 val get_skolems         : unit -> Ast.expr list
+val t_skolem            : Ctypes.ctype -> refctype
+*)
 
 val map_fn              : (refctype -> refctype) -> refcfun -> refcfun
-val t_skolem            : Ctypes.ctype -> refctype
 
+
+val eApp_bbegin         : Ast.expr -> Ast.expr 
+
+val t_scalar            : Ctypes.ctype -> refctype
 val t_fresh             : Ctypes.ctype -> refctype
 val t_true              : Ctypes.ctype -> refctype
 val t_true_refctype     : refctype -> refctype
@@ -114,6 +120,7 @@ val t_zero_refctype     : refctype -> refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> refctype
 val t_size_ptr          : Ctypes.ctype -> int -> refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> refctype
+val t_exp_scalar        : Cil.varinfo -> Cil.exp -> refctype
 val t_name              : cilenv -> name -> refctype
 val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype
 
