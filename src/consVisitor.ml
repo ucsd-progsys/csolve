@@ -316,26 +316,32 @@ let t_scalar rt =
    | Ct.Ref (_,Ct.Index.IInt 0) -> FI.t_skolem Ct.scalar_ctype 
    | _                          -> FI.t_true Ct.scalar_ctype  
 
+let scalarcons_of_binding me loc tag (j, env) grd j v cr =
+  let cr'    = FI.t_fresh Ct.scalar_ctype in
+  let cs, ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
+  (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
+
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
+  let loc = get_instrLoc instr in
+  let tag = CF.tag_of_instr me i j loc in 
   match instr with
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
-      let loc   = get_instrLoc instr in
-      let tag   = CF.tag_of_instr me i j loc in 
-      let cr    = FI.t_exp env Ct.scalar_ctype e in
-      let cr'   = FI.t_fresh Ct.scalar_ctype in
-      let cs,ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
-      (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
+      e   |> FI.t_exp env Ct.scalar_ctype
+          |> scalarcons_of_binding me loc tag (j, env) grd j v 
   
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
-      let cr = env |> FI.ce_find_fn fv.Cil.vname |> FI.ret_of_refcfun |> t_scalar in
-      (j+1, extend_env me v cr env), ([], [], [])
+      env |> (FI.ce_find_fn fv.Cil.vname <+> FI.ret_of_refcfun <+> t_scalar) 
+          |> scalarcons_of_binding me loc tag (j, env) grd j v 
+  
   | Set (_,_,_) | Call (None, _, _, _) ->
       (j+1, env), ([], [], [])
+  
   | Call (Some _, _, _, _) ->
       (j+2, env), ([], [], [])
-  | instr -> 
+  
+  | _ -> 
       E.s <| E.error "TBD: scalarcons_of_instr: %a \n" d_instr instr
 
 (****************************************************************************)

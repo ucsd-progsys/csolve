@@ -515,7 +515,7 @@ let ra_skolem, get_skolems =
   (fun ct ->
     let vv = ct |> sort_of_prectype |> Sy.value_variable in
     [C.Conc (A.pEqual (A.eVar vv, eApp_skolem (A.eInt (xr =+ 1))))]),
-  (fun _ -> Misc.range 0 !xr |>: A.eInt |>: eApp_skolem) 
+  (fun _ -> Misc.range 0 !xr |>: A.eInt) 
 
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 

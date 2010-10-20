@@ -23,19 +23,20 @@
 
 (* This file is part of the liquidC Project.*)
 
+module A  = Ast
 module CM = CilMisc
 module VM = CM.VarMap
-module Sy = Ast.Symbol
-module Su = Ast.Subst
+module Sy = A.Symbol
+module Su = A.Subst
 module FI = FixInterface
 module SM = Misc.StringMap
-module YM = Ast.Symbol.SMap
+module YM = A.Symbol.SMap
 module ST = Ssa_transform
 module Ct = Ctypes
 module Ix = Ct.Index
 module Co = Constants
-module P  = Ast.Predicate 
-module Q  = Ast.Qualifier
+module P  = A.Predicate 
+module Q  = A.Qualifier
 
 module Ci = Consindex
 module E  = Errormsg
@@ -48,38 +49,38 @@ type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
 (******************** Meta Qualifiers for Scalar Invariants ****************)
 (***************************************************************************)
 
-let into_of_expr = function Ast.Con (Ast.Constant.Int i), _  -> Some i | _ -> None
+let into_of_expr = function A.Con (A.Constant.Int i), _  -> Some i | _ -> None
 
 let index_of_ctype ct =
   match Ctypes.I.CType.refinements_of_t ct with
   | [ix] -> ix
   | _    -> assertf "Scalar.index_of_ctype"
 
-let value_var       = Ast.Symbol.value_variable Ast.Sort.t_int
-let const_var       = Ast.Symbol.mk_wild ()
-let param_var       = Ast.Symbol.mk_wild ()
+let value_var       = A.Symbol.value_variable A.Sort.t_int
+let const_var       = A.Symbol.mk_wild ()
+let param_var       = A.Symbol.mk_wild ()
+
+
+let p_v_r_c         = fun r -> A.pAtom (A.eVar value_var, r, A.eVar const_var)
 
 (* v = c *)
-let p_v_eq_c        = Ast.pEqual (Ast.eVar value_var, Ast.eVar const_var)
+let p_v_eq_c        = p_v_r_c A.Eq
 (* v < c *)
-let p_v_lt_c        = Ast.pAtom (Ast.eVar value_var, Ast.Lt, Ast.eVar const_var)
+let p_v_lt_c        = p_v_r_c A.Lt
 (* v >= c *)
-let p_v_ge_c        = Ast.pAtom (Ast.eVar value_var, Ast.Ge, Ast.eVar const_var)
+let p_v_ge_c        = p_v_r_c A.Ge
 
+let p_v_r_x_plus_c r = 
+  A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_skolem (A.eVar param_var), A.Plus, A.eVar const_var))
 
 (* v = SKOLEM[_] + c *)
-let p_v_eq_x_plus_c = Ast.pEqual (Ast.eVar value_var, 
-                                  Ast.eBin (FI.eApp_skolem (Ast.eVar param_var), 
-                                            Ast.Plus, 
-                                            Ast.eVar const_var))
+let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
 (* v < SKOLEM[_] + c *)
-let p_v_lt_x_plus_c = Ast.pAtom (Ast.eVar value_var, 
-                                 Ast.Lt, 
-                                 Ast.eBin (FI.eApp_skolem (Ast.eVar param_var), 
-                                           Ast.Plus, 
-                                           Ast.eVar const_var))
+let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt 
+(* v >= SKOLEM[_] + c *)
+let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
 
-let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [Ast.Sort.t_int]
+let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
 
 
 (***************************************************************************)
@@ -108,16 +109,16 @@ let scalar_consts_of_index = function
   | Ix.IInt n          -> [Offset n] 
   | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
  
-let subst_of_k_c = fun k c -> Su.of_list [(const_var, Ast.eInt c); (param_var, k)]
+let subst_of_k_c = fun k c -> Su.of_list [(const_var, A.eInt c); (param_var, k)]
 
 let preds_of_scalar_const = function
   | k, Offset c ->
       [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
-      |>: (Misc.flip Ast.substs_pred) (subst_of_k_c k c) 
+      |>: (Misc.flip A.substs_pred) (subst_of_k_c k c) 
       
   | k, UpperBound c ->
       [p_v_lt_c; p_v_lt_x_plus_c] 
-      |>: (Misc.flip Ast.substs_pred) (subst_of_k_c k c)
+      |>: (Misc.flip A.substs_pred) (subst_of_k_c k c)
   
   | k, Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
       []
@@ -167,43 +168,40 @@ let scalar_quals_of_file cil =
 
 (* 
 let unify_pred p q =
-  Ast.unify_pred p q
+  A.unify_pred p q
   >> Misc.maybe_iter (fun su -> ignore <| Format.printf "unify_pred: p is %a, q is %a, subst = %a \n" 
                                           P.print p P.print q Su.print su)
 
-let ppp = Ast.substs_pred p_v_eq_c (Su.of_list [const_var, Ast.eInt 0])
+let ppp = A.substs_pred p_v_eq_c (Su.of_list [const_var, A.eInt 0])
 let _   = unify_pred p_v_eq_c ppp 
 *)
 
 
 let const_of_subst su =
-  su |> Ast.Subst.to_list
+  su |> A.Subst.to_list
      |> Misc.do_catch (Format.sprintf "Scalar.const_of_subst") (List.assoc const_var)
      |> into_of_expr
-     (* |> (function Ast.Con (Ast.Constant.Int i), _  -> Some i | _ -> None) *)
+     (* |> (function A.Con (A.Constant.Int i), _  -> Some i | _ -> None) *)
 
-let const_of_preds p f v ps =
-  let p = [value_var, Ast.eVar v] |> Ast.Subst.of_list |> Ast.substs_pred p in
-  ps |> Misc.map_partial (Ast.unify_pred p)
+let consts_of_preds p v ps =
+  let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
+  ps |> Misc.map_partial (A.unify_pred p)
      |> Misc.map_partial const_of_subst
-     |> f 
 
-let indexo_of_preds_iint =
-  const_of_preds p_v_eq_c begin function 
-    | c::cs -> Some (Ix.IInt (List.fold_left min c cs))
-    | []    -> None 
-  end
+let indexo_of_preds_iint v ps =
+  [p_v_eq_c; p_v_eq_x_plus_c]
+  |> Misc.flap (fun q -> consts_of_preds q v ps) 
+  |> (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None)
 
-let indexo_of_preds_lowerbound =
-  const_of_preds p_v_ge_c begin function 
-    | c::cs -> Some (Ix.ISeq (List.fold_left max c cs, 1, Ct.Pos))
-    | []    -> None 
-  end
+let indexo_of_preds_lowerbound v ps =
+  [p_v_ge_c; p_v_ge_x_plus_c]
+  |> Misc.flap (fun q -> consts_of_preds q v ps) 
+  |> (function c::cs -> Some (Ix.ISeq (List.fold_left max c cs, 1, Ct.Pos)) | _ -> None)
 
 (* {{{
 let indexo_of_preds_iint v ps =
-  let p_v_eq_c = [value_var, Ast.eVar v] |> Ast.Subst.of_list |> Ast.substs_pred p_v_eq_c in
-  ps |> Misc.map_partial (Ast.unify_pred p_v_eq_c)
+  let p_v_eq_c = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p_v_eq_c in
+  ps |> Misc.map_partial (A.unify_pred p_v_eq_c)
      |> Misc.map_partial const_of_subst
      |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
 
@@ -212,7 +210,7 @@ try indexo_of_preds_iint v ps with ex ->
   try indexo_of_preds_iint v ps with ex ->
     (Printf.printf "indexo_of_preds_iseq v = %s, ps =%s" 
     (Sy.to_string v)
-    (P.to_string (Ast.pAnd ps));
+    (P.to_string (A.pAnd ps));
     raise ex)
 }}}  *)
 
@@ -222,23 +220,15 @@ let indexo_of_preds_iseqb v ps =
 let indexo_of_preds_iseq  v ps = 
   None (* TODO *) 
 
-let index_of_pred v = 
-  let v = FI.name_of_varinfo v in
-  function
-  | Ast.And ps, _ ->
-    [ indexo_of_preds_iint v
-    ; indexo_of_preds_iseqb v
-    ; indexo_of_preds_iseq v 
-    ; indexo_of_preds_lowerbound v 
-    ]
-    |> Misc.maybe_chain ps Ix.top
+let index_of_pred v p = 
+  let v  = FI.name_of_varinfo v in
+  [ indexo_of_preds_iint v
+  ; indexo_of_preds_iseqb v
+  ; indexo_of_preds_iseq v 
+  ; indexo_of_preds_lowerbound v 
+  ] |> Misc.maybe_chain (A.conjuncts p) Ix.top
   
-  | p when P.is_tauto p -> 
-      Ix.top
-  | p -> 
-      assertf "Scalar.index_of_pred %s" (P.to_string p) 
-
-(*
+  (*
 let index_of_pred v p = 
   index_of_pred v p
   >> (fun ix -> Errormsg.log "Scalar.index_of_pred: v = %s, p = %s, ix = %a" v.Cil.vname (P.to_string p) Ix.d_index ix)
