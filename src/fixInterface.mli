@@ -46,8 +46,6 @@ type refstore = RefCTypes.Store.t
 type refspec  = RefCTypes.Spec.t
 type reffield = RefCTypes.Field.t
 
-
-
 val d_refstore          : unit -> refstore -> Pretty.doc
 val d_refctype          : unit -> refctype -> Pretty.doc
 val d_refcfun           : unit -> refcfun -> Pretty.doc
@@ -99,14 +97,23 @@ val strengthen_final_field :
   reffield ->
   reffield
 
+(*
 val t_fresh_fn          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.cfun  -> refcfun
-val t_fresh             : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype
-val t_true              : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> refctype
-val t_true_refctype     : (* (Sloc.t -> Sloc.t) -> *) refctype -> refctype
-val t_zero_refctype     : (* (Sloc.t -> Sloc.t) -> *) refctype -> refctype
-val t_pred              : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> refctype
-val t_size_ptr          : (* (Sloc.t -> Sloc.t) -> *) Ctypes.ctype -> int -> refctype
-val t_exp               : (* (Sloc.t -> Sloc.t) -> *) cilenv -> Ctypes.ctype -> Cil.exp -> refctype
+*)
+
+val eApp_skolem         : Ast.expr -> Ast.expr 
+val get_skolems         : unit -> Ast.expr list
+
+val map_fn              : (refctype -> refctype) -> refcfun -> refcfun
+val t_skolem            : Ctypes.ctype -> refctype
+
+val t_fresh             : Ctypes.ctype -> refctype
+val t_true              : Ctypes.ctype -> refctype
+val t_true_refctype     : refctype -> refctype
+val t_zero_refctype     : refctype -> refctype
+val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> refctype
+val t_size_ptr          : Ctypes.ctype -> int -> refctype
+val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> refctype
 val t_name              : cilenv -> name -> refctype
 val t_ctype_refctype    : Ctypes.ctype -> refctype -> refctype
 

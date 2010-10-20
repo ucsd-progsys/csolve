@@ -68,7 +68,7 @@ let shapem_of_scim cil spec scim =
   |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
 
 (* TBD: UGLY *)
-let mk_gnv spec decs cenv =
+let mk_gnv f spec decs cenv =
   let decs = decs 
              |> Misc.map_partial (function CM.FunDec (fn,_) -> Some fn | _ -> None)
              |> List.fold_left (Misc.flip SS.add) SS.empty in
@@ -76,12 +76,14 @@ let mk_gnv spec decs cenv =
              |> CS.varspec
              |> M.sm_to_list
              |> List.map begin fun (vn, (vty, _)) -> 
-                 (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh) 
+                 (FI.name_of_string vn, f vty (* |> FI.ctype_of_refctype |> FI.t_fresh *)) 
                 end
              |> FI.ce_adds FI.ce_empty in
   M.sm_to_list cenv
   |> List.map begin fun (fn, ft) ->
-       (fn, if SS.mem fn decs then FI.t_fresh_fn ft else (CS.get_fun fn spec |> fst))
+       (fn, if SS.mem fn decs 
+            then ft |> FI.refcfun_of_cfun |> FI.map_fn f (* FI.t_fresh_fn ft *)  
+            else (CS.get_fun fn spec |> fst))
      end
   |> FI.ce_adds_fn gnv0
 
@@ -168,11 +170,11 @@ let scim_of_file cil =
        SM.add sci.ST.fdec.svar.vname sci acc
      end SM.empty
 
-(*
+(* {{{ 
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
-*)
+}}} *)
 
 (* API *)
 let create cil (spec: FI.refspec) =
@@ -185,10 +187,10 @@ let create cil (spec: FI.refspec) =
   let _      = E.log "\nDONE: SPEC rename \n" in
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
-  let gnv0   = mk_gnv spec decs cnv0 in
-  (* RJ: scalar.* will be hoisted here after it is done, should not depend on shm *)
+  let gnv0   = mk_gnv id spec decs cnv0 in
+  (* RJ: Scalar.* will be hoisted here after it is done, should not depend on shm *)
   let shm    = shapem_of_scim cil spec scim in
-  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv spec decs in
+  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (FI.ctype_of_refctype <+> FI.t_fresh) spec decs in
     
   let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in
   let _      = E.log "\nDONE: SHAPE infer \n" in
