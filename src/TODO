@@ -21,6 +21,7 @@ Function Pointers
     
     >0> vanilla tests with fields
 	test00.c
+	nulljoin.c
 	field1.c 
 	loop-simple.c 
 	loop.c
