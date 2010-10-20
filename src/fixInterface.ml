@@ -216,8 +216,8 @@ let d_refcfun  = RCt.CFun.d_cfun
 let reft_of_reft r t' =
   let vv   = C.vv_of_reft r in
   let t    = C.sort_of_reft r in
-  let _    = asserts (So.ptr_of_t t  <> None) "reft_of_reft (src)" in
-  let _    = asserts (So.ptr_of_t t' <> None) "reft_of_reft (dst)" in
+  let _    = asserti (So.ptr_of_t t  <> None) "reft_of_reft (src)" in
+  let _    = asserti (So.ptr_of_t t' <> None) "reft_of_reft (dst)" in
   let vv'  = Sy.value_variable t' in
   let evv' = A.eVar vv' in
   r |> C.ras_of_reft 
@@ -242,9 +242,29 @@ let ctype_of_refctype = function
   | Ct.Ref (x, (y, _)) -> Ct.Ref (x, y)
   | Ct.Top (x,_)       -> Ct.Top (x) 
 
+let refctype_of_ctype f = function
+  | Ct.Int (i, x) as t ->
+      let r = C.make_reft vv_int So.t_int (f t) in
+      Ct.Int (i, (x, r)) 
+  | Ct.Ref (l, x) as t ->
+      let so = so_ref l in
+      let vv = Sy.value_variable so in
+      let r  = C.make_reft vv so (f t) in
+      Ct.Ref (l, (x, r)) 
+  | Ct.Top (x) -> 
+      Ct.Top (x, reft_of_top)
+
+let is_base = function
+  | TInt _ -> true
+  | _      -> false
+
+
 (* API *)
 let cfun_of_refcfun   = It.CFun.map ctype_of_refctype 
-let refcfun_of_cfun   = It.CFun.map (refctype_of_reft_ctype (Sy.value_variable So.t_int, So.t_int, []))
+(* let refcfun_of_cfun   = It.CFun.map (refctype_of_reft_ctype (Sy.value_variable So.t_int, So.t_int, [])) *)
+let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))
+
+
 let cspec_of_refspec  = It.Spec.map (fun (i,_) -> i)
 let store_of_refstore = It.Store.map_ct ctype_of_refctype
 let qlocs_of_refcfun  = fun ft -> ft.Ct.qlocs
@@ -435,6 +455,8 @@ let ce_find_fn s (fnv, _,_) =
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
+  let _ = List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
+  (Sy.to_string n) d_refctype cr) ncrs in
   let _ = List.iter (fun (n, cr) -> annot_var n cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
@@ -467,26 +489,6 @@ let print_ce so ppf (_, vnv) =
   YM.iter begin fun n cr -> 
     F.fprintf ppf "@[%a@]@\n" (print_binding so) (n, cr) 
   end vnv
-
-(*******************************************************************)
-(************************** Templates ******************************)
-(*******************************************************************)
-
-let refctype_of_ctype f = function
-  | Ct.Int (i, x) as t ->
-      let r = C.make_reft vv_int So.t_int (f t) in
-      Ct.Int (i, (x, r)) 
-  | Ct.Ref (l, x) as t ->
-      let so = so_ref l in
-      let vv = Sy.value_variable so in
-      let r  = C.make_reft vv so (f t) in
-      Ct.Ref (l, (x, r)) 
-  | Ct.Top (x) -> 
-     Ct.Top (x, reft_of_top)
-
-let is_base = function
-  | TInt _ -> true
-  | _      -> false
 
 (****************************************************************)
 (************************** Refinements *************************)
@@ -589,6 +591,7 @@ let t_exp cenv ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp (* skolem *) vv e in
+  let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in
   let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct

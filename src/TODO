@@ -20,7 +20,15 @@ Function Pointers
     (over scalar variables only!) do i need to go over inferctypes code?
     
     >0> vanilla tests with fields
-	field1.c, ll0.c, ll1.c, ll2.c
+	test00.c
+	field1.c 
+	loop-simple.c 
+	loop.c
+	loop2.c 
+	loop3.c 
+	ll0.c
+	ll1.c 
+	ll2.c
 
     >1> modular invariants
     	array2.c

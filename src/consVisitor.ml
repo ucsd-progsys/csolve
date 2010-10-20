@@ -313,13 +313,38 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
 
 let t_scalar rt =
   match FI.ctype_of_refctype rt with
-   | Ct.Ref (_,Ct.Index.IInt 0) -> FI.t_skolem Ct.scalar_ctype 
-   | _                          -> FI.t_true Ct.scalar_ctype  
+  | Ct.Ref (_,Ct.Index.IInt 0) -> FI.t_skolem Ct.scalar_ctype 
+  | _                          -> FI.t_true Ct.scalar_ctype  
 
+(* OLD VERSION 
+  let scalarcons_of_instr me i grd (j, env) instr = 
+    let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
+    match instr with
+    | Set ((Var v, NoOffset), e, _) 
+      when (not v.Cil.vglob) && CM.is_pure_expr e ->
+        let loc   = get_instrLoc instr in
+        let tag   = CF.tag_of_instr me i j loc in 
+        let cr    = FI.t_exp env Ctypes.scalar_ctype e in
+        let cr'   = FI.t_fresh Ctypes.scalar_ctype in
+        let cs,ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
+        (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
+    | Call (Some (Var v, NoOffset), _, _, _) ->
+        let cr = FI.t_true Ctypes.scalar_ctype in
+        (j+1, extend_env me v cr env), ([], [], [])
+    | Set (_,_,_) | Call (None, _, _, _) ->
+        (j+1, env), ([], [], [])
+    | Call (Some _, _, _, _) ->
+        (j+2, env), ([], [], [])
+    | instr -> 
+        E.s <| E.error "TBD: scalarcons_of_instr: %a \n" d_instr instr
+*)
+
+(* CURRENT VERSION *)
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   let cr'    = FI.t_fresh Ct.scalar_ctype in
   let cs, ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
+
 
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
@@ -328,7 +353,9 @@ let scalarcons_of_instr me i grd (j, env) instr =
   match instr with
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
+      let _ = E.log "scalarcons_of_instr e is: %a " d_instr instr in
       e   |> FI.t_exp env Ct.scalar_ctype
+          >> (fun cr -> E.log "cr is: %a \n" FI.d_refctype cr |> ignore) 
           |> scalarcons_of_binding me loc tag (j, env) grd j v 
   
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
