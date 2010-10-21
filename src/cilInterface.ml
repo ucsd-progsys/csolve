@@ -166,7 +166,7 @@ and convert_cilbinexp (op, e1, e2) =
   | Bpop pop ->
       let e1', e2' = convert_args (e1, e2) in
       let stride   = Cil.typeOf e1 |> Cil.unrollType |> CilMisc.ptrRefType |> CilMisc.bytesSizeOf in
-      E (A.eBin (e1', pop, A.eBin (A.eCon (A.Constant.Int stride), A.Times, e2')))
+      E (A.eBin (e1', pop,  A.eTim (A.eInt stride, e2'))) (* A.eBin (A.eCon (A.Constant.Int stride), A.Times, e2'))) *)
   | Brl rel' ->
       let e1', e2' = convert_args (e1, e2) in
       P (A.pAtom (e1', rel', e2'))

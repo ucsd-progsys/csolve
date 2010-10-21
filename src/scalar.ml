@@ -104,11 +104,7 @@ let scalar_consts_of_polarity n m = function
   | Ct.PosB k -> [UpperBound (n + m*k)]
   | _         -> []
 
-let scalar_consts_of_index = function
-  | Ix.IBot            -> []
-  | Ix.IInt n          -> [Offset n] 
-  | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
- 
+
 (* WITH SKOLEMS 
 let subst_of_k_c = fun k c -> Su.of_list [(const_var, A.eInt c); (param_var, k)]
 
@@ -127,7 +123,7 @@ let preds_of_scalar_const = function
 
 let preds_of_scalar_const = function
   | Offset c ->
-      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
+      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c; p_v_ge_x_plus_c] 
       |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
       
   | UpperBound c ->
@@ -150,12 +146,32 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
-let scalar_consts_of_typedecs cil = 
-  cil 
-  |> type_decs_of_file
+let scalar_consts_of_stride = fun i -> Offset i
+
+let scalar_consts_of_typedecs_stride tdecs =
+  tdecs
+  |> Misc.map_partial (function (_, t) when Cil.isPointerType t -> Some t | _ -> None)
+  |>: (Cil.unrollType <+> CM.ptrRefType <+> CilMisc.bytesSizeOf)
+  |> Misc.sort_and_compact
+  |>: scalar_consts_of_stride 
+
+let scalar_consts_of_index = function
+  | Ix.IBot            -> []
+  | Ix.IInt n          -> [Offset n] 
+  | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
+ 
+let scalar_consts_of_typedecs_genspec tdecs =
+  tdecs
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
   |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ctypes.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
+
+let scalar_consts_of_typedecs cil = 
+  cil 
+  |> type_decs_of_file
+  |> (fun tdecs -> scalar_consts_of_typedecs_genspec tdecs ++ scalar_consts_of_typedecs_stride tdecs)
+  |> Misc.sort_and_compact
+
 
 let scalar_consts_of_code cil =
   let xr = ref [] in
