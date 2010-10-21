@@ -163,7 +163,10 @@ val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> refsto
 
 val is_poly_cloc        : refstore -> Sloc.t -> bool
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
+
 val sorts               : Ast.Sort.t list
+val axioms              : Ast.pred list
+val builtinm            : FixConstraint.reft Ast.Symbol.SMap.t
 
 val make_wfs            : alocmap -> cilenv -> refstore -> refctype -> CilTag.t -> FixConstraint.wf list
 val make_wfs_fn         : alocmap -> cilenv -> refcfun -> CilTag.t -> FixConstraint.wf list

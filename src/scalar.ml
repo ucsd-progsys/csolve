@@ -93,7 +93,7 @@ let hash_of_ciltype t =
 
 let type_decs_of_file (cil: Cil.file) : (Cil.location * Cil.typ) list =
   let x = ref [] in 
-  CM.iterVars cil begin fun v -> match v.Cil.vtype with 
+  CM.iterDefVars cil begin fun v -> match v.Cil.vtype with 
     | Cil.TFun (t,_,_,_) | t -> x := (v.Cil.vdecl, t) :: !x
   end; 
   !x 
@@ -243,9 +243,9 @@ let index_of_pred v (cr, p) =
   ; indexo_of_preds_iseq vv 
   ; indexo_of_preds_lowerbound vv] 
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
-(*  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
+  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname FI.d_refctype cr (P.to_string p) Ix.d_index ix)
- *)
+(* *)
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
@@ -282,12 +282,12 @@ let close_formals args (formals : Cil.varinfo list) : Ix.t VM.t -> Ix.t VM.t =
   |> CM.vm_of_list 
   |> VM.fold (fun k v acc -> VM.add k v acc)
 
-let close_locals locals vm : Ix.t VM.t =
+let close_locals locals vm =
   locals 
   |> List.filter (fun v -> not (VM.mem v vm)) 
   |> List.fold_left (fun vm v -> if VM.mem v vm then vm else VM.add v Ix.top vm) vm
 
-let close scim spec sim : Ix.t VM.t SM.t =
+let close scim spec sim =
   SM.mapi begin fun fn vm ->
     if fn = Co.global_name then vm else
       let _    = asserti (SM.mem fn scim) "Scalar.close: function %s missing from scim" fn in
@@ -333,10 +333,11 @@ let check_index oc fn v ix ix' =
   v.Cil.vname Ix.d_index ix Ix.d_index ix';
   Ix.is_subindex ix' ix   (* ix' ==> ix *)
 
-let check_scalar shm sim = 
+let check_scalar uvm shm sim = 
   let oc  = open_out (!Co.liquidc_file_prefix ^ ".scalarlog") in
   let ppf = Format.formatter_of_out_channel oc in
   (SM.fold begin fun fn { Shape.vtyps = vcts } errs ->
+    let vcts = List.filter (fun (v, _) -> VM.mem v uvm) vcts in
     if not (SM.mem fn sim) then (MissingFun fn :: errs) else 
       let im = SM.find fn sim in
       List.fold_left begin fun errs (v, ct) ->
@@ -358,7 +359,9 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
 (* API *) 
 let test cil spec tgr gnv scim shm = 
   let sim = scalarinv_of_scim cil spec tgr gnv scim in
-  check_scalar shm sim
+  let uvm = ref VM.empty in
+  let _   = CM.iterUsedVars cil (fun v -> uvm := VM.add v () !uvm) in
+  check_scalar !uvm shm sim
   >> (List.iter (fun e -> E.warn "%a \n" d_scalar_error e |> ignore))
   >> (fun _ -> E.log "DONE: scalar testing \n")
   |> (function [] -> exit 0 | _ -> exit 1)

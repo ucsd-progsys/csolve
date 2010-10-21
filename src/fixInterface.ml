@@ -147,8 +147,6 @@ let vv_skl = Sy.value_variable so_skl
 let vv_pun = Sy.value_variable so_pun
 let vv_drf = Sy.value_variable so_drf
 
-(* API *)
-let sorts  = [] 
 let uf_bbegin  = name_of_string "BLOCK_BEGIN"
 let uf_bend    = name_of_string "BLOCK_END"
 let uf_skolem  = name_of_string "SKOLEM" 
@@ -168,16 +166,20 @@ let mk_pure_cfun args ret =
 *)
 
 (* API *)
-let builtins = 
-  [(uf_bbegin,  C.make_reft vv_bls so_bls []);
-   (uf_bend,    C.make_reft vv_bls so_bls []);
-   (uf_skolem,  C.make_reft vv_skl so_skl []);
-   (uf_uncheck, C.make_reft vv_pun so_pun []);
-   (uf_deref,   C.make_reft vv_drf so_drf [])]
+(* List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty *)
 
 let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
 
-let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
+(* API *)
+let axioms      = [A.pEqual (A.zero, eApp_bbegin A.zero)]
+let sorts       = [] 
+let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
+                  ;(uf_bend,    C.make_reft vv_bls so_bls [])
+                  ;(uf_skolem,  C.make_reft vv_skl so_skl [])
+                  ;(uf_uncheck, C.make_reft vv_pun so_pun [])
+                  ;(uf_deref,   C.make_reft vv_drf so_drf [])]
+                  |> Sy.sm_of_list
+
 
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
@@ -476,8 +478,6 @@ let ce_empty = (SM.empty, YM.empty, YM.empty)
 
 let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
 
-let builtin_env =
-  List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty builtins
 
 let print_rctype so ppf rct =
   rct |> reft_of_refctype |> C.print_reft so ppf 
@@ -570,7 +570,7 @@ let t_valid_ptr ct =
                                A.pAtom (evv, A.Lt, eApp_bend evv)]])
 
 let is_reference cenv x =
-  if List.mem_assoc x builtins then (* TBD: REMOVE GROSS HACK *)
+  if YM.mem x builtinm (* List.mem_assoc x builtins *) then (* TBD: REMOVE GROSS HACK *)
     false
   else if not (ce_mem x cenv) then
     false
@@ -826,7 +826,7 @@ let is_live_name livem n =
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
 let env_of_cilenv cf (_, vnv, _) = 
-  builtin_env
+  builtinm
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
   |> canon_env cf
 

@@ -250,7 +250,7 @@ let assertLoc (loc: Cil.location) (b: bool) (fmt : ('a,unit,Pretty.doc) format) 
 (********************** Iterate over Variables *******************************)
 (*****************************************************************************)
 
-class varVisitor (f: Cil.varinfo -> unit) = object
+class defVarVisitor (f: Cil.varinfo -> unit) = object
   inherit nopCilVisitor
   
   method vglob = function
@@ -260,8 +260,17 @@ class varVisitor (f: Cil.varinfo -> unit) = object
 end
 
 (* API *)
-let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
-  visitCilFile (new varVisitor f) cil
+let iterDefVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new defVarVisitor f) cil
+
+class usedVarVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  method vvrbl v = f v; SkipChildren 
+end
+
+(* API *)
+let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new usedVarVisitor f) cil
 
 (******************************************************************************)
 (********************** Iterate over Constants ********************************)

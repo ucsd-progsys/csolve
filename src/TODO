@@ -23,18 +23,16 @@ Function Pointers
 	test00.c
 	scalar00.c
 	scalar01.c
+	scalar02.c
 	loop-simple.c 
 	loop.c
 	loop2.c 
 	loop3.c
 	field1.c 
-	
-	scalar02.c
-	ll-simple.c
 	nulljoin.c
-	
-	>> HEREHEREHERE
 
+	>> HEREHEREHERE
+	ll-simple.c
 	ll0.c
 	ll1.c 
 	ll2.c
