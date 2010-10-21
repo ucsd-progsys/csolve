@@ -77,18 +77,21 @@ type ctvemap = I.ctemap
 (******************************************************************************)
 
 type cstrdesc =
-  | CInLoc of Index.t * ctype * S.t
+  | CInLoc   of Index.t * ctype * S.t
+  | CHasLoc  of S.t
   | CSubtype of ctype * ctype
   | CWFSubst of S.Subst.t
 
 let cstrdesc_slocs: cstrdesc -> S.t list = function
   | CInLoc (_, ct, s)   -> M.maybe_cons (Ct.sloc ct) [s]
+  | CHasLoc s           -> [s]
   | CSubtype (ct1, ct2) -> M.maybe_cons (Ct.sloc ct1) (M.maybe_cons (Ct.sloc ct2) [])
   | CWFSubst (sub)      -> S.Subst.slocs sub
 
 let d_cstrdesc (): cstrdesc -> P.doc = function
   | CSubtype (ctv1, ctv2) -> P.dprintf "@[@[%a@] <: @[%a@]@]" Ct.d_ctype ctv1 Ct.d_ctype ctv2
   | CInLoc (i, ctv, s)    -> P.dprintf "(%a, %a) ∈ %a" Index.d_index i Ct.d_ctype ctv S.d_sloc s
+  | CHasLoc s             -> P.dprintf "exists %a" S.d_sloc s
   | CWFSubst (sub)        -> P.dprintf "WF(%a)" S.Subst.d_subst sub
 
 let apply_subst_to_subst (appsub: S.Subst.t) (sub: S.Subst.t): S.Subst.t =
@@ -97,6 +100,7 @@ let apply_subst_to_subst (appsub: S.Subst.t) (sub: S.Subst.t): S.Subst.t =
 let cstrdesc_subst (sub: S.Subst.t): cstrdesc -> cstrdesc = function
   | CSubtype (ctv1, ctv2) -> CSubtype (Ct.subs sub ctv1, Ct.subs sub ctv2)
   | CInLoc (ie, ctv, s)   -> CInLoc (ie, Ct.subs sub ctv, S.Subst.apply sub s)
+  | CHasLoc s             -> CHasLoc (S.Subst.apply sub s)
   | CWFSubst sub2         -> CWFSubst (apply_subst_to_subst sub sub2)
 
 type 'a precstr = {cid: int; cdesc: 'a; cloc: C.location}
@@ -134,6 +138,7 @@ let inloc_sat (st: store) (i: Index.t) (s: S.t) (ct: ctype): bool =
 let cstr_sat (st: store) (sc: cstr): bool =
   match sc.cdesc with
     | CInLoc (i, ct, s)   -> inloc_sat st i s ct
+    | CHasLoc s           -> Store.mem st s
     | CSubtype (ct1, ct2) -> Ct.is_subctype ct1 ct2
     | CWFSubst (sub)      ->
         try
@@ -204,6 +209,7 @@ let refine_aux (sc: cstr) (sto: store): S.Subst.t * store =
   try
     match sc.cdesc with
       | CInLoc (i, ct, s)   -> refine_inloc sc.cloc s i ct sto
+      | CHasLoc s           -> ([], if Store.mem sto s then sto else SLM.add s LDesc.empty sto)
       | CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.Subst.empty, sto)
       | CWFSubst (sub)      -> (refine_wfsubst sub, sto)
   with
@@ -266,6 +272,9 @@ let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.
 
 let mk_subty (ctv1: ctype) (ctv2: ctype): cstr =
   mk_cstr !C.currentLoc (CSubtype (ctv1, ctv2))
+
+let mk_hasloc s =
+  mk_cstr !C.currentLoc (CHasLoc s)
 
 let mk_locinc (i: Index.t) (ctv: ctype) (s: S.t): cstr =
   mk_cstr !C.currentLoc (CInLoc (i, ctv, s))
@@ -421,6 +430,7 @@ let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lva
                          mk_locinc i (Ct.subs sub (Field.type_of fld)) (S.Subst.apply sub s) :: ics
                        end [] cf.sto_out in
   let css            = (mk_wfsubst sub :: stoincs)
+                       :: SLM.fold (fun s _ hls -> mk_hasloc (S.Subst.apply sub s) :: hls) cf.sto_out []
                        :: ((List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs) ctvfs) 
                        :: css in
     match lvo with

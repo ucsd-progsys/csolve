@@ -6,7 +6,7 @@ void main(){
   x = 0;
 
   if (nondet()) {
-    x = (int *) malloc(sizeof(*x));
+    x  = (int *) malloc(sizeof(*x));
   }
 
   return;
