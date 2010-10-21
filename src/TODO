@@ -37,7 +37,10 @@ Function Pointers
 	
     >> HEREHEREHERE
     >1> modular invariants
-    	array2.c
+    	negtests/array1.c
+	postests/array2.c
+
+	
 
     >2> extend type system to include "upper bounds" i.e. 
 		>> see new definition of Ctypes.seq_polarity
@@ -46,6 +49,10 @@ Function Pointers
 		>> parse from string 	(refParse.mly)
 		<JHALA: TO HERE, thwarted impenetrable inferctypes.ml>
 		>> type checking
+
+    >3> crash
+    	negtests/arraysum-unsafe.c
+	negtests/make-sorted-list.c
 
 (c) cone-of-influence to eliminate bogus definitions...
 

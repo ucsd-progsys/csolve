@@ -279,9 +279,10 @@ let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit =
 class constVisitor f = object(self)
   inherit nopCilVisitor
 
-  method vexpr = function
-    | Const c  -> f c; SkipChildren
-    | _        -> DoChildren
+  method vexpr e = 
+    match (* Cil.constFold true *) e with
+      | Const c  -> f c; SkipChildren
+      | _        -> DoChildren
 end
 
 (* API *)
