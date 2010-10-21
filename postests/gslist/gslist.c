@@ -92,8 +92,6 @@ g_slist_insert_sorted_real (GSList   *list,
   GSList *new_list;
   gint cmp;
 
-  // g_return_val_if_fail (func != NULL, list);
-
   if (!list)
     {
       new_list = _g_slist_alloc ();
@@ -112,8 +110,13 @@ g_slist_insert_sorted_real (GSList   *list,
       cmp = data > tmp_list->data;
     }
 
-  // The following needs to pass:
-  assert (tmp_list->next == 0 || cmp <= 0);
+  // pmr: sanity check
+  assert (tmp_list != NULL);
+
+  // pmr: sanity check
+  if (prev_list) {
+    assert (prev_list->data <= data);
+  }
 
   // We need both tmp_list and new_list unfolded here.
   new_list = _g_slist_alloc ();
@@ -121,6 +124,8 @@ g_slist_insert_sorted_real (GSList   *list,
 
   if ((!tmp_list->next) && (cmp > 0))
     {
+      // pmr: sanity check
+      assert (new_list->data > tmp_list->data);
       tmp_list->next = new_list;
       new_list->next = NULL;
       return list;
@@ -134,6 +139,8 @@ g_slist_insert_sorted_real (GSList   *list,
     }
   else
     {
+      // pmr: sanity check
+      assert (list == tmp_list);
       new_list->next = list;
       return new_list;
     }
