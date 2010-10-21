@@ -43,47 +43,8 @@ open ConsVisitor
 let mydebug = false
 
 (***************************************************************************)
-(*************** Gathering SCIs and Declarations ***************************)
-(***************************************************************************)
-
-let tag_of_global = function
-  | GType (_,_)    -> "GType"
-  | GCompTag (_,_) -> "GCompTag"
-  | _              -> "Global"
-
-let decs_of_file cil = 
-  Cil.foldGlobals cil begin fun acc g -> match g with
-    | GFun (fdec, loc) -> 
-        CM.FunDec (fdec.svar.vname, loc) :: acc
-    | GVar (v, ii, loc) when not (isFunctionType v.vtype) -> 
-        CM.VarDec (v, loc, ii.init) :: acc
-    | GVarDecl (v, loc) when not (isFunctionType v.vtype) -> 
-        CM.VarDec (v, loc, None) :: acc
-    | GVarDecl (v, _) when (isFunctionType v.vtype) -> 
-        acc
-    | GType _ | GCompTag _ | GCompTagDecl _| GText _ | GPragma _ -> 
-        acc
-    | _ when !Cs.safe -> 
-        assertf "decs_of_file"
-    | _ -> 
-        E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g |> fun _ -> acc
-  end []
-
-let scim_of_file cil =
-  cil 
-  |> ST.scis_of_file 
-  |> List.fold_left begin fun acc sci -> 
-       let fn = sci.ST.fdec.svar.vname in
-       SM.add fn sci acc
-     end SM.empty
-
-(***************************************************************************)
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
-
-let infer_shapes cil spec scim =
-  let spec = FI.cspec_of_refspec spec in
-  (Inferctypes.infer_shapes cil spec scim, spec |> Ctypes.I.Spec.funspec |> SM.map fst)
 
 let shapem_of_scim cil spec scim =
   (SM.empty, SM.empty)
@@ -98,9 +59,8 @@ let shapem_of_scim cil spec scim =
   |> snd 
   |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
 
-
 (* TBD: UGLY *)
-let mk_gnv spec decs cenv =
+let mk_gnv f spec decs cenv =
   let decs = decs 
              |> Misc.map_partial (function CM.FunDec (fn,_) -> Some fn | _ -> None)
              |> List.fold_left (Misc.flip SS.add) SS.empty in
@@ -108,12 +68,14 @@ let mk_gnv spec decs cenv =
              |> CS.varspec
              |> M.sm_to_list
              |> List.map begin fun (vn, (vty, _)) -> 
-                 (FI.name_of_string vn, vty |> FI.ctype_of_refctype |> FI.t_fresh) 
+                 (FI.name_of_string vn, f vty (* |> FI.ctype_of_refctype |> FI.t_fresh *)) 
                 end
              |> FI.ce_adds FI.ce_empty in
   M.sm_to_list cenv
   |> List.map begin fun (fn, ft) ->
-       (fn, if SS.mem fn decs then FI.t_fresh_fn ft else (CS.get_fun fn spec |> fst))
+       (fn, if SS.mem fn decs 
+            then ft |> FI.refcfun_of_cfun |> FI.map_fn f (* FI.t_fresh_fn ft *)  
+            else (CS.get_fun fn spec |> fst))
      end
   |> FI.ce_adds_fn gnv0
 
@@ -144,16 +106,67 @@ let rename_funspec scim spec =
      end
   |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec))
 
+(******************************************************************************)
+(********** Strengthen Final Fields in Fun Types from Inferred Shapes *********)
+(******************************************************************************)
 
-(********************************************************************************)
-(*************************** Unify Spec Names and CIL names *********************)
-(********************************************************************************)
+let finalize_store shp_sto sto =
+  Sloc.SlocMap.mapi begin fun l ld ->
+    try
+      let shp_ld = Sloc.SlocMap.find l shp_sto in
+        Ctypes.I.LDesc.mapn begin fun _ pl fld ->
+          match Ctypes.I.LDesc.find pl shp_ld with
+            | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
+            | _              -> fld
+        end ld
+    with Not_found ->
+      ld
+  end sto
 
-(*
+let finalize_funtypes shm cnv =
+  SM.fold begin fun fname shp cnv ->
+    let cf = SM.find fname cnv in
+      SM.add
+        fname
+        {cf with
+           Ctypes.sto_in  = finalize_store shp.Shape.store cf.Ctypes.sto_in;
+           Ctypes.sto_out = finalize_store shp.Shape.store cf.Ctypes.sto_out}
+        cnv
+  end shm cnv
+
+let tag_of_global = function
+  | GType (_,_)    -> "GType"
+  | GCompTag (_,_) -> "GCompTag"
+  | _              -> "Global"
+
+let decs_of_file cil = 
+  Cil.foldGlobals cil begin fun acc g -> match g with
+    | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
+    | GVar (v, ii, loc) 
+      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, ii.init) :: acc
+    | GVarDecl (v, loc) 
+      when not (isFunctionType v.vtype) -> CM.VarDec (v, loc, None) :: acc
+    | GVarDecl (v, _)
+      when (isFunctionType v.vtype)     -> acc
+    | GType _ | GCompTag _
+    | GCompTagDecl _| GText _
+    | GPragma _                         -> acc
+    | _ when !Cs.safe                   -> assertf "decs_of_file"
+    | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
+                                           |> fun _ -> acc
+  end []
+
+let scim_of_file cil =
+  ST.scis_of_file cil
+  |> List.fold_left begin fun acc sci -> 
+       SM.add sci.ST.fdec.svar.vname sci acc
+     end SM.empty
+
+(* {{{ 
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
-*)
+}}} *)
 
 (* API *)
 let create cil (spec: FI.refspec) =
@@ -165,10 +178,13 @@ let create cil (spec: FI.refspec) =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
-  let cspec  = FI.cspec_of_refspec spec in
-  let gnv    = cspec |> Ctypes.I.Spec.funspec |> SM.map fst |> mk_gnv spec decs in
-  let _      = if !Cs.scalar then (ignore <| Scalar.scalarinv_of_scim cil spec tgr gnv scim) in
+  let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
+  let gnv0   = mk_gnv id spec decs cnv0 in
+  (* RJ: Scalar.* will be hoisted here after it is done, should not depend on shm *)
   let shm    = shapem_of_scim cil spec scim in
+  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (FI.ctype_of_refctype <+> FI.t_fresh) spec decs in
+    
+  let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

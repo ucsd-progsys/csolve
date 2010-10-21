@@ -36,9 +36,11 @@ module FI  = FixInterface
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
 module LI  = Inferctypes
+module Sh  = Shape
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
 module CM  = CilMisc
+module YM  = Ast.Symbol.SMap
 
 open Misc.Ops
 open Cil
@@ -49,7 +51,7 @@ type t_sh = {
   cf      : FI.alocmap;
   astore  : FI.refstore;
   cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
-  shp     : LI.shape;
+  shp     : Shape.t;
 }
 
 type t    = {
@@ -63,8 +65,11 @@ type t    = {
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
-  phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t;
-  shapeo  : t_sh option
+  phim    : FI.refctype SM.t;
+  shapeo  : t_sh option;
+  des     : (Cil.varinfo * FI.refctype) list;
+  (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
+  (* bindm   : (FI.cilenv * Ast.pred * FI.refctype) YM.t *)
 }
 
 let ctype_of_local locals v =
@@ -94,7 +99,7 @@ let ctype_scalar = Ctypes.void_ctype
 let env_of_fdec gnv fdec sho = 
   let strf, typf = match sho with
     | None     -> (id, fun _ -> Ctypes.scalar_ctype)
-    | Some shp -> (Misc.map2 (strengthen_refs shp.LI.theta) fdec.sformals, ctype_of_local shp.LI.vtyps) in
+    | Some shp -> (Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals, ctype_of_local shp.Sh.vtyps) in
   let env0 = 
     FI.ce_find_fn fdec.svar.vname gnv 
     |> FI.args_of_refcfun 
@@ -126,6 +131,13 @@ let diff_binding conc (al, x) =
   if LM.mem al conc then
     LM.find al conc |> eq_tagcloc x |> not
   else true
+
+(*
+let add_binding x env grd r me =
+  let n = FI.name_of_varinfo x in
+  if YM.mem n me.bindm then me else 
+    {me with bindm = YM.add n (env, grd, r)} 
+*)
 
 (*
 let canon_of_annot = function 
@@ -172,47 +184,13 @@ let edge_asgnm_of_phia phia =
           end em  
      end IIM.empty 
 
-let create_shapeo tgr gnv env gst sci = function
-  | None -> 
-      ([], [], [], None)
-  | Some shp ->
-      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
-                    |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
-      let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.LI.store in
-      let astore  = FI.RefCTypes.Store.upd gst lastore in
-      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
-      let cf      = Refanno.aloc_of_cloc shp.LI.theta in
-      let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
-      let loc     = sci.ST.fdec.svar.vdecl in
-      let ws      = FI.make_wfs_refstore cf env lastore tag in
-      let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
-      ws, cs, ds, Some { cf = cf; astore  = astore; cstoa = cstoa; shp = shp }
-
-let create tgr gnv gst sci sho = 
-  let formalm = formalm_of_fdec sci.ST.fdec in
-  let env     = env_of_fdec gnv sci.ST.fdec sho in
-  let ws, cs, ds, sh_me = create_shapeo tgr gnv env gst sci sho in
-  {tgr     = tgr;
-   sci     = sci;
-   ws      = ws;
-   cs      = cs;
-   ds      = ds;
-   wldm    = IM.empty;
-   gnv     = env;
-   formalm = formalm;
-   undefm  = make_undefm formalm sci.ST.phis;
-   edgem   = edge_asgnm_of_phia sci.ST.phis;
-   phibt   = Hashtbl.create 17;
-   shapeo  = sh_me}
-
-let add_cons (ws, cs, ds) me =
-  {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds}
+let add_cons (ws, cs, des, ds) me =
+  {me with cs = cs ++ me.cs; ws = ws ++ me.ws; ds = ds ++ me.ds; des = des ++ me.des}
 
 let add_wld i wld me = 
   {me with wldm = IM.add i wld me.wldm}
 
-let get_cons me =
-  (me.ws, me.cs, me.ds)
+let get_cons me = me.ws, me.cs, me.des, me.ds
 
 let get_astore = function { shapeo = Some x } -> x.astore | _ -> FI.refstore_empty 
 
@@ -230,14 +208,14 @@ let length_of_stmt stmt = match stmt.skind with
 let annotstmt_of_block me i = 
   match me.shapeo with 
   | Some {shp = shp} ->  
-      (shp.LI.anna.(i), shp.LI.bdcks.(i), stmt_of_block me i)
+      (shp.Sh.anna.(i), shp.Sh.bdcks.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
 (*  | None     -> 
       let stmt = stmt_of_block me i in
       ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
 *)
 
 let get_alocmap = function {shapeo = Some shp} -> shp.cf 
-                      (* | _ -> (fun _ -> None) *)
+                         | _ -> (fun _ -> None) 
 
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
@@ -301,7 +279,7 @@ let is_undefined me v =
 let ctype_of_expr me e = 
   match me.shapeo with 
   | Some {shp = shp} -> begin 
-      try EM.find e shp.LI.etypm with Not_found -> 
+      try EM.find e shp.Sh.etypm with Not_found -> 
         let _ = Errormsg.error "ctype_of_expr: unknown expr = %a" Cil.d_exp e in
         assertf "Not_found in ctype_of_expr"
     end
@@ -314,14 +292,26 @@ let ctype_of_varinfo ctl v =
 let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
-      let ct  = ctype_of_varinfo shp.LI.vtyps v in
-      let clo = Refanno.cloc_of_varinfo shp.LI.theta v in
+      let ct  = ctype_of_varinfo shp.Sh.vtyps v in
+      let clo = Refanno.cloc_of_varinfo shp.Sh.theta v in
       strengthen_cloc (ct, clo)
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> ctype_scalar
  
 let refctype_of_global me v =
   FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
+
+let get_phis me =
+  me.sci.ST.phis 
+  |> Array.map (List.map fst) 
+  |> Array.to_list 
+  |> Misc.flatten
+
+let bind_phis me =  
+  me 
+  |> get_phis
+  |> List.map (fun v -> (v, v |> ctype_of_varinfo me |> FI.t_fresh))
+  |> (fun vcrs -> { me with des = vcrs ++ me.des; phim = vcrs |>: Misc.app_fst (fun v -> v.vname) |> Misc.sm_of_list })
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
@@ -331,22 +321,30 @@ let phis_of_block me i =
 let outwld_of_block me i =
   IM.find i me.wldm
 
+(*
 let bind_of_phi me v =
   Misc.do_memo me.phibt begin fun v -> 
     let vn = FI.name_of_varinfo v in
     let cr = ctype_of_varinfo me v |> FI.t_fresh in
     (vn, cr)
   end v v.vname
+*)
+
+let bind_of_phi me v = 
+  try SM.find v.vname me.phim with Not_found ->
+    assertf "bind_of_phi: unknown phi-var %s \n" v.vname
 
 let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
 let inenv_of_block me i =
   if idom_of_block me i < 0 then
     me.gnv
-  else
+  else begin
     let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
-    let phibs = phis_of_block me i |> List.map (bind_of_phi me) in
-    FI.ce_adds env0 phibs
+    i |> phis_of_block me 
+      |> List.map (FI.name_of_varinfo <*> bind_of_phi me) 
+      |> FI.ce_adds env0 
+  end
 
 let extend_wld_with_clocs me j loc tag wld = 
   match me with
@@ -360,7 +358,7 @@ let extend_wld_with_clocs me j loc tag wld =
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world shp.cf csto cl cl false loc tag wld
+          fst <| FI.extend_world shp.cf csto cl cl false id loc tag wld
          end csto 
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
  
@@ -376,4 +374,59 @@ let inwld_of_block me = function
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0
 
-let has_shape = function {shapeo = Some _} -> true | _ -> false
+let has_shape = function 
+  | {shapeo = Some _} -> true 
+  | _                 -> false
+
+(*
+let definitions_of_block me i : (name * C.reft) list = 
+  let env ,_,_ = inwld_of_block me i in
+  let env',_,_ = outwld_of_block me i in
+  FI.new_bindings env env'
+
+let get_definitions me =
+  IM.fold (fun i wld acc ->
+    let env = env_of_wld wld in
+    let grd = guard_of_block me i in
+    i |> defs_of_block me
+      |> FI.name_of_string
+      |> List.map (Misc.app_snd (fun n -> get_reft wld n))
+      |> (fun xs -> (env, grd, xs) :: acc)
+  ) me.wldm 
+*)
+
+let create_shapeo tgr gnv env gst sci = function
+  | None -> 
+      ([], [], [], None)
+  | Some shp ->
+      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
+                    |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
+      let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
+      let astore  = FI.RefCTypes.Store.upd gst lastore in
+      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
+      let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
+      let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
+      let loc     = sci.ST.fdec.svar.vdecl in
+      let ws      = FI.make_wfs_refstore cf env lastore lastore tag in
+      let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
+      ws, cs, ds, Some { cf = cf; astore  = astore; cstoa = cstoa; shp = shp }
+
+let create tgr gnv gst sci sho = 
+  let formalm = formalm_of_fdec sci.ST.fdec in
+  let env     = env_of_fdec gnv sci.ST.fdec sho in
+  let ws, cs, ds, sh_me = create_shapeo tgr gnv env gst sci sho in
+  { tgr     = tgr
+  ; sci     = sci
+  ; ws      = ws
+  ; cs      = cs
+  ; ds      = ds
+  ; des     = []
+  ; wldm    = IM.empty
+  ; gnv     = env
+  ; formalm = formalm
+  ; undefm  = make_undefm formalm sci.ST.phis
+  ; edgem   = edge_asgnm_of_phia sci.ST.phis
+  ; phim    = SM.empty
+  ; shapeo  = sh_me}
+  |> bind_phis 
+ 

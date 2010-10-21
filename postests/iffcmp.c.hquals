@@ -1,0 +1,1 @@
+qualif CMP (v : int) : v = (~A > ~B ? 1 : 0)

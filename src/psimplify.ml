@@ -711,6 +711,7 @@ let doGlobal = function
   | _ -> ()
 
 let simplify file =
+  visitCilFile (constFoldVisitor true) file;
   iterGlobals file doGlobal
 
 let feature : featureDescr =

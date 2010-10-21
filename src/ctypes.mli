@@ -51,6 +51,8 @@ type ploc =
   | PLAt of int                 (* location n *)
   | PLSeq of int * seq_polarity (* location n plus periodic repeats *)
 
+module PlocSet: Set.S with type elt = ploc
+
 (******************************************************************************)
 (****************************** Type Refinements ******************************)
 (******************************************************************************)
@@ -70,6 +72,12 @@ type 'a prectype =
   | Int of int * 'a     (* fixed-width integer *)
   | Ref of Sloc.t * 'a  (* reference *)
   | Top of 'a           (* "other" *)
+
+type finality =
+  | Final
+  | Nonfinal
+
+type 'a prefield
 
 type 'a preldesc
 
@@ -110,6 +118,20 @@ module type S = sig
     val top              : t
   end
 
+  module Field:
+  sig
+    type t = R.t prefield
+
+    val get_finality : t -> finality
+    val set_finality : finality -> t -> t
+    val is_final     : t -> bool
+    val type_of      : t -> CType.t
+    val create       : finality -> CType.t -> t
+    val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
+
+    val d_field      : unit -> t -> Pretty.doc
+  end
+
   module LDesc:
   sig
     type t = R.t preldesc
@@ -118,18 +140,19 @@ module type S = sig
 
     val empty         : t
     val get_period    : t -> int option
-    val add           : Cil.location -> ploc -> CType.t -> t -> t
-    val add_index     : Cil.location -> Index.t -> CType.t -> t -> t
-    val create        : Cil.location -> (Index.t * CType.t) list -> t
+    val add           : Cil.location -> ploc -> Field.t -> t -> t
+    val add_index     : Cil.location -> Index.t -> Field.t -> t -> t
+    val create        : Cil.location -> (Index.t * Field.t) list -> t
     val remove        : ploc -> t -> t
-    val shrink_period : int -> (CType.t -> CType.t -> 'b -> 'b) -> 'b -> t -> t * 'b
+    val shrink_period : int -> (Field.t -> Field.t -> 'b -> 'b) -> 'b -> t -> t * 'b
     val mem           : ploc -> t -> bool
-    val find          : ploc -> t -> (ploc * CType.t) list
-    val find_index    : Index.t -> t -> (ploc * CType.t) list
-    val foldn         : (int -> 'a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
-    val fold          : ('a -> ploc -> CType.t -> 'a) -> 'a -> t -> 'a
-    val map           : ('a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
-    val mapn          : (int -> ploc -> 'a prectype -> 'b prectype) -> 'a preldesc -> 'b preldesc
+    val find          : ploc -> t -> (ploc * Field.t) list
+    val find_index    : Index.t -> t -> (ploc * Field.t) list
+    val foldn         : (int -> 'a -> ploc -> Field.t -> 'a) -> 'a -> t -> 'a
+    val fold          : ('a -> ploc -> Field.t -> 'a) -> 'a -> t -> 'a
+    val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
+    val mapn          : (int -> ploc -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
+    val iter          : (ploc -> Field.t -> unit) -> t -> unit
     val indices_of_t  : t -> Index.t list 
     val d_ldesc       : unit -> t -> Pretty.doc
   end
@@ -140,11 +163,12 @@ module type S = sig
 
     val domain       : t -> Sloc.t list
     val slocs        : t -> Sloc.t list
+    val mem          : t -> Sloc.t -> bool
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> LDesc.t
-    val find_index   : Sloc.t -> Index.t -> t -> CType.t list
-    val fold         : ('a -> Sloc.t -> Index.t -> CType.t -> 'a) -> 'a -> t -> 'a
+    val find_index   : Sloc.t -> Index.t -> t -> Field.t list
+    val fold         : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
     val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
@@ -240,6 +264,7 @@ module I : S with module R = IndexRefinement
 (******************************************************************************)
 
 val d_ploc : unit -> ploc -> Pretty.doc
+val d_plocset : unit -> PlocSet.t -> Pretty.doc
 
 (******************************************************************************)
 (****************************** Index Operations ******************************)

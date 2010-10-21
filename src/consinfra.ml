@@ -35,6 +35,7 @@ module FI  = FixInterface
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
 module LI  = Inferctypes
+module Sh  = Shape
 module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
 
@@ -58,6 +59,7 @@ type t = {
   astore  : FI.refstore;
   bdcks   : Inferindices.block_dchecks array;
   anna    : Refanno.block_annotation array;
+  ffmsa   : Sh.final_fields_annot array;
   cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
   ctab    : Refanno.ctab;
   undefm  : unit SM.t;
@@ -170,32 +172,33 @@ let edge_asgnm_of_phia phia =
 
 let create tgr gnv gst sci = function None -> failwith "TBD: scalar" | Some shp ->
   let fdec    = sci.ST.fdec in
-  let env     = env_of_fdec gnv fdec shp.LI.vtyps shp.LI.theta in
+  let env     = env_of_fdec gnv fdec shp.Sh.vtyps shp.Sh.theta in
   let istore  = FI.ce_find_fn fdec.svar.vname gnv |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
-  let lastore = FI.refstore_fresh fdec.svar.vname shp.LI.store in
+  let lastore = FI.refstore_fresh fdec.svar.vname shp.Sh.store in
   let astore  = FI.RefCTypes.Store.upd gst lastore in
   let formalm = formalm_of_fdec sci.ST.fdec in
   let tag     = CilTag.make_t tgr fdec.svar.vdecl fdec.svar.vname 0 0 in 
   let loc     = fdec.svar.vdecl in
-  let cf      = Refanno.aloc_of_cloc shp.LI.theta in
+  let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
   let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
-  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.LI.conca astore in
+  let cstoa   = cstoa_of_annots fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
   {tgr     = tgr;
    sci     = sci;
    cf      = cf;
-   ws      = FI.make_wfs_refstore cf env lastore tag;
+   ws      = FI.make_wfs_refstore cf env lastore lastore tag;
    cs      = cs;
    ds      = ds;
    wldm    = IM.empty;
    gnv     = env;
    formalm = formalm;
-   etm     = shp.LI.etypm;
-   ltm     = shp.LI.vtyps;
+   etm     = shp.Sh.etypm;
+   ltm     = shp.Sh.vtyps;
    astore  = astore;
-   bdcks   = shp.LI.bdcks;
-   anna    = shp.LI.anna;
+   anna    = shp.Sh.anna;
+   bdcks   = shp.Sh.bdcks;
+   ffmsa   = shp.Sh.ffmsa;
    cstoa   = cstoa;
-   ctab    = shp.LI.theta;
+   ctab    = shp.Sh.theta;
    undefm  = make_undefm formalm sci.ST.phis;
    edgem   = edge_asgnm_of_phia sci.ST.phis;
    phibt   = Hashtbl.create 17
@@ -217,7 +220,7 @@ let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
 let annotstmt_of_block me i = 
-  (me.anna.(i), me.bdcks.(i), stmt_of_block me i)
+  (me.anna.(i), me.bdcks.(i), me.ffmsa.(i), stmt_of_block me i)
 
 let get_fname me = 
   me.sci.ST.fdec.svar.vname 
@@ -339,7 +342,7 @@ let inwld_of_block me = function
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> FI.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world me.cf csto cl cl false loc tag wld
+          fst <| FI.extend_world me.cf csto cl cl false id loc tag wld
          end csto 
 
 let is_reachable_block me i = 

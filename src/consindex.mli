@@ -25,21 +25,16 @@
 
 
 type t
-val create: FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t
-val add: t -> string -> Ssa_transform.ssaCfgInfo -> FixConstraint.wf list * FixConstraint.t list * FixConstraint.dep list -> t
+val create: FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list -> t
+val add: t -> string -> Ssa_transform.ssaCfgInfo -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list -> t
 val print: FixConstraint.soln option -> unit -> t -> Pretty.doc
+val solve: t -> string -> Ast.Qualifier.t list -> FixConstraint.soln * FixConstraint.t list 
+val force: t -> string -> Ast.Qualifier.t list -> ((FixInterface.refctype * Ast.pred) CilMisc.VarMap.t) Misc.StringMap.t
 
 (* val get_wfs: t -> FixConstraint.wf list 
    val get_cs: t -> FixConstraint.t list
    val get_deps: t -> FixConstraint.dep list *)
-
-
-val solve: t -> Ast.Qualifier.t list -> string -> FixConstraint.soln * FixConstraint.t list 
-
-val force: t -> string -> Ast.Qualifier.t list -> (FixConstraint.envt * FixConstraint.reft) Ast.Symbol.SMap.t -> Ast.pred Ast.Symbol.SMap.t 
-
 (*
- 
 val force: t -> Ast.Qualifier.t list -> string -> Ast.pred YM.t 
 val force: t -> FixConstraint.soln -> Ast.pred list -> FixConstraint.envt -> FixConstraint.reft -> Ast.pred list
 *)

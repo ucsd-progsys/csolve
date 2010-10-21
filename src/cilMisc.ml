@@ -246,7 +246,47 @@ let assertLoc (loc: Cil.location) (b: bool) (fmt : ('a,unit,Pretty.doc) format) 
     end in
   Pretty.gprintf f fmt
 
+(*****************************************************************************)
+(********************** Iterate over Variables *******************************)
+(*****************************************************************************)
 
+class defVarVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  
+  method vglob = function
+    | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
+    | GVar (v, _ , _) -> f v; SkipChildren
+    | _               -> SkipChildren
+end
+
+(* API *)
+let iterDefVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new defVarVisitor f) cil
+
+class usedVarVisitor (f: Cil.varinfo -> unit) = object
+  inherit nopCilVisitor
+  method vvrbl v = f v; SkipChildren 
+end
+
+(* API *)
+let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
+  visitCilFile (new usedVarVisitor f) cil
+
+(******************************************************************************)
+(********************** Iterate over Constants ********************************)
+(******************************************************************************)
+
+class constVisitor f = object(self)
+  inherit nopCilVisitor
+
+  method vexpr e = 
+    match (* Cil.constFold true *) e with
+      | Const c  -> f c; SkipChildren
+      | _        -> DoChildren
+end
+
+(* API *)
+let iterConsts cil f = visitCilFile (new constVisitor f) cil 
 
 (******************************************************************************)
 (************************** Callgraph Construction ****************************)
@@ -264,18 +304,6 @@ class bodyVisitor (cg: G.t) (caller: varinfo) = object
     | Call (_, _, _, _)                           -> failwith "Can't generate callgraph for non-variable function"
     | _                                           -> SkipChildren
 end
-
-
-class varVisitor (f: Cil.varinfo -> unit) = object
-  inherit nopCilVisitor
-  
-  method vglob = function
-    | GFun (fd, _)    -> List.iter f ([fd.svar] ++ fd.sformals ++ fd.slocals); SkipChildren
-    | GVar (v, _ , _) -> f v; SkipChildren
-end
-
-let iterVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
-  visitCilFile (new varVisitor f) cil
 
 class callgraphVisitor (cg: G.t) = object
   inherit nopCilVisitor
@@ -548,3 +576,5 @@ module Pheapify =
     
     let doVisit = default_heapify
   end : Visitor)
+
+

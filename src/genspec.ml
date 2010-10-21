@@ -158,7 +158,9 @@ let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
-    Ct.I.LDesc.create loc ts
+     ts
+  |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal t))
+  |> Ct.I.LDesc.create loc
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 

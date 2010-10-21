@@ -73,7 +73,9 @@ val sccs : Cil.file -> Cil.varinfo list list
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
 *)
 val reachable: Cil.file -> string -> bool
-val iterVars: Cil.file -> (Cil.varinfo -> unit) -> unit
+val iterConsts: Cil.file -> (Cil.constant -> unit) -> unit 
+val iterDefVars: Cil.file -> (Cil.varinfo -> unit) -> unit
+val iterUsedVars: Cil.file -> (Cil.varinfo -> unit) -> unit
 
 val g_error:    bool -> ('a, unit, Pretty.doc) format -> 'a
 val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
