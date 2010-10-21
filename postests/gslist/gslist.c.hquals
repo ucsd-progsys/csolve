@@ -1,2 +1,5 @@
 qualif LISTSZ (v : ptr) : (v != 0) -> (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 8))
 qualif ISEQ   (v : ptr) : v = ~A
+qualif CMP    (v : int) : v = ((@data > (DEREF([@tmp_list]) : int)) ? 1 : 0)
+qualif PLIST  (v : ptr) : (v = 0) -> (@tmp_list = @list)
+qualif TMPL   (v : ptr) : (v != 0) -> ((DEREF([v]) : int) >= @data)
