@@ -113,6 +113,11 @@ g_slist_insert_sorted_real (GSList   *list,
   // pmr: sanity check
   assert (tmp_list != NULL);
 
+  // pmr: sanity check
+  if (prev_list) {
+    assert (prev_list->data <= data);
+  }
+
   // We need both tmp_list and new_list unfolded here.
   new_list = _g_slist_alloc ();
   new_list->data = data;
