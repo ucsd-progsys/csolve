@@ -30,13 +30,12 @@ Function Pointers
 	loop3.c
 	field1.c 
 	nulljoin.c
-
-	>> HEREHEREHERE
 	ll-simple.c
 	ll0.c
 	ll1.c 
 	ll2.c
-
+	
+    >> HEREHEREHERE
     >1> modular invariants
     	array2.c
 

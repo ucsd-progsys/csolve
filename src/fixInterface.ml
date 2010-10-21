@@ -539,8 +539,10 @@ let ra_bbegin ct =
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, eApp_bbegin vv))])
 
+let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+
 let t_scalar = function
-  | Ct.Ref (_,Ct.Index.IInt 0) -> refctype_of_ctype ra_bbegin Ct.scalar_ctype 
+  | Ct.Ref (_,Ct.Index.IInt 0) -> t_scalar_zero 
   | _                          -> t_true Ct.scalar_ctype  
 
 (* convert {v : ct | p } into refctype *)

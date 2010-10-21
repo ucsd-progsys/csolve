@@ -112,6 +112,7 @@ val map_fn              : (refctype -> refctype) -> refcfun -> refcfun
 
 val eApp_bbegin         : Ast.expr -> Ast.expr 
 
+val t_scalar_zero       : refctype
 val t_scalar            : Ctypes.ctype -> refctype
 val t_fresh             : Ctypes.ctype -> refctype
 val t_true              : Ctypes.ctype -> refctype
