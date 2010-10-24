@@ -127,11 +127,6 @@ let make_undefm formalm phia =
 let eq_tagcloc (cl,t) (cl',t') = 
    Sloc.eq cl cl' && Refanno.tag_eq t t'
 
-let diff_binding conc (al, x) = 
-  if LM.mem al conc then
-    LM.find al conc |> eq_tagcloc x |> not
-  else true
-
 (*
 let add_binding x env grd r me =
   let n = FI.name_of_varinfo x in
@@ -157,17 +152,30 @@ let alocmap_of_anna a =
 
 *)
 
+let partition_diff_bindings cfrom cto =
+  LM.fold begin fun al ctabto (diff, same) ->
+    let ctabfrom = try LM.find al cfrom with Not_found -> LM.empty in
+      LM.fold begin fun cl t (diff, same) ->
+        try
+          if Refanno.tag_eq t (LM.find cl ctabfrom) then
+            (diff, (al, cl) :: same)
+          else
+            ((al, cl) :: diff, same)
+        with Not_found ->
+          ((al, cl) :: diff, same)
+      end ctabto (diff, same)
+  end cto ([], [])
+
 let cstoa_of_annots fname gdoms conca astore =
   let emp = FI.refstore_empty in
   Array.mapi begin fun i (conc,conc') ->
     let idom, _ = gdoms.(i) in 
     if idom < 0 then (emp, [], conc') else
       let _,idom_conc = conca.(idom) in
-      let joins, ins  = Sloc.slm_bindings conc 
-                        |> List.partition (diff_binding idom_conc) in
-      let inclocs     = List.map (snd <+> fst) ins in
+      let joins, ins  = partition_diff_bindings idom_conc conc in
+      let inclocs     = List.map snd ins in
       let sto         = joins 
-                        |> List.fold_left begin fun sto (al, (cl, _)) -> 
+                        |> List.fold_left begin fun sto (al, cl) ->
                              FI.refstore_get astore al |> FI.refstore_set sto cl
                            end emp
                         |> FI.store_of_refstore 
@@ -259,10 +267,12 @@ let annots_of_edge me i j =
   | {shapeo = Some shp} ->
       let iconc' = shp.cstoa.(i) |> thd3 in
       let jsto   = shp.cstoa.(j) |> fst3 in
-      LM.fold begin fun al (cl, t) acc -> 
-        if FI.refstore_mem cl jsto then acc else 
-          if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
-            (Refanno.WGen (cl, al) :: acc)
+      LM.fold begin fun al tagm acc ->
+        LM.fold begin fun cl t acc ->
+          if FI.refstore_mem cl jsto then acc else
+            if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
+              (Refanno.WGen (cl, al) :: acc)
+        end tagm acc
       end iconc' []  
   (* | _ -> [] *)
 

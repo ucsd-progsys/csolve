@@ -24,7 +24,8 @@
 (* This file is part of the liquidC Project.*)
 
 type tag
-type cncm = (Sloc.t * tag) Sloc.SlocMap.t
+type tagm = tag Sloc.SlocMap.t
+type cncm = tagm Sloc.SlocMap.t
 type ctab 
 
 type annotation = 
@@ -47,6 +48,7 @@ val d_ctab: unit -> ctab -> Pretty.doc
 
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
 val aloc_of_cloc   : ctab -> Sloc.t -> Sloc.t option (* ALoc *)
+val clocs_of_aloc  : cncm -> Sloc.t -> Sloc.t list
 val subs : Sloc.Subst.t -> block_annotation -> block_annotation
 
 (* input: cfg with n blocks of length l_i ... l_n

@@ -64,8 +64,12 @@ type annotation =
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t * (Sloc.t, Sloc.t) Hashtbl.t
-type cncm = (Sloc.t * tag) Sloc.SlocMap.t
+
+type tagm = tag Sloc.SlocMap.t
+type cncm = tagm Sloc.SlocMap.t
 type soln = (cncm option * block_annotation) array
+
+module TagMPrinter = Pretty.MakeMapPrinter (Sloc.SlocMap)
 
 (************************************************************************************)
 (****************** (DAG) Orderered Iterating Over CFGs *****************************)
@@ -154,10 +158,17 @@ let d_edgem () em =
     (fun ((i,j), anns) -> Pretty.dprintf "(%d -> %d) = %a \n" i j d_annotations anns)
     eanns
 
+let d_tagm =
+  TagMPrinter.d_map
+    ~dmaplet:(fun s t -> Pretty.dprintf "(%t, %t)" (fun () -> s) (fun () -> t))
+    ", "
+    Sloc.d_sloc
+    d_tag
+
 let d_conc () (conc:cncm) =
   let binds = LM.fold (fun k v acc -> (k, v) :: acc) conc [] in
   Pretty.seq (Pretty.text ";")
-    (fun (al, (cl, t)) -> Pretty.dprintf "(%a |-> %a, %a) " Sloc.d_sloc al Sloc.d_sloc cl d_tag t)
+    (fun (al, tm) -> Pretty.dprintf "(%a |-> %a) " Sloc.d_sloc al d_tagm tm)
     binds 
 
 (* API *)
@@ -185,25 +196,31 @@ let d_sol =
 (*********************** Operations on CONC-Maps ******************************)
 (******************************************************************************)
 
-let conc_size = Sloc.slm_bindings <+> List.length
+let conc_size conc =
+       conc
+   |>  Sloc.slm_bindings
+   |>: snd
+   |>: Sloc.slm_bindings
+   |>  List.concat
+   |>  List.length
 
 let tag_join = function
   | t1, t2 when t1 = t2   -> t1
   | (_, Read), (_, Read)  -> tag_fresh Read
   | _                     -> tag_fresh Write
 
+let tagm_join tagm1 tagm2 =
+  LM.fold begin fun cl t1 tagm ->
+    try LM.add cl (tag_join (t1, LM.find cl tagm2)) tagm with Not_found -> tagm
+  end tagm1 LM.empty
+
 let conc_join (conc1:cncm) (conc2:cncm) : cncm = 
-  LM.fold begin fun al (cl1, t1) conc ->
+  LM.fold begin fun al tagm1 conc ->
     if not (LM.mem al conc2) then conc else
-      let cl2, t2 = LM.find al conc2 in
-      if not (Sloc.eq cl1 cl2) then conc else
-        LM.add al (cl1, tag_join (t1, t2)) conc
+      let tagm = tagm_join tagm1 (LM.find al conc2) in
+        if tagm = LM.empty then conc else
+          LM.add al tagm conc
   end conc1 LM.empty
- 
-let conc_eq conc1 conc2 =
-  let n1 = conc_size conc1 in
-  let n2 = conc_size (conc_join conc1 conc2) in 
-  n1 = n2
 
 let conc_of_predecessors = function
   | [] -> LM.empty 
@@ -263,21 +280,31 @@ let loc_of_var_expr ctm theta =
     | _ -> None in
   loc_rec
 
-let cloc_of_aloc conc al =
-  try Some (LM.find al conc) with Not_found -> None 
+let tagm_of_aloc conc al =
+  try LM.find al conc with Not_found -> LM.empty
+
+let clocs_of_aloc conc al =
+  al |> tagm_of_aloc conc |> Sloc.slm_bindings |>: fst
+
+let set_rw conc al cl rw =
+  LM.add al (LM.add cl (tag_fresh rw) (tagm_of_aloc conc al)) conc
+
+let generalize conc al =
+  (LM.remove al conc,
+   LM.fold begin fun cl (_, op) gens ->
+     match op with
+       | Write -> Gen (cl, al) :: gens
+       | Read  -> WGen (cl, al) :: gens
+   end (tagm_of_aloc conc al) [])
 
 let instantiate f conc al cl rw =
-  match rw, cloc_of_aloc conc al with
-  | _, None -> 
-    (LM.add al (cl, tag_fresh rw) conc, [f (al, cl)])
-  | Write, Some (cl', t) when Sloc.eq cl' cl -> 
-    (LM.add al (cl, tag_fresh Write) conc, [])
-  | Read, Some (cl', t) when Sloc.eq cl' cl ->
-    (conc, [])
-  | _, Some (cl', (_, Write)) -> 
-    (LM.add al (cl, tag_fresh rw) conc, [Gen (cl', al); f (al, cl)])
-  | _, Some (cl', (_, Read)) -> 
-    (LM.add al (cl, tag_fresh rw) conc, [WGen (cl', al); f (al, cl)])
+  match rw, clocs_of_aloc conc al with
+    | _, []                           -> (set_rw conc al cl rw, [f (al, cl)])
+    | Write, cls when List.mem cl cls -> (set_rw conc al cl rw, [])
+    | Read, cls when List.mem cl cls  -> (conc, [])
+    | _                               ->
+        let conc, gens = generalize conc al in
+          (set_rw conc al cl rw, gens @ [f (al, cl)])
 
 (******************************************************************************)
 (******************************** Visitors ************************************)
@@ -313,27 +340,16 @@ let annotate_set ctm theta conc = function
 let concretize_new theta j k conc = function
   | i, New (x,y) ->
       let _  = asserts (Sloc.is_abstract y) "concretize_new" in
-      if Sloc.is_abstract x then 
-        match cloc_of_aloc conc y with
-        | None    -> 
-            (* y has no conc instance   *)  
-            (conc, [New (x,y)])
-        | Some (y', (_, Write)) -> 
-            (* y has a conc instance y' *)
-            (LM.remove y conc, [Gen (y', y); New (x, y)])
-        | Some (y', (_, Read)) -> 
-            (* y has a conc instance y' *)
-            (LM.remove y conc, [WGen (y', y); New (x, y)])
+      if Sloc.is_abstract x then
+        match clocs_of_aloc conc y with
+          | [] -> (conc, [New (x, y)])
+          | _  ->
+              let conc, gens = generalize conc y in
+                (conc, gens @ [New (x, y)])
       else  (* x is is_concrete *)
         let cl = cloc_of_position theta y (j,k,i) in
         instantiate (fun (y, cl) -> NewC (x,y,cl)) conc y cl Write
   | _, _ -> assertf "concretize_new 2"
-
-let generalize_global conc al =
-  match cloc_of_aloc conc al with
-  | None                 -> (conc, [])
-  | Some (cl',(_,Write)) -> (LM.remove al conc, [Gen  (cl', al)])
-  | Some (cl',(_,Read )) -> (LM.remove al conc, [WGen (cl', al)])
 
 let rec new_cloc_of_aloc al = function
   | NewC (_,al',cl) :: ns when Sloc.eq al al' -> Some cl
@@ -359,7 +375,7 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
   | (k, ns), Cil.Call (lvo,_,_,_) ->
       let ins         = Misc.numbered_list ns in
       let conc, anns  = Misc.mapfold (concretize_new theta j k) conc ins in
-      let conc, anns' = Misc.mapfold generalize_global conc globalslocs in
+      let conc, anns' = Misc.mapfold generalize conc globalslocs in
       let conc_anns   = conc, Misc.flatten (anns ++ anns') in
       let _           = lvo |>> sloc_of_ret ctm theta conc_anns in
       conc_anns

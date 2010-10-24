@@ -195,11 +195,15 @@ module Intraproc (X: Context) = struct
     end ffm1 LM.empty
 
   let add_succ_generalized_clocs conc_out succ_conc_in ffm =
-    LM.fold begin fun al (cl, _) ffm ->
-      if LM.mem al succ_conc_in && S.eq cl (LM.find al succ_conc_in |> fst) then
-        ffm
-      else
-        LM.add cl (LM.find al ffm) ffm
+    LM.fold begin fun al _ ffm ->
+         al
+      |> RA.clocs_of_aloc conc_out
+      |> List.fold_left begin fun ffm cl ->
+           if LM.mem al succ_conc_in && LM.mem cl (LM.find al succ_conc_in) then
+             ffm
+           else
+             LM.add cl (LM.find al ffm) ffm
+         end ffm
     end conc_out ffm
 
   let merge_succs init_ffm ffmsa i =

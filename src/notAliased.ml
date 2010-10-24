@@ -87,7 +87,12 @@ let merge_preds ctx nasa j =
           preds
       |> List.map (fun i -> nasa.(i) |> snd)
       |> List.fold_left NASet.inter begin
-           S.SlocMap.fold (fun al (cl, _) na -> NASet.add (NotAliased.make cl al) na) (snd ctx.conca.(j)) NASet.empty
+           let _, conc = ctx.conca.(j) in
+             S.SlocMap.fold begin fun al _ na ->
+                  al
+               |> RA.clocs_of_aloc conc
+               |> List.fold_left (fun na cl -> NASet.add (NotAliased.make cl al) na) na
+             end conc NASet.empty
          end
 
 let process_block ctx nasa j b =
