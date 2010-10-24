@@ -466,7 +466,7 @@ let gen_cons_of_edge me iwld' loci tagi grdij i j =
   |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty
   |> snd
 
-let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j = 
+let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j =
   let rsto   = CF.csto_of_block me j |> FI.refstore_subs FI.t_subs_names subs  in 
   let lsto,_ = FI.refstore_partition (fun cl -> FI.refstore_mem cl rsto) isto' in
   let cf     = CF.get_alocmap me in
