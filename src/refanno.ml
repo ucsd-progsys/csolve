@@ -351,6 +351,12 @@ let concretize_new theta j k conc = function
         instantiate (fun (y, cl) -> NewC (x,y,cl)) conc y cl Write
   | _, _ -> assertf "concretize_new 2"
 
+let concretize_malloc theta j k conc x y =
+  let _  = asserts (Sloc.is_abstract y) "concretize_malloc" in
+  let _  = asserts (x |> Sloc.is_abstract |> not) "concretize_malloc" in
+  let cl = cloc_of_position theta y (j,k,0) in
+  (set_rw conc y cl Write, [NewC (x,y,cl)])
+
 let rec new_cloc_of_aloc al = function
   | NewC (_,al',cl) :: ns when Sloc.eq al al' -> Some cl
   | _ :: ns -> new_cloc_of_aloc al ns
@@ -371,6 +377,13 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
   | (_, ns), Cil.Call (_, Lval ((Var fv), NoOffset), _,_) 
     when Constants.is_pure_function fv.vname ->
       conc, ns 
+
+  | (k, [New (x, y)]), Cil.Call (lvo, Lval ((Var fv), NoOffset), _, _)
+    when fv.vname = "malloc" ->
+      let conc, anns  = concretize_malloc theta j k conc x y in
+      let conc_anns   = conc, anns in
+      let _           = lvo |>> sloc_of_ret ctm theta conc_anns in
+      conc_anns
 
   | (k, ns), Cil.Call (lvo,_,_,_) ->
       let ins         = Misc.numbered_list ns in
