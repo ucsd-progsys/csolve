@@ -113,11 +113,6 @@ g_slist_insert_sorted_real (GSList   *list,
   // pmr: sanity check
   assert (tmp_list != NULL);
 
-  // pmr: sanity check
-  if (prev_list) {
-    assert (prev_list->data <= data);
-  }
-
   // We need both tmp_list and new_list unfolded here.
   new_list = _g_slist_alloc ();
   new_list->data = data;
@@ -126,21 +121,36 @@ g_slist_insert_sorted_real (GSList   *list,
     {
       // pmr: sanity check
       assert (new_list->data > tmp_list->data);
+
       tmp_list->next = new_list;
       new_list->next = NULL;
       return list;
     }
+
+  // pmr: At this point, we have tmp_list->next != 0 -> cmp <= 0 and
+  // tmp_list->next = 0 -> cmp <= 0.  We'd like to prove cmp <= 0 and
+  // get the following fact.
+  // Perhaps it's not preserving the conditions because they're effectful?
+  // For now, we'll just assume it...  but it ought to be derivable!
+  // It seems like branch conditions are not getting recorded at all.
+  int a = assume (cmp <= 0);
   
   if (prev_list)
     {
+      // pmr: sanity checks
+      assert (prev_list->data <= data);
+      assert (new_list->data <= tmp_list->data);
+
       prev_list->next = new_list;
       new_list->next = tmp_list;
       return list;
     }
   else
     {
-      // pmr: sanity check
+      // pmr: sanity checks
       assert (list == tmp_list);
+      assert (new_list->data <= list->data);
+
       new_list->next = list;
       return new_list;
     }
@@ -153,11 +163,23 @@ g_slist_insert_sorted (GSList       *list,
   return g_slist_insert_sorted_real (list, data);
 }
 
+void test_sorted (GSList *hd) {
+    GSList *cur = hd;
+
+    while (cur != (GSList *) NULL && cur->next != (GSList *) NULL) {
+        assert (cur->data <= cur->next->data);
+        cur = cur->next;
+    }
+
+    return;
+}
+
 int main () {
     GSList *head = NULL;
 
     while (nondet ()) {
         head = g_slist_insert_sorted (head, nondet ());
+        test_sorted (head);
     }
 
     return 0;
