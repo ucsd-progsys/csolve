@@ -37,8 +37,8 @@ Function Pointers
 	
     >> HEREHEREHERE
     >1> modular invariants
-    	negtests/array1.c
 	postests/array2.c
+	negtests/array1.c
 
 	
 

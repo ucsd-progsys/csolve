@@ -76,6 +76,7 @@ let add_varspec spec (var, (ty, public)) =
 %token ARG RET ST INST OUTST
 %token TRUE FALSE
 %token EOF
+%token MOD 
 %token PLUS
 %token MINUS
 %token TIMES 
@@ -261,6 +262,7 @@ exprsne:
 expr:
     Id				        { A.eVar (Sy.of_string $1) }
   | Num 				{ A.eCon (A.Constant.Int $1) }
+  | LPAREN expr MOD Num RPAREN          { A.eMod ($2, $4) }
   | expr bop expr                       { A.eBin ($1, $2, $3) }
   | Id LPAREN exprs RPAREN              { A.eApp ((Sy.of_string $1), $3) }
   | pred QM expr COLON expr             { A.eIte ($1,$3,$5) }

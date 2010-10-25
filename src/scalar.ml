@@ -43,7 +43,7 @@ module E  = Errormsg
 
 open Misc.Ops
 
-type scalar_const = Offset of int | UpperBound of int | Periodic of int * int
+type scalar_const = Offset of int | UpperBound of int | Period of int 
 
 (***************************************************************************)
 (******************** Meta Qualifiers for Scalar Invariants ****************)
@@ -70,15 +70,27 @@ let p_v_lt_c        = p_v_r_c A.Lt
 (* v >= c *)
 let p_v_ge_c        = p_v_r_c A.Ge
 
-let p_v_r_x_plus_c r =  
-  A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
+let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
-(* v = SKOLEM[_] + c *)
+(* v =  BB(v) + c *)
 let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
-(* v < SKOLEM[_] + c *)
+
+(* v <  BB(v) + c *)
 let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt 
-(* v >= SKOLEM[_] + c *)
+
+(* v >= BB(v) + c *)
 let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
+
+(* v - BB(v) - c *) 
+let e_v_minus_x_minus_c = 
+  A.eBin (A.eVar value_var, 
+          A.Minus, 
+          (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
+
+(* (v - BB(v) - c) mod k == 0 *) 
+let p_v_minus_x_minus_c_eqz_mod_k = fun k -> A.pEqual (A.eMod (e_v_minus_x_minus_c, k), A.zero)
+
+
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
 
@@ -104,45 +116,25 @@ let scalar_consts_of_polarity n m = function
   | Ct.PosB k -> [UpperBound (n + m*k)]
   | _         -> []
 
-let scalar_consts_of_index = function
-  | Ix.IBot            -> []
-  | Ix.IInt n          -> [Offset n] 
-  | Ix.ISeq (n, m, po) -> [Offset n;  Periodic (n, m)] ++ (scalar_consts_of_polarity n m po)
- 
-(* WITH SKOLEMS 
-let subst_of_k_c = fun k c -> Su.of_list [(const_var, A.eInt c); (param_var, k)]
-
-let preds_of_scalar_const = function
-  | k, Offset c ->
-      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
-      |>: (Misc.flip A.substs_pred) (subst_of_k_c k c) 
-      
-  | k, UpperBound c ->
-      [p_v_lt_c; p_v_lt_x_plus_c] 
-      |>: (Misc.flip A.substs_pred) (subst_of_k_c k c)
-  
-  | k, Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
-      []
-*)
-
-let preds_of_scalar_const = function
+let bound_preds_of_scalar_const = function
   | Offset c ->
-      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c] 
+      [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c; p_v_ge_x_plus_c] 
       |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
-      
   | UpperBound c ->
       [p_v_lt_c; p_v_lt_x_plus_c] 
       |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
+  | _ -> [] 
+
+let bound_pred_of_scalar_const p = function
+  | Offset c -> [A.substs_pred p (Su.of_list [const_var, A.eInt c])]
+  | _        -> []
   
-  | Periodic (c, d) -> (* TODO: MODZ_c_d(v), MODZ_c_d(v - _) *)
-      []
+let period_preds_of_scalar_consts cs = 
+  let ps = Misc.map_partial (function Period k -> Some (p_v_minus_x_minus_c_eqz_mod_k k) | _ -> None) cs
+  in (fun c -> Misc.flap (fun p -> bound_pred_of_scalar_const p c) ps)
 
-
-(* AXIOMS for MODZ
-(1) <bas> MODZ_c_d(c)
-(2) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x + d => MODZ_c_d(y)
-(3) <ind> forall x,y,c,d: MODZ_c_d(x) and y = x - d => MODZ_c_d(y)
-*)
+let preds_of_scalar_consts cs = 
+  (Misc.flap bound_preds_of_scalar_const cs) ++ (Misc.flap (period_preds_of_scalar_consts cs) cs)
 
 let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
   let oc  = open_out fname in
@@ -150,12 +142,30 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
-let scalar_consts_of_typedecs cil = 
-  cil 
-  |> type_decs_of_file
+let scalar_consts_of_typedecs_stride tdecs =
+  tdecs
+  |> Misc.map_partial (function (_, t) when Cil.isPointerType t -> Some t | _ -> None)
+  |>: (Cil.unrollType <+> CM.ptrRefType <+> CilMisc.bytesSizeOf)
+  |> Misc.sort_and_compact
+  |> Misc.flap (fun i -> [Offset i; Period i])
+
+let scalar_consts_of_index = function
+  | Ix.IBot            -> []
+  | Ix.IInt n          -> [Offset n] 
+  | Ix.ISeq (n, m, po) -> [Offset n;  Period m] ++ (scalar_consts_of_polarity n m po)
+ 
+let scalar_consts_of_typedecs_genspec tdecs =
+  tdecs
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
   |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ctypes.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
+
+let scalar_consts_of_typedecs cil = 
+  cil 
+  |> type_decs_of_file
+  |> (fun tdecs -> scalar_consts_of_typedecs_genspec tdecs ++ scalar_consts_of_typedecs_stride tdecs)
+  |> Misc.sort_and_compact
+
 
 let scalar_consts_of_code cil =
   let xr = ref [] in
@@ -167,13 +177,9 @@ let scalar_consts_of_code cil =
   |> List.map (fun i -> Offset i)
 
 let scalar_quals_of_file cil =
-  let c1s = scalar_consts_of_typedecs cil in 
-  let c2s = scalar_consts_of_code cil in
-  let cs  = Misc.sort_and_compact (c1s ++ c2s) in
-  (* let ks  = FI.get_skolems () |> (function [] -> [A.eInt 0] | xs -> xs) in
-     Misc.cross_product ks *) 
-  cs
-  |> Misc.flap preds_of_scalar_const 
+  (scalar_consts_of_typedecs cil) ++ (scalar_consts_of_code cil)
+  |> Misc.sort_and_compact  
+  |> preds_of_scalar_consts 
   |> Misc.flap quals_of_pred
   |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")

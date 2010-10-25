@@ -76,6 +76,7 @@ let mk_cfg cil =
     | _ -> ()
   end
 
+(*
 let preprocess cil =
   let _   = CilMisc.unfloat cil;
             CilMisc.Pheapify.doVisit cil;
@@ -88,6 +89,20 @@ let preprocess cil =
             mk_cfg cil;
             rename_locals cil in
   cil
+*)
+
+let preprocess cil =
+  cil >> CilMisc.unfloat 
+      >> CilMisc.Pheapify.doVisit 
+      >> Psimplify.simplify 
+      >> Simpleret.simpleret 
+      >> Rmtmps.removeUnusedTemps 
+      >> CilMisc.purify 
+      >> CilMisc.CopyGlobal.doVisit 
+      >> CilMisc.NameNullPtrs.doVisit 
+      >> mk_cfg 
+      >> rename_locals 
+
 
 let preprocess_file file =
   file |> Simplemem.simplemem |> preprocess

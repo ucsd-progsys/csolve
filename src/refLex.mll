@@ -89,6 +89,7 @@ rule token = parse
                           ABS (Misc.suffix_of_string str 1 |> int_of_string) } 
   | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
                           CONC (Misc.suffix_of_string str 1 |> int_of_string) }
+  | "mod"               { MOD }
   | "int"               { INT }
   | "ptr"               { PTR }
   | "bool"              { BOOL }
