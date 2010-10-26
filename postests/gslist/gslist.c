@@ -1,68 +1,3 @@
-/*
-Original:
-
-static GSList*
-g_slist_insert_sorted_real (GSList   *list,
-			    gpointer  data,
-			    GFunc     func,
-			    gpointer  user_data)
-{
-  GSList *tmp_list = list;
-  GSList *prev_list = NULL;
-  GSList *new_list;
-  gint cmp;
- 
-  g_return_val_if_fail (func != NULL, list);
-
-  if (!list)
-    {
-      new_list = _g_slist_alloc ();
-      new_list->data = data;
-      new_list->next = NULL;
-      return new_list;
-    }
- 
-  cmp = ((GCompareDataFunc) func) (data, tmp_list->data, user_data);
- 
-  while ((tmp_list->next) && (cmp > 0))
-    {
-      prev_list = tmp_list;
-      tmp_list = tmp_list->next;
-
-      cmp = ((GCompareDataFunc) func) (data, tmp_list->data, user_data);
-    }
-
-  new_list = _g_slist_alloc ();
-  new_list->data = data;
-
-  if ((!tmp_list->next) && (cmp > 0))
-    {
-      tmp_list->next = new_list;
-      new_list->next = NULL;
-      return list;
-    }
-  
-  if (prev_list)
-    {
-      prev_list->next = new_list;
-      new_list->next = tmp_list;
-      return list;
-    }
-  else
-    {
-      new_list->next = list;
-      return new_list;
-    }
-}
-
-GSList*
-g_slist_insert_sorted (GSList       *list,
-                       gpointer      data,
-                       GCompareFunc  func)
-{
-  return g_slist_insert_sorted_real (list, data, (GFunc) func, NULL);
-}
-*/
 
 // Instantiated with int:
 
@@ -197,3 +132,69 @@ int main () {
 /* { */
 /*   return g_slist_insert_sorted_real (list, data, (GFunc) func, NULL); */
 /* } */
+
+/*
+Original:
+
+static GSList*
+g_slist_insert_sorted_real (GSList   *list,
+			    gpointer  data,
+			    GFunc     func,
+			    gpointer  user_data)
+{
+  GSList *tmp_list = list;
+  GSList *prev_list = NULL;
+  GSList *new_list;
+  gint cmp;
+ 
+  g_return_val_if_fail (func != NULL, list);
+
+  if (!list)
+    {
+      new_list = _g_slist_alloc ();
+      new_list->data = data;
+      new_list->next = NULL;
+      return new_list;
+    }
+ 
+  cmp = ((GCompareDataFunc) func) (data, tmp_list->data, user_data);
+ 
+  while ((tmp_list->next) && (cmp > 0))
+    {
+      prev_list = tmp_list;
+      tmp_list = tmp_list->next;
+
+      cmp = ((GCompareDataFunc) func) (data, tmp_list->data, user_data);
+    }
+
+  new_list = _g_slist_alloc ();
+  new_list->data = data;
+
+  if ((!tmp_list->next) && (cmp > 0))
+    {
+      tmp_list->next = new_list;
+      new_list->next = NULL;
+      return list;
+    }
+  
+  if (prev_list)
+    {
+      prev_list->next = new_list;
+      new_list->next = tmp_list;
+      return list;
+    }
+  else
+    {
+      new_list->next = list;
+      return new_list;
+    }
+}
+
+GSList*
+g_slist_insert_sorted (GSList       *list,
+                       gpointer      data,
+                       GCompareFunc  func)
+{
+  return g_slist_insert_sorted_real (list, data, (GFunc) func, NULL);
+}
+*/
