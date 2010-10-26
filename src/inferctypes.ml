@@ -617,7 +617,6 @@ let assert_call_no_physical_subtyping fe f store gst annots =
     List.iter begin function
       | RA.New (scallee, scaller) ->
           let sto = if SLM.mem scaller store then store else gst in
-          let _ = Pretty.printf "Looking at call to %a\n\n" CM.d_var f in
             assert_location_inclusion
               scaller (SLM.find scaller sto)
               scallee (SLM.find scallee cf.sto_out)
