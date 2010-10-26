@@ -127,14 +127,6 @@ g_slist_insert_sorted_real (GSList   *list,
       return list;
     }
 
-  // pmr: At this point, we have tmp_list->next != 0 -> cmp <= 0 and
-  // tmp_list->next = 0 -> cmp <= 0.  We'd like to prove cmp <= 0 and
-  // get the following fact.
-  // Perhaps it's not preserving the conditions because they're effectful?
-  // For now, we'll just assume it...  but it ought to be derivable!
-  // It seems like branch conditions are not getting recorded at all.
-  int a = assume (cmp <= 0);
-  
   if (prev_list)
     {
       // pmr: sanity checks
