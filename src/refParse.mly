@@ -266,6 +266,7 @@ expr:
   | expr bop expr                       { A.eBin ($1, $2, $3) }
   | Id LPAREN exprs RPAREN              { A.eApp ((Sy.of_string $1), $3) }
   | pred QM expr COLON expr             { A.eIte ($1,$3,$5) }
+  | expr COLON sort                     { A.eCst ($1,$3) }
   | LPAREN expr RPAREN                  { $2 }
   ;
 
