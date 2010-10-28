@@ -63,6 +63,15 @@ let add_varspec spec (var, (ty, public)) =
     raise Parse_error
   end
 
+let depreference_regex = Str.regexp "^A\\([0-9]+\\)#PLAt#\\([0-9]+\\)$"
+
+let rename_depreference s =
+  if not (Str.string_match depreference_regex s 0) then s else
+    let slocnum = s |> Str.matched_group 1 |> int_of_string in
+    let sloc    = (slocnum, Sloc.Abstract) |> Hashtbl.find sloctable |> Sloc.to_string in
+    let idx     = s |> Str.matched_group 2 in
+      sloc ^ "#PLAt#" ^ idx
+
 %}
 
 %token DIV 
@@ -260,7 +269,7 @@ exprsne:
   ;
 
 expr:
-    Id				        { A.eVar (Sy.of_string $1) }
+    Id				        { A.eVar ($1 |> rename_depreference |> Sy.of_string) }
   | Num 				{ A.eCon (A.Constant.Int $1) }
   | LPAREN expr MOD Num RPAREN          { A.eMod ($2, $4) }
   | expr bop expr                       { A.eBin ($1, $2, $3) }
