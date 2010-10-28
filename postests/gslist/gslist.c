@@ -122,6 +122,37 @@ g_slist_remove (GSList        *list,
   return list;
 }
 
+GSList*
+g_slist_remove_all (GSList        *list,
+		    int            data)
+{
+  GSList *tmp, *prev = NULL;
+
+  tmp = list;
+  while (tmp)
+    {
+      if (tmp->data == data)
+	{
+	  GSList *next = tmp->next;
+
+	  if (prev)
+	    prev->next = next;
+	  else
+	    list = next;
+	  
+/* 	  g_slist_free_1 (tmp); */
+	  tmp = next;
+	}
+      else
+	{
+	  prev = tmp;
+	  tmp = prev->next;
+	}
+    }
+
+  return list;
+}
+
 void test_sorted (GSList *hd) {
     GSList *cur = hd;
 
@@ -137,10 +168,17 @@ int main () {
     GSList *head = NULL;
 
     while (1) {
-        if (nondet ()) {
+        switch (nondet ()) {
+        case 0:
             head = g_slist_insert_sorted (head, nondet ());
-        } else {
+            break;
+        case 1:
             head = g_slist_remove (head, nondet ());
+            break;
+        case 2:
+            head = g_slist_remove_all (head, nondet ());
+            break;
+        default:
         }
         test_sorted (head);
     }
