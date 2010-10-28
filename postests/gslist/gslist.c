@@ -1,12 +1,13 @@
-
 // Instantiated with int:
 
 extern void *malloc(int);
+extern void free(void *);
 
 #define NULL                    0
 #define _g_slist_alloc0()       malloc(sizeof (GSList))
 #define _g_slist_alloc()        malloc(sizeof (GSList))
 #define _g_slist_free1(slist)   free(slist)
+#define _g_slist_free_1(slist)  free(slist)
 
 typedef struct _GSList GSList;
 
@@ -90,6 +91,37 @@ g_slist_insert_sorted (GSList       *list,
   return g_slist_insert_sorted_real (list, data);
 }
 
+GSList*
+g_slist_remove (GSList        *list,
+		int            data)
+{
+  GSList *tmp, *prev = NULL;
+
+  tmp = list;
+  while (tmp)
+    {
+      if (tmp->data == data)
+	{
+          if (prev)
+	    prev->next = tmp->next;
+	  else
+	    list = tmp->next;
+
+          // pmr: Seems to screw up finality? (Polymorphism hack in finalfields?)
+/* 	  _g_slist_free_1 (tmp); */
+	  break;
+	}
+
+      prev = tmp;
+      tmp = prev->next;
+      if (tmp) {
+          assert (tmp->data >= prev->data);
+      }
+    }
+
+  return list;
+}
+
 void test_sorted (GSList *hd) {
     GSList *cur = hd;
 
@@ -104,8 +136,12 @@ void test_sorted (GSList *hd) {
 int main () {
     GSList *head = NULL;
 
-    while (nondet ()) {
-        head = g_slist_insert_sorted (head, nondet ());
+    while (1) {
+        if (nondet ()) {
+            head = g_slist_insert_sorted (head, nondet ());
+        } else {
+            head = g_slist_remove (head, nondet ());
+        }
         test_sorted (head);
     }
 
@@ -196,5 +232,31 @@ g_slist_insert_sorted (GSList       *list,
                        GCompareFunc  func)
 {
   return g_slist_insert_sorted_real (list, data, (GFunc) func, NULL);
+}
+
+GSList*
+g_slist_remove (GSList        *list,
+		gconstpointer  data)
+{
+  GSList *tmp, *prev = NULL;
+
+  tmp = list;
+  while (tmp)
+    {
+      if (tmp->data == data)
+	{
+	  if (prev)
+	    prev->next = tmp->next;
+	  else
+	    list = tmp->next;
+
+	  g_slist_free_1 (tmp);
+	  break;
+	}
+      prev = tmp;
+      tmp = prev->next;
+    }
+
+  return list;
 }
 */
