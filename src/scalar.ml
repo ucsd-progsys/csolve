@@ -59,7 +59,7 @@ let index_of_ctype ct =
 let value_var       = A.Symbol.value_variable A.Sort.t_int
 let const_var       = A.Symbol.mk_wild ()
 let param_var       = A.Symbol.mk_wild ()
-
+let mod_var         = A.Symbol.mk_wild ()
 
 let p_v_r_c         = fun r -> A.pAtom (A.eVar value_var, r, A.eVar const_var)
 
@@ -88,12 +88,13 @@ let e_v_minus_x_minus_c =
           (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
 
 (* (v - BB(v) - c) mod k == 0 *) 
-let p_v_minus_x_minus_c_eqz_mod_k = fun k -> A.pEqual (A.eMod (e_v_minus_x_minus_c, k), A.zero)
-
-
+let p_v_minus_x_minus_c_eqz_mod_k = 
+  A.pEqual (A.eBin (A.eBin (A.eVar value_var, 
+                            A.Minus, (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
+                   , A.Mod, mod_var)
+           ,A.zero)
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
-
 
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
@@ -129,7 +130,13 @@ let bound_pred_of_scalar_const p = function
   | Offset c -> [A.substs_pred p (Su.of_list [const_var, A.eInt c])]
   | _        -> []
   
-let period_preds_of_scalar_consts cs = 
+let period_preds_of_scalar_consts cs =
+  let os  = Misc.map_partial (function Offset c -> Some c | _ -> None) cs in
+  let ks  = Misc.map_partial (function Period k -> Some k | _ -> None) cs in
+  let oks = Misc.cross_product os ks in
+  oks
+  |>: (fun (o,k) -> A.substs_pred p_v_minus_x_minus_c_eqz_mod_k 
+
   let ps = Misc.map_partial (function Period k -> Some (p_v_minus_x_minus_c_eqz_mod_k k) | _ -> None) cs
   in (fun c -> Misc.flap (fun p -> bound_pred_of_scalar_const p c) ps)
 
