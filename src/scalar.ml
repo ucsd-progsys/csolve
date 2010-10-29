@@ -59,7 +59,7 @@ let index_of_ctype ct =
 let value_var       = A.Symbol.value_variable A.Sort.t_int
 let const_var       = A.Symbol.mk_wild ()
 let param_var       = A.Symbol.mk_wild ()
-
+let period_var         = A.Symbol.mk_wild ()
 
 let p_v_r_c         = fun r -> A.pAtom (A.eVar value_var, r, A.eVar const_var)
 
@@ -81,19 +81,14 @@ let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt
 (* v >= BB(v) + c *)
 let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
 
-(* v - BB(v) - c *) 
-let e_v_minus_x_minus_c = 
-  A.eBin (A.eVar value_var, 
-          A.Minus, 
-          (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
-
 (* (v - BB(v) - c) mod k == 0 *) 
-let p_v_minus_x_minus_c_eqz_mod_k = fun k -> A.pEqual (A.eMod (e_v_minus_x_minus_c, k), A.zero)
-
-
+let p_v_minus_x_minus_c_eqz_mod_k = 
+  A.pEqual (A.eBin (A.eBin (A.eVar value_var, 
+                            A.Minus, (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
+                   , A.Mod, A.eVar period_var)
+           ,A.zero)
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
-
 
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
@@ -129,12 +124,15 @@ let bound_pred_of_scalar_const p = function
   | Offset c -> [A.substs_pred p (Su.of_list [const_var, A.eInt c])]
   | _        -> []
   
-let period_preds_of_scalar_consts cs = 
-  let ps = Misc.map_partial (function Period k -> Some (p_v_minus_x_minus_c_eqz_mod_k k) | _ -> None) cs
-  in (fun c -> Misc.flap (fun p -> bound_pred_of_scalar_const p c) ps)
+let period_preds_of_scalar_consts cs =
+  let os = Misc.map_partial (function Offset c -> Some c | _ -> None) cs in
+  let ks = Misc.map_partial (function Period k -> Some k | _ -> None) cs in
+  Misc.cross_product os ks 
+  |>: (fun (o, k) -> Su.of_list [(const_var, A.eInt o); (period_var, A.eInt k)])
+  |>: (A.substs_pred p_v_minus_x_minus_c_eqz_mod_k)
 
 let preds_of_scalar_consts cs = 
-  (Misc.flap bound_preds_of_scalar_const cs) ++ (Misc.flap (period_preds_of_scalar_consts cs) cs)
+  (Misc.flap bound_preds_of_scalar_const cs) ++ (period_preds_of_scalar_consts cs)
 
 let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
   let oc  = open_out fname in
@@ -188,59 +186,37 @@ let scalar_quals_of_file cil =
 (********************** Convert Predicates To Indices **********************)
 (***************************************************************************)
 
-(* 
-let unify_pred p q =
-  A.unify_pred p q
-  >> Misc.maybe_iter (fun su -> ignore <| Format.printf "unify_pred: p is %a, q is %a, subst = %a \n" 
-                                          P.print p P.print q Su.print su)
+let bind_of_subst var =
+  A.Subst.to_list
+  <+> Misc.do_catch (Format.sprintf "Scalar.bind_of_subst") (List.assoc var)
+  <+> into_of_expr
 
-let ppp = A.substs_pred p_v_eq_c (Su.of_list [const_var, A.eInt 0])
-let _   = unify_pred p_v_eq_c ppp 
-*)
-
-
-let const_of_subst su =
-  su |> A.Subst.to_list
-     |> Misc.do_catch (Format.sprintf "Scalar.const_of_subst") (List.assoc const_var)
-     |> into_of_expr
-     (* |> (function A.Con (A.Constant.Int i), _  -> Some i | _ -> None) *)
-
-let consts_of_preds p v ps =
+let substs_of_preds p v ps =
   let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
   ps |> Misc.map_partial (A.unify_pred p)
-     |> Misc.map_partial const_of_subst
 
 let indexo_of_preds_iint v ps =
   [p_v_eq_c; p_v_eq_x_plus_c]
-  |> Misc.flap (fun q -> consts_of_preds q v ps) 
+  |> Misc.flap (fun q -> substs_of_preds q v ps) 
+  |> Misc.map_partial (bind_of_subst const_var) 
   |> (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None)
 
 let indexo_of_preds_lowerbound v ps =
   [p_v_ge_c; p_v_ge_x_plus_c]
-  |> Misc.flap (fun q -> consts_of_preds q v ps) 
+  |> Misc.flap (fun q -> substs_of_preds q v ps)
+  |> Misc.map_partial (bind_of_subst const_var) 
   |> (function c::cs -> Some (Ix.ISeq (List.fold_left max c cs, 1, Ct.Pos)) | _ -> None)
-
-(* {{{
-let indexo_of_preds_iint v ps =
-  let p_v_eq_c = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p_v_eq_c in
-  ps |> Misc.map_partial (A.unify_pred p_v_eq_c)
-     |> Misc.map_partial const_of_subst
-     |> (function [] -> None | c::cs -> Some (Ix.IInt (List.fold_left min c cs)))
-
-
-try indexo_of_preds_iint v ps with ex ->
-  try indexo_of_preds_iint v ps with ex ->
-    (Printf.printf "indexo_of_preds_iseq v = %s, ps =%s" 
-    (Sy.to_string v)
-    (P.to_string (A.pAnd ps));
-    raise ex)
-}}}  *)
 
 let indexo_of_preds_iseqb v ps = 
   None (* TODO *)
 
 let indexo_of_preds_iseq  v ps = 
-  None (* TODO *) 
+  [p_v_minus_x_minus_c_eqz_mod_k]
+  |> Misc.flap (fun q -> substs_of_preds q v ps)
+  |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
+  |> Misc.map_partial (function (Some c, Some k) -> Some (k, c) | _ -> None)
+  |> (function x::xs -> let k, c = List.fold_left max x xs in Some (Ix.ISeq (c, k, Ct.Pos)) | _ -> None)
+
 
 let index_of_pred v (cr, p) = 
   let vv  = FI.name_of_varinfo v in
