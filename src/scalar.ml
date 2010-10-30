@@ -70,6 +70,11 @@ let p_v_lt_c        = p_v_r_c A.Lt
 (* v >= c *)
 let p_v_ge_c        = p_v_r_c A.Ge
 
+(* (v - c) mod k == 0 *) 
+let p_v_minus_c_eqz_mod_k = 
+  A.pEqual (A.eBin (A.eBin (A.eVar value_var, A.Minus, A.eVar const_var) ,A.Mod, A.eVar period_var)
+           ,A.zero)
+
 let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
 (* v =  BB(v) + c *)
@@ -87,6 +92,8 @@ let p_v_minus_x_minus_c_eqz_mod_k =
                             A.Minus, (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
                    , A.Mod, A.eVar period_var)
            ,A.zero)
+
+
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
 
@@ -127,9 +134,10 @@ let bound_pred_of_scalar_const p = function
 let period_preds_of_scalar_consts cs =
   let os = Misc.map_partial (function Offset c -> Some c | _ -> None) cs in
   let ks = Misc.map_partial (function Period k -> Some k | _ -> None) cs in
-  Misc.cross_product os ks 
-  |>: (fun (o, k) -> Su.of_list [(const_var, A.eInt o); (period_var, A.eInt k)])
-  |>: (A.substs_pred p_v_minus_x_minus_c_eqz_mod_k)
+  ks |> Misc.flap (fun k -> os |>: (fun o -> (o mod k), k))
+     |> Misc.sort_and_compact 
+     |> List.map  (fun (o, k) -> Su.of_list [(const_var, A.eInt o); (period_var, A.eInt k)])
+     |> Misc.flap (fun su -> [A.substs_pred p_v_minus_x_minus_c_eqz_mod_k su; A.substs_pred p_v_minus_c_eqz_mod_k su])
 
 let preds_of_scalar_consts cs = 
   (Misc.flap bound_preds_of_scalar_const cs) ++ (period_preds_of_scalar_consts cs)
@@ -209,7 +217,7 @@ let lowerboundo_of_preds v ps =
   |> (function c::cs -> Some (List.fold_left max c cs) | _ -> None)
 
 let periodo_of_preds v ps =
-  [p_v_minus_x_minus_c_eqz_mod_k]
+  [p_v_minus_x_minus_c_eqz_mod_k; p_v_minus_c_eqz_mod_k]
   |> Misc.flap (fun q -> substs_of_preds q v ps)
   |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
   |> Misc.map_partial (function (Some c, Some k) -> Some (k, c) | _ -> None)
