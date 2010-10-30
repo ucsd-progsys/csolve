@@ -59,7 +59,7 @@ let index_of_ctype ct =
 let value_var       = A.Symbol.value_variable A.Sort.t_int
 let const_var       = A.Symbol.mk_wild ()
 let param_var       = A.Symbol.mk_wild ()
-let period_var         = A.Symbol.mk_wild ()
+let period_var      = A.Symbol.mk_wild ()
 
 let p_v_r_c         = fun r -> A.pAtom (A.eVar value_var, r, A.eVar const_var)
 
@@ -174,6 +174,7 @@ let scalar_consts_of_code cil =
   |> Misc.map_partial into_of_expr
   |> List.map (fun i -> Offset i)
 
+(* API *)
 let scalar_quals_of_file cil =
   (scalar_consts_of_typedecs cil) ++ (scalar_consts_of_code cil)
   |> Misc.sort_and_compact  
@@ -183,7 +184,7 @@ let scalar_quals_of_file cil =
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
 
 (***************************************************************************)
-(********************** Convert Predicates To Indices **********************)
+(***************** Convert Predicates/Refinements To Indices ***************)
 (***************************************************************************)
 
 let bind_of_subst var =
@@ -227,6 +228,7 @@ let indexo_of_preds_lowerbound v ps =
 let indexo_of_preds_iseqb v ps = 
   None (* TODO *)
 
+(* API *)
 let index_of_pred v (cr, p) = 
   let vv  = FI.name_of_varinfo v in
   [ indexo_of_preds_iint vv
@@ -236,7 +238,6 @@ let index_of_pred v (cr, p) =
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname FI.d_refctype cr (P.to_string p) Ix.d_index ix)
-(* *)
 
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)

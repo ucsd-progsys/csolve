@@ -25,28 +25,29 @@
 
 (************** Interface between LiquidC and Fixpoint *************)
 
-module IM  = Misc.IntMap
-module F   = Format
-module ST  = Ssa_transform
-module  C  = FixConstraint
+module IM = Misc.IntMap
+module F  = Format
+module ST = Ssa_transform
+module  C = FixConstraint
 
-module  A  = Ast
-module  P  = A.Predicate
-module  E  = A.Expression
-module Sy  = A.Symbol
-module Su  = A.Subst
-module So  = A.Sort
-module  Q  = A.Qualifier
+module  A = Ast
+module  P = A.Predicate
+module  E = A.Expression
+module Sy = A.Symbol
+module Su = A.Subst
+module So = A.Sort
+module  Q = A.Qualifier
 
-module CI  = CilInterface
-module Ct  = Ctypes
-module It  = Ct.I
-module YM  = Sy.SMap
-module SM  = Misc.StringMap
-module Co  = Constants
+module CI = CilInterface
+module Ct = Ctypes
+module It = Ct.I
+module YM = Sy.SMap
+module SM = Misc.StringMap
+module Co = Constants
 module LM = Sloc.SlocMap
 module CM = CilMisc
 module VM = CM.VarMap
+module Ix = Ct.Index
 
 open Misc.Ops
 open Cil
@@ -188,18 +189,18 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
 (*******************************************************************)
 
 let d_index_reft () (i,r) = 
-  let di = Ct.Index.d_index () i in
+  let di = Ix.d_index () i in
   let dc = Pretty.text " , " in
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
 module Reft = struct
-  type t = Ct.Index.t * C.reft
+  type t = Ix.t * C.reft
   let d_refinement = d_index_reft
   let lub          = fun ir1 ir2 -> assert false
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
-  let top          = Ct.Index.top, reft_of_top 
+  let top          = Ix.top, reft_of_top 
 end
 
 module RefCTypes = Ct.Make (Reft)
@@ -500,6 +501,9 @@ let sort_of_prectype = function
   | Ct.Ref (l,_) -> so_ref l
   | _            -> so_int
 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
+let ra_true         = fun _ -> []
+
 let ra_zero ct = 
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
@@ -521,9 +525,13 @@ let ra_skolem, get_skolems =
     [C.Conc (A.pEqual (A.eVar vv, eApp_skolem (A.eInt (xr =+ 1))))]),
   (fun _ -> Misc.range 0 !xr |>: A.eInt) 
 
+let ra_bbegin ct =
+  ct 
+  |> sort_of_prectype 
+  |> Sy.value_variable 
+  |> A.eVar 
+  |> (fun vv -> [C.Conc (A.pEqual (vv, eApp_bbegin vv))])
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
-let ra_true         = fun _ -> []
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
@@ -533,23 +541,6 @@ let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype
 let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
-
-let ra_bbegin ct =
-  ct 
-  |> sort_of_prectype 
-  |> Sy.value_variable 
-  |> A.eVar 
-  |> (fun vv -> [C.Conc (A.pEqual (vv, eApp_bbegin vv))])
-
-let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
-let t_scalar_index = fun ix -> failwith "TBD: t_scalar_index" (* refctype_of_reft_ctype (ra_of_index ix) Ct.scalar_ctype *)
-
-
-let t_scalar = function
-  | Ct.Ref (_,Ct.Index.IInt 0) -> t_scalar_zero 
-  | Ct.Int (_,ix)              -> t_scalar_index ix 
-  | _                          -> t_true Ct.scalar_ctype
-
 (* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
   let so = sort_of_prectype ct in
@@ -557,6 +548,7 @@ let t_pred ct v p =
   let p  = P.subst p v (A.eVar vv) in
   let r  = C.make_reft vv so [C.Conc p] in
   refctype_of_reft_ctype r ct
+
 
 let t_size_ptr ct size =
   let so  = sort_of_prectype ct in
@@ -633,6 +625,25 @@ let t_exp_scalar v e =
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
+
+let pred_of_index (ix: Ix.t): (Ast.Symbol.t * Ast.pred) = failwith "TBD"
+
+let pred_of_index = function
+  | Ix.IBot                   -> vv_int, A.pFalse
+  | Ix.IInt n                 -> vv_int, A.pEqual (A.eVar vv_int, A.eInt n)
+  | Ix.ISeq (n, m, Ct.Pos)    -> vv_int, A.pAtom (A.eVar vv_int, A.Ge, A.eInt n)
+  | Ix.ISeq (n, m, Ct.PosNeg) -> vv_int, A.pTrue 
+  | Ix.ISeq (n, m, Ct.PosB k) -> vv_int, A.pTrue
+
+
+let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
+
+let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+
+let t_scalar = function
+  | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
+  | Ct.Int (_,ix)        -> t_scalar_index ix 
+  | _                    -> t_true Ct.scalar_ctype
 
 let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) in
@@ -798,7 +809,7 @@ let find_unfolded_loc cf l sto =
 
 let points_to_final cf cenv sto p o =
   match ce_find p cenv with
-    | Ct.Ref (l, (Ct.Index.IInt n, _)) ->
+    | Ct.Ref (l, (Ix.IInt n, _)) ->
            sto
         |> find_unfolded_loc cf l
         |> RCt.LDesc.find (Ct.PLAt (n + o))
@@ -1046,3 +1057,5 @@ let annot_binds () =
   |> Ast.Symbol.sm_of_list
 
   *)
+
+
