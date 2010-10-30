@@ -35,20 +35,27 @@ Function Pointers
 	ll1.c 
 	ll2.c
 	
-    >> HEREHEREHERE
     >1> modular invariants
 	postests/array2.c
 	negtests/array1.c
 
+    >> HEREHEREHERE
+
+	postests/array4.c
 	
+	postests/test02p.c
+	postests/test03p.c
+	postests/array3.c
+	postests/join.c
 
     >2> extend type system to include "upper bounds" i.e. 
-		>> see new definition of Ctypes.seq_polarity
-		>> (fix all the match error!)
-		>> print to string	(ctypes.ml)
-		>> parse from string 	(refParse.mly)
-		<JHALA: TO HERE, thwarted impenetrable inferctypes.ml>
-		>> type checking
+
+        >> see new definition of Ctypes.seq_polarity
+	>> (fix all the match error!)
+	>> print to string	(ctypes.ml)
+	>> parse from string 	(refParse.mly)
+	<JHALA: TO HERE, thwarted impenetrable inferctypes.ml>
+	>> type checking
 
     >3> crash
     	negtests/arraysum-unsafe.c

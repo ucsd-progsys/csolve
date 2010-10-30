@@ -40,11 +40,13 @@ module  Q  = A.Qualifier
 
 module CI  = CilInterface
 module Ct  = Ctypes
-module It  = Ctypes.I
+module It  = Ct.I
 module YM  = Sy.SMap
 module SM  = Misc.StringMap
 module Co  = Constants
 module LM = Sloc.SlocMap
+module CM = CilMisc
+module VM = CM.VarMap
 
 open Misc.Ops
 open Cil
@@ -104,8 +106,8 @@ let name_fresh =
 let name_of_sloc_ploc l p = 
   let ls    = Sloc.to_string l in
   let pt,pi = match p with 
-              | Ctypes.PLAt i -> "PLAt",i 
-              | Ctypes.PLSeq (i, _) -> "PLSeq", i in
+              | Ct.PLAt i -> "PLAt",i 
+              | Ct.PLSeq (i, _) -> "PLSeq", i in
   Printf.sprintf "%s#%s#%d" ls pt pi 
   |> name_of_string
 
@@ -186,21 +188,21 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
 (*******************************************************************)
 
 let d_index_reft () (i,r) = 
-  let di = Ctypes.Index.d_index () i in
+  let di = Ct.Index.d_index () i in
   let dc = Pretty.text " , " in
   let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
 module Reft = struct
-  type t = Ctypes.Index.t * C.reft
+  type t = Ct.Index.t * C.reft
   let d_refinement = d_index_reft
   let lub          = fun ir1 ir2 -> assert false
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
-  let top          = Ctypes.Index.top, reft_of_top 
+  let top          = Ct.Index.top, reft_of_top 
 end
 
-module RefCTypes = Ctypes.Make (Reft)
+module RefCTypes = Ct.Make (Reft)
 module RCt       = RefCTypes
 
 type refctype = RCt.CType.t
@@ -539,11 +541,14 @@ let ra_bbegin ct =
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, eApp_bbegin vv))])
 
-let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+let t_scalar_index = fun ix -> failwith "TBD: t_scalar_index" (* refctype_of_reft_ctype (ra_of_index ix) Ct.scalar_ctype *)
+
 
 let t_scalar = function
   | Ct.Ref (_,Ct.Index.IInt 0) -> t_scalar_zero 
-  | _                          -> t_true Ct.scalar_ctype  
+  | Ct.Int (_,ix)              -> t_scalar_index ix 
+  | _                          -> t_true Ct.scalar_ctype
 
 (* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
@@ -589,7 +594,7 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       let x         = A.eVar x  in
       let vv        = A.eVar vv in
       let unchecked =
-        if e |> typeOf |> CilMisc.is_unchecked_ptr_type then
+        if e |> typeOf |> CM.is_unchecked_ptr_type then
           C.Conc (A.pAtom (eApp_uncheck vv, A.Eq, A.one))
         else
           C.Conc (mk_eq_uf eApp_uncheck vv x)
@@ -598,6 +603,7 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
           unchecked]
   | _ ->
       []
+
 
 let t_exp cenv ct e =
   let so = sort_of_prectype ct in
@@ -608,11 +614,14 @@ let t_exp cenv ct e =
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
+let ptrs_of_exp e = 
+  let xm = ref VM.empty in
+  let _  = CM.iterExprVars e (fun v -> xm := VM.add v () !xm) in
+  !xm |> CM.vm_to_list |>: fst |> (List.filter (fun v -> Cil.isPointerType v.Cil.vtype))
 
-let t_exp_scalar_ptr vv p = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
-  p |> P.support 
-    |> List.filter ((<>) vv) 
-    |> (function [x] ->[C.Conc (mk_eq_uf eApp_bbegin (A.eVar vv) (A.eVar x))] | _ -> [])
+let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
+  e |> ptrs_of_exp 
+    |> (function [v] -> [C.Conc (mk_eq_uf eApp_bbegin (A.eVar vv) (A.eVar (name_of_varinfo v)))] | _ -> [])
 
 let t_exp_scalar v e =
   let ct = Ct.scalar_ctype in
@@ -620,7 +629,7 @@ let t_exp_scalar v e =
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp vv e in
   let rs = [C.Conc p] in
-  let rs = if Cil.isPointerType v.Cil.vtype then (rs ++ t_exp_scalar_ptr vv p) else rs in
+  let rs = if Cil.isPointerType v.Cil.vtype then (rs ++ t_exp_scalar_ptr vv e) else rs in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
