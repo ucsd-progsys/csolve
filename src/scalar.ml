@@ -201,22 +201,31 @@ let indexo_of_preds_iint v ps =
   |> Misc.map_partial (bind_of_subst const_var) 
   |> (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None)
 
-let indexo_of_preds_lowerbound v ps =
+let lowerboundo_of_preds v ps = 
   [p_v_ge_c; p_v_ge_x_plus_c]
   |> Misc.flap (fun q -> substs_of_preds q v ps)
   |> Misc.map_partial (bind_of_subst const_var) 
-  |> (function c::cs -> Some (Ix.ISeq (List.fold_left max c cs, 1, Ct.Pos)) | _ -> None)
+  |> (function c::cs -> Some (List.fold_left max c cs) | _ -> None)
 
-let indexo_of_preds_iseqb v ps = 
-  None (* TODO *)
-
-let indexo_of_preds_iseq  v ps = 
+let periodo_of_preds v ps =
   [p_v_minus_x_minus_c_eqz_mod_k]
   |> Misc.flap (fun q -> substs_of_preds q v ps)
   |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
   |> Misc.map_partial (function (Some c, Some k) -> Some (k, c) | _ -> None)
-  |> (function x::xs -> let k, c = List.fold_left max x xs in Some (Ix.ISeq (c, k, Ct.Pos)) | _ -> None)
+  |> (function x::xs -> Some (List.fold_left max x xs) | _ -> None)
+  |> Misc.maybe_map (fun (k, c) -> (c mod k, k)) 
 
+let indexo_of_preds_iseq v ps = 
+  match periodo_of_preds v ps, lowerboundo_of_preds v ps with
+  | Some (c, k), Some c' -> Some (Ix.ISeq (c' + ((k - ((c' - c) mod k)) mod k), k, Ct.Pos))
+  | _                    -> None
+
+let indexo_of_preds_lowerbound v ps =
+  lowerboundo_of_preds v ps
+  |> Misc.maybe_map (fun c -> Ix.ISeq (c, 1, Ct.Pos))
+
+let indexo_of_preds_iseqb v ps = 
+  None (* TODO *)
 
 let index_of_pred v (cr, p) = 
   let vv  = FI.name_of_varinfo v in
