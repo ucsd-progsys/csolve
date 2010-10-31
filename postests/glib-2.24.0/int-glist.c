@@ -166,17 +166,7 @@ GList* g_list_insert_sorted (GList *list, int data)
     return list;
 }
 
-void test_sorted (GList *hd) {
-    GList *cur = hd;
-
-    while (cur != (GList *) NULL && cur->next != (GList *) NULL) {
-        assert (cur->data <= cur->next->data);
-        if (cur->prev) assert (cur->data >= cur->prev->data);
-        cur = cur->next;
-    }
-
-    return;
-}
+extern void assert_sorted (GList *);
 
 void main () {
     GList *head = NULL;
@@ -186,6 +176,6 @@ void main () {
         default:
             head = g_list_insert_sorted (head, nondet ());
         }
-        test_sorted (head);
+        assert_sorted (head);
     }
 }
