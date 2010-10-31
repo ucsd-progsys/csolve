@@ -272,6 +272,11 @@ end
 let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit = 
   visitCilFile (new usedVarVisitor f) cil
 
+(* API *)
+let iterExprVars (e: Cil.exp) (f: Cil.varinfo -> unit): unit = 
+  visitCilExpr (new usedVarVisitor f) e |> ignore
+
+
 (******************************************************************************)
 (********************** Iterate over Constants ********************************)
 (******************************************************************************)

@@ -231,7 +231,7 @@ let rec reft_of_cilexp vv e =
   | Cil.BinOp (Cil.LOr, _, _, _)
   | Cil.BinOp (Cil.LAnd, _, _, _) -> 
       (* {v = e} *)
-      let e' = Misc.do_catchu (expr_of_cilexp ) e (fun _ -> Errormsg.error "Skolem Error %a \n" Cil.d_exp e)
+      let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
   
   | Cil.BinOp (Cil.Mod, e1, e2, _) -> 

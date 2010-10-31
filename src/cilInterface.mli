@@ -24,7 +24,6 @@
 
 (* This file is part of the liquidC Project.*)
 
-
 val index_of_attrs      : Cil.attributes -> Ctypes.Index.t
 val ctype_of_cilbasetype: Cil.typ -> Ctypes.Index.t Ctypes.prectype
 val expr_of_cilexp      : Cil.exp -> Ast.expr
