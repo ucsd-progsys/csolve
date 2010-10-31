@@ -146,21 +146,24 @@ GList* g_list_insert_sorted (GList *list, int data)
       return list;
     }
 
-  return NULL;
+  if (tmp_list->prev) {
+      // pmr: This whole block is annotation, for which I introduct the notation:
+      // !{
+      // pmr: Fold workaround (can't assume about tmp_list->prev directly)
+      GList *p       = tmp_list->prev;
+      int    a       = assume (p->data < data);
+      p->next        = new_list;
+      new_list->prev = p;
+      // }!
+    }
 
-  // pmr: seems to work down to here...
-/*   if (tmp_list->prev) { */
-/*       tmp_list->prev->next = new_list; */
-/*       new_list->prev = tmp_list->prev; */
-/*     } */
+  new_list->next = tmp_list;
+  tmp_list->prev = new_list;
 
-/*   new_list->next = tmp_list; */
-/*   tmp_list->prev = new_list; */
- 
-/*   if (tmp_list == list) */
-/*     return new_list; */
-/*   else */
-/*     return list; */
+  if (tmp_list == list)
+    return new_list;
+  else
+    return list;
 }
 
 void test_sorted (GList *hd) {
@@ -168,6 +171,7 @@ void test_sorted (GList *hd) {
 
     while (cur != (GList *) NULL && cur->next != (GList *) NULL) {
         assert (cur->data <= cur->next->data);
+        if (cur->prev) assert (cur->data >= cur->prev->data);
         cur = cur->next;
     }
 
