@@ -98,25 +98,19 @@ struct _GList
 /*   return _g_list_remove_link (list, llink); */
 /* } */
 
-/* GList* */
-/* g_list_nth (GList *list, */
-/* 	    int    n) */
-/* { */
-/*   while ((n-- > 0) && list) */
-/*     list = list->next; */
-  
-/*   return list; */
-/* } */
+GList* g_list_nth (GList *list, int n) {
+  while ((n-- > 0) && list)
+    list = list->next;
 
-/* GList* */
-/* g_list_nth_prev (GList *list, */
-/* 		 int    n) */
-/* { */
-/*   while ((n-- > 0) && list) */
-/*     list = list->prev; */
+  return list;
+}
+
+GList* g_list_nth_prev (GList *list, int n) {
+  while ((n-- > 0) && list)
+    list = list->prev;
   
-/*   return list; */
-/* } */
+  return list;
+}
 
 GList* g_list_insert_sorted (GList *list, int data)
 {
@@ -173,8 +167,13 @@ void main () {
 
     while (1) {
         switch (nondet ()) {
-        default:
+        case 0:
             head = g_list_insert_sorted (head, nondet ());
+        case 1:
+            head = g_list_nth (head, nondet ());
+        case 2:
+            head = g_list_nth_prev (head, nondet ());
+        default:
         }
         assert_sorted (head);
     }
