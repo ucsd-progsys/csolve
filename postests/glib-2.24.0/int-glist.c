@@ -13,90 +13,76 @@ struct _GList
   GList *prev;
 };
 
-/* GList* */
-/* g_list_remove (GList	     *list, */
-/* 	       int            data) */
-/* { */
-/*   GList *tmp; */
+GList* g_list_remove (GList *list, int data) {
+  GList *tmp;
   
-/*   tmp = list; */
-/*   while (tmp) */
-/*     { */
-/*       if (tmp->data != data) */
-/* 	tmp = tmp->next; */
-/*       else */
-/* 	{ */
-/* 	  if (tmp->prev) */
-/* 	    tmp->prev->next = tmp->next; */
-/* 	  if (tmp->next) */
-/* 	    tmp->next->prev = tmp->prev; */
+  tmp = list;
+  while (tmp)
+    {
+      if (tmp->data != data)
+	tmp = tmp->next;
+      else
+	{
+	  if (tmp->prev)
+	    tmp->prev->next = tmp->next;
+	  if (tmp->next)
+	    tmp->next->prev = tmp->prev;
 	  
-/* 	  if (list == tmp) */
-/* 	    list = list->next; */
-	  
+	  if (list == tmp)
+	    list = list->next;
+
+          // pmr: wretched polymorphism?
 /* 	  _g_list_free1 (tmp); */
 	  
-/* 	  break; */
-/* 	} */
-/*     } */
-/*   return list; */
-/* } */
+	  break;
+	}
+    }
+  return list;
+}
 
-/* GList* */
-/* g_list_remove_all (GList	*list, */
-/* 		   int           data) */
-/* { */
-/*   GList *tmp = list; */
+GList* g_list_remove_all (GList	*list, int data) {
+  GList *tmp = list;
 
-/*   while (tmp) */
-/*     { */
-/*       if (tmp->data != data) */
-/* 	tmp = tmp->next; */
-/*       else */
-/* 	{ */
-/* 	  GList *next = tmp->next; */
+  while (tmp)
+    {
+      if (tmp->data != data)
+	tmp = tmp->next;
+      else
+	{
+	  GList *next = tmp->next;
 
-/* 	  if (tmp->prev) */
-/* 	    tmp->prev->next = next; */
-/* 	  else */
-/* 	    list = next; */
-/* 	  if (next) */
-/* 	    next->prev = tmp->prev; */
+	  if (tmp->prev)
+	    tmp->prev->next = next;
+	  else
+	    list = next;
+	  if (next)
+	    next->prev = tmp->prev;
 
+          // pmr: ditto polymorphism
 /* 	  _g_list_free1 (tmp); */
-/* 	  tmp = next; */
-/* 	} */
-/*     } */
-/*   return list; */
-/* } */
+	  tmp = next;
+	}
+    }
+  return list;
+}
 
-/* GList* */
-/* _g_list_remove_link (GList *list, */
-/* 		     GList *link) */
-/* { */
-/*   if (link) */
-/*     { */
-/*       if (link->prev) */
-/* 	link->prev->next = link->next; */
-/*       if (link->next) */
-/* 	link->next->prev = link->prev; */
+GList* g_list_remove_link (GList *list, GList *link) {
+  if (link)
+    {
+      if (link->prev)
+	link->prev->next = link->next;
+      if (link->next)
+	link->next->prev = link->prev;
       
-/*       if (link == list) */
-/* 	list = list->next; */
+      if (link == list)
+	list = list->next;
       
-/*       link->next = NULL; */
-/*       link->prev = NULL; */
-/*     } */
+      link->next = NULL;
+      link->prev = NULL;
+    }
   
-/*   return list; */
-/* } */
-
-/* GList* */
-/* g_list_remove_link (GList *list, */
-/* 		    GList *llink) */
-/* { */
-/*   return _g_list_remove_link (list, llink); */
-/* } */
+  return list;
+}
 
 GList* g_list_nth (GList *list, int n) {
   while ((n-- > 0) && list)
@@ -169,10 +155,22 @@ void main () {
         switch (nondet ()) {
         case 0:
             head = g_list_insert_sorted (head, nondet ());
+            break;
         case 1:
             head = g_list_nth (head, nondet ());
+            break;
         case 2:
             head = g_list_nth_prev (head, nondet ());
+            break;
+        case 3:
+            head = g_list_remove (head, nondet ());
+            break;
+        case 4:
+            head = g_list_remove_all (head, nondet ());
+            break;
+        case 5:
+            head = g_list_remove_link (head, g_list_nth (head, nondet ()));
+            break;
         default:
         }
         assert_sorted (head);
