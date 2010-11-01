@@ -199,11 +199,13 @@ let increments_of_code cil =
        | _      -> None
      end
   |> Misc.sort_and_compact 
-  |> List.map (fun i -> Increment i)
+  |> List.map (fun i -> Offset i)
 
 (* API *)
 let scalar_quals_of_file cil =
-  (scalar_consts_of_typedecs cil) ++ (scalar_consts_of_code cil)
+  (  scalar_consts_of_typedecs cil 
+  ++ scalar_consts_of_code cil 
+  ++ increments_of_code cil    )
   |> Misc.sort_and_compact  
   |> preds_of_scalar_consts 
   |> Misc.flap quals_of_pred
