@@ -24,7 +24,9 @@
 (* This file is part of the liquidC Project.*)
 
 module A  = Ast
+
 module CM = CilMisc
+module CI = CilInterface
 module VM = CM.VarMap
 module Sy = A.Symbol
 module Su = A.Subst
@@ -43,7 +45,12 @@ module E  = Errormsg
 
 open Misc.Ops
 
-type scalar_const = Offset of int | UpperBound of int | Period of int 
+type scalar_const = 
+  | Offset      of int 
+  | UpperBound  of int 
+  | Period      of int 
+  | Increment   of int
+
 
 (***************************************************************************)
 (******************** Meta Qualifiers for Scalar Invariants ****************)
@@ -151,7 +158,7 @@ let dump_quals_to_file (fname: string) (qs: Q.t list) : unit =
 let scalar_consts_of_typedecs_stride tdecs =
   tdecs
   |> Misc.map_partial (function (_, t) when Cil.isPointerType t -> Some t | _ -> None)
-  |>: (Cil.unrollType <+> CM.ptrRefType <+> CilMisc.bytesSizeOf)
+  |>: (Cil.unrollType <+> CM.ptrRefType <+> CM.bytesSizeOf)
   |> Misc.sort_and_compact
   |> Misc.flap (fun i -> [Offset i; Period i])
 
@@ -173,14 +180,26 @@ let scalar_consts_of_typedecs cil =
   |> Misc.sort_and_compact
 
 
+
 let scalar_consts_of_code cil =
   let xr = ref [] in
-  let _  = CilMisc.iterConsts cil (fun c -> xr := Cil.Const c :: !xr) in
+  let _  = CM.iterExprs cil (function Cil.Const c -> xr := CI.expr_of_cilcon c :: !xr; false | _ -> true) in
   !xr 
-  |> Misc.sort_and_compact 
-  |> List.map CilInterface.expr_of_cilexp  
   |> Misc.map_partial into_of_expr
+  |> Misc.sort_and_compact 
   |> List.map (fun i -> Offset i)
+
+let increments_of_code cil =
+  let xr = ref [] in
+  let _  = CM.iterExprs cil (function Cil.BinOp (Cil.PlusPI, e, Cil.Const c, _) -> xr := (e, c) :: !xr; false | _ -> true) in
+  !xr 
+  |> Misc.map_partial begin fun (e,c) -> 
+       match c |> CI.expr_of_cilcon |> into_of_expr with 
+       | Some i -> Some (i * (CI.stride_of_cilexp e))
+       | _      -> None
+     end
+  |> Misc.sort_and_compact 
+  |> List.map (fun i -> Increment i)
 
 (* API *)
 let scalar_quals_of_file cil =

@@ -34,15 +34,69 @@ Function Pointers
 	ll0.c
 	ll1.c 
 	ll2.c
-	
+
     >1> modular invariants
 	postests/array2.c
 	negtests/array1.c
-
-    >> HEREHEREHERE
 	postests/test02p.c
 	postests/test03p.c
 	postests/array3.c
+    
+    >> HEREHEREHERE
+	../postests/ll-simple.c, 
+	../postests/make-sorted-list.c, 
+	../postests/globloc.c, 
+	../postests/array-alias-global.c, 
+	../postests/passglobal.c, 
+	../postests/array-finite-global.c, 
+
+	../negtests/loop-unsafe.c, 
+	../negtests/ll2-unsafe.c, 
+	../negtests/ll5-unsafe.c, 
+	../negtests/ll6-unsafe.c, 
+	
+	../negtests/array1.c, 
+
+	../negtests/arraysum-unsafe.c, 
+	../negtests/test00-unsafe.c, 
+	../negtests/test02.c, 
+	
+	../negtests/test03-unsafe.c, 
+	../negtests/test01p-unsafe.c, 
+	../negtests/test02p-unsafe.c, 
+	../negtests/array4-unsafe.c, 
+	../negtests/array3-unsafe.c, 
+	../negtests/array2.c, 
+	../negtests/ll0-unsafe.c, 
+	../negtests/ll1-unsafe.c, 
+	
+	../negtests/uninitmem.c, 
+	../negtests/arraylist2-unsafe.c, 
+	../negtests/strcpybug-full.c, 
+	../negtests/field-unsafe0.c, 
+	../negtests/list_false.c, 
+	../negtests/finalized-path-bad.c, 
+	../negtests/arraylist-unsafe.c, 
+	../negtests/unfold_and_finalize.c, 
+	../negtests/field-unsafe.c, 
+	../negtests/arraylist3-unsafe.c, 
+	../negtests/sorted-two-list.c, 
+	../negtests/abstract-finalization.c, 
+	../negtests/make-sorted-list.c, 
+	../negtests/unimpop.c, 
+	../negtests/accidental-subtyping.c, 
+	../negtests/write_bogus_ref.c, 
+	../negtests/strcpybug.c
+
+	../postests/funptr0.c, 
+	../postests/full_adpcm.sh, 
+	../postests/power.c, 
+	../postests/cacm.sh, 
+	../postests/glib-2.24.0/int-gslist.c, 
+	
+
+
+
 	postests/join.c
 
     >2> extend type system to include "upper bounds" i.e. 

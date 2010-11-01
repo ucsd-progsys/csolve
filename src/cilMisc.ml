@@ -276,7 +276,24 @@ let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit =
 let iterExprVars (e: Cil.exp) (f: Cil.varinfo -> unit): unit = 
   visitCilExpr (new usedVarVisitor f) e |> ignore
 
+(******************************************************************************)
+(********************** Iterate over Expressions ******************************)
+(******************************************************************************)
 
+class exprVisitor f = object(self)
+  inherit nopCilVisitor
+  method vexpr e = if f e then DoChildren else SkipChildren
+end
+
+(* API 
+let iterConsts cil f = 
+  visitCilFile (new exprVisitor (function Const c -> f c; false | _ -> true)) cil
+*)
+
+(* API *)
+let iterExprs = fun cil f -> visitCilFile (new exprVisitor f) cil
+
+(*
 (******************************************************************************)
 (********************** Iterate over Constants ********************************)
 (******************************************************************************)
@@ -292,6 +309,8 @@ end
 
 (* API *)
 let iterConsts cil f = visitCilFile (new constVisitor f) cil 
+
+*)
 
 (******************************************************************************)
 (************************** Callgraph Construction ****************************)

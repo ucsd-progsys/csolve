@@ -56,7 +56,8 @@ let ctype_of_cilbasetype = function
 (********************* Constants ********************************)
 (****************************************************************)
 
-let exp_of_cilcon = function
+(* API *)
+let expr_of_cilcon = function
   | Cil.CInt64 (i, _, _) -> 
       A.eCon (A.Constant.Int (Int64.to_int i))
   | Cil.CChr c ->
@@ -133,10 +134,15 @@ let expr_of_lval ((lh, _) as lv) = match lh with
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
       assertf "TBD: CilInterface.expr_of_lval"
 
+      
+(* API *)
+let stride_of_cilexp = Cil.typeOf <+> Cil.unrollType <+> CilMisc.ptrRefType <+> CilMisc.bytesSizeOf
+
+
 (* convert_cilexp : (unit -> expr) -> Cil.exp -> exp_or_pred *)
 let rec convert_cilexp  = function
   | Cil.Const c -> 
-      E (exp_of_cilcon c) 
+      E (expr_of_cilcon c) 
   | Cil.SizeOf t ->
       E (A.eCon (A.Constant.Int (CilMisc.bytesSizeOf t)))
   | Cil.Lval lv -> 
@@ -165,7 +171,7 @@ and convert_cilbinexp (op, e1, e2) =
       E (A.eBin (e1', op', e2'))
   | Bpop pop ->
       let e1', e2' = convert_args (e1, e2) in
-      let stride   = Cil.typeOf e1 |> Cil.unrollType |> CilMisc.ptrRefType |> CilMisc.bytesSizeOf in
+      let stride   = stride_of_cilexp e1 in
       E (A.eBin (e1', pop,  A.eTim (A.eInt stride, e2'))) (* A.eBin (A.eCon (A.Constant.Int stride), A.Times, e2'))) *)
   | Brl rel' ->
       let e1', e2' = convert_args (e1, e2) in
@@ -175,6 +181,7 @@ and convert_cilbinexp (op, e1, e2) =
       P (f [p1'; p2'])
   | Bunimpl ->
       E (A.bot)
+
 
 (* API *)
 and pred_of_cilexp e = 
