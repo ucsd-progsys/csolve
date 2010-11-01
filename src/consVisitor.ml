@@ -323,10 +323,14 @@ let scalarcons_of_instr me i grd (j, env) instr =
   match instr with
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e ->
-      let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
       FI.t_exp_scalar v e 
+      |> scalarcons_of_binding me loc tag (j, env) grd j v 
+
+  | Set ((Var v, NoOffset), _, _) 
+    when (not v.Cil.vglob)  ->
+      FI.t_true Ct.scalar_ctype
       |> scalarcons_of_binding me loc tag (j, env) grd j v
- 
+      
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
       env |> (FI.ce_find_fn fv.Cil.vname <+> FI.ret_of_refcfun <+> FI.ctype_of_refctype <+> FI.t_scalar) 
           |> scalarcons_of_binding me loc tag (j, env) grd j v 

@@ -40,9 +40,6 @@ Function Pointers
 	negtests/array1.c
 
     >> HEREHEREHERE
-
-	postests/array4.c
-	
 	postests/test02p.c
 	postests/test03p.c
 	postests/array3.c
