@@ -541,6 +541,7 @@ let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype
 let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
+
 (* convert {v : ct | p } into refctype *)
 let t_pred ct v p = 
   let so = sort_of_prectype ct in
@@ -644,6 +645,13 @@ let t_scalar = function
   | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
   | Ct.Int (_,ix)        -> t_scalar_index ix 
   | _                    -> t_true Ct.scalar_ctype
+
+let t_scalar_refctype rct = 
+  let r   = reft_of_refctype rct in
+  let vv  = C.vv_of_reft r in
+  let vv' = Ct.scalar_ctype |> sort_of_prectype |> Sy.value_variable in 
+  let r'  = C.theta (Su.of_list [vv, A.eVar vv']) r in
+  refctype_of_reft_ctype r' Ct.scalar_ctype 
 
 let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) in

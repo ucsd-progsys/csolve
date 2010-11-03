@@ -179,7 +179,7 @@ let create cil (spec: FI.refspec) =
   let _      = E.log "\nDONE: SPEC rename \n" in
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
-  let gnv0   = mk_gnv id spec decs cnv0 in
+  let gnv0   = mk_gnv FI.t_scalar_refctype spec decs cnv0 in
   (* RJ: Scalar.* will be hoisted here after it is done, should not depend on shm *)
   let shm    = shapem_of_scim cil spec scim in
   let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (FI.ctype_of_refctype <+> FI.t_fresh) spec decs in
