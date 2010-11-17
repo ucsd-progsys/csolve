@@ -31,14 +31,15 @@ char * ARRAY pool_allocate (allocator_state *state, free_pool *p) {
     char *mem = (char *) malloc (p->size * ALLOC_COUNT);
     region *r = NULL;
     for (int i = 0; i < ALLOC_COUNT; i++) {
-        p->free = r;
         r       = (region *) malloc (sizeof (region));
         r->size = p->size;
         r->mem  = mem;
         r->next = p->free;
+        p->free = r;
         mem    += p->size;
     }
 
+    int a = assume (r != NULL);
     r->next          = state->allocated;
     state->allocated = r;
 
@@ -75,7 +76,9 @@ void dealloc (allocator_state *state, char * ARRAY mem) {
     if (prev != NULL) prev->next = r->next;
 
     free_pool *p;
-    for (p = state->free; p->size != r->size; p = p->next) ;
+    for (p = state->free; p != NULL && p->size != r->size; p = p->next) ;
+
+    if (p == NULL) return;
 
     r->next = p->free;
     p->free = r;
