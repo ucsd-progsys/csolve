@@ -1,7 +1,8 @@
 extern void *malloc (int);
 
+// elim allocated list, inline struct, etc.
+
 #define NULL        0
-#define ALLOC_COUNT 10
 #define ARRAY       __attribute__ ((__array__))
 
 struct region_struct {
@@ -20,86 +21,70 @@ struct pool_struct {
 
 typedef struct pool_struct free_pool;
 
-typedef struct {
-    free_pool *free;
-    region    *allocated;
-} allocator_state;
-
-char * ARRAY pool_allocate (allocator_state *state, free_pool *p) {
+char * ARRAY pool_allocate (free_pool *freelist, free_pool *p) {
     if (p->free) return p->free->mem;
 
-    char *mem = (char *) malloc (p->size * ALLOC_COUNT);
-    region *r = NULL;
-    for (int i = 0; i < ALLOC_COUNT; i++) {
-        r       = (region *) malloc (sizeof (region));
-        r->size = p->size;
-        r->mem  = mem;
-        r->next = p->free;
-        p->free = r;
-        mem    += p->size;
-    }
+    // change to sbrk; inline the struct
+    char *mem        = (char *) malloc (p->size);
+    region *r        = (region *) malloc (sizeof (region));
+    r->size          = p->size;
+    r->mem           = mem;
+    r->next          = NULL;
 
-    int a = assume (r != NULL);
-    r->next          = state->allocated;
-    state->allocated = r;
+    for (int i = 0; i < p->size; i++) {
+        *mem = 0;
+        mem++;
+    }
 
     return r->mem;
 }
 
-char * ARRAY alloc (allocator_state *state, int size) {
+char * ARRAY alloc (free_pool *freelist, int size) {
     if (size <= 0) return NULL;
 
     free_pool *p;
-    for (p = state->free; p->size < size && p->next != NULL; p = p->next) ;
+    for (p = freelist; p->size < size && p->next != NULL; p = p->next) ;
 
     // p->size >= size || p->next == NULL
-    if (p->size >= size) return pool_allocate (state, p);
+    if (p->size >= size) return pool_allocate (freelist, p);
 
     // p->next == NULL
+    // change to sbrk
     free_pool *np = (free_pool *) malloc (sizeof (free_pool));
     np->size      = 2 * p->size;
     np->free      = NULL;
     np->next      = NULL;
     p->next       = np;
 
-    return pool_allocate (state, np);
+    return pool_allocate (freelist, np);
 }
 
-void dealloc (allocator_state *state, char * ARRAY mem) {
-    if (mem == NULL) return;
+/* void dealloc (free_pool *freelist, char * ARRAY mem) { */
+/*     if (mem == NULL) return; */
 
-    region *r, *prev = NULL;
-    for (r = state->allocated; r != mem && r != NULL; r = r->next, prev = r) ;
+/*     region *r = (region *) ((int *) mem) - 1; */
 
-    if (r == NULL) return;
+/*     free_pool *p; */
+/*     for (p = freelist; p != NULL && p->size != r->size; p = p->next) ; */
 
-    if (prev != NULL) prev->next = r->next;
+/*     if (p == NULL) return; */
 
-    free_pool *p;
-    for (p = state->free; p != NULL && p->size != r->size; p = p->next) ;
-
-    if (p == NULL) return;
-
-    r->next = p->free;
-    p->free = r;
-}
+/*     r->next = p->free; */
+/*     p->free = r; */
+/* } */
 
 void main () {
-    free_pool *p = (free_pool *) malloc (sizeof (free_pool));
-    p->size      = 1024;
-    p->free      = NULL;
-    p->next      = NULL;
+    free_pool *fl = (free_pool *) malloc (sizeof (free_pool));
+    fl->size      = 1024;
+    fl->free      = NULL;
+    fl->next      = NULL;
 
-    allocator_state *state = (allocator_state *) malloc (sizeof (allocator_state));
-    state->allocated       = NULL;
-    state->free            = p;
-
-    char *m = NULL;
+    void *m = NULL;
     while (1) {
         if (nondet ()) {
-            m = alloc (state, nondet ());
+            m = alloc (fl, nondet ());
         } else {
-            dealloc (state, m);
+            /* dealloc (fl, m); */
             m = NULL;
         }
     }
