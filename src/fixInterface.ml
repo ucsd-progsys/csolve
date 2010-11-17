@@ -834,6 +834,11 @@ let expr_derefs_wf cf cenv sto e =
                 | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cf cenv sto p n
                 | _                                 -> assert false
               end
+          | A.Bin (e1, A.Minus, e2) ->
+              begin match E.unwrap e1, E.unwrap e2 with
+                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cf cenv sto p (-n)
+                | _                                 -> assert false
+              end
           | _ -> assert false
         end
     | _ -> true
