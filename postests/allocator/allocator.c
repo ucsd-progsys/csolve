@@ -58,12 +58,12 @@ char *alloc (free_pool *freelist, int size) {
 void dealloc (free_pool *freelist, char *mem) {
     if (mem == NULL) return;
 
-    region *r = (region *) mem - 1;
-
-    free_pool *p;
-    for (p = freelist; p != NULL && p->size != r->size; p = p->next) ;
-
-    if (p == NULL) return;
+    region *r    = (region *) mem - 1;
+    free_pool *p = freelist;
+    while (p->size != r->size) {
+        p = p->next;
+        if (p == NULL) return;
+    }
 
     r->next = p->free;
     p->free = r;

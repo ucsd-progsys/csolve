@@ -1,4 +1,5 @@
 qualif NN   (v : int) : v >= 0
+qualif NNL  (v : ptr) : v != 0
 qualif M8   (v : ptr) : (v != 0) -> (BLOCK_BEGIN([v]) > 0)
 qualif P8   (v : ptr) : (v != 0) -> (v = (BLOCK_BEGIN([v]) + 8))
 qualif BSZ  (v : ptr) : (v != 0) -> (BLOCK_END([v]) = (v + (DEREF([v - 4]): int)))
