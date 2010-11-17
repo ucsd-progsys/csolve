@@ -18,8 +18,7 @@ struct pool_struct {
 typedef struct pool_struct free_pool;
 
 char *pool_alloc (free_pool *freelist, free_pool *p) {
-    // pmr : HEREHERE
-    /* if (p->free) return &p->free->mem; */
+    if (p->free) return &p->free->mem;
 
     // change to sbrk
     region *r = (region *) malloc (sizeof (region) + p->size);
