@@ -64,12 +64,12 @@ let process_annot na = function
   | RA.New _ | RA.Ins _                -> na
 
 let process_set ctx na = function
-    | C.Mem _, e ->
-        begin match CT.ExpMap.find e ctx.ctem |> CT.CType.sloc with
-          | Some s -> NASet.filter (fun (_, s2) -> not (S.eq s s2)) na
-          | None   -> na
-        end
-    | _ -> na
+  | C.Mem _, e when not (C.isConstant e) ->
+    begin match CT.ExpMap.find e ctx.ctem |> CT.CType.sloc with
+      | Some s -> NASet.filter (fun (_, s2) -> not (S.eq s s2)) na
+      | None   -> na
+    end
+  | _ -> na
 
 let process_instr ctx (nas, na) annot instr =
   let na = List.fold_left process_annot na annot in
