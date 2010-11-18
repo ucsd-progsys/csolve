@@ -20,7 +20,12 @@ struct pool_struct {
 typedef struct pool_struct free_pool;
 
 char *pool_alloc (free_pool *p) {
-    if (p->free) return &p->free->mem;
+    if (p->free) {
+        region *r = p->free;
+        p->free   = r->next;
+
+        return &r->mem;
+    }
 
     region *r = (region *) malloc (sizeof (region) + p->size);
     r->next   = NULL;
