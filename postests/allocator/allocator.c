@@ -84,8 +84,10 @@ void main () {
         for (free_pool *p = fl; p != NULL; p = p->next) {
             if (p->next != NULL) assert (p->size < p->next->size);
 
+            if (p->free != NULL) assert (p->free->size == p->size);
             for (region *r = p->free; r != NULL; r = r->next) {
-                /* assert (r->size == p->size); */
+                if (r->next != NULL) assert (r->size == r->next->size);
+                /* validptr (&r->mem[r->size - 1]); */
             }
         }
     }
