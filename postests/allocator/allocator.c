@@ -19,6 +19,11 @@ struct pool_struct {
 
 typedef struct pool_struct free_pool;
 
+void init (int size, char *m) {
+    for (int i = 0; i < size; i++)
+        m[i] = 0;
+}
+
 char *pool_alloc (free_pool *p) {
     if (p->free) {
         region *r = p->free;
@@ -30,9 +35,7 @@ char *pool_alloc (free_pool *p) {
     region *r = (region *) malloc (sizeof (region) + p->size);
     r->next   = NULL;
     r->size   = p->size;
-
-    for (int i = 0; i < p->size; i++)
-        r->mem[i] = 0;
+    init (r->size, r->mem);
 
     return &r->mem;
 }
@@ -62,6 +65,8 @@ void dealloc (free_pool *freelist, char *mem) {
     if (mem == NULL) return;
 
     region *r    = (region *) mem - 1;
+    init (r->size, r->mem);
+
     free_pool *p = freelist;
     while (p->size != r->size) {
         p = p->next;

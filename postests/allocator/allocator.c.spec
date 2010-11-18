@@ -1,3 +1,10 @@
+init :: forall    [A8]
+              arg       (size : int (4, true), m : ref(A8, 8[1]))
+              ret       int(0, 0)
+              store     [A8 |-> 0: int(4, 0{1}),
+                                4: ref(A8, 0),
+                                8[1]: int(1, 0{1})]
+
 pool_alloc :: forall    [A10;A9]
                  arg       (p : ref(A9, 0))
                  ret       ref(A10, 8)
