@@ -1,9 +1,11 @@
 extern void *malloc (int);
+// ;)
+#define sbrk malloc
 #define NULL 0
 
 struct region_struct {
-    struct region_struct *next;
     int                   size;
+    struct region_struct *next;
     char                  mem[0];
 };
 
@@ -17,11 +19,10 @@ struct pool_struct {
 
 typedef struct pool_struct free_pool;
 
-char *pool_alloc (free_pool *freelist, free_pool *p) {
+char *pool_alloc (free_pool *p) {
     if (p->free) return &p->free->mem;
 
-    // change to sbrk
-    region *r = (region *) malloc (sizeof (region) + p->size);
+    region *r = (region *) sbrk (sizeof (region) + p->size);
     r->next   = NULL;
     r->size   = p->size;
 
@@ -41,17 +42,16 @@ char *alloc (free_pool *freelist, int size) {
     for (p = freelist; p->size < size && p->next != NULL; p = p->next) ;
 
     // p->size >= size || p->next == NULL
-    if (p->size >= size) return pool_alloc (freelist, p);
+    if (p->size >= size) return pool_alloc (p);
 
     // p->next == NULL
-    // change to sbrk
-    free_pool *np = (free_pool *) malloc (sizeof (free_pool));
+    free_pool *np = (free_pool *) sbrk (sizeof (free_pool));
     np->size      = 2 * p->size;
     np->free      = NULL;
     np->next      = NULL;
     p->next       = np;
 
-    return pool_alloc (freelist, np);
+    return pool_alloc (np);
 }
 
 void dealloc (free_pool *freelist, char *mem) {
@@ -69,7 +69,7 @@ void dealloc (free_pool *freelist, char *mem) {
 }
 
 void main () {
-    free_pool *fl = (free_pool *) malloc (sizeof (free_pool));
+    free_pool *fl = (free_pool *) sbrk (sizeof (free_pool));
     fl->size      = 1024;
     fl->free      = NULL;
     fl->next      = NULL;
@@ -81,6 +81,13 @@ void main () {
         } else {
             dealloc (fl, m);
             m = NULL;
+        }
+
+        for (free_pool *p = fl; p != NULL; p = p->next) {
+            if (p->next != NULL) assert (p->size < p->next->size);
+            
+            for (region *r = p->free; r != NULL; r = r->next)
+                assert (r->size == p->size);
         }
     }
 }

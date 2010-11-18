@@ -1,10 +1,9 @@
-qualif NN   (v : int) : v >= 0
+qualif NN   (v : int) : v > 0
 qualif NNL  (v : ptr) : v != 0
-qualif M8   (v : ptr) : (v != 0) -> (BLOCK_BEGIN([v]) > 0)
 qualif P8   (v : ptr) : (v != 0) -> (v = (BLOCK_BEGIN([v]) + 8))
-qualif BSZ  (v : ptr) : (v != 0) -> (BLOCK_END([v]) = (v + (DEREF([v - 4]): int)))
-// relate size to pool size
-// relate sizes to each other (may be ok with one qual for these two, actually)
+qualif BSZ  (v : ptr) : (v != 0) -> (BLOCK_END([v]) = (v + (DEREF([v - 8]): int)))
+qualif BSZ  (v : ptr) : (v != 0) -> ((DEREF([v]): int) = ~A)
+qualif NXT  (v : ptr) : (v != 0) -> (~A < (DEREF([v]): int))
 
 // Common?
 qualif SZ12 (v : ptr) : (v != 0) -> (BLOCK_END([v])) = (BLOCK_BEGIN([v]) + 12)
