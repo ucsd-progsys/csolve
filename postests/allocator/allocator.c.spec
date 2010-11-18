@@ -29,3 +29,13 @@ dealloc :: forall    [A10;A9]
                       A10 |-> 4: ref(A10, 0),
                               0: int(4, 0{1}),
                               8[1]: int(1, 0{1})]
+
+check_invariants :: forall    [A10;A9]
+                 arg       (fl : ref(A9, 0))
+                 ret       int(0, true)
+                 store     [A9 |-> 0: int(4, 0{1}),
+                                   4: ref(A10, 0),
+                                   8: ref(A9, 0);
+                            A10 |-> 4: ref(A10, 0),
+                                    0: int(4, 0{1}),
+                                    8[1]: int(1, 0{1})]

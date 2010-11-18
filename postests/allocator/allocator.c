@@ -67,6 +67,18 @@ void dealloc (free_pool *freelist, char *mem) {
     p->free = r;
 }
 
+void check_invariants (free_pool *fl) {
+    for (free_pool *p = fl; p != NULL; p = p->next) {
+        if (p->next != NULL) assert (p->size < p->next->size);
+        if (p->free != NULL) assert (p->free->size == p->size);
+        for (region *r = p->free; r != NULL; r = r->next) {
+            if (r->next != NULL) assert (r->size == r->next->size);
+            // validptr kills finality because we don't know what effect it may have
+            r->mem[r->size - 1] = 0;
+        }
+    }
+}
+
 void main () {
     free_pool *fl = (free_pool *) sbrk (sizeof (free_pool));
     fl->size      = 1024;
@@ -81,14 +93,6 @@ void main () {
             dealloc (fl, m);
         }
 
-        for (free_pool *p = fl; p != NULL; p = p->next) {
-            if (p->next != NULL) assert (p->size < p->next->size);
-
-            if (p->free != NULL) assert (p->free->size == p->size);
-            for (region *r = p->free; r != NULL; r = r->next) {
-                if (r->next != NULL) assert (r->size == r->next->size);
-                /* validptr (&r->mem[r->size - 1]); */
-            }
-        }
+        check_invariants (fl);
     }
 }
