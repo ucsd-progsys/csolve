@@ -22,15 +22,12 @@ typedef struct pool_struct free_pool;
 char *pool_alloc (free_pool *p) {
     if (p->free) return &p->free->mem;
 
-    region *r = (region *) sbrk (sizeof (region) + p->size);
+    region *r = (region *) malloc (sizeof (region) + p->size);
     r->next   = NULL;
     r->size   = p->size;
 
-    char *mem = &r->mem;
-    for (int i = 0; i < p->size; i++) {
-        *mem = 0;
-        mem++;
-    }
+    for (int i = 0; i < p->size; i++)
+        r->mem[i] = 0;
 
     return &r->mem;
 }
@@ -39,7 +36,9 @@ char *alloc (free_pool *freelist, int size) {
     if (size <= 0) return NULL;
 
     free_pool *p;
-    for (p = freelist; p->size < size && p->next != NULL; p = p->next) ;
+    for (p = freelist;
+         p->size < size && p->next != NULL;
+         p = p->next) ;
 
     // p->size >= size || p->next == NULL
     if (p->size >= size) return pool_alloc (p);
@@ -80,17 +79,13 @@ void main () {
             m = alloc (fl, nondet ());
         } else {
             dealloc (fl, m);
-            m = NULL;
         }
 
         for (free_pool *p = fl; p != NULL; p = p->next) {
             if (p->next != NULL) assert (p->size < p->next->size);
-            
+
             for (region *r = p->free; r != NULL; r = r->next) {
-                assert (r->size == p->size);
-                // This is probably bad.
-                assert (0);
-                int a = r->mem[r->size];
+                /* assert (r->size == p->size); */
             }
         }
     }
