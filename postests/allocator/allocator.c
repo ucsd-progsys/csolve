@@ -86,8 +86,12 @@ void main () {
         for (free_pool *p = fl; p != NULL; p = p->next) {
             if (p->next != NULL) assert (p->size < p->next->size);
             
-            for (region *r = p->free; r != NULL; r = r->next)
+            for (region *r = p->free; r != NULL; r = r->next) {
                 assert (r->size == p->size);
+                // This is probably bad.
+                assert (0);
+                int a = r->mem[r->size];
+            }
         }
     }
 }
