@@ -131,7 +131,7 @@ GList* g_list_insert_sorted (GList *list, int data)
       // !{
       // pmr: Fold workaround (can't assume about tmp_list->prev directly)
       GList *p       = tmp_list->prev;
-      int    a       = assume (p->data < data);
+      int    a       = assume (p->data <= data);
       p->next        = new_list;
       new_list->prev = p;
       // }!
