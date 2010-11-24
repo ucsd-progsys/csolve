@@ -20,8 +20,15 @@ struct pool_struct {
 typedef struct pool_struct free_pool;
 
 void init (int size, char *m) {
-    for (int i = 0; i < size; i++)
-        m[i] = 0;
+    while (size--) *m++ = 0;
+}
+
+char *new_region (int size) {
+    region *r = (region *) malloc (sizeof (region) + size);
+    r->next   = NULL;
+    r->size   = size;
+    init (size, r->mem);
+    return &r->mem;
 }
 
 char *pool_alloc (free_pool *p) {
@@ -32,12 +39,7 @@ char *pool_alloc (free_pool *p) {
         return &r->mem;
     }
 
-    region *r = (region *) malloc (sizeof (region) + p->size);
-    r->next   = NULL;
-    r->size   = p->size;
-    init (r->size, r->mem);
-
-    return &r->mem;
+    return new_region (p->size);
 }
 
 char *alloc (free_pool *freelist, int size) {

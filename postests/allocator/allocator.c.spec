@@ -5,6 +5,13 @@ init :: forall    [A8]
                                 4: ref(A8, 0),
                                 8[1]: int(1, 0{1})]
 
+new_region :: forall    [A8]
+              arg       (size : int (4, true))
+              ret       ref(A8, 8)
+              store     [A8 |-> 0: int(4, 0{1}),
+                                4: ref(A8, 0),
+                                8[1]: int(1, 0{1})]
+
 pool_alloc :: forall    [A10;A9]
                  arg       (p : ref(A9, 0))
                  ret       ref(A10, 8)
