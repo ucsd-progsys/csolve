@@ -23,6 +23,8 @@
 
 (* This file is part of the liquidC Project.*)
 
-type funmap = (Ctypes.cfun * Ssa_transform.ssaCfgInfo) Misc.StringMap.t
-
-val infer_shapes: Cil.file -> Ctypes.cspec -> funmap -> Shape.t Misc.StringMap.t
+val infer_shapes: 
+  Cil.file -> 
+  Ctypes.cspec -> 
+  (Ctypes.cfun * Ssa_transform.ssaCfgInfo * 'a) Misc.StringMap.t -> 
+  Shape.t Misc.StringMap.t

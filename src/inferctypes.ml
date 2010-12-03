@@ -642,8 +642,18 @@ let assert_no_physical_subtyping fe cfg anna store gst =
           S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
     exit 1
 
-let infer_shape fe ve gst scim cf sci =
-  let ve, bdcks           = sci |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf |> M.app_fst fresh_local_slocs in
+let get_ve_bdcks fe ve scim cf sci vm = 
+  if false then
+    sci 
+    |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf 
+    |> M.app_fst fresh_local_slocs
+  else
+    ( vm 
+    , Array.create (Array.length sci.ST.cfg.Ssa.blocks) []
+    )
+
+let infer_shape fe ve gst scim (cf, sci, vm) =
+  let ve, bdcks           = get_ve_bdcks fe ve scim cf sci vm in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = Store.upd cf.sto_out gst in
   let scs                 = Store.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
@@ -702,8 +712,6 @@ let print_shapes spec shpm =
     if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
       SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
-type funmap = (cfun * Ssa_transform.ssaCfgInfo) SM.t
-
 (* API *)
 let infer_shapes cil spec scis =
   let ve = C.foldGlobals cil begin fun ve -> function
@@ -719,8 +727,8 @@ let infer_shapes cil spec scis =
   let fe = declared_funs cil
         |> List.map (fun f -> (f, CSpec.get_fun f.C.vname spec |> fst))
         |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
-  let scim = SM.fold (fun _ (_, sci) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
-       scis
-    |> SM.map (infer_shape fe ve (CSpec.store spec) scim |> M.uncurry)
+  let scim = SM.fold (fun _ (_, sci, _) scim -> VM.add sci.ST.fdec.C.svar sci scim) scis VM.empty in
+    scis
+    |> SM.map (infer_shape fe ve (CSpec.store spec) scim)
     |> FinalFields.infer_final_fields spec scis
     >> print_shapes spec

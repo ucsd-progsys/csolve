@@ -639,4 +639,4 @@ let infer_fun_indices ctenv ve scim cf sci =
   let bdsubs = Array.create (Array.length sci.ST.cfg.Ssa.blocks) [] in
   let ve, cs = constrain_fun fe ve (ifunvar_of_cfun cf) sci bdsubs in
   let is     = solve cs in
-    (VM.map (itypevar_apply is) ve, get_blocks_dchecks is bdsubs)
+  (VM.map (itypevar_apply is) ve, get_blocks_dchecks is bdsubs)

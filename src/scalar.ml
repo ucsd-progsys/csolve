@@ -179,8 +179,6 @@ let scalar_consts_of_typedecs cil =
   |> (fun tdecs -> scalar_consts_of_typedecs_genspec tdecs ++ scalar_consts_of_typedecs_stride tdecs)
   |> Misc.sort_and_compact
 
-
-
 let scalar_consts_of_code cil =
   let xr = ref [] in
   let _  = CM.iterExprs cil (function Cil.Const c -> xr := CI.expr_of_cilcon c :: !xr; false | _ -> true) in
@@ -319,6 +317,24 @@ let close scim spec sim =
   end sim
 
 (***************************************************************************)
+(************************ Inject into Ctype ********************************)
+(***************************************************************************)
+
+let ctype_of_ciltype_index v ix =
+  let _ = C.currentLoc := v.Cil.vdecl in
+  let t = C.unrollType v.Cil.vtype in
+  match t with
+  | Cil.TInt (ik, _)        -> Int (C.bytesSizeOfInt ik, ix)
+  | Cil.TEnum (ei, _)       -> Int (C.bytesSizeOfInt ei.Cil.ekind, ix)
+  | Cil.TFloat _            -> Int (CM.typ_width t, ix)
+  | Cil.TVoid _             -> void_ctype
+  | Cil.TPtr (C.TFun _ , _) -> Top ix
+  | Cil.TPtr _ | C.TArray _ -> Ref (Sloc.none, ix)
+  | _  when !Constants.safe -> C.error "Scalar.ctype_of_ciltype_index %s" v.C.vname
+  | _                       -> (C.warn "Scalar.ctype_of_ciltype_index %s of tricky type %a@!@!" 
+                                v.C.vname C.d_type t; Top ix)
+
+(***************************************************************************)
 (*********************************** API ***********************************)
 (***************************************************************************)
 
@@ -328,6 +344,7 @@ let scalarinv_of_scim cil spec tgr gnv scim =
   |> generate tgr gnv 
   |> solve cil
   |> close scim spec
+  |> SM.map (VM.mapi ctype_of_var_index)
   >> FI.annot_clear
 
 (***************************************************************************)
@@ -365,7 +382,8 @@ let check_scalar uvm shm sim =
         let ix = index_of_ctype ct in
         if ix = Ix.IBot then errs else
         if (not (VM.mem v im)) then (MissingVar (fn, v, ix) :: errs) else
-          let ix'  = VM.find v im in
+          let ct'  = VM.find v im in
+          let ix'  = index_of_ctype ct in
           if check_index oc fn v ix ix' then errs else (DiffIndex (fn, v, ix, ix')) ::errs
       end errs vcts 
    end shm [])
