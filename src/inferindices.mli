@@ -21,8 +21,7 @@
  *
  *)
 
-type indextyping = (Ctypes.cfun * Ctypes.ctype CilMisc.VarMap.t) CilMisc.VarMap.t
-
+type indextyping   = (Ctypes.cfun * Ctypes.ctype CilMisc.VarMap.t) CilMisc.VarMap.t
 type dcheck        = Cil.varinfo * FixInterface.refctype
 type block_dchecks = dcheck list list
 

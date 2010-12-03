@@ -26,5 +26,5 @@
 val infer_shapes: 
   Cil.file -> 
   Ctypes.cspec -> 
-  (Ctypes.cfun * Ssa_transform.ssaCfgInfo * 'a) Misc.StringMap.t -> 
+  (Ctypes.cfun * Ssa_transform.ssaCfgInfo * Ctypes.ctype CilMisc.VarMap.t) Misc.StringMap.t -> 
   Shape.t Misc.StringMap.t

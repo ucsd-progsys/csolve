@@ -46,18 +46,19 @@ let mydebug = false
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim cil spec scim =
+let shapem_of_scim cil spec scim vim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = FI.cfun_of_refcfun rf in
-       if SM.mem fn scim
-       then (bm, (SM.add fn (cf, SM.find fn scim) fm))
+       if SM.mem fn scim then
+         let _ = asserts (SM.mem fn vim) "shapem_of_scim" in
+         (bm, (SM.add fn (cf, SM.find fn scim, SM.find fn vim) fm))
        else (SM.add fn cf bm, fm)
      end (CS.funspec spec)
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
   |> snd 
-  |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec)
+  |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec) 
 
 (* TBD: UGLY *)
 let mk_gnv f spec decs cenv =
@@ -180,11 +181,12 @@ let create cil (spec: FI.refspec) =
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec decs cnv0 in
-  (* RJ: Scalar.* will be hoisted here after it is done, should not depend on shm *)
-  let shm    = shapem_of_scim cil spec scim in
+  let vim    = if !Cs.scalar 
+               then Scalar.scalarinv_of_scim cil spec tgr gnv0 scim 
+               else SM.map (fun _ -> CilMisc.VarMap.empty) scim in
+  let shm    = shapem_of_scim cil spec scim vim in
   let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (FI.ctype_of_refctype <+> FI.t_fresh) spec decs in
-    
-  let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in
+  (* let _      = if !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in *)
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

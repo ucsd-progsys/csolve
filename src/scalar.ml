@@ -59,7 +59,7 @@ type scalar_const =
 let into_of_expr = function A.Con (A.Constant.Int i), _  -> Some i | _ -> None
 
 let index_of_ctype ct =
-  match Ctypes.I.CType.refinements_of_t ct with
+  match Ct.I.CType.refinements_of_t ct with
   | [ix] -> ix
   | _    -> assertf "Scalar.index_of_ctype"
 
@@ -170,7 +170,7 @@ let scalar_consts_of_index = function
 let scalar_consts_of_typedecs_genspec tdecs =
   tdecs
   |> Misc.map (Misc.uncurry Genspec.spec_of_type)
-  |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ctypes.I.Store.indices_of_t st)
+  |> Misc.flap (fun (ct, st) -> [index_of_ctype ct] ++ Ct.I.Store.indices_of_t st)
   |> Misc.flap scalar_consts_of_index
 
 let scalar_consts_of_typedecs cil = 
@@ -290,9 +290,9 @@ let solve cil ci =
 
 let ix_binds_of_spec spec fn : (string * Ix.t) list =
   spec |> FI.cspec_of_refspec 
-       |> Ctypes.I.Spec.get_fun fn
+       |> Ct.I.Spec.get_fun fn
        |> fst
-       |> (fun x -> x.Ctypes.args) 
+       |> (fun x -> x.Ct.args) 
        |> List.map (Misc.app_snd (index_of_ctype))
  
 let close_formals args (formals : Cil.varinfo list) : Ix.t VM.t -> Ix.t VM.t = 
@@ -320,19 +320,19 @@ let close scim spec sim =
 (************************ Inject into Ctype ********************************)
 (***************************************************************************)
 
-let ctype_of_ciltype_index v ix =
-  let _ = C.currentLoc := v.Cil.vdecl in
-  let t = C.unrollType v.Cil.vtype in
+let ctype_of_var_index v ix =
+  let _ = Cil.currentLoc := v.Cil.vdecl in
+  let t = Cil.unrollType v.Cil.vtype in
   match t with
-  | Cil.TInt (ik, _)        -> Int (C.bytesSizeOfInt ik, ix)
-  | Cil.TEnum (ei, _)       -> Int (C.bytesSizeOfInt ei.Cil.ekind, ix)
-  | Cil.TFloat _            -> Int (CM.typ_width t, ix)
-  | Cil.TVoid _             -> void_ctype
-  | Cil.TPtr (C.TFun _ , _) -> Top ix
-  | Cil.TPtr _ | C.TArray _ -> Ref (Sloc.none, ix)
-  | _  when !Constants.safe -> C.error "Scalar.ctype_of_ciltype_index %s" v.C.vname
-  | _                       -> (C.warn "Scalar.ctype_of_ciltype_index %s of tricky type %a@!@!" 
-                                v.C.vname C.d_type t; Top ix)
+  | Cil.TInt (ik, _)        -> Ct.Int (Cil.bytesSizeOfInt ik, ix)
+  | Cil.TEnum (ei, _)       -> Ct.Int (Cil.bytesSizeOfInt ei.Cil.ekind, ix)
+  | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
+  | Cil.TVoid _             -> Ct.void_ctype
+  | Cil.TPtr (Cil.TFun _ , _) -> Ct.Top ix
+  | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
+  | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
+  | _                       -> (Cil.warn "Scalar.ctype_of_ciltype_index %s of tricky type %a@!@!" 
+                                v.Cil.vname Cil.d_type t; Ct.Top ix)
 
 (***************************************************************************)
 (*********************************** API ***********************************)

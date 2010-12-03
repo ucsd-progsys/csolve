@@ -275,7 +275,7 @@ module Interproc = struct
       if SM.mem fname shpm then
         let module X = struct
 	  let shp   = SM.find fname shpm
-	  let cfg   = (scis |> SM.find fname |> Misc.snd3).Ssa_transform.cfg
+	  let cfg   = (scis |> SM.find fname |> snd3).Ssa_transform.cfg
           let sspec = storespec
 	  let ffmm  = ffmm
         end in
