@@ -1,3 +1,9 @@
+
+HEREHEREHEREHERE:
+
+rjhala@goto:~/research/liquidc/postests$ ../src/lcc -c --scalar test00.c > log
+
+
 Function Pointers
 
 (a) fun-ptrs:

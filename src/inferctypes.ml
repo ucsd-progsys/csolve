@@ -642,16 +642,22 @@ let assert_no_physical_subtyping fe cfg anna store gst =
           S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
     exit 1
 
+let print_vm_diff vm1 vm2 = 
+  VM.iter begin fun v ct1 ->
+    let ct2 = VM.find v vm2 in
+    if not (Ctypes.I.CType.eq ct1 ct2) then
+      (P.dprintf "different ctypes: v = %s ct1 = %a ct2 = %a" v.C.vname Ct.d_ctype ct1 Ct.d_ctype ct2; ())
+  end vm1
+
 let get_ve_bdcks fe ve scim cf sci vm = 
-  if !Cs.scalar then
-    (vm, Array.create (Array.length sci.ST.cfg.Ssa.blocks) [])
-  else 
-    sci 
-    |> Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf 
-    |> M.app_fst fresh_local_slocs
+  (if !Cs.scalar then
+    vm, Array.create (Array.length sci.ST.cfg.Ssa.blocks) []
+   else 
+    Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
+  |> M.app_fst fresh_local_slocs 
 
 let infer_shape fe ve gst scim (cf, sci, vm) : Shape.t =
-  let ve, bdcks           = get_ve_bdcks fe ve scim cf sci vm in
+  let ve, bdcks           = get_ve_bdcks fe ve scim cf sci vm in 
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = Store.upd cf.sto_out gst in
   let scs                 = Store.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
