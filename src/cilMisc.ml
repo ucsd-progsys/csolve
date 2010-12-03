@@ -34,8 +34,6 @@ module SM = Misc.StringMap
 open Cil
 open Misc.Ops
 
-let _ = "foo bar bza"
-
 let mydebug = false 
 
 type dec =
