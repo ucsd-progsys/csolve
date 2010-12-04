@@ -649,9 +649,15 @@ let print_vm_diff vm1 vm2 =
       (P.dprintf "different ctypes: v = %s ct1 = %a ct2 = %a" v.C.vname Ct.d_ctype ct1 Ct.d_ctype ct2; ())
   end vm1
 
+let make_dummy_bdcks blocks =
+  Array.map begin fun b -> match b.Ssa.bstmt.C.skind with 
+    | C.Instr is -> is |> List.length |> M.clone []
+    | _          -> []
+  end blocks 
+
 let get_ve_bdcks fe ve scim cf sci vm = 
   (if !Cs.scalar then
-    vm, Array.create (Array.length sci.ST.cfg.Ssa.blocks) []
+    vm, make_dummy_bdcks sci.ST.cfg.Ssa.blocks
    else 
     Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
   |> M.app_fst fresh_local_slocs 
