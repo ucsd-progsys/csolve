@@ -110,9 +110,6 @@ let is_pure_expr e =
     e |> visitCilExpr (new checkPureVisitor) >| true 
   with ContainsDeref ->
     false
-(* let _ = error "impure expr: %a" Cil.d_exp e in
-    assertf "impure expr"
-*)
 
 (******************************************************************************)
 (*************************** Wipe Float Expressions ***************************)
@@ -275,6 +272,12 @@ let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit =
 (* API *)
 let iterExprVars (e: Cil.exp) (f: Cil.varinfo -> unit): unit = 
   visitCilExpr (new usedVarVisitor f) e |> ignore
+
+(* API *)
+let is_local_expr e =
+  let b = ref true in
+  let _ = iterExprVars e (fun v -> b := !b && not (v.Cil.vglob)) in
+  !b
 
 (******************************************************************************)
 (********************** Iterate over Expressions ******************************)

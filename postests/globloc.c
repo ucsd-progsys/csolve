@@ -6,6 +6,7 @@ void f() {
 
 void main () {
     int x;
+
     x = *p;
 
     f();

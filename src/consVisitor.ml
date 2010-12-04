@@ -160,6 +160,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   | Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
       (FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto,
       cons_of_mem me loc tago tag grd env v')
+  (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
       (FI.ce_find (FI.name_of_varinfo v) env, ([], []))
   (* e, where e is pure *)
@@ -322,7 +323,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
   | Set ((Var v, NoOffset), e, _) 
-    when (not v.Cil.vglob) && CM.is_pure_expr e ->
+    when (not v.Cil.vglob) && CM.is_pure_expr e && CM.is_local_expr e ->
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
@@ -343,6 +344,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
  
   | Set (_,_,_) | Call (_ , _, _, _) ->
       (j+1, env), ([], [], [])
+
   | _ -> 
       E.s <| E.error "TBD: scalarcons_of_instr: %a \n" d_instr instr
 

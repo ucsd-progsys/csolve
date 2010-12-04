@@ -304,7 +304,7 @@ and constrain_addrof em = function
       E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
 
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
-  | (C.Var v, C.NoOffset)       -> (VM.find v ve, em, [])
+  | (C.Var v, C.NoOffset)       -> ((asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve), em, [])
   | (C.Mem e, C.NoOffset) as lv ->
       let ctv, em, cs = constrain_exp env em e in
         begin match ctv with

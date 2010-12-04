@@ -1,12 +1,45 @@
 
 HEREHEREHEREHERE:
 
-./regrtest.py --opts="--scalar"
+../src/lcc --scalar globset.c 
+
+Need to give inferctypes index for global variables.
+
+Exceptions thrown on 30 tests: 
+
+../postests/globset.c, 
+../postests/globloc.c,
+../postests/array-finite-global.c, 
+../postests/array-alias-global.c,
+../negtests/list_false.c, 
+
+../postests/stringexample.c, 
+../postests/strcpy.c, 
+../postests/sorted-two-list.c,
+../postests/arraysum.c,
+../postests/misalign.c,
+../postests/make-sorted-list.c, 
+../postests/funptr0.c,
+../postests/passglobal.c, 
+../postests/forward-sorted-list.c, 
+../negtests/arraysum-unsafe.c,
+../negtests/strcpybug-full.c, 
+../negtests/sorted-two-list.c,
+../negtests/make-sorted-list.c,
+../negtests/accidental-subtyping.c
 
 
-Failed 31 tests: ../postests/array-finite-global.c, ../postests/globloc.c, ../postests/full_adpcm.sh, ../postests/stringexample.c, ../postests/strcpy.c, ../postests/cacm.sh, ../postests/power.c, ../postests/sorted-two-list.c, ../postests/adpcm.c, ../postests/array-alias-global.c, ../postests/ll-simple.c, ../postests/arraysum.c, ../postests/misalign.c, ../postests/globset.c, ../postests/mst-scratch.c, ../postests/make-sorted-list.c, ../postests/pmapdistilled.c, ../postests/funptr0.c, ../postests/ks.c, ../postests/passglobal.c, ../postests/depfield.c, ../postests/forward-sorted-list.c, ../postests/allocator/allocator.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../negtests/arraysum-unsafe.c, ../negtests/strcpybug-full.c, ../negtests/list_false.c, ../negtests/sorted-two-list.c, ../negtests/make-sorted-list.c, ../negtests/accidental-subtyping.c
 
-Exceptions thrown on 30 tests: ../postests/array-finite-global.c, ../postests/globloc.c, ../postests/full_adpcm.sh, ../postests/stringexample.c, ../postests/strcpy.c, ../postests/cacm.sh, ../postests/power.c, ../postests/sorted-two-list.c, ../postests/adpcm.c, ../postests/array-alias-global.c, ../postests/arraysum.c, ../postests/misalign.c, ../postests/globset.c, ../postests/mst-scratch.c, ../postests/make-sorted-list.c, ../postests/pmapdistilled.c, ../postests/funptr0.c, ../postests/ks.c, ../postests/passglobal.c, ../postests/depfield.c, ../postests/forward-sorted-list.c, ../postests/allocator/allocator.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../negtests/arraysum-unsafe.c, ../negtests/strcpybug-full.c, ../negtests/list_false.c, ../negtests/sorted-two-list.c, ../negtests/make-sorted-list.c, ../negtests/accidental-subtyping.c
+../postests/pmapdistilled.c, 
+../postests/full_adpcm.sh, 
+../postests/cacm.sh, 
+../postests/power.c,
+../postests/adpcm.c, 
+../postests/mst-scratch.c, 
+../postests/ks.c, 
+../postests/allocator/allocator.c, 
+../postests/glib-2.24.0/int-glist.c, 
+../postests/glib-2.24.0/int-gslist.c,
 
 
 Function Pointers

@@ -28,6 +28,8 @@
 val purify           : Cil.file -> unit
 val unfloat          : Cil.file -> unit
 val is_pure_expr     : Cil.exp -> bool 
+val is_local_expr    : Cil.exp -> bool
+
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
