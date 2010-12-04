@@ -1,7 +1,12 @@
 
 HEREHEREHEREHERE:
 
-rjhala@goto:~/research/liquidc/postests$ ../src/lcc -c --scalar test00.c > log
+./regrtest.py --opts="--scalar"
+
+
+Failed 31 tests: ../postests/array-finite-global.c, ../postests/globloc.c, ../postests/full_adpcm.sh, ../postests/stringexample.c, ../postests/strcpy.c, ../postests/cacm.sh, ../postests/power.c, ../postests/sorted-two-list.c, ../postests/adpcm.c, ../postests/array-alias-global.c, ../postests/ll-simple.c, ../postests/arraysum.c, ../postests/misalign.c, ../postests/globset.c, ../postests/mst-scratch.c, ../postests/make-sorted-list.c, ../postests/pmapdistilled.c, ../postests/funptr0.c, ../postests/ks.c, ../postests/passglobal.c, ../postests/depfield.c, ../postests/forward-sorted-list.c, ../postests/allocator/allocator.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../negtests/arraysum-unsafe.c, ../negtests/strcpybug-full.c, ../negtests/list_false.c, ../negtests/sorted-two-list.c, ../negtests/make-sorted-list.c, ../negtests/accidental-subtyping.c
+
+Exceptions thrown on 30 tests: ../postests/array-finite-global.c, ../postests/globloc.c, ../postests/full_adpcm.sh, ../postests/stringexample.c, ../postests/strcpy.c, ../postests/cacm.sh, ../postests/power.c, ../postests/sorted-two-list.c, ../postests/adpcm.c, ../postests/array-alias-global.c, ../postests/arraysum.c, ../postests/misalign.c, ../postests/globset.c, ../postests/mst-scratch.c, ../postests/make-sorted-list.c, ../postests/pmapdistilled.c, ../postests/funptr0.c, ../postests/ks.c, ../postests/passglobal.c, ../postests/depfield.c, ../postests/forward-sorted-list.c, ../postests/allocator/allocator.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../negtests/arraysum-unsafe.c, ../negtests/strcpybug-full.c, ../negtests/list_false.c, ../negtests/sorted-two-list.c, ../negtests/make-sorted-list.c, ../negtests/accidental-subtyping.c
 
 
 Function Pointers
