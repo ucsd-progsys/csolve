@@ -630,12 +630,10 @@ let t_exp_scalar v e =
 let pred_of_index (ix: Ix.t): (Ast.Symbol.t * Ast.pred) = failwith "TBD"
 
 let pred_of_index = function
-  | Ix.IBot                   -> vv_int, A.pFalse
-  | Ix.IInt n                 -> vv_int, A.pEqual (A.eVar vv_int, A.eInt n)
-  | Ix.ISeq (n, m, Ct.Pos)    -> vv_int, A.pAtom (A.eVar vv_int, A.Ge, A.eInt n)
-  | Ix.ISeq (n, m, Ct.PosNeg) -> vv_int, A.pTrue 
-  | Ix.ISeq (n, m, Ct.PosB k) -> vv_int, A.pTrue
-
+  | Ix.IBot                     -> vv_int, A.pFalse
+  | Ix.IInt n                   -> vv_int, A.pEqual (A.eVar vv_int, A.eInt n)
+  | Ix.ICClass {Ix.lb = Some n} -> vv_int, A.pAtom (A.eVar vv_int, A.Ge, A.eInt n)
+  | _                           -> vv_int, A.pTrue 
 
 let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
 

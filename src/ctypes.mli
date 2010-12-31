@@ -28,23 +28,34 @@ type seq_polarity =     (* direction in which sequence extends *)
 
 module Index:
   sig
+    type class_bound = int option
+
+    type bounded_congruence_class = {
+      lb : class_bound;
+      ub : class_bound;
+      c  : int;
+      m  : int;
+    }
+
     type t =
-      | IBot                             (* empty sequence *)
-      | IInt of int                      (* singleton n >= 0 *)
-      | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n + mk for all n, m >= 0, k *)
+      | IBot
+      | IInt    of int
+      | ICClass of bounded_congruence_class
     
-    val top         : t
-    val nonneg      : t
-    val of_int      : int -> t
-    val lub         : t -> t -> t
-    val plus        : t -> t -> t
-    val minus       : t -> t -> t
-    val scale       : int -> t -> t
-    val mult        : t -> t -> t
-    val div         : t -> t -> t
-    val unsign      : t -> t
-    val is_subindex : t -> t -> bool
-    val d_index     : unit -> t -> Pretty.doc
+    val top          : t
+    val nonneg       : t
+    val is_unbounded : t -> bool
+    val of_int       : int -> t
+    val mk_sequence  : int -> int -> class_bound -> class_bound -> t
+    val widen        : t -> t -> t
+    val plus         : t -> t -> t
+    val minus        : t -> t -> t
+    val scale        : int -> t -> t
+    val mult         : t -> t -> t
+    val div          : t -> t -> t
+    val unsign       : t -> t
+    val is_subindex  : t -> t -> bool
+    val d_index      : unit -> t -> Pretty.doc
   end
 
 type ploc =

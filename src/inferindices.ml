@@ -21,6 +21,10 @@
  *
  *)
 
+open Ctypes
+open Misc.Ops
+
+module N   = Index
 module M   = Misc
 module P   = Pretty
 module E   = Errormsg
@@ -34,9 +38,6 @@ module Cs  = Constants
 module FI  = FixInterface
 module FC  = FixConstraint
 module SI  = ShapeInfra
-
-open Ctypes
-open M.Ops
 
 (******************************************************************************)
 (****************************** Index Constraints *****************************)
@@ -114,7 +115,7 @@ end
 module IE = IndexExp
 
 let refine_index (is: indexsol) (ie: IE.t) (iv: indexvar): indexsol =
-  IndexSol.add iv (Index.lub (IE.apply is ie) (IndexSol.find iv is)) is
+  IndexSol.add iv (Index.widen (IE.apply is ie) (IndexSol.find iv is)) is
 
 let bounded_refine_index (is: indexsol) (ie: IE.t) (iv: indexvar) (ibound: Index.t): indexsol =
   let is = refine_index is ie iv in
@@ -175,13 +176,13 @@ type boundfun = string * (ctype -> ctype * FI.refctype)
 let ctype_of_bound ((_, fbound): boundfun) (ctv: ctype): ctype =
   ctv |> fbound |> fst
 
-let bound_nonneg (ct: ctype): ctype * FI.refctype =
-  match ct with
-    | Int (w, Index.ISeq (n, p, PosNeg)) ->
-        let vv   = Ast.Symbol.value_variable Ast.Sort.t_int in
-        let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
-        (Int (w, Index.ISeq (n, p, Pos)), FI.t_pred ct vv pred)
-    | _ -> (ct, FI.t_true ct)
+let bound_nonneg (ct: ctype): ctype * FI.refctype = match ct with
+  | Int (w, N.ICClass ({N.lb = None} as bcc)) ->
+      let vv   = Ast.Symbol.value_variable Ast.Sort.t_int in
+      let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
+        (Int (w, N.ICClass {bcc with N.lb = Some bcc.N.c}), FI.t_pred ct vv pred)
+  | Int (w, N.IInt n) -> assert (n >= 0); (ct, FI.t_true ct)
+  | _                 -> (ct, FI.t_true ct)
 
 type 'a pretypecstrdesc =
   | ISubtype of 'a * 'a

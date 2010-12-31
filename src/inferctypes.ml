@@ -173,9 +173,9 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
               | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
               | _          -> assert false
             end
-      | Index.ISeq (n, m, p) when Ctypes.is_unbounded p ->
+      | Index.ICClass {Index.m = m} when Index.is_unbounded i ->
           let ld, sub = LDesc.shrink_period m unify_fields [] (Store.find s sto) in
-          let pl      = PLSeq (n, p) in
+          let pl      = ploc_of_index i in
           let flds    = LDesc.find pl ld in
           let sub     = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) sub flds in
           let p       = ld |> LDesc.get_period |> Misc.get_option 0 in

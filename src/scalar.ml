@@ -121,9 +121,9 @@ let type_decs_of_file (cil: Cil.file) : (Cil.location * Cil.typ) list =
   |> Misc.kgroupby (snd <+> hash_of_ciltype)
   |> Misc.map (function (_,x::_) -> x)
 
-let scalar_consts_of_polarity n m = function
-  | Ct.PosB k -> [UpperBound (n + m*k)]
-  | _         -> []
+let scalar_consts_of_upper_bound m = function
+  | Some k -> [UpperBound (k + m)]  (* pmr: Can we use just k + 1 here? *)
+  | _      -> []
 
 let bound_preds_of_scalar_const = function
   | Offset c ->
@@ -163,9 +163,10 @@ let scalar_consts_of_typedecs_stride tdecs =
   |> Misc.flap (fun i -> [Offset i; Period i])
 
 let scalar_consts_of_index = function
-  | Ix.IBot            -> []
-  | Ix.IInt n          -> [Offset n] 
-  | Ix.ISeq (n, m, po) -> [Offset n;  Period m] ++ (scalar_consts_of_polarity n m po)
+  | Ix.IBot                                     -> []
+  | Ix.IInt n                                   -> [Offset n] 
+  | Ix.ICClass {Ix.m = m; Ix.c = n; Ix.ub = ub} ->
+    [Offset n;  Period m] ++ (scalar_consts_of_upper_bound m ub)
  
 let scalar_consts_of_typedecs_genspec tdecs =
   tdecs
@@ -245,12 +246,14 @@ let periodo_of_preds v ps =
 
 let indexo_of_preds_iseq v ps = 
   match periodo_of_preds v ps, lowerboundo_of_preds v ps with
-  | Some (c, k), Some c' -> Some (Ix.ISeq (c' + ((k - ((c' - c) mod k)) mod k), k, Ct.Pos))
-  | _                    -> None
+  | Some (c, k), Some c' ->
+    let lb = c' + ((k - ((c' - c) mod k)) mod k) in
+      Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = None; Ix.m = k; Ix.c = lb mod k})
+  | _ -> None
 
 let indexo_of_preds_lowerbound v ps =
   lowerboundo_of_preds v ps
-  |> Misc.maybe_map (fun c -> Ix.ISeq (c, 1, Ct.Pos))
+  |> Misc.maybe_map (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
 
 let indexo_of_preds_iseqb v ps = 
   None (* TODO *)

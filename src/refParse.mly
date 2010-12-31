@@ -6,6 +6,7 @@ module SM  = Misc.StringMap
 module FI  = FixInterface
 module RCt = FI.RefCTypes
 module CT  = Ctypes
+module N   = CT.Index
 
 open Misc.Ops
 
@@ -214,12 +215,12 @@ ctype:
   ;
 
 index:
-    Num                                 { Ctypes.Index.IInt $1 }
-  | Num LB Num RB                       { Ctypes.Index.ISeq ($1, $3, Ctypes.Pos) }
-  | Num LB Num LT Num RB                { Ctypes.Index.ISeq ($1, $3, Ctypes.PosB $5) }
-  | Num LC Num RC                       { Ctypes.Index.ISeq ($1, $3, Ctypes.PosNeg) }
-  | TRUE                                { Ctypes.Index.top }
-  | FALSE                               { Ctypes.Index.IBot }
+    Num                                 { N.IInt $1 }
+  | Num LB Num RB                       { N.mk_sequence $1 $3 (Some $1) None }
+  | Num LB Num LT Num RB                { N.mk_sequence $1 $3 (Some $1) (Some $5) }
+  | Num LC Num RC                       { N.mk_sequence $1 $3 None None }
+  | TRUE                                { N.top }
+  | FALSE                               { N.IBot }
   ;
 
 argbinds:

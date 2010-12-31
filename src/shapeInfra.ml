@@ -21,12 +21,13 @@
  *
  *)
 
+open Ctypes
+open Misc.Ops
+
 module C  = Cil
 module CM = CilMisc
 module S  = Sloc
-
-open Ctypes
-open Misc.Ops
+module N  = Index
 
 let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
@@ -35,9 +36,13 @@ let rec typealias_attrs: C.typ -> C.attributes = function
 let fresh_heaptype (t: C.typ): ctype =
   let ats1 = typealias_attrs t in
     match C.unrollType t with
-      | C.TInt (ik, _)                           -> Int (C.bytesSizeOfInt ik, Index.top)
-      | C.TEnum (ei, _)                          -> Int (C.bytesSizeOfInt ei.C.ekind, Index.top)
-      | C.TFloat _                               -> Int (CM.typ_width t, Index.top)
+      | C.TInt (ik, _)                           -> Int (C.bytesSizeOfInt ik, N.top)
+      | C.TEnum (ei, _)                          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
+      | C.TFloat _                               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                                -> void_ctype
-      | C.TPtr (t, ats2) | C.TArray (t, _, ats2) -> Ref (S.fresh S.Abstract, if CM.has_array_attr (ats1 @ ats2) then Index.ISeq (0, CM.typ_width t, Pos) else Index.IInt 0)
-      | _                                        -> halt <| C.bug "Unimplemented fresh_heaptype: %a@!@!" C.d_type t
+      | C.TPtr (t, ats2) | C.TArray (t, _, ats2) ->
+        Ref (S.fresh S.Abstract,
+             if CM.has_array_attr (ats1 @ ats2) then
+               N.ICClass {N.lb = Some 0; N.ub = None; N.m = CM.typ_width t; N.c = 0}
+             else N.IInt 0)
+      | _ -> halt <| C.bug "Unimplemented fresh_heaptype: %a@!@!" C.d_type t

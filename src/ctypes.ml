@@ -55,94 +55,165 @@ let seq_polarity_lub (p1: seq_polarity) (p2: seq_polarity): seq_polarity =
     | PosB a, PosB b        -> PosB (max a b)
 
 module Index = struct
+  type class_bound = int option (* None = unbounded *)
+
+  let scale_bound x b =
+    M.map_opt (( * ) x) b
+
+  let bound_offset x b =
+    M.map_opt (( + ) x) b
+
+  let bound_plus b1 b2 = match b1, b2 with
+    | Some n, Some m -> Some (m + n)
+    | _              -> None
+
+  let lower_bound_le b1 b2 = match b1, b2 with
+    | Some n, Some m -> n <= m
+    | Some _, None   -> false
+    | _              -> true
+
+  let upper_bound_le b1 b2 = match b1, b2 with
+    | Some n, Some m -> n <= m
+    | None, Some _   -> false
+    | _              -> true
+
+  let lower_bound_min b1 b2 =
+    if lower_bound_le b1 b2 then b1 else b2
+
+  let upper_bound_max b1 b2 =
+    if upper_bound_le b1 b2 then b2 else b1
+
+  (* Describes the integers lb <= n <= ub s.t. n = c (mod m) *)
+  type bounded_congruence_class = {
+    lb : class_bound; (* Lower bound; lb mod m = c *)
+    ub : class_bound; (* Upper bound; ub mod m = c; lb < ub *)
+    c  : int;         (* Remainder; 0 <= c < m *)
+    m  : int;         (* Modulus; 0 < m <= ub - lb *)
+  }
+
   type t =
-    | IBot                             (* empty sequence *)
-    | IInt of int                      (* singleton n >= 0 *)
-    | ISeq of int * int * seq_polarity (* arithmetic sequence (n, m): n op mk for all n, m >= 0, k, op given by polarity *)
+      (* pmr: We don't need IBot after we drop inferindices *)
+    | IBot                                 (* Empty *)
+    | IInt    of int                       (* Single integer *)
+    | ICClass of bounded_congruence_class  (* Subset of congruence class *)
 
-  let top = ISeq (0, 1, PosNeg)
+  let top = ICClass {lb = None; ub = None; c = 0; m = 1}
 
-  let nonneg = ISeq (0, 1, Pos)
+  let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}
 
   let d_index () = function
-    | IBot                -> P.text "false"
-    | IInt n              -> P.num n
-    | ISeq (n, m, Pos)    -> P.dprintf "%d[%d]" n m
-    | ISeq (n, m, PosNeg) -> P.dprintf "%d{%d}" n m
-    | ISeq (n, m, PosB k) -> P.dprintf "%d[%d < %d]" n m (m * k)
-  
-  let rec is_subindex i1 i2 =
-    match i1, i2 with
-      | IBot, _                                       -> true
-      | IInt n, IInt m                                -> n = m
-      | IInt n, ISeq (m, k, Pos)                      -> m <= n && (n - m) mod k = 0
-      | IInt n, ISeq (m, k, PosB b)                   -> is_subindex (IInt n) (ISeq (m, k, Pos)) && n < m + b * k
-      | IInt n, ISeq (m, k, PosNeg)                   -> (n - m) mod k = 0
-      | ISeq (n, l, (Pos | PosB _)), ISeq (m, k, Pos) -> m <= n && k <= l && l mod k = 0 && (n - m) mod k = 0
-      | ISeq (n, l, _), ISeq (m, k, PosNeg)           -> k <= l && l mod k = 0 && (n - m) mod k = 0
-      | ISeq (n, l, PosB a), ISeq (m, k, PosB b)      -> is_subindex (ISeq (n, l, Pos)) (ISeq (m, k, Pos)) && a <= b
-      | _                                             -> false
+    | IBot                                         -> P.dprintf "_|_"
+    | IInt n                                       -> P.num n
+    | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
+    | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
+    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "[%d][%d < %d]" l m u
+    | _                                            -> assert false
 
   let of_int i =
+    (* pmr: loosen this? *)
     if i >= 0 then IInt i else top
 
-  let lub i1 i2 =
+  let mk_sequence start period lbound ubound =
+    ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
+
+  let is_unbounded = function
+    | ICClass {lb = None} | ICClass {ub = None} -> true
+    | _                                         -> false
+
+  let is_subindex i1 i2 = match i1, i2 with
+    | IBot, _                                          -> true
+    | _, IBot                                          -> false
+    | IInt n, IInt m                                   -> n = m
+    | ICClass _, IInt _                                -> false
+    | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m} ->
+      lower_bound_le lb (Some n) && upper_bound_le (Some n) ub && ((n mod m) = c)
+    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
+      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
+      lower_bound_le lb2 lb1 && upper_bound_le ub1 ub2 && (m1 mod m2) = 0 && (c1 mod m2) = c2
+
+  let widen i1 i2 =
     if is_subindex i1 i2 then
       i2
     else if is_subindex i2 i1 then
       i1
-    else
-      match i1, i2 with
-        | IInt m, IInt n                                  -> ISeq (min n m, abs (n - m), Pos)
-        | IInt n, ISeq (m, k, p) | ISeq (m, k, p), IInt n -> ISeq (min n m, M.gcd k (abs (n - m)), p)
-        | ISeq (n, l, p), ISeq (m, k, q)                  -> ISeq (min n m, M.gcd l (M.gcd k (abs (n - m))), seq_polarity_lub p q)
-        | _                                               -> assert false
+    else match i1, i2 with
+      | IBot, _ | _, IBot -> assert false
+      | IInt n, IInt m    ->
+        let d = abs (n - m) in
+          ICClass {lb = Some (min n m);
+                   ub = None;
+                   c  = n mod d;
+                   m  = d}
+      | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m}
+      | ICClass {lb = lb; ub = ub; c = c; m = m}, IInt n ->
+        ICClass {lb = lower_bound_min (Some n) lb;
+                 ub = upper_bound_max (Some n) ub;
+                 c  = 0;
+                 m  = M.gcd m (M.gcd c n)}
+      | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
+        ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
+        let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
+          ICClass {lb = if lb1 = lb2 then lb1 else None;
+                   ub = if ub1 = ub2 then ub1 else None;
+                   c  = c1 mod m;
+                   m  = m}
 
-  let plus i1 i2 =
-    match (i1, i2) with
-      | (IBot, _) | (_, IBot)                               -> IBot
-      | (IInt n, IInt m)                                    -> IInt (n + m)
-      | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n + m, k, p)
-      | (ISeq (n1, k1, p1), ISeq (n2, k2, p2))              -> ISeq (n1 + n2, M.gcd k1 k2, seq_polarity_lub p1 p2)
+  let plus i1 i2 = match i1, i2 with
+    | IBot, _ | _, IBot -> IBot
+    | IInt n, IInt m    -> IInt (n + m)
+    | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m}
+    | ICClass {lb = lb; ub = ub; c = c; m = m}, IInt n ->
+      ICClass {lb = bound_offset n lb;
+               ub = bound_offset n ub;
+               c  = (c + n) mod m;
+               m  = m}
+    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
+      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
+      ICClass {lb = bound_plus lb1 lb2;
+               ub = bound_plus ub1 ub2;
+               c  = 0;
+               m  = M.gcd m1 (M.gcd m2 (M.gcd c1 c2))}
 
-  (* pmr: prove this has the appropriate monotonicity property *)
-  let minus i1 i2 =
-    match (i1, i2) with
-      | (IBot, _) | (_, IBot)                -> IBot
-      | (IInt n, IInt m)                     -> IInt (n - m)
-      | (ISeq (m, k, p), IInt n) when m >= n -> ISeq (m - n, k, p)
-      | _                                    -> top
-
-  let constop op i1 i2 =
-    match (i1, i2) with
-      | (IBot, _) | (_, IBot) -> IBot
-      | (IInt n, IInt m)      -> IInt (op n m)
-      | _                     -> top
+  let minus i1 i2 = match i1, i2 with
+    | IBot, _ | _, IBot                                                -> IBot
+    | IInt n, IInt m                                                   -> IInt (n - m)
+    | ICClass {lb = Some l; ub = ub; c = c; m = m}, IInt n when l >= n ->
+      ICClass {lb = Some (l - n);
+               ub = bound_offset (-n) ub;
+               c = (c - n) mod m;
+               m = m}
+    | _ -> top
 
   let scale x = function
-    | IBot           -> IBot
-    | IInt n         -> IInt (n * x)
-    | ISeq (n, m, p) -> ISeq (n * x, m * x, p)
+    | IBot   -> IBot
+    | IInt n -> IInt (n * x)
+    | ICClass {lb = lb; ub = ub; c = c; m = m} ->
+      ICClass {lb = scale_bound x lb;
+               ub = scale_bound x ub;
+               c = c;
+               m = x * m}
 
-  (* pmr: prove this has the appropriate monotonicity property *)
-  let mult i1 i2 =
-    match (i1, i2) with
-      | (IBot, _) | (_, IBot)                               -> IBot
-      | (IInt n, IInt m)                                    -> IInt (n * m)
-      | (IInt n, ISeq (m, k, p)) | (ISeq (m, k, p), IInt n) -> ISeq (n * m, n * k, p)
-      | _                                                   -> top
+  let mult i1 i2 = match i1, i2 with
+    | IBot, _ | _, IBot     -> IBot
+    | IInt n, i | i, IInt n -> scale n i
+    | _                     -> top
+
+  let constop op i1 i2 = match i1, i2 with
+    | IBot, _ | _, IBot -> IBot
+    | IInt n, IInt m    -> IInt (op n m)
+    | _                 -> top
 
   let div =
     constop (/)
 
-  let unsign = function
-    | ISeq (m, k, _) when m < 0 -> nonneg
-    | ISeq (_, _, PosNeg)       -> nonneg
-    | IInt n when n < 0         -> nonneg
-    | i                         -> i
-
-
+  let unsign i = match i with
+    | IBot                              -> IBot
+    | IInt n when n >= 0                -> i
+    | ICClass {lb = Some n} when n >= 0 -> i
+    | _                                 -> nonneg
 end
+
+module N = Index
 
 (******************************************************************************)
 (***************************** Periodic Locations *****************************)
@@ -172,13 +243,20 @@ let d_plocset () ps =
 
 let index_of_ploc (pl: ploc) (p: int) =
   match pl with
-    | PLAt n         -> Index.IInt n
-    | PLSeq (n, pol) -> Index.ISeq (n, p, pol)
+    | PLAt n            -> N.IInt n
+    | PLSeq (n, Pos)    -> N.ICClass {N.lb = Some n; N.ub = None; N.m = p; N.c = n mod p}
+    | PLSeq (n, PosNeg) -> N.ICClass {N.lb = None; N.ub = None; N.m = p; N.c = n mod p}
+    | PLSeq (n, PosB k) -> N.ICClass {N.lb = Some n; N.ub = Some (n + (k - 1) * p); N.m = p; N.c = n mod p}
 
 let ploc_of_index = function
-  | Index.IInt n         -> PLAt n
-  | Index.ISeq (n, _, p) -> PLSeq (n, p)
-  | Index.IBot           -> halt <| E.bug "Can't convert IBot to ploc@!@!"
+  | N.IInt n -> PLAt n
+  | N.ICClass {N.lb = Some l; N.ub = None; N.m = m} ->
+    PLSeq (l, Pos)
+  | N.ICClass {N.lb = None; N.ub = None; N.c = c} ->
+    PLSeq (c, PosNeg)
+  | N.ICClass {N.lb = Some l; N.ub = Some u; N.m = m} ->
+    PLSeq (l, PosB ((u - l) / m))
+  | _ -> assert false
 
 let ploc_start: ploc -> int = function
   | PLAt n | PLSeq (n, _) -> n
@@ -216,7 +294,7 @@ let ploc_contains (pl1: ploc) (pl2: ploc) (p: int): bool =
 
 let ploc_contains_index pl p i =
   ploc_contains pl (ploc_of_index i) p && 
-    match i with Index.ISeq (_, k, _) -> k mod p = 0 | _ -> true
+    match i with N.ICClass {N.m = m} -> m mod p = 0 | _ -> true
  
 let ploc_offset (pl: ploc) (n: int): ploc =
   match pl with
@@ -240,7 +318,7 @@ module IndexRefinement = struct
   type t = Index.t
 
   let top          = Index.top
-  let lub          = fun i1 i2 -> Some (Index.lub i1 i2)
+  let lub          = fun i1 i2 -> Some (N.widen i1 i2)
   let is_subref    = Index.is_subindex
   let d_refinement = Index.d_index
   
@@ -662,9 +740,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let add_index loc i fld ld =
       match i with
-      | Index.ISeq (n, m, p) -> 
-          ld |> ((is_unbounded p) <?> shrink_period_fail_on_conflict m)
-             |> add loc (PLSeq (n, p)) fld
+      | Index.ICClass {N.m = m} ->
+          ld |> ((N.is_unbounded i) <?> shrink_period_fail_on_conflict m)
+             |> add loc (ploc_of_index i) fld
       | _  -> 
           add loc (ploc_of_index i) fld ld
 
@@ -964,7 +1042,7 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-let void_ctype   = Int (0, Index.top)
-let ptr_ctype    = Ref (S.fresh S.Abstract, Index.top) 
-let scalar_ctype = Int (0, Index.top)
+let void_ctype   = Int (0, N.top)
+let ptr_ctype    = Ref (S.fresh S.Abstract, N.top) 
+let scalar_ctype = Int (0, N.top)
 

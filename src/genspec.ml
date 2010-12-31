@@ -30,6 +30,7 @@
 module E   = Errormsg 
 module F   = Format
 module Ct  = Ctypes
+module N   = Ct.Index
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module CM  = CilMisc
@@ -128,35 +129,35 @@ let id_of_ciltype t pd =
 
 let mk_idx pd i =
   match pd with 
-  | Nop        -> Ct.Index.IInt i
-  | Unb n      -> Ct.Index.ISeq (i, n, Ct.Pos)
-  | Bnd (n, k) -> Ct.Index.ISeq (i, n, Ct.PosB k)
+  | Nop        -> N.IInt i
+  | Unb n      -> N.mk_sequence i n (Some i) None
+  | Bnd (n, k) -> N.mk_sequence i n (Some i) (Some (i + k * (n - 1)))
 
 let unroll_ciltype off t =
   match Cil.unrollType t with
   | TComp (ci, _) ->
       asserti ci.cstruct "TBD unroll_ciltype: unions";
       List.map begin fun x ->
-        (x.ftype, Ct.Index.plus off (mk_idx Nop (fst (bitsOffset t (Field (x, NoOffset))) / 8)))
+        (x.ftype, N.plus off (mk_idx Nop (fst (bitsOffset t (Field (x, NoOffset))) / 8)))
       end ci.cfields
   | t -> [(t, off)]
 
 let add_off off c =
   let i = CM.bytesSizeOf c in
   match off with 
-  | Ct.Index.IInt i' -> Ct.Index.IInt (i+i')
-  | Ct.Index.ISeq _  -> E.s <| E.error "add_off %d to periodic offset %a" i Ct.Index.d_index off
+  | N.IInt i'   -> N.IInt (i+i')
+  | N.ICClass _ -> E.s <| E.error "add_off %d to periodic offset %a" i N.d_index off
 
 let adj_period pd idx = 
   match pd, idx with
-  | Nop  , _                    -> idx
-  | Unb n,      Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.Pos)
-  | Bnd (n, k), Ct.Index.IInt i -> Ct.Index.ISeq (i, n, Ct.PosB k)
-  | _,          _               -> assertf "adjust_period: adjusting a periodic index"
+  | Nop  , _             -> idx
+  | Unb n,      N.IInt i -> N.mk_sequence i n (Some i) None
+  | Bnd (n, k), N.IInt i -> N.mk_sequence i n (Some i) (Some (i + k * (n - 1)))
+  | _,          _        -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
-            Pretty.printf "LDESC ON: %a : %a \n" Ct.Index.d_index i Ct.I.CType.d_ctype t |> ignore
+            Pretty.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
   |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal t))
@@ -210,7 +211,7 @@ and conv_ptr loc (th, st) pd c =
     let l                = Sloc.fresh Sloc.Abstract in
     let idx              = mk_idx pd 0 in
     let th'              = SM.add tid (l, idx) th in
-    let (th'', st', _), its = conv_cilblock loc (th', st, Ct.Index.IInt 0) pd c in
+    let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
     let b                = ldesc_of_index_ctypes loc its in
     let st''             = SLM.add l b st' in
     (th'', st''), Ct.Ref (l, idx)
@@ -245,12 +246,12 @@ let conv_ret fn loc z c =
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = Misc.mapfold (conv_arg loc) (SM.empty, SLM.empty, Ct.Index.IInt 0) xts in
+    let res   = Misc.mapfold (conv_arg loc) (SM.empty, SLM.empty, N.IInt 0) xts in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
     let args  = Misc.map2 (fun (x,_) t -> (x,t)) xts ts in
-    let res'  = conv_ret fn loc (th, ist, Ct.Index.IInt 0) t in
+    let res'  = conv_ret fn loc (th, ist, N.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
     let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
@@ -299,7 +300,7 @@ let upd_varm spec (st, varm) loc vn = function
   | _ when SM.mem vn spec         -> (st, varm)
   | t when not (isFunctionType t) ->
       begin try
-        begin match conv_ciltype loc TopLevel (SM.empty, st, Ct.Index.IInt 0) t with
+        begin match conv_ciltype loc TopLevel (SM.empty, st, N.IInt 0) t with
           | (_, st, _), [(_, ct)] ->
               (st, Misc.sm_protected_add false vn ct varm)
           | _ -> halt <| errorLoc loc "Cannot specify globals of record type (%a)\n" d_type t
@@ -342,7 +343,7 @@ let specs_of_file_dec spec cil =
   (fn, vr, st)
 
 let spec_of_type loc t =
-  try match conv_ciltype loc TopLevel (SM.empty, SLM.empty, Ct.Index.IInt 0) t with
+  try match conv_ciltype loc TopLevel (SM.empty, SLM.empty, N.IInt 0) t with
       | (_, st, _), [(_, ct)] -> ct, st
       | _ -> raise CantConvert 
   with CantConvert -> 

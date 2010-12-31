@@ -86,7 +86,10 @@ void check_invariants (free_pool *fl) {
         for (region *r = p->free; r != NULL; r = r->next) {
             if (r->next != NULL) assert (r->size == r->next->size);
             // validptr kills finality because we don't know what effect it may have
-            r->mem[r->size - 1] = 0;
+            // Hack around silly bug in inferindices
+            int off = r->size - 1;
+            char *mem = &r->mem;
+            mem[off] = 0;
         }
     }
 }
