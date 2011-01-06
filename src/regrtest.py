@@ -80,7 +80,7 @@ class Config (rtest.TestConfig):
 #testdirs  = [("../slowtests", 1)]
 
 #FOR DEFAULT
-testdirs  = [("../postests", 0), ("../negtests", 1)]
+testdirs  = [("../postests", 0), ("../negtests", [1, 2])]
 
 #FOR --scalar
 #testdirs  = [("../postests", 0), ("../negtests", 0)]
