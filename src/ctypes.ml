@@ -106,7 +106,7 @@ module Index = struct
     | IInt n                                       -> P.num n
     | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
     | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
-    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "[%d][%d < %d]" l m u
+    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "[%d][%d < %d]" l m (u + m)
     | _                                            -> assert false
 
   let of_int i =
@@ -241,12 +241,11 @@ module PlocSetPrinter = P.MakeSetPrinter (PlocSet)
 let d_plocset () ps =
   PlocSetPrinter.d_set ", " d_ploc () ps
 
-let index_of_ploc (pl: ploc) (p: int) =
-  match pl with
-    | PLAt n            -> N.IInt n
-    | PLSeq (n, Pos)    -> N.ICClass {N.lb = Some n; N.ub = None; N.m = p; N.c = n mod p}
-    | PLSeq (n, PosNeg) -> N.ICClass {N.lb = None; N.ub = None; N.m = p; N.c = n mod p}
-    | PLSeq (n, PosB k) -> N.ICClass {N.lb = Some n; N.ub = Some (n + (k - 1) * p); N.m = p; N.c = n mod p}
+let index_of_ploc (pl: ploc) (p: int) = match pl with
+  | PLAt n            -> N.IInt n
+  | PLSeq (n, Pos)    -> N.ICClass {N.lb = Some n; N.ub = None; N.m = p; N.c = n mod p}
+  | PLSeq (n, PosNeg) -> N.ICClass {N.lb = None; N.ub = None; N.m = p; N.c = n mod p}
+  | PLSeq (n, PosB k) -> N.ICClass {N.lb = Some n; N.ub = Some (n + (k - 1) * p); N.m = p; N.c = n mod p}
 
 let ploc_of_index = function
   | N.IInt n -> PLAt n

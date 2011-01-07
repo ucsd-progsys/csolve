@@ -131,7 +131,7 @@ let mk_idx pd i =
   match pd with 
   | Nop        -> N.IInt i
   | Unb n      -> N.mk_sequence i n (Some i) None
-  | Bnd (n, k) -> N.mk_sequence i n (Some i) (Some (i + k * (n - 1)))
+  | Bnd (n, k) -> N.mk_sequence i n (Some i) (Some (i + (k - 1) * n))
 
 let unroll_ciltype off t =
   match Cil.unrollType t with
@@ -152,7 +152,7 @@ let adj_period pd idx =
   match pd, idx with
   | Nop  , _             -> idx
   | Unb n,      N.IInt i -> N.mk_sequence i n (Some i) None
-  | Bnd (n, k), N.IInt i -> N.mk_sequence i n (Some i) (Some (i + k * (n - 1)))
+  | Bnd (n, k), N.IInt i -> N.mk_sequence i n (Some i) (Some (i + (k - 1) * n))
   | _,          _        -> assertf "adjust_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes loc ts =
