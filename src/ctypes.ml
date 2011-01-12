@@ -135,6 +135,72 @@ module Index = struct
       ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
       lower_bound_le lb2 lb1 && upper_bound_le ub1 ub2 && (m1 mod m2) = 0 && (c1 mod m2) = c2
 
+  let lub i1 i2 =
+    if is_subindex i1 i2 then
+      i2
+    else if is_subindex i2 i1 then
+      i1
+    else match i1, i2 with
+      | IBot, _ | _, IBot -> assert false
+      | IInt m, IInt n    ->
+        let d = abs (m - n) in
+          ICClass {lb = Some (min m n); ub = Some (max m n); m = d; c = m mod d}
+      | IInt n, ICClass {lb = lb; ub = ub; m = m; c = c}
+      | ICClass {lb = lb; ub = ub; m = m; c = c}, IInt n ->
+        let m = M.gcd m (abs (c - (n mod m))) in
+          ICClass {lb = lower_bound_min lb (Some n);
+                   ub = upper_bound_max ub (Some n);
+                   m  = m;
+                   c  = c mod m}
+      | ICClass {lb = lb1; ub = ub1; m = m1; c = c1},
+        ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
+        let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
+          ICClass {lb = lower_bound_min lb1 lb2;
+                   ub = upper_bound_max ub1 ub2;
+                   m  = m;
+                   c  = c1 mod m}
+
+  (* pmr: There is surely a closed form for this, to be sought
+     later. *)
+  let rec search_congruent c1 m1 c2 m2 n =
+    if n < 0 then None else
+      if (n mod m1) = c1 && (n mod m2) = c2 then
+        Some n
+      else
+        search_congruent c1 m1 c2 m2 (n - 1)
+
+  let glb i1 i2 =
+    if is_subindex i1 i2 then
+      i1
+    else if is_subindex i2 i1 then
+      i2
+    else match i1, i2 with
+      | IBot, _ | _, IBot         -> assert false
+      | IInt m, IInt n when m = n -> IInt m
+      | IInt _, IInt _            -> IBot
+      | IInt n, ICClass {lb = lb; ub = ub; m = m; c = c}
+      | ICClass {lb = lb; ub = ub; m = m; c = c}, IInt n ->
+        if lower_bound_le lb (Some n) &&
+           upper_bound_le (Some n) ub &&
+           (n mod m) = c then
+          IInt n
+        else IBot
+      | ICClass {lb = lb1; ub = ub1; m = m1; c = c1},
+        ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
+        let m = M.lcm m1 m2 in
+          match search_congruent c1 m1 c2 m2 (m - 1) with
+            | None   -> IBot
+            | Some c ->
+              let lb = lower_bound_max lb1 lb2 |> M.map_opt (fun l -> m * ((l + m - c - 1) / m) + c) in
+              let ub = upper_bound_min ub1 ub2 |> M.map_opt (fun l -> m * ((l - c) / m) + c) in
+                match lb, ub with
+                  | Some l, Some u when u = l -> IInt u
+                  | Some l, Some u when u < l -> IBot
+                  | _                         -> ICClass {lb = lb; ub = ub; m = m; c = c}
+
+  let overlaps i1 i2 =
+    glb i1 i2 <> IBot
+
   let widen i1 i2 =
     if is_subindex i1 i2 then
       i2
