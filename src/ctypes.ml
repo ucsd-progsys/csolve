@@ -77,11 +77,16 @@ module Index = struct
     | None, Some _   -> false
     | _              -> true
 
-  let lower_bound_min b1 b2 =
-    if lower_bound_le b1 b2 then b1 else b2
+  let bound_min le b1 b2 =
+    if le b1 b2 then b1 else b2
 
-  let upper_bound_max b1 b2 =
-    if upper_bound_le b1 b2 then b2 else b1
+  let bound_max le b1 b2 =
+    if le b1 b2 then b2 else b1
+
+  let lower_bound_min = bound_min lower_bound_le
+  let lower_bound_max = bound_max lower_bound_le
+  let upper_bound_min = bound_min upper_bound_le
+  let upper_bound_max = bound_max upper_bound_le
 
   (* Describes the integers lb <= n <= ub s.t. n = c (mod m) *)
   type bounded_congruence_class = {
@@ -92,7 +97,6 @@ module Index = struct
   }
 
   type t =
-      (* pmr: We don't need IBot after we drop inferindices *)
     | IBot                                 (* Empty *)
     | IInt    of int                       (* Single integer *)
     | ICClass of bounded_congruence_class  (* Subset of congruence class *)
