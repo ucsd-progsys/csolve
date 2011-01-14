@@ -17,7 +17,7 @@ else
 CC = gcc
 endif
 
-CC = ../../../src/cc.sh
+CC = ../../../src/lcc -I ../../../include
 
 # LFLAGS = -mv8
 # LFLAGS = $(LFLAGS) -static
