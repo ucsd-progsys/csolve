@@ -91,9 +91,9 @@ val extend_world        : alocmap -> refstore -> Sloc.t -> Sloc.t -> bool ->
                           (cilenv * refstore * 'a) * FixConstraint.t list
 
 val strengthen_final_field :
-  Ctypes.PlocSet.t ->
+  Ctypes.IndexSet.t ->
   string ->
-  Ctypes.ploc ->
+  Ctypes.Index.t ->
   reffield ->
   reffield
 
@@ -144,13 +144,13 @@ val refstore_get        : refstore -> Sloc.t -> refldesc
 val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
 val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
 
-val refldesc_subs       : refldesc -> (int -> Ctypes.ploc -> refctype -> refctype) -> refldesc
+val refldesc_subs       : refldesc -> (int -> Ctypes.Index.t -> refctype -> refctype) -> refldesc
 
 val refstore_strengthen_addr :
   Cil.location ->
   cilenv ->
   refstore ->
-  Ctypes.PlocSet.t Sloc.SlocMap.t ->
+  Ctypes.IndexSet.t Sloc.SlocMap.t ->
   string ->
   refctype ->
   cilenv * refstore

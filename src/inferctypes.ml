@@ -155,45 +155,38 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
     | _                                        -> raise (Unify (ct1, ct2))
 
-let store_add loc (l: Sloc.t) (pl: ploc) (ctv: ctype) (sto: store): store =
-  SLM.add l (LDesc.add loc pl (Field.create Ctypes.Final ctv) (Store.find l sto)) sto
+let store_add loc (l: Sloc.t) (i: Index.t) (ctv: ctype) (sto: store): store =
+  SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find l sto)) sto
 
 let unify_fields fld1 fld2 sub =
   unify_ctypes (Field.type_of fld1) (Field.type_of fld2) sub
 
 let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store): S.Subst.t * store =
-  try
-    match i with
-      | Index.IBot   -> 
-          ([], sto)
-      | Index.IInt n ->
-          let pl = PLAt n in
-            begin match LDesc.find pl (Store.find s sto) with
-              | []         -> ([], store_add loc s pl ct sto)
-              | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
-              | _          -> assert false
-            end
-      | Index.ICClass {Index.m = m} when Index.is_unbounded i ->
-          let ld, sub = LDesc.shrink_period m unify_fields [] (Store.find s sto) in
-          let pl      = ploc_of_index i in
-          let flds    = LDesc.find pl ld in
-          let sub     = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) sub flds in
-          let p       = ld |> LDesc.get_period |> Misc.get_option 0 in
-            if List.exists (fun (pl2, _) -> ploc_contains pl2 pl p) flds then
-              (* If this sequence is included in an existing one, there's nothing left to do *)
-              (sub, sto)
-            else
-              (* Otherwise, remove "later", overlapping elements and add this sequence.
-                 (Note if there's no including sequence, all the elements we found previously
-                 come after this one.) *)
-              let ld = List.fold_left (fun ld (pl2, _) -> LDesc.remove pl2 ld) ld flds in
-              let ld = LDesc.add loc pl (Field.create Ctypes.Final ct) ld in
-                (sub, SLM.add s ld sto)
-  with
-    | e ->
-        C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a" 
-          Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
-        raise e
+  try match i with
+    | Index.IBot   -> ([], sto)
+    | Index.IInt n ->
+      begin match LDesc.find i (Store.find s sto) with
+        | []         -> ([], store_add loc s i ct sto)
+        | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
+        | _          -> assert false
+      end
+    | Index.ICClass _ ->
+      let ld   = Store.find s sto in
+      let flds = LDesc.find i ld in
+      let sub  = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) [] flds in
+        if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
+          (* If this sequence is included in an existing one, there's nothing left to do *)
+          (sub, sto)
+        else
+          (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
+          let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
+          let i  = List.fold_left (fun i (i2, _) -> Index.lub i i2) i flds in
+          let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
+            (sub, SLM.add s ld sto)
+  with e ->
+    C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a" 
+      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
+    raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function
   | []      -> []

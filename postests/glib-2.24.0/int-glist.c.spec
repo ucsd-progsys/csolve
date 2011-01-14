@@ -6,8 +6,8 @@ assert_sorted ::
                  4: ref (A0, 0, {v | (v != 0) -> && [v > 0;
                                                      v = BLOCK_BEGIN([v]);
                                                      BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 12);
-                                                     A0#PLAt#0 <= (DEREF([v]) : int)]}),
+                                                     A0#Ix#0 <= (DEREF([v]) : int)]}),
                  8: ref (A0, 0, {v | (v != 0) -> && [v > 0;
                                                      v = BLOCK_BEGIN([v]);
                                                      BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 12);
-                                                     A0#PLAt#0 >= (DEREF([v]) : int)]})]
+                                                     A0#Ix#0 >= (DEREF([v]) : int)]})]

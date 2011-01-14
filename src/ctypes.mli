@@ -21,11 +21,6 @@
  *
  *)
 
-type seq_polarity =     (* direction in which sequence extends *)
-  | Pos                 (* +ve unbounded         *)
-  | PosNeg              (* +ve and -ve unbounded *)
-  | PosB of int         (* +ve upto k times      *)
-
 module Index:
   sig
     type class_bound = int option
@@ -45,9 +40,14 @@ module Index:
     val top          : t
     val nonneg       : t
     val is_unbounded : t -> bool
+    val period       : t -> int option
+    val is_periodic  : t -> bool
     val of_int       : int -> t
     val mk_sequence  : int -> int -> class_bound -> class_bound -> t
+    val lub          : t -> t -> t
+    val glb          : t -> t -> t
     val widen        : t -> t -> t
+    val offset       : int -> t -> t
     val plus         : t -> t -> t
     val minus        : t -> t -> t
     val scale        : int -> t -> t
@@ -56,13 +56,13 @@ module Index:
     val unsign       : t -> t
     val is_subindex  : t -> t -> bool
     val d_index      : unit -> t -> Pretty.doc
+    val repr         : t -> string
+    val repr_prefix  : string
   end
 
-type ploc =
-  | PLAt of int                 (* location n *)
-  | PLSeq of int * seq_polarity (* location n plus periodic repeats *)
+module IndexSet : Set.S with type elt = Index.t
 
-module PlocSet: Set.S with type elt = ploc
+val d_indexset : unit -> IndexSet.t -> Pretty.doc
 
 (******************************************************************************)
 (****************************** Type Refinements ******************************)
@@ -122,7 +122,7 @@ module type S = sig
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
     val eq               : t -> t -> bool
-    val collide          : ploc -> t -> ploc -> t -> int -> bool
+    val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
     val is_ref           : t -> bool
     val refinements_of_t : t -> R.t list
@@ -147,24 +147,20 @@ module type S = sig
   sig
     type t = R.t preldesc
 
-    exception TypeDoesntFit of ploc * CType.t * t
+    exception TypeDoesntFit of Index.t * CType.t * t
 
     val empty         : t
-    val get_period    : t -> int option
-    val add           : Cil.location -> ploc -> Field.t -> t -> t
-    val add_index     : Cil.location -> Index.t -> Field.t -> t -> t
+    val add           : Cil.location -> Index.t -> Field.t -> t -> t
     val create        : Cil.location -> (Index.t * Field.t) list -> t
-    val remove        : ploc -> t -> t
-    val shrink_period : int -> (Field.t -> Field.t -> 'b -> 'b) -> 'b -> t -> t * 'b
-    val mem           : ploc -> t -> bool
-    val find          : ploc -> t -> (ploc * Field.t) list
-    val find_index    : Index.t -> t -> (ploc * Field.t) list
-    val foldn         : (int -> 'a -> ploc -> Field.t -> 'a) -> 'a -> t -> 'a
-    val fold          : ('a -> ploc -> Field.t -> 'a) -> 'a -> t -> 'a
+    val remove        : Index.t -> t -> t
+    val mem           : Index.t -> t -> bool
+    val find          : Index.t -> t -> (Index.t * Field.t) list
+    val foldn         : (int -> 'a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
+    val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val mapn          : (int -> ploc -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val iter          : (ploc -> Field.t -> unit) -> t -> unit
-    val indices_of_t  : t -> Index.t list 
+    val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
+    val iter          : (Index.t -> Field.t -> unit) -> t -> unit
+    val indices       : t -> Index.t list 
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -271,30 +267,6 @@ module Make (R: CTYPE_REFINEMENT) : S with module R = R
 module I : S with module R = IndexRefinement
 
 (******************************************************************************)
-(******************************* Pretty Printers ******************************)
-(******************************************************************************)
-
-val d_ploc : unit -> ploc -> Pretty.doc
-val d_plocset : unit -> PlocSet.t -> Pretty.doc
-
-(******************************************************************************)
-(****************************** Index Operations ******************************)
-(******************************************************************************)
-
-val ploc_of_index : Index.t -> ploc
-val index_of_ploc : ploc -> int -> Index.t
-
-(******************************************************************************)
-(************************ Periodic Location Operations ************************)
-(******************************************************************************)
-
-val ploc_start: ploc -> int
-val ploc_compare: ploc -> ploc -> int
-val ploc_periodic: ploc -> bool
-val ploc_contains: ploc -> ploc -> int -> bool
-val ploc_offset: ploc -> int -> ploc
-
-(******************************************************************************)
 (*************************** Convenient Type Aliases **************************)
 (******************************************************************************)
 
@@ -306,4 +278,4 @@ type ctemap = I.ctemap
 
 val void_ctype   : ctype 
 val scalar_ctype : ctype
-val is_unbounded : seq_polarity -> bool
+

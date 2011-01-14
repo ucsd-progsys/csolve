@@ -1,6 +1,6 @@
-type final_fields = Ctypes.PlocSet.t Sloc.SlocMap.t
+type final_fields = Ctypes.IndexSet.t Sloc.SlocMap.t
 
-type final_fields_annot = Ctypes.PlocSet.t Sloc.SlocMap.t * final_fields list
+type final_fields_annot = Ctypes.IndexSet.t Sloc.SlocMap.t * final_fields list
 
 type t =
   {vtyps   : (Cil.varinfo * Ctypes.ctype) list;

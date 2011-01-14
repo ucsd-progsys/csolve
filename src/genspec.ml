@@ -39,7 +39,7 @@ module Cs  = FixInterface.RefCTypes.Spec
 open Cil
 open Misc.Ops
 
-let mydebug = false 
+let mydebug = false
 
 exception CantConvert
 
@@ -108,7 +108,7 @@ let is_cyclic =
  }}} *)
 
 let period_of_ciltype = function
-  | TArray (c',_,_) as c -> 
+  | TArray (c',_,_) as c ->
       let m = CM.bytesSizeOf c' in
       let k = (CM.bytesSizeOf c) / m in
       Bnd (m, k)
@@ -196,9 +196,9 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
           conv_cilblock loc (th, st, off) Nop c
      | _ -> 
           halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
-  with Ct.I.LDesc.TypeDoesntFit (pl, ct, ld) ->
+  with Ct.I.LDesc.TypeDoesntFit (i, ct, ld) ->
     let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
-    let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" Ct.d_ploc pl Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
+    let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" N.d_index i Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
 
 and conv_ptr loc (th, st) pd c =
