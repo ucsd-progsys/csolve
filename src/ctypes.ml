@@ -95,7 +95,7 @@ module Index = struct
     | IInt n                                       -> P.num n
     | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
     | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
-    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "[%d][%d < %d]" l m (u + m)
+    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "%d[%d < %d]" l m (u + m)
     | _                                            -> assert false
 
   let repr_suffix = function
