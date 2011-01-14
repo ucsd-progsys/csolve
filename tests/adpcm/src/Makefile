@@ -17,14 +17,14 @@ else
 CC = gcc
 endif
 
-CC = ../../../src/lcc -I ../../../include
+CC = ../../../src/lcc --merge -I ../../../include
 
 # LFLAGS = -mv8
 # LFLAGS = $(LFLAGS) -static
 #
 # End of addition
 ######################################################################
-CFLAGS = -O3
+CFLAGS = -U __USE_EXTERN_INLINES
 
 # May need this on a sun:
 # CFLAGS=-O -I/usr/demo/SOUND
