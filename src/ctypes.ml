@@ -117,8 +117,9 @@ module Index = struct
     (* pmr: loosen this? *)
     if i >= 0 then IInt i else top
 
-  let mk_sequence start period lbound ubound =
-    ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
+  let mk_sequence start period lbound ubound = match lbound, ubound with
+    | Some m, Some n when m = n -> IInt n
+    | _                         -> ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
 
   let is_unbounded = function
     | ICClass {lb = None} | ICClass {ub = None} -> true

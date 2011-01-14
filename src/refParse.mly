@@ -217,7 +217,7 @@ ctype:
 index:
     Num                                 { N.IInt $1 }
   | Num LB Num RB                       { N.mk_sequence $1 $3 (Some $1) None }
-  | Num LB Num LT Num RB                { N.mk_sequence $1 $3 (Some $1) (Some $5) }
+  | Num LB Num LT Num RB                { N.mk_sequence $1 $3 (Some $1) (Some ($5 - $3)) }
   | Num LC Num RC                       { N.mk_sequence $1 $3 None None }
   | TRUE                                { N.top }
   | FALSE                               { N.IBot }
