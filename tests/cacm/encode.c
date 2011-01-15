@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include "model.h"
-//#include <liquidc.h>
+#include <liquidc.h>
 
 main()
 {   start_model();				/* Set up other modules.    */

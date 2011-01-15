@@ -1,7 +1,7 @@
 /* THE ADAPTIVE SOURCE MODEL */
 
 #include "model.h"
-//#include <liquidc.h>
+#include <liquidc.h>
 
 int freq[No_of_symbols+1];	/* Symbol frequencies                       */
 

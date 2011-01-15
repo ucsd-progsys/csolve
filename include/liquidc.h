@@ -7,7 +7,7 @@ int assume (int p) {
     if (!p)
     STUCK: goto STUCK;
 
-    return 1;
+    return p;
 }
 
 int bor(int a, int b) {
@@ -15,11 +15,13 @@ int bor(int a, int b) {
 
     res = a | b;
 
-    int a1 = assume (a <= res);
-    int a2 = assume (b <= res);
-    int a3 = assume (res <= a + b);
+    if (a > res) goto STUCK;
+    if (b > res) goto STUCK;
+    if (res > a + b) goto STUCK;
 
     return res;
+
+ STUCK: goto STUCK;
 }
 
 int band(int a, int b) {
@@ -30,11 +32,13 @@ int band(int a, int b) {
 
     res = a & b;
 
-    int a1 = assume (res <= a);
-    int a2 = assume (res <= b);
-    int a3 = assume (0 <= res);
+    if (res > a) goto STUCK;
+    if (res > b) goto STUCK;
+    if (res < 0) goto STUCK;
 
     return res;
+
+ STUCK: goto STUCK;
 }
 
 #endif
