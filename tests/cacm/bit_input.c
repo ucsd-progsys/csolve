@@ -17,7 +17,7 @@ void start_inputing_bits()
 /* INPUT A BIT. */
 
 int input_bit()
-{   
+{
   int t;
   bits_to_go -= 1;
   if (bits_to_go<0) {				/* Read the next byte if no */
