@@ -96,6 +96,34 @@ let is_origcilvar v =
 
 let ctype_scalar = Ctypes.void_ctype
 
+let scalarenv_of_fdec gnv fdec = 
+  let avars = FI.ce_find_fn fdec.svar.vname gnv 
+              |> FI.args_of_refcfun 
+              |> Misc.map (fst <+> FI.name_of_string) in
+  let lvars = fdec.slocals 
+              |> List.filter is_origcilvar 
+              |> Misc.map (FI.name_of_varinfo) in
+  avars ++ lvars
+  |> List.map (fun x -> (x, FI.t_true Ctypes.scalar_ctype)) 
+  |> FI.ce_adds gnv
+
+let env_of_fdec shp gnv fdec =
+  let abinds = FI.ce_find_fn fdec.svar.vname gnv 
+               |> FI.args_of_refcfun 
+               |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
+               |> List.map (Misc.app_fst FI.name_of_string) in
+  let lbinds = fdec.slocals 
+               |> List.filter is_origcilvar 
+               |> Misc.map (FI.name_of_varinfo <*> 
+                           (FI.t_true <.> ctype_of_local shp.Sh.vtyps)) in
+  abinds ++ lbinds
+  |> FI.ce_adds gnv 
+
+let env_of_fdec = function
+  | None     -> scalarenv_of_fdec
+  | Some shp -> env_of_fdec shp
+
+(*
 let env_of_fdec gnv fdec sho = 
   let strf, typf = match sho with
     | None     -> (id, fun _ -> Ctypes.scalar_ctype)
@@ -110,6 +138,8 @@ let env_of_fdec gnv fdec sho =
   |> List.filter is_origcilvar 
   |> Misc.map (FI.name_of_varinfo <*> (FI.t_true <.> typf))
   |> FI.ce_adds env0 
+
+*)
 
 let formalm_of_fdec fdec = 
   List.fold_left (fun sm v -> SM.add v.vname () sm) SM.empty fdec.Cil.sformals
@@ -423,7 +453,7 @@ let create_shapeo tgr gnv env gst sci = function
 
 let create tgr gnv gst sci sho = 
   let formalm = formalm_of_fdec sci.ST.fdec in
-  let env     = env_of_fdec gnv sci.ST.fdec sho in
+  let env     = env_of_fdec sho gnv sci.ST.fdec in
   let ws, cs, ds, sh_me = create_shapeo tgr gnv env gst sci sho in
   { tgr     = tgr
   ; sci     = sci

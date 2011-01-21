@@ -144,7 +144,15 @@ let cons_of_dcheck me loc grd tag (env, _, tago) (v, rct) =
 let extend_env me v cr env = 
   let ct = CF.ctype_of_varinfo me v in
   let cr = FI.t_ctype_refctype ct cr in
+  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname FI.d_refctype cr in
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
+
+(*
+let scalarextend_env me v cr env = 
+  FI.ce_adds env [(FI.name_of_varinfo v), (FI.t_ctype_refctype Ct.scalar_ctype cr)]
+
+let extend_env me = if CF.has_shape me then extend_env me else scalarextend_env me
+*)
 
 let cons_of_mem me loc tago tag grd env v =
   if !Cs.manual then
