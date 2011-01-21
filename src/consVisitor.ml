@@ -147,13 +147,6 @@ let extend_env me v cr env =
   let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname FI.d_refctype cr in
   FI.ce_adds env [(FI.name_of_varinfo v), cr]
 
-(*
-let scalarextend_env me v cr env = 
-  FI.ce_adds env [(FI.name_of_varinfo v), (FI.t_ctype_refctype Ct.scalar_ctype cr)]
-
-let extend_env me = if CF.has_shape me then extend_env me else scalarextend_env me
-*)
-
 let cons_of_mem me loc tago tag grd env v =
   if !Cs.manual then
     ([], [])
@@ -321,6 +314,7 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
+  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname FI.d_refctype cr in
   let cr'    = FI.t_fresh Ct.scalar_ctype in
   let cs, ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
