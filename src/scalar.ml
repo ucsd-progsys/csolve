@@ -386,7 +386,7 @@ let check_scalar uvm shm sim =
         if ix = Ix.IBot then errs else
         if (not (VM.mem v im)) then (MissingVar (fn, v, ix) :: errs) else
           let ct'  = VM.find v im in
-          let ix'  = index_of_ctype ct in
+          let ix'  = index_of_ctype ct' in
           if check_index oc fn v ix ix' then errs else (DiffIndex (fn, v, ix, ix')) ::errs
       end errs vcts 
    end shm [])
