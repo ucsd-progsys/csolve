@@ -121,6 +121,18 @@ module Index = struct
     | Some m, Some n when m = n -> IInt n
     | _                         -> ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
 
+  let mk_singleton n =
+    IInt n
+
+  let mk_geq n =
+    ICClass {lb = Some n; ub = None; m = 1; c = 0}
+
+  let mk_leq n =
+    ICClass {lb = None; ub = Some n; m = 1; c = 0}
+
+  let mk_eq_mod c m =
+    ICClass {lb = None; ub = None; m = m; c = c}
+
   let is_unbounded = function
     | ICClass {lb = None} | ICClass {ub = None} -> true
     | _                                         -> false

@@ -44,6 +44,10 @@ module Index:
     val is_periodic  : t -> bool
     val of_int       : int -> t
     val mk_sequence  : int -> int -> class_bound -> class_bound -> t
+    val mk_singleton : int -> t
+    val mk_geq       : int -> t
+    val mk_leq       : int -> t
+    val mk_eq_mod    : int -> int -> t
     val lub          : t -> t -> t
     val glb          : t -> t -> t
     val widen        : t -> t -> t
