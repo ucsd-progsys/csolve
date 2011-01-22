@@ -962,3 +962,5 @@ type ctemap = I.ctemap
 let void_ctype   = Int (0, N.top)
 let ptr_ctype    = Ref (S.fresh S.Abstract, N.top) 
 let scalar_ctype = Int (0, N.top)
+
+let d_ctype = I.CType.d_ctype

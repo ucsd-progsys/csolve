@@ -283,3 +283,4 @@ type ctemap = I.ctemap
 val void_ctype   : ctype 
 val scalar_ctype : ctype
 
+val d_ctype      : unit -> ctype -> Pretty.doc

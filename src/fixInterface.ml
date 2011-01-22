@@ -238,6 +238,8 @@ let refctype_of_reft_ctype r = function
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (so_ref l)))
   | Ct.Top (o)   -> Ct.Top (o, r) 
 
+
+
 let ctype_of_refctype = function
   | Ct.Int (x, (y, _)) -> Ct.Int (x, y) 
   | Ct.Ref (x, (y, _)) -> Ct.Ref (x, y)
@@ -278,6 +280,9 @@ let mk_refcfun qslocs args ist ret ost =
     Ct.ret     = ret;
     Ct.sto_in  = ist;
     Ct.sto_out = ost; }
+
+
+
 
 (* API *)
 let pred_of_refctype s v cr = 
@@ -618,29 +623,11 @@ let t_exp_scalar v e =
   refctype_of_reft_ctype r ct
 
 
-let pred_of_index (ix: Ix.t): (Ast.Symbol.t * Ast.pred) = failwith "TBD"
-
 let pred_of_index = function
   | Ix.IBot                     -> vv_int, A.pFalse
   | Ix.IInt n                   -> vv_int, A.pEqual (A.eVar vv_int, A.eInt n)
   | Ix.ICClass {Ix.lb = Some n} -> vv_int, A.pAtom (A.eVar vv_int, A.Ge, A.eInt n)
   | _                           -> vv_int, A.pTrue 
-
-let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
-
-let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
-
-let t_scalar = function
-  | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
-  | Ct.Int (_,ix)        -> t_scalar_index ix 
-  | _                    -> t_true Ct.scalar_ctype
-
-let t_scalar_refctype rct = 
-  let r   = reft_of_refctype rct in
-  let vv  = C.vv_of_reft r in
-  let vv' = Ct.scalar_ctype |> sort_of_prectype |> Sy.value_variable in 
-  let r'  = C.theta (Su.of_list [vv, A.eVar vv']) r in
-  refctype_of_reft_ctype r' Ct.scalar_ctype 
 
 let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (string_of_name n) in
@@ -665,7 +652,7 @@ let strengthen_refctype mkreft rct =
   let vv   = C.vv_of_reft reft in
   let so   = C.sort_of_reft reft in
   let ras  = C.ras_of_reft reft in
-    refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (ctype_of_refctype rct)
+  refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (ctype_of_refctype rct)
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
@@ -679,6 +666,52 @@ let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> RCt.Store.map_ct t_fresh >> annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
+
+let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
+
+let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+
+let t_scalar = function
+  | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
+  | Ct.Int (_,ix)        -> t_scalar_index ix 
+  | _                    -> t_true Ct.scalar_ctype
+
+let deconstruct_refctype rct = 
+  let r = reft_of_refctype rct in
+  (ctype_of_refctype rct, C.vv_of_reft r, C.sort_of_reft r, C.ras_of_reft r)
+
+let meet_refctype rct1 rct2 = 
+  let (ct1, vv1, so1, ra1) = deconstruct_refctype rct1 in
+  let (ct2, vv2, so2, ra2) = deconstruct_refctype rct2 in
+  if not (ct1 = ct2 && vv1 = vv2 && so1 = so2) then begin
+    Pretty.printf "ct1 = %a, ct2 = %a" Ctypes.d_ctype ct1 Ctypes.d_ctype ct2;
+    Pretty.printf "vv1 = %s, vv2 = %s" (Sy.to_string vv1) (Sy.to_string vv2);
+    assertf "meet_refctype"  
+  end;
+  refctype_of_reft_ctype (C.make_reft vv1 so1 (ra1 ++ ra2)) ct1 
+
+let vv_rename so' r =
+  let vv'    = Sy.value_variable so' in
+  let vv, so = r |> (C.vv_of_reft <*> C.sort_of_reft) in
+  let ras'   = r |> C.theta (Su.of_list [vv, A.eVar vv']) |> C.ras_of_reft in
+  C.make_reft vv' so' ras'
+
+let t_scalar_refctype_raw rct = 
+  let so'  = Ct.scalar_ctype |> sort_of_prectype in 
+  let r'   = rct |> reft_of_refctype |> vv_rename so' in 
+  refctype_of_reft_ctype r' Ct.scalar_ctype 
+
+(* API *)
+let t_scalar_refctype rct =
+  rct 
+  |> (t_scalar_refctype_raw <*> (t_scalar <.> ctype_of_refctype)) 
+  |> Misc.uncurry meet_refctype
+
+(* WRAPPER *)
+let t_scalar_refctype x =
+  x |> t_scalar_refctype
+    >> (fun y -> ignore <| Pretty.printf "t_scalar_refctype: [in=%a] [out=%a] \n" d_refctype x d_refctype y)
+
 
 (* API *)
 let t_subs_locs lsubs rct =

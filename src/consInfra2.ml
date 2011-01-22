@@ -35,6 +35,7 @@ module C   = FixConstraint
 module FI  = FixInterface 
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
+module Ix  = Ctypes.Index
 module LI  = Inferctypes
 module Sh  = Shape
 module LM  = Sloc.SlocMap
@@ -94,30 +95,34 @@ let is_origcilvar v =
   | None -> true
   | _    -> false
 
-let ctype_scalar = Ctypes.void_ctype
+let ctype_scalar    = Ctypes.void_ctype
 
-let scalarenv_of_fdec gnv fdec = 
-  let avars = FI.ce_find_fn fdec.svar.vname gnv 
-              |> FI.args_of_refcfun 
-              |> Misc.map (fst <+> FI.name_of_string) in
-  let lvars = fdec.slocals 
-              |> List.filter is_origcilvar 
-              |> Misc.map (FI.name_of_varinfo) in
-  avars ++ lvars
-  |> List.map (fun x -> (x, FI.t_true Ctypes.scalar_ctype)) 
+let scalarenv_of_fdec gnv fdec =
+  let args = FI.ce_find_fn fdec.svar.vname gnv
+             >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" FI.d_refcfun x)
+             |> FI.args_of_refcfun
+             |> List.map (FI.name_of_string <**> FI.t_scalar_refctype) 
+  in 
+  let locs = fdec.slocals 
+             |> List.filter is_origcilvar 
+             |> Misc.map (FI.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
+  in
+  args ++ locs
+  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
+  (Ast.Symbol.to_string n) FI.d_refctype rct) 
   |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =
-  let abinds = FI.ce_find_fn fdec.svar.vname gnv 
-               |> FI.args_of_refcfun 
-               |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
-               |> List.map (Misc.app_fst FI.name_of_string) in
-  let lbinds = fdec.slocals 
-               |> List.filter is_origcilvar 
-               |> Misc.map (FI.name_of_varinfo <*> 
-                           (FI.t_true <.> ctype_of_local shp.Sh.vtyps)) in
-  abinds ++ lbinds
-  |> FI.ce_adds gnv 
+  let args = FI.ce_find_fn fdec.svar.vname gnv 
+             |> FI.args_of_refcfun 
+             |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
+             |> List.map (Misc.app_fst FI.name_of_string) in
+  let locs = fdec.slocals 
+             |> List.filter is_origcilvar 
+             |> Misc.map (FI.name_of_varinfo <*> 
+                         (FI.t_true <.> ctype_of_local shp.Sh.vtyps)) in
+  args ++ locs
+  |> FI.ce_adds gnv
 
 let env_of_fdec = function
   | None     -> scalarenv_of_fdec

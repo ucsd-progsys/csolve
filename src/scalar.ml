@@ -51,7 +51,6 @@ type scalar_const =
   | Period      of int 
   | Increment   of int
 
-
 (***************************************************************************)
 (******************** Meta Qualifiers for Scalar Invariants ****************)
 (***************************************************************************)
@@ -269,13 +268,7 @@ let index_of_pred v (cr, p) =
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname FI.d_refctype cr (P.to_string p) Ix.d_index ix)
 
-(* API *)
-let preds_of_index = function
-  | Ix.IBot                                     -> []
-  | Ix.IInt n                                   -> [(v=n)] 
-  | Ix.ICClass {Ix.m = m; Ix.c = n; Ix.ub = ub} ->
-    [Offset n;  Period m] ++ (scalar_consts_of_upper_bound m ub)
- 
+
 (***************************************************************************)
 (************************ Generate Scalar Constraints **********************)
 (***************************************************************************)
