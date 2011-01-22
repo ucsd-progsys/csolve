@@ -668,9 +668,7 @@ let refstore_fresh = fun f st -> st |> RCt.Store.map_ct t_fresh >> annot_sto f
 let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
 
 let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
-
 let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
-
 let t_scalar = function
   | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
   | Ct.Int (_,ix)        -> t_scalar_index ix 
@@ -707,11 +705,11 @@ let t_scalar_refctype rct =
   |> (t_scalar_refctype_raw <*> (t_scalar <.> ctype_of_refctype)) 
   |> Misc.uncurry meet_refctype
 
-(* WRAPPER *)
+(* WRAPPER 
 let t_scalar_refctype x =
   x |> t_scalar_refctype
     >> (fun y -> ignore <| Pretty.printf "t_scalar_refctype: [in=%a] [out=%a] \n" d_refctype x d_refctype y)
-
+*)
 
 (* API *)
 let t_subs_locs lsubs rct =
