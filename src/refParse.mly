@@ -4,9 +4,9 @@ module So  = Ast.Sort
 module Sy  = A.Symbol
 module SM  = Misc.StringMap
 module FI  = FixInterface
-module RCt = FI.RefCTypes
-module CT  = Ctypes
-module N   = CT.Index
+module Ct  = Ctypes
+module RCt = Ct.RefCTypes
+module N   = Ct.Index
 
 open Misc.Ops
 
@@ -33,7 +33,7 @@ exception InvalidStoredSpecType
 let check_store_bind_valid (i, fld) =
   try
     match RCt.Field.type_of fld  with
-      | CT.Int (_, (ti, _)) -> if ti <> CT.Index.top then raise InvalidStoredSpecType; (i, fld)
+      | Ct.Int (_, (ti, _)) -> if ti <> Ct.Index.top then raise InvalidStoredSpecType; (i, fld)
       | _                   -> (i, fld)
   with InvalidStoredSpecType ->
           Errormsg.error "Invalid field in store spec: %a\n\n"
@@ -98,7 +98,7 @@ let rename_depreference s =
 
 %start specs 
 
-%type <FixInterface.refspec>    specs
+%type <Ctypes.refspec>    specs
 
 %%
 specs:
@@ -185,10 +185,10 @@ indbindsne:
 
 indbind:
     index COLON reftype {
-      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Nonfinal $3)
+      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ctypes.Nonfinal $3)
     }
   | index COLON FINAL reftype {
-      check_store_bind_valid ($1, FI.RefCTypes.Field.create Ctypes.Final $4)
+      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ctypes.Final $4)
     }
   ;
 

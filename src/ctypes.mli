@@ -284,3 +284,34 @@ val void_ctype   : ctype
 val scalar_ctype : ctype
 
 val d_ctype      : unit -> ctype -> Pretty.doc
+
+(**********************************************************************)
+(********************** refctypes and friends *************************)
+(**********************************************************************)
+module Reft      : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
+module RefCTypes : S with module R = Reft
+
+type refctype = RefCTypes.CType.t
+type refcfun  = RefCTypes.CFun.t
+type refldesc = RefCTypes.LDesc.t
+type refstore = RefCTypes.Store.t
+type refspec  = RefCTypes.Spec.t
+type reffield = RefCTypes.Field.t
+
+val d_refctype : unit -> refctype -> Pretty.doc
+val d_refstore : unit -> refstore -> Pretty.doc
+val d_refcfun  : unit -> refcfun -> Pretty.doc
+
+val reft_of_top : FixConstraint.reft
+
+val refstore_empty      : refstore
+val refstore_mem        : Sloc.t -> refstore -> bool
+val refstore_remove     : Sloc.t -> refstore -> refstore
+val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
+val refstore_get        : refstore -> Sloc.t -> refldesc
+val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
+val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
+
+val refldesc_subs       : refldesc -> (int -> Index.t -> refctype -> refctype) -> refldesc
+
+

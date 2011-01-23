@@ -48,7 +48,7 @@ module LM = Sloc.SlocMap
 module CM = CilMisc
 module VM = CM.VarMap
 module Ix = Ct.Index
-
+module RCt = Ctypes.RefCTypes
 
 open Misc.Ops
 open Cil
@@ -167,7 +167,6 @@ let mk_pure_cfun args ret =
 (* API *)
 (* List.fold_left (fun env (n, r) -> YM.add n r env) YM.empty *)
 
-let reft_of_top = C.make_reft (Sy.value_variable So.t_obj) So.t_obj [] 
 
 (* API *)
 let axioms      = [A.pEqual (A.zero, eApp_bbegin A.zero)]
@@ -179,7 +178,7 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_deref,   C.make_reft vv_drf so_drf [])]
                   |> Sy.sm_of_list
 
-
+(* CTYPES 
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
@@ -208,11 +207,19 @@ type reffield = RCt.Field.t
 type refldesc = RCt.LDesc.t
 type refstore = RCt.Store.t
 type refspec  = RCt.Spec.t
-type cilenv   = refcfun SM.t * refctype YM.t * name YM.t
+type refctype = Ct.refctype
+type refcfun  = Ct.refcfun
+type reffield = Ct.reffield
+type refldesc = Ct.refldesc
+type refstore = Ct.refstore 
+type refspec  = Ct.refspec
 
 let d_refstore = RCt.Store.d_store
 let d_refctype = RCt.CType.d_ctype
 let d_refcfun  = RCt.CFun.d_cfun
+*)
+
+type cilenv   = Ct.refcfun SM.t * Ct.refctype YM.t * name YM.t
 
 let reft_of_reft r t' =
   let vv   = C.vv_of_reft r in
@@ -255,7 +262,7 @@ let refctype_of_ctype f = function
       let r  = C.make_reft vv so (f t) in
       Ct.Ref (l, (x, r)) 
   | Ct.Top (x) -> 
-      Ct.Top (x, reft_of_top)
+      Ct.Top (x, Ct.reft_of_top)
 
 let is_base = function
   | TInt _ -> true
@@ -282,8 +289,6 @@ let mk_refcfun qslocs args ist ret ost =
     Ct.sto_out = ost; }
 
 
-
-
 (* API *)
 let pred_of_refctype s v cr = 
   let n        = name_of_varinfo v in
@@ -297,6 +302,7 @@ let pred_of_refctype s v cr =
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
 
+(* CTYPES 
 let refstore_fold      = LM.fold
 let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
 let refstore_empty     = LM.empty
@@ -311,6 +317,7 @@ let refstore_get sto l =
   try LM.find l sto with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
+*)
 
 let sloc_binds_of_refldesc l rd =
   RCt.LDesc.foldn begin fun _ binds i rfld ->
@@ -323,8 +330,10 @@ let binds_of_refldesc l rd =
   |> List.filter (fun (_, i) -> not (Ix.is_periodic i))
   |> List.map fst
 
+(* CTYPES
 let refldesc_subs rd f =
   RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
+*)
 
 let refdesc_find i rd = 
   match RCt.LDesc.find i rd with
@@ -335,7 +344,7 @@ let addr_of_refctype loc = function
   | Ct.Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, i)
   | cr ->
-      let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
+      let s = cr  |> Ct.d_refctype () |> Pretty.sprint ~width:80 in
       let l = loc |> d_loc () |> Pretty.sprint ~width:80 in
       let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
       assert false
@@ -352,7 +361,7 @@ let refstore_read loc sto cr =
 (* API *)
 let is_poly_cloc st cl =
   let _ = asserts (not (Sloc.is_abstract cl)) "is_poly_cloc" in
-  refstore_get st cl 
+  Ct.refstore_get st cl 
   |> binds_of_refldesc cl 
   |> (=) []
 
@@ -372,17 +381,17 @@ let refstore_write loc sto rct rct' =
 (****************** Tag/Annotation Generation **********************)
 (*******************************************************************)
 
-type binding = TVar of string * refctype
-             | TFun of string * refcfun
-             | TSto of string * refstore
+type binding = TVar of string * Ct.refctype
+             | TFun of string * Ct.refcfun
+             | TSto of string * Ct.refstore
 
 let report_bad_binding = function 
   | TVar (x, cr) ->
-      Errormsg.warn "\nBad TVar for %s :: \n\n@[%a@]" x d_refctype cr
+      Errormsg.warn "\nBad TVar for %s :: \n\n@[%a@]" x Ct.d_refctype cr
   | TFun (fn, cf) ->
-      Errormsg.warn "\nBad TFun for %s ::\n\n@[%a@]" fn d_refcfun cf
+      Errormsg.warn "\nBad TFun for %s ::\n\n@[%a@]" fn Ct.d_refcfun cf
   | TSto (fn, st) -> 
-      Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn d_refstore st 
+      Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn Ct.d_refstore st 
 
 let tags_of_binds s binds = 
   let s_typ = RCt.CType.map (Misc.app_snd (C.apply_solution s)) in
@@ -394,17 +403,17 @@ let tags_of_binds s binds =
       match bind with 
       | TVar (x, cr) ->
           let k,t  = x, ("variable "^x) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refctype (s_typ cr) nl in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refctype (s_typ cr) nl in
           (Pretty.concat d d', (k,t)::kts)
       | TFun (f, cf) -> 
           let k,t  = f, ("function "^f) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t d_refcfun (s_fun cf) nl in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refcfun (s_fun cf) nl in
           (Pretty.concat d d', (k,t)::kts)
       | TSto (f, st) -> 
         let kts' =  RCt.Store.domain st 
                  |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
                  |> List.map (fun s -> (s, s^" |->")) in
-        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f d_refstore (s_sto st) nl in
+        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore (s_sto st) nl in
         (Pretty.concat d d', kts' ++ kts)
     with
       C.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
@@ -457,7 +466,7 @@ let ce_find_fn s (fnv, _,_) =
 
 let ce_adds cenv ncrs =
   let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
-  (Sy.to_string n) d_refctype cr) ncrs) in
+  (Sy.to_string n) Ct.d_refctype cr) ncrs) in
   let _ = List.iter (fun (n, cr) -> annot_var n cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
@@ -719,8 +728,8 @@ let t_subs_locs lsubs rct =
 
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') -> 
-    if not (refstore_mem l sto) then [] else
-      let is  = l |> refstore_get sto |> RCt.LDesc.indices in
+    if not (Ct.refstore_mem l sto) then [] else
+      let is  = l |> Ct.refstore_get sto |> RCt.LDesc.indices in
       let ns  = List.map (name_of_sloc_index l)  is in
       let ns' = List.map (name_of_sloc_index l') is in
       List.combine ns ns'
@@ -964,8 +973,8 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
   (if polarity then st2 else st1)
   |> RCt.Store.domain
   |> Misc.map begin fun sloc ->
-       let lhs = (sloc, refstore_get st1 sloc) in
-       let rhs = (sloc, refstore_get st2 sloc) in
+       let lhs = (sloc, Ct.refstore_get st1 sloc) in
+       let rhs = (sloc, Ct.refstore_get st2 sloc) in
        make_cs_refldesc cf env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten 
@@ -1006,7 +1015,7 @@ let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 (* API: TBD: UGLY *)
 let extend_world cf ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
-  let ld    = sloc |> refstore_get ssto |> strengthen in
+  let ld    = sloc |> Ct.refstore_get ssto |> strengthen in
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
   let subs  = List.map (fun (n,_) -> (n, name_fresh ())) binds in
@@ -1032,7 +1041,7 @@ let extend_world cf ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                       cs' ++ cs
                   | _ -> cs
                 end [] ld in
-  let sto'  = refstore_set sto cloc ld' in
+  let sto'  = Ct.refstore_set sto cloc ld' in
   (env', sto', tago), cs
 
 let strengthen_final_field ffs ptrname i fld =

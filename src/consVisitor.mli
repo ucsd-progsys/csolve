@@ -24,16 +24,16 @@
 
 val cons_of_decs: 
   CilTag.o -> 
-  FixInterface.refspec -> 
+  Ctypes.refspec -> 
   FixInterface.cilenv ->
-  FixInterface.refstore ->
+  Ctypes.refstore ->
   CilMisc.dec list ->
-  FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list
+  FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list
 
 val cons_of_scis: 
   CilTag.o -> 
   FixInterface.cilenv ->
-  FixInterface.refstore ->
+  Ctypes.refstore ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
   Shape.t Misc.StringMap.t option ->
   Consindex.t ->

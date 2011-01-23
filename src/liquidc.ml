@@ -35,8 +35,8 @@ module C   = FixConstraint
 module P   = Pretty
 module FI  = FixInterface
 module Co  = Constants
-module Sp  = FI.RefCTypes.Spec
-module RCt = FI.RefCTypes
+module Sp  = Ctypes.RefCTypes.Spec
+module RCt = Ctypes.RefCTypes
 
 open Misc.Ops
 open Pretty

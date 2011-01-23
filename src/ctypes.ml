@@ -964,3 +964,70 @@ let ptr_ctype    = Ref (S.fresh S.Abstract, N.top)
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype = I.CType.d_ctype
+
+
+
+(******************************************************************************)
+(************************* Refctypes and Friends ******************************)
+(******************************************************************************)
+
+module FC = FixConstraint
+
+let reft_of_top = 
+  let so = Ast.Sort.t_obj in
+  let vv = Ast.Symbol.value_variable so in
+  FC.make_reft vv so []
+
+(*******************************************************************)
+(********************* Refined Types and Stores ********************)
+(*******************************************************************)
+
+let d_index_reft () (i,r) = 
+  let di = Index.d_index () i in
+  let dc = Pretty.text " , " in
+  let dr = Misc.fsprintf (FC.print_reft None) r |> Pretty.text in
+  Pretty.concat (Pretty.concat di dc) dr
+
+module Reft = struct
+  type t = Index.t * FC.reft
+  let d_refinement = d_index_reft
+  let lub          = fun ir1 ir2 -> assert false
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
+  let top          = Index.top, reft_of_top 
+end
+
+module RefCTypes   = Make (Reft)
+module RCt         = RefCTypes
+module LM          = Sloc.SlocMap
+
+type refctype      = RCt.CType.t
+type refcfun       = RCt.CFun.t
+type reffield      = RCt.Field.t
+type refldesc      = RCt.LDesc.t
+type refstore      = RCt.Store.t
+type refspec       = RCt.Spec.t
+
+let d_refstore     = RCt.Store.d_store
+let d_refctype     = RCt.CType.d_ctype
+let d_refcfun      = RCt.CFun.d_cfun
+
+let refstore_fold      = LM.fold
+let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
+let refstore_empty     = LM.empty
+let refstore_mem       = fun l sto -> LM.mem l sto
+let refstore_remove    = fun l sto -> LM.remove l sto
+
+let refstore_set sto l rd =
+  try LM.add l rd sto with Not_found -> 
+    assertf "refstore_set"
+
+let refstore_get sto l =
+  try LM.find l sto with Not_found ->
+    (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
+     asserti false "refstore_get"; assert false)
+
+let refldesc_subs rd f =
+  RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
+
+

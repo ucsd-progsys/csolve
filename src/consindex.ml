@@ -32,6 +32,7 @@ module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 module  Q = Ast.Qualifier 
 module FI = FixInterface
+module Ct = Ctypes
 
 open Misc.Ops
 open Cil
@@ -44,7 +45,7 @@ type t = {
   scim : Ssa_transform.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
-  defm : (varinfo * FI.refctype) list SM.t;
+  defm : (varinfo * Ct.refctype) list SM.t;
   depm : C.dep list SM.t;
 }
 

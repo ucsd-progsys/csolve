@@ -266,7 +266,7 @@ let index_of_pred v (cr, p) =
   ; indexo_of_preds_lowerbound vv] 
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
-                v.Cil.vname FI.d_refctype cr (P.to_string p) Ix.d_index ix)
+                v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
 
 (***************************************************************************)
@@ -276,7 +276,7 @@ let index_of_pred v (cr, p) =
 let generate tgr gnv scim : Ci.t =
   ([], [], [], [])
   |> Ci.create  
-  |> ConsVisitor.cons_of_scis tgr gnv FI.refstore_empty scim None
+  |> ConsVisitor.cons_of_scis tgr gnv Ct.refstore_empty scim None
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)
@@ -376,7 +376,6 @@ let check_index oc fn v ix ix' =
 
 let check_scalar uvm shm sim = 
   let oc  = open_out (!Co.liquidc_file_prefix ^ ".scalarlog") in
-  let ppf = Format.formatter_of_out_channel oc in
   (SM.fold begin fun fn { Shape.vtyps = vcts } errs ->
     let vcts = List.filter (fun (v, _) -> VM.mem v uvm) vcts in
     if not (SM.mem fn sim) then (MissingFun fn :: errs) else 

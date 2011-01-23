@@ -25,7 +25,7 @@
 
 type t
 
-type wld = FixInterface.cilenv * FixInterface.refstore * CilTag.t option
+type wld = FixInterface.cilenv * Ctypes.refstore * CilTag.t option
 
 (* Shape not needed *)
 val location_of_block   : t -> int -> Cil.location
@@ -34,8 +34,8 @@ val phis_of_block       : t -> int -> Cil.varinfo list
 val guard_of_block      : t -> int -> int option -> Ast.pred
 val succs_of_block      : t -> int -> int list
 val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
-val add_cons            : FixConstraint.wf list * FixConstraint.t list  * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list -> t -> t
-val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * FixInterface.refctype) list * FixConstraint.dep list
+val add_cons            : FixConstraint.wf list * FixConstraint.t list  * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list -> t -> t
+val get_cons            : t -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list
 val get_fname           : t -> string 
 val is_undefined        : t -> Cil.varinfo -> bool
 
@@ -52,18 +52,18 @@ val annotstmt_of_block  :
   Refanno.block_annotation * Inferindices.block_dchecks * Shape.final_fields_annot * Cil.stmt
 val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
-val csto_of_block       : t -> int -> FixInterface.refstore
+val csto_of_block       : t -> int -> Ctypes.refstore
 val get_alocmap         : t -> FixInterface.alocmap
-val get_astore          : t -> FixInterface.refstore 
+val get_astore          : t -> Ctypes.refstore 
 val ctype_of_varinfo    : t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype
-val refctype_of_global  : t -> Cil.varinfo -> FixInterface.refctype
+val refctype_of_global  : t -> Cil.varinfo -> Ctypes.refctype
 
 
 (* Top-level *)
 val create              : CilTag.o -> 
                           FixInterface.cilenv ->
-                          FixInterface.refstore ->
+                          Ctypes.refstore ->
                           Ssa_transform.ssaCfgInfo -> 
                           Shape.t option -> t
 

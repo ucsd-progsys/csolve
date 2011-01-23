@@ -25,7 +25,7 @@
 
 val scalarinv_of_scim : 
   Cil.file -> 
-  FixInterface.refspec ->  
+  Ctypes.refspec ->  
   CilTag.o ->
   FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
@@ -34,7 +34,7 @@ val scalarinv_of_scim :
 (* TESTING only *)
 val test: 
   Cil.file -> 
-  FixInterface.refspec ->  
+  Ctypes.refspec ->  
   CilTag.o ->
   FixInterface.cilenv ->
   Ssa_transform.ssaCfgInfo Misc.StringMap.t ->

@@ -33,7 +33,7 @@ module SS = Misc.StringSet
 module M  = Misc
 module P  = Pretty
 module CM = CilMisc
-module CS = FI.RefCTypes.Spec
+module CS = Ctypes.RefCTypes.Spec
 module Cs = Constants
 
 open Misc.Ops
@@ -84,7 +84,7 @@ let mk_gnv f spec decs cenv =
 (*************************** Unify Spec Names and CIL names *********************)
 (********************************************************************************)
 
-let rename_args rf sci : FI.refcfun =
+let rename_args rf sci = 
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
   let xrs      = FI.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
@@ -170,7 +170,7 @@ let print_sccs sccs =
 }}} *)
 
 (* API *)
-let create cil (spec: FI.refspec) =
+let create cil spec =
   let reachf = CM.reachable cil in
   let scim   = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn)  in
   let _      = E.log "\nDONE: SSA conversion \n" in
@@ -191,7 +191,7 @@ let create cil (spec: FI.refspec) =
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
-  let gst    = spec |> FI.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst    = spec |> Ctypes.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

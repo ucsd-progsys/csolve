@@ -39,6 +39,7 @@ module FI  = FixInterface
 module FC  = FixConstraint
 module SI  = ShapeInfra
 
+
 (******************************************************************************)
 (****************************** Index Constraints *****************************)
 (******************************************************************************)
@@ -171,12 +172,12 @@ let is_subitypevar is itv1 itv2 =
     | Ref (_, ie1), Ref (_, ie2)                -> Index.is_subindex (IE.apply is ie1) (IE.apply is ie2)
     | _                                         -> false
 
-type boundfun = string * (ctype -> ctype * FI.refctype)
+type boundfun = string * (ctype -> ctype * Ctypes.refctype)
 
 let ctype_of_bound ((_, fbound): boundfun) (ctv: ctype): ctype =
   ctv |> fbound |> fst
 
-let bound_nonneg (ct: ctype): ctype * FI.refctype = match ct with
+let bound_nonneg (ct: ctype): ctype * Ctypes.refctype = match ct with
   | Int (w, N.ICClass ({N.lb = None} as bcc)) ->
       let vv   = Ast.Symbol.value_variable Ast.Sort.t_int in
       let pred = Ast.pAtom (Ast.eVar vv, Ast.Ge, Ast.eCon (Ast.Constant.Int 0)) in
@@ -601,11 +602,11 @@ let d_indextyping () (it: indextyping): P.doc =
       CM.d_var
       (fun () (cf, vm) -> P.dprintf "%a\n\nLocals:\n%a\n\n" I.CFun.d_cfun cf (CM.VarMapPrinter.d_map "\n" CM.d_var I.CType.d_ctype) vm) ()
 
-type dcheck        = C.varinfo * FI.refctype
+type dcheck        = C.varinfo * Ctypes.refctype
 type block_dchecks = dcheck list list
 
 let d_dcheck () ((vi, rt): dcheck): P.doc =
-  P.dprintf "%s :: %a" vi.C.vname FI.d_refctype rt
+  P.dprintf "%s :: %a" vi.C.vname Ctypes.d_refctype rt
 
 let d_instr_dchecks () dcks =
   P.dprintf "  %a" (P.d_list ", " d_dcheck) dcks

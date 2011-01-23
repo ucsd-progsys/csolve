@@ -34,7 +34,7 @@ module N   = Ct.Index
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module CM  = CilMisc
-module Cs  = FixInterface.RefCTypes.Spec
+module Cs  = Ct.RefCTypes.Spec
 
 open Cil
 open Misc.Ops

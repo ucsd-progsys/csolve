@@ -22,7 +22,7 @@
  *)
 
 type indextyping   = (Ctypes.cfun * Ctypes.ctype CilMisc.VarMap.t) CilMisc.VarMap.t
-type dcheck        = Cil.varinfo * FixInterface.refctype
+type dcheck        = Cil.varinfo * Ctypes.refctype
 type block_dchecks = dcheck list list
 
 val d_blocks_dchecks : unit -> block_dchecks array -> Pretty.doc
