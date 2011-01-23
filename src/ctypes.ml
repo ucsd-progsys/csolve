@@ -966,6 +966,12 @@ let scalar_ctype = Int (0, N.top)
 let d_ctype = I.CType.d_ctype
 
 
+let index_of_ctype ct =
+  match I.CType.refinements_of_t ct with
+  | [ix] -> ix
+  | _    -> assertf "Ctypes.index_of_ctype"
+
+
 
 (******************************************************************************)
 (************************* Refctypes and Friends ******************************)
@@ -1031,8 +1037,6 @@ let refldesc_subs rd f =
   RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
 
 
-
-
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
@@ -1066,6 +1070,7 @@ let refstore_read loc sto cr =
 let is_soft_ptr loc sto cr = 
   ac_refstore_read loc sto cr |> snd
 
+(* API *)
 let refstore_write loc sto rct rct' = 
   let (cl, ix) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
@@ -1073,4 +1078,5 @@ let refstore_write loc sto rct rct' =
   let ld = RCt.LDesc.remove ix ld in
   let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
   LM.add cl ld sto
+
 

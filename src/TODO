@@ -1,9 +1,5 @@
 
-
-1. Refactor refctype into ctypes(pull it out of fixInterface)
-	- refcenv etc.
-
-2. pull scalar.index_of_pred into ctypes.ml
+pull scalar.index_of_pred into ctypes.ml
 
 
 HEREHEREHEREHERE:

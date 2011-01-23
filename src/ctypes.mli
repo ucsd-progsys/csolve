@@ -319,4 +319,4 @@ val refldesc_subs       : refldesc -> (int -> Index.t -> refctype -> refctype) -
 
 val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
 val addr_of_refctype : Cil.location -> refctype -> Sloc.t * Index.t  
-
+val index_of_ctype : ctype -> Index.t
