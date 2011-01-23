@@ -49,7 +49,7 @@ let mydebug = false
 let shapem_of_scim cil spec scim vim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
-       let cf = FI.cfun_of_refcfun rf in
+       let cf = Ctypes.cfun_of_refcfun rf in
        if SM.mem fn scim then
          let _ = asserts (SM.mem fn vim) "shapem_of_scim" in
          (bm, (SM.add fn (cf, SM.find fn scim, SM.find fn vim) fm))
@@ -58,7 +58,7 @@ let shapem_of_scim cil spec scim vim =
   >> (fst <+> Misc.sm_print_keys "builtins")
   >> (snd <+> Misc.sm_print_keys "non-builtins")
   |> snd 
-  |> Inferctypes.infer_shapes cil (FI.cspec_of_refspec spec) 
+  |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
 
 (* TBD: UGLY *)
 let mk_gnv f spec decs cenv =
@@ -86,16 +86,16 @@ let mk_gnv f spec decs cenv =
 
 let rename_args rf sci = 
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
-  let xrs      = FI.args_of_refcfun rf in
+  let xrs      = Ctypes.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
   let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
-  let qls'     = FI.qlocs_of_refcfun rf in
+  let qls'     = Ctypes.qlocs_of_refcfun rf in
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
-  let ret'     = FI.t_subs_names subs (FI.ret_of_refcfun rf) in
-  let hi', ho' = rf |> FI.stores_of_refcfun
+  let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in
+  let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
-  FI.mk_refcfun qls' args' hi' ret' ho' 
+  Ctypes.mk_refcfun qls' args' hi' ret' ho' 
 
 let rename_funspec scim spec = 
   spec 
@@ -179,19 +179,19 @@ let create cil spec =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
   let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
-  let cnv0   = spec |> FI.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
+  let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec decs cnv0 in
   let vim    = if !Cs.scalar 
                then Scalar.scalarinv_of_scim cil spec tgr gnv0 scim 
                else SM.map (fun _ -> CilMisc.VarMap.empty) scim in
   let shm    = shapem_of_scim cil spec scim vim in
-  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (FI.ctype_of_refctype <+> FI.t_fresh) spec decs in
+  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
   let _      = if (* !Cs.scalar *) true then Scalar.test cil spec tgr gnv0 scim shm in 
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
-  let gst    = spec |> Ctypes.RefCTypes.Spec.store |> FI.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

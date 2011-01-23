@@ -26,7 +26,7 @@ let mk_sloc id sty =
   Misc.do_memo sloctable Sloc.fresh sty (id, sty)
 
 let mk_funspec fn public qslocs args ist ret ost =
-  (fn, (FI.mk_refcfun qslocs args ist ret ost, public))
+  (fn, (Ct.mk_refcfun qslocs args ist ret ost, public))
 
 exception InvalidStoredSpecType
 

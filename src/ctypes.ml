@@ -1079,4 +1079,26 @@ let refstore_write loc sto rct rct' =
   let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
   LM.add cl ld sto
 
+(* API *)
+let ctype_of_refctype = function
+  | Int (x, (y, _)) -> Int (x, y) 
+  | Ref (x, (y, _)) -> Ref (x, y)
+  | Top (x,_)       -> Top (x) 
+
+
+(* API *)
+let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
+let cspec_of_refspec  = I.Spec.map (fun (i,_) -> i)
+let store_of_refstore = I.Store.map_ct ctype_of_refctype
+let qlocs_of_refcfun  = fun ft -> ft.qlocs
+let args_of_refcfun   = fun ft -> ft.args
+let ret_of_refcfun    = fun ft -> ft.ret
+let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
+let mk_refcfun qslocs args ist ret ost = 
+  { qlocs   = qslocs; 
+    args    = args;
+    ret     = ret;
+    sto_in  = ist;
+    sto_out = ost; }
+
 

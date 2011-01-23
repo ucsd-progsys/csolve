@@ -223,7 +223,7 @@ let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   | Some ((Var v), NoOffset) ->
       let rct = rename_refctype lsubs subs cr in
         if FI.may_contain_deref rct then
-          let frct   = rct |> FI.ctype_of_refctype |> FI.t_fresh in
+          let frct   = rct |> Ct.ctype_of_refctype |> FI.t_fresh in
           let cf     = CF.get_alocmap me in
           let cs, ds = FI.make_cs cf env grd rct frct None tag loc in
           let ws     = FI.make_wfs cf env sto frct tag in
@@ -250,12 +250,12 @@ let bindings_of_call loc args es =
 
 let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let frt       = FI.ce_find_fn fn env in
-  let args      = frt |> FI.args_of_refcfun |> List.map (Misc.app_fst FI.name_of_string) in
+  let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FI.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
  
-  let ist,ost   = FI.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
+  let ist,ost   = Ct.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
   let oast,ocst = Ct.refstore_partition Sloc.is_abstract ost in
 
   let tag       = CF.tag_of_instr me i j     loc in
@@ -269,7 +269,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, fn, es) ns =
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
   let st'                 = Ct.RefCTypes.Store.upd st ocst in
-  let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (FI.ret_of_refcfun frt) in
+  let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3), wfs
 
@@ -336,7 +336,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
 
      
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
-      env |> (FI.ce_find_fn fv.Cil.vname <+> FI.ret_of_refcfun <+> FI.ctype_of_refctype <+> FI.t_scalar) 
+      env |> (FI.ce_find_fn fv.Cil.vname <+> Ct.ret_of_refcfun <+> Ct.ctype_of_refctype <+> FI.t_scalar) 
           |> scalarcons_of_binding me loc tag (j, env) grd j v 
  
   | Set ((Var v, NoOffset), _, _) 
@@ -358,11 +358,11 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
   let tag    = CF.tag_of_instr me i 1000 loc in
   let frt    = FI.ce_find_fn (CF.get_fname me) env in
   let cf     = CF.get_alocmap me in
-  let st_cds = let _, ost = FI.stores_of_refcfun frt in
+  let st_cds = let _, ost = Ct.stores_of_refcfun frt in
                (FI.make_cs_refstore cf env grd st ost true tago tag loc) in
   let rv_cds = match e_o with None -> ([], []) 
                | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
-                           let rhs = FI.ret_of_refcfun frt in
+                           let rhs = Ct.ret_of_refcfun frt in
                            (FI.make_cs cf env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
@@ -463,7 +463,7 @@ let var_cons_of_edge me cf envi loci tagi grdij envj subs vjvis =
     let envi = weaken_undefined me false envi vj in
     let lhs  = let ni = FI.name_of_varinfo vi in
                if not (CF.is_undefined me vi) then FI.t_name envi ni else  
-                  FI.ce_find ni envi |> FI.ctype_of_refctype |> FI.t_true in
+                  FI.ce_find ni envi |> Ct.ctype_of_refctype |> FI.t_true in
     let rhs  = let nj = FI.name_of_varinfo vj in
                FI.ce_find nj envj |> FI.t_subs_names subs in
     FI.make_cs cf envi grdij lhs rhs None tagi loci
@@ -551,10 +551,10 @@ let cons_of_sci tgr gnv gst sci sho =
  *   it',hi' |- ot/ho <: ot'/ho' *)
 
 let cons_of_refcfun cf loc gnv fn rf rf' tag = 
-  let it, it'     = Misc.map_pair FI.args_of_refcfun (rf, rf') in
-  let ocr, ocr'   = Misc.map_pair FI.ret_of_refcfun (rf, rf') in
-  let hi, ho      = FI.stores_of_refcfun rf in
-  let hi',ho'     = FI.stores_of_refcfun rf' in
+  let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
+  let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
+  let hi, ho      = Ct.stores_of_refcfun rf in
+  let hi',ho'     = Ct.stores_of_refcfun rf' in
   let env         = it' |> List.map (Misc.app_fst FI.name_of_string)
                         |> FI.ce_adds gnv in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
@@ -580,10 +580,10 @@ let cons_of_global_store tgr gst =
   (ws, cs)
 
 let type_of_init v vtyp = function
-  | Some (SingleInit e)        -> FI.t_exp FI.ce_empty (FI.ctype_of_refctype vtyp) e
-  | Some (CompoundInit (t, _)) -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (FI.ctype_of_refctype vtyp)
+  | Some (SingleInit e)        -> FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e
+  | Some (CompoundInit (t, _)) -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp)
   | None                       ->
-      let ct = FI.ctype_of_refctype vtyp in
+      let ct = Ct.ctype_of_refctype vtyp in
       match Cil.unrollType v.vtype with
       | TArray (t, (Some len as leno), _) ->
           Cil.lenOfArray leno * CilMisc.bytesSizeOf t |> FI.t_size_ptr ct
@@ -601,7 +601,7 @@ let add_offset loc t ctptr off =
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
   | SingleInit e ->
       let cr  = Ct.refstore_read loc sto ctptr in
-      let ct  = FI.ctype_of_refctype cr in
+      let ct  = Ct.ctype_of_refctype cr in
       let cr' = FI.t_exp env ct e in
         if Ct.is_soft_ptr loc sto ctptr then
           (sto, cs ++ (FI.make_cs cf0 env Ast.pTrue cr' cr None tag loc |> fst))

@@ -71,7 +71,7 @@ let solve cil ci =
 (***************************************************************************)
 
 let ix_binds_of_spec spec fn : (string * Ix.t) list =
-  spec |> FI.cspec_of_refspec 
+  spec |> Ct.cspec_of_refspec 
        |> Ct.I.Spec.get_fun fn
        |> fst
        |> (fun x -> x.Ct.args) 

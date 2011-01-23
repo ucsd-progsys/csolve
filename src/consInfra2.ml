@@ -85,7 +85,7 @@ let strengthen_cloc = function
   | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x)
 
 let strengthen_refs theta v (vn, cr) =
-  let ct  = FI.ctype_of_refctype cr in
+  let ct  = Ct.ctype_of_refctype cr in
   let clo = Refanno.cloc_of_varinfo theta v in
   let ct' = strengthen_cloc (ct, clo) in
   let cr' = FI.t_ctype_refctype ct' cr in 
@@ -101,7 +101,7 @@ let ctype_scalar    = Ctypes.void_ctype
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
              >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" Ct.d_refcfun x)
-             |> FI.args_of_refcfun
+             |> Ct.args_of_refcfun
              |> List.map (FI.name_of_string <**> FI.t_scalar_refctype) 
   in 
   let locs = fdec.slocals 
@@ -115,7 +115,7 @@ let scalarenv_of_fdec gnv fdec =
 
 let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv 
-             |> FI.args_of_refcfun 
+             |> Ct.args_of_refcfun 
              |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
              |> List.map (Misc.app_fst FI.name_of_string) in
   let locs = fdec.slocals 
@@ -214,7 +214,7 @@ let cstoa_of_annots fname gdoms conca astore =
                         |> List.fold_left begin fun sto (al, cl) ->
                              Ct.refstore_get astore al |> Ct.refstore_set sto cl
                            end emp
-                        |> FI.store_of_refstore 
+                        |> Ct.store_of_refstore 
                         |> FI.refstore_fresh fname in
       (sto, inclocs, conc')
   end conca
@@ -446,7 +446,7 @@ let create_shapeo tgr gnv env gst sci = function
       ([], [], [], None)
   | Some shp ->
       let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
-                    |> FI.stores_of_refcfun |> fst |> Ct.RefCTypes.Store.upd gst in
+                    |> Ct.stores_of_refcfun |> fst |> Ct.RefCTypes.Store.upd gst in
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in

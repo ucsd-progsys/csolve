@@ -175,47 +175,6 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_deref,   C.make_reft vv_drf so_drf [])]
                   |> Sy.sm_of_list
 
-(* CTYPES 
-(*******************************************************************)
-(********************* Refined Types and Stores ********************)
-(*******************************************************************)
-
-let d_index_reft () (i,r) = 
-  let di = Ix.d_index () i in
-  let dc = Pretty.text " , " in
-  let dr = Misc.fsprintf (C.print_reft None) r |> Pretty.text in
-  Pretty.concat (Pretty.concat di dc) dr
-
-module Reft = struct
-  type t = Ix.t * C.reft
-  let d_refinement = d_index_reft
-  let lub          = fun ir1 ir2 -> assert false
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Ix.top, reft_of_top 
-end
-
-module RefCTypes = Ct.Make (Reft)
-module RCt       = RefCTypes
-
-type refctype = RCt.CType.t
-type refcfun  = RCt.CFun.t
-type reffield = RCt.Field.t
-type refldesc = RCt.LDesc.t
-type refstore = RCt.Store.t
-type refspec  = RCt.Spec.t
-type refctype = Ct.refctype
-type refcfun  = Ct.refcfun
-type reffield = Ct.reffield
-type refldesc = Ct.refldesc
-type refstore = Ct.refstore 
-type refspec  = Ct.refspec
-
-let d_refstore = RCt.Store.d_store
-let d_refctype = RCt.CType.d_ctype
-let d_refcfun  = RCt.CFun.d_cfun
-*)
-
 type cilenv   = Ct.refcfun SM.t * Ct.refctype YM.t * name YM.t
 
 let reft_of_reft r t' =
@@ -244,11 +203,6 @@ let refctype_of_reft_ctype r = function
 
 
 
-let ctype_of_refctype = function
-  | Ct.Int (x, (y, _)) -> Ct.Int (x, y) 
-  | Ct.Ref (x, (y, _)) -> Ct.Ref (x, y)
-  | Ct.Top (x,_)       -> Ct.Top (x) 
-
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in
@@ -261,29 +215,14 @@ let refctype_of_ctype f = function
   | Ct.Top (x) -> 
       Ct.Top (x, Ct.reft_of_top)
 
+
+let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))
+
+
 let is_base = function
   | TInt _ -> true
   | _      -> false
 
-
-(* API *)
-let cfun_of_refcfun   = It.CFun.map ctype_of_refctype 
-(* let refcfun_of_cfun   = It.CFun.map (refctype_of_reft_ctype (Sy.value_variable So.t_int, So.t_int, [])) *)
-let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))
-
-
-let cspec_of_refspec  = It.Spec.map (fun (i,_) -> i)
-let store_of_refstore = It.Store.map_ct ctype_of_refctype
-let qlocs_of_refcfun  = fun ft -> ft.Ct.qlocs
-let args_of_refcfun   = fun ft -> ft.Ct.args
-let ret_of_refcfun    = fun ft -> ft.Ct.ret
-let stores_of_refcfun = fun ft -> (ft.Ct.sto_in, ft.Ct.sto_out)
-let mk_refcfun qslocs args ist ret ost = 
-  { Ct.qlocs   = qslocs; 
-    Ct.args    = args;
-    Ct.ret     = ret;
-    Ct.sto_in  = ist;
-    Ct.sto_out = ost; }
 
 
 (* API *)
@@ -461,7 +400,7 @@ let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
-let t_conv_refctype = fun f rct -> rct |> ctype_of_refctype |> refctype_of_ctype f
+let t_conv_refctype = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
@@ -563,7 +502,7 @@ let t_name (_,vnv,_) n =
   let so = rct |> reft_of_refctype |> C.sort_of_reft in
   let vv = Sy.value_variable so in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-  rct |> ctype_of_refctype |> refctype_of_reft_ctype r
+  rct |> Ct.ctype_of_refctype |> refctype_of_reft_ctype r
 
 (* API *)
 let map_fn = RCt.CFun.map 
@@ -580,7 +519,7 @@ let strengthen_refctype mkreft rct =
   let vv   = C.vv_of_reft reft in
   let so   = C.sort_of_reft reft in
   let ras  = C.ras_of_reft reft in
-  refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (ctype_of_refctype rct)
+  refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (Ct.ctype_of_refctype rct)
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
@@ -604,7 +543,7 @@ let t_scalar = function
 
 let deconstruct_refctype rct = 
   let r = reft_of_refctype rct in
-  (ctype_of_refctype rct, C.vv_of_reft r, C.sort_of_reft r, C.ras_of_reft r)
+  (Ct.ctype_of_refctype rct, C.vv_of_reft r, C.sort_of_reft r, C.ras_of_reft r)
 
 let meet_refctype rct1 rct2 = 
   let (ct1, vv1, so1, ra1) = deconstruct_refctype rct1 in
@@ -630,7 +569,7 @@ let t_scalar_refctype_raw rct =
 (* API *)
 let t_scalar_refctype rct =
   rct 
-  |> (t_scalar_refctype_raw <*> (t_scalar <.> ctype_of_refctype)) 
+  |> (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype)) 
   |> Misc.uncurry meet_refctype
 
 (* WRAPPER 
@@ -641,7 +580,7 @@ let t_scalar_refctype x =
 
 (* API *)
 let t_subs_locs lsubs rct =
-  rct |> ctype_of_refctype
+  rct |> Ct.ctype_of_refctype
       |> It.CType.subs lsubs
       |> refctype_of_reft_ctype (reft_of_refctype rct)
 
@@ -868,7 +807,7 @@ let make_cs cf cenv p rct1 rct2 tago tag =
   cs, ds
 
 let make_cs_validptr cf cenv p rct tago tag =
-  let rvp = rct |> ctype_of_refctype |> t_valid_ptr in
+  let rvp = rct |> Ct.ctype_of_refctype |> t_valid_ptr in
   make_cs cf cenv p rct rvp tago tag
 
 
@@ -992,7 +931,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
       let sct = fld |> strengthen_final_field ffs ptrname i |> RCt.Field.type_of in
       let fn  = () |> finalized_name |> Sy.of_string in
       let env = ce_adds env [(fn, sct)] in
-      let fld = t_equal (ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final in
+      let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final in
       let ld  = RCt.LDesc.add loc i fld ld in
         (env, LM.add cl ld sto)
     else
