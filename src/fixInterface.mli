@@ -139,10 +139,10 @@ val may_contain_deref   : Ctypes.refctype -> bool
 val new_block_reftype   : (* (Sloc.t -> Sloc.t) -> *) Ctypes.refctype -> Ctypes.refctype
 
 
+val is_poly_cloc        : Ctypes.refstore -> Sloc.t -> bool
+
 (* MOVE TO CTYPES 
 val refstore_empty      : Ctypes.refstore
-(* val binds_of_refldesc   : Sloc.t -> Ctypes.refldesc -> (name * refctype) list *)
-
 val refstore_mem        : Sloc.t -> Ctypes.refstore -> bool
 val refstore_remove     : Sloc.t -> Ctypes.refstore -> Ctypes.refstore
 val refstore_set        : Ctypes.refstore -> Sloc.t -> Ctypes.refldesc -> Ctypes.refstore
@@ -163,16 +163,11 @@ val refstore_strengthen_addr :
   Ctypes.refctype ->
   cilenv * Ctypes.refstore
 
-val refstore_write             : Cil.location -> Ctypes.refstore -> Ctypes.refctype -> Ctypes.refctype -> Ctypes.refstore
-val refstore_read              : Cil.location -> Ctypes.refstore -> Ctypes.refctype -> Ctypes.refctype
 val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> Ctypes.refstore
 
 val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
 
-
-val is_poly_cloc        : Ctypes.refstore -> Sloc.t -> bool
-val is_soft_ptr         : Cil.location -> Ctypes.refstore -> Ctypes.refctype -> bool 
 
 val sorts               : Ast.Sort.t list
 val axioms              : Ast.pred list

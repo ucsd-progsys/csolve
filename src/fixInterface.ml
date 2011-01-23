@@ -105,9 +105,6 @@ let name_fresh =
   let t, _ = Misc.mk_int_factory () in
   (fun _ -> t () |> string_of_int |> (^) "lqn#" |> name_of_string)
 
-let name_of_sloc_index l i = 
-  name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
-
 let is_temp_name n =
   let s = string_of_name n in
   List.exists (Misc.is_substring s) [Ix.repr_prefix; "lqn#"] 
@@ -298,84 +295,6 @@ let pred_of_refctype s v cr =
       |> A.pAnd
       |> Misc.flip A.substs_pred su
 
-(*******************************************************************)
-(******************** Operations on Refined Stores *****************)
-(*******************************************************************)
-
-(* CTYPES 
-let refstore_fold      = LM.fold
-let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
-let refstore_empty     = LM.empty
-let refstore_mem       = fun l sto -> LM.mem l sto
-let refstore_remove    = fun l sto -> LM.remove l sto
-
-let refstore_set sto l rd =
-  try LM.add l rd sto with Not_found -> 
-    assertf "refstore_set"
-
-let refstore_get sto l =
-  try LM.find l sto with Not_found ->
-    (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
-     asserti false "refstore_get"; assert false)
-*)
-
-let sloc_binds_of_refldesc l rd =
-  RCt.LDesc.foldn begin fun _ binds i rfld ->
-    ((name_of_sloc_index l i, RCt.Field.type_of rfld), i)::binds
-  end [] rd
-  |> List.rev
-
-let binds_of_refldesc l rd = 
-  sloc_binds_of_refldesc l rd 
-  |> List.filter (fun (_, i) -> not (Ix.is_periodic i))
-  |> List.map fst
-
-(* CTYPES
-let refldesc_subs rd f =
-  RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
-*)
-
-let refdesc_find i rd = 
-  match RCt.LDesc.find i rd with
-  | [(i', rfld)] -> (RCt.Field.type_of rfld, Ix.is_periodic i')
-  | _            -> assertf "refdesc_find"
-
-let addr_of_refctype loc = function
-  | Ct.Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
-      (cl, i)
-  | cr ->
-      let s = cr  |> Ct.d_refctype () |> Pretty.sprint ~width:80 in
-      let l = loc |> d_loc () |> Pretty.sprint ~width:80 in
-      let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
-      assert false
-
-let ac_refstore_read loc sto cr = 
-  let (l, ix) = addr_of_refctype loc cr in 
-  LM.find l sto 
-  |> refdesc_find ix
-
-(* API *)
-let refstore_read loc sto cr = 
-  ac_refstore_read loc sto cr |> fst
-
-(* API *)
-let is_poly_cloc st cl =
-  let _ = asserts (not (Sloc.is_abstract cl)) "is_poly_cloc" in
-  Ct.refstore_get st cl 
-  |> binds_of_refldesc cl 
-  |> (=) []
-
-(* API *)
-let is_soft_ptr loc sto cr = 
-  ac_refstore_read loc sto cr |> snd
-
-let refstore_write loc sto rct rct' = 
-  let (cl, ix) = addr_of_refctype loc rct in
-  let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = LM.find cl sto in
-  let ld = RCt.LDesc.remove ix ld in
-  let ld = RCt.LDesc.add loc ix (RCt.Field.create Ct.Nonfinal rct') ld in
-  LM.add cl ld sto
 
 (*******************************************************************)
 (****************** Tag/Annotation Generation **********************)
@@ -726,6 +645,9 @@ let t_subs_locs lsubs rct =
       |> It.CType.subs lsubs
       |> refctype_of_reft_ctype (reft_of_refctype rct)
 
+let name_of_sloc_index l i = 
+  name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
+
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') -> 
     if not (Ct.refstore_mem l sto) then [] else
@@ -740,28 +662,6 @@ let refstore_subs_locs lsubs sto =
   RCt.Store.map_ct ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
   
-(*
-let refstore_subs_locs lsubs sto = 
-  List.fold_left begin fun sto (l, l') -> 
-    let rv = 
-    if not (refstore_mem l sto) then sto else
-      let plocs = l |> refstore_get sto |> plocs_of_refldesc in
-      let ns    = List.map (name_of_sloc_ploc l) plocs in
-      let ns'   = List.map (name_of_sloc_ploc l') plocs in
-      let subs  = List.combine ns ns' in
-      Ct.prestore_map_ct (t_subs_names subs) sto
-    in
-    (* let _ = Pretty.printf "refstore_subs_locs: l = %a, l' = %a \n sto = %a \n sto' = %a \n"
-            Sloc.d_sloc l Sloc.d_sloc l' d_refstore sto d_refstore rv in *)
-    rv
-  end sto lsubs
-
-let refstore_subs_locs lsubs st = 
-  st |> Ct.prestore_subs lsubs
-     |> Ct.prestore_map_ct (t_subs_locs lsubs) 
-
-*)
-
 exception ContainsDeref
 
 let check_expr_is_deref e =
@@ -879,6 +779,29 @@ let filter_store_derefs cf cenv sto rct q =
     |> Q.pred_of_t
     |> P.iter (fun _ -> ()) (fun e -> wf := !wf && expr_derefs_wf cf cenv sto e);
     !wf
+
+
+
+
+let sloc_binds_of_refldesc l rd =
+  RCt.LDesc.foldn begin fun _ binds i rfld ->
+    ((name_of_sloc_index l i, RCt.Field.type_of rfld), i)::binds
+  end [] rd
+  |> List.rev
+
+let binds_of_refldesc l rd = 
+  sloc_binds_of_refldesc l rd 
+  |> List.filter (fun (_, i) -> not (Ix.is_periodic i))
+  |> List.map fst
+
+(* API *)
+let is_poly_cloc st cl =
+  let _ = asserts (not (Sloc.is_abstract cl)) "is_poly_cloc" in
+  Ct.refstore_get st cl 
+  |> binds_of_refldesc cl 
+  |> (=) []
+
+
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -1059,7 +982,7 @@ let strengthen_final_field ffs ptrname i fld =
 let finalized_name = "FINAL" |> Misc.mk_string_factory |> fst
 
 let refstore_strengthen_addr loc env sto ffm ptrname addr =
-  let cl, i = addr_of_refctype loc addr in
+  let cl, i = Ct.addr_of_refctype loc addr in
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = LM.find cl ffm in
     if Ct.IndexSet.mem i ffs then

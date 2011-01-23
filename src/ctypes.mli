@@ -311,7 +311,12 @@ val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
 val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
 val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
+val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
+val refstore_read       : Cil.location -> refstore -> refctype -> refctype
+
 
 val refldesc_subs       : refldesc -> (int -> Index.t -> refctype -> refctype) -> refldesc
 
+val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
+val addr_of_refctype : Cil.location -> refctype -> Sloc.t * Index.t  
 

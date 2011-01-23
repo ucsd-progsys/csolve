@@ -159,7 +159,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)
   | Lval (Mem (Lval (Var v', NoOffset)), _)
   | Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
-      (FI.ce_find (FI.name_of_varinfo v') env |> FI.refstore_read loc sto,
+      (FI.ce_find (FI.name_of_varinfo v') env |> Ct.refstore_read loc sto,
       cons_of_mem me loc tago tag grd env v')
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
@@ -189,15 +189,15 @@ let cons_of_set me loc tag grd ffm (env, sto, tago) = function
       let addr = if v.vglob then CF.refctype_of_global me v else FI.ce_find (FI.name_of_varinfo v) env in
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       let cs1, ds1 = cons_of_mem me loc tago tag grd env v in
-      let isp  = try FI.is_soft_ptr loc sto addr with ex ->
+      let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
-      if isp (* FI.is_soft_ptr loc sto addr *) then
-        let cr       = FI.refstore_read loc sto addr in
+      if isp then
+        let cr       = Ct.refstore_read loc sto addr in
         let cf       = CF.get_alocmap me in
         let cs2, ds2 = FI.make_cs cf env grd cr' cr tago tag loc in
         (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
       else
-        let sto      = FI.refstore_write loc sto addr cr' in
+        let sto      = Ct.refstore_write loc sto addr cr' in
         let env, sto = FI.refstore_strengthen_addr loc env sto ffm v.vname addr in
         (env, sto, Some tag), (cs1, ds1)
 
@@ -600,13 +600,13 @@ let add_offset loc t ctptr off =
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
   | SingleInit e ->
-      let cr  = FI.refstore_read loc sto ctptr in
+      let cr  = Ct.refstore_read loc sto ctptr in
       let ct  = FI.ctype_of_refctype cr in
       let cr' = FI.t_exp env ct e in
-        if FI.is_soft_ptr loc sto ctptr then
+        if Ct.is_soft_ptr loc sto ctptr then
           (sto, cs ++ (FI.make_cs cf0 env Ast.pTrue cr' cr None tag loc |> fst))
         else
-          (FI.refstore_write loc sto ctptr cr', cs)
+          (Ct.refstore_write loc sto ctptr cr', cs)
   | CompoundInit (_, inits) ->
       foldLeftCompound
         ~implicit:true

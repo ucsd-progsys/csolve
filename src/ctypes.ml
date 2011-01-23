@@ -1031,3 +1031,46 @@ let refldesc_subs rd f =
   RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
 
 
+
+
+(*******************************************************************)
+(******************** Operations on Refined Stores *****************)
+(*******************************************************************)
+
+
+let refdesc_find i rd = 
+  match RCt.LDesc.find i rd with
+  | [(i', rfld)] -> (RCt.Field.type_of rfld, Index.is_periodic i')
+  | _            -> assertf "refdesc_find"
+
+let addr_of_refctype loc = function
+  | Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
+      (cl, i)
+  | cr ->
+      let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
+      let l = loc |> Cil.d_loc () |> Pretty.sprint ~width:80 in
+      let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
+      assert false
+
+let ac_refstore_read loc sto cr = 
+  let (l, ix) = addr_of_refctype loc cr in 
+  LM.find l sto 
+  |> refdesc_find ix
+
+(* API *)
+let refstore_read loc sto cr = 
+  ac_refstore_read loc sto cr |> fst
+
+
+(* API *)
+let is_soft_ptr loc sto cr = 
+  ac_refstore_read loc sto cr |> snd
+
+let refstore_write loc sto rct rct' = 
+  let (cl, ix) = addr_of_refctype loc rct in
+  let _  = assert (not (Sloc.is_abstract cl)) in
+  let ld = LM.find cl sto in
+  let ld = RCt.LDesc.remove ix ld in
+  let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
+  LM.add cl ld sto
+
