@@ -474,11 +474,11 @@ let t_scalar_refctype =
   (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype)) 
   <+> Misc.uncurry meet_refctype
 
-(* WRAPPER *) 
+(* WRAPPER  
 let t_scalar_refctype x =
   x |> t_scalar_refctype
     >> (fun y -> ignore <| Pretty.printf "t_scalar_refctype: [in=%a] [out=%a] \n" Ct.d_refctype x Ct.d_refctype y)
-
+*)
 
 (* API *)
 let t_subs_locs lsubs rct =
