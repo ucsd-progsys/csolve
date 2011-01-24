@@ -64,6 +64,8 @@ let p_v_r_c         = fun r -> A.pAtom (A.eVar value_var, r, A.eVar const_var)
 let p_v_eq_c        = p_v_r_c A.Eq
 (* v < c *)
 let p_v_lt_c        = p_v_r_c A.Lt
+(* v <= c *)
+let p_v_le_c        = p_v_r_c A.Le
 (* v >= c *)
 let p_v_ge_c        = p_v_r_c A.Ge
 
@@ -153,12 +155,25 @@ let index_of_pred v (cr, p) =
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
 
+let pred_of_bounded_congruence_class bcc =
+  let plb = match bcc.Ix.lb with None -> A.pTrue | Some lb -> 
+              Su.of_list [(const_var, A.eInt lb)]
+              |> A.substs_pred p_v_ge_c in 
+  let pub = match bcc.Ix.ub with None -> A.pTrue | Some ub -> 
+              Su.of_list [(const_var, A.eInt ub)] 
+              |> A.substs_pred p_v_le_c in
+  let ppd = Su.of_list [(const_var, A.eInt bcc.Ix.c); (period_var, A.eInt bcc.Ix.m)] 
+              |> A.substs_pred p_v_minus_c_eqz_mod_k in
+  A.pAnd [plb; pub; ppd]
+
 (* API *)
 let pred_of_index = function
-  | Ix.IBot                     -> value_var, A.pFalse
-  | Ix.IInt n                   -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
-  | Ix.ICClass {Ix.lb = Some n} -> value_var, A.pAtom (A.eVar value_var, A.Ge, A.eInt n)
-  | _                           -> value_var, A.pTrue 
+  | Ix.IBot        -> value_var, A.pFalse
+  | Ix.IInt n      -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
+  | Ix.ICClass bcc -> value_var, pred_of_bounded_congruence_class bcc
+  | _              -> value_var, A.pTrue 
+
+
 
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
