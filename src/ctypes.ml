@@ -1101,4 +1101,9 @@ let mk_refcfun qslocs args ist ret ost =
     sto_in  = ist;
     sto_out = ost; }
 
+let reft_of_refctype = function
+  | Int (_,(_,r)) 
+  | Ref (_,(_,r)) 
+  | Top (_,r)     -> r
+
 

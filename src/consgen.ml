@@ -25,7 +25,9 @@
 
 module E  = Errormsg
 module ST = Ssa_transform
+
 module FI = FixInterface 
+module FA = FixAstInterface 
 module CF = ConsInfra2
 module IM = Misc.IntMap
 module SM = Misc.StringMap
@@ -69,7 +71,7 @@ let mk_gnv f spec decs cenv =
              |> CS.varspec
              |> M.sm_to_list
              |> List.map begin fun (vn, (vty, _)) -> 
-                 (FI.name_of_string vn, f vty (* |> FI.ctype_of_refctype |> FI.t_fresh *)) 
+                 (FA.name_of_string vn, f vty (* |> FI.ctype_of_refctype |> FI.t_fresh *)) 
                 end
              |> FI.ce_adds FI.ce_empty in
   M.sm_to_list cenv
@@ -89,7 +91,7 @@ let rename_args rf sci =
   let xrs      = Ctypes.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
-  let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FI.name_of_string (x,y)) xrs ys in
+  let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FA.name_of_string (x,y)) xrs ys in
   let qls'     = Ctypes.qlocs_of_refcfun rf in
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
   let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in

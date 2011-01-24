@@ -33,6 +33,7 @@ module IM  = Misc.IntMap
 module SM  = Misc.StringMap
 module C   = FixConstraint
 module FI  = FixInterface 
+module FA  = FixAstInterface 
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
 module Ix  = Ctypes.Index
@@ -102,11 +103,11 @@ let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
              >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" Ct.d_refcfun x)
              |> Ct.args_of_refcfun
-             |> List.map (FI.name_of_string <**> FI.t_scalar_refctype) 
+             |> List.map (FA.name_of_string <**> FI.t_scalar_refctype) 
   in 
   let locs = fdec.slocals 
              |> List.filter is_origcilvar 
-             |> Misc.map (FI.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
+             |> Misc.map (FA.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
   in
   args ++ locs
   >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
@@ -117,10 +118,10 @@ let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv 
              |> Ct.args_of_refcfun 
              |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
-             |> List.map (Misc.app_fst FI.name_of_string) in
+             |> List.map (Misc.app_fst FA.name_of_string) in
   let locs = fdec.slocals 
              |> List.filter is_origcilvar 
-             |> Misc.map (FI.name_of_varinfo <*> 
+             |> Misc.map (FA.name_of_varinfo <*> 
                          (FI.t_true <.> ctype_of_local shp.Sh.vtyps)) in
   args ++ locs
   |> FI.ce_adds gnv
@@ -345,7 +346,7 @@ let ctype_of_varinfo me v =
   | _ -> ctype_scalar
  
 let refctype_of_global me v =
-  FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
+  FI.ce_find (FA.name_of_string v.Cil.vname) me.gnv
 
 let get_phis me =
   me.sci.ST.phis 
@@ -388,7 +389,7 @@ let inenv_of_block me i =
   else begin
     let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
     i |> phis_of_block me 
-      |> List.map (FI.name_of_varinfo <*> bind_of_phi me) 
+      |> List.map (FA.name_of_varinfo <*> bind_of_phi me) 
       |> FI.ce_adds env0 
   end
 

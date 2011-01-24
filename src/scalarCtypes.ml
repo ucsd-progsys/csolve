@@ -26,20 +26,19 @@
 module A  = Ast
 module CM = CilMisc
 module CI = CilInterface
+
 module VM = CM.VarMap
 module Sy = A.Symbol
 module Su = A.Subst
-module FI = FixInterface
+module FA = FixAstInterface
 module SM = Misc.StringMap
 module YM = A.Symbol.SMap
-module ST = Ssa_transform
+
 module Ct = Ctypes
 module Ix = Ct.Index
 module Co = Constants
 module P  = A.Predicate 
 module Q  = A.Qualifier
-
-module Ci = Consindex
 module E  = Errormsg
 
 open Misc.Ops
@@ -73,7 +72,7 @@ let p_v_minus_c_eqz_mod_k =
   A.pEqual (A.eBin (A.eBin (A.eVar value_var, A.Minus, A.eVar const_var) ,A.Mod, A.eVar period_var)
            ,A.zero)
 
-let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
+let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FA.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
 (* v =  BB(v) + c *)
 let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
@@ -87,16 +86,13 @@ let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
 (* (v - BB(v) - c) mod k == 0 *) 
 let p_v_minus_x_minus_c_eqz_mod_k = 
   A.pEqual (A.eBin (A.eBin (A.eVar value_var, 
-                            A.Minus, (A.eBin (FI.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
+                            A.Minus, (A.eBin (FA.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
                    , A.Mod, A.eVar period_var)
            ,A.zero)
 
 
 
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
-
-
-
 
 (***************************************************************************)
 (***************** Convert Predicates/Refinements To Indices ***************)
@@ -147,7 +143,7 @@ let indexo_of_preds_iseqb v ps =
 
 (* API *)
 let index_of_pred v (cr, p) = 
-  let vv  = FI.name_of_varinfo v in
+  let vv  = FA.name_of_varinfo v in
   [ indexo_of_preds_iint vv
   ; indexo_of_preds_iseqb vv
   ; indexo_of_preds_iseq vv 
@@ -156,6 +152,13 @@ let index_of_pred v (cr, p) =
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
+
+(* API *)
+let pred_of_index = function
+  | Ix.IBot                     -> value_var, A.pFalse
+  | Ix.IInt n                   -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
+  | Ix.ICClass {Ix.lb = Some n} -> value_var, A.pAtom (A.eVar value_var, A.Ge, A.eInt n)
+  | _                           -> value_var, A.pTrue 
 
 (***************************************************************************)
 (************************* Scrape Scalar Qualifiers ************************)
@@ -202,7 +205,7 @@ let period_preds_of_scalar_consts cs =
 let preds_of_scalar_consts cs = 
   (Misc.flap bound_preds_of_scalar_const cs) ++ (period_preds_of_scalar_consts cs)
 
-let dump_quals_to_file (fname: string) (qs: Q.t list) : unit = 
+let dump_quals_to_file fname qs = 
   let oc  = open_out fname in
   let ppf = Format.formatter_of_out_channel oc in
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
@@ -261,5 +264,5 @@ let scalar_quals_of_file cil =
   |> Misc.sort_and_compact  
   |> preds_of_scalar_consts 
   |> Misc.flap quals_of_pred
-  |> (++) (FI.quals_of_file (Co.get_lib_squals ()))
+  |> (++) (FA.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
