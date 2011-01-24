@@ -1,17 +1,7 @@
 
 ../src/lcc --scalar globset.c 
 
-../src/lcc --scalar ll-simple.c
-
-__cil_tmp15_main : inferctypes = 4, scalar = 0 
-__cil_tmp13_main : inferctypes = 0[1], scalar = 0 
-__cil_tmp12_main : inferctypes = 0{1}, scalar = 0 
-__cil_tmp11_main : inferctypes = 0[1], scalar = 0 
-__cil_tmp10_main : inferctypes = 0{1}, scalar = 0 
-__cil_tmp9_main : inferctypes = 0[1], scalar = 0 
-__cil_tmp8_main : inferctypes = 0[1], scalar = 0 
-
-
+killed pmapdistilled, ks, maybe 
 ../postests/adpcm.c, 
 ../postests/allocator/allocator.c, 
 ../postests/array-alias-global.c, 
