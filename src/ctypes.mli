@@ -141,6 +141,7 @@ module type S = sig
     val set_finality : finality -> t -> t
     val is_final     : t -> bool
     val type_of      : t -> CType.t
+    val sloc_of      : t -> Sloc.t option
     val create       : finality -> CType.t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
 

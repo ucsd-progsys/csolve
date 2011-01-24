@@ -356,7 +356,7 @@ type finality =
   | Final
   | Nonfinal
 
-type 'a prefield = ('a * finality) prectype
+type 'a prefield = 'a prectype * finality
 
 type 'a preldesc = (Index.t * (C.location * 'a prefield)) list
 
@@ -406,6 +406,7 @@ module type S = sig
     val set_finality : finality -> t -> t
     val is_final     : t -> bool
     val type_of      : t -> CType.t
+    val sloc_of      : t -> Sloc.t option
     val create       : finality -> CType.t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
 
@@ -626,23 +627,20 @@ module Make (R: CTYPE_REFINEMENT) = struct
   module Field = struct
     type t = R.t prefield
 
-    let get_finality = function
-      | Int (_, (_, fnl)) | Ref (_, (_, fnl)) -> fnl
+    let get_finality = snd
 
-    let set_finality fnl = function
-      | Int (i, (a, _)) -> Int (i, (a, fnl))
-      | Ref (i, (a, _)) -> Ref (i, (a, fnl))
+    let type_of = fst
+
+    let create fnl t =
+      (t, fnl)
+
+    let set_finality fnl fld =
+      fld |> type_of |> create fnl
 
     let is_final fld =
       get_finality fld = Final
 
-    let type_of = function
-      | Int (n, (a, _)) -> Int (n, a)
-      | Ref (s, (a, _)) -> Ref (s, a)
-
-    let create fnl = function
-      | Int (n, a) -> Int (n, (a, fnl))
-      | Ref (s, a) -> Ref (s, (a, fnl))
+    let sloc_of fld = fld |> type_of |> CType.sloc
 
     let map_type f fld =
       fld |> type_of |> f |> create (get_finality fld)
@@ -661,7 +659,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let fits i fld flds =
       let t = Field.type_of fld in
-      let w = CType.width fld in
+      let w = CType.width t in
         M.get_option w (N.period i) >= w &&
           not (List.exists (fun (i2, (_, fld2)) -> CType.collide i t i2 (Field.type_of fld2)) flds)
 
@@ -707,8 +705,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
       fold (fun _ i fld -> f i fld) () ld
 
     let referenced_slocs ld =
-      fold begin fun rss _ pct -> match CType.sloc pct with 
-        | None -> rss 
+      fold begin fun rss _ fld -> match Field.sloc_of fld with 
+        | None -> rss
         | Some s -> SS.add s rss
       end SS.empty ld
 
@@ -743,7 +741,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let slocs ps =
          ps
       |> domain
-      |> M.flip (fold (fun acc _ _ pct -> M.maybe_cons (CType.sloc pct) acc)) ps
+      |> M.flip (fold (fun acc _ _ fld -> M.maybe_cons (Field.sloc_of fld) acc)) ps
       |> M.sort_and_compact
 
     let mem st s =
@@ -781,16 +779,15 @@ module Make (R: CTYPE_REFINEMENT) = struct
       let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
         SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
-    let ctype_closed ct sto =
-      match ct with
+    let ctype_closed t sto = match t with
       | Ref (l, _) -> SLM.mem l sto
       | _          -> true
     
     let closed sto =
-      fold (fun closed _ _ ct -> closed && ctype_closed ct sto) true sto
+      fold (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
 
     let rename subs ps =
-      let cns = LDesc.map (CType.subs subs) in
+      let cns = LDesc.map (Field.map_type (CType.subs subs)) in
         SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
 
     let indices_of_t st = 
