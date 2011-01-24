@@ -1,17 +1,21 @@
 
 ../src/lcc --scalar globset.c 
 
-../postests/arraysum.c
+../src/lcc --scalar ll-simple.c
 
-	DIFF:
-	buf_sum__SSA__blk_9_1 : 
-	inferctypes = 4[4], scalar = 0{1} 
-	buf_sum__SSA__phi_4 : 
-	inferctypes = 0[4], scalar = 0{1} 
-	__cil_tmp5_sum : 
-	inferctypes = 0[1], scalar = 0{1} 
-	__cil_tmp4_sum : 
-	inferctypes = 0[1], scalar = 0{1} 
+__cil_tmp15_main : inferctypes = 4, scalar = 0 
+__cil_tmp13_main : inferctypes = 0[1], scalar = 0 
+__cil_tmp12_main : inferctypes = 0{1}, scalar = 0 
+__cil_tmp11_main : inferctypes = 0[1], scalar = 0 
+__cil_tmp10_main : inferctypes = 0{1}, scalar = 0 
+__cil_tmp9_main : inferctypes = 0[1], scalar = 0 
+__cil_tmp8_main : inferctypes = 0[1], scalar = 0 
+
+
+../postests/adpcm.c, 
+../postests/allocator/allocator.c, 
+../postests/array-alias-global.c, 
+../postests/array-finite-global.c, ../postests/forward-sorted-list.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../postests/globloc.c, ../postests/globset.c, ../postests/ks.c, ../postests/ll-simple.c, ../postests/ll1.c, ../postests/ll2.c, ../postests/ll3.c, ../postests/ll5.c, ../postests/ll6.c, ../postests/make-sorted-list.c, ../postests/mst-scratch.c, ../postests/passglobal.c, ../postests/pmapdistilled.c, ../postests/sorted-two-list.c, ../postests/stringexample.c
 
 
 Exceptions thrown on 25 tests: 

@@ -2,3 +2,4 @@ qualif GEZ(v:int) : 0 <= v
 qualif GTZ(v:int) : 0 < v
 qualif EQZ(v:int) : 0 = v
 qualif NEZ(v:int) : 0 != v
+qualif NEZ(v:int) : 0 = 1

@@ -85,6 +85,9 @@ let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt
 (* v >= BB(v) + c *)
 let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
 
+(* v <= BB(v) + c *)
+let p_v_le_x_plus_c = p_v_r_x_plus_c A.Le
+
 (* (v - BB(v) - c) mod k == 0 *) 
 let p_v_minus_x_minus_c_eqz_mod_k = 
   A.pEqual (A.eBin (A.eBin (A.eVar value_var, 
@@ -154,8 +157,28 @@ let index_of_pred v (cr, p) =
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
+(* WRAPPER 
+let index_of_pred v (cr, p) = 
+ fail on false
+*)
 
-let pred_of_bcc bcc =
+let pred_of_bcc_raw p_lb p_ub p_pd bcc =
+  let plb = match bcc.Ix.lb with None -> A.pTrue | Some lb -> 
+              Su.of_list [(const_var, A.eInt lb)]
+              |> A.substs_pred p_lb in 
+  let pub = match bcc.Ix.ub with None -> A.pTrue | Some ub -> 
+              Su.of_list [(const_var, A.eInt ub)] 
+              |> A.substs_pred p_ub in
+  let ppd = Su.of_list [(const_var, A.eInt bcc.Ix.c); (period_var, A.eInt bcc.Ix.m)] 
+              |> A.substs_pred p_pd in
+  A.pAnd [plb; pub; ppd]
+
+let pred_of_bcc_int = pred_of_bcc_raw p_v_ge_c p_v_le_c p_v_minus_c_eqz_mod_k 
+let pred_of_bcc_ref = pred_of_bcc_raw p_v_ge_x_plus_c p_v_le_x_plus_c p_v_minus_x_minus_c_eqz_mod_k
+
+
+(*
+let pred_of_bcc_int bcc =
   let plb = match bcc.Ix.lb with None -> A.pTrue | Some lb -> 
               Su.of_list [(const_var, A.eInt lb)]
               |> A.substs_pred p_v_ge_c in 
@@ -165,14 +188,31 @@ let pred_of_bcc bcc =
   let ppd = Su.of_list [(const_var, A.eInt bcc.Ix.c); (period_var, A.eInt bcc.Ix.m)] 
               |> A.substs_pred p_v_minus_c_eqz_mod_k in
   A.pAnd [plb; pub; ppd]
+*)
 
-(* API *)
-let pred_of_index = function
+let pred_of_index_int = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
-  | Ix.ICClass bcc -> value_var, pred_of_bcc bcc
+  | Ix.ICClass bcc -> value_var, pred_of_bcc_int bcc
   | _              -> value_var, A.pTrue 
 
+let pred_of_index_ref = function
+  | Ix.IBot        -> value_var, A.pFalse
+  | Ix.IInt n      -> value_var, A.substs_pred p_v_eq_x_plus_c (Su.of_list [const_var, A.eInt n])
+  | Ix.ICClass bcc -> value_var, pred_of_bcc_ref bcc
+  | _              -> value_var, A.pTrue 
+
+(* API *)
+let pred_of_ctype = function
+  | Ct.Ref (_, ix) -> pred_of_index_ref ix
+  | Ct.Int (_, ix) -> pred_of_index_int ix
+
+(*
+let pred_of_index = function
+  | Ix.IBot        -> value_var, A.pFalse
+  | Ix.ICClass bcc -> value_var, pred_of_bcc bcc
+  | _              -> value_var, A.pTrue 
+*)
 
 
 (***************************************************************************)
