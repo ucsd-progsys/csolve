@@ -155,7 +155,7 @@ let index_of_pred v (cr, p) =
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
 
-let pred_of_bounded_congruence_class bcc =
+let pred_of_bcc bcc =
   let plb = match bcc.Ix.lb with None -> A.pTrue | Some lb -> 
               Su.of_list [(const_var, A.eInt lb)]
               |> A.substs_pred p_v_ge_c in 
@@ -170,7 +170,7 @@ let pred_of_bounded_congruence_class bcc =
 let pred_of_index = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
-  | Ix.ICClass bcc -> value_var, pred_of_bounded_congruence_class bcc
+  | Ix.ICClass bcc -> value_var, pred_of_bcc bcc
   | _              -> value_var, A.pTrue 
 
 

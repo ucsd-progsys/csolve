@@ -427,12 +427,22 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> RCt.Store.map_ct t_fresh >> annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
 
+(*
+let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
-let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 let t_scalar = function
   | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
   | Ct.Int (_,ix)        -> t_scalar_index ix 
   | _                    -> t_true Ct.scalar_ctype
+*)
+
+let t_scalar = Ct.index_of_ctype <+> 
+               Sc.pred_of_index <+> 
+               Misc.uncurry (t_pred Ct.scalar_ctype)
+
+let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
+
+
 
 let deconstruct_refctype rct = 
   let r = reft_of_refctype rct in
@@ -460,16 +470,15 @@ let t_scalar_refctype_raw rct =
   refctype_of_reft_ctype r' Ct.scalar_ctype 
 
 (* API *)
-let t_scalar_refctype rct =
-  rct 
-  |> (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype)) 
-  |> Misc.uncurry meet_refctype
+let t_scalar_refctype =
+  (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype)) 
+  <+> Misc.uncurry meet_refctype
 
-(* WRAPPER 
+(* WRAPPER *) 
 let t_scalar_refctype x =
   x |> t_scalar_refctype
-    >> (fun y -> ignore <| Pretty.printf "t_scalar_refctype: [in=%a] [out=%a] \n" d_refctype x d_refctype y)
-*)
+    >> (fun y -> ignore <| Pretty.printf "t_scalar_refctype: [in=%a] [out=%a] \n" Ct.d_refctype x Ct.d_refctype y)
+
 
 (* API *)
 let t_subs_locs lsubs rct =
