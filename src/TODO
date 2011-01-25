@@ -1,6 +1,10 @@
 
 ../src/lcc --scalar globset.c 
 
+NONTERMINATION!!!
+./lcc --scalar ../postests/pmapdistilled.c
+
+
 killed pmapdistilled, ks, maybe 
 ../postests/adpcm.c, 
 ../postests/allocator/allocator.c, 
