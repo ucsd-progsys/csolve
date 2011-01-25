@@ -299,6 +299,7 @@ let theMain () =
 
     (* parse the command-line arguments *)
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
+    if !Constants.do_nothing then exit 0;
     Cil.initCIL ();
     Cil.useLogicalOperators := true;
 
