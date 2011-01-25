@@ -5,11 +5,24 @@ NONTERMINATION!!!
 ./lcc --scalar ../postests/pmapdistilled.c
 
 
-killed pmapdistilled, ks, maybe 
+	//! run with --nop
+
+
+killed pmapdistilled, ks
+
+
+fails
 ../postests/adpcm.c, 
 ../postests/allocator/allocator.c, 
+../postests/mst-scratch.c
+../postests/globloc.c, 
+../postests/globset.c, 
+../postests/passglobal.c
+
+???
 ../postests/array-alias-global.c, 
-../postests/array-finite-global.c, ../postests/forward-sorted-list.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../postests/globloc.c, ../postests/globset.c, ../postests/ks.c, ../postests/ll-simple.c, ../postests/ll1.c, ../postests/ll2.c, ../postests/ll3.c, ../postests/ll5.c, ../postests/ll6.c, ../postests/make-sorted-list.c, ../postests/mst-scratch.c, ../postests/passglobal.c, ../postests/pmapdistilled.c, ../postests/sorted-two-list.c, ../postests/stringexample.c
+../postests/array-finite-global.c, 
+
 
 
 Exceptions thrown on 25 tests: 
