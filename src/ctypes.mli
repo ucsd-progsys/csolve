@@ -75,6 +75,7 @@ val d_indexset : unit -> IndexSet.t -> Pretty.doc
 module type CTYPE_REFINEMENT = sig
   type t
   val lub          : t -> t -> t option
+  val conjoin      : t -> t -> t
   val is_subref    : t -> t -> bool
   val of_const     : Cil.constant -> t
   val top          : t
@@ -84,9 +85,9 @@ end
 module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 
 type 'a prectype =
-  | Int of int * 'a     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a  (* reference *)
-  | Top of 'a           (* "other" *)
+  | Int of int * 'a                     (* fixed-width integer *)
+  | Ref of Sloc.t * 'a * 'a list option (* reference *)
+  | Top of 'a                           (* "other" *)
 
 type finality =
   | Final

@@ -594,8 +594,8 @@ let type_of_init v vtyp = function
 
 let add_offset loc t ctptr off =
   match ctptr with
-  | Ct.Ref (s, (i, r)) ->
-      Ct.Ref (s, (off |> CilMisc.bytesOffset t |> Ct.Index.of_int |> Ct.Index.plus i, r))
+  | Ct.Ref (s, (i, r), rr) ->
+      Ct.Ref (s, (off |> CilMisc.bytesOffset t |> Ct.Index.of_int |> Ct.Index.plus i, r), rr)
   | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" FI.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
@@ -620,8 +620,8 @@ let cons_of_var_init tag loc sto v vtyp inito =
   match inito with
   | Some (CompoundInit _ as init) ->
       let cloc        = Sloc.fresh Sloc.Concrete in
-      let aloc, ctptr = match vtyp with Ct.Ref (al, r) -> (al, Ct.Ref (cloc, r)) 
-                                      | _ -> assert false in
+      let aloc, ctptr = match vtyp with Ct.Ref (al, r, rr) -> (al, Ct.Ref (cloc, r, rr)) 
+                                      | _                  -> assert false in
       let env, sto, _ = fst <| FI.extend_world cf0 sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in 
       let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
       let ld1         = (cloc, FI.refstore_get sto cloc) in

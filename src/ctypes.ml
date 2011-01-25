@@ -1,3 +1,17 @@
+(* TODO
+ - recref representation
+ - recref application (unfolding)
+   - apply in order to the final fields
+   - merge with recrefs of pointers to the same location
+ - default recrefs for null pointers (all false)
+ - recrefs of the unfolded pointer in theta
+   rather than fold a specific pointer, we keep the recrefs the
+   pointer was unfolded with around and, when we finally fold,
+   do subtyping against those.
+   Does it matter what environment we use? It's probably correct
+   to use the current environment at the time of folding.
+*)
+
 (*
  * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
  *
@@ -321,6 +335,7 @@ module N = Index
 module type CTYPE_REFINEMENT = sig
   type t
   val lub          : t -> t -> t option
+  val conjoin      : t -> t -> t
   val is_subref    : t -> t -> bool
   val of_const     : C.constant -> t
   val top          : t
@@ -332,6 +347,7 @@ module IndexRefinement = struct
 
   let top          = Index.top
   let lub          = fun i1 i2 -> Some (N.widen i1 i2)
+  let conjoin      = Index.glb
   let is_subref    = Index.is_subindex
   let d_refinement = Index.d_index
   
@@ -348,9 +364,9 @@ end
 (******************************************************************************)
 
 type 'a prectype =
-  | Int of int * 'a     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a  (* reference *)
-  | Top of 'a           (* "other", hack for function pointers *)
+  | Int of int * 'a                     (* fixed-width integer *)
+  | Ref of Sloc.t * 'a * 'a list option (* reference with recref *)
+  | Top of 'a                           (* "other", hack for function pointers *)
 
 type finality =
   | Final
@@ -540,16 +556,20 @@ module Make (R: CTYPE_REFINEMENT) = struct
     type t = R.t prectype
 
     let map f = function
-      | Int (i, x) -> Int (i, f x)
-      | Ref (l, x) -> Ref (l, f x)
-      | Top (x)    -> Top (f x)
+      | Int (i, x)     -> Int (i, f x)
+      | Ref (l, x, xs) -> Ref (l, f x, M.map_opt (List.map f) xs)
+      | Top (x)        -> Top (f x)
 
     let convert = map
 
+    let d_recref () rr =
+      P.dprintf "%a" (P.d_list ", " R.d_refinement) rr
+
     let d_ctype () = function
-      | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
-      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
-      | Top (i)    -> P.dprintf "top(%a)" R.d_refinement i
+      | Int (n, i)          -> P.dprintf "int(%d, %a)" n R.d_refinement i
+      | Ref (s, i, None)    -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
+      | Ref (s, i, Some rr) -> P.dprintf "ref(%a, %a, %a)" S.d_sloc s R.d_refinement i d_recref rr
+      | Top (i)             -> P.dprintf "top(%a)" R.d_refinement i
 
     let width = function
       | Int (n, _) -> n
@@ -557,31 +577,36 @@ module Make (R: CTYPE_REFINEMENT) = struct
       | Top (_)    -> assertf "width of top is undefined!" (* CM.int_width *) 
     
     let sloc = function
-      | Ref (s, _) -> Some s
+      | Ref (s, _, _) -> Some s
       | _          -> None
 
     let subs subs = function
-      | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
-      | pct        -> pct
+      | Ref (s, i, is) -> Ref (S.Subst.apply subs s, i, is)
+      | pct            -> pct
 
     exception NoLUB of t * t
 
-    let lub_refs t1 t2 r1 r2 =
-      match R.lub r1 r2 with
-        | Some r -> r
-        | None   -> raise (NoLUB (t1, t2))
+    let lub_refs t1 t2 r1 r2 = match R.lub r1 r2 with
+      | Some r -> r
+      | None   -> raise (NoLUB (t1, t2))
 
-    let lub t1 t2 =
-      match t1, t2 with
-        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> Int (n1, lub_refs t1 t2 r1 r2)
-        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> Ref (s1, lub_refs t1 t2 r1 r2)
-        | _                                          -> raise (NoLUB (t1, t2))
+    let lub t1 t2 = match t1, t2 with
+      | Int (n1, r1), Int (n2, r2) when n1 = n2                        -> Int (n1, lub_refs t1 t2 r1 r2)
+      | Ref (s1, r1, Some rr1), Ref (s2, r2, Some rr2) when S.eq s1 s2 ->
+        Ref (s1, lub_refs t1 t2 r1 r2, Some (List.map2 (lub_refs t1 t2) rr1 rr2))
+      | Ref (s1, r1, None), Ref (s2, r2, None) when S.eq s1 s2 ->
+        Ref (s1, lub_refs t1 t2 r1 r2, None)
+      | _ -> raise (NoLUB (t1, t2))
 
-    let is_subctype pct1 pct2 =
-      match pct1, pct2 with
-        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> R.is_subref r1 r2
-        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> R.is_subref r1 r2
-        | _                                          -> false
+    let is_subrecref rro1 rro2 = match rro1, rro2 with
+      | _, None            -> true
+      | Some _, None       -> false
+      | Some rr1, Some rr2 -> List.for_all2 R.is_subref rr1 rr2 
+
+    let is_subctype pct1 pct2 = match pct1, pct2 with
+      | Int (n1, r1), Int (n2, r2) when n1 = n2              -> R.is_subref r1 r2
+      | Ref (s1, r1, rr1), Ref (s2, r2, rr2) when S.eq s1 s2 -> R.is_subref r1 r2 && is_subrecref rr1 rr2
+      | _                                                    -> false
 
     let of_const c =
       let r = R.of_const c in
@@ -589,13 +614,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
           | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
           | C.CChr c            -> Int (CM.int_width, r)
           | C.CReal (_, fk, _)  -> Int (CM.bytesSizeOfFloat fk, r)
-          | C.CStr _            -> Ref (S.fresh S.Abstract, r)
+          | C.CStr _            -> Ref (S.fresh S.Abstract, r, None)
           | _                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
-    let eq pct1 pct2 =
-      match (pct1, pct2) with
-        | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
-        | _                          -> pct1 = pct2
+    let eq pct1 pct2 = match (pct1, pct2) with
+      | Ref (l1, i1, rr1), Ref (l2, i2, rr2) -> S.eq l1 l2 && i1 = i2 && rr1 = rr2
+      | _                                    -> pct1 = pct2
 
     let index_overlaps_type i i2 pct =
       M.foldn (fun b n -> b || N.overlaps i (N.offset n i2)) (width pct) false
@@ -615,7 +639,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
       | _     -> false
      
     let refinements_of_t = function
-      | Int (_, x) | Ref (_, x) | Top (x) -> [x]
+      | Int (_, x) | Ref (_, x, _) | Top (x) -> [x]
 
     let top = Top (R.top)
   end
@@ -780,8 +804,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
         SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
     let ctype_closed t sto = match t with
-      | Ref (l, _) -> SLM.mem l sto
-      | _          -> true
+      | Ref (l, _, _) -> SLM.mem l sto
+      | _             -> true
     
     let closed sto =
       fold (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
@@ -859,8 +883,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
           && Store.closed whole_outstore
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
           && match cf.ret with  (* we can return refs to uninitialized data *)
-             | Ref (l, _) -> SLM.mem l whole_outstore
-             | _          -> true
+             | Ref (l, _, _) -> SLM.mem l whole_outstore
+             | _             -> true
 
     let slocs cf =
       List.concat [Store.slocs cf.sto_in;
@@ -957,7 +981,7 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.fresh S.Abstract, N.top) 
+let ptr_ctype    = Ref (S.fresh S.Abstract, N.top, None)
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype = I.CType.d_ctype

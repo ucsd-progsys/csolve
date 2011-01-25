@@ -149,11 +149,11 @@ let cstr_sat (st: store) (sc: cstr): bool =
 
 let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
   match ct1, ct2 with
-    | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> sub
-    | Ref (s1, _), Ref (s2, _)                 -> S.Subst.extend s1 s2 sub
-    | _, _                     when ct1 = ct2  -> sub
-    | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
-    | _                                        -> raise (Unify (ct1, ct2))
+    | Ref (s1, _, _), Ref (s2, _, _) when S.eq s1 s2 -> sub
+    | Ref (s1, _, _), Ref (s2, _, _)                 -> S.Subst.extend s1 s2 sub
+    | _, _                           when ct1 = ct2  -> sub
+    | Int (n1, _), Int (n2, _)       when n1 = n2    -> sub
+    | _                                              -> raise (Unify (ct1, ct2))
 
 let store_add loc (l: Sloc.t) (i: Index.t) (ctv: ctype) (sto: store): store =
   SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find l sto)) sto
@@ -301,7 +301,7 @@ and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvema
   | (C.Mem e, C.NoOffset) as lv ->
       let ctv, em, cs = constrain_exp env em e in
         begin match ctv with
-          | Ref (s, ie) ->
+          | Ref (s, ie, _) ->
               let ctvlv = lv |> C.typeOfLval |> ShapeInfra.fresh_heaptype in
               let cs    = mk_locinc ie ctvlv s :: cs in
                 (ctvlv, em, cs)
@@ -346,8 +346,8 @@ and apply_arithmetic f rt ctv1 ctv2 =
 
 and apply_ptrarithmetic f pt ctv1 ctv2 =
   match C.unrollType pt, ctv1, ctv2 with
-    | C.TPtr (t, _), Ref (s, i1), Int (n, i2) when n = CM.int_width -> Ref (s, f i1 (CM.typ_width t) i2)
-    | _                                                             -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
+    | C.TPtr (t, _), Ref (s, i1, rr), Int (n, i2) when n = CM.int_width -> Ref (s, f i1 (CM.typ_width t) i2, rr)
+    | _                                                                 -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
 
 and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.typ_width !C.upointType, Index.top)
@@ -362,8 +362,8 @@ and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.typ_width rt, Index.top)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> let s = S.fresh S.Abstract in (Ref (s, Index.IInt 0), [mk_locinc Index.nonneg (Int (1, Index.nonneg)) s])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (Ref (s, Index.IBot), [])
+  | C.CStr _                                 -> let s = S.fresh S.Abstract in (Ref (s, Index.IInt 0, None), [mk_locinc Index.nonneg (Int (1, Index.nonneg)) s])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (Ref (s, Index.IBot, None), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
@@ -516,10 +516,9 @@ let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
   let depcs = try SLM.find s sd with Not_found -> [] in
     SLM.add s (id :: depcs) sd
 
-let fresh_sloc_of (c: ctype): ctype =
-  match c with
-    | Ref (s, i) -> Ref (S.fresh S.Abstract, i)
-    | _          -> c
+let fresh_sloc_of = function
+  | Ref (s, i, rr) -> Ref (S.fresh S.Abstract, i, rr)
+  | c              -> c
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)

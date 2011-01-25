@@ -192,11 +192,12 @@ let d_index_reft () (i,r) =
 
 module Reft = struct
   type t = Ix.t * C.reft
-  let d_refinement = d_index_reft
-  let lub          = fun ir1 ir2 -> assert false
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Ix.top, reft_of_top 
+  let d_refinement  = d_index_reft
+  let lub _ _       = assert false
+  let conjoin _ _   = assert false
+  let is_subref _ _ = assert false
+  let of_const _    =  assert false
+  let top           = Ix.top, reft_of_top 
 end
 
 module RefCTypes = Ct.Make (Reft)
@@ -230,30 +231,30 @@ let reft_of_reft r t' =
 
 let reft_of_refctype = function
   | Ct.Int (_,(_,r)) 
-  | Ct.Ref (_,(_,r)) 
+  | Ct.Ref (_,(_,r), _)
   | Ct.Top (_,r)     -> r
 
 let refctype_of_reft_ctype r = function
-  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
-  | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (so_ref l)))
-  | Ct.Top (o)   -> Ct.Top (o, r) 
+  | Ct.Int (w,k)   -> Ct.Int (w, (k, r)) 
+  | Ct.Ref (l,o,_) -> Ct.Ref (l, (o, reft_of_reft r (so_ref l)), None)
+  | Ct.Top (o)     -> Ct.Top (o, r) 
 
 
 
 let ctype_of_refctype = function
-  | Ct.Int (x, (y, _)) -> Ct.Int (x, y) 
-  | Ct.Ref (x, (y, _)) -> Ct.Ref (x, y)
-  | Ct.Top (x,_)       -> Ct.Top (x) 
+  | Ct.Int (x, (y, _))    -> Ct.Int (x, y) 
+  | Ct.Ref (x, (y, _), _) -> Ct.Ref (x, y, None)
+  | Ct.Top (x,_)          -> Ct.Top (x) 
 
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft vv_int So.t_int (f t) in
       Ct.Int (i, (x, r)) 
-  | Ct.Ref (l, x) as t ->
+  | Ct.Ref (l, x, _) as t ->
       let so = so_ref l in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
-      Ct.Ref (l, (x, r)) 
+      Ct.Ref (l, (x, r), None)
   | Ct.Top (x) -> 
       Ct.Top (x, reft_of_top)
 
@@ -332,7 +333,7 @@ let refdesc_find i rd =
   | _            -> assertf "refdesc_find"
 
 let addr_of_refctype loc = function
-  | Ct.Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
+  | Ct.Ref (cl, (i,_), _) when not (Sloc.is_abstract cl) ->
       (cl, i)
   | cr ->
       let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
@@ -494,8 +495,8 @@ let print_ce so ppf (_, vnv) =
 (****************************************************************)
 
 let sort_of_prectype = function
-  | Ct.Ref (l,_) -> so_ref l
-  | _            -> so_int
+  | Ct.Ref (l,_,_) -> so_ref l
+  | _              -> so_int
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
@@ -571,15 +572,15 @@ let is_reference cenv x =
   else if not (ce_mem x cenv) then
     false
   else match ce_find x cenv with 
-    | Ct.Ref (_,(_,_)) -> true
-    | _                -> false
+    | Ct.Ref (_,(_,_),_) -> true
+    | _                  -> false
 
 let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = P.support p |> List.filter (is_reference cenv) in
   match ct, refs with
-  | (Ct.Ref (_,_)), [x]  ->
+  | (Ct.Ref (_,_,_)), [x]  ->
       let x         = A.eVar x  in
       let vv        = A.eVar vv in
       let unchecked =
@@ -670,9 +671,9 @@ let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
 let t_scalar_index = pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
 let t_scalar_zero  = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 let t_scalar = function
-  | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
-  | Ct.Int (_,ix)        -> t_scalar_index ix 
-  | _                    -> t_true Ct.scalar_ctype
+  | Ct.Ref (_,Ix.IInt 0,_) -> t_scalar_zero 
+  | Ct.Int (_,ix)          -> t_scalar_index ix 
+  | _                      -> t_true Ct.scalar_ctype
 
 let deconstruct_refctype rct = 
   let r = reft_of_refctype rct in
@@ -837,7 +838,7 @@ let find_unfolded_loc cf l sto =
 
 let points_to_final cf cenv sto p o =
   match ce_find p cenv with
-    | Ct.Ref (l, (Ix.IInt n, _)) ->
+    | Ct.Ref (l, (Ix.IInt n, _), _) ->
            sto
         |> find_unfolded_loc cf l
         |> RCt.LDesc.find (Ix.IInt (n + o))

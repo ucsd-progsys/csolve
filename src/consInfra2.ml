@@ -80,8 +80,8 @@ let ctype_of_local locals v =
 let strengthen_cloc = function
   | ct, None 
   | (Ctypes.Int (_, _) as ct), _  
-  | (Ctypes.Top (_) as ct), _    ->  ct
-  | (Ctypes.Ref (_, x)), Some cl -> Ctypes.Ref (cl, x)
+  | (Ctypes.Top (_) as ct), _        ->  ct
+  | (Ctypes.Ref (_, x, rr)), Some cl -> Ctypes.Ref (cl, x, rr)
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = FI.ctype_of_refctype cr in

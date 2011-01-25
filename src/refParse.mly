@@ -200,7 +200,7 @@ reftype:
                                         }
   
   | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ctypes.Ref ($3, $5) in
+                                        { let ct = Ctypes.Ref ($3, $5, None) in
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10 
                                         }
@@ -210,7 +210,7 @@ reftype:
 
 ctype:
     INT LPAREN Num COMMA index RPAREN   { Ctypes.Int ($3, $5) }
-  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.Ref ($3, $5) }
+  | REF LPAREN sloc COMMA index RPAREN  { Ctypes.Ref ($3, $5, None) }
   | TOP LPAREN index RPAREN             { Ctypes.Top ($3) }
   ;
 

@@ -61,8 +61,8 @@ module Intraproc (X: Context) = struct
         let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
         let al = cl |> RA.aloc_of_cloc X.shp.Sh.theta |> M.maybe in
           begin match CT.ExpMap.find e X.shp.Sh.etypm with
-            | Ctypes.Ref (_, i) -> Some (cl, al, i)
-            | _                 -> assert false
+            | Ctypes.Ref (_, i, _) -> Some (cl, al, i)
+            | _                    -> assert false
           end
     | (C.Var _, C.NoOffset) -> None
     | _                     -> assert false

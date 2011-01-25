@@ -332,7 +332,7 @@ let ctype_of_var_index v ix =
   | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
   | Cil.TVoid _             -> Ct.void_ctype
   | Cil.TPtr (Cil.TFun _ , _) -> Ct.Top ix
-  | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
+  | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix, None)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
   | _                       -> (Cil.warn "Scalar.ctype_of_ciltype_index %s of tricky type %a@!@!" 
                                 v.Cil.vname Cil.d_type t; Ct.Top ix)
