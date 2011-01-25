@@ -110,8 +110,8 @@ let scalarenv_of_fdec gnv fdec =
              |> Misc.map (FA.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
   in
   args ++ locs
-  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
-  (Ast.Symbol.to_string n) Ct.d_refctype rct) 
+(*  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
+  (Ast.Symbol.to_string n) Ct.d_refctype rct) *)
   |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =
