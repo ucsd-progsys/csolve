@@ -286,3 +286,50 @@ val void_ctype   : ctype
 val scalar_ctype : ctype
 
 val d_ctype      : unit -> ctype -> Pretty.doc
+
+(**********************************************************************)
+(********************** refctypes and friends *************************)
+(**********************************************************************)
+module Reft      : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
+module RefCTypes : S with module R = Reft
+
+type refctype = RefCTypes.CType.t
+type refcfun  = RefCTypes.CFun.t
+type refldesc = RefCTypes.LDesc.t
+type refstore = RefCTypes.Store.t
+type refspec  = RefCTypes.Spec.t
+type reffield = RefCTypes.Field.t
+
+val d_refctype : unit -> refctype -> Pretty.doc
+val d_refstore : unit -> refstore -> Pretty.doc
+val d_refcfun  : unit -> refcfun -> Pretty.doc
+
+val reft_of_top : FixConstraint.reft
+
+val refstore_empty      : refstore
+val refstore_mem        : Sloc.t -> refstore -> bool
+val refstore_remove     : Sloc.t -> refstore -> refstore
+val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
+val refstore_get        : refstore -> Sloc.t -> refldesc
+val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
+val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
+val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
+val refstore_read       : Cil.location -> refstore -> refctype -> refctype
+
+
+val refldesc_subs       : refldesc -> (int -> Index.t -> refctype -> refctype) -> refldesc
+
+val is_soft_ptr         : Cil.location -> refstore -> refctype -> bool 
+val addr_of_refctype    : Cil.location -> refctype -> Sloc.t * Index.t  
+val index_of_ctype      : ctype -> Index.t
+
+val ctype_of_refctype   : refctype -> ctype
+val reft_of_refctype    : refctype -> FixConstraint.reft
+val cfun_of_refcfun     : refcfun  -> cfun
+val store_of_refstore   : refstore -> store
+val cspec_of_refspec    : refspec  -> cspec
+val qlocs_of_refcfun    : refcfun  -> Sloc.t list
+val args_of_refcfun     : refcfun  -> (string * refctype) list
+val ret_of_refcfun      : refcfun  -> refctype 
+val stores_of_refcfun   : refcfun  -> refstore * refstore
+val mk_refcfun          : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun

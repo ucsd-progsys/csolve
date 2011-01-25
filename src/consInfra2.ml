@@ -33,6 +33,7 @@ module IM  = Misc.IntMap
 module SM  = Misc.StringMap
 module C   = FixConstraint
 module FI  = FixInterface 
+module FA  = FixAstInterface 
 module CI  = CilInterface
 module EM  = Ctypes.I.ExpMap
 module Ix  = Ctypes.Index
@@ -42,16 +43,17 @@ module LM  = Sloc.SlocMap
 module IIM = Misc.IntIntMap
 module CM  = CilMisc
 module YM  = Ast.Symbol.SMap
+module Ct  = Ctypes
 
 open Misc.Ops
 open Cil
 
-type wld = FI.cilenv * FI.refstore * CilTag.t option 
+type wld = FI.cilenv * Ct.refstore * CilTag.t option 
 
 type t_sh = {
   cf      : FI.alocmap;
-  astore  : FI.refstore;
-  cstoa   : (FI.refstore * Sloc.t list * Refanno.cncm) array; 
+  astore  : Ct.refstore;
+  cstoa   : (Ct.refstore * Sloc.t list * Refanno.cncm) array; 
   shp     : Shape.t;
 }
 
@@ -66,9 +68,9 @@ type t    = {
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
-  phim    : FI.refctype SM.t;
+  phim    : Ct.refctype SM.t;
   shapeo  : t_sh option;
-  des     : (Cil.varinfo * FI.refctype) list;
+  des     : (Cil.varinfo * Ct.refctype) list;
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
   (* bindm   : (FI.cilenv * Ast.pred * FI.refctype) YM.t *)
 }
@@ -84,7 +86,7 @@ let strengthen_cloc = function
   | (Ctypes.Ref (_, x, rr)), Some cl -> Ctypes.Ref (cl, x, rr)
 
 let strengthen_refs theta v (vn, cr) =
-  let ct  = FI.ctype_of_refctype cr in
+  let ct  = Ct.ctype_of_refctype cr in
   let clo = Refanno.cloc_of_varinfo theta v in
   let ct' = strengthen_cloc (ct, clo) in
   let cr' = FI.t_ctype_refctype ct' cr in 
@@ -99,27 +101,27 @@ let ctype_scalar    = Ctypes.void_ctype
 
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
-             >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" FI.d_refcfun x)
-             |> FI.args_of_refcfun
-             |> List.map (FI.name_of_string <**> FI.t_scalar_refctype) 
+             >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" Ct.d_refcfun x)
+             |> Ct.args_of_refcfun
+             |> List.map (FA.name_of_string <**> FI.t_scalar_refctype) 
   in 
   let locs = fdec.slocals 
              |> List.filter is_origcilvar 
-             |> Misc.map (FI.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
+             |> Misc.map (FA.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
   in
   args ++ locs
-  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
-  (Ast.Symbol.to_string n) FI.d_refctype rct) 
+(*  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
+  (Ast.Symbol.to_string n) Ct.d_refctype rct) *)
   |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv 
-             |> FI.args_of_refcfun 
+             |> Ct.args_of_refcfun 
              |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
-             |> List.map (Misc.app_fst FI.name_of_string) in
+             |> List.map (Misc.app_fst FA.name_of_string) in
   let locs = fdec.slocals 
              |> List.filter is_origcilvar 
-             |> Misc.map (FI.name_of_varinfo <*> 
+             |> Misc.map (FA.name_of_varinfo <*> 
                          (FI.t_true <.> ctype_of_local shp.Sh.vtyps)) in
   args ++ locs
   |> FI.ce_adds gnv
@@ -202,7 +204,7 @@ let partition_diff_bindings cfrom cto =
   end cto ([], [])
 
 let cstoa_of_annots fname gdoms conca astore =
-  let emp = FI.refstore_empty in
+  let emp = Ct.refstore_empty in
   Array.mapi begin fun i (conc,conc') ->
     let idom, _ = gdoms.(i) in 
     if idom < 0 then (emp, [], conc') else
@@ -211,9 +213,9 @@ let cstoa_of_annots fname gdoms conca astore =
       let inclocs     = List.map snd ins in
       let sto         = joins 
                         |> List.fold_left begin fun sto (al, cl) ->
-                             FI.refstore_get astore al |> FI.refstore_set sto cl
+                             Ct.refstore_get astore al |> Ct.refstore_set sto cl
                            end emp
-                        |> FI.store_of_refstore 
+                        |> Ct.store_of_refstore 
                         |> FI.refstore_fresh fname in
       (sto, inclocs, conc')
   end conca
@@ -235,7 +237,7 @@ let add_wld i wld me =
 
 let get_cons me = me.ws, me.cs, me.des, me.ds
 
-let get_astore = function { shapeo = Some x } -> x.astore | _ -> FI.refstore_empty 
+let get_astore = function { shapeo = Some x } -> x.astore | _ -> Ct.refstore_empty 
 
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
@@ -304,7 +306,7 @@ let annots_of_edge me i j =
       let jsto   = shp.cstoa.(j) |> fst3 in
       LM.fold begin fun al tagm acc ->
         LM.fold begin fun cl t acc ->
-          if FI.refstore_mem cl jsto then acc else
+          if Ct.refstore_mem cl jsto then acc else
             if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
               (Refanno.WGen (cl, al) :: acc)
         end tagm acc
@@ -344,7 +346,7 @@ let ctype_of_varinfo me v =
   | _ -> ctype_scalar
  
 let refctype_of_global me v =
-  FI.ce_find (FI.name_of_string v.Cil.vname) me.gnv
+  FI.ce_find (FA.name_of_string v.Cil.vname) me.gnv
 
 let get_phis me =
   me.sci.ST.phis 
@@ -387,7 +389,7 @@ let inenv_of_block me i =
   else begin
     let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
     i |> phis_of_block me 
-      |> List.map (FI.name_of_varinfo <*> bind_of_phi me) 
+      |> List.map (FA.name_of_varinfo <*> bind_of_phi me) 
       |> FI.ce_adds env0 
   end
 
@@ -399,10 +401,10 @@ let extend_wld_with_clocs me j loc tag wld =
       wld
       (* Copy "inherited" conc-locations *)
       |> Misc.flip (List.fold_left begin fun (env, st, t) cl ->
-          (env, (FI.refstore_get sto cl |> FI.refstore_set st cl), t)
+          (env, (Ct.refstore_get sto cl |> Ct.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
-      |> FI.refstore_fold begin fun cl ld wld ->
+      |> Ct.refstore_fold begin fun cl ld wld ->
           fst <| FI.extend_world shp.cf csto cl cl false id loc tag wld
          end csto 
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
@@ -445,9 +447,9 @@ let create_shapeo tgr gnv env gst sci = function
       ([], [], [], None)
   | Some shp ->
       let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
-                    |> FI.stores_of_refcfun |> fst |> FI.RefCTypes.Store.upd gst in
+                    |> Ct.stores_of_refcfun |> fst |> Ct.RefCTypes.Store.upd gst in
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
-      let astore  = FI.RefCTypes.Store.upd gst lastore in
+      let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
       let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in

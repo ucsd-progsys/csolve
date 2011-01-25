@@ -35,8 +35,8 @@ module C   = FixConstraint
 module P   = Pretty
 module FI  = FixInterface
 module Co  = Constants
-module Sp  = FI.RefCTypes.Spec
-module RCt = FI.RefCTypes
+module Sp  = Ctypes.RefCTypes.Spec
+module RCt = Ctypes.RefCTypes
 
 open Misc.Ops
 open Pretty
@@ -221,7 +221,7 @@ let liquidate file =
   let cil     = BS.time "Parse: source" preprocess_file file in
   let _       = E.log "DONE: cil parsing \n" in
   let fn      = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
-  let qs      = Misc.flap FixInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
+  let qs      = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
   let _       = E.log "DONE: qualifier parsing \n" in
   let spec    = BS.time "Parse: spec" spec_of_file !Co.liquidc_file_prefix file in
   let _       = E.log "DONE: spec parsing \n" in
@@ -299,6 +299,7 @@ let theMain () =
 
     (* parse the command-line arguments *)
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
+    if !Constants.do_nothing then exit 0;
     Cil.initCIL ();
     Cil.useLogicalOperators := true;
 

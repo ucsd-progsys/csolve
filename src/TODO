@@ -1,46 +1,45 @@
 
-HEREHEREHEREHERE:
-
 ../src/lcc --scalar globset.c 
 
-Need to give inferctypes index for global variables.
-
-Exceptions thrown on 30 tests: 
-
-../postests/globset.c, 
-../postests/globloc.c,
-../postests/array-finite-global.c, 
-../postests/array-alias-global.c,
-../negtests/list_false.c, 
-
-../postests/stringexample.c, 
-../postests/strcpy.c, 
-../postests/sorted-two-list.c,
-../postests/arraysum.c,
-../postests/misalign.c,
-../postests/make-sorted-list.c, 
-../postests/funptr0.c,
-../postests/passglobal.c, 
-../postests/forward-sorted-list.c, 
-../negtests/arraysum-unsafe.c,
-../negtests/strcpybug-full.c, 
-../negtests/sorted-two-list.c,
-../negtests/make-sorted-list.c,
-../negtests/accidental-subtyping.c
+NONTERMINATION!!!
+./lcc --scalar ../postests/pmapdistilled.c
 
 
-
-../postests/pmapdistilled.c, 
-../postests/full_adpcm.sh, 
-../postests/cacm.sh, 
-../postests/power.c,
+killed pmapdistilled, ks, maybe 
 ../postests/adpcm.c, 
-../postests/mst-scratch.c, 
-../postests/ks.c, 
 ../postests/allocator/allocator.c, 
-../postests/glib-2.24.0/int-glist.c, 
-../postests/glib-2.24.0/int-gslist.c,
+../postests/array-alias-global.c, 
+../postests/array-finite-global.c, ../postests/forward-sorted-list.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../postests/globloc.c, ../postests/globset.c, ../postests/ks.c, ../postests/ll-simple.c, ../postests/ll1.c, ../postests/ll2.c, ../postests/ll3.c, ../postests/ll5.c, ../postests/ll6.c, ../postests/make-sorted-list.c, ../postests/mst-scratch.c, ../postests/passglobal.c, ../postests/pmapdistilled.c, ../postests/sorted-two-list.c, ../postests/stringexample.c
 
+
+Exceptions thrown on 25 tests: 
+../postests/adpcm.c,
+../postests/adpcmini.c, 
+../postests/adpcmini2.c,
+../postests/adpcminiptr.c, 
+../postests/allocator/allocator.c, 
+../postests/array-alias-global.c,
+../postests/array-finite-global.c, 
+../postests/arraysum.c, 
+../postests/cacm.sh, 
+../postests/depalloc.c, 
+../postests/forward-sorted-list.c, 
+../postests/full_adpcm.sh, 
+../postests/globloc.c, 
+../postests/hashfunc.c, 
+../postests/join.c, 
+../postests/ks.c, 
+../postests/mst-scratch.c, 
+../postests/passglobal.c, 
+../postests/pmapdistilled.c,
+../postests/power.c, 
+../postests/shapebug-em3d.c,
+../postests/strcpy.c,
+../postests/stringexample.c, 
+../postests/structarr2.c, 
+../postests/unchecked.c
+
+Need to give inferctypes index for global variables.
 
 Function Pointers
 
@@ -63,93 +62,6 @@ Function Pointers
     how to do it _without_ any alias/pointer/shape information? 
     (over scalar variables only!) do i need to go over inferctypes code?
     
-    >0> vanilla tests with fields
-	test00.c
-	scalar00.c
-	scalar01.c
-	scalar02.c
-	loop-simple.c 
-	loop.c
-	loop2.c 
-	loop3.c
-	field1.c 
-	nulljoin.c
-	ll-simple.c
-	ll0.c
-	ll1.c 
-	ll2.c
-
-    >1> modular invariants
-	postests/array2.c
-	negtests/array1.c
-	postests/test02p.c
-	postests/test03p.c
-	postests/array3.c
-    
-    >> HEREHEREHERE
-
-    	postests/test01p.c -- offsets/increments for fixed size arrays
-
-	postests/join.c
-
-    >2> extend type system to include "upper bounds" i.e. 
-
-        >> see new definition of Ctypes.seq_polarity
-	>> (fix all the match error!)
-	>> print to string	(ctypes.ml)
-	>> parse from string 	(refParse.mly)
-	<JHALA: TO HERE, thwarted impenetrable inferctypes.ml>
-	>> type checking
-
-    >3> crash
-    	negtests/arraysum-unsafe.c
-	negtests/make-sorted-list.c
-
-Failing Regrtests: Failed 39 tests: 
-../postests/funptr0.c, 
-../postests/globset.c, 
-../postests/arraysum.c, 
-../postests/adpcmini2.c, 
-../postests/adpcmini.c,
-../postests/hashfunc.c, 
-../postests/unchecked.c,
-../postests/sorted-two-list.c, 
-../postests/make-sorted-list.c, 
-../postests/structarr2.c,
-../postests/globloc.c, 
-../postests/forward-sorted-list.c, 
-../postests/depfield.c,
-../postests/array-alias-global.c,
-
-../postests/array-finite-global.c,
-../postests/glib-2.24.0/int-glist.c, 
-../postests/glib-2.24.0/int-gslist.c, 
-../negtests/strcpybug-full.c, 
-../negtests/list_false.c, 
-../negtests/sorted-two-list.c, 
-../negtests/make-sorted-list.c, 
-../negtests/arraysum-unsafe.c, 
-
-../postests/pmapdistilled.c,
-../postests/strcpy.c, 
-../postests/mst-scratch.c, 
-../postests/join.c, 
-../postests/depalloc.c, 
-../postests/full_adpcm.sh, 
-../postests/power.c, 
-../postests/shapebug-em3d.c, 
-../postests/cacm.sh,
-../postests/ks.c, 
-../postests/adpcm.c,
-
-../postests/misalign.c,
-../postests/stringexample.c, 
-../postests/adpcminiptr.c, 
-../postests/passglobal.c, 
-
-../negtests/accidental-subtyping.c, 
-../negtests/write_bogus_ref.c
-
 (c) cone-of-influence to eliminate bogus definitions...
 
 -----------------------------------------------------------------------------

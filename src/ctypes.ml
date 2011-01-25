@@ -985,3 +985,147 @@ let ptr_ctype    = Ref (S.fresh S.Abstract, N.top, None)
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype = I.CType.d_ctype
+
+
+let index_of_ctype ct =
+  match I.CType.refinements_of_t ct with
+  | [ix] -> ix
+  | _    -> assertf "Ctypes.index_of_ctype"
+
+
+
+(******************************************************************************)
+(************************* Refctypes and Friends ******************************)
+(******************************************************************************)
+
+module FC = FixConstraint
+
+let reft_of_top = 
+  let so = Ast.Sort.t_obj in
+  let vv = Ast.Symbol.value_variable so in
+  FC.make_reft vv so []
+
+(*******************************************************************)
+(********************* Refined Types and Stores ********************)
+(*******************************************************************)
+
+let d_index_reft () (i,r) = 
+  let di = Index.d_index () i in
+  let dc = Pretty.text " , " in
+  let dr = Misc.fsprintf (FC.print_reft None) r |> Pretty.text in
+  Pretty.concat (Pretty.concat di dc) dr
+
+module Reft = struct
+  type t = Index.t * FC.reft
+  let d_refinement  = d_index_reft
+  let lub _ _       = assert false
+  let conjoin _ _   = assert false
+  let is_subref _ _ = assert false
+  let of_const _    = assert false
+  let top           = Index.top, reft_of_top 
+end
+
+module RefCTypes   = Make (Reft)
+module RCt         = RefCTypes
+module LM          = Sloc.SlocMap
+
+type refctype      = RCt.CType.t
+type refcfun       = RCt.CFun.t
+type reffield      = RCt.Field.t
+type refldesc      = RCt.LDesc.t
+type refstore      = RCt.Store.t
+type refspec       = RCt.Spec.t
+
+let d_refstore     = RCt.Store.d_store
+let d_refctype     = RCt.CType.d_ctype
+let d_refcfun      = RCt.CFun.d_cfun
+
+let refstore_fold      = LM.fold
+let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
+let refstore_empty     = LM.empty
+let refstore_mem       = fun l sto -> LM.mem l sto
+let refstore_remove    = fun l sto -> LM.remove l sto
+
+let refstore_set sto l rd =
+  try LM.add l rd sto with Not_found -> 
+    assertf "refstore_set"
+
+let refstore_get sto l =
+  try LM.find l sto with Not_found ->
+    (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
+     asserti false "refstore_get"; assert false)
+
+let refldesc_subs rd f =
+  RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
+
+
+(*******************************************************************)
+(******************** Operations on Refined Stores *****************)
+(*******************************************************************)
+
+
+let refdesc_find i rd = 
+  match RCt.LDesc.find i rd with
+  | [(i', rfld)] -> (RCt.Field.type_of rfld, Index.is_periodic i')
+  | _            -> assertf "refdesc_find"
+
+let addr_of_refctype loc = function
+  | Ref (cl, (i,_), _) when not (Sloc.is_abstract cl) ->
+      (cl, i)
+  | cr ->
+      let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
+      let l = loc |> Cil.d_loc () |> Pretty.sprint ~width:80 in
+      let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
+      assert false
+
+let ac_refstore_read loc sto cr = 
+  let (l, ix) = addr_of_refctype loc cr in 
+  LM.find l sto 
+  |> refdesc_find ix
+
+(* API *)
+let refstore_read loc sto cr = 
+  ac_refstore_read loc sto cr |> fst
+
+
+(* API *)
+let is_soft_ptr loc sto cr = 
+  ac_refstore_read loc sto cr |> snd
+
+(* API *)
+let refstore_write loc sto rct rct' = 
+  let (cl, ix) = addr_of_refctype loc rct in
+  let _  = assert (not (Sloc.is_abstract cl)) in
+  let ld = LM.find cl sto in
+  let ld = RCt.LDesc.remove ix ld in
+  let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
+  LM.add cl ld sto
+
+(* API *)
+let ctype_of_refctype = function
+  | Int (x, (y, _))    -> Int (x, y) 
+  | Ref (x, (y, _), _) -> Ref (x, y, None)
+  | Top (x,_)          -> Top (x) 
+
+
+(* API *)
+let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
+let cspec_of_refspec  = I.Spec.map (fun (i,_) -> i)
+let store_of_refstore = I.Store.map_ct ctype_of_refctype
+let qlocs_of_refcfun  = fun ft -> ft.qlocs
+let args_of_refcfun   = fun ft -> ft.args
+let ret_of_refcfun    = fun ft -> ft.ret
+let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
+let mk_refcfun qslocs args ist ret ost = 
+  { qlocs   = qslocs; 
+    args    = args;
+    ret     = ret;
+    sto_in  = ist;
+    sto_out = ost; }
+
+let reft_of_refctype = function
+  | Int (_,(_,r)) 
+  | Ref (_,(_,r),_)
+  | Top (_,r)     -> r
+
+

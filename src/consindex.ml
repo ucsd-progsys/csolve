@@ -31,7 +31,11 @@ module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 module  Q = Ast.Qualifier 
+
+module FA = FixAstInterface
 module FI = FixInterface
+
+module Ct = Ctypes
 
 open Misc.Ops
 open Cil
@@ -44,7 +48,7 @@ type t = {
   scim : Ssa_transform.ssaCfgInfo SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
-  defm : (varinfo * FI.refctype) list SM.t;
+  defm : (varinfo * Ct.refctype) list SM.t;
   depm : C.dep list SM.t;
 }
 
@@ -103,8 +107,8 @@ let solve me fn qs =
   let ws     = get_wfs me in
   let cs     = get_cs me in
   let ds     = get_deps me in
-  let env    = YM.map FixConstraint.sort_of_reft FI.builtinm in
-  let ctx, s = BS.time "Qual Inst" (Solve.create FI.sorts env FI.axioms 4 ds cs ws) qs in
+  let env    = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let ctx, s = BS.time "Qual Inst" (Solve.create FA.sorts env FA.axioms 4 ds cs ws) qs in
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
   let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
