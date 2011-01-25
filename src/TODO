@@ -1,56 +1,28 @@
+HEREHEREHERE
+------------
 
-../src/lcc --scalar globset.c 
+../src/lcc --scalar globloc.c 
 
-NONTERMINATION!!!
+Z3 NONTERMINATION
+-----------------
+
 ./lcc --scalar ../postests/pmapdistilled.c
+./lcc --scalar ../postests/power.c
+./lcc --scalar ../postests/ks.c
 
 
-	//! run with --nop
+GENERAL CRASH
+-------------
 
-
-killed pmapdistilled, ks
-
-
-fails
 ../postests/adpcm.c, 
 ../postests/allocator/allocator.c, 
 ../postests/mst-scratch.c
+
 ../postests/globloc.c, 
 ../postests/globset.c, 
 ../postests/passglobal.c
-
-???
 ../postests/array-alias-global.c, 
 ../postests/array-finite-global.c, 
-
-
-
-Exceptions thrown on 25 tests: 
-../postests/adpcm.c,
-../postests/adpcmini.c, 
-../postests/adpcmini2.c,
-../postests/adpcminiptr.c, 
-../postests/allocator/allocator.c, 
-../postests/array-alias-global.c,
-../postests/array-finite-global.c, 
-../postests/arraysum.c, 
-../postests/cacm.sh, 
-../postests/depalloc.c, 
-../postests/forward-sorted-list.c, 
-../postests/full_adpcm.sh, 
-../postests/globloc.c, 
-../postests/hashfunc.c, 
-../postests/join.c, 
-../postests/ks.c, 
-../postests/mst-scratch.c, 
-../postests/passglobal.c, 
-../postests/pmapdistilled.c,
-../postests/power.c, 
-../postests/shapebug-em3d.c,
-../postests/strcpy.c,
-../postests/stringexample.c, 
-../postests/structarr2.c, 
-../postests/unchecked.c
 
 Need to give inferctypes index for global variables.
 
