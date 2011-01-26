@@ -3,26 +3,19 @@ HEREHEREHERE
 
 ../src/lcc --scalar globloc.c 
 
-Z3 NONTERMINATION
------------------
-
-./lcc --scalar ../postests/pmapdistilled.c
-./lcc --scalar ../postests/power.c
-./lcc --scalar ../postests/ks.c
-
-
 GENERAL CRASH
 -------------
-
-../postests/adpcm.c, 
-../postests/allocator/allocator.c, 
-../postests/mst-scratch.c
-
 ../postests/globloc.c, 
 ../postests/globset.c, 
 ../postests/passglobal.c
 ../postests/array-alias-global.c, 
 ../postests/array-finite-global.c, 
+
+../postests/ks.c
+../postests/pmapdistilled.c
+../postests/adpcm.c, 
+../postests/allocator/allocator.c, 
+../postests/mst-scratch.c
 
 Need to give inferctypes index for global variables.
 

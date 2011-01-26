@@ -1,5 +1,3 @@
-//! run with --nop
-
 extern char *malloc(int);
 extern void free(char *);
 

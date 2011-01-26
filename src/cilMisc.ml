@@ -219,6 +219,7 @@ let d_var () (v: varinfo): Pretty.doc =
 (******************************************************************************)
 
 module VarMap = Map.Make(ComparableVar)
+
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
 let vm_print_keys vm =
