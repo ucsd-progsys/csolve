@@ -7,10 +7,6 @@ void f() {
 */
 
 int main () {
-  int x;
-  int y; 
-  int z;
-
   return p[0];
 /*
   int x;

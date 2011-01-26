@@ -306,7 +306,6 @@ and constrain_addrof em = function
 
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
   | (C.Var v, C.NoOffset)       -> 
-      let _  = _DEBUG_print_ve "BEFORE CRASH" ve in
       ((asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve), em, [])
   | (C.Mem e, C.NoOffset) as lv ->
       let ctv, em, cs = constrain_exp env em e in
@@ -494,7 +493,6 @@ let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) ({ST.fdec = fd; ST.phis =
   let blocks     = cfg.Ssa.blocks in
   let bas        = Array.make (Array.length blocks) [] in
   let em,    css =
-    let _  = _DEBUG_print_ve "BEFORE constrain_stmt" ve in
     M.array_fold_lefti begin fun i (em, css) b ->
       let em, ba, cs = constrain_stmt (fs, ve) em cf.ret b.Ssa.bstmt in
         Array.set bas i ba;
