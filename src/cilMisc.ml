@@ -231,6 +231,9 @@ let vm_of_list xs =
 let vm_to_list vm =
   VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
 
+let vm_union vm1 vm2 =
+  VarMap.fold (fun k v vm -> VarMap.add k v vm) vm1 vm2
+
 let definedHere vi =
   vi.vdecl.line > 0 && vi.vstorage != Extern
 

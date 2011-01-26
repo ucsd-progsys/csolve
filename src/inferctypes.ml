@@ -263,6 +263,14 @@ let solve (sd: slocdep) (cm: cstrmap) (sto: store): slocdep * cstrmap * S.Subst.
 (***************************** CIL Types to CTypes ****************************)
 (******************************************************************************)
 
+let _DEBUG_print_ve s ve =
+  P.printf "%s START " s;
+  VM.iter begin fun v ct ->
+    ignore <| P.printf "[v=%s, ct=%a]" v.Cil.vname Ct.d_ctype ct
+  end ve; 
+  P.printf " END\n"
+
+
 let mk_subty (ctv1: ctype) (ctv2: ctype): cstr =
   mk_cstr !C.currentLoc (CSubtype (ctv1, ctv2))
 
@@ -297,7 +305,9 @@ and constrain_addrof em = function
       E.s <| C.error "Unimplemented constrain_addrof: %a@!@!" C.d_lval lv
 
 and constrain_lval ((_, ve) as env: env) (em: ctvemap): C.lval -> ctype * ctvemap * cstr list = function
-  | (C.Var v, C.NoOffset)       -> ((asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve), em, [])
+  | (C.Var v, C.NoOffset)       -> 
+      let _  = _DEBUG_print_ve "BEFORE CRASH" ve in
+      ((asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve), em, [])
   | (C.Mem e, C.NoOffset) as lv ->
       let ctv, em, cs = constrain_exp env em e in
         begin match ctv with
@@ -484,6 +494,7 @@ let constrain_fun (fs: funenv) (cf: cfun) (ve: ctvenv) ({ST.fdec = fd; ST.phis =
   let blocks     = cfg.Ssa.blocks in
   let bas        = Array.make (Array.length blocks) [] in
   let em,    css =
+    let _  = _DEBUG_print_ve "BEFORE constrain_stmt" ve in
     M.array_fold_lefti begin fun i (em, css) b ->
       let em, ba, cs = constrain_stmt (fs, ve) em cf.ret b.Ssa.bstmt in
         Array.set bas i ba;
@@ -650,7 +661,7 @@ let make_dummy_bdcks blocks =
 
 let get_ve_bdcks fe ve scim cf sci vm = 
   (if !Cs.scalar then
-    vm, make_dummy_bdcks sci.ST.cfg.Ssa.blocks
+    (CM.vm_union ve vm), make_dummy_bdcks sci.ST.cfg.Ssa.blocks
    else 
     Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
   |> M.app_fst fresh_local_slocs 
@@ -715,16 +726,9 @@ let print_shapes spec shpm =
     if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
       SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
-let _DEBUG_print_ve s ve =
-  P.printf "%s START " s;
-  VM.iter begin fun v ct ->
-    ignore <| P.dprintf "[v=%s, ct=%a]" v.Cil.vname Ct.d_ctype ct
-  end ve; 
-  P.printf " END\n"
-
 let _DEBUG_ADD vi ct ve = 
   let _   = _DEBUG_print_ve "DEBUG ADD: BEFORE" ve in
-  let _   = P.printf "DEBUG ADD: bind [v=%s] [ct=%a] \n" vi.Cil.vname Ct.d_ctype ct in
+  let _   = P.printf "DEBUG ADD: bind %s := %a \n" vi.Cil.vname Ct.d_ctype ct in
   let ve' = VM.add vi ct ve in
   let _   = _DEBUG_print_ve "DEBUG ADD: AFTER" ve' in
   ve'
@@ -736,14 +740,13 @@ let infer_shapes cil spec scis =
                 begin try
                   CSpec.get_var vi.C.vname spec 
                   |> fst
-                  |> Misc.flip (_DEBUG_ADD vi) ve
+                  |> Misc.flip (VM.add vi) ve
                 with Not_found ->
                   halt <| C.errorLoc loc "Could not find spec for global var %a\n" CM.d_var vi
                  end
              | _ -> ve
            end VM.empty
   in
-  let _  = _DEBUG_print_ve "AFTER FOLDGLOBS" ve in
   let fe = declared_funs cil
            |> List.map (fun f -> (f, CSpec.get_fun f.C.vname spec |> fst))
            |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
