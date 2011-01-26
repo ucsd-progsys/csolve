@@ -657,9 +657,12 @@ let make_dummy_bdcks blocks =
     | _          -> []
   end blocks 
 
+
+
 let get_ve_bdcks fe ve scim cf sci vm = 
   (if !Cs.scalar then
-    (CM.vm_union ve vm), make_dummy_bdcks sci.ST.cfg.Ssa.blocks
+    let ve' = CM.vm_union ve vm >> _DEBUG_print_ve "get_ve_bdcks: " in 
+    ve', make_dummy_bdcks sci.ST.cfg.Ssa.blocks
    else 
     Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
   |> M.app_fst fresh_local_slocs 
