@@ -1,1 +1,1 @@
-rm -rf ./*.fq ./*.scalar* ./*ssa* ./*.autospec ./*.annot ./*.tags ./*.vmap
+rm -rf ./*.fq ./*.scalar* ./*.squals ./*ssa* ./*.autospec ./*.annot ./*.tags ./*.vmap

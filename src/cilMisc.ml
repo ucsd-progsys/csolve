@@ -205,6 +205,10 @@ let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
 
+let is_reference t =
+  match Cil.unrollType t with
+  | Cil.TPtr _ | Cil.TArray (_,_,_) -> true
+  | _ -> false
 
 
 (******************************************************************************)

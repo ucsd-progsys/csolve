@@ -330,11 +330,15 @@ let scalarcons_of_instr me i grd (j, env) instr =
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
+  (*| Set ((Var v, NoOffset),  Lval (Var vg, NoOffset), _) 
+    when (not v.Cil.vglob) (* && vg is global *) ->
+      FI.ce_find (FA.name_of_varinfo vg) env
+      |> scalarcons_of_binding me loc tag (j, env) grd j v
+ *)
   | Set ((Var v, NoOffset), _, _) | Call (Some (Var v, NoOffset), _, _, _) 
-    when Cil.isPointerType v.Cil.vtype ->
+    when CM.is_reference v.Cil.vtype ->
       FI.t_scalar_zero
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
-
      
   | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
       env |> (FI.ce_find_fn fv.Cil.vname <+> Ct.ret_of_refcfun <+> Ct.ctype_of_refctype <+> FI.t_scalar) 
@@ -342,9 +346,11 @@ let scalarcons_of_instr me i grd (j, env) instr =
  
   | Set ((Var v, NoOffset), _, _) 
     when (not v.Cil.vglob)  ->
+      let _   = Pretty.printf "SCALARSET: v=%s ptr=%b \n" 
+                                           v.Cil.vname (CM.is_reference v.Cil.vtype) in
       FI.t_true Ct.scalar_ctype
       |> scalarcons_of_binding me loc tag (j, env) grd j v
- 
+
   | Set (_,_,_) | Call (_ , _, _, _) ->
       (j+1, env), ([], [], [])
 
