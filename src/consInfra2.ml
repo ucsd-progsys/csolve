@@ -204,7 +204,7 @@ let partition_diff_bindings cfrom cto =
   end cto ([], [])
 
 let cstoa_of_annots fname gdoms conca astore =
-  let emp = Ct.refstore_empty in
+  let emp = Ct.RefCTypes.Store.empty in
   Array.mapi begin fun i (conc,conc') ->
     let idom, _ = gdoms.(i) in 
     if idom < 0 then (emp, [], conc') else
@@ -237,7 +237,7 @@ let add_wld i wld me =
 
 let get_cons me = me.ws, me.cs, me.des, me.ds
 
-let get_astore = function { shapeo = Some x } -> x.astore | _ -> Ct.refstore_empty 
+let get_astore = function { shapeo = Some x } -> x.astore | _ -> Ct.RefCTypes.Store.empty 
 
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
@@ -306,7 +306,7 @@ let annots_of_edge me i j =
       let jsto   = shp.cstoa.(j) |> fst3 in
       LM.fold begin fun al tagm acc ->
         LM.fold begin fun cl t acc ->
-          if Ct.refstore_mem cl jsto then acc else
+          if Ct.RefCTypes.Store.mem jsto cl then acc else
             if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
               (Refanno.WGen (cl, al) :: acc)
         end tagm acc
