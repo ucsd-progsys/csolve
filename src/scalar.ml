@@ -53,7 +53,7 @@ open Misc.Ops
 let generate tgr gnv scim : Ci.t =
   ([], [], [], [])
   |> Ci.create  
-  |> ConsVisitor.cons_of_scis tgr gnv Ct.refstore_empty scim None
+  |> ConsVisitor.cons_of_scis tgr gnv Ct.RefCTypes.Store.empty scim None
 
 (***************************************************************************)
 (*************************** Solve Scalar Constraints **********************)

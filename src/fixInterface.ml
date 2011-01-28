@@ -496,7 +496,7 @@ let name_of_sloc_index l i =
 
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') -> 
-    if not (Ct.refstore_mem l sto) then [] else
+    if not (RCt.Store.mem sto l) then [] else
       let is  = l |> Ct.refstore_get sto |> RCt.LDesc.indices in
       let ns  = List.map (name_of_sloc_index l)  is in
       let ns' = List.map (name_of_sloc_index l') is in

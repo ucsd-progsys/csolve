@@ -438,6 +438,7 @@ module type S = sig
   sig
     type t = R.t prestore
 
+    val empty        : t
     val domain       : t -> Sloc.t list
     val slocs        : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
@@ -449,6 +450,7 @@ module type S = sig
     val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
     val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
+    val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
@@ -726,6 +728,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
   module Store = struct
     type t = R.t prestore
 
+    let empty = SLM.empty
+
     let map f =
       f |> CType.map |> Field.map_type |> LDesc.map |> SLM.map
 
@@ -760,6 +764,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let subs subs ps =
       ps |> map_ct (CType.subs subs)
          |> subs_addrs subs
+
+    let remove sto l =
+      SLM.remove l sto
 
     let upd ps1 ps2 =
       SLM.fold SLM.add ps2 ps1
@@ -1017,9 +1024,6 @@ let d_refcfun      = RCt.CFun.d_cfun
 
 let refstore_fold      = LM.fold
 let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
-let refstore_empty     = LM.empty
-let refstore_mem       = fun l sto -> LM.mem l sto
-let refstore_remove    = fun l sto -> LM.remove l sto
 
 let refstore_set sto l rd =
   try LM.add l rd sto with Not_found -> 
@@ -1033,11 +1037,9 @@ let refstore_get sto l =
 let refldesc_subs rd f =
   RCt.LDesc.mapn (fun i pl fld -> RCt.Field.map_type (f i pl) fld) rd
 
-
 (*******************************************************************)
 (******************** Operations on Refined Stores *****************)
 (*******************************************************************)
-
 
 let refdesc_find i rd = 
   match RCt.LDesc.find i rd with
@@ -1062,7 +1064,6 @@ let ac_refstore_read loc sto cr =
 let refstore_read loc sto cr = 
   ac_refstore_read loc sto cr |> fst
 
-
 (* API *)
 let is_soft_ptr loc sto cr = 
   ac_refstore_read loc sto cr |> snd
@@ -1081,7 +1082,6 @@ let ctype_of_refctype = function
   | Int (x, (y, _)) -> Int (x, y) 
   | Ref (x, (y, _)) -> Ref (x, y)
   | Top (x,_)       -> Top (x) 
-
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
@@ -1102,5 +1102,3 @@ let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r)) 
   | Top (_,r)     -> r
-
-
