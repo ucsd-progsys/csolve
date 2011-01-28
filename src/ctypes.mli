@@ -174,6 +174,7 @@ module type S = sig
   sig
     type t = R.t prestore
 
+    val empty        : t
     val domain       : t -> Sloc.t list
     val slocs        : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
@@ -185,6 +186,7 @@ module type S = sig
     val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
     val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
+    val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
@@ -306,9 +308,6 @@ val d_refcfun  : unit -> refcfun -> Pretty.doc
 
 val reft_of_top : FixConstraint.reft
 
-val refstore_empty      : refstore
-val refstore_mem        : Sloc.t -> refstore -> bool
-val refstore_remove     : Sloc.t -> refstore -> refstore
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
 val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a

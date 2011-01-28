@@ -83,7 +83,7 @@ class Config (rtest.TestConfig):
 testdirs  = [("../postests", 0), ("../negtests", [1, 2])]
 
 #FOR --scalar
-#testdirs  = [("../postests", 0), ("../negtests", 0)]
+#testdirs  = [("../footests", 0)]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")

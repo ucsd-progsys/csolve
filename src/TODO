@@ -1,43 +1,21 @@
+HEREHEREHERE
+------------
 
-../src/lcc --scalar globset.c 
+../src/lcc --scalar globloc.c 
 
-NONTERMINATION!!!
-./lcc --scalar ../postests/pmapdistilled.c
+GENERAL CRASH
+-------------
+../postests/globloc.c, 
+../postests/globset.c, 
+../postests/passglobal.c
+../postests/array-alias-global.c, 
+../postests/array-finite-global.c, 
 
-
-killed pmapdistilled, ks, maybe 
+../postests/ks.c
+../postests/pmapdistilled.c
 ../postests/adpcm.c, 
 ../postests/allocator/allocator.c, 
-../postests/array-alias-global.c, 
-../postests/array-finite-global.c, ../postests/forward-sorted-list.c, ../postests/glib-2.24.0/int-glist.c, ../postests/glib-2.24.0/int-gslist.c, ../postests/globloc.c, ../postests/globset.c, ../postests/ks.c, ../postests/ll-simple.c, ../postests/ll1.c, ../postests/ll2.c, ../postests/ll3.c, ../postests/ll5.c, ../postests/ll6.c, ../postests/make-sorted-list.c, ../postests/mst-scratch.c, ../postests/passglobal.c, ../postests/pmapdistilled.c, ../postests/sorted-two-list.c, ../postests/stringexample.c
-
-
-Exceptions thrown on 25 tests: 
-../postests/adpcm.c,
-../postests/adpcmini.c, 
-../postests/adpcmini2.c,
-../postests/adpcminiptr.c, 
-../postests/allocator/allocator.c, 
-../postests/array-alias-global.c,
-../postests/array-finite-global.c, 
-../postests/arraysum.c, 
-../postests/cacm.sh, 
-../postests/depalloc.c, 
-../postests/forward-sorted-list.c, 
-../postests/full_adpcm.sh, 
-../postests/globloc.c, 
-../postests/hashfunc.c, 
-../postests/join.c, 
-../postests/ks.c, 
-../postests/mst-scratch.c, 
-../postests/passglobal.c, 
-../postests/pmapdistilled.c,
-../postests/power.c, 
-../postests/shapebug-em3d.c,
-../postests/strcpy.c,
-../postests/stringexample.c, 
-../postests/structarr2.c, 
-../postests/unchecked.c
+../postests/mst-scratch.c
 
 Need to give inferctypes index for global variables.
 

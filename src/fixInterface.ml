@@ -366,7 +366,7 @@ let t_exp cenv ct e =
 let ptrs_of_exp e = 
   let xm = ref VM.empty in
   let _  = CM.iterExprVars e (fun v -> xm := VM.add v () !xm) in
-  !xm |> CM.vm_to_list |>: fst |> (List.filter (fun v -> Cil.isPointerType v.Cil.vtype))
+  !xm |> CM.vm_to_list |>: fst |> (List.filter (fun v -> CM.is_reference v.Cil.vtype))
 
 let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
   e |> ptrs_of_exp 
@@ -378,7 +378,9 @@ let t_exp_scalar v e =
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp vv e in
   let rs = [C.Conc p] in
-  let rs = if Cil.isPointerType v.Cil.vtype then (rs ++ t_exp_scalar_ptr vv e) else rs in
+  let rb = CM.is_reference v.Cil.vtype in 
+  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  
+  let rs = if rb then (rs ++ t_exp_scalar_ptr vv e) else rs in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
@@ -486,7 +488,7 @@ let name_of_sloc_index l i =
 
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') -> 
-    if not (Ct.refstore_mem l sto) then [] else
+    if not (RCt.Store.mem sto l) then [] else
       let is  = l |> Ct.refstore_get sto |> RCt.LDesc.indices in
       let ns  = List.map (name_of_sloc_index l)  is in
       let ns' = List.map (name_of_sloc_index l') is in

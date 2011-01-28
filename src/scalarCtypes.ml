@@ -137,6 +137,8 @@ let indexo_of_preds_iseq v ps =
   | Some (c, k), Some c' ->
     let lb = c' + ((k - ((c' - c) mod k)) mod k) in
       Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = None; Ix.m = k; Ix.c = lb mod k})
+  | Some (c, k), _ ->
+      Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c})
   | _ -> None
 
 let indexo_of_preds_lowerbound v ps =
@@ -156,11 +158,8 @@ let index_of_pred v (cr, p) =
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
+(* *)
 
-(* WRAPPER 
-let index_of_pred v (cr, p) = 
- fail on false
-*)
 
 let pred_of_bcc_raw p_lb p_ub p_pd bcc =
   let plb = match bcc.Ix.lb with None -> A.pTrue | Some lb -> 

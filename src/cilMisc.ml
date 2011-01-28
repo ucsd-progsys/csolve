@@ -205,6 +205,10 @@ let has_unchecked_attr = fun a -> List.exists is_unchecked_attr a
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
 
+let is_reference t =
+  match Cil.unrollType t with
+  | Cil.TPtr _ | Cil.TArray (_,_,_) -> true
+  | _ -> false
 
 
 (******************************************************************************)
@@ -219,6 +223,7 @@ let d_var () (v: varinfo): Pretty.doc =
 (******************************************************************************)
 
 module VarMap = Map.Make(ComparableVar)
+
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
 let vm_print_keys vm =
@@ -229,6 +234,9 @@ let vm_of_list xs =
 
 let vm_to_list vm =
   VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
+
+let vm_union vm1 vm2 =
+  VarMap.fold (fun k v vm -> VarMap.add k v vm) vm1 vm2
 
 let definedHere vi =
   vi.vdecl.line > 0 && vi.vstorage != Extern

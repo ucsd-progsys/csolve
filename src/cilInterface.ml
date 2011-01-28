@@ -129,7 +129,11 @@ let expr_of_lval ((lh, _) as lv) = match lh with
   | Cil.Var v when not v.Cil.vglob ->
       expr_of_var v
   | Cil.Var v when v.Cil.vglob ->
+      Pretty.printf "Trying to convert global %a to expr\n\n" Cil.d_lval lv;
+      assertf "Trying to convert global %s to expr" v.Cil.vname
+      (* 
       halt <| Errormsg.error "Trying to convert global %a to expr\n\n" Cil.d_lval lv
+      *)
   | _ ->
       let _ = Errormsg.error "Unimplemented expr_of_lval: %a" Cil.d_lval lv in 
       assertf "TBD: CilInterface.expr_of_lval"
@@ -172,7 +176,7 @@ and convert_cilbinexp (op, e1, e2) =
   | Bpop pop ->
       let e1', e2' = convert_args (e1, e2) in
       let stride   = stride_of_cilexp e1 in
-      E (A.eBin (e1', pop,  A.eTim (A.eInt stride, e2'))) (* A.eBin (A.eCon (A.Constant.Int stride), A.Times, e2'))) *)
+      E (A.eBin (e1', pop,  A.eTim (A.eInt stride, e2')))
   | Brl rel' ->
       let e1', e2' = convert_args (e1, e2) in
       P (A.pAtom (e1', rel', e2'))
@@ -193,7 +197,7 @@ and pred_of_cilexp e =
 
 (* API *)
 and expr_of_cilexp e = 
-  let x = Misc.do_catchu convert_cilexp e (fun _ -> Errormsg.error "Skolem Error %a \n" Cil.d_exp e)
+  let x = Misc.do_catchu convert_cilexp e (fun _ -> Errormsg.error "Skolem Error1 %a \n" Cil.d_exp e)
   in match x with
   | E e -> e
   | P p -> A.eIte (p, A.one, A.zero)
@@ -238,7 +242,7 @@ let rec reft_of_cilexp vv e =
   | Cil.BinOp (Cil.LOr, _, _, _)
   | Cil.BinOp (Cil.LAnd, _, _, _) -> 
       (* {v = e} *)
-      let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error %a \n" Cil.d_exp e)
+      let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
   
   | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
