@@ -53,7 +53,6 @@ val annotstmt_of_block  :
 val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
 val csto_of_block       : t -> int -> Ctypes.refstore
-val get_alocmap         : t -> FixInterface.alocmap
 val get_astore          : t -> Ctypes.refstore 
 val ctype_of_varinfo    : t -> Cil.varinfo -> Ctypes.ctype
 val ctype_of_expr       : t -> Cil.exp -> Ctypes.ctype

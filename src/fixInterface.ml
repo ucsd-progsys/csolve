@@ -567,72 +567,66 @@ let strengthen_reft env ((v, t, ras) as r) =
 (********************** Pointer Canonicization *********************)
 (*******************************************************************)
 
-let canon_loc cf l = 
-  match cf l with 
-  | Some al -> al 
-  | None    -> l
-  (* if AlocMap.mem l cf then AlocMap.find l cf else l *)
-
-let canon_sort cf t = 
+let canon_sort t = 
   (match So.ptr_of_t t with
-   | Some (So.Loc s) -> s |> FA.sloc_of_string |> canon_loc cf |> FA.so_ref 
+   | Some (So.Loc s) -> s |> FA.sloc_of_string |> Sloc.canonical |> FA.so_ref 
    | _               -> t)
 (*  >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" So.print t So.print t') *)
 
-let canon_reft cf r = 
+let canon_reft r = 
   let t  = C.sort_of_reft r in
-  let t' = canon_sort cf t in
+  let t' = canon_sort t in
   if t = t' then r else reft_of_reft r t'
 
-let canon_env cf env = 
-  YM.map (canon_reft cf) env
+let canon_env env = 
+  YM.map canon_reft env
 
 (******************************************************************************)
 (********************** WF For Dereferencing Expressions **********************)
 (******************************************************************************)
 
-let find_unfolded_loc cf l sto =
+let find_unfolded_loc l sto =
   try
     LM.find l sto
   with Not_found ->
-    LM.find (canon_loc cf l) sto
+    LM.find (Sloc.canonical l) sto
 
-let points_to_final cf cenv sto p o =
+let points_to_final cenv sto p o =
   match ce_find p cenv with
     | Ct.Ref (l, (Ix.IInt n, _)) ->
            sto
-        |> find_unfolded_loc cf l
+        |> find_unfolded_loc l
         |> RCt.LDesc.find (Ix.IInt (n + o))
         |> List.for_all (fun (_, fld) -> RCt.Field.is_final fld)
     | _ -> false
 
-let expr_derefs_wf cf cenv sto e =
+let expr_derefs_wf cenv sto e =
   (* match E.unwrap e with
     | A.App (f, [e]) when FA.is_uf_deref f ->  *)
   match FA.maybe_deref e with
   | Some e ->
         begin match E.unwrap e with
-          | A.Var p                -> points_to_final cf cenv sto p 0
+          | A.Var p                -> points_to_final cenv sto p 0
           | A.Bin (e1, A.Plus, e2) ->
               begin match E.unwrap e1, E.unwrap e2 with
-                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cf cenv sto p n
+                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cenv sto p n
                 | _                                 -> assert false
               end
           | A.Bin (e1, A.Minus, e2) ->
               begin match E.unwrap e1, E.unwrap e2 with
-                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cf cenv sto p (-n)
+                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cenv sto p (-n)
                 | _                                 -> assert false
               end
           | _ -> assert false
         end
     | _ -> true
 
-let filter_store_derefs cf cenv sto rct q =
+let filter_store_derefs cenv sto rct q =
   let cenv = ce_adds cenv [(Q.vv_of_t q, rct)] in
   let wf   = ref true in
        q
     |> Q.pred_of_t
-    |> P.iter (fun _ -> ()) (fun e -> wf := !wf && expr_derefs_wf cf cenv sto e);
+    |> P.iter (fun _ -> ()) (fun e -> wf := !wf && expr_derefs_wf cenv sto e);
     !wf
 
 let sloc_binds_of_refldesc l rd =
@@ -664,40 +658,40 @@ let is_live_name livem n =
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
-let env_of_cilenv cf (_, vnv, _) = 
+let env_of_cilenv (_, vnv, _) = 
   FA.builtinm
   |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
-  |> canon_env cf
+  |> canon_env
 
-let make_wfs cf ((_,_,livem) as cenv) sto rct _ =
-  let r   = rct |> reft_of_refctype |> canon_reft cf in
+let make_wfs ((_,_,livem) as cenv) sto rct _ =
+  let r   = rct |> reft_of_refctype |> canon_reft in
   let env = cenv 
-            |> env_of_cilenv cf 
+            |> env_of_cilenv
             |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
             |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
-  in [C.make_filtered_wf env r None (filter_store_derefs cf cenv sto rct)]
+  in [C.make_filtered_wf env r None (filter_store_derefs cenv sto rct)]
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
 
-let make_wfs_refstore cf env full_sto sto tag =
+let make_wfs_refstore env full_sto sto tag =
   LM.fold begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,i) -> not (Ix.is_periodic i)) 
                     |> List.map fst
                     |> ce_adds env in 
-    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs cf env' full_sto cr tag) ncrs in
+    let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
     ws' ++ ws
   end sto []
 (* >> F.printf "\n make_wfs_refstore: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None))  *)
 
 
-let make_wfs_fn cf cenv rft tag =
+let make_wfs_fn cenv rft tag =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
-  let retws = make_wfs cf env' rft.Ct.sto_out rft.Ct.ret tag in
-  let argws = Misc.flap (fun (_, rct) -> make_wfs cf env' rft.Ct.sto_in rct tag) args in
-  let inws  = make_wfs_refstore cf env' rft.Ct.sto_in rft.Ct.sto_in tag in
-  let outws = make_wfs_refstore cf env' rft.Ct.sto_out rft.Ct.sto_out tag in
+  let retws = make_wfs env' rft.Ct.sto_out rft.Ct.ret tag in
+  let argws = Misc.flap (fun (_, rct) -> make_wfs env' rft.Ct.sto_in rct tag) args in
+  let inws  = make_wfs_refstore env' rft.Ct.sto_in rft.Ct.sto_in tag in
+  let outws = make_wfs_refstore env' rft.Ct.sto_out rft.Ct.sto_out tag in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws]
 
 let make_dep pol xo yo =
@@ -711,20 +705,20 @@ let add_deps tago tag =
   | _      -> [] 
 *)
 
-let make_cs cf cenv p rct1 rct2 tago tag =
-  let env    = cenv |> env_of_cilenv cf in
-  let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft cf) (rct1, rct2) in
+let make_cs cenv p rct1 rct2 tago tag =
+  let env    = cenv |> env_of_cilenv in
+  let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_validptr cf cenv p rct tago tag =
+let make_cs_validptr cenv p rct tago tag =
   let rvp = rct |> Ct.ctype_of_refctype |> t_valid_ptr in
-  make_cs cf cenv p rct rvp tago tag
+  make_cs cenv p rct rvp tago tag
 
 
-let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
@@ -735,11 +729,11 @@ let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag =
   Misc.map begin fun ((n1, _), (_, cr2)) -> 
       let lhs = t_name env' n1 in
       let rhs = t_subs_names subs cr2 in
-      make_cs cf env' p lhs rhs tago tag 
+      make_cs env' p lhs rhs tago tag 
   end ncrs12
   |> Misc.splitflatten
 
-let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
 (*  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
@@ -750,37 +744,37 @@ let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
   |> Misc.map begin fun sloc ->
        let lhs = (sloc, Ct.refstore_get st1 sloc) in
        let rhs = (sloc, Ct.refstore_get st2 sloc) in
-       make_cs_refldesc cf env p lhs rhs tago tag 
+       make_cs_refldesc env p lhs rhs tago tag 
      end 
   |> Misc.splitflatten 
 (* >> (fun (cs,_) -> F.printf "make_cs_refstore: %a" (Misc.pprint_many true "\n" (C.print_t None)) cs) 
 *)
 
 (* API *)
-let make_cs_refstore cf env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore cf env p st1 st2 polarity tago tag loc with ex ->
+let make_cs_refstore env p st1 st2 polarity tago tag loc =
+  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
 (* API *)
-let make_cs cf cenv p rct1 rct2 tago tag loc =
+let make_cs cenv p rct1 rct2 tago tag loc =
 (*  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
- *) try make_cs cf cenv p rct1 rct2 tago tag with ex ->
+ *) try make_cs cenv p rct1 rct2 tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
     assert false
 
 (* API *)
-let make_cs_validptr cf cenv p rct tago tag loc =
-  try make_cs_validptr cf cenv p rct tago tag with ex ->
+let make_cs_validptr cenv p rct tago tag loc =
+  try make_cs_validptr cenv p rct tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
-let make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
-  try make_cs_refldesc cf env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
+let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
+  try make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refldesc" in 
     assert false
@@ -789,7 +783,7 @@ let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 
 (* API: TBD: UGLY *)
-let extend_world cf ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
+let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
   let ld    = sloc |> Ct.refstore_get ssto |> strengthen in
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
@@ -812,7 +806,7 @@ let extend_world cf ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                       let rct = RCt.Field.type_of rfld in
                       let lhs = new_block_reftype rct in
                       let rhs = t_subs_names subs rct in
-                      let cs' = fst <| make_cs cf env' A.pTrue lhs rhs None tag loc in
+                      let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs
                   | _ -> cs
                 end [] ld in

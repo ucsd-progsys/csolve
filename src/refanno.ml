@@ -63,7 +63,7 @@ type annotation =
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
 
 type block_annotation = annotation list list
-type ctab = (string, Sloc.t) Hashtbl.t * (Sloc.t, Sloc.t) Hashtbl.t
+type ctab = (string, Sloc.t) Hashtbl.t
 
 type tagm = tag Sloc.SlocMap.t
 type cncm = tagm Sloc.SlocMap.t
@@ -146,7 +146,7 @@ let d_block_annotation_array =
 
 (* API *)
 let d_ctab () t = 
-  let vcls = t |> fst |> Misc.hashtbl_to_list in
+  let vcls = Misc.hashtbl_to_list t in
   Pretty.seq (Pretty.text "\n") 
     (fun (vn, cl) -> Pretty.dprintf "Theta(%s) = %a \n" vn Sloc.d_sloc cl) 
     vcls
@@ -178,8 +178,7 @@ let d_conca =
     (fun i (cncm, cncm') -> Pretty.dprintf "block %i: @[CONC-In: %a@] @[CONC-Out: %a@]" i d_conc cncm d_conc cncm') 
 
 let d_theta () th = 
-  th |> fst 
-     |> Misc.hashtbl_to_list 
+  th |> Misc.hashtbl_to_list 
      |> Pretty.docList ~sep:(Pretty.text ",") (fun (vn,cl) -> Pretty.dprintf "(%s := %a)" vn Sloc.d_sloc cl) ()
 
 let d_cncms = Pretty.docList ~sep:(Pretty.text " --- ") (d_conc ())
@@ -241,20 +240,15 @@ let soln_init cfg anna =
 
 (***************************************************************************************)
 
-let alocmap_bind t al cl =
-  if not (Hashtbl.mem t cl) then Hashtbl.add t cl al
-
 let cloc_of_v theta al v =
 (*  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in *)
-  Misc.do_memo (fst theta) Sloc.fresh Sloc.Concrete v.vname 
-  >> alocmap_bind (snd theta) al  
+  Misc.do_memo theta Sloc.fresh_concrete al v.vname 
 (*  >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc *)
 
 
 let cloc_of_position theta al (j,k,i) = 
   Printf.sprintf "#%d#%d#%d" j k i
-  |> Misc.do_memo (fst theta) Sloc.fresh Sloc.Concrete
-  >> alocmap_bind (snd theta) al  
+  |> Misc.do_memo theta Sloc.fresh_concrete al
 (*  >> Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc
 *)
 
@@ -322,7 +316,7 @@ let annotate_set ctm theta conc = function
   | (Var v, _), e ->
       e >> (CilMisc.is_pure_expr <+> (fun b -> asserts b "impure expr")) 
         |> loc_of_var_expr ctm theta
-        |> Misc.maybe_iter (Hashtbl.replace (fst theta) v.vname) 
+        |> Misc.maybe_iter (Hashtbl.replace theta v.vname) 
         |> fun _ -> (conc, [])
 
   (* *v := _ *)
@@ -366,7 +360,7 @@ let sloc_of_ret ctm theta (conc, anns) = function
   | (Var v, NoOffset) as lv ->
       sloc_of_expr ctm (Lval lv) 
       |>> fun al -> new_cloc_of_aloc al anns
-      |>> fun cl -> Hashtbl.replace (fst theta) v.vname cl; None
+      |>> fun cl -> Hashtbl.replace theta v.vname cl; None
       |>> fun _  -> None 
   | lv ->
       Errormsg.error "sloc_of_ret: %a" Cil.d_lval lv;
@@ -453,7 +447,7 @@ let annots_of_sol cfg sol =
 
 (* API *)
 let annotate_cfg cfg globalslocs ctm anna =
-  let theta = Hashtbl.create 17, Hashtbl.create 17 in
+  let theta = Hashtbl.create 17 in
   soln_init cfg anna 
   |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
   |> fst
@@ -462,11 +456,7 @@ let annotate_cfg cfg globalslocs ctm anna =
   |> fun (annota, conca) -> (annota, conca, theta)
 
 (* API *)
-let aloc_of_cloc (_,t) cl = 
-  try Some (Hashtbl.find t cl) with Not_found -> None 
-
-(* API *)
-let cloc_of_varinfo (theta,_) v =
+let cloc_of_varinfo theta v =
   try
     let l = Hashtbl.find theta v.vname in
     let _ = asserts (not (Sloc.is_abstract l)) "cloc_of_varinfo: absloc! (%s)" v.vname in

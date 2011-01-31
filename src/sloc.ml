@@ -26,35 +26,37 @@ module M = Misc
 
 open Misc.Ops
 
-type sloctype = Abstract | Concrete
-
 type slocid = int
 
-type t = Sloc of slocid * sloctype
+type t =
+  | Abstract of slocid
+  | Concrete of slocid * (* abstract counterpart *) slocid
 
 let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 
-let fresh lty =
-  Sloc (fresh_slocid (), lty)
+let fresh_abstract () = 
+  Abstract (fresh_slocid ())
 
-let none  = Sloc (-1, Abstract)
+let fresh_concrete abs =
+  Concrete (fresh_slocid (), match abs with Abstract aid -> aid | _ -> assert false)
 
-let compare (Sloc (lid1, _): t) (Sloc (lid2, _): t): int =
-  compare lid1 lid2
+let none = Abstract (-1)
 
-let eq (l1: t) (l2: t): bool =
-  compare l1 l2 = 0
+let canonical = function
+  | Abstract _ as al  -> al
+  | Concrete (_, aid) -> Abstract aid
 
-let sloc_type (Sloc (_, lty): t): sloctype =
-  lty
+let compare = compare
 
-let is_abstract (l: t): bool =
-  sloc_type l = Abstract
+let eq l1 l2 = compare l1 l2 = 0
 
-let to_string (Sloc (lid, lty): t): string =
-  match lty with
-    | Abstract -> "A" ^ string_of_int lid
-    | Concrete -> "C" ^ string_of_int lid
+let is_abstract = function
+  | Abstract _ -> true
+  | Concrete _ -> false
+
+let to_string = function
+  | Abstract lid        -> "A" ^ string_of_int lid
+  | Concrete (lid, aid) -> "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
 
 let d_sloc () (l: t): Pretty.doc =
   Pretty.text <| to_string l
@@ -104,7 +106,7 @@ module Subst = struct
     try List.assoc s sub with Not_found -> s
 
   let extend (sfrom: sloc) (sto: sloc) (sub: t): t =
-    let sub  = List.map (apply [(sfrom, sto)] |> M.app_snd) sub in
+    let sub = List.map (apply [(sfrom, sto)] |> M.app_snd) sub in
       if not (List.mem_assoc sfrom sub) then
         (sfrom, sto) :: sub
       else

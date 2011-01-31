@@ -591,7 +591,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
           | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
           | C.CChr c            -> Int (CM.int_width, r)
           | C.CReal (_, fk, _)  -> Int (CM.bytesSizeOfFloat fk, r)
-          | C.CStr _            -> Ref (S.fresh S.Abstract, r)
+          | C.CStr _            -> Ref (S.fresh_abstract (), r)
           | _                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
     let eq pct1 pct2 =
@@ -848,7 +848,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
       {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
 
     let instantiate {qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout} =
-      let subs       = List.map (fun l -> (l, S.fresh S.Abstract)) ls in
+      let subs       = List.map (fun l -> (l, S.fresh_abstract ())) ls in
       let rename_pct = CType.subs subs in
       let rename_ps  = Store.rename subs in
         ({qlocs   = [];
@@ -964,7 +964,7 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.fresh S.Abstract, N.top) 
+let ptr_ctype    = Ref (S.fresh_abstract (), N.top) 
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype = I.CType.d_ctype

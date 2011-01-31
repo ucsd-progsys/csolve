@@ -208,7 +208,7 @@ and conv_ptr loc (th, st) pd c =
     let l, idx           = SM.find tid th in 
     (th, st), Ct.Ref (l, idx) 
   else
-    let l                = Sloc.fresh Sloc.Abstract in
+    let l                = Sloc.fresh_abstract () in
     let idx              = mk_idx pd 0 in
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
