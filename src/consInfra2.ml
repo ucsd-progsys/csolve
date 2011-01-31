@@ -51,7 +51,6 @@ open Cil
 type wld = FI.cilenv * Ct.refstore * CilTag.t option 
 
 type t_sh = {
-  cf      : FI.alocmap;
   astore  : Ct.refstore;
   cstoa   : (Ct.refstore * Sloc.t list * Refanno.cncm) array; 
   shp     : Shape.t;
@@ -259,9 +258,6 @@ let annotstmt_of_block me i =
       ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
 *)
 
-let get_alocmap = function {shapeo = Some shp} -> shp.cf 
-                         | _ -> (fun _ -> None) 
-
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
@@ -406,7 +402,7 @@ let extend_wld_with_clocs me j loc tag wld =
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
       |> Ct.refstore_fold begin fun cl ld wld ->
-          fst <| FI.extend_world shp.cf csto cl cl false id loc tag wld
+          fst <| FI.extend_world csto cl cl false id loc tag wld
          end csto 
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
  
@@ -452,12 +448,11 @@ let create_shapeo tgr gnv env gst sci = function
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
-      let cf      = Refanno.aloc_of_cloc shp.Sh.theta in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
-      let ws      = FI.make_wfs_refstore cf env lastore lastore tag in
-      let cs, ds  = FI.make_cs_refstore cf env Ast.pTrue istore astore false None tag loc in 
-      ws, cs, ds, Some { cf = cf; astore  = astore; cstoa = cstoa; shp = shp }
+      let ws      = FI.make_wfs_refstore env lastore lastore tag in
+      let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
+      ws, cs, ds, Some { astore  = astore; cstoa = cstoa; shp = shp }
 
 let create tgr gnv gst sci sho = 
   let formalm = formalm_of_fdec sci.ST.fdec in

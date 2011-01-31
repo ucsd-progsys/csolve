@@ -371,8 +371,8 @@ and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
   Int (CM.typ_width rt, Index.top)
 
 and constrain_constptr: C.constant -> ctype * cstr list = function
-  | C.CStr _                                 -> let s = S.fresh S.Abstract in (Ref (s, Index.IInt 0, None), [mk_locinc Index.nonneg (Int (1, Index.nonneg)) s])
-  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh S.Abstract in (Ref (s, Index.IBot, None), [])
+  | C.CStr _                                 -> let s = S.fresh_abstract () in (Ref (s, Index.IInt 0, None), [mk_locinc Index.nonneg (Int (1, Index.nonneg)) s])
+  | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh_abstract () in (Ref (s, Index.IBot, None), [])
   | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
 and constrain_cast (env: env) (em: ctvemap) (ct: C.typ) (e: C.exp): ctype * ctvemap * cstr list =
@@ -424,7 +424,7 @@ let constrain_args (env: env) (em: ctvemap) (es: C.exp list): ctype list * ctvem
 let constrain_app ((fs, _) as env: env) (em: ctvemap) (f: C.varinfo) (lvo: C.lval option) (args: C.exp list): ctvemap * RA.annotation list * cstr list list =
   let ctvs, em, css  = constrain_args env em args in
   let cf, _          = VM.find f fs in
-  let instslocs      = List.map (fun _ -> S.fresh S.Abstract) cf.qlocs in
+  let instslocs      = List.map (fun _ -> S.fresh_abstract ()) cf.qlocs in
   let annot          = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
   let sub            = List.combine cf.qlocs instslocs in
   let ctvfs          = List.map (Ct.subs sub <.> snd) cf.args in
@@ -526,7 +526,7 @@ let add_slocdep (id: int) (sd: slocdep) (s: Sloc.t): slocdep =
     SLM.add s (id :: depcs) sd
 
 let fresh_sloc_of = function
-  | Ref (s, i, rr) -> Ref (S.fresh S.Abstract, i, rr)
+  | Ref (s, i, rr) -> Ref (S.fresh_abstract (), i, rr)
   | c              -> c
 
 (******************************************************************************)

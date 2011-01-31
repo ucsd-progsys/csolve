@@ -41,7 +41,7 @@ let fresh_heaptype (t: C.typ): ctype =
       | C.TFloat _                               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                                -> void_ctype
       | C.TPtr (t, ats2) | C.TArray (t, _, ats2) ->
-        Ref (S.fresh S.Abstract,
+        Ref (S.fresh_abstract (),
              begin if CM.has_array_attr (ats1 @ ats2) then
                N.ICClass {N.lb = Some 0; N.ub = None; N.m = CM.typ_width t; N.c = 0}
              else N.IInt 0 end,

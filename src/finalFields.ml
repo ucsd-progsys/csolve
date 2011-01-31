@@ -59,7 +59,7 @@ module Intraproc (X: Context) = struct
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)
     | (C.Mem (C.CastE (_, (C.Lval (C.Var vi, _) as e))), _) ->
         let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
-        let al = cl |> RA.aloc_of_cloc X.shp.Sh.theta |> M.maybe in
+        let al = Sloc.canonical cl in
           begin match CT.ExpMap.find e X.shp.Sh.etypm with
             | Ctypes.Ref (_, i, _) -> Some (cl, al, i)
             | _                    -> assert false

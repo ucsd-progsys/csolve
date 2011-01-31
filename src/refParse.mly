@@ -20,10 +20,14 @@ let ldesc_of_plocbinds pbs =
   (* pmr: TODO - better location *)
   List.fold_left (fun ld (x,y) -> RCt.LDesc.add Cil.locUnknown x y ld) RCt.LDesc.empty pbs
 
-let sloctable = Hashtbl.create 17
+let abs_sloctable = Hashtbl.create 17
+let cnc_sloctable = Hashtbl.create 17
 
-let mk_sloc id sty =
-  Misc.do_memo sloctable Sloc.fresh sty (id, sty)
+let mk_sloc_abstract id =
+  Misc.do_memo abs_sloctable Sloc.fresh_abstract () id
+
+let mk_sloc_concrete id absid =
+  Misc.do_memo cnc_sloctable Sloc.fresh_concrete (mk_sloc_abstract absid) id
 
 let mk_funspec fn public qslocs args ist ret ost =
   (fn, (Ct.mk_refcfun qslocs args ist ret ost, public))
@@ -69,7 +73,7 @@ let depreference_regex = Str.regexp ("^A\\([0-9]+\\)#" ^ N.repr_prefix ^ "\\([0-
 let rename_depreference s =
   if not (Str.string_match depreference_regex s 0) then s else
     let slocnum = s |> Str.matched_group 1 |> int_of_string in
-    let sloc    = (slocnum, Sloc.Abstract) |> Hashtbl.find sloctable |> Sloc.to_string in
+    let sloc    = slocnum |> Hashtbl.find abs_sloctable |> Sloc.to_string in
     let idx     = s |> Str.matched_group 2 in
       sloc ^ "#" ^ N.repr_prefix ^ idx
 
@@ -102,7 +106,9 @@ let rename_depreference s =
 
 %%
 specs:
-                                        { Hashtbl.clear sloctable; RCt.Spec.empty }
+                                        { Hashtbl.clear abs_sloctable;
+                                          Hashtbl.clear cnc_sloctable;
+                                          RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
   | specs locspec                       { let lc, sp = $2 in RCt.Spec.add_loc lc sp $1 }
@@ -155,8 +161,8 @@ slocsne:
   ;
 
 sloc:
-    ABS                                 { mk_sloc $1 Sloc.Abstract }
-  | CONC                                { mk_sloc $1 Sloc.Concrete }
+    ABS                                 { mk_sloc_abstract $1 }
+  | CONC LB ABS RB                      { mk_sloc_concrete $1 $3 }
   ;
 
 refstore:
