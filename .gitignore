@@ -14,6 +14,10 @@ build.sh
 config.make
 negtests/*.fq
 postests/*.fq
+*.scalarlog
+*.squals
 _build
+src/fixpoint
+src/misc
 *~
 TAGS
