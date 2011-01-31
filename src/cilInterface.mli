@@ -31,3 +31,5 @@ val stride_of_cilexp    : Cil.exp -> int
 val expr_of_cilexp      : Cil.exp -> Ast.expr
 val pred_of_cilexp      : Cil.exp -> Ast.pred
 val reft_of_cilexp      : Ast.Symbol.t -> Cil.exp -> Ast.pred
+val recref_of_cilexp    :
+  Ctypes.RefCTypes.CType.t Ast.Symbol.SMap.t -> Ctypes.ctype -> Cil.exp -> Ctypes.RefCTypes.CType.recref

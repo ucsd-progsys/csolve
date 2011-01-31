@@ -32,6 +32,7 @@ module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
+module YM = Sy.SMap
 module CM = CilMisc
 module Ct = Ctypes
 
@@ -203,6 +204,19 @@ and expr_of_cilexp e =
   | P p -> A.eIte (p, A.one, A.zero)
 
 (*****************************************************************************************************)
+
+let rec recref_of_cilexp vnv ct e = match e with
+  | Cil.BinOp (Cil.MinusPP, e, _, _)
+  | Cil.BinOp (Cil.IndexPI, e, _, _)
+  | Cil.BinOp (Cil.PlusPI, e, _, _)
+  | Cil.BinOp (Cil.MinusPI, e, _, _) -> recref_of_cilexp vnv ct e
+  | Cil.Const _ -> assert false (* NULL pointers; need to query store for fields and make a t_false *)
+  | Cil.Lval l                       -> recref_of_lval vnv l
+  | _                                -> None
+
+and recref_of_lval vnv = function
+  | Cil.Var v, Cil.NoOffset -> Ct.RefCTypes.CType.recref_of_t <| YM.find (Sy.of_string v.Cil.vname) vnv
+  | _                       -> assert false
 
 (** [reft_of_cilexp vv e] == a refinement predicate of the form {v = e} or an overapproximation thereof 
  *  assumes that "e" is a-normalized *)

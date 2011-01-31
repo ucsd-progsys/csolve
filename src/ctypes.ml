@@ -363,10 +363,12 @@ end
 (***************************** Parameterized Types ****************************)
 (******************************************************************************)
 
+type 'a prerecref = 'a list option
+
 type 'a prectype =
-  | Int of int * 'a                     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a * 'a list option (* reference with recref *)
-  | Top of 'a                           (* "other", hack for function pointers *)
+  | Int of int * 'a                   (* fixed-width integer *)
+  | Ref of Sloc.t * 'a * 'a prerecref (* reference with recref *)
+  | Top of 'a                         (* "other", hack for function pointers *)
 
 type finality =
   | Final
@@ -395,7 +397,8 @@ module type S = sig
 
   module CType:
   sig
-    type t = R.t prectype
+    type t      = R.t prectype
+    type recref = R.t prerecref
 
     exception NoLUB of t * t
 
@@ -411,6 +414,7 @@ module type S = sig
     val is_void     : t -> bool
     val is_ref      : t -> bool
     val refinements_of_t : t -> R.t list
+    val recref_of_t : t -> recref
     val top         : t
   end
 
@@ -447,6 +451,7 @@ module type S = sig
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit
     val indices       : t -> Index.t list
+    val fields        : t -> Field.t list
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -555,7 +560,8 @@ module Make (R: CTYPE_REFINEMENT) = struct
   (***********************************************************************)
 
   module CType = struct
-    type t = R.t prectype
+    type t      = R.t prectype
+    type recref = R.t prerecref
 
     let map f = function
       | Int (i, x)     -> Int (i, f x)
@@ -565,12 +571,12 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let convert = map
 
     let d_recref () rr =
-      P.dprintf "%a" (P.d_list ", " R.d_refinement) rr
+      P.dprintf "%a" (P.d_list "; " R.d_refinement) rr
 
     let d_ctype () = function
       | Int (n, i)          -> P.dprintf "int(%d, %a)" n R.d_refinement i
       | Ref (s, i, None)    -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
-      | Ref (s, i, Some rr) -> P.dprintf "ref(%a, %a, %a)" S.d_sloc s R.d_refinement i d_recref rr
+      | Ref (s, i, Some rr) -> P.dprintf "ref(%a, %a, [%a])" S.d_sloc s R.d_refinement i d_recref rr
       | Top (i)             -> P.dprintf "top(%a)" R.d_refinement i
 
     let width = function
@@ -643,6 +649,10 @@ module Make (R: CTYPE_REFINEMENT) = struct
     let refinements_of_t = function
       | Int (_, x) | Ref (_, x, _) | Top (x) -> [x]
 
+    let recref_of_t = function
+      | Ref (_, _, rr) -> rr
+      | _              -> assert false
+
     let top = Top (R.top)
   end
 
@@ -683,12 +693,14 @@ module Make (R: CTYPE_REFINEMENT) = struct
 
     let empty = []
 
+    let fields flds =
+      List.map (fun (_, (_, fld)) -> fld) flds
+
     let fits i fld flds =
       let t = Field.type_of fld in
       let w = CType.width t in
         M.get_option w (N.period i) >= w &&
           not (List.exists (fun (i2, (_, fld2)) -> CType.collide i t i2 (Field.type_of fld2)) flds)
-
 
     let rec insert ((i, _) as fld) = function
       | []                      -> [fld]

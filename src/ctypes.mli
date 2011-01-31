@@ -84,10 +84,12 @@ end
 
 module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 
+type 'a prerecref = 'a list option
+
 type 'a prectype =
-  | Int of int * 'a                     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a * 'a list option (* reference *)
-  | Top of 'a                           (* "other" *)
+  | Int of int * 'a                   (* fixed-width integer *)
+  | Ref of Sloc.t * 'a * 'a prerecref (* reference with recref *)
+  | Top of 'a                         (* "other", hack for function pointers *)
 
 type finality =
   | Final
@@ -115,7 +117,8 @@ module type S = sig
 
   module CType:
   sig
-    type t = R.t prectype
+    type t      = R.t prectype
+    type recref = R.t prerecref
 
     exception NoLUB of t * t
 
@@ -131,6 +134,7 @@ module type S = sig
     val is_void          : t -> bool
     val is_ref           : t -> bool
     val refinements_of_t : t -> R.t list
+    val recref_of_t      : t -> recref
     val top              : t
   end
 
@@ -166,7 +170,8 @@ module type S = sig
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit
-    val indices       : t -> Index.t list 
+    val indices       : t -> Index.t list
+    val fields        : t -> Field.t list
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 

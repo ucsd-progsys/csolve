@@ -101,19 +101,47 @@ let refctype_of_reft_ctype r = function
   | Ct.Ref (l,o,_) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)), None)
   | Ct.Top (o)     -> Ct.Top (o, r) 
 
-let refctype_of_ctype f = function
-  | Ct.Int (i, x) as t ->
-      let r = C.make_reft FA.vv_int So.t_int (f t) in
-      Ct.Int (i, (x, r)) 
+let refctype_of_reft_recref_ctype r rr ct =
+  match refctype_of_reft_ctype r ct with
+    | Ct.Ref (l, r, _) -> Ct.Ref (l, r, rr)
+    | t                -> t
+
+let reft_of_ctype f t =
+  let so = sort_of_prectype t in
+  let vv = Sy.value_variable so in
+    C.make_reft vv so (f t)
+
+let reft_of_field f fld =
+  let t    = Ct.I.Field.type_of fld in
+  let ix   = Ct.index_of_ctype t in
+  let reft = if Ct.I.Field.is_final fld then reft_of_ctype f t else reft_of_ctype (fun _ -> []) t in
+    (ix, reft)
+
+let recref_of_location stoo l f = match stoo with
+  | None     -> None
+  | Some sto ->
+      Some begin
+        l |> Misc.flip Ct.I.Store.find sto
+          |> Ct.I.LDesc.fields
+          |> List.map (reft_of_field f)
+      end
+
+let refctype_of_ctype stoo f = function
+  | Ct.Int _ as t ->
+      refctype_of_reft_ctype (reft_of_ctype f t) t
+  | Ct.Top (x) ->
+      Ct.Top (x, Ct.reft_of_top)
   | Ct.Ref (l, x, _) as t ->
+      let rr = recref_of_location stoo l f in
       let so = FA.so_ref l in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
-      Ct.Ref (l, (x, r), None)
-  | Ct.Top (x) -> 
-      Ct.Top (x, Ct.reft_of_top)
+      let rt = Ct.Ref (l, (x, r), rr) in
+      let _  = Pretty.printf "FRESHED REF %a\n\n" RCt.CType.d_ctype rt in
+      rt
 
-let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))
+(* pmr: Has it been finalized by now? I certainly hope so. *)
+let refcfun_of_cfun cf = It.CFun.map (refctype_of_ctype (Some cf.Ct.sto_out) (fun _ -> [])) cf
 
 
 let is_base = function
@@ -288,12 +316,12 @@ let ra_bbegin ct =
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
 
-let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
-let t_true          = fun ct -> refctype_of_ctype ra_true ct
-let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
-let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
+let t_fresh         = fun stoo ct -> refctype_of_ctype stoo ra_fresh ct
+let t_true          = fun ct      -> refctype_of_ctype None ra_true ct
+let t_equal         = fun ct v    -> refctype_of_ctype None (ra_equal v) ct
+let t_skolem        = fun ct      -> refctype_of_ctype None ra_skolem ct
 
-let t_conv_refctype = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
+let t_conv_refctype = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype None f
 let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
@@ -354,14 +382,17 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       []
 
 
-let t_exp cenv ct e =
+let t_exp ((_, vnv, _) as cenv) ct e =
   let so = sort_of_prectype ct in
   let vv = Sy.value_variable so in
   let p  = CI.reft_of_cilexp vv e in
 (* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
   let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
   let r  = C.make_reft vv so rs in
-  refctype_of_reft_ctype r ct
+    if Ct.I.CType.is_ref ct then
+      refctype_of_reft_recref_ctype r (CI.recref_of_cilexp vnv ct e) ct
+    else
+      refctype_of_reft_ctype r ct
 
 let ptrs_of_exp e = 
   let xm = ref VM.empty in
@@ -419,10 +450,10 @@ let refctype_subs f nzs =
 (* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun f st -> st |> RCt.Store.map_ct t_fresh >> annot_sto f 
+let refstore_fresh = fun f st -> st |> RCt.Store.map_ct (t_fresh (Some st))  >> annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
 
-let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
+let t_scalar_zero = refctype_of_ctype None ra_bbegin Ct.scalar_ctype
 
 (*
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)

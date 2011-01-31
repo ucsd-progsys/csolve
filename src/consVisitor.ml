@@ -225,7 +225,7 @@ let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   | Some ((Var v), NoOffset) ->
       let rct = rename_refctype lsubs subs cr in
         if FI.may_contain_deref rct then
-          let frct   = rct |> Ct.ctype_of_refctype |> FI.t_fresh in
+          let frct   = rct |> Ct.ctype_of_refctype |> FI.t_fresh (Some (Ct.store_of_refstore sto)) in
           let cf     = CF.get_alocmap me in
           let cs, ds = FI.make_cs cf env grd rct frct None tag loc in
           let ws     = FI.make_wfs cf env sto frct tag in
@@ -317,7 +317,7 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
 
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
 (*  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in
-*)  let cr'    = FI.t_fresh Ct.scalar_ctype in
+*)  let cr'    = FI.t_fresh None Ct.scalar_ctype in
   let cs, ds = FI.make_cs (CF.get_alocmap me) env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
 
