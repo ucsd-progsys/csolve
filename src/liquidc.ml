@@ -37,6 +37,8 @@ module FI  = FixInterface
 module Co  = Constants
 module Sp  = Ctypes.RefCTypes.Spec
 module RCt = Ctypes.RefCTypes
+module U   = Unix
+module S   = Sys
 
 open Misc.Ops
 open Pretty
@@ -257,6 +259,17 @@ let rec processOneFile (cil: Cil.file) =
       E.s (E.error "Error while processing file; see above for details.");
 
   end
+
+let setTimeout () =
+  if !Constants.timeout > 0 then
+    let pid = U.fork () in
+    if pid != 0 then
+      let kill = fun _ -> U.kill pid 9; exit 3 in
+      let _    = S.set_signal S.sigalrm (S.Signal_handle kill) in
+      let _    = U.alarm 1 in
+        match snd <| U.wait () with
+          | U.WEXITED n -> exit n
+          | _           -> exit 3
         
 (***** MAIN *****)  
 let theMain () =
@@ -300,6 +313,7 @@ let theMain () =
     (* parse the command-line arguments *)
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
     if !Constants.do_nothing then exit 0;
+    setTimeout ();
     Cil.initCIL ();
     Cil.useLogicalOperators := true;
 
