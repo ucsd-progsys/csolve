@@ -20,7 +20,8 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \
        -cflags -I,$(Z3HOME)/ocaml \
        -cflags -I,$(OCAMLGRAPHHOME) \
-       -cflags -g
+       -cflags -g \
+			 -cflags -thread
 
 BIN=liquidc.native
 
@@ -31,7 +32,7 @@ all:
 	ln -sf ../external/fixpoint
 	for t in $(TARGETS); \
 	 do \
-	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) $(CIL) $(Z3) $(BIN) || exit 1; \
+	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(BIN) || exit 1; \
 	 done
 
 clean:
