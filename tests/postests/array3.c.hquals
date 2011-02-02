@@ -1,0 +1,2 @@
+qualif POS(v:ptr) : v >= 0
+qualif PLUS(v:ptr) : v = (~a + (4 * ~b))

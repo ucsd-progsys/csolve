@@ -1,0 +1,2 @@
+qualif POS(v:int): v = 0
+qualif POS(v:int): v = 1

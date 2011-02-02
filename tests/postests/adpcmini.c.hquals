@@ -1,0 +1,15 @@
+qualif A(v:int) : v = 0
+qualif A(v:int) : v = 1
+qualif A(v:int) : v <= ~a
+qualif A(v:int) : 0 <= v
+qualif A(v:int) : v <= 1
+qualif A(v:int) : (2 * v) = (~a + ~b)
+qualif A(v:int) : (2 * v) = (~a + ~b + 1)
+qualif A(v:int) : (2 * v) = (~a + 1000 - ~b)
+qualif A(v:int) : (2 * v) = (~a + 1000 - (~b - 1))
+qualif A(v:int) : (2 * v) = (@b + @bou - @i)
+qualif A(v:int) : (2 * v) = (@b + @bou - (@i - 1))
+qualif A(v:int) : 1 = 0
+
+//qualif A(v:int) : (2 * v) = (~a + ~c - ~b)
+//qualif A(v:int) : (2 * v) = (~a + ~c - (~b - 1))

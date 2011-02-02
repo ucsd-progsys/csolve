@@ -1,0 +1,2 @@
+qualif Len1(v:ptr)      : (BLOCK_BEGIN([v]) + 1024) = BLOCK_END([v])
+qualif Len2(v:ptr)      : (BLOCK_BEGIN([v]) + 1028) = BLOCK_END([v])

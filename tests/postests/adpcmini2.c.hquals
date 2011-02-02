@@ -1,0 +1,14 @@
+qualif FALSE(v:int) : 1 = 0
+qualif A(v:int) : 0 <= v
+qualif A(v:int) : v <= 1
+qualif A(v:int) : v <= ~a
+qualif A(v:int) : (v - @inp0) = @nsa - @len
+qualif A(v:int) : (2 * (v - @outp0)) = ((@buff - 1) + @nsa - @len)
+qualif A(v:int) : (2 * (v - @outp0)) = ((@buff - 1) + @nsa - (@len - 1))
+qualif A(v:int) : (2 * (v - @outp0)) = ((0 - @buff) + @nsa - (@len - 1))
+
+//qualif A(v:int) : (2 * (v - @outp0)) = ((0-@buff) + @nsa - @len)
+//qualif A(v:int) : (2 * (v - @outp0)) = ((2-@buff) + @nsa - @len)
+//qualif A(v:int) : (2 * (v - @outp0)) = ((2-@buff) + @nsa - (@len - 1))
+//qualif A(v:int) : (2 * (v - @outp0)) = (@buff + @nsa - @len)
+//qualif A(v:int) : (2 * (v - @outp0)) = (@buff + @nsa - (@len - 1))
