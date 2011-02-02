@@ -313,7 +313,10 @@ let theMain () =
     (* parse the command-line arguments *)
     Arg.current := 0;
     let envopts = try "LCCFLAGS" |> S.getenv |> Misc.chop_star " \\|=" |> Array.of_list with Not_found -> [| |] in
-      Arg.parse_argv (Array.concat [Sys.argv; envopts]) (Arg.align argDescr) Ciloptions.recordFile usageMsg;
+      begin
+        try Arg.parse_argv (Array.concat [Sys.argv; envopts]) (Arg.align argDescr) Ciloptions.recordFile usageMsg
+        with Arg.Help usage -> Format.printf "%s" usage; exit 0
+      end;
     if !Constants.do_nothing then exit 0;
     setTimeout ();
     Cil.initCIL ();
