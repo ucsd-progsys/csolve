@@ -154,9 +154,9 @@ let index_of_pred v (cr, p) =
   ; indexo_of_preds_iseq vv 
   ; indexo_of_preds_lowerbound vv] 
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
-  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
+(*  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
-(* *)
+ *)
 
 
 let pred_of_bcc_raw p_lb p_ub p_pd bcc =

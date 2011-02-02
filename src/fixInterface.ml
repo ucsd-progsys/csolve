@@ -386,7 +386,7 @@ let t_exp_scalar v e =
   let p  = CI.reft_of_cilexp vv e in
   let rs = [C.Conc p] in
   let rb = CM.is_reference v.Cil.vtype in 
-  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  
+(*  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  *)
   let rs = if rb then (rs ++ t_exp_scalar_ptr vv e) else rs in
   let r  = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
