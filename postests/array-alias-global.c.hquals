@@ -1,3 +1,0 @@
-
-qualif Len1(v:ptr)      : (BLOCK_BEGIN([v]) + 40) = BLOCK_END([v])
-qualif LB(v:int)	: v < 10
