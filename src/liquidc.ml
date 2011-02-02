@@ -266,7 +266,7 @@ let setTimeout () =
     if pid != 0 then
       let kill = fun _ -> U.kill pid 9; exit 3 in
       let _    = S.set_signal S.sigalrm (S.Signal_handle kill) in
-      let _    = U.alarm 1 in
+      let _    = U.alarm !Constants.timeout in
         match snd <| U.wait () with
           | U.WEXITED n -> exit n
           | _           -> exit 3
