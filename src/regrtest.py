@@ -19,7 +19,7 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import time, subprocess, optparse, sys, socket
+import time, subprocess, optparse, sys, socket, os
 sys.path.append("../")
 import external.misc.rtest as rtest
 
@@ -58,15 +58,13 @@ def getfileargs(file):
 class Config (rtest.TestConfig):
   def __init__ (self, dargs, testdirs, logfile, threadcount):
     rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
-    if dargs != "":
-      self.dargs = dargs.split(" ")
-    else:
-      self.dargs = list()
+    self.dargs = dargs
 
   def run_test (self, file):
+    os.environ['LCCFLAGS'] = self.dargs
     if file.endswith(".c"):
       fargs = getfileargs(file)
-      return solve_quals(file, True, False, True, fargs + self.dargs)
+      return solve_quals(file, True, False, True, fargs)
     elif file.endswith(".sh"):
       return run_script(file, True)
 
