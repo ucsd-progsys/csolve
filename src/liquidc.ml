@@ -311,7 +311,9 @@ let theMain () =
     Stats.reset Stats.HardwareIfAvail;
 
     (* parse the command-line arguments *)
-    Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
+    Arg.current := 0;
+    let envopts = try "LCCFLAGS" |> S.getenv |> Misc.chop_star " \\|=" |> Array.of_list with Not_found -> [| |] in
+      Arg.parse_argv (Array.concat [Sys.argv; envopts]) (Arg.align argDescr) Ciloptions.recordFile usageMsg;
     if !Constants.do_nothing then exit 0;
     setTimeout ();
     Cil.initCIL ();
