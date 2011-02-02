@@ -1,0 +1,9 @@
+qualif POS(v:int): v >= 0
+qualif GT(v:int): v >= ~a
+qualif GT(v:int): v < ~a
+
+qualif EQCENT(v:int): v = 100
+qualif EQCENT(v:int): v < 100
+qualif FALSE(v:int): 0 = 1
+
+

@@ -1,0 +1,14 @@
+qualif A(v:int) : v = 0
+qualif A(v:int) : v = 1
+qualif A(v:int) : v >= 0
+qualif A(v:int) : v < 2
+
+qualif A(v:int) : || [v = 0; v = 1]
+
+qualif A(v:int) : 1 = 0
+
+qualif A(v:int) : v = ~a
+qualif EQZ(v:int): v = 0
+qualif ZOO(v:int): ||[v = 0; v = 1]
+qualif EQ(v:int): v = ~a 
+qualif FALSE(v:int): 0 = 1

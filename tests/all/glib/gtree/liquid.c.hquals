@@ -1,0 +1,1 @@
+qualif NULLorCHILD(v:ptr): (~A != 0) -> && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]

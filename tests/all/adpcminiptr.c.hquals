@@ -1,0 +1,25 @@
+qualif FALSE(v:int) : 1 = 0
+qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
+qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
+qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([v])
+qualif ATBEGIN(v:int) : v = BLOCK_BEGIN([~a])
+qualif A(v:int) : v <= ~a
+qualif A(v:int) : ~a <= v 
+qualif A(v:int) : v < ~a
+
+qualif A(v:int) : 0 <= v
+qualif A(v:int) : v <= 1
+qualif A(v:int) : (v - @inp) = (@nsa - @len)
+
+
+//qualif A(v:int) : (2 * (v - @outp)) = (([+,-]*@buf [+,-]*1) [+,-]*@nsa [+,-]*@len [+,-]*1)
+
+qualif A(v:int) : (2 * (v - @outp)) = ((@buf - 1) + @nsa - @len)
+qualif A(v:int) : (2 * (v - @outp)) = ((@buf - 1) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @outp)) = ((0 - @buf) + @nsa - (@len-1))
+
+qualif A(v:int) : (v - @outp) = (@nsa - @len)
+qualif A(v:int) : (2 * (v - @inp)) = ((@buf) + @nsa - @len)
+qualif A(v:int) : (2 * (v - @inp)) = ((@buf) + @nsa - (@len-1))
+qualif A(v:int) : (2 * (v - @inp)) = ((1 - @buf) + @nsa - (@len-1))
+
