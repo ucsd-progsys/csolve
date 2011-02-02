@@ -95,8 +95,6 @@ let p_v_minus_x_minus_c_eqz_mod_k =
                    , A.Mod, A.eVar period_var)
            ,A.zero)
 
-
-
 let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
 
 (***************************************************************************)
@@ -262,6 +260,7 @@ let preds_of_scalar_consts cs =
 let dump_quals_to_file fname qs = 
   let oc  = open_out fname in
   let ppf = Format.formatter_of_out_channel oc in
+  let _   = Printf.printf "[SCALAR] Auto-generated %n quals\n" (List.length qs) in
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
@@ -300,9 +299,11 @@ let scalar_consts_of_code cil =
 
 let increments_of_code cil =
   let xr = ref [] in
-  let _  = CM.iterExprs cil (function Cil.BinOp (Cil.PlusPI, e, Cil.Const c, _) -> xr := (e, c) :: !xr; false | _ -> true) in
+  let _  = CM.iterExprs cil begin function 
+             | Cil.BinOp (Cil.PlusPI, e, Cil.Const c, _) -> xr := (e, c) :: !xr; false 
+             | _ -> true end in
   !xr 
-  |> Misc.map_partial begin fun (e,c) -> 
+  |> Misc.map_partial begin fun (e, c) -> 
        match c |> CI.expr_of_cilcon |> A.into_of_expr with 
        | Some i -> Some (i * (CI.stride_of_cilexp e))
        | _      -> None
@@ -310,11 +311,16 @@ let increments_of_code cil =
   |> Misc.sort_and_compact 
   |> List.map (fun i -> Offset i)
 
+let scalar_consts_of_file cil = 
+  [ scalar_consts_of_typedecs
+  (* ; scalar_consts_of_code
+     ; increments_of_code *) ]
+  |> Misc.flap (fun f -> f cil) 
+
 (* API *)
 let scalar_quals_of_file cil =
-  (  scalar_consts_of_typedecs cil 
-  ++ scalar_consts_of_code cil 
-  ++ increments_of_code cil    )
+  cil
+  |> scalar_consts_of_file
   |> Misc.sort_and_compact  
   |> preds_of_scalar_consts 
   |> Misc.flap quals_of_pred
