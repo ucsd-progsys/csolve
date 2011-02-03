@@ -219,10 +219,12 @@ let reft_of_cilexp vv e =
   | Cil.Const (Cil.CStr str) ->
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
       A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
-
+(*
   | Cil.CastE (ct, e') when is_int_to_uint_cast (ct, e') ->
       (* {0 <= v} *) 
+      let _ = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in 
       A.pAtom (A.zero, A.Le, A.eVar vv)
+*)
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)

@@ -1,9 +1,9 @@
 #In your .vimrc, add the following:
-#map <F4> :python printLiquidType("normal")<CR>
-#vmap <F4> :python printLiquidType("visual")<CR>
+#map <C-s> :python printLiquidType("normal")<CR>
+#vmap <C-s> :python printLiquidType("visual")<CR>
 #pyfile path/to/csolve.py
 #to "reparse", do
-#:python annot.parseLiquidType()
+#:python parseLiquidType()
 
 
 #python << ENDPYTHON
@@ -19,43 +19,43 @@ class AnnExc(Exception):
 
 class Cannotations:
   def __init__(self):
-    self.__vmap_filename = None # last .vmap parsed file
-    self.__filename = None 	# last .c parsed file 
-    self.__timestamp = None     # last parse action timestamp
-    self.__annot = {}
+    self.vmap_filename = None # last .vmap parsed file
+    self.filename = None 	    # last .c parsed file 
+    self.timestamp = None     # last parse action timestamp
+    self.annot = {}
  
   def parse(self, filename):
-    self.__filename      = filename 
-    self.__vmap_filename = filename + ".vmap" 
-    self.__timestamp     = int(time.time())
+    self.filename      = filename 
+    self.vmap_filename = filename + ".vmap" 
+    self.timestamp     = int(time.time())
+    vim.command("set tags=" + filename + ".tags")
     try:
-      f = open(self.__vmap_filename)
+      f = open(self.vmap_filename)
       for l in f:
 	es  = [x.strip() for x in l.split("\t")]
 	key = (str(es[0]), int(es[2]))
 	val = es[3]
-	self.__annot[key] = val
+	self.annot[key] = val
       f.close()
     except:
       raise 
       #raise AnnExc("Csolve: Error during __parse") 
  
   def print_keys(self):
-    for k in self.__annot:
-      print "key = ", k, ", data = ", self.__annot[k]
+    for k in self.annot:
+      print "key = ", k, ", data = ", self.annot[k]
     return
  
   def get_ssaname(self, varname, line):
     if vim.current.buffer.name == None:
       raise AnnExc("Empty buffer") 
-    if vim.current.buffer.name != self.__filename or  \
-      os.stat(self.__filename).st_mtime > self.__timestamp:
-	filename = self.__filename #vim.current.buffer.name
+    if vim.current.buffer.name != self.filename or  \
+      os.stat(self.filename).st_mtime > self.timestamp:
+	filename = self.filename #vim.current.buffer.name
 	self.parse(filename)
-	vim.command("set tags=" + filename + ".tags")
     ssaname = varname
     try:
-      ssaname = self.__annot[(str(varname), int(line))]
+      ssaname = self.annot[(str(varname), int(line))]
     except:
       pass
     return ssaname
@@ -63,6 +63,8 @@ class Cannotations:
   def get_type(self, varname, line):
     ssaname = self.get_ssaname(varname, line)
     return vim.command("tag " + ssaname) 
+
+########################################################
 
 annot    = Cannotations()	#global annotation object
 alphanum = re.compile("^[\w.]$")
@@ -86,6 +88,7 @@ def printLiquidType(mode):
   else:
     varname = getVarnameNormal(vim.current.buffer, vim.current.window.cursor)
   try:
+	#print "Annotation for ", varname, "at", vim.current.window.cursor[0], "is foo"
     annot.get_type(varname, vim.current.window.cursor[0])
   except:
     print "No annotation for ", varname

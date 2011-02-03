@@ -188,3 +188,33 @@ the following constructs:
 * Disjunctions p || q where p and q are predicates
 
 * Implications p -> q where p and q are predicates
+
+
+
+VIM Liquid Mode
+---------------
+
+There is a rudimentary vim mode for viewing the output of a csolved-file.
+
+1. Add the following to your .vimrc
+
+pyfile /home/jhala/research/liquidc/utils/csolve.py
+map <C-s>  :python printLiquidType("normal")<CR>
+vmap <C-s> :python printLiquidType("visual")<CR>
+map <C-p>  :python parseLiquidType()<CR>
+
+2. Suppose you just ran ./lcc path/to/foo.c
+
+   cd /path/to/foo.c
+   vim foo.c
+
+3. Hit Ctrl-p to parse the annotations file
+
+4. Hit Ctrl-s when your mouse is above identifier [foo]
+   to see the refinements for [foo]. 
+   
+5. Hit Ctrl-] (tag-style) to jump into a definition 
+   (once you are in the types-window)
+
+6. Hit Ctrl-t (tag-style) to pop back from a definition.
+
