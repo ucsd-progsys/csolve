@@ -26,7 +26,7 @@ import external.misc.rtest as rtest
 solve      = "./lcc -c".split()
 null       = open("/dev/null", "w")
 now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
-logfile    = "../testlogs/regrtest_results_%s_%s" % (socket.gethostname (), now)
+logfile    = "../tests/logs/regrtest_results_%s_%s" % (socket.gethostname (), now)
 argcomment = "//! run with "
 
 def logged_sys_call(args, out=None, err=None):
@@ -81,7 +81,7 @@ class Config (rtest.TestConfig):
 #testdirs  = [("../postests", 0), ("../negtests", [1, 2])]
 
 #FOR --scalar
-testdirs  = [("../minitests/postests", 0), ("../minitests/negtests", [1, 2])]
+testdirs  = [("../tests/minitests/postests", 0), ("../tests/minitests/negtests", [1, 2])]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")

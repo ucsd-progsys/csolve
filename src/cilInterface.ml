@@ -204,13 +204,19 @@ and expr_of_cilexp e =
 
 (*****************************************************************************************************)
 
-(** [reft_of_cilexp vv e] == a refinement predicate of the form {v = e} or an overapproximation thereof 
+(** [reft_of_cilexp vv e] == a refinement predicate of the form {v = e} 
+ *  or an overapproximation thereof 
  *  assumes that "e" is a-normalized *)
-let rec reft_of_cilexp vv e =
+
+let reft_of_cilexp vv e =
   match e with
   | Cil.Const (Cil.CStr str) ->
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
       A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
+
+  | Cil.CastE (Cil.TInt (ik, _), _) when not (Cil.isSigned ik) ->
+      (* {0 <= v} *) 
+      A.pAtom (A.zero, A.Le, A.eVar vv)
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
@@ -282,7 +288,31 @@ let rec reft_of_cilexp vv e =
       A.pTrue
 
   | e -> 
-      Errormsg.s <| Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e;
+      Errormsg.s <| Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e 
+
+let catch_convert_exp s e = 
+  Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "%s %a \n" s Cil.d_exp e)
 
 
+(** [streft_of_cilexp vv e] == returns a (ap, gp) option where
+ *  ap is an extra assumption that must hold for e to execute safely,
+ *  gp is an extra guarantee about the result of evaluating e. 
+ *  Assumes that "e" is a-normalized *)
 
+let assume_guarantee_reft_of_cilexp vv = function
+  | Cil.BinOp (Cil.PlusPI, e1, e2, _)
+  | Cil.BinOp (Cil.IndexPI, e1, e2, _) ->
+      let e1' = catch_convert_exp "ag_reft1" e1 in
+      let e2' = catch_convert_exp "ag_reft2" e2 in
+      let ap  = A.pAtom (e2', A.Ge, A.zero) in  
+      let gp  = A.pAtom (A.eVar vv, A.Ge, e1') in 
+      Some (ap, gp)
+  | _ -> None
+  
+
+(* API *)
+let reft_of_cilexp vv e = 
+  let gp = reft_of_cilexp vv e in
+  match assume_guarantee_reft_of_cilexp vv e with
+  | None           -> None, gp
+  | Some (ap, gp') -> Some ap, A.pAnd [gp; gp']

@@ -30,4 +30,4 @@ val expr_of_cilcon      : Cil.constant -> Ast.expr
 val stride_of_cilexp    : Cil.exp -> int 
 val expr_of_cilexp      : Cil.exp -> Ast.expr
 val pred_of_cilexp      : Cil.exp -> Ast.pred
-val reft_of_cilexp      : Ast.Symbol.t -> Cil.exp -> Ast.pred
+val reft_of_cilexp      : Ast.Symbol.t -> Cil.exp -> (Ast.pred option) * Ast.pred 

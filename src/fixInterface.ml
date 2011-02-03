@@ -362,12 +362,12 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
 
 
 let t_exp cenv ct e =
-  let so = sort_of_prectype ct in
-  let vv = Sy.value_variable so in
-  let p  = CI.reft_of_cilexp vv e in
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
 (* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
-  let rs = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
-  let r  = C.make_reft vv so rs in
+  let rs  = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
+  let r   = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
 let ptrs_of_exp e = 
@@ -380,15 +380,15 @@ let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
     |> (function [v] -> [C.Conc (mk_eq_uf FA.eApp_bbegin (A.eVar vv) (A.eVar (FA.name_of_varinfo v)))] | _ -> [])
 
 let t_exp_scalar v e =
-  let ct = Ct.scalar_ctype in
-  let so = sort_of_prectype ct in
-  let vv = Sy.value_variable so in
-  let p  = CI.reft_of_cilexp vv e in
-  let rs = [C.Conc p] in
-  let rb = CM.is_reference v.Cil.vtype in 
+  let ct  = Ct.scalar_ctype in
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
+  let rs  = [C.Conc p] in
+  let rb  = CM.is_reference v.Cil.vtype in 
 (*  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  *)
-  let rs = if rb then (rs ++ t_exp_scalar_ptr vv e) else rs in
-  let r  = C.make_reft vv so rs in
+  let rs  = if rb then (rs ++ t_exp_scalar_ptr vv e) else rs in
+  let r   = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
 let t_name (_,vnv,_) n = 

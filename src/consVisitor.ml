@@ -307,8 +307,8 @@ let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
-(*  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in
-*)  let cr'    = FI.t_fresh Ct.scalar_ctype in
+  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in
+  let cr'    = FI.t_fresh Ct.scalar_ctype in
   let cs, ds = FI.make_cs env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
 
@@ -317,25 +317,34 @@ let scalarcons_of_instr me i grd (j, env) instr =
   let loc = get_instrLoc instr in
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
+  (* SPECIAL CASING NULL ASSIGNMENTS -- UGH
+  | Set ((Var v, NoOffset), e, _) 
+    when CM.is_reference v.Cil.vtype && CM.is_null_expr e ->
+      (j+1, env), ([], [], [])
+  *)
+
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e && CM.is_local_expr e ->
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
-  (*| Set ((Var v, NoOffset),  Lval (Var vg, NoOffset), _) 
-    when (not v.Cil.vglob) (* && vg is global *) ->
-      FI.ce_find (FA.name_of_varinfo vg) env
-      |> scalarcons_of_binding me loc tag (j, env) grd j v
- *)
-  | Set ((Var v, NoOffset), _, _) | Call (Some (Var v, NoOffset), _, _, _) 
+  | Set ((Var v, NoOffset), _, _) 
     when CM.is_reference v.Cil.vtype ->
       FI.t_scalar_zero
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
      
-  | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), _, _) ->
-      env |> (FI.ce_find_fn fv.Cil.vname <+> Ct.ret_of_refcfun <+> Ct.ctype_of_refctype <+> FI.t_scalar) 
-          |> scalarcons_of_binding me loc tag (j, env) grd j v 
- 
+  | Call (Some (Var v, NoOffset), Lval ((Var fv), NoOffset), es, _) ->
+      let farg = Ct.args_of_refcfun <+> List.map (FA.name_of_string <.> fst) <+> Misc.flip List.combine es in
+      let fret = Ct.ret_of_refcfun  <+> FI.t_scalar_refctype in
+      env
+      |> FI.ce_find_fn fv.Cil.vname
+      |> (farg <*> fret)
+      |> Misc.uncurry FI.t_subs_exps 
+      >> E.log "SCALAR CALLASGN: v=%s  cr=%a \n" v.Cil.vname Ct.d_refctype 
+      |> scalarcons_of_binding me loc tag (j, env) grd j v 
+(* env  |> (FI.ce_find_fn fv.Cil.vname <+> Ct.ret_of_refcfun <+> Ct.ctype_of_refctype <+> FI.t_scalar)
+        |> scalarcons_of_binding me loc tag (j, env) grd j v *)
+
   | Set ((Var v, NoOffset), _, _) 
     when (not v.Cil.vglob)  ->
       let _   = Pretty.printf "SCALARSET: v=%s ptr=%b \n" 
