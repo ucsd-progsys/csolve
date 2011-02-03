@@ -445,6 +445,7 @@ module type S = sig
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> LDesc.t
+    val find_or_empty : Sloc.t -> t -> LDesc.t
     val find_index   : Sloc.t -> Index.t -> t -> Field.t list
     val fold         : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val close_under  : t -> Sloc.t list -> t
@@ -752,10 +753,13 @@ module Make (R: CTYPE_REFINEMENT) = struct
       SLM.mem s st
 
     let find l ps =
-      try SLM.find l ps with Not_found -> LDesc.empty
+      SLM.find l ps
+
+    let find_or_empty l ps =
+      try find l ps with Not_found -> LDesc.empty
 
     let find_index l i ps =
-      ps |> find l |> LDesc.find i |> List.map snd
+      ps |> find_or_empty l |> LDesc.find i |> List.map snd
 
     (* pmr: why is this not rename_prestore? *)
     let subs_addrs subs ps =

@@ -53,7 +53,7 @@ module Intraproc (X: Context) = struct
   (******************************************************************************)
 
   let find_stored_indices al i =
-    CT.Store.find al X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
+    CT.Store.find_or_empty al X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
 
   let locs_of_lval = function
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)

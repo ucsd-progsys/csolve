@@ -180,6 +180,7 @@ module type S = sig
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> LDesc.t
+    val find_or_empty : Sloc.t -> t -> LDesc.t
     val find_index   : Sloc.t -> Index.t -> t -> Field.t list
     val fold         : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val close_under  : t -> Sloc.t list -> t
