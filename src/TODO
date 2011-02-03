@@ -91,6 +91,8 @@ Q: Can we precompute a "qualifier implication graph" (Edges means Q1 => Q2)
 		aq = Abstract Qualifier (with template vars)
 		cq = Concrete Qualifier (with no template vars)
 
+
+
 		Minimization: Given 
 		(1) an aq-implication-DAG D
 		(2) a qualifier set Q = {(cq1,aq1),...,(cqn,aqn)} 
