@@ -219,12 +219,6 @@ let reft_of_cilexp vv e =
   | Cil.Const (Cil.CStr str) ->
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
       A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
-(*
-  | Cil.CastE (ct, e') when is_int_to_uint_cast (ct, e') ->
-      (* {0 <= v} *) 
-      let _ = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in 
-      A.pAtom (A.zero, A.Le, A.eVar vv)
-*)
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
@@ -312,9 +306,17 @@ let assume_guarantee_reft_of_cilexp vv = function
   | Cil.BinOp (Cil.IndexPI, e1, e2, _) ->
       let e1' = catch_convert_exp "ag_reft1" e1 in
       let e2' = catch_convert_exp "ag_reft2" e2 in
-      let ap  = A.pAtom (e2', A.Ge, A.zero) in  
-      let gp  = A.pAtom (A.eVar vv, A.Ge, e1') in 
+      let ap  = A.pAtom (A.zero, A.Le, e2') in  
+      let gp  = A.pAtom (e1',    A.Le, A.eVar vv) in 
       Some (ap, gp)
+  
+  | Cil.CastE (ct, e) when is_int_to_uint_cast (ct, e) ->
+      let _   = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in 
+      let e'  = catch_convert_exp "ag_reft3" e in
+      let ap  = A.pAtom (A.zero, A.Le, e') in
+      let gp  = A.pAtom (A.zero, A.Le, A.eVar vv) in
+      Some (ap, gp) 
+
   | _ -> None
   
 

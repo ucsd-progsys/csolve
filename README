@@ -203,10 +203,10 @@ map <C-s>  :python printLiquidType("normal")<CR>
 vmap <C-s> :python printLiquidType("visual")<CR>
 map <C-p>  :python parseLiquidType()<CR>
 
-2. Suppose you just ran ./lcc path/to/foo.c
+2. You must run lcc in the directory where the file foo.c is.
+   path/to/lcc foo.c
 
-   cd /path/to/foo.c
-   vim foo.c
+3. Now, in that directory, open foo.c (in Vim)
 
 3. Hit Ctrl-p to parse the annotations file
 

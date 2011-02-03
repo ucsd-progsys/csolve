@@ -18,15 +18,16 @@ int main(){
   int n,i,j,k;
   int res;
   int tmp;
+  int foo;
 
   n = nondetpos();
-  z = (int *) malloc(50 * sizeof(int));
-  //z = (int *) malloc(n * sizeof(int));
+  z = (int *) malloc(n * sizeof(int));
   
   x = z;
   int i = 0;
   
   for (; i < n; i++){  
+	foo = i;
     validptr(x);
     tmp = nondet();
     *x  = tmp;
@@ -40,5 +41,6 @@ int main(){
     validptr(z+k);
     res = sum(z+j, z+k);
   }
+
   return 0;
 }
