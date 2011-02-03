@@ -204,8 +204,14 @@ and expr_of_cilexp e =
 
 (*****************************************************************************************************)
 
-(** [reft_of_cilexp vv e] == a refinement predicate of the form {v = e} 
- *  or an overapproximation thereof 
+let is_int_to_uint_cast (ct, e) = 
+  match Cil.unrollType ct, Cil.unrollType <| Cil.typeOf e with
+  | (Cil.TInt (ik, _), Cil.TInt (ik', _)) 
+    when (not (Cil.isSigned ik) && (Cil.isSigned ik')) -> true
+  | _ -> false
+
+(** [reft_of_cilexp vv e] == a refinement predicate of the 
+ *  form {v = e} or an overapproximation thereof 
  *  assumes that "e" is a-normalized *)
 
 let reft_of_cilexp vv e =
@@ -214,7 +220,7 @@ let reft_of_cilexp vv e =
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
       A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
 
-  | Cil.CastE (Cil.TInt (ik, _), _) when not (Cil.isSigned ik) ->
+  | Cil.CastE (ct, e') when is_int_to_uint_cast (ct, e') ->
       (* {0 <= v} *) 
       A.pAtom (A.zero, A.Le, A.eVar vv)
 
