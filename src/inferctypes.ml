@@ -156,7 +156,7 @@ let unify_ctypes (ct1: ctype) (ct2: ctype) (sub: S.Subst.t): S.Subst.t =
     | _                                        -> raise (Unify (ct1, ct2))
 
 let store_add loc (l: Sloc.t) (i: Index.t) (ctv: ctype) (sto: store): store =
-  SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find l sto)) sto
+  SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find_or_empty l sto)) sto
 
 let unify_fields fld1 fld2 sub =
   unify_ctypes (Field.type_of fld1) (Field.type_of fld2) sub
@@ -165,13 +165,13 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
   try match i with
     | Index.IBot   -> ([], sto)
     | Index.IInt n ->
-      begin match LDesc.find i (Store.find s sto) with
-        | []         -> ([], store_add loc s i ct sto)
-        | [(_, fld)] -> (unify_ctypes ct (Field.type_of fld) [], sto)
-        | _          -> assert false
+      begin match Store.find_index s i sto with
+        | []    -> ([], store_add loc s i ct sto)
+        | [fld] -> (unify_ctypes ct (Field.type_of fld) [], sto)
+        | _     -> assert false
       end
     | Index.ICClass _ ->
-      let ld   = Store.find s sto in
+      let ld   = Store.find_or_empty s sto in
       let flds = LDesc.find i ld in
       let sub  = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) [] flds in
         if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
@@ -184,8 +184,8 @@ let refine_inloc (loc: C.location) (s: S.t) (i: Index.t) (ct: ctype) (sto: store
           let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
             (sub, SLM.add s ld sto)
   with e ->
-    C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a" 
-      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find s sto) |> ignore;
+    C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a"
+      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find_or_empty s sto) |> ignore;
     raise e
 
 let unify_slocs: S.t list -> S.Subst.t = function

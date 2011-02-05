@@ -142,7 +142,6 @@ class castStripVisitor = object(self)
       | _            -> DoChildren
 end
 
-(* API *)
 let stripcasts_of_lval = visitCilLval (new castStripVisitor)
 let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
 
@@ -286,6 +285,12 @@ let is_local_expr e =
   let b = ref true in
   let _ = iterExprVars e (fun v -> b := !b && not (v.Cil.vglob)) in
   !b
+
+(* API *)
+let is_null_expr = function
+  | CastE (TPtr (_, _), (Const (CInt64 (i, _, _))))
+    when i = Int64.zero -> true
+  | _ -> false
 
 (******************************************************************************)
 (********************** Iterate over Expressions ******************************)

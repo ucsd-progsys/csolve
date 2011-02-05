@@ -1,0 +1,44 @@
+loc A6 |-> 0[4 < 64]: int(4, 0{1})
+
+loc A7 |-> 0[4 < 356]: int(4, 0{1})
+
+stepsizeTable :: ref(A7, 0[4 < 356])
+
+indexTable :: ref(A6, 0[4 < 64])
+
+main :: forall    []
+        arg       ()
+        ret       int(4, 0{1})
+        store_in  []
+        store_out []
+
+adpcm_decoder :: forall    [A13;A12;A11]
+                 arg       (indata : ref(A11, 0[1]),
+                            outdata : ref(A12, 0[2]),
+                            nsample : int(4, 0{1}),
+                            state : ref(A13, 0))
+                 ret       int(0, 0{1})
+                 store_in  [A11 |-> 0[1]: int(1, 0{1});
+                            A12 |-> 0[2]: int(2, 0{1});
+                            A13 |-> 0: int(2, 0{1}),
+                                    2: int(1, 0{1})]
+                 store_out [A11 |-> 0[1]: int(1, 0{1});
+                            A12 |-> 0[2]: int(2, 0{1});
+                            A13 |-> 0: int(2, 0{1}),
+                                    2: int(1, 0{1})]
+
+adpcm_coder :: forall    [A10;A9;A8]
+               arg       (indata : ref(A8, 0[2]),
+                          outdata : ref(A9, 0[1]),
+                          nsample : int(4, 0{1}),
+                          state : ref(A10, 0))
+               ret       int(0, 0{1})
+               store_in  [A8 |-> 0[2]: int(2, 0{1});
+                          A9 |-> 0[1]: int(1, 0{1});
+                          A10 |-> 0: int(2, 0{1}),
+                                  2: int(1, 0{1})]
+               store_out [A8 |-> 0[2]: int(2, 0{1});
+                          A9 |-> 0[1]: int(1, 0{1});
+                          A10 |-> 0: int(2, 0{1}),
+                                  2: int(1, 0{1})]
+

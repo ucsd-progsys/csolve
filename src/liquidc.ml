@@ -266,7 +266,7 @@ let setTimeout () =
     if pid != 0 then
       let kill = fun _ -> U.kill pid 9; exit 3 in
       let _    = S.set_signal S.sigalrm (S.Signal_handle kill) in
-      let _    = U.alarm 1 in
+      let _    = U.alarm !Constants.timeout in
         match snd <| U.wait () with
           | U.WEXITED n -> exit n
           | _           -> exit 3
@@ -311,7 +311,12 @@ let theMain () =
     Stats.reset Stats.HardwareIfAvail;
 
     (* parse the command-line arguments *)
-    Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
+    Arg.current := 0;
+    let envopts = try "LCCFLAGS" |> S.getenv |> Misc.chop_star " \\|=" |> Array.of_list with Not_found -> [| |] in
+      begin
+        try Arg.parse_argv (Array.concat [Sys.argv; envopts]) (Arg.align argDescr) Ciloptions.recordFile usageMsg
+        with Arg.Help usage -> Format.printf "%s" usage; exit 0
+      end;
     if !Constants.do_nothing then exit 0;
     setTimeout ();
     Cil.initCIL ();
