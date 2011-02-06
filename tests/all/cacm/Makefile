@@ -1,10 +1,10 @@
 
-CC=../../src/lcc --merge
+CC=../../../src/lcc --merge
 
 ifdef DEBUG
 FLAGS=-g $(EXTRACFLAGS)
 else
-FLAGS=$(EXTRACFLAGS) -I../../include/ -U __USE_EXTERN_INLINES
+FLAGS=$(EXTRACFLAGS) -I../../../include/ -U __USE_EXTERN_INLINES
 endif
 
 build: encode$(EXE) decode$(EXE)
