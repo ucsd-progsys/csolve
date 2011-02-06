@@ -1,38 +1,5 @@
 HEREHEREHERE
 ------------
-
-../src/lcptions thrown on 28 tests: ../postests/allocator/allocator.c,
-../postests/array-alias-global.c, ../postests/array-finite-global.c,
-../postests/array-finite.c, ../postests/array-static0-local.c,
-../postests/array-static0.c, ../postests/arraybug.c, ../postests/cacm.sh,
-../postests/depfield.c, ../postests/forward-sorted-list.c,
-../postests/full_adpcm.sh, ../postests/glib-2.24.0/int-glist.c,
-../postests/glib-2.24.0/int-gslist.c, ../postests/globloc.c,
-../postests/ll-simple.c, ../postests/ll0.c, ../postests/ll1.c,
-../postests/ll2.c, ../postests/ll3.c, ../postests/ll5.c,
-../postests/make-sorted-list.c, ../postests/mst-scratch.c,
-../postests/passglobal.c, ../postests/power.c,
-../postests/sorted-two-list.c, ../postests/strcpy.c,
-../postests/stringexample.c, ../postests/test01p.c
-i
-scalar globloc.c 
-
-GENERAL CRASH
--------------
-../postests/globloc.c, 
-../postests/globset.c, 
-../postests/passglobal.c
-../postests/array-alias-global.c, 
-../postests/array-finite-global.c, 
-
-../postests/ks.c
-../postests/pmapdistilled.c
-../postests/adpcm.c, 
-../postests/allocator/allocator.c, 
-../postests/mst-scratch.c
-
-Need to give inferctypes index for global variables.
-
 Function Pointers
 
 (a) fun-ptrs:
