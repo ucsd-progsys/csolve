@@ -253,9 +253,11 @@ let cloc_of_position theta al (j,k,i) =
 *)
 
 let sloc_of_expr ctm e =
+  try
   match Ctypes.I.ExpMap.find e ctm with
   | Ctypes.Ref (s, _) -> Some s
   | _                 -> None
+  with Not_found -> Pretty.printf "Could not find %a\n\n" Cil.d_exp e; assert false
 
 let loc_of_var_expr ctm theta =
   let rec loc_rec = function
