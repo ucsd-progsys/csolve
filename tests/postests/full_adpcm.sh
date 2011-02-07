@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd ../tests/adpcm/src/
-make clean
+cd ../tests/all/adpcm/src/ && \
+make clean && \
 make

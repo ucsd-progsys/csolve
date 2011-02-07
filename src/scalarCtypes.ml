@@ -47,7 +47,12 @@ type scalar_const =
   | Offset      of int 
   | UpperBound  of int 
   | Period      of int 
-  | Increment   of int
+
+let is_valid_scalar_const = function
+  | UpperBound i 
+  | Offset i     when i >= 0 -> true
+  | Period i     when i >= 2 -> true
+  | _                        -> false
 
 (***************************************************************************)
 (******************** Meta Qualifiers for Scalar Invariants ****************)
@@ -264,31 +269,33 @@ let dump_quals_to_file fname qs =
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
-let scalar_consts_of_typedecs_stride tdecs =
-  tdecs
-  |> Misc.map_partial (function (_, t) when Cil.isPointerType t -> Some t | _ -> None)
-  |>: (Cil.unrollType <+> CM.ptrRefType <+> CM.bytesSizeOf)
-  |> Misc.sort_and_compact
-  |> Misc.flap (fun i -> [Offset i; Period i])
+let scalar_consts_of_typedecs_stride =
+      Misc.map_partial (function (_, t) when Cil.isPointerType t -> Some t | _ -> None)
+  <+> Misc.map (Cil.unrollType <+> CM.ptrRefType <+> CM.bytesSizeOf)
+  <+> Misc.sort_and_compact
+  <+> Misc.flap (fun i -> [Offset i; Period i])
 
 let scalar_consts_of_index = function
-  | Ix.IBot                                     -> []
-  | Ix.IInt n                                   -> [Offset n] 
-  | Ix.ICClass {Ix.m = m; Ix.c = n; Ix.ub = ub} ->
-    [Offset n;  Period m] ++ (scalar_consts_of_upper_bound m ub)
- 
-let scalar_consts_of_typedecs_genspec tdecs =
-  tdecs
-  |> Misc.map (Misc.uncurry Genspec.spec_of_type)
-  |> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices_of_t st)
-  |> Misc.flap scalar_consts_of_index
+  | Ix.ICClass bcc -> 
+         [Offset bcc.Ix.c; Period bcc.Ix.m] 
+      ++ (match bcc.Ix.lb with Some lb -> [Offset lb] | _ -> [])
+      ++ (scalar_consts_of_upper_bound bcc.Ix.m bcc.Ix.ub)
+  | Ix.IInt n  -> [Offset n] 
+  | _          -> []
 
-let scalar_consts_of_typedecs cil = 
-  cil 
-  |> type_decs_of_file
-  |> (fun tdecs -> scalar_consts_of_typedecs_genspec tdecs ++ scalar_consts_of_typedecs_stride tdecs)
-  |> Misc.sort_and_compact
+let scalar_consts_of_typedecs_genspec =
+      Misc.map (Misc.uncurry Genspec.spec_of_type)
+  <+> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices_of_t st)
+  <+> (fun is -> List.iter (ignore <.> E.log "[SCALAR] index = %a \n" Ix.d_index) is; is)  
+  <+> Misc.flap scalar_consts_of_index
 
+let scalar_consts_of_typedecs = 
+      type_decs_of_file
+  <+> (scalar_consts_of_typedecs_genspec <*> scalar_consts_of_typedecs_stride)
+  <+> Misc.uncurry (++)
+  <+> Misc.sort_and_compact
+
+(* DO NOT DELETE
 let scalar_consts_of_code cil =
   let xr = ref [] in
   let _  = CM.iterExprs cil (function Cil.Const c -> xr := CI.expr_of_cilcon c :: !xr; false | _ -> true) in
@@ -310,12 +317,16 @@ let increments_of_code cil =
      end
   |> Misc.sort_and_compact 
   |> List.map (fun i -> Offset i)
+*)
+
+
 
 let scalar_consts_of_file cil = 
   [ scalar_consts_of_typedecs
-  (* ; scalar_consts_of_code
-     ; increments_of_code *) ]
+(*; scalar_consts_of_code
+  ; increments_of_code *) ]
   |> Misc.flap (fun f -> f cil) 
+  |> List.filter is_valid_scalar_const
 
 (* API *)
 let scalar_quals_of_file cil =

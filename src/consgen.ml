@@ -182,11 +182,11 @@ let create cil spec =
   let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec decs cnv0 in
   let vim    = if !Cs.scalar 
-               then Scalar.scalarinv_of_scim cil spec tgr gnv0 scim 
+               then BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec tgr gnv0) scim 
                else SM.map (fun _ -> CilMisc.VarMap.empty) scim in
   let shm    = shapem_of_scim cil spec scim vim in
   let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
-  (* let _      = if  not !Cs.scalar then Scalar.test cil spec tgr gnv0 scim shm in *)
+  let _      = if !Cs.scalarcheck then Scalar.test cil spec tgr gnv0 scim shm in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

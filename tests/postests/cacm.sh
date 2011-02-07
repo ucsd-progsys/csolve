@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd ../tests/cacm/
-make clean
+cd ../tests/all/cacm/ && \
+make clean && \
 make

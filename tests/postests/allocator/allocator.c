@@ -100,8 +100,12 @@ void main () {
     fl->free      = NULL;
     fl->next      = NULL;
 
-    void *m = NULL;
-    while (1) {
+	//RJ: Avoid 0 \lub 8 pollution
+    //void *m = NULL;
+    
+    void *m = alloc (fl, nondet ());
+	
+	while (1) {
         if (nondet ()) {
             m = alloc (fl, nondet ());
         } else {

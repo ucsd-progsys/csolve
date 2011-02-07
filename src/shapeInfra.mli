@@ -22,3 +22,9 @@
  *)
 
 val fresh_heaptype : Cil.typ -> Ctypes.ctype
+
+class exprTyper : Ctypes.ctype CilMisc.VarMap.t ->
+object
+  method ctype_of_exp  : Cil.exp -> Ctypes.ctype
+  method ctype_of_lval : Cil.lval -> Ctypes.ctype
+end
