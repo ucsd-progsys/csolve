@@ -35,7 +35,7 @@ end
 
 type cilenv
 
-val pred_of_refctype    : FixConstraint.soln -> Cil.varinfo -> Ctypes.refctype -> Ast.pred
+val pred_of_refctype    : FixSolution.t -> Cil.varinfo -> Ctypes.refctype -> Ast.pred
 val ce_rem              : FixAstInterface.name -> cilenv -> cilenv 
 val ce_mem              : FixAstInterface.name -> cilenv -> bool 
 val ce_empty            : cilenv
@@ -135,7 +135,7 @@ val make_cs_refstore    : cilenv -> Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 val make_dep            : bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
-val annot_dump          : FixConstraint.soln -> unit
+val annot_dump          : FixSolution.t -> unit
 val annot_clear         : 'a -> unit
 
 

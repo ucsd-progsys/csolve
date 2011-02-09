@@ -177,7 +177,7 @@ let tags_of_binds s binds =
         let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore (s_sto st) nl in
         (Pretty.concat d d', kts' ++ kts)
     with
-      C.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
+      FixSolution.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
   end (Pretty.nil, []) binds
 
 let generate_annots d = 
