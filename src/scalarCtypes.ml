@@ -100,7 +100,7 @@ let p_v_minus_x_minus_c_eqz_mod_k =
                    , A.Mod, A.eVar period_var)
            ,A.zero)
 
-let quals_of_pred p = List.map (fun t -> Q.create value_var t p) [A.Sort.t_int]
+let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sort.t_int]
 
 (***************************************************************************)
 (***************** Convert Predicates/Refinements To Indices ***************)
