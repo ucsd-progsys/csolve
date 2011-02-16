@@ -55,11 +55,12 @@ let is_abstract = function
   | Concrete _ -> false
 
 let to_string = function
-  | Abstract lid        -> "A" ^ string_of_int lid
-  | Concrete (lid, aid) -> "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+  | Abstract lid      -> "A" ^ string_of_int lid
+  | Concrete (lid, _) -> "C" ^ string_of_int lid
 
-let d_sloc () (l: t): Pretty.doc =
-  Pretty.text <| to_string l
+let d_sloc () = function
+  | Abstract lid        -> P.text <| "A" ^ string_of_int lid
+  | Concrete (lid, aid) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
 
 (******************************************************************************)
 (******************************* Maps Over Slocs ******************************)
