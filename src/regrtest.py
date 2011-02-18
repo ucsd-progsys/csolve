@@ -79,9 +79,7 @@ class Config (rtest.TestConfig):
 
 #DEFAULT
 testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
-
-#FOR --scalar
-#testdirs  = [("../tests/minitests/postests", 0), ("../tests/minitests/negtests", [1, 2])]
+#testdirs  = [("../tests/microtests", 0)]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")

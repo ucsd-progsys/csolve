@@ -4,28 +4,6 @@ QUALREFACTORMINIMIZE
 > run profile tests to see minimization happen
 > see why regrtests fail
 
-loop2.c
-arraysum.c
-test04p.c
-ll3.c
-ll0.c
-
-
-Failed 48 tests: ../tests/negtests/field-unsafe.c, ../tests/postests/adpcm.c, ../tests/postests/adpcmini.c, ../tests/postests/adpcmini2.c, ../tests/postests/allocator/allocator.c, ../tests/postests/array3.c, ../tests/postests/arraylist2.c, ../tests/postests/arraysum.c, ../tests/postests/bug.c, ../tests/postests/cacm.sh, ../tests/postests/depalloc.c, ../tests/postests/depfield.c, ../tests/postests/forward-sorted-list.c, ../tests/postests/forward_idom.c, ../tests/postests/full_adpcm.sh, ../tests/postests/glib-2.24.0/int-glist.c, ../tests/postests/glib-2.24.0/int-gslist.c, ../tests/postests/incp.c, ../tests/postests/join.c, ../tests/postests/ks.c, ../tests/postests/ll-simple-mini.c, ../tests/postests/ll-simple.c, ../tests/postests/ll0.c, ../tests/postests/ll1.c, ../tests/postests/ll2.c, ../tests/postests/ll3.c, ../tests/postests/ll4.c, ../tests/postests/ll5.c, ../tests/postests/ll6.c, ../tests/postests/ll8.c, ../tests/postests/ll9.c, ../tests/postests/loop-simple.c, ../tests/postests/loop.c, ../tests/postests/loop2.c, ../tests/postests/loop3.c, ../tests/postests/make-sorted-list.c, ../tests/postests/mst-scratch.c, ../tests/postests/nulljoin.c, ../tests/postests/pmapdistilled.c, ../tests/postests/power.c, ../tests/postests/strcpy.c, ../tests/postests/stringexample.c, ../tests/postests/structarr2.c, ../tests/postests/test01p.c, ../tests/postests/test02p.c, ../tests/postests/test03.c, ../tests/postests/test03p.c, ../tests/postests/test04p.c
-
-Exceptions thrown on 47 tests: ../tests/postests/adpcm.c, ../tests/postests/adpcmini.c, ../tests/postests/adpcmini2.c, ../tests/postests/allocator/allocator.c, ../tests/postests/array3.c, ../tests/postests/arraylist2.c, ../tests/postests/arraysum.c, ../tests/postests/bug.c, ../tests/postests/cacm.sh, ../tests/postests/depalloc.c, ../tests/postests/depfield.c, ../tests/postests/forward-sorted-list.c, ../tests/postests/forward_idom.c, ../tests/postests/full_adpcm.sh, ../tests/postests/glib-2.24.0/int-glist.c, ../tests/postests/glib-2.24.0/int-gslist.c, ../tests/postests/incp.c, ../tests/postests/join.c, ../tests/postests/ks.c, ../tests/postests/ll-simple-mini.c, ../tests/postests/ll-simple.c, ../tests/postests/ll0.c, ../tests/postests/ll1.c, ../tests/postests/ll2.c, ../tests/postests/ll3.c, ../tests/postests/ll4.c, ../tests/postests/ll5.c, ../tests/postests/ll6.c, ../tests/postests/ll8.c, ../tests/postests/ll9.c, ../tests/postests/loop-simple.c, ../tests/postests/loop.c, ../tests/postests/loop2.c, ../tests/postests/loop3.c, ../tests/postests/make-sorted-list.c, ../tests/postests/mst-scratch.c, ../tests/postests/nulljoin.c, ../tests/postests/pmapdistilled.c, ../tests/postests/power.c, ../tests/postests/strcpy.c, ../tests/postests/stringexample.c, ../tests/postests/structarr2.c, ../tests/postests/test01p.c, ../tests/postests/test02p.c, ../tests/postests/test03.c, ../tests/postests/test03p.c, ../tests/postests/test04p.c
-
-
-
-
-
-
-
-
-
-
-
-
 
 Function Pointers
 
