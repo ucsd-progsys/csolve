@@ -135,12 +135,8 @@ let quals_of_file fname =
       |> Lexing.from_channel
       |> FixParse.defs FixLex.token
       |> Misc.map_partial (function C.Qul p -> Some p | _ -> None)
-      |> Q.normalize
-      >> Co.bprintf mydebug "Read Qualifiers: \n%a" (Misc.pprint_many true "" Q.print) 
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
-
-
 
 (* API *)
 let maybe_deref e =
