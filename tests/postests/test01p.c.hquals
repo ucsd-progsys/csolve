@@ -1,5 +1,2 @@
-qualif POS(v:int): v >= 0
-
-qualif GT(v:int): v >= ~a
-qualif GT(v:int): v > @jh 
+qualif POS(v:int): v = 999
 
