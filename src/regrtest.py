@@ -39,7 +39,10 @@ def solve_quals(file,bare,time,quiet,flags):
   if time: time = ["time"]
   else: time = []
   hygiene_flags = [("--liquidcprefix=%s" % (file)), "-o", "/dev/null"]
-  return logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
+  out = open(file + ".log", "w")
+  rv  = logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
+  out.close()
+  return rv
 
 def run_script(file,quiet):
   if quiet: out = null
@@ -78,8 +81,8 @@ class Config (rtest.TestConfig):
 #testdirs  = [("../slowtests", 1)]
 
 #DEFAULT
-testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
-#testdirs  = [("../tests/microtests", 0)]
+#testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
+testdirs  = [("../tests/microtests", 0)]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")
