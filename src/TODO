@@ -1,15 +1,10 @@
 QUALREFACTORMINIMIZE
-> add a switch so you can compare before and after
 > run time tests to see slowdown (???)
-> run profile tests to see minimization happen
-> see why regrtests fail
 
-0. why does pmapdistilled 
-   --minquals --scalar take different iterations than --scalar ???
-
-1. scalar benefits from minimizing etc.
+1. scalar benefits from minimizing etc.(except when it kills Z3)
 2. non-scalar does not 
-3. final output likely easier to read with minimizing,.
+3. final output likely easier to read with minimizing (make only output minimal)
+
 
 Function Pointers
 
