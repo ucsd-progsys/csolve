@@ -4,6 +4,9 @@ QUALREFACTORMINIMIZE
 > run profile tests to see minimization happen
 > see why regrtests fail
 
+1. scalar benefits from minimizing etc.
+2. non-scalar does not 
+3. final output likely easier to read with minimizing,.
 
 Function Pointers
 
