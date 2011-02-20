@@ -59,10 +59,15 @@ let generate tgr gnv scim : Ci.t =
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let solve cil ci = 
+let solve cil ci =
+  let mq = !Co.minquals in
+  let _  = if mq then (ignore <| E.log "Deprecating --minquals for scalar/inference\n") in
+  let _  = Co.minquals := false in
   (Sc.scalar_quals_of_file cil) 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
   |> SM.map (VM.mapi Sc.index_of_pred)
+  >> (fun _ -> Co.minquals := mq)
+
 
 (***************************************************************************)
 (***** Close with Bindings for Params, Undef Vars Scalar Constraints *******)
@@ -121,7 +126,7 @@ let ctype_of_var_index v ix =
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
   >> FI.annot_clear 
-  |> generate tgr gnv 
+  |> generate tgr gnv
   |> solve cil
   |> close scim spec
   |> SM.map (VM.mapi ctype_of_var_index)

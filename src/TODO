@@ -1,6 +1,11 @@
-QUALREFACTORMINIMIZE
-> run time tests to see slowdown (???)
+SCALARLIFT:
+use fixpoint solutions for phi-vars to generate indices for rest
 
+  e1
+, e2
+, e3
+:
+QUALREFACTORMINIMIZE:
 1. scalar benefits from minimizing etc.(except when it kills Z3)
 2. non-scalar does not 
 3. final output likely easier to read with minimizing (make only output minimal)
