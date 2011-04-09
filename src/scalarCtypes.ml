@@ -253,7 +253,7 @@ let bound_pred_of_scalar_const p = function
   
 let period_preds_of_scalar_consts cs =
   let os = Misc.map_partial (function Offset c -> Some c | _ -> None) cs in
-  let ks = Misc.map_partial (function Period k -> Some k | _ -> None) cs in
+  let ks = Misc.map_partial (function Period k when k < 50 -> Some k | _ -> None) cs in
   ks |> Misc.flap (fun k -> os |>: (fun o -> (o mod k), k))
      |> Misc.sort_and_compact 
      |> List.map  (fun (o, k) -> Su.of_list [(const_var, A.eInt o); (period_var, A.eInt k)])

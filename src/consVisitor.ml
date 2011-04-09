@@ -317,12 +317,6 @@ let scalarcons_of_instr me i grd (j, env) instr =
   let loc = get_instrLoc instr in
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
-  (* SPECIAL CASING NULL ASSIGNMENTS -- UGH
-  | Set ((Var v, NoOffset), e, _) 
-    when CM.is_reference v.Cil.vtype && CM.is_null_expr e ->
-      (j+1, env), ([], [], [])
-  *)
-
   | Set ((Var v, NoOffset), e, _) 
     when (not v.Cil.vglob) && CM.is_pure_expr e && CM.is_local_expr e ->
       FI.t_exp_scalar v e 
@@ -342,13 +336,9 @@ let scalarcons_of_instr me i grd (j, env) instr =
       |> Misc.uncurry FI.t_subs_exps 
       >> E.log "SCALAR CALLASGN: v=%s  cr=%a \n" v.Cil.vname Ct.d_refctype 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
-(* env  |> (FI.ce_find_fn fv.Cil.vname <+> Ct.ret_of_refcfun <+> Ct.ctype_of_refctype <+> FI.t_scalar)
-        |> scalarcons_of_binding me loc tag (j, env) grd j v *)
 
   | Set ((Var v, NoOffset), _, _) 
     when (not v.Cil.vglob)  ->
-      let _   = Pretty.printf "SCALARSET: v=%s ptr=%b \n" 
-                                           v.Cil.vname (CM.is_reference v.Cil.vtype) in
       FI.t_true Ct.scalar_ctype
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 

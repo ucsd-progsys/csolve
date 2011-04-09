@@ -124,8 +124,8 @@ let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t
 (* API *)
 let make_t me loc fn blk instr =
   try
-    let rv = [SM.find fn me.funm; SIM.find (fn, blk) me.blkm; (0 - instr); fn_to_i fn] in
-    H.replace invt rv (loc, fn, blk); rv 
+    ([SM.find fn me.funm; SIM.find (fn, blk) me.blkm; (0 - instr); fn_to_i fn], fn)
+    >> Misc.flip (H.replace invt) (loc, fn, blk)
   with Not_found ->
     Errormsg.error "CilTag.make_t: bad args fn=%s, blk=%d" fn blk;
     assertf "CilTag.make_t"
@@ -134,7 +134,7 @@ let make_global_t me =
   let glob_index = ref (-1) in
     fun loc ->
       glob_index := !glob_index - 1;
-      [!glob_index; -1; -1; -1]
+      ([!glob_index; -1; -1; -1], "global")
 
 (* API *)
 let create = fun scis -> {funm = create_funm scis; blkm = create_blkm scis;}

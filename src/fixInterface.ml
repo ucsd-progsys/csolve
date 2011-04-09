@@ -698,13 +698,6 @@ let make_dep pol xo yo =
   (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
            |> Misc.uncurry (C.make_dep pol)
 
-(*
-let add_deps tago tag = 
-  match tago with 
-  | Some t -> [make_dep true (Some t) (Some tag)] 
-  | _      -> [] 
-*)
-
 let make_cs cenv p rct1 rct2 tago tag =
   let env    = cenv |> env_of_cilenv in
   let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft) (rct1, rct2) in
