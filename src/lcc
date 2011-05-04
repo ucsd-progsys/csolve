@@ -41,9 +41,9 @@ use strict;
 use Data::Dumper;
 use FindBin;
 use File::Basename;
-use lib "$FindBin::Bin";
-use lib "$FindBin::Bin/../external/cil/lib"; # The libraries are in the lib directory
-use lib "$FindBin::Bin/../external/cil/bin"; # The libraries are in the lib directory
+use lib "$FindBin::RealBin";
+use lib "$FindBin::RealBin/../external/cil/lib"; # The libraries are in the lib directory
+use lib "$FindBin::RealBin/../external/cil/bin"; # The libraries are in the lib directory
 # Read the configuration script
 use CilConfig;
 
@@ -51,7 +51,7 @@ use Cilly;
 
 $::default_is_merge = 0;
 
-$ENV{'LD_LIBRARY_PATH'} = "$FindBin::Bin/../external/z3/lib/:$ENV{'LD_LIBRARY_PATH'}";
+$ENV{'LD_LIBRARY_PATH'} = "$FindBin::RealBin/../external/z3/lib/:$ENV{'LD_LIBRARY_PATH'}";
 
 my $stub = CilCompiler->new(@ARGV);
 
@@ -67,7 +67,7 @@ use File::Basename;
 use strict;
 BEGIN {
     @CilCompiler::ISA = qw(Cilly);
-    $CilCompiler::base = "$FindBin::Bin/liquidc.native";
+    $CilCompiler::base = "$FindBin::RealBin/liquidc.native";
     # Use the most recent version of cilly
     $CilCompiler::mtime_asm = int((stat("$CilCompiler::base"))[9]);
     $CilCompiler::mtime_byte = int((stat("$CilCompiler::base"))[9]);
