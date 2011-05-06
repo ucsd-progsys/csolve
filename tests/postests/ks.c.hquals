@@ -1,7 +1,7 @@
 qualif PTRARRSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4096
 qualif STATSSZ(v:ptr)  : BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 12)
 qualif NSSZ(v:ptr)     : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 3072
-qualif MANYSZ(v:ptr)   : (v != 0) -> (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 8))
+qualif MANYSZ(v:ptr)   : (v != 0) => (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 8))
 qualif BOUND(v:int)    : v < 1024
 qualif BOUND(v:int)    : v <= 1024
 qualif BOUND(v:int)    : v < 256

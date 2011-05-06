@@ -18,3 +18,6 @@
 	path = external/z3
 	url = goto.ucsd.edu:/git/external/z3.git
         update = merge
+[submodule "external/gnu-coreutils"]
+	path = external/gnu-coreutils
+	url = goto.ucsd.edu:/home/git/gnu-coreutils.git

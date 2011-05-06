@@ -16,6 +16,7 @@ config.make
 *.scalarlog
 *.squals
 *.tags
+*.log
 _build
 src/fixpoint
 src/misc
