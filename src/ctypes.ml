@@ -533,7 +533,7 @@ module type S = sig
 end
 
 module Make (R: CTYPE_REFINEMENT) = struct
-  module R = R (* TODO: huh? *)
+  module R = R
 
   (***********************************************************************)
   (***************************** Types ***********************************)
