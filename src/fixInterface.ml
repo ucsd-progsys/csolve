@@ -106,6 +106,11 @@ let refctype_of_reft_ctype r = function
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
   | Ct.Top (o)   -> Ct.Top (o, r) 
 
+let replace_reft r = function
+  | Ct.Int (w, (i, _)) -> Ct.Int (w, (i, r))
+  | Ct.Ref (l, (i, _)) -> Ct.Ref (l, (i, r))
+  | Ct.Top (i, _)      -> Ct.Top (i, r)
+
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft FA.vv_int So.t_int (f t) in
@@ -397,7 +402,7 @@ let t_name (_,vnv,_) n =
   let so = rct |> reft_of_refctype |> C.sort_of_reft in
   let vv = Sy.value_variable so in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-  rct |> Ct.ctype_of_refctype |> refctype_of_reft_ctype r
+  replace_reft r rct
 
 (* API *)
 let map_fn = RCt.CFun.map 
@@ -414,7 +419,7 @@ let strengthen_refctype mkreft rct =
   let vv   = C.vv_of_reft reft in
   let so   = C.sort_of_reft reft in
   let ras  = C.ras_of_reft reft in
-  refctype_of_reft_ctype (C.make_reft vv so (mkreft rct @ ras)) (Ct.ctype_of_refctype rct)
+  replace_reft (C.make_reft vv so (mkreft rct @ ras)) rct
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
@@ -486,10 +491,7 @@ let t_scalar_refctype x =
 *)
 
 (* API *)
-let t_subs_locs lsubs rct =
-  rct |> Ct.ctype_of_refctype
-      |> It.CType.subs lsubs
-      |> refctype_of_reft_ctype (reft_of_refctype rct)
+let t_subs_locs = RCt.CType.subs
 
 let name_of_sloc_index l i = 
   FA.name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
