@@ -347,22 +347,22 @@ end
 (***************************** Parameterized Types ****************************)
 (******************************************************************************)
 
-type 'a prectype =
-  | Int of int * 'a     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a  (* reference *)
-  | Top of 'a           (* "other", hack for function pointers *)
-
 type finality =
   | Final
   | Nonfinal
 
-type 'a prefield = 'a prectype * finality
+type 'a prectype =
+  | Int  of int * 'a     (* fixed-width integer *)
+  | Ref  of Sloc.t * 'a  (* reference *)
+  | Top of 'a            (* "other", hack for function pointers *)
 
-type 'a preldesc = (Index.t * (C.location * 'a prefield)) list
+and 'a prefield = 'a prectype * finality
 
-type 'a prestore = ('a preldesc) Sloc.SlocMap.t
+and 'a preldesc = (Index.t * (C.location * 'a prefield)) list
 
-type 'a precfun =
+and 'a prestore = 'a preldesc Sloc.SlocMap.t
+
+and 'a precfun =
     { qlocs       : Sloc.t list;                  (* generalized slocs *)
       args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
@@ -374,12 +374,16 @@ type 'a prespec = ('a precfun * bool) Misc.StringMap.t
                 * ('a prectype * bool) Misc.StringMap.t 
                 * 'a prestore
 
-module type S = sig
-  module R : CTYPE_REFINEMENT
+module SIGS (R : CTYPE_REFINEMENT) = struct
+  type ctype = R.t prectype
+  type field = R.t prefield
+  type ldesc = R.t preldesc
+  type store = R.t prestore
+  type cfun  = R.t precfun
+  type spec  = R.t prespec
 
-  module CType:
-  sig
-    type t = R.t prectype
+  module type CTYPE = sig
+    type t = ctype
 
     exception NoLUB of t * t
 
@@ -398,45 +402,43 @@ module type S = sig
     val top         : t
   end
 
-  module Field:
-  sig
-    type t = R.t prefield
+  module type FIELD = sig
+    type t = field
 
     val get_finality : t -> finality
     val set_finality : finality -> t -> t
     val is_final     : t -> bool
-    val type_of      : t -> CType.t
+    val type_of      : t -> ctype
     val sloc_of      : t -> Sloc.t option
-    val create       : finality -> CType.t -> t
+    val create       : finality -> ctype -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
-
+      
     val d_field      : unit -> t -> Pretty.doc
   end
 
-  module LDesc:
-  sig
-    type t = R.t preldesc
+  module type LDESC = sig
+    type t = ldesc
 
-    exception TypeDoesntFit of Index.t * CType.t * t
+    exception TypeDoesntFit of Index.t * ctype * t
 
     val empty         : t
-    val add           : C.location -> Index.t -> Field.t -> t -> t
-    val create        : C.location -> (Index.t * Field.t) list -> t
+    val add           : C.location -> Index.t -> field -> t -> t
+    val create        : C.location -> (Index.t * field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
-    val find          : Index.t -> t -> (Index.t * Field.t) list
-    val foldn         : (int -> 'a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
-    val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
+    val referenced_slocs : t -> Sloc.SlocSet.t
+    val find          : Index.t -> t -> (Index.t * field) list
+    val foldn         : (int -> 'a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+    val fold          : ('a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val iter          : (Index.t -> Field.t -> unit) -> t -> unit
+    val iter          : (Index.t -> field -> unit) -> t -> unit
     val indices       : t -> Index.t list
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
-  module Store:
-  sig
-    type t = R.t prestore
+  module type STORE = sig
+    type t = store
 
     val empty        : t
     val domain       : t -> Sloc.t list
@@ -444,57 +446,90 @@ module type S = sig
     val mem          : t -> Sloc.t -> bool
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
-    val find         : Sloc.t -> t -> LDesc.t
-    val find_or_empty : Sloc.t -> t -> LDesc.t
-    val find_index   : Sloc.t -> Index.t -> t -> Field.t list
-    val fold         : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
+    val find         : Sloc.t -> t -> ldesc
+    val find_or_empty : Sloc.t -> t -> ldesc
+    val find_index   : Sloc.t -> Index.t -> t -> field list
+    val fold         : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
-    val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
+    val partition    : (Sloc.t -> ldesc -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
-      (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
-          overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
+  (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
+      overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val ctype_closed : CType.t -> t -> bool
+    val rename       : Sloc.Subst.t -> t -> t
+    val ctype_closed : ctype -> t -> bool
     val indices_of_t : t -> Index.t list
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
-
-    (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
-    (** [prestore_split sto] returns (asto, csto) s.t. 
-       (1) sto = asto + csto
-       (2) locs(asto) \in abslocs 
-       (3) locs(csto) \in conlocs *)
-       let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-       prestore_partition (fun l _ -> S.is_abstract l) ps
-    *)
+      
+(* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
+(** [prestore_split sto] returns (asto, csto) s.t. 
+   (1) sto = asto + csto
+   (2) locs(asto) \in abslocs 
+   (3) locs(csto) \in conlocs *)
+   let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
+   prestore_partition (fun l _ -> S.is_abstract l) ps
+*)
   end
 
-  module CFun:
-  sig
-    type t = R.t precfun
+  module type CFUN = sig
+    type t = cfun
 
     val d_cfun             : unit -> t -> Pretty.doc
     val map                : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-    val well_formed        : Store.t -> t -> bool
+    val well_formed        : store -> t -> bool
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val slocs              : t -> Sloc.t list
-    val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
+    val make               : Sloc.t list -> (string * ctype) list -> ctype -> store -> store -> t
     val subs               : Sloc.Subst.t -> t -> t
   end
 
-  module ExpKey:
-  sig
+  module type SPEC = sig
+    type t      = spec
+
+    val empty   : t
+
+    val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
+    val add_fun : bool -> string -> cfun * bool -> t -> t
+    val add_var : bool -> string -> ctype * bool -> t -> t
+    val add_loc : Sloc.t -> ldesc -> t -> t
+    val mem_fun : string -> t -> bool
+    val mem_var : string -> t -> bool
+    val get_fun : string -> t -> cfun * bool
+    val get_var : string -> t -> ctype * bool
+    val store   : t -> store
+    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+
+    val make    : (R.t precfun * bool) Misc.StringMap.t ->
+                  (R.t prectype * bool) Misc.StringMap.t ->
+                  store ->
+                  t
+    val add     : t -> t -> t
+  end
+end
+
+module type S = sig
+  module R : CTYPE_REFINEMENT
+
+  module CType : SIGS (R).CTYPE
+  module Field : SIGS (R).FIELD
+  module LDesc : SIGS (R).LDESC
+  module Store : SIGS (R).STORE
+  module CFun  : SIGS (R).CFUN
+  module Spec  : SIGS (R).SPEC
+
+  module ExpKey: sig
     type t = Cil.exp
     val compare: t -> t -> int
   end
 
   module ExpMap: Map.S with type key = ExpKey.t
 
-  module ExpMapPrinter:
-  sig
+  module ExpMapPrinter: sig
     val d_map:
       ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
       string ->
@@ -505,41 +540,17 @@ module type S = sig
   type ctemap = CType.t ExpMap.t
 
   val d_ctemap: unit -> ctemap -> Pretty.doc
-
-  module Spec:
-  sig
-    type t      = R.t prespec
-
-    val empty   : t
-
-    val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> CFun.t * bool -> t -> t
-    val add_var : bool -> string -> CType.t * bool -> t -> t
-    val add_loc : Sloc.t -> LDesc.t -> t -> t
-    val mem_fun : string -> t -> bool
-    val mem_var : string -> t -> bool
-    val get_fun : string -> t -> CFun.t * bool
-    val get_var : string -> t -> CType.t * bool
-    val store   : t -> Store.t
-    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
-
-    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
-                  (R.t prectype * bool) Misc.StringMap.t -> 
-                  Store.t -> 
-                  t
-    val add     : t -> t -> t
-  end
 end
 
-module Make (R: CTYPE_REFINEMENT) = struct
-  module R = R
+module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
+  module R   = R
+  module SIG = SIGS (R)
 
   (***********************************************************************)
   (***************************** Types ***********************************)
   (***********************************************************************)
 
-  module CType = struct
+  module rec CType: SIG.CTYPE = struct
     type t = R.t prectype
 
     let map f = function
@@ -627,7 +638,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
   (*********************************** Stores ***********************************)
   (******************************************************************************)
 
-  module Field = struct
+  and Field: SIG.FIELD = struct
     type t = R.t prefield
 
     let get_finality = snd
@@ -653,7 +664,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
         if is_final fld then P.dprintf "final %a" CType.d_ctype pct else CType.d_ctype () pct
   end
 
-  module LDesc = struct
+  and LDesc: SIG.LDESC = struct
     type t = R.t preldesc
 
     exception TypeDoesntFit of Index.t * CType.t * t
@@ -726,7 +737,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
         end
   end
 
-  module Store = struct
+  and Store: SIG.STORE = struct
     type t = R.t prestore
 
     let empty = SLM.empty
@@ -816,7 +827,7 @@ module Make (R: CTYPE_REFINEMENT) = struct
   (******************************************************************************)
   (******************************* Function Types *******************************)
   (******************************************************************************)
-  module CFun = struct
+  and CFun: SIG.CFUN = struct
     type t = R.t precfun
 
     (* API *)
@@ -891,26 +902,9 @@ module Make (R: CTYPE_REFINEMENT) = struct
   end
 
   (******************************************************************************)
-  (******************************* Expression Maps ******************************)
-  (******************************************************************************)
-  module ExpKey = struct
-    type t      = Cil.exp
-    let compare = compare
-  end
-
-  module ExpMap = Map.Make (ExpKey)
-
-  module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
-
-  type ctemap = CType.t ExpMap.t
-
-  let d_ctemap () (em: ctemap): Pretty.doc =
-    ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
-
-  (******************************************************************************)
   (************************************ Specs ***********************************)
   (******************************************************************************)
-  module Spec = struct
+  and Spec: SIG.SPEC = struct
     type t = R.t prespec
 
     let empty = (SM.empty, SM.empty, SLM.empty)
@@ -955,8 +949,24 @@ module Make (R: CTYPE_REFINEMENT) = struct
        |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
        |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
        |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
-
   end
+
+  (******************************************************************************)
+  (******************************* Expression Maps ******************************)
+  (******************************************************************************)
+  module ExpKey = struct
+    type t      = Cil.exp
+    let compare = compare
+  end
+
+  module ExpMap = Map.Make (ExpKey)
+
+  module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
+
+  type ctemap = CType.t ExpMap.t
+
+  let d_ctemap () (em: ctemap): Pretty.doc =
+    ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
 module I = Make (IndexRefinement)

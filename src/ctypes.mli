@@ -159,6 +159,7 @@ module type S = sig
     val create        : Cil.location -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
+    val referenced_slocs : t -> Sloc.SlocSet.t
     val find          : Index.t -> t -> (Index.t * Field.t) list
     val foldn         : (int -> 'a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
@@ -191,6 +192,7 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
+    val rename       : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices_of_t : t -> Index.t list 
     
@@ -221,27 +223,6 @@ module type S = sig
     val subs               : Sloc.Subst.t -> t -> t
   end
 
-  module ExpKey:
-  sig
-    type t = Cil.exp
-    val compare: t -> t -> int
-  end
-
-  module ExpMap: Map.S with type key = ExpKey.t
-
-  module ExpMapPrinter:
-  sig
-    val d_map:
-      ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
-      string ->
-      (unit -> ExpMap.key -> Pretty.doc) ->
-      (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
-  end
-
-  type ctemap = CType.t ExpMap.t
-
-  val d_ctemap: unit -> ctemap -> Pretty.doc
-
   module Spec:
   sig
     type t = R.t prespec
@@ -268,6 +249,27 @@ module type S = sig
 
     val add     : t -> t -> t
   end             
+
+  module ExpKey:
+  sig
+    type t = Cil.exp
+    val compare: t -> t -> int
+  end
+
+  module ExpMap: Map.S with type key = ExpKey.t
+
+  module ExpMapPrinter:
+  sig
+    val d_map:
+      ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
+      string ->
+      (unit -> ExpMap.key -> Pretty.doc) ->
+      (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
+  end
+
+  type ctemap = CType.t ExpMap.t
+
+  val d_ctemap: unit -> ctemap -> Pretty.doc
 end
 
 module Make (R: CTYPE_REFINEMENT) : S with module R = R
