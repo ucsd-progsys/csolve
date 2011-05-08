@@ -192,7 +192,6 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val rename       : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices_of_t : t -> Index.t list 
     

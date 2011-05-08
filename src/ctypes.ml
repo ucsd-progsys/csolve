@@ -458,7 +458,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val rename       : Sloc.Subst.t -> t -> t
     val ctype_closed : ctype -> t -> bool
     val indices_of_t : t -> Index.t list
     val d_store_addrs: unit -> t -> Pretty.doc
@@ -808,10 +807,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let closed sto =
       fold (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
 
-    let rename subs ps =
-      let cns = LDesc.map (Field.map_type (CType.subs subs)) in
-        SLM.fold (fun l ld sm -> SLM.add (S.Subst.apply subs l) (cns ld) sm) ps SLM.empty
-
     let indices_of_t st = 
       SLM.fold (fun _ ld acc -> (LDesc.indices ld) ++ acc) st []
 
@@ -865,7 +860,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let instantiate {qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout} =
       let subs       = List.map (fun l -> (l, S.fresh_abstract ())) ls in
       let rename_pct = CType.subs subs in
-      let rename_ps  = Store.rename subs in
+      let rename_ps  = Store.subs subs in
         ({qlocs   = [];
           args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
           ret     = rename_pct rcts;
