@@ -108,7 +108,7 @@ let refctype_of_reft_ctype r = function
 
 let replace_reft r = function
   | Ct.Int (w, (i, _)) -> Ct.Int (w, (i, r))
-  | Ct.Ref (l, (i, _)) -> Ct.Ref (l, (i, r))
+  | Ct.Ref (l, (i, _)) -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
   | Ct.Top (i, _)      -> Ct.Top (i, r)
 
 let refctype_of_ctype f = function
@@ -491,7 +491,8 @@ let t_scalar_refctype x =
 *)
 
 (* API *)
-let t_subs_locs = RCt.CType.subs
+let t_subs_locs lsubs rct =
+  rct |> RCt.CType.subs lsubs |> replace_reft (reft_of_refctype rct)
 
 let name_of_sloc_index l i = 
   FA.name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
