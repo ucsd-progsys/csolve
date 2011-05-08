@@ -392,7 +392,7 @@ let _ = Sys.set_signal Sys.sigsegv (Sys.Signal_handle handleSEGV);
 ;;
 
 begin 
-  try 
+  try
     theMain (); 
   with F.CabsOnly -> (* this is OK *) ()
 end;
