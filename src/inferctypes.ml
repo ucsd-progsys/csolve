@@ -610,12 +610,7 @@ let make_dummy_bdcks blocks =
 
 
 let get_ve_bdcks fe ve scim cf sci vm = 
-  (if !Cs.scalar then
-    let ve' = CM.vm_union ve vm >> _DEBUG_print_ve "get_ve_bdcks: " in 
-    ve', make_dummy_bdcks sci.ST.cfg.Ssa.blocks
-   else 
-    Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
-  |> M.app_fst fresh_local_slocs 
+  CM.vm_union ve vm >> _DEBUG_print_ve "get_ve_bdcks: " |> fresh_local_slocs, make_dummy_bdcks sci.ST.cfg.Ssa.blocks  
 
 let infer_shape fe ve gst scim (cf, sci, vm) : Shape.t =
   let ve, bdcks           = get_ve_bdcks fe ve scim cf sci vm in 
