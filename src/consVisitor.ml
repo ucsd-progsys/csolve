@@ -127,15 +127,6 @@ let cons_of_annots me loc tag grd wld ffm annots =
   Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
-(******************************************************************************)
-(*********************** Constraints for Deferred Checks **********************)
-(******************************************************************************)
-
-(* TODO: SCALAR *) 
-let cons_of_dcheck me loc grd tag (env, _, tago) (v, rct) =
-  let vct = v |> FA.name_of_varinfo |> FI.t_name env in
-  FI.make_cs env grd vct rct tago tag loc
-
 (****************************************************************************)
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
@@ -281,28 +272,26 @@ let cons_of_ptrcall me loc tag (env, sto, tago) = function
 let with_wfs (cs, ds) wfs =
   (cs, ds, wfs)
 
-let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, dcks, ffm, instr) =
+let cons_of_annotinstr me i grd (j, pre_ffm, wld) (annots, ffm, instr) =
   let gs, is, ns = group_annots annots in
   let loc        = get_instrLoc instr in
   let tagj       = CF.tag_of_instr me i j loc in
   let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm (gs ++ is) in
-  let cks        = dcks |> List.map (cons_of_dcheck me loc grd tagj wld) |> Misc.splitflatten in
-  let cds'       = acds +++ cks in
   match instr with 
   | Set (lv, e, _) ->
       let _        = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
       let wld, cds = cons_of_set me loc tagj grd ffm wld (lv, e) in
-      (j+1, ffm, wld), with_wfs (cds +++ cds') []
+      (j+1, ffm, wld), with_wfs (cds +++ acds) []
   | Call (None, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype ->
       let _ = Cil.warnLoc loc "Ignoring vararg call" in
-      (j+1, ffm, wld), with_wfs cds' []
+      (j+1, ffm, wld), with_wfs acds []
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds, wfs = cons_of_call me loc i j grd wld (lvo, fv.Cil.vname, es) ns in
-      (j+2, ffm, wld), with_wfs (cds +++ cds') wfs
+      (j+2, ffm, wld), with_wfs (cds +++ acds) wfs
   | Call (lvo, Lval (Mem _, _), _, _) ->
       let _   = CM.g_errorLoc !Cs.safe loc "cons_of_annotinstr: funptr-call %a@!@!" Cil.d_instr instr |> CM.g_halt !Cs.safe in
       let wld = cons_of_ptrcall me loc tagj wld lvo in
-      (j+2, ffm, wld), with_wfs cds' []
+      (j+2, ffm, wld), with_wfs acds []
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
@@ -363,11 +352,11 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
                            (FI.make_cs env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
-let cons_of_annotstmt me loc i grd wld (anns, dckss, (ffm, ffms), stmt) = 
+let cons_of_annotstmt me loc i grd wld (anns, (ffm, ffms), stmt) = 
   match stmt.skind with
   | Instr is ->
       asserts (List.length anns = List.length is) "cons_of_stmt: bad annots instr";
-      let (n, _, wld), cdws     =  Misc.combine4 anns dckss ffms is 
+      let (n, _, wld), cdws     =  Misc.combine3 anns ffms is 
                                 |> Misc.mapfold (cons_of_annotinstr me i grd) (1, ffm, wld) in
       let cs1, ds1, ws          = Misc.splitflatten3 cdws in  
       (wld, cs1, ds1, ws)

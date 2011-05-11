@@ -49,7 +49,7 @@ val stmt_of_block       : t -> int -> Cil.stmt
 val annotstmt_of_block  :
   t ->
   int ->
-  Refanno.block_annotation * Inferindices.block_dchecks * Shape.final_fields_annot * Cil.stmt
+  Refanno.block_annotation * Shape.final_fields_annot * Cil.stmt
 val annots_of_edge      : t -> int -> int -> Refanno.annotation list
 
 val csto_of_block       : t -> int -> Ctypes.refstore

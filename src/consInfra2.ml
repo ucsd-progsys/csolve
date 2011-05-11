@@ -252,7 +252,7 @@ let length_of_stmt stmt = match stmt.skind with
 let annotstmt_of_block me i = 
   match me.shapeo with 
   | Some {shp = shp} ->  
-      (shp.Sh.anna.(i), shp.Sh.bdcks.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
+      (shp.Sh.anna.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
 (*  | None     -> 
       let stmt = stmt_of_block me i in
       ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
