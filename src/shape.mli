@@ -5,7 +5,6 @@ type t =
    etypm   : Ctypes.ctemap;
    store   : Ctypes.store;
    anna    : Refanno.block_annotation array;
-   bdcks   : Inferindices.block_dchecks array;
    conca   : (Refanno.cncm * Refanno.cncm) array;
    theta   : Refanno.ctab;
    nasa    : NotAliased.NASet.t list array;

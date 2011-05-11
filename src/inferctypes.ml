@@ -35,7 +35,6 @@ module CM  = CilMisc
 module VM  = CM.VarMap
 module SM  = M.StringMap
 module FI  = FixInterface
-module Ind = Inferindices
 module Sh  = Shape
 module FF  = FinalFields
 
@@ -601,24 +600,8 @@ let print_vm_diff vm1 vm2 =
       (P.dprintf "different ctypes: v = %s ct1 = %a ct2 = %a" v.C.vname Ct.d_ctype ct1 Ct.d_ctype ct2; ())
   end vm1
 
-let make_dummy_bdcks blocks =
-  Array.map begin fun b -> match b.Ssa.bstmt.C.skind with 
-    | C.Instr is -> is |> List.length |> M.clone []
-    | _          -> []
-  end blocks 
-
-
-
-let get_ve_bdcks fe ve scim cf sci vm = 
-  (if !Cs.scalar then
-    let ve' = CM.vm_union ve vm >> _DEBUG_print_ve "get_ve_bdcks: " in 
-    ve', make_dummy_bdcks sci.ST.cfg.Ssa.blocks
-   else 
-    Ind.infer_fun_indices (ctenv_of_funenv fe) ve scim cf sci)
-  |> M.app_fst fresh_local_slocs 
-
 let infer_shape fe ve gst scim (cf, sci, vm) : Shape.t =
-  let ve, bdcks           = get_ve_bdcks fe ve scim cf sci vm in 
+  let ve                  = vm |> CM.vm_union ve |> fresh_local_slocs in
   let em, bas, cs         = constrain_fun fe cf ve sci in
   let whole_store         = Store.upd cf.sto_out gst in
   let scs                 = Store.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
@@ -633,7 +616,6 @@ let infer_shape fe ve gst scim (cf, sci, vm) : Shape.t =
      Sh.etypm   = em;
      Sh.store   = sto;
      Sh.anna    = annot;
-     Sh.bdcks   = bdcks;
      Sh.conca   = conca;
      Sh.theta   = theta;
      Sh.nasa    = nasa;
@@ -646,7 +628,7 @@ let declared_funs (cil: C.file) =
     | _                                                   -> fs
   end []
 
-let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa; Sh.bdcks = bdcks} =
+let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa} =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
   let _ = P.printf "Signature:@!" in
@@ -667,9 +649,6 @@ let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;
   let _ = P.printf "Final Fields:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
-  let _ = P.printf "Deferred Checks:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" Ind.d_blocks_dchecks bdcks in
     ()
 
 let print_shapes spec shpm =
