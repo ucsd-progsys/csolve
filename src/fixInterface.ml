@@ -94,17 +94,18 @@ let reft_of_reft r t' =
 
 let sort_of_prectype = function
   | Ct.Ref (l,_) -> FA.so_ref l
+  | Ct.FPtr _    -> FA.so_fptr
   | _            -> FA.so_int
 
 let refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
-  | Ct.Top (o)   -> Ct.Top (o, r) 
+  | Ct.FPtr _    -> failwith "Cannot call refctype_of_reft_ctype on function pointer"
 
 let replace_reft r = function
-  | Ct.Int (w, (i, _)) -> Ct.Int (w, (i, r))
-  | Ct.Ref (l, (i, _)) -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
-  | Ct.Top (i, _)      -> Ct.Top (i, r)
+  | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
+  | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
+  | Ct.FPtr (f, (i, _)) -> Ct.FPtr (f, (i, r))
 
 let refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
@@ -115,8 +116,8 @@ let refctype_of_ctype f = function
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
       Ct.Ref (l, (x, r)) 
-  | Ct.Top (x) -> 
-      Ct.Top (x, Ct.reft_of_top)
+  | Ct.FPtr _ ->
+      failwith "Cannot call refctype_of_ctype on function pointer"
 
 
 let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))

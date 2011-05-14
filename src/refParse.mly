@@ -217,7 +217,6 @@ reftype:
 ctype:
     INT LPAREN Num COMMA index RPAREN   { Ctypes.Int ($3, $5) }
   | REF LPAREN sloc COMMA index RPAREN  { Ctypes.Ref ($3, $5) }
-  | TOP LPAREN index RPAREN             { Ctypes.Top ($3) }
   ;
 
 index:

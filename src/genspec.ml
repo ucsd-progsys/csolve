@@ -180,7 +180,7 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
       | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
           (th, st, add_off off c), [(off, CilInterface.ctype_of_cilbasetype c)]
       | TPtr (TFun (_, Some _, _, ats), _) ->
-          (th, st, add_off off c), [(off, Ct.Top (CilInterface.index_of_attrs ats))]
+          assert false
       | TPtr (c',a') ->
           let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
           let (th', st'), t = conv_ptr loc (th, st) pd c' in

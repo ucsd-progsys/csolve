@@ -352,9 +352,9 @@ type finality =
   | Nonfinal
 
 type 'a prectype =
-  | Int  of int * 'a     (* fixed-width integer *)
-  | Ref  of Sloc.t * 'a  (* reference *)
-  | Top of 'a            (* "other", hack for function pointers *)
+  | Int  of int * 'a        (* fixed-width integer *)
+  | Ref  of Sloc.t * 'a     (* reference *)
+  | FPtr of 'a precfun * 'a (* function pointer *)
 
 and 'a prefield = 'a prectype * finality
 
@@ -399,7 +399,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val is_void     : t -> bool
     val is_ref      : t -> bool
     val refinements_of_t : t -> R.t list
-    val top         : t
   end
 
   module type FIELD = sig
@@ -555,19 +554,18 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
-      | Top (x)    -> Top (f x)
+      | FPtr _     -> assert false
 
     let convert = map
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
-      | Top (i)    -> P.dprintf "top(%a)" R.d_refinement i
+      | FPtr _     -> assert false
 
     let width = function
-      | Int (n, _) -> n
-      | Ref (_)    -> CM.int_width
-      | Top (_)    -> assertf "width of top is undefined!" (* CM.int_width *) 
+      | Int (n, _)     -> n
+      | Ref _ | FPtr _ -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
@@ -575,6 +573,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let subs subs = function
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
+      | FPtr _     -> assert false
       | pct        -> pct
 
     exception NoLUB of t * t
@@ -588,12 +587,14 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       match t1, t2 with
         | Int (n1, r1), Int (n2, r2) when n1 = n2    -> Int (n1, lub_refs t1 t2 r1 r2)
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> Ref (s1, lub_refs t1 t2 r1 r2)
+        | FPtr _, FPtr _                             -> assert false
         | _                                          -> raise (NoLUB (t1, t2))
 
     let is_subctype pct1 pct2 =
       match pct1, pct2 with
         | Int (n1, r1), Int (n2, r2) when n1 = n2    -> R.is_subref r1 r2
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> R.is_subref r1 r2
+        | FPtr _, FPtr _                             -> assert false
         | _                                          -> false
 
     let of_const c =
@@ -608,6 +609,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let eq pct1 pct2 =
       match (pct1, pct2) with
         | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
+        | FPtr _, FPtr _             -> assert false
         | _                          -> pct1 = pct2
 
     let index_overlaps_type i i2 pct =
@@ -628,9 +630,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       | _     -> false
      
     let refinements_of_t = function
-      | Int (_, x) | Ref (_, x) | Top (x) -> [x]
-
-    let top = Top (R.top)
+      | Int (_, x) | Ref (_, x) -> [x]
+      | FPtr (_, x)             -> assert false
   end
 
   (******************************************************************************)
@@ -1088,9 +1089,9 @@ let refstore_write loc sto rct rct' =
 
 (* API *)
 let ctype_of_refctype = function
-  | Int (x, (y, _)) -> Int (x, y) 
-  | Ref (x, (y, _)) -> Ref (x, y)
-  | Top (x,_)       -> Top (x) 
+  | Int (x, (y, _))  -> Int (x, y) 
+  | Ref (x, (y, _))  -> Ref (x, y)
+  | FPtr (x, (y, _)) -> assert false
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
@@ -1110,4 +1111,4 @@ let mk_refcfun qslocs args ist ret ost =
 let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r)) 
-  | Top (_,r)     -> r
+  | FPtr (_, (_,r)) -> r

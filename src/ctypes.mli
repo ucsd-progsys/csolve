@@ -83,11 +83,6 @@ end
 
 module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 
-type 'a prectype =
-  | Int of int * 'a     (* fixed-width integer *)
-  | Ref of Sloc.t * 'a  (* reference *)
-  | Top of 'a           (* "other" *)
-
 type finality =
   | Final
   | Nonfinal
@@ -98,7 +93,12 @@ type 'a preldesc
 
 type 'a prestore = ('a preldesc) Sloc.SlocMap.t
 
-type 'a precfun =
+type 'a prectype =
+  | Int of int * 'a         (* fixed-width integer *)
+  | Ref of Sloc.t * 'a      (* reference *)
+  | FPtr of 'a precfun * 'a (* function pointer *)
+
+and 'a precfun =
     { qlocs       : Sloc.t list;                  (* generalized slocs *)
       args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
@@ -130,7 +130,6 @@ module type S = sig
     val is_void          : t -> bool
     val is_ref           : t -> bool
     val refinements_of_t : t -> R.t list
-    val top              : t
   end
 
   module Field:

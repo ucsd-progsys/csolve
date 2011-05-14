@@ -229,7 +229,7 @@ let instantiate_poly_clocs me env grd loc tag' ((_, st',_) as wld) ns =
 
 let bindings_of_call loc args es =
   let _ = if (List.length args <> List.length es) then (E.s <| errorLoc loc "binds_of_call: bad params") in
-  Misc.map2 (fun (n, t) e -> if t = Ct.RefCTypes.CType.top then None else Some ((n,t), e)) args es
+  Misc.map2 (fun (n, t) e -> Some ((n,t), e)) args es
   |> Misc.map_partial id 
   |> List.split 
 

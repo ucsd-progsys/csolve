@@ -3,6 +3,7 @@
 type name = Ast.Symbol.t
 
 val so_ref : Sloc.t -> Ast.Sort.t
+val so_fptr : Ast.Sort.t
 val so_int: Ast.Sort.t
 val vv_int : Ast.Symbol.t
 (*
