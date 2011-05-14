@@ -92,11 +92,6 @@ let reft_of_reft r t' =
 (*    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
 *)
 
-let reft_of_refctype = function
-  | Ct.Int (_,(_,r)) 
-  | Ct.Ref (_,(_,r)) 
-  | Ct.Top (_,r)     -> r
-
 let sort_of_prectype = function
   | Ct.Ref (l,_) -> FA.so_ref l
   | _            -> FA.so_int
@@ -136,7 +131,7 @@ let is_base = function
 (* API *)
 let pred_of_refctype s v cr = 
   let n        = FA.name_of_varinfo v in
-  let vv,_,ras = cr |> reft_of_refctype |> C.apply_solution s in
+  let vv,_,ras = cr |> Ct.reft_of_refctype |> C.apply_solution s in
   let su       = Su.of_list [(vv, A.eVar n)] in
   ras |> Misc.flap (function C.Conc (A.And ps, _) -> ps | _ -> []) 
       |> A.pAnd
@@ -254,7 +249,7 @@ let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
 
 
 let print_rctype so ppf rct =
-  rct |> reft_of_refctype |> C.print_reft so ppf 
+  rct |> Ct.reft_of_refctype |> C.print_reft so ppf
 
 let print_binding so ppf (n, rct) = 
   F.fprintf ppf "%a : %a" Sy.print n (print_rctype so) rct
@@ -399,7 +394,7 @@ let t_exp_scalar v e =
 let t_name (_,vnv,_) n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (FA.string_of_name n) in
   let rct = YM.find n vnv in
-  let so = rct |> reft_of_refctype |> C.sort_of_reft in
+  let so = rct |> Ct.reft_of_refctype |> C.sort_of_reft in
   let vv = Sy.value_variable so in
   let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
   replace_reft r rct
@@ -411,11 +406,11 @@ let map_fn = RCt.CFun.map
 
 let t_ctype_refctype ct rct =
   rct 
-  |> reft_of_refctype
+  |> Ct.reft_of_refctype
   |> Misc.flip refctype_of_reft_ctype ct 
 
 let strengthen_refctype mkreft rct =
-  let reft = reft_of_refctype rct in
+  let reft = Ct.reft_of_refctype rct in
   let vv   = C.vv_of_reft reft in
   let so   = C.sort_of_reft reft in
   let ras  = C.ras_of_reft reft in
@@ -455,7 +450,7 @@ let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
 
 
 let deconstruct_refctype rct = 
-  let r = reft_of_refctype rct in
+  let r = Ct.reft_of_refctype rct in
   (Ct.ctype_of_refctype rct, C.vv_of_reft r, C.sort_of_reft r, C.ras_of_reft r)
 
 let meet_refctype rct1 rct2 = 
@@ -476,7 +471,7 @@ let vv_rename so' r =
 
 let t_scalar_refctype_raw rct = 
   let so'  = Ct.scalar_ctype |> sort_of_prectype in 
-  let r'   = rct |> reft_of_refctype |> vv_rename so' in 
+  let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
   refctype_of_reft_ctype r' Ct.scalar_ctype 
 
 (* API *)
@@ -492,7 +487,7 @@ let t_scalar_refctype x =
 
 (* API *)
 let t_subs_locs lsubs rct =
-  rct |> RCt.CType.subs lsubs |> replace_reft (reft_of_refctype rct)
+  rct |> RCt.CType.subs lsubs |> replace_reft (Ct.reft_of_refctype rct)
 
 let name_of_sloc_index l i = 
   FA.name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
@@ -526,7 +521,7 @@ let pred_has_deref p =
     true
 
 let may_contain_deref rct =
-  match rct |> reft_of_refctype |> C.preds_kvars_of_reft with
+  match rct |> Ct.reft_of_refctype |> C.preds_kvars_of_reft with
   | _, _ :: _ -> true
   | ps, _     -> List.exists pred_has_deref ps 
 
@@ -663,11 +658,11 @@ let is_live_name livem n =
 
 let env_of_cilenv (_, vnv, _) = 
   FA.builtinm
-  |> YM.fold (fun n rct env -> YM.add n (reft_of_refctype rct) env) vnv 
+  |> YM.fold (fun n rct env -> YM.add n (Ct.reft_of_refctype rct) env) vnv
   |> canon_env
 
 let make_wfs ((_,_,livem) as cenv) sto rct _ =
-  let r   = rct |> reft_of_refctype |> canon_reft in
+  let r   = rct |> Ct.reft_of_refctype |> canon_reft in
   let env = cenv 
             |> env_of_cilenv
             |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
@@ -703,7 +698,7 @@ let make_dep pol xo yo =
 
 let make_cs cenv p rct1 rct2 tago tag =
   let env    = cenv |> env_of_cilenv in
-  let r1, r2 = Misc.map_pair (reft_of_refctype <+> canon_reft) (rct1, rct2) in
+  let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in

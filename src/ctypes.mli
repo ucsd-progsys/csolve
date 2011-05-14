@@ -324,6 +324,7 @@ val addr_of_refctype    : Cil.location -> refctype -> Sloc.t * Index.t
 val index_of_ctype      : ctype -> Index.t
 
 val ctype_of_refctype   : refctype -> ctype
+val reft_of_refctype    : refctype -> FixConstraint.reft
 val cfun_of_refcfun     : refcfun  -> cfun
 val store_of_refstore   : refstore -> store
 val cspec_of_refspec    : refspec  -> cspec
