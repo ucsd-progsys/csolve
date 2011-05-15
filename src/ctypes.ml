@@ -320,7 +320,6 @@ module N = Index
 
 module type CTYPE_REFINEMENT = sig
   type t
-  val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : C.constant -> t
   val top          : t
@@ -331,7 +330,6 @@ module IndexRefinement = struct
   type t = Index.t
 
   let top          = Index.top
-  let lub          = fun i1 i2 -> Some (N.widen i1 i2)
   let is_subref    = Index.is_subindex
   let d_refinement = Index.d_index
   
@@ -387,6 +385,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     exception NoLUB of t * t
 
+    val refinement  : t -> R.t
     val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
     val d_ctype     : unit -> t -> Pretty.doc
     val of_const    : Cil.constant -> t
@@ -397,8 +396,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
-    val is_ref      : t -> bool
-    val refinements_of_t : t -> R.t list
   end
 
   module type FIELD = sig
@@ -461,15 +458,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val indices_of_t : t -> Index.t list
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
-      
-(* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
-(** [prestore_split sto] returns (asto, csto) s.t. 
-   (1) sto = asto + csto
-   (2) locs(asto) \in abslocs 
-   (3) locs(csto) \in conlocs *)
-   let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-   prestore_partition (fun l _ -> S.is_abstract l) ps
-*)
   end
 
   module type CFUN = sig
@@ -551,12 +539,13 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   module rec CType: SIG.CTYPE = struct
     type t = R.t prectype
 
+    let refinement = function
+      | Int (_, r) | Ref (_, r) | FPtr (_, r) -> r
+
     let map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
       | FPtr _     -> assert false
-
-    let convert = map
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
@@ -577,18 +566,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       | pct        -> pct
 
     exception NoLUB of t * t
-
-    let lub_refs t1 t2 r1 r2 =
-      match R.lub r1 r2 with
-        | Some r -> r
-        | None   -> raise (NoLUB (t1, t2))
-
-    let lub t1 t2 =
-      match t1, t2 with
-        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> Int (n1, lub_refs t1 t2 r1 r2)
-        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> Ref (s1, lub_refs t1 t2 r1 r2)
-        | FPtr _, FPtr _                             -> assert false
-        | _                                          -> raise (NoLUB (t1, t2))
 
     let is_subctype pct1 pct2 =
       match pct1, pct2 with
@@ -624,14 +601,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let is_void = function
       | Int (0, _) -> true
       | _          -> false
-
-    let is_ref = function
-      | Ref _ -> true
-      | _     -> false
-     
-    let refinements_of_t = function
-      | Int (_, x) | Ref (_, x) -> [x]
-      | FPtr (_, x)             -> assert false
   end
 
   (******************************************************************************)
@@ -977,15 +946,8 @@ let void_ctype   = Int (0, N.top)
 let ptr_ctype    = Ref (S.fresh_abstract (), N.top) 
 let scalar_ctype = Int (0, N.top)
 
-let d_ctype = I.CType.d_ctype
-
-
-let index_of_ctype ct =
-  match I.CType.refinements_of_t ct with
-  | [ix] -> ix
-  | _    -> assertf "Ctypes.index_of_ctype"
-
-
+let d_ctype        = I.CType.d_ctype
+let index_of_ctype = I.CType.refinement
 
 (******************************************************************************)
 (************************* Refctypes and Friends ******************************)
@@ -1011,7 +973,6 @@ let d_index_reft () (i,r) =
 module Reft = struct
   type t = Index.t * FC.reft
   let d_refinement = d_index_reft
-  let lub          = fun ir1 ir2 -> assert false
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
   let top          = Index.top, reft_of_top 

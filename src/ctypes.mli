@@ -74,7 +74,6 @@ val d_indexset : unit -> IndexSet.t -> Pretty.doc
 
 module type CTYPE_REFINEMENT = sig
   type t
-  val lub          : t -> t -> t option
   val is_subref    : t -> t -> bool
   val of_const     : Cil.constant -> t
   val top          : t
@@ -106,9 +105,8 @@ and 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec (* = ('a precfun * bool) Misc.StringMap.t * ('a prectype * bool) Misc.StringMap.t * 'a prestore *)
+type 'a prespec
 
-(* can this be a functor? *)
 module type S = sig
   module R : CTYPE_REFINEMENT
 
@@ -118,6 +116,7 @@ module type S = sig
 
     exception NoLUB of t * t
 
+    val refinement       : t -> R.t
     val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
     val d_ctype          : unit -> t -> Pretty.doc
     val of_const         : Cil.constant -> t
@@ -128,8 +127,6 @@ module type S = sig
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
-    val is_ref           : t -> bool
-    val refinements_of_t : t -> R.t list
   end
 
   module Field:
@@ -196,15 +193,6 @@ module type S = sig
     
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
-
-    (* val prestore_split  : 'a prestore -> 'a prestore * 'a prestore
-    (** [prestore_split sto] returns (asto, csto) s.t. 
-       (1) sto = asto + csto
-       (2) locs(asto) \in abslocs 
-       (3) locs(csto) \in conlocs *)
-       let prestore_split (ps: 'a prestore): 'a prestore * 'a prestore =
-       prestore_partition (fun l _ -> S.is_abstract l) ps
-    *)
   end
 
   module CFun:
