@@ -21,6 +21,9 @@
  *
  *)
 
+(* change wfsubst to disjoint locations
+   use sorting on eqpair to cut complexity *)
+
 module M   = Misc
 module P   = Pretty
 module C   = Cil
@@ -29,6 +32,7 @@ module E   = Errormsg
 module ST  = Ssa_transform
 module RA  = Refanno
 module S   = Sloc
+module Sb  = S.Subst
 module SLM = S.SlocMap
 module SS  = S.SlocSet
 module CM  = CilMisc
@@ -77,32 +81,21 @@ type ctvemap = I.ctemap
 (******************************************************************************)
 
 type cstrdesc =
-  | CInLoc   of Index.t * ctype * S.t
-  | CHasLoc  of S.t
-  | CSubtype of ctype * ctype
   | CWFSubst of S.Subst.t
 
 let cstrdesc_slocs = function
-  | CInLoc (_, ct, s)   -> M.maybe_cons (Ct.sloc ct) [s]
-  | CHasLoc s           -> [s]
-  | CSubtype (ct1, ct2) -> M.maybe_cons (Ct.sloc ct1) (M.maybe_cons (Ct.sloc ct2) [])
-  | CWFSubst (sub)      -> S.Subst.slocs sub
+  | CWFSubst (sub) -> S.Subst.slocs sub
 
 let d_cstrdesc () = function
-  | CSubtype (ctv1, ctv2) -> P.dprintf "@[@[%a@] <: @[%a@]@]" Ct.d_ctype ctv1 Ct.d_ctype ctv2
-  | CInLoc (i, ctv, s)    -> P.dprintf "(%a, %a) ∈ %a" Index.d_index i Ct.d_ctype ctv S.d_sloc s
-  | CHasLoc s             -> P.dprintf "exists %a" S.d_sloc s
-  | CWFSubst (sub)        -> P.dprintf "WF(%a)" S.Subst.d_subst sub
+  | CWFSubst (sub) -> P.dprintf "WF(%a)" S.Subst.d_subst sub
 
 let apply_subst_to_subst appsub sub =
   List.map (fun (sfrom, sto) -> (S.Subst.apply appsub sfrom, S.Subst.apply appsub sto)) sub
 
 let cstrdesc_subst sub = function
-  | CSubtype (ctv1, ctv2) -> CSubtype (Ct.subs sub ctv1, Ct.subs sub ctv2)
-  | CInLoc (ie, ctv, s)   -> CInLoc (ie, Ct.subs sub ctv, S.Subst.apply sub s)
-  | CHasLoc s             -> CHasLoc (S.Subst.apply sub s)
-  | CWFSubst sub2         -> CWFSubst (apply_subst_to_subst sub sub2)
+  | CWFSubst sub2 -> CWFSubst (apply_subst_to_subst sub sub2)
 
+(* pmr: Inline constraint def? *)
 type 'a precstr = {cid: int; cdesc: 'a; cloc: C.location}
 
 type cstr = cstrdesc precstr
@@ -124,56 +117,48 @@ let d_cstr () {cid = cid; cdesc = cdesc; cloc = loc} =
 
 exception Unify of ctype * ctype
 
-let inloc_sat st i s ct =
-  match i with
-    | Index.IBot -> true
-    | _          ->
-        try
-          match Store.find_index s i st with
-            | [fld] -> Ctypes.I.CType.eq ct (Field.type_of fld)
-            | []    -> false
-            | _     -> halt <| C.bug "Prestore has multiple bindings for the same location"
-        with Not_found -> false
+let cstr_sat st sc = function
+  | {cdesc = CWFSubst (sub)} ->
+    try
+      let s1, s2 = sub |> S.Subst.dom |> M.find_pair S.eq in
+      halt <| C.error "Locations %a and %a get unified in call, not unified in spec"
+    with Not_found ->
+      true
 
-let cstr_sat st sc =
-  match sc.cdesc with
-    | CInLoc (i, ct, s)   -> inloc_sat st i s ct
-    | CHasLoc s           -> Store.mem st s
-    | CSubtype (ct1, ct2) -> Ct.is_subctype ct1 ct2
-    | CWFSubst (sub)      ->
-        try
-          let s1, s2 = sub |> S.Subst.dom |> M.find_pair S.eq in
-            halt <| C.error "Locations %a and %a get unified in call, not unified in spec"
-        with Not_found ->
-          true
-
-let unify_ctypes ct1 ct2 sub =
-  match ct1, ct2 with
-    | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> sub
-    | Ref (s1, _), Ref (s2, _)                 -> S.Subst.extend s1 s2 sub
-    | _, _                     when ct1 = ct2  -> sub
-    | Int (n1, _), Int (n2, _) when n1 = n2    -> sub
-    | _                                        -> raise (Unify (ct1, ct2))
-
-let store_add loc l i ctv sto =
+let store_add_absent loc l i ctv sto =
   SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find_or_empty l sto)) sto
 
-let unify_fields fld1 fld2 sub =
-  unify_ctypes (Field.type_of fld1) (Field.type_of fld2) sub
+let rec unify_ctypes loc ct1 ct2 sub sto = match ct1, ct2 with
+  | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> (sub, sto)
+  | Ref (s1, _), Ref (s2, _)                 -> unify_locations loc s1 s2 sub sto
+  | Int (n1, _), Int (n2, _) when n1 = n2    -> (sub, sto)
+  | _, _                     when ct1 = ct2  -> (sub, sto)
+  | _                                        -> raise (Unify (ct1, ct2))
 
-let refine_inloc loc s i ct sto =
+and unify_locations loc s1 s2 sub sto =
+  let sub = S.Subst.extend s1 s2 sub in
+  let ld1 = sto |> Store.find s1 |> LDesc.subs sub in
+  let sto = Store.remove sto s1 |> Store.subs sub in
+  let ld2 = Store.find s2 sto in
+    LDesc.fold begin fun (sub, sto) i f ->
+      let sub', sto = store_add loc s2 i (Field.type_of f) sto in
+        (S.Subst.compose sub' sub, sto)
+    end (sub, sto) ld1
+
+and store_add loc s i ct sto =
   try match i with
-    | Index.IBot   -> ([], sto)
+    | Index.IBot   -> (S.Subst.empty, sto)
     | Index.IInt n ->
       begin match Store.find_index s i sto with
-        | []    -> ([], store_add loc s i ct sto)
-        | [fld] -> (unify_ctypes ct (Field.type_of fld) [], sto)
+        | []    -> (S.Subst.empty, store_add_absent loc s i ct sto)
+        | [fld] -> unify_ctypes loc ct (Field.type_of fld) S.Subst.empty sto
         | _     -> assert false
       end
     | Index.ICClass _ ->
-      let ld   = Store.find_or_empty s sto in
-      let flds = LDesc.find i ld in
-      let sub  = List.fold_left (fun sub (_, fld) -> unify_ctypes ct (Field.type_of fld) sub) [] flds in
+      let ld       = Store.find_or_empty s sto in
+      let flds     = LDesc.find i ld in
+      let cts      = List.map (snd <+> Field.type_of) flds in
+      let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (Sb.empty, sto) cts in
         if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
           (* If this sequence is included in an existing one, there's nothing left to do *)
           (sub, sto)
@@ -195,69 +180,11 @@ let unify_slocs = function
 let make_subst_well_defined sub =
   sub |> S.Subst.images |> List.fold_left (fun outsub rng -> S.Subst.compose (unify_slocs rng) outsub) []
 
-let refine_wfsubst sub =
-  sub |> S.Subst.transpose |> make_subst_well_defined
-
 let refine_aux sc sto =
-  try
-    match sc.cdesc with
-      | CInLoc (i, ct, s)   -> refine_inloc sc.cloc s i ct sto
-      | CHasLoc s           -> ([], if Store.mem sto s then sto else SLM.add s LDesc.empty sto)
-      | CSubtype (ct1, ct2) -> (unify_ctypes ct1 ct2 S.Subst.empty, sto)
-      | CWFSubst (sub)      -> (refine_wfsubst sub, sto)
+  try match sc.cdesc with
+    | CWFSubst sub -> (sub |> S.Subst.transpose |> make_subst_well_defined, sto)
   with
     | Unify (ct1, ct2) -> halt <| C.errorLoc sc.cloc "Cannot unify %a with %a\n\n" Ct.d_ctype ct1 Ct.d_ctype ct2
-
-type slocdep = int list SLM.t (* sloc -> cstr deps *)
-
-type cstrmap = cstr IM.t (* cstr ident -> cstr map *)
-
-let cstrmap_subs sub cm =
-  IM.map (cstr_subst sub) cm
-
-(* pmr: should make sure that subst is well-defined at this point *)
-let adjust_slocdep sub sd =
-  List.fold_left begin fun sd (sfrom, sto) ->
-    (* pmr: this find pattern is common; should be using a MapWithDefault *)
-    let olddeps = try SLM.find sfrom sd with Not_found -> [] in
-    let newdeps = try SLM.find sto sd with Not_found -> [] in
-      sd |> SLM.remove sfrom |> SLM.add sto (newdeps @ olddeps)
-  end sd sub
-
-let refine sd cm sub sc sto =
-  let refsub, sto   = refine_aux sc sto in
-  let invalid_slocs = S.Subst.slocs refsub in
-  let sto           = invalid_slocs |> List.fold_left (fun sto s -> SLM.remove s sto) sto |> Store.subs refsub in
-  let succs         = invalid_slocs |> M.flap (fun ivs -> try SLM.find ivs sd with Not_found -> (P.printf "Couldn't find dep for %a\n\n" S.d_sloc ivs; assert false)) in
-  let sd            = adjust_slocdep refsub sd in
-  let cm            = cstrmap_subs refsub cm in
-    (sd, cm, S.Subst.compose refsub sub, sto, succs)
-
-(* pmr: pull out worklist code? *)
-module WkList = Heaps.Functional(struct
-                                   type t = int
-                                   let compare = compare
-                                 end)
-
-let wklist_push wkl itcids =
-  List.fold_left (M.flip WkList.add) wkl itcids
-
-let rec iter_solve wkl sd cm sub sto =
-  match try Some (WkList.maximum wkl) with Heaps.EmptyHeap -> None with
-    | None     -> (sd, cm, sub, sto)
-    | Some cid ->
-        let sc  = M.IntMap.find cid cm in
-        let wkl = WkList.remove wkl in
-          if cstr_sat sto sc then
-            iter_solve wkl sd cm sub sto
-          else
-            let sd, cm, sub, sto, succs = refine sd cm sub sc sto in
-            let wkl                     = wklist_push wkl succs in
-              iter_solve wkl sd cm sub sto
-
-let solve sd cm sto =
-  let wkl = IM.fold (fun cid _ cids -> cid :: cids) cm [] |> wklist_push WkList.empty in
-    iter_solve wkl sd cm S.Subst.empty sto
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -270,140 +197,147 @@ let _DEBUG_print_ve s ve =
   end ve; 
   P.printf " END\n"
 
-
-let mk_subty ctv1 ctv2 =
-  mk_cstr !C.currentLoc (CSubtype (ctv1, ctv2))
-
-let mk_hasloc s =
-  mk_cstr !C.currentLoc (CHasLoc s)
-
-let mk_locinc i ctv s =
-  mk_cstr !C.currentLoc (CInLoc (i, ctv, s))
-
 let mk_wfsubst sub =
   mk_cstr !C.currentLoc (CWFSubst sub)
 
-let constrain_lval et = function
-  | (C.Var v, C.NoOffset)       -> []
+let constrain_lval et sub sto = function
+  | (C.Var v, C.NoOffset)       -> (sub, sto)
   | (C.Mem e, C.NoOffset) as lv ->
     begin match et#ctype_of_exp e with
-      | Ref (s, ie) -> [mk_locinc ie (et#ctype_of_lval lv) s]
-      | _           -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
+      | Ref (s, i) ->
+        let sub', sto = store_add !C.currentLoc s i (et#ctype_of_lval lv) sto in
+          (S.Subst.compose sub' sub, sto)
+      | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
-class exprConstraintVisitor (et) = object (self)
+class exprConstraintVisitor (et, sub, sto) = object (self)
   inherit C.nopCilVisitor
 
-  val cs = ref []
+  val sto = ref sto
+  val sub = ref sub
 
-  method get_cs = !cs
+  method get_sub_sto = (!sub, !sto)
 
-  method vexpr e =
-    cs := self#constrain_exp e ++ !cs;
-    C.DoChildren
+  method private set_sub_sto (sub', sto') =
+    sub := sub';
+    sto := sto'
 
   method private constrain_constptr e = function
-    | C.CInt64 _ -> []
+    | C.CInt64 _ -> ()
     | C.CStr _   ->
       begin match et#ctype_of_exp e with
-        | Ref (s, _) -> [mk_locinc Index.nonneg (Int (1, Index.nonneg)) s]
-        | _          -> assert false
+        | Ref (s, _) ->
+          let sub, sto = store_add !C.currentLoc s Index.nonneg (Int (1, Index.nonneg)) !sto in
+            self#set_sub_sto (sub, sto)
+        | _ -> assert false
       end
     | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
   method private constrain_exp = function
-    | C.Const c                          -> []
-    | C.Lval lv | C.StartOf lv           -> constrain_lval et lv
-    | C.UnOp (uop, e, t)                 -> []
-    | C.BinOp (bop, e1, e2, t)           -> []
+    | C.Const c                          -> ()
+    | C.Lval lv | C.StartOf lv           -> self#set_sub_sto (constrain_lval et !sub !sto lv)
+    | C.UnOp (uop, e, t)                 -> ()
+    | C.BinOp (bop, e1, e2, t)           -> ()
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
-    | C.CastE (ct, e)                    -> []
-    | C.SizeOf t                         -> []
-    | C.AddrOf lv                        -> []
+    | C.CastE (ct, e)                    -> ()
+    | C.SizeOf t                         -> ()
+    | C.AddrOf lv                        -> ()
     | e                                  -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 end
 
-let constrain_exp et e =
-  let ecv = new exprConstraintVisitor (et) in
+let constrain_exp et sub sto e =
+  let ecv = new exprConstraintVisitor (et, sub, sto) in
   let _   = C.visitCilExpr (ecv :> C.cilVisitor) e in
-    ecv#get_cs
+    ecv#get_sub_sto
 
-let constrain_return et rtv = function
-    | None   -> if Ct.is_void rtv then ([], []) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
-    | Some e -> ([], mk_subty (et#ctype_of_exp e) rtv :: constrain_exp et e)
+let constrain_args et sub sto es =
+  List.fold_right begin fun e (cts, sub, sto) ->
+    let sub, sto = constrain_exp et sub sto e in
+      (et#ctype_of_exp e :: cts, sub, sto)
+  end es ([], sub, sto)
 
-let constrain_args et es =
-  List.fold_right begin fun e (ctvs, css) ->
-    (et#ctype_of_exp e :: ctvs, constrain_exp et e :: css)
-  end es ([], [])
-
-let constrain_app (fs, _) et f lvo args =
-  let ctvs, css  = constrain_args et args in
-  let cf, _      = VM.find f fs in
-  let instslocs  = List.map (fun _ -> S.fresh_abstract ()) cf.qlocs in
-  let annot      = (List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs) instslocs in
-  let sub        = List.combine cf.qlocs instslocs in
-  let ctvfs      = List.map (Ct.subs sub <.> snd) cf.args in
-  let stoincs    = Store.fold begin fun ics s i fld ->
-    mk_locinc i (Ct.subs sub (Field.type_of fld)) (S.Subst.apply sub s) :: ics
-  end [] cf.sto_out in
-  let css        = (mk_wfsubst sub :: stoincs)
-                   :: SLM.fold (fun s _ hls -> mk_hasloc (S.Subst.apply sub s) :: hls) cf.sto_out []
-                   :: ((List.map2 (fun ctva ctvf -> mk_subty ctva ctvf) ctvs) ctvfs)
-                   :: css in
+let constrain_app (fs, _) et f sub sto lvo args =
+  let cts, sub, sto = constrain_args et sub sto args in
+  let cf, _         = VM.find f fs in
+  let instslocs     = List.map (fun _ -> S.fresh_abstract ()) cf.qlocs in
+  let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs instslocs in
+  let isub          = List.combine cf.qlocs instslocs in
+  let sub           = S.Subst.compose isub sub in
+  let ctfs          = List.map (Ct.subs sub <.> snd) cf.args in
+  let ostore        = Store.subs sub cf.sto_out in
+  let sub, sto      = Store.fold begin fun (sub, sto) s i fld ->
+    let sub', sto = store_add !C.currentLoc s i (Field.type_of fld) sto in
+      (S.Subst.compose sub' sub, sto)
+  end (sub, sto) ostore in
+  let sub, sto      = List.fold_left2 begin fun (sub, sto) ctva ctvf ->
+    unify_ctypes !C.currentLoc ctva ctvf sub sto
+  end (sub, sto) cts ctfs in
+  let sto          = List.fold_left (fun sto s -> SLM.add s (Store.find_or_empty s sto) sto) sto (Store.domain ostore) in
+  let cs           = [mk_wfsubst isub] in
     match lvo with
-      | None    -> (annot, css)
+      | None    -> (annot, sub, sto, cs)
       | Some lv ->
-        let ctvlv = et#ctype_of_lval lv in
-        let cs2   = constrain_lval et lv in
-          (annot, (mk_subty (Ct.subs sub cf.ret) ctvlv :: cs2) :: css)
+        let ctlv    = et#ctype_of_lval lv in
+        let sub, sto = constrain_lval et sub sto lv in
+        let sub, sto = unify_ctypes !C.currentLoc (Ct.subs sub cf.ret) ctlv sub sto in
+          (annot, sub, sto, cs)
 
-let constrain_instr_aux env et (bas, css) i =
+let constrain_return et sub sto rtv = function
+    | None   -> if Ct.is_void rtv then ([], sub, sto, []) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
+    | Some e ->
+      let sub, sto = constrain_exp et sub sto e in
+      let sub, sto = unify_ctypes !C.currentLoc (et#ctype_of_exp e) rtv sub sto in
+        ([], sub, sto, [])
+
+let constrain_instr_aux env et (bas, sub, sto, cs) i =
   let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in 
   match i with
   | C.Set (lv, e, _) ->
-      let ctv1 = et#ctype_of_lval lv in
-      let cs1  = constrain_lval et lv in
-      let ctv2 = et#ctype_of_exp e in
-      let cs2  = constrain_exp et e in
-        ([] :: bas, (mk_subty ctv2 ctv1 :: cs1) :: cs2 :: css)
+      let sub, sto = constrain_lval et sub sto lv in
+      let sub, sto = constrain_exp et sub sto e in
+      let ct1      = et#ctype_of_lval lv in
+      let ct2      = et#ctype_of_exp e in
+      let sub, sto = unify_ctypes loc ct1 ct2 sub sto in
+        ([] :: bas, sub, sto, cs)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
-      let _, css2 = constrain_args et args in
-        ([] :: bas, css2 @ css)
+      let _, sub, sto = constrain_args et sub sto args in
+        ([] :: bas, sub, sto, cs)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-      let ba, css2 = constrain_app env et f lvo args in
-        (ba :: bas, css2 @ css)
+      let ba, sub, sto, cs2 = constrain_app env et f sub sto lvo args in
+        (ba :: bas, sub, sto, cs2 @ cs)
   | C.Call (lvo, C.Lval (C.Mem _, _), args, _) ->
       let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle funptr call: %a@!@!" Cil.d_instr i |> CM.g_halt !Cs.safe in
-      let _, css2 = constrain_args et args in
-        ([] :: bas, css2 @ css)
+      let _, sub, sto = constrain_args et sub sto args in
+        ([] :: bas, sub, sto, cs)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr env et is =
-  let bas, css = List.fold_left (constrain_instr_aux env et) ([], []) is in
-    (List.rev ([] :: bas), List.concat css)
+let constrain_instr env et is sub sto =
+  let bas, sub, sto, cs = List.fold_left (constrain_instr_aux env et) ([], sub, sto, []) is in
+    (List.rev ([] :: bas), sub, sto, cs)
 
-let constrain_stmt env et rtv s =
+let constrain_stmt env et rtv s sub sto =
   let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
     match s.C.skind with
-      | C.Instr is          -> constrain_instr env et is
-      | C.If (e, _, _, _)   -> ([], constrain_exp et e) (* we'll visit the subblocks later *)
-      | C.Break _           -> ([], [])
-      | C.Continue _        -> ([], [])
-      | C.Goto _            -> ([], [])
-      | C.Block _           -> ([], [])                              (* we'll visit this later as we iterate through blocks *)
-      | C.Loop (_, _, _, _) -> ([], [])                              (* ditto *)
-      | C.Return (rexp, _)  -> constrain_return et rtv rexp
+      | C.Instr is          -> constrain_instr env et is sub sto
+      | C.If (e, _, _, _)   -> let sub, sto = constrain_exp et sub sto e in ([], sub, sto, [])
+      | C.Break _           -> ([], sub, sto, [])
+      | C.Continue _        -> ([], sub, sto, [])
+      | C.Goto _            -> ([], sub, sto, [])
+      | C.Block _           -> ([], sub, sto, [])       (* we'll visit this later as we iterate through blocks *)
+      | C.Loop (_, _, _, _) -> ([], sub, sto, [])       (* ditto *)
+      | C.Return (rexp, _)  -> constrain_return et sub sto rtv rexp
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
-let constrain_phi_defs ve (vphi, vdefs) =
-  let _ = C.currentLoc := vphi.C.vdecl in
-    List.map (fun (_, vdef) -> mk_subty (VM.find vdef ve) (VM.find vphi ve)) vdefs
+let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
+  let loc = vphi.C.vdecl >> (:=) C.currentLoc in
+    List.fold_left begin fun (sub, sto) (_, vdef) ->
+      unify_ctypes loc (VM.find vdef ve) (VM.find vphi ve) sub sto
+    end (sub, sto) vdefs
 
-let constrain_phis ve phis =
-  Array.to_list phis |> List.flatten |> List.map (constrain_phi_defs ve) |> List.concat
+let constrain_phis ve phis sub sto =
+  Array.to_list phis |> List.flatten |> List.fold_left (constrain_phi_defs ve) (sub, sto)
 
 class exprMapVisitor (et) = object (self)
   inherit C.nopCilVisitor
@@ -414,7 +348,7 @@ class exprMapVisitor (et) = object (self)
 
   method vexpr e =
     begin match e |> C.typeOf |> C.unrollType with
-      | C.TFun _ -> ()
+      | C.TFun _ -> () (* pmr: revisit - begging for an assert false here? *)
       | _        -> em := I.ExpMap.add e (et#ctype_of_exp e) !em
     end;
     C.DoChildren
@@ -424,62 +358,32 @@ class exprMapVisitor (et) = object (self)
     C.DoChildren
 end
 
-let constrain_fun fs cf ve {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
-  let _        = C.currentLoc := fd.C.svar.C.vdecl in
-  let formalcs = List.map2 (fun (_, fct) bv -> mk_subty fct (VM.find bv ve)) cf.args fd.C.sformals in
-  let phics    = constrain_phis ve phis in
-  let et       = new exprTyper (ve) in
-  let emv      = new exprMapVisitor (et) in
-  let _        = C.visitCilFunction (emv :> C.cilVisitor) fd in
-  let em       = emv#get_em in
-  let blocks   = cfg.Ssa.blocks in
-  let bas      = Array.make (Array.length blocks) [] in
-  let css      =
-    M.array_fold_lefti begin fun i css b ->
-      let ba, cs = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt in
+(* BE SURE TO APPLY SUBST TO ANY TYPE WE GET FROM ET *)
+
+let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
+  let loc          = fd.C.svar.C.vdecl >> (:=) C.currentLoc in
+  let sub, sto     = List.fold_left2 begin fun (sub, sto) (_, fct) bv ->
+    unify_ctypes loc fct (VM.find bv ve) sub sto
+  end (S.Subst.empty, sto) cf.args fd.C.sformals in
+  let sub, sto     = constrain_phis ve phis sub sto in
+  let et           = new exprTyper (ve) in
+  let emv          = new exprMapVisitor (et) in
+  let _            = C.visitCilFunction (emv :> C.cilVisitor) fd in
+  let em           = emv#get_em in
+  let blocks       = cfg.Ssa.blocks in
+  let bas          = Array.make (Array.length blocks) [] in
+  let sub, sto, cs =
+    M.array_fold_lefti begin fun i (sub, sto, cs) b ->
+      let ba, sub, sto, cs' = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
-        (cs :: css)
-    end [] blocks
+        (sub, sto, cs' @ cs)
+    end (sub, sto, []) blocks
   in
-  let _      = C.currentLoc := fd.C.svar.C.vdecl in
-  let vartys = VM.fold (fun _ ct cts -> ct :: cts) ve [] in
-  let cs     = formalcs :: phics :: css |> List.concat in
-  let _      =
-    if Cs.ck_olev Cs.ol_solve then begin
-      P.printf "Constraints for %s:\n\n" fd.C.svar.C.vname;
-      List.iter (fun c -> P.printf "%a\n" d_cstr c |> ignore) cs;
-      P.printf "\n" |> ignore
-    end else ()
-  in (em, bas, cs)
-
-let constrain_sci fs sci =
-  let cf, ve = VM.find sci.ST.fdec.C.svar fs in
-    constrain_fun fs cf ve sci
-
-(******************************************************************************)
-(*************************** Constraint Dependencies **************************)
-(******************************************************************************)
-
-let mk_cstrmap scs =
-  List.fold_left (fun cm sc -> IM.add sc.cid sc cm) IM.empty scs
-
-let add_slocdep id sd s =
-  let depcs = try SLM.find s sd with Not_found -> [] in
-    SLM.add s (id :: depcs) sd
-
-let fresh_sloc_of c =
-  match c with
-    | Ref (s, i) -> Ref (S.fresh_abstract (), i)
-    | _          -> c
+  (em, bas, sub, sto, cs)
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
 (******************************************************************************)
-
-let update_deps scs cm sd =
-  let cm = List.fold_left (fun cm sc -> IM.add sc.cid sc cm) cm scs in
-  let sd = List.fold_left (fun sd sc -> cstrdesc_slocs sc.cdesc |> List.fold_left (add_slocdep sc.cid) sd) sd scs in
-    (cm, sd)
 
 let check_out_store_complete sto_out_formal sto_out_actual =
   Store.fold begin fun ok l i fld ->
@@ -516,22 +420,18 @@ let global_quantification_error () (s1, s2) =
 let add_loc_if_missing sto s =
   if SLM.mem s sto then sto else SLM.add s LDesc.empty sto
 
-let rec solve_and_check cf vars gst em bas sd cm =
-  let sd, cm, sub, sto = solve sd cm SLM.empty in
-  let whole_store      = Store.upd cf.sto_out gst in
-  let _                = check_slocs_distinct global_alias_error sub (Store.domain gst) in
-  let _                = check_slocs_distinct quantification_error sub cf.qlocs in
-  let _                = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
-  let revsub           = revert_spec_names sub whole_store in
-  let sto              = Store.subs revsub sto in
-  let sto              = cf |> CFun.slocs |> List.fold_left add_loc_if_missing sto in
-  let sto              = List.fold_left add_loc_if_missing sto (Store.slocs sto) in
-  let sub              = S.Subst.compose revsub sub in
-  let vars             = VM.map (Ct.subs sub) vars in
-  let em               = I.ExpMap.map (Ct.subs sub) em in
-  let bas              = Array.map (RA.subs sub) bas in
+let check_sol cf vars gst em bas sub sto =
+  let whole_store = Store.upd cf.sto_out gst in
+  let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
+  let _           = check_slocs_distinct quantification_error sub cf.qlocs in
+  let _           = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
+  let revsub      = revert_spec_names sub whole_store in
+  let sto         = Store.subs revsub sto in
+  let sto         = cf |> CFun.slocs |> List.fold_left add_loc_if_missing sto in
+  let sto         = List.fold_left add_loc_if_missing sto (Store.slocs sto) in
+  let sub         = S.Subst.compose revsub sub in
     if check_out_store_complete whole_store sto then
-      (SLM.fold (fun s _ sto -> SLM.remove s sto) gst sto, vars, em, bas)
+      (sub, SLM.fold (fun s _ sto -> SLM.remove s sto) gst sto)
     else
          halt
       <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
@@ -541,6 +441,10 @@ let rec solve_and_check cf vars gst em bas sd cm =
 
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
+
+let fresh_sloc_of = function
+  | Ref (s, i) -> Ref (S.fresh_abstract (), i)
+  | c          -> c
 
 let fresh_local_slocs ve =
   VM.mapi (fun v ct -> if v.C.vglob then ct else fresh_sloc_of ct) ve
@@ -594,17 +498,18 @@ let print_vm_diff vm1 vm2 =
   end vm1
 
 let infer_shape fe ve gst scim (cf, sci, vm) =
-  let ve                  = vm |> CM.vm_union ve |> fresh_local_slocs in
-  let em, bas, cs         = constrain_fun fe cf ve sci in
-  let whole_store         = Store.upd cf.sto_out gst in
-  let scs                 = Store.fold (fun cs l i fld -> mk_locinc i (Field.type_of fld) l :: cs) cs whole_store in
-  let cm, sd              = update_deps scs IM.empty SLM.empty in
-  let _                   = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
-  let sto, vtyps, em, bas = solve_and_check cf ve gst em bas sd cm in
-  let vtyps               = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let annot, conca, theta = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
-  let _                   = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
-  let nasa                = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
+  let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
+  let sto                   = Store.upd cf.sto_out gst in
+  let em, bas, sub, sto, cs = constrain_fun fe cf ve sto sci in
+  let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
+  let sub, sto              = check_sol cf ve gst em bas sub sto in
+  let vtyps                 = VM.map (Ct.subs sub) ve in
+  let vtyps                 = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
+  let em                    = I.ExpMap.map (Ct.subs sub) em in
+  let bas                   = Array.map (RA.subs sub) bas in
+  let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
+  let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
+  let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
     {Sh.vtyps   = CM.vm_to_list vtyps;
      Sh.etypm   = em;
      Sh.store   = sto;
