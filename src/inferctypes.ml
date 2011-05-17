@@ -128,7 +128,7 @@ let cstr_sat st sc = function
 let store_add_absent loc l i ctv sto =
   SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find_or_empty l sto)) sto
 
-let rec unify_ctypes loc ct1 ct2 sub sto = match ct1, ct2 with
+let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> (sub, sto)
   | Ref (s1, _), Ref (s2, _)                 -> unify_locations loc s1 s2 sub sto
   | Int (n1, _), Int (n2, _) when n1 = n2    -> (sub, sto)
