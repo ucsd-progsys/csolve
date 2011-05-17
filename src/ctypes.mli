@@ -139,6 +139,7 @@ module type S = sig
     val type_of      : t -> CType.t
     val sloc_of      : t -> Sloc.t option
     val create       : finality -> CType.t -> t
+    val subs         : Sloc.Subst.t -> t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
 
     val d_field      : unit -> t -> Pretty.doc
@@ -159,6 +160,7 @@ module type S = sig
     val find          : Index.t -> t -> (Index.t * Field.t) list
     val foldn         : (int -> 'a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
+    val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit

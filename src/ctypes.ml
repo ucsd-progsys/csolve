@@ -407,6 +407,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val type_of      : t -> ctype
     val sloc_of      : t -> Sloc.t option
     val create       : finality -> ctype -> t
+    val subs         : Sloc.Subst.t -> t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
       
     val d_field      : unit -> t -> Pretty.doc
@@ -426,6 +427,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val find          : Index.t -> t -> (Index.t * field) list
     val foldn         : (int -> 'a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val fold          : ('a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+    val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> field -> unit) -> t -> unit
@@ -628,6 +630,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_type f fld =
       fld |> type_of |> f |> create (get_finality fld)
 
+    let subs sub =
+      map_type (CType.subs sub)
+
     let d_field () fld =
       let pct = type_of fld in
         if is_final fld then P.dprintf "final %a" CType.d_ctype pct else CType.d_ctype () pct
@@ -683,6 +688,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let map f flds =
       mapn (fun _ _ fld -> f fld) flds
+
+    let subs sub =
+      map (Field.map_type (CType.subs sub))
 
     let iter f ld =
       fold (fun _ i fld -> f i fld) () ld
