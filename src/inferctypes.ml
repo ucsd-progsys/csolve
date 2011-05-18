@@ -117,48 +117,38 @@ let d_cstr () {cid = cid; cdesc = cdesc; cloc = loc} =
 
 exception Unify of ctype * ctype
 
-let cstr_sat st sc = function
-  | {cdesc = CWFSubst (sub)} ->
-    try
-      let s1, s2 = sub |> S.Subst.dom |> M.find_pair S.eq in
-      halt <| C.error "Locations %a and %a get unified in call, not unified in spec"
-    with Not_found ->
-      true
-
 let store_add_absent loc l i ctv sto =
   SLM.add l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find_or_empty l sto)) sto
 
 let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
-  | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> (sub, sto)
-  | Ref (s1, _), Ref (s2, _)                 -> unify_locations loc s1 s2 sub sto
-  | Int (n1, _), Int (n2, _) when n1 = n2    -> (sub, sto)
   | _, _                     when ct1 = ct2  -> (sub, sto)
+  | Ref (s1, _), Ref (s2, _) when S.eq s1 s2 -> (sub, sto)
+  | Int (n1, _), Int (n2, _) when n1 = n2    -> (sub, sto)
+  | Ref (s1, _), Ref (s2, _)                 -> unify_locations loc s1 s2 sub sto
   | _                                        -> raise (Unify (ct1, ct2))
 
 and unify_locations loc s1 s2 sub sto =
   let sub = S.Subst.extend s1 s2 sub in
-  let ld1 = sto |> Store.find s1 |> LDesc.subs sub in
-  let sto = Store.remove sto s1 |> Store.subs sub in
-  let ld2 = Store.find s2 sto in
-    LDesc.fold begin fun (sub, sto) i f ->
-      let sub', sto = store_add loc s2 i (Field.type_of f) sto in
-        (S.Subst.compose sub' sub, sto)
-    end (sub, sto) ld1
+  let ld1 = sto |> Store.find_or_empty s1 |> LDesc.subs sub in
+  let sto = Store.remove sto s1 |> SLM.add s2 (Store.find_or_empty s2 sto) |> Store.subs sub in
+    LDesc.fold (fun (sub, sto) i f -> store_add loc s2 i (Field.type_of f) sub sto) (sub, sto) ld1
 
-and store_add loc s i ct sto =
+and store_add loc s i ct sub sto =
+  let s  = S.Subst.apply sub s in
+  let ct = Ct.subs sub ct in
   try match i with
-    | Index.IBot   -> (S.Subst.empty, sto)
+    | Index.IBot   -> (sub, sto)
     | Index.IInt n ->
       begin match Store.find_index s i sto with
-        | []    -> (S.Subst.empty, store_add_absent loc s i ct sto)
-        | [fld] -> unify_ctypes loc ct (Field.type_of fld) S.Subst.empty sto
+        | []    -> (sub, store_add_absent loc s i ct sto)
+        | [fld] -> unify_ctypes loc ct (Field.type_of fld) sub sto
         | _     -> assert false
       end
     | Index.ICClass _ ->
       let ld       = Store.find_or_empty s sto in
       let flds     = LDesc.find i ld in
       let cts      = List.map (snd <+> Field.type_of) flds in
-      let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (Sb.empty, sto) cts in
+      let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (sub, sto) cts in
         if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
           (* If this sequence is included in an existing one, there's nothing left to do *)
           (sub, sto)
@@ -169,7 +159,7 @@ and store_add loc s i ct sto =
           let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
             (sub, SLM.add s ld sto)
   with e ->
-    C.errorLoc loc "refine_inloc: Can't fit %a: %a in location %a |-> %a"
+    C.errorLoc loc "store_add: Can't fit %a: %a in location %a |-> %a"
       Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find_or_empty s sto) |> ignore;
     raise e
 
@@ -204,10 +194,8 @@ let constrain_lval et sub sto = function
   | (C.Var v, C.NoOffset)       -> (sub, sto)
   | (C.Mem e, C.NoOffset) as lv ->
     begin match et#ctype_of_exp e with
-      | Ref (s, i) ->
-        let sub', sto = store_add !C.currentLoc s i (et#ctype_of_lval lv) sto in
-          (S.Subst.compose sub' sub, sto)
-      | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
+      | Ref (s, i) -> store_add !C.currentLoc s i (et#ctype_of_lval lv) sub sto
+      | _          -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
@@ -223,20 +211,22 @@ class exprConstraintVisitor (et, sub, sto) = object (self)
     sub := sub';
     sto := sto'
 
+  method vexpr e =
+    self#constrain_exp e;
+    C.DoChildren
+
   method private constrain_constptr e = function
     | C.CInt64 _ -> ()
     | C.CStr _   ->
       begin match et#ctype_of_exp e with
-        | Ref (s, _) ->
-          let sub, sto = store_add !C.currentLoc s Index.nonneg (Int (1, Index.nonneg)) !sto in
-            self#set_sub_sto (sub, sto)
-        | _ -> assert false
+        | Ref (s, _) -> self#set_sub_sto <| store_add !C.currentLoc s Index.nonneg (Int (1, Index.nonneg)) !sub !sto
+        | _          -> assert false
       end
     | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
   method private constrain_exp = function
     | C.Const c                          -> ()
-    | C.Lval lv | C.StartOf lv           -> self#set_sub_sto (constrain_lval et !sub !sto lv)
+    | C.Lval lv | C.StartOf lv           -> let _ = P.printf "in constrain_exp lval@!@!" in self#set_sub_sto (constrain_lval et !sub !sto lv)
     | C.UnOp (uop, e, t)                 -> ()
     | C.BinOp (bop, e1, e2, t)           -> ()
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
@@ -263,24 +253,22 @@ let constrain_app (fs, _) et f sub sto lvo args =
   let instslocs     = List.map (fun _ -> S.fresh_abstract ()) cf.qlocs in
   let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs instslocs in
   let isub          = List.combine cf.qlocs instslocs in
-  let sub           = S.Subst.compose isub sub in
-  let ctfs          = List.map (Ct.subs sub <.> snd) cf.args in
-  let ostore        = Store.subs sub cf.sto_out in
+  let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
+  let ostore        = Store.subs isub cf.sto_out in
   let sub, sto      = Store.fold begin fun (sub, sto) s i fld ->
-    let sub', sto = store_add !C.currentLoc s i (Field.type_of fld) sto in
-      (S.Subst.compose sub' sub, sto)
+    store_add !C.currentLoc s i (Field.type_of fld) sub sto
   end (sub, sto) ostore in
-  let sub, sto      = List.fold_left2 begin fun (sub, sto) ctva ctvf ->
-    unify_ctypes !C.currentLoc ctva ctvf sub sto
+  let sub, sto      = List.fold_left2 begin fun (sub, sto) cta ctf ->
+    unify_ctypes !C.currentLoc cta ctf sub sto
   end (sub, sto) cts ctfs in
   let sto          = List.fold_left (fun sto s -> SLM.add s (Store.find_or_empty s sto) sto) sto (Store.domain ostore) in
   let cs           = [mk_wfsubst isub] in
     match lvo with
       | None    -> (annot, sub, sto, cs)
       | Some lv ->
-        let ctlv    = et#ctype_of_lval lv in
+        let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-        let sub, sto = unify_ctypes !C.currentLoc (Ct.subs sub cf.ret) ctlv sub sto in
+        let sub, sto = unify_ctypes !C.currentLoc (Ct.subs isub cf.ret) ctlv sub sto in
           (annot, sub, sto, cs)
 
 let constrain_return et sub sto rtv = function
@@ -367,19 +355,18 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   end (S.Subst.empty, sto) cf.args fd.C.sformals in
   let sub, sto     = constrain_phis ve phis sub sto in
   let et           = new exprTyper (ve) in
-  let emv          = new exprMapVisitor (et) in
-  let _            = C.visitCilFunction (emv :> C.cilVisitor) fd in
-  let em           = emv#get_em in
   let blocks       = cfg.Ssa.blocks in
   let bas          = Array.make (Array.length blocks) [] in
   let sub, sto, cs =
     M.array_fold_lefti begin fun i (sub, sto, cs) b ->
-      let ba, sub, sto, cs' = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
+      let ba, sub, sto, cs2 = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
-        (sub, sto, cs' @ cs)
+        (sub, sto, cs2 @ cs)
     end (sub, sto, []) blocks
   in
-  (em, bas, sub, sto, cs)
+  let emv = new exprMapVisitor (et) in
+  let _   = C.visitCilFunction (emv :> C.cilVisitor) fd in
+  (emv#get_em, bas, sub, sto, cs)
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
