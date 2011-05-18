@@ -137,27 +137,23 @@ and store_add loc s i ct sub sto =
   let s  = S.Subst.apply sub s in
   let ct = Ct.subs sub ct in
   try match i with
-    | Index.IBot   -> (sub, sto)
-    | Index.IInt n ->
-      begin match Store.find_index s i sto with
-        | []    -> (sub, store_add_absent loc s i ct sto)
-        | [fld] -> unify_ctypes loc ct (Field.type_of fld) sub sto
-        | _     -> assert false
-      end
-    | Index.ICClass _ ->
-      let ld       = Store.find_or_empty s sto in
-      let flds     = LDesc.find i ld in
-      let cts      = List.map (snd <+> Field.type_of) flds in
-      let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (sub, sto) cts in
-        if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
-          (* If this sequence is included in an existing one, there's nothing left to do *)
-          (sub, sto)
-        else
-          (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
-          let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
-          let i  = List.fold_left (fun i (i2, _) -> Index.lub i i2) i flds in
-          let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
-            (sub, SLM.add s ld sto)
+    | Index.IBot                     -> (sub, sto)
+    | Index.ICClass _ | Index.IInt _ ->
+      let ld = Store.find_or_empty s sto in
+        match LDesc.find i ld with
+          | []   -> (sub, store_add_absent loc s i ct sto)
+          | flds ->
+            let cts      = List.map (snd <+> Field.type_of) flds in
+            let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (sub, sto) cts in
+              if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
+                (* If this sequence is included in an existing one, there's nothing left to do *)
+                (sub, sto)
+              else
+                (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
+                let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
+                let i  = List.fold_left (fun i (i2, _) -> Index.lub i i2) i flds in
+                let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
+                  (sub, SLM.add s ld sto)
   with e ->
     C.errorLoc loc "store_add: Can't fit %a: %a in location %a |-> %a"
       Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find_or_empty s sto) |> ignore;
