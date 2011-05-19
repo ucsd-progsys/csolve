@@ -32,9 +32,7 @@ module E   = Errormsg
 module ST  = Ssa_transform
 module RA  = Refanno
 module S   = Sloc
-module Sb  = S.Subst
 module SLM = S.SlocMap
-module SS  = S.SlocSet
 module CM  = CilMisc
 module VM  = CM.VarMap
 module SM  = M.StringMap
@@ -105,6 +103,7 @@ let (fresh_cstrid, reset_fresh_cstrids) = M.mk_int_factory ()
 let mk_cstr loc cdesc =
   {cid = fresh_cstrid (); cloc = loc; cdesc = cdesc}
 
+(* pmr: use "c with" here? *)
 let cstr_subst sub c =
   mk_cstr c.cloc (cstrdesc_subst sub c.cdesc)
 
@@ -166,6 +165,8 @@ let unify_slocs = function
 let make_subst_well_defined sub =
   sub |> S.Subst.images |> List.fold_left (fun outsub rng -> S.Subst.compose (unify_slocs rng) outsub) []
 
+(* pmr: What good is this? We should be calling make_subst_well_defined after function calls
+   or something. *)
 let refine_aux sc sto =
   try match sc.cdesc with
     | CWFSubst sub -> (sub |> S.Subst.transpose |> make_subst_well_defined, sto)
@@ -275,7 +276,7 @@ let constrain_return et sub sto rtv = function
         ([], sub, sto, [])
 
 let constrain_instr_aux env et (bas, sub, sto, cs) i =
-  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in 
+  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
   match i with
   | C.Set (lv, e, _) ->
       let sub, sto = constrain_lval et sub sto lv in
@@ -342,8 +343,6 @@ class exprMapVisitor (et) = object (self)
     C.DoChildren
 end
 
-(* BE SURE TO APPLY SUBST TO ANY TYPE WE GET FROM ET *)
-
 let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let loc          = fd.C.svar.C.vdecl >> (:=) C.currentLoc in
   let sub, sto     = List.fold_left2 begin fun (sub, sto) (_, fct) bv ->
@@ -383,6 +382,8 @@ let check_slocs_distinct error sub slocs =
     let s1, s2 = Misc.find_pair (fun s1 s2 -> M.map_pair (S.Subst.apply sub) (s1, s2) |> M.uncurry S.eq) slocs in
       halt <| C.error "%a\n\n" error (s1, s2)
   with Not_found -> ()
+
+(* pmr: should be obsoleted by same shape check *)
 
 let revert_spec_names subaway st =
      st
@@ -472,13 +473,6 @@ let assert_no_physical_subtyping fe cfg anna store gst =
         C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
           S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
     exit 1
-
-let print_vm_diff vm1 vm2 = 
-  VM.iter begin fun v ct1 ->
-    let ct2 = VM.find v vm2 in
-    if not (Ctypes.I.CType.eq ct1 ct2) then
-      (P.dprintf "different ctypes: v = %s ct1 = %a ct2 = %a" v.C.vname Ct.d_ctype ct1 Ct.d_ctype ct2; ())
-  end vm1
 
 let infer_shape fe ve gst scim (cf, sci, vm) =
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
