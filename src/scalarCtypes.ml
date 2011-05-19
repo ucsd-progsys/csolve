@@ -127,6 +127,12 @@ let lowerboundo_of_preds v ps =
   |> Misc.map_partial (bind_of_subst const_var) 
   |> (function c::cs -> Some (List.fold_left max c cs) | _ -> None)
 
+let upperboundo_of_preds v ps = 
+  [p_v_le_c; p_v_le_x_plus_c]
+  |> Misc.flap (fun q -> substs_of_preds q v ps)
+  |> Misc.map_partial (bind_of_subst const_var) 
+  |> (function c::cs -> Some (List.fold_left min c cs) | _ -> None)
+
 let periodo_of_preds v ps =
   [p_v_minus_x_minus_c_eqz_mod_k; p_v_minus_c_eqz_mod_k]
   |> Misc.flap (fun q -> substs_of_preds q v ps)
@@ -135,12 +141,18 @@ let periodo_of_preds v ps =
   |> (function x::xs -> Some (List.fold_left max x xs) | _ -> None)
   |> Misc.maybe_map (fun (k, c) -> (c mod k, k)) 
 
+(* pmr: Hack. We should just gather up all the indices implies by the preds and
+        GLB them together. *)
 let indexo_of_preds_iseq v ps = 
-  match periodo_of_preds v ps, lowerboundo_of_preds v ps with
-  | Some (c, k), Some c' ->
+  match periodo_of_preds v ps, lowerboundo_of_preds v ps, upperboundo_of_preds v ps with
+  | Some (c, k), Some c', Some u ->
+    let lb = c' + ((k - ((c' - c) mod k)) mod k) in
+    let ub = u - ((u - c) mod k) in
+      Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = Some ub; Ix.m = k; Ix.c = lb mod k})
+  | Some (c, k), Some c', _ ->
     let lb = c' + ((k - ((c' - c) mod k)) mod k) in
       Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = None; Ix.m = k; Ix.c = lb mod k})
-  | Some (c, k), _ ->
+  | Some (c, k), _, _ ->
       Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c})
   | _ -> None
 
@@ -152,12 +164,12 @@ let indexo_of_preds_iseqb v ps =
   None (* TODO *)
 
 (* API *)
-let index_of_pred v (cr, p) = 
+let index_of_pred v (cr, p) =
   let vv  = FA.name_of_varinfo v in
   [ indexo_of_preds_iint vv
   ; indexo_of_preds_iseqb vv
   ; indexo_of_preds_iseq vv 
-  ; indexo_of_preds_lowerbound vv] 
+  ; indexo_of_preds_lowerbound vv ]
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
@@ -235,7 +247,7 @@ let type_decs_of_file (cil: Cil.file) : (Cil.location * Cil.typ) list =
   |> Misc.map (function (_,x::_) -> x)
 
 let scalar_consts_of_upper_bound m = function
-  | Some k -> [UpperBound (k + m)]  (* pmr: Can we use just k + 1 here? *)
+  | Some k -> [UpperBound (k)]
   | _      -> []
 
 let bound_preds_of_scalar_const = function
@@ -243,7 +255,7 @@ let bound_preds_of_scalar_const = function
       [p_v_eq_c; p_v_ge_c; p_v_eq_x_plus_c; p_v_ge_x_plus_c] 
       |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
   | UpperBound c ->
-      [p_v_lt_c; p_v_lt_x_plus_c] 
+      [p_v_lt_c; p_v_lt_x_plus_c; p_v_le_x_plus_c] 
       |>: (Misc.flip A.substs_pred) (Su.of_list [const_var, A.eInt c])
   | _ -> [] 
 
