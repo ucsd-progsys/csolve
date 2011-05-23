@@ -181,7 +181,6 @@ module type S = sig
     val find_or_empty : Sloc.t -> t -> LDesc.t
     val find_index   : Sloc.t -> Index.t -> t -> Field.t list
     val fold         : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
-    val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
     val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t

@@ -447,7 +447,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val find_or_empty : Sloc.t -> t -> ldesc
     val find_index   : Sloc.t -> Index.t -> t -> field list
     val fold         : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
-    val close_under  : t -> Sloc.t list -> t
     val closed       : t -> bool
     val partition    : (Sloc.t -> ldesc -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -457,6 +456,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : ctype -> t -> bool
     val indices_of_t : t -> Index.t list
+
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
   end
@@ -742,7 +742,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let find_index l i ps =
       ps |> find_or_empty l |> LDesc.find i |> List.map snd
 
-    (* pmr: why is this not rename_prestore? *)
     let subs_addrs subs ps =
       SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
 
@@ -762,14 +761,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           (SLM.add l ld ps1, ps2)
         else (ps1, SLM.add l ld ps2)
       end ps (SLM.empty, SLM.empty)
-
-    let rec close_slocs ps ss =
-      let reqs = SS.fold (fun s rss -> SS.add s (SS.union rss (ps |> find s |> LDesc.referenced_slocs))) ss ss in
-        if SS.equal reqs ss then ss else close_slocs ps reqs
-
-    let close_under ps ss =
-      let reqs = ss |> List.fold_left (M.flip SS.add) SS.empty |> close_slocs ps in
-        SS.fold (fun s cps -> SLM.add s (SLM.find s ps) cps) reqs SLM.empty
 
     let ctype_closed t sto = match t with
       | Ref (l, _) -> SLM.mem l sto
