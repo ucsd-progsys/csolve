@@ -95,7 +95,6 @@ type 'a prestore = ('a preldesc) Sloc.SlocMap.t
 type 'a prectype =
   | Int of int * 'a         (* fixed-width integer *)
   | Ref of Sloc.t * 'a      (* reference *)
-  | FPtr of 'a precfun * 'a (* function pointer *)
 
 and 'a precfun =
     { qlocs       : Sloc.t list;                  (* generalized slocs *)

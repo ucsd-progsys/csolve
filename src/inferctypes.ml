@@ -21,9 +21,6 @@
  *
  *)
 
-(* change wfsubst to disjoint locations
-   use sorting on eqpair to cut complexity *)
-
 module M   = Misc
 module P   = Pretty
 module C   = Cil

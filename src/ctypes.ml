@@ -352,7 +352,6 @@ type finality =
 type 'a prectype =
   | Int  of int * 'a        (* fixed-width integer *)
   | Ref  of Sloc.t * 'a     (* reference *)
-  | FPtr of 'a precfun * 'a (* function pointer *)
 
 and 'a prefield = 'a prectype * finality
 
@@ -542,21 +541,19 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     type t = R.t prectype
 
     let refinement = function
-      | Int (_, r) | Ref (_, r) | FPtr (_, r) -> r
+      | Int (_, r) | Ref (_, r) -> r
 
     let map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
-      | FPtr _     -> assert false
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
-      | FPtr _     -> assert false
 
     let width = function
-      | Int (n, _)     -> n
-      | Ref _ | FPtr _ -> CM.int_width
+      | Int (n, _) -> n
+      | Ref _      -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
@@ -564,7 +561,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let subs subs = function
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
-      | FPtr _     -> assert false
       | pct        -> pct
 
     exception NoLUB of t * t
@@ -573,7 +569,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       match pct1, pct2 with
         | Int (n1, r1), Int (n2, r2) when n1 = n2    -> R.is_subref r1 r2
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> R.is_subref r1 r2
-        | FPtr _, FPtr _                             -> assert false
         | _                                          -> false
 
     let of_const c =
@@ -588,7 +583,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let eq pct1 pct2 =
       match (pct1, pct2) with
         | Ref (l1, i1), Ref (l2, i2) -> S.eq l1 l2 && i1 = i2
-        | FPtr _, FPtr _             -> assert false
         | _                          -> pct1 = pct2
 
     let index_overlaps_type i i2 pct =
@@ -650,7 +644,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let w = CType.width t in
         M.get_option w (N.period i) >= w &&
           not (List.exists (fun (i2, (_, fld2)) -> CType.collide i t i2 (Field.type_of fld2)) flds)
-
 
     let rec insert ((i, _) as fld) = function
       | []                      -> [fld]
@@ -1060,7 +1053,6 @@ let refstore_write loc sto rct rct' =
 let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
-  | FPtr (x, (y, _)) -> assert false
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
@@ -1079,5 +1071,4 @@ let mk_refcfun qslocs args ist ret ost =
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
-  | Ref (_,(_,r)) 
-  | FPtr (_, (_,r)) -> r
+  | Ref (_,(_,r)) -> r

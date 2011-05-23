@@ -92,7 +92,6 @@ let string_of_sloc, sloc_of_string =
   end
 
 let so_ref = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
-let so_fptr = Sloc.fresh_abstract () |> so_ref
 let so_int = So.t_int
 let so_skl = So.t_func 0 [so_int; so_int]
 let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
