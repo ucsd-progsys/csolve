@@ -166,7 +166,7 @@ class exprConstraintVisitor (et, sub, sto) = object (self)
 
   method private constrain_exp = function
     | C.Const c                          -> ()
-    | C.Lval lv | C.StartOf lv           -> let _ = P.printf "in constrain_exp lval@!@!" in self#set_sub_sto (constrain_lval et !sub !sto lv)
+    | C.Lval lv | C.StartOf lv           -> self#set_sub_sto (constrain_lval et !sub !sto lv)
     | C.UnOp (uop, e, t)                 -> ()
     | C.BinOp (bop, e1, e2, t)           -> ()
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
