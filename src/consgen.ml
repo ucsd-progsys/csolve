@@ -112,17 +112,19 @@ let rename_funspec scim spec =
 (******************************************************************************)
 
 let finalize_store shp_sto sto =
-  Sloc.SlocMap.mapi begin fun l ld ->
+  Ctypes.I.Store.fold_data_locs begin fun l ld sto ->
     try
-      let shp_ld = Sloc.SlocMap.find l shp_sto in
-        Ctypes.I.LDesc.mapn begin fun _ pl fld ->
-          match Ctypes.I.LDesc.find pl shp_ld with
-            | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
-            | _              -> fld
-        end ld
+      let shp_ld = Ctypes.I.Store.find l shp_sto in
+        Ctypes.I.Store.add sto l begin
+          Ctypes.I.LDesc.mapn begin fun _ pl fld ->
+            match Ctypes.I.LDesc.find pl shp_ld with
+              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
+              | _              -> fld
+          end ld
+        end
     with Not_found ->
-      ld
-  end sto
+      Ctypes.I.Store.add sto l ld
+  end Ctypes.I.Store.empty sto
 
 let finalize_funtypes shm cnv =
   SM.fold begin fun fname shp cnv ->

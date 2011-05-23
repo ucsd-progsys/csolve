@@ -14,7 +14,7 @@ let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
 let store_of_slocbinds sbs = 
-  List.fold_left (fun slm (x,y) -> Sloc.SlocMap.add x y slm) Sloc.SlocMap.empty sbs
+  List.fold_left (fun sto (x,y) -> RCt.Store.add sto x y) RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
   (* pmr: TODO - better location *)
@@ -166,7 +166,7 @@ sloc:
   ;
 
 refstore:
-  LB RB                                 { Sloc.SlocMap.empty }
+  LB RB                                 { RCt.Store.empty }
   | LB slocbindsne RB                   { store_of_slocbinds $2 }
   ;
 

@@ -32,7 +32,6 @@ module F   = Format
 module Ct  = Ctypes
 module N   = Ct.Index
 module SM  = Misc.StringMap
-module SLM = Sloc.SlocMap
 module CM  = CilMisc
 module Cs  = Ct.RefCTypes.Spec
 
@@ -213,7 +212,7 @@ and conv_ptr loc (th, st) pd c =
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
     let b                = ldesc_of_index_ctypes loc its in
-    let st''             = SLM.add l b st' in
+    let st''             = Ct.I.Store.add st' l b in
     (th'', st''), Ct.Ref (l, idx)
 
 and conv_cilblock loc (th, st, off) pd c =
@@ -246,7 +245,7 @@ let conv_ret fn loc z c =
 let cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
-    let res   = Misc.mapfold (conv_arg loc) (SM.empty, SLM.empty, N.IInt 0) xts in
+    let res   = Misc.mapfold (conv_arg loc) (SM.empty, Ct.I.Store.empty, N.IInt 0) xts in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
     let ts    = res |> snd |> Misc.flatsingles |> Misc.map snd in  
@@ -254,7 +253,7 @@ let cfun_of_args_ret fn (loc, t, xts) =
     let res'  = conv_ret fn loc (th, ist, N.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
-    let qlocs = SLM.fold (fun l _ locs -> l :: locs) ost [] in
+    let qlocs = Ct.I.Store.domain ost in
     Some (Ct.I.CFun.make qlocs args ret ist ost)
   with ex -> 
     let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
@@ -317,7 +316,7 @@ let vars_of_file cil =
   end SM.empty
 
 let globalspecs_of_varm varspec varm =
-  (SLM.empty, SM.empty)
+  (Ct.I.Store.empty, SM.empty)
   |> SM.fold begin fun _ t (st, varm) -> match t with
        | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (st, varm) loc v.vname v.vtype
        | _                                    -> (st, varm)
@@ -343,7 +342,7 @@ let specs_of_file_dec spec cil =
   (fn, vr, st)
 
 let spec_of_type loc t =
-  try match conv_ciltype loc TopLevel (SM.empty, SLM.empty, N.IInt 0) t with
+  try match conv_ciltype loc TopLevel (SM.empty, Ct.I.Store.empty, N.IInt 0) t with
       | (_, st, _), [(_, ct)] -> ct, st
       | _ -> raise CantConvert 
   with CantConvert -> 

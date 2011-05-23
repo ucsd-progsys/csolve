@@ -238,9 +238,9 @@ module Intraproc (X: Context) = struct
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let with_all_fields_final sto ffm =
-    LM.fold begin fun l ld ffm ->
+    CT.Store.fold_data_locs begin fun l ld ffm ->
       LM.add l (LD.fold (fun pls pl _ -> add_index pl pls) IS.empty ld) ffm
-    end sto ffm
+    end ffm sto
 
   let init_abstract_finals () =
        LM.empty
@@ -287,12 +287,14 @@ module Interproc = struct
     end ffmm (ffmm, false)
 
   let spec_final_fields (cf, _) =
-    LM.map begin fun ld ->
-      LD.fold (fun ffs pl fld -> if F.is_final fld then add_index pl ffs else ffs) IS.empty ld
-    end cf.Ctypes.sto_out
+    CT.Store.fold_data_locs begin fun l ld ffm ->
+      LM.add l (LD.fold (fun ffs pl fld -> if F.is_final fld then add_index pl ffs else ffs) IS.empty ld) ffm
+    end LM.empty cf.Ctypes.sto_out
 
   let shape_init_final_fields shp =
-    LM.map (fun ld -> LD.fold (fun ffs pl fld -> add_index pl ffs) IS.empty ld) shp.Sh.store
+    CT.Store.fold_data_locs begin fun l ld ffm ->
+      LM.add l (LD.fold (fun ffs pl fld -> add_index pl ffs) IS.empty ld) ffm
+    end LM.empty shp.Sh.store
 
   let init_final_fields fspecm shpm =
     let empty_annot = Array.create 0 (LM.empty, []) in
@@ -305,15 +307,17 @@ module Interproc = struct
       {shp with
          Sh.ffmsa = SM.find fname ffmm |> snd;
          Sh.store =
-          LM.mapi begin fun l ld ->
+          CT.Store.fold_data_locs begin fun l ld sto ->
             let ffs = SM.find fname ffmm |> fst |> LM.find l in
-              LD.mapn begin fun _ pl fld ->
-                if IS.mem pl ffs then
-                  F.set_finality Ctypes.Final fld
-                else
-                  F.set_finality Ctypes.Nonfinal fld
-              end ld
-          end shp.Sh.store}
+              CT.Store.add sto l begin
+                LD.mapn begin fun _ i fld ->
+                  if IS.mem i ffs then
+                    F.set_finality Ctypes.Final fld
+                  else
+                    F.set_finality Ctypes.Nonfinal fld
+                end ld
+              end
+          end CT.Store.empty shp.Sh.store}
     end shpm
 
   let final_fields spec scis shpm =
@@ -324,8 +328,8 @@ module Interproc = struct
 end
 
 let check_location_finality fname l spec_store ld =
-  if LM.mem l spec_store then
-    let spec_ld = LM.find l spec_store in
+  if CT.Store.mem spec_store l then
+    let spec_ld = CT.Store.find l spec_store in
       LD.iter begin fun i fld ->
            spec_ld
         |> LD.find i
@@ -341,10 +345,10 @@ let check_location_finality fname l spec_store ld =
 let check_finality_specs fspecm shpm =
   SM.iter begin fun fname shp ->
     let cf = SM.find fname fspecm |> fst in
-      LM.iter begin fun l ld ->
+      CT.Store.fold_data_locs begin fun l ld _ ->
         check_location_finality fname l cf.Ctypes.sto_in ld;
         check_location_finality fname l cf.Ctypes.sto_out ld
-      end shp.Sh.store
+      end () shp.Sh.store
   end shpm
 
 let infer_final_fields spec scis shpm =

@@ -446,9 +446,11 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val find         : Sloc.t -> t -> ldesc
     val find_or_empty : Sloc.t -> t -> ldesc
     val find_index   : Sloc.t -> Index.t -> t -> field list
-    val fold         : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+    val fold_fields  : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+    val fold_data_locs : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
     val partition    : (Sloc.t -> ldesc -> bool) -> t -> t * t
+    val add          : t -> Sloc.t -> ldesc -> t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
@@ -718,8 +720,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_ct f =
       SLM.map (LDesc.map (Field.map_type f))
 
-    let fold f b ps =
+    let fold_fields f b ps =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ps b
+
+    let fold_data_locs f b ps =
+      SLM.fold f ps b
 
     let domain ps =
       SLM.fold (fun s _ ss -> s :: ss) ps []
@@ -727,7 +732,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let slocs ps =
          ps
       |> domain
-      |> M.flip (fold (fun acc _ _ fld -> M.maybe_cons (Field.sloc_of fld) acc)) ps
+      |> M.flip (fold_fields (fun acc _ _ fld -> M.maybe_cons (Field.sloc_of fld) acc)) ps
       |> M.sort_and_compact
 
     let mem st s =
@@ -749,6 +754,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       ps |> map_ct (CType.subs subs)
          |> subs_addrs subs
 
+    let add sto l ld =
+      SLM.add l ld sto
+
     let remove sto l =
       SLM.remove l sto
 
@@ -767,7 +775,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       | _          -> true
     
     let closed sto =
-      fold (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
+      fold_fields (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
 
     let indices_of_t st = 
       SLM.fold (fun _ ld acc -> (LDesc.indices ld) ++ acc) st []
