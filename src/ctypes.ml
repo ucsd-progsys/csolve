@@ -448,7 +448,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val fold_fields  : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val fold_data_locs : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
-    val partition    : (Sloc.t -> ldesc -> bool) -> t -> t * t
+    val partition    : (Sloc.t -> bool) -> t -> t * t
     val add          : t -> Sloc.t -> ldesc -> t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
@@ -761,7 +761,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let partition f ps =
       SLM.fold begin fun l ld (ps1, ps2) ->
-        if f l ld then
+        if f l then
           (SLM.add l ld ps1, ps2)
         else (ps1, SLM.add l ld ps2)
       end ps (SLM.empty, SLM.empty)
@@ -990,7 +990,7 @@ let d_refctype     = RCt.CType.d_ctype
 let d_refcfun      = RCt.CFun.d_cfun
 
 let refstore_fold      = LM.fold
-let refstore_partition = fun f -> RCt.Store.partition (fun l _ -> f l) 
+let refstore_partition = RCt.Store.partition
 
 let refstore_set sto l rd =
   try LM.add l rd sto with Not_found -> 

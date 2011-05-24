@@ -182,7 +182,7 @@ module type S = sig
     val fold_fields  : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold_data_locs : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
-    val partition    : (Sloc.t -> LDesc.t -> bool) -> t -> t * t
+    val partition    : (Sloc.t -> bool) -> t -> t * t
     val add          : t -> Sloc.t -> LDesc.t -> t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
