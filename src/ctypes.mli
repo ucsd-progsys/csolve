@@ -173,7 +173,6 @@ module type S = sig
 
     val empty        : t
     val domain       : t -> Sloc.t list
-    val slocs        : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
@@ -205,7 +204,6 @@ module type S = sig
     val well_formed        : Store.t -> t -> bool
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
-    val slocs              : t -> Sloc.t list
     val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
     val subs               : Sloc.Subst.t -> t -> t
   end

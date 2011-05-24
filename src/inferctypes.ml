@@ -358,9 +358,6 @@ let check_annots_wf sub bas =
     end ba
   end bas
 
-let add_loc_if_missing sto s =
-  Store.add sto s (Store.find_or_empty s sto)
-
 let check_sol cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
@@ -369,8 +366,6 @@ let check_sol cf vars gst em bas sub sto =
   let _           = check_annots_wf sub bas in
   let revsub      = revert_spec_names sub whole_store in
   let sto         = Store.subs revsub sto in
-  let sto         = cf |> CFun.slocs |> List.fold_left add_loc_if_missing sto in
-  let sto         = List.fold_left add_loc_if_missing sto (Store.slocs sto) in
   let sub         = S.Subst.compose revsub sub in
     if check_out_store_complete whole_store sto then
       (sub, Store.fold_data_locs (fun s _ sto -> Store.remove sto s) sto gst)

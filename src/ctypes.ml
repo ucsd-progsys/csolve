@@ -439,7 +439,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val empty        : t
     val domain       : t -> Sloc.t list
-    val slocs        : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
@@ -470,7 +469,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val well_formed        : store -> t -> bool
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
-    val slocs              : t -> Sloc.t list
     val make               : Sloc.t list -> (string * ctype) list -> ctype -> store -> store -> t
     val subs               : Sloc.Subst.t -> t -> t
   end
@@ -728,12 +726,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let domain ps =
       SLM.fold (fun s _ ss -> s :: ss) ps []
 
-    let slocs ps =
-         ps
-      |> domain
-      |> M.flip (fold_fields (fun acc _ _ fld -> M.maybe_cons (Field.sloc_of fld) acc)) ps
-      |> M.sort_and_compact
-
     let mem st s =
       SLM.mem s st
 
@@ -844,13 +836,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           && match cf.ret with  (* we can return refs to uninitialized data *)
              | Ref (l, _) -> SLM.mem l whole_outstore
              | _          -> true
-
-    let slocs cf =
-      List.concat [Store.slocs cf.sto_in;
-                   Store.slocs cf.sto_out;
-                   M.maybe_cons (CType.sloc cf.ret) <|
-                       M.map_partial (CType.sloc <.> snd) cf.args]
-          |> M.sort_and_compact
 
     let subs sub cf =
       let apply_sub = CType.subs sub in
