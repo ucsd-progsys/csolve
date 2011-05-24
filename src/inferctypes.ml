@@ -313,7 +313,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
 
 let check_out_store_complete sto_out_formal sto_out_actual =
   Store.fold_fields begin fun ok l i fld ->
-    if Store.mem sto_out_formal l && Store.find_index l i sto_out_formal = [] then begin
+    if Store.mem sto_out_formal l && sto_out_formal |> Store.find l |> LDesc.find i = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
         S.d_sloc l Index.d_index i Field.d_field fld S.d_sloc l |> ignore;
       false

@@ -445,7 +445,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> ldesc
     val find_or_empty : Sloc.t -> t -> ldesc
-    val find_index   : Sloc.t -> Index.t -> t -> field list
     val fold_fields  : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val fold_data_locs : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
@@ -743,9 +742,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let find_or_empty l ps =
       try find l ps with Not_found -> LDesc.empty
-
-    let find_index l i ps =
-      ps |> find_or_empty l |> LDesc.find i |> List.map snd
 
     let subs_addrs subs ps =
       SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
