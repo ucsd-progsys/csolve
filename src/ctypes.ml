@@ -791,9 +791,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map f ft =
       { qlocs   = ft.qlocs;
         args    = List.map (Misc.app_snd f) ft.args;
-        ret     = (* Misc.map_opt *) f ft.ret;
-        sto_in  = SLM.map (LDesc.map (Field.map_type f)) ft.sto_in;
-        sto_out = SLM.map (LDesc.map (Field.map_type f)) ft.sto_out;
+        ret     = f ft.ret;
+        sto_in  = Store.map f ft.sto_in;
+        sto_out = Store.map f ft.sto_out;
       }
 
     let d_slocs () slocs = P.seq (P.text ";") (S.d_sloc ()) slocs
