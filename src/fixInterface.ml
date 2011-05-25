@@ -152,7 +152,7 @@ let report_bad_binding = function
 let tags_of_binds s binds = 
   let s_typ = RCt.CType.map (Misc.app_snd (C.apply_solution s)) in
   let s_fun = RCt.CFun.map s_typ in
-  let s_sto = RCt.Store.map_ct s_typ in
+  let s_sto = RCt.Store.map s_typ in
   let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) bind -> 
     try
@@ -421,8 +421,8 @@ let refctype_subs f nzs =
 (* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun f st -> st |> RCt.Store.map_ct t_fresh >> annot_sto f 
-let refstore_subs  = fun f subs st -> RCt.Store.map_ct (f subs) st
+let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> annot_sto f 
+let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
@@ -498,7 +498,7 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-  RCt.Store.map_ct ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+  RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
 
 

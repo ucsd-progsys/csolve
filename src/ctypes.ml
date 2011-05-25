@@ -440,8 +440,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val empty        : t
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
+    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> ldesc
     val find_or_empty : Sloc.t -> t -> ldesc
     val fold_fields  : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
@@ -712,9 +711,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let empty = SLM.empty
 
     let map f =
-      f |> CType.map |> Field.map_type |> LDesc.map |> SLM.map
-
-    let map_ct f =
       SLM.map (LDesc.map (Field.map_type f))
 
     let fold_fields f b ps =
@@ -739,7 +735,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
 
     let subs subs ps =
-      ps |> map_ct (CType.subs subs)
+      ps |> map (CType.subs subs)
          |> subs_addrs subs
 
     let add sto l ld =
@@ -858,7 +854,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map f (funspec, varspec, storespec) =
       (SM.map (f |> CType.map |> CFun.map |> M.app_fst) funspec,
        SM.map (f |> CType.map |> M.app_fst) varspec,
-       Store.map f storespec)
+       Store.map (CType.map f) storespec)
 
     let add_fun b fn sp (funspec, varspec, storespec) =
       (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
@@ -1037,7 +1033,7 @@ let ctype_of_refctype = function
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
 let cspec_of_refspec  = I.Spec.map (fun (i,_) -> i)
-let store_of_refstore = I.Store.map_ct ctype_of_refctype
+let store_of_refstore = I.Store.map ctype_of_refctype
 let qlocs_of_refcfun  = fun ft -> ft.qlocs
 let args_of_refcfun   = fun ft -> ft.args
 let ret_of_refcfun    = fun ft -> ft.ret

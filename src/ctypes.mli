@@ -174,8 +174,7 @@ module type S = sig
     val empty        : t
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val map_ct       : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map          : ('a -> 'b) -> 'a prestore -> 'b prestore
+    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val find         : Sloc.t -> t -> LDesc.t
     val find_or_empty : Sloc.t -> t -> LDesc.t
     val fold_fields  : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
