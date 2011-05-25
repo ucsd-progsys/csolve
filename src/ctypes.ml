@@ -809,7 +809,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         Store.d_store ft.sto_out
         
     let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
-      {pcf with qlocs = List.filter (fun l -> SLM.mem l sout) ls}
+      {pcf with qlocs = List.filter (fun l -> Store.mem sout l) ls}
 
     let instantiate {qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout} =
       let subs       = List.map (fun l -> (l, S.fresh_abstract ())) ls in
@@ -830,7 +830,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           && Store.closed whole_outstore
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
           && match cf.ret with  (* we can return refs to uninitialized data *)
-             | Ref (l, _) -> SLM.mem l whole_outstore
+             | Ref (l, _) -> Store.mem whole_outstore l
              | _          -> true
 
     let subs sub cf =
