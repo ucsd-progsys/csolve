@@ -462,6 +462,11 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     end
+
+    module Function: sig
+      val add  : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val find : 'a prestore -> Sloc.t -> 'a precfun
+    end
   end
 
   module type CFUN = sig
@@ -736,6 +741,14 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
       let fold_locs f b (ds, fs) =
         SLM.fold f ds b
+    end
+
+    module Function = struct
+      let add (ds, fs) l cf =
+        (ds, SLM.add l cf fs)
+
+      let find (_, fs) l =
+        SLM.find l fs
     end
 
     let map f (ds, fs) =

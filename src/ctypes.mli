@@ -196,6 +196,11 @@ module type S = sig
       val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     end
+
+    module Function: sig
+      val add  : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val find : 'a prestore -> Sloc.t -> 'a precfun
+    end
   end
 
   module CFun:
