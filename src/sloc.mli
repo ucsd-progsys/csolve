@@ -48,11 +48,7 @@ module Subst : sig
   val apply        : t -> sloc -> sloc
   val extend       : sloc -> sloc -> t -> t
   val compose      : t -> t -> t
-  val dom          : t -> sloc list
-  val rng          : t -> sloc list
   val slocs        : t -> sloc list
-  val well_defined : t -> bool
-  val transpose    : t -> t
-  val images       : t -> sloc list list
+  val avoid        : t -> sloc list -> t
   val d_subst      : unit -> t -> Pretty.doc
 end

@@ -34,6 +34,10 @@ type t =
 
 let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 
+let refresh = function
+  | Abstract _        -> Abstract (fresh_slocid ())
+  | Concrete (_, ida) -> Concrete (fresh_slocid (), ida)
+
 let fresh_abstract () = 
   Abstract (fresh_slocid ())
 
@@ -122,25 +126,11 @@ module Subst = struct
           sub
       end sub sub1
 
-  let dom (sub: t): sloc list =
-    List.map fst sub
-
-  let rng (sub: t): sloc list =
-    List.map snd sub
+  let avoid sub ls =
+       sub
+    |> List.filter (fst <+> M.flip List.mem ls)
+    |> List.map (fun (f, t) -> (f, if List.mem t ls then refresh t else t))
 
   let slocs (sub: t): sloc list =
     List.split sub |> M.uncurry (@) |> M.sort_and_compact
-
-  let images (sub: t): sloc list list =
-    sub |> M.groupby fst |> List.map (List.map snd)
-
-  let all_slocs_eq: sloc list -> bool = function
-    | []      -> true
-    | s :: ss -> List.fold_left (fun all_eq s' -> all_eq && eq s s') true ss
-
-  let well_defined (sub: t): bool =
-    sub |> images |> List.for_all all_slocs_eq
-
-  let transpose (sub: t): t =
-    List.map (fun (x, y) -> (y, x)) sub
 end
