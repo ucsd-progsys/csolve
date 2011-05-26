@@ -957,7 +957,6 @@ end
 
 module RefCTypes   = Make (Reft)
 module RCt         = RefCTypes
-module LM          = Sloc.SlocMap
 
 type refctype      = RCt.CType.t
 type refcfun       = RCt.CFun.t
@@ -970,15 +969,15 @@ let d_refstore     = RCt.Store.d_store
 let d_refctype     = RCt.CType.d_ctype
 let d_refcfun      = RCt.CFun.d_cfun
 
-let refstore_fold      = LM.fold
+let refstore_fold      = RCt.Store.fold_data_locs
 let refstore_partition = RCt.Store.partition
 
 let refstore_set sto l rd =
-  try LM.add l rd sto with Not_found -> 
+  try RCt.Store.add sto l rd with Not_found ->
     assertf "refstore_set"
 
 let refstore_get sto l =
-  try LM.find l sto with Not_found ->
+  try RCt.Store.find l sto with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
@@ -1005,7 +1004,7 @@ let addr_of_refctype loc = function
 
 let ac_refstore_read loc sto cr = 
   let (l, ix) = addr_of_refctype loc cr in 
-  LM.find l sto 
+  RCt.Store.find l sto
   |> refdesc_find ix
 
 (* API *)
@@ -1020,10 +1019,10 @@ let is_soft_ptr loc sto cr =
 let refstore_write loc sto rct rct' = 
   let (cl, ix) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = LM.find cl sto in
+  let ld = RCt.Store.find cl sto in
   let ld = RCt.LDesc.remove ix ld in
   let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
-  LM.add cl ld sto
+  RCt.Store.add sto cl ld
 
 (* API *)
 let ctype_of_refctype = function
