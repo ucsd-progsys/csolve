@@ -580,9 +580,9 @@ let canon_env env =
 
 let find_unfolded_loc l sto =
   try
-    RCt.Store.find l sto
+    RCt.Store.Data.find l sto
   with Not_found ->
-    RCt.Store.find (Sloc.canonical l) sto
+    RCt.Store.Data.find (Sloc.canonical l) sto
 
 let points_to_final cenv sto p o =
   match ce_find p cenv with
@@ -667,7 +667,7 @@ let make_wfs ((_,_,livem) as cenv) sto rct _ =
 *)
 
 let make_wfs_refstore env full_sto sto tag =
-  RCt.Store.fold_data_locs begin fun l rd ws ->
+  RCt.Store.Data.fold_locs begin fun l rd ws ->
     let ncrs = sloc_binds_of_refldesc l rd in
     let env' = ncrs |> List.filter (fun (_,i) -> not (Ix.is_periodic i)) 
                     |> List.map fst
@@ -818,7 +818,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = Sloc.SlocMap.find cl ffm in
     if Ct.IndexSet.mem i ffs then
-      let ld  = RCt.Store.find cl sto in
+      let ld  = RCt.Store.Data.find cl sto in
       let fld = ld |> RCt.LDesc.find i |> List.hd |> snd in
       let ld  = RCt.LDesc.remove i ld in
       let sct = fld |> strengthen_final_field ffs ptrname i |> RCt.Field.type_of in
@@ -826,7 +826,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
       let env = ce_adds env [(fn, sct)] in
       let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final in
       let ld  = RCt.LDesc.add loc i fld ld in
-        (env, RCt.Store.add sto cl ld)
+        (env, RCt.Store.Data.add sto cl ld)
     else
       (env, sto)
 

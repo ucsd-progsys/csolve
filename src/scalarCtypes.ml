@@ -297,7 +297,7 @@ let scalar_consts_of_index = function
 
 let scalar_consts_of_typedecs_genspec =
       Misc.map (Misc.uncurry Genspec.spec_of_type)
-  <+> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices_of_t st)
+  <+> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices st)
   <+> (fun is -> List.iter (ignore <.> E.log "[SCALAR] index = %a \n" Ix.d_index) is; is)  
   <+> Misc.flap scalar_consts_of_index
 

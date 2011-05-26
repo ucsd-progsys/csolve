@@ -174,24 +174,28 @@ module type S = sig
     val empty        : t
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val find         : Sloc.t -> t -> LDesc.t
-    val find_or_empty : Sloc.t -> t -> LDesc.t
-    val fold_fields  : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
-    val fold_data_locs : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
+    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
-    val add          : t -> Sloc.t -> LDesc.t -> t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-    val indices_of_t : t -> Index.t list 
+    val indices      : t -> Index.t list 
     
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
+
+    module Data: sig
+      val add           : t -> Sloc.t -> LDesc.t -> t
+      val find          : Sloc.t -> t -> LDesc.t
+      val find_or_empty : Sloc.t -> t -> LDesc.t
+      val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
+      val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
+      val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
+    end
   end
 
   module CFun:
@@ -204,7 +208,8 @@ module type S = sig
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
-    val subs               : Sloc.Subst.t -> t -> t
+    (* val subs               : Sloc.Subst.t -> t -> t *)
+    val indices            : t -> Index.t list 
   end
 
   module Spec:

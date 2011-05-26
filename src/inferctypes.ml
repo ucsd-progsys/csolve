@@ -78,7 +78,7 @@ type ctvemap = I.ctemap
 exception Unify of ctype * ctype
 
 let store_add_absent loc l i ctv sto =
-  Store.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.find_or_empty l sto))
+  Store.Data.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.Data.find_or_empty l sto))
 
 let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | _, _                     when ct1 = ct2  -> (sub, sto)
@@ -89,10 +89,10 @@ let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct
 
 and unify_locations loc s1 s2 sub sto =
   let sub = S.Subst.extend s1 s2 sub in
-  let ld1 = sto |> Store.find_or_empty s1 |> LDesc.subs sub in
-  let ld2 = sto |> Store.find_or_empty s2 |> LDesc.subs sub  in
+  let ld1 = sto |> Store.Data.find_or_empty s1 |> LDesc.subs sub in
+  let ld2 = sto |> Store.Data.find_or_empty s2 |> LDesc.subs sub  in
   let sto = Store.remove sto s1 in
-  let sto = Store.add sto s2 ld2 |> Store.subs sub in
+  let sto = Store.Data.add sto s2 ld2 |> Store.subs sub in
     LDesc.fold (fun (sub, sto) i f -> store_add loc s2 i (Field.type_of f) sub sto) (sub, sto) ld1
 
 and store_add loc s i ct sub sto =
@@ -101,7 +101,7 @@ and store_add loc s i ct sub sto =
   try match i with
     | Index.IBot                     -> (sub, sto)
     | Index.ICClass _ | Index.IInt _ ->
-      let ld = Store.find_or_empty s sto in
+      let ld = Store.Data.find_or_empty s sto in
         match LDesc.find i ld with
           | []   -> (sub, store_add_absent loc s i ct sto)
           | flds ->
@@ -115,10 +115,10 @@ and store_add loc s i ct sub sto =
                 let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
                 let i  = List.fold_left (fun i (i2, _) -> Index.lub i i2) i flds in
                 let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
-                  (sub, Store.add sto s ld)
+                  (sub, Store.Data.add sto s ld)
   with e ->
     C.errorLoc loc "store_add: Can't fit %a: %a in location %a |-> %a"
-      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.find_or_empty s sto) |> ignore;
+      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.Data.find_or_empty s sto) |> ignore;
     raise e
 
 (******************************************************************************)
@@ -197,13 +197,13 @@ let constrain_app (fs, _) et f sub sto lvo args =
   let isub          = List.combine cf.qlocs instslocs in
   let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
   let ostore        = Store.subs isub cf.sto_out in
-  let sub, sto      = Store.fold_fields begin fun (sub, sto) s i fld ->
+  let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
     store_add !C.currentLoc s i (Field.type_of fld) sub sto
   end (sub, sto) ostore in
   let sub, sto      = List.fold_left2 begin fun (sub, sto) cta ctf ->
     unify_ctypes !C.currentLoc cta ctf sub sto
   end (sub, sto) cts ctfs in
-  let sto          = List.fold_left (fun sto s -> Store.add sto s (Store.find_or_empty s sto)) sto (Store.domain ostore) in
+  let sto          = List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty s sto)) sto (Store.domain ostore) in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
@@ -312,8 +312,8 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
 (******************************************************************************)
 
 let check_out_store_complete sto_out_formal sto_out_actual =
-  Store.fold_fields begin fun ok l i fld ->
-    if Store.mem sto_out_formal l && sto_out_formal |> Store.find l |> LDesc.find i = [] then begin
+  Store.Data.fold_fields begin fun ok l i fld ->
+    if Store.mem sto_out_formal l && sto_out_formal |> Store.Data.find l |> LDesc.find i = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
         S.d_sloc l Index.d_index i Field.d_field fld S.d_sloc l |> ignore;
       false
@@ -368,7 +368,7 @@ let check_sol cf vars gst em bas sub sto =
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in
     if check_out_store_complete whole_store sto then
-      (sub, Store.fold_data_locs (fun s _ sto -> Store.remove sto s) sto gst)
+      (sub, Store.Data.fold_locs (fun s _ sto -> Store.remove sto s) sto gst)
     else
          halt
       <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
@@ -403,8 +403,8 @@ let assert_call_no_physical_subtyping fe f store gst annots =
       | RA.New (scallee, scaller) ->
           let sto = if Store.mem store scaller then store else gst in
             assert_location_inclusion
-              scaller (Store.find scaller sto)
-              scallee (Store.find scallee cf.sto_out)
+              scaller (Store.Data.find scaller sto)
+              scallee (Store.Data.find scallee cf.sto_out)
       | _ -> ()
     end annots
 

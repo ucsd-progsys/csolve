@@ -212,7 +212,7 @@ and conv_ptr loc (th, st) pd c =
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
     let b                = ldesc_of_index_ctypes loc its in
-    let st''             = Ct.I.Store.add st' l b in
+    let st''             = Ct.I.Store.Data.add st' l b in
     (th'', st''), Ct.Ref (l, idx)
 
 and conv_cilblock loc (th, st, off) pd c =

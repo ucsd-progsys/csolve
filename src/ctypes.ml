@@ -357,7 +357,7 @@ and 'a prefield = 'a prectype * finality
 
 and 'a preldesc = (Index.t * (C.location * 'a prefield)) list
 
-and 'a prestore = 'a preldesc Sloc.SlocMap.t
+and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
 and 'a precfun =
     { qlocs       : Sloc.t list;                  (* generalized slocs *)
@@ -440,24 +440,28 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val empty        : t
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val find         : Sloc.t -> t -> ldesc
-    val find_or_empty : Sloc.t -> t -> ldesc
-    val fold_fields  : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
-    val fold_data_locs : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     val closed       : t -> bool
+    val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
-    val add          : t -> Sloc.t -> ldesc -> t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : ctype -> t -> bool
-    val indices_of_t : t -> Index.t list
+    val indices      : t -> Index.t list
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
+
+    module Data: sig
+      val add           : t -> Sloc.t -> ldesc -> t
+      val find          : Sloc.t -> t -> ldesc
+      val find_or_empty : Sloc.t -> t -> ldesc
+      val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
+      val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+      val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
+    end
   end
 
   module type CFUN = sig
@@ -469,7 +473,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * ctype) list -> ctype -> store -> store -> t
-    val subs               : Sloc.Subst.t -> t -> t
+    (* val subs               : Sloc.Subst.t -> t -> t *)
+    val indices            : t -> Index.t list
   end
 
   module type SPEC = sig
@@ -708,69 +713,95 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   and Store: SIG.STORE = struct
     type t = R.t prestore
 
-    let empty = SLM.empty
+    let empty = (SLM.empty, SLM.empty)
 
-    let map f =
-      SLM.map (LDesc.map (Field.map_type f))
+    let map_data f =
+      f |> Field.map_type |> LDesc.map |> SLM.map
 
-    let fold_fields f b ps =
-      SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ps b
+    module Data = struct
+      let add (ds, fs) l ld =
+        (SLM.add l ld ds, fs)
 
-    let fold_data_locs f b ps =
-      SLM.fold f ps b
+      let find l (ds, fs) =
+        SLM.find l ds
 
-    let domain ps =
-      SLM.fold (fun s _ ss -> s :: ss) ps []
+      let find_or_empty l sto =
+        try find l sto with Not_found -> LDesc.empty
 
-    let mem st s =
-      SLM.mem s st
+      let map f (ds, fs) =
+        (map_data f ds, fs)
 
-    let find l ps =
-      SLM.find l ps
+      let fold_fields f b (ds, fs) =
+        SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
 
-    let find_or_empty l ps =
-      try find l ps with Not_found -> LDesc.empty
+      let fold_locs f b (ds, fs) =
+        SLM.fold f ds b
+    end
 
-    let subs_addrs subs ps =
-      SLM.fold (fun s ld ps -> SLM.add (S.Subst.apply subs s) ld ps) ps SLM.empty
+    let map f (ds, fs) =
+      (map_data f ds, SLM.map (CFun.map f) fs)
 
-    let subs subs ps =
-      ps |> map (CType.subs subs)
-         |> subs_addrs subs
+    let slm_domain m =
+      SLM.fold (fun s _ ss -> s :: ss) m []
 
-    let add sto l ld =
-      SLM.add l ld sto
+    let domain (ds, fs) =
+      slm_domain ds ++ slm_domain fs
 
-    let remove sto l =
-      SLM.remove l sto
+    let mem (ds, fs) s =
+      SLM.mem s ds || SLM.mem s fs
 
-    let upd ps1 ps2 =
-      SLM.fold SLM.add ps2 ps1
+    let subs_slm_dom subs m =
+      SLM.fold (fun l d m -> SLM.add (S.Subst.apply subs l) d m) m SLM.empty
 
-    let partition f ps =
-      SLM.fold begin fun l ld (ps1, ps2) ->
-        if f l then
-          (SLM.add l ld ps1, ps2)
-        else (ps1, SLM.add l ld ps2)
-      end ps (SLM.empty, SLM.empty)
+    let subs_addrs subs (ds, fs) =
+      (subs_slm_dom subs ds, subs_slm_dom subs fs)
+
+    let subs subs sto =
+      sto |> map (CType.subs subs) |> subs_addrs subs
+
+    let remove (ds, fs) l =
+      (SLM.remove l ds, SLM.remove l fs)
+
+    let upd (ds1, fs1) (ds2, fs2) =
+      (SLM.fold SLM.add ds2 ds1, SLM.fold SLM.add fs2 fs1)
+
+    let partition_map f m =
+      SLM.fold begin fun l d (m1, m2) ->
+        if f l then (SLM.add l d m1, m2) else (m1, SLM.add l d m2)
+      end m (SLM.empty, SLM.empty)
+
+    let partition f (ds, fs) =
+      let ds1, ds2 = partition_map f ds in
+      let fs1, fs2 = partition_map f fs in
+        ((ds1, fs1), (ds2, fs2))
 
     let ctype_closed t sto = match t with
-      | Ref (l, _) -> SLM.mem l sto
+      | Ref (l, _) -> mem sto l
       | _          -> true
     
-    let closed sto =
-      fold_fields (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto
+    let rec closed ((_, fs) as sto) =
+      Data.fold_fields (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto &&
+        SLM.fold begin fun _ cf c ->
+          let sto_in  = upd sto cf.sto_in in
+          let sto_out = upd sto cf.sto_out in
+            c && List.for_all (snd <+> M.flip ctype_closed sto_in) cf.args && ctype_closed cf.ret sto_out &&
+              closed sto_in && closed sto_out
+        end fs true
 
-    let indices_of_t st = 
-      SLM.fold (fun _ ld acc -> (LDesc.indices ld) ++ acc) st []
+    let slm_acc_list f m =
+      SLM.fold (fun _ d acc -> f d ++ acc) m []
+
+    let indices (ds, fs) =
+      slm_acc_list LDesc.indices ds ++ slm_acc_list CFun.indices fs
 
     let d_store_addrs () st =
       Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
 
-    let d_store () s  =
-      P.dprintf "[@[%a@]]"
-        (SLMPrinter.docMap ~sep:(P.dprintf ";@!")
-           (fun l ld -> P.dprintf "%a |-> %a" S.d_sloc l LDesc.d_ldesc ld)) s
+    let d_slm d_binding =
+      SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
+
+    let d_store () (ds, fs) =
+      P.dprintf "[@[%a@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
   end
 
   (******************************************************************************)
@@ -841,6 +872,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           (apply_sub cf.ret)
           (Store.subs sub cf.sto_in)
           (Store.subs sub cf.sto_out)
+
+    let indices cf =
+      Store.indices cf.sto_in ++ Store.indices cf.sto_out
   end
 
   (******************************************************************************)
@@ -849,7 +883,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   and Spec: SIG.SPEC = struct
     type t = R.t prespec
 
-    let empty = (SM.empty, SM.empty, SLM.empty)
+    let empty = (SM.empty, SM.empty, Store.empty)
 
     let map f (funspec, varspec, storespec) =
       (SM.map (f |> CType.map |> CFun.map |> M.app_fst) funspec,
@@ -863,7 +897,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
 
     let add_loc l ld (funspec, varspec, storespec) =
-      (funspec, varspec, SLM.add l ld storespec)
+      (funspec, varspec, Store.Data.add storespec l ld)
 
     let mem_fun fn (funspec, _, _) =
       SM.mem fn funspec
@@ -969,15 +1003,15 @@ let d_refstore     = RCt.Store.d_store
 let d_refctype     = RCt.CType.d_ctype
 let d_refcfun      = RCt.CFun.d_cfun
 
-let refstore_fold      = RCt.Store.fold_data_locs
+let refstore_fold      = RCt.Store.Data.fold_locs
 let refstore_partition = RCt.Store.partition
 
 let refstore_set sto l rd =
-  try RCt.Store.add sto l rd with Not_found ->
+  try RCt.Store.Data.add sto l rd with Not_found -> 
     assertf "refstore_set"
 
 let refstore_get sto l =
-  try RCt.Store.find l sto with Not_found ->
+  try RCt.Store.Data.find l sto with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
@@ -1004,7 +1038,7 @@ let addr_of_refctype loc = function
 
 let ac_refstore_read loc sto cr = 
   let (l, ix) = addr_of_refctype loc cr in 
-  RCt.Store.find l sto
+  RCt.Store.Data.find l sto 
   |> refdesc_find ix
 
 (* API *)
@@ -1019,10 +1053,10 @@ let is_soft_ptr loc sto cr =
 let refstore_write loc sto rct rct' = 
   let (cl, ix) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = RCt.Store.find cl sto in
+  let ld = RCt.Store.Data.find cl sto in
   let ld = RCt.LDesc.remove ix ld in
   let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
-  RCt.Store.add sto cl ld
+  RCt.Store.Data.add sto cl ld
 
 (* API *)
 let ctype_of_refctype = function

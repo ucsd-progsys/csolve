@@ -555,7 +555,7 @@ let cons_of_refcfun loc gnv fn rf rf' tag =
 let cons_of_global_store tgr gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore FI.ce_empty gst gst tag in
-  let zst   = RS.map FI.t_zero_refctype gst in
+  let zst   = RS.Data.map FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)
 

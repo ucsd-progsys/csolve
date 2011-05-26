@@ -14,7 +14,7 @@ let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
 let store_of_slocbinds sbs = 
-  List.fold_left (fun sto (x,y) -> RCt.Store.add sto x y) RCt.Store.empty sbs
+  List.fold_left (fun sto (x,y) -> RCt.Store.Data.add sto x y) RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
   (* pmr: TODO - better location *)
