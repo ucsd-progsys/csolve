@@ -296,7 +296,7 @@ val reft_of_top : FixConstraint.reft
 
 val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
-val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> refstore -> 'a -> 'a
+val refstore_fold       : (Sloc.t -> refldesc -> 'a -> 'a) -> 'a -> refstore -> 'a
 val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
 val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
 val refstore_read       : Cil.location -> refstore -> refctype -> refctype
