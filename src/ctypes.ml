@@ -478,7 +478,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * ctype) list -> ctype -> store -> store -> t
-    (* val subs               : Sloc.Subst.t -> t -> t *)
+    val subs               : t -> Sloc.Subst.t -> t
     val indices            : t -> Index.t list
   end
 
@@ -769,8 +769,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let subs_addrs subs (ds, fs) =
       (subs_slm_dom subs ds, subs_slm_dom subs fs)
 
-    let subs subs sto =
-      sto |> map (CType.subs subs) |> subs_addrs subs
+    let subs subs (ds, fs) =
+      (ds |> map_data (CType.subs subs), fs |> SLM.map (M.flip CFun.subs subs)) |> subs_addrs subs
 
     let remove (ds, fs) l =
       (SLM.remove l ds, SLM.remove l fs)
@@ -855,16 +855,18 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let prune_unused_qlocs ({qlocs = ls; sto_out = sout} as pcf) =
       {pcf with qlocs = List.filter (fun l -> Store.mem sout l) ls}
 
-    let instantiate {qlocs = ls; args = acts; ret = rcts; sto_in = sin; sto_out = sout} =
-      let subs       = List.map (fun l -> (l, S.fresh_abstract ())) ls in
-      let rename_pct = CType.subs subs in
-      let rename_ps  = Store.subs subs in
-        ({qlocs   = [];
-          args    = List.map (fun (name, arg) -> (name, rename_pct arg)) acts;
-          ret     = rename_pct rcts;
-          sto_in  = rename_ps sin;
-          sto_out = rename_ps sout},
-         subs)
+    let subs cf sub =
+      let sub       = S.Subst.avoid sub cf.qlocs in
+      let apply_sub = CType.subs sub in
+        make (List.map (S.Subst.apply sub) cf.qlocs)
+             (List.map (M.app_snd apply_sub) cf.args)
+             (apply_sub cf.ret)
+             (Store.subs sub cf.sto_in)
+             (Store.subs sub cf.sto_out)
+
+    let instantiate cf =
+      let sub = List.map (fun l -> (l, S.fresh_abstract ())) cf.qlocs in
+        (subs {cf with qlocs = []} sub, sub)
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
@@ -876,15 +878,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           && match cf.ret with  (* we can return refs to uninitialized data *)
              | Ref (l, _) -> Store.mem whole_outstore l
              | _          -> true
-
-    let subs sub cf =
-      let apply_sub = CType.subs sub in
-        make
-          (List.map (S.Subst.apply sub) cf.qlocs)
-          (List.map (M.app_snd apply_sub) cf.args)
-          (apply_sub cf.ret)
-          (Store.subs sub cf.sto_in)
-          (Store.subs sub cf.sto_out)
 
     let indices cf =
       Store.indices cf.sto_in ++ Store.indices cf.sto_out

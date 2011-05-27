@@ -213,7 +213,7 @@ module type S = sig
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
-    (* val subs               : Sloc.Subst.t -> t -> t *)
+    val subs               : t -> Sloc.Subst.t -> t
     val indices            : t -> Index.t list 
   end
 
