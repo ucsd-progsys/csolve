@@ -125,7 +125,7 @@ let add_spec fn spec_src =
        |> RefParse.specs RefLex.token
        >> (RCt.Spec.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
        >> (fun _ -> close_in ic)
-       |> RCt.Spec.add spec_src 
+       |> RCt.Spec.add spec_src
   with Sys_error s ->
     let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
     spec_src

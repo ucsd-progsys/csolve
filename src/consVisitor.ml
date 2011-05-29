@@ -324,7 +324,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
       |> (farg <*> fret)
       |> Misc.uncurry FI.t_subs_exps 
       >> E.log "SCALAR CALLASGN: v=%s  cr=%a \n" v.Cil.vname Ct.d_refctype 
-      |> scalarcons_of_binding me loc tag (j, env) grd j v 
+      |> scalarcons_of_binding me loc tag (j, env) grd j v
 
   | Set ((Var v, NoOffset), _, _) 
     when (not v.Cil.vglob)  ->

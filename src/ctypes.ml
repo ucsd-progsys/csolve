@@ -870,7 +870,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-      let whole_instore  = Store.upd cf.sto_in globstore in
+      let whole_instore  = Store.upd cf.sto_in globstore in (* pmr: shouldn't this be the other way around? *)
       let whole_outstore = Store.upd cf.sto_out globstore in
         Store.closed whole_instore
           && Store.closed whole_outstore
