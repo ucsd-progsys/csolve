@@ -456,6 +456,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     module Data: sig
       val add           : t -> Sloc.t -> ldesc -> t
+      val mem           : t -> Sloc.t -> bool
       val find          : Sloc.t -> t -> ldesc
       val find_or_empty : Sloc.t -> t -> ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
@@ -490,7 +491,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> cfun * bool -> t -> t
     val add_var : bool -> string -> ctype * bool -> t -> t
-    val add_loc : Sloc.t -> ldesc -> t -> t
+    val add_data_loc : Sloc.t -> ldesc -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
     val get_fun : string -> t -> cfun * bool
@@ -727,6 +728,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let add (ds, fs) l ld =
         (SLM.add l ld ds, fs)
 
+      let mem (ds, _) l =
+        SLM.mem l ds
+
       let find l (ds, fs) =
         SLM.find l ds
 
@@ -791,15 +795,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
       | _          -> true
-    
+
     let rec closed ((_, fs) as sto) =
-      Data.fold_fields (fun closed _ _ fld -> closed && ctype_closed (Field.type_of fld) sto) true sto &&
-        SLM.fold begin fun _ cf c ->
-          let sto_in  = upd sto cf.sto_in in
-          let sto_out = upd sto cf.sto_out in
-            c && List.for_all (snd <+> M.flip ctype_closed sto_in) cf.args && ctype_closed cf.ret sto_out &&
-              closed sto_in && closed sto_out
-        end fs true
+      Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
+        (* pmr: Not yet right, but we need smarter handling of global stores. *)
+        SLM.fold (fun _ cf c -> c && CFun.well_formed empty cf) fs true
 
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
@@ -902,7 +902,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let add_var b vn sp (funspec, varspec, storespec) =
       (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
 
-    let add_loc l ld (funspec, varspec, storespec) =
+    let add_data_loc l ld (funspec, varspec, storespec) =
       (funspec, varspec, Store.Data.add storespec l ld)
 
     let mem_fun fn (funspec, _, _) =

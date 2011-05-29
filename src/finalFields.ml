@@ -328,7 +328,7 @@ module Interproc = struct
 end
 
 let check_location_finality fname l spec_store ld =
-  if CT.Store.mem spec_store l then
+  if CT.Store.Data.mem spec_store l then
     let spec_ld = CT.Store.Data.find l spec_store in
       LD.iter begin fun i fld ->
            spec_ld
