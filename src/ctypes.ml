@@ -814,7 +814,12 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
 
     let d_store () (ds, fs) =
-      P.dprintf "[@[%a@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
+      if fs = SLM.empty then
+        P.dprintf "[@[%a@]]" (d_slm LDesc.d_ldesc) ds
+      else if ds = SLM.empty then
+        P.dprintf "[@[%a@]]" (d_slm CFun.d_cfun) fs
+      else
+        P.dprintf "[@[%a@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
   end
 
   (******************************************************************************)
@@ -845,7 +850,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let d_args () args   = P.seq (P.dprintf ",@!") (d_arg ()) args
       
     let d_cfun () ft  = 
-      P.dprintf "forall    [%a]\narg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a"
+      P.dprintf "@[forall    [%a]\narg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a@]"
         d_slocs ft.qlocs
         d_args ft.args
         CType.d_ctype ft.ret
