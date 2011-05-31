@@ -28,7 +28,7 @@ module ST = Ssa_transform
 
 module FI = FixInterface 
 module FA = FixAstInterface 
-module CF = ConsInfra2
+module CF = ConsInfra
 module IM = Misc.IntMap
 module SM = Misc.StringMap
 module SS = Misc.StringSet
