@@ -124,7 +124,7 @@ let finalize_store shp_sto sto =
         end
     with Not_found ->
       Ctypes.I.Store.Data.add sto l ld
-  end Ctypes.I.Store.empty sto
+  end sto sto
 
 let finalize_funtypes shm cnv =
   SM.fold begin fun fname shp cnv ->
