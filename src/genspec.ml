@@ -173,13 +173,20 @@ type type_level =
   | TopLevel
   | InStruct
 
-let rec conv_ciltype loc tlev (th, st, off) (c, a) =
+let argsToList xtso = 
+     xtso 
+  |> Cil.argsToList 
+  |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
+  |> Misc.map (fun (x,y,_) -> (x,y))
+
+let rec conv_ciltype_aux loc tlev (th, st, off) (c, a) =
   try
     match c with
       | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
           (th, st, add_off off c), [(off, CilInterface.ctype_of_cilbasetype c)]
-      | TPtr (TFun (_, Some _, _, ats), _) ->
-          assert false
+      | TPtr (TFun (t, xtso, _, _), _) ->
+          let (th, st), t = conv_funptr loc (th, st) t (argsToList xtso) in
+            (th, st, add_off off c), [(off, t)]
       | TPtr (c',a') ->
           let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
           let (th', st'), t = conv_ptr loc (th, st) pd c' in
@@ -190,15 +197,22 @@ let rec conv_ciltype loc tlev (th, st, off) (c, a) =
           let (th', st'), t = conv_ptr loc (th, st) (period_of_ciltype c) c' in
           (th', st', add_off off c), [(off, t)] 
       | TNamed (ti, a') ->
-          conv_ciltype loc tlev (th, st, off) (ti.ttype, a' ++ a)
+          conv_ciltype_aux loc tlev (th, st, off) (ti.ttype, a' ++ a)
       | TComp (_, _) ->
           conv_cilblock loc (th, st, off) Nop c
      | _ -> 
-          halt <| errorLoc loc "TBD: conv_ciltype: %a \n\n" d_type c
+          halt <| errorLoc loc "TBD: conv_ciltype_aux: %a \n\n" d_type c
   with Ct.I.LDesc.TypeDoesntFit (i, ct, ld) ->
     let _ = errorLoc loc "Failed converting CIL type %a\n" d_type c in
     let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" N.d_index i Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
+
+and conv_funptr loc (th, st) t xts =
+  match cfun_of_args_ret "(function pointer)" (loc, t, xts) with
+    | None    -> raise CantConvert
+    | Some cf ->
+        let l = Sloc.fresh_abstract () in
+          ((th, Ct.I.Store.Function.add st l cf), Ct.Ref (l, N.IInt 0))
 
 and conv_ptr loc (th, st) pd c =
   let tid = id_of_ciltype c pd in
@@ -222,27 +236,27 @@ and conv_cilblock loc (th, st, off) pd c =
        ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
        List.iter (fun (c', _) -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype off
-    |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype loc InStruct (th, st, off) (c', [])) (th, st, off)
+    |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype_aux loc InStruct (th, st, off) (c', [])) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period pd)))
 
-let conv_ciltype y tlev z c =
+and conv_ciltype y tlev z c =
     let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
-      conv_ciltype y tlev z (c, [])
+      conv_ciltype_aux y tlev z (c, [])
 
-let conv_arg loc z (name, c) =
+and conv_arg loc z (name, c) =
   try
     conv_ciltype loc InStruct z c
   with CantConvert ->
     E.s <| errorLoc loc "Failed to generate type for argument %s\n" name
 
-let conv_ret fn loc z c =
+and conv_ret fn loc z c =
   try
     conv_ciltype loc InStruct z c
   with CantConvert ->
     E.s <| errorLoc loc "Failed to generate type for return value of function %s\n" fn
 
-let cfun_of_args_ret fn (loc, t, xts) =
+and cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
     let res   = Misc.mapfold (conv_arg loc) (SM.empty, Ct.I.Store.empty, N.IInt 0) xts in
@@ -260,12 +274,6 @@ let cfun_of_args_ret fn (loc, t, xts) =
     None
 
 let is_bltn = Misc.is_prefix "__builtin"
-
-let argsToList xtso = 
-  xtso 
-  |> Cil.argsToList 
-  |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
-  |> Misc.map (fun (x,y,_) -> (x,y))
 
 let upd_funm spec funm loc fn = function
   | _ when SM.mem fn spec -> funm
