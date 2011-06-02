@@ -317,7 +317,7 @@ module Interproc = struct
                     F.set_finality Ctypes.Nonfinal fld
                 end ld
               end
-          end CT.Store.empty shp.Sh.store}
+          end shp.Sh.store shp.Sh.store}
     end shpm
 
   let final_fields spec scis shpm =
