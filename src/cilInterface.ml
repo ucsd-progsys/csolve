@@ -218,7 +218,7 @@ let reft_of_cilexp vv e =
   match e with
   | Cil.Const (Cil.CStr str) ->
       (* pmr: Can and should do more here - vv = block start, length = len (str) *)
-      A.pAnd [A.pAtom (A.eVar vv, A.Ne, A.zero)]
+      A.pAtom (A.eVar vv, A.Ne, A.zero)
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
