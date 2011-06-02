@@ -13,8 +13,15 @@ open Misc.Ops
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
-let store_of_slocbinds sbs = 
-  List.fold_left (fun sto (x,y) -> RCt.Store.Data.add sto x y) RCt.Store.empty sbs
+type slocbind_contents =
+  | SData of RCt.LDesc.t
+  | SFun  of RCt.CFun.t
+
+let store_of_slocbinds sbs =
+  List.fold_left begin fun sto (x, y) -> match y with
+    | SData ld -> RCt.Store.Data.add sto x ld
+    | SFun f   -> RCt.Store.Function.add sto x f
+  end RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
   (* pmr: TODO - better location *)
@@ -29,8 +36,8 @@ let mk_sloc_abstract id =
 let mk_sloc_concrete id absid =
   Misc.do_memo cnc_sloctable Sloc.fresh_concrete (mk_sloc_abstract absid) id
 
-let mk_funspec fn public qslocs args ist ret ost =
-  (fn, (Ct.mk_refcfun qslocs args ist ret ost, public))
+let mk_funspec fn cf public =
+  (fn, (cf, public))
 
 exception InvalidStoredSpecType
 
@@ -111,25 +118,29 @@ specs:
                                           RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
-  | specs locspec                       { let lc, sp = $2 in RCt.Spec.add_loc lc sp $1 }
+  | specs locspec                       { match $2 with
+                                            | (lc, SData sp) -> RCt.Spec.add_data_loc lc sp $1
+                                            | _              -> assert false }
   ;
 
 funspec:
-    Id publ 
+    Id publ funtyp { mk_funspec $1 $3 $2 }
+    ;
+
+funtyp:
     FORALL slocs
     ARG    argbinds 
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      mk_funspec $1 $2 $4 $6 $10 $8 $12
+      Ct.mk_refcfun $2 $4 $8 $6 $10
     }
-  | Id publ
-    FORALL slocs
+  | FORALL slocs
     ARG    argbinds
     RET    reftype
     ST     refstore
     {
-      mk_funspec $1 $2 $4 $6 $10 $8 $10
+      Ct.mk_refcfun $2 $4 $8 $6 $8
     }
     ;
 
@@ -176,7 +187,8 @@ slocbindsne:
   ;
 
 slocbind:
-  sloc MAPSTO indbinds                  { ($1, RCt.LDesc.create Cil.locUnknown $3) (* pmr: TODO - better location *) } 
+    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create Cil.locUnknown $3)) (* pmr: TODO - better location *) }
+  | sloc MAPSTO funtyp                  { ($1, SFun $3) }
   ;
 
 indbinds:
