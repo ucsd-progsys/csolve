@@ -38,7 +38,6 @@ module Su = A.Subst
 module So = A.Sort
 module  Q = A.Qualifier
 
-module CI = CilInterface
 module Ct = Ctypes
 module It = Ct.I
 module YM = Sy.SMap
