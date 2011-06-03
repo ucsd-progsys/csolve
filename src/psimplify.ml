@@ -134,8 +134,10 @@ and makeBasic (setTemp: taExp -> bExp) (e: exp) : bExp =
   (* See if it is a basic one *)
   match e' with
   | Lval (Var _, _) -> e'
-  | Const _ | AddrOf (Var _, NoOffset) | StartOf (Var _, NoOffset) ->
+  | Const _ | StartOf (Var _, NoOffset) ->
       if !onlyVariableBasics then setTemp e' else e'
+  | AddrOf (Var _, NoOffset) ->
+      setTemp e'
   | SizeOf _ | SizeOfE _ | AlignOf _ |  AlignOfE _ | SizeOfStr _ ->
       E.s (bug "Simplify: makeBasic found SizeOf: %a" d_exp e')
 
