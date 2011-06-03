@@ -123,8 +123,9 @@ class exprTyper (ve) = object (self)
     self#ctype_of_exp (C.Lval lv)
 
   method private ctype_of_addrof = function
-    | C.Var v, C.NoOffset when CM.is_fun v -> assert false
+    | C.Var v, C.NoOffset when CM.is_fun v -> Ref (S.fresh_abstract (), Index.IInt 0)
     | lv                                   -> E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
+
   method private ctype_of_cast ct e =
     let ctv = self#ctype_of_exp e in
       match C.unrollType ct, C.unrollType <| C.typeOf e with
