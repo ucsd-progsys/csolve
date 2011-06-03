@@ -155,7 +155,7 @@ module type S = sig
     val create        : Cil.location -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
-    val referenced_slocs : t -> Sloc.SlocSet.t
+    val referenced_slocs : t -> Sloc.t list
     val find          : Index.t -> t -> (Index.t * Field.t) list
     val foldn         : (int -> 'a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a

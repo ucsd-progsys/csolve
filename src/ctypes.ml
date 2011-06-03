@@ -25,7 +25,6 @@ module M   = Misc
 module P   = Pretty
 module E   = Errormsg
 module S   = Sloc
-module SS  = S.SlocSet
 module C   = Cil
 module CM  = CilMisc
 module SM  = M.StringMap
@@ -422,7 +421,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val create        : C.location -> (Index.t * field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
-    val referenced_slocs : t -> Sloc.SlocSet.t
+    val referenced_slocs : t -> Sloc.t list
     val find          : Index.t -> t -> (Index.t * field) list
     val foldn         : (int -> 'a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
     val fold          : ('a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
@@ -698,10 +697,10 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       fold (fun _ i fld -> f i fld) () ld
 
     let referenced_slocs ld =
-      fold begin fun rss _ fld -> match Field.sloc_of fld with 
-        | None -> rss
-        | Some s -> SS.add s rss
-      end SS.empty ld
+      fold begin fun rls _ fld -> match Field.sloc_of fld with
+        | None   -> rls
+        | Some l -> l :: rls
+      end [] ld
 
     let indices flds =
       List.map fst flds
