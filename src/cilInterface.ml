@@ -34,6 +34,7 @@ module P  = A.Predicate
 module Sy = A.Symbol
 module CM = CilMisc
 module Ct = Ctypes
+module FA = FixAstInterface
 
 open Misc.Ops
 open Cil
@@ -289,8 +290,13 @@ let reft_of_cilexp vv e =
       let _ = Errormsg.warn "Unhandled operator: %a \n" Cil.d_exp e in
       A.pTrue
 
+  | Cil.AddrOf (Cil.Var v, Cil.NoOffset) when CM.is_fun v ->
+      A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
+              A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
+              A.pAtom (A.eVar vv, A.Lt, FA.eApp_bend (A.eVar vv))]
+
   | e -> 
-      Errormsg.s <| Errormsg.error "Unimplemented reft_cilexp: %a@!@!" Cil.d_exp e 
+      Errormsg.s <| Errormsg.error "Unimplemented reft_of_cilexp: %a@!@!" Cil.d_exp e 
 
 let catch_convert_exp s e = 
   Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "%s %a \n" s Cil.d_exp e)
