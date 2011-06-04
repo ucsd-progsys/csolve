@@ -114,7 +114,7 @@ let rename_funspec scim spec =
 let finalize_store shp_sto sto =
   Ctypes.I.Store.Data.fold_locs begin fun l ld sto ->
     try
-      let shp_ld = Ctypes.I.Store.Data.find l shp_sto in
+      let shp_ld = Ctypes.I.Store.Data.find shp_sto l in
         Ctypes.I.Store.Data.add sto l begin
           Ctypes.I.LDesc.mapn begin fun _ pl fld ->
             match Ctypes.I.LDesc.find pl shp_ld with

@@ -76,7 +76,7 @@ type ctvemap = I.ctemap
 (******************************************************************************)
 
 let store_add_absent loc l i ctv sto =
-  Store.Data.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.Data.find_or_empty l sto))
+  Store.Data.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.Data.find_or_empty sto l))
 
 let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | _                          when ct1 = ct2 -> (sub, sto)
@@ -91,20 +91,25 @@ and subtype_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 
   | ct1, ct2                              -> E.s <| C.errorLoc loc "Cannot subtype %a <: %a@!" d_ctype ct1 d_ctype ct2
 
 and store_unify_data_locations loc s1 s2 sub sto =
-  let ld1 = sto |> Store.Data.find_or_empty s1 |> LDesc.subs sub in
-  let ld2 = sto |> Store.Data.find_or_empty s2 |> LDesc.subs sub in
-  let sto = Store.remove sto s1 in
-  let sto = Store.Data.add sto s2 ld2 |> Store.subs sub in
+  let ld1, ld2 = M.map_pair (Store.Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
+  let sto      = Store.remove sto s1 in
+  let sto      = Store.Data.add sto s2 ld2 |> Store.subs sub in
     LDesc.fold (fun (sub, sto) i f -> store_add loc s2 i (Field.type_of f) sub sto) (sub, sto) ld1
 
 and store_unify_fun_locations loc s1 s2 sub sto =
-  let cf1 = CFun.subs (Store.Function.find sto s1) sub in
-  let sto = Store.remove sto s1 in
-    if Store.Function.mem sto s2 then
-      let cf2 = CFun.subs (Store.Function.find sto s2) sub in
-      (* pmr: Assert cf1 = cf2 *)
-        (sub, sto)
-    else (sub, Store.Function.add sto s2 cf1)
+  if Store.Function.mem sto s1 then
+    let cf1 = CFun.subs (Store.Function.find sto s1) sub in
+    let sto = s1 |> Store.remove sto |> Store.subs sub in
+      if Store.Function.mem sto s2 then
+        let cf2 = CFun.subs (Store.Function.find sto s2) sub in
+          if CFun.same_shape cf1 cf2 then
+            (sub, sto)
+          else
+            E.s <|
+              C.errorLoc loc "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
+                S.d_sloc s1 S.d_sloc s2 S.d_sloc s1 CFun.d_cfun cf1 S.d_sloc s2 CFun.d_cfun cf2
+      else (sub, Store.Function.add sto s2 cf1)
+  else (sub, Store.subs sub sto)
 
 and assert_unifying_same_location_type loc s1 s2 sto =
   if (Store.Function.mem sto s1 && Store.Data.mem sto s2) ||
@@ -130,7 +135,7 @@ and store_add loc s i ct sub sto =
   try match i with
     | Index.IBot                     -> (sub, sto)
     | Index.ICClass _ | Index.IInt _ ->
-      let ld = Store.Data.find_or_empty s sto in
+      let ld = Store.Data.find_or_empty sto s in
         match LDesc.find i ld with
           | []   -> (sub, store_add_absent loc s i ct sto)
           | flds ->
@@ -147,8 +152,18 @@ and store_add loc s i ct sub sto =
                   (sub, Store.Data.add sto s ld)
   with e ->
     C.errorLoc loc "store_add: Can't fit %a: %a in location %a |-> %a"
-      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.Data.find_or_empty s sto) |> ignore;
+      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;
     raise e
+
+let store_add_fun loc l cf sub sto =
+  let l = S.Subst.apply sub l in
+    if not (Store.Data.mem sto l) then
+      if Store.Function.mem sto l then
+        let _ = assert (CFun.same_shape cf (Store.Function.find sto l)) in
+          (sub, sto)
+      else (sub, Store.Function.add sto l cf)
+    else E.s <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
+                  S.d_sloc l LDesc.d_ldesc (Store.Data.find sto l)
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -170,7 +185,7 @@ let constrain_lval et sub sto = function
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
-class exprConstraintVisitor (et, sub, sto) = object (self)
+class exprConstraintVisitor (et, fs, sub, sto) = object (self)
   inherit C.nopCilVisitor
 
   val sto = ref sto
@@ -195,6 +210,14 @@ class exprConstraintVisitor (et, sub, sto) = object (self)
       end
     | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
+  method private constrain_addrof = function
+    | (C.Var v, C.NoOffset) as lv ->
+        begin match et#ctype_of_exp (C.AddrOf lv) with
+          | Ref (l, _) -> self#set_sub_sto <| store_add_fun !C.currentLoc l (fst (VM.find v fs)) !sub !sto
+          | _          -> assert false
+        end
+    | _ -> assert false
+
   method private constrain_exp = function
     | C.Const c                          -> ()
     | C.Lval lv | C.StartOf lv           -> self#set_sub_sto (constrain_lval et !sub !sto lv)
@@ -203,24 +226,25 @@ class exprConstraintVisitor (et, sub, sto) = object (self)
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
     | C.CastE (ct, e)                    -> ()
     | C.SizeOf t                         -> ()
-    | C.AddrOf lv                        -> ()
+    | C.AddrOf lv                        -> self#constrain_addrof lv
     | e                                  -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
 end
 
-let constrain_exp et sub sto e =
-  let ecv = new exprConstraintVisitor (et, sub, sto) in
+let constrain_exp et fs sub sto e =
+  let ecv = new exprConstraintVisitor (et, fs, sub, sto) in
   let _   = C.visitCilExpr (ecv :> C.cilVisitor) e in
     ecv#get_sub_sto
 
-let constrain_args et sub sto es =
+let constrain_args et fs sub sto es =
   List.fold_right begin fun e (cts, sub, sto) ->
-    let sub, sto = constrain_exp et sub sto e in
+    let sub, sto = constrain_exp et fs sub sto e in
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-let constrain_app (fs, _) et f sub sto lvo args =
-  let cts, sub, sto = constrain_args et sub sto args in
-  let cf, _         = VM.find f fs in
+(* pmr: need to check that actuals are subtypes of formals for the
+        function pointer case *)
+let constrain_app (fs, _) et cf sub sto lvo args =
+  let cts, sub, sto = constrain_args et fs sub sto args in
   let instslocs     = List.map (fun _ -> S.fresh_abstract ()) cf.qlocs in
   let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) cf.qlocs instslocs in
   let isub          = List.combine cf.qlocs instslocs in
@@ -232,7 +256,10 @@ let constrain_app (fs, _) et f sub sto lvo args =
   let sub, sto      = List.fold_left2 begin fun (sub, sto) cta ctf ->
     subtype_ctypes !C.currentLoc cta ctf sub sto
   end (sub, sto) cts ctfs in
-  let sto          = List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty s sto)) sto (Store.domain ostore) in
+  let sto          = ostore
+                  |> Store.domain
+                  |> List.filter (Store.Data.mem ostore)
+                  |> List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty sto s)) sto in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
@@ -241,22 +268,30 @@ let constrain_app (fs, _) et f sub sto lvo args =
         let sub, sto = subtype_ctypes !C.currentLoc (Ct.subs isub cf.ret) ctlv sub sto in
           (annot, sub, sto)
 
-let constrain_return et sub sto rtv = function
+let constrain_return et fs sub sto rtv = function
     | None   -> if Ct.is_void rtv then ([], sub, sto) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
-      let sub, sto = constrain_exp et sub sto e in
+      let sub, sto = constrain_exp et fs sub sto e in
       let sub, sto = subtype_ctypes !C.currentLoc (et#ctype_of_exp e) rtv sub sto in
         ([], sub, sto)
 
+let assert_type_is_heap_storable heap_ct ct =
+  assert (Index.is_subindex (ct |> Ct.refinement) (heap_ct |> Ct.refinement))
+
 let assert_store_type_correct lv ct = match lv with
-  | (C.Mem _, _) -> assert (Index.is_subindex (ct |> Ct.refinement) (lv |> C.typeOfLval |> fresh_heaptype |> Ct.refinement))  | _            -> ()
+  | (C.Mem _, _) -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) ct
+  | _            -> ()
+
+let assert_funptr_return_type_matches_lval lvo cf = match lvo with
+  | Some lv -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) cf.ret
+  | None    -> ()
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
   match i with
   | C.Set (lv, e, _) ->
       let sub, sto = constrain_lval et sub sto lv in
-      let sub, sto = constrain_exp et sub sto e in
+      let sub, sto = constrain_exp et fs sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
       let _        = assert_store_type_correct lv ct2 in
@@ -264,35 +299,38 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
-      let _, sub, sto = constrain_args et sub sto args in
+      let _, sub, sto = constrain_args et fs sub sto args in
         ([] :: bas, sub, sto)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
       let cf, _        = VM.find f fs in
       let ba, sub, sto = constrain_app env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
   | C.Call (lvo, C.Lval (C.Mem e, _), args, _) ->
-      let ct = et#ctype_of_exp e in
-      let _ = P.printf "Funptr call through %a in store@!%a@!@!" Ct.d_ctype ct Store.d_store sto in
-      let cf = assert false in
-      let ba, sub, sto = constrain_app env et cf sub sto lvo args in
-        (ba :: bas, sub, sto)
+      begin match e |> et#ctype_of_exp |> Ct.subs sub with
+        | Ref (l, _) ->
+            let cf           = Store.Function.find sto l in
+            let ba, sub, sto = constrain_app env et cf sub sto lvo args in
+            let _            = assert_funptr_return_type_matches_lval lvo cf in
+              (ba :: bas, sub, sto)
+        | _ -> assert false
+      end
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr env et is sub sto =
   let bas, sub, sto = List.fold_left (constrain_instr_aux env et) ([], sub, sto) is in
     (List.rev ([] :: bas), sub, sto)
 
-let constrain_stmt env et rtv s sub sto =
+let constrain_stmt ((fs, _) as env) et rtv s sub sto =
   let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
     match s.C.skind with
       | C.Instr is          -> constrain_instr env et is sub sto
-      | C.If (e, _, _, _)   -> let sub, sto = constrain_exp et sub sto e in ([], sub, sto)
+      | C.If (e, _, _, _)   -> let sub, sto = constrain_exp et fs sub sto e in ([], sub, sto)
       | C.Break _           -> ([], sub, sto)
       | C.Continue _        -> ([], sub, sto)
       | C.Goto _            -> ([], sub, sto)
       | C.Block _           -> ([], sub, sto)       (* we'll visit this later as we iterate through blocks *)
       | C.Loop (_, _, _, _) -> ([], sub, sto)       (* ditto *)
-      | C.Return (rexp, _)  -> constrain_return et sub sto rtv rexp
+      | C.Return (rexp, _)  -> constrain_return et fs sub sto rtv rexp
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
@@ -349,7 +387,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
 
 let check_out_store_complete sto_out_formal sto_out_actual =
   Store.Data.fold_fields begin fun ok l i fld ->
-    if Store.mem sto_out_formal l && sto_out_formal |> Store.Data.find l |> LDesc.find i = [] then begin
+    if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
         S.d_sloc l Index.d_index i Field.d_field fld S.d_sloc l |> ignore;
       false
@@ -438,9 +476,10 @@ let assert_call_no_physical_subtyping fe f store gst annots =
     List.iter begin function
       | RA.New (scallee, scaller) ->
           let sto = if Store.mem store scaller then store else gst in
-            assert_location_inclusion
-              scaller (Store.Data.find scaller sto)
-              scallee (Store.Data.find scallee cf.sto_out)
+            if not (Store.Function.mem sto scaller) then
+              assert_location_inclusion
+                scaller (Store.Data.find sto scaller)
+                scallee (Store.Data.find cf.sto_out scallee)
       | _ -> ()
     end annots
 

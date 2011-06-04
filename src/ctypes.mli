@@ -191,16 +191,18 @@ module type S = sig
     module Data: sig
       val add           : t -> Sloc.t -> LDesc.t -> t
       val mem           : t -> Sloc.t -> bool
-      val find          : Sloc.t -> t -> LDesc.t
-      val find_or_empty : Sloc.t -> t -> LDesc.t
+      val find          : t -> Sloc.t -> LDesc.t
+      val find_or_empty : t -> Sloc.t -> LDesc.t
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
       val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     end
 
     module Function: sig
-      val add  : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
-      val find : 'a prestore -> Sloc.t -> 'a precfun
+      val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val mem       : 'a prestore -> Sloc.t -> bool
+      val find      : 'a prestore -> Sloc.t -> 'a precfun
+      val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
     end
   end
 
@@ -211,6 +213,7 @@ module type S = sig
     val d_cfun             : unit -> t -> Pretty.doc
     val map                : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val well_formed        : Store.t -> t -> bool
+    val same_shape         : t -> t -> bool
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t

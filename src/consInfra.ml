@@ -334,9 +334,11 @@ let ctype_of_varinfo ctl v =
 let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
-      let ct  = ctype_of_varinfo shp.Sh.vtyps v in
-      let clo = Refanno.cloc_of_varinfo shp.Sh.theta v in
-      strengthen_cloc (ct, clo)
+      let ct = ctype_of_varinfo shp.Sh.vtyps v in
+        begin match ct with
+          | Ct.Ref (l, _) when Ct.I.Store.Function.mem shp.Sh.store l -> ct
+          | _ -> strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
+        end
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> ctype_scalar
  

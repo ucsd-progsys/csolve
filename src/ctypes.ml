@@ -456,16 +456,18 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     module Data: sig
       val add           : t -> Sloc.t -> ldesc -> t
       val mem           : t -> Sloc.t -> bool
-      val find          : Sloc.t -> t -> ldesc
-      val find_or_empty : Sloc.t -> t -> ldesc
+      val find          : t -> Sloc.t -> ldesc
+      val find_or_empty : t -> Sloc.t -> ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
       val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     end
 
     module Function: sig
-      val add  : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
-      val find : 'a prestore -> Sloc.t -> 'a precfun
+      val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val mem       : 'a prestore -> Sloc.t -> bool
+      val find      : 'a prestore -> Sloc.t -> 'a precfun
+      val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
     end
   end
 
@@ -475,6 +477,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val d_cfun             : unit -> t -> Pretty.doc
     val map                : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val well_formed        : store -> t -> bool
+    val same_shape         : t -> t -> bool
     val prune_unused_qlocs : t -> t
     val instantiate        : t -> t * (Sloc.t * Sloc.t) list
     val make               : Sloc.t list -> (string * ctype) list -> ctype -> store -> store -> t
@@ -697,7 +700,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       fold (fun _ i fld -> f i fld) () ld
 
     let referenced_slocs ld =
-      fold begin fun rls _ fld -> match Field.sloc_of fld with
+      fold begin fun rls _ fld -> match Field.sloc_of fld with 
         | None   -> rls
         | Some l -> l :: rls
       end [] ld
@@ -725,16 +728,17 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     module Data = struct
       let add (ds, fs) l ld =
-        (SLM.add l ld ds, fs)
+        let _ = assert (not (SLM.mem l fs)) in
+          (SLM.add l ld ds, fs)
 
       let mem (ds, _) l =
         SLM.mem l ds
 
-      let find l (ds, fs) =
+      let find (ds, _) l =
         SLM.find l ds
 
-      let find_or_empty l sto =
-        try find l sto with Not_found -> LDesc.empty
+      let find_or_empty sto l =
+        try find sto l with Not_found -> LDesc.empty
 
       let map f (ds, fs) =
         (map_data f ds, fs)
@@ -748,10 +752,17 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     module Function = struct
       let add (ds, fs) l cf =
-        (ds, SLM.add l cf fs)
+        let _ = assert (not (SLM.mem l ds)) in
+          (ds, SLM.add l cf fs)
+
+      let mem (_, fs) l =
+        SLM.mem l fs
 
       let find (_, fs) l =
         SLM.find l fs
+
+      let fold_locs f b (_, fs) =
+        SLM.fold f fs b
     end
 
     let map f (ds, fs) =
@@ -794,7 +805,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
       | _          -> true
-
+   
     let rec closed ((_, fs) as sto) =
       Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
         (* pmr: Not yet right, but we need smarter handling of global stores. *)
@@ -867,6 +878,37 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
              (apply_sub cf.ret)
              (Store.subs sub cf.sto_in)
              (Store.subs sub cf.sto_out)
+
+    let rec order_locs_aux sto ord = function
+      | []      -> ord
+      | l :: ls ->
+          if not (List.mem l ord) then
+            let ls = if Store.Data.mem sto l then ls @ (l |> Store.Data.find sto |> LDesc.referenced_slocs) else ls in
+              order_locs_aux sto (l :: ord) ls
+          else order_locs_aux sto ord ls
+
+    let ordered_qlocs ({qlocs = qs; args = args; ret = ret; sto_out = sto} as cf) =
+      let ord = (CType.sloc ret :: (List.map (snd <+> CType.sloc) args))
+             |> M.maybe_list
+             |> order_locs_aux sto []
+             |> M.mapi (fun i x -> (x, i)) in
+      M.fsort (M.flip List.assoc ord) qs
+
+    let rec same_shape cf1 cf2 =
+      M.same_length cf1.qlocs cf2.qlocs && M.same_length (Store.domain cf1.sto_out) (Store.domain cf2.sto_out) &&
+        let qs1, qs2   = M.map_pair ordered_qlocs (cf1, cf2) in
+        let freshes    = List.map (fun _ -> Sloc.fresh_abstract ()) qs1 in
+        let sub1, sub2 = M.map_pair (M.flip List.combine freshes) (qs1, qs2) in
+        let cf1        = subs {cf1 with qlocs = []} sub1 in
+        let cf2        = subs {cf2 with qlocs = []} sub2 in
+          List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
+       && cf1.ret = cf2.ret
+       && Store.Data.fold_locs begin fun l ld b ->
+            b && Store.Data.mem cf2.sto_out l && ld = Store.Data.find cf2.sto_out l
+          end true cf1.sto_out
+       && Store.Function.fold_locs begin fun l cf b ->
+              b && Store.Function.mem cf2.sto_out l && same_shape cf (Store.Function.find cf2.sto_out l)
+          end true cf1.sto_out
 
     let instantiate cf =
       let sub = List.map (fun l -> (l, S.fresh_abstract ())) cf.qlocs in
@@ -1021,7 +1063,7 @@ let refstore_set sto l rd =
     assertf "refstore_set"
 
 let refstore_get sto l =
-  try RCt.Store.Data.find l sto with Not_found ->
+  try RCt.Store.Data.find sto l with Not_found ->
     (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
      asserti false "refstore_get"; assert false)
 
@@ -1048,7 +1090,8 @@ let addr_of_refctype loc = function
 
 let ac_refstore_read loc sto cr = 
   let (l, ix) = addr_of_refctype loc cr in 
-  RCt.Store.Data.find l sto 
+     l
+  |> RCt.Store.Data.find sto 
   |> refdesc_find ix
 
 (* API *)
@@ -1063,7 +1106,7 @@ let is_soft_ptr loc sto cr =
 let refstore_write loc sto rct rct' = 
   let (cl, ix) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = RCt.Store.Data.find cl sto in
+  let ld = RCt.Store.Data.find sto cl in
   let ld = RCt.LDesc.remove ix ld in
   let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
   RCt.Store.Data.add sto cl ld

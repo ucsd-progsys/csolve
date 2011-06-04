@@ -7,7 +7,7 @@ void doNothin (void (*f) ()) {
 }
 
 int main () {
-    doNothin (&f);
+    doNothin (&nop);
     
     return 0;
 }

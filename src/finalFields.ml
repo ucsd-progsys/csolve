@@ -53,7 +53,7 @@ module Intraproc (X: Context) = struct
   (******************************************************************************)
 
   let find_stored_indices al i =
-    CT.Store.Data.find_or_empty al X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
+    al |> CT.Store.Data.find_or_empty X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
 
   let locs_of_lval = function
     | (C.Mem (C.Lval (C.Var vi, _) as e), _)
@@ -108,8 +108,9 @@ module Intraproc (X: Context) = struct
   let check_call_annots fname ffm annots =
     let ffmcallee = SM.find fname X.ffmm |> fst in
       List.iter begin function
-        | RA.New (scallee, scaller) -> assert (IS.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
-        | _                         -> ()
+        | RA.New (scallee, scaller) ->
+            assert (CT.Store.Function.mem X.shp.Sh.store scaller || IS.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
+        | _ -> ()
       end annots
 
   let check_block_call ffm ffm' annots i =
@@ -159,8 +160,10 @@ module Intraproc (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
-	     let callee_ffm = SM.find fname X.ffmm |> fst in
-	       LM.add scaller (IS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
+             if not (CT.Store.Function.mem X.shp.Sh.store scaller) then
+	       let callee_ffm = SM.find fname X.ffmm |> fst in
+                 LM.add scaller (IS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
+             else ffm
 	 | _ -> ffm
        end ffm
     |> fun ffm ->
@@ -172,6 +175,7 @@ module Intraproc (X: Context) = struct
     match i with
       | C.Set (lval, _, _)	  	                  -> process_set_lval na lval ffm
       | C.Call (lvo, C.Lval (C.Var vi, C.NoOffset), _, _) -> process_call na annots vi.C.vname lvo ffm
+      | C.Call (_, C.Lval (C.Mem _, C.NoOffset), _, _)    -> LM.map (fun _ -> IS.empty) ffm
       | C.Asm _ | C.Call _			          -> assert false
 
   let process_gen_inst annots ffm =
@@ -329,7 +333,7 @@ end
 
 let check_location_finality fname l spec_store ld =
   if CT.Store.Data.mem spec_store l then
-    let spec_ld = CT.Store.Data.find l spec_store in
+    let spec_ld = CT.Store.Data.find spec_store l in
       LD.iter begin fun i fld ->
            spec_ld
         |> LD.find i

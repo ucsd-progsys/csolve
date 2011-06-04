@@ -89,6 +89,12 @@ val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> 
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
 
+val rename_refctype :
+  Sloc.Subst.t ->
+  (Ast.Symbol.t * Cil.exp) list ->
+  Ctypes.refctype -> 
+  Ctypes.refctype
+
 val may_contain_deref   : Ctypes.refctype -> bool
 
 val new_block_reftype   : (* (Sloc.t -> Sloc.t) -> *) Ctypes.refctype -> Ctypes.refctype
@@ -134,6 +140,23 @@ val make_cs_refstore    : cilenv -> Ast.pred ->
                           Ctypes.refstore -> Ctypes.refstore -> bool ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_tuple       : cilenv -> Ast.pred ->
+                          Sloc.Subst.t -> (Ast.Symbol.t * Cil.exp) list ->
+                          Ctypes.refctype list ->
+                          Ctypes.refctype list ->
+                          CilTag.t option ->
+                          CilTag.t ->
+                          Cil.location ->
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_refcfun     : cilenv -> Ast.pred ->
+                          Ctypes.refcfun -> 
+                          Ctypes.refcfun ->
+                          CilTag.t ->
+                          Cil.location ->
+                          FixConstraint.t list * FixConstraint.dep list
+
 val make_dep            : bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
 val annot_dump          : FixSolution.t -> unit
 val annot_clear         : 'a -> unit
