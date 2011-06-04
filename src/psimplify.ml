@@ -287,6 +287,11 @@ class threeAddressVisitor (fi: fundec) = object (self)
         ChangeTo [ Call (someo', f', args', loc) ]
   | _ -> DoChildren
 
+  method vstmt (s: stmt) =
+    match s.skind with
+    | Return (Some e, loc) -> ChangeTo {s with skind = Return (Some (makeBasic self#makeTemp e), loc)}
+    | _                    -> DoChildren
+
       (* This method will be called only on top-level "lvals" (those on the
        * left of assignments and function calls) *)
   method vlval (lv: lval) =
