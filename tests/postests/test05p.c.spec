@@ -1,5 +1,4 @@
-make_ptr :: forall    [A6;A5;C5[A5]]
-            arg       ()
+make_ptr :: arg       ()
             ret       ref(C5[A5], 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + 4]})
             store_in  []
             store_out [C5[A5] |-> 0: ref(A6, 0);

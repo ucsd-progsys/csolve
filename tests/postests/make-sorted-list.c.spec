@@ -1,5 +1,4 @@
-copy :: forall [A5;A6]
-        arg    (hd : ref(A5, 0))
+copy :: arg    (hd : ref(A5, 0))
         ret    ref(A6, 0)
         store  [A5 |-> 0: int(4, 0{1}),
                           4: ref(A5, 0);

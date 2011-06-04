@@ -54,13 +54,12 @@ let check_store_bind_valid (i, fld) =
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
   if RCt.Store.closed storespec then
-    let rcf = RCt.CFun.prune_unused_qlocs rcf in
-      if RCt.CFun.well_formed storespec rcf then
-        RCt.Spec.add_fun true fn (rcf, public) spec
-      else begin
-        Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
-        raise Parse_error
-      end
+    if RCt.CFun.well_formed storespec rcf then
+      RCt.Spec.add_fun true fn (rcf, public) spec
+    else begin
+      Format.printf "Error: %s has ill-formed spec\n\n" fn |> ignore;
+      raise Parse_error
+    end
   else begin
     Format.printf "Error: global store not closed\n\n" |> ignore;
     raise Parse_error
@@ -128,19 +127,17 @@ funspec:
     ;
 
 funtyp:
-    FORALL slocs
     ARG    argbinds 
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      Ct.mk_refcfun $2 $4 $8 $6 $10
+      Ct.mk_refcfun $2 $6 $4 $8
     }
-  | FORALL slocs
-    ARG    argbinds
+  | ARG    argbinds
     RET    reftype
     ST     refstore
     {
-      Ct.mk_refcfun $2 $4 $8 $6 $8
+      Ct.mk_refcfun $2 $6 $4 $6
     }
     ;
 

@@ -90,12 +90,11 @@ let rename_args rf sci =
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
   let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FA.name_of_string (x,y)) xrs ys in
-  let qls'     = Ctypes.qlocs_of_refcfun rf in
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
   let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in
   let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
-  Ctypes.mk_refcfun qls' args' hi' ret' ho' 
+  Ctypes.mk_refcfun args' hi' ret' ho' 
 
 let rename_funspec scim spec = 
   spec 

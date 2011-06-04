@@ -1,4 +1,3 @@
-insert :: forall    [A6]
           arg       (hd : ref(A6, 0),
                      v : ref(A6, 0))
           ret       int(0, 0{1})

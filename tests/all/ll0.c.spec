@@ -1,5 +1,4 @@
 main ::
-  forall []
   arg	 ()
   ret int (4, true, {v | true})
   store_in []

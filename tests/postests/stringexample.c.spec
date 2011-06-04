@@ -1,5 +1,4 @@
 string_succ ::
-  forall    [A0; A1; A2]
   arg      (s: ref (A1, 4))
   ret      ref (A2, 0)
   store    [A1 |-> 0: ref (A1, 0), 4: ref (A2, 0);

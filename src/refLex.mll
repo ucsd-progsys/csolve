@@ -94,7 +94,6 @@ rule token = parse
   | "ptr"               { PTR }
   | "bool"              { BOOL }
   | "final"             { FINAL }
-  | "forall"            { FORALL }
   | "func"              { FUNC }
   | "sort"              { SRT }
   | "axiom"             { AXM }

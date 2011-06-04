@@ -1,5 +1,4 @@
 main ::
-  forall    [A0]
   arg	    ()
   ret 	    ref(A0, 0, {v | true}) 
   store_in  []

@@ -97,8 +97,7 @@ type 'a prectype =
   | Ref of Sloc.t * 'a      (* reference *)
 
 and 'a precfun =
-    { qlocs       : Sloc.t list;                  (* generalized slocs *)
-      args        : (string * 'a prectype) list;  (* arguments *)
+    { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
@@ -210,15 +209,14 @@ module type S = sig
   sig
     type t = R.t precfun
 
-    val d_cfun             : unit -> t -> Pretty.doc
-    val map                : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-    val well_formed        : Store.t -> t -> bool
-    val same_shape         : t -> t -> bool
-    val prune_unused_qlocs : t -> t
-    val instantiate        : t -> t * (Sloc.t * Sloc.t) list
-    val make               : Sloc.t list -> (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
-    val subs               : t -> Sloc.Subst.t -> t
-    val indices            : t -> Index.t list 
+    val d_cfun      : unit -> t -> Pretty.doc
+    val map         : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val well_formed : Store.t -> t -> bool
+    val same_shape  : t -> t -> bool
+    val domain      : t -> Sloc.t list
+    val make        : (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
+    val subs        : t -> Sloc.Subst.t -> t
+    val indices     : t -> Index.t list 
   end
 
   module Spec:
@@ -327,10 +325,10 @@ val reft_of_refctype    : refctype -> FixConstraint.reft
 val cfun_of_refcfun     : refcfun  -> cfun
 val store_of_refstore   : refstore -> store
 val cspec_of_refspec    : refspec  -> cspec
-val qlocs_of_refcfun    : refcfun  -> Sloc.t list
+val domain_of_refcfun   : refcfun  -> Sloc.t list
 val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
-val mk_refcfun          : Sloc.t list -> (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
+val mk_refcfun          : (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
 
 

@@ -7,8 +7,7 @@ loc A2 |-> 0: ref(A2, 0)
 
 ll :: ref(A1, 0)
 
-f :: forall    []
-     arg       (lp : ref(A1, 0))
+f :: arg       (lp : ref(A1, 0))
      ret       int(0, true)
      store_in  []
      store_out []

@@ -1,5 +1,4 @@
 assert_sorted ::
-  forall [A0]
   arg    (hd: ref (A0, 0))
   ret    int (0, true)
   store  [A0 |-> 0: final int (4, true),
