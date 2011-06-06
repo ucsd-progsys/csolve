@@ -473,15 +473,15 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   module type CFUN = sig
     type t = cfun
 
-    val d_cfun      : unit -> t -> Pretty.doc
-    val map         : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
-    val well_formed : store -> t -> bool
+    val d_cfun          : unit -> t -> Pretty.doc
+    val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val well_formed     : store -> t -> bool
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
-    val same_shape  : t -> t -> bool
-    val domain      : t -> Sloc.t list
-    val make        : (string * ctype) list -> ctype -> store -> store -> t
-    val subs        : t -> Sloc.Subst.t -> t
-    val indices     : t -> Index.t list
+    val same_shape      : t -> t -> bool
+    val domain          : t -> Sloc.t list
+    val make            : (string * ctype) list -> ctype -> store -> store -> t
+    val subs            : t -> Sloc.Subst.t -> t
+    val indices         : t -> Index.t list
   end
 
   module type SPEC = sig
@@ -1010,7 +1010,7 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.fresh_abstract (), N.top) 
+let ptr_ctype    = Ref (S.fresh_abstract (), N.top)
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype        = I.CType.d_ctype

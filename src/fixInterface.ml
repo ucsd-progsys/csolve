@@ -463,14 +463,14 @@ let vv_rename so' r =
   let ras'   = r |> C.theta (Su.of_list [vv, A.eVar vv']) |> C.ras_of_reft in
   C.make_reft vv' so' ras'
 
-let t_scalar_refctype_raw rct = 
-  let so'  = Ct.scalar_ctype |> sort_of_prectype in 
+let t_scalar_refctype_raw rct =
+  let so'  = Ct.scalar_ctype |> sort_of_prectype in
   let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
-  refctype_of_reft_ctype r' Ct.scalar_ctype 
+  refctype_of_reft_ctype r' Ct.scalar_ctype
 
 (* API *)
 let t_scalar_refctype =
-  (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype)) 
+  (t_scalar_refctype_raw <*> (t_scalar <.> Ct.ctype_of_refctype))
   <+> Misc.uncurry meet_refctype
 
 (* WRAPPER  
