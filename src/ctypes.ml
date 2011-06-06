@@ -476,6 +476,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val d_cfun      : unit -> t -> Pretty.doc
     val map         : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val well_formed : store -> t -> bool
+    val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
     val same_shape  : t -> t -> bool
     val domain      : t -> Sloc.t list
     val make        : (string * ctype) list -> ctype -> store -> store -> t
@@ -890,13 +891,24 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
              |> M.mapi (fun i x -> (x, i)) in
       cf |> domain |> M.fsort (M.flip List.assoc ord)
 
+    let fresh_arg_name, _ = M.mk_string_factory "ARG"
+
+    let replace_arg_names anames cf =
+      {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
+
+    let normalize_names cf1 cf2 f =
+      let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
+      let fresh_locs   = List.map (fun _ -> Sloc.fresh_abstract ()) ls1 in
+      let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
+      let fresh_args   = List.map (fun _ -> fresh_arg_name ()) cf1.args in
+      let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
+      let cf1, cf2     = M.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
+        (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1),
+         capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2))
+
     let rec same_shape cf1 cf2 =
-      M.same_length (domain cf1) (domain cf2) &&
-        let ls1, ls2   = M.map_pair ordered_locs (cf1, cf2) in
-        let freshes    = List.map (fun _ -> Sloc.fresh_abstract ()) ls1 in
-        let sub1, sub2 = M.map_pair (M.flip List.combine freshes) (ls1, ls2) in
-        let cf1        = capturing_subs cf1 sub1 in
-        let cf2        = capturing_subs cf2 sub2 in
+      M.same_length (domain cf1) (domain cf2) && M.same_length cf1.args cf2.args &&
+        let cf1, cf2 = normalize_names cf1 cf2 (fun _ _ _ ct -> ct) in
           List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
        && cf1.ret = cf2.ret
        && Store.Data.fold_locs begin fun l ld b ->

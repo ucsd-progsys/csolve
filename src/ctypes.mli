@@ -212,6 +212,7 @@ module type S = sig
     val d_cfun      : unit -> t -> Pretty.doc
     val map         : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val well_formed : Store.t -> t -> bool
+    val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
     val same_shape  : t -> t -> bool
     val domain      : t -> Sloc.t list
     val make        : (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t

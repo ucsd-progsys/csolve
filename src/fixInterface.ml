@@ -504,6 +504,10 @@ let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
   RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
+let subs_refctype sto lsubs substrs cr =
+  let subs = List.map (Misc.map_pair FA.name_of_string) substrs ++ subs_of_lsubs lsubs sto in
+    cr |> t_subs_locs lsubs
+       |> t_subs_names subs
 
 
 exception ContainsDeref
@@ -758,6 +762,7 @@ let rec make_cs_refstore env p st1 st2 polarity tago tag loc =
   |> Misc.splitflatten 
 
 and make_cs_refcfun env p rf rf' tag loc =
+  let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype in
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
   let hi, ho      = Ct.stores_of_refcfun rf in
