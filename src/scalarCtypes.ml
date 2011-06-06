@@ -115,36 +115,45 @@ let substs_of_preds p v ps =
   let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
   ps |> Misc.map_partial (A.unify_pred p)
 
-let indexo_of_preds_iint v ps =
-  [p_v_eq_c; p_v_eq_x_plus_c]
+let fold_preds qs f v ps =
+  qs
   |> Misc.flap (fun q -> substs_of_preds q v ps) 
   |> Misc.map_partial (bind_of_subst const_var) 
-  |> (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None)
+  |> f
 
-let lowerboundo_of_preds v ps = 
-  [p_v_ge_c; p_v_ge_x_plus_c]
-  |> Misc.flap (fun q -> substs_of_preds q v ps)
-  |> Misc.map_partial (bind_of_subst const_var) 
-  |> (function c::cs -> Some (List.fold_left max c cs) | _ -> None)
+let indexo_of_preds_iint_aux qs v ps =
+  fold_preds qs (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None) v ps
 
-let upperboundo_of_preds v ps = 
-  [p_v_le_c; p_v_le_x_plus_c]
-  |> Misc.flap (fun q -> substs_of_preds q v ps)
-  |> Misc.map_partial (bind_of_subst const_var) 
-  |> (function c::cs -> Some (List.fold_left min c cs) | _ -> None)
+let data_indexo_of_preds_iint = indexo_of_preds_iint_aux [p_v_eq_c]
+let ref_indexo_of_preds_iint  = indexo_of_preds_iint_aux [p_v_eq_x_plus_c]
 
-let periodo_of_preds v ps =
-  [p_v_minus_x_minus_c_eqz_mod_k; p_v_minus_c_eqz_mod_k]
+let lowerboundo_of_preds_aux qs v ps = 
+  fold_preds qs (function c::cs -> Some (List.fold_left max c cs) | _ -> None) v ps
+
+let data_lowerboundo_of_preds = lowerboundo_of_preds_aux [p_v_ge_c]
+let ref_lowerboundo_of_preds  = lowerboundo_of_preds_aux [p_v_ge_x_plus_c]
+
+let upperboundo_of_preds_aux qs v ps =
+  fold_preds qs (function c::cs -> Some (List.fold_left min c cs) | _ -> None) v ps
+
+let data_upperboundo_of_preds = upperboundo_of_preds_aux [p_v_le_c]
+let ref_upperboundo_of_preds  = upperboundo_of_preds_aux [p_v_le_x_plus_c]
+
+let periodo_of_preds_aux qs v ps =
+  qs
   |> Misc.flap (fun q -> substs_of_preds q v ps)
   |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
   |> Misc.map_partial (function (Some c, Some k) -> Some (k, c) | _ -> None)
   |> (function x::xs -> Some (List.fold_left max x xs) | _ -> None)
   |> Misc.maybe_map (fun (k, c) -> (c mod k, k)) 
 
+let data_periodo_of_preds = periodo_of_preds_aux [p_v_minus_c_eqz_mod_k]
+let ref_periodo_of_preds  = periodo_of_preds_aux [p_v_minus_x_minus_c_eqz_mod_k]
+
 (* pmr: Hack. We should just gather up all the indices implies by the preds and
         GLB them together. *)
-let indexo_of_preds_iseq v ps = 
-  match periodo_of_preds v ps, lowerboundo_of_preds v ps, upperboundo_of_preds v ps with
+let indexo_of_preds_iseq fperiodo flowerboundo fupperboundo v ps = 
+  match fperiodo v ps, flowerboundo v ps, fupperboundo v ps with
   | Some (c, k), Some c', Some u ->
     let lb = c' + ((k - ((c' - c) mod k)) mod k) in
     let ub = u - ((u - c) mod k) in
@@ -154,26 +163,22 @@ let indexo_of_preds_iseq v ps =
       Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = None; Ix.m = k; Ix.c = lb mod k})
   | Some (c, k), _, _ ->
       Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c})
+  | None, Some c, _ ->
+      Some (Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
   | _ -> None
-
-let indexo_of_preds_lowerbound v ps =
-  lowerboundo_of_preds v ps
-  |> Misc.maybe_map (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
-
-let indexo_of_preds_iseqb v ps = 
-  None (* TODO *)
 
 (* API *)
 let index_of_pred v (cr, p) =
   let vv  = FA.name_of_varinfo v in
-  [ indexo_of_preds_iint vv
-  ; indexo_of_preds_iseqb vv
-  ; indexo_of_preds_iseq vv 
-  ; indexo_of_preds_lowerbound vv ]
+  (if Cil.isPointerType v.Cil.vtype then
+    [ ref_indexo_of_preds_iint vv
+    ; indexo_of_preds_iseq ref_periodo_of_preds ref_lowerboundo_of_preds ref_upperboundo_of_preds vv ]
+  else
+    [ data_indexo_of_preds_iint vv
+    ; indexo_of_preds_iseq data_periodo_of_preds data_lowerboundo_of_preds data_upperboundo_of_preds vv ])
   |> Misc.maybe_chain (A.conjuncts p) Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
- 
 
 
 let pred_of_bcc_raw p_lb p_ub p_pd bcc =
