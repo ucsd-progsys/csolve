@@ -41,7 +41,7 @@ validptr ::
 
 nondetpos ::
   arg       ()
-  ret int   (4, 0[1], {v | v > 0})
+  ret int   (4, 1[1], {v | v > 0})
   store_in  []
   store_out []
 
