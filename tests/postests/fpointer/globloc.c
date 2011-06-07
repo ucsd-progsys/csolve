@@ -1,17 +1,18 @@
 extern void *malloc (int);
 
-int *domination = 0;
+int a[] = { 0, 1, 2 };
 
 void incGlobal () {
-    (*domination)++;
+    a[0]++;
 }
 
 int main () {
     void (*f) ();
+    int *x;
 
-    domination = (int *) malloc (sizeof (int));
     f = &incGlobal;
     f ();
+    assert (*a >= 0);
 
     return 0;
 }
