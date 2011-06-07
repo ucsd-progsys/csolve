@@ -250,6 +250,11 @@ let constrain_app (fs, _) et cf sub sto lvo args =
   let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
   let isub          = List.combine qlocs instslocs in
   let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
+  let _             = List.iter2 begin fun cta (fname, ctf) ->
+                        if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then
+                          E.s <| C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
+                                   fname Ct.d_ctype cta Ct.d_ctype ctf
+                      end cts cf.args in
   let ostore        = Store.subs isub cf.sto_out in
   let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
     store_add !C.currentLoc s i (Field.type_of fld) sub sto
