@@ -107,7 +107,7 @@ class exprTyper (ve) = object (self)
     | C.CastE (ct, e)               -> self#ctype_of_cast ct e
     | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
     | C.AddrOf lv                   -> self#ctype_of_addrof lv
-    | e                             -> E.s <| C.error "Unimplemented ctype_of_exp: %a@!@!" C.d_exp e
+    | e                             -> E.s <| C.error "Unimplemented ctype_of_exp_aux: %a@!@!" C.d_exp e
 
   method private ctype_of_constptr = function
     | C.CStr _                                 -> let s = S.fresh_abstract () in Ref (s, Index.IInt 0)

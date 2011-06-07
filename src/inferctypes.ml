@@ -227,7 +227,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     | C.CastE (ct, e)                    -> ()
     | C.SizeOf t                         -> ()
     | C.AddrOf lv                        -> self#constrain_addrof lv
-    | e                                  -> E.s <| C.error "Unimplemented constrain_exp_aux: %a@!@!" C.d_exp e
+    | e                                  -> E.s <| C.error "Unimplemented constrain_exp: %a@!@!" C.d_exp e
 end
 
 let constrain_exp et fs sub sto e =
