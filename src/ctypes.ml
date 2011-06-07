@@ -493,6 +493,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val add_fun : bool -> string -> cfun * bool -> t -> t
     val add_var : bool -> string -> ctype * bool -> t -> t
     val add_data_loc : Sloc.t -> ldesc -> t -> t
+    val add_fun_loc  : Sloc.t -> cfun -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
     val get_fun : string -> t -> cfun * bool
@@ -954,6 +955,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let add_data_loc l ld (funspec, varspec, storespec) =
       (funspec, varspec, Store.Data.add storespec l ld)
+
+    let add_fun_loc l cf (funspec, varspec, storespec) =
+      (funspec, varspec, Store.Function.add storespec l cf)
 
     let mem_fun fn (funspec, _, _) =
       SM.mem fn funspec

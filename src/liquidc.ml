@@ -142,6 +142,9 @@ let generate_spec file fn spec =
           Ctypes.I.Store.Data.fold_locs begin fun l ld _ ->
             Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore
           end () storespec;
+          Ctypes.I.Store.Function.fold_locs begin fun l cf _ ->
+            Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.I.CFun.d_cfun cf |> ignore
+          end () storespec;
           List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
           List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s ::@!  @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
           close_out oc

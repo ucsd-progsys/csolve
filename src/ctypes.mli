@@ -230,6 +230,7 @@ module type S = sig
     val add_fun : bool -> string -> CFun.t * bool -> t -> t
     val add_var : bool -> string -> CType.t * bool -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t -> t -> t
+    val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
     val get_fun : string -> t -> CFun.t * bool

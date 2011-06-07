@@ -119,7 +119,7 @@ specs:
   | specs varspec                       { add_varspec $1 $2 }
   | specs locspec                       { match $2 with
                                             | (lc, SData sp) -> RCt.Spec.add_data_loc lc sp $1
-                                            | _              -> assert false }
+                                            | (lc, SFun sp)  -> RCt.Spec.add_fun_loc lc sp $1 }
   ;
 
 funspec:
