@@ -217,9 +217,13 @@ let is_int_to_uint_cast (ct, e) =
 
 let reft_of_cilexp vv e =
   match e with
-  | Cil.Const (Cil.CStr str) ->
-      (* pmr: Can and should do more here - vv = block start, length = len (str) *)
-      A.pAtom (A.eVar vv, A.Ne, A.zero)
+  | Cil.Const (Cil.CStr str)
+  | Cil.CastE (_, Cil.Const (Cil.CStr str)) ->
+      A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
+              A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
+              A.pAtom (FA.eApp_bend (A.eVar vv),
+                       A.Eq,
+                       A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str)))]
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
