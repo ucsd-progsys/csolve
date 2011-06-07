@@ -272,6 +272,11 @@ let constrain_app (fs, _) et cf sub sto lvo args =
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
         let sub, sto = subtype_ctypes !C.currentLoc (Ct.subs isub cf.ret) ctlv sub sto in
+        (* pmr: We need this, but it makes the regression tests fail because sometimes the
+           type that scalar figures out is more precise than the declared spec return type.
+           See pmrtodo for better solution. *)
+        (* let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then *)
+        (*                  E.s <| C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in *)
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
