@@ -1063,7 +1063,6 @@ let d_refstore     = RCt.Store.d_store
 let d_refctype     = RCt.CType.d_ctype
 let d_refcfun      = RCt.CFun.d_cfun
 
-let refstore_fold      = RCt.Store.Data.fold_locs
 let refstore_partition = RCt.Store.partition
 
 let refstore_set sto l rd =

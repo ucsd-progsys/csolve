@@ -401,7 +401,7 @@ let extend_wld_with_clocs me j loc tag wld =
           (env, (Ct.refstore_get sto cl |> Ct.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
-      |> Misc.flip (Ct.refstore_fold begin fun cl ld wld ->
+      |> Misc.flip (Ct.RefCTypes.Store.Data.fold_locs begin fun cl ld wld ->
           fst <| FI.extend_world csto cl cl false id loc tag wld
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
