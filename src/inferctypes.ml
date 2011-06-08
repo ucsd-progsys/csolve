@@ -72,6 +72,18 @@ type env = funenv * ctvenv
 type ctvemap = I.ctemap
 
 (******************************************************************************)
+(******************************* Error Reporting ******************************)
+(******************************************************************************)
+
+exception Failure of S.Subst.t * Store.t
+
+let fail sub sto e =
+  raise (Failure (sub, sto))
+
+let d_vartypes () vars =
+  P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
+
+(******************************************************************************)
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
 
@@ -81,14 +93,14 @@ let store_add_absent loc l i ctv sto =
 let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | _                          when ct1 = ct2 -> (sub, sto)
   | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations loc s1 s2 sub sto
-  | ct1, ct2                                  -> E.s <| C.errorLoc loc "Cannot unify %a and %a@!" d_ctype ct1 d_ctype ct2
+  | ct1, ct2                                  -> fail sub sto <| C.errorLoc loc "Cannot unify %a and %a@!" d_ctype ct1 d_ctype ct2
 
 (* We assume index inference got things right; we just want a more liberal version of
    unify_ctypes. *)
 and subtype_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | Int (n1, _), Int (n2, _) when n1 = n2 -> (sub, sto)
   | Ref (s1, _), Ref (s2, _)              -> unify_locations loc s1 s2 sub sto
-  | ct1, ct2                              -> E.s <| C.errorLoc loc "Cannot subtype %a <: %a@!" d_ctype ct1 d_ctype ct2
+  | ct1, ct2                              -> fail sub sto <| C.errorLoc loc "Cannot subtype %a <: %a@!" d_ctype ct1 d_ctype ct2
 
 and store_unify_data_locations loc s1 s2 sub sto =
   let ld1, ld2 = M.map_pair (Store.Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
@@ -105,22 +117,22 @@ and store_unify_fun_locations loc s1 s2 sub sto =
           if CFun.same_shape cf1 cf2 then
             (sub, sto)
           else
-            E.s <|
+            fail sub sto <|
               C.errorLoc loc "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
                 S.d_sloc s1 S.d_sloc s2 S.d_sloc s1 CFun.d_cfun cf1 S.d_sloc s2 CFun.d_cfun cf2
       else (sub, Store.Function.add sto s2 cf1)
   else (sub, Store.subs sub sto)
 
-and assert_unifying_same_location_type loc s1 s2 sto =
+and assert_unifying_same_location_type loc s1 s2 sub sto =
   if (Store.Function.mem sto s1 && Store.Data.mem sto s2) ||
      (Store.Data.mem sto s1 && Store.Function.mem sto s2) then
-    E.s <| C.errorLoc loc "Trying to unify data and function locations (%a, %a) in store@!%a@!"
-             S.d_sloc s1 S.d_sloc s2 Store.d_store sto
+    fail sub sto <| C.errorLoc loc "Trying to unify data and function locations (%a, %a) in store@!%a@!"
+                      S.d_sloc s1 S.d_sloc s2 Store.d_store sto
   else ()
 
 and unify_locations loc s1 s2 sub sto =
   if not (S.eq s1 s2) then
-    let _   = assert_unifying_same_location_type loc s1 s2 sto in
+    let _   = assert_unifying_same_location_type loc s1 s2 sub sto in
     let sub = S.Subst.extend s1 s2 sub in
       if Store.Function.mem sto s1 || Store.Function.mem sto s2 then
         store_unify_fun_locations loc s1 s2 sub sto
@@ -162,8 +174,8 @@ let store_add_fun loc l cf sub sto =
         let _ = assert (CFun.same_shape cf (Store.Function.find sto l)) in
           (sub, sto)
       else (sub, Store.Function.add sto l cf)
-    else E.s <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
-                  S.d_sloc l LDesc.d_ldesc (Store.Data.find sto l)
+    else fail sub sto <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
+                           S.d_sloc l LDesc.d_ldesc (Store.Data.find sto l)
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -252,8 +264,8 @@ let constrain_app (fs, _) et cf sub sto lvo args =
   let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
   let _             = List.iter2 begin fun cta (fname, ctf) ->
                         if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then
-                          E.s <| C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
-                                   fname Ct.d_ctype cta Ct.d_ctype ctf
+                          fail sub sto <| C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
+                                            fname Ct.d_ctype cta Ct.d_ctype ctf
                       end cts cf.args in
   let ostore        = Store.subs isub cf.sto_out in
   let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
@@ -392,6 +404,18 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _   = C.visitCilFunction (emv :> C.cilVisitor) fd in
   (emv#get_em, bas, sub, sto)
 
+let constrain_fun fs cf ve sto sci =
+  try
+    constrain_fun fs cf ve sto sci
+  with Failure (sub, sto) ->
+    let _ = P.printf "@!Locals:@!" in
+    let _ = P.printf "=======@!" in
+    let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
+    let _ = P.printf "@!Store:@!" in
+    let _ = P.printf "======@!" in
+    let _ = P.printf "%a@!@!" Store.d_store sto in
+      E.s <| C.error "Failed constrain_fun@!"
+
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
 (******************************************************************************)
@@ -460,9 +484,6 @@ let check_sol cf vars gst em bas sub sto =
           Store.d_store sto
           CFun.d_cfun cf
           Store.d_store gst
-
-let d_vartypes () vars =
-  P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
 
 let fresh_sloc_of = function
   | Ref (s, i) -> Ref (S.fresh_abstract (), i)
