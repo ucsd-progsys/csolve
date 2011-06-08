@@ -160,6 +160,14 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
 
+let var_addr me env v =
+  if v.vglob then CF.refctype_of_global me v else FI.ce_find (FA.name_of_varinfo v) env
+
+let is_bot_ptr me env v =
+  match var_addr me env v with
+    | Ct.Ref (_, (Ct.Index.IBot, _)) -> true
+    | _                              -> false
+
 let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
@@ -172,10 +180,18 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
       let cs2, _       = FI.make_cs env grd cr (CF.refctype_of_global me v) tago tag loc in
       (env, sto, Some tag), (cs1 ++ cs2, [])
 
+  (* *v := e, where v is a bottom-indexed pointer, so this code is dead *)
+  (* pmr: perhaps a better solution is to not constraint unreachable blocks, complete with
+          warning/error about unreachability? But maybe there's some useful side effect of
+          constraining the block? *)
+  | (Mem (Lval(Var v, NoOffset)), _), _
+  | (Mem (CastE (_, Lval (Var v, NoOffset))), _), _ when is_bot_ptr me env v ->
+      (env, sto, Some tag), ([], [])
+
   (* *v := e, where e is pure *)
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
-      let addr = if v.vglob then CF.refctype_of_global me v else FI.ce_find (FA.name_of_varinfo v) env in
+      let addr = var_addr me env v in
       let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
       let cs1, ds1 = cons_of_mem me loc tago tag grd pre_env v in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->

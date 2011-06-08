@@ -115,68 +115,56 @@ let substs_of_preds p v ps =
   let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
   ps |> Misc.map_partial (A.unify_pred p)
 
-let fold_preds qs f v ps =
+let map_matching_qual_binds qs v ps f =
   qs
   |> Misc.flap (fun q -> substs_of_preds q v ps) 
-  |> Misc.map_partial (bind_of_subst const_var) 
-  |> f
+  |> Misc.map_partial (bind_of_subst const_var)
+  |> List.map f
 
-let indexo_of_preds_iint_aux qs v ps =
-  fold_preds qs (function c::cs -> Some (Ix.IInt (List.fold_left min c cs)) | _ -> None) v ps
+let singleton_of_preds_aux qs v ps = map_matching_qual_binds qs v ps (fun c -> Ix.IInt c)
+let data_singleton_of_preds        = singleton_of_preds_aux [p_v_eq_c]
+let ref_singleton_of_preds         = singleton_of_preds_aux [p_v_eq_x_plus_c]
 
-let data_indexo_of_preds_iint = indexo_of_preds_iint_aux [p_v_eq_c]
-let ref_indexo_of_preds_iint  = indexo_of_preds_iint_aux [p_v_eq_x_plus_c]
+let ilowerbound_of_preds_aux qs v ps =
+  map_matching_qual_binds qs v ps (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
+let data_ilowerbound_of_preds        = ilowerbound_of_preds_aux [p_v_ge_c]
+let ref_ilowerbound_of_preds         = ilowerbound_of_preds_aux [p_v_ge_x_plus_c]
 
-let lowerboundo_of_preds_aux qs v ps = 
-  fold_preds qs (function c::cs -> Some (List.fold_left max c cs) | _ -> None) v ps
+let iupperbound_of_preds_aux qs v ps =
+  map_matching_qual_binds qs v ps (fun c-> Ix.ICClass {Ix.lb = None; Ix.ub = Some c; Ix.m = 1; Ix.c = 0})
+let data_iupperbound_of_preds        = iupperbound_of_preds_aux [p_v_le_c]
+let ref_iupperbound_of_preds         = iupperbound_of_preds_aux [p_v_le_x_plus_c]
 
-let data_lowerboundo_of_preds = lowerboundo_of_preds_aux [p_v_ge_c]
-let ref_lowerboundo_of_preds  = lowerboundo_of_preds_aux [p_v_ge_x_plus_c]
-
-let upperboundo_of_preds_aux qs v ps =
-  fold_preds qs (function c::cs -> Some (List.fold_left min c cs) | _ -> None) v ps
-
-let data_upperboundo_of_preds = upperboundo_of_preds_aux [p_v_le_c]
-let ref_upperboundo_of_preds  = upperboundo_of_preds_aux [p_v_le_x_plus_c]
-
-let periodo_of_preds_aux qs v ps =
+let iperiod_of_preds_aux qs v ps =
   qs
   |> Misc.flap (fun q -> substs_of_preds q v ps)
   |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
-  |> Misc.map_partial (function (Some c, Some k) -> Some (k, c) | _ -> None)
-  |> (function x::xs -> Some (List.fold_left max x xs) | _ -> None)
-  |> Misc.maybe_map (fun (k, c) -> (c mod k, k)) 
+  |> Misc.map_partial begin function
+      | (Some c, Some k) -> Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c mod k})
+      | _                -> None
+    end
 
-let data_periodo_of_preds = periodo_of_preds_aux [p_v_minus_c_eqz_mod_k]
-let ref_periodo_of_preds  = periodo_of_preds_aux [p_v_minus_x_minus_c_eqz_mod_k]
+let data_iperiod_of_preds = iperiod_of_preds_aux [p_v_minus_c_eqz_mod_k]
+let ref_iperiod_of_preds  = iperiod_of_preds_aux [p_v_minus_x_minus_c_eqz_mod_k]
 
-(* pmr: Hack. We should just gather up all the indices implies by the preds and
-        GLB them together. *)
-let indexo_of_preds_iseq fperiodo flowerboundo fupperboundo v ps = 
-  match fperiodo v ps, flowerboundo v ps, fupperboundo v ps with
-  | Some (c, k), Some c', Some u ->
-    let lb = c' + ((k - ((c' - c) mod k)) mod k) in
-    let ub = u - ((u - c) mod k) in
-      Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = Some ub; Ix.m = k; Ix.c = lb mod k})
-  | Some (c, k), Some c', _ ->
-    let lb = c' + ((k - ((c' - c) mod k)) mod k) in
-      Some (Ix.ICClass {Ix.lb = Some lb; Ix.ub = None; Ix.m = k; Ix.c = lb mod k})
-  | Some (c, k), _, _ ->
-      Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c})
-  | None, Some c, _ ->
-      Some (Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
-  | _ -> None
+let ref_index_of_pred_funs =
+  [ ref_singleton_of_preds
+  ; ref_iperiod_of_preds
+  ; ref_ilowerbound_of_preds
+  ; ref_iupperbound_of_preds ]
+
+let data_index_of_pred_funs =
+  [ data_singleton_of_preds
+  ; data_iperiod_of_preds
+  ; data_ilowerbound_of_preds
+  ; data_iupperbound_of_preds ]
 
 (* API *)
 let index_of_pred v (cr, p) =
-  let vv  = FA.name_of_varinfo v in
-  (if Cil.isPointerType v.Cil.vtype then
-    [ ref_indexo_of_preds_iint vv
-    ; indexo_of_preds_iseq ref_periodo_of_preds ref_lowerboundo_of_preds ref_upperboundo_of_preds vv ]
-  else
-    [ data_indexo_of_preds_iint vv
-    ; indexo_of_preds_iseq data_periodo_of_preds data_lowerboundo_of_preds data_upperboundo_of_preds vv ])
-  |> Misc.maybe_chain (A.conjuncts p) Ix.top
+  let vv = FA.name_of_varinfo v in
+    (if Cil.isPointerType v.Cil.vtype then ref_index_of_pred_funs else data_index_of_pred_funs)
+  |> Misc.flap (fun f -> p |> A.conjuncts |> f vv)
+  |> List.fold_left Ix.glb Ix.top
   >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
                 v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
 
