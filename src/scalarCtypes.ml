@@ -115,25 +115,23 @@ let substs_of_preds p v ps =
   let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
   ps |> Misc.map_partial (A.unify_pred p)
 
-let map_matching_qual_binds qs v ps f =
+let map_matching_qual_binds f qs v ps =
   qs
   |> Misc.flap (fun q -> substs_of_preds q v ps) 
   |> Misc.map_partial (bind_of_subst const_var)
   |> List.map f
 
-let singleton_of_preds_aux qs v ps = map_matching_qual_binds qs v ps (fun c -> Ix.IInt c)
-let data_singleton_of_preds        = singleton_of_preds_aux [p_v_eq_c]
-let ref_singleton_of_preds         = singleton_of_preds_aux [p_v_eq_x_plus_c]
+let singleton_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.IInt c)
+let data_singleton_of_preds = singleton_of_preds_aux [p_v_eq_c]
+let ref_singleton_of_preds  = singleton_of_preds_aux [p_v_eq_x_plus_c]
 
-let ilowerbound_of_preds_aux qs v ps =
-  map_matching_qual_binds qs v ps (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
-let data_ilowerbound_of_preds        = ilowerbound_of_preds_aux [p_v_ge_c]
-let ref_ilowerbound_of_preds         = ilowerbound_of_preds_aux [p_v_ge_x_plus_c]
+let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
+let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]
+let ref_ilowerbound_of_preds  = ilowerbound_of_preds_aux [p_v_ge_x_plus_c]
 
-let iupperbound_of_preds_aux qs v ps =
-  map_matching_qual_binds qs v ps (fun c-> Ix.ICClass {Ix.lb = None; Ix.ub = Some c; Ix.m = 1; Ix.c = 0})
-let data_iupperbound_of_preds        = iupperbound_of_preds_aux [p_v_le_c]
-let ref_iupperbound_of_preds         = iupperbound_of_preds_aux [p_v_le_x_plus_c]
+let iupperbound_of_preds_aux  = map_matching_qual_binds (fun c-> Ix.ICClass {Ix.lb = None; Ix.ub = Some c; Ix.m = 1; Ix.c = 0})
+let data_iupperbound_of_preds = iupperbound_of_preds_aux [p_v_le_c]
+let ref_iupperbound_of_preds  = iupperbound_of_preds_aux [p_v_le_x_plus_c]
 
 let iperiod_of_preds_aux qs v ps =
   qs
