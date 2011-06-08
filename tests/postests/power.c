@@ -747,7 +747,7 @@ int main(int argc , char **argv )
   r->last_theta_I = r->theta_I;
   r->theta_R = 0.7;
   r->theta_I = 0.14;
-  while (finished != 0) {
+  while (finished != 1) {
     Compute_Tree(r);
     /*    printf((char *)"TR=%13.9f, TI=%13.9f, P0=%13.9f, Q0=%13.9f\n", r->theta_R, r->theta_I,
           r->D.P, r->D.Q); */
@@ -768,7 +768,7 @@ int main(int argc , char **argv )
       if (i > 35) {
         i = 35;
       }
-      validptr(&map_P[i + 1]);
+      // validptr(&map_P[i + 1]); pmr: Original code accesses OOB here!
       validptr(&map_P[i]);
       d_theta_R = - (r->theta_R - r->D.P / 10000.0) / ((double )1.0 - (map_P[i + 1] - map_P[i]) / (0.01 * 10000.0));
       i = (int )((r->theta_I - 0.13) / 0.002);
@@ -778,7 +778,7 @@ int main(int argc , char **argv )
       if (i > 35) {
         i = 35;
       }
-      validptr(&map_Q[i + 1]);
+      // validptr(&map_Q[i + 1]); pmr: Original code accesses OOB here!
       validptr(&map_Q[i]);
       d_theta_I = - (r->theta_I - r->D.Q / 10000.0) / ((double )1.0 - (map_Q[i + 1] - map_Q[i]) / (0.002 * 10000.0));
       //      printf((char *)"D TR-%13.9f, TI=%13.9f\n", d_theta_R, d_theta_I);
