@@ -489,7 +489,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val empty   : t
 
-    val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
+    val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> cfun * bool -> t -> t
     val add_var : bool -> string -> ctype * bool -> t -> t
     val add_data_loc : Sloc.t -> ldesc -> t -> t
@@ -943,9 +943,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let empty = (SM.empty, SM.empty, Store.empty)
 
     let map f (funspec, varspec, storespec) =
-      (SM.map (f |> CType.map |> CFun.map |> M.app_fst) funspec,
-       SM.map (f |> CType.map |> M.app_fst) varspec,
-       Store.map (CType.map f) storespec)
+      (SM.map (f |> CFun.map |> M.app_fst) funspec,
+       SM.map (f |> M.app_fst) varspec,
+       Store.map f storespec)
 
     let add_fun b fn sp (funspec, varspec, storespec) =
       (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
@@ -1125,7 +1125,7 @@ let ctype_of_refctype = function
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
-let cspec_of_refspec  = I.Spec.map (fun (i,_) -> i)
+let cspec_of_refspec  = I.Spec.map (RCt.CType.map (fun (i,_) -> i))
 let store_of_refstore = I.Store.map ctype_of_refctype
 let domain_of_refcfun = fun ft -> ft |> RCt.CFun.domain
 let args_of_refcfun   = fun ft -> ft.args

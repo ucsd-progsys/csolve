@@ -226,7 +226,7 @@ module type S = sig
 
     val empty   : t
 
-    val map     : ('a -> 'b) -> 'a prespec -> 'b prespec
+    val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> CFun.t * bool -> t -> t
     val add_var : bool -> string -> CType.t * bool -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t -> t -> t
