@@ -119,13 +119,13 @@ fabs ::
 
 bor ::
   arg       (a: int (4, true, {v | v >= 0}), b: int (4, true, {v | v >= 0}))
-  ret       int (4, true, {v | && [a <= v; b <= v; v <= a + b]})
+  ret       int (4, 0[1], {v | && [a <= v; b <= v; v <= a + b]})
   store_in  []
   store_out []
 
 band ::
   arg       (a: int (4, true), b: int (4, true, {v | v >= 0}))
-  ret       int (4, true, {v | && [v <= a; v <= b; 0 <= v]})
+  ret       int (4, 0[1], {v | && [v <= a; v <= b; 0 <= v]})
   store_in  []
   store_out []
 
