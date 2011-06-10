@@ -287,8 +287,8 @@ let constrain_app (fs, _) et cf sub sto lvo args =
         (* pmr: We need this, but it makes the regression tests fail because sometimes the
            type that scalar figures out is more precise than the declared spec return type.
            See pmrtodo for better solution. *)
-        (* let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then *)
-        (*                  E.s <| C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in *)
+        let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then
+                         fail sub sto <| C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -304,10 +304,6 @@ let assert_type_is_heap_storable heap_ct ct =
 let assert_store_type_correct lv ct = match lv with
   | (C.Mem _, _) -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) ct
   | _            -> ()
-
-let assert_funptr_return_type_matches_lval lvo cf = match lvo with
-  | Some lv -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) cf.ret
-  | None    -> ()
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
@@ -333,7 +329,6 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
         | Ref (l, _) ->
             let cf           = Store.Function.find sto l in
             let ba, sub, sto = constrain_app env et cf sub sto lvo args in
-            let _            = assert_funptr_return_type_matches_lval lvo cf in
               (ba :: bas, sub, sto)
         | _ -> assert false
       end
