@@ -1,0 +1,95 @@
+* Plausible benchmarks
+
+** GNU diction
+   See sentence.c, which takes in a "process" argument.
+   Diction passes diction() to sentence(), so the safety of
+   diction() depends on the invariants established by
+   sentence().
+
+** coreutils stuff
+
+*** mkdir
+    Very small - 200 lines - and very simple use of function pointers.
+
+*** tsort
+    Small program for topologically sorting a graph, less than 300 lines.
+
+*** sum
+    Checksumming function, less than 300 lines.
+
+*** stat
+    About 1.5k lines, small bit of function pointer action.
+
+*** od
+    Large at 2k lines, uses function pointers for formatting options, it seems.
+
+*** dd
+    Seems to have function pointers, but it's on the big side at 2k lines.
+
+*** tr
+    Another 2k large program, parameterized by function for reading from the buffer.
+
+*** pr
+    Formats text, uses print_func and char_func to process lines and characters,
+    almost 3k lines.
+
+*** ls
+    Tons of function pointers, but about 4k lines.
+
+** 072.sc (spreadsheet?)
+   Part of the SPEC benchmark suite. Only two indirect calls, I
+   suspect no memory safety invariant.
+
+** find (GNU find)
+   Large number of indirect calls.
+
+** minicom
+** m4
+** less
+** unzip
+
+* Implausible benchmarks
+
+** gdbm (GNU database)
+   Has one indirect call, not really anything happening here.
+
+* Related papers
+
+** Milanova et al, Precise Call Graphs for C Programs with Function Pointers
+   Good breakdown of the uses of function pointers and common
+   idioms. Some of the above benchmarks are mentioned.
+
+Proper code todo:
+
+* fixInterface has a TODO: DEFERREDCHECKS
+  Looks like we're not checking we get the right indices for heap contents later...?!
+
+* Warn/error on unreachable block?
+
+* TODO Change specs to not even /have/ indices; derive them from the predicates
+  Then it should be possible to check that we adhere to the spec much more easily.
+  In particular, we can just check that every function is declared to be a subtype of
+  its spec. (Will this work even for function pointers?)
+
+  But we have to be careful, since the spec tells us some shape information but
+  doesn't give the whole invariant.
+
+  This may not actually be a good idea; discuss with Ranjit.
+
+- note that it helps to have indices rather than predicates to identify singletons vs. arrays
+- also makes the system more general - don't need to use predicate abstraction anywhere
+
+- note that a singleton can have two representations
+  - IInt n
+  - ICClass (n, n + 1, 1, 0) (between n and n + 1, congruent to 0 mod 1)
+  We should be sure that we need both (it seems proper LUB is hard to do with just cclass), and
+  make sure that there's some kind of proper order between them.
+  Note that the two representations are *not* interchangeable; taking the lub of two
+  singeltons has two very different effects depending on which representation is used.
+  "Real" singletons should be lower in the lattice because they're more precise in that
+  lubs of them give better results (which should actually also be lower than lubs of
+  the corresponding cclass singletons).
+
+* "Bag of uninterpreted bits" ldesc
+  How do we have a good fallback for when we don't know or care about the contents
+  of a location?
