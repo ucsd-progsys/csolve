@@ -1,3 +1,5 @@
+// pmr: Is there a better way of organizing these specs?
+
 malloc ::
   arg (sz: int (4, true, {v | 0 <= v}))
   ret ref(C0[A0], 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
@@ -156,3 +158,61 @@ strlen ::
   arg       (str: ref (A1, 0[1]))
   ret       int (4, 0[1])
   store     [A1 |-> 0[1]: final int (1, true)]
+
+fputs_unlocked ::
+  arg       (__s : ref(A15, 0),
+             __stream : ref(A16, 0))
+  ret       int(4, 0{1})
+  store     [A15 |-> 0[1]: int(1, 0{1});
+             A16 |-> 0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
+
+set_program_name :: 
+  arg       (argv0 : ref(A8, 0))
+  ret       int(0, 0{1})
+  store     [A8 |-> 0[1]: int(1, 0{1})]
+
+strcmp ::
+  arg       (__s1 : ref(A12, 0),
+             __s2 : ref(A12, 0))
+  ret       int(4, 0{1})
+  store     [A12 |-> 0[1]: int(1, 0{1})]
+
+atexit ::
+  arg       (f: ref (A1, 0))
+  ret       int (4, 0{1})
+  store     [A1 |-> arg   ()
+                    ret   int (0, 0{1})
+                    store []]
