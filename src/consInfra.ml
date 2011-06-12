@@ -99,7 +99,6 @@ let ctype_scalar    = Ctypes.void_ctype
 
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
-             >> (fun x -> ignore <| Pretty.printf "args_of_refcfun on %a \n" Ct.d_refcfun x)
              |> Ct.args_of_refcfun
              |> List.map (FA.name_of_string <**> FI.t_scalar_refctype) 
   in 
