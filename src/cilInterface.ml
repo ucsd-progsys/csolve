@@ -223,7 +223,7 @@ let reft_of_cilexp vv e =
               A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
               A.pAtom (FA.eApp_bend (A.eVar vv),
                        A.Eq,
-                       A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str)))]
+                       A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str + 1)))]
 
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
