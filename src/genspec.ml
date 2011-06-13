@@ -334,18 +334,10 @@ let globalspecs_of_varm varspec varm =
 (********************************* API *************************************)
 (***************************************************************************)
 
-let specs_of_file_all spec cil =
+let specs_of_file spec cil =
   let st, vr = vars_of_file cil 
                |> globalspecs_of_varm (Cs.varspec spec) in
-  let fn     = Misc.sm_extend (fundefs_of_file cil) (fundecs_of_file cil) 
-               |> funspecs_of_funm (Cs.funspec spec) in
-  (fn, vr, st)
-
-let specs_of_file_dec spec cil =
-  let st, vr = vars_of_file cil    
-               |> globalspecs_of_varm (Cs.varspec spec) in
-  let fn     = fundecs_of_file cil 
-               |> funspecs_of_funm (Cs.funspec spec) in 
+  let fn     = cil |> fundefs_of_file |> funspecs_of_funm (Cs.funspec spec) in
   (fn, vr, st)
 
 let spec_of_type loc t =

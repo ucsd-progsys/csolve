@@ -388,6 +388,7 @@ int main(int argc, string_array argv ){
     dist  = ComputeMst(graph, size);  
   }
   exit(0);
+  return 0;
 }
 }
 

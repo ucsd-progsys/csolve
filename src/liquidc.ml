@@ -134,7 +134,7 @@ let generate_spec file fn spec =
   let oc = open_out (fn^".autospec") in
         file
      >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-     |> Genspec.specs_of_file_all spec
+     |> Genspec.specs_of_file spec
      >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
      |> begin fun (funspec, varspec, storespec) ->
           let funspec = Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in

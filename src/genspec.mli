@@ -21,6 +21,5 @@
  *
  *)
 
-val specs_of_file_dec: Ctypes.refspec -> Cil.file -> (string * Ctypes.cfun) list * (string * Ctypes.ctype) list * Ctypes.store
-val specs_of_file_all: Ctypes.refspec -> Cil.file -> (string * Ctypes.cfun) list * (string * Ctypes.ctype) list * Ctypes.store
-val spec_of_type     : Cil.location -> Cil.typ -> Ctypes.ctype * Ctypes.store
+val specs_of_file : Ctypes.refspec -> Cil.file -> (string * Ctypes.cfun) list * (string * Ctypes.ctype) list * Ctypes.store
+val spec_of_type  : Cil.location -> Cil.typ -> Ctypes.ctype * Ctypes.store

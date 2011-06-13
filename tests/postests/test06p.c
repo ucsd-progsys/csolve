@@ -1,12 +1,10 @@
-//! run with --manual
-
-extern int* imalloc();
+extern void *malloc (int);
 
 void main(){
   int * __attribute__ ((unchecked)) t;
   int x;
 
-  t = imalloc();
+  t = malloc(0);
   x = *t; 
   //OR DUALLY 
   *t = 10;
