@@ -33,7 +33,7 @@ fgets ::
   arg   (s: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v ; v < BLOCK_END([v]); n <= (BLOCK_END([v]) - v)]}),
          n: int (4, true),
          f: ref (A1, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]}))
-  ret   ref (A0, 0[1], {v | (v != 0) -> && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]})
+  ret   ref (A0, 0[1], {v | (v != 0) => && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]})
   store [A0 |-> 0[1]: int (1, true);
          A1 |-> 0: int (4, true)]
 
@@ -323,9 +323,9 @@ fopen ::
              A2 |-> 0: int (4, 0{1})]
 
 strtok ::
-  arg      (str: ref (A0, 0[1], {v | (v != 0) -> && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+  arg      (str: ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
             sep: ref (A1, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
-  ret      ref (A0, 0[1], {v | (v != 0) -> && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  ret      ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
   store    [A0 |-> 0[1]: int (1, 0{1});
             A1 |-> 0[1]: int (1, 0{1})]
 
@@ -339,8 +339,8 @@ last_component ::
   store   [A0 |-> 0[1]: int (1, 0{1})]
 
 setlocale ::
-  arg       (i: int (4, 0{1}), s: ref (A0, 0[1], {v | (v != 0) -> && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
-  ret       ref (A0, 0[1], {v | (v != 0) -> && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  arg       (i: int (4, 0{1}), s: ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
+  ret       ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
   store     [A0 |-> 0[1]: int (1, 0{1})]
 
 close_stdout ::

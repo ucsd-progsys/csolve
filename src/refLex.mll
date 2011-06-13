@@ -84,7 +84,7 @@ rule token = parse
   | "<"		        { LT }
   | ">="		{ GE }
   | ">"		        { GT }
-  | "->"                { IMPL }
+  | "=>"                { IMPL }
   | "A"(digit)+	        { let str = Lexing.lexeme lexbuf in 
                           ABS (Misc.suffix_of_string str 1 |> int_of_string) } 
   | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
