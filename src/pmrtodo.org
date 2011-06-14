@@ -1,3 +1,51 @@
+* Today
+
+** TODO Find a better way of organizing library specs and finding them, too
+** TODO mkdir
+** TODO Run spec files through m4 as well? (or even just sed)
+   sed is not enough - we have big, nasty multiline defs for some things
+
+** TODO How to get stdout into spec files?
+   Don't add extern vars to specs automatically.  (Also, how is stdout
+   getting the proper spec to be passed to functions? Or is it?  See
+   uses of _IO_getc, _IO_putc.)
+
+** TODO How to get optarg into spec files?
+   optarg is basically a safe string *if* the option you're getting
+   takes an argument. The spec for this condition seems difficult!
+   Note that optarg is a global variable, and its validity depends on
+   both a temporal property --- getopt has been called --- and a data
+   one --- the structure specifying the argument says it takes an
+   argument.
+
+* Long Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
+
+** Handling string-manipulating functions
+   We can't say we're handling string-manipulating external functions
+   correctly unless we can express containing a NULL character within
+   the bounds of the string.
+
+** realloc, free
+   In general, we don't know that a pointer's bounds stay valid
+   through the lifetime of the memory region.  We treat free() as a
+   nop and realloc() the same as malloc().
+
+** TODO coreutils' quotearg functions
+   Check whether the contracts we give these are sound approximations
+   of what the functions do under the assumptions about realloc and
+   free. (Is there a way we can automate this process?)
+
+** vararg functions
+   Dropped on the floor ATM
+
+** Abstract types
+   The coreutils modechange.h does not give the definition of the
+   mode_change structure, but we need it to at least take the size of
+   the structure.  In general, we assume we know the definitions of
+   all structures, which is unrealistic --- we won't --- and
+   inefficient --- we can probably get by with a lot fewer kvars if we
+   treat some structures as completely opaque.
+
 * Plausible benchmarks
 
 ** GNU diction
@@ -7,34 +55,52 @@
    sentence().
 
 ** coreutils stuff
+   Note that coreutils is split into lib/ and src/. For the moment,
+   I've only looked at src/ stuff, but to verify the whole thing we'll
+   have to look at lib/, too.
 
-*** mkdir
-    Very small - 200 lines - and very simple use of function pointers.
+*** Programs
 
-*** tsort
-    Small program for topologically sorting a graph, less than 300 lines.
+**** TODO mkdir
+     Very small - 200 lines - and very simple use of function pointers.
 
-*** sum
-    Checksumming function, less than 300 lines.
+     But this requires polymorphism over heaps when using function pointers!
+     So this one is on hold.
 
-*** stat
-    About 1.5k lines, small bit of function pointer action.
+**** tsort
+     Small program for topologically sorting a graph, less than 300 lines.
 
-*** od
-    Large at 2k lines, uses function pointers for formatting options, it seems.
+**** sum
+     Checksumming function, less than 300 lines.
 
-*** dd
-    Seems to have function pointers, but it's on the big side at 2k lines.
+**** stat
+     About 1.5k lines, small bit of function pointer action.
 
-*** tr
-    Another 2k large program, parameterized by function for reading from the buffer.
+**** od
+     Large at 2k lines, uses function pointers for formatting options, it seems.
 
-*** pr
-    Formats text, uses print_func and char_func to process lines and characters,
-    almost 3k lines.
+**** dd
+     Seems to have function pointers, but it's on the big side at 2k lines.
 
-*** ls
-    Tons of function pointers, but about 4k lines.
+**** tr
+     Another 2k large program, parameterized by function for reading from the buffer.
+
+**** pr
+     Formats text, uses print_func and char_func to process lines and characters,
+     almost 3k lines.
+
+**** ls
+     Tons of function pointers, but about 4k lines.
+
+*** Libraries
+
+**** lib/quote.c
+     Functions for quoting strings.
+
+     quotearg_buffer_restyled() in particular is rather involved.
+
+**** lib/modechange.c
+     Functions for manipulating file access modes.
 
 ** 072.sc (spreadsheet?)
    Part of the SPEC benchmark suite. Only two indirect calls, I
