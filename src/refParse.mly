@@ -7,12 +7,16 @@ module FI  = FixInterface
 module Ct  = Ctypes
 module RCt = Ct.RefCTypes
 module N   = Ct.Index
+module E   = Errormsg
 
 open Misc.Ops
 
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
+let assert_location_unbound l sto loc =
+  if RCt.Store.mem sto l then
+    E.s <| Cil.errorLoc loc "Duplicate binding for store location"
 
 (***************************************************************************)
 (*************************** Structure Declarations ************************)
@@ -40,10 +44,12 @@ type slocbind_contents =
   | SStruct of string
 
 let store_of_slocbinds sbs =
-  List.fold_left begin fun sto (x, y) -> match y with
-    | SData ld  -> RCt.Store.Data.add sto x ld
-    | SFun f    -> RCt.Store.Function.add sto x f
-    | SStruct s -> RCt.Store.upd sto (instantiate_struct s x)
+  List.fold_left begin fun sto (x, y, loc) ->
+    let _ = assert_location_unbound x sto loc in
+      match y with
+        | SData ld  -> RCt.Store.Data.add sto x ld
+        | SFun f    -> RCt.Store.Function.add sto x f
+        | SStruct s -> RCt.Store.upd sto (instantiate_struct s x)
   end RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
@@ -106,6 +112,12 @@ let rename_depreference s =
     let idx     = s |> Str.matched_group 2 in
       sloc ^ "#" ^ N.repr_prefix ^ idx
 
+let currentLoc () =
+  let p = symbol_start_pos () in
+    {Cil.file = p.Lexing.pos_fname;
+     Cil.line = p.Lexing.pos_lnum;
+     Cil.byte = p.Lexing.pos_cnum}
+
 %}
 
 %token DIV 
@@ -140,10 +152,12 @@ specs:
                                           RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
-  | specs locspec                       { match $2 with
-                                            | (lc, SData sp)  -> RCt.Spec.add_data_loc lc sp $1
-                                            | (lc, SFun sp)   -> RCt.Spec.add_fun_loc lc sp $1
-                                            | (lc, SStruct s) -> RCt.Spec.upd_store $1 (instantiate_struct s lc)
+  | specs locspec                       { let l, sp, loc = $2 in
+                                          let _          = assert_location_unbound l (RCt.Spec.store $1) loc in
+                                            match sp with
+                                              | SData sp  -> RCt.Spec.add_data_loc l sp $1
+                                              | SFun sp   -> RCt.Spec.add_fun_loc l sp $1
+                                              | SStruct s -> RCt.Spec.upd_store $1 (instantiate_struct s l)
                                         }
   | specs structdecl                    { $1 }
   ;
@@ -214,9 +228,9 @@ slocbindsne:
   ;
 
 slocbind:
-    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create Cil.locUnknown $3)) (* pmr: TODO - better location *) }
-  | sloc MAPSTO funtyp                  { ($1, SFun $3) }
-  | sloc MAPSTO Id                      { ($1, SStruct $3) }
+    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create (currentLoc ()) $3), currentLoc ()) }
+  | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
+  | sloc MAPSTO Id                      { ($1, SStruct $3, currentLoc ()) }
   ;
 
 indbinds:

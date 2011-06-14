@@ -315,8 +315,8 @@ let upd_varm spec (st, varm) loc vn = function
 
 let vars_of_file cil =
   foldGlobals cil begin fun acc g -> match g with
-    | GVarDecl (v, _) | GVar (v, _, _) when not (isFunctionType v.vtype) -> SM.add v.vname g acc
-    | _                                                                  -> acc
+    | GVarDecl (v, _) | GVar (v, _, _) when not (isFunctionType v.vtype || v.vstorage = Extern) -> SM.add v.vname g acc
+    | _                                                                                         -> acc
   end SM.empty
 
 let globalspecs_of_varm varspec varm =
@@ -351,6 +351,12 @@ let assert_spec_complete file spec =
         let cf               = Misc.maybe <| cfun_of_args_ret v.vname (v.vdecl, ret, args) in
           errorLoc l "No spec for extern function %s. Autogen spec is:@!@!%s ::@!  @[%a@]@!"
             v.vname v.vname Ct.I.CFun.d_cfun cf;
+          false
+    | (GVarDecl (v, l) | GVar (v, _, l))
+      when v.vstorage = Extern && not (isFunctionType v.vtype) && not (Cs.mem_var v.vname spec) ->
+        let ct, st = spec_of_type l v.vtype in
+          errorLoc l "No spec for extern variable %s. Autogen spec is:@!@!%s :: %a@!@!%a@!"
+            v.vname v.vname Ct.I.CType.d_ctype ct Ct.I.Store.d_store st;
           false
     | _ -> ok
   end true |> fun b -> assert b
