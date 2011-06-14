@@ -132,7 +132,7 @@ let expr_of_lval ((lh, _) as lv) = match lh with
   | Cil.Var v when v.Cil.vglob ->
       Pretty.printf "Trying to convert global %a to expr\n\n" Cil.d_lval lv;
       assertf "Trying to convert global %s to expr" v.Cil.vname
-      (* 
+      (*
       halt <| Errormsg.error "Trying to convert global %a to expr\n\n" Cil.d_lval lv
       *)
   | _ ->

@@ -291,6 +291,7 @@ let ra_bbegin ct =
 
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
+let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 

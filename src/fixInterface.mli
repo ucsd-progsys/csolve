@@ -75,6 +75,7 @@ val t_scalar_zero       : Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
+val t_zero              : Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype

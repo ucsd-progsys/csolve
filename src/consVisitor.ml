@@ -563,8 +563,8 @@ let type_of_init v vtyp = function
           Cil.lenOfArray leno * CilMisc.bytesSizeOf t |> FI.t_size_ptr ct
       | TPtr (t, _) ->
           t |> CilMisc.bytesSizeOf |> FI.t_size_ptr ct
-      | _ ->
-          FI.t_true ct
+      | TInt (_, _) -> FI.t_zero ct
+      | _           -> FI.t_true ct
 
 let add_offset loc t ctptr off =
   match ctptr with
