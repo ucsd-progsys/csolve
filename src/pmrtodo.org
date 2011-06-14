@@ -67,11 +67,11 @@
      But this requires polymorphism over heaps when using function pointers!
      So this one is on hold.
 
-**** tsort
-     Small program for topologically sorting a graph, less than 300 lines.
-
 **** sum
      Checksumming function, less than 300 lines.
+
+**** tsort
+     Program for topologically sorting a graph, less than 600 lines.
 
 **** stat
      About 1.5k lines, small bit of function pointer action.
