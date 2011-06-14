@@ -235,13 +235,6 @@ Pending issues (add attribs etc. to allow):
 - [globals]	
 - [unions]
 
------------------------------- DONE ------------------------------
-
-[Sorts]	How to separate int and reference types while still allowing ptr-arith
-	i.e. create a separate Sort.t called "ptr"
-	- will help to speed up instantiation
-	- will NOT help to speed up queries, since Z3 flattens it all out
-
 ------------------------------ STALE ------------------------------
 
 [depgraph]
@@ -302,4 +295,133 @@ Note: Let [f] be a function in the code. [f] requires either
   In short, [refanno] needs to be merged with pat's analysis.
 
 
+-------------------------------------------------------------------------------
+C-Level Specifications
+-------------------------------------------------------------------------------
 
+struct node {
+  data *contents;
+  struct node *left;
+  struct node *right;
+}
+
+node *head;
+
+void jog(node *tree1, node *tree2);
+
+
+//Parameterized on all references: 
+//each "contents" node points to SAME concrete cell
+struct node <A0, C0> {
+  data * <C0> contents;
+  struct node * <A0> left;
+  struct node * <A0> right;
+}
+
+node *<A1, C1> head; 
+
+void jog(node *<A2, C2> tree1, node *<A2,C2> tree2);
+
+//Parameterized on all references: 
+//each "contents" node points to one in a COLLECTION of cells
+
+struct node <A0, A1> {
+  data * <A1> contents;
+  struct node * <A0> left;
+  struct node * <A0> right;
+}
+
+node *<A101, A102> head; 
+
+//indicating sharing
+void jog(node *<A201, A202> tree1, node *<A201, 202> tree2);
+
+//indicating non-sharing
+void jog(node *<A201, A202> tree1, node *<A203, 204> tree2);
+
+//OR, to get some fresh, distinct param (i.e. non-sharing)
+node *<?,?> head;
+
+//indicating non-sharing
+void jog(node *<?,?> tree1, node *<?,?> tree2);
+
+//C-Definition
+struct data { 
+  char *name;
+  char *addr;
+}
+struct node {
+  data *contents;
+  struct node *left;
+  struct node *right;
+}
+
+//C-Spec (PARAM)
+struct data <A0, A1> { 
+  char *<A1> name;
+  int  *<A2> age;
+}
+struct node<A0,A1,A2> {
+  data *<A0,A1> contents;
+  node *<A0> left;
+  node *<A0> right;
+} 
+
+//C-Spec (EXIST) ? are just fresh locations distinct from others
+struct data { 
+  char *<?> name;
+  int  *<?> age;
+} 
+struct node<A0> {
+  data     *<?> contents;
+  node<A0> *<A0> left;
+  node<A0> *<A0> right;
+}
+
+//To use a combination?
+struct data as data_param<A0, A1> { 
+  char *<A0> name;
+  int  *<A1> age;
+} 
+struct node as node_param<A0,A1,A2,A3> {
+  data_param<A0,A1>     *<A2> contents;
+  node_param<A3>        *<A3> left;
+  node_param<A3>        *<A3> right;
+}
+
+struct data as data_ex { 
+  char *<?> name;
+  int  *<?> age;
+} as data_ex 
+struct node as node_ex<A0> {
+  data_ex       *<?> contents;
+  node_ex<A0>   *<A0> left;
+  node_ex<A0>   *<A0> right;
+} 
+
+typedef node<A0> *<A0> node_ex_ptr<A0>;
+
+Now you can define things as 
+
+//(A) with distinct fresh names
+void jog(node_ex_ptr<?> tree1, node_ex_ptr<?> tree2);
+void jog(node_ex<A0> *<A0> tree1, node<A1> *<A1> tree2);
+void jog(node_ex<A0> *<A0> tree1, node<A1> *<A1> tree2);
+void jog(node_ex_ptr<A0> tree1, node_ex_ptr<A1> tree2);
+
+//(B) with shared names
+void jog(node_ex_ptr<A0> tree1, node_ex_ptr<A0> tree2);
+void jog(node_ex<A0> *<A0> tree1, node_ex<A0> *<A0> tree2);
+
+C-Source ---> C-Spec(Auto) ---> Liquid-Spec ---> ShapeInfra etc.
+                                ^
+                                |
+              C-Spec(Hand) -----'
+
+//Parameterized on all references: 
+//each "contents" node points to SAME concrete cell
+struct node <A0, C0> {
+  data * <C0> contents;
+  struct node * <A0> left;
+  struct node * <A0> right;
+}
