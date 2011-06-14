@@ -1,13 +1,16 @@
+* SRC information for each A/C Loc (DONE)
+
+* INCLUDE directive for .spec files
+HEREHEREHERE
+
+* Spec from C-SOURCE
 
 * src/pmrtodo.org benchmarks
-        mkdir 
         tsort 
-        sum 
         
         in external/gnu-coreutils/src.
 
 * external/gnu-coreutils/HOWTO.lcc : how to use lcc to typecheck coreutils programs.
-
 
 QUALREFACTORMINIMIZE:
 1. scalar benefits from minimizing etc.(except when it kills Z3)

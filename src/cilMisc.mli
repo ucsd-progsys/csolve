@@ -32,6 +32,7 @@ val is_local_expr    : Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
+val pretty_to_string : (unit -> 'a -> Pretty.doc) -> 'a -> string  
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
@@ -92,6 +93,17 @@ val g_halt:     bool -> 'a -> unit
 val is_fun: Cil.varinfo    -> bool
 val is_scalar: Cil.varinfo -> bool
 val is_reference: Cil.typ  ->bool
+
+type srcinfo
+
+val d_srcinfo         : unit -> srcinfo -> Pretty.doc
+
+val srcinfo_of_lval     : Cil.lval -> Cil.location option -> srcinfo
+val srcinfo_of_type     : Cil.typ  -> Cil.location option -> srcinfo
+val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
+val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
+val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
+val srcinfo_of_string   : string -> srcinfo
 
 module type Summarizer =
 sig

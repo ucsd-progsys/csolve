@@ -48,6 +48,26 @@ module ComparableVar =
     let hash          = Hashtbl.hash
   end
 
+let pretty_to_string f x = x |> f () |> Pretty.sprint ~width:80 
+
+type srcinfo = (* note *) string * (* provenance *) location 
+
+let d_srcinfo () (str, loc) =
+  Pretty.dprintf "%s at %a" str d_loc loc
+
+let mk_srcinfo prefix d_x x lo =
+  let str = prefix ^ (pretty_to_string d_x x) in
+  let loc = Misc.get_option !currentLoc lo in
+  (str, loc) 
+
+let srcinfo_of_lval     = mk_srcinfo "lval: " d_lval 
+let srcinfo_of_type     = mk_srcinfo "type: " d_type 
+let srcinfo_of_constant = mk_srcinfo "constant: " d_const
+let srcinfo_of_instr    = mk_srcinfo "instr: " d_instr
+let d_varinfo () v      = d_lval () (Var v, NoOffset)
+let srcinfo_of_var      = mk_srcinfo "var: " d_varinfo  
+let srcinfo_of_string s = ("str: "^s, locUnknown)
+
 (* Does this local var contain an array? *)
 let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
   match unrollType t with

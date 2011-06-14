@@ -21,6 +21,8 @@
  *
  *)
 
+type slocinfo = CilMisc.srcinfo list
+
 type t
 
 module SlocSet: Set.S with type elt = t
@@ -28,13 +30,17 @@ module SlocMap: Map.S with type key = t
 
 val none           : t
 val canonical      : t -> t
-val fresh_abstract : unit -> t
+(* val fresh_abstract : unit -> t *)
+val fresh_abstract : slocinfo -> t
+
 val fresh_concrete : t -> t
 val is_abstract    : t -> bool
 val compare        : t -> t -> int
 val eq             : t -> t -> bool
+val to_slocinfo    : t -> slocinfo
 val to_string      : t -> string
 val d_sloc         : unit -> t -> Pretty.doc
+val d_sloc_info    : unit -> t -> Pretty.doc
 val d_slocmap      : (unit -> 'a -> Pretty.doc) -> unit -> 'a SlocMap.t -> Pretty.doc
 val d_slocset      : unit -> SlocSet.t -> Pretty.doc
 val slm_bindings   : 'a SlocMap.t -> (t * 'a) list

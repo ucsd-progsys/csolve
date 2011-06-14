@@ -589,7 +589,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
           | C.CChr c            -> Int (CM.int_width, r)
           | C.CReal (_, fk, _)  -> Int (CM.bytesSizeOfFloat fk, r)
-          | C.CStr _            -> Ref (S.fresh_abstract (), r)
+          | C.CStr s            -> Ref (S.fresh_abstract [CM.srcinfo_of_constant c None] , r)
           | _                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
     let eq pct1 pct2 =
@@ -906,7 +906,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let normalize_names cf1 cf2 f =
       let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
-      let fresh_locs   = List.map (fun _ -> Sloc.fresh_abstract ()) ls1 in
+      let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
       let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
       let fresh_args   = List.map (fun _ -> fresh_arg_name ()) cf1.args in
       let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
@@ -1024,7 +1024,7 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.fresh_abstract (), N.top)
+(* let ptr_ctype    = Ref (S.fresh_abstract (), N.top) *)
 let scalar_ctype = Int (0, N.top)
 
 let d_ctype        = I.CType.d_ctype

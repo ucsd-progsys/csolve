@@ -27,30 +27,45 @@ module M = Misc
 open Misc.Ops
 
 type slocid = int
+type slocinfo = CilMisc.srcinfo list
 
 type t =
-  | Abstract of slocid
-  | Concrete of slocid * (* abstract counterpart *) slocid
+  | Abstract of slocid * slocinfo 
+  | Concrete of slocid * (* abstract counterpart *) slocid * slocinfo
 
+let to_slocinfo = function
+  | Abstract (_, i)    -> i
+  | Concrete (_, _, i) -> i 
+ 
 let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 
 let refresh = function
-  | Abstract _        -> Abstract (fresh_slocid ())
-  | Concrete (_, ida) -> Concrete (fresh_slocid (), ida)
+  | Abstract (_, i)      -> Abstract (fresh_slocid (), i)
+  | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
 
-let fresh_abstract () = 
+(* let fresh_abstract () = 
   Abstract (fresh_slocid ())
+*)
+
+let fresh_abstract i = Abstract (fresh_slocid (), i)
+
 
 let fresh_concrete abs =
-  Concrete (fresh_slocid (), match abs with Abstract aid -> aid | _ -> assert false)
+  let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
+  Concrete (fresh_slocid (), aid, info)
 
-let none = Abstract (-1)
+let none = Abstract (-1, [])
 
 let canonical = function
   | Abstract _ as al  -> al
-  | Concrete (_, aid) -> Abstract aid
+  | Concrete (_, aid, z) -> Abstract (aid, z)
 
-let compare = compare
+
+let strip_info = function
+  | Abstract (x,_)   -> Abstract (x, [])
+  | Concrete (x,y,_) -> Concrete (x, y, [])
+
+let compare l1 l2 = compare (strip_info l1) (strip_info l2)
 
 let eq l1 l2 = compare l1 l2 = 0
 
@@ -59,12 +74,22 @@ let is_abstract = function
   | Concrete _ -> false
 
 let to_string = function
-  | Abstract lid      -> "A" ^ string_of_int lid
-  | Concrete (lid, _) -> "C" ^ string_of_int lid
+  | Abstract (lid, _)   -> "A" ^ string_of_int lid
+  | Concrete (lid, _,_) -> "C" ^ string_of_int lid
 
 let d_sloc () = function
-  | Abstract lid        -> P.text <| "A" ^ string_of_int lid
-  | Concrete (lid, aid) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+  | Abstract (lid,_)      -> P.text <| "A" ^ string_of_int lid
+  | Concrete (lid, aid,_) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+
+
+let d_sloc () = function
+  | Abstract (lid,_)      -> P.text <| "A" ^ string_of_int lid
+  | Concrete (lid, aid,_) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+
+let d_sloc_info () x = 
+  let idoc = x |> to_slocinfo |> P.dprintf "[@[%a@]]" (P.d_list ", " CilMisc.d_srcinfo) in
+  P.concat (d_sloc () x) idoc
+
 
 (******************************************************************************)
 (******************************* Maps Over Slocs ******************************)

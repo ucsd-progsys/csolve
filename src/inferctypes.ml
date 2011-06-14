@@ -119,7 +119,7 @@ and store_unify_fun_locations loc s1 s2 sub sto =
           else
             fail sub sto <|
               C.errorLoc loc "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
-                S.d_sloc s1 S.d_sloc s2 S.d_sloc s1 CFun.d_cfun cf1 S.d_sloc s2 CFun.d_cfun cf2
+                S.d_sloc_info s1 S.d_sloc_info s2 S.d_sloc_info s1 CFun.d_cfun cf1 S.d_sloc_info s2 CFun.d_cfun cf2
       else (sub, Store.Function.add sto s2 cf1)
   else (sub, Store.subs sub sto)
 
@@ -127,7 +127,7 @@ and assert_unifying_same_location_type loc s1 s2 sub sto =
   if (Store.Function.mem sto s1 && Store.Data.mem sto s2) ||
      (Store.Data.mem sto s1 && Store.Function.mem sto s2) then
     fail sub sto <| C.errorLoc loc "Trying to unify data and function locations (%a, %a) in store@!%a@!"
-                      S.d_sloc s1 S.d_sloc s2 Store.d_store sto
+                      S.d_sloc_info s1 S.d_sloc_info s2 Store.d_store sto
   else ()
 
 and unify_locations loc s1 s2 sub sto =
@@ -163,8 +163,8 @@ and store_add loc s i ct sub sto =
                 let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
                   (sub, Store.Data.add sto s ld)
   with e ->
-    C.errorLoc loc "store_add: Can't fit %a: %a in location %a |-> %a"
-      Index.d_index i Ct.d_ctype ct S.d_sloc s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;
+    C.errorLoc loc "store_add: Can't fit @!%a: %a@!  in location@!%a |-> %a"
+      Index.d_index i Ct.d_ctype ct S.d_sloc_info s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;
     raise e
 
 let store_add_fun loc l cf sub sto =
@@ -175,7 +175,7 @@ let store_add_fun loc l cf sub sto =
           (sub, sto)
       else (sub, Store.Function.add sto l cf)
     else fail sub sto <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
-                           S.d_sloc l LDesc.d_ldesc (Store.Data.find sto l)
+                           S.d_sloc_info l LDesc.d_ldesc (Store.Data.find sto l)
 
 (******************************************************************************)
 (***************************** CIL Types to CTypes ****************************)
@@ -255,10 +255,10 @@ let constrain_args et fs sub sto es =
 
 (* pmr: need to check that actuals are subtypes of formals for the
         function pointer case *)
-let constrain_app (fs, _) et cf sub sto lvo args =
+let constrain_app loc i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let qlocs         = CFun.domain cf in
-  let instslocs     = List.map (fun _ -> S.fresh_abstract ()) qlocs in
+  let instslocs     = List.map (fun _ -> S.fresh_abstract [CM.srcinfo_of_instr i (Some loc)]) qlocs in
   let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
   let isub          = List.combine qlocs instslocs in
   let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
@@ -322,13 +322,13 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
         ([] :: bas, sub, sto)
   | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
       let cf, _        = VM.find f fs in
-      let ba, sub, sto = constrain_app env et cf sub sto lvo args in
+      let ba, sub, sto = constrain_app loc i env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
   | C.Call (lvo, C.Lval (C.Mem e, _), args, _) ->
       begin match e |> et#ctype_of_exp |> Ct.subs sub with
         | Ref (l, _) ->
             let cf           = Store.Function.find sto l in
-            let ba, sub, sto = constrain_app env et cf sub sto lvo args in
+            let ba, sub, sto = constrain_app loc i env et cf sub sto lvo args in
               (ba :: bas, sub, sto)
         | _ -> assert false
       end
@@ -419,7 +419,7 @@ let check_out_store_complete sto_out_formal sto_out_actual =
   Store.Data.fold_fields begin fun ok l i fld ->
     if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
       C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-        S.d_sloc l Index.d_index i Field.d_field fld S.d_sloc l |> ignore;
+        S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
       false
     end else
       ok
@@ -441,16 +441,20 @@ let revert_spec_names subaway st =
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 let global_alias_error () (s1, s2) =
-  C.error "Global locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+  C.error "Global locations %a and %a get unified in function body"
+  S.d_sloc_info s1 S.d_sloc_info s2
 
 let quantification_error () (s1, s2) =
-  C.error "Quantified locations %a and %a get unified in function body" S.d_sloc s1 S.d_sloc s2
+  C.error "Quantified locations %a and %a get unified in function body" 
+  S.d_sloc_info s1 S.d_sloc_info s2
 
 let global_quantification_error () (s1, s2) =
-  C.error "Global and quantified locations get unified in function body (%a, %a)" S.d_sloc s1 S.d_sloc s2
+  C.error "Global and quantified locations get unified in function body (%a, %a)" 
+  S.d_sloc_info s1 S.d_sloc_info s2
 
 let unified_instantiation_error () (s1, s2) =
-  C.error "Call unifies locations which are separate in callee (%a, %a)" S.d_sloc s1 S.d_sloc s2
+  C.error "Call unifies locations which are separate in callee (%a, %a)" 
+  S.d_sloc_info s1 S.d_sloc_info s2
 
 let check_annots_wf sub bas =
   Array.iter begin fun ba ->
@@ -481,7 +485,7 @@ let check_sol cf vars gst em bas sub sto =
           Store.d_store gst
 
 let fresh_sloc_of = function
-  | Ref (s, i) -> Ref (S.fresh_abstract (), i)
+  | Ref (s, i) -> Ref (s |> S.to_slocinfo |> S.fresh_abstract, i)
   | c          -> c
 
 let fresh_local_slocs ve =
@@ -526,7 +530,7 @@ let assert_no_physical_subtyping fe cfg anna store gst =
   with LocationMismatch (l1, ld1, l2, ld2) ->
     ignore <|
         C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
-          S.d_sloc l1 LDesc.d_ldesc ld1 S.d_sloc l2 LDesc.d_ldesc ld2;
+          S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2;
     exit 1
 
 let infer_shape fe ve gst scim (cf, sci, vm) =
