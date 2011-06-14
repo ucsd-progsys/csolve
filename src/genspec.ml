@@ -360,3 +360,17 @@ let assert_spec_complete file spec =
           false
     | _ -> ok
   end true |> fun b -> assert b
+
+
+let dump_pragmas file =
+  iterGlobals file begin function
+    | GPragma (Attr ("lcc", [ACons ("include", []); AStr f]), _) 
+       -> ignore <| E.log "\n HIT INCLUDE PRAGMA: %s \n" f
+    | GPragma (attr, loc) 
+       -> ignore <| E.log "HIT PRAGMA: %a \n" d_attr attr
+    | _                   
+       -> ()
+  end 
+
+
+

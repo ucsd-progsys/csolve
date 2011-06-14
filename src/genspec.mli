@@ -25,3 +25,4 @@ val specs_of_file        : Ctypes.refspec -> Cil.file -> (string * Ctypes.cfun) 
 val spec_of_type         : Cil.location -> Cil.typ -> Ctypes.ctype * Ctypes.store
 
 val assert_spec_complete : Cil.file -> Ctypes.refspec -> unit
+val dump_pragmas         : Cil.file -> unit

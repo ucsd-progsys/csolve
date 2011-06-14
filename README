@@ -219,3 +219,34 @@ map <C-p>  :python parseLiquidType()<CR>
 
 6. Hit Ctrl-t (tag-style) to pop back from a definition.
 
+
+Specification Files
+===================
+
+See src/lib.spec for an example of how to write specifications for missing
+(library) functions, or even for functions you would like to constrain
+beyond just the use of asserts and memory safety.
+
+* Write the specifications for functions/globals in 
+
+        foo.c
+        
+  in the file 
+  
+        foo.c.spec
+        
+
+* To include extra specifications e.g. for external functions, add the 
+  pragma
+
+        #pragma lcc (include, "../tests.spec")
+
+  to the source file. See 
+  
+        tests/src/test00.c for 
+
+  for an example. You can write multiple pragmas to include multiple files.
+  CIL preserves the Pragmas so you can just add the pragmas to the relevant
+  source file and the merger process will ensure that all the right specs
+  are pulled in for a multi-file build.
+
