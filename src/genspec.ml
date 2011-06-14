@@ -34,6 +34,7 @@ module N   = Ct.Index
 module SM  = Misc.StringMap
 module CM  = CilMisc
 module Cs  = Ct.RefCTypes.Spec
+module P   = Printf
 
 open Cil
 open Misc.Ops
@@ -82,12 +83,12 @@ let mk_type_graph cil =
        | GCompTag (ci,_) when not ci.cstruct -> assertf "mk_type_graph"
        | _ -> tm 
      end 
-  >> SM.iter (fun k vs -> Printf.printf "%s :=> %s \n" k (String.concat " , " vs))
+  >> SM.iter (fun k vs -> P.printf "%s :=> %s \n" k (String.concat " , " vs))
 
 let print_type_graph cil = 
-  Printf.printf "Type Graph \n";
+  P.printf "Type Graph \n";
   cil |> mk_type_graph 
-      |> SM.iter (fun k vs -> Printf.printf "%s :=> %s \n" k (String.concat " , " vs))
+      |> SM.iter (fun k vs -> P.printf "%s :=> %s \n" k (String.concat " , " vs))
 
 let is_cyclic =
   let rec reach g src trg vism = 
@@ -101,7 +102,7 @@ let is_cyclic =
   let memo = Hashtbl.create 17 in 
   fun g trg -> 
     let rv = Misc.do_memo memo (fun trg -> reach g trg trg SM.empty |> fst) trg trg in
-    let _  = Printf.printf "is_cyclic %s = %b \n" trg rv in
+    let _  = P.printf "is_cyclic %s = %b \n" trg rv in
     rv
 
  }}} *)
@@ -115,8 +116,8 @@ let period_of_ciltype = function
 
 let id_of_period = function
   | Nop        -> ""
-  | Unb m      -> Printf.sprintf "[%d]" m
-  | Bnd (m, k) -> Printf.sprintf "[%d < %d]" m k 
+  | Unb m      -> P.sprintf "[%d]" m
+  | Bnd (m, k) -> P.sprintf "[%d < %d]" m k 
 
 let id_of_ciltype t pd =  
   Pretty.dprintf "%a ### %a ### %s" 
@@ -256,9 +257,12 @@ and conv_ret fn loc z c =
   with CantConvert ->
     E.s <| errorLoc loc "Failed to generate type for return value of function %s\n" fn
 
+
+
 and cfun_of_args_ret fn (loc, t, xts) =
   let _ = if mydebug then ignore <| Format.printf "GENSPEC: process %s \n" fn in
   try
+    let xts   = Misc.mapi (fun i (x,t) -> if x = "" then (P.sprintf "autoarg%d" i, t) else (x,t)) xts in
     let res   = Misc.mapfold (conv_arg loc) (SM.empty, Ct.I.Store.empty, N.IInt 0) xts in
     let ist   = res |> fst |> snd3 in
     let th    = res |> fst |> fst3 in
