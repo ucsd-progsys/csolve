@@ -248,7 +248,7 @@ strlen ::
 
 // pmr: Tighten this spec
 fputs_unlocked ::
-  arg       (__s : ref(A15, 0, {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+  arg       (__s : ref(A15, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
              __stream : ref(A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]}))
   ret       int(4, 0{1})
   store     [A15 |-> 0[1]: int(1, 0{1});
@@ -355,7 +355,44 @@ printf ::
   ret   int (0, true)
   store []
 
+fprintf ::
+  arg   ()
+  ret   int (0, true)
+  store []
+
 version_etc ::
   arg   ()
   ret   int (0, true)
   store []
+
+prog_fprintf ::
+  arg   ()
+  ret   int (0, true)
+  store []
+
+error ::
+  arg   ()
+  ret   int (0, true)
+  store []
+
+gettext ::
+  arg   (s: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
+  ret   ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  store [A0 |-> 0[1]: int (1, true)]
+
+emit_ancillary_info ::
+  arg   ()
+  ret   int (0, true)
+  store []
+
+bindtextdomain ::
+  arg   (p: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+         d: ref (A1, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
+  ret   ref (A1, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  store [A0 |-> 0[1]: int (1, true);
+         A1 |-> 0[1]: int (1, true)]
+
+textdomain ::
+  arg   (d: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
+  ret   ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  store [A0 |-> 0[1]: int (1, true)]
