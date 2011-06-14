@@ -127,7 +127,7 @@ let cons_of_annots me loc tag grd wld ffm annots =
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
 
-let extend_env me v cr env = 
+let extend_env me v cr env =
   let ct = CF.ctype_of_varinfo me v in
   let cr = FI.t_ctype_refctype ct cr in
 (*  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in

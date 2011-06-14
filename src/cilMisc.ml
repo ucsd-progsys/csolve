@@ -475,38 +475,36 @@ end
 
 module CopyGlobal =
   (struct
-    class funVisitor fd = object(self)
+    class expVisitor fd = object(self)
       inherit nopCilVisitor
-  
-      val shadows = Hashtbl.create 17
+
+      val expLevel = ref 0
   
       method vvrbl v =
-        if v.vglob && not (isFunctionType v.vtype) then
-          ChangeTo (Misc.do_memo shadows (fun glob -> makeTempVar fd glob.vtype) v v)
-        else
-          SkipChildren
-  
-      method revertShadows =
-           Hashtbl.fold (fun glob shadow is -> Set (var glob, Lval (var shadow), locUnknown) :: is) shadows []
+        if !expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
+          let vlv = (Var v, NoOffset) in
+          let tmp = vlv |> typeOfLval |> makeTempVar fd in
+          let _   = self#queueInstr [Set ((Var tmp, NoOffset), Lval vlv, !currentLoc)] in
+            ChangeTo tmp
+        else SkipChildren
 
-        |> self#queueInstr
-  
-      method vstmt = function
-        | {skind = Return _} -> self#revertShadows; DoChildren
-        | _                  -> DoChildren
-  
-      method addShadows =
-        Instr (Hashtbl.fold (fun glob shadow is -> Set (var shadow, Lval (var glob), locUnknown) :: is) shadows [])
-  
-      method vfunc fd =
-        ChangeDoChildrenPost (fd, fun fd -> fd.sbody.bstmts <- (mkStmt self#addShadows) :: fd.sbody.bstmts; fd)
+      method vexpr e =
+        incr expLevel;
+        ChangeDoChildrenPost (e, fun e -> decr expLevel; e)
+
+      method vinst = function
+        | Call (Some ((Var v, NoOffset) as lv), f, es, loc) when v.vglob ->
+            let tmp = lv |> typeOfLval |> makeTempVar fd in
+            let tlv = (Var tmp, NoOffset) in
+              ChangeDoChildrenPost ([Call (Some tlv, f, es, loc); Set (lv, Lval tlv, loc)], id)
+        | _ -> DoChildren
     end
   
     class globVisitor = object(self)
       inherit nopCilVisitor
   
       method vglob = function
-        | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
+        | GFun (fd, _) -> visitCilFunction (new expVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
         | _            -> SkipChildren
     end
     

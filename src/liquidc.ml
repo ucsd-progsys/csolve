@@ -100,7 +100,7 @@ let preprocess cil =
       >> Simpleret.simpleret 
       >> Rmtmps.removeUnusedTemps 
       >> CilMisc.purify 
-      >> CilMisc.CopyGlobal.doVisit 
+      >> CilMisc.CopyGlobal.doVisit
       >> CilMisc.NameNullPtrs.doVisit 
       >> mk_cfg 
       >> rename_locals 
