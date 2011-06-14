@@ -81,7 +81,7 @@
 **** DONE (...?) sum
      Checksumming function, less than 300 lines.
 
-**** tsort
+**** (RJ) tsort
      Program for topologically sorting a graph, less than 600 lines.
 
 **** stat
