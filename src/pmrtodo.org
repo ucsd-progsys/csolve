@@ -1,10 +1,12 @@
 * Today
 
 ** TODO Find a better way of organizing library specs and finding them, too
-** TODO mkdir
 ** TODO Run spec files through m4 as well? (or even just sed)
    sed is not enough - we have big, nasty multiline defs for some things
 
+   Actually, we really want our own macros, because we'd like to define
+   "this is a structure, including a bunch of ancillary locations, which
+   I wanted to be a-freshed."
 ** TODO How to get stdout into spec files?
    Don't add extern vars to specs automatically.  (Also, how is stdout
    getting the proper spec to be passed to functions? Or is it?  See
@@ -17,6 +19,19 @@
    both a temporal property --- getopt has been called --- and a data
    one --- the structure specifying the argument says it takes an
    argument.
+
+** TODO Better messages when things are not found in the spec
+
+** TODO Handle spec globals that don't appear in the program?
+   But note we don't seem to need that here...
+
+*** TODO HTF are stdin, stdout, etc. getting the right specs?
+
+*** Sometimes messages get lost in the mess
+
+*** Sometimes it happens in shape inference, sometimes later...?!
+
+*** Show candidate spec with error to make it easier to add to lib.spec
 
 * Long Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -45,6 +60,15 @@
    all structures, which is unrealistic --- we won't --- and
    inefficient --- we can probably get by with a lot fewer kvars if we
    treat some structures as completely opaque.
+
+** Other kinds of terminators
+   The getopt library requires an all-zero struct to terminate the
+   options array.
+
+** Automatically cataloging sources of unsoundness
+   Would be nice to show automatically what assumptions are being
+   made about a benchmark (unsound casts, null-terminated strings,
+   unverified external functions).
 
 * Plausible benchmarks
 

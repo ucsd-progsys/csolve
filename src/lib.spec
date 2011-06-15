@@ -37,6 +37,89 @@ fgets ::
   store [A0 |-> 0[1]: int (1, true);
          A1 |-> 0: int (4, true)]
 
+getc_unlocked ::
+        arg       (x0 : ref(A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - v) = 148]}))
+        ret       int (4, 0{1}, {v | &&[(0-1) <= v; v < 256]})
+        store     [A16 |->
+                     0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
+
+putchar_unlocked ::
+        arg       (c: int (4, true))
+        ret       int (4, true)
+        store     []
+
+ferror_unlocked ::
+        arg       (x0 : ref(A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - v) = 148]}))
+        ret       int (4, true)
+        store     [A16 |->
+                     0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
+
 _IO_getc ::
         arg       (x0 : ref(A16, 0))
         ret       int (4, 0{1}, {v | &&[(0-1) <= v; v < 256]})
@@ -315,12 +398,136 @@ atexit ::
 fopen ::
   arg      (fname: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
             modes: ref (A1, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
-  ret       ref (A2, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]})
+  ret       ref (A16, 0, {v | (v != 0) => && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - v) = 148]})
   store_in  [A0 |-> 0[1]: int (1, 0{1});
              A1 |-> 0[1]: int (1, 0{1})]
   store_out [A0 |-> 0[1]: int (1, 0{1});
              A1 |-> 0[1]: int (1, 0{1});
-             A2 |-> 0: int (4, 0{1})]
+             A16 |-> 0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
+
+open ::
+  arg   (f: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+         m: int (4, true))
+  ret   int (4, true, {v | v >= (0-1)})
+  store [A0 |-> 0[1]: int (1, 0{1})]
+
+fclose ::
+  arg    (f: ref (A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 148]}))
+  ret    int (4, true)
+  store  [A16 |->    0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
+
+close ::
+  arg    (f: int (4, true, {v | v >= 0}))
+  ret    int (4, true, {v | || [v = 0; v = (0 - 1)]})
+  store  []
+
+setvbuf ::
+  arg    (f: ref (A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 148]}),
+          b: ref (A1, 0[1], {v | (v != 0) => && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - v) >= s]}),
+          m: int (4, true),
+          s: int (4, true, {v | v >= 0}))
+  ret    int (4, true)
+  store  [A16 |->    0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1});
+             A1 |-> 0[1]: int (1, true)]
 
 strtok ::
   arg      (str: ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
@@ -328,6 +535,11 @@ strtok ::
   ret      ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
   store    [A0 |-> 0[1]: int (1, 0{1});
             A1 |-> 0[1]: int (1, 0{1})]
+
+umask ::
+  arg      (m: int (4, true))
+  ret      int (4, true)
+  store    []
 
 // Stuff from coreutils, dump elsewhere
 
@@ -347,6 +559,41 @@ close_stdout ::
   arg   ()
   ret   int (0, true)
   store []
+
+// pmr: Handling of this is almost surely unsound
+quote ::
+  arg       (s: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
+  ret       ref (A1, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]})
+  store_in  [A0 |-> 0[1]: int (1, true)]
+  store_out [A0 |-> 0[1]: int (1, true);
+             A1 |-> 0[1]: int (1, true)]
+
+getopt_long ::
+  arg       (argc: int (4, true, {v | v > 0}),
+             argv: ref (A0, 0[1], {v | && [0 < v; v = BLOCK_BEGIN([v]); BLOCK_END([v]) >= (BLOCK_BEGIN([v]) + (4 * argc))]}),
+             opts: ref (A2, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+             lopt: ref (A3, 0[1], {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]}),
+             lidx: ref (A6, 0, {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; 4 <= (BLOCK_END([v]) - v)]}))
+  ret       int (4, true)
+  store     [A0 |-> 0[4]: ref(A1, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); v < BLOCK_END([v])]});
+             A1 |-> 0[1]: int(1, true);
+             A2 |-> 0[1]: int(1, true);
+             A3 |-> 0[16]:  ref (A4, 0, {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+                    4[16]:  int (4, true),
+                    8[16]:  ref (A5, 0, {v | (v != 0) => && [0 < v;
+                                                             v = BLOCK_BEGIN([v]);
+                                                             (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 4]}),
+                    12[16]: int (4, true);
+             A4 |-> 0[1]: int(1, true);
+             A5 |-> 0: int(4, true);
+             A6 |-> 0: int (4, true)]
+
+// pmr: Really this is a global pointer - must fix
+__errno_location ::
+  arg       ()
+  ret       ref (A0, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - BLOCK_BEGIN([v])) = 4]})
+  store_in  []
+  store_out [A0 |-> 0: int (4, true)]
 
 // pmr: How to specify vararg functions, which we ignore anyway?
 
@@ -396,3 +643,60 @@ textdomain ::
   arg   (d: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
   ret   ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
   store [A0 |-> 0[1]: int (1, true)]
+
+// pmr: Not right - should use the bound defined in human.h as the minimum size of
+// the buffer passed in
+human_readable ::
+  arg   (n: int (8, true),
+         b: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
+         o: int (4, true),
+         f: int (8, true),
+         t: int (8, true))
+  ret   ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
+  store [A0 |-> 0[1]: int (1, true)]
+
+safe_read ::
+  arg   (f: int (4, true),
+         b: ref (A0, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; (BLOCK_END([v]) - v) >= c]}),
+         c: int (4, true, {v | v >= 0}))
+  ret   int (4, true, {v | && [(0-1) <= v; v <= c]})
+  store [A0 |-> 0[1]: int (1, true)]
+
+fadvise ::
+  arg    (f: ref (A16, 0, {v | && [0 < v; v = BLOCK_BEGIN([v]); (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 148]}),
+          a: int (4, true))
+  ret    int (0, true)
+  store  [A16 |->    0: int(4, 0{1}),
+                     4: ref(A17, 0),
+                     8: ref(A17, 0),
+                     12: ref(A17, 0),
+                     16: ref(A17, 0),
+                     20: ref(A17, 0),
+                     24: ref(A17, 0),
+                     28: ref(A17, 0),
+                     32: ref(A17, 0),
+                     36: ref(A17, 0),
+                     40: ref(A17, 0),
+                     44: ref(A17, 0),
+                     48: ref(A18, 0),
+                     52: ref(A16, 0),
+                     56: int(4, 0{1}),
+                     60: int(4, 0{1}),
+                     64: int(4, 0{1}),
+                     68: int(2, 0{1}),
+                     70: int(1, 0{1}),
+                     71: int(1, 0{1}),
+                     72: ref(A19, 0),
+                     76: int(8, 0{1}),
+                     84: ref(A19, 0),
+                     88: ref(A19, 0),
+                     92: ref(A19, 0),
+                     96: ref(A19, 0),
+                     100: int(4, 0{1}),
+                     104: int(4, 0{1}),
+                     108[1 < 148]: int(1, 0{1});
+             A17 |-> 0: int(1, 0{1});
+             A18 |-> 0: ref(A18, 0),
+                     4: ref(A16, 0),
+                     8: int(4, 0{1});
+             A19 |-> 0: int(0, 0{1})]
