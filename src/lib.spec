@@ -271,21 +271,8 @@ puts ::
   ret       int(4, 0{1})
   store     [A0 |-> 0[1]: int(1, 0{1})]
 
-// ../lib/xalloc.h:73: Error: No spec for extern function xstrdup. Autogen spec is: TODO strengthen with invariants about length
-
-xstrdup ::
-  arg       (str : ref(A0, 0))
-  ret       ref(A1, 0)
-  store_in  [A0 |-> 0: int(1, 0{1})]
-  store_out [A0 |-> 0: int(1, 0{1});
-             A1 |-> 0: int(1, 0{1})]
 
 
-
-set_program_name :: 
-  arg       (argv0 : ref(A8, 0, {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))
-  ret       int(0, 0{1})
-  store     [A8 |-> 0[1]: int(1, 0{1})]
 
 strcmp ::
   arg       (__s1 : ref(A12, 0[1], {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}),
