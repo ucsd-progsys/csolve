@@ -91,7 +91,7 @@
      But this requires polymorphism over heaps when using function pointers!
      So this one is on hold.
 
-**** sum
+**** DONE (...?) sum
      Checksumming function, less than 300 lines.
 
 **** tsort
