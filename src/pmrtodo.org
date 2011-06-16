@@ -118,13 +118,71 @@
 
 *** Libraries
 
-**** lib/quote.c
-     Functions for quoting strings.
+**** With Function Pointers, Without void * Polymorphism
 
-     quotearg_buffer_restyled() in particular is rather involved.
+***** lib/argv_iterc.c
+      Functions for iterating over argv. Hot function pointer action.
 
-**** lib/modechange.c
-     Functions for manipulating file access modes.
+***** lib/exclude.c
+      See matcher in exclude_fnmatch, add_func in add_exclude file.
+
+***** lib/fts.c, lib/xfts.c
+      See (*compar), (*compare), etc.
+
+***** lib/xstrtod.c
+
+***** lib/at-func2.c
+      Some crazy voodoo going on here.
+
+***** lib/mktime.c
+      ranged_convert() takes in a function for time conversion.
+
+***** lib/close-hook.[ch]
+      Calls list of function pointers for doing stuff on socket/file close.
+
+***** lib/long_options.c
+      Uses a function pointer for printing usage information, but no
+      exciting invariants here.
+
+***** lib/sig-handler.h
+
+***** lib/sigaction.c
+
+***** lib/sigprocmask.c
+
+**** With Function Pointers, With void * polymorphism
+
+***** lib/heap.c
+
+***** lib/hash.[ch]
+
+***** lib/mkancesdrs.c, lib/mkdir-p.c
+
+***** lib/mpsort.c
+
+***** lib/obstack.c
+
+***** lib/randread.c
+
+***** lib/savewd.c
+
+***** lib/savewd.c
+
+***** lib/setenv.c
+
+***** lib/
+
+
+**** No Function Pointers
+
+***** lib/quote.c
+      Functions for quoting strings.
+
+      quotearg_buffer_restyled() in particular is rather involved.
+
+***** lib/modechange.c
+      Functions for manipulating file access modes.
+
 
 ** 072.sc (spreadsheet?)
    Part of the SPEC benchmark suite. Only two indirect calls, I
