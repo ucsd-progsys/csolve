@@ -13,14 +13,33 @@ open Misc.Ops
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
+
+(******************************************************************************)
+(*************************** Structure Declarations ***************************)
+(******************************************************************************)
+
+let struct_table = Hashtbl.create 17
+
+let add_struct name root_sloc sto =
+  Hashtbl.add struct_table name (root_sloc, sto)
+
+(* pmr: TODO --- renaming predicate abslocs appropriately --- how is it done now? *)
+let instantiate_struct name inst_root_sloc =
+  let root_sloc, sto = Hashtbl.find struct_table name in
+  let dom            = sto |> RCt.Store.domain |> List.filter (fun s -> not (Sloc.eq root_sloc s)) in
+  let subs           = (root_sloc, inst_root_sloc) :: List.map (fun s -> (s, Sloc.fresh_abstract ())) dom in
+    RCt.Store.subs subs sto
+
 type slocbind_contents =
-  | SData of RCt.LDesc.t
-  | SFun  of RCt.CFun.t
+  | SData   of RCt.LDesc.t
+  | SFun    of RCt.CFun.t
+  | SStruct of string
 
 let store_of_slocbinds sbs =
   List.fold_left begin fun sto (x, y) -> match y with
-    | SData ld -> RCt.Store.Data.add sto x ld
-    | SFun f   -> RCt.Store.Function.add sto x f
+    | SData ld  -> RCt.Store.Data.add sto x ld
+    | SFun f    -> RCt.Store.Function.add sto x f
+    | SStruct s -> RCt.Store.upd sto (instantiate_struct s x)
   end RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
@@ -93,7 +112,7 @@ let rename_depreference s =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
-%token ARG RET ST INST OUTST
+%token ARG RET ST INST OUTST STRUCT
 %token TRUE FALSE
 %token EOF
 %token MOD 
@@ -118,8 +137,11 @@ specs:
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
   | specs locspec                       { match $2 with
-                                            | (lc, SData sp) -> RCt.Spec.add_data_loc lc sp $1
-                                            | (lc, SFun sp)  -> RCt.Spec.add_fun_loc lc sp $1 }
+                                            | (lc, SData sp)  -> RCt.Spec.add_data_loc lc sp $1
+                                            | (lc, SFun sp)   -> RCt.Spec.add_fun_loc lc sp $1
+                                            | (lc, SStruct s) -> RCt.Spec.upd_store $1 (instantiate_struct s lc)
+                                        }
+  | specs structdecl                    { $1 }
   ;
 
 funspec:
@@ -168,6 +190,10 @@ slocsne:
   | sloc SEMI slocsne                   { $1 :: $3 }
   ;
 
+structdecl:
+    STRUCT Id LPAREN sloc RPAREN EQ refstore { add_struct $2 $4 $7 }
+  ;
+
 sloc:
     ABS                                 { mk_sloc_abstract $1 }
   | CONC LB ABS RB                      { mk_sloc_concrete $1 $3 }
@@ -186,6 +212,7 @@ slocbindsne:
 slocbind:
     sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create Cil.locUnknown $3)) (* pmr: TODO - better location *) }
   | sloc MAPSTO funtyp                  { ($1, SFun $3) }
+  | sloc MAPSTO Id                      { ($1, SStruct $3) }
   ;
 
 indbinds:

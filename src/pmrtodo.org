@@ -1,12 +1,6 @@
 * Today
 
 ** TODO Find a better way of organizing library specs and finding them, too
-** TODO Run spec files through m4 as well? (or even just sed)
-   sed is not enough - we have big, nasty multiline defs for some things
-
-   Actually, we really want our own macros, because we'd like to define
-   "this is a structure, including a bunch of ancillary locations, which
-   I wanted to be a-freshed."
 ** TODO How to get stdout into spec files?
    Don't add extern vars to specs automatically.  (Also, how is stdout
    getting the proper spec to be passed to functions? Or is it?  See
