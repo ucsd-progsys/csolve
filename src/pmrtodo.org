@@ -2,11 +2,6 @@
 
 ** TODO Find a better way of organizing library specs and finding them, too
 
-** TODO How to get stdout into spec files?
-   Don't add extern vars to specs automatically.  (Also, how is stdout
-   getting the proper spec to be passed to functions? Or is it?  See
-   uses of _IO_getc, _IO_putc.)
-
 ** TODO How to get optarg into spec files?
    optarg is basically a safe string *if* the option you're getting
    takes an argument. The spec for this condition seems difficult!
@@ -15,10 +10,9 @@
    one --- the structure specifying the argument says it takes an
    argument.
 
-** TODO Handle spec globals that don't appear in the program?
-   But note we don't seem to need that here...
+** TODO Ensure no duplicates in store specs
 
-*** TODO HTF are stdin, stdout, etc. getting the right specs?
+** TODO Don't barf if global var in spec is not in program
 
 * Long Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -226,3 +220,9 @@ Proper code todo:
 * "Bag of uninterpreted bits" ldesc
   How do we have a good fallback for when we don't know or care about the contents
   of a location?
+
+
+* Breadcrumbs
+
+** TODO Consolidate specs involving stdin, stdout, printers, etc.
+   Added stuff to cacm, call_with_global

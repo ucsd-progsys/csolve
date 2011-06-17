@@ -554,9 +554,10 @@ let cons_of_global_store tgr gst =
   (ws, cs)
 
 let type_of_init v vtyp = function
-  | Some (SingleInit e)        -> FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e
-  | Some (CompoundInit (t, _)) -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp)
-  | None                       ->
+  | Some (SingleInit e)           -> FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e
+  | Some (CompoundInit (t, _))    -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp)
+  | None when v.vstorage = Extern -> assert false
+  | None                          ->
       let ct = Ct.ctype_of_refctype vtyp in
       match Cil.unrollType v.vtype with
       | TArray (t, (Some len as leno), _) ->
@@ -590,7 +591,10 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
         ~acc:(sto, cs)
 
 let cons_of_var_init tag loc sto v vtyp inito =
-  let cs1, _ = FI.make_cs FI.ce_empty Ast.pTrue (type_of_init v vtyp inito) vtyp None tag loc in
+  let cs1, _ = if v.vstorage != Extern then
+                 FI.make_cs FI.ce_empty Ast.pTrue (type_of_init v vtyp inito) vtyp None tag loc
+              else ([], [])
+  in
   match inito with
   | Some (CompoundInit _ as init) ->
       let aloc, r     = match vtyp with Ct.Ref (al, r) -> (al, r) | _ -> assert false in
@@ -620,13 +624,12 @@ let cons_of_decs tgr spec gnv gst decs =
         let cs',ds' = if b then FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc else ([],[]) in
         (ws' ++ ws, cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
-        let tag     = CilTag.make_global_t tgr loc in
-        let vtyp    = FI.ce_find (FA.name_of_string v.vname) gnv in
-        let vspctyp = let vsp, chk = CS.get_var v.vname spec in 
-                      if chk then vsp else FI.t_true_refctype vtyp in
-        let cs'     = cons_of_var_init tag loc gst v vtyp init in
-        let cs'', _ = FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc in
-        let ws'     = FI.make_wfs FI.ce_empty gst vtyp tag in
+        let tag        = CilTag.make_global_t tgr loc in
+        let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
+        let vspctyp, b = CS.get_var v.vname spec in 
+        let cs'        = cons_of_var_init tag loc gst v vtyp init in
+        let cs'', _    = if b then FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc else ([],[]) in
+        let ws'        = FI.make_wfs FI.ce_empty gst vtyp tag in
           (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
   end (ws, cs, [], []) decs
 
