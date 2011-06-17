@@ -43,6 +43,20 @@ malloc ::
   store_in []
   store_out [C0[A0] |-> ]
 
+//xmalloc: same spec as alloc, the (different) autogen spec is below
+
+xmalloc ::
+  arg (sz: int (4, true, {v | 0 <= v}))
+  ret ref(C0[A0], 0, {v | && [0 < v; BLOCK_BEGIN([v]) = v; BLOCK_END([v]) = v + sz]})
+  store_in []
+  store_out [C0[A0] |-> ]
+
+//xmalloc ::
+//  arg       (s : int(4, 0{1}))
+//  ret       ref(A164, 0)
+//  store_in  []
+//  store_out [A164 |-> 0: int(0, 0{1})]
+
 free ::
   arg (p: ref (A0, true, {v | 0 < v}))
   ret int(0, true, {v | true})
@@ -125,12 +139,23 @@ nondet ::
   store_in  []
   store_out []
 
+// /usr/include/assert.h:71: 
+
+__assert_fail ::
+  arg       (__assertion : ref(A0, 0),
+             __file : ref(A1, 0),
+             __line : int(4, true, {v | 0=1}) ,
+             __function : ref(A2, 0))
+  ret       int(0, 0{1})
+  store     [A0 |-> 0: int(1, 0{1});
+             A1 |-> 0: int(1, 0{1});
+             A2 |-> 0: int(1, 0{1})]
+
 dummyassert ::
   arg 	    (b: int(4, true, {v | true}))
   ret int   (4, true, {v | true})
   store_in  []
   store_out []
-
 
 assert ::
   arg 	    (b: int(4, true, {v | v != 0}))
@@ -239,6 +264,22 @@ fputs_unlocked ::
   ret       int(4, 0{1})
   store     [A15 |-> 0[1]: int(1, 0{1});
              A1  |-> io_file]
+
+puts ::
+  arg       (__s : ref(A0, 0))
+  ret       int(4, 0{1})
+  store     [A0 |-> 0: int(1, 0{1})]
+
+// ../lib/xalloc.h:73: Error: No spec for extern function xstrdup. Autogen spec is: TODO strengthen with invariants about length
+
+xstrdup ::
+  arg       (str : ref(A0, 0))
+  ret       ref(A1, 0)
+  store_in  [A0 |-> 0: int(1, 0{1})]
+  store_out [A0 |-> 0: int(1, 0{1});
+             A1 |-> 0: int(1, 0{1})]
+
+
 
 set_program_name :: 
   arg       (argv0 : ref(A8, 0, {v | && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]}))

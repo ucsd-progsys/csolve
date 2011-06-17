@@ -1,10 +1,14 @@
-SCALARLIFT:
-use fixpoint solutions for phi-vars to generate indices for rest
 
-  e1
-, e2
-, e3
-:
+* src/pmrtodo.org benchmarks
+        mkdir 
+        tsort 
+        sum 
+        
+        in external/gnu-coreutils/src.
+
+* external/gnu-coreutils/HOWTO.lcc : how to use lcc to typecheck coreutils programs.
+
+
 QUALREFACTORMINIMIZE:
 1. scalar benefits from minimizing etc.(except when it kills Z3)
 2. non-scalar does not 

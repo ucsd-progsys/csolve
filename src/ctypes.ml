@@ -830,7 +830,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       else if ds = SLM.empty then
         P.dprintf "[@[%a@]]" (d_slm CFun.d_cfun) fs
       else
-        P.dprintf "[@[%a@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
+        P.dprintf "[@[%a;@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
   end
 
   (******************************************************************************)
