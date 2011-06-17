@@ -860,13 +860,19 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let d_slocs () slocs = P.seq (P.text ";") (S.d_sloc ()) slocs
     let d_arg () (x, ct) = P.dprintf "%s : %a" x CType.d_ctype ct
     let d_args () args   = P.seq (P.dprintf ",@!") (d_arg ()) args
-      
-    let d_cfun () ft  = 
-      P.dprintf "@[arg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a@]"
-        d_args ft.args
-        CType.d_ctype ft.ret
-        Store.d_store ft.sto_in
-        Store.d_store ft.sto_out
+
+    let d_cfun () ft  =
+      if ft.sto_in = ft.sto_out then
+        P.dprintf "@[arg       (@[%a@])\nret       %a\nstore     %a@]"
+          d_args ft.args
+          CType.d_ctype ft.ret
+          Store.d_store ft.sto_in
+      else
+        P.dprintf "@[arg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a@]"
+          d_args ft.args
+          CType.d_ctype ft.ret
+          Store.d_store ft.sto_in
+          Store.d_store ft.sto_out
 
     let capturing_subs cf sub =
       let apply_sub = CType.subs sub in
