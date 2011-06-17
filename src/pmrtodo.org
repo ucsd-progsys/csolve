@@ -1,6 +1,7 @@
-* Today
+* Soon
 
 ** TODO Find a better way of organizing library specs and finding them, too
+
 ** TODO How to get stdout into spec files?
    Don't add extern vars to specs automatically.  (Also, how is stdout
    getting the proper spec to be passed to functions? Or is it?  See
@@ -14,18 +15,10 @@
    one --- the structure specifying the argument says it takes an
    argument.
 
-** TODO Better messages when things are not found in the spec
-
 ** TODO Handle spec globals that don't appear in the program?
    But note we don't seem to need that here...
 
 *** TODO HTF are stdin, stdout, etc. getting the right specs?
-
-*** Sometimes messages get lost in the mess
-
-*** Sometimes it happens in shape inference, sometimes later...?!
-
-*** Show candidate spec with error to make it easier to add to lib.spec
 
 * Long Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -163,8 +156,6 @@
 ***** lib/savewd.c
 
 ***** lib/setenv.c
-
-***** lib/
 
 
 **** No Function Pointers

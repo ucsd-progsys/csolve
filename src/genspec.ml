@@ -286,13 +286,6 @@ let fundefs_of_file cil =
     | _                -> acc
   end SM.empty
 
-let fundecs_of_file cil = 
-  let fdefm = fundefs_of_file cil in
-  foldGlobals cil begin fun acc -> function
-    | GVarDecl (v,_) as g -> if SM.mem v.vname fdefm then acc else SM.add v.vname g acc
-    | _                   -> acc
-  end SM.empty 
-
 let funspecs_of_funm funspec funm =
   SM.empty
   |> SM.fold begin fun _ d funm -> match d with 
@@ -335,10 +328,9 @@ let globalspecs_of_varm varspec varm =
 (***************************************************************************)
 
 let specs_of_file spec cil =
-  let st, vr = vars_of_file cil 
-               |> globalspecs_of_varm (Cs.varspec spec) in
+  let st, vr = cil |> vars_of_file |> globalspecs_of_varm (Cs.varspec spec) in
   let fn     = cil |> fundefs_of_file |> funspecs_of_funm (Cs.funspec spec) in
-  (fn, vr, st)
+    (fn, vr, st)
 
 let spec_of_type loc t =
   try match conv_ciltype loc TopLevel (SM.empty, Ct.I.Store.empty, N.IInt 0) t with
@@ -347,3 +339,14 @@ let spec_of_type loc t =
   with CantConvert -> 
     (warnLoc loc "Genspec.spec_of_type fails on: %a \n" d_type t; raise CantConvert)
 
+let assert_spec_complete file spec =
+  foldGlobals file begin fun ok -> function
+    | GVarDecl (v, l) when v.vstorage = Extern && isFunctionType v.vtype && not (Cs.mem_fun v.vname spec) ->
+        let ret, argso, _, _ = splitFunctionType v.vtype in
+        let args             = match argso with Some al -> List.map (fun (n, a, _) -> (n, a)) al | _ -> [] in
+        let cf               = Misc.maybe <| cfun_of_args_ret v.vname (v.vdecl, ret, args) in
+          errorLoc l "No spec for extern function %s. Autogen spec is:@!@!%s ::@!  @[%a@]@!"
+            v.vname v.vname Ct.I.CFun.d_cfun cf;
+          false
+    | _ -> ok
+  end true |> fun b -> assert b
