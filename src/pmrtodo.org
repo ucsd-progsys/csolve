@@ -1,17 +1,5 @@
 * Soon
 
-** TODO Find a better way of organizing library specs and finding them, too
-
-** TODO How to get optarg into spec files?
-   optarg is basically a safe string *if* the option you're getting
-   takes an argument. The spec for this condition seems difficult!
-   Note that optarg is a global variable, and its validity depends on
-   both a temporal property --- getopt has been called --- and a data
-   one --- the structure specifying the argument says it takes an
-   argument.
-
-** TODO Ensure no duplicates in store specs
-
 ** TODO Don't barf if global var in spec is not in program
 
 * Long Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
@@ -50,6 +38,7 @@
    Would be nice to show automatically what assumptions are being
    made about a benchmark (unsound casts, null-terminated strings,
    unverified external functions).
+
 
 * Plausible benchmarks
 
@@ -216,10 +205,6 @@ Proper code todo:
   "Real" singletons should be lower in the lattice because they're more precise in that
   lubs of them give better results (which should actually also be lower than lubs of
   the corresponding cclass singletons).
-
-* "Bag of uninterpreted bits" ldesc
-  How do we have a good fallback for when we don't know or care about the contents
-  of a location?
 
 
 * Breadcrumbs

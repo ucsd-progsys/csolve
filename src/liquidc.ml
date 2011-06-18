@@ -116,12 +116,17 @@ let cil_of_file fname =
 (*************** Generating Specifications **************************************)  
 (********************************************************************************)
 
+let set_lex_start_pos file lb =
+  let p = {Lexing.pos_fname = file; Lexing.pos_lnum = 1; Lexing.pos_cnum = 0; Lexing.pos_bol = 0} in
+    {lb with Lexing.lex_start_p = p; Lexing.lex_curr_p = p}
+
 let add_spec fn spec_src = 
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
   try
     let ic = open_in fn in
     ic |> Lexing.from_channel
+       |> set_lex_start_pos fn
        |> RefParse.specs RefLex.token
        >> (RCt.Spec.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
        >> (fun _ -> close_in ic)
