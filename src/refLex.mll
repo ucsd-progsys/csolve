@@ -46,6 +46,7 @@ rule token = parse
     ['\r''\t'' ']       { token lexbuf}
   | '\n'		{ begin
 			    E.startNewline (Lexing.lexeme_end lexbuf);
+                            Lexing.new_line lexbuf;
 			    token lexbuf 
 			  end }
   | "//"[^'!''\n']*'\n'
