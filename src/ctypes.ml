@@ -416,6 +416,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     exception TypeDoesntFit of Index.t * ctype * t
 
     val empty         : t
+    val eq            : t -> t -> bool
     val add           : C.location -> Index.t -> field -> t -> t
     val create        : C.location -> (Index.t * field) list -> t
     val remove        : Index.t -> t -> t
@@ -650,6 +651,10 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     exception TypeDoesntFit of Index.t * CType.t * t
 
     let empty = []
+
+    let eq ld1 ld2 =
+      Misc.same_length ld1 ld2 &&
+        List.for_all2 (fun (i1, (_, f1)) (i2, (_, f2)) -> i1 = i2 && f1 = f2) ld1 ld2
 
     let fits i fld flds =
       let t = Field.type_of fld in
@@ -920,7 +925,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
        && cf1.ret = cf2.ret
        && Store.Data.fold_locs begin fun l ld b ->
-            b && Store.Data.mem cf2.sto_out l && ld = Store.Data.find cf2.sto_out l
+            b && Store.Data.mem cf2.sto_out l && LDesc.eq ld (Store.Data.find cf2.sto_out l)
           end true cf1.sto_out
        && Store.Function.fold_locs begin fun l cf b ->
               b && Store.Function.mem cf2.sto_out l && same_shape cf (Store.Function.find cf2.sto_out l)

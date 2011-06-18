@@ -150,6 +150,7 @@ module type S = sig
     exception TypeDoesntFit of Index.t * CType.t * t
 
     val empty         : t
+    val eq            : t -> t -> bool
     val add           : Cil.location -> Index.t -> Field.t -> t -> t
     val create        : Cil.location -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
