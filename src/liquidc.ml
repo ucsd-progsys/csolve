@@ -278,7 +278,8 @@ let setTimeout () =
         match snd <| U.wait () with
           | U.WEXITED n -> exit n
           | _           -> exit 3
-        
+
+(* pmr: Note this is ganked from CIL *)        
 (***** MAIN *****)  
 let theMain () =
   let usageMsg = "Usage: lcc [options] source-files" in
