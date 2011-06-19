@@ -62,20 +62,23 @@ let shapem_of_scim cil spec scim vim =
   |> snd 
   |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
 
+let declared_names decs is_decl =
+  decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
+
 (* TBD: UGLY *)
 let mk_gnv f spec decs cenv =
-  let decs = decs 
-             |> Misc.map_partial (function CM.FunDec (fn,_) -> Some fn | _ -> None)
-             |> List.fold_left (Misc.flip SS.add) SS.empty in
+  let fundecs = declared_names decs (function CM.FunDec (fn,_) -> Some fn | _ -> None) in
+  let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
              |> CS.varspec
              |> M.sm_to_list
-             |> List.map (FA.name_of_string <**> (fst <+> f)) 
+             |> M.map_partial (fun vs -> if SS.mem (fst vs) vardecs then Some vs else None)
+             |> List.map (FA.name_of_string <**> (fst <+> f))
              |> FI.ce_adds FI.ce_empty in
   M.sm_to_list cenv
   |> List.map begin fun (fn, ft) ->
-       (fn, if SS.mem fn decs 
-            then ft |> FI.refcfun_of_cfun |> FI.map_fn f (* FI.t_fresh_fn ft *)  
+       (fn, if SS.mem fn fundecs 
+            then ft |> FI.refcfun_of_cfun |> FI.map_fn f
             else (CS.get_fun fn spec |> fst))
      end
   |> FI.ce_adds_fn gnv0

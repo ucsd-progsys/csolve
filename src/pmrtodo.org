@@ -2,8 +2,6 @@
 
 ** TODO Heap polymorphism for function pointers
 
-** TODO Don't barf if global var in spec is not in program
-
 ** TODO Slocs in parsing and shape inference error messages
    They may have nothing to do with the slocs that the user actually
    wrote down in the specs. Keep a "displayname" attribute for slocs?
