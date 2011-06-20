@@ -177,10 +177,6 @@ let store_add_fun loc l cf sub sto =
     else fail sub sto <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
                            S.d_sloc l LDesc.d_ldesc (Store.Data.find sto l)
 
-(******************************************************************************)
-(***************************** CIL Types to CTypes ****************************)
-(******************************************************************************)
-
 let _DEBUG_print_ve s ve =
   P.printf "%s START " s;
   VM.iter begin fun v ct ->
@@ -253,8 +249,6 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-(* pmr: need to check that actuals are subtypes of formals for the
-        function pointer case *)
 let constrain_app (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let qlocs         = CFun.domain cf in
