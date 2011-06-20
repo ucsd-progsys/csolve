@@ -299,6 +299,13 @@ let assert_store_type_correct lv ct = match lv with
   | (C.Mem _, _) -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) ct
   | _            -> ()
 
+let find_function et fs sub sto = function
+  | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
+  | C.Mem e, C.NoOffset ->
+      match e |> et#ctype_of_exp |> Ct.subs sub |> Ct.sloc with
+        | Some l -> Store.Function.find sto l
+        | None   -> assert false
+
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
   match i with
@@ -314,18 +321,10 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
       let _, sub, sto = constrain_args et fs sub sto args in
         ([] :: bas, sub, sto)
-  | C.Call (lvo, C.Lval (C.Var f, C.NoOffset), args, _) ->
-      let cf, _        = VM.find f fs in
+  | C.Call (lvo, C.Lval lv, args, _) ->
+      let cf           = find_function et fs sub sto lv in
       let ba, sub, sto = constrain_app env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
-  | C.Call (lvo, C.Lval (C.Mem e, _), args, _) ->
-      begin match e |> et#ctype_of_exp |> Ct.subs sub with
-        | Ref (l, _) ->
-            let cf           = Store.Function.find sto l in
-            let ba, sub, sto = constrain_app env et cf sub sto lvo args in
-              (ba :: bas, sub, sto)
-        | _ -> assert false
-      end
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
 let constrain_instr env et is sub sto =
