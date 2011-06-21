@@ -163,6 +163,7 @@ assert ::
   store_in  []
   store_out []
 
+
 csolve_exit ::
   arg       (status: int (4, true, {v | true}))
   ret int   (4, true, {v | 0=1})
@@ -266,9 +267,9 @@ fputs_unlocked ::
              A1  |-> io_file]
 
 puts ::
-  arg       (__s : ref(A0, 0))
+  arg       (__s : ref(A0, 0[1]))
   ret       int(4, 0{1})
-  store     [A0 |-> 0: int(1, 0{1})]
+  store     [A0 |-> 0[1]: int(1, 0{1})]
 
 // ../lib/xalloc.h:73: Error: No spec for extern function xstrdup. Autogen spec is: TODO strengthen with invariants about length
 
@@ -347,6 +348,20 @@ strtok ::
   ret      ref (A0, 0[1], {v | (v != 0) => && [0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v])]})
   store    [A0 |-> 0[1]: int (1, 0{1});
             A1 |-> 0[1]: int (1, 0{1})]
+
+// ../lib/readtokens.h:35: Error: No spec for extern function readtoken. Autogen spec is:
+
+readtoken ::
+  arg       (stream : ref(A0, 0),
+             delim  : ref(A1, 0),
+             n_delim : int(4, 0{1}),
+             tokenbuffer : ref(A2, 0))
+  ret       int(4, 0{1})
+  store     [A0 |-> io_file;
+             A1 |-> 0: int(1, 0{1});
+             A2 |-> 0: int(4, 0{1}), 4: ref(A3, 0[1]);
+             A3 |-> 0[1]: int(1, 0{1})]
+
 
 umask ::
   arg      (m: int (4, true))
@@ -479,3 +494,13 @@ fadvise ::
           a: int (4, true))
   ret    int (0, true)
   store  [A0 |-> io_file]
+
+optind :: int(4, 0{1})
+
+loc A997 |-> io_file
+loc A998 |-> io_file
+loc A999 |-> io_file
+
+stderr :: ref(A997, 0)
+stdout :: ref(A998, 0)
+stdin :: ref(A999, 0)

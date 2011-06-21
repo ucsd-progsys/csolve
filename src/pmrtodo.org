@@ -72,22 +72,22 @@
 **** DONE (...?) sum
      Checksumming function, less than 300 lines.
 
-**** (RJ) tsort
+**** (RJ BLOCKED: simplification leaves &x in code) tsort
      Program for topologically sorting a graph, less than 600 lines.
 
-**** stat
+**** (RJ BLOCKED: cannot simplify labeled instruction) stat
      About 1.5k lines, small bit of function pointer action.
 
-**** od
+**** (RJ BLOCKED: cannot simplify labeled instruction) od 
      Large at 2k lines, uses function pointers for formatting options, it seems.
 
-**** dd
+**** (RJ BLOCKED: cannot simplify labeled instruction) dd
      Seems to have function pointers, but it's on the big side at 2k lines.
 
-**** tr
+**** (RJ BLOCKED: uses unions, and below cannot represent integer issue) tr
      Another 2k large program, parameterized by function for reading from the buffer.
 
-**** pr
+**** (RJ BLOCKED:  Unimplemented: Cannot represent integer 18446744073709551615ULL in 64 bits (signed)) pr
      Formats text, uses print_func and char_func to process lines and characters,
      almost 3k lines.
 

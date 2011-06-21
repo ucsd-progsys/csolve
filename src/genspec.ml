@@ -186,7 +186,7 @@ let rec conv_ciltype_aux loc tlev (th, st, off) (c, a) =
       | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
           (th, st, add_off off c), [(off, CilInterface.ctype_of_cilbasetype c)]
       | TPtr (TFun (t, xtso, _, _), _) ->
-          let (th, st), t = conv_funptr loc (th, st) t (argsToList xtso) in
+          let (th, st), t = conv_funptr loc c (th, st) t (argsToList xtso) in
             (th, st, add_off off c), [(off, t)]
       | TPtr (c',a') ->
           let pd = if CM.has_array_attr (a' ++ a) then Unb (CM.bytesSizeOf c') else Nop in
@@ -208,11 +208,11 @@ let rec conv_ciltype_aux loc tlev (th, st, off) (c, a) =
     let _ = errorLoc loc "Can't fit %a -> %a in location %a\n" N.d_index i Ct.I.CType.d_ctype ct Ct.I.LDesc.d_ldesc ld in
       raise CantConvert
 
-and conv_funptr loc (th, st) t xts =
+and conv_funptr loc c (th, st) t xts =
   match cfun_of_args_ret "(function pointer)" (loc, t, xts) with
     | None    -> raise CantConvert
     | Some cf ->
-        let l = Sloc.fresh_abstract () in
+        let l = Sloc.fresh_abstract [CM.srcinfo_of_type c (Some loc)] in
           ((th, Ct.I.Store.Function.add st l cf), Ct.Ref (l, N.IInt 0))
 
 and conv_ptr loc (th, st) pd c =
@@ -222,7 +222,7 @@ and conv_ptr loc (th, st) pd c =
     let l, idx           = SM.find tid th in 
     (th, st), Ct.Ref (l, idx) 
   else
-    let l                = Sloc.fresh_abstract () in
+    let l                = Sloc.fresh_abstract [CM.srcinfo_of_type c (Some loc)] in
     let idx              = mk_idx pd 0 in
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
@@ -360,3 +360,17 @@ let assert_spec_complete file spec =
           false
     | _ -> ok
   end true |> fun b -> assert b
+
+
+let dump_pragmas file =
+  iterGlobals file begin function
+    | GPragma (Attr ("lcc", [ACons ("include", []); AStr f]), _) 
+       -> ignore <| E.log "\n HIT INCLUDE PRAGMA: %s \n" f
+    | GPragma (attr, loc) 
+       -> ignore <| E.log "HIT PRAGMA: %a \n" d_attr attr
+    | _                   
+       -> ()
+  end 
+
+
+

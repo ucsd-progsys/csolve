@@ -120,6 +120,15 @@ let set_lex_start_pos file lb =
   let p = {Lexing.pos_fname = file; Lexing.pos_lnum = 1; Lexing.pos_cnum = 0; Lexing.pos_bol = 0} in
     {lb with Lexing.lex_start_p = p; Lexing.lex_curr_p = p}
 
+let spec_includes file =
+  Cil.foldGlobals file begin fun fs -> function
+    | Cil.GPragma (Cil.Attr ("lcc", [Cil.ACons ("include", []); Cil.AStr f]), _) 
+        -> f :: fs
+    | _                                                          
+        -> fs 
+  end []
+  >> (String.concat ", " <+> E.log "Including Specs: %s \n" <+> ignore)  
+
 let add_spec fn spec_src = 
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
@@ -139,6 +148,7 @@ let generate_spec file fn spec =
   let oc = open_out (fn^".autospec") in
         file
      >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
+     >> Genspec.dump_pragmas
      |> Genspec.specs_of_file spec
      >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
      |> begin fun (funspec, varspec, storespec) ->
@@ -161,10 +171,11 @@ let generate_spec file fn spec =
 
 let spec_of_file outprefix file =
   RCt.Spec.empty
-  |> add_spec (outprefix^".spec")                       (* Add manual specs  *)
-  |> add_spec (Co.get_lib_spec ())                      (* Add default specs *)
+  |> List.fold_right add_spec (spec_includes file)      (* Add external specs *)
+  |> add_spec (outprefix^".spec")                       (* Add manual specs   *)
+  |> add_spec (Co.get_lib_spec ())                      (* Add default specs  *)
   >> generate_spec file outprefix
-  |> add_spec (outprefix^".autospec")                   (* Add autogen specs *)
+  |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
   >> Genspec.assert_spec_complete file
 
 let print_header () = 

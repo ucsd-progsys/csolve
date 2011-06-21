@@ -29,9 +29,13 @@ let add_struct name root_sloc sto =
 
 (* pmr: TODO --- renaming predicate abslocs appropriately --- how is it done now? *)
 let instantiate_struct name inst_root_sloc =
-  let root_sloc, sto = Hashtbl.find struct_table name in
+  let root_sloc, sto = Misc.do_catch ("Missing from struct_table: "^name)
+                       (Hashtbl.find struct_table) name in
   let dom            = sto |> RCt.Store.domain |> List.filter (fun s -> not (Sloc.eq root_sloc s)) in
-  let subs           = (root_sloc, inst_root_sloc) :: List.map (fun s -> (s, Sloc.fresh_abstract ())) dom in
+  let info           = Format.sprintf "Spec: struct = %s loc = %s" name (Sloc.to_string inst_root_sloc)
+                       |> CilMisc.srcinfo_of_string in
+  let subs           = (root_sloc, inst_root_sloc) 
+                       :: List.map (fun s -> (s, Sloc.fresh_abstract [info])) dom in
     RCt.Store.subs subs sto
 
 type slocbind_contents =
@@ -56,7 +60,7 @@ let abs_sloctable = Hashtbl.create 17
 let cnc_sloctable = Hashtbl.create 17
 
 let mk_sloc_abstract id =
-  Misc.do_memo abs_sloctable Sloc.fresh_abstract () id
+  Misc.do_memo abs_sloctable Sloc.fresh_abstract ([CilMisc.srcinfo_of_string (string_of_int id)]) id
 
 let mk_sloc_concrete id absid =
   Misc.do_memo cnc_sloctable Sloc.fresh_concrete (mk_sloc_abstract absid) id

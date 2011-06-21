@@ -45,7 +45,7 @@ let fresh_heaptype (t: C.typ): ctype =
       | C.TFloat _                               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                                -> void_ctype
       | C.TPtr (t, ats2) | C.TArray (t, _, ats2) ->
-        Ref (S.fresh_abstract (),
+          Ref (S.fresh_abstract [CM.srcinfo_of_type t None],
              if CM.has_array_attr (ats1 @ ats2) then
                N.ICClass {N.lb = Some 0; N.ub = None; N.m = CM.typ_width t; N.c = 0}
              else N.IInt 0)
@@ -109,10 +109,16 @@ class exprTyper (ve) = object (self)
     | C.AddrOf lv                   -> self#ctype_of_addrof lv
     | e                             -> E.s <| C.error "Unimplemented ctype_of_exp_aux: %a@!@!" C.d_exp e
 
-  method private ctype_of_constptr = function
-    | C.CStr _                                 -> let s = S.fresh_abstract () in Ref (s, Index.IInt 0)
-    | C.CInt64 (v, ik, so) when v = Int64.zero -> let s = S.fresh_abstract () in Ref (s, Index.IBot)
-    | c                                        -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+  method private ctype_of_constptr c = match c with  
+    | C.CStr _ ->
+        let s = S.fresh_abstract [CM.srcinfo_of_constant c None] in 
+        Ref (s, Index.IInt 0)
+    | C.CInt64 (v, ik, so) 
+      when v = Int64.zero ->
+        let s = S.fresh_abstract [CM.srcinfo_of_constant c None] in 
+        Ref (s, Index.IBot)
+    | _ -> 
+        E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
   method private ctype_of_raw_lval = function
     | C.Var v, C.NoOffset         -> asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve
@@ -123,8 +129,11 @@ class exprTyper (ve) = object (self)
     self#ctype_of_exp (C.Lval lv)
 
   method private ctype_of_addrof = function
-    | C.Var v, C.NoOffset when CM.is_fun v -> Ref (S.fresh_abstract (), Index.IInt 0)
-    | lv                                   -> E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
+    | C.Var v, C.NoOffset 
+      when CM.is_fun v -> 
+        Ref (S.fresh_abstract [CM.srcinfo_of_var v None], Index.IInt 0)
+    | lv -> 
+        E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
 
   method private ctype_of_cast ct e =
     let ctv = self#ctype_of_exp e in
