@@ -706,7 +706,6 @@ let doGlobal = function
       (* Visit the body and change all expressions into three address code *)
       let v = new threeAddressVisitor fi in
       fi.sbody <- visitCilBlock v fi.sbody;
-      let _ = Pretty.printf "New function body:@!%a@!@!" Cil.d_block fi.sbody in
       if !splitStructs then begin
         H.clear dontSplitLocals;
         let splitVarVisitor = new splitVarVisitorClass (Some fi) in
