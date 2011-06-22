@@ -2,12 +2,10 @@
 
 ** TODO Heap polymorphism for function pointers
 
-** TODO Slocs in parsing and shape inference error messages
-   They may have nothing to do with the slocs that the user actually
-   wrote down in the specs. Keep a "displayname" attribute for slocs?
-
 ** What happens if we define the same var/function in lib.spec and the
    site-specific spec?
+
+** TODO Keep locations out of global heap if they're not "rooted" by a global
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 

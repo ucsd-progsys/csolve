@@ -153,7 +153,7 @@ let adj_period pd idx =
   | Nop  , _             -> idx
   | Unb n,      N.IInt i -> N.mk_sequence i n (Some i) None
   | Bnd (n, k), N.IInt i -> N.mk_sequence i n (Some i) (Some (i + (k - 1) * n))
-  | _,          _        -> assertf "adjust_period: adjusting a periodic index"
+  | _,          _        -> assertf "adj_period: adjusting a periodic index"
 
 let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
@@ -180,8 +180,21 @@ let argsToList xtso =
   |> Misc.mapi (fun i -> Misc.app_fst3 (function "" | " " -> "x"^(string_of_int i) | s -> s))
   |> Misc.map (fun (x,y,_) -> (x,y))
 
+let array_sizes sz1 sz2 = match sz1, sz2 with
+  | Some (Const (CInt64 (i, ik, _))),
+    Some (Const (CInt64 (j, _, _))) ->
+      Some (Const (CInt64 (Int64.mul i j, ik, None)))
+  | None, None -> None
+  | _          -> assert false
+
+let rec flatten_array_type = function
+  | TArray (TArray (c, iszo, _), oszo, _) ->
+      flatten_array_type (TArray (c, array_sizes iszo oszo, []))
+  | t -> t
+
 let rec conv_ciltype_aux loc tlev (th, st, off) (c, a) =
   try
+    let c = flatten_array_type c in
     match c with
       | TVoid _ | TInt (_,_) | TFloat _ | TEnum _ ->
           (th, st, add_off off c), [(off, CilInterface.ctype_of_cilbasetype c)]
