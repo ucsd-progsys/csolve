@@ -69,8 +69,6 @@ module VarMapPrinter: sig
 end
 val assertLoc : Cil.location -> bool -> ('a, unit, Pretty.doc) format -> 'a
 
-val assert_stmt_unlabeled : Cil.stmt -> unit
-
 val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
 val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list

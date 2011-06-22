@@ -80,10 +80,6 @@ let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
        this local variable itself needs to be moved to the heap. *)
    false
 
-
-let assert_stmt_unlabeled s =
-  if s.labels != [] then E.s <| error "Cannot simplify labeled statement!@!"
-
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)

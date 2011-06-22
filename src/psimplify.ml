@@ -254,14 +254,6 @@ and simplifyOffset (setTemp: taExp -> bExp) = function
       let ei' = makeBasic setTemp ei in
       Index(ei', simplifyOffset setTemp off)
 
-
-let changeAssertingUnlabeled s s' =
-  if s != s' then begin
-    CilMisc.assert_stmt_unlabeled s;
-    ChangeDoChildrenPost (s', Misc.Ops.id)
-  end else DoChildren
-
-
 (** This is a visitor that will turn all expressions into three address code *)
 class threeAddressVisitor (fi: fundec) = object (self)
   inherit nopCilVisitor
@@ -296,9 +288,11 @@ class threeAddressVisitor (fi: fundec) = object (self)
   method vstmt (s: stmt) =
     match s.skind with
     | Return (Some e, loc) ->
-        changeAssertingUnlabeled s {s with skind = Return (Some (makeBasic self#makeTemp e), loc)}
+        s.skind <- Return (Some (makeBasic self#makeTemp e), loc);
+        DoChildren
     | If (e, b1, b2, loc) ->
-        changeAssertingUnlabeled s {s with skind = If (makeBasic self#makeTemp e, b1, b2, loc)}
+        s.skind <- If (makeBasic self#makeTemp e, b1, b2, loc);
+        DoChildren
     | _ -> DoChildren
 
       (* This method will be called only on top-level "lvals" (those on the
