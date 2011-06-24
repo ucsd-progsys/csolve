@@ -7,6 +7,23 @@
 
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
 
+** Keep an eye on extern inits
+   If a location is reachable from an extern, we need to keep a close eye on
+   its initializer; we don't necessarily know its value is what the initializer
+   sets.
+
+   We should pass over all externs, get the reachable set from those
+   locations, and true out their invariants.
+
+** Why did global_funptr stop working? (As it well should have.)
+
+** Why do global arrays even work?
+
+** How are we initializing global values?
+   Are we /constraining/ them, or are we /asserting/ them? Former will
+   be very wrong.
+   
+
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
 ** Handling string-manipulating functions

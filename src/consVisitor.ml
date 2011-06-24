@@ -546,26 +546,17 @@ let cons_of_sci tgr gnv gst sci sho =
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
+(* pmr: Now we need to test if this location has been initialized by
+        some other store init. *)
+(* But also if there's an extern var we can't be sure what the contents
+   are up front, i.e., we're not sure either our initializer or the
+   zero initializer holds. *)
 let cons_of_global_store tgr gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore FI.ce_empty gst gst tag in
   let zst   = RS.Data.map FI.t_zero_refctype gst in
   let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
   (ws, cs)
-
-let type_of_init v vtyp = function
-  | Some (SingleInit e)           -> FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e
-  | Some (CompoundInit (t, _))    -> t |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp)
-  | None when v.vstorage = Extern -> assert false
-  | None                          ->
-      let ct = Ct.ctype_of_refctype vtyp in
-      match Cil.unrollType v.vtype with
-      | TArray (t, (Some len as leno), _) ->
-          Cil.lenOfArray leno * CilMisc.bytesSizeOf t |> FI.t_size_ptr ct
-      | TPtr (t, _) ->
-          t |> CilMisc.bytesSizeOf |> FI.t_size_ptr ct
-      | TInt (_, _) -> FI.t_zero ct
-      | _           -> FI.t_true ct
 
 let add_offset loc t ctptr off =
   match ctptr with
@@ -590,23 +581,27 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
         ~initl:inits
         ~acc:(sto, cs)
 
-let cons_of_var_init tag loc sto v vtyp inito =
-  let cs1, _ = if v.vstorage != Extern then
-                 FI.make_cs FI.ce_empty Ast.pTrue (type_of_init v vtyp inito) vtyp None tag loc
-              else ([], [])
-  in
-  match inito with
+let cons_of_var_init tag loc sto v vtyp = function
   | Some (CompoundInit _ as init) ->
+      let t_var       = v.vtype |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp) in
+      let cs1, _      = FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc in
       let aloc, r     = match vtyp with Ct.Ref (al, r) -> (al, r) | _ -> assert false in
       let cloc        = Sloc.fresh_concrete aloc in
       let ctptr       = Ct.Ref (cloc, r) in
-      let env, sto, _ = fst <| FI.extend_world sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in 
+      let env, sto, _ = fst <| FI.extend_world sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in
       let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
       let ld1         = (cloc, Ct.refstore_get sto cloc) in
       let ld2         = (aloc, Ct.refstore_get sto aloc) in
       let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
       cs1 ++ cs2 ++ cs3
-  | _ -> cs1
+  | Some (SingleInit e) ->
+      let t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
+        fst <| FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc
+  | None -> assert (v.vstorage = Extern); []
+
+let init_of_var v = function
+  | None -> if v.vstorage = Extern then None else Some (makeZeroInit v.vtype)
+  | i    -> i
 
 (************************************************************************************)
 (******************************** API ***********************************************)
@@ -627,7 +622,7 @@ let cons_of_decs tgr spec gnv gst decs =
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
         let vspctyp, b = CS.get_var v.vname spec in 
-        let cs'        = cons_of_var_init tag loc gst v vtyp init in
+        let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
         let cs'', _    = if b then FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc else ([],[]) in
         let ws'        = FI.make_wfs FI.ce_empty gst vtyp tag in
           (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])

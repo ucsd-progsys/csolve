@@ -6,7 +6,10 @@ int one () {
 
 int main () {
     f = &one;
-    assert (f () > 0);
+    int (*g)() = f;
+
+    if (g != 0)
+        assert (g () > 0);
 
     return 0;
 }
