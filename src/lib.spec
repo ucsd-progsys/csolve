@@ -483,11 +483,3 @@ fadvise ::
   store  [A0 |-> io_file]
 
 optind :: int(4, 0{1})
-
-loc A997 |-> io_file
-loc A998 |-> io_file
-loc A999 |-> io_file
-
-stderr :: ref(A997, 0)
-stdout :: ref(A998, 0)
-stdin :: ref(A999, 0)
