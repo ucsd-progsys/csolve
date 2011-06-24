@@ -1,5 +1,5 @@
 (* TODO
-   1. Test with globals
+   1. Allow final global locs.
 
    QUIRKS/BUGS
    1. genspec can't produce final field declarations
@@ -36,7 +36,7 @@ module type Context = sig
   val cfg   : Ssa.cfgInfo
   val shp   : Sh.t
   val ffmm  : (IS.t LM.t * Sh.final_fields_annot array) SM.t
-  val sspec : CT.Store.t
+  val glocs : S.t list
 end
 
 let d_final_fields () ffmsa =
@@ -142,8 +142,8 @@ module Intraproc (X: Context) = struct
 
   let kill_field_index l al i ffm =
     (* DEBUG *)
-(*     let _   = P.printf "Trying to kill %a in\n" S.d_sloc l in *)
-(*     let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
+    (* let _   = P.printf "Trying to kill %a:%a in\n" S.d_sloc l Ix.d_index i in *)
+    (* let _   = P.printf "%a\n\n" (S.d_slocmap d_plocset) ffm in *)
     LM.add l (List.fold_left (fun ffs pl -> IS.remove pl ffs) (LM.find l ffm) (find_stored_indices al i)) ffm
 
   let process_set_lval na lval ffm =
@@ -248,8 +248,8 @@ module Intraproc (X: Context) = struct
 
   let init_abstract_finals () =
        LM.empty
+    |> List.fold_right (fun l lm -> LM.add l IS.empty lm) X.glocs
     |> with_all_fields_final X.shp.Sh.store
-    |> with_all_fields_final X.sspec
 
   let init_concrete_finals annots ffm =
     Array.fold_left begin fun ffm annotss ->
@@ -275,14 +275,14 @@ module Intraproc (X: Context) = struct
 end
 
 module Interproc = struct
-  let iter_final_fields scis shpm storespec ffmm =
+  let iter_final_fields scis shpm globlocs ffmm =
     SM.fold begin fun fname (ffm, _) (ffmm', reiter) ->
       if SM.mem fname shpm then
         let module X = struct
 	  let shp   = SM.find fname shpm
 	  let cfg   = (scis |> SM.find fname |> snd3).Ssa_transform.cfg
-          let sspec = storespec
 	  let ffmm  = ffmm
+          let glocs = globlocs
         end in
         let module IP   = Intraproc (X) in
         let ffmsa, ffm' = IP.final_fields () in
@@ -326,7 +326,7 @@ module Interproc = struct
 
   let final_fields spec scis shpm =
        init_final_fields (Ctypes.I.Spec.funspec spec) shpm
-    |> Misc.fixpoint (iter_final_fields scis shpm (Ctypes.I.Spec.store spec))
+    |> Misc.fixpoint (iter_final_fields scis shpm (spec |> Ctypes.I.Spec.store |> Ctypes.I.Store.domain))
     |> fst
     |> set_nonfinal_fields shpm
 end
