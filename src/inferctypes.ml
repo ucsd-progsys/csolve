@@ -471,7 +471,7 @@ let check_sol cf vars gst em bas sub sto =
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in
     if check_out_store_complete whole_store sto then
-      (sub, Store.Data.fold_locs (fun s _ sto -> Store.remove sto s) sto gst)
+      (sub, List.fold_left Store.remove sto (Store.domain gst))
     else
          halt
       <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
