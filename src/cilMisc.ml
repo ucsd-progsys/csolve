@@ -486,74 +486,68 @@ sig
   val doVisit: Cil.file -> unit 
 end
 
-module CopyGlobal =
-  (struct
-    class expVisitor fd = object(self)
-      inherit nopCilVisitor
+module CopyGlobal: Visitor = struct
+  class expVisitor fd = object(self)
+    inherit nopCilVisitor
 
-      val expLevel = ref 0
-  
-      method vvrbl v =
-        if !expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
-          let vlv = (Var v, NoOffset) in
-          let tmp = vlv |> typeOfLval |> makeTempVar fd in
-          let _   = self#queueInstr [Set ((Var tmp, NoOffset), Lval vlv, !currentLoc)] in
-            ChangeTo tmp
-        else SkipChildren
+    val expLevel = ref 0
 
-      method vexpr e =
-        incr expLevel;
-        ChangeDoChildrenPost (e, fun e -> decr expLevel; e)
+    method vvrbl v =
+      if !expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
+        let vlv = (Var v, NoOffset) in
+        let tmp = vlv |> typeOfLval |> makeTempVar fd in
+        let _   = self#queueInstr [Set ((Var tmp, NoOffset), Lval vlv, !currentLoc)] in
+          ChangeTo tmp
+      else SkipChildren
 
-      method vinst = function
-        | Call (Some ((Var v, NoOffset) as lv), f, es, loc) when v.vglob ->
-            let tmp = lv |> typeOfLval |> makeTempVar fd in
-            let tlv = (Var tmp, NoOffset) in
-              ChangeDoChildrenPost ([Call (Some tlv, f, es, loc); Set (lv, Lval tlv, loc)], id)
-        | _ -> DoChildren
-    end
-  
-    class globVisitor = object(self)
-      inherit nopCilVisitor
-  
-      method vglob = function
-        | GFun (fd, _) -> visitCilFunction (new expVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
-        | _            -> SkipChildren
-    end
-    
-    let visitor = new globVisitor
-  
-    let doVisit = visitCilFile visitor
-  end : Visitor)
+    method vexpr e =
+      incr expLevel;
+      ChangeDoChildrenPost (e, fun e -> decr expLevel; e)
 
-module NameNullPtrs =
-  (struct
-    let fresh_ptr_name =
-      let counter = ref 0 in
-        fun () -> incr counter; "nullptr" ^ string_of_int !counter
-    
-    class funVisitor fd = object(self)
-      inherit nopCilVisitor
-    
-      method vexpr = function
-        | CastE (TPtr (t, attrs), (Const (CInt64 (i, _, _)) as cz)) when i = Int64.zero ->
-            let tptr = TPtr (t, addAttribute (Attr (fresh_ptr_name (), [])) attrs) in
-              ChangeDoChildrenPost (CastE (tptr, cz), id)
-        | _ -> DoChildren
-    end
-    
-    class globVisitor = object(self)
-      inherit nopCilVisitor
-    
-      method vglob = function
-        | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
-        | _            -> SkipChildren
-    end
-    
-    let visitor = new globVisitor
+    method vinst = function
+      | Call (Some ((Var v, NoOffset) as lv), f, es, loc) when v.vglob ->
+          let tmp = lv |> typeOfLval |> makeTempVar fd in
+          let tlv = (Var tmp, NoOffset) in
+            ChangeDoChildrenPost ([Call (Some tlv, f, es, loc); Set (lv, Lval tlv, loc)], id)
+      | _ -> DoChildren
+  end
 
-    let doVisit = visitCilFile visitor
-  end : Visitor)
+  class globVisitor = object(self)
+    inherit nopCilVisitor
+
+    method vglob = function
+      | GFun (fd, _) -> visitCilFunction (new expVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
+      | _            -> SkipChildren
+  end
+
+  let doVisit = visitCilFile (new globVisitor)
+end
+
+module NameNullPtrs: Visitor = struct
+  let fresh_ptr_name =
+    let counter = ref 0 in
+      fun () -> incr counter; "nullptr" ^ string_of_int !counter
+
+  class funVisitor fd = object(self)
+    inherit nopCilVisitor
+
+    method vexpr = function
+      | CastE (TPtr (t, attrs), (Const (CInt64 (i, _, _)) as cz)) when i = Int64.zero ->
+          let tptr = TPtr (t, addAttribute (Attr (fresh_ptr_name (), [])) attrs) in
+            ChangeDoChildrenPost (CastE (tptr, cz), id)
+      | _ -> DoChildren
+  end
+
+  class globVisitor = object(self)
+    inherit nopCilVisitor
+      
+    method vglob = function
+      | GFun (fd, _) -> visitCilFunction (new funVisitor fd :> cilVisitor) fd |> ignore; SkipChildren
+      | _            -> SkipChildren
+  end
+
+  let doVisit = visitCilFile (new globVisitor)
+end
 
 (* pmr: Globally change Mems to mkMem *)
 (* Variation on the heapify transformation included with CIL. *)
