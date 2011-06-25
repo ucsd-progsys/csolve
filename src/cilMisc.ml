@@ -555,77 +555,96 @@ module NameNullPtrs =
     let doVisit = visitCilFile visitor
   end : Visitor)
 
-(*
- * Pheapify: a program transform that looks over functions, finds those
- * that have local (stack) variables that contain arrays, puts all such
- * local variables into a heap allocated structures, changes all
- * accesses to such variables into accesses to those structures.
- * Don't bother freeing them because we don't care.
- *)
-
-module Pheapify =
-  (struct
-    class heapifyModifyVisitor hvars = object(self)
-      inherit nopCilVisitor  (* visit lvalues *)
-    
-      method private is_heapified vi =
-        List.mem_assoc vi hvars
-    
-      method vexpr = function
-        | StartOf (Var vi, NoOffset)
-        | AddrOf (Var vi, NoOffset) when self#is_heapified vi -> ChangeTo (Lval (Var (List.assoc vi hvars), NoOffset))
-        | _                                                   -> DoChildren
-    
-      method vlval = function (* should we change this one? *)
-        Var(vi), vi_offset when self#is_heapified vi -> (* check list *)
-          let hvi = List.assoc vi hvars in (* find corresponding heap var *)
-            begin match unrollType vi.vtype with
-              | TArray _ ->
-                  begin match vi_offset with
-                    | Index (e, o) -> ChangeDoChildrenPost ((Mem (BinOp (PlusPI, Lval (Var hvi, NoOffset), e, hvi.vtype)), o), id)
-                    | NoOffset     -> ChangeDoChildrenPost ((Var hvi, NoOffset), id)
-                    | _            -> assert false
-                  end
-              | _ -> ChangeDoChildrenPost ((Mem (Lval (Var hvi, NoOffset)), vi_offset), id)
-            end
-      | _ -> DoChildren (* ignore other lvalues *)
-    end
-    
-    let heapifiedType t =
-      match unrollType t with
-        | TArray (t, _, _) -> TPtr (t, [])
-        | t                -> TPtr (t, [])
-    
-    class heapifyAnalyzeVisitor f alloc = object
-      inherit nopCilVisitor (* only look at function bodies *)
-    
-      method vglob = function
-        GFun (fundec, funloc) ->
-          let hvars = List.filter begin fun vi -> (* a list of the variables that must be on the heap *)
-            (* find all local vars with arrays.  If the user requests it,
-               we also look for non-array vars whose address is taken. *)
-            (containsArray vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
-          end fundec.slocals in
-          if (hvars <> []) then begin (* some local vars contain arrays *)
-            let newvars = List.map (fun vi -> makeLocalVar fundec (vi.vname ^ "_heapify") (heapifiedType vi.vtype)) hvars in
-            let varmap  = List.combine hvars newvars in
-              fundec.sbody <- visitCilBlock (new heapifyModifyVisitor varmap) fundec.sbody; (* rewrite accesses to local vars *)
-              let allocs = List.map (fun (vi, hvi) -> Call (Some (Var hvi, NoOffset), alloc, [SizeOf vi.vtype], funloc)) varmap in
-                fundec.sbody.bstmts <- mkStmt (Instr allocs) :: fundec.sbody.bstmts;
-                fundec.slocals <- List.filter (fun vi -> not (List.mem vi hvars)) fundec.slocals; (* remove local vars *)
-                ChangeTo ([GFun (fundec, funloc)])  (* done! *)
-          end else
-    	DoChildren	(* ignore everything else *)
+(* pmr: Globally change Mems to mkMem *)
+(* Variation on the heapify transformation included with CIL. *)
+module Pheapify: Visitor = struct
+  class heapifyModifyVisitor hvars = object(self)
+    inherit nopCilVisitor
+      
+    method private is_heapified vi =
+      List.mem_assoc vi hvars
+        
+    method vexpr = function
+      | StartOf (Var vi, NoOffset) | AddrOf (Var vi, NoOffset)
+        when self#is_heapified vi ->
+          let lv = var (List.assoc vi hvars) in
+            ChangeTo (if vi.vglob then mkAddrOrStartOf lv else Lval lv)
       | _ -> DoChildren
-    end
-    
-    let default_heapify (f : file) =
-      let alloc_fun = findOrCreateFunc f "malloc" (TFun (voidPtrType, Some [("sz", !typeOfSizeOf, [])], false, [])) in
-      let alloc_exp = Lval (Var alloc_fun, NoOffset) in
-      let default_analyzer = new heapifyAnalyzeVisitor f alloc_exp in
-        visitCilFile default_analyzer f
-    
-    let doVisit = default_heapify
-  end : Visitor)
+        
+    method vlval = function
+      | Var vi, vi_offset when self#is_heapified vi ->
+          let hvi = List.assoc vi hvars in
+          begin match unrollType vi.vtype with
+            | TArray _ ->
+                begin match vi_offset with
+                  | Index (e, o) -> ChangeDoChildrenPost (mkMem (BinOp (PlusPI, Lval (var hvi), e, hvi.vtype)) o, id)
+                  | NoOffset     -> ChangeDoChildrenPost (var hvi, id)
+                  | _            -> assert false
+                end
+            | _ ->
+                if vi.vglob then
+                  ChangeDoChildrenPost (mkMem (hvi |> var |> mkAddrOrStartOf) vi_offset, id)
+                else ChangeDoChildrenPost (mkMem (Lval (var hvi)) vi_offset, id)
+          end
+      | _ -> DoChildren
+  end
 
+  let should_heapify vi =
+    if vi.vglob then
+      not (isArrayType vi.vtype) && (vi.vaddrof || containsArray vi.vtype)
+    else
+      (containsArray vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
+  let heapifiedType v = match unrollType v.vtype with
+    | TArray (t, _, _) -> TPtr (t, [])
+    | t when v.vglob   -> TArray (t, Some one, [])
+    | t                -> TPtr (t, [])
+
+  let arrayifiedInit v i =
+    {init = M.maybe_map (fun ii -> CompoundInit (v.vtype, [Index (integer 0, NoOffset), ii])) i.init}
+
+  let heapName v =
+    v.vname ^ "__lcc_heapify__"
+
+  class heapifyGlobalVisitor = object(self)
+    inherit nopCilVisitor
+
+    val hglobals = ref []
+
+    method get_hglobals = !hglobals
+
+    method vglob = function
+      | GVar (vi, init, loc) when should_heapify vi ->
+          let hvi = {(makeGlobalVar (heapName vi) (heapifiedType vi)) with vaddrof = true} in
+            hglobals := (vi, hvi) :: !hglobals;
+            ChangeTo [GVar (hvi, arrayifiedInit vi init, loc)]
+      | _ -> DoChildren
+  end
+
+  class heapifyAnalyzeVisitor f alloc globmap = object
+    inherit nopCilVisitor
+
+    method vglob = function
+      | GFun (fundec, funloc) ->
+          let mkVar v = makeLocalVar fundec (heapName v) (heapifiedType v) in
+          let hvars   = List.filter should_heapify fundec.slocals in
+            if (hvars <> [] || globmap <> []) then begin
+              let localvars = List.combine hvars (List.map mkVar hvars) in
+              let allocs    = List.map (alloc funloc) localvars in
+                visitCilBlock (new heapifyModifyVisitor (localvars @ globmap)) fundec.sbody |> ignore;
+                fundec.sbody.bstmts <- mkStmt (Instr allocs) :: fundec.sbody.bstmts;
+                fundec.slocals      <- List.filter (fun vi -> not (List.mem vi hvars)) fundec.slocals;
+                ChangeTo ([GFun (fundec, funloc)])
+            end else DoChildren
+      | _ -> DoChildren
+  end
+
+  let alloc f =
+    let alloc_fun = findOrCreateFunc f "malloc" (TFun (voidPtrType, Some [("sz", !typeOfSizeOf, [])], false, [])) in
+      fun loc (v, hv) -> Call (Some (var hv), Lval (var alloc_fun), [SizeOf v.vtype], loc)
+
+  let doVisit (f : file) =
+    let hgv = new heapifyGlobalVisitor in
+    let _   = visitCilFile (hgv :> cilVisitor) f in
+      visitCilFile (new heapifyAnalyzeVisitor f (alloc f) hgv#get_hglobals) f
+end
