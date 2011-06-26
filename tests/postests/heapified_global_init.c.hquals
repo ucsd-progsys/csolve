@@ -1,0 +1,1 @@
+qualif isFive(v: int): v = 5

@@ -222,6 +222,9 @@ let is_reference t =
   | Cil.TPtr _ | Cil.TArray (_,_,_) -> true
   | _ -> false
 
+let isComoundType t = match unrollType t with
+  | TComp _ -> true
+  | _       -> false
 
 (******************************************************************************)
 (**************************** Misc. Pretty Printers ***************************)
@@ -585,7 +588,7 @@ module Pheapify: Visitor = struct
 
   let should_heapify vi =
     if vi.vglob then
-      not (isArrayType vi.vtype) && (vi.vaddrof || containsArray vi.vtype)
+      not (isArrayType vi.vtype) && (vi.vaddrof || containsArray vi.vtype || isComoundType vi.vtype)
     else
       (containsArray vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
