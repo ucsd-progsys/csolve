@@ -1,32 +1,30 @@
+* Sunday
+
+** TODO Allow specs on global store locs
+   Do the appropriate subtyping here
+
+** TODO Make sure specs work on heapified globals
+   Should we just name heapified globals the same as their original,
+   non-heapified versions, and the specs for things that get heapified
+   must have pointer type?
+
+** TODO Insist on specs for global store locs reachable from externs
+   We don't know what may have been written to these locations by
+   other code.
+
+** TODO Get tsort moving again
+
 * Soon
 
+** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
-
 
 ** What happens if we define the same var/function in lib.spec and the
    site-specific spec?
 
-
-** TODO Keep locations out of global heap if they're not "rooted" by a global
-
-** Try super-deep initializers (two, three levels of structure)
-
 ** Refactor ctype -> location, index methods
    Just fail fast instead of returning option
 
-** Keep an eye on extern inits
-   If a location is reachable from an extern, we need to keep a close eye on
-   its initializer; we don't necessarily know its value is what the initializer
-   sets.
-
-   We should pass over all externs, get the reachable set from those
-   locations, and true out their invariants.
-
-   We're already insisting that global externs get initializers. We
-   should also track down their reachable locations and ensure those
-   all have constraints.
-
-** Check that heapified globals are still getting initialized correctly
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
