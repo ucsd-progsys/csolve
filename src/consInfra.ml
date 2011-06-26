@@ -442,15 +442,14 @@ let create_shapeo tgr gnv env gst sci = function
   | None -> 
       ([], [], [], None)
   | Some shp ->
-      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv 
-                    |> Ct.stores_of_refcfun |> fst |> Ct.RefCTypes.Store.upd gst in
+      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv |> Ct.stores_of_refcfun |> fst in
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
       let ws      = FI.make_wfs_refstore env lastore lastore tag in
-      let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore astore false None tag loc in 
+      let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in 
       ws, cs, ds, Some { astore  = astore; cstoa = cstoa; shp = shp }
 
 let create tgr gnv gst sci sho = 
