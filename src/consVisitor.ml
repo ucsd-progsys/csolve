@@ -272,6 +272,7 @@ let cons_of_ptrcall me loc i j grd ((env, sto, tago) as wld) (lvo, e, es) ns = m
   | Lval (Var v, NoOffset) when not v.Cil.vglob ->
       begin match v |> FA.name_of_varinfo |> FI.t_name env with
         | Ct.Ref (l, _) ->
+          let l             = Sloc.canonical l in
           let tag           = CF.tag_of_instr me i j loc in
           let wld, cs1, wfs = cons_of_call me loc i j grd wld (lvo, RS.Function.find sto l, es) ns in
           let cs2           = cons_of_mem me loc tago tag grd env v in
@@ -588,12 +589,12 @@ let cons_of_var_init tag loc sto v vtyp = function
       let aloc, r     = match vtyp with Ct.Ref (al, r) -> (al, r) | _ -> assert false in
       let cloc        = Sloc.fresh_concrete aloc in
       let ctptr       = Ct.Ref (cloc, r) in
-      let env, sto, _ = fst <| FI.extend_world sto aloc cloc false id loc tag (FI.ce_empty, sto, None) in
+      let env, sto, _ = fst <| FI.extend_world sto aloc cloc true id loc tag (FI.ce_empty, sto, None) in
       let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in
       let ld1         = (cloc, Ct.refstore_get sto cloc) in
       let ld2         = (aloc, Ct.refstore_get sto aloc) in
       let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
-      cs1 ++ cs2 ++ cs3
+        cs1 ++ cs2 ++ cs3
   | Some (SingleInit e) ->
       let t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
         fst <| FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc
