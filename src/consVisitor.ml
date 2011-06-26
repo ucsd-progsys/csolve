@@ -36,6 +36,7 @@ module P  = Pretty
 module CM = CilMisc
 module Ct = Ctypes
 module CS = Ct.RefCTypes.Spec
+module RT = Ct.RefCTypes.CType
 module RS = Ct.RefCTypes.Store
 module Cs = Constants
 module Sh = Shape
@@ -547,17 +548,22 @@ let cons_of_sci tgr gnv gst sci sho =
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
-(* pmr: Now we need to test if this location has been initialized by
-        some other store init. *)
-(* But also if there's an extern var we can't be sure what the contents
-   are up front, i.e., we're not sure either our initializer or the
-   zero initializer holds. *)
-let cons_of_global_store tgr gst =
+let extern_reachable_locs spec decs =
+     decs
+  |> M.map_partial begin function
+       | CM.VarDec (v, _, _) when v.vstorage = Cil.Extern -> v.vname |> M.flip CS.get_var spec |> fst |> RT.sloc
+       | _ -> None
+     end
+  |> M.flap (spec |> CS.store |> RS.reachable)
+  |> M.sort_and_compact
+
+let cons_of_global_store tgr spec decs gst =
   let tag   = CilTag.make_global_t tgr Cil.locUnknown in
   let ws    = FI.make_wfs_refstore FI.ce_empty gst gst tag in
-  let zst   = RS.Data.map FI.t_zero_refctype gst in
-  let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue zst gst false None tag Cil.locUnknown in
-  (ws, cs)
+  let est   = gst |> Ct.refstore_partition (decs |> extern_reachable_locs spec |> M.flip List.mem) |> fst in
+  let tst   = RS.map FI.t_true_refctype est in
+  let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue tst est false None tag Cil.locUnknown in
+    (ws, cs)
 
 let add_offset loc t ctptr off =
   match ctptr with
@@ -610,7 +616,7 @@ let init_of_var v = function
 
 (* API *)
 let cons_of_decs tgr spec gnv gst decs =
-  let ws, cs = cons_of_global_store tgr gst in
+  let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
     | CM.FunDec (fn, loc) ->
         let tag     = CilTag.make_t tgr loc fn 0 0 in

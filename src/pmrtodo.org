@@ -1,6 +1,6 @@
 * Sunday
 
-** TODO Conservatively true out global locations reachable from externs
+** TODO Ensure that previously-working coreutils still work
 ** TODO Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
    non-heapified versions, and the specs for things that get heapified
@@ -10,6 +10,9 @@
 
 
 * Soon
+
+** TODO cons_of_mem needs to take size of data being written into account
+   Both start and end bytes need to be valid pointers.
 
 ** TODO Things probably solved by/should be deferred to after in-source specs
 
@@ -30,6 +33,20 @@
 
 ** Refactor ctype -> location, index methods
    Just fail fast instead of returning option
+
+** TODO Heapify /all/ globals?
+   Various parts of the code go through contortions to ensure that
+   globals never appear in expressions (so they're always read into a
+   local first before use) and to treat them specially in reads and
+   assignments. But if the contents of globals are always in a store
+   location, everything gets much more uniform.
+
+   Also, we treat globals worse than heap contents right now: two
+   consecutive reads from a global are not assumed to yield the same
+   result. This is a major pain --- you may test a global pointer to
+   see if it's null, but the result of that test won't be useful in
+   allowing you to safely dereference the pointer. At least we've
+   already fixed this problem for heap contents with final fields.
 
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts

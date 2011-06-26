@@ -175,6 +175,7 @@ module type S = sig
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
+    val reachable    : t -> Sloc.t -> Sloc.t list
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t

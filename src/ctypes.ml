@@ -25,6 +25,7 @@ module M   = Misc
 module P   = Pretty
 module E   = Errormsg
 module S   = Sloc
+module SS  = S.SlocSet
 module C   = Cil
 module CM  = CilMisc
 module SM  = M.StringMap
@@ -440,6 +441,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
+    val reachable    : t -> Sloc.t -> Sloc.t list
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -811,7 +813,22 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
       | _          -> true
-   
+
+    let rec reachable_aux sto visited l =
+      if SS.mem l visited then
+        visited
+      else if Function.mem sto l then
+        SS.add l visited
+      else begin
+           l
+        |> Data.find sto
+        |> LDesc.referenced_slocs
+        |> List.fold_left (reachable_aux sto) (SS.add l visited)
+      end
+
+    let reachable sto l =
+      l |> reachable_aux sto SS.empty |> SS.elements
+      
     let rec closed ((_, fs) as sto) =
       Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
         (* pmr: Not yet right, but we need smarter handling of global stores. *)
