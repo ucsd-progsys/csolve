@@ -57,8 +57,8 @@ let shapem_of_scim cil spec scim vim =
          (bm, (SM.add fn (cf, SM.find fn scim, SM.find fn vim) fm))
        else (SM.add fn cf bm, fm)
      end (CS.funspec spec)
-  >> (fst <+> Misc.sm_print_keys "builtins")
-  >> (snd <+> Misc.sm_print_keys "non-builtins")
+  (* >> (fst <+> Misc.sm_print_keys "builtins") *)
+  (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
   |> snd 
   |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
 

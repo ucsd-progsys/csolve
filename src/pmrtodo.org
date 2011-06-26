@@ -2,10 +2,17 @@
 
 ** TODO Heap polymorphism for function pointers
 
+
 ** What happens if we define the same var/function in lib.spec and the
    site-specific spec?
 
+
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
+
+** Try super-deep initializers (two, three levels of structure)
+
+** Refactor ctype -> location, index methods
+   Just fail fast instead of returning option
 
 ** Keep an eye on extern inits
    If a location is reachable from an extern, we need to keep a close eye on
@@ -15,14 +22,11 @@
    We should pass over all externs, get the reachable set from those
    locations, and true out their invariants.
 
-** Why did global_funptr stop working? (As it well should have.)
+   We're already insisting that global externs get initializers. We
+   should also track down their reachable locations and ensure those
+   all have constraints.
 
-** Why do global arrays even work?
-
-** How are we initializing global values?
-   Are we /constraining/ them, or are we /asserting/ them? Former will
-   be very wrong.
-   
+** Check that heapified globals are still getting initialized correctly
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -259,8 +263,9 @@ Proper code todo:
 ** TODO Review the code
    Kill any outstanding TODOs or unnoted unsoundnesses.
 
-** TODO Less verbose output at default level
-   Ideally nothing should show up unless there's an error.
+** TODO Less verbose output at default level --- dump to log instead
+   Most stuff has been changed to go to liquidc.log instead of stdout.
+   It would be handy to allow fixpoint to log there also.
 
 ** TODO Better attribution for modified CIL modules
    See psimplify, lcc, etc.

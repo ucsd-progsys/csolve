@@ -239,6 +239,8 @@ let print_unsat_locs tgr s ucs =
 
 
 let liquidate file =
+  let log     = open_out "liquidc.log" in
+  let _       = E.logChannel := log in
   let cil     = BS.time "Parse: source" preprocess_file file in
   let _       = E.log "DONE: cil parsing \n" in
   let fn      = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
@@ -252,7 +254,7 @@ let liquidate file =
   let _       = E.log "DONE SOLVING" in
   let _       = FixInterface.annot_dump s' in
   let _       = print_unsat_locs tgr s' cs' in
-  let _       = BS.print stdout "\nLiquidC Time \n" in
+  let _       = BS.print log "\nLiquidC Time \n" in
   match cs' with 
   | [] -> let _ = printf "\nSAFE\n"   in cil
   | _  -> let _ = printf "\nUNSAFE\n" in exit 1

@@ -163,8 +163,8 @@ let index_of_pred v (cr, p) =
     (if Cil.isPointerType v.Cil.vtype then ref_index_of_pred_funs else data_index_of_pred_funs)
   |> Misc.flap (fun f -> p |> A.conjuncts |> f vv)
   |> List.fold_left Ix.glb Ix.top
-  >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n" 
-                v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix)
+  (* >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n"  *)
+  (*               v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix) *)
 
 
 let pred_of_bcc_raw p_lb p_ub p_pd bcc =
@@ -268,7 +268,7 @@ let preds_of_scalar_consts cs =
 let dump_quals_to_file fname qs = 
   let oc  = open_out fname in
   let ppf = Format.formatter_of_out_channel oc in
-  let _   = Printf.printf "[SCALAR] Auto-generated %n quals\n" (List.length qs) in
+  (* let _   = Printf.printf "[SCALAR] Auto-generated %n quals\n" (List.length qs) in *)
   Format.fprintf ppf "@[%a@]\n" (Misc.pprint_many true "\n" Q.print) qs;
   close_out oc
 
@@ -289,7 +289,7 @@ let scalar_consts_of_index = function
 let scalar_consts_of_typedecs_genspec =
       Misc.map (Misc.uncurry Genspec.spec_of_type)
   <+> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices st)
-  <+> (fun is -> List.iter (ignore <.> E.log "[SCALAR] index = %a \n" Ix.d_index) is; is)  
+  (* <+> (fun is -> List.iter (ignore <.> E.log "[SCALAR] index = %a \n" Ix.d_index) is; is)   *)
   <+> Misc.flap scalar_consts_of_index
 
 let scalar_consts_of_typedecs = 

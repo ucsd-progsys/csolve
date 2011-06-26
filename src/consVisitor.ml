@@ -311,7 +311,7 @@ let cons_of_annotinstr me i grd (j, pre_ffm, ((pre_env, _, _) as wld)) (annots, 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
-  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in
+  (* let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in *)
   let cr'    = FI.t_fresh Ct.scalar_ctype in
   let cs, ds = FI.make_cs env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
@@ -344,7 +344,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
       |> FI.ce_find_fn fv.Cil.vname
       |> (farg <*> fret)
       |> Misc.uncurry FI.t_subs_exps 
-      >> E.log "SCALAR CALLASGN: v=%s  cr=%a \n" v.Cil.vname Ct.d_refctype 
+      (* >> E.log "SCALAR CALLASGN: v=%s  cr=%a \n" v.Cil.vname Ct.d_refctype  *)
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 
   | Set ((Var v, NoOffset), _, _) 
