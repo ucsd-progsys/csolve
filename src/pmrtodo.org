@@ -1,20 +1,26 @@
 * Sunday
 
-** TODO Allow specs on global store locs
-   Do the appropriate subtyping here
-
+** TODO Conservatively true out global locations reachable from externs
 ** TODO Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
    non-heapified versions, and the specs for things that get heapified
    must have pointer type?
 
-** TODO Insist on specs for global store locs reachable from externs
-   We don't know what may have been written to these locations by
-   other code.
-
 ** TODO Get tsort moving again
 
+
 * Soon
+
+** TODO Things probably solved by/should be deferred to after in-source specs
+
+*** TODO Allow specs on global store locs
+    Do the appropriate subtyping here
+
+*** TODO Insist on specs for global store locs reachable from externs
+    We don't know what may have been written to these locations by
+    other code. So the autogen spec for a regular global location
+    should just give the shape, but for an extern location it should
+    give the contents.
 
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
