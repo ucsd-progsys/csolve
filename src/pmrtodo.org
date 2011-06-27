@@ -28,6 +28,7 @@
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
 
+** TODO Remove stuff from lib.spec that should be in other spec files
 ** What happens if we define the same var/function in lib.spec and the
    site-specific spec?
 
