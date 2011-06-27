@@ -1,6 +1,5 @@
 * Sunday
 
-** TODO Ensure that previously-working coreutils still work
 ** TODO Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
    non-heapified versions, and the specs for things that get heapified
@@ -24,6 +23,14 @@
     other code. So the autogen spec for a regular global location
     should just give the shape, but for an extern location it should
     give the contents.
+
+*** TODO Don't hard-code type sizes in specs
+    Once we're just annotating the C source code, we can just use
+    CIL's type sizes as we are now, and drop the part of the
+    configuration that sets the machine word size to 32 bits.
+
+    We'll have to go out of our way to handle large constants somehow,
+    which CIL doesn't like.
 
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
