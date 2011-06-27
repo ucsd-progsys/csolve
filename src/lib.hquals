@@ -14,6 +14,7 @@ qualif UB(v:ptr)    : v < BLOCK_END([v])
 
 qualif NULLorVALID(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
 qualif NULLorBEGIN(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
+qualif WORDSIZE(v:ptr)   : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
 
 //Commented out for tests/ft/ft_full.c 
 //Uncomment after that

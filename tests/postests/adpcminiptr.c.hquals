@@ -8,3 +8,4 @@ qualif A(v:ptr) : (2 * (v - @outp)) = 4 * ((0 - @buf) + @nsa - (@len - 1))
 qualif A(v:ptr) : (2 * (v - @inp)) = 4 * ((@buf) + @nsa - @len)
 qualif A(v:ptr) : (2 * (v - @inp)) = 4 * ((1 - @buf) + @nsa - (@len - 1))
 
+qualif PointerDiff(v:ptr): ((~a - v) mod 4) = 0

@@ -192,7 +192,7 @@ let bytesSizeOf t =
 let bytesOffset t off =
   fst (bitsOffset t off) / 8
 
-let ptrRefType = function
+let ptrRefType t = match unrollType t with
   | TPtr (t, _)      -> t
   | TArray (t, _, _) -> t
   | _                -> failwith "ptrRefType called with non-pointer argument"

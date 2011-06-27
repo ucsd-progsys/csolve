@@ -139,7 +139,7 @@ let cons_of_mem me loc tago tag grd env v =
     ([], [])
   else
     let rct = v |> FA.name_of_varinfo |> FI.t_name env in
-    FI.make_cs_validptr env grd rct tago tag loc
+      FI.make_cs_validptr env grd rct (v.vtype |> CM.ptrRefType |> CM.bytesSizeOf) tago tag loc
 
 let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)

@@ -129,7 +129,7 @@ val make_cs             : cilenv -> Ast.pred ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_validptr    : cilenv -> Ast.pred ->
-                          Ctypes.refctype -> CilTag.t option -> CilTag.t -> Cil.location ->
+                          Ctypes.refctype -> int -> CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
