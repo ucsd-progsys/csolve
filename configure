@@ -18,6 +18,8 @@ OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`
 cat - > build.sh <<EOF
 #!`which bash`
 
+set -e
+
 if [[ \`uname -m\` = 'x86_64' ]]
 then
   echo Found 64-bit kernel. Moving z3 into place.
@@ -39,7 +41,7 @@ fi
 OCAMLLIB=$OCAMLLIB
 ##########################
 cd external/cil/; ./configure; make; make check; cd ../../
-cd external/ocamlgraph/; ./configure; make; make install; cd ../../
+cd external/ocamlgraph/; ./configure; make; cd ../../
 cd external/z3/ocaml; ./build.sh $OCAMLLIB; cd ../../../
 cd src; make; cd ../
 EOF
