@@ -20,7 +20,7 @@
         update = merge
 [submodule "external/gnu-coreutils"]
 	path = external/gnu-coreutils
-	url = goto.ucsd.edu:/home/git/gnu-coreutils.git
+	url = goto.ucsd.edu:/git/gnu-coreutils.git
 [submodule "external/include32"]
 	path = external/include32
-	url = goto:/git/include32.git
+	url = goto.ucsd.edu:/git/include32.git
