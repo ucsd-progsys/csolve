@@ -99,6 +99,7 @@ type 'a prectype =
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
+      globlocs    : Sloc.t list;                  (* unquantified locations *)
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
     }
@@ -216,8 +217,8 @@ module type S = sig
     val well_formed     : Store.t -> t -> bool
     val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
     val same_shape      : t -> t -> bool
-    val domain          : t -> Sloc.t list
-    val make            : (string * CType.t) list -> CType.t -> Store.t -> Store.t -> t
+    val quantified_locs : t -> Sloc.t list
+    val make            : (string * CType.t) list -> CType.t -> Sloc.t list -> Store.t -> Store.t -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list 
   end
@@ -329,10 +330,9 @@ val reft_of_refctype    : refctype -> FixConstraint.reft
 val cfun_of_refcfun     : refcfun  -> cfun
 val store_of_refstore   : refstore -> store
 val cspec_of_refspec    : refspec  -> cspec
-val domain_of_refcfun   : refcfun  -> Sloc.t list
 val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
-val mk_refcfun          : (string * refctype) list -> refstore -> refctype -> refstore -> refcfun 
+val mk_refcfun          : (string * refctype) list -> Sloc.t list -> refstore -> refctype -> refstore -> refcfun 
 
 

@@ -97,9 +97,9 @@ let rename_args rf sci =
   let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in
   let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
-  Ctypes.mk_refcfun args' hi' ret' ho' 
+  Ctypes.mk_refcfun args' rf.Ctypes.globlocs hi' ret' ho'
 
-let rename_funspec scim spec = 
+let rename_funspec scim spec =
   spec 
   |> CS.funspec
   |> SM.mapi begin fun fn (rf,b) -> 

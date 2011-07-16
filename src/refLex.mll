@@ -96,6 +96,7 @@ rule token = parse
   | "bool"              { BOOL }
   | "final"             { FINAL }
   | "func"              { FUNC }
+  | "global"            { GLOBAL }
   | "sort"              { SRT }
   | "axiom"             { AXM }
   | "constraint"        { CST }

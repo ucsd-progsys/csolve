@@ -128,7 +128,7 @@ let currentLoc () =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
-%token ARG RET ST INST OUTST STRUCT
+%token ARG RET ST GLOBAL INST OUTST STRUCT
 %token TRUE FALSE
 %token EOF
 %token MOD 
@@ -167,17 +167,31 @@ funspec:
     ;
 
 funtyp:
-    ARG    argbinds 
+    ARG    argbinds
+    RET    reftype
+    GLOBAL slocs
+    INST   refstore
+    OUTST  refstore {
+      Ct.mk_refcfun $2 $6 $8 $4 $10
+    }
+  | ARG    argbinds
     RET    reftype
     INST   refstore
     OUTST  refstore {
-      Ct.mk_refcfun $2 $6 $4 $8
+      Ct.mk_refcfun $2 [] $6 $4 $8
+    }
+  | ARG    argbinds
+    RET    reftype
+    GLOBAL slocs
+    ST     refstore
+    {
+      Ct.mk_refcfun $2 $6 $8 $4 $8
     }
   | ARG    argbinds
     RET    reftype
     ST     refstore
     {
-      Ct.mk_refcfun $2 $6 $4 $6
+      Ct.mk_refcfun $2 [] $6 $4 $6
     }
     ;
 

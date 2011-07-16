@@ -284,7 +284,7 @@ and cfun_of_args_ret fn (loc, t, xts) =
     let res'  = conv_ret fn loc (th, ist, N.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
-    Some (Ct.I.CFun.make args ret ist ost)
+    Some (Ct.I.CFun.make args ret [] ist ost) (* pmr *)
   with ex -> 
     let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
     None

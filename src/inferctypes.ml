@@ -253,7 +253,7 @@ let constrain_args et fs sub sto es =
         function pointer case *)
 let constrain_app loc i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let qlocs         = CFun.domain cf in
+  let qlocs         = CFun.quantified_locs cf in
   let instslocs     = List.map (fun _ -> S.fresh_abstract [CM.srcinfo_of_instr i (Some loc)]) qlocs in
   let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
   let isub          = List.combine qlocs instslocs in
@@ -464,7 +464,7 @@ let check_annots_wf sub bas =
 let check_sol cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
-  let _           = check_slocs_distinct quantification_error sub (CFun.domain cf) in
+  let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
   let _           = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
   let _           = check_annots_wf sub bas in
   let revsub      = revert_spec_names sub whole_store in

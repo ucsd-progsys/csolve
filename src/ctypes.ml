@@ -362,6 +362,7 @@ and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
+      globlocs    : S.t list;                     (* unquantified locations *)
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
     }
@@ -481,8 +482,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val well_formed     : store -> t -> bool
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
     val same_shape      : t -> t -> bool
-    val domain          : t -> Sloc.t list
-    val make            : (string * ctype) list -> ctype -> store -> store -> t
+    val quantified_locs : t -> Sloc.t list
+    val make            : (string * ctype) list -> ctype -> S.t list -> store -> store -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
   end
@@ -862,49 +863,61 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     type t = R.t precfun
 
     (* API *)
-    let make args reto sin sout =
-      { args    = args;
-        ret     = reto;
-        sto_in  = sin;
-        sto_out = sout;
+    let make args reto globs sin sout =
+      { args     = args;
+        ret      = reto;
+        globlocs = globs;
+        sto_in   = sin;
+        sto_out  = sout;
       }
 
     let map f ft =
-      { args    = List.map (Misc.app_snd f) ft.args;
-        ret     = f ft.ret;
-        sto_in  = Store.map f ft.sto_in;
-        sto_out = Store.map f ft.sto_out;
+      { args     = List.map (Misc.app_snd f) ft.args;
+        ret      = f ft.ret;
+        globlocs = ft.globlocs;
+        sto_in   = Store.map f ft.sto_in;
+        sto_out  = Store.map f ft.sto_out;
       }
 
-    let domain {sto_out = sto} =
+    let quantified_locs {sto_out = sto} =
       Store.domain sto
 
-    let d_slocs () slocs = P.seq (P.text ";") (S.d_sloc ()) slocs
+    let d_slocs () slocs = P.dprintf "[%t]" (fun _ -> P.seq (P.text ";") (S.d_sloc ()) slocs)
     let d_arg () (x, ct) = P.dprintf "%s : %a" x CType.d_ctype ct
     let d_args () args   = P.seq (P.dprintf ",@!") (d_arg ()) args
 
-    let d_cfun () ft  =
-      if ft.sto_in = ft.sto_out then
-        P.dprintf "@[arg       (@[%a@])\nret       %a\nstore     %a@]"
-          d_args ft.args
-          CType.d_ctype ft.ret
-          Store.d_store ft.sto_in
+    let d_argret () ft =
+      P.dprintf "arg       (@[%a@])\nret       %a\n"
+        d_args ft.args
+        CType.d_ctype ft.ret
+
+    let d_globlocs () ft =
+      if ft.globlocs = [] then
+        P.nil
       else
-        P.dprintf "@[arg       (@[%a@])\nret       %a\nstore_in  %a\nstore_out %a@]"
-          d_args ft.args
-          CType.d_ctype ft.ret
+        P.dprintf "global    %a\n" d_slocs ft.globlocs
+
+    let d_stores () ft =
+      if ft.sto_in = ft.sto_out then
+        P.dprintf "store     %a" Store.d_store ft.sto_in
+      else
+        P.dprintf "store_in  %a\nstore_out %a"
           Store.d_store ft.sto_in
           Store.d_store ft.sto_out
+
+    let d_cfun () ft  =
+      P.dprintf "@[%a%a%a@]" d_argret ft d_globlocs ft d_stores ft
 
     let capturing_subs cf sub =
       let apply_sub = CType.subs sub in
         make (List.map (M.app_snd apply_sub) cf.args)
              (apply_sub cf.ret)
+             (List.map (S.Subst.apply sub) cf.globlocs)
              (Store.subs sub cf.sto_in)
              (Store.subs sub cf.sto_out)
-        
+
     let subs cf sub =
-      cf |> domain |> S.Subst.avoid sub |> capturing_subs cf
+      cf |> quantified_locs |> S.Subst.avoid sub |> capturing_subs cf
 
     let rec order_locs_aux sto ord = function
       | []      -> ord
@@ -915,11 +928,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           else order_locs_aux sto ord ls
 
     let ordered_locs ({args = args; ret = ret; sto_out = sto} as cf) =
-      let ord = (CType.sloc ret :: (List.map (snd <+> CType.sloc) args))
+      let ord = (CType.sloc ret :: List.map (snd <+> CType.sloc) args)
              |> M.maybe_list
              |> order_locs_aux sto []
              |> M.mapi (fun i x -> (x, i)) in
-      cf |> domain |> M.fsort (M.flip List.assoc ord)
+      cf |> quantified_locs |> M.fsort (M.flip List.assoc ord)
 
     let fresh_arg_name, _ = M.mk_string_factory "ARG"
 
@@ -937,7 +950,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
          capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2))
 
     let rec same_shape cf1 cf2 =
-      M.same_length (domain cf1) (domain cf2) && M.same_length cf1.args cf2.args &&
+      M.same_length (quantified_locs cf1) (quantified_locs cf2) && M.same_length cf1.args cf2.args &&
         let cf1, cf2 = normalize_names cf1 cf2 (fun _ _ _ ct -> ct) in
           List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
        && cf1.ret = cf2.ret
@@ -954,6 +967,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let whole_outstore = Store.upd cf.sto_out globstore in
              Store.closed whole_instore
           && Store.closed whole_outstore
+          && List.for_all (Store.mem globstore) cf.globlocs
+          && not (cf.sto_out |> Store.domain |> List.exists (M.flip List.mem cf.globlocs))
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
           && match cf.ret with  (* we can return refs to uninitialized data *)
              | Ref (l, _) -> Store.mem whole_outstore l
@@ -1159,15 +1174,15 @@ let ctype_of_refctype = function
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
 let cspec_of_refspec  = I.Spec.map (RCt.CType.map (fun (i,_) -> i))
 let store_of_refstore = I.Store.map ctype_of_refctype
-let domain_of_refcfun = fun ft -> ft |> RCt.CFun.domain
 let args_of_refcfun   = fun ft -> ft.args
 let ret_of_refcfun    = fun ft -> ft.ret
 let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
-let mk_refcfun args ist ret ost = 
-  { args    = args;
-    ret     = ret;
-    sto_in  = ist;
-    sto_out = ost; }
+let mk_refcfun args globs ist ret ost =
+  { args     = args;
+    ret      = ret;
+    globlocs = globs;
+    sto_in   = ist;
+    sto_out  = ost; }
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
