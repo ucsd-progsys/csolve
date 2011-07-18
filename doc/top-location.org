@@ -1,0 +1,41 @@
+Accomodating incompletenesses in the ctype system
+
+* A single heap location with unknown contents
+  All heaps implicitly have a location LTop whose contents are unknown.
+
+  To be sound, this approach requires that any time a pointer is read
+  from LTop, it must be annotated with its location, i.e., we should
+  force the user to annotate each pointer read from LTop with the
+  location the pointer points to (which may itself be LTop).
+
+  To see why, suppose we write a pointer to location L into LTop and
+  we track the fact that only pointers to L are written into
+  LTop. Then somewhere in the contents of memory we have the L
+  pointer's bytes:
+
+  : L [1234]
+
+  Now suppose we do another write into LTop. Now we have no way to
+  know that we don't just go ahead and obliterate the L
+  pointer with random integer garbage:
+
+  : L [abcd]
+
+  This new pointer can point anywhere: into LTop, into L, or any other
+  location. (This is really just a roundabout way of casting anything
+  to a pointer to anywhere.)
+
+  Note that the above argument subsumes the case where L is simply
+  unified with LTop; we have no way to be sure that we don't generate
+  a pointer to some location whose contents we presume to know with
+  precision.
+
+  All writes to LTop are nops. All reads return True-refined values.
+
+
+* Top heap
+  It's tempting to abandon the above and just say that some functions
+  can be written against a "top heap", where the contents of *all*
+  locations are unknown. Unfortunately, this kind of top heap is
+  contagious: any function that operates on the top heap also returns
+  the top heap, so it will percolate all the way up the call stack.

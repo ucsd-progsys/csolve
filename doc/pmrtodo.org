@@ -1,4 +1,53 @@
-* Sunday
+* Tuesday/Wednesday
+
+** DONE Add unquantified locations to spec
+
+*** DONE Parse global location list
+    27 shift/reduce conflicts to start
+    (Was that 26 before we added globals?)
+    Optional versions with/without globals?
+    Print cfuns in phases.
+
+*** DONE Print
+
+*** DONE Rename domain to qdomain
+
+*** DONE Does domain include globals or not?
+
+*** DONE WF has to consider global store
+
+*** DONE Avoid in instantiation
+
+*** DONE Refactor instantiation to be in ctypes, not inferctypes
+
+*** DONE Reorder CFun.make to match mk_refcfun
+
+*** DONE Changes in inferctypes? Finalfields?
+
+*** DONE Tests
+
+***** DONE Alias a parameter with a global
+
+***** DONE Store a function that contains a global loc in its store
+
+***** DONE Check same_shape with global locs
+      Store two functions that keep global locs in their stores
+      Same global locs but different order
+
+***** DONE Writes to aliased local influence global
+
+***** DONE Make sure global locations are folded at calls
+
+***** DONE Check that final fields are ok with globals
+      Seems we ignore globals in final fields, so that's ok by default.
+
+** TODO Investigate unquantified_write global scalar type issue
+
+** DONE Kill disgusting abbreviations at the env of ctypes
+
+** DONE "need to check" pmr comment is out of date
+
+** TODO Are deferred checks still required?
 
 ** TODO Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
@@ -9,9 +58,6 @@
 
 
 * Soon
-
-** TODO cons_of_mem needs to take size of data being written into account
-   Both start and end bytes need to be valid pointers.
 
 ** TODO Things probably solved by/should be deferred to after in-source specs
 
@@ -32,10 +78,11 @@
     We'll have to go out of our way to handle large constants somehow,
     which CIL doesn't like.
 
+*** TODO Remove stuff from lib.spec that should be in other spec files
+
 ** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
 
-** TODO Remove stuff from lib.spec that should be in other spec files
 ** What happens if we define the same var/function in lib.spec and the
    site-specific spec?
 
