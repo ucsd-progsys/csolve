@@ -218,7 +218,7 @@ module type S = sig
     val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
-    val make            : (string * CType.t) list -> CType.t -> Sloc.t list -> Store.t -> Store.t -> t
+    val make            : (string * CType.t) list -> Sloc.t list -> Store.t -> CType.t -> Store.t -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list 
   end
