@@ -1,6 +1,6 @@
 * Tuesday/Wednesday
 
-** TODO Add unquantified locations to spec
+** DONE Add unquantified locations to spec
 
 *** DONE Parse global location list
     27 shift/reduce conflicts to start

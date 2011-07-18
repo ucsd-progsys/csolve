@@ -1,0 +1,51 @@
+In-Source Annotations
+
+* Scalar C Types
+  The base ctype of a scalar variable is determined by two things: the
+  width of the underlying type, which gives the width of the ctype
+  (e.g., integers are four bytes), and a number of optional index
+  annotations. The index annotations are GLB'd together to get the
+  type's index; thus, types without index annotations get the top
+  index by default.
+
+* Pointer C Types
+
+** Index and width
+   The story is similar for pointers, but there is only one width for a
+   pointer value, and the default index is 0 rather than top.
+
+** Current Heap
+   The "current heap" consists of the global heap plus the current
+   function's input heap ("local heap"), which is built as we traverse
+   the function type.
+
+** Location Names (slocs)
+   If a location name (henceforth sloc) annotation is given for a
+   pointer, that location is used as the pointer's location. Thus, to
+   indicate that two pointers may alias, one annotates them with the
+   same location name.
+
+   If no sloc annotation is given, a fresh one is assigned.
+
+   If a pointer p's sloc is not present in the local heap, we create a
+   sloc in the local heap whose contents are a structure of the type
+   that p points to (in the same way genspec does right now). We
+   memoize this creation on the base type of p to handle cyclic
+   structures. The memo table is cleared after we finish with the
+   declaration of p so that two pointers p and q to the same base type
+   are not aliased unless declared so.
+
+*** TODO We need a way to distinguish between globals names and local names
+
+* Refined Types
+  
+* File Organization
+  All the macros for type annotations should live in a file liquidc.h
+  in the default inclue file directory.
+
+  We may also add definitions for common functions like nondet,
+  assert, and assume. These definitions should be conditioned on
+  whether we're running lcc or not, so that they can be compiled away
+  when we pass the code to gcc.
+
+* Examples
