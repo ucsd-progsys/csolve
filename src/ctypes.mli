@@ -333,6 +333,3 @@ val cspec_of_refspec    : refspec  -> cspec
 val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
-val mk_refcfun          : (string * refctype) list -> Sloc.t list -> refstore -> refctype -> refstore -> refcfun 
-
-

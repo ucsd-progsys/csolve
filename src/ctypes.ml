@@ -1177,12 +1177,6 @@ let store_of_refstore = I.Store.map ctype_of_refctype
 let args_of_refcfun   = fun ft -> ft.args
 let ret_of_refcfun    = fun ft -> ft.ret
 let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
-let mk_refcfun args globs ist ret ost =
-  { args     = args;
-    ret      = ret;
-    globlocs = globs;
-    sto_in   = ist;
-    sto_out  = ost; }
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
