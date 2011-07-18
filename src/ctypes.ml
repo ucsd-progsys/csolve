@@ -483,7 +483,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
-    val make            : (string * ctype) list -> ctype -> S.t list -> store -> store -> t
+    val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
+    val make            : (string * ctype) list -> S.t list -> store -> ctype -> store -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
   end
@@ -863,7 +864,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     type t = R.t precfun
 
     (* API *)
-    let make args reto globs sin sout =
+    let make args globs sin reto sout =
       { args     = args;
         ret      = reto;
         globlocs = globs;
@@ -911,9 +912,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let capturing_subs cf sub =
       let apply_sub = CType.subs sub in
         make (List.map (M.app_snd apply_sub) cf.args)
-             (apply_sub cf.ret)
              (List.map (S.Subst.apply sub) cf.globlocs)
              (Store.subs sub cf.sto_in)
+             (apply_sub cf.ret)
              (Store.subs sub cf.sto_out)
 
     let subs cf sub =
@@ -976,6 +977,12 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let indices cf =
       Store.indices cf.sto_in ++ Store.indices cf.sto_out
+
+    let instantiate srcinf cf =
+      let qslocs    = quantified_locs cf in
+      let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
+      let sub       = List.combine qslocs instslocs in
+        (subs cf sub, sub)
   end
 
   (******************************************************************************)
@@ -1177,12 +1184,6 @@ let store_of_refstore = I.Store.map ctype_of_refctype
 let args_of_refcfun   = fun ft -> ft.args
 let ret_of_refcfun    = fun ft -> ft.ret
 let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
-let mk_refcfun args globs ist ret ost =
-  { args     = args;
-    ret      = ret;
-    globlocs = globs;
-    sto_in   = ist;
-    sto_out  = ost; }
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
