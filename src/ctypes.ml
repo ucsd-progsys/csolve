@@ -483,6 +483,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
+    val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
     val make            : (string * ctype) list -> S.t list -> store -> ctype -> store -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
@@ -976,6 +977,12 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let indices cf =
       Store.indices cf.sto_in ++ Store.indices cf.sto_out
+
+    let instantiate srcinf cf =
+      let qslocs    = quantified_locs cf in
+      let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
+      let sub       = List.combine qslocs instslocs in
+        (subs cf sub, sub)
   end
 
   (******************************************************************************)

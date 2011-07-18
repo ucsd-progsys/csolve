@@ -249,42 +249,34 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-(* pmr: need to check that actuals are subtypes of formals for the
-        function pointer case *)
 let constrain_app loc i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let qlocs         = CFun.quantified_locs cf in
-  let instslocs     = List.map (fun _ -> S.fresh_abstract [CM.srcinfo_of_instr i (Some loc)]) qlocs in
-  let annot         = List.map2 (fun sfrom sto -> RA.New (sfrom, sto)) qlocs instslocs in
-  let isub          = List.combine qlocs instslocs in
-  let ctfs          = List.map (Ct.subs isub <.> snd) cf.args in
   let _             = List.iter2 begin fun cta (fname, ctf) ->
                         if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then
                           fail sub sto <| C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
                                             fname Ct.d_ctype cta Ct.d_ctype ctf
                       end cts cf.args in
-  let ostore        = Store.subs isub cf.sto_out in
+  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some loc)) cf in
+  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
+  let sto           = cfi.sto_out
+                   |> Store.domain
+                   |> List.filter (Store.Data.mem cfi.sto_out)
+                   |> List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty sto s)) sto in
   let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
-    store_add !C.currentLoc s i (Field.type_of fld) sub sto
-  end (sub, sto) ostore in
-  let sub, sto      = List.fold_left2 begin fun (sub, sto) cta ctf ->
-    subtype_ctypes !C.currentLoc cta ctf sub sto
-  end (sub, sto) cts ctfs in
-  let sto          = ostore
-                  |> Store.domain
-                  |> List.filter (Store.Data.mem ostore)
-                  |> List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty sto s)) sto in
+      store_add !C.currentLoc s i (Field.type_of fld) sub sto
+    end (sub, sto) cfi.sto_out in
+  let sub, sto      = List.fold_left2 begin fun (sub, sto) cta (_, ctf) ->
+      subtype_ctypes !C.currentLoc cta ctf sub sto
+    end (sub, sto) cts cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
         let sub, sto = subtype_ctypes !C.currentLoc (Ct.subs isub cf.ret) ctlv sub sto in
-        (* pmr: We need this, but it makes the regression tests fail because sometimes the
-           type that scalar figures out is more precise than the declared spec return type.
-           See pmrtodo for better solution. *)
         let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then
-                         fail sub sto <| C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in
+                         fail sub sto <|
+                             C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
