@@ -1,5 +1,11 @@
 In-Source Annotations
 
+* TODO May-aliasing pointers across source files
+  What if two global pointers in different source files may alias? Can
+  we reset the global heap between source files?
+
+  Since we should only get a merged source, this shouldn't matter.
+
 * Scalar C Types
   The base ctype of a scalar variable is determined by two things: the
   width of the underlying type, which gives the width of the ctype
@@ -47,6 +53,7 @@ In-Source Annotations
   Attaching multiple type refinements to a type gives the type the
   conjunction of the refinements, which is useful syntactic sugar.
 
+
 * Type Abbreviations
   There's no more need for type abbreviations like lib.spec's io_file;
   this can be handled by typedefs.
@@ -62,18 +69,17 @@ In-Source Annotations
   when we pass the code to gcc.
 
 
-* Examples
+* Macro Definitions and Examples
   Note metavariable V is the value variable (so it's disjoint from C
   variables).
-
-** TODO Find a way to easily compose macros
-   We want to easily create conditional-guarded versions of all the
-   below macros without having to define them separately.
 
 ** Index macros
    To make it easy to be consistent (and terse), index macros should
    also assert the corresponding refinement, e.g., UB(n) should assert
    "V <= n".
+   
+   pmr: Actually, I think this is the ideal time to switch to just
+   having the indices derived from the predicates themselves.
 
 *** Upper bound UB(n)
     Values less than or equal to n.
@@ -82,70 +88,151 @@ In-Source Annotations
     Values greater than or equal to n.
 
 *** Congruence EQMOD(n, m)
-    Values equal to n mod m.
+    Values congruent to n mod m.
 
 *** CONST(n)
     Value equal to exactly n.
 
-** REF macro
-   Tacks a refinement onto a type. Defined something like
+** Predicate macros
+   Predicate macros just abbreviate predicates, like
 
-   REF(r) = __attribute__ ("__lcc__ref", #r)
+   : PNONNULL == V > 0.
 
-** NNREF macro
-   Refinement guarded by the condition that the pointer is non-NULL.
+   We use == to define the macro, since = is already used in the
+   syntax of predicates. Predicate macros are handy for building up
+   predicates/refinements.
 
-** START macro
-   START = REF(V = BLOCK_BEGIN([V])) CONSTIDX(0)
+*** PSTART
+    Pointer is at the start of an allocated block:
 
-** NONNEG macro
-   NONNEG = LB(0)
+    : PSTART == V = BLOCK_BEGIN([V])
 
-** POS macro
-   POS = LB(1)
+*** PNONNULL
+    Pointer is non-NULL:
 
-** NONNULL macro
-   NONNULL = REF(V != 0)
+    : PNONNULL == V != 0
 
-** VALIDPTR macro
-   As before.
+*** PVALID
+    Pointer points into an allocated region:
 
-** SPACE macro
-   SPACE(n) = REF("&& [0 < v; BLOCK_END([V]) - V = n]")
+    : PVALID == && [V > 0; BLOCK_BEGIN([V]) <= V; V < BLOCK_END([V])]
 
-** ALLOC macro
-   Maps to an attribute that indicates the location is a
-   just-allocated, uninitialized location, which should be a concrete
-   pointer. (Used for malloc and similar.)
+*** PSPACE
+    Pointer points to the start of at least n allocated bytes:
 
-** LOC macro
-   Names the location pointed to by a value of pointer type, something
-   like
+    : PSPACE(n) == && [0 < V; BLOCK_START([V]) <= V; BLOCK_END([V]) - V >= n]
 
-   LOC(l) = __attribute__ ("__lcc__loc", #l)
+** REF macros
+   The REF macro tacks a refinement predicate onto a type. Defined
+   something like
 
-** PTR macro
-   Syntactic sugar for a pointer that contains exactly on element of
-   the base type.
+   : REF(r) == __attribute__ (("__lcc__ref", #r)).
 
-   PTR(t) = t * START SIZE(sizeof(t))
+   Macros defined in terms of REF follow.
 
-** malloc
-   #+BEGIN_SRC c
-     void * ALLOC START SPACE(n) malloc (int NONNEG n);
-   #+END_SRC
+** Type attribute macro examples
 
-** free
-   #+BEGIN_SRC c
-     void free (void * NONNULL);
-   #END_SRC
+*** NNREF
+    Refinement guarded by the condition that the pointer is non-NULL:
 
-** getc
-   #+BEGIN_SRC c
-     int REF(&& [-1 <= V; V < 256]) getc (PTR(FILE));
-   #+END_SRC
+    : NNREF(p) == REF(PNONNULL => p)
 
-** fgets
-   #+BEGIN_SRC c
-     char * REF((V != 0) => (V = s)) LOC(L) fgets (char * ARRAY SPACE(n) LOC(L) s, int n, PTR(FILE));
-   #+END_SRC
+*** START
+    : START == REF(PSTART) CONSTIDX(0)
+
+*** NONNEG
+    : NONNEG == LB(0)
+
+*** POS
+    : POS == LB(1)
+
+*** NONNULL
+    : NONNULL == REF(PNONNULL)
+
+*** VALIDPTR
+    : VALIDPTR == REF(PVALID)
+
+*** NULLorVALID
+    : NULLorVALID == NNREF(PVALID)
+
+*** SPACE
+    Non-NULL pointer to the start of an allocated region containing at
+    least n bytes of storage.
+
+    : SPACE(n) = REF(PSPACE(n))
+
+*** NEW
+    Maps to an attribute that indicates the location is a
+    just-allocated, uninitialized location, which should be a concrete
+    pointer. (Used for malloc and similar.)
+
+*** LOC
+    Names the location pointed to by a value of pointer type, something
+    like
+
+    : LOC(l) == __attribute__ (("__lcc__loc", #l))
+
+*** INTO
+    Pointer into an array of items at a location:
+
+    : INTO(l) == ARRAY LOC(l) LB(0)
+
+    Note that LB(0) indicates that the pointer points at any
+    nonnegative array index.
+
+*** BLOCKOF
+    Pointer V resides in the same block as pointer p:
+
+    : BLOCKOF(p) == REF(&& [BLOCK_BEGIN([V]) = BLOCK_BEGIN([p]);
+    :                       BLOCK_END([V]) = BLOCK_END([p])])
+
+*** PTR
+    Type of a pointer that contains exactly one element of the base
+    type.
+
+    : PTR(t) == t * START SPACE(sizeof(t))
+
+** Type Examples
+
+*** malloc
+    #+BEGIN_SRC c
+      void * NEW START SPACE(n) malloc (int NONNEG n);
+    #+END_SRC
+
+*** free
+    #+BEGIN_SRC c
+      void free (void * NONNULL);
+    #+END_SRC
+
+*** getc
+    #+BEGIN_SRC c
+      int LB(-1) UB(255) getc (PTR(FILE));
+    #+END_SRC
+
+*** fgets
+    #+BEGIN_SRC c
+      char * NNREF(V = s) INTO(L) fgets (char * INTO(L) SPACE(n) s, int n, PTR(FILE));
+    #+END_SRC
+
+*** strtok
+    Need valid index...
+
+    #+BEGIN_SRC c
+      char * NULLorVALID INTO(L) strtok (char * NULLorVALID INTO(L), char * VALIDPTR);
+    #+END_SRC
+
+*** last_component
+    #+BEGIN_SRC c
+      char * INTO(L) BLOCKOF(s) REF(s <= V) last_component (char * INTO(L) s);
+    #+END_SRC
+
+*** safe_read
+    #+BEGIN_SRC c
+      int LB(-1) UB(c) safe_read (int, char * ARRAY LB(0) SIZE(c), int NONNEG c);
+    #+END_SRC
+
+* Stuff to do
+
+** TODO Check that in-source specs subsume current, out-of-source specs
+   That is, see that the specs we end up with are at least as strong
+   as the current ones after we convert.
