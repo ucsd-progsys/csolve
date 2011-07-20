@@ -25,7 +25,7 @@ let ctypeOfCilBaseTypeSig = function
   | _ -> assertf "ctypeOfCilBaseTypeSig: non-base!"
 
 let predicateOfAttr = function
-  | C.Attr ("lcc_predicate", [C.AStr p]) -> assert false
+  | C.Attr ("lcc_predicate", [C.AStr p]) -> p |> Lexing.from_string |> RefParse.pred RefLex.token |> some
   | _                                    -> None
 
 let typeSigPredicate ts =
