@@ -1,3 +1,6 @@
+(* what if we assert two different locs for a pointer in memory?
+   make sure we crash if types conflict! *)
+
 module C   = Cil
 module M   = Misc
 module CM  = CilMisc
@@ -5,15 +8,65 @@ module SM  = M.StringMap
 module A   = Ast
 module FI  = FixInterface
 module Ct  = Ctypes
+module I   = Ct.Index
+module S   = Sloc
+
 module RCt = Ctypes.RefCTypes.CType
-module RCS = Ctypes.RefCTypes.Store
+module RFl = Ctypes.RefCTypes.Field
+module RLD = Ctypes.RefCTypes.LDesc
+module RS  = Ctypes.RefCTypes.Store
 module RCf = Ctypes.RefCTypes.CFun
 module RSp = Ctypes.RefCTypes.Spec
 
 open M.Ops
 
+(******************************************************************************)
+(************************* Annotations From Attributes ************************)
+(******************************************************************************)
+
+let slocAttribute = "lcc_sloc"
+let predAttribute = "lcc_predicate"
+
 let indexOfAttrs ats = 
-  if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
+  if CM.has_pos_attr ats then I.nonneg else I.top
+
+let slocOfAttrs =
+  let slocTable = Hashtbl.create 17 in
+    fun ats ->
+         ats
+      |> CM.getStringAttrs slocAttribute
+      |> M.ex_one "Cannot get single sloc"
+      |> M.do_memo slocTable S.fresh_abstract []
+
+let ptrIndexOfAttrs ats =
+  I.mk_singleton 0
+
+let typeSigPredicate ts =
+      ts
+  |>  C.typeSigAttrs
+  |>  CM.getStringAttrs predAttribute
+  |>: (Lexing.from_string <+> RefParse.pred RefLex.token)
+  |>  A.pAnd
+
+(******************************************************************************)
+(***************************** Type Preprocessing *****************************)
+(******************************************************************************)
+
+let freshSlocName, _ = M.mk_string_factory "LOC"
+
+let ensureSloc ts =
+  let ats = C.typeSigAttrs ts in
+    if C.hasAttribute slocAttribute ats then
+      ts
+    else
+      CM.typeSigAddAttrs ts [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])]
+
+(******************************************************************************)
+(***************** Conversion from CIL Types to Refined Types *****************)
+(******************************************************************************)
+
+let toTypeSig t =
+  t |> C.typeSig |> ensureSloc
 
 let ctypeOfCilBaseTypeSig = function
   | C.TSBase t ->
@@ -24,31 +77,48 @@ let ctypeOfCilBaseTypeSig = function
         | C.TEnum (ei,  ats) -> Ct.Int (C.bytesSizeOfInt ei.C.ekind, indexOfAttrs ats)
         | _                  -> assertf "ctypeOfCilBaseTypeSig: non-base!"
       end
-  | _ -> assertf "ctypeOfCilBaseTypeSig: non-base!"
-
-let predicateOfAttr = function
-  | C.Attr ("lcc_predicate", [C.AStr p]) -> p |> Lexing.from_string |> RefParse.pred RefLex.token |> some
-  | _                                    -> None
-
-let typeSigPredicate ts =
-  ts |> C.typeSigAttrs |> Misc.map_partial predicateOfAttr |> A.pAnd
+  | C.TSPtr (t, ats) -> Ct.Ref (slocOfAttrs ats, ptrIndexOfAttrs ats)
+  | _                -> assertf "ctypeOfCilBaseTypeSig: non-base!"
 
 let refctypeOfCilTypeSig ts =
   FI.t_pred (ctypeOfCilBaseTypeSig ts) (A.Symbol.of_string "V") (typeSigPredicate ts)
 
-let refargOfCilArg (x, t, atts) =
-  let ts = t |> C.typeSig in
-    (x, ts |> C.setTypeSigAttrs (C.typeSigAttrs ts ++ atts) |> refctypeOfCilTypeSig)
+(* todo: memoize on type sig *)
+let rec refstoreOfTypeSig loc i = function
+  | C.TSBase _        -> RS.empty
+  | C.TSComp _        -> assert false
+  | C.TSFun _         -> assert false
+  | C.TSPtr (ts, ats) ->
+      (* need memo here to avoid going into sloc loop *)
+      (* Note i should be determined by atts plus i passed in *)
+      let s   = slocOfAttrs ats in
+      let ts  = ensureSloc ts in
+      let sto = refstoreOfTypeSig loc (ptrIndexOfAttrs ats) ts in
+        ts |> ldescOfTypeSig loc i |> RS.Data.add sto s
+  | _ -> assert false
+
+and ldescOfTypeSig loc i = function
+  | C.TSBase _ as ts -> [(i, ts |> ensureSloc |> refctypeOfCilTypeSig |> RFl.create Ct.Nonfinal)] |> RLD.create loc 
+  | _                -> assert false
+
+let argTypeSig (x, t, ats) =
+  (* is ats ever non-empty? otherwise we're duplicating toTypeSig here *)
+  (x, t |> C.typeSig |> M.flip CM.typeSigAddAttrs ats |> ensureSloc)
+
+let refstoreOfTypeSigs ts =
+  ts |>: refstoreOfTypeSig C.locUnknown (I.mk_singleton 0) |>  List.fold_left RS.upd RS.empty
 
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
+  let retts, argtss    = (toTypeSig ret, argso |> C.argsToList |>: argTypeSig) in
+  let sto              = refstoreOfTypeSigs (retts :: List.map snd argtss) in
     some <|
       RCf.make
-        (argso |> M.resl_opt id |> List.map refargOfCilArg)
+        (List.map (M.app_snd refctypeOfCilTypeSig) argtss)
         []
-        RCS.empty
-        (ret |> C.typeSig |> refctypeOfCilTypeSig)
-        RCS.empty
+        sto
+        (refctypeOfCilTypeSig retts)
+        sto
 
 let fundefsOfFile cil = 
   C.foldGlobals cil begin fun acc -> function
@@ -76,4 +146,4 @@ let funspecsOfFunm funspec funm =
 
 let specsOfFile spec file =
   let fn = file |> fundefsOfFile |> funspecsOfFunm (RSp.funspec spec) in
-    (fn, [], RCS.empty)
+    (fn, [], RS.empty)
