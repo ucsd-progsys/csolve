@@ -90,7 +90,7 @@ let d_vartypes () vars =
 let store_add_absent loc l i ctv sto =
   Store.Data.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.Data.find_or_empty sto l))
 
-let rec unify_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
+let rec unify_ctypes loc sub sto ct1 ct2 = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | _                          when ct1 = ct2 -> (sub, sto)
   | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations loc s1 s2 sub sto
   | ct1, ct2                                  -> fail sub sto <| C.errorLoc loc "Cannot unify %a and %a@!" d_ctype ct1 d_ctype ct2
@@ -142,26 +142,8 @@ and unify_locations loc s1 s2 sub sto =
   else (sub, sto)
 
 and store_add loc s i ct sub sto =
-  let s  = S.Subst.apply sub s in
-  let ct = Ct.subs sub ct in
-  try match i with
-    | Index.IBot                     -> (sub, sto)
-    | Index.ICClass _ | Index.IInt _ ->
-      let ld = Store.Data.find_or_empty sto s in
-        match LDesc.find i ld with
-          | []   -> (sub, store_add_absent loc s i ct sto)
-          | flds ->
-            let cts      = List.map (snd <+> Field.type_of) flds in
-            let sub, sto = List.fold_left (fun (sub, sto) ct2 -> unify_ctypes loc ct ct2 sub sto) (sub, sto) cts in
-              if List.exists (fun (i2, _) -> Index.is_subindex i i2) flds then
-                (* If this sequence is included in an existing one, there's nothing left to do *)
-                (sub, sto)
-              else
-                (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
-                let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
-                let i  = List.fold_left (fun i (i2, _) -> Index.lub i i2) i flds in
-                let ld = LDesc.add loc i (Field.create Ctypes.Final ct) ld in
-                  (sub, Store.Data.add sto s ld)
+  try
+    ct |> Ct.subs sub |> Store.Data.add_and_fold_overlap sto loc (unify_ctypes loc) sub (S.Subst.apply sub s) i
   with e ->
     C.errorLoc loc "store_add: Can't fit @!%a: %a@!  in location@!%a |-> %a"
       Index.d_index i Ct.d_ctype ct S.d_sloc_info s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;

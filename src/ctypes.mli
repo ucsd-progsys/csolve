@@ -191,7 +191,17 @@ module type S = sig
     val d_store      : unit -> t -> Pretty.doc
 
     module Data: sig
-      val add           : t -> Sloc.t -> LDesc.t -> t
+      val add                  : t -> Sloc.t -> LDesc.t -> t
+      val add_and_fold_overlap :
+        t ->
+        Cil.location ->
+        ('a -> t -> CType.t -> CType.t -> 'a * t) ->
+        'a ->
+        Sloc.t ->
+        Index.t ->
+        CType.t ->
+        'a * t
+
       val mem           : t -> Sloc.t -> bool
       val find          : t -> Sloc.t -> LDesc.t
       val find_or_empty : t -> Sloc.t -> LDesc.t
