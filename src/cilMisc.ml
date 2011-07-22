@@ -210,12 +210,28 @@ let isVararg (t: typ): bool =
     let _, _, vararg, _ = splitFunctionType t in
       vararg
 
+let typeAttrs t =
+  t |> typeSig |> typeSigAttrs
+
+let getAttr name ats = match filterAttributes name ats with
+  | [a]    -> a
+  | _ :: _ -> failwith <| "Multiple attributes named " ^ name
+  | []     -> failwith <| "No attribute named " ^ name
+
+let getStringAttrs name ats =
+     ats
+  |> filterAttributes name
+  |> List.map begin function
+      | Attr (_, [AStr s]) -> s
+      | _                  -> failwith <| "Attribute " ^ name ^ " given a param which is not a single string"
+     end
+
 let has_array_attr     = hasAttribute "array"
 let has_pos_attr       = hasAttribute "pos"
 let has_unchecked_attr = hasAttribute "unchecked"
 
 let is_unchecked_ptr_type t =
-  isPointerType t && t |> typeSig |> typeSigAttrs |> has_unchecked_attr
+  isPointerType t && t |> typeAttrs |> has_unchecked_attr
 
 let is_reference t =
   match Cil.unrollType t with

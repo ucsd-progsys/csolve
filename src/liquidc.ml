@@ -60,10 +60,6 @@ let rename_locals cil =
     let fn   = fd.Cil.svar.Cil.vname in
     List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.slocals;
     List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.sformals
-    (* let locs = List.map (fun v -> (v.Cil.vname <- Co.rename_local fn v.Cil.vname);v) fd.Cil.slocals in
-       let fmls = List.map (fun v -> (v.Cil.vname <- Co.rename_local fn v.Cil.vname);v) fd.Cil.sformals in
-       fd.Cil.slocals  <- locs ;
-       fd.Cil.sformals <- fmls *)
   | _ -> ())
 
 let parse_file fname =

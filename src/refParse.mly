@@ -142,8 +142,10 @@ let currentLoc () =
 %token FINAL
 
 %start specs 
+%start pred
 
 %type <Ctypes.refspec>    specs
+%type <Ast.pred>          pred
 
 %%
 specs:

@@ -5,6 +5,10 @@ In-Source Annotations
   we reset the global heap between source files?
 
   Since we should only get a merged source, this shouldn't matter.
+  But this behavior may be undesirable as well --- a name L in the
+  global heap should be local to just that source file unless
+  otherwise noted.
+
 
 * Scalar C Types
   The base ctype of a scalar variable is determined by two things: the
@@ -13,6 +17,10 @@ In-Source Annotations
   annotations. The index annotations are GLB'd together to get the
   type's index; thus, types without index annotations get the top
   index by default.
+
+  pmr: Note that I'm advocating below that we simply scrape indices
+  from the refinement predicates, so the above should eventually be
+  invalidated.  But we can start with this approach.
 
 
 * Pointer C Types
@@ -52,6 +60,42 @@ In-Source Annotations
 
   Attaching multiple type refinements to a type gives the type the
   conjunction of the refinements, which is useful syntactic sugar.
+
+
+* Extern Functions
+  We want to be sure that the user gives a sound spec to any functions
+  declared extern. Right now this is done by enforcing that they
+  declare a spec for extern functions, but since a bare type signature
+  for an extern function is also a valid spec, this is not
+  possible. Instead, the user must give an "OK" annotation for the
+  functions declared extern to indicate that the spec is sound.
+
+
+* Shape vs. Type: USETYPE macro
+  Note that specs have two operators for ascribing types: there's ::,
+  for indicating that the type annotation is only for ctype inference
+  use, and there's, <:, which indicates that the value should be
+  constrained to have this type, i.e., the value's actual type must be
+  a subtype of the ascribed. (A common use case of the latter is
+  constraining the type of main so argc and argv are set up
+  correctly.)
+
+  To use the declared type for type checking as well as shape checking,
+  i.e., to make the type annotations on the signature behave like <: rather
+  than ::, use the USETYPE macro with the name of the function, as in:
+
+  : USETYPE(main)
+
+  As is currently the case, the type of an extern definition will be
+  taken to be the type of the function for all uses, not just shape
+  inference.
+
+
+* Types of Gloal Locations
+  At type can be given to a global store location by giving a type to
+  a global pointer to that location, as in
+
+  : int POS * LOC(A) positiveGlobal;
 
 
 * Type Abbreviations
@@ -172,6 +216,12 @@ In-Source Annotations
 
     : LOC(l) == __attribute__ (("__lcc__loc", #l))
 
+    Locations named by LOC are in the function-local heap. To
+    reference a global location, use GLOC.
+
+*** GLOC
+    Like LOC, but the location is a pointer in the global heap.
+
 *** INTO
     Pointer into an array of items at a location:
 
@@ -231,8 +281,19 @@ In-Source Annotations
       int LB(-1) UB(c) safe_read (int, char * ARRAY LB(0) SIZE(c), int NONNEG c);
     #+END_SRC
 
+*** main
+    #+BEGIN_SRC c
+      int main (int POS argc,
+                char * ARRAY START VALIDPTR * ARRAY START SPACE(argc * sizeof(char *)) argv);
+    #+END_SRC
+
+
 * Stuff to do
+
+** TODO Check if one can use sizeof and get the right thing out at expansion
 
 ** TODO Check that in-source specs subsume current, out-of-source specs
    That is, see that the specs we end up with are at least as strong
    as the current ones after we convert.
+
+** TODO Replace Ctypes.Spec with corresponding code from Typespec
