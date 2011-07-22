@@ -72,3 +72,15 @@ void testArrayPtr (int (*a)[10]) {
 
 void testArrayArg (int a[10]) {
 }
+
+typedef struct {
+    int x;
+    int y;
+} simplePair;
+
+typedef struct {
+    simplePair parr[3];
+} pairArray;
+
+void testPairArray (pairArray *p) {
+}

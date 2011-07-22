@@ -106,7 +106,8 @@ let addReftypeToStore sto loc s i rct =
   |> snd
 
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _)   -> [("", indexOfArrayElements t b, ensureSloc t)]
+  | C.TArray (t, b, _)   ->
+    t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b)
   | C.TComp (ci, _) as t ->
     M.flap
       begin fun f -> match componentsOfField t f with
@@ -117,9 +118,7 @@ let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
 
 and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
-       f.C.ftype
-    |> componentsOfType
-    |> List.map (M.app_snd3 <| I.plus off)
+    f.C.ftype |> componentsOfType |>: (M.app_snd3 <| I.plus off)
 
 let rec closeTypeInStore loc sto t = match C.unrollType t with
   | C.TPtr (t, ats) ->
@@ -128,16 +127,13 @@ let rec closeTypeInStore loc sto t = match C.unrollType t with
     let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
       List.fold_left
         begin fun sto ((_, i, t) as tc) ->
-          let sto = closeTypeComponentInStore loc sto tc in
+          let sto = closeTypeInStore loc sto t in
                t
             |> refctypeOfCilType
             |> FI.t_subs_names fldsub
             |> addReftypeToStore sto loc s i
         end sto tcs
   | _ -> sto
-
-and closeTypeComponentInStore loc sto (_, _, t) =
-  closeTypeInStore loc sto t
 
 let argType (x, t, ats) =
   (x, t |> C.typeAddAttributes ats |> ensureSloc)
