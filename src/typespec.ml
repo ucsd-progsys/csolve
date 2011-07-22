@@ -1,6 +1,3 @@
-(* what if we assert two different locs for a pointer in memory?
-   make sure we crash if types conflict! *)
-
 module C   = Cil
 module E   = Errormsg
 module P   = Pretty
@@ -9,6 +6,7 @@ module CM  = CilMisc
 module SM  = M.StringMap
 module A   = Ast
 module FI  = FixInterface
+module FA  = FixAstInterface
 module Ct  = Ctypes
 module I   = Ct.Index
 module S   = Sloc
@@ -56,13 +54,14 @@ let typePredicate t =
 
 let freshSlocName, _ = M.mk_string_factory "LOC"
 
-(* Should only bother with pointer sigs *)
 let ensureSloc t =
-  let ats = CM.typeAttrs t in
-    if C.hasAttribute slocAttribute ats then
-      t
-    else
-      C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
+  if C.isPointerType t then
+    let ats = CM.typeAttrs t in
+      if C.hasAttribute slocAttribute ats then
+        t
+      else
+        C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
+  else t
 
 (******************************************************************************)
 (***************** Conversion from CIL Types to Refined Types *****************)
@@ -88,21 +87,39 @@ let addReftypeToStore sto loc s i rct =
      end () s i
   |> snd
 
-let addTypeToStore loc sto s i t =
-  t |> refctypeOfCilType |> addReftypeToStore loc sto s i
+let componentsOfType t = match C.unrollType t with
+  | C.TComp (ci, _) as t ->
+    List.map
+      begin fun fi ->
+        (fi.C.fname,
+         C.Field (fi, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton,
+         fi.C.ftype)
+      end
+      ci.C.cfields
+  | t -> [("(none)", I.mk_singleton 0, ensureSloc t)]
 
-(* todo: memoize on type sig *)
-(* make sure that the sloc we ensure is always the one that we use in both
-   places *)
-let rec closeTypeInStore loc sto = function
+(* todo: memoize on type sig minus attributes *)
+let rec closeTypeInStore loc sto t = match C.unrollType t with
+  | C.TComp _ as t ->
+    (* is this case feasbile? Surely if we have nested structs *)
+    t |> componentsOfType |> List.fold_left (closeTypeComponentInStore loc) sto
+  | C.TPtr (t, ats) ->
+    let tcs    = componentsOfType t in
+    let s      = slocOfAttrs ats in
+    let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
+      List.fold_left
+        begin fun sto ((_, i, t) as tc) ->
+          let sto = closeTypeComponentInStore loc sto tc in
+               t
+            |> refctypeOfCilType
+            |> FI.t_subs_names fldsub
+            |> addReftypeToStore sto loc s i
+        end sto tcs
   | t when not (C.isPointerType t) -> sto
-  | C.TPtr (t, ats)                ->
-      (* Note i should be determined by atts plus i passed in *)
-      let s   = slocOfAttrs ats in
-      let t   = ensureSloc t in
-      let sto = closeTypeInStore loc sto t in
-        addTypeToStore sto loc s (I.mk_singleton 0) t
-  | _ -> assert false
+  | _                              -> assert false
+
+and closeTypeComponentInStore loc sto (_, _, t) =
+  closeTypeInStore loc sto t
 
 let argType (x, t, ats) =
   (* is ats ever non-empty? otherwise we're duplicating toTypeSig here *)
@@ -113,6 +130,7 @@ let refstoreOfTypes ts =
 
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
+  let ret              = ensureSloc ret in
   let argts            = argso |> C.argsToList |>: argType in
   let sto              = refstoreOfTypes (ret :: List.map snd argts) in
     some <|
