@@ -63,6 +63,24 @@ let ensureSloc t =
         C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
   else t
 
+let arraySizes sz1 sz2 = match sz1, sz2 with
+  | Some (C.Const (C.CInt64 (i, ik, _))), Some (C.Const (C.CInt64 (j, _, _))) ->
+    Some (C.Const (C.CInt64 (Int64.mul i j, ik, None)))
+  | None, None -> None
+  | _          -> assert false
+
+let rec flattenArray = function
+  | C.TArray (C.TArray (c, iszo, _), oszo, _) ->
+    flattenArray (C.TArray (c, arraySizes iszo oszo, []))
+  | t -> t
+
+let indexOfArrayElements t b = match t, b with
+  | t, Some (C.Const (C.CInt64 (i, _, _))) ->
+    let sz = CM.bytesSizeOf t in
+    let c  = Int64.to_int i - 1 in
+      I.mk_sequence 0 sz (Some 0) (Some (c * sz))
+  | t, None -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
+
 (******************************************************************************)
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
@@ -87,22 +105,23 @@ let addReftypeToStore sto loc s i rct =
      end () s i
   |> snd
 
-let componentsOfType t = match C.unrollType t with
+let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
+  | C.TArray (t, b, _)   -> [("", indexOfArrayElements t b, ensureSloc t)]
   | C.TComp (ci, _) as t ->
-    List.map
-      begin fun fi ->
-        (fi.C.fname,
-         C.Field (fi, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton,
-         fi.C.ftype)
-      end
-      ci.C.cfields
-  | t -> [("(none)", I.mk_singleton 0, ensureSloc t)]
+    M.flap
+      begin fun f -> match componentsOfField t f with
+        | [(_, i, t)] -> [(f.C.fname, i, t)]
+        | cs          -> cs
+      end ci.C.cfields
+  | t -> [("", I.mk_singleton 0, ensureSloc t)]
 
-(* todo: memoize on type sig minus attributes *)
+and componentsOfField t f =
+  let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
+       f.C.ftype
+    |> componentsOfType
+    |> List.map (M.app_snd3 <| I.plus off)
+
 let rec closeTypeInStore loc sto t = match C.unrollType t with
-  | C.TComp _ as t ->
-    (* is this case feasbile? Surely if we have nested structs *)
-    t |> componentsOfType |> List.fold_left (closeTypeComponentInStore loc) sto
   | C.TPtr (t, ats) ->
     let tcs    = componentsOfType t in
     let s      = slocOfAttrs ats in
@@ -115,14 +134,12 @@ let rec closeTypeInStore loc sto t = match C.unrollType t with
             |> FI.t_subs_names fldsub
             |> addReftypeToStore sto loc s i
         end sto tcs
-  | t when not (C.isPointerType t) -> sto
-  | _                              -> assert false
+  | _ -> sto
 
 and closeTypeComponentInStore loc sto (_, _, t) =
   closeTypeInStore loc sto t
 
 let argType (x, t, ats) =
-  (* is ats ever non-empty? otherwise we're duplicating toTypeSig here *)
   (x, t |> C.typeAddAttributes ats |> ensureSloc)
 
 let refstoreOfTypes ts =
@@ -140,6 +157,10 @@ let refcfunOfType t =
         sto
         (refctypeOfCilType ret)
         sto
+
+(******************************************************************************)
+(******************************* Gathering Specs ******************************)
+(******************************************************************************)
 
 let fundefsOfFile cil = 
   C.foldGlobals cil begin fun acc -> function

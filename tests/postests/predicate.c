@@ -32,6 +32,43 @@ void testptr2 (int * LOC(L) x, int * LOC(L) y) {
 void testptr3 (int *x, int *y) {
 }
 
-/* void testpair (pair *p) { */
-/*     assert (p->snd > p->fst); */
-/* } */
+int *testptr4 () {
+    return 0;
+}
+
+void testpair (pair *p) {
+    assert (p->snd > p->fst);
+}
+
+typedef struct {
+    int x;
+    char c;
+    int foo[3];
+} arrayStruct1;
+
+typedef struct {
+    int x;
+    char c;
+    int foo[];
+} arrayStruct2;
+
+void testArrayStruct (arrayStruct1 *a1, arrayStruct2 *a2) {
+}
+
+typedef struct {
+    int y;
+    arrayStruct1 as1;
+    int z;
+} nestedStruct;
+
+void testNestedStruct (nestedStruct *ns) {
+}
+
+void testPtrPtr (int **x) {
+}
+
+void testArrayPtr (int (*a)[10]) {
+}
+
+void testArrayArg (int a[10]) {
+}
