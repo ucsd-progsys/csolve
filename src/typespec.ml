@@ -2,6 +2,8 @@
    make sure we crash if types conflict! *)
 
 module C   = Cil
+module E   = Errormsg
+module P   = Pretty
 module M   = Misc
 module CM  = CilMisc
 module SM  = M.StringMap
@@ -41,9 +43,9 @@ let slocOfAttrs =
 let ptrIndexOfAttrs ats =
   I.mk_singleton 0
 
-let typeSigPredicate ts =
-      ts
-  |>  C.typeSigAttrs
+let typePredicate t =
+      t
+  |>  CM.typeAttrs
   |>  CM.getStringAttrs predAttribute
   |>: (Lexing.from_string <+> RefParse.pred RefLex.token)
   |>  A.pAnd
@@ -54,70 +56,71 @@ let typeSigPredicate ts =
 
 let freshSlocName, _ = M.mk_string_factory "LOC"
 
-let ensureSloc ts =
-  let ats = C.typeSigAttrs ts in
+(* Should only bother with pointer sigs *)
+let ensureSloc t =
+  let ats = CM.typeAttrs t in
     if C.hasAttribute slocAttribute ats then
-      ts
+      t
     else
-      CM.typeSigAddAttrs ts [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])]
+      C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
 
 (******************************************************************************)
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let toTypeSig t =
-  t |> C.typeSig |> ensureSloc
+let ctypeOfCilBaseType = function
+  | C.TVoid ats        -> Ct.Int (0,                           indexOfAttrs ats)
+  | C.TInt (ik,   ats) -> Ct.Int (C.bytesSizeOfInt ik,         indexOfAttrs ats)
+  | C.TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,      indexOfAttrs ats)
+  | C.TEnum (ei,  ats) -> Ct.Int (C.bytesSizeOfInt ei.C.ekind, indexOfAttrs ats)
+  | C.TPtr (t, ats)    -> Ct.Ref (slocOfAttrs ats,             ptrIndexOfAttrs ats)
+  | _                  -> assertf "ctypeOfCilBaseType: non-base!"
 
-let ctypeOfCilBaseTypeSig = function
-  | C.TSBase t ->
-      begin match t with
-        | C.TVoid ats        -> Ct.Int (0,                           indexOfAttrs ats)
-        | C.TInt (ik,   ats) -> Ct.Int (C.bytesSizeOfInt ik,         indexOfAttrs ats)
-        | C.TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,      indexOfAttrs ats)
-        | C.TEnum (ei,  ats) -> Ct.Int (C.bytesSizeOfInt ei.C.ekind, indexOfAttrs ats)
-        | _                  -> assertf "ctypeOfCilBaseTypeSig: non-base!"
-      end
-  | C.TSPtr (t, ats) -> Ct.Ref (slocOfAttrs ats, ptrIndexOfAttrs ats)
-  | _                -> assertf "ctypeOfCilBaseTypeSig: non-base!"
+let refctypeOfCilType t =
+  FI.t_pred (ctypeOfCilBaseType t) (A.Symbol.of_string "V") (typePredicate t)
 
-let refctypeOfCilTypeSig ts =
-  FI.t_pred (ctypeOfCilBaseTypeSig ts) (A.Symbol.of_string "V") (typeSigPredicate ts)
+let addReftypeToStore sto loc s i rct =
+     rct
+  |> RS.Data.add_and_fold_overlap sto loc begin fun _ sto ct1 ct2 ->
+       if ct1 = ct2 then ((), sto) else
+         E.s <| C.errorLoc loc "Conflicting types for store location %a, index %a: %a, %a"
+             S.d_sloc s Ct.Index.d_index i RCt.d_ctype ct1 RCt.d_ctype ct2
+     end () s i
+  |> snd
+
+let addTypeToStore loc sto s i t =
+  t |> refctypeOfCilType |> addReftypeToStore loc sto s i
 
 (* todo: memoize on type sig *)
-let rec refstoreOfTypeSig loc i = function
-  | C.TSBase _        -> RS.empty
-  | C.TSComp _        -> assert false
-  | C.TSFun _         -> assert false
-  | C.TSPtr (ts, ats) ->
-      (* need memo here to avoid going into sloc loop *)
+(* make sure that the sloc we ensure is always the one that we use in both
+   places *)
+let rec closeTypeInStore loc sto = function
+  | t when not (C.isPointerType t) -> sto
+  | C.TPtr (t, ats)                ->
       (* Note i should be determined by atts plus i passed in *)
       let s   = slocOfAttrs ats in
-      let ts  = ensureSloc ts in
-      let sto = refstoreOfTypeSig loc (ptrIndexOfAttrs ats) ts in
-        ts |> ldescOfTypeSig loc i |> RS.Data.add sto s
+      let t   = ensureSloc t in
+      let sto = closeTypeInStore loc sto t in
+        addTypeToStore sto loc s (I.mk_singleton 0) t
   | _ -> assert false
 
-and ldescOfTypeSig loc i = function
-  | C.TSBase _ as ts -> [(i, ts |> ensureSloc |> refctypeOfCilTypeSig |> RFl.create Ct.Nonfinal)] |> RLD.create loc 
-  | _                -> assert false
-
-let argTypeSig (x, t, ats) =
+let argType (x, t, ats) =
   (* is ats ever non-empty? otherwise we're duplicating toTypeSig here *)
-  (x, t |> C.typeSig |> M.flip CM.typeSigAddAttrs ats |> ensureSloc)
+  (x, t |> C.typeAddAttributes ats |> ensureSloc)
 
-let refstoreOfTypeSigs ts =
-  ts |>: refstoreOfTypeSig C.locUnknown (I.mk_singleton 0) |>  List.fold_left RS.upd RS.empty
+let refstoreOfTypes ts =
+  List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
 
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
-  let retts, argtss    = (toTypeSig ret, argso |> C.argsToList |>: argTypeSig) in
-  let sto              = refstoreOfTypeSigs (retts :: List.map snd argtss) in
+  let argts            = argso |> C.argsToList |>: argType in
+  let sto              = refstoreOfTypes (ret :: List.map snd argts) in
     some <|
       RCf.make
-        (List.map (M.app_snd refctypeOfCilTypeSig) argtss)
+        (List.map (M.app_snd refctypeOfCilType) argts)
         []
         sto
-        (refctypeOfCilTypeSig retts)
+        (refctypeOfCilType ret)
         sto
 
 let fundefsOfFile cil = 

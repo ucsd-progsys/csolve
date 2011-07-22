@@ -1122,7 +1122,7 @@ let reft_of_top =
 let d_index_reft () (i,r) = 
   let di = Index.d_index () i in
   let dc = Pretty.text " , " in
-  let dr = Misc.fsprintf (FC.print_reft None) r |> Pretty.text in
+  let dr = Misc.fsprintf (FC.print_reft_pred None) r |> Pretty.text in
   Pretty.concat (Pretty.concat di dc) dr
 
 module Reft = struct
