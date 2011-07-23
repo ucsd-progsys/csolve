@@ -39,6 +39,7 @@ val bytesSizeOfFloat : Cil.fkind -> int
 val bytesOffset      : Cil.typ -> Cil.offset -> int
 val ptrRefType       : Cil.typ -> Cil.typ
 val isVararg         : Cil.typ -> bool
+val typeName         : Cil.typ -> string option
 val typ_width        : Cil.typ -> int
 val int_width        : int
 val short_width      : int

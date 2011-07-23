@@ -205,6 +205,11 @@ let bytesSizeOfFloat: fkind -> int = function
   | FDouble     -> 8
   | FLongDouble -> 12
 
+let typeName t = match unrollType t with
+  | TComp ({cname = n}, _)  -> Some n
+  | TNamed ({tname = n}, _) -> Some n
+  | _                       -> None
+
 let isVararg (t: typ): bool =
   isFunctionType t &&
     let _, _, vararg, _ = splitFunctionType t in

@@ -85,16 +85,20 @@ let indexOfArrayElements t b = match t, b with
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let ctypeOfCilBaseType = function
+let ctypeOfCilBaseType mem = function
   | C.TVoid ats        -> Ct.Int (0,                           indexOfAttrs ats)
   | C.TInt (ik,   ats) -> Ct.Int (C.bytesSizeOfInt ik,         indexOfAttrs ats)
   | C.TFloat (fk, ats) -> Ct.Int (CM.bytesSizeOfFloat fk,      indexOfAttrs ats)
   | C.TEnum (ei,  ats) -> Ct.Int (C.bytesSizeOfInt ei.C.ekind, indexOfAttrs ats)
-  | C.TPtr (t, ats)    -> Ct.Ref (slocOfAttrs ats,             ptrIndexOfAttrs ats)
-  | _                  -> assertf "ctypeOfCilBaseType: non-base!"
+  | C.TPtr (t, ats)    ->
+    begin match CM.typeName t with
+      | Some n when SM.mem n mem -> Ct.Ref (SM.find n mem,   ptrIndexOfAttrs ats)
+      | _                        -> Ct.Ref (slocOfAttrs ats, ptrIndexOfAttrs ats)
+    end
+  | _ -> assertf "ctypeOfCilBaseType: non-base!"
 
-let refctypeOfCilType t =
-  FI.t_pred (ctypeOfCilBaseType t) (A.Symbol.of_string "V") (typePredicate t)
+let refctypeOfCilType mem t =
+  FI.t_pred (ctypeOfCilBaseType mem t) (A.Symbol.of_string "V") (typePredicate t)
 
 let addReftypeToStore sto loc s i rct =
      rct
@@ -106,7 +110,7 @@ let addReftypeToStore sto loc s i rct =
   |> snd
 
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _)   ->
+  | C.TArray (t, b, _) ->
     t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b)
   | C.TComp (ci, _) as t ->
     M.flap
@@ -120,20 +124,29 @@ and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
     f.C.ftype |> componentsOfType |>: (M.app_snd3 <| I.plus off)
 
-let rec closeTypeInStore loc sto t = match C.unrollType t with
-  | C.TPtr (t, ats) ->
-    let tcs    = componentsOfType t in
+let alreadyClosedType mem t = match CM.typeName t with
+  | Some n -> SM.mem n mem
+  | _      -> false
+
+let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
+  | C.TPtr (t, _) when alreadyClosedType mem t -> sto
+  | C.TPtr (t, ats)                            ->
     let s      = slocOfAttrs ats in
+    let mem    = match CM.typeName t with Some n -> SM.add n s mem | _ -> mem in
+    let tcs    = componentsOfType t in
     let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
       List.fold_left
         begin fun sto ((_, i, t) as tc) ->
-          let sto = closeTypeInStore loc sto t in
+          let sto = closeTypeInStoreAux loc mem sto t in
                t
-            |> refctypeOfCilType
+            |> refctypeOfCilType mem
             |> FI.t_subs_names fldsub
             |> addReftypeToStore sto loc s i
-        end sto tcs
+      end sto tcs
   | _ -> sto
+
+let closeTypeInStore loc sto t =
+  closeTypeInStoreAux loc SM.empty sto t
 
 let argType (x, t, ats) =
   (x, t |> C.typeAddAttributes ats |> ensureSloc)
@@ -148,10 +161,10 @@ let refcfunOfType t =
   let sto              = refstoreOfTypes (ret :: List.map snd argts) in
     some <|
       RCf.make
-        (List.map (M.app_snd refctypeOfCilType) argts)
+        (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
         []
         sto
-        (refctypeOfCilType ret)
+        (refctypeOfCilType SM.empty ret)
         sto
 
 (******************************************************************************)

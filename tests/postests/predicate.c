@@ -84,3 +84,11 @@ typedef struct {
 
 void testPairArray (pairArray *p) {
 }
+
+typedef struct node {
+    int          data;
+    struct node *next;
+} node_t;
+
+void testLinkedList (node_t *l) {
+}
