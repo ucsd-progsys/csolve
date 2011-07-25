@@ -24,19 +24,26 @@ open M.Ops
 (************************* Annotations From Attributes ************************)
 (******************************************************************************)
 
-let slocAttribute = "lcc_sloc"
-let predAttribute = "lcc_predicate"
+let slocAttribute  = "lcc_sloc"
+let gslocAttribute = "lcc_gsloc"
+let predAttribute  = "lcc_predicate"
 
 let indexOfAttrs ats = 
   if CM.has_pos_attr ats then I.nonneg else I.top
 
-let slocOfAttrs =
-  let slocTable = Hashtbl.create 17 in
-    fun ats ->
-         ats
-      |> CM.getStringAttrs slocAttribute
-      |> M.ex_one "Cannot get single sloc"
-      |> M.do_memo slocTable S.fresh_abstract []
+let slocTable = Hashtbl.create 17
+
+let getSlocAttribute ats =
+  if C.hasAttribute slocAttribute ats then slocAttribute else gslocAttribute
+
+let slocOfAttrs ats =
+     ats
+  |> CM.getStringAttrs (getSlocAttribute ats)
+  |> M.ex_one "Type has multiple slocs"
+  |> M.do_memo slocTable S.fresh_abstract []
+
+let getSlocByName n =
+  Hashtbl.find n slocTable
 
 let ptrIndexOfAttrs ats =
   I.mk_singleton 0
@@ -57,7 +64,7 @@ let freshSlocName, _ = M.mk_string_factory "LOC"
 let ensureSloc t =
   if C.isPointerType t then
     let ats = CM.typeAttrs t in
-      if C.hasAttribute slocAttribute ats then
+      if C.hasAttribute slocAttribute ats || C.hasAttribute gslocAttribute ats then
         t
       else
         C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
@@ -154,15 +161,40 @@ let argType (x, t, ats) =
 let refstoreOfTypes ts =
   List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
 
+(* Need to assert WF: no type has both global and local sloc annotation *)
+class globalLocVisitor = object (self)
+  inherit C.nopCilVisitor
+
+  val mutable glocs = []
+
+  method addGlobalLoc s =
+    glocs <- s :: glocs
+
+  method vattr atr =
+    if C.hasAttribute gslocAttribute [atr] then
+      [atr] |> slocOfAttrs |> self#addGlobalLoc;
+      C.DoChildren
+
+  method getGlobalLocs =
+    M.sort_and_compact glocs
+end
+
+let globalLocsOfTypes ts =
+  let gv = new globalLocVisitor in
+    List.iter (C.visitCilType (gv :> C.cilVisitor) <+> ignore) ts;
+    gv#getGlobalLocs
+
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
   let ret              = ensureSloc ret in
   let argts            = argso |> C.argsToList |>: argType in
-  let sto              = refstoreOfTypes (ret :: List.map snd argts) in
+  let rootts           = ret :: List.map snd argts in
+  let glocs            = globalLocsOfTypes rootts in
+  let _, sto           = rootts |> refstoreOfTypes |> RS.partition (M.flip List.mem glocs) in
     some <|
       RCf.make
         (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
-        []
+        glocs
         sto
         (refctypeOfCilType SM.empty ret)
         sto
@@ -171,30 +203,52 @@ let refcfunOfType t =
 (******************************* Gathering Specs ******************************)
 (******************************************************************************)
 
+let varsOfFile cil =
+  C.foldGlobals cil begin fun acc -> function
+    | C.GVarDecl (v, loc) | C.GVar (v, _, loc)
+        when not (C.isFunctionType v.C.vtype || v.C.vstorage = C.Extern) ->
+      (* actually, we now want specs for extern vars, but we want to make sure we give them
+         an "ok" flag *)
+      (v, loc) :: acc
+    | _ -> acc
+  end []
+
 let fundefsOfFile cil = 
   C.foldGlobals cil begin fun acc -> function
-    | C.GFun (fd, _) as g -> SM.add fd.C.svar.C.vname g acc
-    | _                   -> acc
-  end SM.empty
+    | C.GFun (fd, loc) -> (fd, loc) :: acc
+    | _                -> acc
+  end []
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
-let updFunm spec funm loc fn = function
+let updFunM spec funm loc fn = function
   | _ when SM.mem fn spec     -> funm
   | _ when isBuiltin fn       -> funm
   | t when C.isFunctionType t -> M.sm_protected_add false fn (refcfunOfType t) funm
   | _                         -> funm 
 
-let funspecsOfFunm funspec funm =
-     SM.empty
-  |> SM.fold begin fun _ d funm -> match d with 
-     | C.GFun (fd, loc)    -> updFunm funspec funm loc fd.C.svar.C.vname fd.C.svar.C.vtype
-     | C.GVarDecl (v, loc) -> updFunm funspec funm loc v.C.vname v.C.vtype
-     | _                   -> funm
-     end funm 
+let funspecsOfFuns funspec funs =
+     List.fold_left begin fun funm (fd, loc) ->
+      updFunM funspec funm loc fd.C.svar.C.vname fd.C.svar.C.vtype
+     end SM.empty funs
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
+(* assert that var doesn't have record type *)
+let updVarM spec varm loc vn = function
+  | _ when SM.mem vn spec           -> varm
+  | t when not (C.isFunctionType t) -> M.sm_protected_add false vn (refctypeOfCilType SM.empty t) varm
+  | _                               -> varm
+
+let globalSpecsOfVars varspec vars =
+     List.fold_left begin fun varm (v, loc) ->
+       updVarM varspec varm loc v.C.vname v.C.vtype
+     end SM.empty vars
+  |> M.sm_bindings
+
+(* in the end, there should only ever be one file, so maybe we should specialize to that *)
 let specsOfFile spec file =
-  let fn = file |> fundefsOfFile |> funspecsOfFunm (RSp.funspec spec) in
-    (fn, [], RS.empty)
+  let vars = varsOfFile file in
+    (file |> fundefsOfFile |> funspecsOfFuns (RSp.funspec spec),
+     globalSpecsOfVars (RSp.varspec spec) vars,
+     vars |>: (fun ({C.vtype = t}, _) -> t) |> refstoreOfTypes)

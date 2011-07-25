@@ -1,8 +1,9 @@
 //! run-with --nop
 // Scratchpad for testing types-as-specs
 
-#define REF(p) __attribute__ ((lcc_predicate (#p)))
-#define LOC(l) __attribute__ ((lcc_sloc (#l)))
+#define REF(p)  __attribute__ ((lcc_predicate (#p)))
+#define LOC(l)  __attribute__ ((lcc_sloc (#l)))
+#define GLOC(l) __attribute__ ((lcc_gsloc (#l)))
 
 int REF(V > x) test (int x, int REF(&& [V > x; V >= 0]) y) {
     assert (y > x);
@@ -91,4 +92,9 @@ typedef struct node {
 } node_t;
 
 void testLinkedList (node_t *l) {
+}
+
+int * GLOC(G) g;
+
+void testAliasGlobal (int * GLOC(G) h) {
 }
