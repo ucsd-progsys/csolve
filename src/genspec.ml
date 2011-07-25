@@ -35,6 +35,7 @@ module SM  = Misc.StringMap
 module CM  = CilMisc
 module Cs  = Ct.RefCTypes.Spec
 module P   = Printf
+module PP  = Pretty
 
 open Cil
 open Misc.Ops
@@ -120,12 +121,12 @@ let id_of_period = function
   | Bnd (m, k) -> P.sprintf "[%d < %d]" m k 
 
 let id_of_ciltype t pd =  
-  Pretty.dprintf "%a ### %a ### %s" 
+  PP.dprintf "%a ### %a ### %s" 
     d_typsig (typeSig t) 
     d_attrlist (typeAttrs t)
     (id_of_period pd)
-  |> Pretty.sprint ~width:80
-(* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
+  |> PP.sprint ~width:80
+(* Cil.typeSig <+> Cil.d_typsig () <+> PP.sprint ~width:80 *)
 
 let mk_idx pd i =
   match pd with 
@@ -157,7 +158,7 @@ let adj_period pd idx =
 
 let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
-            Pretty.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
+            PP.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
   |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal t))
@@ -247,15 +248,15 @@ and conv_cilblock loc (th, st, off) pd c =
 (* {{{  *)let _  =
     if mydebug then 
       (let cs = unroll_ciltype off c in
-       ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
-       List.iter (fun (c', _) -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
+       ignore <| PP.printf "conv_cilblock: unroll %a \n" d_type c;
+       List.iter (fun (c', _) -> ignore <| PP.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype off
     |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype_aux loc InStruct (th, st, off) (c', [])) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period pd)))
 
 and conv_ciltype y tlev z c =
-    let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
+    let _ = if mydebug then ignore <| PP.printf "conv_ciltype: %a \n" d_type c in
       conv_ciltype_aux y tlev z (c, [])
 
 and conv_arg loc z (name, c) =
@@ -391,24 +392,44 @@ let dump_pragmas file =
 (**********************************************************)
 
 let d_vartyp () (v, t) = 
-  Pretty.dprintf "(%s :: %a)" v.vname Ct.d_ctype t
+  PP.dprintf "(%s :: %a)" v.vname d_type v.vtype (* Ct.d_ctype t*)
 
 let d_vartypes () vts = 
-  Pretty.seq (Pretty.text ",") (d_vartyp ()) vts
+  PP.seq (PP.text ",") (d_vartyp ()) vts
 
 let d_sloc_vartyps () (sloc, vts) = 
-  Pretty.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+
+let d_vars () vs = 
+  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.vname) () vs
+
+let d_typ_vars () (t, vs) = 
+  PP.dprintf "%a %a;@!" d_type t d_vars vs
+
+let d_typ_varss () tvss =
+  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
+
+let d_sloc_typ_varss () (sloc, tvss) = 
+  PP.dprintf "%a <<%d>> |-> @[%a@]" 
+    Sloc.d_sloc sloc
+    (List.length tvss)
+    d_typ_varss tvss
 
 (* 1. Foreach function,
  *      write: loc -> (varinfo, typ) list 
  *      into : fileName.shape *)
 let stitch_shapes_ctypes cil shm = 
+  Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
   SM.iter begin fun fn shp ->
     Misc.kgroupby (snd <+> Ctypes.I.CType.sloc) shp.Shape.vtyps
     |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-    |> (fun xs -> Pretty.seq (Pretty.dprintf ";@!") (d_sloc_vartyps ()) xs) 
-    |> Pretty.concat (Pretty.text ("STITCH SHAPE: "^fn^"\n"))
-    |> Pretty.sprint ~width:80
-    |> (Misc.append_to_file (cil.fileName^".shape")) 
-  end shm
+    |> List.map (Misc.app_snd (List.map fst))
+    |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.vtype)))
+    |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
+    |> PP.concat (PP.text ("STITCH SHAPE: "^fn^"\n"))
+    |> PP.sprint ~width:80
+    |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
+  end shm;
+  E.log "EXIT: stitch_shapes_ctypes";
+  exit 0
 
