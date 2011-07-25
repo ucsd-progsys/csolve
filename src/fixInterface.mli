@@ -90,6 +90,8 @@ val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> 
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
 
+val name_of_sloc_index  : Sloc.t -> Ctypes.Index.t -> FixAstInterface.name
+
 val rename_refctype :
   Sloc.Subst.t ->
   (Ast.Symbol.t * Cil.exp) list ->
