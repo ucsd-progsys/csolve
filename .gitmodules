@@ -1,23 +1,18 @@
 [submodule "external/fixpoint"]
 	path = external/fixpoint
 	url = goto.ucsd.edu:/git/fixpoint.git
-        update = merge
 [submodule "external/misc"]
 	path = external/misc
 	url = goto.ucsd.edu:/git/misc.git
-        update = merge
 [submodule "external/ocamlgraph"]
 	path = external/ocamlgraph
 	url = goto.ucsd.edu:/git/external/ocamlgraph.git
-        update = merge
 [submodule "external/cil"]
 	path = external/cil
 	url = goto.ucsd.edu:/git/external/cil.git
-        update = merge
 [submodule "external/z3"]
 	path = external/z3
 	url = goto.ucsd.edu:/git/external/z3.git
-        update = merge
 [submodule "external/gnu-coreutils"]
 	path = external/gnu-coreutils
 	url = goto.ucsd.edu:/git/gnu-coreutils.git
