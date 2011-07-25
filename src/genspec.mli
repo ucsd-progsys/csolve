@@ -26,3 +26,6 @@ val spec_of_type         : Cil.location -> Cil.typ -> Ctypes.ctype * Ctypes.stor
 
 val assert_spec_complete : Cil.file -> Ctypes.refspec -> unit
 val dump_pragmas         : Cil.file -> unit
+
+val stitch_shapes_ctypes : Cil.file -> Shape.t Misc.StringMap.t -> unit
+

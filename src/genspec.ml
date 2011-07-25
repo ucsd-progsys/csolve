@@ -386,4 +386,29 @@ let dump_pragmas file =
   end 
 
 
+(**********************************************************)
+(**********************************************************)
+(**********************************************************)
+
+let d_vartyp () (v, t) = 
+  Pretty.dprintf "(%s :: %a)" v.vname Ct.d_ctype t
+
+let d_vartypes () vts = 
+  Pretty.seq (Pretty.text ",") (d_vartyp ()) vts
+
+let d_sloc_vartyps () (sloc, vts) = 
+  Pretty.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+
+(* 1. Foreach function,
+ *      write: loc -> (varinfo, typ) list 
+ *      into : fileName.shape *)
+let stitch_shapes_ctypes cil shm = 
+  SM.iter begin fun fn shp ->
+    Misc.kgroupby (snd <+> Ctypes.I.CType.sloc) shp.Shape.vtyps
+    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
+    |> (fun xs -> Pretty.seq (Pretty.dprintf ";@!") (d_sloc_vartyps ()) xs) 
+    |> Pretty.concat (Pretty.text ("STITCH SHAPE: "^fn^"\n"))
+    |> Pretty.sprint ~width:80
+    |> (Misc.append_to_file (cil.fileName^".shape")) 
+  end shm
 
