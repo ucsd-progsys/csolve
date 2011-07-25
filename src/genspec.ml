@@ -429,7 +429,7 @@ let stitch_shapes_ctypes cil shm =
     |> PP.concat (PP.text ("STITCH SHAPE: "^fn^"\n"))
     |> PP.sprint ~width:80
     |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
-  end shm;
-  E.log "EXIT: stitch_shapes_ctypes";
-  exit 0
+  end shm
+  (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)
+
 
