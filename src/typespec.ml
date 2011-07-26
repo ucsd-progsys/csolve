@@ -27,21 +27,30 @@ open M.Ops
 
 let slocAttribute     = "lcc_sloc"
 let gslocAttribute    = "lcc_gsloc"
+let concreteAttribute = "lcc_concrete"
 let predAttribute     = "lcc_predicate"
 let externOkAttribute = "lcc_extern_ok"
 
 let indexOfAttrs ats = 
   if CM.has_pos_attr ats then I.nonneg else I.top
 
-let slocTable = Hashtbl.create 17
+type slocType =
+  | Concrete
+  | Abstract
+
+let rec getSloc =
+  let slocTable = Hashtbl.create 17 in
+    fun ty s -> match ty with
+      | Abstract -> M.do_memo slocTable S.fresh_abstract [] (s, Abstract)
+      | Concrete -> M.do_memo slocTable (getSloc Abstract <+> S.fresh_concrete) s (s, Concrete)
 
 let slocOfAttrs ats =
-     CM.getStringAttrs slocAttribute ats ++ CM.getStringAttrs gslocAttribute ats
-  |> M.ex_one "Type does not have a single sloc"
-  |> M.do_memo slocTable S.fresh_abstract []
-
-let getSlocByName n =
-  Hashtbl.find n slocTable
+  let ty = if C.hasAttribute concreteAttribute ats then Concrete else Abstract in
+    if ty = Concrete && C.hasAttribute gslocAttribute ats then
+      E.s <| E.error "Global locations cannot be concrete.";
+       CM.getStringAttrs slocAttribute ats ++ CM.getStringAttrs gslocAttribute ats
+    |> M.ex_one "Type does not have a single sloc"
+    |> getSloc ty
 
 let ptrIndexOfAttrs ats =
   I.mk_singleton 0
@@ -121,13 +130,14 @@ let refctypeOfCilType mem t =
   FI.t_pred (ctypeOfCilBaseType mem t) (A.Symbol.of_string "V") (typePredicate t)
 
 let addReftypeToStore sto loc s i rct =
-     rct
-  |> RS.Data.add_and_fold_overlap sto loc begin fun _ sto ct1 ct2 ->
-       if ct1 = ct2 then ((), sto) else
-         E.s <| C.errorLoc loc "Conflicting types for store location %a, index %a: %a, %a"
-             S.d_sloc s Ct.Index.d_index i RCt.d_ctype ct1 RCt.d_ctype ct2
-     end () s i
-  |> snd
+  if RCt.width rct = 0 then RS.Data.add sto s (RS.Data.find_or_empty sto s) else
+       rct
+    |> RS.Data.add_and_fold_overlap sto loc begin fun _ sto ct1 ct2 ->
+         if ct1 = ct2 then ((), sto) else
+           E.s <| C.errorLoc loc "Conflicting types for store location %a, index %a: %a, %a"
+               S.d_sloc s Ct.Index.d_index i RCt.d_ctype ct1 RCt.d_ctype ct2
+       end () s i
+    |> snd
 
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
   | C.TArray (t, b, _) ->

@@ -4,6 +4,7 @@
 #define REF(p)   __attribute__ ((lcc_predicate (#p)))
 #define LOC(l)   __attribute__ ((lcc_sloc (#l)))
 #define GLOC(l)  __attribute__ ((lcc_gsloc (#l)))
+#define CONCRETE __attribute__ ((lcc_concrete))
 #define OKEXTERN __attribute__ ((lcc_extern_ok))
 
 extern void pmr_assert (int REF(V != 0)) OKEXTERN;
@@ -114,4 +115,10 @@ extern int REF(V > 0) testExtern OKEXTERN;
 
 int getTestExtern () {
     return testExtern;
+}
+
+extern void * CONCRETE LOC(L) pmr_malloc (int REF(V >= 0)) OKEXTERN;
+
+void testMalloc () {
+    int *p = (int *) pmr_malloc (sizeof(int));
 }
