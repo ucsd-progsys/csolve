@@ -7,10 +7,11 @@
 #define REF(p)   SREF(p)
 #define SREF(p)  __attribute__ ((lcc_predicate (#p)))
 
-#define LOC(l)   __attribute__ ((lcc_sloc (#l)))
-#define GLOC(l)  __attribute__ ((lcc_gsloc (#l)))
-#define CONCRETE __attribute__ ((lcc_concrete))
-#define OKEXTERN __attribute__ ((lcc_extern_ok))
+#define LOC(l)     __attribute__ ((lcc_sloc (#l)))
+#define GLOC(l)    __attribute__ ((lcc_gsloc (#l)))
+#define CONCRETE   __attribute__ ((lcc_concrete))
+#define OKEXTERN   __attribute__ ((lcc_extern_ok))
+#define CHECK_TYPE __attribute__ ((lcc_check_type))
 
 // Predicate abbreviations
 
@@ -35,7 +36,7 @@ int *globalPointer;
 int globalArray[10];
 
 // Used to have y >= 0, but causes problems for index checking
-int REF(V > x) test (int x, int REF(&& [V > x]) y) {
+int REF(V > x) test (int x, int REF(&& [V > x]) y) CHECK_TYPE {
     pmr_assert (y > x);
     /* pmr_assert (y >= 0); */
 

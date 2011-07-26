@@ -26,11 +26,12 @@ open M.Ops
 (************************* Annotations From Attributes ************************)
 (******************************************************************************)
 
-let slocAttribute     = "lcc_sloc"
-let gslocAttribute    = "lcc_gsloc"
-let concreteAttribute = "lcc_concrete"
-let predAttribute     = "lcc_predicate"
-let externOkAttribute = "lcc_extern_ok"
+let slocAttribute      = "lcc_sloc"
+let gslocAttribute     = "lcc_gsloc"
+let concreteAttribute  = "lcc_concrete"
+let predAttribute      = "lcc_predicate"
+let externOkAttribute  = "lcc_extern_ok"
+let checkTypeAttribute = "lcc_check_type"
 
 type slocType =
   | Concrete
@@ -223,13 +224,12 @@ let refcfunOfType t =
   let rootts           = ret :: List.map snd argts in
   let glocs            = globalLocsOfTypes rootts in
   let _, sto           = rootts |> refstoreOfTypes |> RS.partition (M.flip List.mem glocs) in
-    some <|
-      RCf.make
-        (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
-        glocs
-        sto
-        (refctypeOfCilType SM.empty ret)
-        sto
+    RCf.make
+      (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
+      glocs
+      sto
+      (refctypeOfCilType SM.empty ret)
+      sto
 
 (******************************************************************************)
 (******************************* Gathering Specs ******************************)
@@ -255,18 +255,17 @@ let declarationsOfFile file =
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
-let updFunM spec funm loc fn = function
-  | _ when SM.mem fn spec     -> funm
-  | _ when isBuiltin fn       -> funm
-  | t when C.isFunctionType t -> M.sm_protected_add false fn (refcfunOfType t) funm
-  | _                         -> funm 
+let updFunM spec funm v =
+  let fn, ty = (v.C.vname, v.C.vtype) in
+    if C.isFunctionType ty && not (SM.mem fn spec || isBuiltin fn) then
+      M.sm_protected_add false fn (refcfunOfType ty, C.hasAttribute checkTypeAttribute v.C.vattr) funm
+    else
+      funm
 
 let funspecsOfFuns funspec funs =
-     List.fold_left begin fun funm v ->
-      updFunM funspec funm v.C.vdecl v.C.vname v.C.vtype
-     end SM.empty funs
+     funs
+  |> List.fold_left (fun funm v -> updFunM funspec funm v) SM.empty
   |> Misc.sm_bindings
-  |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
 let updVarM spec varm loc vn = function
   | _ when SM.mem vn spec           -> varm
