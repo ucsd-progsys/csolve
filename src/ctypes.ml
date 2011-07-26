@@ -1079,7 +1079,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let compare = compare
   end
 
-  module ExpMap = Map.Make (ExpKey)
+  module ExpMap = Misc.EMap (ExpKey)
 
   module ExpMapPrinter = P.MakeMapPrinter(ExpMap)
 

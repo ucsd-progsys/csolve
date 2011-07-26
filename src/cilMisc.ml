@@ -258,7 +258,7 @@ let d_var () (v: varinfo): Pretty.doc =
 (******************************** Variable Maps *******************************)
 (******************************************************************************)
 
-module VarMap = Map.Make(ComparableVar)
+module VarMap = Misc.EMap (ComparableVar)
 
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
