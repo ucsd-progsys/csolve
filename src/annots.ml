@@ -100,6 +100,7 @@ let generate_tags kts =
 (* UGH. Global State. *)
 let annotr    = ref [] 
 
+
 (* API *)
 let annot_var x cr = annotr := TVar (x, cr) :: !annotr
 let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
@@ -113,6 +114,55 @@ let dump s =
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
   |> ignore
+
+(***************************************************************************************)
+(***************************************************************************************)
+(************************************************************************)
+
+  (* HEREHEREHEREHEREHEREHERE JHALA 
+ *
+(***** Step 0: Gather Annots into (varinfo * ctype) list   **************)
+let get_var_ctypes () = 
+  Misc.map_partial begin function 
+    | TVar (n, cr) -> (match FA.varinfo_of_name n with Some v -> Some (v, cr) | _ -> None)
+    | _            -> None
+  end !annotr
+
+(***** Step 1: Find the Cil-Type of (the block at) each location ********)
+
+let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
+   vs |> map   (fun v -> (* DEREF ME FIRST *) v.vtyp)  
+      |> reduce "biggest_type" (fun t t' -> if size t' > size t then t' else t)
+
+let ciltyp_of_slocs (xcts : varinfo * ctype list) : Cil.typ SlocMap.t =  
+  xcts |> kgroupby (snd <+> sloc_of_ct) 
+       |> map (app_snd (filter (is_zero_offset)))
+       |> map (app_snd (map app_fst))
+       |> map (app_snd biggest_type)
+
+
+(***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
+
+type deco_ldesc     = (index * Cil.field) list
+
+let decorate_ldesc (ld: LDesc.t) (ty: Cil.typ) : deco_ldesc = 
+  List.fold_left2 begin fun acc fld (ix, t) ->
+    if size f = size t then
+      ((ix, f, t)::acc)
+    else assertf "mismatch in cil-field and ct-field!"
+  end [] (unroll ty) (unroll ld)
+  |> List.rev
+
+
+(* val fields_of_store : ldesc SlocMap.t -> Cil.typ SlocMap.t -> deco_ldesc SlocMap.t *)
+let fields_of_store (sto : Ldesc.t SlocMap.t) (stt : Cil.typ SlocMap.t) : deco_ldesc SlocMap.t =
+  SlocMap.map begin fun sloc ld -> 
+    if SlocMap.mem sloc stt then 
+      decorate_ldesc ld (SlocMap.find sloc stt)
+    else assertf "unknown cil-typ for" sloc
+  end sto
+
+*)
 
 (*******************************************************************)
 (*******************************************************************)
