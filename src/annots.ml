@@ -28,6 +28,8 @@ module Ct  = Ctypes
 module Co  = Constants
 module RCt = Ct.RefCTypes
 module Sc  = ScalarCtypes
+module PP  = Pretty
+module SM  = Misc.StringMap
 
 open Misc.Ops
 
@@ -91,16 +93,68 @@ let generate_tags kts =
   let _  = close_out oc in
   ()
 
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
+
+(* UGH. Global State. *)
 let annotr    = ref [] 
 
 (* API *)
-let annot_var   = fun x cr  -> annotr := TVar (x, cr) :: !annotr
-let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
-let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
-let annot_clear = fun _     -> annotr := []
-let annot_dump  = fun s     -> !annotr
-                               |> tags_of_binds s 
-                               >> (fst <+> generate_annots)
-                               >> (snd <+> generate_tags) 
-                               |> ignore
+let annot_var x cr = annotr := TVar (x, cr) :: !annotr
+let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
+let annot_sto f st = annotr := TSto (f, st) :: !annotr
+let clear _        = annotr := []
 
+(* API *)
+let dump s = 
+  !annotr
+  |> tags_of_binds s 
+  >> (fst <+> generate_annots)
+  >> (snd <+> generate_tags) 
+  |> ignore
+
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
+
+(*
+let d_vartyp () (v, t) = 
+  PP.dprintf "(%s :: %a)" v.Cil.vname Cil.d_type v.Cil.vtype
+
+let d_vartypes () vts = 
+  PP.seq (PP.text ",") (d_vartyp ()) vts
+
+let d_sloc_vartyps () (sloc, vts) = 
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+*)
+
+let d_vars () vs = 
+  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.Cil.vname) () vs
+
+let d_typ_vars () (t, vs) = 
+  PP.dprintf "%a %a;@!" Cil.d_type t d_vars vs
+
+let d_typ_varss () tvss =
+  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
+
+let d_sloc_typ_varss () (sloc, tvss) = 
+  PP.dprintf "%a <<%d>> |-> @[%a@]" 
+    Sloc.d_sloc sloc
+    (List.length tvss)
+    d_typ_varss tvss
+
+(* API *)
+let stitch_shapes_ctypes cil shm = 
+  Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
+  SM.iter begin fun fn shp ->
+    Misc.kgroupby (snd <+> Ctypes.I.CType.sloc) shp.Shape.vtyps
+    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
+    |> List.map (Misc.app_snd (List.map fst))
+    |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.Cil.vtype)))
+    |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
+    |> PP.concat (PP.text ("STITCH SHAPE: "^fn^"\n"))
+    |> PP.sprint ~width:80
+    |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
+  end shm
+  (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)

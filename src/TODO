@@ -1,13 +1,49 @@
-* SRC information for each A/C Loc (DONE)
 
 * INCLUDE directive for .spec files
 HEREHEREHERE
 
-* Spec from C-SOURCE
+* For each SLoc,
+    1. Find the Cil-Type of the block at that location,
+        
+        //val ciltyp_of_slocs : (varinfo * ctype) list -> Cil.typ SlocMap.t
+        val ciltyp_of_slocs : (varinfo * ctype) list -> (sloc * Cil.typ) list
+        let ciltyp_of_slocs xcts =  
+          xcts |> kgroupby (snd <+> sloc_of_ct) 
+               |> map (app_snd (filter (is_zero_offset)))
+               |> map (app_snd (map app_fst))
+               |> map (app_snd biggest_type)
+
+        val biggest_type: varinfo list -> typ 
+        let biggest_type vs = 
+           vs |> map   (fun v -> v.vtyp)  
+              |> reduce "biggest_type" (fun t t' -> if size t' > size t then t' else t)
+
+
+    2. Find the Cil-Fields for the offsets (indexes) of the corresponding Ldesc.
+
+        type deco_ldesc     = (index * Cil.field) list
+       
+        val fields_of_store : ldesc SlocMap.t -> Cil.typ SlocMap.t -> deco_ldesc SlocMap.t
+        let fields_of_store sto stt =
+          SlocMap.map begin fun sloc ld -> 
+            if SlocMap.mem sloc stt then 
+              decorate_ldesc ld (SlocMap.find sloc stt)
+            else assertf "unknown cil-typ for" sloc
+          end sto
+
+        val decorate_ldesc: ldesc -> Cil.typ -> deco_ldesc 
+        let decorate_ldesc ld ty = 
+          List.fold_left2 begin fun acc fld (ix, t) ->
+            if size f = size t then
+              ((ix, f, t)::acc)
+            else assertf "mismatch in cil-field and ct-field!"
+          end [] (unroll ty) (unroll ld)
+          |> List.rev
+
+        
 
 * src/pmrtodo.org benchmarks
         tsort 
-        
         in external/gnu-coreutils/src.
 
 * external/gnu-coreutils/HOWTO.lcc : how to use lcc to typecheck coreutils programs.
