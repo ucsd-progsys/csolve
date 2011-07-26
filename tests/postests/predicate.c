@@ -1,17 +1,22 @@
 //! run-with --nop
 // Scratchpad for testing types-as-specs
 
-#define REF(p)  __attribute__ ((lcc_predicate (#p)))
-#define LOC(l)  __attribute__ ((lcc_sloc (#l)))
-#define GLOC(l) __attribute__ ((lcc_gsloc (#l)))
+#define REF(p)   __attribute__ ((lcc_predicate (#p)))
+#define LOC(l)   __attribute__ ((lcc_sloc (#l)))
+#define GLOC(l)  __attribute__ ((lcc_gsloc (#l)))
+#define OKEXTERN __attribute__ ((lcc_extern_ok))
+
+extern void pmr_assert (int REF(V != 0)) OKEXTERN;
+
+extern void assert (int REF(V != 0)) OKEXTERN;
 
 int *globalPointer;
 
 int globalArray[10];
 
 int REF(V > x) test (int x, int REF(&& [V > x; V >= 0]) y) {
-    assert (y > x);
-    assert (y >= 0);
+    pmr_assert (y > x);
+    pmr_assert (y >= 0);
 
     return y;
 }
@@ -103,4 +108,10 @@ void testLinkedList (node_t *l) {
 int * GLOC(G) g;
 
 void testAliasGlobal (int * GLOC(G) h) {
+}
+
+extern int REF(V > 0) testExtern OKEXTERN;
+
+int getTestExtern () {
+    return testExtern;
 }

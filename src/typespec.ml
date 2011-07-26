@@ -2,8 +2,9 @@ module C   = Cil
 module E   = Errormsg
 module P   = Pretty
 module M   = Misc
-module CM  = CilMisc
 module SM  = M.StringMap
+module CM  = CilMisc
+module VS  = CM.VarSet
 module A   = Ast
 module FI  = FixInterface
 module FA  = FixAstInterface
@@ -24,9 +25,10 @@ open M.Ops
 (************************* Annotations From Attributes ************************)
 (******************************************************************************)
 
-let slocAttribute  = "lcc_sloc"
-let gslocAttribute = "lcc_gsloc"
-let predAttribute  = "lcc_predicate"
+let slocAttribute     = "lcc_sloc"
+let gslocAttribute    = "lcc_gsloc"
+let predAttribute     = "lcc_predicate"
+let externOkAttribute = "lcc_extern_ok"
 
 let indexOfAttrs ats = 
   if CM.has_pos_attr ats then I.nonneg else I.top
@@ -69,6 +71,13 @@ let ensureSloc t =
       else
         C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
   else t
+
+let argType (x, t, ats) =
+  (x, t |> C.typeAddAttributes ats |> ensureSloc)
+
+let nameArg =
+  let freshArgName, _ = M.mk_string_factory "ARG" in
+    fun x -> if x = "" then freshArgName () else x
 
 let arraySizes sz1 sz2 = match sz1, sz2 with
   | Some (C.Const (C.CInt64 (i, ik, _))), Some (C.Const (C.CInt64 (j, _, _))) ->
@@ -163,9 +172,6 @@ let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
 let closeTypeInStore loc sto t =
   closeTypeInStoreAux loc SM.empty sto t
 
-let argType (x, t, ats) =
-  (x, t |> C.typeAddAttributes ats |> ensureSloc)
-
 let refstoreOfTypes ts =
   List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
 
@@ -195,7 +201,7 @@ let globalLocsOfTypes ts =
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
   let ret              = ensureSloc ret in
-  let argts            = argso |> C.argsToList |>: argType in
+  let argts            = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
   let rootts           = ret :: List.map snd argts in
   let glocs            = globalLocsOfTypes rootts in
   let _, sto           = rootts |> refstoreOfTypes |> RS.partition (M.flip List.mem glocs) in
@@ -211,21 +217,24 @@ let refcfunOfType t =
 (******************************* Gathering Specs ******************************)
 (******************************************************************************)
 
-let varsOfFile cil =
-  C.foldGlobals cil begin fun acc -> function
-    | C.GVarDecl (v, loc) | C.GVar (v, _, loc)
-        when not (C.isFunctionType v.C.vtype || v.C.vstorage = C.Extern) ->
-      (* actually, we now want specs for extern vars, but we want to make sure we give them
-         an "ok" flag *)
-      (v, loc) :: acc
-    | _ -> acc
-  end []
+let checkDeclarationWellFormed v =
+  if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
+    E.s <| C.errorLoc v.C.vdecl
+        "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
+        v.C.vname;
+  ()
 
-let fundefsOfFile cil =
-  C.foldGlobals cil begin fun acc -> function
-    | C.GFun (fd, loc) -> (fd, loc) :: acc
-    | _                -> acc
-  end []
+let declarationsOfFile file =
+     VS.empty
+  |> C.foldGlobals file begin fun vars -> function
+       | C.GVarDecl (v, _) | C.GVar (v, _, _) -> VS.add v vars
+       | C.GFun (fd, _)                       -> VS.add fd.C.svar vars
+       | _                                    -> vars
+     end
+  |> VS.elements
+  >> List.iter checkDeclarationWellFormed
+  |> List.partition (fun v -> C.isFunctionType v.C.vtype)
+  |> M.app_snd (List.map (fun v -> {v with C.vtype = ensureSloc v.C.vtype}))
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
@@ -236,27 +245,26 @@ let updFunM spec funm loc fn = function
   | _                         -> funm 
 
 let funspecsOfFuns funspec funs =
-     List.fold_left begin fun funm (fd, loc) ->
-      updFunM funspec funm loc fd.C.svar.C.vname fd.C.svar.C.vtype
+     List.fold_left begin fun funm v ->
+      updFunM funspec funm v.C.vdecl v.C.vname v.C.vtype
      end SM.empty funs
   |> Misc.sm_bindings
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
-(* assert that var doesn't have record type *)
 let updVarM spec varm loc vn = function
   | _ when SM.mem vn spec           -> varm
   | t when not (C.isFunctionType t) -> M.sm_protected_add false vn (refctypeOfCilType SM.empty t) varm
   | _                               -> varm
 
 let globalSpecsOfVars varspec vars =
-     List.fold_left begin fun varm (v, loc) ->
-       updVarM varspec varm loc v.C.vname v.C.vtype
+     List.fold_left begin fun varm v ->
+       updVarM varspec varm v.C.vdecl v.C.vname v.C.vtype
      end SM.empty vars
   |> M.sm_bindings
 
 (* in the end, there should only ever be one file, so maybe we should specialize to that *)
 let specsOfFile spec file =
-  let vars = file |> varsOfFile |>: fun (v, loc) -> ({v with C.vtype = ensureSloc v.C.vtype}, loc) in
-    (file |> fundefsOfFile |> funspecsOfFuns (RSp.funspec spec),
+  let funs, vars = declarationsOfFile file in
+    (funspecsOfFuns (RSp.funspec spec) funs,
      globalSpecsOfVars (RSp.varspec spec) vars,
-     vars |>: (fun ({C.vtype = t}, _) -> t) |> refstoreOfTypes)
+     vars |>: (fun {C.vtype = t} -> t) |> refstoreOfTypes)
