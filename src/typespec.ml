@@ -176,7 +176,7 @@ let refstoreOfTypes ts =
   List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
 
 (* Need to assert WF: no type has both global and local sloc annotation *)
-class globalLocVisitor = object (self)
+class globalLocCollector = object (self)
   inherit C.nopCilVisitor
 
   val mutable glocs = []
@@ -194,9 +194,9 @@ class globalLocVisitor = object (self)
 end
 
 let globalLocsOfTypes ts =
-  let gv = new globalLocVisitor in
-    List.iter (C.visitCilType (gv :> C.cilVisitor) <+> ignore) ts;
-    gv#getGlobalLocs
+  let glc = new globalLocCollector in
+    List.iter (C.visitCilType (glc :> C.cilVisitor) <+> ignore) ts;
+    glc#getGlobalLocs
 
 let refcfunOfType t =
   let ret, argso, _, _ = C.splitFunctionType t in
