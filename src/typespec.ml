@@ -11,6 +11,7 @@ module FA  = FixAstInterface
 module Ct  = Ctypes
 module I   = Ct.Index
 module S   = Sloc
+module SC  = ScalarCtypes
 
 module RCt = Ctypes.RefCTypes.CType
 module RFl = Ctypes.RefCTypes.Field
@@ -31,9 +32,6 @@ let concreteAttribute = "lcc_concrete"
 let predAttribute     = "lcc_predicate"
 let externOkAttribute = "lcc_extern_ok"
 
-let indexOfAttrs ats = 
-  if CM.has_pos_attr ats then I.nonneg else I.top
-
 type slocType =
   | Concrete
   | Abstract
@@ -52,15 +50,31 @@ let slocOfAttrs ats =
     |> M.ex_one "Type does not have a single sloc"
     |> getSloc ty
 
-let ptrIndexOfAttrs ats =
-  I.mk_singleton 0
-
-let typePredicate t =
-      t
-  |>  CM.typeAttrs
+let predOfAttrs ats =
+      ats
   |>  CM.getStringAttrs predAttribute
   |>: (Lexing.from_string <+> RefParse.pred RefLex.token)
   |>  A.pAnd
+
+let vv = A.Symbol.of_string "V"
+
+let ptrRefTypeOfAttrs ats =
+  let pred = predOfAttrs ats in
+    FI.t_pred
+      (Ct.Ref (slocOfAttrs ats,
+               if C.hasAttribute predAttribute ats then
+                 SC.ref_index_of_pred vv pred
+               else
+                 I.mk_singleton 0))
+      vv
+      pred
+
+let intRefTypeOfAttrs width ats =
+  let pred = predOfAttrs ats in
+    FI.t_pred
+      (Ct.Int (width, SC.data_index_of_pred vv pred))
+      vv
+      pred
 
 (******************************************************************************)
 (***************************** Type Preprocessing *****************************)
@@ -113,21 +127,19 @@ let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let ctypeOfCilBaseType mem = function
-  | C.TVoid ats          -> Ct.Int (0,                           indexOfAttrs ats)
-  | C.TInt (ik,   ats)   -> Ct.Int (C.bytesSizeOfInt ik,         indexOfAttrs ats)
-  | C.TFloat (fk, ats)   -> Ct.Int (CM.bytesSizeOfFloat fk,      indexOfAttrs ats)
-  | C.TEnum (ei,  ats)   -> Ct.Int (C.bytesSizeOfInt ei.C.ekind, indexOfAttrs ats)
-  | C.TArray (t, _, ats) -> Ct.Ref (slocOfAttrs ats,             ptrIndexOfAttrs ats)
+let refctypeOfCilType mem t = match C.unrollType t with
+  | C.TVoid ats          -> intRefTypeOfAttrs 0 ats
+  | C.TInt (ik,   ats)   -> intRefTypeOfAttrs (C.bytesSizeOfInt ik) ats
+  | C.TFloat (fk, ats)   -> intRefTypeOfAttrs (CM.bytesSizeOfFloat fk) ats
+  | C.TEnum (ei,  ats)   -> intRefTypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
+  | C.TArray (t, _, ats) -> ptrRefTypeOfAttrs ats
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
-      | Some n when SM.mem n mem -> Ct.Ref (SM.find n mem,   ptrIndexOfAttrs ats)
-      | _                        -> Ct.Ref (slocOfAttrs ats, ptrIndexOfAttrs ats)
+      | Some n when SM.mem n mem ->
+        ats |> ptrRefTypeOfAttrs |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
+      | _ -> ptrRefTypeOfAttrs ats
     end
-  | _ -> assertf "ctypeOfCilBaseType: non-base!"
-
-let refctypeOfCilType mem t =
-  FI.t_pred (ctypeOfCilBaseType mem t) (A.Symbol.of_string "V") (typePredicate t)
+  | _ -> assertf "refctypeOfCilType: non-base!"
 
 let addReftypeToStore sto loc s i rct =
   if RCt.width rct = 0 then RS.Data.add sto s (RS.Data.find_or_empty sto s) else

@@ -66,6 +66,8 @@ type dec =
   | FunDec of string * Cil.location
   | VarDec of Cil.varinfo * Cil.location * Cil.init option
 
+module VarSet: Set.S with type elt = Cil.varinfo
+
 module VarMap: Map.S with type key = Cil.varinfo
 module VarMapPrinter: sig
   val d_map : ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->

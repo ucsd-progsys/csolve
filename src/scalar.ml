@@ -65,7 +65,7 @@ let solve cil ci =
   let _  = Co.minquals := false in
   (Sc.scalar_quals_of_file cil) 
   |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
-  |> SM.map (VM.mapi Sc.index_of_pred)
+  |> SM.map (VM.mapi Sc.index_of_var)
   >> (fun _ -> Co.minquals := mq)
 
 

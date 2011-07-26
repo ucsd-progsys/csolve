@@ -157,12 +157,24 @@ let data_index_of_pred_funs =
   ; data_ilowerbound_of_preds
   ; data_iupperbound_of_preds ]
 
-(* API *)
-let index_of_pred v (cr, p) =
-  let vv = FA.name_of_varinfo v in
-    (if Cil.isPointerType v.Cil.vtype then ref_index_of_pred_funs else data_index_of_pred_funs)
+let index_of_pred conv vv p =
+     conv
   |> Misc.flap (fun f -> p |> A.conjuncts |> f vv)
   |> List.fold_left Ix.glb Ix.top
+
+(* API *)
+let ref_index_of_pred vv p  = index_of_pred ref_index_of_pred_funs vv p
+
+(* API *)
+let data_index_of_pred vv p = index_of_pred data_index_of_pred_funs vv p
+
+(* API *)
+let index_of_var v (cr, p) =
+  if Cil.isPointerType v.Cil.vtype then
+    ref_index_of_pred (FA.name_of_varinfo v) p
+  else
+    data_index_of_pred (FA.name_of_varinfo v) p
+
   (* >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n"  *)
   (*               v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix) *)
 

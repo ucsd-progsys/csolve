@@ -1,11 +1,30 @@
 //! run-with --nop
 // Scratchpad for testing types-as-specs
 
-#define REF(p)   __attribute__ ((lcc_predicate (#p)))
+// Basic macros
+
+// Need to break this into two levels to ensure predicate p is macro expanded
+#define REF(p)   SREF(p)
+#define SREF(p)  __attribute__ ((lcc_predicate (#p)))
+
 #define LOC(l)   __attribute__ ((lcc_sloc (#l)))
 #define GLOC(l)  __attribute__ ((lcc_gsloc (#l)))
 #define CONCRETE __attribute__ ((lcc_concrete))
 #define OKEXTERN __attribute__ ((lcc_extern_ok))
+
+// Predicate abbreviations
+
+#define PNONNULL  V > 0
+#define PVALIDPTR && [PNONNULL; BLOCK_BEGIN([V]) <= V; V < BLOCK_END([V])]
+#define PSTART    V = BLOCK_BEGIN([V])
+#define PSIZE(n)  (V + n) <= BLOCK_END([V])
+
+// Predicate macros
+
+#define VALIDPTR REF(PVALIDPTR)
+#define NONNULL  REF(PNONNULL)
+#define START    REF(PSTART)
+#define SIZE(n)  REF(PSIZE(n))
 
 extern void pmr_assert (int REF(V != 0)) OKEXTERN;
 
@@ -15,9 +34,10 @@ int *globalPointer;
 
 int globalArray[10];
 
-int REF(V > x) test (int x, int REF(&& [V > x; V >= 0]) y) {
+// Used to have y >= 0, but causes problems for index checking
+int REF(V > x) test (int x, int REF(&& [V > x]) y) {
     pmr_assert (y > x);
-    pmr_assert (y >= 0);
+    /* pmr_assert (y >= 0); */
 
     return y;
 }
@@ -117,7 +137,7 @@ int getTestExtern () {
     return testExtern;
 }
 
-extern void * CONCRETE LOC(L) pmr_malloc (int REF(V >= 0)) OKEXTERN;
+extern void * CONCRETE LOC(L) START NONNULL SIZE(sz) pmr_malloc (int REF(V >= 0) sz) OKEXTERN;
 
 void testMalloc () {
     int *p = (int *) pmr_malloc (sizeof(int));
