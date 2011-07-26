@@ -5,6 +5,10 @@
 #define LOC(l)  __attribute__ ((lcc_sloc (#l)))
 #define GLOC(l) __attribute__ ((lcc_gsloc (#l)))
 
+int *globalPointer;
+
+int globalArray[10];
+
 int REF(V > x) test (int x, int REF(&& [V > x; V >= 0]) y) {
     assert (y > x);
     assert (y >= 0);
@@ -22,6 +26,8 @@ typedef struct {
     int fst;
     int REF(V > fst) snd;
 } pair;
+
+pair globalPairArray[5];
 
 void testptr (int REF(V > 0) *x) {
     assert (*x > 0);
