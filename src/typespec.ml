@@ -35,12 +35,8 @@ let indexOfAttrs ats =
 
 let slocTable = Hashtbl.create 17
 
-let getSlocAttribute ats =
-  if C.hasAttribute slocAttribute ats then slocAttribute else gslocAttribute
-
 let slocOfAttrs ats =
-     ats
-  |> CM.getStringAttrs (getSlocAttribute ats)
+     CM.getStringAttrs slocAttribute ats ++ CM.getStringAttrs gslocAttribute ats
   |> M.ex_one "Type does not have a single sloc"
   |> M.do_memo slocTable S.fresh_abstract []
 
@@ -221,8 +217,7 @@ let checkDeclarationWellFormed v =
   if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
     E.s <| C.errorLoc v.C.vdecl
         "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
-        v.C.vname;
-  ()
+        v.C.vname
 
 let declarationsOfFile file =
      VS.empty
