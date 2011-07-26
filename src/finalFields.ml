@@ -218,7 +218,7 @@ module Intraproc (X: Context) = struct
         | succs ->
              succs
           |> List.map (fun j -> ffmsa.(j) |> fst)
-          |> M.list_reduce meet_finals
+          |> M.list_reduce "merge_succs" meet_finals
           |> List.fold_right (fun j ffm -> add_succ_generalized_clocs conc_out (fst X.shp.Sh.conca.(j)) ffm) succs
 
   let process_block init_ffm ffmsa i =

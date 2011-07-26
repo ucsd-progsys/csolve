@@ -71,11 +71,11 @@ let mk_gnv f spec decs cenv =
   let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
              |> CS.varspec
-             |> M.sm_to_list
+             |> SM.to_list
              |> M.map_partial (fun vs -> if SS.mem (fst vs) vardecs then Some vs else None)
              |> List.map (FA.name_of_string <**> (fst <+> f))
              |> FI.ce_adds FI.ce_empty in
-  M.sm_to_list cenv
+  SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs 
             then ft |> FI.refcfun_of_cfun |> FI.map_fn f
@@ -176,9 +176,9 @@ let print_sccs sccs =
 (* API *)
 let create cil spec =
   let reachf = CM.reachable cil in
-  let scim   = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn)  in
+  let scim   = cil |> scim_of_file |> SM.filter (fun fn _ -> reachf fn)  in
   let _      = E.log "\nDONE: SSA conversion \n" in
-  let tgr    = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
+  let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
   let _      = E.log "\nDONE: TAG initialization\n" in
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in

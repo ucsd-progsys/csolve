@@ -602,8 +602,8 @@ let make_wfs ((_,_,livem) as cenv) sto rct _ =
   let r   = rct |> Ct.reft_of_refctype |> canon_reft in
   let env = cenv 
             |> env_of_cilenv
-            |> Sy.sm_filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
-            |> (if !Co.prune_live then Sy.sm_filter (fun n _ -> is_live_name livem n) else id)
+            |> YM.filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
+            |> (if !Co.prune_live then YM.filter (fun n _ -> is_live_name livem n) else id)
   in [C.make_filtered_wf env r None (filter_store_derefs cenv sto rct)]
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)

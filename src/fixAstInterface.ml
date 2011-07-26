@@ -124,7 +124,7 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_skolem,  C.make_reft vv_skl so_skl [])
                   ;(uf_uncheck, C.make_reft vv_pun so_pun [])
                   ;(uf_deref,   C.make_reft vv_drf so_drf [])]
-                  |> Sy.sm_of_list
+                  |> YM.of_list
 (* API *)
 let quals_of_file fname =
   try

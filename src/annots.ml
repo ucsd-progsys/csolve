@@ -115,27 +115,37 @@ let dump s =
   >> (snd <+> generate_tags) 
   |> ignore
 
+(* JHALA HEREHEREHEREHEREHERE 
 (***************************************************************************************)
 (***************************************************************************************)
 (************************************************************************)
-
-  (* HEREHEREHEREHEREHEREHERE JHALA 
- *
-(***** Step 0: Gather Annots into (varinfo * ctype) list   **************)
-let get_var_ctypes () = 
+let get_var_ctypes () : (Cil.varinfo * Ct.refctype) list = 
   Misc.map_partial begin function 
     | TVar (n, cr) -> (match FA.varinfo_of_name n with Some v -> Some (v, cr) | _ -> None)
     | _            -> None
   end !annotr
 
-(***** Step 1: Find the Cil-Type of (the block at) each location ********)
+let target_type_of_ptr = function
+  | Cil.TPtr (Cil.TFun (_, _, _, _), _) -> 
+      None (* assertf "TBD: deref_ciltyp: function pointer" *)
+  | Cil.TPtr (c, a) ->
+      Some (Cil.unrollType c)
+  | _ ->
+      None
+
+let is_zero_offset = 
+      Ct.ctype_of_refctype 
+  <+> Ct.index_of_ctype 
+  <+> (function Ctypes.Index.IInt 0 -> true | _ -> false) 
 
 let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
-   vs |> map   (fun v -> (* DEREF ME FIRST *) v.vtyp)  
-      |> reduce "biggest_type" (fun t t' -> if size t' > size t then t' else t)
+   vs |> Misc.map_partial  (fun v -> target_type_of_ptr v.Cil.vtype)
+      |> (function [] -> assertf "biggest type: No pointers!"
+                 | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
 
-let ciltyp_of_slocs (xcts : varinfo * ctype list) : Cil.typ SlocMap.t =  
-  xcts |> kgroupby (snd <+> sloc_of_ct) 
+let ciltyp_of_slocs (xcts : Cil.varinfo * Ct.refctype list) : Cil.typ SlocMap.t =  
+  xcts |> kgroupby (snd <+> Ct.RCt.CType.sloc) 
+       |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
        |> map (app_snd (filter (is_zero_offset)))
        |> map (app_snd (map app_fst))
        |> map (app_snd biggest_type)
@@ -161,7 +171,6 @@ let fields_of_store (sto : Ldesc.t SlocMap.t) (stt : Cil.typ SlocMap.t) : deco_l
       decorate_ldesc ld (SlocMap.find sloc stt)
     else assertf "unknown cil-typ for" sloc
   end sto
-
 *)
 
 (*******************************************************************)

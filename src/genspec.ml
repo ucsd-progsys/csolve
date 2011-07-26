@@ -310,7 +310,7 @@ let funspecs_of_funm funspec funm =
      | GFun (fd, loc)    -> upd_funm funspec funm loc fd.svar.vname fd.svar.vtype
      | GVarDecl (v, loc) -> upd_funm funspec funm loc v.vname v.vtype
      end funm 
-  |> Misc.sm_bindings
+  |> SM.to_list
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
 let upd_varm spec (st, varm) loc vn = function
@@ -339,7 +339,7 @@ let globalspecs_of_varm varspec varm =
        | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (st, varm) loc v.vname v.vtype
        | _                                    -> (st, varm)
      end varm
-  |> fun (st, varm) -> (st, Misc.sm_bindings varm)
+  |> fun (st, varm) -> (st, SM.to_list varm)
 
 (***************************************************************************)
 (********************************* API *************************************)

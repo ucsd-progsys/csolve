@@ -223,7 +223,7 @@ let conc_join (conc1:cncm) (conc2:cncm) : cncm =
 
 let conc_of_predecessors = function
   | [] -> LM.empty 
-  | is -> Misc.list_reduce conc_join is
+  | is -> Misc.list_reduce "conc_of_predecessors" conc_join is
 
 (******************************************************************************)
 (*************************** Operations on Solns ******************************)

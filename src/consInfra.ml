@@ -354,7 +354,7 @@ let bind_phis me =
   me 
   |> get_phis
   |> List.map (fun v -> (v, v |> ctype_of_varinfo me |> FI.t_fresh))
-  |> (fun vcrs -> { me with des = vcrs ++ me.des; phim = vcrs |>: Misc.app_fst (fun v -> v.vname) |> Misc.sm_of_list })
+  |> (fun vcrs -> { me with des = vcrs ++ me.des; phim = vcrs |>: Misc.app_fst (fun v -> v.vname) |> SM.of_list })
 
 let phis_of_block me i = 
   me.sci.ST.phis.(i) 
