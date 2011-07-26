@@ -42,6 +42,7 @@ module CI = CilInterface
 module Ct = Ctypes
 module It = Ct.I
 module YM = Sy.SMap
+
 module SM = Misc.StringMap
 module Co = Constants
 module CM = CilMisc
@@ -125,82 +126,12 @@ let is_base = function
 
 (* API *)
 let pred_of_refctype s v cr = 
-  let n        = FA.name_of_varinfo v in
+  let n        = FA.name_of_varinfo v |> A.eVar in
   let vv,_,ras = cr |> Ct.reft_of_refctype |> C.apply_solution s in
-  let su       = Su.of_list [(vv, A.eVar n)] in
+  let su       = Su.of_list [(vv, n)] in
   ras |> Misc.flap (function C.Conc (A.And ps, _) -> ps | _ -> []) 
       |> A.pAnd
       |> Misc.flip A.substs_pred su
-
-(*******************************************************************)
-(****************** Tag/Annotation Generation **********************)
-(*******************************************************************)
-
-type binding = TVar of string * Ct.refctype
-             | TFun of string * Ct.refcfun
-             | TSto of string * Ct.refstore
-
-let report_bad_binding = function 
-  | TVar (x, cr) ->
-      Errormsg.warn "\nBad TVar for %s :: \n\n@[%a@]" x Ct.d_refctype cr
-  | TFun (fn, cf) ->
-      Errormsg.warn "\nBad TFun for %s ::\n\n@[%a@]" fn Ct.d_refcfun cf
-  | TSto (fn, st) -> 
-      Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn Ct.d_refstore st 
-
-let tags_of_binds s binds = 
-  let s_typ = RCt.CType.map (Misc.app_snd (C.apply_solution s)) in
-  let s_fun = RCt.CFun.map s_typ in
-  let s_sto = RCt.Store.map s_typ in
-  let nl    = Constants.annotsep_name in
-  List.fold_left begin fun (d, kts) bind -> 
-    try
-      match bind with 
-      | TVar (x, cr) ->
-          let k,t  = x, ("variable "^x) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refctype (s_typ cr) nl in
-          (Pretty.concat d d', (k,t)::kts)
-      | TFun (f, cf) -> 
-          let k,t  = f, ("function "^f) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refcfun (s_fun cf) nl in
-          (Pretty.concat d d', (k,t)::kts)
-      | TSto (f, st) -> 
-        let kts' =  RCt.Store.domain st 
-                 |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
-                 |> List.map (fun s -> (s, s^" |->")) in
-        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore (s_sto st) nl in
-        (Pretty.concat d d', kts' ++ kts)
-    with
-      FixSolution.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
-  end (Pretty.nil, []) binds
-
-let generate_annots d = 
-  let fn = !Co.liquidc_file_prefix ^ ".annot" in
-  let oc = open_out fn in
-  let _  = Pretty.fprint ~width:80 oc d in
-  let _  = close_out oc in
-  ()
-
-let generate_tags kts =
-  let fn = !Co.liquidc_file_prefix ^ ".tags" in
-  let oc = open_out fn in
-  let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
-               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.liquidc_file_prefix t) in
-  let _  = close_out oc in
-  ()
-
-let annotr    = ref [] 
-
-(* API *)
-let annot_var   = fun x cr  -> annotr := TVar (FA.string_of_name x, cr) :: !annotr
-let annot_fun   = fun f cf  -> annotr := TFun (f, cf) :: !annotr
-let annot_sto   = fun f st  -> annotr := TSto (f, st) :: !annotr
-let annot_clear = fun _     -> annotr := []
-let annot_dump  = fun s     -> !annotr
-                               |> tags_of_binds s 
-                               >> (fst <+> generate_annots)
-                               >> (snd <+> generate_tags) 
-                               |> ignore
 
 (*******************************************************************)
 (************************** Environments ***************************)
@@ -212,8 +143,8 @@ let ce_mem   = fun n (_, vnv,_) -> YM.mem n vnv
 
 let ce_find n (_, vnv, _) =
   try YM.find n vnv with Not_found -> 
-    let _  = asserti false "Unknown name! %s" (Sy.to_string n) in
-    assertf "Unknown name! %s" (Sy.to_string n)
+    let _  = asserti false "Unknown name! %s" (FA.string_of_name n) in
+    assertf "Unknown name! %s" (FA.string_of_name n)
 
 let ce_find_fn s (fnv, _,_) =
   try SM.find s fnv with Not_found ->
@@ -221,8 +152,8 @@ let ce_find_fn s (fnv, _,_) =
 
 let ce_adds cenv ncrs =
   let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
-  (Sy.to_string n) Ct.d_refctype cr) ncrs) in
-  let _ = List.iter (fun (n, cr) -> annot_var n cr) ncrs in
+  (FA.string_of_name n) Ct.d_refctype cr) ncrs) in
+  let _ = List.iter (fun (n, cr) -> Annots.annot_var n cr) ncrs in
   List.fold_left begin fun (fnv, env, livem) (n, cr) ->
     let env'   = YM.add n cr env in
     let livem' = match FA.base_of_name n with 
@@ -232,7 +163,7 @@ let ce_adds cenv ncrs =
   end cenv ncrs
 
 let ce_adds_fn (fnv, vnv, livem) sfrs = 
-  let _ = List.iter (Misc.uncurry annot_fun) sfrs in
+  let _ = List.iter (Misc.uncurry Annots.annot_fun) sfrs in
   (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv, livem)
 
 let ce_mem_fn = fun s (fnv, _, _) -> SM.mem s fnv
@@ -423,7 +354,7 @@ let refctype_subs f nzs =
 (* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> annot_sto f 
+let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype

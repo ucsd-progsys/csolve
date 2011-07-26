@@ -1,6 +1,6 @@
 
 
-type name = Ast.Symbol.t
+type name = Ast.Symbol.t 
 
 val so_ref : Sloc.t -> Ast.Sort.t
 val so_int: Ast.Sort.t
@@ -28,6 +28,7 @@ val eApp_skolem         : Ast.expr -> Ast.expr
 
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name
+val varinfo_of_name     : name -> Cil.varinfo option
 val name_fresh          : unit -> name
 val string_of_name      : name -> string
 val base_of_name        : name -> name option

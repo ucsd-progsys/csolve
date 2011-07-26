@@ -415,9 +415,6 @@ let d_sloc_typ_varss () (sloc, tvss) =
     (List.length tvss)
     d_typ_varss tvss
 
-(* 1. Foreach function,
- *      write: loc -> (varinfo, typ) list 
- *      into : fileName.shape *)
 let stitch_shapes_ctypes cil shm = 
   Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
   SM.iter begin fun fn shp ->

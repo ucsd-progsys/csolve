@@ -60,10 +60,10 @@ let mydebug = false
 
 type name = Sy.t
 
-
-let string_of_name = Sy.to_string 
+let string_of_name  = Sy.to_string 
 let name_of_varinfo = fun v -> Sy.of_string v.vname
 let name_of_string  = fun s -> Sy.of_string s
+let varinfo_of_name = fun n -> failwith "TBD: varinfo_of_name"
 
 let name_fresh : unit -> name =
   let t, _ = Misc.mk_int_factory () in
@@ -73,7 +73,7 @@ let base_of_name n =
   match ST.deconstruct_ssa_name (string_of_name n) with
   | None        -> None 
   | Some (b, _) -> Some (name_of_string b)
- 
+
 (*******************************************************************)
 (******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
