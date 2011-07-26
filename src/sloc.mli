@@ -26,7 +26,7 @@ type slocinfo = CilMisc.srcinfo list
 type t
 
 module SlocSet: Set.S with type elt = t
-module SlocMap: Map.S with type key = t
+module SlocMap: Misc.EMapType with type key = t
 
 val none           : t
 val canonical      : t -> t

@@ -30,6 +30,7 @@ module RCt = Ct.RefCTypes
 module Sc  = ScalarCtypes
 module PP  = Pretty
 module SM  = Misc.StringMap
+module SLM = Sloc.SlocMap
 
 open Misc.Ops
 
@@ -115,10 +116,10 @@ let dump s =
   >> (snd <+> generate_tags) 
   |> ignore
 
-(* JHALA HEREHEREHEREHEREHERE 
 (***************************************************************************************)
 (***************************************************************************************)
 (************************************************************************)
+
 let get_var_ctypes () : (Cil.varinfo * Ct.refctype) list = 
   Misc.map_partial begin function 
     | TVar (n, cr) -> (match FA.varinfo_of_name n with Some v -> Some (v, cr) | _ -> None)
@@ -133,45 +134,40 @@ let target_type_of_ptr = function
   | _ ->
       None
 
-let is_zero_offset = 
-      Ct.ctype_of_refctype 
-  <+> Ct.index_of_ctype 
-  <+> (function Ctypes.Index.IInt 0 -> true | _ -> false) 
-
 let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
    vs |> Misc.map_partial  (fun v -> target_type_of_ptr v.Cil.vtype)
       |> (function [] -> assertf "biggest type: No pointers!"
                  | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
 
-let ciltyp_of_slocs (xcts : Cil.varinfo * Ct.refctype list) : Cil.typ SlocMap.t =  
-  xcts |> kgroupby (snd <+> Ct.RCt.CType.sloc) 
+let ciltyp_of_slocs (xcts : (Cil.varinfo * Ct.refctype) list) : Cil.typ SLM.t =  
+  xcts |> List.filter (snd <+> (function Ct.Ref (_,(Ct.Index.IInt 0,_)) -> true | _ -> false))
+       |> Misc.kgroupby (snd <+> RCt.CType.sloc) 
        |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-       |> map (app_snd (filter (is_zero_offset)))
-       |> map (app_snd (map app_fst))
-       |> map (app_snd biggest_type)
+       |> List.map (Misc.app_snd (List.map fst))
+       |> List.map (Misc.app_snd biggest_type)
+       |> SLM.of_list
 
 
 (***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
 
-type deco_ldesc     = (index * Cil.field) list
+type deco_ldesc     = (Ct.Index.t * Cil.fieldinfo) list
 
-let decorate_ldesc (ld: LDesc.t) (ty: Cil.typ) : deco_ldesc = 
+let decorate_ldesc (ld: Ct.refldesc) (ty: Cil.typ) : deco_ldesc = failwith "TBD"
+(*
   List.fold_left2 begin fun acc fld (ix, t) ->
     if size f = size t then
       ((ix, f, t)::acc)
     else assertf "mismatch in cil-field and ct-field!"
   end [] (unroll ty) (unroll ld)
   |> List.rev
+*)
 
-
-(* val fields_of_store : ldesc SlocMap.t -> Cil.typ SlocMap.t -> deco_ldesc SlocMap.t *)
-let fields_of_store (sto : Ldesc.t SlocMap.t) (stt : Cil.typ SlocMap.t) : deco_ldesc SlocMap.t =
-  SlocMap.map begin fun sloc ld -> 
-    if SlocMap.mem sloc stt then 
-      decorate_ldesc ld (SlocMap.find sloc stt)
+let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : deco_ldesc SLM.t =
+  SLM.mapi begin fun sloc ld -> 
+    if SLM.mem sloc stt then 
+      decorate_ldesc ld (SLM.find sloc stt)
     else assertf "unknown cil-typ for" sloc
   end sto
-*)
 
 (*******************************************************************)
 (*******************************************************************)
@@ -207,7 +203,7 @@ let d_sloc_typ_varss () (sloc, tvss) =
 let stitch_shapes_ctypes cil shm = 
   Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
   SM.iter begin fun fn shp ->
-    Misc.kgroupby (snd <+> Ctypes.I.CType.sloc) shp.Shape.vtyps
+    Misc.kgroupby (snd <+> Ct.I.CType.sloc) shp.Shape.vtyps
     |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
     |> List.map (Misc.app_snd (List.map fst))
     |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.Cil.vtype)))
