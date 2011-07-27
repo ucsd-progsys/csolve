@@ -123,6 +123,22 @@ let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
   | _                                          -> assert false
 
 (******************************************************************************)
+(****************** Checking Type Annotation Well-Formedness ******************)
+(******************************************************************************)
+
+let assertStoreTypeWellFormed t =
+     t
+  |> C.typeAttrs
+  |> fun ats ->
+       if C.hasAttribute concreteAttribute ats then failwith "Found concrete location in store"
+
+let checkDeclarationWellFormed v =
+  if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
+    E.s <| C.errorLoc v.C.vdecl
+        "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
+        v.C.vname
+
+(******************************************************************************)
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
@@ -180,6 +196,7 @@ let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
         begin fun sto (_, i, t) ->
           let sto = closeTypeInStoreAux loc mem sto t in
                t
+            >> assertStoreTypeWellFormed
             |> refctypeOfCilType mem
             |> FI.t_subs_names fldsub
             |> addReftypeToStore sto loc s i
@@ -208,12 +225,6 @@ let refcfunOfVar v =
 (******************************************************************************)
 (******************************* Gathering Specs ******************************)
 (******************************************************************************)
-
-let checkDeclarationWellFormed v =
-  if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
-    E.s <| C.errorLoc v.C.vdecl
-        "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
-        v.C.vname
 
 let declarationsOfFile file =
      VS.empty
