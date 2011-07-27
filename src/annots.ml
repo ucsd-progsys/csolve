@@ -32,7 +32,6 @@ module PP  = Pretty
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module IM  = Misc.IntMap
-
 open Misc.Ops
 
 let mydebug = false
@@ -92,13 +91,102 @@ let generate_tags kts =
   let _  = close_out oc in
   ()
 
+(***************************************************************************************)
+(***************************************************************************************)
+(* {{{
+
+(***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
+type cilinfo  = { name : string option; ty   : Cil.typ option }
+
+let d_cilinfo () ci = 
+  Pretty.dprintf "%a %a" 
+    (Pretty.docOpt (Cil.d_type ())) ci.ty
+    (Pretty.docOpt Pretty.text) ci.name 
+
+module CilReft = struct
+  type t = Ct.Index.t * FixConstraint.reft * cilinfo 
+  let d_refinement () (ix, r, ci) =
+    Pretty.dprintf "%a [%a] %a;@!" d_cilinfo ci Ct.Index.d_index ix Ct.d_reft r
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
+  let top          = Ct.Index.top, Ct.reft_of_top, { name = None; ty = None } 
+end
+
+module CilCTypes   = Ct.Make (CilReft)
+
+let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : CilCTypes.LDesc.t SLM.t =
+  SLM.mapi begin fun sloc ld -> 
+    if SLM.mem sloc stt then 
+      decorate_ldesc ld (SLM.find sloc stt)
+    else assertf "ERROR: cannot determine ciltyp for" sloc
+  end sto
+
+}}} *)
+
+let target_type_of_ptr = function
+  | Cil.TPtr (Cil.TFun (_, _, _, _), _) -> 
+      assertf "TBD: target_type_of_ptr : function pointer"
+  | Cil.TPtr (c, a) ->
+      Some (Cil.unrollType c)
+  | _ ->
+      None
+
+let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
+   vs |> Misc.map_partial  (fun v -> target_type_of_ptr v.Cil.vtype)
+      |> (function [] -> assertf "biggest type: No pointers!"
+                 | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
+
+let ciltyp_of_slocs (xcts : (Cil.varinfo * Ct.refctype) list) : Cil.typ SLM.t =  
+  xcts |> List.filter (snd <+> (function Ct.Ref (_,(Ct.Index.IInt 0,_)) -> true | _ -> false))
+       |> Misc.kgroupby (snd <+> RCt.CType.sloc) 
+       |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
+       |> List.map (Misc.app_snd (List.map fst))
+       |> List.map (Misc.app_snd biggest_type)
+       |> SLM.of_list
+
+let mk_sloc_ciltyp_map binds =
+  binds
+  |> Misc.map_partial begin function 
+       | TVar (n, cr) -> (match FA.varinfo_of_name n with Some v -> Some (v, cr) | _ -> None)
+       | _            -> None
+     end
+  |> ciltyp_of_slocs
+
+let unfold_ciltyp (ty: Cil.typ) : Ct.fieldinfo IM.t = 
+  failwith "unfold_ciltyp: TBD"
+
+let patch_refldesc (slocm : Cil.typ SLM.t) (sloc : Sloc.t) (ld : Ct.refldesc) : Ct.refldesc =
+  if SLM.mem sloc slocm then 
+    let ty   = SLM.find sloc slocm in 
+    let fldm = unfold_ciltyp ty    in
+    ld |> Misc.flip RCt.LDesc.set_structinfo {stype = ty}
+       |> RCt.LDesc.mapn (fun i _ pf -> RCt.Field.set_fieldinfo pf (IM.find i fldm))
+  else begin 
+    ignore <| E.warn "patch_ldesc: unknown cil info for" Sloc.d_sloc sloc; 
+    ld
+  end
+
+let patch_refstore (slocm : Cil.typ SLM.t) (sto : Ct.refstore) : Ct.refstore = 
+  failwith "TBD: patch_refstore"
+
+let patch_refcfun (slocm : Cil.typ SLM.t) (cf : Ct.refcfun) : Ct.refcfun = 
+  failwith "TBD: patch_refcfun"
+
+let patch_binding (slocm : Cil.typ SLM.t) = function
+  | TSto (x, sto) -> TSto (x, patch_refstore slocm sto)
+  | TFun (x, cf ) -> TFun (x, patch_refstore slocm sto)
+  | b -> b (* TODO: patch ctype too *)
+
+let set_cilinfo binds = 
+  let slocm = mk_sloc_ciltyp_map binds in
+  Misc.map (patch_binding slocm) binds
+
 (*******************************************************************)
 (*******************************************************************)
 (*******************************************************************)
 
 (* UGH. Global State. *)
 let annotr    = ref [] 
-
 
 (* API *)
 let annot_var x cr = annotr := TVar (x, cr) :: !annotr
@@ -118,82 +206,12 @@ let apply_solution =
 (* API *)
 let dump s = 
   !annotr
+  |> set_cilinfo
   |> Misc.map (apply_solution s)
   |> tags_of_binds 
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
   |> ignore
-
-(***************************************************************************************)
-(***************************************************************************************)
-(************************************************************************)
-
-let get_var_ctypes () : (Cil.varinfo * Ct.refctype) list = 
-  Misc.map_partial begin function 
-    | TVar (n, cr) -> (match FA.varinfo_of_name n with Some v -> Some (v, cr) | _ -> None)
-    | _            -> None
-  end !annotr
-
-let target_type_of_ptr = function
-  | Cil.TPtr (Cil.TFun (_, _, _, _), _) -> 
-      None (* assertf "TBD: deref_ciltyp: function pointer" *)
-  | Cil.TPtr (c, a) ->
-      Some (Cil.unrollType c)
-  | _ ->
-      None
-
-let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
-   vs |> Misc.map_partial  (fun v -> target_type_of_ptr v.Cil.vtype)
-      |> (function [] -> assertf "biggest type: No pointers!"
-                 | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
-
-let ciltyp_of_slocs (xcts : (Cil.varinfo * Ct.refctype) list) : Cil.typ SLM.t =  
-  xcts |> List.filter (snd <+> (function Ct.Ref (_,(Ct.Index.IInt 0,_)) -> true | _ -> false))
-       |> Misc.kgroupby (snd <+> RCt.CType.sloc) 
-       |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-       |> List.map (Misc.app_snd (List.map fst))
-       |> List.map (Misc.app_snd biggest_type)
-       |> SLM.of_list
-
-
-(***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
-
-type cilinfo  = { name : string option; ty   : Cil.typ option }
-
-let d_cilinfo () ci = 
-  Pretty.dprintf "%a %a" 
-    (Pretty.docOpt (Cil.d_type ())) ci.ty
-    (Pretty.docOpt Pretty.text) ci.name 
-
-module CilReft = struct
-  type t = Ct.Index.t * FixConstraint.reft * cilinfo 
-  let d_refinement () (ix, r, ci) =
-    Pretty.dprintf "%a [%a] %a;@!" d_cilinfo ci Ct.Index.d_index ix Ct.d_reft r
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Ct.Index.top, Ct.reft_of_top, { name = None; ty = None } 
-end
-
-module CilCTypes   = Ct.Make (CilReft)
-
-let unfold_ciltyp (ty: Cil.typ) : cilinfo IM.t = 
-  failwith "unfold_ciltyp: TBD"
-
-let decorate_ldesc (ld: Ct.refldesc) (ty: Cil.typ) : CilCTypes.LDesc.t = 
-  let fldm = unfold_ciltyp ty in
-  Ct.RefCTypes.LDesc.mapn begin fun i _ pf ->
-    Ct.RefCTypes.Field.map_type (Ct.RefCTypes.CType.map (fun (x,y) -> (x,y, IM.find i fldm))) pf
-  end ld
-
-let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : CilCTypes.LDesc.t SLM.t =
-  SLM.mapi begin fun sloc ld -> 
-    if SLM.mem sloc stt then 
-      decorate_ldesc ld (SLM.find sloc stt)
-    else assertf "ERROR: cannot determine ciltyp for" sloc
-  end sto
-
-
-TODO: map_ldesc: (sloc.t -> 'a ldesc -> 'b ldesc) -> 'a prestore -> 'b prestore 
 
 
 (*******************************************************************)
