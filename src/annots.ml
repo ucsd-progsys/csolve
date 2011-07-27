@@ -31,6 +31,7 @@ module Sc  = ScalarCtypes
 module PP  = Pretty
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
+module IM  = Misc.IntMap
 
 open Misc.Ops
 
@@ -52,10 +53,7 @@ let report_bad_binding = function
   | TSto (fn, st) -> 
       Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn Ct.d_refstore st 
 
-let tags_of_binds s binds = 
-  let s_typ = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
-  let s_fun = RCt.CFun.map s_typ in
-  let s_sto = RCt.Store.map s_typ in
+let tags_of_binds binds = 
   let nl    = Constants.annotsep_name in
   List.fold_left begin fun (d, kts) bind -> 
     try
@@ -63,17 +61,17 @@ let tags_of_binds s binds =
       | TVar (n, cr) ->
           let x    = FA.string_of_name n in
           let k,t  = x, ("variable "^x) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refctype (s_typ cr) nl in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refctype cr nl in
           (Pretty.concat d d', (k,t)::kts)
       | TFun (f, cf) -> 
           let k,t  = f, ("function "^f) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refcfun (s_fun cf) nl in
+          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refcfun cf nl in
           (Pretty.concat d d', (k,t)::kts)
       | TSto (f, st) -> 
         let kts' =  RCt.Store.domain st 
                  |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
                  |> List.map (fun s -> (s, s^" |->")) in
-        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore (s_sto st) nl in
+        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore st nl in
         (Pretty.concat d d', kts' ++ kts)
     with
       FixSolution.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
@@ -108,10 +106,20 @@ let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
 let annot_sto f st = annotr := TSto (f, st) :: !annotr
 let clear _        = annotr := []
 
+let apply_solution =
+  let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
+  let s_fun s = RCt.CFun.map s_typ in
+  let s_sto s = RCt.Store.map s_typ in
+  fun s a -> match a with 
+    | TVar (n, cr) -> TVar (n, s_typ s cr)
+    | TFun (f, cf) -> TFun (f, s_fun s cf)
+    | TSto (f, st) -> TSto (f, s_sto s st) 
+
 (* API *)
 let dump s = 
   !annotr
-  |> tags_of_binds s 
+  |> Misc.map (apply_solution s)
+  |> tags_of_binds 
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
   |> ignore
@@ -150,24 +158,43 @@ let ciltyp_of_slocs (xcts : (Cil.varinfo * Ct.refctype) list) : Cil.typ SLM.t =
 
 (***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
 
-type deco_ldesc     = (Ct.Index.t * Cil.fieldinfo) list
+type cilinfo  = { name : string option; ty   : Cil.typ option }
 
-let decorate_ldesc (ld: Ct.refldesc) (ty: Cil.typ) : deco_ldesc = failwith "TBD"
-(*
-  List.fold_left2 begin fun acc fld (ix, t) ->
-    if size f = size t then
-      ((ix, f, t)::acc)
-    else assertf "mismatch in cil-field and ct-field!"
-  end [] (unroll ty) (unroll ld)
-  |> List.rev
-*)
+let d_cilinfo () ci = 
+  Pretty.dprintf "%a %a" 
+    (Pretty.docOpt (Cil.d_type ())) ci.ty
+    (Pretty.docOpt Pretty.text) ci.name 
 
-let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : deco_ldesc SLM.t =
+module CilReft = struct
+  type t = Ct.Index.t * FixConstraint.reft * cilinfo 
+  let d_refinement () (ix, r, ci) =
+    Pretty.dprintf "%a [%a] %a;@!" d_cilinfo ci Ct.Index.d_index ix Ct.d_reft r
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
+  let top          = Ct.Index.top, Ct.reft_of_top, { name = None; ty = None } 
+end
+
+module CilCTypes   = Ct.Make (CilReft)
+
+let unfold_ciltyp (ty: Cil.typ) : cilinfo IM.t = 
+  failwith "unfold_ciltyp: TBD"
+
+let decorate_ldesc (ld: Ct.refldesc) (ty: Cil.typ) : CilCTypes.LDesc.t = 
+  let fldm = unfold_ciltyp ty in
+  Ct.RefCTypes.LDesc.mapn begin fun i _ pf ->
+    Ct.RefCTypes.Field.map_type (Ct.RefCTypes.CType.map (fun (x,y) -> (x,y, IM.find i fldm))) pf
+  end ld
+
+let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : CilCTypes.LDesc.t SLM.t =
   SLM.mapi begin fun sloc ld -> 
     if SLM.mem sloc stt then 
       decorate_ldesc ld (SLM.find sloc stt)
-    else assertf "unknown cil-typ for" sloc
+    else assertf "ERROR: cannot determine ciltyp for" sloc
   end sto
+
+
+TODO: map_ldesc: (sloc.t -> 'a ldesc -> 'b ldesc) -> 'a prestore -> 'b prestore 
+
 
 (*******************************************************************)
 (*******************************************************************)

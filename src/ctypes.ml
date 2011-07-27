@@ -1119,11 +1119,17 @@ let reft_of_top =
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
 
+let d_reft () r = 
+  Misc.fsprintf (FC.print_reft_pred None) r |> Pretty.text
+
 let d_index_reft () (i,r) = 
-  let di = Index.d_index () i in
+  Pretty.dprintf "%a , %a" Index.d_index i d_reft r
+  (*let di = Index.d_index () i in
   let dc = Pretty.text " , " in
-  let dr = Misc.fsprintf (FC.print_reft_pred None) r |> Pretty.text in
+  let dr = d_reft () r in
   Pretty.concat (Pretty.concat di dc) dr
+  *)
+
 
 module Reft = struct
   type t = Index.t * FC.reft
@@ -1132,8 +1138,6 @@ module Reft = struct
   let of_const     = fun c -> assert false
   let top          = Index.top, reft_of_top 
 end
-
-
 
 module RefCTypes   = Make (Reft)
 module RCt         = RefCTypes
@@ -1220,3 +1224,7 @@ let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
 let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r)) -> r
+
+(**********************************************************************)
+
+

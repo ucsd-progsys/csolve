@@ -82,6 +82,11 @@ end
 
 module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 
+type cilinfo = { fname : string option; ftype : Cil.typ option} 
+
+val dummy_cilinfo : cilinfo
+
+
 type finality =
   | Final
   | Nonfinal
@@ -134,13 +139,15 @@ module type S = sig
 
     val get_finality : t -> finality
     val set_finality : finality -> t -> t
+    val set_cilinfo  : t -> cilinfo -> t
+    val get_cilinfo  : t -> cilinfo
+
     val is_final     : t -> bool
     val type_of      : t -> CType.t
     val sloc_of      : t -> Sloc.t option
-    val create       : finality -> CType.t -> t
+    val create       : finality -> CType.t -> cilinfo -> t
     val subs         : Sloc.Subst.t -> t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
-
     val d_field      : unit -> t -> Pretty.doc
   end
 
@@ -153,6 +160,7 @@ module type S = sig
     val empty         : t
     val eq            : t -> t -> bool
     val add           : Cil.location -> Index.t -> Field.t -> t -> t
+    val bindings      : t -> (Index.t * Field.t) list
     val create        : Cil.location -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
@@ -186,7 +194,7 @@ module type S = sig
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list 
-    
+    val map_ldesc    : (sloc.t -> 'a ldesc -> 'b ldesc) -> 'a prestore -> 'b prestore 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
 
@@ -206,6 +214,7 @@ module type S = sig
       val find          : t -> Sloc.t -> LDesc.t
       val find_or_empty : t -> Sloc.t -> LDesc.t
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
+      val map_ldesc     : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
       val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     end
@@ -344,3 +353,6 @@ val cspec_of_refspec    : refspec  -> cspec
 val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
+
+val d_reft              : unit -> FixConstraint.reft -> Pretty.doc 
+
