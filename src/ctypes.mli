@@ -219,7 +219,6 @@ module type S = sig
       val find          : t -> Sloc.t -> LDesc.t
       val find_or_empty : t -> Sloc.t -> LDesc.t
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
-      val map_ldesc     : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
 
       val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a

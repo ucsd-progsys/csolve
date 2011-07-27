@@ -486,7 +486,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       val find          : t -> Sloc.t -> ldesc
       val find_or_empty : t -> Sloc.t -> ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
-      val map_ldesc     : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
       val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     end
@@ -804,10 +803,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
       let map f (ds, fs) =
         (map_data f ds, fs)
-
-      (* RJ: subsumed by the Store.map_ldesc, delete? *)
-      let map_ldesc f (ds, fs) =
-        (SLM.mapi f ds, fs)
 
       let fold_fields f b (ds, fs) =
         SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
