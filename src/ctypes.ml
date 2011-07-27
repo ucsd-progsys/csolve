@@ -353,9 +353,9 @@ type 'a prectype =
   | Int  of int * 'a        (* fixed-width integer *)
   | Ref  of Sloc.t * 'a     (* reference *)
 
-and 'a prefield = 'a prectype * finality
+and 'a prefield = 'a prectype * finality (* add fieldinfo *)
 
-and 'a preldesc = (Index.t * (C.location * 'a prefield)) list
+and 'a preldesc = (Index.t * (C.location * 'a prefield)) list (* add fieldinfo *) 
 
 and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
