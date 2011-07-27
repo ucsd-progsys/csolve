@@ -1,5 +1,5 @@
 (*
- * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ * Copyright © 1990-2011 The Regents of the University of California. All rights reserved. 
  *
  * Permission is hereby granted, without written agreement and without 
  * license or royalty fees, to use, copy, modify, and distribute this 
@@ -155,7 +155,7 @@ let mk_sloc_ciltyp_map binds =
 let unfold_ciltyp (ty: Cil.typ) : Ct.fieldinfo IM.t = 
   failwith "TBD: unfold_ciltyp"
 
-let patch_refldesc (slocm : Cil.typ SLM.t) (sloc : Sloc.t) (ld : Ct.refldesc) : Ct.refldesc =
+let patch_refldesc slocm sloc ld =  
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
     let fldm = unfold_ciltyp ty    in
@@ -166,13 +166,13 @@ let patch_refldesc (slocm : Cil.typ SLM.t) (sloc : Sloc.t) (ld : Ct.refldesc) : 
     ld
   end
 
-let patch_refstore (slocm : Cil.typ SLM.t) (sto : Ct.refstore) : Ct.refstore = 
+let patch_refstore slocm sto = 
   RCt.Store.map_ldesc (patch_refldesc slocm) sto
 
-let patch_refcfun (slocm : Cil.typ SLM.t) (cf : Ct.refcfun) : Ct.refcfun = 
+let patch_refcfun slocm cf = 
   RCt.CFun.map_ldesc (patch_refldesc slocm) cf 
 
-let patch_binding (slocm : Cil.typ SLM.t) = function
+let patch_binding slocm = function
   | TSto (x, sto) -> TSto (x, patch_refstore slocm sto)
   | TFun (x, cf ) -> TFun (x, patch_refcfun slocm cf)
   | b -> b (* TODO: patch ctype too *)
