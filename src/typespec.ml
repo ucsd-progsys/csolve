@@ -132,6 +132,13 @@ let assertStoreTypeWellFormed t =
   |> fun ats ->
        if C.hasAttribute concreteAttribute ats then failwith "Found concrete location in store"
 
+let assertGlobalVarTypeWellFormed v =
+     v.C.vtype
+  |> C.typeAttrs
+  |> fun ats ->
+       if C.hasAttribute concreteAttribute ats then
+         E.s <| C.errorLoc v.C.vdecl "Global variable %s cannot be declared with concrete location."
+
 let checkDeclarationWellFormed v =
   if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
     E.s <| C.errorLoc v.C.vdecl
@@ -252,15 +259,16 @@ let funspecsOfFuns funspec funs =
   |> List.fold_left (fun funm v -> updFunM funspec funm v) SM.empty
   |> Misc.sm_bindings
 
-let updVarM spec varm loc vn = function
-  | _ when SM.mem vn spec           -> varm
-  | t when not (C.isFunctionType t) -> M.sm_protected_add false vn (refctypeOfCilType SM.empty t) varm
-  | _                               -> varm
+let updVarM spec varm v =
+  if not (SM.mem v.C.vname spec || C.isFunctionType v.C.vtype) then begin
+    assertGlobalVarTypeWellFormed v;
+    M.sm_protected_add false v.C.vname (refctypeOfCilType SM.empty v.C.vtype) varm
+  end else
+    varm
 
 let globalSpecsOfVars varspec vars =
-     List.fold_left begin fun varm v ->
-       updVarM varspec varm v.C.vdecl v.C.vname v.C.vtype
-     end SM.empty vars
+     vars
+  |> List.fold_left (fun varm v -> updVarM varspec varm v) SM.empty
   |> M.sm_bindings
 
 (* in the end, there should only ever be one file, so maybe we should specialize to that *)
