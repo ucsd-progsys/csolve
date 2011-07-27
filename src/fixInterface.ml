@@ -52,6 +52,8 @@ module RCt = Ctypes.RefCTypes
 module FA  = FixAstInterface
 module Sc  = ScalarCtypes
 
+module M   = Misc
+
 open Misc.Ops
 open Cil
 
@@ -754,7 +756,7 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
   let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
   let ld'   = RCt.LDesc.mapn begin fun i ix rfld ->
                 let fnl = RCt.Field.get_finality rfld in
-                  if IM.mem i im then IM.find i im |> t_name env' |> RCt.Field.create fnl else
+                  if IM.mem i im then IM.find i im |> t_name env' |> RCt.Field.create fnl Ct.dummy_fieldinfo else
                     match ix with
                       | Ix.IInt _ -> assertf "missing binding!"
                       | _         -> RCt.Field.map_type (t_subs_names subs) rfld
@@ -781,7 +783,7 @@ let strengthen_final_field ffs ptrname i fld =
           if Ct.IndexSet.mem i ffs then
             fld
             |> RCt.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
-            |> RCt.Field.set_finality Ct.Final
+            |> M.flip RCt.Field.set_finality Ct.Final
           else
             fld
 
@@ -798,8 +800,8 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
       let sct = fld |> strengthen_final_field ffs ptrname i |> RCt.Field.type_of in
       let fn  = () |> finalized_name |> Sy.of_string in
       let env = ce_adds env [(fn, sct)] in
-      let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final in
-      let ld  = RCt.LDesc.add loc i fld ld in
+      let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final Ct.dummy_fieldinfo in
+      let ld  = RCt.LDesc.add i fld ld in
         (env, RCt.Store.Data.add sto cl ld)
     else
       (env, sto)

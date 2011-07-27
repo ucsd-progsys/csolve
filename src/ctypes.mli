@@ -82,9 +82,10 @@ end
 
 module IndexRefinement: CTYPE_REFINEMENT with type t = Index.t
 
-type fieldinfo  = { fname : string option; ftype : Cil.typ option} 
-type structinfo = { stype : Cil.typ option} 
-val dummy_fieldinfo    : fieldinfo
+type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
+type structinfo = {stype : Cil.typ option} 
+
+val dummy_fieldinfo  : fieldinfo
 val dummy_structinfo : structinfo
 
 type finality =
@@ -137,15 +138,15 @@ module type S = sig
   sig
     type t = R.t prefield
 
-    val get_finality : t -> finality
-    val set_finality : finality -> t -> t
-    val set_fieldinfo  : t -> fieldinfo -> t
-    val get_fieldinfo  : t -> fieldinfo
+    val get_finality  : t -> finality
+    val set_finality  : t -> finality -> t
+    val get_fieldinfo : t -> fieldinfo
+    val set_fieldinfo : t -> fieldinfo -> t
 
     val is_final     : t -> bool
     val type_of      : t -> CType.t
     val sloc_of      : t -> Sloc.t option
-    val create       : finality -> CType.t -> fieldinfo -> t
+    val create       : finality -> fieldinfo -> CType.t -> t
     val subs         : Sloc.Subst.t -> t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
     val d_field      : unit -> t -> Pretty.doc
@@ -159,9 +160,8 @@ module type S = sig
 
     val empty         : t
     val eq            : t -> t -> bool
-    val add           : Cil.location -> Index.t -> Field.t -> t -> t
-    val bindings      : t -> (Index.t * Field.t) list
-    val create        : Cil.location -> (Index.t * Field.t) list -> structinfo -> t
+    val add           : Index.t -> Field.t -> t -> t
+    val create        : structinfo -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -172,10 +172,13 @@ module type S = sig
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit
-    val indices       : t -> Index.t list 
-    val d_ldesc       : unit -> t -> Pretty.doc
+    val indices       : t -> Index.t list
+    val bindings      : t -> (Index.t * Field.t) list
+
     val set_structinfo : t -> structinfo -> t
-    val get_structinfo : t -> structinfo  
+    val get_structinfo : t -> structinfo
+
+    val d_ldesc       : unit -> t -> Pretty.doc
   end
 
   module Store:
@@ -196,7 +199,6 @@ module type S = sig
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list 
-    val map_ldesc    : (sloc.t -> 'a ldesc -> 'b ldesc) -> 'a prestore -> 'b prestore 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
 

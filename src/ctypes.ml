@@ -349,15 +349,22 @@ type finality =
   | Final
   | Nonfinal
 
+type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
+type structinfo = {stype : Cil.typ option} 
+
+let dummy_fieldinfo  = {fname = None; ftype = None}
+let dummy_structinfo = {stype = None}
+
 type 'a prectype =
   | Int  of int * 'a        (* fixed-width integer *)
   | Ref  of Sloc.t * 'a     (* reference *)
 
-and 'a prefield = 'a prectype * finality (* add fieldinfo *)
+type 'a prefield = {pftype: 'a prectype; pffinal: finality; pfloc: C.location; pfinfo: fieldinfo}
 
-and 'a preldesc = (Index.t * (C.location * 'a prefield)) list (* add fieldinfo *) 
+type 'a preldesc = {plfields : (Index.t * 'a prefield) list;
+                    plinfo   : structinfo}
 
-and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
+type 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
@@ -400,16 +407,18 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   module type FIELD = sig
     type t = field
 
-    val get_finality : t -> finality
-    val set_finality : finality -> t -> t
-    val is_final     : t -> bool
-    val type_of      : t -> ctype
-    val sloc_of      : t -> Sloc.t option
-    val create       : finality -> ctype -> t
-    val subs         : Sloc.Subst.t -> t -> t
-    val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
+    val get_finality  : t -> finality
+    val set_finality  : t -> finality -> t
+    val get_fieldinfo : t -> fieldinfo
+    val set_fieldinfo : t -> fieldinfo -> t
+    val is_final      : t -> bool
+    val type_of       : t -> ctype
+    val sloc_of       : t -> Sloc.t option
+    val create        : finality -> fieldinfo -> ctype -> t
+    val subs          : Sloc.Subst.t -> t -> t
+    val map_type      : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
       
-    val d_field      : unit -> t -> Pretty.doc
+    val d_field       : unit -> t -> Pretty.doc
   end
 
   module type LDESC = sig
@@ -419,8 +428,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val empty         : t
     val eq            : t -> t -> bool
-    val add           : C.location -> Index.t -> field -> t -> t
-    val create        : C.location -> (Index.t * field) list -> t
+    val add           : Index.t -> field -> t -> t
+    val create        : structinfo -> (Index.t * field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -432,6 +441,11 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> field -> unit) -> t -> unit
     val indices       : t -> Index.t list
+    val bindings      : t -> (Index.t * field) list
+
+    val set_structinfo : t -> structinfo -> t
+    val get_structinfo : t -> structinfo
+
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
@@ -452,7 +466,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : ctype -> t -> bool
     val indices      : t -> Index.t list
-
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
 
@@ -472,6 +485,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       val find          : t -> Sloc.t -> ldesc
       val find_or_empty : t -> Sloc.t -> ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
+      val map_ldesc     : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
       val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     end
@@ -633,23 +647,33 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   and Field: SIG.FIELD = struct
     type t = R.t prefield
 
-    let get_finality = snd
+    let get_finality {pffinal = fnl} =
+      fnl
 
-    let type_of = fst
+    let set_finality fld fnl =
+      {fld with pffinal = fnl}
 
-    let create fnl t =
-      (t, fnl)
+    let get_fieldinfo {pfinfo = fi} =
+      fi
 
-    let set_finality fnl fld =
-      fld |> type_of |> create fnl
+    let set_fieldinfo fld fi =
+      {fld with pfinfo = fi}
+
+    let type_of {pftype = ty} =
+      ty
+
+    let create fnl fi t =
+      (* pmr: Change location from locUnknown *)
+      {pftype = t; pffinal = fnl; pfloc = C.locUnknown; pfinfo = fi}
 
     let is_final fld =
       get_finality fld = Final
 
-    let sloc_of fld = fld |> type_of |> CType.sloc
+    let sloc_of fld =
+      fld |> type_of |> CType.sloc
 
     let map_type f fld =
-      fld |> type_of |> f |> create (get_finality fld)
+      {fld with pftype = fld |> type_of |> f}
 
     let subs sub =
       map_type (CType.subs sub)
@@ -664,51 +688,55 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     exception TypeDoesntFit of Index.t * CType.t * t
 
-    let empty = []
+    let empty =
+      {plfields = []; plinfo = dummy_structinfo}
 
-    let eq ld1 ld2 =
-      Misc.same_length ld1 ld2 &&
-        List.for_all2 (fun (i1, (_, f1)) (i2, (_, f2)) -> i1 = i2 && f1 = f2) ld1 ld2
+    let eq {plfields = cs1} {plfields = cs2} =
+      Misc.same_length cs1 cs2 &&
+        List.for_all2
+          (fun (i1, f1) (i2, f2) -> i1 = i2 && Field.type_of f1 = Field.type_of f2)
+          cs1 cs2
 
-    let fits i fld flds =
+    let fits i fld {plfields = cs} =
       let t = Field.type_of fld in
       let w = CType.width t in
         M.get_option w (N.period i) >= w &&
-          not (List.exists (fun (i2, (_, fld2)) -> CType.collide i t i2 (Field.type_of fld2)) flds)
+          not (List.exists (fun (i2, fld2) -> CType.collide i t i2 (Field.type_of fld2)) cs)
 
-    let rec insert ((i, _) as fld) = function
+    let rec insert_field ((i, _) as fld) = function
       | []                      -> [fld]
-      | (i2, _) as fld2 :: flds -> if i < i2 then fld :: fld2 :: flds else fld2 :: insert fld flds
+      | (i2, _) as fld2 :: flds -> if i < i2 then fld :: fld2 :: flds else fld2 :: insert_field fld flds
 
-    let add loc i fld flds =
-      if fits i fld flds then insert (i, (loc, fld)) flds else
-        raise (TypeDoesntFit (i, Field.type_of fld, flds))
+    let add i fld ld =
+      if fits i fld ld then
+        {ld with plfields = insert_field (i, fld) ld.plfields}
+      else raise (TypeDoesntFit (i, Field.type_of fld, ld))
 
-    let remove i flds =
-      List.filter (fun (i2, _) -> not (i = i2)) flds
+    let remove i ld =
+      {ld with plfields = List.filter (fun (i2, _) -> not (i = i2)) ld.plfields}
 
-    let create loc flds =
-      List.fold_right (add loc |> M.uncurry) flds empty
+    let create si flds =
+      List.fold_right (M.uncurry add) flds {empty with plinfo = si}
 
-    let mem i flds =
+    let mem i {plfields = flds} =
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
 
-    let find i flds =
+    let find i {plfields = flds} =
       flds |> List.filter (fun (i2, _) -> N.overlaps i i2)
-           |> List.map (fun (i, (_, fld)) -> (i, fld))
+           |> List.map (fun (i, fld) -> (i, fld))
 
     let rec foldn_aux f n b = function
-      | []                    -> b
-      | (i, (_, fld)) :: flds -> foldn_aux f (n + 1) (f n b i fld) flds
+      | []               -> b
+      | (i, fld) :: flds -> foldn_aux f (n + 1) (f n b i fld) flds
 
-    let foldn f b flds =
-      foldn_aux f 0 b flds
+    let foldn f b ld =
+      foldn_aux f 0 b ld.plfields
 
     let fold f b flds =
       foldn (fun _ b i fld -> f b i fld) b flds
 
-    let mapn f flds =
-      M.mapi (fun n (i, (loc, fld)) -> (i, (loc, f n i fld))) flds
+    let mapn f ld =
+      {ld with plfields = M.mapi (fun n (i, fld) -> (i, f n i fld)) ld.plfields}
 
     let map f flds =
       mapn (fun _ _ fld -> f fld) flds
@@ -725,15 +753,24 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         | Some l -> l :: rls
       end [] ld
 
-    let indices flds =
-      List.map fst flds
+    let bindings {plfields = flds} =
+      flds
 
-    let d_ldesc () flds =
+    let indices ld =
+      ld |> bindings |>: fst
+
+    let get_structinfo {plinfo = si} =
+      si
+
+    let set_structinfo ld si =
+      {ld with plinfo = si}
+
+    let d_ldesc () {plfields = flds} =
       P.dprintf "@[%t@]"
         begin fun () ->
           P.seq
             (P.dprintf ",@!")
-            (fun (i, (_, fld)) -> P.dprintf "%a: %a" Index.d_index i Field.d_field fld)
+            (fun (i, fld) -> P.dprintf "%a: %a" Index.d_index i Field.d_field fld)
             flds
         end
   end
@@ -763,6 +800,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let map f (ds, fs) =
         (map_data f ds, fs)
 
+      let map_ldesc f (ds, fs) =
+        (SLM.mapi f ds, fs)
+
       let fold_fields f b (ds, fs) =
         SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
 
@@ -774,7 +814,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         | N.ICClass _ | N.IInt _ ->
           let ld = find_or_empty sto s in
             match LDesc.find i ld with
-              | []   -> (b, ld |> LDesc.add loc i (Field.create Nonfinal ct) |> add sto s)
+              | []   -> (b, ld |> LDesc.add i (Field.create Nonfinal dummy_fieldinfo ct) |> add sto s)
               | flds ->
                 let b, sto =  flds
                           |>: (snd <+> Field.type_of)
@@ -786,7 +826,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
                     (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
                     let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
                     let i  = List.fold_left (fun i (i2, _) -> N.lub i i2) i flds in
-                    let ld = LDesc.add loc i (Field.create Nonfinal ct) ld in
+                    let ld = LDesc.add i (Field.create Nonfinal dummy_fieldinfo ct) ld in
                       (b, add sto s ld)
     end
 
@@ -1205,7 +1245,7 @@ let refstore_write loc sto rct rct' =
   let _  = assert (not (Sloc.is_abstract cl)) in
   let ld = RCt.Store.Data.find sto cl in
   let ld = RCt.LDesc.remove ix ld in
-  let ld = RCt.LDesc.add loc ix (RCt.Field.create Nonfinal rct') ld in
+  let ld = RCt.LDesc.add ix (RCt.Field.create Nonfinal dummy_fieldinfo rct') ld in
   RCt.Store.Data.add sto cl ld
 
 (* API *)

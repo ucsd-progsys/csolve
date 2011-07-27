@@ -120,7 +120,7 @@ let finalize_store shp_sto sto =
         Ctypes.I.Store.Data.add sto l begin
           Ctypes.I.LDesc.mapn begin fun _ pl fld ->
             match Ctypes.I.LDesc.find pl shp_ld with
-              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
+              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality fld (Ctypes.I.Field.get_finality shp_fld)
               | _              -> fld
           end ld
         end

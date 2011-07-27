@@ -88,7 +88,10 @@ let d_vartypes () vars =
 (******************************************************************************)
 
 let store_add_absent loc l i ctv sto =
-  Store.Data.add sto l (LDesc.add loc i (Field.create Ctypes.Final ctv) (Store.Data.find_or_empty sto l))
+  Store.Data.add sto l
+    (LDesc.add i
+       (Field.create Ctypes.Final Ctypes.dummy_fieldinfo ctv)
+       (Store.Data.find_or_empty sto l))
 
 let rec unify_ctypes loc sub sto ct1 ct2 = match Ct.subs sub ct1, Ct.subs sub ct2 with
   | _                          when ct1 = ct2 -> (sub, sto)

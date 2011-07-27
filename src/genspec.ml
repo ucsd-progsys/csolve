@@ -161,8 +161,8 @@ let ldesc_of_index_ctypes loc ts =
             PP.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
-  |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal t))
-  |> Ct.I.LDesc.create loc
+  |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal Ct.dummy_fieldinfo t))
+  |> Ct.I.LDesc.create Ct.dummy_structinfo
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 

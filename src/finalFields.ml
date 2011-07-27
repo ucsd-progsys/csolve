@@ -316,9 +316,9 @@ module Interproc = struct
               CT.Store.Data.add sto l begin
                 LD.mapn begin fun _ i fld ->
                   if IS.mem i ffs then
-                    F.set_finality Ctypes.Final fld
+                    F.set_finality fld Ctypes.Final
                   else
-                    F.set_finality Ctypes.Nonfinal fld
+                    F.set_finality fld Ctypes.Nonfinal 
                 end ld
               end
           end shp.Sh.store shp.Sh.store}
