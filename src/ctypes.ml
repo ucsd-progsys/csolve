@@ -458,6 +458,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val closed       : t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
@@ -503,6 +504,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : store -> t -> bool
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
     val same_shape      : t -> t -> bool
@@ -783,6 +785,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map
 
+    let map_ldesc f (ds, fs) =
+      (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
+
     module Data = struct
       let add (ds, fs) l ld =
         let _ = assert (not (SLM.mem l fs)) in
@@ -800,6 +805,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let map f (ds, fs) =
         (map_data f ds, fs)
 
+      (* RJ: subsumed by the Store.map_ldesc, delete? *)
       let map_ldesc f (ds, fs) =
         (SLM.mapi f ds, fs)
 
@@ -949,6 +955,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         sto_in   = Store.map f ft.sto_in;
         sto_out  = Store.map f ft.sto_out;
       }
+
+    let map_ldesc f ft =
+      { ft with 
+        sto_in = Store.map_ldesc f ft.sto_in
+      ; sto_out = Store.map_ldesc f ft.sto_out }
 
     let quantified_locs {sto_out = sto} =
       Store.domain sto

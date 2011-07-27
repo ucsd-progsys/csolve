@@ -153,28 +153,28 @@ let mk_sloc_ciltyp_map binds =
   |> ciltyp_of_slocs
 
 let unfold_ciltyp (ty: Cil.typ) : Ct.fieldinfo IM.t = 
-  failwith "unfold_ciltyp: TBD"
+  failwith "TBD: unfold_ciltyp"
 
 let patch_refldesc (slocm : Cil.typ SLM.t) (sloc : Sloc.t) (ld : Ct.refldesc) : Ct.refldesc =
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
     let fldm = unfold_ciltyp ty    in
-    ld |> Misc.flip RCt.LDesc.set_structinfo {stype = ty}
+    ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
        |> RCt.LDesc.mapn (fun i _ pf -> RCt.Field.set_fieldinfo pf (IM.find i fldm))
   else begin 
-    ignore <| E.warn "patch_ldesc: unknown cil info for" Sloc.d_sloc sloc; 
+    ignore <| Errormsg.warn "patch_ldesc: unknown cil info for %a" Sloc.d_sloc sloc; 
     ld
   end
 
 let patch_refstore (slocm : Cil.typ SLM.t) (sto : Ct.refstore) : Ct.refstore = 
-  failwith "TBD: patch_refstore"
+  RCt.Store.map_ldesc (patch_refldesc slocm) sto
 
 let patch_refcfun (slocm : Cil.typ SLM.t) (cf : Ct.refcfun) : Ct.refcfun = 
-  failwith "TBD: patch_refcfun"
+  RCt.CFun.map_ldesc (patch_refldesc slocm) cf 
 
 let patch_binding (slocm : Cil.typ SLM.t) = function
   | TSto (x, sto) -> TSto (x, patch_refstore slocm sto)
-  | TFun (x, cf ) -> TFun (x, patch_refstore slocm sto)
+  | TFun (x, cf ) -> TFun (x, patch_refcfun slocm cf)
   | b -> b (* TODO: patch ctype too *)
 
 let set_cilinfo binds = 
@@ -196,8 +196,8 @@ let clear _        = annotr := []
 
 let apply_solution =
   let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
-  let s_fun s = RCt.CFun.map s_typ in
-  let s_sto s = RCt.Store.map s_typ in
+  let s_fun s = RCt.CFun.map (s_typ s) in
+  let s_sto s = RCt.Store.map (s_typ s) in
   fun s a -> match a with 
     | TVar (n, cr) -> TVar (n, s_typ s cr)
     | TFun (f, cf) -> TFun (f, s_fun s cf)

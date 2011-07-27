@@ -191,6 +191,7 @@ module type S = sig
     val closed       : t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
     val upd          : t -> t -> t
@@ -219,6 +220,7 @@ module type S = sig
       val find_or_empty : t -> Sloc.t -> LDesc.t
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
       val map_ldesc     : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
+
       val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
     end
@@ -237,6 +239,7 @@ module type S = sig
 
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : Store.t -> t -> bool
     val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
     val same_shape      : t -> t -> bool
