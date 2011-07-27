@@ -27,7 +27,7 @@ open M.Ops
 (******************************************************************************)
 
 let slocAttribute      = "lcc_sloc"
-let gslocAttribute     = "lcc_gsloc"
+let globalAttribute    = "lcc_global_loc"
 let concreteAttribute  = "lcc_concrete"
 let predAttribute      = "lcc_predicate"
 let externOkAttribute  = "lcc_extern_ok"
@@ -44,12 +44,10 @@ let rec getSloc =
       | Concrete -> M.do_memo slocTable (getSloc Abstract <+> S.fresh_concrete) s (s, Concrete)
 
 let slocOfAttrs ats =
-  let ty = if C.hasAttribute concreteAttribute ats then Concrete else Abstract in
-    if ty = Concrete && C.hasAttribute gslocAttribute ats then
-      E.s <| E.error "Global locations cannot be concrete.";
-       CM.getStringAttrs slocAttribute ats ++ CM.getStringAttrs gslocAttribute ats
-    |> M.ex_one "Type does not have a single sloc"
-    |> getSloc ty
+     ats
+  |> CM.getStringAttrs slocAttribute
+  |> M.ex_one "Type does not have a single sloc"
+  |> getSloc (if C.hasAttribute concreteAttribute ats then Concrete else Abstract)
 
 let predOfAttrs ats =
       ats
@@ -85,8 +83,8 @@ let freshSlocName, _ = M.mk_string_factory "LOC"
 
 let ensureSloc t =
   if C.isPointerType t || C.isArrayType t then
-    let ats = CM.typeAttrs t in
-      if C.hasAttribute slocAttribute ats || C.hasAttribute gslocAttribute ats then
+    let ats = C.typeAttrs t in
+      if C.hasAttribute slocAttribute ats then
         t
       else
         C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
@@ -194,36 +192,12 @@ let closeTypeInStore loc sto t =
 let refstoreOfTypes ts =
   List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
 
-(* Need to assert WF: no type has both global and local sloc annotation *)
-class globalLocCollector = object (self)
-  inherit C.nopCilVisitor
-
-  val mutable glocs = []
-
-  method addGlobalLoc s =
-    glocs <- s :: glocs
-
-  method vattr atr =
-    if C.hasAttribute gslocAttribute [atr] then
-      [atr] |> slocOfAttrs |> self#addGlobalLoc;
-      C.DoChildren
-
-  method getGlobalLocs =
-    M.sort_and_compact glocs
-end
-
-let globalLocsOfTypes ts =
-  let glc = new globalLocCollector in
-    List.iter (C.visitCilType (glc :> C.cilVisitor) <+> ignore) ts;
-    glc#getGlobalLocs
-
-let refcfunOfType t =
-  let ret, argso, _, _ = C.splitFunctionType t in
+let refcfunOfVar v =
+  let ret, argso, _, _ = C.splitFunctionType v.C.vtype in
   let ret              = ensureSloc ret in
   let argts            = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
-  let rootts           = ret :: List.map snd argts in
-  let glocs            = globalLocsOfTypes rootts in
-  let _, sto           = rootts |> refstoreOfTypes |> RS.partition (M.flip List.mem glocs) in
+  let glocs            = v.C.vattr |> CM.getStringAttrs globalAttribute |>: getSloc Abstract in
+  let _, sto           = ret :: List.map snd argts |> refstoreOfTypes |> RS.partition (M.flip List.mem glocs) in
     RCf.make
       (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
       glocs
@@ -258,7 +232,7 @@ let isBuiltin = Misc.is_prefix "__builtin"
 let updFunM spec funm v =
   let fn, ty = (v.C.vname, v.C.vtype) in
     if C.isFunctionType ty && not (SM.mem fn spec || isBuiltin fn) then
-      M.sm_protected_add false fn (refcfunOfType ty, C.hasAttribute checkTypeAttribute v.C.vattr) funm
+      M.sm_protected_add false fn (refcfunOfVar v, C.hasAttribute checkTypeAttribute v.C.vattr) funm
     else
       funm
 

@@ -215,9 +215,6 @@ let isVararg (t: typ): bool =
     let _, _, vararg, _ = splitFunctionType t in
       vararg
 
-let typeAttrs t =
-  t |> typeSig |> typeSigAttrs
-
 let getAttr name ats = match filterAttributes name ats with
   | [a]    -> a
   | _ :: _ -> failwith <| "Multiple attributes named " ^ name

@@ -45,8 +45,6 @@ val int_width        : int
 val short_width      : int
 val char_width       : int
 
-val typeAttrs          : Cil.typ -> Cil.attributes
-
 val getAttr            : string -> Cil.attributes -> Cil.attribute
 val getStringAttrs     : string -> Cil.attributes -> string list
 

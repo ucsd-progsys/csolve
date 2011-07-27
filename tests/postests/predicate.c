@@ -4,11 +4,11 @@
 // Basic macros
 
 // Need to break this into two levels to ensure predicate p is macro expanded
-#define REF(p)   SREF(p)
-#define SREF(p)  __attribute__ ((lcc_predicate (#p)))
+#define REF(p)     SREF(p)
+#define SREF(p)    __attribute__ ((lcc_predicate (#p)))
 
 #define LOC(l)     __attribute__ ((lcc_sloc (#l)))
-#define GLOC(l)    __attribute__ ((lcc_gsloc (#l)))
+#define GLOBAL(l)  __attribute__ ((lcc_global_loc (#l)))
 #define CONCRETE   __attribute__ ((lcc_concrete))
 #define OKEXTERN   __attribute__ ((lcc_extern_ok))
 #define CHECK_TYPE __attribute__ ((lcc_check_type))
@@ -127,9 +127,9 @@ typedef struct node {
 void testLinkedList (node_t *l) {
 }
 
-int * GLOC(G) g;
+int * LOC(G) g;
 
-void testAliasGlobal (int * GLOC(G) h) {
+void testAliasGlobal (int * LOC(G) h) GLOBAL (G) {
 }
 
 extern int REF(V > 0) testExtern OKEXTERN;
