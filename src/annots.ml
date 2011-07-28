@@ -36,6 +36,10 @@ open Misc.Ops
 
 let mydebug = false
 
+(* YUCK!!! Global State. *)
+let annotr    = ref [] 
+let shaper    = ref []
+
 (*******************************************************************)
 (****************** Tag/Annotation Generation **********************)
 (*******************************************************************)
@@ -91,8 +95,61 @@ let generate_tags kts =
   let _  = close_out oc in
   ()
 
-(***************************************************************************************)
-(***************************************************************************************)
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
+
+let d_vartyp () (v, t) = 
+  PP.dprintf "(%s :: %a)" v.Cil.vname Cil.d_type v.Cil.vtype
+
+let d_vartypes () vts = 
+  PP.seq (PP.text ",") (d_vartyp ()) vts
+
+let d_sloc_vartyps () (sloc, vts) = 
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+
+let d_sloc_typ () (sloc, t) = 
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc Cil.d_type t
+
+let d_sloc_typs () slocts = 
+  PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ ()) () slocts
+
+let d_vars () vs = 
+  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.Cil.vname) () vs
+
+let d_typ_vars () (t, vs) = 
+  PP.dprintf "%a %a;@!" Cil.d_type t d_vars vs
+
+let d_typ_varss () tvss =
+  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
+
+let d_sloc_typ_varss () (sloc, tvss) = 
+  PP.dprintf "%a <<%d>> |-> @[%a@]" 
+    Sloc.d_sloc sloc
+    (List.length tvss)
+    d_typ_varss tvss
+    
+
+
+(* API *)
+let stitch_shapes_ctypes cil shm = 
+  let _ = assertf "deprecated: stitch_shapes_ctypes" in
+  Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
+  SM.iter begin fun fn shp ->
+    shp.Shape.vtyps
+    >> (fun xs -> shaper := List.rev_append xs !shaper)
+    |> Misc.kgroupby (snd <+> Ct.I.CType.sloc)
+    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
+    |> List.map (Misc.app_snd (List.map fst))
+    |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.Cil.vtype)))
+    |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
+    |> PP.concat (PP.text ("\n\n\nSTITCH SHAPE: "^fn^"\n"))
+    |> PP.sprint ~width:80
+    |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
+  end shm
+  (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)
+(**************************************************************************)
+(**************************************************************************)
 (* {{{
 
 (***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
@@ -136,14 +193,16 @@ let biggest_type (vs : Cil.varinfo list) : Cil.typ =
       |> (function [] -> assertf "biggest type: No pointers!"
                  | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
 
-let ciltyp_of_slocs (xcts : (Cil.varinfo * Ct.refctype) list) : Cil.typ SLM.t =  
-  xcts |> List.filter (snd <+> (function Ct.Ref (_,(Ct.Index.IInt 0,_)) -> true | _ -> false))
-       |> Misc.kgroupby (snd <+> RCt.CType.sloc) 
+let mk_sloc_ciltyp_map (xcts : (Cil.varinfo * Ct.ctype) list) : Cil.typ SLM.t = 
+  xcts |> List.filter (snd <+> (function Ct.Ref (_,_) -> true | _ -> false))
+       |> Misc.kgroupby (snd <+> Ct.I.CType.sloc) 
        |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
        |> List.map (Misc.app_snd (List.map fst))
        |> List.map (Misc.app_snd biggest_type)
+       >> (fun z -> Pretty.printf "SLOCMAP BEGIN:\n%a\nSLOCMAP END.\n" d_sloc_typs z) 
        |> SLM.of_list
 
+(*
 let mk_sloc_ciltyp_map binds =
   binds
   |> Misc.map_partial begin function 
@@ -151,14 +210,23 @@ let mk_sloc_ciltyp_map binds =
        | _            -> None
      end
   |> ciltyp_of_slocs
+*)
 
-let unfold_ciltyp (ty: Cil.typ) : Ct.fieldinfo IM.t = 
-  failwith "TBD: unfold_ciltyp"
+(* val unfold_ciltyp : Cil.typ -> Ct.fieldinfo IM.t *)
+let unfold_ciltyp = function
+  | Cil.TComp (ci, _) -> 
+      asserti ci.Cil.cstruct "TBD: unfold_ciltyp: unions";
+      ci.Cil.cfields 
+      |> List.map (fun fi -> {Ct.fname = Some fi.Cil.fname; Ct.ftype = Some fi.Cil.ftype})
+      |> Misc.index_from 0
+      |> IM.of_list
+  | ty -> IM.single 0 {Ct.fname = None; Ct.ftype = Some ty}
+
 
 let patch_refldesc slocm sloc ld =  
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
-    let fldm = unfold_ciltyp ty    in
+    let fldm = ty |> unfold_ciltyp in
     ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
        |> RCt.LDesc.mapn (fun i _ pf -> RCt.Field.set_fieldinfo pf (IM.find i fldm))
   else begin 
@@ -177,8 +245,9 @@ let patch_binding slocm = function
   | TFun (x, cf ) -> TFun (x, patch_refcfun slocm cf)
   | b -> b (* TODO: patch ctype too *)
 
-let set_cilinfo binds = 
-  let slocm = mk_sloc_ciltyp_map binds in
+let set_cilinfo xcts binds = 
+  let _     = assertf "deprecated: set_cilinfo" in
+  let slocm = mk_sloc_ciltyp_map xcts in
   Misc.map (patch_binding slocm) binds
 
 (*******************************************************************)
@@ -205,8 +274,8 @@ let apply_solution =
 
 (* API *)
 let dump s = 
-  !annotr
-  |> set_cilinfo
+  !annotr 
+ (*  |> set_cilinfo !shaper *)
   |> Misc.map (apply_solution s)
   |> tags_of_binds 
   >> (fst <+> generate_annots)
@@ -214,47 +283,3 @@ let dump s =
   |> ignore
 
 
-(*******************************************************************)
-(*******************************************************************)
-(*******************************************************************)
-
-(*
-let d_vartyp () (v, t) = 
-  PP.dprintf "(%s :: %a)" v.Cil.vname Cil.d_type v.Cil.vtype
-
-let d_vartypes () vts = 
-  PP.seq (PP.text ",") (d_vartyp ()) vts
-
-let d_sloc_vartyps () (sloc, vts) = 
-  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
-*)
-
-let d_vars () vs = 
-  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.Cil.vname) () vs
-
-let d_typ_vars () (t, vs) = 
-  PP.dprintf "%a %a;@!" Cil.d_type t d_vars vs
-
-let d_typ_varss () tvss =
-  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
-
-let d_sloc_typ_varss () (sloc, tvss) = 
-  PP.dprintf "%a <<%d>> |-> @[%a@]" 
-    Sloc.d_sloc sloc
-    (List.length tvss)
-    d_typ_varss tvss
-
-(* API *)
-let stitch_shapes_ctypes cil shm = 
-  Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
-  SM.iter begin fun fn shp ->
-    Misc.kgroupby (snd <+> Ct.I.CType.sloc) shp.Shape.vtyps
-    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-    |> List.map (Misc.app_snd (List.map fst))
-    |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.Cil.vtype)))
-    |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
-    |> PP.concat (PP.text ("STITCH SHAPE: "^fn^"\n"))
-    |> PP.sprint ~width:80
-    |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
-  end shm
-  (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)

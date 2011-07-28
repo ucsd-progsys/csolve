@@ -359,10 +359,13 @@ type 'a prectype =
   | Int  of int * 'a        (* fixed-width integer *)
   | Ref  of Sloc.t * 'a     (* reference *)
 
-type 'a prefield = {pftype: 'a prectype; pffinal: finality; pfloc: C.location; pfinfo: fieldinfo}
+type 'a prefield = { pftype     : 'a prectype
+                   ; pffinal    : finality
+                   ; pfloc      : C.location
+                   ; pfinfo     : fieldinfo }
 
-type 'a preldesc = {plfields : (Index.t * 'a prefield) list;
-                    plinfo   : structinfo}
+type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
+                   ; plinfo     : structinfo }
 
 type 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
@@ -377,6 +380,20 @@ and 'a precfun =
 type 'a prespec = ('a precfun * bool) Misc.StringMap.t 
                 * ('a prectype * bool) Misc.StringMap.t 
                 * 'a prestore
+
+let d_fieldinfo () = function
+  | { fname = Some fn; ftype = Some t } -> 
+      Pretty.dprintf "/* FIELDINFO %s %a */" fn Cil.d_type t 
+  | { ftype = Some t } -> 
+      Pretty.dprintf "/* FIELDINFO %a */" Cil.d_type t 
+  | _ ->
+      Pretty.nil
+
+let d_structinfo () = function
+  | { stype = Some t } -> 
+      Pretty.dprintf "/* %a */" Cil.d_type t
+  | _ -> 
+      Pretty.nil
 
 module SIGS (R : CTYPE_REFINEMENT) = struct
   type ctype = R.t prectype
@@ -679,9 +696,17 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let subs sub =
       map_type (CType.subs sub)
 
+    let d_finality () = function
+      | Final -> P.text "final "
+      | _     -> P.nil
+
+    (* ORIG *)
     let d_field () fld =
-      let pct = type_of fld in
-        if is_final fld then P.dprintf "final %a" CType.d_ctype pct else CType.d_ctype () pct
+      P.dprintf "%a%a%a" 
+        d_finality (get_finality fld) 
+        CType.d_ctype (type_of fld)
+        d_fieldinfo (get_fieldinfo fld)
+
   end
 
   and LDesc: SIG.LDESC = struct
