@@ -1,5 +1,5 @@
 (*
- * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ * Copyright © 1990-2011 The Regents of the University of California. All rights reserved. 
  *
  * Permission is hereby granted, without written agreement and without 
  * license or royalty fees, to use, copy, modify, and distribute this 
@@ -21,9 +21,12 @@
  *
  *)
 
-val specs_of_file        : Ctypes.refspec -> Cil.file -> (string * Ctypes.cfun) list * (string * Ctypes.ctype) list * Ctypes.store
-val spec_of_type         : Cil.location -> Cil.typ -> Ctypes.ctype * Ctypes.store
-val assert_spec_complete : Cil.file -> Ctypes.refspec -> unit
-val dump_pragmas         : Cil.file -> unit
+(* This file is part of the liquidC Project.*)
 
 
+val annot_var   : FixAstInterface.name -> Ctypes.refctype -> unit
+val annot_fun   : string -> Ctypes.refcfun -> unit
+val annot_sto   : string -> Ctypes.refstore -> unit
+val clear       : 'a -> unit
+val dump        : FixSolution.t -> unit
+val stitch_shapes_ctypes : Cil.file -> Shape.t Misc.StringMap.t -> unit

@@ -266,7 +266,7 @@ module VarSet = Set.Make(ComparableVar)
 (******************************** Variable Maps *******************************)
 (******************************************************************************)
 
-module VarMap = Map.Make(ComparableVar)
+module VarMap = Misc.EMap (ComparableVar)
 
 module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 
@@ -429,7 +429,7 @@ let reachable cil =
       |> reach cil
       |> List.map (fun v -> (v.vname, ())) 
       >> (List.map fst <+> String.concat "," <+> Printf.printf "Reachable from %s : %s \n" fn) 
-      |> Misc.sm_of_list
+      |> SM.of_list
       |> Misc.flip SM.mem 
 
 

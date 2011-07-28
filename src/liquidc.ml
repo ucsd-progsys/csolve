@@ -248,7 +248,7 @@ let liquidate file =
   let _       = E.log "DONE: constraint generation \n" in
   let s', cs' = Consindex.solve ci fn qs in
   let _       = E.log "DONE SOLVING" in
-  let _       = FixInterface.annot_dump s' in
+  let _       = Annots.dump s' in
   let _       = print_unsat_locs tgr s' cs' in
   let _       = BS.print log "\nLiquidC Time \n" in
   match cs' with 

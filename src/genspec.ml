@@ -35,6 +35,7 @@ module SM  = Misc.StringMap
 module CM  = CilMisc
 module Cs  = Ct.RefCTypes.Spec
 module P   = Printf
+module PP  = Pretty
 
 open Cil
 open Misc.Ops
@@ -120,12 +121,12 @@ let id_of_period = function
   | Bnd (m, k) -> P.sprintf "[%d < %d]" m k 
 
 let id_of_ciltype t pd =  
-  Pretty.dprintf "%a ### %a ### %s" 
+  PP.dprintf "%a ### %a ### %s" 
     d_typsig (typeSig t) 
     d_attrlist (typeAttrs t)
     (id_of_period pd)
-  |> Pretty.sprint ~width:80
-(* Cil.typeSig <+> Cil.d_typsig () <+> Pretty.sprint ~width:80 *)
+  |> PP.sprint ~width:80
+(* Cil.typeSig <+> Cil.d_typsig () <+> PP.sprint ~width:80 *)
 
 let mk_idx pd i =
   match pd with 
@@ -157,11 +158,11 @@ let adj_period pd idx =
 
 let ldesc_of_index_ctypes loc ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
-            Pretty.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
+            PP.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
-  |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal t))
-  |> Ct.I.LDesc.create loc
+  |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal Ct.dummy_fieldinfo t))
+  |> Ct.I.LDesc.create Ct.dummy_structinfo
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
@@ -247,15 +248,15 @@ and conv_cilblock loc (th, st, off) pd c =
 (* {{{  *)let _  =
     if mydebug then 
       (let cs = unroll_ciltype off c in
-       ignore <| Pretty.printf "conv_cilblock: unroll %a \n" d_type c;
-       List.iter (fun (c', _) -> ignore <| Pretty.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
+       ignore <| PP.printf "conv_cilblock: unroll %a \n" d_type c;
+       List.iter (fun (c', _) -> ignore <| PP.printf "conv_cilblock: into %a \n" d_type c') cs) in (* }}} *)
   c |> unroll_ciltype off
     |> Misc.mapfold (fun (th, st, _) (c', off) -> conv_ciltype_aux loc InStruct (th, st, off) (c', [])) (th, st, off)
     |> Misc.app_snd Misc.flatten
     |> Misc.app_snd (Misc.map (Misc.app_fst (adj_period pd)))
 
 and conv_ciltype y tlev z c =
-    let _ = if mydebug then ignore <| Pretty.printf "conv_ciltype: %a \n" d_type c in
+    let _ = if mydebug then ignore <| PP.printf "conv_ciltype: %a \n" d_type c in
       conv_ciltype_aux y tlev z (c, [])
 
 and conv_arg loc z (name, c) =
@@ -309,7 +310,7 @@ let funspecs_of_funm funspec funm =
      | GFun (fd, loc)    -> upd_funm funspec funm loc fd.svar.vname fd.svar.vtype
      | GVarDecl (v, loc) -> upd_funm funspec funm loc v.vname v.vtype
      end funm 
-  |> Misc.sm_bindings
+  |> SM.to_list
   |> Misc.map_partial (function (x, Some y) -> Some (x,y) | _ -> None)
 
 let upd_varm spec (st, varm) loc vn = function
@@ -338,7 +339,7 @@ let globalspecs_of_varm varspec varm =
        | GVarDecl (v, loc) | GVar (v, _, loc) -> upd_varm varspec (st, varm) loc v.vname v.vtype
        | _                                    -> (st, varm)
      end varm
-  |> fun (st, varm) -> (st, Misc.sm_bindings varm)
+  |> fun (st, varm) -> (st, SM.to_list varm)
 
 (***************************************************************************)
 (********************************* API *************************************)
@@ -385,30 +386,4 @@ let dump_pragmas file =
        -> ()
   end 
 
-
-(**********************************************************)
-(**********************************************************)
-(**********************************************************)
-
-let d_vartyp () (v, t) = 
-  Pretty.dprintf "(%s :: %a)" v.vname Ct.d_ctype t
-
-let d_vartypes () vts = 
-  Pretty.seq (Pretty.text ",") (d_vartyp ()) vts
-
-let d_sloc_vartyps () (sloc, vts) = 
-  Pretty.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
-
-(* 1. Foreach function,
- *      write: loc -> (varinfo, typ) list 
- *      into : fileName.shape *)
-let stitch_shapes_ctypes cil shm = 
-  SM.iter begin fun fn shp ->
-    Misc.kgroupby (snd <+> Ctypes.I.CType.sloc) shp.Shape.vtyps
-    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-    |> (fun xs -> Pretty.seq (Pretty.dprintf ";@!") (d_sloc_vartyps ()) xs) 
-    |> Pretty.concat (Pretty.text ("STITCH SHAPE: "^fn^"\n"))
-    |> Pretty.sprint ~width:80
-    |> (Misc.append_to_file (cil.fileName^".shape")) 
-  end shm
 

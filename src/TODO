@@ -1,13 +1,15 @@
-* SRC information for each A/C Loc (DONE)
-
-* INCLUDE directive for .spec files
 HEREHEREHERE
 
-* Spec from C-SOURCE
+Write: 
+
+    val unfold_ciltyp : Cil.typ -> Ct.fieldinfo IM.t 
+
+which unrolls a cil type into its component "fields" and returns:
+  
+    [ (0, fldname0, fldtype0); ... ; (N, fldnameN, fldtypeN)]
 
 * src/pmrtodo.org benchmarks
         tsort 
-        
         in external/gnu-coreutils/src.
 
 * external/gnu-coreutils/HOWTO.lcc : how to use lcc to typecheck coreutils programs.

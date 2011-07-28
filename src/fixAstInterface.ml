@@ -59,11 +59,31 @@ let mydebug = false
 (*******************************************************************)
 
 type name = Sy.t
+let string_of_name  = Sy.to_string 
+
+let d_name () n = Pretty.text (string_of_name n)
+
+let name_of_string    = Sy.of_string
+
+let varinfo_t         = Hashtbl.create 37
+
+let name_of_varinfo v = 
+  v.vname 
+  |> name_of_string
+  >> (fun vn -> Hashtbl.replace varinfo_t vn v) 
+  >> (fun vn -> ignore <| Errormsg.warn "name_of_varinfo: %s %a\n" v.vname d_name vn) 
+  (* >> (fun _ -> assertf "GO TO JELL!") *)
+
+let varinfo_of_name vn =
+  try Some (Hashtbl.find varinfo_t vn) with Not_found -> None 
+  
+let varinfo_of_name vn =
+  vn |> varinfo_of_name
+     >> (function Some v -> ignore <| Errormsg.warn "varinfo_of_name %a: HIT\n" d_name vn  
+                | _      -> ignore <| Errormsg.warn "varinfo_of_name %a: MISS\n" d_name vn)
 
 
-let string_of_name = Sy.to_string 
-let name_of_varinfo = fun v -> Sy.of_string v.vname
-let name_of_string  = fun s -> Sy.of_string s
+
 
 let name_fresh : unit -> name =
   let t, _ = Misc.mk_int_factory () in
@@ -73,7 +93,7 @@ let base_of_name n =
   match ST.deconstruct_ssa_name (string_of_name n) with
   | None        -> None 
   | Some (b, _) -> Some (name_of_string b)
- 
+
 (*******************************************************************)
 (******************(Basic) Builtin Types and Sorts *****************)
 (*******************************************************************)
@@ -124,7 +144,7 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_skolem,  C.make_reft vv_skl so_skl [])
                   ;(uf_uncheck, C.make_reft vv_pun so_pun [])
                   ;(uf_deref,   C.make_reft vv_drf so_drf [])]
-                  |> Sy.sm_of_list
+                  |> YM.of_list
 (* API *)
 let quals_of_file fname =
   try
@@ -144,4 +164,5 @@ let maybe_deref e =
   | A.App (f, _   ) when f = uf_deref -> assertf "maybe_deref"
   | _                                 -> None 
 
+(* API *)
 

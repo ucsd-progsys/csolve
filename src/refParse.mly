@@ -53,8 +53,7 @@ let store_of_slocbinds sbs =
   end RCt.Store.empty sbs
 
 let ldesc_of_plocbinds pbs =
-  (* pmr: TODO - better location *)
-  List.fold_left (fun ld (x,y) -> RCt.LDesc.add Cil.locUnknown x y ld) RCt.LDesc.empty pbs
+  List.fold_left (fun ld (x,y) -> RCt.LDesc.add x y ld) RCt.LDesc.empty pbs
 
 let abs_sloctable = Hashtbl.create 17
 let cnc_sloctable = Hashtbl.create 17
@@ -244,7 +243,7 @@ slocbindsne:
   ;
 
 slocbind:
-    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create (currentLoc ()) $3), currentLoc ()) }
+    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ()) }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
   | sloc MAPSTO Id                      { ($1, SStruct $3, currentLoc ()) }
   ;
@@ -261,10 +260,10 @@ indbindsne:
 
 indbind:
     index COLON reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ctypes.Nonfinal $3)
+      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Nonfinal Ct.dummy_fieldinfo $3)
     }
   | index COLON FINAL reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ctypes.Final $4)
+      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
     }
   ;
 

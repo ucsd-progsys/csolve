@@ -106,7 +106,7 @@ module ComparableSloc =
 
 module SlocSet = Set.Make(ComparableSloc)
 
-module SlocMap = Map.Make(ComparableSloc)
+module SlocMap = Misc.EMap (ComparableSloc)
 
 let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k,v)::acc) conc []
 

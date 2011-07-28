@@ -25,8 +25,8 @@
 module ST  = Ssa_transform
 module H   = Hashtbl
 module SM  = Misc.StringMap
-module SIM = Map.Make(struct type t = string * int 
-                             let compare x y = compare x y end)
+module SIM = Misc.EMap (struct type t = string * int 
+                               let compare x y = compare x y end)
 
 open Cil
 open Misc.Ops

@@ -71,11 +71,11 @@ let mk_gnv f spec decs cenv =
   let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
              |> CS.varspec
-             |> M.sm_to_list
+             |> SM.to_list
              |> M.map_partial (fun vs -> if SS.mem (fst vs) vardecs then Some vs else None)
              |> List.map (FA.name_of_string <**> (fst <+> f))
              |> FI.ce_adds FI.ce_empty in
-  M.sm_to_list cenv
+  SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs 
             then ft |> FI.refcfun_of_cfun |> FI.map_fn f
@@ -120,7 +120,7 @@ let finalize_store shp_sto sto =
         Ctypes.I.Store.Data.add sto l begin
           Ctypes.I.LDesc.mapn begin fun _ pl fld ->
             match Ctypes.I.LDesc.find pl shp_ld with
-              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality (Ctypes.I.Field.get_finality shp_fld) fld
+              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality fld (Ctypes.I.Field.get_finality shp_fld)
               | _              -> fld
           end ld
         end
@@ -176,9 +176,9 @@ let print_sccs sccs =
 (* API *)
 let create cil spec =
   let reachf = CM.reachable cil in
-  let scim   = cil |> scim_of_file |> Misc.sm_filter (fun fn _ -> reachf fn)  in
+  let scim   = cil |> scim_of_file |> SM.filter (fun fn _ -> reachf fn)  in
   let _      = E.log "\nDONE: SSA conversion \n" in
-  let tgr    = scim |> Misc.sm_to_list |> Misc.map snd |> CilTag.create in
+  let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
   let _      = E.log "\nDONE: TAG initialization\n" in
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
@@ -188,9 +188,8 @@ let create cil spec =
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
   let shm    = shapem_of_scim cil spec scim vim in
-  (* let _      = Genspec.stitch_shapes_ctypes cil shm in
-   *)  
-let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
+  (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
+  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

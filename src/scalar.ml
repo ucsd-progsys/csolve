@@ -123,12 +123,12 @@ let ctype_of_var_index v ix =
 
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
-  >> FI.annot_clear 
+  >> Annots.clear 
   |> generate tgr gnv
   |> solve cil
   |> close scim spec
   |> SM.map (VM.mapi ctype_of_var_index)
-  >> FI.annot_clear
+  >> Annots.clear
 
 (***************************************************************************)
 (************************* TESTING SCALAR INVS *****************************)
