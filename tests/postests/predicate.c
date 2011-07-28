@@ -147,17 +147,20 @@ void testMalloc () {
 void globalWithoutVar (int * LOC(F) f) GLOBAL(F) {
 }
 
-typedef void foo () GLOBAL(G);
-
 // Causes a global store not closed error, but that's surely not the fault
 // of typespec.
-// foo *p;
+void (GLOBAL(G) * gfptr) ();
 
 void withFunPtrArgument (int plusIt (int *, char *)) {
 }
 
-void globalFunPtrArgument (void (* LOC(K) k) ()) GLOBAL(K) {
+void (GLOBAL(K) globalFunPtrArgument) (void (* LOC(K) k) ()) {
 }
+
+// Syntactic sugar for global decls
+void globalFunPtrArgument2 (void (* LOC(K) k) ()) GLOBAL(K)  {
+}
+
 
 void nestedFunPtrs (int applySomething (int foo (int))) {
 }
