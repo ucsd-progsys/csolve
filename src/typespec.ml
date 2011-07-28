@@ -57,7 +57,7 @@ let predOfAttrs ats =
 
 let vv = A.Symbol.of_string "V"
 
-let ptrRefTypeOfAttrs ats =
+let ptrReftypeOfAttrs ats =
   let pred = predOfAttrs ats in
     FI.t_pred
       (Ct.Ref (slocOfAttrs ats,
@@ -68,7 +68,7 @@ let ptrRefTypeOfAttrs ats =
       vv
       pred
 
-let intRefTypeOfAttrs width ats =
+let intReftypeOfAttrs width ats =
   let pred = predOfAttrs ats in
     FI.t_pred
       (Ct.Int (width, SC.data_index_of_pred vv pred))
@@ -150,16 +150,16 @@ let checkDeclarationWellFormed v =
 (******************************************************************************)
 
 let refctypeOfCilType mem t = match C.unrollType t with
-  | C.TVoid ats          -> intRefTypeOfAttrs 0 ats
-  | C.TInt (ik,   ats)   -> intRefTypeOfAttrs (C.bytesSizeOfInt ik) ats
-  | C.TFloat (fk, ats)   -> intRefTypeOfAttrs (CM.bytesSizeOfFloat fk) ats
-  | C.TEnum (ei,  ats)   -> intRefTypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
-  | C.TArray (t, _, ats) -> ptrRefTypeOfAttrs ats
+  | C.TVoid ats          -> intReftypeOfAttrs 0 ats
+  | C.TInt (ik,   ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ik) ats
+  | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
+  | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
+  | C.TArray (t, _, ats) -> ptrReftypeOfAttrs ats
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
       | Some n when SM.mem n mem ->
-        ats |> ptrRefTypeOfAttrs |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
-      | _ -> ptrRefTypeOfAttrs ats
+        ats |> ptrReftypeOfAttrs |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
+      | _ -> ptrReftypeOfAttrs ats
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
