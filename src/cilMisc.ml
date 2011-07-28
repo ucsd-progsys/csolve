@@ -228,6 +228,11 @@ let getStringAttrs name ats =
       | _                  -> failwith <| "Attribute " ^ name ^ " given a param which is not a single string"
      end
 
+let setStringAttr name s ats =
+     ats
+  |> dropAttribute name
+  |> addAttribute (Attr (name, [AStr s]))
+
 let has_array_attr     = hasAttribute "array"
 let has_pos_attr       = hasAttribute "pos"
 let has_unchecked_attr = hasAttribute "unchecked"

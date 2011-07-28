@@ -26,12 +26,13 @@ open M.Ops
 (************************* Annotations From Attributes ************************)
 (******************************************************************************)
 
-let slocAttribute      = "lcc_sloc"
-let globalAttribute    = "lcc_global_loc"
-let concreteAttribute  = "lcc_concrete"
-let predAttribute      = "lcc_predicate"
-let externOkAttribute  = "lcc_extern_ok"
-let checkTypeAttribute = "lcc_check_type"
+let slocAttribute        = "lcc_sloc"
+let globalAttribute      = "lcc_global_loc"
+let concreteAttribute    = "lcc_concrete"
+let instantiateAttribute = "lcc_inst_sloc"
+let predAttribute        = "lcc_predicate"
+let externOkAttribute    = "lcc_extern_ok"
+let checkTypeAttribute   = "lcc_check_type"
 
 type slocType =
   | Concrete
@@ -43,10 +44,14 @@ let rec getSloc =
       | Abstract -> M.do_memo slocTable S.fresh_abstract [] (s, Abstract)
       | Concrete -> M.do_memo slocTable (getSloc Abstract <+> S.fresh_concrete) s (s, Concrete)
 
-let slocOfAttrs ats =
+let slocNameOfAttrs ats =
      ats
   |> CM.getStringAttrs slocAttribute
   |> M.ex_one "Type does not have a single sloc"
+
+let slocOfAttrs ats =
+     ats
+  |> slocNameOfAttrs
   |> getSloc (if C.hasAttribute concreteAttribute ats then Concrete else Abstract)
 
 let predOfAttrs ats =
@@ -181,15 +186,39 @@ let addRefcfunToStore sto loc s rcf =
                  S.d_sloc s RCf.d_cfun storcf RCf.d_cfun rcf
   else RS.Function.add sto s rcf
 
+let instantiateTypeLocation sub t =
+   if C.isPointerType t then
+     let ats = C.typeAttrs t in
+          ats
+       |> CM.setStringAttr slocAttribute (List.assoc (slocNameOfAttrs ats) sub)
+       |> C.setTypeAttrs t
+   else t
+
+let instantiateStruct ats tcs =
+     ats
+  |> C.filterAttributes instantiateAttribute
+  |> List.map begin function
+      | C.Attr (n, [C.AStr nfrom; C.AStr nto]) -> (nfrom, nto)
+      | _                                      -> assert false (* pmr: better fail message *)
+     end
+  |> List.fold_right begin fun (_, _, t) sub ->
+       if C.isPointerType t then
+         let s = t |> C.typeAttrs |> slocNameOfAttrs in
+           if List.mem_assoc s sub then sub else (s, freshSlocName ()) :: sub
+       else sub
+     end tcs
+  |> fun sub -> List.map (M.app_thd3 <| instantiateTypeLocation sub) tcs
+
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
   | C.TArray (t, b, _) ->
     t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b)
-  | C.TComp (ci, _) as t ->
-    M.flap
-      begin fun f -> match componentsOfField t f with
+  | C.TComp (ci, ats) as t ->
+       ci.C.cfields
+    |> M.flap begin fun f -> match componentsOfField t f with
         | [(_, i, t)] -> [(f.C.fname, i, t)]
         | cs          -> cs
-      end ci.C.cfields
+       end
+    |> instantiateStruct ats
   | t -> [("", I.mk_singleton 0, ensureSlocAttr t)]
 
 and componentsOfField t f =

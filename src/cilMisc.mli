@@ -47,6 +47,7 @@ val char_width       : int
 
 val getAttr            : string -> Cil.attributes -> Cil.attribute
 val getStringAttrs     : string -> Cil.attributes -> string list
+val setStringAttr      : string -> string -> Cil.attributes -> Cil.attributes
 
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool

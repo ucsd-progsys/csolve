@@ -13,6 +13,8 @@
 #define OKEXTERN   __attribute__ ((lcc_extern_ok))
 #define CHECK_TYPE __attribute__ ((lcc_check_type))
 
+#define INST(l, k) __attribute__ ((lcc_inst_sloc (#l, #k)))
+
 // Predicate abbreviations
 
 #define PNONNULL  V > 0
@@ -149,7 +151,7 @@ void globalWithoutVar (int * LOC(F) f) GLOBAL(F) {
 
 // Causes a global store not closed error, but that's surely not the fault
 // of typespec.
-void (GLOBAL(G) * gfptr) ();
+// void (GLOBAL(G) * gfptr) ();
 
 void withFunPtrArgument (int plusIt (int *, char *)) {
 }
@@ -163,4 +165,33 @@ void globalFunPtrArgument2 (void (* LOC(K) k) ()) GLOBAL(K)  {
 
 
 void nestedFunPtrs (int applySomething (int foo (int))) {
+}
+
+typedef struct {
+    int * LOC(L) data;
+} paramStruct;
+
+void nonAliasedParamStruct (paramStruct *p, paramStruct *q) {
+}
+
+void aliasedParamStruct (paramStruct INST(L, K) *p, paramStruct INST(L, K) *q) {
+}
+
+void aliasedParamStruct2 (paramStruct INST(L, K) * LOC(A) p, paramStruct INST(L, K) * LOC(A) q) {
+}
+
+typedef struct {
+    paramStruct INST(L, A) a;
+    paramStruct INST(L, A) b;
+} nestedParamStruct;
+
+void nestedParamStruct (nestedParamStruct * n) {
+}
+
+typedef struct {
+    paramStruct a;
+    paramStruct b;
+} nestedTwoParamStruct;
+
+void nestedTwoParamStruct (nestedTwoParamStruct * n) {
 }
