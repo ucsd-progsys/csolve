@@ -185,13 +185,16 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
-    val indices      : t -> Index.t list 
+    val indices      : t -> Index.t list
+
+    val data         : t -> t
     
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
 
     module Data: sig
       val add                  : t -> Sloc.t -> LDesc.t -> t
+      (* Change name/type to add_field_fold_overlap *)
       val add_and_fold_overlap :
         t ->
         Cil.location ->
@@ -202,7 +205,9 @@ module type S = sig
         CType.t ->
         'a * t
 
+      val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
+      val ensure_sloc   : t -> Sloc.t -> t
       val find          : t -> Sloc.t -> LDesc.t
       val find_or_empty : t -> Sloc.t -> LDesc.t
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
@@ -212,6 +217,7 @@ module type S = sig
 
     module Function: sig
       val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val domain    : t -> Sloc.t list
       val mem       : 'a prestore -> Sloc.t -> bool
       val find      : 'a prestore -> Sloc.t -> 'a precfun
       val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a

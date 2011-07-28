@@ -453,6 +453,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val ctype_closed : ctype -> t -> bool
     val indices      : t -> Index.t list
 
+    val data         : t -> t
+
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
 
@@ -468,7 +470,9 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
         ctype ->
         'a * t
 
+      val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
+      val ensure_sloc   : t -> Sloc.t -> t
       val find          : t -> Sloc.t -> ldesc
       val find_or_empty : t -> Sloc.t -> ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
@@ -478,6 +482,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     module Function: sig
       val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val domain    : t -> Sloc.t list
       val mem       : 'a prestore -> Sloc.t -> bool
       val find      : 'a prestore -> Sloc.t -> 'a precfun
       val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
@@ -746,10 +751,16 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map
 
+    let slm_domain m =
+      SLM.fold (fun s _ ss -> s :: ss) m []
+
     module Data = struct
       let add (ds, fs) l ld =
         let _ = assert (not (SLM.mem l fs)) in
           (SLM.add l ld ds, fs)
+
+      let domain (ds, _) =
+        slm_domain ds
 
       let mem (ds, _) l =
         SLM.mem l ds
@@ -759,6 +770,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
       let find_or_empty sto l =
         try find sto l with Not_found -> LDesc.empty
+
+      let ensure_sloc sto l =
+        l |> find_or_empty sto |> add sto l
 
       let map f (ds, fs) =
         (map_data f ds, fs)
@@ -795,6 +809,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         let _ = assert (not (SLM.mem l ds)) in
           (ds, SLM.add l cf fs)
 
+      let domain (_, fs) =
+        slm_domain fs
+
       let mem (_, fs) l =
         SLM.mem l fs
 
@@ -808,11 +825,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map f (ds, fs) =
       (map_data f ds, SLM.map (CFun.map f) fs)
 
-    let slm_domain m =
-      SLM.fold (fun s _ ss -> s :: ss) m []
-
-    let domain (ds, fs) =
-      slm_domain ds ++ slm_domain fs
+    let domain sto =
+      Data.domain sto ++ Function.domain sto
 
     let mem (ds, fs) s =
       SLM.mem s ds || SLM.mem s fs
@@ -871,6 +885,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let indices (ds, fs) =
       slm_acc_list LDesc.indices ds ++ slm_acc_list CFun.indices fs
+
+    let data (ds, _) =
+      (ds, SLM.empty)
 
     let d_store_addrs () st =
       Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)

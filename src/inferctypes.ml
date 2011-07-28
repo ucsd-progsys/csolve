@@ -243,7 +243,7 @@ let constrain_app loc i (fs, _) et cf sub sto lvo args =
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.filter (Store.Data.mem cfi.sto_out)
-                   |> List.fold_left (fun sto s -> Store.Data.add sto s (Store.Data.find_or_empty sto s)) sto in
+                   |> List.fold_left Store.Data.ensure_sloc sto in
   let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
       store_add !C.currentLoc s i (Field.type_of fld) sub sto
     end (sub, sto) cfi.sto_out in

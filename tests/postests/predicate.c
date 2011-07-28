@@ -143,3 +143,21 @@ extern void * CONCRETE LOC(L) START NONNULL SIZE(sz) pmr_malloc (int REF(V >= 0)
 void testMalloc () {
     int *p = (int *) pmr_malloc (sizeof(int));
 }
+
+void globalWithoutVar (int * LOC(F) f) GLOBAL(F) {
+}
+
+typedef void foo () GLOBAL(G);
+
+// Causes a global store not closed error, but that's surely not the fault
+// of typespec.
+// foo *p;
+
+void withFunPtrArgument (int plusIt (int *, char *)) {
+}
+
+void globalFunPtrArgument (void (* LOC(K) k) ()) GLOBAL(K) {
+}
+
+void nestedFunPtrs (int applySomething (int foo (int))) {
+}
