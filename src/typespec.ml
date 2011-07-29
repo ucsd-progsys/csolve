@@ -318,7 +318,7 @@ let globalSpecOfFuns funspec gsto funs =
            (M.sm_protected_add false fn (rcf, C.hasAttribute checkTypeAttribute v.C.vattr) funm, gsto)
        else (funm, gsto)
      end (SM.empty, gsto)
-  |> M.app_fst Misc.sm_bindings
+  |> M.app_fst SM.to_list
 
 let updVarM spec varm v =
   if not (SM.mem v.C.vname spec || C.isFunctionType v.C.vtype) then begin
@@ -330,7 +330,7 @@ let updVarM spec varm v =
 let varSpecOfVars varspec vars =
      vars
   |> List.fold_left (fun varm v -> updVarM varspec varm v) SM.empty
-  |> M.sm_bindings
+  |> SM.to_list
 
 (* in the end, there should only ever be one file, so maybe we should specialize to that *)
 let specsOfFile spec file =
