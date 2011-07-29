@@ -97,6 +97,13 @@ sub collectOneArgument {
     return $self->SUPER::collectOneArgument($arg, $pargs);
 }
 
+sub setDefaultArguments {
+    my ($self) = @_;
+    push @{$self->{INCLUDEDIR}}, "$FindBin::RealBin/../external/include32/";
+    push @{$self->{CCARGS}},     "-nostdinc";
+    push @{$self->{PPARGS}},     "-nostdinc";
+}
+
 sub usage {
     print "Usage: lcc [options] [gcc_or_mscl arguments]\n";
 }
