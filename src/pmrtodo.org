@@ -50,6 +50,8 @@
 
 * DONE Parameterized structure defs
 
+* DONE Include liquidc/src/include (or really include32) as default include dir
+
 
 * TODO Arrays at ends of structs get right indices?
 
@@ -58,8 +60,6 @@
 
 * TODO Better error messages overall
 
-* TODO Include liquidc/src/include (or really include32) as default include dir
-
 * TODO Deferred checks
   See also indices above
 
@@ -67,6 +67,8 @@
 
 
 * TODO Change assert to lcc_assert
+
+* TODO Figure out how to make assert, validptr compileable
 
 * TODO Write docs for spec language
 

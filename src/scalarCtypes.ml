@@ -108,6 +108,13 @@ let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sor
 (***************** Convert Predicates/Refinements To Indices ***************)
 (***************************************************************************)
 
+let of_nullary_preds qis v ps =
+  let sub = A.Subst.of_list [value_var, A.eVar v] in
+        qis
+    |>: (Misc.app_fst <| Misc.flip A.substs_pred sub)
+    |>  List.filter (fun (q, _) -> List.exists ((=) q) ps)
+    |>: snd
+
 let bind_of_subst var subst =
   try
     subst |> A.Subst.to_list |> List.assoc var |> A.into_of_expr
@@ -123,9 +130,11 @@ let map_matching_qual_binds f qs v ps =
   |> Misc.map_partial (bind_of_subst const_var)
   |> List.map f
 
-let singleton_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.IInt c)
-let data_singleton_of_preds = singleton_of_preds_aux [p_v_eq_c]
-let ref_singleton_of_preds  = singleton_of_preds_aux [p_v_eq_bb; p_v_eq_x_plus_c]
+let singleton_of_preds_aux      = map_matching_qual_binds (fun c -> Ix.IInt c)
+let data_singleton_of_preds     = singleton_of_preds_aux [p_v_eq_c]
+let ref_singleton_of_preds v ps =
+  singleton_of_preds_aux [p_v_eq_x_plus_c] v ps ++
+    of_nullary_preds [(p_v_eq_bb, Ix.IInt 0)] v ps
 
 let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
 let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]
