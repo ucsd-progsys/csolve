@@ -189,13 +189,19 @@ let generate_spec file fn spec =
 (***********************************************************************************)
 
 let spec_of_file outprefix file =
-  RCt.Spec.empty
-  |> add_spec (Co.get_lib_spec ())                      (* Add default specs  *)
-  |> List.fold_right add_spec (spec_includes file)      (* Add external specs *)
-  |> add_spec (outprefix^".spec")                       (* Add manual specs   *)
-  >> generate_spec file outprefix
-  |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
-  >> Genspec.assert_spec_complete file
+  if !Co.new_spec_gen then
+    RCt.Spec.empty
+    >> generate_spec_fancy file outprefix
+    |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
+    >> Genspec.assert_spec_complete file
+  else
+    RCt.Spec.empty
+    |> add_spec (Co.get_lib_spec ())                      (* Add default specs  *)
+    |> List.fold_right add_spec (spec_includes file)      (* Add external specs *)
+    |> add_spec (outprefix^".spec")                       (* Add manual specs   *)
+    >> generate_spec file outprefix
+    |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
+    >> Genspec.assert_spec_complete file
 
 let print_header () = 
   Printf.printf " \n \n";
