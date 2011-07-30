@@ -28,21 +28,27 @@ open M.Ops
 
 let slocAttribute        = "lcc_sloc"
 let globalAttribute      = "lcc_global_loc"
-let concreteAttribute    = "lcc_concrete"
+let allocatesAttribute   = "lcc_allocates"
 let instantiateAttribute = "lcc_inst_sloc"
 let predAttribute        = "lcc_predicate"
 let externOkAttribute    = "lcc_extern_ok"
 let checkTypeAttribute   = "lcc_check_type"
 
-type slocType =
-  | Concrete
-  | Abstract
+let concretePrefix = '!'
+
+let isLocNameAbstract s =
+  not (String.get s 0 = concretePrefix)
+
+let abstractLocNameOfStr s =
+  if isLocNameAbstract s then s else String.sub s 1 (String.length s - 1)
 
 let rec getSloc =
   let slocTable = Hashtbl.create 17 in
-    fun ty s -> match ty with
-      | Abstract -> M.do_memo slocTable S.fresh_abstract [] (s, Abstract)
-      | Concrete -> M.do_memo slocTable (getSloc Abstract <+> S.fresh_concrete) s (s, Concrete)
+    fun s ->
+      if isLocNameAbstract s then
+        M.do_memo slocTable S.fresh_abstract [] s
+      else
+        M.do_memo slocTable (abstractLocNameOfStr <+> getSloc <+> S.fresh_concrete) s s
 
 let slocNameOfAttrs ats =
      ats
@@ -52,7 +58,7 @@ let slocNameOfAttrs ats =
 let slocOfAttrs ats =
      ats
   |> slocNameOfAttrs
-  |> getSloc (if C.hasAttribute concreteAttribute ats then Concrete else Abstract)
+  |> getSloc
 
 let predOfAttrs ats =
       ats
@@ -131,18 +137,15 @@ let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
 (****************** Checking Type Annotation Well-Formedness ******************)
 (******************************************************************************)
 
+let assertSlocNotConcrete ats =
+  if C.hasAttribute slocAttribute ats then
+    assert (ats |> slocNameOfAttrs |> isLocNameAbstract)
+
 let assertStoreTypeWellFormed t =
-     t
-  |> C.typeAttrs
-  |> fun ats ->
-       if C.hasAttribute concreteAttribute ats then failwith "Found concrete location in store"
+ t |> C.typeAttrs |> assertSlocNotConcrete
 
 let assertGlobalVarTypeWellFormed v =
-     v.C.vtype
-  |> C.typeAttrs
-  |> fun ats ->
-       if C.hasAttribute concreteAttribute ats then
-         E.s <| C.errorLoc v.C.vdecl "Global variable %s cannot be declared with concrete location."
+  v.C.vtype |> C.typeAttrs |> assertSlocNotConcrete
 
 let checkDeclarationWellFormed v =
   if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
@@ -261,14 +264,16 @@ and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
   let ret                = ensureSlocAttr ret in
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
-  let glocs              = ats |> CM.getStringAttrs globalAttribute |>: getSloc Abstract in
-  let allSto             = ret :: List.map snd argts |> preRefstoreOfTypes in
+  let glocs              = ats |> CM.getStringAttrs globalAttribute |>: getSloc in
+  let allOutStore        = ret :: List.map snd argts |> preRefstoreOfTypes in
+  let allocLocs          = ats |> CM.getStringAttrs allocatesAttribute |>: getSloc in
+  let _, allInStore      = RS.partition (M.flip List.mem allocLocs) allOutStore in
     RCf.make
       (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
       glocs
-      allSto
+      allInStore
       (refctypeOfCilType SM.empty ret)
-      allSto
+      allOutStore
 
 let updateGlobalStore gsto gstoUpd =
      gsto
@@ -281,9 +286,10 @@ let updateGlobalStore gsto gstoUpd =
       gstoUpd
 
 let rec refcfunOfPreRefcfun gsto prcf =
-  let gsto, astof = refstoreOfPreRefstore gsto prcf.Ct.sto_out in
-  let gstof, stof = RS.partition (M.flip List.mem prcf.Ct.globlocs) astof in
-    ({prcf with Ct.sto_in = stof; Ct.sto_out = stof}, updateGlobalStore gsto gstof)
+  let gsto, aostof = refstoreOfPreRefstore gsto prcf.Ct.sto_out in
+  let gstof, ostof = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
+  let istof, _     = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
+    ({prcf with Ct.sto_in = istof; Ct.sto_out = ostof}, updateGlobalStore gsto gstof)
 
 and refstoreOfPreRefstore gsto sto =
   RS.Function.fold_locs begin fun s prcf (gsto, sto) ->

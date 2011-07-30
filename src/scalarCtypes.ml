@@ -81,6 +81,8 @@ let p_v_minus_c_eqz_mod_k =
 
 let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FA.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
+let p_v_eq_bb = A.pAtom (A.eVar value_var, A.Eq, FA.eApp_bbegin (A.eVar value_var))
+
 (* v =  BB(v) + c *)
 let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
 
@@ -106,10 +108,10 @@ let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sor
 (***************** Convert Predicates/Refinements To Indices ***************)
 (***************************************************************************)
 
-let bind_of_subst var =
-  A.Subst.to_list
-  <+> Misc.do_catch (Format.sprintf "Scalar.bind_of_subst") (List.assoc var)
-  <+> A.into_of_expr
+let bind_of_subst var subst =
+  try
+    subst |> A.Subst.to_list |> List.assoc var |> A.into_of_expr
+  with Not_found -> None
 
 let substs_of_preds p v ps =
   let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
@@ -123,7 +125,7 @@ let map_matching_qual_binds f qs v ps =
 
 let singleton_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.IInt c)
 let data_singleton_of_preds = singleton_of_preds_aux [p_v_eq_c]
-let ref_singleton_of_preds  = singleton_of_preds_aux [p_v_eq_x_plus_c]
+let ref_singleton_of_preds  = singleton_of_preds_aux [p_v_eq_bb; p_v_eq_x_plus_c]
 
 let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
 let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]

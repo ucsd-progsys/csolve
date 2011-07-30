@@ -65,6 +65,11 @@
 
 * TODO Change add_and_fold_overlap to add_field_fold_overlap
 
+
+* TODO Change assert to lcc_assert
+
+* TODO Write docs for spec language
+
 * Soon
 
 ** TODO Investigate unquantified_write global scalar type issue
