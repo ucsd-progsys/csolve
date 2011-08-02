@@ -369,18 +369,19 @@ let print_vmaps scis =
   >> (fun oc -> List.iter (print_vmap oc) scis)
   |> close_out
 
-(**************************************************************************)
+(***********************************************************************)
 
 (* API *)
-let scis_of_file cil = 
+let scim_of_decs decs = 
   let vmap_t = H.create 117 in
-  Cil.foldGlobals cil begin fun acc g -> 
-    match g with 
-    | Cil.GFun (fdec,loc) -> (fdec_to_ssa_cfg vmap_t fdec loc)::acc
-    | _                   -> acc
-  end []
+  decs
+  |> Misc.map_partial (function CilMisc.FunDec (_,x,y) -> Some (x,y) | _ -> None)
+  |> Misc.map (Misc.uncurry (fdec_to_ssa_cfg vmap_t))
   >> print_scis
   >> print_vmaps
+  |> List.map (Misc.pad_fst (fun sci -> sci.fdec.svar.vname)) 
+  |> Misc.StringMap.of_list
+
 
 let rec reachable_blocks_aux sci marked blockss wklist =
   if wklist = [] then

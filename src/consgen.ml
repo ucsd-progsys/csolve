@@ -67,7 +67,7 @@ let declared_names decs is_decl =
 
 (* TBD: UGLY *)
 let mk_gnv f spec decs cenv =
-  let fundecs = declared_names decs (function CM.FunDec (fn,_) -> Some fn | _ -> None) in
+  let fundecs = declared_names decs (function CM.FunDec (fn,_, _) -> Some fn | _ -> None) in
   let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
              |> CS.varspec
@@ -144,6 +144,32 @@ let tag_of_global = function
   | GCompTag (_,_) -> "GCompTag"
   | _              -> "Global"
 
+
+let dec_of_global = function
+    | GFun (fdec, loc) 
+      -> Some (CM.FunDec (fdec.svar.vname, fdec, loc))
+    | GVar (v, ii, loc) when not (isFunctionType v.vtype)
+      -> Some (CM.VarDec (v, loc, ii.init))
+    | GVarDecl (v, loc) when not (isFunctionType v.vtype) 
+      -> Some (CM.VarDec (v, loc, None)) 
+    | GVarDecl (_, _) | GType _ | GCompTag _ | GCompTagDecl _| GText _ | GPragma _                         
+      -> None
+    | _ when !Cs.safe                   
+      -> assertf "decs_of_file"
+    | g  -> (ignore <| E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g; None) 
+
+(* HEREHEREHERE: hook command-line option to recompute functions *)
+let visible_globals_of_file cil 
+  = List.rev <| Cil.foldGlobals cil (fun acc g -> g :: acc) []
+
+
+let decs_of_file cil = 
+  let reachf = CM.reachable cil in
+  cil |> visible_globals_of_file 
+      |> Misc.map_partial dec_of_global
+      |> Misc.filter (function CM.FunDec (vn,_,_) -> reachf vn | _ -> true)
+
+(*
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
     | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
@@ -160,12 +186,7 @@ let decs_of_file cil =
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
-
-let scim_of_file cil =
-  ST.scis_of_file cil
-  |> List.fold_left begin fun acc sci -> 
-       SM.add sci.ST.fdec.svar.vname sci acc
-     end SM.empty
+*)
 
 (* {{{ 
 let print_sccs sccs =
@@ -173,16 +194,24 @@ let print_sccs sccs =
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 }}} *)
 
+(* HEREHEREHEREHEREHERE *)
+let incrementalize (decs, spec) = 
+  ignore <| E.warn "TBD: adjust_for_recomputation" ; 
+  (decs, spec) 
+  (* ispec := all saved types
+   * decs' := decs -- reused functions
+   * spec' := spec ++ (ispec at reused functions) *)
+
 (* API *)
 let create cil spec =
-  let reachf = CM.reachable cil in
-  let scim   = cil |> scim_of_file |> SM.filter (fun fn _ -> reachf fn)  in
+  let decs   = decs_of_file cil   in
+  let (decs, spec)  = incrementalize (decs, spec) in
+  let scim   = ST.scim_of_decs decs  in
   let _      = E.log "\nDONE: SSA conversion \n" in
   let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
   let _      = E.log "\nDONE: TAG initialization\n" in
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
-  let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in

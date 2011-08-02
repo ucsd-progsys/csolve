@@ -1,12 +1,25 @@
+
+Modular Checking
+================
+
 HEREHEREHERE
 
-Write: 
+* save computed results to file (*.ispec) -- inferred spec
+    
+* re-jigger consgen so that it is given:   
 
-    val unfold_ciltyp : Cil.typ -> Ct.fieldinfo IM.t 
+        f_targs :: list of functions to be analyzed
+        
+        
 
-which unrolls a cil type into its component "fields" and returns:
-  
-    [ (0, fldname0, fldtype0); ... ; (N, fldnameN, fldtypeN)]
+    let f_all   = all functions in file
+        f_targs = functions to be re-analyzed
+        f_reuse = f_all \ f_targs
+        
+        spec    = old_spec ++ f_reuse
+        
+
+
 
 * src/pmrtodo.org benchmarks
         tsort 

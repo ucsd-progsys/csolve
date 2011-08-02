@@ -37,7 +37,7 @@ open Misc.Ops
 let mydebug = false 
 
 type dec =
-  | FunDec of string * location
+  | FunDec of string * Cil.fundec * location
   | VarDec of Cil.varinfo * location * init option
 
 module ComparableVar =
