@@ -234,7 +234,15 @@ let setStringAttr name s ats =
   |> dropAttribute name
   |> addAttribute (Attr (name, [AStr s]))
 
-let has_array_attr     = hasAttribute "array"
+let arrayAttribute       = "lcc_array"
+let slocAttribute        = "lcc_sloc"
+let globalAttribute      = "lcc_global_loc"
+let instantiateAttribute = "lcc_inst_sloc"
+let predAttribute        = "lcc_predicate"
+let externOkAttribute    = "lcc_extern_ok"
+let checkTypeAttribute   = "lcc_check_type"
+
+let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
 let has_unchecked_attr = hasAttribute "unchecked"
 

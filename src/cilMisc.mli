@@ -49,6 +49,14 @@ val getAttr            : string -> Cil.attributes -> Cil.attribute
 val getStringAttrs     : string -> Cil.attributes -> string list
 val setStringAttr      : string -> string -> Cil.attributes -> Cil.attributes
 
+val arrayAttribute       : string
+val slocAttribute        : string
+val globalAttribute      : string
+val instantiateAttribute : string
+val predAttribute        : string
+val externOkAttribute    : string
+val checkTypeAttribute   : string
+
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool
 val has_unchecked_attr : Cil.attributes -> bool

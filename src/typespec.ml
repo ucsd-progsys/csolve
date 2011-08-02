@@ -23,16 +23,32 @@ module RSp = Ctypes.RefCTypes.Spec
 open M.Ops
 
 (******************************************************************************)
-(************************* Annotations From Attributes ************************)
+(***************************** Array Manipulation *****************************)
 (******************************************************************************)
 
-let arrayAttribute       = "lcc_array"
-let slocAttribute        = "lcc_sloc"
-let globalAttribute      = "lcc_global_loc"
-let instantiateAttribute = "lcc_inst_sloc"
-let predAttribute        = "lcc_predicate"
-let externOkAttribute    = "lcc_extern_ok"
-let checkTypeAttribute   = "lcc_check_type"
+(* Breaks w/ zero-sized arrays? *)
+let indexOfArrayElements t b = match t, b with
+  | t, Some (C.Const (C.CInt64 (i, _, _))) ->
+    let sz = CM.bytesSizeOf t in
+    let c  = Int64.to_int i - 1 in
+      I.mk_sequence 0 sz (Some 0) (Some (c * sz))
+  | t, _ -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
+
+
+let arraySizes sz1 sz2 = match sz1, sz2 with
+  | Some (C.Const (C.CInt64 (i, ik, _))), Some (C.Const (C.CInt64 (j, _, _))) ->
+    Some (C.Const (C.CInt64 (Int64.mul i j, ik, None)))
+  | None, None -> None
+  | _          -> assert false
+
+let rec flattenArray = function
+  | C.TArray (C.TArray (c, iszo, _), oszo, _) ->
+    flattenArray (C.TArray (c, arraySizes iszo oszo, []))
+  | t -> t
+
+(******************************************************************************)
+(************************* Annotations From Attributes ************************)
+(******************************************************************************)
 
 let concretePrefix = '!'
 
@@ -52,7 +68,7 @@ let rec getSloc =
 
 let slocNameOfAttrs ats =
      ats
-  |> CM.getStringAttrs slocAttribute
+  |> CM.getStringAttrs CM.slocAttribute
   |> M.ex_one "Type does not have a single sloc"
 
 let slocOfAttrs ats =
@@ -62,22 +78,23 @@ let slocOfAttrs ats =
 
 let predOfAttrs ats =
       ats
-  |>  CM.getStringAttrs predAttribute
+  |>  CM.getStringAttrs CM.predAttribute
   |>: (Lexing.from_string <+> RefParse.pred RefLex.token)
   |>  A.pAnd
 
 let vv = A.Symbol.of_string "V"
 
-let ptrReftypeOfAttrs ats =
+let ptrIndexOfPredAttrs tb pred ats =
+  if CM.has_array_attr ats then
+    indexOfArrayElements tb None
+  else if C.hasAttribute CM.predAttribute ats then
+    SC.ref_index_of_pred vv pred
+  else
+    I.mk_singleton 0
+
+let ptrReftypeOfAttrs tb ats =
   let pred = predOfAttrs ats in
-    FI.t_pred
-      (Ct.Ref (slocOfAttrs ats,
-               if C.hasAttribute predAttribute ats then
-                 SC.ref_index_of_pred vv pred
-               else
-                 I.mk_singleton 0))
-      vv
-      pred
+    FI.t_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
 
 let intReftypeOfAttrs width ats =
   let pred = predOfAttrs ats in
@@ -95,10 +112,10 @@ let freshSlocName, _ = M.mk_string_factory "LOC"
 let ensureSlocAttr t =
   if C.isPointerType t || C.isArrayType t then
     let ats = C.typeAttrs t in
-      if C.hasAttribute slocAttribute ats then
+      if C.hasAttribute CM.slocAttribute ats then
         t
       else
-        C.typeAddAttributes [C.Attr (slocAttribute, [C.AStr (freshSlocName ())])] t
+        C.typeAddAttributes [C.Attr (CM.slocAttribute, [C.AStr (freshSlocName ())])] t
   else t
 
 let argType (x, t, ats) =
@@ -108,37 +125,18 @@ let nameArg =
   let freshArgName, _ = M.mk_string_factory "ARG" in
     fun x -> if x = "" then freshArgName () else x
 
-let arraySizes sz1 sz2 = match sz1, sz2 with
-  | Some (C.Const (C.CInt64 (i, ik, _))), Some (C.Const (C.CInt64 (j, _, _))) ->
-    Some (C.Const (C.CInt64 (Int64.mul i j, ik, None)))
-  | None, None -> None
-  | _          -> assert false
-
-let rec flattenArray = function
-  | C.TArray (C.TArray (c, iszo, _), oszo, _) ->
-    flattenArray (C.TArray (c, arraySizes iszo oszo, []))
-  | t -> t
-
-(* Breaks w/ zero-sized arrays? *)
-let indexOfArrayElements t b = match t, b with
-  | t, Some (C.Const (C.CInt64 (i, _, _))) ->
-    let sz = CM.bytesSizeOf t in
-    let c  = Int64.to_int i - 1 in
-      I.mk_sequence 0 sz (Some 0) (Some (c * sz))
-  | t, _ -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
-
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _)                                     -> indexOfArrayElements t b
-  | C.TPtr (t, ats) when C.hasAttribute arrayAttribute ats -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
-  | C.TPtr _                                               -> I.mk_singleton 0
-  | _                                                      -> assert false
+  | C.TArray (t, b, _)                         -> indexOfArrayElements t b
+  | C.TPtr (t, ats) when CM.has_array_attr ats -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
+  | C.TPtr _                                   -> I.mk_singleton 0
+  | _                                          -> assert false
 
 (******************************************************************************)
 (****************** Checking Type Annotation Well-Formedness ******************)
 (******************************************************************************)
 
 let assertSlocNotConcrete ats =
-  if C.hasAttribute slocAttribute ats then
+  if C.hasAttribute CM.slocAttribute ats then
     assert (ats |> slocNameOfAttrs |> isLocNameAbstract)
 
 let assertStoreTypeWellFormed t =
@@ -148,7 +146,7 @@ let assertGlobalVarTypeWellFormed v =
   v.C.vtype |> C.typeAttrs |> assertSlocNotConcrete
 
 let checkDeclarationWellFormed v =
-  if v.C.vstorage = C.Extern && not (C.hasAttribute externOkAttribute v.C.vattr) then
+  if v.C.vstorage = C.Extern && not (C.hasAttribute CM.externOkAttribute v.C.vattr) then
     E.s <| C.errorLoc v.C.vdecl
         "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
         v.C.vname
@@ -162,12 +160,12 @@ let refctypeOfCilType mem t = match C.unrollType t with
   | C.TInt (ik,   ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ik) ats
   | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
-  | C.TArray (t, _, ats) -> ptrReftypeOfAttrs ats
+  | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
       | Some n when SM.mem n mem ->
-        ats |> ptrReftypeOfAttrs |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
-      | _ -> ptrReftypeOfAttrs ats
+        ats |> ptrReftypeOfAttrs t |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
+      | _ -> ptrReftypeOfAttrs t ats
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
@@ -193,13 +191,13 @@ let instantiateTypeLocation sub t =
    if C.isPointerType t then
      let ats = C.typeAttrs t in
           ats
-       |> CM.setStringAttr slocAttribute (List.assoc (slocNameOfAttrs ats) sub)
+       |> CM.setStringAttr CM.slocAttribute (List.assoc (slocNameOfAttrs ats) sub)
        |> C.setTypeAttrs t
    else t
 
 let instantiateStruct ats tcs =
      ats
-  |> C.filterAttributes instantiateAttribute
+  |> C.filterAttributes CM.instantiateAttribute
   |> List.map begin function
       | C.Attr (n, [C.AStr nfrom; C.AStr nto]) -> (nfrom, nto)
       | _                                      -> assert false (* pmr: better fail message *)
@@ -264,7 +262,7 @@ and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
   let ret                = ensureSlocAttr ret in
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
-  let glocs              = ats |> CM.getStringAttrs globalAttribute |>: getSloc in
+  let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc in
   let allOutStore        = ret :: List.map snd argts |> preRefstoreOfTypes in
   let argrcts            = List.map (M.app_snd <| refctypeOfCilType SM.empty) argts in
   let retrct             = refctypeOfCilType SM.empty ret in
@@ -317,7 +315,7 @@ let globalSpecOfFuns funspec gsto funs =
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (SM.mem fn funspec || isBuiltin fn) then
          let rcf, gsto = ty |> preRefcfunOfType |> refcfunOfPreRefcfun gsto in
-           (M.sm_protected_add false fn (rcf, C.hasAttribute checkTypeAttribute v.C.vattr) funm, gsto)
+           (M.sm_protected_add false fn (rcf, C.hasAttribute CM.checkTypeAttribute v.C.vattr) funm, gsto)
        else (funm, gsto)
      end (SM.empty, gsto)
   |> M.app_fst SM.to_list
