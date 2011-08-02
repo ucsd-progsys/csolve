@@ -196,7 +196,7 @@ let print_sccs sccs =
 
 (* HEREHEREHEREHEREHERE *)
 let incrementalize (decs, spec) = 
-  ignore <| E.warn "TBD: adjust_for_recomputation" ; 
+  ignore <| E.warn "TBD: incrementalize" ; 
   (decs, spec) 
   (* ispec := all saved types
    * decs' := decs -- reused functions
