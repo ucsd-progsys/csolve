@@ -59,9 +59,10 @@ let mydebug = false
 (*******************************************************************)
 
 type name = Sy.t
-let string_of_name  = Sy.to_string 
 
-let d_name () n = Pretty.text (string_of_name n)
+let string_of_name    = Sy.to_string 
+
+let d_name () n       = Pretty.text (string_of_name n)
 
 let name_of_string    = Sy.of_string
 
@@ -71,8 +72,8 @@ let name_of_varinfo v =
   v.vname 
   |> name_of_string
   >> (fun vn -> Hashtbl.replace varinfo_t vn v) 
-  >> (fun vn -> ignore <| Errormsg.warn "name_of_varinfo: %s %a\n" v.vname d_name vn) 
-  (* >> (fun _ -> assertf "GO TO JELL!") *)
+(*  >> (fun vn -> ignore <| Errormsg.warn "name_of_varinfo: %s %a\n" v.vname d_name vn) *)
+
 
 let varinfo_of_name vn =
   try Some (Hashtbl.find varinfo_t vn) with Not_found -> None 
