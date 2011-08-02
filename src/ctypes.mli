@@ -190,6 +190,7 @@ module type S = sig
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
+    val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t

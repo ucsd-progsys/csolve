@@ -32,6 +32,7 @@ module M  = Misc
 module SM = Misc.StringMap
 
 open Cil
+open Formatcil
 open Misc.Ops
 
 let mydebug = false 
@@ -665,8 +666,15 @@ module Pheapify: Visitor = struct
       | _ -> DoChildren
   end
 
+  let mallocType =
+    cType
+      "void * __attribute__ ((lcc_predicate (%p:outRef))) __attribute__ ((lcc_sloc (%p:outSloc))) () (int __attribute__ ((lcc_predicate (%p:inRef))) sz)"
+      [("inRef",   Fp (AStr "V >= 0"));
+       ("outRef",  Fp (AStr "&& [V > 0; V = BLOCK_BEGIN([V]); BLOCK_END([V]) = (V + sz)]"));
+       ("outSloc", Fp (AStr "!L"))]
+
   let alloc f =
-    let alloc_fun = findOrCreateFunc f "malloc" (TFun (voidPtrType, Some [("sz", !typeOfSizeOf, [])], false, [])) in
+    let alloc_fun = findOrCreateFunc f "malloc" mallocType in
       fun loc (v, hv) -> Call (Some (var hv), Lval (var alloc_fun), [SizeOf v.vtype], loc)
 
   let doVisit (f : file) =

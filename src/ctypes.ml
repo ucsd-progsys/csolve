@@ -474,6 +474,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
+    val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
@@ -941,7 +942,12 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let reachable sto l =
       l |> reachable_aux sto SS.empty |> SS.elements
-      
+
+    let restrict sto ls =
+         sto
+      |> partition (ls |> M.flap (reachable sto) |> M.sort_and_compact |> M.flip List.mem)
+      |> fst
+
     let rec closed ((_, fs) as sto) =
       Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
         (* pmr: Not yet right, but we need smarter handling of global stores. *)

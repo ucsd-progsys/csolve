@@ -26,9 +26,9 @@ open M.Ops
 (************************* Annotations From Attributes ************************)
 (******************************************************************************)
 
+let arrayAttribute       = "lcc_array"
 let slocAttribute        = "lcc_sloc"
 let globalAttribute      = "lcc_global_loc"
-let allocatesAttribute   = "lcc_allocates"
 let instantiateAttribute = "lcc_inst_sloc"
 let predAttribute        = "lcc_predicate"
 let externOkAttribute    = "lcc_extern_ok"
@@ -128,10 +128,10 @@ let indexOfArrayElements t b = match t, b with
   | t, _ -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _)                         -> indexOfArrayElements t b
-  | C.TPtr (t, ats) when CM.has_array_attr ats -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
-  | C.TPtr _                                   -> I.mk_singleton 0
-  | _                                          -> assert false
+  | C.TArray (t, b, _)                                     -> indexOfArrayElements t b
+  | C.TPtr (t, ats) when C.hasAttribute arrayAttribute ats -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
+  | C.TPtr _                                               -> I.mk_singleton 0
+  | _                                                      -> assert false
 
 (******************************************************************************)
 (****************** Checking Type Annotation Well-Formedness ******************)
@@ -266,14 +266,10 @@ and preRefcfunOfType t =
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
   let glocs              = ats |> CM.getStringAttrs globalAttribute |>: getSloc in
   let allOutStore        = ret :: List.map snd argts |> preRefstoreOfTypes in
-  let allocLocs          = ats |> CM.getStringAttrs allocatesAttribute |>: getSloc in
-  let _, allInStore      = RS.partition (M.flip List.mem allocLocs) allOutStore in
-    RCf.make
-      (List.map (M.app_snd <| refctypeOfCilType SM.empty) argts)
-      glocs
-      allInStore
-      (refctypeOfCilType SM.empty ret)
-      allOutStore
+  let argrcts            = List.map (M.app_snd <| refctypeOfCilType SM.empty) argts in
+  let retrct             = refctypeOfCilType SM.empty ret in
+  let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
+    RCf.make argrcts glocs allInStore retrct allOutStore
 
 let updateGlobalStore gsto gstoUpd =
      gsto
