@@ -137,7 +137,7 @@ let nameArg =
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
   | C.TArray (t, b, _)                         -> indexOfArrayElements t b
-  | C.TPtr (t, ats) when CM.has_array_attr ats -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
+  | C.TPtr (t, ats) when CM.has_array_attr ats -> indexOfArrayElements t None
   | C.TPtr _                                   -> I.mk_singleton 0
   | _                                          -> assert false
 
