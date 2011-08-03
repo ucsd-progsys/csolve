@@ -242,6 +242,7 @@ let instantiateAttribute = "lcc_inst_sloc"
 let predAttribute        = "lcc_predicate"
 let externOkAttribute    = "lcc_extern_ok"
 let checkTypeAttribute   = "lcc_check_type"
+let layoutAttribute      = "lcc_layout"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"

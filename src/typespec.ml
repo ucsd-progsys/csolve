@@ -255,10 +255,16 @@ let alreadyClosedType mem t = match CM.typeName t with
   | Some n -> SM.mem n mem
   | _      -> false
 
+let annotatedPointerBaseType loc ats tb = match C.filterAttributes CM.layoutAttribute ats with
+  | []                          -> tb
+  | [C.Attr (_, [C.ASizeOf t])] -> t
+  | ats                         -> E.s <| C.errorLoc loc "Bad layout on pointer: %a@!" C.d_attrlist ats
+
 let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> sto
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs ats in
+    let tb     = annotatedPointerBaseType loc ats tb in
     let mem    = match CM.typeName tb with Some n -> SM.add n s mem | _ -> mem in
     let tcs    = tb |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfPointerContents t) in
     let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
