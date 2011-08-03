@@ -231,7 +231,7 @@ let decs_of_file cil =
   |> Misc.filter (function CM.FunDec (vn,_,_) -> reachf vn | _ -> true)
 
 let project_spec fns spec =
-  let fspec = Sp.funspec spec |> SM.filter (fun fn _ -> not (SS.mem fn fns)) in
+  let fspec = Sp.funspec spec |> SM.mapi (fun fn (cf, b) -> (cf, b || (SS.mem fn fns))) in
   Sp.make fspec (Sp.varspec spec) (Sp.store spec)
 
 let incremental_spec outprefix fns spec =
@@ -248,12 +248,12 @@ let incremental_decs fns decs =
 let obligations outprefix file cil =
   let spec = spec_of_file outprefix file in
   let decs = decs_of_file file in
-  if SS.is_empty !Co.inccheck then 
+  (if SS.is_empty !Co.inccheck then 
     (spec, decs)
-  else 
+   else 
     ( incremental_spec outprefix !Co.inccheck spec
-    , incremental_decs !Co.inccheck decs)
-  
+    , incremental_decs !Co.inccheck decs))
+
 (************************************************************************)
 (************************* Original liquidc *****************************)
 (************************************************************************)

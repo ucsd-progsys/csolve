@@ -154,7 +154,7 @@ let decs_of_file cil =
       when (isFunctionType v.vtype)     -> acc
     | GType _ | GCompTag _
     | GCompTagDecl _| GText _
-    | GPragma _                         -> acc
+    | G.Pragma _                         -> acc
     | _ when !Cs.safe                   -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
@@ -187,6 +187,7 @@ let create cil spec decs =
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
   let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
+  let _      = Pretty.printf "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

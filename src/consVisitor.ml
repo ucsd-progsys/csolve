@@ -303,6 +303,9 @@ let cons_of_annotinstr me i grd (j, pre_ffm, ((pre_env, _, _) as wld)) (annots, 
       let _ = Cil.warnLoc loc "Ignoring vararg call" in
       (j+1, ffm, wld), with_wfs acds []
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
+      let cftmp = Pretty.printf "cons_of_call (%s) uses \n%a\n" fv.Cil.vname
+       Ct.d_refcfun
+       (FI.ce_find_fn fv.Cil.vname pre_env) in
       let wld, cds, wfs = cons_of_call me loc i j grd wld (lvo, FI.ce_find_fn fv.Cil.vname pre_env, es) ns in
       (j+2, ffm, wld), with_wfs (cds +++ acds) wfs
   | Call (lvo, Lval (Mem e, NoOffset), es, _) ->

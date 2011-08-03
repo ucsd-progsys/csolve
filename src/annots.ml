@@ -28,6 +28,8 @@ module Ct  = Ctypes
 module Co  = Constants
 module RCt = Ct.RefCTypes
 module PP  = Pretty
+
+module SS  = Misc.StringSet
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module IM  = Misc.IntMap
@@ -287,7 +289,7 @@ let dump s =
   !annotr 
  (*  |> set_cilinfo !shaper *)
   |> Misc.map (apply_solution s)
-  >> generate_ispec 
+  >> (fun bs -> if SS.is_empty !Co.inccheck then (ignore <| generate_ispec bs))
   |> tags_of_binds 
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
