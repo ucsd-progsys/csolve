@@ -90,16 +90,16 @@ let preprocess cil =
 *)
 
 let preprocess cil =
-  cil >> CilMisc.unfloat 
-      >> CilMisc.Pheapify.doVisit 
-      >> Psimplify.simplify 
-      >> Simpleret.simpleret 
-      >> Rmtmps.removeUnusedTemps 
-      >> CilMisc.purify 
+  cil >> CilMisc.unfloat
+      >> CilMisc.Pheapify.doVisit
+      >> Psimplify.simplify
+      >> Simpleret.simpleret
+      >> Rmtmps.removeUnusedTemps
+      >> CilMisc.purify
       >> CilMisc.CopyGlobal.doVisit
-      >> CilMisc.NameNullPtrs.doVisit 
-      >> mk_cfg 
-      >> rename_locals 
+      >> CilMisc.NameNullPtrs.doVisit
+      >> mk_cfg
+      >> rename_locals
 
 
 let preprocess_file file =
