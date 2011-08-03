@@ -64,7 +64,7 @@ let rename_locals cil =
 
 let parse_file fname =
   let _ = ignore (E.log "Parsing %s\n" fname) in
-    Frontc.parse fname () |> Simplemem.simplemem
+    Frontc.parse fname ()
 
 let mk_cfg cil =
   Cil.iterGlobals cil begin function
