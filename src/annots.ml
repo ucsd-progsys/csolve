@@ -86,6 +86,17 @@ let generate_annots d =
   let _  = close_out oc in
   ()
 
+
+
+let generate_ispec bs = 
+  let fn = !Co.liquidc_file_prefix ^ ".infspec" in
+  let oc = open_out fn in
+  bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
+     |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, cf) ->
+         PP.dprintf "%s ::\n@[%a@]" fn Ct.d_refcfun cf) ~elements:bs)
+     |> (fun d  -> PP.fprint ~width:80 oc d)
+     |> (fun _  -> close_out oc)
+
 let generate_tags kts =
   let fn = !Co.liquidc_file_prefix ^ ".tags" in
   let oc = open_out fn in
@@ -276,6 +287,7 @@ let dump s =
   !annotr 
  (*  |> set_cilinfo !shaper *)
   |> Misc.map (apply_solution s)
+  >> generate_ispec 
   |> tags_of_binds 
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
