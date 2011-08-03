@@ -76,6 +76,9 @@ let slocOfAttrs ats =
   |> slocNameOfAttrs
   |> getSloc
 
+let finalityOfAttrs ats =
+  if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
+
 let predOfAttrs ats =
       ats
   |>  CM.getStringAttrs CM.predAttribute
@@ -163,19 +166,22 @@ let refctypeOfCilType mem t = match C.unrollType t with
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
-      | Some n when SM.mem n mem ->
-        ats |> ptrReftypeOfAttrs t |> (function Ct.Ref (_, r) -> Ct.Ref (SM.find n mem, r))
+      | Some n when SM.mem n mem -> begin
+             ats
+          |> ptrReftypeOfAttrs t
+          |> function (Ct.Ref (s, _) as t) -> FI.t_subs_locs [s, SM.find n mem] t
+        end
       | _ -> ptrReftypeOfAttrs t ats
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
-let addReftypeToStore sto loc s i rct =
-  if RCt.width rct = 0 then RS.Data.add sto s (RS.Data.find_or_empty sto s) else
-       rct
-    |> RS.Data.add_and_fold_overlap sto loc begin fun _ sto ct1 ct2 ->
-         if ct1 = ct2 then ((), sto) else
-           E.s <| C.errorLoc loc "Conflicting types for store location %a, index %a: %a, %a"
-               S.d_sloc s Ct.Index.d_index i RCt.d_ctype ct1 RCt.d_ctype ct2
+let addReffieldToStore sto loc s i rfld =
+  if rfld |> RFl.type_of |> RCt.width = 0 then RS.Data.ensure_sloc sto s else
+       rfld
+    |> RS.Data.add_field_fold_overlap sto loc begin fun _ sto fld1 fld2 ->
+         if fld1 = fld2 then ((), sto) else
+           E.s <| C.errorLoc loc "Conflicting fields for store location %a, index %a: %a, %a"
+               S.d_sloc s Ct.Index.d_index i RFl.d_field fld1 RFl.d_field fld2
        end () s i
     |> snd
 
@@ -238,14 +244,15 @@ let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
     let tcs    = tb |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfPointerContents t) in
     let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
       List.fold_left
-        begin fun sto (_, i, t) ->
+        begin fun sto (fn, i, t) ->
           let sto = closeTypeInStoreAux loc mem sto t in
             if C.isFunctionType t then t |> preRefcfunOfType |> addRefcfunToStore sto loc s else
                  t
               >> assertStoreTypeWellFormed
               |> refctypeOfCilType mem
               |> FI.t_subs_names fldsub
-              |> addReftypeToStore sto loc s i
+              |> RFl.create (t |> C.typeAttrs |> finalityOfAttrs) {Ct.fname = Some fn; Ct.ftype = None} (* Some t, but doesn't parse *)
+              |> addReffieldToStore sto loc s i
         end sto tcs
   | _ -> sto
 
@@ -273,7 +280,7 @@ let updateGlobalStore gsto gstoUpd =
      gsto
   |> List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd)
   |> M.flip (RS.Data.fold_fields
-               (fun sto s i f -> addReftypeToStore sto C.locUnknown s i (RFl.type_of f)))
+               (fun sto s i f -> addReffieldToStore sto C.locUnknown s i f))
       gstoUpd
   |> M.flip (RS.Function.fold_locs
                (fun s rcf sto -> addRefcfunToStore sto C.locUnknown s rcf))

@@ -235,6 +235,7 @@ let setStringAttr name s ats =
   |> addAttribute (Attr (name, [AStr s]))
 
 let arrayAttribute       = "lcc_array"
+let finalAttribute       = "lcc_final"
 let slocAttribute        = "lcc_sloc"
 let globalAttribute      = "lcc_global_loc"
 let instantiateAttribute = "lcc_inst_sloc"

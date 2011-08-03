@@ -98,6 +98,9 @@ let rec unify_ctypes loc sub sto ct1 ct2 = match Ct.subs sub ct1, Ct.subs sub ct
   | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations loc s1 s2 sub sto
   | ct1, ct2                                  -> fail sub sto <| C.errorLoc loc "Cannot unify %a and %a@!" d_ctype ct1 d_ctype ct2
 
+and unify_fields loc sub sto fld1 fld2 =
+  unify_ctypes loc sub sto (Field.type_of fld1) (Field.type_of fld2)
+
 (* We assume index inference got things right; we just want a more liberal version of
    unify_ctypes. *)
 and subtype_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
@@ -146,7 +149,10 @@ and unify_locations loc s1 s2 sub sto =
 
 and store_add loc s i ct sub sto =
   try
-    ct |> Ct.subs sub |> Store.Data.add_and_fold_overlap sto loc (unify_ctypes loc) sub (S.Subst.apply sub s) i
+       ct
+    |> Ct.subs sub
+    |> Field.create Nonfinal {fname = None; ftype = None}
+    |> Store.Data.add_field_fold_overlap sto loc (unify_fields loc) sub (S.Subst.apply sub s) i
   with e ->
     C.errorLoc loc "store_add: Can't fit @!%a: %a@!  in location@!%a |-> %a"
       Index.d_index i Ct.d_ctype ct S.d_sloc_info s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;

@@ -492,15 +492,15 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val d_store      : unit -> t -> Pretty.doc
 
     module Data: sig
-      val add                  : t -> Sloc.t -> ldesc -> t
-      val add_and_fold_overlap :
+      val add                    : t -> Sloc.t -> ldesc -> t
+      val add_field_fold_overlap :
         t ->
         C.location ->
-        ('a -> t -> ctype -> ctype -> 'a * t) ->
+        ('a -> t -> field -> field -> 'a * t) ->
         'a ->
         S.t ->
         N.t ->
-        ctype ->
+        field ->
         'a * t
 
       val domain        : t -> Sloc.t list
@@ -851,16 +851,16 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let fold_locs f b (ds, fs) =
         SLM.fold f ds b
 
-      let add_and_fold_overlap sto loc f b s i ct = match i with
+      let add_field_fold_overlap sto loc f b s i fld = match i with
         | N.IBot                 -> (b, sto)
         | N.ICClass _ | N.IInt _ ->
           let ld = find_or_empty sto s in
             match LDesc.find i ld with
-              | []   -> (b, ld |> LDesc.add i (Field.create Nonfinal dummy_fieldinfo ct) |> add sto s)
+              | []   -> (b, ld |> LDesc.add i fld |> add sto s)
               | flds ->
                 let b, sto =  flds
-                          |>: (snd <+> Field.type_of)
-                          |>  List.fold_left (fun (b, sto) ct2 -> f b sto ct ct2) (b, sto) in
+                          |>: snd
+                          |>  List.fold_left (fun (b, sto) fld2 -> f b sto fld fld2) (b, sto) in
                   if List.exists (fun (i2, _) -> N.is_subindex i i2) flds then
                     (* If this sequence is included in an existing one, there's nothing left to do *)
                     (b, sto)
@@ -868,8 +868,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
                     (* Otherwise, remove overlapping elements and add one at the LUB of all indices. *)
                     let ld = List.fold_left (fun ld (i2, _) -> LDesc.remove i2 ld) ld flds in
                     let i  = List.fold_left (fun i (i2, _) -> N.lub i i2) i flds in
-                    let ld = LDesc.add i (Field.create Nonfinal dummy_fieldinfo ct) ld in
-                      (b, add sto s ld)
+                      (b, ld |> LDesc.add i fld |> add sto s)
     end
 
     module Function = struct

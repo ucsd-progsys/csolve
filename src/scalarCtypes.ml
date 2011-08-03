@@ -81,7 +81,12 @@ let p_v_minus_c_eqz_mod_k =
 
 let p_v_r_x_plus_c r = A.pAtom (A.eVar value_var, r, A.eBin (FA.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var))
 
-let p_v_eq_bb = A.pAtom (A.eVar value_var, A.Eq, FA.eApp_bbegin (A.eVar value_var))
+(* v = BB(v) *)
+let p_v_eq_bb         = A.pAtom (A.eVar value_var, A.Eq, FA.eApp_bbegin (A.eVar value_var))
+
+(* v != 0 => v = BB(v) *)
+let p_v_eq_bb_if_nonnull = A.pImp (A.pAtom (A.eVar value_var, A.Ne, A.eInt 0),
+                                   A.pAtom (A.eVar value_var, A.Eq, FA.eApp_bbegin (A.eVar value_var)))
 
 (* v =  BB(v) + c *)
 let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
@@ -134,7 +139,7 @@ let singleton_of_preds_aux      = map_matching_qual_binds (fun c -> Ix.IInt c)
 let data_singleton_of_preds     = singleton_of_preds_aux [p_v_eq_c]
 let ref_singleton_of_preds v ps =
   singleton_of_preds_aux [p_v_eq_x_plus_c] v ps ++
-    of_nullary_preds [(p_v_eq_bb, Ix.IInt 0)] v ps
+    of_nullary_preds [(p_v_eq_bb, Ix.IInt 0); (p_v_eq_bb_if_nonnull, Ix.IInt 0)] v ps
 
 let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
 let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]
