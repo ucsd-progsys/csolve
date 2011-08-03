@@ -112,17 +112,26 @@ let intReftypeOfAttrs width ats =
 
 let freshSlocName, _ = M.mk_string_factory "LOC"
 
-let ensureSlocAttr t =
-  if C.isPointerType t || C.isArrayType t then
-    let ats = C.typeAttrs t in
-      if C.hasAttribute CM.slocAttribute ats then
-        t
-      else
-        C.typeAddAttributes [C.Attr (CM.slocAttribute, [C.AStr (freshSlocName ())])] t
-  else t
+class slocEnsurer = object
+  inherit C.nopCilVisitor
+
+  method vtype t =
+    if C.isPointerType t || C.isArrayType t then
+      let ats = C.typeAttrs t in
+        if C.hasAttribute CM.slocAttribute ats then
+          C.DoChildren
+        else
+          C.ChangeDoChildrenPost
+            (C.typeAddAttributes [C.Attr (CM.slocAttribute, [C.AStr (freshSlocName ())])] t, id)
+  else C.DoChildren
+end
+
+let ensureSlocAttrs =
+  let se: C.cilVisitor = new slocEnsurer in
+    fun t -> C.visitCilType se t
 
 let argType (x, t, ats) =
-  (x, t |> C.typeAddAttributes ats |> ensureSlocAttr)
+  (x, t |> C.typeAddAttributes ats |> ensureSlocAttrs)
 
 let nameArg =
   let freshArgName, _ = M.mk_string_factory "ARG" in
@@ -193,28 +202,40 @@ let addRefcfunToStore sto loc s rcf =
                  S.d_sloc s RCf.d_cfun storcf RCf.d_cfun rcf
   else RS.Function.add sto s rcf
 
-let instantiateTypeLocation sub t =
-   if C.isPointerType t then
-     let ats = C.typeAttrs t in
-          ats
-       |> CM.setStringAttr CM.slocAttribute (List.assoc (slocNameOfAttrs ats) sub)
-       |> C.setTypeAttrs t
-   else t
+class structInstantiator (ats) = object (self)
+  inherit C.nopCilVisitor
+
+  val mutable sub =
+    M.map_partial begin function
+      | C.Attr (n, [C.AStr nfrom; C.AStr nto])
+          when n = CM.instantiateAttribute ->
+        Some (nfrom, nto)
+      | _ -> None
+    end ats
+
+  method private ensureSubst s =
+    if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub
+
+  method vtype t =
+    if C.isPointerType t then
+      t |> C.typeAttrs |> slocNameOfAttrs |> self#ensureSubst;
+    C.DoChildren
+
+  method vattr = function
+    | C.Attr (n, [C.AStr nfrom; C.AStr nto])
+        when n = CM.instantiateAttribute ->
+      self#ensureSubst nto;
+      C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])]
+    | C.Attr (n, [C.AStr sloc])
+        when n = CM.slocAttribute ->
+      self#ensureSubst sloc;
+      C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])]
+    | _ -> C.DoChildren
+end
 
 let instantiateStruct ats tcs =
-     ats
-  |> C.filterAttributes CM.instantiateAttribute
-  |> List.map begin function
-      | C.Attr (n, [C.AStr nfrom; C.AStr nto]) -> (nfrom, nto)
-      | _                                      -> assert false (* pmr: better fail message *)
-     end
-  |> List.fold_right begin fun (_, _, t) sub ->
-       if C.isPointerType t then
-         let s = t |> C.typeAttrs |> slocNameOfAttrs in
-           if List.mem_assoc s sub then sub else (s, freshSlocName ()) :: sub
-       else sub
-     end tcs
-  |> fun sub -> List.map (M.app_thd3 <| instantiateTypeLocation sub) tcs
+  let instr = new structInstantiator ats in
+    List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
 
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
   | C.TArray (t, b, _) ->
@@ -226,7 +247,7 @@ let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
         | cs          -> cs
        end
     |> instantiateStruct ats
-  | t -> [("", I.mk_singleton 0, ensureSlocAttr t)]
+  | t -> [("", I.mk_singleton 0, ensureSlocAttrs t)]
 
 and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
@@ -267,7 +288,7 @@ and preRefstoreOfTypes ts =
    refcfunOfPreRefcfun. *)
 and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
-  let ret                = ensureSlocAttr ret in
+  let ret                = ensureSlocAttrs ret in
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc in
   let allOutStore        = ret :: List.map snd argts |> preRefstoreOfTypes in
@@ -312,7 +333,7 @@ let declarationsOfFile file =
   |> VS.elements
   >> List.iter checkDeclarationWellFormed
   |> List.partition (fun v -> C.isFunctionType v.C.vtype)
-  |> M.app_snd (List.map (fun v -> {v with C.vtype = ensureSlocAttr v.C.vtype}))
+  |> M.app_snd (List.map (fun v -> {v with C.vtype = ensureSlocAttrs v.C.vtype}))
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
