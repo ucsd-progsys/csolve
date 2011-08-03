@@ -234,7 +234,8 @@ let setStringAttr name s ats =
   |> dropAttribute name
   |> addAttribute (Attr (name, [AStr s]))
 
-let arrayAttribute       = "lcc_array"
+(* Must be "array" because CIL inserts these itself. *)
+let arrayAttribute       = "array"
 let finalAttribute       = "lcc_final"
 let slocAttribute        = "lcc_sloc"
 let globalAttribute      = "lcc_global_loc"
