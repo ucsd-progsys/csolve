@@ -343,3 +343,4 @@ let foldGlobalsIf process cil f =
 let iterGlobalsIf process cil f = 
   Cil.iterGlobals cil (fun g -> if process g then f g )
 
+

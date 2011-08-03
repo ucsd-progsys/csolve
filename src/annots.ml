@@ -27,7 +27,6 @@ module FA  = FixAstInterface
 module Ct  = Ctypes
 module Co  = Constants
 module RCt = Ct.RefCTypes
-module Sc  = ScalarCtypes
 module PP  = Pretty
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap

@@ -377,7 +377,7 @@ let assert_spec_complete file spec =
 
 
 let dump_pragmas file =
-  iterGlobals file begin function
+  Cil.iterGlobals file begin function
     | GPragma (Attr ("lcc", [ACons ("include", []); AStr f]), _) 
        -> ignore <| E.log "\n HIT INCLUDE PRAGMA: %s \n" f
     | GPragma (attr, loc) 
@@ -385,5 +385,7 @@ let dump_pragmas file =
     | _                   
        -> ()
   end 
+
+
 
 

@@ -249,22 +249,22 @@ let isComoundType t = match unrollType t with
   | TComp _ -> true
   | _       -> false
 
-(******************************************************************************)
-(**************************** Misc. Pretty Printers ***************************)
-(******************************************************************************)
+(*********************************************************************)
+(**********************Misc. Pretty Printers *************************)
+(*********************************************************************)
 
 let d_var () (v: varinfo): Pretty.doc =
   Pretty.text v.vname
 
-(******************************************************************************)
-(******************************** Variable Sets *******************************)
-(******************************************************************************)
+(*********************************************************************)
+(******************************** Variable Sets **********************)
+(*********************************************************************)
 
 module VarSet = Set.Make(ComparableVar)
 
-(******************************************************************************)
-(******************************** Variable Maps *******************************)
-(******************************************************************************)
+(*********************************************************************)
+(******************************** Variable Maps **********************)
+(*********************************************************************)
 
 module VarMap = Misc.EMap (ComparableVar)
 
@@ -674,3 +674,26 @@ module Pheapify: Visitor = struct
     let _   = visitCilFile (hgv :> cilVisitor) f in
       visitCilFile (new heapifyAnalyzeVisitor f (alloc f) hgv#get_hglobals) f
 end
+
+
+let tag_of_global = function
+  | GType (_,_)    -> "GType"
+  | GCompTag (_,_) -> "GCompTag"
+  | _              -> "Global"
+
+let dec_of_global = function
+    | GFun (fdec, loc) 
+      -> Some (FunDec (fdec.svar.vname, fdec, loc))
+    | GVar (v, ii, loc) when not (isFunctionType v.vtype)
+      -> Some (VarDec (v, loc, ii.init))
+    | GVarDecl (v, loc) when not (isFunctionType v.vtype) 
+      -> Some (VarDec (v, loc, None)) 
+    | GVarDecl (_, _) | GType _ | GCompTag _ | GCompTagDecl _|
+    GText _ | GPragma _
+      -> None
+    | _ when !Constants.safe                   
+      -> assertf "decs_of_file"
+    | g  -> (ignore <| E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g; None) 
+
+
+

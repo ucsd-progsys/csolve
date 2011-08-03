@@ -29,6 +29,7 @@ module CK = Check
 module E  = Errormsg
 module A  = Ast
 module SM = Misc.StringMap
+module SS = Misc.StringSet
 module Sy = Ast.Symbol
 module BS = BNstats
 module C   = FixConstraint
@@ -39,6 +40,7 @@ module Sp  = Ctypes.RefCTypes.Spec
 module RCt = Ctypes.RefCTypes
 module U   = Unix
 module S   = Sys
+module CM  = CilMisc
 
 open Misc.Ops
 open Pretty
@@ -50,9 +52,9 @@ type outfile = {
 
 let mydebug = false 
 
-(********************************************************************************)
-(****************** TBD: CIL Prepasses ******************************************)
-(********************************************************************************)
+(***********************************************************************)
+(****************** TBD: CIL Prepasses *********************************)
+(***********************************************************************)
 
 let rename_locals cil =
   Cil.iterGlobals cil
@@ -76,20 +78,6 @@ let mk_cfg cil =
 
 (*
 let preprocess cil =
-  let _   = CilMisc.unfloat cil;
-            CilMisc.Pheapify.doVisit cil;
-            Psimplify.simplify cil;
-            Simpleret.simpleret cil;
-            Rmtmps.removeUnusedTemps cil;
-            CilMisc.purify cil;
-            CilMisc.CopyGlobal.doVisit cil;
-            CilMisc.NameNullPtrs.doVisit cil;
-            mk_cfg cil;
-            rename_locals cil in
-  cil
-*)
-
-let preprocess cil =
   cil >> CilMisc.unfloat 
       >> CilMisc.Pheapify.doVisit 
       >> Psimplify.simplify 
@@ -100,21 +88,24 @@ let preprocess cil =
       >> CilMisc.NameNullPtrs.doVisit 
       >> mk_cfg 
       >> rename_locals 
+*)
 
+let print_header () = 
+  Printf.printf " \n \n";
+  Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
+  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
+  Printf.printf "All Rights Reserved.\n"
 
-let preprocess_file file =
-  file |> Simplemem.simplemem |> preprocess
+let mk_options toolname () =
+  let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
+  let _  = Arg.parse Co.arg_spec (fun s -> Co.file := Some s) us in
+  match !Co.file with
+  | Some fn -> Misc.absolute_name fn
+  | None    -> assertf "Bug: No input file specified!"
 
-let cil_of_file fname =
-  fname |> parse_file |> preprocess
-
-(********************************************************************************)
-(*************** Generating Specifications **************************************)  
-(********************************************************************************)
-
-let set_lex_start_pos file lb =
-  let p = {Lexing.pos_fname = file; Lexing.pos_lnum = 1; Lexing.pos_cnum = 0; Lexing.pos_bol = 0} in
-    {lb with Lexing.lex_start_p = p; Lexing.lex_curr_p = p}
+(***********************************************************************)
+(*************** Generating Specifications *****************************)  
+(***********************************************************************)
 
 let spec_includes file =
   Cil.foldGlobals file begin fun fs -> function
@@ -125,6 +116,7 @@ let spec_includes file =
   end []
   >> (String.concat ", " <+> E.log "Including Specs: %s \n" <+> ignore)  
 
+(* {{{
 let add_spec fn spec_src = 
   let _  = E.log "Parsing spec: %s \n" fn in
   let _  = Errorline.startFile fn in
@@ -139,6 +131,33 @@ let add_spec fn spec_src =
   with Sys_error s ->
     let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
     spec_src
+
+
+}}} *)
+
+let set_lex_start_pos file lb =
+  let p = {Lexing.pos_fname = file; Lexing.pos_lnum = 1; Lexing.pos_cnum = 0; Lexing.pos_bol = 0} in
+    {lb with Lexing.lex_start_p = p; Lexing.lex_curr_p = p}
+
+let parseOneSpec fn = 
+  let _  = E.log "Parsing spec: %s \n" fn in
+  let _  = Errorline.startFile fn in
+  try
+    let ic = open_in fn in
+    ic |> Lexing.from_channel
+       |> set_lex_start_pos fn
+       |> RefParse.specs RefLex.token
+       >> (Sp.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
+       >> (fun _ -> close_in ic)
+       |> some
+  with Sys_error s ->
+    let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
+    None 
+
+let add_spec fn spec_src = 
+  match parseOneSpec fn with
+    | Some x -> Sp.add spec_src x
+    | _      -> spec_src
 
 let generate_spec_fancy file fn spec =  
   let oc = open_out (fn^".autospec") in
@@ -184,49 +203,56 @@ let generate_spec file fn spec =
           close_out oc
         end
 
-(***********************************************************************************)
-(******************************** API **********************************************)
-(***********************************************************************************)
-
 let spec_of_file outprefix file =
   if !Co.new_spec_gen then
-    RCt.Spec.empty
+    Sp.empty
     >> generate_spec_fancy file outprefix
-    |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
+    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
     >> Genspec.assert_spec_complete file
   else
-    RCt.Spec.empty
-    |> add_spec (Co.get_lib_spec ())                      (* Add default specs  *)
-    |> List.fold_right add_spec (spec_includes file)      (* Add external specs *)
-    |> add_spec (outprefix^".spec")                       (* Add manual specs   *)
-    >> generate_spec file outprefix
-    |> add_spec (outprefix^".autospec")                   (* Add autogen specs  *)
+    Sp.empty
+    |> add_spec (Co.get_lib_spec ())                                            (* Add default specs  *)
+    |> List.fold_right add_spec (spec_includes file)                            (* Add external specs *)
+    |> add_spec (outprefix^".spec")                                             (* Add manual specs   *)
+    >> generate_spec file outprefix 
+    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
     >> Genspec.assert_spec_complete file
 
-let print_header () = 
-  Printf.printf " \n \n";
-  Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
-  Printf.printf "© Copyright 2009 Regents of the University of California.\n";
-  Printf.printf "All Rights Reserved.\n"
 
-let mk_options toolname () =
-  let us = "Usage: "^toolname^" <options> [source-file] \n options are:" in
-  let _  = Arg.parse Co.arg_spec (fun s -> Co.file := Some s) us in
-  match !Co.file with
-  | Some fn -> Misc.absolute_name fn
-  | None    -> assertf "Bug: No input file specified!"
+let decs_of_file cil = 
+  let reachf = CM.reachable cil in
+  Cil.foldGlobals cil (fun acc g -> g :: acc) []
+  |> List.rev  
+  |> Misc.map_partial CM.dec_of_global
+  |> Misc.filter (function CM.FunDec (vn,_,_) -> reachf vn | _ -> true)
 
-(*
-let main toolname f =
-  () |> print_header 
-     |> ignore
-     |> mk_options toolname
-     |> f 
-*)
+let project_spec fns spec =
+  let fspec = Sp.funspec spec |> SM.filter (fun fn _ -> not (SS.mem fn fns)) in
+  Sp.make fspec (Sp.varspec spec) (Sp.store spec)
 
-(***********************************************************************************)
-(******************************** Original liquidc *********************************)
-(***********************************************************************************)
+let incremental_spec outprefix fns spec =
+  match parseOneSpec (outprefix ^".infspec") with
+  | Some ispec -> ispec |> project_spec fns |> RCt.Spec.add spec 
+  | None -> E.s (E.error "Incremental Checking Requires a saved spec file; see above for details.")
+
+let incremental_decs fns decs =
+  List.filter begin function 
+    | CM.FunDec (v,_,_) -> SS.mem v fns
+    | _                 -> true
+  end decs
+
+let obligations outprefix file cil =
+  let spec = spec_of_file outprefix file in
+  let decs = decs_of_file file in
+  if SS.is_empty !Co.inccheck then 
+    (spec, decs)
+  else 
+    ( incremental_spec outprefix !Co.inccheck spec
+    , incremental_decs !Co.inccheck decs)
+  
+(************************************************************************)
+(************************* Original liquidc *****************************)
+(************************************************************************)
 
 let outChannel : outfile option ref    = ref None
 let mergedChannel : outfile option ref = ref None
@@ -258,28 +284,36 @@ let print_unsat_locs tgr s ucs =
     |> ignore
   end ucs
 
-
-
-
-
+let cil_of_file file =
+  file |> Simplemem.simplemem 
+       >> CilMisc.unfloat 
+       >> CilMisc.Pheapify.doVisit 
+       >> Psimplify.simplify 
+       >> Simpleret.simpleret 
+       >> Rmtmps.removeUnusedTemps 
+       >> CilMisc.purify 
+       >> CilMisc.CopyGlobal.doVisit
+       >> CilMisc.NameNullPtrs.doVisit 
+       >> mk_cfg 
+       >> rename_locals 
 
 let liquidate file =
-  let log     = open_out "liquidc.log" in
-  let _       = E.logChannel := log in
-  let cil     = BS.time "Parse: source" preprocess_file file in
-  let _       = E.log "DONE: cil parsing \n" in
-  let fn      = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
-  let qs      = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
-  let _       = E.log "DONE: qualifier parsing \n" in
-  let spec    = BS.time "Parse: spec" spec_of_file !Co.liquidc_file_prefix file in
-  let _       = E.log "DONE: spec parsing \n" in
-  let tgr, ci = BS.time "Cons: Generate" (Consgen.create cil) spec in
-  let _       = E.log "DONE: constraint generation \n" in
-  let s', cs' = Consindex.solve ci fn qs in
-  let _       = E.log "DONE SOLVING" in
-  let _       = Annots.dump s' in
-  let _       = print_unsat_locs tgr s' cs' in
-  let _       = BS.print log "\nLiquidC Time \n" in
+  let log       = open_out "liquidc.log" in
+  let _         = E.logChannel := log in
+  let cil       = BS.time "Parse: source" cil_of_file file in
+  let _         = E.log "DONE: cil parsing \n" in
+  let fn        = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
+  let qs        = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
+  let _         = E.log "DONE: qualifier parsing \n" in
+  let spec,decs = BS.time "Parse: spec" (obligations !Co.liquidc_file_prefix file) cil in
+  let _         = E.log "DONE: spec parsing \n" in
+  let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
+  let _         = E.log "DONE: constraint generation \n" in
+  let s', cs'   = Consindex.solve ci fn qs in
+  let _         = E.log "DONE SOLVING" in
+  let _         = Annots.dump s' in
+  let _         = print_unsat_locs tgr s' cs' in
+  let _         = BS.print log "\nLiquidC Time \n" in
   match cs' with 
   | [] -> let _ = printf "\nSAFE\n"   in cil
   | _  -> let _ = printf "\nUNSAFE\n" in exit 1

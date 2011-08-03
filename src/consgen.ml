@@ -139,37 +139,10 @@ let finalize_funtypes shm cnv =
         cnv
   end shm cnv
 
-let tag_of_global = function
-  | GType (_,_)    -> "GType"
-  | GCompTag (_,_) -> "GCompTag"
-  | _              -> "Global"
 
 
-let dec_of_global = function
-    | GFun (fdec, loc) 
-      -> Some (CM.FunDec (fdec.svar.vname, fdec, loc))
-    | GVar (v, ii, loc) when not (isFunctionType v.vtype)
-      -> Some (CM.VarDec (v, loc, ii.init))
-    | GVarDecl (v, loc) when not (isFunctionType v.vtype) 
-      -> Some (CM.VarDec (v, loc, None)) 
-    | GVarDecl (_, _) | GType _ | GCompTag _ | GCompTagDecl _| GText _ | GPragma _                         
-      -> None
-    | _ when !Cs.safe                   
-      -> assertf "decs_of_file"
-    | g  -> (ignore <| E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g; None) 
 
-(* HEREHEREHERE: hook command-line option to recompute functions *)
-let visible_globals_of_file cil 
-  = List.rev <| Cil.foldGlobals cil (fun acc g -> g :: acc) []
-
-
-let decs_of_file cil = 
-  let reachf = CM.reachable cil in
-  cil |> visible_globals_of_file 
-      |> Misc.map_partial dec_of_global
-      |> Misc.filter (function CM.FunDec (vn,_,_) -> reachf vn | _ -> true)
-
-(*
+(* {{{
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
     | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
@@ -186,26 +159,16 @@ let decs_of_file cil =
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
-*)
-
+}}} *)
 (* {{{ 
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 }}} *)
 
-(* HEREHEREHEREHEREHERE *)
-let incrementalize (decs, spec) = 
-  ignore <| E.warn "TBD: incrementalize" ; 
-  (decs, spec) 
-  (* ispec := all saved types
-   * decs' := decs -- reused functions
-   * spec' := spec ++ (ispec at reused functions) *)
 
 (* API *)
-let create cil spec =
-  let decs   = decs_of_file cil   in
-  let (decs, spec)  = incrementalize (decs, spec) in
+let create cil spec decs =
   let scim   = ST.scim_of_decs decs  in
   let _      = E.log "\nDONE: SSA conversion \n" in
   let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in

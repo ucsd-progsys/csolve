@@ -117,6 +117,12 @@ let currentLoc () =
      Cil.line = p.Lexing.pos_lnum;
      Cil.byte = p.Lexing.pos_cnum}
 
+
+
+
+
+
+
 %}
 
 %token DIV 
