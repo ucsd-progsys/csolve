@@ -283,6 +283,8 @@ module type S = sig
                   t
 
     val add     : t -> t -> t
+    val d_spec  : unit -> t -> Pretty.doc
+
   end             
 
   module ExpKey:

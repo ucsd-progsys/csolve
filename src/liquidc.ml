@@ -169,6 +169,9 @@ let generate_spec_fancy file fn spec =
      |> begin fun (funspec, varspec, storespec) ->
           let funspec = Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
           let varspec = Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
+          
+          (* HEREHEREHERE: turn this into a spec and print it with d_spec *)
+
           Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
             Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore
           end () storespec;
@@ -179,6 +182,7 @@ let generate_spec_fancy file fn spec =
           List.iter begin fun (fn, (cf, useType)) ->
             Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (if useType then "<:" else "::") Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
           end funspec;
+          
           close_out oc
         end
 
