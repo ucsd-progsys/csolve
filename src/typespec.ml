@@ -88,12 +88,10 @@ let predOfAttrs ats =
 let vv = A.Symbol.of_string "V"
 
 let ptrIndexOfPredAttrs tb pred ats =
-  if CM.has_array_attr ats then
-    indexOfArrayElements tb None
-  else if C.hasAttribute CM.predAttribute ats then
-    SC.ref_index_of_pred vv pred
-  else
-    I.mk_singleton 0
+  let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
+  let arrayIndex        = if hasArray then indexOfArrayElements tb None else I.top in
+  let predIndex         = if hasPred then SC.ref_index_of_pred vv pred else I.top in
+    if hasArray || hasPred then I.glb arrayIndex predIndex else I.mk_singleton 0
 
 let ptrReftypeOfAttrs tb ats =
   let pred = predOfAttrs ats in
