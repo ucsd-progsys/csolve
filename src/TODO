@@ -1,19 +1,7 @@
-
 Modular Checking
 ================
 
-
-    ./lcc --inccheck=page_getfree ../tests/postests/pmapdistilled.c 
-
-HEREHEREHERE
-* wrong precondition for page_getfree (is it the true-ed out one?)
-    --> they are all getting trued out...  (the ones from autospec?)
-    ./lcc --inccheck=main ../tests/postests/test03.c
-    --> print out the type that gets used.
-    -- who is this wierd k_3???
-
 * please only save the specs that are NOT in the fucking lib.
-
 
 
 * src/pmrtodo.org benchmarks

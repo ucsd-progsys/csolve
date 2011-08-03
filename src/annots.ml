@@ -88,8 +88,6 @@ let generate_annots d =
   let _  = close_out oc in
   ()
 
-
-
 let generate_ispec bs = 
   let fn = !Co.liquidc_file_prefix ^ ".infspec" in
   let oc = open_out fn in
@@ -285,14 +283,22 @@ let apply_solution =
     | TSto (f, st) -> TSto (f, s_sto s st) 
 
 (* API *)
-let dump s = 
+let dump_annots so = 
   !annotr 
- (*  |> set_cilinfo !shaper *)
-  |> Misc.map (apply_solution s)
-  >> (fun bs -> if SS.is_empty !Co.inccheck then (ignore <| generate_ispec bs))
+  (*  |> set_cilinfo !shaper *)
+  |> (match so with Some s -> Misc.map (apply_solution s) | _ -> id)
   |> tags_of_binds 
   >> (fst <+> generate_annots)
   >> (snd <+> generate_tags) 
   |> ignore
 
+(* API *)
+let dump_infspec decs s =
+  let ds = decs 
+           |>  Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) 
+           |>  SS.of_list in
+  let bs = !annotr 
+           |>  Misc.filter (function TFun (x, y) -> SS.mem x ds  | _ -> false) 
+           |>: apply_solution s in
+  generate_ispec bs
 

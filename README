@@ -250,3 +250,35 @@ beyond just the use of asserts and memory safety.
   source file and the merger process will ensure that all the right specs
   are pulled in for a multi-file build.
 
+
+Incremental Checking 
+====================
+
+To make interactive use pleasant, CSolve has an incremental checking
+option, in which a subset of target functions is analyzed using the 
+previously inferred types for the rest of the program. (The mode ALSO
+checks that the target functions behave as inferred previously -- thus 
+ensuring that the target functions are analyzed under appropriate 
+preconditions.)
+
+1. Run the whole program check as usual, e.g.
+
+        lcc file.c 
+
+2. Now you can tweak individual functions say, and just have them be
+   re-checked against the specifications ("summaries" for all
+   the other functions) inferred in Step 1:
+
+        lcc --inccheck=FUN1 ... --inccheck=FUNk file.c
+
+   Will only re-analyze FUN1,...,FUNk (the C functions you wish to re-check.)
+
+For example,
+
+        lcc pmapdistilled.c
+
+takes about 50s to finish the analysis, but
+
+        lcc --inccheck=page_getfree pmap_distilled.c
+
+returns in a couple of seconds.
