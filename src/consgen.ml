@@ -67,7 +67,7 @@ let declared_names decs is_decl =
 
 (* TBD: UGLY *)
 let mk_gnv f spec decs cenv =
-  let fundecs = declared_names decs (function CM.FunDec (fn,_) -> Some fn | _ -> None) in
+  let fundecs = declared_names decs (function CM.FunDec (fn,_, _) -> Some fn | _ -> None) in
   let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
              |> CS.varspec
@@ -139,11 +139,10 @@ let finalize_funtypes shm cnv =
         cnv
   end shm cnv
 
-let tag_of_global = function
-  | GType (_,_)    -> "GType"
-  | GCompTag (_,_) -> "GCompTag"
-  | _              -> "Global"
 
+
+
+(* {{{
 let decs_of_file cil = 
   Cil.foldGlobals cil begin fun acc g -> match g with
     | GFun (fdec, loc)                  -> CM.FunDec (fdec.svar.vname, loc) :: acc
@@ -155,34 +154,27 @@ let decs_of_file cil =
       when (isFunctionType v.vtype)     -> acc
     | GType _ | GCompTag _
     | GCompTagDecl _| GText _
-    | GPragma _                         -> acc
+    | G.Pragma _                         -> acc
     | _ when !Cs.safe                   -> assertf "decs_of_file"
     | _                                 -> E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g 
                                            |> fun _ -> acc
   end []
-
-let scim_of_file cil =
-  ST.scis_of_file cil
-  |> List.fold_left begin fun acc sci -> 
-       SM.add sci.ST.fdec.svar.vname sci acc
-     end SM.empty
-
+}}} *)
 (* {{{ 
 let print_sccs sccs =
   P.printf "Callgraph sccs:\n\n";
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 }}} *)
 
+
 (* API *)
-let create cil spec =
-  let reachf = CM.reachable cil in
-  let scim   = cil |> scim_of_file |> SM.filter (fun fn _ -> reachf fn)  in
+let create cil spec decs =
+  let scim   = ST.scim_of_decs decs  in
   let _      = E.log "\nDONE: SSA conversion \n" in
   let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
   let _      = E.log "\nDONE: TAG initialization\n" in
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
-  let decs   = decs_of_file cil |> Misc.filter (function CM.FunDec (vn,_) -> reachf vn | _ -> true) in
   let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
@@ -195,6 +187,7 @@ let create cil spec =
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
   let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
+  let _      = Pretty.printf "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

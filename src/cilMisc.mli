@@ -73,7 +73,7 @@ val definedHere : Cil.varinfo -> bool
 val d_var       : unit -> Cil.varinfo -> Pretty.doc
 
 type dec =
-  | FunDec of string * Cil.location
+  | FunDec of string * Cil.fundec * Cil.location
   | VarDec of Cil.varinfo * Cil.location * Cil.init option
 
 module VarSet: Set.S with type elt = Cil.varinfo
@@ -142,4 +142,4 @@ module CopyGlobal: Visitor
 module NameNullPtrs: Visitor
 module Pheapify: Visitor
 
-
+val dec_of_global : Cil.global -> dec option

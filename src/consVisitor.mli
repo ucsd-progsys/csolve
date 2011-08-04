@@ -22,20 +22,18 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val cons_of_decs: 
-  CilTag.o -> 
-  Ctypes.refspec -> 
-  FixInterface.cilenv ->
-  Ctypes.refstore ->
-  CilMisc.dec list ->
-  FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list
+val cons_of_decs :  CilTag.o 
+                 -> Ctypes.refspec 
+                 -> FixInterface.cilenv 
+                 -> Ctypes.refstore 
+                 -> CilMisc.dec list 
+                 -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list
 
-val cons_of_scis: 
-  CilTag.o -> 
-  FixInterface.cilenv ->
-  Ctypes.refstore ->
-  Ssa_transform.ssaCfgInfo Misc.StringMap.t ->
-  Shape.t Misc.StringMap.t option ->
-  Consindex.t ->
-  Consindex.t
+val cons_of_scis :  CilTag.o 
+                 -> FixInterface.cilenv 
+                 -> Ctypes.refstore 
+                 -> Ssa_transform.ssaCfgInfo Misc.StringMap.t 
+                 -> Shape.t Misc.StringMap.t option 
+                 -> Consindex.t 
+                 -> Consindex.t
 

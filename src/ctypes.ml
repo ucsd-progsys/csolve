@@ -383,17 +383,17 @@ type 'a prespec = ('a precfun * bool) Misc.StringMap.t
 
 let d_fieldinfo () = function
   | { fname = Some fn; ftype = Some t } -> 
-      Pretty.dprintf "/* FIELDINFO %s %a */" fn Cil.d_type t 
+      P.dprintf "/* FIELDINFO %s %a */" fn Cil.d_type t 
   | { ftype = Some t } -> 
-      Pretty.dprintf "/* FIELDINFO %a */" Cil.d_type t 
+      P.dprintf "/* FIELDINFO %a */" Cil.d_type t 
   | _ ->
-      Pretty.nil
+      P.nil
 
 let d_structinfo () = function
   | { stype = Some t } -> 
-      Pretty.dprintf "/* %a */" Cil.d_type t
+      P.dprintf "/* %a */" Cil.d_type t
   | _ -> 
-      Pretty.nil
+      P.nil
 
 module SIGS (R : CTYPE_REFINEMENT) = struct
   type ctype = R.t prectype
@@ -410,7 +410,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val refinement  : t -> R.t
     val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
-    val d_ctype     : unit -> t -> Pretty.doc
+    val d_ctype     : unit -> t -> P.doc
     val of_const    : Cil.constant -> t
     val is_subctype : t -> t -> bool
     val width       : t -> int
@@ -435,7 +435,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val subs          : Sloc.Subst.t -> t -> t
     val map_type      : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
       
-    val d_field       : unit -> t -> Pretty.doc
+    val d_field       : unit -> t -> P.doc
   end
 
   module type LDESC = sig
@@ -463,7 +463,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val set_structinfo : t -> structinfo -> t
     val get_structinfo : t -> structinfo
 
-    val d_ldesc       : unit -> t -> Pretty.doc
+    val d_ldesc       : unit -> t -> P.doc
   end
 
   module type STORE = sig
@@ -488,8 +488,8 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val data         : t -> t
 
-    val d_store_addrs: unit -> t -> Pretty.doc
-    val d_store      : unit -> t -> Pretty.doc
+    val d_store_addrs: unit -> t -> P.doc
+    val d_store      : unit -> t -> P.doc
 
     module Data: sig
       val add                    : t -> Sloc.t -> ldesc -> t
@@ -525,7 +525,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   module type CFUN = sig
     type t = cfun
 
-    val d_cfun          : unit -> t -> Pretty.doc
+    val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : store -> t -> bool
@@ -562,6 +562,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
                   store ->
                   t
     val add     : t -> t -> t
+    val d_spec  : unit -> t -> P.doc
   end
 end
 
@@ -584,15 +585,15 @@ module type S = sig
 
   module ExpMapPrinter: sig
     val d_map:
-      ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->
+      ?dmaplet:(P.doc -> P.doc -> P.doc) ->
       string ->
-      (unit -> ExpMap.key -> Pretty.doc) ->
-      (unit -> 'a -> Pretty.doc) -> unit -> 'a ExpMap.t -> Pretty.doc
+      (unit -> ExpMap.key -> P.doc) ->
+      (unit -> 'a -> P.doc) -> unit -> 'a ExpMap.t -> P.doc
   end
 
   type ctemap = CType.t ExpMap.t
 
-  val d_ctemap: unit -> ctemap -> Pretty.doc
+  val d_ctemap: unit -> ctemap -> P.doc
 end
 
 module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
@@ -962,7 +963,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       (ds, SLM.empty)
 
     let d_store_addrs () st =
-      Pretty.seq (Pretty.text ",") (Sloc.d_sloc ()) (domain st)
+      P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 
     let d_slm d_binding =
       SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
@@ -1163,6 +1164,23 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
        |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
        |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
        |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
+
+
+    let d_spec () sp = 
+      [ (Store.Data.fold_locs (fun l ld acc ->
+          P.concat acc (P.dprintf "loc %a |-> %a\n\n" Sloc.d_sloc l LDesc.d_ldesc ld)
+         ) P.nil (store sp))
+      ; (Store.Function.fold_locs (fun l cf acc ->
+          P.concat acc  (P.dprintf "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l CFun.d_cfun cf)
+         ) P.nil (store sp))
+      ; (P.seq (P.text "\n\n") (fun (vn, (ct, _)) -> 
+          P.dprintf "%s :: @[%a@]" vn CType.d_ctype ct
+         ) (varspec sp |> SM.to_list))
+      ; (P.seq (P.text "\n\n") (fun (fn, (cf, _)) -> 
+          P.dprintf "%s ::@!  @[%a@]\n\n" fn CFun.d_cfun cf
+         ) (funspec sp |> SM.to_list)) ]
+      |> List.fold_left P.concat P.nil
+
   end
 
   (******************************************************************************)
@@ -1179,7 +1197,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
   type ctemap = CType.t ExpMap.t
 
-  let d_ctemap () (em: ctemap): Pretty.doc =
+  let d_ctemap () (em: ctemap): P.doc =
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
@@ -1214,14 +1232,14 @@ let reft_of_top =
 (*******************************************************************)
 
 let d_reft () r = 
-  Misc.fsprintf (FC.print_reft_pred None) r |> Pretty.text
+  Misc.fsprintf (FC.print_reft_pred None) r |> P.text
 
 let d_index_reft () (i,r) = 
-  Pretty.dprintf "%a , %a" Index.d_index i d_reft r
+  P.dprintf "%a , %a" Index.d_index i d_reft r
   (*let di = Index.d_index () i in
-  let dc = Pretty.text " , " in
+  let dc = P.text " , " in
   let dr = d_reft () r in
-  Pretty.concat (Pretty.concat di dc) dr
+  P.concat (P.concat di dc) dr
   *)
 
 
@@ -1274,8 +1292,8 @@ let addr_of_refctype loc = function
   | Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, i)
   | cr ->
-      let s = cr  |> d_refctype () |> Pretty.sprint ~width:80 in
-      let l = loc |> Cil.d_loc () |> Pretty.sprint ~width:80 in
+      let s = cr  |> d_refctype () |> P.sprint ~width:80 in
+      let l = loc |> Cil.d_loc () |> P.sprint ~width:80 in
       let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
       assert false
 

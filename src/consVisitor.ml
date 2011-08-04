@@ -610,15 +610,15 @@ let init_of_var v = function
   | None -> if v.vstorage = Extern then None else Some (makeZeroInit v.vtype)
   | i    -> i
 
-(************************************************************************************)
-(******************************** API ***********************************************)
-(************************************************************************************)
+(*************************************************************************)
+(****************************** API **************************************)
+(*************************************************************************)
 
 (* API *)
 let cons_of_decs tgr spec gnv gst decs =
   let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
-    | CM.FunDec (fn, loc) ->
+    | CM.FunDec (fn, _, loc) ->
         let tag     = CilTag.make_t tgr loc fn 0 0 in
         let irf     = FI.ce_find_fn fn gnv in
         let ws'     = FI.make_wfs_fn gnv irf tag in

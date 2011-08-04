@@ -361,23 +361,22 @@ let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
-(*
+(* {{{
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
 let t_scalar = function
   | Ct.Ref (_,Ix.IInt 0) -> t_scalar_zero 
   | Ct.Int (_,ix)        -> t_scalar_index ix 
   | _                    -> t_true Ct.scalar_ctype
-*)
 
-let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred Ct.scalar_ctype)
-
-(*
 let t_scalar = Ct.index_of_ctype <+> 
                Sc.pred_of_index <+> 
                Misc.uncurry (t_pred Ct.scalar_ctype)
 let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
-*)
 
+
+}}} *)
+
+let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred Ct.scalar_ctype)
 
 let deconstruct_refctype rct = 
   let r = Ct.reft_of_refctype rct in

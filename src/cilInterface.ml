@@ -336,3 +336,11 @@ let reft_of_cilexp vv e =
   match assume_guarantee_reft_of_cilexp vv e with
   | None           -> None, gp
   | Some (ap, gp') -> Some ap, A.pAnd [gp; gp']
+
+let foldGlobalsIf process cil f = 
+  Cil.foldGlobals cil (fun acc g -> if process g then f acc g else acc)
+
+let iterGlobalsIf process cil f = 
+  Cil.iterGlobals cil (fun g -> if process g then f g )
+
+

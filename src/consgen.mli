@@ -22,4 +22,4 @@
  *)
 (* This file is part of the liquidC Project.*)
 
-val create: Cil.file -> Ctypes.refspec -> CilTag.o * Consindex.t
+val create: Cil.file -> Ctypes.refspec -> CilMisc.dec list -> CilTag.o * Consindex.t

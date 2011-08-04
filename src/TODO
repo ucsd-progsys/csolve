@@ -1,12 +1,8 @@
-HEREHEREHERE
+Modular Checking
+================
 
-Write: 
+* please only save the specs that are NOT in the fucking lib.
 
-    val unfold_ciltyp : Cil.typ -> Ct.fieldinfo IM.t 
-
-which unrolls a cil type into its component "fields" and returns:
-  
-    [ (0, fldname0, fldtype0); ... ; (N, fldnameN, fldtypeN)]
 
 * src/pmrtodo.org benchmarks
         tsort 
