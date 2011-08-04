@@ -27,13 +27,13 @@ open M.Ops
 (******************************************************************************)
 
 (* Breaks w/ zero-sized arrays? *)
-let indexOfArrayElements t b = match t, b with
-  | t, Some (C.Const (C.CInt64 (i, _, _))) ->
+let indexOfArrayElements t b ats = match t, b with
+  | t, Some (C.Const (C.CInt64 (i, _, _)))
+      when not <| C.hasAttribute CM.ignoreBoundAttribute ats->
     let sz = CM.bytesSizeOf t in
     let c  = Int64.to_int i - 1 in
       I.mk_sequence 0 sz (Some 0) (Some (c * sz))
   | t, _ -> I.mk_sequence 0 (CM.bytesSizeOf t) (Some 0) None
-
 
 let arraySizes sz1 sz2 = match sz1, sz2 with
   | Some (C.Const (C.CInt64 (i, ik, _))), Some (C.Const (C.CInt64 (j, _, _))) ->
@@ -89,7 +89,7 @@ let vv = A.Symbol.of_string "V"
 
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
-  let arrayIndex        = if hasArray then indexOfArrayElements tb None else I.top in
+  let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
   let predIndex         = if hasPred then SC.ref_index_of_pred vv pred else I.top in
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.mk_singleton 0
 
@@ -136,10 +136,10 @@ let nameArg =
     fun x -> if x = "" then freshArgName () else x
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _)                         -> indexOfArrayElements t b
-  | C.TPtr (t, ats) when CM.has_array_attr ats -> indexOfArrayElements t None
-  | C.TPtr _                                   -> I.mk_singleton 0
-  | _                                          -> assert false
+  | C.TArray (tb, b, ats)                       -> indexOfArrayElements tb b ats
+  | C.TPtr (tb, ats) when CM.has_array_attr ats -> indexOfArrayElements tb None ats
+  | C.TPtr _                                    -> I.mk_singleton 0
+  | _                                           -> assert false
 
 (******************************************************************************)
 (****************** Checking Type Annotation Well-Formedness ******************)
@@ -236,8 +236,8 @@ let instantiateStruct ats tcs =
     List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
 
 let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (t, b, _) ->
-    t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b)
+  | C.TArray (t, b, ats) ->
+    t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b ats)
   | C.TComp (ci, ats) as t ->
        ci.C.cfields
     |> M.flap begin fun f -> match componentsOfField t f with
