@@ -520,6 +520,14 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       val find      : 'a prestore -> Sloc.t -> 'a precfun
       val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
     end
+
+    module Unify: sig
+      exception UnifyFailure of Sloc.Subst.t * t
+
+      val unify_ctype_locs : t -> Sloc.Subst.t -> Cil.location -> ctype -> ctype -> t * Sloc.Subst.t
+      val add_field        : t -> Sloc.Subst.t -> Cil.location -> Sloc.t -> Index.t -> field -> t * Sloc.Subst.t
+      val add_fun          : t -> Sloc.Subst.t -> Cil.location -> Sloc.t -> cfun -> t * Sloc.Subst.t
+    end
   end
 
   module type CFUN = sig
@@ -974,6 +982,85 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         P.dprintf "[@[%a@]]" (d_slm CFun.d_cfun) fs
       else
         P.dprintf "[@[%a;@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
+
+    module Unify = struct
+      exception UnifyFailure of S.Subst.t * t
+
+      let fail sub sto _ =
+        raise (UnifyFailure (sub, sto))
+
+      let rec unify_ctype_locs sto sub loc ct1 ct2 = match CType.subs sub ct1, CType.subs sub ct2 with
+        | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub)
+        | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub loc s1 s2
+        | ct1, ct2                              ->
+          fail sub sto <| C.errorLoc loc "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
+
+      and unify_data_locations sto sub loc s1 s2 =
+        let ld1, ld2 = M.map_pair (Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
+        let sto      = remove sto s1 in
+        let sto      = Data.add sto s2 ld2 |> subs sub in
+          LDesc.fold (fun (sto, sub) i f -> add_field sto sub loc s2 i f) (sto, sub) ld1
+
+      and unify_fun_locations sto sub loc s1 s2 =
+        if Function.mem sto s1 then
+          let cf1 = CFun.subs (Function.find sto s1) sub in
+          let sto = s1 |> remove sto |> subs sub in
+          if Function.mem sto s2 then
+            let cf2 = CFun.subs (Function.find sto s2) sub in
+            if CFun.same_shape cf1 cf2 then
+              (sto, sub)
+            else
+              fail sub sto <|
+                  C.errorLoc loc "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
+                    S.d_sloc_info s1 S.d_sloc_info s2 S.d_sloc_info s1 CFun.d_cfun cf1 S.d_sloc_info s2 CFun.d_cfun cf2
+          else (Function.add sto s2 cf1, sub)
+        else (subs sub sto, sub)
+
+      and assert_unifying_same_location_type sto sub loc s1 s2 =
+        if (Function.mem sto s1 && Data.mem sto s2) ||
+          (Data.mem sto s1 && Function.mem sto s2) then
+            fail sub sto <| C.errorLoc loc "Trying to unify data and function locations (%a, %a) in store@!%a@!"
+                S.d_sloc_info s1 S.d_sloc_info s2 d_store sto
+        else ()
+
+      and unify_locations sto sub loc s1 s2 =
+        if not (S.eq s1 s2) then
+          let _   = assert_unifying_same_location_type sto sub loc s1 s2 in
+          let sub = S.Subst.extend s1 s2 sub in
+            if Function.mem sto s1 || Function.mem sto s2 then
+              unify_fun_locations sto sub loc s1 s2
+            else if Data.mem sto s1 || Data.mem sto s2 then
+              unify_data_locations sto sub loc s1 s2
+            else (subs sub sto, sub)
+            else (sto, sub)
+
+      and unify_fields loc sub sto fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
+        | ct1, ct2                   when ct1 = ct2 -> (sub, sto)
+        | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub loc s1 s2 |> M.swap
+        | ct1, ct2                                  ->
+          fail sub sto <| C.errorLoc loc "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
+
+      and add_field sto sub loc s i fld =
+        try
+             fld
+          |> Field.subs sub
+          |> Data.add_field_fold_overlap sto loc (unify_fields loc) sub (S.Subst.apply sub s) i
+          |> M.swap
+        with e ->
+          C.errorLoc loc "Can't fit @!%a: %a@!  in location@!%a |-> %a"
+            Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;
+          raise e
+
+      let add_fun sto sub loc l cf =
+        let l = S.Subst.apply sub l in
+        if not (Data.mem sto l) then
+          if Function.mem sto l then
+            let _ = assert (CFun.same_shape cf (Function.find sto l)) in
+              (sto, sub)
+          else (Function.add sto l cf, sub)
+        else fail sub sto <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
+            S.d_sloc_info l LDesc.d_ldesc (Data.find sto l)
+    end
   end
 
   (******************************************************************************)

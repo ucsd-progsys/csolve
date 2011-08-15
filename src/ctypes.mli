@@ -237,6 +237,14 @@ module type S = sig
       val find      : 'a prestore -> Sloc.t -> 'a precfun
       val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
     end
+
+    module Unify: sig
+      exception UnifyFailure of Sloc.Subst.t * t
+
+      val unify_ctype_locs : t -> Sloc.Subst.t -> Cil.location -> CType.t -> CType.t -> t * Sloc.Subst.t
+      val add_field        : t -> Sloc.Subst.t -> Cil.location -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t
+      val add_fun          : t -> Sloc.Subst.t -> Cil.location -> Sloc.t -> R.t precfun -> t * Sloc.Subst.t
+    end
   end
 
   module CFun:
