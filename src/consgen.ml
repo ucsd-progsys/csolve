@@ -187,7 +187,7 @@ let create cil spec decs =
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
   let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
-  let _      = Pretty.printf "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
+  let _      = Errormsg.log "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

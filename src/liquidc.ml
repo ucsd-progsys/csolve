@@ -304,6 +304,7 @@ let cil_of_file file =
 let liquidate file =
   let log       = open_out "liquidc.log" in
   let _         = E.logChannel := log in
+  let _         = Co.setLogChannel log in
   let cil       = BS.time "Parse: source" cil_of_file file in
   let _         = E.log "DONE: cil parsing \n" in
   let fn        = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
