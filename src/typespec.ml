@@ -121,7 +121,7 @@ class slocEnsurer = object
         else
           C.ChangeDoChildrenPost
             (C.typeAddAttributes [C.Attr (CM.slocAttribute, [C.AStr (freshSlocName ())])] t, id)
-  else C.DoChildren
+    else C.DoChildren
 end
 
 let ensureSlocAttrs =
