@@ -756,8 +756,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
 
     let find i {plfields = flds} =
-      flds |> List.filter (fun (i2, _) -> N.overlaps i i2)
-           |> List.map (fun (i, fld) -> (i, fld))
+      List.filter (fun (i2, _) -> N.overlaps i i2) flds
 
     let rec foldn_aux f n b = function
       | []               -> b
