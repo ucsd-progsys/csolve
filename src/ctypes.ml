@@ -492,7 +492,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val d_store      : unit -> t -> P.doc
 
     module Data: sig
-      val add                    : t -> Sloc.t -> ldesc -> t
+      val add           : t -> Sloc.t -> ldesc -> t
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t

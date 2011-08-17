@@ -208,7 +208,7 @@ module type S = sig
     val d_store      : unit -> t -> Pretty.doc
 
     module Data: sig
-      val add                  : t -> Sloc.t -> LDesc.t -> t
+      val add           : t -> Sloc.t -> LDesc.t -> t
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t
