@@ -49,12 +49,11 @@ let refresh = function
 
 let fresh_abstract i = Abstract (fresh_slocid (), i)
 
-
 let fresh_concrete abs =
   let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
   Concrete (fresh_slocid (), aid, info)
 
-let none = Abstract (-1, [])
+let none = fresh_abstract []
 
 let canonical = function
   | Abstract _ as al  -> al
