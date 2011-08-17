@@ -1,8 +1,4 @@
-* "Today"
-
-
 * DONE Global locations in typespec
-
 
 * DONE Get global arrays right
 
@@ -62,11 +58,14 @@
   quantify over all the things that may be reached by a global
   location.
 
-* TODO Drop add_field_fold_overlap
+* DONE Delete all spec files
 
-* TODO Why did MST work?
-  HashLookup is bogus without checking that the size of the hash is
-  positive.
+* DONE Figure out how to make assert, validptr compileable
+
+* DONE Drop add_field_fold_overlap
+
+* TODO Better error message when can't parse predicate
+  Right now it just seems to dump an empty spec
 
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
@@ -78,9 +77,6 @@
 
   Perhaps allow a flag to choose on the function?
 
-* TODO Better error message when can't parse predicate
-  Right now it just seems to dump an empty spec
-
 * TODO Deferred checks
   See also indices above
 
@@ -88,13 +84,13 @@
 
 * TODO Change assert to lcc_assert
 
-* TODO Figure out how to make assert, validptr compileable
-
 * TODO Write docs for spec language
 
 * TODO Show specs for externs without OKEXTERN
 
-* TODO Delete all spec files
+* TODO Why did MST work?
+  HashLookup is bogus without checking that the size of the hash is
+  positive.
 
 * TODO Notify when unifying global locations
   This is tricky. We only want to notify about the global locations.
@@ -165,14 +161,6 @@
    We can't say we're handling string-manipulating external functions
    correctly unless we can express containing a NULL character within
    the bounds of the string.
-
-** TODO Relating argc to argv
-   argv only contains argc-many non-NULL pointers. This looks like yet
-   another use for contextual types:
-
-   : LOC(argv) :: r: 0[4]: {v: ref (...) | r - BLOCK_BEGIN([v]) < 4 * argc => r != NULL}
-
-   Note that this affects mst-scratch, ks, and probably some other large benchmarks.
 
 ** realloc, free
    In general, we don't know that a pointer's bounds stay valid

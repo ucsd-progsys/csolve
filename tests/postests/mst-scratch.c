@@ -386,7 +386,6 @@ int dealwithargs(int argc , char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(arg
   return (level);
 }
 
-// pmr: We assume all entries in argv are valid pointers; we can't express the exact contract yet
 int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv) CHECK_TYPE {
   Graph graph;
   int dist ;

@@ -209,16 +209,6 @@ module type S = sig
 
     module Data: sig
       val add                  : t -> Sloc.t -> LDesc.t -> t
-      val add_field_fold_overlap :
-        t ->
-        Cil.location ->
-        ('a -> t -> Field.t -> Field.t -> 'a * t) ->
-        'a ->
-        Sloc.t ->
-        Index.t ->
-        Field.t ->
-        'a * t
-
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t
