@@ -201,9 +201,9 @@ let refctypeOfCilType mem t = match C.unrollType t with
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
-let addReffieldToStore sub sto loc s i rfld =
+let addReffieldToStore sub sto s i rfld =
   if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
-    rfld |> RU.add_field sto sub loc s i |> M.swap
+    rfld |> RU.add_field sto sub s i |> M.swap
 
 class structInstantiator (ats) = object (self)
   inherit C.nopCilVisitor
@@ -276,13 +276,13 @@ let rec closeTypeInStoreAux mem sub sto t = match C.unrollType t with
       List.fold_left
         begin fun (sub, sto) (fn, i, t) ->
           let sub, sto = closeTypeInStoreAux mem sub sto t in
-            if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub !C.currentLoc s |> M.swap else
+            if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub s |> M.swap else
                  t
               >> assertStoreTypeWellFormed
               |> refctypeOfCilType mem
               |> FI.t_subs_names fldsub
               |> RFl.create (t |> C.typeAttrs |> finalityOfAttrs) {Ct.fname = Some fn; Ct.ftype = None} (* Some t, but doesn't parse *)
-              |> addReffieldToStore sub sto !C.currentLoc s i
+              |> addReffieldToStore sub sto s i
         end (sub, sto) tcs
   | _ -> (sub, sto)
 
@@ -309,11 +309,11 @@ and preRefcfunOfType t =
 let updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd) gsto)
   |> M.flip (RS.Data.fold_fields
-               (fun (sub, sto) s i f -> addReffieldToStore sub sto C.locUnknown s i f))
+               (fun (sub, sto) s i f -> addReffieldToStore sub sto s i f))
       gstoUpd
   |> M.swap
   |> M.flip (RS.Function.fold_locs
-               (fun s rcf (sto, sub) -> RU.add_fun sto sub C.locUnknown s rcf))
+               (fun s rcf (sto, sub) -> RU.add_fun sto sub s rcf))
       gstoUpd
 
 let rec refcfunOfPreRefcfun sub gsto prcf =
@@ -328,7 +328,7 @@ and refstoreOfPreRefstore sub gsto sto =
      sto
   |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) ->
        let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in
-         (gsto, RU.add_fun sto sub C.locUnknown s rcf)
+         (gsto, RU.add_fun sto sub s rcf)
      end (gsto, (RS.data sto, S.Subst.empty))
   |> fun (gsto, (sto, sub)) -> (gsto, sto, sub)
 

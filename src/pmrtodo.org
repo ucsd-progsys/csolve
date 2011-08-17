@@ -63,8 +63,9 @@
 * DONE Figure out how to make assert, validptr compileable
 
 * DONE Drop add_field_fold_overlap
+* DONE Change assert to lcc_assert
 
-* TODO Better error message when can't parse predicate
+* DONE Better error message when can't parse predicate
   Right now it just seems to dump an empty spec
 
 * TODO Error messages for unified locations are atrocious
@@ -81,8 +82,6 @@
   See also indices above
 
   Are the subindex checks at calls enabled right now?
-
-* TODO Change assert to lcc_assert
 
 * TODO Write docs for spec language
 
@@ -354,30 +353,6 @@ Proper code todo:
   Looks like we're not checking we get the right indices for heap contents later...?!
 
 * Warn/error on unreachable block?
-
-* TODO Change specs to not even /have/ indices; derive them from the predicates
-  Then it should be possible to check that we adhere to the spec much more easily.
-  In particular, we can just check that every function is declared to be a subtype of
-  its spec. (Will this work even for function pointers?)
-
-  But we have to be careful, since the spec tells us some shape information but
-  doesn't give the whole invariant.
-
-  This may not actually be a good idea; discuss with Ranjit.
-
-- note that it helps to have indices rather than predicates to identify singletons vs. arrays
-- also makes the system more general - don't need to use predicate abstraction anywhere
-
-- note that a singleton can have two representations
-  - IInt n
-  - ICClass (n, n + 1, 1, 0) (between n and n + 1, congruent to 0 mod 1)
-  We should be sure that we need both (it seems proper LUB is hard to do with just cclass), and
-  make sure that there's some kind of proper order between them.
-  Note that the two representations are *not* interchangeable; taking the lub of two
-  singeltons has two very different effects depending on which representation is used.
-  "Real" singletons should be lower in the lattice because they're more precise in that
-  lubs of them give better results (which should actually also be lower than lubs of
-  the corresponding cclass singletons).
 
 * TODO Release Code
   Would be nice to do this by the end of August (can't do it much

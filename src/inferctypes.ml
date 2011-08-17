@@ -98,7 +98,7 @@ let constrain_lval et sub sto = function
            lv
         |> et#ctype_of_lval
         |> Field.create Nonfinal dummy_fieldinfo
-        |> UStore.add_field sto sub !C.currentLoc s i
+        |> UStore.add_field sto sub s i
         |> M.swap
       | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
     end
@@ -126,7 +126,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
       begin match et#ctype_of_exp e with
         | Ref (s, _) ->
              Field.create Nonfinal dummy_fieldinfo (Int (1, Index.top))
-          |> UStore.add_field !sto !sub !C.currentLoc s Index.nonneg
+          |> UStore.add_field !sto !sub s Index.nonneg
           |> M.swap
           |> self#set_sub_sto
         | _ -> assert false
@@ -138,7 +138,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
         begin match et#ctype_of_exp (C.AddrOf lv) with
           | Ref (l, _) ->
                fst (VM.find v fs)
-            |> UStore.add_fun !sto !sub !C.currentLoc l
+            |> UStore.add_fun !sto !sub l
             |> M.swap
             |> self#set_sub_sto
           | _ -> assert false
@@ -168,7 +168,7 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-let constrain_app loc i (fs, _) et cf sub sto lvo args =
+let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let _             = List.iter2 begin fun cta (fname, ctf) ->
                         if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then begin
@@ -177,24 +177,24 @@ let constrain_app loc i (fs, _) et cf sub sto lvo args =
                           raise (UStore.UnifyFailure (sub, sto))
                         end
                       end cts cf.args in
-  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some loc)) cf in
+  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cf in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.filter (Store.Data.mem cfi.sto_out)
                    |> List.fold_left Store.Data.ensure_sloc sto in
   let sto, sub      = Store.Data.fold_fields begin fun (sto, sub) s i fld ->
-                        UStore.add_field sto sub !C.currentLoc s i fld
+                        UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-                        UStore.unify_ctype_locs sto sub !C.currentLoc cta ctf
+                        UStore.unify_ctype_locs sto sub cta ctf
                       end (sto, sub) cts cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-        let sto, sub = UStore.unify_ctype_locs sto sub !C.currentLoc (Ct.subs isub cf.ret) ctlv in
+        let sto, sub = UStore.unify_ctype_locs sto sub (Ct.subs isub cf.ret) ctlv in
         let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then begin
                          C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv;
                          raise (UStore.UnifyFailure (sub, sto))
@@ -205,7 +205,7 @@ let constrain_return et fs sub sto rtv = function
     | None   -> if Ct.is_void rtv then ([], sub, sto) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
-      let sto, sub = UStore.unify_ctype_locs sto sub !C.currentLoc (et#ctype_of_exp e) rtv in
+      let sto, sub = UStore.unify_ctype_locs sto sub (et#ctype_of_exp e) rtv in
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
@@ -223,7 +223,7 @@ let find_function et fs sub sto = function
         | None   -> assert false
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
-  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
+  let _ = C.currentLoc := C.get_instrLoc i in
   match i with
   | C.Set (lv, e, _) ->
       let sub, sto = constrain_lval et sub sto lv in
@@ -231,15 +231,15 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
       let _        = assert_store_type_correct lv ct2 in
-      let sto, sub = UStore.unify_ctype_locs sto sub loc ct2 ct1 in
+      let sto, sub = UStore.unify_ctype_locs sto sub ct2 ct1 in
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
-      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
+      let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
       let _, sub, sto = constrain_args et fs sub sto args in
         ([] :: bas, sub, sto)
   | C.Call (lvo, C.Lval lv, args, _) ->
       let cf           = find_function et fs sub sto lv in
-      let ba, sub, sto = constrain_app loc i env et cf sub sto lvo args in
+      let ba, sub, sto = constrain_app i env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
@@ -261,10 +261,10 @@ let constrain_stmt ((fs, _) as env) et rtv s sub sto =
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
-  let loc = vphi.C.vdecl >> (:=) C.currentLoc in
+  let _ = C.currentLoc := vphi.C.vdecl in
        vdefs
     |> List.fold_left begin fun (sto, sub) (_, vdef) ->
-         UStore.unify_ctype_locs sto sub loc (VM.find vdef ve) (VM.find vphi ve)
+         UStore.unify_ctype_locs sto sub (VM.find vdef ve) (VM.find vphi ve)
        end (sto, sub)
     |> M.swap
 
@@ -291,9 +291,9 @@ class exprMapVisitor (et) = object (self)
 end
 
 let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
-  let loc          = fd.C.svar.C.vdecl >> (:=) C.currentLoc in
+  let _            = C.currentLoc := fd.C.svar.C.vdecl in
   let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
-                       UStore.unify_ctype_locs sto sub loc (VM.find bv ve) fct
+                       UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
   let sub, sto     = constrain_phis ve phis sub sto in
   let et           = new exprTyper (ve) in
