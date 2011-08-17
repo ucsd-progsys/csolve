@@ -7,11 +7,11 @@ typedef struct _node {
 void insert (node * LOC(L) * LOC(L) hd, node * LOC(L) v) {
     node **_e_;
 
-    /* assert (0); */
+    /* lcc_assert (0); */
     _e_  = hd;
     *_e_ = v;
 
-    assert (0);
+    lcc_assert (0);
 }
 
 int main () {

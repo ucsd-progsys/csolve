@@ -12,7 +12,7 @@ int main () {
     }
 
     if (*x == *y) {
-        assert (*x == *y);
+        lcc_assert (*x == *y);
     }
 
     *x = 1;

@@ -12,7 +12,7 @@ int foo(int n){
 
   root = 0;
   
-//  assert(0); //SANITY
+//  lcc_assert(0); //SANITY
 
   for(i = 0; i < n; i++){
     tmp       = (node_t *) malloc(sizeof(node_t));
@@ -21,13 +21,13 @@ int foo(int n){
     root      = tmp;
   }
 
-//  assert(0); //SANITY
+//  lcc_assert(0); //SANITY
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-    assert(tmp->data >= 0);
-    assert(tmp->data <  n); 
-    assert(tmp->data < 10); //SHOULD FAIL
-//    assert(0); //SANITY
+    lcc_assert(tmp->data >= 0);
+    lcc_assert(tmp->data <  n); 
+    lcc_assert(tmp->data < 10); //SHOULD FAIL
+//    lcc_assert(0); //SANITY
   }
 
 return 0;

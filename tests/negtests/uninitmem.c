@@ -4,7 +4,7 @@
 void f (int *y) {
     int x = *y;
 
-    assert(0);
+    lcc_assert(0);
 }
 
 void main () {

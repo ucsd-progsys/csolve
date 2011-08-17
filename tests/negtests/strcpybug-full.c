@@ -27,7 +27,7 @@ char * LOC(L) __attribute__((array)) strncpy (char * LOC(L) __attribute__((array
 	  *dest++ = c;
 	 
 	  //pmr: TOTALLY BOGUS
-	  assert(c == 0);
+	  lcc_assert(c == 0);
 	  if (c == 0)
 	    break;
           validptr(src);

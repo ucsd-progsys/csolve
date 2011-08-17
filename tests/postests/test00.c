@@ -24,9 +24,9 @@ void main(){
   
   a = 999;
 
-  assert(x >= 0);
+  lcc_assert(x >= 0);
 
-  assert(x >= 0);
+  lcc_assert(x >= 0);
 
   return; 
 }

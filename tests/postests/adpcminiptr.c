@@ -23,9 +23,9 @@ int adpcm_coder()
   
   for(; 0 < len; len--)
   {
-    //if ((inp - inp0) != (nsamples - len)){ assert(0); }
-    //if (len <= 0){ assert(0); }
-    //if (2 * (outp - outp0) != ((bufferstep - 1) + nsamples - len)) {assert(0);} 
+    //if ((inp - inp0) != (nsamples - len)){ lcc_assert(0); }
+    //if (len <= 0){ lcc_assert(0); }
+    //if (2 * (outp - outp0) != ((bufferstep - 1) + nsamples - len)) {lcc_assert(0);} 
 
     validptr(inp);
     *inp = 0;
@@ -70,9 +70,9 @@ int adpcm_decoder()
   
   for(; 0 < len; len--)
   {
-    //if ((inp - inp0) != (nsamples - len)){ assert(0); }
-    //if (len <= 0){ assert(0); }
-    //if (2 * (outp - outp0) != ((bufferstep - 1) + nsamples - len)) {assert(0);} 
+    //if ((inp - inp0) != (nsamples - len)){ lcc_assert(0); }
+    //if (len <= 0){ lcc_assert(0); }
+    //if (2 * (outp - outp0) != ((bufferstep - 1) + nsamples - len)) {lcc_assert(0);} 
 
     if (bufferstep == 0){
       validptr(inp);

@@ -14,6 +14,6 @@ void main(){
   x = nondet(); 
   y = abs(x);
 
-  assert(y >= 10);
+  lcc_assert(y >= 10);
   return;
 }

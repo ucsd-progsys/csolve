@@ -11,6 +11,6 @@ void main(){
     j++;
   }
 
-  assert(i==j);
+  lcc_assert(i==j);
  
 }

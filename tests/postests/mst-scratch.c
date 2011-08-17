@@ -84,15 +84,15 @@ static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
 int HashLookup(unsigned int key , Hash hash )
 { int j ;
   HashEntry ent ;
-  int a = assume(hash != (Hash)0);
+  int a = lcc_assume(hash != (Hash)0);
 
   {
   // Necessary if we don't use --notruekvars - why only then?
   /* if (hash->size <= 0) return 0; */
 
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
-  assert(j >= 0);
-  assert(j < hash->size);
+  lcc_assert(j >= 0);
+  lcc_assert(j < hash->size);
 
   validptr(hash->array + j);
   ent = *(hash->array + j);
@@ -123,13 +123,13 @@ void HashInsert(int entry , unsigned int key , Hash hash )
 { HashEntry ent ;
   int j ;
   /* void *tmp; */
-  int a = assume(hash != (Hash) 0); // pmr: needed for safe derefs to hash->
+  int a = lcc_assume(hash != (Hash) 0); // pmr: needed for safe derefs to hash->
 
   {
-  // assert(3,!HashLookup(key,hash));
+  // lcc_assert(3,!HashLookup(key,hash));
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
-  assert(j>=0);
-  assert(j<hash->size);
+  lcc_assert(j>=0);
+  lcc_assert(j<hash->size);
   /*tmp*/ent = /*localmalloc*/(HashEntry *) malloc((int )sizeof(*ent));
   //ent = (struct hash_entry *)tmp;
   validptr(hash->array + j);
@@ -361,7 +361,7 @@ static int ComputeMst(Graph graph , int numvert )
   //chatting((char *)"Compute phase 2\n");
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
-      int assm = assume(inserted != (Vertex) 0);	//JHALA numvert = listlength...
+      int assm = lcc_assume(inserted != (Vertex) 0);	//JHALA numvert = listlength...
       validptr(MyVertexList);
       MyVertexList = MyVertexList->next;
     }

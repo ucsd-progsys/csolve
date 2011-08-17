@@ -46,7 +46,7 @@ string *new_string(int n, char c) {
     s->str = make_string(n);
 
     init_string(s, c);
-    // assert(0); // Sanity
+    // lcc_assert(0); // Sanity
 
     return s;
 }
@@ -101,6 +101,6 @@ void main () {
         return;
 
     string *s = string_succ(&sls->s);
-    // assert(0); // Sanity
+    // lcc_assert(0); // Sanity
     // init_string(s, 0);
 }

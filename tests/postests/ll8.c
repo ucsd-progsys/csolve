@@ -22,12 +22,12 @@ void main(){
 
   if (root != (node_t *) 0){
     if (root->next != (node_t *) 0)
-      assert(root->next != (node_t *) 0);
+      lcc_assert(root->next != (node_t *) 0);
   }
     /*
   for(node_t *tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     if (tmp->next != (node_t*) 0){
-      assert(tmp->next != (node_t*) 0);
+      lcc_assert(tmp->next != (node_t*) 0);
     }
   }
   */

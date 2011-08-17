@@ -12,7 +12,7 @@ int main () {
 
     f = &decGlobal;
     f ();
-    assert (*a >= 0);
+    lcc_assert (*a >= 0);
 
     return 0;
 }

@@ -46,7 +46,7 @@ g_slist_insert_sorted_real (GSList * LOC(L) list,
     }
 
   // pmr: sanity check
-  assert (tmp_list != NULL);
+  lcc_assert (tmp_list != NULL);
 
   // We need both tmp_list and new_list unfolded here.
   new_list = _g_slist_alloc ();
@@ -55,7 +55,7 @@ g_slist_insert_sorted_real (GSList * LOC(L) list,
   if ((!tmp_list->next) && (cmp > 0))
     {
       // pmr: sanity check
-      assert (new_list->data > tmp_list->data);
+      lcc_assert (new_list->data > tmp_list->data);
 
       tmp_list->next = new_list;
       new_list->next = NULL;
@@ -65,8 +65,8 @@ g_slist_insert_sorted_real (GSList * LOC(L) list,
   if (prev_list)
     {
       // pmr: sanity checks
-      assert (prev_list->data <= data);
-      assert (new_list->data <= tmp_list->data);
+      lcc_assert (prev_list->data <= data);
+      lcc_assert (new_list->data <= tmp_list->data);
 
       prev_list->next = new_list;
       new_list->next = tmp_list;
@@ -75,8 +75,8 @@ g_slist_insert_sorted_real (GSList * LOC(L) list,
   else
     {
       // pmr: sanity checks
-      assert (list == tmp_list);
-      assert (new_list->data <= list->data);
+      lcc_assert (list == tmp_list);
+      lcc_assert (new_list->data <= list->data);
 
       new_list->next = list;
       return new_list;
@@ -114,7 +114,7 @@ g_slist_remove (GSList * LOC(L) list,
       prev = tmp;
       tmp = prev->next;
       if (tmp) {
-          assert (tmp->data >= prev->data);
+          lcc_assert (tmp->data >= prev->data);
       }
     }
 
@@ -196,7 +196,7 @@ void test_sorted (GSList *hd) {
     GSList *cur = hd;
 
     while (cur != (GSList *) NULL && cur->next != (GSList *) NULL) {
-        assert (cur->data <= cur->next->data);
+        lcc_assert (cur->data <= cur->next->data);
         cur = cur->next;
     }
 

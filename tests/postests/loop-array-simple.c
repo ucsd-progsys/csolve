@@ -14,7 +14,7 @@ void main(){
     p++;
   }
  
-  assert(p == q+i);
+  lcc_assert(p == q+i);
 
   return;
 }

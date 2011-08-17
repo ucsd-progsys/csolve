@@ -13,7 +13,7 @@ int main () {
 
     f = &incGlobal;
     f ();
-    assert (*a >= 0);
+    lcc_assert (*a >= 0);
 
     return 0;
 }

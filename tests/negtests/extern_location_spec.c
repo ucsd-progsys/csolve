@@ -5,7 +5,7 @@ extern int * START SIZE(4) x CHECK_TYPE OKEXTERN;
 
 void goog () {
     int *y = x;
-    if (y != 0) assert (*y == 0);
+    if (y != 0) lcc_assert (*y == 0);
 }
 
 void foof () {

@@ -20,9 +20,9 @@ int main1()
     } else {
       b = 0;
     }
-    if (i <= 0){ assert(0); }
-    if (2*x != b + bound - (i - 1)) {assert(0);} 
-    if (2*x > bound + 1){ assert(0); }
+    if (i <= 0){ lcc_assert(0); }
+    if (2*x != b + bound - (i - 1)) {lcc_assert(0);} 
+    if (2*x > bound + 1){ lcc_assert(0); }
   }
   
   return 0;
@@ -49,9 +49,9 @@ int main2()
     } else {
       b = 0;
     }
-    if (i >= bound){ assert(0); }
-    if (2*x != b + (i + 1)) {assert(0);} 
-    if (2*x > bound + 1){ assert(0); }
+    if (i >= bound){ lcc_assert(0); }
+    if (2*x != b + (i + 1)) {lcc_assert(0);} 
+    if (2*x > bound + 1){ lcc_assert(0); }
   }
   
   return 0;
@@ -73,8 +73,8 @@ void main3(int bound)
     if (flag)
       x++;
     flag = !flag; 
-    //assert(2 * x < bound);
-    //assert(i < bound);
-    //assert(2 * x = i + flag);
+    //lcc_assert(2 * x < bound);
+    //lcc_assert(i < bound);
+    //lcc_assert(2 * x = i + flag);
   }
 } }}} */

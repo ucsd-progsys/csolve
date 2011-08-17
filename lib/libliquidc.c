@@ -16,7 +16,7 @@ int nondetpos () {
     return 1;
 }
 
-int assert (int p) {
+int lcc_assert (int p) {
     if (!p) {
         exit (0);
     }
@@ -24,7 +24,7 @@ int assert (int p) {
     return 0;
 }
 
-int assume (int p) {
+int lcc_assume (int p) {
     while (!p) {
         ;
     }

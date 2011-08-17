@@ -7,7 +7,7 @@ int two () {
 int main () {
     int (*f) () = &two;
     int x = f ();
-    assert (x > 0);
+    lcc_assert (x > 0);
 
     return 0;
 }

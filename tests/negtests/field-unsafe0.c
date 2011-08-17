@@ -19,5 +19,5 @@ void main(/* int n */){
   }
 
   y = root->data;
-  assert(y == 1);
+  lcc_assert(y == 1);
 }

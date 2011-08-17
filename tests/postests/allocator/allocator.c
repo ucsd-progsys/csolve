@@ -85,10 +85,10 @@ void dealloc (free_pool INST(LR, L) *freelist, allocdPtr LOC(L) mem) {
 
 void check_invariants (free_pool *fl) {
     for (free_pool *p = fl; p != NULL; p = p->next) {
-        if (p->next != NULL) assert (p->size < p->next->size);
-        if (p->free != NULL) assert (p->free->size == p->size);
+        if (p->next != NULL) lcc_assert (p->size < p->next->size);
+        if (p->free != NULL) lcc_assert (p->free->size == p->size);
         for (region *r = p->free; r != NULL; r = r->next) {
-            if (r->next != NULL) assert (r->size == r->next->size);
+            if (r->next != NULL) lcc_assert (r->size == r->next->size);
             // validptr kills finality because we don't know what effect it may have
             // Hack around silly bug in inferindices
             int off = r->size - 1;

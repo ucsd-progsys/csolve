@@ -20,7 +20,7 @@ void main(){
     x = -x;
   }
 
-  assert(x >= 0);
+  lcc_assert(x >= 0);
 */
   return; 
 }

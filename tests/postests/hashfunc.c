@@ -14,6 +14,6 @@ void main(){
   k    = nondetpos();
   h    = hashfunc(size, k);
 
-  assert(h >= 0);
-  assert(h < size);
+  lcc_assert(h >= 0);
+  lcc_assert(h < size);
 }

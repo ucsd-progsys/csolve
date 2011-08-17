@@ -20,5 +20,5 @@ void main () {
 
     foo (a);
 
-    assert (*x > 0);
+    lcc_assert (*x > 0);
 }

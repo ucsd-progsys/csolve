@@ -56,11 +56,9 @@
 
 extern void validptr (void * VALIDPTR) OKEXTERN;
 
-// Assert may already be in the headers; change this to lcc_assert all over
+extern int lcc_assert (int REF(V != 0) p) OKEXTERN;
 
-extern int assert (int REF(V != 0) p) OKEXTERN;
-
-extern int REF(b = 1) assume (int b) OKEXTERN;
+extern int REF(b = 1) lcc_assume (int b) OKEXTERN;
 
 extern int nondet () OKEXTERN;
 

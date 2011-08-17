@@ -13,7 +13,7 @@ int main () {
 
     f = &inc;
     int z = f (y);
-    assert (z >= 0);
+    lcc_assert (z >= 0);
 
     return 0;
 }

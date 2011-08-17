@@ -143,7 +143,7 @@ GList * LOC(L) g_list_insert_sorted (GList * LOC(L) list, int data)
       // !{
       // pmr: Fold workaround (can't assume about tmp_list->prev directly)
       GList *p       = tmp_list->prev;
-      int    a       = assume (p->data <= data);
+      int    a       = lcc_assume (p->data <= data);
       p->next        = new_list;
       new_list->prev = p;
       // }!

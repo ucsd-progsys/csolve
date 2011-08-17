@@ -14,6 +14,6 @@ int main(){
   }
 
   y = *r;
-  assert(y >= 0);
+  lcc_assert(y >= 0);
   return 0;
 }

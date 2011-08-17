@@ -19,7 +19,7 @@ node_t *foo(int n){
     root      = tmp;
   }
 
-//  assert(0); //SANITY
+//  lcc_assert(0); //SANITY
 
   return root;
 }
@@ -34,9 +34,9 @@ int main(){
   root = foo(n);
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-    assert(tmp->data >= 0);
-    assert(tmp->data < n);
-    //    assert(0); //SANITY
+    lcc_assert(tmp->data >= 0);
+    lcc_assert(tmp->data < n);
+    //    lcc_assert(0); //SANITY
   }
 
   return 0;

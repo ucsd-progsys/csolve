@@ -27,7 +27,7 @@ struct foo *__attribute__((array)) main(){
 
   for (j=0; j < n; j++){
     b       = a + j;
-    assert(b->data == 999);
+    lcc_assert(b->data == 999);
   }
 
   return a;

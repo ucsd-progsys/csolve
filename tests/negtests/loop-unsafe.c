@@ -7,5 +7,5 @@ void main(){
   for (i=0; i < n; i++){
     z -= i;
   }
-  assert (z >= 0);
+  lcc_assert (z >= 0);
 }
