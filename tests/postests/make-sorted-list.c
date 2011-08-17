@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 typedef struct _node {
     int           val;

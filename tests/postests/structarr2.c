@@ -1,11 +1,11 @@
-extern char *malloc(int);
+#include <stdlib.h>
 
 struct vert_st {
   int mindist;
 };
 
 struct graph_st {
-  struct vert_st *__attribute__((array)) vlist;
+  struct vert_st * ARRAY vlist;
 };
 
 typedef struct graph_st *Graph;

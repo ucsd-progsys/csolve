@@ -1,4 +1,6 @@
-int main(int n){
+#include <liquidc.h>
+
+int main(int REF(V > 10) n) CHECK_TYPE {
   int i, z; 
   //n = nondet();
   assert(10 < n);

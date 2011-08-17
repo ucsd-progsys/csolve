@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 void main(){
   int * __attribute__ ((unchecked)) t;

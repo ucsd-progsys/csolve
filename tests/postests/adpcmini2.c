@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 /* TODO:
  * bufferstep toggle

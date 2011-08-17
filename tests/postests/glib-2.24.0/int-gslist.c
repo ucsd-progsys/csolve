@@ -1,9 +1,8 @@
 // Instantiated with int:
 
-extern void *malloc(int);
-extern void free(void *);
+#include <stdlib.h>
+#include <liquidc.h>
 
-#define NULL                    0
 #define _g_slist_alloc0()       malloc(sizeof (GSList))
 #define _g_slist_alloc()        malloc(sizeof (GSList))
 #define _g_slist_free1(slist)   free(slist)
@@ -19,9 +18,9 @@ struct _GSList
 
 typedef int gint;
 
-static GSList*
-g_slist_insert_sorted_real (GSList   *list,
-			    int       data)
+static GSList * LOC(L)
+g_slist_insert_sorted_real (GSList * LOC(L) list,
+			    int             data)
 {
   GSList *tmp_list = list;
   GSList *prev_list = NULL;
@@ -84,16 +83,16 @@ g_slist_insert_sorted_real (GSList   *list,
     }
 }
 
-GSList*
-g_slist_insert_sorted (GSList       *list,
-                       int          data)
+GSList * LOC(L)
+g_slist_insert_sorted (GSList * LOC(L) list,
+                       int             data)
 {
   return g_slist_insert_sorted_real (list, data);
 }
 
-GSList*
-g_slist_remove (GSList        *list,
-		int            data)
+GSList * LOC(L)
+g_slist_remove (GSList * LOC(L) list,
+		int             data)
 {
   GSList *tmp, *prev = NULL;
 
@@ -122,9 +121,9 @@ g_slist_remove (GSList        *list,
   return list;
 }
 
-GSList*
-g_slist_remove_all (GSList        *list,
-		    int            data)
+GSList * LOC(L)
+g_slist_remove_all (GSList * LOC(L) list,
+		    int             data)
 {
   GSList *tmp, *prev = NULL;
 
@@ -153,9 +152,9 @@ g_slist_remove_all (GSList        *list,
   return list;
 }
 
-GSList*
-g_slist_remove_link (GSList *list,
-	             GSList *link)
+GSList * LOC(L)
+g_slist_remove_link (GSList * LOC(L) list,
+	             GSList * LOC(L) link)
 {
   GSList *tmp;
   GSList *prev;
@@ -183,9 +182,9 @@ g_slist_remove_link (GSList *list,
   return list;
 }
 
-GSList*
-g_slist_nth (GSList *list,
-	     int     n)
+GSList * LOC(L)
+g_slist_nth (GSList * LOC(L) list,
+	     int             n)
 {
   while (n-- > 0 && list)
     list = list->next;

@@ -1,8 +1,8 @@
 //! run with --manual
 
-extern char *malloc(int);
+#include <stdlib.h>
 
-void test (int * __attribute__ ((array)) p) {
+void test (int * ARRAY p) {
     *p = 10;
 }
 

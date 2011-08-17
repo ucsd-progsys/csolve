@@ -1,4 +1,5 @@
-extern char* malloc(int);
+#include <stdlib.h>
+
 int adpcm_coder()
 {
   int len;

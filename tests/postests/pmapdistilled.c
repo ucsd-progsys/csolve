@@ -1,23 +1,22 @@
-extern char *malloc(int);
-extern void free(char *);
+#include <stdlib.h>
+#include <liquidc.h>
+
+extern void dummyassert (int) OKEXTERN;
 
 typedef struct env {
     int env_mypp;
     struct env *env_prev;
     struct env *env_next;
-    int env_pgdir[2000];
+    int (SHAPE_IGNORE_BOUND env_pgdir)[2000];
 } env_t;
 
-
-typedef int *__attribute__((array)) int_array;
+typedef int * ARRAY int_array;
 
 /* Globals, now parameters passed around...
 int pages[1000];
 int page_protected[1000];
 env_t *envs = 0;
 */
-
-
 
 int page_getfree(int pages[])
 {
@@ -60,7 +59,7 @@ void page_decref(int ppno, int pages[], int page_protected[])
     pages[ppno]--;
 }
 
-void env_check(env_t *env, env_t **envs, int pages[], int page_protected[])
+void env_check(env_t * LOC(L) env, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int i, found;
     env_t *walk;
@@ -126,7 +125,7 @@ void mem_check(env_t **envs, int pages[], int page_protected[])
     }
 }
 
-env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
+env_t * LOC(L) env_alloc(env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     env_t *env;
     env_t *tmp;
@@ -167,7 +166,7 @@ env_t *env_alloc(env_t **envs, int pages[], int page_protected[])
     return env;
 }
 
-void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
+void env_free(env_t * LOC(L) env, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int i;
     int ppi = 0;
@@ -204,7 +203,7 @@ void env_free(env_t *env, env_t **envs, int pages[], int page_protected[])
     mem_check(envs, pages, page_protected);
 }
 
-int page_alloc(env_t *env, int vp, env_t **envs, int pages[], int page_protected[])
+int page_alloc(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int pp;
     int tmp; // RECHECK ISSUE
@@ -230,7 +229,7 @@ int page_alloc(env_t *env, int vp, env_t **envs, int pages[], int page_protected
     return 0;
 }
 
-void page_unmap(env_t *env, int vp, env_t **envs, int pages[], int page_protected[])
+void page_unmap(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int tmp; // RECHECK ISSUE
 
@@ -243,7 +242,8 @@ void page_unmap(env_t *env, int vp, env_t **envs, int pages[], int page_protecte
     mem_check(envs, pages, page_protected);
 }
 
-int page_map(env_t *srcenv, int srcvp, env_t *dstenv, int dstvp, env_t **envs, int pages[], int page_protected[])
+int page_map(env_t * LOC(L) srcenv, int NONNEG srcvp, env_t * LOC(L) dstenv, int NONNEG dstvp,
+             env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int tmp, tmp2; // RECHECK ISSUE
 
@@ -313,7 +313,7 @@ void main(/* env_t *envs, int pages[], int page_protected[] */)
     env_t *e2 = env_alloc(envs, pages, page_protected);
 
     p = 0;
-    vp = 0; 
+    vp = 0;
     // Not having this line causes an unknown name error on some vp2 phi node!!!
     vp2 = 0;
     while (nondet()) {

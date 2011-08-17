@@ -49,16 +49,18 @@ val getAttr            : string -> Cil.attributes -> Cil.attribute
 val getStringAttrs     : string -> Cil.attributes -> string list
 val setStringAttr      : string -> string -> Cil.attributes -> Cil.attributes
 
-val arrayAttribute       : string
-val finalAttribute       : string
-val slocAttribute        : string
-val globalAttribute      : string
-val instantiateAttribute : string
-val predAttribute        : string
-val externOkAttribute    : string
-val checkTypeAttribute   : string
-val layoutAttribute      : string
-val ignoreBoundAttribute : string
+val arrayAttribute          : string
+val finalAttribute          : string
+val slocAttribute           : string
+val globalAttribute         : string
+val instantiateAttribute    : string
+val predAttribute           : string
+val roomForAttribute        : string
+val nonnullRoomForAttribute : string
+val externOkAttribute       : string
+val checkTypeAttribute      : string
+val layoutAttribute         : string
+val ignoreBoundAttribute    : string
 
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool

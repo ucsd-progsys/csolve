@@ -1,8 +1,9 @@
-extern void *malloc (int);
+#include <liquidc.h>
+#include <stdlib.h>
 
-int *x;
+int * LOC(L) x;
 
-void foo (int **y) {
+void foo (int * LOC(L) *y) GLOBAL(L) {
     *y = x;
 }
 

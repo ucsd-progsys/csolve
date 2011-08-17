@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void test (const char *__attribute__((array)) src)
 {
   char c;

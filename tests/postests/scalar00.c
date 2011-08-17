@@ -1,10 +1,10 @@
-extern char* malloc(int);
+#include <liquidc.h>
 
 int bar(int y){
   return 0;
 }
 
-int *foo(int *x, int *__attribute__((array)) y){
+int * LOC(L) foo(int * LOC(L) x, int *__attribute__((array)) y){
   return x;
 }
 

@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int hashfunc(unsigned int HashRange, unsigned int key ) 
 { 
   return ((int )((key >> 4) % (unsigned int )HashRange));

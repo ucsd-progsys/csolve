@@ -1,5 +1,5 @@
-extern char *malloc(int);
-
+#include <stdlib.h>
+#include <liquidc.h>
 
 int *__attribute__((array)) main(){
   int size;

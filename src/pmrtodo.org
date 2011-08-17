@@ -52,25 +52,52 @@
 
 * DONE Include liquidc/src/include (or really include32) as default include dir
 
+* DONE Check all negtests fail for the right reasons
+  Maybe add error codes for failures in shape analysis vs. subtyping.
+  Right now things are failing because they have bad specs, but that
+  makes negtests trivial.
 
-* TODO Arrays at ends of structs get right indices?
+* DONE Global locs are closed
+  Check that we chase all explicitly-marked global locations to
+  quantify over all the things that may be reached by a global
+  location.
+
+* TODO Drop add_field_fold_overlap
+
+* TODO Why did MST work?
+  HashLookup is bogus without checking that the size of the hash is
+  positive.
+
+* TODO Error messages for unified locations are atrocious
+  They don't give you any clue about what happened at all.
+
+* TODO Fix fresh location default
+  Seems it makes more sense to alias same-named structures by default;
+  often we take a value like a list and return part of it, for
+  example, or chop out part of a string.
+
+  Perhaps allow a flag to choose on the function?
 
 * TODO Better error message when can't parse predicate
   Right now it just seems to dump an empty spec
 
-* TODO Better error messages overall
-
 * TODO Deferred checks
   See also indices above
 
-* TODO Change add_and_fold_overlap to add_field_fold_overlap
-
+  Are the subindex checks at calls enabled right now?
 
 * TODO Change assert to lcc_assert
 
 * TODO Figure out how to make assert, validptr compileable
 
 * TODO Write docs for spec language
+
+* TODO Show specs for externs without OKEXTERN
+
+* TODO Delete all spec files
+
+* TODO Notify when unifying global locations
+  This is tricky. We only want to notify about the global locations.
 
 * Soon
 
@@ -139,6 +166,14 @@
    correctly unless we can express containing a NULL character within
    the bounds of the string.
 
+** TODO Relating argc to argv
+   argv only contains argc-many non-NULL pointers. This looks like yet
+   another use for contextual types:
+
+   : LOC(argv) :: r: 0[4]: {v: ref (...) | r - BLOCK_BEGIN([v]) < 4 * argc => r != NULL}
+
+   Note that this affects mst-scratch, ks, and probably some other large benchmarks.
+
 ** realloc, free
    In general, we don't know that a pointer's bounds stay valid
    through the lifetime of the memory region.  We treat free() as a
@@ -170,6 +205,15 @@
    unverified external functions). See later section on stuff to do
    before release.
 
+** Proper spec for strtok?
+   If we have the sequence of calls
+
+   : strtok (line, "\n");
+   : strtok (0, "\n");
+
+   then the second call returns a pointer into line. So strtok is not
+   really quantified over all locations. A proper spec would make the
+   sharing between locations explicit.
 
 * Plausible benchmarks
 

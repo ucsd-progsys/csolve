@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int two () {
     return 2;
 }

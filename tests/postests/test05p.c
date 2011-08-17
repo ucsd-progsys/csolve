@@ -1,5 +1,6 @@
-extern char* malloc(int);
-extern int **make_ptr();
+#include <stdlib.h>
+
+extern int * LOC(K) * LOC(!L) START NONNULL SIZE(4) make_ptr() OKEXTERN;
 
 void set_ptr(int **p, int v){
   int *x;

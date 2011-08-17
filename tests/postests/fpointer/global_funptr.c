@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int (*f) ();
 
 int one () {

@@ -1,4 +1,6 @@
-extern char *malloc(int);
+#include <stdlib.h>
+
+// This doesn't seem to care about array attributes
 
 struct node_t {
     struct node_t * __attribute__ ((array)) *__attribute__((array)) to_nodes ;

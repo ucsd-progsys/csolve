@@ -1,6 +1,7 @@
-extern char *malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
-char * __attribute__ ((array)) make_string(int n) {
+char * ARRAY make_string(int n) {
     if (n <= 0)
         return 0;
 
@@ -17,7 +18,7 @@ char * __attribute__ ((array)) make_string(int n) {
 
 typedef struct {
     int  len;
-    char * __attribute__ ((array)) str;
+    char * ARRAY LOC(L) str;
 } string;
 
 void init_string(string *s, char c) {
@@ -51,8 +52,8 @@ string *new_string(int n, char c) {
 }
 
 typedef struct _slist {
-    struct _slist *next;
-    string        *s;
+    struct _slist  * next;
+    string INST(L, CL) * LOC(SL) s;
 } slist;
 
 slist *new_strings(int n) {
@@ -75,7 +76,8 @@ slist *new_strings(int n) {
     return sl;
 }
 
-string *string_succ(string **s) {
+
+string INST(L, C) * LOC(L) string_succ(slist INST(SL, L) INST(CL, C) * REF(V = (BLOCK_BEGIN([V]) + 4)) s) {
     slist *sl;
 
     if (s == (slist *) 0)

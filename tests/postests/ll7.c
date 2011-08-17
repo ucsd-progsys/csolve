@@ -1,6 +1,7 @@
 //! run with --notruekvars
 
-extern char* malloc(int);
+#include <liquidc.h>
+#include <stdlib.h>
 
 typedef struct node {
   int *data;

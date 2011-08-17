@@ -1,6 +1,6 @@
 //! run with --manual
 
-extern char *malloc(int);
+#include <stdlib.h>
 
 struct vert_st {
   int mindist;

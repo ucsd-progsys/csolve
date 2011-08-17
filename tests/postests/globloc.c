@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int p[] = { 0, 1, 2 };
 int *a;
 

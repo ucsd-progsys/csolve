@@ -1,4 +1,5 @@
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 struct foo {
   int data;

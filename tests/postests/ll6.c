@@ -1,6 +1,6 @@
 //! run with --manual
 
-extern char* malloc(int);
+#include <stdlib.h>
 
 typedef struct node {
   int data;

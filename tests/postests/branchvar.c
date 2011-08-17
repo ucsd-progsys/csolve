@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void main () {
     int s;
     switch (nondet()) {

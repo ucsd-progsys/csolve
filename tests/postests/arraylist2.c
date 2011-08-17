@@ -1,11 +1,12 @@
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 struct foo {
   int data;
-  struct foo *__attribute__((array)) next;
+  struct foo * ARRAY next;
 };
 
-struct foo *__attribute__((array)) main(){
+struct foo * ARRAY main(){
   struct foo *a;
   struct foo *vt;
   struct foo *b;

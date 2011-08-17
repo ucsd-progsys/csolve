@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 void test (int **p) {
     int *q = (int *) malloc (sizeof (int));

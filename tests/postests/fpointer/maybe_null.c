@@ -1,4 +1,4 @@
-extern int nondet ();
+#include <liquidc.h>
 
 void doNothin () { }
 

@@ -1,6 +1,7 @@
 /* MAIN PROGRAM FOR ENCODING. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "model.h"
 #include <liquidc.h>
 

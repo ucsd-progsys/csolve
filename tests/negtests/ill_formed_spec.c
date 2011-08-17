@@ -1,11 +1,11 @@
 // Catch an ill-formed spec where a quantified and global
 // location are aliased.
 
-extern int nondet ();
+#include <liquidc.h>
 
-int *x;
+int * x;
 
-void foo (int *y) {
+void foo (int * y) {
     int *z = nondet () ? x : y;
 }
 

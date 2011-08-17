@@ -19,6 +19,7 @@ module RLD = Ctypes.RefCTypes.LDesc
 module RS  = Ctypes.RefCTypes.Store
 module RCf = Ctypes.RefCTypes.CFun
 module RSp = Ctypes.RefCTypes.Spec
+module RU  = RS.Unify
 
 open M.Ops
 
@@ -79,13 +80,22 @@ let slocOfAttrs ats =
 let finalityOfAttrs ats =
   if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
 
-let predOfAttrs ats =
-      ats
-  |>  CM.getStringAttrs CM.predAttribute
-  |>: (Lexing.from_string <+> RefParse.pred RefLex.token)
-  |>  A.pAnd
-
 let vv = A.Symbol.of_string "V"
+
+let roomForPredsOfAttrs ats =
+      ats
+  |>  List.filter (function C.Attr (an, _) -> an = CM.roomForAttribute || an = CM.nonnullRoomForAttribute)
+  |>: function
+      | C.Attr (an, [C.ASizeOf t]) ->
+        let evv = A.eVar vv in
+        let p   = A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv), A.Ge, A.eInt (CM.bytesSizeOf t)) in
+          if an = CM.roomForAttribute then p else A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), p)
+      | _ -> assert false
+
+let predOfAttrs ats =
+  let rawPreds = ats |>  CM.getStringAttrs CM.predAttribute |>: (Lexing.from_string <+> RefParse.pred RefLex.token) in
+  let sizePreds = roomForPredsOfAttrs ats in
+    A.pAnd (rawPreds ++ sizePreds)
 
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
@@ -95,11 +105,11 @@ let ptrIndexOfPredAttrs tb pred ats =
 
 let ptrReftypeOfAttrs tb ats =
   let pred = predOfAttrs ats in
-    FI.t_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
+    FI.t_spec_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
 
 let intReftypeOfAttrs width ats =
   let pred = predOfAttrs ats in
-    FI.t_pred
+    FI.t_spec_pred
       (Ct.Int (width, SC.data_index_of_pred vv pred))
       vv
       pred
@@ -176,29 +186,15 @@ let refctypeOfCilType mem t = match C.unrollType t with
       | Some n when SM.mem n mem -> begin
              ats
           |> ptrReftypeOfAttrs t
-          |> function (Ct.Ref (s, _) as t) -> FI.t_subs_locs [s, SM.find n mem] t
+          |> function (Ct.Ref (s, _) as t) -> RCt.subs [s, SM.find n mem] t
         end
       | _ -> ptrReftypeOfAttrs t ats
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
-let addReffieldToStore sto loc s i rfld =
-  if rfld |> RFl.type_of |> RCt.width = 0 then RS.Data.ensure_sloc sto s else
-       rfld
-    |> RS.Data.add_field_fold_overlap sto loc begin fun _ sto fld1 fld2 ->
-         if fld1 = fld2 then ((), sto) else
-           E.s <| C.errorLoc loc "Conflicting fields for store location %a, index %a: %a, %a"
-               S.d_sloc s Ct.Index.d_index i RFl.d_field fld1 RFl.d_field fld2
-       end () s i
-    |> snd
-
-let addRefcfunToStore sto loc s rcf =
-  if RS.Function.mem sto s then
-    let storcf = RS.Function.find sto s in
-      if RCf.same_shape rcf storcf then sto else
-        E.s <| C.errorLoc loc "Conflicting function types for location %a:@!%a@!%a"
-                 S.d_sloc s RCf.d_cfun storcf RCf.d_cfun rcf
-  else RS.Function.add sto s rcf
+let addReffieldToStore sub sto loc s i rfld =
+  if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
+    rfld |> RU.add_field sto sub loc s i |> M.swap
 
 class structInstantiator (ats) = object (self)
   inherit C.nopCilVisitor
@@ -260,8 +256,8 @@ let annotatedPointerBaseType loc ats tb = match C.filterAttributes CM.layoutAttr
   | [C.Attr (_, [C.ASizeOf t])] -> t
   | ats                         -> E.s <| C.errorLoc loc "Bad layout on pointer: %a@!" C.d_attrlist ats
 
-let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
-  | C.TPtr (tb, _) when alreadyClosedType mem tb -> sto
+let rec closeTypeInStoreAux loc mem sub sto t = match C.unrollType t with
+  | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs ats in
     let tb     = annotatedPointerBaseType loc ats tb in
@@ -269,23 +265,23 @@ let rec closeTypeInStoreAux loc mem sto t = match C.unrollType t with
     let tcs    = tb |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfPointerContents t) in
     let fldsub = List.map (fun (fn, i, _) -> (FA.name_of_string fn, FI.name_of_sloc_index s i)) tcs in
       List.fold_left
-        begin fun sto (fn, i, t) ->
-          let sto = closeTypeInStoreAux loc mem sto t in
-            if C.isFunctionType t then t |> preRefcfunOfType |> addRefcfunToStore sto loc s else
+        begin fun (sub, sto) (fn, i, t) ->
+          let sub, sto = closeTypeInStoreAux loc mem sub sto t in
+            if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub loc s |> M.swap else
                  t
               >> assertStoreTypeWellFormed
               |> refctypeOfCilType mem
               |> FI.t_subs_names fldsub
               |> RFl.create (t |> C.typeAttrs |> finalityOfAttrs) {Ct.fname = Some fn; Ct.ftype = None} (* Some t, but doesn't parse *)
-              |> addReffieldToStore sto loc s i
-        end sto tcs
-  | _ -> sto
+              |> addReffieldToStore sub sto loc s i
+        end (sub, sto) tcs
+  | _ -> (sub, sto)
 
-and closeTypeInStore loc sto t =
-  closeTypeInStoreAux loc SM.empty sto t
+and closeTypeInStore loc sub sto t =
+  closeTypeInStoreAux loc SM.empty sub sto t
 
 and preRefstoreOfTypes ts =
-  List.fold_left (closeTypeInStore C.locUnknown) RS.empty ts
+  List.fold_left (M.uncurry <| closeTypeInStore C.locUnknown) (S.Subst.empty, RS.empty) ts
 
 (* Converts function variable v to a refcfun, but the store includes
    contents for global locations. This is fixed by
@@ -294,34 +290,38 @@ and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
   let ret                = ensureSlocAttrs ret in
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
-  let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc in
-  let allOutStore        = ret :: List.map snd argts |> preRefstoreOfTypes in
-  let argrcts            = List.map (M.app_snd <| refctypeOfCilType SM.empty) argts in
-  let retrct             = refctypeOfCilType SM.empty ret in
+  let sub, allOutStore   = ret :: List.map snd argts |> preRefstoreOfTypes in
+  let argrcts            = argts |>: (M.app_snd <| (refctypeOfCilType SM.empty <+> RCt.subs sub)) in
+  let retrct             = ret |> refctypeOfCilType SM.empty |> RCt.subs sub in
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
+  let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
     RCf.make argrcts glocs allInStore retrct allOutStore
 
-let updateGlobalStore gsto gstoUpd =
-     gsto
-  |> List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd)
+let updateGlobalStore sub gsto gstoUpd =
+     (sub, List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd) gsto)
   |> M.flip (RS.Data.fold_fields
-               (fun sto s i f -> addReffieldToStore sto C.locUnknown s i f))
+               (fun (sub, sto) s i f -> addReffieldToStore sub sto C.locUnknown s i f))
       gstoUpd
+  |> M.swap
   |> M.flip (RS.Function.fold_locs
-               (fun s rcf sto -> addRefcfunToStore sto C.locUnknown s rcf))
+               (fun s rcf (sto, sub) -> RU.add_fun sto sub C.locUnknown s rcf))
       gstoUpd
 
-let rec refcfunOfPreRefcfun gsto prcf =
-  let gsto, aostof = refstoreOfPreRefstore gsto prcf.Ct.sto_out in
-  let gstof, ostof = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
-  let istof, _     = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
-    ({prcf with Ct.sto_in = istof; Ct.sto_out = ostof}, updateGlobalStore gsto gstof)
+let rec refcfunOfPreRefcfun sub gsto prcf =
+  let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
+  let gstof, ostof      = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
+  let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
+  let gsto, sub         = updateGlobalStore sub gsto gstof in
+  let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
+    (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof} sub, gsto, sub)
 
-and refstoreOfPreRefstore gsto sto =
-  RS.Function.fold_locs begin fun s prcf (gsto, sto) ->
-    let rcf, gsto = refcfunOfPreRefcfun gsto prcf in
-      (gsto, addRefcfunToStore sto C.locUnknown s rcf)
-  end (gsto, RS.data sto) sto
+and refstoreOfPreRefstore sub gsto sto =
+     sto
+  |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) ->
+       let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in
+         (gsto, RU.add_fun sto sub C.locUnknown s rcf)
+     end (gsto, (RS.data sto, S.Subst.empty))
+  |> fun (gsto, (sto, sub)) -> (gsto, sto, sub)
 
 (******************************************************************************)
 (******************************* Gathering Specs ******************************)
@@ -341,33 +341,36 @@ let declarationsOfFile file =
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
-let globalSpecOfFuns funspec gsto funs =
+let shouldCheckVarType v =
+  C.hasAttribute CM.checkTypeAttribute v.C.vattr
+
+let globalSpecOfFuns sub funspec gsto funs =
      funs
-  |> List.fold_left begin fun (funm, gsto) v ->
+  |> List.fold_left begin fun (funm, gsto, sub) v ->
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (SM.mem fn funspec || isBuiltin fn) then
-         let rcf, gsto = ty |> preRefcfunOfType |> refcfunOfPreRefcfun gsto in
-           (M.sm_protected_add false fn (rcf, C.hasAttribute CM.checkTypeAttribute v.C.vattr) funm, gsto)
-       else (funm, gsto)
-     end (SM.empty, gsto)
-  |> M.app_fst SM.to_list
+         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
+           (M.sm_protected_add false fn (rcf, shouldCheckVarType v) funm, gsto, sub)
+       else (funm, gsto, sub)
+     end (SM.empty, gsto, sub)
+  |> M.app_fst3 SM.to_list
 
-let updVarM spec varm v =
+let updVarM sub spec varm v =
   if not (SM.mem v.C.vname spec || C.isFunctionType v.C.vtype) then begin
     assertGlobalVarTypeWellFormed v;
-    M.sm_protected_add false v.C.vname (refctypeOfCilType SM.empty v.C.vtype) varm
+    M.sm_protected_add false v.C.vname (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, shouldCheckVarType v) varm
   end else
     varm
 
-let varSpecOfVars varspec vars =
+let varSpecOfVars sub varspec vars =
      vars
-  |> List.fold_left (fun varm v -> updVarM varspec varm v) SM.empty
+  |> List.fold_left (fun varm v -> updVarM sub varspec varm v) SM.empty
   |> SM.to_list
 
 (* in the end, there should only ever be one file, so maybe we should specialize to that *)
 let specsOfFile spec file =
-  let funs, vars   = declarationsOfFile file in
-  let pgsto        = vars |>: (fun {C.vtype = t} -> t) |> preRefstoreOfTypes in
-  let gsto         = pgsto |> refstoreOfPreRefstore pgsto |> fst in
-  let fspecs, gsto = globalSpecOfFuns (RSp.funspec spec) gsto funs in
-    (fspecs, varSpecOfVars (RSp.varspec spec) vars, gsto)
+  let funs, vars        = declarationsOfFile file in
+  let sub, pgsto        = vars |>: (fun {C.vtype = t} -> t) |> preRefstoreOfTypes in
+  let gsto, _, sub      = pgsto |> refstoreOfPreRefstore sub pgsto in
+  let fspecs, gsto, sub = globalSpecOfFuns sub (RSp.funspec spec) gsto funs in
+    (fspecs, varSpecOfVars sub (RSp.varspec spec) vars, gsto)

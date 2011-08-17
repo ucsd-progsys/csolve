@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void t (int *x) {
     /* assert (0); */
     *x = 3;

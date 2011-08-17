@@ -80,6 +80,7 @@ val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
+val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype

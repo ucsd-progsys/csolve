@@ -1,4 +1,5 @@
-extern void *malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 void f (int *y) {
     int x = *y;

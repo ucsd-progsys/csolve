@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 typedef struct {
     int a;
 } first;

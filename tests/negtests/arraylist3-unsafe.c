@@ -1,8 +1,8 @@
 //This is actually safe but requires "range-predicates" like reasoning
 //beyond our current system
 
-
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 struct foo {
   int data;

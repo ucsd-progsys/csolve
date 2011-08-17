@@ -1,3 +1,4 @@
+#include <stdlib.h>
 
 void main(){
   int i;

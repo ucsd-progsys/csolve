@@ -1,10 +1,10 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 typedef struct _node {
     struct _node *next;
 } node;
 
-void insert (node **hd, node *v) {
+void insert (node * LOC(L) * LOC(L) hd, node * LOC(L) v) {
     node **_e_;
 
     /* assert (0); */

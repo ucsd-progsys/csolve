@@ -98,9 +98,21 @@ let sort_of_prectype = function
   | Ct.Ref (l,_) -> FA.so_ref l
   | _            -> FA.so_int
 
+let spec_sort_of_prectype = function
+  | Ct.Ref _ -> FA.so_ref Sloc.none
+  | _        -> FA.so_int
+
 let refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
+
+let refctype_of_reft_ctype r = function
+  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
+  | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
+
+let spec_refctype_of_reft_ctype r = function
+  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
+  | Ct.Ref (l,o) -> Ct.Ref (l, (o, r))
 
 let replace_reft r = function
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
@@ -233,14 +245,18 @@ let t_true_refctype = t_conv_refctype ra_true
 let t_zero_refctype = t_conv_refctype ra_zero
 
 
-(* convert {v : ct | p } into refctype *)
-let t_pred ct v p = 
-  let so = sort_of_prectype ct in
+let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
+  let so = sort_of_ct ct in
   let vv = Sy.value_variable so in
   let p  = P.subst p v (A.eVar vv) in
   let r  = C.make_reft vv so [C.Conc p] in
-  refctype_of_reft_ctype r ct
+  reft_ct_to_refctype r ct
 
+(* convert {v : ct | p } into refctype *)
+let t_pred ct v p = t_pred_aux sort_of_prectype refctype_of_reft_ctype ct v p
+
+(* convert {v : ct | p } into refctype; ignores underyling pointer sort *)
+let t_spec_pred ct v p = t_pred_aux spec_sort_of_prectype spec_refctype_of_reft_ctype ct v p
 
 let t_size_ptr ct size =
   let so  = sort_of_prectype ct in

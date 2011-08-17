@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int main () {
     int cmp;
     int a = nondet ();
