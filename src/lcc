@@ -102,6 +102,7 @@ sub setDefaultArguments {
     push @{$self->{INCLUDEDIR}}, "$FindBin::RealBin/../external/include32/";
     push @{$self->{INCLUDEDIR}}, "$FindBin::RealBin/../lib/";
     push @{$self->{CCARGS}},     "-nostdinc";
+    push @{$self->{CCARGS}},     "-Wno-attributes";
     push @{$self->{PPARGS}},     "-nostdinc";
     push @{$self->{LINKARGS}},   "-L$FindBin::RealBin/../lib/";
     push @{$self->{LINKARGS}},   "-lliquidc";
