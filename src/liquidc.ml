@@ -159,7 +159,7 @@ let add_spec fn spec_src =
     | Some x -> Sp.add spec_src x
     | _      -> spec_src
 
-let generate_spec_fancy file fn spec =  
+let generate_spec file fn spec =  
   let oc = open_out (fn^".autospec") in
         file
      >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
@@ -196,42 +196,11 @@ let generate_spec_fancy file fn spec =
           end funspec;
           }}} *)
  
-let generate_spec file fn spec =  
-  let oc = open_out (fn^".autospec") in
-        file
-     >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-     >> Genspec.dump_pragmas
-     |> Genspec.specs_of_file spec
-     >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-     |> begin fun (funspec, varspec, storespec) ->
-          let funspec = Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
-          let varspec = Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
-          Ctypes.I.Store.Data.fold_locs begin fun l ld _ ->
-            Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore
-          end () storespec;
-          Ctypes.I.Store.Function.fold_locs begin fun l cf _ ->
-            Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.I.CFun.d_cfun cf |> ignore
-          end () storespec;
-          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
-          List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s ::@!  @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
-          close_out oc
-        end
-
 let spec_of_file outprefix file =
-  if true then
-    Sp.empty
-    >> generate_spec_fancy file outprefix
-    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
-    >> Genspec.assert_spec_complete file
-  else
-    Sp.empty
-    |> add_spec (Co.get_lib_spec ())                                            (* Add default specs  *)
-    |> List.fold_right add_spec (spec_includes file)                            (* Add external specs *)
-    |> add_spec (outprefix^".spec")                                             (* Add manual specs   *)
-    >> generate_spec file outprefix 
-    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
-    >> Genspec.assert_spec_complete file
-
+     Sp.empty
+  >> generate_spec file outprefix
+  |> add_spec (outprefix^".autospec")
+  >> Genspec.assert_spec_complete file
 
 let decs_of_file cil = 
   let reachf = CM.reachable cil in
