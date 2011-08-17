@@ -1,6 +1,7 @@
 /* MAIN PROGRAM FOR DECODING. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "model.h"
 
 main()
