@@ -68,6 +68,7 @@
 * DONE Better error message when can't parse predicate
   Right now it just seems to dump an empty spec
 
+* TODO Make FINAL apply to whole structures
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 

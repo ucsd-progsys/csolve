@@ -4,10 +4,10 @@
 // Basic macros
 
 // Need to break this into two levels to ensure predicate p is macro expanded
-#define REF(p)       SREF(p)
-#define SREF(p)      __attribute__ ((lcc_predicate (#p)))
+#define REF(p)             SREF(p)
+#define SREF(p)            __attribute__ ((lcc_predicate (#p)))
 
-#define NNREF(p)     REF((V != 0) => (p))
+#define NNREF(p)           REF((V != 0) => (p))
 
 #define ARRAY              __attribute__ ((array))
 #define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))

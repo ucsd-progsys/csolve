@@ -159,11 +159,13 @@ let add_spec fn spec_src =
     | Some x -> Sp.add spec_src x
     | _      -> spec_src
 
+let opOfUsetype ut =
+  if ut then "<:" else "::"
+
 let generate_spec file fn spec =  
   let oc = open_out (fn^".autospec") in
         file
      >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-     (* >> Genspec.dump_pragmas *)
      |> Typespec.specsOfFile spec
      >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
      |> begin fun (funspec, varspec, storespec) ->
@@ -173,9 +175,9 @@ let generate_spec file fn spec =
           Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
             Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
           end () storespec;
-          List.iter (fun (vn, (ct, useType)) -> Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (if useType then "<:" else "::") Ctypes.RefCTypes.CType.d_ctype ct |> ignore) varspec;
+          List.iter (fun (vn, (ct, useType)) -> Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfUsetype useType) Ctypes.RefCTypes.CType.d_ctype ct |> ignore) varspec;
           List.iter begin fun (fn, (cf, useType)) ->
-            Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (if useType then "<:" else "::") Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+            Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfUsetype useType) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
           end funspec;
           (* let fspec = funspec |> Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) |> SM.of_list in *)
           (* let vspec = varspec |> Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) |>: (Misc.app_snd (fun x -> (x, true))) |> SM.of_list in *)

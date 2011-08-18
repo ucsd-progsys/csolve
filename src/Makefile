@@ -21,6 +21,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(Z3HOME)/ocaml \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g \
+       -cflags "-w a" \
 			 -cflags -thread
 
 BIN=liquidc.native

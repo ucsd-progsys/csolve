@@ -1,8 +1,6 @@
 CSolve
 ======
 
-
-
 Prerequisites
 -------------
 
@@ -220,35 +218,238 @@ map <C-p>  :python parseLiquidType()<CR>
 6. Hit Ctrl-t (tag-style) to pop back from a definition.
 
 
-Specification Files
-===================
+Function and Value Specifications
+=================================
 
-See src/lib.spec for an example of how to write specifications for missing
-(library) functions, or even for functions you would like to constrain
-beyond just the use of asserts and memory safety.
+(TODO: This section is necessarily incomplete because a full
+       explanation of what's going on is pretty long.)
 
-* Write the specifications for functions/globals in 
+TODO: discuss pointer offsets
 
-        foo.c
-        
-  in the file 
-  
-        foo.c.spec
-        
+CSolve uses specifications for functions and values to determine
 
-* To include extra specifications e.g. for external functions, add the 
-  pragma
+1. the layout of both the global heap and the heap within each
+   function contained in the program,
+2. what invariants the programmer wishes to enforce about functions
+   and values contained in the program, and
+3. what invariants are true of external functions and variables,
+   i.e., those declared with the "extern" qualifier, as well as
+   the heap layout of external functions and the global heap
+   segment reachable from an external global variable.
 
-        #pragma lcc (include, "../tests.spec")
+In the absence of external function and variable declarations, CSolve
+attempts to guess reasonable specifications for the layout of the
+global and function-specific heaps and infers function invariants,
+covering cases 1 and 2 above. In the event that the heap layout
+guesses are unsatisfactory, additional invariants need to be stated,
+or there are external definitions, the programmer must provide CSolve
+with annotations override its guesses or state explicit invariants.
 
-  to the source file. See 
-  
-        tests/src/test00.c for 
+To use the explicit, specification mechanism, include liquidc.h in
+every file that contains specifications, like so:
 
-  for an example. You can write multiple pragmas to include multiple files.
-  CIL preserves the Pragmas so you can just add the pragmas to the relevant
-  source file and the merger process will ensure that all the right specs
-  are pulled in for a multi-file build.
+  #include <liquidc.h>
+
+Specifying Heap Layout
+----------------------
+
+In this section, we discuss annotations which affect *only* how CSolve
+determines the layout of a (global or function-specific) heap; some
+annotations in the next section on specifying invariants also affect
+how CSolve determines the layout of the heap.
+
+When determining the layout of a function-specific heap, CSolve
+assumes that all arguments and the return value, if they are
+pointers, occupying disjoint sections of the heap. For example,
+given the function prototype
+
+  int *swap (int *x, int *y)
+
+CSolve assumes that x, y, and the return value all occupy distinct
+heap locations, i.e., they can never be aliased. To indicate that x
+and y may alias, use the "LOC" annotation with a location name:
+
+  int *swap (int * LOC(L) x, int * LOC(L) y)
+
+By default, CSolve assumes that the location L is local to swap's
+heap.  To indicate that L is a global location, use the GLOBAL
+annotation on the function's signature:
+
+  int *swap (int * LOC(L) x, int * LOC(L) y) GLOBAL(L)
+
+Similarly, in structure declarations, CSolve assumes that each pointer
+within a structure points to a disjoint location in memory. For
+example, in
+
+  typedef struct {
+    int *x;
+    int *y;
+  } pair;
+
+the integers x and y are presumed to reside in disjoint regions of
+memory and may never alias. As is the case with function parameters,
+we can explicitly name the locations x and y point to to indicate
+potential aliasing:
+
+  typedef struct {
+    int * LOC(L) x;
+    int * LOC(L) y;
+  } pair;
+
+The location L is now a parameter of the struct definition. In
+the function prototype
+
+  int setx (pair *p, int *x)
+
+the location L in the defintion of pair will be instantiated to a
+fresh location, i.e., one distinct from all other locations.  We can
+instantiate L with a specific location to indicate potential aliasing,
+for example, between x and p->x and p->y:
+
+  int setx (pair INST(L, K) *p, int * LOC(K) x)
+
+Above, the locations of p->x and p->y, which are L inside the
+structure defintion, are instiated to location K, which is the
+location given to the contents of parameter x.
+
+By default, CSolve assumes that a pointer to a location points to a
+single element of the pointer's base type. For example, the function
+
+  int strlen (char *str)
+
+is assumed to take a pointer str to a single character. To indicate
+that str points to an array of characters, use the ARRAY annotation:
+
+  int strlen (char * ARRAY str)
+
+CSolve attempts to take explicitly-provided array bounds into account
+when determining the layout of a heap. In some cases this may be
+undesirable; for example, in the structure
+
+  typedef struct {
+    int  len;
+    char str[0];
+  } string;
+
+we do not want CSolve to assume that string really has a zero-length
+array at its end. In this case, we use the SHAPE_IGNORE_BOUND
+annotation:
+
+  typedef struct {
+    int  len;
+    char (SHAPE_IGNORE_BOUND str)[0];
+  } string;
+
+In some cases --- for example, with external function declarations ---
+we may need to indicate that a function does not modify the contents
+of a heap location. We do this with a FINAL annotation on the pointer
+base type or field in question. For example, the function
+
+  void readPointer (int FINAL *p)
+
+is annotated to indicate that it does not modify the data pointed to
+by P.
+
+In some cases, the declared base type of a pointer does not match
+the actual contents of memory at that location. For example, suppose
+we have the function
+
+  typedef struct _intlist intlist;
+
+  struct _intlist {
+    int     i;
+    intlist *next;
+  };
+
+  int *getNextInt (int *i) {
+    return (int *) ((intlist *) i)->next;
+  }
+
+While the declared type of i is int *, i's location actually contains
+an intlist structure. To indicate this fact to CSolve, use the LAYOUT
+annotation with the actual type of the store's contents at that
+location:
+
+  int *getNextInt (int * LAYOUT(intlist) i) {
+    return (int *) ((intlist *) i)->next;
+  }
+
+Specifying Invariants
+---------------------
+
+The annotation REF(p) is used to refine a type to values that satisfy
+both the base type and predicate p. For example, the declaration of a
+positive integer is written
+
+  int REF(V > 0) i;
+
+By default, refinement predicates in locally-defined function and
+global variable types are ignored; the types of these entities are
+inferred and no checking against the user-provided predicates is
+performed. To override this, attach the CHECK_TYPE attribute to
+the declaration.
+
+For example, consider the declaration
+
+  int REF(&& [V >= x; v >= 0]) abs (int x) CHECK_TYPE {
+    return x < 0 ? -x : x;
+  }
+
+CSolve will verify that this function takes an integer x and returns a
+nonnegative integer that is at least as large as x.
+
+CSolve will conjoin all refinements attached to a type, so that an
+alternate prototype for the above function is
+
+  int REF(V >= x) REF(v >= 0) abs (int x)
+
+The file lib/liquidc.h contains a number of convenient macros for
+defining refinement predicates as well as shorthands for refinements, e.g.,
+
+  #define NONNEG REF(V >= 0)
+
+The annotation ROOM_FOR(t) indicates that a pointer points to the
+start of a region which has enough space to fit an object of type t:
+
+  void fclose (FILE * ... ROOM_FOR(FILE) f)
+
+The annotation NNROOM_FOR(t) is the same as ROOM_FOR(t), but allows
+the pointer to optionally be NULL.
+
+External Declarations
+---------------------
+
+Note that the function declaration
+
+  extern int divide (int x, int y);
+
+is a valid specification to CSolve; it simply says that there exists a
+function, divide, which takes two integer parameters and returns an
+integer. However, CSolve cannot see the definition of divide and so
+cannot ensure that this liberal specification is enough to ensure the
+safety of all uses of divide and, indeed, if divide is defined in the
+obvious way then this specification is too liberal.
+
+This illustrates a common situation with library functions: they are
+declared extern, the trivial preconditions guessed by CSolve do not
+ensure that they are used safely, and yet their absence from the
+source code means that CSolve is unable to detect this inconsistency.
+Thus, we must somehow indicate that an extern function declaration
+corresponds to a valid specification for that function, i.e., that the
+programmer has somehow verified that type-conforming uses of the
+function are safe.  This is accomplished using the OKEXTERN attribute.
+
+Thus, a proper declaration for the divide function would be
+
+  extern int divide (int x, int REF(V != 0) y);
+
+The above discussion applies equally to extern variable declarations.
+
+Finding Examples
+----------------
+
+Useful example annotations can be found in lib/liquidc.h and
+external/include32/stdlib.h.
 
 
 Incremental Checking 
