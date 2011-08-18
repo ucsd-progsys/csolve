@@ -169,14 +169,18 @@ let assertSlocNotConcrete ats =
 let assertStoreTypeWellFormed t =
  t |> C.typeAttrs |> assertSlocNotConcrete
 
-let assertGlobalVarTypeWellFormed v =
-  v.C.vtype |> C.typeAttrs |> assertSlocNotConcrete
-
-let checkDeclarationWellFormed v =
-  if v.C.vstorage = C.Extern && not (C.hasAttribute CM.externOkAttribute v.C.vattr) then
-    E.s <| C.errorLoc v.C.vdecl
-        "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
-        v.C.vname
+let assertExternDeclarationsValid vs =
+     vs
+  |> List.filter begin fun v ->
+       v.C.vstorage = C.Extern && not (C.hasAttribute CM.externOkAttribute v.C.vattr)
+     end
+  >> List.iter begin fun v ->
+       ignore <| C.errorLoc
+         v.C.vdecl
+         "%s is declared extern. Make sure its spec is ok and add the OKEXTERN attribute."
+         v.C.vname
+     end
+  |> fun vs -> assert (vs = [])
 
 (******************************************************************************)
 (***************** Conversion from CIL Types to Refined Types *****************)
@@ -351,7 +355,6 @@ let declarationsOfFile file =
        | _                                    -> vars
      end
   |> VS.elements
-  >> List.iter checkDeclarationWellFormed
   |> List.partition (fun v -> C.isFunctionType v.C.vtype)
   |> M.app_snd (List.map (fun v -> {v with C.vtype = ensureSlocAttrs v.C.vtype}))
 
@@ -360,22 +363,21 @@ let isBuiltin = Misc.is_prefix "__builtin"
 let shouldCheckVarType v =
   C.hasAttribute CM.checkTypeAttribute v.C.vattr
 
-let globalSpecOfFuns sub funspec gsto funs =
+let globalSpecOfFuns sub gsto funs =
      funs
   |> List.fold_left begin fun (funm, gsto, sub) v ->
      let _      = C.currentLoc := v.C.vdecl in
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
-       if C.isFunctionType ty && not (SM.mem fn funspec || isBuiltin fn) then
+       if C.isFunctionType ty && not (isBuiltin fn) then
          let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
            (M.sm_protected_add false fn (rcf, shouldCheckVarType v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)
   |> M.app_fst3 SM.to_list
 
-let updVarM sub spec varm v =
-  if not (SM.mem v.C.vname spec || C.isFunctionType v.C.vtype) then begin
+let updVarM sub varm v =
+  if not <| C.isFunctionType v.C.vtype then begin
     let _ = C.currentLoc := v.C.vdecl in
-    let _ = assertGlobalVarTypeWellFormed v in
       M.sm_protected_add
         false
         v.C.vname
@@ -384,15 +386,40 @@ let updVarM sub spec varm v =
   end else
     varm
 
-let varSpecOfVars sub varspec vars =
+let varSpecOfVars sub vars =
      vars
-  |> List.fold_left (fun varm v -> updVarM sub varspec varm v) SM.empty
+  |> List.fold_left (fun varm v -> updVarM sub varm v) SM.empty
   |> SM.to_list
 
-(* in the end, there should only ever be one file, so maybe we should specialize to that *)
-let specsOfFile spec file =
-  let funs, vars        = declarationsOfFile file in
+let specsOfDecs funs vars =
   let sub, pgsto        = vars |>: (fun {C.vtype = t} -> t) |> preRefstoreOfTypes in
   let gsto, _, sub      = pgsto |> refstoreOfPreRefstore sub pgsto in
-  let fspecs, gsto, sub = globalSpecOfFuns sub (RSp.funspec spec) gsto funs in
-    (fspecs, varSpecOfVars sub (RSp.varspec spec) vars, gsto)
+  let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
+    (fspecs, varSpecOfVars sub vars, gsto)
+
+let opOfUsetype ut =
+  if ut then "<:" else "::"
+
+let writeSpec (funspec, varspec, storespec) outfilename =
+  let oc = open_out outfilename in
+    Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
+      Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore
+    end () storespec;
+    Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
+      Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+    end () storespec;
+    List.iter begin fun (vn, (ct, useType)) ->
+      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfUsetype useType) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
+    end varspec;
+    List.iter begin fun (fn, (cf, useType)) ->
+      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfUsetype useType) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+    end funspec;
+    close_out oc
+
+let writeSpecOfFile file outfilename =
+  let _          = E.log "START: Generating Specs \n" in
+  let funs, vars = declarationsOfFile file in
+  let spec       = specsOfDecs funs vars in
+  let _          = writeSpec spec outfilename in
+  let _          = assertExternDeclarationsValid (funs ++ vars) in
+    ignore <| E.log "DONE: Generating Specs \n"

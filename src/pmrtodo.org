@@ -68,16 +68,14 @@
 * DONE Better error message when can't parse predicate
   Right now it just seems to dump an empty spec
 
-* TODO Make FINAL apply to whole structures
+* DONE Make FINAL apply to whole structures
+* DONE Show specs for externs without OKEXTERN
+  Or at least give warning only *after* crashing.
+
+* TODO Update coreutils programs to new specs
+
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
-
-* TODO Fix fresh location default
-  Seems it makes more sense to alias same-named structures by default;
-  often we take a value like a list and return part of it, for
-  example, or chop out part of a string.
-
-  Perhaps allow a flag to choose on the function?
 
 * TODO Deferred checks
   See also indices above
@@ -86,46 +84,19 @@
 
 * TODO Write docs for spec language
 
-* TODO Show specs for externs without OKEXTERN
-
 * TODO Why did MST work?
   HashLookup is bogus without checking that the size of the hash is
   positive.
 
-* TODO Notify when unifying global locations
-  This is tricky. We only want to notify about the global locations.
+* TODO Notify when unifying annotated locations
+
 
 * Soon
 
 ** TODO Investigate unquantified_write global scalar type issue
 
 ** TODO Shouldn't have both Index.of_int and Index.mk_singleton
-** TODO Things probably solved by/should be deferred to after in-source specs
-
-*** TODO Allow specs on global store locs
-    Do the appropriate subtyping here
-
-*** TODO Insist on specs for global store locs reachable from externs
-    We don't know what may have been written to these locations by
-    other code. So the autogen spec for a regular global location
-    should just give the shape, but for an extern location it should
-    give the contents.
-
-*** TODO Don't hard-code type sizes in specs
-    Once we're just annotating the C source code, we can just use
-    CIL's type sizes as we are now, and drop the part of the
-    configuration that sets the machine word size to 32 bits.
-
-    We'll have to go out of our way to handle large constants somehow,
-    which CIL doesn't like.
-
-*** TODO Remove stuff from lib.spec that should be in other spec files
-
-** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
-
-** What happens if we define the same var/function in lib.spec and the
-   site-specific spec?
 
 ** Refactor ctype -> location, index methods
    Just fail fast instead of returning option
@@ -143,8 +114,6 @@
    see if it's null, but the result of that test won't be useful in
    allowing you to safely dereference the pointer. At least we've
    already fixed this problem for heap contents with final fields.
-
-** TODO Are deferred checks still required?
 
 ** TODO Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
