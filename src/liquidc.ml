@@ -179,24 +179,8 @@ let generate_spec file fn spec =
           List.iter begin fun (fn, (cf, useType)) ->
             Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfUsetype useType) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
           end funspec;
-          (* let fspec = funspec |> Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) |> SM.of_list in *)
-          (* let vspec = varspec |> Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) |>: (Misc.app_snd (fun x -> (x, true))) |> SM.of_list in *)
-          (* let sp    = Sp.make fspec vspec storespec in *)
-          (* ignore <| Pretty.fprintf oc "%a" Sp.d_spec sp;  *)
           close_out oc
        end
-          (* {{{ 
-          Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
-            Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore
-          end () storespec;
-          Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
-            Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
-          end () storespec;
-          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.RefCTypes.CType.d_ctype ct |> ignore) varspec;
-          List.iter begin fun (fn, (cf, useType)) ->
-            Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (if useType then "<:" else "::") Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
-          end funspec;
-          }}} *)
  
 let spec_of_file outprefix file =
      Sp.empty
