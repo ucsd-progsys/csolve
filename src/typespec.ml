@@ -240,7 +240,7 @@ let instantiateStruct ats tcs =
   let instr = new structInstantiator ats in
     List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
 
-let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
+let rec componentsOfTypeAux = function
   | C.TArray (t, b, ats) ->
     t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b ats)
   | C.TComp (ci, ats) as t ->
@@ -251,6 +251,13 @@ let rec componentsOfType t = match t |> C.unrollType |> flattenArray with
        end
     |> instantiateStruct ats
   | t -> [("", I.mk_singleton 0, ensureSlocAttrs t)]
+
+and componentsOfType t =
+  let t  = t |> C.unrollType |> flattenArray in
+  let cs = componentsOfTypeAux t in
+    if t |> C.typeAttrs |> C.hasAttribute CM.finalAttribute then
+      List.map (M.app_thd3 <| C.typeAddAttributes [C.Attr (CM.finalAttribute, [])]) cs
+    else cs
 
 and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
