@@ -99,13 +99,11 @@ sub collectOneArgument {
 
 sub setDefaultArguments {
     my ($self) = @_;
-    push @{$self->{INCLUDEDIR}}, "$FindBin::RealBin/../external/include32/";
-    push @{$self->{INCLUDEDIR}}, "$FindBin::RealBin/../lib/";
-    push @{$self->{CCARGS}},     "-nostdinc";
-    push @{$self->{CCARGS}},     "-Wno-attributes";
-    push @{$self->{PPARGS}},     "-nostdinc";
-    push @{$self->{LINKARGS}},   "-L$FindBin::RealBin/../lib/";
-    push @{$self->{LINKARGS}},   "-lliquidc";
+    push @{$self->{CCARGS}},        "-Wno-attributes";
+    push @{$self->{PPARGS}},        "-isysroot$FindBin::RealBin/../external/include32";
+    push @{$self->{PPARGS}},        "-I$FindBin::RealBin/../lib";
+    push @{$self->{LINKARGS}},      "-L$FindBin::RealBin/../lib/";
+    push @{$self->{LINKARGS}},      "-lliquidc";
 }
 
 sub usage {
