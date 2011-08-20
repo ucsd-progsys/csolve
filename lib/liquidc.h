@@ -41,15 +41,16 @@
 
 // Predicate macros
 
-#define VALIDPTR       REF(PVALIDPTR)
-#define NONNULL        REF(PNONNULL)
-#define START          REF(PSTART)
-#define STARTifNONNULL REF((V != 0) => PSTART)
-#define SIZE(n)        REF(PSIZE(n))
-#define SIZE_GE(n)     REF(PSIZE_GE(n))
-#define OFFSET(n)      REF(POFFSET(n))
-#define OFFSET_GE(n)   REF(POFFSET_GE(n))
-#define NONNEG         REF(V >= 0)
+#define VALIDPTR          REF(PVALIDPTR)
+#define NONNULL           REF(PNONNULL)
+#define START             REF(PSTART)
+#define STARTifNONNULL    REF((V != 0) => PSTART)
+#define SIZE(n)           REF(PSIZE(n))
+#define SIZE_GE(n)        REF(PSIZE_GE(n))
+#define OFFSET(n)         REF(POFFSET(n))
+#define OFFSET_GE(n)      REF(POFFSET_GE(n))
+#define NONNEG            REF(V >= 0)
+#define PTR_TO_ONE(t)     t * VALIDPTR START ROOM_FOR(t)
 
 
 // Built-in functions
