@@ -250,6 +250,9 @@ every file that contains specifications, like so:
 
   #include <liquidc.h>
 
+Important tips about writing specifications, particularly for external
+functions, are given in doc/extern_spec_checklist.org.
+
 Specifying Heap Layout
 ----------------------
 

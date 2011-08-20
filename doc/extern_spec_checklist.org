@@ -1,0 +1,18 @@
+* Align structure pointers properly
+  If the function takes a pointer to a structure, as in
+
+  : fprintf (FILE * fp, ...)
+
+  one must take care that fp points at the right place. In this case,
+  fp must point at the start of the FILE structure:
+
+  : fprintf (FILE * START fp, ...)
+
+  This is automatically done, along with other things, with the
+  PTR_TO_ONE macro:
+
+  : fprintf (PTR_TO_ONE(FILE) fp, ...)
+
+* Check for global locations
+  Some functions stash pointer arguments away in globals, meaning that
+  it's not possible to quantify over their locations.
