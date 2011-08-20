@@ -79,6 +79,7 @@ void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
   inFile = fopen(fname, (char * __attribute__((__array__)) )"r");
   if (! ((unsigned int )inFile != (unsigned int )((int *)0))) {
     exit(1);
+    return;
   }
   fgets((char * __attribute__((__array__)) )(line), 1024, inFile);
   tmp = nondetpos();
@@ -272,6 +273,7 @@ void InitLists(unsigned long * LOC(L) numModules , unsigned long * LOC(L) numNet
     mr = (ModuleRec *)tmp___1;
     if (! ((unsigned int )mr != (unsigned int )((ModuleRecPtr )0))) {
       exit(1);
+      return;
     }
     validptr((void *)(& mr->module));
     mr->module = p;
