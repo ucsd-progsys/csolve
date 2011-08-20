@@ -360,9 +360,6 @@ let declarationsOfFile file =
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
-let shouldCheckVarType v =
-  C.hasAttribute CM.checkTypeAttribute v.C.vattr
-
 let globalSpecOfFuns sub gsto funs =
      funs
   |> List.fold_left begin fun (funm, gsto, sub) v ->
@@ -370,7 +367,7 @@ let globalSpecOfFuns sub gsto funs =
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
          let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
-           (M.sm_protected_add false fn (rcf, shouldCheckVarType v) funm, gsto, sub)
+           (M.sm_protected_add false fn (rcf, C.hasAttribute CM.checkTypeAttribute v.C.vattr) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)
   |> M.app_fst3 SM.to_list
@@ -381,7 +378,7 @@ let updVarM sub varm v =
       M.sm_protected_add
         false
         v.C.vname
-        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, shouldCheckVarType v)
+        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, v.C.vstorage = C.Extern)
         varm
   end else
     varm
