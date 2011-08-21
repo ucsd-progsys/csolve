@@ -114,15 +114,11 @@ module Index = struct
   let compare i1 i2 = compare i1 i2
 
   let of_int i =
-    (* pmr: loosen this? *)
-    if i >= 0 then IInt i else top
+    IInt i
 
   let mk_sequence start period lbound ubound = match lbound, ubound with
     | Some m, Some n when m = n -> IInt n
     | _                         -> ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
-
-  let mk_singleton n =
-    IInt n
 
   let mk_geq n =
     ICClass {lb = Some n; ub = None; m = 1; c = 0}

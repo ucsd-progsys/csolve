@@ -76,6 +76,11 @@
 
 * DONE Add working coreutils programs to regression tests
 
+* DONE Add TODO list for things to check when adding an extern spec
+* DONE Check alignment for structure parameters
+  When we need to pass a pointer into a structure, we need the pointer
+  to be aligned with the start of the structure.
+* DONE Shouldn't have both Index.of_int and Index.mk_singleton
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
@@ -93,21 +98,17 @@
 * TODO Notify when unifying annotated locations
 
 * TODO Find a way to incorporate sizeofs in predicates
-* TODO Check alignment for structure parameters
-  When we need to pass a pointer into a structure, we need the pointer
-  to be aligned with the start of the structure.
-* TODO Add TODO list for things to check when adding an extern spec
 * TODO Take a hard look at functions like gettext
   Note that gettext returns either the parameter or one of a set of
   messages from an existing repository. They all share a common
   global location L. Look at all library OKEXTERNS and check if
   they have the proper location set.
 
+
 * Soon
 
 ** TODO Investigate unquantified_write global scalar type issue
 
-** TODO Shouldn't have both Index.of_int and Index.mk_singleton
 ** TODO Heap polymorphism for function pointers
 
 ** Refactor ctype -> location, index methods
@@ -132,12 +133,18 @@
    non-heapified versions, and the specs for things that get heapified
    must have pointer type?
 
-** TODO Allow unifying the locations of read-only pointer args
+** TODO Allow unifying the locations of read-only pointer args?
    When we have two read-only pointer arguments, it's sound to unify
    their locations at the callsite but not the definition.
 
    This lets us have a cheaper form of intersection shapes for
    functions.
+
+   Note this is less useful if one of the arguments may be *returned*,
+   though --- then we have no control over how the aliased arguments
+   are used. I suspect this is actually pretty common, but it would be
+   useful to see how often this is the case among, e.g., the library
+   functions that coreutils uses.
 
 ** TODO Get tsort moving again
 

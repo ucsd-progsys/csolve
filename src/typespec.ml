@@ -108,7 +108,7 @@ let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
   let predIndex         = if hasPred then SC.ref_index_of_pred vv pred else I.top in
-    if hasArray || hasPred then I.glb arrayIndex predIndex else I.mk_singleton 0
+    if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfAttrs tb ats =
   let pred = predOfAttrs ats in
@@ -155,7 +155,7 @@ let nameArg =
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
   | C.TArray (tb, b, ats)                       -> indexOfArrayElements tb b ats
   | C.TPtr (tb, ats) when CM.has_array_attr ats -> indexOfArrayElements tb None ats
-  | C.TPtr _                                    -> I.mk_singleton 0
+  | C.TPtr _                                    -> I.of_int 0
   | _                                           -> assert false
 
 (******************************************************************************)
@@ -254,7 +254,7 @@ let rec componentsOfTypeAux = function
         | cs          -> cs
        end
     |> instantiateStruct ats
-  | t -> [("", I.mk_singleton 0, ensureSlocAttrs t)]
+  | t -> [("", I.of_int 0, ensureSlocAttrs t)]
 
 and componentsOfType t =
   let t  = t |> C.unrollType |> flattenArray in
@@ -264,7 +264,7 @@ and componentsOfType t =
     else cs
 
 and componentsOfField t f =
-  let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.mk_singleton in
+  let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.of_int in
     f.C.ftype |> componentsOfType |>: (M.app_snd3 <| I.plus off)
 
 let alreadyClosedType mem t = match CM.typeName t with
