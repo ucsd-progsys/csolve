@@ -72,9 +72,9 @@
 * DONE Show specs for externs without OKEXTERN
   Or at least give warning only *after* crashing.
 
-* TODO Update coreutils programs to new specs
+* DONE Update coreutils programs to new specs
 
-* TODO Add working coreutils programs to regression tests
+* DONE Add working coreutils programs to regression tests
 
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
