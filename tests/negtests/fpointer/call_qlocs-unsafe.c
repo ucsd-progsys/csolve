@@ -1,5 +1,5 @@
-extern int nondet ();
-extern void *malloc (int);
+#include <liquidc.h>
+#include <stdlib.h>
 
 typedef void (*setter) (int *);
 

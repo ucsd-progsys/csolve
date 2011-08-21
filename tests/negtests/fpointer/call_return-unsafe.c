@@ -1,4 +1,4 @@
-extern int nondet ();
+#include <liquidc.h>
 
 int one () {
     return 1;

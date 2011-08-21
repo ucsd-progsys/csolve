@@ -1,4 +1,5 @@
-extern void *malloc (int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 int a[] = { 0, 1, 2 };
 
