@@ -1,90 +1,115 @@
-* Tuesday/Wednesday
+* DONE Global locations in typespec
 
-** DONE Add unquantified locations to spec
+* DONE Get global arrays right
 
-*** DONE Parse global location list
-    27 shift/reduce conflicts to start
-    (Was that 26 before we added globals?)
-    Optional versions with/without globals?
-    Print cfuns in phases.
+* DONE Check extern handling
 
-*** DONE Print
+* DONE "New" (concrete) locations in spec
+  For handling malloc
 
-*** DONE Rename domain to qdomain
+* DONE Indices in typespec
+  Done by parsing the predicates for now. In the long run, the user
+  should never have to think about indices vs. refinements. However,
+  this does create some annoying problems: what if scalar is not
+  strong enough to prove the predicate that we use to infer the index?
+  This seems like a deferred check waiting to happen.
 
-*** DONE Does domain include globals or not?
+  Suppose, for example, that we say f's arg must be positive.
+  Then the index that f's arg gets is
 
-*** DONE WF has to consider global store
+  : 1[1].
 
-*** DONE Avoid in instantiation
+  Suppose we read x off the heap. Then scalar assumes that x has the
+  type
 
-*** DONE Refactor instantiation to be in ctypes, not inferctypes
+  : 0{1},
 
-*** DONE Reorder CFun.make to match mk_refcfun
+  i.e., Top. So we can't just check subtyping on the indices. We really
+  want to check that the refinement f's argument gets implies its index.
+  (This is easily done as part of constraint generation for functions;
+  this should also subsume the check done in inferindices.)
 
-*** DONE Changes in inferctypes? Finalfields?
+* DONE "Type" vs "shape" specs
 
-*** DONE Tests
+* DONE Make sure that CLOCs cannot occur deeply in the store
+  Don't allow CLOC beyond the top level of a type
 
-***** DONE Alias a parameter with a global
+* DONE Make sure argument with GLOC is always well-formed
+  That is, if an argument has GLOC(L), then GLOC(L) is in the global
+  store, even if no global variable points there.
 
-***** DONE Store a function that contains a global loc in its store
+* DONE Make sure we're consistent about the contents of global locs
 
-***** DONE Check same_shape with global locs
-      Store two functions that keep global locs in their stores
-      Same global locs but different order
+* DONE Function pointers
+  Note that these can take global locations in their stores, so the
+  definition of a variable may update a global location.
 
-***** DONE Writes to aliased local influence global
+* DONE Parameterized structure defs
 
-***** DONE Make sure global locations are folded at calls
+* DONE Include liquidc/src/include (or really include32) as default include dir
 
-***** DONE Check that final fields are ok with globals
-      Seems we ignore globals in final fields, so that's ok by default.
+* DONE Check all negtests fail for the right reasons
+  Maybe add error codes for failures in shape analysis vs. subtyping.
+  Right now things are failing because they have bad specs, but that
+  makes negtests trivial.
 
-** TODO Investigate unquantified_write global scalar type issue
+* DONE Global locs are closed
+  Check that we chase all explicitly-marked global locations to
+  quantify over all the things that may be reached by a global
+  location.
 
-** DONE Kill disgusting abbreviations at the env of ctypes
+* DONE Delete all spec files
 
-** DONE "need to check" pmr comment is out of date
+* DONE Figure out how to make assert, validptr compileable
 
-** TODO Are deferred checks still required?
+* DONE Drop add_field_fold_overlap
+* DONE Change assert to lcc_assert
 
-** TODO Make sure specs work on heapified globals
-   Should we just name heapified globals the same as their original,
-   non-heapified versions, and the specs for things that get heapified
-   must have pointer type?
+* DONE Better error message when can't parse predicate
+  Right now it just seems to dump an empty spec
 
-** TODO Get tsort moving again
+* DONE Make FINAL apply to whole structures
+* DONE Show specs for externs without OKEXTERN
+  Or at least give warning only *after* crashing.
 
+* DONE Update coreutils programs to new specs
+
+* DONE Add working coreutils programs to regression tests
+
+* DONE Add TODO list for things to check when adding an extern spec
+* DONE Check alignment for structure parameters
+  When we need to pass a pointer into a structure, we need the pointer
+  to be aligned with the start of the structure.
+* DONE Shouldn't have both Index.of_int and Index.mk_singleton
+* DONE Take a hard look at functions like gettext
+  Note that gettext returns either the parameter or one of a set of
+  messages from an existing repository. They all share a common
+  global location L. Look at all library OKEXTERNS and check if
+  they have the proper location set.
+
+* TODO Error messages for unified locations are atrocious
+  They don't give you any clue about what happened at all.
+
+* TODO Deferred checks
+  See also indices above
+
+  Are the subindex checks at calls enabled right now?
+
+* TODO Write docs for spec language
+
+* TODO Why did MST work?
+  HashLookup is bogus without checking that the size of the hash is
+  positive.
+
+* TODO Notify when unifying annotated locations
+
+* TODO Find a way to incorporate sizeofs in predicates
 
 * Soon
 
-** TODO Things probably solved by/should be deferred to after in-source specs
+** TODO Investigate unquantified_write global scalar type issue
 
-*** TODO Allow specs on global store locs
-    Do the appropriate subtyping here
-
-*** TODO Insist on specs for global store locs reachable from externs
-    We don't know what may have been written to these locations by
-    other code. So the autogen spec for a regular global location
-    should just give the shape, but for an extern location it should
-    give the contents.
-
-*** TODO Don't hard-code type sizes in specs
-    Once we're just annotating the C source code, we can just use
-    CIL's type sizes as we are now, and drop the part of the
-    configuration that sets the machine word size to 32 bits.
-
-    We'll have to go out of our way to handle large constants somehow,
-    which CIL doesn't like.
-
-*** TODO Remove stuff from lib.spec that should be in other spec files
-
-** TODO Keep locations out of global heap if they're not "rooted" by a global
 ** TODO Heap polymorphism for function pointers
-
-** What happens if we define the same var/function in lib.spec and the
-   site-specific spec?
 
 ** Refactor ctype -> location, index methods
    Just fail fast instead of returning option
@@ -102,6 +127,27 @@
    see if it's null, but the result of that test won't be useful in
    allowing you to safely dereference the pointer. At least we've
    already fixed this problem for heap contents with final fields.
+
+** TODO Make sure specs work on heapified globals
+   Should we just name heapified globals the same as their original,
+   non-heapified versions, and the specs for things that get heapified
+   must have pointer type?
+
+** TODO Allow unifying the locations of read-only pointer args?
+   When we have two read-only pointer arguments, it's sound to unify
+   their locations at the callsite but not the definition.
+
+   This lets us have a cheaper form of intersection shapes for
+   functions.
+
+   Note this is less useful if one of the arguments may be *returned*,
+   though --- then we have no control over how the aliased arguments
+   are used. I suspect this is actually pretty common, but it would be
+   useful to see how often this is the case among, e.g., the library
+   functions that coreutils uses.
+
+** TODO Get tsort moving again
+
 
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
@@ -142,6 +188,15 @@
    unverified external functions). See later section on stuff to do
    before release.
 
+** Proper spec for strtok?
+   If we have the sequence of calls
+
+   : strtok (line, "\n");
+   : strtok (0, "\n");
+
+   then the second call returns a pointer into line. So strtok is not
+   really quantified over all locations. A proper spec would make the
+   sharing between locations explicit.
 
 * Plausible benchmarks
 
@@ -294,30 +349,6 @@ Proper code todo:
   Looks like we're not checking we get the right indices for heap contents later...?!
 
 * Warn/error on unreachable block?
-
-* TODO Change specs to not even /have/ indices; derive them from the predicates
-  Then it should be possible to check that we adhere to the spec much more easily.
-  In particular, we can just check that every function is declared to be a subtype of
-  its spec. (Will this work even for function pointers?)
-
-  But we have to be careful, since the spec tells us some shape information but
-  doesn't give the whole invariant.
-
-  This may not actually be a good idea; discuss with Ranjit.
-
-- note that it helps to have indices rather than predicates to identify singletons vs. arrays
-- also makes the system more general - don't need to use predicate abstraction anywhere
-
-- note that a singleton can have two representations
-  - IInt n
-  - ICClass (n, n + 1, 1, 0) (between n and n + 1, congruent to 0 mod 1)
-  We should be sure that we need both (it seems proper LUB is hard to do with just cclass), and
-  make sure that there's some kind of proper order between them.
-  Note that the two representations are *not* interchangeable; taking the lub of two
-  singeltons has two very different effects depending on which representation is used.
-  "Real" singletons should be lower in the lattice because they're more precise in that
-  lubs of them give better results (which should actually also be lower than lubs of
-  the corresponding cclass singletons).
 
 * TODO Release Code
   Would be nice to do this by the end of August (can't do it much
