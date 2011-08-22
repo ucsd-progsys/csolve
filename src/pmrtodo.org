@@ -81,6 +81,12 @@
   When we need to pass a pointer into a structure, we need the pointer
   to be aligned with the start of the structure.
 * DONE Shouldn't have both Index.of_int and Index.mk_singleton
+* DONE Take a hard look at functions like gettext
+  Note that gettext returns either the parameter or one of a set of
+  messages from an existing repository. They all share a common
+  global location L. Look at all library OKEXTERNS and check if
+  they have the proper location set.
+
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
@@ -98,12 +104,6 @@
 * TODO Notify when unifying annotated locations
 
 * TODO Find a way to incorporate sizeofs in predicates
-* TODO Take a hard look at functions like gettext
-  Note that gettext returns either the parameter or one of a set of
-  messages from an existing repository. They all share a common
-  global location L. Look at all library OKEXTERNS and check if
-  they have the proper location set.
-
 
 * Soon
 
