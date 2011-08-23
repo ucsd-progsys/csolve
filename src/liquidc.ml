@@ -76,20 +76,6 @@ let mk_cfg cil =
     | _ -> ()
   end
 
-(*
-let preprocess cil =
-  cil >> CilMisc.unfloat 
-      >> CilMisc.Pheapify.doVisit 
-      >> Psimplify.simplify 
-      >> Simpleret.simpleret 
-      >> Rmtmps.removeUnusedTemps 
-      >> CilMisc.purify 
-      >> CilMisc.CopyGlobal.doVisit
-      >> CilMisc.NameNullPtrs.doVisit 
-      >> mk_cfg 
-      >> rename_locals 
-*)
-
 let print_header () = 
   Printf.printf " \n \n";
   Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
