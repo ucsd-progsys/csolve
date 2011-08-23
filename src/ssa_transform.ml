@@ -31,6 +31,7 @@ module VS = Usedef.VS
 module IM = Misc.IntMap
 module H  = Hashtbl
 module Co = Constants
+module CM = CilMisc
 
 open Cil
 open Misc.Ops
@@ -311,6 +312,26 @@ class ssaVisitor fdec cfg out_t var_t v2r vmap_t = object(self)
     DoChildren
 end
 
+(********************* ssa-verifying visitor ******************************)
+
+class checkSsaVisitor = object(self)
+  inherit nopCilVisitor
+
+  val mutable assigned = CM.VarSet.empty
+
+  method vinst = function
+    | Set ((Var v, NoOffset), _, loc)
+    | Call (Some (Var v, NoOffset), _, _, loc) ->
+      if CM.VarSet.mem v assigned then
+        E.s <| errorLoc loc "SSA Failure: double assingment to variable %a@!"
+                 CM.d_var v
+      else begin
+        assigned <- CM.VarSet.add v assigned;
+        DoChildren
+      end
+    | _ -> DoChildren
+end
+
 (**************************************************************************)
 
 let mk_gdominators fdec cfg =
@@ -333,6 +354,7 @@ let fdec_to_ssa_cfg vmap_t fdec loc =
   let phis          = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
   let _             = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r vmap_t) fdec in
   let ifs, gds, eds = mk_gdominators fdec cfg in
+  let _             = visitCilFunction (new checkSsaVisitor) fdec in
   {fdec = fdec; cfg = cfg; phis = phis; ifs = ifs; gdoms = gds; edoms = eds; vmapt = vmap_t} 
 
 (**************************************************************************)
