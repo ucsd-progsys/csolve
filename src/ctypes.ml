@@ -810,9 +810,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map
 
-    let slm_domain m =
-      SLM.fold (fun s _ ss -> s :: ss) m []
-
     let map_ldesc f (ds, fs) =
       (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
 
@@ -822,7 +819,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           (SLM.add l ld ds, fs)
 
       let domain (ds, _) =
-        slm_domain ds
+        SLM.domain ds
 
       let mem (ds, _) l =
         SLM.mem l ds
@@ -852,7 +849,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           (ds, SLM.add l cf fs)
 
       let domain (_, fs) =
-        slm_domain fs
+        SLM.domain fs
 
       let mem (_, fs) l =
         SLM.mem l fs
