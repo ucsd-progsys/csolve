@@ -1,0 +1,13 @@
+Assumptions CSolve uses in typechecking
+
+* malloc () zero-initializes memory
+  The allocated memory returned from malloc () is assumed to be
+  initialized with all zeroes.
+
+* Stack-allocated structures are zero-initialized
+  Similarly, structures allocated on the stack are assumed to have
+  their contents zeroed out.
+
+* Absence of arithmetic overflow
+  Integer-valued variables are treated as mathematical integers by
+  CSolve; overflow is not accounted for.

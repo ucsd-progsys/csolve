@@ -130,6 +130,13 @@
   use of map to a saner instantiation.
 * TODO Disallow concrete pointers to function locations
 
+* TODO const qualifier should mark locations' contents as FINAL
+
+* TODO Wipe attributes from SSA output
+  It's hard to debug with all the noise from the attributes. We may
+  even want to wipe attributes between spec generation and other
+  preprocessing passes - it's possible CIL is inserting a lot of
+  spurious casts to convert between types with different attributes.
 
 * Soon
 
