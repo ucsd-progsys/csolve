@@ -441,6 +441,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val empty         : t
     val eq            : t -> t -> bool
+    val is_read_only  : t -> bool
     val add           : Index.t -> field -> t -> t
     val create        : structinfo -> (Index.t * field) list -> t
     val remove        : Index.t -> t -> t
@@ -466,6 +467,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     type t = store
 
     val empty        : t
+    val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
@@ -489,6 +491,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     module Data: sig
       val add           : t -> Sloc.t -> ldesc -> t
+      val bindings      : t -> (Sloc.t * ldesc) list
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t
@@ -501,6 +504,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     module Function: sig
       val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val bindings  : 'a prestore -> (Sloc.t * 'a precfun) list
       val domain    : t -> Sloc.t list
       val mem       : 'a prestore -> Sloc.t -> bool
       val find      : 'a prestore -> Sloc.t -> 'a precfun
@@ -725,6 +729,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           (fun (i1, f1) (i2, f2) -> i1 = i2 && Field.type_of f1 = Field.type_of f2)
           cs1 cs2
 
+    let is_read_only {plfields = flds} =
+      List.for_all (fun (_, {pffinal = fnl}) -> fnl = Final) flds
+
     let fits i fld {plfields = cs} =
       let t = Field.type_of fld in
       let w = CType.width t in
@@ -818,6 +825,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         let _ = assert (not (SLM.mem l fs)) in
           (SLM.add l ld ds, fs)
 
+      let bindings (ds, _) =
+        SLM.to_list ds
+
       let domain (ds, _) =
         SLM.domain ds
 
@@ -848,6 +858,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         let _ = assert (not (SLM.mem l ds)) in
           (ds, SLM.add l cf fs)
 
+      let bindings (_, fs) =
+        SLM.to_list fs
+
       let domain (_, fs) =
         SLM.domain fs
 
@@ -863,6 +876,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let map f (ds, fs) =
       (map_data f ds, SLM.map (CFun.map f) fs)
+
+    let bindings sto =
+      (Data.bindings sto, Function.bindings sto)
 
     let domain sto =
       Data.domain sto ++ Function.domain sto

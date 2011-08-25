@@ -367,22 +367,12 @@ let unified_instantiation_error () (s1, s2) =
   C.error "Call unifies locations which are separate in callee (%a, %a)" 
   S.d_sloc_info s1 S.d_sloc_info s2
 
-let check_annots_wf sub bas =
-  Array.iter begin fun ba ->
-    List.iter begin fun annots ->
-         annots
-      |> List.filter (function RA.New _ -> true | _ -> false)
-      |> List.map (function RA.New (_, s) -> s | _ -> assert false)
-      |> check_slocs_distinct unified_instantiation_error sub
-    end ba
-  end bas
-
 let check_sol cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
   let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
   let _           = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
-  let _           = check_annots_wf sub bas in
+  (* We check that instantiation annotations are WF as we check calls in consVisitor *)
   let revsub      = revert_spec_names sub whole_store in
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in

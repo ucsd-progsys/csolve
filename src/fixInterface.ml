@@ -691,26 +691,37 @@ let make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
   end cr1s cr2s 
   |> Misc.splitflatten
 
+let make_cs_subtyping_bind_pairs polarity binds1 binds2 f =
+  let dom = List.map fst (if polarity then binds2 else binds1) in
+       (binds1, binds2)
+    |> Misc.map_pair (List.filter (fun (sloc, _) -> List.mem sloc dom))
+    |> Misc.uncurry (Misc.full_join fst)
+    |> List.map f
+    |> Misc.splitflatten
+
 let rec make_cs_refstore env p st1 st2 polarity tago tag loc =
 (*  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
 *)
-  (if polarity then st2 else st1)
-  |> RCt.Store.domain
-  |> Misc.map begin fun sloc ->
-       if RCt.Store.Data.mem st1 sloc && RCt.Store.Data.mem st2 sloc then
-         let lhs = (sloc, Ct.refstore_get st1 sloc) in
-         let rhs = (sloc, Ct.refstore_get st2 sloc) in
-           make_cs_refldesc env p lhs rhs tago tag
-       else if RCt.Store.Function.mem st1 sloc && RCt.Store.Function.mem st2 sloc then
-         let lhs = RCt.Store.Function.find st1 sloc in
-         let rhs = RCt.Store.Function.find st2 sloc in
-           make_cs_refcfun env p lhs rhs tag loc
-       else assert false
-     end 
-  |> Misc.splitflatten 
+  make_cs_refstore_binds
+    env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
+
+and make_cs_refstore_binds env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
+  Misc.splitflatten
+    [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc;
+     make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc]
+
+and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
+  make_cs_subtyping_bind_pairs polarity slds1 slds2 begin fun (sld1, sld2) ->
+    make_cs_refldesc env p sld1 sld2 tago tag
+  end
+
+and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
+  make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
+    make_cs_refcfun env p fun1 fun2 tag loc
+  end
 
 and make_cs_refcfun env p rf rf' tag loc =
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype in
@@ -733,6 +744,13 @@ let make_cs_refstore env p st1 st2 polarity tago tag loc =
   try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
+    assert false
+
+(* API *)
+let make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc =
+  try make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refstore_binds fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_refstore_binds" in 
     assert false
 
 (* API *)

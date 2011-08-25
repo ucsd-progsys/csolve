@@ -71,11 +71,6 @@ let d_lsub () (x,y) =
 let d_lsubs () xys =
   Pretty.seq (Pretty.text ",") (d_lsub ()) xys
 
-let rename_store lsubs subs sto =
-  sto |> FI.refstore_subs_locs lsubs 
-      |> FI.refstore_subs FI.t_subs_exps subs 
-      |> RS.subs lsubs
-
 (*
 let rename_store lsubs subs st = 
   st |> Ct.prestore_subs lsubs
@@ -245,25 +240,74 @@ let bindings_of_call loc args es =
   |> Misc.map_partial id 
   |> List.split 
 
+let renamed_store_bindings lsubs subs st =
+  let rename_binds_slocs binds = List.map (M.app_fst <| Sloc.Subst.apply lsubs) binds in
+        st
+    |> FI.refstore_subs_locs lsubs 
+    |> FI.refstore_subs FI.t_subs_exps subs 
+    |> RS.bindings
+    |> fun (slds, sfuns) -> (rename_binds_slocs slds, rename_binds_slocs sfuns)
+
+let store_domain_subst_groups lsubs sto =
+     sto
+  |> RS.domain
+  |> List.map (fun sloc -> (sloc, Sloc.Subst.apply lsubs sloc))
+  |> M.kgroupby snd
+
+let check_inst_slocs_distinct_or_read_only loc lsubs sto =
+     sto
+  |> store_domain_subst_groups lsubs
+  |> List.map snd
+  |> List.iter begin function
+     | [_]   -> ()
+     | lsubs ->
+       if List.for_all (fst <+> RS.Data.find sto <+> Ct.RefCTypes.LDesc.is_read_only) lsubs then () else
+         E.s <|
+           errorLoc loc "Call unifies non-final locations which are distinct in callee:@!%a@!"
+             Sloc.Subst.d_subst lsubs
+     end
+
+let check_inst_concrete_slocs_distinct loc lsubs sto =
+     sto
+  |> store_domain_subst_groups lsubs
+  |> List.filter (fst <+> Sloc.is_abstract <+> not)
+  |> List.map snd
+  |> List.iter begin function
+     | [_]   -> ()
+     | lsubs ->
+       E.s <|
+         errorLoc loc "Call unifies concrete locations which are distinct in callee:@!%a@!"
+           Sloc.Subst.d_subst lsubs
+     end
+
 let cons_of_call me loc i j grd (env, st, tago) (lvo, frt, es) ns =
   let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
- 
-  let ist,ost   = Ct.stores_of_refcfun frt |> Misc.map_pair (rename_store lsubs subs) in
-  let oast,ocst = Ct.refstore_partition Sloc.is_abstract ost in
+
+  let stbs             = RS.bindings st in
+  let istbs,ostbs      = frt
+                      |> Ct.stores_of_refcfun
+                      >> Misc.app_fst (check_inst_slocs_distinct_or_read_only loc lsubs)
+                      >> Misc.app_snd (check_inst_concrete_slocs_distinct loc lsubs)
+                      |> Misc.map_pair (renamed_store_bindings lsubs subs) in
+  let ostslds,ostsfuns = ostbs in
+  let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
+  let oastbs           = (oaslds, ostsfuns) in
 
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
   let ecrs      = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
   let cs1,_     = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
   
-  let cs2,_     = FI.make_cs_refstore env grd st   ist true  None tag  loc in
-  let cs3,_     = FI.make_cs_refstore env grd oast st  false None tag' loc in
+  let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
+  let cs3,_     = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
   let ds3       = [FI.make_dep false (Some tag') None] in 
 
-  let st'                 = RS.upd st ocst in
+  let st'                 = List.fold_left begin fun st (sloc, ld) ->
+                              if RS.Data.mem st sloc then st else RS.Data.add st sloc ld
+                            end st ocslds in
   let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
   wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3), wfs

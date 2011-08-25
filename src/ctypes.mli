@@ -159,6 +159,7 @@ module type S = sig
 
     val empty         : t
     val eq            : t -> t -> bool
+    val is_read_only  : t -> bool
     val add           : Index.t -> Field.t -> t -> t
     val create        : structinfo -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
@@ -185,6 +186,7 @@ module type S = sig
     type t = R.t prestore
 
     val empty        : t
+    val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> bool
@@ -208,6 +210,7 @@ module type S = sig
 
     module Data: sig
       val add           : t -> Sloc.t -> LDesc.t -> t
+      val bindings      : t -> (Sloc.t * LDesc.t) list
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t
@@ -221,6 +224,7 @@ module type S = sig
 
     module Function: sig
       val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
+      val bindings  : 'a prestore -> (Sloc.t * 'a precfun) list
       val domain    : t -> Sloc.t list
       val mem       : 'a prestore -> Sloc.t -> bool
       val find      : 'a prestore -> Sloc.t -> 'a precfun
