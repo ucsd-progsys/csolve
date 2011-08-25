@@ -77,9 +77,6 @@
 * DONE Add working coreutils programs to regression tests
 
 * DONE Add TODO list for things to check when adding an extern spec
-* DONE Check alignment for structure parameters
-  When we need to pass a pointer into a structure, we need the pointer
-  to be aligned with the start of the structure.
 * DONE Shouldn't have both Index.of_int and Index.mk_singleton
 * DONE Take a hard look at functions like gettext
   Note that gettext returns either the parameter or one of a set of
@@ -87,6 +84,10 @@
   global location L. Look at all library OKEXTERNS and check if
   they have the proper location set.
 
+* TODO Check alignment for structure parameters
+  When we need to pass a pointer into a structure, we need the pointer
+  to be aligned with the start of the structure. Make sure that all
+  spec preconditions are set up to ensure this.
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
@@ -104,6 +105,31 @@
 * TODO Notify when unifying annotated locations
 
 * TODO Find a way to incorporate sizeofs in predicates
+
+* TODO Abstract location contents for performance
+  Any file operations throw around a gigantic FILE structure;
+  subtyping between these structures generates a lot of constraints
+  (ks now takes forever). But the contents of the structure aren't
+  interesting for verification, so it would be nice to have a way to
+  hide them from the verifier, and we could just have a "FILE_OK" tag
+  on file handles generated from the right syscalls.
+* TODO Check types of extern vars
+  Note that the extern variable requires whatever invariant is given
+  by the type to hold; the user program is not allowed to just
+  arbitrarily modify the variable.
+* TODO Don't assert globals' types in constraints
+  They don't do anything but bump up the required number of
+  iterations; any time we actually use a global we copy it into a
+  local var.
+* TODO Check on refstore_subs_locs and quantifiers
+  It's substituting over the whole store using Store.map, which isn't
+  kosher w.r.t. quantifiers. While it would be nice to maintain the
+  invariant that all quantified locations are distinct from whatever's
+  getting substituted, this seems very hard to maintain as we
+  instantiate and create new functions. We should instead change this
+  use of map to a saner instantiation.
+* TODO Disallow concrete pointers to function locations
+
 
 * Soon
 
@@ -133,21 +159,9 @@
    non-heapified versions, and the specs for things that get heapified
    must have pointer type?
 
-** TODO Allow unifying the locations of read-only pointer args?
-   When we have two read-only pointer arguments, it's sound to unify
-   their locations at the callsite but not the definition.
-
-   This lets us have a cheaper form of intersection shapes for
-   functions.
-
-   Note this is less useful if one of the arguments may be *returned*,
-   though --- then we have no control over how the aliased arguments
-   are used. I suspect this is actually pretty common, but it would be
-   useful to see how often this is the case among, e.g., the library
-   functions that coreutils uses.
-
-** TODO Get tsort moving again
-
+** TODO Sort out "'a preblah" mess in ctypes.mli
+   It shouldn't be necessary to ever have these in the interface
+   except for map-style functions.
 
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
@@ -168,7 +182,6 @@
    free. (Is there a way we can automate this process?)
 
 ** vararg functions
-   Dropped on the floor ATM
 
 ** Abstract types
    The coreutils modechange.h does not give the definition of the
@@ -188,15 +201,12 @@
    unverified external functions). See later section on stuff to do
    before release.
 
-** Proper spec for strtok?
-   If we have the sequence of calls
+** TODO Bounded location polymorphism
+   It would be handy to mark "read-only" locations as such using
+   bounded location polymorphism. This allows polymorpism over the the
+   particular indices and refinements of the accessed parts of the
+   heap and would be a good place to drop in physical subtyping.
 
-   : strtok (line, "\n");
-   : strtok (0, "\n");
-
-   then the second call returns a pointer into line. So strtok is not
-   really quantified over all locations. A proper spec would make the
-   sharing between locations explicit.
 
 * Plausible benchmarks
 
