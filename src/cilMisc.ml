@@ -81,6 +81,10 @@ let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
        this local variable itself needs to be moved to the heap. *)
    false
 
+let isCompoundType t = match unrollType t with
+  | TComp _ | TArray _ -> true
+  | _                  -> false
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
@@ -259,10 +263,6 @@ let is_reference t =
   match Cil.unrollType t with
   | Cil.TPtr _ | Cil.TArray (_,_,_) -> true
   | _ -> false
-
-let isComoundType t = match unrollType t with
-  | TComp _ -> true
-  | _       -> false
 
 (*********************************************************************)
 (**********************Misc. Pretty Printers *************************)
@@ -632,9 +632,9 @@ module Pheapify: Visitor = struct
 
   let should_heapify vi =
     if vi.vglob then
-      not (isArrayType vi.vtype) && (vi.vaddrof || containsArray vi.vtype || isComoundType vi.vtype)
+      not (isArrayType vi.vtype) && (vi.vaddrof || isCompoundType vi.vtype)
     else
-      (containsArray vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
+      (isCompoundType vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
   let heapifiedType v = match unrollType v.vtype with
     | TArray (t, _, _) -> TPtr (t, [])
