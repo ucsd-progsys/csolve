@@ -52,6 +52,11 @@
 #define NONNEG            REF(V >= 0)
 #define PTR_TO_ONE(t)     t * VALIDPTR START ROOM_FOR(t)
 
+// Assumptions
+
+#define LCC_VAR2(base, n) base##n
+#define LCC_VAR(base, n)  LCC_VAR2(__lcc__##base, n)
+#define LCC_ASSUME(p)     int LCC_VAR(assume, __COUNTER__) = lcc_assume (p);
 
 // Built-in functions
 
