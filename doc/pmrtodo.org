@@ -106,6 +106,10 @@
 
 * TODO Find a way to incorporate sizeofs in predicates
 
+* TODO Find a way to incorporate sizeofs in hquals
+  Probably whatever we do to the parser for the first part will work
+  here also.
+
 * TODO Abstract location contents for performance
   Any file operations throw around a gigantic FILE structure;
   subtyping between these structures generates a lot of constraints
