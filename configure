@@ -13,6 +13,10 @@ CILHOME=$ROOTHOME/external/cil/obj/x86_LINUX
 SRCHOME=$ROOTHOME/src
 EOF
 
+cd external/gnu-coreutils;
+./lcc.configure
+cd $ROOTHOME
+
 OCAMLLIB=`ocamlc -v | tail -1 | cut -d : -f 2 | tr -d " "`
 
 cat - > build.sh <<EOF
