@@ -84,7 +84,7 @@
   global location L. Look at all library OKEXTERNS and check if
   they have the proper location set.
 
-* TODO Check alignment for structure parameters
+* DONE Check alignment for structure parameters
   When we need to pass a pointer into a structure, we need the pointer
   to be aligned with the start of the structure. Make sure that all
   spec preconditions are set up to ensure this.

@@ -42,9 +42,10 @@
 // Predicate macros
 
 #define VALIDPTR          REF(PVALIDPTR)
+#define NNVALIDPTR        NNREF(PVALIDPTR)
 #define NONNULL           REF(PNONNULL)
 #define START             REF(PSTART)
-#define STARTifNONNULL    REF((V != 0) => PSTART)
+#define NNSTART           NNREF(PSTART)
 #define SIZE(n)           REF(PSIZE(n))
 #define SIZE_GE(n)        REF(PSIZE_GE(n))
 #define OFFSET(n)         REF(POFFSET(n))

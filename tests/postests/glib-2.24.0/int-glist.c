@@ -3,7 +3,7 @@
 
 typedef struct _SortedList SortedList;
 
-typedef SortedList * STARTifNONNULL NNREF(PSIZE(12)) NNREF(V > 0) sortedlistptr;
+typedef SortedList * NNSTART NNREF(PSIZE(12)) NNREF(V > 0) sortedlistptr;
 
 struct _SortedList {
     int FINAL d;
