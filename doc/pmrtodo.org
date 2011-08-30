@@ -147,16 +147,8 @@
 
 * TODO Attach error/warning messages to specific type obligations
   This would allow more user-friendly error messages when a function
-  is called with invalid arguments. For example, suppose lcc_assume is
-  given the following type, which checks that the assumption we're
-  trying to make preserves the environment's consistency:
+  is called with invalid arguments.
 
-  : lcc_assume :: p: {v | (0 = 1) || not ((v = 1) => (0 = 1))} -> {p = 1}
-
-  If we try "lcc_assume (0)", it would be nice to print a message
-  telling the user that the assumption would make the environment
-  inconsistent, rather than simply saying that a subtyping check
-  failed.
 
 * Soon
 
