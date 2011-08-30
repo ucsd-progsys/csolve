@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int hashfunc(unsigned int HashRange, unsigned int key ) 
 { 
   return ((int )((key >> 4) % (unsigned int )HashRange));
@@ -12,6 +14,6 @@ void main(){
   k    = nondetpos();
   h    = hashfunc(size, k);
 
-  assert(h >= 0);
-  assert(h < size);
+  lcc_assert(h >= 0);
+  lcc_assert(h < size);
 }

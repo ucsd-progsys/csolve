@@ -1,4 +1,4 @@
-extern int nondet ();
+#include <liquidc.h>
 
 int foo () {
     return 0;
@@ -13,7 +13,7 @@ int main () {
 
     f = nondet () ? &foo : &bar;
     int z = f ();
-    assert (z >= 0);
+    lcc_assert (z >= 0);
 
     return 0;
 }

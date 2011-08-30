@@ -1,9 +1,9 @@
 //! run with --manual
 
-extern char *malloc(int);
+#include <stdlib.h>
 
 struct hash {
-   int* __attribute__((array)) array ;
+   int* ARRAY array ;
    int size ;
 };
 

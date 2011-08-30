@@ -1,7 +1,7 @@
 //! run with --manual
 
-extern void *malloc (int);
-extern int nondet ();
+#include <stdlib.h>
+#include <liquidc.h>
 
 void one () { }
 

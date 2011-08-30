@@ -1,6 +1,6 @@
 //! run with --manual
 
-extern char* malloc(int);
+#include <stdlib.h>
 
 typedef struct node {
   int data;
@@ -40,7 +40,7 @@ int bar(int n){
 
   for(tmp = root->next; tmp != root; tmp = tmp->next){
     validptr(tmp);
-    assert(tmp->data >= 0);
+    lcc_assert(tmp->data >= 0);
   }
  
   return 0;

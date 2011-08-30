@@ -1,5 +1,5 @@
-extern char *malloc(int);
-
+#include <stdlib.h>
+#include <liquidc.h>
 
 int *__attribute__((array)) main(){
   int size;
@@ -13,7 +13,7 @@ int *__attribute__((array)) main(){
   }
  
   for (int i=0; i < size; i++){
-    assert(retval[i] == 0);
+    lcc_assert(retval[i] == 0);
   }
     
   return retval;

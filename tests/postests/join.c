@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void main(){
   int x,y,b;
   b = nondet();
@@ -8,5 +10,5 @@ void main(){
     x = 20;
     y = 20;
   }
-  assert (x == y);
+  lcc_assert (x == y);
 }

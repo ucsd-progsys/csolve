@@ -1,11 +1,11 @@
 //! run with --manual
 
-extern int nondet ();
-extern void *malloc (int);
+#include <stdlib.h>
+#include <liquidc.h>
 
-int *x;
+int * LOC(L) x;
 
-void foo (int *y) {
+void foo (int * LOC(L) y) GLOBAL(L) {
     int *z = nondet () ? x : y;
     // pmr: Are globals getting initialized correctly in the scalar stuff?
     /* *z = -1; */
@@ -20,5 +20,5 @@ void main () {
 
     foo (a);
 
-    assert (*x > 0);
+    lcc_assert (*x > 0);
 }

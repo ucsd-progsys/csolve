@@ -1,3 +1,4 @@
+#include <liquidc.h>
 
 int abs(int x){
   if (x > 0){		
@@ -13,6 +14,6 @@ void main(){
   x = nondet(); 
   y = abs(x);
 
-  assert(y >= 10);
+  lcc_assert(y >= 10);
   return;
 }

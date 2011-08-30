@@ -17,7 +17,6 @@ struct adpcm_state {
 
 #ifndef DEPUTY
   #define COUNT(x)
-  #define NONNULL
 #endif
 void adpcm_coder ARGS((short * COUNT(nsample) NONNULL,
                        char * COUNT(nsample / 2)  NONNULL, int nsample,

@@ -1,6 +1,7 @@
 /* MAIN PROGRAM FOR ENCODING. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "model.h"
 #include <liquidc.h>
 
@@ -13,7 +14,7 @@ main()
         ch = getc(stdin);			/* Read the next character. */
         if (ch==EOF) break;			/* Exit loop on end-of-file.*/
         symbol = char_to_index[ch];		/* Translate to an index.   */
-	int assm = assume(symbol > 0);		//JHALA: Array-INIT
+	int assm = lcc_assume(symbol > 0);	//JHALA: Array-INIT
         encode_symbol(symbol,cum_freq);		/* Encode that symbol.      */
         update_model(symbol);			/* Update the model.        */
     }

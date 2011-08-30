@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int (*f) ();
 
 int one () {
@@ -9,7 +11,7 @@ int main () {
     int (*g)() = f;
 
     if (g != 0)
-        assert (g () > 0);
+        lcc_assert (g () > 0);
 
     return 0;
 }

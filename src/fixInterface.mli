@@ -80,6 +80,7 @@ val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
+val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
@@ -143,6 +144,13 @@ val make_cs_refstore    : cilenv -> Ast.pred ->
                           Ctypes.refstore -> Ctypes.refstore -> bool ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_refstore_binds : cilenv -> Ast.pred ->
+                             (Sloc.t * Ctypes.refldesc) list * (Sloc.t * Ctypes.refcfun) list ->
+                             (Sloc.t * Ctypes.refldesc) list * (Sloc.t * Ctypes.refcfun) list ->
+                             bool ->
+                             CilTag.t option -> CilTag.t -> Cil.location ->
+                             FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_tuple       : cilenv -> Ast.pred ->
                           Sloc.Subst.t -> (Ast.Symbol.t * Cil.exp) list ->

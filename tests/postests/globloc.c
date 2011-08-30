@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int p[] = { 0, 1, 2 };
 int *a;
 
@@ -12,5 +14,5 @@ int main () {
   
   f();
   
-  assert (x <= 1000);
+  lcc_assert (x <= 1000);
 }

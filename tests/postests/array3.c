@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 void main(){
   int *x;
@@ -21,7 +21,7 @@ void main(){
   x = y;
   for (; i < 100; i++){
     z = *x;
-    assert(z >= 0);
+    lcc_assert(z >= 0);
     x++;
   }
   return 0;

@@ -1,7 +1,9 @@
+#include <liquidc.h>
+
 void t (int *x) {
-    /* assert (0); */
+    /* lcc_assert (0); */
     *x = 3;
-    assert (0);
+    lcc_assert (0);
 }
 
 int main () {

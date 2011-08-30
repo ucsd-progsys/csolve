@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 typedef struct {
     int a;
 } first;
@@ -15,9 +17,9 @@ typedef struct {
 third t = { { { 0 }, 1 }, 2 };
 
 void main () {
-    assert (t.s.f.a == 0);
-    assert (t.s.b   == 1);
-    assert (t.c     == 2);
+    lcc_assert (t.s.f.a == 0);
+    lcc_assert (t.s.b   == 1);
+    lcc_assert (t.c     == 2);
 
     return;
 }

@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 typedef struct _node {
     int           val;
@@ -9,7 +9,7 @@ void test_sorted (node *hd) {
     node *cur = hd;
 
     while (cur != (node *) 0 && cur->next != (node *) 0) {
-        assert (cur->val < cur->next->val);
+        lcc_assert (cur->val < cur->next->val);
         cur = cur->next;
     }
 

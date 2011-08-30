@@ -1,4 +1,5 @@
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 struct foo {
   int data;
@@ -27,7 +28,7 @@ struct foo *__attribute__((array)) main(){
   }
 
   for (i=0; i < n; i++){
-    assert (a[i].data == 10);
+    lcc_assert (a[i].data == 10);
     b = a[i].next;
     if (b != 0){
       validptr(b);

@@ -44,7 +44,14 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ** - Changed some of the variable names to be more meaningful.
 */
 
-extern char *malloc(int);
+// Operators for LiquidC
+
+#include <liquidc.h>
+
+extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, int REF(V >= 0) b) OKEXTERN;
+extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
+
+#include <stdlib.h>
 
 struct adpcm_state {
     short	valprev;	/* Previous output value */
@@ -52,7 +59,7 @@ struct adpcm_state {
 };
 
 void
-adpcm_coder(int nsample, short *__attribute__((array)) indata, char * __attribute__((array)) outdata, struct adpcm_state *state)
+adpcm_coder(int nsample, short * ARRAY indata, char * ARRAY outdata, struct adpcm_state *state)
 {
     short *inp;			/* Input buffer pointer */
     signed char *outp;		/* output buffer pointer */
@@ -189,7 +196,7 @@ adpcm_coder(int nsample, short *__attribute__((array)) indata, char * __attribut
 }
 
 void
-adpcm_decoder(int nsample, char * __attribute__((array)) indata, short * __attribute__((array)) outdata, struct adpcm_state *state)
+adpcm_decoder(int nsample, char * ARRAY indata, short * ARRAY outdata, struct adpcm_state *state)
 {
     signed char *inp;		/* Input buffer pointer */
     short *outp;		/* output buffer pointer */

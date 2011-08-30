@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int maim () {
     int a = nondetpos ();
     int b = nondetpos ();
@@ -7,7 +9,7 @@ int maim () {
     }
 
     if (a > 0) {
-        assert (b <= 0);
+        lcc_assert (b <= 0);
     }
 
     return 0;

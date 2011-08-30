@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 void main () {
     char *p = (char *) malloc (100);

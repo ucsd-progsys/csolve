@@ -1,4 +1,6 @@
-extern void *malloc (int);
+#include <stdlib.h>
+#include <liquidc.h>
+
 // ;)
 #define sbrk malloc
 #define NULL 0
@@ -6,24 +8,26 @@ extern void *malloc (int);
 struct region_struct {
     int                   size;
     struct region_struct *next;
-    char                  mem[0];
+    char                  mem[];
 };
 
 typedef struct region_struct region;
 
 struct pool_struct {
-    int                 size;
-    region             *free;
-    struct pool_struct *next;
+    int                  size;
+    region * LOC(LR)     free;
+    struct pool_struct * next;
 };
 
 typedef struct pool_struct free_pool;
 
-void init (int size, char *m) {
+typedef char * LAYOUT(region) OFFSET(8) allocdPtr;
+
+void init (int size, allocdPtr m) {
     while (size--) *m++ = 0;
 }
 
-char *new_region (int size) {
+allocdPtr new_region (int size) {
     region *r = (region *) malloc (sizeof (region) + size);
     r->next   = NULL;
     r->size   = size;
@@ -31,7 +35,7 @@ char *new_region (int size) {
     return &r->mem;
 }
 
-char *pool_alloc (free_pool *p) {
+allocdPtr LOC(L) pool_alloc (free_pool INST(LR, L) *p) {
     if (p->free) {
         region *r = p->free;
         p->free   = r->next;
@@ -42,7 +46,7 @@ char *pool_alloc (free_pool *p) {
     return new_region (p->size);
 }
 
-char *alloc (free_pool *freelist, int size) {
+allocdPtr LOC(L) alloc (free_pool INST(LR, L) *freelist, int size) {
     if (size <= 0) return NULL;
 
     free_pool *p;
@@ -63,10 +67,10 @@ char *alloc (free_pool *freelist, int size) {
     return pool_alloc (np);
 }
 
-void dealloc (free_pool *freelist, char *mem) {
-    if (mem == NULL) return;
+void dealloc (free_pool INST(LR, L) *freelist, allocdPtr LOC(L) mem) {
+    if (mem == (allocdPtr) NULL) return;
 
-    region *r    = (region *) mem - 1;
+    region *r = (region *) mem - 1;
     init (r->size, r->mem);
 
     free_pool *p = freelist;
@@ -81,10 +85,10 @@ void dealloc (free_pool *freelist, char *mem) {
 
 void check_invariants (free_pool *fl) {
     for (free_pool *p = fl; p != NULL; p = p->next) {
-        if (p->next != NULL) assert (p->size < p->next->size);
-        if (p->free != NULL) assert (p->free->size == p->size);
+        if (p->next != NULL) lcc_assert (p->size < p->next->size);
+        if (p->free != NULL) lcc_assert (p->free->size == p->size);
         for (region *r = p->free; r != NULL; r = r->next) {
-            if (r->next != NULL) assert (r->size == r->next->size);
+            if (r->next != NULL) lcc_assert (r->size == r->next->size);
             // validptr kills finality because we don't know what effect it may have
             // Hack around silly bug in inferindices
             int off = r->size - 1;

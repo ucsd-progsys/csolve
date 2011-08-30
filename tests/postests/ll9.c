@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 typedef struct node {
   struct node *next;
@@ -18,7 +18,7 @@ void main(){
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
     if (tmp->next != (node_t*) 0){
-      assert(tmp->next != (node_t*) 0);
+      lcc_assert(tmp->next != (node_t*) 0);
     }
   }
   

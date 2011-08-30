@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 struct blerg {
    unsigned short thing_one;

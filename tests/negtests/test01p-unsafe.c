@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 void main(){
   int *r;
@@ -10,7 +10,7 @@ void main(){
 
   y = *r;
 
-  assert(y >= 10);
+  lcc_assert(y >= 10);
 
   return;
 }

@@ -1,4 +1,5 @@
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 void main(){
   int *r;
@@ -13,7 +14,7 @@ void main(){
   }
 
   y = *r;
-  assert(y >= 0);
+  lcc_assert(y >= 0);
   
   return;
 }

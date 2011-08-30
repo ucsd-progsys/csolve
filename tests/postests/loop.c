@@ -1,7 +1,9 @@
-int main(int n){
+#include <liquidc.h>
+
+int main(int REF(V > 10) n) CHECK_TYPE {
   int i, z; 
   //n = nondet();
-  assert(10 < n);
+  lcc_assert(10 < n);
 
   z = 0;
   for (i=0; i < n; i++){
@@ -10,6 +12,6 @@ int main(int n){
     z += i;
     z += i;
   }
-  assert (z >= 0);
+  lcc_assert (z >= 0);
   return 0;
 }

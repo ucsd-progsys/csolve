@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 int main () {
     int cmp;
     int a = nondet ();
@@ -12,6 +14,6 @@ int main () {
     }
 
     if (cmp) {
-        assert (a > b);
+        lcc_assert (a > b);
     }
 }

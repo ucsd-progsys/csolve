@@ -1,8 +1,10 @@
-extern char *malloc(int);
-extern int nondetpos();
+#include <stdlib.h>
+#include <liquidc.h>
 
 // pmr: Shape inference is fine without array annots; ditch?
-char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const char *__attribute__((array)) src, unsigned int n)
+char * LOC(L) __attribute__((array)) strncpy (char * LOC(L) __attribute__((array)) dest,
+                                              const char * LOC(L) __attribute__((array)) src,
+                                              unsigned int n)
 {
   char c;
   char *s = dest;
@@ -25,7 +27,7 @@ char *__attribute__((array)) strncpy (char *__attribute__((array)) dest, const c
 	  *dest++ = c;
 	 
 	  //pmr: TOTALLY BOGUS
-	  assert(c == 0);
+	  lcc_assert(c == 0);
 	  if (c == 0)
 	    break;
           validptr(src);

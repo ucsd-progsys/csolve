@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 typedef struct node {
   int data;
@@ -21,7 +21,7 @@ void main(/* int n */){
   }
 
   for(tmp = root; tmp != 0; tmp = tmp->next){
-    assert(tmp->data >= 0);
-    //assert(tmp->data < n);
+    lcc_assert(tmp->data >= 0);
+    //lcc_assert(tmp->data < n);
   }
 }

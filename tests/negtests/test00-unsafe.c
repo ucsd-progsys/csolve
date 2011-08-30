@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void main(){
   int i;
 
@@ -6,5 +8,5 @@ void main(){
     i++;
   }
 
-  assert (i < 0);
+  lcc_assert (i < 0);
 }

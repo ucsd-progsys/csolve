@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void main ()
 {
   int n4 = nondet();
@@ -6,7 +8,7 @@ void main ()
   {
     for (;;)
     {
-      assert (n4 >= 0);
+      lcc_assert (n4 >= 0);
       if (--n4 == 0)
         return;
     }

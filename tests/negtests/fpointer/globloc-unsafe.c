@@ -1,4 +1,5 @@
-extern void *malloc (int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 int a[] = { 0, 1, 2 };
 
@@ -12,7 +13,7 @@ int main () {
 
     f = &decGlobal;
     f ();
-    assert (*a >= 0);
+    lcc_assert (*a >= 0);
 
     return 0;
 }

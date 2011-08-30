@@ -1,8 +1,8 @@
-extern int nondet ();
+#include <liquidc.h>
 
-int *x;
+int * LOC(L) x;
 
-void foo (int *y) {
+void foo (int * LOC(L) y) GLOBAL(L) {
     int *z = nondet () ? x : y;
 }
 

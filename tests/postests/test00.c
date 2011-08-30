@@ -1,13 +1,10 @@
-
-#pragma lcc (include, "../tests.spec")
-
-extern char* malloc(int);
+#include <stdlib.h>
 
 int bar(int y){
   return 0;
 }
 
-int *foo(int *x, int *__attribute__((array)) y){
+int * LOC(L) foo(int * LOC(L) x, int *__attribute__((array)) y){
   return x;
 }
 
@@ -27,9 +24,9 @@ void main(){
   
   a = 999;
 
-  assert(x >= 0);
+  lcc_assert(x >= 0);
 
-  assert(x >= 0);
+  lcc_assert(x >= 0);
 
   return; 
 }

@@ -39,6 +39,7 @@ val bytesSizeOfFloat : Cil.fkind -> int
 val bytesOffset      : Cil.typ -> Cil.offset -> int
 val ptrRefType       : Cil.typ -> Cil.typ
 val isVararg         : Cil.typ -> bool
+val isCompoundType   : Cil.typ -> bool
 val typeName         : Cil.typ -> string option
 val typ_width        : Cil.typ -> int
 val int_width        : int
@@ -49,16 +50,18 @@ val getAttr            : string -> Cil.attributes -> Cil.attribute
 val getStringAttrs     : string -> Cil.attributes -> string list
 val setStringAttr      : string -> string -> Cil.attributes -> Cil.attributes
 
-val arrayAttribute       : string
-val finalAttribute       : string
-val slocAttribute        : string
-val globalAttribute      : string
-val instantiateAttribute : string
-val predAttribute        : string
-val externOkAttribute    : string
-val checkTypeAttribute   : string
-val layoutAttribute      : string
-val ignoreBoundAttribute : string
+val arrayAttribute          : string
+val finalAttribute          : string
+val slocAttribute           : string
+val globalAttribute         : string
+val instantiateAttribute    : string
+val predAttribute           : string
+val roomForAttribute        : string
+val nonnullRoomForAttribute : string
+val externOkAttribute       : string
+val checkTypeAttribute      : string
+val layoutAttribute         : string
+val ignoreBoundAttribute    : string
 
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool

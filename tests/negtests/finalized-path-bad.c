@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 int main () {
     int *x = (int *) malloc (sizeof (int));
@@ -17,7 +17,7 @@ int main () {
         p = q;
     }
 
-    assert (**p == **q);
+    lcc_assert (**p == **q);
     
     return 0;
 }

@@ -1,9 +1,9 @@
 //! run with --manual
 
-extern void *malloc(int);
+#include <stdlib.h>
 
-void main (char * __attribute__((array)) argv[]) {
-  char * __attribute__ ((array)) * __attribute__ ((array)) fileptr;
+void main (char * ARRAY argv[]) {
+  char * ARRAY * ARRAY fileptr;
 
   fileptr = (char **) malloc (sizeof (char *));
 

@@ -1,6 +1,18 @@
-extern void *malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
-#define NULL                   0
+typedef struct _SortedList SortedList;
+
+typedef SortedList * STARTifNONNULL NNREF(PSIZE(12)) NNREF(V > 0) sortedlistptr;
+
+struct _SortedList {
+    int FINAL d;
+    sortedlistptr NNREF((DEREF([V]): int) >= d) n;
+    sortedlistptr NNREF((DEREF([V]): int) <= d) p;
+};
+
+extern void assert_sorted (SortedList *) OKEXTERN;
+
 #define _g_list_alloc0()       malloc(sizeof (GList))
 #define _g_list_alloc()        malloc(sizeof (GList))
 
@@ -13,7 +25,7 @@ struct _GList
   GList *prev;
 };
 
-GList* g_list_remove (GList *list, int data) {
+GList* LOC(L) g_list_remove (GList * LOC(L) list, int data) {
   GList *tmp;
   
   tmp = list;
@@ -40,7 +52,7 @@ GList* g_list_remove (GList *list, int data) {
   return list;
 }
 
-GList* g_list_remove_all (GList	*list, int data) {
+GList * LOC(L) g_list_remove_all (GList	* LOC(L) list, int data) {
   GList *tmp = list;
 
   while (tmp)
@@ -66,7 +78,7 @@ GList* g_list_remove_all (GList	*list, int data) {
   return list;
 }
 
-GList* g_list_remove_link (GList *list, GList *link) {
+GList * LOC(L) g_list_remove_link (GList * LOC(L) list, GList * LOC(L) link) {
   if (link)
     {
       if (link->prev)
@@ -84,21 +96,21 @@ GList* g_list_remove_link (GList *list, GList *link) {
   return list;
 }
 
-GList* g_list_nth (GList *list, int n) {
+GList * LOC(L) g_list_nth (GList * LOC(L) list, int n) {
   while ((n-- > 0) && list)
     list = list->next;
 
   return list;
 }
 
-GList* g_list_nth_prev (GList *list, int n) {
+GList * LOC(L) g_list_nth_prev (GList * LOC(L) list, int n) {
   while ((n-- > 0) && list)
     list = list->prev;
   
   return list;
 }
 
-GList* g_list_insert_sorted (GList *list, int data)
+GList * LOC(L) g_list_insert_sorted (GList * LOC(L) list, int data)
 {
   GList *tmp_list = list;
   GList *new_list;
@@ -131,7 +143,7 @@ GList* g_list_insert_sorted (GList *list, int data)
       // !{
       // pmr: Fold workaround (can't assume about tmp_list->prev directly)
       GList *p       = tmp_list->prev;
-      int    a       = assume (p->data <= data);
+      int    a       = lcc_assume (p->data <= data);
       p->next        = new_list;
       new_list->prev = p;
       // }!
@@ -145,8 +157,6 @@ GList* g_list_insert_sorted (GList *list, int data)
   else
     return list;
 }
-
-extern void assert_sorted (GList *);
 
 void main () {
     GList *head = NULL;

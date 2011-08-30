@@ -1,9 +1,11 @@
+#include <liquidc.h>
+
 void test (const char *__attribute__((array)) src)
 {
   char c;
   c = *src;
   // pmr: TOTALLY BOGUS
-  assert (c == 0);
+  lcc_assert (c == 0);
 }
 
 void main () {

@@ -81,6 +81,10 @@ let rec containsArray (t:typ) : bool =  (* does this type contain an array? *)
        this local variable itself needs to be moved to the heap. *)
    false
 
+let isCompoundType t = match unrollType t with
+  | TComp _ | TArray _ -> true
+  | _                  -> false
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
@@ -235,16 +239,18 @@ let setStringAttr name s ats =
   |> addAttribute (Attr (name, [AStr s]))
 
 (* Must be "array" because CIL inserts these itself. *)
-let arrayAttribute       = "array"
-let finalAttribute       = "lcc_final"
-let slocAttribute        = "lcc_sloc"
-let globalAttribute      = "lcc_global_loc"
-let instantiateAttribute = "lcc_inst_sloc"
-let predAttribute        = "lcc_predicate"
-let externOkAttribute    = "lcc_extern_ok"
-let checkTypeAttribute   = "lcc_check_type"
-let layoutAttribute      = "lcc_layout"
-let ignoreBoundAttribute = "lcc_ignore_bound"
+let arrayAttribute          = "array"
+let finalAttribute          = "lcc_final"
+let slocAttribute           = "lcc_sloc"
+let globalAttribute         = "lcc_global_loc"
+let instantiateAttribute    = "lcc_inst_sloc"
+let predAttribute           = "lcc_predicate"
+let externOkAttribute       = "lcc_extern_ok"
+let checkTypeAttribute      = "lcc_check_type"
+let layoutAttribute         = "lcc_layout"
+let roomForAttribute        = "lcc_room_for"
+let nonnullRoomForAttribute = "lcc_nonnull_room_for"
+let ignoreBoundAttribute    = "lcc_ignore_bound"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
@@ -257,10 +263,6 @@ let is_reference t =
   match Cil.unrollType t with
   | Cil.TPtr _ | Cil.TArray (_,_,_) -> true
   | _ -> false
-
-let isComoundType t = match unrollType t with
-  | TComp _ -> true
-  | _       -> false
 
 (*********************************************************************)
 (**********************Misc. Pretty Printers *************************)
@@ -630,9 +632,9 @@ module Pheapify: Visitor = struct
 
   let should_heapify vi =
     if vi.vglob then
-      not (isArrayType vi.vtype) && (vi.vaddrof || containsArray vi.vtype || isComoundType vi.vtype)
+      not (isArrayType vi.vtype) && (vi.vaddrof || isCompoundType vi.vtype)
     else
-      (containsArray vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
+      (isCompoundType vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
   let heapifiedType v = match unrollType v.vtype with
     | TArray (t, _, _) -> TPtr (t, [])

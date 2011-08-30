@@ -1,4 +1,4 @@
-extern void *malloc (int);
+#include <stdlib.h>
 
 typedef struct _node {
     int           val;
@@ -7,7 +7,7 @@ typedef struct _node {
 
 void test (node *hd) {
     if (hd->next != (node *) 0) {
-        assert (hd->val < hd->next->val);
+        lcc_assert (hd->val < hd->next->val);
     }
 
     return;

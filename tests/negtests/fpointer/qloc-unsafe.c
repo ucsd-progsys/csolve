@@ -1,4 +1,5 @@
-extern void *malloc (int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 int inc (int *x) {
     return *x + 1;
@@ -13,7 +14,7 @@ int main () {
 
     f = &inc;
     int z = f (y);
-    assert (z >= 0);
+    lcc_assert (z >= 0);
 
     return 0;
 }

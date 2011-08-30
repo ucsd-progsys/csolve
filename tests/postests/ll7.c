@@ -1,6 +1,7 @@
 //! run with --notruekvars
 
-extern char* malloc(int);
+#include <liquidc.h>
+#include <stdlib.h>
 
 typedef struct node {
   int *data;
@@ -24,8 +25,8 @@ node_t *foo(){
 void main(){
   node_t *n = foo();
   int    *x = n->data;
-  int assm  = assume(x != (int *) 0);
+  int assm  = lcc_assume(x != (int *) 0);
   validptr(x);
-  assert(*x >= 0);
+  lcc_assert(*x >= 0);
   return;
 }

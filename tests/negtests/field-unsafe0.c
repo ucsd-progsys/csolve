@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 typedef struct node {
   int foobar;
@@ -19,5 +19,5 @@ void main(/* int n */){
   }
 
   y = root->data;
-  assert(y == 1);
+  lcc_assert(y == 1);
 }

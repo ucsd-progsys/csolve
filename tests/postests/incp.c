@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 void inca(int *x){
   //if (nondet()) incb(x);
@@ -29,7 +29,7 @@ void main(){
   incb(r);
  // incc(r);
 
-  assert(*r >= 0);
+  lcc_assert(*r >= 0);
   
   return;
 }

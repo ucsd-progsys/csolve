@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void main(){
   int i, p, q; 
   int n;
@@ -12,7 +14,7 @@ void main(){
     p++;
   }
  
-  assert(p == q+i);
+  lcc_assert(p == q+i);
 
   return;
 }

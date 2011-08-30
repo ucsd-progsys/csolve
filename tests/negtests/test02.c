@@ -1,5 +1,7 @@
 //UNSAFE
 
+#include <liquidc.h>
+
 int abs(int x){
   if (x < 0){		//WRONG GUARD
     return x;
@@ -13,6 +15,6 @@ void main(){
   int y;
   x = nondet();
   y = abs(x);
-  assert(y >= 0);
+  lcc_assert(y >= 0);
   return;
 }

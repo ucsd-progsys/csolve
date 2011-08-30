@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 typedef struct __linkedlist {
     int data;
     struct __linkedlist *next;
@@ -9,7 +11,7 @@ int *y;
 linkedlist *ll;
 
 void f(linkedlist *lp) {
-    assert(x >= 0);
+    lcc_assert(x >= 0);
 }
 
 void main () {

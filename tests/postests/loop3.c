@@ -1,3 +1,4 @@
+#include <liquidc.h>
 
 void main(){
   int i, j, b; 
@@ -9,8 +10,8 @@ void main(){
   for(i = 0; i < 10; i++)
     j++;
 
-  assert(0 <= j);
-  assert(j == 10);
+  lcc_assert(0 <= j);
+  lcc_assert(j == 10);
  
-  //assert(b <= j && j <= b + 10);
+  //lcc_assert(b <= j && j <= b + 10);
 }

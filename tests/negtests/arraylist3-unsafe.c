@@ -1,8 +1,8 @@
 //This is actually safe but requires "range-predicates" like reasoning
 //beyond our current system
 
-
-extern char* malloc(int);
+#include <stdlib.h>
+#include <liquidc.h>
 
 struct foo {
   int data;
@@ -27,7 +27,7 @@ struct foo *__attribute__((array)) main(){
 
   for (j=0; j < n; j++){
     b       = a + j;
-    assert(b->data == 999);
+    lcc_assert(b->data == 999);
   }
 
   return a;

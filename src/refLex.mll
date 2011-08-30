@@ -108,7 +108,6 @@ rule token = parse
   | "store"             { ST }
   | "store_in"          { INST }
   | "store_out"         { OUTST }
-  | "struct"            { STRUCT }
   | "grd"               { GRD }
   | "lhs"               { LHS }
   | "rhs"               { RHS }

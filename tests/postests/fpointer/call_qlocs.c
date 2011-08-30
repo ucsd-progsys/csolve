@@ -1,5 +1,5 @@
-extern int nondet ();
-extern void *malloc (int);
+#include <liquidc.h>
+#include <stdlib.h>
 
 typedef void (*setter) (int *);
 
@@ -15,7 +15,7 @@ void invoke (setter f) {
     int *z = (int *) malloc (sizeof (int));
 
     f (z);
-    assert (*z >= 0);
+    lcc_assert (*z >= 0);
 }
 
 void main () {

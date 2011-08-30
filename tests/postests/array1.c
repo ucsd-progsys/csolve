@@ -1,4 +1,4 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 int main(){
   int *x;

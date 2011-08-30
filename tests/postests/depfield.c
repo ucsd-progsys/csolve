@@ -1,4 +1,4 @@
-extern char *malloc(int);
+#include <stdlib.h>
 
 typedef struct {
     int x;
@@ -12,7 +12,7 @@ void test(str *s) {
 
     x = s->x;
     y = s->y;
-    assert(y >= x);
+    lcc_assert(y >= x);
 }
 
 void main() {
@@ -21,7 +21,7 @@ void main() {
 
     x = nondetpos();
     y = x + 1;
-    assert(y >= x);
+    lcc_assert(y >= x);
 
     s.x = x;
     s.y = y;

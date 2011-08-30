@@ -41,12 +41,13 @@ open Ctypes
 open ShapeInfra
 open M.Ops
 
-module LDesc = I.LDesc
-module Store = I.Store
-module Ct    = I.CType
-module CFun  = I.CFun
-module Field = I.Field
-module CSpec = I.Spec 
+module LDesc  = I.LDesc
+module Store  = I.Store
+module UStore = I.Store.Unify
+module Ct     = I.CType
+module CFun   = I.CFun
+module Field  = I.Field
+module CSpec  = I.Spec 
 
 (******************************************************************************)
 (******************************** Environments ********************************)
@@ -75,98 +76,12 @@ type ctvemap = I.ctemap
 (******************************* Error Reporting ******************************)
 (******************************************************************************)
 
-exception Failure of S.Subst.t * Store.t
-
-let fail sub sto e =
-  raise (Failure (sub, sto))
-
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
 
 (******************************************************************************)
 (***************************** Constraint Solving *****************************)
 (******************************************************************************)
-
-let store_add_absent loc l i ctv sto =
-  Store.Data.add sto l
-    (LDesc.add i
-       (Field.create Ctypes.Final Ctypes.dummy_fieldinfo ctv)
-       (Store.Data.find_or_empty sto l))
-
-let rec unify_ctypes loc sub sto ct1 ct2 = match Ct.subs sub ct1, Ct.subs sub ct2 with
-  | _                          when ct1 = ct2 -> (sub, sto)
-  | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations loc s1 s2 sub sto
-  | ct1, ct2                                  -> fail sub sto <| C.errorLoc loc "Cannot unify %a and %a@!" d_ctype ct1 d_ctype ct2
-
-and unify_fields loc sub sto fld1 fld2 =
-  unify_ctypes loc sub sto (Field.type_of fld1) (Field.type_of fld2)
-
-(* We assume index inference got things right; we just want a more liberal version of
-   unify_ctypes. *)
-and subtype_ctypes loc ct1 ct2 sub sto = match Ct.subs sub ct1, Ct.subs sub ct2 with
-  | Int (n1, _), Int (n2, _) when n1 = n2 -> (sub, sto)
-  | Ref (s1, _), Ref (s2, _)              -> unify_locations loc s1 s2 sub sto
-  | ct1, ct2                              -> fail sub sto <| C.errorLoc loc "Cannot subtype %a <: %a@!" d_ctype ct1 d_ctype ct2
-
-and store_unify_data_locations loc s1 s2 sub sto =
-  let ld1, ld2 = M.map_pair (Store.Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
-  let sto      = Store.remove sto s1 in
-  let sto      = Store.Data.add sto s2 ld2 |> Store.subs sub in
-    LDesc.fold (fun (sub, sto) i f -> store_add loc s2 i (Field.type_of f) sub sto) (sub, sto) ld1
-
-and store_unify_fun_locations loc s1 s2 sub sto =
-  if Store.Function.mem sto s1 then
-    let cf1 = CFun.subs (Store.Function.find sto s1) sub in
-    let sto = s1 |> Store.remove sto |> Store.subs sub in
-      if Store.Function.mem sto s2 then
-        let cf2 = CFun.subs (Store.Function.find sto s2) sub in
-          if CFun.same_shape cf1 cf2 then
-            (sub, sto)
-          else
-            fail sub sto <|
-              C.errorLoc loc "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
-                S.d_sloc_info s1 S.d_sloc_info s2 S.d_sloc_info s1 CFun.d_cfun cf1 S.d_sloc_info s2 CFun.d_cfun cf2
-      else (sub, Store.Function.add sto s2 cf1)
-  else (sub, Store.subs sub sto)
-
-and assert_unifying_same_location_type loc s1 s2 sub sto =
-  if (Store.Function.mem sto s1 && Store.Data.mem sto s2) ||
-     (Store.Data.mem sto s1 && Store.Function.mem sto s2) then
-    fail sub sto <| C.errorLoc loc "Trying to unify data and function locations (%a, %a) in store@!%a@!"
-                      S.d_sloc_info s1 S.d_sloc_info s2 Store.d_store sto
-  else ()
-
-and unify_locations loc s1 s2 sub sto =
-  if not (S.eq s1 s2) then
-    let _   = assert_unifying_same_location_type loc s1 s2 sub sto in
-    let sub = S.Subst.extend s1 s2 sub in
-      if Store.Function.mem sto s1 || Store.Function.mem sto s2 then
-        store_unify_fun_locations loc s1 s2 sub sto
-      else if Store.Data.mem sto s1 || Store.Data.mem sto s2 then
-        store_unify_data_locations loc s1 s2 sub sto
-      else (sub, Store.subs sub sto)
-  else (sub, sto)
-
-and store_add loc s i ct sub sto =
-  try
-       ct
-    |> Ct.subs sub
-    |> Field.create Nonfinal {fname = None; ftype = None}
-    |> Store.Data.add_field_fold_overlap sto loc (unify_fields loc) sub (S.Subst.apply sub s) i
-  with e ->
-    C.errorLoc loc "store_add: Can't fit @!%a: %a@!  in location@!%a |-> %a"
-      Index.d_index i Ct.d_ctype ct S.d_sloc_info s LDesc.d_ldesc (Store.Data.find_or_empty sto s) |> ignore;
-    raise e
-
-let store_add_fun loc l cf sub sto =
-  let l = S.Subst.apply sub l in
-    if not (Store.Data.mem sto l) then
-      if Store.Function.mem sto l then
-        let _ = assert (CFun.same_shape cf (Store.Function.find sto l)) in
-          (sub, sto)
-      else (sub, Store.Function.add sto l cf)
-    else fail sub sto <| C.errorLoc loc "Attempting to store function in location %a, which contains: %a@!"
-                           S.d_sloc_info l LDesc.d_ldesc (Store.Data.find sto l)
 
 let _DEBUG_print_ve s ve =
   P.printf "%s START " s;
@@ -179,8 +94,13 @@ let constrain_lval et sub sto = function
   | (C.Var v, C.NoOffset)       -> (sub, sto)
   | (C.Mem e, C.NoOffset) as lv ->
     begin match et#ctype_of_exp e with
-      | Ref (s, i) -> store_add !C.currentLoc s i (et#ctype_of_lval lv) sub sto
-      | _          -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
+      | Ref (s, i) ->
+           lv
+        |> et#ctype_of_lval
+        |> Field.create Nonfinal dummy_fieldinfo
+        |> UStore.add_field sto sub s i
+        |> M.swap
+      | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
@@ -204,22 +124,30 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     | C.CInt64 _ -> ()
     | C.CStr _   ->
       begin match et#ctype_of_exp e with
-        | Ref (s, _) -> self#set_sub_sto <| store_add !C.currentLoc s Index.nonneg (Int (1, Index.top)) !sub !sto
-        | _          -> assert false
+        | Ref (s, _) ->
+             Field.create Nonfinal dummy_fieldinfo (Int (1, Index.top))
+          |> UStore.add_field !sto !sub s Index.nonneg
+          |> M.swap
+          |> self#set_sub_sto
+        | _ -> assert false
       end
     | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
   method private constrain_addrof = function
     | (C.Var v, C.NoOffset) as lv ->
         begin match et#ctype_of_exp (C.AddrOf lv) with
-          | Ref (l, _) -> self#set_sub_sto <| store_add_fun !C.currentLoc l (fst (VM.find v fs)) !sub !sto
-          | _          -> assert false
+          | Ref (l, _) ->
+               fst (VM.find v fs)
+            |> UStore.add_fun !sto !sub l
+            |> M.swap
+            |> self#set_sub_sto
+          | _ -> assert false
         end
     | _ -> assert false
 
   method private constrain_exp = function
     | C.Const c                          -> ()
-    | C.Lval lv | C.StartOf lv           -> self#set_sub_sto (constrain_lval et !sub !sto lv)
+    | C.Lval lv | C.StartOf lv           -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
     | C.UnOp (uop, e, t)                 -> ()
     | C.BinOp (bop, e1, e2, t)           -> ()
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
@@ -240,41 +168,44 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-let constrain_app loc i (fs, _) et cf sub sto lvo args =
+let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let _             = List.iter2 begin fun cta (fname, ctf) ->
-                        if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then
-                          fail sub sto <| C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
-                                            fname Ct.d_ctype cta Ct.d_ctype ctf
+                        if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then begin
+                          C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
+                            fname Ct.d_ctype cta Ct.d_ctype ctf;
+                          raise (UStore.UnifyFailure (sub, sto))
+                        end
                       end cts cf.args in
-  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some loc)) cf in
+  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cf in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.filter (Store.Data.mem cfi.sto_out)
                    |> List.fold_left Store.Data.ensure_sloc sto in
-  let sub, sto      = Store.Data.fold_fields begin fun (sub, sto) s i fld ->
-      store_add !C.currentLoc s i (Field.type_of fld) sub sto
-    end (sub, sto) cfi.sto_out in
-  let sub, sto      = List.fold_left2 begin fun (sub, sto) cta (_, ctf) ->
-      subtype_ctypes !C.currentLoc cta ctf sub sto
-    end (sub, sto) cts cfi.args in
+  let sto, sub      = Store.Data.fold_fields begin fun (sto, sub) s i fld ->
+                        UStore.add_field sto sub s i fld
+                      end (sto, sub) cfi.sto_out in
+  let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
+                        UStore.unify_ctype_locs sto sub cta ctf
+                      end (sto, sub) cts cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-        let sub, sto = subtype_ctypes !C.currentLoc (Ct.subs isub cf.ret) ctlv sub sto in
-        let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then
-                         fail sub sto <|
-                             C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv in
+        let sto, sub = UStore.unify_ctype_locs sto sub (Ct.subs isub cf.ret) ctlv in
+        let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then begin
+                         C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv;
+                         raise (UStore.UnifyFailure (sub, sto))
+                       end in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
     | None   -> if Ct.is_void rtv then ([], sub, sto) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
-      let sub, sto = subtype_ctypes !C.currentLoc (et#ctype_of_exp e) rtv sub sto in
+      let sto, sub = UStore.unify_ctype_locs sto sub (et#ctype_of_exp e) rtv in
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
@@ -292,7 +223,7 @@ let find_function et fs sub sto = function
         | None   -> assert false
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
-  let loc = i |> C.get_instrLoc >> (:=) C.currentLoc in
+  let _ = C.currentLoc := C.get_instrLoc i in
   match i with
   | C.Set (lv, e, _) ->
       let sub, sto = constrain_lval et sub sto lv in
@@ -300,15 +231,15 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
       let _        = assert_store_type_correct lv ct2 in
-      let sub, sto = subtype_ctypes loc ct2 ct1 sub sto in
+      let sto, sub = UStore.unify_ctype_locs sto sub ct2 ct1 in
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
-      let _ = CM.g_errorLoc !Cs.safe loc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
+      let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
       let _, sub, sto = constrain_args et fs sub sto args in
         ([] :: bas, sub, sto)
   | C.Call (lvo, C.Lval lv, args, _) ->
       let cf           = find_function et fs sub sto lv in
-      let ba, sub, sto = constrain_app loc i env et cf sub sto lvo args in
+      let ba, sub, sto = constrain_app i env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
@@ -330,10 +261,12 @@ let constrain_stmt ((fs, _) as env) et rtv s sub sto =
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
-  let loc = vphi.C.vdecl >> (:=) C.currentLoc in
-    List.fold_left begin fun (sub, sto) (_, vdef) ->
-      subtype_ctypes loc (VM.find vdef ve) (VM.find vphi ve) sub sto
-    end (sub, sto) vdefs
+  let _ = C.currentLoc := vphi.C.vdecl in
+       vdefs
+    |> List.fold_left begin fun (sto, sub) (_, vdef) ->
+         UStore.unify_ctype_locs sto sub (VM.find vdef ve) (VM.find vphi ve)
+       end (sto, sub)
+    |> M.swap
 
 let constrain_phis ve phis sub sto =
   Array.to_list phis |> List.flatten |> List.fold_left (constrain_phi_defs ve) (sub, sto)
@@ -358,10 +291,10 @@ class exprMapVisitor (et) = object (self)
 end
 
 let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
-  let loc          = fd.C.svar.C.vdecl >> (:=) C.currentLoc in
-  let sub, sto     = List.fold_left2 begin fun (sub, sto) (_, fct) bv ->
-    subtype_ctypes loc (VM.find bv ve) fct sub sto
-  end (S.Subst.empty, sto) cf.args fd.C.sformals in
+  let _            = C.currentLoc := fd.C.svar.C.vdecl in
+  let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
+                       UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
+                     end (sto, S.Subst.empty) cf.args fd.C.sformals in
   let sub, sto     = constrain_phis ve phis sub sto in
   let et           = new exprTyper (ve) in
   let blocks       = cfg.Ssa.blocks in
@@ -380,7 +313,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
 let constrain_fun fs cf ve sto sci =
   try
     constrain_fun fs cf ve sto sci
-  with Failure (sub, sto) ->
+  with UStore.UnifyFailure (sub, sto) ->
     let _ = P.printf "@!Locals:@!" in
     let _ = P.printf "=======@!" in
     let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
@@ -434,22 +367,12 @@ let unified_instantiation_error () (s1, s2) =
   C.error "Call unifies locations which are separate in callee (%a, %a)" 
   S.d_sloc_info s1 S.d_sloc_info s2
 
-let check_annots_wf sub bas =
-  Array.iter begin fun ba ->
-    List.iter begin fun annots ->
-         annots
-      |> List.filter (function RA.New _ -> true | _ -> false)
-      |> List.map (function RA.New (_, s) -> s | _ -> assert false)
-      |> check_slocs_distinct unified_instantiation_error sub
-    end ba
-  end bas
-
 let check_sol cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
   let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
   let _           = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
-  let _           = check_annots_wf sub bas in
+  (* We check that instantiation annotations are WF as we check calls in consVisitor *)
   let revsub      = revert_spec_names sub whole_store in
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in

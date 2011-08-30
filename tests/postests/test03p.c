@@ -1,10 +1,10 @@
-extern char* malloc(int);
+#include <stdlib.h>
 
 int foo(int *x){
   int y;
   //x = x;
   y = *x;
-  assert(y >= 0);
+  lcc_assert(y >= 0);
   return 0;
 }
 

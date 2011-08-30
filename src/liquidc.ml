@@ -76,20 +76,6 @@ let mk_cfg cil =
     | _ -> ()
   end
 
-(*
-let preprocess cil =
-  cil >> CilMisc.unfloat 
-      >> CilMisc.Pheapify.doVisit 
-      >> Psimplify.simplify 
-      >> Simpleret.simpleret 
-      >> Rmtmps.removeUnusedTemps 
-      >> CilMisc.purify 
-      >> CilMisc.CopyGlobal.doVisit
-      >> CilMisc.NameNullPtrs.doVisit 
-      >> mk_cfg 
-      >> rename_locals 
-*)
-
 let print_header () = 
   Printf.printf " \n \n";
   Printf.printf "$ %s \n" (String.concat " " (Array.to_list Sys.argv));
@@ -159,69 +145,10 @@ let add_spec fn spec_src =
     | Some x -> Sp.add spec_src x
     | _      -> spec_src
 
-let generate_spec_fancy file fn spec =  
-  let oc = open_out (fn^".autospec") in
-        file
-     >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-     (* >> Genspec.dump_pragmas *)
-     |> Typespec.specsOfFile spec
-     >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-     |> begin fun (funspec, varspec, storespec) ->
-          let fspec = funspec |> Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) |> SM.of_list in
-          let vspec = varspec |> Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) |>: (Misc.app_snd (fun x -> (x, true))) |> SM.of_list in
-          let sp    = Sp.make fspec vspec storespec in
-          ignore <| Pretty.fprintf oc "%a" Sp.d_spec sp; 
-          close_out oc
-       end
-          (* {{{ 
-          Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
-            Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore
-          end () storespec;
-          Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
-            Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
-          end () storespec;
-          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.RefCTypes.CType.d_ctype ct |> ignore) varspec;
-          List.iter begin fun (fn, (cf, useType)) ->
-            Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (if useType then "<:" else "::") Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
-          end funspec;
-          }}} *)
- 
-let generate_spec file fn spec =  
-  let oc = open_out (fn^".autospec") in
-        file
-     >> (fun _ -> ignore <| E.log "START: Generating Specs \n") 
-     >> Genspec.dump_pragmas
-     |> Genspec.specs_of_file spec
-     >> (fun _ -> ignore <| E.log "DONE: Generating Specs \n")  
-     |> begin fun (funspec, varspec, storespec) ->
-          let funspec = Misc.filter (fun (fn,_) -> not (Sp.mem_fun fn spec)) funspec in
-          let varspec = Misc.filter (fun (vn,_) -> not (Sp.mem_var vn spec)) varspec in
-          Ctypes.I.Store.Data.fold_locs begin fun l ld _ ->
-            Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.I.LDesc.d_ldesc ld |> ignore
-          end () storespec;
-          Ctypes.I.Store.Function.fold_locs begin fun l cf _ ->
-            Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.I.CFun.d_cfun cf |> ignore
-          end () storespec;
-          List.iter (fun (vn, ct) -> Pretty.fprintf oc "%s :: @[%a@]\n\n" vn Ctypes.I.CType.d_ctype ct |> ignore) varspec;
-          List.iter (fun (fn, cf) -> Pretty.fprintf oc "%s ::@!  @[%a@]\n\n" fn Ctypes.I.CFun.d_cfun cf |> ignore) funspec;
-          close_out oc
-        end
-
 let spec_of_file outprefix file =
-  if !Co.new_spec_gen then
-    Sp.empty
-    >> generate_spec_fancy file outprefix
-    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
-    >> Genspec.assert_spec_complete file
-  else
-    Sp.empty
-    |> add_spec (Co.get_lib_spec ())                                            (* Add default specs  *)
-    |> List.fold_right add_spec (spec_includes file)                            (* Add external specs *)
-    |> add_spec (outprefix^".spec")                                             (* Add manual specs   *)
-    >> generate_spec file outprefix 
-    |> add_spec (outprefix^".autospec")                                         (* Add autogen specs  *)
-    >> Genspec.assert_spec_complete file
-
+  let specfile = outprefix^".autospec" in
+    Typespec.writeSpecOfFile file specfile;
+    specfile |> parseOneSpec |> Misc.maybe
 
 let decs_of_file cil = 
   let reachf = CM.reachable cil in
@@ -304,6 +231,7 @@ let cil_of_file file =
 let liquidate file =
   let log       = open_out "liquidc.log" in
   let _         = E.logChannel := log in
+  let _         = Co.setLogChannel log in
   let cil       = BS.time "Parse: source" cil_of_file file in
   let _         = E.log "DONE: cil parsing \n" in
   let fn        = !Co.liquidc_file_prefix (* file.Cil.fileName *) in

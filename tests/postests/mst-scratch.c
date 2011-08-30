@@ -1,12 +1,19 @@
+//! run with --notruekvars
+
+#include <stdlib.h>
+#include <liquidc.h>
+
 /******************************************************************/
 /********************* Type Definitions ***************************/
 /******************************************************************/
 
-typedef char *__attribute__((array)) *__attribute__((array)) string_array;
-
 struct hash_entry {
    unsigned int key ;
    int entry ;		//JHALA POLY ISSUE
+    // next doesn't get any of the useful properties that the first hash entry does,
+    // even coming directly out of MakeHash and MakeGraph
+    // this is where --notruekvars might be useful...
+    // - what to do about untouched locations?
    struct hash_entry *next ;
    unsigned int padding ;
 };
@@ -14,7 +21,7 @@ struct hash_entry {
 typedef struct hash_entry *HashEntry;
 
 struct hash {
-   HashEntry * __attribute__((array)) array ;
+   HashEntry *  ARRAY array ;
    //int (*mapfunc)(unsigned int  ) ;
    int size ;
    unsigned int padding ;
@@ -24,15 +31,15 @@ typedef struct hash *Hash;
 
 struct vert_st {
    int mindist ;
-   struct vert_st *__attribute__((array)) next ;
-   Hash edgehash ;
+   struct vert_st * ARRAY next ;
+   Hash LOC(HL) edgehash ;
    unsigned int padding ;
 };
 
-typedef struct vert_st *__attribute__((array)) Vertex;
+typedef struct vert_st * ARRAY Vertex;
 
 struct graph_st {
-   //struct vert_st *__attribute__((array)) vlist ; //JHALA: each cell=0 or validptr into array
+   //struct vert_st * ARRAY vlist ; //JHALA: each cell=0 or validptr into array
    Vertex vlist ; //JHALA: each cell=0 or validptr into array
 
 };
@@ -40,18 +47,17 @@ struct graph_st {
 typedef struct graph_st *Graph;
 
 struct blue_return {
-   Vertex vert ;
+   Vertex LOC(VL) vert ;
    int dist ;
 };
 
 typedef struct blue_return *BlueReturn;
-extern char *malloc(int);
 
 /******************************************************************/
 /****************************** Code ******************************/
 /******************************************************************/
 
-Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ ) 
+Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ )
 { Hash retval ;
   void *tmp ;
   void *tmp___0 ;
@@ -68,22 +74,25 @@ Hash MakeHash(int size /* , int (*map)(unsigned int  ) */ )
   }
 }
 
-static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key ) 
-{ 
+static int hashfunc(/* JHALA: */unsigned int HashRange, unsigned int key )
+{
   return ((int )((key >> 4) % (unsigned int )HashRange));
 }
 
 
 //void *HashLookup(unsigned int key , Hash hash ) JHALA POLY ISSUE
-int HashLookup(unsigned int key , Hash hash ) 
+int HashLookup(unsigned int key , Hash hash )
 { int j ;
   HashEntry ent ;
-  int a = assume(hash != (Hash)0);
+  int a = lcc_assume(hash != (Hash)0);
 
   {
+  // Necessary if we don't use --notruekvars - why only then?
+  /* if (hash->size <= 0) return 0; */
+
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
-  assert(j >= 0);
-  assert(j < hash->size);
+  lcc_assert(j >= 0);
+  lcc_assert(j < hash->size);
 
   validptr(hash->array + j);
   ent = *(hash->array + j);
@@ -110,17 +119,17 @@ int HashLookup(unsigned int key , Hash hash )
 
 
 //void HashInsert(void *entry , unsigned int key , Hash hash )  JHALA POLY ISSUE
-void HashInsert(int entry , unsigned int key , Hash hash ) 
+void HashInsert(int entry , unsigned int key , Hash hash )
 { HashEntry ent ;
   int j ;
   /* void *tmp; */
-  int a = assume(hash != (Hash) 0); // pmr: needed for safe derefs to hash->
+  int a = lcc_assume(hash != (Hash) 0); // pmr: needed for safe derefs to hash->
 
   {
-  // assert(3,!HashLookup(key,hash));
+  // lcc_assert(3,!HashLookup(key,hash));
   j = /*(*(hash->mapfunc))*/hashfunc(hash->size, key);
-  assert(j>=0);
-  assert(j<hash->size);
+  lcc_assert(j>=0);
+  lcc_assert(j<hash->size);
   /*tmp*/ent = /*localmalloc*/(HashEntry *) malloc((int )sizeof(*ent));
   //ent = (struct hash_entry *)tmp;
   validptr(hash->array + j);
@@ -136,7 +145,7 @@ void HashInsert(int entry , unsigned int key , Hash hash )
 
 
 
-static int mult(int p , int q ) 
+static int mult(int p , int q )
 { int p1 ;
   int p0 ;
   int q1 ;
@@ -151,7 +160,7 @@ static int mult(int p , int q )
 }
 }
 
-static int mst_random(int seed ) 
+static int mst_random(int seed )
 { int tmp ;
   int tmp___0 ;
 
@@ -162,7 +171,7 @@ static int mst_random(int seed )
 }
 }
 
-static int compute_dist(int i , int j , int numvert ) 
+static int compute_dist(int i , int j , int numvert )
 { int less ;
   int gt ;
   int tmp ;
@@ -181,7 +190,7 @@ static int compute_dist(int i , int j , int numvert )
 }
 
 
-static void AddEdges(Graph retval , int numvert ) 
+static void AddEdges(Graph retval , int numvert )
 { Vertex src ;
   Vertex dest ;
   Hash hash ;
@@ -214,7 +223,8 @@ static void AddEdges(Graph retval , int numvert )
   return;
 }
 }
-Graph MakeGraph(int numvert ) 
+
+Graph MakeGraph(int numvert )
 { int i ;
   Vertex vf ;
   Vertex vt ;
@@ -227,7 +237,7 @@ Graph MakeGraph(int numvert )
   HashRange = numvert / 4; //JHALA: hoisted from loop-body
   //tmp = malloc(sizeof(*retval));
   //retval = (struct graph_st *) tmp;
-  retval = (struct graph_st *) malloc(sizeof(*retval)); 
+  retval = (struct graph_st *) malloc(sizeof(*retval));
   //chatting((char *)"Make phase 1: Creating hash tables\n");
   //tmp___0 = malloc((unsigned int )numvert * sizeof(*vf));
   //retval->vlist = (struct vert_st *)tmp___0;
@@ -250,7 +260,7 @@ Graph MakeGraph(int numvert )
 }
 }
 
-static BlueReturn BlueRule(Vertex inserted , Vertex vlist ) 
+static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex LOC(L) vlist )
 { BlueReturn retval ;
   Vertex tmp ;
   Vertex prev ;
@@ -329,7 +339,7 @@ static BlueReturn BlueRule(Vertex inserted , Vertex vlist )
 }
 
 
-static int ComputeMst(Graph graph , int numvert ) 
+static int ComputeMst(Graph graph , int numvert )
 { Vertex inserted ;
   Vertex tmp ;
   int cost ;
@@ -342,7 +352,7 @@ static int ComputeMst(Graph graph , int numvert )
   //chatting((char *)"Compute phase 1\n");
   validptr(graph);
   inserted = graph->vlist;
-  validptr(inserted);			       
+  validptr(inserted);
   tmp = inserted->next;
   //graph->vlist = tmp;			       //JHALA: Gratuitous assignment! wrecks validptr(inserted)
   					       //could be solved if we knew graph pointed to conc
@@ -351,8 +361,8 @@ static int ComputeMst(Graph graph , int numvert )
   //chatting((char *)"Compute phase 2\n");
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
-      int assm = assume(inserted != (Vertex) 0);	//JHALA numvert = listlength... 
-      validptr(MyVertexList);  
+      int assm = lcc_assume(inserted != (Vertex) 0);	//JHALA numvert = listlength...
+      validptr(MyVertexList);
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
@@ -365,7 +375,7 @@ static int ComputeMst(Graph graph , int numvert )
 }
 }
 
-int dealwithargs(int argc , string_array argv) 
+int dealwithargs(int argc , char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
 { int level ;
   if (argc > 1) {
     validptr(argv + 1);
@@ -376,7 +386,7 @@ int dealwithargs(int argc , string_array argv)
   return (level);
 }
 
-int main(int argc, string_array argv ){ 
+int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv) CHECK_TYPE {
   Graph graph;
   int dist ;
   int size ;
@@ -385,7 +395,7 @@ int main(int argc, string_array argv ){
   if (size > 0){                        //JHALA: Otherwise NN-error!
     graph = MakeGraph(size);
     validptr(graph->vlist); 		//JHALA: Maybe NULL LAST
-    dist  = ComputeMst(graph, size);  
+    dist  = ComputeMst(graph, size);
   }
   exit(0);
   return 0;

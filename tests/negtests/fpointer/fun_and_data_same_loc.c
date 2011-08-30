@@ -1,5 +1,5 @@
-extern int nondet ();
-extern void *malloc (int size);
+#include <liquidc.h>
+#include <stdlib.h>
 
 void test () {
     return;
