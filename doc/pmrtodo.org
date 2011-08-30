@@ -92,6 +92,7 @@
   Note that the extern variable requires whatever invariant is given
   by the type to hold; the user program is not allowed to just
   arbitrarily modify the variable.
+* DONE Disallow concrete pointers to function locations
 
 * TODO Check types of extern locations
   Ditto above; can we even specify nontrivial invariants for
@@ -138,8 +139,6 @@
   getting substituted, this seems very hard to maintain as we
   instantiate and create new functions. We should instead change this
   use of map to a saner instantiation.
-* TODO Disallow concrete pointers to function locations
-
 * TODO const qualifier should mark locations' contents as FINAL
 
 * TODO Wipe attributes from SSA output

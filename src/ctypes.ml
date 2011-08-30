@@ -861,6 +861,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     module Function = struct
       let add (ds, fs) l cf =
         let _ = assert (not (SLM.mem l ds)) in
+        let _ = assert (Sloc.is_abstract l) in
           (ds, SLM.add l cf fs)
 
       let bindings (_, fs) =
