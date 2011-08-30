@@ -1,9 +1,10 @@
-HEREHEREHEREHERE
-* run regrtests with and without -origdeps to see which wins
 
-* fill in make_direct_deps in fixpoint/cindex.ml; that alone should
-  get a prototype where only direct dependencies are used to compute 
-  the worklist order....
+HEREHEREHEREHERE
+
+* run regrtests to see which fail (-lfp should make them ALL succeed)
+    > see if there are speedups too.
+
+* run regrtests with and without -origdeps to see which wins
 
 * src/pmrtodo.org benchmarks
         tsort 

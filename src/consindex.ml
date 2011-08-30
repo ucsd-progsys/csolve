@@ -118,7 +118,7 @@ let solve me fn qs =
 
 (* API *)
 let force me fn qs = 
-  let s = solve me fn qs |> fst in
+  let s = Misc.with_ref_at Constants.lfp true (fun () -> solve me fn qs |> fst) in
   me.defm 
   |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
