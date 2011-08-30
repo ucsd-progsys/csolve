@@ -109,6 +109,11 @@ and 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
+type specType =
+  | HasShape
+  | IsSubtype
+  | HasType
+
 type 'a prespec
 
 module type S = sig
@@ -264,22 +269,22 @@ module type S = sig
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> CFun.t * bool -> t -> t
-    val add_var : bool -> string -> CType.t * bool -> t -> t
+    val add_fun : bool -> string -> CFun.t * specType -> t -> t
+    val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t -> t -> t
     val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
     val upd_store : t -> Store.t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-    val get_fun : string -> t -> CFun.t * bool
-    val get_var : string -> t -> CType.t * bool
+    val get_fun : string -> t -> CFun.t * specType
+    val get_var : string -> t -> CType.t * specType
     
     val store   : t -> Store.t
-    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
 
-    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
-                  (R.t prectype * bool) Misc.StringMap.t -> 
+    val make    : (R.t precfun * specType) Misc.StringMap.t -> 
+                  (R.t prectype * specType) Misc.StringMap.t -> 
                   Store.t -> 
                   t
 

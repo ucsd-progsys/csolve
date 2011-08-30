@@ -373,8 +373,13 @@ and 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec = ('a precfun * bool) Misc.StringMap.t 
-                * ('a prectype * bool) Misc.StringMap.t 
+type specType =
+  | HasShape
+  | IsSubtype
+  | HasType
+
+type 'a prespec = ('a precfun * specType) Misc.StringMap.t 
+                * ('a prectype * specType) Misc.StringMap.t 
                 * 'a prestore
 
 let d_fieldinfo () = function
@@ -542,21 +547,21 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> cfun * bool -> t -> t
-    val add_var : bool -> string -> ctype * bool -> t -> t
+    val add_fun : bool -> string -> cfun * specType -> t -> t
+    val add_var : bool -> string -> ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> ldesc -> t -> t
     val add_fun_loc  : Sloc.t -> cfun -> t -> t
     val upd_store    : t -> store -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-    val get_fun : string -> t -> cfun * bool
-    val get_var : string -> t -> ctype * bool
+    val get_fun : string -> t -> cfun * specType
+    val get_var : string -> t -> ctype * specType
     val store   : t -> store
-    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
 
-    val make    : (R.t precfun * bool) Misc.StringMap.t ->
-                  (R.t prectype * bool) Misc.StringMap.t ->
+    val make    : (R.t precfun * specType) Misc.StringMap.t ->
+                  (R.t prectype * specType) Misc.StringMap.t ->
                   store ->
                   t
     val add     : t -> t -> t

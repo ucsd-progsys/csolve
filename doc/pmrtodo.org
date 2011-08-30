@@ -88,6 +88,16 @@
   When we need to pass a pointer into a structure, we need the pointer
   to be aligned with the start of the structure. Make sure that all
   spec preconditions are set up to ensure this.
+* DONE Check types of extern vars
+  Note that the extern variable requires whatever invariant is given
+  by the type to hold; the user program is not allowed to just
+  arbitrarily modify the variable.
+
+* TODO Check types of extern locations
+  Ditto above; can we even specify nontrivial invariants for
+  locations? Can we specify nontrivial predicates but add an override
+  for making the shape simple?
+
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
@@ -117,10 +127,6 @@
   interesting for verification, so it would be nice to have a way to
   hide them from the verifier, and we could just have a "FILE_OK" tag
   on file handles generated from the right syscalls.
-* TODO Check types of extern vars
-  Note that the extern variable requires whatever invariant is given
-  by the type to hold; the user program is not allowed to just
-  arbitrarily modify the variable.
 * TODO Don't assert globals' types in constraints
   They don't do anything but bump up the required number of
   iterations; any time we actually use a global we copy it into a

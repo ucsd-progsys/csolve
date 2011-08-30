@@ -158,7 +158,9 @@ let decs_of_file cil =
   |> Misc.filter (function CM.FunDec (vn,_,_) -> reachf vn | _ -> true)
 
 let project_spec fns spec =
-  let fspec = Sp.funspec spec |> SM.mapi (fun fn (cf, b) -> (cf, b || (SS.mem fn fns))) in
+  let fspec = spec
+           |> Sp.funspec
+           |> SM.mapi (fun fn (cf, b) -> (cf, if SS.mem fn fns then Ctypes.IsSubtype else b)) in
   Sp.make fspec (Sp.varspec spec) (Sp.store spec)
 
 let incremental_spec outprefix fns spec =

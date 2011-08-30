@@ -654,6 +654,21 @@ let init_of_var v = function
   | None -> if v.vstorage = Extern then None else Some (makeZeroInit v.vtype)
   | i    -> i
 
+(******************************************************************************)
+(*************************** Interpreting Spectypes ***************************)
+(******************************************************************************)
+
+let should_subtype = function
+  | Ct.IsSubtype | Ct.HasType -> true
+  | Ct.HasShape               -> false
+
+let should_supertype = function
+  | Ct.HasType                 -> true
+  | Ct.IsSubtype | Ct.HasShape -> false
+
+let make_cs_if b lcs =
+  if b then lcs |> Lazy.force |> fst else []
+
 (*************************************************************************)
 (****************************** API **************************************)
 (*************************************************************************)
@@ -663,20 +678,27 @@ let cons_of_decs tgr spec gnv gst decs =
   let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
     | CM.FunDec (fn, _, loc) ->
-        let tag     = CilTag.make_t tgr loc fn 0 0 in
-        let irf     = FI.ce_find_fn fn gnv in
-        let ws'     = FI.make_wfs_fn gnv irf tag in
-        let srf, b  = CS.get_fun fn spec in
-        let cs',ds' = if b then FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc else ([],[]) in
-        (ws' ++ ws, cs' ++ cs, [], [])
+        let tag    = CilTag.make_t tgr loc fn 0 0 in
+        let irf    = FI.ce_find_fn fn gnv in
+        let ws'    = FI.make_wfs_fn gnv irf tag in
+        let srf, s = CS.get_fun fn spec in
+        let cs'    = make_cs_if (should_subtype s)
+                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
+        let cs''   = make_cs_if (should_supertype s)
+                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
+        (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
-        let vspctyp, b = CS.get_var v.vname spec in 
+        let vspctyp, s = CS.get_var v.vname spec in 
         let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
-        let cs'', _    = if b then FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc else ([],[]) in
+        let cs''       = make_cs_if (should_subtype s)
+                           (lazy (FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc)) in
         let ws'        = FI.make_wfs FI.ce_empty gst vtyp tag in
-          (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
+        let tag        = CilTag.make_global_t tgr loc in
+        let cs'''      = make_cs_if (should_supertype s)
+                           (lazy (FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc)) in
+          (ws' ++ ws, cs''' ++ cs'' ++ cs' ++ cs, [], [])
   end (ws, cs, [], []) decs
 
 (* API *)

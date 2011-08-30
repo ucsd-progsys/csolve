@@ -360,6 +360,9 @@ let declarationsOfFile file =
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
+let specTypeOfFun v =
+  if C.hasAttribute CM.checkTypeAttribute v.C.vattr then Ct.IsSubtype else Ct.HasShape
+
 let globalSpecOfFuns sub gsto funs =
      funs
   |> List.fold_left begin fun (funm, gsto, sub) v ->
@@ -367,10 +370,14 @@ let globalSpecOfFuns sub gsto funs =
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
          let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
-           (M.sm_protected_add false fn (rcf, C.hasAttribute CM.checkTypeAttribute v.C.vattr) funm, gsto, sub)
+           (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)
   |> M.app_fst3 SM.to_list
+
+let specTypeOfVar v = match v.C.vstorage with
+  | C.Extern -> Ct.HasType
+  | _        -> Ct.HasShape
 
 let updVarM sub varm v =
   if not <| C.isFunctionType v.C.vtype then begin
@@ -378,7 +385,7 @@ let updVarM sub varm v =
       M.sm_protected_add
         false
         v.C.vname
-        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, v.C.vstorage = C.Extern)
+        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, specTypeOfVar v)
         varm
   end else
     varm
@@ -394,8 +401,10 @@ let specsOfDecs funs vars =
   let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
     (fspecs, varSpecOfVars sub vars, gsto)
 
-let opOfUsetype ut =
-  if ut then "<:" else "::"
+let opOfSpecType = function
+  | Ct.HasShape  -> "::"
+  | Ct.IsSubtype -> "<:"
+  | Ct.HasType   -> "|-"
 
 let writeSpec (funspec, varspec, storespec) outfilename =
   let oc = open_out outfilename in
@@ -405,11 +414,11 @@ let writeSpec (funspec, varspec, storespec) outfilename =
     Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
       Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
     end () storespec;
-    List.iter begin fun (vn, (ct, useType)) ->
-      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfUsetype useType) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
+    List.iter begin fun (vn, (ct, spt)) ->
+      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfSpecType spt) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
     end varspec;
-    List.iter begin fun (fn, (cf, useType)) ->
-      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfUsetype useType) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+    List.iter begin fun (fn, (cf, spt)) ->
+      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfSpecType spt) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
     end funspec;
     close_out oc
 

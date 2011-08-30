@@ -76,6 +76,7 @@ rule token = parse
   | "|->"               { MAPSTO }
   | "<:"                { PCOLON }
   | "::"                { DCOLON }
+  | "|-"                { HASTYPE }
   | ":="                { ASGN }
   | "&&"                { AND }
   | "||"                { OR  }

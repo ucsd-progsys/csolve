@@ -95,12 +95,6 @@ let currentLoc () =
      Cil.line = p.Lexing.pos_lnum;
      Cil.byte = p.Lexing.pos_cnum}
 
-
-
-
-
-
-
 %}
 
 %token DIV 
@@ -110,7 +104,7 @@ let currentLoc () =
 %token <int> CONC
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON HASTYPE MAPSTO MID LOCATION
 %token ARG RET ST GLOBAL INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -190,8 +184,9 @@ locspec:
   ;
 
 publ:
-  | DCOLON                              {false}
-  | PCOLON                              {true}
+  | DCOLON                              { Ct.HasShape }
+  | PCOLON                              { Ct.IsSubtype }
+  | HASTYPE                             { Ct.HasType }
   ;
 
 
