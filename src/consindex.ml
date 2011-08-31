@@ -37,8 +37,6 @@ module FI = FixInterface
 
 module Ct = Ctypes
 
-module SPA = Fixpoint.SPA
-
 open Misc.Ops
 open Cil
 
@@ -115,25 +113,35 @@ let config ts env ps a ds cs ws qs =
     ; Config.ws   = ws
     ; Config.qs   = qs }
 
-(* API *)
-let solve me fn qs = 
+
+let solve (d_create, d_save, d_solve, d_read) me fn qs = 
   let ws     = get_wfs me in
   let cs     = get_cs me in
   let ds     = get_deps me in
   let env    = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let cfg    = config FA.sorts env FA.axioms 4 ds cs ws qs in
-  let ctx, s = BS.time "Qual Inst" SPA.create cfg in
+  let ctx, s = BS.time "Qual Inst" d_create cfg in
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _      = BS.time "save in" (SPA.save (fn^".in.fq") ctx) s in
-  let s',cs' = BS.time "Cons: Solve" (SPA.solve ctx) s in 
+  let _      = BS.time "save in" (d_save (fn^".in.fq") ctx) s in
+  let s',cs' = BS.time "Cons: Solve" (d_solve ctx) s in 
   let _      = Errormsg.log "DONE: constraint solving \n" in
-  let _      = BS.time "save out" (SPA.save (fn^".out.fq") ctx) s' in
-  (SPA.read s'), cs'
+  let _      = BS.time "save out" (d_save (fn^".out.fq") ctx) s' in
+  (d_read s'), cs'
+
+let d_predAbs   = Fixpoint.SPA.create
+                , Fixpoint.SPA.save
+                , Fixpoint.SPA.solve
+                , Fixpoint.SPA.read
 
 (* API *)
 let force me fn qs = 
-  let s = Misc.with_ref_at Constants.slice false (fun () -> solve me fn qs |> fst) in
+  let s = Misc.with_ref_at Constants.slice false (fun () -> solve d_predAbs me fn qs |> fst) in
   me.defm 
   |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
   >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
+
+
+(* API *)
+let solve = solve d_predAbs 
+

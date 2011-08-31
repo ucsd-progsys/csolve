@@ -2,7 +2,6 @@
 1. Make signatures:
     
     DOMAIN  (fixSolution.mli)
-    
     SOLVER  (solve.mli)
 
 2. Rename FixSolution to PredAbsDomain
