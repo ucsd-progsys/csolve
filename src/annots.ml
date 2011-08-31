@@ -282,6 +282,9 @@ let apply_solution =
     | TFun (f, cf) -> TFun (f, s_fun s cf)
     | TSto (f, st) -> TSto (f, s_sto s st) 
 
+let apply_solution s x = 
+  Misc.do_catch_ret "Annots.apply_solution" (apply_solution s) x x
+
 (* API *)
 let dump_annots so = 
   !annotr 
