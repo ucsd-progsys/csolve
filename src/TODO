@@ -1,22 +1,16 @@
 
-1. Make signatures:
+layered solve
     
-    DOMAIN  (fixSolution.mli)
-    SOLVER  (solve.mli)
+    Qs1 Qs2 Qs3 ...
 
-2. Rename FixSolution to PredAbsDomain
-
-3. Turn solve into a functor:
-
-       MakeSolver(dom: DOMAIN) : SOLVER
-
-       module SolvePredAbs = MakeSolver (PredAbsDomain)
-       
-4. Create a new ArithDomain
-
-       module SolveArith   = MakeSolver (ArithDomain)
-
-5. Use SolveArith in Consindex.force
+    ws := WS
+    cs := CS
+    s' :=  empty
+    
+    for i in 0..n
+      zz, s := Solve.create ws cs QS.(i)
+      s', _ := Solve.solve zz (meet s s') 
+      ws,cs := filter_solved (ws,cs) s'
 
 HEREHEREHEREHERE
 
