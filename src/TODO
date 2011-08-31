@@ -1,8 +1,25 @@
 
-HEREHEREHEREHERE
+1. Make signatures:
+    
+    DOMAIN  (fixSolution.mli)
+    
+    SOLVER  (solve.mli)
 
-* run regrtests to see which fail (-lfp should make them ALL succeed)
-    > see if there are speedups too.
+2. Rename FixSolution to PredAbsDomain
+
+3. Turn solve into a functor:
+
+       MakeSolver(dom: DOMAIN) : SOLVER
+
+       module SolvePredAbs = MakeSolver (PredAbsDomain)
+       
+4. Create a new ArithDomain
+
+       module SolveArith   = MakeSolver (ArithDomain)
+
+5. Use SolveArith in Consindex.force
+
+HEREHEREHEREHERE
 
 * run regrtests with and without -origdeps to see which wins
 
