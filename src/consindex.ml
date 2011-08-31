@@ -102,13 +102,25 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
+let config ts env ps a ds cs ws qs = 
+  { Config.empty with 
+      Config.a    = a
+    ; Config.ts   = ts
+    ; Config.uops = env
+    ; Config.ps   = ps
+    ; Config.ds   = ds
+    ; Config.cs   = cs
+    ; Config.ws   = ws
+    ; Config.qs   = qs }
+
 (* API *)
 let solve me fn qs = 
   let ws     = get_wfs me in
   let cs     = get_cs me in
   let ds     = get_deps me in
   let env    = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let ctx, s = BS.time "Qual Inst" (Solve.create FA.sorts env FA.axioms 4 ds [] cs ws []) qs in
+  let cfg    = config FA.sorts env FA.axioms 4 ds cs ws qs in
+  let ctx, s = BS.time "Qual Inst" Solve.create cfg in
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
   let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
