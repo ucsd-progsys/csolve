@@ -37,6 +37,8 @@ module FI = FixInterface
 
 module Ct = Ctypes
 
+module SPA = Fixpoint.SPA
+
 open Misc.Ops
 open Cil
 
@@ -120,13 +122,13 @@ let solve me fn qs =
   let ds     = get_deps me in
   let env    = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let cfg    = config FA.sorts env FA.axioms 4 ds cs ws qs in
-  let ctx, s = BS.time "Qual Inst" Solve.create cfg in
+  let ctx, s = BS.time "Qual Inst" SPA.create cfg in
   let _      = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _      = BS.time "save in" (Solve.save (fn^".in.fq") ctx) s in
-  let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
+  let _      = BS.time "save in" (SPA.save (fn^".in.fq") ctx) s in
+  let s',cs' = BS.time "Cons: Solve" (SPA.solve ctx) s in 
   let _      = Errormsg.log "DONE: constraint solving \n" in
-  let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
-  (FixSolution.read s'), cs'
+  let _      = BS.time "save out" (SPA.save (fn^".out.fq") ctx) s' in
+  (SPA.read s'), cs'
 
 (* API *)
 let force me fn qs = 
