@@ -114,7 +114,7 @@ let solve me fn qs =
   let s',cs' = BS.time "Cons: Solve" (Solve.solve ctx) s in 
   let _      = Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (Solve.save (fn^".out.fq") ctx) s' in
-  s', cs'
+  (FixSolution.read s'), cs'
 
 (* API *)
 let force me fn qs = 
