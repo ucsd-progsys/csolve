@@ -59,15 +59,16 @@ let generate tgr gnv scim : Ci.t =
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
-let is_const v p = 
+let is_not_const v p = 
   Ix.glb (Sc.data_index_of_pred v p) (Sc.ref_index_of_pred v p)
-  |> (function Ix.IInt _ -> true | _ -> false) 
+  |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =
   (Sc.scalar_quals_of_file cil) 
-  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") is_const 
+  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const) 
   |> SM.map (VM.mapi Sc.index_of_var)
- 
+
+
 let solve cil ci =
   let _  = if !Co.minquals then (ignore <| E.log "Deprecating --minquals for scalar/inference\n") in
   Misc.with_ref_at Constants.minquals false (fun () -> solve cil ci)
@@ -124,6 +125,23 @@ let ctype_of_var_index v ix =
 (*********************************** API ***********************************)
 (***************************************************************************)
 
+let d_vartypes () vars =
+  Pretty.docList ~sep:(Pretty.dprintf "@!") begin fun (v, ct) -> 
+    Pretty.dprintf "%s: %a" v.Cil.vname Ct.d_ctype ct
+  end () vars
+
+let d_scalarinv () sim = 
+  sim 
+  |> SM.range
+  |> Misc.flap VM.to_list
+  |> d_vartypes () 
+
+let dump_scalarinv sim = 
+  let fn = !Co.liquidc_file_prefix ^ ".scalarlog" in
+  Misc.with_out_file fn begin fun oc -> 
+    Pretty.fprintf oc "Scalarinv: @[%a@]\n" d_scalarinv sim
+  end
+
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
   >> Annots.clear 
@@ -131,6 +149,7 @@ let scalarinv_of_scim cil spec tgr gnv scim =
   |> solve cil
   |> close scim spec
   |> SM.map (VM.mapi ctype_of_var_index)
+  (* >> dump_scalarinv *)
   >> Annots.clear
 
 (***************************************************************************)

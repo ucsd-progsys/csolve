@@ -26,6 +26,8 @@
 
 type t
 
+type bind
+
 val create      : FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list -> t
 
 val add         :  t 
@@ -34,12 +36,12 @@ val add         :  t
                 -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list 
                 -> t
 
-val print       : FixConstraint.soln option -> unit -> t -> Pretty.doc
+val print       : bind FixConstraint.soln option -> unit -> t -> Pretty.doc
 
 val solve       :  t 
                 -> string 
                 -> Ast.Qualifier.t list 
-                -> FixConstraint.soln * FixConstraint.t list 
+                -> bind FixConstraint.soln * FixConstraint.t list 
 
 val scalar_solve:  t 
                 -> string

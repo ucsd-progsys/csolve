@@ -53,6 +53,8 @@ type t = {
   depm : C.dep list SM.t;
 }
 
+type bind = PredAbs.bind
+
 (* API *)
 let create (ws, cs, des, ds) = 
   { scim  = SM.empty
@@ -103,7 +105,7 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
-let config ts env ps a ds cs ws qs = 
+let config ts env ps a ds cs ws qs bm = 
   { Config.empty with 
       Config.a    = a
     ; Config.ts   = ts
@@ -112,7 +114,9 @@ let config ts env ps a ds cs ws qs =
     ; Config.ds   = ds
     ; Config.cs   = cs
     ; Config.ws   = ws
-    ; Config.qs   = qs }
+    ; Config.qs   = qs 
+    ; Config.bm   = bm
+  }
 
 
 type ('a, 'b, 'c, 'd, 'e) domain = 
@@ -120,7 +124,8 @@ type ('a, 'b, 'c, 'd, 'e) domain =
   ; save   : 'b
   ; solve  : 'c
   ; read   : 'd
-  ; meet   : 'e }
+; meet   : 'e  
+  }
 
 
 let d_predAbs   = 
@@ -128,14 +133,15 @@ let d_predAbs   =
   ; save   = SPA.save
   ; solve  = SPA.solve
   ; read   = SPA.read
-  ; meet   = SPA.meet }
+  ; meet   = SPA.meet 
+  }
 
 let ac_solve dd me fn (ws, cs, ds) qs so =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs in
+  let bm      = match so with Some s0 -> (dd.read s0).C.bindm | _ -> YM.empty in
+  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs bm in
   let ctx, s  = BS.time "Qual Inst" dd.create cfg in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
-  let s       = match so with Some s0 -> dd.meet s s0 | _ -> s in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
   let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
   let _       = Errormsg.log "DONE: saving input constraints \n" in
@@ -178,8 +184,6 @@ let scalar_solve me fn fp qs =
   >> (fun _ -> Errormsg.log "DONE: scalar solve \n")
 
 let old_scalar_solve me fn _ qs =
-  (* let qs = (List.rev_append (List.rev_append x y) z) 
-           |> Misc.sort_and_compact in *)
   let s = Misc.with_ref_at Constants.slice false begin fun () ->   
             ac_solve d_predAbs me fn (get_cstrs me) qs None 
             |> fst |> d_predAbs.read 

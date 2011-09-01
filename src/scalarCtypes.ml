@@ -320,11 +320,13 @@ type qualkind = Equality | Bound | Modulus | Other
 let equality_ps = [ p_v_eq_c
                   ; p_v_eq_bb 
                (* ; p_v_eq_bb_if_nonnull *)
-                  ]
+                  ] 
 
+                  
 (* Bound Predicates *)
 let bound_ps    = [ p_v_lt_c
                   ; p_v_le_c
+                  ; p_v_ge_c
                   ; p_v_lt_x_plus_c
                   ; p_v_ge_x_plus_c
                   ; p_v_le_x_plus_c 
@@ -336,11 +338,12 @@ let modulus_ps  = [ p_v_minus_c_eqz_mod_k
                   ]
 
 let kind_of_qual = 
+  let fsym = fun ps -> ps ++ List.map A.symm_pred ps in 
   let fm q = List.exists (Misc.maybe_bool <.> A.unify_pred (Q.pred_of_t q)) in
   function 
-    | q when fm q equality_ps -> Equality
-    | q when fm q bound_ps    -> Bound
-    | q when fm q modulus_ps  -> Modulus
+    | q when fm q (fsym equality_ps) -> Equality
+    | q when fm q (fsym bound_ps)    -> Bound
+    | q when fm q (fsym modulus_ps)  -> Modulus
     | _                       -> Other 
 
 let partition_scalar_quals qs =
