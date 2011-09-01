@@ -44,6 +44,8 @@ val solve       :  t
 val scalar_solve:  t 
                 -> string
                 -> (Ast.Symbol.t -> Ast.pred -> bool)
-                -> (Ast.Qualifier.t list * Ast.Qualifier.t list * Ast.Qualifier.t list)
+                -> Ast.Qualifier.t list
+               (*  -> (Ast.Qualifier.t list * Ast.Qualifier.t list *
+                *  Ast.Qualifier.t list) *)
                 -> ((Ctypes.refctype * Ast.pred) CilMisc.VarMap.t) Misc.StringMap.t
 

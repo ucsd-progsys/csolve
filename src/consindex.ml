@@ -150,40 +150,48 @@ let filter_cstrs dd s fp (ws, cs) =
   let fr  = fun ((v,_,_) as r) -> r |> C.preds_of_reft sol |> Ast.pAnd |> fp v in
   (Misc.filter (fr <.> C.reft_of_wf) ws, Misc.filter (fr <.> C.rhs_of_t) cs)
 
-let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, mqs, bqs) =
-  Misc.with_ref_at Constants.slice false begin fun () ->   
-    let s_eq, _  = ac_solve dd me fn (ws, cs, ds) eqs None in
+let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, bqs, mqs) =
+  Misc.with_ref_at Constants.slice false begin fun () ->
+    let s_eq, _  = ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None in
     let ws, cs   = filter_cstrs dd s_eq fp (ws, cs) in
-    let s_mod,_  = ac_solve dd me fn (ws, cs, ds) mqs (Some s_eq) in
-    let s_bnd,_  = ac_solve dd me fn (ws, cs, ds) bqs (Some s_eq) in
+    let s_mod,_  = ac_solve dd me (fn^".mod") (ws, cs, ds) mqs (Some s_eq) in
+    let s_bnd,_  = ac_solve dd me (fn^".bnd") (ws, cs, ds) bqs (Some s_eq) in
     dd.read (dd.meet (dd.meet s_eq s_mod) s_bnd)
   end
 
-let get_cstrs me = (get_wfs me, get_cs me, get_deps me)
+let get_cstrs me = 
+  (get_wfs me, get_cs me, get_deps me)
+  (* >> (fun (ws, cs, ds) -> if ws = [] then failwith "NO WF CONSTRAINTS")
+*)
 
 (* API *)
 let solve me fn qs =
   ac_solve d_predAbs me fn (get_cstrs me) qs None 
   |> Misc.app_fst d_predAbs.read
 
-let scalar_solve me fn fp qst = 
-  let s = ac_scalar_solve d_predAbs me fn fp (get_cstrs me) qst in
+let scalar_solve me fn fp qs = 
+  let qst = ScalarCtypes.partition_scalar_quals qs in
+  let s   = ac_scalar_solve d_predAbs me fn fp (get_cstrs me) qst in
   me.defm 
   |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
   >> (fun _ -> Errormsg.log "DONE: scalar solve \n")
 
-let old_scalar_solve me fn _ (x,y,z) =
-  let qs = (List.rev_append (List.rev_append x y) z) |> Misc.sort_and_compact in
-  let s = ac_solve d_predAbs me fn (get_cstrs me) qs None |> fst |> d_predAbs.read in
+let old_scalar_solve me fn _ qs =
+  (* let qs = (List.rev_append (List.rev_append x y) z) 
+           |> Misc.sort_and_compact in *)
+  let s = Misc.with_ref_at Constants.slice false begin fun () ->   
+            ac_solve d_predAbs me fn (get_cstrs me) qs None 
+            |> fst |> d_predAbs.read 
+          end in 
   me.defm 
   |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
-  >> (fun _ -> failwith "DIED IN OLDSCALAR")
   >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
 
 (* API *)
-let scalar_solve me = if !Constants.fastscalar then scalar_solve me else old_scalar_solve me
+let scalar_solve me = 
+  if !Constants.fastscalar then scalar_solve me else old_scalar_solve me
 
 
 

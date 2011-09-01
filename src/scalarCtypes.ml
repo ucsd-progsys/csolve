@@ -109,15 +109,6 @@ let p_v_minus_x_minus_c_eqz_mod_k =
 
 let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sort.t_int]
 
-(* Equality Predicates *)
-let eqps = [p_v_eq_c; p_v_eq_bb (* ; p_v_eq_bb_if_nonnull *)] 
-
-(* Bound Predicates *)
-let bps  = [p_v_lt_c; p_v_le_c; p_v_lt_x_plus_c; p_v_ge_x_plus_c; p_v_le_x_plus_c]
-
-(* Period Predicates *)
-let mps  = [p_v_minus_c_eqz_mod_k; p_v_minus_x_minus_c_eqz_mod_k]
-
 
 (***************************************************************************)
 (***************** Convert Predicates/Refinements To Indices ***************)
@@ -323,12 +314,42 @@ let scalar_consts_of_typedecs =
   <+> Misc.uncurry (++)
   <+> Misc.sort_and_compact
 
+type qualkind = Equality | Bound | Modulus | Other
+
+(* Equality Predicates *)
+let equality_ps = [ p_v_eq_c
+                  ; p_v_eq_bb 
+               (* ; p_v_eq_bb_if_nonnull *)
+                  ]
+
+(* Bound Predicates *)
+let bound_ps    = [ p_v_lt_c
+                  ; p_v_le_c
+                  ; p_v_lt_x_plus_c
+                  ; p_v_ge_x_plus_c
+                  ; p_v_le_x_plus_c 
+                  ]
+
+(* Modulus Predicates *)
+let modulus_ps  = [ p_v_minus_c_eqz_mod_k
+                  ; p_v_minus_x_minus_c_eqz_mod_k
+                  ]
+
+let kind_of_qual = 
+  let fm q = List.exists (Misc.maybe_bool <.> A.unify_pred (Q.pred_of_t q)) in
+  function 
+    | q when fm q equality_ps -> Equality
+    | q when fm q bound_ps    -> Bound
+    | q when fm q modulus_ps  -> Modulus
+    | _                       -> Other 
+
 let partition_scalar_quals qs =
-  let fmatch = fun q -> List.exists (Misc.maybe_bool <.> A.unify_pred (Q.pred_of_t q)) in
-  let eqs    = Misc.filter (Misc.flip fmatch eqps) qs in
-  let bqs    = Misc.filter (Misc.flip fmatch bps)  qs in 
-  let mqs    = Misc.filter (Misc.flip fmatch mps)  qs in
-  (eqs, bqs, mqs)
+  let kqss = Misc.kgroupby kind_of_qual qs in
+  let eqs  = Misc.list_assoc_default [] kqss Equality in 
+  let bqs  = Misc.list_assoc_default [] kqss Bound    in 
+  let mqs  = Misc.list_assoc_default [] kqss Modulus  in
+  let oqs  = Misc.list_assoc_default [] kqss Other    in
+  (oqs ++ eqs, oqs ++ bqs, oqs ++ mqs)
 
 
 (* {{{ DO NOT DELETE
@@ -371,6 +392,5 @@ let scalar_quals_of_file cil =
   |> Misc.flap quals_of_pred
   |> (++) (FA.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
-  |> partition_scalar_quals
-
+  (* |> partition_scalar_quals *)
 
