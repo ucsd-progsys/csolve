@@ -166,13 +166,26 @@ let solve me fn qs =
   ac_solve d_predAbs me fn (get_cstrs me) qs None 
   |> Misc.app_fst d_predAbs.read
 
-(* API *)
 let scalar_solve me fn fp qst = 
   let s = ac_scalar_solve d_predAbs me fn fp (get_cstrs me) qst in
   me.defm 
   |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
   |> SM.map CM.vm_of_list
   >> (fun _ -> Errormsg.log "DONE: scalar solve \n")
+
+let old_scalar_solve me fn _ (x,y,z) =
+  let qs = (List.rev_append (List.rev_append x y) z) |> Misc.sort_and_compact in
+  let s = ac_solve d_predAbs me fn (get_cstrs me) qs None |> fst |> d_predAbs.read in
+  me.defm 
+  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
+  |> SM.map CM.vm_of_list
+  >> (fun _ -> failwith "DIED IN OLDSCALAR")
+  >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
+
+(* API *)
+let scalar_solve me = if !Constants.fastscalar then scalar_solve me else old_scalar_solve me
+
+
 
 (* {{{
 let solve (d_create, d_save, d_solve, d_read) me fn qs = 
@@ -188,14 +201,6 @@ let solve (d_create, d_save, d_solve, d_read) me fn qs =
   let _      = Errormsg.log "DONE: constraint solving \n" in
   let _      = BS.time "save out" (d_save (fn^".out.fq") ctx) s' in
   (d_read s'), cs'
-
-(* API *)
-let force me fn qs = 
-  let s = Misc.with_ref_at Constants.slice false (fun () -> solve d_predAbs me fn qs |> fst) in
-  me.defm 
-  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
-  |> SM.map CM.vm_of_list
-  >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
 
 (* API *)
 let solve = solve d_predAbs 
