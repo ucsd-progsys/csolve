@@ -144,8 +144,8 @@ let ac_solve dd me fn (ws, cs, ds) qs so =
   s', cs'
 
 let filter_cstrs dd s fp (ws, cs) = 
-  let fk = (dd.read s).C.read HEREHEREHEREHERE in 
-  let fr = List.for_all fk <.> List.map snd <.> C.kvars_of_reft in
+  let sol = dd.read s in
+  let fr  = fun ((v,_,_) as r) -> r |> C.preds_of_reft sol |> Ast.pAnd |> fp v in
   (Misc.filter (fr <.> C.reft_of_wf) ws, Misc.filter (fr <.> C.rhs_of_t) cs)
 
 let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, mqs, bqs) =
