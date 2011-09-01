@@ -105,7 +105,7 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
-let config ts env ps a ds cs ws qs bm = 
+let config ts env ps a ds cs ws qs assm = 
   { Config.empty with 
       Config.a    = a
     ; Config.ts   = ts
@@ -115,16 +115,16 @@ let config ts env ps a ds cs ws qs bm =
     ; Config.cs   = cs
     ; Config.ws   = ws
     ; Config.qs   = qs 
-    ; Config.bm   = bm
+    ; Config.assm = assm
   }
 
 
-type ('a, 'b, 'c, 'd, 'e) domain = 
+type ('a, 'b, 'c, 'd) domain = 
   { create : 'a 
   ; save   : 'b
   ; solve  : 'c
   ; read   : 'd
-; meet   : 'e  
+  (* ; meet   : 'e   *)
   }
 
 
@@ -133,13 +133,13 @@ let d_predAbs   =
   ; save   = SPA.save
   ; solve  = SPA.solve
   ; read   = SPA.read
-  ; meet   = SPA.meet 
+  (* ; meet   = SPA.meet *)
   }
 
 let ac_solve dd me fn (ws, cs, ds) qs so =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let bm      = match so with Some s0 -> (dd.read s0).C.bindm | _ -> YM.empty in
-  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs bm in
+  let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
+  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs assm in
   let ctx, s  = BS.time "Qual Inst" dd.create cfg in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
@@ -159,10 +159,13 @@ let filter_cstrs dd s fp (ws, cs) =
 let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, bqs, mqs) =
   Misc.with_ref_at Constants.slice false begin fun () ->
     let s_eq, _  = ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None in
+    let r_eq     = dd.read s_eq in
     let ws, cs   = filter_cstrs dd s_eq fp (ws, cs) in
-    let s_mod,_  = ac_solve dd me (fn^".mod") (ws, cs, ds) mqs (Some s_eq) in
-    let s_bnd,_  = ac_solve dd me (fn^".bnd") (ws, cs, ds) bqs (Some s_eq) in
-    dd.read (dd.meet (dd.meet s_eq s_mod) s_bnd)
+    let s_bnd,_  = ac_solve dd me (fn^".bnd") (ws, cs, ds) bqs (Some r_eq) in
+    let s_mod,_  = ac_solve dd me (fn^".mod") (ws, cs, ds) mqs (Some r_eq) in
+    C.meet_solution (C.meet_solution (dd.read s_eq)  (dd.read s_mod)) (dd.read s_bnd)
+     (* dd.read (dd.meet (dd.meet s_eq s_mod) s_bnd) *)
+
   end
 
 let get_cstrs me = 
