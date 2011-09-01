@@ -36,6 +36,7 @@ module FA = FixAstInterface
 module FI = FixInterface
 
 module Ct = Ctypes
+module SPA = Solve.Make (PredAbs)
 
 open Misc.Ops
 open Cil
@@ -121,12 +122,13 @@ type ('a, 'b, 'c, 'd, 'e) domain =
   ; read   : 'd
   ; meet   : 'e }
 
+
 let d_predAbs   = 
-  { create = Fixpoint.SPA.create
-  ; save   = Fixpoint.SPA.save
-  ; solve  = Fixpoint.SPA.solve
-  ; read   = Fixpoint.SPA.read
-  ; meet   = Fixpoint.SPA.meet }
+  { create = SPA.create
+  ; save   = SPA.save
+  ; solve  = SPA.solve
+  ; read   = SPA.read
+  ; meet   = SPA.meet }
 
 let ac_solve dd me fn (ws, cs, ds) qs so =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
