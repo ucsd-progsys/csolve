@@ -109,6 +109,16 @@ let p_v_minus_x_minus_c_eqz_mod_k =
 
 let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sort.t_int]
 
+(* Equality Predicates *)
+let eqps = [p_v_eq_c; p_v_eq_bb (* ; p_v_eq_bb_if_nonnull *)] 
+
+(* Bound Predicates *)
+let bps  = [p_v_lt_c; p_v_le_c; p_v_lt_x_plus_c; p_v_ge_x_plus_c; p_v_le_x_plus_c]
+
+(* Period Predicates *)
+let mps  = [p_v_minus_c_eqz_mod_k; p_v_minus_x_minus_c_eqz_mod_k]
+
+
 (***************************************************************************)
 (***************** Convert Predicates/Refinements To Indices ***************)
 (***************************************************************************)
@@ -313,7 +323,15 @@ let scalar_consts_of_typedecs =
   <+> Misc.uncurry (++)
   <+> Misc.sort_and_compact
 
-(* DO NOT DELETE
+let partition_scalar_quals qs =
+  let fmatch = fun q -> List.exists (Misc.maybe_bool <.> A.unify_pred (Q.pred_of_t q)) in
+  let eqs    = Misc.filter (Misc.flip fmatch eqps) qs in
+  let bqs    = Misc.filter (Misc.flip fmatch bps)  qs in 
+  let mqs    = Misc.filter (Misc.flip fmatch mps)  qs in
+  (eqs, bqs, mqs)
+
+
+(* {{{ DO NOT DELETE
 let scalar_consts_of_code cil =
   let xr = ref [] in
   let _  = CM.iterExprs cil (function Cil.Const c -> xr := CI.expr_of_cilcon c :: !xr; false | _ -> true) in
@@ -335,9 +353,7 @@ let increments_of_code cil =
      end
   |> Misc.sort_and_compact 
   |> List.map (fun i -> Offset i)
-*)
-
-
+}}} *)
 
 let scalar_consts_of_file cil = 
   [ scalar_consts_of_typedecs
@@ -355,3 +371,6 @@ let scalar_quals_of_file cil =
   |> Misc.flap quals_of_pred
   |> (++) (FA.quals_of_file (Co.get_lib_squals ()))
   >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
+  |> partition_scalar_quals
+
+

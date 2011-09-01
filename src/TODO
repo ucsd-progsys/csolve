@@ -1,18 +1,11 @@
 
-layered solve
-    
-    Qs1 Qs2 Qs3 ...
+grep "FASTSCALARTODO"
 
-    ws := WS
-    cs := CS
-    s' :=  empty
-    
-    for i in 0..n
-      zz, s := Solve.create ws cs QS.(i)
-      s', _ := Solve.solve zz (meet s s') 
-      ws,cs := filter_solved (ws,cs) s'
+PredAbs.meet
+Scalar.is_const
 
 HEREHEREHEREHERE
+
 
 * run regrtests with and without -origdeps to see which wins
 

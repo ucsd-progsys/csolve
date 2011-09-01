@@ -114,6 +114,65 @@ let config ts env ps a ds cs ws qs =
     ; Config.qs   = qs }
 
 
+type ('a, 'b, 'c, 'd, 'e) domain = 
+  { create : 'a 
+  ; save   : 'b
+  ; solve  : 'c
+  ; read   : 'd
+  ; meet   : 'e }
+
+let d_predAbs   = 
+  { create = Fixpoint.SPA.create
+  ; save   = Fixpoint.SPA.save
+  ; solve  = Fixpoint.SPA.solve
+  ; read   = Fixpoint.SPA.read
+  ; meet   = Fixpoint.SPA.meet }
+
+let ac_solve dd me fn (ws, cs, ds) qs so =
+  let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs in
+  let ctx, s  = BS.time "Qual Inst" dd.create cfg in
+  let _       = Errormsg.log "DONE: qualifier instantiation \n" in
+  let s       = match so with Some s0 -> dd.meet s s0 | _ -> s in
+  let _       = Errormsg.log "DONE: solution strengthening \n" in
+  let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
+  let _       = Errormsg.log "DONE: saving input constraints \n" in
+  let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
+  let _       = Errormsg.log "DONE: constraint solving \n" in
+  let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
+  let _       = Errormsg.log "DONE: saving output constraints \n" in
+  s', cs'
+
+let filter_cstrs dd s fp (ws, cs) = 
+  let fk = (dd.read s).C.read HEREHEREHEREHERE in 
+  let fr = List.for_all fk <.> List.map snd <.> C.kvars_of_reft in
+  (Misc.filter (fr <.> C.reft_of_wf) ws, Misc.filter (fr <.> C.rhs_of_t) cs)
+
+let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, mqs, bqs) =
+  Misc.with_ref_at Constants.slice false begin fun () ->   
+    let s_eq, _  = ac_solve dd me fn (ws, cs, ds) eqs None in
+    let ws, cs   = filter_cstrs dd s_eq fp (ws, cs) in
+    let s_mod,_  = ac_solve dd me fn (ws, cs, ds) mqs (Some s_eq) in
+    let s_bnd,_  = ac_solve dd me fn (ws, cs, ds) bqs (Some s_eq) in
+    dd.read (dd.meet (dd.meet s_eq s_mod) s_bnd)
+  end
+
+let get_cstrs me = (get_wfs me, get_cs me, get_deps me)
+
+(* API *)
+let solve me fn qs =
+  ac_solve d_predAbs me fn (get_cstrs me) qs None 
+  |> Misc.app_fst d_predAbs.read
+
+(* API *)
+let scalar_solve me fn fp qst = 
+  let s = ac_scalar_solve d_predAbs me fn fp (get_cstrs me) qst in
+  me.defm 
+  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
+  |> SM.map CM.vm_of_list
+  >> (fun _ -> Errormsg.log "DONE: scalar solve \n")
+
+(* {{{
 let solve (d_create, d_save, d_solve, d_read) me fn qs = 
   let ws     = get_wfs me in
   let cs     = get_cs me in
@@ -128,11 +187,6 @@ let solve (d_create, d_save, d_solve, d_read) me fn qs =
   let _      = BS.time "save out" (d_save (fn^".out.fq") ctx) s' in
   (d_read s'), cs'
 
-let d_predAbs   = Fixpoint.SPA.create
-                , Fixpoint.SPA.save
-                , Fixpoint.SPA.solve
-                , Fixpoint.SPA.read
-
 (* API *)
 let force me fn qs = 
   let s = Misc.with_ref_at Constants.slice false (fun () -> solve d_predAbs me fn qs |> fst) in
@@ -141,7 +195,7 @@ let force me fn qs =
   |> SM.map CM.vm_of_list
   >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
 
-
 (* API *)
 let solve = solve d_predAbs 
 
+}}} *)

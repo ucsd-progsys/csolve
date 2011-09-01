@@ -59,9 +59,13 @@ let generate tgr gnv scim : Ci.t =
 (*************************** Solve Scalar Constraints **********************)
 (***************************************************************************)
 
+let is_const v p = 
+  Ix.glb (Sc.data_index_of_pred v p) (Sc.ref_index_of_pred v p)
+  |> (function Ix.IInt _ -> true | _ -> false) 
+
 let solve cil ci =
   (Sc.scalar_quals_of_file cil) 
-  |> Ci.force ci (!Co.liquidc_file_prefix^".scalar")
+  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") is_const 
   |> SM.map (VM.mapi Sc.index_of_var)
  
 let solve cil ci =
