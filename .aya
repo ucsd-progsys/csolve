@@ -9,7 +9,6 @@
 ./doc/*
 **/_build/*
 ./benchmarks/*
-./.git/*
 *.o
 *.a
 *.dll
