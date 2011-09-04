@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ $# -le 1 ]
 then
@@ -12,10 +12,8 @@ shift
 WHAT=$*
 
 cd $BASE/../
-CMD="LPATH=`mktemp -t`;
-mkdir \$LPATH;
-cd \$LPATH;
-tar zxf -;
-export LD_LIBRARY_PATH=\$LPATH/external/z3/lib/;
+CMD="LPATH=\`mktemp -d -t\` && \
+cd \$LPATH && \
+tar zxf - && \
 $WHAT"
 tar czfh - -X utils/package-exclude . | ssh $WHERE $CMD
