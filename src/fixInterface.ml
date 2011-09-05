@@ -206,7 +206,7 @@ let print_ce so ppf (_, vnv) =
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
 
-let ra_zero ct = 
+let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
@@ -308,13 +308,13 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
 
 
 let t_exp cenv ct e =
-  let so  = sort_of_prectype ct in
-  let vv  = Sy.value_variable so in
-  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
-(* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
-  let rs  = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
-  let r   = C.make_reft vv so rs in
-  refctype_of_reft_ctype r ct
+  let so    = sort_of_prectype ct in
+  let vv    = Sy.value_variable so in
+  let gp, p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
+(* let _      = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
+  let rs    = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
+  let r     = C.make_reft vv so rs in
+  (gp, refctype_of_reft_ctype r ct)
 
 let ptrs_of_exp e = 
   let xm = ref VM.empty in
@@ -329,7 +329,7 @@ let t_exp_scalar v e =
   let ct  = Ct.scalar_ctype in
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
-  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
+  let _,p = CI.reft_of_cilexp vv e in
   let rs  = [C.Conc p] in
   let rb  = CM.is_reference v.Cil.vtype in 
 (*  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  *)
@@ -650,7 +650,7 @@ let make_dep pol xo yo =
            |> Misc.uncurry (C.make_dep pol)
 
 let make_cs cenv p rct1 rct2 tago tag =
-  let env    = cenv |> env_of_cilenv in
+  let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
@@ -683,6 +683,10 @@ let make_cs cenv p rct1 rct2 tago tag loc =
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
     assert false
+
+let make_cs_assert cenv p passert tago tag loc =
+  let vv = Ct.scalar_ctype |> sort_of_prectype |> Sy.value_variable in
+    make_cs cenv p (t_true Ct.scalar_ctype) (t_pred Ct.scalar_ctype vv passert) tago tag loc
 
 (* API *)
 let make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =

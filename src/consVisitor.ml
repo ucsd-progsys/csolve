@@ -119,6 +119,16 @@ let cons_of_annots me loc tag grd wld ffm annots =
   Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
+(******************************************************************************)
+(************************* Constraints for Expressions ************************)
+(******************************************************************************)
+
+let t_exp_with_constraints me loc tago tag grd env e =
+  let po, rct = FI.t_exp env (CF.ctype_of_expr me e) e in
+    match po with
+      | None   -> (rct, ([], []))
+      | Some p -> (rct, FI.make_cs_assert env grd p tago tag loc)
+
 (****************************************************************************)
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
@@ -144,15 +154,16 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
       cons_of_mem me loc tago tag grd env v')
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
-      (FI.ce_find (FA.name_of_varinfo v) env, ([], []))
+      (CF.refctype_of_global me v, ([], []))
   | AddrOf (Var v, NoOffset) as e when CM.is_fun v ->
-      begin match FI.t_exp env (CF.ctype_of_expr me e) e with
-        | Ct.Ref (l, _) as rct -> (rct, FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
-        | _                    -> assert false
+      begin match t_exp_with_constraints me loc tago tag grd env e with
+        | Ct.Ref (l, _) as rct, cds ->
+          (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
+        | _ -> assert false
       end
   (* e, where e is pure *)
   | e when CM.is_pure_expr e ->
-      (FI.t_exp env (CF.ctype_of_expr me e) e, ([], []))
+      t_exp_with_constraints me loc tago tag grd env e
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
 
@@ -177,7 +188,7 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
       (env, sto, Some tag), (cs1 ++ cs2, [])
 
   (* *v := e, where v is a bottom-indexed pointer, so this code is dead *)
-  (* pmr: perhaps a better solution is to not constraint unreachable blocks, complete with
+  (* pmr: perhaps a better solution is to not constrain unreachable blocks, complete with
           warning/error about unreachability? But maybe there's some useful side effect of
           constraining the block? *)
   | (Mem (Lval(Var v, NoOffset)), _), _
@@ -188,18 +199,18 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
       let addr = var_addr me env v in
-      let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
-      let cs1, ds1 = cons_of_mem me loc tago tag grd pre_env v in
+      let cr', cds1 = t_exp_with_constraints me loc tago tag grd env e in
+      let cds2      = cons_of_mem me loc tago tag grd pre_env v in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
-        let cr       = Ct.refstore_read loc sto addr in
-        let cs2, ds2 = FI.make_cs env grd cr' cr tago tag loc in
-        (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
+        let cr   = Ct.refstore_read loc sto addr in
+        let cds3 = FI.make_cs env grd cr' cr tago tag loc in
+        (env, sto, Some tag), (cds1 +++ cds2 +++ cds3)
       else
         let sto      = Ct.refstore_write loc sto addr cr' in
         let env, sto = FI.refstore_strengthen_addr loc env sto ffm v.vname addr in
-        (env, sto, Some tag), (cs1, ds1)
+        (env, sto, Some tag), (cds1 +++ cds2)
 
   | _ -> assertf "TBD: cons_of_set"
 
@@ -298,7 +309,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, frt, es) ns =
 
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-  let ecrs      = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
+  let ecrs      = List.map (t_exp_with_constraints me loc tago tag grd env <+> fst) es in
   let cs1,_     = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
   
   let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
@@ -413,8 +424,8 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
   let st_cds = let _, ost = Ct.stores_of_refcfun frt in
                (FI.make_cs_refstore env grd st ost true tago tag loc) in
   let rv_cds = match e_o with None -> ([], []) 
-               | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
-                           let rhs = Ct.ret_of_refcfun frt in
+               | Some e -> let lhs, _ = t_exp_with_constraints me loc tago tag grd env e in
+                           let rhs    = Ct.ret_of_refcfun frt in
                            (FI.make_cs env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
@@ -617,9 +628,9 @@ let add_offset loc t ctptr off =
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
   | SingleInit e ->
-      let cr  = Ct.refstore_read loc sto ctptr in
-      let ct  = Ct.ctype_of_refctype cr in
-      let cr' = FI.t_exp env ct e in
+      let cr     = Ct.refstore_read loc sto ctptr in
+      let ct     = Ct.ctype_of_refctype cr in
+      let _, cr' = FI.t_exp env ct e in
         if Ct.is_soft_ptr loc sto ctptr then
           (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
         else
@@ -646,7 +657,7 @@ let cons_of_var_init tag loc sto v vtyp = function
       let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
         cs1 ++ cs2 ++ cs3
   | Some (SingleInit e) ->
-      let t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
+      let _, t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
         fst <| FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc
   | None -> assert (v.vstorage = Extern); []
 
