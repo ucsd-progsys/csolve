@@ -1,8 +1,13 @@
 
-grep "FASTSCALARTODO"
+grep "FASTSCALARTODO" -- qualifier names get mangled. yuck.
 
-PredAbs.meet
-Scalar.is_const
+rjhala@goto:~/research/liquidc/tests/postests$ grep solution power.c.scalar.mod.in.fq | grep "k_760"
+//solution: k_760 := [(VV_int = (BLOCK_BEGIN([VV_int]) + 0))] 
+solution: k_760 := [((VV_int = (BLOCK_BEGIN([VV_int]) + 0)), SCALAR9)] 
+rjhala@goto:~/research/liquidc/tests/postests$ grep qualif power.c.scalar.mod.in.fq | grep "k_760"
+rjhala@goto:~/research/liquidc/tests/postests$ grep qualif power.c.scalar.mod.in.fq | grep "SCALAR9"
+qualif SCALAR9(VV_int:int):(((VV_int - 12) mod 16) = 0)
+rjhala@goto:~/research/liquidc/tests/postests$ 
 
 HEREHEREHEREHERE
 
