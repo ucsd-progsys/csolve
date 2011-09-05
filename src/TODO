@@ -1,15 +1,6 @@
 
-grep "FASTSCALARTODO" -- qualifier names get mangled. yuck.
-
-rjhala@goto:~/research/liquidc/tests/postests$ grep solution power.c.scalar.mod.in.fq | grep "k_760"
-//solution: k_760 := [(VV_int = (BLOCK_BEGIN([VV_int]) + 0))] 
-solution: k_760 := [((VV_int = (BLOCK_BEGIN([VV_int]) + 0)), SCALAR9)] 
-rjhala@goto:~/research/liquidc/tests/postests$ grep qualif power.c.scalar.mod.in.fq | grep "k_760"
-rjhala@goto:~/research/liquidc/tests/postests$ grep qualif power.c.scalar.mod.in.fq | grep "SCALAR9"
-qualif SCALAR9(VV_int:int):(((VV_int - 12) mod 16) = 0)
-rjhala@goto:~/research/liquidc/tests/postests$ 
-
-HEREHEREHEREHERE
+HEREHEREHEREHERE -- why is this happening? (power just dies with
+fastscalar)? Because, Z3 dies on power.c.scalar.mod.in.fq ...
 
 
 * run regrtests with and without -origdeps to see which wins
