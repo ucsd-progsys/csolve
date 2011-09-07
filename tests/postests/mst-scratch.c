@@ -392,7 +392,8 @@ int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) ar
   int size ;
   {
   size  = dealwithargs(argc, argv);
-  if (size > 0){                        //JHALA: Otherwise NN-error!
+  if (size >= 4){                        //JHALA: Otherwise NN-error!
+                                         // pmr: Otherwise HashRange may be zero
     graph = MakeGraph(size);
     validptr(graph->vlist); 		//JHALA: Maybe NULL LAST
     dist  = ComputeMst(graph, size);
