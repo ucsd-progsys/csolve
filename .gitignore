@@ -23,6 +23,7 @@ src/fixpoint
 src/misc
 tests/logs/*
 *~
+*.swp
 TAGS
 tests/all/adpcm/src/timing.exe
 tests/all/cacm/decode
