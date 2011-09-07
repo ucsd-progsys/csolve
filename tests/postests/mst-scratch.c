@@ -94,11 +94,9 @@ int HashLookup(unsigned int key , Hash hash )
   lcc_assert(j >= 0);
   lcc_assert(j < hash->size);
 
-  validptr(hash->array + j);
   ent = *(hash->array + j);
   while (1) {
     if (ent) {
-      validptr(ent);
       //if (! (ent->key != key)) {	JHALA NOT NOT HANDLED IN cilInterface
       if ((ent->key == key)) {
          break;
@@ -106,11 +104,9 @@ int HashLookup(unsigned int key , Hash hash )
     } else {
       break;
     }
-    validptr(ent);
     ent = ent->next;
   }
   if (ent) {
-    validptr(ent);
     return (ent->entry);
   }
   return (/*(void *)*/0); //JHALA POLY ISSUE
@@ -132,7 +128,6 @@ void HashInsert(int entry , unsigned int key , Hash hash )
   lcc_assert(j<hash->size);
   /*tmp*/ent = /*localmalloc*/(HashEntry *) malloc((int )sizeof(*ent));
   //ent = (struct hash_entry *)tmp;
-  validptr(hash->array + j);
   ent->next = *(hash->array + j);
   *(hash->array + j) = ent;
   ent->key = key;
@@ -204,14 +199,12 @@ static void AddEdges(Graph retval , int numvert )
   j = 0;
   while (j < numvert) {
     src = retval->vlist + j;
-    validptr(src);
     hash = src->edgehash;
     i = 0;
     while (i < numvert) {
       if (i != j) {
         dist = compute_dist(i, j, numvert);
         dest = retval->vlist + i;
-	validptr(dest);
         HashInsert(/* JHALA POLY ISSUE (void *) */dist, (unsigned int )dest, hash);
         num_inserted ++;
       }
@@ -246,7 +239,6 @@ Graph MakeGraph(int numvert )
   i = numvert - 1;
   while (i >= 0) {
     vf = retval->vlist + i;
-    validptr(vf);
     vf->mindist = 9999999;
     vf->edgehash = MakeHash(HashRange/*, & hashfunc*/);
     vf->next = vt;
@@ -275,13 +267,10 @@ static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex 
   retval = malloc(sizeof(*retval)); 	//JHALA
   {
   if (/* ! vlist */ vlist == (Vertex) 0) {	//JHALA UNOP REFERENCE ISSUE
-    validptr(retval);
     retval->dist = 999999; 		//JHALA
     return (retval);
   }
-  validptr(vlist);
   prev = vlist;
-  validptr(retval);
   retval->vert = vlist;			//JHALA
   retval->dist = vlist->mindist;	//JHALA
   hash = vlist->edgehash;
@@ -291,7 +280,6 @@ static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex 
   dist = HashLookup((unsigned int )inserted, hash);
   if (dist) {
     if (dist < retval->dist) {		//JHALA
-      validptr(vlist);
       vlist->mindist = dist;
       retval->dist = dist;		//JHALA
     }
@@ -299,17 +287,13 @@ static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex 
    // chatting((char *)"Not found\n");
   }
   count = 0;
-  validptr(vlist);
   tmp = vlist->next;
   while (tmp) {
     count ++;
     if ((unsigned int )tmp == (unsigned int )inserted) {
-      validptr(tmp);
       next = tmp->next;
-      validptr(prev);
       prev->next = next;
     } else {
-      validptr(tmp);
       hash = tmp->edgehash;
       dist2 = tmp->mindist;
       // JHALA POLY ISSUE
@@ -318,7 +302,6 @@ static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex 
       dist = HashLookup((unsigned int )inserted, hash);
       if (dist) {
         if (dist < dist2) {
-          validptr(tmp);
 	  tmp->mindist = dist;
           dist2 = dist;
         }
@@ -331,7 +314,6 @@ static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex 
       }
     }
     prev = tmp;
-    validptr(tmp);
     tmp = tmp->next;
   }
   return (retval);
@@ -350,9 +332,7 @@ static int ComputeMst(Graph graph , int numvert )
   Vertex MyVertexList  =    (Vertex )0;
   cost = 0;
   //chatting((char *)"Compute phase 1\n");
-  validptr(graph);
   inserted = graph->vlist;
-  validptr(inserted);
   tmp = inserted->next;
   //graph->vlist = tmp;			       //JHALA: Gratuitous assignment! wrecks validptr(inserted)
   					       //could be solved if we knew graph pointed to conc
@@ -362,7 +342,6 @@ static int ComputeMst(Graph graph , int numvert )
   while (numvert) {
     if ((unsigned int )inserted == (unsigned int )MyVertexList) {
       int assm = lcc_assume(inserted != (Vertex) 0);	//JHALA numvert = listlength...
-      validptr(MyVertexList);
       MyVertexList = MyVertexList->next;
     }
     br = BlueRule(inserted, MyVertexList);
@@ -378,7 +357,6 @@ static int ComputeMst(Graph graph , int numvert )
 int dealwithargs(int argc , char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
 { int level ;
   if (argc > 1) {
-    validptr(argv + 1);
     level = atoi(*(argv + 1));
   } else {
     level = 1024;
@@ -395,7 +373,6 @@ int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) ar
   if (size >= 4){                        //JHALA: Otherwise NN-error!
                                          // pmr: Otherwise HashRange may be zero
     graph = MakeGraph(size);
-    validptr(graph->vlist); 		//JHALA: Maybe NULL LAST
     dist  = ComputeMst(graph, size);
   }
   exit(0);
