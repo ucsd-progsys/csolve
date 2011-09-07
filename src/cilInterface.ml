@@ -266,12 +266,9 @@ let reft_of_cilexp vv e =
       let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
   
-  | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
-      (* {0 <= v < (abs e2) } *)
-      let e2'    = expr_of_cilexp e2 in
-      let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
-      A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')]
-  
+  | Cil.BinOp (Cil.Mod, e1, e2, _) ->
+      A.pTrue
+
   | Cil.BinOp (Cil.Shiftlt, e1, e2, _) ->
       (* {0 <= e2 => e1 <= v *)
       let e1' = expr_of_cilexp e1 in
@@ -324,6 +321,14 @@ let assume_guarantee_reft_of_cilexp vv = function
       let e2' = catch_convert_exp "ag_reft2" e2 in
       let ap  = A.pAtom (A.zero, A.Le, e2') in  
       let gp  = A.pAtom (e1',    A.Le, A.eVar vv) in 
+      Some (ap, gp)
+
+  | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
+      (* {0 <= v < (abs e2) } *)
+      let e2'    = expr_of_cilexp e2 in
+      let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
+      let ap     = A.pAtom (e2', A.Ne, A.zero) in
+      let gp     = A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')] in
       Some (ap, gp)
 
   | _ -> None
