@@ -69,7 +69,7 @@ extern int REF(b = 1) lcc_assume (int b) OKEXTERN;
 
 extern int nondet () OKEXTERN;
 
-extern int REF(V > 0) nondetpos () OKEXTERN;
+extern int REF(V >= 1) nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) nondetnn () OKEXTERN;
 
