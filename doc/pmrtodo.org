@@ -107,11 +107,7 @@
   Turns out we weren't checking for mod-by-zero, so some inconsistency
   was sneaking in.
 
-* TODO Deferred checks
-
-** TODO Remove NONNEGs from pmapdistilled
-
-** TODO Fix pmapdistilled.c
+* DONE Deferred checks
 
 * TODO Check types of extern locations
   Ditto above; can we even specify nontrivial invariants for
