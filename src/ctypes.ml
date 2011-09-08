@@ -479,6 +479,10 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_variances : ('a prectype -> 'b prectype) ->
+                        ('a prectype -> 'b prectype) ->
+                        'a prestore ->
+                        'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -530,6 +534,10 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_variances   : ('a prectype -> 'b prectype) ->
+                          ('a prectype -> 'b prectype) ->
+                          'a precfun ->
+                          'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : store -> t -> bool
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
@@ -822,6 +830,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map
 
+    let map_function f =
+      SLM.map (CFun.map f)
+
     let map_ldesc f (ds, fs) =
       (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
 
@@ -880,8 +891,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         SLM.fold f fs b
     end
 
+    let map_variances f_co f_contra (ds, fs) =
+      (map_data f_co ds, SLM.map (CFun.map_variances f_co f_contra) fs)
+
     let map f (ds, fs) =
-      (map_data f ds, SLM.map (CFun.map f) fs)
+      (map_data f ds, map_function f fs)
 
     let bindings sto =
       (Data.bindings sto, Function.bindings sto)
@@ -1076,13 +1090,16 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         sto_out  = sout;
       }
 
-    let map f ft =
-      { args     = List.map (Misc.app_snd f) ft.args;
-        ret      = f ft.ret;
+    let map_variances f_co f_contra ft =
+      { args     = List.map (Misc.app_snd f_contra) ft.args;
+        ret      = f_co ft.ret;
         globlocs = ft.globlocs;
-        sto_in   = Store.map f ft.sto_in;
-        sto_out  = Store.map f ft.sto_out;
+        sto_in   = Store.map_variances f_contra f_co ft.sto_in;
+        sto_out  = Store.map_variances f_co f_contra ft.sto_out;
       }
+
+    let map f ft =
+      map_variances f f ft
 
     let map_ldesc f ft =
       { ft with 

@@ -205,6 +205,7 @@ let print_ce so ppf (_, vnv) =
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
+let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
 let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
@@ -240,9 +241,10 @@ let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
-let t_conv_refctype = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
-let t_true_refctype = t_conv_refctype ra_true
-let t_zero_refctype = t_conv_refctype ra_zero
+let t_conv_refctype  = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
+let t_true_refctype  = t_conv_refctype ra_true
+let t_false_refctype = t_conv_refctype ra_false
+let t_zero_refctype  = t_conv_refctype ra_zero
 
 
 let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
@@ -374,6 +376,9 @@ let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
+
+let conv_refstore_bottom st =
+  RCt.Store.map_variances t_false_refctype t_true_refctype st
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 

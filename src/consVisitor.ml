@@ -470,6 +470,10 @@ let wcons_of_block me loc (_, sto, _) i des =
   let ws'' = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv sto cr tag) in
   ws ++ ws' ++ ws''
 
+let cons_of_init_block me loc (env, sto, _) =
+  let tag = CF.tag_of_instr me 0 0 loc in
+    FI.make_cs_refstore env Ast.pTrue (FI.conv_refstore_bottom sto) sto true None tag loc
+
 let cons_of_block me i =
   let _                = if mydebug then Printf.printf "cons_of_block: %d \n" i in 
   let loc              = CF.location_of_block me i in
@@ -478,7 +482,8 @@ let cons_of_block me i =
   let wld              = CF.inwld_of_block me i in
   let ws1              = wcons_of_block me loc wld i [] in
   let wld, cs, ds, ws2 = cons_of_annotstmt me loc i grd wld astmt in
-  (wld, (ws1 ++ ws2, cs, [], ds))
+  let cs2, ds2         = if i = 0 then cons_of_init_block me loc wld else ([], []) in
+  (wld, (ws1 ++ ws2, cs ++ cs2, [], ds ++ ds2))
 
 let scalarcons_of_block me i = 
   let _             = if mydebug then Printf.printf "scalarcons_of_block: %d \n" i in 

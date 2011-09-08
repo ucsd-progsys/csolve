@@ -1,5 +1,3 @@
-//! run with --notruekvars
-
 #include <stdlib.h>
 #include <liquidc.h>
 

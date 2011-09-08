@@ -198,6 +198,10 @@ module type S = sig
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_variances : ('a prectype -> 'b prectype) ->
+                        ('a prectype -> 'b prectype) ->
+                        'a prestore ->
+                        'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -251,6 +255,10 @@ module type S = sig
 
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_variances   : ('a prectype -> 'b prectype) ->
+                          ('a prectype -> 'b prectype) ->
+                          'a precfun ->
+                          'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : Store.t -> t -> bool
     val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
