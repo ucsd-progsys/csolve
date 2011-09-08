@@ -94,6 +94,25 @@
   arbitrarily modify the variable.
 * DONE Disallow concrete pointers to function locations
 
+* DONE Wipe attributes from SSA output
+  It's hard to debug with all the noise from the attributes. We may
+  even want to wipe attributes between spec generation and other
+  preprocessing passes - it's possible CIL is inserting a lot of
+  spurious casts to convert between types with different attributes.
+
+* DONE Why did MST work?
+  HashLookup is bogus without checking that the size of the hash is
+  positive.
+
+  Turns out we weren't checking for mod-by-zero, so some inconsistency
+  was sneaking in.
+
+* TODO Deferred checks
+
+** TODO Remove NONNEGs from pmapdistilled
+
+** TODO Fix pmapdistilled.c
+
 * TODO Check types of extern locations
   Ditto above; can we even specify nontrivial invariants for
   locations? Can we specify nontrivial predicates but add an override
@@ -102,16 +121,8 @@
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
-* TODO Deferred checks
-  See also indices above
-
-  Are the subindex checks at calls enabled right now?
 
 * TODO Write docs for spec language
-
-* TODO Why did MST work?
-  HashLookup is bogus without checking that the size of the hash is
-  positive.
 
 * TODO Notify when unifying annotated locations
 
@@ -141,27 +152,10 @@
   use of map to a saner instantiation.
 * TODO const qualifier should mark locations' contents as FINAL
 
-* TODO Wipe attributes from SSA output
-  It's hard to debug with all the noise from the attributes. We may
-  even want to wipe attributes between spec generation and other
-  preprocessing passes - it's possible CIL is inserting a lot of
-  spurious casts to convert between types with different attributes.
-
-* TODO Have lcc_assume check for consistency of assumption?
-
-
 * TODO Attach error/warning messages to specific type obligations
   This would allow more user-friendly error messages when a function
-  is called with invalid arguments. For example, suppose lcc_assume is
-  given the following type, which checks that the assumption we're
-  trying to make preserves the environment's consistency:
+  is called with invalid arguments.
 
-  : lcc_assume :: p: {v | (0 = 1) || not ((v = 1) => (0 = 1))} -> {p = 1}
-
-  If we try "lcc_assume (0)", it would be nice to print a message
-  telling the user that the assumption would make the environment
-  inconsistent, rather than simply saying that a subtyping check
-  failed.
 
 * Soon
 
@@ -195,6 +189,9 @@
    It shouldn't be necessary to ever have these in the interface
    except for map-style functions.
 
+** TODO Add function types for builtin operators
+   It would be much more convenient to change the type of *, /, etc.
+   by changing a function type.
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -238,6 +235,9 @@
    bounded location polymorphism. This allows polymorpism over the the
    particular indices and refinements of the accessed parts of the
    heap and would be a good place to drop in physical subtyping.
+
+
+** TODO Have lcc_assume check for consistency of assumption?
 
 
 * Plausible benchmarks
