@@ -80,16 +80,25 @@ let slocOfAttrs ats =
 let finalityOfAttrs ats =
   if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
 
-let vv = A.Symbol.of_string "V"
+let vv  = A.Symbol.of_string "V"
+let evv = A.eVar vv
+
+let roomForPred tb =
+  A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv), A.Ge, A.eInt (CM.bytesSizeOf tb))
+
+let nonnullRoomForPred tb =
+  A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), roomForPred tb)
+
+let nonnullPred = A.pAtom (evv, A.Gt, A.eInt 0)
+
+let eqBlockBeginPred = A.pAtom (evv, A.Eq, FA.eApp_bbegin evv)
 
 let roomForPredsOfAttrs ats =
       ats
   |>  List.filter (function C.Attr (an, _) -> an = CM.roomForAttribute || an = CM.nonnullRoomForAttribute)
   |>: function
-      | C.Attr (an, [C.ASizeOf t]) ->
-        let evv = A.eVar vv in
-        let p   = A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv), A.Ge, A.eInt (CM.bytesSizeOf t)) in
-          if an = CM.roomForAttribute then p else A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), p)
+      | C.Attr (an, [C.ASizeOf tb]) ->
+          if an = CM.roomForAttribute then roomForPred tb else nonnullRoomForPred tb
       | _ -> assert false
 
 let rawPredsOfAttrs ats =
@@ -101,8 +110,29 @@ let rawPredsOfAttrs ats =
         with Parsing.Parse_error ->
           E.s <| C.error "Could not parse predicate: %s@!" predStr
 
-let predOfAttrs ats =
-  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats)
+let pointerLayoutAttributes =
+  [CM.arrayAttribute;
+   CM.predAttribute;
+   CM.roomForAttribute;
+   CM.nonnullRoomForAttribute;
+   CM.ignoreBoundAttribute]
+
+let hasOneAttributeOf of_ats ats =
+  List.exists (M.flip C.hasAttribute ats) of_ats
+
+let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
+  | []                          -> tb
+  | [C.Attr (_, [C.ASizeOf t])] -> t
+  | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
+
+let defaultPredsOfAttrs tbo ats = match tbo with
+  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+    let tb = annotatedPointerBaseType ats tb in
+      [nonnullRoomForPred tb; nonnullPred; eqBlockBeginPred]
+  | _ -> []
+
+let predOfAttrs tbo ats =
+  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultPredsOfAttrs tbo ats)
 
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
@@ -111,11 +141,11 @@ let ptrIndexOfPredAttrs tb pred ats =
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfAttrs tb ats =
-  let pred = predOfAttrs ats in
+  let pred = predOfAttrs (Some tb) ats in
     FI.t_spec_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
 
 let intReftypeOfAttrs width ats =
-  let pred = predOfAttrs ats in
+  let pred = predOfAttrs None ats in
     FI.t_spec_pred
       (Ct.Int (width, SC.data_index_of_pred vv pred))
       vv
@@ -270,11 +300,6 @@ and componentsOfField t f =
 let alreadyClosedType mem t = match CM.typeName t with
   | Some n -> SM.mem n mem
   | _      -> false
-
-let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
-  | []                          -> tb
-  | [C.Attr (_, [C.ASizeOf t])] -> t
-  | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
 
 let rec closeTypeInStoreAux mem sub sto t = match C.unrollType t with
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
