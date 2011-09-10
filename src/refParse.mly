@@ -47,16 +47,6 @@ let mk_funspec fn cf public =
 
 exception InvalidStoredSpecType
 
-let check_store_bind_valid (i, fld) =
-  try
-    match RCt.Field.type_of fld  with
-      | Ct.Int (_, (ti, _)) -> if ti <> Index.top then raise InvalidStoredSpecType; (i, fld)
-      | _                   -> (i, fld)
-  with InvalidStoredSpecType ->
-          Errormsg.error "Invalid field in store spec: %a\n\n"
-            RCt.Field.d_field fld;
-      raise Parse_error
-
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
   if RCt.Store.closed RCt.Store.empty storespec then
@@ -111,6 +101,7 @@ let currentLoc () =
 %token MOD 
 %token PLUS
 %token MINUS
+%token PLUSMINUS
 %token TIMES 
 %token QM DOT ASGN
 %token INT BOOL PTR FUNC
@@ -131,11 +122,11 @@ specs:
                                           RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
-  | specs locspec                       { let l, sp, loc = $2 in
-                                          let _          = assert_location_unbound l (RCt.Spec.store $1) loc in
+  | specs locspec                       { let l, st, sp, loc = $2 in
+                                          let _             = assert_location_unbound l (RCt.Spec.store $1) loc in
                                             match sp with
-                                              | SData sp  -> RCt.Spec.add_data_loc l sp $1
-                                              | SFun sp   -> RCt.Spec.add_fun_loc l sp $1
+                                              | SData sp -> RCt.Spec.add_data_loc l (sp, st) $1
+                                              | SFun sp  -> RCt.Spec.add_fun_loc l (sp, st) $1
                                         }
   ;
 
@@ -180,15 +171,23 @@ varspec:
   ;
 
 locspec:
-  LOCATION slocbind                     { $2 }
-  ;
+  LOCATION globalslocbind               { $2 }
+  ;  
 
 publ:
-  | DCOLON                              { Ct.HasShape }
+    DCOLON                              { Ct.HasShape }
   | PCOLON                              { Ct.IsSubtype }
   | HASTYPE                             { Ct.HasType }
   ;
 
+globalslocbind:
+    sloc publ indbinds {
+      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+    }
+  | sloc publ funtyp {
+      ($1, $2, SFun $3, currentLoc ())
+    }
+  ;
 
 slocs:
     LB RB                               { [] }
@@ -206,7 +205,7 @@ sloc:
   ;
 
 refstore:
-  LB RB                                 { RCt.Store.empty }
+    LB RB                               { RCt.Store.empty }
   | LB slocbindsne RB                   { store_of_slocbinds $2 }
   ;
 
@@ -232,10 +231,10 @@ indbindsne:
 
 indbind:
     index COLON reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Nonfinal Ct.dummy_fieldinfo $3)
+      ($1, Ct.RefCTypes.Field.create Ct.Nonfinal Ct.dummy_fieldinfo $3)
     }
   | index COLON FINAL reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
+      ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
     }
   ;
 
@@ -261,12 +260,17 @@ ctype:
   ;
 
 index:
-    Num                                 { N.IInt $1 }
-  | Num LB Num RB                       { N.mk_sequence $1 $3 (Some $1) None }
-  | Num LB Num LT Num RB                { N.mk_sequence $1 $3 (Some $1) (Some ($5 - $3)) }
-  | Num LC Num RC                       { N.mk_sequence $1 $3 None None }
-  | TRUE                                { N.top }
-  | FALSE                               { N.IBot }
+    LC Num RC                                   { N.IInt $2 }
+  | LC Num PLUS Num TIMES ubound RC             { N.mk_sequence $2 $4 (Some $2) $6 }
+  | LC Num PLUSMINUS Num TIMES ubound RC        { N.mk_sequence $2 $4 None $6 }
+  | LC Num LE Num PLUSMINUS Num TIMES ubound RC { N.mk_sequence $4 $6 (Some $2) $8 }
+  | LC TRUE RC                                  { N.top }
+  | LC RC                                       { N.IBot }
+  ;
+
+ubound:
+                                        { None }
+  | LE Num                              { Some $2 }
   ;
 
 argbinds:

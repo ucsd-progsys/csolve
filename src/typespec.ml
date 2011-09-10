@@ -11,6 +11,7 @@ module FA  = FixAstInterface
 module Ct  = Ctypes
 module I   = Index
 module S   = Sloc
+module SLM = S.SlocMap
 module SC  = ScalarCtypes
 
 module RCt = Ctypes.RefCTypes.CType
@@ -137,7 +138,7 @@ let predOfAttrs tbo ats =
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
-  let predIndex         = if hasPred then SC.ref_index_of_pred vv pred else I.top in
+  let predIndex         = if hasPred then I.ref_index_of_pred vv pred else I.top in
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfAttrs tb ats =
@@ -147,7 +148,7 @@ let ptrReftypeOfAttrs tb ats =
 let intReftypeOfAttrs width ats =
   let pred = predOfAttrs None ats in
     FI.t_spec_pred
-      (Ct.Int (width, SC.data_index_of_pred vv pred))
+      (Ct.Int (width, I.data_index_of_pred vv pred))
       vv
       pred
 
@@ -234,6 +235,12 @@ let refctypeOfCilType mem t = match C.unrollType t with
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
+let heapRefctypeOfCilType mem t =
+     t
+  |> refctypeOfCilType mem
+  |> function | Ct.Int (n, (_, r)) -> Ct.Int (n, (I.top, r))
+              | Ct.Ref _ as rct    -> rct
+
 let addReffieldToStore sub sto s i rfld =
   if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
     rfld |> RU.add_field sto sub s i |> M.swap
@@ -314,7 +321,7 @@ let rec closeTypeInStoreAux mem sub sto t = match C.unrollType t with
             if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub s |> M.swap else
                  t
               >> assertStoreTypeWellFormed
-              |> refctypeOfCilType mem
+              |> heapRefctypeOfCilType mem
               |> FI.t_subs_names fldsub
               |> RFl.create (t |> C.typeAttrs |> finalityOfAttrs) {Ct.fname = Some fn; Ct.ftype = None} (* Some t, but doesn't parse *)
               |> addReffieldToStore sub sto s i
@@ -401,7 +408,8 @@ let globalSpecOfFuns sub gsto funs =
 
 let specTypeOfVar v = match v.C.vstorage with
   | C.Extern -> Ct.HasType
-  | _        -> Ct.HasShape
+  | _        ->
+    if C.hasAttribute CM.checkTypeAttribute v.C.vattr then Ct.IsSubtype else Ct.HasShape
 
 let updVarM sub varm v =
   if not <| C.isFunctionType v.C.vtype then begin
@@ -419,30 +427,42 @@ let varSpecOfVars sub vars =
   |> List.fold_left (fun varm v -> updVarM sub varm v) SM.empty
   |> SM.to_list
 
+let storeTypeSpecs varSpec gsto =
+     gsto
+  |> RS.domain
+  |> List.fold_left (fun sts l -> SLM.add l Ct.HasShape sts) SLM.empty
+  |> List.fold_right begin fun (_, (t, vst)) sts ->
+           t
+        |> RCt.sloc
+        |> M.maybe
+        |> RS.reachable gsto
+        |> List.fold_left begin fun sts l ->
+             SLM.add l (Ct.specTypeMax vst (SLM.find l sts)) sts
+           end sts
+     end varSpec
+
 let specsOfDecs funs vars =
   let sub, pgsto        = vars |>: (fun {C.vtype = t} -> t) |> preRefstoreOfTypes in
   let gsto, _, sub      = pgsto |> refstoreOfPreRefstore sub pgsto in
   let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
-    (fspecs, varSpecOfVars sub vars, gsto)
+  let vspecs            = varSpecOfVars sub vars in
+    (fspecs, vspecs, gsto, storeTypeSpecs vspecs gsto)
 
-let opOfSpecType = function
-  | Ct.HasShape  -> "::"
-  | Ct.IsSubtype -> "<:"
-  | Ct.HasType   -> "|-"
-
-let writeSpec (funspec, varspec, storespec) outfilename =
+let writeSpec (funspec, varspec, storespec, sts) outfilename =
   let oc = open_out outfilename in
     Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
-      Pretty.fprintf oc "loc %a |-> %a\n\n" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore
+      Pretty.fprintf oc "loc %a %a %a\n\n"
+        S.d_sloc l Ct.d_specTypeRel (SLM.find l sts) RLD.d_ldesc ld |> ignore
     end () storespec;
     Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
-      Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+      Pretty.fprintf oc "loc %a %a@!  @[%a@]@!@!"
+        S.d_sloc l Ct.d_specTypeRel (SLM.find l sts) RCf.d_cfun cf |> ignore
     end () storespec;
     List.iter begin fun (vn, (ct, spt)) ->
-      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfSpecType spt) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
+      Pretty.fprintf oc "%s %a @[%a@]\n\n" vn Ctypes.d_specTypeRel spt Ctypes.RefCTypes.CType.d_ctype ct |> ignore
     end varspec;
     List.iter begin fun (fn, (cf, spt)) ->
-      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfSpecType spt) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+      Pretty.fprintf oc "%s %a@!  @[%a@]\n\n" fn Ctypes.d_specTypeRel spt Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
     end funspec;
     close_out oc
 

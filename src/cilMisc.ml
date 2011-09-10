@@ -166,19 +166,15 @@ let unfloatGlobal = function
 let unfloat file =
   iterGlobals file unfloatGlobal
 
-(**********************************************************)
-(********** Stripping Casts from Exprs, Lvals *************)
-(**********************************************************)
+(******************************************************************************)
+(**************** Drilling Into Variable Reference Expressions ****************)
+(******************************************************************************)
 
-class castStripVisitor = object(self)
-  inherit nopCilVisitor
-    method vexpr = function
-      | CastE (_, e) -> ChangeDoChildrenPost (e, id)
-      | _            -> DoChildren
-end
-
-let stripcasts_of_lval = visitCilLval (new castStripVisitor)
-let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
+let rec referenced_var_of_exp = function
+  | CastE (_, e)              -> referenced_var_of_exp e
+  | Lval (Var v, NoOffset)    -> v
+  | StartOf (Var v, NoOffset) -> v
+  | _                         -> failwith "referenced_var_of_exp"
 
 (******************************************************************************)
 (********************************** Printing **********************************)
@@ -548,26 +544,28 @@ module CopyGlobal: Visitor = struct
   class expVisitor fd = object(self)
     inherit nopCilVisitor
 
-    val expLevel = ref 0
+    val mutable expLevel = 0
+
+    val globalMem = Hashtbl.create 17
 
     method vvrbl v =
-      if !expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
-        let vlv = (Var v, NoOffset) in
-        let tmp = vlv |> typeOfLval |> makeTempVar fd in
-        let _   = self#queueInstr [Set ((Var tmp, NoOffset), Lval vlv, !currentLoc)] in
-          ChangeTo tmp
+      if expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
+        ChangeTo (Misc.do_memo globalMem (fun v -> makeTempVar fd v.vtype) v v)
       else SkipChildren
 
     method vexpr e =
-      incr expLevel;
-      ChangeDoChildrenPost (e, fun e -> decr expLevel; e)
+      expLevel <- expLevel + 1;
+      ChangeDoChildrenPost (e, fun e -> expLevel <- expLevel - 1; e)
 
-    method vinst = function
-      | Call (Some ((Var v, NoOffset) as lv), f, es, loc) when v.vglob ->
-          let tmp = lv |> typeOfLval |> makeTempVar fd in
-          let tlv = (Var tmp, NoOffset) in
-            ChangeDoChildrenPost ([Call (Some tlv, f, es, loc); Set (lv, Lval tlv, loc)], id)
-      | _ -> DoChildren
+    method vfunc fd =
+      ChangeDoChildrenPost
+        (fd,
+         begin fun fd ->
+           Hashtbl.iter
+             (fun v tmp -> self#queueInstr [Set (var tmp, Lval (var v), fd.svar.vdecl)])
+             globalMem;
+           fd
+         end)
   end
 
   class globVisitor = object(self)
@@ -643,7 +641,7 @@ module Pheapify: Visitor = struct
 
   let should_heapify vi =
     if vi.vglob then
-      not (isArrayType vi.vtype) && (vi.vaddrof || isCompoundType vi.vtype)
+      not (isArrayType vi.vtype) && not (isFunctionType vi.vtype)
     else
       (isCompoundType vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
@@ -665,11 +663,18 @@ module Pheapify: Visitor = struct
 
     method get_hglobals = !hglobals
 
+    method heapifiedGlobal vi =
+         {(makeGlobalVar (heapName vi) (heapifiedType vi)) with
+            vaddrof = true;
+            vstorage = vi.vstorage;
+            vattr = vi.vattr}
+      >> fun hvi -> hglobals := (vi, hvi) :: !hglobals
+
     method vglob = function
       | GVar (vi, init, loc) when should_heapify vi ->
-          let hvi = {(makeGlobalVar (heapName vi) (heapifiedType vi)) with vaddrof = true} in
-            hglobals := (vi, hvi) :: !hglobals;
-            ChangeTo [GVar (hvi, arrayifiedInit vi init, loc)]
+        ChangeTo [GVar (self#heapifiedGlobal vi, arrayifiedInit vi init, loc)]
+      | GVarDecl (vi, loc) when should_heapify vi ->
+        ChangeTo [GVarDecl (self#heapifiedGlobal vi, loc)]
       | _ -> DoChildren
   end
 

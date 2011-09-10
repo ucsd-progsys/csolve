@@ -17,4 +17,5 @@ void main () {
     void (*f) (int *, char *);
 
     f = nondet () ? one : two;
+    f (0, 0);
 }

@@ -53,6 +53,9 @@
 #define OFFSET_GE(n)      REF(POFFSET_GE(n))
 #define NONNEG            REF(V >= 0)
 
+#define STRINGPTR         ARRAY VALIDPTR
+#define NNSTRINGPTR       ARRAY NNVALIDPTR
+
 // Assumptions
 
 #define LCC_VAR2(base, n) base##n

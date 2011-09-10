@@ -114,6 +114,17 @@ type specType =
 type 'a prespec = ('a precfun * specType) Misc.StringMap.t 
                 * ('a prectype * specType) Misc.StringMap.t 
                 * 'a prestore
+                * specType SLM.t
+
+let d_specTypeRel () = function
+  | HasShape  -> P.text "::"
+  | IsSubtype -> P.text "<:"
+  | HasType   -> P.text "|-"
+
+let specTypeMax st1 st2 = match st1, st2 with
+  | HasShape, st | st, HasShape -> st
+  | HasType, _   | _, HasType   -> HasType
+  | _                           -> IsSubtype
 
 let d_fieldinfo () = function
   | { fname = Some fn; ftype = Some t } -> 
@@ -257,6 +268,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       exception UnifyFailure of Sloc.Subst.t * t
 
       val unify_ctype_locs : t -> Sloc.Subst.t -> ctype -> ctype -> t * Sloc.Subst.t
+      val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> field -> t * Sloc.Subst.t
       val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> cfun -> t * Sloc.Subst.t
     end
@@ -290,20 +302,17 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> cfun * specType -> t -> t
     val add_var : bool -> string -> ctype * specType -> t -> t
-    val add_data_loc : Sloc.t -> ldesc -> t -> t
-    val add_fun_loc  : Sloc.t -> cfun -> t -> t
-    val upd_store    : t -> store -> t
-    val mem_fun : string -> t -> bool
-    val mem_var : string -> t -> bool
-    val get_fun : string -> t -> cfun * specType
-    val get_var : string -> t -> ctype * specType
+    val add_data_loc : Sloc.t -> ldesc * specType -> t -> t
+    val add_fun_loc  : Sloc.t -> cfun * specType -> t -> t
     val store   : t -> store
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
     val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val locspectypes : t -> specType SLM.t
 
     val make    : (R.t precfun * specType) Misc.StringMap.t ->
                   (R.t prectype * specType) Misc.StringMap.t ->
                   store ->
+                  specType SLM.t ->
                   t
     val add     : t -> t -> t
     val d_spec  : unit -> t -> P.doc
@@ -767,30 +776,44 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
             else (subs sub sto, sub)
             else (sto, sub)
 
-      and unify_fields sub sto fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
+      and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
         | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
         | ct1, ct2                                  ->
           fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
-      and add_field sto sub s i fld =
-        try
-          match i with
-            | N.IBot                 -> (sto, sub)
-            | N.ICClass _ | N.IInt _ ->
-              let s    = S.Subst.apply sub s in
-              let ld   = Data.find_or_empty sto s in
-              let olap = LDesc.find i ld in
-              let i    = olap |>: fst |> List.fold_left Index.lub i in
+      and unify_overlap sto sub s i =
+        let s  = S.Subst.apply sub s in
+        let ld = Data.find_or_empty sto s in
+          match LDesc.find i ld with
+            | []                         -> (sto, sub)
+            | ((_, fstfld) :: _) as olap ->
+              let i = olap |>: fst |> List.fold_left Index.lub i in
                    ld
                 |> List.fold_right (fst <+> LDesc.remove) olap
-                |> LDesc.add i (Field.subs sub fld)
+                |> LDesc.add i fstfld
                 |> Data.add sto s
                 |> fun sto ->
                      List.fold_left
-                       (fun (sto, sub) (_, olfld) -> unify_fields sub sto fld olfld)
+                       (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
                        (sto, sub)
                        olap
+
+      and add_field sto sub s i fld =
+        try
+          begin match i with
+            | N.IBot                 -> (sto, sub)
+            | N.ICClass _ | N.IInt _ ->
+              let sto, sub = unify_overlap sto sub s i in
+              let s        = S.Subst.apply sub s in
+              let fld      = Field.subs sub fld in
+              let ld       = Data.find_or_empty sto s in
+                begin match LDesc.find i ld with
+                  | []          -> (ld |> LDesc.add i fld |> Data.add sto s, sub)
+                  | [(_, fld2)] -> unify_fields sto sub fld fld2
+                  | _           -> assert false
+                end
+          end
         with e ->
           C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a"
             Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;
@@ -946,62 +969,47 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   and Spec: SIG.SPEC = struct
     type t = R.t prespec
 
-    let empty = (SM.empty, SM.empty, Store.empty)
+    let empty = (SM.empty, SM.empty, Store.empty, SLM.empty)
 
-    let map f (funspec, varspec, storespec) =
+    let map f (funspec, varspec, storespec, storetypes) =
       (SM.map (f |> CFun.map |> M.app_fst) funspec,
        SM.map (f |> M.app_fst) varspec,
-       Store.map f storespec)
+       Store.map f storespec,
+       storetypes)
 
-    let add_fun b fn sp (funspec, varspec, storespec) =
-      (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
+    let add_fun b fn sp (funspec, varspec, storespec, storetypes) =
+      (Misc.sm_protected_add b fn sp funspec, varspec, storespec, storetypes)
 
-    let add_var b vn sp (funspec, varspec, storespec) =
-      (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
+    let add_var b vn sp (funspec, varspec, storespec, storetypes) =
+      (funspec, Misc.sm_protected_add b vn sp varspec, storespec, storetypes)
 
-    let add_data_loc l ld (funspec, varspec, storespec) =
-      (funspec, varspec, Store.Data.add storespec l ld)
+    let add_data_loc l (ld, st) (funspec, varspec, storespec, storetypes) =
+      (funspec, varspec, Store.Data.add storespec l ld, SLM.add l st storetypes)
 
-    let add_fun_loc l cf (funspec, varspec, storespec) =
-      (funspec, varspec, Store.Function.add storespec l cf)
-
-    let upd_store (funspec, varspec, storespec) sto =
-      (funspec, varspec, Store.upd storespec sto)
-
-    let mem_fun fn (funspec, _, _) =
-      SM.mem fn funspec
-
-    let mem_var vn (_, varspec, _) =
-      SM.mem vn varspec
-
-    let get_fun fn (funspec, _, _) =
-      try SM.find fn funspec with Not_found -> 
-        E.error "Cannot find %s in fun spec" fn |> halt
-
-    let get_var vn (_, varspec, _) =
-      try SM.find vn varspec with Not_found -> 
-        E.error "Cannot find %s in var spec" vn |> halt
-
-    let store (_, _, storespec) =
-      storespec
+    let add_fun_loc l (cf, st) (funspec, varspec, storespec, storetypes) =
+      (funspec, varspec, Store.Function.add storespec l cf, SLM.add l st storetypes)
       
-    let funspec = fst3
-    let varspec = snd3
-    let make    = fun x y z -> (x, y, z)
+    let funspec (fs, _, _, _)        = fs
+    let varspec (_, vs, _, _)        = vs
+    let store (_, _, sto, _)         = sto
+    let locspectypes (_, _, _, lsts) = lsts
+    let make w x y z                 = (w, x, y, z)
 
-    let add (funspec, varspec, storespec) spec =  
-       spec
+    let add (funspec, varspec, storespec, storetypes) spec =  
+          spec
        |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
        |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
-       |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
+       |> (fun (w, x, y, z) -> (w, x, Store.upd y storespec, z))
 
-
-    let d_spec () sp = 
+    let d_spec () sp =
+      let lspecs = locspectypes sp in
       [ (Store.Data.fold_locs (fun l ld acc ->
-          P.concat acc (P.dprintf "loc %a |-> %a\n\n" Sloc.d_sloc l LDesc.d_ldesc ld)
+          P.concat acc (P.dprintf "loc %a %a %a\n\n"
+                          Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) LDesc.d_ldesc ld)
          ) P.nil (store sp))
       ; (Store.Function.fold_locs (fun l cf acc ->
-          P.concat acc  (P.dprintf "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l CFun.d_cfun cf)
+          P.concat acc  (P.dprintf "loc %a %a@!  @[%a@]@!@!"
+                           Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) CFun.d_cfun cf)
          ) P.nil (store sp))
       ; (P.seq (P.text "\n\n") (fun (vn, (ct, _)) -> 
           P.dprintf "%s :: @[%a@]" vn CType.d_ctype ct
@@ -1010,7 +1018,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           P.dprintf "%s ::@!  @[%a@]\n\n" fn CFun.d_cfun cf
          ) (funspec sp |> SM.to_list)) ]
       |> List.fold_left P.concat P.nil
-
   end
 
   (******************************************************************************)
@@ -1040,8 +1047,11 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-(* let ptr_ctype    = Ref (S.fresh_abstract (), N.top) *)
+let ptr_ctype    = Ref (S.none, N.top)
 let scalar_ctype = Int (0, N.top)
+
+let vtype_to_ctype v = if Cil.isArithmeticType v
+                         then scalar_ctype else ptr_ctype
 
 let d_ctype        = I.CType.d_ctype
 let index_of_ctype = I.CType.refinement

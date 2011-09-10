@@ -140,11 +140,6 @@ let parseOneSpec fn =
     let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
     None 
 
-let add_spec fn spec_src = 
-  match parseOneSpec fn with
-    | Some x -> Sp.add spec_src x
-    | _      -> spec_src
-
 let spec_of_file outprefix file =
   let specfile = outprefix^".autospec" in
     Typespec.writeSpecOfFile file specfile;
@@ -161,7 +156,7 @@ let project_spec fns spec =
   let fspec = spec
            |> Sp.funspec
            |> SM.mapi (fun fn (cf, b) -> (cf, if SS.mem fn fns then Ctypes.IsSubtype else b)) in
-  Sp.make fspec (Sp.varspec spec) (Sp.store spec)
+  Sp.make fspec (Sp.varspec spec) (Sp.store spec) (Sp.locspectypes spec)
 
 let incremental_spec outprefix fns spec =
   match parseOneSpec (outprefix ^".infspec") with
@@ -221,7 +216,7 @@ let cil_of_file file =
   file |> Simplemem.simplemem 
        >> CilMisc.unfloat 
        >> CilMisc.Pheapify.doVisit 
-       >> Psimplify.simplify 
+       >> Psimplify.simplify
        >> Simpleret.simpleret 
        >> Rmtmps.removeUnusedTemps 
        >> CilMisc.purify 

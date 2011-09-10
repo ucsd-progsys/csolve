@@ -22,17 +22,20 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g \
        -cflags "-w a" \
-			 -cflags -thread
-TARGETS=liquidc.native indexSolver.native
+       -cflags -thread
 
-all: ../lib/libliquidc.a
-	ln -sf ../external/misc
-	ln -sf ../external/fixpoint
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(TARGETS) || exit 1
+TARGETS=liquidc.native
 
-liquidc.byte:
-	ln -sf ../external/misc
-	ln -sf ../external/fixpoint
+all: ../lib/libliquidc.a misc fixpoint
+	ocamlbuild -no-links $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(TARGETS)
+
+misc:
+	ln -s ../external/misc
+
+fixpoint:
+	ln -s ../external/fixpoint
+
+liquidc.byte: misc fixpoint
 	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) liquidc.byte || exit 1
 
 liquidc.cma: liquidc.byte

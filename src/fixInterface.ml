@@ -203,7 +203,7 @@ let print_ce so ppf (_, vnv) =
 (****************************************************************)
 
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())]
 let ra_true         = fun _ -> []
 let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
@@ -235,16 +235,32 @@ let ra_bbegin ct =
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
 
+let ra_array tptr ct =
+     ct
+  |> sort_of_prectype
+  |> Sy.value_variable
+  |> A.eVar
+  |> begin fun vv ->
+     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.non_null_pred_of_index_ref in
+       [C.Conc (P.subst p vv' vv)]
+     end
+
+let ra_indexpred ct =
+  let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
+  let vv', p = Sc.pred_of_ctype ct in
+    [C.Conc (P.subst p vv' vv)]
+
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
-let t_conv_refctype  = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
-let t_true_refctype  = t_conv_refctype ra_true
-let t_false_refctype = t_conv_refctype ra_false
-let t_zero_refctype  = t_conv_refctype ra_zero
+let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
+let t_true_refctype      = t_conv_refctype ra_true
+let t_false_refctype     = t_conv_refctype ra_false
+let t_zero_refctype      = t_conv_refctype ra_zero
+let t_indexpred_refctype = t_conv_refctype ra_indexpred
 
 
 let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
@@ -328,7 +344,8 @@ let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
     |> (function [v] -> [C.Conc (mk_eq_uf FA.eApp_bbegin (A.eVar vv) (A.eVar (FA.name_of_varinfo v)))] | _ -> [])
 
 let t_exp_scalar v e =
-  let ct  = Ct.scalar_ctype in
+(*  let ct  = Ct.scalar_ctype in *)
+  let ct  = Ct.vtype_to_ctype v.Cil.vtype in
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let _,p = CI.reft_of_cilexp vv e in
@@ -382,6 +399,9 @@ let conv_refstore_bottom st =
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
+let t_scalar_ptr tptr =
+  refctype_of_ctype (ra_array tptr) (Ct.vtype_to_ctype tptr)
+
 (* {{{
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
 let t_scalar = function
@@ -391,13 +411,14 @@ let t_scalar = function
 
 let t_scalar = Ct.index_of_ctype <+> 
                Sc.pred_of_index <+> 
-               Misc.uncurry (t_pred Ct.scalar_ctype)
+               Misc.uncurry (t_pred Ct.nscalar_ctype)
 let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
 
 
 }}} *)
 
-let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred Ct.scalar_ctype)
+(* let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred C.scalar_ctype) *)
+let t_scalar ct = ct |> Sc.non_null_pred_of_ctype |> Misc.uncurry (t_pred ct)
 
 let deconstruct_refctype rct = 
   let r = Ct.reft_of_refctype rct in
@@ -420,9 +441,11 @@ let vv_rename so' r =
   C.make_reft vv' so' ras'
 
 let t_scalar_refctype_raw rct =
-  let so'  = Ct.scalar_ctype |> sort_of_prectype in
+(*  let so'  = Ct.scalar_ctype |> sort_of_prectype in *)
+  let so' = Ct.ctype_of_refctype rct |> sort_of_prectype in
   let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
-  refctype_of_reft_ctype r' Ct.scalar_ctype
+    (* refctype_of_reft_ctype r' Ct.scalar_ctype *)
+   refctype_of_reft_ctype r' (Ct.ctype_of_refctype rct)
 
 (* API *)
 let t_scalar_refctype =
@@ -708,61 +731,73 @@ let make_cs_subtyping_bind_pairs polarity binds1 binds2 f =
     |> List.map f
     |> Misc.splitflatten
 
-let rec make_cs_refstore env p st1 st2 polarity tago tag loc =
+let rec make_cs_refstore_aux subf env p st1 st2 polarity tago tag loc =
 (*  let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
 *)
-  make_cs_refstore_binds
+  make_cs_refstore_binds_aux subf
     env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
 
-and make_cs_refstore_binds env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
+and make_cs_refstore_binds_aux subf env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
   Misc.splitflatten
     [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc;
-     make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc]
+     make_cs_refstore_fun_binds subf env p sfuns1 sfuns2 polarity tago tag loc]
 
 and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity slds1 slds2 begin fun (sld1, sld2) ->
     make_cs_refldesc env p sld1 sld2 tago tag
   end
 
-and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
+and make_cs_refstore_fun_binds subf env p sfuns1 sfuns2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
     let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in
       if Ct.I.CFun.same_shape cf1 cf2 then
-        make_cs_refcfun env p fun1 fun2 tag loc
+        subf env p fun1 fun2 tag loc
       else Errormsg.s <|
           Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!"
             Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2
   end
 
-and make_cs_refcfun env p rf rf' tag loc =
-  let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype in
-  let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
-  let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
-  let hi, ho      = Ct.stores_of_refcfun rf in
-  let hi',ho'     = Ct.stores_of_refcfun rf' in
+and make_cs_refcfun_aux subf env p ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho')) tag loc =
   let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
                         |> ce_adds env in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
   (* contravariant inputs *)
       (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
-  +++ (make_cs_refstore env p hi' hi true None tag loc) 
+  +++ (make_cs_refstore_aux subf env p hi' hi true None tag loc) 
   (* covariant outputs *)
   +++ (make_cs env p ocr ocr' None tag loc)
-  +++ (make_cs_refstore env p ho ho' true None tag loc)
+  +++ (make_cs_refstore_aux subf env p ho ho' true None tag loc)
+
+let make_cs_refcfun_components rf rf' =
+  let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype in
+  let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
+  let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
+  let hi, ho      = Ct.stores_of_refcfun rf in
+  let hi',ho'     = Ct.stores_of_refcfun rf' in
+    ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho'))
+
+let rec make_cs_refcfun env p rf rf' tag loc =
+  make_cs_refcfun_aux make_cs_refcfun
+    env p (make_cs_refcfun_components rf rf') tag loc
+
+let rec make_cs_refcfun_covariant env p rf rf' tag loc =
+  let its, his, ocrs, hos = make_cs_refcfun_components rf rf' in
+    make_cs_refcfun_aux make_cs_refcfun_covariant
+      env p (M.swap its, M.swap his, ocrs, hos) tag loc
 
 (* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
+  try make_cs_refstore_aux make_cs_refcfun env p st1 st2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
 (* API *)
 let make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc =
-  try make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc with ex ->
+  try make_cs_refstore_binds_aux make_cs_refcfun env p binds1 binds2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore_binds fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore_binds" in 
     assert false
@@ -786,6 +821,13 @@ let make_cs_refcfun gnv p rf rf' tag loc =
   try make_cs_refcfun gnv p rf rf' tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refcfun fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refcfun" in 
+    assert false
+
+(* API *) 
+let make_cs_refcfun_covariant gnv p rf rf' tag loc =
+  try make_cs_refcfun_covariant gnv p rf rf' tag loc with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refcfun_covariant fails with: %s" (Printexc.to_string ex) in 
+    let _ = asserti false "make_cs_refcfun_covariant" in 
     assert false
 
 let new_block_reftype = t_zero_refctype (* t_true_refctype *)

@@ -1,8 +1,10 @@
+#include <liquidc.h>
+
 typedef struct _node {
     struct _node *next;
 } node;
 
-void break_it (node **npp, node *v) {
+void break_it (node ** NONNULL npp, node *v) CHECK_TYPE {
     if (0 == 1) {
         v->next = *npp;
     }

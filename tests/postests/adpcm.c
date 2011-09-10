@@ -74,7 +74,7 @@ adpcm_coder(int nsample, short * ARRAY indata, char * ARRAY outdata, struct adpc
     int outputbuffer;		/* place to keep previous 4-bit value */
     int bufferstep;		/* toggle between outputbuffer/output */
 
-    /* THETA ISSUE ALL AROUND 
+    /* THETA ISSUE ALL AROUND
     indata  = indata;
     outdata = outdata;
     state   = state;
@@ -105,6 +105,16 @@ adpcm_coder(int nsample, short * ARRAY indata, char * ARRAY outdata, struct adpc
    
     int *indexTable = (int *) malloc(16 * sizeof(int));
     int *stepsizeTable = (int *) malloc(90 * sizeof(int));
+
+    int idx = nondet ();
+
+    if (0 <= idx && idx < 90) {
+        stepsizeTable[idx] = 0;
+    }
+
+    if (0 <= idx && idx < 16) {
+        indexTable[idx] = 0;
+    }
     
     int len = nsample;
 
@@ -235,6 +245,16 @@ adpcm_decoder(int nsample, char * ARRAY indata, short * ARRAY outdata, struct ad
 
     int *indexTable = (int *) malloc(16 * sizeof(int));
     int *stepsizeTable = (int *) malloc(90 * sizeof(int));
+
+    int idx = nondet ();
+
+    if (0 <= idx && idx < 90) {
+        stepsizeTable[idx] = 0;
+    }
+
+    if (0 <= idx && idx < 16) {
+        indexTable[idx] = 0;
+    }
  
     int len = nsample;
 
@@ -249,52 +269,52 @@ adpcm_decoder(int nsample, char * ARRAY indata, short * ARRAY outdata, struct ad
 
     for ( ; len > 0 ; len-- ) {
 
-	/* Step 1 - get the delta value */
-	if ( bufferstep == 0) {
+        /* Step 1 - get the delta value */
+        if ( bufferstep == 0) {
             validptr(inp);
-	    inputbuffer = *inp++;
-	    delta = band((inputbuffer >> 4), 0xf);
-	} else {
-	    delta = band(inputbuffer, 0xf);
-	}
-	bufferstep = 1 - bufferstep;
+            inputbuffer = *inp++;
+            delta = band((inputbuffer >> 4), 0xf);
+        } else {
+            delta = band(inputbuffer, 0xf);
+        }
+        bufferstep = 1 - bufferstep;
 
-	/* Step 2 - Find new index value (for later) */
-	index += indexTable[delta];
-	if ( index < 0 ) index = 0;
-	if ( index > 88 ) index = 88;
+        /* Step 2 - Find new index value (for later) */
+        index += indexTable[delta];
+        if ( index < 0 ) index = 0;
+        if ( index > 88 ) index = 88;
 
-	/* Step 3 - Separate sign and magnitude */
-	sign = band(delta, 8);
-	delta = band(delta, 7);
+        /* Step 3 - Separate sign and magnitude */
+        sign = band(delta, 8);
+        delta = band(delta, 7);
 
-	/* Step 4 - Compute difference and new predicted value */
-	/*
-	** Computes 'vpdiff = (delta+0.5)*step/4', but see comment
-	** in adpcm_coder.
-	*/
-	vpdiff = step >> 3;
-	if ( delta & 4 ) vpdiff += step;
-	if ( delta & 2 ) vpdiff += step>>1;
-	if ( delta & 1 ) vpdiff += step>>2;
+        /* Step 4 - Compute difference and new predicted value */
+        /*
+        ** Computes 'vpdiff = (delta+0.5)*step/4', but see comment
+        ** in adpcm_coder.
+        */
+        vpdiff = step >> 3;
+        if ( delta & 4 ) vpdiff += step;
+        if ( delta & 2 ) vpdiff += step>>1;
+        if ( delta & 1 ) vpdiff += step>>2;
 
-	if ( sign )
-	  valpred -= vpdiff;
-	else
-	  valpred += vpdiff;
+        if ( sign )
+          valpred -= vpdiff;
+        else
+          valpred += vpdiff;
 
-	/* Step 5 - clamp output value */
-	if ( valpred > 32767 )
-	  valpred = 32767;
-	else if ( valpred < -32768 )
-	  valpred = -32768;
+        /* Step 5 - clamp output value */
+        if ( valpred > 32767 )
+          valpred = 32767;
+        else if ( valpred < -32768 )
+          valpred = -32768;
 
-	/* Step 6 - Update step value */
-	step = stepsizeTable[index];
+        /* Step 6 - Update step value */
+        step = stepsizeTable[index];
 
-	/* Step 7 - Output value */
+        /* Step 7 - Output value */
         validptr(outp);
-	*outp++ = valpred;
+        *outp++ = valpred;
     }
 
     state->valprev = valpred;

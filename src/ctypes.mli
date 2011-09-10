@@ -198,6 +198,7 @@ module type S = sig
       exception UnifyFailure of Sloc.Subst.t * t
 
       val unify_ctype_locs : t -> Sloc.Subst.t -> CType.t -> CType.t -> t * Sloc.Subst.t
+      val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t
       val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> R.t precfun -> t * Sloc.Subst.t
     end
@@ -233,26 +234,22 @@ module type S = sig
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
-    val add_data_loc : Sloc.t -> LDesc.t -> t -> t
-    val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
-    val upd_store : t -> Store.t -> t
-    val mem_fun : string -> t -> bool
-    val mem_var : string -> t -> bool
-    val get_fun : string -> t -> CFun.t * specType
-    val get_var : string -> t -> CType.t * specType
+    val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t
+    val add_fun_loc  : Sloc.t -> CFun.t * specType -> t -> t
     
     val store   : t -> Store.t
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
     val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val locspectypes : t -> specType Sloc.SlocMap.t
 
     val make    : (R.t precfun * specType) Misc.StringMap.t -> 
                   (R.t prectype * specType) Misc.StringMap.t -> 
-                  Store.t -> 
+                  Store.t ->
+                  specType Sloc.SlocMap.t ->
                   t
 
     val add     : t -> t -> t
     val d_spec  : unit -> t -> Pretty.doc
-
   end             
 
   module ExpKey:
@@ -281,6 +278,9 @@ module Make (R: CTYPE_REFINEMENT) : S with module R = R
 
 module I : S with module R = IndexRefinement
 
+val d_specTypeRel : unit -> specType -> Pretty.doc
+val specTypeMax   : specType -> specType -> specType
+
 (******************************************************************************)
 (*************************** Convenient Type Aliases **************************)
 (******************************************************************************)
@@ -292,7 +292,10 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 val void_ctype   : ctype
+val ptr_ctype    : ctype
 val scalar_ctype : ctype
+
+val vtype_to_ctype : Cil.typ -> ctype  
 
 val d_ctype      : unit -> ctype -> Pretty.doc
 

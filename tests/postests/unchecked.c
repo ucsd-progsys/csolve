@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <liquidc.h>
 
 typedef struct __stuff__ {
     int x;
@@ -10,14 +11,14 @@ typedef struct __bigstuff__ {
 } bigstuff;
 
 void main () {
-    int      * __attribute__ ((unchecked)) x;
+    int      * UNCHECKED x;
     stuff                                * y;
-    bigstuff * __attribute__ ((unchecked)) z;
+    bigstuff * UNCHECKED z;
 
-    x     = (int * __attribute__ ((unchecked)))malloc(10);
+    x     = (int * UNCHECKED)malloc(10);
     x[10] = 0;
 
     y    = (stuff *)malloc(sizeof(stuff));
-    z    = (bigstuff * __attribute__ ((unchecked)))y;
+    z    = (bigstuff * UNCHECKED)y;
     z->b = 0;
 }

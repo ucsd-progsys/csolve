@@ -36,6 +36,7 @@ module M  = Misc
 module P  = Pretty
 module CM = CilMisc
 module CS = Ctypes.RefCTypes.Spec
+module RS = Ctypes.RefCTypes.Store
 module Cs = Constants
 
 open Misc.Ops
@@ -79,7 +80,7 @@ let mk_gnv f spec decs cenv =
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs 
             then ft |> FI.refcfun_of_cfun |> FI.map_fn f
-            else (CS.get_fun fn spec |> fst))
+            else spec |> CS.funspec |> SM.find fn |> fst)
      end
   |> FI.ce_adds_fn gnv0
 
@@ -107,7 +108,7 @@ let rename_funspec scim spec =
        then (rename_args rf (SM.find fn scim), b)
        else (rf, b)
      end
-  |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec))
+  |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec) (CS.locspectypes spec))
 
 (******************************************************************************)
 (********** Strengthen Final Fields in Fun Types from Inferred Shapes *********)
@@ -166,6 +167,9 @@ let print_sccs sccs =
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 }}} *)
 
+let is_loc_type_fixed sts l = match Sloc.SlocMap.find l sts with
+  | Ctypes.HasType                     -> true
+  | Ctypes.HasShape | Ctypes.IsSubtype -> false
 
 (* API *)
 let create cil spec decs =
@@ -182,12 +186,16 @@ let create cil spec decs =
   let shm    = shapem_of_scim cil spec scim vim in
   (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
   let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
+
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
-  let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
-  let _      = Errormsg.log "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
+  let ssto   = CS.store spec in
+  let sts    = CS.locspectypes spec in
+  let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
+  let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))
