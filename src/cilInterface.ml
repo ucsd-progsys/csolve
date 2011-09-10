@@ -250,7 +250,6 @@ let reft_of_cilexp vv e =
   | Cil.BinOp (Cil.MinusA, _, _, _) 
   | Cil.BinOp (Cil.MinusPP, _, _, _) 
   | Cil.BinOp (Cil.Mult, _, _, _) 
-  | Cil.BinOp (Cil.Div, _, _, _)
   | Cil.BinOp (Cil.IndexPI, _, _, _)
   | Cil.BinOp (Cil.PlusPI, _, _, _)
   | Cil.BinOp (Cil.MinusPI, _, _, _)
@@ -265,8 +264,10 @@ let reft_of_cilexp vv e =
       (* {v = e} *)
       let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
-  
-  | Cil.BinOp (Cil.Mod, e1, e2, _) ->
+
+  | Cil.BinOp (Cil.Div, _, _, _)
+  | Cil.BinOp (Cil.Mod, _, _, _) ->
+      (* There are preconditions; see assume_guarantee_reft_of_cilexp *)
       A.pTrue
 
   | Cil.BinOp (Cil.Shiftlt, e1, e2, _) ->
@@ -314,13 +315,19 @@ let reft_of_cilexp vv e =
  *  gp is an extra guarantee about the result of evaluating e. 
  *  Assumes that "e" is a-normalized *)
 
-let assume_guarantee_reft_of_cilexp vv = function
+let assume_guarantee_reft_of_cilexp vv e = match e with
   | Cil.BinOp (Cil.PlusPI, e1, e2, _)
   | Cil.BinOp (Cil.IndexPI, e1, e2, _) ->
       let e1' = catch_convert_exp "ag_reft1" e1 in
       let e2' = catch_convert_exp "ag_reft2" e2 in
       let ap  = A.pAtom (A.zero, A.Le, e2') in  
       let gp  = A.pAtom (e1',    A.Le, A.eVar vv) in 
+      Some (ap, gp)
+
+  | Cil.BinOp (Cil.Div, e1, e2, _) ->
+      let ap  = A.pAtom (expr_of_cilexp e2, A.Ne, A.zero) in
+      let e'  = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e) in
+      let gp  = A.pAtom (A.eVar vv, A.Eq, e') in
       Some (ap, gp)
 
   | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
