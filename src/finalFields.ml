@@ -16,8 +16,8 @@ module S  = Sloc
 module CT = Ctypes.I
 module LD = CT.LDesc
 module F  = CT.Field
-module Ix = Ctypes.Index
-module IS = Ctypes.IndexSet
+module Ix = Index
+module IS = Ix.IndexSet
 module P  = Pretty
 module RA = Refanno
 module C  = Cil
@@ -43,8 +43,8 @@ let d_final_fields () ffmsa =
   P.docArray ~sep:P.line begin fun i (ffm, ffms) ->
     P.dprintf "Block %d:\n  %a\n%a"
       i
-      (S.d_slocmap Ctypes.d_indexset) ffm
-      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap Ctypes.d_indexset) ffm)) ffms
+      (S.d_slocmap Ix.d_indexset) ffm
+      (P.docList ~sep:P.line (fun ffm -> P.dprintf "  %a" (S.d_slocmap Ix.d_indexset) ffm)) ffms
   end () ffmsa
 
 module Intraproc (X: Context) = struct

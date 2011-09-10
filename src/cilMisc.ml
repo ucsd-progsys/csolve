@@ -85,6 +85,8 @@ let isCompoundType t = match unrollType t with
   | TComp _ | TArray _ -> true
   | _                  -> false
 
+let fresh_arg_name, _ = M.mk_string_factory "ARG"
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
@@ -121,17 +123,26 @@ let purify file =
 
 exception ContainsDeref
 
-class checkPureVisitor = object(self)
+type considerStringsPure =
+  | StringsArePure
+  | StringsAreNotPure
+
+class checkPureVisitor (stringsPure) = object(self)
   inherit nopCilVisitor
   method vlval = function
-  | (Mem _), _ -> raise ContainsDeref 
-  | _          -> DoChildren
+  | Mem _, _ -> raise ContainsDeref
+  | _        -> DoChildren
+
+  method vexpr = function
+  | Const (CStr _)
+    when stringsPure = StringsAreNotPure -> raise ContainsDeref
+  | _                                    -> DoChildren
 end
 
 (* API *)
-let is_pure_expr e =
+let is_pure_expr stringsPure e =
   try 
-    e |> visitCilExpr (new checkPureVisitor) >| true 
+    e |> visitCilExpr (new checkPureVisitor (stringsPure)) >| true
   with ContainsDeref ->
     false
 
@@ -254,7 +265,7 @@ let ignoreBoundAttribute    = "lcc_ignore_bound"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
-let has_unchecked_attr = hasAttribute "unchecked"
+let has_unchecked_attr = hasAttribute "lcc_unchecked"
 
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeAttrs |> has_unchecked_attr

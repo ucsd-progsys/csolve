@@ -1,11 +1,6 @@
 
 HEREHEREHEREHERE -- why is this happening? (power just dies with
-fastscalar)
-rjhala@ubuntu:~/research/liquidc/tests/postests$ grep "SCALAR9" power.c.scalar.eq.in.fq  | grep "qualif"
-qualif SCALAR9(VV_int:int):(VV_int = (BLOCK_BEGIN([VV_int]) + 0))
-rjhala@ubuntu:~/research/liquidc/tests/postests$ grep "SCALAR9" power.c.scalar.mod.in.fq  | grep "qualif"
-qualif SCALAR9(VV_int:int):(((VV_int - 12) mod 16) = 0)
-
+fastscalar)? Because, Z3 dies on power.c.scalar.mod.in.fq ...
 
 
 * run regrtests with and without -origdeps to see which wins

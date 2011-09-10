@@ -9,7 +9,6 @@ char * ARRAY make_string(int n) {
     char *str  = str0;
 
     for (int i = 0; i < n; i++) {
-        validptr(str);
         *str++ = 0;
     }
 
@@ -18,19 +17,12 @@ char * ARRAY make_string(int n) {
 
 typedef struct {
     int  len;
-    char * ARRAY LOC(L) str;
+    char * ARRAY str;
 } string;
 
 void init_string(string *s, char c) {
-    int len;
-    char *str;
-
-    // pmr: weirdness here, these need to be rolled out...
-    len = s->len;
-    str = s->str;
-    for (int i = 0; i < len; i++) {
-        validptr(str + i);
-        str[i] = c;
+    for (int i = 0; i < s->len; i++) {
+        s->str[i] = c;
     }
 }
 
@@ -46,14 +38,13 @@ string *new_string(int n, char c) {
     s->str = make_string(n);
 
     init_string(s, c);
-    // lcc_assert(0); // Sanity
 
     return s;
 }
 
 typedef struct _slist {
     struct _slist  * next;
-    string INST(L, CL) * LOC(SL) s;
+    string * LOC(SL) s;
 } slist;
 
 slist *new_strings(int n) {
@@ -63,9 +54,9 @@ slist *new_strings(int n) {
 
     sl = 0;
     for (int i = 1; i < n; i++) {
-        s      = (string *)malloc(sizeof(string));
-        s->len = i;
-        s->str = make_string(i);
+        s       = (string *)malloc(sizeof(string));
+        s->len  = i;
+        s->str  = make_string(i);
 
         t       = (slist *)malloc(sizeof(slist));
         t->s    = s;
@@ -77,7 +68,7 @@ slist *new_strings(int n) {
 }
 
 
-string INST(L, C) * LOC(L) string_succ(slist INST(SL, L) INST(CL, C) * REF(V = (BLOCK_BEGIN([V]) + 4)) s) {
+string * LOC(L) string_succ(slist INST(SL, L) * REF(V = (BLOCK_BEGIN([V]) + 4)) s) {
     slist *sl;
 
     if (s == (slist *) 0)

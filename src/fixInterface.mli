@@ -60,9 +60,9 @@ val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (cilenv * Ctypes.refstore * 'a) * FixConstraint.t list
 
 val strengthen_final_field :
-  Ctypes.IndexSet.t ->
+  Index.IndexSet.t ->
   string ->
-  Ctypes.Index.t ->
+  Index.t ->
   Ctypes.reffield ->
   Ctypes.reffield
 
@@ -82,7 +82,7 @@ val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
-val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ctypes.refctype
+val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ast.pred option * Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
 val t_name   : cilenv -> FixAstInterface.name -> Ctypes.refctype
 val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
@@ -91,7 +91,7 @@ val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> 
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
 
-val name_of_sloc_index  : Sloc.t -> Ctypes.Index.t -> FixAstInterface.name
+val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 
 val rename_refctype :
   Sloc.Subst.t ->
@@ -111,12 +111,14 @@ val refstore_strengthen_addr :
   Cil.location ->
   cilenv ->
   Ctypes.refstore ->
-  Ctypes.IndexSet.t Sloc.SlocMap.t ->
+  Index.IndexSet.t Sloc.SlocMap.t ->
   string ->
   Ctypes.refctype ->
   cilenv * Ctypes.refstore
 
 val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> Ctypes.refstore
+
+val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
 
 val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
@@ -128,6 +130,11 @@ val make_wfs_refstore   : cilenv -> Ctypes.refstore -> Ctypes.refstore -> CilTag
 
 val make_cs             : cilenv -> Ast.pred -> 
                           Ctypes.refctype -> Ctypes.refctype -> 
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_assert      : cilenv -> Ast.pred -> 
+                          Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 

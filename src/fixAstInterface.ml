@@ -46,7 +46,7 @@ module Co = Constants
 module LM = Sloc.SlocMap
 module CM = CilMisc
 module VM = CM.VarMap
-module Ix = Ct.Index
+module Ix = Index
 module RCt = Ctypes.RefCTypes
 
 open Misc.Ops

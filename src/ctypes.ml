@@ -26,6 +26,7 @@ module P   = Pretty
 module E   = Errormsg
 module S   = Sloc
 module SS  = S.SlocSet
+module N   = Index
 module C   = Cil
 module CM  = CilMisc
 module SM  = M.StringMap
@@ -39,276 +40,8 @@ open M.Ops
 (*********************************** Indices **********************************)
 (******************************************************************************)
 
-module Index = struct
-  type class_bound = int option (* None = unbounded *)
 
-  let scale_bound x b =
-    M.map_opt (( * ) x) b
-
-  let bound_offset x b =
-    M.map_opt (( + ) x) b
-
-  let bound_plus b1 b2 = match b1, b2 with
-    | Some n, Some m -> Some (m + n)
-    | _              -> None
-
-  let lower_bound_le b1 b2 = match b1, b2 with
-    | Some n, Some m -> n <= m
-    | Some _, None   -> false
-    | _              -> true
-
-  let upper_bound_le b1 b2 = match b1, b2 with
-    | Some n, Some m -> n <= m
-    | None, Some _   -> false
-    | _              -> true
-
-  let bound_min le b1 b2 =
-    if le b1 b2 then b1 else b2
-
-  let bound_max le b1 b2 =
-    if le b1 b2 then b2 else b1
-
-  let lower_bound_min = bound_min lower_bound_le
-  let lower_bound_max = bound_max lower_bound_le
-  let upper_bound_min = bound_min upper_bound_le
-  let upper_bound_max = bound_max upper_bound_le
-
-  (* Describes the integers lb <= n <= ub s.t. n = c (mod m) *)
-  type bounded_congruence_class = {
-    lb : class_bound; (* Lower bound; lb mod m = c *)
-    ub : class_bound; (* Upper bound; ub mod m = c; lb < ub *)
-    c  : int;         (* Remainder; 0 <= c < m *)
-    m  : int;         (* Modulus; 0 < m <= ub - lb *)
-  }
-
-  type t =
-    | IBot                                 (* Empty *)
-    | IInt    of int                       (* Single integer *)
-    | ICClass of bounded_congruence_class  (* Subset of congruence class *)
-
-  let top = ICClass {lb = None; ub = None; c = 0; m = 1}
-
-  let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}
-
-  let d_index () = function
-    | IBot                                         -> P.dprintf "_|_"
-    | IInt n                                       -> P.num n
-    | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
-    | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
-    | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "%d[%d < %d]" l m (u + m)
-    | _                                            -> assert false
-
-  let repr_suffix = function
-    | IBot                                     -> "B"
-    | IInt n                                   -> string_of_int n
-    | ICClass {lb = lb; ub = ub; m = m; c = c} ->
-      let lbs = match lb with Some n -> string_of_int n | None -> "-" in
-      let ubs = match ub with Some n -> string_of_int n | None -> "+" in
-        lbs ^ "#c" ^ string_of_int c ^ "#m" ^ string_of_int m ^ "#" ^ ubs
-
-  let repr_prefix = "Ix#"
-
-  let repr i =
-    repr_prefix ^ repr_suffix i
-
-  let compare i1 i2 = compare i1 i2
-
-  let of_int i =
-    IInt i
-
-  let mk_sequence start period lbound ubound = match lbound, ubound with
-    | Some m, Some n when m = n -> IInt n
-    | _                         -> ICClass {lb = lbound; ub = ubound; m = period; c = start mod period}
-
-  let mk_geq n =
-    ICClass {lb = Some n; ub = None; m = 1; c = 0}
-
-  let mk_leq n =
-    ICClass {lb = None; ub = Some n; m = 1; c = 0}
-
-  let mk_eq_mod c m =
-    ICClass {lb = None; ub = None; m = m; c = c}
-
-  let is_unbounded = function
-    | ICClass {lb = None} | ICClass {ub = None} -> true
-    | _                                         -> false
-
-  let period = function
-    | ICClass {m = m} -> Some m
-    | IInt _ | IBot   -> None
-
-  let is_periodic i =
-    period i != None
-
-  let is_subindex i1 i2 = match i1, i2 with
-    | IBot, _                                          -> true
-    | _, IBot                                          -> false
-    | IInt n, IInt m                                   -> n = m
-    | ICClass _, IInt _                                -> false
-    | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m} ->
-      lower_bound_le lb (Some n) && upper_bound_le (Some n) ub && ((n mod m) = c)
-    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-      lower_bound_le lb2 lb1 && upper_bound_le ub1 ub2 && (m1 mod m2) = 0 && (c1 mod m2) = c2
-
-  let lub i1 i2 =
-    if is_subindex i1 i2 then
-      i2
-    else if is_subindex i2 i1 then
-      i1
-    else match i1, i2 with
-      | IBot, _ | _, IBot -> assert false
-      | IInt m, IInt n    ->
-        let d = abs (m - n) in
-          ICClass {lb = Some (min m n); ub = Some (max m n); m = d; c = m mod d}
-      | IInt n, ICClass {lb = lb; ub = ub; m = m; c = c}
-      | ICClass {lb = lb; ub = ub; m = m; c = c}, IInt n ->
-        let m = M.gcd m (abs (c - (n mod m))) in
-          ICClass {lb = lower_bound_min lb (Some n);
-                   ub = upper_bound_max ub (Some n);
-                   m  = m;
-                   c  = c mod m}
-      | ICClass {lb = lb1; ub = ub1; m = m1; c = c1},
-        ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
-        let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
-          ICClass {lb = lower_bound_min lb1 lb2;
-                   ub = upper_bound_max ub1 ub2;
-                   m  = m;
-                   c  = c1 mod m}
-
-  (* pmr: There is surely a closed form for this, to be sought
-     later. *)
-  let rec search_congruent c1 m1 c2 m2 n =
-    if n < 0 then None else
-      if (n mod m1) = c1 && (n mod m2) = c2 then
-        Some n
-      else
-        search_congruent c1 m1 c2 m2 (n - 1)
-
-  let glb i1 i2 =
-    if is_subindex i1 i2 then
-      i1
-    else if is_subindex i2 i1 then
-      i2
-    else match i1, i2 with
-      | IBot, _ | _, IBot         -> assert false
-      | IInt m, IInt n when m = n -> IInt m
-      | IInt _, IInt _            -> IBot
-      | IInt n, ICClass {lb = lb; ub = ub; m = m; c = c}
-      | ICClass {lb = lb; ub = ub; m = m; c = c}, IInt n ->
-        if lower_bound_le lb (Some n) &&
-           upper_bound_le (Some n) ub &&
-           (n mod m) = c then
-          IInt n
-        else IBot
-      | ICClass {lb = lb1; ub = ub1; m = m1; c = c1},
-        ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
-        let m = M.lcm m1 m2 in
-          match search_congruent c1 m1 c2 m2 (m - 1) with
-            | None   -> IBot
-            | Some c ->
-              let lb = lower_bound_max lb1 lb2 |> M.map_opt (fun l -> m * ((l + m - c - 1) / m) + c) in
-              let ub = upper_bound_min ub1 ub2 |> M.map_opt (fun l -> m * ((l - c) / m) + c) in
-                match lb, ub with
-                  | Some l, Some u when u = l -> IInt u
-                  | Some l, Some u when u < l -> IBot
-                  | _                         -> ICClass {lb = lb; ub = ub; m = m; c = c}
-
-  let overlaps i1 i2 =
-    glb i1 i2 <> IBot
-
-  let widen i1 i2 =
-    if is_subindex i1 i2 then
-      i2
-    else if is_subindex i2 i1 then
-      i1
-    else match i1, i2 with
-      | IBot, _ | _, IBot -> assert false
-      | IInt n, IInt m    ->
-        let d = abs (n - m) in
-          ICClass {lb = Some (min n m);
-                   ub = None;
-                   c  = n mod d;
-                   m  = d}
-      | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m}
-      | ICClass {lb = lb; ub = ub; c = c; m = m}, IInt n ->
-        ICClass {lb = lower_bound_min (Some n) lb;
-                 ub = upper_bound_max (Some n) ub;
-                 c  = 0;
-                 m  = M.gcd m (M.gcd c n)}
-      | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-        ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-        let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
-          ICClass {lb = if lb1 = lb2 then lb1 else None;
-                   ub = if ub1 = ub2 then ub1 else None;
-                   c  = c1 mod m;
-                   m  = m}
-
-  let offset n = function
-    | IBot                                     -> IBot
-    | IInt m                                   -> IInt (n + m)
-    | ICClass {lb = lb; ub = ub; c = c; m = m} ->
-      ICClass {lb = bound_offset n lb;
-               ub = bound_offset n ub;
-               c  = (c + n) mod m;
-               m  = m}
-
-  let plus i1 i2 = match i1, i2 with
-    | IBot, _ | _, IBot     -> IBot
-    | IInt n, i | i, IInt n -> offset n i
-    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-      ICClass {lb = bound_plus lb1 lb2;
-               ub = bound_plus ub1 ub2;
-               c  = 0;
-               m  = M.gcd m1 (M.gcd m2 (M.gcd c1 c2))}
-
-  let minus i1 i2 = match i1, i2 with
-    | IBot, _ | _, IBot                                                -> IBot
-    | IInt n, IInt m                                                   -> IInt (n - m)
-    | ICClass {lb = Some l; ub = ub; c = c; m = m}, IInt n when l >= n ->
-      ICClass {lb = Some (l - n);
-               ub = bound_offset (-n) ub;
-               c = (c - n) mod m;
-               m = m}
-    | _ -> top
-
-  let scale x = function
-    | IBot   -> IBot
-    | IInt n -> IInt (n * x)
-    | ICClass {lb = lb; ub = ub; c = c; m = m} ->
-      ICClass {lb = scale_bound x lb;
-               ub = scale_bound x ub;
-               c = c;
-               m = x * m}
-
-  let mult i1 i2 = match i1, i2 with
-    | IBot, _ | _, IBot     -> IBot
-    | IInt n, i | i, IInt n -> scale n i
-    | _                     -> top
-
-  let constop op i1 i2 = match i1, i2 with
-    | IBot, _ | _, IBot -> IBot
-    | IInt n, IInt m    -> IInt (op n m)
-    | _                 -> top
-
-  let div =
-    constop (/)
-
-  let unsign i = match i with
-    | IBot                              -> IBot
-    | IInt n when n >= 0                -> i
-    | ICClass {lb = Some n} when n >= 0 -> i
-    | _                                 -> nonneg
-end
-
-module IndexSet        = Set.Make (Index)
-module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
-
-let d_indexset () is =
-  IndexSetPrinter.d_set ", " Index.d_index () is
-
-module N = Index
+module IndexSetPrinter = P.MakeSetPrinter (N.IndexSet)
 
 (******************************************************************************)
 (****************************** Type Refinements ******************************)
@@ -373,8 +106,13 @@ and 'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
     }
 
-type 'a prespec = ('a precfun * bool) Misc.StringMap.t 
-                * ('a prectype * bool) Misc.StringMap.t 
+type specType =
+  | HasShape
+  | IsSubtype
+  | HasType
+
+type 'a prespec = ('a precfun * specType) Misc.StringMap.t 
+                * ('a prectype * specType) Misc.StringMap.t 
                 * 'a prestore
 
 let d_fieldinfo () = function
@@ -470,10 +208,14 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val closed       : t -> bool
+    val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_variances : ('a prectype -> 'b prectype) ->
+                        ('a prectype -> 'b prectype) ->
+                        'a prestore ->
+                        'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -525,6 +267,10 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 
     val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_variances   : ('a prectype -> 'b prectype) ->
+                          ('a prectype -> 'b prectype) ->
+                          'a precfun ->
+                          'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : store -> t -> bool
     val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
@@ -542,21 +288,21 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> cfun * bool -> t -> t
-    val add_var : bool -> string -> ctype * bool -> t -> t
+    val add_fun : bool -> string -> cfun * specType -> t -> t
+    val add_var : bool -> string -> ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> ldesc -> t -> t
     val add_fun_loc  : Sloc.t -> cfun -> t -> t
     val upd_store    : t -> store -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-    val get_fun : string -> t -> cfun * bool
-    val get_var : string -> t -> ctype * bool
+    val get_fun : string -> t -> cfun * specType
+    val get_var : string -> t -> ctype * specType
     val store   : t -> store
-    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
 
-    val make    : (R.t precfun * bool) Misc.StringMap.t ->
-                  (R.t prectype * bool) Misc.StringMap.t ->
+    val make    : (R.t precfun * specType) Misc.StringMap.t ->
+                  (R.t prectype * specType) Misc.StringMap.t ->
                   store ->
                   t
     val add     : t -> t -> t
@@ -817,6 +563,9 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map
 
+    let map_function f =
+      SLM.map (CFun.map f)
+
     let map_ldesc f (ds, fs) =
       (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
 
@@ -856,6 +605,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     module Function = struct
       let add (ds, fs) l cf =
         let _ = assert (not (SLM.mem l ds)) in
+        let _ = assert (Sloc.is_abstract l) in
           (ds, SLM.add l cf fs)
 
       let bindings (_, fs) =
@@ -874,8 +624,11 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         SLM.fold f fs b
     end
 
+    let map_variances f_co f_contra (ds, fs) =
+      (map_data f_co ds, SLM.map (CFun.map_variances f_co f_contra) fs)
+
     let map f (ds, fs) =
-      (map_data f ds, SLM.map (CFun.map f) fs)
+      (map_data f ds, map_function f fs)
 
     let bindings sto =
       (Data.bindings sto, Function.bindings sto)
@@ -935,10 +688,10 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       |> partition (ls |> M.flap (reachable sto) |> M.sort_and_compact |> M.flip List.mem)
       |> fst
 
-    let rec closed ((_, fs) as sto) =
-      Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
-        (* pmr: Not yet right, but we need smarter handling of global stores. *)
-        SLM.fold (fun _ cf c -> c && CFun.well_formed empty cf) fs true
+    let rec closed globstore ((_, fs) as sto) =
+      Data.fold_fields
+        (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto &&
+        SLM.fold (fun _ cf c -> c && CFun.well_formed globstore cf) fs true
 
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
@@ -1070,13 +823,16 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
         sto_out  = sout;
       }
 
-    let map f ft =
-      { args     = List.map (Misc.app_snd f) ft.args;
-        ret      = f ft.ret;
+    let map_variances f_co f_contra ft =
+      { args     = List.map (Misc.app_snd f_contra) ft.args;
+        ret      = f_co ft.ret;
         globlocs = ft.globlocs;
-        sto_in   = Store.map f ft.sto_in;
-        sto_out  = Store.map f ft.sto_out;
+        sto_in   = Store.map_variances f_contra f_co ft.sto_in;
+        sto_out  = Store.map_variances f_co f_contra ft.sto_out;
       }
+
+    let map f ft =
+      map_variances f f ft
 
     let map_ldesc f ft =
       { ft with 
@@ -1138,8 +894,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
              |> M.mapi (fun i x -> (x, i)) in
       cf |> quantified_locs |> M.fsort (M.flip List.assoc ord)
 
-    let fresh_arg_name, _ = M.mk_string_factory "ARG"
-
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
 
@@ -1147,7 +901,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
       let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
       let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
-      let fresh_args   = List.map (fun _ -> fresh_arg_name ()) cf1.args in
+      let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
       let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
       let cf1, cf2     = M.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
         (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1),
@@ -1167,19 +921,17 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-      let whole_instore  = Store.upd cf.sto_in globstore in (* pmr: shouldn't this be the other way around? *)
+      let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
-             Store.closed whole_instore
-          && Store.closed whole_outstore
+             Store.closed globstore cf.sto_in
+          && Store.closed globstore cf.sto_out
           && List.for_all (Store.mem globstore) cf.globlocs
           && not (cf.sto_out |> Store.domain |> List.exists (M.flip List.mem cf.globlocs))
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
-          && match cf.ret with  (* we can return refs to uninitialized data *)
-             | Ref (l, _) -> Store.mem whole_outstore l
-             | _          -> true
+          && Store.ctype_closed cf.ret whole_outstore
 
     let indices cf =
-      Store.indices cf.sto_in ++ Store.indices cf.sto_out
+      Store.indices cf.sto_out
 
     let instantiate srcinf cf =
       let qslocs    = quantified_locs cf in

@@ -1,5 +1,6 @@
 /* ARITHMETIC DECODING ALGORITHM. */
 
+#include <liquidc.h>
 #include "arithmetic_coding.h"
 
 
@@ -30,15 +31,18 @@ int decode_symbol(cum_freq)
     int cum;			/* Cumulative frequency calculated          */
     int symbol;			/* Symbol decoded                           */
     range = (long)(high-low)+1;
+    LCC_ASSUME (range > 0);     //pmr
     cum = 					/* Find cum freq for value. */
       (((long)(value-low)+1)*cum_freq[0]-1)/range;
     for (symbol = 1; cum_freq[symbol]>cum; symbol++) { /* Then find symbol. */
         if (symbol >= 257) STUCK: goto STUCK; // JHALA
     }
+    int cfzero = cum_freq[0];     // pmr
+    LCC_ASSUME(cfzero > 1);       // pmr
     high = low +				/* Narrow the code region   */
-      (range*cum_freq[symbol-1])/cum_freq[0]-1;	/* to that allotted to this */
+      (range*cum_freq[symbol-1])/cfzero-1;	/* to that allotted to this */
     low = low + 				/* symbol.                  */
-      (range*cum_freq[symbol])/cum_freq[0];
+      (range*cum_freq[symbol])/cfzero;
     for (;;) {					/* Loop to get rid of bits. */
         if (high<Half) {
             /* nothing */			/* Expand low half.         */

@@ -202,7 +202,11 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
-    | None   -> if Ct.is_void rtv then ([], sub, sto) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
+    | None ->
+      if Ct.is_void rtv then
+        ([], sub, sto)
+      else
+        E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
       let sto, sub = UStore.unify_ctype_locs sto sub (et#ctype_of_exp e) rtv in
@@ -310,31 +314,37 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _   = C.visitCilFunction (emv :> C.cilVisitor) fd in
   (emv#get_em, bas, sub, sto)
 
+let failure_dump sub ve sto =
+  let _ = P.printf "@!Locals:@!" in
+  let _ = P.printf "=======@!" in
+  let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
+  let _ = P.printf "@!Store:@!" in
+  let _ = P.printf "======@!" in
+  let _ = P.printf "%a@!@!" Store.d_store (Store.subs sub sto) in
+    E.s <| C.error "Failed constrain_fun@!"
+
 let constrain_fun fs cf ve sto sci =
   try
     constrain_fun fs cf ve sto sci
-  with UStore.UnifyFailure (sub, sto) ->
-    let _ = P.printf "@!Locals:@!" in
-    let _ = P.printf "=======@!" in
-    let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
-    let _ = P.printf "@!Store:@!" in
-    let _ = P.printf "======@!" in
-    let _ = P.printf "%a@!@!" Store.d_store sto in
-      E.s <| C.error "Failed constrain_fun@!"
+  with
+    | UStore.UnifyFailure (sub, sto) -> failure_dump sub ve sto
+    | _                              -> failure_dump S.Subst.empty ve sto
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
 (******************************************************************************)
 
 let check_out_store_complete sto_out_formal sto_out_actual =
-  Store.Data.fold_fields begin fun ok l i fld ->
-    if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
-      C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-        S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
-      false
-    end else
-      ok
-  end true sto_out_actual
+     sto_out_actual
+  |> Store.Data.fold_fields begin fun ok l i fld ->
+       if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
+         C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
+           S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
+         false
+       end else
+         ok
+     end true
+  |> fun x -> assert x
 
 let check_slocs_distinct error sub slocs =
   try
@@ -367,7 +377,7 @@ let unified_instantiation_error () (s1, s2) =
   C.error "Call unifies locations which are separate in callee (%a, %a)" 
   S.d_sloc_info s1 S.d_sloc_info s2
 
-let check_sol cf vars gst em bas sub sto =
+let check_sol_aux cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
   let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
@@ -376,14 +386,16 @@ let check_sol cf vars gst em bas sub sto =
   let revsub      = revert_spec_names sub whole_store in
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in
-    if check_out_store_complete whole_store sto then
-      (sub, List.fold_left Store.remove sto (Store.domain gst))
-    else
-         halt
-      <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
-          Store.d_store sto
-          CFun.d_cfun cf
-          Store.d_store gst
+  let _           = check_out_store_complete whole_store sto in
+    (sub, List.fold_left Store.remove sto (Store.domain gst))
+
+let check_sol cf vars gst em bas sub sto =
+  try check_sol_aux cf vars gst em bas sub sto with e ->
+       halt
+    <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
+        Store.d_store sto
+        CFun.d_cfun cf
+        Store.d_store gst
 
 let fresh_sloc_of = function
   | Ref (s, i) -> Ref (s |> S.to_slocinfo |> S.fresh_abstract, i)

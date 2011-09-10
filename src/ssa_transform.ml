@@ -322,7 +322,7 @@ class checkSsaVisitor = object(self)
   method vinst = function
     | Set ((Var v, NoOffset), _, loc)
     | Call (Some (Var v, NoOffset), _, _, loc) ->
-      if CM.VarSet.mem v assigned then
+      if not v.vglob && CM.VarSet.mem v assigned then
         E.s <| errorLoc loc "SSA Failure: double assingment to variable %a@!"
                  CM.d_var v
       else begin

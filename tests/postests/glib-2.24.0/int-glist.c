@@ -3,12 +3,12 @@
 
 typedef struct _SortedList SortedList;
 
-typedef SortedList * STARTifNONNULL NNREF(PSIZE(12)) NNREF(V > 0) sortedlistptr;
+typedef SortedList * NNSTART NNREF(PSIZE(12)) NNREF(V > 0) sortedlistptr;
 
 struct _SortedList {
     int FINAL d;
-    sortedlistptr NNREF((DEREF([V]): int) >= d) n;
-    sortedlistptr NNREF((DEREF([V]): int) <= d) p;
+    sortedlistptr NNSTART NNREF((DEREF([V]): int) >= d) n;
+    sortedlistptr NNSTART NNREF((DEREF([V]): int) <= d) p;
 };
 
 extern void assert_sorted (SortedList *) OKEXTERN;
@@ -183,6 +183,8 @@ void main () {
             break;
         default:
         }
-        assert_sorted (head);
+        if (head) {
+            assert_sorted (head);
+        }
     }
 }

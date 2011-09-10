@@ -21,52 +21,6 @@
  *
  *)
 
-module Index:
-  sig
-    type class_bound = int option
-
-    type bounded_congruence_class = {
-      lb : class_bound;
-      ub : class_bound;
-      c  : int;
-      m  : int;
-    }
-
-    type t =
-      | IBot
-      | IInt    of int
-      | ICClass of bounded_congruence_class
-    
-    val top          : t
-    val nonneg       : t
-    val is_unbounded : t -> bool
-    val period       : t -> int option
-    val is_periodic  : t -> bool
-    val of_int       : int -> t
-    val mk_sequence  : int -> int -> class_bound -> class_bound -> t
-    val mk_geq       : int -> t
-    val mk_leq       : int -> t
-    val mk_eq_mod    : int -> int -> t
-    val lub          : t -> t -> t
-    val glb          : t -> t -> t
-    val widen        : t -> t -> t
-    val offset       : int -> t -> t
-    val plus         : t -> t -> t
-    val minus        : t -> t -> t
-    val scale        : int -> t -> t
-    val mult         : t -> t -> t
-    val div          : t -> t -> t
-    val unsign       : t -> t
-    val is_subindex  : t -> t -> bool
-    val d_index      : unit -> t -> Pretty.doc
-    val repr         : t -> string
-    val repr_prefix  : string
-  end
-
-module IndexSet : Set.S with type elt = Index.t
-
-val d_indexset : unit -> IndexSet.t -> Pretty.doc
-
 (******************************************************************************)
 (****************************** Type Refinements ******************************)
 (******************************************************************************)
@@ -108,6 +62,11 @@ and 'a precfun =
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
     }
+
+type specType =
+  | HasShape
+  | IsSubtype
+  | HasType
 
 type 'a prespec
 
@@ -189,10 +148,14 @@ module type S = sig
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val closed       : t -> bool
+    val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map_variances : ('a prectype -> 'b prectype) ->
+                        ('a prectype -> 'b prectype) ->
+                        'a prestore ->
+                        'b prestore
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
@@ -246,6 +209,10 @@ module type S = sig
 
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
+    val map_variances   : ('a prectype -> 'b prectype) ->
+                          ('a prectype -> 'b prectype) ->
+                          'a precfun ->
+                          'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val well_formed     : Store.t -> t -> bool
     val normalize_names : t -> t -> (Store.t -> Sloc.Subst.t -> (string * string) list -> CType.t -> CType.t) -> t * t
@@ -264,22 +231,22 @@ module type S = sig
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> CFun.t * bool -> t -> t
-    val add_var : bool -> string -> CType.t * bool -> t -> t
+    val add_fun : bool -> string -> CFun.t * specType -> t -> t
+    val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t -> t -> t
     val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
     val upd_store : t -> Store.t -> t
     val mem_fun : string -> t -> bool
     val mem_var : string -> t -> bool
-    val get_fun : string -> t -> CFun.t * bool
-    val get_var : string -> t -> CType.t * bool
+    val get_fun : string -> t -> CFun.t * specType
+    val get_var : string -> t -> CType.t * specType
     
     val store   : t -> Store.t
-    val funspec : t -> (R.t precfun * bool) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * bool) Misc.StringMap.t
+    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
+    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
 
-    val make    : (R.t precfun * bool) Misc.StringMap.t -> 
-                  (R.t prectype * bool) Misc.StringMap.t -> 
+    val make    : (R.t precfun * specType) Misc.StringMap.t -> 
+                  (R.t prectype * specType) Misc.StringMap.t -> 
                   Store.t -> 
                   t
 

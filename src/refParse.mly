@@ -6,7 +6,7 @@ module SM  = Misc.StringMap
 module FI  = FixInterface
 module Ct  = Ctypes
 module RCt = Ct.RefCTypes
-module N   = Ct.Index
+module N   = Index
 module E   = Errormsg
 
 open Misc.Ops
@@ -50,7 +50,7 @@ exception InvalidStoredSpecType
 let check_store_bind_valid (i, fld) =
   try
     match RCt.Field.type_of fld  with
-      | Ct.Int (_, (ti, _)) -> if ti <> Ct.Index.top then raise InvalidStoredSpecType; (i, fld)
+      | Ct.Int (_, (ti, _)) -> if ti <> Index.top then raise InvalidStoredSpecType; (i, fld)
       | _                   -> (i, fld)
   with InvalidStoredSpecType ->
           Errormsg.error "Invalid field in store spec: %a\n\n"
@@ -59,7 +59,7 @@ let check_store_bind_valid (i, fld) =
 
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
-  if RCt.Store.closed storespec then
+  if RCt.Store.closed RCt.Store.empty storespec then
     if RCt.CFun.well_formed storespec rcf then
       RCt.Spec.add_fun true fn (rcf, public) spec
     else begin
@@ -95,12 +95,6 @@ let currentLoc () =
      Cil.line = p.Lexing.pos_lnum;
      Cil.byte = p.Lexing.pos_cnum}
 
-
-
-
-
-
-
 %}
 
 %token DIV 
@@ -110,7 +104,7 @@ let currentLoc () =
 %token <int> CONC
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
-%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON MAPSTO MID LOCATION
+%token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON HASTYPE MAPSTO MID LOCATION
 %token ARG RET ST GLOBAL INST OUTST
 %token TRUE FALSE
 %token EOF
@@ -190,8 +184,9 @@ locspec:
   ;
 
 publ:
-  | DCOLON                              {false}
-  | PCOLON                              {true}
+  | DCOLON                              { Ct.HasShape }
+  | PCOLON                              { Ct.IsSubtype }
+  | HASTYPE                             { Ct.HasType }
   ;
 
 

@@ -16,3 +16,9 @@
 * Check for global locations
   Some functions stash pointer arguments away in globals, meaning that
   it's not possible to quantify over their locations.
+* Use LCC_IO_FILE and LCC_IO_FILE_PTR
+  For performance reasons, we want to abstract away the contents of
+  _IO_FILE structures, so use these macros, defined in libio.h.
+* Use existing global location names if any
+  Be sure to check if there's already a name for any global locations
+  you're introducing so as to not miss potential aliasing.

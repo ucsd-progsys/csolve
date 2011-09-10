@@ -47,7 +47,7 @@ module SM = Misc.StringMap
 module Co = Constants
 module CM = CilMisc
 module VM = CM.VarMap
-module Ix = Ct.Index
+module Ix = Index
 module RCt = Ctypes.RefCTypes
 module FA  = FixAstInterface
 module Sc  = ScalarCtypes
@@ -205,8 +205,9 @@ let print_ce so ppf (_, vnv) =
 
 let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
 let ra_true         = fun _ -> []
+let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
-let ra_zero ct = 
+let ra_zero ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
 
@@ -240,9 +241,10 @@ let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
-let t_conv_refctype = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
-let t_true_refctype = t_conv_refctype ra_true
-let t_zero_refctype = t_conv_refctype ra_zero
+let t_conv_refctype  = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
+let t_true_refctype  = t_conv_refctype ra_true
+let t_false_refctype = t_conv_refctype ra_false
+let t_zero_refctype  = t_conv_refctype ra_zero
 
 
 let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
@@ -308,13 +310,13 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
 
 
 let t_exp cenv ct e =
-  let so  = sort_of_prectype ct in
-  let vv  = Sy.value_variable so in
-  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
-(* let _  = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
-  let rs  = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
-  let r   = C.make_reft vv so rs in
-  refctype_of_reft_ctype r ct
+  let so    = sort_of_prectype ct in
+  let vv    = Sy.value_variable so in
+  let gp, p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
+(* let _      = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
+  let rs    = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
+  let r     = C.make_reft vv so rs in
+  (gp, refctype_of_reft_ctype r ct)
 
 let ptrs_of_exp e = 
   let xm = ref VM.empty in
@@ -329,7 +331,7 @@ let t_exp_scalar v e =
   let ct  = Ct.scalar_ctype in
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
-  let _,p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
+  let _,p = CI.reft_of_cilexp vv e in
   let rs  = [C.Conc p] in
   let rb  = CM.is_reference v.Cil.vtype in 
 (*  let _  = Errormsg.log "t_exp_scalar: v=%s e=%a ref=%b \n" v.Cil.vname Cil.d_exp e rb in  *)
@@ -374,6 +376,9 @@ let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
 let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
 let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
+
+let conv_refstore_bottom st =
+  RCt.Store.map_variances t_false_refctype t_true_refctype st
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
@@ -650,7 +655,7 @@ let make_dep pol xo yo =
            |> Misc.uncurry (C.make_dep pol)
 
 let make_cs cenv p rct1 rct2 tago tag =
-  let env    = cenv |> env_of_cilenv in
+  let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
@@ -683,6 +688,10 @@ let make_cs cenv p rct1 rct2 tago tag loc =
     let _ = Cil.errorLoc loc "make_cs fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs" in 
     assert false
+
+let make_cs_assert cenv p passert tago tag loc =
+  let vv = Ct.scalar_ctype |> sort_of_prectype |> Sy.value_variable in
+    make_cs cenv p (t_true Ct.scalar_ctype) (t_pred Ct.scalar_ctype vv passert) tago tag loc
 
 (* API *)
 let make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
@@ -720,7 +729,12 @@ and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
 
 and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
-    make_cs_refcfun env p fun1 fun2 tag loc
+    let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in
+      if Ct.I.CFun.same_shape cf1 cf2 then
+        make_cs_refcfun env p fun1 fun2 tag loc
+      else Errormsg.s <|
+          Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!"
+            Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2
   end
 
 and make_cs_refcfun env p rf rf' tag loc =
@@ -813,7 +827,7 @@ let strengthen_final_field ffs ptrname i fld =
     match i with
       | Ix.ICClass _ | Ix.IBot -> fld
       | Ix.IInt n              ->
-          if Ct.IndexSet.mem i ffs then
+          if Ix.IndexSet.mem i ffs then
             fld
             |> RCt.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
             |> M.flip RCt.Field.set_finality Ct.Final
@@ -826,7 +840,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
   let cl, i = Ct.addr_of_refctype loc addr in
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = Sloc.SlocMap.find cl ffm in
-    if Ct.IndexSet.mem i ffs then
+    if Ix.IndexSet.mem i ffs then
       let ld  = RCt.Store.Data.find sto cl in
       let fld = ld |> RCt.LDesc.find i |> List.hd |> snd in
       let ld  = RCt.LDesc.remove i ld in

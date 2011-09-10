@@ -25,9 +25,15 @@
 
 (* val stripcasts_of_expr: Cil.exp  -> Cil.exp
    val stripcasts_of_lval: Cil.lval -> Cil.lval *)
+val fresh_arg_name   : unit -> string
 val purify           : Cil.file -> unit
 val unfloat          : Cil.file -> unit
-val is_pure_expr     : Cil.exp -> bool 
+
+type considerStringsPure =
+  | StringsArePure
+  | StringsAreNotPure
+
+val is_pure_expr     : considerStringsPure -> Cil.exp -> bool
 val is_local_expr    : Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 

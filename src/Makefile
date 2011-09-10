@@ -23,18 +23,23 @@ CFLAGS=-cflags -dtypes \
        -cflags -g \
        -cflags "-w a" \
 			 -cflags -thread
-
-BIN=liquidc.native
-
-TARGETS=$(BIN)
+TARGETS=liquidc.native indexSolver.native
 
 all: ../lib/libliquidc.a
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
-	for t in $(TARGETS); \
-	 do \
-	    ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(BIN) || exit 1; \
-	 done
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(TARGETS) || exit 1
+
+liquidc.byte:
+	ln -sf ../external/misc
+	ln -sf ../external/fixpoint
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) liquidc.byte || exit 1
+
+liquidc.cma: liquidc.byte
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) liquidc.cma || exit 1
+
+liquidc.top: liquidc.cma
+	ocamlmktop -I $(Z3HOME)/ocaml/ -I $(CILHOME) -o liquidc.top _build/liquidc.cma
 
 %.a: %.o
 	ar rcs $@ $<
