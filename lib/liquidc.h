@@ -69,6 +69,23 @@
 #define LCC_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
 #define LCC_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)
 
+// Deterministic Parallel Constructs
+
+#define COBEGIN                { __blockattribute__ ((lcc_cobegin))
+#define RTN(s)                 { s; }
+#define COEND                  }
+#define FOREACH(i, l, u)       { __blockattribute__ ((lcc_foreach)) \
+                                 ITER(i, l, u) {
+#define ITER(i, l, u)           int i = (int __attribute__ ((lcc_foreach_index))) nondet();\
+                                lcc_assume(i >= l && i < u);
+#define ENDFOR                 }}
+
+#define foreach(i, l, u)       FOREACH(i, l, u)
+#define endfor                 ENDFOR
+#define cobegin                COBEGIN
+#define coend                  COEND
+#define rtn(s)                 RTN(s)
+
 // Built-in functions
 
 extern void validptr (void * VALIDPTR) OKEXTERN;
