@@ -84,23 +84,41 @@
   global location L. Look at all library OKEXTERNS and check if
   they have the proper location set.
 
-* TODO Check alignment for structure parameters
+* DONE Check alignment for structure parameters
   When we need to pass a pointer into a structure, we need the pointer
   to be aligned with the start of the structure. Make sure that all
   spec preconditions are set up to ensure this.
+* DONE Check types of extern vars
+  Note that the extern variable requires whatever invariant is given
+  by the type to hold; the user program is not allowed to just
+  arbitrarily modify the variable.
+* DONE Disallow concrete pointers to function locations
+
+* DONE Wipe attributes from SSA output
+  It's hard to debug with all the noise from the attributes. We may
+  even want to wipe attributes between spec generation and other
+  preprocessing passes - it's possible CIL is inserting a lot of
+  spurious casts to convert between types with different attributes.
+
+* DONE Why did MST work?
+  HashLookup is bogus without checking that the size of the hash is
+  positive.
+
+  Turns out we weren't checking for mod-by-zero, so some inconsistency
+  was sneaking in.
+
+* DONE Deferred checks
+
+* TODO Check types of extern locations
+  Ditto above; can we even specify nontrivial invariants for
+  locations? Can we specify nontrivial predicates but add an override
+  for making the shape simple?
+
 * TODO Error messages for unified locations are atrocious
   They don't give you any clue about what happened at all.
 
-* TODO Deferred checks
-  See also indices above
-
-  Are the subindex checks at calls enabled right now?
 
 * TODO Write docs for spec language
-
-* TODO Why did MST work?
-  HashLookup is bogus without checking that the size of the hash is
-  positive.
 
 * TODO Notify when unifying annotated locations
 
@@ -117,10 +135,6 @@
   interesting for verification, so it would be nice to have a way to
   hide them from the verifier, and we could just have a "FILE_OK" tag
   on file handles generated from the right syscalls.
-* TODO Check types of extern vars
-  Note that the extern variable requires whatever invariant is given
-  by the type to hold; the user program is not allowed to just
-  arbitrarily modify the variable.
 * TODO Don't assert globals' types in constraints
   They don't do anything but bump up the required number of
   iterations; any time we actually use a global we copy it into a
@@ -132,18 +146,7 @@
   getting substituted, this seems very hard to maintain as we
   instantiate and create new functions. We should instead change this
   use of map to a saner instantiation.
-* TODO Disallow concrete pointers to function locations
-
 * TODO const qualifier should mark locations' contents as FINAL
-
-* TODO Wipe attributes from SSA output
-  It's hard to debug with all the noise from the attributes. We may
-  even want to wipe attributes between spec generation and other
-  preprocessing passes - it's possible CIL is inserting a lot of
-  spurious casts to convert between types with different attributes.
-
-* TODO Have lcc_assume check for consistency of assumption?
-
 
 * TODO Attach error/warning messages to specific type obligations
   This would allow more user-friendly error messages when a function
@@ -182,6 +185,9 @@
    It shouldn't be necessary to ever have these in the interface
    except for map-style functions.
 
+** TODO Add function types for builtin operators
+   It would be much more convenient to change the type of *, /, etc.
+   by changing a function type.
 
 * Long-Term Goals, Present Unsoundnesses, Expressiveness Problems, and Warts
 
@@ -225,6 +231,9 @@
    bounded location polymorphism. This allows polymorpism over the the
    particular indices and refinements of the accessed parts of the
    heap and would be a good place to drop in physical subtyping.
+
+
+** TODO Have lcc_assume check for consistency of assumption?
 
 
 * Plausible benchmarks

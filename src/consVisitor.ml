@@ -119,6 +119,16 @@ let cons_of_annots me loc tag grd wld ffm annots =
   Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
+(******************************************************************************)
+(************************* Constraints for Expressions ************************)
+(******************************************************************************)
+
+let t_exp_with_constraints me loc tago tag grd env e =
+  let po, rct = FI.t_exp env (CF.ctype_of_expr me e) e in
+    match po with
+      | None   -> (rct, ([], []))
+      | Some p -> (rct, FI.make_cs_assert env grd p tago tag loc)
+
 (****************************************************************************)
 (********************** Constraints for Assignments *************************)
 (****************************************************************************)
@@ -144,15 +154,16 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
       cons_of_mem me loc tago tag grd env v')
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
-      (FI.ce_find (FA.name_of_varinfo v) env, ([], []))
+      (CF.refctype_of_global me v, ([], []))
   | AddrOf (Var v, NoOffset) as e when CM.is_fun v ->
-      begin match FI.t_exp env (CF.ctype_of_expr me e) e with
-        | Ct.Ref (l, _) as rct -> (rct, FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
-        | _                    -> assert false
+      begin match t_exp_with_constraints me loc tago tag grd env e with
+        | Ct.Ref (l, _) as rct, cds ->
+          (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
+        | _ -> assert false
       end
   (* e, where e is pure *)
   | e when CM.is_pure_expr e ->
-      (FI.t_exp env (CF.ctype_of_expr me e) e, ([], []))
+      t_exp_with_constraints me loc tago tag grd env e
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
 
@@ -177,7 +188,7 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
       (env, sto, Some tag), (cs1 ++ cs2, [])
 
   (* *v := e, where v is a bottom-indexed pointer, so this code is dead *)
-  (* pmr: perhaps a better solution is to not constraint unreachable blocks, complete with
+  (* pmr: perhaps a better solution is to not constrain unreachable blocks, complete with
           warning/error about unreachability? But maybe there's some useful side effect of
           constraining the block? *)
   | (Mem (Lval(Var v, NoOffset)), _), _
@@ -188,18 +199,18 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
   | (Mem (Lval(Var v, NoOffset)), _), e 
   | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
       let addr = var_addr me env v in
-      let cr'  = FI.t_exp env (CF.ctype_of_expr me e) e in
-      let cs1, ds1 = cons_of_mem me loc tago tag grd pre_env v in
+      let cr', cds1 = t_exp_with_constraints me loc tago tag grd env e in
+      let cds2      = cons_of_mem me loc tago tag grd pre_env v in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
-        let cr       = Ct.refstore_read loc sto addr in
-        let cs2, ds2 = FI.make_cs env grd cr' cr tago tag loc in
-        (env, sto, Some tag), (cs1 ++ cs2, ds1 ++ ds2)
+        let cr   = Ct.refstore_read loc sto addr in
+        let cds3 = FI.make_cs env grd cr' cr tago tag loc in
+        (env, sto, Some tag), (cds1 +++ cds2 +++ cds3)
       else
         let sto      = Ct.refstore_write loc sto addr cr' in
         let env, sto = FI.refstore_strengthen_addr loc env sto ffm v.vname addr in
-        (env, sto, Some tag), (cs1, ds1)
+        (env, sto, Some tag), (cds1 +++ cds2)
 
   | _ -> assertf "TBD: cons_of_set"
 
@@ -298,7 +309,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, frt, es) ns =
 
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-  let ecrs      = List.map (fun e -> FI.t_exp env (CF.ctype_of_expr me e) e) es in
+  let ecrs      = List.map (t_exp_with_constraints me loc tago tag grd env <+> fst) es in
   let cs1,_     = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
   
   let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
@@ -413,8 +424,8 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
   let st_cds = let _, ost = Ct.stores_of_refcfun frt in
                (FI.make_cs_refstore env grd st ost true tago tag loc) in
   let rv_cds = match e_o with None -> ([], []) 
-               | Some e -> let lhs = FI.t_exp env (CF.ctype_of_expr me e) e in 
-                           let rhs = Ct.ret_of_refcfun frt in
+               | Some e -> let lhs, _ = t_exp_with_constraints me loc tago tag grd env e in
+                           let rhs    = Ct.ret_of_refcfun frt in
                            (FI.make_cs env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
@@ -459,6 +470,10 @@ let wcons_of_block me loc (_, sto, _) i des =
   let ws'' = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv sto cr tag) in
   ws ++ ws' ++ ws''
 
+let cons_of_init_block me loc (env, sto, _) =
+  let tag = CF.tag_of_instr me 0 0 loc in
+    FI.make_cs_refstore env Ast.pTrue (FI.conv_refstore_bottom sto) sto true None tag loc
+
 let cons_of_block me i =
   let _                = if mydebug then Printf.printf "cons_of_block: %d \n" i in 
   let loc              = CF.location_of_block me i in
@@ -467,7 +482,8 @@ let cons_of_block me i =
   let wld              = CF.inwld_of_block me i in
   let ws1              = wcons_of_block me loc wld i [] in
   let wld, cs, ds, ws2 = cons_of_annotstmt me loc i grd wld astmt in
-  (wld, (ws1 ++ ws2, cs, [], ds))
+  let cs2, ds2         = if i = 0 then cons_of_init_block me loc wld else ([], []) in
+  (wld, (ws1 ++ ws2, cs ++ cs2, [], ds ++ ds2))
 
 let scalarcons_of_block me i = 
   let _             = if mydebug then Printf.printf "scalarcons_of_block: %d \n" i in 
@@ -617,9 +633,9 @@ let add_offset loc t ctptr off =
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
   | SingleInit e ->
-      let cr  = Ct.refstore_read loc sto ctptr in
-      let ct  = Ct.ctype_of_refctype cr in
-      let cr' = FI.t_exp env ct e in
+      let cr     = Ct.refstore_read loc sto ctptr in
+      let ct     = Ct.ctype_of_refctype cr in
+      let _, cr' = FI.t_exp env ct e in
         if Ct.is_soft_ptr loc sto ctptr then
           (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
         else
@@ -646,13 +662,28 @@ let cons_of_var_init tag loc sto v vtyp = function
       let cs3, _      = FI.make_cs_refldesc env Ast.pTrue ld1 ld2 None tag loc in
         cs1 ++ cs2 ++ cs3
   | Some (SingleInit e) ->
-      let t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
+      let _, t_var = FI.t_exp FI.ce_empty (Ct.ctype_of_refctype vtyp) e in
         fst <| FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc
   | None -> assert (v.vstorage = Extern); []
 
 let init_of_var v = function
   | None -> if v.vstorage = Extern then None else Some (makeZeroInit v.vtype)
   | i    -> i
+
+(******************************************************************************)
+(*************************** Interpreting Spectypes ***************************)
+(******************************************************************************)
+
+let should_subtype = function
+  | Ct.IsSubtype | Ct.HasType -> true
+  | Ct.HasShape               -> false
+
+let should_supertype = function
+  | Ct.HasType                 -> true
+  | Ct.IsSubtype | Ct.HasShape -> false
+
+let make_cs_if b lcs =
+  if b then lcs |> Lazy.force |> fst else []
 
 (*************************************************************************)
 (****************************** API **************************************)
@@ -663,20 +694,27 @@ let cons_of_decs tgr spec gnv gst decs =
   let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
     | CM.FunDec (fn, _, loc) ->
-        let tag     = CilTag.make_t tgr loc fn 0 0 in
-        let irf     = FI.ce_find_fn fn gnv in
-        let ws'     = FI.make_wfs_fn gnv irf tag in
-        let srf, b  = CS.get_fun fn spec in
-        let cs',ds' = if b then FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc else ([],[]) in
-        (ws' ++ ws, cs' ++ cs, [], [])
+        let tag    = CilTag.make_t tgr loc fn 0 0 in
+        let irf    = FI.ce_find_fn fn gnv in
+        let ws'    = FI.make_wfs_fn gnv irf tag in
+        let srf, s = CS.get_fun fn spec in
+        let cs'    = make_cs_if (should_subtype s)
+                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
+        let cs''   = make_cs_if (should_supertype s)
+                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
+        (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
-        let vspctyp, b = CS.get_var v.vname spec in 
+        let vspctyp, s = CS.get_var v.vname spec in 
         let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
-        let cs'', _    = if b then FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc else ([],[]) in
+        let cs''       = make_cs_if (should_subtype s)
+                           (lazy (FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc)) in
         let ws'        = FI.make_wfs FI.ce_empty gst vtyp tag in
-          (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
+        let tag        = CilTag.make_global_t tgr loc in
+        let cs'''      = make_cs_if (should_supertype s)
+                           (lazy (FI.make_cs FI.ce_empty Ast.pTrue vtyp vspctyp None tag loc)) in
+          (ws' ++ ws, cs''' ++ cs'' ++ cs' ++ cs, [], [])
   end (ws, cs, [], []) decs
 
 (* API *)

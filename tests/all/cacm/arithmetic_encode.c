@@ -1,5 +1,6 @@
 /* ARITHMETIC ENCODING ALGORITHM. */
 
+#include <liquidc.h>
 #include "arithmetic_coding.h"
 
 static void bit_plus_follow();	/* Routine that follows                     */
@@ -28,10 +29,12 @@ encode_symbol(symbol,cum_freq)
     int cum_freq[];		/* Cumulative symbol frequencies            */
 {   long range;			/* Size of the current code region          */
     range = (long)(high-low)+1;
+    int cfzero = cum_freq[0];     // pmr
+    LCC_ASSUME(cfzero > 1);       // pmr
     high = low +				/* Narrow the code region   */
-      (range*cum_freq[symbol-1])/cum_freq[0]-1;	/* to that allotted to this */
+      (range*cum_freq[symbol-1])/cfzero-1;	/* to that allotted to this */
     low = low + 				/* symbol.                  */
-      (range*cum_freq[symbol])/cum_freq[0];
+      (range*cum_freq[symbol])/cfzero;
     for (;;) {					/* Loop to output bits.     */
         if (high<Half) {
             bit_plus_follow(0);			/* Output 0 if in low half. */

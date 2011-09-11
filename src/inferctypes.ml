@@ -202,7 +202,11 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
-    | None   -> if Ct.is_void rtv then ([], sub, sto) else (C.error "Returning void value for non-void function\n\n" |> ignore; assert false)
+    | None ->
+      if Ct.is_void rtv then
+        ([], sub, sto)
+      else
+        E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
       let sto, sub = UStore.unify_ctype_locs sto sub (et#ctype_of_exp e) rtv in

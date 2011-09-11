@@ -10,6 +10,7 @@
 #define NNREF(p)           REF((V != 0) => (p))
 
 #define ARRAY              __attribute__ ((array))
+
 #define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))
 
 #define FINAL              __attribute__ ((lcc_final))
@@ -42,15 +43,15 @@
 // Predicate macros
 
 #define VALIDPTR          REF(PVALIDPTR)
+#define NNVALIDPTR        NNREF(PVALIDPTR)
 #define NONNULL           REF(PNONNULL)
 #define START             REF(PSTART)
-#define STARTifNONNULL    REF((V != 0) => PSTART)
+#define NNSTART           NNREF(PSTART)
 #define SIZE(n)           REF(PSIZE(n))
 #define SIZE_GE(n)        REF(PSIZE_GE(n))
 #define OFFSET(n)         REF(POFFSET(n))
 #define OFFSET_GE(n)      REF(POFFSET_GE(n))
 #define NONNEG            REF(V >= 0)
-#define PTR_TO_ONE(t)     t * VALIDPTR START ROOM_FOR(t)
 
 // Assumptions
 
@@ -68,7 +69,7 @@ extern int REF(b = 1) lcc_assume (int b) OKEXTERN;
 
 extern int nondet () OKEXTERN;
 
-extern int REF(V > 0) nondetpos () OKEXTERN;
+extern int REF(V >= 1) nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) nondetnn () OKEXTERN;
 

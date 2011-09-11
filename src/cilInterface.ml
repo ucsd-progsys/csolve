@@ -211,6 +211,9 @@ let is_int_to_uint_cast (ct, e) =
     when (not (Cil.isSigned ik) && (Cil.isSigned ik')) -> true
   | _ -> false
 
+let catch_convert_exp s e =
+  Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "%s %a \n" s Cil.d_exp e)
+
 (** [reft_of_cilexp vv e] == a refinement predicate of the 
  *  form {v = e} or an overapproximation thereof 
  *  assumes that "e" is a-normalized *)
@@ -224,7 +227,6 @@ let reft_of_cilexp vv e =
               A.pAtom (FA.eApp_bend (A.eVar vv),
                        A.Eq,
                        A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str + 1)))]
-
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
   | Cil.BinOp (_, _, Cil.Const (Cil.CReal _), _)
@@ -232,6 +234,12 @@ let reft_of_cilexp vv e =
   | Cil.CastE (_, Cil.Const (Cil.CReal _)) ->
       (* Cop out when real constants are involved *)
       A.pTrue
+
+  | Cil.CastE (ct, e) when is_int_to_uint_cast (ct, e) ->
+      let _  = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in
+      let e' = catch_convert_exp "ag_reft3" e in
+        A.pOr [A.pAnd [A.pAtom (e', A.Ge, A.zero); A.pAtom (A.eVar vv, A.Eq, e')];
+               A.pAnd [A.pAtom (e', A.Lt, A.zero); A.pAtom (A.eVar vv, A.Gt, A.zero)]]
 
   | Cil.CastE (_, _)
   | Cil.Const (Cil.CInt64 (_,_,_))
@@ -242,7 +250,6 @@ let reft_of_cilexp vv e =
   | Cil.BinOp (Cil.MinusA, _, _, _) 
   | Cil.BinOp (Cil.MinusPP, _, _, _) 
   | Cil.BinOp (Cil.Mult, _, _, _) 
-  | Cil.BinOp (Cil.Div, _, _, _)
   | Cil.BinOp (Cil.IndexPI, _, _, _)
   | Cil.BinOp (Cil.PlusPI, _, _, _)
   | Cil.BinOp (Cil.MinusPI, _, _, _)
@@ -257,13 +264,12 @@ let reft_of_cilexp vv e =
       (* {v = e} *)
       let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
-  
-  | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
-      (* {0 <= v < (abs e2) } *)
-      let e2'    = expr_of_cilexp e2 in
-      let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
-      A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')]
-  
+
+  | Cil.BinOp (Cil.Div, _, _, _)
+  | Cil.BinOp (Cil.Mod, _, _, _) ->
+      (* There are preconditions; see assume_guarantee_reft_of_cilexp *)
+      A.pTrue
+
   | Cil.BinOp (Cil.Shiftlt, e1, e2, _) ->
       (* {0 <= e2 => e1 <= v *)
       let e1' = expr_of_cilexp e1 in
@@ -302,16 +308,14 @@ let reft_of_cilexp vv e =
   | e -> 
       Errormsg.s <| Errormsg.error "Unimplemented reft_of_cilexp: %a@!@!" Cil.d_exp e 
 
-let catch_convert_exp s e = 
-  Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "%s %a \n" s Cil.d_exp e)
 
 
-(** [streft_of_cilexp vv e] == returns a (ap, gp) option where
+(** [assume_guarantee_reft_of_cilexp vv e] == returns a (ap, gp) option where
  *  ap is an extra assumption that must hold for e to execute safely,
  *  gp is an extra guarantee about the result of evaluating e. 
  *  Assumes that "e" is a-normalized *)
 
-let assume_guarantee_reft_of_cilexp vv = function
+let assume_guarantee_reft_of_cilexp vv e = match e with
   | Cil.BinOp (Cil.PlusPI, e1, e2, _)
   | Cil.BinOp (Cil.IndexPI, e1, e2, _) ->
       let e1' = catch_convert_exp "ag_reft1" e1 in
@@ -319,13 +323,20 @@ let assume_guarantee_reft_of_cilexp vv = function
       let ap  = A.pAtom (A.zero, A.Le, e2') in  
       let gp  = A.pAtom (e1',    A.Le, A.eVar vv) in 
       Some (ap, gp)
-  
-  | Cil.CastE (ct, e) when is_int_to_uint_cast (ct, e) ->
-      let _   = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in 
-      let e'  = catch_convert_exp "ag_reft3" e in
-      let ap  = A.pAtom (A.zero, A.Le, e') in
-      let gp  = A.pAtom (A.zero, A.Le, A.eVar vv) in
-      Some (ap, gp) 
+
+  | Cil.BinOp (Cil.Div, e1, e2, _) ->
+      let ap  = A.pAtom (expr_of_cilexp e2, A.Ne, A.zero) in
+      let e'  = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e) in
+      let gp  = A.pAtom (A.eVar vv, A.Eq, e') in
+      Some (ap, gp)
+
+  | Cil.BinOp (Cil.Mod, e1, e2, _) -> 
+      (* {0 <= v < (abs e2) } *)
+      let e2'    = expr_of_cilexp e2 in
+      let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
+      let ap     = A.pAtom (e2', A.Ne, A.zero) in
+      let gp     = A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')] in
+      Some (ap, gp)
 
   | _ -> None
   
@@ -342,5 +353,3 @@ let foldGlobalsIf process cil f =
 
 let iterGlobalsIf process cil f = 
   Cil.iterGlobals cil (fun g -> if process g then f g )
-
-

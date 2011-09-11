@@ -419,6 +419,10 @@ start of a region which has enough space to fit an object of type t:
 The annotation NNROOM_FOR(t) is the same as ROOM_FOR(t), but allows
 the pointer to optionally be NULL.
 
+Pointer types t * without annotations will get the default annotation
+
+  NONNULL NNROOM_FOR(t) REF(V = BLOCK_BEGIN([V]))
+
 External Declarations
 ---------------------
 

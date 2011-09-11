@@ -80,16 +80,25 @@ let slocOfAttrs ats =
 let finalityOfAttrs ats =
   if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
 
-let vv = A.Symbol.of_string "V"
+let vv  = A.Symbol.of_string "V"
+let evv = A.eVar vv
+
+let roomForPred tb =
+  A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv), A.Ge, A.eInt (CM.bytesSizeOf tb))
+
+let nonnullRoomForPred tb =
+  A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), roomForPred tb)
+
+let nonnullPred = A.pAtom (evv, A.Gt, A.eInt 0)
+
+let eqBlockBeginPred = A.pAtom (evv, A.Eq, FA.eApp_bbegin evv)
 
 let roomForPredsOfAttrs ats =
       ats
   |>  List.filter (function C.Attr (an, _) -> an = CM.roomForAttribute || an = CM.nonnullRoomForAttribute)
   |>: function
-      | C.Attr (an, [C.ASizeOf t]) ->
-        let evv = A.eVar vv in
-        let p   = A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv), A.Ge, A.eInt (CM.bytesSizeOf t)) in
-          if an = CM.roomForAttribute then p else A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), p)
+      | C.Attr (an, [C.ASizeOf tb]) ->
+          if an = CM.roomForAttribute then roomForPred tb else nonnullRoomForPred tb
       | _ -> assert false
 
 let rawPredsOfAttrs ats =
@@ -101,8 +110,29 @@ let rawPredsOfAttrs ats =
         with Parsing.Parse_error ->
           E.s <| C.error "Could not parse predicate: %s@!" predStr
 
-let predOfAttrs ats =
-  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats)
+let pointerLayoutAttributes =
+  [CM.arrayAttribute;
+   CM.predAttribute;
+   CM.roomForAttribute;
+   CM.nonnullRoomForAttribute;
+   CM.ignoreBoundAttribute]
+
+let hasOneAttributeOf of_ats ats =
+  List.exists (M.flip C.hasAttribute ats) of_ats
+
+let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
+  | []                          -> tb
+  | [C.Attr (_, [C.ASizeOf t])] -> t
+  | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
+
+let defaultPredsOfAttrs tbo ats = match tbo with
+  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+    let tb = annotatedPointerBaseType ats tb in
+      [nonnullRoomForPred tb; nonnullPred; eqBlockBeginPred]
+  | _ -> []
+
+let predOfAttrs tbo ats =
+  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultPredsOfAttrs tbo ats)
 
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
@@ -111,11 +141,11 @@ let ptrIndexOfPredAttrs tb pred ats =
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfAttrs tb ats =
-  let pred = predOfAttrs ats in
+  let pred = predOfAttrs (Some tb) ats in
     FI.t_spec_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
 
 let intReftypeOfAttrs width ats =
-  let pred = predOfAttrs ats in
+  let pred = predOfAttrs None ats in
     FI.t_spec_pred
       (Ct.Int (width, SC.data_index_of_pred vv pred))
       vv
@@ -271,11 +301,6 @@ let alreadyClosedType mem t = match CM.typeName t with
   | Some n -> SM.mem n mem
   | _      -> false
 
-let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
-  | []                          -> tb
-  | [C.Attr (_, [C.ASizeOf t])] -> t
-  | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
-
 let rec closeTypeInStoreAux mem sub sto t = match C.unrollType t with
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
@@ -360,6 +385,9 @@ let declarationsOfFile file =
 
 let isBuiltin = Misc.is_prefix "__builtin"
 
+let specTypeOfFun v =
+  if C.hasAttribute CM.checkTypeAttribute v.C.vattr then Ct.IsSubtype else Ct.HasShape
+
 let globalSpecOfFuns sub gsto funs =
      funs
   |> List.fold_left begin fun (funm, gsto, sub) v ->
@@ -367,10 +395,14 @@ let globalSpecOfFuns sub gsto funs =
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
          let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
-           (M.sm_protected_add false fn (rcf, C.hasAttribute CM.checkTypeAttribute v.C.vattr) funm, gsto, sub)
+           (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)
   |> M.app_fst3 SM.to_list
+
+let specTypeOfVar v = match v.C.vstorage with
+  | C.Extern -> Ct.HasType
+  | _        -> Ct.HasShape
 
 let updVarM sub varm v =
   if not <| C.isFunctionType v.C.vtype then begin
@@ -378,7 +410,7 @@ let updVarM sub varm v =
       M.sm_protected_add
         false
         v.C.vname
-        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, v.C.vstorage = C.Extern)
+        (v.C.vtype |> refctypeOfCilType SM.empty |> RCt.subs sub, specTypeOfVar v)
         varm
   end else
     varm
@@ -394,8 +426,10 @@ let specsOfDecs funs vars =
   let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
     (fspecs, varSpecOfVars sub vars, gsto)
 
-let opOfUsetype ut =
-  if ut then "<:" else "::"
+let opOfSpecType = function
+  | Ct.HasShape  -> "::"
+  | Ct.IsSubtype -> "<:"
+  | Ct.HasType   -> "|-"
 
 let writeSpec (funspec, varspec, storespec) outfilename =
   let oc = open_out outfilename in
@@ -405,11 +439,11 @@ let writeSpec (funspec, varspec, storespec) outfilename =
     Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
       Pretty.fprintf oc "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
     end () storespec;
-    List.iter begin fun (vn, (ct, useType)) ->
-      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfUsetype useType) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
+    List.iter begin fun (vn, (ct, spt)) ->
+      Pretty.fprintf oc "%s %s @[%a@]\n\n" vn (opOfSpecType spt) Ctypes.RefCTypes.CType.d_ctype ct |> ignore
     end varspec;
-    List.iter begin fun (fn, (cf, useType)) ->
-      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfUsetype useType) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
+    List.iter begin fun (fn, (cf, spt)) ->
+      Pretty.fprintf oc "%s %s@!  @[%a@]\n\n" fn (opOfSpecType spt) Ctypes.RefCTypes.CFun.d_cfun cf |> ignore
     end funspec;
     close_out oc
 

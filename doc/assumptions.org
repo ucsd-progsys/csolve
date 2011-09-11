@@ -11,3 +11,6 @@ Assumptions CSolve uses in typechecking
 * Absence of arithmetic overflow
   Integer-valued variables are treated as mathematical integers by
   CSolve; overflow is not accounted for.
+* Ignoring float-valued arithmetic expressions
+  CSolve does not attempt to analyze float-valued expressions, e.g.,
+  for division-by-zero errors.
