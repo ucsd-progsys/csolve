@@ -400,8 +400,6 @@ let handleSEGV code =
 
 let _ = Sys.set_signal Sys.sigsegv (Sys.Signal_handle handleSEGV);
 
-;;
-
 begin 
   try
     theMain (); 
@@ -409,3 +407,5 @@ begin
 end;
 cleanup ();
 exit (if !failed then 1 else 0)
+
+

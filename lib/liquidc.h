@@ -55,6 +55,8 @@
 
 #define STRINGPTR         ARRAY VALIDPTR
 #define NNSTRINGPTR       ARRAY NNVALIDPTR
+#define ARRAYSTART        ARRAY START VALIDPTR
+
 
 // Assumptions
 

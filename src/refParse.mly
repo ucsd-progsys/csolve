@@ -34,7 +34,7 @@ let abs_sloctable = Hashtbl.create 17
 let cnc_sloctable = Hashtbl.create 17
 
 let mk_sloc_abstract id =
-  Misc.do_memo abs_sloctable Sloc.fresh_abstract ([CilMisc.srcinfo_of_string (string_of_int id)]) id
+  Misc.do_memo abs_sloctable Sloc.fresh_abstract ([CilMisc.srcinfo_of_string ("from spec: A"^(string_of_int id))]) id
 
 let mk_sloc_concrete id absid =
   Misc.do_memo cnc_sloctable Sloc.fresh_concrete (mk_sloc_abstract absid) id

@@ -197,9 +197,10 @@ let short_width = bytesSizeOfInt IShort
 let char_width  = bytesSizeOfInt IChar
 
 let bytesSizeOf t =
-  1 + ((Cil.bitsSizeOf t - 1) / 8)
-  >> (bprintf mydebug "CM.bytesSizeOf %a = %d \n" d_type t)
-
+  try 
+    1 + ((Cil.bitsSizeOf t - 1) / 8)
+    >> (bprintf mydebug "CM.bytesSizeOf %a = %d \n" d_type t)
+  with _ -> E.s <| E.error "bytesSizeOf %a \n" d_type t
 
 let bytesOffset t off =
   fst (bitsOffset t off) / 8
