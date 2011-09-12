@@ -988,19 +988,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         d_args ft.args
         CType.d_ctype ft.ret
 
+    let d_spec_globlocs () ft =
+      P.dprintf "global    %a\n" d_slocs ft.globlocs
+
     let d_globlocs () ft =
-      if ft.globlocs = [] then
-        P.nil
-      else
-        P.dprintf "global    %a\n" d_slocs ft.globlocs
+      d_spec_globlocs () ft
 
     let d_stores () ft =
-      if ft.sto_in = ft.sto_out then
-        P.dprintf "store     %a" Store.d_store ft.sto_in
-      else
-        P.dprintf "store_in  %a\nstore_out %a"
-          Store.d_store ft.sto_in
-          Store.d_store ft.sto_out
+      P.dprintf "store_in  %a\nstore_out %a"
+        Store.d_store ft.sto_in
+        Store.d_store ft.sto_out
 
     let d_cfun () ft  =
       P.dprintf "@[%a%a%a@]" d_argret ft d_globlocs ft d_stores ft
