@@ -729,7 +729,12 @@ and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
 
 and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
-    make_cs_refcfun env p fun1 fun2 tag loc
+    let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in
+      if Ct.I.CFun.same_shape cf1 cf2 then
+        make_cs_refcfun env p fun1 fun2 tag loc
+      else Errormsg.s <|
+          Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!"
+            Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2
   end
 
 and make_cs_refcfun env p rf rf' tag loc =
