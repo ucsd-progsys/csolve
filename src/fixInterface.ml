@@ -250,6 +250,21 @@ let ra_indexpred ct =
   let vv', p = Sc.pred_of_ctype ct in
     [C.Conc (P.subst p vv' vv)]
 
+let p_ptr_footprint vv v =
+  let evv  = A.eVar vv in
+  let eptr = v |> FA.name_of_varinfo |> A.eVar in
+  let sz   = v.vtype |> CM.ptrRefType |> CM.bytesSizeOf |> A.eInt in
+    A.pAnd [A.pEqual (FA.eApp_bbegin evv, FA.eApp_bbegin eptr);
+            A.pEqual (FA.eApp_bend evv, FA.eApp_bend eptr);
+            A.pAtom (eptr, A.Le, evv);
+            A.pAtom (evv, A.Lt, A.eBin (eptr, A.Plus, sz))]
+
+let ra_ptr_footprint env v =
+  let ct   = Ct.ctype_of_refctype <| ce_find (FA.name_of_varinfo v) env in
+  let so   = sort_of_prectype ct in
+  let vv   = Sy.value_variable so in
+    (vv, so, [C.Conc (p_ptr_footprint vv v)])
+
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
@@ -261,7 +276,6 @@ let t_true_refctype      = t_conv_refctype ra_true
 let t_false_refctype     = t_conv_refctype ra_false
 let t_zero_refctype      = t_conv_refctype ra_zero
 let t_indexpred_refctype = t_conv_refctype ra_indexpred
-
 
 let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
   let so = sort_of_ct ct in
@@ -285,16 +299,19 @@ let t_size_ptr ct size =
              A.pAtom (FA.eApp_bbegin evv, A.Eq, evv);
              A.pAtom (FA.eApp_bend evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
 
-let t_valid_ptr sz ct =
+let t_ptr_footprint env v =
+     ce_find (FA.name_of_varinfo v) env
+  |> Ct.ctype_of_refctype
+  |> refctype_of_reft_ctype (ra_ptr_footprint env v)
+
+let t_valid_ptr ct =
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let evv = A.eVar vv in
   t_pred ct vv (A.pOr [A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one);
                        A.pAnd [A.pAtom (evv, A.Ne, A.zero);
                                A.pAtom (FA.eApp_bbegin evv, A.Le, evv);
-                               A.pAtom (A.eBin (evv, A.Plus, A.eInt (sz - 1)),
-                                        A.Lt,
-                                        FA.eApp_bend evv)]])
+                               A.pAtom (evv, A.Lt, FA.eApp_bend evv)]])
 
 let is_reference cenv x =
   if YM.mem x FA.builtinm then (* TBD: REMOVE GROSS HACK *)
@@ -391,11 +408,18 @@ let refctype_subs f nzs =
 (* API *)
 let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
 let t_subs_names   = refctype_subs A.eVar
-let refstore_fresh = fun f st -> st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
-let refstore_subs  = fun f subs st -> RCt.Store.map (f subs) st
+let refstore_subs  = fun f subs st -> st |> RCt.Store.map (f subs) |> RCt.Store.map_effects (f subs)
+
+let refstore_fresh f st =
+     st
+  |> RCt.Store.map t_fresh
+  |> RCt.Store.map_effects (Ct.ctype_of_refctype <+> t_fresh)
+  >> Annots.annot_sto f 
 
 let conv_refstore_bottom st =
-  RCt.Store.map_variances t_false_refctype t_true_refctype st
+     st
+  |> RCt.Store.map_variances t_false_refctype t_true_refctype
+  |> RCt.Store.map_effects t_false_refctype
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
@@ -463,6 +487,14 @@ let t_subs_locs lsubs rct =
   rct |> RCt.CType.subs lsubs |> replace_reft (Ct.reft_of_refctype rct)
 
 (* API *)
+let add_effect env v rct =
+  let vv, so, refa = Ct.reft_of_refctype rct in
+  let p            = p_ptr_footprint vv v in
+    match refa with
+      | [C.Conc prct] -> replace_reft (vv, so, [C.Conc (A.pOr [prct; p])]) rct
+      | _             -> assert false
+
+(* API *)
 let rename_refctype lsubs subs cr =
   cr |> t_subs_locs lsubs
      |> t_subs_exps subs
@@ -481,7 +513,8 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-  RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+  let f    = (t_subs_locs lsubs) <+> (t_subs_names subs) in
+    sto |> RCt.Store.map f |> RCt.Store.map_effects f
 
 let subs_refctype sto lsubs substrs cr =
   let subs = List.map (Misc.map_pair FA.name_of_string) substrs ++ subs_of_lsubs lsubs sto in
@@ -661,7 +694,8 @@ let rec make_wfs_refstore env full_sto sto tag =
                       |> List.map fst
                       |> ce_adds env in 
       let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
-        ws' ++ ws
+      let ws'' = make_wfs env' full_sto (RCt.LDesc.get_write_effect rd) tag in
+        ws'' ++ ws' ++ ws
     end [] sto
 
 and make_wfs_fn cenv rft tag =
@@ -685,24 +719,22 @@ let make_cs cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_validptr cenv p rct sz tago tag =
-  let rvp = rct |> Ct.ctype_of_refctype |> t_valid_ptr sz in
-  make_cs cenv p rct rvp tago tag
-
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
 (*  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
-  let env'   = List.map fst ncrs1 |> ce_adds env in
+  let env    = ncrs1 |> List.map fst |> ce_adds env in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
-  Misc.map begin fun ((n1, _), (_, cr2)) -> 
-      let lhs = t_name env' n1 in
-      let rhs = t_subs_names subs cr2 in
-      make_cs env' p lhs rhs tago tag 
-  end ncrs12
+  let w1, w2 = M.map_pair RCt.LDesc.get_write_effect (rd1, rd2) in
+     Misc.map begin fun ((n1, _), (_, cr2)) -> 
+       let lhs = t_name env n1 in
+       let rhs = t_subs_names subs cr2 in
+         make_cs env p lhs rhs tago tag 
+     end ncrs12
   |> Misc.splitflatten
+  |> (+++) (make_cs env p w1 (t_subs_names subs w2) tago tag)
 
 (* API *)
 let make_cs cenv p rct1 rct2 tago tag loc =
@@ -772,11 +804,12 @@ and make_cs_refcfun_aux subf env p ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho')
   +++ (make_cs_refstore_aux subf env p ho ho' true None tag loc)
 
 let make_cs_refcfun_components rf rf' =
-  let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype in
+  let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
-  let hi, ho      = Ct.stores_of_refcfun rf in
-  let hi',ho'     = Ct.stores_of_refcfun rf' in
+  let funstores   = Ct.stores_of_refcfun <+> M.app_fst (RCt.Store.map_effects t_true_refctype) in
+  let hi, ho      = funstores rf in
+  let hi',ho'     = funstores rf' in
     ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho'))
 
 let rec make_cs_refcfun env p rf rf' tag loc =
@@ -800,13 +833,6 @@ let make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc =
   try make_cs_refstore_binds_aux make_cs_refcfun env p binds1 binds2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore_binds fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore_binds" in 
-    assert false
-
-(* API *)
-let make_cs_validptr cenv p rct sz tago tag loc =
-  try make_cs_validptr cenv p rct sz tago tag with ex ->
-    let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
-    let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
@@ -843,13 +869,15 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
               |> Misc.map (Misc.app_snd (t_subs_names subs))
               |> ce_adds env in
   let _, im = Misc.fold_lefti (fun i im (_,n') -> IM.add i n' im) IM.empty subs in
-  let ld'   = RCt.LDesc.mapn begin fun i ix rfld ->
+  let ld'   = ld
+           |> RCt.LDesc.mapn begin fun i ix rfld ->
                 let fnl = RCt.Field.get_finality rfld in
                   if IM.mem i im then IM.find i im |> t_name env' |> RCt.Field.create fnl Ct.dummy_fieldinfo else
                     match ix with
                       | Ix.IInt _ -> assertf "missing binding!"
                       | _         -> RCt.Field.map_type (t_subs_names subs) rfld
-              end ld in
+              end
+           |> RCt.LDesc.map_effects t_false_refctype in
   let cs    = if not newloc then [] else
                 RCt.LDesc.foldn begin fun i cs ix rfld ->
                   match ix with
