@@ -38,7 +38,7 @@
 #define PSIZE_GE(n)    (V + n) <= BLOCK_END([V])
 #define POFFSET(n)     V = (BLOCK_BEGIN([V]) + n)
 #define POFFSET_GE(n)  V >= (BLOCK_BEGIN([V]) + n)
-
+#define PINTO(x,lo,hi) && [((BLOCK_BEGIN([x]) + lo) <= V); ((V + hi) < BLOCK_END([V]))]
 
 // Predicate macros
 

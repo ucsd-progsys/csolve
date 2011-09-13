@@ -473,8 +473,8 @@ let g_halt (b: bool) =
 (*************** Misc. Predicates ******************************************************)
 (***************************************************************************************)
 
-let is_fun    = fun v -> match v.vtype with TFun (_,_,_,_) -> true | _ -> false
-let is_scalar = fun v -> match v.vtype with TInt (_,_) -> true | _ -> false
+let is_fun    = fun v -> match unrollType v.vtype with TFun (_,_,_,_) -> true | _ -> false
+let is_scalar = fun v -> match unrollType v.vtype with TInt (_,_) -> true | _ -> false
 
 (***************************************************************************************)
 (*************** Cil Summarizers *******************************************************)
