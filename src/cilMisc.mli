@@ -25,6 +25,7 @@
 
 (* val stripcasts_of_expr: Cil.exp  -> Cil.exp
    val stripcasts_of_lval: Cil.lval -> Cil.lval *)
+val fresh_arg_name   : unit -> string
 val purify           : Cil.file -> unit
 val unfloat          : Cil.file -> unit
 val is_pure_expr     : Cil.exp -> bool 

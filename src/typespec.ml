@@ -178,9 +178,8 @@ let ensureSlocAttrs =
 let argType (x, t, ats) =
   (x, t |> C.typeAddAttributes ats |> ensureSlocAttrs)
 
-let nameArg =
-  let freshArgName, _ = M.mk_string_factory "ARG" in
-    fun x -> if x = "" then freshArgName () else x
+let nameArg x =
+  if x = "" then CM.fresh_arg_name () else x
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
   | C.TArray (tb, b, ats)                       -> indexOfArrayElements tb b ats

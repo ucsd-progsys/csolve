@@ -85,6 +85,8 @@ let isCompoundType t = match unrollType t with
   | TComp _ | TArray _ -> true
   | _                  -> false
 
+let fresh_arg_name, _ = M.mk_string_factory "ARG"
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)

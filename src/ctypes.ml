@@ -1161,8 +1161,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
              |> M.mapi (fun i x -> (x, i)) in
       cf |> quantified_locs |> M.fsort (M.flip List.assoc ord)
 
-    let fresh_arg_name, _ = M.mk_string_factory "ARG"
-
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
 
@@ -1170,7 +1168,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
       let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
       let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
-      let fresh_args   = List.map (fun _ -> fresh_arg_name ()) cf1.args in
+      let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
       let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
       let cf1, cf2     = M.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
         (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1),
