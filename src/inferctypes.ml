@@ -371,7 +371,7 @@ let unified_instantiation_error () (s1, s2) =
   C.error "Call unifies locations which are separate in callee (%a, %a)" 
   S.d_sloc_info s1 S.d_sloc_info s2
 
-let check_sol cf vars gst em bas sub sto =
+let check_sol_aux cf vars gst em bas sub sto =
   let whole_store = Store.upd cf.sto_out gst in
   let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
   let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
@@ -383,11 +383,15 @@ let check_sol cf vars gst em bas sub sto =
     if check_out_store_complete whole_store sto then
       (sub, List.fold_left Store.remove sto (Store.domain gst))
     else
-         halt
-      <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
-          Store.d_store sto
-          CFun.d_cfun cf
-          Store.d_store gst
+      raise (Failure "")
+
+let check_sol cf vars gst em bas sub sto =
+  try check_sol_aux cf vars gst em bas sub sto with e ->
+       halt
+    <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
+        Store.d_store sto
+        CFun.d_cfun cf
+        Store.d_store gst
 
 let fresh_sloc_of = function
   | Ref (s, i) -> Ref (s |> S.to_slocinfo |> S.fresh_abstract, i)
