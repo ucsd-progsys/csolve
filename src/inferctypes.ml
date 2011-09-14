@@ -331,14 +331,16 @@ let constrain_fun fs cf ve sto sci =
 (******************************************************************************)
 
 let check_out_store_complete sto_out_formal sto_out_actual =
-  Store.Data.fold_fields begin fun ok l i fld ->
-    if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
-      C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-        S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
-      false
-    end else
-      ok
-  end true sto_out_actual
+     sto_out_actual
+  |> Store.Data.fold_fields begin fun ok l i fld ->
+       if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
+         C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
+           S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
+         false
+       end else
+         ok
+     end true
+  |> fun x -> assert x
 
 let check_slocs_distinct error sub slocs =
   try
@@ -380,10 +382,8 @@ let check_sol_aux cf vars gst em bas sub sto =
   let revsub      = revert_spec_names sub whole_store in
   let sto         = Store.subs revsub sto in
   let sub         = S.Subst.compose revsub sub in
-    if check_out_store_complete whole_store sto then
-      (sub, List.fold_left Store.remove sto (Store.domain gst))
-    else
-      raise (Failure "")
+  let _           = check_out_store_complete whole_store sto in
+    (sub, List.fold_left Store.remove sto (Store.domain gst))
 
 let check_sol cf vars gst em bas sub sto =
   try check_sol_aux cf vars gst em bas sub sto with e ->
