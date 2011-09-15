@@ -280,6 +280,15 @@ let d_indexset () is =
 
 module AbstractDomain: Config.DOMAIN = struct
   (* All definitions below are placeholders *)
+  (* First bit of TODO, just to get the solver to go all the way through
+     without really doing anything:
+       Define t, bind
+       Define create, empty, and top as trivially as possible
+         (map every kvar to bot)
+       Define printing functions
+       Define unsat to always return false
+       Define refine to do nothing
+  *)
 
   type t    = int
   type bind = int

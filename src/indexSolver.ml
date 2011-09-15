@@ -46,35 +46,6 @@ let dump_solve ac =
   | [] -> (F.printf "\nSAT\n" ; exit 0)
   | _  -> (F.printf "\nUNSAT\n" ; exit 1)
 
-
-(*****************************************************************)
-(********************* Generate Imp Program **********************)
-(*****************************************************************)
-
-let dump_imp a = 
-  (List.map (fun c -> Config.Cst c) a.Config.cs ++ List.map (fun c -> Config.Wfc c) a.Config.ws)
-  |> ToImp.mk_program
-  |> F.fprintf F.std_formatter "%a" Imp.print_program_as_c 
-  |> fun _ -> assert false
-
-(*****************************************************************)
-(***************** Generate Simplified Constraints ***************)
-(*****************************************************************)
-
-let simplify_ts x = 
-  if !Co.dump_simp = "andrey" 
-  then (x |> List.map Simplification.simplify_t 
-          |> List.filter (not <.> Simplification.is_tauto_t)
-          |> Simplification.simplify_ts)
-  else FixSimplify.simplify_ts x
-
-let dump_simp ac = 
-  let ac    = {ac with Config.cs = simplify_ts ac.Config.cs; Config.bm = SM.empty; Config.qs = []} in
-  let ctx,_ = BS.time "create" SIA.create ac in
-  let s0    = IA.create ac in 
-  let _     = BS.time "save" (SIA.save !Co.save_file ctx) s0 in
-  exit 1
-
 (*****************************************************************)
 (*********************** Main ************************************)
 (*****************************************************************)
@@ -83,11 +54,6 @@ let usage = "Usage: indexSolver.native <options> [source-files]\noptions are:"
 
 let main () =
   let cs  = usage |> Toplevel.read_inputs |> snd in 
-  if !Co.dump_imp then 
-    dump_imp cs 
-  else if !Co.dump_simp <> "" then 
-    dump_simp cs
-  else
     dump_solve cs 
 
 let _ = main ()
