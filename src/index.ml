@@ -277,3 +277,39 @@ module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
 
 let d_indexset () is =
   IndexSetPrinter.d_set ", " d_index () is
+
+module AbstractDomain: Config.DOMAIN = struct
+  (* All definitions below are placeholders *)
+
+  type t    = int
+  type bind = int
+
+  let empty = 0
+
+  let read sol v =
+    assert false
+
+  let top sol xs =
+    assert false
+
+  let refine sol c =
+    assert false
+
+  let unsat sol c =
+    assert false
+
+  let create cfg =
+    assert false
+
+  let print ppf sol =
+    assert false
+
+  let print_stats ppf sol =
+    assert false
+
+  let dump sol =
+    assert false
+
+  let mkbind qbnds =
+    assert false
+end

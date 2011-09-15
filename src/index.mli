@@ -41,3 +41,5 @@ val repr_prefix  : string
 module IndexSet : Set.S with type elt = t
 
 val d_indexset : unit -> IndexSet.t -> Pretty.doc
+
+module AbstractDomain : Config.DOMAIN
