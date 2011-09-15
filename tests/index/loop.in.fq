@@ -1,0 +1,15 @@
+constraint:
+  env []
+  grd true
+  lhs {V: int | [(V = 2)]}
+  rhs {V: int | [k_1]}
+
+constraint:
+  env [x: {V: int | [k_1]}]
+  grd true
+  lhs {V: int | [(V = x + 5)]}
+  rhs {V: int | [k_1]}
+
+wf:
+  env  []
+  reft {V: int | [k_1]}
