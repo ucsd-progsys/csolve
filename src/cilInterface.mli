@@ -23,8 +23,8 @@
 
 (* This file is part of the liquidC Project.*)
 
-val index_of_attrs      : Cil.attributes -> Ctypes.Index.t
-val ctype_of_cilbasetype: Cil.typ -> Ctypes.Index.t Ctypes.prectype
+val index_of_attrs      : Cil.attributes -> Index.t
+val ctype_of_cilbasetype: Cil.typ -> Index.t Ctypes.prectype
 val expr_of_cilcon      : Cil.constant -> Ast.expr
 val stride_of_cilexp    : Cil.exp -> int 
 val expr_of_cilexp      : Cil.exp -> Ast.expr

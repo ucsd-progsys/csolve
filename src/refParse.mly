@@ -6,7 +6,7 @@ module SM  = Misc.StringMap
 module FI  = FixInterface
 module Ct  = Ctypes
 module RCt = Ct.RefCTypes
-module N   = Ct.Index
+module N   = Index
 module E   = Errormsg
 
 open Misc.Ops
@@ -50,7 +50,7 @@ exception InvalidStoredSpecType
 let check_store_bind_valid (i, fld) =
   try
     match RCt.Field.type_of fld  with
-      | Ct.Int (_, (ti, _)) -> if ti <> Ct.Index.top then raise InvalidStoredSpecType; (i, fld)
+      | Ct.Int (_, (ti, _)) -> if ti <> Index.top then raise InvalidStoredSpecType; (i, fld)
       | _                   -> (i, fld)
   with InvalidStoredSpecType ->
           Errormsg.error "Invalid field in store spec: %a\n\n"

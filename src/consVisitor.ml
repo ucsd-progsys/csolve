@@ -172,8 +172,8 @@ let var_addr me env v =
 
 let is_bot_ptr me env v =
   match var_addr me env v with
-    | Ct.Ref (_, (Ct.Index.IBot, _)) -> true
-    | _                              -> false
+    | Ct.Ref (_, (Index.IBot, _)) -> true
+    | _                           -> false
 
 let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
   (* v := e, where v is local *)
@@ -628,7 +628,7 @@ let cons_of_global_store tgr spec decs gst =
 let add_offset loc t ctptr off =
   match ctptr with
   | Ct.Ref (s, (i, r)) ->
-      Ct.Ref (s, (off |> CilMisc.bytesOffset t |> Ct.Index.of_int |> Ct.Index.plus i, r))
+      Ct.Ref (s, (off |> CilMisc.bytesOffset t |> Index.of_int |> Index.plus i, r))
   | _ -> halt <| errorLoc loc "Adding offset to bogus type: %a\n\n" Ct.d_refctype ctptr
 
 let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function

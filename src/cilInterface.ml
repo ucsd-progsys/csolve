@@ -44,7 +44,7 @@ open Cil
 (****************************************************************)
 
 let index_of_attrs ats = 
-  if CM.has_pos_attr ats then Ct.Index.nonneg else Ct.Index.top
+  if CM.has_pos_attr ats then Index.nonneg else Index.top
 
 let ctype_of_cilbasetype = function 
   | TVoid ats        -> Ct.Int (0,                       index_of_attrs ats)

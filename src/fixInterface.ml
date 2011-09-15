@@ -47,7 +47,7 @@ module SM = Misc.StringMap
 module Co = Constants
 module CM = CilMisc
 module VM = CM.VarMap
-module Ix = Ct.Index
+module Ix = Index
 module RCt = Ctypes.RefCTypes
 module FA  = FixAstInterface
 module Sc  = ScalarCtypes
@@ -827,7 +827,7 @@ let strengthen_final_field ffs ptrname i fld =
     match i with
       | Ix.ICClass _ | Ix.IBot -> fld
       | Ix.IInt n              ->
-          if Ct.IndexSet.mem i ffs then
+          if Ix.IndexSet.mem i ffs then
             fld
             |> RCt.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
             |> M.flip RCt.Field.set_finality Ct.Final
@@ -840,7 +840,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
   let cl, i = Ct.addr_of_refctype loc addr in
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = Sloc.SlocMap.find cl ffm in
-    if Ct.IndexSet.mem i ffs then
+    if Ix.IndexSet.mem i ffs then
       let ld  = RCt.Store.Data.find sto cl in
       let fld = ld |> RCt.LDesc.find i |> List.hd |> snd in
       let ld  = RCt.LDesc.remove i ld in

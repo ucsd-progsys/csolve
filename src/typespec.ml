@@ -9,7 +9,7 @@ module A   = Ast
 module FI  = FixInterface
 module FA  = FixAstInterface
 module Ct  = Ctypes
-module I   = Ct.Index
+module I   = Index
 module S   = Sloc
 module SC  = ScalarCtypes
 

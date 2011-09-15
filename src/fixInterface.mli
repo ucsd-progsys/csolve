@@ -60,9 +60,9 @@ val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (cilenv * Ctypes.refstore * 'a) * FixConstraint.t list
 
 val strengthen_final_field :
-  Ctypes.IndexSet.t ->
+  Index.IndexSet.t ->
   string ->
-  Ctypes.Index.t ->
+  Index.t ->
   Ctypes.reffield ->
   Ctypes.reffield
 
@@ -91,7 +91,7 @@ val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> 
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
 
-val name_of_sloc_index  : Sloc.t -> Ctypes.Index.t -> FixAstInterface.name
+val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 
 val rename_refctype :
   Sloc.Subst.t ->
@@ -111,7 +111,7 @@ val refstore_strengthen_addr :
   Cil.location ->
   cilenv ->
   Ctypes.refstore ->
-  Ctypes.IndexSet.t Sloc.SlocMap.t ->
+  Index.IndexSet.t Sloc.SlocMap.t ->
   string ->
   Ctypes.refctype ->
   cilenv * Ctypes.refstore

@@ -35,7 +35,7 @@ module SM = Misc.StringMap
 module YM = A.Symbol.SMap
 
 module Ct = Ctypes
-module Ix = Ct.Index
+module Ix = Index
 module Co = Constants
 module P  = A.Predicate 
 module Q  = A.Qualifier
