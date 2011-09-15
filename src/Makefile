@@ -23,14 +23,12 @@ CFLAGS=-cflags -dtypes \
        -cflags -g \
        -cflags "-w a" \
 			 -cflags -thread
+TARGETS=liquidc.native indexSolver.native
 
-all: ../lib/libliquidc.a liquidc.native indexSolver.native
-
-.PHONY: %.native
-%.native:
+all: ../lib/libliquidc.a
 	ln -sf ../external/misc
 	ln -sf ../external/fixpoint
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $@ || exit 1
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(TARGETS) || exit 1
 
 %.a: %.o
 	ar rcs $@ $<
