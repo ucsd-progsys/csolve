@@ -148,7 +148,7 @@ module type S = sig
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val closed       : t -> bool
+    val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
