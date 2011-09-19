@@ -1,6 +1,10 @@
 module M = Misc
 module P = Pretty
-
+module F = FixConstraint
+module As = Ast.Symbol  
+module Asm = Ast.Symbol.SMap
+module Ac = Ast.Constant
+  
 open M.Ops
 
 type class_bound = int option (* None = unbounded *)
@@ -289,36 +293,124 @@ module AbstractDomain: Config.DOMAIN = struct
        Define unsat to always return false
        Define refine to do nothing
   *)
+  type bind = OrderedIndex.t
+  type t    = OrderedIndex.t Asm.t
 
-  type t    = int
-  type bind = int
+  let empty = Asm.empty
 
-  let empty = 0
+  let read sol =
+    fun k -> 
+      if Asm.mem k sol
+      then
+	match Asm.find k sol with
+	  | IBot -> [Ast.pFalse]
+	  | IInt i -> [Ast.pAtom (Ast.eVar k, Ast.Eq, Ast.eCon (Ac.Int i))]
+	  | _ -> [Ast.pTrue]
+      else
+	[Ast.pFalse]
 
-  let read sol v =
-    assert false
+  let topIndex = top      
 
   let top sol xs =
-    assert false
+    let xsTop = List.map (fun x -> x, topIndex) xs in
+    let xsMap = Asm.of_list xsTop in
+      Asm.extend sol xsMap
 
+  let rec interpretPred env solution sym pred =
+    match pred with
+      | F.Kvar (_, k) -> if Asm.mem k solution then Asm.find k solution else IBot
+      | F.Conc (p, i) ->
+	  begin match p with
+	    | Ast.True -> topIndex
+	    | Ast.False -> IBot
+	    | Ast.Atom ((Ast.Var nu, _),r,(e,_))
+	    | Ast.Atom ((e,_),r,(Ast.Var nu, _)) when nu = sym ->
+		begin match r with
+		  | Ast.Eq -> interpretExpr env solution e
+		  | _  -> topIndex
+		end
+	    | Ast.Bexp (e, _) ->
+		begin match e with
+		  | Ast.Con (Ac.Int n) -> of_int n
+		  | _ -> topIndex
+		end
+	    | _ -> topIndex
+	  end
+  and interpretExpr env solution expr =
+    match expr with
+      | Ast.Con (Ast.Constant.Int n) ->
+	  IInt n
+      | Ast.Var sym ->
+	  begin match F.lookup_env env sym with
+	    | None -> IBot
+	    | Some (sym, sort, refas) when Ast.Sort.is_int sort ->
+		List.fold_left glb topIndex
+		  (List.map (interpretPred env solution sym) refas)
+	  end
+      | Ast.Bin ((e1, t1), oper, (e2, t2)) ->
+	  let e1v = interpretExpr env solution e1 in
+	  let e2v = interpretExpr env solution e2 in
+	    begin match oper with
+	      | Ast.Plus  -> plus  e1v e2v
+	      | Ast.Minus -> minus e1v e2v
+	      | Ast.Times -> mult  e1v e2v
+	      | Ast.Div   -> div  e1v e2v
+	      | Ast.Mod   -> topIndex (* dunno *)
+	    end
+      | _ -> topIndex
+
+  let index_of_reft env solution reft =
+    match reft with
+      | (v, t, preds) ->
+	  List.fold_left glb topIndex (List.map (interpretPred env solution v) preds)
+      | _ -> topIndex
+		
   let refine sol c =
-    assert false
+    let rhs = F.rhs_of_t c in
+    let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
+    let refineK sol k =
+      let oldK = if Asm.mem k sol then Asm.find k sol else IBot in
+      let newK = widen lhsVal oldK in
+	if oldK = newK then (false, sol) else (true, Asm.add k newK sol)
+    in
+      List.fold_left
+	begin fun p k -> match p,k with
+	  | (_, sol), (_, sym) -> refineK sol sym
+	  | _ -> (false, sol)
+	end
+	(false, sol) (F.kvars_of_reft rhs)
 
   let unsat sol c =
-    assert false
-
+    (* Make sure that lhs <= k for each k in rhs *)
+    let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
+    let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
+    let onlyK v = match v with (* true if the constraint is unsatisfied *)
+      | sub, sym ->
+	  if Asm.mem sym sol then
+	    not (is_subindex lhsVal (Asm.find sym sol))
+	  else
+	    true
+    in
+      List.map onlyK rhsKs |> List.fold_left (&&) true
+	
   let create cfg =
-    assert false
-
+    let replace v = IBot in
+      Asm.map replace cfg.Config.bm
+	
   let print ppf sol =
-    assert false
+    let pf key value =
+      Pretty.dprintf "%s |-> %a\n" (As.to_string key) d_index value in
+    let _ = Asm.mapi pf sol in
+      ()
 
   let print_stats ppf sol =
-    assert false
+    ()
 
   let dump sol =
-    assert false
+    let pf key value =
+      Pretty.dprintf "%s |-> %a\n" (As.to_string key) d_index value in
+    let _ = Asm.mapi pf sol in
+      ()
 
-  let mkbind qbnds =
-    assert false
+  let mkbind qbnds = IBot
 end
