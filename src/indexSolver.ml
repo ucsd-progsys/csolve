@@ -28,16 +28,18 @@ let save_raw fname cs s =
   close_out oc;
   print_now "Fixpoint: save_raw: END \n"
 
-let solve ac  = 
-  let _       = print_now "Fixpoint: Creating  CI\n" in
-  let ctx, s  = BS.time "create" SIA.create ac in
-  let _       = print_now "Fixpoint: Solving \n" in
-  let s, cs'  = BS.time "solve" (SIA.solve ctx) s in
+let solve ac  =
+  Misc.with_ref_at Constants.slice false begin fun () ->
+    let _       = print_now "Fixpoint: Creating  CI\n" in
+    let ctx, s  = BS.time "create" SIA.create ac in
+    let _       = print_now "Fixpoint: Solving \n" in
+    let s, cs'  = BS.time "solve" (SIA.solve ctx) s in
 
-  let _       = print_now "Fixpoint: Saving Result \n" in
-  let _       = BS.time "save" (save_raw !Co.out_file cs') s in
-  let _       = print_now "Fixpoint: Saving Result DONE \n" in
-  cs'
+    let _       = print_now "Fixpoint: Saving Result \n" in
+    let _       = BS.time "save" (save_raw !Co.out_file cs') s in
+    let _       = print_now "Fixpoint: Saving Result DONE \n" in
+      cs'
+  end
 
 let dump_solve ac = 
   let cs' = solve { ac with Config.bm = SM.map IA.mkbind ac.Config.bm } in
