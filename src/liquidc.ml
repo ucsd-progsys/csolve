@@ -133,7 +133,7 @@ let parseOneSpec fn =
     ic |> Lexing.from_channel
        |> set_lex_start_pos fn
        |> RefParse.specs RefLex.token
-       >> (Sp.store <+> RCt.Store.closed <+> Misc.flip asserts "Global store not closed") 
+       >> (Sp.store <+> RCt.Store.closed RCt.Store.empty <+> Misc.flip asserts "Global store not closed")
        >> (fun _ -> close_in ic)
        |> some
   with Sys_error s ->

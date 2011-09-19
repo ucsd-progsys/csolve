@@ -166,12 +166,12 @@ let glb i1 i2 =
     | IInt n, ICClass {lb = lb; ub = ub; m = m; c = c}
     | ICClass {lb = lb; ub = ub; m = m; c = c}, IInt n ->
       if lower_bound_le lb (Some n) &&
-        upper_bound_le (Some n) ub &&
-        (n mod m) = c then
+         upper_bound_le (Some n) ub &&
+         (n mod m) = c then
         IInt n
       else IBot
     | ICClass {lb = lb1; ub = ub1; m = m1; c = c1},
-        ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
+      ICClass {lb = lb2; ub = ub2; m = m2; c = c2} ->
       let m = M.lcm m1 m2 in
       match search_congruent c1 m1 c2 m2 (m - 1) with
         | None   -> IBot
@@ -196,7 +196,7 @@ let widen i1 i2 =
     | IInt n, IInt m    ->
       let d = abs (n - m) in
       ICClass {lb = Some (min n m);
-               ub = None;
+               ub = Some (max n m);
                c  = n mod d;
                m  = d}
     | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m}

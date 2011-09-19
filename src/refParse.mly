@@ -59,7 +59,7 @@ let check_store_bind_valid (i, fld) =
 
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
-  if RCt.Store.closed storespec then
+  if RCt.Store.closed RCt.Store.empty storespec then
     if RCt.CFun.well_formed storespec rcf then
       RCt.Spec.add_fun true fn (rcf, public) spec
     else begin

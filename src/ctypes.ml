@@ -208,7 +208,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val closed       : t -> bool
+    val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
@@ -688,10 +688,10 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       |> partition (ls |> M.flap (reachable sto) |> M.sort_and_compact |> M.flip List.mem)
       |> fst
 
-    let rec closed ((_, fs) as sto) =
-      Data.fold_fields (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) sto) true sto &&
-        (* pmr: Not yet right, but we need smarter handling of global stores. *)
-        SLM.fold (fun _ cf c -> c && CFun.well_formed empty cf) fs true
+    let rec closed globstore ((_, fs) as sto) =
+      Data.fold_fields
+        (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto &&
+        SLM.fold (fun _ cf c -> c && CFun.well_formed globstore cf) fs true
 
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
@@ -921,19 +921,17 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-      let whole_instore  = Store.upd cf.sto_in globstore in (* pmr: shouldn't this be the other way around? *)
+      let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
-             Store.closed whole_instore
-          && Store.closed whole_outstore
+             Store.closed globstore cf.sto_in
+          && Store.closed globstore cf.sto_out
           && List.for_all (Store.mem globstore) cf.globlocs
           && not (cf.sto_out |> Store.domain |> List.exists (M.flip List.mem cf.globlocs))
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
-          && match cf.ret with  (* we can return refs to uninitialized data *)
-             | Ref (l, _) -> Store.mem whole_outstore l
-             | _          -> true
+          && Store.ctype_closed cf.ret whole_outstore
 
     let indices cf =
-      Store.indices cf.sto_in ++ Store.indices cf.sto_out
+      Store.indices cf.sto_out
 
     let instantiate srcinf cf =
       let qslocs    = quantified_locs cf in
