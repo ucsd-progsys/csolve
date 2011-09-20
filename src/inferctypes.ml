@@ -314,17 +314,21 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _   = C.visitCilFunction (emv :> C.cilVisitor) fd in
   (emv#get_em, bas, sub, sto)
 
+let failure_dump sub ve sto =
+  let _ = P.printf "@!Locals:@!" in
+  let _ = P.printf "=======@!" in
+  let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
+  let _ = P.printf "@!Store:@!" in
+  let _ = P.printf "======@!" in
+  let _ = P.printf "%a@!@!" Store.d_store (Store.subs sub sto) in
+    E.s <| C.error "Failed constrain_fun@!"
+
 let constrain_fun fs cf ve sto sci =
   try
     constrain_fun fs cf ve sto sci
-  with UStore.UnifyFailure (sub, sto) ->
-    let _ = P.printf "@!Locals:@!" in
-    let _ = P.printf "=======@!" in
-    let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
-    let _ = P.printf "@!Store:@!" in
-    let _ = P.printf "======@!" in
-    let _ = P.printf "%a@!@!" Store.d_store sto in
-      E.s <| C.error "Failed constrain_fun@!"
+  with
+    | UStore.UnifyFailure (sub, sto) -> failure_dump sub ve sto
+    | _                              -> failure_dump S.Subst.empty ve sto
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
