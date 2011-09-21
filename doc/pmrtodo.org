@@ -109,6 +109,20 @@
 
 * DONE Deferred checks
 
+
+* TODO How to prevent the user from thinking a location is global when it isn't?
+  Or what error could've been caught earlier in the foo quantification
+  example?
+
+  Don't allow "GLOBAL" anywhere but on the function variable itself.
+
+* TODO Fix make_cs_assert so that generated constraints are live
+  Fixpoint ignores them because they don't have the right form.
+
+* TODO close_stdin () should have heap signature
+  It modifies the stdin location. This means atexit has to be
+  polymorphic over its heap. Other consequences?
+
 * TODO Check types of extern locations
   Ditto above; can we even specify nontrivial invariants for
   locations? Can we specify nontrivial predicates but add an override
@@ -127,6 +141,7 @@
 * TODO Find a way to incorporate sizeofs in hquals
   Probably whatever we do to the parser for the first part will work
   here also.
+
 
 * TODO Abstract location contents for performance
   Any file operations throw around a gigantic FILE structure;
