@@ -218,15 +218,19 @@ let catch_convert_exp s e =
  *  form {v = e} or an overapproximation thereof 
  *  assumes that "e" is a-normalized *)
 
+let reft_of_string vv str =
+  A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
+          A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
+          A.pAtom (FA.eApp_bend (A.eVar vv),
+                   A.Eq,
+                   A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str + 1)))]
+
 let reft_of_cilexp vv e =
   match e with
-  | Cil.Const (Cil.CStr str)
-  | Cil.CastE (_, Cil.Const (Cil.CStr str)) ->
-      A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
-              A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
-              A.pAtom (FA.eApp_bend (A.eVar vv),
-                       A.Eq,
-                       A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eInt (String.length str + 1)))]
+  | Cil.Const (Cil.CStr str) ->
+    reft_of_string vv str
+  | Cil.CastE (t, Cil.Const (Cil.CStr str)) when Cil.isPointerType t ->
+    reft_of_string vv str
   | Cil.Const (Cil.CReal _)
   | Cil.BinOp (_, Cil.Const (Cil.CReal _), _, _)
   | Cil.BinOp (_, _, Cil.Const (Cil.CReal _), _)

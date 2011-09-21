@@ -37,6 +37,8 @@ module CM = CilMisc
 module Ct = Ctypes
 module CS = Ct.RefCTypes.Spec
 module RT = Ct.RefCTypes.CType
+module RF = Ct.RefCTypes.Field
+module RL = Ct.RefCTypes.LDesc
 module RS = Ct.RefCTypes.Store
 module Cs = Constants
 module Sh = Shape
@@ -146,6 +148,17 @@ let cons_of_mem me loc tago tag grd env v =
     let rct = v |> FA.name_of_varinfo |> FI.t_name env in
       FI.make_cs_validptr env grd rct (v.vtype |> CM.ptrRefType |> CM.bytesSizeOf) tago tag loc
 
+let cons_of_string me loc tag grd (env, sto, tago) = function
+  | CastE (_, Const (CStr _)) as e ->
+      begin match t_exp_with_constraints me loc tago tag grd env e with
+        | Ct.Ref (l, _) as rct, cds ->
+          let ld2 = RS.Data.find sto l in
+          let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
+            (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
+        | _ -> assert false
+      end
+  | _ -> assert false
+
 let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)
   | Lval (Mem (Lval (Var v', NoOffset)), _)
@@ -161,8 +174,10 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
           (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
         | _ -> assert false
       end
+  | CastE (t, (Const (CStr _))) as e when Cil.isPointerType t ->
+    cons_of_string me loc tag grd (env, sto, tago) e
   (* e, where e is pure *)
-  | e when CM.is_pure_expr e ->
+  | e when CM.is_pure_expr CM.StringsAreNotPure e ->
       t_exp_with_constraints me loc tago tag grd env e
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
@@ -378,7 +393,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
   | Set ((Var v, NoOffset), e, _) 
-    when (not v.Cil.vglob) && CM.is_pure_expr e && CM.is_local_expr e ->
+    when (not v.Cil.vglob) && CM.is_pure_expr CM.StringsArePure e && CM.is_local_expr e ->
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 

@@ -123,17 +123,26 @@ let purify file =
 
 exception ContainsDeref
 
-class checkPureVisitor = object(self)
+type considerStringsPure =
+  | StringsArePure
+  | StringsAreNotPure
+
+class checkPureVisitor (stringsPure) = object(self)
   inherit nopCilVisitor
   method vlval = function
-  | (Mem _), _ -> raise ContainsDeref 
-  | _          -> DoChildren
+  | Mem _, _ -> raise ContainsDeref
+  | _        -> DoChildren
+
+  method vexpr = function
+  | Const (CStr _)
+    when stringsPure = StringsAreNotPure -> raise ContainsDeref
+  | _                                    -> DoChildren
 end
 
 (* API *)
-let is_pure_expr e =
+let is_pure_expr stringsPure e =
   try 
-    e |> visitCilExpr (new checkPureVisitor) >| true 
+    e |> visitCilExpr (new checkPureVisitor (stringsPure)) >| true
   with ContainsDeref ->
     false
 
