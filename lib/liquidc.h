@@ -59,6 +59,13 @@
 #define LCC_VAR(base, n)  LCC_VAR2(__lcc__##base, n)
 #define LCC_ASSUME(p)     int LCC_VAR(assume, __COUNTER__) = lcc_assume (p);
 
+// Memory Safety Backdoors
+
+#define UNCHECKED              __attribute__ ((lcc_unchecked))
+
+#define LCC_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
+#define LCC_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)
+
 // Built-in functions
 
 extern void validptr (void * VALIDPTR) OKEXTERN;

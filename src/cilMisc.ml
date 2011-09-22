@@ -265,7 +265,7 @@ let ignoreBoundAttribute    = "lcc_ignore_bound"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
-let has_unchecked_attr = hasAttribute "unchecked"
+let has_unchecked_attr = hasAttribute "lcc_unchecked"
 
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeAttrs |> has_unchecked_attr
