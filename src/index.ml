@@ -207,6 +207,19 @@ let widen i1 i2 =
                m  = M.gcd m (M.gcd c n)}
     | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
       ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
+	let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
+	begin match lb1,lb2,ub1,ub2 with
+	  | Some lb1', Some lb2', _, _ when lb1' < lb2' ->
+	      ICClass { lb = Some lb1'; ub = None; c = c1 mod m; m = m }
+	  | _, _, Some ub1', Some ub2' when ub1' > ub2' ->
+	      ICClass { lb = None; ub = Some ub1'; c = c1 mod m; m = m }
+	  | _  -> ICClass {lb = if lb1 = lb2 then lb1 else None;
+               ub = if ub1 = ub2 then ub1 else None;
+               c  = c1 mod m;
+               m  = m}
+	end
+    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
+      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
       let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
       ICClass {lb = if lb1 = lb2 then lb1 else None;
                ub = if ub1 = ub2 then ub1 else None;
@@ -270,6 +283,31 @@ let unsign i = match i with
   | ICClass {lb = Some n} when n >= 0 -> i
   | _                                 -> nonneg
 
+
+(* v < i *)      
+let le_lt f i = match i with
+  | IBot -> IBot
+  | IInt n ->
+      ICClass { ub = Some (f n); lb = None; c = 0; m = 1}
+  | ICClass { ub = Some ub; lb = lb; c = c; m = m } ->
+      ICClass { ub = Some (f ub); lb = lb; c = c; m = m}
+  | _ -> top
+
+(* v > i *)	
+let ge_gt f i = match i with
+  | IBot -> top
+  | IInt n ->
+      ICClass { ub = None; lb = Some (f n); c = 0; m = 1}
+  | ICClass { ub = ub; lb = Some lb; c = c; m = m } ->
+      ICClass { ub = None; lb = Some (f lb); c = c; m = m}
+  | _ -> top
+
+let lt = le_lt ((-)1)
+let le = let id x = x in le_lt id
+
+let gt = ge_gt ((+)1)			     
+let ge = let id x = x in ge_gt id
+
 module OrderedIndex = struct
   type t = tIndex
 
@@ -281,136 +319,3 @@ module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
 
 let d_indexset () is =
   IndexSetPrinter.d_set ", " d_index () is
-
-module AbstractDomain: Config.DOMAIN = struct
-  (* All definitions below are placeholders *)
-  (* First bit of TODO, just to get the solver to go all the way through
-     without really doing anything:
-       Define t, bind
-       Define create, empty, and top as trivially as possible
-         (map every kvar to bot)
-       Define printing functions
-       Define unsat to always return false
-       Define refine to do nothing
-  *)
-  type bind = OrderedIndex.t
-  type t    = OrderedIndex.t Asm.t
-
-  let empty = Asm.empty
-
-  let read sol =
-    fun k -> 
-      if Asm.mem k sol
-      then
-	match Asm.find k sol with
-	  | IBot -> [Ast.pFalse]
-	  | IInt i -> [Ast.pAtom (Ast.eVar k, Ast.Eq, Ast.eCon (Ac.Int i))]
-	  | _ -> [Ast.pTrue]
-      else
-	[Ast.pFalse]
-
-  let topIndex = top      
-
-  let top sol xs =
-    let xsTop = List.map (fun x -> x, topIndex) xs in
-    let xsMap = Asm.of_list xsTop in
-      Asm.extend sol xsMap
-
-  let rec interpretPred env solution sym pred =
-    match pred with
-      | F.Kvar (_, k) -> if Asm.mem k solution then Asm.find k solution else IBot
-      | F.Conc (p, i) ->
-	  begin match p with
-	    | Ast.True -> topIndex
-	    | Ast.False -> IBot
-	    | Ast.Atom ((Ast.Var nu, _),r,(e,_))
-	    | Ast.Atom ((e,_),r,(Ast.Var nu, _)) when nu = sym ->
-		begin match r with
-		  | Ast.Eq -> interpretExpr env solution e
-		  | _  -> topIndex
-		end
-	    | Ast.Bexp (e, _) ->
-		begin match e with
-		  | Ast.Con (Ac.Int n) -> of_int n
-		  | _ -> topIndex
-		end
-	    | _ -> topIndex
-	  end
-  and interpretExpr env solution expr =
-    match expr with
-      | Ast.Con (Ast.Constant.Int n) ->
-	  IInt n
-      | Ast.Var sym ->
-	  begin match F.lookup_env env sym with
-	    | None -> IBot
-	    | Some (sym, sort, refas) when Ast.Sort.is_int sort ->
-		List.fold_left glb topIndex
-		  (List.map (interpretPred env solution sym) refas)
-	  end
-      | Ast.Bin ((e1, t1), oper, (e2, t2)) ->
-	  let e1v = interpretExpr env solution e1 in
-	  let e2v = interpretExpr env solution e2 in
-	    begin match oper with
-	      | Ast.Plus  -> plus  e1v e2v
-	      | Ast.Minus -> minus e1v e2v
-	      | Ast.Times -> mult  e1v e2v
-	      | Ast.Div   -> div  e1v e2v
-	      | Ast.Mod   -> topIndex (* dunno *)
-	    end
-      | _ -> topIndex
-
-  let index_of_reft env solution reft =
-    match reft with
-      | (v, t, preds) ->
-	  List.fold_left glb topIndex (List.map (interpretPred env solution v) preds)
-      | _ -> topIndex
-		
-  let refine sol c =
-    let rhs = F.rhs_of_t c in
-    let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
-    let refineK sol k =
-      let oldK = if Asm.mem k sol then Asm.find k sol else IBot in
-      let newK = widen lhsVal oldK in
-	if oldK = newK then (false, sol) else (true, Asm.add k newK sol)
-    in
-      List.fold_left
-	begin fun p k -> match p,k with
-	  | (_, sol), (_, sym) -> refineK sol sym
-	  | _ -> (false, sol)
-	end
-	(false, sol) (F.kvars_of_reft rhs)
-
-  let unsat sol c =
-    (* Make sure that lhs <= k for each k in rhs *)
-    let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
-    let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
-    let onlyK v = match v with (* true if the constraint is unsatisfied *)
-      | sub, sym ->
-	  if Asm.mem sym sol then
-	    not (is_subindex lhsVal (Asm.find sym sol))
-	  else
-	    true
-    in
-      List.map onlyK rhsKs |> List.fold_left (&&) true
-	
-  let create cfg =
-    let replace v = IBot in
-      Asm.map replace cfg.Config.bm
-	
-  let print ppf sol =
-    let pf key value =
-      Pretty.dprintf "%s |-> %a\n" (As.to_string key) d_index value in
-    let _ = Asm.mapi pf sol in
-      ()
-
-  let print_stats ppf sol =
-    ()
-
-  let dump sol =
-    let pf key value =
-      Pretty.dprintf "%s |-> %a\n" (As.to_string key) d_index value in
-    let _ = Asm.mapi pf sol in
-      ()
-
-  let mkbind qbnds = IBot
-end

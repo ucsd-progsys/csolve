@@ -65,9 +65,7 @@ let is_not_const v p =
 
 let solve cil ci =
   (Sc.scalar_quals_of_file cil) 
-  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const) 
-  |> SM.map (VM.mapi Sc.index_of_var)
-
+  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const)
 
 let solve cil ci =
   let _  = if !Co.minquals then (ignore <| E.log "Deprecating --minquals for scalar/inference\n") in

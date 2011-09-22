@@ -11,6 +11,8 @@ type t =
   | IBot
   | IInt    of int
   | ICClass of bounded_congruence_class
+
+type tIndex = t      
       
 val top          : t
 val nonneg       : t
@@ -31,15 +33,17 @@ val minus        : t -> t -> t
 val scale        : int -> t -> t
 val mult         : t -> t -> t
 val div          : t -> t -> t
+val ge           : t -> t
+val gt           : t -> t
+val le           : t -> t
+val lt           : t -> t  
 val unsign       : t -> t
 val is_subindex  : t -> t -> bool
 val overlaps     : t -> t -> bool
 val d_index      : unit -> t -> Pretty.doc
 val repr         : t -> string
 val repr_prefix  : string
-
+  
 module IndexSet : Set.S with type elt = t
 
 val d_indexset : unit -> IndexSet.t -> Pretty.doc
-
-module AbstractDomain : Config.DOMAIN

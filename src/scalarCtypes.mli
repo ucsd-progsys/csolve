@@ -4,8 +4,14 @@
 type qualkind = Equality | Bound | Modulus | Other
 *)
 
-val scalar_quals_of_file : Cil.file -> Ast.Qualifier.t list  
+val scalar_quals_of_file : Cil.file -> Ast.Qualifier.t list
 
+val data_index_of_pred_funs : (Ast.Symbol.t -> Ast.pred list -> Index.t list) list  
+
+val index_of_pred        :  (Ast.Symbol.t -> Ast.pred list -> Index.t list) list
+                         -> Ast.Symbol.t
+                         -> Ast.pred
+                         -> Index.t
 val ref_index_of_pred    : Ast.Symbol.t -> Ast.pred -> Index.t
 val data_index_of_pred   : Ast.Symbol.t -> Ast.pred -> Index.t
 val index_of_var         : Cil.varinfo -> (Ctypes.refctype * Ast.pred) -> Index.t

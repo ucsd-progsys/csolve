@@ -159,7 +159,7 @@ let iperiod_of_preds_aux qs v ps =
       | _                -> None
     end
 
-let data_iperiod_of_preds = iperiod_of_preds_aux [p_v_minus_c_eqz_mod_k]
+let data_iperiod_of_preds = iperiod_of_preds_aux [p_v_minus_c_eqz_mod_k; p_v_minus_x_minus_c_eqz_mod_k]
 let ref_iperiod_of_preds  = iperiod_of_preds_aux [p_v_minus_x_minus_c_eqz_mod_k]
 
 let ref_index_of_pred_funs =
@@ -174,6 +174,7 @@ let data_index_of_pred_funs =
   ; data_ilowerbound_of_preds
   ; data_iupperbound_of_preds ]
 
+(* API *)    
 let index_of_pred conv vv p =
      conv
   |> Misc.flap (fun f -> p |> A.conjuncts |> f vv)

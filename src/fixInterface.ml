@@ -203,7 +203,7 @@ let print_ce so ppf (_, vnv) =
 (****************************************************************)
 
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())]
 let ra_true         = fun _ -> []
 let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
