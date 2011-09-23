@@ -40,6 +40,7 @@ module RT = Ct.RefCTypes.CType
 module RF = Ct.RefCTypes.Field
 module RL = Ct.RefCTypes.LDesc
 module RS = Ct.RefCTypes.Store
+module RCf = Ct.RefCTypes.CFun
 module Cs = Constants
 module Sh = Shape
 
@@ -709,15 +710,17 @@ let cons_of_decs tgr spec gnv gst decs =
   let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
     | CM.FunDec (fn, _, loc) ->
-        let tag    = CilTag.make_t tgr loc fn 0 0 in
-        let irf    = FI.ce_find_fn fn gnv in
-        let ws'    = FI.make_wfs_fn gnv irf tag in
-        let srf, s = CS.get_fun fn spec in
-        let cs'    = make_cs_if (should_subtype s)
-                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
-        let cs''   = make_cs_if (should_supertype s)
-                       (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
-        (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
+        let tag      = CilTag.make_t tgr loc fn 0 0 in
+        let irf      = FI.ce_find_fn fn gnv in
+        let ws'      = FI.make_wfs_fn gnv irf tag in
+        let srf, s   = CS.get_fun fn spec in
+        let cs'      = make_cs_if (should_subtype s)
+                         (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
+        let cs''     = make_cs_if (should_supertype s)
+                         (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
+        let cs''', _ = FI.make_cs_refcfun_covariant
+                         gnv Ast.pTrue irf (RCf.map FI.t_indexpred_refctype srf) tag loc in
+        (ws' ++ ws, cs''' ++ cs'' ++ cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in

@@ -79,6 +79,7 @@ val t_zero              : Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
+val t_indexpred_refctype : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
@@ -169,6 +170,14 @@ val make_cs_tuple       : cilenv -> Ast.pred ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_refcfun     : cilenv -> Ast.pred ->
+                          Ctypes.refcfun -> 
+                          Ctypes.refcfun ->
+                          CilTag.t ->
+                          Cil.location ->
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_refcfun_covariant :
+                          cilenv -> Ast.pred ->
                           Ctypes.refcfun -> 
                           Ctypes.refcfun ->
                           CilTag.t ->

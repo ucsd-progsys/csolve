@@ -215,13 +215,11 @@ let pred_of_index_int = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
   | Ix.ICClass bcc -> value_var, pred_of_bcc_int bcc
-  | _              -> value_var, A.pTrue 
 
 let pred_of_index_ref = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.substs_pred p_v_eq_x_plus_c (Su.of_list [const_var, A.eInt n])
   | Ix.ICClass bcc -> value_var, pred_of_bcc_ref bcc
-  | _              -> value_var, A.pTrue 
 
 (* API *)
 let pred_of_ctype = function

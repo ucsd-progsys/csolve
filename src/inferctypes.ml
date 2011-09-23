@@ -170,13 +170,6 @@ let constrain_args et fs sub sto es =
 
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let _             = List.iter2 begin fun cta (fname, ctf) ->
-                        if not (Index.is_subindex (Ct.refinement cta) (Ct.refinement ctf)) then begin
-                          C.error "For formal %s, actual type %a not a subtype of expected type %a!@!@!"
-                            fname Ct.d_ctype cta Ct.d_ctype ctf;
-                          raise (UStore.UnifyFailure (sub, sto))
-                        end
-                      end cts cf.args in
   let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cf in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let sto           = cfi.sto_out

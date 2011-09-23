@@ -109,6 +109,12 @@
 
 * DONE Deferred checks
 
+* DONE Check indices using inferred predicates
+  Be sure to make sure negtests are failing for the right reasons
+  (comment out index checks, or flag, test, uncomment).
+
+* TODO Check that indices are covered in subtyping
+  Don't silently leave unconstrained vars around
 
 * TODO How to prevent the user from thinking a location is global when it isn't?
   Or what error could've been caught earlier in the foo quantification
@@ -210,6 +216,37 @@
    We can't say we're handling string-manipulating external functions
    correctly unless we can express containing a NULL character within
    the bounds of the string.
+
+
+** Contextual types for terminators vs. argv
+   It turns out that argv is null-terminated --- in particualr, argv[argc] = '\0';
+   coreutils' "yes" program takes advantage of this:
+
+   #+BEGIN_SRC c
+        if (argc <= optind)
+         {
+           optind = argc;
+           argv[argc++] = bad_cast ("y");
+         }
+     
+       while (true)
+         {
+           int i;
+           for (i = optind; i < argc; i++)
+             if (fputs (argv[i], stdout) == EOF
+                 || putchar (i == argc - 1 ? '\n' : ' ') == EOF)
+               {
+                 error (0, errno, _("standard output"));
+                 exit (EXIT_FAILURE);
+     
+                 return 0;
+               }
+         }
+   #+END_SRC
+
+   Both at the start of the program and after the "if", we know that
+   everything in argv that comes before argv[argc] must be non-null.
+
 
 ** realloc, free
    In general, we don't know that a pointer's bounds stay valid

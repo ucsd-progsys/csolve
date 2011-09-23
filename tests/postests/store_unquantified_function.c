@@ -10,4 +10,5 @@ void main () {
     void (*f) (int *);
 
     f = foo;
+    f (0);
 }

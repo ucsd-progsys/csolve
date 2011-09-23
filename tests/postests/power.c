@@ -630,7 +630,9 @@ Leaf build_leaf(void)
 }
 }
 #pragma merger(0,"/tmp/cil-1NGF8NKb.i","")
-int main(int argc , char **argv ) 
+int
+main (int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
+  CHECK_TYPE
 { double *map_P /* [36] */ ;
   double *map_Q /* [36] */ ;
   double wallclock___0 ;

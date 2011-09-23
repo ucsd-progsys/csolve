@@ -1,13 +1,5 @@
 #include <stdlib.h>
 
-int bar(int y){
-  return 0;
-}
-
-int * LOC(L) foo(int * LOC(L) x, int *__attribute__((array)) y){
-  return x;
-}
-
 void main(){
   int x;
   int a;
