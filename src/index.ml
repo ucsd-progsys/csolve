@@ -287,19 +287,19 @@ let unsign i = match i with
 (* v < i *)      
 let le_lt f i = match i with
   | IBot -> IBot
-  | IInt n ->
-      ICClass { ub = Some (f n); lb = None; c = 0; m = 1}
-  | ICClass { ub = Some ub; lb = lb; c = c; m = m } ->
-      ICClass { ub = Some (f ub); lb = lb; c = c; m = m}
+  | IInt n -> mk_leq (f n)
+(*      ICClass { ub = Some (f n); lb = None; c = 0; m = 1} *)
+  | ICClass { ub = Some ub; lb = lb; c = c; m = m } -> mk_leq (f ub)
+(*      ICClass { ub = Some (f ub); lb = lb; c = c; m = m} *)
   | _ -> top
 
 (* v > i *)	
 let ge_gt f i = match i with
   | IBot -> top
-  | IInt n ->
-      ICClass { ub = None; lb = Some (f n); c = 0; m = 1}
-  | ICClass { ub = ub; lb = Some lb; c = c; m = m } ->
-      ICClass { ub = None; lb = Some (f lb); c = c; m = m}
+  | IInt n -> mk_geq (f n)
+(*      ICClass { ub = None; lb = Some (f n); c = 0; m = 1} *)
+  | ICClass { ub = ub; lb = Some lb; c = c; m = m } -> mk_geq (f lb)
+(*      ICClass { ub = None; lb = Some (f lb); c = 0; m = 1} *)
   | _ -> top
 
 let lt = le_lt ((-)1)
