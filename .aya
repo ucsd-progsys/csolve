@@ -12,7 +12,6 @@
 **/_build/*
 ./benchmarks/*
 *.o
-*.a
 *.pyc
 *.po
 *.gmo
