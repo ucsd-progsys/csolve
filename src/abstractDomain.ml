@@ -8,18 +8,6 @@ module F   = FixConstraint
 open Ix  
 open Misc.Ops  
 
-module type AbstractDomain = Config.DOMAIN
-(*module AbstractDomain = struct *)
-  (* All definitions below are placeholders *)
-  (* First bit of TODO, just to get the solver to go all the way through
-     without really doing anything:
-       Define t, bind
-       Define create, empty, and top as trivially as possible
-         (map every kvar to bot)
-       Define printing functions
-       Define unsat to always return false
-       Define refine to do nothing
-  *)
 type bind = Ix.t
 type t    = Ix.t Asm.t
 
@@ -37,8 +25,6 @@ let read sol =
       [Ast.pFalse]
 
 let read_bind sol k = if Asm.mem k sol then Asm.find k sol else IBot
-
-(*  let top = top      *)
 
 let top sol xs =
   let xsTop = List.map (fun x -> x, top) xs in
@@ -112,8 +98,6 @@ and index_of_refa env sol v r = match r with
 	(begin fun v p ->
 	   [index_of_preds env sol v p] end::Sct.data_index_of_pred_funs) v pred
 and index_of_reft env solution (v, t, refas) =
-(*  let f i1 i2 = let _ = Printf.printf "glb of %s %s = %s\n" (repr i1) (repr i2) (repr (glb i1 i2)) in glb i1 i2 in
-  List.fold_left f Ix.top (List.map (index_of_refa env solution v) refas) *)
   List.fold_left glb Ix.top (List.map (index_of_refa env solution v) refas)
 
 let refine sol c =
@@ -122,8 +106,8 @@ let refine sol c =
   let refineK sol k =
     let oldK = if Asm.mem k sol then Asm.find k sol else IBot in
     let newK = widen oldK lhsVal in
-(*    let _ = Printf.printf "lhsVal: %s\noldK: %s newK: %s from c: \n" (repr lhsVal) (repr oldK) (repr newK) in
-    let _ = Printf.printf "%s" (F.to_string c) in *)
+    let _ = Printf.printf "lhsVal: %s\noldK: %s newK: %s from c: \n" (repr lhsVal) (repr oldK) (repr newK) in
+    let _ = Printf.printf "%s" (F.to_string c) in
       if oldK = newK then (false, sol) else (true, Asm.add k newK sol)
   in
     List.fold_left
@@ -133,19 +117,8 @@ let refine sol c =
       end
       (false, sol) (F.kvars_of_reft rhs)
 
-let refine sol c =
-  (*    let _ = Pretty.printf ">>> Before Refine:\n" in
-	let _ = dump sol in *)
-  let c,s = refine sol c in (*
-			      let _ = Pretty.printf "<<< After Refine:\n" in
-			      let _ = dump s in *)
-    c,s
-
-
-
 let unsat sol c =
   (* Make sure that lhs <= k for each k in rhs *)
-(*  let _ = Printf.printf "***unsat on %s\n" (F.to_string c) in *)
   let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
   let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
   let onlyK v = match v with (* true if the constraint is unsatisfied *)
