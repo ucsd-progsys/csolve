@@ -288,6 +288,8 @@
 ** TODO Have lcc_assume check for consistency of assumption?
 
 
+** TODO Relating return values and errno?
+
 * Plausible benchmarks
 
 ** GNU diction
