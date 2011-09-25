@@ -206,7 +206,7 @@ let constrain_return et fs sub sto rtv = function
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
-  assert (Index.is_subindex (ct |> Ct.refinement) (heap_ct |> Ct.refinement))
+  assert (Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct))
 
 let assert_store_type_correct lv ct = match lv with
   | (C.Mem _, _) -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) ct
