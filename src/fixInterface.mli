@@ -71,7 +71,7 @@ val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun
 
 
 
-val t_scalar_zero       : Ctypes.refctype
+val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype

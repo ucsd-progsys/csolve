@@ -23,11 +23,11 @@ void main(){
 
   junk 		= (int *) malloc(4);
 
-  i 		= nondetnn(); //crashes with nondet 
+  i 		= nondetnn(); //crashes with nondet
   retval 	= (struct graph_st *) malloc(sizeof(*retval));
  
   retval->vlist = (Vertex __attribute__((array))) malloc(100 * sizeof(*vf));
   vf            = retval->vlist + i;
   vf->mindist   = 999;
-  vf->boo       = junk; 
+  vf->boo       = junk;
 }

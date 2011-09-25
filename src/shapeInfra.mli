@@ -21,6 +21,7 @@
  *
  *)
 
+val ref_index      : Cil.typ -> Index.t
 val fresh_heaptype : Cil.typ -> Ctypes.ctype
 
 class exprTyper : Ctypes.ctype CilMisc.VarMap.t ->

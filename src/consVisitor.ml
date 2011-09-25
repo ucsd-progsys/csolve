@@ -400,13 +400,13 @@ let scalarcons_of_instr me i grd (j, env) instr =
 
   | Set ((Var v, NoOffset), _, _) 
     when CM.is_reference v.Cil.vtype ->
-      FI.t_scalar_zero
+         FI.t_scalar_ptr v.Cil.vtype
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 
   | Call (Some (Var v, NoOffset), Lval (Mem _, NoOffset), _, _) ->
       (* Nothing we can do here; we'll have to check this call is ok after we infer
          the contents of memory. *)
-      (if CM.is_reference v.Cil.vtype then FI.t_scalar_zero else FI.t_true Ct.scalar_ctype)
+         (if CM.is_reference v.Cil.vtype then FI.t_scalar_ptr v.Cil.vtype else FI.t_true Ct.scalar_ctype)
       |> scalarcons_of_binding me loc tag (j, env) grd j v    
      
   | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) ->

@@ -211,11 +211,13 @@ let pred_of_bcc_raw p_lb p_ub p_pd bcc =
 let pred_of_bcc_int = pred_of_bcc_raw p_v_ge_c p_v_le_c p_v_minus_c_eqz_mod_k 
 let pred_of_bcc_ref = pred_of_bcc_raw p_v_ge_x_plus_c p_v_le_x_plus_c p_v_minus_x_minus_c_eqz_mod_k
 
+(* API *)
 let pred_of_index_int = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.pEqual (A.eVar value_var, A.eInt n)
   | Ix.ICClass bcc -> value_var, pred_of_bcc_int bcc
 
+(* API *)
 let pred_of_index_ref = function
   | Ix.IBot        -> value_var, A.pFalse
   | Ix.IInt n      -> value_var, A.substs_pred p_v_eq_x_plus_c (Su.of_list [const_var, A.eInt n])
