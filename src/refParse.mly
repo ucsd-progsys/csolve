@@ -47,16 +47,6 @@ let mk_funspec fn cf public =
 
 exception InvalidStoredSpecType
 
-let check_store_bind_valid (i, fld) =
-  try
-    match RCt.Field.type_of fld  with
-      | Ct.Int (_, (ti, _)) -> if ti <> Index.top then raise InvalidStoredSpecType; (i, fld)
-      | _                   -> (i, fld)
-  with InvalidStoredSpecType ->
-          Errormsg.error "Invalid field in store spec: %a\n\n"
-            RCt.Field.d_field fld;
-      raise Parse_error
-
 let add_funspec spec (fn, (rcf, public)) =
   let storespec = RCt.Spec.store spec in
   if RCt.Store.closed RCt.Store.empty storespec then
@@ -232,10 +222,10 @@ indbindsne:
 
 indbind:
     index COLON reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Nonfinal Ct.dummy_fieldinfo $3)
+      ($1, Ct.RefCTypes.Field.create Ct.Nonfinal Ct.dummy_fieldinfo $3)
     }
   | index COLON FINAL reftype {
-      check_store_bind_valid ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
+      ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
     }
   ;
 
