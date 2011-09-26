@@ -176,6 +176,18 @@ let get_cstrs me =
 
 (* API *)
 let solve me fn qs =
+(*  let _ = SM.map (List.map (Format.printf "Solve: me.cm: %a" (C.print_t None))) (me.cm) in *)
+  let _ = Pretty.printf "***ac_solve for int starting***\n" in
+  let _ = ac_solve d_indexAbs me fn (get_cstrs me) qs None
+  |> fun (s, c) -> let _ = Pretty.printf "***ac_solve for int done***\n" in (s,c)
+  |> (fun (s, c) -> let _ = AbstractDomain.dump s in (s, c))
+  |> Misc.app_fst d_indexAbs.read
+  |> fun (s', cs) -> match cs with
+       | [] ->  let _ = Pretty.printf "woohoo\n!" in ()
+       | cs' ->
+	   let _ = List.map (Format.printf "Solve: unsat: %a" (C.print_t None)) cs' in
+	     ()
+  in
   ac_solve d_predAbs me fn (get_cstrs me) qs None 
   |> Misc.app_fst d_predAbs.read
 

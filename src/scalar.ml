@@ -147,6 +147,9 @@ let scalarinv_of_scim cil spec tgr gnv scim =
   |> generate tgr gnv
   |> solve cil
   |> close scim spec
+    >> SM.map (VM.mapi (begin fun i v ->
+			  let _ = Pretty.printf "key %s" (i.Cil.vname)  in
+			  Pretty.printf "= %s\n" (Ix.repr v) end)) 
   |> SM.map (VM.mapi ctype_of_var_index)
   (* >> dump_scalarinv *)
   >> Annots.clear

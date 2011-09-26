@@ -1,5 +1,8 @@
 (* AbstractDomain : Config.DOMAIN
   with type bind = Index.t *)
+include Config.DOMAIN
+ with type bind = Index.t
+(*
 type t
 type bind = Index.t
 val empty        : t 
@@ -14,4 +17,4 @@ val print        : Format.formatter -> t -> unit
 val print_stats  : Format.formatter -> t -> unit
 val dump         : t -> unit
 val mkbind       : Config.qbind -> bind
-
+*)

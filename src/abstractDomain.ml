@@ -3,7 +3,8 @@ module As = Ast.Symbol
 module Ac = Ast.Constant  
 module Asm = As.SMap  
 module Sct = ScalarCtypes
-module F   = FixConstraint  
+module F   = FixConstraint
+module FAI = FixAstInterface
 
 open Ix  
 open Misc.Ops  
@@ -31,19 +32,19 @@ let top sol xs =
   let xsMap = Asm.of_list xsTop in
     Asm.extend xsMap sol
 
-let rec index_of_pred env solution sym (pred,_) =
+let rec index_of_pred env solution sym t (pred,_) =
   match pred with
     | Ast.True -> Ix.top
     | Ast.False -> IBot
-    | Ast.Or ps -> List.map (index_of_pred env solution sym) ps
+    | Ast.Or ps -> List.map (index_of_pred env solution sym t) ps
                    |> List.fold_left lub IBot
-    | Ast.And ps -> List.map (index_of_pred env solution sym) ps
+    | Ast.And ps -> List.map (index_of_pred env solution sym t) ps
                    |> List.fold_left glb Ix.top
     | Ast.Atom ((Ast.Var vv, _),Ast.Eq,e)
     | Ast.Atom (e,Ast.Eq,(Ast.Var vv, _)) when vv = sym ->
-	index_of_expr env solution e
+	index_of_expr env solution t e
     | Ast.Atom ((Ast.Var vv, _),r,e) when vv = sym ->
-	let eVal = index_of_expr env solution e in
+	let eVal = index_of_expr env solution t e in
 	  begin match r with
 	    | Ast.Gt -> gt eVal
 	    | Ast.Ge -> ge eVal
@@ -51,7 +52,7 @@ let rec index_of_pred env solution sym (pred,_) =
 	    | Ast.Le -> le eVal
 	  end
     | Ast.Atom (e,r,(Ast.Var vv, _)) when vv = sym ->
-	let eVal = index_of_expr env solution e in
+	let eVal = index_of_expr env solution t e in
 	  begin match r with
 	    | Ast.Gt -> lt eVal
 	    | Ast.Ge -> le eVal
@@ -64,20 +65,20 @@ let rec index_of_pred env solution sym (pred,_) =
 	  | _ -> Ix.top
 	end
     | _ -> Ix.top
-and index_of_expr env solution expr =
+and index_of_expr env solution t expr =
   match fst expr with
     | Ast.Con (Ast.Constant.Int n) ->
-	IInt n
+	if Ast.Sort.is_int t then IInt n else IBot
     | Ast.Var sym ->
 	begin match F.lookup_env env sym with
 	  | None -> IBot
-	  | Some (sym, sort, refas) when Ast.Sort.is_int sort ->
+	  | Some (sym, sort, refas) when sort = t -> (* questionable? *)
 	      List.fold_left glb Ix.top
-		(List.map (index_of_refa env solution sym) refas)
+		(List.map (index_of_refa env solution sym t) refas)
 	end
     | Ast.Bin (e1, oper, e2) ->
-	let e1v = index_of_expr env solution e1 in
-	let e2v = index_of_expr env solution e2 in
+	let e1v = index_of_expr env solution t e1 in
+	let e2v = index_of_expr env solution t e2 in
 	  begin match oper with
 	    | Ast.Plus  -> plus  e1v e2v
 	    | Ast.Minus -> minus e1v e2v
@@ -86,19 +87,19 @@ and index_of_expr env solution expr =
 	    | Ast.Mod   -> Ix.top
 	  end
     | Ast.App (sym,e)
-	when expr = Ast.eApp (As.of_string "BLOCK_BEGIN", e) -> IInt 0
-    | Ast.Cst (e,sort) -> index_of_expr env solution e
+	when expr = Ast.eApp (* (FAI.eApp_bbegin e) -> *) (As.of_string "BLOCK_BEGIN", e) -> IInt 0 
+    | Ast.Cst (e,sort) -> index_of_expr env solution t e
     | _ -> Ix.top
-and index_of_preds env sol v preds = 
-  List.map (index_of_pred env sol v) preds|> List.fold_left glb Ix.top
-and index_of_refa env sol v r = match r with
+and index_of_preds env sol v t preds = 
+  List.map (index_of_pred env sol v t) preds|> List.fold_left glb Ix.top
+and index_of_refa env sol v t r = match r with
   | F.Kvar (_, k) -> read_bind sol k
   | F.Conc pred -> (* index_of_pred env sol v pred *)
       Sct.index_of_pred
 	(begin fun v p ->
-	   [index_of_preds env sol v p] end::Sct.data_index_of_pred_funs) v pred
+	   [index_of_preds env sol v t p] end::Sct.data_index_of_pred_funs) v pred
 and index_of_reft env solution (v, t, refas) =
-  List.fold_left glb Ix.top (List.map (index_of_refa env solution v) refas)
+  List.fold_left glb Ix.top (List.map (index_of_refa env solution v t) refas)
 
 let refine sol c =
   let rhs = F.rhs_of_t c in
@@ -106,8 +107,8 @@ let refine sol c =
   let refineK sol k =
     let oldK = if Asm.mem k sol then Asm.find k sol else IBot in
     let newK = widen oldK lhsVal in
-    let _ = Printf.printf "lhsVal: %s\noldK: %s newK: %s from c: \n" (repr lhsVal) (repr oldK) (repr newK) in
-    let _ = Printf.printf "%s" (F.to_string c) in
+(*    let _ = Printf.printf "lhsVal: %s\noldK: %s newK: %s from c: \n" (repr lhsVal) (repr oldK) (repr newK) in *)
+    let _ = Printf.printf "Cons: %s" (F.to_string c) in
       if oldK = newK then (false, sol) else (true, Asm.add k newK sol)
   in
     List.fold_left
