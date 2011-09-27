@@ -189,6 +189,14 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
+let unify_and_check_subtype sto sub ct1 ct2 =
+  let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
+    if not (Index.is_subindex (Ct.refinement ct1) (Ct.refinement ct2)) then begin
+      C.error "Expression has type %a, expected a subtype of %a@!" Ct.d_ctype ct1 Ct.d_ctype ct2;
+      raise (UStore.UnifyFailure (sub, sto))
+    end;
+    (sto, sub)
+
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cf in
@@ -208,11 +216,7 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-        let sto, sub = UStore.unify_ctype_locs sto sub (Ct.subs isub cf.ret) ctlv in
-        let _        = if not (Index.is_subindex (Ct.refinement cf.ret) (Ct.refinement ctlv)) then begin
-                         C.error "Returned value has type %a, expected %a@!" Ct.d_ctype cf.ret Ct.d_ctype ctlv;
-                         raise (UStore.UnifyFailure (sub, sto))
-                       end in
+        let sto, sub = unify_and_check_subtype sto sub (Ct.subs isub cf.ret) ctlv in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -249,7 +253,7 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
       let _        = assert_store_type_correct lv ct2 in
-      let sto, sub = UStore.unify_ctype_locs sto sub ct2 ct1 in
+      let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
