@@ -145,9 +145,30 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
         end
     | _ -> assert false
 
+  method private constrain_mem ctmem e =
+    match et#ctype_of_exp e with
+      | Ref (s, i) ->
+        let sto, sub = UStore.unify_overlap !sto !sub s i in
+        let s        = S.Subst.apply sub s in
+          begin match s |> Store.Data.find_or_empty sto |> LDesc.find i |>: (snd <+> Field.type_of) with
+            | []   ->
+              E.s <| C.error "Reading location (%a, %a) before writing data to it@!" S.d_sloc s Index.d_index i
+            | [ct] ->
+              if (ct, ctmem) |> M.map_pair Ct.refinement |> M.uncurry Index.is_subindex then
+                UStore.unify_ctype_locs sto sub ctmem ct |> M.swap |> self#set_sub_sto
+              else
+                E.s <| C.error "In-heap type %a not a subtype of expected type %a@!"
+                         Ct.d_ctype ct Ct.d_ctype ctmem
+            | _ -> assert false
+          end
+      | _ -> E.s <| C.bug "constraining mem gave back non-ref type@!"
+
   method private constrain_exp = function
-    | C.Const c                          -> ()
+    | C.Lval ((C.Mem e, C.NoOffset) as lv)
+      when not (lv |> C.typeOfLval |> C.isPointerType) ->
+      self#constrain_mem (et#ctype_of_lval lv) e
     | C.Lval lv | C.StartOf lv           -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
+    | C.Const c                          -> ()
     | C.UnOp (uop, e, t)                 -> ()
     | C.BinOp (bop, e1, e2, t)           -> ()
     | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c

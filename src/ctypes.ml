@@ -257,6 +257,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
       exception UnifyFailure of Sloc.Subst.t * t
 
       val unify_ctype_locs : t -> Sloc.Subst.t -> ctype -> ctype -> t * Sloc.Subst.t
+      val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> field -> t * Sloc.Subst.t
       val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> cfun -> t * Sloc.Subst.t
     end
@@ -767,30 +768,44 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
             else (subs sub sto, sub)
             else (sto, sub)
 
-      and unify_fields sub sto fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
+      and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
         | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
         | ct1, ct2                                  ->
           fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
-      and add_field sto sub s i fld =
-        try
-          match i with
-            | N.IBot                 -> (sto, sub)
-            | N.ICClass _ | N.IInt _ ->
-              let s    = S.Subst.apply sub s in
-              let ld   = Data.find_or_empty sto s in
-              let olap = LDesc.find i ld in
-              let i    = olap |>: fst |> List.fold_left Index.lub i in
+      and unify_overlap sto sub s i =
+        let s  = S.Subst.apply sub s in
+        let ld = Data.find_or_empty sto s in
+          match LDesc.find i ld with
+            | []                         -> (sto, sub)
+            | ((_, fstfld) :: _) as olap ->
+              let i = olap |>: fst |> List.fold_left Index.lub i in
                    ld
                 |> List.fold_right (fst <+> LDesc.remove) olap
-                |> LDesc.add i (Field.subs sub fld)
+                |> LDesc.add i fstfld
                 |> Data.add sto s
                 |> fun sto ->
                      List.fold_left
-                       (fun (sto, sub) (_, olfld) -> unify_fields sub sto fld olfld)
+                       (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
                        (sto, sub)
                        olap
+
+      and add_field sto sub s i fld =
+        try
+          begin match i with
+            | N.IBot                 -> (sto, sub)
+            | N.ICClass _ | N.IInt _ ->
+              let sto, sub = unify_overlap sto sub s i in
+              let s        = S.Subst.apply sub s in
+              let fld      = Field.subs sub fld in
+              let ld       = Data.find_or_empty sto s in
+                begin match LDesc.find i ld with
+                  | []          -> (ld |> LDesc.add i fld |> Data.add sto s, sub)
+                  | [(_, fld2)] -> unify_fields sto sub fld fld2
+                  | _           -> assert false
+                end
+          end
         with e ->
           C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a"
             Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;

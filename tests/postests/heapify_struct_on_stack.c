@@ -5,6 +5,7 @@ struct tokenbuffer
 {
   char * buffer;
 };
+
 typedef struct tokenbuffer token_buffer;
 
 void main () {

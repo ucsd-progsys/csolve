@@ -6,9 +6,9 @@ void main(){
   int x;
 
   t = malloc(0);
-  x = *t; 
-  //OR DUALLY 
   *t = 10;
+  //OR DUALLY 
+  x = *t; 
   
   return; 
 }
