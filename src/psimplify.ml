@@ -163,7 +163,7 @@ and simplifyLval
     (lv: lval) : lval =
   let add_int (e1: exp) (e2: exp) =
     (* Add, watching for a zero *)
-    if isZero e2 then e1 else BinOp(PlusA, e1, e2, !upointType)
+    if isZero (constFold true e2) then e1 else BinOp(PlusA, e1, e2, !upointType)
   in
   (* Convert an offset to an integer, and possibly a residual bitfield offset*)
   let rec offsetToInt
@@ -203,7 +203,7 @@ and simplifyLval
   in
   (* Add, watching for a zero *)
   let add (e1: exp) (e2: exp) =
-    if isZero e2 then e1 else BinOp(PlusPI, e1, e2, charPtrType)
+    if isZero (constFold true e2) then e1 else BinOp(PlusPI, e1, e2, charPtrType)
   in
   let tres = TPtr(typeOfLval lv, []) in
   let typeForCast restOff: typ =
@@ -219,7 +219,7 @@ and simplifyLval
     Mem a, off ->
       let offidx, restoff = offsetToInt (typeOfLval (Mem a, NoOffset)) off in
       let a' =
-        if offidx <> zero then
+        if constFold true offidx <> zero then
           add (mkCast a charPtrType) offidx
         else
           a
@@ -233,12 +233,14 @@ and simplifyLval
        * ourselves *)
       let a = mkAddrOrStartOf (Var v, NoOffset) in
       let a' =
-        if offidx = zero then a else
-        if !simpleMem then
-	        add (mkCast a charPtrType) (makeBasic setTemp offidx)
-	    else add (mkCast a charPtrType) offidx
+        let offidx = constFold true offidx in
+          if isZero offidx then
+            a
+          else if !simpleMem then
+	    add (mkCast a charPtrType) (makeBasic setTemp offidx)
+	  else add (mkCast a charPtrType) offidx
       in
-      let a' = if !simpleMem then setTemp a' else a' in
+      let a' = if !simpleMem && not (isZero offidx) then setTemp a' else a' in
       Mem (mkCast a' (typeForCast restoff)), restoff
 
   | Var v, off ->
