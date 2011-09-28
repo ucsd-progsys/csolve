@@ -235,12 +235,12 @@ and simplifyLval
       let a' =
         let offidx = constFold true offidx in
           if isZero offidx then
-            a
+            mkCast a charPtrType
           else if !simpleMem then
 	    add (mkCast a charPtrType) (makeBasic setTemp offidx)
 	  else add (mkCast a charPtrType) offidx
       in
-      let a' = if !simpleMem && not (isZero offidx) then setTemp a' else a' in
+      let a' = if !simpleMem then setTemp a' else a' in
       Mem (mkCast a' (typeForCast restoff)), restoff
 
   | Var v, off ->
