@@ -1,17 +1,35 @@
+* TODO Heapify /all/ globals?
+  Various parts of the code go through contortions to ensure that
+  globals never appear in expressions (so they're always read into a
+  local first before use) and to treat them specially in reads and
+  assignments. But if the contents of globals are always in a store
+  location, everything gets much more uniform.
+
+  Also, we treat globals worse than heap contents right now: two
+  consecutive reads from a global are not assumed to yield the same
+  result. This is a major pain --- you may test a global pointer to
+  see if it's null, but the result of that test won't be useful in
+  allowing you to safely dereference the pointer. At least we've
+  already fixed this problem for heap contents with final fields.
+
+** TODO Check types of extern locations
+   Ditto above; can we even specify nontrivial invariants for
+   locations? Can we specify nontrivial predicates but add an override
+   for making the shape simple?
+
+** TODO Make sure specs work on heapified globals
+   Should we just name heapified globals the same as their original,
+   non-heapified versions, and the specs for things that get heapified
+   must have pointer type?
+
+
 * TODO Find a way to incorporate sizeofs in predicates
 
 * TODO Find a way to incorporate sizeofs in hquals
   Probably whatever we do to the parser for the first part will work
   here also.
 
-* TODO Check types of extern locations
-  Ditto above; can we even specify nontrivial invariants for
-  locations? Can we specify nontrivial predicates but add an override
-  for making the shape simple?
-
 * TODO Consolidate uses of constrain_lval + ctype_of_lval in inferctypes
-* TODO Where are all these casts coming from?
-
 * TODO Ensure that the ctypes/refinement knot is tied tightly
 
 * TODO Refactor/merge various index manipulations
@@ -67,25 +85,6 @@
 
 ** Refactor ctype -> location, index methods
    Just fail fast instead of returning option
-
-** TODO Heapify /all/ globals?
-   Various parts of the code go through contortions to ensure that
-   globals never appear in expressions (so they're always read into a
-   local first before use) and to treat them specially in reads and
-   assignments. But if the contents of globals are always in a store
-   location, everything gets much more uniform.
-
-   Also, we treat globals worse than heap contents right now: two
-   consecutive reads from a global are not assumed to yield the same
-   result. This is a major pain --- you may test a global pointer to
-   see if it's null, but the result of that test won't be useful in
-   allowing you to safely dereference the pointer. At least we've
-   already fixed this problem for heap contents with final fields.
-
-** TODO Make sure specs work on heapified globals
-   Should we just name heapified globals the same as their original,
-   non-heapified versions, and the specs for things that get heapified
-   must have pointer type?
 
 ** TODO Sort out "'a preblah" mess in ctypes.mli
    It shouldn't be necessary to ever have these in the interface
@@ -174,6 +173,13 @@
 
 
 ** TODO Relating return values and errno?
+
+** TODO Specs for how functions manipulate globals
+   For example, the various getopt functions set optind in various
+   ways. We want to guarantee that the (heapified) value optind is
+   within some range after a call to getopt-like functions (and also
+   enforce that it's in some range when they're called). Find a way to
+   specify such pre/postconditions on globals.
 
 * Plausible benchmarks
 
@@ -321,9 +327,6 @@
    idioms. Some of the above benchmarks are mentioned.
 
 Proper code todo:
-
-* fixInterface has a TODO: DEFERREDCHECKS
-  Looks like we're not checking we get the right indices for heap contents later...?!
 
 * Warn/error on unreachable block?
 
