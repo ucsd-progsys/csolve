@@ -236,11 +236,6 @@ module type S = sig
     val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t -> t -> t
     val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
-    val upd_store : t -> Store.t -> t
-    val mem_fun : string -> t -> bool
-    val mem_var : string -> t -> bool
-    val get_fun : string -> t -> CFun.t * specType
-    val get_var : string -> t -> CType.t * specType
     
     val store   : t -> Store.t
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
@@ -253,7 +248,6 @@ module type S = sig
 
     val add     : t -> t -> t
     val d_spec  : unit -> t -> Pretty.doc
-
   end             
 
   module ExpKey:

@@ -537,7 +537,9 @@ let infer_shapes cil spec scis =
   let ve = C.foldGlobals cil begin fun ve -> function
              | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
                 begin try
-                  CSpec.get_var vi.C.vname spec 
+                     spec
+                  |> CSpec.varspec
+                  |> SM.find vi.C.vname
                   |> fst
                   |> Misc.flip (VM.add vi) ve
                 with Not_found ->
@@ -547,7 +549,7 @@ let infer_shapes cil spec scis =
            end VM.empty
   in
   let fe = declared_funs cil
-           |> List.map (fun f -> (f, CSpec.get_fun f.C.vname spec |> fst))
+           |> List.map (fun f -> (f, spec |> CSpec.funspec |> SM.find f.C.vname |> fst))
            |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let xm = SM.fold (fun _ (_, sci, _) xm -> VM.add sci.ST.fdec.C.svar sci xm) scis VM.empty in
   scis

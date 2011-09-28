@@ -627,7 +627,8 @@ let cons_of_sci tgr gnv gst sci sho =
 let extern_reachable_locs spec decs =
      decs
   |> M.map_partial begin function
-       | CM.VarDec (v, _, _) when v.vstorage = Cil.Extern -> v.vname |> M.flip CS.get_var spec |> fst |> RT.sloc
+       | CM.VarDec (v, _, _) when v.vstorage = Cil.Extern ->
+         spec |> CS.varspec |> SM.find v.vname |> fst |> RT.sloc
        | _ -> None
      end
   |> M.flap (spec |> CS.store |> RS.reachable)
@@ -713,7 +714,7 @@ let cons_of_decs tgr spec gnv gst decs =
         let tag      = CilTag.make_t tgr loc fn 0 0 in
         let irf      = FI.ce_find_fn fn gnv in
         let ws'      = FI.make_wfs_fn gnv irf tag in
-        let srf, s   = CS.get_fun fn spec in
+        let srf, s   = spec |> CS.funspec |> SM.find fn in
         let cs'      = make_cs_if (should_subtype s)
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
         let cs''     = make_cs_if (should_supertype s)
@@ -724,7 +725,7 @@ let cons_of_decs tgr spec gnv gst decs =
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
-        let vspctyp, s = CS.get_var v.vname spec in 
+        let vspctyp, s = spec |> CS.varspec |> SM.find v.vname in
         let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
         let cs''       = make_cs_if (should_subtype s)
                            (lazy (FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc)) in

@@ -79,7 +79,7 @@ let mk_gnv f spec decs cenv =
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs 
             then ft |> FI.refcfun_of_cfun |> FI.map_fn f
-            else (CS.get_fun fn spec |> fst))
+            else spec |> CS.funspec |> SM.find fn |> fst)
      end
   |> FI.ce_adds_fn gnv0
 

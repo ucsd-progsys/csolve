@@ -140,11 +140,6 @@ let parseOneSpec fn =
     let _ = E.warn "Error reading spec: %s@!@!Continuing without spec...@!@!" s in
     None 
 
-let add_spec fn spec_src = 
-  match parseOneSpec fn with
-    | Some x -> Sp.add spec_src x
-    | _      -> spec_src
-
 let spec_of_file outprefix file =
   let specfile = outprefix^".autospec" in
     Typespec.writeSpecOfFile file specfile;

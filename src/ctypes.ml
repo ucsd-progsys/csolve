@@ -293,11 +293,6 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val add_var : bool -> string -> ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> ldesc -> t -> t
     val add_fun_loc  : Sloc.t -> cfun -> t -> t
-    val upd_store    : t -> store -> t
-    val mem_fun : string -> t -> bool
-    val mem_var : string -> t -> bool
-    val get_fun : string -> t -> cfun * specType
-    val get_var : string -> t -> ctype * specType
     val store   : t -> store
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
     val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
@@ -980,23 +975,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     let add_fun_loc l cf (funspec, varspec, storespec) =
       (funspec, varspec, Store.Function.add storespec l cf)
 
-    let upd_store (funspec, varspec, storespec) sto =
-      (funspec, varspec, Store.upd storespec sto)
-
-    let mem_fun fn (funspec, _, _) =
-      SM.mem fn funspec
-
-    let mem_var vn (_, varspec, _) =
-      SM.mem vn varspec
-
-    let get_fun fn (funspec, _, _) =
-      try SM.find fn funspec with Not_found -> 
-        E.error "Cannot find %s in fun spec" fn |> halt
-
-    let get_var vn (_, varspec, _) =
-      try SM.find vn varspec with Not_found -> 
-        E.error "Cannot find %s in var spec" vn |> halt
-
     let store (_, _, storespec) =
       storespec
       
@@ -1009,7 +987,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
        |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
        |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
        |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
-
 
     let d_spec () sp = 
       [ (Store.Data.fold_locs (fun l ld acc ->
@@ -1025,7 +1002,6 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
           P.dprintf "%s ::@!  @[%a@]\n\n" fn CFun.d_cfun cf
          ) (funspec sp |> SM.to_list)) ]
       |> List.fold_left P.concat P.nil
-
   end
 
   (******************************************************************************)
