@@ -164,18 +164,16 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
       | _ -> E.s <| C.bug "constraining mem gave back non-ref type@!"
 
   method private constrain_exp = function
-    | C.Lval ((C.Mem e, C.NoOffset) as lv)
-      when not (lv |> C.typeOfLval |> C.isPointerType) ->
-      self#constrain_mem (et#ctype_of_lval lv) e
-    | C.Lval lv | C.StartOf lv           -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
-    | C.Const c                          -> ()
-    | C.UnOp (uop, e, t)                 -> ()
-    | C.BinOp (bop, e1, e2, t)           -> ()
-    | C.CastE (C.TPtr _, C.Const c) as e -> self#constrain_constptr e c
-    | C.CastE (ct, e)                    -> ()
-    | C.SizeOf t                         -> ()
-    | C.AddrOf lv                        -> self#constrain_addrof lv
-    | e                                  -> E.s <| C.error "Unimplemented constrain_exp: %a@!@!" C.d_exp e
+    | C.Lval ((C.Mem e, C.NoOffset) as lv) -> self#constrain_mem (et#ctype_of_lval lv) e
+    | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
+    | C.Const c                            -> ()
+    | C.UnOp (uop, e, t)                   -> ()
+    | C.BinOp (bop, e1, e2, t)             -> ()
+    | C.CastE (C.TPtr _, C.Const c) as e   -> self#constrain_constptr e c
+    | C.CastE (ct, e)                      -> ()
+    | C.SizeOf t                           -> ()
+    | C.AddrOf lv                          -> self#constrain_addrof lv
+    | e                                    -> E.s <| C.error "Unimplemented constrain_exp: %a@!@!" C.d_exp e
 end
 
 let constrain_exp et fs sub sto e =
