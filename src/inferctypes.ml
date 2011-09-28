@@ -263,14 +263,20 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
         (ba :: bas, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr env et is sub sto =
-  let bas, sub, sto = List.fold_left (constrain_instr_aux env et) ([], sub, sto) is in
+let constrain_instr env et annots i =
+  try
+    constrain_instr_aux env et annots i
+  with ex -> E.s <| C.error "(%s) Failed constraining instruction:@!%a@!@!"
+               (Printexc.to_string ex) C.d_instr i
+
+let constrain_instrs env et is sub sto =
+  let bas, sub, sto = List.fold_left (constrain_instr env et) ([], sub, sto) is in
     (List.rev ([] :: bas), sub, sto)
 
 let constrain_stmt ((fs, _) as env) et rtv s sub sto =
   let _ = C.currentLoc := C.get_stmtLoc s.C.skind in
     match s.C.skind with
-      | C.Instr is          -> constrain_instr env et is sub sto
+      | C.Instr is          -> constrain_instrs env et is sub sto
       | C.If (e, _, _, _)   -> let sub, sto = constrain_exp et fs sub sto e in ([], sub, sto)
       | C.Break _           -> ([], sub, sto)
       | C.Continue _        -> ([], sub, sto)
