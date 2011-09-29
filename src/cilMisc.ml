@@ -166,19 +166,15 @@ let unfloatGlobal = function
 let unfloat file =
   iterGlobals file unfloatGlobal
 
-(**********************************************************)
-(********** Stripping Casts from Exprs, Lvals *************)
-(**********************************************************)
+(******************************************************************************)
+(**************** Drilling Into Variable Reference Expressions ****************)
+(******************************************************************************)
 
-class castStripVisitor = object(self)
-  inherit nopCilVisitor
-    method vexpr = function
-      | CastE (_, e) -> ChangeDoChildrenPost (e, id)
-      | _            -> DoChildren
-end
-
-let stripcasts_of_lval = visitCilLval (new castStripVisitor)
-let stripcasts_of_expr = visitCilExpr (new castStripVisitor)
+let rec referenced_var_of_exp = function
+  | CastE (_, e)              -> referenced_var_of_exp e
+  | Lval (Var v, NoOffset)    -> v
+  | StartOf (Var v, NoOffset) -> v
+  | _                         -> failwith "referenced_var_of_exp"
 
 (******************************************************************************)
 (********************************** Printing **********************************)

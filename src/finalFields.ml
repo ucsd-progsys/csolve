@@ -56,8 +56,8 @@ module Intraproc (X: Context) = struct
     al |> CT.Store.Data.find_or_empty X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
 
   let locs_of_lval = function
-    | (C.Mem (C.Lval (C.Var vi, _) as e), _)
-    | (C.Mem (C.CastE (_, (C.Lval (C.Var vi, _) as e))), _) ->
+    | (C.Mem e, _) ->
+        let vi = CilMisc.referenced_var_of_exp e in
         let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
         let al = Sloc.canonical cl in
           begin match CT.ExpMap.find e X.shp.Sh.etypm with

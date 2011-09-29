@@ -308,8 +308,8 @@ let instantiate f conc al cl rw =
 
 let annotate_set ctm theta conc = function
   (* v1 := *v2 *)
-  | (Var v1, _), Lval (Mem (Lval (Var v2, _) as e), _) 
-  | (Var v1, _), Lval (Mem (CastE (_, Lval (Var v2, _)) as e), _) ->
+  | (Var v1, _), Lval (Mem e, _) ->
+      let v2 = CilMisc.referenced_var_of_exp e in
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta al v2 in
       instantiate (fun (x,y) -> Ins (v2.vname,x,y)) conc al cl Read
@@ -322,8 +322,8 @@ let annotate_set ctm theta conc = function
         |> fun _ -> (conc, [])
 
   (* *v := _ *)
-  | (Mem (Lval (Var v, _) as e), _), _ 
-  | (Mem (CastE (_, Lval (Var v, _)) as e), _), _ ->
+  | (Mem e, _), _ ->
+      let v = CilMisc.referenced_var_of_exp e in
       let al = sloc_of_expr ctm e |> Misc.maybe in
       let cl = cloc_of_v theta al v in
       instantiate (fun (x,y) -> Ins (v.vname,x,y)) conc al cl Write

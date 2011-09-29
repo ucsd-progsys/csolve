@@ -229,19 +229,20 @@ and simplifyLval
 
   | Var v, off when v.vaddrof -> (* We are taking this variable's address *)
       let offidx, restoff = offsetToInt v.vtype off in
+      let offidx = constFold true offidx in
       (* We cannot call makeBasic recursively here, so we must do it
        * ourselves *)
-      let a = mkAddrOrStartOf (Var v, NoOffset) in
-      let a' =
-        let offidx = constFold true offidx in
-          if isZero offidx then
-            mkCast a charPtrType
-          else if !simpleMem then
+      if isZero offidx then
+        Mem (mkCast (mkAddrOrStartOf (Var v, NoOffset)) (typeForCast restoff)), restoff
+      else
+        let a = mkAddrOrStartOf (Var v, NoOffset) in
+        let a' =
+          if !simpleMem then
 	    add (mkCast a charPtrType) (makeBasic setTemp offidx)
 	  else add (mkCast a charPtrType) offidx
-      in
-      let a' = if !simpleMem then setTemp a' else a' in
-      Mem (mkCast a' (typeForCast restoff)), restoff
+        in
+        let a' = if !simpleMem then setTemp a' else a' in
+          Mem (mkCast a' (typeForCast restoff)), restoff
 
   | Var v, off ->
       (Var v, simplifyOffset setTemp off)

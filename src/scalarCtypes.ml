@@ -187,7 +187,7 @@ let data_index_of_pred vv p = index_of_pred data_index_of_pred_funs vv p
 
 (* API *)
 let index_of_var v (cr, p) =
-  if Cil.isPointerType v.Cil.vtype then
+  if Cil.isPointerType v.Cil.vtype || Cil.isArrayType v.Cil.vtype then
     ref_index_of_pred (FA.name_of_varinfo v) p
   else
     data_index_of_pred (FA.name_of_varinfo v) p

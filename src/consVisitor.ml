@@ -162,8 +162,8 @@ let cons_of_string me loc tag grd (env, sto, tago) = function
 
 let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)
-  | Lval (Mem (Lval (Var v', NoOffset)), _)
-  | Lval (Mem (CastE (_, Lval (Var v', NoOffset))), _) ->
+  | Lval (Mem e, _) ->
+    let v' = CM.referenced_var_of_exp e in
       (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto,
       cons_of_mem me loc tago tag grd env v')
   (* x, when x is global *)
@@ -201,17 +201,10 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
   | (Var v, NoOffset), rv when v.Cil.vglob ->
     E.s <| Cil.errorLoc loc "Trying to write global var %a@!" CM.d_var v
 
-  (* *v := e, where v is a bottom-indexed pointer, so this code is dead *)
-  (* pmr: perhaps a better solution is to not constrain unreachable blocks, complete with
-          warning/error about unreachability? But maybe there's some useful side effect of
-          constraining the block? *)
-  | (Mem (Lval(Var v, NoOffset)), _), _
-  | (Mem (CastE (_, Lval (Var v, NoOffset))), _), _ when is_bot_ptr me env v ->
-      (env, sto, Some tag), ([], [])
-
   (* *v := e, where e is pure *)
-  | (Mem (Lval(Var v, NoOffset)), _), e 
-  | (Mem (CastE (_, Lval (Var v, NoOffset))), _), e ->
+  | (Mem ev, _), e ->
+    let v = CilMisc.referenced_var_of_exp ev in
+      if is_bot_ptr me env v then (env, sto, Some tag), ([], []) else
       let addr = var_addr me env v in
       let cr', cds1 = t_exp_with_constraints me loc tago tag grd env e in
       let cds2      = cons_of_mem me loc tago tag grd pre_env v in
