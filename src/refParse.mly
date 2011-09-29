@@ -121,11 +121,11 @@ specs:
                                           RCt.Spec.empty }
   | specs funspec                       { add_funspec $1 $2 }
   | specs varspec                       { add_varspec $1 $2 }
-  | specs locspec                       { let l, sp, loc = $2 in
-                                          let _          = assert_location_unbound l (RCt.Spec.store $1) loc in
+  | specs locspec                       { let l, st, sp, loc = $2 in
+                                          let _             = assert_location_unbound l (RCt.Spec.store $1) loc in
                                             match sp with
-                                              | SData sp  -> RCt.Spec.add_data_loc l sp $1
-                                              | SFun sp   -> RCt.Spec.add_fun_loc l sp $1
+                                              | SData sp -> RCt.Spec.add_data_loc l (sp, st) $1
+                                              | SFun sp  -> RCt.Spec.add_fun_loc l (sp, st) $1
                                         }
   ;
 
@@ -170,15 +170,23 @@ varspec:
   ;
 
 locspec:
-  LOCATION slocbind                     { $2 }
+  LOCATION globalslocbind               { $2 }
   ;
 
 publ:
-  | DCOLON                              { Ct.HasShape }
+    DCOLON                              { Ct.HasShape }
   | PCOLON                              { Ct.IsSubtype }
   | HASTYPE                             { Ct.HasType }
   ;
 
+globalslocbind:
+    sloc publ indbinds {
+      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+    }
+  | sloc publ funtyp {
+      ($1, $2, SFun $3, currentLoc ())
+    }
+  ;
 
 slocs:
     LB RB                               { [] }
@@ -196,7 +204,7 @@ sloc:
   ;
 
 refstore:
-  LB RB                                 { RCt.Store.empty }
+    LB RB                               { RCt.Store.empty }
   | LB slocbindsne RB                   { store_of_slocbinds $2 }
   ;
 

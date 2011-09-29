@@ -234,16 +234,18 @@ module type S = sig
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
-    val add_data_loc : Sloc.t -> LDesc.t -> t -> t
-    val add_fun_loc  : Sloc.t -> CFun.t -> t -> t
+    val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t
+    val add_fun_loc  : Sloc.t -> CFun.t * specType -> t -> t
     
     val store   : t -> Store.t
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
     val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val locspectypes : t -> specType Sloc.SlocMap.t
 
     val make    : (R.t precfun * specType) Misc.StringMap.t -> 
                   (R.t prectype * specType) Misc.StringMap.t -> 
-                  Store.t -> 
+                  Store.t ->
+                  specType Sloc.SlocMap.t ->
                   t
 
     val add     : t -> t -> t
@@ -275,6 +277,9 @@ end
 module Make (R: CTYPE_REFINEMENT) : S with module R = R
 
 module I : S with module R = IndexRefinement
+
+val d_specTypeRel : unit -> specType -> Pretty.doc
+val specTypeMax   : specType -> specType -> specType
 
 (******************************************************************************)
 (*************************** Convenient Type Aliases **************************)

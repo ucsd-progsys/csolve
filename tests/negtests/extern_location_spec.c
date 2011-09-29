@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <liquidc.h>
 
-extern int * START SIZE(4) x CHECK_TYPE OKEXTERN;
+extern int * START SIZE(4) x OKEXTERN;
 
 void goog () {
     int *y = x;

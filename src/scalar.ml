@@ -79,7 +79,8 @@ let solve cil ci =
 
 let ix_binds_of_spec spec fn : (string * Ix.t) list =
   spec |> Ct.cspec_of_refspec 
-       |> Ct.I.Spec.get_fun fn
+       |> Ct.I.Spec.funspec
+       |> SM.find fn
        |> fst
        |> (fun x -> x.Ct.args) 
        |> List.map (Misc.app_snd Ct.index_of_ctype)

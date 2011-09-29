@@ -643,7 +643,7 @@ module Pheapify: Visitor = struct
 
   let should_heapify vi =
     if vi.vglob then
-      not (isArrayType vi.vtype) && (vi.vaddrof || isCompoundType vi.vtype)
+      not (isArrayType vi.vtype) && not (isFunctionType vi.vtype)
     else
       (isCompoundType vi.vtype) || (vi.vaddrof && !Constants.heapify_nonarrays)
 
@@ -665,11 +665,18 @@ module Pheapify: Visitor = struct
 
     method get_hglobals = !hglobals
 
+    method heapifiedGlobal vi =
+         {(makeGlobalVar (heapName vi) (heapifiedType vi)) with
+            vaddrof = true;
+            vstorage = vi.vstorage;
+            vattr = vi.vattr}
+      >> fun hvi -> hglobals := (vi, hvi) :: !hglobals
+
     method vglob = function
       | GVar (vi, init, loc) when should_heapify vi ->
-          let hvi = {(makeGlobalVar (heapName vi) (heapifiedType vi)) with vaddrof = true} in
-            hglobals := (vi, hvi) :: !hglobals;
-            ChangeTo [GVar (hvi, arrayifiedInit vi init, loc)]
+        ChangeTo [GVar (self#heapifiedGlobal vi, arrayifiedInit vi init, loc)]
+      | GVarDecl (vi, loc) when should_heapify vi ->
+        ChangeTo [GVarDecl (self#heapifiedGlobal vi, loc)]
       | _ -> DoChildren
   end
 

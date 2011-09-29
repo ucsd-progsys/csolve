@@ -114,6 +114,17 @@ type specType =
 type 'a prespec = ('a precfun * specType) Misc.StringMap.t 
                 * ('a prectype * specType) Misc.StringMap.t 
                 * 'a prestore
+                * specType SLM.t
+
+let d_specTypeRel () = function
+  | HasShape  -> P.text "::"
+  | IsSubtype -> P.text "<:"
+  | HasType   -> P.text "|-"
+
+let specTypeMax st1 st2 = match st1, st2 with
+  | HasShape, st | st, HasShape -> st
+  | HasType, _   | _, HasType   -> HasType
+  | _                           -> IsSubtype
 
 let d_fieldinfo () = function
   | { fname = Some fn; ftype = Some t } -> 
@@ -291,15 +302,17 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
     val add_fun : bool -> string -> cfun * specType -> t -> t
     val add_var : bool -> string -> ctype * specType -> t -> t
-    val add_data_loc : Sloc.t -> ldesc -> t -> t
-    val add_fun_loc  : Sloc.t -> cfun -> t -> t
+    val add_data_loc : Sloc.t -> ldesc * specType -> t -> t
+    val add_fun_loc  : Sloc.t -> cfun * specType -> t -> t
     val store   : t -> store
     val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
     val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val locspectypes : t -> specType SLM.t
 
     val make    : (R.t precfun * specType) Misc.StringMap.t ->
                   (R.t prectype * specType) Misc.StringMap.t ->
                   store ->
+                  specType SLM.t ->
                   t
     val add     : t -> t -> t
     val d_spec  : unit -> t -> P.doc
@@ -956,44 +969,47 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   and Spec: SIG.SPEC = struct
     type t = R.t prespec
 
-    let empty = (SM.empty, SM.empty, Store.empty)
+    let empty = (SM.empty, SM.empty, Store.empty, SLM.empty)
 
-    let map f (funspec, varspec, storespec) =
+    let map f (funspec, varspec, storespec, storetypes) =
       (SM.map (f |> CFun.map |> M.app_fst) funspec,
        SM.map (f |> M.app_fst) varspec,
-       Store.map f storespec)
+       Store.map f storespec,
+       storetypes)
 
-    let add_fun b fn sp (funspec, varspec, storespec) =
-      (Misc.sm_protected_add b fn sp funspec, varspec, storespec)
+    let add_fun b fn sp (funspec, varspec, storespec, storetypes) =
+      (Misc.sm_protected_add b fn sp funspec, varspec, storespec, storetypes)
 
-    let add_var b vn sp (funspec, varspec, storespec) =
-      (funspec, Misc.sm_protected_add b vn sp varspec, storespec)
+    let add_var b vn sp (funspec, varspec, storespec, storetypes) =
+      (funspec, Misc.sm_protected_add b vn sp varspec, storespec, storetypes)
 
-    let add_data_loc l ld (funspec, varspec, storespec) =
-      (funspec, varspec, Store.Data.add storespec l ld)
+    let add_data_loc l (ld, st) (funspec, varspec, storespec, storetypes) =
+      (funspec, varspec, Store.Data.add storespec l ld, SLM.add l st storetypes)
 
-    let add_fun_loc l cf (funspec, varspec, storespec) =
-      (funspec, varspec, Store.Function.add storespec l cf)
-
-    let store (_, _, storespec) =
-      storespec
+    let add_fun_loc l (cf, st) (funspec, varspec, storespec, storetypes) =
+      (funspec, varspec, Store.Function.add storespec l cf, SLM.add l st storetypes)
       
-    let funspec = fst3
-    let varspec = snd3
-    let make    = fun x y z -> (x, y, z)
+    let funspec (fs, _, _, _)        = fs
+    let varspec (_, vs, _, _)        = vs
+    let store (_, _, sto, _)         = sto
+    let locspectypes (_, _, _, lsts) = lsts
+    let make w x y z                 = (w, x, y, z)
 
-    let add (funspec, varspec, storespec) spec =  
-       spec
+    let add (funspec, varspec, storespec, storetypes) spec =  
+          spec
        |> SM.fold (fun fn sp spec -> add_fun false fn sp spec) funspec
        |> SM.fold (fun vn sp spec -> add_var false vn sp spec) varspec
-       |> (fun (x, y, z) -> (x, y, Store.upd z storespec))
+       |> (fun (w, x, y, z) -> (w, x, Store.upd y storespec, z))
 
-    let d_spec () sp = 
+    let d_spec () sp =
+      let lspecs = locspectypes sp in
       [ (Store.Data.fold_locs (fun l ld acc ->
-          P.concat acc (P.dprintf "loc %a |-> %a\n\n" Sloc.d_sloc l LDesc.d_ldesc ld)
+          P.concat acc (P.dprintf "loc %a %a %a\n\n"
+                          Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) LDesc.d_ldesc ld)
          ) P.nil (store sp))
       ; (Store.Function.fold_locs (fun l cf acc ->
-          P.concat acc  (P.dprintf "loc %a |->@!  @[%a@]@!@!" Sloc.d_sloc l CFun.d_cfun cf)
+          P.concat acc  (P.dprintf "loc %a %a@!  @[%a@]@!@!"
+                           Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) CFun.d_cfun cf)
          ) P.nil (store sp))
       ; (P.seq (P.text "\n\n") (fun (vn, (ct, _)) -> 
           P.dprintf "%s :: @[%a@]" vn CType.d_ctype ct

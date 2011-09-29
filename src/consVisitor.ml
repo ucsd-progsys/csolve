@@ -199,9 +199,7 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
 
   (* v := e, where v is global *)
   | (Var v, NoOffset), rv when v.Cil.vglob ->
-      let cr, (cs1, _) = cons_of_rval me loc tag grd (pre_env, sto, tago) rv in
-      let cs2, _       = FI.make_cs env grd cr (CF.refctype_of_global me v) tago tag loc in
-      (env, sto, Some tag), (cs1 ++ cs2, [])
+    E.s <| Cil.errorLoc loc "Trying to write global var %a@!" CM.d_var v
 
   (* *v := e, where v is a bottom-indexed pointer, so this code is dead *)
   (* pmr: perhaps a better solution is to not constrain unreachable blocks, complete with
@@ -624,23 +622,24 @@ let cons_of_sci tgr gnv gst sci sho =
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
-let extern_reachable_locs spec decs =
-     decs
-  |> M.map_partial begin function
-       | CM.VarDec (v, _, _) when v.vstorage = Cil.Extern ->
-         spec |> CS.varspec |> SM.find v.vname |> fst |> RT.sloc
-       | _ -> None
-     end
-  |> M.flap (spec |> CS.store |> RS.reachable)
-  |> M.sort_and_compact
+let should_constrain_loc_type sts l = match Sloc.SlocMap.find l sts with
+  | Ct.HasType                 -> true
+  | Ct.HasShape | Ct.IsSubtype -> false
+
+let should_check_loc_type sts l = match Sloc.SlocMap.find l sts with
+  | Ct.IsSubtype | Ct.HasType -> true
+  | Ct.HasShape               -> false
 
 let cons_of_global_store tgr spec decs gst =
-  let tag   = CilTag.make_global_t tgr Cil.locUnknown in
-  let ws    = FI.make_wfs_refstore FI.ce_empty gst gst tag in
-  let est   = gst |> Ct.refstore_partition (decs |> extern_reachable_locs spec |> M.flip List.mem) |> fst in
-  let tst   = RS.map FI.t_true_refctype est in
-  let cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue tst est false None tag Cil.locUnknown in
-    (ws, cs)
+  let tag         = CilTag.make_global_t tgr Cil.locUnknown in
+  let ws          = FI.make_wfs_refstore FI.ce_empty gst gst tag in
+  let sts         = CS.locspectypes spec in
+  let ssto        = CS.store spec in
+  let cons_store  = ssto |> RS.partition (should_constrain_loc_type sts) |> fst in
+  let check_store = ssto |> RS.partition (should_check_loc_type sts) |> fst in
+  let cons_cs, _  = FI.make_cs_refstore FI.ce_empty Ast.pTrue cons_store gst false None tag Cil.locUnknown in
+  let check_cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue gst check_store true None tag Cil.locUnknown in
+    (ws, cons_cs ++ check_cs)
 
 let add_offset loc t ctptr off =
   match ctptr with
@@ -725,7 +724,7 @@ let cons_of_decs tgr spec gnv gst decs =
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
-        let vspctyp, s = spec |> CS.varspec |> SM.find v.vname in
+        let vspctyp, s = spec |> CS.varspec |> SM.find v.vname in 
         let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
         let cs''       = make_cs_if (should_subtype s)
                            (lazy (FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc)) in

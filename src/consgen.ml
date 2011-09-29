@@ -107,7 +107,7 @@ let rename_funspec scim spec =
        then (rename_args rf (SM.find fn scim), b)
        else (rf, b)
      end
-  |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec))
+  |> (fun x -> CS.make x (CS.varspec spec) (CS.store spec) (CS.locspectypes spec))
 
 (******************************************************************************)
 (********** Strengthen Final Fields in Fun Types from Inferred Shapes *********)
