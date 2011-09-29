@@ -171,7 +171,7 @@ varspec:
 
 locspec:
   LOCATION globalslocbind               { $2 }
-  ;
+  ;  
 
 publ:
     DCOLON                              { Ct.HasShape }

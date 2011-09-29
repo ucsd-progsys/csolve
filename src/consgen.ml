@@ -36,6 +36,7 @@ module M  = Misc
 module P  = Pretty
 module CM = CilMisc
 module CS = Ctypes.RefCTypes.Spec
+module RS = Ctypes.RefCTypes.Store
 module Cs = Constants
 
 open Misc.Ops
@@ -166,6 +167,9 @@ let print_sccs sccs =
   List.iter (fun fs -> P.printf " [%a]\n" (P.d_list "," (fun () v -> P.text v.Cil.vname)) fs |> ignore) sccs
 }}} *)
 
+let is_loc_type_fixed sts l = match Sloc.SlocMap.find l sts with
+  | Ctypes.HasType                     -> true
+  | Ctypes.HasShape | Ctypes.IsSubtype -> false
 
 (* API *)
 let create cil spec decs =
@@ -186,8 +190,11 @@ let create cil spec decs =
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in
   let _      = E.log "\nDONE: Global Environment \n" in
-  let gst    = spec |> Ctypes.RefCTypes.Spec.store |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
-  let _      = Errormsg.log "CREATE SPEC = %a" Ctypes.RefCTypes.Spec.d_spec spec in
+  let ssto   = CS.store spec in
+  let sts    = CS.locspectypes spec in
+  let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
+  let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

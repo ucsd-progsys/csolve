@@ -622,24 +622,17 @@ let cons_of_sci tgr gnv gst sci sho =
 (************** Generate Constraints for Each Function and Global *************)
 (******************************************************************************)
 
-let should_constrain_loc_type sts l = match Sloc.SlocMap.find l sts with
-  | Ct.HasType                 -> true
-  | Ct.HasShape | Ct.IsSubtype -> false
-
 let should_check_loc_type sts l = match Sloc.SlocMap.find l sts with
-  | Ct.IsSubtype | Ct.HasType -> true
-  | Ct.HasShape               -> false
+  | Ct.IsSubtype             -> true
+  | Ct.HasShape | Ct.HasType -> false
 
 let cons_of_global_store tgr spec decs gst =
-  let tag         = CilTag.make_global_t tgr Cil.locUnknown in
-  let ws          = FI.make_wfs_refstore FI.ce_empty gst gst tag in
-  let sts         = CS.locspectypes spec in
-  let ssto        = CS.store spec in
-  let cons_store  = ssto |> RS.partition (should_constrain_loc_type sts) |> fst in
-  let check_store = ssto |> RS.partition (should_check_loc_type sts) |> fst in
-  let cons_cs, _  = FI.make_cs_refstore FI.ce_empty Ast.pTrue cons_store gst false None tag Cil.locUnknown in
-  let check_cs, _ = FI.make_cs_refstore FI.ce_empty Ast.pTrue gst check_store true None tag Cil.locUnknown in
-    (ws, cons_cs ++ check_cs)
+  let tag       = CilTag.make_global_t tgr Cil.locUnknown in
+  let ws        = FI.make_wfs_refstore FI.ce_empty gst gst tag in
+  let sts       = CS.locspectypes spec in
+  let check_sto = spec |> CS.store |> RS.partition (should_check_loc_type sts) |> fst in
+  let cs, _     = FI.make_cs_refstore FI.ce_empty Ast.pTrue gst check_sto true None tag Cil.locUnknown in
+    (ws, cs)
 
 let add_offset loc t ctptr off =
   match ctptr with

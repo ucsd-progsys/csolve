@@ -12,16 +12,24 @@
   allowing you to safely dereference the pointer. At least we've
   already fixed this problem for heap contents with final fields.
 
-** TODO Check types of extern locations
+** DONE Check types of extern locations
    Ditto above; can we even specify nontrivial invariants for
    locations? Can we specify nontrivial predicates but add an override
    for making the shape simple?
-
-** TODO Make sure specs work on heapified globals
+** DONE Make sure specs work on heapified globals
    Should we just name heapified globals the same as their original,
    non-heapified versions, and the specs for things that get heapified
    must have pointer type?
-
+** DONE For HasType, change rather than constrain global store
+   Just dump in the types themselves; no sense in subtyping unnecessarily.
+** TODO Mark heapified array pointers as const?
+   We should not be able to modify where the array points.
+** TODO Only make one copy of pointers to global contents
+   Since the pointer can't be changed, there's no sense in repeatedly
+   making copies of the pointer, and it makes for too many unfolds,
+   meaning we can't take advantage of flow-sensitive reasoning about
+   globals. Add at most one local copy per global and see if that
+   clears things up.
 
 * TODO Find a way to incorporate sizeofs in predicates
 
@@ -30,6 +38,19 @@
   here also.
 
 * TODO Consolidate uses of constrain_lval + ctype_of_lval in inferctypes
+* TODO Read-only extern variables?
+  Consider variables like optind. It's not enough to say that optind has
+  the type
+
+    {V > 0},
+
+  since sometimes, like after calls to getopt functions, we want to
+  additionally know that optind has a value <= argc. But because
+  optind is extern, we only allow it to take on the specified type,
+  i.e., V > 0.  So we either want to have a way to make optind
+  read-only in the client program and vary its type or allow
+  "overlays" on top of the speicified type. (The latter seems more
+  promising.)
 * TODO Ensure that the ctypes/refinement knot is tied tightly
 
 * TODO Refactor/merge various index manipulations
