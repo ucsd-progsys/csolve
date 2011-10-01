@@ -2,6 +2,9 @@
   with type bind = Index.t *)
 include Config.DOMAIN
  with type bind = Index.t
+
+(*val index_of_refa: FixConstraint.envt -> Index.t Ast.Symbol.SMap.t -> Ast.Symbol.t -> Ast.Sort.t -> FixConstraint.refa -> Index.t
+val index_of_preds: FixConstraint.envt -> Index.t Ast.Symbol.SMap.t -> Ast.Symbol.t -> Ast.Sort.t -> Ast.pred list -> Index.t  *)
 (*
 type t
 type bind = Index.t

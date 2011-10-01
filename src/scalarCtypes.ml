@@ -139,8 +139,10 @@ let map_matching_qual_binds f qs v ps =
 let singleton_of_preds_aux      = map_matching_qual_binds (fun c -> Ix.IInt c)
 let data_singleton_of_preds     = singleton_of_preds_aux [p_v_eq_c]
 let ref_singleton_of_preds v ps =
-  singleton_of_preds_aux [p_v_eq_x_plus_c] v ps ++
+  let idxs = singleton_of_preds_aux [p_v_eq_x_plus_c] v ps ++
     of_nullary_preds [(p_v_eq_bb, Ix.IInt 0); (p_v_eq_bb_if_nonnull, Ix.IInt 0)] v ps
+  in
+    idxs
 
 let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
 let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]
@@ -220,7 +222,7 @@ let pred_of_index_int = function
 
 (* API *)
 let pred_of_index_ref = function
-  | Ix.IBot        -> value_var, A.pFalse
+  | Ix.IBot        -> value_var, A.pEqual (A.eVar value_var, A.eInt 0)
   | Ix.IInt n      -> value_var, A.substs_pred p_v_eq_x_plus_c (Su.of_list [const_var, A.eInt n])
   | Ix.ICClass bcc -> value_var, pred_of_bcc_ref bcc
 

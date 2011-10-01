@@ -292,7 +292,10 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 val void_ctype   : ctype
+val ptr_ctype    : ctype
 val scalar_ctype : ctype
+
+val vtype_to_ctype : Cil.typ -> ctype  
 
 val d_ctype      : unit -> ctype -> Pretty.doc
 

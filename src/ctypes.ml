@@ -1047,8 +1047,11 @@ type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
 let void_ctype   = Int (0, N.top)
-(* let ptr_ctype    = Ref (S.fresh_abstract (), N.top) *)
+let ptr_ctype    = Ref (S.none, N.top)
 let scalar_ctype = Int (0, N.top)
+
+let vtype_to_ctype v = if Cil.isArithmeticType v
+                         then scalar_ctype else ptr_ctype
 
 let d_ctype        = I.CType.d_ctype
 let index_of_ctype = I.CType.refinement

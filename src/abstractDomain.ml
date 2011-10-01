@@ -1,6 +1,32 @@
+(*
+ * Copyright © 1990-2009 The Regents of the University of California. All rights reserved. 
+ *
+ * Permission is hereby granted, without written agreement and without 
+ * license or royalty fees, to use, copy, modify, and distribute this 
+ * software and its documentation for any purpose, provided that the 
+ * above copyright notice and the following two paragraphs appear in 
+ * all copies of this software. 
+ * 
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY 
+ * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES 
+ * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN 
+ * IF THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY 
+ * OF SUCH DAMAGE. 
+ * 
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, 
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+ * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ *)
+
+(* This file is part of the liquidC Project.*)
+
 module Ix = Index
-module As = Ast.Symbol
-module Ac = Ast.Constant  
+module A  = Ast
+module As = A.Symbol
+module Ac = A.Constant  
 module Asm = As.SMap  
 module Sct = ScalarCtypes
 module F   = FixConstraint
@@ -18,10 +44,7 @@ let read sol =
   fun k -> 
     if Asm.mem k sol
     then
-      match Asm.find k sol with
-	| IBot -> [Ast.pFalse]
-	| IInt i -> [Ast.pAtom (Ast.eVar k, Ast.Eq, Ast.eCon (Ac.Int i))]
-	| _ -> [Ast.pTrue]
+      [Sct.pred_of_index_ref (Asm.find k sol) |> snd] (*wrong*)
     else
       [Ast.pFalse]
 
@@ -32,84 +55,114 @@ let top sol xs =
   let xsMap = Asm.of_list xsTop in
     Asm.extend xsMap sol
 
-let rec index_of_pred env solution sym t (pred,_) =
+
+let asint = true
+let asref = false
+let ckint = Ast.Sort.is_int
+
+let rec index_of_pred env solution sym is_int (pred,x) =
   match pred with
-    | Ast.True -> Ix.top
-    | Ast.False -> IBot
-    | Ast.Or ps -> List.map (index_of_pred env solution sym t) ps
+    | A.True -> Ix.top
+    | A.False -> IBot
+    | A.Or ps -> List.map (index_of_pred env solution sym is_int) ps
                    |> List.fold_left lub IBot
-    | Ast.And ps -> List.map (index_of_pred env solution sym t) ps
+    | A.And ps -> List.map (index_of_pred env solution sym is_int) ps
                    |> List.fold_left glb Ix.top
-    | Ast.Atom ((Ast.Var vv, _),Ast.Eq,e)
-    | Ast.Atom (e,Ast.Eq,(Ast.Var vv, _)) when vv = sym ->
-	index_of_expr env solution t e
-    | Ast.Atom ((Ast.Var vv, _),r,e) when vv = sym ->
-	let eVal = index_of_expr env solution t e in
+    | A.Atom ((A.Bin ((A.Bin ((A.Var vv,_),
+				A.Minus,
+				e),
+			 _),
+			A.Mod,
+			(A.Con (Ac.Int k),
+			 _)),
+		 _),
+		A.Eq,
+		(A.Con (Ac.Int 0), _)) when vv = sym ->
+	begin match index_of_expr env solution asint e with
+	  | IInt n -> mk_eq_mod n k
+	  | _ -> Ix.top
+	end
+    | A.Atom ((A.Var vv, _),A.Eq,e)
+    | A.Atom (e,A.Eq,(A.Var vv, _)) when vv = sym ->
+	index_of_expr env solution is_int e
+    | A.Atom ((A.Var vv, _),r,e) when vv = sym ->
+	let eVal = index_of_expr env solution is_int e in
 	  begin match r with
-	    | Ast.Gt -> gt eVal
-	    | Ast.Ge -> ge eVal
-	    | Ast.Lt -> lt eVal
-	    | Ast.Le -> le eVal
+	    | A.Gt -> gt eVal
+	    | A.Ge -> ge eVal
+	    | A.Lt -> lt eVal
+	    | A.Le -> le eVal
+	    | A.Ne -> Ix.top
 	  end
-    | Ast.Atom (e,r,(Ast.Var vv, _)) when vv = sym ->
-	let eVal = index_of_expr env solution t e in
+    | A.Atom (e,r,(A.Var vv, _)) when vv = sym ->
+	let eVal = index_of_expr env solution is_int e in
 	  begin match r with
-	    | Ast.Gt -> lt eVal
-	    | Ast.Ge -> le eVal
-	    | Ast.Lt -> gt eVal
-	    | Ast.Le -> ge eVal
+	    | A.Gt -> lt eVal
+	    | A.Ge -> le eVal
+	    | A.Lt -> gt eVal
+	    | A.Le -> ge eVal
+	    | A.Ne -> Ix.top
 	  end
-    | Ast.Bexp e -> (* shortcut for now *)
+    | A.Bexp e -> (* shortcut for now *)
 	begin match fst e with
-	  | Ast.Con (Ac.Int n) -> of_int n
+	  | A.Con (Ac.Int n) -> of_int n
 	  | _ -> Ix.top
 	end
     | _ -> Ix.top
-and index_of_expr env solution t expr =
+and index_of_expr env solution is_int expr =
   match fst expr with
-    | Ast.Con (Ast.Constant.Int n) ->
-	if Ast.Sort.is_int t then IInt n else IBot
-    | Ast.Var sym ->
+    | A.Con (A.Constant.Int n) -> 
+	if is_int then IInt n else IBot
+    | A.Var sym ->
 	begin match F.lookup_env env sym with
 	  | None -> IBot
-	  | Some (sym, sort, refas) when sort = t -> (* questionable? *)
-	      List.fold_left glb Ix.top
-		(List.map (index_of_refa env solution sym t) refas)
+	  | Some ((vv, sort, refas) as reft) ->
+	      index_of_reft env solution is_int reft
+	  | _ -> Ix.top
 	end
-    | Ast.Bin (e1, oper, e2) ->
-	let e1v = index_of_expr env solution t e1 in
-	let e2v = index_of_expr env solution t e2 in
+    | A.Bin ((A.App (sym, es),_), A.Plus, e)
+    	when sym = As.of_string "BLOCK_BEGIN" ->
+	index_of_expr env solution asint e
+    | A.Bin (e1, oper, e2) ->
+	let e1v = index_of_expr env solution asint e1 in
+	let e2v = index_of_expr env solution asint e2 in
 	  begin match oper with
-	    | Ast.Plus  -> plus  e1v e2v
-	    | Ast.Minus -> minus e1v e2v
-	    | Ast.Times -> mult  e1v e2v
-	    | Ast.Div   -> div   e1v e2v
-	    | Ast.Mod   -> Ix.top
+	    | A.Plus  -> plus  e1v e2v
+	    | A.Minus -> minus e1v e2v
+	    | A.Times -> mult  e1v e2v
+	    | A.Div   -> div   e1v e2v
+	    | A.Mod   -> Ix.top
 	  end
-    | Ast.App (sym,e)
-	when expr = Ast.eApp (* (FAI.eApp_bbegin e) -> *) (As.of_string "BLOCK_BEGIN", e) -> IInt 0 
-    | Ast.Cst (e,sort) -> index_of_expr env solution t e
+    | A.App (sym,e)
+	when expr = A.eApp (As.of_string "BLOCK_BEGIN", e) ->
+	IInt 0
     | _ -> Ix.top
-and index_of_preds env sol v t preds = 
-  List.map (index_of_pred env sol v t) preds|> List.fold_left glb Ix.top
-and index_of_refa env sol v t r = match r with
-  | F.Kvar (_, k) -> read_bind sol k
-  | F.Conc pred -> (* index_of_pred env sol v pred *)
-      Sct.index_of_pred
-	(begin fun v p ->
-	   [index_of_preds env sol v t p] end::Sct.data_index_of_pred_funs) v pred
-and index_of_reft env solution (v, t, refas) =
-  List.fold_left glb Ix.top (List.map (index_of_refa env solution v t) refas)
+(*and index_of_preds env sol v is_int preds =
+  List.map (index_of_pred env sol v is_int) preds|> List.fold_left glb Ix.top *)
+and index_of_refa env sol v is_int refa = match refa with
+  | F.Kvar (_, k) -> read_bind sol k 
+  | F.Conc pred -> index_of_pred env sol v is_int pred 
+and index_of_reft env sol is_int (v,_,refas) =
+  List.fold_left glb Ix.top
+    (List.map (index_of_refa env sol v is_int) refas)
+let index_of_reft env sol ((v,t,refas) as reft) =
+  index_of_reft env sol (ckint t) reft
 
+    
 let refine sol c =
   let rhs = F.rhs_of_t c in
   let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
   let refineK sol k =
-    let oldK = if Asm.mem k sol then Asm.find k sol else IBot in
+    let oldK = read_bind sol k in
     let newK = widen oldK lhsVal in
-(*    let _ = Printf.printf "lhsVal: %s\noldK: %s newK: %s from c: \n" (repr lhsVal) (repr oldK) (repr newK) in *)
-    let _ = Printf.printf "Cons: %s" (F.to_string c) in
-      if oldK = newK then (false, sol) else (true, Asm.add k newK sol)
+    let _ =  if !Constants.trace_scalar then
+      let _ = Pretty.printf "lhs %a old %a new %a\n"
+	d_index lhsVal d_index oldK d_index newK in ()
+      >> fun _ -> Format.printf "%a" (F.print_t None) c 
+    in
+      if (Asm.mem k sol) && oldK = newK
+      then (false, sol)
+      else (true, Asm.add k newK sol)
   in
     List.fold_left
       begin fun p k -> match p,k with
@@ -137,7 +190,7 @@ let create cfg =
 	
 let print ppf sol =
   let pf key value =
-    Pretty.printf "%s |-> %a\n" (As.to_string key) d_index value in
+    Format.fprintf ppf "%s |-> %s\n" (As.to_string key) (repr value) in
   let _ = Asm.mapi pf sol in
     ()
 
@@ -145,10 +198,8 @@ let print_stats ppf sol =
   ()
 
 let dump sol =
-  let pf key value =
-    Pretty.printf "%s |-> %a\n" (As.to_string key) d_index value in
-  let _ = Asm.mapi pf sol in
-    ()
+  Constants.cprintf Constants.ol_solve 
+    "SolnCluster: nothing here yet\n"
 
 let mkbind qbnds = IBot
 (* end *)

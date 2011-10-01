@@ -6,7 +6,7 @@ type qualkind = Equality | Bound | Modulus | Other
 
 val scalar_quals_of_file : Cil.file -> Ast.Qualifier.t list
 
-val data_index_of_pred_funs : (Ast.Symbol.t -> Ast.pred list -> Index.t list) list  
+val data_index_of_pred_funs : (Ast.Symbol.t -> Ast.pred list -> Index.t list) list
 
 val index_of_pred        :  (Ast.Symbol.t -> Ast.pred list -> Index.t list) list
                          -> Ast.Symbol.t

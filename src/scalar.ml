@@ -64,7 +64,7 @@ let is_not_const v p =
   |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =
-  (Sc.scalar_quals_of_file cil) 
+  (Sc.scalar_quals_of_file cil)
   |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const)
 
 let solve cil ci =
@@ -143,13 +143,10 @@ let dump_scalarinv sim =
 
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
-  >> Annots.clear 
+  >> Annots.clear
   |> generate tgr gnv
   |> solve cil
   |> close scim spec
-    >> SM.map (VM.mapi (begin fun i v ->
-			  let _ = Pretty.printf "key %s" (i.Cil.vname)  in
-			  Pretty.printf "= %s\n" (Ix.repr v) end)) 
   |> SM.map (VM.mapi ctype_of_var_index)
   (* >> dump_scalarinv *)
   >> Annots.clear
