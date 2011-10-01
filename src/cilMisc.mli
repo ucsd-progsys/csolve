@@ -23,8 +23,8 @@
 
 (* This file is part of the liquidC Project.*)
 
-(* val stripcasts_of_expr: Cil.exp  -> Cil.exp
-   val stripcasts_of_lval: Cil.lval -> Cil.lval *)
+val referenced_var_of_exp : Cil.exp -> Cil.varinfo
+
 val fresh_arg_name   : unit -> string
 val purify           : Cil.file -> unit
 val unfloat          : Cil.file -> unit
