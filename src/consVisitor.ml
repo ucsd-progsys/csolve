@@ -126,7 +126,7 @@ let cons_of_annots me loc tag grd wld ffm annots =
 (************************* Constraints for Expressions ************************)
 (******************************************************************************)
 
-let t_exp_with_constraints me loc tago tag grd env e =
+let t_exp_with_cs me loc tago tag grd env e =
   let po, rct = FI.t_exp env (CF.ctype_of_expr me e) e in
     match po with
       | None   -> (rct, ([], []))
@@ -151,7 +151,7 @@ let cons_of_mem me loc tago tag grd env v =
 
 let cons_of_string me loc tag grd (env, sto, tago) = function
   | CastE (_, Const (CStr _)) as e ->
-      begin match t_exp_with_constraints me loc tago tag grd env e with
+      begin match t_exp_with_cs me loc tago tag grd env e with
         | Ct.Ref (l, _) as rct, cds ->
           let ld2 = RS.Data.find sto l in
           let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
@@ -170,7 +170,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   | Lval (Var v, NoOffset) when v.vglob ->
       (CF.refctype_of_global me v, ([], []))
   | AddrOf (Var v, NoOffset) as e when CM.is_fun v ->
-      begin match t_exp_with_constraints me loc tago tag grd env e with
+      begin match t_exp_with_cs me loc tago tag grd env e with
         | Ct.Ref (l, _) as rct, cds ->
           (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
         | _ -> assert false
@@ -179,7 +179,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
     cons_of_string me loc tag grd (env, sto, tago) e
   (* e, where e is pure *)
   | e when CM.is_pure_expr CM.StringsAreNotPure e ->
-      t_exp_with_constraints me loc tago tag grd env e
+      t_exp_with_cs me loc tago tag grd env e
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
 
@@ -206,7 +206,7 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
     let v = CilMisc.referenced_var_of_exp ev in
       if is_bot_ptr me env v then (env, sto, Some tag), ([], []) else
       let addr = var_addr me env v in
-      let cr', cds1 = t_exp_with_constraints me loc tago tag grd env e in
+      let cr', cds1 = cons_of_rval me loc tag grd (env, sto, tago) e in
       let cds2      = cons_of_mem me loc tago tag grd pre_env v in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
@@ -316,7 +316,14 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, frt, es) ns =
 
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-  let ecrs      = List.map (t_exp_with_constraints me loc tago tag grd env <+> fst) es in
+  let cs0, ecrs = Misc.mapfold
+                    begin fun cs e ->
+                         e
+                      |> cons_of_rval me loc tag grd (env, st, tago)
+                      |> M.app_snd (fst <+> (++) cs)
+                      |> M.swap
+                    end
+                    [] es in
   let cs1,_     = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in 
   
   let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
@@ -328,7 +335,7 @@ let cons_of_call me loc i j grd (env, st, tago) (lvo, frt, es) ns =
                             end st ocslds in
   let env', cs4, ds4, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs5           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in 
-  wld', (cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3), wfs
+  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5, ds3), wfs
 
 let cons_of_ptrcall me loc i j grd ((env, sto, tago) as wld) (lvo, e, es) ns = match e with
   (* v := ( *f )(...), where v is local *)
@@ -431,9 +438,9 @@ let cons_of_ret me loc i grd (env, st, tago) e_o =
   let st_cds = let _, ost = Ct.stores_of_refcfun frt in
                (FI.make_cs_refstore env grd st ost true tago tag loc) in
   let rv_cds = match e_o with None -> ([], []) 
-               | Some e -> let lhs, _ = t_exp_with_constraints me loc tago tag grd env e in
-                           let rhs    = Ct.ret_of_refcfun frt in
-                           (FI.make_cs env grd lhs rhs tago tag loc) in
+               | Some e -> let lhs, cs = cons_of_rval me loc tag grd (env, st, tago) e in
+                           let rhs     = Ct.ret_of_refcfun frt in
+                           (cs +++ FI.make_cs env grd lhs rhs tago tag loc) in
   (st_cds +++ rv_cds) 
 
 let cons_of_annotstmt me loc i grd wld (anns, (ffm, ffms), stmt) = 
