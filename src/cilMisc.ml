@@ -544,26 +544,28 @@ module CopyGlobal: Visitor = struct
   class expVisitor fd = object(self)
     inherit nopCilVisitor
 
-    val expLevel = ref 0
+    val mutable expLevel = 0
+
+    val globalMem = Hashtbl.create 17
 
     method vvrbl v =
-      if !expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
-        let vlv = (Var v, NoOffset) in
-        let tmp = vlv |> typeOfLval |> makeTempVar fd in
-        let _   = self#queueInstr [Set ((Var tmp, NoOffset), Lval vlv, !currentLoc)] in
-          ChangeTo tmp
+      if expLevel > 0 && v.vglob && not (isFunctionType v.vtype) then
+        ChangeTo (Misc.do_memo globalMem (fun v -> makeTempVar fd v.vtype) v v)
       else SkipChildren
 
     method vexpr e =
-      incr expLevel;
-      ChangeDoChildrenPost (e, fun e -> decr expLevel; e)
+      expLevel <- expLevel + 1;
+      ChangeDoChildrenPost (e, fun e -> expLevel <- expLevel - 1; e)
 
-    method vinst = function
-      | Call (Some ((Var v, NoOffset) as lv), f, es, loc) when v.vglob ->
-          let tmp = lv |> typeOfLval |> makeTempVar fd in
-          let tlv = (Var tmp, NoOffset) in
-            ChangeDoChildrenPost ([Call (Some tlv, f, es, loc); Set (lv, Lval tlv, loc)], id)
-      | _ -> DoChildren
+    method vfunc fd =
+      ChangeDoChildrenPost
+        (fd,
+         begin fun fd ->
+           Hashtbl.iter
+             (fun v tmp -> self#queueInstr [Set (var tmp, Lval (var v), fd.svar.vdecl)])
+             globalMem;
+           fd
+         end)
   end
 
   class globVisitor = object(self)
