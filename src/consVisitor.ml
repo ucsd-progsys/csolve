@@ -149,16 +149,18 @@ let cons_of_mem me loc tago tag grd env v =
     let rct = v |> FA.name_of_varinfo |> FI.t_name env in
       FI.make_cs_validptr env grd rct (v.vtype |> CM.ptrRefType |> CM.bytesSizeOf) tago tag loc
 
-let cons_of_string me loc tag grd (env, sto, tago) = function
-  | CastE (_, Const (CStr _)) as e ->
-      begin match t_exp_with_cs me loc tago tag grd env e with
-        | Ct.Ref (l, _) as rct, cds ->
-          let ld2 = RS.Data.find sto l in
-          let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
-            (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
-        | _ -> assert false
-      end
-  | _ -> assert false
+let cons_of_string me loc tag grd (env, sto, tago) e =
+  match t_exp_with_cs me loc tago tag grd env e with
+    | Ct.Ref (l, _) as rct, cds ->
+      let ld2 = RS.Data.find sto l in
+      let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
+        (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
+    | _ -> assert false
+
+let is_string_ptr_expr = function
+  | CastE (t, (Const (CStr _))) when Cil.isPointerType t -> true
+  | Const (CStr _)                                       -> true
+  | _                                                    -> false
 
 let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)
@@ -175,7 +177,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
           (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
         | _ -> assert false
       end
-  | CastE (t, (Const (CStr _))) as e when Cil.isPointerType t ->
+  | e when is_string_ptr_expr e ->
     cons_of_string me loc tag grd (env, sto, tago) e
   (* e, where e is pure *)
   | e when CM.is_pure_expr CM.StringsAreNotPure e ->
