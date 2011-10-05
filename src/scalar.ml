@@ -60,7 +60,7 @@ let generate tgr gnv scim : Ci.t =
 (***************************************************************************)
 
 let is_not_const v p = 
-  Ix.glb (Sc.data_index_of_pred v p) (Sc.ref_index_of_pred v p)
+  Ix.glb (Ix.data_index_of_pred v p) (Ix.ref_index_of_pred v p)
   |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =

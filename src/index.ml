@@ -1,9 +1,10 @@
-module M = Misc
-module P = Pretty
-module F = FixConstraint
-module As = Ast.Symbol  
-module Asm = Ast.Symbol.SMap
-module Ac = Ast.Constant
+module M   = Misc
+module P   = Pretty
+module F   = FixConstraint
+module A   = Ast  
+module As  = A.Symbol  
+module Ac  = A.Constant
+module Asm = As.SMap
   
 open M.Ops
 
@@ -55,6 +56,14 @@ type t =
 
 type tIndex = t
 
+let congruent i1 i2 = match i1, i2 with
+  | IBot, IBot -> true
+  | IInt n1, IInt n2 -> n1 = n2
+  | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
+      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
+      lb1 = lb2 && ub1 = ub2 && m1 = m2 && (c1 - c2) mod m1 = 0
+  | _ -> false
+  
 let top = ICClass {lb = None; ub = None; c = 0; m = 1}
 
 let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}
@@ -64,7 +73,9 @@ let d_index () = function
   | IInt n                                       -> P.num n
   | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
   | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
-  | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "%d[%d < %d]" l m (u + m)
+  | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "%d[%d < %d]"
+                                                                l m (u+m)
+  | ICClass {lb = None; ub = Some u; m = m}     -> P.dprintf "[%d<%d]" m (u+m)
   | _                                            -> assert false
 
 let repr_suffix = function
@@ -187,12 +198,10 @@ let overlaps i1 i2 =
   glb i1 i2 <> IBot
 
 let widen i1 i2 =
-  if is_subindex i1 i2 then
-    i2
-  else if is_subindex i2 i1 then
+  if is_subindex i2 i1 then
     i1
   else match i1, i2 with
-    | IBot, _ | _, IBot -> assert false
+    | IBot, i | i, IBot -> i 
     | IInt n, IInt m    ->
       let d = abs (n - m) in
       ICClass {lb = Some (min n m);
@@ -218,13 +227,19 @@ let widen i1 i2 =
                c  = c1 mod m;
                m  = m}
 	end
-    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-      let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
-      ICClass {lb = if lb1 = lb2 then lb1 else None;
-               ub = if ub1 = ub2 then ub1 else None;
-               c  = c1 mod m;
-               m  = m}
+
+let widen i1 i2 =
+  if is_subindex i2 i1 then
+    i1
+  else match i1, i2 with
+    | IBot, i | i, IBot -> i
+    | IInt n1, IInt n2 ->
+	if n1 < n2 then
+	  mk_sequence 0 (n2 - n1) (Some n1) None
+	else
+	  mk_sequence n1 (n1 - n2) None None
+    | _ -> top
+
 
 let offset n = function
   | IBot                                     -> IBot
@@ -298,10 +313,10 @@ let ge_gt f i = match i with
   | ICClass { lb = Some lb } -> mk_geq (f lb)
   | _ -> top
 
-let lt = le_lt ((-)1)
+let lt = le_lt (fun n -> (n-1))
 let le = let id x = x in le_lt id
 
-let gt = ge_gt ((+)1)			     
+let gt = ge_gt (fun n -> (n+1))
 let ge = let id x = x in ge_gt id
 
 module OrderedIndex = struct
@@ -315,3 +330,107 @@ module IndexSetPrinter = P.MakeSetPrinter (IndexSet)
 
 let d_indexset () is =
   IndexSetPrinter.d_set ", " d_index () is
+
+let asint = true
+let asref = false
+let ckint = A.Sort.is_int
+
+let rec index_of_pred env solution sym is_int (pred,x) =
+  match pred with
+    | A.True -> top
+    | A.False -> IBot
+    | A.Or ps -> List.map (index_of_pred env solution sym is_int) ps
+                 |> List.fold_left lub IBot
+    | A.And ps -> List.map (index_of_pred env solution sym is_int) ps
+                 |> List.fold_left glb top
+    (* This beast matches (v - e) mod k = 0 *)
+    | A.Atom ((A.Bin ((A.Bin ((A.Var vv,_),
+			      A.Minus,
+			      e),
+		       _),
+		      A.Mod,
+		      (A.Con (Ac.Int k),
+		       _)),
+	       _),
+	      A.Eq,
+	      (A.Con (Ac.Int 0), _)) when vv = sym ->
+	begin match index_of_expr env solution sym asint e with
+	  | IInt n -> mk_eq_mod n k
+	  | _ -> top
+	end
+    | A.Atom ((A.Var vv, _),A.Eq,e)
+    | A.Atom (e,A.Eq,(A.Var vv, _)) when vv = sym ->
+	index_of_expr env solution sym is_int e
+    | A.Atom ((A.Var vv, _),r,e) when vv = sym ->
+	let eVal = index_of_expr env solution sym is_int e in
+	  begin match r with
+	    | A.Gt -> gt eVal
+	    | A.Ge -> ge eVal
+	    | A.Lt -> lt eVal
+	    | A.Le -> le eVal
+	    | A.Ne -> top
+	  end
+    | A.Atom (e,r,(A.Var vv, _)) when vv = sym ->
+	let eVal = index_of_expr env solution sym is_int e in
+	  begin match r with
+	    | A.Gt -> lt eVal
+	    | A.Ge -> le eVal
+	    | A.Lt -> gt eVal
+	    | A.Le -> ge eVal
+	    | A.Ne -> top
+	  end
+    | A.Imp ((A.Atom ((A.Var sym1,_), A.Ne, (A.Con (Ac.Int 0),_)),_),
+	     (A.Atom ((A.Var sym2,_), A.Eq, (A.App (sym3,e),_)),_))
+	when sym1 = sym && sym2 = sym && sym3 = As.of_string "BLOCK_BEGIN"
+	  -> IInt 0
+    | A.Bexp e ->
+	begin match fst e with
+	  | A.Con (Ac.Int n) -> if is_int then of_int n else IBot
+	  | _ -> top
+	end
+    | _ -> top
+and index_of_expr env solution sym is_int expr =
+  match fst expr with
+    | A.Con (A.Constant.Int n) -> 
+	if is_int then IInt n else IBot
+    | A.Var sym ->
+	begin match F.lookup_env env sym with
+	  | Some ((vv, sort, refas) as reft) ->
+	      index_of_reft env solution is_int reft
+	  | _ -> top
+	end
+    | A.App (sym,e)
+	when expr = A.eApp (As.of_string "BLOCK_BEGIN", e) ->
+	IInt 0
+    | A.Bin (e1, oper, e2) ->
+	let e1v = index_of_expr env solution sym asint e1 in
+	let e2v = index_of_expr env solution sym asint e2 in
+	  begin match oper with
+	    | A.Plus  -> plus  e1v e2v
+	    | A.Minus -> minus e1v e2v
+	    | A.Times -> mult  e1v e2v
+	    | A.Div   -> div   e1v e2v
+	    | A.Mod   -> top
+	  end
+    | _ -> top
+	(*
+	  and index_of_preds env sol v is_int preds =
+	  List.map (index_of_pred env sol v is_int) preds|> List.fold_left glb top *)
+and index_of_refa env sol v is_int refa = match refa with
+  | F.Kvar (_, k) -> if Asm.mem k sol then Asm.find k sol else IBot
+  | F.Conc pred -> index_of_pred env sol v is_int pred 
+and index_of_reft env sol is_int (v,_,refas) =
+  List.fold_left glb top
+    (List.map (index_of_refa env sol v is_int) refas)
+let index_of_reft env sol ((v,t,refas) as reft) =
+  index_of_reft env sol (ckint t) reft
+
+let data_index_of_pred vv p =
+  index_of_pred Asm.empty Asm.empty vv asint p
+
+let ref_index_of_pred vv p =
+  index_of_pred Asm.empty Asm.empty vv asref p
+    
+    
+
+

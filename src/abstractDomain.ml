@@ -54,101 +54,7 @@ let top sol xs =
   let xsTop = List.map (fun x -> x, top) xs in
   let xsMap = Asm.of_list xsTop in
     Asm.extend xsMap sol
-
-
-let asint = true
-let asref = false
-let ckint = Ast.Sort.is_int
-
-let rec index_of_pred env solution sym is_int (pred,x) =
-  match pred with
-    | A.True -> Ix.top
-    | A.False -> IBot
-    | A.Or ps -> List.map (index_of_pred env solution sym is_int) ps
-                   |> List.fold_left lub IBot
-    | A.And ps -> List.map (index_of_pred env solution sym is_int) ps
-                   |> List.fold_left glb Ix.top
-    | A.Atom ((A.Bin ((A.Bin ((A.Var vv,_),
-				A.Minus,
-				e),
-			 _),
-			A.Mod,
-			(A.Con (Ac.Int k),
-			 _)),
-		 _),
-		A.Eq,
-		(A.Con (Ac.Int 0), _)) when vv = sym ->
-	begin match index_of_expr env solution asint e with
-	  | IInt n -> mk_eq_mod n k
-	  | _ -> Ix.top
-	end
-    | A.Atom ((A.Var vv, _),A.Eq,e)
-    | A.Atom (e,A.Eq,(A.Var vv, _)) when vv = sym ->
-	index_of_expr env solution is_int e
-    | A.Atom ((A.Var vv, _),r,e) when vv = sym ->
-	let eVal = index_of_expr env solution is_int e in
-	  begin match r with
-	    | A.Gt -> gt eVal
-	    | A.Ge -> ge eVal
-	    | A.Lt -> lt eVal
-	    | A.Le -> le eVal
-	    | A.Ne -> Ix.top
-	  end
-    | A.Atom (e,r,(A.Var vv, _)) when vv = sym ->
-	let eVal = index_of_expr env solution is_int e in
-	  begin match r with
-	    | A.Gt -> lt eVal
-	    | A.Ge -> le eVal
-	    | A.Lt -> gt eVal
-	    | A.Le -> ge eVal
-	    | A.Ne -> Ix.top
-	  end
-    | A.Bexp e -> (* shortcut for now *)
-	begin match fst e with
-	  | A.Con (Ac.Int n) -> of_int n
-	  | _ -> Ix.top
-	end
-    | _ -> Ix.top
-and index_of_expr env solution is_int expr =
-  match fst expr with
-    | A.Con (A.Constant.Int n) -> 
-	if is_int then IInt n else IBot
-    | A.Var sym ->
-	begin match F.lookup_env env sym with
-	  | None -> IBot
-	  | Some ((vv, sort, refas) as reft) ->
-	      index_of_reft env solution is_int reft
-	  | _ -> Ix.top
-	end
-    | A.Bin ((A.App (sym, es),_), A.Plus, e)
-    	when sym = As.of_string "BLOCK_BEGIN" ->
-	index_of_expr env solution asint e
-    | A.Bin (e1, oper, e2) ->
-	let e1v = index_of_expr env solution asint e1 in
-	let e2v = index_of_expr env solution asint e2 in
-	  begin match oper with
-	    | A.Plus  -> plus  e1v e2v
-	    | A.Minus -> minus e1v e2v
-	    | A.Times -> mult  e1v e2v
-	    | A.Div   -> div   e1v e2v
-	    | A.Mod   -> Ix.top
-	  end
-    | A.App (sym,e)
-	when expr = A.eApp (As.of_string "BLOCK_BEGIN", e) ->
-	IInt 0
-    | _ -> Ix.top
-(*and index_of_preds env sol v is_int preds =
-  List.map (index_of_pred env sol v is_int) preds|> List.fold_left glb Ix.top *)
-and index_of_refa env sol v is_int refa = match refa with
-  | F.Kvar (_, k) -> read_bind sol k 
-  | F.Conc pred -> index_of_pred env sol v is_int pred 
-and index_of_reft env sol is_int (v,_,refas) =
-  List.fold_left glb Ix.top
-    (List.map (index_of_refa env sol v is_int) refas)
-let index_of_reft env sol ((v,t,refas) as reft) =
-  index_of_reft env sol (ckint t) reft
-
-    
+      
 let refine sol c =
   let rhs = F.rhs_of_t c in
   let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
@@ -156,18 +62,17 @@ let refine sol c =
     let oldK = read_bind sol k in
     let newK = widen oldK lhsVal in
     let _ =  if !Constants.trace_scalar then
-      let _ = Pretty.printf "lhs %a old %a new %a\n"
-	d_index lhsVal d_index oldK d_index newK in ()
-      >> fun _ -> Format.printf "%a" (F.print_t None) c 
+      let _ = Format.printf "%a" (F.print_t None) c in
+      let _ = Pretty.printf "lhs %a old %a new %a\n" d_index lhsVal d_index oldK d_index newK in
+	()
     in
       if (Asm.mem k sol) && oldK = newK
       then (false, sol)
       else (true, Asm.add k newK sol)
   in
     List.fold_left
-      begin fun p k -> match p,k with
-	| (_, sol), (_, sym) -> refineK sol sym
-	| _ -> (false, sol)
+      begin fun (chg, sol) (_, sym) -> 
+	let (chg', sol') = refineK sol sym in (chg || chg', sol')
       end
       (false, sol) (F.kvars_of_reft rhs)
 
@@ -175,8 +80,7 @@ let unsat sol c =
   (* Make sure that lhs <= k for each k in rhs *)
   let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
   let lhsVal = index_of_reft (F.env_of_t c) sol (F.lhs_of_t c) in
-  let onlyK v = match v with (* true if the constraint is unsatisfied *)
-    | sub, sym ->
+  let onlyK (sub, sym) = (* true if the constraint is unsatisfied *)
 	if Asm.mem sym sol then
 	  not (is_subindex lhsVal (Asm.find sym sol))
 	else
