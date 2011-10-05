@@ -69,14 +69,13 @@ let top = ICClass {lb = None; ub = None; c = 0; m = 1}
 let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}
 
 let d_index () = function
-  | IBot                                         -> P.dprintf "_|_"
-  | IInt n                                       -> P.num n
-  | ICClass {lb = None; ub = None; c = c; m = m} -> P.dprintf "%d{%d}" c m
-  | ICClass {lb = Some n; ub = None; m = m}      -> P.dprintf "%d[%d]" n m
-  | ICClass {lb = Some l; ub = Some u; m = m}    -> P.dprintf "%d[%d < %d]"
-                                                                l m (u+m)
-  | ICClass {lb = None; ub = Some u; m = m}     -> P.dprintf "[%d<%d]" m (u+m)
-  | _                                            -> assert false
+  | IBot                                           -> P.dprintf "{ }"
+  | i when i = top                                 -> P.dprintf "{true}"
+  | IInt n                                         -> P.dprintf "{%d}" n
+  | ICClass {lb = None; ub = None; c = c; m = m}   -> P.dprintf "{%d +/- %d*}" c m
+  | ICClass {lb = Some n; ub = None; m = m}        -> P.dprintf "{%d + %d*}" n m
+  | ICClass {lb = Some l; ub = Some u; m = m}      -> P.dprintf "{%d + %d* <= %d}" l m u
+  | ICClass {lb = None; ub = Some u; c = c; m = m} -> P.dprintf "{%d +/- %d* <= %d}" c m u
 
 let repr_suffix = function
   | IBot                                     -> "B"
