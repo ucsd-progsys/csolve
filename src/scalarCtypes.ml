@@ -54,9 +54,9 @@ let is_valid_scalar_const = function
   | Period i     when i >= 2 -> true
   | _                        -> false
 
-(***************************************************************************)
-(******************** Meta Qualifiers for Scalar Invariants ****************)
-(***************************************************************************)
+(* (\***************************************************************************\) *)
+(* (\******************** Meta Qualifiers for Scalar Invariants ****************\) *)
+(* (\***************************************************************************\) *)
 
 let value_var       = A.Symbol.value_variable A.Sort.t_int
 let const_var       = A.Symbol.mk_wild ()
@@ -74,8 +74,8 @@ let p_v_le_c        = p_v_r_c A.Le
 (* v >= c *)
 let p_v_ge_c        = p_v_r_c A.Ge
 
-(* (v - c) mod k == 0 *) 
-let p_v_minus_c_eqz_mod_k = 
+(* (v - c) mod k == 0 *)
+let p_v_minus_c_eqz_mod_k =
   A.pEqual (A.eBin (A.eBin (A.eVar value_var, A.Minus, A.eVar const_var) ,A.Mod, A.eVar period_var)
            ,A.zero)
 
@@ -89,10 +89,10 @@ let p_v_eq_bb_if_nonnull = A.pImp (A.pAtom (A.eVar value_var, A.Ne, A.eInt 0),
                                    A.pAtom (A.eVar value_var, A.Eq, FA.eApp_bbegin (A.eVar value_var)))
 
 (* v =  BB(v) + c *)
-let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq 
+let p_v_eq_x_plus_c = p_v_r_x_plus_c A.Eq
 
 (* v <  BB(v) + c *)
-let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt 
+let p_v_lt_x_plus_c = p_v_r_x_plus_c A.Lt
 
 (* v >= BB(v) + c *)
 let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
@@ -100,9 +100,9 @@ let p_v_ge_x_plus_c = p_v_r_x_plus_c A.Ge
 (* v <= BB(v) + c *)
 let p_v_le_x_plus_c = p_v_r_x_plus_c A.Le
 
-(* (v - BB(v) - c) mod k == 0 *) 
-let p_v_minus_x_minus_c_eqz_mod_k = 
-  A.pEqual (A.eBin (A.eBin (A.eVar value_var, 
+(* (v - BB(v) - c) mod k == 0 *)
+let p_v_minus_x_minus_c_eqz_mod_k =
+  A.pEqual (A.eBin (A.eBin (A.eVar value_var,
                             A.Minus, (A.eBin (FA.eApp_bbegin (A.eVar value_var), A.Plus, A.eVar const_var)))
                    , A.Mod, A.eVar period_var)
            ,A.zero)
@@ -113,80 +113,6 @@ let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sor
 (***************************************************************************)
 (***************** Convert Predicates/Refinements To Indices ***************)
 (***************************************************************************)
-
-let of_nullary_preds qis v ps =
-  let sub = A.Subst.of_list [value_var, A.eVar v] in
-        qis
-    |>: (Misc.app_fst <| Misc.flip A.substs_pred sub)
-    |>  List.filter (fun (q, _) -> List.exists ((=) q) ps)
-    |>: snd
-
-let bind_of_subst var subst =
-  try
-    subst |> A.Subst.to_list |> List.assoc var |> A.into_of_expr
-  with Not_found -> None
-
-let substs_of_preds p v ps =
-  let p = [value_var, A.eVar v] |> A.Subst.of_list |> A.substs_pred p in
-  ps |> Misc.map_partial (A.unify_pred p)
-
-let map_matching_qual_binds f qs v ps =
-  qs
-  |> Misc.flap (fun q -> substs_of_preds q v ps) 
-  |> Misc.map_partial (bind_of_subst const_var)
-  |> List.map f
-
-let singleton_of_preds_aux      = map_matching_qual_binds (fun c -> Ix.IInt c)
-let data_singleton_of_preds     = singleton_of_preds_aux [p_v_eq_c]
-let ref_singleton_of_preds v ps =
-  let idxs = singleton_of_preds_aux [p_v_eq_x_plus_c] v ps ++
-    of_nullary_preds [(p_v_eq_bb, Ix.IInt 0); (p_v_eq_bb_if_nonnull, Ix.IInt 0)] v ps
-  in
-    idxs
-
-let ilowerbound_of_preds_aux  = map_matching_qual_binds (fun c -> Ix.ICClass {Ix.lb = Some c; Ix.ub = None; Ix.m = 1; Ix.c = 0})
-let data_ilowerbound_of_preds = ilowerbound_of_preds_aux [p_v_ge_c]
-let ref_ilowerbound_of_preds  = ilowerbound_of_preds_aux [p_v_ge_x_plus_c]
-
-let iupperbound_of_preds_aux  = map_matching_qual_binds (fun c-> Ix.ICClass {Ix.lb = None; Ix.ub = Some c; Ix.m = 1; Ix.c = 0})
-let data_iupperbound_of_preds = iupperbound_of_preds_aux [p_v_le_c]
-let ref_iupperbound_of_preds  = iupperbound_of_preds_aux [p_v_le_x_plus_c]
-
-let iperiod_of_preds_aux qs v ps =
-  qs
-  |> Misc.flap (fun q -> substs_of_preds q v ps)
-  |> List.map  (bind_of_subst const_var <*> bind_of_subst period_var)
-  |> Misc.map_partial begin function
-      | (Some c, Some k) -> Some (Ix.ICClass {Ix.lb = None; Ix.ub = None; Ix.m = k; Ix.c = c mod k})
-      | _                -> None
-    end
-
-let data_iperiod_of_preds = iperiod_of_preds_aux [p_v_minus_c_eqz_mod_k; p_v_minus_x_minus_c_eqz_mod_k]
-let ref_iperiod_of_preds  = iperiod_of_preds_aux [p_v_minus_x_minus_c_eqz_mod_k]
-
-let ref_index_of_pred_funs =
-  [ ref_singleton_of_preds
-  ; ref_iperiod_of_preds
-  ; ref_ilowerbound_of_preds
-  ; ref_iupperbound_of_preds ]
-
-let data_index_of_pred_funs =
-  [ data_singleton_of_preds
-  ; data_iperiod_of_preds
-  ; data_ilowerbound_of_preds
-  ; data_iupperbound_of_preds ]
-
-(* API *)    
-let index_of_pred conv vv p =
-     conv
-  |> Misc.flap (fun f -> p |> A.conjuncts |> f vv)
-  |> List.fold_left Ix.glb Ix.top
-
-(* API *)
-let ref_index_of_pred vv p  = index_of_pred ref_index_of_pred_funs vv p
-
-(* API *)
-let data_index_of_pred vv p = index_of_pred data_index_of_pred_funs vv p
 
 (* API *)
 let index_of_var v (cr, p) =
