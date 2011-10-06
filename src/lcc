@@ -42,8 +42,8 @@ use Data::Dumper;
 use FindBin;
 use File::Basename;
 use lib "$FindBin::RealBin";
-use lib "$FindBin::RealBin/../external/cil/lib"; # The libraries are in the lib directory
-use lib "$FindBin::RealBin/../external/cil/bin"; # The libraries are in the lib directory
+use lib "$FindBin::RealBin/../external/cil/lib";
+use lib "$FindBin::RealBin/../external/cil/bin";
 # Read the configuration script
 use CilConfig;
 
@@ -52,6 +52,8 @@ use Cilly;
 $::default_is_merge = 0;
 
 $ENV{'LD_LIBRARY_PATH'} = "$FindBin::RealBin/../external/z3/lib/:$ENV{'LD_LIBRARY_PATH'}";
+
+my $libpath = "$FindBin::RealBin/";
 
 my $stub = CilCompiler->new(@ARGV);
 
@@ -67,7 +69,7 @@ use File::Basename;
 use strict;
 BEGIN {
     @CilCompiler::ISA = qw(Cilly);
-    $CilCompiler::base = "$FindBin::RealBin/liquidc.native";
+    $CilCompiler::base = "$FindBin::RealBin/_build/liquidc.native";
     # Use the most recent version of cilly
     $CilCompiler::mtime_asm = int((stat("$CilCompiler::base"))[9]);
     $CilCompiler::mtime_byte = int((stat("$CilCompiler::base"))[9]);
@@ -164,9 +166,9 @@ sub CillyCommand {
     }
 
     if(defined $spec_prefix) {
-        return ($aftercil, @cmd, '--liquidcprefix', $spec_prefix, '--out', $aftercil);
+        return ($aftercil, @cmd, '--liquidcprefix', $spec_prefix, '--libpath', $libpath, '--out', $aftercil);
     } else {
-        return ($aftercil, @cmd, '--out', $aftercil);
+        return ($aftercil, @cmd, '--libpath', $libpath, '--out', $aftercil);
     }
 }
 
