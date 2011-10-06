@@ -32,3 +32,5 @@ qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a])
 // pmr: Drop when we start inferring quals
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 4) = 0
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 8) = 0
+
+qualif NULLTERM (v: int): (v != 0) => (VVADDR < (BLOCK_END([VVADDR]) - 1))

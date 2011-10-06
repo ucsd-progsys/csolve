@@ -73,6 +73,10 @@ val e_false             : Sloc.t -> Ctypes.effectinfo
 val e_true              : Sloc.t -> Ctypes.effectinfo
 val e_fresh             : Sloc.t -> Ctypes.effectinfo
 
+val vv_addr             : Ast.Symbol.t
+val vv_addr_expr        : Ast.expr
+val replace_addr        : Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
+
 val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype

@@ -282,6 +282,9 @@ let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 
+let t_index         = fun ct -> refctype_of_ctype ra_indexpred ct
+let t_addr          = fun l  -> t_true <| Ct.Ref (l, Ix.top)
+
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype      = t_conv_refctype ra_true
 let t_false_refctype     = t_conv_refctype ra_false
@@ -672,7 +675,15 @@ let is_poly_cloc st cl =
   |> binds_of_refldesc cl 
   |> (=) []
 
+(******************************************************************************)
+(************************ Address-Dependent Refinements ***********************)
+(******************************************************************************)
 
+let vv_addr      = Sy.of_string "VVADDR"
+let vv_addr_expr = A.eVar vv_addr
+
+let replace_addr v rct =
+  t_subs_names [(vv_addr, FA.name_of_string v.vname)] rct
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -744,7 +755,8 @@ let rec make_wfs_refstore env full_sto sto tag =
       let ncrs = sloc_binds_of_refldesc l rd in
       let env' = ncrs |> List.filter (fun (_,i) -> not (Ix.is_periodic i)) 
                       |> List.map fst
-                      |> ce_adds env in 
+                      |> ce_adds env
+                      |> M.flip ce_adds [(vv_addr, t_addr l)] in
       let ws1  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
         ws1 ++ ws
     end [] sto
@@ -780,7 +792,7 @@ let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
 (*  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
-  let env    = ncrs1 |> List.map fst |> ce_adds env in
+  let env    = ncrs1 |> List.map fst |> ce_adds env |> M.flip ce_adds [(vv_addr, sloc1 |> Sloc.canonical |> t_addr)] in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
     f ncrs12 env subs
 
@@ -1024,11 +1036,18 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                       | _         -> RCt.Field.map_type (t_subs_names subs) rfld
               end in
   let cs    = if not newloc then [] else
+                let env' = ce_adds env' [(vv_addr, t_addr sloc)] in
                 RCt.LDesc.foldn begin fun i cs ix rfld ->
                   match ix with
                   | Ix.ICClass _ ->
                       let rct = RCt.Field.type_of rfld in
-                      let lhs = new_block_reftype rct in
+                      let lhs = rct
+                             |> new_block_reftype
+                             |> strengthen_refctype
+                                 begin fun rct ->
+                                   let vv, p = Sc.pred_of_index_ref ix in
+                                     [C.Conc (P.subst p vv (A.eVar vv_addr))]
+                                 end in
                       let rhs = t_subs_names subs rct in
                       let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs

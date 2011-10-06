@@ -181,7 +181,7 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
   | Lval (Mem e, _) ->
     let v' = CM.referenced_var_of_exp e in
     let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' MemRead in
-      (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto, cs)
+      (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto |> FI.replace_addr v', cs)
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
       (CF.refctype_of_global me v, ([], []))
@@ -228,11 +228,11 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
-        let cr   = Ct.refstore_read loc sto addr in
+        let cr   = addr |> Ct.refstore_read loc sto |> FI.replace_addr v in
         let cds3 = FI.make_cs env grd cr' cr tago tag loc in
         (env, sto, Some tag), (cds1 +++ cds2 +++ cds3)
       else
-        let sto      = Ct.refstore_write loc sto addr cr' in
+        let sto      = cr' |> FI.replace_addr v |> Ct.refstore_write loc sto addr in
         let env, sto = FI.refstore_strengthen_addr loc env sto ffm v.vname addr in
         (env, sto, Some tag), (cds1 +++ cds2)
 
