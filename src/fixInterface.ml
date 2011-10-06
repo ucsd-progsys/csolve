@@ -203,7 +203,7 @@ let print_ce so ppf (_, vnv) =
 (****************************************************************)
 
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())]
 let ra_true         = fun _ -> []
 let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
@@ -345,7 +345,8 @@ let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
     |> (function [v] -> [C.Conc (mk_eq_uf FA.eApp_bbegin (A.eVar vv) (A.eVar (FA.name_of_varinfo v)))] | _ -> [])
 
 let t_exp_scalar v e =
-  let ct  = Ct.scalar_ctype in
+(*  let ct  = Ct.scalar_ctype in *)
+  let ct  = Ct.vtype_to_ctype v.Cil.vtype in
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let _,p = CI.reft_of_cilexp vv e in
@@ -399,7 +400,8 @@ let conv_refstore_bottom st =
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
-let t_scalar_ptr tptr = refctype_of_ctype (ra_array tptr) Ct.scalar_ctype
+let t_scalar_ptr tptr =
+  refctype_of_ctype (ra_array tptr) (Ct.vtype_to_ctype tptr)
 
 (* {{{
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
@@ -410,13 +412,14 @@ let t_scalar = function
 
 let t_scalar = Ct.index_of_ctype <+> 
                Sc.pred_of_index <+> 
-               Misc.uncurry (t_pred Ct.scalar_ctype)
+               Misc.uncurry (t_pred Ct.nscalar_ctype)
 let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
 
 
 }}} *)
 
-let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred Ct.scalar_ctype)
+(* let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred C.scalar_ctype) *)
+let t_scalar ct = Sc.pred_of_ctype ct |> Misc.uncurry (t_pred ct)
 
 let deconstruct_refctype rct = 
   let r = Ct.reft_of_refctype rct in
@@ -439,9 +442,11 @@ let vv_rename so' r =
   C.make_reft vv' so' ras'
 
 let t_scalar_refctype_raw rct =
-  let so'  = Ct.scalar_ctype |> sort_of_prectype in
+(*  let so'  = Ct.scalar_ctype |> sort_of_prectype in *)
+  let so' = Ct.ctype_of_refctype rct |> sort_of_prectype in
   let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
-  refctype_of_reft_ctype r' Ct.scalar_ctype
+    (* refctype_of_reft_ctype r' Ct.scalar_ctype *)
+   refctype_of_reft_ctype r' (Ct.ctype_of_refctype rct)
 
 (* API *)
 let t_scalar_refctype =

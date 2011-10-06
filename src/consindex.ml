@@ -37,6 +37,8 @@ module FI = FixInterface
 
 module Ct = Ctypes
 module SPA = Solve.Make (PredAbs)
+module SIA = Solve.Make (AbstractDomain)
+module Ix = Index  
 
 open Misc.Ops
 open Cil
@@ -119,22 +121,28 @@ let config ts env ps a ds cs ws qs assm =
   }
 
 
-type ('a, 'b, 'c, 'd) domain = 
+type ('a, 'b, 'c, 'd, 'e) domain = 
   { create : 'a 
   ; save   : 'b
   ; solve  : 'c
-  ; read   : 'd
-  (* ; meet   : 'e   *)
+  ; read : 'd
+  ; read_bind   : 'e
   }
 
 
-let d_predAbs   = 
-  { create = SPA.create
-  ; save   = SPA.save
-  ; solve  = SPA.solve
-  ; read   = SPA.read
-  (* ; meet   = SPA.meet *)
-  }
+let d_predAbs   = { create = SPA.create
+		  ; save   = SPA.save
+		  ; solve  = SPA.solve
+		  ; read   = SPA.read
+		  ; read_bind = SPA.read_bind
+		  }
+
+let d_indexAbs   = { create = SIA.create
+		   ; save   = SIA.save
+		   ; solve  = SIA.solve
+		   ; read   = SIA.read
+		   ; read_bind = SIA.read_bind
+		   }
 
 let ac_solve dd me fn (ws, cs, ds) qs so =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
@@ -149,7 +157,12 @@ let ac_solve dd me fn (ws, cs, ds) qs so =
   let _       = Errormsg.log "DONE: constraint solving \n" in
   let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
   let _       = Errormsg.log "DONE: saving output constraints \n" in
-  s', cs'
+    if !Constants.check_is
+    then match cs' with
+	| [] -> (s', cs')
+	| _ -> failwith ("ac_solve: "^fn)
+    else s',cs'
+	    
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in
@@ -158,14 +171,7 @@ let filter_cstrs dd s fp (ws, cs) =
 
 let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, bqs, mqs) =
   Misc.with_ref_at Constants.slice false begin fun () ->
-    let s_eq, _  = ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None in
-    let r_eq     = dd.read s_eq in
-    let ws, cs   = filter_cstrs dd s_eq fp (ws, cs) in
-    let s_bnd,_  = ac_solve dd me (fn^".bnd") (ws, cs, ds) bqs (Some r_eq) in
-    let s_mod,_  = ac_solve dd me (fn^".mod") (ws, cs, ds) mqs (Some r_eq) in
-    C.meet_solution (C.meet_solution (dd.read s_eq)  (dd.read s_mod)) (dd.read s_bnd)
-     (* dd.read (dd.meet (dd.meet s_eq s_mod) s_bnd) *)
-
+    ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None |> fst
   end
 
 let get_cstrs me = 
@@ -175,33 +181,71 @@ let get_cstrs me =
 
 (* API *)
 let solve me fn qs =
+(*  let _ = SM.map (List.map (Format.printf "Solve: me.cm: %a" (C.print_t None))) (me.cm) in *)
+(*  let _ = Pretty.printf "***ac_solve for int starting***\n" in
+  let _ = ac_solve d_indexAbs me fn (get_cstrs me) qs None
+  |> fun (s, c) -> let _ = Pretty.printf "***ac_solve for int done***\n" in (s,c)
+  |> (fun (s, c) -> let _ = AbstractDomain.dump s in (s, c))
+  |> Misc.app_fst d_indexAbs.read
+  |> fun (s', cs) -> match cs with
+       | [] ->  let _ = Pretty.printf "woohoo\n!" in ()
+       | cs' ->
+	   let _ = List.map (Format.printf "Solve: unsat: %a" (C.print_t None)) cs' in
+	     ()
+  in *)
   ac_solve d_predAbs me fn (get_cstrs me) qs None 
   |> Misc.app_fst d_predAbs.read
 
-let scalar_solve me fn fp qs = 
+let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
+
+let scalar_solve me fn fp qs =
+  let index_of_refc s v cr =
+    Ctypes.reft_of_refctype cr
+  |> C.ras_of_reft
+  |> List.map (fun ra ->
+		 match ra with
+		   | C.Conc p -> ScalarCtypes.index_of_var v (cr, p)
+		   | C.Kvar (subs, k) -> AbstractDomain.read_bind s k)
+  |> List.fold_left Index.glb Index.top
+  in
   let qst = ScalarCtypes.partition_scalar_quals qs in
-  let s   = ac_scalar_solve d_predAbs me fn fp (get_cstrs me) qst in
-  me.defm 
-  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
+  let s   = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me) qst in
+
+  let _ = if !Constants.check_is then
+    let apply sol (vv,t,ras) =
+      (vv,t,List.map
+	 (fun ra ->
+	    match ra with
+	      | C.Conc p -> ra
+	      | C.Kvar (subs, k) ->
+		  let pred = d_indexAbs.read_bind sol k
+	                     |> (if Ast.Sort.is_int t 		      
+				 then ScalarCtypes.pred_of_index_int
+				 else ScalarCtypes.pred_of_index_ref)
+			     |> snd
+		  in
+		    Ast.Subst.of_list [(value_var, Ast.eVar vv)]
+	            |> Ast.substs_pred pred
+                    |> fun p -> C.Conc p) ras)
+    in
+    let cs' = me.cm |> SM.map (List.map (fun c -> C.make_t
+					   (Ast.Symbol.SMap.map (apply s) (C.env_of_t c))
+					   (C.grd_of_t c)
+					   (apply s (C.lhs_of_t c))
+					   (apply s (C.rhs_of_t c))
+					   None(* (C.id_of_t c) *)
+					   (C.tag_of_t c)))
+                    |> SM.to_list |> List.map snd |> List.concat
+    in
+    let _ = Pretty.printf "Checking indices...\n" in
+    let s' = ac_scalar_solve d_predAbs me fn fp (get_wfs me, cs', get_deps me) qst in
+    let _ = Pretty.printf "Indices look sound\n" in ()
+  in
+    
+    me.defm
+  |> SM.map (List.map (fun (v, cr) -> (v, index_of_refc s v cr)))
   |> SM.map CM.vm_of_list
-  >> (fun _ -> Errormsg.log "DONE: scalar solve \n")
-
-let old_scalar_solve me fn _ qs =
-  let s = Misc.with_ref_at Constants.slice false begin fun () ->   
-            ac_solve d_predAbs me fn (get_cstrs me) qs None 
-            |> fst |> d_predAbs.read 
-          end in 
-  me.defm 
-  |> SM.map (List.map (fun (v, cr) -> (v, (cr, FI.pred_of_refctype s v cr))))
-  |> SM.map CM.vm_of_list
-  >> (fun _ -> Errormsg.log "DONE: constraint forcing \n")
-
-(* API *)
-let scalar_solve me = 
-  if !Constants.fastscalar then scalar_solve me else old_scalar_solve me
-
-
-
+    
 (* {{{
 let solve (d_create, d_save, d_solve, d_read) me fn qs = 
   let ws     = get_wfs me in

@@ -4,7 +4,7 @@ module Co  = Constants
 module C   = FixConstraint
 module F   = Format
 module T   = Toplevel
-module IA  = Index.AbstractDomain
+module IA  = AbstractDomain
 module SIA = Solve.Make (IA)
 
 open Misc.Ops
@@ -34,7 +34,6 @@ let solve ac  =
     let ctx, s  = BS.time "create" SIA.create ac in
     let _       = print_now "Fixpoint: Solving \n" in
     let s, cs'  = BS.time "solve" (SIA.solve ctx) s in
-
     let _       = print_now "Fixpoint: Saving Result \n" in
     let _       = BS.time "save" (save_raw !Co.out_file cs') s in
     let _       = print_now "Fixpoint: Saving Result DONE \n" in

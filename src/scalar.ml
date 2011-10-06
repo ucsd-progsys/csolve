@@ -60,14 +60,12 @@ let generate tgr gnv scim : Ci.t =
 (***************************************************************************)
 
 let is_not_const v p = 
-  Ix.glb (Sc.data_index_of_pred v p) (Sc.ref_index_of_pred v p)
+  Ix.glb (Ix.data_index_of_pred v p) (Ix.ref_index_of_pred v p)
   |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =
-  (Sc.scalar_quals_of_file cil) 
-  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const) 
-  |> SM.map (VM.mapi Sc.index_of_var)
-
+  (Sc.scalar_quals_of_file cil)
+  |> Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const)
 
 let solve cil ci =
   let _  = if !Co.minquals then (ignore <| E.log "Deprecating --minquals for scalar/inference\n") in
@@ -145,7 +143,7 @@ let dump_scalarinv sim =
 
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
-  >> Annots.clear 
+  >> Annots.clear
   |> generate tgr gnv
   |> solve cil
   |> close scim spec

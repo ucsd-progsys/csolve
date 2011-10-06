@@ -95,16 +95,20 @@ let is_origcilvar v =
   | None -> true
   | _    -> false
 
-let ctype_scalar    = Ctypes.void_ctype
-
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
              |> Ct.args_of_refcfun
+	     |> List.map (Misc.app_snd (fun c -> match c with
+					| Ct.Ref (_,(_,reft)) ->
+					    Ct.Ref (Sloc.none, (Ix.top, reft))
+					| _ -> c))
              |> List.map (FA.name_of_string <**> FI.t_scalar_refctype) 
-  in 
-  let locs = fdec.slocals 
+  in
+  let locs = fdec.slocals
              |> List.filter is_origcilvar 
-             |> Misc.map (FA.name_of_varinfo <*> (fun _ -> FI.t_true Ctypes.scalar_ctype))
+             |> Misc.map
+		 (FA.name_of_varinfo <*>
+		 (fun v -> FI.t_true (Ctypes.vtype_to_ctype v.Cil.vtype)))
   in
   args ++ locs
 (*  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
@@ -112,10 +116,11 @@ let scalarenv_of_fdec gnv fdec =
   |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =
-  let args = FI.ce_find_fn fdec.svar.vname gnv 
+  let args = FI.ce_find_fn fdec.svar.vname gnv
              |> Ct.args_of_refcfun 
              |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
-             |> List.map (Misc.app_fst FA.name_of_string) in
+             |> List.map (Misc.app_fst FA.name_of_string)
+  in
   let locs = fdec.slocals 
              |> List.filter is_origcilvar 
              |> Misc.map (FA.name_of_varinfo <*> 
@@ -339,7 +344,8 @@ let ctype_of_varinfo me v =
           | _ -> strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
         end
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
-  | _ -> ctype_scalar
+  | _ -> Ct.vtype_to_ctype v.Cil.vtype
+
  
 let refctype_of_global me v =
   FI.ce_find (FA.name_of_string v.Cil.vname) me.gnv

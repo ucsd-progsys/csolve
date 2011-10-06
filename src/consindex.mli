@@ -43,9 +43,17 @@ val solve       :  t
                 -> Ast.Qualifier.t list 
                 -> FixConstraint.soln * FixConstraint.t list 
 
+(*  
 val scalar_solve:  t 
                 -> string
                 -> (Ast.Symbol.t -> Ast.pred -> bool)
                 -> Ast.Qualifier.t list
                 -> ((Ctypes.refctype * Ast.pred) CilMisc.VarMap.t) Misc.StringMap.t
+*)
+val scalar_solve: t
+                -> string
+                -> (Ast.Symbol.t -> Ast.pred -> bool)
+                -> Ast.Qualifier.t list
+                -> (Index.t CilMisc.VarMap.t) Misc.StringMap.t
+  
 
