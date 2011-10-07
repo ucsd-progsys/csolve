@@ -236,10 +236,10 @@ let ra_bbegin ct =
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
 
 let ra_array tptr ct =
-     ct 
-  |> sort_of_prectype 
-  |> Sy.value_variable 
-  |> A.eVar 
+     ct
+  |> sort_of_prectype
+  |> Sy.value_variable
+  |> A.eVar
   |> begin fun vv ->
      let vv', p = tptr |> ShapeInfra.ref_index |> Sc.pred_of_index_ref in
        [C.Conc (P.subst p vv' vv)]
@@ -248,7 +248,7 @@ let ra_array tptr ct =
 let ra_indexpred ct =
   let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
   let vv', p = Sc.pred_of_ctype ct in
-    [C.Conc (A.pImp (A.pAtom (vv, A.Ne, A.zero), P.subst p vv' vv))]
+    [C.Conc (P.subst p vv' vv)]
 
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
