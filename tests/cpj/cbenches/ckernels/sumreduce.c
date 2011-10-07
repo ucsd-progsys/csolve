@@ -11,7 +11,7 @@ int main(char ** args, int vargs)
   arr = malloc(sizeof(int) * len);
 
   initialize(arr, len);
-  reduce(arr, len);
+  reduce(arr, len, seqLen);
 }
 
 //a: ptr(l, i) -> len: int -> () / h: l => (0+: int);
@@ -41,7 +41,8 @@ int reduce(int * a, int len, int seqLen)
       tmp2 = reduce(a + h, h, seqLen)
     }
     result = tmp1 + tmp2;
-    } else
+    }
+    else
       for (i = 0; i < len; i++)
         result = result + a[i];
     return result;
