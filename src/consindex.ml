@@ -221,7 +221,7 @@ let scalar_solve me fn fp qs =
 		  let pred = d_indexAbs.read_bind sol k
 	                     |> (if Ast.Sort.is_int t 		      
 				 then ScalarCtypes.pred_of_index_int
-				 else ScalarCtypes.pred_of_index_ref)
+				 else ScalarCtypes.non_null_pred_of_index_ref)
 			     |> snd
 		  in
 		    Ast.Subst.of_list [(value_var, Ast.eVar vv)]

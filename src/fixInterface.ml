@@ -241,7 +241,7 @@ let ra_array tptr ct =
   |> Sy.value_variable
   |> A.eVar
   |> begin fun vv ->
-     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.pred_of_index_ref in
+     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.non_null_pred_of_index_ref in
        [C.Conc (P.subst p vv' vv)]
      end
 
@@ -255,7 +255,6 @@ let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
-let t_index         = fun ct -> refctype_of_ctype ra_indexpred ct
 
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype      = t_conv_refctype ra_true
@@ -419,7 +418,7 @@ let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
 }}} *)
 
 (* let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred C.scalar_ctype) *)
-let t_scalar ct = Sc.pred_of_ctype ct |> Misc.uncurry (t_pred ct)
+let t_scalar ct = ct |> Sc.non_null_pred_of_ctype |> Misc.uncurry (t_pred ct)
 
 let deconstruct_refctype rct = 
   let r = Ct.reft_of_refctype rct in
