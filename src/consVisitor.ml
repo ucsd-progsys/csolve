@@ -146,8 +146,8 @@ let cons_of_mem me loc tago tag grd env v =
   if !Cs.manual then
     ([], [])
   else
-    let rct = v |> FA.name_of_varinfo |> FI.t_name env in
-      FI.make_cs_validptr env grd rct (v.vtype |> CM.ptrRefType |> CM.bytesSizeOf) tago tag loc
+    let rct = FI.t_ptr_footprint env v in
+      FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with

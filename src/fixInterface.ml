@@ -285,16 +285,27 @@ let t_size_ptr ct size =
              A.pAtom (FA.eApp_bbegin evv, A.Eq, evv);
              A.pAtom (FA.eApp_bend evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
 
-let t_valid_ptr sz ct =
+let t_ptr_footprint env v =
+  let ct   = Ct.ctype_of_refctype <| ce_find (FA.name_of_varinfo v) env in
+  let so   = sort_of_prectype ct in
+  let vv   = Sy.value_variable so in
+  let evv  = A.eVar vv in
+  let eptr = v |> FA.name_of_varinfo |> A.eVar in
+  let sz   = v.vtype |> CM.ptrRefType |> CM.bytesSizeOf |> A.eInt in
+    t_pred ct vv
+      (A.pAnd [A.pEqual (FA.eApp_bbegin evv, FA.eApp_bbegin eptr);
+               A.pEqual (FA.eApp_bend evv, FA.eApp_bend eptr);
+               A.pAtom (eptr, A.Le, evv);
+               A.pAtom (evv, A.Lt, A.eBin (eptr, A.Plus, sz))])
+
+let t_valid_ptr ct =
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let evv = A.eVar vv in
   t_pred ct vv (A.pOr [A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one);
                        A.pAnd [A.pAtom (evv, A.Ne, A.zero);
                                A.pAtom (FA.eApp_bbegin evv, A.Le, evv);
-                               A.pAtom (A.eBin (evv, A.Plus, A.eInt (sz - 1)),
-                                        A.Lt,
-                                        FA.eApp_bend evv)]])
+                               A.pAtom (evv, A.Lt, FA.eApp_bend evv)]])
 
 let is_reference cenv x =
   if YM.mem x FA.builtinm then (* TBD: REMOVE GROSS HACK *)
@@ -685,10 +696,6 @@ let make_cs cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_validptr cenv p rct sz tago tag =
-  let rvp = rct |> Ct.ctype_of_refctype |> t_valid_ptr sz in
-  make_cs cenv p rct rvp tago tag
-
 let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
@@ -800,13 +807,6 @@ let make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc =
   try make_cs_refstore_binds_aux make_cs_refcfun env p binds1 binds2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore_binds fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore_binds" in 
-    assert false
-
-(* API *)
-let make_cs_validptr cenv p rct sz tago tag loc =
-  try make_cs_validptr cenv p rct sz tago tag with ex ->
-    let _ = Cil.errorLoc loc "make_cs_validptr fails with: %s" (Printexc.to_string ex) in
-    let _ = asserti false "make_cs_validptr" in
     assert false
 
 (* API *)
