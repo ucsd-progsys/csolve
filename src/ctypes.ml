@@ -29,6 +29,7 @@ module SS  = S.SlocSet
 module N   = Index
 module C   = Cil
 module CM  = CilMisc
+module FC  = FixConstraint
 module SM  = M.StringMap
 module SLM = S.SlocMap
 
@@ -68,6 +69,34 @@ module IndexRefinement = struct
     | C.CReal (_, fk, _)  -> Index.top
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
+end
+
+(******************************************************************************)
+(************************* Refctypes and Friends ******************************)
+(******************************************************************************)
+
+let reft_of_top = 
+  let so = Ast.Sort.t_obj in
+  let vv = Ast.Symbol.value_variable so in
+  FC.make_reft vv so []
+
+let d_reft () r = 
+  Misc.fsprintf (FC.print_reft_pred None) r |> P.text
+
+let d_index_reft () (i,r) = 
+  P.dprintf "%a , %a" Index.d_index i d_reft r
+  (*let di = Index.d_index () i in
+  let dc = P.text " , " in
+  let dr = d_reft () r in
+  P.concat (P.concat di dc) dr
+  *)
+
+module Reft = struct
+  type t           = Index.t * FC.reft
+  let d_refinement = d_index_reft
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
+  let top          = Index.top, reft_of_top 
 end
 
 (******************************************************************************)
@@ -165,6 +194,9 @@ module MakeTypes (R : CTYPE_REFINEMENT): CTYPE_DEFS with module R = R = struct
   type cfun  = refinement precfun
   type spec  = refinement prespec
 end
+
+module IndexTypes = MakeTypes (IndexRefinement)
+module ReftTypes  = MakeTypes (Reft)
 
 module SIGS (T : CTYPE_DEFS) = struct
   module type CTYPE = sig
@@ -1057,7 +1089,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
-module IndexTypes = MakeTypes (IndexRefinement)
 module I          = Make (IndexTypes)
 
 type ctype  = I.CType.t
@@ -1076,42 +1107,10 @@ let vtype_to_ctype v = if Cil.isArithmeticType v
 let d_ctype        = I.CType.d_ctype
 let index_of_ctype = I.CType.refinement
 
-(******************************************************************************)
-(************************* Refctypes and Friends ******************************)
-(******************************************************************************)
-
-module FC = FixConstraint
-
-let reft_of_top = 
-  let so = Ast.Sort.t_obj in
-  let vv = Ast.Symbol.value_variable so in
-  FC.make_reft vv so []
-
 (*******************************************************************)
 (********************* Refined Types and Stores ********************)
 (*******************************************************************)
 
-let d_reft () r = 
-  Misc.fsprintf (FC.print_reft_pred None) r |> P.text
-
-let d_index_reft () (i,r) = 
-  P.dprintf "%a , %a" Index.d_index i d_reft r
-  (*let di = Index.d_index () i in
-  let dc = P.text " , " in
-  let dr = d_reft () r in
-  P.concat (P.concat di dc) dr
-  *)
-
-
-module Reft = struct
-  type t = Index.t * FC.reft
-  let d_refinement = d_index_reft
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Index.top, reft_of_top 
-end
-
-module ReftTypes   = MakeTypes (Reft)
 module RefCTypes   = Make (ReftTypes)
 module RCt         = RefCTypes
 
