@@ -140,20 +140,39 @@ let d_structinfo () = function
   | _ -> 
       P.nil
 
-module SIGS (R : CTYPE_REFINEMENT) = struct
-  type ctype = R.t prectype
-  type field = R.t prefield
-  type ldesc = R.t preldesc
-  type store = R.t prestore
-  type cfun  = R.t precfun
-  type spec  = R.t prespec
+module type CTYPE_DEFS = sig
+  module R : CTYPE_REFINEMENT
 
+  type refinement = R.t
+
+  type ctype = refinement prectype
+  type field = refinement prefield
+  type ldesc = refinement preldesc
+  type store = refinement prestore
+  type cfun  = refinement precfun
+  type spec  = refinement prespec
+end
+
+module MakeTypes (R : CTYPE_REFINEMENT): CTYPE_DEFS with module R = R = struct
+  module R = R
+
+  type refinement = R.t
+
+  type ctype = refinement prectype
+  type field = refinement prefield
+  type ldesc = refinement preldesc
+  type store = refinement prestore
+  type cfun  = refinement precfun
+  type spec  = refinement prespec
+end
+
+module SIGS (T : CTYPE_DEFS) = struct
   module type CTYPE = sig
-    type t = ctype
+    type t = T.ctype
 
     exception NoLUB of t * t
 
-    val refinement  : t -> R.t
+    val refinement  : t -> T.refinement
     val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
     val d_ctype     : unit -> t -> P.doc
     val of_const    : Cil.constant -> t
@@ -167,16 +186,16 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   end
 
   module type FIELD = sig
-    type t = field
+    type t = T.field
 
     val get_finality  : t -> finality
     val set_finality  : t -> finality -> t
     val get_fieldinfo : t -> fieldinfo
     val set_fieldinfo : t -> fieldinfo -> t
     val is_final      : t -> bool
-    val type_of       : t -> ctype
+    val type_of       : t -> T.ctype
     val sloc_of       : t -> Sloc.t option
-    val create        : finality -> fieldinfo -> ctype -> t
+    val create        : finality -> fieldinfo -> T.ctype -> t
     val subs          : Sloc.Subst.t -> t -> t
     val map_type      : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
       
@@ -184,27 +203,27 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   end
 
   module type LDESC = sig
-    type t = ldesc
+    type t = T.ldesc
 
-    exception TypeDoesntFit of Index.t * ctype * t
+    exception TypeDoesntFit of Index.t * T.ctype * t
 
     val empty         : t
     val eq            : t -> t -> bool
     val is_read_only  : t -> bool
-    val add           : Index.t -> field -> t -> t
-    val create        : structinfo -> (Index.t * field) list -> t
+    val add           : Index.t -> T.field -> t -> t
+    val create        : structinfo -> (Index.t * T.field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
-    val find          : Index.t -> t -> (Index.t * field) list
-    val foldn         : (int -> 'a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
-    val fold          : ('a -> Index.t -> field -> 'a) -> 'a -> t -> 'a
+    val find          : Index.t -> t -> (Index.t * T.field) list
+    val foldn         : (int -> 'a -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
+    val fold          : ('a -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
     val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val iter          : (Index.t -> field -> unit) -> t -> unit
+    val iter          : (Index.t -> T.field -> unit) -> t -> unit
     val indices       : t -> Index.t list
-    val bindings      : t -> (Index.t * field) list
+    val bindings      : t -> (Index.t * T.field) list
 
     val set_structinfo : t -> structinfo -> t
     val get_structinfo : t -> structinfo
@@ -213,7 +232,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   end
 
   module type STORE = sig
-    type t = store
+    type t = T.store
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
@@ -234,7 +253,7 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val ctype_closed : ctype -> t -> bool
+    val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
 
     val data         : t -> t
@@ -243,16 +262,16 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     val d_store      : unit -> t -> P.doc
 
     module Data: sig
-      val add           : t -> Sloc.t -> ldesc -> t
-      val bindings      : t -> (Sloc.t * ldesc) list
+      val add           : t -> Sloc.t -> T.ldesc -> t
+      val bindings      : t -> (Sloc.t * T.ldesc) list
       val domain        : t -> Sloc.t list
       val mem           : t -> Sloc.t -> bool
       val ensure_sloc   : t -> Sloc.t -> t
-      val find          : t -> Sloc.t -> ldesc
-      val find_or_empty : t -> Sloc.t -> ldesc
+      val find          : t -> Sloc.t -> T.ldesc
+      val find_or_empty : t -> Sloc.t -> T.ldesc
       val map           : ('a prectype -> 'a prectype) -> 'a prestore -> 'a prestore
-      val fold_fields   : ('a -> Sloc.t -> Index.t -> field -> 'a) -> 'a -> t -> 'a
-      val fold_locs     : (Sloc.t -> ldesc -> 'a -> 'a) -> 'a -> t -> 'a
+      val fold_fields   : ('a -> Sloc.t -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
+      val fold_locs     : (Sloc.t -> T.ldesc -> 'a -> 'a) -> 'a -> t -> 'a
     end
 
     module Function: sig
@@ -267,15 +286,15 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t
 
-      val unify_ctype_locs : t -> Sloc.Subst.t -> ctype -> ctype -> t * Sloc.Subst.t
+      val unify_ctype_locs : t -> Sloc.Subst.t -> T.ctype -> T.ctype -> t * Sloc.Subst.t
       val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
-      val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> field -> t * Sloc.Subst.t
-      val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> cfun -> t * Sloc.Subst.t
+      val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> T.field -> t * Sloc.Subst.t
+      val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> T.cfun -> t * Sloc.Subst.t
     end
   end
 
   module type CFUN = sig
-    type t = cfun
+    type t = T.cfun
 
     val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
@@ -284,34 +303,34 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
                           'a precfun ->
                           'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
-    val well_formed     : store -> t -> bool
-    val normalize_names : t -> t -> (store -> Sloc.Subst.t -> (string * string) list -> ctype -> ctype) -> t * t
+    val well_formed     : T.store -> t -> bool
+    val normalize_names : t -> t -> (T.store -> Sloc.Subst.t -> (string * string) list -> T.ctype -> T.ctype) -> t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
     val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
-    val make            : (string * ctype) list -> S.t list -> store -> ctype -> store -> t
+    val make            : (string * T.ctype) list -> S.t list -> T.store -> T.ctype -> T.store -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
   end
 
   module type SPEC = sig
-    type t      = spec
+    type t      = T.spec
 
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val add_fun : bool -> string -> cfun * specType -> t -> t
-    val add_var : bool -> string -> ctype * specType -> t -> t
-    val add_data_loc : Sloc.t -> ldesc * specType -> t -> t
-    val add_fun_loc  : Sloc.t -> cfun * specType -> t -> t
-    val store   : t -> store
-    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val add_fun : bool -> string -> T.cfun * specType -> t -> t
+    val add_var : bool -> string -> T.ctype * specType -> t -> t
+    val add_data_loc : Sloc.t -> T.ldesc * specType -> t -> t
+    val add_fun_loc  : Sloc.t -> T.cfun * specType -> t -> t
+    val store   : t -> T.store
+    val funspec : t -> (T.cfun * specType) Misc.StringMap.t
+    val varspec : t -> (T.ctype * specType) Misc.StringMap.t
     val locspectypes : t -> specType SLM.t
 
-    val make    : (R.t precfun * specType) Misc.StringMap.t ->
-                  (R.t prectype * specType) Misc.StringMap.t ->
-                  store ->
+    val make    : (T.cfun * specType) Misc.StringMap.t ->
+                  (T.ctype * specType) Misc.StringMap.t ->
+                  T.store ->
                   specType SLM.t ->
                   t
     val add     : t -> t -> t
@@ -320,14 +339,14 @@ module SIGS (R : CTYPE_REFINEMENT) = struct
 end
 
 module type S = sig
-  module R : CTYPE_REFINEMENT
+  module T : CTYPE_DEFS
 
-  module CType : SIGS (R).CTYPE
-  module Field : SIGS (R).FIELD
-  module LDesc : SIGS (R).LDESC
-  module Store : SIGS (R).STORE
-  module CFun  : SIGS (R).CFUN
-  module Spec  : SIGS (R).SPEC
+  module CType : SIGS (T).CTYPE
+  module Field : SIGS (T).FIELD
+  module LDesc : SIGS (T).LDESC
+  module Store : SIGS (T).STORE
+  module CFun  : SIGS (T).CFUN
+  module Spec  : SIGS (T).SPEC
 
   module ExpKey: sig
     type t = Cil.exp
@@ -349,16 +368,16 @@ module type S = sig
   val d_ctemap: unit -> ctemap -> P.doc
 end
 
-module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
-  module R   = R
-  module SIG = SIGS (R)
+module Make (T: CTYPE_DEFS): S with module T = T = struct
+  module T   = T
+  module SIG = SIGS (T)
 
   (***********************************************************************)
   (***************************** Types ***********************************)
   (***********************************************************************)
 
   module rec CType: SIG.CTYPE = struct
-    type t = R.t prectype
+    type t = T.ctype
 
     let refinement = function
       | Int (_, r) | Ref (_, r) -> r
@@ -368,8 +387,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
       | Ref (l, x) -> Ref (l, f x)
 
     let d_ctype () = function
-      | Int (n, i) -> P.dprintf "int(%d, %a)" n R.d_refinement i
-      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s R.d_refinement i
+      | Int (n, i) -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
+      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
 
     let width = function
       | Int (n, _) -> n
@@ -387,12 +406,12 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
 
     let is_subctype pct1 pct2 =
       match pct1, pct2 with
-        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> R.is_subref r1 r2
-        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> R.is_subref r1 r2
+        | Int (n1, r1), Int (n2, r2) when n1 = n2    -> T.R.is_subref r1 r2
+        | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> T.R.is_subref r1 r2
         | _                                          -> false
 
     let of_const c =
-      let r = R.of_const c in
+      let r = T.R.of_const c in
         match c with
           | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
           | C.CChr c            -> Int (CM.int_width, r)
@@ -424,7 +443,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   (******************************************************************************)
 
   and Field: SIG.FIELD = struct
-    type t = R.t prefield
+    type t = T.field
 
     let get_finality {pffinal = fnl} =
       fnl
@@ -471,7 +490,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   end
 
   and LDesc: SIG.LDESC = struct
-    type t = R.t preldesc
+    type t = T.ldesc
 
     exception TypeDoesntFit of Index.t * CType.t * t
 
@@ -565,7 +584,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   end
 
   and Store: SIG.STORE = struct
-    type t = R.t prestore
+    type t = T.store
 
     let empty = (SLM.empty, SLM.empty)
 
@@ -835,7 +854,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   (******************************* Function Types *******************************)
   (******************************************************************************)
   and CFun: SIG.CFUN = struct
-    type t = R.t precfun
+    type t = T.cfun
 
     (* API *)
     let make args globs sin reto sout =
@@ -967,7 +986,7 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
   (************************************ Specs ***********************************)
   (******************************************************************************)
   and Spec: SIG.SPEC = struct
-    type t = R.t prespec
+    type t = T.spec
 
     let empty = (SM.empty, SM.empty, Store.empty, SLM.empty)
 
@@ -1038,7 +1057,8 @@ module Make (R: CTYPE_REFINEMENT): S with module R = R = struct
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
-module I = Make (IndexRefinement)
+module IndexTypes = MakeTypes (IndexRefinement)
+module I          = Make (IndexTypes)
 
 type ctype  = I.CType.t
 type cfun   = I.CFun.t
@@ -1091,7 +1111,8 @@ module Reft = struct
   let top          = Index.top, reft_of_top 
 end
 
-module RefCTypes   = Make (Reft)
+module ReftTypes   = MakeTypes (Reft)
+module RefCTypes   = Make (ReftTypes)
 module RCt         = RefCTypes
 
 type refctype      = RCt.CType.t

@@ -70,16 +70,29 @@ type specType =
 
 type 'a prespec
 
-module type S = sig
+module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
+
+  type refinement = R.t
+
+  type ctype = refinement prectype
+  type field = refinement prefield
+  type ldesc = refinement preldesc
+  type store = refinement prestore
+  type cfun  = refinement precfun
+  type spec  = refinement prespec
+end
+
+module type S = sig
+  module T : CTYPE_DEFS
 
   module CType:
   sig
-    type t = R.t prectype
+    type t = T.ctype
 
     exception NoLUB of t * t
 
-    val refinement       : t -> R.t
+    val refinement       : t -> T.R.t
     val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
     val d_ctype          : unit -> t -> Pretty.doc
     val of_const         : Cil.constant -> t
@@ -94,7 +107,7 @@ module type S = sig
 
   module Field:
   sig
-    type t = R.t prefield
+    type t = T.field
 
     val get_finality  : t -> finality
     val set_finality  : t -> finality -> t
@@ -112,7 +125,7 @@ module type S = sig
 
   module LDesc:
   sig
-    type t = R.t preldesc
+    type t = T.ldesc
 
     exception TypeDoesntFit of Index.t * CType.t * t
 
@@ -142,7 +155,7 @@ module type S = sig
 
   module Store:
   sig
-    type t = R.t prestore
+    type t = T.store
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
@@ -200,13 +213,13 @@ module type S = sig
       val unify_ctype_locs : t -> Sloc.Subst.t -> CType.t -> CType.t -> t * Sloc.Subst.t
       val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t
-      val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> R.t precfun -> t * Sloc.Subst.t
+      val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> T.cfun -> t * Sloc.Subst.t
     end
   end
 
   module CFun:
   sig
-    type t = R.t precfun
+    type t = T.cfun
 
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
@@ -227,7 +240,7 @@ module type S = sig
 
   module Spec:
   sig
-    type t = R.t prespec
+    type t = T.spec
 
     val empty   : t
 
@@ -238,12 +251,12 @@ module type S = sig
     val add_fun_loc  : Sloc.t -> CFun.t * specType -> t -> t
     
     val store   : t -> Store.t
-    val funspec : t -> (R.t precfun * specType) Misc.StringMap.t
-    val varspec : t -> (R.t prectype * specType) Misc.StringMap.t
+    val funspec : t -> (T.cfun * specType) Misc.StringMap.t
+    val varspec : t -> (T.ctype * specType) Misc.StringMap.t
     val locspectypes : t -> specType Sloc.SlocMap.t
 
-    val make    : (R.t precfun * specType) Misc.StringMap.t -> 
-                  (R.t prectype * specType) Misc.StringMap.t -> 
+    val make    : (T.cfun * specType) Misc.StringMap.t -> 
+                  (T.ctype * specType) Misc.StringMap.t -> 
                   Store.t ->
                   specType Sloc.SlocMap.t ->
                   t
@@ -274,9 +287,10 @@ module type S = sig
   val d_ctemap: unit -> ctemap -> Pretty.doc
 end
 
-module Make (R: CTYPE_REFINEMENT) : S with module R = R
+module Make (T: CTYPE_DEFS) : S with module T = T
 
-module I : S with module R = IndexRefinement
+module IndexTypes : CTYPE_DEFS with module R = IndexRefinement
+module I          : S with module T = IndexTypes
 
 val d_specTypeRel : unit -> specType -> Pretty.doc
 val specTypeMax   : specType -> specType -> specType
@@ -303,7 +317,8 @@ val d_ctype      : unit -> ctype -> Pretty.doc
 (********************** refctypes and friends *************************)
 (**********************************************************************)
 module Reft      : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
-module RefCTypes : S with module R = Reft
+module ReftTypes : CTYPE_DEFS with module R = Reft
+module RefCTypes : S with module T = ReftTypes
 
 type refctype = RefCTypes.CType.t
 type refcfun  = RefCTypes.CFun.t
