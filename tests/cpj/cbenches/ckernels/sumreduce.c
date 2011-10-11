@@ -1,3 +1,6 @@
+#include <liquidc.h>
+
+
 
 int main(char ** args, int vargs)
 {
@@ -19,9 +22,10 @@ int main(char ** args, int vargs)
 //                                 w: l => i <= v < i + len;
 void initialize(int  * a, int len) {
   int i;
-  foreach(i in 0 to len) {
+
+  foreach(i, 0, len)
     a[i] = i;
-  }
+  endfor
 }
 
 //a: ptr(l, i) -> len: int -> seqLen: int -> int / h: l => (0+: int);
@@ -36,10 +40,12 @@ int reduce(int * a, int len, int seqLen)
   int result = 0;
   if (len > seqLen) {
     int tmp1, tmp2, h = len/2;
-    cobegin {
-      tmp1 = reduce(a, h, seqLen)
-      tmp2 = reduce(a + h, h, seqLen)
-    }
+
+    cobegin
+      rtn(tmp1 = reduce(a, h, seqLen))
+      rtn(tmp2 = reduce(a + h, len - h, seqLen))
+    coend 
+
     result = tmp1 + tmp2;
     }
     else
