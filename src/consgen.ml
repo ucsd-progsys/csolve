@@ -186,6 +186,7 @@ let create cil spec decs =
   let shm    = shapem_of_scim cil spec scim vim in
   (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
   let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
+
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in

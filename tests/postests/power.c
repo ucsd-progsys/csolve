@@ -19,7 +19,7 @@ struct root {
    Demand last ;
    double last_theta_R ;
    double last_theta_I ;
-   struct lateral *feeders[10] ;
+   struct lateral *(SHAPE_IGNORE_BOUND feeders)[10] ;
 };
 typedef struct root *Root;
 struct branch;
@@ -41,7 +41,7 @@ struct branch {
    double R ;
    double X ;
    struct branch *next_branch ;
-   struct leaf *leaves[10] ;
+   struct leaf *(SHAPE_IGNORE_BOUND leaves)[10] ;
 };
 typedef struct branch *Branch;
 struct leaf {

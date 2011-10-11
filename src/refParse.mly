@@ -101,6 +101,7 @@ let currentLoc () =
 %token MOD 
 %token PLUS
 %token MINUS
+%token PLUSMINUS
 %token TIMES 
 %token QM DOT ASGN
 %token INT BOOL PTR FUNC
@@ -259,12 +260,17 @@ ctype:
   ;
 
 index:
-    Num                                 { N.IInt $1 }
-  | Num LB Num RB                       { N.mk_sequence $1 $3 (Some $1) None }
-  | Num LB Num LT Num RB                { N.mk_sequence $1 $3 (Some $1) (Some ($5 - $3)) }
-  | Num LC Num RC                       { N.mk_sequence $1 $3 None None }
-  | TRUE                                { N.top }
-  | FALSE                               { N.IBot }
+    LC Num RC                                   { N.IInt $2 }
+  | LC Num PLUS Num TIMES ubound RC             { N.mk_sequence $2 $4 (Some $2) $6 }
+  | LC Num PLUSMINUS Num TIMES ubound RC        { N.mk_sequence $2 $4 None $6 }
+  | LC Num LE Num PLUSMINUS Num TIMES ubound RC { N.mk_sequence $4 $6 (Some $2) $8 }
+  | LC TRUE RC                                  { N.top }
+  | LC RC                                       { N.IBot }
+  ;
+
+ubound:
+                                        { None }
+  | LE Num                              { Some $2 }
   ;
 
 argbinds:

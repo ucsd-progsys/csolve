@@ -203,7 +203,7 @@ let print_ce so ppf (_, vnv) =
 (****************************************************************)
 
 
-let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())] 
+let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())]
 let ra_true         = fun _ -> []
 let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
@@ -236,26 +236,25 @@ let ra_bbegin ct =
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
 
 let ra_array tptr ct =
-     ct 
-  |> sort_of_prectype 
-  |> Sy.value_variable 
-  |> A.eVar 
+     ct
+  |> sort_of_prectype
+  |> Sy.value_variable
+  |> A.eVar
   |> begin fun vv ->
-     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.pred_of_index_ref in
+     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.non_null_pred_of_index_ref in
        [C.Conc (P.subst p vv' vv)]
      end
 
 let ra_indexpred ct =
   let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
   let vv', p = Sc.pred_of_ctype ct in
-    [C.Conc (A.pImp (A.pAtom (vv, A.Ne, A.zero), P.subst p vv' vv))]
+    [C.Conc (P.subst p vv' vv)]
 
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
-let t_index         = fun ct -> refctype_of_ctype ra_indexpred ct
 
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype      = t_conv_refctype ra_true
@@ -345,7 +344,8 @@ let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
     |> (function [v] -> [C.Conc (mk_eq_uf FA.eApp_bbegin (A.eVar vv) (A.eVar (FA.name_of_varinfo v)))] | _ -> [])
 
 let t_exp_scalar v e =
-  let ct  = Ct.scalar_ctype in
+(*  let ct  = Ct.scalar_ctype in *)
+  let ct  = Ct.vtype_to_ctype v.Cil.vtype in
   let so  = sort_of_prectype ct in
   let vv  = Sy.value_variable so in
   let _,p = CI.reft_of_cilexp vv e in
@@ -399,7 +399,8 @@ let conv_refstore_bottom st =
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
-let t_scalar_ptr tptr = refctype_of_ctype (ra_array tptr) Ct.scalar_ctype
+let t_scalar_ptr tptr =
+  refctype_of_ctype (ra_array tptr) (Ct.vtype_to_ctype tptr)
 
 (* {{{
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)
@@ -410,13 +411,14 @@ let t_scalar = function
 
 let t_scalar = Ct.index_of_ctype <+> 
                Sc.pred_of_index <+> 
-               Misc.uncurry (t_pred Ct.scalar_ctype)
+               Misc.uncurry (t_pred Ct.nscalar_ctype)
 let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
 
 
 }}} *)
 
-let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred Ct.scalar_ctype)
+(* let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred C.scalar_ctype) *)
+let t_scalar ct = ct |> Sc.non_null_pred_of_ctype |> Misc.uncurry (t_pred ct)
 
 let deconstruct_refctype rct = 
   let r = Ct.reft_of_refctype rct in
@@ -439,9 +441,11 @@ let vv_rename so' r =
   C.make_reft vv' so' ras'
 
 let t_scalar_refctype_raw rct =
-  let so'  = Ct.scalar_ctype |> sort_of_prectype in
+(*  let so'  = Ct.scalar_ctype |> sort_of_prectype in *)
+  let so' = Ct.ctype_of_refctype rct |> sort_of_prectype in
   let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
-  refctype_of_reft_ctype r' Ct.scalar_ctype
+    (* refctype_of_reft_ctype r' Ct.scalar_ctype *)
+   refctype_of_reft_ctype r' (Ct.ctype_of_refctype rct)
 
 (* API *)
 let t_scalar_refctype =

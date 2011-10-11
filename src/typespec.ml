@@ -138,7 +138,7 @@ let predOfAttrs tbo ats =
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
-  let predIndex         = if hasPred then SC.ref_index_of_pred vv pred else I.top in
+  let predIndex         = if hasPred then I.ref_index_of_pred vv pred else I.top in
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfAttrs tb ats =
@@ -148,7 +148,7 @@ let ptrReftypeOfAttrs tb ats =
 let intReftypeOfAttrs width ats =
   let pred = predOfAttrs None ats in
     FI.t_spec_pred
-      (Ct.Int (width, SC.data_index_of_pred vv pred))
+      (Ct.Int (width, I.data_index_of_pred vv pred))
       vv
       pred
 
