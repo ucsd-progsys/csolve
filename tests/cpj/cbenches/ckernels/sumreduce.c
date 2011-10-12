@@ -15,6 +15,8 @@ int main(char ** args, int vargs)
 
   initialize(arr, len);
   reduce(arr, len, seqLen);
+
+  return 0;
 }
 
 //a: ptr(l, i) -> len: int -> () / h: l => (0+: int);

@@ -72,11 +72,12 @@
 // Deterministic Parallel Constructs
 
 #define COBEGIN                { __blockattribute__ ((lcc_cobegin))
-#define COEND                  }
 #define RTN(s)                 { s; }
-//#define FOREACH(i, l, u, s, a) { __blockattribute__ ((lcc_foreach (a))) FOR(i, l, u) EACH(s, a) }
-#define FOREACH(i, l, u)       { (__blockattribute__ ((lcc_foreach))) ITER(i, l, u) {
-#define ITER(i, l, u)           int i = (int __attribute__ ((foreach_index)) nondet(); lcc_assume(i >= l && i < u);
+#define COEND                  }
+#define FOREACH(i, l, u)       { __blockattribute__ ((lcc_foreach)) \
+                                 ITER(i, l, u) {
+#define ITER(i, l, u)           int i = (int __attribute__ ((lcc_foreach_index))) nondet();\
+                                lcc_assume(i >= l && i < u);
 #define ENDFOR                 }}
 
 #define foreach(i, l, u)       FOREACH(i, l, u)
