@@ -1,3 +1,5 @@
+#include <liquidc.h>
+
 void merge(int * a, int * b, int * lena, int lenb, int * c);
 bool check_sorted(int * buf, int len);
 int find_split(int m, int * b);
@@ -34,22 +36,23 @@ void initialize(int * buf, int len) {
 //                                          r: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len);
 //                                          w: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len) 
 void sort(int * a, int * b, int len) {
-  int q  = len / 4; //for simplicity, let us assume that 4 divides len
+  int q  = len / 4;
   int h  = 2*q;
+  int r1 = len - 3*q;
    
   cobegin {
     sort(a, b, q);
     sort(a + q, b + q, q);
     sort(a + h, b + h, q);
-    sort(a + 3*q, b + 3*q, q);
+    sort(a + 3*q, len, r);
   }
 
   cobegin {
     merge(a, a + q, q, q, b);
-    merge(a + q, a + h, q, q, b + h);
+    merge(a + h, a + 3*q, q, r, b + h);
   }
 
-  merge(b, b + h, h, h, a);
+  merge(b, b + h, h, len - h, a);
 }
 
 void seq_merge(int * a, int * b, int * lena, int lenb, int * c) 
@@ -82,10 +85,10 @@ void merge(int * a, int * b, int lena, int lenb, int * c)
     int sb = find_split(a[ha], b);
   }
 
-  cobegin {
-    merge(a, b, ha, sb, c);
-    merge(a + ha, b + sb, lena - ha, lenb - sb, c + ha + sb);
-  }
+  cobegin
+    rtn(merge(a, b, ha, sb, c))
+    rtn(merge(a + ha, b + sb, lena - ha, lenb - sb, c + ha + sb))
+  coend
 }
 
 int find_split(int v, int * b, int len)
