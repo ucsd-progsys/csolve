@@ -35,6 +35,7 @@ module SS = Misc.StringSet
 module M  = Misc
 module P  = Pretty
 module CM = CilMisc
+module Ct = Ctypes
 module CS = Ctypes.RefCTypes.Spec
 module RS = Ctypes.RefCTypes.Store
 module Cs = Constants
@@ -78,8 +79,11 @@ let mk_gnv f spec decs cenv =
              |> FI.ce_adds FI.ce_empty in
   SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
-       (fn, if SS.mem fn fundecs 
-            then ft |> FI.refcfun_of_cfun |> FI.map_fn f
+       (fn, if SS.mem fn fundecs then
+              let rft = ft |> FI.refcfun_of_cfun |> FI.map_fn f in
+                {rft with
+                  Ct.sto_in  = RS.map_effects FI.t_true_refctype rft.Ct.sto_in
+                ; Ct.sto_out = RS.map_effects f rft.Ct.sto_out}
             else spec |> CS.funspec |> SM.find fn |> fst)
      end
   |> FI.ce_adds_fn gnv0

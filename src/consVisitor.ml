@@ -142,18 +142,36 @@ let extend_env me v cr env =
 (*  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in
 *)  FI.ce_adds env [(FA.name_of_varinfo v), cr]
 
-let cons_of_mem me loc tago tag grd env sto v =
+type memOp =
+  | MemRead
+  | MemWrite
+
+let update_effect env v rct sto = function
+  | MemRead  -> sto
+  | MemWrite ->
+    let l = rct |> RT.sloc |> M.maybe in
+      if RS.Data.mem sto l then
+        let ld = RS.Data.find sto l in
+             ld
+          |> RL.get_write_effect
+          |> FI.add_effect env v
+          |> RL.set_write_effect ld
+          |> RS.Data.add sto l
+      else sto
+
+let cons_of_mem me loc tago tag grd env sto v mop =
   if !Cs.manual then
     (sto, ([], []))
   else
     let rct = FI.t_ptr_footprint env v in
-      (sto, FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc)
+    let cs  = FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc in
+      (update_effect env v rct sto mop, cs)
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
     | Ct.Ref (l, _) as rct, cds ->
       let ld2 = RS.Data.find sto l in
-      let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
+      let ld1 = ld2 |> RL.map (RF.map_type FI.t_true_refctype) |> RL.map_effects FI.t_true_refctype in
         (rct, sto, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
     | _ -> assert false
 
@@ -166,7 +184,7 @@ let cons_of_rval me loc tag grd (env, sto, tago) = function
   (* *v *)
   | Lval (Mem e, _) ->
     let v'      = CM.referenced_var_of_exp e in
-    let sto, cs = cons_of_mem me loc tago tag grd env sto v' in
+    let sto, cs = cons_of_mem me loc tago tag grd env sto v' MemRead in
       (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto,
        sto,
        cs)
@@ -212,7 +230,7 @@ let cons_of_set me loc tag grd ffm pre_env (env, sto, tago) = function
       if is_bot_ptr me env v then (env, sto, Some tag), ([], []) else
       let addr = var_addr me env v in
       let cr', sto, cds1 = cons_of_rval me loc tag grd (env, sto, tago) e in
-      let sto, cds2      = cons_of_mem me loc tago tag grd pre_env sto v in
+      let sto, cds2      = cons_of_mem me loc tago tag grd pre_env sto v MemWrite in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
@@ -346,7 +364,7 @@ let cons_of_ptrcall me loc i j grd ((env, sto, tago) as wld) (lvo, e, es) ns = m
         | Ct.Ref (l, _) ->
           let l             = Sloc.canonical l in
           let tag           = CF.tag_of_instr me i j loc in
-          let sto, cs1      = cons_of_mem me loc tago tag grd env sto v in
+          let sto, cs1      = cons_of_mem me loc tago tag grd env sto v MemRead in
           let wld, cs2, wfs = cons_of_call me loc i j grd wld (lvo, RS.Function.find sto l, es) ns in
             (wld, cs1 +++ cs2, wfs)
         | _ -> assert false
