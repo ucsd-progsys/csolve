@@ -92,7 +92,7 @@ let currentLoc () =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON HASTYPE MAPSTO MID LOCATION
-%token ARG RET ST GLOBAL INST OUTST WRITE
+%token ARG RET ST GLOBAL INST OUTST WRITE READ
 %token TRUE FALSE
 %token EOF
 %token MOD 
@@ -214,7 +214,11 @@ slocbindsne:
 slocbind:
     sloc MAPSTO indbinds effect   {
       ($1,
-       SData (RCt.LDesc.create $1 Ct.dummy_structinfo $3 |> Misc.flip RCt.LDesc.set_write_effect $4),
+       SData begin
+            RCt.LDesc.create $1 Ct.dummy_structinfo $3
+         |> Misc.flip RCt.LDesc.set_write_effect (fst $4)
+         |> Misc.flip RCt.LDesc.set_read_effect (snd $4)
+       end,
        currentLoc ())
     }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
@@ -240,7 +244,7 @@ indbind:
   ;
 
 effect:
-    LT WRITE COLON reftype GT { $4 }
+    LT WRITE COLON reftype COMMA READ COLON reftype GT { ($4, $8) }
   ;
 
 reftype:

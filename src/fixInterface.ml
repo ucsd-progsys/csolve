@@ -693,9 +693,10 @@ let rec make_wfs_refstore env full_sto sto tag =
       let env' = ncrs |> List.filter (fun (_,i) -> not (Ix.is_periodic i)) 
                       |> List.map fst
                       |> ce_adds env in 
-      let ws'  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
-      let ws'' = make_wfs env' full_sto (RCt.LDesc.get_write_effect rd) tag in
-        ws'' ++ ws' ++ ws
+      let ws1  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
+      let ws2  = make_wfs env' full_sto (RCt.LDesc.get_write_effect rd) tag in
+      let ws3  = make_wfs env' full_sto (RCt.LDesc.get_read_effect rd) tag in
+        ws3 ++ ws2 ++ ws1 ++ ws
     end [] sto
 
 and make_wfs_fn cenv rft tag =
@@ -719,7 +720,7 @@ let make_cs cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
-let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
+let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
   let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
@@ -727,14 +728,29 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag =
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
   let env    = ncrs1 |> List.map fst |> ce_adds env in
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
+    f ncrs12 env subs
+
+let make_cs_refldesc_effects_aux env p subs rd1 rd2 tago tag =
   let w1, w2 = M.map_pair RCt.LDesc.get_write_effect (rd1, rd2) in
+  let r1, r2 = M.map_pair RCt.LDesc.get_read_effect (rd1, rd2) in
+        make_cs env p w1 (t_subs_names subs w2) tago tag
+    +++ make_cs env p r1 (t_subs_names subs r2) tago tag
+
+let make_cs_refldesc_effects env p sld1 sld2 tago tag =
+  with_refldesc_ncrs_env_subs env sld1 sld2 begin fun _ env subs ->
+    make_cs_refldesc_effects_aux env p subs (snd sld1) (snd sld2) tago tag
+  end
+
+let make_cs_refldesc env p sld1 sld2 tago tag =
+  with_refldesc_ncrs_env_subs env sld1 sld2 begin fun ncrs env subs ->
      Misc.map begin fun ((n1, _), (_, cr2)) -> 
        let lhs = t_name env n1 in
        let rhs = t_subs_names subs cr2 in
          make_cs env p lhs rhs tago tag 
-     end ncrs12
-  |> Misc.splitflatten
-  |> (+++) (make_cs env p w1 (t_subs_names subs w2) tago tag)
+     end ncrs
+     |> Misc.splitflatten
+     |> (+++) (make_cs_refldesc_effects_aux env p subs (snd sld1) (snd sld2) tago tag)
+  end 
 
 (* API *)
 let make_cs cenv p rct1 rct2 tago tag loc =
@@ -840,6 +856,13 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
   try make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_refldesc fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refldesc" in 
+    assert false
+
+(* API *)
+let make_cs_refldesc_effects env p sld1 sld2 tago tag loc =
+  try make_cs_refldesc_effects env p sld1 sld2 tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_refldesc_effects fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_refldesc_effects" in
     assert false
 
 (* API *) 

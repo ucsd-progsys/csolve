@@ -126,6 +126,7 @@ type effectinfo = Reft.t prectype
 
 type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                    ; plwrite    : effectinfo
+                   ; plread     : effectinfo
                    ; plinfo     : structinfo }
 
 type 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
@@ -275,6 +276,9 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     val get_write_effect : t -> effectinfo
     val set_write_effect : t -> effectinfo -> t
+
+    val get_read_effect  : t -> effectinfo
+    val set_read_effect  : t -> effectinfo -> t
 
     val d_ldesc       : unit -> t -> P.doc
   end
@@ -555,7 +559,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let empty l =
       let dummy_effectinfo = Ref (l, Reft.top) in
-        {plfields = []; plinfo = dummy_structinfo; plwrite = dummy_effectinfo}
+        { plfields = []
+        ; plinfo   = dummy_structinfo
+        ; plwrite  = dummy_effectinfo
+        ; plread   = dummy_effectinfo}
 
     let eq {plfields = cs1} {plfields = cs2} =
       Misc.same_length cs1 cs2 &&
@@ -613,7 +620,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       mapn (fun _ _ fld -> f fld) flds
 
     let map_effects f ld =
-      {ld with plwrite = f ld.plwrite}
+      {ld with plwrite = f ld.plwrite; plread = f ld.plread}
 
     let subs sub ld =
          ld
@@ -647,8 +654,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let set_write_effect ld w =
       {ld with plwrite = w}
 
-    let d_ldesc () {plfields = flds; plwrite = w} =
-      P.dprintf "@[%t <*write: %a>@]"
+    let get_read_effect {plread = r} =
+      r
+
+    let set_read_effect ld r =
+      {ld with plread = r}
+
+    let d_ldesc () {plfields = flds; plwrite = w; plread = r} =
+      P.dprintf "@[%t <*write: %a, *read: %a>@]"
         begin fun () ->
           P.seq
             (P.dprintf ",@!")
@@ -656,6 +669,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
             flds
         end
         d_effectinfo w
+        d_effectinfo r
   end
 
   and Store: SIG.STORE = struct

@@ -148,6 +148,12 @@ val make_cs_refldesc    : cilenv -> Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
+val make_cs_refldesc_effects :
+                          cilenv -> Ast.pred -> 
+                          (Sloc.t * Ctypes.refldesc) -> (Sloc.t * Ctypes.refldesc) -> 
+                          CilTag.t option -> CilTag.t -> Cil.location ->
+                          FixConstraint.t list * FixConstraint.dep list
+
 val make_cs_refstore    : cilenv -> Ast.pred -> 
                           Ctypes.refstore -> Ctypes.refstore -> bool ->
                           CilTag.t option -> CilTag.t -> Cil.location ->

@@ -107,8 +107,11 @@ let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
 
   | Refanno.WGen  (cloc, aloc) ->
       let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (WGen)!" in
+      let ld1    = (cloc, Ct.refstore_get sto cloc) in
+      let ld2    = (aloc, Ct.refstore_get sto aloc) in
+      let cds    = FI.make_cs_refldesc_effects env grd ld1 ld2 tago tag loc in
       let sto'   = RS.remove sto cloc in
-      ((env, sto', tago), ([],[]))
+      ((env, sto', tago), cds)
 
   | Refanno.Ins (ptr, aloc, cloc) ->
       let _          = CM.assertLoc loc (not (RS.mem sto cloc)) "cons_of_annot: (Ins)!" in
@@ -146,18 +149,17 @@ type memOp =
   | MemRead
   | MemWrite
 
-let update_effect env v rct sto = function
-  | MemRead  -> sto
-  | MemWrite ->
-    let l = rct |> RT.sloc |> M.maybe in
-      if RS.Data.mem sto l then
-        let ld = RS.Data.find sto l in
-             ld
-          |> RL.get_write_effect
-          |> FI.add_effect env v
-          |> RL.set_write_effect ld
-          |> RS.Data.add sto l
-      else sto
+let get_and_set_effect_of_memop = function
+  | MemRead  -> (RL.get_read_effect,  RL.set_read_effect)
+  | MemWrite -> (RL.get_write_effect, RL.set_write_effect)
+
+let update_effect env v rct sto mop =
+  let l = rct |> RT.sloc |> M.maybe in
+    if RS.Data.mem sto l then
+      let get_effect, set_effect = get_and_set_effect_of_memop mop in
+      let ld                     = RS.Data.find sto l in
+        ld |> get_effect |> FI.add_effect env v |> set_effect ld |> RS.Data.add sto l
+    else sto
 
 let cons_of_mem me loc tago tag grd env sto v mop =
   if !Cs.manual then
