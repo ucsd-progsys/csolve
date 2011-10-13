@@ -144,11 +144,11 @@ let d_indexAbs   = { create = SIA.create
 		   ; read_bind = SIA.read_bind
 		   }
 
-let ac_solve dd me fn (ws, cs, ds) qs so =
+let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
   let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs assm in
-  let ctx, s  = BS.time "Qual Inst" dd.create cfg in
+  let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
   let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
@@ -171,7 +171,7 @@ let filter_cstrs dd s fp (ws, cs) =
 
 let ac_scalar_solve dd me fn fp (ws, cs, ds) (eqs, bqs, mqs) =
   Misc.with_ref_at Constants.slice false begin fun () ->
-    ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None |> fst
+    ac_solve dd me (fn^".eq")  (ws, cs, ds) eqs None None |> fst
   end
 
 let get_cstrs me = 
@@ -181,19 +181,15 @@ let get_cstrs me =
 
 (* API *)
 let solve me fn qs =
-(*  let _ = SM.map (List.map (Format.printf "Solve: me.cm: %a" (C.print_t None))) (me.cm) in *)
-(*  let _ = Pretty.printf "***ac_solve for int starting***\n" in
-  let _ = ac_solve d_indexAbs me fn (get_cstrs me) qs None
-  |> fun (s, c) -> let _ = Pretty.printf "***ac_solve for int done***\n" in (s,c)
-  |> (fun (s, c) -> let _ = AbstractDomain.dump s in (s, c))
-  |> Misc.app_fst d_indexAbs.read
-  |> fun (s', cs) -> match cs with
-       | [] ->  let _ = Pretty.printf "woohoo\n!" in ()
-       | cs' ->
-	   let _ = List.map (Format.printf "Solve: unsat: %a" (C.print_t None)) cs' in
-	     ()
-  in *)
-  ac_solve d_predAbs me fn (get_cstrs me) qs None 
+  let s = if !Constants.prune_index then
+    BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
+    |> fst
+    |> d_indexAbs.read
+    |> fun s -> Some s
+  else
+    None
+  in
+  ac_solve d_predAbs me fn (get_cstrs me) qs None s
   |> Misc.app_fst d_predAbs.read
 
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
@@ -210,7 +206,6 @@ let scalar_solve me fn fp qs =
   in
   let qst = ScalarCtypes.partition_scalar_quals qs in
   let s   = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me) qst in
-
   let _ = if !Constants.check_is then
     let apply sol (vv,t,ras) =
       (vv,t,List.map

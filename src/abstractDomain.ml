@@ -26,7 +26,8 @@
 module Ix = Index
 module A  = Ast
 module As = A.Symbol
-module Ac = A.Constant  
+module Ac = A.Constant
+module P  = A.Predicate  
 module Asm = As.SMap  
 module Sct = ScalarCtypes
 module F   = FixConstraint
@@ -38,12 +39,11 @@ open Misc.Ops
 (* Instead of mapping k variables below to single indices, instead
    keep around some previously mapped indices *)
 type kstore = {
-  l  : int;      (* length of ks *)
-  ks : Ix.t list (* history *)
+  l  : int;        (* length of ks *)
+  ks : Ix.t list   (* history *)
 }
 
-let empty_ks = { l = 1; ks = [IBot] }
-let soln_of_kstore_map = Asm.map (fun kst -> List.hd kst.ks)
+let ix_of_kstore k = List.hd k.ks    
 
 (* look at a list of indices. count:
    (# consecutive decreases in ub,
@@ -73,7 +73,7 @@ let rec take n lst =
 (* How to add a value to a kstore *)
 let refine_store n {l = l; ks = ks} i =
   if l = 0 then
-    { l = 1; ks = [i] }
+    { l = 1; ks = [i]}
   else if l < n then
     let i' = lub i (List.hd ks) in
     { l = l+1; ks = i'::ks }
@@ -88,51 +88,69 @@ let refine_store n {l = l; ks = ks} i =
 	       {l = l; ks = i'::(take (l-1) ks)}
 	| _ -> {l = l; ks = i'::(take (l-1) ks)}
 
+type sort_store = (Ast.Sort.t option) * kstore
 type bind = Ix.t
-type t    = kstore Asm.t
+type t    = sort_store Asm.t (*might not know the sort*)
 
 let empty = Asm.empty
 
 let read sol =
-  fun k -> 
-    if Asm.mem k sol
-    then
-      [Sct.pred_of_index_ref (List.hd (Asm.find k sol).ks) |> snd] (*wrong*)
+  fun k ->
+    if Asm.mem k sol then
+      let t,kstore = Asm.find k sol in
+	match t with
+	  | None ->
+	      [kstore.ks |> List.hd |> Sct.pred_of_index_int |> snd]
+	  | Some t' ->
+	      if A.Sort.is_int t' then
+		[kstore.ks |> List.hd |> Sct.pred_of_index_int |> snd]
+	      else
+		let p = kstore.ks |> List.hd |> Sct.pred_of_index_ref |> snd in
+		let psub = P.subst p (As.value_variable A.Sort.t_int)
+		  (A.eVar (As.value_variable t')) in
+		  [psub]
     else
       [Ast.pFalse]
 
 let read_bind sol k =
   if Asm.mem k sol then
-    List.hd (Asm.find k sol).ks
+    Asm.find k sol |> snd |> fun st -> List.hd st.ks
   else
     IBot
 
-let read_store sol k =
+let read_store sol t k =
   if Asm.mem k sol then
-    (Asm.find k sol)
+    Asm.find k sol
   else
-    empty_ks
+    Some t, {l = 1; ks = [IBot]}
 
 let top sol xs =
-  let xsTop = List.map (fun x -> x, {l = 1; ks = [top]}) xs in
+  let xsTop = List.map (fun x -> x, (None, {l = 1; ks = [top]})) xs in
   let xsMap = Asm.of_list xsTop in
     Asm.extend xsMap sol
       
 let refine sol c =
-  let ixmap = soln_of_kstore_map sol in
   let rhs = F.rhs_of_t c in
-  let lhsVal = index_of_reft (F.env_of_t c) ixmap (F.lhs_of_t c) in
+  let t = F.sort_of_reft (F.lhs_of_t c) in
+  let lhsVal = index_of_reft (F.env_of_t c) (read_bind sol) (F.lhs_of_t c) in
   let refineK sol k =
-    let oldK = read_store sol k in
-    let newK = refine_store 3 oldK lhsVal (* widen oldK lhsVal in *)
-(*    let _ =  if !Constants.trace_scalar then
+    let (kt,oldK) = read_store sol t k in
+    let _ = match kt with
+      | Some kt' -> assert (Ast.Sort.is_int t = Ast.Sort.is_int kt')
+      | _ -> ()
+    in
+    let newK = refine_store 3 oldK lhsVal in
+    let _ =  if !Constants.trace_scalar then
       let _ = Format.printf "%a" (F.print_t None) c in
-      let _ = Pretty.printf "lhs %a old %a new %a\n" d_index lhsVal d_index oldK d_index newK in
-	() *)
+      let _ = Pretty.printf "lhs %a old %a new %a\n"
+	d_index lhsVal
+	d_index (ix_of_kstore oldK)
+	d_index (ix_of_kstore newK) in
+	()
     in
       if (Asm.mem k sol) && List.hd oldK.ks = List.hd newK.ks
       then (false, sol)
-      else (true, Asm.add k newK sol)
+      else (true, Asm.add k (kt,newK) sol)
   in
     List.fold_left
       begin fun (chg, sol) (_, sym) -> 
@@ -143,32 +161,38 @@ let refine sol c =
 let unsat sol c =
   (* Make sure that lhs <= k for each k in rhs *)
   let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
-  let ixmap = soln_of_kstore_map sol in
-  let lhsVal = index_of_reft (F.env_of_t c) ixmap (F.lhs_of_t c) in
+  let lhsVal = index_of_reft (F.env_of_t c) (read_bind sol) (F.lhs_of_t c) in
   let onlyK (sub, sym) = (* true if the constraint is unsatisfied *)
     not (is_subindex lhsVal (read_bind sol sym))
   in
-    List.map onlyK rhsKs |> List.fold_left (&&) true
+    List.map onlyK rhsKs |> List.fold_left (||) false
 	
-let create cfg =
-  let replace v = empty_ks in
-    Asm.map replace cfg.Config.bm
-	
+let create cfg _ =
+  let kss = Misc.flap
+    begin fun wf -> 
+      let reft = F.reft_of_wf wf in
+      let sort = F.sort_of_reft reft in
+	List.map (fun k -> (sort, k)) (F.kvars_of_reft reft)
+    end cfg.Config.ws
+  in
+    List.fold_left
+      begin fun m (sort,(sub,k)) ->
+	let _ = assert (not (Asm.mem k m)) in
+	  Asm.add k (Some sort, {l = 1; ks = [IBot]}) m
+      end Asm.empty kss
+    
 let print ppf sol =
-  let pf key value =
-    List.fold_left (^) "" (List.map repr value.ks)
-    |> Format.fprintf ppf "%s |-> %s\n" (As.to_string key)
- in
+  let pf key (t,i) =
+   Format.fprintf ppf "%s -> %s\n" (As.to_string (key)) (repr (read_bind sol key)) in
   let _ = Asm.mapi pf sol in
     ()
 
 let print_stats ppf sol =
   ()
 
-let dump sol =
-  Constants.cprintf Constants.ol_solve 
-    "SolnCluster: nothing here yet\n"
+let dump sol = ()
 
+    
 let mkbind qbnds = IBot
 (* end *)
   
