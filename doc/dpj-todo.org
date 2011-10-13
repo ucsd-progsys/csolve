@@ -1,8 +1,8 @@
 * TODO Parsing DPJ constructs (Ming)
 
 ** Cobegin
-   Enclose cobegin body in a block with attribute cobegin_x.  Enclose
-   each body statement in its own block with attribute cobegin_x_y.
+   Enclose cobegin body in a block with attribute cobegin.  Enclose
+   each body statement in its own block with attribute cobegin_x.
 
 ** Foreach
    { __blockattribute ((foreach_1))
