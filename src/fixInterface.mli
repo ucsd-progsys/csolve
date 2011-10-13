@@ -70,13 +70,13 @@ val strengthen_final_field :
 val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun -> Ctypes.refcfun
 
 
-
 val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
 val t_zero              : Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
+val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_indexpred_refctype : Ctypes.refctype -> Ctypes.refctype
@@ -93,6 +93,8 @@ val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
+
+val add_effect          : cilenv -> Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
 
 val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 

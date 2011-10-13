@@ -30,9 +30,6 @@ let store_of_slocbinds sbs =
         | SFun f    -> RCt.Store.Function.add sto x f
   end RCt.Store.empty sbs
 
-let ldesc_of_plocbinds pbs =
-  List.fold_left (fun ld (x,y) -> RCt.LDesc.add x y ld) RCt.LDesc.empty pbs
-
 let abs_sloctable = Hashtbl.create 17
 let cnc_sloctable = Hashtbl.create 17
 
@@ -95,7 +92,7 @@ let currentLoc () =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON HASTYPE MAPSTO MID LOCATION
-%token ARG RET ST GLOBAL INST OUTST
+%token ARG RET ST GLOBAL INST OUTST WRITE
 %token TRUE FALSE
 %token EOF
 %token MOD 
@@ -182,7 +179,7 @@ publ:
 
 globalslocbind:
     sloc publ indbinds {
-      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+      ($1, $2, SData (RCt.LDesc.create $1 Ct.dummy_structinfo $3), currentLoc ())
     }
   | sloc publ funtyp {
       ($1, $2, SFun $3, currentLoc ())
@@ -215,7 +212,11 @@ slocbindsne:
   ;
 
 slocbind:
-    sloc MAPSTO indbinds                { ($1, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ()) }
+    sloc MAPSTO indbinds effect   {
+      ($1,
+       SData (RCt.LDesc.create $1 Ct.dummy_structinfo $3 |> Misc.flip RCt.LDesc.set_write_effect $4),
+       currentLoc ())
+    }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
   ;
 
@@ -236,6 +237,10 @@ indbind:
   | index COLON FINAL reftype {
       ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
     }
+  ;
+
+effect:
+    LT WRITE COLON reftype GT { $4 }
   ;
 
 reftype:

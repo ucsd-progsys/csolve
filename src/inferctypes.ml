@@ -430,7 +430,7 @@ exception LocationMismatch of S.t * LDesc.t * S.t * LDesc.t
 
 let assert_location_inclusion l1 ld1 l2 ld2 =
   (* Polymorphism hack! *)
-  if ld2 = LDesc.empty then
+  if LDesc.is_empty ld2 then
     ()
   else
     LDesc.fold begin fun _ pl _ ->
