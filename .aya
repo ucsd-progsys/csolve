@@ -9,7 +9,7 @@
 ./external/z3/lib/libz3-*
 ./external/z3/bin/*
 ./doc/*
-**/_build/*
+**/_build/*.cm*
 ./benchmarks/*
 *.o
 *.pyc
