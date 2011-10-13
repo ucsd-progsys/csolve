@@ -158,6 +158,9 @@ module type S = sig
     val get_write_effect : t -> effectinfo
     val set_write_effect : t -> effectinfo -> t
 
+    val get_read_effect : t -> effectinfo
+    val set_read_effect : t -> effectinfo -> t
+
     val d_ldesc       : unit -> t -> Pretty.doc
   end
 
