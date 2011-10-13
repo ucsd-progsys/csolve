@@ -178,8 +178,15 @@ publ:
   ;
 
 globalslocbind:
-    sloc publ indbinds {
-      ($1, $2, SData (RCt.LDesc.create $1 Ct.dummy_structinfo $3), currentLoc ())
+    sloc publ indbinds effect {
+      ($1,
+       $2,
+       SData begin
+            RCt.LDesc.create $1 Ct.dummy_structinfo $3
+         |> Misc.flip RCt.LDesc.set_write_effect (fst $4)
+         |> Misc.flip RCt.LDesc.set_read_effect (snd $4)
+       end,
+       currentLoc ())
     }
   | sloc publ funtyp {
       ($1, $2, SFun $3, currentLoc ())

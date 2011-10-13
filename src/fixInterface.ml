@@ -256,6 +256,7 @@ let p_ptr_footprint vv v =
   let sz   = v.vtype |> CM.ptrRefType |> CM.bytesSizeOf |> A.eInt in
     A.pAnd [A.pEqual (FA.eApp_bbegin evv, FA.eApp_bbegin eptr);
             A.pEqual (FA.eApp_bend evv, FA.eApp_bend eptr);
+            A.pEqual (FA.eApp_uncheck evv, FA.eApp_uncheck eptr);
             A.pAtom (eptr, A.Le, evv);
             A.pAtom (evv, A.Lt, A.eBin (eptr, A.Plus, sz))]
 
