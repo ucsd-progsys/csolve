@@ -343,14 +343,14 @@ let failure_dump sub ve sto =
   let _ = P.printf "@!Store:@!" in
   let _ = P.printf "======@!" in
   let _ = P.printf "%a@!@!" Store.d_store (Store.subs sub sto) in
-    E.s <| C.error "Failed constrain_fun@!"
+    C.error "Failed constrain_fun@!"
 
 let constrain_fun fs cf ve sto sci =
   try
     constrain_fun fs cf ve sto sci
   with
-    | UStore.UnifyFailure (sub, sto) -> failure_dump sub ve sto
-    | _                              -> failure_dump S.Subst.empty ve sto
+    | UStore.UnifyFailure (sub, sto) -> E.s <| failure_dump sub ve sto
+    | _                              -> E.s <| failure_dump S.Subst.empty ve sto
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
