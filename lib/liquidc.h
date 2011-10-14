@@ -73,13 +73,13 @@
 
 #define COBEGIN                { __blockattribute__ ((lcc_cobegin))\
                                  int sw = (int __attribute__ ((lcc_cobegin_index))) nondet();\
-                                 switch sw {
+                                 switch(sw) {
 #define COEND                  }}
 #define RTBEG                  RTBEG2( __COUNTER__ )
 #define RTBEG2(x)              RTBEG3( x )
-#define RTBEG3(x)              case sw = x:\
-                                 { __blockattribute__ ((lcc_coroutine_##x))
-#define RTEND                    } break;    
+#define RTBEG3(x)              case x:\
+                                 { __blockattribute__ ((lcc_coroutine_##x)) 
+#define RTEND                    } break;
 #define RTN(s)                 RTBEG s; RTEND 
 
 #define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
