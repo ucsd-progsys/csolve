@@ -1,4 +1,5 @@
 #include <liquidc.h>
+#include <stdlib.h>
 
 
 
@@ -44,8 +45,8 @@ int reduce(int * a, int len, int seqLen)
     int tmp1, tmp2, h = len/2;
 
     cobegin
-      rtn(tmp1 = reduce(a, h, seqLen))
-      rtn(tmp2 = reduce(a + h, len - h, seqLen))
+        rtn(tmp1 = reduce(a, h, seqLen))
+        rtn(tmp2 = reduce(a + h, len - h, seqLen))
     coend 
 
     result = tmp1 + tmp2;

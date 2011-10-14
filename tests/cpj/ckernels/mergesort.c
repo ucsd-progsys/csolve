@@ -1,9 +1,9 @@
 #include <liquidc.h>
 
-void merge(int * a, int * b, int * lena, int lenb, int * c);
-bool check_sorted(int * buf, int len);
-int find_split(int m, int * b);
-void sort(int * a, int * b, int len);
+//void merge(int * a, int * b, int * lena, int lenb, int * c);
+//bool check_sorted(int * buf, int len);
+//int find_split(int m, int * b);
+//void sort(int * a, int * b, int len);
 
 
 const int BUF_LEN; //{v: int | v > 0}
@@ -38,19 +38,19 @@ void initialize(int * buf, int len) {
 void sort(int * a, int * b, int len) {
   int q  = len / 4;
   int h  = 2*q;
-  int r1 = len - 3*q;
+  int r  = len - 3*q;
    
-  cobegin {
-    sort(a, b, q);
-    sort(a + q, b + q, q);
-    sort(a + h, b + h, q);
-    sort(a + 3*q, len, r);
-  }
+  cobegin
+    rtn(sort(a, b, q))
+    rtn(sort(a + q, b + q, q))
+    rtn(sort(a + h, b + h, q))
+    rtn(sort(a + 3*q, len, r))
+  coend 
 
-  cobegin {
-    merge(a, a + q, q, q, b);
-    merge(a + h, a + 3*q, q, r, b + h);
-  }
+  cobegin
+    rtn(merge(a, a + q, q, q, b))
+    rtn(merge(a + h, a + 3*q, q, r, b + h))
+  coend 
 
   merge(b, b + h, h, len - h, a);
 }

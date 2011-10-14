@@ -60,7 +60,7 @@
 
 #define LCC_VAR2(base, n) base##n
 #define LCC_VAR(base, n)  LCC_VAR2(__lcc__##base, n)
-#define LCC_ASSUME(p)     int LCC_VAR(assume, __COUNTER__) = lcc_assume (p);
+#define LCC_ASSUME(p)     int LCC_VAR(assume, __COUNTER__ ) = lcc_assume (p);
 
 // Memory Safety Backdoors
 
@@ -71,19 +71,33 @@
 
 // Deterministic Parallel Constructs
 
-#define COBEGIN                { __blockattribute__ ((lcc_cobegin))
-#define RTN(s)                 { s; }
-#define COEND                  }
-#define FOREACH(i, l, u)       { __blockattribute__ ((lcc_foreach)) \
-                                 ITER(i, l, u) {
-#define ITER(i, l, u)           int i = (int __attribute__ ((lcc_foreach_index))) nondet();\
+#define COBEGIN                { __blockattribute__ ((lcc_cobegin))\
+                                 int sw = (int __attribute__ ((lcc_cobegin_index))) nondet();\
+                                 switch sw {
+#define COEND                  }}
+#define RTBEG                  RTBEG2( __COUNTER__ )
+#define RTBEG2(x)              RTBEG3( x )
+#define RTBEG3(x)              case sw = x:\
+                                 { __blockattribute__ ((lcc_coroutine_##x))
+#define RTEND                    } break;    
+#define RTN(s)                 RTBEG s; RTEND 
+
+#define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
+#define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
+#define FOREACH3(i, l, u, x)   { __blockattribute__ ((lcc_foreach_##x)) \
+                                 ITER(i, l, u, x) {
+#define ITER(i, l, u, x)           int i = (int __attribute__ ((lcc_foreach_index_##x))) nondet();\
                                 lcc_assume(i >= l && i < u);
 #define ENDFOR                 }}
+
+// more natural looking macros for parallel constructs
 
 #define foreach(i, l, u)       FOREACH(i, l, u)
 #define endfor                 ENDFOR
 #define cobegin                COBEGIN
 #define coend                  COEND
+#define rtbeg                  RTBEG
+#define rtend                  RTEND
 #define rtn(s)                 RTN(s)
 
 // Built-in functions
