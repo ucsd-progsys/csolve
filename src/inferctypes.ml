@@ -449,7 +449,7 @@ let assert_call_no_physical_subtyping fe f store gst annots =
       | _ -> ()
     end annots
 
-let assert_no_physical_subtyping fe cfg anna store gst =
+let assert_no_physical_subtyping fe cfg anna sub ve store gst =
   try
     Array.iteri begin fun i b ->
       match b.Ssa.bstmt.C.skind with
@@ -463,10 +463,9 @@ let assert_no_physical_subtyping fe cfg anna store gst =
         | _ -> ()
     end cfg.Ssa.blocks
   with LocationMismatch (l1, ld1, l2, ld2) ->
-    ignore <|
-        C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
-          S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2;
-    exit 1
+    let _ = failure_dump sub ve store in
+      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+               S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
 let infer_shape fe ve gst scim (cf, sci, vm) =
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
@@ -479,7 +478,7 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let em                    = I.ExpMap.map (Ct.subs sub) em in
   let bas                   = Array.map (RA.subs sub) bas in
   let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
-  let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sto gst in
+  let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
     {Sh.vtyps   = CM.vm_to_list vtyps;
      Sh.etypm   = em;
