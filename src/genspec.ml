@@ -156,13 +156,13 @@ let adj_period pd idx =
   | Bnd (n, k), N.IInt i -> N.mk_sequence i n (Some i) (Some (i + (k - 1) * n))
   | _,          _        -> assertf "adj_period: adjusting a periodic index"
 
-let ldesc_of_index_ctypes loc ts =
+let ldesc_of_index_ctypes loc l ts =
 (* {{{ *) let _ = if mydebug then List.iter begin fun (i,t) -> 
             PP.printf "LDESC ON: %a : %a \n" N.d_index i Ct.I.CType.d_ctype t |> ignore
           end ts in (* }}} *)
      ts
   |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal Ct.dummy_fieldinfo t))
-  |> Ct.I.LDesc.create Ct.dummy_structinfo
+  |> Ct.I.LDesc.create l Ct.dummy_structinfo
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
@@ -240,7 +240,7 @@ and conv_ptr loc (th, st) pd c =
     let idx              = mk_idx pd 0 in
     let th'              = SM.add tid (l, idx) th in
     let (th'', st', _), its = conv_cilblock loc (th', st, N.IInt 0) pd c in
-    let b                = ldesc_of_index_ctypes loc its in
+    let b                = ldesc_of_index_ctypes loc l its in
     let st''             = Ct.I.Store.Data.add st' l b in
     (th'', st''), Ct.Ref (l, idx)
 

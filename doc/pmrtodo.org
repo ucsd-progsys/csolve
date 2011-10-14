@@ -1,3 +1,20 @@
+* TODO Remember to commit fixpoint
+* TODO Add fixInterface code for ensuring that effects are disjoint
+
+
+* TODO Test with loops, ifs
+* TODO Test with function pointers
+* TODO Add parallel blocks
+* TODO How does foreach work?
+  We need to show that two iterations of the foreach necessarily touch
+  different parts of memory, right? So i, j in the limits and not equal,
+  instantiate the effects, show that they're different.
+* TODO Effects from library functions?
+  They're all true right now.
+* TODO Add read effects
+
+
+* TODO Does create_shapeo need to fresh the store?
 * TODO Heapify /all/ globals?
   Various parts of the code go through contortions to ensure that
   globals never appear in expressions (so they're always read into a

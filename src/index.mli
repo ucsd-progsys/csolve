@@ -49,7 +49,7 @@ module IndexSet : Set.S with type elt = t
 val d_indexset : unit -> IndexSet.t -> Pretty.doc
 
 val index_of_reft      : FixConstraint.envt ->
-                         t Ast.Symbol.SMap.t ->
+                         (Ast.Symbol.t -> t) -> 
                          FixConstraint.reft ->
                          t
 val ref_index_of_pred  : Ast.Symbol.t -> Ast.pred -> t

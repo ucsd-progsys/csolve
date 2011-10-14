@@ -410,7 +410,7 @@ let extend_wld_with_clocs me j loc tag wld =
           fst <| FI.extend_world csto cl cl false id loc tag wld
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
- 
+
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
       (me.gnv, get_astore me, None)
@@ -448,13 +448,16 @@ let create_shapeo tgr gnv env gst sci = function
   | None -> 
       ([], [], [], None)
   | Some shp ->
-      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv |> Ct.stores_of_refcfun |> fst in
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
       let ws      = FI.make_wfs_refstore env lastore lastore tag in
+      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv
+                 |> Ct.stores_of_refcfun
+                 |> fst
+                 |> Ct.RefCTypes.Store.map_effects FI.t_false_refctype in
       let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in 
       ws, cs, ds, Some { astore  = astore; cstoa = cstoa; shp = shp }
 

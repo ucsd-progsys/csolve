@@ -395,7 +395,7 @@ and index_of_expr env solution sym is_int expr =
     | A.Var sym ->
 	begin match F.lookup_env env sym with
 	  | Some ((vv, sort, refas) as reft) ->
-	      index_of_reft env solution is_int reft
+	      index_of_reft env solution (ckint sort) reft
 	  | _ -> top
 	end
     | A.App (sym,e)
@@ -412,23 +412,21 @@ and index_of_expr env solution sym is_int expr =
 	    | A.Mod   -> top
 	  end
     | _ -> top
-	(*
-	  and index_of_preds env sol v is_int preds =
-	  List.map (index_of_pred env sol v is_int) preds|> List.fold_left glb top *)
 and index_of_refa env sol v is_int refa = match refa with
-  | F.Kvar (_, k) -> if Asm.mem k sol then Asm.find k sol else IBot
+  | F.Kvar (_, k) -> sol k
   | F.Conc pred -> index_of_pred env sol v is_int pred 
-and index_of_reft env sol is_int (v,_,refas) =
+and index_of_reft env sol is_int (v,t,refas) =
   List.fold_left glb top
-    (List.map (index_of_refa env sol v is_int) refas)
+    (List.map (index_of_refa env sol v (ckint t)) refas)
+
 let index_of_reft env sol ((v,t,refas) as reft) =
   index_of_reft env sol (ckint t) reft
 
 let data_index_of_pred vv p =
-  index_of_pred Asm.empty Asm.empty vv asint p
+  index_of_pred Asm.empty (fun _ -> IBot) vv asint p
 
 let ref_index_of_pred vv p =
-  index_of_pred Asm.empty Asm.empty vv asref p
+  index_of_pred Asm.empty (fun _ -> IBot) vv asref p
     
     
 

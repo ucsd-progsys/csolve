@@ -70,19 +70,21 @@ val strengthen_final_field :
 val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun -> Ctypes.refcfun
 
 
-
 val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
 val t_zero              : Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
+val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_indexpred_refctype : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
+val t_valid_ptr         : Ctypes.ctype -> Ctypes.refctype
+val t_ptr_footprint     : cilenv -> Cil.varinfo -> Ctypes.refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ast.pred option * Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
 val t_name   : cilenv -> FixAstInterface.name -> Ctypes.refctype
@@ -91,6 +93,8 @@ val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
+
+val add_effect          : cilenv -> Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
 
 val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 
@@ -139,11 +143,13 @@ val make_cs_assert      : cilenv -> Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_validptr    : cilenv -> Ast.pred ->
-                          Ctypes.refctype -> int -> CilTag.t option -> CilTag.t -> Cil.location ->
+val make_cs_refldesc    : cilenv -> Ast.pred -> 
+                          (Sloc.t * Ctypes.refldesc) -> (Sloc.t * Ctypes.refldesc) -> 
+                          CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_refldesc    : cilenv -> Ast.pred -> 
+val make_cs_refldesc_effects :
+                          cilenv -> Ast.pred -> 
                           (Sloc.t * Ctypes.refldesc) -> (Sloc.t * Ctypes.refldesc) -> 
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list

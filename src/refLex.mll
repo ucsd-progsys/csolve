@@ -115,6 +115,8 @@ rule token = parse
   | "rhs"               { RHS }
   | "ref"               { REF }
   | "loc"               { LOCATION }
+  | "*write"            { WRITE }
+  | "*read"             { READ }
   | '-'? (digit)+	{ Num (int_of_string (Lexing.lexeme lexbuf)) }
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
   | eof			{ EOF }
