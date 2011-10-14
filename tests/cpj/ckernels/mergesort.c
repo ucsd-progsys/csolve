@@ -1,4 +1,6 @@
 #include <liquidc.h>
+#include <stdlib.h>
+#include <math.h>
 
 //void merge(int * a, int * b, int * lena, int lenb, int * c);
 //bool check_sorted(int * buf, int len);
@@ -95,9 +97,9 @@ int find_split(int v, int * b, int len)
 {
   int lo = 0;
   int hi = len;
-  int middle;
+  int m;
 
-  while (low < high) {
+  while (lo < hi) {
     m = lo + abs(hi - lo) / 2;
     if (v <= b[m]) 
       hi = m;
@@ -111,7 +113,7 @@ bool check_sorted(int * buf, int len)
 {
   int i; 
   for(i = 0; i < len - 1; i++)
-    if (buf[i] <= buf[i + 1])
+    if(buf[i] <= buf[i + 1])
       return false;
   return true;
 }

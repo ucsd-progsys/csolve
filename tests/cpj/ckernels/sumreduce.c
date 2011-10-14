@@ -1,34 +1,15 @@
 #include <liquidc.h>
 #include <stdlib.h>
 
-
-
-int main(char ** args, int vargs)
-{
-  if (vargs != 3)
-    return 1;
-  int seqLen = atoi(args[0]);
-
-  int * arr;
-  int len;
-
-  arr = malloc(sizeof(int) * len);
-
-  initialize(arr, len);
-  reduce(arr, len, seqLen);
-
-  return 0;
-}
-
 //a: ptr(l, i) -> len: int -> () / h: l => (0+: int);
 //                                 r: l => F;
 //                                 w: l => i <= v < i + len;
 void initialize(int  * a, int len) {
   int i;
 
-  foreach(i, 0, len)
+  FOREACH(i, 0, len)
     a[i] = i;
-  endfor
+  ENDFOR
 }
 
 //a: ptr(l, i) -> len: int -> seqLen: int -> int / h: l => (0+: int);
@@ -56,3 +37,24 @@ int reduce(int * a, int len, int seqLen)
         result = result + a[i];
     return result;
 }
+
+int main(char ** args, int vargs)
+{
+  if (vargs != 3)
+    return 1;
+  int seqLen = atoi(args[0]);
+
+  int * arr;
+  int len;
+
+  arr = malloc(sizeof(int) * len);
+
+  initialize(arr, len);
+  reduce(arr, len, seqLen);
+
+  return 0;
+}
+
+
+
+

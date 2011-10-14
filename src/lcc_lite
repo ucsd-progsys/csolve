@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc -c -Wno-attributes -I../lib/ -isysroot../external/include32/ $@
+
