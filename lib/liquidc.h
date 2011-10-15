@@ -115,7 +115,10 @@ extern int REF(V >= 1) nondetpos () OKEXTERN;
 extern int REF(V >= 0) nondetnn () OKEXTERN;
 
 // Casts
-char * LOC(L) STRINGPTR lcc_check_pos(char * REF(true) LOC(L) p) { return p; }
+char * LOC(L) STRINGPTR lcc_check_pos(char * VALIDPTR LOC(L) p) CHECK_TYPE
+{
+  return p;
+}
 
 // Needed for ADPCM
 
