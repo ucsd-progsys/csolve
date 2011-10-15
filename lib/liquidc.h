@@ -114,6 +114,9 @@ extern int REF(V >= 1) nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) nondetnn () OKEXTERN;
 
+// Casts
+char * LOC(L) STRINGPTR lcc_check_pos(char * REF(true) LOC(L) p) { return p; }
+
 // Needed for ADPCM
 
 extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, int REF(V >= 0) b) OKEXTERN;
