@@ -139,25 +139,6 @@ funtyp:
     OUTST  refstore {
       Ct.RefCTypes.CFun.make $2 $6 $8 $4 $10
     }
-  | ARG    argbinds
-    RET    reftype
-    INST   refstore
-    OUTST  refstore {
-      Ct.RefCTypes.CFun.make $2 [] $6 $4 $8
-    }
-  | ARG    argbinds
-    RET    reftype
-    GLOBAL slocs
-    ST     refstore
-    {
-      Ct.RefCTypes.CFun.make $2 $6 $8 $4 $8
-    }
-  | ARG    argbinds
-    RET    reftype
-    ST     refstore
-    {
-      Ct.RefCTypes.CFun.make $2 [] $6 $4 $6
-    }
     ;
 
 varspec:
