@@ -11,6 +11,11 @@ void main(){
     int z;
     z = i + 1;
     foo(i, &z);
+    z++;
+    z++;
+    z++;
+    z++;
+    z++;
   }
   
   return;
