@@ -1,0 +1,5 @@
+* Heapify modified locals in parallel blocks
+* Check that there are no gotos out of parallel blocks
+  If there is a goto within a parallel block, its target must be in
+  the same block.
+* Check structure of parallel blocks
