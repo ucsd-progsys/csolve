@@ -37,7 +37,7 @@ module FI = FixInterface
 
 module Ct = Ctypes
 module SPA = Solve.Make (PredAbs)
-module SIA = Solve.Make (AbstractDomain)
+module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 
 open Misc.Ops
@@ -203,7 +203,7 @@ let scalar_solve me fn fp (* qs *) =
   |> List.map (fun ra ->
 		 match ra with
 		   | C.Conc p -> ScalarCtypes.index_of_var v (cr, p)
-		   | C.Kvar (subs, k) -> AbstractDomain.read_bind s k)
+		   | C.Kvar (subs, k) -> IndexDomain.read_bind s k)
   |> List.fold_left Index.glb Index.top
   in
   (* let qst = ScalarCtypes.partition_scalar_quals qs in *)
