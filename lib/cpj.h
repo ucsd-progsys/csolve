@@ -45,5 +45,9 @@ typedef int bool;
 #define ISTRUE(x) (x != 0)
 #define ISFALSE(x) (x == 0)
 
+// Locally Unique Arrays
+
+#define UNQ
+
 #endif
 #endif
