@@ -53,7 +53,7 @@ val scalar_solve:  t
 val scalar_solve: t
                 -> string
                 -> (Ast.Symbol.t -> Ast.pred -> bool)
-                -> Ast.Qualifier.t list
+                (* -> Ast.Qualifier.t list *)
                 -> (Index.t CilMisc.VarMap.t) Misc.StringMap.t
   
 

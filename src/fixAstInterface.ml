@@ -145,7 +145,7 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_uncheck, C.make_reft vv_pun so_pun [])
                   ;(uf_deref,   C.make_reft vv_drf so_drf [])]
                   |> YM.of_list
-(* API *)
+
 let quals_of_file fname =
   try
     let _ = Errorline.startFile fname in
@@ -156,6 +156,15 @@ let quals_of_file fname =
       |> Misc.map_partial (function Config.Qul p -> Some p | _ -> None)
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
+
+(* API *)
+let quals_of_file fname =
+  let cppname = fname ^ ".cpp" in
+  let cmd     = Printf.sprintf "cpp -imacros %s %s -P -o %s" (Constants.get_liquidc_h ()) cppname fname in
+  let _       = if Sys.file_exists cppname then Sys.command cmd |> ignore in
+  quals_of_file fname
+
+
 
 (* API *)
 let maybe_deref e =

@@ -197,9 +197,10 @@ let short_width = bytesSizeOfInt IShort
 let char_width  = bytesSizeOfInt IChar
 
 let bytesSizeOf t =
-  1 + ((Cil.bitsSizeOf t - 1) / 8)
-  >> (bprintf mydebug "CM.bytesSizeOf %a = %d \n" d_type t)
-
+  try 
+    1 + ((Cil.bitsSizeOf t - 1) / 8)
+    >> (bprintf mydebug "CM.bytesSizeOf %a = %d \n" d_type t)
+  with _ -> E.s <| E.error "bytesSizeOf %a \n" d_type t
 
 let bytesOffset t off =
   fst (bitsOffset t off) / 8
@@ -472,8 +473,8 @@ let g_halt (b: bool) =
 (*************** Misc. Predicates ******************************************************)
 (***************************************************************************************)
 
-let is_fun    = fun v -> match v.vtype with TFun (_,_,_,_) -> true | _ -> false
-let is_scalar = fun v -> match v.vtype with TInt (_,_) -> true | _ -> false
+let is_fun    = fun v -> match unrollType v.vtype with TFun (_,_,_,_) -> true | _ -> false
+let is_scalar = fun v -> match unrollType v.vtype with TInt (_,_) -> true | _ -> false
 
 (***************************************************************************************)
 (*************** Cil Summarizers *******************************************************)

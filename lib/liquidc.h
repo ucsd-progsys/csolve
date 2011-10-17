@@ -1,16 +1,25 @@
 #ifndef __HAVE_LIQUIDC
 #define __HAVE_LIQUIDC
 
+// Predicate abbreviations
+#define PNONNULL       V > 0
+#define PNN(p)         ((V != 0) => (p))
+#define PVALIDPTR      && [PNONNULL; BLOCK_BEGIN([V]) <= V; V < BLOCK_END([V])]
+#define PSTART         V = BLOCK_BEGIN([V])
+#define PSIZE(n)       (V + n) = BLOCK_END([V])
+#define PSIZE_GE(n)    (V + n) <= BLOCK_END([V])
+#define POFFSET(n)     V = (BLOCK_BEGIN([V]) + n)
+#define POFFSET_GE(n)  V >= (BLOCK_BEGIN([V]) + n)
+
+#define PEQBLOCK(x)    && [(BLOCK_BEGIN([V]) = BLOCK_BEGIN([x])); (BLOCK_END([V]) = BLOCK_END([x]))]
+#define PINTO(x,lo,hi) && [PNONNULL; (PEQBLOCK(x));(POFFSET_GE(lo));(PSIZE_GE((hi + 1)))]
+
 // Basic macros
-
 // Need to break this into two levels to ensure predicate p is macro expanded
-#define REF(p)             SREF(p)
 #define SREF(p)            __attribute__ ((lcc_predicate (#p)))
-
-#define NNREF(p)           REF((V != 0) => (p))
-
+#define REF(p)             SREF(p)
+#define NNREF(p)           REF(PNN(p))
 #define ARRAY              __attribute__ ((array))
-
 #define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))
 
 #define FINAL              __attribute__ ((lcc_final))
@@ -29,17 +38,6 @@
 #define LAYOUT(t)          __attribute__ ((lcc_layout (sizeof(t))))
 
 
-// Predicate abbreviations
-
-#define PNONNULL       V > 0
-#define PVALIDPTR      && [PNONNULL; BLOCK_BEGIN([V]) <= V; V < BLOCK_END([V])]
-#define PSTART         V = BLOCK_BEGIN([V])
-#define PSIZE(n)       (V + n) = BLOCK_END([V])
-#define PSIZE_GE(n)    (V + n) <= BLOCK_END([V])
-#define POFFSET(n)     V = (BLOCK_BEGIN([V]) + n)
-#define POFFSET_GE(n)  V >= (BLOCK_BEGIN([V]) + n)
-
-
 // Predicate macros
 
 #define VALIDPTR          REF(PVALIDPTR)
@@ -55,12 +53,13 @@
 
 #define STRINGPTR         ARRAY VALIDPTR
 #define NNSTRINGPTR       ARRAY NNVALIDPTR
+#define ARRAYSTART        ARRAY START VALIDPTR
 
 // Assumptions
 
 #define LCC_VAR2(base, n) base##n
 #define LCC_VAR(base, n)  LCC_VAR2(__lcc__##base, n)
-#define LCC_ASSUME(p)     int LCC_VAR(assume, __COUNTER__ ) = lcc_assume (p);
+#define LCC_ASSUME(p)     ;int LCC_VAR(assume, __COUNTER__ ) = lcc_assume (p);
 
 // Memory Safety Backdoors
 
@@ -82,6 +81,12 @@ extern int nondet () OKEXTERN;
 extern int REF(V >= 1) nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) nondetnn () OKEXTERN;
+
+// Casts
+char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
+{
+  return p;
+}
 
 // Needed for ADPCM
 
