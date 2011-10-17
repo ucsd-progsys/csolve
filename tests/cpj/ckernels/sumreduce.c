@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <cpj.h>
 #include <stdlib.h>
 
 //a: ptr(l, i) -> len: int -> () / h: l => (0+: int);
@@ -7,9 +7,9 @@
 void initialize(int  * a, int len) {
   int i;
 
-  FOREACH(i, 0, len)
+  foreach(i, 0, len)
     a[i] = i;
-  ENDFOR
+  endfor 
 }
 
 //a: ptr(l, i) -> len: int -> seqLen: int -> int / h: l => (0+: int);
