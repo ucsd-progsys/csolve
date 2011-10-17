@@ -1,10 +1,8 @@
 #include <liquidc.h>
 
-#ifndef HAVE_CPJ
-#define HAVE_CPJ
-
-
-typedef int bool
+#ifdef  __HAVE_LIQUIDC
+#ifndef __HAVE_CPJ
+#define __HAVE_CPJ
 
 // Deterministic Parallel Constructs
 
@@ -37,4 +35,7 @@ typedef int bool
 #define rtend                  RTEND
 #define rtn(s)                 RTN(s)
 
+typedef int bool;
+
+#endif
 #endif
