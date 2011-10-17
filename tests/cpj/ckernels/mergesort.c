@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-const int REF (V > 0) buf_len; 
-const int REF (V > 0) merge_size;
+const int REF (V > 0) buf_len = 10000; 
+const int REF (V > 0) merge_size = 50;
 
 //define buf_len 10000
 //define merge_size 50
@@ -39,16 +39,19 @@ void initialize(int * ARRAY START buf, int len)
 //                                          r: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len);
 //                                          w: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len) 
 void mergesort(int * ARRAY a, int * ARRAY b, int len) {
-  int q  = len / 4;
-  int h  = 2*q;
-  int r  = len - 3*q;
-   
+  int q = len / 4;
+  int h = q + q;
+  int r = len - (q + q + q);
+  
+
   cobegin
     rtn(mergesort(a      , b    , q))
     rtn(mergesort(a + q  , b + q, q))
     rtn(mergesort(a + h  , b + h, q))
     //rtn(mergesort(a + 3*q, len, r)) //RJ: WTF? Where is the "b" argument?
   coend 
+
+  int tmp = b[0] + b[h]; //PROVE THIS FIRST
 
   cobegin
     rtn(merge(a, a + q, q, q, b))
@@ -63,14 +66,20 @@ void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb,
   int i, j, k;
   i = j = k = 0;
 
-  while (i < lena && j < lenb)
+  while (i < lena && j < lenb){
+
+    lcc_assert ( k == (i+j) );
+
     if (a[i] < b[j])   
       c[k++] = a[i++];
     else
       c[k++] = b[j++];
+  }
 
   while (i < lena) c[k++] = a[i++];
-  while (j < lenb) c[k++] = b[i++];
+  
+  while (j < lenb) c[k++] = b[j++];
+
 }
 
 //a: ptr(l1, i1) / l1 => (0+: int) -> b: ptr(l2, i2) / l2 => (0+: int)
@@ -112,12 +121,9 @@ int find_split(int v, int * ARRAY b, int len)
 
 bool check_sorted(int * ARRAY buf, int len)
 {
-  int i;
-  int n = nondet();
-  lcc_assert (0);
-
-  for (i = 0; i < len - 1; i++)
-    if (buf[i] <= buf[n]) //i + 1])
+  for (int i = 0; i < len - 1; i++){
+    if (buf[i] <= buf[i+1])
       return FALSE;
+  }
   return TRUE;
 }
