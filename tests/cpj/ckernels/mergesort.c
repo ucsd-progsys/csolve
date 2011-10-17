@@ -44,10 +44,10 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   
 
   cobegin
-    rtn(mergesort(a      , b    ,   q))
-    rtn(mergesort(a + q  , b + q,   q))
-    rtn(mergesort(a + h  , b + h,   q))
-    rtn(mergesort(a + 3*q, b + 3*q, r))
+    rtn(mergesort(a      , b      ,   q))
+    rtn(mergesort(a + q  , b + q  ,   q))
+    rtn(mergesort(a + 2*q, b + 2*q,   q))
+    rtn(mergesort(a + 3*q, b + 3*q,   r))
   coend 
 
   int tmp = b[0] + b[h]; //PROVE THIS FIRST
