@@ -23,7 +23,9 @@ int main(char ** argv, int argc)
   out = malloc(sizeof(int)*len);
 
   sort(in, 0, len, out);
-  assert(check_sorted(in));
+  lcc_assert(check_sorted(in));
+
+  return 0;
 }
 
 void initialize(int * buf, int len) {
@@ -57,7 +59,7 @@ void sort(int * a, int * b, int len) {
   merge(b, b + h, h, len - h, a);
 }
 
-void seq_merge(int * a, int * b, int * lena, int lenb, int * c) 
+void seq_merge(int * a, int * b, int lena, int lenb, int * c) 
 {
   int i, j, k;
   i = j = k = 0;
@@ -83,14 +85,14 @@ void merge(int * a, int * b, int lena, int lenb, int * c)
   if (lena <= MERGE_SIZE) 
     seq_merge(a, b, lena, lenb, c);
   else {
-    int ha = a / 2;
+    int ha = lena / 2;
     int sb = find_split(a[ha], b);
-  }
 
-  cobegin
-    rtn(merge(a, b, ha, sb, c))
-    rtn(merge(a + ha, b + sb, lena - ha, lenb - sb, c + ha + sb))
-  coend
+    cobegin
+      rtn(merge(a, b, ha, sb, c))
+      rtn(merge(a + ha, b + sb, lena - ha, lenb - sb, c + ha + sb))
+    coend
+  }
 }
 
 int find_split(int v, int * b, int len)
@@ -114,6 +116,6 @@ bool check_sorted(int * buf, int len)
   int i; 
   for(i = 0; i < len - 1; i++)
     if(buf[i] <= buf[i + 1])
-      return false;
-  return true;
+      return FALSE;
+  return TRUE;
 }

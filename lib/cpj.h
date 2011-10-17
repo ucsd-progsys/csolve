@@ -35,7 +35,15 @@
 #define rtend                  RTEND
 #define rtn(s)                 RTN(s)
 
+
+// porting is even more of a pain without booleans
 typedef int bool;
+
+#define FALSE 0
+#define TRUE  1
+
+#define ISTRUE(x) (x != 0)
+#define ISFALSE(x) (x == 0)
 
 #endif
 #endif
