@@ -1,38 +1,39 @@
-
-
+#include <cpj.h>
+#include <stdlib.h>
 
 const int DEF_SIZE;
 
 typedef struct node
-{
-  node * next; 
-  node * rankNbr;
+{ 
+  struct node * next; 
+  struct node * rankNbr;
   int rank;
+  int savedRank;
   int savedRankNext;
-}
+} node;
 
 void initRank(node * this)
 {
-  this.rank = (this.next == this) ? 0 : 1;
-  rankNbr = next;
+  this -> rank = (this -> next == this) ? 0 : 1;
+  this -> rankNbr = this -> next;
 }
 
 void updateNbrRank(node * this)
 {
-  savedRank = rankNbr.rank;
-  savedRankNext = rankNbr.rankNbr;
+  this -> savedRank = this -> rank;
+  this -> savedRankNext = this -> rankNbr;
 }
 
 void updateRank(node * this)
 {
-  if (rankNbr != savedRankNext)
+  if (this -> rankNbr != this -> savedRankNext)
   {
-    this.rank += this.savedRank;
-    this.rankNbr = savedRankNext;
+    this -> rank += this -> savedRank;
+    this -> rankNbr = this -> savedRankNext;
   }
 }
 
-typedef list = node **;
+typedef node ** list;
 
 node * root(list * l)
 {
@@ -41,25 +42,30 @@ node * root(list * l)
 
 list * newList(int sz)
 {
-  list * l = malloc(sizeof(node*) * size);
-  foreach (int i in 0 to sz)
+  list * l = UNQ malloc(sizeof(node*) * sz);
+  foreach (i, 0, sz)
     l[i] = malloc(sizeof(node));
+  endfor
+
+  return l;
 }
 
 void rank(list * l, int sz)
 {
-  int i;
   //initialize the nodes for ranking
-  foreach(int i in 0 to sz)
-    initRank(list[i]);
+  foreach(i, 0, sz)
+    initRank(l[i]);
+  endfor
 
   //repeat log2(nodes.length) times
-  i = log2(sz);
+  int i = log2(sz);
   while (i-- > 0) {
-    foreach(int j in 0 to sz)
-      updateNbrRank(list[j]);
-    foreach(int j in 0 to sz)
-      updateRank(list[j]);
+    foreach(j, 0, sz)
+      updateNbrRank(l[j]);
+    endfor
+    foreach(j, 0, sz)
+      updateRank(l[j]);
+    endfor
   }
 }
 
@@ -70,10 +76,11 @@ void swp(int * a, int i, int j)
   a[i] = tmp;
 }
 
+//NOTE NONSTANDARD INITIALIZATION
 int * permutation(int sz)
 {
   int i;
-  int * result = malloc(sizeof(int) * sz);  
+  int * result = UNQ malloc(sizeof(int) * sz);  
 
   for(i = 0; i < sz; i++)
     result[i] = i;
@@ -87,26 +94,27 @@ int * permutation(int sz)
   return result; 
 }
 
-void initialize(list ** l, int ** idxs, int sz)
+//NOTE TWO STAGE INITIALIZATION of list
+void initialize(list * l, int ** idxs, int sz)
 {
   int i;
 
-  *l    = newList(sz);
-  *idxs = permutation(sz);
+  list l   = *l    = newList(sz);
+  int * idxs = *idxs = permutation(sz);
    
-  for(i = 0; i < sz-1; i++)
-    list[idxs[i]].next = list[idxs[i+1]];
-  list[idxs[sz-1]].next = list[idxs[sz-1]];
+  for(i = 0; i < sz; i++)
+    l[idxs[i]] -> next = l[idxs[i+1]];
+  l[idxs[sz-1]] -> next = l[idxs[sz-1]];
 }
 
-void runTest(list * l, int * idxs, int sz)
+void runTest(list l, int * idxs, int sz)
 {
   int i;
   for(i = 0; i < sz; i++)
-    assert (list[idxs[i]].rank == size-i-1);
+    lcc_assert (l[idxs[i]] -> rank == sz-i-1);
 }
 
-void runWork(list * l, int sz)
+void runWork(list l, int sz)
 {
   rank(l, sz);
 }
@@ -115,20 +123,25 @@ void runWork(list * l, int sz)
 int main(char ** argv, int argc)
 {
   list * l;
-  int  * idxs;
+  int  ** idxs;
   int    sz;
 
   if (argc < 1 || argc > 4)
     return 1;
 
   if (argc >= 3)
-    sz = atoi(argc[2]);
+    sz = atoi(argv[2]);
   else
     exit(1);
 
+  l    = malloc(sizeof(list*));
+  idxs = malloc(sizeof(int*));
+
   initialize(l, idxs, sz);
-  runTest(l, idxs, sz);  
+  runTest(*l, *idxs, sz);  
   runWork(l, sz);
+  
+  return 0;
 }
 
 
