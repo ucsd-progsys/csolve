@@ -28,10 +28,11 @@ int main(char ** argv, int argc)
   return 0;
 }
 
-void initialize(int * buf, int len) {
-  int i;
-  for(i = 0; i < len; i++)
-    buf[i] = rnd(MAX_INT);
+void initialize(int * buf, int len)
+{
+  foreach(i, 0, len)
+    buf[i] = nondet();
+  endfor
 }
 
 //a: ptr(l1, i1) / l1 => (0+: int)  -> b: ptr(l2, i2) / l2 => (0+: int)
