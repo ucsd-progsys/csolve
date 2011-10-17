@@ -8,12 +8,11 @@ const int REF (V > 0) merge_size;
 //define buf_len 10000
 //define merge_size 50
 
-
 int main() //int argc, char **argv)
 {
   int len = buf_len;  
 
-  int *in  = malloc(sizeof(int) * len);
+  int * in  = malloc(sizeof(int) * len);
   int * out = malloc(sizeof(int) * len);
 
   initialize(in, len);
@@ -21,10 +20,8 @@ int main() //int argc, char **argv)
 
   //mergesort(in, 0, len, out);
   mergesort(in, out, len);  // RJ: CHECK THIS
-
   
   check_sorted(in, len);
-  
   
   return 0;
 }
@@ -115,9 +112,12 @@ int find_split(int v, int * ARRAY b, int len)
 
 bool check_sorted(int * ARRAY buf, int len)
 {
-  int i; 
-  for(i = 0; i < len - 1; i++)
-    if(buf[i] <= buf[i + 1])
+  int i;
+  int n = nondet();
+  lcc_assert (0);
+
+  for (i = 0; i < len - 1; i++)
+    if (buf[i] <= buf[n]) //i + 1])
       return FALSE;
   return TRUE;
 }
