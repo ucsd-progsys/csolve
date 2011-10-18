@@ -1,30 +1,30 @@
 #include <cpj.h>
 #include <stdlib.h>
 
-const int BUF_LEN;
-const int TOO_SMALL;
-const int MAX_INT;
+const int REF (V > 0) buf_len; 
+const int REF (V > 0) too_small;
 
-void swp(int * a, int b, int c)
+
+void swp(int * ARRAY a, int b, int c)
 {
   int t = a[b];
   a[b] = a[c];
   a[c] = t;
 }
 
-void initialize(int * a, int len)
+void initialize(int * ARRAY a, int len)
 { 
   foreach(i, 0, len)
     a[i] = nondet();
   endfor
 }
 
-int main(char ** argv, int argc)
+void main() // char ** argv, int argc)
 {
   int * buf;
-  int len = BUF_LEN;
+  int len = buf_len;
 
-  buf = malloc(sizeof(int) * BUF_LEN); 
+  buf = malloc(sizeof(int) * buf_len); 
 
   initialize(buf, len); 
   quicksort(buf, len);
@@ -33,12 +33,12 @@ int main(char ** argv, int argc)
 //a: ptr(l, i) / l => (0+: int) -> len: int -> () / h: l => (0+; int)
 //                                                  r: l => T
 //                                                  w: l => T
-void quicksort(int * a, int len)
+void quicksort(int * ARRAY a, int len)
 {
   int end = len - 1;
   int i, j, t;
 
-  if (hi - lo + 1 <= TOO_SMALL) 
+  if (hi - lo + 1 <= too_small) 
   {
     for (i = 1; i <= end; i++)
     {
