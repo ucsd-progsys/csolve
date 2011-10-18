@@ -69,6 +69,8 @@ val strengthen_final_field :
 
 val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun -> Ctypes.refcfun
 
+val e_false             : Sloc.t -> Ctypes.effectinfo
+val e_fresh             : Sloc.t -> Ctypes.effectinfo
 
 val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
@@ -93,8 +95,6 @@ val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
-
-val add_effect          : cilenv -> Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
 
 val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 
@@ -128,14 +128,38 @@ val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
 val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
 
+val effectset_subs      : ('a -> Ctypes.effectptr -> Ctypes.effectptr) -> 'a -> Ctypes.effectset -> Ctypes.effectset
+val effectset_subs_locs : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.effectset -> Ctypes.effectset
 
 val make_wfs            : cilenv -> Ctypes.refstore -> Ctypes.refctype -> CilTag.t -> FixConstraint.wf list
 val make_wfs_fn         : cilenv -> Ctypes.refcfun -> CilTag.t -> FixConstraint.wf list
 val make_wfs_refstore   : cilenv -> Ctypes.refstore -> Ctypes.refstore -> CilTag.t -> FixConstraint.wf list
+val make_wfs_effectset  : cilenv -> Ctypes.refstore -> Ctypes.effectset -> FixConstraint.wf list
 
 val make_cs             : cilenv -> Ast.pred -> 
                           Ctypes.refctype -> Ctypes.refctype -> 
                           CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_effect_weaken :
+                          cilenv -> Ast.pred ->
+                          Ctypes.refstore -> Cil.varinfo -> Ctypes.effectptr -> 
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_effectset   : cilenv -> Ast.pred ->
+                          Ctypes.refstore -> Ctypes.refstore ->
+                          Ctypes.effectset -> Ctypes.effectset ->
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_effectset_binds :
+                          bool -> cilenv -> Ast.pred ->
+                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectinfo)) list *
+                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectinfo)) list ->
+                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectinfo)) list *
+                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectinfo)) list ->
+                          CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_assert      : cilenv -> Ast.pred -> 
@@ -144,12 +168,6 @@ val make_cs_assert      : cilenv -> Ast.pred ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_refldesc    : cilenv -> Ast.pred -> 
-                          (Sloc.t * Ctypes.refldesc) -> (Sloc.t * Ctypes.refldesc) -> 
-                          CilTag.t option -> CilTag.t -> Cil.location ->
-                          FixConstraint.t list * FixConstraint.dep list
-
-val make_cs_refldesc_effects :
-                          cilenv -> Ast.pred -> 
                           (Sloc.t * Ctypes.refldesc) -> (Sloc.t * Ctypes.refldesc) -> 
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list

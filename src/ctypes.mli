@@ -56,15 +56,21 @@ type 'a prectype =
   | Int of int * 'a         (* fixed-width integer *)
   | Ref of Sloc.t * 'a      (* reference *)
 
-and 'a precfun =
+type effectptr  = Reft.t prectype
+
+type effectinfo = { eread  : effectptr
+                  ; ewrite : effectptr }
+
+type effectset
+
+type 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
+      effects     : effectset;                    (* heap effects *)
     }
-
-type effectinfo = Reft.t prectype
 
 type specType =
   | HasShape
@@ -72,6 +78,24 @@ type specType =
   | HasType
 
 type 'a prespec
+
+module EffectSet:
+sig
+  type t = effectset
+
+  val empty       : t
+
+  (* These names are not quite right *)
+  val apply       : (effectptr -> effectptr) -> effectset -> effectset
+  val maplisti    : (Sloc.t -> effectinfo -> 'a) -> effectset -> 'a list
+
+  val find        : effectset -> Sloc.t -> effectinfo
+  val add         : effectset -> Sloc.t -> effectinfo -> effectset
+
+  val domain      : t -> Sloc.t list
+
+  val d_effectset : unit -> effectset -> Pretty.doc
+end
 
 module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
@@ -132,12 +156,12 @@ module type S = sig
 
     exception TypeDoesntFit of Index.t * CType.t * t
 
-    val empty         : Sloc.t -> t
+    val empty         : t
     val eq            : t -> t -> bool
     val is_empty      : t -> bool
     val is_read_only  : t -> bool
     val add           : Index.t -> Field.t -> t -> t
-    val create        : Sloc.t -> structinfo -> (Index.t * Field.t) list -> t
+    val create        : structinfo -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -147,19 +171,12 @@ module type S = sig
     val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val map_effects   : (Reft.t prectype -> Reft.t prectype) -> t -> t
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit
     val indices       : t -> Index.t list
     val bindings      : t -> (Index.t * Field.t) list
 
     val set_structinfo : t -> structinfo -> t
     val get_structinfo : t -> structinfo
-
-    val get_write_effect : t -> effectinfo
-    val set_write_effect : t -> effectinfo -> t
-
-    val get_read_effect : t -> effectinfo
-    val set_read_effect : t -> effectinfo -> t
 
     val d_ldesc       : unit -> t -> Pretty.doc
   end
@@ -170,13 +187,16 @@ module type S = sig
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
+    val join_effects :
+      t ->
+      effectset ->
+      (Sloc.t * (T.ldesc * effectinfo)) list * (Sloc.t * (T.cfun * effectinfo)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map_effects  : (effectinfo -> effectinfo) -> t -> t
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
@@ -240,18 +260,18 @@ module type S = sig
                           'a precfun ->
                           'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
-    val map_effects     : (effectinfo -> effectinfo) -> t -> t
+    val apply_effects   : (effectptr -> effectptr) -> t -> t
     val well_formed     : Store.t -> t -> bool
     val normalize_names :
       t ->
       t ->
       (T.store -> Sloc.Subst.t -> (string * string) list -> T.ctype -> T.ctype) ->
-      (T.store -> Sloc.Subst.t -> (string * string) list -> effectinfo -> effectinfo) ->
+      (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val make            : (string * CType.t) list -> Sloc.t list -> Store.t -> CType.t -> Store.t -> t
+    val make            : (string * CType.t) list -> Sloc.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list 
   end

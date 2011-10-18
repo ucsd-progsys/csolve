@@ -44,6 +44,7 @@ module IIM = Misc.IntIntMap
 module CM  = CilMisc
 module YM  = Ast.Symbol.SMap
 module Ct  = Ctypes
+module ES  = Ct.EffectSet
 
 open Misc.Ops
 open Cil
@@ -52,6 +53,7 @@ type wld = FI.cilenv * Ct.refstore * CilTag.t option
 
 type t_sh = {
   astore  : Ct.refstore;
+  aeffs   : ES.t;
   cstoa   : (Ct.refstore * Sloc.t list * Refanno.cncm) array; 
   shp     : Shape.t;
 }
@@ -68,6 +70,7 @@ type t    = {
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
   phim    : Ct.refctype SM.t;
+  effm    : ES.t IM.t;
   shapeo  : t_sh option;
   des     : (Cil.varinfo * Ct.refctype) list;
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
@@ -239,7 +242,9 @@ let add_wld i wld me =
 
 let get_cons me = me.ws, me.cs, me.des, me.ds
 
-let get_astore = function { shapeo = Some x } -> x.astore | _ -> Ct.RefCTypes.Store.empty 
+let get_shapeo_astore = function Some x -> x.astore | _ -> Ct.RefCTypes.Store.empty 
+
+let get_astore me = get_shapeo_astore me.shapeo
 
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
@@ -395,7 +400,7 @@ let inenv_of_block me i =
       |> FI.ce_adds env0 
   end
 
-let extend_wld_with_clocs me j loc tag wld = 
+let extend_wld_with_clocs me j loc tag wld =
   match me with
   | {shapeo = Some shp} ->
       let _, sto, _    = idom_of_block me j |> outwld_of_block me in 
@@ -411,6 +416,27 @@ let extend_wld_with_clocs me j loc tag wld =
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
 
+(* pmr: Need per-block effects: get effects of idom and, if we're also a
+   cobegin, tack on another fresh effect set *)
+let fresh_abstract_effectset asto =
+     asto
+  |> Ct.RefCTypes.Store.domain
+  |> List.fold_left begin fun effs l ->
+       Ct.EffectSet.add effs l (FI.e_fresh l)
+     end Ct.EffectSet.empty
+
+let make_effm env sci shapeo =
+  let effs = match shapeo with None -> ES.empty | Some {aeffs = aeffs} -> aeffs in
+    Misc.foldn
+      (fun effm i -> IM.add i (* rf.Ct.effects *) effs effm)
+      (Array.length sci.ST.cfg.Ssa.blocks)
+      IM.empty
+
+let effect_of_block me i =
+  IM.find i me.effm
+
+(* pmr: Effect should now be a list of effects in order of nesting; the in world
+   starts with one effect, and we add effects for each level of nested cobegins *)
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
       (me.gnv, get_astore me, None)
@@ -450,16 +476,18 @@ let create_shapeo tgr gnv env gst sci = function
   | Some shp ->
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
+      let aeffs   = fresh_abstract_effectset astore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
-      let ws      = FI.make_wfs_refstore env lastore lastore tag in
-      let istore  = FI.ce_find_fn sci.ST.fdec.svar.vname gnv
-                 |> Ct.stores_of_refcfun
-                 |> fst
-                 |> Ct.RefCTypes.Store.map_effects FI.t_false_refctype in
-      let cs, ds  = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in 
-      ws, cs, ds, Some { astore  = astore; cstoa = cstoa; shp = shp }
+      let ws      = FI.make_wfs_refstore env lastore lastore tag ++ FI.make_wfs_effectset env lastore aeffs in
+      let irf     = FI.ce_find_fn sci.ST.fdec.svar.vname gnv in
+      let istore  = irf |> Ct.stores_of_refcfun |> fst in
+      let cs1, ds1 = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in
+      let cs2, ds2 = FI.make_cs_effectset env Ast.pTrue lastore istore aeffs irf.Ct.effects None tag loc in
+      (* pmr: Gross - should be done every time we make up new effects for a block *)
+      let cs3, ds3 = FI.make_cs_effectset env Ast.pTrue istore lastore (ES.apply FI.t_false_refctype aeffs) aeffs None tag loc in
+      ws, cs1 ++ cs2 ++ cs3, ds1 ++ ds2 ++ ds3, Some { astore  = astore; cstoa = cstoa; shp = shp; aeffs = aeffs }
 
 let create tgr gnv gst sci sho = 
   let formalm = formalm_of_fdec sci.ST.fdec in
@@ -477,6 +505,7 @@ let create tgr gnv gst sci sho =
   ; undefm  = make_undefm formalm sci.ST.phis
   ; edgem   = edge_asgnm_of_phia sci.ST.phis
   ; phim    = SM.empty
+  ; effm    = make_effm env sci sh_me
   ; shapeo  = sh_me}
   |> bind_phis 
  
