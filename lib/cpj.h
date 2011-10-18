@@ -22,7 +22,7 @@
 #define FOREACH3(i, l, u, x)   { __blockattribute__ ((lcc_foreach_##x)) \
                                  ITER(i, l, u, x) {
 #define ITER(i, l, u, x)           int i = (int __attribute__ ((lcc_foreach_index_##x))) nondet();\
-                                lcc_assume(i >= l && i < u);
+                                 LCC_ASSUME(i >= l && i < u)
 #define ENDFOR                 }}
 
 // more natural looking macros for parallel constructs
