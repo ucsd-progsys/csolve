@@ -22,9 +22,9 @@ int main() //int argc, char **argv)
   //mergesort(in, 0, len, out);
   mergesort(in, out, len);  // RJ: CHECK THIS
 
+  
   check_sorted(in, len);
   
-  lcc_assert(0);
   
   return 0;
 }
