@@ -139,7 +139,6 @@ funtyp:
     OUTST   refstore
     EFFECTS effectset {
       Ct.RefCTypes.CFun.make $2 $6 $8 $4 $10 $12
-      >> (fun cf -> Pretty.printf "Got cfun@!%a@!@!" Ct.RefCTypes.CFun.d_cfun cf)
     }
     ;
 
