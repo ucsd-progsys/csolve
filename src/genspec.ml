@@ -162,7 +162,7 @@ let ldesc_of_index_ctypes loc l ts =
           end ts in (* }}} *)
      ts
   |> List.map (fun (i, t) -> (i, Ct.I.Field.create Ct.Nonfinal Ct.dummy_fieldinfo t))
-  |> Ct.I.LDesc.create l Ct.dummy_structinfo
+  |> Ct.I.LDesc.create Ct.dummy_structinfo
 
 (* match ts with 
   | [(Ct.ISeq (0,_), t)] -> Ct.LDesc.create [(Ct.ITop, t)] 
@@ -285,7 +285,7 @@ and cfun_of_args_ret fn (loc, t, xts) =
     let res'  = conv_ret fn loc (th, ist, N.IInt 0) t in
     let ost   = res' |> fst |> snd3 in
     let ret   = res' |> snd |> function [(_,t)] -> t | _ -> E.s <| errorLoc loc "Fun %s has multi-outs (record) %s" fn in
-    Some (Ct.I.CFun.make args [] ist ret ost)
+    Some (Ct.I.CFun.make args [] ist ret ost Ct.EffectSet.empty)
   with ex -> 
     let _ = E.warn "Genspec fails on (%s) with exception (%s) \n" fn (Printexc.to_string ex) in
     None

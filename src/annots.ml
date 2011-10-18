@@ -275,8 +275,8 @@ let clear _        = annotr := []
 
 let apply_solution =
   let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
-  let s_fun s = RCt.CFun.map (s_typ s) <+> RCt.CFun.map_effects (s_typ s) in
-  let s_sto s = RCt.Store.map (s_typ s) <+> RCt.Store.map_effects (s_typ s) in
+  let s_fun s = RCt.CFun.map (s_typ s) <+> RCt.CFun.apply_effects (s_typ s) in
+  let s_sto s = RCt.Store.map (s_typ s) in
   fun s a -> match a with 
     | TVar (n, cr) -> TVar (n, s_typ s cr)
     | TFun (f, cf) -> TFun (f, s_fun s cf)

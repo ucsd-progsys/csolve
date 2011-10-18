@@ -39,6 +39,7 @@ module Ct = Ctypes
 module CS = Ctypes.RefCTypes.Spec
 module RS = Ctypes.RefCTypes.Store
 module Cs = Constants
+module ES = Ct.EffectSet
 
 open Misc.Ops
 open Cil
@@ -80,10 +81,10 @@ let mk_gnv f spec decs cenv =
   SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs then
-              let rft = ft |> FI.refcfun_of_cfun |> FI.map_fn f in
-                {rft with
-                  Ct.sto_in  = RS.map_effects FI.t_true_refctype rft.Ct.sto_in
-                ; Ct.sto_out = RS.map_effects f rft.Ct.sto_out}
+              let effs = ft.Ct.sto_out
+                      |> Ct.I.Store.domain
+                      |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_fresh l) ES.empty in
+                {(ft |> FI.refcfun_of_cfun |> FI.map_fn f) with Ct.effects = effs}
             else spec |> CS.funspec |> SM.find fn |> fst)
      end
   |> FI.ce_adds_fn gnv0
@@ -102,7 +103,8 @@ let rename_args rf sci =
   let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in
   let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
-  Ctypes.RefCTypes.CFun.make args' rf.Ctypes.globlocs hi' ret' ho'
+  let effs'    = FI.effectset_subs FI.t_subs_names subs rf.Ctypes.effects in
+  Ctypes.RefCTypes.CFun.make args' rf.Ctypes.globlocs hi' ret' ho' effs'
 
 let rename_funspec scim spec =
   spec 

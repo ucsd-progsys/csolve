@@ -122,11 +122,14 @@ type 'a prefield = { pftype     : 'a prectype
                    ; pfloc      : C.location
                    ; pfinfo     : fieldinfo }
 
-type effectinfo = Reft.t prectype
+type effectptr  = Reft.t prectype
+
+type effectinfo = { eread  : effectptr
+                  ; ewrite : effectptr }
+
+type effectset = effectinfo SLM.t
 
 type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
-                   ; plwrite    : effectinfo
-                   ; plread     : effectinfo
                    ; plinfo     : structinfo }
 
 type 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
@@ -137,6 +140,7 @@ and 'a precfun =
       globlocs    : S.t list;                     (* unquantified locations *)
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
+      effects     : effectset;                    (* heap effects *)
     }
 
 type specType =
@@ -180,6 +184,40 @@ let d_prectype d_refinement () = function
 let d_refctype = d_prectype Reft.d_refinement
 
 let d_effectinfo = d_refctype
+
+let prectype_subs subs = function
+  | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
+  | pct        -> pct
+
+module EffectSet = struct
+  type t = effectset
+
+  let empty = SLM.empty
+
+  let apply f effs =
+    SLM.map (fun {eread = er; ewrite = ew} -> {eread = f er; ewrite = f ew}) effs
+
+  let maplisti f effs =
+    effs |> SLM.to_list |>: M.uncurry f
+
+  let subs sub effs =
+    apply (prectype_subs sub) effs
+
+  let find effs l =
+    SLM.find l effs
+
+  let add effs l eff =
+    SLM.add l eff effs
+
+  let domain effs =
+    SLM.domain effs
+
+  let d_effect () {eread = r; ewrite = w} =
+    P.dprintf "read*: %a, write*: %a" d_refctype r d_refctype w
+
+  let d_effectset () effs =
+    P.dprintf "{@[%a@]}" (S.d_slocmap d_effect) effs
+end
 
 module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
@@ -251,12 +289,12 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     exception TypeDoesntFit of Index.t * T.ctype * t
 
-    val empty         : S.t -> t
+    val empty         : t
     val eq            : t -> t -> bool
     val is_empty      : t -> bool
     val is_read_only  : t -> bool
     val add           : Index.t -> T.field -> t -> t
-    val create        : S.t -> structinfo -> (Index.t * T.field) list -> t
+    val create        : structinfo -> (Index.t * T.field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -266,19 +304,12 @@ module SIGS (T : CTYPE_DEFS) = struct
     val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val map_effects   : (effectinfo -> effectinfo) -> t -> t
     val iter          : (Index.t -> T.field -> unit) -> t -> unit
     val indices       : t -> Index.t list
     val bindings      : t -> (Index.t * T.field) list
 
     val set_structinfo : t -> structinfo -> t
     val get_structinfo : t -> structinfo
-
-    val get_write_effect : t -> effectinfo
-    val set_write_effect : t -> effectinfo -> t
-
-    val get_read_effect  : t -> effectinfo
-    val set_read_effect  : t -> effectinfo -> t
 
     val d_ldesc       : unit -> t -> P.doc
   end
@@ -288,13 +319,16 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
+    val join_effects :
+      t ->
+      effectset ->
+      (Sloc.t * (T.ldesc * effectinfo)) list * (Sloc.t * (T.cfun * effectinfo)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map_effects  : (effectinfo -> effectinfo) -> t -> t
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
@@ -356,18 +390,18 @@ module SIGS (T : CTYPE_DEFS) = struct
                           'a precfun ->
                           'b precfun
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
-    val map_effects     : (effectinfo -> effectinfo) -> t -> t
+    val apply_effects   : (effectptr -> effectptr) -> t -> t
     val well_formed     : T.store -> t -> bool
     val normalize_names :
       t ->
       t ->
       (T.store -> Sloc.Subst.t -> (string * string) list -> T.ctype -> T.ctype) ->
-      (T.store -> Sloc.Subst.t -> (string * string) list -> effectinfo -> effectinfo) ->
+      (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
     val quantified_locs : t -> Sloc.t list
     val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
-    val make            : (string * T.ctype) list -> S.t list -> T.store -> T.ctype -> T.store -> t
+    val make            : (string * T.ctype) list -> S.t list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
   end
@@ -426,10 +460,6 @@ module type S = sig
 
   val d_ctemap: unit -> ctemap -> P.doc
 end
-
-let prectype_subs subs = function
-  | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
-  | pct        -> pct
 
 module Make (T: CTYPE_DEFS): S with module T = T = struct
   module T   = T
@@ -557,12 +587,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     exception TypeDoesntFit of Index.t * CType.t * t
 
-    let empty l =
-      let dummy_effectinfo = Ref (l, Reft.top) in
-        { plfields = []
-        ; plinfo   = dummy_structinfo
-        ; plwrite  = dummy_effectinfo
-        ; plread   = dummy_effectinfo}
+    let empty =
+      { plfields = [] ; plinfo = dummy_structinfo }
 
     let eq {plfields = cs1} {plfields = cs2} =
       Misc.same_length cs1 cs2 &&
@@ -594,8 +620,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let remove i ld =
       {ld with plfields = List.filter (fun (i2, _) -> not (i = i2)) ld.plfields}
 
-    let create l si flds =
-      List.fold_right (M.uncurry add) flds {(empty l) with plinfo = si}
+    let create si flds =
+      List.fold_right (M.uncurry add) flds {empty with plinfo = si}
 
     let mem i {plfields = flds} =
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
@@ -619,13 +645,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map f flds =
       mapn (fun _ _ fld -> f fld) flds
 
-    let map_effects f ld =
-      {ld with plwrite = f ld.plwrite; plread = f ld.plread}
-
     let subs sub ld =
-         ld
-      |> map (Field.map_type (CType.subs sub))
-      |> map_effects (prectype_subs sub)
+      map (Field.map_type (CType.subs sub)) ld
 
     let iter f ld =
       fold (fun _ i fld -> f i fld) () ld
@@ -648,28 +669,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let set_structinfo ld si =
       {ld with plinfo = si}
 
-    let get_write_effect {plwrite = w} =
-      w
-
-    let set_write_effect ld w =
-      {ld with plwrite = w}
-
-    let get_read_effect {plread = r} =
-      r
-
-    let set_read_effect ld r =
-      {ld with plread = r}
-
-    let d_ldesc () {plfields = flds; plwrite = w; plread = r} =
-      P.dprintf "@[%t <*write: %a, *read: %a>@]"
+    let d_ldesc () {plfields = flds} =
+      P.dprintf "@[%t@]"
         begin fun () ->
           P.seq
             (P.dprintf ",@!")
             (fun (i, fld) -> P.dprintf "%a: %a" Index.d_index i Field.d_field fld)
             flds
         end
-        d_effectinfo w
-        d_effectinfo r
   end
 
   and Store: SIG.STORE = struct
@@ -685,9 +692,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let map_ldesc f (ds, fs) =
       (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
-
-    let map_effects f sto =
-      map_ldesc (const <| LDesc.map_effects f) sto
 
     module Data = struct
       let add (ds, fs) l ld =
@@ -707,7 +711,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SLM.find l ds
 
       let find_or_empty sto l =
-        try find sto l with Not_found -> LDesc.empty l
+        try find sto l with Not_found -> LDesc.empty
 
       let ensure_sloc sto l =
         l |> find_or_empty sto |> add sto l
@@ -752,6 +756,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let bindings sto =
       (Data.bindings sto, Function.bindings sto)
+
+    let join_effects sto effs =
+      ((sto |> Data.bindings |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))),
+       (sto |> Function.bindings |>: fun (l, fn) -> (l, (fn, EffectSet.find effs l))))
 
     let domain sto =
       Data.domain sto ++ Function.domain sto
@@ -949,12 +957,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     type t = T.cfun
 
     (* API *)
-    let make args globs sin reto sout =
+    let make args globs sin reto sout effs =
       { args     = args;
         ret      = reto;
         globlocs = globs;
         sto_in   = sin;
         sto_out  = sout;
+        effects  = effs;
       }
 
     let map_variances f_co f_contra ft =
@@ -963,6 +972,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         globlocs = ft.globlocs;
         sto_in   = Store.map_variances f_contra f_co ft.sto_in;
         sto_out  = Store.map_variances f_co f_contra ft.sto_out;
+        effects  = ft.effects;
       }
 
     let map f ft =
@@ -973,8 +983,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         sto_in = Store.map_ldesc f ft.sto_in
       ; sto_out = Store.map_ldesc f ft.sto_out }
 
-    let map_effects f ft =
-      map_ldesc (const <| LDesc.map_effects f) ft
+    let apply_effects f ft =
+      {ft with effects = EffectSet.apply f ft.effects}
 
     let quantified_locs {sto_out = sto} =
       Store.domain sto
@@ -995,12 +1005,15 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       d_spec_globlocs () ft
 
     let d_stores () ft =
-      P.dprintf "store_in  %a\nstore_out %a"
+      P.dprintf "store_in  %a\nstore_out %a\n"
         Store.d_store ft.sto_in
         Store.d_store ft.sto_out
 
+    let d_effectset () ft =
+      P.dprintf "effects   %a" EffectSet.d_effectset ft.effects
+
     let d_cfun () ft  =
-      P.dprintf "@[%a%a%a@]" d_argret ft d_globlocs ft d_stores ft
+      P.dprintf "@[%a%a%a%a@]" d_argret ft d_globlocs ft d_stores ft d_effectset ft
 
     let capturing_subs cf sub =
       let apply_sub = CType.subs sub in
@@ -1009,6 +1022,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
              (Store.subs sub cf.sto_in)
              (apply_sub cf.ret)
              (Store.subs sub cf.sto_out)
+             (EffectSet.subs sub cf.effects)
 
     let subs cf sub =
       cf |> quantified_locs |> S.Subst.avoid sub |> capturing_subs cf
@@ -1038,8 +1052,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
       let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
       let cf1, cf2     = M.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
-        (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1) |> map_effects (fe cf1.sto_out lsub1 asub1),
-         capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2) |> map_effects (fe cf2.sto_out lsub2 asub2))
+        (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1) |> apply_effects (fe cf1.sto_out lsub1 asub1),
+         capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2) |> apply_effects (fe cf2.sto_out lsub2 asub2))
 
     let rec same_shape cf1 cf2 =
       M.same_length (quantified_locs cf1) (quantified_locs cf2) && M.same_length cf1.args cf2.args &&
