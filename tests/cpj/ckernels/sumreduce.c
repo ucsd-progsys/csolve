@@ -39,9 +39,13 @@ int reduce(int * ARRAY a, int len, int seqLen)
     return result;
 }
 
-int main(char * STRINGPTR * args, int vargs)
+int main( int REF(V > 0) argc
+        , char * STRINGPTR * START NONNULL ARRAY SIZE(argc * 4) args) CHECK_TYPE
 {
-  if (vargs != 3) return 1;
+  
+  
+  
+  if (argc != 3) return 1;
   
   int seqLen = atoi(args[0]);
 

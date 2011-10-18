@@ -431,7 +431,10 @@ let scalarcons_of_instr me i grd (j, env) instr =
       |> scalarcons_of_binding me loc tag (j, env) grd j v    
      
   | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) ->
-      let farg = Ct.args_of_refcfun <+> List.map (FA.name_of_string <.> fst) <+> Misc.flip List.combine es in
+      let farg = Ct.args_of_refcfun 
+                 <+> List.map (FA.name_of_string <.> fst) 
+                 <+> (fun xs -> asserts (List.length xs = List.length es) "mismatched arguments at callsite"; xs)
+                 <+> Misc.flip List.combine es in
       let fret = Ct.ret_of_refcfun  <+> FI.t_scalar_refctype in
       env
       |> FI.ce_find_fn fv.Cil.vname
@@ -450,6 +453,13 @@ let scalarcons_of_instr me i grd (j, env) instr =
 
   | _ -> 
       E.s <| E.error "TBD: scalarcons_of_instr: %a \n" d_instr instr
+
+let scalarcons_of_instr x1 x2 x3 x4 instr = 
+  try scalarcons_of_instr x1 x2 x3 x4 instr with ex ->
+    halt <| errorLoc (get_instrLoc instr) 
+              "scalarcons_of_instr hits exn: %s : %a \n\n"
+                (Printexc.to_string ex)        
+                d_instr instr
 
 (****************************************************************************)
 (********************** Constraints for [stmt] ******************************)
