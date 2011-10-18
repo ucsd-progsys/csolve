@@ -112,6 +112,8 @@ let read sol =
     else
       [Ast.pFalse]
 
+let min_read = read
+
 let read_bind sol k =
   if Asm.mem k sol then
     Asm.find k sol |> snd |> fun st -> List.hd st.ks
