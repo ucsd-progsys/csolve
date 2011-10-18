@@ -1,23 +1,22 @@
 #include <cpj.h>
 #include <stdlib.h>
 
-
-
 //a: ptr(l, i) -> len: int -> () / h: l => (0+: int);
 //                                 r: l => F;
 //                                 w: l => i <= v < i + len;
-void initialize(int  * a, int len) {
+void initialize(int * ARRAY a, int len) {
   int i;
 
   foreach(i, 0, len)
-    a[i] = i;
+    lcc_assert((i >= 0));
+    //a[i] = i;
   endfor 
 }
 
 //a: ptr(l, i) -> len: int -> seqLen: int -> int / h: l => (0+: int);
 //                                                 r: l => i <= v < i + len;
 //                                                 w: l => F
-int reduce(int * a, int len, int seqLen)
+int reduce(int * ARRAY a, int len, int seqLen)
 { 
   int i = 0;
 
@@ -40,14 +39,15 @@ int reduce(int * a, int len, int seqLen)
     return result;
 }
 
-int main(char ** args, int vargs)
+int main(char * STRINGPTR * args, int vargs)
 {
-  if (vargs != 3)
-    return 1;
+  if (vargs != 3) return 1;
+  
   int seqLen = atoi(args[0]);
 
-  int * arr;
-  int len;
+  int * ARRAY arr;
+  
+  int len = nondetpos();
 
   arr = malloc(sizeof(int) * len);
 
