@@ -4,8 +4,8 @@ module Co  = Constants
 module C   = FixConstraint
 module F   = Format
 module T   = Toplevel
-module IA  = AbstractDomain
-module SIA = Solve.Make (IA)
+module ID  = IndexDomain
+module SID = Solve.Make (ID)
 
 open Misc.Ops
 
@@ -22,7 +22,7 @@ let save_raw fname cs s =
   let ppf = F.formatter_of_out_channel oc in
   let _   = print_now ("Fixpoint: save_raw into file = " ^ fname ^ " : BEGIN \n") in
   F.fprintf ppf "%a \n" print_raw_cs cs; 
-  F.fprintf ppf "%a \n" IA.print s;
+  F.fprintf ppf "%a \n" ID.print s;
   F.fprintf ppf "@.";
   F.print_flush ();
   close_out oc;
@@ -31,9 +31,9 @@ let save_raw fname cs s =
 let solve ac  =
   Misc.with_ref_at Constants.slice false begin fun () ->
     let _       = print_now "Fixpoint: Creating  CI\n" in
-    let ctx, s  = BS.time "create" SIA.create ac in
+    let ctx, s  = BS.time "create" SID.create ac in
     let _       = print_now "Fixpoint: Solving \n" in
-    let s, cs'  = BS.time "solve" (SIA.solve ctx) s in
+    let s, cs'  = BS.time "solve" (SID.solve ctx) s in
     let _       = print_now "Fixpoint: Saving Result \n" in
     let _       = BS.time "save" (save_raw !Co.out_file cs') s in
     let _       = print_now "Fixpoint: Saving Result DONE \n" in
@@ -41,7 +41,7 @@ let solve ac  =
   end
 
 let dump_solve ac = 
-  let cs' = solve { ac with Config.bm = SM.map IA.mkbind ac.Config.bm } in
+  let cs' = solve { ac with Config.bm = SM.map ID.mkbind ac.Config.bm } in
   let _   = BNstats.print stdout "Fixpoint Solver Time \n" in
   match cs' with 
   | [] -> (F.printf "\nSAT\n" ; exit 0)
