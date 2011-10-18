@@ -13,12 +13,28 @@
 * TODO Refactor all fixinterface wrappers so locs come first
   Kill a lot of the boilerplate wrapper code by allowing one wrapper
   that takes the loc and string description.
-
 * TODO Check block structure is ok
   For each "routine" in a cobegin block, we need to be sure that
   control flow remains within that routine, otherwise the effect of
   that routine does not follow the block structure and we won't track
   its effect properly.
+<<<<<<< HEAD
+=======
+
+* TODO Location mismatch - friendlier errors?
+
+* TODO Location includes
+
+* TODO Failed constraints on the *specs* of functions
+
+* TODO Better tracking of slocs, where they map, errors, etc.
+
+* TODO More elegant way of backing off defaults for annotations?
+  If we give any annotation at all, we lose all the defaults. Do we
+  really want this?
+
+* TODO What's happening with check_pos
+>>>>>>> track effects per function, refactored
 
 * TODO Location mismatch - friendlier errors?
 
