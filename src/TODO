@@ -1,4 +1,6 @@
-Minimize Output:
+
+
+NEXT: Minimize Output:
 1. Suppress "false"
 2. Flatten/Minimize Predicates?
 3. Print out qualifier names -- not predicates?
