@@ -335,12 +335,14 @@ let asref = false
 let ckint = A.Sort.is_int
 
 let rec index_of_pred env solution sym is_int (pred,x) =
+  let index_of_p = index_of_pred env solution sym in
+  let index_of_e = index_of_expr env solution sym in
   match pred with
     | A.True -> top
     | A.False -> IBot
-    | A.Or ps -> List.map (index_of_pred env solution sym is_int) ps
+    | A.Or ps -> List.map (index_of_p is_int) ps
                  |> List.fold_left lub IBot
-    | A.And ps -> List.map (index_of_pred env solution sym is_int) ps
+    | A.And ps -> List.map (index_of_p is_int) ps
                  |> List.fold_left glb top
     (* This beast matches (v - e) mod k = 0 *)
     | A.Atom ((A.Bin ((A.Bin ((A.Var vv,_),
@@ -353,15 +355,14 @@ let rec index_of_pred env solution sym is_int (pred,x) =
 	       _),
 	      A.Eq,
 	      (A.Con (Ac.Int 0), _)) when vv = sym ->
-	begin match index_of_expr env solution sym asint e with
+	begin match index_of_e asint e with
 	  | IInt n -> mk_eq_mod n k
 	  | _ -> top
 	end
     | A.Atom ((A.Var vv, _),A.Eq,e)
-    | A.Atom (e,A.Eq,(A.Var vv, _)) when vv = sym ->
-	index_of_expr env solution sym is_int e
+    | A.Atom (e,A.Eq,(A.Var vv, _)) when vv = sym -> index_of_e is_int e
     | A.Atom ((A.Var vv, _),r,e) when vv = sym ->
-	let eVal = index_of_expr env solution sym is_int e in
+	let eVal = index_of_e is_int e in
 	  begin match r with
 	    | A.Gt -> gt eVal
 	    | A.Ge -> ge eVal
@@ -370,7 +371,7 @@ let rec index_of_pred env solution sym is_int (pred,x) =
 	    | A.Ne -> top
 	  end
     | A.Atom (e,r,(A.Var vv, _)) when vv = sym ->
-	let eVal = index_of_expr env solution sym is_int e in
+	let eVal = index_of_e is_int e in
 	  begin match r with
 	    | A.Gt -> lt eVal
 	    | A.Ge -> le eVal
@@ -389,6 +390,7 @@ let rec index_of_pred env solution sym is_int (pred,x) =
 	end
     | _ -> top
 and index_of_expr env solution sym is_int expr =
+  let index_of_e = index_of_expr env solution sym in
   match fst expr with
     | A.Con (A.Constant.Int n) -> 
 	if is_int then IInt n else IBot
@@ -402,8 +404,8 @@ and index_of_expr env solution sym is_int expr =
 	when expr = A.eApp (As.of_string "BLOCK_BEGIN", e) ->
 	IInt 0
     | A.Bin (e1, oper, e2) ->
-	let e1v = index_of_expr env solution sym asint e1 in
-	let e2v = index_of_expr env solution sym asint e2 in
+	let e1v = index_of_e asint e1 in
+	let e2v = index_of_e asint e2 in
 	  begin match oper with
 	    | A.Plus  -> plus  e1v e2v
 	    | A.Minus -> minus e1v e2v
@@ -411,6 +413,8 @@ and index_of_expr env solution sym is_int expr =
 	    | A.Div   -> div   e1v e2v
 	    | A.Mod   -> top
 	  end
+    | A.Ite (_,e1,e2) (* Ignore the predicate for now? *) ->
+	lub (index_of_e is_int e1) (index_of_e is_int e2)
     | _ -> top
 and index_of_refa env sol v is_int refa = match refa with
   | F.Kvar (_, k) -> sol k
