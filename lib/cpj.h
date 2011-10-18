@@ -16,7 +16,7 @@
 #define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine))
 #define RTEND                  }
 #define RTN(s)                 RTBEG s; RTEND
-#define COEND                  RTN(break)}
+#define COEND                  if (nondet ()) { break; } }
 
 #define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
 #define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
