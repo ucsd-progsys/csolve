@@ -174,21 +174,22 @@ generate_email()
 	fi
 
   # If it's a code commit, attempt to build the refname
+  build_is_broken=0
   if [ "$refname_type" = "branch" && "$change_type" = "update" ]; then
     echo >&2 "This is a code commit. I will attempt to build, and loudly complain if I can't."
 
     dirname=/scratch/liquidc_build_$refname
     mkdir -f $dirname && cp build_liquidc_here $dirname && cd $dirname && \
       chmod a+x ./build_liquidc_here && ./build_liquidc_here
-    build_succ=$? 
+    build_is_broken=$? 
 
-    if [ $? ]; then
+    if [ $build_succ ]; then
       echo >&2 "ERROR: REVISION DOES NOT BUILD"
     else
       echo >&2 "Build OK."
     fi
 
-    rm -rf $dirname
+    #rm -rf $dirname
   fi
 
 	generate_email_header
@@ -202,7 +203,11 @@ generate_email()
 	"annotated tag")
 		fn_name=atag
 		;;
+  "branch")
+    if [ "$change_type" = "update" &&
 	esac
+  
+
   if 
 	generate_${change_type}_${fn_name}_email
 

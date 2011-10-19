@@ -10,6 +10,11 @@ cd liquidc
 git checkout $@
 git submodule update
 ./configure
+
+if [ $? ]; then
+  exit 1;
+fi
+
 ./build.sh
 
 exit $?
