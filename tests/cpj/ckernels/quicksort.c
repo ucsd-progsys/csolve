@@ -28,6 +28,8 @@ void seqsort(int * ARRAY a, int len){
   return;
 }
 
+extern void qs(int * ARRAY VALIDPTR SIZE_GE(4*len) arr, int REF(V >= 0) len) OKEXTERN;
+
 //a: ptr(l, i) / l => (0+: int) -> len: int -> () / h: l => (0+; int)
 //                                                  r: l => T
 //                                                  w: l => T
@@ -36,56 +38,58 @@ void quicksort(int * ARRAY a, int len)
   int end = len - 1;
   int i, j, t;
 
-  //do a sequential sort if array becomes too small
-  if (len <= too_small) {
-    seqsort(a, len);
-    return;
-  }
-
-  //choose the median of the middle, beginning and end as the pivot
-  //swap them into relative order while we're at it
-  int mid = end / 2;
-
-  if (a[0] > a[mid])
-    swp(a, 0, mid);
-  if (a[mid] > a[end])
-  {
-    swp(a, mid, end);
-    if (a[0] > a[mid])
-      swp(a, 0, mid);
-  }
-
-
-  int lt = 1;
-  int rt = end - 1;
-  int pt = mid;
-
-  while(lt < rt) {
-    while(lt < rt && a[pt] <  a[rt]) 
-      rt--;
-    while(lt < rt && a[lt] <= a[pt]) 
-      lt++;
-    if (lt < rt)
-      swp(a, lt++, rt--);
-  }
-
- // RJ: cleaned up above.
- // while(1) {
- //   while(lt < rt && a[pt] <  a[rt]) rt--;
- //   while(lt < rt && a[lt] <= a[pt]) lt++;
-
- //   if (lt < rt)
- //     swp(a, lt++, rt--);
- //   else break; 
- // }
-
+  int lt = nondetpos();
   lcc_assert(lt < len);
-
-  cobegin
-    rtn(quicksort(a, lt + 1))
-    rtn(quicksort(a + lt + 1, len - lt))
-  coend
+  qs(a, lt + 1);
+  qs(a + lt + 1, len - lt);
+  return;
 }
+
+//
+//  //do a sequential sort if array becomes too small
+//  if (len <= too_small) {
+//    seqsort(a, len);
+//    return;
+//  }
+//
+//  int tmp = a[0];
+//  lcc_assert(len > 0);
+//
+//  //choose the median of the middle, beginning and end as the pivot
+//  //swap them into relative order while we're at it
+//  int mid = end / 2;
+//
+//  int lt = 1;
+//
+//  if (a[0] > a[mid])
+//    swp(a, 0, mid);
+//  if (a[mid] > a[end])
+//  {
+//    swp(a, mid, end);
+//    if (a[0] > a[mid])
+//      swp(a, 0, mid);
+//  }
+//
+//
+//  int lt = 1;
+//  int rt = end - 1;
+//  int pt = mid;
+//
+//  while(lt < rt) {
+//    while(lt < rt && a[pt] <  a[rt]) 
+//      rt--;
+//    while(lt < rt && a[lt] <= a[pt]) 
+//      lt++;
+//    if (lt < rt)
+//      swp(a, lt++, rt--);
+//  }
+//
+//  //cobegin
+//  //  rtn(quicksort(a, lt + 1))
+//  //  rtn(quicksort(a + lt + 1, len - lt))
+//  //coend
+//  
+//}
 
 void initialize(int * ARRAY a, int len)
 { 

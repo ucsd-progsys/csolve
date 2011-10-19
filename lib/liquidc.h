@@ -13,6 +13,8 @@
 
 #define PEQBLOCK(x)    && [(BLOCK_BEGIN([V]) = BLOCK_BEGIN([x])); (BLOCK_END([V]) = BLOCK_END([x]))]
 #define PINTO(x,lo,hi) && [PNONNULL; (PEQBLOCK(x));(POFFSET_GE(lo));(PSIZE_GE((hi + 1)))]
+#define PINDEX(x,sz)   && [(BLOCK_BEGIN([x]) <= (x + (sz * V))); ((x + sz + (sz * V)) <= BLOCK_END([x]))]
+
 
 // Basic macros
 // Need to break this into two levels to ensure predicate p is macro expanded
