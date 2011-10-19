@@ -70,7 +70,7 @@ type t    = {
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
   phim    : Ct.refctype SM.t;
-  effm    : ES.t IM.t;
+  effsm   : ES.t IM.t;
   shapeo  : t_sh option;
   des     : (Cil.varinfo * Ct.refctype) list;
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
@@ -246,6 +246,10 @@ let get_shapeo_astore = function Some x -> x.astore | _ -> Ct.RefCTypes.Store.em
 
 let get_astore me = get_shapeo_astore me.shapeo
 
+let get_aeffs me = match me.shapeo with
+  | None    -> ES.empty
+  | Some sh -> sh.aeffs
+
 let stmt_of_block me i =
   me.sci.ST.cfg.Ssa.blocks.(i).Ssa.bstmt
 
@@ -390,6 +394,11 @@ let bind_of_phi me v =
 
 let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
+let rec idom_cobegin_of_block me i =
+  let j = idom_of_block me i in
+    if CM.is_cobegin_ssa_block me.sci.ST.cfg.Ssa.blocks.(j) then j else
+      idom_cobegin_of_block me j
+
 let inenv_of_block me i =
   if idom_of_block me i < 0 then
     me.gnv
@@ -416,8 +425,6 @@ let extend_wld_with_clocs me j loc tag wld =
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
 
-(* pmr: Need per-block effects: get effects of idom and, if we're also a
-   cobegin, tack on another fresh effect set *)
 let fresh_abstract_effectset asto =
      asto
   |> Ct.RefCTypes.Store.domain
@@ -425,18 +432,29 @@ let fresh_abstract_effectset asto =
        Ct.EffectSet.add effs l (FI.e_fresh l)
      end Ct.EffectSet.empty
 
-let make_effm env sci shapeo =
-  let effs = match shapeo with None -> ES.empty | Some {aeffs = aeffs} -> aeffs in
-    Misc.foldn
-      (fun effm i -> IM.add i (* rf.Ct.effects *) effs effm)
-      (Array.length sci.ST.cfg.Ssa.blocks)
-      IM.empty
+let block_has_fresh_effects me i =
+  CM.ssa_block_has_fresh_effects me.sci.ST.cfg.Ssa.blocks.(i)
 
-let effect_of_block me i =
-  IM.find i me.effm
+let make_effsm me =
+  let aeffs  = get_aeffs me in
+  let asto   = get_astore me in
+  let blocks = me.sci.ST.cfg.Ssa.blocks in
+  let t      = Hashtbl.create 17 in
+  let rec block_effs i =
+    if i < 0 then aeffs else
+      let idom    = idom_of_block me i in
+      let domeffs = Misc.do_memo t block_effs idom idom in
+        if block_has_fresh_effects me i then
+          fresh_abstract_effectset asto
+        else domeffs
+  in Misc.foldn
+       (fun effsm i -> IM.add i (Misc.do_memo t block_effs i i) effsm)
+       (Array.length blocks)
+       IM.empty
 
-(* pmr: Effect should now be a list of effects in order of nesting; the in world
-   starts with one effect, and we add effects for each level of nested cobegins *)
+let effectset_of_block me i =
+  if i < 0 then get_aeffs me else IM.find i me.effsm
+
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
       (me.gnv, get_astore me, None)
@@ -485,7 +503,6 @@ let create_shapeo tgr gnv env gst sci = function
       let istore  = irf |> Ct.stores_of_refcfun |> fst in
       let cs1, ds1 = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in
       let cs2, ds2 = FI.make_cs_effectset env Ast.pTrue lastore istore aeffs irf.Ct.effects None tag loc in
-      (* pmr: Gross - should be done every time we make up new effects for a block *)
       let cs3, ds3 = FI.make_cs_effectset env Ast.pTrue istore lastore (ES.apply FI.t_false_refctype aeffs) aeffs None tag loc in
       ws, cs1 ++ cs2 ++ cs3, ds1 ++ ds2 ++ ds3, Some { astore  = astore; cstoa = cstoa; shp = shp; aeffs = aeffs }
 
@@ -505,7 +522,8 @@ let create tgr gnv gst sci sho =
   ; undefm  = make_undefm formalm sci.ST.phis
   ; edgem   = edge_asgnm_of_phia sci.ST.phis
   ; phim    = SM.empty
-  ; effm    = make_effm env sci sh_me
+  ; effsm   = IM.empty
   ; shapeo  = sh_me}
-  |> bind_phis 
+  |> bind_phis
+  |> fun me -> {me with effsm = make_effsm me}
  

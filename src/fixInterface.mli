@@ -124,6 +124,7 @@ val refstore_strengthen_addr :
 val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> Ctypes.refstore
 
 val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
+val conv_effectset_bottom      : Ctypes.effectset -> Ctypes.effectset
 
 val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
 val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
@@ -164,6 +165,12 @@ val make_cs_effectset_binds :
 
 val make_cs_assert      : cilenv -> Ast.pred ->
                           Ast.pred ->
+                          CilTag.t option -> CilTag.t -> Cil.location ->
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_assert_effectsets_disjoint :
+                          cilenv -> Ast.pred -> Ctypes.refstore ->
+                          Ctypes.effectset -> Ctypes.effectset ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 

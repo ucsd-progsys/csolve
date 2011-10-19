@@ -2,15 +2,12 @@
   See the test in tests/postests.
 
 * TODO Remember to commit fixpoint
-* TODO Add fixInterface code for ensuring that effects are disjoint
+* TODO Refactor all fixinterface wrappers so locs come first
+  Kill a lot of the boilerplate wrapper code by allowing one wrapper
+  that takes the loc and string description.
 
 * TODO Test with loops, ifs
 * TODO Test with function pointers
-* TODO Add parallel blocks
-* TODO How does foreach work?
-  We need to show that two iterations of the foreach necessarily touch
-  different parts of memory, right? So i, j in the limits and not equal,
-  instantiate the effects, show that they're different.
 * TODO Effects from library functions?
   They're all true right now.
 * TODO Add read effects
@@ -34,6 +31,11 @@
   really want this?
 
 * TODO What's happening with check_pos
+
+
+* TODO Untangle knot of pre_env, env, etc.
+  Some constraints need to be generated in the environment that was
+  present *before* any unfolding happened...
 
 * TODO Does create_shapeo need to fresh the store?
 * TODO Heapify /all/ globals?

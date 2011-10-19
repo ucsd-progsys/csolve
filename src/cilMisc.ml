@@ -267,6 +267,34 @@ let has_unchecked_attr = hasAttribute "lcc_unchecked"
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeAttrs |> has_unchecked_attr
 
+let block_has_attribute a b =
+  hasAttribute a b.battrs
+
+let ssa_block_has_attribute a b =
+  match b.Ssa.bstmt.skind with
+    | Block b -> block_has_attribute a b
+    | _       -> false
+
+let is_cobegin_ssa_block b =
+  ssa_block_has_attribute "lcc_cobegin" b
+
+let is_coroutine_ssa_block b =
+  ssa_block_has_attribute "lcc_coroutine" b
+
+let is_coroutine_block b =
+  block_has_attribute "lcc_coroutine" b
+
+let ssa_block_has_fresh_effects b =
+  is_coroutine_ssa_block b
+
+let coroutines_of_ssa_block b = match b.Ssa.bstmt.skind with
+  | Block ({bstmts = ss}) ->
+    M.map_partial begin function
+      | {sid = sid; skind = Block b} when is_coroutine_block b -> Some sid
+      | _                                                      -> None
+    end ss
+  | _ -> E.s <| error "Malformed cobegin block@!@!"
+
 let is_reference t =
   match Cil.unrollType t with
   | Cil.TPtr _ | Cil.TArray (_,_,_) -> true

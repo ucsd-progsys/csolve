@@ -149,9 +149,9 @@ type memOp =
   | MemRead
   | MemWrite
 
-let effect_of_memop effs l mop =
+let effectptr_of_memop effs l mop =
   match mop, ES.find effs l with
-    | MemRead,  {Ct.eread = er} -> er
+    | MemRead,  {Ct.eread = er}  -> er
     | MemWrite, {Ct.ewrite = ew} -> ew
 
 let cons_of_mem me loc tago tag grd env post_mem_env sto effs v mop =
@@ -160,8 +160,8 @@ let cons_of_mem me loc tago tag grd env post_mem_env sto effs v mop =
   else
     let rct = FI.t_ptr_footprint env v in
     let l   = rct |> RT.sloc |> M.maybe |> Sloc.canonical in
-          FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
-      +++ FI.make_cs_effect_weaken post_mem_env grd sto v (effect_of_memop effs l mop) tago tag loc
+           FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
+       +++ FI.make_cs_effect_weaken post_mem_env grd sto v (effectptr_of_memop effs l mop) tago tag loc
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
@@ -361,8 +361,8 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
                               if RS.Data.mem st sloc then st else RS.Data.add st sloc ld
                             end st ocslds in
 
-  let stebs               = RS.join_effects st' effs in
-  let cs4, _              = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
+  let stebs      = RS.join_effects st' effs in
+  let cs4, _     = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
 
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
@@ -517,7 +517,14 @@ let scalarcons_of_stmt me i grd env stmt =
 (********************** Constraints for (cfg)block **************************)
 (****************************************************************************)
 
-let wcons_of_block me loc effs (_, sto, _) i des =
+let wcons_of_block_effects me loc sto i =
+  if CF.block_has_fresh_effects me i then
+    let j   = CF.idom_cobegin_of_block me i in
+    let env = CF.inenv_of_block me j in
+      FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
+  else []
+
+let wcons_of_block me loc (_, sto, _) i des =
   let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
   let csto = if CF.has_shape me then CF.csto_of_block me i else RS.empty in
   let tag  = CF.tag_of_instr me i 0 loc in
@@ -528,11 +535,38 @@ let wcons_of_block me loc effs (_, sto, _) i des =
                   |> Misc.flap (fun cr -> FI.make_wfs wenv sto cr tag) in
   let ws2  = FI.make_wfs_refstore wenv (RS.upd sto csto) csto tag in
   let ws3  = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv sto cr tag) in
-  ws1 ++ ws2 ++ ws3
+  let ws4  = wcons_of_block_effects me loc sto i in
+  ws1 ++ ws2 ++ ws3 ++ ws4
 
 let cons_of_init_block me loc (env, sto, _) =
   let tag = CF.tag_of_instr me 0 0 loc in
     FI.make_cs_refstore env Ast.pTrue (FI.conv_refstore_bottom sto) sto true None tag loc
+
+let fresh_effectcons_of_block me loc (env, sto, _) i =
+  if CF.block_has_fresh_effects me i then
+    let tag           = CF.tag_of_instr me i 0 loc in
+    let effs          = CF.effectset_of_block me i in
+    let grd           = CF.guard_of_block me i None in
+    let idomcob       = CF.idom_cobegin_of_block me i in
+    let idomeffs      = CF.effectset_of_block me idomcob in
+    let _, idomsto, _ = CF.inwld_of_block me idomcob in
+          FI.make_cs_effectset env grd sto idomsto (FI.conv_effectset_bottom effs) effs None tag loc
+      +++ FI.make_cs_effectset env grd sto idomsto effs idomeffs None tag loc
+  else ([], [])
+
+let effect_disjoint_cons_of_block me loc grd (env, sto, _) i =
+  let b = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+    if CM.is_cobegin_ssa_block b then
+      let tag = CF.tag_of_instr me i 0 loc in
+           b
+        |> CM.coroutines_of_ssa_block
+        |> M.pairs
+        |> List.map begin fun (j, k) ->
+             let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
+               FI.make_cs_assert_effectsets_disjoint env grd sto effs1 effs2 None tag loc
+           end
+        |> M.splitflatten
+    else ([], [])
 
 let cons_of_block me i =
   let _                = if mydebug then Printf.printf "cons_of_block: %d \n" i in 
@@ -540,11 +574,13 @@ let cons_of_block me i =
   let grd              = CF.guard_of_block me i None in
   let astmt            = CF.annotstmt_of_block me i in
   let wld              = CF.inwld_of_block me i in
-  let effs             = CF.effect_of_block me i in
-  let ws1              = wcons_of_block me loc effs wld i [] in
+  let ws1              = wcons_of_block me loc wld i [] in
+  let cs3, _           = fresh_effectcons_of_block me loc wld i in
+  let cs4, _           = effect_disjoint_cons_of_block me loc grd wld i in
+  let effs             = CF.effectset_of_block me i in
   let wld, cs, ds, ws2 = cons_of_annotstmt me loc i grd effs wld astmt in
   let cs2, ds2         = if i = 0 then cons_of_init_block me loc wld else ([], []) in
-  (wld, (ws1 ++ ws2, cs ++ cs2, [], ds ++ ds2))
+  (wld, (ws1 ++ ws2, cs ++ cs2 ++ cs3 ++ cs4, [], ds ++ ds2))
 
 let scalarcons_of_block me i = 
   let _             = if mydebug then Printf.printf "scalarcons_of_block: %d \n" i in 
@@ -553,7 +589,7 @@ let scalarcons_of_block me i =
   let stmt          = CF.stmt_of_block me i in
   let wld           = CF.inwld_of_block me i in
   let env,cs,des,ds = scalarcons_of_stmt me i grd (fst3 wld) stmt in
-  let ws            = wcons_of_block me loc ES.empty wld i des in
+  let ws            = wcons_of_block me loc wld i des in
   (withfst3 wld env, (ws, cs, des, ds))
 
 let cons_of_block me = if CF.has_shape me then cons_of_block me else scalarcons_of_block me

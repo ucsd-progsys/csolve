@@ -429,6 +429,9 @@ let refstore_fresh f st =
 let conv_refstore_bottom st =
   RCt.Store.map_variances t_false_refctype t_true_refctype st
 
+let conv_effectset_bottom effs =
+  ES.apply t_false_refctype effs
+
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
 
 let t_scalar_ptr tptr =
@@ -767,6 +770,13 @@ let make_cs cenv p rct1 rct2 tago tag =
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
 
+let make_cs_assert_disjoint env p cr1 cr2 tago tag =
+  let v1, v2    = (FA.name_fresh (), FA.name_fresh ()) in
+  let env       = ce_adds env [(v1, cr1); (v2, cr2)] in
+  let vv, so, _ = Ct.reft_of_refctype cr1 in
+  let cr        = replace_reft (vv, so, ra_equal v1 cr1 ++ ra_equal v2 cr1) cr2 in
+    make_cs env p cr (t_false_refctype cr2) tago tag
+
 let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
@@ -777,10 +787,31 @@ let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
     f ncrs12 env subs
 
+let make_cs_assert_effects_disjoint env p {Ct.ewrite = ew1; Ct.eread = er1} {Ct.ewrite = ew2; Ct.eread = er2} tago tag =
+      make_cs_assert_disjoint env p ew1 ew2 tago tag
+  +++ make_cs_assert_disjoint env p ew1 er2 tago tag
+  +++ make_cs_assert_disjoint env p er1 ew2 tago tag
+
+let make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag =
+     effs1
+  |> ES.domain
+  |> List.map begin fun l ->
+       let eff1, eff2 = M.map_pair (M.flip ES.find l) (effs1, effs2) in
+         if RCt.Store.Data.mem sto l then
+           let ld = RCt.Store.Data.find sto l in
+             with_refldesc_ncrs_env_subs env (l, ld) (l, ld) begin fun _ env _ ->
+               make_cs_assert_effects_disjoint env p eff1 eff2 tago tag
+             end
+         else ([], [])
+     end
+  |> M.splitflatten
+
 let make_cs_effect_weaken env p sto v efft tago tag =
-  let cl = ce_find (FA.name_of_varinfo v) env |> RCt.CType.sloc |> M.maybe in
-  let al = Sloc.canonical cl in
-  let vt = v |> t_ptr_footprint env |> canon_refctype in
+  let vn   = FA.name_of_varinfo v in
+  let vrct = ce_find vn env in
+  let cl   = vrct |> RCt.CType.sloc |> M.maybe in
+  let al   = Sloc.canonical cl in
+  let vt   = vn |> t_equal (Ct.ctype_of_refctype vrct) |> canon_refctype in
     if RCt.Store.Data.mem sto cl then
       let lhsld = (cl, RCt.Store.Data.find sto cl) in
       let rhsld = (al, RCt.Store.Data.find sto al) in
@@ -842,6 +873,13 @@ let make_cs cenv p rct1 rct2 tago tag loc =
 let make_cs_assert cenv p passert tago tag loc =
   let vv = Ct.scalar_ctype |> sort_of_prectype |> Sy.value_variable in
     make_cs cenv p (t_true Ct.scalar_ctype) (t_pred Ct.scalar_ctype vv passert) tago tag loc
+
+(* API *)
+let make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag loc =
+  try make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_assert_effectsets_disjoint fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_assert_effectsets_disjoint" in
+    assert false
 
 (* API *)
 let make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
