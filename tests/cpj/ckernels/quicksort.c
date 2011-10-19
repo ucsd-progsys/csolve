@@ -8,25 +8,25 @@ const int REF (V > 0) buf_len = 10000;
 const int REF (V > 0) too_small  = 50;
 
 
-void swp(int * ARRAY a, int b, int c)
-{
-  int t = a[b];
-  a[b] = a[c];
-  a[c] = t;
-}
-
-void seqsort(int * ARRAY a, int len){
-  for (int i = 1; i < len; i++){
-    int t = a[i];
-    int j = i - 1;
-    while (j >= 0 && a[j] > t){
-      a[j + 1] = a[j];
-      j--;
-    }
-    a[j + 1] = t;
-  }
-  return;
-}
+//void swp(int * ARRAY a, int b, int c)
+//{
+//  int t = a[b];
+//  a[b] = a[c];
+//  a[c] = t;
+//}
+//
+//void seqsort(int * ARRAY a, int len){
+//  for (int i = 1; i < len; i++){
+//    int t = a[i];
+//    int j = i - 1;
+//    while (j >= 0 && a[j] > t){
+//      a[j + 1] = a[j];
+//      j--;
+//    }
+//    a[j + 1] = t;
+//  }
+//  return;
+//}
 
 extern void qs(int * ARRAY VALIDPTR SIZE_GE(4*len) arr, int REF(V >= 0) len) OKEXTERN;
 
@@ -39,7 +39,7 @@ void quicksort(int * ARRAY a, int len)
   int i, j, t;
 
   int lt = nondetpos();
-  lcc_assert(lt < len);
+  int tmp = lcc_assume(lt < len);
   qs(a, lt + 1);
   qs(a + lt + 1, len - lt);
   return;
