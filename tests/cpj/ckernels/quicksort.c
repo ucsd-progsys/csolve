@@ -15,6 +15,19 @@ void swp(int * ARRAY a, int b, int c)
   a[c] = t;
 }
 
+void seqsort(int * ARRAY a, int len){
+  for (int i = 1; i < len; i++){
+    int t = a[i];
+    int j = i - 1;
+    while (j >= 0 && a[j] > t){
+      a[j + 1] = a[j];
+      j--;
+    }
+    a[j + 1] = t;
+  }
+  return;
+}
+
 //a: ptr(l, i) / l => (0+: int) -> len: int -> () / h: l => (0+; int)
 //                                                  r: l => T
 //                                                  w: l => T
@@ -24,19 +37,8 @@ void quicksort(int * ARRAY a, int len)
   int i, j, t;
 
   //do a sequential sort if array becomes too small
-  if (len <= too_small)
-  {
-    for (i = 1; i <= end; i++)
-    {
-      t = a[i];
-      j = i - 1;
-      while (j >= 0 && a[j] > t)
-      {
-        a[j + 1] = a[j];
-        j--;
-      }
-      a[j + 1] = t;
-    }
+  if (len <= too_small) {
+    seqsort(a, len);
     return;
   }
 
@@ -58,14 +60,26 @@ void quicksort(int * ARRAY a, int len)
   int rt = end - 1;
   int pt = mid;
 
-  while(1) {
-    while(a[rt] > a[pt]) rt--;
-    while(lt < rt && a[lt] <= a[pt]) lt++;
-
+  while(lt < rt) {
+    while(lt < rt && a[pt] <  a[rt]) 
+      rt--;
+    while(lt < rt && a[lt] <= a[pt]) 
+      lt++;
     if (lt < rt)
-      swp(a, lt, rt--);
-    else break; 
+      swp(a, lt++, rt--);
   }
+
+ // RJ: cleaned up above.
+ // while(1) {
+ //   while(lt < rt && a[pt] <  a[rt]) rt--;
+ //   while(lt < rt && a[lt] <= a[pt]) lt++;
+
+ //   if (lt < rt)
+ //     swp(a, lt++, rt--);
+ //   else break; 
+ // }
+
+  lcc_assert(lt < len);
 
   cobegin
     rtn(quicksort(a, lt + 1))
