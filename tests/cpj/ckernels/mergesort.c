@@ -18,8 +18,7 @@ int main() //int argc, char **argv)
   initialize(in, len);
   initialize(out, len);
 
-  //mergesort(in, 0, len, out);
-  mergesort(in, out, len);  // RJ: CHECK THIS
+  mergesort(in, out, len);
   
   check_sorted(in, len);
   
@@ -44,10 +43,10 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   int r  = len - 3*q;
    
   cobegin
-    rtn(mergesort(a      , b    , q))
-    rtn(mergesort(a + q  , b + q, q))
-    rtn(mergesort(a + h  , b + h, q))
-    //rtn(mergesort(a + 3*q, len, r)) //RJ: WTF? Where is the "b" argument?
+    rtn(mergesort(a      , b    ,   q))
+    rtn(mergesort(a + q  , b + q,   q))
+    rtn(mergesort(a + h  , b + h,   q))
+    rtn(mergesort(a + 3*q, b + 3*q, r))
   coend 
 
   cobegin
@@ -85,7 +84,7 @@ void merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int
     seq_merge(a, b, lena, lenb, c);
   } else {
     int ha = lena / 2;
-    int sb = find_split(a[ha], b, lenb);// RJ: CHECK IF THIS IS RIGHT!
+    int sb = find_split(a[ha], b, lenb);
 
     cobegin
       rtn(merge(a, b, ha, sb, c))
