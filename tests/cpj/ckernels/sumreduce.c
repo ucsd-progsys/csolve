@@ -8,8 +8,7 @@ void initialize(int * ARRAY a, int len) {
   int i;
 
   foreach(i, 0, len)
-    lcc_assert((i >= 0));
-    //a[i] = i;
+    a[i] = i;
   endfor 
 }
 

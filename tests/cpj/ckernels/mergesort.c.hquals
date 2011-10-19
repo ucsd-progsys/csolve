@@ -1,0 +1,2 @@
+qualif SUM2(V:int)     : V = (~A + ~B)
+qualif SIZE(V:ptr)     : BLOCK_END([V]) >= V + 4 * (~A + ~B)
