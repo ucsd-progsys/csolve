@@ -1,0 +1,13 @@
+benchmark                   lines of C        lines of java       remark
+SumReduce                   65                72                  vanilla arrays
+MergeSort                   128               274                 vanilla arrays
+QuickSort                   108               n/a (does it work?) vanilla arrays
+ListRanking                 147               208                 locally unique arrays (+ lists that look invariant free)
+QuadTree                                      169                 subtree disjointness             
+KMeans                      1025              842                 locally unique arrays 
+  244 cluster.c               
+  126 common.c
+  397 kmeans.c
+  258 normal.c <-- parallel block here
+
+
