@@ -1,7 +1,7 @@
 * TODO Capture-avoiding substition in fixInterface
   See the test in tests/postests.
 
-* TODO Remember to commit fixpoint
+* TODO Check WF of foreach blocks
 * TODO Refactor all fixinterface wrappers so locs come first
   Kill a lot of the boilerplate wrapper code by allowing one wrapper
   that takes the loc and string description.
