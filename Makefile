@@ -7,3 +7,4 @@ clean:
 	cd cil && make clean && cd ..
 	cd misc && make clean && cd ..
 	cd z3 && ./clean.sh && cd ..
+	./cleanup
