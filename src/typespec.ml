@@ -21,6 +21,7 @@ module RS  = Ctypes.RefCTypes.Store
 module RCf = Ctypes.RefCTypes.CFun
 module RSp = Ctypes.RefCTypes.Spec
 module RU  = RS.Unify
+module ES  = Ctypes.EffectSet
 
 open M.Ops
 
@@ -346,7 +347,7 @@ and preRefcfunOfType t =
   let retrct             = ret |> refctypeOfCilType SM.empty |> RCt.subs sub in
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
-    RCf.make argrcts glocs allInStore retrct allOutStore
+    RCf.make argrcts glocs allInStore retrct allOutStore ES.empty
 
 let updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd) gsto)
@@ -364,7 +365,13 @@ let rec refcfunOfPreRefcfun sub gsto prcf =
   let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
-    (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof} sub, gsto, sub)
+  let effs              = ostof
+                       |> RS.domain
+                       |> List.map S.canonical
+                       |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_false l) ES.empty in
+    (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof; Ct.effects = effs} sub,
+     gsto,
+     sub)
 
 and refstoreOfPreRefstore sub gsto sto =
      sto

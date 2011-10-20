@@ -1,18 +1,41 @@
-* TODO Remember to commit fixpoint
-* TODO Add fixInterface code for ensuring that effects are disjoint
+* TODO Capture-avoiding substition in fixInterface
+  See the test in tests/postests.
 
+* TODO Remember to commit fixpoint
+* TODO Refactor all fixinterface wrappers so locs come first
+  Kill a lot of the boilerplate wrapper code by allowing one wrapper
+  that takes the loc and string description.
 
 * TODO Test with loops, ifs
 * TODO Test with function pointers
-* TODO Add parallel blocks
-* TODO How does foreach work?
-  We need to show that two iterations of the foreach necessarily touch
-  different parts of memory, right? So i, j in the limits and not equal,
-  instantiate the effects, show that they're different.
 * TODO Effects from library functions?
   They're all true right now.
 * TODO Add read effects
 
+* TODO Check block structure is ok
+  For each "routine" in a cobegin block, we need to be sure that
+  control flow remains within that routine, otherwise the effect of
+  that routine does not follow the block structure and we won't track
+  its effect properly.
+
+* TODO Location mismatch - friendlier errors?
+
+* TODO Location includes
+
+* TODO Failed constraints on the *specs* of functions
+
+* TODO Better tracking of slocs, where they map, errors, etc.
+
+* TODO More elegant way of backing off defaults for annotations?
+  If we give any annotation at all, we lose all the defaults. Do we
+  really want this?
+
+* TODO What's happening with check_pos
+
+
+* TODO Untangle knot of pre_env, env, etc.
+  Some constraints need to be generated in the environment that was
+  present *before* any unfolding happened...
 
 * TODO Does create_shapeo need to fresh the store?
 * TODO Heapify /all/ globals?
@@ -68,6 +91,18 @@
   read-only in the client program and vary its type or allow
   "overlays" on top of the speicified type. (The latter seems more
   promising.)
+* TODO Effects with just the single set of effects
+
+* TODO Effects where fresh effects are needed
+  Effect is the same effect as the closest enclosing coroutine, or
+  global effect if none exists. (Which we should be able to get by
+  idom.) -- No, can't use idom for this, it would skip over
+  intermediate blocks. But we should be able to do a separate
+  traversal using just the immediate subblock relation, where we get
+  the effects for each block.
+
+* TODO How to check extern specs against the appropriate functions?
+
 * TODO Ensure that the ctypes/refinement knot is tied tightly
 
 * TODO Refactor/merge various index manipulations

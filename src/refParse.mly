@@ -92,7 +92,7 @@ let currentLoc () =
 %token LPAREN  RPAREN LB RB LC RC
 %token EQ NE GT GE LT LE
 %token AND OR NOT IMPL FORALL COMMA SEMI COLON PCOLON DCOLON HASTYPE MAPSTO MID LOCATION
-%token ARG RET ST GLOBAL INST OUTST WRITE READ
+%token ARG RET ST GLOBAL INST OUTST WRITE READ EFFECTS
 %token TRUE FALSE
 %token EOF
 %token MOD 
@@ -132,12 +132,31 @@ funspec:
     ;
 
 funtyp:
-    ARG    argbinds
-    RET    reftype
-    GLOBAL slocs
-    INST   refstore
-    OUTST  refstore {
-      Ct.RefCTypes.CFun.make $2 $6 $8 $4 $10
+    ARG     argbinds
+    RET     reftype
+    GLOBAL  slocs
+    INST    refstore
+    OUTST   refstore
+    EFFECTS effectset {
+      Ct.RefCTypes.CFun.make $2 $6 $8 $4 $10 $12
+    }
+    ;
+
+effectset:
+    LC RC               { Ct.EffectSet.empty }
+  | LC effectbindsne RC {
+      List.fold_left (fun effs (l, eff) -> Ct.EffectSet.add effs l eff) Ct.EffectSet.empty $2
+    }
+  ;
+
+effectbindsne:
+    effectbind                    { [$1] }
+  | effectbind SEMI effectbindsne { $1 :: $3 }
+  ;
+
+effectbind:
+    sloc MAPSTO READ COLON reftype COMMA WRITE COLON reftype {
+      ($1, {Ct.eread = $5; Ct.ewrite = $9})
     }
     ;
 
@@ -159,15 +178,8 @@ publ:
   ;
 
 globalslocbind:
-    sloc publ indbinds effect {
-      ($1,
-       $2,
-       SData begin
-            RCt.LDesc.create $1 Ct.dummy_structinfo $3
-         |> Misc.flip RCt.LDesc.set_write_effect (fst $4)
-         |> Misc.flip RCt.LDesc.set_read_effect (snd $4)
-       end,
-       currentLoc ())
+    sloc publ indbinds {
+      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
     }
   | sloc publ funtyp {
       ($1, $2, SFun $3, currentLoc ())
@@ -200,14 +212,8 @@ slocbindsne:
   ;
 
 slocbind:
-    sloc MAPSTO indbinds effect   {
-      ($1,
-       SData begin
-            RCt.LDesc.create $1 Ct.dummy_structinfo $3
-         |> Misc.flip RCt.LDesc.set_write_effect (fst $4)
-         |> Misc.flip RCt.LDesc.set_read_effect (snd $4)
-       end,
-       currentLoc ())
+    sloc MAPSTO indbinds   {
+      ($1, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
     }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
   ;
@@ -229,10 +235,6 @@ indbind:
   | index COLON FINAL reftype {
       ($1, Ct.RefCTypes.Field.create Ct.Final Ct.dummy_fieldinfo $4)
     }
-  ;
-
-effect:
-    LT WRITE COLON reftype COMMA READ COLON reftype GT { ($4, $8) }
   ;
 
 reftype:
