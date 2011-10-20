@@ -1,15 +1,20 @@
+
+
+
 benchmark                   lines of C        lines of java       remark
+---------                   ----------        -------------       ------
 SumReduce                   65                72                  vanilla arrays
 MergeSort                   128               274                 vanilla arrays
 QuickSort                   108               n/a (does it work?) vanilla arrays
 ListRanking                 147               208                 locally unique arrays (+ lists that look invariant free)
 QuadTree                                      169                 subtree disjointness             
+
 KMeans                      1025              842                 commutativity annotations over array effects (this is just vanilla arrays + UIFs). 2d arrays. java version contains hashtable that is not directly reasoned about
   244 cluster.c               
   126 common.c
   397 kmeans.c
   258 normal.c <-- parallel block here
-IDEA                                          624                 vanilla arrays, bitwise operations 
+IDEA                                          624                 vanilla arrays, bitwise operations
   dpj/IDEATest.java <-- parallel block here
 Monte Carlo
                                               3357                locally unique arrays (no other structures that I can see..)
@@ -18,9 +23,7 @@ Barnes-Hut                                    1100                reasons about 
 Collision Tree                                2137                seems to be a standard tree-based collision detection algorithm
 
 
-
 ******
-
 mergesort: subarrays (aka vanilla arrays), distinctions from the left?
 monte carlo: index-parameterized arrays (aka locally unique arrays), distinctions from the left, commutativity annotations
 IDEA: distinctions from the left, subarrays
@@ -28,4 +31,4 @@ barnes-hut: index-parameterized arrays, distinctions from the left, distinctions
 collision tree: distinctions from the left
 kmeans: commutativity annotations
 
-***** reproduced from oopsla09, sec.7.2, table 1
+****** reproduced from oopsla09, sec.7.2, table 1

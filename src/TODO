@@ -1,20 +1,8 @@
+Minimize Output:
+1. Suppress "false"
+2. Flatten/Minimize Predicates?
+3. Print out qualifier names -- not predicates?
 
-HEREHEREHEREHERE -- why is this happening? (power just dies with
-fastscalar)? Because, Z3 dies on power.c.scalar.mod.in.fq ...
-
-
-* run regrtests with and without -origdeps to see which wins
-
-* src/pmrtodo.org benchmarks
-        tsort 
-        in external/gnu-coreutils/src.
-
-* external/gnu-coreutils/HOWTO.lcc : how to use lcc to typecheck coreutils programs.
-
-QUALREFACTORMINIMIZE:
-1. scalar benefits from minimizing etc.(except when it kills Z3)
-2. non-scalar does not 
-3. final output likely easier to read with minimizing (make only output minimal)
 
 
 Function Pointers
