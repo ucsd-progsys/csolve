@@ -73,9 +73,9 @@
 // Deterministic Parallel Constructs
 
 #define COBEGIN                while (1) { __blockattribute__ ((lcc_cobegin))
-#define COEND                  break; }
-#define RTBEG                  { __blockattribute__ ((lcc_coroutine))
-#define RTEND                  }; if (nondet ()) break;
+#define COEND                  if (nondet ()) break; }
+#define RTBEG                  if (nondet ()) { __blockattribute__ ((lcc_coroutine))
+#define RTEND                  }
 #define RTN(s)                 RTBEG s; RTEND
 
 #define FOREACH(i, l, u)       while (nondet ()) { __blockattribute__ ((lcc_foreach)) \
