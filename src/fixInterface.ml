@@ -772,11 +772,7 @@ let make_cs cenv p rct1 rct2 tago tag =
   cs, ds
 
 let make_cs_assert_disjoint env p cr1 cr2 tago tag =
-  let v1, v2    = (FA.name_fresh (), FA.name_fresh ()) in
-  let env       = ce_adds env [(v1, cr1); (v2, cr2)] in
-  let vv, so, _ = Ct.reft_of_refctype cr1 in
-  let cr        = replace_reft (vv, so, ra_equal v1 cr1 ++ ra_equal v2 cr1) cr2 in
-    make_cs env p cr (t_false_refctype cr2) tago tag
+  make_cs env p (meet_refctype cr1 cr2) (t_false_refctype cr2) tago tag
 
 let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
