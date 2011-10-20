@@ -519,8 +519,9 @@ let scalarcons_of_stmt me i grd env stmt =
 
 let wcons_of_block_effects me loc sto i =
   if CF.block_has_fresh_effects me i then
-    let j   = CF.idom_cobegin_of_block me i in
-    let env = CF.inenv_of_block me j in
+    let env = if CM.is_foreach_iter_ssa_block me.CF.sci.ST.cfg.Ssa.blocks.(i) then
+                CF.inenv_of_block me i
+              else i |> CF.idom_parblock_of_block me |> CF.inenv_of_block me in
       FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
   else []
 
@@ -547,25 +548,42 @@ let fresh_effectcons_of_block me loc (env, sto, _) i =
     let tag           = CF.tag_of_instr me i 0 loc in
     let effs          = CF.effectset_of_block me i in
     let grd           = CF.guard_of_block me i None in
-    let idomcob       = CF.idom_cobegin_of_block me i in
-    let idomeffs      = CF.effectset_of_block me idomcob in
-    let _, idomsto, _ = CF.inwld_of_block me idomcob in
+    let idompar       = CF.idom_parblock_of_block me i in
+    let idomeffs      = CF.effectset_of_block me idompar in
+    let _, idomsto, _ = CF.inwld_of_block me idompar in
           FI.make_cs_effectset env grd sto idomsto (FI.conv_effectset_bottom effs) effs None tag loc
       +++ FI.make_cs_effectset env grd sto idomsto effs idomeffs None tag loc
   else ([], [])
 
+let cobegin_cons_of_block me loc grd env sto b tag loc =
+     b
+  |> CM.coroutines_of_ssa_block
+  |> M.pairs
+  |> List.map begin fun (j, k) ->
+       let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
+         FI.make_cs_assert_effectsets_disjoint env grd sto effs1 effs2 None tag loc
+     end
+  |> M.splitflatten
+
+let foreach_cons_of_block me loc grd i tag loc =
+  let idompar     = CF.idom_parblock_of_block me i in
+  let idx         = CM.index_var_of_foreach me.CF.sci.ST.cfg.Ssa.blocks.(idompar) in
+  let nidx        = FA.name_of_varinfo idx in
+  let nidx2       = FA.name_fresh () in
+  let env, sto, _ = CF.inwld_of_block me i in
+  let effs        = CF.effectset_of_block me i in
+  let effs2       = FI.effectset_subs (const <| FI.t_subs_names [(nidx, nidx2)]) () effs in
+  let env         = FI.ce_adds env [(nidx2, FI.ce_find nidx env)] in
+  let grd         = Ast.pAnd [grd; Ast.pAtom (Ast.eVar nidx, Ast.Ne, Ast.eVar nidx2)] in
+    FI.make_cs_assert_effectsets_disjoint env grd sto effs effs2 None tag loc
+
 let effect_disjoint_cons_of_block me loc grd (env, sto, _) i =
-  let b = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let b   = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let tag = CF.tag_of_instr me i 0 loc in
     if CM.is_cobegin_ssa_block b then
-      let tag = CF.tag_of_instr me i 0 loc in
-           b
-        |> CM.coroutines_of_ssa_block
-        |> M.pairs
-        |> List.map begin fun (j, k) ->
-             let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
-               FI.make_cs_assert_effectsets_disjoint env grd sto effs1 effs2 None tag loc
-           end
-        |> M.splitflatten
+      cobegin_cons_of_block me loc grd env sto b tag loc
+    else if CM.is_foreach_iter_ssa_block b then
+      foreach_cons_of_block me loc grd i tag loc
     else ([], [])
 
 let cons_of_block me i =

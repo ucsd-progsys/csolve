@@ -16,6 +16,10 @@ int nondetpos () {
     return 1;
 }
 
+int nondetrange (int l, int u) {
+    return l;
+}
+
 int lcc_assert (int p) {
     if (!p) {
         exit (0);

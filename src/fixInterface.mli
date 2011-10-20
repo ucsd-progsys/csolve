@@ -70,6 +70,7 @@ val strengthen_final_field :
 val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun -> Ctypes.refcfun
 
 val e_false             : Sloc.t -> Ctypes.effectinfo
+val e_true              : Sloc.t -> Ctypes.effectinfo
 val e_fresh             : Sloc.t -> Ctypes.effectinfo
 
 val t_scalar_ptr        : Cil.typ -> Ctypes.refctype

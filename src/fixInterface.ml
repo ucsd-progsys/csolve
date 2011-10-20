@@ -273,6 +273,7 @@ let e_aux l ra =
     {Ct.eread = fresh (); Ct.ewrite = fresh ()}
 
 let e_false l = e_aux l ra_false
+let e_true l  = e_aux l ra_true
 let e_fresh l = e_aux l ra_fresh
 
 let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 

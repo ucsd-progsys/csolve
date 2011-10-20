@@ -78,12 +78,8 @@
 #define RTEND                  }; if (nondet ()) break;
 #define RTN(s)                 RTBEG s; RTEND
 
-#define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
-#define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
-#define FOREACH3(i, l, u, x)   { __blockattribute__ ((lcc_foreach_##x)) \
-                                 ITER(i, l, u, x) {
-#define ITER(i, l, u, x)           int i = (int __attribute__ ((lcc_foreach_index_##x))) nondet();\
-                                lcc_assume(i >= l && i < u);
+#define FOREACH(i, l, u)       { __blockattribute__ ((lcc_foreach))  \
+                                 i = nondetrange(l, u); { __blockattribute__ ((lcc_foreach_iter))
 #define ENDFOR                 }}
 
 // more natural looking macros for parallel constructs
@@ -109,6 +105,8 @@ extern int nondet () OKEXTERN;
 extern int REF(V >= 1) nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) nondetnn () OKEXTERN;
+
+extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
 char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE

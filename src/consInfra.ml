@@ -394,10 +394,11 @@ let bind_of_phi me v =
 
 let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
-let rec idom_cobegin_of_block me i =
+let rec idom_parblock_of_block me i =
   let j = idom_of_block me i in
-    if CM.is_cobegin_ssa_block me.sci.ST.cfg.Ssa.blocks.(j) then j else
-      idom_cobegin_of_block me j
+  let b = me.sci.ST.cfg.Ssa.blocks.(j) in
+    if CM.is_cobegin_ssa_block b || CM.is_foreach_ssa_block b then j else
+      idom_parblock_of_block me j
 
 let inenv_of_block me i =
   if idom_of_block me i < 0 then

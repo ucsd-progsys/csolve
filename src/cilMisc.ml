@@ -281,11 +281,17 @@ let is_cobegin_ssa_block b =
 let is_coroutine_ssa_block b =
   ssa_block_has_attribute "lcc_coroutine" b
 
-let is_coroutine_block b =
-  block_has_attribute "lcc_coroutine" b
+let is_foreach_iter_ssa_block b =
+  ssa_block_has_attribute "lcc_foreach_iter" b
+
+let is_foreach_ssa_block b =
+  ssa_block_has_attribute "lcc_foreach" b
 
 let ssa_block_has_fresh_effects b =
-  is_coroutine_ssa_block b
+  is_coroutine_ssa_block b || is_foreach_iter_ssa_block b
+
+let is_coroutine_block b =
+  block_has_attribute "lcc_coroutine" b
 
 let coroutines_of_ssa_block b = match b.Ssa.bstmt.skind with
   | Block ({bstmts = ss}) ->
@@ -294,6 +300,10 @@ let coroutines_of_ssa_block b = match b.Ssa.bstmt.skind with
       | _                                                      -> None
     end ss
   | _ -> E.s <| error "Malformed cobegin block@!@!"
+
+let index_var_of_foreach b = match b.Ssa.bstmt.skind with
+  | Block ({bstmts = [{skind = Instr [Call (Some (Var v, NoOffset), _, _, _)]}; _]}) -> v
+  | _ -> E.s <| error "Malformed foreach block@!"
 
 let is_reference t =
   match Cil.unrollType t with
