@@ -78,7 +78,7 @@
 #define RTEND                  }; if (nondet ()) break;
 #define RTN(s)                 RTBEG s; RTEND
 
-#define FOREACH(i, l, u)       { __blockattribute__ ((lcc_foreach))  \
+#define FOREACH(i, l, u)       while (nondet ()) { __blockattribute__ ((lcc_foreach)) \
                                  i = nondetrange(l, u); { __blockattribute__ ((lcc_foreach_iter))
 #define ENDFOR                 }}
 
