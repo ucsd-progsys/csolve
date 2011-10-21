@@ -504,7 +504,7 @@ let create_shapeo tgr gnv env gst sci = function
       let istore  = irf |> Ct.stores_of_refcfun |> fst in
       let cs1, ds1 = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in
       let cs2, ds2 = FI.make_cs_effectset env Ast.pTrue lastore istore aeffs irf.Ct.effects None tag loc in
-      let cs3, ds3 = FI.make_cs_effectset env Ast.pTrue istore lastore (ES.apply FI.t_false_refctype aeffs) aeffs None tag loc in
+      let cs3, ds3 = FI.make_cs_effectset env Ast.pTrue lastore lastore (ES.apply FI.t_false_refctype aeffs) aeffs None tag loc in
       ws, cs1 ++ cs2 ++ cs3, ds1 ++ ds2 ++ ds3, Some { astore  = astore; cstoa = cstoa; shp = shp; aeffs = aeffs }
 
 let create tgr gnv gst sci sho = 

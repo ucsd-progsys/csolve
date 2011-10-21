@@ -557,7 +557,7 @@ let fresh_effectcons_of_block me loc (env, sto, _) i =
     let idompar       = CF.idom_parblock_of_block me i in
     let idomeffs      = CF.effectset_of_block me idompar in
     let _, idomsto, _ = CF.inwld_of_block me idompar in
-          FI.make_cs_effectset env grd sto idomsto (FI.conv_effectset_bottom effs) effs None tag loc
+          FI.make_cs_effectset env grd sto sto (FI.conv_effectset_bottom effs) effs None tag loc
       +++ FI.make_cs_effectset env grd sto idomsto effs idomeffs None tag loc
   else ([], [])
 
