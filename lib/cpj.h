@@ -19,7 +19,8 @@
 #define RTN(s)                 RTBEG s; RTEND
 #define COEND                  RTN(break)}
 
-#define FOREACH(i, l, u)       while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
+#define FOREACH(i, l, u)       int i; \
+                               while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
                                  i = nondetrange(l, u); \
                                  { BLOCKATTRIBUTE((lcc_foreach_iter))
 #define ENDFOR                 }}
