@@ -353,16 +353,16 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
   let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
   let oastbs           = (oaslds, ostsfuns) in
   
-  let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
-  let cs3,_     = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
-  let ds3       = [FI.make_dep false (Some tag') None] in 
+  let cs2,_               = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
+  let cs3,_               = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
+  let ds3                 = [FI.make_dep false (Some tag') None] in 
 
   let st'                 = List.fold_left begin fun st (sloc, ld) ->
                               if RS.Data.mem st sloc then st else RS.Data.add st sloc ld
                             end st ocslds in
 
-  let stebs      = RS.join_effects st' effs in
-  let cs4, _     = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
+  let stebs               = RS.join_effects st' effs in
+  let cs4, _              = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
 
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
