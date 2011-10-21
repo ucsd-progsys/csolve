@@ -262,6 +262,11 @@ let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   | _  when !Cs.safe  -> assertf "env_of_retbind"
   | _                 -> (env, [], [], [])
 
+let filter_poly_effects_binds (ldebs, fnebs) ns =
+  let polys        = Misc.map_partial (function Refanno.NewC (_, _, l) -> Some l | _ -> None) ns in
+  let filter binds = M.negfilter (fst <+> M.flip List.mem polys) binds in
+    (filter ldebs, filter fnebs)
+
 let instantiate_poly_clocs me env grd loc tag' ((_, st', _) as wld) ns =
   let asto = CF.get_astore me in
   ns |> Misc.map_partial (function Refanno.NewC (_,al,cl) -> Some (al,cl) | _ -> None)
@@ -362,6 +367,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
                             end st ocslds in
 
   let stebs               = RS.join_effects st' effs in
+  let ostebs              = filter_poly_effects_binds ostebs ns in
   let cs4, _              = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
 
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
