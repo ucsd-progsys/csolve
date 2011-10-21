@@ -4,25 +4,25 @@
 #ifndef __HAVE_CPJ
 #define __HAVE_CPJ
 
+#ifdef  __MAKE_SEQ
+  #define BLOCKATTRIBUTE(x)  
+#else
+  #define BLOCKATTRIBUTE(x) __blockattribute__ (x)
+#endif
+
+
 // Deterministic Parallel Constructs
 
-#define COBEGIN                { __blockattribute__ ((lcc_cobegin))\
-                                 int sw = (int __attribute__ ((lcc_cobegin_index))) nondet();\
-                                 switch(sw) {
-#define COEND                  }}
-#define RTBEG                  RTBEG2( __COUNTER__ )
-#define RTBEG2(x)              RTBEG3( x )
-#define RTBEG3(x)              case x:\
-                                 { __blockattribute__ ((lcc_coroutine_##x)) 
-#define RTEND                    } break;
-#define RTN(s)                 RTBEG s; RTEND 
+#define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
+#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine))
+#define RTEND                  }
+#define RTN(s)                 RTBEG s; RTEND
+#define COEND                  RTN(break)}
 
-#define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
-#define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
-#define FOREACH3(i, l, u, x)   { __blockattribute__ ((lcc_foreach_##x)) \
-                                 ITER(i, l, u, x) {
-#define ITER(i, l, u, x)           int i = (int __attribute__ ((lcc_foreach_index_##x))) nondet();\
-                                 LCC_ASSUME(i >= l && i < u)
+#define FOREACH(i, l, u)       while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
+                                 int i = nondetrange(l, u); \
+                                 lcc_assert(l <= u); \
+                                 { BLOCKATTRIBUTE((lcc_foreach_iter))
 #define ENDFOR                 }}
 
 // more natural looking macros for parallel constructs

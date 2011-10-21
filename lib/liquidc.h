@@ -70,28 +70,6 @@
 #define LCC_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
 #define LCC_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)
 
-// Deterministic Parallel Constructs
-
-#define COBEGIN                while (1) { __blockattribute__ ((lcc_cobegin))
-#define COEND                  if (nondet ()) break; }
-#define RTBEG                  if (nondet ()) { __blockattribute__ ((lcc_coroutine))
-#define RTEND                  }
-#define RTN(s)                 RTBEG s; RTEND
-
-#define FOREACH(i, l, u)       while (nondet ()) { __blockattribute__ ((lcc_foreach)) \
-                                 i = nondetrange(l, u); { __blockattribute__ ((lcc_foreach_iter))
-#define ENDFOR                 }}
-
-// more natural looking macros for parallel constructs
-
-#define foreach(i, l, u)       FOREACH(i, l, u)
-#define endfor                 ENDFOR
-#define cobegin                COBEGIN
-#define coend                  COEND
-#define rtbeg                  RTBEG
-#define rtend                  RTEND
-#define rtn(s)                 RTN(s)
-
 // Built-in functions
 
 extern void validptr (void * VALIDPTR) OKEXTERN;
