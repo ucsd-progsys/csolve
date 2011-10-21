@@ -20,8 +20,7 @@
 #define COEND                  RTN(break)}
 
 #define FOREACH(i, l, u)       while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
-                                 int i = nondetrange(l, u); \
-                                 lcc_assert(l <= u); \
+                                 i = nondetrange(l, u); \
                                  { BLOCKATTRIBUTE((lcc_foreach_iter))
 #define ENDFOR                 }}
 
