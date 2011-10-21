@@ -262,6 +262,11 @@ let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   | _  when !Cs.safe  -> assertf "env_of_retbind"
   | _                 -> (env, [], [], [])
 
+let filter_poly_effects_binds (ldebs, fnebs) ns =
+  let polys        = Misc.map_partial (function Refanno.NewC (_, _, l) -> Some l | _ -> None) ns in
+  let filter binds = M.negfilter (fst <+> M.flip List.mem polys) binds in
+    (filter ldebs, filter fnebs)
+
 let instantiate_poly_clocs me env grd loc tag' ((_, st', _) as wld) ns =
   let asto = CF.get_astore me in
   ns |> Misc.map_partial (function Refanno.NewC (_,al,cl) -> Some (al,cl) | _ -> None)
@@ -353,16 +358,17 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
   let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
   let oastbs           = (oaslds, ostsfuns) in
   
-  let cs2,_     = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
-  let cs3,_     = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
-  let ds3       = [FI.make_dep false (Some tag') None] in 
+  let cs2,_               = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
+  let cs3,_               = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
+  let ds3                 = [FI.make_dep false (Some tag') None] in 
 
   let st'                 = List.fold_left begin fun st (sloc, ld) ->
                               if RS.Data.mem st sloc then st else RS.Data.add st sloc ld
                             end st ocslds in
 
-  let stebs      = RS.join_effects st' effs in
-  let cs4, _     = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
+  let stebs               = RS.join_effects st' effs in
+  let ostebs              = filter_poly_effects_binds ostebs ns in
+  let cs4, _              = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
 
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
@@ -519,8 +525,9 @@ let scalarcons_of_stmt me i grd env stmt =
 
 let wcons_of_block_effects me loc sto i =
   if CF.block_has_fresh_effects me i then
-    let j   = CF.idom_cobegin_of_block me i in
-    let env = CF.inenv_of_block me j in
+    let env = if CM.is_foreach_iter_ssa_block me.CF.sci.ST.cfg.Ssa.blocks.(i) then
+                CF.inenv_of_block me i
+              else i |> CF.idom_parblock_of_block me |> CF.inenv_of_block me in
       FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
   else []
 
@@ -547,25 +554,42 @@ let fresh_effectcons_of_block me loc (env, sto, _) i =
     let tag           = CF.tag_of_instr me i 0 loc in
     let effs          = CF.effectset_of_block me i in
     let grd           = CF.guard_of_block me i None in
-    let idomcob       = CF.idom_cobegin_of_block me i in
-    let idomeffs      = CF.effectset_of_block me idomcob in
-    let _, idomsto, _ = CF.inwld_of_block me idomcob in
-          FI.make_cs_effectset env grd sto idomsto (FI.conv_effectset_bottom effs) effs None tag loc
+    let idompar       = CF.idom_parblock_of_block me i in
+    let idomeffs      = CF.effectset_of_block me idompar in
+    let _, idomsto, _ = CF.inwld_of_block me idompar in
+          FI.make_cs_effectset env grd sto sto (FI.conv_effectset_bottom effs) effs None tag loc
       +++ FI.make_cs_effectset env grd sto idomsto effs idomeffs None tag loc
   else ([], [])
 
+let cobegin_cons_of_block me loc grd env sto b tag loc =
+     b
+  |> CM.coroutines_of_ssa_block
+  |> M.pairs
+  |> List.map begin fun (j, k) ->
+       let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
+         FI.make_cs_assert_effectsets_disjoint env grd sto effs1 effs2 None tag loc
+     end
+  |> M.splitflatten
+
+let foreach_cons_of_block me loc grd i tag loc =
+  let idompar     = CF.idom_parblock_of_block me i in
+  let idx         = CM.index_var_of_foreach me.CF.sci.ST.cfg.Ssa.blocks.(idompar) in
+  let nidx        = FA.name_of_varinfo idx in
+  let nidx2       = FA.name_fresh () in
+  let env, sto, _ = CF.inwld_of_block me i in
+  let effs        = CF.effectset_of_block me i in
+  let effs2       = FI.effectset_subs (const <| FI.t_subs_names [(nidx, nidx2)]) () effs in
+  let env         = FI.ce_adds env [(nidx2, FI.ce_find nidx env)] in
+  let grd         = Ast.pAnd [grd; Ast.pAtom (Ast.eVar nidx, Ast.Ne, Ast.eVar nidx2)] in
+    FI.make_cs_assert_effectsets_disjoint env grd sto effs effs2 None tag loc
+
 let effect_disjoint_cons_of_block me loc grd (env, sto, _) i =
-  let b = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let b   = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let tag = CF.tag_of_instr me i 0 loc in
     if CM.is_cobegin_ssa_block b then
-      let tag = CF.tag_of_instr me i 0 loc in
-           b
-        |> CM.coroutines_of_ssa_block
-        |> M.pairs
-        |> List.map begin fun (j, k) ->
-             let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
-               FI.make_cs_assert_effectsets_disjoint env grd sto effs1 effs2 None tag loc
-           end
-        |> M.splitflatten
+      cobegin_cons_of_block me loc grd env sto b tag loc
+    else if CM.is_foreach_iter_ssa_block b then
+      foreach_cons_of_block me loc grd i tag loc
     else ([], [])
 
 let cons_of_block me i =

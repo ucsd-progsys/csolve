@@ -267,6 +267,11 @@ let has_unchecked_attr = hasAttribute "lcc_unchecked"
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeAttrs |> has_unchecked_attr
 
+let cobeginAttribute     = "lcc_cobegin"
+let coroutineAttribute   = "lcc_coroutine"
+let foreachIterAttribute = "lcc_foreach_iter"
+let foreachAttribute     = "lcc_foreach"
+
 let block_has_attribute a b =
   hasAttribute a b.battrs
 
@@ -276,24 +281,42 @@ let ssa_block_has_attribute a b =
     | _       -> false
 
 let is_cobegin_ssa_block b =
-  ssa_block_has_attribute "lcc_cobegin" b
+  ssa_block_has_attribute cobeginAttribute b
 
 let is_coroutine_ssa_block b =
-  ssa_block_has_attribute "lcc_coroutine" b
+  ssa_block_has_attribute coroutineAttribute b
 
-let is_coroutine_block b =
-  block_has_attribute "lcc_coroutine" b
+let is_foreach_iter_ssa_block b =
+  ssa_block_has_attribute foreachIterAttribute b
+
+let is_foreach_ssa_block b =
+  ssa_block_has_attribute foreachAttribute b
 
 let ssa_block_has_fresh_effects b =
-  is_coroutine_ssa_block b
+  is_coroutine_ssa_block b || is_foreach_iter_ssa_block b
+
+let is_coroutine_block b =
+  block_has_attribute coroutineAttribute b
+
+let is_foreach_iter_block b =
+  block_has_attribute foreachIterAttribute b
+
+let is_parallel_body_block b =
+  is_coroutine_block b || is_foreach_iter_block b
 
 let coroutines_of_ssa_block b = match b.Ssa.bstmt.skind with
   | Block ({bstmts = ss}) ->
     M.map_partial begin function
-      | {sid = sid; skind = Block b} when is_coroutine_block b -> Some sid
-      | _                                                      -> None
+      | {skind = If (_, ({bstmts = [{sid = sid; skind = Block b}]}), _, _)}
+          when is_coroutine_block b ->
+        Some sid
+      | _ -> None
     end ss
   | _ -> E.s <| error "Malformed cobegin block@!@!"
+
+let index_var_of_foreach b = match b.Ssa.bstmt.skind with
+  | Block ({bstmts = [{skind = Instr [Call (Some (Var v, NoOffset), _, _, _)]}; _]}) -> v
+  | _ -> E.s <| error "Malformed foreach block@!"
 
 let is_reference t =
   match Cil.unrollType t with

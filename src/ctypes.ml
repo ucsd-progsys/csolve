@@ -319,6 +319,7 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
+    val abstract     : t -> t
     val join_effects :
       t ->
       effectset ->
@@ -693,6 +694,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map_ldesc f (ds, fs) =
       (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
 
+    let restrict_slm_abstract m =
+      SLM.filter (fun l -> const <| S.is_abstract l) m
+
     module Data = struct
       let add (ds, fs) l ld =
         let _ = assert (not (SLM.mem l fs)) in
@@ -756,6 +760,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let bindings sto =
       (Data.bindings sto, Function.bindings sto)
+
+    let abstract (ds, fs) =
+      (restrict_slm_abstract ds, restrict_slm_abstract fs)
 
     let join_effects sto effs =
       ((sto |> Data.bindings |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))),

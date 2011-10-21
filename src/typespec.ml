@@ -368,7 +368,7 @@ let rec refcfunOfPreRefcfun sub gsto prcf =
   let effs              = ostof
                        |> RS.domain
                        |> List.map S.canonical
-                       |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_false l) ES.empty in
+                       |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_true l) ES.empty in
     (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof; Ct.effects = effs} sub,
      gsto,
      sub)

@@ -1,7 +1,13 @@
+* TODO Heapify locals modified in concurrent blocks
+  Use CIL name hacks?
+* TODO Don't track effects for function locations
+  They can't be written, so there can't be conflicts.
+* TODO Should join_effects do anything with concrete locations?
+
 * TODO Capture-avoiding substition in fixInterface
   See the test in tests/postests.
 
-* TODO Remember to commit fixpoint
+* TODO Check WF of foreach blocks
 * TODO Refactor all fixinterface wrappers so locs come first
   Kill a lot of the boilerplate wrapper code by allowing one wrapper
   that takes the loc and string description.
@@ -10,8 +16,6 @@
 * TODO Test with function pointers
 * TODO Effects from library functions?
   They're all true right now.
-* TODO Add read effects
-
 * TODO Check block structure is ok
   For each "routine" in a cobegin block, we need to be sure that
   control flow remains within that routine, otherwise the effect of
@@ -19,8 +23,6 @@
   its effect properly.
 
 * TODO Location mismatch - friendlier errors?
-
-* TODO Location includes
 
 * TODO Failed constraints on the *specs* of functions
 
@@ -31,46 +33,13 @@
   really want this?
 
 * TODO What's happening with check_pos
-
+  Why is it that CHECK_TYPE does or doesn't make things ok?
 
 * TODO Untangle knot of pre_env, env, etc.
   Some constraints need to be generated in the environment that was
   present *before* any unfolding happened...
 
 * TODO Does create_shapeo need to fresh the store?
-* TODO Heapify /all/ globals?
-  Various parts of the code go through contortions to ensure that
-  globals never appear in expressions (so they're always read into a
-  local first before use) and to treat them specially in reads and
-  assignments. But if the contents of globals are always in a store
-  location, everything gets much more uniform.
-
-  Also, we treat globals worse than heap contents right now: two
-  consecutive reads from a global are not assumed to yield the same
-  result. This is a major pain --- you may test a global pointer to
-  see if it's null, but the result of that test won't be useful in
-  allowing you to safely dereference the pointer. At least we've
-  already fixed this problem for heap contents with final fields.
-
-** DONE Check types of extern locations
-   Ditto above; can we even specify nontrivial invariants for
-   locations? Can we specify nontrivial predicates but add an override
-   for making the shape simple?
-** DONE Make sure specs work on heapified globals
-   Should we just name heapified globals the same as their original,
-   non-heapified versions, and the specs for things that get heapified
-   must have pointer type?
-** DONE For HasType, change rather than constrain global store
-   Just dump in the types themselves; no sense in subtyping unnecessarily.
-** TODO Mark heapified array pointers as const?
-   We should not be able to modify where the array points.
-** TODO Only make one copy of pointers to global contents
-   Since the pointer can't be changed, there's no sense in repeatedly
-   making copies of the pointer, and it makes for too many unfolds,
-   meaning we can't take advantage of flow-sensitive reasoning about
-   globals. Add at most one local copy per global and see if that
-   clears things up.
-
 * TODO Find a way to incorporate sizeofs in predicates
 
 * TODO Find a way to incorporate sizeofs in hquals
@@ -129,10 +98,6 @@
 
 * TODO Notify when unifying annotated locations
 
-* TODO Don't assert globals' types in constraints
-  They don't do anything but bump up the required number of
-  iterations; any time we actually use a global we copy it into a
-  local var.
 * TODO Check on refstore_subs_locs and quantifiers
   It's substituting over the whole store using Store.map, which isn't
   kosher w.r.t. quantifiers. While it would be nice to maintain the
@@ -140,7 +105,7 @@
   getting substituted, this seems very hard to maintain as we
   instantiate and create new functions. We should instead change this
   use of map to a saner instantiation.
-* TODO const qualifier should mark locations' contents as FINAL
+* TODO Should const qualifier mark locations' contents as FINAL?
 
 * TODO Attach error/warning messages to specific type obligations
   This would allow more user-friendly error messages when a function

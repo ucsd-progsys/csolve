@@ -1,0 +1,1 @@
+qualif ISI (v: ptr) : v = @p + 4 * @i

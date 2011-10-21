@@ -74,8 +74,11 @@ val has_pos_attr       : Cil.attributes -> bool
 val has_unchecked_attr : Cil.attributes -> bool
 
 val is_cobegin_ssa_block        : Ssa.cfgBlock -> bool
+val is_foreach_ssa_block        : Ssa.cfgBlock -> bool
+val is_foreach_iter_ssa_block   : Ssa.cfgBlock -> bool
 val ssa_block_has_fresh_effects : Ssa.cfgBlock -> bool
 val coroutines_of_ssa_block     : Ssa.cfgBlock -> int list
+val index_var_of_foreach        : Ssa.cfgBlock -> Cil.varinfo
 
 val is_unchecked_ptr_type : Cil.typ -> bool
 
