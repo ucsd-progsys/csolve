@@ -20,8 +20,7 @@
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 import time, subprocess, optparse, sys, socket, os
-sys.path.append("../")
-import external.misc.rtest as rtest
+import misc.rtest as rtest
 
 solve      = "./lcc -c".split()
 null       = open("/dev/null", "w")
@@ -82,7 +81,7 @@ class Config (rtest.TestConfig):
 #testdirs  = [("../slowtests", 1)]
 
 #DEFAULT
-testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
+testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2]), ("../tests/todo", [0])]
 #testdirs  = [("../tests/microtests", 0)]
 
 parser = optparse.OptionParser()

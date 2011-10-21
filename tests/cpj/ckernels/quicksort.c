@@ -63,9 +63,9 @@ void quicksort(int * ARRAY a, int len)
   int pt = mid;
 
   while(lt < rt) {
-    while(lt < rt && a[pt] <  a[rt]) 
+    while(lt < rt && a[pt] <  a[rt])
       rt--;
-    while(lt < rt && a[lt] <= a[pt]) 
+    while(lt < rt && a[lt] <= a[pt])
       lt++;
     if (lt < rt)
       swp(a, lt++, rt--);

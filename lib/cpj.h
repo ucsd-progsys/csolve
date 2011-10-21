@@ -10,7 +10,6 @@
   #define BLOCKATTRIBUTE(x) __blockattribute__ (x)
 #endif
 
-
 // Deterministic Parallel Constructs
 
 #define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
@@ -19,11 +18,15 @@
 #define RTN(s)                 RTBEG s; RTEND
 #define COEND                  RTN(break)}
 
-#define FOREACH(i, l, u)       while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
-                                 int i = nondetrange(l, u); \
-                                 lcc_assert(l <= u); \
-                                 { BLOCKATTRIBUTE((lcc_foreach_iter))
-#define ENDFOR                 }}
+#define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
+#define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
+#define FOREACH3(i, l, u, x)   {  int i;                       \
+                                  int __lcc_foreach_lb_##x = l; \
+                                  int __lcc_foreach_ub_##x = u; \
+                                  while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
+                                    i = nondetrange(__lcc_foreach_lb_##x, __lcc_foreach_ub_##x); \
+                                    { BLOCKATTRIBUTE((lcc_foreach_iter))
+#define ENDFOR                 }}}
 
 // more natural looking macros for parallel constructs
 

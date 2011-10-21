@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <cpj.h>
 
 void write (int * ARRAY p) {
     int i = nondet ();

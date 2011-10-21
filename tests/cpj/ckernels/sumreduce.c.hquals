@@ -1,0 +1,1 @@
+qualif APLUSIDX(v: ptr) : v = (@a + 4 * @i)
