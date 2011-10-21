@@ -584,10 +584,12 @@ generate_update_general_email()
 #
 generate_update_broken_email()
 {
+  echo "ERROR: THE BUILD IS BROKEN"
 	echo "        to  $newrev ($newrev_type)"
 	echo "      from  $oldrev"
+  echo "THE BUILD PROCESS NO LONGER COMPLETES SUCCESSFULLY"
 
-	generate_general_email
+  generate_general_email()
 }
 
 #
