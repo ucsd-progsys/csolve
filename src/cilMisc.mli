@@ -159,3 +159,5 @@ module NameNullPtrs: Visitor
 module Pheapify: Visitor
 
 val dec_of_global : Cil.global -> dec option
+
+val noBlockAttrPrinter : Cil.cilPrinter

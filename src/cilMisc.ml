@@ -785,3 +785,15 @@ let dec_of_global = function
       -> assertf "decs_of_file"
     | g  -> (ignore <| E.warn "Ignoring %s: %a \n" (tag_of_global g) d_global g; None) 
 
+(******************************************************************************)
+(********************** Printing Without Block Attributes *********************)
+(******************************************************************************)
+
+class noBlockAttrPrinterClass : cilPrinter = object (self)
+  inherit defaultCilPrinterClass as super
+
+  method pBlock () (blk: block) =
+    super#pBlock () {blk with battrs = []}
+end
+
+let noBlockAttrPrinter = new noBlockAttrPrinterClass

@@ -260,9 +260,10 @@ let rec processOneFile (cil: Cil.file) =
     end;
     (match !outChannel with
       None -> ()
-    | Some c -> 
+    | Some c ->
+        (* Note GCC gets mad if we print block attributes *)
         Stats.time "printCIL" 
-	(Cil.dumpFile (!Cil.printerForMaincil) c.fchan c.fname) cil);
+	(Cil.dumpFile CilMisc.noBlockAttrPrinter c.fchan c.fname) cil);
 
     let _ = liquidate cil in
     if !E.hadErrors then

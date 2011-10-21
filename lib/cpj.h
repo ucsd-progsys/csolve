@@ -10,7 +10,6 @@
   #define BLOCKATTRIBUTE(x) __blockattribute__ (x)
 #endif
 
-
 // Deterministic Parallel Constructs
 
 #define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
