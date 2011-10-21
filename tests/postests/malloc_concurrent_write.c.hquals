@@ -1,0 +1,3 @@
+qualif ARRAY2 (v: ptr) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 8
+qualif ONE    (v: ptr) : v = (BLOCK_BEGIN([v]) + 4)
+qualif ZERO   (v: ptr) : v = BLOCK_BEGIN([v])
