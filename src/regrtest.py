@@ -20,8 +20,7 @@
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 import time, subprocess, optparse, sys, socket, os
-sys.path.append("../")
-import external.misc.rtest as rtest
+import misc.rtest as rtest
 
 solve      = "./lcc -c".split()
 null       = open("/dev/null", "w")
