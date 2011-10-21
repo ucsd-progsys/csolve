@@ -844,8 +844,8 @@ let make_cs_effectset_binds polarity env p (sldes1, sfnes1) (sldes2, sfnes2) tag
 
 let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
   make_cs_effectset_binds true env p
-    (RCt.Store.join_effects sto1 effs1)
-    (RCt.Store.join_effects sto2 effs2)
+    (RCt.Store.join_effects (RCt.Store.abstract sto1) effs1)
+    (RCt.Store.join_effects (RCt.Store.abstract sto2) effs2)
     tago
     tag
 

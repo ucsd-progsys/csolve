@@ -187,6 +187,7 @@ module type S = sig
 
     val empty        : t
     val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
+    val abstract     : t -> t
     val join_effects :
       t ->
       effectset ->

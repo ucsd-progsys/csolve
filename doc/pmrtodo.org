@@ -1,4 +1,9 @@
 * TODO Heapify locals modified in concurrent blocks
+  Use CIL name hacks?
+* TODO Don't track effects for function locations
+  They can't be written, so there can't be conflicts.
+* TODO Should join_effects do anything with concrete locations?
+
 * TODO Capture-avoiding substition in fixInterface
   See the test in tests/postests.
 
