@@ -1,2 +1,17 @@
 qualif SUM2(V:int)     : V = (@i + @j)
 qualif SIZE(V:ptr)     : BLOCK_END([V]) >= V + 4 * (@lena + @lenb)
+
+qualif GE4(V: int)     : V >= 4
+
+qualif BUFEFFECT(V: ptr) : V = (@buf + (4 * @i))
+
+// Necessary?
+// qualif EFFECTA(V: ptr) : && [@a <= V; V < (@a + (4 * @lena))]
+// qualif EFFECTB(V: ptr) : && [@b <= V; V < (@b + (4 * @lenb))]
+qualif EFFECTC(V: ptr) : && [@c <= V; V < (@c + (4 * (@lena + @lenb)))]
+
+qualif MERGELEFT(V: ptr)  : V < (@c + (4 * (@ha + @sb)))
+qualif MERGERIGHT(V: ptr) : V >= (@c + (4 * (@ha + @sb)))
+
+qualif MSMERGELEFT(V: ptr)  : V < (@b + (4 * @h))
+qualif MSMERGERIGHT(V: ptr) : V >= (@b + (4 * @h))

@@ -4,6 +4,7 @@
 
 const int REF (V > 0) buf_len = 10000; 
 const int REF (V > 0) merge_size = 50;
+const int REF (V > 0) quick_size = 2048;
 
 //define buf_len 10000
 //define merge_size 50
@@ -32,31 +33,48 @@ void initialize(int * ARRAY START buf, int len)
   endfor
 }
 
+// pmr: TODO drop in real thing from quicksort.c when we have effect specs
+void quicksort (int * ARRAY a, int len) {
+    return;
+}
+
 //a: ptr(l1, i1) / l1 => (0+: int)  -> b: ptr(l2, i2) / l2 => (0+: int)
 //                                  -> len: int
 //                                  -> () / h: l1 => (0+: int), l2 => (0+: int);
 //                                          r: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len);
 //                                          w: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len) 
 void mergesort(int * ARRAY a, int * ARRAY b, int len) {
+  if (len <= quick_size) {
+      quicksort (a, len);
+      return;
+  }
+
+  // Need to know that len >= 4 so h is nonzero
   int q = len / 4;
   int h = q + q;
   int r = len - (q + q + q);
   
+  // pmr: todo
+  /* cobegin */
+  /*   rtn(mergesort(a      , b      ,   q)) */
+  /*   rtn(mergesort(a + q  , b + q  ,   q)) */
+  /*   rtn(mergesort(a + 2*q, b + 2*q,   q)) */
+  /*   rtn(mergesort(a + 3*q, b + 3*q,   r)) */
+  /* coend */
 
-  cobegin
-    rtn(mergesort(a      , b      ,   q))
-    rtn(mergesort(a + q  , b + q  ,   q))
-    rtn(mergesort(a + 2*q, b + 2*q,   q))
-    rtn(mergesort(a + 3*q, b + 3*q,   r))
-  coend 
+  mergesort(a      , b      ,   q);
+  mergesort(a + q  , b + q  ,   q);
+  mergesort(a + 2*q, b + 2*q,   q);
+  mergesort(a + 3*q, b + 3*q,   r);
 
   int tmp = b[0] + b[h]; //PROVE THIS FIRST
 
   cobegin
     rtn(merge(a, a + q, q, q, b))
     rtn(merge(a + h, a + 3*q, q, r, b + h))
-  coend 
+  coend
 
+  // pmr: BUG for some reason this is getting considered as part of the cobegin
   merge(b, b + h, h, len - h, a);
 }
 
