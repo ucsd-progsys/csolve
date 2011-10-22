@@ -180,7 +180,7 @@ generate_email()
 
     dirname=/scratch/liquidc_build_$refname
     mkdir -f $dirname && cp build_liquidc_here $dirname && cd $dirname && \
-      chmod a+x ./build_liquidc_here && ./build_liquidc_here
+      chmod a+x ./build_liquidc_here >1&2 /tmp/$refname.build_log  && ./build_liquidc_here
     build_is_broken=$? 
 
     if [ $build_succ ]; then
@@ -199,16 +199,17 @@ generate_email()
 	case "$refname_type" in
 	"tracking branch"|branch)
 		fn_name=branch
+    if [[ "$change_type" = "update" && ! $build_is_broken -eq 0 ]]; then
+      fn_name=broken
+    fi
 		;;
 	"annotated tag")
 		fn_name=atag
 		;;
   "branch")
-    if [ "$change_type" = "update" &&
+    if [[ "$change_type" -eq "update" && "$
 	esac
   
-
-  if 
 	generate_${change_type}_${fn_name}_email
 
 	generate_email_footer
@@ -587,7 +588,9 @@ generate_update_broken_email()
   echo "ERROR: THE BUILD IS BROKEN"
 	echo "        to  $newrev ($newrev_type)"
 	echo "      from  $oldrev"
-  echo "THE BUILD PROCESS NO LONGER COMPLETES SUCCESSFULLY"
+  echo "$newrev DOES NOT BUILD"
+  echo "The tail of the build log follows:"
+  tail -n 15 /tmp/$refname.build_log
 
   generate_general_email()
 }
