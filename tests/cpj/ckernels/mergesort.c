@@ -67,14 +67,11 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   mergesort(a + 2*q, b + 2*q,   q);
   mergesort(a + 3*q, b + 3*q,   r);
 
-  int tmp = b[0] + b[h]; //PROVE THIS FIRST
-
   cobegin
     rtn(merge(a, a + q, q, q, b))
     rtn(merge(a + h, a + 3*q, q, r, b + h))
   coend
 
-  // pmr: BUG for some reason this is getting considered as part of the cobegin
   merge(b, b + h, h, len - h, a);
 }
 
