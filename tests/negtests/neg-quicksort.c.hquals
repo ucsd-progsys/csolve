@@ -1,0 +1,21 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+qualif VIDX(V:int) : && [(BLOCK_BEGIN([~A]) <= (~A + (4 * V))); ((~A + 4 + (4 * V)) <= BLOCK_END([~A]))]
+qualif VSIZEGE(V:ptr) : (V + (4 * ~A)) <= BLOCK_END([V])
+qualif GTMINUS1(V:int) : 0 <= (V + 1)
+qualif AINDEX(V: ptr) : V = (@a + (4 * @i))
+qualif QSSTART(V: ptr) : @a <= V
+qualif QSEFFECT(V: ptr) : V != (@a + (4 * ~A))
+qualif QSEFFECT(V: ptr) : V <= (@a + (4 * ~A))
+qualif SORTRIGHT(V: ptr) : V >= (@a + (4 * @lt))
