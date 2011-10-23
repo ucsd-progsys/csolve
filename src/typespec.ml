@@ -181,7 +181,7 @@ let normalizeEffectPtrAnnots l = function
 let effectSetOfAttrs ls ats =
      ats
   |> M.map_partial effectOfAttribute
-  |> List.fold_left (fun eam (l, eptr) -> SLM.adds l eptr eam) SLM.empty
+  |> List.fold_left (fun eam (l, eptr) -> SLM.adds l [eptr] eam) SLM.empty
   |> SLM.mapi normalizeEffectPtrAnnots
   |> M.flip (SLM.fold (fun l eptr effs -> ES.add effs l eptr)) ES.empty
   |> M.flip begin
