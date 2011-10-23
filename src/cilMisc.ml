@@ -259,6 +259,8 @@ let layoutAttribute         = "lcc_layout"
 let roomForAttribute        = "lcc_room_for"
 let nonnullRoomForAttribute = "lcc_nonnull_room_for"
 let ignoreBoundAttribute    = "lcc_ignore_bound"
+let writeEffectAttribute    = "lcc_write_effect"
+let readEffectAttribute     = "lcc_read_effect"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"

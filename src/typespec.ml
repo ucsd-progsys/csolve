@@ -103,14 +103,16 @@ let roomForPredsOfAttrs ats =
           if an = CM.roomForAttribute then roomForPred tb else nonnullRoomForPred tb
       | _ -> assert false
 
+let predOfString predStr =
+  try
+    predStr |> Lexing.from_string |> RefParse.pred RefLex.token
+  with Parsing.Parse_error ->
+    E.s <| C.error "Could not parse predicate: %s@!" predStr
+
 let rawPredsOfAttrs ats =
       ats
   |>  CM.getStringAttrs CM.predAttribute
-  |>: fun predStr ->
-        try
-          predStr |> Lexing.from_string |> RefParse.pred RefLex.token
-        with Parsing.Parse_error ->
-          E.s <| C.error "Could not parse predicate: %s@!" predStr
+  |>: predOfString
 
 let pointerLayoutAttributes =
   [CM.arrayAttribute;
@@ -152,6 +154,61 @@ let intReftypeOfAttrs width ats =
       (Ct.Int (width, I.data_index_of_pred vv pred))
       vv
       pred
+
+(******************************************************************************)
+(***************************** Effect Annotations *****************************)
+(******************************************************************************)
+
+type effectPtrAnnotKind =
+  | ERead
+  | EWrite
+
+let d_effectKind () = function
+  | ERead  -> P.text "read"
+  | EWrite -> P.text "write"
+
+let isEffectAttribute s =
+  s = CM.readEffectAttribute || s = CM.writeEffectAttribute
+
+let effectOfAttribute = function
+  | C.Attr (s, [C.AStr l; C.AStr p]) when isEffectAttribute s ->
+    let l    = getSloc l in
+    let eptr = FI.t_spec_pred (Ct.Ref (l, I.top)) vv <| predOfString p in
+      if s = CM.readEffectAttribute then
+        some <| (l, ERead, eptr)
+      else
+        some <| (l, EWrite, eptr)
+  | C.Attr (s, _) when isEffectAttribute s ->
+    E.s <| C.error "Malformed effect annotation"
+  | _ -> None
+
+let trueEffectPtr l =
+  FI.t_spec_pred (Ct.Ref (l, I.top)) vv A.pTrue
+
+let trueEffect l =
+  {Ct.eread = trueEffectPtr l; Ct.ewrite = trueEffectPtr l}
+
+let normalizeEffectPtrAnnots l ek eas = match List.filter (fst <+> (=) ek) eas with
+  | []          -> trueEffectPtr l
+  | [(_, eptr)] -> eptr
+  | _           -> E.s <| C.error "Multiple %a effect annotations for location %a@!"
+                            d_effectKind ek S.d_sloc l
+
+let normalizeEffectAnnots l eas =
+  { Ct.eread  = normalizeEffectPtrAnnots l ERead eas
+  ; Ct.ewrite = normalizeEffectPtrAnnots l EWrite eas}
+
+let effectSetOfAttrs ls ats =
+     ats
+  |> M.map_partial effectOfAttribute
+  |> List.fold_left (fun eam (l, ek, eptr) -> SLM.adds l (ek, eptr) eam) SLM.empty
+  |> SLM.mapi normalizeEffectAnnots
+  |> M.flip (SLM.fold (fun l eptr effs -> ES.add effs l eptr)) ES.empty
+  |> M.flip begin
+       List.fold_left begin fun effs l ->
+         if ES.mem effs l then effs else ES.add effs l <| trueEffect l
+       end
+     end (List.map S.canonical ls)
 
 (******************************************************************************)
 (***************************** Type Preprocessing *****************************)
@@ -347,7 +404,8 @@ and preRefcfunOfType t =
   let retrct             = ret |> refctypeOfCilType SM.empty |> RCt.subs sub in
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
-    RCf.make argrcts glocs allInStore retrct allOutStore ES.empty
+  let effs               = effectSetOfAttrs (allOutStore |> RS.domain |> M.negfilter (M.flip List.mem glocs)) ats in
+    RCf.make argrcts glocs allInStore retrct allOutStore effs
 
 let updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd) gsto)
@@ -359,16 +417,32 @@ let updateGlobalStore sub gsto gstoUpd =
                (fun s rcf (sto, sub) -> RU.add_fun sto sub s rcf))
       gstoUpd
 
+let assertNoDuplicateEffects sub effs =
+     effs
+  |> ES.domain
+  |> List.map (fun l -> (l, S.Subst.apply sub l))
+  |> fun subdom ->
+       try
+         let (l1, _), (l2, _) = M.find_pair (fun (_, l1) (_, l2) -> S.eq l1 l2) subdom in
+           E.s <| C.error "Locations %a and %a get unified but have separate effect annotations@!"
+                    S.d_sloc l1 S.d_sloc l2
+       with Not_found -> ()
+
+let substEffectSet sub effs =
+  let _    = assertNoDuplicateEffects sub effs in
+  let effs = ES.apply (RCt.subs sub) effs in
+    List.fold_left
+      (fun neweffs l -> ES.add neweffs (S.Subst.apply sub l) (ES.find effs l))
+      ES.empty
+      (ES.domain effs)
+
 let rec refcfunOfPreRefcfun sub gsto prcf =
   let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
   let gstof, ostof      = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
   let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
-  let effs              = ostof
-                       |> RS.domain
-                       |> List.map S.canonical
-                       |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_true l) ES.empty in
+  let effs              = substEffectSet sub prcf.Ct.effects in
     (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof; Ct.effects = effs} sub,
      gsto,
      sub)

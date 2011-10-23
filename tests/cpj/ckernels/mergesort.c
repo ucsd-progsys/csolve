@@ -9,6 +9,11 @@ const int REF (V > 0) quick_size = 2048;
 //define buf_len 10000
 //define merge_size 50
 
+extern void quicksort (int * ARRAY LOC(L) a, int len)
+  READS  (L, && [a <= V; V < a + len])
+  WRITES (L, && [a <= V; V < a + len])
+  OKEXTERN;
+
 int main() //int argc, char **argv)
 {
   int len = buf_len;  
@@ -31,11 +36,6 @@ void initialize(int * ARRAY START buf, int len)
   foreach(i, 0, len)
     buf[i] = nondet();
   endfor
-}
-
-// pmr: TODO drop in real thing from quicksort.c when we have effect specs
-void quicksort (int * ARRAY a, int len) {
-    return;
 }
 
 //a: ptr(l1, i1) / l1 => (0+: int)  -> b: ptr(l2, i2) / l2 => (0+: int)

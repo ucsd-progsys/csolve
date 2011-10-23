@@ -206,6 +206,9 @@ module EffectSet = struct
   let find effs l =
     SLM.find l effs
 
+  let mem effs l =
+    SLM.mem l effs
+
   let add effs l eff =
     SLM.add l eff effs
 

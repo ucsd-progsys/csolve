@@ -68,6 +68,8 @@ val externOkAttribute       : string
 val checkTypeAttribute      : string
 val layoutAttribute         : string
 val ignoreBoundAttribute    : string
+val readEffectAttribute     : string
+val writeEffectAttribute    : string
 
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool

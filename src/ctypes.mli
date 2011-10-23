@@ -89,6 +89,7 @@ sig
   val maplisti    : (Sloc.t -> effectinfo -> 'a) -> effectset -> 'a list
 
   val find        : effectset -> Sloc.t -> effectinfo
+  val mem         : effectset -> Sloc.t -> bool
   val add         : effectset -> Sloc.t -> effectinfo -> effectset
 
   val domain      : t -> Sloc.t list
