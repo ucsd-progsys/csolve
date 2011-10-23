@@ -207,7 +207,6 @@ generate_email()
 		fn_name=atag
 		;;
   "branch")
-    if [[ "$change_type" -eq "update" && "$
 	esac
   
 	generate_${change_type}_${fn_name}_email
