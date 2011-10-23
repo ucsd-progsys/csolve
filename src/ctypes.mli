@@ -85,7 +85,6 @@ sig
 
   val empty       : t
 
-  (* These names are not quite right *)
   val apply       : (effectptr -> effectptr) -> effectset -> effectset
   val maplisti    : (Sloc.t -> effectinfo -> 'a) -> effectset -> 'a list
 
