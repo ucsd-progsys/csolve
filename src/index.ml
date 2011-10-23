@@ -56,14 +56,6 @@ type t =
 
 type tIndex = t
 
-let congruent i1 i2 = match i1, i2 with
-  | IBot, IBot -> true
-  | IInt n1, IInt n2 -> n1 = n2
-  | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-      lb1 = lb2 && ub1 = ub2 && m1 = m2 && (c1 - c2) mod m1 = 0
-  | _ -> false
-  
 let top = ICClass {lb = None; ub = None; c = 0; m = 1}
 
 let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}

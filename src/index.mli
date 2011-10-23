@@ -43,7 +43,6 @@ val overlaps     : t -> t -> bool
 val d_index      : unit -> t -> Pretty.doc
 val repr         : t -> string
 val repr_prefix  : string
-val congruent    : t -> t -> bool  
 module IndexSet : Set.S with type elt = t
 
 val d_indexset : unit -> IndexSet.t -> Pretty.doc
