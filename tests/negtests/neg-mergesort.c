@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-const int REF (V > 0) buf_len = 10000; 
+const int REF (V > 0) buf_len = 10000;
 const int REF (V > 0) merge_size = 50;
 const int REF (V > 0) quick_size = 2048;
 
@@ -11,7 +11,7 @@ const int REF (V > 0) quick_size = 2048;
 
 int main() //int argc, char **argv)
 {
-  int len = buf_len;  
+  int len = buf_len;
 
   int * in  = malloc(sizeof(int) * len);
   int * out = malloc(sizeof(int) * len);
@@ -20,9 +20,9 @@ int main() //int argc, char **argv)
   initialize(out, len);
 
   mergesort(in, out, len);
-  
+
   check_sorted(in, len);
-  
+
   return 0;
 }
 
@@ -42,7 +42,7 @@ void quicksort (int * ARRAY a, int len) {
 //                                  -> len: int
 //                                  -> () / h: l1 => (0+: int), l2 => (0+: int);
 //                                          r: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len);
-//                                          w: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len) 
+//                                          w: l1 => (i1 <= v < i1 + len), l2 => (i2 <= v < i2 + len)
 void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   if (len <= quick_size) {
       quicksort (a, len);
@@ -53,7 +53,7 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   int q = len / 4;
   int h = q + q;
   int r = len - (q + q + q);
-  
+
   cobegin
     rtn(mergesort(a      , b      ,   q))
     rtn(mergesort(a + q  , b + q  ,   q))
@@ -61,15 +61,16 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
     rtn(mergesort(a + 3*q, b + 3*q,   r))
   coend
 
+  // pmr: b + q should be b + h
   cobegin
     rtn(merge(a, a + q, q, q, b))
-    rtn(merge(a + h, a + 3*q, q, r, b + h))
+    rtn(merge(a + h, a + 3*q, q, r, b + q))
   coend
 
   merge(b, b + h, h, len - h, a);
 }
 
-void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY LOC(Lo) c) 
+void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY LOC(Lo) c)
 {
   int i, j, k;
   i = j = k = 0;
@@ -78,14 +79,14 @@ void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb,
 
     lcc_assert ( k == (i+j) );
 
-    if (a[i] < b[j])   
+    if (a[i] < b[j])
       c[k++] = a[i++];
     else
       c[k++] = b[j++];
   }
 
   while (i < lena) c[k++] = a[i++];
-  
+
   while (j < lenb) c[k++] = b[j++];
 
 }
@@ -98,7 +99,7 @@ void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb,
 //                                         w: l1 => F, l2 => F, l3 => (i3 <= v < i3 + lena + lenb)
 void merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * LOC(Lo) ARRAY c)
 {
-  if (lena <= merge_size){ 
+  if (lena <= merge_size){
     seq_merge(a, b, lena, lenb, c);
   } else {
     int ha = lena / 2;
@@ -119,7 +120,7 @@ int find_split(int v, int * ARRAY b, int len)
 
   while (lo < hi) {
     m = lo + ((hi - lo) / 2);
-    if (v <= b[m]) 
+    if (v <= b[m])
       hi = m;
     else
       lo = m + 1;
