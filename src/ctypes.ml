@@ -213,10 +213,10 @@ module EffectSet = struct
     SLM.domain effs
 
   let d_effect () {eread = r; ewrite = w} =
-    P.dprintf "@[read*: %a,@!write*: %a@]@!" d_refctype r d_refctype w
+    P.dprintf "@[read*:  %a,@!write*: %a@]@!" d_refctype r d_refctype w
 
   let d_effectset () effs =
-    P.dprintf "{@[%a@]}" (S.d_slocmap d_effect) effs
+    P.dprintf "@[{@[%a@]}@]" (S.d_slocmap d_effect) effs
 end
 
 module type CTYPE_DEFS = sig
