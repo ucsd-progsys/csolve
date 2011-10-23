@@ -73,6 +73,7 @@ void quicksort(int * ARRAY a, int len)
 
   lt++;
 
+  // pmr: inserted off-by-one below
   cobegin
     rtn(quicksort(a, lt))
     rtn(quicksort(a + lt - 1, len - lt))
