@@ -275,7 +275,7 @@ let scale x = function
   | ICClass {lb = lb; ub = ub; c = c; m = m} ->
     ICClass {lb = scale_bound x lb;
              ub = scale_bound x ub;
-             c = c;
+             c = x * c;
              m = x * m}
 
 let mult i1 i2 = match i1, i2 with
