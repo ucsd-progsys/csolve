@@ -64,7 +64,6 @@ let is_not_const v p =
   |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =
-  (* (Sc.scalar_quals_of_file cil) |>  *)
   Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const)
 
 let solve cil ci =

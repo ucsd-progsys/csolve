@@ -241,18 +241,6 @@ let scalar_consts_of_index = function
   | Ix.IInt n  -> [Offset n] 
   | _          -> []
 
-let scalar_consts_of_typedecs_genspec =
-      Misc.map (Misc.uncurry Genspec.spec_of_type)
-  <+> Misc.flap (fun (ct, st) -> [Ct.index_of_ctype ct] ++ Ct.I.Store.indices st)
-  (* <+> (fun is -> List.iter (ignore <.> E.log "[SCALAR] index = %a \n" Ix.d_index) is; is)   *)
-  <+> Misc.flap scalar_consts_of_index
-
-let scalar_consts_of_typedecs = 
-      type_decs_of_file
-  <+> (scalar_consts_of_typedecs_genspec <*> scalar_consts_of_typedecs_stride)
-  <+> Misc.uncurry (++)
-  <+> Misc.sort_and_compact
-
 type qualkind = Equality | Bound | Modulus | Other
 
 (* Equality Predicates *)
@@ -317,22 +305,3 @@ let increments_of_code cil =
   |> Misc.sort_and_compact 
   |> List.map (fun i -> Offset i)
 }}} *)
-
-let scalar_consts_of_file cil = 
-  [ scalar_consts_of_typedecs
-(*; scalar_consts_of_code
-  ; increments_of_code *) ]
-  |> Misc.flap (fun f -> f cil) 
-  |> List.filter is_valid_scalar_const
-
-(* API *)
-let scalar_quals_of_file cil =
-  cil
-  |> scalar_consts_of_file
-  |> Misc.sort_and_compact  
-  |> preds_of_scalar_consts 
-  |> Misc.flap quals_of_pred
-  |> (++) (FA.quals_of_file (Co.get_lib_squals ()))
-  >> dump_quals_to_file (!Co.liquidc_file_prefix ^ ".squals")
-  (* |> partition_scalar_quals *)
-
