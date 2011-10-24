@@ -160,7 +160,7 @@ module Intraproc (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
-             if not (CT.Store.Function.mem X.shp.Sh.store scaller || List.mem scallee X.glocs) then
+             if CT.Store.Data.mem X.shp.Sh.store scaller && not (List.mem scaller X.glocs) then
 	       let callee_ffm = SM.find fname X.ffmm |> fst in
                  LM.add scaller (IS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
              else ffm
