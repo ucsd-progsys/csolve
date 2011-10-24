@@ -1,6 +1,6 @@
 type class_bound = int option
 
-type bounded_congruence_class = {
+type bounded_congruence_class = private {
   lb : class_bound;
   ub : class_bound;
   c  : int;

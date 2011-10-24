@@ -84,7 +84,7 @@ let refine_store n {l = l; ks = ks} i =
 	    let (ubd,ubi,lbd,lbi) = count_bounds (i'::ks) in
 	    let ub' = Misc.choose (ubi >= n) None ub in
 	    let lb' = Misc.choose (lbd >= n) None lb in
-	    let i' = ICClass {ub = ub'; lb = lb'; m = m; c = c} in
+	    let i'  = mk_sequence c m lb' ub' in
 	       {l = l; ks = i'::(take (l-1) ks)}
 	| _ -> {l = l; ks = i'::(take (l-1) ks)}
 
