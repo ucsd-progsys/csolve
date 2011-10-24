@@ -37,9 +37,6 @@ typedef struct args {
 } args_t;
 
 float global_delta;
-long global_i; /* index into task queue */
-
-#define CHUNK 3
 
 
 /* =============================================================================
@@ -47,10 +44,8 @@ long global_i; /* index into task queue */
  * =============================================================================
  */
 static void
-work (void* argPtr)
+work (void* argPtr, int myId)
 {
-    TM_THREAD_ENTER();
-
     args_t* args = (args_t*)argPtr;
     float** feature         = args->feature;
     int     nfeatures       = args->nfeatures;
@@ -64,66 +59,33 @@ work (void* argPtr)
     int index;
     int i;
     int j;
-    int start;
-    int stop;
-    int myId;
 
-    myId = thread_getId();
-
-    start = myId * CHUNK;
-
-    while (start < npoints) {
-        stop = (((start + CHUNK) < npoints) ? (start + CHUNK) : npoints);
-        for (i = start; i < stop; i++) {
-
-            index = common_findNearestPoint(feature[i],
-                                            nfeatures,
-                                            clusters,
-                                            nclusters);
-            /*
-             * If membership changes, increase delta by 1.
-             * membership[i] cannot be changed by other threads
-             */
-            if (membership[i] != index) {
-                delta += 1.0;
-            }
-
-            /* Assign the membership to object i */
-            /* membership[i] can't be changed by other thread */
-            membership[i] = index;
-
-            /* Update new cluster centers : sum of objects located within */
-            TM_BEGIN();
-            TM_SHARED_WRITE(*new_centers_len[index],
-                            TM_SHARED_READ(*new_centers_len[index]) + 1);
-            for (j = 0; j < nfeatures; j++) {
-                TM_SHARED_WRITE_F(
-                    new_centers[index][j],
-                    (TM_SHARED_READ_F(new_centers[index][j]) + feature[i][j])
-                );
-            }
-            TM_END();
-        }
-
-        /* Update task queue */
-        if (start + CHUNK < npoints) {
-            TM_BEGIN();
-            start = (int)TM_SHARED_READ(global_i);
-            TM_SHARED_WRITE(global_i, (start + CHUNK));
-            TM_END();
-        } else {
-            break;
-        }
+    index = common_findNearestPoint(feature[i],
+                                    nfeatures,
+                                    clusters,
+                                    nclusters);
+    /*
+     * If membership changes, increase delta by 1.
+     * membership[i] cannot be changed by other threads
+     */
+    if (membership[i] != index) {
+        delta += 1.0;
     }
 
-    //ACCUMULATE
-    //DECLARED COMMUTATIVE IN DPJ
-    //we should be able to either a) verify it b) annotate it in the same way..
-    TM_BEGIN();
-    TM_SHARED_WRITE_F(global_delta, TM_SHARED_READ_F(global_delta) + delta);
-    TM_END();
+    /* Assign the membership to object i */
+    /* membership[i] can't be changed by other thread */
+    membership[i] = index;
 
-    TM_THREAD_EXIT();
+    /* Update new cluster centers : sum of objects located within */
+    *new_centers_len[index] = *new_centers_len[index] + 1;
+
+    //ACCUMULATE
+    mutex
+      for (j = 0; j < nfeatures; j++)
+          new_centers[index][j] = new_centers[index][j] + feature[i][j];
+
+      global_delta = global_delta + delta;
+    endmutex
 }
 
 
@@ -150,8 +112,6 @@ normal_exec (int       nthreads,
     float** new_centers;   /* [nclusters][nfeatures] */
     void* alloc_memory = NULL;
     args_t args;
-    TIMER_T start;
-    TIMER_T stop;
 
     /* Allocate space for returning variable clusters[] */
     clusters = (float**)malloc(nclusters * sizeof(float*));
@@ -192,10 +152,6 @@ normal_exec (int       nthreads,
         }
     }
 
-    TIMER_READ(start);
-
-    GOTO_SIM();
-
     do {
         delta = 0.0;
 
@@ -208,17 +164,11 @@ normal_exec (int       nthreads,
         args.new_centers_len = new_centers_len;
         args.new_centers     = new_centers;
 
-        global_i = nthreads * CHUNK;
         global_delta = delta;
 
-#ifdef OTM
-#pragma omp parallel
-        {
-            work(&args);
-        }
-#else
-        thread_start(work, &args);
-#endif
+        foreach (i, 0, npoints)
+          work(&args, i);
+        endfor
 
         delta = global_delta;
 
@@ -237,14 +187,9 @@ normal_exec (int       nthreads,
 
     } while ((delta > threshold) && (loop++ < 500));
 
-    GOTO_REAL();
-
-    TIMER_READ(stop);
-    global_time += TIMER_DIFF_SECONDS(start, stop);
-
-    free(alloc_memory);
-    free(new_centers);
-    free(new_centers_len);
+//    free(alloc_memory);
+//    free(new_centers);
+//    free(new_centers_len);
 
     return clusters;
 }
