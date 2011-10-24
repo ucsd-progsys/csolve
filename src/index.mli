@@ -26,7 +26,6 @@ val mk_leq       : int -> t
 val mk_eq_mod    : int -> int -> t
 val lub          : t -> t -> t
 val glb          : t -> t -> t
-val widen        : t -> t -> t
 val offset       : int -> t -> t
 val plus         : t -> t -> t
 val minus        : t -> t -> t
@@ -43,6 +42,7 @@ val overlaps     : t -> t -> bool
 val d_index      : unit -> t -> Pretty.doc
 val repr         : t -> string
 val repr_prefix  : string
+
 module IndexSet : Set.S with type elt = t
 
 val d_indexset : unit -> IndexSet.t -> Pretty.doc

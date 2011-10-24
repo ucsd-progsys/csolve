@@ -188,50 +188,6 @@ let glb i1 i2 =
 let overlaps i1 i2 =
   glb i1 i2 <> IBot
 
-let widen i1 i2 =
-  if is_subindex i2 i1 then
-    i1
-  else match i1, i2 with
-    | IBot, i | i, IBot -> i 
-    | IInt n, IInt m    ->
-      let d = abs (n - m) in
-      ICClass {lb = Some (min n m);
-               ub = Some (max n m);
-               c  = n mod d;
-               m  = d}
-    | IInt n, ICClass {lb = lb; ub = ub; c = c; m = m}
-    | ICClass {lb = lb; ub = ub; c = c; m = m}, IInt n ->
-      ICClass {lb = lower_bound_min (Some n) lb;
-               ub = upper_bound_max (Some n) ub;
-               c  = 0;
-               m  = M.gcd m (M.gcd c n)}
-    | ICClass {lb = lb1; ub = ub1; c = c1; m = m1},
-      ICClass {lb = lb2; ub = ub2; c = c2; m = m2} ->
-	let m = M.gcd m1 (M.gcd m2 (abs (c1 - c2))) in
-	begin match lb1,lb2,ub1,ub2 with
-	  | Some lb1', Some lb2', _, _ when lb1' < lb2' ->
-	      ICClass { lb = Some lb1'; ub = None; c = c1 mod m; m = m }
-	  | _, _, Some ub1', Some ub2' when ub1' > ub2' ->
-	      ICClass { lb = None; ub = Some ub1'; c = c1 mod m; m = m }
-	  | _  -> ICClass {lb = if lb1 = lb2 then lb1 else None;
-               ub = if ub1 = ub2 then ub1 else None;
-               c  = c1 mod m;
-               m  = m}
-	end
-
-let widen i1 i2 =
-  if is_subindex i2 i1 then
-    i1
-  else match i1, i2 with
-    | IBot, i | i, IBot -> i
-    | IInt n1, IInt n2 ->
-	if n1 < n2 then
-	  mk_sequence 0 (n2 - n1) (Some n1) None
-	else
-	  mk_sequence n1 (n1 - n2) None None
-    | _ -> top
-
-
 let offset n = function
   | IBot                                     -> IBot
   | IInt m                                   -> IInt (n + m)
@@ -410,7 +366,7 @@ and index_of_expr env solution sym is_int expr =
     | _ -> top
 and index_of_refa env sol v is_int refa = match refa with
   | F.Kvar (_, k) -> sol k
-  | F.Conc pred -> index_of_pred env sol v is_int pred 
+  | F.Conc pred -> index_of_pred env sol v is_int pred
 and index_of_reft env sol is_int (v,t,refas) =
   List.fold_left glb top
     (List.map (index_of_refa env sol v (ckint t)) refas)
