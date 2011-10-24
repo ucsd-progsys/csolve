@@ -1,6 +1,7 @@
+* TODO Check that induction variable i in foreaches can't escape scope
+* TODO Test with global locations
 * TODO Heapify locals modified in concurrent blocks
   Use CIL name hacks?
-* TODO Check that induction variable i in foreaches can't escape scope
 * TODO Don't track effects for function locations
   They can't be written, so there can't be conflicts.
 * TODO Should join_effects do anything with concrete locations?
@@ -13,8 +14,6 @@
   Kill a lot of the boilerplate wrapper code by allowing one wrapper
   that takes the loc and string description.
 
-* TODO Effects from library functions?
-  They're all true right now.
 * TODO Check block structure is ok
   For each "routine" in a cobegin block, we need to be sure that
   control flow remains within that routine, otherwise the effect of
