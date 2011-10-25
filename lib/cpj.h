@@ -28,6 +28,8 @@
                                     { BLOCKATTRIBUTE((lcc_foreach_iter))
 #define ENDFOR                 }}}
 
+#define ATOMIC                 BLOCKATTRIBUTE((lcc_atomic))
+
 // more natural looking macros for parallel constructs
 
 #define foreach(i, l, u)       FOREACH(i, l, u)
@@ -37,6 +39,7 @@
 #define rtbeg                  RTBEG
 #define rtend                  RTEND
 #define rtn(s)                 RTN(s)
+#define atomic                 ATOMIC
 
 
 // porting is even more of a pain without booleans
