@@ -69,7 +69,7 @@
 #define NORMAL_H 1
 
 
-#include "random.h"
+//#include "random.h"
 
 
 extern double global_parallelTime;
@@ -80,14 +80,14 @@ extern double global_parallelTime;
  * =============================================================================
  */
 float**
-normal_exec (int       nthreads,
+normal_exec (//int       nthreads,
              float**   feature,    /* in: [npoints][nfeatures] */
              int       nfeatures,
              int       npoints,
              int       nclusters,
              float     threshold,
-             int*      membership,
-             random_t* randomPtr); /* out: [npoints] */
+             int*      membership);
+             //random_t* randomPtr); /* out: [npoints] */
 
 
 #endif /* NORMAL_H */

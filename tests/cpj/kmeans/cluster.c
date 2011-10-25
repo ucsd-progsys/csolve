@@ -98,9 +98,9 @@
 #include "common.h"
 #include "cluster.h"
 #include "normal.h"
-#include "random.h"
+//#include "random.h"
 #include "util.h"
-#include "tm.h"
+//#include "tm.h"
 
 
 /* =============================================================================
@@ -169,7 +169,7 @@ zscoreTransform (float** data, /* in & out: [numObjects][numAttributes] */
  */
 int
 cluster_exec (
-    int      nthreads,             /* in: number of threads*/
+    //int      nthreads,             /* in: number of threads*/
     int      numObjects,           /* number of input objects */
     int      numAttributes,        /* size of attribute of each object */
     float**  attributes,           /* [numObjects][numAttributes] */
@@ -186,13 +186,13 @@ cluster_exec (
     int nclusters;
     int* membership = 0;
     float** tmp_cluster_centres;
-    random_t* randomPtr;
+    //random_t* randomPtr;
 
     membership = (int*)malloc(numObjects * sizeof(int));
     assert(membership);
 
-    randomPtr = random_alloc();
-    assert(randomPtr);
+    //randomPtr = random_alloc();
+    //assert(randomPtr);
 
     if (use_zscore_transform) {
         zscoreTransform(attributes, numObjects, numAttributes);
@@ -205,32 +205,30 @@ cluster_exec (
      */
     for (nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) {
 
-        random_seed(randomPtr, 7);
+        //random_seed(randomPtr, 7);
 
-        tmp_cluster_centres = normal_exec(nthreads,
+        tmp_cluster_centres = normal_exec(//nthreads,
                                           attributes,
                                           numAttributes,
                                           numObjects,
                                           nclusters,
                                           threshold,
-                                          membership,
-                                          randomPtr);
+                                          membership);
+                                          //randomPtr);
 
-        {
-            if (*cluster_centres) {
-                free((*cluster_centres)[0]);
-                free(*cluster_centres);
-            }
+            //if (*cluster_centres) {
+            //    free((*cluster_centres)[0]);
+            //    free(*cluster_centres);
+            //}
 
             *cluster_centres = tmp_cluster_centres;
             *best_nclusters = nclusters;
-        }
 
         itime++;
     } /* nclusters */
 
-    free(membership);
-    random_free(randomPtr);
+    //free(membership);
+    //random_free(randomPtr);
 
     return 0;
 }

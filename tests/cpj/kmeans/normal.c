@@ -17,10 +17,6 @@
 #include <math.h>
 #include "common.h"
 #include "normal.h"
-#include "random.h"
-#include "thread.h"
-#include "timer.h"
-#include "tm.h"
 #include "util.h"
 
 double global_time = 0.0;
@@ -80,12 +76,14 @@ work (void* argPtr, int myId)
     *new_centers_len[index] = *new_centers_len[index] + 1;
 
     //ACCUMULATE
-    mutex
+    { atomic
       for (j = 0; j < nfeatures; j++)
           new_centers[index][j] = new_centers[index][j] + feature[i][j];
+    } 
 
+    { atomic
       global_delta = global_delta + delta;
-    endmutex
+    }
 }
 
 
@@ -94,14 +92,14 @@ work (void* argPtr, int myId)
  * =============================================================================
  */
 float**
-normal_exec (int       nthreads,
+normal_exec (//int       nthreads,
              float**   feature,    /* in: [npoints][nfeatures] */
              int       nfeatures,
              int       npoints,
              int       nclusters,
              float     threshold,
-             int*      membership,
-             random_t* randomPtr) /* out: [npoints] */
+             int*      membership)
+//             random_t* randomPtr) /* out: [npoints] */
 {
     int i;
     int j;
@@ -124,15 +122,15 @@ normal_exec (int       nthreads,
 
     /* Randomly pick cluster centers */
     for (i = 0; i < nclusters; i++) {
-        int n = (int)(random_generate(randomPtr) % npoints);
+        int n = nondet() % npoints; //(int)(random_generate(randomPtr) % npoints);
         for (j = 0; j < nfeatures; j++) {
             clusters[i][j] = feature[n][j];
         }
     }
 
-    for (i = 0; i < npoints; i++) {
+    foreach (i, 0, npoints)
         membership[i] = -1;
-    }
+    endfor 
 
     /*
      * Need to initialize new_centers_len and new_centers[0] to all 0.

@@ -105,8 +105,8 @@
 #include <unistd.h>
 #include "cluster.h"
 #include "common.h"
-#include "thread.h"
-#include "tm.h"
+//#include "thread.h"
+//#include "tm.h"
 #include "util.h"
 
 #define MAX_LINE_LENGTH 1000000 /* max input is 400000 one digit input + spaces */
@@ -158,15 +158,15 @@ MAIN(argc, argv)
     int     isBinaryFile = 0;
     int     nloops;
     int     len;
-    int     nthreads;
+    //int     nthreads;
     float   threshold = 0.001;
     int     opt;
 
-    GOTO_REAL();
+    //GOTO_REAL();
 
     line = (char*)malloc(MAX_LINE_LENGTH); /* reserve memory line */
 
-    nthreads = 1;
+    //nthreads = 1;
     while ((opt = getopt(argc,(char**)argv,"p:i:m:n:t:bz")) != EOF) {
         switch (opt) {
             case 'i': filename = optarg;
@@ -181,25 +181,26 @@ MAIN(argc, argv)
                       break;
             case 'z': use_zscore_transform = 0;
                       break;
-            case 'p': nthreads = atoi(optarg);
-                      break;
-            case '?': usage((char*)argv[0]);
-                      break;
-            default: usage((char*)argv[0]);
-                      break;
+            //case 'p': nthreads = atoi(optarg);
+            //          break;
+            //case '?': usage((char*)argv[0]);
+            //          break;
+            //default: usage((char*)argv[0]);
+            //          break;
         }
     }
 
-    if (filename == 0) {
-        usage((char*)argv[0]);
-    }
+    if (filename == 0)
+        exit(1);
+        //usage((char*)argv[0]);
 
     if (max_nclusters < min_nclusters) {
         fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
-        usage((char*)argv[0]);
+        //usage((char*)argv[0]);
+        exit(1);
     }
 
-    SIM_GET_NUM_CPU(nthreads);
+    //SIM_GET_NUM_CPU(nthreads);
 
     numAttributes = 0;
     numObjects = 0;
@@ -274,8 +275,8 @@ MAIN(argc, argv)
         fclose(infile);
     }
 
-    TM_STARTUP(nthreads);
-    thread_startup(nthreads);
+    //TM_STARTUP(nthreads);
+    //thread_startup(nthreads);
 
     /*
      * The core of the clustering
@@ -294,7 +295,7 @@ MAIN(argc, argv)
         memcpy(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
 
         cluster_centres = NULL;
-        cluster_exec(nthreads,
+        cluster_exec(//nthreads,
                      numObjects,
                      numAttributes,
                      attributes,           /* [numObjects][numAttributes] */
@@ -308,27 +309,27 @@ MAIN(argc, argv)
 
     }
 
-#ifdef GNUPLOT_OUTPUT
-    {
-        FILE** fptr;
-        char outFileName[1024];
-        fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
-        for (i = 0; i < best_nclusters; i++) {
-            sprintf(outFileName, "group.%d", i);
-            fptr[i] = fopen(outFileName, "w");
-        }
-        for (i = 0; i < numObjects; i++) {
-            fprintf(fptr[cluster_assign[i]],
-                    "%6.4f %6.4f\n",
-                    attributes[i][0],
-                    attributes[i][1]);
-        }
-        for (i = 0; i < best_nclusters; i++) {
-            fclose(fptr[i]);
-        }
-        free(fptr);
-    }
-#endif /* GNUPLOT_OUTPUT */
+//#ifdef GNUPLOT_OUTPUT
+//    {
+//        FILE** fptr;
+//        char outFileName[1024];
+//        fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
+//        for (i = 0; i < best_nclusters; i++) {
+//            sprintf(outFileName, "group.%d", i);
+//            fptr[i] = fopen(outFileName, "w");
+//        }
+//        for (i = 0; i < numObjects; i++) {
+//            fprintf(fptr[cluster_assign[i]],
+//                    "%6.4f %6.4f\n",
+//                    attributes[i][0],
+//                    attributes[i][1]);
+//        }
+//        for (i = 0; i < best_nclusters; i++) {
+//            fclose(fptr[i]);
+//        }
+//        free(fptr);
+//    }
+//#endif /* GNUPLOT_OUTPUT */
 
 #ifdef OUTPUT_TO_FILE
     {
@@ -379,13 +380,14 @@ MAIN(argc, argv)
     free(cluster_centres);
     free(buf);
 
-    TM_SHUTDOWN();
+//    TM_SHUTDOWN();
 
-    GOTO_SIM();
+//    GOTO_SIM();
 
-    thread_shutdown();
+//    thread_shutdown();
 
-    MAIN_RETURN(0);
+//    MAIN_RETURN(0);
+    return 0;
 }
 
 
