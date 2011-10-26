@@ -42,6 +42,7 @@ module RL = Ct.RefCTypes.LDesc
 module RS = Ct.RefCTypes.Store
 module RCf = Ct.RefCTypes.CFun
 module ES = Ct.EffectSet
+module ED = EffectDecls
 module Cs = Constants
 module Sh = Shape
 
@@ -145,23 +146,14 @@ let extend_env me v cr env =
 (*  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in
 *)  FI.ce_adds env [(FA.name_of_varinfo v), cr]
 
-type memOp =
-  | MemRead
-  | MemWrite
-
-let effectptr_of_memop effs l mop =
-  match mop, ES.find effs l with
-    | MemRead,  {Ct.eread = er}  -> er
-    | MemWrite, {Ct.ewrite = ew} -> ew
-
-let cons_of_mem me loc tago tag grd env post_mem_env sto effs v mop =
+let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
   if !Cs.manual then
     ([], [])
   else
     let rct = FI.t_ptr_footprint env v in
     let l   = rct |> RT.sloc |> M.maybe |> Sloc.canonical in
            FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
-       +++ FI.make_cs_effect_weaken post_mem_env grd sto v (effectptr_of_memop effs l mop) tago tag loc
+       +++ FI.make_cs_effect_weaken post_mem_env grd sto v eff (ES.find effs l) tago tag loc
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
@@ -180,7 +172,7 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
   (* *v *)
   | Lval (Mem e, _) ->
     let v' = CM.referenced_var_of_exp e in
-    let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' MemRead in
+    let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' ED.readEffect in
       (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto, cs)
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
@@ -224,7 +216,7 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
       if is_bot_ptr me env v then (env, sto, Some tag), ([], []) else
       let addr = var_addr me env v in
       let cr', cds1  = cons_of_rval me loc tag grd effs (pre_env, sto, tago) pre_env e in
-      let cds2       = cons_of_mem me loc tago tag grd pre_env env sto effs v MemWrite in
+      let cds2       = cons_of_mem me loc tago tag grd pre_env env sto effs v ED.writeEffect in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
@@ -382,7 +374,7 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
         | Ct.Ref (l, _) ->
           let l             = Sloc.canonical l in
           let tag           = CF.tag_of_instr me i j loc in
-          let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v MemRead in
+          let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in
           let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, RS.Function.find sto l, es) ns in
             (wld, cs1 +++ cs2, wfs)
         | _ -> assert false
