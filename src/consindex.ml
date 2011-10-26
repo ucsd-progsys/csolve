@@ -36,7 +36,7 @@ module FA = FixAstInterface
 module FI = FixInterface
 
 module Ct = Ctypes
-module SPA = Solve.Make (PredAbs)
+module SPA = Solve.Make (PredAbs2)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 
