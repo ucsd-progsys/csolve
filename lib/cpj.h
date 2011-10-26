@@ -55,5 +55,14 @@ typedef int bool;
 
 #define UNQ
 
+
+// Some type sizes
+
+#define FSZ 4
+#define ISZ 4
+#define PSZ 4
+
+
+
 #endif
 #endif

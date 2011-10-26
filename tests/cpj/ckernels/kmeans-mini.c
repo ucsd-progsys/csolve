@@ -15,15 +15,14 @@
 #include <float.h>
 #include <math.h>
 
-double global_time = 0.0;
-
 typedef struct args {
-    float* ARRAY * ARRAY              feature;
+    float* ARRAY SIZE(npoints * PSZ) 
+         * ARRAY SIZE(nfeatures * FSZ) feature;  // [npoints][nfeatures]
     int                               nfeatures;
     int                               npoints;
     int                               nclusters;
-    int* ARRAY                        membership;
-    float* ARRAY * ARRAY              clusters;
+    int* ARRAY SIZE(npoints * ISZ)    membership;
+    float* ARRAY * ARRAY              clusters;            // [nclusters][nfeatures]
     int** ARRAY                       new_centers_len;
     float* ARRAY * ARRAY              new_centers;
 } args_t;
@@ -35,59 +34,60 @@ float REF(true) global_delta;
  * work
  * =============================================================================
  */
-static void
-work (int i, args_t * args)
-{
-    float* ARRAY * ARRAY feature         = args->feature;
-    int     nfeatures       = args->nfeatures;
-    int     npoints         = args->npoints;
-    int     nclusters       = args->nclusters;
-    int* ARRAY   membership      = args->membership;
-    float* ARRAY * ARRAY clusters        = args->clusters;
-    int* ARRAY * ARRAY   new_centers_len = args->new_centers_len;
-    float* ARRAY * ARRAY new_centers     = args->new_centers;
-    float delta = 0.0;
-    int index;
-    int i;
-    int j;
-
-//    index = common_findNearestPoint(feature[i],
-//                                    nfeatures,
-//                                    clusters,
-//                                    nclusters);
-    /*
-     * If membership changes, increase delta by 1.
-     * membership[i] cannot be changed by other threads
-     */
-    if (membership[i] != index) {
-        delta += 1.0;
-    }
-
-    /* Assign the membership to object i */
-    /* membership[i] can't be changed by other thread */
-    membership[i] = -1;
-
-    /* Update new cluster centers : sum of objects located within */
-    *new_centers_len[index] = *new_centers_len[index] + 1;
-
-    //ACCUMULATE
-    { atomic
-      for (j = 0; j < nfeatures; j++)
-          new_centers[index][j] = new_centers[index][j] + feature[i][j];
-    } 
-
-    { atomic
-      global_delta = global_delta + delta;
-    }
-}
+//static void
+//work (int i, args_t * args)
+//{
+//    float* ARRAY * ARRAY feature         = args->feature;
+//    int     nfeatures       = args->nfeatures;
+//    int     npoints         = args->npoints;
+//    int     nclusters       = args->nclusters;
+//    int* ARRAY   membership      = args->membership;
+//    float* ARRAY * ARRAY clusters        = args->clusters;
+//    int* ARRAY * ARRAY   new_centers_len = args->new_centers_len;
+//    float* ARRAY * ARRAY new_centers     = args->new_centers;
+//    float delta = 0.0;
+//    int index;
+//    int i;
+//    int j;
+//
+////    index = common_findNearestPoint(feature[i],
+////                                    nfeatures,
+////                                    clusters,
+////                                    nclusters);
+//    /*
+//     * If membership changes, increase delta by 1.
+//     * membership[i] cannot be changed by other threads
+//     */
+//    if (membership[i] != index) {
+//        delta += 1.0;
+//    }
+//
+//    /* Assign the membership to object i */
+//    /* membership[i] can't be changed by other thread */
+//    membership[i] = -1;
+//
+//    /* Update new cluster centers : sum of objects located within */
+//    *new_centers_len[index] = *new_centers_len[index] + 1;
+//
+//    //ACCUMULATE
+//    { atomic
+//      for (j = 0; j < nfeatures; j++)
+//          new_centers[index][j] = new_centers[index][j] + feature[i][j];
+//    } 
+//
+//    { atomic
+//      global_delta = global_delta + delta;
+//    }
+//}
 
 float**
-normal_exec (float* ARRAY * ARRAY feature,      /* in: [npoints][nfeatures] */
+normal_exec (float* ARRAY SIZE(npoints * PSZ)
+                  * ARRAY SIZE(nfeatures * FSZ) feature,      /* in: [npoints][nfeatures] */
              int       nfeatures,
              int       npoints,
              int       nclusters,
              float     threshold,
-             int* ARRAY membership)
+             int* ARRAY SIZE(npoints * ISZ) membership)
 {
     int i;
     int j;
@@ -110,7 +110,7 @@ normal_exec (float* ARRAY * ARRAY feature,      /* in: [npoints][nfeatures] */
         int n = nondet();
         LCC_ASSUME(n >= 0 && n < npoints);
         for (j = 0; j < nfeatures; j++) {
-            clusters[i][j] = feature[n][j];
+            //clusters[i][j] = feature[n][j];
         }
     }
 //
