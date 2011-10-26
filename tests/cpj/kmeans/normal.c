@@ -7,6 +7,7 @@
  * =============================================================================
  */
 
+#define __MAKE_SEQ
 
 #include <cpj.h>
 
@@ -40,7 +41,7 @@ float global_delta;
  * =============================================================================
  */
 static void
-work (void* argPtr, int myId)
+work (void* argPtr, int i)
 {
     args_t* args = (args_t*)argPtr;
     float** feature         = args->feature;
@@ -53,7 +54,6 @@ work (void* argPtr, int myId)
     float** new_centers     = args->new_centers;
     float delta = 0.0;
     int index;
-    int i;
     int j;
 
     index = common_findNearestPoint(feature[i],
