@@ -32,3 +32,7 @@ qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a])
 // pmr: Drop when we start inferring quals
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 4) = 0
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 8) = 0
+
+// Generally useful for effect tracking
+qualif NOWRITE(v: ptr) : EWRITE != 1
+qualif NOREAD(v: ptr)  : EREAD != 1

@@ -124,10 +124,7 @@ type 'a prefield = { pftype     : 'a prectype
 
 type effectptr  = Reft.t prectype
 
-type effectinfo = { eread  : effectptr
-                  ; ewrite : effectptr }
-
-type effectset = effectinfo SLM.t
+type effectset = effectptr SLM.t
 
 type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                    ; plinfo     : structinfo }
@@ -195,7 +192,7 @@ module EffectSet = struct
   let empty = SLM.empty
 
   let apply f effs =
-    SLM.map (fun {eread = er; ewrite = ew} -> {eread = f er; ewrite = f ew}) effs
+    SLM.map f effs
 
   let maplisti f effs =
     effs |> SLM.to_list |>: M.uncurry f
@@ -215,8 +212,8 @@ module EffectSet = struct
   let domain effs =
     SLM.domain effs
 
-  let d_effect () {eread = r; ewrite = w} =
-    P.dprintf "@[read*:  %a,@!write*: %a@]@!" d_refctype r d_refctype w
+  let d_effect () eptr =
+    d_refctype () eptr
 
   let d_effectset () effs =
     P.dprintf "@[{@[%a@]}@]" (S.d_slocmap d_effect) effs
@@ -326,7 +323,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val join_effects :
       t ->
       effectset ->
-      (Sloc.t * (T.ldesc * effectinfo)) list * (Sloc.t * (T.cfun * effectinfo)) list
+      (Sloc.t * (T.ldesc * effectptr)) list * (Sloc.t * (T.cfun * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool

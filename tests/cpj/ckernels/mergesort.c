@@ -10,8 +10,7 @@ const int REF (V > 0) quick_size = 2048;
 //define merge_size 50
 
 extern void quicksort (int * ARRAY LOC(L) a, int len)
-  READS  (L, && [a <= V; V < a + len])
-  WRITES (L, && [a <= V; V < a + len])
+  EFFECT (L, && [a <= V; V < a + len])
   OKEXTERN;
 
 int main() //int argc, char **argv)

@@ -53,6 +53,7 @@ module FA  = FixAstInterface
 module Sc  = ScalarCtypes
 
 module ES  = Ctypes.EffectSet
+module ED  = EffectDecls
 
 module M   = Misc
 
@@ -223,6 +224,24 @@ let ra_deref ct base offset =
   let ptr = A.eBin (base, A.Plus, A.eCon (A.Constant.Int offset)) in
     [C.Conc (A.pAtom (A.eVar vv, A.Eq, FA.eApp_deref ptr so))]
 
+let e_cil_effect_true = Cil.one
+
+let p_effect_var_true evar =
+  A.pEqual (evar, A.eInt 1)
+
+let ra_singleton_effect eff v ct =
+  let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
+  let others = M.negfilter ((=) eff) <| ED.getEffects () in
+    [C.Conc begin
+      A.pAnd begin
+           p_effect_var_true (eff |> ED.nameOfEffect |> A.eVar)
+        :: A.pEqual (vv, A.eVar v)
+        :: List.map
+             (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
+             others
+      end
+    end]
+
 let ra_skolem, get_skolems =
   let xr = ref 0 in
   (fun ct ->
@@ -269,8 +288,7 @@ let ra_ptr_footprint env v =
     (vv, so, [C.Conc (p_ptr_footprint vv v)])
 
 let e_aux l ra =
-  let fresh () = refctype_of_ctype ra <| Ct.Ref (l, Ix.top) in
-    {Ct.eread = fresh (); Ct.ewrite = fresh ()}
+  refctype_of_ctype ra <| Ct.Ref (l, Ix.top)
 
 let e_false l = e_aux l ra_false
 let e_true l  = e_aux l ra_true
@@ -281,6 +299,10 @@ let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
+
+let t_singleton_effect env v eff =
+  let vn = FA.name_of_varinfo v in
+    refctype_of_ctype (ra_singleton_effect eff vn) (Ct.ctype_of_refctype <| ce_find vn env)
 
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype      = t_conv_refctype ra_true
@@ -673,6 +695,17 @@ let is_poly_cloc st cl =
   |> (=) []
 
 
+(******************************************************************************)
+(*********************************** Effects **********************************)
+(******************************************************************************)
+
+let t_effect = refctype_of_ctype ra_true (Ct.Int (0, Ix.top))
+
+let with_effects_in_env env f =
+     ED.getEffects ()
+  |> List.map (fun eff -> (ED.nameOfEffect eff, t_effect))
+  |> ce_adds env
+  |> f
 
 (****************************************************************)
 (********************** Constraints *****************************)
@@ -725,13 +758,13 @@ let make_wfs ((_,_,livem) as cenv) sto rct _ =
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
 
-let make_wfs_effect env sto l {Ct.eread = r; Ct.ewrite = w} =
+let make_wfs_effect env sto l eptr =
   let env = l
          |> RCt.Store.Data.find_or_empty sto
          |> sloc_binds_of_refldesc l
          |> List.map fst
          |> ce_adds env in
-    make_wfs env sto r () ++ make_wfs env sto w ()
+    with_effects_in_env env (fun env -> make_wfs env sto eptr ())
 
 let make_wfs_effectset env sto effs =
      effs
@@ -784,10 +817,22 @@ let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
     f ncrs12 env subs
 
-let make_cs_assert_effects_disjoint env p {Ct.ewrite = ew1; Ct.eread = er1} {Ct.ewrite = ew2; Ct.eread = er2} tago tag =
-      make_cs_assert_disjoint env p ew1 ew2 tago tag
-  +++ make_cs_assert_disjoint env p ew1 er2 tago tag
-  +++ make_cs_assert_disjoint env p er1 ew2 tago tag
+let make_cs_assert_effects_disjoint env p eptr1 eptr2 tago tag =
+  with_effects_in_env env begin fun env ->
+        ED.getEffects ()
+    |>  M.dup
+    |>  M.uncurry M.cross_product
+    |>  M.negfilter (M.uncurry ED.effectsCommute)
+    |>: begin fun (eff1, eff2) ->
+        let sub1, sub2 = (eff1, eff2)
+                      |> M.map_pair (fun n -> [(ED.nameOfEffect n, e_cil_effect_true)]) in
+          make_cs_assert_disjoint env p
+            (t_subs_exps sub1 eptr1)
+            (t_subs_exps sub2 eptr2)
+            tago tag
+        end
+    |>  M.splitflatten
+  end
 
 let make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag =
      effs1
@@ -803,28 +848,29 @@ let make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag =
      end
   |> M.splitflatten
 
-let make_cs_effect_weaken env p sto v efft tago tag =
-  let vn   = FA.name_of_varinfo v in
-  let vrct = ce_find vn env in
-  let cl   = vrct |> RCt.CType.sloc |> M.maybe in
+let make_cs_effect_weaken env p sto v eff eptr tago tag =
+  let erct = t_singleton_effect env v eff in
+  let cl   = erct |> RCt.CType.sloc |> M.maybe in
   let al   = Sloc.canonical cl in
-  let vt   = vn |> t_equal (Ct.ctype_of_refctype vrct) |> canon_refctype in
-    if RCt.Store.Data.mem sto cl then
-      let lhsld = (cl, RCt.Store.Data.find sto cl) in
-      let rhsld = (al, RCt.Store.Data.find sto al) in
-        with_refldesc_ncrs_env_subs env lhsld rhsld begin fun _ env subs ->
-          make_cs env p vt (t_subs_names subs efft) tago tag
-        end
-    else make_cs env p vt efft tago tag
+    with_effects_in_env env begin fun env ->
+      if RCt.Store.Data.mem sto cl then
+        let lhsld = (cl, RCt.Store.Data.find sto cl) in
+        let rhsld = (al, RCt.Store.Data.find sto al) in
+          with_refldesc_ncrs_env_subs env lhsld rhsld begin fun _ env subs ->
+            make_cs env p erct (t_subs_names subs eptr) tago tag
+          end
+      else make_cs env p erct eptr tago tag
+    end
 
-let make_cs_data_effect env p sld1 sld2 {Ct.eread = r1; Ct.ewrite = w1} {Ct.eread = r2; Ct.ewrite = w2} tago tag =
-  with_refldesc_ncrs_env_subs env sld1 sld2 begin fun _ env subs ->
-        make_cs env p w1 (t_subs_names subs w2) tago tag
-    +++ make_cs env p r1 (t_subs_names subs r2) tago tag
+let make_cs_data_effect env p sld1 sld2 eptr1 eptr2 tago tag =
+  with_effects_in_env env begin fun env ->
+    with_refldesc_ncrs_env_subs env sld1 sld2 begin fun _ env subs ->
+      make_cs env p eptr1 (t_subs_names subs eptr2) tago tag
+    end
   end
 
-let make_cs_function_effect env p {Ct.eread = r1; Ct.ewrite = w1} {Ct.eread = r2; Ct.ewrite = w2} tago tag =
-  make_cs env p w1 w2 tago tag +++ make_cs env p r1 r2 tago tag
+let make_cs_function_effect env p eptr1 eptr2 tago tag =
+  with_effects_in_env env (fun env -> make_cs env p eptr1 eptr2 tago tag)
 
 let make_cs_subtyping_bind_pairs polarity binds1 binds2 f =
   let dom = List.map fst (if polarity then binds2 else binds1) in
@@ -967,8 +1013,8 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
     assert false
 
 (* API *)
-let make_cs_effect_weaken env p sto v efft tago tag loc =
-  try make_cs_effect_weaken env p sto v efft tago tag with ex ->
+let make_cs_effect_weaken env p sto v eff eptr tago tag loc =
+  try make_cs_effect_weaken env p sto v eff eptr tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_effect_weaken fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_effect_weaken" in
     assert false

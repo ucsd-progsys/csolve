@@ -155,8 +155,8 @@ effectbindsne:
   ;
 
 effectbind:
-    sloc MAPSTO READ COLON reftype COMMA WRITE COLON reftype {
-      ($1, {Ct.eread = $5; Ct.ewrite = $9})
+    sloc MAPSTO reftype {
+      ($1, $3)
     }
     ;
 
