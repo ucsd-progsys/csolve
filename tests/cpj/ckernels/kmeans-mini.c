@@ -10,29 +10,25 @@
 
 #include <cpj.h>
 
-//#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
 #include <math.h>
-//#include "common.h"
-//#include "normal.h"
-//#include "util.h"
 
 double global_time = 0.0;
 
 typedef struct args {
-    //float** feature;
-    int     nfeatures;
-    int     npoints;
-    int     nclusters;
-    int*    membership;
-    float** clusters;
-    int**   new_centers_len;
-    float** new_centers;
+    float* ARRAY * ARRAY              feature;
+    int                               nfeatures;
+    int                               npoints;
+    int                               nclusters;
+    int* ARRAY                        membership;
+    float* ARRAY * ARRAY              clusters;
+    int** ARRAY                       new_centers_len;
+    float* ARRAY * ARRAY              new_centers;
 } args_t;
 
-float global_delta;
+float REF(true) global_delta;
 
 
 /* =============================================================================
@@ -40,17 +36,16 @@ float global_delta;
  * =============================================================================
  */
 static void
-work (void* argPtr, int i)
+work (int i, args_t * args)
 {
-    args_t* args = (args_t*)argPtr;
-    //float** feature         = args->feature;
+    float* ARRAY * ARRAY feature         = args->feature;
     int     nfeatures       = args->nfeatures;
     int     npoints         = args->npoints;
     int     nclusters       = args->nclusters;
-    int*    membership      = args->membership;
-    float** clusters        = args->clusters;
-    int**   new_centers_len = args->new_centers_len;
-    float** new_centers     = args->new_centers;
+    int* ARRAY   membership      = args->membership;
+    float* ARRAY * ARRAY clusters        = args->clusters;
+    int* ARRAY * ARRAY   new_centers_len = args->new_centers_len;
+    float* ARRAY * ARRAY new_centers     = args->new_centers;
     float delta = 0.0;
     int index;
     int i;
@@ -70,7 +65,7 @@ work (void* argPtr, int i)
 
     /* Assign the membership to object i */
     /* membership[i] can't be changed by other thread */
-    membership[i] = 0;
+    membership[i] = -1;
 
     /* Update new cluster centers : sum of objects located within */
     *new_centers_len[index] = *new_centers_len[index] + 1;
@@ -78,7 +73,7 @@ work (void* argPtr, int i)
     //ACCUMULATE
     { atomic
       for (j = 0; j < nfeatures; j++)
-          new_centers[index][j] = new_centers[index][j] + 0.0;//feature[i][j];
+          new_centers[index][j] = new_centers[index][j] + feature[i][j];
     } 
 
     { atomic
@@ -86,118 +81,122 @@ work (void* argPtr, int i)
     }
 }
 
-
-/* =============================================================================
- * normal_exec
- * =============================================================================
- */
 float**
-normal_exec (//int       nthreads,
-             //float**   feature,    /* in: [npoints][nfeatures] */
+normal_exec (float* ARRAY * ARRAY feature,      /* in: [npoints][nfeatures] */
              int       nfeatures,
              int       npoints,
              int       nclusters,
              float     threshold,
-             int*      membership)
-//             random_t* randomPtr) /* out: [npoints] */
+             int* ARRAY membership)
 {
     int i;
     int j;
     int loop = 0;
-    int** new_centers_len; /* [nclusters]: no. of points in each cluster */
+    int** ARRAY new_centers_len; /* [nclusters]: no. of points in each cluster */
     float delta;
-    float** clusters;      /* out: [nclusters][nfeatures] */
-    float** new_centers;   /* [nclusters][nfeatures] */
-    void* alloc_memory = NULL;
-    args_t args;
+    float* ARRAY * ARRAY  clusters;      /* out: [nclusters][nfeatures] */
+    float* ARRAY * ARRAY  new_centers;   /* [nclusters][nfeatures] */
+    args_t * args = NULL;
 
     /* Allocate space for returning variable clusters[] */
-    clusters = (float**)malloc(nclusters * sizeof(float*));
-    clusters[0] = (float*)malloc(nclusters * nfeatures * sizeof(float));
-    for (i = 1; i < nclusters; i++) {
-        clusters[i] = clusters[i-1] + nfeatures;
-    }
+    clusters = (float**) malloc(nclusters * sizeof(float*));
+    //clusters[0] = (float*)malloc(nclusters * nfeatures * sizeof(float));
+    for (i = 1; i < nclusters; i++)
+    //    clusters[i] = clusters[i-1] + nfeatures;
+      clusters[i] = malloc(nfeatures * sizeof(float));
 
     /* Randomly pick cluster centers */
     for (i = 0; i < nclusters; i++) {
         int n = nondet();
         LCC_ASSUME(n >= 0 && n < npoints);
         for (j = 0; j < nfeatures; j++) {
-            clusters[i][j] = 0.0;//feature[n][j];
+            clusters[i][j] = feature[n][j];
         }
     }
-
-    //foreach (i, 0, npoints)
-    for(i = 0; i < npoints; i++)
-        membership[i] = -1;
-    //endfor 
-
-    /*
-     * Need to initialize new_centers_len and new_centers[0] to all 0.
-     * Allocate clusters on different cache lines to reduce false sharing.
-     */
-    {
-        int cluster_size = sizeof(int) + sizeof(float) * nfeatures;
-        const int cacheLineSize = 32;
-        cluster_size += (cacheLineSize-1) - ((cluster_size-1) % cacheLineSize);
-        alloc_memory = malloc(nclusters * cluster_size);
-        new_centers_len = (int**) malloc(nclusters * sizeof(int*));
-        new_centers = (float**) malloc(nclusters * sizeof(float*));
-        //assert(alloc_memory && new_centers && new_centers_len);
-        for (i = 0; i < nclusters; i++) {
-            new_centers_len[i] = (int*)((char*)alloc_memory + cluster_size * i);
-            new_centers[i] = (float*)((char*)alloc_memory + cluster_size * i + sizeof(int));
-        }
-    }
-
-    do {
-        delta = 0.0;
-
-        //args.feature         = feature;
-        args.nfeatures       = nfeatures;
-        args.npoints         = npoints;
-        args.nclusters       = nclusters;
-        args.membership      = membership;
-        args.clusters        = clusters;
-        args.new_centers_len = new_centers_len;
-        args.new_centers     = new_centers;
-
-        global_delta = delta;
-
-        //foreach (i, 0, npoints)
-        for (i = 0; i < npoints; i++)
-          work(&args, i);
-        //endfor
-
-//        delta = global_delta;
-
-        /* Replace old cluster centers with new_centers */
+//
+//    //foreach (i, 0, npoints)
+//    for(i = 0; i < npoints; i++)
+//        membership[i] = -1;
+//    //endfor 
+//
+//    /*
+//     * Need to initialize new_centers_len and new_centers[0] to all 0.
+//     * Allocate clusters on different cache lines to reduce false sharing.
+//     */
+//    {
+//        int cluster_size = sizeof(int) + sizeof(float) * nfeatures;
+//        const int cacheLineSize = 32;
+//        cluster_size += (cacheLineSize-1) - ((cluster_size-1) % cacheLineSize);
+//
+//        new_centers_len = (int**) malloc(nclusters * sizeof(int*));
+//        new_centers = (float**) malloc(nclusters * sizeof(float*));
+//
 //        for (i = 0; i < nclusters; i++) {
-//            for (j = 0; j < nfeatures; j++) {
-//                if (new_centers_len[i] > 0) {
-//                    clusters[i][j] = new_centers[i][j] / *new_centers_len[i];
-//                }
-//                new_centers[i][j] = 0.0;   /* set back to 0 */
-//            }
-//            *new_centers_len[i] = 0;   /* set back to 0 */
+//            //new_centers_len[i] = (int*)((char*)alloc_memory + cluster_size * i);
+//            //new_centers[i] = (float*)((char*)alloc_memory + cluster_size * i + sizeof(int));
+//            new_centers_len[i] = (int*)   malloc(cluster_size + sizeof(int));
+//            new_centers[i]     = (float*) malloc(cluster_size);
 //        }
+//    }
 //
-        delta /= npoints;
+//    do {
+//        delta = 0.0;
 //
-    } while ((delta > threshold) && (loop++ < 500));
+//        args = (args_t*) malloc(sizeof(args_t));
+//        args->feature         = feature;
+//        args->nfeatures       = nfeatures;
+//        args->npoints         = npoints;
+//        args->nclusters       = nclusters;
+//        args->membership      = membership;
+//        args->clusters        = clusters;
+//        args->new_centers_len = new_centers_len;
+//        args->new_centers     = new_centers;
 //
-////    free(alloc_memory);
-////    free(new_centers);
-////    free(new_centers_len);
+//        global_delta = delta;
 //
-//    return clusters;
+//        //foreach (i, 0, npoints)
+//        for (i = 0; i < npoints; i++)
+//          work(i, args);
+//        //endfor
+//
+////        delta = global_delta;
+//
+//        /* Replace old cluster centers with new_centers */
+////        for (i = 0; i < nclusters; i++) {
+////            for (j = 0; j < nfeatures; j++) {
+////                if (new_centers_len[i] > 0) {
+////                    clusters[i][j] = new_centers[i][j] / *new_centers_len[i];
+////                }
+////                new_centers[i][j] = 0.0;   /* set back to 0 */
+////            }
+////            *new_centers_len[i] = 0;   /* set back to 0 */
+////        }
+////
+//        delta /= npoints;
+////
+//    } while ((delta > threshold) && (loop++ < 500));
+////
+//////    free(alloc_memory);
+//////    free(new_centers);
+//////    free(new_centers_len);
+////
+////    return clusters;
   return 0;
 }
 
+int main(void)
+{
+  int nfeatures   = nondet();
+  int nclusters   = nondet();
+  int npoints     = nondet();
+  float threshold;
+  float* ARRAY * ARRAY feature = malloc(npoints * sizeof(float*));
+  int* ARRAY membership = malloc(npoints * sizeof(int));
 
-/* =============================================================================
- *
- * End of normal.c
- *
- * =============================================================================
- */
+  for(int i = 0; i < npoints; i++)
+    feature[i] = malloc(nfeatures * sizeof(float));
+
+  normal_exec(feature, nfeatures, npoints, nclusters, threshold, membership); 
+
+  return 0;
+}
