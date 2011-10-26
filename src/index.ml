@@ -218,8 +218,9 @@ let minus i1 i2 = match i1, i2 with
   | _ -> top
 
 let scale x = function
-  | IBot   -> IBot
-  | IInt n -> IInt (n * x)
+  | IBot         -> IBot
+  | _ when x = 0 -> IInt 0
+  | IInt n       -> IInt (n * x)
   | ICClass {lb = lb; ub = ub; c = c; m = m} ->
     ICClass {lb = scale_bound x lb;
              ub = scale_bound x ub;
