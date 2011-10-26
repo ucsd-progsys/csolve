@@ -159,54 +159,31 @@ let intReftypeOfAttrs width ats =
 (***************************** Effect Annotations *****************************)
 (******************************************************************************)
 
-type effectPtrAnnotKind =
-  | ERead
-  | EWrite
-
-let d_effectKind () = function
-  | ERead  -> P.text "read"
-  | EWrite -> P.text "write"
-
-let isEffectAttribute s =
-  s = CM.readEffectAttribute || s = CM.writeEffectAttribute
-
 let effectOfAttribute = function
-  | C.Attr (s, [C.AStr l; C.AStr p]) when isEffectAttribute s ->
-    let l    = getSloc l in
-    let eptr = FI.t_spec_pred (Ct.Ref (l, I.top)) vv <| predOfString p in
-      if s = CM.readEffectAttribute then
-        some <| (l, ERead, eptr)
-      else
-        some <| (l, EWrite, eptr)
-  | C.Attr (s, _) when isEffectAttribute s ->
+  | C.Attr (s, [C.AStr l; C.AStr p]) when s = CM.effectAttribute ->
+    let l = getSloc l in
+      some <| (l, FI.t_spec_pred (Ct.Ref (l, I.top)) vv <| predOfString p)
+  | C.Attr (s, _) when s = CM.effectAttribute ->
     E.s <| C.error "Malformed effect annotation"
   | _ -> None
 
 let trueEffectPtr l =
   FI.t_spec_pred (Ct.Ref (l, I.top)) vv A.pTrue
 
-let trueEffect l =
-  {Ct.eread = trueEffectPtr l; Ct.ewrite = trueEffectPtr l}
-
-let normalizeEffectPtrAnnots l ek eas = match List.filter (fst <+> (=) ek) eas with
-  | []          -> trueEffectPtr l
-  | [(_, eptr)] -> eptr
-  | _           -> E.s <| C.error "Multiple %a effect annotations for location %a@!"
-                            d_effectKind ek S.d_sloc l
-
-let normalizeEffectAnnots l eas =
-  { Ct.eread  = normalizeEffectPtrAnnots l ERead eas
-  ; Ct.ewrite = normalizeEffectPtrAnnots l EWrite eas}
+let normalizeEffectPtrAnnots l = function
+  | []     -> trueEffectPtr l
+  | [eptr] -> eptr
+  | _      -> E.s <| C.error "Multiple effect annotations for location %a@!" S.d_sloc l
 
 let effectSetOfAttrs ls ats =
      ats
   |> M.map_partial effectOfAttribute
-  |> List.fold_left (fun eam (l, ek, eptr) -> SLM.adds l (ek, eptr) eam) SLM.empty
-  |> SLM.mapi normalizeEffectAnnots
+  |> List.fold_left (fun eam (l, eptr) -> SLM.adds l eptr eam) SLM.empty
+  |> SLM.mapi normalizeEffectPtrAnnots
   |> M.flip (SLM.fold (fun l eptr effs -> ES.add effs l eptr)) ES.empty
   |> M.flip begin
        List.fold_left begin fun effs l ->
-         if ES.mem effs l then effs else ES.add effs l <| trueEffect l
+         if ES.mem effs l then effs else ES.add effs l <| trueEffectPtr l
        end
      end (List.map S.canonical ls)
 

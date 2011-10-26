@@ -35,8 +35,7 @@
 #define ROOM_FOR(t)        __attribute__ ((lcc_room_for (sizeof(t))))
 #define NNROOM_FOR(t)      __attribute__ ((lcc_nonnull_room_for (sizeof(t))))
 
-#define READS(l, p)        __attribute__ ((lcc_read_effect (#l, #p)))
-#define WRITES(l, p)       __attribute__ ((lcc_write_effect (#l, #p)))
+#define EFFECT(l, p)       __attribute__ ((lcc_effect (#l, #p)))
 
 // Hack: CIL doesn't allow types as attribute parameters, so we
 //       indirect through sizeof.
