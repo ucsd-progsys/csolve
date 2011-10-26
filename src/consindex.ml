@@ -36,7 +36,8 @@ module FA = FixAstInterface
 module FI = FixInterface
 
 module Ct = Ctypes
-module SPA = Solve.Make (PredAbs2)
+module PA  = PredAbs2 
+module SPA = Solve.Make (PA)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 
@@ -55,7 +56,7 @@ type t = {
   depm : C.dep list SM.t;
 }
 
-type bind = PredAbs.bind
+type bind = PA.bind
 
 (* API *)
 let create (ws, cs, des, ds) = 
