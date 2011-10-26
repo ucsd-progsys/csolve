@@ -20,11 +20,13 @@ typedef struct args {
          * ARRAY SIZE(nfeatures * FSZ) feature;  // [npoints][nfeatures]
     int                               nfeatures;
     int                               npoints;
-    int                               nclusters;
+    int REF(V <= npoints)             nclusters;
     int* ARRAY SIZE(npoints * ISZ)    membership;
-    float* ARRAY * ARRAY              clusters;            // [nclusters][nfeatures]
-    int** ARRAY                       new_centers_len;
-    float* ARRAY * ARRAY              new_centers;
+    float* ARRAY SIZE(nclusters * PSZ)
+         * ARRAY SIZE(nfeatures * FSZ) clusters;            // [nclusters][nfeatures]
+    int** ARRAY SIZE(nclusters * PSZ)  new_centers_len;
+    float* ARRAY SIZE(nclusters * PSZ)
+         * ARRAY SIZE(nfeatures * ISZ) new_centers;
 } args_t;
 
 float REF(true) global_delta;
@@ -83,10 +85,10 @@ float REF(true) global_delta;
 float**
 normal_exec (float* ARRAY SIZE(npoints * PSZ)
                   * ARRAY SIZE(nfeatures * FSZ) feature,      /* in: [npoints][nfeatures] */
-             int       nfeatures,
-             int       npoints,
-             int       nclusters,
-             float     threshold,
+             int                            nfeatures,
+             int                            npoints,
+             int REF(V <= npoints)          nclusters,
+             float                          threshold,
              int* ARRAY SIZE(npoints * ISZ) membership)
 {
     int i;
@@ -100,9 +102,7 @@ normal_exec (float* ARRAY SIZE(npoints * PSZ)
 
     /* Allocate space for returning variable clusters[] */
     clusters = (float**) malloc(nclusters * sizeof(float*));
-    //clusters[0] = (float*)malloc(nclusters * nfeatures * sizeof(float));
     for (i = 1; i < nclusters; i++)
-    //    clusters[i] = clusters[i-1] + nfeatures;
       clusters[i] = malloc(nfeatures * sizeof(float));
 
     /* Randomly pick cluster centers */
@@ -110,7 +110,7 @@ normal_exec (float* ARRAY SIZE(npoints * PSZ)
         int n = nondet();
         LCC_ASSUME(n >= 0 && n < npoints);
         for (j = 0; j < nfeatures; j++) {
-            //clusters[i][j] = feature[n][j];
+            clusters[i][j] = feature[n][j];
         }
     }
 //
@@ -189,6 +189,7 @@ int main(void)
   int nfeatures   = nondet();
   int nclusters   = nondet();
   int npoints     = nondet();
+  LCC_ASSUME(nclusters <= npoints);
   float threshold;
   float* ARRAY * ARRAY feature = malloc(npoints * sizeof(float*));
   int* ARRAY membership = malloc(npoints * sizeof(int));

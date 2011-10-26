@@ -55,14 +55,17 @@ typedef int bool;
 
 #define UNQ
 
-
 // Some type sizes
 
 #define FSZ 4
 #define ISZ 4
 #define PSZ 4
 
+// Effect Declarations
 
+#define PRAGMA                      #pragma
+#define LCC_EFFECT(e)               PRAGMA lcc_effect_decl (#e)
+#define LCC_EFFECTS_COMMUTE(e1, e2) PRAGMA lcc_effects_commute (#e1, #e2)
 
 #endif
 #endif
