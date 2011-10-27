@@ -107,7 +107,8 @@ normal_exec (int REF(V > 0)                   nfeatures,
              int REF(V <= npoints) REF(V > 0) nclusters,
              float                            threshold,
              float* ARRAY VALIDPTR START SIZE(4*nfeatures)
-                  * ARRAY VALIDPTR START SIZE(4*npoints) feature)      /* in: [npoints][nfeatures] */
+                  * ARRAY VALIDPTR START SIZE(4*npoints) feature,      /* in: [npoints][nfeatures] */
+               int* ARRAY VALIDPTR START SIZE(4*npoints) membership)
   //CHECK_TYPE
 {
     int i;
@@ -120,7 +121,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
     args_t * args = NULL;
 
 //    /* Allocate space for returning variable clusters[] */
-//    clusters = mallocFloatMatrix (nclusters, nfeatures);
+    clusters = mallocFloatMatrix (nclusters, nfeatures);
 
 //    /* clusters = (float**) malloc(nclusters * sizeof(float*)); */
 //    /* for (i = 0; i < nclusters; i++) */
@@ -130,9 +131,11 @@ normal_exec (int REF(V > 0)                   nfeatures,
     for (i = 0; i < nclusters; i++) {
         int n = nondetrange(0, npoints);
         for (j = 0; j < nfeatures; j++) {
-            //            float *clustersi = clusters[i];
+          float * featuren = feature[n];
+          float featurezzz = featuren[j];
+          //            float *clustersi = clusters[i];
             //            LCC_ASSUME(clustersi != NULL);
-//          clusters[i][j] = feature[n][j];
+          //clusters[i][j] = feature[n][j];
         }
     }
 //
@@ -210,10 +213,9 @@ int main(void)
   int nclusters   = nondetrange(1, npoints + 1);
   float threshold;
   float** feature = mallocFloatMatrix(npoints, nfeatures);
-//  int* membership = malloc(npoints * sizeof(int));
+  int* membership = malloc(npoints * sizeof(int));
 
-//  normal_exec(feature, nfeatures, npoints, nclusters, threshold, membership);
-  normal_exec(nfeatures, npoints, nclusters, threshold, feature);
+  normal_exec(nfeatures, npoints, nclusters, threshold, feature, membership);
 
   return 0;
 }
