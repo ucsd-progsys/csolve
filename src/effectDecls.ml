@@ -21,11 +21,14 @@ let _ = List.map addEffect [readEffect; writeEffect]
 
 let commutativeEffects = ref []
 
+let canonicalCommutativePair ename1 ename2 =
+  if ename1 < ename2 then (ename1, ename2) else (ename2, ename1)
+
 let addCommutativePair ename1 ename2 =
-  commutativeEffects := (ename1, ename2) :: !commutativeEffects
+  commutativeEffects := canonicalCommutativePair ename1 ename2 :: !commutativeEffects
 
 let effectsCommute ename1 ename2 =
-  List.mem (ename1, ename2) !commutativeEffects
+  List.mem (canonicalCommutativePair ename1 ename2) !commutativeEffects
 
 let _ = addCommutativePair readEffect readEffect
 
