@@ -144,9 +144,12 @@ let ptrIndexOfPredAttrs tb pred ats =
   let predIndex         = if hasPred then I.ref_index_of_pred vv pred else I.top in
     if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
 
-let ptrReftypeOfAttrs tb ats =
+let ptrReftypeOfSlocAttrs l tb ats =
   let pred = predOfAttrs (Some tb) ats in
-    FI.t_spec_pred (Ct.Ref (slocOfAttrs ats, ptrIndexOfPredAttrs tb pred ats)) vv pred
+    FI.t_spec_pred (Ct.Ref (l, ptrIndexOfPredAttrs tb pred ats)) vv pred
+
+let ptrReftypeOfAttrs tb ats =
+  ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
 
 let intReftypeOfAttrs width ats =
   let pred = predOfAttrs None ats in

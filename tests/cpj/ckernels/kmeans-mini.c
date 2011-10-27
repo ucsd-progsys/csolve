@@ -201,7 +201,7 @@ int main(void)
   int npoints     = nondet();
   LCC_ASSUME(nclusters <= npoints);
   float threshold;
-  float* ARRAY * ARRAY feature = malloc(npoints * sizeof(float*));
+  float* START ARRAY * START ARRAY feature = malloc(npoints * sizeof(float*));
   int* ARRAY membership = malloc(npoints * sizeof(int));
 
   for(int i = 0; i < npoints; i++)

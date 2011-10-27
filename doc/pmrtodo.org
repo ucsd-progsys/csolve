@@ -1,3 +1,4 @@
+* TODO See tests/todo1.c - why does it throw that shape error?
 * TODO Check that induction variable i in foreaches can't escape scope
 * TODO Test with global locations
 * TODO Heapify locals modified in concurrent blocks
@@ -37,6 +38,10 @@
   Some constraints need to be generated in the environment that was
   present *before* any unfolding happened...
 
+* TODO Undo crazy knotting of fixinterface/typespec/ctypes
+  All the type manipulations belong in ctypes, but a lot of them
+  are in fixinterface for no especially good reason. There are also
+  far too many aliases for things.
 * TODO Does create_shapeo need to fresh the store?
 * TODO Find a way to incorporate sizeofs in predicates
 
