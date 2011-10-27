@@ -423,13 +423,18 @@ let scalarcons_of_instr me i grd (j, env) instr =
   let loc = get_instrLoc instr in
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
+  | Set ((Var v, NoOffset), Lval (Var v2, NoOffset), _) 
+    when (not v.vglob) && v2.vglob && CM.is_reference v2.vtype ->
+         FI.t_scalar_ptr v2.vtype
+      |> scalarcons_of_binding me loc tag (j, env) grd j v 
+
   | Set ((Var v, NoOffset), e, _) 
-    when (not v.Cil.vglob) && CM.is_pure_expr CM.StringsArePure e && CM.is_local_expr e ->
+    when (not v.vglob) && CM.is_pure_expr CM.StringsArePure e ->
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
-  | Set ((Var v, NoOffset), _, _) 
-    when CM.is_reference v.Cil.vtype ->
+  | Set ((Var v, NoOffset), e, _) 
+    when CM.is_reference v.Cil.vtype && not (CM.is_pure_expr CM.StringsArePure e) ->
          FI.t_scalar_ptr v.Cil.vtype
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 

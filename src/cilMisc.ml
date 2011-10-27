@@ -401,12 +401,6 @@ let iterExprVars (e: Cil.exp) (f: Cil.varinfo -> unit): unit =
   visitCilExpr (new usedVarVisitor f) e |> ignore
 
 (* API *)
-let is_local_expr e =
-  let b = ref true in
-  let _ = iterExprVars e (fun v -> b := !b && not (v.Cil.vglob)) in
-  !b
-
-(* API *)
 let is_null_expr = function
   | CastE (TPtr (_, _), (Const (CInt64 (i, _, _))))
     when i = Int64.zero -> true
