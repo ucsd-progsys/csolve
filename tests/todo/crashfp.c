@@ -48,7 +48,7 @@ void Do(int REF(V > nthreads) array_rows,
   int lbi;
 
   /* yes this is silly, but right now it crashes fp */
-  slice = 0;
+   slice = 0;
   /* Switching the next line for the previous enables loop forever
      mode */
   /* slice = nondetpos(); */

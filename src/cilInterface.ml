@@ -116,7 +116,7 @@ let op_of_cilBOp = function
   | Cil.LOr     -> Bbl A.pOr   
   | Cil.LAnd    -> Bbl A.pAnd
 
-  | Cil.Mod       
+  | Cil.Mod     -> Bop A.Mod
   | Cil.Shiftlt   
   | Cil.Shiftrt   
   | Cil.BAnd                         
@@ -269,12 +269,20 @@ let reft_of_cilexp vv e =
       (* {v = e} *)
       let e' = Misc.do_catchu expr_of_cilexp e (fun _ -> Errormsg.error "Skolem Error2 %a \n" Cil.d_exp e)
       in A.pAtom (A.eVar vv, A.Eq, e')
-
-  | Cil.BinOp (Cil.Div, _, _, _)
-  | Cil.BinOp (Cil.Mod, _, _, _) ->
+  | Cil.BinOp (Cil.Mod, e1, Cil.Const (Cil.CInt64 (i,_,_)), _) ->
+      let m = Int64.to_int i in
+      let e1' = expr_of_cilexp e1 in
+      A.pImp (A.pAtom (A.zero, A.Lt, A.eInt m),
+              A.pAtom (A.eVar vv, A.Eq, A.eMod (e1', m)))
+  | Cil.BinOp (Cil.Mod, e1, e2, _) ->
+      let e1' = expr_of_cilexp e1 in
+      let e2' = expr_of_cilexp e2 in
+      A.pImp (A.pAtom (A.zero, A.Lt, e2'),
+              A.pAtom (A.eVar vv, A.Eq, A.eModExp (e1', e2')))
+  (* | Cil.BinOp (Cil.Mod, _, _, _) *)
+  | Cil.BinOp (Cil.Div, _, _, _) ->
       (* There are preconditions; see assume_guarantee_reft_of_cilexp *)
       A.pTrue
-
   | Cil.BinOp (Cil.Shiftlt, e1, e2, _) ->
       (* {0 <= e2 => e1 <= v *)
       let e1' = expr_of_cilexp e1 in
@@ -289,7 +297,7 @@ let reft_of_cilexp vv e =
 
   | Cil.UnOp (Cil.Neg, e1, _) ->
       (* {v = 0 - e1} *)
-      let e1' = expr_of_cilexp e1 in 
+      let e1' = expr_of_cilexp e1 in
       A.pAtom (A.eVar vv, A.Eq, A.eBin (A.zero, A.Minus, e1'))
 
   | Cil.UnOp (Cil.LNot, e1, _) ->
