@@ -1,0 +1,4 @@
+qualif CLUSTER(v: int)  : @nclusters <= @npoints
+qualif SIZE(v: ptr)     : (BLOCK_END([v]) - v) >= 4 * ~A
+qualif NNORFEAT(v: ptr) : (v != 0) => ((BLOCK_END([v]) - BLOCK_BEGIN([v])) = (4 * ~A))
+qualif EFFECT(v: ptr)   : (v - BLOCK_BEGIN([v])) = 4 * @i
