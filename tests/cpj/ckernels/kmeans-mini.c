@@ -83,13 +83,13 @@ float REF(true) global_delta;
 extern
   float * NONNULL SIZE(4 * sz2) START ARRAY
         * LOC(L) START NONNULL SIZE(4 * sz1) ARRAY
-     mallocFloatMatrix (size_t REF(V > 0) sz1, size_t REF(V > 0) sz2)
+     mallocFloatMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
   OKEXTERN;
 
 extern
   int * NONNULL SIZE(4 * sz2) START ARRAY
       * LOC(L) START NONNULL SIZE(4 * sz1) ARRAY
-     mallocIntMatrix (size_t REF(V > 0) sz1, size_t REF(V > 0) sz2)
+     mallocIntMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
   OKEXTERN;
 
 //float* ARRAY VALIDPTR START * ARRAY VALIDPTR START
