@@ -1,0 +1,12 @@
+qualif ROOMAR(v:ptr)        : (BLOCK_END([v]) - v) >= 3000000
+qualif ROOMSHORT(v:ptr)     : (BLOCK_END([v]) - v) >= 2
+qualif ROOMKEY(v:ptr)       : (BLOCK_END([v]) - v) >= 208
+qualif ROOMUSRKEY(v:ptr)    : (BLOCK_END([v]) - v) >= 16
+qualif IKLOOPINVAR(v:int)   : v = (6 * (8 - @r))
+qualif DECRYPTINVAR1(v:int) : v = (4 + (6 * @i))
+qualif DECRYPTINVAR2(v:int) : v = (47 - (6 * @i))
+qualif LTALOT(v:int)        : v <= 3000000
+qualif SLICESTART(v: ptr)   : v >= (BLOCK_BEGIN([v]) + (@i * 375000))
+qualif SLICEEND(v: ptr)     : v <  (BLOCK_BEGIN([v]) + ((@i + 1) * 375000))
+qualif UBOUND(v: ptr)       : v < (@text2 + @iupper)
+qualif LBOUND(v: ptr)       : (@ilow + @text2) <= v
