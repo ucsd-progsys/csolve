@@ -43,15 +43,41 @@
 #define NTHREADS 8
 #define ARRAY_ROWS 3000000
 
-int inv(int x) OKEXTERN;
-int mul(int a, int b) OKEXTERN;
+int inv (int x) {
+    int t0, t1;
+    int q, y;
 
-void run_cycle(char* START ARRAY VALIDPTR SIZE(ARRAY_ROWS) plain1,
-               char* START ARRAY VALIDPTR SIZE(ARRAY_ROWS) crypt1,
-               char* START ARRAY VALIDPTR SIZE(ARRAY_ROWS) plain2,
-               short* START ARRAY VALIDPTR ROOM_FOR(short[USERKEYSZ]) userkey,
-               int* START ARRAY VALIDPTR ROOM_FOR(int[KEYSZ]) z,
-               int* START ARRAY VALIDPTR ROOM_FOR(int[KEYSZ]) dk)
+    if (x <= 1)             // Assumes positive x.
+        return(x);          // 0 and 1 are self-inverse.
+
+    t1 = 0x10001 / x;       // (2**16+1)/x; x is >= 2, so fits 16 bits.
+    y = lcc_mod (0x10001, x);
+    LCC_ASSUME (y > 0);
+    if (y == 1)
+        return((1 - t1) & 0xFFFF);
+
+    t0 = 1;
+    do {
+        q = x / y;
+        x = lcc_mod (x, y);
+        LCC_ASSUME (x > 0);
+        t0 += q * t1;
+        if (x == 1) return(t0);
+        q = y / x;
+        y = lcc_mod (y, x);
+        LCC_ASSUME (y > 0);
+        t1 += q * t0;
+    } while (y != 1);
+
+    return((1 - t1) & 0xFFFF);
+}
+
+void run_cycle(char* STRINGPTR plain1,
+               char* STRINGPTR crypt1,
+               char* STRINGPTR plain2,
+               short* START ARRAY userkey,
+               int* START ARRAY z,
+               int* START ARRAY dk)
 {
   int slice, tslice, ttslice;
   int start_time, stop_time;
@@ -126,8 +152,8 @@ void buildTestData(int array_rows,
 */
 
 void
-calcEncryptKey(short * START ARRAY VALIDPTR ROOM_FOR(short[USERKEYSZ]) userkey,
-               int * START ARRAY VALIDPTR ROOM_FOR(int[KEYSZ]) z) CHECK_TYPE
+calcEncryptKey(short * START ARRAY userkey,
+               int * START ARRAY z)
 {
     int j;                       // Utility variable.
 
@@ -183,8 +209,8 @@ calcEncryptKey(short * START ARRAY VALIDPTR ROOM_FOR(short[USERKEYSZ]) userkey,
 */
 
 void
-calcDecryptKey(int * START VALIDPTR ARRAY ROOM_FOR(int[KEYSZ]) z,
-               int * START VALIDPTR ARRAY ROOM_FOR(int[KEYSZ]) dk) CHECK_TYPE
+calcDecryptKey(int * ARRAY START z,
+               int * ARRAY START dk)
 {
     int j, k;                 // Index counters.
     int t1, t2, t3;           // Temps to hold decrypt subkeys.
@@ -227,11 +253,11 @@ calcDecryptKey(int * START VALIDPTR ARRAY ROOM_FOR(int[KEYSZ]) z,
 }
 
 void
-run1(int REF(V >= 0) REF(V <= ARRAY_ROWS) ilow,
-     int REF(V >= ilow) REF(V <= ARRAY_ROWS) iupper,
-     char * VALIDPTR ARRAY START ROOM_FOR(char[ARRAY_ROWS]) text1,
-     char * VALIDPTR ARRAY START ROOM_FOR(char[ARRAY_ROWS]) text2,
-     int  * VALIDPTR ARRAY START ROOM_FOR(int[KEYSZ]) key)
+run1(int ilow,
+     int iupper,
+     char * STRINGPTR text1,
+     char * STRINGPTR text2,
+     int  * ARRAY START key)
 {
   int i1 = ilow;                 // Index into first text array.
   int i2 = ilow;                 // Index into second text array.
@@ -255,7 +281,7 @@ run1(int REF(V >= 0) REF(V <= ARRAY_ROWS) ilow,
     x4 = text1[i1++] & 0xff;
     x4 |= (text1[i1++] & 0xff) << 8;
 
-    while (r --> 0)
+    while (r-- > 0)
     {
         // 1) Multiply (modulo 0x10001), 1st text sub-block
         // with 1st key sub-block.
@@ -344,7 +370,8 @@ run1(int REF(V >= 0) REF(V <= ARRAY_ROWS) ilow,
     x4 = (int) ((long) x4 * key[ik++] % 0x10001L & 0xffff);
 
     /* Repackage from 16-bit sub-blocks to 8-bit byte array text2. */
-    LCC_ASSUME(i2 = 8*i);
+    /* LCC_ASSUME(i2 == 8*i); */
+    lcc_assert (i2 == i);
     text2[i2++] = (char) x1;
     text2[i2++] = (char) (x1 >> 8);
     text2[i2++] = (char) x3;                // x3 and x2 are switched
@@ -359,9 +386,9 @@ run1(int REF(V >= 0) REF(V <= ARRAY_ROWS) ilow,
 void main() // char ** argv, int argc)
 {
   /* int array_rows = 3000000; */
-  char * ARRAY plain1, * ARRAY crypt1, * ARRAY plain2;
-  short * ARRAY userkey;
-  int * ARRAY z, * ARRAY dk;
+  char * plain1, * crypt1, * plain2;
+  short * userkey;
+  int * z, * dk;
 
   // Create three byte arrays that will be used (and reused) for
   // encryption/decryption operations.
