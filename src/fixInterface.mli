@@ -73,7 +73,6 @@ val e_false             : Sloc.t -> Ctypes.effectptr
 val e_true              : Sloc.t -> Ctypes.effectptr
 val e_fresh             : Sloc.t -> Ctypes.effectptr
 
-val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype

@@ -256,16 +256,6 @@ let ra_bbegin ct =
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
 
-let ra_array tptr ct =
-     ct
-  |> sort_of_prectype
-  |> Sy.value_variable
-  |> A.eVar
-  |> begin fun vv ->
-     let vv', p = tptr |> ShapeInfra.ref_index |> Sc.non_null_pred_of_index_ref in
-       [C.Conc (P.subst p vv' vv)]
-     end
-
 let ra_indexpred ct =
   let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
   let vv', p = Sc.pred_of_ctype ct in
@@ -456,9 +446,6 @@ let conv_effectset_bottom effs =
   ES.apply t_false_refctype effs
 
 let t_scalar_zero = refctype_of_ctype ra_bbegin Ct.scalar_ctype
-
-let t_scalar_ptr tptr =
-  refctype_of_ctype (ra_array tptr) (Ct.vtype_to_ctype tptr)
 
 (* {{{
 let t_scalar_index = Sc.pred_of_index <+> Misc.uncurry (t_pred Ct.scalar_ctype)

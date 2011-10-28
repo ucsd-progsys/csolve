@@ -418,6 +418,9 @@ let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   let cs, ds = FI.make_cs env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
 
+let declared_ptr_type v =
+  v.vtype |> ShapeInfra.fresh_heaptype |> FI.t_scalar 
+
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
   let loc = get_instrLoc instr in
@@ -425,7 +428,8 @@ let scalarcons_of_instr me i grd (j, env) instr =
   match instr with
   | Set ((Var v, NoOffset), Lval (Var v2, NoOffset), _) 
     when (not v.vglob) && v2.vglob && CM.is_reference v2.vtype ->
-         FI.t_scalar_ptr v2.vtype
+         v2
+      |> declared_ptr_type
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
   | Set ((Var v, NoOffset), e, _) 
@@ -435,13 +439,14 @@ let scalarcons_of_instr me i grd (j, env) instr =
 
   | Set ((Var v, NoOffset), e, _) 
     when CM.is_reference v.Cil.vtype && not (CM.is_pure_expr CM.StringsArePure e) ->
-         FI.t_scalar_ptr v.Cil.vtype
+         v
+      |> declared_ptr_type
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 
   | Call (Some (Var v, NoOffset), Lval (Mem _, NoOffset), _, _) ->
       (* Nothing we can do here; we'll have to check this call is ok after we infer
          the contents of memory. *)
-         (if CM.is_reference v.Cil.vtype then FI.t_scalar_ptr v.Cil.vtype else FI.t_true Ct.scalar_ctype)
+         (if CM.is_reference v.Cil.vtype then declared_ptr_type v else FI.t_true Ct.scalar_ctype)
       |> scalarcons_of_binding me loc tag (j, env) grd j v    
      
   | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) ->
