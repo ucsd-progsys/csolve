@@ -1,26 +1,14 @@
-#include <cpj.h>
-#include <stdlib.h>
+#include <liquidc.h>
 
-extern
-     int REF(V = sz2)
-        * START NONNULL SIZE(4 * sz1) ARRAY
-     mallocFloatMatrix (size_t REF(V > 0) sz1, size_t REF(V > 0) sz2)
-  OKEXTERN;
+extern int REF(V = z) * NONNULL START ROOM_FOR(int) mallocAndSet (int z) OKEXTERN;
 
-void
-normal_exec (int                              nfeatures,
-             int * ARRAY START feature)
-{
-    return;
+void foo (int y, int *q) {
+    lcc_assert (*q == y);
 }
 
-void main(void)
-{
-  int nfeatures = nondetpos();
-  int npoints   = nondetpos();
-  int* feature  = mallocFloatMatrix(npoints, nfeatures);
+void main(void) {
+  int x  = nondetpos ();
+  int *p = mallocAndSet (x);
 
-  normal_exec(nfeatures, feature);
-
-  return;
+  foo (x, p);
 }
