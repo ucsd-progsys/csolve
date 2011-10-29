@@ -814,8 +814,6 @@ let cons_of_decs tgr spec gnv gst decs =
     | CM.FunDec (fn, _, loc) ->
         let tag      = CilTag.make_t tgr loc fn 0 0 in
         let irf      = FI.ce_find_fn fn gnv in
-        let _ = Pretty.printf "Constraining function:@!%a@!@!"
-        Ctypes.RefCTypes.CFun.d_cfun irf in
         let ws'      = FI.make_wfs_fn gnv irf tag in
         let srf, s   = spec |> CS.funspec |> SM.find fn in
         let cs'      = make_cs_if (should_subtype s)

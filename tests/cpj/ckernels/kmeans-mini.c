@@ -111,7 +111,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
     args_t * args = NULL;
 
 //    /* Allocate space for returning variable clusters[] */
-  clusters = mallocFloatMatrix (nclusters, nfeatures);
+    clusters = mallocFloatMatrix (nclusters, nfeatures);
 
 //    /* clusters = (float**) malloc(nclusters * sizeof(float*)); */
 //    /* for (i = 0; i < nclusters; i++) */
@@ -159,17 +159,15 @@ normal_exec (int REF(V > 0)                   nfeatures,
     args->nclusters       = nclusters;
     args->membership      = membership;
     args->feature         = feature;
-    args->clusters        = clusters;
-    args->new_centers_len = new_centers_len;
-    args->new_centers     = new_centers;
-//
-//
+//    args->clusters        = clusters;
+//    args->new_centers_len = new_centers_len;
+//    args->new_centers     = new_centers;
 
     global_delta = delta;
 
     //foreach (i, 0, npoints)
-    for (i = 0; i < npoints; i++);
-//      work(i, args);
+    for (i = 0; i < npoints; i++)
+      work(i, args);
     //endfor
 
 //    delta = global_delta;
