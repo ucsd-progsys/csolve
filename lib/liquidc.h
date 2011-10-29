@@ -89,10 +89,10 @@ extern int REF(V >= 0) nondetnn () OKEXTERN;
 extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
-char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
-{
-  return p;
-}
+//char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
+//{
+//  return p;
+//}
 
 // Needed for ADPCM
 
