@@ -47,7 +47,7 @@ float REF(true) global_delta;
 
 
 static void
-work (int REF(V > 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
+work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
 {
     int                              nfeatures       = args->nfeatures;
     int                              npoints         = args->npoints;
@@ -59,7 +59,6 @@ work (int REF(V > 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
     float* ARRAY START * ARRAY START new_centers     = args->new_centers;
     float delta = 0.0;
     int index;
-    int i;
     int j;
 
     index = nondetrange(0, nclusters);
@@ -71,23 +70,24 @@ work (int REF(V > 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
     if (membership[i] != index) {
         delta += 1.0;
     }
+    
 
-//    /* Assign the membership to object i */
-//    /* membership[i] can't be changed by other thread */
-//    membership[i] = -1;
-//
-//    /* Update new cluster centers : sum of objects located within */
-//    new_centers_len[index] = new_centers_len[index] + 1;
-//
-//    //ACCUMULATE
-//    { atomic
-//      for (j = 0; j < nfeatures; j++)
-//          new_centers[index][j] = new_centers[index][j] + feature[i][j];
-//    } 
-//
-//    { atomic
-//      global_delta = global_delta + delta;
-//    }
+    /* Assign the membership to object i */
+    /* membership[i] can't be changed by other thread */
+    membership[i] = -1;
+
+    /* Update new cluster centers : sum of objects located within */
+    new_centers_len[index] = new_centers_len[index] + 1;
+
+    //ACCUMULATE
+    { atomic
+      for (j = 0; j < nfeatures; j++)
+          new_centers[index][j] = new_centers[index][j] + feature[i][j];
+    } 
+
+    { atomic
+      global_delta = global_delta + delta;
+    }
 }
 
 //float* ARRAY VALIDPTR START * ARRAY VALIDPTR START
@@ -151,7 +151,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
 //
 
     //DO-WHILE LOOP PEEL
-      delta = 0.0;
+    delta = 0.0;
 
     args = (args_t*) malloc(sizeof(args_t));
     args->nfeatures       = nfeatures;
@@ -170,63 +170,64 @@ normal_exec (int REF(V > 0)                   nfeatures,
       work(i, args);
     //endfor
 
-//    delta = global_delta;
-//
-//    /* Replace old cluster centers with new_centers */
-//    for (i = 0; i < nclusters; i++) {
-//        for (j = 0; j < nfeatures; j++) {
-//            if (new_centers_len[i] > 0) {
-//                clusters[i][j] = new_centers[i][j] / new_centers_len[i];
-//            }
-//            new_centers[i][j] = 0.0;   /* set back to 0 */
-//        }
-//        new_centers_len[i] = 0;   /* set back to 0 */
-//    }
+    delta = global_delta;
 
-//    delta /= npoints;
+    /* Replace old cluster centers with new_centers */
+    for (i = 0; i < nclusters; i++) {
+        for (j = 0; j < nfeatures; j++) {
+            if (new_centers_len[i] > 0) {
+                clusters[i][j] = new_centers[i][j] / new_centers_len[i];
+            }
+            new_centers[i][j] = 0.0;   /* set back to 0 */
+        }
+        new_centers_len[i] = 0;   /* set back to 0 */
+    }
 
-//    while ((delta > threshold) && (loop++ < 500))
-//    {
-//        delta = 0.0;
-//
-//        args = (args_t*) malloc(sizeof(args_t));
-//        args->feature         = feature;
+    delta /= npoints;
+
+    while ((delta > threshold) && (loop++ < 500))
+    {
+        delta = 0.0;
+
+// we can't reassign these because they need to be final
+// although i have no idea why they're being re-assigned because they are final
 //        args->nfeatures       = nfeatures;
 //        args->npoints         = npoints;
 //        args->nclusters       = nclusters;
-//        args->membership      = membership;
-//        args->clusters        = clusters;
-//        args->new_centers_len = new_centers_len;
-//        args->new_centers     = new_centers;
-//
-//        global_delta = delta;
-//
-//        //foreach (i, 0, npoints)
-//        for (i = 0; i < npoints; i++)
-//          work(i, args);
-//        //endfor
-//
-//        delta = global_delta;
-//
-//        /* Replace old cluster centers with new_centers */
-//        for (i = 0; i < nclusters; i++) {
-//            for (j = 0; j < nfeatures; j++) {
-//                if (new_centers_len[i] > 0) {
-//                    clusters[i][j] = new_centers[i][j] / new_centers_len[i];
-//                }
-//                new_centers[i][j] = 0.0;   /* set back to 0 */
-//            }
-//            new_centers_len[i] = 0;   /* set back to 0 */
-//        }
-//
-//        delta /= npoints;
-//    }
+        args->feature         = feature;
+        args->membership      = membership;
+        args->clusters        = clusters;
+        args->new_centers_len = new_centers_len;
+        args->new_centers     = new_centers;
+
+        global_delta = delta;
+
+        //foreach (i, 0, npoints)
+        for (i = 0; i < npoints; i++)
+          work(i, args);
+        //endfor
+
+        delta = global_delta;
+
+        /* Replace old cluster centers with new_centers */
+        for (i = 0; i < nclusters; i++) {
+            for (j = 0; j < nfeatures; j++) {
+                if (new_centers_len[i] > 0) {
+                    clusters[i][j] = new_centers[i][j] / new_centers_len[i];
+                }
+                new_centers[i][j] = 0.0;   /* set back to 0 */
+            }
+            new_centers_len[i] = 0;   /* set back to 0 */
+        }
+
+        delta /= npoints;
+    }
 
     /* free(alloc_memory); */
-//    free(new_centers);
-//    free(new_centers_len);
-//
-//    return clusters;
+    free(new_centers);
+    free(new_centers_len);
+
+    return clusters;
 }
 
 int main2(int REF(v > 0) nfeatures, int REF(v > 0) npoints)
