@@ -47,30 +47,30 @@ float REF(true) global_delta;
 
 
 static void
-work (int i, args_t * args)
+work (int REF(V > 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
 {
-//    float* ARRAY START * ARRAY START feature         = args->feature;
-//    int                              nfeatures       = args->nfeatures;
-//    int                              npoints         = args->npoints;
-//    int                              nclusters       = args->nclusters;
-//    int* ARRAY START                 membership      = args->membership;
-//    float* ARRAY START * ARRAY START clusters        = args->clusters;
-//    int* ARRAY START                 new_centers_len = args->new_centers_len;
-//    float* ARRAY START * ARRAY START new_centers     = args->new_centers;
-//    float delta = 0.0;
-//    int index;
-//    int i;
-//    int j;
+    int                              nfeatures       = args->nfeatures;
+    int                              npoints         = args->npoints;
+    int                              nclusters       = args->nclusters;
+    float* ARRAY START * ARRAY START feature         = args->feature;
+    int* ARRAY START                 membership      = args->membership;
+    float* ARRAY START * ARRAY START clusters        = args->clusters;
+    int* ARRAY START                 new_centers_len = args->new_centers_len;
+    float* ARRAY START * ARRAY START new_centers     = args->new_centers;
+    float delta = 0.0;
+    int index;
+    int i;
+    int j;
 
-//    index = nondetrange(0, nclusters);
+    index = nondetrange(0, nclusters);
 
     /*
      * If membership changes, increase delta by 1.
      * membership[i] cannot be changed by other threads
      */
-//    if (membership[i] != index) {
-//        delta += 1.0;
-//    }
+    if (membership[i] != index) {
+        delta += 1.0;
+    }
 
 //    /* Assign the membership to object i */
 //    /* membership[i] can't be changed by other thread */
@@ -159,9 +159,9 @@ normal_exec (int REF(V > 0)                   nfeatures,
     args->nclusters       = nclusters;
     args->membership      = membership;
     args->feature         = feature;
-//    args->clusters        = clusters;
-//    args->new_centers_len = new_centers_len;
-//    args->new_centers     = new_centers;
+    args->clusters        = clusters;
+    args->new_centers_len = new_centers_len;
+    args->new_centers     = new_centers;
 
     global_delta = delta;
 
