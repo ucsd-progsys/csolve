@@ -100,4 +100,6 @@ extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, 
 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
 
+extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) a, int REF(V > 0) m) OKEXTERN;
+
 #endif
