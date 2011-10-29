@@ -8,3 +8,4 @@ qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@a
 qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 8]): int))
 qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 12]): int))
 qualif BNDI(v: int)     : v < (DEREF([@args + 4]): int)
+qualif NEFF(v: ptr)     : ACCUMULATE != 1
