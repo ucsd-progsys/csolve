@@ -1,0 +1,4 @@
+qualif STRLEN(v:ptr) : (v + ~n) = BLOCK_END([v])
+qualif STRLEN2(v:ptr) : (v + (2*~n)) = BLOCK_END([v])
+qualif ACCESSEVEN(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 2) = 0
+qualif ACCESSODD(v:ptr)  : ((v - BLOCK_BEGIN([v])) mod 2) = 1
