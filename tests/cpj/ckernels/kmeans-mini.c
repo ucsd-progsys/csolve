@@ -23,9 +23,9 @@ typedef struct args {
     int REF(V <= npoints) REF(V > 0)  nclusters;
     int*   START ARRAY SIZE(4*npoints) membership;
     float* START ARRAY SIZE(4*nfeatures)
-         * START ARRAY SIZE(4*npoints)    feature;  // [npoints][nfeatures]
+         * START ARRAY SIZE(4*npoints)   feature;  // [npoints][nfeatures]
     float* START ARRAY SIZE(4*nfeatures)
-         * START ARRAY SIZE(4*nclusters)  clusters;            // [nclusters][nfeatures]
+         * START ARRAY SIZE(4*nclusters) clusters;            // [nclusters][nfeatures]
     int*   START ARRAY SIZE(4*nclusters) new_centers_len;
     float* START ARRAY SIZE(4*nfeatures) 
          * START ARRAY SIZE(4*nclusters) new_centers;
@@ -38,12 +38,12 @@ extern //atomic
                    int REF(V > 0)                     nfeatures,
                    int REF(V > 0)                     npoints,
                    int REF(V > 0) REF(V <= npoints)   nclusters,
-                   float* ARRAY START SIZE(4*nfeatures)
-                        * ARRAY START SIZE(4*npoints) feature,
-                   int* ARRAY START SIZE(4*nclusters) new_centers_len,
-                   float* ARRAY START SIZE(4*nfeatures)
-                        * ARRAY START SIZE(4*nclusters) new_centers,
-                   float* global_delta)
+                   float* ARRAY START SIZE(4*nfeatures) LOC(L)
+                        * ARRAY START SIZE(4*npoints) LOC(J) feature,
+                   int* ARRAY START SIZE(4*nclusters) LOC(K) new_centers_len,
+                   float* ARRAY START SIZE(4*nfeatures) LOC(M)
+                        * ARRAY START SIZE(4*nclusters) LOC(N) new_centers,
+                   float* LOC(O) global_delta)
 ////{
 ////  /* Update new cluster centers : sum of objects located within */
 ////    args->new_centers_len[index]++;
@@ -53,18 +53,27 @@ extern //atomic
 ////
 ////    global_delta += delta;
 ////}
-////EFFECT(L, ACCUMULATE = 1)
-////EFFECT(J, ACCUMULATE = 1)
-////EFFECT(K, ACCUMULATE = 1)
-////EFFECT(G, ACCUMULATE = 1)
+EFFECT(L, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(J, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(K, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(M, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(N, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(O, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
 OKEXTERN;
 
 static void
-work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
+work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int)) i,
+      args_t * args,
+      /* ghost parameters for predicate scoping issue with args */
+      int nfeatures,
+      int npoints,
+      int nclusters,
+      /* we have to thread the global because there's no other way to name its location */
+      float * VALIDPTR global_delta)
 {
-    int                              nfeatures       = args->nfeatures;
-    int                              npoints         = args->npoints;
-    int                              nclusters       = args->nclusters;
+    /*int*/                          nfeatures       = args->nfeatures;
+    /*int*/                          npoints         = args->npoints;
+    /*int*/                          nclusters       = args->nclusters;
     float* ARRAY START * ARRAY START feature         = args->feature;
     int* ARRAY START                 membership      = args->membership;
     float* ARRAY START * ARRAY START clusters        = args->clusters;
@@ -75,7 +84,7 @@ work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
     int j;
 
     //index = find_nearest_point(...);
-    index = nondetrange(1, nclusters);
+    index = nondetrange(0, nclusters);
 
     /*
      * If membership changes, increase delta by 1.
@@ -89,14 +98,14 @@ work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int))  i, args_t * args)
     /* membership[i] can't be changed by other thread */
     membership[i] = index;
 
-    accumulator(delta, index, i,
-                nfeatures,
-                npoints,
-                nclusters,
-                feature,
-                new_centers_len,
-                new_centers,
-                global_delta);
+//    accumulator(delta, index, i,
+//                nfeatures,
+//                npoints,
+//                nclusters,
+//                feature,
+//                new_centers_len,
+//                new_centers,
+//                global_delta);
 }
 
 float* ARRAY VALIDPTR START * ARRAY VALIDPTR START
@@ -176,7 +185,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
 
     foreach (i, 0, npoints)
 //    for (i = 0; i < npoints; i++)
-      work(i, args);
+      work(i, args, nfeatures, npoints, nclusters, global_delta);
     endfor
 
     delta = *global_delta;
@@ -213,7 +222,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
 
         foreach (i, 0, npoints)
 //        for (i = 0; i < npoints; i++)
-          work(i, args);
+          work(i, args, nfeatures, npoints, nclusters, global_delta);
         endfor
 
         delta = *global_delta;
@@ -241,7 +250,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
 
 int main2(int REF(v > 0) nfeatures, int REF(v > 0) npoints)
 {
-  assert(sizeof(float) == sizeof(int) == sizeof(void*) == 4);
+  //lcc_assert(sizeof(float) == sizeof(int) == sizeof(void*) == 4);
 
   int nclusters   = nondetrange(1, npoints + 1);
   float threshold;

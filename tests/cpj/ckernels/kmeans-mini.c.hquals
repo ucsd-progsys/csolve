@@ -9,3 +9,9 @@ qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@a
 qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 12]): int))
 qualif BNDI(v: int)     : v < (DEREF([@args + 4]): int)
 qualif NEFF(v: ptr)     : ACCUMULATE != 1
+qualif NEFF(v: ptr)     : ACCUMULATE = 1
+qualif NEFF(v: ptr)     : EREAD != 1
+qualif NEFF(v: ptr)     : EREAD = 1
+qualif NEFF(v: ptr)     : EWRITE != 1
+qualif NEFF(v: ptr)     : EWRITE = 1
+qualif NEFF(v: ptr)     : (EWRITE = 1) => v = @i
