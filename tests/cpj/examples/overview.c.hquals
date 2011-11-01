@@ -1,0 +1,10 @@
+qualif STRLEN(v:ptr) : (v + ~n) <= BLOCK_END([v])
+qualif STRLEN2(v:ptr) : (v + (2*~n)) = BLOCK_END([v])
+qualif ACCESSEVEN(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 2) = 0
+qualif ACCESSODD(v:ptr)  : ((v - BLOCK_BEGIN([v])) mod 2) = 1
+qualif FOREACH(v: ptr)   : (v - BLOCK_BEGIN([v])) = @i
+qualif WRITESOUT(v: ptr) : v >= @out
+qualif WRITESLEN(v: ptr) : (v - @out) < @len
+
+qualif NOATOM(v: ptr) : EAtomic != 1
+qualif NOUSER(v: ptr) : EUserData != 1
