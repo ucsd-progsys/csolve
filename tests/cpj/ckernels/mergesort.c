@@ -129,7 +129,7 @@ int find_split(int v, int * ARRAY b, int len)
 bool check_sorted(int * ARRAY buf, int len)
 {
   for (int i = 0; i < len - 1; i++){
-    if (buf[i] <= buf[i+1])
+    if (buf[i] > buf[i+1])
       return FALSE;
   }
   return TRUE;
