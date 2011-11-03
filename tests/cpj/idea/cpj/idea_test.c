@@ -32,6 +32,30 @@
 
 **/
 
+/*
+ * MODIFICATIONS/CHEATS:
+ *
+ * - All key sizes/data sizes are (static) macros. These values were
+ *   calculated (or supplied as input) in the original Java
+ *   program. We were not able to handle division properly.
+ *
+ * - inv() was externed for similar reasons due to division.
+ *
+ * - Not a cheat per se, but >>> was replaced with >>, since C has
+ *   unsigned types.
+ *
+ * - the for loop in run1() had its conditional changed to "i+8 <
+ *   iupper" from "i < iupper". I believe this was a bug in the
+ *   original program, unless the original program was assuming that
+ *   iupper would be divisible by 8. 
+ *
+ * - changed do-while loop in run1() to while loop. We did not
+ *   seem to be getting the correct guard information in the do-while
+ *   version.
+ */
+ 
+  
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <cpj.h>
@@ -266,7 +290,7 @@ run1(int ilow,
   int r;                      // Eight rounds of processing.
 
   /* ABAKST added i+8 */
-  for (int i =ilow ; i+8 < iupper ; i +=8)
+  for (int i =ilow ; i+8  < iupper ; i +=8)
   {
     ik = 0;                 // Restart key index.
     r = 8;                  // Eight rounds of processing.
