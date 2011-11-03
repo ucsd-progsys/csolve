@@ -60,19 +60,15 @@ EFFECT(F, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
 OKEXTERN;
 
 static void
-work (int REF(V >= 0) REF(V < npoints) i,
+work (int i,
       /* ghost parameters for predicate scoping issue with args */
-      int nfeatures,
-      int npoints,
-      int nclusters,
-      float* ARRAY START NONNULL SIZE(4*nfeatures) LOC(A)
-           * ARRAY START NONNULL SIZE(4*npoints) LOC(B) feature,
-      int* ARRAY START   NONNULL SIZE(4*nclusters) LOC(C) new_centers_len,
-      float* ARRAY START NONNULL SIZE(4*nfeatures) LOC(D)
-           * ARRAY START NONNULL SIZE(4*nclusters) LOC(E) new_centers,
-      int*   START ARRAY NONNULL SIZE(4*npoints) membership,
+      int nfeatures, int npoints, int nclusters,
+      float* ARRAY START * ARRAY START feature,
+      int* ARRAY START new_centers_len,
+      float* ARRAY START * ARRAY START new_centers,
+      int*  ARRAY START membership,
       /* we have to thread the global because there's no other way to name its location */
-      float * VALIDPTR global_delta)
+      float* global_delta)
 {
     float delta = 0.0;
     int index;
@@ -104,13 +100,10 @@ work (int REF(V >= 0) REF(V < npoints) i,
 }
 
 float* ARRAY VALIDPTR START * ARRAY VALIDPTR START
-normal_exec (int REF(V > 0)                   nfeatures,
-             int REF(V > 0)                   npoints,
-             int REF(V <= npoints) REF(V > 0) nclusters,
-             float                            threshold,
-             float* ARRAY VALIDPTR START SIZE(4*nfeatures)
-             * ARRAY VALIDPTR START SIZE(4*npoints) feature,      /* in: [npoints][nfeatures] */
-               int* ARRAY VALIDPTR START SIZE(4*npoints) membership)
+normal_exec (int nfeatures, int npoints, int nclusters,
+	     float threshold,
+             float* ARRAY START * ARRAY START feature, /* in: [npoints][nfeatures] */
+	     int* ARRAY START membership)
 {
     int i;
     int j;
@@ -199,12 +192,12 @@ normal_exec (int REF(V > 0)                   nfeatures,
     return clusters;
 }
 
-int main2(int REF(v > 0) nfeatures, int REF(v > 0) npoints)
+int main2(int nfeatures, int npoints)
 {
-  int nclusters   = nondetrange(1, npoints + 1);
+  int nclusters    = nondetrange(1, npoints + 1);
   float threshold;
-  float** feature = mallocFloatMatrix(npoints, nfeatures);
-  int* membership = malloc(npoints * sizeof(int));
+  float** feature  = mallocFloatMatrix(npoints, nfeatures);
+  int* membership  = malloc(npoints * sizeof(int));
 
   normal_exec(nfeatures, npoints, nclusters, threshold, feature, membership);
 

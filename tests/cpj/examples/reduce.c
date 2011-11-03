@@ -6,8 +6,7 @@ LCC_EFFECTS_COMMUTE(EAccumulate, EAccumulate)
 
 extern void accumulate (char * LOC(L) ARRAY l, int i)
   EFFECT(L, && [V = l + i; EAccumulate = 1; ~(EWRITE = 1); ~(EREAD = 1)])
-  OKEXTERN
-;
+  OKEXTERN;
 
 #define THREADS 8
 

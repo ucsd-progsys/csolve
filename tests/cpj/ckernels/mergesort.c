@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-const int REF (V > 0) buf_len = 10000; 
-const int REF (V > 0) merge_size = 50;
-const int REF (V > 0) quick_size = 2048;
+const int buf_len = 10000; 
+const int merge_size = 50;
+const int quick_size = 2048;
 
 //define buf_len 10000
 //define merge_size 50

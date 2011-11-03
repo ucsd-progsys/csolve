@@ -1,8 +1,8 @@
 #include <cpj.h>
 #include <stdlib.h>
 
-const int REF (V > 0) buf_len = 10000; 
-const int REF (V > 0) too_small  = 50;
+const int buf_len = 10000; 
+const int too_small  = 50;
 
 
 void swp(int * ARRAY a, int b, int c)

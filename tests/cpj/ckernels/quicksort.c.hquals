@@ -7,9 +7,6 @@
 
 
 
- 
-
-
 
 qualif VIDX(V:int) : && [(BLOCK_BEGIN([~A]) <= (~A + (4 * V))); ((~A + 4 + (4 * V)) <= BLOCK_END([~A]))]
 qualif VSIZEGE(V:ptr) : (V + (4 * ~A)) <= BLOCK_END([V])

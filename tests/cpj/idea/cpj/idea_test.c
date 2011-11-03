@@ -39,7 +39,7 @@
  *   calculated (or supplied as input) in the original Java
  *   program. We were not able to handle division properly.
  *
- * - inv() was externed for similar reasons due to division.
+ * - LCC_ASSUME in inv() due to arithmetic issues, lcc_mod.
  *
  * - Not a cheat per se, but >>> was replaced with >>, since C has
  *   unsigned types.
