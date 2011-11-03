@@ -17,20 +17,6 @@
 LCC_EFFECT(ACCUMULATE)
 LCC_EFFECTS_COMMUTE(ACCUMULATE, ACCUMULATE)
 
-typedef struct args {
-    int REF(V > 0)                    nfeatures;
-    int REF(V > 0)                    npoints;
-    int REF(V <= npoints) REF(V > 0)  nclusters;
-    int*   START ARRAY SIZE(4*npoints) membership;
-    float* START ARRAY SIZE(4*nfeatures)
-         * START ARRAY SIZE(4*npoints)   feature;  // [npoints][nfeatures]
-    float* START ARRAY SIZE(4*nfeatures)
-         * START ARRAY SIZE(4*nclusters) clusters;            // [nclusters][nfeatures]
-    int*   START ARRAY SIZE(4*nclusters) new_centers_len;
-    float* START ARRAY SIZE(4*nfeatures) 
-         * START ARRAY SIZE(4*nclusters) new_centers;
-} args_t;
-
 extern //atomic
   void accumulator(float delta,
                    int REF(V >= 0) REF(V < nclusters) index,
@@ -38,47 +24,35 @@ extern //atomic
                    int REF(V > 0)                     nfeatures,
                    int REF(V > 0)                     npoints,
                    int REF(V > 0) REF(V <= npoints)   nclusters,
-                   float* ARRAY START SIZE(4*nfeatures) LOC(L)
-                        * ARRAY START SIZE(4*npoints) LOC(J) feature,
-                   int* ARRAY START SIZE(4*nclusters) LOC(K) new_centers_len,
-                   float* ARRAY START SIZE(4*nfeatures) LOC(M)
-                        * ARRAY START SIZE(4*nclusters) LOC(N) new_centers,
-                   float* LOC(O) global_delta)
-////{
-////  /* Update new cluster centers : sum of objects located within */
-////    args->new_centers_len[index]++;
-////
-////    for (int j = 0; j < args->nfeatures; j++)
-////        args->new_centers[index][j] = args->new_centers[index][j] + args->feature[i][j];
-////
-////    global_delta += delta;
-////}
-EFFECT(L, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
-EFFECT(J, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
-EFFECT(K, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
-EFFECT(M, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
-EFFECT(N, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
-EFFECT(O, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+                   float* ARRAY NONNULL START SIZE(4*nfeatures) LOC(A)
+                        * ARRAY NONNULL START SIZE(4*npoints)   LOC(B) feature,
+                   int  * ARRAY NONNULL START SIZE(4*nclusters) LOC(C) new_centers_len,
+                   float* ARRAY NONNULL START SIZE(4*nfeatures) LOC(D)
+                        * ARRAY NONNULL START SIZE(4*nclusters) LOC(E) new_centers,
+                   float* LOC(F) global_delta)
+EFFECT(A, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(B, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(C, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(D, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(E, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(F, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
 OKEXTERN;
 
 static void
-work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int)) i,
-      args_t * args,
+work (int REF(V >= 0) REF(V < npoints) i,
       /* ghost parameters for predicate scoping issue with args */
       int nfeatures,
       int npoints,
       int nclusters,
+      float* ARRAY START NONNULL SIZE(4*nfeatures) LOC(A)
+           * ARRAY START NONNULL SIZE(4*npoints) LOC(B) feature,
+      int* ARRAY START   NONNULL SIZE(4*nclusters) LOC(C) new_centers_len,
+      float* ARRAY START NONNULL SIZE(4*nfeatures) LOC(D)
+           * ARRAY START NONNULL SIZE(4*nclusters) LOC(E) new_centers,
+      int*   START ARRAY NONNULL SIZE(4*npoints) membership,
       /* we have to thread the global because there's no other way to name its location */
       float * VALIDPTR global_delta)
 {
-    /*int*/                          nfeatures       = args->nfeatures;
-    /*int*/                          npoints         = args->npoints;
-    /*int*/                          nclusters       = args->nclusters;
-    float* ARRAY START * ARRAY START feature         = args->feature;
-    int* ARRAY START                 membership      = args->membership;
-    float* ARRAY START * ARRAY START clusters        = args->clusters;
-    int* ARRAY START                 new_centers_len = args->new_centers_len;
-    float* ARRAY START * ARRAY START new_centers     = args->new_centers;
     float delta = 0.0;
     int index;
     int j;
@@ -93,19 +67,19 @@ work (int REF(V >= 0) REF(V < (DEREF([args + 4]):int)) i,
     if (membership[i] != index) {
         delta += 1.0;
     }
-    
+
     /* Assign the membership to object i */
     /* membership[i] can't be changed by other thread */
     membership[i] = index;
 
-//    accumulator(delta, index, i,
-//                nfeatures,
-//                npoints,
-//                nclusters,
-//                feature,
-//                new_centers_len,
-//                new_centers,
-//                global_delta);
+    accumulator(delta, index, i,
+                nfeatures,
+                npoints,
+                nclusters,
+                feature,
+                new_centers_len,
+                new_centers,
+                global_delta);
 }
 
 float* ARRAY VALIDPTR START * ARRAY VALIDPTR START
@@ -114,7 +88,7 @@ normal_exec (int REF(V > 0)                   nfeatures,
              int REF(V <= npoints) REF(V > 0) nclusters,
              float                            threshold,
              float* ARRAY VALIDPTR START SIZE(4*nfeatures)
-                  * ARRAY VALIDPTR START SIZE(4*npoints) feature,      /* in: [npoints][nfeatures] */
+             * ARRAY VALIDPTR START SIZE(4*npoints) feature,      /* in: [npoints][nfeatures] */
                int* ARRAY VALIDPTR START SIZE(4*npoints) membership)
 {
     int i;
@@ -124,18 +98,13 @@ normal_exec (int REF(V > 0)                   nfeatures,
     float delta, * global_delta;
     float* ARRAY * ARRAY  clusters;      /* out: [nclusters][nfeatures] */
     float* ARRAY * ARRAY  new_centers;   /* [nclusters][nfeatures] */
-    args_t * args = NULL;
 
     global_delta = malloc(sizeof(float));
 
-//    /* Allocate space for returning variable clusters[] */
+       /* Allocate space for returning variable clusters[] */
     clusters = mallocFloatMatrix (nclusters, nfeatures);
 
-//    /* clusters = (float**) malloc(nclusters * sizeof(float*)); */
-//    /* for (i = 0; i < nclusters; i++) */
-//    /*   clusters[i] = malloc(nfeatures * sizeof(float)); */
-//
-//    /* Randomly pick cluster centers */
+   /* Randomly pick cluster centers */
 
     for (i = 0; i < nclusters; i++) {
         int n = nondetrange(0, npoints);
@@ -151,41 +120,14 @@ normal_exec (int REF(V > 0)                   nfeatures,
     new_centers     = mallocFloatMatrix(nclusters, nfeatures);
     new_centers_len = callocInt(nclusters);
 
-//    /* /\* */
-//    /*  * Need to initialize new_centers_len and new_centers[0] to all 0. */
-//    /*  * Allocate clusters on different cache lines to reduce false sharing. */
-//    /*  *\/ */
-//    /* { */
-//    /*     int cluster_size = sizeof(int) + sizeof(float) * nfeatures; */
-//    /*     const int cacheLineSize = 32; */
-//    /*     cluster_size += (cacheLineSize-1) - ((cluster_size-1) % cacheLineSize); */
-//
-//    /*     new_centers_len = (int**) malloc(nclusters * sizeof(int*)); */
-//    /*     new_centers = (float**)  */
-//
-//    /*     for (i = 0; i < nclusters; i++) { */
-//    /*         new_centers_len[i] = (int*)   malloc(cluster_size + sizeof(int)); */
-//    /*     } */
-//    /* } */
-
     //DO-WHILE LOOP PEEL
     delta = 0.0;
-
-    args = (args_t*) malloc(sizeof(args_t));
-    args->nfeatures       = nfeatures;
-    args->npoints         = npoints;
-    args->nclusters       = nclusters;
-    args->membership      = membership;
-    args->feature         = feature;
-    args->clusters        = clusters;
-    args->new_centers_len = new_centers_len;
-    args->new_centers     = new_centers;
 
     *global_delta = delta;
 
     foreach (i, 0, npoints)
-//    for (i = 0; i < npoints; i++)
-      work(i, args, nfeatures, npoints, nclusters, global_delta);
+      work(i, nfeatures, npoints, nclusters, feature,
+           new_centers_len, new_centers, membership, global_delta);
     endfor
 
     delta = *global_delta;
@@ -207,22 +149,11 @@ normal_exec (int REF(V > 0)                   nfeatures,
     {
         delta = 0.0;
 
-// we can't reassign these because they need to be final
-// although i have no idea why they're being re-assigned because they are final
-//        args->nfeatures       = nfeatures;
-//        args->npoints         = npoints;
-//        args->nclusters       = nclusters;
-        args->feature         = feature;
-        args->membership      = membership;
-        args->clusters        = clusters;
-        args->new_centers_len = new_centers_len;
-        args->new_centers     = new_centers;
-
         *global_delta = delta;
 
         foreach (i, 0, npoints)
-//        for (i = 0; i < npoints; i++)
-          work(i, args, nfeatures, npoints, nclusters, global_delta);
+          work(i, nfeatures, npoints, nclusters, feature,
+               new_centers_len, new_centers, membership, global_delta);
         endfor
 
         delta = *global_delta;
@@ -241,7 +172,6 @@ normal_exec (int REF(V > 0)                   nfeatures,
         delta /= npoints;
     }
 
-    /* free(alloc_memory); */
     free(new_centers);
     free(new_centers_len);
 
@@ -250,8 +180,6 @@ normal_exec (int REF(V > 0)                   nfeatures,
 
 int main2(int REF(v > 0) nfeatures, int REF(v > 0) npoints)
 {
-  //lcc_assert(sizeof(float) == sizeof(int) == sizeof(void*) == 4);
-
   int nclusters   = nondetrange(1, npoints + 1);
   float threshold;
   float** feature = mallocFloatMatrix(npoints, nfeatures);

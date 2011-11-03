@@ -60,21 +60,20 @@ typedef int bool;
 // Allocators
 
 extern
-  float * NONNULL SIZE(4 * sz2) START ARRAY
-        * LOC(L) START NONNULL SIZE(4 * sz1) ARRAY
-     mallocFloatMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+float * NONNULL SIZE(4 * sz2) START ARRAY
+      * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocFloatMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
   OKEXTERN;
 
 extern
-  int * NONNULL SIZE(4 * sz2) START ARRAY
-      * LOC(L) START NONNULL SIZE(4 * sz1) ARRAY
-     mallocIntMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+int * NONNULL SIZE(4 * sz2) START ARRAY
+    * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocIntMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
   OKEXTERN;
 
 extern
-  int REF(V = 0) * NONNULL SIZE(4 * sz) START ARRAY
-    callocInt(int REF(V > 0) sz) 
+int REF(V = 0) * NONNULL SIZE(4 * sz) START ARRAY
+  callocInt(int REF(V > 0) sz)
   OKEXTERN;
-
 #endif
 #endif
