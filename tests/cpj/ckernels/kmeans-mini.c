@@ -7,6 +7,27 @@
  * =============================================================================
  */
 
+/*
+ * MODIFICATIONS/CHEATS:
+ *
+ * - externed accumulator() function so that we could declare its
+ *    effect etc.
+ *
+ * - Originally used a structure to pass around arguments. Changed
+ *   functions to accept what used to be the members of the struct as
+ *   arguments.
+ * 
+ * - Pass array sizes around so that they can be in scope to constraint size 
+ *
+ * - Thread global variable global_delta through functions so that we
+ *   can name its location.
+ *
+ * - main()/main2() wrappers so that we can properly constraint the
+ *   size of the arrays that will be used.
+ *
+ * - custom allocators for feature, new_centers_len, new_centers.
+ */
+
 #include <cpj.h>
 
 #include <stdio.h>
