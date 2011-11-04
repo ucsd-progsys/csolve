@@ -278,7 +278,7 @@ calcDecryptKey(int * ARRAY START z,
 
 void
 run1(int ilow,
-     int iupper,
+     int REF(((V - ilow) mod 8) = 0) iupper,
      char * STRINGPTR text1,
      char * STRINGPTR text2,
      int  * ARRAY START key)
@@ -289,8 +289,7 @@ run1(int ilow,
   int x1, x2, x3, x4, t1, t2; // Four "16-bit" blocks, two temps.
   int r;                      // Eight rounds of processing.
 
-  /* ABAKST added i+8 */
-  for (int i =ilow ; i+8  < iupper ; i +=8)
+  for (int i = ilow ; i < iupper ; i +=8)
   {
     ik = 0;                 // Restart key index.
     r = 8;                  // Eight rounds of processing.

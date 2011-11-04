@@ -8,5 +8,6 @@ qualif DECRYPTINVAR2(v:int) : v = (47 - (6 * @i))
 qualif LTALOT(v:int)        : v <= 3000000
 qualif SLICESTART(v: ptr)   : v >= (BLOCK_BEGIN([v]) + (@i * 375000))
 qualif SLICEEND(v: ptr)     : v <  (BLOCK_BEGIN([v]) + ((@i + 1) * 375000))
+qualif SIZEMOD8(v: int)     : ((v - @ilow) mod 8) = 0
 qualif UBOUND(v: ptr)       : v < (@text2 + @iupper)
 qualif LBOUND(v: ptr)       : (@ilow + @text2) <= v
