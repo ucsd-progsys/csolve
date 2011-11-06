@@ -34,7 +34,6 @@ type considerStringsPure =
   | StringsAreNotPure
 
 val is_pure_expr     : considerStringsPure -> Cil.exp -> bool
-val is_local_expr    : Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc

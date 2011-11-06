@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-const int REF (V > 0) buf_len = 10000; 
-const int REF (V > 0) merge_size = 50;
-const int REF (V > 0) quick_size = 2048;
+const int buf_len = 10000; 
+const int merge_size = 50;
+const int quick_size = 2048;
 
 //define buf_len 10000
 //define merge_size 50
@@ -129,7 +129,7 @@ int find_split(int v, int * ARRAY b, int len)
 bool check_sorted(int * ARRAY buf, int len)
 {
   for (int i = 0; i < len - 1; i++){
-    if (buf[i] <= buf[i+1])
+    if (buf[i] > buf[i+1])
       return FALSE;
   }
   return TRUE;

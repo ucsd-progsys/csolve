@@ -1,0 +1,3 @@
+qualif ROOMSHORT(v:ptr) : (BLOCK_END([v]) - v) >= 2
+qualif ROOMKEY(v:ptr) : (BLOCK_END([v]) - v) >= 208
+qualif ROOMUSRKEY(v:ptr) : (BLOCK_END([v]) - v) >= 16

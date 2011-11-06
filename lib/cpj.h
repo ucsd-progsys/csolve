@@ -51,9 +51,29 @@ typedef int bool;
 #define ISTRUE(x) (x != 0)
 #define ISFALSE(x) (x == 0)
 
-// Locally Unique Arrays
+// Effect Declarations
 
-#define UNQ
+#define PRAGMA                      #pragma
+#define LCC_EFFECT(e)               PRAGMA lcc_effect_decl (#e)
+#define LCC_EFFECTS_COMMUTE(e1, e2) PRAGMA lcc_effects_commute (#e1, #e2)
 
+// Allocators
+
+extern
+float * NONNULL SIZE(4 * sz2) START ARRAY
+      * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocFloatMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+  OKEXTERN;
+
+extern
+int * NONNULL SIZE(4 * sz2) START ARRAY
+    * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocIntMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+  OKEXTERN;
+
+extern
+int REF(V = 0) * NONNULL SIZE(4 * sz) START ARRAY
+  callocInt(int REF(V > 0) sz)
+  OKEXTERN;
 #endif
 #endif

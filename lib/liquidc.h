@@ -89,15 +89,17 @@ extern int REF(V >= 0) nondetnn () OKEXTERN;
 extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
-char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
-{
-  return p;
-}
+//char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
+//{
+//  return p;
+//}
 
 // Needed for ADPCM
 
 extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, int REF(V >= 0) b) OKEXTERN;
 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
+
+extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) a, int REF(V > 0) m) OKEXTERN;
 
 #endif

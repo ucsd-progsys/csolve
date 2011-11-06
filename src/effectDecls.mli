@@ -10,3 +10,5 @@ val addCommutativePair : t -> t -> unit
 val effectsCommute     : t -> t -> bool
 
 val nameOfEffect       : t -> FixAstInterface.name
+
+val parseEffectDecls   : Cil.file -> unit

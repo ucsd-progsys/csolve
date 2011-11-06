@@ -1,4 +1,5 @@
 module FA = FixAstInterface
+module C  = Cil
 
 open Misc.Ops
 
@@ -20,13 +21,37 @@ let _ = List.map addEffect [readEffect; writeEffect]
 
 let commutativeEffects = ref []
 
+let canonicalCommutativePair ename1 ename2 =
+  if ename1 < ename2 then (ename1, ename2) else (ename2, ename1)
+
 let addCommutativePair ename1 ename2 =
-  commutativeEffects := (ename1, ename2) :: !commutativeEffects
+  commutativeEffects := canonicalCommutativePair ename1 ename2 :: !commutativeEffects
 
 let effectsCommute ename1 ename2 =
-  List.mem (ename1, ename2) !commutativeEffects
+  List.mem (canonicalCommutativePair ename1 ename2) !commutativeEffects
 
 let _ = addCommutativePair readEffect readEffect
 
 let nameOfEffect ename =
   FA.name_of_string ename
+
+(******************************************************************************)
+(************************** Parsing Cil Declarations **************************)
+(******************************************************************************)
+
+let parsePragmaDecl loc = function
+  | C.Attr ("lcc_effect_decl", [C.AStr ename]) ->
+    ignore <| addEffect ename
+  | C.Attr ("lcc_effects_commute", [C.AStr ename1; C.AStr ename2]) ->
+    addCommutativePair ename1 ename2
+  | C.Attr ("lcc_effect_decl", _ ) ->
+    Errormsg.s <| C.errorLoc loc "Malformed effect declaration@!"
+  | C.Attr ("lcc_effects_commute", _) ->
+    Errormsg.s <| C.errorLoc loc "Malformed effect commutation declaration@!"
+  | _ -> ()
+
+let parseEffectDecls cil =
+  C.iterGlobals cil begin function
+    | C.GPragma (ats, loc) -> parsePragmaDecl loc ats
+    | _                    -> ()
+  end
