@@ -9,5 +9,6 @@
 
 
 
+qualif VIDX(V:int) : && [(BLOCK_BEGIN([~A]) <= (~A + (4 * V))); ((~A + 4 + (4 * V)) <= BLOCK_END([~A]))]
 qualif GTMINUS1(V:int) : 0 <= (V + 1)
 qualif AINDEX(V: ptr, ~a: int) : V [ = ; != ; <= ; >= ] (@a + (4 * ~a))
