@@ -109,6 +109,7 @@ let print so () me =
          |> P.concat (P.text "Liquid Types:\n\n")
 
 let config ts env ps a ds cs ws qs assm = 
+  let ws = C.add_wf_ids ws in
   { Config.empty with 
       Config.a    = a
     ; Config.ts   = ts
