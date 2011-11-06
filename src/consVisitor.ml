@@ -98,7 +98,7 @@ let weaken_undefined me rm env v =
 let strengthen_instantiated_aloc ffm ptrname aloc ld =
   Ct.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find aloc ffm) ptrname pl fld) ld
 
-let cons_of_annot me loc tag grd ffm (env, sto, tago) = function 
+let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function 
   | Refanno.Gen  (cloc, aloc) ->
       let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (Gen)!" in
       let sto'   = RS.remove sto cloc in
@@ -118,12 +118,24 @@ let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
       let _          = CM.assertLoc loc (not (RS.mem sto cloc)) "cons_of_annot: (Ins)!" in
       let strengthen = strengthen_instantiated_aloc ffm ptr aloc in
       let wld',_     = FI.extend_world sto aloc cloc false strengthen loc tag (env, sto, tago) in
-      (wld', ([], []))
+      let cs         = aloc
+                    |> Ct.refstore_get sto
+                    |> RL.indices
+                    |> M.negfilter (Index.is_periodic)
+                    |> List.map begin function
+                         | Index.IInt n ->
+                           let eptr = Ct.Ref (aloc, Index.top) |> FI.t_ptr_offset n in
+                             FI.make_cs_effect_weaken_type
+                               env grd sto eptr ED.readEffect (ES.find effs aloc) tago tag loc
+                         | _ -> ([], [])
+                       end
+                    |> M.splitflatten in
+      (wld', cs)
 
   | _ -> assertf "cons_of_annot: New/NewC" 
 
-let cons_of_annots me loc tag grd wld ffm annots =
-  Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
+let cons_of_annots me loc tag grd wld ffm effs annots =
+  Misc.mapfold (cons_of_annot me loc tag grd ffm effs) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
 (******************************************************************************)
@@ -153,7 +165,7 @@ let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
     let rct = FI.t_ptr_footprint env v in
     let l   = rct |> RT.sloc |> M.maybe |> Sloc.canonical in
            FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
-       +++ FI.make_cs_effect_weaken post_mem_env grd sto v eff (ES.find effs l) tago tag loc
+       +++ FI.make_cs_effect_weaken_var post_mem_env grd sto v eff (ES.find effs l) tago tag loc
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
@@ -392,7 +404,7 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
   let gs, is, ns = group_annots annots in
   let loc        = get_instrLoc instr in
   let tagj       = CF.tag_of_instr me i j loc in
-  let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm (gs ++ is) in
+  let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm effs (gs ++ is) in
   match instr with 
   | Set (lv, e, _) ->
       let _        = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
@@ -661,7 +673,7 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
   CF.annots_of_edge me i j 
-  |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty
+  |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty ES.empty
   |> snd
 
 let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j =

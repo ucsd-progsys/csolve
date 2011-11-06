@@ -218,6 +218,12 @@ let ra_equal v ct =
   let vv = ct |> sort_of_prectype |> Sy.value_variable in
   [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar v))]
 
+let ra_ptr_offset offset ct =
+  let so  = sort_of_prectype ct in
+  let evv = so |> Sy.value_variable |> A.eVar in
+    [C.Conc
+      (A.pEqual (evv, A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset))))]
+
 let ra_deref ct base offset =
   let so  = sort_of_prectype ct in
   let vv  = so |> Sy.value_variable in
@@ -289,6 +295,7 @@ let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
+let t_ptr_offset offset = refctype_of_ctype <| ra_ptr_offset offset
 
 let t_singleton_effect env v eff =
   let vn = FA.name_of_varinfo v in
@@ -835,10 +842,9 @@ let make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag =
      end
   |> M.splitflatten
 
-let make_cs_effect_weaken env p sto v eff eptr tago tag =
-  let erct = t_singleton_effect env v eff in
-  let cl   = erct |> RCt.CType.sloc |> M.maybe in
-  let al   = Sloc.canonical cl in
+let make_cs_effect_weaken_type env p sto erct eff eptr tago tag =
+  let cl = erct |> RCt.CType.sloc |> M.maybe in
+  let al = Sloc.canonical cl in
     with_effects_in_env env begin fun env ->
       if RCt.Store.Data.mem sto cl then
         let lhsld = (cl, RCt.Store.Data.find sto cl) in
@@ -848,6 +854,9 @@ let make_cs_effect_weaken env p sto v eff eptr tago tag =
           end
       else make_cs env p erct eptr tago tag
     end
+
+let make_cs_effect_weaken_var env p sto v eff eptr tago tag =
+  make_cs_effect_weaken_type env p sto (t_singleton_effect env v eff) eff eptr tago tag
 
 let make_cs_data_effect env p sld1 sld2 eptr1 eptr2 tago tag =
   with_effects_in_env env begin fun env ->
@@ -1000,10 +1009,17 @@ let make_cs_refldesc env p (sloc1, rd1) (sloc2, rd2) tago tag loc =
     assert false
 
 (* API *)
-let make_cs_effect_weaken env p sto v eff eptr tago tag loc =
-  try make_cs_effect_weaken env p sto v eff eptr tago tag with ex ->
-    let _ = Cil.errorLoc loc "make_cs_effect_weaken fails with: %s" (Printexc.to_string ex) in
-    let _ = asserti false "make_cs_effect_weaken" in
+let make_cs_effect_weaken_var env p sto v eff eptr tago tag loc =
+  try make_cs_effect_weaken_var env p sto v eff eptr tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_effect_weaken_var fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_effect_weaken_var" in
+    assert false
+
+(* API *)
+let make_cs_effect_weaken_type env p sto erct eff eptr tago tag loc =
+  try make_cs_effect_weaken_type env p sto erct eff eptr tago tag with ex ->
+    let _ = Cil.errorLoc loc "make_cs_effect_weaken_type fails with: %s" (Printexc.to_string ex) in
+    let _ = asserti false "make_cs_effect_weaken_type" in
     assert false
 
 (* API *)
