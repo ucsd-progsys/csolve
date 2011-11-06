@@ -77,6 +77,7 @@ val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
 val t_zero              : Ctypes.ctype -> Ctypes.refctype
+val t_ptr_offset        : int -> Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
@@ -142,7 +143,13 @@ val make_cs             : cilenv -> Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_effect_weaken :
+val make_cs_effect_weaken_type :
+                          cilenv -> Ast.pred ->
+                          Ctypes.refstore -> Ctypes.refctype -> EffectDecls.t -> Ctypes.effectptr ->
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_effect_weaken_var :
                           cilenv -> Ast.pred ->
                           Ctypes.refstore -> Cil.varinfo -> EffectDecls.t -> Ctypes.effectptr ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 

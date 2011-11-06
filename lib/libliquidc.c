@@ -1,5 +1,8 @@
 #include <stdlib.h>
 
+void lcc_fold_all () {
+}
+
 void validptr (void *p) {
     return;
 }

@@ -68,7 +68,7 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   merge(b, b + h, h, len - h, a);
 }
 
-void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY LOC(Lo) c) 
+void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY c) 
 {
   int i, j, k;
   i = j = k = 0;

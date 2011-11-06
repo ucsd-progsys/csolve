@@ -13,7 +13,7 @@
 // Deterministic Parallel Constructs
 
 #define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
-#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine))
+#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine)) lcc_fold_all ();
 #define RTEND                  }
 #define RTN(s)                 RTBEG s; RTEND
 #define COEND                  if (nondet ()) { break; } }
@@ -25,7 +25,7 @@
                                   int __lcc_foreach_ub_##x = u; \
                                   while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
                                     i = nondetrange(__lcc_foreach_lb_##x, __lcc_foreach_ub_##x); \
-                                    { BLOCKATTRIBUTE((lcc_foreach_iter))
+                                    { BLOCKATTRIBUTE((lcc_foreach_iter)) lcc_fold_all ();
 #define ENDFOR                 }}}
 
 #define ATOMIC                 BLOCKATTRIBUTE((lcc_atomic))

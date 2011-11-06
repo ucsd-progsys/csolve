@@ -36,3 +36,5 @@ qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 8) = 0
 // Generally useful for effect tracking
 qualif NOWRITE(v: ptr) : EWRITE != 1
 qualif NOREAD(v: ptr)  : EREAD != 1
+
+qualif GPTR(v: ptr) : v >= ~a

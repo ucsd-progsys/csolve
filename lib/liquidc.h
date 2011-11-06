@@ -74,6 +74,8 @@
 
 // Built-in functions
 
+extern void lcc_fold_all () OKEXTERN;
+
 extern void validptr (void * VALIDPTR) OKEXTERN;
 
 extern int lcc_assert (int REF(V != 0) p) OKEXTERN;
