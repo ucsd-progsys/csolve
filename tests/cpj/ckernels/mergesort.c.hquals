@@ -1,42 +1,16 @@
-//// Memory safety qualifiers
-
-qualif SUM2(V:int)     : V = (@i + @j)
-qualif SIZE(V:ptr)     : BLOCK_END([V]) >= V + 4 * (@lena + @lenb)
-
-//// Effect qualifiers
-
-qualif GE4(V: int)     : V >= 4
-
-qualif BUFEFFECT(V: ptr) : V = (@buf + (4 * @i))
-
-// Note this is necessary because the locations of a and b are in the
-// same abstract location in merge. But this needn't be so because the
-// locations are read-only; it's just that we don't track read-only
-// array fields in
-qualif MERGEREADS(V: ptr) : || [&& [@a <= V; V < (@a + (4 * @lena))]; && [@b <= V; V < (@b + (4 * @lenb))]]
-qualif SPLITREADS(V: ptr) : && [@b <= V; V < (@b + (4 * @len))]
-qualif MSEFFECTA(V: ptr)  : && [@a <= V; V < (@a + (4 * @len))]
-
-qualif EFFECTC(V: ptr) : && [@c <= V; V < (@c + (4 * (@lena + @lenb)))]
-
-// Sets of operators and ids would be useful here - we could have
-// drastically fewer quals below by using patterns
-qualif MERGELEFT(V: ptr)  : V < (@c + (4 * (@ha + @sb)))
-qualif MERGERIGHT(V: ptr) : V >= (@c + (4 * (@ha + @sb)))
-
-qualif MSMERGELEFT(V: ptr)  : V < (@b + (4 * @h))
-qualif MSMERGERIGHT(V: ptr) : V >= (@b + (4 * @h))
-
-qualif MSMERGE1(V: ptr) : V <  (@b + (4 * @q))
-qualif MSMERGE2(V: ptr) : V >= (@b + (4 * @q))
-qualif MSMERGE3(V: ptr) : V <  (@b + (4 * (2 * @q)))
-qualif MSMERGE4(V: ptr) : V >= (@b + (4 * (2 * @q)))
-qualif MSMERGE5(V: ptr) : V <  (@b + (4 * (3 * @q)))
-qualif MSMERGE6(V: ptr) : V >= (@b + (4 * (3 * @q)))
-
-qualif MSMERGE1(V: ptr) : V <  (@a + (4 * @q))
-qualif MSMERGE2(V: ptr) : V >= (@a + (4 * @q))
-qualif MSMERGE3(V: ptr) : V <  (@a + (4 * (2 * @q)))
-qualif MSMERGE4(V: ptr) : V >= (@a + (4 * (2 * @q)))
-qualif MSMERGE5(V: ptr) : V <  (@a + (4 * (3 * @q)))
-qualif MSMERGE6(V: ptr) : V >= (@a + (4 * (3 * @q)))
+qualif MERGEREADS(V: ptr)        : || [&& [@a <= V; V < (@a + (4 * @lena))]; && [@b <= V; V < (@b + (4 * @lenb))]]
+qualif SUM2(V:int)               : V = (@i + @j)
+qualif SIZE(V:ptr)               : BLOCK_END([V]) >= V + 4 * (@lena + @lenb)
+qualif GE4(V: int)               : V >= 4
+qualif BUFEFFECT(V: ptr)         : V = (@buf + (4 * @i))
+qualif MSEFFECTA(V: ptr, ~a: ptr) : V < (~a + (4 * @len))
+qualif MERGELEFT(V: ptr, ~a:int, ~b:int)  : V < (@c + (4 * (~a + ~b)))
+qualif MERGERIGHT(V: ptr)        : V >= (@c + (4 * (@ha + @sb)))
+qualif MSMERGELEFT(V: ptr)       : V <  (@b + (4 * @h))
+qualif MSMERGERIGHT(V: ptr)      : V >= (@b + (4 * @h))
+qualif MSMERGE1(V: ptr, ~a: ptr) : V <  (~a + (4 * @q))
+qualif MSMERGE2(V: ptr, ~a: ptr) : V >= (~a + (4 * @q))
+qualif MSMERGE3(V: ptr, ~a: ptr) : V <  (~a + (4 * (2 * @q)))
+qualif MSMERGE4(V: ptr, ~a: ptr) : V >= (~a + (4 * (2 * @q)))
+qualif MSMERGE5(V: ptr, ~a: ptr) : V <  (~a + (4 * (3 * @q)))
+qualif MSMERGE6(V: ptr, ~a: ptr) : V >= (~a + (4 * (3 * @q)))
