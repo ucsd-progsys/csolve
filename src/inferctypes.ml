@@ -120,8 +120,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     self#constrain_exp e;
     C.DoChildren
 
-  method private constrain_constptr e = function
-    | C.CInt64 _ -> ()
+  method private constrain_const e = function
     | C.CStr _   ->
       begin match et#ctype_of_exp e with
         | Ref (s, _) ->
@@ -131,7 +130,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
           |> self#set_sub_sto
         | _ -> assert false
       end
-    | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+    | _ -> ()
 
   method private constrain_addrof = function
     | (C.Var v, C.NoOffset) as lv ->
@@ -166,10 +165,10 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
   method private constrain_exp = function
     | C.Lval ((C.Mem e, C.NoOffset) as lv) -> self#constrain_mem (et#ctype_of_lval lv) e
     | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
-    | C.Const c                            -> ()
+    | C.Const c as e                       -> self#constrain_const e c
     | C.UnOp (uop, e, t)                   -> ()
     | C.BinOp (bop, e1, e2, t)             -> ()
-    | C.CastE (C.TPtr _, C.Const c) as e   -> self#constrain_constptr e c
+    | C.CastE (C.TPtr _, C.Const c) as e   -> self#constrain_const e c
     | C.CastE (ct, e)                      -> ()
     | C.SizeOf t                           -> ()
     | C.AddrOf lv                          -> self#constrain_addrof lv
