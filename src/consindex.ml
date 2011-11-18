@@ -108,6 +108,7 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
+         (*
 let config ts env ps a ds cs ws qs assm = 
   let ws = C.add_wf_ids ws in
   { Config.empty with 
@@ -122,6 +123,7 @@ let config ts env ps a ds cs ws qs assm =
     ; Config.assm = assm
   }
 
+*)
 
 type ('a, 'b, 'c, 'd, 'e) domain = 
   { create : 'a 
@@ -151,7 +153,7 @@ let d_indexAbs =
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let cfg     = Config.create_raw (* config *) FA.sorts env FA.axioms 4 ds cs ws qs assm in
   let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
@@ -183,17 +185,15 @@ let get_cstrs me =
   (* >> (fun (ws, cs, ds) -> if ws = [] then failwith "NO WF CONSTRAINTS")
 *)
 
+let idx_solve me fn qs = 
+  BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
+  |> fst
+  |> d_indexAbs.read
+
 (* API *)
 let solve me fn qs =
-  let s = if !Constants.prune_index then
-    BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
-    |> fst
-    |> d_indexAbs.read
-    |> some 
-  else
-    None
-  in
-  ac_solve d_predAbs me fn (get_cstrs me) qs None s
+  (if !Constants.prune_index then some <| idx_solve me fn qs else None)
+  |> ac_solve d_predAbs me fn (get_cstrs me) qs None
   |> Misc.app_fst d_predAbs.read
 
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
