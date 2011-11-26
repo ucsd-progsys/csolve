@@ -1,15 +1,9 @@
-(* TODO
-   1. Allow final global locs.
-
-   QUIRKS/BUGS
-   1. genspec can't produce final field declarations
-        genspec is totally type-driven and does no analysis
-        whatsoever.
-   2. Functions like read (void * ) are hard to specify:
-        read () takes a pointer to a location A containing anything,
-        i.e., "A |-> ".  The fields in this location should be
-        non-final on account of the read, but we can't specify
-        that yet.
+(* QUIRKS/BUGS
+   Functions like read (void * ) are hard to specify:
+   read () takes a pointer to a location A containing anything,
+   i.e., "A |-> ".  The fields in this location should be
+   non-final on account of the read, but we can't specify
+   that yet.
 *)
 
 module S  = Sloc
