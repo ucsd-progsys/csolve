@@ -626,41 +626,51 @@ let canon_refctype = function
 (********************** WF For Dereferencing Expressions **********************)
 (******************************************************************************)
 
+exception InvalidDeref
+
 let find_unfolded_loc l sto =
   try
     RCt.Store.Data.find sto l
   with Not_found ->
-    l |> Sloc.canonical |> RCt.Store.Data.find sto
+    try
+      l |> Sloc.canonical |> RCt.Store.Data.find sto
+    with Not_found -> raise InvalidDeref
 
-let points_to_final cenv sto p o =
-  match ce_find p cenv with
-    | Ct.Ref (l, (Ix.IInt n, _)) ->
-           sto
-        |> find_unfolded_loc l
-        |> RCt.LDesc.find (Ix.IInt (n + o))
-        |> List.for_all (fun (_, fld) -> RCt.Field.is_final fld)
-    | _ -> false
+let field_of_address sto (l, i) =
+  match sto |> find_unfolded_loc l |> RCt.LDesc.find i with
+    | [(_, fld)] -> fld
+    | _          -> raise InvalidDeref
 
-let expr_derefs_wf cenv sto e =
-  (* match E.unwrap e with
-    | A.App (f, [e]) when FA.is_uf_deref f ->  *)
-  match FA.maybe_deref e with
+let address_of_ref = function
+  | Ct.Ref (l, (i, _)) -> (l, i)
+  | _                  -> raise InvalidDeref
+
+let rec address_of_expr cenv sto e = match E.unwrap e with
+  | A.Var p            -> address_of_ref <| ce_find p cenv
+  | A.Cst (e, _)       -> address_of_expr cenv sto e
+  | A.Bin (e1, op, e2) ->
+    let n    = match E.unwrap e2 with A.Con (A.Constant.Int n) -> n | _ -> raise InvalidDeref in
+    let n    = match op with A.Plus -> n | A.Minus -> -n | _ -> raise InvalidDeref in
+    let l, i = address_of_expr cenv sto e in
+      (l, Index.offset n i)
+  | _ ->
+    begin match FA.maybe_deref e with
+      | Some e -> e |> field_of_expr_address cenv sto |> RCt.Field.type_of |> address_of_ref
+      | None   -> assert false
+    end
+  | _ -> assert false
+
+and field_of_expr_address cenv sto e =
+  e |> address_of_expr cenv sto |> field_of_address sto
+
+let expr_derefs_wf cenv sto e = match FA.maybe_deref e with
   | Some e ->
-        begin match E.unwrap e with
-          | A.Var p                -> points_to_final cenv sto p 0
-          | A.Bin (e1, A.Plus, e2) ->
-              begin match E.unwrap e1, E.unwrap e2 with
-                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cenv sto p n
-                | _                                 -> assert false
-              end
-          | A.Bin (e1, A.Minus, e2) ->
-              begin match E.unwrap e1, E.unwrap e2 with
-                | A.Var p, A.Con (A.Constant.Int n) -> points_to_final cenv sto p (-n)
-                | _                                 -> assert false
-              end
-          | _ -> assert false
-        end
-    | _ -> true
+    begin
+      try
+        e |> field_of_expr_address cenv sto |> RCt.Field.is_final
+      with InvalidDeref -> false
+    end
+  | None -> true
 
 let filter_store_derefs cenv sto rct q =
   let cenv = ce_adds cenv [(Q.vv_of_t q, rct)] in

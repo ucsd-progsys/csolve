@@ -167,8 +167,7 @@ let quals_of_file fname =
 
 
 (* API *)
-let maybe_deref e =
-  match A.Expression.unwrap e with
+let maybe_deref e = match A.Expression.unwrap e with
   | A.App (f, [e']) when f = uf_deref -> Some e'
   | A.App (f, _   ) when f = uf_deref -> assertf "maybe_deref"
   | _                                 -> None 
