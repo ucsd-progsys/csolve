@@ -258,6 +258,7 @@ let checkTypeAttribute      = "lcc_check_type"
 let layoutAttribute         = "lcc_layout"
 let roomForAttribute        = "lcc_room_for"
 let nonnullRoomForAttribute = "lcc_nonnull_room_for"
+let ignoreIndexAttribute    = "lcc_ignore_index"
 let ignoreBoundAttribute    = "lcc_ignore_bound"
 let effectAttribute         = "lcc_effect"
 

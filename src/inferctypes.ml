@@ -206,7 +206,7 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-                        UStore.unify_ctype_locs sto sub cta ctf
+                        unify_and_check_subtype sto sub cta ctf
                       end (sto, sub) cts cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)

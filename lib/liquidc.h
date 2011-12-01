@@ -23,6 +23,7 @@
 #define NNREF(p)           REF(PNN(p))
 #define ARRAY              __attribute__ ((array))
 #define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))
+#define IGNORE_INDEX       __attribute__ ((lcc_ignore_index))
 
 #define FINAL              __attribute__ ((lcc_final))
 #define LOC(l)             __attribute__ ((lcc_sloc (#l)))
@@ -76,7 +77,7 @@
 
 extern void lcc_fold_all () OKEXTERN;
 
-extern void validptr (void * VALIDPTR) OKEXTERN;
+extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
 
 extern int lcc_assert (int REF(V != 0) p) OKEXTERN;
 
@@ -102,6 +103,6 @@ extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, 
 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
 
-extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) a, int REF(V > 0) m) OKEXTERN;
+extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
 
 #endif

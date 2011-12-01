@@ -66,6 +66,7 @@ val nonnullRoomForAttribute : string
 val externOkAttribute       : string
 val checkTypeAttribute      : string
 val layoutAttribute         : string
+val ignoreIndexAttribute    : string
 val ignoreBoundAttribute    : string
 val effectAttribute         : string
 
