@@ -89,7 +89,7 @@ void initialize(int * ARRAY a, int len)
 
 void main() // char ** argv, int argc)
 {
-  int * ARRAY buf;
+  int *buf;
   int len = buf_len;
 
   buf = malloc(sizeof(int) * len); 

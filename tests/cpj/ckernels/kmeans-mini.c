@@ -108,10 +108,10 @@ normal_exec (int nfeatures, int npoints, int nclusters,
     int i;
     int j;
     int loop = 0;
-    int* ARRAY new_centers_len; /* [nclusters]: no. of points in each cluster */
-    float delta, * global_delta;
-    float* ARRAY * ARRAY  clusters;      /* out: [nclusters][nfeatures] */
-    float* ARRAY * ARRAY  new_centers;   /* [nclusters][nfeatures] */
+    int *new_centers_len; /* [nclusters]: no. of points in each cluster */
+    float delta, *global_delta;
+    float **clusters;      /* out: [nclusters][nfeatures] */
+    float **new_centers;   /* [nclusters][nfeatures] */
 
     global_delta = malloc(sizeof(float));
 
