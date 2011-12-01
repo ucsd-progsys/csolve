@@ -37,6 +37,12 @@ let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
   | _                -> []
 
+(* Note that int refinements always have to include the constant index
+   0.  This is because we need to account for the fact that malloc
+   allocates a block of zeroes - it would be tedious to account for
+   this separately at all malloc call sites, so we just always ensure
+   whatever int shape is on the heap always includes 0, which is
+   sufficient and unproblematic so far. *)
 let fresh_heaptype (t: C.typ): ctype =
   let ats1 = typealias_attrs t in
     match C.unrollType t with
