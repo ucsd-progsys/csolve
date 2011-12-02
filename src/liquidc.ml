@@ -206,7 +206,7 @@ let location_of_constraint tgr =
 let print_unsat_locs tgr s ucs =
   let ucs = Misc.fsort (location_of_constraint tgr) ucs in
   List.iter begin fun c ->
-    printf "\nUnsafe Type at %a:\n\n%a\n" 
+    printf "\n%a:\n\n%a\n" 
       Cil.d_loc (location_of_constraint tgr c) 
       (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
     |> ignore
