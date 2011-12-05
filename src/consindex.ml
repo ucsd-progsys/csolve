@@ -36,7 +36,8 @@ module FA = FixAstInterface
 module FI = FixInterface
 
 module Ct = Ctypes
-module SPA = Solve.Make (PredAbs)
+module PA  = PredAbs 
+module SPA = Solve.Make (PA)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 
@@ -55,7 +56,7 @@ type t = {
   depm : C.dep list SM.t;
 }
 
-type bind = PredAbs.bind
+type bind = PA.bind
 
 (* API *)
 let create (ws, cs, des, ds) = 
@@ -107,20 +108,7 @@ let print so () me =
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
 
-let config ts env ps a ds cs ws qs assm = 
-  { Config.empty with 
-      Config.a    = a
-    ; Config.ts   = ts
-    ; Config.uops = env
-    ; Config.ps   = ps
-    ; Config.ds   = ds
-    ; Config.cs   = cs
-    ; Config.ws   = ws
-    ; Config.qs   = qs 
-    ; Config.assm = assm
-  }
-
-
+  
 type ('a, 'b, 'c, 'd, 'e) domain = 
   { create : 'a 
   ; save   : 'b
@@ -149,7 +137,7 @@ let d_indexAbs =
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let cfg     = config FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let cfg     = FixConfig.create_raw (* config *) FA.sorts env FA.axioms 4 ds cs ws qs assm in
   let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
@@ -181,17 +169,15 @@ let get_cstrs me =
   (* >> (fun (ws, cs, ds) -> if ws = [] then failwith "NO WF CONSTRAINTS")
 *)
 
+let idx_solve me fn qs = 
+  BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
+  |> fst
+  |> d_indexAbs.read
+
 (* API *)
 let solve me fn qs =
-  let s = if !Constants.prune_index then
-    BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
-    |> fst
-    |> d_indexAbs.read
-    |> some 
-  else
-    None
-  in
-  ac_solve d_predAbs me fn (get_cstrs me) qs None s
+  (if !Constants.prune_index then some <| idx_solve me fn qs else None)
+  |> ac_solve d_predAbs me fn (get_cstrs me) qs None
   |> Misc.app_fst d_predAbs.read
 
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int

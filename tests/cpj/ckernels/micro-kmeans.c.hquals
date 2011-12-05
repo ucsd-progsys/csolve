@@ -1,0 +1,12 @@
+qualif CLUSTER(v: int)  : @nclusters <= @npoints
+qualif SIZE(v: ptr)     : (BLOCK_END([v]) - v) >= 4 * ~A
+qualif NNORFEAT(v: ptr) : (v != 0) => ((BLOCK_END([v]) - BLOCK_BEGIN([v])) = 4 * @nfeatures)
+qualif EFFECT(v: ptr)   : (v - BLOCK_BEGIN([v])) = 4 * @i
+qualif ARG_T(v: ptr)    : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 32
+qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args]): int))
+qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 4]): int))
+qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 8]): int))
+qualif SZ(v: ptr)       : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (4 * (DEREF([@args + 12]): int))
+qualif BNDI(v: int)     : v < (DEREF([@args + 4]): int)
+qualif NEFF(v: ptr)     : ACCUMULATE != 1
+qualif SSZ(v: ptr)      : (BLOCK_END([v]) - BLOCK_BEGIN([v])) = 12

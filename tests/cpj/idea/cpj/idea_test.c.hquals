@@ -1,0 +1,7 @@
+qualif ROOMAR(v:ptr)        : (BLOCK_END([v]) - v) >= ([ 3000000 ; 2 ; 208 ; 16 ])
+qualif IKLOOPINVAR(v:int)   : v = (6 * (8 - @r))
+qualif DECRYPTINVAR1(v:int) : v = ([4; 47] + ([6; -6] * @i))
+qualif LTALOT(v:int)        : v <= 3000000
+qualif SLICESTART(v: ptr)   : v [ >= ; < ] (BLOCK_BEGIN([v]) + ((@i + [0; 1]) * 375000))
+qualif SIZEMOD8(v: int)     : ((v - @ilow) mod 8) = 0
+qualif UBOUND(v: ptr, ~a: int, ~b: int) : v [ < ; >= ] (~a + ~b)

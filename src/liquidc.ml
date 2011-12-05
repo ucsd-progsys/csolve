@@ -206,7 +206,7 @@ let location_of_constraint tgr =
 let print_unsat_locs tgr s ucs =
   let ucs = Misc.fsort (location_of_constraint tgr) ucs in
   List.iter begin fun c ->
-    printf "\nUnsafe Type at %a:\n\n%a\n" 
+    printf "\n%a:\n\n%a\n" 
       Cil.d_loc (location_of_constraint tgr c) 
       (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
     |> ignore
@@ -221,7 +221,7 @@ let cil_of_file file =
        >> Rmtmps.removeUnusedTemps 
        >> CilMisc.purify 
        >> CilMisc.CopyGlobal.doVisit
-       >> CilMisc.NameNullPtrs.doVisit 
+       >> CilMisc.NameNullPtrs.doVisit
        >> mk_cfg 
        >> rename_locals 
 
@@ -230,6 +230,7 @@ let liquidate file =
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
   let cil       = BS.time "Parse: source" cil_of_file file in
+  let _         = EffectDecls.parseEffectDecls cil in
   let _         = E.log "DONE: cil parsing \n" in
   let fn        = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
   let qs        = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in

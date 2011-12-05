@@ -176,22 +176,22 @@ generate_email()
   # If it's a code commit, attempt to build the refname
   build_is_broken=0
   if [ "$refname_type" = "branch" ] && [ "$change_type" = "update" ]; then
-    echo >&2 "This is a code commit. I will attempt to build, and loudly complain if I can't."
+    echo >& "This is a code commit. I will attempt to build, and loudly complain if I can't."
 
-    echo >&2 `pwd`
-
-    dirname=/scratch/liquidc_build_$refname
-    mkdir $dirname && ln -s git-hooks/build_liquidc_here $dirname/build
-    cd $dirname &&  ./build_liquidc_here >1&2 /tmp/$refname.build_log
+    scrname=/scratch/liquidc_build_$refname/$revname
+    mkdir -p $dirname && cp build_liquidc_here $scrname && cd $scrname
+    ./build_liquidc_here >& $scrname/build.log
     build_is_broken=$? 
 
     if $build_is_broken; then
-      echo >&2 "ERROR: REVISION DOES NOT BUILD"
+      echo "ERROR: REVISION DOES NOT BUILD"
     else
-      echo >&2 "Build OK."
+      echo "Build OK."
     fi
 
-    #rm -rf $dirname
+    exit 1
+
+    #rm -rf $scrname
   fi
 
 	generate_email_header
@@ -201,7 +201,7 @@ generate_email()
 	case "$refname_type" in
 	"tracking branch"|branch)
 		fn_name=branch
-    if [ "$change_type" = "update" ] && $build_is_broken; then
+    if [[ "$change_type" = "update" && $build_is_broken ]]; then
       fn_name=broken
     fi
 		;;

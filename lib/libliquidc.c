@@ -1,5 +1,8 @@
 #include <stdlib.h>
 
+void lcc_fold_all () {
+}
+
 void validptr (void *p) {
     return;
 }
@@ -34,6 +37,10 @@ int lcc_assume (int p) {
     }
 
     return 0;
+}
+
+int lcc_mod (int a, int m) {
+    return a % m;
 }
 
 int bor (int a, int b) {

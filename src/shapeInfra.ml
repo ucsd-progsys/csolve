@@ -37,11 +37,12 @@ let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
   | _                -> []
 
-let ref_index tptr =
-  if CM.has_array_attr (C.typeAttrs tptr) then
-    N.mk_sequence 0 (tptr |> CM.ptrRefType |> CM.typ_width) (Some 0) None
-  else N.IInt 0
-
+(* Note that int refinements always have to include the constant index
+   0.  This is because we need to account for the fact that malloc
+   allocates a block of zeroes - it would be tedious to account for
+   this separately at all malloc call sites, so we just always ensure
+   whatever int shape is on the heap always includes 0, which is
+   sufficient and unproblematic so far. *)
 let fresh_heaptype (t: C.typ): ctype =
   let ats1 = typealias_attrs t in
     match C.unrollType t with
@@ -49,8 +50,9 @@ let fresh_heaptype (t: C.typ): ctype =
       | C.TEnum (ei, _)                          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
       | C.TFloat _                               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                                -> void_ctype
-      | C.TPtr _ | C.TArray _ as t ->
-          Ref (S.fresh_abstract [CM.srcinfo_of_type t None], ref_index t)
+      | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
+           Typespec.ptrReftypeOfSlocAttrs (S.fresh_abstract [CM.srcinfo_of_type t None]) tb ats
+        |> Ctypes.ctype_of_refctype
       | _ -> halt <| C.bug "Unimplemented fresh_heaptype: %a@!@!" C.d_type t
 
 let rec apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function

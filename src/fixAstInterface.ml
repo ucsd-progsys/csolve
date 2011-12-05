@@ -153,7 +153,7 @@ let quals_of_file fname =
       |> open_in 
       |> Lexing.from_channel
       |> FixParse.defs FixLex.token
-      |> Misc.map_partial (function Config.Qul p -> Some p | _ -> None)
+      |> Misc.map_partial (function FixConfig.Qul p -> Some p | _ -> None)
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
@@ -167,8 +167,7 @@ let quals_of_file fname =
 
 
 (* API *)
-let maybe_deref e =
-  match A.Expression.unwrap e with
+let maybe_deref e = match A.Expression.unwrap e with
   | A.App (f, [e']) when f = uf_deref -> Some e'
   | A.App (f, _   ) when f = uf_deref -> assertf "maybe_deref"
   | _                                 -> None 

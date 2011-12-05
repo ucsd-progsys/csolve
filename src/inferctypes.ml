@@ -120,8 +120,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     self#constrain_exp e;
     C.DoChildren
 
-  method private constrain_constptr e = function
-    | C.CInt64 _ -> ()
+  method private constrain_const e = function
     | C.CStr _   ->
       begin match et#ctype_of_exp e with
         | Ref (s, _) ->
@@ -131,7 +130,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
           |> self#set_sub_sto
         | _ -> assert false
       end
-    | c -> E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
+    | _ -> ()
 
   method private constrain_addrof = function
     | (C.Var v, C.NoOffset) as lv ->
@@ -166,10 +165,10 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
   method private constrain_exp = function
     | C.Lval ((C.Mem e, C.NoOffset) as lv) -> self#constrain_mem (et#ctype_of_lval lv) e
     | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval et !sub !sto |> self#set_sub_sto
-    | C.Const c                            -> ()
+    | C.Const c as e                       -> self#constrain_const e c
     | C.UnOp (uop, e, t)                   -> ()
     | C.BinOp (bop, e1, e2, t)             -> ()
-    | C.CastE (C.TPtr _, C.Const c) as e   -> self#constrain_constptr e c
+    | C.CastE (C.TPtr _, C.Const c) as e   -> self#constrain_const e c
     | C.CastE (ct, e)                      -> ()
     | C.SizeOf t                           -> ()
     | C.AddrOf lv                          -> self#constrain_addrof lv
@@ -207,7 +206,7 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-                        UStore.unify_ctype_locs sto sub cta ctf
+                        unify_and_check_subtype sto sub cta ctf
                       end (sto, sub) cts cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
@@ -374,13 +373,6 @@ let check_slocs_distinct error sub slocs =
       halt <| C.error "%a\n\n" error (s1, s2)
   with Not_found -> ()
 
-(* pmr: should be obsoleted by same shape check *)
-
-let revert_spec_names subaway st =
-     st
-  |> Store.domain
-  |> List.fold_left (fun sub s -> S.Subst.extend (S.Subst.apply subaway s) s sub) []
-
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 let global_alias_error () (s1, s2) =
@@ -399,17 +391,12 @@ let unified_instantiation_error () (s1, s2) =
   C.error "Call unifies locations which are separate in callee (%a, %a)" 
   S.d_sloc_info s1 S.d_sloc_info s2
 
-let check_sol_aux cf vars gst em bas sub sto =
-  let whole_store = Store.upd cf.sto_out gst in
-  let _           = check_slocs_distinct global_alias_error sub (Store.domain gst) in
-  let _           = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
-  let _           = check_slocs_distinct global_quantification_error sub (Store.domain whole_store) in
+let check_sol_aux cf vars gst em bas sub sto whole_store =
   (* We check that instantiation annotations are WF as we check calls in consVisitor *)
-  let revsub      = revert_spec_names sub whole_store in
-  let sto         = Store.subs revsub sto in
-  let sub         = S.Subst.compose revsub sub in
-  let _           = check_out_store_complete whole_store sto in
-    (sub, List.fold_left Store.remove sto (Store.domain gst))
+  let _ = check_slocs_distinct global_alias_error sub (Store.domain gst) in
+  let _ = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
+  let _ = whole_store |> Store.domain |> check_slocs_distinct global_quantification_error sub in
+    ()
 
 let check_sol cf vars gst em bas sub sto =
   try check_sol_aux cf vars gst em bas sub sto with e ->
@@ -436,6 +423,17 @@ let assert_location_inclusion l1 ld1 l2 ld2 =
     LDesc.fold begin fun _ pl _ ->
       if LDesc.mem pl ld2 then () else raise (LocationMismatch (l1, ld1, l2, ld2))
     end () ld1
+
+let revert_to_spec_locs sub whole_store sto em bas ve =
+  let revsub = whole_store
+            |> Store.domain
+            |> List.fold_left (fun revsub s -> S.Subst.extend (S.Subst.apply sub s) s revsub) [] in
+  let sto    = Store.subs revsub sto in
+  let sub    = S.Subst.compose revsub sub in
+  let ve     = VM.map (Ct.subs sub) ve in
+  let em     = I.ExpMap.map (Ct.subs sub) em in
+  let bas    = Array.map (RA.subs sub) bas in
+    (sto, em, bas, ve)
 
 let assert_call_no_physical_subtyping fe f store gst annots =
   let cf, _ = VM.find f fe in
@@ -464,6 +462,7 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
     end cfg.Ssa.blocks
   with LocationMismatch (l1, ld1, l2, ld2) ->
     let _ = failure_dump sub ve store in
+    let _ = flush stdout; flush stderr in
       E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
                S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
@@ -472,11 +471,12 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let sto                   = Store.upd cf.sto_out gst in
   let em, bas, sub, sto     = constrain_fun fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
-  let sub, sto              = check_sol cf ve gst em bas sub sto in
-  let vtyps                 = VM.map (Ct.subs sub) ve in
+  let whole_store           = Store.upd cf.sto_out gst in
+  let _                     = check_sol cf ve gst em bas sub sto whole_store in
+  let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store sto em bas ve in
+  let _                     = check_out_store_complete whole_store sto in
+  let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
-  let em                    = I.ExpMap.map (Ct.subs sub) em in
-  let bas                   = Array.map (RA.subs sub) bas in
   let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in

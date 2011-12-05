@@ -41,7 +41,7 @@ let solve ac  =
   end
 
 let dump_solve ac = 
-  let cs' = solve { ac with Config.bm = SM.map ID.mkbind ac.Config.bm } in
+  let cs' = solve { ac with FixConfig.bm = SM.map ID.mkbind ac.FixConfig.bm } in
   let _   = BNstats.print stdout "Fixpoint Solver Time \n" in
   match cs' with 
   | [] -> (F.printf "\nSAT\n" ; exit 0)

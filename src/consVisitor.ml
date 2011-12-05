@@ -42,6 +42,7 @@ module RL = Ct.RefCTypes.LDesc
 module RS = Ct.RefCTypes.Store
 module RCf = Ct.RefCTypes.CFun
 module ES = Ct.EffectSet
+module ED = EffectDecls
 module Cs = Constants
 module Sh = Shape
 
@@ -97,7 +98,7 @@ let weaken_undefined me rm env v =
 let strengthen_instantiated_aloc ffm ptrname aloc ld =
   Ct.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find aloc ffm) ptrname pl fld) ld
 
-let cons_of_annot me loc tag grd ffm (env, sto, tago) = function 
+let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function 
   | Refanno.Gen  (cloc, aloc) ->
       let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (Gen)!" in
       let sto'   = RS.remove sto cloc in
@@ -117,12 +118,24 @@ let cons_of_annot me loc tag grd ffm (env, sto, tago) = function
       let _          = CM.assertLoc loc (not (RS.mem sto cloc)) "cons_of_annot: (Ins)!" in
       let strengthen = strengthen_instantiated_aloc ffm ptr aloc in
       let wld',_     = FI.extend_world sto aloc cloc false strengthen loc tag (env, sto, tago) in
-      (wld', ([], []))
+      let cs         = aloc
+                    |> Ct.refstore_get sto
+                    |> RL.indices
+                    |> M.negfilter (Index.is_periodic)
+                    |> List.map begin function
+                         | Index.IInt n ->
+                           let eptr = Ct.Ref (aloc, Index.top) |> FI.t_ptr_offset n in
+                             FI.make_cs_effect_weaken_type
+                               env grd sto eptr ED.readEffect (ES.find effs aloc) tago tag loc
+                         | _ -> ([], [])
+                       end
+                    |> M.splitflatten in
+      (wld', cs)
 
   | _ -> assertf "cons_of_annot: New/NewC" 
 
-let cons_of_annots me loc tag grd wld ffm annots =
-  Misc.mapfold (cons_of_annot me loc tag grd ffm) wld annots
+let cons_of_annots me loc tag grd wld ffm effs annots =
+  Misc.mapfold (cons_of_annot me loc tag grd ffm effs) wld annots
   |> Misc.app_snd Misc.splitflatten 
 
 (******************************************************************************)
@@ -145,23 +158,14 @@ let extend_env me v cr env =
 (*  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in
 *)  FI.ce_adds env [(FA.name_of_varinfo v), cr]
 
-type memOp =
-  | MemRead
-  | MemWrite
-
-let effectptr_of_memop effs l mop =
-  match mop, ES.find effs l with
-    | MemRead,  {Ct.eread = er}  -> er
-    | MemWrite, {Ct.ewrite = ew} -> ew
-
-let cons_of_mem me loc tago tag grd env post_mem_env sto effs v mop =
+let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
   if !Cs.manual then
     ([], [])
   else
     let rct = FI.t_ptr_footprint env v in
     let l   = rct |> RT.sloc |> M.maybe |> Sloc.canonical in
            FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
-       +++ FI.make_cs_effect_weaken post_mem_env grd sto v (effectptr_of_memop effs l mop) tago tag loc
+       +++ FI.make_cs_effect_weaken_var post_mem_env grd sto v eff (ES.find effs l) tago tag loc
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
@@ -180,7 +184,7 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
   (* *v *)
   | Lval (Mem e, _) ->
     let v' = CM.referenced_var_of_exp e in
-    let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' MemRead in
+    let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' ED.readEffect in
       (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto |> FI.replace_addr v', cs)
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
@@ -224,7 +228,7 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
       if is_bot_ptr me env v then (env, sto, Some tag), ([], []) else
       let addr = var_addr me env v in
       let cr', cds1  = cons_of_rval me loc tag grd effs (pre_env, sto, tago) pre_env e in
-      let cds2       = cons_of_mem me loc tago tag grd pre_env env sto effs v MemWrite in
+      let cds2       = cons_of_mem me loc tago tag grd pre_env env sto effs v ED.writeEffect in
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
@@ -382,7 +386,7 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
         | Ct.Ref (l, _) ->
           let l             = Sloc.canonical l in
           let tag           = CF.tag_of_instr me i j loc in
-          let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v MemRead in
+          let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in
           let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, RS.Function.find sto l, es) ns in
             (wld, cs1 +++ cs2, wfs)
         | _ -> assert false
@@ -400,7 +404,7 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
   let gs, is, ns = group_annots annots in
   let loc        = get_instrLoc instr in
   let tagj       = CF.tag_of_instr me i j loc in
-  let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm (gs ++ is) in
+  let wld, acds  = cons_of_annots me loc tagj grd wld pre_ffm effs (gs ++ is) in
   match instr with 
   | Set (lv, e, _) ->
       let _        = asserts (ns = []) "cons_of_annotinstr: new-in-set" in
@@ -426,25 +430,35 @@ let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   let cs, ds = FI.make_cs env grd cr cr' None tag loc in
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
 
+let declared_ptr_type v =
+  v.vtype |> ShapeInfra.fresh_heaptype |> FI.t_scalar 
+
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
   let loc = get_instrLoc instr in
   let tag = CF.tag_of_instr me i j loc in 
   match instr with
+  | Set ((Var v, NoOffset), Lval (Var v2, NoOffset), _) 
+    when (not v.vglob) && v2.vglob && CM.is_reference v2.vtype ->
+         v2
+      |> declared_ptr_type
+      |> scalarcons_of_binding me loc tag (j, env) grd j v 
+
   | Set ((Var v, NoOffset), e, _) 
-    when (not v.Cil.vglob) && CM.is_pure_expr CM.StringsArePure e && CM.is_local_expr e ->
+    when (not v.vglob) && CM.is_pure_expr CM.StringsArePure e ->
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 
-  | Set ((Var v, NoOffset), _, _) 
-    when CM.is_reference v.Cil.vtype ->
-         FI.t_scalar_ptr v.Cil.vtype
+  | Set ((Var v, NoOffset), e, _) 
+    when CM.is_reference v.Cil.vtype && not (CM.is_pure_expr CM.StringsArePure e) ->
+         v
+      |> declared_ptr_type
       |> scalarcons_of_binding me loc tag (j, env) grd j v
 
   | Call (Some (Var v, NoOffset), Lval (Mem _, NoOffset), _, _) ->
       (* Nothing we can do here; we'll have to check this call is ok after we infer
          the contents of memory. *)
-         (if CM.is_reference v.Cil.vtype then FI.t_scalar_ptr v.Cil.vtype else FI.t_true Ct.scalar_ctype)
+         (if CM.is_reference v.Cil.vtype then declared_ptr_type v else FI.t_true Ct.scalar_ctype)
       |> scalarcons_of_binding me loc tag (j, env) grd j v    
      
   | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) ->
@@ -659,7 +673,7 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
   CF.annots_of_edge me i j 
-  |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty
+  |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty ES.empty
   |> snd
 
 let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j =

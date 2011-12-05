@@ -1,15 +1,9 @@
-(* TODO
-   1. Allow final global locs.
-
-   QUIRKS/BUGS
-   1. genspec can't produce final field declarations
-        genspec is totally type-driven and does no analysis
-        whatsoever.
-   2. Functions like read (void * ) are hard to specify:
-        read () takes a pointer to a location A containing anything,
-        i.e., "A |-> ".  The fields in this location should be
-        non-final on account of the read, but we can't specify
-        that yet.
+(* QUIRKS/BUGS
+   Functions like read (void * ) are hard to specify:
+   read () takes a pointer to a location A containing anything,
+   i.e., "A |-> ".  The fields in this location should be
+   non-final on account of the read, but we can't specify
+   that yet.
 *)
 
 module S  = Sloc
@@ -28,9 +22,6 @@ module LM = S.SlocMap
 module NA = NotAliased
 
 open M.Ops
-
-let add_index i is =
-  if Ix.is_periodic i then is else IS.add i is
 
 module type Context = sig
   val cfg   : Ssa.cfgInfo
@@ -243,7 +234,7 @@ module Intraproc (X: Context) = struct
 
   let with_all_fields_final sto ffm =
     CT.Store.Data.fold_locs begin fun l ld ffm ->
-      LM.add l (LD.fold (fun pls pl _ -> add_index pl pls) IS.empty ld) ffm
+      LM.add l (LD.fold (fun pls pl _ -> IS.add pl pls) IS.empty ld) ffm
     end ffm sto
 
   let init_abstract_finals () =
@@ -292,12 +283,12 @@ module Interproc = struct
 
   let spec_final_fields (cf, _) =
     CT.Store.Data.fold_locs begin fun l ld ffm ->
-      LM.add l (LD.fold (fun ffs pl fld -> if F.is_final fld then add_index pl ffs else ffs) IS.empty ld) ffm
+      LM.add l (LD.fold (fun ffs pl fld -> if F.is_final fld then IS.add pl ffs else ffs) IS.empty ld) ffm
     end LM.empty cf.Ctypes.sto_out
 
   let shape_init_final_fields shp =
     CT.Store.Data.fold_locs begin fun l ld ffm ->
-      LM.add l (LD.fold (fun ffs pl fld -> add_index pl ffs) IS.empty ld) ffm
+      LM.add l (LD.fold (fun ffs pl fld -> IS.add pl ffs) IS.empty ld) ffm
     end LM.empty shp.Sh.store
 
   let init_final_fields fspecm shpm =

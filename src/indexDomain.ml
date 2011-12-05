@@ -175,7 +175,7 @@ let create cfg _ =
       let reft = F.reft_of_wf wf in
       let sort = F.sort_of_reft reft in
 	List.map (fun k -> (sort, k)) (F.kvars_of_reft reft)
-    end cfg.Config.ws
+    end cfg.FixConfig.ws
   in
     List.fold_left
       begin fun m (sort,(sub,k)) ->

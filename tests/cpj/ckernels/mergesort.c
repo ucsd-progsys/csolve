@@ -2,16 +2,15 @@
 #include <stdlib.h>
 #include <math.h>
 
-const int REF (V > 0) buf_len = 10000; 
-const int REF (V > 0) merge_size = 50;
-const int REF (V > 0) quick_size = 2048;
+const int buf_len = 10000; 
+const int merge_size = 50;
+const int quick_size = 2048;
 
 //define buf_len 10000
 //define merge_size 50
 
 extern void quicksort (int * ARRAY LOC(L) a, int len)
-  READS  (L, && [a <= V; V < a + len])
-  WRITES (L, && [a <= V; V < a + len])
+  EFFECT (L, && [a <= V; V < a + len])
   OKEXTERN;
 
 int main() //int argc, char **argv)
@@ -69,7 +68,7 @@ void mergesort(int * ARRAY a, int * ARRAY b, int len) {
   merge(b, b + h, h, len - h, a);
 }
 
-void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY LOC(Lo) c) 
+void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb, int * ARRAY c) 
 {
   int i, j, k;
   i = j = k = 0;
@@ -130,7 +129,7 @@ int find_split(int v, int * ARRAY b, int len)
 bool check_sorted(int * ARRAY buf, int len)
 {
   for (int i = 0; i < len - 1; i++){
-    if (buf[i] <= buf[i+1])
+    if (buf[i] > buf[i+1])
       return FALSE;
   }
   return TRUE;

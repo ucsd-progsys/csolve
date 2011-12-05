@@ -124,10 +124,7 @@ type 'a prefield = { pftype     : 'a prectype
 
 type effectptr  = Reft.t prectype
 
-type effectinfo = { eread  : effectptr
-                  ; ewrite : effectptr }
-
-type effectset = effectinfo SLM.t
+type effectset = effectptr SLM.t
 
 type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                    ; plinfo     : structinfo }
@@ -185,6 +182,9 @@ let d_refctype = d_prectype Reft.d_refinement
 
 let d_effectinfo = d_refctype
 
+let d_storelike d_binding =
+  SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
+
 let prectype_subs subs = function
   | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
   | pct        -> pct
@@ -195,7 +195,7 @@ module EffectSet = struct
   let empty = SLM.empty
 
   let apply f effs =
-    SLM.map (fun {eread = er; ewrite = ew} -> {eread = f er; ewrite = f ew}) effs
+    SLM.map f effs
 
   let maplisti f effs =
     effs |> SLM.to_list |>: M.uncurry f
@@ -215,11 +215,11 @@ module EffectSet = struct
   let domain effs =
     SLM.domain effs
 
-  let d_effect () {eread = r; ewrite = w} =
-    P.dprintf "@[read*:  %a,@!write*: %a@]@!" d_refctype r d_refctype w
+  let d_effect () eptr =
+    d_refctype () eptr
 
   let d_effectset () effs =
-    P.dprintf "@[{@[%a@]}@]" (S.d_slocmap d_effect) effs
+    P.dprintf "{@[%a@]}" (d_storelike d_effect) effs
 end
 
 module type CTYPE_DEFS = sig
@@ -326,7 +326,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val join_effects :
       t ->
       effectset ->
-      (Sloc.t * (T.ldesc * effectinfo)) list * (Sloc.t * (T.cfun * effectinfo)) list
+      (Sloc.t * (T.ldesc * effectptr)) list * (Sloc.t * (T.cfun * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool
@@ -843,16 +843,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 
-    let d_slm d_binding =
-      SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
-
     let d_store () (ds, fs) =
       if fs = SLM.empty then
-        P.dprintf "[@[%a@]]" (d_slm LDesc.d_ldesc) ds
+        P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
       else if ds = SLM.empty then
-        P.dprintf "[@[%a@]]" (d_slm CFun.d_cfun) fs
+        P.dprintf "[@[%a@]]" (d_storelike CFun.d_cfun) fs
       else
-        P.dprintf "[@[%a;@!%a@]]" (d_slm LDesc.d_ldesc) ds (d_slm CFun.d_cfun) fs
+        P.dprintf "[@[%a;@!%a@]]" (d_storelike LDesc.d_ldesc) ds (d_storelike CFun.d_cfun) fs
 
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t

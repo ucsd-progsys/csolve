@@ -258,9 +258,9 @@ let checkTypeAttribute      = "lcc_check_type"
 let layoutAttribute         = "lcc_layout"
 let roomForAttribute        = "lcc_room_for"
 let nonnullRoomForAttribute = "lcc_nonnull_room_for"
+let ignoreIndexAttribute    = "lcc_ignore_index"
 let ignoreBoundAttribute    = "lcc_ignore_bound"
-let writeEffectAttribute    = "lcc_write_effect"
-let readEffectAttribute     = "lcc_read_effect"
+let effectAttribute         = "lcc_effect"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
@@ -400,12 +400,6 @@ let iterUsedVars (cil: Cil.file) (f: Cil.varinfo -> unit): unit =
 (* API *)
 let iterExprVars (e: Cil.exp) (f: Cil.varinfo -> unit): unit = 
   visitCilExpr (new usedVarVisitor f) e |> ignore
-
-(* API *)
-let is_local_expr e =
-  let b = ref true in
-  let _ = iterExprVars e (fun v -> b := !b && not (v.Cil.vglob)) in
-  !b
 
 (* API *)
 let is_null_expr = function

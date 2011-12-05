@@ -1,0 +1,36 @@
+* Decrease number of modules
+  There are nearly 30 modules, and it's not clear what the difference
+  is between several similar-sounding modules. Whate belongs in
+  consInfra, consVisitor, and consgen?
+
+* Drop scalar cruft
+  No doubt a lot of scalar-related code is outdated now that we've
+  switched scalar type inference to using the index domain.
+
+* Consolidate declaration handling
+  Everything that converts user type annotations from the CIL
+  representation to our own type formats should be in one place.
+
+* Modularize constraint generation
+  It should be much simpler to add and remove (or selectively disable)
+  parts of the analysis. Right now all the analyses (e.g., memory
+  safety, function call safety, parallel safety) are interwoven very
+  tightly, being part of the same consgen procedures.
+
+  At a coarse level, there should be two major phases two the
+  analysis, each split into small, focused passes:
+
+** Phase 1: world generation
+   In this phase, each statement is annotated with its input and
+   output worlds (environment, store, guards, etc.). There will be
+   several passes that generate the worlds: a pass which handles only
+   the fold/unfold annotations, a pass that handles field finalization
+   by strenghtening the store and guard, a pass that strengthens
+   guards, etc.
+
+** Phase 2: constraint generation
+   The second phase will use the per-statement input and output worlds
+   to generate constraints for each statement. Again, this can be
+   divided into several passes: one pass for generating memory safety
+   constraints, one pass for generating function call safety
+   constraints, etc.

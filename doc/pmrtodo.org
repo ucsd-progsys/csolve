@@ -1,4 +1,3 @@
-* TODO Check that induction variable i in foreaches can't escape scope
 * TODO Test with global locations
 * TODO Heapify locals modified in concurrent blocks
   Use CIL name hacks?
@@ -10,9 +9,6 @@
   See the test in tests/postests.
 
 * TODO Check WF of foreach blocks
-* TODO Refactor all fixinterface wrappers so locs come first
-  Kill a lot of the boilerplate wrapper code by allowing one wrapper
-  that takes the loc and string description.
 * TODO Check block structure is ok
   For each "routine" in a cobegin block, we need to be sure that
   control flow remains within that routine, otherwise the effect of
@@ -53,6 +49,10 @@
   Some constraints need to be generated in the environment that was
   present *before* any unfolding happened...
 
+* TODO Undo crazy knotting of fixinterface/typespec/ctypes
+  All the type manipulations belong in ctypes, but a lot of them
+  are in fixinterface for no especially good reason. There are also
+  far too many aliases for things.
 * TODO Does create_shapeo need to fresh the store?
 * TODO Find a way to incorporate sizeofs in predicates
 
@@ -88,10 +88,6 @@
 
 * TODO Ensure that the ctypes/refinement knot is tied tightly
 
-* TODO Refactor/merge various index manipulations
-  shapeinfra/ref_index, typespec/indexOfArrayElements, and do the
-  former have anything to do with scalarCtypes/ref_index_of_pred?
-
 * TODO Check that indices are covered in subtyping
   Don't silently leave unconstrained vars around
 
@@ -119,8 +115,6 @@
   getting substituted, this seems very hard to maintain as we
   instantiate and create new functions. We should instead change this
   use of map to a saner instantiation.
-* TODO Should const qualifier mark locations' contents as FINAL?
-
 * TODO Attach error/warning messages to specific type obligations
   This would allow more user-friendly error messages when a function
   is called with invalid arguments.

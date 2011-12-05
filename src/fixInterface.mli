@@ -69,19 +69,19 @@ val strengthen_final_field :
 
 val map_fn              : (Ctypes.refctype -> Ctypes.refctype) -> Ctypes.refcfun -> Ctypes.refcfun
 
-val e_false             : Sloc.t -> Ctypes.effectinfo
-val e_true              : Sloc.t -> Ctypes.effectinfo
-val e_fresh             : Sloc.t -> Ctypes.effectinfo
+val e_false             : Sloc.t -> Ctypes.effectptr
+val e_true              : Sloc.t -> Ctypes.effectptr
+val e_fresh             : Sloc.t -> Ctypes.effectptr
 
 val vv_addr             : Ast.Symbol.t
 val vv_addr_expr        : Ast.expr
 val replace_addr        : Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
 
-val t_scalar_ptr        : Cil.typ -> Ctypes.refctype
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
 val t_zero              : Ctypes.ctype -> Ctypes.refctype
+val t_ptr_offset        : int -> Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
@@ -147,9 +147,15 @@ val make_cs             : cilenv -> Ast.pred ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_effect_weaken :
+val make_cs_effect_weaken_type :
                           cilenv -> Ast.pred ->
-                          Ctypes.refstore -> Cil.varinfo -> Ctypes.effectptr ->
+                          Ctypes.refstore -> Ctypes.refctype -> EffectDecls.t -> Ctypes.effectptr ->
+                          CilTag.t option -> CilTag.t -> Cil.location -> 
+                          FixConstraint.t list * FixConstraint.dep list
+
+val make_cs_effect_weaken_var :
+                          cilenv -> Ast.pred ->
+                          Ctypes.refstore -> Cil.varinfo -> EffectDecls.t -> Ctypes.effectptr ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 
@@ -161,10 +167,10 @@ val make_cs_effectset   : cilenv -> Ast.pred ->
 
 val make_cs_effectset_binds :
                           bool -> cilenv -> Ast.pred ->
-                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectinfo)) list *
-                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectinfo)) list ->
-                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectinfo)) list *
-                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectinfo)) list ->
+                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectptr)) list *
+                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectptr)) list ->
+                          (Sloc.t * (Ctypes.refldesc * Ctypes.effectptr)) list *
+                            (Sloc.t * (Ctypes.refcfun * Ctypes.effectptr)) list ->
                           CilTag.t option -> CilTag.t -> Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 

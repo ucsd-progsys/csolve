@@ -58,9 +58,6 @@ type 'a prectype =
 
 type effectptr  = Reft.t prectype
 
-type effectinfo = { eread  : effectptr
-                  ; ewrite : effectptr }
-
 type effectset
 
 type 'a precfun =
@@ -86,11 +83,11 @@ sig
   val empty       : t
 
   val apply       : (effectptr -> effectptr) -> effectset -> effectset
-  val maplisti    : (Sloc.t -> effectinfo -> 'a) -> effectset -> 'a list
+  val maplisti    : (Sloc.t -> effectptr -> 'a) -> effectset -> 'a list
 
-  val find        : effectset -> Sloc.t -> effectinfo
+  val find        : effectset -> Sloc.t -> effectptr
   val mem         : effectset -> Sloc.t -> bool
-  val add         : effectset -> Sloc.t -> effectinfo -> effectset
+  val add         : effectset -> Sloc.t -> effectptr -> effectset
 
   val domain      : t -> Sloc.t list
 
@@ -191,7 +188,7 @@ module type S = sig
     val join_effects :
       t ->
       effectset ->
-      (Sloc.t * (T.ldesc * effectinfo)) list * (Sloc.t * (T.cfun * effectinfo)) list
+      (Sloc.t * (T.ldesc * effectptr)) list * (Sloc.t * (T.cfun * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool

@@ -34,7 +34,6 @@ type considerStringsPure =
   | StringsAreNotPure
 
 val is_pure_expr     : considerStringsPure -> Cil.exp -> bool
-val is_local_expr    : Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
@@ -67,9 +66,9 @@ val nonnullRoomForAttribute : string
 val externOkAttribute       : string
 val checkTypeAttribute      : string
 val layoutAttribute         : string
+val ignoreIndexAttribute    : string
 val ignoreBoundAttribute    : string
-val readEffectAttribute     : string
-val writeEffectAttribute    : string
+val effectAttribute         : string
 
 val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool

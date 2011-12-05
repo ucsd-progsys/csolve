@@ -13,7 +13,7 @@
 // Deterministic Parallel Constructs
 
 #define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
-#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine))
+#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine)) lcc_fold_all ();
 #define RTEND                  }
 #define RTN(s)                 RTBEG s; RTEND
 #define COEND                  if (nondet ()) { break; } }
@@ -25,8 +25,10 @@
                                   int __lcc_foreach_ub_##x = u; \
                                   while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
                                     i = nondetrange(__lcc_foreach_lb_##x, __lcc_foreach_ub_##x); \
-                                    { BLOCKATTRIBUTE((lcc_foreach_iter))
+                                    { BLOCKATTRIBUTE((lcc_foreach_iter)) lcc_fold_all ();
 #define ENDFOR                 }}}
+
+#define ATOMIC                 BLOCKATTRIBUTE((lcc_atomic))
 
 // more natural looking macros for parallel constructs
 
@@ -37,6 +39,7 @@
 #define rtbeg                  RTBEG
 #define rtend                  RTEND
 #define rtn(s)                 RTN(s)
+#define atomic                 ATOMIC
 
 
 // porting is even more of a pain without booleans
@@ -48,9 +51,29 @@ typedef int bool;
 #define ISTRUE(x) (x != 0)
 #define ISFALSE(x) (x == 0)
 
-// Locally Unique Arrays
+// Effect Declarations
 
-#define UNQ
+#define PRAGMA                      #pragma
+#define LCC_EFFECT(e)               PRAGMA lcc_effect_decl (#e)
+#define LCC_EFFECTS_COMMUTE(e1, e2) PRAGMA lcc_effects_commute (#e1, #e2)
 
+// Allocators
+
+extern
+float * NONNULL SIZE(4 * sz2) START ARRAY
+      * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocFloatMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+  OKEXTERN;
+
+extern
+int * NONNULL SIZE(4 * sz2) START ARRAY
+    * NONNULL SIZE(4 * sz1) START ARRAY
+  mallocIntMatrix (int REF(V > 0) sz1, int REF(V > 0) sz2)
+  OKEXTERN;
+
+extern
+int REF(V = 0) * NONNULL SIZE(4 * sz) START ARRAY
+  callocInt(int REF(V > 0) sz)
+  OKEXTERN;
 #endif
 #endif

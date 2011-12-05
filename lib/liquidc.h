@@ -23,6 +23,7 @@
 #define NNREF(p)           REF(PNN(p))
 #define ARRAY              __attribute__ ((array))
 #define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))
+#define IGNORE_INDEX       __attribute__ ((lcc_ignore_index))
 
 #define FINAL              __attribute__ ((lcc_final))
 #define LOC(l)             __attribute__ ((lcc_sloc (#l)))
@@ -35,8 +36,7 @@
 #define ROOM_FOR(t)        __attribute__ ((lcc_room_for (sizeof(t))))
 #define NNROOM_FOR(t)      __attribute__ ((lcc_nonnull_room_for (sizeof(t))))
 
-#define READS(l, p)        __attribute__ ((lcc_read_effect (#l, #p)))
-#define WRITES(l, p)       __attribute__ ((lcc_write_effect (#l, #p)))
+#define EFFECT(l, p)       __attribute__ ((lcc_effect (#l, #p)))
 
 // Hack: CIL doesn't allow types as attribute parameters, so we
 //       indirect through sizeof.
@@ -75,7 +75,9 @@
 
 // Built-in functions
 
-extern void validptr (void * VALIDPTR) OKEXTERN;
+extern void lcc_fold_all () OKEXTERN;
+
+extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
 
 extern int lcc_assert (int REF(V != 0) p) OKEXTERN;
 
@@ -90,15 +92,17 @@ extern int REF(V >= 0) nondetnn () OKEXTERN;
 extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
-char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
-{
-  return p;
-}
+//char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
+//{
+//  return p;
+//}
 
 // Needed for ADPCM
 
 extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, int REF(V >= 0) b) OKEXTERN;
 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
+
+extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
 
 #endif
