@@ -1225,7 +1225,7 @@ let refldesc_subs rd f =
 
 let refdesc_find i rd = 
   match RCt.LDesc.find i rd with
-  | [(i', rfld)] -> (RCt.Field.type_of rfld, Index.is_periodic i')
+  | [(i', rfld)] -> (rfld, Index.is_periodic i')
   | _            -> assertf "refdesc_find"
 
 let addr_of_refctype loc = function

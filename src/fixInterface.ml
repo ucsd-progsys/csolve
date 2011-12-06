@@ -1127,6 +1127,9 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
   let sto'  = Ct.refstore_set sto cloc ld' in
   (env', sto', tago), cs
 
+let strengthen_type_with_deref ptrexp off ty =
+  strengthen_refctype (fun ct -> ra_deref ct ptrexp off) ty
+
 let strengthen_final_field ffs ptrname i fld =
   let ptr_base = ptrname |> Sy.of_string |> A.eVar |> FA.eApp_bbegin in
     match i with
@@ -1134,7 +1137,7 @@ let strengthen_final_field ffs ptrname i fld =
       | Ix.IInt n              ->
           if Ix.IndexSet.mem i ffs then
             fld
-            |> RCt.Field.map_type (strengthen_refctype (fun ct -> ra_deref ct ptr_base n))
+            |> RCt.Field.map_type (strengthen_type_with_deref ptr_base n)
             |> M.flip RCt.Field.set_finality Ct.Final
           else
             fld

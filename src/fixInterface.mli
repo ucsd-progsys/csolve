@@ -59,6 +59,12 @@ val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (cilenv * Ctypes.refstore * 'a) -> 
                           (cilenv * Ctypes.refstore * 'a) * FixConstraint.t list
 
+val strengthen_type_with_deref :
+  Ast.expr ->
+  int ->
+  Ctypes.refctype ->
+  Ctypes.refctype
+
 val strengthen_final_field :
   Index.IndexSet.t ->
   string ->

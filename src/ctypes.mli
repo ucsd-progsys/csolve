@@ -372,7 +372,7 @@ val refstore_set        : refstore -> Sloc.t -> refldesc -> refstore
 val refstore_get        : refstore -> Sloc.t -> refldesc
 val refstore_partition  : (Sloc.t -> bool) -> refstore -> refstore * refstore
 val refstore_write      : Cil.location -> refstore -> refctype -> refctype -> refstore
-val refstore_read       : Cil.location -> refstore -> refctype -> refctype
+val refstore_read       : Cil.location -> refstore -> refctype -> reffield
 
 
 val refldesc_subs       : refldesc -> (int -> Index.t -> refctype -> refctype) -> refldesc
