@@ -794,9 +794,9 @@ let rec make_wfs_refstore env full_sto sto tag =
       let ncrs = sloc_binds_of_refldesc l rd in
       let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
                       |> List.map fst
-                      |> ce_adds env
-                      |> M.flip ce_adds [(vv_addr, t_addr l)] in
-      let ws1  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
+                      |> ce_adds env in
+      let env_addr = ce_adds env' [(vv_addr, t_addr l)] in
+      let ws1  = Misc.flap (fun ((_,cr),i) -> make_wfs (if Ix.is_periodic i then env_addr else env') full_sto cr tag) ncrs in
         ws1 ++ ws
     end [] sto
 
@@ -838,7 +838,6 @@ let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
                end in  
 (*  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
-  let env    = ncrs1 |> List.map fst |> ce_adds env |> M.flip ce_adds [(vv_addr, sloc1 |> Sloc.canonical |> t_addr)] in
   let subs   = ncrs12
             |> List.filter (not <.> Index.is_periodic <.> thd3)
             |> List.map (fun ((n1,_), (n2,_), _) -> (n2, n1)) in
@@ -926,9 +925,11 @@ let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
 
 let make_cs_refldesc env p sld1 sld2 tago tag =
   with_refldesc_ncrs_env_subs env sld1 sld2 begin fun ncrs env subs ->
+    let env_addr = ce_adds env [(vv_addr, sld1 |> fst |> Sloc.canonical |> t_addr)] in
      Misc.map begin fun ((n1, cr1), (_, cr2), i) -> 
        let lhs = if Index.is_periodic i then cr1 else t_name env n1 in
        let rhs = t_subs_names subs cr2 in
+       let env = if Ix.is_periodic i then env_addr else env in
          make_cs env p lhs rhs tago tag 
      end ncrs
      |> Misc.splitflatten
