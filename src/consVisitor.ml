@@ -180,12 +180,21 @@ let is_string_ptr_expr = function
   | Const (CStr _)                                       -> true
   | _                                                    -> false
 
+let var_addr me env v =
+  if v.vglob then CF.refctype_of_global me v else FI.ce_find (FA.name_of_varinfo v) env
+
 let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
   (* *v *)
   | Lval (Mem e, _) ->
-    let v' = CM.referenced_var_of_exp e in
-    let cs = cons_of_mem me loc tago tag grd env post_mem_env sto effs v' ED.readEffect in
-      (FI.ce_find (FA.name_of_varinfo v') env |> Ct.refstore_read loc sto |> RF.type_of, cs)
+    let v   = CM.referenced_var_of_exp e in
+    let cs  = cons_of_mem me loc tago tag grd env post_mem_env sto effs v ED.readEffect in
+    let vn  = FA.name_of_varinfo v in
+    let fld = Ct.refstore_read loc sto <| FI.ce_find vn env in
+    let rct = fld
+           |> RF.type_of
+           |> M.choose (RF.is_final fld && Ct.is_soft_ptr loc sto <| var_addr me env v)
+               (FI.strengthen_type_with_deref (Ast.eVar vn) 0) id in
+      (rct, cs)
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
       (CF.refctype_of_global me v, ([], []))
@@ -203,9 +212,6 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
         (rct, cs)
   | e -> 
       E.s <| errorLoc loc "cons_of_rval: impure expr: %a" Cil.d_exp e 
-
-let var_addr me env v =
-  if v.vglob then CF.refctype_of_global me v else FI.ce_find (FA.name_of_varinfo v) env
 
 let is_bot_ptr me env v =
   match var_addr me env v with
