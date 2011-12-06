@@ -767,7 +767,8 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
       let ct     = Ct.ctype_of_refctype cr in
       let _, cr' = FI.t_exp env ct e in
         if Ct.is_soft_ptr loc sto ctptr then
-          (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
+          let env = FI.ce_adds env [(FI.vv_addr, cloc |> Sloc.canonical |> FI.t_addr)] in
+            (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
         else
           (Ct.refstore_write loc sto ctptr cr', cs)
   | CompoundInit (_, inits) ->
