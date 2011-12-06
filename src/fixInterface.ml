@@ -778,6 +778,7 @@ let make_wfs_effect env sto l eptr =
   let env = l
          |> RCt.Store.Data.find_or_empty sto
          |> sloc_binds_of_refldesc l
+         |> List.filter (not <.> Ix.is_periodic <.> snd)
          |> List.map fst
          |> ce_adds env in
     with_effects_in_env env (fun env -> make_wfs env sto eptr ())
@@ -791,7 +792,7 @@ let rec make_wfs_refstore env full_sto sto tag =
   RCt.Store.Function.fold_locs (fun l rft ws -> make_wfs_fn env rft tag ++ ws) [] sto ++
     RCt.Store.Data.fold_locs begin fun l rd ws ->
       let ncrs = sloc_binds_of_refldesc l rd in
-      let env' = ncrs |> List.filter (fun (_,i) -> not (Ix.is_periodic i)) 
+      let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
                       |> List.map fst
                       |> ce_adds env
                       |> M.flip ce_adds [(vv_addr, t_addr l)] in
@@ -827,11 +828,20 @@ let make_cs_assert_disjoint env p cr1 cr2 tago tag =
 let with_refldesc_ncrs_env_subs env (sloc1, rd1) (sloc2, rd2) f =
   let ncrs1  = sloc_binds_of_refldesc sloc1 rd1 in
   let ncrs2  = sloc_binds_of_refldesc sloc2 rd2 in
-  let ncrs12 = Misc.join snd ncrs1 ncrs2 |> List.map (fun ((x,_), (y,_)) -> (x,y)) in  
+  let env    = ncrs1
+            |> List.filter (not <.> Index.is_periodic <.> snd)
+            |> List.map fst
+            |> ce_adds env in
+  let ncrs12 = Misc.join snd ncrs1 ncrs2
+            |> List.map begin fun ((x,i), (y,_)) ->
+                 (x,y,i)
+               end in  
 (*  let _      = asserts ((* TBD: HACK for malloc polymorphism *) ncrs1 = [] 
                        || List.length ncrs12 = List.length ncrs2) "make_cs_refldesc" in *)
   let env    = ncrs1 |> List.map fst |> ce_adds env |> M.flip ce_adds [(vv_addr, sloc1 |> Sloc.canonical |> t_addr)] in
-  let subs   = List.map (fun ((n1,_), (n2,_)) -> (n2, n1)) ncrs12 in
+  let subs   = ncrs12
+            |> List.filter (not <.> Index.is_periodic <.> thd3)
+            |> List.map (fun ((n1,_), (n2,_), _) -> (n2, n1)) in
     f ncrs12 env subs
 
 let make_cs_assert_effects_disjoint env p eptr1 eptr2 tago tag =
@@ -916,8 +926,8 @@ let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
 
 let make_cs_refldesc env p sld1 sld2 tago tag =
   with_refldesc_ncrs_env_subs env sld1 sld2 begin fun ncrs env subs ->
-     Misc.map begin fun ((n1, _), (_, cr2)) -> 
-       let lhs = t_name env n1 in
+     Misc.map begin fun ((n1, cr1), (_, cr2), i) -> 
+       let lhs = if Index.is_periodic i then cr1 else t_name env n1 in
        let rhs = t_subs_names subs cr2 in
          make_cs env p lhs rhs tago tag 
      end ncrs
