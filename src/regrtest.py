@@ -61,6 +61,7 @@ class Config (rtest.TestConfig):
   def __init__ (self, dargs, testdirs, logfile, threadcount):
     rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
     self.dargs = dargs
+    logged_sys_call(["../tests/postests/coreutils/makeCoreUtil.sh", "init"], None)
 
   def run_test (self, file):
     os.environ['LCCFLAGS'] = self.dargs
