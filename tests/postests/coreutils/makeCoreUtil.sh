@@ -1,10 +1,9 @@
 #!/bin/sh
 
-cd `dirname $0`/../../../external/gnu-coreutils/src/ || exit 1
+cd `dirname $0`/../../../external/gnu-coreutils/ || exit 1
 
 if [ "$1" = "init" ]; then
     make clean && \
-        cd .. && \
         ./lcc.configure && \
         exit 0
 fi
@@ -15,4 +14,4 @@ if [ "$NAME" = "makeCoreUtil" ]; then
     exit 0
 fi
 
-./make.lcc $NAME
+cd src && ./make.lcc $NAME
