@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <liquidc.h>
 
-// pmr: Shape inference is fine without array annots; ditch?
 char * ARRAY LOC(D) strncpy (char * ARRAY LOC(D) dest, const char * ARRAY src, unsigned int n)
 {
   char c;
@@ -10,7 +9,7 @@ char * ARRAY LOC(D) strncpy (char * ARRAY LOC(D) dest, const char * ARRAY src, u
   unsigned int n4 = n / 4;	// JHALA
   unsigned int m4 = n % 4;	// JHALA
 
-  //modular arith axiom: (n != (4 * n4) + m4), faked by assume
+  //modular arith axiom: (n = (4 * n4) + m4), faked by assume
   if (n != (4 * n4) + m4) { STUCK: goto STUCK;}
 
   if (n4 >= 1) // n >= 4
@@ -19,29 +18,21 @@ char * ARRAY LOC(D) strncpy (char * ARRAY LOC(D) dest, const char * ARRAY src, u
 
       for (;;)
 	{
-          validptr(src);
-          validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
 	  
 	  if (c == 0)
 	    break;
-          validptr(src);
-          validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
 	  
 	  if (c == 0)
 	    break;
-          validptr(src);
-          validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
 	  
 	  if (c == 0)
 	    break;
-          validptr(src);
-          validptr(dest);
 	  c = *src++;
 	  *dest++ = c;
 	  
@@ -61,8 +52,6 @@ last_chars:
 
   for (;;)
     {
-      validptr(src);
-      validptr(dest);
       c = *src++;
       --n;
       *dest++ = c;
@@ -74,7 +63,6 @@ last_chars:
 
  zero_fill:
   while (n-- > 0) {
-   validptr(&dest[n]);
     dest[n] = 0;
   }
 
