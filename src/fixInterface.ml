@@ -301,7 +301,6 @@ let t_singleton_effect env v eff =
   let vn = FA.name_of_varinfo v in
     refctype_of_ctype (ra_singleton_effect eff vn) (Ct.ctype_of_refctype <| ce_find vn env)
 
-let t_index         = fun ct -> refctype_of_ctype ra_indexpred ct
 let t_addr          = fun l  -> t_true <| Ct.Ref (l, Ix.top)
 
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
@@ -796,7 +795,9 @@ let rec make_wfs_refstore env full_sto sto tag =
                       |> List.map fst
                       |> ce_adds env in
       let env_addr = ce_adds env' [(vv_addr, t_addr l)] in
-      let ws1  = Misc.flap (fun ((_,cr),i) -> make_wfs (if Ix.is_periodic i then env_addr else env') full_sto cr tag) ncrs in
+      let ws1  = Misc.flap
+                   (fun ((_,cr),i) -> make_wfs (M.choose (Ix.is_periodic i) env_addr env') full_sto cr tag)
+                   ncrs in
         ws1 ++ ws
     end [] sto
 
@@ -1107,7 +1108,6 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                       | _         -> RCt.Field.map_type (t_subs_names subs) rfld
               end in
   let cs    = if not newloc then [] else
-                let env' = ce_adds env' [(vv_addr, t_addr sloc)] in
                 RCt.LDesc.foldn begin fun i cs ix rfld ->
                   match ix with
                   | Ix.ICClass _ ->
@@ -1120,6 +1120,7 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                                      [C.Conc (P.subst p vv (A.eVar vv_addr))]
                                  end in
                       let rhs = t_subs_names subs rct in
+                      let env' = ce_adds env' [(vv_addr, t_addr sloc)] in
                       let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs
                   | _ -> cs
