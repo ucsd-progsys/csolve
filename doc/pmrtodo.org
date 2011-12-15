@@ -14,8 +14,6 @@
   control flow remains within that routine, otherwise the effect of
   that routine does not follow the block structure and we won't track
   its effect properly.
-<<<<<<< HEAD
-=======
 
 * TODO Location mismatch - friendlier errors?
 
@@ -30,7 +28,6 @@
   really want this?
 
 * TODO What's happening with check_pos
->>>>>>> track effects per function, refactored
 
 * TODO Location mismatch - friendlier errors?
 
