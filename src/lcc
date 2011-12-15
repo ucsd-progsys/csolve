@@ -120,7 +120,7 @@ sub helpMessage {
 
   All other arguments starting with -- are passed to the lcc process.
 
-The following are the arguments of the Cilly process
+The following are the arguments of the lcc process
 EOF
    my @cmd = ($CilCompiler::compiler, '-help');
    $self->runShell(@cmd); 

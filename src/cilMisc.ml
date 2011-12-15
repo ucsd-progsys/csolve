@@ -667,6 +667,8 @@ module Pheapify: Visitor = struct
         when self#is_heapified vi ->
           let lv = var (List.assoc vi hvars) in
             ChangeTo (if vi.vglob then mkAddrOrStartOf lv else Lval lv)
+      | (SizeOf _ | SizeOfE _ | SizeOfStr _ | AlignOf _ | AlignOfE _) as e ->
+          ChangeTo (e |> constFold true >> fun e -> assert (isConstant e))
       | _ -> DoChildren
         
     method vlval = function

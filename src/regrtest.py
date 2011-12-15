@@ -61,6 +61,7 @@ class Config (rtest.TestConfig):
   def __init__ (self, dargs, testdirs, logfile, threadcount):
     rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
     self.dargs = dargs
+    logged_sys_call(["../tests/postests/coreutils/makeCoreUtil.sh", "init"], None)
 
   def run_test (self, file):
     os.environ['LCCFLAGS'] = self.dargs
@@ -81,7 +82,7 @@ class Config (rtest.TestConfig):
 #testdirs  = [("../slowtests", 1)]
 
 #DEFAULT
-testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2]), ("../tests/todo", [0])]
+testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
 #testdirs  = [("../tests/microtests", 0)]
 
 parser = optparse.OptionParser()

@@ -15,32 +15,37 @@
 #define PINTO(x,lo,hi) && [PNONNULL; (PEQBLOCK(x));(POFFSET_GE(lo));(PSIZE_GE((hi + 1)))]
 #define PINDEX(x,sz)   && [(BLOCK_BEGIN([x]) <= (x + (sz * V))); ((x + sz + (sz * V)) <= BLOCK_END([x]))]
 
+#ifdef CIL
+# define LCC_ATTR(a) __attribute__ ((a))
+#else
+# define LCC_ATTR(a)
+#endif
 
 // Basic macros
 // Need to break this into two levels to ensure predicate p is macro expanded
-#define SREF(p)            __attribute__ ((lcc_predicate (#p)))
+#define SREF(p)            LCC_ATTR (lcc_predicate (#p))
 #define REF(p)             SREF(p)
 #define NNREF(p)           REF(PNN(p))
-#define ARRAY              __attribute__ ((array))
-#define SHAPE_IGNORE_BOUND __attribute__ ((lcc_ignore_bound))
-#define IGNORE_INDEX       __attribute__ ((lcc_ignore_index))
+#define ARRAY              LCC_ATTR (array)
+#define SHAPE_IGNORE_BOUND LCC_ATTR (lcc_ignore_bound)
+#define IGNORE_INDEX       LCC_ATTR (lcc_ignore_index)
 
-#define FINAL              __attribute__ ((lcc_final))
-#define LOC(l)             __attribute__ ((lcc_sloc (#l)))
-#define GLOBAL(l)          __attribute__ ((lcc_global_loc (#l)))
-#define OKEXTERN           __attribute__ ((lcc_extern_ok))
-#define CHECK_TYPE         __attribute__ ((lcc_check_type))
+#define FINAL              LCC_ATTR (lcc_final)
+#define LOC(l)             LCC_ATTR (lcc_sloc (#l))
+#define GLOBAL(l)          LCC_ATTR (lcc_global_loc (#l))
+#define OKEXTERN           LCC_ATTR (lcc_extern_ok)
+#define CHECK_TYPE         LCC_ATTR (lcc_check_type)
 
-#define INST(l, k)         __attribute__ ((lcc_inst_sloc (#l, #k)))
+#define INST(l, k)         LCC_ATTR (lcc_inst_sloc (#l, #k))
 
-#define ROOM_FOR(t)        __attribute__ ((lcc_room_for (sizeof(t))))
-#define NNROOM_FOR(t)      __attribute__ ((lcc_nonnull_room_for (sizeof(t))))
+#define ROOM_FOR(t)        LCC_ATTR (lcc_room_for (sizeof(t)))
+#define NNROOM_FOR(t)      LCC_ATTR (lcc_nonnull_room_for (sizeof(t)))
 
-#define EFFECT(l, p)       __attribute__ ((lcc_effect (#l, #p)))
+#define EFFECT(l, p)       LCC_ATTR (lcc_effect (#l, #p))
 
 // Hack: CIL doesn't allow types as attribute parameters, so we
 //       indirect through sizeof.
-#define LAYOUT(t)          __attribute__ ((lcc_layout (sizeof(t))))
+#define LAYOUT(t)          LCC_ATTR (lcc_layout (sizeof(t)))
 
 
 // Predicate macros
@@ -68,7 +73,7 @@
 
 // Memory Safety Backdoors
 
-#define UNCHECKED              __attribute__ ((lcc_unchecked))
+#define UNCHECKED              LCC_ATTR (lcc_unchecked)
 
 #define LCC_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
 #define LCC_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)

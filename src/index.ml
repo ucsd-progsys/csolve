@@ -344,6 +344,10 @@ and index_of_expr env solution sym is_int expr =
   match fst expr with
     | A.Con (A.Constant.Int n) -> 
 	if is_int then IInt n else IBot
+    (* pmr: Stopgap. If we have (e: int) and is_int is true, should we just
+       interpret e as an int and return the result? Alex? *)
+    | A.Cst ((A.Con (A.Constant.Int n), _), s) when s = A.Sort.t_int ->
+	if is_int then IInt n else IBot
     | A.Var sym ->
 	begin match F.lookup_env env sym with
 	  | Some ((vv, sort, refas) as reft) ->
