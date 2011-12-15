@@ -141,7 +141,7 @@ let refine sol c =
       | Some kt' -> assert (Ast.Sort.is_int t = Ast.Sort.is_int kt')
       | _ -> ()
     in
-    let newK = refine_store 3 oldK lhsVal in
+    let newK = refine_store 5 oldK lhsVal in
     let _ =  if !Constants.trace_scalar then
       let _ = Format.printf "%a" (F.print_t None) c in
       let _ = Pretty.printf "lhs %a old %a new %a\n"

@@ -224,7 +224,7 @@ let constrain_return et fs sub sto rtv = function
         E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
-      let sto, sub = UStore.unify_ctype_locs sto sub (et#ctype_of_exp e) rtv in
+      let sto, sub = unify_and_check_subtype sto sub (et#ctype_of_exp e) rtv in
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
