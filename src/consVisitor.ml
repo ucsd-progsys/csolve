@@ -840,9 +840,7 @@ let cons_of_decs tgr spec gnv gst decs =
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
         let cs''     = make_cs_if (should_supertype s)
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
-        let cs''', _ = FI.make_cs_refcfun_covariant
-                         gnv Ast.pTrue irf (RCf.map FI.t_indexpred_refctype srf) tag loc in
-        (ws' ++ ws, cs''' ++ cs'' ++ cs' ++ cs, [], [])
+        (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in

@@ -225,14 +225,6 @@ val make_cs_refcfun     : cilenv -> Ast.pred ->
                           Cil.location ->
                           FixConstraint.t list * FixConstraint.dep list
 
-val make_cs_refcfun_covariant :
-                          cilenv -> Ast.pred ->
-                          Ctypes.refcfun -> 
-                          Ctypes.refcfun ->
-                          CilTag.t ->
-                          Cil.location ->
-                          FixConstraint.t list * FixConstraint.dep list
-
 val make_dep            : bool -> CilTag.t option -> CilTag.t option -> FixConstraint.dep 
 (*val annot_dump          : FixSolution.t -> unit
   val annot_clear         : 'a -> unit

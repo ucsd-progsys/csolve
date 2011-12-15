@@ -1014,11 +1014,6 @@ let rec make_cs_refcfun env p rf rf' tag loc =
   make_cs_refcfun_aux make_cs_refcfun
     env p (make_cs_refcfun_components rf rf') tag loc
 
-let rec make_cs_refcfun_covariant env p rf rf' tag loc =
-  let its, his, ocrs, hos = make_cs_refcfun_components rf rf' in
-    make_cs_refcfun_aux make_cs_refcfun_covariant
-      env p (M.swap its, M.swap his, ocrs, hos) tag loc
-
 (* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
   try make_cs_refstore_aux make_cs_refcfun env p st1 st2 polarity tago tag loc with ex ->
@@ -1077,13 +1072,6 @@ let make_cs_refcfun gnv p rf rf' tag loc =
   try make_cs_refcfun gnv p rf rf' tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refcfun fails with: %s" (Printexc.to_string ex) in 
     let _ = asserti false "make_cs_refcfun" in 
-    assert false
-
-(* API *) 
-let make_cs_refcfun_covariant gnv p rf rf' tag loc =
-  try make_cs_refcfun_covariant gnv p rf rf' tag loc with ex ->
-    let _ = Cil.errorLoc loc "make_cs_refcfun_covariant fails with: %s" (Printexc.to_string ex) in 
-    let _ = asserti false "make_cs_refcfun_covariant" in 
     assert false
 
 let new_block_reftype = t_zero_refctype (* t_true_refctype *)
