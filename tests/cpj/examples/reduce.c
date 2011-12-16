@@ -1,8 +1,8 @@
 #include <cpj.h>
 #include <stdlib.h>
 
-LCC_EFFECT(EAccumulate)
-LCC_EFFECTS_COMMUTE(EAccumulate, EAccumulate)
+CSOLVE_EFFECT(EAccumulate)
+CSOLVE_EFFECTS_COMMUTE(EAccumulate, EAccumulate)
 
 extern void accumulate (char * LOC(L) ARRAY l, int i)
   EFFECT(L, && [V = l + i; EAccumulate = 1; ~(EWRITE = 1); ~(EREAD = 1)])

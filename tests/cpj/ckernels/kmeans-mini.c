@@ -35,8 +35,8 @@
 #include <float.h>
 #include <math.h>
 
-LCC_EFFECT(ACCUMULATE)
-LCC_EFFECTS_COMMUTE(ACCUMULATE, ACCUMULATE)
+CSOLVE_EFFECT(ACCUMULATE)
+CSOLVE_EFFECTS_COMMUTE(ACCUMULATE, ACCUMULATE)
 
 extern //atomic
   void accumulator(float delta,
