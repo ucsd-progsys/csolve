@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 int a[] = { 0, 1, 2 };
 

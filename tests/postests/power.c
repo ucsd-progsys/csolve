@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 struct demand {
    double P ;

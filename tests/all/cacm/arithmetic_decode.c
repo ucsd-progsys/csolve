@@ -1,6 +1,6 @@
 /* ARITHMETIC DECODING ALGORITHM. */
 
-#include <liquidc.h>
+#include <csolve.h>
 #include "arithmetic_coding.h"
 
 

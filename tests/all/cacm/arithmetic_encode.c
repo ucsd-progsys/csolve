@@ -1,6 +1,6 @@
 /* ARITHMETIC ENCODING ALGORITHM. */
 
-#include <liquidc.h>
+#include <csolve.h>
 #include "arithmetic_coding.h"
 
 static void bit_plus_follow();	/* Routine that follows                     */

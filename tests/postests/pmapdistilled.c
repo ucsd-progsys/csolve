@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 extern void dummyassert (int) OKEXTERN;
 

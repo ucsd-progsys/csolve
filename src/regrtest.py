@@ -37,7 +37,7 @@ def solve_quals(file,bare,time,quiet,flags):
   else: out = None
   if time: time = ["time"]
   else: time = []
-  hygiene_flags = [("--liquidcprefix=%s" % (file)), "-o", "/dev/null"]
+  hygiene_flags = [("--csolveprefix=%s" % (file)), "-o", "/dev/null"]
   out = open(file + ".log", "w")
   rv  = logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
   out.close()
@@ -87,7 +87,7 @@ testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")
-parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to liquidc")
+parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to csolve")
 parser.disable_interspersed_args()
 options, args = parser.parse_args()
 

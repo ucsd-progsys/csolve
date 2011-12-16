@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 #include <cpj.h>
 
 #define MAX_SPLIT_DEPTH 8

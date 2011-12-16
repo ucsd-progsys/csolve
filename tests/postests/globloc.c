@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 int p[] = { 0, 1, 2 };
 int *a;

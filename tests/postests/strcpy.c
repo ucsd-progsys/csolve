@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 char * ARRAY LOC(D) strncpy (char * ARRAY LOC(D) dest, const char * ARRAY src, unsigned int n)
 {

@@ -1,6 +1,6 @@
 // Test that a heapified global gets the correct initializer
 
-#include <liquidc.h>
+#include <csolve.h>
 
 int x = 5;
 

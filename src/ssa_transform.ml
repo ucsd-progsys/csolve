@@ -21,7 +21,7 @@
  *
  *)
 
-(* This file is part of the liquidC Project.*)
+(* This file is part of the CSolve Project.*)
 
 
 module E  = Errormsg
@@ -369,7 +369,7 @@ let print_sci oco sci =
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
 
 let print_scis scis =
-  !Co.liquidc_file_prefix^".ssa.c"
+  !Co.csolve_file_prefix^".ssa.c"
   |> open_out 
   >> (fun oc -> List.iter (print_sci (Some oc)) scis)
   |> close_out 
@@ -386,7 +386,7 @@ let print_vmap oc sci =
      end
 
 let print_vmaps scis =
-  !Co.liquidc_file_prefix^".vmap"
+  !Co.csolve_file_prefix^".vmap"
   |> open_out
   >> (fun oc -> List.iter (print_vmap oc) scis)
   |> close_out

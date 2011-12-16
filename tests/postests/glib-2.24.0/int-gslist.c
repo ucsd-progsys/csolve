@@ -1,7 +1,7 @@
 // Instantiated with int:
 
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 #define _g_slist_alloc0()       malloc(sizeof (GSList))
 #define _g_slist_alloc()        malloc(sizeof (GSList))

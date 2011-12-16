@@ -24,9 +24,9 @@ CFLAGS=-cflags -dtypes \
        -cflags "-w a" \
        -cflags -thread
 
-TARGETS=liquidc.native
+TARGETS=csolve.native
 
-all: ../lib/libliquidc.a misc fixpoint
+all: ../lib/libcsolve.a misc fixpoint
 	ocamlbuild -no-links $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) $(TARGETS)
 
 misc:
@@ -35,14 +35,14 @@ misc:
 fixpoint:
 	ln -s ../external/fixpoint
 
-liquidc.byte: misc fixpoint
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) liquidc.byte || exit 1
+csolve.byte: misc fixpoint
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) csolve.byte || exit 1
 
-liquidc.cma: liquidc.byte
-	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) liquidc.cma || exit 1
+csolve.cma: csolve.byte
+	ocamlbuild $(DIRS) $(LIBS) $(IFLAGS) $(LFLAGS) $(CFLAGS) -tags thread $(CIL) $(Z3) csolve.cma || exit 1
 
-liquidc.top: liquidc.cma
-	ocamlmktop -I $(Z3HOME)/ocaml/ -I $(CILHOME) -o liquidc.top _build/liquidc.cma
+csolve.top: csolve.cma
+	ocamlmktop -I $(Z3HOME)/ocaml/ -I $(CILHOME) -o csolve.top _build/csolve.cma
 
 %.a: %.o
 	ar rcs $@ $<

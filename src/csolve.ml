@@ -22,7 +22,7 @@
  *)
 
 
-(* This file is part of the liquidC Project.*)
+(* This file is part of the CSolve Project.*)
 
 module F  = Frontc
 module CK = Check
@@ -180,7 +180,7 @@ let obligations outprefix file cil =
     , incremental_decs !Co.inccheck decs))
 
 (************************************************************************)
-(************************* Original liquidc *****************************)
+(************************* Original CSolve ******************************)
 (************************************************************************)
 
 let outChannel : outfile option ref    = ref None
@@ -227,16 +227,16 @@ let cil_of_file file =
        >> rename_locals 
 
 let liquidate file =
-  let log       = open_out "liquidc.log" in
+  let log       = open_out "csolve.log" in
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
   let cil       = BS.time "Parse: source" cil_of_file file in
   let _         = EffectDecls.parseEffectDecls cil in
   let _         = E.log "DONE: cil parsing \n" in
-  let fn        = !Co.liquidc_file_prefix (* file.Cil.fileName *) in
-  let qs        = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.liquidc_file_prefix ^ ".hquals")] in
+  let fn        = !Co.csolve_file_prefix (* file.Cil.fileName *) in
+  let qs        = Misc.flap FixAstInterface.quals_of_file [Co.get_lib_hquals (); (!Co.csolve_file_prefix ^ ".hquals")] in
   let _         = E.log "DONE: qualifier parsing \n" in
-  let spec,decs = BS.time "Parse: spec" (obligations !Co.liquidc_file_prefix file) cil in
+  let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix file) cil in
   let _         = E.log "DONE: spec parsing \n" in
   let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
   let _         = E.log "DONE: constraint generation \n" in
@@ -245,7 +245,7 @@ let liquidate file =
   let _         = Annots.dump_annots (Some s') in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs s' in
   let _         = print_unsat_locs tgr s' cs' in
-  let _         = BS.print log "\nLiquidC Time \n" in
+  let _         = BS.print log "\nCSolve Time \n" in
   match cs' with 
   | [] -> let _ = printf "\nSAFE\n"   in cil
   | _  -> let _ = printf "\nUNSAFE\n" in exit 1
@@ -316,7 +316,7 @@ let theMain () =
           "--mergedout", Arg.String (openFile "merged output"
                                        (fun oc -> mergedChannel := Some oc)),
               " specify the name of the merged file";
-          "--liquidcprefix", Arg.Set_string Co.liquidc_file_prefix,
+          "--csolveprefix", Arg.Set_string Co.csolve_file_prefix,
               " specify prefix to use for spec, hquals, ssa, annot files"
         ] @ blankLine :: List.map (Misc.app_fst3 (fun s -> "-" ^ s)) Constants.arg_spec in
   begin

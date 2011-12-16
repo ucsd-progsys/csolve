@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 typedef int lcc_dummy_t (char * LOC(L) nptr);
 extern lcc_dummy_t lcc_c_strtod OKEXTERN;

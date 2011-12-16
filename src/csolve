@@ -69,7 +69,7 @@ use File::Basename;
 use strict;
 BEGIN {
     @CilCompiler::ISA = qw(Cilly);
-    $CilCompiler::base = "$FindBin::RealBin/_build/liquidc.native";
+    $CilCompiler::base = "$FindBin::RealBin/_build/csolve.native";
     # Use the most recent version of cilly
     $CilCompiler::mtime_asm = int((stat("$CilCompiler::base"))[9]);
     $CilCompiler::mtime_byte = int((stat("$CilCompiler::base"))[9]);
@@ -105,7 +105,7 @@ sub setDefaultArguments {
     push @{$self->{PPARGS}},        "-isysroot$FindBin::RealBin/../external/include32";
     push @{$self->{PPARGS}},        "-I$FindBin::RealBin/../lib";
     push @{$self->{LINKARGS}},      "-L$FindBin::RealBin/../lib/";
-    push @{$self->{LINKARGS}},      "-lliquidc";
+    push @{$self->{LINKARGS}},      "-lcsolve";
 }
 
 sub usage {
@@ -166,7 +166,7 @@ sub CillyCommand {
     }
 
     if(defined $spec_prefix) {
-        return ($aftercil, @cmd, '--liquidcprefix', $spec_prefix, '--libpath', $libpath, '--out', $aftercil);
+        return ($aftercil, @cmd, '--csolveprefix', $spec_prefix, '--libpath', $libpath, '--out', $aftercil);
     } else {
         return ($aftercil, @cmd, '--libpath', $libpath, '--out', $aftercil);
     }

@@ -1,7 +1,7 @@
 // Taken from coreutils/src/tsort.c
 
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 struct successor {
   struct successor *next;

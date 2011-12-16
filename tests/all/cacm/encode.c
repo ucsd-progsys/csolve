@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "model.h"
-#include <liquidc.h>
+#include <csolve.h>
 
 main()
 {   start_model();				/* Set up other modules.    */

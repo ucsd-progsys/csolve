@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 char * ARRAY make_string(int n) {
     if (n <= 0)

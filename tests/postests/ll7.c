@@ -1,6 +1,6 @@
 //! run with --notruekvars
 
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 typedef struct node {

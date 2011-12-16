@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 #ifndef __HAVE_CPJ
 #define __HAVE_CPJ

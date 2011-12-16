@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 void foo (int y, int *q) {

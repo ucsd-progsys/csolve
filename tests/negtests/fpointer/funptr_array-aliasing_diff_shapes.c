@@ -1,6 +1,6 @@
 // run with --manual
 
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 void one () { }
