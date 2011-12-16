@@ -4,5 +4,5 @@ int x;
 
 void main () {
     x = nondet ();
-    lcc_assert (x == x);
+    csolve_assert (x == x);
 }

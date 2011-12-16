@@ -14,5 +14,5 @@ int main () {
   
   f();
   
-  lcc_assert (x <= 1000);
+  csolve_assert (x <= 1000);
 }

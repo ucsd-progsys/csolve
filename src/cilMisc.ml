@@ -248,31 +248,31 @@ let setStringAttr name s ats =
 
 (* Must be "array" because CIL inserts these itself. *)
 let arrayAttribute          = "array"
-let finalAttribute          = "lcc_final"
-let slocAttribute           = "lcc_sloc"
-let globalAttribute         = "lcc_global_loc"
-let instantiateAttribute    = "lcc_inst_sloc"
-let predAttribute           = "lcc_predicate"
-let externOkAttribute       = "lcc_extern_ok"
-let checkTypeAttribute      = "lcc_check_type"
-let layoutAttribute         = "lcc_layout"
-let roomForAttribute        = "lcc_room_for"
-let nonnullRoomForAttribute = "lcc_nonnull_room_for"
-let ignoreIndexAttribute    = "lcc_ignore_index"
-let ignoreBoundAttribute    = "lcc_ignore_bound"
-let effectAttribute         = "lcc_effect"
+let finalAttribute          = "csolve_final"
+let slocAttribute           = "csolve_sloc"
+let globalAttribute         = "csolve_global_loc"
+let instantiateAttribute    = "csolve_inst_sloc"
+let predAttribute           = "csolve_predicate"
+let externOkAttribute       = "csolve_extern_ok"
+let checkTypeAttribute      = "csolve_check_type"
+let layoutAttribute         = "csolve_layout"
+let roomForAttribute        = "csolve_room_for"
+let nonnullRoomForAttribute = "csolve_nonnull_room_for"
+let ignoreIndexAttribute    = "csolve_ignore_index"
+let ignoreBoundAttribute    = "csolve_ignore_bound"
+let effectAttribute         = "csolve_effect"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
-let has_unchecked_attr = hasAttribute "lcc_unchecked"
+let has_unchecked_attr = hasAttribute "csolve_unchecked"
 
 let is_unchecked_ptr_type t =
   isPointerType t && t |> typeAttrs |> has_unchecked_attr
 
-let cobeginAttribute     = "lcc_cobegin"
-let coroutineAttribute   = "lcc_coroutine"
-let foreachIterAttribute = "lcc_foreach_iter"
-let foreachAttribute     = "lcc_foreach"
+let cobeginAttribute     = "csolve_cobegin"
+let coroutineAttribute   = "csolve_coroutine"
+let foreachIterAttribute = "csolve_foreach_iter"
+let foreachAttribute     = "csolve_foreach"
 
 let block_has_attribute a b =
   hasAttribute a b.battrs
@@ -704,7 +704,7 @@ module Pheapify: Visitor = struct
     {init = M.maybe_map (fun ii -> CompoundInit (v.vtype, [Index (integer 0, NoOffset), ii])) i.init}
 
   let heapName v =
-    v.vname ^ "__lcc_heapify__"
+    v.vname ^ "__csolve_heapify__"
 
   class heapifyGlobalVisitor = object(self)
     inherit nopCilVisitor
@@ -748,7 +748,7 @@ module Pheapify: Visitor = struct
 
   let mallocType =
     cType
-      "void * __attribute__ ((lcc_predicate (%p:outRef))) __attribute__ ((lcc_sloc (%p:outSloc))) () (int __attribute__ ((lcc_predicate (%p:inRef))) sz)"
+      "void * __attribute__ ((csolve_predicate (%p:outRef))) __attribute__ ((csolve_sloc (%p:outSloc))) () (int __attribute__ ((csolve_predicate (%p:inRef))) sz)"
       [("inRef",   Fp (AStr "V >= 0"));
        ("outRef",  Fp (AStr "&& [V > 0; V = BLOCK_BEGIN([V]); BLOCK_END([V]) = (V + sz)]"));
        ("outSloc", Fp (AStr "!L"))]

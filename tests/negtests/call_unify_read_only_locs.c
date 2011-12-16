@@ -14,5 +14,5 @@ void main () {
 
     int *c = nondet () ? a : b;
 
-    lcc_assert (read_one_of (c, c));
+    csolve_assert (read_one_of (c, c));
 }

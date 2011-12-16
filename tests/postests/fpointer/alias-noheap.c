@@ -13,7 +13,7 @@ int main () {
 
     f = nondet () ? &foo : &bar;
     int z = f ();
-    lcc_assert (z >= 0);
+    csolve_assert (z >= 0);
 
     return 0;
 }

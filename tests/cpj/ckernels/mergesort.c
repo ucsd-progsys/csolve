@@ -75,7 +75,7 @@ void seq_merge(int * ARRAY LOC(Li) a, int * ARRAY LOC(Li) b, int lena, int lenb,
 
   while (i < lena && j < lenb){
 
-    lcc_assert ( k == (i+j) );
+    csolve_assert ( k == (i+j) );
 
     if (a[i] < b[j])   
       c[k++] = a[i++];

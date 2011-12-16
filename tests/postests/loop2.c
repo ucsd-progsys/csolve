@@ -11,6 +11,6 @@ void main(){
     j++;
   }
 
-  lcc_assert(i==j);
+  csolve_assert(i==j);
  
 }

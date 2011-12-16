@@ -29,9 +29,9 @@ int bar(int n){
   root = foo(n);
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-    lcc_assert(tmp->data >= 0);
-    lcc_assert(tmp->data < n);
-    lcc_assert(tmp->data < 100);
+    csolve_assert(tmp->data >= 0);
+    csolve_assert(tmp->data < n);
+    csolve_assert(tmp->data < 100);
   }
  
   return 0;

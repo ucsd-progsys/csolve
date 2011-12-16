@@ -7,5 +7,5 @@ int x = 5;
 void main () {
     int *y = &x;
 
-    lcc_assert (*y == 5);
+    csolve_assert (*y == 5);
 }

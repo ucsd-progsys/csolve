@@ -20,6 +20,6 @@ void main () {
     int *p = nondet () ? alloc () : dont_alloc ();
 
     if (p) {
-        lcc_assert (*p == 3);
+        csolve_assert (*p == 3);
     }
 }

@@ -9,5 +9,5 @@ void main () {
     int *a = (int *) malloc (sizeof (int));
     *a = 1;
 
-    lcc_assert (read_one_of (a, a));
+    csolve_assert (read_one_of (a, a));
 }

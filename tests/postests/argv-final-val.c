@@ -5,6 +5,6 @@ void main (int REF(V > 0) argc,
   CHECK_TYPE
 {
     if (argv[0][0] == 'a') {
-        lcc_assert (argv[0][0] == 'a');
+        csolve_assert (argv[0][0] == 'a');
     }
 }

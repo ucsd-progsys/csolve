@@ -21,8 +21,8 @@ int main(){
   }
 
   y = root->data;
-  lcc_assert(y >= 0);
-  //lcc_assert(y >= i);  store-scope-issue
+  csolve_assert(y >= 0);
+  //csolve_assert(y >= i);  store-scope-issue
 
   return 0;
    

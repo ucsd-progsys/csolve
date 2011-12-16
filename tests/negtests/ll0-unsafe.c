@@ -21,7 +21,7 @@ void main(/* int n */){
   }
 
   for(tmp = root; tmp != 0; tmp = tmp->next){
-    lcc_assert(tmp->data >= 0);
-    //lcc_assert(tmp->data < n);
+    csolve_assert(tmp->data >= 0);
+    //csolve_assert(tmp->data < n);
   }
 }

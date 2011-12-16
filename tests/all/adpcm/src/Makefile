@@ -17,7 +17,7 @@ else
 CC = gcc
 endif
 
-CC = ../../../../src/lcc --merge
+CC = ../../../../src/csolve --merge
 
 # LFLAGS = -mv8
 # LFLAGS = $(LFLAGS) -static

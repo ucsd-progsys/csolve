@@ -21,8 +21,8 @@ int main(){
   }
 
   for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-      lcc_assert(tmp->data >= 0);
-      lcc_assert(tmp->data < 1000);
+      csolve_assert(tmp->data >= 0);
+      csolve_assert(tmp->data < 1000);
   }
   
   return 0;

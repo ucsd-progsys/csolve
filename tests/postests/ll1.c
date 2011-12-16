@@ -21,8 +21,8 @@ int main(/* int n */){
   }
 
   for(tmp = root; tmp!=(node_t*)0; tmp = tmp->next){
-    lcc_assert(tmp->x >= 0);
-    lcc_assert(tmp->x < tmp->y);
+    csolve_assert(tmp->x >= 0);
+    csolve_assert(tmp->x < tmp->y);
     
   }
   return 0;

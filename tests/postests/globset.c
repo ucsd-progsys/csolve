@@ -11,7 +11,7 @@ int *y;
 linkedlist *ll;
 
 void f(linkedlist *lp) {
-    lcc_assert(x >= 0);
+    csolve_assert(x >= 0);
 }
 
 void main () {

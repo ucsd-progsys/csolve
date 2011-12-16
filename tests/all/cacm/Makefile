@@ -1,5 +1,5 @@
 
-CC=../../../src/lcc --merge
+CC=../../../src/csolve --merge
 
 ifdef DEBUG
 FLAGS=-g $(EXTRACFLAGS)

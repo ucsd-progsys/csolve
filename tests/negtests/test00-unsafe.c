@@ -8,5 +8,5 @@ void main(){
     i++;
   }
 
-  lcc_assert (i < 0);
+  csolve_assert (i < 0);
 }

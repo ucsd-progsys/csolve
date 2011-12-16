@@ -21,7 +21,7 @@ node_t *main(){
     root      = tmp;
   }
 
-//  lcc_assert(0); //SANITY
+//  csolve_assert(0); //SANITY
 
   n = 92;
   return root;

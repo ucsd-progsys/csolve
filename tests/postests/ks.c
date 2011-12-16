@@ -107,7 +107,7 @@ void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
   while (net < *numNets) {
     fgets((char * __attribute__((__array__)) )(line), 1024, inFile);
     tmp___0 = strtok((char * __attribute__((__array__)) )(line), (char * __attribute__((__array__)) )" \t\n");
-    int pmr_assm1 = lcc_assume (tmp___0 != (char *) 0);
+    int pmr_assm1 = csolve_assume (tmp___0 != (char *) 0);
     tmp___1 = atol((char * __attribute__((__array__)) )tmp___0);
     dest = (unsigned long )(tmp___1 - 1L);
     if (dest < 0UL) {
@@ -124,7 +124,7 @@ void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
       exit(1);
     }
     tmp___3 = strtok((char * __attribute__((__array__)) )0, (char * __attribute__((__array__)) )" \t\n");
-    int pmr_assm2 = lcc_assume (tmp___3 != (char *) 0);
+    int pmr_assm2 = csolve_assume (tmp___3 != (char *) 0);
     tmp___4 = atol((char * __attribute__((__array__)) )tmp___3);
     m = (unsigned long )(tmp___4 - 1L);
     if (m < 0UL) {

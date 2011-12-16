@@ -12,7 +12,7 @@ void main(){
     int z;
     //z = i + 1;
     foo(i, &z);
-    lcc_assert(0);
+    csolve_assert(0);
   }
 
 }

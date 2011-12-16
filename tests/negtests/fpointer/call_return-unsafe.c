@@ -10,7 +10,7 @@ int two () {
 
 void invoke (int (*f) ()) {
     int z = f ();
-    lcc_assert (z > 0);
+    csolve_assert (z > 0);
 }
 
 int main () {

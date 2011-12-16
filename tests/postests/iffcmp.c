@@ -14,6 +14,6 @@ int main () {
     }
 
     if (cmp) {
-        lcc_assert (a > b);
+        csolve_assert (a > b);
     }
 }

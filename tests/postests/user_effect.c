@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <cpj.h>
 
-LCC_EFFECT(ELaunchMissiles)
-LCC_EFFECTS_COMMUTE(ELaunchMissiles, ELaunchMissiles)
+CSOLVE_EFFECT(ELaunchMissiles)
+CSOLVE_EFFECTS_COMMUTE(ELaunchMissiles, ELaunchMissiles)
 
 extern void harmless (int * LOC(L) x)
     EFFECT (L, && [V = x; ELaunchMissiles = 1; EWRITE != 1; EREAD != 1])

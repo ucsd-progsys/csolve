@@ -10,7 +10,7 @@ void main(){
 
   y = *r;
 
-  lcc_assert(y >= 10);
+  csolve_assert(y >= 10);
 
   return;
 }

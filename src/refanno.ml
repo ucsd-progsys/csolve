@@ -374,7 +374,7 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
     when Constants.is_pure_function fv.vname ->
       conc, ns 
 
-  | _, Cil.Call (_, Lval ((Var fv), _), _, _) when fv.vname = "lcc_fold_all" ->
+  | _, Cil.Call (_, Lval ((Var fv), _), _, _) when fv.vname = "csolve_fold_all" ->
     conc |> LM.domain |> Misc.mapfold generalize conc |> Misc.app_snd List.concat
 
   | (k, [New (x, y)]), Cil.Call (lvo, Lval ((Var fv), NoOffset), _, _)

@@ -37,7 +37,7 @@ update_model(symbol)
         }
     }
     for (i = symbol; freq[i]==freq[i-1]; i--){ 	/* Find symbol's new index. */
-      int assm = lcc_assume(1 < i);		//JHALA: freq[0] != freq[1]
+      int assm = csolve_assume(1 < i);		//JHALA: freq[0] != freq[1]
     }
     if (i<symbol) {
         int ch_i, ch_symbol;

@@ -1,9 +1,9 @@
 #include <liquidc.h>
 
 void t (int *x) {
-    /* lcc_assert (0); */
+    /* csolve_assert (0); */
     *x = 3;
-    lcc_assert (0);
+    csolve_assert (0);
 }
 
 int main () {

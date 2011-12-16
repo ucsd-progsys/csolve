@@ -5,7 +5,7 @@ void test (const char *__attribute__((array)) src)
   char c;
   c = *src;
   // pmr: TOTALLY BOGUS
-  lcc_assert (c == 0);
+  csolve_assert (c == 0);
 }
 
 void main () {

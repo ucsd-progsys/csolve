@@ -9,7 +9,7 @@ int maim () {
     }
 
     if (a > 0) {
-        lcc_assert (b <= 0);
+        csolve_assert (b <= 0);
     }
 
     return 0;

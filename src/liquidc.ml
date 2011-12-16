@@ -93,9 +93,10 @@ let mk_options toolname () =
 (*************** Generating Specifications *****************************)  
 (***********************************************************************)
 
+(* wipe this *)
 let spec_includes file =
   Cil.foldGlobals file begin fun fs -> function
-    | Cil.GPragma (Cil.Attr ("lcc", [Cil.ACons ("include", []); Cil.AStr f]), _) 
+    | Cil.GPragma (Cil.Attr ("csolve", [Cil.ACons ("include", []); Cil.AStr f]), _) 
         -> f :: fs
     | _                                                          
         -> fs 
@@ -286,7 +287,7 @@ let setTimeout () =
 (* pmr: Note this is ganked from CIL *)        
 (***** MAIN *****)  
 let theMain () =
-  let usageMsg = "Usage: lcc [options] source-files" in
+  let usageMsg = "Usage: csolve [options] source-files" in
   (* Processign of output file arguments *)
   let openFile (what: string) (takeit: outfile -> unit) (fl: string) = 
     if !E.verboseFlag then
@@ -325,7 +326,7 @@ let theMain () =
 
     (* parse the command-line arguments *)
     Arg.current := 0;
-    let envopts = try "LCCFLAGS" |> S.getenv |> Misc.chop_star " \\|=" |> Array.of_list with Not_found -> [| |] in
+    let envopts = try "CSOLVEFLAGS" |> S.getenv |> Misc.chop_star " \\|=" |> Array.of_list with Not_found -> [| |] in
       begin
         try Arg.parse_argv (Array.concat [Sys.argv; envopts]) (Arg.align argDescr) Ciloptions.recordFile usageMsg
         with Arg.Help usage -> Format.printf "%s" usage; exit 0

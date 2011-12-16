@@ -12,5 +12,5 @@ void main () {
     token_buffer tb;
 
     tb.buffer = NULL;
-    lcc_assert (tb.buffer == NULL);
+    csolve_assert (tb.buffer == NULL);
 }

@@ -45,7 +45,7 @@ int main()
   for (; b < 2; b++) //also breaks
   {
     c = 0;
-    lcc_assert (c == 0);
+    csolve_assert (c == 0);
   }
 
   return 0;
@@ -58,7 +58,7 @@ int main()
 /*  if (b != 0)
     b = 0;
 
-  lcc_assert(b==0);
+  csolve_assert(b==0);
 */
   if (b != 0)
     b = 1; 
@@ -69,5 +69,5 @@ int main()
     c = 0;
   else
     c = 1;
-  lcc_assert (b == c);
+  csolve_assert (b == c);
 }

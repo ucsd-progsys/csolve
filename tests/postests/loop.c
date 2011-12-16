@@ -3,7 +3,7 @@
 int main(int REF(V > 10) n) CHECK_TYPE {
   int i, z; 
   //n = nondet();
-  lcc_assert(10 < n);
+  csolve_assert(10 < n);
 
   z = 0;
   for (i=0; i < n; i++){
@@ -12,6 +12,6 @@ int main(int REF(V > 10) n) CHECK_TYPE {
     z += i;
     z += i;
   }
-  lcc_assert (z >= 0);
+  csolve_assert (z >= 0);
   return 0;
 }

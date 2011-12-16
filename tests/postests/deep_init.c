@@ -17,9 +17,9 @@ typedef struct {
 third t = { { { 0 }, 1 }, 2 };
 
 void main () {
-    lcc_assert (t.s.f.a == 0);
-    lcc_assert (t.s.b   == 1);
-    lcc_assert (t.c     == 2);
+    csolve_assert (t.s.f.a == 0);
+    csolve_assert (t.s.b   == 1);
+    csolve_assert (t.c     == 2);
 
     return;
 }

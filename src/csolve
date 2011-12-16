@@ -109,7 +109,7 @@ sub setDefaultArguments {
 }
 
 sub usage {
-    print "Usage: lcc [options] [gcc_or_mscl arguments]\n";
+    print "Usage: csolve [options] [gcc_or_mscl arguments]\n";
 }
 
 sub helpMessage {
@@ -118,9 +118,9 @@ sub helpMessage {
     $self->SUPER::helpMessage();
     print <<EOF;
 
-  All other arguments starting with -- are passed to the lcc process.
+  All other arguments starting with -- are passed to the csolve process.
 
-The following are the arguments of the lcc process
+The following are the arguments of the csolve process
 EOF
    my @cmd = ($CilCompiler::compiler, '-help');
    $self->runShell(@cmd); 

@@ -22,7 +22,7 @@
 import time, subprocess, optparse, sys, socket, os
 import misc.rtest as rtest
 
-solve      = "./lcc -c".split()
+solve      = "./csolve -c".split()
 null       = open("/dev/null", "w")
 now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
 logfile    = "../tests/logs/regrtest_results_%s_%s" % (socket.gethostname (), now)
@@ -64,7 +64,7 @@ class Config (rtest.TestConfig):
     logged_sys_call(["../tests/postests/coreutils/makeCoreUtil.sh", "init"], None)
 
   def run_test (self, file):
-    os.environ['LCCFLAGS'] = self.dargs
+    os.environ['CSOLVEFLAGS'] = self.dargs
     if file.endswith(".c"):
       fargs = getfileargs(file)
       return solve_quals(file, True, False, True, fargs)

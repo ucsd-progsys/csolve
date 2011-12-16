@@ -14,7 +14,7 @@ int main () {
 
     f = &inc;
     int z = f (y);
-    lcc_assert (z >= 0);
+    csolve_assert (z >= 0);
 
     return 0;
 }

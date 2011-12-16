@@ -21,6 +21,6 @@ void main(int n){
   }
 
   y = root->data;
-  lcc_assert(y >= 0);
-  //lcc_assert(y >= i);  store-scope-issue
+  csolve_assert(y >= 0);
+  //csolve_assert(y >= i);  store-scope-issue
 }
