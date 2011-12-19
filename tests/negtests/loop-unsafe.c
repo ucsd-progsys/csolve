@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 void main(){
   int i, z, n; 
@@ -7,5 +7,5 @@ void main(){
   for (i=0; i < n; i++){
     z -= i;
   }
-  lcc_assert (z >= 0);
+  csolve_assert (z >= 0);
 }

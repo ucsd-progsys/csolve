@@ -79,6 +79,10 @@ val e_false             : Sloc.t -> Ctypes.effectptr
 val e_true              : Sloc.t -> Ctypes.effectptr
 val e_fresh             : Sloc.t -> Ctypes.effectptr
 
+val vv_addr             : Ast.Symbol.t
+val vv_addr_expr        : Ast.expr
+val replace_addr        : Cil.varinfo -> Ctypes.refctype -> Ctypes.refctype
+
 val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
@@ -98,6 +102,7 @@ val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ast.pred option *
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
 val t_name   : cilenv -> FixAstInterface.name -> Ctypes.refctype
 val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
+val t_addr              : Sloc.t -> Ctypes.refctype
 
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
@@ -214,14 +219,6 @@ val make_cs_tuple       : cilenv -> Ast.pred ->
                           FixConstraint.t list * FixConstraint.dep list
 
 val make_cs_refcfun     : cilenv -> Ast.pred ->
-                          Ctypes.refcfun -> 
-                          Ctypes.refcfun ->
-                          CilTag.t ->
-                          Cil.location ->
-                          FixConstraint.t list * FixConstraint.dep list
-
-val make_cs_refcfun_covariant :
-                          cilenv -> Ast.pred ->
                           Ctypes.refcfun -> 
                           Ctypes.refcfun ->
                           CilTag.t ->

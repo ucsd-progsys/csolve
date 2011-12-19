@@ -17,7 +17,7 @@ int main () {
         p = q;
     }
 
-    lcc_assert (**p == **q);
+    csolve_assert (**p == **q);
     
     return 0;
 }

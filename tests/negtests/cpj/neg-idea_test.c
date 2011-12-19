@@ -51,21 +51,21 @@ int inv (int x) {
         return(x);          // 0 and 1 are self-inverse.
 
     t1 = 0x10001 / x;       // (2**16+1)/x; x is >= 2, so fits 16 bits.
-    y = lcc_mod (0x10001, x);
-    LCC_ASSUME (y > 0);
+    y = csolve_mod (0x10001, x);
+    CSOLVE_ASSUME (y > 0);
     if (y == 1)
         return((1 - t1) & 0xFFFF);
 
     t0 = 1;
     do {
         q = x / y;
-        x = lcc_mod (x, y);
-        LCC_ASSUME (x > 0);
+        x = csolve_mod (x, y);
+        CSOLVE_ASSUME (x > 0);
         t0 += q * t1;
         if (x == 1) return(t0);
         q = y / x;
-        y = lcc_mod (y, x);
-        LCC_ASSUME (y > 0);
+        y = csolve_mod (y, x);
+        CSOLVE_ASSUME (y > 0);
         t1 += q * t0;
     } while (y != 1);
 
@@ -370,8 +370,8 @@ run1(int ilow,
     x4 = (int) ((long) x4 * key[ik++] % 0x10001L & 0xffff);
 
     /* Repackage from 16-bit sub-blocks to 8-bit byte array text2. */
-    /* LCC_ASSUME(i2 == 8*i); */
-    lcc_assert (i2 == i);
+    /* CSOLVE_ASSUME(i2 == 8*i); */
+    csolve_assert (i2 == i);
     text2[i2++] = (char) x1;
     text2[i2++] = (char) (x1 >> 8);
     text2[i2++] = (char) x3;                // x3 and x2 are switched

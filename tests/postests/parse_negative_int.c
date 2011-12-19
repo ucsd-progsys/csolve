@@ -1,5 +1,5 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 void main (int REF(V > -1) x) CHECK_TYPE {
-    lcc_assert (x > -1);
+    csolve_assert (x > -1);
 }

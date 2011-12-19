@@ -39,7 +39,7 @@ int bar(int n){
 
   for(tmp = root->next; tmp != root; tmp = tmp->next){
     validptr(tmp);
-    lcc_assert(tmp->data >= 0);
+    csolve_assert(tmp->data >= 0);
   }
  
   return 0;

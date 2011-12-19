@@ -33,8 +33,11 @@ qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a])
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 4) = 0
 qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 8) = 0
 
+qualif NULLTERM (v: int): (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
+
 // Generally useful for effect tracking
 qualif NOWRITE(v: ptr) : EWRITE != 1
 qualif NOREAD(v: ptr)  : EREAD != 1
 
 qualif GPTR(v: ptr) : v >= ~a
+

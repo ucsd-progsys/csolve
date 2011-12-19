@@ -46,7 +46,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "adpcm.h"
 #include <stdio.h> /*DBG*/
-#include <liquidc.h>
+#include <csolve.h>
 
 #ifndef __STDC__
 #define signed

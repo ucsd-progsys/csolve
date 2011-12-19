@@ -1,6 +1,6 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 void main () {
     int x = nondet();
-    lcc_assert (x & 1);
+    csolve_assert (x & 1);
 }

@@ -4,7 +4,7 @@ cd `dirname $0`/../../../external/gnu-coreutils/ || exit 1
 
 if [ "$1" = "init" ]; then
     make clean && \
-        ./lcc.configure && \
+        ./csolve.configure && \
         exit 0
 fi
 
@@ -14,4 +14,4 @@ if [ "$NAME" = "makeCoreUtil" ]; then
     exit 0
 fi
 
-cd src && ./make.lcc $NAME
+cd src && ./make.csolve $NAME

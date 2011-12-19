@@ -301,6 +301,8 @@ let t_singleton_effect env v eff =
   let vn = FA.name_of_varinfo v in
     refctype_of_ctype (ra_singleton_effect eff vn) (Ct.ctype_of_refctype <| ce_find vn env)
 
+let t_addr          = fun l  -> t_true <| Ct.Ref (l, Ix.top)
+
 let t_conv_refctype      = fun f rct -> rct |> Ct.ctype_of_refctype |> refctype_of_ctype f
 let t_true_refctype      = t_conv_refctype ra_true
 let t_false_refctype     = t_conv_refctype ra_false
@@ -698,6 +700,15 @@ let is_poly_cloc st cl =
   |> binds_of_refldesc cl 
   |> (=) []
 
+(******************************************************************************)
+(************************ Address-Dependent Refinements ***********************)
+(******************************************************************************)
+
+let vv_addr      = Sy.of_string "VVADDR"
+let vv_addr_expr = A.eVar vv_addr
+
+let replace_addr v rct =
+  t_subs_names [(vv_addr, FA.name_of_string v.vname)] rct
 
 (******************************************************************************)
 (*********************************** Effects **********************************)
@@ -782,8 +793,11 @@ let rec make_wfs_refstore env full_sto sto tag =
       let ncrs = sloc_binds_of_refldesc l rd in
       let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
                       |> List.map fst
-                      |> ce_adds env in 
-      let ws1  = Misc.flap (fun ((_,cr),_) -> make_wfs env' full_sto cr tag) ncrs in
+                      |> ce_adds env in
+      let env_addr = ce_adds env' [(vv_addr, t_addr l)] in
+      let ws1  = Misc.flap
+                   (fun ((_,cr),i) -> make_wfs (M.choose (Ix.is_periodic i) env_addr env') full_sto cr tag)
+                   ncrs in
         ws1 ++ ws
     end [] sto
 
@@ -912,9 +926,11 @@ let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
 
 let make_cs_refldesc env p sld1 sld2 tago tag =
   with_refldesc_ncrs_env_subs env sld1 sld2 begin fun ncrs env subs ->
+    let env_addr = ce_adds env [(vv_addr, sld1 |> fst |> Sloc.canonical |> t_addr)] in
      Misc.map begin fun ((n1, cr1), (_, cr2), i) -> 
        let lhs = if Index.is_periodic i then cr1 else t_name env n1 in
        let rhs = t_subs_names subs cr2 in
+       let env = if Ix.is_periodic i then env_addr else env in
          make_cs env p lhs rhs tago tag 
      end ncrs
      |> Misc.splitflatten
@@ -998,11 +1014,6 @@ let rec make_cs_refcfun env p rf rf' tag loc =
   make_cs_refcfun_aux make_cs_refcfun
     env p (make_cs_refcfun_components rf rf') tag loc
 
-let rec make_cs_refcfun_covariant env p rf rf' tag loc =
-  let its, his, ocrs, hos = make_cs_refcfun_components rf rf' in
-    make_cs_refcfun_aux make_cs_refcfun_covariant
-      env p (M.swap its, M.swap his, ocrs, hos) tag loc
-
 (* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
   try make_cs_refstore_aux make_cs_refcfun env p st1 st2 polarity tago tag loc with ex ->
@@ -1063,13 +1074,6 @@ let make_cs_refcfun gnv p rf rf' tag loc =
     let _ = asserti false "make_cs_refcfun" in 
     assert false
 
-(* API *) 
-let make_cs_refcfun_covariant gnv p rf rf' tag loc =
-  try make_cs_refcfun_covariant gnv p rf rf' tag loc with ex ->
-    let _ = Cil.errorLoc loc "make_cs_refcfun_covariant fails with: %s" (Printexc.to_string ex) in 
-    let _ = asserti false "make_cs_refcfun_covariant" in 
-    assert false
-
 let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 
@@ -1096,8 +1100,15 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                   match ix with
                   | Ix.ICClass _ ->
                       let rct = RCt.Field.type_of rfld in
-                      let lhs = new_block_reftype rct in
+                      let lhs = rct
+                             |> new_block_reftype
+                             |> strengthen_refctype
+                                 begin fun rct ->
+                                   let vv, p = Sc.pred_of_index_ref ix in
+                                     [C.Conc (P.subst p vv (A.eVar vv_addr))]
+                                 end in
                       let rhs = t_subs_names subs rct in
+                      let env' = ce_adds env' [(vv_addr, t_addr sloc)] in
                       let cs' = fst <| make_cs env' A.pTrue lhs rhs None tag loc in
                       cs' ++ cs
                   | _ -> cs

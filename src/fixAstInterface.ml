@@ -21,9 +21,9 @@
  *
  *)
 
-(* This file is part of the liquidC Project.*)
+(* This file is part of the CSolve Project.*)
 
-(************** Interface between LiquidC and Fixpoint *************)
+(************** Interface between CSolve and Fixpoint *************)
 
 module IM = Misc.IntMap
 module F  = Format
@@ -160,7 +160,7 @@ let quals_of_file fname =
 (* API *)
 let quals_of_file fname =
   let cppname = fname ^ ".cpp" in
-  let cmd     = Printf.sprintf "cpp -imacros %s %s -P -o %s" (Constants.get_liquidc_h ()) cppname fname in
+  let cmd     = Printf.sprintf "cpp -imacros %s %s -P -o %s" (Constants.get_csolve_h ()) cppname fname in
   let _       = if Sys.file_exists cppname then Sys.command cmd |> ignore in
   quals_of_file fname
 

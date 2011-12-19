@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 extern void dummyassert (int) OKEXTERN;
 
@@ -35,8 +35,8 @@ int page_getfree(int pages[])
 
 int page_free(int ppno, int pages[], int page_protected[])
 {
-  lcc_assert(0 <= ppno);
-  lcc_assert(ppno < 1000);
+  csolve_assert(0 <= ppno);
+  csolve_assert(ppno < 1000);
   dummyassert(pages[ppno] > 0 || page_protected[ppno] == 0);
   validptr(pages + ppno);
   return pages[ppno] == 0;
@@ -44,8 +44,8 @@ int page_free(int ppno, int pages[], int page_protected[])
 
 int is_page_protected(int ppno, int pages[], int page_protected[])
 {
-    lcc_assert(0 <= ppno);
-    lcc_assert(ppno < 1000);
+    csolve_assert(0 <= ppno);
+    csolve_assert(ppno < 1000);
     dummyassert(page_protected[ppno] == 0 || pages[ppno] > 0);
     validptr(page_protected + ppno);
     return page_protected[ppno] != 0;
@@ -64,13 +64,13 @@ void env_check(env_t * LOC(L) env, env_t * LOC(L) *envs, int pages[], int page_p
     int i, found;
     env_t *walk;
     int ppi = 0;
-    int a = lcc_assume(env != (env_t*) 0); // pmr: precondition
+    int a = csolve_assume(env != (env_t*) 0); // pmr: precondition
 
     dummyassert(is_page_protected(env->env_mypp, pages, page_protected));
 
     for (i = 0; i < 2000; i++){
-        lcc_assert(0 <= i);
-	lcc_assert(i < 2000);
+        csolve_assert(0 <= i);
+	csolve_assert(i < 2000);
 	ppi = env->env_pgdir[i]; //RECHECK ISSUE -- SAVE result in ppi
         if (ppi >= 0) {
             dummyassert(!page_free(ppi, pages, page_protected));
@@ -104,11 +104,11 @@ void mem_check(env_t **envs, int pages[], int page_protected[])
     for (walk = *envs; walk; walk = walk->env_next) {
         dummyassert(is_page_protected(walk->env_mypp, pages, page_protected));
 
-	//lcc_assert(0); SANITY
+	//csolve_assert(0); SANITY
         validptr(lpages + walk->env_mypp);
         lpages[walk->env_mypp]++;
         for (i = 0; i < 2000; i++){
-            lcc_assert(0 <= i); lcc_assert(i < 2000);
+            csolve_assert(0 <= i); csolve_assert(i < 2000);
             ppi = walk->env_pgdir[i]; // RECHECK ISSUE
 	    if (ppi >= 0) {
                 dummyassert(!is_page_protected(ppi, pages, page_protected));
@@ -132,18 +132,18 @@ env_t * LOC(L) env_alloc(env_t * LOC(L) *envs, int pages[], int page_protected[]
     
     int i, env_pp = page_getfree(pages);
 
-    int a = lcc_assume(envs != (env_t **) 0); // pmr: precondition
+    int a = csolve_assume(envs != (env_t **) 0); // pmr: precondition
     
     if (env_pp < 0)
         return 0;
 
-    lcc_assert(0 <= env_pp);
-    lcc_assert(env_pp < 1000);
+    csolve_assert(0 <= env_pp);
+    csolve_assert(env_pp < 1000);
     env = (env_t *) malloc(sizeof(env_t));
 
     env->env_mypp = env_pp;
     for (i = 0; i < 2000; i++){
-        lcc_assert(0 <= i); lcc_assert(i < 2000);
+        csolve_assert(0 <= i); csolve_assert(i < 2000);
         env->env_pgdir[i] = -1;
     }
     tmp = *envs; // PURIFIER ISSUE
@@ -162,7 +162,7 @@ env_t * LOC(L) env_alloc(env_t * LOC(L) *envs, int pages[], int page_protected[]
     page_protected[env_pp] = 1;
     env_check(env, envs, pages, page_protected);
     mem_check(envs, pages, page_protected);
-    // lcc_assert(0); SANITY
+    // csolve_assert(0); SANITY
     return env;
 }
 
@@ -171,13 +171,13 @@ void env_free(env_t * LOC(L) env, env_t * LOC(L) *envs, int pages[], int page_pr
     int i;
     int ppi = 0;
 
-    int a = lcc_assume(env != (env_t*) 0); // pmr: precondition
-    int a = lcc_assume(envs != (env_t**) 0); // pmr: precondition
+    int a = csolve_assume(env != (env_t*) 0); // pmr: precondition
+    int a = csolve_assume(envs != (env_t**) 0); // pmr: precondition
     
     env_check(env, envs, pages, page_protected);
 
     for (i = 0; i < 2000; i++){
-        lcc_assert(0 <= i); lcc_assert(i < 2000);
+        csolve_assert(0 <= i); csolve_assert(i < 2000);
 
 	ppi = env->env_pgdir[i];
 	if (ppi >= 0){
@@ -212,13 +212,13 @@ int page_alloc(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int page
     if (pp < 0)
         return -1;
 
-    lcc_assert(0 <= vp); lcc_assert(vp < 2000);
+    csolve_assert(0 <= vp); csolve_assert(vp < 2000);
     tmp = env->env_pgdir[vp];
     if (tmp >= 0){
         page_decref(tmp, pages, page_protected);
     }
     
-    lcc_assert(0 <= vp); lcc_assert(vp < 2000);
+    csolve_assert(0 <= vp); csolve_assert(vp < 2000);
     env->env_pgdir[vp] = pp;
     validptr(pages + pp);
     pages[pp]++;
@@ -233,7 +233,7 @@ void page_unmap(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pag
 {
     int tmp; // RECHECK ISSUE
 
-    lcc_assert(0 <= vp); lcc_assert(vp < 2000);
+    csolve_assert(0 <= vp); csolve_assert(vp < 2000);
     tmp = env->env_pgdir[vp];
     if (tmp >= 0){
         page_decref(tmp, pages, page_protected);
@@ -247,11 +247,11 @@ int page_map(env_t * LOC(L) srcenv, int NONNEG srcvp, env_t * LOC(L) dstenv, int
 {
     int tmp, tmp2; // RECHECK ISSUE
 
-    int a = lcc_assume(srcenv != (env_t*) 0); // pmr: precondition
-    int a = lcc_assume(dstenv != (env_t*) 0); // pmr: precondition
+    int a = csolve_assume(srcenv != (env_t*) 0); // pmr: precondition
+    int a = csolve_assume(dstenv != (env_t*) 0); // pmr: precondition
 
-    lcc_assert(srcvp >= 0); lcc_assert(srcvp < 2000);
-    lcc_assert(dstvp >= 0); lcc_assert(dstvp < 2000);
+    csolve_assert(srcvp >= 0); csolve_assert(srcvp < 2000);
+    csolve_assert(dstvp >= 0); csolve_assert(dstvp < 2000);
 
     env_check(srcenv, envs, pages, page_protected);
     env_check(dstenv, envs, pages, page_protected);

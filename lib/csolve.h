@@ -1,5 +1,5 @@
-#ifndef __HAVE_LIQUIDC
-#define __HAVE_LIQUIDC
+#ifndef __HAVE_CSOLVE
+#define __HAVE_CSOLVE
 
 // Predicate abbreviations
 #define PNONNULL       V > 0
@@ -16,36 +16,36 @@
 #define PINDEX(x,sz)   && [(BLOCK_BEGIN([x]) <= (x + (sz * V))); ((x + sz + (sz * V)) <= BLOCK_END([x]))]
 
 #ifdef CIL
-# define LCC_ATTR(a) __attribute__ ((a))
+# define CSOLVE_ATTR(a) __attribute__ ((a))
 #else
-# define LCC_ATTR(a)
+# define CSOLVE_ATTR(a)
 #endif
 
 // Basic macros
 // Need to break this into two levels to ensure predicate p is macro expanded
-#define SREF(p)            LCC_ATTR (lcc_predicate (#p))
+#define SREF(p)            CSOLVE_ATTR (csolve_predicate (#p))
 #define REF(p)             SREF(p)
 #define NNREF(p)           REF(PNN(p))
-#define ARRAY              LCC_ATTR (array)
-#define SHAPE_IGNORE_BOUND LCC_ATTR (lcc_ignore_bound)
-#define IGNORE_INDEX       LCC_ATTR (lcc_ignore_index)
+#define ARRAY              CSOLVE_ATTR (array)
+#define SHAPE_IGNORE_BOUND CSOLVE_ATTR (csolve_ignore_bound)
+#define IGNORE_INDEX       CSOLVE_ATTR (csolve_ignore_index)
 
-#define FINAL              LCC_ATTR (lcc_final)
-#define LOC(l)             LCC_ATTR (lcc_sloc (#l))
-#define GLOBAL(l)          LCC_ATTR (lcc_global_loc (#l))
-#define OKEXTERN           LCC_ATTR (lcc_extern_ok)
-#define CHECK_TYPE         LCC_ATTR (lcc_check_type)
+#define FINAL              CSOLVE_ATTR (csolve_final)
+#define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
+#define GLOBAL(l)          CSOLVE_ATTR (csolve_global_loc (#l))
+#define OKEXTERN           CSOLVE_ATTR (csolve_extern_ok)
+#define CHECK_TYPE         CSOLVE_ATTR (csolve_check_type)
 
-#define INST(l, k)         LCC_ATTR (lcc_inst_sloc (#l, #k))
+#define INST(l, k)         CSOLVE_ATTR (csolve_inst_sloc (#l, #k))
 
-#define ROOM_FOR(t)        LCC_ATTR (lcc_room_for (sizeof(t)))
-#define NNROOM_FOR(t)      LCC_ATTR (lcc_nonnull_room_for (sizeof(t)))
+#define ROOM_FOR(t)        CSOLVE_ATTR (csolve_room_for (sizeof(t)))
+#define NNROOM_FOR(t)      CSOLVE_ATTR (csolve_nonnull_room_for (sizeof(t)))
 
-#define EFFECT(l, p)       LCC_ATTR (lcc_effect (#l, #p))
+#define EFFECT(l, p)       CSOLVE_ATTR (csolve_effect (#l, #p))
 
 // Hack: CIL doesn't allow types as attribute parameters, so we
 //       indirect through sizeof.
-#define LAYOUT(t)          LCC_ATTR (lcc_layout (sizeof(t)))
+#define LAYOUT(t)          CSOLVE_ATTR (csolve_layout (sizeof(t)))
 
 
 // Predicate macros
@@ -67,26 +67,26 @@
 
 // Assumptions
 
-#define LCC_VAR2(base, n) base##n
-#define LCC_VAR(base, n)  LCC_VAR2(__lcc__##base, n)
-#define LCC_ASSUME(p)     ;int LCC_VAR(assume, __COUNTER__ ) = lcc_assume (p);
+#define CSOLVE_VAR2(base, n) base##n
+#define CSOLVE_VAR(base, n)  CSOLVE_VAR2(__csolve__##base, n)
+#define CSOLVE_ASSUME(p)     ;int CSOLVE_VAR(assume, __COUNTER__ ) = csolve_assume (p);
 
 // Memory Safety Backdoors
 
-#define UNCHECKED              LCC_ATTR (lcc_unchecked)
+#define UNCHECKED              CSOLVE_ATTR (csolve_unchecked)
 
-#define LCC_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
-#define LCC_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)
+#define CSOLVE_UNSAFE_WRITE(p, d) *((typeof (d) * UNCHECKED) p) = d
+#define CSOLVE_UNSAFE_READ(p)     *((typeof (p) UNCHECKED) p)
 
 // Built-in functions
 
-extern void lcc_fold_all () OKEXTERN;
+extern void csolve_fold_all () OKEXTERN;
 
 extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
 
-extern int lcc_assert (int REF(V != 0) p) OKEXTERN;
+extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
 
-extern int REF(b = 1) lcc_assume (int b) OKEXTERN;
+extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
 extern int nondet () OKEXTERN;
 
@@ -97,7 +97,7 @@ extern int REF(V >= 0) nondetnn () OKEXTERN;
 extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
-//char * LOC(L) STRINGPTR lcc_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
+//char * LOC(L) STRINGPTR csolve_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE
 //{
 //  return p;
 //}
@@ -108,6 +108,6 @@ extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, 
 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
 
-extern int REF(&& [V < m; V >= 0; V <= a]) lcc_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
+extern int REF(&& [V < m; V >= 0; V <= a]) csolve_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
 
 #endif

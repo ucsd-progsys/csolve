@@ -40,7 +40,7 @@ void quicksort(int * ARRAY a, int len)
   }
 
   int tmp = a[0];
-  lcc_assert(len > 0);
+  csolve_assert(len > 0);
 
   //choose the median of the middle, beginning and end as the pivot
   //swap them into relative order while we're at it

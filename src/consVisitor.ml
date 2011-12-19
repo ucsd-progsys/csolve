@@ -193,7 +193,8 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
     let rct = fld
            |> RF.type_of
            |> M.choose (RF.is_final fld && Ct.is_soft_ptr loc sto <| var_addr me env v)
-               (FI.strengthen_type_with_deref (Ast.eVar vn) 0) id in
+               (FI.strengthen_type_with_deref (Ast.eVar vn) 0) id
+           |> FI.replace_addr v in
       (rct, cs)
   (* x, when x is global *)
   | Lval (Var v, NoOffset) when v.vglob ->
@@ -238,11 +239,11 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
       let isp  = try Ct.is_soft_ptr loc sto addr with ex ->
                    Errormsg.s <| Cil.errorLoc loc "is_soft_ptr crashes on %s" v.vname in
       if isp then
-        let cr   = addr |> Ct.refstore_read loc sto |> RF.type_of in
+        let cr   = addr |> Ct.refstore_read loc sto |> RF.type_of |> FI.replace_addr v in
         let cds3 = FI.make_cs env grd cr' cr tago tag loc in
         (env, sto, Some tag), (cds1 +++ cds2 +++ cds3)
       else
-        let sto      = Ct.refstore_write loc sto addr cr' in
+        let sto      = cr' |> FI.replace_addr v |> Ct.refstore_write loc sto addr in
         let env, sto = FI.refstore_strengthen_addr loc env sto ffm v.vname addr in
         (env, sto, Some tag), (cds1 +++ cds2)
 
@@ -773,7 +774,8 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
       let ct     = Ct.ctype_of_refctype cr in
       let _, cr' = FI.t_exp env ct e in
         if Ct.is_soft_ptr loc sto ctptr then
-          (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
+          let env = FI.ce_adds env [(FI.vv_addr, cloc |> Sloc.canonical |> FI.t_addr)] in
+            (sto, cs ++ (FI.make_cs env Ast.pTrue cr' cr None tag loc |> fst))
         else
           (Ct.refstore_write loc sto ctptr cr', cs)
   | CompoundInit (_, inits) ->
@@ -838,9 +840,7 @@ let cons_of_decs tgr spec gnv gst decs =
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
         let cs''     = make_cs_if (should_supertype s)
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
-        let cs''', _ = FI.make_cs_refcfun_covariant
-                         gnv Ast.pTrue irf (RCf.map FI.t_indexpred_refctype srf) tag loc in
-        (ws' ++ ws, cs''' ++ cs'' ++ cs' ++ cs, [], [])
+        (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
     | CM.VarDec (v, loc, init) ->
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in

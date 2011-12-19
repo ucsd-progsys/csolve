@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 int inc (int *x) {
     return *x + 1;
@@ -14,7 +14,7 @@ int main () {
 
     f = &inc;
     int z = f (y);
-    lcc_assert (z >= 0);
+    csolve_assert (z >= 0);
 
     return 0;
 }

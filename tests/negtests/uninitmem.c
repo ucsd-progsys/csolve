@@ -1,10 +1,10 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 void f (int *y) {
     int x = *y;
 
-    lcc_assert(0);
+    csolve_assert(0);
 }
 
 void main () {

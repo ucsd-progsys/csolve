@@ -2,15 +2,15 @@
 
 void write (int * ARRAY p) {
     int i = nondet ();
-    LCC_ASSUME (0 <= i);
-    LCC_ASSUME (i <= 1);
+    CSOLVE_ASSUME (0 <= i);
+    CSOLVE_ASSUME (i <= 1);
 
     cobegin
         rtbeg
             p[i] = 10;
         rtend
         rtbeg
-            p[1] = 20;
+            p[1 - i] = 20;
         rtend
     coend
 }

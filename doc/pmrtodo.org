@@ -17,6 +17,20 @@
 
 * TODO Location mismatch - friendlier errors?
 
+* TODO Location includes
+
+* TODO Failed constraints on the *specs* of functions
+
+* TODO Better tracking of slocs, where they map, errors, etc.
+
+* TODO More elegant way of backing off defaults for annotations?
+  If we give any annotation at all, we lose all the defaults. Do we
+  really want this?
+
+* TODO What's happening with check_pos
+
+* TODO Location mismatch - friendlier errors?
+
 * TODO Failed constraints on the *specs* of functions
 
 * TODO Better tracking of slocs, where they map, errors, etc.

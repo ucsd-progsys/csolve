@@ -7,13 +7,13 @@ void main(){
 
   *r = 10;
   validptr(r);
-  lcc_assert(*r == 10);
+  csolve_assert(*r == 10);
 
   *r = nondet();
 
   int a = *r;
   int b = *r;
-  lcc_assert(a == b);
+  csolve_assert(a == b);
 
 
 }

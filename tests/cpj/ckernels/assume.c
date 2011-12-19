@@ -7,12 +7,12 @@ void main(){
   int n = nondetpos();
  
   foreach(i, 0, n)
-    lcc_assert((0 <= i));
-    lcc_assert((i <  n));
+    csolve_assert((0 <= i));
+    csolve_assert((i <  n));
   endfor 
   
-  //int tmp = lcc_assume((n > 10));   // SAFE
-  //lcc_assert(n > 10);
+  //int tmp = csolve_assume((n > 10));   // SAFE
+  //csolve_assert(n > 10);
 
 
 }

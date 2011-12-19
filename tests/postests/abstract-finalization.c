@@ -14,7 +14,7 @@ int main () {
     *x = 1;
 
     if (*x == *y) {
-        lcc_assert (*x == *y);
+        csolve_assert (*x == *y);
     }
 
     return 0;

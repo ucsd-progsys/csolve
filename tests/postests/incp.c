@@ -29,7 +29,7 @@ void main(){
   incb(r);
  // incc(r);
 
-  lcc_assert(*r >= 0);
+  csolve_assert(*r >= 0);
   
   return;
 }

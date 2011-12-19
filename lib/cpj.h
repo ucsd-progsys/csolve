@@ -1,6 +1,5 @@
-#include <liquidc.h>
+#include <csolve.h>
 
-#ifdef  __HAVE_LIQUIDC
 #ifndef __HAVE_CPJ
 #define __HAVE_CPJ
 
@@ -12,8 +11,8 @@
 
 // Deterministic Parallel Constructs
 
-#define COBEGIN                while (1) { BLOCKATTRIBUTE((lcc_cobegin))
-#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((lcc_coroutine)) lcc_fold_all ();
+#define COBEGIN                while (1) { BLOCKATTRIBUTE((csolve_cobegin))
+#define RTBEG                  if (nondet ()) { BLOCKATTRIBUTE((csolve_coroutine)) csolve_fold_all ();
 #define RTEND                  }
 #define RTN(s)                 RTBEG s; RTEND
 #define COEND                  if (nondet ()) { break; } }
@@ -21,14 +20,14 @@
 #define FOREACH(i, l, u)       FOREACH2(i, l, u, __COUNTER__)
 #define FOREACH2(i, l, u, x)   FOREACH3(i, l, u, x)
 #define FOREACH3(i, l, u, x)   {  int i;                       \
-                                  int __lcc_foreach_lb_##x = l; \
-                                  int __lcc_foreach_ub_##x = u; \
-                                  while (nondet ()) { BLOCKATTRIBUTE((lcc_foreach)) \
-                                    i = nondetrange(__lcc_foreach_lb_##x, __lcc_foreach_ub_##x); \
-                                    { BLOCKATTRIBUTE((lcc_foreach_iter)) lcc_fold_all ();
+                                  int __csolve_foreach_lb_##x = l; \
+                                  int __csolve_foreach_ub_##x = u; \
+                                  while (nondet ()) { BLOCKATTRIBUTE((csolve_foreach)) \
+                                    i = nondetrange(__csolve_foreach_lb_##x, __csolve_foreach_ub_##x); \
+                                    { BLOCKATTRIBUTE((csolve_foreach_iter)) csolve_fold_all ();
 #define ENDFOR                 }}}
 
-#define ATOMIC                 BLOCKATTRIBUTE((lcc_atomic))
+#define ATOMIC                 BLOCKATTRIBUTE((csolve_atomic))
 
 // more natural looking macros for parallel constructs
 
@@ -54,8 +53,8 @@ typedef int bool;
 // Effect Declarations
 
 #define PRAGMA                      #pragma
-#define LCC_EFFECT(e)               PRAGMA lcc_effect_decl (#e)
-#define LCC_EFFECTS_COMMUTE(e1, e2) PRAGMA lcc_effects_commute (#e1, #e2)
+#define CSOLVE_EFFECT(e)               PRAGMA csolve_effect_decl (#e)
+#define CSOLVE_EFFECTS_COMMUTE(e1, e2) PRAGMA csolve_effects_commute (#e1, #e2)
 
 // Allocators
 
@@ -75,5 +74,4 @@ extern
 int REF(V = 0) * NONNULL SIZE(4 * sz) START ARRAY
   callocInt(int REF(V > 0) sz)
   OKEXTERN;
-#endif
 #endif

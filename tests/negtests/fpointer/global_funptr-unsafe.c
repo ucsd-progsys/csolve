@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 int (*f) ();
 
@@ -8,7 +8,7 @@ int one () {
 
 int main () {
     f = &one;
-    lcc_assert (f () > 0);
+    csolve_assert (f () > 0);
 
     return 0;
 }

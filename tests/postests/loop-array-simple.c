@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 void main(){
   int i, p, q; 
@@ -14,7 +14,7 @@ void main(){
     p++;
   }
  
-  lcc_assert(p == q+i);
+  csolve_assert(p == q+i);
 
   return;
 }

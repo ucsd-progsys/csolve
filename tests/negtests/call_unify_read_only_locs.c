@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 int read_one_of (int * LOC(P) p, int * LOC(Q) q) {
@@ -14,5 +14,5 @@ void main () {
 
     int *c = nondet () ? a : b;
 
-    lcc_assert (read_one_of (c, c));
+    csolve_assert (read_one_of (c, c));
 }

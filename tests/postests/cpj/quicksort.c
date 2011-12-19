@@ -1,8 +1,8 @@
 #include <cpj.h>
 #include <stdlib.h>
 
-const int REF (V > 0) buf_len = 10000;
-const int REF (V > 0) too_small  = 50;
+const int buf_len = 10000; 
+const int too_small  = 50;
 
 
 void swp(int * ARRAY a, int b, int c)
@@ -40,7 +40,7 @@ void quicksort(int * ARRAY a, int len)
   }
 
   int tmp = a[0];
-  lcc_assert(len > 0);
+  csolve_assert(len > 0);
 
   //choose the median of the middle, beginning and end as the pivot
   //swap them into relative order while we're at it
@@ -73,16 +73,15 @@ void quicksort(int * ARRAY a, int len)
 
   lt++;
 
-  // pmr: inserted off-by-one below
   cobegin
     rtn(quicksort(a, lt))
-    rtn(quicksort(a + lt - 1, len - lt))
+    rtn(quicksort(a + lt, len - lt))
   coend
-
+  
 }
 
 void initialize(int * ARRAY a, int len)
-{
+{ 
   foreach(i, 0, len)
     a[i] = nondet();
   endfor
@@ -90,11 +89,12 @@ void initialize(int * ARRAY a, int len)
 
 void main() // char ** argv, int argc)
 {
-  int * ARRAY buf;
+  int *buf;
   int len = buf_len;
 
-  buf = malloc(sizeof(int) * len);
+  buf = malloc(sizeof(int) * len); 
 
-  initialize(buf, len);
+  initialize(buf, len); 
   quicksort(buf, len);
 }
+

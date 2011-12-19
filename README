@@ -13,16 +13,12 @@ Checking Out Of Git
 
 To clone CSolve from git:
 
-git clone goto.ucsd.edu:/git/liquidc
-cd liquidc
+git clone goto.ucsd.edu:/git/csolve
+cd csolve
 ./init-submodules.sh
 
 Configuring and Compiling
 -------------------------
-
-NOTE:
-If you downloaded CSolve off the web, you need to download Z3 first.
-Please see the section below for instructions.
 
 To begin building CSolve, run the following commands in the root
 directory of the source distribution:
@@ -31,17 +27,6 @@ directory of the source distribution:
 2. ./build.sh
 
 To build CSolve after this step, run make in the src/ directory.
-
-Downloading Z3
---------------
-
-For legal reasons, we cannot distribute the Z3 SMT solver that CSolve
-requires.  Instead, you must download Z3 2.4 for Linux from
-
-  http://research.microsoft.com/en-us/um/redmond/projects/z3/download.html
-
-Untar the file in the external/ subdirectory; this will create the
-directory external/z3.  You can now proceed to build CSolve.
 
 Testing CSolve
 --------------
@@ -53,21 +38,21 @@ configured, change into the src/ directory and run
 
 All tests should pass.
 
-Running CSolve: lcc
+Running CSolve: csolve
 -------------------------------------------------
 
-The CSolve executable, lcc, is used just like gcc.
+The CSolve executable, csolve, is used just like gcc.
 There are two common use cases:
 
 * Running on a single file
   Simply run
 
-    lcc code.c
+    csolve code.c
 
-  to typecheck and compile code.c.  lcc will read qualifiers from
+  to typecheck and compile code.c.  csolve will read qualifiers from
   code.c.hquals and function specifications from code.c.spec.
 
-  lcc will do one of the following:
+  csolve will do one of the following:
 
   1) Output SAFE and compile the file
      The program is memory- and assertion-safe: all pointer
@@ -80,27 +65,27 @@ There are two common use cases:
      precondition violations.  The locations of the errors are
      printed, as well as the constraints that fail.
 
-  lcc takes the same arguments as gcc.  In particular, if you do not
+  csolve takes the same arguments as gcc.  In particular, if you do not
   want to fully compile code.c - for example, if code.c would not link
   because it contains references to "dummy" functions - then add the
   -c flag to stop before linking:
 
-    lcc -c code.c
+    csolve -c code.c
 
   Additionally, CSolve-specific options can be found by
 
-    lcc --help
+    csolve --help
 
 * Compiling an entire source tree
-  To use lcc to compile an entire project - first compiling C source
+  To use csolve to compile an entire project - first compiling C source
   to object files, then compiling those object files into an executable -
-  invoke lcc using the --merge flag:
+  invoke csolve using the --merge flag:
 
-    lcc --merge -c foo.c
-    lcc --merge -c boo.c
-    lcc --merge -o fooboo foo.o boo.o
+    csolve --merge -c foo.c
+    csolve --merge -c boo.c
+    csolve --merge -o fooboo foo.o boo.o
 
-  lcc will read qualifiers from fooboo.hquals and function
+  csolve will read qualifiers from fooboo.hquals and function
   specifications from fooboo.spec.
 
 Important Options
@@ -190,20 +175,20 @@ the following constructs:
 
 
 
-VIM Liquid Mode
+VIM CSolve Mode
 ---------------
 
 There is a rudimentary vim mode for viewing the output of a csolved-file.
 
 1. Add the following to your .vimrc
 
-pyfile /home/jhala/research/liquidc/utils/csolve.py
+pyfile /home/jhala/research/csolve/utils/csolve.py
 map <C-s>  :python printLiquidType("normal")<CR>
 vmap <C-s> :python printLiquidType("visual")<CR>
 map <C-p>  :python parseLiquidType()<CR>
 
-2. You must run lcc in the directory where the file foo.c is.
-   path/to/lcc foo.c
+2. You must run csolve in the directory where the file foo.c is.
+   path/to/csolve foo.c
 
 3. Now, in that directory, open foo.c (in Vim)
 
@@ -245,10 +230,10 @@ guesses are unsatisfactory, additional invariants need to be stated,
 or there are external definitions, the programmer must provide CSolve
 with annotations override its guesses or state explicit invariants.
 
-To use the explicit, specification mechanism, include liquidc.h in
+To use the explicit, specification mechanism, include csolve.h in
 every file that contains specifications, like so:
 
-  #include <liquidc.h>
+  #include <csolve.h>
 
 Important tips about writing specifications, particularly for external
 functions, are given in doc/extern_spec_checklist.org.
@@ -406,7 +391,7 @@ alternate prototype for the above function is
 
   int REF(V >= x) REF(v >= 0) abs (int x)
 
-The file lib/liquidc.h contains a number of convenient macros for
+The file lib/csolve.h contains a number of convenient macros for
 defining refinement predicates as well as shorthands for refinements, e.g.,
 
   #define NONNEG REF(V >= 0)
@@ -455,7 +440,7 @@ The above discussion applies equally to extern variable declarations.
 Finding Examples
 ----------------
 
-Useful example annotations can be found in lib/liquidc.h and
+Useful example annotations can be found in lib/csolve.h and
 external/include32/stdlib.h.
 
 
@@ -471,22 +456,22 @@ preconditions.)
 
 1. Run the whole program check as usual, e.g.
 
-        lcc file.c 
+        csolve file.c 
 
 2. Now you can tweak individual functions say, and just have them be
    re-checked against the specifications ("summaries" for all
    the other functions) inferred in Step 1:
 
-        lcc --inccheck=FUN1 ... --inccheck=FUNk file.c
+        csolve --inccheck=FUN1 ... --inccheck=FUNk file.c
 
    Will only re-analyze FUN1,...,FUNk (the C functions you wish to re-check.)
 
 For example,
 
-        lcc pmapdistilled.c
+        csolve pmapdistilled.c
 
 takes about 50s to finish the analysis, but
 
-        lcc --inccheck=page_getfree pmap_distilled.c
+        csolve --inccheck=page_getfree pmap_distilled.c
 
 returns in a couple of seconds.

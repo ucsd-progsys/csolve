@@ -1,6 +1,6 @@
 //UNSAFE
 
-#include <liquidc.h>
+#include <csolve.h>
 
 int abs(int x){
   if (x < 0){		//WRONG GUARD
@@ -15,6 +15,6 @@ void main(){
   int y;
   x = nondet();
   y = abs(x);
-  lcc_assert(y >= 0);
+  csolve_assert(y >= 0);
   return;
 }

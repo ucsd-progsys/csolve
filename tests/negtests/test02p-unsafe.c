@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 void main(){
   int *r;
@@ -14,7 +14,7 @@ void main(){
   }
 
   y = *r;
-  lcc_assert(y >= 0);
+  csolve_assert(y >= 0);
   
   return;
 }

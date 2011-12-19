@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 // Want this to work whether the alloc happens from a function or not --- what if
@@ -20,6 +20,6 @@ void main () {
     int *p = nondet () ? alloc () : dont_alloc ();
 
     if (p) {
-        lcc_assert (*p == 3);
+        csolve_assert (*p == 3);
     }
 }

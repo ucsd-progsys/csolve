@@ -1,14 +1,14 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 #include <cpj.h>
 
 #define MAX_SPLIT_DEPTH 8
 
 // Show: commutative atomic effect; user data effect
 
-LCC_EFFECT (EAtomic)
-LCC_EFFECTS_COMMUTE (EAtomic, EAtomic)
-LCC_EFFECTS_COMMUTE (EAtomic, EREAD)
+CSOLVE_EFFECT (EAtomic)
+CSOLVE_EFFECTS_COMMUTE (EAtomic, EAtomic)
+CSOLVE_EFFECTS_COMMUTE (EAtomic, EREAD)
 
 extern void increment (int * LOC(L) p)
   EFFECT(L, && [EAtomic = 1; EWRITE != 1; EREAD != 1])
@@ -18,7 +18,7 @@ extern void decrement (int * LOC(L) p)
   EFFECT(L, && [EAtomic = 1; EWRITE != 1; EREAD != 1])
   OKEXTERN;
 
-// LCC_EFFECT(EUserData)
+// CSOLVE_EFFECT(EUserData)
 // But how to enforce that a function does not have user data effect? With CHECK_TYPE?
 
 void

@@ -1,6 +1,6 @@
 //! run with --notruekvars
 
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 typedef struct node {
@@ -25,8 +25,8 @@ node_t *foo(){
 void main(){
   node_t *n = foo();
   int    *x = n->data;
-  int assm  = lcc_assume(x != (int *) 0);
+  int assm  = csolve_assume(x != (int *) 0);
   validptr(x);
-  lcc_assert(*x >= 0);
+  csolve_assert(*x >= 0);
   return;
 }

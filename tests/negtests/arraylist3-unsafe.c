@@ -2,7 +2,7 @@
 //beyond our current system
 
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 struct foo {
   int data;
@@ -27,7 +27,7 @@ struct foo *__attribute__((array)) main(){
 
   for (j=0; j < n; j++){
     b       = a + j;
-    lcc_assert(b->data == 999);
+    csolve_assert(b->data == 999);
   }
 
   return a;

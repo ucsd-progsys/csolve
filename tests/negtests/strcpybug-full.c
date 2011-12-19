@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 // pmr: Shape inference is fine without array annots; ditch?
 char * LOC(L) __attribute__((array)) strncpy (char * LOC(L) __attribute__((array)) dest,
@@ -27,7 +27,7 @@ char * LOC(L) __attribute__((array)) strncpy (char * LOC(L) __attribute__((array
 	  *dest++ = c;
 	 
 	  //pmr: TOTALLY BOGUS
-	  lcc_assert(c == 0);
+	  csolve_assert(c == 0);
 	  if (c == 0)
 	    break;
           validptr(src);

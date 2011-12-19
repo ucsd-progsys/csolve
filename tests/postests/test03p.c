@@ -4,7 +4,7 @@ int foo(int *x){
   int y;
   //x = x;
   y = *x;
-  lcc_assert(y >= 0);
+  csolve_assert(y >= 0);
   return 0;
 }
 

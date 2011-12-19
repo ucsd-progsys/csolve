@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 int *__attribute__((array)) main(){
   int size;
@@ -13,7 +13,7 @@ int *__attribute__((array)) main(){
   }
  
   for (int i=0; i < size; i++){
-    lcc_assert(retval[i] == 0);
+    csolve_assert(retval[i] == 0);
   }
     
   return retval;

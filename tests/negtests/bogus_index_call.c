@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 extern void solveHaltingProblem (int REF(V >= 0) tm) OKEXTERN;
 

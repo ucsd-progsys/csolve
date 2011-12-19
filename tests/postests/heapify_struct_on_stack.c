@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 struct tokenbuffer
 {
@@ -12,5 +12,5 @@ void main () {
     token_buffer tb;
 
     tb.buffer = NULL;
-    lcc_assert (tb.buffer == NULL);
+    csolve_assert (tb.buffer == NULL);
 }

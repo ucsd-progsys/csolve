@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 void main(){
   int x,y,b;
@@ -10,5 +10,5 @@ void main(){
     x = 20;
     y = 20;
   }
-  lcc_assert (x == y);
+  csolve_assert (x == y);
 }

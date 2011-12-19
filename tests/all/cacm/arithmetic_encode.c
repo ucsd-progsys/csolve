@@ -1,6 +1,6 @@
 /* ARITHMETIC ENCODING ALGORITHM. */
 
-#include <liquidc.h>
+#include <csolve.h>
 #include "arithmetic_coding.h"
 
 static void bit_plus_follow();	/* Routine that follows                     */
@@ -30,7 +30,7 @@ encode_symbol(symbol,cum_freq)
 {   long range;			/* Size of the current code region          */
     range = (long)(high-low)+1;
     int cfzero = cum_freq[0];     // pmr
-    LCC_ASSUME(cfzero > 1);       // pmr
+    CSOLVE_ASSUME(cfzero > 1);       // pmr
     high = low +				/* Narrow the code region   */
       (range*cum_freq[symbol-1])/cfzero-1;	/* to that allotted to this */
     low = low + 				/* symbol.                  */

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int bar(int y){
-  lcc_assert(0);
+  csolve_assert(0);
   return 0;
 }
 

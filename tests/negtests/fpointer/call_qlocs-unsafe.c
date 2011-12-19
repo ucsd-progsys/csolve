@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 #include <stdlib.h>
 
 typedef void (*setter) (int *);
@@ -15,7 +15,7 @@ void invoke (setter f) {
     int *z = (int *) malloc (sizeof (int));
 
     f (z);
-    lcc_assert (*z >= 0);
+    csolve_assert (*z >= 0);
 }
 
 void main () {

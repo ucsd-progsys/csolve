@@ -21,7 +21,7 @@
  *
  *)
 
-(* This file is part of the liquidC Project.*)
+(* This file is part of the CSolve Project.*)
 
 module FA  = FixAstInterface
 module Ct  = Ctypes
@@ -82,14 +82,14 @@ let tags_of_binds binds =
   end (Pretty.nil, []) binds
 
 let generate_annots d = 
-  let fn = !Co.liquidc_file_prefix ^ ".annot" in
+  let fn = !Co.csolve_file_prefix ^ ".annot" in
   let oc = open_out fn in
   let _  = Pretty.fprint ~width:80 oc d in
   let _  = close_out oc in
   ()
 
 let generate_ispec bs = 
-  let fn = !Co.liquidc_file_prefix ^ ".infspec" in
+  let fn = !Co.csolve_file_prefix ^ ".infspec" in
   let oc = open_out fn in
   bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
      |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, cf) ->
@@ -98,10 +98,10 @@ let generate_ispec bs =
      |> (fun _  -> close_out oc)
 
 let generate_tags kts =
-  let fn = !Co.liquidc_file_prefix ^ ".tags" in
+  let fn = !Co.csolve_file_prefix ^ ".tags" in
   let oc = open_out fn in
   let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
-               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.liquidc_file_prefix t) in
+               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.csolve_file_prefix t) in
   let _  = close_out oc in
   ()
 
@@ -144,7 +144,7 @@ let d_sloc_typ_varss () (sloc, tvss) =
 (* API *)
 let stitch_shapes_ctypes cil shm = 
   let _ = assertf "deprecated: stitch_shapes_ctypes" in
-  Misc.write_to_file (!Constants.liquidc_file_prefix ^ ".shape") "SHAPE INFORMATION";
+  Misc.write_to_file (!Constants.csolve_file_prefix ^ ".shape") "SHAPE INFORMATION";
   SM.iter begin fun fn shp ->
     shp.Shape.vtyps
     >> (fun xs -> shaper := List.rev_append xs !shaper)
@@ -155,7 +155,7 @@ let stitch_shapes_ctypes cil shm =
     |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
     |> PP.concat (PP.text ("\n\n\nSTITCH SHAPE: "^fn^"\n"))
     |> PP.sprint ~width:80
-    |> (Misc.append_to_file (!Constants.liquidc_file_prefix ^ ".shape")) 
+    |> (Misc.append_to_file (!Constants.csolve_file_prefix ^ ".shape")) 
   end shm
   (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)
 (**************************************************************************)

@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 int maim () {
     int a = nondetpos ();
@@ -9,7 +9,7 @@ int maim () {
     }
 
     if (a > 0) {
-        lcc_assert (b <= 0);
+        csolve_assert (b <= 0);
     }
 
     return 0;

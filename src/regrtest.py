@@ -22,7 +22,7 @@
 import time, subprocess, optparse, sys, socket, os
 import misc.rtest as rtest
 
-solve      = "./lcc -c".split()
+solve      = "./csolve -c".split()
 null       = open("/dev/null", "w")
 now	   = (time.asctime(time.localtime(time.time()))).replace(" ","_")
 logfile    = "../tests/logs/regrtest_results_%s_%s" % (socket.gethostname (), now)
@@ -37,7 +37,7 @@ def solve_quals(file,bare,time,quiet,flags):
   else: out = None
   if time: time = ["time"]
   else: time = []
-  hygiene_flags = [("--liquidcprefix=%s" % (file)), "-o", "/dev/null"]
+  hygiene_flags = [("--csolveprefix=%s" % (file)), "-o", "/dev/null"]
   out = open(file + ".log", "w")
   rv  = logged_sys_call(time + solve + flags + hygiene_flags + [file], out)
   out.close()
@@ -61,10 +61,11 @@ class Config (rtest.TestConfig):
   def __init__ (self, dargs, testdirs, logfile, threadcount):
     rtest.TestConfig.__init__ (self, testdirs, logfile, threadcount)
     self.dargs = dargs
-    logged_sys_call(["../tests/postests/coreutils/makeCoreUtil.sh", "init"], None)
+    if os.path.exists("../tests/postests/coreutils/"):
+      logged_sys_call(["../tests/postests/coreutils/makeCoreUtil.sh", "init"], None)
 
   def run_test (self, file):
-    os.environ['LCCFLAGS'] = self.dargs
+    os.environ['CSOLVEFLAGS'] = self.dargs
     if file.endswith(".c"):
       fargs = getfileargs(file)
       return solve_quals(file, True, False, True, fargs)
@@ -87,7 +88,7 @@ testdirs  = [("../tests/postests", 0), ("../tests/negtests", [1, 2])]
 
 parser = optparse.OptionParser()
 parser.add_option("-t", "--threads", dest="threadcount", default=1, type=int, help="spawn n threads")
-parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to liquidc")
+parser.add_option("-o", "--opts", dest="opts", default="", type=str, help="additional arguments to csolve")
 parser.disable_interspersed_args()
 options, args = parser.parse_args()
 

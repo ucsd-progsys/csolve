@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-void lcc_fold_all () {
+void csolve_fold_all () {
 }
 
 void validptr (void *p) {
@@ -23,7 +23,7 @@ int nondetrange (int l, int u) {
     return l;
 }
 
-int lcc_assert (int p) {
+int csolve_assert (int p) {
     if (!p) {
         exit (0);
     }
@@ -31,7 +31,7 @@ int lcc_assert (int p) {
     return 0;
 }
 
-int lcc_assume (int p) {
+int csolve_assume (int p) {
     while (!p) {
         ;
     }
@@ -39,7 +39,7 @@ int lcc_assume (int p) {
     return 0;
 }
 
-int lcc_mod (int a, int m) {
+int csolve_mod (int a, int m) {
     return a % m;
 }
 

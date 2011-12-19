@@ -1,7 +1,7 @@
 // Catch an ill-formed spec where a quantified and global
 // location are aliased.
 
-#include <liquidc.h>
+#include <csolve.h>
 
 int * x;
 

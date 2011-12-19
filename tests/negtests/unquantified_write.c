@@ -1,7 +1,7 @@
 //! run with --manual
 
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 int * LOC(L) x;
 
@@ -20,5 +20,5 @@ void main () {
 
     foo (a);
 
-    lcc_assert (*x > 0);
+    csolve_assert (*x > 0);
 }

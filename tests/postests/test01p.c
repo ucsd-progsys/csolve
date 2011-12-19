@@ -13,7 +13,7 @@ int main(){
 
   y = *r;
 
-  lcc_assert(y >= 0);
+  csolve_assert(y >= 0);
 
   return 0;
 }

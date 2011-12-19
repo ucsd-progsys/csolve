@@ -111,7 +111,7 @@ void runTest(list l, int * idxs, int sz)
 {
   int i;
   for(i = 0; i < sz; i++)
-    lcc_assert (l[idxs[i]] -> rank == sz-i-1);
+    csolve_assert (l[idxs[i]] -> rank == sz-i-1);
 }
 
 void runWork(list l, int sz)

@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 typedef struct {
     int a;
@@ -17,7 +17,7 @@ typedef struct {
 third t = { { { 0 }, 1 }, 2 };
 
 void main () {
-    lcc_assert (t.c == 1);
+    csolve_assert (t.c == 1);
 
     return;
 }

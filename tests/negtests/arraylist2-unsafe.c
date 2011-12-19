@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 struct foo {
   int data;
@@ -28,7 +28,7 @@ struct foo *__attribute__((array)) main(){
   }
 
   for (i=0; i < n; i++){
-    lcc_assert (a[i].data == 10);
+    csolve_assert (a[i].data == 10);
     b = a[i].next;
     if (b != 0){
       validptr(b);

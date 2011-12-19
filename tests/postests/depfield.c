@@ -12,7 +12,7 @@ void test(str *s) {
 
     x = s->x;
     y = s->y;
-    lcc_assert(y >= x);
+    csolve_assert(y >= x);
 }
 
 void main() {
@@ -21,7 +21,7 @@ void main() {
 
     x = nondetpos();
     y = x + 1;
-    lcc_assert(y >= x);
+    csolve_assert(y >= x);
 
     s.x = x;
     s.y = y;

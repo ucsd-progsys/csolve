@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <liquidc.h>
+#include <csolve.h>
 
 char * ARRAY make_string(int n) {
     if (n <= 0)
@@ -92,6 +92,6 @@ void main () {
         return;
 
     string *s = string_succ(&sls->s);
-    // lcc_assert(0); // Sanity
+    // csolve_assert(0); // Sanity
     // init_string(s, 0);
 }

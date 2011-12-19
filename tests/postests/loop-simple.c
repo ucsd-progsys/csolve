@@ -1,4 +1,4 @@
-#include <liquidc.h>
+#include <csolve.h>
 
 int main(){
   int i, n; 
@@ -6,6 +6,6 @@ int main(){
   for (i=0; i < n; i++){
     nondet();
   }
-  lcc_assert (i >= 0);
+  csolve_assert (i >= 0);
   return 0;
 }

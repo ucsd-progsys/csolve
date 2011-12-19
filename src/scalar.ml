@@ -21,7 +21,7 @@
  *
  *)
 
-(* This file is part of the liquidC Project.*)
+(* This file is part of the CSolve Project.*)
 
 module A  = Ast
 
@@ -64,7 +64,7 @@ let is_not_const v p =
   |> (function Ix.IInt _ -> false | _ -> true) 
 
 let solve cil ci =
-  Ci.scalar_solve ci (!Co.liquidc_file_prefix^".scalar") (is_not_const)
+  Ci.scalar_solve ci (!Co.csolve_file_prefix^".scalar") (is_not_const)
 
 let solve cil ci =
   let _  = if !Co.minquals then (ignore <| E.log "Deprecating --minquals for scalar/inference\n") in
@@ -135,7 +135,7 @@ let d_scalarinv () sim =
   |> d_vartypes () 
 
 let dump_scalarinv sim = 
-  let fn = !Co.liquidc_file_prefix ^ ".scalarlog" in
+  let fn = !Co.csolve_file_prefix ^ ".scalarlog" in
   Misc.with_out_file fn begin fun oc -> 
     Pretty.fprintf oc "Scalarinv: @[%a@]\n" d_scalarinv sim
   end
@@ -175,7 +175,7 @@ let check_index oc fn v ix ix' =
   Ix.is_subindex ix' ix   (* ix' ==> ix *)
 
 let check_scalar uvm shm sim = 
-  let oc  = open_out (!Co.liquidc_file_prefix ^ ".scalarlog") in
+  let oc  = open_out (!Co.csolve_file_prefix ^ ".scalarlog") in
   (SM.fold begin fun fn { Shape.vtyps = vcts } errs ->
     let vcts = List.filter (fun (v, _) -> VM.mem v uvm) vcts in
     if not (SM.mem fn sim) then (MissingFun fn :: errs) else 
