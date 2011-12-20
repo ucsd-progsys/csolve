@@ -290,7 +290,7 @@ let pred_of_block ifs (i,b) =
       if b then p else (Ast.pNot p)
 
 let entry_guard_of_block me i = 
-  i |> doms_of_block me.sci.ST.gdoms []
+  i |> doms_of_block me.sci.ST.gdoms [] (* [(i, None)] *)
     |> Misc.map_partial (function (i,Some b) -> Some (i,b) | _ -> None)
     |> Misc.map (pred_of_block me.sci.ST.ifs)
     |> Ast.pAnd
@@ -301,6 +301,7 @@ let guard_of_block me i jo =
     if not (Hashtbl.mem me.sci.ST.edoms (i, j)) then p else
       let b' = Hashtbl.find me.sci.ST.edoms (i, j) in 
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
+      let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in
       Ast.pAnd [p; p']
 
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
