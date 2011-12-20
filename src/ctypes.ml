@@ -650,7 +650,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       mapn (fun _ _ fld -> f fld) flds
 
     let subs sub ld =
-      map (Field.map_type (CType.subs sub)) ld
+      map (Field.subs sub) ld
 
     let iter f ld =
       fold (fun _ i fld -> f i fld) () ld
