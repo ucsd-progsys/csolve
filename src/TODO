@@ -8,12 +8,16 @@ foo ( int x [...]
 
 HEREHEREHEREHERE
 The following tests throw the "bad fields" error.
-Exceptions thrown on 8 tests: ../tests/postests/ks.c,
-../tests/postests/ll7.c, ../tests/postests/mst.c,
-../tests/postests/normalize_tworefs.c, ../tests/postests/power.c,
-../tests/postests/shapebug-em3d.c, ../tests/postests/singletonarray.c,
+
+../tests/postests/ll7.c, 
+../tests/postests/normalize_tworefs.c, 
+../tests/postests/singletonarray.c,
 ../tests/postests/stringlist.c
 
+../tests/postests/ks.c,
+../tests/postests/mst.c,
+../tests/postests/power.c,
+../tests/postests/shapebug-em3d.c, 
 
    >> render with C-Types (cf. GOAL below)
        >> field names instead of A90#Ix#6 etc.

@@ -186,9 +186,25 @@ let decorate_refldesc slocm sloc ld =
               in pf
           end
   else begin 
-    ignore <| Errormsg.log "WARNING: Annots.decorate_ldesc: unknown cil info for %a" Sloc.d_sloc sloc; 
+    ignore <| Errormsg.log "WARNING: Annots.decorate_ldesc: unknown cil info for %a \n" Sloc.d_sloc sloc; 
     ld
   end
+
+let has_fldtype fld = 
+  Misc.maybe_bool (RCt.Field.get_fieldinfo fld).Ct.ftype
+
+let check_ld_bindings slocm l ld =
+    let iflds = RCt.LDesc.bindings ld in
+    if not (List.for_all (snd <+> has_fldtype) iflds) then
+      if not (SLM.mem l slocm) then 
+        E.log "Annots.check_ld_bindings unknown sloc %a \n" Sloc.d_sloc l
+      else
+        E.s <| E.error "Annots.check_ld_bindings bad fields for %a |-> %a" 
+        Sloc.d_sloc l RCt.LDesc.d_ldesc ld
+
+let decorate_refldesc slocm l ld = 
+  decorate_refldesc slocm l ld 
+  >> check_ld_bindings slocm l 
 
 let decorate_refstore slocm sto = 
   RCt.Store.map_ldesc (decorate_refldesc slocm) sto
@@ -262,15 +278,9 @@ let d_structinfo () = function
   | {Ct.stype = Some t } -> Cil.d_type () t
   | _                    -> PP.nil
 
-let check_ld_bindings l ld iflds = 
-  let has_fldtype fld = Misc.maybe_bool (RCt.Field.get_fieldinfo fld).Ct.ftype in
-  if not (List.for_all (snd <+> has_fldtype) iflds) then
-    E.warn "Annots.d_ann_refldesc bad fields for %a |-> %a" 
-    Sloc.d_sloc l RCt.LDesc.d_ldesc ld
 
 let d_ann_refldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
   RCt.LDesc.bindings ld
-  >> (check_ld_bindings l ld)  
   |> PP.dprintf "%a %a |-> %a" 
         d_structinfo (RCt.LDesc.get_structinfo ld)
         Sloc.d_sloc l (CM.d_many_braces true d_ann_field) 
