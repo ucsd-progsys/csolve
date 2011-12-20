@@ -536,7 +536,7 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-    RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+    RCt.Store.Data.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
 let effectset_subs_locs lsubs sto effs =
   let subs = subs_of_lsubs lsubs sto in
