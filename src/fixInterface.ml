@@ -653,7 +653,7 @@ let rec address_of_expr cenv sto e = match E.unwrap e with
   | A.Bin (e1, op, e2) ->
     let n    = match E.unwrap e2 with A.Con (A.Constant.Int n) -> n | _ -> raise InvalidDeref in
     let n    = match op with A.Plus -> n | A.Minus -> -n | _ -> raise InvalidDeref in
-    let l, i = address_of_expr cenv sto e in
+    let l, i = address_of_expr cenv sto e1 in
       (l, Index.offset n i)
   | _ ->
     begin match FA.maybe_deref e with
