@@ -361,7 +361,9 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
   let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
 
   let stbs             = RS.bindings st in
-  let istbs            = frt.Ct.sto_in >> check_inst_slocs_distinct_or_read_only loc lsubs |> renamed_store_bindings lsubs subs in
+  let istbs            = frt.Ct.sto_in
+                      >> check_inst_slocs_distinct_or_read_only loc lsubs
+                      |> renamed_store_bindings lsubs subs in
   let ostebs           = frt.Ct.sto_out
                       >> check_inst_concrete_slocs_distinct loc lsubs
                       |> renamed_store_effects_bindings lsubs subs frt.Ct.effects in
