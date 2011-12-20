@@ -1,9 +1,0 @@
-constraint:
-  env []
-  grd true
-  lhs {V: int | [(V = 0)]}
-  rhs {V: int | [k_1]}
-
-wf:
-  env  []
-  reft {V: int | [k_1]}

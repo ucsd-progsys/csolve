@@ -11,7 +11,7 @@ clean:
 distclean:
 	rm commit.sh init-submodules.sh pull.sh push.sh reset.sh
 	rm -rf demo/ benchmarks/ git-hooks/
-	rm lib/cpj.h
+	rm -rf lib/cpj.h tests/cpj/ tests/postests/cpj/
 	rm -rf external/gnu-coreutils/ tests/postests/coreutils/
 	rm -rf external/fixpoint/benchmarks/ external/fixpoint/tests/
 	rm src/TODO
