@@ -963,67 +963,60 @@ let make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
   |> Misc.splitflatten
 
 
-let rec make_cs_refstore_aux subf env p st1 st2 polarity tago tag loc =
+let rec make_cs_refstore env p st1 st2 polarity tago tag loc =
  (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
-*)  make_cs_refstore_binds_aux subf
-    env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
+*)  make_cs_refstore_binds
+      env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
 
-and make_cs_refstore_binds_aux subf env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
+and make_cs_refstore_binds env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
   Misc.splitflatten
     [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc;
-     make_cs_refstore_fun_binds subf env p sfuns1 sfuns2 polarity tago tag loc]
+     make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc]
 
 and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity slds1 slds2 begin fun (sld1, sld2) ->
     make_cs_refldesc env p sld1 sld2 tago tag
   end
 
-and make_cs_refstore_fun_binds subf env p sfuns1 sfuns2 polarity tago tag loc =
+and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
     let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in
       if Ct.I.CFun.same_shape cf1 cf2 then
-        subf env p fun1 fun2 tag loc
+        make_cs_refcfun env p fun1 fun2 tag loc
       else Errormsg.s <|
           Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!"
             Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2
   end
 
-and make_cs_refcfun_aux subf env p ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho')) tag loc =
-  let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
-                        |> ce_adds env in
-  let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
-  (* contravariant inputs *)
-      (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
-  +++ (make_cs_refstore_aux subf env p hi' hi true None tag loc) 
-  (* covariant outputs *)
-  +++ (make_cs env p ocr ocr' None tag loc)
-  +++ (make_cs_refstore_aux subf env p ho ho' true None tag loc)
-
-let make_cs_refcfun_components rf rf' =
+and make_cs_refcfun env p rf rf' tag loc =
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
   let hi, ho      = Ct.stores_of_refcfun rf in
   let hi',ho'     = Ct.stores_of_refcfun rf' in
-    ((it, it'), (hi, hi'), (ocr, ocr'), (ho, ho'))
-
-let rec make_cs_refcfun env p rf rf' tag loc =
-  make_cs_refcfun_aux make_cs_refcfun
-    env p (make_cs_refcfun_components rf rf') tag loc
+  let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
+                        |> ce_adds env in
+  let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
+  (* contravariant inputs *)
+      (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
+  +++ (make_cs_refstore env p hi' hi true None tag loc) 
+  (* covariant outputs *)
+  +++ (make_cs env p ocr ocr' None tag loc)
+  +++ (make_cs_refstore env p ho ho' true None tag loc)
 
 (* API *)
 let make_cs_refstore env p st1 st2 polarity tago tag loc =
-  try make_cs_refstore_aux make_cs_refcfun env p st1 st2 polarity tago tag loc with ex ->
+  try make_cs_refstore env p st1 st2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_refstore" in 
     assert false
 
 (* API *)
 let make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc =
-  try make_cs_refstore_binds_aux make_cs_refcfun env p binds1 binds2 polarity tago tag loc with ex ->
+  try make_cs_refstore_binds env p binds1 binds2 polarity tago tag loc with ex ->
     let _ = Cil.errorLoc loc "make_cs_refstore_binds fails with: %s" (Printexc.to_string ex) in
     let _ = Pretty.printf "make_cs_refstore_binds: pol = %b, binds1 = %a, binds2 = %a, loc = %a \n"
             polarity d_bindings binds1 d_bindings binds2 Cil.d_loc loc in
