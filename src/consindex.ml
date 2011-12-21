@@ -40,6 +40,7 @@ module PA  = PredAbs
 module SPA = Solve.Make (PA)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
+module Cx = Counterexample
 
 open Misc.Ops
 open Cil
@@ -91,7 +92,7 @@ let get_deps = fun me -> SM.fold (fun _ ds acc -> ds ++ acc) me.depm []
 
 let (++) = P.concat
 
-(* API *)
+(*
 let print so () me =
   match so with 
   | None -> (* print constraints *) 
@@ -109,8 +110,9 @@ let print so () me =
          |> Misc.flap C.bindings_of_env 
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
+*)
 
-  
+
 type ('a, 'b, 'c, 'd, 'e) domain = 
   { create      : 'a 
   ; save        : 'b
@@ -139,56 +141,31 @@ let d_indexAbs =
   ; read_bind = SIA.read_bind
   }
 
+let dump_counterexamples = function
+  | []  -> ()
+  | cxs -> Format.printf "Counterexamples:\n%a" (Misc.pprint_many true "\n"
+  Cx.print_cex) cxs 
+
+
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
-  let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let cfg     = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
-  let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
-  let _       = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _       = Errormsg.log "DONE: solution strengthening \n" in
-  let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
-  let _       = Errormsg.log "DONE: saving input constraints \n" in
-  let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
-  let _       = Errormsg.log "DONE: constraint solving \n" in
-  let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
-  let _       = Errormsg.log "DONE: saving output constraints \n" in
+  let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in
+  let cfg       = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let ctx, s    = BS.time "Qual Inst" dd.create cfg kf in
+  let _         = Errormsg.log "DONE: qualifier instantiation \n" in
+  let _         = Errormsg.log "DONE: solution strengthening \n" in
+  let _         = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
+  let _         = Errormsg.log "DONE: saving input constraints \n" in
+  let s',cs',cx = BS.time "Cons: Solve" (dd.solve ctx) s in 
+  let _         = Errormsg.log "DONE: constraint solving \n" in
+  let _         = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
+  let _         = Errormsg.log "DONE: saving output constraints \n" in
+  let _         = dump_counterexamples cx                           in
     if !Constants.check_is
     then match cs' with
 	| [] -> (s', cs')
 	| _ -> failwith ("ac_solve: "^fn)
     else s',cs'
-	    
-(* FOR DEBUGGING ONLY, NUKE AFTER 
-let ac_solve_predAbs me fn (ws, cs, ds) qs so kf =
-  let _       = Misc.dump "DONE: ac_solve_predAbs 0\n" in
-  let dd      = d_predAbs in
-  let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let _       = Misc.dump "DONE: ac_solve_predAbs 1\n" in
-  let cfg     = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
-  let _       = Misc.dump "DONE: ac_solve_predAbs 2\n" in
-  let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
-  let _       = Misc.dump "DONE: ac_solve_predAbs 3\n" in
-  let _       = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _       = Errormsg.log "DONE: solution strengthening \n" in
-  let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
-  let _       = Errormsg.log "DONE: saving input constraints \n" in
-  let _       = Misc.dump "DONE: ac_solve_predAbs 4\n" in
-  let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
-  let _       = Misc.dump "DONE: ac_solve_predAbs 5\n" in
-  let _       = Errormsg.log "DONE: constraint solving \n" in
-  let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
-  let _       = Errormsg.log "DONE: saving output constraints \n" in
-    if !Constants.check_is
-    then match cs' with
-	| [] -> (s', cs')
-	| _ -> failwith ("ac_solve: "^fn)
-    else s',cs'
-*)	
-
-
-
-
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in

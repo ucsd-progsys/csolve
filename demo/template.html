@@ -1,3 +1,5 @@
+<link rel="stylesheet" type="text/css" href="style.css" />
+
 <script>
   function keyOfVarLine(v, l){
      return (v + " at " + l.toString());
@@ -7,10 +9,14 @@
      return tt[v];
   }
 
+  function errorOfLine(l){
+     return et[l];
+  }
+
   function typeOfSrcVar(v, l){
     var ssa = vt[(keyOfVarLine(v,l))]
     if (!ssa){
-      ssa = vt[(keyOfVarLine(v + "_heapify", l))]
+      ssa = vt[(keyOfVarLine(v + "__csolve_heapify__", l))]
     }
     return typeOfName(ssa);
   }
@@ -28,16 +34,16 @@
     return (-1);
   }
    
-  function getText(sel){
-    if (sel) {
-      var s = typeOfName(sel);
-      if (s) return s;
+  function getText(elem){
+    var name = elem.innerHTML.trim()
+    var s = typeOfName(name);
+    if (s) return s;
       
-      var l = lineOfNode(sel.anchorNode);
-      var s = typeOfSrcVar(sel, l);
-      if (s) return s;
-    } 
-    return "???";
+    var l = lineOfNode(elem);
+    var s = typeOfSrcVar(name, l);
+    if (s) return s;
+
+    return "No type information for " + name + ".";
   }
 
   function alertSelection(){
@@ -45,15 +51,49 @@
     if (sel) alert(getText(sel));
   }
 
-  function writeTypeOfSelectionLineToBox(){
-    var sel = window.getSelection();
-    if (sel) {
-      var text = getText(sel);
-      document.forms[2].liquidText.value = text;
+  function showAnnotOfElement(elem){
+    var text;
+
+    if (elem.className == "normal" || elem.className == "function") {
+      text = getText(elem);
+    } else {
+      text = errorOfLine(lineOfNode(elem));
+    }
+
+    if (text) document.forms[0].liquidText.value = text;
+  }
+
+  function showErrors(){
+    document.forms[0].liquidText.value = "";
+    for (var line in et) {
+      document.forms[0].liquidText.value += "Line " + line + ":\n" + et[line];
+    }
+  }
+
+  function lookupVar(){
+    var re      = /\W/g;
+    var words   = document.forms[0].liquidText.value.split(re);
+    var pos     = document.forms[0].liquidText.selectionStart;
+    var current = "";
+
+    var chars = 0;
+    while (chars <= pos) {
+      if (words.length == 0) return;
+
+      current = words.shift ();
+      chars  += current.length + 1;
+
+      if (chars >= pos) {
+        var type = typeOfName(current);
+        if (type) document.forms[0].liquidText.value = type;
+        return;
+      }
     }
   }
 </script>
 
-<FORM>
-<TEXTAREA NAME="liquidText" ROWS=6 COLS=120 WRAP="virtual"></TEXTAREA>
-</FORM>
+<div id="typeAnnots">
+  <form>
+    <textarea name="liquidText" rows=6 cols=120 wrap="virtual" onclick="lookupVar()"></textarea>
+  </form>
+</div>

@@ -47,9 +47,12 @@ module ComparableVar =
     let compare v1 v2 = compare v1.vid v2.vid
     let equal v1 v2   = v1.vid = v2.vid
     let hash          = Hashtbl.hash
+    let print ppf v   = Format.fprintf ppf "%s" v.vname
   end
 
-let pretty_to_string f x = x |> f () |> Pretty.sprint ~width:80 
+let pretty_to_string f x = f () x |> Pretty.sprint ~width:80 
+
+let pretty_to_format f ppf x = Format.fprintf ppf "%s" (f () x |> Pretty.sprint ~width:80)
 
 type srcinfo = (* note *) string * (* provenance *) location 
 
@@ -86,6 +89,20 @@ let isCompoundType t = match unrollType t with
   | _                  -> false
 
 let fresh_arg_name, _ = M.mk_string_factory "ARG"
+
+
+(******************************************************************************)
+(************************ Printing Types Without Attributes *******************)
+(******************************************************************************)
+
+class removeAttrVisitor = object(self)
+  inherit nopCilVisitor
+  method vattr _ = ChangeTo []
+end
+
+let d_type_noattrs () t =
+  t |> visitCilType (new removeAttrVisitor :> cilVisitor) |> d_type ()
+
 
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)

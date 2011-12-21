@@ -303,37 +303,48 @@ let store_domain_subst_groups lsubs sto =
   |> List.map (fun sloc -> (sloc, Sloc.Subst.apply lsubs sloc))
   |> M.kgroupby snd
 
-let check_inst_slocs_distinct_or_read_only loc lsubs sto =
+let d_return_opt lsubs subs cr () = function
+  | Some (Var v, _) -> P.dprintf "%a :: %a@!" CM.d_var v RT.d_ctype (FI.rename_refctype lsubs subs cr)
+  | _               -> P.nil
+
+let call_subst_error loc typestring f (lvo, frt, es) ecrs lsubs subs =
+  E.s <| errorLoc loc
+    "Call unifies %s locations which are distinct in callee (%a):@!%a@!@!%a%a@!@!%a ::@!  @[%a@]@!@!"
+    typestring
+    Sloc.Subst.d_subst lsubs
+    d_instr (Call (lvo, Lval (Var f, NoOffset), es, loc))
+    (d_return_opt lsubs subs <| Ct.ret_of_refcfun frt) lvo
+    (P.docList ~sep:P.line <| fun (e, cr) -> P.dprintf "%a :: %a" d_exp e RT.d_ctype cr)
+      (List.combine es ecrs)
+    CM.d_var f
+    RCf.d_cfun frt
+
+let check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs sto =
      sto
   |> store_domain_subst_groups lsubs
   |> List.map snd
   |> List.iter begin function
      | [_]   -> ()
      | lsubs ->
-       if List.for_all (fst <+> RS.Data.find sto <+> Ct.RefCTypes.LDesc.is_read_only) lsubs then () else
-         E.s <|
-           errorLoc loc "Call unifies non-final locations which are distinct in callee:@!%a@!"
-             Sloc.Subst.d_subst lsubs
-     end
+       if not <| List.for_all (fst <+> RS.Data.find sto <+> Ct.RefCTypes.LDesc.is_read_only) lsubs then
+         call_subst_error loc "non-final" f call ecrs lsubs subs
+    end
 
-let check_inst_concrete_slocs_distinct loc lsubs sto =
+let check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs sto =
      sto
   |> store_domain_subst_groups lsubs
   |> List.filter (fst <+> Sloc.is_abstract <+> not)
   |> List.map snd
   |> List.iter begin function
      | [_]   -> ()
-     | lsubs ->
-       E.s <|
-         errorLoc loc "Call unifies concrete locations which are distinct in callee:@!%a@!"
-           Sloc.Subst.d_subst lsubs
+     | lsubs -> call_subst_error loc "concrete" f call ecrs lsubs subs
      end
 
 let store_bindings_of_store_effects (ldbs, fnbs) =
   let split xs = List.map (fun (l, (b, _)) -> (l, b)) xs in
     (split ldbs, split fnbs)
 
-let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) ns =
+let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
@@ -350,10 +361,10 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) (lvo, frt, es) 
 
   let stbs             = RS.bindings st in
   let istbs            = frt.Ct.sto_in
-                      >> check_inst_slocs_distinct_or_read_only loc lsubs
+                      >> check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs
                       |> renamed_store_bindings lsubs subs in
   let ostebs           = frt.Ct.sto_out
-                      >> check_inst_concrete_slocs_distinct loc lsubs
+                      >> check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs
                       |> renamed_store_effects_bindings lsubs subs frt.Ct.effects in
   let ostslds,ostsfuns = store_bindings_of_store_effects ostebs in
   let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
@@ -384,7 +395,8 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
           let l             = Sloc.canonical l in
           let tag           = CF.tag_of_instr me i j loc in
           let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in
-          let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, RS.Function.find sto l, es) ns in
+          let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) v
+                                (lvo, RS.Function.find sto l, es) ns in
             (wld, cs1 +++ cs2, wfs)
         | _ -> assert false
       end
@@ -412,7 +424,7 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
       (j+1, ffm, wld), with_wfs acds []
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds, wfs =
-        cons_of_call me loc i j grd effs pre_mem_env wld (lvo, FI.ce_find_fn fv.Cil.vname pre_mem_env, es) ns in
+        cons_of_call me loc i j grd effs pre_mem_env wld fv (lvo, FI.ce_find_fn fv.Cil.vname pre_mem_env, es) ns in
       (j+2, ffm, wld), with_wfs (cds +++ acds) wfs
   | Call (lvo, Lval (Mem e, NoOffset), es, _) ->
       let wld, cds, wfs = cons_of_ptrcall me loc i j grd effs pre_mem_env wld (lvo, e, es) ns in

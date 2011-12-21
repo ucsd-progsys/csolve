@@ -196,5 +196,8 @@ let dump sol = ()
 
     
 let mkbind qbnds = IBot
+
+let ctr_examples _ _ _ = failwith "No counterexamples for IndexDomain"
+
 (* end *)
   

@@ -59,7 +59,10 @@ let mydebug = false
 
 type name = Ast.Symbol.t 
 
-module NameMap = Misc.EMap (struct type t = name let compare = compare end)
+module NameMap = Misc.EMap (struct type t = name 
+                                   let compare = compare 
+                                   let print   = Ast.Symbol.print
+                            end)
 
 let name_of_string s    =  (Sy.of_string s)
 let string_of_name  (s) = Sy.to_string s 

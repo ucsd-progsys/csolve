@@ -96,6 +96,7 @@ module ComparableSloc =
   struct
     type t = sloc
     let compare = compare
+    let print = CilMisc.pretty_to_format d_sloc
   end
 
 module SlocSet = Set.Make(ComparableSloc)
