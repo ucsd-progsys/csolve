@@ -1,8 +1,8 @@
 0. FIXPOINT COUNTEREXAMPLES
   
   let explain _n n c fact = 
-    let cands   = soln_delta_for c between _n and n (* as now *)
-    let n_cands = groupby killedAt candidates  |> sortby fst
+    let cands   = soln_delta_for c between _n and n             (* as now *)
+    let n_cands = groupby killedAt candidates  |> sortby fst    
     let base    = (* as now *)
 
         base /\ ~fact                       is SAT
