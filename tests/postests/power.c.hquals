@@ -1,8 +1,1 @@
-qualif DPAIR(v:ptr)    : (v + 16) = BLOCK_END([v])
-qualif BSIZEDEP(v:ptr) : (v != 0) => (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 92))
-qualif RSIZE(v:ptr)    : BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 104)
-qualif LSIZEDEP(v:ptr) : (v != 0) => (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 56))
-qualif LFSIZEDEP(v:ptr): (v != 0) => (BLOCK_END([v]) = (BLOCK_BEGIN([v]) + 32))
-qualif LT10(v:int)     : v <= 10
-qualif LT36(v:int)     : v < 36
-qualif BRINLAT(v:ptr)  : (@num > 0) => (0 < v)
+../popl10-benchmarks/power.c.hquals

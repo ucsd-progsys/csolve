@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd ../tests/all/adpcm/src/ && \
+cd ../tests/popl10-benchmarks/adpcm/src/ && \
 make clean && \
 make

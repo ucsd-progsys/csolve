@@ -34,7 +34,7 @@ struct vert_st {
    unsigned int padding ;
 };
 
-typedef struct vert_st * ARRAY Vertex;
+typedef struct vert_st * LOC(VL) ARRAY Vertex;
 
 struct graph_st {
    //struct vert_st * ARRAY vlist ; //JHALA: each cell=0 or validptr into array
@@ -45,7 +45,7 @@ struct graph_st {
 typedef struct graph_st *Graph;
 
 struct blue_return {
-   Vertex LOC(VL) vert ;
+   Vertex INST(VL, VL) vert ;
    int dist ;
 };
 
@@ -250,7 +250,7 @@ Graph MakeGraph(int numvert )
 }
 }
 
-static struct blue_return INST(VL, L) *BlueRule(Vertex LOC(L) inserted , Vertex LOC(L) vlist )
+static struct blue_return INST(VL, L) *BlueRule(Vertex INST(VL, L) inserted , Vertex INST(VL, L) vlist )
 { BlueReturn retval ;
   Vertex tmp ;
   Vertex prev ;

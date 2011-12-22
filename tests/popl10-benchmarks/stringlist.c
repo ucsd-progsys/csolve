@@ -45,7 +45,7 @@ string *new_string(int n, char c) {
 typedef struct _slist {
     struct _slist  * next;
     string * LOC(SL) s;
-} slist;
+} INST(SL, SL) slist;
 
 slist *new_strings(int n) {
     string *s;
@@ -66,7 +66,6 @@ slist *new_strings(int n) {
 
     return sl;
 }
-
 
 string * LOC(L) string_succ(slist INST(SL, L) * REF(V = (BLOCK_BEGIN([V]) + 4)) s) {
     slist *sl;

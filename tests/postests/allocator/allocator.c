@@ -19,9 +19,9 @@ struct pool_struct {
     struct pool_struct * next;
 };
 
-typedef struct pool_struct free_pool;
+typedef struct pool_struct INST(LR, LR) free_pool;
 
-typedef char * LAYOUT(region) OFFSET(8) allocdPtr;
+typedef char * LAYOUT(region) OFFSET(8) LOC(AL) allocdPtr;
 
 void init (int size, allocdPtr m) {
     while (size--) *m++ = 0;
@@ -35,7 +35,7 @@ allocdPtr new_region (int size) {
     return &r->mem;
 }
 
-allocdPtr LOC(L) pool_alloc (free_pool INST(LR, L) *p) {
+allocdPtr INST(AL, L) pool_alloc (free_pool INST(LR, L) *p) {
     if (p->free) {
         region *r = p->free;
         p->free   = r->next;
@@ -46,7 +46,7 @@ allocdPtr LOC(L) pool_alloc (free_pool INST(LR, L) *p) {
     return new_region (p->size);
 }
 
-allocdPtr LOC(L) alloc (free_pool INST(LR, L) *freelist, int size) {
+allocdPtr INST(AL, L) alloc (free_pool INST(LR, L) *freelist, int size) {
     if (size <= 0) return NULL;
 
     free_pool *p;
@@ -67,7 +67,7 @@ allocdPtr LOC(L) alloc (free_pool INST(LR, L) *freelist, int size) {
     return pool_alloc (np);
 }
 
-void dealloc (free_pool INST(LR, L) *freelist, allocdPtr LOC(L) mem) {
+void dealloc (free_pool INST(LR, L) *freelist, allocdPtr INST(AL, L) mem) {
     if (mem == (allocdPtr) NULL) return;
 
     region *r = (region *) mem - 1;
