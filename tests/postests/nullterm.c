@@ -9,11 +9,6 @@ void main () {
         str[i] = 'a';
     }
 
-    while (1) {
-        char c = *str;
-        if (!c) break;
-
-        *str = *str + 1;
-        str++;
-    }
+    for (int j = 0; str[j]; j++)
+        ;
 }
