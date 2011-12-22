@@ -378,7 +378,7 @@ and closeTypeInStore sub sto t =
 and preRefstoreOfTypes ts =
   List.fold_left (M.uncurry closeTypeInStore) (S.Subst.empty, RS.empty) ts
 
-(* Converts function variable v to a refcfun, but the store includes
+(* Converts function type t to a refcfun, but the store includes
    contents for global locations. This is fixed by
    refcfunOfPreRefcfun. *)
 and preRefcfunOfType t =
