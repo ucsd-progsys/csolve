@@ -65,6 +65,8 @@
 #define NNSTRINGPTR       ARRAY NNVALIDPTR
 #define ARRAYSTART        ARRAY START VALIDPTR
 
+#define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
+
 // Assumptions
 
 #define CSOLVE_VAR2(base, n) base##n
