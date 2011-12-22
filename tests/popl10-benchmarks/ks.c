@@ -20,18 +20,18 @@ struct _Module {
    unsigned long module ;
 };
 typedef struct _Module Module;
-typedef Module *ModulePtr;
+typedef Module * LOC(L) ModulePtr;
 struct _ModuleRec {
    struct _ModuleRec *next ;
    unsigned long module ;
 };
 typedef struct _ModuleRec ModuleRec;
-typedef ModuleRec *ModuleRecPtr;
+typedef ModuleRec * LOC(L) ModuleRecPtr;
 struct _ModuleList {
-   ModuleRecPtr LOC(L) head ;
-   ModuleRecPtr LOC(L) tail ;
+   ModuleRecPtr INST(L, L) head ;
+   ModuleRecPtr INST(L, L) tail ;
 };
-typedef struct _ModuleList ModuleList;
+typedef struct _ModuleList INST(L, L) ModuleList;
 typedef ModuleList *ModuleListPtr;
 enum __anonenum_Groups_1 {
     GroupA = 0,
@@ -54,7 +54,7 @@ void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
                  ModuleList INST(L, P) * LOC(M) groupB ,
                  ModuleList INST(L, P) * LOC(M) swapToA ,
                  ModuleList INST(L, P) * LOC(M) swapToB ,
-                 NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets ) 
+                 NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { int *inFile ;
   char line[1024] ;
   char *tok ;
@@ -170,7 +170,7 @@ void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
     net ++;
   }
   return;
-  HELL: 
+  HELL:
   goto HELL;
 }
 }
@@ -181,7 +181,7 @@ void NetsToModules(unsigned long * LOC(L) numModules , unsigned long * LOC(L) nu
                    ModuleList INST(L, P) * LOC(M) groupB ,
                    ModuleList INST(L, P) * LOC(M) swapToA ,
                    ModuleList INST(L, P) * LOC(M) swapToB ,
-                   NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+                   NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { unsigned long net ;
   unsigned long mod ;
   ModulePtr modNode ;
@@ -225,7 +225,7 @@ void ComputeNetCosts(unsigned long * LOC(L) numModules , unsigned long * LOC(L) 
                      ModuleList INST(L, P) * LOC(M) groupB ,
                      ModuleList INST(L, P) * LOC(M) swapToA ,
                      ModuleList INST(L, P) * LOC(M) swapToB ,
-                     NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+                     NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { unsigned long i ;
 
   {
@@ -246,7 +246,7 @@ void InitLists(unsigned long * LOC(L) numModules , unsigned long * LOC(L) numNet
                ModuleList INST(L, P) * LOC(M) swapToA ,
                ModuleList INST(L, P) * LOC(M) swapToB ,
                NetPtr * ARRAY modules ,
-               ModulePtr LOC(P) * ARRAY nets )
+               ModulePtr INST(L, P) * ARRAY nets )
 { unsigned long p ;
   ModuleRecPtr mr ;
   unsigned long numMods ;
@@ -331,7 +331,7 @@ void ComputeDs(ModuleList INST(L, P) * LOC(M) group ,
                ModuleList INST(L, P) * LOC(M) groupB ,
                ModuleList INST(L, P) * LOC(M) swapToA ,
                ModuleList INST(L, P) * LOC(M) swapToB ,
-               NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+               NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { float I ;
   float E ;
   NetPtr netNode ;
@@ -382,7 +382,7 @@ void ComputeDs(ModuleList INST(L, P) * LOC(M) group ,
 }
 }
 #pragma merger(0,"/tmp/cil-CBuNWwqL.i","")
-float CAiBj(ModuleRecPtr LOC(P) mrA , ModuleRecPtr LOC(P) mrB ,
+float CAiBj(ModuleRecPtr INST(L, P) mrA , ModuleRecPtr INST(L, P) mrB ,
             unsigned long * LOC(L) numModules , unsigned long * LOC(L) numNets ,
             float * ARRAY LOC(F) GP , float * ARRAY LOC(F) D ,
             float * ARRAY LOC(F) cost , Groups * ARRAY moduleToGroup ,
@@ -390,7 +390,7 @@ float CAiBj(ModuleRecPtr LOC(P) mrA , ModuleRecPtr LOC(P) mrB ,
             ModuleList INST(L, P) * LOC(M) groupB ,
             ModuleList INST(L, P) * LOC(M) swapToA ,
             ModuleList INST(L, P) * LOC(M) swapToB ,
-            NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+            NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { NetPtr netNode ;
   ModulePtr modNode ;
   float gain ;
@@ -423,8 +423,8 @@ float CAiBj(ModuleRecPtr LOC(P) mrA , ModuleRecPtr LOC(P) mrB ,
   return (gain);
 }
 }
-void SwapNode(ModuleRecPtr LOC(P) maxPrev ,
-              ModuleRecPtr LOC(P) max ,
+void SwapNode(ModuleRecPtr INST(L, P) maxPrev ,
+              ModuleRecPtr INST(L, P) max ,
               ModuleList INST(L, P) * LOC(M) group ,
               ModuleList INST(L, P) * LOC(M) swapTo ,
               unsigned long * LOC(L) numModules , unsigned long * LOC(L) numNets , float * ARRAY LOC(F) GP ,
@@ -435,7 +435,7 @@ void SwapNode(ModuleRecPtr LOC(P) maxPrev ,
               ModuleList INST(L, P) * LOC(M) swapToA ,
               ModuleList INST(L, P) * LOC(M) swapToB ,
               NetPtr * ARRAY modules ,
-              ModulePtr LOC(P) * ARRAY nets )
+              ModulePtr INST(L, P) * ARRAY nets )
 { ModuleRecPtr swapToTail ;
 
   {
@@ -476,7 +476,7 @@ void SwapNode(ModuleRecPtr LOC(P) maxPrev ,
   return;
 }
 }
-void UpdateDs(ModuleRecPtr LOC(P) max , Groups group ,
+void UpdateDs(ModuleRecPtr INST(L, P) max , Groups group ,
               unsigned long * LOC(L) numModules , unsigned long * LOC(L) numNets ,
               float * ARRAY LOC(F) GP , float * ARRAY LOC(F) D ,
               float * ARRAY LOC(F) cost , Groups * ARRAY moduleToGroup ,
@@ -484,7 +484,7 @@ void UpdateDs(ModuleRecPtr LOC(P) max , Groups group ,
               ModuleList INST(L, P) * LOC(M) groupB ,
               ModuleList INST(L, P) * LOC(M) swapToA ,
               ModuleList INST(L, P) * LOC(M) swapToB ,
-              NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+              NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { NetPtr net ;
   ModulePtr mod ;
 
@@ -525,7 +525,7 @@ float FindMaxGpAndSwap(unsigned long * LOC(L) numModules , unsigned long * LOC(L
                        ModuleList INST(L, P) * LOC(M) groupB ,
                        ModuleList INST(L, P) * LOC(M) swapToA ,
                        ModuleList INST(L, P) * LOC(M) swapToB ,
-                       NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+                       NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { ModuleRecPtr mrA ;
   ModuleRecPtr mrPrevA ;
   ModuleRecPtr mrB ;
@@ -604,7 +604,7 @@ float FindGMax(unsigned long * LOC(L) iMax , unsigned long * LOC(L) numModules ,
                ModuleList INST(L, P) * LOC(M) groupB ,
                ModuleList INST(L, P) * LOC(M) swapToA ,
                ModuleList INST(L, P) * LOC(M) swapToB ,
-               NetPtr * ARRAY modules , ModulePtr LOC(P) * ARRAY nets )
+               NetPtr * ARRAY modules , ModulePtr INST(L, P) * ARRAY nets )
 { int i ;
   float gMax ;
 
@@ -631,7 +631,7 @@ void SwapSubsetAndReset(unsigned long iMax , unsigned long * LOC(L) numModules ,
                         ModuleList INST(L, P) * LOC(M) swapToA ,
                         ModuleList INST(L, P) * LOC(M) swapToB ,
                         NetPtr * ARRAY modules ,
-                        ModulePtr LOC(P) * ARRAY nets )
+                        ModulePtr INST(L, P) * ARRAY nets )
 { unsigned long i ;
   ModuleRecPtr mrPrevA ;
   ModuleRecPtr mrA ;
@@ -709,7 +709,7 @@ void PrintResults(int verbose , unsigned long * LOC(L) numModules , unsigned lon
                   ModuleList INST(L, P) * LOC(M) swapToA ,
                   ModuleList INST(L, P) * LOC(M) swapToB ,
                   NetPtr * ARRAY modules ,
-                  ModulePtr LOC(P) * ARRAY nets )
+                  ModulePtr INST(L, P) * ARRAY nets )
 { ModuleRecPtr mr ;
   NetPtr nn ;
   ModulePtr mn ;
@@ -912,7 +912,7 @@ int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) ar
   tmp___10 = malloc(sizeof(ModulePtr ) * 1024U);
   nets = (ModulePtr *)tmp___10;
   if (argc != 2) {
-    PURGATORY: 
+    PURGATORY:
     goto PURGATORY;
   }
   validptr((void *)(argv + 1));

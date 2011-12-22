@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
-typedef int * ARRAY int_array;
+typedef int * ARRAY LOC(L) int_array;
 
-int sum(int_array LOC(L) buf, int_array LOC(L) end){
+int sum(int_array INST(L, L) buf, int_array INST(L, L) end){
   int sum = 0;
   while (buf <= end){
     validptr(buf);

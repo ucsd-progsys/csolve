@@ -220,8 +220,48 @@ let ensureSlocAttrs =
   let se: C.cilVisitor = new slocEnsurer in
     fun t -> C.visitCilType se t
 
+class typeInstantiator (ats) = object (self)
+  inherit C.nopCilVisitor
+
+  val mutable sub =
+    M.map_partial begin function
+      | C.Attr (n, [C.AStr nfrom; C.AStr nto])
+          when n = CM.instantiateAttribute ->
+        Some (nfrom, nto)
+      | _ -> None
+    end ats
+
+  method private ensureSubst s =
+    if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub
+
+  method vattr = function
+    | C.Attr (n, [C.AStr nfrom; C.AStr nto])
+        when n = CM.instantiateAttribute ->
+      self#ensureSubst nto;
+      C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])]
+    | C.Attr (n, [C.AStr sloc])
+        when n = CM.slocAttribute ->
+      self#ensureSubst sloc;
+      C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])]
+    | _ -> C.DoChildren
+end
+
+let attributeAppliesToInstance (C.Attr (n, _)) =
+  not <| List.mem n [CM.instantiateAttribute; CM.slocAttribute; CM.layoutAttribute]
+
+let rec normalizeType = function
+  | C.TNamed ({C.ttype = t}, ats) ->
+    let instr = new typeInstantiator ats in
+         t
+      |> normalizeType
+      |> C.visitCilType (instr :> C.cilVisitor)
+      |> C.typeAddAttributes (List.filter attributeAppliesToInstance ats)
+  | C.TComp ({C.cattr = cats} as ci, ats) ->
+    C.TComp ({ci with C.cattr = []}, cats @ ats)
+  | t -> ensureSlocAttrs t
+
 let argType (x, t, ats) =
-  (x, t |> C.typeAddAttributes ats |> ensureSlocAttrs)
+  (x, t |> C.typeAddAttributes ats |> normalizeType)
 
 let nameArg x =
   if x = "" then CM.fresh_arg_name () else x
@@ -260,7 +300,7 @@ let assertExternDeclarationsValid vs =
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let refctypeOfCilType mem t = match C.unrollType t with
+let refctypeOfCilType mem t = match normalizeType t with
   | C.TVoid ats          -> intReftypeOfAttrs 0 ats
   | C.TInt (ik,   ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ik) ats
   | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
@@ -289,42 +329,11 @@ let addReffieldToStore sub sto s i rfld =
   if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
     rfld |> RU.add_field sto sub s i |> M.swap
 
-class structInstantiator (ats) = object (self)
-  inherit C.nopCilVisitor
-
-  val mutable sub =
-    M.map_partial begin function
-      | C.Attr (n, [C.AStr nfrom; C.AStr nto])
-          when n = CM.instantiateAttribute ->
-        Some (nfrom, nto)
-      | _ -> None
-    end ats
-
-  method private ensureSubst s =
-    if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub
-
-  method vtype t =
-    if C.isPointerType t then
-      t |> C.typeAttrs |> slocNameOfAttrs |> self#ensureSubst;
-    C.DoChildren
-
-  method vattr = function
-    | C.Attr (n, [C.AStr nfrom; C.AStr nto])
-        when n = CM.instantiateAttribute ->
-      self#ensureSubst nto;
-      C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])]
-    | C.Attr (n, [C.AStr sloc])
-        when n = CM.slocAttribute ->
-      self#ensureSubst sloc;
-      C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])]
-    | _ -> C.DoChildren
-end
-
 let instantiateStruct ats tcs =
-  let instr = new structInstantiator ats in
+  let instr = new typeInstantiator ats in
     List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
 
-let rec componentsOfTypeAux = function
+let rec componentsOfTypeAux t = match normalizeType t with
   | C.TArray (t, b, ats) ->
     t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b ats)
   | C.TComp (ci, ats) as t ->
@@ -337,7 +346,7 @@ let rec componentsOfTypeAux = function
   | t -> [("", I.of_int 0, ensureSlocAttrs t)]
 
 and componentsOfType t =
-  let t  = t |> C.unrollType |> flattenArray in
+  let t  = flattenArray t in
   let cs = componentsOfTypeAux t in
     if t |> C.typeAttrs |> C.hasAttribute CM.finalAttribute then
       List.map (M.app_thd3 <| C.typeAddAttributes [C.Attr (CM.finalAttribute, [])]) cs
@@ -351,7 +360,7 @@ let alreadyClosedType mem t = match CM.typeName t with
   | Some n -> SM.mem n mem
   | _      -> false
 
-let rec closeTypeInStoreAux mem sub sto t = match C.unrollType t with
+let rec closeTypeInStoreAux mem sub sto t = match normalizeType t with
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs ats in
@@ -383,7 +392,7 @@ and preRefstoreOfTypes ts =
    refcfunOfPreRefcfun. *)
 and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
-  let ret                = ensureSlocAttrs ret in
+  let ret                = normalizeType ret in
   let argts              = argso |> C.argsToList |>: (argType <+> M.app_fst nameArg) in
   let sub, allOutStore   = ret :: List.map snd argts |> preRefstoreOfTypes in
   let argrcts            = argts |>: (M.app_snd <| (refctypeOfCilType SM.empty <+> RCt.subs sub)) in
