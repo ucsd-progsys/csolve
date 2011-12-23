@@ -193,7 +193,7 @@ let ce_adds cenv ncrs =
 
 let ce_adds_fn ce (*(fnv, vnv, livem) *) sfrs = 
   let _ = List.iter (Misc.uncurry Annots.annot_fun) sfrs in
-  {ce with fenv = List.fold_left (fun fnv (s, fr) -> SM.add s fr ce.fenv) ce.fenv sfrs}
+  {ce with fenv = List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) ce.fenv sfrs}
 
 let ce_mem_fn = fun s {fenv = fnv} -> SM.mem s fnv
 
