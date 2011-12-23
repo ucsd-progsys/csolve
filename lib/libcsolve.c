@@ -25,7 +25,7 @@ int nondetrange (int l, int u) {
 
 int csolve_assert (int p) {
     if (!p) {
-        exit (0);
+        exit (1);
     }
 
     return 0;
@@ -37,6 +37,14 @@ int csolve_assume (int p) {
     }
 
     return 0;
+}
+
+void csolve_block_begin (void *p) {
+    csolve_assert (0);
+}
+
+void csolve_block_end (void *p) {
+    csolve_assert (0);
 }
 
 int csolve_mod (int a, int m) {

@@ -65,6 +65,8 @@
 #define NNSTRINGPTR       ARRAY NNVALIDPTR
 #define ARRAYSTART        ARRAY START VALIDPTR
 
+#define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
+
 // Assumptions
 
 #define CSOLVE_VAR2(base, n) base##n
@@ -85,6 +87,10 @@ extern void csolve_fold_all () OKEXTERN;
 extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
 
 extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
+
+extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void *p) OKEXTERN;
+
+extern void * REF(V = BLOCK_END([p])) csolve_block_end (void *p) OKEXTERN;
 
 extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 

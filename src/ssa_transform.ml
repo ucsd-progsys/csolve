@@ -106,7 +106,9 @@ let print_blocks cfg =
       (Misc.map_to_string string_of_int cfg.S.predecessors.(i))
       (Misc.map_to_string string_of_int cfg.S.successors.(i))
       (lvars_to_string cfg b.S.livevars));
-      Cil.dumpStmt Cil.defaultCilPrinter stderr 0 b.S.bstmt)
+      E.log "statement = %a \n" Cil.d_stmt b.S.bstmt
+      (* Cil.dumpStmt Cil.defaultCilPrinter stdout 0 b.S.bstmt *)
+      )
     cfg.S.blocks
  
 let print_out_t r2v out_t = 
@@ -363,7 +365,8 @@ let print_sci oco sci =
   if mydebug then begin
     print_phis sci.phis;
     Guards.print_ifs sci.ifs;
-    Guards.print_gdoms sci.gdoms
+    Guards.print_gdoms sci.gdoms;
+    Guards.print_edoms sci.edoms;
   end;
   let oc = match oco with Some oc -> oc | None -> stdout in
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))

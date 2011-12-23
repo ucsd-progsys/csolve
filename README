@@ -182,7 +182,7 @@ There is a rudimentary vim mode for viewing the output of a csolved-file.
 
 1. Add the following to your .vimrc
 
-pyfile /home/jhala/research/csolve/utils/csolve.py
+pyfile /path/to/csolve/utils/csolve.py
 map <C-s>  :python printLiquidType("normal")<CR>
 vmap <C-s> :python printLiquidType("visual")<CR>
 map <C-p>  :python parseLiquidType()<CR>
