@@ -62,7 +62,15 @@ open Cil
 
 let mydebug = false
 
-type cilenv   = Ct.refcfun SM.t * Ct.refctype YM.t * FA.name YM.t
+(*
+type cilenv   = Ct.refcfun SM.t * Ct.refctype YM.t * FA.name YM.t 
+*)
+
+type cilenv = { fenv : Ct.refcfun SM.t  (* function reftype environment *)
+              ; venv : Ct.refctype YM.t (* variable reftype environment *)
+              ; live : FA.name YM.t     (* "live" name for each variable *) 
+              }
+
 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
@@ -154,40 +162,44 @@ let pred_of_refctype s v cr =
 (************************** Environments ***************************)
 (*******************************************************************)
 
+let ce_rem   = fun n ce -> {ce with venv = YM.remove n ce.venv}
+let ce_mem   = fun n ce -> YM.mem n ce.venv
 
-let ce_rem   = fun n cenv       -> Misc.app_snd3 (YM.remove n) cenv
-let ce_mem   = fun n (_, vnv,_) -> YM.mem n vnv
-
-let ce_find n (_, vnv, _) =
+let ce_find n {venv = vnv} =
   try YM.find n vnv with Not_found -> 
     let _  = asserti false "Unknown name! %s" (FA.string_of_name n) in
     assertf "Unknown name! %s" (FA.string_of_name n)
 
-let ce_find_fn s (fnv, _,_) =
+let ce_find_fn s {fenv = fnv} =
   try SM.find s fnv with Not_found ->
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds cenv ncrs =
-  let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n"
-  (FA.string_of_name n) Ct.d_refctype cr) ncrs) in
+  let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n" (FA.string_of_name n) Ct.d_refctype cr) ncrs) in
   let _ = List.iter (fun (n, cr) -> Annots.annot_var n cr) ncrs in
-  List.fold_left begin fun (fnv, env, livem) (n, cr) ->
-    let env'   = YM.add n cr env in
-    let livem' = match FA.base_of_name n with 
-                 | None -> livem 
-                 | Some bn -> YM.add bn n livem in
-    fnv, env', livem'
+  List.fold_left begin fun ce (*fnv, env, livem*) (n, cr) ->
+    let bo     = FA.base_of_name n in
+    { ce with venv = YM.add n cr ce.venv
+            ; live = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
+    }
   end cenv ncrs
 
-let ce_adds_fn (fnv, vnv, livem) sfrs = 
+  (* match FA.base_of_name n with 
+                 | None -> livem 
+                 | Some bn -> YM.add bn n livem in
+   *)
+
+
+
+let ce_adds_fn ce (*(fnv, vnv, livem) *) sfrs = 
   let _ = List.iter (Misc.uncurry Annots.annot_fun) sfrs in
-  (List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) fnv sfrs, vnv, livem)
+  {ce with fenv = List.fold_left (fun fnv (s, fr) -> SM.add s fr ce.fenv) ce.fenv sfrs}
 
-let ce_mem_fn = fun s (fnv, _, _) -> SM.mem s fnv
+let ce_mem_fn = fun s {fenv = fnv} -> SM.mem s fnv
 
-let ce_empty = (SM.empty, YM.empty, YM.empty) 
+let ce_empty = { fenv = SM.empty; venv = YM.empty; live = YM.empty }
 
-let d_cilenv () (fnv,_,_) = failwith "TBD: d_cilenv"
+let d_cilenv () {fenv = fnv } = failwith "TBD: d_cilenv"
 
 
 let print_rctype so ppf rct =
@@ -196,10 +208,12 @@ let print_rctype so ppf rct =
 let print_binding so ppf (n, rct) = 
   F.fprintf ppf "%a : %a" Sy.print n (print_rctype so) rct
 
+  (*
 let print_ce so ppf (_, vnv) =
   YM.iter begin fun n cr -> 
     F.fprintf ppf "@[%a@]@\n" (print_binding so) (n, cr) 
   end vnv
+*)
 
 (****************************************************************)
 (************************** Refinements *************************)
@@ -405,7 +419,7 @@ let t_exp_scalar v e =
   let r   = C.make_reft vv so rs in
   refctype_of_reft_ctype r ct
 
-let t_name (_,vnv,_) n = 
+let t_name {venv = vnv} n = 
   let _  = asserti (YM.mem n vnv) "t_name: reading unbound var %s" (FA.string_of_name n) in
   let rct = YM.find n vnv in
   let so = rct |> Ct.reft_of_refctype |> C.sort_of_reft in
@@ -758,18 +772,18 @@ let is_live_name livem n =
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
 
-let env_of_cilenv (_, vnv, _) = 
+let env_of_cilenv {venv = vnv} = 
   FA.builtinm
   |> YM.fold (fun n rct env -> YM.add n (Ct.reft_of_refctype rct) env) vnv
   |> canon_env
 
-let make_wfs ((_,_,livem) as cenv) sto rct _ =
+let make_wfs ce sto rct _ =
   let r   = rct |> Ct.reft_of_refctype |> canon_reft in
-  let env = cenv 
+  let env = ce
             |> env_of_cilenv
             |> YM.filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
-            |> (if !Co.prune_live then YM.filter (fun n _ -> is_live_name livem n) else id)
-  in [C.make_filtered_wf env r None (filter_store_derefs cenv sto rct)]
+            |> (if !Co.prune_live then YM.filter (fun n _ -> is_live_name ce.live n) else id)
+  in [C.make_filtered_wf env r None (filter_store_derefs ce sto rct)]
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
 
