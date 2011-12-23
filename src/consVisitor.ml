@@ -695,7 +695,9 @@ let cons_of_edge me i j =
   let iwld' = CF.outwld_of_block me i in
   let loci  = CF.location_of_block me i in
   let tagi  = CF.tag_of_instr me i 0 loci in
-  let grdij = CF.guard_of_block me i (Some j) in
+  let grdij = CF.guard_of_block me i (Some j) 
+              >> (Ast.Predicate.to_string <+> E.log "guard_of_edge (%d -> %d) = %s \n" i j)
+  in
   let envj  = CF.outwld_of_block me j |> fst3 in
   let vjvis = CF.asgns_of_edge me i j in
   let subs  = List.map (Misc.map_pair FA.name_of_varinfo) vjvis in

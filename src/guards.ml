@@ -51,6 +51,12 @@ let print_gdoms gdoms =
       i j (Misc.o2s string_of_bool bo) |> ignore
     end gdoms
 
+let print_edoms edoms : unit =
+  if mydebug then
+    Hashtbl.iter begin fun (i, j) b ->
+      ignore (Pretty.printf "edge dom i = %d, j = %d, b = %b \n" i j b)
+    end edoms
+
 (****************************************************************)             
 
 let block_id b = 
@@ -115,6 +121,8 @@ let mk_edoms preds ifs idom =
       match ifs.(j) with
       | Some (p, Some i', None) when i != i' ->
           Hashtbl.add t (j, i) false
+      | Some (p, None, Some i') when i != i' ->
+          Hashtbl.add t (j, i) true 
       | _ -> ()
     end js
   end preds;
