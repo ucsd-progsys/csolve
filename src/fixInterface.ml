@@ -62,15 +62,11 @@ open Cil
 
 let mydebug = false
 
-(*
-type cilenv   = Ct.refcfun SM.t * Ct.refctype YM.t * FA.name YM.t 
-*)
-
-type cilenv = { fenv : Ct.refcfun SM.t  (* function reftype environment *)
-              ; venv : Ct.refctype YM.t (* variable reftype environment *)
-              ; live : FA.name YM.t     (* "live" name for each variable *) 
+type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment *)
+              ; venv  : Ct.refctype YM.t (* variable reftype environment *)
+              ; live  : FA.name YM.t     (* "live" name for each variable *) 
+              ; theta : Su.t             (* "ground substitution" for each variable *) 
               }
-
 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
@@ -117,9 +113,11 @@ let refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
 
+(*
 let refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
+*)
 
 let spec_refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
@@ -159,7 +157,7 @@ let pred_of_refctype s v cr =
       |> Misc.flip A.substs_pred su
 
 (*******************************************************************)
-(************************** Environments ***************************)
+(******** Environments: Reading (see below for Building) ***********)
 (*******************************************************************)
 
 let ce_rem   = fun n ce -> {ce with venv = YM.remove n ce.venv}
@@ -174,30 +172,13 @@ let ce_find_fn s {fenv = fnv} =
   try SM.find s fnv with Not_found ->
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
-let ce_adds cenv ncrs =
-  let _ = if mydebug then (List.iter (fun (n, cr) -> Errormsg.log "ce_adds: n = %s cr = %a \n" (FA.string_of_name n) Ct.d_refctype cr) ncrs) in
-  let _ = List.iter (fun (n, cr) -> Annots.annot_var n cr) ncrs in
-  List.fold_left begin fun ce (*fnv, env, livem*) (n, cr) ->
-    let bo     = FA.base_of_name n in
-    { ce with venv = YM.add n cr ce.venv
-            ; live = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
-    }
-  end cenv ncrs
-
-  (* match FA.base_of_name n with 
-                 | None -> livem 
-                 | Some bn -> YM.add bn n livem in
-   *)
-
-
-
-let ce_adds_fn ce (*(fnv, vnv, livem) *) sfrs = 
+let ce_adds_fn ce sfrs = 
   let _ = List.iter (Misc.uncurry Annots.annot_fun) sfrs in
   {ce with fenv = List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) ce.fenv sfrs}
 
 let ce_mem_fn = fun s {fenv = fnv} -> SM.mem s fnv
 
-let ce_empty = { fenv = SM.empty; venv = YM.empty; live = YM.empty }
+let ce_empty = { fenv = SM.empty; venv = YM.empty; live = YM.empty; theta = Su.empty }
 
 let d_cilenv () {fenv = fnv } = failwith "TBD: d_cilenv"
 
@@ -224,25 +205,26 @@ let ra_fresh        = fun _ -> [C.Kvar (Su.empty, C.fresh_kvar ())]
 let ra_true         = fun _ -> []
 let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
-let ra_zero ct =
-  let vv = ct |> sort_of_prectype |> Sy.value_variable in
-  [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.zero))]
+let vv_of_prectype ct = ct |> sort_of_prectype |> Sy.value_variable  
 
-let ra_equal v ct =
-  let vv = ct |> sort_of_prectype |> Sy.value_variable in
-  [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar v))]
+let ra_singleton e vv =
+  [C.Conc (A.pEqual (A.eVar vv, e))]
+
+let ra_zero    = vv_of_prectype <+> ra_singleton A.zero
+let ra_equal v = vv_of_prectype <+> ra_singleton (A.eVar v)
 
 let ra_ptr_offset offset ct =
-  let so  = sort_of_prectype ct in
-  let evv = so |> Sy.value_variable |> A.eVar in
-    [C.Conc
-      (A.pEqual (evv, A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset))))]
+  let vv = vv_of_prectype ct in
+  ra_singleton (A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eCon (A.Constant.Int offset))) vv
+
+(* [C.Conc (A.pEqual (evv,  (A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset)))  ))] *)
+    
 
 let ra_deref ct base offset =
   let so  = sort_of_prectype ct in
-  let vv  = so |> Sy.value_variable in
   let ptr = A.eBin (base, A.Plus, A.eCon (A.Constant.Int offset)) in
-    [C.Conc (A.pAtom (A.eVar vv, A.Eq, FA.eApp_deref ptr so))]
+  ra_singleton (FA.eApp_deref ptr so) (vv_of_prectype ct)
+(* [C.Conc (A.pAtom (A.eVar vv, A.Eq, FA.eApp_deref ptr so))] *)
 
 let e_cil_effect_true = Cil.one
 
@@ -250,34 +232,29 @@ let p_effect_var_true evar =
   A.pEqual (evar, A.eInt 1)
 
 let ra_singleton_effect eff v ct =
-  let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
-  let others = M.negfilter ((=) eff) <| ED.getEffects () in
-    [C.Conc begin
-      A.pAnd begin
-           p_effect_var_true (eff |> ED.nameOfEffect |> A.eVar)
-        :: A.pEqual (vv, A.eVar v)
-        :: List.map
-             (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
-             others
-      end
-    end]
+  let vv     = ct |> vv_of_prectype |> A.eVar in
+  let others = ED.getEffects () 
+               |> M.negfilter ((=) eff) 
+               |> List.map (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
+  in [C.Conc (A.pAnd <| [ (eff |> ED.nameOfEffect |> A.eVar |> p_effect_var_true)
+                        ; (A.pEqual (vv, A.eVar v)) 
+                        ] ++ others)]
 
 let ra_skolem, get_skolems =
   let xr = ref 0 in
-  (fun ct ->
-    let vv = ct |> sort_of_prectype |> Sy.value_variable in
-    [C.Conc (A.pEqual (A.eVar vv, FA.eApp_skolem (A.eInt (xr =+ 1))))]),
-  (fun _ -> Misc.range 0 !xr |>: A.eInt) 
+    (fun ct -> vv_of_prectype ct |> ra_singleton (FA.eApp_skolem (A.eInt (xr =+ 1))))
+  , (fun _  -> Misc.range 0 !xr |>: A.eInt) 
 
 let ra_bbegin ct =
-  ct 
-  |> sort_of_prectype 
-  |> Sy.value_variable 
+  let vv = vv_of_prectype ct in
+  ra_singleton (FA.eApp_bbegin (A.eVar vv)) vv
+(*
   |> A.eVar 
   |> (fun vv -> [C.Conc (A.pEqual (vv, FA.eApp_bbegin vv))])
+*)
 
 let ra_indexpred ct =
-  let vv     = ct |> sort_of_prectype |> Sy.value_variable |> A.eVar in
+  let vv     = ct |> vv_of_prectype |> A.eVar in
   let vv', p = Sc.pred_of_ctype ct in
     [C.Conc (P.subst p vv' vv)]
 
@@ -424,8 +401,9 @@ let t_name {venv = vnv} n =
   let rct = YM.find n vnv in
   let so = rct |> Ct.reft_of_refctype |> C.sort_of_reft in
   let vv = Sy.value_variable so in
-  let r  = C.make_reft vv so [C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] in
-  replace_reft r rct
+  let r  = C.make_reft vv so (ra_singleton (A.eVar n) vv) 
+          (*[C.Conc (A.pAtom (A.eVar vv, A.Eq, A.eVar n))] *) 
+  in replace_reft r rct
 
 (* API *)
 let map_fn = RCt.CFun.map 
@@ -451,8 +429,9 @@ let refctype_subs f nzs =
       |> Misc.app_snd
       |> RCt.CType.map
 
+
 (* API *)
-let t_subs_exps    = refctype_subs (CI.expr_of_cilexp (* skolem *))
+let t_subs_exps    = refctype_subs (CI.expr_of_cilexp)
 let t_subs_names   = refctype_subs A.eVar
 let refstore_subs  = fun f subs st   -> RCt.Store.map (f subs) st
 let effectset_subs = fun f subs effs -> ES.apply (f subs) effs
@@ -481,11 +460,8 @@ let t_scalar = Ct.index_of_ctype <+>
                Sc.pred_of_index <+> 
                Misc.uncurry (t_pred Ct.nscalar_ctype)
 let t_scalar_zero = t_scalar (Ct.Int (0, Ix.IInt 0))
-
-
 }}} *)
 
-(* let t_scalar = Sc.pred_of_ctype <+> Misc.uncurry (t_pred C.scalar_ctype) *)
 let t_scalar ct = ct |> Sc.non_null_pred_of_ctype |> Misc.uncurry (t_pred ct)
 
 let deconstruct_refctype rct = 
@@ -509,11 +485,9 @@ let vv_rename so' r =
   C.make_reft vv' so' ras'
 
 let t_scalar_refctype_raw rct =
-(*  let so'  = Ct.scalar_ctype |> sort_of_prectype in *)
   let so' = Ct.ctype_of_refctype rct |> sort_of_prectype in
-  let r'   = rct |> Ct.reft_of_refctype |> vv_rename so' in
-    (* refctype_of_reft_ctype r' Ct.scalar_ctype *)
-   refctype_of_reft_ctype r' (Ct.ctype_of_refctype rct)
+  let r'  = rct |> Ct.reft_of_refctype |> vv_rename so' in
+  refctype_of_reft_ctype r' (Ct.ctype_of_refctype rct)
 
 (* API *)
 let t_scalar_refctype =
@@ -637,6 +611,39 @@ let canon_env env =
 let canon_refctype = function
   | Ct.Ref (l, (i, r)) -> Ct.Ref (Sloc.canonical l, (i, canon_reft r))
   | rct                -> rct
+
+(*******************************************************************)
+(******** Environments: Building (see above for Reading) ***********)
+(*******************************************************************)
+
+let copyprop_refctype n (su, cr) = 
+  match deconstruct_refctype cr with
+  | (_, vv, so, [C.Conc ( A.Atom ((A.Var vv', _), A.Eq, e), _  )])
+  | (_, vv, so, [C.Conc ( A.Atom (e, A.Eq, (A.Var vv', _)), _  )])
+    -> if vv = vv' then
+         let e'  = A.substs_expr e su   in
+         let su' = if List.mem n (E.support e') then su else Su.extend su (n, e') in
+         let r'  = C.make_reft vv so (ra_singleton e' vv) in 
+         let cr' = replace_reft r' cr in
+         (su', cr')
+       else (su, cr)
+  | _ -> (su, cr)
+
+let ce_add ce (n, cr) = 
+    let bo       = FA.base_of_name n in
+    let th', cr' = (ce.theta, cr) |> (!Co.copyprop <?> copyprop_refctype n) in
+    let _        = Annots.annot_var n cr' in 
+    { ce with venv  = YM.add n cr' ce.venv
+            ; live  = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
+            ; theta = th' 
+    }
+
+let ce_adds cenv ncrs =
+  let _ = if mydebug then List.iter begin fun (n, cr) -> 
+            Errormsg.log "ce_adds: n = %s cr = %a \n" (FA.string_of_name n) Ct.d_refctype cr 
+          end ncrs 
+  in ncrs >> List.iter (fun (n, cr) -> Annots.annot_var n cr)
+          |> List.fold_left ce_add cenv
 
 (******************************************************************************)
 (********************** WF For Dereferencing Expressions **********************)
