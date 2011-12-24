@@ -207,6 +207,12 @@ let ra_false        = fun _ -> [C.Conc (A.pFalse)]
 
 let vv_of_prectype ct = ct |> sort_of_prectype |> Sy.value_variable  
 
+let is_singleton vv = function
+  | A.Atom ((A.Var vv', _), A.Eq, e), _ 
+  | A.Atom (e, A.Eq, (A.Var vv', _)), _ 
+    -> if vv = vv' then Some e else None
+  | _ -> None
+
 let ra_singleton e vv =
   [C.Conc (A.pEqual (A.eVar vv, e))]
 
@@ -350,7 +356,8 @@ let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = P.support p |> List.filter (is_reference cenv) in
   match ct, refs with
-  | (Ct.Ref (_,_)), [x]  ->
+  | (Ct.Ref (_,_)), [x] 
+    when not (is_singleton vv p = Some (A.eVar x)) ->
       let x         = A.eVar x  in
       let vv        = A.eVar vv in
       let unchecked =
@@ -361,8 +368,7 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       in [C.Conc (mk_eq_uf FA.eApp_bbegin  vv x);
           C.Conc (mk_eq_uf FA.eApp_bend    vv x);
           unchecked]
-  | _ ->
-      []
+  | _ -> []
 
 
 let t_exp cenv ct e =
@@ -616,27 +622,31 @@ let canon_refctype = function
 (******** Environments: Building (see above for Reading) ***********)
 (*******************************************************************)
 
-let copyprop_refctype n (su, cr) = 
+
+let copyprop_refctype ce n (su, cr) = 
   match deconstruct_refctype cr with
-  | (_, vv, so, [C.Conc ( A.Atom ((A.Var vv', _), A.Eq, e), _  )])
-  | (_, vv, so, [C.Conc ( A.Atom (e, A.Eq, (A.Var vv', _)), _  )])
-    -> if vv = vv' then
-         let e'  = A.substs_expr e su   in
-         let su' = if List.mem n (E.support e') then su else Su.extend su (n, e') in
-         let r'  = C.make_reft vv so (ra_singleton e' vv) in 
-         let cr' = replace_reft r' cr in
-         (su', cr')
-       else (su, cr)
+  | (_, vv, so, [C.Conc p]) 
+    -> begin match is_singleton vv p with 
+         | Some e when List.for_all (Misc.flip YM.mem ce.venv) (E.support e) ->
+             let e'  = A.substs_expr e su   in
+             let su' = if List.mem n (E.support e') then su else Su.extend su (n, e') in
+             let r'  = C.make_reft vv so (ra_singleton e' vv) in 
+             let cr' = replace_reft r' cr in
+             let _   = if mydebug then F.printf "copyprop: e = %s ---- su = %a ----> e' = %s \n" 
+                       (E.to_string e) Su.print su (E.to_string e') 
+             in (su', cr')
+         | _ -> (su, cr) 
+       end
   | _ -> (su, cr)
 
-let ce_add ce (n, cr) = 
-    let bo       = FA.base_of_name n in
-    let th', cr' = (ce.theta, cr) |> (!Co.copyprop <?> copyprop_refctype n) in
-    let _        = Annots.annot_var n cr' in 
-    { ce with venv  = YM.add n cr' ce.venv
+let ce_add ce (n, cr) =
+  let bo       = FA.base_of_name n in
+  let th', cr' = (ce.theta, cr) |> (!Co.copyprop <?> copyprop_refctype ce n) in
+  let _        = Annots.annot_var n cr' in 
+  { ce with venv  = YM.add n cr' ce.venv
             ; live  = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
             ; theta = th' 
-    }
+  }
 
 let ce_adds cenv ncrs =
   let _ = if mydebug then List.iter begin fun (n, cr) -> 
