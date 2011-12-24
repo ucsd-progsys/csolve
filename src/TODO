@@ -1,13 +1,13 @@
+NEXT: MINIMIZE 
+1. Suppress "false" (done?)
 
-
-pmap, ll5, structarr2.c, arraylist2.c, global_param.c, make-sorted-list.c
-
-NEXT: Minimize Output:
-1. Suppress "false"
 2. Flatten/Minimize Predicates?
+        >> hide redundant quals (e.g. V > 10 hides V > 5, V > x hides V >= x)
+        >> hide vacuous quals   (e.g. x: {V >= x})
+
 3. Print out qualifier names -- not predicates?
 
-
+4. Dump BSTATS out as JSON, sorted by times.
 
 Function Pointers
 

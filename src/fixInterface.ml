@@ -631,7 +631,8 @@ let copyprop_refctype ce n (su, cr) =
   match deconstruct_refctype cr with
   | (_, vv, so, [C.Conc p]) 
     -> begin match is_singleton vv p with 
-         | Some e when List.for_all (Misc.flip YM.mem ce.venv) (E.support e) ->
+         | Some ((A.Var z, _) as e) when YM.mem z ce.venv -> 
+        (* | Some e when List.for_all (Misc.flip YM.mem ce.venv) (E.support e) -> *)
              let e'  = A.substs_expr e su   in
              let su' = if List.mem n (E.support e') then su else Su.extend su (n, e') in
              let r'  = C.make_reft vv so (ra_singleton e' vv) in 

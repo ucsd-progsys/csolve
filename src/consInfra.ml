@@ -301,7 +301,7 @@ let guard_of_block me i jo =
     if not (Hashtbl.mem me.sci.ST.edoms (i, j)) then p else
       let b' = Hashtbl.find me.sci.ST.edoms (i, j) in 
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
-      let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in
+      (* let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in *)
       Ast.pAnd [p; p']
 
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)

@@ -110,27 +110,30 @@ let print so () me =
 
   
 type ('a, 'b, 'c, 'd, 'e) domain = 
-  { create : 'a 
-  ; save   : 'b
-  ; solve  : 'c
-  ; read : 'd
+  { create      : 'a 
+  ; save        : 'b
+  ; solve       : 'c
+  ; read        : 'd
+  ; min_read    : 'd
   ; read_bind   : 'e
   }
 
 
 let d_predAbs = 
-  { create = SPA.create
-  ; save   = SPA.save
-  ; solve  = SPA.solve
-  ; read   = SPA.read
+  { create    = SPA.create
+  ; save      = SPA.save
+  ; solve     = SPA.solve
+  ; read      = SPA.read
+  ; min_read  = SPA.min_read
   ; read_bind = SPA.read_bind
   }
 
 let d_indexAbs = 
-  { create = SIA.create
-  ; save   = SIA.save
-  ; solve  = SIA.solve
-  ; read   = SIA.read
+  { create    = SIA.create
+  ; save      = SIA.save
+  ; solve     = SIA.solve
+  ; read      = SIA.read
+  ; min_read  = SIA.min_read
   ; read_bind = SIA.read_bind
   }
 
@@ -178,7 +181,7 @@ let idx_solve me fn qs =
 let solve me fn qs =
   (if !Constants.prune_index then some <| idx_solve me fn qs else None)
   |> ac_solve d_predAbs me fn (get_cstrs me) qs None
-  |> Misc.app_fst d_predAbs.read
+  |> Misc.app_fst d_predAbs.min_read
 
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
 
