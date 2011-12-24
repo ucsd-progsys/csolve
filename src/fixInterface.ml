@@ -356,18 +356,22 @@ let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = P.support p |> List.filter (is_reference cenv) in
   match ct, refs with
-  | (Ct.Ref (_,_)), [x] 
-    when not (is_singleton vv p = Some (A.eVar x)) ->
+  | (Ct.Ref (_,_)), [x] ->
+      let singleton = is_singleton vv p = Some (A.eVar x)  in
       let x         = A.eVar x  in
-      let vv        = A.eVar vv in
+      let evv        = A.eVar vv in
       let unchecked =
         if e |> typeOf |> CM.is_unchecked_ptr_type then
-          C.Conc (A.pAtom (FA.eApp_uncheck vv, A.Eq, A.one))
-        else
-          C.Conc (mk_eq_uf FA.eApp_uncheck vv x)
-      in [C.Conc (mk_eq_uf FA.eApp_bbegin  vv x);
-          C.Conc (mk_eq_uf FA.eApp_bend    vv x);
-          unchecked]
+          [C.Conc (A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]
+        else if not singleton then
+          [C.Conc (mk_eq_uf FA.eApp_uncheck evv x)]
+        else [] in
+      let blocks =  
+        if not singleton then 
+          [ C.Conc (mk_eq_uf FA.eApp_bbegin  evv x) 
+          ; C.Conc (mk_eq_uf FA.eApp_bend    evv x)]
+        else []
+      in unchecked ++ blocks
   | _ -> []
 
 
