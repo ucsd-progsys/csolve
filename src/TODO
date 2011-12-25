@@ -1,13 +1,138 @@
 NEXT: MINIMIZE 
-1. Suppress "false" (done?)
-
-2. Flatten/Minimize Predicates?
-        >> hide redundant quals (e.g. V > 10 hides V > 5, V > x hides V >= x)
-        >> hide vacuous quals   (e.g. x: {V >= x})
 
 3. Print out qualifier names -- not predicates?
 
 4. Dump BSTATS out as JSON, sorted by times.
+
+
+***************************************************************************
+***************************************************************************
+
+variable pages_env_check ::
+
+ref(A88, {0 + 4*} , {VV_ptr_A88 | && [ (VV_ptr_A88 = pages_env_check) 
+                                     ; (BLOCK_END([VV_ptr_A88]) = (BLOCK_BEGIN([VV_ptr_A88]) + 4000)) 
+                                     ; ((VV_ptr_A88 != 0) => ((BLOCK_END([VV_ptr_A88]) - VV_ptr_A88) >= 8)) 
+                                     ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88])) 
+                                     ; (0 < VV_ptr_A88) 
+                                     ; (VV_ptr_A88 = BLOCK_BEGIN([VV_ptr_A88])) 
+                                     ; ((VV_ptr_A88 != 0) => && [(0 < VV_ptr_A88) ; (BLOCK_BEGIN([VV_ptr_A88]) <= VV_ptr_A88) ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88]))])
+                                     ]})
+
+1. HEREHEREHEREHERE
+
+>> int pages[] { && [ Eq(V, pages); Size(V, 4000); WordSize(8); Pos(V); Begin(V); LowerBd(V); UpperBd(V); NullOrValid(V) ]
+
+2. Allow hierarchical qualifiers
+
+
+qualif PosP(v:ptr)       : 0 < v
+qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
+qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
+qualif Valid(v:ptr)      : && [ #PosP(v); #LowerBd(v); #UpperBd(v) ]
+qualif NullOrValid(v:ptr): (v != 0) => Valid(v)
+
+//qualif Valid(v:ptr)    : && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+//qualif NullOrValid(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+
+
+
+
+
+variable pages_page_getfree ::
+
+ref(C168[A69], {0 + 4*} , {VV_ptr_C168 | && [((VV_ptr_C168 != 0) => && [(0 < VV_ptr_C168) ; (BLOCK_BEGIN([VV_ptr_C168]) <= VV_ptr_C168) ; 
+                                              (VV_ptr_C168 < BLOCK_END([VV_ptr_C168]))]) ; 
+                   (BLOCK_END([VV_ptr_C168]) = BLOCK_END([pages_page_getfree])) ; 
+                   (VV_ptr_C168 >= pages_page_getfree) ; ((VV_ptr_C168 != 0) => 
+                   (VV_ptr_C168 = BLOCK_BEGIN([VV_ptr_C168]))) ; (0 < VV_ptr_C168) ; 
+                   (VV_ptr_C168 < BLOCK_END([VV_ptr_C168])) ; ((VV_ptr_C168 != 0) => 
+                   ((BLOCK_END([VV_ptr_C168]) - VV_ptr_C168) >= 8)) ; 
+                   (BLOCK_BEGIN([VV_ptr_C168]) = BLOCK_BEGIN([pages_page_getfree])) ; 
+                   (BLOCK_END([VV_ptr_C168]) = (BLOCK_BEGIN([pages_page_getfree]) + 4000))]}) 
+
+=+=
+
+variable envs_env_check ::
+
+ref(C460[A87], {0} , {VV_ptr_C460 | && [(BLOCK_BEGIN([VV_ptr_C460]) = BLOCK_BEGIN([envs_env_check])) ; (
+                   (VV_ptr_C460 != 0) => ((BLOCK_END([VV_ptr_C460]) - VV_ptr_C460) >= 4)) ; 
+                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460])) ; (0 < VV_ptr_C460) ; 
+                   (VV_ptr_C460 >= envs_env_check) ; (BLOCK_END([VV_ptr_C460]) = BLOCK_END([envs_env_check])) ; 
+                   (VV_ptr_C460 = BLOCK_BEGIN([VV_ptr_C460])) ; ((VV_ptr_C460 != 0) => && [
+                   (0 < VV_ptr_C460) ; (BLOCK_BEGIN([VV_ptr_C460]) <= VV_ptr_C460) ; 
+                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460]))])]}) 
+
+variable walk_env_check__SSA__phi_26 ::
+
+ref(C461[A62], {0} , {VV_ptr_C461 | && [(BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([walk_env_check__SSA__phi_26])) ; (
+                   (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
+                   (VV_ptr_A62 >= walk_env_check__SSA__phi_26) ; (BLOCK_END([VV_ptr_A62]) = BLOCK_END([walk_env_check__SSA__phi_26])) ; 
+                   (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62])) ; ((VV_ptr_A62 != 0) => && [
+                   (0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
+                   (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; ((VV_ptr_A62 != 0) => 
+                   (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012)))]}) 
+
+solution: k_847 := [(
+      (VV_int < 2000), A0);((VV_int < 1000), A);((VV_int >= A62#Ix#0), GEQ[~a:=A62#Ix#0]);(
+      (0 <= VV_int), GEZ);((VV_int <= A62#Ix#0), LEQ[~a:=A62#Ix#0])] 
+
+
+funstore env_check ::
+
+[A62 |-> {0}: final int(4, {true} , {VV_int | && [(VV_int < 1000) ; (VV_int >= A62#Ix#0) ; (0 <= VV_int) ; 
+                       (VV_int <= A62#Ix#0)]}),
+         {4}: final ref(A62, {0} , {VV_ptr_A62 | && [((VV_ptr_A62 != 0) => (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012))) ; (
+                           (VV_ptr_A62 != 0) => && [(0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
+                                                    (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; 
+                           (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A62#Ix#4])) ; 
+                           (VV_ptr_A62 >= A62#Ix#4) ; ((VV_ptr_A62 != 0) => (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62]))) ; (
+                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
+                           (BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A62#Ix#4]))]}),
+         {8}: final ref(A62, {0} , {VV_ptr_A62 | && [((VV_ptr_A62 != 0) => (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012))) ; (
+                           (VV_ptr_A62 != 0) => && [(0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
+                                                    (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; 
+                           (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A62#Ix#8])) ; 
+                           (VV_ptr_A62 >= A62#Ix#8) ; ((VV_ptr_A62 != 0) => (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62]))) ; (
+                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
+                           (BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A62#Ix#8]))]}),
+         {12 + 4*}: final int(4, {true} , {VV_int | && [(VV_int < 1000) ; ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => 
+                       (VV_int = 0))]});
+ A87 |-> {0}: final ref(A62, {0} , {VV_ptr_A62 | && [(BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A87#Ix#0])) ; (
+                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
+                           (VV_ptr_A62 >= A87#Ix#0) ; (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A87#Ix#0])) ; 
+                           (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62])) ; ((VV_ptr_A62 != 0) => && [
+                           (0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
+                           (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; ((VV_ptr_A62 != 0) => 
+                           (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012)))]});
+ A88 |-> {0 + 4*}: int(4, {true} , {VV_int | && [((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (VV_int = 0))]});
+ A89 |-> {0 + 4*}: int(4, {true} , {VV_int | && [(0 <= VV_int) ; ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => 
+                       (VV_int = 0)) ; (VV_int < 1000)]})] 
+
+=+=
+
+
+
+
+variable envs_env_check ::
+
+ref(C460[A87], {0} , {VV_ptr_C460 | && [(VV_ptr_C460 = envs_env_check) ; 
+                                        ((VV_ptr_C460 != 0) => 
+                   ((BLOCK_END([VV_ptr_C460]) - VV_ptr_C460) >= 4)) ; 
+                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460])) ; (0 < VV_ptr_C460) ; 
+                   (VV_ptr_C460 = BLOCK_BEGIN([VV_ptr_C460])) ; ((VV_ptr_C460 != 0) => && [
+                   (0 < VV_ptr_C460) ; (BLOCK_BEGIN([VV_ptr_C460]) <= VV_ptr_C460) ; 
+                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460]))])]}) 
+
+
+
+
+
+
+
+
+***************************************************************************
+***************************************************************************
 
 Function Pointers
 
