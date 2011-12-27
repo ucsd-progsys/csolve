@@ -11,8 +11,4 @@ val pred_of_index_ref          : Index.t -> Ast.Symbol.t * Ast.pred
 val non_null_pred_of_index_ref : Index.t -> Ast.Symbol.t * Ast.pred
 val pred_of_ctype              : Ctypes.ctype -> Ast.Symbol.t * Ast.pred
 val non_null_pred_of_ctype     : Ctypes.ctype -> Ast.Symbol.t * Ast.pred
-val partition_scalar_quals     :
-     Ast.Qualifier.t list 
-  -> ( Ast.Qualifier.t list 
-     * Ast.Qualifier.t list 
-     * Ast.Qualifier.t list)
+val partition_scalar_quals     : Qualifier.t list -> ( Qualifier.t list * Qualifier.t list * Qualifier.t list)

@@ -15,7 +15,7 @@ val vv_int : Ast.Symbol.t
 val vv_int : Ast.Symbol.t
 
 *)
-val quals_of_file       : string -> Ast.Qualifier.t list 
+val quals_of_file       : string -> Qualifier.t list 
 val sorts               : Ast.Sort.t list
 val axioms              : Ast.pred list
 val builtinm            : FixConstraint.reft Ast.Symbol.SMap.t

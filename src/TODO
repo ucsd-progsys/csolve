@@ -2,10 +2,9 @@ NEXT: MINIMIZE
 
 3. Print out qualifier names -- not predicates?
 
-    >> Update TYPE of predicate to include APP (DONE? -- bExp . eApp)
-    >> Update PARSER to allow stuff like (v != 0) => Valid(v)
-    
-    >> Update Qualifier.normalize to COMPILE away compound quals
+    >> OK   Update TYPE of predicate to include APP (DONE? -- bExp . eApp)
+    >> OK   Update PARSER to allow stuff like (v != 0) => Valid(v)
+    >> OK   Update Qualifier.normalize to COMPILE away compound quals
 
     >> Update PredAbs.min_read to print out NAMES of qualifiers
     >> revert to just "V" for value variable (OK, later)

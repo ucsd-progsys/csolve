@@ -38,7 +38,7 @@ module Ct = Ctypes
 module Ix = Index
 module Co = Constants
 module P  = A.Predicate 
-module Q  = A.Qualifier
+module Q  = Qualifier
 
 module Ci = Consindex
 module E  = Errormsg

@@ -36,7 +36,7 @@ module  E = A.Expression
 module Sy = A.Symbol
 module Su = A.Subst
 module So = A.Sort
-module  Q = A.Qualifier
+module  Q = Qualifier
 
 module CI = CilInterface
 module Ct = Ctypes

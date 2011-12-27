@@ -38,7 +38,7 @@ module Ct = Ctypes
 module Ix = Index
 module Co = Constants
 module P  = A.Predicate 
-module Q  = A.Qualifier
+module Q  = Qualifier
 module E  = Errormsg
 
 open Misc.Ops
@@ -107,7 +107,7 @@ let p_v_minus_x_minus_c_eqz_mod_k =
                    , A.Mod, A.eVar period_var)
            ,A.zero)
 
-let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sort.t_int]
+let quals_of_pred p = List.map (fun t -> Q.create (Sy.of_string "SCALAR") value_var t p) [A.Sort.t_int]
 
 
 (***************************************************************************)

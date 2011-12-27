@@ -30,7 +30,7 @@ module  C = FixConstraint
 module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
-module  Q = Ast.Qualifier 
+module  Q = Qualifier 
 
 module FA = FixAstInterface
 module FI = FixInterface
