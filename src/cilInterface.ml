@@ -183,7 +183,7 @@ and convert_cilbinexp (op, e1, e2) =
       let p1', p2' = Misc.map_pair pred_of_cilexp (e1, e2) in
       P (f [p1'; p2'])
   | Bunimpl ->
-      E (A.bot)
+      failwith "Unimplemented operator"
 
 
 (* API *)
