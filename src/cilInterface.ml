@@ -63,8 +63,6 @@ let expr_of_cilcon = function
       A.eCon (A.Constant.Int (Int64.to_int i))
   | Cil.CChr c ->
       A.eCon (A.Constant.Int (Char.code c))
-  | Cil.CReal _ | Cil.CStr _ ->
-      A.bot
   | _ ->
       assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str

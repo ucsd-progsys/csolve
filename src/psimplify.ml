@@ -135,7 +135,7 @@ and makeBasic (setTemp: taExp -> bExp) (e: exp) : bExp =
   (* See if it is a basic one *)
   match e' with
   | Lval (Var _, _) -> e'
-  | Const (CStr _) -> setTemp e'
+  | Const (CStr _) | Const (CReal _) -> setTemp e'
   | Const _ | StartOf (Var _, NoOffset) ->
       if !onlyVariableBasics then setTemp e' else e'
   | AddrOf (Var _, NoOffset) ->
