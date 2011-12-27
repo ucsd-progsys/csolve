@@ -710,8 +710,9 @@ let expr_derefs_wf cenv sto e = match FA.maybe_deref e with
     end
   | None -> true
 
+(* TODO: replace (Q.vv_of_t q) with (rct |> Ct.reft_of_refctype |> C.vv_of_reft) *)
 let filter_store_derefs cenv sto rct q =
-  let cenv = ce_adds cenv [(Q.vv_of_t q, rct)] in
+  let cenv = ce_adds cenv [(Q.vv_of_t q , rct)] in
   let wf   = ref true in
        q
     |> Q.pred_of_t

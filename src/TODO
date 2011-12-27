@@ -2,6 +2,16 @@ NEXT: MINIMIZE
 
 3. Print out qualifier names -- not predicates?
 
+    >> Update TYPE of predicate to include APP (DONE? -- bExp . eApp)
+    >> Update PARSER to allow stuff like (v != 0) => Valid(v)
+    
+    >> Update Qualifier.normalize to COMPILE away compound quals
+
+    >> Update PredAbs.min_read to print out NAMES of qualifiers
+    >> revert to just "V" for value variable (OK, later)
+
+
+
 4. Dump BSTATS out as JSON, sorted by times.
 
 
@@ -21,12 +31,14 @@ ref(A88, {0 + 4*} , {VV_ptr_A88 | && [ (VV_ptr_A88 = pages_env_check)
 
 1. HEREHEREHEREHERE
 
->> int pages[] { && [ Eq(V, pages); Size(V, 4000); WordSize(8); Pos(V); Begin(V); LowerBd(V); UpperBd(V); NullOrValid(V) ]
+>> int pages[] { && [ Eq(V, pages); Size(V, 4000); WordSize(8); Begin(V); Valid(V)]
 
 2. Allow hierarchical qualifiers
 
 
 qualif PosP(v:ptr)       : 0 < v
+
+qualif Begin(v:ptr)      : BLOCK_BEGIN([v])  = v
 qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
 qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
 qualif Valid(v:ptr)      : && [ #PosP(v); #LowerBd(v); #UpperBd(v) ]
