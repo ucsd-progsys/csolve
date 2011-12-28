@@ -171,7 +171,7 @@ let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
     | Ct.Ref (l, _) as rct, cds ->
       let ld2 = RS.Data.find sto l in
-      let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
+      let ld1 = RL.map (RF.map_type FI.t_nullterm_refctype) ld2 in
         (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
     | _ -> assert false
 
