@@ -1,43 +1,42 @@
-qualif FALSE(v:int) : 1 = 0
-qualif EQZ(v: int)  : v = 0
-qualif GEZ(v:int)   : 0 <= v
-qualif GTZ(v:int)   : 0 < v
-qualif UCH(v:ptr)   : UNCHECKED([v]) = 1
+qualif False(v:int)      : 1 = 0
+qualif Zero(v: int)      : v = 0
+qualif PosZ(v:int)       : 0 <= v
+qualif Pos(v:int)        : 0 < v
+qualif Unchecked(v:ptr)  : UNCHECKED([v]) = 1
 
-qualif EQZ(v:ptr)   : v = 0
-qualif GTZP(v:ptr)  : 0 < v
-qualif GTZP(v:ptr)  : 0 <= v
-qualif ISBS(v:ptr)  : v = BLOCK_BEGIN([v])
+qualif ZeroP(v:ptr)      : v = 0
+qualif PosP(v:ptr)       : 0 < v
+qualif PosZP(v:ptr)      : 0 <= v
+qualif Begin(v:ptr)      : v = BLOCK_BEGIN([v])
 
-qualif LB(v:ptr)    : BLOCK_BEGIN([v]) <= v
-qualif UB(v:ptr)    : v < BLOCK_END([v])
+qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
+qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
 
-qualif NULLorVALID(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
-qualif NULLorBEGIN(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
-qualif WORDSIZE(v:ptr)   : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
-qualif WORDSIZE(v:ptr)   : (v != 0) => ((BLOCK_END([v]) - v) >= 8)
-
+qualif Valid(v:ptr)      : && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+qualif NullOrValid(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+qualif NullOrBegin(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
+qualif WordSize4(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
+qualif WordSize8(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 8)
 
 //Commented out for tests/ft/ft_full.c 
 //Uncomment after that
-qualif LEQ(v:int)      : v <= ~a
-qualif GEQ(v:int)      : v >= ~a
-qualif LT(v:int)       : v < ~a
-qualif GT(v:int)       : v > ~a
-qualif SIZE(v:ptr)     : BLOCK_BEGIN([v]) + ~A <= BLOCK_END([v])
-qualif SIZE(v:ptr)     : ((v + (4 * ~A)) <= BLOCK_END([v]))
-qualif BEGIN(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])
-qualif END(v:ptr)      : BLOCK_END([v]) = BLOCK_END([~a])
+qualif Eq(v:int)         : v =  _
+qualif Le(v:int)         : v <= _
+qualif Ge(v:int)         : v >= _
+qualif Lt(v:int)         : v <  _
+qualif GT(v:int)         : v >  _
 
-// pmr: Drop when we start inferring quals
-qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 4) = 0
-qualif ARRAYMOD(v:ptr) : ((v - BLOCK_BEGIN([v])) mod 8) = 0
+qualif SizeGt(v:ptr)     : BLOCK_BEGIN([v]) + _ <= BLOCK_END([v])
+qualif RestGt(v:ptr)     : ((v + (4 * _)) <= BLOCK_END([v]))
 
-qualif NULLTERM (v: int): (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
+qualif EqBegin(v:ptr)    : BLOCK_BEGIN([v]) = BLOCK_BEGIN([_])
+qualif EqEnd(v:ptr)      : BLOCK_END([v]) = BLOCK_END([_])
+
+qualif NullTerm(v: int) : (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
 
 // Generally useful for effect tracking
-qualif NOWRITE(v: ptr) : EWRITE != 1
-qualif NOREAD(v: ptr)  : EREAD != 1
+qualif NoWrite(v: ptr)   : EWRITE != 1
+qualif NoRead(v: ptr)    : EREAD != 1
 
-qualif GPTR(v: ptr) : v >= ~a
-
+qualif Ge(v: ptr)        : v >= _ 
+qualif Eq(v: ptr)        : v =  _

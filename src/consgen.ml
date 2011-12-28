@@ -201,7 +201,7 @@ let create cil spec decs =
   let sts    = CS.locspectypes spec in
   let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
   let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
-  let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in
+  (* let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in *)
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

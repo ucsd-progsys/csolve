@@ -134,13 +134,13 @@ val refstore_strengthen_addr :
   Ctypes.refctype ->
   cilenv * Ctypes.refstore
 
-val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> Ctypes.refstore
+val refstore_fresh             : string -> Ctypes.store -> Ctypes.refstore
 
 val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
 val conv_effectset_bottom      : Ctypes.effectset -> Ctypes.effectset
 
-val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
-val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
+val refstore_subs       : ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
+val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
 
 val effectset_subs      : ('a -> Ctypes.effectptr -> Ctypes.effectptr) -> 'a -> Ctypes.effectset -> Ctypes.effectset
 val effectset_subs_locs : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.effectset -> Ctypes.effectset
