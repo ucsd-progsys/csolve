@@ -91,24 +91,33 @@ let fresh_arg_name, _ = M.mk_string_factory "ARG"
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
 
-(** Ensures no expression contains a memory access and another
+(** Ensures 1) no expression contains a memory access and another
+    operation, 2) all instructions contain at most one memory
     operation. *)
 class purifyVisitor (fd: fundec) = object(self)
   inherit nopCilVisitor
 
+  method private mkTemp lv =
+    let tmp = makeTempVar fd (typeOfLval lv) in
+    let tlv = (Var tmp, NoOffset) in
+    let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
+    tlv
+
   method vexpr = function
     | Lval (Mem (Lval (Var _, _)), NoOffset) ->
-        SkipChildren
+      SkipChildren
     | Lval ((Mem _, _) as lv) ->
-        let tmp = makeTempVar fd (typeOfLval lv) in
-        let tlv = (Var tmp, NoOffset) in
-        let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
-          ChangeDoChildrenPost (Lval tlv, id)
+      ChangeDoChildrenPost (Lval (self#mkTemp lv), id)
+    | _ -> DoChildren
+
+  method vinst = function
+    | Set ((Mem _, _) as lvl, Lval ((Mem _, _) as lvr), loc) ->
+      ChangeDoChildrenPost ([Set (lvl, Lval (self#mkTemp lvr), loc)], id)
     | _ -> DoChildren
 end
 
 let purifyFunction (fd: fundec) =
-  fd.sbody <- visitCilBlock (new purifyVisitor fd) fd.sbody
+  fd.sbody <- visitCilBlock (new purifyVisitor fd :> cilVisitor) fd.sbody
 
 let doGlobal = function
   | GFun (fd, _) -> purifyFunction fd
