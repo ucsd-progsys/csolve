@@ -140,13 +140,16 @@ let d_indexAbs =
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let cfg     = FixConfig.create_raw (* config *) FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let cfg     = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
   let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
+  let _       = Misc.dump "DONE: dd.create \n" in
   let _       = Errormsg.log "DONE: qualifier instantiation \n" in
   let _       = Errormsg.log "DONE: solution strengthening \n" in
   let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
   let _       = Errormsg.log "DONE: saving input constraints \n" in
+  let _       = Misc.dump "BEGIN: dd.solve \n" in
   let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
+  let _       = Misc.dump "DONE: dd.solve \n" in
   let _       = Errormsg.log "DONE: constraint solving \n" in
   let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
   let _       = Errormsg.log "DONE: saving output constraints \n" in
@@ -156,6 +159,37 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
 	| _ -> failwith ("ac_solve: "^fn)
     else s',cs'
 	    
+(* FOR DEBUGGING ONLY, NUKE AFTER *)
+let ac_solve_predAbs me fn (ws, cs, ds) qs so kf =
+  let _       = Misc.dump "DONE: ac_solve_predAbs 0\n" in
+  let dd      = d_predAbs in
+  let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
+  let _       = Misc.dump "DONE: ac_solve_predAbs 1\n" in
+  let cfg     = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let _       = Misc.dump "DONE: ac_solve_predAbs 2\n" in
+  let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
+  let _       = Misc.dump "DONE: ac_solve_predAbs 3\n" in
+  let _       = Errormsg.log "DONE: qualifier instantiation \n" in
+  let _       = Errormsg.log "DONE: solution strengthening \n" in
+  let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
+  let _       = Errormsg.log "DONE: saving input constraints \n" in
+  let _       = Misc.dump "DONE: ac_solve_predAbs 4\n" in
+  let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
+  let _       = Misc.dump "DONE: ac_solve_predAbs 5\n" in
+  let _       = Errormsg.log "DONE: constraint solving \n" in
+  let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
+  let _       = Errormsg.log "DONE: saving output constraints \n" in
+    if !Constants.check_is
+    then match cs' with
+	| [] -> (s', cs')
+	| _ -> failwith ("ac_solve: "^fn)
+    else s',cs'
+	
+
+
+
+
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in
@@ -180,9 +214,14 @@ let idx_solve me fn qs =
 (* API *)
 let solve me fn qs =
   (if !Constants.prune_index then some <| idx_solve me fn qs else None)
-  |> ac_solve d_predAbs me fn (get_cstrs me) qs None
+  >> (fun _ -> Misc.dump "Consindex.solve 1 \n")
+  |>  ac_solve_predAbs me fn (get_cstrs me) qs None
+  (* DEBUG ONLY RESTORE!! 
+   * |>  ac_solve d_predAbs me fn (get_cstrs me) qs None *)
+  >> (fun _ -> Misc.dump "Consindex.solve 2 \n")
   |> Misc.app_fst d_predAbs.min_read
-
+  >> (fun _ -> Misc.dump "Consindex.solve 3 \n")
+  
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
 
 let scalar_solve me fn fp (* qs *) =
