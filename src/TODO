@@ -9,6 +9,30 @@ NEXT: MINIMIZE
     >> Update PredAbs.min_read to print out NAMES of qualifiers
     >> revert to just "V" for value variable (OK, later)
 
+HEREHEREHERE
+
+Missing Qualifiers: Eq0, Ge0, PosP, PosZP, ZeroP 
+(w.r.t. goto-home/research/csolve/src/log.csolve.quals)
+
+tests/postests/strcpy.c
+../tests/postests/depalloc.c
+../tests/postests/arraysum.c
+../tests/postests/cpj/parallel_for.c
+
+
+Failed 33 tests: ../tests/postests/adpcm.c, ../tests/postests/adpcmini.c, ../tests/postests/adpcmini2.c, ../tests/postests/adpcminiptr.c, 
+
+../tests/postests/broken-subst.c, ../tests/postests/coreutils/dirname.sh, ../tests/postests/coreutils/false.sh, ../tests/postests/coreutils/groups.sh, ../tests/postests/coreutils/hostid.sh, ../tests/postests/coreutils/hostname.sh, ../tests/postests/coreutils/link.sh, ../tests/postests/coreutils/logname.sh, ../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh, ../tests/postests/coreutils/readlink.sh, ../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh, ../tests/postests/coreutils/true.sh, ../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh, ../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh, 
+
+, ../tests/postests/cpj/parallel_for_expression_bounds.c, ../tests/postests/cpj/quicksort.c, ../tests/postests/cpj/sumreduce.c, 
+
+
+../tests/postests/full_adpcm.sh, ../tests/postests/glib-2.24.0/int-glist.c, ../tests/postests/glib-2.24.0/int-gslist.c, ../tests/postests/ks.c, ../tests/postests/strcpy.c
+
+Exceptions thrown on 33 tests: ../tests/postests/adpcm.c, ../tests/postests/adpcmini.c, ../tests/postests/adpcmini2.c, ../tests/postests/adpcminiptr.c, ../tests/postests/arraysum.c, ../tests/postests/broken-subst.c, ../tests/postests/coreutils/dirname.sh, ../tests/postests/coreutils/false.sh, ../tests/postests/coreutils/groups.sh, ../tests/postests/coreutils/hostid.sh, ../tests/postests/coreutils/hostname.sh, ../tests/postests/coreutils/link.sh, ../tests/postests/coreutils/logname.sh, ../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh, ../tests/postests/coreutils/readlink.sh, ../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh, ../tests/postests/coreutils/true.sh, ../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh, ../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh, ../tests/postests/cpj/parallel_for.c, ../tests/postests/cpj/parallel_for_expression_bounds.c, ../tests/postests/cpj/quicksort.c, ../tests/postests/cpj/sumreduce.c, ../tests/postests/depalloc.c, ../tests/postests/full_adpcm.sh, ../tests/postests/glib-2.24.0/int-glist.c, ../tests/postests/glib-2.24.0/int-gslist.c, ../tests/postests/ks.c, ../tests/postests/strcpy.c
+
+
+
 
 
 4. Dump BSTATS out as JSON, sorted by times.
