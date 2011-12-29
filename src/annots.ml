@@ -267,10 +267,12 @@ let set_cilinfo xcts binds =
 (* UGH. Global State. *)
 let annotr    = ref [] 
 
+let is_annot_var = not <.> Ast.Symbol.is_value_variable 
+
 (* API *)
-let annot_var x cr = annotr := TVar (x, cr) :: !annotr
 let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
 let annot_sto f st = annotr := TSto (f, st) :: !annotr
+let annot_var x cr = if is_annot_var x then annotr := TVar (x, cr) :: !annotr
 let clear _        = annotr := []
 
 let apply_solution =

@@ -653,12 +653,15 @@ let ce_add ce (n, cr) =
             ; theta = th' 
   }
 
+let ce_adds = List.fold_left ce_add
+
+(*
 let ce_adds cenv ncrs =
   let _ = if mydebug then List.iter begin fun (n, cr) -> 
             Errormsg.log "ce_adds: n = %s cr = %a \n" (FA.string_of_name n) Ct.d_refctype cr 
           end ncrs 
-  in ncrs >> List.iter (fun (n, cr) -> Annots.annot_var n cr)
-          |> List.fold_left ce_add cenv
+  in List.fold_left ce_add cenv ncrs
+*)
 
 (******************************************************************************)
 (********************** WF For Dereferencing Expressions **********************)
