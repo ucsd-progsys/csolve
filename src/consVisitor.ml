@@ -717,7 +717,7 @@ let scalarcons_of_edge me i j =
 let cons_of_edge me = if CF.has_shape me then cons_of_edge me else scalarcons_of_edge me
 
 (****************************************************************************)
-(********************** Constraints for ST.ssaCfgInfo ***********************)
+(********************** Constraints for Ssa_transform.t *********************)
 (****************************************************************************)
 
 let process_block me i =

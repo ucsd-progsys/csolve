@@ -60,7 +60,7 @@ type t_sh = {
 
 type t    = {
   tgr     : CilTag.o;
-  sci     : ST.ssaCfgInfo;
+  sci     : ST.t;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;

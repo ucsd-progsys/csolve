@@ -3,26 +3,20 @@ qualif Zero(v: int)      : v = 0
 qualif PosZ(v:int)       : 0 <= v
 qualif Pos(v:int)        : 0 < v
 qualif Unchecked(v:ptr)  : UNCHECKED([v]) = 1
-
 qualif ZeroP(v:ptr)      : v = 0
 qualif PosP(v:ptr)       : 0 < v
 qualif PosZP(v:ptr)      : 0 <= v
 qualif Begin(v:ptr)      : v = BLOCK_BEGIN([v])
-
 qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
 qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
-
 qualif Valid(v:ptr)      : && [ PosP(v); LowerBd(v); UpperBd(v) ]
 qualif NullOrValid(v:ptr): (v != 0) => (Valid(v))
 qualif NullOrBegin(v:ptr): (v != 0) => (Begin(v))
-
-
-
 qualif WordSize4(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
 qualif WordSize8(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 8)
 
-//Commented out for tests/ft/ft_full.c 
-//Uncomment after that
+//RJ: don't know what the next comment means.
+//Commented out for tests/ft/ft_full.c, uncomment after that
 qualif Eq(v:int)         : v =  _
 qualif Le(v:int)         : v <= _
 qualif Ge(v:int)         : v >= _

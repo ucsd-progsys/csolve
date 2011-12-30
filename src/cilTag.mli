@@ -25,7 +25,7 @@
 
 type o
 type t 
-val create        : Ssa_transform.ssaCfgInfo list -> o
+val create        : Ssa_transform.t list -> o
 val make_t        : o -> Cil.location -> string -> int -> int -> t
 val make_global_t : o -> Cil.location -> t
 val loc_of_t      : o -> t -> Cil.location

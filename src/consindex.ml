@@ -51,7 +51,7 @@ let mydebug = false
 (****************************************************************)
 
 type t = {
-  scim : Ssa_transform.ssaCfgInfo SM.t;
+  scim : Ssa_transform.t SM.t;
   wfm  : C.wf list SM.t;
   cm   : C.t list SM.t;
   defm : (varinfo * Ct.refctype) list SM.t;

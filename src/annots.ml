@@ -81,28 +81,26 @@ let tags_of_binds binds =
   end (Pretty.nil, []) binds
 
 let generate_annots d = 
-  let fn = !Co.csolve_file_prefix ^ ".annot" in
-  let oc = open_out fn in
-  let _  = Pretty.fprint ~width:80 oc d in
-  let _  = close_out oc in
-  ()
+  Misc.with_out_file (!Co.csolve_file_prefix ^ ".annot") begin fun oc ->
+    Pretty.fprint ~width:80 oc d 
+  end
 
 let generate_ispec bs = 
   let fn = !Co.csolve_file_prefix ^ ".infspec" in
-  let oc = open_out fn in
-  bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
-     |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, cf) ->
-         PP.dprintf "%s ::\n@[%a@]" fn Ct.d_refcfun cf) ~elements:bs)
-     |> (fun d  -> PP.fprint ~width:80 oc d)
-     |> (fun _  -> close_out oc)
+  Misc.with_out_file fn begin fun oc -> 
+    bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
+       |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, cf) ->
+             PP.dprintf "%s ::\n@[%a@]" fn Ct.d_refcfun cf) ~elements:bs)
+       |> PP.fprint ~width:80 oc
+  end
 
 let generate_tags kts =
-  let fn = !Co.csolve_file_prefix ^ ".tags" in
-  let oc = open_out fn in
-  let _  = kts |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
-               |> List.iter (fun (k,t) -> ignore <| Pretty.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.csolve_file_prefix t) in
-  let _  = close_out oc in
-  ()
+  Misc.with_out_file (!Co.csolve_file_prefix ^ ".tags") begin fun oc -> 
+    kts 
+    |> List.sort (fun (k1,_) (k2,_) -> compare k1 k2) 
+    |> List.iter (fun (k,t) -> ignore <| PP.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.csolve_file_prefix t) 
+  end
+
 
 (*******************************************************************)
 (*******************************************************************)
@@ -261,23 +259,15 @@ let set_cilinfo xcts binds =
 (*******************************************************************)
 (*******************************************************************)
 
-(*
-let annotr    = ref [] 
-let is_annot_var   = not <.> Ast.Symbol.is_value_variable 
-let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
-let annot_sto f st = annotr := TSto (f, st) :: !annotr
-let annot_var x cr = if is_annot_var x then annotr := TVar (x, cr) :: !annotr
-let clear _        = annotr := []
-*)
-
 (* UGH. Global State. *)
 
 (* API *)
-let annot_fun, annot_sto, annot_var, clear, annots =
+let annot_shape, annot_fun, annot_sto, annot_var, clear, annots =
   let ft = Hashtbl.create 37 in
   let st = Hashtbl.create 37 in
   let vt = Hashtbl.create 37 in
-  ( Hashtbl.replace ft 
+  ( (fun cil shm scim -> failwith "TBD: annot_shape") 
+  , Hashtbl.replace ft 
   , Hashtbl.replace st 
   , Hashtbl.replace vt
   , (fun () -> Hashtbl.clear ft; Hashtbl.clear st; Hashtbl.clear vt)

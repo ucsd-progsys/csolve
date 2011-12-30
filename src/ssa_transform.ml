@@ -56,7 +56,7 @@ let mydebug = false
 type regindex = Def of int * int                (* block, position *)
               | Phi of int                      (* block *)
 
-type ssaCfgInfo = { 
+type t = { 
   fdec  : fundec;
   cfg   : S.cfgInfo;                                                   
   phis  : (varinfo * (int * varinfo) list) list array; (*  block |-> (var, (block, var) list) list *)
@@ -65,6 +65,7 @@ type ssaCfgInfo = {
   edoms : ((int * int), bool) Hashtbl.t;
   vmapt : (string * string * int, string) Hashtbl.t; 
 }
+
 let ssas = "__SSA__"
 
 let mk_ssa_name s = function
@@ -99,8 +100,7 @@ let lvars_to_string cfg lvs =
                              cfg.S.regToVarinfo.(i).vname i j) lvs) 
 
 let print_blocks cfg =
-    Array.iteri 
-    (fun i b -> 
+    Array.iteri begin fun i b -> 
       ignore (E.log "\n ------> \n block %d [preds: %s, succs: %s] livevars: %s \n"
       i
       (Misc.map_to_string string_of_int cfg.S.predecessors.(i))
@@ -108,8 +108,7 @@ let print_blocks cfg =
       (lvars_to_string cfg b.S.livevars));
       E.log "statement = %a \n" Cil.d_stmt b.S.bstmt
       (* Cil.dumpStmt Cil.defaultCilPrinter stdout 0 b.S.bstmt *)
-      )
-    cfg.S.blocks
+    end cfg.S.blocks
  
 let print_out_t r2v out_t = 
   H.iter 
@@ -345,7 +344,7 @@ let mk_gdominators fdec cfg =
   let eds  = Guards.mk_edoms cfg.S.predecessors ifs idom in
   (ifs, gds, eds)
   
-let fdec_to_ssa_cfg vmap_t fdec loc = 
+let fdec_to_ssa_cfg fdec loc = 
   let (cfg,r2v,v2r) = mk_cfg fdec in
   let cfg           = S.prune_cfg cfg in
   let _             = S.add_ssa_info cfg in
@@ -372,11 +371,10 @@ let print_sci oco sci =
   Cil.dumpGlobal Cil.defaultCilPrinter oc (GFun (sci.fdec,Cil.locUnknown))
 
 let print_scis scis =
-  !Co.csolve_file_prefix^".ssa.c"
-  |> open_out 
-  >> (fun oc -> List.iter (print_sci (Some oc)) scis)
-  |> close_out 
-  
+  Misc.with_out_file (!Co.csolve_file_prefix^".ssa.c") begin fun oc -> 
+    List.iter (print_sci (Some oc)) scis
+  end
+
 (**************************************************************************)
 
 let print_vmap oc sci =
@@ -389,19 +387,17 @@ let print_vmap oc sci =
      end
 
 let print_vmaps scis =
-  !Co.csolve_file_prefix^".vmap"
-  |> open_out
-  >> (fun oc -> List.iter (print_vmap oc) scis)
-  |> close_out
+  Misc.with_out_file (!Co.csolve_file_prefix^".vmap") begin fun oc -> 
+    List.iter (print_vmap oc) scis
+  end
 
 (***********************************************************************)
 
 (* API *)
 let scim_of_decs decs = 
-  let vmap_t = H.create 117 in
   decs
   |> Misc.map_partial (function CilMisc.FunDec (_,x,y) -> Some (x,y) | _ -> None)
-  |> Misc.map (Misc.uncurry (fdec_to_ssa_cfg vmap_t))
+  |> Misc.map (Misc.uncurry fdec_to_ssa_cfg)
   >> print_scis
   >> print_vmaps
   |> List.map (Misc.pad_fst (fun sci -> sci.fdec.svar.vname)) 

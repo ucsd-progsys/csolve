@@ -32,7 +32,7 @@ val create      : FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * 
 
 val add         :  t 
                 -> string 
-                -> Ssa_transform.ssaCfgInfo 
+                -> Ssa_transform.t
                 -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list 
                 -> t
 

@@ -1,4 +1,7 @@
 1. NEXT: MINIMIZE 
+
+   >> sort by name/frequency?
+   
    >> export cilenv to annots: 
        >> substitute copyprop & delete duplicates (?)
        >> print simple var names. 'x for old x for current, $x for input.
@@ -6,7 +9,6 @@
 
    >> render with C-Types (cf. GOAL below)
 
-   >> sort by name/frequency?
 
 2. Dump BSTATS out as JSON, sorted by times.
 
