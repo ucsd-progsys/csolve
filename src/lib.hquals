@@ -13,8 +13,13 @@ qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
 qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
 
 qualif Valid(v:ptr)      : && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
-qualif NullOrValid(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
-qualif NullOrBegin(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
+qualif NullOrValid(v:ptr): (v != 0) => (Valid(v))
+qualif NullOrBegin(v:ptr): (v != 0) => (Begin(v))
+
+//qualif NullOrValid(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
+//qualif NullOrBegin(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
+
+
 qualif WordSize4(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
 qualif WordSize8(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 8)
 
