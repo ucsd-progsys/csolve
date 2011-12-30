@@ -46,4 +46,3 @@ qualif NullTerm(v: int) : (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
 // Generally useful for effect tracking
 qualif NoWrite(v: ptr)   : EWRITE != 1
 qualif NoRead(v: ptr)    : EREAD != 1
-

@@ -1,6 +1,12 @@
 1. NEXT: MINIMIZE 
-    >> nuke quals over _non_live_ variables (-o --prunelive)
-    >> sort by name/frequency?
+   >> export cilenv to annots: 
+       >> substitute copyprop & delete duplicates (?)
+       >> print simple var names. 'x for old x for current, $x for input.
+       >> print substs at end of annot (x := ..., 'x := ..., $x := ..., etc.)
+
+   >> render with C-Types (cf. GOAL below)
+
+   >> sort by name/frequency?
 
 2. Dump BSTATS out as JSON, sorted by times.
 
