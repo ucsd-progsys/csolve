@@ -70,18 +70,6 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x, y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
-let d_lsub () (x,y) = 
-  Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
-
-let d_lsubs () xys =
-  Pretty.seq (Pretty.text ",") (d_lsub ()) xys
-
-(*
-let rename_store lsubs subs st = 
-  st |> Ct.prestore_subs lsubs
-     |> Ct.prestore_map_ct (rename_refctype lsubs subs)
-*)
-
 let weaken_undefined me rm env v = 
   let n = FA.name_of_varinfo v in
   let b = FI.ce_mem n env && CF.is_undefined me v in
