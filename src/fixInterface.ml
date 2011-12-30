@@ -449,7 +449,7 @@ let strengthen_refctype mkreft rct =
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
-      |> Su.of_list
+      |> Su.simultaneous_of_list
       |> C.theta
       |> Misc.app_snd
       |> RCt.CType.map
