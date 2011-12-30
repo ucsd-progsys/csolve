@@ -80,8 +80,9 @@ let reft_of_top =
   let vv = Ast.Symbol.value_variable so in
   FC.make_reft vv so []
 
-let d_reft () r = 
-  Misc.fsprintf (FC.print_reft_pred None) r |> P.text
+let d_reft () r =
+  P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) 
+  (* Misc.fsprintf (FC.print_reft_pred None) r |> P.text *)
 
 let d_index_reft () (i,r) = 
   P.dprintf "%a , %a" Index.d_index i d_reft r
