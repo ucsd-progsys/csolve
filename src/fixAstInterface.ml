@@ -57,15 +57,14 @@ let mydebug = false
 (******************************** Names ****************************)
 (*******************************************************************)
 
-type name = private N of Ast.Symbol.t 
+type name = Ast.Symbol.t 
 
-let string_of_name  (N s) = Sy.to_string s 
+let name_of_string s    =  (Sy.of_string s)
+let string_of_name  (s) = Sy.to_string s 
 
-let d_name () n       = Pretty.text (string_of_name n)
+let d_name () n         = Pretty.text (string_of_name n)
 
-let name_of_string    = Sy.of_string
-
-let varinfo_t         = Hashtbl.create 37
+let varinfo_t             = Hashtbl.create 37
 
 let name_of_varinfo v = 
   v.vname 

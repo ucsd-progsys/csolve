@@ -149,7 +149,7 @@ let is_base = function
 
 (* API *)
 let pred_of_refctype s v cr = 
-  let n        = FA.name_of_varinfo v |> A.eVar in
+  let n        = (FA.name_of_varinfo v :> Sy.t) |> A.eVar in
   let vv,_,ras = cr |> Ct.reft_of_refctype |> C.apply_solution s in
   let su       = Su.of_list [(vv, n)] in
   ras |> Misc.flap (function C.Conc (A.And ps, _) -> ps | _ -> []) 
@@ -164,7 +164,7 @@ let ce_rem   = fun n ce -> {ce with venv = YM.remove n ce.venv}
 let ce_mem   = fun n ce -> YM.mem n ce.venv
 
 let ce_find n {venv = vnv} =
-  try YM.find n vnv with Not_found -> 
+  try YM.find (n :> Sy.t) vnv with Not_found -> 
     let _  = asserti false "Unknown name! %s" (FA.string_of_name n) in
     assertf "Unknown name! %s" (FA.string_of_name n)
 
