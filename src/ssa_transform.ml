@@ -377,19 +377,6 @@ let print_scis scis =
 
 (**************************************************************************)
 
-let print_vmap oc sci =
-  sci.vmapt 
-  |> Misc.hashtbl_to_list
-  |> Misc.sort_and_compact 
-  |> List.iter begin fun ((vname, file, line), ssaname) ->
-       let vname = Constants.unrename_local sci.fdec.svar.vname vname in
-       Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
-     end
-
-let print_vmaps scis =
-  Misc.with_out_file (!Co.csolve_file_prefix^".vmap") begin fun oc -> 
-    List.iter (print_vmap oc) scis
-  end
 
 (***********************************************************************)
 
@@ -399,7 +386,6 @@ let scim_of_decs decs =
   |> Misc.map_partial (function CilMisc.FunDec (_,x,y) -> Some (x,y) | _ -> None)
   |> Misc.map (Misc.uncurry fdec_to_ssa_cfg)
   >> print_scis
-  >> print_vmaps
   |> List.map (Misc.pad_fst (fun sci -> sci.fdec.svar.vname)) 
   |> Misc.StringMap.of_list
 

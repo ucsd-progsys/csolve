@@ -22,7 +22,7 @@
  *)
 
 (* This file is part of the CSolve Project.*)
-
+module H   = Hashtbl
 module FA  = FixAstInterface
 module Ct  = Ctypes
 module Co  = Constants
@@ -33,15 +33,15 @@ module SS  = Misc.StringSet
 module SM  = Misc.StringMap
 module SLM = Sloc.SlocMap
 module IM  = Misc.IntMap
+module ST  = Ssa_transform
+
 open Misc.Ops
 
 let mydebug = false
 
-(* YUCK!!! Global State. *)
-let shaper    = ref []
 
 (*******************************************************************)
-(****************** Tag/Annotation Generation **********************)
+(****************** Representation for Bindings ********************)
 (*******************************************************************)
 
 type binding = TVar of FA.name * Ct.refctype
@@ -56,34 +56,98 @@ let report_bad_binding = function
   | TSto (fn, st) -> 
       Errormsg.error "\nBad TSto for %s ::\n\n@[%a@]" fn Ct.d_refstore st 
 
-let tags_of_binds binds = 
-  let nl    = Constants.annotsep_name in
-  List.fold_left begin fun (d, kts) bind -> 
-    try
-      match bind with 
-      | TVar (n, cr) ->
-          let x    = FA.string_of_name n in
-          let k,t  = x, ("variable "^x) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refctype cr nl in
-          (Pretty.concat d d', (k,t)::kts)
-      | TFun (f, cf) -> 
-          let k,t  = f, ("function "^f) in
-          let d'   = Pretty.dprintf "%s ::\n\n@[%a@] %s" t Ct.d_refcfun cf nl in
-          (Pretty.concat d d', (k,t)::kts)
-      | TSto (f, st) -> 
-        let kts' =  RCt.Store.domain st 
-                 |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
-                 |> List.map (fun s -> (s, s^" |->")) in
-        let d'   = Pretty.dprintf "funstore %s ::\n\n@[%a@] %s" f Ct.d_refstore st nl in
-        (Pretty.concat d d', kts' ++ kts)
-    with
-      FixConfig.UnmappedKvar _ -> (if mydebug then report_bad_binding bind); (d, kts)
-  end (Pretty.nil, []) binds
+let apply_solution =
+  let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
+  let s_fun s = RCt.CFun.map (s_typ s) <+> RCt.CFun.apply_effects (s_typ s) in
+  let s_sto s = RCt.Store.map (s_typ s) in
+  fun s a -> match a with 
+    | TVar (n, cr) -> TVar (n, s_typ s cr)
+    | TFun (f, cf) -> TFun (f, s_fun s cf)
+    | TSto (f, st) -> TSto (f, s_sto s st) 
 
-let generate_annots d = 
-  Misc.with_out_file (!Co.csolve_file_prefix ^ ".annot") begin fun oc ->
-    Pretty.fprint ~width:80 oc d 
-  end
+let apply_solution s x = 
+  Misc.do_catch_ret "Annots.apply_solution" (apply_solution s) x x
+
+
+(*******************************************************************)
+(****************** Gathering Information about Bindings ***********)
+(*******************************************************************)
+
+class annotations = object (self)
+  val vart = H.create 37
+  val funt = H.create 37
+  val stot = H.create 37
+
+  method add_var   = H.replace vart 
+  method add_fun   = H.replace funt
+  method add_sto   = H.replace stot
+
+  method get_scim () : ST.t SM.t = 
+    failwith "TBD"
+
+  method set_shape (cil : Cil.file) (shm : Shape.t SM.t) (scim : ST.t SM.t) : unit = 
+    failwith "TBD"
+  
+  method get_binds () = 
+       List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt) 
+    ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot)
+    ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart)
+
+  method get_var_type (x: FA.name) : Cil.typ option = 
+    failwith "TBD"
+
+  method get_fun_dec  (f: string) : Cil.fundec option =
+    failwith "TBD"
+
+  method get_sloc_type (f: string) (l: Sloc.t) : Cil.typ option = 
+    failwith "TBD"
+end
+
+(*******************************************************************)
+(***************** Rendering Annots (Refinements Only) *************)
+(*******************************************************************)
+
+let kts_of_bind = function
+  | TVar (n, cr) ->
+      let x    = FA.string_of_name n in
+      [x, ("variable "^x)]
+  | TFun (f, cf) -> 
+      [f, ("function "^f)]
+  | TSto (f, st) -> 
+      RCt.Store.domain st 
+      |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
+      |> List.map (fun s -> (s, s^" |->")) 
+
+let d_bind () = function
+  | TVar (n, cr) ->
+      Pretty.dprintf "variable %s ::\n\n@[%a@] " 
+      (FA.string_of_name n) Ct.d_refctype cr
+  | TFun (f, cf) -> 
+      Pretty.dprintf "function %s ::\n\n@[%a@] " 
+      f Ct.d_refcfun cf 
+  | TSto (f, st) -> 
+      Pretty.dprintf "funstore %s ::\n\n@[%a@] " f Ct.d_refstore st
+
+(*******************************************************************)
+(*********************** Rendering (Hybrid) ************************)
+(*******************************************************************)
+
+(* MOVE INTO CLASS DEFINITION? *)
+let d_bind_hybrid me () = failwith "TBD"
+(*
+let d_var_refctype () (x: FA.name, ct: Ct.refctype, t: Cil.typ option) = 
+  failwith "TBD"
+
+let d_fun_refcfun ()  (f: string, cf: Ct.refcfun, t: Cil.typ option) = 
+  failwith "TBD"
+
+let d_loc_refldesc ()  (l : Sloc.t , ld: Ct.refldesc, t: Cil.typ option) = 
+  failwith "TBD"
+*)
+
+(*******************************************************************)
+(************************ Write to File ****************************)
+(*******************************************************************)
 
 let generate_ispec bs = 
   let fn = !Co.csolve_file_prefix ^ ".infspec" in
@@ -94,6 +158,11 @@ let generate_ispec bs =
        |> PP.fprint ~width:80 oc
   end
 
+let generate_annots d = 
+  Misc.with_out_file (!Co.csolve_file_prefix ^ ".annot") begin fun oc ->
+    Pretty.fprint ~width:80 oc d 
+  end
+
 let generate_tags kts =
   Misc.with_out_file (!Co.csolve_file_prefix ^ ".tags") begin fun oc -> 
     kts 
@@ -101,9 +170,59 @@ let generate_tags kts =
     |> List.iter (fun (k,t) -> ignore <| PP.fprintf oc "%s\t%s.annot\t/%s/\n" k !Co.csolve_file_prefix t) 
   end
 
+let generate_vmap scim =
+  Misc.with_out_file (!Co.csolve_file_prefix^".vmap") begin fun oc -> 
+    SM.iter begin fun _ sci -> 
+      sci.ST.vmapt 
+      |> Misc.hashtbl_to_list
+      |> Misc.sort_and_compact 
+      |> List.iter begin fun ((vname, file, line), ssaname) ->
+           let vname = Co.unrename_local sci.ST.fdec.Cil.svar.Cil.vname vname
+           in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
+         end
+    end scim 
+  end
+ 
+(*******************************************************************)
+(******************************* API *******************************)
+(*******************************************************************)
+
+let annr = ref (new annotations)
+
+(* API *)
+let annot_shape = (!annr)#set_shape 
+let annot_fun   = (!annr)#add_fun
+let annot_sto   = (!annr)#add_sto
+let annot_var   = (!annr)#add_var
+let clear ()    = annr := new annotations 
+
+let dump_binds so = 
+  (!annr)#get_binds () 
+  (*  |> set_cilinfo !shaper *)
+  |> Misc.maybe_apply (Misc.map <.> apply_solution) so
+  (*  |> (match so with Some s -> Misc.map (apply_solution s) | _ -> id) *)
+  |> (PP.d_list Co.annotsep_name d_bind () <*> Misc.flap kts_of_bind)
+  |> (generate_annots <**> generate_tags)
+  |> ignore
+
+let dump_vmap () =
+  (!annr)#get_scim ()
+  |> generate_vmap
+
+(* API *)
+let dump_annots so = dump_binds so; dump_vmap ()
+  
+let dump_infspec decs s =
+  let ds = decs 
+           |>  Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) 
+           |>  SS.of_list in
+  let bs = (!annr)#get_binds () 
+           |>  Misc.filter (function TFun (x, y) -> SS.mem x ds  | _ -> false) 
+           |>: apply_solution s in
+  generate_ispec bs
 
 (*******************************************************************)
-(*******************************************************************)
+(*************** Junk from old Cil-Ctype Surgery *******************)
 (*******************************************************************)
 
 let d_vartyp () (v, t) = 
@@ -135,6 +254,10 @@ let d_sloc_typ_varss () (sloc, tvss) =
     Sloc.d_sloc sloc
     (List.length tvss)
     d_typ_varss tvss
+
+ (* YUCK!!! Global State. *)
+let shaper    = ref []
+
 
 (* API *)
 let stitch_shapes_ctypes cil shm = 
@@ -255,56 +378,4 @@ let set_cilinfo xcts binds =
   let slocm = mk_sloc_ciltyp_map xcts in
   Misc.map (patch_binding slocm) binds
 
-(*******************************************************************)
-(*******************************************************************)
-(*******************************************************************)
-
-(* UGH. Global State. *)
-
-(* API *)
-let annot_shape, annot_fun, annot_sto, annot_var, clear, annots =
-  let ft = Hashtbl.create 37 in
-  let st = Hashtbl.create 37 in
-  let vt = Hashtbl.create 37 in
-  ( (fun cil shm scim -> failwith "TBD: annot_shape") 
-  , Hashtbl.replace ft 
-  , Hashtbl.replace st 
-  , Hashtbl.replace vt
-  , (fun () -> Hashtbl.clear ft; Hashtbl.clear st; Hashtbl.clear vt)
-  , (fun () -> (  List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list ft) 
-               ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list st)
-               ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vt)))
-  )
-
-let apply_solution =
-  let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
-  let s_fun s = RCt.CFun.map (s_typ s) <+> RCt.CFun.apply_effects (s_typ s) in
-  let s_sto s = RCt.Store.map (s_typ s) in
-  fun s a -> match a with 
-    | TVar (n, cr) -> TVar (n, s_typ s cr)
-    | TFun (f, cf) -> TFun (f, s_fun s cf)
-    | TSto (f, st) -> TSto (f, s_sto s st) 
-
-let apply_solution s x = 
-  Misc.do_catch_ret "Annots.apply_solution" (apply_solution s) x x
-
-(* API *)
-let dump_annots so = 
-  annots () 
-  (*  |> set_cilinfo !shaper *)
-  |> (match so with Some s -> Misc.map (apply_solution s) | _ -> id)
-  |> tags_of_binds 
-  >> (fst <+> generate_annots)
-  >> (snd <+> generate_tags) 
-  |> ignore
-
-(* API *)
-let dump_infspec decs s =
-  let ds = decs 
-           |>  Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) 
-           |>  SS.of_list in
-  let bs = annots () 
-           |>  Misc.filter (function TFun (x, y) -> SS.mem x ds  | _ -> false) 
-           |>: apply_solution s in
-  generate_ispec bs
 
