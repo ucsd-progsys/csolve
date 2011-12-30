@@ -669,7 +669,7 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
   end vjvis
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
-  CF.annots_of_edge me i j 
+  CF.annots_of_edge me i j
   |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty ES.empty
   |> snd
 

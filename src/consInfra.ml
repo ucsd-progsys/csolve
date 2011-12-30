@@ -211,7 +211,7 @@ let partition_diff_bindings cfrom cto =
 let cstoa_of_annots fname gdoms conca astore =
   let emp = Ct.RefCTypes.Store.empty in
   Array.mapi begin fun i (conc,conc') ->
-    let idom, _ = gdoms.(i) in 
+    let idom, _ = gdoms.(i) in
     if idom < 0 then (emp, [], conc') else
       let _,idom_conc = conca.(idom) in
       let joins, ins  = partition_diff_bindings idom_conc conc in
@@ -311,13 +311,14 @@ let asgns_of_edge  = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -
 let annots_of_edge me i j =
   match me with 
   | {shapeo = Some shp} ->
-      let iconc' = shp.cstoa.(i) |> thd3 in
-      let jsto   = shp.cstoa.(j) |> fst3 in
+      let iconc'         = shp.cstoa.(i) |> thd3 in
+      let jsto, incls, _ = shp.cstoa.(j) in
       LM.fold begin fun al tagm acc ->
         LM.fold begin fun cl t acc ->
-          if Ct.RefCTypes.Store.mem jsto cl then acc else
-            if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
-              (Refanno.WGen (cl, al) :: acc)
+          if succs_of_block me j != [] &&
+             (Ct.RefCTypes.Store.mem jsto cl || List.mem cl incls) then acc else
+               if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
+                 (Refanno.WGen (cl, al) :: acc)
         end tagm acc
       end iconc' []  
   (* | _ -> [] *)
