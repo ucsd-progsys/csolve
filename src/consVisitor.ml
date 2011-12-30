@@ -548,7 +548,7 @@ let scalarcons_of_stmt me i grd env stmt =
 
 let wcons_of_block_effects me loc sto i =
   if CF.block_has_fresh_effects me i then
-    let env = if CM.is_foreach_iter_ssa_block me.CF.sci.ST.cfg.Ssa.blocks.(i) then
+    let env = if CM.is_foreach_iter_block <| CF.stmt_of_block me i then
                 CF.inenv_of_block me i
               else i |> CF.idom_parblock_of_block me |> CF.inenv_of_block me in
       FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
@@ -586,7 +586,7 @@ let fresh_effectcons_of_block me loc (env, sto, _) i =
 
 let cobegin_cons_of_block me loc grd env sto b tag loc =
      b
-  |> CM.coroutines_of_ssa_block
+  |> CM.coroutines_of_block
   |> M.pairs
   |> List.map begin fun (j, k) ->
        let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
@@ -596,7 +596,7 @@ let cobegin_cons_of_block me loc grd env sto b tag loc =
 
 let foreach_cons_of_block me loc grd i tag loc =
   let idompar     = CF.idom_parblock_of_block me i in
-  let idx         = CM.index_var_of_foreach me.CF.sci.ST.cfg.Ssa.blocks.(idompar) in
+  let idx         = CM.index_var_of_foreach <| CF.stmt_of_block me idompar in
   let nidx        = FA.name_of_varinfo idx in
   let nidx2       = FA.name_fresh () in
   let env, sto, _ = CF.inwld_of_block me i in
@@ -607,11 +607,11 @@ let foreach_cons_of_block me loc grd i tag loc =
     FI.make_cs_assert_effectsets_disjoint env grd sto effs effs2 None tag loc
 
 let effect_disjoint_cons_of_block me loc grd (env, sto, _) i =
-  let b   = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let b   = CF.stmt_of_block me i in
   let tag = CF.tag_of_instr me i 0 loc in
-    if CM.is_cobegin_ssa_block b then
+    if CM.is_cobegin_block b then
       cobegin_cons_of_block me loc grd env sto b tag loc
-    else if CM.is_foreach_iter_ssa_block b then
+    else if CM.is_foreach_iter_block b then
       foreach_cons_of_block me loc grd i tag loc
     else ([], [])
 

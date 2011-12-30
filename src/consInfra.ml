@@ -397,8 +397,8 @@ let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
 let rec idom_parblock_of_block me i =
   let j = idom_of_block me i in
-  let b = me.sci.ST.cfg.Ssa.blocks.(j) in
-    if CM.is_cobegin_ssa_block b || CM.is_foreach_ssa_block b then j else
+  let b = stmt_of_block me j in
+    if CM.is_cobegin_block b || CM.is_foreach_block b then j else
       idom_parblock_of_block me j
 
 let inenv_of_block me i =
@@ -435,7 +435,7 @@ let fresh_abstract_effectset asto =
      end Ct.EffectSet.empty
 
 let block_has_fresh_effects me i =
-  CM.ssa_block_has_fresh_effects me.sci.ST.cfg.Ssa.blocks.(i)
+  CM.block_has_fresh_effects <| stmt_of_block me i
 
 let make_effsm me =
   let aeffs  = get_aeffs me in
