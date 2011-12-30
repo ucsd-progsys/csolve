@@ -1,0 +1,1 @@
+qualif STRBND(v:int) : v + ~p < BLOCK_END([~p])

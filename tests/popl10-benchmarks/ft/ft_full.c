@@ -1,3 +1,4 @@
+#include <csolve.h>
 
 /*
  1. Inline Globals
@@ -19,10 +20,10 @@ typedef struct _Edges Edges;
 
 struct _Vertices {
    int id ;
-   Edges *edges ;
+   Edges * LOC(EL) edges ;
    struct _Vertices *next ;
    int key ;
-   Edges *chosenEdge ;
+   Edges * LOC(EL) chosenEdge ;
 };
 
 typedef struct _Vertices Vertices;
@@ -30,7 +31,7 @@ typedef struct _Vertices Vertices;
 typedef Vertices Item;
 
 struct _Heap {
-   Item *item ;
+   Item * LOC(IL) item ;
    struct _Heap *parent ;
    struct _Heap *child ;
    struct _Heap *forward ;
@@ -39,24 +40,24 @@ struct _Heap {
    short marked ;
 };
 
-typedef struct _Heap HeapP;
+typedef struct _Heap INST(IL, IL) HeapP;
 
 /*************************************************************************/
 /******************************* PROTOTYPES ******************************/
 /*************************************************************************/
 
-extern void dummyassert(int);
-extern void assert(int  ) ;
-extern void exit(int exitValue ) ;
-extern int printf(char * __attribute__((__array__))   , ...) ;
-extern int atoi(char const   *str ) ;
-void srandom(unsigned int x ) ;
+extern void dummyassert(int) OKEXTERN;
+extern void REF(0 = 1) exit(int exitValue ) OKEXTERN;
+extern int printf (__const char *__restrict __format, ...) OKEXTERN;
+extern int atoi (__const char * ARRAY VALIDPTR __nptr)
+     OKEXTERN;
+void srandom(unsigned int x ) OKEXTERN;
 
 Vertices *GenGraph(int nVertex , int nEdge ) ;
 
 void PrintGraph(Vertices *graph ) ;
 
-typedef HeapP **__attribute__((array)) HeapP_array;
+typedef HeapP * LOC(HL) * ARRAY HeapP_array;
 
 //void InitFHeap(void) ;
 HeapP_array InitFHeap(void);
@@ -73,11 +74,12 @@ void PrintMST(Vertices *graph ) ;
 
 Vertices *MST(Vertices *graph ) ;
 
-extern void *malloc(unsigned int size ) ;
+extern void * LOC(!L) START NONNULL SIZE(__size)
+     malloc (int REF(V >= 0) IGNORE_INDEX __size) OKEXTERN;
 
 extern int fprintf(int * , char * __attribute__((__array__))   , ...) ;
 
-long random(void) ;
+extern long int random (void) OKEXTERN;
 
 Vertices *GenTree(int nVertex ) ;
 
@@ -94,11 +96,11 @@ Vertices *NewVertex(void) ;
 Edges *NewEdge(void) ;
 
 void PrintNeighbors(Vertices *vertex ) ;
-int LessThan(Item *item1 , Item *item2 ) ;
+int LessThan(Item * LOC(L) item1 , Item * LOC(L) item2 ) ;
 
-int Equal(Item *item1 , Item *item2 ) ;
+int Equal(Item * LOC(L) item1 , Item * LOC(L) item2 ) ;
 
-Item *Subtract(Item *item , int delta ) ;
+Item * LOC(L) Subtract(Item * LOC(L) item , int delta ) ;
 
 HeapP *Meld(HeapP *h1 , HeapP *h2 , HeapP_array hTable) ;
 
@@ -181,7 +183,7 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
 }
 }
 
-Vertices *MST(Vertices *graph ) 
+Vertices * LOC(L) MST(Vertices * LOC(L) graph ) 
 { HeapP *heap ;
   Vertices *vertex ;
   Edges *edge ;
@@ -230,7 +232,7 @@ void PrintMST(Vertices *graph )
 { Vertices *vertex ;
 
   {
-  assert((unsigned int )graph != (unsigned int )((void *)0));
+  csolve_assert((unsigned int )graph != (unsigned int )((void *)0));
   validptr(graph);
   vertex = graph->next;
   while ((unsigned int )vertex != (unsigned int )graph) {
@@ -247,8 +249,8 @@ Vertices *GenGraph(int nVertex , int nEdge )
 
   {
   int generatedEdges  ;
-  int assm = assume(nEdge + 1 >= nVertex); 			//JHALA: contract
-  int assm = assume(nEdge <= (nVertex * (nVertex - 1)) / 2);  	//JHALA: contract
+  CSOLVE_ASSUME(nEdge + 1 >= nVertex); 			//JHALA: contract
+  CSOLVE_ASSUME(nEdge <= (nVertex * (nVertex - 1)) / 2);  	//JHALA: contract
   generatedEdges = 0;
   graph = GenTree(nVertex);
   graph = AddEdges(graph, nVertex, (nEdge - nVertex) + 1);
@@ -289,12 +291,12 @@ Vertices *GenTree(int nVertex )
     validptr(edge);
     edge->weight = weight;
     Edges *vertexedges = vertex->edges; 			//JHALA constprop
-    int assm = assume(vertexedges != (Edges *) 0);		//JHALA delayed-init
+    CSOLVE_ASSUME(vertexedges != (Edges *) 0);			//JHALA delayed-init
     validptr(vertexedges);					//JHALA constprop
     edge->source = (vertexedges)->vertex;		   	//JHALA constprop
     edge->vertex = vertex;
     Vertices *vertexedgesvertex = (vertex->edges)->vertex; 	//JHALA constprop
-    int assm = assume(vertexedgesvertex != (Vertices *) 0);	//JHALA delayed-init
+    CSOLVE_ASSUME(vertexedgesvertex != (Vertices *) 0);		//JHALA delayed-init
     validptr(vertexedgesvertex);				//JHALA constprop	
     edge->next = (vertexedgesvertex)->edges;			//JHALA constprop
     (vertexedgesvertex)->edges = edge;				//JHALA constprop
@@ -304,7 +306,7 @@ Vertices *GenTree(int nVertex )
 }
 }
 
-Vertices *AddEdges(Vertices *graph , int nVertex , int nEdge ) 
+Vertices * LOC(L) AddEdges(Vertices * LOC(L) graph , int nVertex , int nEdge ) 
 { int i ;
   Vertices *vertex1 ;
   Vertices *vertex2 ;
@@ -313,8 +315,8 @@ Vertices *AddEdges(Vertices *graph , int nVertex , int nEdge )
   int tmp___1 ;
 
   {
-  assert((unsigned int )graph != (unsigned int )((void *)0));
-  assert(nEdge >= 0);
+  csolve_assert((unsigned int )graph != (unsigned int )((void *)0));
+  csolve_assert(nEdge >= 0);
   i = 0;
   while (i < nEdge) {
     while (1) {
@@ -336,7 +338,7 @@ Vertices *AddEdges(Vertices *graph , int nVertex , int nEdge )
 }
 }
 
-Vertices *PickVertex(Vertices *graph , int whichVertex ) 
+Vertices * LOC(L) PickVertex(Vertices * LOC(L) graph , int whichVertex ) 
 { int i ;
 
   {
@@ -350,7 +352,7 @@ Vertices *PickVertex(Vertices *graph , int whichVertex )
 }
 }
 
-void Connect(Vertices *vertex1 , Vertices *vertex2 ) 
+void Connect(Vertices * LOC(L) vertex1 , Vertices * LOC(L) vertex2 ) 
 { int weight ;
   Edges *edge ;
   long tmp ;
@@ -440,7 +442,7 @@ void PrintGraph(Vertices *graph )
 { Vertices *vertex ;
 
   {
-  assert((unsigned int )graph != (unsigned int )((Vertices *)0));
+  csolve_assert((unsigned int )graph != (unsigned int )((Vertices *)0));
   vertex = graph;
   while (1) {
     //printf((char * __attribute__((__array__)) )"Vertex %d is connected to:", vertex->id);
@@ -493,7 +495,7 @@ int Equal(Item *item1 , Item *item2 )
 //{ 
 //
 //  {
-//  // assert(delta > 0);
+//  // csolve_assert(delta > 0);
 //  validptr(item);
 //  item->key -= delta;
 //  return (item);
@@ -524,7 +526,7 @@ HeapP *MakeHeap(HeapP_array hTable)
 }
 }
 
-Item *FindMin(HeapP *h , HeapP_array hTable) 
+Item * LOC(IL) FindMin(HeapP INST(IL, IL) * LOC(L) h , HeapP_array INST(HL, L) hTable) 
 { 
 
   {
@@ -537,7 +539,7 @@ Item *FindMin(HeapP *h , HeapP_array hTable)
 }
 }
 
-HeapP *Insert(HeapP **h, Item *i , HeapP_array hTable) 
+HeapP INST(IL, IL) * LOC(L) Insert(HeapP * LOC(L) *h, Item * LOC(IL) i , HeapP_array INST(HL, L) hTable) 
 { HeapP *h1 ;
 
   {
@@ -548,7 +550,7 @@ HeapP *Insert(HeapP **h, Item *i , HeapP_array hTable)
 }
 }
 
-HeapP *Meld(HeapP *h1 , HeapP *h2 , HeapP_array hTable) 
+HeapP * LOC(L) Meld(HeapP * LOC(L) h1 , HeapP * LOC(L) h2 , HeapP_array INST(HL, L) hTable) 
 { int tmp ;
 
   {
@@ -570,7 +572,7 @@ HeapP *Meld(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
 }
 }
 
-HeapP *DeleteMin(HeapP *h , HeapP_array hTable) 
+HeapP * LOC(L) DeleteMin(HeapP * LOC(L) h , HeapP_array INST(HL, L) hTable) 
 { int r ;
   int rMax ;
   int j ;
@@ -604,7 +606,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
     h2->backward = h2;
     h2->parent = (struct _Heap *)0;
     r = h2->rank;
-    assert(r < 10000);
+    csolve_assert(r < 10000);
     validptr(&hTable[r]);
     hTr = hTable[r]; 
     while ((unsigned int )hTr != (unsigned int )((HeapP *)0)) { //JHALA: constprop
@@ -619,7 +621,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
       }
       hTable[r] = (HeapP *)0;
       r = h2->rank;
-      assert(r < 10000);
+      csolve_assert(r < 10000);
       validptr(&hTable[r]);
       hTr = hTable[r];
     }
@@ -643,7 +645,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
       h2->backward = h2;
       h2->parent = (struct _Heap *)0;
       r = h2->rank;
-      assert(r < 10000);
+      csolve_assert(r < 10000);
 
       validptr(&hTable[r]);
       hTr = hTable[r];						//JHALA: constprop
@@ -659,7 +661,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
         }
         hTable[r] = (HeapP *)0;
         r = h2->rank;
-        assert(r < 10000);
+        csolve_assert(r < 10000);
         validptr(&hTable[r]);
 	hTr = hTable[r];
       }
@@ -687,7 +689,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
   validptr(&hTable[j]);	//JHALA: seems like a valid overflow! BUG?
   h1 = hTable[j];
   min = h1;
-  int assm = assume(min != (HeapP *) 0);
+  CSOLVE_ASSUME(min != (HeapP *) 0);
   hTable[j] = (HeapP *)0;
   j ++;
   while (j <= rMax) {
@@ -714,8 +716,8 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //{ int tmp ;
 //
 //  {
-//  // assert((unsigned int )h != (unsigned int )((HeapP *)0));
-//  // assert((unsigned int )i != (unsigned int )((HeapP *)0));
+//  // csolve_assert((unsigned int )h != (unsigned int )((HeapP *)0));
+//  // csolve_assert((unsigned int )i != (unsigned int )((HeapP *)0));
 //  if (! ((unsigned int )i->parent == (unsigned int )((void *)0))) {
 //    RemoveChild(i, hTable);
 //    CombineLists(h, i, hTable);
@@ -734,9 +736,9 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //{ HeapP *parent ;
 //
 //  {
-//  // assert((unsigned int )i != (unsigned int )((HeapP *)0));
+//  // csolve_assert((unsigned int )i != (unsigned int )((HeapP *)0));
 //  parent = i->parent;
-//  assert((unsigned int )parent != (unsigned int )((HeapP *)0));
+//  csolve_assert((unsigned int )parent != (unsigned int )((HeapP *)0));
 //  if ((unsigned int )parent->child == (unsigned int )i) {
 //    if ((unsigned int )i == (unsigned int )i->forward) {
 //      parent->child = (struct _Heap *)0;
@@ -757,8 +759,8 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //{ 
 //
 //  {
-//  assert((unsigned int )h != (unsigned int )((HeapP *)0));
-//  assert(delta > 0);
+//  csolve_assert((unsigned int )h != (unsigned int )((HeapP *)0));
+//  csolve_assert(delta > 0);
 //  while (1) {
 //    h->rank -= delta;
 //    h = h->parent;
@@ -777,8 +779,8 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //  int tmp___0 ;
 //
 //  {
-//  assert((unsigned int )h != (unsigned int )((HeapP *)0));
-//  assert((unsigned int )i != (unsigned int )((HeapP *)0));
+//  csolve_assert((unsigned int )h != (unsigned int )((HeapP *)0));
+//  csolve_assert((unsigned int )i != (unsigned int )((HeapP *)0));
 //  if ((unsigned int )h == (unsigned int )i) {
 //    tmp = DeleteMin(h, hTable);
 //    return (tmp);
@@ -811,7 +813,7 @@ HeapP *DeleteMin(HeapP *h , HeapP_array hTable)
 //}
 //}
 
-void CombineLists(HeapP *h1 , HeapP *h2 , HeapP_array hTable) 
+void CombineLists(HeapP * LOC(L) h1 , HeapP * LOC(L) h2 , HeapP_array INST(HL, L) hTable) 
 { HeapP *h ;
   int tmp ;
 
@@ -825,7 +827,7 @@ void CombineLists(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
   } else {
     tmp = 0;
   }
-  assert(tmp);
+  csolve_assert(tmp);
   h = h1;
   validptr(h1);
   validptr(h1->forward);
@@ -840,7 +842,7 @@ void CombineLists(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
 }
 }
 
-void AddEntry(HeapP *h1 , HeapP *h2 , HeapP_array hTable) 
+void AddEntry(HeapP * LOC(L) h1 , HeapP * LOC(L) h2 , HeapP_array INST(HL, L) hTable) 
 { int tmp ;
 
   {
@@ -853,7 +855,7 @@ void AddEntry(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
   } else {
     tmp = 0;
   }
-  assert(tmp);
+  csolve_assert(tmp);
   validptr(h1);
   if ((unsigned int )h1->child == (unsigned int )((struct _Heap *)0)) {
     h1->child = h2;
@@ -863,17 +865,17 @@ void AddEntry(HeapP *h1 , HeapP *h2 , HeapP_array hTable)
   h2->parent = h1;
   //JHALA
   int rtmp = (h1->rank + h2->rank) + 1;
-  int assm = assume(rtmp < 10000);
+  CSOLVE_ASSUME(rtmp < 10000);
   h1->rank = rtmp;
   
   return;
 }
 }
 
-HeapP *RemoveEntry(HeapP *h , HeapP_array hTable) 
+HeapP * LOC(L) RemoveEntry(HeapP * LOC(L) h , HeapP_array INST(HL, L) hTable) 
 { 
   validptr(h);
-  assert((unsigned int )h != (unsigned int )((HeapP *)0));
+  csolve_assert((unsigned int )h != (unsigned int )((HeapP *)0));
   if ((unsigned int )h == (unsigned int )h->forward) {
     return (h->child);
   }
@@ -884,7 +886,7 @@ HeapP *RemoveEntry(HeapP *h , HeapP_array hTable)
   return (h->forward);
 }
 
-HeapP *NewHeap(Item *i , HeapP_array hTable) 
+HeapP INST(IL, IL) * LOC(L) NewHeap(Item * LOC(IL) i , HeapP_array INST(HL, L) hTable) 
 { HeapP *h ;
   void *tmp ;
   {

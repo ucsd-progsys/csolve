@@ -93,6 +93,7 @@ val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_indexpred_refctype : Ctypes.refctype -> Ctypes.refctype
+val t_nullterm_refctype : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype

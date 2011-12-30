@@ -63,8 +63,6 @@ let expr_of_cilcon = function
       A.eCon (A.Constant.Int (Int64.to_int i))
   | Cil.CChr c ->
       A.eCon (A.Constant.Int (Char.code c))
-  | Cil.CReal _ | Cil.CStr _ ->
-      A.bot
   | _ ->
       assertf "TBD: CilInterface.con_of_cilcon unhandled"
 (*  | Cil.CStr _        -> Constant.String str
@@ -185,7 +183,7 @@ and convert_cilbinexp (op, e1, e2) =
       let p1', p2' = Misc.map_pair pred_of_cilexp (e1, e2) in
       P (f [p1'; p2'])
   | Bunimpl ->
-      E (A.bot)
+      failwith "Unimplemented operator"
 
 
 (* API *)

@@ -280,6 +280,20 @@ let ra_ptr_footprint env v =
   let vv   = Sy.value_variable so in
     (vv, so, [C.Conc (p_ptr_footprint vv v)])
 
+(******************************************************************************)
+(************************ Address-Dependent Refinements ***********************)
+(******************************************************************************)
+
+let vv_addr      = Sy.of_string "VVADDR"
+let vv_addr_expr = A.eVar vv_addr
+
+let ra_nullterm ct = 
+  let vv = ct |> sort_of_prectype |> Sy.value_variable in
+  [C.Conc (A.pImp
+	     (A.pEqual (vv_addr_expr,
+			A.eBin (FA.eApp_bend vv_addr_expr, A.Minus, A.one)),
+	      A.pEqual (A.eVar vv, A.zero)))]
+
 let e_aux l ra =
   refctype_of_ctype ra <| Ct.Ref (l, Ix.top)
 
@@ -305,6 +319,7 @@ let t_true_refctype      = t_conv_refctype ra_true
 let t_false_refctype     = t_conv_refctype ra_false
 let t_zero_refctype      = t_conv_refctype ra_zero
 let t_indexpred_refctype = t_conv_refctype ra_indexpred
+let t_nullterm_refctype  = t_conv_refctype ra_nullterm
 
 let t_pred_aux sort_of_ct reft_ct_to_refctype ct v p =
   let so = sort_of_ct ct in
@@ -434,7 +449,7 @@ let strengthen_refctype mkreft rct =
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
-      |> Su.of_list
+      |> Su.simultaneous_of_list
       |> C.theta
       |> Misc.app_snd
       |> RCt.CType.map
@@ -446,7 +461,13 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_subs  = fun f subs st   -> RCt.Store.map (f subs) st
 let effectset_subs = fun f subs effs -> ES.apply (f subs) effs
 
-let refstore_fresh f st = st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
+let replace_addr v rct =
+  t_subs_names [(vv_addr, FA.name_of_string v.vname)] rct
+
+let refstore_fresh f st =
+     st
+  |> RCt.Store.map t_fresh
+  >> Annots.annot_sto f 
 
 let conv_refstore_bottom st =
   RCt.Store.map_variances t_false_refctype t_true_refctype st
@@ -736,16 +757,6 @@ let is_poly_cloc st cl =
   Ct.refstore_get st cl 
   |> binds_of_refldesc cl 
   |> (=) []
-
-(******************************************************************************)
-(************************ Address-Dependent Refinements ***********************)
-(******************************************************************************)
-
-let vv_addr      = Sy.of_string "VVADDR"
-let vv_addr_expr = A.eVar vv_addr
-
-let replace_addr v rct =
-  t_subs_names [(vv_addr, FA.name_of_string v.vname)] rct
 
 (******************************************************************************)
 (*********************************** Effects **********************************)
