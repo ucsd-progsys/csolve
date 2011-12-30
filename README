@@ -178,6 +178,7 @@ the following constructs:
 VIM CSolve Mode
 ---------------
 
+
 There is a rudimentary vim mode for viewing the output of a csolved-file.
 
 1. Add the following to your .vimrc
