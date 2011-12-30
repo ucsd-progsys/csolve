@@ -804,3 +804,25 @@ class noBlockAttrPrinterClass : cilPrinter = object (self)
 end
 
 let noBlockAttrPrinter = new noBlockAttrPrinterClass
+
+(************************ Name Related Hackery ********************************)
+
+let is_pure_function s =
+  s = "validptr" || 
+  s = "csolve_assert" || 
+  s = "csolve_assume"
+
+let is_cil_tempvar s = 
+  Misc.is_prefix "__cil_tmp" s || 
+  Misc.is_prefix "mem_" s
+
+let suffix_of_fn = fun fn -> "_" ^ fn
+
+let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+
+let unrename_local fn vn = 
+  let s = suffix_of_fn fn in 
+  if not (Misc.is_suffix s vn) then vn else 
+    String.sub vn 0 (String.length vn - (String.length s))
+
+

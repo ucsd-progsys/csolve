@@ -90,7 +90,7 @@ let deconstruct_ssa_name s =
 
 
 let is_ssa_renamable v =
-  not (v.vglob || Constants.is_cil_tempvar v.vname)
+  not (v.vglob || CM.is_cil_tempvar v.vname)
 
 (******************************* Printers *******************************)
 

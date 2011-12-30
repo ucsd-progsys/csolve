@@ -60,8 +60,8 @@ let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
     let fn   = fd.Cil.svar.Cil.vname in
-    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.slocals;
-    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.sformals
+    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.slocals;
+    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.sformals
   | _ -> ())
 
 let parse_file fname =

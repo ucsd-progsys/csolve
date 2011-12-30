@@ -814,7 +814,7 @@ let env_of_cilenv {venv = vnv} =
 let make_wfs ce sto rct _ =
   let r   = rct |> Ct.reft_of_refctype |> canon_reft in
   let env = ce |> env_of_cilenv
-               |> YM.filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
+               |> YM.filter (fun n _ -> n |> Sy.to_string |> CM.is_cil_tempvar |> not)
                |> (!Co.prune_live <?> YM.filter (fun n _ -> is_live_name ce.live n))
                (* DOESNT WORK for adpcm -- because of @x quals I guess. RJ *)
                (* |> (!Co.copyprop   <?> YM.filter (fun n _ -> Su.apply ce.theta n |> Misc.maybe_bool |> not)) *)

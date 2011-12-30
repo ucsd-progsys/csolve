@@ -74,32 +74,32 @@ let apply_solution s x =
 (*******************************************************************)
 
 class annotations = object (self)
-  val vart = H.create 37
-  val funt = H.create 37
-  val stot = H.create 37
+  val vart         = H.create 37
+  val funt         = H.create 37
+  val stot         = H.create 37
+  val mutable scim = SM.empty
 
   method add_var   = H.replace vart 
   method add_fun   = H.replace funt
   method add_sto   = H.replace stot
 
-  method get_scim () : ST.t SM.t = 
-    failwith "TBD"
+  method get_scim () : ST.t SM.t = scim 
 
-  method set_shape (cil : Cil.file) (shm : Shape.t SM.t) (scim : ST.t SM.t) : unit = 
-    failwith "TBD"
+  method set_shape (cil : Cil.file) (shm : Shape.t SM.t) (scim' : ST.t SM.t) : unit =
+    scim <- scim'
   
   method get_binds () = 
        List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt) 
     ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot)
     ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart)
 
-  method get_var_type (x: FA.name) : Cil.typ option = 
+  method get_var_type (x: FA.name) : Cil.typ = 
     failwith "TBD"
 
-  method get_fun_dec  (f: string) : Cil.fundec option =
+  method get_fun_dec  (f: string) : Cil.fundec =
     failwith "TBD"
 
-  method get_sloc_type (f: string) (l: Sloc.t) : Cil.typ option = 
+  method get_sloc_type (f: string) (l: Sloc.t) : Cil.typ = 
     failwith "TBD"
 end
 
@@ -118,7 +118,7 @@ let kts_of_bind = function
       |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
       |> List.map (fun s -> (s, s^" |->")) 
 
-let d_bind () = function
+let d_bind_orig _ () = function
   | TVar (n, cr) ->
       Pretty.dprintf "variable %s ::\n\n@[%a@] " 
       (FA.string_of_name n) Ct.d_refctype cr
@@ -132,18 +132,23 @@ let d_bind () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
-(* MOVE INTO CLASS DEFINITION? *)
-let d_bind_hybrid me () = failwith "TBD"
-(*
-let d_var_refctype () (x: FA.name, ct: Ct.refctype, t: Cil.typ option) = 
+let d_ann_var () ((x: FA.name), (ct: Ct.refctype), (t: Cil.typ)) = 
+  failwith "TBD"
+let d_ann_fun () ((f: string), (cf: Ct.refcfun), (t: Cil.fundec)) = 
+  failwith "TBD"
+let d_ann_sto () (lldts : (Sloc.t * Ct.refldesc * Cil.typ) list) = 
   failwith "TBD"
 
-let d_fun_refcfun ()  (f: string, cf: Ct.refcfun, t: Cil.typ option) = 
-  failwith "TBD"
-
-let d_loc_refldesc ()  (l : Sloc.t , ld: Ct.refldesc, t: Cil.typ option) = 
-  failwith "TBD"
-*)
+let d_bind_hybrid me () = function 
+  | TVar (x, ct) -> 
+      d_ann_var () (x, ct, me#get_var_type x) 
+  | TFun (f, cf) -> 
+      d_ann_fun () (f, cf, me#get_fun_dec f)
+  | TSto (f, st) -> 
+      Ct.RefCTypes.Store.bindings st
+      |> fst    (* ignore funptrs *) 
+      |> List.map (fun (l, ld) -> (l, ld, me#get_sloc_type f l))
+      |> d_ann_sto ()
 
 (*******************************************************************)
 (************************ Write to File ****************************)
@@ -177,7 +182,7 @@ let generate_vmap scim =
       |> Misc.hashtbl_to_list
       |> Misc.sort_and_compact 
       |> List.iter begin fun ((vname, file, line), ssaname) ->
-           let vname = Co.unrename_local sci.ST.fdec.Cil.svar.Cil.vname vname
+           let vname = CilMisc.unrename_local sci.ST.fdec.Cil.svar.Cil.vname vname
            in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
          end
     end scim 
@@ -196,22 +201,19 @@ let annot_sto   = (!annr)#add_sto
 let annot_var   = (!annr)#add_var
 let clear ()    = annr := new annotations 
 
-let dump_binds so = 
-  (!annr)#get_binds () 
-  (*  |> set_cilinfo !shaper *)
-  |> Misc.maybe_apply (Misc.map <.> apply_solution) so
-  (*  |> (match so with Some s -> Misc.map (apply_solution s) | _ -> id) *)
-  |> (PP.d_list Co.annotsep_name d_bind () <*> Misc.flap kts_of_bind)
-  |> (generate_annots <**> generate_tags)
-  |> ignore
 
-let dump_vmap () =
-  (!annr)#get_scim ()
-  |> generate_vmap
+let d_bind = d_bind_orig (* d_bind_hybrid *) 
 
 (* API *)
-let dump_annots so = dump_binds so; dump_vmap ()
-  
+let dump_annots so =
+  let ann = !annr in
+  ann#get_binds () |> Misc.maybe_apply (Misc.map <.> apply_solution) so
+                   |> (PP.d_list Co.annotsep_name (d_bind ann) () <*> Misc.flap kts_of_bind)
+                   |> (generate_annots <**> generate_tags)
+                   |> ignore;
+  ann#get_scim ()  |> generate_vmap
+
+(* API *)
 let dump_infspec decs s =
   let ds = decs 
            |>  Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) 

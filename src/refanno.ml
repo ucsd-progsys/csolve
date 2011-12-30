@@ -371,7 +371,7 @@ let sloc_of_ret ctm theta (conc, anns) = function
 (* kns : (k, New (al,_) list), with distinct al *)
 let annotate_instr globalslocs ctm theta j (conc:cncm) = function
   | (_, ns), Cil.Call (_, Lval ((Var fv), NoOffset), _,_) 
-    when Constants.is_pure_function fv.vname ->
+    when CilMisc.is_pure_function fv.vname ->
       conc, ns 
 
   | _, Cil.Call (_, Lval ((Var fv), _), _, _) when fv.vname = "csolve_fold_all" ->

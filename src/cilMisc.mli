@@ -141,6 +141,11 @@ val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
 val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
 val srcinfo_of_string   : string -> srcinfo
 
+val is_pure_function    : string -> bool
+val is_cil_tempvar      : string -> bool
+val rename_local        : string -> string -> string
+val unrename_local      : string -> string -> string
+
 module type Summarizer =
 sig
   type summary =
