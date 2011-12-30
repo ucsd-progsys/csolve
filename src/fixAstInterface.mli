@@ -6,15 +6,15 @@ val d_name : unit -> name -> Pretty.doc
 val so_ref : Sloc.t -> Ast.Sort.t
 val so_int: Ast.Sort.t
 val vv_int : Ast.Symbol.t
+
 (*
 val so_skl: Ast.Sort.t
 val so_bls: Ast.Sort.t
 val so_pun: Ast.Sort.t
-
 val vv_int : Ast.Symbol.t
 val vv_int : Ast.Symbol.t
-
 *)
+
 val quals_of_file       : string -> Qualifier.t list 
 val sorts               : Ast.Sort.t list
 val axioms              : Ast.pred list

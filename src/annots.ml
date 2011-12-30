@@ -38,7 +38,6 @@ open Misc.Ops
 let mydebug = false
 
 (* YUCK!!! Global State. *)
-let annotr    = ref [] 
 let shaper    = ref []
 
 (*******************************************************************)
@@ -138,8 +137,6 @@ let d_sloc_typ_varss () (sloc, tvss) =
     Sloc.d_sloc sloc
     (List.length tvss)
     d_typ_varss tvss
-    
-
 
 (* API *)
 let stitch_shapes_ctypes cil shm = 
@@ -264,16 +261,30 @@ let set_cilinfo xcts binds =
 (*******************************************************************)
 (*******************************************************************)
 
-(* UGH. Global State. *)
+(*
 let annotr    = ref [] 
-
-let is_annot_var = not <.> Ast.Symbol.is_value_variable 
-
-(* API *)
+let is_annot_var   = not <.> Ast.Symbol.is_value_variable 
 let annot_fun f cf = annotr := TFun (f, cf) :: !annotr
 let annot_sto f st = annotr := TSto (f, st) :: !annotr
 let annot_var x cr = if is_annot_var x then annotr := TVar (x, cr) :: !annotr
 let clear _        = annotr := []
+*)
+
+(* UGH. Global State. *)
+
+(* API *)
+let annot_fun, annot_sto, annot_var, clear, annots =
+  let ft = Hashtbl.create 37 in
+  let st = Hashtbl.create 37 in
+  let vt = Hashtbl.create 37 in
+  ( Hashtbl.replace ft 
+  , Hashtbl.replace st 
+  , Hashtbl.replace vt
+  , (fun () -> Hashtbl.clear ft; Hashtbl.clear st; Hashtbl.clear vt)
+  , (fun () -> (  List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list ft) 
+               ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list st)
+               ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vt)))
+  )
 
 let apply_solution =
   let s_typ s = RCt.CType.map (Misc.app_snd (FixConstraint.apply_solution s)) in
@@ -289,7 +300,7 @@ let apply_solution s x =
 
 (* API *)
 let dump_annots so = 
-  !annotr 
+  annots () 
   (*  |> set_cilinfo !shaper *)
   |> (match so with Some s -> Misc.map (apply_solution s) | _ -> id)
   |> tags_of_binds 
@@ -302,7 +313,7 @@ let dump_infspec decs s =
   let ds = decs 
            |>  Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) 
            |>  SS.of_list in
-  let bs = !annotr 
+  let bs = annots () 
            |>  Misc.filter (function TFun (x, y) -> SS.mem x ds  | _ -> false) 
            |>: apply_solution s in
   generate_ispec bs

@@ -31,6 +31,8 @@ qualif RestGt(v:ptr)     : ((v + (4 * _)) <= BLOCK_END([v]))
 
 qualif EqBegin(v:ptr,~a:ptr) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])
 qualif EqEnd(v:ptr,~a:ptr)   : BLOCK_END([v]) = BLOCK_END([~a])
+qualif EqBuf(v:ptr,~a:ptr)   : && [ EqBegin(v, ~a); EqEnd(v, ~a) ]
+
 qualif Ge(v: ptr, ~a:ptr)    : v >= ~a 
 qualif Eq(v: ptr, ~a:ptr)    : v =  ~a
 

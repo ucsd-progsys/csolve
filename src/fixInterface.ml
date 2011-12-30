@@ -362,14 +362,14 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       let evv        = A.eVar vv in
       let unchecked =
         if e |> typeOf |> CM.is_unchecked_ptr_type then
-          [C.Conc (A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]
+          [(A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]
         else if not singleton then
-          [C.Conc (mk_eq_uf FA.eApp_uncheck evv x)]
+          [(mk_eq_uf FA.eApp_uncheck evv x)]
         else [] in
       let blocks =  
         if not singleton then 
-          [ C.Conc (mk_eq_uf FA.eApp_bbegin  evv x) 
-          ; C.Conc (mk_eq_uf FA.eApp_bend    evv x)]
+          [ (mk_eq_uf FA.eApp_bbegin  evv x) 
+          ; (mk_eq_uf FA.eApp_bend    evv x)]
         else []
       in unchecked ++ blocks
   | _ -> []
@@ -380,8 +380,8 @@ let t_exp cenv ct e =
   let vv    = Sy.value_variable so in
   let gp, p = CI.reft_of_cilexp vv e in (* TODO: DEFERREDCHECKS *)
 (* let _      = Errormsg.log "\n reft_of_cilexp [e: %a] [p: %s] \n" Cil.d_exp e (P.to_string p) in *)
-  let rs    = [C.Conc p] ++ (t_exp_ptr cenv e ct vv so p) in
-  let r     = C.make_reft vv so rs in
+  let ra    = C.Conc (A.pAnd (p :: (t_exp_ptr cenv e ct vv so p))) in
+  let r     = C.make_reft vv so [ra] in
   (gp, refctype_of_reft_ctype r ct)
 
 let ptrs_of_exp e = 
@@ -446,10 +446,7 @@ let t_subs_names   = refctype_subs A.eVar
 let refstore_subs  = fun f subs st   -> RCt.Store.map (f subs) st
 let effectset_subs = fun f subs effs -> ES.apply (f subs) effs
 
-let refstore_fresh f st =
-     st
-  |> RCt.Store.map t_fresh
-  >> Annots.annot_sto f 
+let refstore_fresh f st = st |> RCt.Store.map t_fresh >> Annots.annot_sto f 
 
 let conv_refstore_bottom st =
   RCt.Store.map_variances t_false_refctype t_true_refctype st
@@ -805,10 +802,11 @@ let env_of_cilenv {venv = vnv} =
 
 let make_wfs ce sto rct _ =
   let r   = rct |> Ct.reft_of_refctype |> canon_reft in
-  let env = ce
-            |> env_of_cilenv
-            |> YM.filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
-            |> (if !Co.prune_live then YM.filter (fun n _ -> is_live_name ce.live n) else id)
+  let env = ce |> env_of_cilenv
+               |> YM.filter (fun n _ -> n |> Sy.to_string |> Co.is_cil_tempvar |> not)
+               |> (!Co.prune_live <?> YM.filter (fun n _ -> is_live_name ce.live n))
+               (* DOESNT WORK for adpcm -- because of @x quals I guess. RJ *)
+               (* |> (!Co.copyprop   <?> YM.filter (fun n _ -> Su.apply ce.theta n |> Misc.maybe_bool |> not)) *)
   in [C.make_filtered_wf env r None (filter_store_derefs ce sto rct)]
 (* >> F.printf "\n make_wfs: \n @[%a@]" (Misc.pprint_many true "\n" (C.print_wf None)) 
 *)
