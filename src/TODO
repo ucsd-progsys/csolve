@@ -1,5 +1,4 @@
 1. NEXT: MINIMIZE 
-    >> Update Qualifier.normalize to COMPILE away compound quals
     >> nuke quals over _non_live_ variables (-o --prunelive)
     >> sort by name/frequency?
 
@@ -7,7 +6,7 @@
 
 3. Error (associate string tags with constraints. "Dereference at line ...")
 
-prunelive kills:
+prunelive OR removing constant-propped vars from WF-envs kills:
 
 ../tests/postests/strcpy.c
 ../tests/postests/adpcm.c
@@ -20,34 +19,6 @@ is required in a qualifier... all the above are pretty contrived
 
 GOAL: variable dest_strncpy__SSA__phi_57 ::
 
-prefix = "char * REF(ZZ) dest"
-
-
-print_at_offset k l sep r []   = blanks k ++ l ++ r
-print_at_offset k l sep r [x]  = blanks k ++ l ++ print x ++ r
-print_at_offset k l sep r xs   = blanks k ++ l ++ print (hd xs) ++ "\n"
-                                 
-let p::ps = map print xs in
-let q::qs = (blanks k ++ l ++ p ++ "\n")::(map (fun p -> blanks k ++ sep ++ p ++ "\n")) in
-let q ++ (concat qs) ++ blanks k ++ r
-
-let blanks k = String.make k ' '
-
-let rec ppmany s pp ppf = function
-  | []    -> ()
-  | [x]   -> Format.fprintf ppf "%a" pp x
-  | x::xs -> Format.fprintf ppf "%a@\n%s" pp x s; ppmany s pp ppf xs
-
-let ppmany_offset n l r s pp ppf xs =
-  Format.fprintf ppf "%s@[%s%a%s@]@\n" (String.make n ' ') l (ppmany s pp) xs r
-
-let xs = ["this"; "that"; "aasdasd"; "lknaonxe012ndlkna;NC;OAICDIDH0QF"; "MOUSE" ]
-
-let ppstr ppf s = Format.fprintf ppf "%s" s
-
-Format.printf "%a" (ppmany_offset 30 "[ " " ]" "; " ppstr) xs
-
-    blanks k ++ 
 char * REF(ZZ) dest [ Valid(VV)
                     ; GtLb(VV) 
                     ; Eq0(VV, dest) 
@@ -62,18 +33,6 @@ char * REF(ZZ) dest [ Valid(VV)
                     ; SizeGt(VV, n4) 
                     ; SizeGt(VV, $n)  
                     ; SizeGt(VV, n) ]  
-
-
-ref(C96[A5], {1 + 1*} , {VV | 
-
-&& [Eq0(VV, dest_strncpy__SSA__phi_57) ; Ge0(VV, dest_strncpy) ; Ge0(VV, s_strncpy__SSA__blk_0_1) ; EqEnd(VV, dest_strncpy) ; EqEnd(VV, s_strncpy__SS
-A__blk_0_1) ; SizeGt(VV, c_strncpy__SSA__phi_57) ; SizeGt(VV, m4_strncpy__SSA__blk_0_1) ; SizeGt(VV, n4_strncpy__SSA__blk_0_1) ; SizeGt(VV, n4_strncpy__SSA__phi_57) ; SizeGt(VV, n
-_strncpy) ; SizeGt(VV, n_strncpy__SSA__phi_57) ; RestGt(VV, c_strncpy__SSA__phi_57) ; Pad(VV, c_strncpy__SSA__phi_57) ; Pad(VV, n_strncpy__SSA__phi_57) ; EqBegin(VV, dest_strncpy)
- ; EqBegin(VV, s_strncpy__SSA__blk_0_1) ; GtLb(VV) ; Valid(VV)]}) 
-
-
-
-
 
 ***************************************************************************
 ***************************************************************************
