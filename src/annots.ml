@@ -78,7 +78,6 @@ class annotations = object (self)
   val funt         = H.create 37
   val stot         = H.create 37
   val mutable scim = SM.empty
-
   method add_var   = H.replace vart 
   method add_fun   = H.replace funt
   method add_sto   = H.replace stot
@@ -86,7 +85,8 @@ class annotations = object (self)
   method get_scim () : ST.t SM.t = scim 
 
   method set_shape (cil : Cil.file) (shm : Shape.t SM.t) (scim' : ST.t SM.t) : unit =
-    scim <- scim'
+    scim <- scim';
+
   
   method get_binds () = 
        List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt) 

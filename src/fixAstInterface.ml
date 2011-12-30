@@ -57,9 +57,9 @@ let mydebug = false
 (******************************** Names ****************************)
 (*******************************************************************)
 
-type name = Sy.t
+type name = private N of Ast.Symbol.t 
 
-let string_of_name    = Sy.to_string 
+let string_of_name  (N s) = Sy.to_string s 
 
 let d_name () n       = Pretty.text (string_of_name n)
 

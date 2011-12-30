@@ -1,6 +1,6 @@
 
 
-type name = Ast.Symbol.t 
+type name = private N of Ast.Symbol.t 
 
 val d_name : unit -> name -> Pretty.doc
 val so_ref : Sloc.t -> Ast.Sort.t
