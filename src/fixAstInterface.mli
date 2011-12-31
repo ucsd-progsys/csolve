@@ -39,3 +39,4 @@ val maybe_deref         : Ast.expr -> Ast.expr option
 val sloc_of_string      : string -> Sloc.t
 val string_of_sloc      : Sloc.t -> string 
 
+module NameMap          : Misc.EMapType with type key = name 

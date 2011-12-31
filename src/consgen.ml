@@ -77,7 +77,7 @@ let mk_gnv f spec decs cenv =
              |> SM.to_list
              |> M.map_partial (fun vs -> if SS.mem (fst vs) vardecs then Some vs else None)
              |> List.map (FA.name_of_string <**> (fst <+> f))
-             |> FI.ce_adds FI.ce_empty in
+             |> FI.ce_adds FI.ce_empty (* GLOBAL *) in
   SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs then
