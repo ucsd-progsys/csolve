@@ -81,8 +81,8 @@ let reft_of_top =
   FC.make_reft vv so []
 
 let d_reft () r =
-  P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) 
-  (* Misc.fsprintf (FC.print_reft_pred None) r |> P.text *)
+  CM.doc_of_formatter (FC.print_reft_pred None) r
+  (* WORKS: P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) *)
 
 let d_index_reft () (i,r) = 
   P.dprintf "%a , %a" Index.d_index i d_reft r

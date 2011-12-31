@@ -23,7 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
-val annot_shape  : Cil.file -> Shape.t Misc.StringMap.t -> Ssa_transform.t Misc.StringMap.t -> unit
+val annot_shape  : Shape.t Misc.StringMap.t -> Ssa_transform.t Misc.StringMap.t -> unit
 val annot_var    : FixAstInterface.name -> Ctypes.refctype -> unit
 val annot_fun    : string -> Ctypes.refcfun -> unit
 val annot_sto    : string -> Ctypes.refstore -> unit

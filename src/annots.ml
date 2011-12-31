@@ -51,9 +51,9 @@ type binding = TVar of FA.name * (Ct.refctype * Cil.typ)
              | TSto of string  * Ct.refstore 
 
 let report_bad_binding = function 
-  | TVar (x, cr, _) ->
+  | TVar (x, (cr, _)) ->
       E.warn "\nBad TVar for %s :: \n\n@[%a@]" (FA.string_of_name x) Ct.d_refctype cr
-  | TFun (fn, cf, _) ->
+  | TFun (fn, (cf, _)) ->
       E.warn "\nBad TFun for %s ::\n\n@[%a@]" fn Ct.d_refcfun cf
   | TSto (fn, st) -> 
       E.error "\nBad TSto for %s ::\n\n@[%a@]" fn Ct.d_refstore st 
@@ -63,9 +63,9 @@ let apply_solution =
   let s_fun s = RCt.CFun.map (s_typ s) <+> RCt.CFun.apply_effects (s_typ s) in
   let s_sto s = RCt.Store.map (s_typ s) in
   fun s a -> match a with 
-    | TVar (n, cr) -> TVar (n, s_typ s cr)
-    | TFun (f, cf) -> TFun (f, s_fun s cf)
-    | TSto (f, st) -> TSto (f, s_sto s st) 
+    | TVar (n, (cr, z)) -> TVar (n, (s_typ s cr, z))
+    | TFun (f, (cf, z)) -> TFun (f, (s_fun s cf, z))
+    | TSto (f, st)      -> TSto (f, s_sto s st) 
 
 let apply_solution s x = 
   Misc.do_catch_ret "Annots.apply_solution" (apply_solution s) x x
@@ -113,7 +113,7 @@ let unfold_ciltyp = function
 let decorate_refldesc slocm sloc ld =  
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
-    let fldm = ty |> unfold_ciltyp in
+    let fldm = unfold_ciltyp ty in
     ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
        |> RCt.LDesc.mapn (fun i _ pf -> RCt.Field.set_fieldinfo pf (IM.find i fldm))
   else begin 
@@ -143,7 +143,7 @@ let kts_of_bind = function
       |> List.map (Pretty.sprint ~width:80 <.> Sloc.d_sloc ())
       |> List.map (fun s -> (s, s^" |->")) 
 
-let d_bind_orig _ () = function
+let d_bind_orig () = function
   | TVar (n, (cr,_)) ->
       Pretty.dprintf "variable %s ::\n\n@[%a@] " 
       (FA.string_of_name n) Ct.d_refctype cr
@@ -157,23 +157,24 @@ let d_bind_orig _ () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
-let d_ann_var () ((x: FA.name), (ct: Ct.refctype), (t: Cil.typ)) = 
-  failwith "TBD:HEREHEREHERE"
 let d_ann_fun () ((f: string), (cf: Ct.refcfun), (t: Cil.fundec)) = 
   failwith "TBD:HEREHEREHERE"
-let d_ann_sto () (lldts : (Sloc.t * Ct.refldesc * Cil.typ) list) = 
+let d_ann_sto () ((f: string), (st: Ct.refstore)) = 
   failwith "TBD:HEREHEREHERE"
+  (* Ct.RefCTypes.Store.bindings st |> fst    (* ignore funptrs *)  *)
 
-let d_bind_hybrid me () = function 
-  | TVar (x, ct) -> 
-      d_ann_var () (x, ct, me#get_var_type x) 
-  | TFun (f, cf) -> 
-      d_ann_fun () (f, cf, me#get_fun_dec f)
-   | TSto (f, st) ->
-      Ct.RefCTypes.Store.bindings st
-      |> fst    (* ignore funptrs *) 
-      |> List.map (fun (l, ld) -> (l, ld, me#get_sloc_type f l))
-      |> d_ann_sto ()
+let d_bind_hybrid () = function 
+  | TVar (x, (ct, t)) -> 
+      let (_,_,ras) as r = Ct.reft_of_refctype ct in
+      PP.dprintf "variable %a :: %a %a" 
+        FA.d_name x 
+        Cil.d_type t
+        (CilMisc.d_formatter (FixConstraint.print_ras None)) ras
+        (* OR, with VV binder, Ct.d_reft r *)
+  | TFun (f, (cf, fundec)) -> 
+      d_ann_fun () (f, cf, fundec)
+  | TSto (f, st) ->
+      d_ann_sto () (f, st)
 
 let d_bind = d_bind_orig (* d_bind_hybrid *) 
 
@@ -185,7 +186,7 @@ let generate_ispec bs =
   let fn = !Co.csolve_file_prefix ^ ".infspec" in
   Misc.with_out_file fn begin fun oc -> 
     bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
-       |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, cf) ->
+       |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, (cf, _)) ->
              PP.dprintf "%s ::\n@[%a@]" fn Ct.d_refcfun cf) ~elements:bs)
        |> PP.fprint ~width:80 oc
   end
@@ -204,12 +205,12 @@ let generate_tags kts =
 
 let generate_vmap fssam =
   Misc.with_out_file (!Co.csolve_file_prefix^".vmap") begin fun oc -> 
-    SM.iter begin fun _ vmap -> 
+    SM.iter begin fun fn vmap -> 
       vmap
       |> Misc.hashtbl_to_list
       |> Misc.sort_and_compact 
       |> List.iter begin fun ((vname, file, line), ssaname) ->
-           let vname = CilMisc.unrename_local sci.ST.fdec.Cil.svar.Cil.vname vname
+           let vname = CilMisc.unrename_local fn vname
            in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
          end
     end fssam 
@@ -223,21 +224,21 @@ class annotations = object (self)
   val vart          = H.create 37
   val funt          = H.create 37
   val stot          = H.create 37
-  val mutable fssam = SM.empty : ((string * string * int, string) Hashtbl.t) SM.t
-  val mutable flocm = SM.empty : (Cil.typ SLM.t) SM.t
-  val mutable fdecm = SM.empty : Cil.fundec SM.t
+  val mutable fssam = (SM.empty : ((string * string * int, string) Hashtbl.t) SM.t)
+  val mutable flocm = (SM.empty : (Cil.typ SLM.t) SM.t)
+  val mutable fdecm = (SM.empty : Cil.fundec SM.t)
 
-  private method get_binds () = 
+  method private get_binds () = 
        List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt) 
     ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot)
     ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart)
 
-  private method get_var_type (x: FA.name) : Cil.typ = 
+  method private get_var_type (x: FA.name) : Cil.typ = 
     match FA.varinfo_of_name x with 
     | Some v -> v.Cil.vtype 
     | _      -> E.s <| E.error "Annots.get_var_type, unknown name %a\n" FA.d_name x
 
-  private method get_fun_dec  (f: string) : Cil.fundec =
+  method private get_fun_dec  (f: string) : Cil.fundec =
     try SM.find f fdecm with Not_found ->
       E.s <| E.error "Annots.get_fun_dec, unknown function %s\n" f
 
@@ -247,12 +248,12 @@ class annotations = object (self)
     flocm <- SM.map (sloc_typem_of_shape) shm
 
   method add_var x ct = 
-    H.replace vart x (ct, get_var_type x)
+    H.replace vart x (ct, self#get_var_type x)
   
   method add_fun f cf = 
     try
       let locm = SM.find f flocm       
-      in H.replace funt f (decorate_refcfun locm cf, get_fun_dec f)
+      in H.replace funt f (decorate_refcfun locm cf, self#get_fun_dec f)
     with Not_found -> E.s <| E.error "Annots.add_fun, bad function %s \n" f
 
   method add_sto f st = 
@@ -262,9 +263,9 @@ class annotations = object (self)
     with Not_found -> E.s <| E.error "Annots.add_sto, bad function %s \n" f
 
   method dump_annots so =
-    get_binds () 
+    self#get_binds () 
     |> Misc.maybe_apply (Misc.map <.> apply_solution) so
-    |> (PP.d_list Co.annotsep_name (d_bind ann) () <*> Misc.flap kts_of_bind)
+    |> (PP.d_list Co.annotsep_name d_bind () <*> Misc.flap kts_of_bind)
     |> (generate_annots <**> generate_tags)
     |> (fun _ -> generate_vmap fssam)
 

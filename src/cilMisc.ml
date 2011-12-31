@@ -186,16 +186,42 @@ let rec referenced_var_of_exp = function
   | _                         -> failwith "referenced_var_of_exp"
 
 (******************************************************************************)
-(********************************** Printing **********************************)
+(************************* Cil Versions of misc/printers **********************)
 (******************************************************************************)
-
-(* API *)
-let doc_of_formatter f a =
-  Misc.fsprintf f a |> Pretty.text
 
 let nprintf a = Pretty.gprintf (fun _ -> Pretty.nil) a
 
 let bprintf b = if b then Pretty.printf else nprintf
+
+let rec d_many_box brk s f () = function
+  | []              -> Pretty.nil 
+  | [x]             -> Pretty.dprintf "%a" f x
+  | x::xs' when brk -> Pretty.dprintf "%a@!%s%a" f x s (d_many_box brk s f) xs'
+  | x::xs'          -> Pretty.dprintf "%a@?%s%a" f x s (d_many_box brk s f) xs'
+
+let d_many_box brk l s r f () = function
+  | []     -> Pretty.dprintf "[]"
+  | xs     -> Pretty.dprintf "@[%s%a%s@]" l (d_many_box brk s f) xs r
+
+let d_many_brackets brk = d_many_box brk "[ " "; " "]"
+
+(*  Pretty.dprintf "%a" (d_many_box brk "[ " "; " "]" f) x *)
+
+let rec d_many brk s f () = function
+  | []              -> Pretty.nil 
+  | [x]             -> Pretty.dprintf "%a" f x
+  | x::xs' when brk -> Pretty.dprintf "%a%s@?%a" f x s (d_many brk s f) xs'
+  | x::xs'          -> Pretty.dprintf "%a%s%a" f x s (d_many brk s f) xs'
+
+(* API *)
+let d_formatter f () x =
+  Pretty.dprintf "@[%s@]" (Misc.fsprintf f x)
+
+(* API *)
+let doc_of_formatter f a =
+  d_formatter f () a
+  (* RJ, this gets mangled: Misc.fsprintf f a |> Pretty.text *)
+
 
 (******************************************************************************)
 (****************************** Type Manipulation *****************************)
@@ -824,5 +850,6 @@ let unrename_local fn vn =
   let s = suffix_of_fn fn in 
   if not (Misc.is_suffix s vn) then vn else 
     String.sub vn 0 (String.length vn - (String.length s))
+
 
 

@@ -36,6 +36,7 @@ type considerStringsPure =
 val is_pure_expr     : considerStringsPure -> Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 
+val d_formatter      : (Format.formatter -> 'a -> unit) -> unit -> 'a -> Pretty.doc
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 val pretty_to_string : (unit -> 'a -> Pretty.doc) -> 'a -> string  
 
