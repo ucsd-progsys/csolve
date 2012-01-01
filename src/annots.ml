@@ -102,6 +102,7 @@ let sloc_typem_of_shape sh =
 (*** Decorating refldesc, refstore, refcfun with Cil Information ***)
 (*******************************************************************)
 
+  (*
 let unfold_ciltyp = function
   | Cil.TComp (ci, _) -> 
       asserti ci.Cil.cstruct "TBD: unfold_ciltyp: unions";
@@ -111,14 +112,45 @@ let unfold_ciltyp = function
       |> IM.of_list
   | ty -> IM.single 0 {Ct.fname = None; Ct.ftype = Some ty}
 
+let d_ciltypm () m =
+  m |> IM.to_list 
+    |> CM.d_many_braces true (CM.d_pair (fun _ -> Pretty.num) Ct.d_fieldinfo) () 
+
+let unfold_ciltyp x = 
+  x |> unfold_ciltyp
+    >> (E.log "Annots.unfold_ciltyp %a@!%a@!" Cil.d_type x d_ciltypm) 
+*)
+
+let fieldinfo_of_cilfield fi = 
+  { Ct.fname = Some fi.Cil.fname; Ct.ftype = Some fi.Cil.ftype }
+
+let unfold_ciltyp = function 
+  | Cil.TComp (ci, _) -> 
+      let _  = asserti ci.Cil.cstruct "TBD: unfold_ciltyp: unions" in
+      let im = ci.Cil.cfields 
+               |> Misc.mapi (fun i fi -> (i, fieldinfo_of_cilfield fi))
+               |> IM.of_list 
+      in (fun _ i -> IM.find i im)
+
+  | Cil.TArray (t',_,_) ->
+      (fun _ i -> { Ct.fname = None ; Ct.ftype = Some t'})
+
+  | t -> (fun _ i -> { Ct.fname = None; Ct.ftype = Some t}) 
+
+
 let decorate_refldesc slocm sloc ld =  
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
     let fldm = unfold_ciltyp ty in
     ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
-       |> RCt.LDesc.mapn (fun i _ pf -> RCt.Field.set_fieldinfo pf (IM.find i fldm))
+       |> RCt.LDesc.mapn begin fun i _ pf -> 
+            try RCt.Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
+              let _ = E.log "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a" 
+                              Sloc.d_sloc sloc i RCt.LDesc.d_ldesc ld Cil.d_type ty
+              in pf
+          end
   else begin 
-    ignore <| Errormsg.warn "Annots.decorate_ldesc: unknown cil info for %a" Sloc.d_sloc sloc; 
+    ignore <| Errormsg.log "WARNING: Annots.decorate_ldesc: unknown cil info for %a" Sloc.d_sloc sloc; 
     ld
   end
 
@@ -163,12 +195,20 @@ let d_ann_ref () = function
   | Ct.Ref (l,_) -> PP.dprintf "REF(%a)" Sloc.d_sloc l
   | _            -> PP.nil
 
-let d_ann_var () (xo, ct, t) =
+type binder = N of FA.name | S of string | I of Index.t | Nil
+
+let d_binder () = function 
+  | N n -> FA.d_name () n
+  | S s -> Pretty.text s
+  | I i -> Pretty.dprintf "@@%a" Index.d_index i
+  | Nil -> Pretty.nil
+
+let d_ann_var () (b, ct, t) =
   let (_,_,ras) as r = Ct.reft_of_refctype ct in
   PP.dprintf "%a %a %a %a" 
     Cil.d_type t
     d_ann_ref ct
-    (CM.d_opt FA.d_name) xo 
+    d_binder b 
     (CM.d_formatter (FixConstraint.print_ras None)) ras
     (* OR, with VV binder, Ct.d_reft r *)
 
@@ -176,12 +216,13 @@ let d_ann_field () (i, fld) =
   let ct = RCt.Field.type_of fld in
   match RCt.Field.get_fieldinfo fld with
   | { Ct.fname = Some fldname; Ct.ftype = Some t } ->
-      d_ann_var () (Some (FA.name_of_string fldname), RCt.Field.type_of fld, t )
+      d_ann_var () (S fldname, RCt.Field.type_of fld, t )
+  | { Ct.ftype = Some t } ->
+      d_ann_var () (I i, RCt.Field.type_of fld, t )
   | _ -> E.s <| E.error "Annots.d_ann_field, bad info for %a" RCt.Field.d_field fld
   (* OR, LESS VIOLENTLY, 
   | _ -> P.dprintf "%a: %a" RCt.Index.d_index i RCt.Field.d_field fld 
   *)
-
 
 let d_structinfo () = function
   | {Ct.stype = Some t } -> Cil.d_type () t
@@ -200,7 +241,7 @@ let stitch_args fn cf = function
   | Some yts -> 
       let m = SM.of_list <| List.map (fun (y,t,_) -> (y,t)) yts in
       Misc.map_partial begin fun (x, ct) ->
-        try  Some (Some (FA.name_of_string x), ct, SM.find x m) 
+        try  Some (S x, ct, SM.find x m) 
         with Not_found -> None 
       end cf.Ct.args
 
@@ -209,7 +250,7 @@ let d_ann_fun () (f, cf, fd) =
   let xoctts           = stitch_args f cf argso              in
   CM.concat_docs 
     [ PP.dprintf "function %s ::@!@!" f
-    ; PP.dprintf "%a@!"     d_ann_var (None, cf.Ct.ret, ret)
+    ; PP.dprintf "%a@!"     d_ann_var (Nil, cf.Ct.ret, ret)
     ; PP.dprintf "%s %a @!" f (CM.d_many_parens true d_ann_var) xoctts 
     (* ; effects *)
     ]
@@ -224,7 +265,7 @@ let d_ann_stores () ((f: string), (stos: Ct.refstore list)) =
 let d_bind_hybrid () = function 
   | TVar (x, (ct, t)) -> 
       PP.dprintf "variable %a ::@!@!@[%a@]@!@!" 
-        FA.d_name x d_ann_var (Some x, ct, t)
+        FA.d_name x d_ann_var (N x, ct, t)
   | TFun (f, (cf, fundec)) ->
       CM.concat_docs 
         [ d_ann_fun () (f, cf, fundec) 

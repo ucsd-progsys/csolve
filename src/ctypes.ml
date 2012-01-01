@@ -167,7 +167,7 @@ let d_fieldinfo () = function
   | { ftype = Some t } -> 
       P.dprintf "/* FIELDINFO %a */" Cil.d_type t 
   | _ ->
-      P.nil
+      P.nil (* RJ: screws up the autospec printer. P.dprintf "/* FIELDINFO ??? */" *)
 
 let d_structinfo () = function
   | { stype = Some t } -> 

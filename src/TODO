@@ -29,10 +29,11 @@ foo ( int x [...]
        >> print simple var names. 'x for old x for current, $x for input.
        >> print substs at end of annot (x := ..., 'x := ..., $x := ..., etc.)
 
+2. Rig parser to ignore stuff between /* ... */ then fix Ctypes.d_fieldinfo
 
-2. Dump BSTATS out as JSON, sorted by times.
+3. Dump BSTATS out as JSON, sorted by times.
 
-3. Error (associate string tags with constraints. "Dereference at line ...")
+4. Error (associate string tags with constraints. "Dereference at line ...")
 
 prunelive OR removing constant-propped vars from WF-envs kills:
 

@@ -41,6 +41,8 @@ type structinfo = {stype : Cil.typ option}
 
 val dummy_fieldinfo  : fieldinfo
 val dummy_structinfo : structinfo
+val d_fieldinfo      : unit -> fieldinfo -> Pretty.doc
+val d_structinfo     : unit -> structinfo -> Pretty.doc
 
 type finality =
   | Final
