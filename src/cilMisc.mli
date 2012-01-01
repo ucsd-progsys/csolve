@@ -42,6 +42,7 @@ val pretty_to_string : (unit -> 'a -> Pretty.doc) -> 'a -> string
 val concat_docs      : Pretty.doc list -> Pretty.doc
 val d_many_parens    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_many_braces    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
+val d_opt            : (unit -> 'a -> Pretty.doc) -> unit -> 'a option -> Pretty.doc
 
 
 val bytesSizeOf      : Cil.typ -> int

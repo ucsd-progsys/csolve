@@ -221,8 +221,8 @@ let cstoa_of_annots fname gdoms conca astore =
                              Ct.refstore_get astore al |> Ct.refstore_set sto cl
                            end emp
                         |> Ct.store_of_refstore 
-                        |> FI.refstore_fresh fname in
-      (sto, inclocs, conc')
+                        |> FI.refstore_fresh fname 
+      in (sto, inclocs, conc')
   end conca
 
 let edge_asgnm_of_phia phia =

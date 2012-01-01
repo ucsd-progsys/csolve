@@ -43,7 +43,9 @@ val ce_adds             : cilenv -> (FixAstInterface.name * Ctypes.refctype) lis
 val ce_find             : FixAstInterface.name -> cilenv -> Ctypes.refctype
 val ce_mem_fn           : string -> cilenv -> bool
 val ce_adds_fn          : cilenv -> (string * Ctypes.refcfun) list -> cilenv
+
 val ce_find_fn          : string -> cilenv -> Ctypes.refcfun
+
 val d_cilenv            : unit -> cilenv -> Pretty.doc
 val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (Ctypes.refldesc -> Ctypes.refldesc) ->
@@ -127,7 +129,6 @@ val refstore_strengthen_addr :
   cilenv * Ctypes.refstore
 
 val refstore_fresh             : string -> Ctypes.store -> Ctypes.refstore
-
 val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
 val conv_effectset_bottom      : Ctypes.effectset -> Ctypes.effectset
 

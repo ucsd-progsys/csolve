@@ -125,9 +125,10 @@ let decorate_refldesc slocm sloc ld =
 let decorate_refstore slocm sto = 
   RCt.Store.map_ldesc (decorate_refldesc slocm) sto
 
-let decorate_refcfun slocm cf = 
-  RCt.CFun.map_ldesc (decorate_refldesc slocm) cf 
-
+let decorate_refcfun slocm f cf = 
+  try
+    RCt.CFun.map_ldesc (decorate_refldesc slocm) cf 
+  with _ -> E.s <| E.error "Annots.decorate_refcfun %s" f
 
 (*******************************************************************)
 (***************** Rendering Annots (Refinements Only) *************)
@@ -167,7 +168,7 @@ let d_ann_var () (xo, ct, t) =
   PP.dprintf "%a %a %a %a" 
     Cil.d_type t
     d_ann_ref ct
-    (PP.docOpt (FA.d_name ())) xo 
+    (CM.d_opt FA.d_name) xo 
     (CM.d_formatter (FixConstraint.print_ras None)) ras
     (* OR, with VV binder, Ct.d_reft r *)
 
@@ -176,7 +177,7 @@ let d_ann_field () (i, fld) =
   match RCt.Field.get_fieldinfo fld with
   | { Ct.fname = Some fldname; Ct.ftype = Some t } ->
       d_ann_var () (Some (FA.name_of_string fldname), RCt.Field.type_of fld, t )
-  | _ -> E.s <| E.log "Annots.d_ann_field, bad info for %a" RCt.Field.d_field fld
+  | _ -> E.s <| E.error "Annots.d_ann_field, bad info for %a" RCt.Field.d_field fld
   (* OR, LESS VIOLENTLY, 
   | _ -> P.dprintf "%a: %a" RCt.Index.d_index i RCt.Field.d_field fld 
   *)
@@ -195,7 +196,7 @@ let d_ann_ldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
 (* YUCK. *)
 let stitch_args fn cf = function 
   | None -> 
-      E.s <| E.log "Annots.stitch_args no args for %s" fn
+      E.s <| E.error "Annots.stitch_args no args for %s" fn
   | Some yts -> 
       let m = SM.of_list <| List.map (fun (y,t,_) -> (y,t)) yts in
       Misc.map_partial begin fun (x, ct) ->
@@ -232,7 +233,12 @@ let d_bind_hybrid () = function
   | TSto (f, st) ->
       PP.nil (* d_ann_stores () (f, [st]) *)
 
-let d_bind = d_bind_orig (* d_bind_hybrid *) 
+let d_bind = (* d_bind_orig *) d_bind_hybrid
+
+let d_bind_raw () = function
+  | TVar (x, _) -> PP.dprintf "variable %a" FA.d_name x 
+  | TFun (f, _) -> PP.dprintf "function %s" f
+  | TSto (f, _) -> PP.dprintf "funstore %s" f
 
 (*******************************************************************)
 (************************ Write to File ****************************)
@@ -284,39 +290,43 @@ class annotations = object (self)
   val mutable flocm = (SM.empty : (Cil.typ SLM.t) SM.t)
   val mutable fdecm = (SM.empty : Cil.fundec SM.t)
 
-  method private get_binds () = 
-       List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt) 
-    ++ List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot)
-    ++ List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart)
+  method private get_binds () : binding list = 
+    (   (List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt))
+     ++ (List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot))
+     ++ (List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart))
+    ) >> (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
 
-  method private get_var_type (x: FA.name) : Cil.typ = 
-    match FA.varinfo_of_name x with 
-    | Some v -> v.Cil.vtype 
-    | _      -> E.s <| E.error "Annots.get_var_type, unknown name %a\n" FA.d_name x
+
+  method private get_flocm (f: string) : (Cil.typ SLM.t) option =
+    try Some (SM.find f flocm) with Not_found ->     
+      let _ = E.log "Annots: Missing Location-Types for %s \n" f 
+      in None
 
   method private get_fun_dec  (f: string) : Cil.fundec =
     try SM.find f fdecm with Not_found ->
       E.s <| E.error "Annots.get_fun_dec, unknown function %s\n" f
 
-  method set_shape (shm : Shape.t SM.t) (scim : ST.t SM.t) : unit =
+  method set_shape (shm : Shape.t SM.t) (scim : ST.t SM.t) (cfm : Ct.refcfun SM.t) : unit =
     fssam <- SM.map (fun sci -> sci.ST.vmapt) scim ;
     fdecm <- SM.map (fun sci -> sci.ST.fdec) scim  ;
-    flocm <- SM.map (sloc_typem_of_shape) shm
+    flocm <- SM.map (sloc_typem_of_shape) shm;
+    SM.iter self#add_fun cfm
 
-  method add_var x ct = 
-    H.replace vart x (ct, self#get_var_type x)
-  
-  method add_fun f cf = 
-    try
-      let locm = SM.find f flocm       
-      in H.replace funt f (decorate_refcfun locm cf, self#get_fun_dec f)
-    with Not_found -> E.s <| E.error "Annots.add_fun, bad function %s \n" f
+  method add_var x ct =
+    Misc.maybe_iter begin fun v ->
+      (* E.log "Annots.add_var %a \n" FA.d_name x; *)
+      H.replace vart x (ct, v.Cil.vtype);
+    end (FA.varinfo_of_name x)
+
+  method private add_fun f cf = 
+    Misc.maybe_iter begin fun locm ->
+      H.replace funt f (decorate_refcfun locm f cf, self#get_fun_dec f)
+    end (self#get_flocm f)
 
   method add_sto f st = 
-    try
-      let locm = SM.find f flocm       
-      in H.replace stot f (decorate_refstore locm st)
-    with Not_found -> E.s <| E.error "Annots.add_sto, bad function %s \n" f
+    Misc.maybe_iter begin fun locm ->
+      H.replace stot f (decorate_refstore locm st)
+    end (self#get_flocm f)
 
   method dump_annots so =
     self#get_binds () 
@@ -341,12 +351,11 @@ end
 let annr = ref (new annotations)
 
 (* API *)
-let annot_shape  = (!annr)#set_shape 
-let annot_fun    = (!annr)#add_fun
-let annot_sto    = (!annr)#add_sto
-let annot_var    = (!annr)#add_var
-let clear ()     = annr := new annotations 
-let dump_annots  = fun so -> (!annr)#dump_annots so
+let annot_shape  = fun x y z  -> (!annr)#set_shape x y z 
+let annot_sto    = fun x y    -> (!annr)#add_sto x y
+let annot_var    = fun x y    -> (!annr)#add_var x y
+let clear        = fun _      -> annr := new annotations 
+let dump_annots  = fun so     -> (!annr)#dump_annots so
 let dump_infspec = fun decs s -> (!annr)#dump_infspec decs s
 
 

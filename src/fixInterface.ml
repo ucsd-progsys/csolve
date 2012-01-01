@@ -62,8 +62,8 @@ open Cil
 
 let mydebug = false
 
-type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment *)
-              ; venv  : Ct.refctype YM.t (* variable reftype environment *)
+type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
+              ; venv  : Ct.refctype YM.t (* variable reftype environment  *)
               ; live  : FA.name YM.t     (* "live" name for each variable *) 
               ; theta : Su.t             (* "ground substitution" for each variable *) 
               }
@@ -173,7 +173,6 @@ let ce_find_fn s {fenv = fnv} =
     assertf "FixInterface.ce_find: Unknown function! %s" s
 
 let ce_adds_fn ce sfrs = 
-  let _ = List.iter (Misc.uncurry Annots.annot_fun) sfrs in
   {ce with fenv = List.fold_left (fun fnv (s, fr) -> SM.add s fr fnv) ce.fenv sfrs}
 
 let ce_mem_fn = fun s {fenv = fnv} -> SM.mem s fnv
@@ -665,10 +664,10 @@ let copyprop_refctype ce n (su, cr) =
 let ce_add ce (n, cr) =
   let bo       = FA.base_of_name n in
   let th', cr' = (ce.theta, cr) |> (!Co.copyprop <?> copyprop_refctype ce n) in
-  let _        = Annots.annot_var n cr' in 
+  let _        = Annots.annot_var n cr' in
   { ce with venv  = YM.add n cr' ce.venv
-            ; live  = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
-            ; theta = th' 
+          ; live  = Misc.maybe_apply (fun bn -> YM.add bn n) bo ce.live
+          ; theta = th' 
   }
 
 let ce_adds = List.fold_left ce_add

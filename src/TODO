@@ -1,13 +1,4 @@
-1. NEXT: MINIMIZE 
-
-   HEREHEREHEREHERE
-   >> render with C-Types (cf. GOAL below)
-      ./commit.sh "revived old code for patching in cil info with ctypes for annots. next: get it to build, then write rendering functions"
-       >> table-aligned funargs
-       >> field names instead of A90#Ix#6 etc.
-       >> short var names   (pages instead of pages_env_alloc -- with links) 
-       >> global (all? abstract) locations printed only once
-
+1. NEXT: Prettify 
 
 t [...] 
 foo ( int x [...]
@@ -15,9 +6,21 @@ foo ( int x [...]
     , int z [...]
     ) 
 
-let d_table sep pp () kvs =
-  let n = kvs |>: fst :>: String.length |> Misc.list_max 0 in
-  d_list sep (fun   )
+../tests/postests/structarr.c
+../tests/postests/structarr2.c
+../tests/postests/test01p.c
+../tests/postests/test03p.c
+../tests/postests/test05p.c
+../tests/postests/ll7.c
+../tests/postests/array4.c
+../tests/postests/arraysum.c
+
+
+   HEREHEREHEREHERE
+   >> render with C-Types (cf. GOAL below)
+       >> field names instead of A90#Ix#6 etc.
+       >> short var names   (pages instead of pages_env_alloc -- with links) 
+       >> global (all? abstract) locations printed only once
 
    >> sort qualifiers by name/frequency?
    
@@ -73,121 +76,11 @@ ref(A88, {0 + 4*} , {VV_ptr_A88 | && [ (VV_ptr_A88 = pages_env_check)
                                      ; ((VV_ptr_A88 != 0) => && [(0 < VV_ptr_A88) ; (BLOCK_BEGIN([VV_ptr_A88]) <= VV_ptr_A88) ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88]))])
                                      ]})
 
-1. HEREHEREHEREHERE
+Exceptions thrown on 80 tests: ../tests/postests/adpcm.c, ../tests/postests/allocator/allocator.c, ../tests/postests/anysloc.c, ../tests/postests/argv-final-val.c
+, ../tests/postests/broken-subst.c, ../tests/postests/call_unify_read_only_locs.c, ../tests/postests/cil_sizeof_bug.c, ../tests/postests/closelocs.c, ../tests/postests/coreutils/dirname.sh, ../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/false.sh, ../tests/postests/coreutils/groups.sh, ../tests/postests/coreutils/hostid.sh, ../tests/postests/coreutils/hostname.sh, ../tests/postests/coreutils/link.sh, ../tests/postests/coreutils/logname.sh, ../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh, ../tests/postests/coreutils/readlink.sh, ../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh, ../tests/postests/coreutils/true.sh, ../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh, ../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh, ../tests/postests/cpj/idea_test.c, ../tests/postests/cpj/parallel_for.c, ../tests/postests/cpj/per_block_effects.c, ../tests/postests/cpj/quicksort.c, ../tests/postests/cpj/sumreduce.c, ../tests/postests/depalloc.c, ../tests/postests/fpointer/alias-noheap.c, ../tests/postests/fpointer/assert_return.c, ../tests/postests/fpointer/call_qlocs.c, ../tests/postests/fpointer/call_return.c, ../tests/postests/fpointer/funptr_array.c, ../tests/postests/fpointer/global_funptr.c, ../tests/postests/fpointer/globloc.c, ../tests/postests/fpointer/maybe_null.c, ../tests/postests/fpointer/minimal.c, ../tests/postests/fpointer/minimal_call.c, ../tests/postests/fpointer/minimal_call_nullptr.c, ../tests/postests/fpointer/qloc.c, ../tests/postests/fpointer/specced_call_int.c, ../tests/postests/fpointer/store_funptr.c, ../tests/postests/fpointer/take_funptr.c, ../tests/postests/fpointer/take_two_funptrs.c, ../tests/postests/full_adpcm.sh, ../tests/postests/global_branch_sensitivity.c, ../tests/postests/global_param.c, ../tests/postests/global_reflexivity.c, ../tests/postests/globloc.c, ../tests/postests/globset.c, ../tests/postests/incp.c, ../tests/postests/ks.c
+, ../tests/postests/mst.c, ../tests/postests/normalize_tworefs.c, ../tests/postests/param_alias_global.c, ../tests/postests/passglobal.c, ../tests/postests/pmap.c, ../tests/postests/power.c, ../tests/postests/shapebug-em3d.c, ../tests/postests/simultaneous_loc_subst.c, ../tests/postests/singletonarray.c, ../tests/postests/store_unquantified_function.c, ../tests/postests/strcpy.c, ../tests/postests/stringlist.c
+, ../tests/postests/true_index.c, ../tests/postests/uninit-location.c, ../tests/postests/unquantified_same_shape.c, ../tests/postests/whilenullterm.c
 
->> int pages[] { && [ Eq(V, pages); Size(V, 4000); WordSize(8); Begin(V); Valid(V)]
-
-2. Allow hierarchical qualifiers
-
-
-qualif PosP(v:ptr)       : 0 < v
-
-qualif Begin(v:ptr)      : BLOCK_BEGIN([v])  = v
-qualif LowerBd(v:ptr)    : BLOCK_BEGIN([v]) <= v
-qualif UpperBd(v:ptr)    : v < BLOCK_END([v])
-qualif Valid(v:ptr)      : && [ #PosP(v); #LowerBd(v); #UpperBd(v) ]
-qualif NullOrValid(v:ptr): (v != 0) => Valid(v)
-
-//qualif Valid(v:ptr)    : && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
-//qualif NullOrValid(v:ptr): (v != 0) => && [(0 < v); (BLOCK_BEGIN([v]) <= v); (v < BLOCK_END([v]))]
-
-
-
-
-
-variable pages_page_getfree ::
-
-ref(C168[A69], {0 + 4*} , {VV_ptr_C168 | && [((VV_ptr_C168 != 0) => && [(0 < VV_ptr_C168) ; (BLOCK_BEGIN([VV_ptr_C168]) <= VV_ptr_C168) ; 
-                                              (VV_ptr_C168 < BLOCK_END([VV_ptr_C168]))]) ; 
-                   (BLOCK_END([VV_ptr_C168]) = BLOCK_END([pages_page_getfree])) ; 
-                   (VV_ptr_C168 >= pages_page_getfree) ; ((VV_ptr_C168 != 0) => 
-                   (VV_ptr_C168 = BLOCK_BEGIN([VV_ptr_C168]))) ; (0 < VV_ptr_C168) ; 
-                   (VV_ptr_C168 < BLOCK_END([VV_ptr_C168])) ; ((VV_ptr_C168 != 0) => 
-                   ((BLOCK_END([VV_ptr_C168]) - VV_ptr_C168) >= 8)) ; 
-                   (BLOCK_BEGIN([VV_ptr_C168]) = BLOCK_BEGIN([pages_page_getfree])) ; 
-                   (BLOCK_END([VV_ptr_C168]) = (BLOCK_BEGIN([pages_page_getfree]) + 4000))]}) 
-
-=+=
-
-variable envs_env_check ::
-
-ref(C460[A87], {0} , {VV_ptr_C460 | && [(BLOCK_BEGIN([VV_ptr_C460]) = BLOCK_BEGIN([envs_env_check])) ; (
-                   (VV_ptr_C460 != 0) => ((BLOCK_END([VV_ptr_C460]) - VV_ptr_C460) >= 4)) ; 
-                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460])) ; (0 < VV_ptr_C460) ; 
-                   (VV_ptr_C460 >= envs_env_check) ; (BLOCK_END([VV_ptr_C460]) = BLOCK_END([envs_env_check])) ; 
-                   (VV_ptr_C460 = BLOCK_BEGIN([VV_ptr_C460])) ; ((VV_ptr_C460 != 0) => && [
-                   (0 < VV_ptr_C460) ; (BLOCK_BEGIN([VV_ptr_C460]) <= VV_ptr_C460) ; 
-                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460]))])]}) 
-
-variable walk_env_check__SSA__phi_26 ::
-
-ref(C461[A62], {0} , {VV_ptr_C461 | && [(BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([walk_env_check__SSA__phi_26])) ; (
-                   (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
-                   (VV_ptr_A62 >= walk_env_check__SSA__phi_26) ; (BLOCK_END([VV_ptr_A62]) = BLOCK_END([walk_env_check__SSA__phi_26])) ; 
-                   (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62])) ; ((VV_ptr_A62 != 0) => && [
-                   (0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
-                   (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; ((VV_ptr_A62 != 0) => 
-                   (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012)))]}) 
-
-solution: k_847 := [(
-      (VV_int < 2000), A0);((VV_int < 1000), A);((VV_int >= A62#Ix#0), GEQ[~a:=A62#Ix#0]);(
-      (0 <= VV_int), GEZ);((VV_int <= A62#Ix#0), LEQ[~a:=A62#Ix#0])] 
-
-
-funstore env_check ::
-
-[A62 |-> {0}: final int(4, {true} , {VV_int | && [(VV_int < 1000) ; (VV_int >= A62#Ix#0) ; (0 <= VV_int) ; 
-                       (VV_int <= A62#Ix#0)]}),
-         {4}: final ref(A62, {0} , {VV_ptr_A62 | && [((VV_ptr_A62 != 0) => (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012))) ; (
-                           (VV_ptr_A62 != 0) => && [(0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
-                                                    (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; 
-                           (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A62#Ix#4])) ; 
-                           (VV_ptr_A62 >= A62#Ix#4) ; ((VV_ptr_A62 != 0) => (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62]))) ; (
-                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
-                           (BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A62#Ix#4]))]}),
-         {8}: final ref(A62, {0} , {VV_ptr_A62 | && [((VV_ptr_A62 != 0) => (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012))) ; (
-                           (VV_ptr_A62 != 0) => && [(0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
-                                                    (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; 
-                           (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A62#Ix#8])) ; 
-                           (VV_ptr_A62 >= A62#Ix#8) ; ((VV_ptr_A62 != 0) => (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62]))) ; (
-                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
-                           (BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A62#Ix#8]))]}),
-         {12 + 4*}: final int(4, {true} , {VV_int | && [(VV_int < 1000) ; ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => 
-                       (VV_int = 0))]});
- A87 |-> {0}: final ref(A62, {0} , {VV_ptr_A62 | && [(BLOCK_BEGIN([VV_ptr_A62]) = BLOCK_BEGIN([A87#Ix#0])) ; (
-                           (VV_ptr_A62 != 0) => ((BLOCK_END([VV_ptr_A62]) - VV_ptr_A62) >= 8)) ; 
-                           (VV_ptr_A62 >= A87#Ix#0) ; (BLOCK_END([VV_ptr_A62]) = BLOCK_END([A87#Ix#0])) ; 
-                           (VV_ptr_A62 = BLOCK_BEGIN([VV_ptr_A62])) ; ((VV_ptr_A62 != 0) => && [
-                           (0 < VV_ptr_A62) ; (BLOCK_BEGIN([VV_ptr_A62]) <= VV_ptr_A62) ; 
-                           (VV_ptr_A62 < BLOCK_END([VV_ptr_A62]))]) ; ((VV_ptr_A62 != 0) => 
-                           (BLOCK_END([VV_ptr_A62]) = (BLOCK_BEGIN([VV_ptr_A62]) + 8012)))]});
- A88 |-> {0 + 4*}: int(4, {true} , {VV_int | && [((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (VV_int = 0))]});
- A89 |-> {0 + 4*}: int(4, {true} , {VV_int | && [(0 <= VV_int) ; ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => 
-                       (VV_int = 0)) ; (VV_int < 1000)]})] 
-
-=+=
-
-
-
-
-variable envs_env_check ::
-
-ref(C460[A87], {0} , {VV_ptr_C460 | && [(VV_ptr_C460 = envs_env_check) ; 
-                                        ((VV_ptr_C460 != 0) => 
-                   ((BLOCK_END([VV_ptr_C460]) - VV_ptr_C460) >= 4)) ; 
-                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460])) ; (0 < VV_ptr_C460) ; 
-                   (VV_ptr_C460 = BLOCK_BEGIN([VV_ptr_C460])) ; ((VV_ptr_C460 != 0) => && [
-                   (0 < VV_ptr_C460) ; (BLOCK_BEGIN([VV_ptr_C460]) <= VV_ptr_C460) ; 
-                   (VV_ptr_C460 < BLOCK_END([VV_ptr_C460]))])]}) 
-
-
-
-
-
-
-
-
-***************************************************************************
 ***************************************************************************
 
 Function Pointers

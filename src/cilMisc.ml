@@ -207,6 +207,8 @@ let d_many_brackets brk = d_many_box brk "[ " "; " "]"
 let d_many_parens brk   = d_many_box brk "( " ", " ")"
 (*  Pretty.dprintf "%a" (d_many_box brk "[ " "; " "]" f) x *)
 let d_many_braces brk   = d_many_box brk "{ " "; " "}"
+let d_opt f () xo       = Misc.maybe_apply (fun x _ -> f () x) xo Pretty.nil
+
 
 
 let rec d_many brk s f () = function

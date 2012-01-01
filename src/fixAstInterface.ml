@@ -77,12 +77,12 @@ let name_of_varinfo v =
 
 let varinfo_of_name vn =
   try Some (Hashtbl.find varinfo_t vn) with Not_found -> None 
-  
+(* 
 let varinfo_of_name vn =
   vn |> varinfo_of_name
      >> (function Some v -> ignore <| Errormsg.warn "varinfo_of_name %a: HIT\n" d_name vn  
                 | _      -> ignore <| Errormsg.warn "varinfo_of_name %a: MISS\n" d_name vn)
-
+*)
 
 
 
