@@ -1,5 +1,5 @@
-qualif A(v:int) : v <  1000
-qualif A(v:int) : v <  2000
+qualif PPage(v:int) : v < 1000
+qualif VPage(v:int) : v < 2000
 
 //hand optimized
 //qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@pag]) 

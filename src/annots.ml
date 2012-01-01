@@ -36,6 +36,7 @@ module NM  = FA.NameMap
 module SLM = Sloc.SlocMap
 module IM  = Misc.IntMap
 module ST  = Ssa_transform
+module CM  = CilMisc
 
 open Misc.Ops
 
@@ -157,24 +158,79 @@ let d_bind_orig () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
-let d_ann_fun () ((f: string), (cf: Ct.refcfun), (t: Cil.fundec)) = 
-  failwith "TBD:HEREHEREHERE"
-let d_ann_sto () ((f: string), (st: Ct.refstore)) = 
-  failwith "TBD:HEREHEREHERE"
-  (* Ct.RefCTypes.Store.bindings st |> fst    (* ignore funptrs *)  *)
+let d_ann_ref () = function
+  | Ct.Ref (l,_) -> PP.dprintf "REF(%a)" Sloc.d_sloc l
+  | _            -> PP.nil
+
+let d_ann_var () (xo, ct, t) =
+  let (_,_,ras) as r = Ct.reft_of_refctype ct in
+  PP.dprintf "%a %a %a %a" 
+    Cil.d_type t
+    d_ann_ref ct
+    (PP.docOpt (FA.d_name ())) xo 
+    (CM.d_formatter (FixConstraint.print_ras None)) ras
+    (* OR, with VV binder, Ct.d_reft r *)
+
+let d_ann_field () (i, fld) = 
+  let ct = RCt.Field.type_of fld in
+  match RCt.Field.get_fieldinfo fld with
+  | { Ct.fname = Some fldname; Ct.ftype = Some t } ->
+      d_ann_var () (Some (FA.name_of_string fldname), RCt.Field.type_of fld, t )
+  | _ -> E.s <| E.log "Annots.d_ann_field, bad info for %a" RCt.Field.d_field fld
+  (* OR, LESS VIOLENTLY, 
+  | _ -> P.dprintf "%a: %a" RCt.Index.d_index i RCt.Field.d_field fld 
+  *)
+
+
+let d_structinfo () = function
+  | {Ct.stype = Some t } -> Cil.d_type () t
+  | _                    -> PP.nil
+
+let d_ann_ldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
+  PP.dprintf "%a %a |-> %a" 
+      d_structinfo (RCt.LDesc.get_structinfo ld)
+      Sloc.d_sloc l
+      (CM.d_many_braces true d_ann_field) (RCt.LDesc.bindings ld)
+
+(* YUCK. *)
+let stitch_args fn cf = function 
+  | None -> 
+      E.s <| E.log "Annots.stitch_args no args for %s" fn
+  | Some yts -> 
+      let m = SM.of_list <| List.map (fun (y,t,_) -> (y,t)) yts in
+      Misc.map_partial begin fun (x, ct) ->
+        try  Some (Some (FA.name_of_string x), ct, SM.find x m) 
+        with Not_found -> None 
+      end cf.Ct.args
+
+let d_ann_fun () (f, cf, fd) =
+  let ret, argso, _, _ = Cil.splitFunctionTypeVI fd.Cil.svar in
+  let xoctts           = stitch_args f cf argso              in
+  CM.concat_docs 
+    [ PP.dprintf "function %s ::@!@!" f
+    ; PP.dprintf "%a@!"     d_ann_var (None, cf.Ct.ret, ret)
+    ; PP.dprintf "%s %a @!" f (CM.d_many_parens true d_ann_var) xoctts 
+    (* ; effects *)
+    ]
+  
+let d_ann_stores () ((f: string), (stos: Ct.refstore list)) =
+  stos 
+  |> Misc.flap (fst <.> Ct.RefCTypes.Store.bindings) (* ignore funptrs *)
+  |> Misc.kgroupby (fst <+> Sloc.to_string)
+  |> Misc.flap snd
+  |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" d_ann_ldesc)
 
 let d_bind_hybrid () = function 
   | TVar (x, (ct, t)) -> 
-      let (_,_,ras) as r = Ct.reft_of_refctype ct in
-      PP.dprintf "variable %a :: %a %a" 
-        FA.d_name x 
-        Cil.d_type t
-        (CilMisc.d_formatter (FixConstraint.print_ras None)) ras
-        (* OR, with VV binder, Ct.d_reft r *)
-  | TFun (f, (cf, fundec)) -> 
-      d_ann_fun () (f, cf, fundec)
+      PP.dprintf "variable %a ::@!@!@[%a@]@!@!" 
+        FA.d_name x d_ann_var (Some x, ct, t)
+  | TFun (f, (cf, fundec)) ->
+      CM.concat_docs 
+        [ d_ann_fun () (f, cf, fundec) 
+        ; PP.text Co.annotsep_name
+        ; d_ann_stores () (f, [cf.Ct.sto_in; cf.Ct.sto_out])]
   | TSto (f, st) ->
-      d_ann_sto () (f, st)
+      PP.nil (* d_ann_stores () (f, [st]) *)
 
 let d_bind = d_bind_orig (* d_bind_hybrid *) 
 
@@ -210,7 +266,7 @@ let generate_vmap fssam =
       |> Misc.hashtbl_to_list
       |> Misc.sort_and_compact 
       |> List.iter begin fun ((vname, file, line), ssaname) ->
-           let vname = CilMisc.unrename_local fn vname
+           let vname = CM.unrename_local fn vname
            in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
          end
     end fssam 
@@ -270,7 +326,7 @@ class annotations = object (self)
     |> (fun _ -> generate_vmap fssam)
 
   method dump_infspec decs s =
-    let ds = decs |> Misc.map_partial (function CilMisc.FunDec (fn,_,_) -> Some fn | _ -> None) |>  SS.of_list in
+    let ds = decs |> Misc.map_partial (function CM.FunDec (fn,_,_) -> Some fn | _ -> None) |>  SS.of_list in
     Misc.hashtbl_to_list funt
     |> Misc.filter (fst <+> Misc.flip SS.mem ds)
     |> Misc.map (fun (x,y) -> apply_solution s (TFun (x,y)))

@@ -3,6 +3,21 @@
    HEREHEREHEREHERE
    >> render with C-Types (cf. GOAL below)
       ./commit.sh "revived old code for patching in cil info with ctypes for annots. next: get it to build, then write rendering functions"
+       >> table-aligned funargs
+       >> field names instead of A90#Ix#6 etc.
+       >> short var names   (pages instead of pages_env_alloc -- with links) 
+       >> global (all? abstract) locations printed only once
+
+
+t [...] 
+foo ( int x [...]
+    , int y [...]
+    , int z [...]
+    ) 
+
+let d_table sep pp () kvs =
+  let n = kvs |>: fst :>: String.length |> Misc.list_max 0 in
+  d_list sep (fun   )
 
    >> sort qualifiers by name/frequency?
    

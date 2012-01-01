@@ -204,8 +204,10 @@ let d_many_box brk l s r f () = function
   | xs     -> Pretty.dprintf "@[%s%a%s@]" l (d_many_box brk s f) xs r
 
 let d_many_brackets brk = d_many_box brk "[ " "; " "]"
-
+let d_many_parens brk   = d_many_box brk "( " ", " ")"
 (*  Pretty.dprintf "%a" (d_many_box brk "[ " "; " "]" f) x *)
+let d_many_braces brk   = d_many_box brk "{ " "; " "}"
+
 
 let rec d_many brk s f () = function
   | []              -> Pretty.nil 
@@ -222,6 +224,8 @@ let doc_of_formatter f a =
   d_formatter f () a
   (* RJ, this gets mangled: Misc.fsprintf f a |> Pretty.text *)
 
+(* API *)
+let concat_docs = List.fold_left Pretty.concat Pretty.nil
 
 (******************************************************************************)
 (****************************** Type Manipulation *****************************)
