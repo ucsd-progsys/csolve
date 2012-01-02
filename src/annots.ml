@@ -42,6 +42,41 @@ open Misc.Ops
 
 let mydebug = false
 
+(*******************************************************************)
+(****************** Random Printers for Debugging ******************)
+(*******************************************************************)
+
+let d_vartyp () (v, t) = 
+  PP.dprintf "(%s [%a] :: %a)" v.Cil.vname Ct.I.CType.d_ctype t Cil.d_type v.Cil.vtype
+
+let d_vartypes () vts = 
+  PP.seq (PP.text ",") (d_vartyp ()) vts
+
+let d_sloc_vartyps () (sloc, vts) = 
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
+
+let d_sloc_typ () (sloc, t) = 
+  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc Cil.d_type t
+
+let d_sloc_typs () slocts = 
+  PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ ()) () slocts
+
+let d_vars () vs = 
+  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.Cil.vname) () vs
+
+let d_typ_vars () (t, vs) = 
+  PP.dprintf "%a %a;@!" Cil.d_type t d_vars vs
+
+let d_typ_varss () tvss =
+  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
+
+let d_sloc_typ_varss () (sloc, tvss) = 
+  PP.dprintf "%a <<%d>> |-> @[%a@]" 
+    Sloc.d_sloc sloc
+    (List.length tvss)
+    d_typ_varss tvss
+
+
 
 (*******************************************************************)
 (****************** Representation for Bindings ********************)
@@ -75,9 +110,8 @@ let apply_solution s x =
 (********** Building Map from Fun -> (Sloc -> Cil.typ) *************)
 (*******************************************************************)
 
-let target_type_of_ptr = function
+let target_type_of_ptr t = match Cil.unrollType t with 
   | Cil.TPtr (Cil.TFun _ , _) -> 
-  (* | Cil.TPtr (Cil.TFun (_, _, _, _), _) -> *)
       assertf "TBD: target_type_of_ptr : function pointer"
   | Cil.TPtr (c, a) ->
       Some (Cil.unrollType c)
@@ -85,12 +119,14 @@ let target_type_of_ptr = function
       None
 
 let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
-   vs |> Misc.map_partial  (fun v -> target_type_of_ptr v.Cil.vtype)
-      |> (function [] -> assertf "biggest type: No pointers!"
+   vs |> Misc.map_partial (fun v -> target_type_of_ptr v.Cil.vtype)
+      |> (function [] -> E.s <| E.error "Annots.biggest type: No pointers! %a"
+      (PP.d_list ", " (CM.d_var)) vs
                  | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
  
-let sloc_typem_of_shape sh = 
+let sloc_typem_of_shape sh =
   sh.Shape.vtyps
+  >> (E.log "Annots.sloc_typem_of_shape: %a \n" d_vartypes) 
   |> List.filter (snd <+> (function Ct.Ref (_,_) -> true | _ -> false))
   |> Misc.kgroupby (snd <+> Ct.I.CType.sloc) 
   |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
@@ -145,7 +181,7 @@ let decorate_refldesc slocm sloc ld =
     ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
        |> RCt.LDesc.mapn begin fun i _ pf -> 
             try RCt.Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
-              let _ = E.log "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a" 
+              let _ = E.log "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a \n" 
                               Sloc.d_sloc sloc i RCt.LDesc.d_ldesc ld Cil.d_type ty
               in pf
           end
@@ -218,23 +254,27 @@ let d_ann_field () (i, fld) =
   | { Ct.fname = Some fldname; Ct.ftype = Some t } ->
       d_ann_var () (S fldname, RCt.Field.type_of fld, t )
   | { Ct.ftype = Some t } ->
-      d_ann_var () (I i, RCt.Field.type_of fld, t )
-  | _ -> E.s <| E.error "Annots.d_ann_field, bad info for %a" RCt.Field.d_field fld
-  (* OR, LESS VIOLENTLY, 
-  | _ -> P.dprintf "%a: %a" RCt.Index.d_index i RCt.Field.d_field fld 
-  *)
+      d_ann_var () (I i, RCt.Field.type_of fld, t)
+  | _ -> 
+      PP.dprintf "%a ??? %a" d_binder (I i) d_ann_ref (RCt.Field.type_of fld)
 
 let d_structinfo () = function
   | {Ct.stype = Some t } -> Cil.d_type () t
   | _                    -> PP.nil
 
-let d_ann_ldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
-  PP.dprintf "%a %a |-> %a" 
-      d_structinfo (RCt.LDesc.get_structinfo ld)
-      Sloc.d_sloc l
-      (CM.d_many_braces true d_ann_field) (RCt.LDesc.bindings ld)
+let check_ld_bindings l ld iflds = 
+  let has_fldtype fld = Misc.maybe_bool (RCt.Field.get_fieldinfo fld).Ct.ftype in
+  if not (List.for_all (snd <+> has_fldtype) iflds) then
+    E.warn "Annots.d_ann_refldesc bad fields for %a |-> %a" 
+    Sloc.d_sloc l RCt.LDesc.d_ldesc ld
 
-(* YUCK. *)
+let d_ann_refldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
+  RCt.LDesc.bindings ld
+  >> (check_ld_bindings l ld)  
+  |> PP.dprintf "%a %a |-> %a" 
+        d_structinfo (RCt.LDesc.get_structinfo ld)
+        Sloc.d_sloc l (CM.d_many_braces true d_ann_field) 
+
 let stitch_args fn cf = function 
   | None -> 
       E.s <| E.error "Annots.stitch_args no args for %s" fn
@@ -260,7 +300,7 @@ let d_ann_stores () ((f: string), (stos: Ct.refstore list)) =
   |> Misc.flap (fst <.> Ct.RefCTypes.Store.bindings) (* ignore funptrs *)
   |> Misc.kgroupby (fst <+> Sloc.to_string)
   |> Misc.flap snd
-  |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" d_ann_ldesc)
+  |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" d_ann_refldesc)
 
 let d_bind_hybrid () = function 
   | TVar (x, (ct, t)) -> 
@@ -280,6 +320,8 @@ let d_bind_raw () = function
   | TVar (x, _) -> PP.dprintf "variable %a" FA.d_name x 
   | TFun (f, _) -> PP.dprintf "function %s" f
   | TSto (f, _) -> PP.dprintf "funstore %s" f
+
+
 
 (*******************************************************************)
 (************************ Write to File ****************************)
@@ -399,38 +441,7 @@ let clear        = fun _      -> annr := new annotations
 let dump_annots  = fun so     -> (!annr)#dump_annots so
 let dump_infspec = fun decs s -> (!annr)#dump_infspec decs s
 
-
 (* {{{ Junk from old Cil-Ctype Surgery
-
-let d_vartyp () (v, t) = 
-  PP.dprintf "(%s :: %a)" v.Cil.vname Cil.d_type v.Cil.vtype
-
-let d_vartypes () vts = 
-  PP.seq (PP.text ",") (d_vartyp ()) vts
-
-let d_sloc_vartyps () (sloc, vts) = 
-  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc d_vartypes vts
-
-let d_sloc_typ () (sloc, t) = 
-  PP.dprintf "[%a |-> %a]\n" Sloc.d_sloc sloc Cil.d_type t
-
-let d_sloc_typs () slocts = 
-  PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ ()) () slocts
-
-let d_vars () vs = 
-  PP.docList ~sep:(PP.text ",") (fun v -> PP.dprintf "%s" v.Cil.vname) () vs
-
-let d_typ_vars () (t, vs) = 
-  PP.dprintf "%a %a;@!" Cil.d_type t d_vars vs
-
-let d_typ_varss () tvss =
-  PP.docList ~sep:(PP.dprintf "@!") (d_typ_vars ()) () tvss 
-
-let d_sloc_typ_varss () (sloc, tvss) = 
-  PP.dprintf "%a <<%d>> |-> @[%a@]" 
-    Sloc.d_sloc sloc
-    (List.length tvss)
-    d_typ_varss tvss
 
  (* YUCK!!! Global State. *)
 let shaper    = ref []

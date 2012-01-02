@@ -6,22 +6,29 @@ foo ( int x [...]
     , int z [...]
     ) 
 
-../tests/postests/structarr.c
-../tests/postests/structarr2.c
-../tests/postests/test01p.c
-../tests/postests/test03p.c
-../tests/postests/test05p.c
-../tests/postests/ll7.c
-../tests/postests/array4.c
-../tests/postests/arraysum.c
+HEREHEREHEREHERE
+
+../tests/postests/global_branch_sensitivity.c, 
+../tests/postests/global_param.c, 
+../tests/postests/global_reflexivity.c, 
+../tests/postests/globloc.c,
+../tests/postests/globset.c, 
+../tests/postests/param_alias_global.c, 
+../tests/postests/store_unquantified_function.c, 
+../tests/postests/unquantified_same_shape.c
 
 
-   HEREHEREHEREHERE
+   
    >> render with C-Types (cf. GOAL below)
        >> field names instead of A90#Ix#6 etc.
        >> short var names   (pages instead of pages_env_alloc -- with links) 
        >> global (all? abstract) locations printed only once
 
+   >> Suppress attributes which F-up the indices, print all quals without break
+
+   >> Wrong type for locations (input loc = false, output = true, so print output.)
+       >> e.g. funstore main for A8, A7@size etc.
+   
    >> sort qualifiers by name/frequency?
    
    >> export cilenv to annots: 
@@ -77,10 +84,6 @@ ref(A88, {0 + 4*} , {VV_ptr_A88 | && [ (VV_ptr_A88 = pages_env_check)
                                      ; ((VV_ptr_A88 != 0) => && [(0 < VV_ptr_A88) ; (BLOCK_BEGIN([VV_ptr_A88]) <= VV_ptr_A88) ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88]))])
                                      ]})
 
-Exceptions thrown on 80 tests: ../tests/postests/adpcm.c, ../tests/postests/allocator/allocator.c, ../tests/postests/anysloc.c, ../tests/postests/argv-final-val.c
-, ../tests/postests/broken-subst.c, ../tests/postests/call_unify_read_only_locs.c, ../tests/postests/cil_sizeof_bug.c, ../tests/postests/closelocs.c, ../tests/postests/coreutils/dirname.sh, ../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/false.sh, ../tests/postests/coreutils/groups.sh, ../tests/postests/coreutils/hostid.sh, ../tests/postests/coreutils/hostname.sh, ../tests/postests/coreutils/link.sh, ../tests/postests/coreutils/logname.sh, ../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh, ../tests/postests/coreutils/readlink.sh, ../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh, ../tests/postests/coreutils/true.sh, ../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh, ../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh, ../tests/postests/cpj/idea_test.c, ../tests/postests/cpj/parallel_for.c, ../tests/postests/cpj/per_block_effects.c, ../tests/postests/cpj/quicksort.c, ../tests/postests/cpj/sumreduce.c, ../tests/postests/depalloc.c, ../tests/postests/fpointer/alias-noheap.c, ../tests/postests/fpointer/assert_return.c, ../tests/postests/fpointer/call_qlocs.c, ../tests/postests/fpointer/call_return.c, ../tests/postests/fpointer/funptr_array.c, ../tests/postests/fpointer/global_funptr.c, ../tests/postests/fpointer/globloc.c, ../tests/postests/fpointer/maybe_null.c, ../tests/postests/fpointer/minimal.c, ../tests/postests/fpointer/minimal_call.c, ../tests/postests/fpointer/minimal_call_nullptr.c, ../tests/postests/fpointer/qloc.c, ../tests/postests/fpointer/specced_call_int.c, ../tests/postests/fpointer/store_funptr.c, ../tests/postests/fpointer/take_funptr.c, ../tests/postests/fpointer/take_two_funptrs.c, ../tests/postests/full_adpcm.sh, ../tests/postests/global_branch_sensitivity.c, ../tests/postests/global_param.c, ../tests/postests/global_reflexivity.c, ../tests/postests/globloc.c, ../tests/postests/globset.c, ../tests/postests/incp.c, ../tests/postests/ks.c
-, ../tests/postests/mst.c, ../tests/postests/normalize_tworefs.c, ../tests/postests/param_alias_global.c, ../tests/postests/passglobal.c, ../tests/postests/pmap.c, ../tests/postests/power.c, ../tests/postests/shapebug-em3d.c, ../tests/postests/simultaneous_loc_subst.c, ../tests/postests/singletonarray.c, ../tests/postests/store_unquantified_function.c, ../tests/postests/strcpy.c, ../tests/postests/stringlist.c
-, ../tests/postests/true_index.c, ../tests/postests/uninit-location.c, ../tests/postests/unquantified_same_shape.c, ../tests/postests/whilenullterm.c
 
 ***************************************************************************
 

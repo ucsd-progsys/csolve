@@ -11,7 +11,7 @@ typedef struct hash *Hash;
 
 Hash main(){
   int size;
-  size = nondetpos();
+  size = 10; // nondetpos();
   Hash retval ;
   retval = (struct hash *) malloc((int )sizeof(*retval));
   retval->size = size;
@@ -20,6 +20,5 @@ Hash main(){
   for (int i=0; i < size; i++){
     retval->array[i] = 0;
   }
-  //NUKE memset((char *)retval->array, 0, (unsigned int )size * sizeof(*(retval->array + 0)));
-    return retval;
+  return retval;
 }
