@@ -73,5 +73,5 @@ val refctype_of_global  : t -> Cil.varinfo -> Ctypes.refctype
 val create              : CilTag.o ->
                           FixInterface.cilenv ->
                           Ctypes.refstore ->
-                          Ssa_transform.ssaCfgInfo ->
+                          Ssa_transform.t ->
                           Shape.t option -> t
