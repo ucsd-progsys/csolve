@@ -8,12 +8,6 @@ foo ( int x [...]
 
 HEREHEREHEREHERE
 
-../tests/postests/global_branch_sensitivity.c, 
-../tests/postests/global_param.c, 
-../tests/postests/global_reflexivity.c, 
-../tests/postests/globloc.c,
-../tests/postests/globset.c, 
-../tests/postests/param_alias_global.c, 
 ../tests/postests/store_unquantified_function.c, 
 ../tests/postests/unquantified_same_shape.c
 

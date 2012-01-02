@@ -111,17 +111,17 @@ let apply_solution s x =
 (*******************************************************************)
 
 let target_type_of_ptr t = match Cil.unrollType t with 
-  | Cil.TPtr (Cil.TFun _ , _) -> 
+(*  | Cil.TPtr (Cil.TFun _ , _) -> 
       assertf "TBD: target_type_of_ptr : function pointer"
-  | Cil.TPtr (c, a) ->
-      Some (Cil.unrollType c)
-  | _ ->
+*)  | Cil.TPtr (t, _) | Cil.TArray (t,_,_) ->
+      Some (Cil.unrollType t)
+    | _ ->
       None
 
 let biggest_type (vs : Cil.varinfo list) : Cil.typ = 
    vs |> Misc.map_partial (fun v -> target_type_of_ptr v.Cil.vtype)
       |> (function [] -> E.s <| E.error "Annots.biggest type: No pointers! %a"
-      (PP.d_list ", " (CM.d_var)) vs
+                         (PP.d_list ", " (CM.d_var)) vs
                  | ts -> Misc.list_max_with "biggest_type" Cil.bitsSizeOf ts)
  
 let sloc_typem_of_shape sh =
