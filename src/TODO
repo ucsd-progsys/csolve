@@ -1,4 +1,4 @@
-1. NEXT: Prettify 
+1. TO BE CONTINUED : Prettify 
 
 t [...] 
 foo ( int x [...]
@@ -7,11 +7,6 @@ foo ( int x [...]
     ) 
 
 HEREHEREHEREHERE
-
-../tests/postests/store_unquantified_function.c, 
-../tests/postests/unquantified_same_shape.c
-
-
    
    >> render with C-Types (cf. GOAL below)
        >> field names instead of A90#Ix#6 etc.
