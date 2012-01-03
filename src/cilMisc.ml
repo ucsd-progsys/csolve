@@ -87,6 +87,20 @@ let isCompoundType t = match unrollType t with
 
 let fresh_arg_name, _ = M.mk_string_factory "ARG"
 
+
+(******************************************************************************)
+(************************ Printing Types Without Attributes *******************)
+(******************************************************************************)
+
+class removeAttrVisitor = object(self)
+  inherit nopCilVisitor
+  method vattr _ = ChangeTo []
+end
+
+let d_type_noattrs () t =
+  t |> visitCilType (new removeAttrVisitor :> cilVisitor) |> d_type ()
+
+
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)

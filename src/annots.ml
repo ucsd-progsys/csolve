@@ -227,6 +227,7 @@ let d_bind_orig () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
+
 let d_ann_ref () = function
   | Ct.Ref (l,_) -> PP.dprintf "REF(%a)" Sloc.d_sloc l
   | _            -> PP.nil
@@ -242,7 +243,7 @@ let d_binder () = function
 let d_ann_var () (b, ct, t) =
   let (_,_,ras) as r = Ct.reft_of_refctype ct in
   PP.dprintf "%a %a %a %a" 
-    Cil.d_type t
+    CM.d_type_noattrs t
     d_ann_ref ct
     d_binder b 
     (CM.d_formatter (FixConstraint.print_ras None)) ras
@@ -259,7 +260,7 @@ let d_ann_field () (i, fld) =
       PP.dprintf "%a ??? %a" d_binder (I i) d_ann_ref (RCt.Field.type_of fld)
 
 let d_structinfo () = function
-  | {Ct.stype = Some t } -> Cil.d_type () t
+  | {Ct.stype = Some t } -> CM.d_type_noattrs () t
   | _                    -> PP.nil
 
 let check_ld_bindings l ld iflds = 

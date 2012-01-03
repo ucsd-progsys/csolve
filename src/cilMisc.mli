@@ -95,7 +95,8 @@ val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 
 val definedHere : Cil.varinfo -> bool
 
-val d_var       : unit -> Cil.varinfo -> Pretty.doc
+val d_var                   : unit -> Cil.varinfo -> Pretty.doc
+val d_type_noattrs          : unit -> Cil.typ -> Pretty.doc
 
 type dec =
   | FunDec of string * Cil.fundec * Cil.location
