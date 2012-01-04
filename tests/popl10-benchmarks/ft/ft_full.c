@@ -138,7 +138,9 @@ void FixRank(HeapP *h , int delta , HeapP_array hTable) ;
 /*************************************************************************/
 
 
-int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv) 
+int
+main (int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
+    CHECK_TYPE
 { int nVertex ;
   int nEdge ;
   Vertices *graph ;
@@ -164,6 +166,7 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
   if (debug) {
     //printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
   }
+  CSOLVE_ASSUME (nVertex > 0);
   graph = GenGraph(nVertex, nEdge);
   if (debug) {
     //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
@@ -482,14 +485,14 @@ int LessThan(Item *item1 , Item *item2 )
 }
 }
 
-int Equal(Item *item1 , Item *item2 ) 
-{ 
-  {
-    validptr(item1);
-    validptr(item2);
-  return (item1->key == item2->key);
-}
-}
+// int Equal(Item *item1 , Item *item2 ) 
+// { 
+//   {
+//     validptr(item1);
+//     validptr(item2);
+//   return (item1->key == item2->key);
+// }
+// }
 
 //Item *Subtract(Item *item , int delta ) 
 //{ 
