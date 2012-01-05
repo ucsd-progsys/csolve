@@ -217,6 +217,7 @@ Vertices * LOC(L) MST(Vertices * LOC(L) graph )
     while ((unsigned int )edge != (unsigned int )((void *)0)) {
       if (edge->weight < (edge->vertex)->key) {
         validptr(edge);
+        CSOLVE_ASSUME (edge->vertex != 0); // pmr: delayed init
 	validptr(edge->vertex);
 	(edge->vertex)->key = edge->weight;
         (edge->vertex)->chosenEdge = edge;
