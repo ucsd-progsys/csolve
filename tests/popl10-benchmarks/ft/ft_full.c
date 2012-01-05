@@ -98,7 +98,7 @@ Edges *NewEdge(void) ;
 void PrintNeighbors(Vertices *vertex ) ;
 int LessThan(Item * LOC(L) item1 , Item * LOC(L) item2 ) ;
 
-int Equal(Item * LOC(L) item1 , Item * LOC(L) item2 ) ;
+/* int Equal(Item * LOC(L) item1 , Item * LOC(L) item2 ) ; */
 
 Item * LOC(L) Subtract(Item * LOC(L) item , int delta ) ;
 
@@ -486,14 +486,14 @@ int LessThan(Item *item1 , Item *item2 )
 }
 }
 
-int Equal(Item *item1 , Item *item2 ) 
-{ 
-  {
-    validptr(item1);
-    validptr(item2);
-  return (item1->key == item2->key);
-}
-}
+/* int Equal(Item *item1 , Item *item2 )  */
+/* {  */
+/*   { */
+/*     validptr(item1); */
+/*     validptr(item2); */
+/*   return (item1->key == item2->key); */
+/* } */
+/* } */
 
 //Item *Subtract(Item *item , int delta ) 
 //{ 
