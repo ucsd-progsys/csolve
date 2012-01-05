@@ -103,11 +103,13 @@ let reft_of_reft r t' =
 
 let sort_of_prectype = function
   | Ct.Ref (l,_) -> FA.so_ref l
+  (* | Ct.FRef (f,_) -> FA.so_fref (FA.so_f *)
   | _            -> FA.so_int
 
 let spec_sort_of_prectype = function
-  | Ct.Ref _ -> FA.so_ref Sloc.none
-  | _        -> FA.so_int
+  | Ct.Ref _  -> FA.so_ref Sloc.none
+  (* | Ct.FRef _ -> FA.so_fref *)
+  | _         -> FA.so_int
 
 let refctype_of_reft_ctype r = function
   | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
@@ -120,11 +122,14 @@ let refctype_of_reft_ctype r = function
 *)
 
 let spec_refctype_of_reft_ctype r = function
-  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
+  | Ct.Int (w,k) -> Ct.Int (w, (k, r))
+  (* | Ct.FRef (f,o) -> Ct.FRef (f, (o, r)) *)
+  | Ct.FRef _ as fref -> Ct.RefCTypes.CType.map (fun x -> (x, r)) fref
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, r))
 
 let replace_reft r = function
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
+  | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r)) (*abakst eh?*)
   | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
 
 let refctype_of_ctype f = function
@@ -135,7 +140,12 @@ let refctype_of_ctype f = function
       let so = FA.so_ref l in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
-      Ct.Ref (l, (x, r)) 
+      Ct.Ref (l, (x, r))
+  | Ct.FRef (g, x) as t ->
+      let so = FA.so_fref g in
+      let vv = Sy.value_variable so in
+      let r  = C.make_reft vv so (f t) in
+      Ct.FRef (g, (x, r))
 
 
 let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))

@@ -103,7 +103,7 @@ let currentLoc () =
 %token QM DOT ASGN
 %token INT BOOL PTR FUNC
 %token SRT AXM CST WF SOL QUL
-%token ENV GRD LHS RHS REF TOP
+%token ENV GRD LHS RHS REF FREF TOP
 %token FINAL
 
 %start specs 
@@ -249,7 +249,11 @@ reftype:
                                           let v  = Sy.of_string $8 in 
                                           FI.t_pred ct v $10 
                                         }
-
+  | FREF LPAREN funtyp COMMA index COMMA LC Id MID pred RC RPAREN
+                                        { let ct = Ctypes.FRef ($3, $5) in
+                                          let v = Sy.of_string $8 in
+                                          FI.t_pred ct v $10
+                                        }
   | ctype                               { FI.t_true $1 }
   ;
 

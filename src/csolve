@@ -77,17 +77,18 @@ BEGIN {
          grep(/--bytecode/, @ARGV) ||
          grep(/--ocamldebug/, @ARGV) ||
         ($CilCompiler::mtime_asm < $CilCompiler::mtime_byte);
-    $CilCompiler::compiler = $CilCompiler::base;
     if($CilCompiler::use_debug) { 
         $ENV{"OCAMLRUNPARAM"} = "b" . $ENV{"OCAMLRUNPARAM"};
+	$CilCompiler::base = "$FindBin::RealBin/_build/csolve.byte";
     } 
+    $CilCompiler::compiler = $CilCompiler::base;
 }
 
 # We need to customize the collection of arguments
 sub collectOneArgument {
     my($self, $arg, $pargs) = @_;
     if($arg =~ m|--transval=(.+)$|)  {
-        $self->{TRANSVAL} = $1; return 1;
+        self$self->{TRANSVAL} = $1; return 1;
     }
     if($arg eq '--ocamldebug')  {
         $self->{OCAMLDEBUG} = 1; return 1;
@@ -136,10 +137,11 @@ sub CillyCommand {
     if(defined $ENV{OCAMLDEBUG} || $self->{OCAMLDEBUG}) {
         print "OCAMLDEBUG is on\n";
         my @idirs = ("src", "src/frontc", "src/ccured", "src/ext",
-                     "ocamlutil", 
+                     "ocamlutil",
                      "obj/$::archos");
 	my @iflags = map { ('-I', "$::cilhome/$_") } @idirs;
-        unshift @cmd, 'ocamldebug', '-emacs', @iflags;
+        # unshift @cmd, 'ocamldebug', '-emacs', @iflags;
+        unshift @cmd, 'ocamldebug', @iflags;
     }
     if($::docxx) {
         push @cmd, '--cxx';

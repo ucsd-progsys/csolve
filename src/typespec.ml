@@ -150,7 +150,6 @@ let ptrReftypeOfSlocAttrs l tb ats =
                 I.top
               else ptrIndexOfPredAttrs tb pred ats in
     FI.t_spec_pred (Ct.Ref (l, index)) vv pred
-
 let ptrReftypeOfAttrs tb ats =
   ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
 
@@ -300,12 +299,24 @@ let assertExternDeclarationsValid vs =
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let refctypeOfCilType mem t = match normalizeType t with
+let alreadyClosedType mem t = match CM.typeName t with
+  | Some n -> SM.mem n mem
+  | _      -> false
+
+let instantiateStruct ats tcs =
+  let instr = new typeInstantiator ats in
+    List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
+
+let rec refctypeOfCilType mem t = match normalizeType t with
   | C.TVoid ats          -> intReftypeOfAttrs 0 ats
   | C.TInt (ik,   ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ik) ats
   | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
+  | C.TPtr (C.TFun (_,_,_,_) as t, ats) ->
+    begin match ptrReftypeOfAttrs t ats with
+      | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType t, (i, r))
+    end
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
       | Some n when SM.mem n mem -> begin
@@ -319,21 +330,17 @@ let refctypeOfCilType mem t = match normalizeType t with
     end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
-let heapRefctypeOfCilType mem t =
+and heapRefctypeOfCilType mem t =
      t
   |> refctypeOfCilType mem
   |> function | Ct.Int (n, (_, r)) -> Ct.Int (n, (I.top, r))
               | Ct.Ref _ as rct    -> rct
 
-let addReffieldToStore sub sto s i rfld =
+and addReffieldToStore sub sto s i rfld =
   if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
     rfld |> RU.add_field sto sub s i |> M.swap
 
-let instantiateStruct ats tcs =
-  let instr = new typeInstantiator ats in
-    List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
-
-let rec componentsOfTypeAux t = match normalizeType t with
+and componentsOfTypeAux t = match normalizeType t with
   | C.TArray (t, b, ats) ->
     t |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfArrayElements t b ats)
   | C.TComp (ci, ats) as t ->
@@ -356,11 +363,8 @@ and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.of_int in
     f.C.ftype |> componentsOfType |>: (M.app_snd3 <| I.plus off)
 
-let alreadyClosedType mem t = match CM.typeName t with
-  | Some n -> SM.mem n mem
-  | _      -> false
-
-let rec closeTypeInStoreAux mem sub sto t = match normalizeType t with
+and closeTypeInStoreAux mem sub sto t = match normalizeType t with
+  | C.TPtr (C.TFun _, _) -> (sub, sto)
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs ats in

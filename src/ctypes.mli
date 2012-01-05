@@ -57,12 +57,13 @@ type 'a prestore
 type 'a prectype =
   | Int of int * 'a         (* fixed-width integer *)
   | Ref of Sloc.t * 'a      (* reference *)
+  | FRef of ('a precfun) * 'a  (* function reference *)
 
-type effectptr  = Reft.t prectype
+and  effectptr  = Reft.t prectype
 
-type effectset
+and  effectset
 
-type 'a precfun =
+and  'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)

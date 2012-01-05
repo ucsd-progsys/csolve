@@ -114,6 +114,7 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "ref"               { REF }
+  | "fref"              { FREF }
   | "loc"               { LOCATION }
   | "write*"            { WRITE }
   | "read*"             { READ }
