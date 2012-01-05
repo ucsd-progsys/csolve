@@ -138,7 +138,9 @@ void FixRank(HeapP *h , int delta , HeapP_array hTable) ;
 /*************************************************************************/
 
 
-int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv) 
+int
+main (int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
+  CHECK_TYPE
 { int nVertex ;
   int nEdge ;
   Vertices *graph ;
@@ -164,6 +166,7 @@ int main(int argc, char *__attribute__((array)) *__attribute__((array)) argv)
   if (debug) {
     //printf((char * __attribute__((__array__)) )"Generating a connected graph ... ");
   }
+  CSOLVE_ASSUME (nVertex > 0); // pmr: contract
   graph = GenGraph(nVertex, nEdge);
   if (debug) {
     //printf((char * __attribute__((__array__)) )"done\nFinding the mininmum spanning tree ... ");
