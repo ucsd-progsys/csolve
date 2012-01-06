@@ -135,6 +135,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
   method private constrain_addrof = function
     | (C.Var v, C.NoOffset) as lv ->
         begin match et#ctype_of_exp (C.AddrOf lv) with
+          | FRef (f, _) -> ()
           | Ref (l, _) ->
                fst (VM.find v fs)
             |> UStore.add_fun !sto !sub l
@@ -237,9 +238,12 @@ let assert_store_type_correct lv ct = match lv with
 let find_function et fs sub sto = function
   | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
   | C.Mem e, C.NoOffset ->
-      match e |> et#ctype_of_exp |> Ct.subs sub |> Ct.sloc with
-        | Some l -> Store.Function.find sto l
-        | None   -> assert false
+    match e |> et#ctype_of_exp |> Ct.subs sub with
+      | FRef (f, _) -> f
+      | _ -> assert false
+      (* match e |> et#ctype_of_exp |> Ct.subs sub |> Ct.sloc with *)
+      (*   | Some l -> Store.Function.find sto l *)
+      (*   | None   -> assertf "This guy..." (\* false *\) *)
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let _ = C.currentLoc := C.get_instrLoc i in
@@ -328,7 +332,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
     M.array_fold_lefti begin fun i (sub, sto) b ->
       let ba, sub, sto = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
-        (sub, sto)
+        (sub, sto) 
     end (sub, sto) blocks
   in
   let emv = new exprMapVisitor (et) in
@@ -551,6 +555,8 @@ let infer_shapes cil spec scis =
            |> List.map (fun f -> (f, spec |> CSpec.funspec |> SM.find f.C.vname |> fst))
            |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let xm = SM.fold (fun _ (_, sci, _) xm -> VM.add sci.ST.fdec.C.svar sci xm) scis VM.empty in
+  let _  = VM.map (fun smap -> SM.map (fun k -> Pretty.printf "-->%s\n" k)) xm in
+  let _ = VM.map (fun ctyp -> Pretty.printf "(%a)\n" d_ctype ctyp) ve in
   scis
   |> SM.map (infer_shape fe ve (CSpec.store spec) xm)
   |> FinalFields.infer_final_fields spec scis 
