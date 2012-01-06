@@ -7,7 +7,8 @@ foo ( int x [...]
     ) 
 
 HEREHEREHEREHERE
-   
+../tests/postests/power.c,
+
    >> render with C-Types (cf. GOAL below)
        >> field names instead of A90#Ix#6 etc.
        >> short var names   (pages instead of pages_env_alloc -- with links) 
