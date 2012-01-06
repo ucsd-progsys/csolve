@@ -215,13 +215,14 @@ Vertices * LOC(L) MST(Vertices * LOC(L) graph )
     vertex->key = (-0x7FFFFFFF-1);
     edge = vertex->edges;
     while ((unsigned int )edge != (unsigned int )((void *)0)) {
-      if (edge->weight < (edge->vertex)->key) {
+      struct _Vertices *edgevertex = edge->vertex; // pmr: constprop
+      CSOLVE_ASSUME (edgevertex != 0);            // pmr: delayed init
+      if (edge->weight < (edgevertex)->key) {
         validptr(edge);
-        CSOLVE_ASSUME (edge->vertex != 0); // pmr: delayed init
-	validptr(edge->vertex);
-	(edge->vertex)->key = edge->weight;
-        (edge->vertex)->chosenEdge = edge;
-        Insert(& heap, edge->vertex, hTable); //JHALA
+	validptr(edgevertex);
+	(edgevertex)->key = edge->weight;
+        (edgevertex)->chosenEdge = edge;
+        Insert(& heap, edgevertex, hTable); //JHALA
       }
       validptr(edge);
       edge = edge->next;
@@ -690,7 +691,8 @@ HeapP * LOC(L) DeleteMin(HeapP * LOC(L) h , HeapP_array INST(HL, L) hTable)
     }
     j ++;
   }
-  validptr(&hTable[j]);	//JHALA: seems like a valid overflow! BUG?
+  //JHALA: seems like a valid overflow in value of j! BUG?
+  CSOLVE_ASSUME(j < 10000);
   h1 = hTable[j];
   min = h1;
   CSOLVE_ASSUME(min != (HeapP *) 0);
