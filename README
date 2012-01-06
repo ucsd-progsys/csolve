@@ -50,7 +50,7 @@ There are two common use cases:
     csolve code.c
 
   to typecheck and compile code.c.  csolve will read qualifiers from
-  code.c.hquals and function specifications from code.c.spec.
+  code.c.hquals.
 
   csolve will do one of the following:
 
@@ -85,8 +85,7 @@ There are two common use cases:
     csolve --merge -c boo.c
     csolve --merge -o fooboo foo.o boo.o
 
-  csolve will read qualifiers from fooboo.hquals and function
-  specifications from fooboo.spec.
+  csolve will read qualifiers from fooboo.hquals.
 
 Important Options
 -----------------
@@ -159,6 +158,8 @@ the following constructs:
 
 * Metavariables ranging over program variables (~a, ~b, etc.)
 
+* Anonymous wildcards over program variables (_)
+
 * Metavariables ranging over program variables with a prefix
   @prefix instantiates to prefix1, prefix2, etc.
 
@@ -167,11 +168,17 @@ the following constructs:
 * Arithmetic expressions x # y where # in {+, -, *}
   Arithmetic expressions must be linear.
 
-* Conjunctions p && q where p and q are predicates
+* Conjunctions && [p; q] where p and q are predicates
+  Generally the brackets may contain a semicolon-separated list
+  of predicates.
 
-* Disjunctions p || q where p and q are predicates
+* Disjunctions || [p; q] where p and q are predicates
+  Generally the brackets may contain a semicolon-separated list
+  of predicates.
 
-* Implications p -> q where p and q are predicates
+* Implications p => q where p and q are predicates
+
+* Parenthesized expressions
 
 
 
@@ -207,11 +214,6 @@ map <C-p>  :python parseLiquidType()<CR>
 Function and Value Specifications
 =================================
 
-(TODO: This section is necessarily incomplete because a full
-       explanation of what's going on is pretty long.)
-
-TODO: discuss pointer offsets
-
 CSolve uses specifications for functions and values to determine
 
 1. the layout of both the global heap and the heap within each
@@ -227,17 +229,15 @@ In the absence of external function and variable declarations, CSolve
 attempts to guess reasonable specifications for the layout of the
 global and function-specific heaps and infers function invariants,
 covering cases 1 and 2 above. In the event that the heap layout
-guesses are unsatisfactory, additional invariants need to be stated,
-or there are external definitions, the programmer must provide CSolve
-with annotations override its guesses or state explicit invariants.
+guesses are unsatisfactory, if additional invariants need to be
+stated, or there are external definitions, the programmer must provide
+CSolve with annotations that override its guesses or state explicit
+invariants.
 
-To use the explicit, specification mechanism, include csolve.h in
-every file that contains specifications, like so:
+To use the explicit specification mechanism, include csolve.h in every
+file that contains specifications, like so:
 
   #include <csolve.h>
-
-Important tips about writing specifications, particularly for external
-functions, are given in doc/extern_spec_checklist.org.
 
 Specifying Heap Layout
 ----------------------
@@ -261,8 +261,8 @@ and y may alias, use the "LOC" annotation with a location name:
   int *swap (int * LOC(L) x, int * LOC(L) y)
 
 By default, CSolve assumes that the location L is local to swap's
-heap.  To indicate that L is a global location, use the GLOBAL
-annotation on the function's signature:
+heap. To indicate that L is a global location (i.e., may alias global
+pointers), use the GLOBAL annotation on the function's signature:
 
   int *swap (int * LOC(L) x, int * LOC(L) y) GLOBAL(L)
 
@@ -298,7 +298,7 @@ for example, between x and p->x and p->y:
   int setx (pair INST(L, K) *p, int * LOC(K) x)
 
 Above, the locations of p->x and p->y, which are L inside the
-structure defintion, are instiated to location K, which is the
+structure defintion, are instantiated to location K, which is the
 location given to the contents of parameter x.
 
 By default, CSolve assumes that a pointer to a location points to a
@@ -424,8 +424,8 @@ safety of all uses of divide and, indeed, if divide is defined in the
 obvious way then this specification is too liberal.
 
 This illustrates a common situation with library functions: they are
-declared extern, the trivial preconditions guessed by CSolve do not
-ensure that they are used safely, and yet their absence from the
+declared extern, but the trivial preconditions guessed by CSolve do
+not ensure that they are used safely, and yet their absence from the
 source code means that CSolve is unable to detect this inconsistency.
 Thus, we must somehow indicate that an extern function declaration
 corresponds to a valid specification for that function, i.e., that the
