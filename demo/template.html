@@ -10,7 +10,7 @@
   function typeOfSrcVar(v, l){
     var ssa = vt[(keyOfVarLine(v,l))]
     if (!ssa){
-      ssa = vt[(keyOfVarLine(v + "_heapify", l))]
+      ssa = vt[(keyOfVarLine(v + "__csolve_heapify__", l))]
     }
     return typeOfName(ssa);
   }
