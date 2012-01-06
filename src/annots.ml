@@ -199,7 +199,7 @@ let check_ld_bindings slocm l ld =
       if not (SLM.mem l slocm) then 
         E.log "Annots.check_ld_bindings unknown sloc %a \n" Sloc.d_sloc l
       else
-        E.s <| E.error "Annots.check_ld_bindings bad fields for %a |-> %a" 
+        E.log "Annots.check_ld_bindings bad fields for %a |-> %a" 
         Sloc.d_sloc l RCt.LDesc.d_ldesc ld
 
 let decorate_refldesc slocm l ld = 
