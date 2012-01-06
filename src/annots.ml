@@ -126,7 +126,7 @@ let biggest_type (vs : Cil.varinfo list) : Cil.typ =
  
 let sloc_typem_of_shape sh =
   sh.Shape.vtyps
-  >> (E.log "Annots.sloc_typem_of_shape: %a \n" d_vartypes) 
+  >> wwhen mydebug (E.log "Annots.sloc_typem_of_shape: %a \n" d_vartypes)
   |> List.filter (snd <+> (function Ct.Ref (_,_) -> true | _ -> false))
   |> Misc.kgroupby (snd <+> Ct.I.CType.sloc) 
   |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
@@ -157,22 +157,36 @@ let unfold_ciltyp x =
     >> (E.log "Annots.unfold_ciltyp %a@!%a@!" Cil.d_type x d_ciltypm) 
 *)
 
-let fieldinfo_of_cilfield fi = 
-  { Ct.fname = Some fi.Cil.fname; Ct.ftype = Some fi.Cil.ftype }
+let fieldinfo_of_cilfield prefix fi = 
+  { Ct.fname = Some (prefix ^ fi.Cil.fname); Ct.ftype = Some fi.Cil.ftype }
+
+let rec unfold_compinfo prefix ci = 
+  let _  = asserti ci.Cil.cstruct "TBD: unfold_compinfo: unions" in
+  ci.Cil.cfields 
+  |> Misc.flap (unfold_fieldinfo prefix)
+
+and unfold_fieldinfo prefix fi = 
+  match Cil.unrollType fi.Cil.ftype with
+  | Cil.TComp (ci, _) ->
+      unfold_compinfo (prefix ^  fi.Cil.fname ^ ".") ci
+  | _ ->
+      [fieldinfo_of_cilfield prefix fi]
+
+
+let unfold_compinfo pfx ci = 
+  unfold_compinfo pfx ci 
+  >> wwhen mydebug (E.log "unfold_compinfo: pfx = <%s> result = %a\n"  pfx (CM.d_many_braces false Ct.d_fieldinfo))
 
 let unfold_ciltyp = function 
-  | Cil.TComp (ci, _) -> 
-      let _  = asserti ci.Cil.cstruct "TBD: unfold_ciltyp: unions" in
-      let im = ci.Cil.cfields 
-               |> Misc.mapi (fun i fi -> (i, fieldinfo_of_cilfield fi))
-               |> IM.of_list 
-      in (fun _ i -> IM.find i im)
-
+  | Cil.TComp (ci,_) ->
+      unfold_compinfo "" ci
+      |> Misc.index_from 0 
+      |> IM.of_list 
+      |> (fun im _ i -> IM.find i im)
   | Cil.TArray (t',_,_) ->
       (fun _ i -> { Ct.fname = None ; Ct.ftype = Some t'})
-
-  | t -> (fun _ i -> { Ct.fname = None; Ct.ftype = Some t}) 
-
+  | t -> 
+      (fun _ i -> { Ct.fname = None; Ct.ftype = Some t}) 
 
 let decorate_refldesc slocm sloc ld =  
   if SLM.mem sloc slocm then 
@@ -181,7 +195,7 @@ let decorate_refldesc slocm sloc ld =
     ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
        |> RCt.LDesc.mapn begin fun i _ pf -> 
             try RCt.Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
-              let _ = E.log "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a \n" 
+              let _ = E.warn "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a \n" 
                               Sloc.d_sloc sloc i RCt.LDesc.d_ldesc ld Cil.d_type ty
               in pf
           end
@@ -194,13 +208,13 @@ let has_fldtype fld =
   Misc.maybe_bool (RCt.Field.get_fieldinfo fld).Ct.ftype
 
 let check_ld_bindings slocm l ld =
-    let iflds = RCt.LDesc.bindings ld in
-    if not (List.for_all (snd <+> has_fldtype) iflds) then
-      if not (SLM.mem l slocm) then 
-        E.log "Annots.check_ld_bindings unknown sloc %a \n" Sloc.d_sloc l
-      else
-        E.log "Annots.check_ld_bindings bad fields for %a |-> %a" 
-        Sloc.d_sloc l RCt.LDesc.d_ldesc ld
+  let iflds = RCt.LDesc.bindings ld in
+  if not (List.for_all (snd <+> has_fldtype) iflds) then
+    if not (SLM.mem l slocm) then 
+      E.warn "Annots.check_ld_bindings unknown sloc %a \n" Sloc.d_sloc l
+    else
+      E.warn "Annots.check_ld_bindings bad fields for %a |-> %a" 
+      Sloc.d_sloc l RCt.LDesc.d_ldesc ld
 
 let decorate_refldesc slocm l ld = 
   decorate_refldesc slocm l ld 
@@ -387,7 +401,7 @@ class annotations = object (self)
     (   (List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt))
      ++ (List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot))
      ++ (List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart))
-    ) >> (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
+    ) >> wwhen mydebug (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
 
 
   method private get_flocm (f: string) : (Cil.typ SLM.t) option =
