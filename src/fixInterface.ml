@@ -102,18 +102,25 @@ let reft_of_reft r t' =
 *)
 
 let sort_of_prectype = function
-  | Ct.Ref (l,_) -> FA.so_ref l
-  (* | Ct.FRef (f,_) -> FA.so_fref (FA.so_f *)
-  | _            -> FA.so_int
+  | Ct.Ref (l,_)  -> FA.so_ref l
+  | Ct.FRef (f,_) -> FA.so_fref f
+  | _             -> FA.so_int
 
 let spec_sort_of_prectype = function
   | Ct.Ref _  -> FA.so_ref Sloc.none
-  (* | Ct.FRef _ -> FA.so_fref *)
+  | Ct.FRef (f,_) -> FA.so_fref f
   | _         -> FA.so_int
 
-let refctype_of_reft_ctype r = function
-  | Ct.Int (w,k) -> Ct.Int (w, (k, r)) 
-  | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
+let replace_reft r = function
+  | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
+  | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r)) (*abakst eh?*)
+  | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
+
+
+let rec refctype_of_reft_ctype r = function
+  | Ct.Int  (w,k) -> Ct.Int (w, (k, r)) 
+  | Ct.Ref  (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
+  | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o,r))
 
 (*
 let refctype_of_reft_ctype r = function
@@ -121,18 +128,11 @@ let refctype_of_reft_ctype r = function
   | Ct.Ref (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
 *)
 
-let spec_refctype_of_reft_ctype r = function
-  | Ct.Int (w,k) -> Ct.Int (w, (k, r))
-  (* | Ct.FRef (f,o) -> Ct.FRef (f, (o, r)) *)
-  | Ct.FRef _ as fref -> Ct.RefCTypes.CType.map (fun x -> (x, r)) fref
-  | Ct.Ref (l,o) -> Ct.Ref (l, (o, r))
-
-let replace_reft r = function
-  | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
-  | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r)) (*abakst eh?*)
-  | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
-
-let refctype_of_ctype f = function
+and spec_refctype_of_reft_ctype r = function
+  | Ct.Int  (w,k) -> Ct.Int (w, (k, r))
+  | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o, r))
+  | Ct.Ref  (l,o) -> Ct.Ref (l, (o, r))
+and refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft FA.vv_int So.t_int (f t) in
       Ct.Int (i, (x, r)) 
@@ -145,10 +145,8 @@ let refctype_of_ctype f = function
       let so = FA.so_fref g in
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
-      Ct.FRef (g, (x, r))
-
-
-let refcfun_of_cfun   = It.CFun.map (refctype_of_ctype (fun _ -> []))
+      Ct.FRef (refcfun_of_cfun g, (x,r))
+and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
 
 let is_base = function
@@ -310,7 +308,12 @@ let e_false l = e_aux l ra_false
 let e_true l  = e_aux l ra_true
 let e_fresh l = e_aux l ra_fresh
 
-let t_fresh         = fun ct -> refctype_of_ctype ra_fresh ct 
+let rec t_fresh     = fun ct -> match refctype_of_ctype ra_fresh ct with
+  | Ct.FRef (f,r) ->
+    let f' = RCt.CFun.map (Ct.ctype_of_refctype <+> t_fresh) f in
+    (* let _ = Pretty.printf "%a\n%a" RCt.CFun.d_cfun f RCt.CFun.d_cfun f' *)
+    (* in *) Ct.FRef (f', r)
+  | ct -> ct
 let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
@@ -385,8 +388,8 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
       let x         = A.eVar x  in
       let evv        = A.eVar vv in
       let unchecked =
-        if e |> typeOf |> CM.is_unchecked_ptr_type then
-          [(A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]
+        if e |> typeOf |> CM.is_unchecked_ptr_type then 
+         [(A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]
         else if not singleton then
           [(mk_eq_uf FA.eApp_uncheck evv x)]
         else [] in
@@ -445,9 +448,13 @@ let map_fn = RCt.CFun.map
 (* let t_fresh_fn = It.CFun.map t_fresh  *)
 
 let t_ctype_refctype ct rct =
-  rct 
-  |> Ct.reft_of_refctype
-  |> Misc.flip refctype_of_reft_ctype ct 
+  let rct' = rct 
+             |> Ct.reft_of_refctype
+             |> Misc.flip refctype_of_reft_ctype ct
+  in
+  match rct, rct' with
+    | Ct.FRef (f, _), Ct.FRef (_, y) -> Ct.FRef (f, y)
+    | _ -> rct'
 
 let strengthen_refctype mkreft rct =
   let reft = Ct.reft_of_refctype rct in
@@ -1058,6 +1065,7 @@ and make_cs_refcfun env p rf rf' tag loc =
   let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
                         |> ce_adds env in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
+  let _ = Misc.map_pair (Format.printf "%a" (Misc.pprint_many true "\n" (C.print_reft None))) (List.map Ct.reft_of_refctype ircs, List.map Ct.reft_of_refctype ircs') in
   (* contravariant inputs *)
       (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
   +++ (make_cs_refstore env p hi' hi true None tag loc) 

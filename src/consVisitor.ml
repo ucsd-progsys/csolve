@@ -143,8 +143,8 @@ let t_exp_with_cs me loc tago tag grd env e =
 let extend_env me v cr env =
   let ct = CF.ctype_of_varinfo me v in
   let cr = FI.t_ctype_refctype ct cr in
-(*  let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in
-*)  FI.ce_adds env [(FA.name_of_varinfo v), cr]
+ (* let _  = Pretty.printf "extend_env: %s :: %a \n" v.Cil.vname Ct.d_refctype cr in *)
+ FI.ce_adds env [(FA.name_of_varinfo v), cr]
 
 let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
   if !Cs.manual then
@@ -189,8 +189,12 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
       (CF.refctype_of_global me v, ([], []))
   | AddrOf (Var v, NoOffset) as e when CM.is_fun v ->
       begin match t_exp_with_cs me loc tago tag grd env e with
-        | Ct.Ref (l, _) as rct, cds ->
-          (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc)
+        | Ct.FRef (f, r) as rct, cds ->
+
+          (Ct.FRef (FI.ce_find_fn v.vname env, r), cds)
+          (* (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env)  f tag loc) *)
+        (* | Ct.Ref (l, _) as rct, cds -> *)
+        (*   (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc) *)
         | _ -> assert false
       end
   | e when is_string_ptr_expr e ->
@@ -349,10 +353,8 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
-
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-
   let cs0, ecrs = Misc.mapfold begin fun cs e ->
                     let cr, (cs2, _) = cons_of_rval me loc tag grd effs (pre_mem_env, st, tago) pre_mem_env e in
                       (cs ++ cs2, cr)
@@ -391,13 +393,17 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
   (* v := ( *f )(...), where v is local *)
   | Lval (Var v, NoOffset) when not v.Cil.vglob ->
       begin match v |> FA.name_of_varinfo |> FI.t_name env with
-        | Ct.Ref (l, _) ->
-          let l             = Sloc.canonical l in
+        | Ct.FRef (f, _) ->
           let tag           = CF.tag_of_instr me i j loc in
-          let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in
-          let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) v
-                                (lvo, RS.Function.find sto l, es) ns in
-            (wld, cs1 +++ cs2, wfs)
+          (* let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in *)
+          let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, f, es) ns in
+          (wld, cs2, wfs)
+        (* | Ct.Ref (l, _) -> *)
+        (*   let l             = Sloc.canonical l in *)
+        (*   let tag           = CF.tag_of_instr me i j loc in *)
+        (*   let cs1           = cons_of_mem me loc tago tag grd pre_mem_env env sto effs v ED.readEffect in *)
+        (*   let wld, cs2, wfs = cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, RS.Function.find sto l, es) ns in *)
+        (*     (wld, cs1 +++ cs2, wfs) *)
         | _ -> assert false
       end
   | _ -> assert false

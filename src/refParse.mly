@@ -250,7 +250,7 @@ reftype:
                                           FI.t_pred ct v $10 
                                         }
   | FREF LPAREN funtyp COMMA index COMMA LC Id MID pred RC RPAREN
-                                        { let ct = Ctypes.FRef ($3, $5) in
+                                        { let ct = Ctypes.FRef (Ctypes.cfun_of_refcfun $3, $5) in
                                           let v = Sy.of_string $8 in
                                           FI.t_pred ct v $10
                                         }

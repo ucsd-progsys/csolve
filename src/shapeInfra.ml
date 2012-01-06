@@ -132,9 +132,11 @@ class exprTyper (ve) = object (self)
     self#ctype_of_exp (C.Lval lv)
 
   method private ctype_of_addrof = function
-    | C.Var v, C.NoOffset 
-      when CM.is_fun v -> 
-        Ref (S.fresh_abstract [CM.srcinfo_of_var v None], Index.IInt 0)
+    | C.Var v, C.NoOffset when CM.is_fun v ->
+      let fspec = Typespec.preRefcfunOfType v.C.vtype in
+          FRef (RefCTypes.CFun.map (RefCTypes.CType.map fst) fspec,
+                   Index.IInt 0)
+        (* Ref (S.fresh_abstract [CM.srcinfo_of_var v None], Index.IInt 0) *)
     | lv -> 
         E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
 

@@ -262,6 +262,7 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     val refinement  : t -> T.refinement
     val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val map_func    : ('a -> 'b) -> 'a precfun -> 'b precfun
     val d_ctype     : unit -> t -> P.doc
     val of_const    : Cil.constant -> t
     val is_subctype : t -> t -> bool
@@ -879,7 +880,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let rec unify_ctype_locs sto sub ct1 ct2 = match CType.subs sub ct1, CType.subs sub ct2 with
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub)
         | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub s1 s2
-        | ct1, ct2                              ->
+        | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub)
+        | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
       and unify_data_locations sto sub s1 s2 =
@@ -1284,6 +1286,7 @@ let refstore_write loc sto rct rct' =
 let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
+  | f -> RCt.CType.map fst f
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
@@ -1295,7 +1298,8 @@ let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
-  | Ref (_,(_,r)) -> r
+  | Ref (_,(_,r))
+  | FRef (_,(_,r)) -> r
 
 (**********************************************************************)
 

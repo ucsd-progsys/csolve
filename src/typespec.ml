@@ -313,7 +313,7 @@ let rec refctypeOfCilType mem t = match normalizeType t with
   | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
-  | C.TPtr (C.TFun (_,_,_,_) as t, ats) ->
+  | C.TPtr (C.TFun _ as t, ats) ->
     begin match ptrReftypeOfAttrs t ats with
       | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType t, (i, r))
     end
@@ -334,7 +334,7 @@ and heapRefctypeOfCilType mem t =
      t
   |> refctypeOfCilType mem
   |> function | Ct.Int (n, (_, r)) -> Ct.Int (n, (I.top, r))
-              | Ct.Ref _ as rct    -> rct
+              | rct    -> rct
 
 and addReffieldToStore sub sto s i rfld =
   if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else

@@ -115,6 +115,9 @@ let ctype_of_var_index v ix =
   | Cil.TEnum (ei, _)       -> Ct.Int (Cil.bytesSizeOfInt ei.Cil.ekind, ix)
   | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
   | Cil.TVoid _             -> Ct.void_ctype
+  | Cil.TPtr (Cil.TFun _ as f,_) ->
+    let fspec = Typespec.preRefcfunOfType f in
+    Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) fspec, ix)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
   | _                       -> assert false

@@ -117,7 +117,7 @@ let string_of_sloc, sloc_of_string =
 let args_of_precfun f = (0, []) (* PLACEHOLDER *)    
 
 let so_ref  = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
-let so_fref = So.t_func
+let so_fref = fun f -> Misc.uncurry So.t_func (args_of_precfun f)
 let so_int  = So.t_int
 let so_skl  = So.t_func 0 [so_int; so_int]
 let so_bls  = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
