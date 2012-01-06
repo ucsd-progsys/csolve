@@ -77,7 +77,7 @@ let mk_gnv f spec decs cenv =
              |> SM.to_list
              |> M.map_partial (fun vs -> if SS.mem (fst vs) vardecs then Some vs else None)
              |> List.map (FA.name_of_string <**> (fst <+> f))
-             |> FI.ce_adds FI.ce_empty in
+             |> FI.ce_adds FI.ce_empty (* GLOBAL *) in
   SM.to_list cenv
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs then
@@ -191,8 +191,9 @@ let create cil spec decs =
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
   let shm    = shapem_of_scim cil spec scim vim in
   (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
-  let gnv    = cnv0 |> finalize_funtypes shm |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in
-
+  let gnv    = cnv0 |> finalize_funtypes shm 
+                    |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in 
+  let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
   let _      = E.log "\nDONE: Gathering Decs \n" in
@@ -201,7 +202,7 @@ let create cil spec decs =
   let sts    = CS.locspectypes spec in
   let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
   let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
-  let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in
+  (* let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in *)
   (tgr, cons_of_decs tgr spec gnv gst decs
         |> Consindex.create
         |> cons_of_scis tgr gnv gst scim (Some shm))

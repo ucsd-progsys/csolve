@@ -60,7 +60,7 @@ type t_sh = {
 
 type t    = {
   tgr     : CilTag.o;
-  sci     : ST.ssaCfgInfo;
+  sci     : ST.t;
   ws      : C.wf list;
   cs      : C.t list;
   ds      : C.dep list;
@@ -211,7 +211,7 @@ let partition_diff_bindings cfrom cto =
 let cstoa_of_annots fname gdoms conca astore =
   let emp = Ct.RefCTypes.Store.empty in
   Array.mapi begin fun i (conc,conc') ->
-    let idom, _ = gdoms.(i) in 
+    let idom, _ = gdoms.(i) in
     if idom < 0 then (emp, [], conc') else
       let _,idom_conc = conca.(idom) in
       let joins, ins  = partition_diff_bindings idom_conc conc in
@@ -221,8 +221,8 @@ let cstoa_of_annots fname gdoms conca astore =
                              Ct.refstore_get astore al |> Ct.refstore_set sto cl
                            end emp
                         |> Ct.store_of_refstore 
-                        |> FI.refstore_fresh fname in
-      (sto, inclocs, conc')
+                        |> FI.refstore_fresh fname 
+      in (sto, inclocs, conc')
   end conca
 
 let edge_asgnm_of_phia phia =
@@ -301,7 +301,7 @@ let guard_of_block me i jo =
     if not (Hashtbl.mem me.sci.ST.edoms (i, j)) then p else
       let b' = Hashtbl.find me.sci.ST.edoms (i, j) in 
       let p' = pred_of_block me.sci.ST.ifs (i, b') in
-      let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in
+      (* let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in *)
       Ast.pAnd [p; p']
 
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
@@ -311,13 +311,14 @@ let asgns_of_edge  = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -
 let annots_of_edge me i j =
   match me with 
   | {shapeo = Some shp} ->
-      let iconc' = shp.cstoa.(i) |> thd3 in
-      let jsto   = shp.cstoa.(j) |> fst3 in
+      let iconc'         = shp.cstoa.(i) |> thd3 in
+      let jsto, incls, _ = shp.cstoa.(j) in
       LM.fold begin fun al tagm acc ->
         LM.fold begin fun cl t acc ->
-          if Ct.RefCTypes.Store.mem jsto cl then acc else
-            if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
-              (Refanno.WGen (cl, al) :: acc)
+          if succs_of_block me j != [] &&
+             (Ct.RefCTypes.Store.mem jsto cl || List.mem cl incls) then acc else
+               if Refanno.tag_dirty t then (Refanno.Gen (cl, al) :: acc) else
+                 (Refanno.WGen (cl, al) :: acc)
         end tagm acc
       end iconc' []  
   (* | _ -> [] *)
@@ -397,8 +398,8 @@ let idom_of_block = fun me i -> fst me.sci.ST.gdoms.(i)
 
 let rec idom_parblock_of_block me i =
   let j = idom_of_block me i in
-  let b = me.sci.ST.cfg.Ssa.blocks.(j) in
-    if CM.is_cobegin_ssa_block b || CM.is_foreach_ssa_block b then j else
+  let b = stmt_of_block me j in
+    if CM.is_cobegin_block b || CM.is_foreach_block b then j else
       idom_parblock_of_block me j
 
 let inenv_of_block me i =
@@ -435,7 +436,7 @@ let fresh_abstract_effectset asto =
      end Ct.EffectSet.empty
 
 let block_has_fresh_effects me i =
-  CM.ssa_block_has_fresh_effects me.sci.ST.cfg.Ssa.blocks.(i)
+  CM.block_has_fresh_effects <| stmt_of_block me i
 
 let make_effsm me =
   let aeffs  = get_aeffs me in

@@ -46,7 +46,8 @@ struct __anonstruct_netStats_2 {
    unsigned long netsCut ;
 };
 #pragma merger(0,"/tmp/cil-Njq7l947.i","")
-void ReadNetList(char * ARRAY fname , unsigned long * LOC(L) numModules ,
+void ReadNetList(char NULLTERMSTR * ARRAY fname ,
+                 unsigned long * LOC(L) numModules ,
                  unsigned long * LOC(L) numNets , float * ARRAY LOC(F) GP ,
                  float * ARRAY LOC(F) D , float * ARRAY LOC(F) cost ,
                  Groups * ARRAY moduleToGroup ,
@@ -853,7 +854,7 @@ void PrintResults(int verbose , unsigned long * LOC(L) numModules , unsigned lon
 }
 }
 
-int main(int argc, char * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv) CHECK_TYPE
+int main(int argc, char NULLTERMSTR * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(argc * 4) argv) CHECK_TYPE
 { unsigned long p ;
   unsigned long iMax ;
   float gMax ;

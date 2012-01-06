@@ -38,7 +38,7 @@ module Ct = Ctypes
 module Ix = Index
 module Co = Constants
 module P  = A.Predicate 
-module Q  = A.Qualifier
+module Q  = Qualifier
 
 module Ci = Consindex
 module E  = Errormsg
@@ -142,13 +142,13 @@ let dump_scalarinv sim =
 
 let scalarinv_of_scim cil spec tgr gnv scim =
   scim 
-  >> Annots.clear
+  >> (fun _ -> Annots.clear ())
   |> generate tgr gnv
   |> solve cil
   |> close scim spec
   |> SM.map (VM.mapi ctype_of_var_index)
   (* >> dump_scalarinv *)
-  >> Annots.clear
+  >> (fun _ -> Annots.clear ())
 
 (***************************************************************************)
 (************************* TESTING SCALAR INVS *****************************)

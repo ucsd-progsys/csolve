@@ -43,16 +43,10 @@ val ce_adds             : cilenv -> (FixAstInterface.name * Ctypes.refctype) lis
 val ce_find             : FixAstInterface.name -> cilenv -> Ctypes.refctype
 val ce_mem_fn           : string -> cilenv -> bool
 val ce_adds_fn          : cilenv -> (string * Ctypes.refcfun) list -> cilenv
-val ce_find_fn          : string -> cilenv -> Ctypes.refcfun
-val d_cilenv            : unit -> cilenv -> Pretty.doc
 
-(* EW:
-val extend_world        : refldesc -> 
-                          (FixAstInterface.name * refctype) list -> 
-                          Sloc.t -> bool -> 
-                          (cilenv * refstore * 'a) -> 
-                          (cilenv * refstore * 'a)
-*)
+val ce_find_fn          : string -> cilenv -> Ctypes.refcfun
+
+val d_cilenv            : unit -> cilenv -> Pretty.doc
 val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (Ctypes.refldesc -> Ctypes.refldesc) ->
                           Cil.location -> CilTag.t ->
@@ -93,6 +87,7 @@ val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_scalar_refctype   : Ctypes.refctype -> Ctypes.refctype
 val t_indexpred_refctype : Ctypes.refctype -> Ctypes.refctype
+val t_nullterm_refctype : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
@@ -100,7 +95,7 @@ val t_valid_ptr         : Ctypes.ctype -> Ctypes.refctype
 val t_ptr_footprint     : cilenv -> Cil.varinfo -> Ctypes.refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ast.pred option * Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
-val t_name   : cilenv -> FixAstInterface.name -> Ctypes.refctype
+val t_name              : cilenv -> FixAstInterface.name -> Ctypes.refctype
 val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
 val t_addr              : Sloc.t -> Ctypes.refctype
 
@@ -133,13 +128,12 @@ val refstore_strengthen_addr :
   Ctypes.refctype ->
   cilenv * Ctypes.refstore
 
-val refstore_fresh             : (* (Sloc.t -> Sloc.t) -> *) string -> Ctypes.store -> Ctypes.refstore
-
+val refstore_fresh             : string -> Ctypes.store -> Ctypes.refstore
 val conv_refstore_bottom       : Ctypes.refstore -> Ctypes.refstore
 val conv_effectset_bottom      : Ctypes.effectset -> Ctypes.effectset
 
-val refstore_subs       : (* Cil.location -> *) ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
-val refstore_subs_locs  : (* Cil.location -> *) (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
+val refstore_subs       : ('a -> Ctypes.refctype -> Ctypes.refctype) -> 'a -> Ctypes.refstore -> Ctypes.refstore
+val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.refstore
 
 val effectset_subs      : ('a -> Ctypes.effectptr -> Ctypes.effectptr) -> 'a -> Ctypes.effectset -> Ctypes.effectset
 val effectset_subs_locs : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.effectset -> Ctypes.effectset

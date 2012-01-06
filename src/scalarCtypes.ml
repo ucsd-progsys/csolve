@@ -38,7 +38,7 @@ module Ct = Ctypes
 module Ix = Index
 module Co = Constants
 module P  = A.Predicate 
-module Q  = A.Qualifier
+module Q  = Qualifier
 module E  = Errormsg
 
 open Misc.Ops
@@ -107,7 +107,7 @@ let p_v_minus_x_minus_c_eqz_mod_k =
                    , A.Mod, A.eVar period_var)
            ,A.zero)
 
-let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sort.t_int]
+let quals_of_pred p = List.map (fun t -> Q.create (Sy.of_string "SCALAR") value_var t p) [A.Sort.t_int]
 
 
 (***************************************************************************)
@@ -117,9 +117,9 @@ let quals_of_pred p = List.map (fun t -> Q.create "SCALAR" value_var t p) [A.Sor
 (* API *)
 let index_of_var v (cr, p) =
   if Cil.isPointerType v.Cil.vtype || Cil.isArrayType v.Cil.vtype then
-    Ix.ref_index_of_pred (FA.name_of_varinfo v) p
+    Ix.ref_index_of_pred (FA.name_of_varinfo v :> Sy.t) p
   else
-    Ix.data_index_of_pred (FA.name_of_varinfo v) p
+    Ix.data_index_of_pred (FA.name_of_varinfo v :> Sy.t) p
 
   (* >> (fun ix -> E.log "Scalar.index_of_pred: v = %s, cr = %a, p = %s, ix = %a \n"  *)
   (*               v.Cil.vname Ct.d_refctype cr (P.to_string p) Ix.d_index ix) *)

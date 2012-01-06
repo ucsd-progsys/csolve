@@ -70,18 +70,6 @@ let lsubs_of_annots ns =
                    | Refanno.NewC (x,_,y) -> (x, y)
                    | _               -> assertf "cons_of_call: bad ns") ns
 
-let d_lsub () (x,y) = 
-  Pretty.dprintf "(%a, %a)" Sloc.d_sloc x Sloc.d_sloc y 
-
-let d_lsubs () xys =
-  Pretty.seq (Pretty.text ",") (d_lsub ()) xys
-
-(*
-let rename_store lsubs subs st = 
-  st |> Ct.prestore_subs lsubs
-     |> Ct.prestore_map_ct (rename_refctype lsubs subs)
-*)
-
 let weaken_undefined me rm env v = 
   let n = FA.name_of_varinfo v in
   let b = FI.ce_mem n env && CF.is_undefined me v in
@@ -171,7 +159,7 @@ let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
     | Ct.Ref (l, _) as rct, cds ->
       let ld2 = RS.Data.find sto l in
-      let ld1 = RL.map (RF.map_type FI.t_true_refctype) ld2 in
+      let ld1 = RL.map (RF.map_type FI.t_nullterm_refctype) ld2 in
         (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
     | _ -> assert false
 
@@ -548,7 +536,7 @@ let scalarcons_of_stmt me i grd env stmt =
 
 let wcons_of_block_effects me loc sto i =
   if CF.block_has_fresh_effects me i then
-    let env = if CM.is_foreach_iter_ssa_block me.CF.sci.ST.cfg.Ssa.blocks.(i) then
+    let env = if CM.is_foreach_iter_block <| CF.stmt_of_block me i then
                 CF.inenv_of_block me i
               else i |> CF.idom_parblock_of_block me |> CF.inenv_of_block me in
       FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
@@ -586,7 +574,7 @@ let fresh_effectcons_of_block me loc (env, sto, _) i =
 
 let cobegin_cons_of_block me loc grd env sto b tag loc =
      b
-  |> CM.coroutines_of_ssa_block
+  |> CM.coroutines_of_block
   |> M.pairs
   |> List.map begin fun (j, k) ->
        let effs1, effs2 = M.map_pair (CF.effectset_of_block me) (j, k) in
@@ -596,7 +584,7 @@ let cobegin_cons_of_block me loc grd env sto b tag loc =
 
 let foreach_cons_of_block me loc grd i tag loc =
   let idompar     = CF.idom_parblock_of_block me i in
-  let idx         = CM.index_var_of_foreach me.CF.sci.ST.cfg.Ssa.blocks.(idompar) in
+  let idx         = CM.index_var_of_foreach <| CF.stmt_of_block me idompar in
   let nidx        = FA.name_of_varinfo idx in
   let nidx2       = FA.name_fresh () in
   let env, sto, _ = CF.inwld_of_block me i in
@@ -607,11 +595,11 @@ let foreach_cons_of_block me loc grd i tag loc =
     FI.make_cs_assert_effectsets_disjoint env grd sto effs effs2 None tag loc
 
 let effect_disjoint_cons_of_block me loc grd (env, sto, _) i =
-  let b   = me.CF.sci.ST.cfg.Ssa.blocks.(i) in
+  let b   = CF.stmt_of_block me i in
   let tag = CF.tag_of_instr me i 0 loc in
-    if CM.is_cobegin_ssa_block b then
+    if CM.is_cobegin_block b then
       cobegin_cons_of_block me loc grd env sto b tag loc
-    else if CM.is_foreach_iter_ssa_block b then
+    else if CM.is_foreach_iter_block b then
       foreach_cons_of_block me loc grd i tag loc
     else ([], [])
 
@@ -681,7 +669,7 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
   end vjvis
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
-  CF.annots_of_edge me i j 
+  CF.annots_of_edge me i j
   |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty ES.empty
   |> snd
 
@@ -695,9 +683,7 @@ let cons_of_edge me i j =
   let iwld' = CF.outwld_of_block me i in
   let loci  = CF.location_of_block me i in
   let tagi  = CF.tag_of_instr me i 0 loci in
-  let grdij = CF.guard_of_block me i (Some j) 
-              >> (Ast.Predicate.to_string <+> E.log "guard_of_edge (%d -> %d) = %s \n" i j)
-  in
+  let grdij = CF.guard_of_block me i (Some j) in (* >> (Ast.Predicate.to_string <+> E.log "guard_of_edge (%d -> %d) = %s \n" i j) *)
   let envj  = CF.outwld_of_block me j |> fst3 in
   let vjvis = CF.asgns_of_edge me i j in
   let subs  = List.map (Misc.map_pair FA.name_of_varinfo) vjvis in
@@ -719,7 +705,7 @@ let scalarcons_of_edge me i j =
 let cons_of_edge me = if CF.has_shape me then cons_of_edge me else scalarcons_of_edge me
 
 (****************************************************************************)
-(********************** Constraints for ST.ssaCfgInfo ***********************)
+(********************** Constraints for Ssa_transform.t *********************)
 (****************************************************************************)
 
 let process_block me i =

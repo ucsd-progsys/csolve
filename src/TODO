@@ -1,11 +1,87 @@
+1. TO BE CONTINUED : Prettify 
+
+t [...] 
+foo ( int x [...]
+    , int y [...]
+    , int z [...]
+    ) 
+
+HEREHEREHEREHERE
+The following tests throw the "bad fields" error.
+Exceptions thrown on 8 tests: ../tests/postests/ks.c,
+../tests/postests/ll7.c, ../tests/postests/mst.c,
+../tests/postests/normalize_tworefs.c, ../tests/postests/power.c,
+../tests/postests/shapebug-em3d.c, ../tests/postests/singletonarray.c,
+../tests/postests/stringlist.c
 
 
-NEXT: Minimize Output:
-1. Suppress "false"
-2. Flatten/Minimize Predicates?
-3. Print out qualifier names -- not predicates?
+   >> render with C-Types (cf. GOAL below)
+       >> field names instead of A90#Ix#6 etc.
+       >> short var names   (pages instead of pages_env_alloc -- with links) 
+       >> global (all? abstract) locations printed only once
+
+   >> Suppress attributes which F-up the indices, print all quals without break
+
+   >> Wrong type for locations (input loc = false, output = true, so print output.)
+       >> e.g. funstore main for A8, A7@size etc.
+   
+   >> sort qualifiers by name/frequency?
+   
+   >> export cilenv to annots: 
+       >> substitute copyprop & delete duplicates (?)
+       >> print simple var names. 'x for old x for current, $x for input.
+       >> print substs at end of annot (x := ..., 'x := ..., $x := ..., etc.)
+
+2. Rig parser to ignore stuff between /* ... */ then fix Ctypes.d_fieldinfo
+
+3. Dump BSTATS out as JSON, sorted by times.
+
+4. Error (associate string tags with constraints. "Dereference at line ...")
+
+prunelive OR removing constant-propped vars from WF-envs kills:
+
+../tests/postests/strcpy.c
+../tests/postests/adpcm.c
+../tests/postests/adpcminiptr.c
+../tests/postests/cpj/idea_test.c
+
+because some interesting constant term (e.g. n4_stale = n/4)
+is required in a qualifier... all the above are pretty contrived
+(and shift-related.)
+
+GOAL: variable dest_strncpy__SSA__phi_57 ::
+
+char * REF(ZZ) dest [ Valid(VV)
+                    ; GtLb(VV) 
+                    ; Eq0(VV, dest) 
+                    ; EqBuf(VV, $dest) 
+                    ; Ge0(VV, $dest) 
+                    ; Pad(VV, c) 
+                    ; Pad(VV, n) 
+                    ; RestGt(VV, c) 
+                    ; SizeGt(VV, c) 
+                    ; SizeGt(VV, 'm4) 
+                    ; SizeGt(VV, 'n4) 
+                    ; SizeGt(VV, n4) 
+                    ; SizeGt(VV, $n)  
+                    ; SizeGt(VV, n) ]  
+
+***************************************************************************
+***************************************************************************
+
+variable pages_env_check ::
+
+ref(A88, {0 + 4*} , {VV_ptr_A88 | && [ (VV_ptr_A88 = pages_env_check) 
+                                     ; (BLOCK_END([VV_ptr_A88]) = (BLOCK_BEGIN([VV_ptr_A88]) + 4000)) 
+                                     ; ((VV_ptr_A88 != 0) => ((BLOCK_END([VV_ptr_A88]) - VV_ptr_A88) >= 8)) 
+                                     ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88])) 
+                                     ; (0 < VV_ptr_A88) 
+                                     ; (VV_ptr_A88 = BLOCK_BEGIN([VV_ptr_A88])) 
+                                     ; ((VV_ptr_A88 != 0) => && [(0 < VV_ptr_A88) ; (BLOCK_BEGIN([VV_ptr_A88]) <= VV_ptr_A88) ; (VV_ptr_A88 < BLOCK_END([VV_ptr_A88]))])
+                                     ]})
 
 
+***************************************************************************
 
 Function Pointers
 
@@ -413,4 +489,94 @@ struct node <A0, C0> {
   data * <C0> contents;
   struct node * <A0> left;
   struct node * <A0> right;
+
+
+
 }
+
+
+TRIAL 
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / s y n c . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.042341 seconds
+FAILURE :( (../tests/postests/coreutils/sync.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / u n l i n k . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.040103 seconds
+FAILURE :( (../tests/postests/coreutils/unlink.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / l o g n a m e . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.041919 seconds
+FAILURE :( (../tests/postests/coreutils/logname.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / l i n k . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.040972 seconds
+FAILURE :( (../tests/postests/coreutils/link.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / y e s . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.043407 seconds
+FAILURE :( (../tests/postests/coreutils/yes.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / n p r o c . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.040145 seconds
+FAILURE :( (../tests/postests/coreutils/nproc.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / g r o u p s . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.041068 seconds
+FAILURE :( (../tests/postests/coreutils/groups.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / h o s t i d . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.040661 seconds
+FAILURE :( (../tests/postests/coreutils/hostid.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / r e a d l i n k . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.041839 seconds
+FAILURE :( (../tests/postests/coreutils/readlink.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / w h o a m i . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.039478 seconds
+FAILURE :( (../tests/postests/coreutils/whoami.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / m a k e C o r e U t i l . s h
+0.002890 seconds
+SUCCESS! (../tests/postests/coreutils/makeCoreUtil.sh)
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / h o s t n a m e . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.039689 seconds
+FAILURE :( (../tests/postests/coreutils/hostname.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / t r u e . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.039393 seconds
+FAILURE :( (../tests/postests/coreutils/true.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / t t y . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.041646 seconds
+FAILURE :( (../tests/postests/coreutils/tty.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / s u m . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.041805 seconds
+FAILURE :( (../tests/postests/coreutils/sum.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / f a l s e . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.039661 seconds
+FAILURE :( (../tests/postests/coreutils/false.sh) 
+
+exec: . . / t e s t s / p o s t e s t s / c o r e u t i l s / d i r n a m e . s h
+make: *** No rule to make target `Makefile', needed by `version.h'.  Stop.
+0.040277 seconds
+FAILURE :( (../tests/postests/coreutils/dirname.sh) 
+

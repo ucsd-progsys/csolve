@@ -91,24 +91,33 @@ let fresh_arg_name, _ = M.mk_string_factory "ARG"
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
 
-(** Ensures no expression contains a memory access and another
+(** Ensures 1) no expression contains a memory access and another
+    operation, 2) all instructions contain at most one memory
     operation. *)
 class purifyVisitor (fd: fundec) = object(self)
   inherit nopCilVisitor
 
+  method private mkTemp lv =
+    let tmp = makeTempVar fd (typeOfLval lv) in
+    let tlv = (Var tmp, NoOffset) in
+    let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
+    tlv
+
   method vexpr = function
     | Lval (Mem (Lval (Var _, _)), NoOffset) ->
-        SkipChildren
+      SkipChildren
     | Lval ((Mem _, _) as lv) ->
-        let tmp = makeTempVar fd (typeOfLval lv) in
-        let tlv = (Var tmp, NoOffset) in
-        let _   = self#queueInstr [Set (tlv, Lval lv, !currentLoc)] in
-          ChangeDoChildrenPost (Lval tlv, id)
+      ChangeDoChildrenPost (Lval (self#mkTemp lv), id)
+    | _ -> DoChildren
+
+  method vinst = function
+    | Set ((Mem _, _) as lvl, Lval ((Mem _, _) as lvr), loc) ->
+      ChangeDoChildrenPost ([Set (lvl, Lval (self#mkTemp lvr), loc)], id)
     | _ -> DoChildren
 end
 
 let purifyFunction (fd: fundec) =
-  fd.sbody <- visitCilBlock (new purifyVisitor fd) fd.sbody
+  fd.sbody <- visitCilBlock (new purifyVisitor fd :> cilVisitor) fd.sbody
 
 let doGlobal = function
   | GFun (fd, _) -> purifyFunction fd
@@ -177,16 +186,50 @@ let rec referenced_var_of_exp = function
   | _                         -> failwith "referenced_var_of_exp"
 
 (******************************************************************************)
-(********************************** Printing **********************************)
+(************************* Cil Versions of misc/printers **********************)
 (******************************************************************************)
-
-(* API *)
-let doc_of_formatter f a =
-  Misc.fsprintf f a |> Pretty.text
 
 let nprintf a = Pretty.gprintf (fun _ -> Pretty.nil) a
 
 let bprintf b = if b then Pretty.printf else nprintf
+
+let rec d_many_box brk s f () = function
+  | []              -> Pretty.nil 
+  | [x]             -> Pretty.dprintf "%a" f x
+  | x::xs' when brk -> Pretty.dprintf "%a@!%s%a" f x s (d_many_box brk s f) xs'
+  | x::xs'          -> Pretty.dprintf "%a@?%s%a" f x s (d_many_box brk s f) xs'
+
+let d_many_box brk l s r f () = function
+  | []     -> Pretty.dprintf "[]"
+  | xs     -> Pretty.dprintf "@[%s%a%s@]" l (d_many_box brk s f) xs r
+
+let d_many_brackets brk = d_many_box brk "[ " "; " "]"
+let d_many_parens brk   = d_many_box brk "( " ", " ")"
+(*  Pretty.dprintf "%a" (d_many_box brk "[ " "; " "]" f) x *)
+let d_many_braces brk   = d_many_box brk "{ " "; " "}"
+let d_opt f () xo       = Misc.maybe_apply (fun x _ -> f () x) xo Pretty.nil
+let d_pair fx fy () (x, y) = Pretty.dprintf "%a : %a" fx x fy y
+
+
+
+
+let rec d_many brk s f () = function
+  | []              -> Pretty.nil 
+  | [x]             -> Pretty.dprintf "%a" f x
+  | x::xs' when brk -> Pretty.dprintf "%a%s@?%a" f x s (d_many brk s f) xs'
+  | x::xs'          -> Pretty.dprintf "%a%s%a" f x s (d_many brk s f) xs'
+
+(* API *)
+let d_formatter f () x =
+  Pretty.dprintf "@[%s@]" (Misc.fsprintf f x)
+
+(* API *)
+let doc_of_formatter f a =
+  d_formatter f () a
+  (* RJ, this gets mangled: Misc.fsprintf f a |> Pretty.text *)
+
+(* API *)
+let concat_docs = List.fold_left Pretty.concat Pretty.nil
 
 (******************************************************************************)
 (****************************** Type Manipulation *****************************)
@@ -277,46 +320,39 @@ let foreachAttribute     = "csolve_foreach"
 let block_has_attribute a b =
   hasAttribute a b.battrs
 
-let ssa_block_has_attribute a b =
-  match b.Ssa.bstmt.skind with
-    | Block b -> block_has_attribute a b
-    | _       -> false
+let stmt_has_attribute a = function
+  | {skind = Block b} -> block_has_attribute a b
+  | _                 -> false
 
-let is_cobegin_ssa_block b =
-  ssa_block_has_attribute cobeginAttribute b
-
-let is_coroutine_ssa_block b =
-  ssa_block_has_attribute coroutineAttribute b
-
-let is_foreach_iter_ssa_block b =
-  ssa_block_has_attribute foreachIterAttribute b
-
-let is_foreach_ssa_block b =
-  ssa_block_has_attribute foreachAttribute b
-
-let ssa_block_has_fresh_effects b =
-  is_coroutine_ssa_block b || is_foreach_iter_ssa_block b
+let is_cobegin_block b =
+  stmt_has_attribute cobeginAttribute b
 
 let is_coroutine_block b =
-  block_has_attribute coroutineAttribute b
+  stmt_has_attribute coroutineAttribute b
 
 let is_foreach_iter_block b =
-  block_has_attribute foreachIterAttribute b
+  stmt_has_attribute foreachIterAttribute b
+
+let is_foreach_block b =
+  stmt_has_attribute foreachAttribute b
+
+let block_has_fresh_effects b =
+  is_coroutine_block b || is_foreach_iter_block b
 
 let is_parallel_body_block b =
   is_coroutine_block b || is_foreach_iter_block b
 
-let coroutines_of_ssa_block b = match b.Ssa.bstmt.skind with
-  | Block ({bstmts = ss}) ->
+let coroutines_of_block = function
+  | {skind = Block ({bstmts = ss})} ->
     M.map_partial begin function
       | {skind = If (_, ({bstmts = [{sid = sid; skind = Block b}]}), _, _)}
-          when is_coroutine_block b ->
+          when block_has_attribute coroutineAttribute b ->
         Some sid
       | _ -> None
     end ss
   | _ -> E.s <| error "Malformed cobegin block@!@!"
 
-let index_var_of_foreach b = match b.Ssa.bstmt.skind with
+let index_var_of_foreach b = match b.skind with
   | Block ({bstmts = [{skind = Instr [Call (Some (Var v, NoOffset), _, _, _)]}; _]}) -> v
   | _ -> E.s <| error "Malformed foreach block@!"
 
@@ -795,3 +831,26 @@ class noBlockAttrPrinterClass : cilPrinter = object (self)
 end
 
 let noBlockAttrPrinter = new noBlockAttrPrinterClass
+
+(************************ Name Related Hackery ********************************)
+
+let is_pure_function s =
+  s = "validptr" || 
+  s = "csolve_assert" || 
+  s = "csolve_assume"
+
+let is_cil_tempvar s = 
+  Misc.is_prefix "__cil_tmp" s || 
+  Misc.is_prefix "mem_" s
+
+let suffix_of_fn = fun fn -> "_" ^ fn
+
+let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+
+let unrename_local fn vn = 
+  let s = suffix_of_fn fn in 
+  if not (Misc.is_suffix s vn) then vn else 
+    String.sub vn 0 (String.length vn - (String.length s))
+
+
+

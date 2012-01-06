@@ -36,7 +36,7 @@ module  E = A.Expression
 module Sy = A.Symbol
 module Su = A.Subst
 module So = A.Sort
-module  Q = A.Qualifier
+module  Q = Qualifier
 
 module Ct = Ctypes
 module It = Ct.I
@@ -57,15 +57,16 @@ let mydebug = false
 (******************************** Names ****************************)
 (*******************************************************************)
 
-type name = Sy.t
+type name = Ast.Symbol.t 
 
-let string_of_name    = Sy.to_string 
+module NameMap = Misc.EMap (struct type t = name let compare = compare end)
 
-let d_name () n       = Pretty.text (string_of_name n)
+let name_of_string s    =  (Sy.of_string s)
+let string_of_name  (s) = Sy.to_string s 
 
-let name_of_string    = Sy.of_string
+let d_name () n         = Pretty.text (string_of_name n)
 
-let varinfo_t         = Hashtbl.create 37
+let varinfo_t             = Hashtbl.create 37
 
 let name_of_varinfo v = 
   v.vname 
@@ -76,12 +77,12 @@ let name_of_varinfo v =
 
 let varinfo_of_name vn =
   try Some (Hashtbl.find varinfo_t vn) with Not_found -> None 
-  
+(* 
 let varinfo_of_name vn =
   vn |> varinfo_of_name
      >> (function Some v -> ignore <| Errormsg.warn "varinfo_of_name %a: HIT\n" d_name vn  
                 | _      -> ignore <| Errormsg.warn "varinfo_of_name %a: MISS\n" d_name vn)
-
+*)
 
 
 

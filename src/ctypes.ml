@@ -80,8 +80,9 @@ let reft_of_top =
   let vv = Ast.Symbol.value_variable so in
   FC.make_reft vv so []
 
-let d_reft () r = 
-  Misc.fsprintf (FC.print_reft_pred None) r |> P.text
+let d_reft () r =
+  CM.doc_of_formatter (FC.print_reft_pred None) r
+  (* WORKS: P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) *)
 
 let d_index_reft () (i,r) = 
   P.dprintf "%a , %a" Index.d_index i d_reft r
@@ -166,7 +167,7 @@ let d_fieldinfo () = function
   | { ftype = Some t } -> 
       P.dprintf "/* FIELDINFO %a */" Cil.d_type t 
   | _ ->
-      P.nil
+      P.nil (* RJ: screws up the autospec printer. P.dprintf "/* FIELDINFO ??? */" *)
 
 let d_structinfo () = function
   | { stype = Some t } -> 

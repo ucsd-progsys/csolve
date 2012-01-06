@@ -36,8 +36,15 @@ type considerStringsPure =
 val is_pure_expr     : considerStringsPure -> Cil.exp -> bool
 val is_null_expr     : Cil.exp -> bool
 
+val d_formatter      : (Format.formatter -> 'a -> unit) -> unit -> 'a -> Pretty.doc
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 val pretty_to_string : (unit -> 'a -> Pretty.doc) -> 'a -> string  
+val concat_docs      : Pretty.doc list -> Pretty.doc
+val d_many_parens    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
+val d_many_braces    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
+val d_opt            : (unit -> 'a -> Pretty.doc) -> unit -> 'a option -> Pretty.doc
+val d_pair           : (unit -> 'a -> Pretty.doc) -> (unit -> 'b -> Pretty.doc) -> unit -> ('a * 'b)
+-> Pretty.doc
 
 val bytesSizeOf      : Cil.typ -> int
 val bytesSizeOfFloat : Cil.fkind -> int
@@ -74,12 +81,13 @@ val has_array_attr     : Cil.attributes -> bool
 val has_pos_attr       : Cil.attributes -> bool
 val has_unchecked_attr : Cil.attributes -> bool
 
-val is_cobegin_ssa_block        : Ssa.cfgBlock -> bool
-val is_foreach_ssa_block        : Ssa.cfgBlock -> bool
-val is_foreach_iter_ssa_block   : Ssa.cfgBlock -> bool
-val ssa_block_has_fresh_effects : Ssa.cfgBlock -> bool
-val coroutines_of_ssa_block     : Ssa.cfgBlock -> int list
-val index_var_of_foreach        : Ssa.cfgBlock -> Cil.varinfo
+val is_cobegin_block        : Cil.stmt -> bool
+val is_foreach_block        : Cil.stmt -> bool
+val is_foreach_iter_block   : Cil.stmt -> bool
+val is_foreach_iter_block   : Cil.stmt -> bool
+val block_has_fresh_effects : Cil.stmt -> bool
+val coroutines_of_block     : Cil.stmt -> int list
+val index_var_of_foreach    : Cil.stmt -> Cil.varinfo
 
 val is_unchecked_ptr_type : Cil.typ -> bool
 
@@ -140,6 +148,11 @@ val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
 val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
 val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
 val srcinfo_of_string   : string -> srcinfo
+
+val is_pure_function    : string -> bool
+val is_cil_tempvar      : string -> bool
+val rename_local        : string -> string -> string
+val unrename_local      : string -> string -> string
 
 module type Summarizer =
 sig

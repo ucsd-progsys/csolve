@@ -60,8 +60,8 @@ let rename_locals cil =
   Cil.iterGlobals cil
   (function Cil.GFun(fd,_) -> 
     let fn   = fd.Cil.svar.Cil.vname in
-    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.slocals;
-    List.iter (fun v -> v.Cil.vname <- Co.rename_local fn v.Cil.vname) fd.Cil.sformals
+    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.slocals;
+    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.sformals
   | _ -> ())
 
 let parse_file fname =
@@ -242,7 +242,7 @@ let liquidate file =
   let _         = E.log "DONE: constraint generation \n" in
   let s', cs'   = Consindex.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
-  let _         = Annots.dump_annots (Some s') in
+  let _         = if !Co.vannots then BS.time "Annots: dump" Annots.dump_annots (Some s') in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs s' in
   let _         = print_unsat_locs tgr s' cs' in
   let _         = BS.print log "\nCSolve Time \n" in
