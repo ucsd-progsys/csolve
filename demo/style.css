@@ -1,0 +1,213 @@
+body {
+  background: rgb(255, 255, 255);
+  foreground: rgb(74, 74, 74);
+}
+
+#typeAnnots {
+  position: fixed;
+  top: 0;
+}
+
+#code {
+  padding-top: 8ex;
+}
+
+bool {
+  color: rgb(0, 0, 255);
+}
+
+branch {
+  color: rgb(50, 95, 159);
+}
+
+builtin {
+  color: rgb(50, 95, 159);
+}
+
+caml-types-expr-face {
+  background: rgb(255, 236, 139);
+}
+
+case {
+  color: rgb(255, 255, 0);
+}
+
+char {
+  color: rgb(0, 0, 255);
+}
+
+comment {
+  color: rgb(133, 133, 133);
+}
+
+compilation-error {
+  color: rgb(255, 127, 0);
+  font-weight: bold;
+}
+
+compilation-info {
+  color: rgb(46, 139, 87);
+  font-weight: bold;
+}
+
+constant {
+  color: rgb(96, 107, 133);
+}
+
+cursor {
+  background: rgb(133, 133, 133);
+}
+
+error {
+  color: rgb(178, 34, 34);
+  font-weight: bold;
+}
+
+exception {
+  color: rgb(255, 255, 0);
+}
+
+float {
+  color: rgb(48, 136, 118);
+}
+
+.function {
+  color: rgb(65, 137, 164);
+}
+
+info-xref {
+  color: rgb(50, 95, 159);
+}
+
+info-xref-visited {
+  color: rgb(127, 0, 127);
+}
+
+int {
+  color: rgb(48, 136, 118);
+}
+
+.keyword {
+  color: rgb(50, 95, 159);
+}
+
+loop {
+  color: rgb(50, 95, 159);
+}
+
+magit-diff-add {
+  color: rgb(46, 139, 87);
+  font-weight: bold;
+}
+
+magit-diff-del {
+  color: rgb(127, 0, 127);
+  font-weight: bold;
+}
+
+match {
+  background: rgb(255, 236, 139);
+  foreground: rgb(50, 95, 159);
+}
+
+mismatch {
+  background: rgb(127, 0, 127);
+  color: rgb(255, 255, 255);
+}
+
+mode-line {
+  background: rgb(74, 74, 74);
+  color: rgb(255, 255, 255);
+}
+
+mode-line-inactive {
+  background: rgb(235, 235, 235);
+  color: rgb(133, 133, 133);
+}
+
+more-matches {
+  background: rgb(223, 232, 241);
+}
+
+org-done {
+  color: rgb(46, 139, 87);
+  font-weight: bold;
+}
+
+org-level-1 {
+  color: rgb(50, 95, 159);
+  font-weight: bold;
+}
+
+org-level-2 {
+  color: rgb(127, 0, 127);
+  font-weight: bold;
+}
+
+org-todo {
+  color: rgb(178, 34, 34);
+  font-weight: bold;
+}
+
+paren-match {
+  background: rgb(255, 236, 139);
+}
+
+paren-mismatch {
+  background: rgb(127, 0, 127);
+  color: rgb(255, 255, 255);
+}
+
+.preproc {
+  color: rgb(127, 0, 127);
+}
+
+prompt {
+  color: rgb(50, 95, 159);
+  font-weight: bold;
+}
+
+selection {
+  background: rgb(223, 232, 241);
+}
+
+statement {
+  color: rgb(255, 236, 139);
+}
+
+.string {
+  color: rgb(96, 107, 133);
+}
+
+struct {
+  color: rgb(223, 232, 241);
+}
+
+todo {
+  color: rgb(178, 34, 34);
+}
+
+tuareg-font-lock-governing-face {
+  color: rgb(50, 95, 159);
+}
+
+tuareg-font-lock-operator-face {
+  color: rgb(50, 95, 159);
+}
+
+.type {
+  color: rgb(48, 136, 118);
+}
+
+variable {
+  color: rgb(65, 137, 164);
+}
+
+warning {
+  color: rgb(255, 127, 0);
+  font-weight: bold;
+}
+
+textarea {
+  border: 1px solid black;
+}

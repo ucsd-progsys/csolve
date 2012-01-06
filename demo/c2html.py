@@ -38,7 +38,7 @@ def divpad(base):
   f   = open(src, "r")
   t   = open(base + suffix, "w")
   i   = 0
-  t.write("<div onmouseup = \"writeTypeOfSelectionLineToBox()\">\n\n")
+  t.write("<div id=\"code\" onmouseup = \"showTypeOfElement(event.srcElement)\">\n\n")
   for l in f:
     i +=1
     if (i == 5):
@@ -90,6 +90,7 @@ def make_ttab(src):
       st  = 1
       key = x[1]
       val = ""
+  tt[key] = val
   f.close()
   return tt
 
@@ -116,6 +117,6 @@ def gen_jscript(base):
 def main(base):
   gen_jscript(base)
   divpad(base)
-  common.cat_files([template_html, base + prefix, base + suffix], base + ".html")
+  common.cat_files([template_html, base + prefix, base + suffix], base + ".out.html")
 
 main(sys.argv[1])

@@ -1,3 +1,5 @@
+<link rel="stylesheet" type="text/css" href="style.css" />
+
 <script>
   function keyOfVarLine(v, l){
      return (v + " at " + l.toString());
@@ -28,16 +30,16 @@
     return (-1);
   }
    
-  function getText(sel){
-    if (sel) {
-      var s = typeOfName(sel);
-      if (s) return s;
+  function getText(elem){
+    var name = elem.innerHTML.trim()
+    var s = typeOfName(name);
+    if (s) return s;
       
-      var l = lineOfNode(sel.anchorNode);
-      var s = typeOfSrcVar(sel, l);
-      if (s) return s;
-    } 
-    return "???";
+    var l = lineOfNode(elem);
+    var s = typeOfSrcVar(name, l);
+    if (s) return s;
+
+    return "No type information for " + name + ".";
   }
 
   function alertSelection(){
@@ -45,15 +47,13 @@
     if (sel) alert(getText(sel));
   }
 
-  function writeTypeOfSelectionLineToBox(){
-    var sel = window.getSelection();
-    if (sel) {
-      var text = getText(sel);
-      document.forms[2].liquidText.value = text;
-    }
+  function showTypeOfElement(elem){
+    document.forms[0].liquidText.value = getText(elem);
   }
 </script>
 
-<FORM>
-<TEXTAREA NAME="liquidText" ROWS=6 COLS=120 WRAP="virtual"></TEXTAREA>
-</FORM>
+<div id="typeAnnots">
+  <form>
+    <textarea name="liquidText" rows=6 cols=120 wrap="virtual"></textarea>
+  </form>
+</div>
