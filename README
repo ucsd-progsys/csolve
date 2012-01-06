@@ -23,8 +23,8 @@ Configuring and Compiling
 To begin building CSolve, run the following commands in the root
 directory of the source distribution:
 
-1. ./configure (on a mac: ./configure.mac)
-2. ./build.sh
+  1. ./configure (on a mac: ./configure.mac)
+  2. ./build.sh
 
 To build CSolve after this step, run make in the src/ directory.
 
@@ -34,12 +34,14 @@ Testing CSolve
 To ensure that everything compiled successfully and CSolve is properly
 configured, change into the src/ directory and run
 
-./regrtest.py
+  ./regrtest.py
 
-All tests should pass.
+All tests should pass. (The regression tests may take some time to run;
+if you have multiple cores, pass the flag "-t n" to run the tests in
+n separate threads.)
 
 Running CSolve: csolve
--------------------------------------------------
+----------------------
 
 The CSolve executable, csolve, is used just like gcc.
 There are two common use cases:
@@ -280,26 +282,33 @@ memory and may never alias. As is the case with function parameters,
 we can explicitly name the locations x and y point to to indicate
 potential aliasing:
 
-  typedef struct {
+  struct pair {
     int * LOC(L) x;
     int * LOC(L) y;
-  } pair;
+  };
 
 The location L is now a parameter of the struct definition. In
 the function prototype
 
-  int setx (pair *p, int *x)
+  int setx (struct pair *p, int *x)
 
 the location L in the defintion of pair will be instantiated to a
 fresh location, i.e., one distinct from all other locations.  We can
 instantiate L with a specific location to indicate potential aliasing,
 for example, between x and p->x and p->y:
 
-  int setx (pair INST(L, K) *p, int * LOC(K) x)
+  int setx (struct pair INST(L, K) *p, int * LOC(K) x)
 
 Above, the locations of p->x and p->y, which are L inside the
 structure defintion, are instantiated to location K, which is the
 location given to the contents of parameter x.
+
+Similarly, types specified with typedefs are parameterized on their
+locations, so that in the definition
+
+  typedef int * LOC(L) intptr;
+
+the location L is a paraemeter of the type intptr.
 
 By default, CSolve assumes that a pointer to a location points to a
 single element of the pointer's base type. For example, the function
