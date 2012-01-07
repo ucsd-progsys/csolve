@@ -69,10 +69,31 @@
       document.forms[0].liquidText.value += "Line " + line + ":\n" + et[line];
     }
   }
+
+  function lookupVar(){
+    var re      = /\W/g;
+    var words   = document.forms[0].liquidText.value.split(re);
+    var pos     = document.forms[0].liquidText.selectionStart;
+    var current = "";
+
+    var chars = 0;
+    while (chars <= pos) {
+      if (words.length == 0) return;
+
+      current = words.shift ();
+      chars  += current.length + 1;
+
+      if (chars >= pos) {
+        var type = typeOfName(current);
+        if (type) document.forms[0].liquidText.value = type;
+        return;
+      }
+    }
+  }
 </script>
 
 <div id="typeAnnots">
   <form>
-    <textarea name="liquidText" rows=6 cols=120 wrap="virtual"></textarea>
+    <textarea name="liquidText" rows=6 cols=120 wrap="virtual" onclick="lookupVar()"></textarea>
   </form>
 </div>
