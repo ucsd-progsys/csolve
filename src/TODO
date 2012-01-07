@@ -1,13 +1,11 @@
-1. TO BE CONTINUED : Prettify 
+0. FIXPOINT COUNTEREXAMPLES
+    
+   val TPZ3.unsat_cores :: t -> pred -> [(a, pred)] -> [(b, pred)] -> [(b, [a])]
+   
+   val 
 
-t [...] 
-foo ( int x [...]
-    , int y [...]
-    , int z [...]
-    ) 
 
-HEREHEREHEREHERE
-../tests/postests/power.c,
+1. PRETTIFY (to be continued)
 
    >> render with C-Types (cf. GOAL below)
        >> field names instead of A90#Ix#6 etc.
@@ -26,11 +24,11 @@ HEREHEREHEREHERE
        >> print simple var names. 'x for old x for current, $x for input.
        >> print substs at end of annot (x := ..., 'x := ..., $x := ..., etc.)
 
-2. Rig parser to ignore stuff between /* ... */ then fix Ctypes.d_fieldinfo
+   >> Rig parser to ignore stuff between /* ... */ then fix Ctypes.d_fieldinfo
 
-3. Dump BSTATS out as JSON, sorted by times.
+   >> Dump BSTATS out as JSON, sorted by times.
 
-4. Error (associate string tags with constraints. "Dereference at line ...")
+   >> Error (associate string tags with constraints. "Dereference at line ...")
 
 prunelive OR removing constant-propped vars from WF-envs kills:
 
