@@ -19,7 +19,7 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import sys, string, shutil, json, common
+import sys, string, shutil, json, re, common
 
 template_html = "template.html" 
 tmp           = "c2html.tmp"
@@ -27,25 +27,42 @@ prefix	      = ".1"
 suffix	      = ".2"
 
 #########################################################################
-########### Pad HTML file with SPAN indicating Line Number ##############
+######### Format HTML file with SPANs indicating Line Number ############
 #########################################################################
 
-def pad(i,s):
-  return ("<span id=\"line:%d\"> %s </span>\n" % (i, s[:-1]))
+def format_line(i,et,s):
+  span_class = ""
+  if et.has_key(i):
+    span_class = "class=\"errorline\""
 
-def divpad(base):
+  return ("<span id=\"line:%d\" %s> %s </span>\n" % (i, span_class, s[:-1]))
+
+def make_error_link(text):
+  return "<a href=\"javascript:showErrors()\">%s</a>" % (text)
+
+def format_code(base, et):
   src = base + ".html"
   f   = open(src, "r")
   t   = open(base + suffix, "w")
   i   = 0
-  t.write("<div id=\"code\" onmouseup = \"showTypeOfElement(event.srcElement)\">\n\n")
+
+  t.write("<div id=\"code\" onmouseup = \"showAnnotOfElement(event.srcElement)\">\n\n")
+
+  num_errors = len(et.keys())
+  if num_errors == 0:
+    t.write("Safe!")
+  elif num_errors == 1:
+    t.write(make_error_link("There was 1 type error."))
+  else:
+    t.write(make_error_link("There were %d type errors." % (num_errors)))
+
   for l in f:
     i +=1
     if (i == 5):
       t.write(l[0:9] + "\n")
-      t.write(pad(1, l[9:]))
+      t.write(format_line(1, et, l[9:]))
     if (i > 5):
-      t.write(pad(i-4, l))
+      t.write(format_line(i-4, et, l))
   t.write("</div>")
   f.close()
   t.close()
@@ -94,15 +111,56 @@ def make_ttab(src):
   f.close()
   return tt
 
+error_re = re.compile (r"^\w+\.c:(\d+):$")
+
+def insert_append(d, i, v):
+  try:
+    d[i].append(v)
+  except KeyError:
+    d[i] = [v]
+
+def make_etab(src):
+  et    = {}
+  f     = open(src, "r")
+  st    = 0
+  line  = -1
+  error = []
+  for l in f:
+    if l.isspace ():
+      if st == 1:
+        st = 2
+      elif st == 2:
+        insert_append(et, line, "".join (error))
+        line  = -1
+        error = []
+        st    = 0
+
+    if st == 2:
+      error.append(l)
+
+    m = re.match(error_re, l)
+    if m != None:
+      line = int(m.group(1))
+      st = 1
+
+  insert_append(et, line, "".join (error))
+  f.close()
+  et.pop (-1)
+  return et
+
+def gen_annot_tables(base):
+  vt = make_vtab(base + ".vmap")
+  tt = make_ttab(base + ".annot")
+  et = make_etab(base + ".csolve.out")
+  return (vt, tt, et)
+
 #########################################################################
 ######################### Generate JavaScript File ######################
 #########################################################################
 
-def gen_jscript(base):
-  vt = make_vtab(base + ".vmap")
-  tt = make_ttab(base + ".annot")
-  js = "<script>\n  vt = eval(%s) \n  tt = eval(%s) \n</script>\n\n" 
-  js = js % (json.dumps(vt), json.dumps(tt))
+def gen_jscript(base, vt, tt, et):
+  js = "<script>\n  vt = eval(%s) \n  tt = eval(%s) \n  et = eval(%s) \n</script>\n\n" 
+  js = js % (json.dumps(vt), json.dumps(tt), json.dumps(et))
   f  = open(base + prefix, "w")
   f.write
   f.write(js)
@@ -112,11 +170,12 @@ def gen_jscript(base):
 ######################### Generate JavaScript File ######################
 #########################################################################
 
-# input:  base, base.vmap, base.annot, base.html
+# input:  base, base.vmap, base.annot, base.csolve.out, base.html
 # output: base.html
 def main(base):
-  gen_jscript(base)
-  divpad(base)
+  (vt, tt, et) = gen_annot_tables(base)
+  gen_jscript(base, vt, tt, et)
+  format_code(base, et)
   common.cat_files([template_html, base + prefix, base + suffix], base + ".out.html")
 
 main(sys.argv[1])

@@ -8,8 +8,16 @@ body {
   top: 0;
 }
 
+.errorline {
+  background: rgb(255, 230, 230);
+}
+
+.errorline:after {
+  content: "***";
+}
+
 #code {
-  padding-top: 8ex;
+  padding-top: 12ex;
 }
 
 bool {
@@ -209,5 +217,7 @@ warning {
 }
 
 textarea {
-  border: 1px solid black;
+  border: none;
+  border-bottom: 1px solid black;
+  font-family: monospace;
 }
