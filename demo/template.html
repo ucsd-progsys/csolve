@@ -48,6 +48,9 @@
   }
 
   function showTypeOfElement(elem){
+    if (!(elem.className == "normal" || elem.className == "function"))
+      return;
+
     document.forms[0].liquidText.value = getText(elem);
   }
 </script>
