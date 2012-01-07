@@ -91,7 +91,7 @@ let get_deps = fun me -> SM.fold (fun _ ds acc -> ds ++ acc) me.depm []
 
 let (++) = P.concat
 
-(* API *)
+(*
 let print so () me =
   match so with 
   | None -> (* print constraints *) 
@@ -109,6 +109,7 @@ let print so () me =
          |> Misc.flap C.bindings_of_env 
          |> CM.doc_of_formatter (Misc.pprint_many false "\n" (C.print_binding so))
          |> P.concat (P.text "Liquid Types:\n\n")
+*)
 
   
 type ('a, 'b, 'c, 'd, 'e) domain = 
