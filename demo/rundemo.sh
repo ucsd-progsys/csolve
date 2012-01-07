@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CSOLVE="limon ~/src/csolve/src/csolve"
+CSOLVE="../src/csolve"
 
 $CSOLVE "$1" > "$1.csolve.out"
 CSOLVE_EXIT=$?
