@@ -153,9 +153,7 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let _         = Errormsg.log "DONE: constraint solving \n" in
   let _         = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
   let _         = Errormsg.log "DONE: saving output constraints \n" in
-  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
-  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
-  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
+  let _         = Errormsg.s <| Errormsg.error "TBD: COUNTEREXAMPLES \n" in
     if !Constants.check_is
     then match cs' with
 	| [] -> (s', cs')

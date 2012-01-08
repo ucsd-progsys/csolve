@@ -1,9 +1,6 @@
 0. FIXPOINT COUNTEREXAMPLES
-    
-   val TPZ3.unsat_cores :: t -> pred -> [(a, pred)] -> [(b, pred)] -> [(b, [a])]
-   
-   val 
 
+let unsat_core me p ips iqs = failwith "TBD: TPZ3.unsat_core"
 
 1. PRETTIFY (to be continued)
 
