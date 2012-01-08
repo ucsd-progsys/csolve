@@ -141,18 +141,21 @@ let d_indexAbs =
   }
 
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
-  let env     = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let assm    = match so with Some s0 -> s0 | _ -> C.empty_solution in
-  let cfg     = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
-  let ctx, s  = BS.time "Qual Inst" dd.create cfg kf in
-  let _       = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _       = Errormsg.log "DONE: solution strengthening \n" in
-  let _       = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
-  let _       = Errormsg.log "DONE: saving input constraints \n" in
-  let s',cs'  = BS.time "Cons: Solve" (dd.solve ctx) s in 
-  let _       = Errormsg.log "DONE: constraint solving \n" in
-  let _       = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
-  let _       = Errormsg.log "DONE: saving output constraints \n" in
+  let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in
+  let cfg       = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs assm in
+  let ctx, s    = BS.time "Qual Inst" dd.create cfg kf in
+  let _         = Errormsg.log "DONE: qualifier instantiation \n" in
+  let _         = Errormsg.log "DONE: solution strengthening \n" in
+  let _         = BS.time "save in" (dd.save (fn^".in.fq") ctx) s in
+  let _         = Errormsg.log "DONE: saving input constraints \n" in
+  let s',cs',cx = BS.time "Cons: Solve" (dd.solve ctx) s in 
+  let _         = Errormsg.log "DONE: constraint solving \n" in
+  let _         = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
+  let _         = Errormsg.log "DONE: saving output constraints \n" in
+  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
+  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
+  let _         = Errormsg.warn "Deal with COUNTEREXAMPLES \n" in
     if !Constants.check_is
     then match cs' with
 	| [] -> (s', cs')
