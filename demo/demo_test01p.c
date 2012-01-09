@@ -1,4 +1,5 @@
-extern char* malloc(int);
+#include <csolve.h>
+#include <stdlib.h>
 
 int main(){
   int jhala = 1000;
@@ -10,10 +11,12 @@ int main(){
   int r1[5] = { 1, 2, 3, 4};
 
   *r = 5;
+  csolve_assert (0);
 
   y = *r;
 
-  assert(y >= 0);
+  csolve_assert(y >= 0);
 
+  csolve_assert (r1[4]);
   return 0;
 }
