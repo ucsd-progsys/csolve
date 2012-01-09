@@ -1159,6 +1159,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
   module ExpKey = struct
     type t      = Cil.exp
     let compare = compare
+    let print   = CilMisc.pretty_to_format Cil.d_exp
   end
 
   module ExpMap = Misc.EMap (ExpKey)

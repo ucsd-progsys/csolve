@@ -39,6 +39,8 @@ val is_null_expr     : Cil.exp -> bool
 val d_formatter      : (Format.formatter -> 'a -> unit) -> unit -> 'a -> Pretty.doc
 val doc_of_formatter : (Format.formatter -> 'a -> unit) -> 'a -> Pretty.doc
 val pretty_to_string : (unit -> 'a -> Pretty.doc) -> 'a -> string  
+val pretty_to_format : (unit -> 'a -> Pretty.doc) -> (Format.formatter -> 'a -> unit)
+
 val concat_docs      : Pretty.doc list -> Pretty.doc
 val d_many_parens    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_many_braces    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc

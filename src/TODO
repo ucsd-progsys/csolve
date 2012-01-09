@@ -1,6 +1,32 @@
 0. FIXPOINT COUNTEREXAMPLES
+  
+  let explain _n n c fact = 
+    let cands   = soln_delta_for c between _n and n (* as now *)
+    let n_cands = groupby killedAt candidates  |> sortby fst
+    let base    = (* as now *)
 
-let unsat_core me p ips iqs = failwith "TBD: TPZ3.unsat_core"
+        base /\ ~fact                       is SAT
+        base /\ ~fact /\i=0...n cands(i)    is UNSAT 
+
+    goal: find MAX j s.t.
+
+        base /\ ~fact /\i=j...n cands(i)    is UNSAT
+
+    how:
+        push.
+
+        assert_cnstr base /\ ~fact
+        for j = n downto 0
+          assert_cnstr cands(j)
+          if UNSAT then break
+        
+        pop.
+
+        // cands(j) contains the explanation. 
+
+    let bgp' = base /\ ~fact /\i=j+1..n cands(i)
+    real-explanation = unsat-core bgp' cands(j) fact
+
 
 1. PRETTIFY (to be continued)
 

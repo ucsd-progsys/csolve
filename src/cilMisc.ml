@@ -47,9 +47,12 @@ module ComparableVar =
     let compare v1 v2 = compare v1.vid v2.vid
     let equal v1 v2   = v1.vid = v2.vid
     let hash          = Hashtbl.hash
+    let print ppf v   = Format.fprintf ppf "%s" v.vname
   end
 
-let pretty_to_string f x = x |> f () |> Pretty.sprint ~width:80 
+let pretty_to_string f x = f () x |> Pretty.sprint ~width:80 
+
+let pretty_to_format f ppf x = Format.fprintf ppf "%s" (f () x |> Pretty.sprint ~width:80)
 
 type srcinfo = (* note *) string * (* provenance *) location 
 

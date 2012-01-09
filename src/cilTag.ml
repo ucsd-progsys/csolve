@@ -26,7 +26,9 @@ module ST  = Ssa_transform
 module H   = Hashtbl
 module SM  = Misc.StringMap
 module SIM = Misc.EMap (struct type t = string * int 
-                               let compare x y = compare x y end)
+                               let compare x y = compare x y 
+                               let print ppf (s, i) = Format.fprintf ppf "(%s, %d)" s i
+                        end)
 
 open Cil
 open Misc.Ops

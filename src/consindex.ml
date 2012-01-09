@@ -40,6 +40,7 @@ module PA  = PredAbs
 module SPA = Solve.Make (PA)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
+module Cx = Counterexample
 
 open Misc.Ops
 open Cil
@@ -111,7 +112,7 @@ let print so () me =
          |> P.concat (P.text "Liquid Types:\n\n")
 *)
 
-  
+
 type ('a, 'b, 'c, 'd, 'e) domain = 
   { create      : 'a 
   ; save        : 'b
@@ -140,6 +141,12 @@ let d_indexAbs =
   ; read_bind = SIA.read_bind
   }
 
+let dump_counterexamples = function
+  | []  -> ()
+  | cxs -> Format.printf "Counterexamples:\n%a" (Misc.pprint_many true "\n"
+  Cx.print_cex) cxs 
+
+
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in
@@ -153,7 +160,7 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let _         = Errormsg.log "DONE: constraint solving \n" in
   let _         = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
   let _         = Errormsg.log "DONE: saving output constraints \n" in
-  let _         = Errormsg.s <| Errormsg.error "TBD: COUNTEREXAMPLES \n" in
+  let _         = dump_counterexamples cx                           in
     if !Constants.check_is
     then match cs' with
 	| [] -> (s', cs')
