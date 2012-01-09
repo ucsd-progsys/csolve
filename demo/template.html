@@ -51,6 +51,22 @@
     if (sel) alert(getText(sel));
   }
 
+  function getAnnotText(text){
+    return document.forms[0].liquidText.value;
+  }
+
+  function setAnnotText(text){
+    document.forms[0].liquidText.value = text;
+  }
+
+  function appendAnnotText(text){
+    document.forms[0].liquidText.value += text;
+  }
+
+  function getAnnotClickPos(text){
+    return document.forms[0].liquidText.selectionStart;
+  }
+
   function showAnnotOfElement(elem){
     var text;
 
@@ -60,20 +76,20 @@
       text = errorOfLine(lineOfNode(elem));
     }
 
-    if (text) document.forms[0].liquidText.value = text;
+    if (text) setAnnotText(text);
   }
 
   function showErrors(){
-    document.forms[0].liquidText.value = "";
+    setAnnotText("");
     for (var line in et) {
-      document.forms[0].liquidText.value += "Line " + line + ":\n" + et[line];
+      appendAnnotText("Line " + line + ":\n" + et[line])
     }
   }
 
   function lookupVar(){
     var re      = /\W/g;
-    var words   = document.forms[0].liquidText.value.split(re);
-    var pos     = document.forms[0].liquidText.selectionStart;
+    var words   = getAnnotText().split(re);
+    var pos     = getAnnotClickPos();
     var current = "";
 
     var chars = 0;
@@ -85,7 +101,7 @@
 
       if (chars >= pos) {
         var type = typeOfName(current);
-        if (type) document.forms[0].liquidText.value = type;
+        if (type) setAnnotText(type);
         return;
       }
     }
@@ -94,6 +110,6 @@
 
 <div id="typeAnnots">
   <form>
-    <textarea name="liquidText" rows=6 cols=120 wrap="virtual" onclick="lookupVar()"></textarea>
+    <textarea name="liquidText" id="liquidText" wrap="virtual" onclick="lookupVar()"></textarea>
   </form>
 </div>
