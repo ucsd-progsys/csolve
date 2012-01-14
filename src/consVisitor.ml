@@ -324,7 +324,10 @@ let rename_binds_slocs subs binds =
   List.map (M.app_fst <| Sloc.Subst.apply subs) binds
 
 let rename_store lsubs subs st =
-  st |> FI.refstore_subs_locs lsubs |> FI.refstore_subs FI.t_subs_exps subs
+  st |> FI.refstore_subs_locs lsubs 
+     >> Pretty.printf "store a: %a\n" Ct.RefCTypes.Store.d_store
+     |> FI.refstore_subs FI.t_subs_exps subs
+     >> Pretty.printf "store b: %a\n" Ct.RefCTypes.Store.d_store
 
 let renamed_store_bindings lsubs subs st =
      st
@@ -449,7 +452,7 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
                 (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
           in
           let wld, cs2, wfs =
-            cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) (lvo, f, es) ns
+            cons_of_call me loc i j grd effs pre_mem_env (env, sto, tago) v (lvo, f, es) ns
           in
           (wld, cs1+++cs2, wfs)
         | _ -> assert false

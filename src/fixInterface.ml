@@ -498,9 +498,12 @@ let strengthen_refctype mkreft rct =
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> Su.simultaneous_of_list
+          >> Format.printf "Sub: %a\n" Ast.Subst.print
       |> C.theta
       |> Misc.app_snd
-      |> RCt.CType.map
+      |> fun f -> RCt.CType.map (fun (b, rct) ->let (b, rct) = f (b, rct) in
+      Format.printf "reft: %a\n" (C.print_reft None) rct; (b,rct))
+         
 
 
 (* API *)
@@ -600,6 +603,7 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
+  let _ = List.map (fun (s1,s2) -> Pretty.printf "%a << %a\n" Sloc.d_sloc s1 Sloc.d_sloc s2) lsubs in
   let _ = List.map (fun (s1, s2) -> Pretty.printf "%a << %a\n" FA.d_name s1 FA.d_name s2) subs in 
     RCt.Store.Data.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
