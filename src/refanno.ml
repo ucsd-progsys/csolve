@@ -314,6 +314,7 @@ let annotate_set ctm theta conc = function
       let cl = cloc_of_v theta al v2 in
       instantiate (fun (x,y) -> Ins (v2.vname,x,y)) conc al cl Read
 
+
   (* v := e *)
   | (Var v, _), e ->
       e >> (CilMisc.is_pure_expr CilMisc.StringsArePure <+> (fun b -> asserts b "impure expr")) 

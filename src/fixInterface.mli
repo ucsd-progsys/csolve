@@ -92,13 +92,15 @@ val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.ref
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
 val t_valid_ptr         : Ctypes.ctype -> Ctypes.refctype
+val t_start_ptr         : Ctypes.ctype -> Ctypes.refctype
 val t_ptr_footprint     : cilenv -> Cil.varinfo -> Ctypes.refctype
+val t_fptr_footprint    : cilenv -> Cil.varinfo -> Ctypes.refctype
 val t_exp               : cilenv -> Ctypes.ctype -> Cil.exp -> Ast.pred option * Ctypes.refctype
 val t_exp_scalar        : Cil.varinfo -> Cil.exp -> Ctypes.refctype
 val t_name              : cilenv -> FixAstInterface.name -> Ctypes.refctype
 val t_ctype_refctype    : Ctypes.ctype -> Ctypes.refctype -> Ctypes.refctype
 val t_addr              : Sloc.t -> Ctypes.refctype
-
+val t_fresh_fn          : Ctypes.refcfun -> Ctypes.refcfun
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
@@ -138,9 +140,9 @@ val refstore_subs_locs  : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.re
 val effectset_subs      : ('a -> Ctypes.effectptr -> Ctypes.effectptr) -> 'a -> Ctypes.effectset -> Ctypes.effectset
 val effectset_subs_locs : (Sloc.t * Sloc.t) list -> Ctypes.refstore -> Ctypes.effectset -> Ctypes.effectset
 
-val make_wfs            : cilenv -> Ctypes.refstore -> Ctypes.refctype -> CilTag.t -> FixConstraint.wf list
-val make_wfs_fn         : cilenv -> Ctypes.refcfun -> CilTag.t -> FixConstraint.wf list
-val make_wfs_refstore   : cilenv -> Ctypes.refstore -> Ctypes.refstore -> CilTag.t -> FixConstraint.wf list
+val make_wfs            : cilenv -> Ctypes.refstore -> Ctypes.refctype -> FixConstraint.wf list
+val make_wfs_fn         : cilenv -> Ctypes.refcfun -> FixConstraint.wf list
+val make_wfs_refstore   : cilenv -> Ctypes.refstore -> Ctypes.refstore -> FixConstraint.wf list
 val make_wfs_effectset  : cilenv -> Ctypes.refstore -> Ctypes.effectset -> FixConstraint.wf list
 
 val make_cs             : cilenv -> Ast.pred -> 

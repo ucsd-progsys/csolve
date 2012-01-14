@@ -4,7 +4,7 @@ type name = (* TBD: private *) Ast.Symbol.t
 
 val d_name : unit -> name -> Pretty.doc
 val so_ref : Sloc.t -> Ast.Sort.t
-val so_fref: 'a Ctypes.precfun -> Ast.Sort.t
+val so_fref: Ast.Sort.t
 val so_int: Ast.Sort.t
 val vv_int : Ast.Symbol.t
 

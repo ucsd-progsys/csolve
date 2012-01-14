@@ -95,6 +95,7 @@ rule token = parse
   | "mod"               { MOD }
   | "int"               { INT }
   | "ptr"               { PTR }
+  | "fptr"              { FPTR }
   | "bool"              { BOOL }
   | "final"             { FINAL }
   | "func"              { FUNC }

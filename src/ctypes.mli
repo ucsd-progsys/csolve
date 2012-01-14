@@ -344,10 +344,13 @@ type cfun   = I.CFun.t
 type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
+    
+val null_fun     : Index.t precfun
 
 val void_ctype   : ctype
 val ptr_ctype    : ctype
 val scalar_ctype : ctype
+val fptr_ctype   : ctype
 
 val vtype_to_ctype : Cil.typ -> ctype  
 

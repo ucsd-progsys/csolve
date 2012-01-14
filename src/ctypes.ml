@@ -1200,12 +1200,25 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.none, N.top)
-let scalar_ctype = Int (0, N.top)
+let null_fun      = {args = [];
+                     ret  = Int (0, N.top);
+                     globlocs = [];
+                     sto_in = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
+                     sto_out = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
+                     effects = SLM.empty}
+  
+let void_ctype   = Int  (0, N.top)
+let ptr_ctype    = Ref  (S.none, N.top)
+let scalar_ctype = Int  (0, N.top)
+let fptr_ctype   = FRef (null_fun, N.top)
 
-let vtype_to_ctype v = if Cil.isArithmeticType v
-                         then scalar_ctype else ptr_ctype
+let rec vtype_to_ctype v = if Cil.isArithmeticType v
+  then scalar_ctype
+  else match v with
+    | Cil.TNamed ({C.ttype = v'},_) -> vtype_to_ctype v'
+    | Cil.TPtr (Cil.TFun _, _) -> fptr_ctype
+    | _ -> ptr_ctype
+
 
 let d_ctype        = I.CType.d_ctype
 let index_of_ctype = I.CType.refinement

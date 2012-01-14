@@ -575,6 +575,9 @@ let g_halt (b: bool) =
 
 let is_fun    = fun v -> match unrollType v.vtype with TFun (_,_,_,_) -> true | _ -> false
 let is_scalar = fun v -> match unrollType v.vtype with TInt (_,_) -> true | _ -> false
+let is_funptr = fun v -> match unrollType v.vtype with
+  | TPtr (TFun (_,_,_,_),_) -> true
+  | _ -> false
 
 (***************************************************************************************)
 (*************** Cil Summarizers *******************************************************)

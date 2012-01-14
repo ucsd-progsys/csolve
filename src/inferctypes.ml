@@ -136,11 +136,11 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     | (C.Var v, C.NoOffset) as lv ->
         begin match et#ctype_of_exp (C.AddrOf lv) with
           | FRef (f, _) -> ()
-          | Ref (l, _) ->
-               fst (VM.find v fs)
-            |> UStore.add_fun !sto !sub l
-            |> M.swap
-            |> self#set_sub_sto
+          (* | REF (l, _) -> *)
+          (*      fst (VM.find v fs) *)
+          (*   |> UStore.add_fun !sto !sub l *)
+          (*   |> M.swap *)
+          (*   |> self#set_sub_sto *)
           | _ -> assert false
         end
     | _ -> assert false
@@ -310,7 +310,8 @@ class exprMapVisitor (et) = object (self)
   method vexpr e =
     begin match e |> C.typeOf |> C.unrollType with
       | C.TFun _ -> () (* pmr: revisit - begging for an assert false here? *)
-      | _        -> em := I.ExpMap.add e (et#ctype_of_exp e) !em
+      | _        ->  
+        em := I.ExpMap.add e (et#ctype_of_exp e) !em
     end;
     C.DoChildren
 
@@ -325,7 +326,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
   let sub, sto     = constrain_phis ve phis sub sto in
-  let et           = new exprTyper (ve) in
+  let et           = new exprTyper (ve,fs) in
   let blocks       = cfg.Ssa.blocks in
   let bas          = Array.make (Array.length blocks) [] in
   let sub, sto     =
@@ -470,7 +471,18 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
       E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
                S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
+let fref_lookup args v = function
+  | (FRef _) as t -> (try List.assoc v args with Not_found -> t)
+  | t -> t
+
+let replace_formal_frefs {args = args} vm =
+  vm
+  |> CM.vm_to_list
+  |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
+  |> CM.vm_of_list
+               
 let infer_shape fe ve gst scim (cf, sci, vm) =
+  let vm                    = replace_formal_frefs cf vm in
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
   let sto                   = Store.upd cf.sto_out gst in
   let em, bas, sub, sto     = constrain_fun fe cf ve sto sci in
@@ -555,8 +567,6 @@ let infer_shapes cil spec scis =
            |> List.map (fun f -> (f, spec |> CSpec.funspec |> SM.find f.C.vname |> fst))
            |> List.fold_left (fun fe (f, cf) -> VM.add f (funenv_entry_of_cfun cf) fe) VM.empty in
   let xm = SM.fold (fun _ (_, sci, _) xm -> VM.add sci.ST.fdec.C.svar sci xm) scis VM.empty in
-  let _  = VM.map (fun smap -> SM.map (fun k -> Pretty.printf "-->%s\n" k)) xm in
-  let _ = VM.map (fun ctyp -> Pretty.printf "(%a)\n" d_ctype ctyp) ve in
   scis
   |> SM.map (infer_shape fe ve (CSpec.store spec) xm)
   |> FinalFields.infer_final_fields spec scis 

@@ -333,7 +333,7 @@ let is_formal fdec v =
 let is_undefined me v = 
   is_undef_var me.formalm v || SM.mem v.vname me.undefm
 
-let ctype_of_expr me e = 
+let ctype_of_expr me e =
   match me.shapeo with 
   | Some {shp = shp} -> begin 
       try EM.find e shp.Sh.etypm with Not_found -> 
@@ -501,7 +501,7 @@ let create_shapeo tgr gnv env gst sci = function
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
       let loc     = sci.ST.fdec.svar.vdecl in
-      let ws      = FI.make_wfs_refstore env lastore lastore tag ++ FI.make_wfs_effectset env lastore aeffs in
+      let ws      = FI.make_wfs_refstore env lastore lastore ++ FI.make_wfs_effectset env lastore aeffs in
       let irf     = FI.ce_find_fn sci.ST.fdec.svar.vname gnv in
       let istore  = irf |> Ct.stores_of_refcfun |> fst in
       let cs1, ds1 = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in

@@ -101,7 +101,7 @@ let currentLoc () =
 %token PLUSMINUS
 %token TIMES 
 %token QM DOT ASGN
-%token INT BOOL PTR FUNC
+%token INT BOOL FPTR PTR FUNC
 %token SRT AXM CST WF SOL QUL
 %token ENV GRD LHS RHS REF FREF TOP
 %token FINAL
@@ -251,8 +251,11 @@ reftype:
                                         }
   | FREF LPAREN funtyp COMMA index COMMA LC Id MID pred RC RPAREN
                                         { let ct = Ctypes.FRef (Ctypes.cfun_of_refcfun $3, $5) in
+
                                           let v = Sy.of_string $8 in
-                                          FI.t_pred ct v $10
+                                          let r = FI.t_pred ct v $10
+                                                  |> Ctypes.reft_of_refctype in
+                                          Ctypes.FRef ($3, ($5, r))
                                         }
   | ctype                               { FI.t_true $1 }
   ;
@@ -279,7 +282,7 @@ ubound:
 argbinds:
     LPAREN RPAREN                       { [] }
   | LPAREN argbindsne RPAREN            { $2 }
-  ;
+ ; 
 
 argbindsne:
     argbind                             { [$1] }
@@ -362,6 +365,7 @@ sortsne:
 sort:
   | INT                                 { So.t_int }
   | PTR                                 { So.t_ptr (So.Lvar 0) }
+  | FPTR                                { So.t_fptr }
   | PTR LPAREN Num RPAREN               { So.t_ptr (So.Lvar $3) }
   ;
 

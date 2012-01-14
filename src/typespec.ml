@@ -152,6 +152,13 @@ let ptrReftypeOfSlocAttrs l tb ats =
     FI.t_spec_pred (Ct.Ref (l, index)) vv pred
 let ptrReftypeOfAttrs tb ats =
   ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
+    
+let fptrReftOfAttrs tb ats =
+  let pred = predOfAttrs (Some tb) ats in
+  let index = if C.hasAttribute CM.ignoreIndexAttribute ats then
+                I.top 
+               else ptrIndexOfPredAttrs tb pred ats in
+  FI.t_spec_pred (Ct.FRef (Ct.null_fun,index)) vv pred
 
 let intReftypeOfAttrs width ats =
   let pred  = predOfAttrs None ats in
@@ -313,10 +320,12 @@ let rec refctypeOfCilType mem t = match normalizeType t with
   | C.TFloat (fk, ats)   -> intReftypeOfAttrs (CM.bytesSizeOfFloat fk) ats
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
-  | C.TPtr (C.TFun _ as t, ats) ->
-    begin match ptrReftypeOfAttrs t ats with
-      | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType t, (i, r))
-    end
+  | C.TPtr (C.TFun _ as f, ats) ->
+    let (Ct.FRef (_, r)) = fptrReftOfAttrs t ats
+    in Ct.FRef (preRefcfunOfType f, r)
+    (* begin match ptrReftypeOfAttrs t ats with *)
+    (*   | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType f, (i, r)) *)
+    (* end *)
   | C.TPtr (t, ats)      ->
     begin match CM.typeName t with
       | Some n when SM.mem n mem -> begin
@@ -549,7 +558,13 @@ let writeSpec (funspec, varspec, storespec, sts) outfilename =
 let writeSpecOfFile file outfilename =
   let _          = E.log "START: Generating Specs \n" in
   let funs, vars = declarationsOfFile file in
-  let spec       = specsOfDecs funs vars in
+  let (f,t,sto,st) as spec = specsOfDecs funs vars in
   let _          = writeSpec spec outfilename in
   let _          = assertExternDeclarationsValid (funs ++ vars) in
-    ignore <| E.log "DONE: Generating Specs \n"
+   (* ignore <| E.log "DONE: Generating Specs \n" *)
+  let _ = E.log "DONE: Generating Specs \n" in
+  Ctypes.RefCTypes.Spec.make 
+    (Misc.StringMap.of_list f)
+    (Misc.StringMap.of_list t)
+    sto st
+    
