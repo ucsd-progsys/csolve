@@ -324,10 +324,14 @@ let rename_binds_slocs subs binds =
   List.map (M.app_fst <| Sloc.Subst.apply subs) binds
 
 let rename_store lsubs subs st =
-  st |> FI.refstore_subs_locs lsubs 
+  st 
      >> Pretty.printf "store a: %a\n" Ct.RefCTypes.Store.d_store
-     |> FI.refstore_subs FI.t_subs_exps subs
+    >> (fun _ -> Ast.Subst.publicdebug := true)
+    |> FI.refstore_subs_locs lsubs 
      >> Pretty.printf "store b: %a\n" Ct.RefCTypes.Store.d_store
+    >> (fun _ -> Ast.Subst.publicdebug := false)
+     |> FI.refstore_subs FI.t_subs_exps subs
+     >> Pretty.printf "store c: %a\n" Ct.RefCTypes.Store.d_store
 
 let renamed_store_bindings lsubs subs st =
      st

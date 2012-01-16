@@ -61,6 +61,7 @@ open Misc.Ops
 open Cil
 
 let mydebug = false
+let publicdebug = ref false
 
 type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
               ; venv  : Ct.refctype YM.t (* variable reftype environment  *)
@@ -494,15 +495,19 @@ let strengthen_refctype mkreft rct =
   let so   = C.sort_of_reft reft in
   let ras  = C.ras_of_reft reft in
   replace_reft (C.make_reft vv so (mkreft rct @ ras)) rct
+    
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> Su.simultaneous_of_list
-          >> Format.printf "Sub: %a\n" Ast.Subst.print
+          >> (fun x -> 
+                if !Ast.Subst.publicdebug 
+                then let _ = Format.printf "Sub: %a\n" Ast.Subst.print x in x 
+                else x)
       |> C.theta
       |> Misc.app_snd
-      |> fun f -> RCt.CType.map (fun (b, rct) ->let (b, rct) = f (b, rct) in
-      Format.printf "reft: %a\n" (C.print_reft None) rct; (b,rct))
+      |> fun f -> RCt.CType.map (fun (b, rct) ->let (b, rct') = f (b, rct) in
+                                                if !Ast.Subst.publicdebug then Format.printf "reft: %a -> %a\n" (C.print_reft None) rct (C.print_reft None) rct' else Format.printf ""; (b,rct'))
          
 
 
