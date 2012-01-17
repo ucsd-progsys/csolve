@@ -42,7 +42,7 @@ node * root(list * l)
 
 list * newList(int sz)
 {
-  list * l = UNQ malloc(sizeof(node*) * sz);
+  list * l = UNQ malloc(sizeof(node *) * sz);
   foreach (i, 0, sz)
     l[i] = malloc(sizeof(node));
   endfor
