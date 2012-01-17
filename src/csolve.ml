@@ -145,7 +145,7 @@ let spec_of_file outprefix file =
   let specfile = outprefix^".autospec" in
     Typespec.writeSpecOfFile file specfile
     |> Ctypes.RefCTypes.Spec.map begin fun rct ->
-        Ctypes.ctype_of_refctype rct 
+        Ctypes.ctype_of_refctype rct
         |> Misc.flip FixInterface.t_ctype_refctype rct
     end
     (* specfile |> parseOneSpec |> Misc.maybe *)

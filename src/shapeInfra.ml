@@ -151,12 +151,7 @@ class exprTyper (ve,fe) = object (self)
   method private ctype_of_addrof = function
     | C.Var v, C.NoOffset when CM.is_fun v ->
       let fspec,_ = VM.find v !fe in
-      let _ = Pretty.printf "Found %s = %a\n" v.Cil.vname Ctypes.I.CFun.d_cfun fspec in
       FRef (fspec, Index.IInt 0)
-    (* | C.Var v, C.NoOffset when CM.is_fun v -> *)
-    (*    let fspec = Typespec.preRefcfunOfType v.C.vtype in *)
-    (*      FRef (RefCTypes.CFun.map (RefCTypes.CType.map fst) fspec, *)
-    (*            Index.IInt 0) *)
     | lv -> 
         E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
 

@@ -61,7 +61,6 @@ open Misc.Ops
 open Cil
 
 let mydebug = false
-let publicdebug = ref false
 
 type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
               ; venv  : Ct.refctype YM.t (* variable reftype environment  *)
@@ -291,11 +290,9 @@ let ra_ptr_footprint env v =
 let p_fptr_footprint vv v =
   let evv  = A.eVar vv in
   let eptr = v |> FA.name_of_varinfo |> A.eVar in
-  let sz   = v.vtype |> CM.ptrRefType |> CM.bytesSizeOf |> A.eInt in
     A.pAnd [A.pEqual (FA.eApp_bbegin evv, FA.eApp_bbegin eptr);
             A.pEqual (FA.eApp_bend evv, FA.eApp_bend eptr);
             A.pEqual (FA.eApp_uncheck evv, FA.eApp_uncheck eptr);
-            (* A.pAtom (evv, A.Lt, A.eBin (eptr, A.Plus, sz *)
             A.pAtom (eptr, A.Eq, evv)]
 
 let ra_fptr_footprint env v =
@@ -500,15 +497,9 @@ let strengthen_refctype mkreft rct =
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
       |> Su.simultaneous_of_list
-          >> (fun x -> 
-                if !Ast.Subst.publicdebug 
-                then let _ = Format.printf "Sub: %a\n" Ast.Subst.print x in x 
-                else x)
       |> C.theta
       |> Misc.app_snd
-      |> fun f -> RCt.CType.map (fun (b, rct) ->let (b, rct') = f (b, rct) in
-                                                if !Ast.Subst.publicdebug then Format.printf "reft: %a -> %a\n" (C.print_reft None) rct (C.print_reft None) rct' else Format.printf ""; (b,rct'))
-         
+      |> RCt.CType.map
 
 
 (* API *)
@@ -608,8 +599,6 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-  let _ = List.map (fun (s1,s2) -> Pretty.printf "%a << %a\n" Sloc.d_sloc s1 Sloc.d_sloc s2) lsubs in
-  let _ = List.map (fun (s1, s2) -> Pretty.printf "%a << %a\n" FA.d_name s1 FA.d_name s2) subs in 
     RCt.Store.Data.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
 let effectset_subs_locs lsubs sto effs =

@@ -135,9 +135,18 @@ let defaultPredsOfAttrs tbo ats = match tbo with
       [nonnullRoomForPred tb; nonnullPred; eqBlockBeginPred]
   | _ -> []
 
+let defaultFptrPredsOfAttrs tbo ats = match tbo with
+  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+    let tb = annotatedPointerBaseType ats tb in
+      [nonnullPred; eqBlockBeginPred]
+  | _ -> []
+  
 let predOfAttrs tbo ats =
   A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultPredsOfAttrs tbo ats)
 
+let fptrPredOfAttrs tbo ats =
+  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultFptrPredsOfAttrs tbo ats)
+    
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
@@ -154,7 +163,7 @@ let ptrReftypeOfAttrs tb ats =
   ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
     
 let fptrReftOfAttrs tb ats =
-  let pred = predOfAttrs (Some tb) ats in
+  let pred = fptrPredOfAttrs (Some tb) ats in
   let index = if C.hasAttribute CM.ignoreIndexAttribute ats then
                 I.top 
                else ptrIndexOfPredAttrs tb pred ats in

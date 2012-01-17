@@ -193,10 +193,7 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
         | Ct.FRef (f, r) as rct, cds ->
           let f'   = FI.t_fresh_fn f in
           let rct = Ct.FRef (f', r) in
-          let _ = Pretty.printf "%a AND %a\n" Ct.RefCTypes.CFun.d_cfun (FI.ce_find_fn v.vname env) Ct.RefCTypes.CFun.d_cfun f' in
           (rct,cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) f' tag loc)
-        (* | Ct.Ref (l, _) as rct, cds -> *)
-        (*   (rct, cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) (RS.Function.find sto l) tag loc) *)
         | _ -> assert false
       end
   | e when is_string_ptr_expr e ->
@@ -205,15 +202,6 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
   (* fptr *)
   | Lval (Var v, NoOffset) as e when CM.is_funptr v ->
     (v |> FA.name_of_varinfo |> Misc.flip FI.ce_find env), ([], [])
-    (* let vn  = FA.name_of_varinfo v in *)
-    (* begin match t_exp_with_cs me loc tago tag grd env e, FI.ce_find vn env with *)
-    (*   | (Ct.FRef (f, r),cds), Ct.FRef (f', r') -> *)
-    (*     let f   = FI.t_fresh_fn f in *)
-    (*     let rct = Ct.FRef (f, r) in *)
-    (*     let _ = Pretty.printf "%s == %a\n" v.vname Ct.RefCTypes.CFun.d_cfun f' in *)
-    (*     let _ = Pretty.printf "%a <: %a\n" Ct.RefCTypes.CFun.d_cfun f' Ct.RefCTypes.CFun.d_cfun f in *)
-    (*     (rct, cds +++ FI.make_cs_refcfun env grd f' f tag loc) *)
-    (* end *)
   (* e, where e is pure *)
   | e when CM.is_pure_expr CM.StringsAreNotPure e ->
     t_exp_with_cs me loc tago tag grd env e 
@@ -324,20 +312,11 @@ let rename_binds_slocs subs binds =
   List.map (M.app_fst <| Sloc.Subst.apply subs) binds
 
 let rename_store lsubs subs st =
-  st 
-     >> Pretty.printf "store a: %a\n" Ct.RefCTypes.Store.d_store
-    >> (fun _ -> Ast.Subst.publicdebug := true)
-    |> FI.refstore_subs_locs lsubs 
-     >> Pretty.printf "store b: %a\n" Ct.RefCTypes.Store.d_store
-    >> (fun _ -> Ast.Subst.publicdebug := false)
-     |> FI.refstore_subs FI.t_subs_exps subs
-     >> Pretty.printf "store c: %a\n" Ct.RefCTypes.Store.d_store
+  st |> FI.refstore_subs_locs lsubs |> FI.refstore_subs FI.t_subs_exps subs
 
 let renamed_store_bindings lsubs subs st =
      st
-       >> Pretty.printf "Store 1 %a\n" Ct.RefCTypes.Store.d_store
   |> rename_store lsubs subs
-       >> Pretty.printf "Store 2 %a\n" Ct.RefCTypes.Store.d_store
   |> RS.bindings
   |> fun (slds, sfuns) -> (rename_binds_slocs lsubs slds, rename_binds_slocs lsubs sfuns)
 
@@ -397,7 +376,6 @@ let store_bindings_of_store_effects (ldbs, fnbs) =
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
-  let _ = List.map (fun (l1,l2) -> Pretty.printf "[%a:=%a]\n" Sloc.d_sloc l1 Sloc.d_sloc l2) lsubs in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
   let tag       = CF.tag_of_instr me i j     loc in
@@ -407,10 +385,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
                       (cs ++ cs2, cr)
                   end [] es in
     (* let fref_wfs = Misc.flap begin function | Ct.FRef (f, r) -> FI.make_wfs_fn env f | _ -> [] end ecrs in *)
-  (* let _ = List.map (fun arg -> Pretty.printf "arg: %a\n" Ct.RefCTypes.CType.d_ctype (snd arg)) args in *)
-  (* let _ = List.map (fun arg -> Pretty.printf "earg: %a\n" Ct.RefCTypes.CType.d_ctype arg) ecrs in *)
   let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
-  (* let _ = Format.printf ">>> %a<<<\n" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs1 in *)
   let stbs             = RS.bindings st in
   let istbs            = frt.Ct.sto_in
                       >> check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs
@@ -424,7 +399,6 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   
   let cs2,_               = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
   let cs3,_               = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
-  let _ = Format.printf ">>> %a<<<\n" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs3 in
   let ds3                 = [FI.make_dep false (Some tag') None] in 
 
   let st'                 = List.fold_left begin fun st (sloc, ld) ->
@@ -434,12 +408,9 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let stebs               = RS.join_effects st' effs in
   let ostebs              = filter_poly_effects_binds ostebs ns in
   let cs4, _              = FI.make_cs_effectset_binds false env grd ostebs stebs tago tag' loc in
-  (* let _ = Format.printf ">>> %a<<<\n" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs4 in *)
   let retctype            = Ct.ret_of_refcfun frt in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
-  (* let _ = Format.printf ">>> %a<<<\n" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs5 in *)
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  (* let _ = Format.printf ">>> %a<<<\n" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs6 in *)
   wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs)
 
 
@@ -448,7 +419,6 @@ let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (l
   | Lval (Var v, NoOffset) when not v.Cil.vglob ->
       begin match v |> FA.name_of_varinfo |> FI.t_name env with
         | Ct.FRef (f, _) ->
-          let _ = Pretty.printf "****CHECK T_FPTR_FOOTPRINT****@!" in
           let cs1 = if !Cs.manual then ([], []) else
               let tag = CF.tag_of_instr me i j loc in
               let rct = FI.t_fptr_footprint env v in
@@ -739,11 +709,6 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
     let rhs  = let nj = FA.name_of_varinfo vj in
                FI.ce_find nj envj |> FI.t_subs_names subs in
     let cs = FI.make_cs envi grdij lhs rhs None tagi loci in cs
-    (* match lhs, rhs with *)
-    (*   | Ct.FRef (f, _), Ct.FRef (g, _) -> *)
-    (*     let _ = Pretty.printf "%a <: %a@!" Ct.RefCTypes.CFun.d_cfun f Ct.RefCTypes.CFun.d_cfun g in *)
-    (*     (FI.make_cs_refcfun envi grdij f g tagi loci) +++ cs  *)
-    (*   | _ -> cs *)
   end vjvis
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
@@ -897,7 +862,6 @@ let make_cs_if b lcs =
 
 (* API *)
 let cons_of_decs tgr spec gnv gst decs =
-  let _ = Pretty.printf "gst: %a\n" Ct.RefCTypes.Store.d_store gst in
   let ws, cs = cons_of_global_store tgr spec decs gst in
   List.fold_left begin fun (ws, cs, _, _) -> function
     | CM.FunDec (fn, _, loc) ->
@@ -914,7 +878,6 @@ let cons_of_decs tgr spec gnv gst decs =
         let tag        = CilTag.make_global_t tgr loc in
         let vtyp       = FI.ce_find (FA.name_of_string v.vname) gnv in
         let vspctyp, s = spec |> CS.varspec |> SM.find v.vname in 
-        let _ = Pretty.printf "vspctyp: %a\n" Ct.RefCTypes.CType.d_ctype vspctyp in
         let cs'        = cons_of_var_init tag loc gst v vtyp (init_of_var v init) in
         let cs''       = make_cs_if (should_subtype s)
                            (lazy (FI.make_cs FI.ce_empty Ast.pTrue vspctyp vtyp None tag loc)) in

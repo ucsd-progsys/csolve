@@ -116,11 +116,9 @@ let ctype_of_var_index v ix =
   | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
   | Cil.TVoid _             -> Ct.void_ctype
   | Cil.TPtr ((Cil.TFun _) as f,_) ->
-    (* let fspec = Typespec.preRefcfunOfType f in *)
-    let f,x,y    = (* Cil.typeAddAttributes v.Cil.vattr v.Cil.vtype *)
-                   f
-                   |> Typespec.preRefcfunOfType
-                   |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
+    let f,x,y    = f |> Cil.typeAddAttributes v.Cil.vattr
+                     |> Typespec.preRefcfunOfType
+                     |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
     Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) f, ix)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname

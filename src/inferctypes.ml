@@ -136,11 +136,6 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
     | (C.Var v, C.NoOffset) as lv ->
         begin match et#ctype_of_exp (C.AddrOf lv) with
           | FRef (f, _) -> ()
-          (* | REF (l, _) -> *)
-          (*      fst (VM.find v fs) *)
-          (*   |> UStore.add_fun !sto !sub l *)
-          (*   |> M.swap *)
-          (*   |> self#set_sub_sto *)
           | _ -> assert false
         end
     | _ -> assert false
@@ -241,9 +236,6 @@ let find_function et fs sub sto = function
     match e |> et#ctype_of_exp |> Ct.subs sub with
       | FRef (f, _) -> f
       | _ -> assert false
-      (* match e |> et#ctype_of_exp |> Ct.subs sub |> Ct.sloc with *)
-      (*   | Some l -> Store.Function.find sto l *)
-      (*   | None   -> assertf "This guy..." (\* false *\) *)
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let _ = C.currentLoc := C.get_instrLoc i in
