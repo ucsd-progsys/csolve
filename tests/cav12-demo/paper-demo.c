@@ -7,17 +7,14 @@
 
 #include <csolve.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 // Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
-typedef struct {
-  int                                   len;
-  char * ARRAY SIZE_GE(len) LOC(STRLOC) str;
+typedef struct _field {
+  int                                       len;
+  char * ARRAY SIZE_GE(len) LOC(STRLOC)     str;
+  struct _field * NNROOM_FOR(struct _field) next;
 } INST(STRLOC, STRLOC) field;
-
-typedef struct _field_list {
-  field INST(STRLOC, STRLOC) * fld;
-  struct _field_list *         next;
-} INST(STRLOC, STRLOC) field_list;
 
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
@@ -30,24 +27,23 @@ char * ARRAY LOC(L) NNREF(V >= s) NNREF(V < s + n) NNREF(PEQBLOCK(s))
   return NULL;
 }
 
-// Cut down cruft by returning in reverse order?
+void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG IGNORE_INDEX n)
+  CHECK_TYPE {
+  for (int i = 0; i < n && *s != '\0'; i++)
+    s[i] = tolower (s[i]);
+}
+
 // Also do something with the fields, like lowercase their contents
-field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, int NONNEG n)
+field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, int NONNEG n)
   CHECK_TYPE
 {
-  field_list head;
-  head.fld  = NULL;
-  head.next = NULL;
-
-  field_list *last = &head;
-  while (1) {
-    field_list *fl = (field_list *) malloc (sizeof (field_list));
-    field *f       = (field *) malloc (sizeof (field));
-    fl->next       = NULL;
-    fl->fld        = f;
-
-    f->str         = s;
-    char *comma    = strnchr (s, n, ',');
+  field *last = NULL;
+  while (n > 0) {
+    field *f    = (field *) malloc (sizeof (field));
+    f->next     = last;
+    f->str      = s;
+    char *comma = strnchr (s, n, ',');
+    validptr (s);
 
     if (!comma) {
       f->len = n;
@@ -61,10 +57,8 @@ field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, in
     f->len     = comma - s;
     n         -= f->len + 1;
     s          = comma + 1;
-
-    last->next = fl;
-    last       = fl;
+    last       = f;
   }
 
-  return head.next;
+  return last;
 }
