@@ -39,28 +39,28 @@ field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, in
   head.next = NULL;
 
   field_list *last = &head;
+  // can we guarantee n >= 0 in this loop?
   while (n > 0) {
-    char *comma = strnchr (s, n, ',');
-    CSOLVE_ASSUME (comma != 0);
+    field_list *fl = (field_list *) malloc (sizeof (field_list));
+    field *f       = (field *) malloc (sizeof (field));
+    fl->next       = NULL;
+    fl->fld        = f;
 
-    field *f = (field *) malloc (sizeof (field));
-    f->str = s;
+    f->str         = s;
+    char *comma    = strnchr (s, n, ',');
 
-    if (comma) {
-      *comma = '\0';
-      f->len = comma - s;
-    } else {
+    if (!comma) {
       f->len = n;
+      break;
     }
 
-    /* field_list *fl = (field_list *) malloc (sizeof (field_list)); */
-    /* fl->fld    = f; */
-    /* fl->next   = NULL; */
-    /* last->next = fl; */
-    /* last       = fl; */
+    *comma     = '\0';
+    f->len     = comma - s;
+    n         -= f->len + 1;
+    s          = comma + 1;
 
-    n -= f->len + 1;
-    s = comma + 1; // But note comma may be NULL
+    last->next = fl;
+    last       = fl;
   }
 
   return head.next;
