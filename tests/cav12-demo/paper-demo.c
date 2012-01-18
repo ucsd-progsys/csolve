@@ -8,7 +8,7 @@
 #include <csolve.h>
 #include <stdlib.h>
 
-// Typedef params inst automatically?
+// Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
 typedef struct {
   int                                   len;
   char * ARRAY SIZE_GE(len) LOC(STRLOC) str;
@@ -30,6 +30,7 @@ char * ARRAY LOC(L) NNREF(V >= s) NNREF(V < s + n) NNREF(PEQBLOCK(s))
   return NULL;
 }
 
+// Cut down cruft by returning in reverse order?
 // Also do something with the fields, like lowercase their contents
 field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, int NONNEG n)
   CHECK_TYPE
@@ -39,8 +40,7 @@ field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, in
   head.next = NULL;
 
   field_list *last = &head;
-  // can we guarantee n >= 0 in this loop?
-  while (n > 0) {
+  while (1) {
     field_list *fl = (field_list *) malloc (sizeof (field_list));
     field *f       = (field *) malloc (sizeof (field));
     fl->next       = NULL;
@@ -53,6 +53,9 @@ field_list INST(STRLOC, L) *strnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, in
       f->len = n;
       break;
     }
+    // would prefer to just do comma = s + n - 1,
+    // but breaks shape inference because we can't prove the ref offset is positive any more
+    // would probably let us reorganize the code to do linked list stuff last
 
     *comma     = '\0';
     f->len     = comma - s;
