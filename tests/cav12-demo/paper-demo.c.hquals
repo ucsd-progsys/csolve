@@ -1,0 +1,4 @@
+qualif RELSTR(v: ptr, ~a: int): (BLOCK_END([v]) - v) >= ~a
+qualif GEQPTR(v: ptr, ~a: ptr): (v != 0) => (v >= ~a)
+qualif TRACKSTR(v: ptr, ~a: ptr, ~b: int, ~c: int): (v - ~a) = (~b - ~c)
+qualif PLUSS(v: ptr, ~a: ptr, ~b: int): (v != 0) => (v <= ~a + ~b)
