@@ -33,7 +33,6 @@ void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG IGNORE_INDEX n)
     s[i] = tolower (s[i]);
 }
 
-// Also do something with the fields, like lowercase their contents
 field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, int NONNEG n)
   CHECK_TYPE
 {
@@ -61,4 +60,21 @@ field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_G
   }
 
   return last;
+}
+
+void lowercase_fields (field *f) {
+  while (f) {
+    strntolower (f->str, f->len);
+    f = f->next;
+  }
+}
+
+void driver () {
+  int len    = nondetpos ();
+  char *line = (char *) malloc (len);
+  for (int i = 0; i < len - 1; i++)
+    line[i] = nondetpos ();
+
+  field *fs = revstrnfields (line, len);
+  lowercase_fields (fs);
 }
