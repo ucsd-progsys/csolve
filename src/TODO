@@ -1,16 +1,8 @@
 0. FIXPOINT COUNTEREXAMPLES
-  
-  let explain _n n c fact = 
-    let cands   = soln_delta_for c between _n and n (* as now *)
-    let n_cands = groupby killedAt candidates  |> sortby fst
-    let base    = (* as now *)
+ 
+  TBD: unsat_core (simplified version of unsat_cores)
 
-        base /\ ~fact                       is SAT
-        base /\ ~fact /\i=0...n cands(i)    is UNSAT 
-
-    goal: find MAX j s.t.
-
-        base /\ ~fact /\i=j...n cands(i)    is UNSAT
+  TBD: unsat_suffix
 
     how:
         push.
