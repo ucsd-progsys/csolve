@@ -118,6 +118,7 @@ type 'a prectype =
   | Int  of int * 'a          (* fixed-width integer *)
   | Ref  of Sloc.t * 'a       (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
+  | DRef of 'a                (* a trusted reference to top *)
 
 and 'a prefield = { pftype     : 'a prectype
                    ; pffinal    : finality
@@ -176,10 +177,11 @@ let d_structinfo () = function
   | _ -> 
       P.nil
 
-let d_prectype d_refinement () = function
+let rec d_prectype d_refinement () = function
       | Int (n, r) -> P.dprintf "int(%d, %a)" n d_refinement r
       | Ref (s, r) -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
+      | DRef t     -> P.dprintf "dref(%a, ??, True)"  d_prectype t
 
 let d_refctype = d_prectype Reft.d_refinement
 
@@ -189,8 +191,8 @@ let d_storelike d_binding =
   SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
 
 let prectype_subs subs = function
-  | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
-  | pct        -> pct
+  | Ref  (s, i) -> Ref (S.Subst.apply subs s, i)
+  | pct         -> pct
 
 module EffectSet = struct
   type t = effectset
@@ -498,11 +500,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	        ret     = map f ret;
 	        sto_in  = map_sto f stin;
 	        sto_out  = map_sto f stout}
+      | DRef t     -> DRef (map f t)
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
+      | Dref        -> P.dprintf "dyn"
 
     let width = function
       | Int (n, _) -> n
@@ -524,7 +528,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> T.R.is_subref r1 r2
 	  (* not sure what the semantics are here
 	     should is_subctype be called on the arguments of f1/f2 etc? *)
-	| FRef (f1, r1), FRef (f2, r2) when f1 = f2 -> T.R.is_subref r1 r2
+	      | FRef (f1, r1), FRef (f2, r2) when f1 = f2  -> T.R.is_subref r1 r2
+        | DRef t1, DRef t2 when is_subtype t1 t2     -> true
         | _                                          -> false
 
     let of_const c =

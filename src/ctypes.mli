@@ -58,6 +58,7 @@ type 'a prectype =
   | Int of int * 'a         (* fixed-width integer *)
   | Ref of Sloc.t * 'a      (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
+  | DRef of 'a               (* a trusted reference to top *)
 
 and  effectptr  = Reft.t prectype
 
