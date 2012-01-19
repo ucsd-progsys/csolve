@@ -67,6 +67,9 @@
 
 #define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
 
+typedef char NULLTERMSTR * LOC(L) STRINGPTR csolve_string;
+typedef char const NULLTERMSTR FINAL * STRINGPTR  csolve_const_string;
+
 // Assumptions
 
 #define CSOLVE_VAR2(base, n) base##n

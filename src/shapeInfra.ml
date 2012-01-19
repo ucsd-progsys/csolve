@@ -50,6 +50,11 @@ let fresh_heaptype (t: C.typ): ctype =
       | C.TEnum (ei, _)                          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
       | C.TFloat _                               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                                -> void_ctype
+      | C.TPtr (C.TFun _ as f,_) ->
+        let fspec = Typespec.preRefcfunOfType f in
+          Ctypes.FRef (Ctypes.RefCTypes.CFun.map
+                         (Ctypes.RefCTypes.CType.map fst) fspec,
+                       Index.of_int 0)
       | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
            Typespec.ptrReftypeOfSlocAttrs (S.fresh_abstract [CM.srcinfo_of_type t None]) tb ats
         |> Ctypes.ctype_of_refctype
@@ -95,10 +100,12 @@ and apply_unop (rt: C.typ): C.unop -> ctype = function
   | C.BNot -> Int (CM.typ_width rt, Index.top)
   | C.Neg  -> Int (CM.typ_width rt, Index.top)
 
-class exprTyper (ve) = object (self)
+class exprTyper (ve,fe) = object (self)
   val tbl = Hashtbl.create 17
+  val fe = ref fe
 
   method ctype_of_exp e =
+    (* let _ = Pretty.printf "ctype_of_exp: %a@!" Cil.d_exp e in *)
     Misc.do_memo tbl self#ctype_of_exp_aux e e
 
   method private ctype_of_exp_aux = function
@@ -106,12 +113,21 @@ class exprTyper (ve) = object (self)
     | C.Lval lv | C.StartOf lv      -> self#ctype_of_raw_lval lv
     | C.UnOp (uop, e, t)            -> apply_unop t uop
     | C.BinOp (bop, e1, e2, t)      -> apply_binop bop t (self#ctype_of_exp e1) (self#ctype_of_exp e2)
+    | C.CastE (C.TPtr (C.TFun _ as f,_),
+               C.Const c) -> self#ctype_of_constfptr f c
     | C.CastE (C.TPtr _, C.Const c) -> self#ctype_of_constptr c
     | C.CastE (ct, e)               -> self#ctype_of_cast ct e
     | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
     | C.AddrOf lv                   -> self#ctype_of_addrof lv
     | e                             -> E.s <| C.error "Unimplemented ctype_of_exp_aux: %a@!@!" C.d_exp e
 
+  method private ctype_of_constfptr f c = match c with
+    | C.CInt64 (v, ik, so)
+        when v = Int64.zero ->
+        let fspec = Typespec.preRefcfunOfType f in
+          Ctypes.FRef (Ctypes.RefCTypes.CFun.map
+                         (Ctypes.RefCTypes.CType.map fst) fspec,
+                       Index.IBot)
   method private ctype_of_constptr c = match c with  
     | C.CStr _ ->
         let s = S.fresh_abstract [CM.srcinfo_of_constant c None] in 
@@ -131,12 +147,14 @@ class exprTyper (ve) = object (self)
   method ctype_of_lval lv =
     self#ctype_of_exp (C.Lval lv)
 
+
   method private ctype_of_addrof = function
-    | C.Var v, C.NoOffset 
-      when CM.is_fun v -> 
-        Ref (S.fresh_abstract [CM.srcinfo_of_var v None], Index.IInt 0)
+    | C.Var v, C.NoOffset when CM.is_fun v ->
+      let fspec,_ = VM.find v !fe in
+      FRef (fspec, Index.IInt 0)
     | lv -> 
         E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
+
 
   method private ctype_of_cast ct e =
     let ctv = self#ctype_of_exp e in

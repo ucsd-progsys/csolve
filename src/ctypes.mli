@@ -57,12 +57,13 @@ type 'a prestore
 type 'a prectype =
   | Int of int * 'a         (* fixed-width integer *)
   | Ref of Sloc.t * 'a      (* reference *)
+  | FRef of ('a precfun) * 'a  (* function reference *)
 
-type effectptr  = Reft.t prectype
+and  effectptr  = Reft.t prectype
 
-type effectset
+and  effectset
 
-type 'a precfun =
+and  'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)
@@ -120,6 +121,7 @@ module type S = sig
 
     val refinement       : t -> T.R.t
     val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val map_func         : ('a -> 'b) -> 'a precfun -> 'b precfun
     val d_ctype          : unit -> t -> Pretty.doc
     val of_const         : Cil.constant -> t
     val is_subctype      : t -> t -> bool
@@ -342,10 +344,13 @@ type cfun   = I.CFun.t
 type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
+    
+val null_fun     : Index.t precfun
 
 val void_ctype   : ctype
 val ptr_ctype    : ctype
 val scalar_ctype : ctype
+val fptr_ctype   : ctype
 
 val vtype_to_ctype : Cil.typ -> ctype  
 
@@ -391,6 +396,7 @@ val cspec_of_refspec    : refspec  -> cspec
 val args_of_refcfun     : refcfun  -> (string * refctype) list
 val ret_of_refcfun      : refcfun  -> refctype 
 val stores_of_refcfun   : refcfun  -> refstore * refstore
+
 
 val d_reft              : unit -> FixConstraint.reft -> Pretty.doc 
 

@@ -138,6 +138,7 @@ val g_errorLoc: bool -> Cil.location -> ('a, unit, Pretty.doc) format -> 'a
 val g_halt:     bool -> 'a -> unit
 
 val is_fun: Cil.varinfo    -> bool
+val is_funptr: Cil.varinfo    -> bool
 val is_scalar: Cil.varinfo -> bool
 val is_reference: Cil.typ  ->bool
 

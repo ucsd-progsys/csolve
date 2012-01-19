@@ -95,6 +95,7 @@ rule token = parse
   | "mod"               { MOD }
   | "int"               { INT }
   | "ptr"               { PTR }
+  | "fptr"              { FPTR }
   | "bool"              { BOOL }
   | "final"             { FINAL }
   | "func"              { FUNC }
@@ -114,6 +115,7 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "ref"               { REF }
+  | "fref"              { FREF }
   | "loc"               { LOCATION }
   | "write*"            { WRITE }
   | "read*"             { READ }

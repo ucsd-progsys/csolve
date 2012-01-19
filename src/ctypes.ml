@@ -115,22 +115,23 @@ let dummy_fieldinfo  = {fname = None; ftype = None}
 let dummy_structinfo = {stype = None}
 
 type 'a prectype =
-  | Int  of int * 'a        (* fixed-width integer *)
-  | Ref  of Sloc.t * 'a     (* reference *)
+  | Int  of int * 'a          (* fixed-width integer *)
+  | Ref  of Sloc.t * 'a       (* reference *)
+  | FRef of ('a precfun) * 'a  (* function reference *)
 
-type 'a prefield = { pftype     : 'a prectype
+and 'a prefield = { pftype     : 'a prectype
                    ; pffinal    : finality
                    ; pfloc      : C.location
                    ; pfinfo     : fieldinfo }
 
-type effectptr  = Reft.t prectype
+and effectptr  = Reft.t prectype
 
-type effectset = effectptr SLM.t
+and effectset = effectptr SLM.t
 
-type 'a preldesc = { plfields   : (Index.t * 'a prefield) list
+and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                    ; plinfo     : structinfo }
 
-type 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
+and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
@@ -178,6 +179,7 @@ let d_structinfo () = function
 let d_prectype d_refinement () = function
       | Int (n, r) -> P.dprintf "int(%d, %a)" n d_refinement r
       | Ref (s, r) -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
+      | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
 
 let d_refctype = d_prectype Reft.d_refinement
 
@@ -260,6 +262,7 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     val refinement  : t -> T.refinement
     val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val map_func    : ('a -> 'b) -> 'a precfun -> 'b precfun
     val d_ctype     : unit -> t -> P.doc
     val of_const    : Cil.constant -> t
     val is_subctype : t -> t -> bool
@@ -478,19 +481,32 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     type t = T.ctype
 
     let refinement = function
-      | Int (_, r) | Ref (_, r) -> r
+      | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
 
-    let map f = function
+    let rec map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
+      | FRef(g, x) -> FRef (map_func f g, f x)
+    and map_field f ({pftype = typ} as pfld) =
+      {pfld with pftype = map f typ}
+    and map_desc f {plfields = flds; plinfo = info} =
+      {plfields = List.map (id <**> map_field f) flds; plinfo = info}
+    and map_sto f (desc, func) = (Sloc.SlocMap.map (map_desc f) desc,
+				  Sloc.SlocMap.map (map_func f) func)
+    and map_func f ({args=args; ret=ret; sto_in=stin; sto_out=stout} as g) =
+	{g with args    = List.map (id <**> (map f)) args;
+	        ret     = map f ret;
+	        sto_in  = map_sto f stin;
+	        sto_out  = map_sto f stout}
 
     let d_ctype () = function
       | Int (n, i) -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
       | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
+      | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
 
     let width = function
       | Int (n, _) -> n
-      | Ref _      -> CM.int_width
+      | _      -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
@@ -506,6 +522,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       match pct1, pct2 with
         | Int (n1, r1), Int (n2, r2) when n1 = n2    -> T.R.is_subref r1 r2
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> T.R.is_subref r1 r2
+	  (* not sure what the semantics are here
+	     should is_subctype be called on the arguments of f1/f2 etc? *)
+	| FRef (f1, r1), FRef (f2, r2) when f1 = f2 -> T.R.is_subref r1 r2
         | _                                          -> false
 
     let of_const c =
@@ -861,7 +880,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let rec unify_ctype_locs sto sub ct1 ct2 = match CType.subs sub ct1, CType.subs sub ct2 with
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub)
         | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub s1 s2
-        | ct1, ct2                              ->
+        | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub)
+        | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
       and unify_data_locations sto sub s1 s2 =
@@ -1180,12 +1200,25 @@ type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
 
-let void_ctype   = Int (0, N.top)
-let ptr_ctype    = Ref (S.none, N.top)
-let scalar_ctype = Int (0, N.top)
+let null_fun      = {args = [];
+                     ret  = Int (0, N.top);
+                     globlocs = [];
+                     sto_in = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
+                     sto_out = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
+                     effects = SLM.empty}
+  
+let void_ctype   = Int  (0, N.top)
+let ptr_ctype    = Ref  (S.none, N.top)
+let scalar_ctype = Int  (0, N.top)
+let fptr_ctype   = FRef (null_fun, N.top)
 
-let vtype_to_ctype v = if Cil.isArithmeticType v
-                         then scalar_ctype else ptr_ctype
+let rec vtype_to_ctype v = if Cil.isArithmeticType v
+  then scalar_ctype
+  else match v with
+    | Cil.TNamed ({C.ttype = v'},_) -> vtype_to_ctype v'
+    | Cil.TPtr (Cil.TFun _, _) -> fptr_ctype
+    | _ -> ptr_ctype
+
 
 let d_ctype        = I.CType.d_ctype
 let index_of_ctype = I.CType.refinement
@@ -1266,6 +1299,7 @@ let refstore_write loc sto rct rct' =
 let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
+  | f -> RCt.CType.map fst f
 
 (* API *)
 let cfun_of_refcfun   = I.CFun.map ctype_of_refctype 
@@ -1277,7 +1311,8 @@ let stores_of_refcfun = fun ft -> (ft.sto_in, ft.sto_out)
 
 let reft_of_refctype = function
   | Int (_,(_,r)) 
-  | Ref (_,(_,r)) -> r
+  | Ref (_,(_,r))
+  | FRef (_,(_,r)) -> r
 
 (**********************************************************************)
 

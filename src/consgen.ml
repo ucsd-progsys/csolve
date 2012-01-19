@@ -62,7 +62,7 @@ let shapem_of_scim cil spec scim vim =
      end (CS.funspec spec)
   (* >> (fst <+> Misc.sm_print_keys "builtins") *)
   (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
-  |> snd 
+  |> snd
   |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
 
 let declared_names decs is_decl =
@@ -93,7 +93,7 @@ let mk_gnv f spec decs cenv =
 (*************************** Unify Spec Names and CIL names *********************)
 (********************************************************************************)
 
-let rename_args rf sci = 
+let rename_args rf sci =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
   let xrs      = Ctypes.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in

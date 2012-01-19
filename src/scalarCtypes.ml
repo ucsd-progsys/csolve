@@ -165,6 +165,7 @@ let pred_of_ctype = function
 (* API *)
 let non_null_pred_of_ctype = function
   | Ct.Ref (_, ix) -> non_null_pred_of_index_ref ix
+  | Ct.FRef (_, ix) -> non_null_pred_of_index_ref ix
   | Ct.Int (_, ix) -> pred_of_index_int ix
 
 (*

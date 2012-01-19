@@ -114,12 +114,15 @@ let string_of_sloc, sloc_of_string =
       assertf "ERROR: unknown sloc-string"
   end
 
-let so_ref = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
-let so_int = So.t_int
-let so_skl = So.t_func 0 [so_int; so_int]
-let so_bls = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
-let so_pun = So.t_func 1 [So.t_generic 0; so_int]
-let so_drf = So.t_func 1 [So.t_generic 0; So.t_generic 1]
+let args_of_precfun f = (0, []) (* PLACEHOLDER *)    
+
+let so_ref  = fun l -> So.t_ptr (So.Loc (string_of_sloc l))
+let so_fref = So.t_fptr
+let so_int  = So.t_int
+let so_skl  = So.t_func 0 [so_int; so_int]
+let so_bls  = So.t_func 1 [So.t_generic 0; So.t_generic 0] 
+let so_pun  = So.t_func 1 [So.t_generic 0; so_int]
+let so_drf  = So.t_func 1 [So.t_generic 0; So.t_generic 1]
 
 let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls

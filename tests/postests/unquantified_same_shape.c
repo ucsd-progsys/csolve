@@ -14,7 +14,7 @@ void two (int * LOC(L) t, char * LOC(K) u) GLOBAL(L) GLOBAL(K) {
 }
 
 void main () {
-    void (*f) (int *, char *);
+  void (GLOBAL(L) GLOBAL(K)*f) (int * LOC(L), char * LOC(K));
 
     f = nondet () ? one : two;
     f (0, 0);

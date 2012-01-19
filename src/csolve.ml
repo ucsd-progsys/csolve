@@ -143,8 +143,12 @@ let parseOneSpec fn =
 
 let spec_of_file outprefix file =
   let specfile = outprefix^".autospec" in
-    Typespec.writeSpecOfFile file specfile;
-    specfile |> parseOneSpec |> Misc.maybe
+    Typespec.writeSpecOfFile file specfile
+    |> Ctypes.RefCTypes.Spec.map begin fun rct ->
+        Ctypes.ctype_of_refctype rct
+        |> Misc.flip FixInterface.t_ctype_refctype rct
+    end
+    (* specfile |> parseOneSpec |> Misc.maybe *)
 
 let decs_of_file cil = 
   let reachf = CM.reachable cil in

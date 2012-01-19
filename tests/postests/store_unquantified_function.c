@@ -7,7 +7,7 @@ void foo (int * LOC(L) y) GLOBAL(L) {
 }
 
 void main () {
-    void (*f) (int *);
+  void (GLOBAL(L) *f) (int * LOC(L));
 
     f = foo;
     f (0);

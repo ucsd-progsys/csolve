@@ -135,11 +135,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
   method private constrain_addrof = function
     | (C.Var v, C.NoOffset) as lv ->
         begin match et#ctype_of_exp (C.AddrOf lv) with
-          | Ref (l, _) ->
-               fst (VM.find v fs)
-            |> UStore.add_fun !sto !sub l
-            |> M.swap
-            |> self#set_sub_sto
+          | FRef (f, _) -> ()
           | _ -> assert false
         end
     | _ -> assert false
@@ -237,9 +233,9 @@ let assert_store_type_correct lv ct = match lv with
 let find_function et fs sub sto = function
   | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
   | C.Mem e, C.NoOffset ->
-      match e |> et#ctype_of_exp |> Ct.subs sub |> Ct.sloc with
-        | Some l -> Store.Function.find sto l
-        | None   -> assert false
+    match e |> et#ctype_of_exp |> Ct.subs sub with
+      | FRef (f, _) -> f
+      | _ -> assert false
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
   let _ = C.currentLoc := C.get_instrLoc i in
@@ -306,7 +302,8 @@ class exprMapVisitor (et) = object (self)
   method vexpr e =
     begin match e |> C.typeOf |> C.unrollType with
       | C.TFun _ -> () (* pmr: revisit - begging for an assert false here? *)
-      | _        -> em := I.ExpMap.add e (et#ctype_of_exp e) !em
+      | _        ->  
+        em := I.ExpMap.add e (et#ctype_of_exp e) !em
     end;
     C.DoChildren
 
@@ -321,14 +318,14 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
   let sub, sto     = constrain_phis ve phis sub sto in
-  let et           = new exprTyper (ve) in
+  let et           = new exprTyper (ve,fs) in
   let blocks       = cfg.Ssa.blocks in
   let bas          = Array.make (Array.length blocks) [] in
   let sub, sto     =
     M.array_fold_lefti begin fun i (sub, sto) b ->
       let ba, sub, sto = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
-        (sub, sto)
+        (sub, sto) 
     end (sub, sto) blocks
   in
   let emv = new exprMapVisitor (et) in
@@ -466,7 +463,18 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
       E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
                S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
+let fref_lookup args v = function
+  | (FRef _) as t -> (try List.assoc v args with Not_found -> t)
+  | t -> t
+
+let replace_formal_frefs {args = args} vm =
+  vm
+  |> CM.vm_to_list
+  |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
+  |> CM.vm_of_list
+               
 let infer_shape fe ve gst scim (cf, sci, vm) =
+  let vm                    = replace_formal_frefs cf vm in
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
   let sto                   = Store.upd cf.sto_out gst in
   let em, bas, sub, sto     = constrain_fun fe cf ve sto sci in
