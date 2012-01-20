@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-void strntolower (char * STRINGPTR SIZE_GE(n) s, int n) CHECK_TYPE {
-  for (int i = 0; i < n && *s != '\0'; i++)
-    s[i] = tolower (s[i]);
+void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG n) CHECK_TYPE {
+  for (; n-- && *s != '\0'; s++)
+    *s = tolower (*s);
 }
 
 // Show unannotated version first, with code, then show extern decl - in its own module
