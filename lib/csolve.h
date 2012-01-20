@@ -29,6 +29,7 @@
 #define ARRAY              CSOLVE_ATTR (array)
 #define SHAPE_IGNORE_BOUND CSOLVE_ATTR (csolve_ignore_bound)
 #define IGNORE_INDEX       CSOLVE_ATTR (csolve_ignore_index)
+#define USE_INDEX          CSOLVE_ATTR (csolve_use_index)
 
 #define FINAL              CSOLVE_ATTR (csolve_final)
 #define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
@@ -99,9 +100,9 @@ extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
 extern int nondet () OKEXTERN;
 
-extern int REF(V >= 1) nondetpos () OKEXTERN;
+extern int REF(V >= 1) USE_INDEX nondetpos () OKEXTERN;
 
-extern int REF(V >= 0) nondetnn () OKEXTERN;
+extern int REF(V >= 0) USE_INDEX nondetnn () OKEXTERN;
 
 extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
 

@@ -76,6 +76,7 @@ val externOkAttribute       : string
 val checkTypeAttribute      : string
 val layoutAttribute         : string
 val ignoreIndexAttribute    : string
+val useIndexAttribute       : string
 val ignoreBoundAttribute    : string
 val effectAttribute         : string
 

@@ -1,4 +1,3 @@
-// Make IGNORE_INDEX the default on integers?
 // Another strategy: check moduli by index subtyping, check bounds by predicate typing
 // Different strategies for aliasing per-function?
 // Also, if a type is taken as input, we might say it's aliased by
@@ -17,8 +16,8 @@
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
 char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
-  strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG IGNORE_INDEX n, char c)
-  CHECK_TYPE {
+  strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
+{
   for (; n-- && *s != '\0'; s++)
     if (*s == c) return s;
 
@@ -27,13 +26,13 @@ char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
 
 // Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
 typedef struct _field {
-  int                      len;
-  char * ARRAY LOC(STRLOC) str;
-  struct _field *          next;
-} INST(STRLOC, STRLOC) field;
+  int                 len;
+  char * ARRAY LOC(L) str;
+  struct _field *     next;
+} INST(L, L) field;
 
 
-field INST(STRLOC, L) * revstrnfields (char * ARRAY LOC(L) s, int n) {
+field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
   field *last = NULL;
   while (n > 0) {
     field *f    = (field *) malloc (sizeof (field));

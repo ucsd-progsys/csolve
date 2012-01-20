@@ -159,6 +159,7 @@ let ptrReftypeOfSlocAttrs l tb ats =
                 I.top
               else ptrIndexOfPredAttrs tb pred ats in
     FI.t_spec_pred (Ct.Ref (l, index)) vv pred
+
 let ptrReftypeOfAttrs tb ats =
   ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
     
@@ -171,7 +172,7 @@ let fptrReftOfAttrs tb ats =
 
 let intReftypeOfAttrs width ats =
   let pred  = predOfAttrs None ats in
-  let index = if C.hasAttribute CM.ignoreIndexAttribute  ats then
+  let index = if not <| C.hasAttribute CM.useIndexAttribute ats then
                 I.top
               else I.data_index_of_pred vv pred in
     FI.t_spec_pred
