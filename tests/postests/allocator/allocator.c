@@ -19,7 +19,7 @@ struct pool_struct {
     struct pool_struct * next;
 };
 
-typedef struct pool_struct INST(LR, LR) free_pool;
+typedef struct pool_struct free_pool;
 
 typedef char * LAYOUT(region) OFFSET(8) LOC(AL) allocdPtr;
 

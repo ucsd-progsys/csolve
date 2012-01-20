@@ -24,13 +24,11 @@ char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
   return NULL;
 }
 
-// Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
 typedef struct _field {
   int                 len;
   char * ARRAY LOC(L) str;
   struct _field *     next;
-} INST(L, L) field;
-
+} field;
 
 field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
   field *last = NULL;
