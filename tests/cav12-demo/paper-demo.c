@@ -13,9 +13,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+void strntolower (char * STRINGPTR SIZE_GE(n) s, int n) CHECK_TYPE {
+  for (int i = 0; i < n && *s != '\0'; i++)
+    s[i] = tolower (s[i]);
+}
+
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
-char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
+char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
   strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
 {
   for (; n-- && *s != '\0'; s++)
@@ -56,11 +61,6 @@ field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
   return last;
 }
 
-void strntolower (char * ARRAY s, int n) {
-  for (int i = 0; i < n && *s != '\0'; i++)
-    s[i] = tolower (s[i]);
-}
-
 void lowercase_fields (field *f) {
   while (f) {
     strntolower (f->str, f->len);
@@ -68,7 +68,7 @@ void lowercase_fields (field *f) {
   }
 }
 
-void driver () {
+int main () {
   int len    = nondetpos ();
   char *line = (char *) malloc (len);
   for (int i = 0; i < len - 1; i++)
@@ -76,6 +76,8 @@ void driver () {
 
   field *fs = revstrnfields (line, len);
   lowercase_fields (fs);
+
+  return 0;
 }
 
 // END CAV PORTION
