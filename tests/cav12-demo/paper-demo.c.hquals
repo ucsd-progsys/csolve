@@ -1,7 +1,16 @@
-qualif RELSTR(v: ptr, ~a: int): (BLOCK_END([v]) - v) >= ~a
+//// Program-specific quals
+
+qualif RELSTR(v: ptr, ~a: int): (v + ~a) <= BLOCK_END([v])
 qualif GEQPTR(v: ptr, ~a: ptr): (v != 0) => (v >= ~a)
+// Only needed for strnchr?
 qualif NNEQBLOCK(v: ptr, ~a: ptr): (v != 0) => && [BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]); BLOCK_END([v]) = BLOCK_END([~a])]
 qualif TRACKSTR(v: ptr, ~a: ptr, ~b: int, ~c: int): v = (~a + (~b - ~c))
 qualif PLUSS(v: ptr, ~a: ptr, ~b: int): (v != 0) => (v < ~a + ~b)
-qualif SPLIT(v: ptr, ~a: int): (~a >= 0) => ((v + ~a) <= BLOCK_END([v]))
 qualif SZ12(v: ptr): (v != 0) => ((BLOCK_END([v]) - BLOCK_BEGIN([v])) = 12)
+
+//// Lib quals
+
+qualif PosZ(v:int)       : 0 <= v
+qualif Valid(v:ptr)      : && [ 0 < v; BLOCK_BEGIN([v]) <= v; v < BLOCK_END([v]) ]
+qualif NullOrBegin(v:ptr): (v != 0) => (v = BLOCK_BEGIN([v]))
+qualif Ge(v: ptr, ~a:ptr): v >= ~a 

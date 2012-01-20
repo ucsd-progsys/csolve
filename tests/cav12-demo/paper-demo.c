@@ -1,41 +1,38 @@
-// Add --bare flag if it doesn't exist so we can check with limited quals
-// Make IGNORE_INDEX the default on integers?
 // Another strategy: check moduli by index subtyping, check bounds by predicate typing
 // Different strategies for aliasing per-function?
+// Also, if a type is taken as input, we might say it's aliased by
+//   default with the same type in the output; this handles cases like returning what
+//   you were passed and inserting an element into a linked list
 // Slow as hell - a lot of TRACKSTR going on, maybe it's to blame?
-// Try the whole program with driver and no annots
+
+#include <stdio.h>
+
+// BEGIN CAV PORTION
 
 #include <csolve.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-// Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
-typedef struct _field {
-  int                                       len;
-  char * ARRAY SIZE_GE(len) LOC(STRLOC)     str;
-  struct _field * NNROOM_FOR(struct _field) next;
-} INST(STRLOC, STRLOC) field;
-
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
-char * ARRAY LOC(L) NNREF(V >= s) NNREF(V < s + n) NNREF(PEQBLOCK(s))
-  strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG IGNORE_INDEX n, char c)
-  CHECK_TYPE {
+char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
+  strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
+{
   for (; n-- && *s != '\0'; s++)
-    if (*s == 'c') return s;
+    if (*s == c) return s;
 
   return NULL;
 }
 
-void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG IGNORE_INDEX n)
-  CHECK_TYPE {
-  for (int i = 0; i < n && *s != '\0'; i++)
-    s[i] = tolower (s[i]);
-}
+// Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
+typedef struct _field {
+  int                 len;
+  char * ARRAY LOC(L) str;
+  struct _field *     next;
+} INST(L, L) field;
 
-field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_GE(n) LOC(L) s, int NONNEG n)
-  CHECK_TYPE
-{
+
+field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
   field *last = NULL;
   while (n > 0) {
     field *f    = (field *) malloc (sizeof (field));
@@ -61,6 +58,11 @@ field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_G
   return last;
 }
 
+void strntolower (char * ARRAY s, int n) {
+  for (int i = 0; i < n && *s != '\0'; i++)
+    s[i] = tolower (s[i]);
+}
+
 void lowercase_fields (field *f) {
   while (f) {
     strntolower (f->str, f->len);
@@ -77,3 +79,24 @@ void driver () {
   field *fs = revstrnfields (line, len);
   lowercase_fields (fs);
 }
+
+// END CAV PORTION
+
+/* void printfields (field *f) { */
+/*     while (f) { */
+/*         printf ("Field: \"%s\", len %d\n", f->str, f->len); */
+/*         f = f->next; */
+/*     } */
+/* } */
+
+/* int main () { */
+/*   char *line = NULL; */
+/*   ssize_t n  = 0; */
+
+/*   while ((n = getline (&line, &n, stdin)) > 0) { */
+/*       field *fs = revstrnfields (line, n); */
+/*       printfields (fs); */
+/*   } */
+
+/*   return 0; */
+/* } */

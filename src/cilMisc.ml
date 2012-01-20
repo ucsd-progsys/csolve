@@ -319,6 +319,7 @@ let layoutAttribute         = "csolve_layout"
 let roomForAttribute        = "csolve_room_for"
 let nonnullRoomForAttribute = "csolve_nonnull_room_for"
 let ignoreIndexAttribute    = "csolve_ignore_index"
+let useIndexAttribute       = "csolve_use_index"
 let ignoreBoundAttribute    = "csolve_ignore_bound"
 let effectAttribute         = "csolve_effect"
 
