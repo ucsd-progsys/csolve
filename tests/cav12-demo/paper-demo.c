@@ -29,18 +29,18 @@ char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
   return NULL;
 }
 
-typedef struct _field {
+typedef struct _csval {
   int                 len;
   char * ARRAY LOC(L) str;
-  struct _field *     next;
-} field;
+  struct _csval *     next;
+} csval;
 
-field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
-  field *last = NULL;
+csval INST(L, S) * revstrncsvals (char * ARRAY LOC(S) s, int n) {
+  csval *last = NULL;
   while (n > 0) {
-    field *f    = (field *) malloc (sizeof (field));
-    f->next     = last;
-    f->str      = s;
+    csval *v    = (csval *) malloc (sizeof (csval));
+    v->next     = last;
+    v->str      = s;
     char *comma = strnchr (s, n, ',');
 
     if (!comma) {
@@ -49,19 +49,19 @@ field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
     // would probably let us reorganize the code to do linked list stuff last
 
     *comma     = '\0';
-    f->len     = comma - s;
-    n         -= f->len + 1;
+    v->len     = comma - s;
+    n         -= v->len + 1;
     s          = comma + 1;
-    last       = f;
+    last       = v;
   }
 
   return last;
 }
 
-void lowercase_fields (field *f) {
-  while (f) {
-    strntolower (f->str, f->len);
-    f = f->next;
+void lowercase_csvals (csval *v) {
+  while (v) {
+    strntolower (v->str, v->len);
+    v = v->next;
   }
 }
 
@@ -71,8 +71,8 @@ int main () {
   for (int i = 0; i < len - 1; i++)
     line[i] = nondetpos ();
 
-  field *fs = revstrnfields (line, len);
-  lowercase_fields (fs);
+  csval *vs = revstrncsvals (line, len);
+  lowercase_csvals (vs);
 
   return 0;
 }
