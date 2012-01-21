@@ -44,11 +44,8 @@ field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
     char *comma = strnchr (s, n, ',');
 
     if (!comma) {
-      f->len = n;
-      return f;
+      comma = s + n - 1;
     }
-    // would prefer to just do comma = s + n - 1,
-    // but breaks shape inference because we can't prove the ref offset is positive any more
     // would probably let us reorganize the code to do linked list stuff last
 
     *comma     = '\0';
