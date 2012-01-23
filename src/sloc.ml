@@ -32,6 +32,7 @@ type slocinfo = CilMisc.srcinfo list
 type t =
   | Abstract of slocid * slocinfo 
   | Concrete of slocid * (* abstract counterpart *) slocid * slocinfo
+  | AnyLoc 
 
 let to_slocinfo = function
   | Abstract (_, i)    -> i
@@ -42,6 +43,7 @@ let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
 let refresh = function
   | Abstract (_, i)      -> Abstract (fresh_slocid (), i)
   | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
+  | AnyLoc               -> AnyLoc
 
 (* let fresh_abstract () = 
   Abstract (fresh_slocid ())
@@ -51,7 +53,9 @@ let fresh_abstract i = Abstract (fresh_slocid (), i)
 
 let fresh_concrete abs =
   let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
-  Concrete (fresh_slocid (), aid, info)
+    Concrete (fresh_slocid (), aid, info)
+
+let fresh_any () = AnyLoc
 
 let none = fresh_abstract []
 

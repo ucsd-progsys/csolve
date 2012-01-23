@@ -55,10 +55,11 @@ type 'a preldesc
 type 'a prestore
 
 type 'a prectype =
-  | Int of int * 'a         (* fixed-width integer *)
-  | Ref of Sloc.t * 'a      (* reference *)
+  | Int of int * 'a            (* fixed-width integer *)
+  | Ref of Sloc.t * 'a         (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
-  | DRef of 'a               (* a trusted reference to top *)
+  | ARef                       (* a dynamic "blackhole" reference *)
+  | Any  of int                (* the variable-width type of a "blackhole" *)
 
 and  effectptr  = Reft.t prectype
 

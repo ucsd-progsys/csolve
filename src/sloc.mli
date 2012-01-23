@@ -33,6 +33,7 @@ val canonical      : t -> t
 (* val fresh_abstract : unit -> t *)
 val fresh_abstract : slocinfo -> t
 
+val fresh_any      : unit -> t
 val fresh_concrete : t -> t
 val is_abstract    : t -> bool
 val compare        : t -> t -> int

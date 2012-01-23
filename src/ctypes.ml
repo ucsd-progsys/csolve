@@ -115,10 +115,11 @@ let dummy_fieldinfo  = {fname = None; ftype = None}
 let dummy_structinfo = {stype = None}
 
 type 'a prectype =
-  | Int  of int * 'a          (* fixed-width integer *)
-  | Ref  of Sloc.t * 'a       (* reference *)
+  | Int  of int * 'a           (* fixed-width integer *)
+  | Ref  of Sloc.t * 'a        (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
-  | DRef of 'a                (* a trusted reference to top *)
+  | ARef                       (* a dynamic "blackhole" reference *)
+  | Any  of int                (* the variable-width type of a "blackhole" *)
 
 and 'a prefield = { pftype     : 'a prectype
                    ; pffinal    : finality
@@ -130,7 +131,8 @@ and effectptr  = Reft.t prectype
 and effectset = effectptr SLM.t
 
 and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
-                   ; plinfo     : structinfo }
+                  ; plinfo     : structinfo }
+                  (*; punsound   : bool }*)
 
 and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
@@ -178,10 +180,11 @@ let d_structinfo () = function
       P.nil
 
 let rec d_prectype d_refinement () = function
-      | Int (n, r) -> P.dprintf "int(%d, %a)" n d_refinement r
-      | Ref (s, r) -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
+      | Int (n, r)  -> P.dprintf "int(%d, %a)" n d_refinement r
+      | Ref (s, r)  -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
-      | DRef t     -> P.dprintf "dref(%a, ??, True)"  d_prectype t
+      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc (Sloc.fresh_any ())
+      | Any i       -> P.dprintf "any(%d)" i
 
 let d_refctype = d_prectype Reft.d_refinement
 
@@ -484,11 +487,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
+      | ARef | Any _ -> T.R.top
 
     let rec map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
       | FRef(g, x) -> FRef (map_func f g, f x)
+      | ARef      -> ARef
+      | Any (i)   -> Any (i)
     and map_field f ({pftype = typ} as pfld) =
       {pfld with pftype = map f typ}
     and map_desc f {plfields = flds; plinfo = info} =
@@ -500,20 +506,22 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	        ret     = map f ret;
 	        sto_in  = map_sto f stin;
 	        sto_out  = map_sto f stout}
-      | DRef t     -> DRef (map f t)
 
     let d_ctype () = function
-      | Int (n, i) -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
-      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
+      | Int (n, i)  -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
+      | Ref (s, i)  -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
-      | Dref        -> P.dprintf "dyn"
+      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc (S.fresh_any ())
+      | Any (i)     -> P.dprintf "any(%d)" i
 
     let width = function
       | Int (n, _) -> n
+      | Any i      -> i
       | _      -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
+      | ARef       -> Some (S.fresh_any ())
       | _          -> None
 
     let subs subs = function
@@ -529,7 +537,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	  (* not sure what the semantics are here
 	     should is_subctype be called on the arguments of f1/f2 etc? *)
 	      | FRef (f1, r1), FRef (f2, r2) when f1 = f2  -> T.R.is_subref r1 r2
-        | DRef t1, DRef t2 when is_subtype t1 t2     -> true
+        | ARef, ARef                                 -> true
+        | Any i, Any j when i = j                    -> true
         | _                                          -> false
 
     let of_const c =
@@ -557,6 +566,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let is_void = function
       | Int (0, _) -> true
+      | Any (0)    -> true
       | _          -> false
   end
 
