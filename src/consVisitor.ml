@@ -871,7 +871,6 @@ let cons_of_decs tgr spec gnv gst decs =
         let srf, s   = spec |> CS.funspec |> SM.find fn in
         let cs'      = make_cs_if (should_subtype s)
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue irf srf tag loc)) in
-        let _ = Format.printf "irf wfs: %a\n" (Misc.pprint_many true "\n" (FixConstraint.print_wf None)) ws' in
         let cs''     = make_cs_if (should_supertype s)
                          (lazy (FI.make_cs_refcfun gnv Ast.pTrue srf irf tag loc)) in
         (ws' ++ ws, cs'' ++ cs' ++ cs, [], [])
