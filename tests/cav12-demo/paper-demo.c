@@ -42,11 +42,10 @@ field INST(STRLOC, L) * NNROOM_FOR(field) revstrnfields (char * STRINGPTR SIZE_G
     f->next     = last;
     f->str      = s;
     char *comma = strnchr (s, n, ',');
-    validptr (s);
 
     if (!comma) {
       f->len = n;
-      break;
+      return f;
     }
     // would prefer to just do comma = s + n - 1,
     // but breaks shape inference because we can't prove the ref offset is positive any more
