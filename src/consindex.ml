@@ -146,7 +146,6 @@ let dump_counterexamples = function
   | cxs -> Format.printf "Counterexamples:\n%a" (Misc.pprint_many true "\n"
   Cx.print_cex) cxs 
 
-
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in

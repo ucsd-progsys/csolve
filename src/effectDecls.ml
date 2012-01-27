@@ -1,39 +1,36 @@
 module FA = FixAstInterface
 module C  = Cil
 
+module SS = Ast.Symbol.SSet
+
 open Misc.Ops
 
-type t = string
+type t = FA.name 
 
-let effects = ref []
+(* API *)
+let readEffect  = FA.eff_read
+let writeEffect = FA.eff_write
 
-let addEffect eff =
-  effects := eff :: !effects;
-  eff
 
-let getEffects () =
-  !effects
+let effects = ref (SS.of_list [readEffect; writeEffect])
+let commutativeEffects = ref [(readEffect, readEffect)]
 
-let readEffect  = "EREAD"
-let writeEffect = "EWRITE"
+let addEffect x =
+  x |> FA.name_of_string 
+    >> (fun e -> effects := SS.add e !effects)
 
-let _ = List.map addEffect [readEffect; writeEffect]
+let canonize e1 e2 = 
+  if e1 < e2 then (e1, e2) else (e2, e1)
 
-let commutativeEffects = ref []
+let addCommutativePair e1 e2 =
+  commutativeEffects := (canonize e1 e2) :: !commutativeEffects
 
-let canonicalCommutativePair ename1 ename2 =
-  if ename1 < ename2 then (ename1, ename2) else (ename2, ename1)
 
-let addCommutativePair ename1 ename2 =
-  commutativeEffects := canonicalCommutativePair ename1 ename2 :: !commutativeEffects
+(* API *)
+let nameOfEffect x = x 
+let getEffects ()  = SS.elements !effects
+let effectsCommute = fun e1 e2 -> List.mem (canonize e1 e2) !commutativeEffects
 
-let effectsCommute ename1 ename2 =
-  List.mem (canonicalCommutativePair ename1 ename2) !commutativeEffects
-
-let _ = addCommutativePair readEffect readEffect
-
-let nameOfEffect ename =
-  FA.name_of_string ename
 
 (******************************************************************************)
 (************************** Parsing Cil Declarations **************************)
@@ -43,13 +40,14 @@ let parsePragmaDecl loc = function
   | C.Attr ("csolve_effect_decl", [C.AStr ename]) ->
     ignore <| addEffect ename
   | C.Attr ("csolve_effects_commute", [C.AStr ename1; C.AStr ename2]) ->
-    addCommutativePair ename1 ename2
+    addCommutativePair (addEffect ename1) (addEffect ename2)
   | C.Attr ("csolve_effect_decl", _ ) ->
     Errormsg.s <| C.errorLoc loc "Malformed effect declaration@!"
   | C.Attr ("csolve_effects_commute", _) ->
     Errormsg.s <| C.errorLoc loc "Malformed effect commutation declaration@!"
   | _ -> ()
 
+(* API *)
 let parseEffectDecls cil =
   C.iterGlobals cil begin function
     | C.GPragma (ats, loc) -> parsePragmaDecl loc ats
