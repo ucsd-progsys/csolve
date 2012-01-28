@@ -646,22 +646,22 @@ S["gltests_LIBOBJS"]=" ioctl.o read-file.o unlinkdir.o"
 S["gl_LTLIBOBJS"]=" argmatch.lo asnprintf.lo asprintf.lo backupfile.lo basename.lo basename-lgpl.lo c-strtod.lo c-strtold.lo canon-host.lo canonicalize.lo chdir-long.l"\
 "o cloexec.lo close-stream.lo closein.lo closeout.lo creat-safer.lo cycle-check.lo dirchownmod.lo dirname.lo dirname-lgpl.lo dup-safer.lo exclude.lo "\
 "fcntl.lo fd-safer.lo fflush.lo file-type.lo filemode.lo filenamecat.lo filenamecat-lgpl.lo fopen-safer.lo fprintftime.lo fpurge.lo freopen-safer.lo "\
-"fseeko.lo fsusage.lo fts.lo futimens.lo getcwd.lo gethrxtime.lo getndelim2.lo getopt.lo getopt1.lo getpass.lo gettime.lo getugroups.lo hard-locale.l"\
-"o hash.lo human.lo i-ring.lo idcache.lo isapipe.lo isnanl.lo linkat.lo long-options.lo md5.lo memcasecmp.lo memcoll.lo mgetgroups.lo mkancesdirs.lo "\
-"mkdir-p.lo mkstemp-safer.lo modechange.lo mountlist.lo mpsort.lo nanosleep.lo open-safer.lo openat-proc.lo openat-safer.lo opendir-safer.lo physmem."\
-"lo pipe-safer.lo posixtm.lo posixver.lo printf-args.lo printf-parse.lo quote.lo quotearg.lo readtokens.lo readutmp.lo remove.lo root-dev-ino.lo safe"\
-"-read.lo safe-write.lo same.lo save-cwd.lo savedir.lo selinux-at.lo settime.lo sha1.lo sha256.lo sha512.lo sig2str.lo strftime.lo stripslash.lo temp"\
-"name.lo userspec.lo utimecmp.lo utimens.lo utimensat.lo vasnprintf.lo vasprintf.lo vfprintf.lo vprintf.lo write-any-file.lo xgetcwd.lo xmalloc.lo xn"\
-"anosleep.lo xstrtod.lo xstrtol.lo xstrtol-error.lo xstrtold.lo xstrtoul.lo yesno.lo"
+"fseeko.lo fsusage.lo fts.lo futimens.lo getcwd.lo gethrxtime.lo getndelim2.lo getpass.lo gettime.lo getugroups.lo hard-locale.lo hash.lo human.lo i-"\
+"ring.lo idcache.lo isapipe.lo isnanl.lo linkat.lo long-options.lo md5.lo memcasecmp.lo memcoll.lo mgetgroups.lo mkancesdirs.lo mkdir-p.lo mkstemp-sa"\
+"fer.lo modechange.lo mountlist.lo mpsort.lo nanosleep.lo open-safer.lo openat-proc.lo openat-safer.lo opendir-safer.lo physmem.lo pipe-safer.lo posi"\
+"xtm.lo posixver.lo printf-args.lo printf-parse.lo quote.lo quotearg.lo readtokens.lo readutmp.lo remove.lo root-dev-ino.lo safe-read.lo safe-write.l"\
+"o same.lo save-cwd.lo savedir.lo selinux-at.lo settime.lo sha1.lo sha256.lo sha512.lo sig2str.lo strftime.lo stripslash.lo tempname.lo userspec.lo u"\
+"timecmp.lo utimens.lo utimensat.lo vasnprintf.lo vasprintf.lo vfprintf.lo vprintf.lo write-any-file.lo xgetcwd.lo xmalloc.lo xnanosleep.lo xstrtod.l"\
+"o xstrtol.lo xstrtol-error.lo xstrtold.lo xstrtoul.lo yesno.lo"
 S["gl_LIBOBJS"]=" argmatch.o asnprintf.o asprintf.o backupfile.o basename.o basename-lgpl.o c-strtod.o c-strtold.o canon-host.o canonicalize.o chdir-long.o cloexec.o"\
 " close-stream.o closein.o closeout.o creat-safer.o cycle-check.o dirchownmod.o dirname.o dirname-lgpl.o dup-safer.o exclude.o fcntl.o fd-safer.o ffl"\
 "ush.o file-type.o filemode.o filenamecat.o filenamecat-lgpl.o fopen-safer.o fprintftime.o fpurge.o freopen-safer.o fseeko.o fsusage.o fts.o futimens"\
-".o getcwd.o gethrxtime.o getndelim2.o getopt.o getopt1.o getpass.o gettime.o getugroups.o hard-locale.o hash.o human.o i-ring.o idcache.o isapipe.o "\
-"isnanl.o linkat.o long-options.o md5.o memcasecmp.o memcoll.o mgetgroups.o mkancesdirs.o mkdir-p.o mkstemp-safer.o modechange.o mountlist.o mpsort.o"\
-" nanosleep.o open-safer.o openat-proc.o openat-safer.o opendir-safer.o physmem.o pipe-safer.o posixtm.o posixver.o printf-args.o printf-parse.o quot"\
-"e.o quotearg.o readtokens.o readutmp.o remove.o root-dev-ino.o safe-read.o safe-write.o same.o save-cwd.o savedir.o selinux-at.o settime.o sha1.o sh"\
-"a256.o sha512.o sig2str.o strftime.o stripslash.o tempname.o userspec.o utimecmp.o utimens.o utimensat.o vasnprintf.o vasprintf.o vfprintf.o vprintf"\
-".o write-any-file.o xgetcwd.o xmalloc.o xnanosleep.o xstrtod.o xstrtol.o xstrtol-error.o xstrtold.o xstrtoul.o yesno.o"
+".o getcwd.o gethrxtime.o getndelim2.o getpass.o gettime.o getugroups.o hard-locale.o hash.o human.o i-ring.o idcache.o isapipe.o isnanl.o linkat.o l"\
+"ong-options.o md5.o memcasecmp.o memcoll.o mgetgroups.o mkancesdirs.o mkdir-p.o mkstemp-safer.o modechange.o mountlist.o mpsort.o nanosleep.o open-s"\
+"afer.o openat-proc.o openat-safer.o opendir-safer.o physmem.o pipe-safer.o posixtm.o posixver.o printf-args.o printf-parse.o quote.o quotearg.o read"\
+"tokens.o readutmp.o remove.o root-dev-ino.o safe-read.o safe-write.o same.o save-cwd.o savedir.o selinux-at.o settime.o sha1.o sha256.o sha512.o sig"\
+"2str.o strftime.o stripslash.o tempname.o userspec.o utimecmp.o utimens.o utimensat.o vasnprintf.o vasprintf.o vfprintf.o vprintf.o write-any-file.o"\
+" xgetcwd.o xmalloc.o xnanosleep.o xstrtod.o xstrtol.o xstrtol-error.o xstrtold.o xstrtoul.o yesno.o"
 S["CONFIG_INCLUDE"]="lib/config.h"
 S["am__EXEEXT_FALSE"]=""
 S["am__EXEEXT_TRUE"]="#"
@@ -1007,7 +1007,7 @@ S["HAVE_GETTIMEOFDAY"]="1"
 S["GNULIB_GETTIMEOFDAY"]="1"
 S["LTLIBINTL"]=""
 S["LIBINTL"]=""
-S["GETOPT_H"]="getopt.h"
+S["GETOPT_H"]=""
 S["HAVE_GETOPT_H"]="1"
 S["NEXT_AS_FIRST_DIRECTIVE_GETOPT_H"]="<getopt.h>"
 S["NEXT_GETOPT_H"]="<getopt.h>"
@@ -1377,7 +1377,7 @@ S["GNULIB_USLEEP"]="IN_COREUTILS_GNULIB_TESTS"
 S["GNULIB_UNLINKAT"]="1"
 S["GNULIB_UNLINK"]="1"
 S["GNULIB_UNISTD_H_SIGPIPE"]="0"
-S["GNULIB_UNISTD_H_GETOPT"]="1"
+S["GNULIB_UNISTD_H_GETOPT"]="0"
 S["GNULIB_TTYNAME_R"]="0"
 S["GNULIB_SYMLINKAT"]="1"
 S["GNULIB_SYMLINK"]="1"
@@ -1900,7 +1900,6 @@ D["HAVE_GETOPT_LONG_ONLY"]=" 1"
 D["HAVE_DECL_OPTRESET"]=" 0"
 D["HAVE_DECL_GETOPT_CLIP"]=" 0"
 D["HAVE_DECL_GETENV"]=" 1"
-D["__GETOPT_PREFIX"]=" rpl_"
 D["HAVE_DECL_GETPASS"]=" 1"
 D["HAVE_DECL_FFLUSH_UNLOCKED"]=" 1"
 D["HAVE_DECL_FLOCKFILE"]=" 1"
@@ -2087,7 +2086,6 @@ D["GNULIB_TEST_GETLINE"]=" 1"
 D["HAVE_GETLOADAVG"]=" 1"
 D["GNULIB_TEST_GETLOADAVG"]=" 1"
 D["GNULIB_TEST_GETOPT_GNU"]=" 1"
-D["__GETOPT_PREFIX"]=" rpl_"
 D["HAVE_GETPAGESIZE"]=" 1"
 D["GNULIB_TEST_GETPAGESIZE"]=" 1"
 D["HAVE_DECL___FSETLOCKING"]=" 1"

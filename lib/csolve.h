@@ -4,7 +4,11 @@
 // Predicate abbreviations
 #define PNONNULL       V > 0
 #define PNN(p)         ((V != 0) => (p))
-#define PVALIDPTR      && [PNONNULL; BLOCK_BEGIN([V]) <= V; V < BLOCK_END([V])]
+#define PVALIDLO       BLOCK_BEGIN([V]) <= V
+#define PVALIDHI       V < BLOCK_END([V])
+
+#define PVALIDPTR      && [PNONNULL; PVALIDLO; PVALIDHI]
+
 #define PSTART         V = BLOCK_BEGIN([V])
 #define PSIZE(n)       (V + n) = BLOCK_END([V])
 #define PSIZE_GE(n)    (V + n) <= BLOCK_END([V])
@@ -90,7 +94,10 @@ typedef char const NULLTERMSTR FINAL * STRINGPTR  csolve_const_string;
 
 extern void csolve_fold_all () OKEXTERN;
 
+
 extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
+extern void csolve_validptr_lo (void * REF(PVALIDLO) IGNORE_INDEX) OKEXTERN;
+extern void csolve_validptr_hi (void * REF(PVALIDHI) IGNORE_INDEX) OKEXTERN;
 
 extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
 

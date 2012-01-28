@@ -38,9 +38,7 @@ type lifespan = (step * Qualifier.t list) list Ast.Symbol.SMap.t
 (* [cid |-> i0,...] cid is selected at steps i0... by solver *)
 type ctrace  = step list Misc.IntMap.t 
 
-(* [((k1,q1), c1);...;((kn,qn),cn)] 
- * where each k_i+1, q_i+1, c_i+1 is the "cause" for why k_i, q_i is killed *)
-type cex     (* = (Ast.Symbol.t * fact * FixConstraint.id) list *)
+type cex     
 
 val create  :  FixConstraint.soln       (* assumes           *) 
             -> FixConstraint.t list     (* all constraints   *)
@@ -50,5 +48,4 @@ val create  :  FixConstraint.soln       (* assumes           *)
             -> t
 
 val explain : t -> FixConstraint.t -> cex
-
 val print_cex : Format.formatter -> cex -> unit

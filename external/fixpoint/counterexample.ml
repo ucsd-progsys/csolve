@@ -62,10 +62,12 @@ type ctrace  = step list IM.t
 
 (* [((x1,k1,q1), c1);...;((xn,kn,qn),cn)] 
  * where each k_i+1, q_i+1, c_i+1 is the "cause" for why k_i, q_i is killed *)
-type cex     = (Sy.t * fact * C.id) list
-(*
+(* type cex     = (Sy.t * fact * C.id) list *)
 type cex     = Cause of Sy.t * fact * C.id * cex list
-*)
+
+(****************************************************************************)
+(******************** Printing Counterexamples ******************************)
+(****************************************************************************)
 
 let print_fact ppf = function
   | Abs (k, q) -> F.fprintf ppf "(%a/%a)" Sy.print k Q.print_args q
@@ -74,8 +76,27 @@ let print_fact ppf = function
 let print_step ppf (x, f, cid) =
   F.fprintf ppf "%a: %a @@ %d" Sy.print x print_fact f cid
 
-let print_cex = 
-  Misc.pprint_many_box true "" "---> " "" print_step
+(*
+let print_cex = Misc.pprint_many_box true "" "---> " "" print_step
+*)
+
+let rec print_cex spaces ppf (Cause (x, f, cid, cs)) =
+  F.fprintf ppf "%s `-> %a\n%a" 
+    (String.concat "" (Misc.clone " " spaces))
+    print_step (x, f, cid) 
+    (Misc.pprint_many false "\n\n" (print_cex (spaces + 4))) cs
+
+let print_cex = print_cex 0
+
+let print_fact_causes n ppf (f, xfs) =
+  F.fprintf ppf "fact %a killed at %d by: %a \n"
+    print_fact f
+    n
+    (Misc.pprint_many_brackets false  (Misc.pprint_tuple Sy.print print_fact)) xfs
+
+(****************************************************************************)
+(******************** Instance Type *****************************************)
+(****************************************************************************)
 
 let compare_fact f1 f2 =
   compare (Misc.fsprintf print_fact f1) (Misc.fsprintf print_fact f2)
@@ -87,15 +108,13 @@ module FactMap = Misc.EMap (struct
 end)
 
 type t = { tpc      : TP.t 
-         ; n        : int                          (* number of solver iters *)
+         ; n        : int                   (* number of solver iters *)
          ; s        : FixConstraint.soln
          ; cm       : FixConstraint.t IM.t
          ; ctrace   : ctrace 
-         ; lifespan : lifespan                     (* builds soln at n                *)
-         (* ; sfm      : fact list IM.t            (* step |-> facts killed at a step *)
-         *)
-         ; fsm      : step FactMap.t               (* fact |-> step at which killed   *)
-         ; scm      : int IM.t                     (* step |-> constr at step         *)
+         ; lifespan : lifespan              (* builds soln at n                *)
+         ; fsm      : step FactMap.t        (* fact |-> step at which killed   *)
+         ; scm      : int IM.t              (* step |-> constr at step         *)
          }
 
 let scm_of_ctrace ctrace = 
@@ -114,9 +133,9 @@ let fsm_of_lifespan lifetime =
     end fsm sqs
   end lifetime FactMap.empty 
 
-(***************************************************************************)
-(************** Helpers to Reconstitute Solutions and Candidates ***********)
-(***************************************************************************)
+(************************************************************************)
+(*********** Helpers to Reconstitute Solutions and Candidates ***********)
+(************************************************************************)
 
 let constrOfId me cid = 
    IM.safeFind cid me.cm "Cex.constrOfId"
@@ -127,10 +146,6 @@ let solutionAt me n k =
   |> Misc.flap snd
   |> Misc.map Q.pred_of_t
   |> (++) (me.s k)
-
-(************************************************************************)
-(************************************************************************)
-(************************************************************************)
 
 let isUnsatAt me c n = 
   let s     = solutionAt me n                                 in
@@ -183,39 +198,8 @@ let killerCands me c n : (int * (((Sy.t * fact) * A.pred)) list) list =
   |> Misc.kgroupby (fst <+> snd <+> killstep_of_fact me)
 
 (************************************************************************)
+(******************** Lazy Explanations *********************************)
 (************************************************************************)
-(************************************************************************)
-
-let print_fact_causes n ppf (f, xfs) =
-  F.fprintf ppf "fact %a killed at %d by: %a \n"
-    print_fact f
-    n
-    (Misc.pprint_many_brackets false  (Misc.pprint_tuple Sy.print print_fact)) xfs
-
-let is_bot_killer = function
-  | (f, p) when P.is_contra p -> Some f
-  | _                         -> None
-
-(********************************************************************)
-(*********************** API ****************************************)
-(********************************************************************)
-
-(* API *)
-let create s cs ctrace lifespan tpc =
-  let scm    = scm_of_ctrace ctrace in
-  { tpc      = tpc 
-  ; s        = s 
-  ; cm       = cs |>: Misc.pad_fst C.id_of_t |> IM.of_list 
-  ; n        = 1 + Misc.list_max 0 (IM.domain scm)
-  ; ctrace   = IM.map Misc.sort_and_compact ctrace 
-  ; lifespan = lifespan
-  ; fsm      = fsm_of_lifespan lifespan
-  ; scm      = scm
-  }  
-
-(*****************************************************************)
-(**************** Lazy Explanations ******************************)
-(*****************************************************************)
 
 let killedPred me c f =  
   match f, C.rhs_of_t c with
@@ -247,8 +231,13 @@ let killinfo me = function
   | f        -> let n = killstep_of_fact me f in
                 (n, IM.safeFind n me.scm "Cex.killinfo")
 
+(* {{{ ORIGINAL: simply use unsat core.
 
-(* ORIGINAL: simply use unsat core.
+let is_bot_killer = function
+  | (f, p) when P.is_contra p -> Some f
+  | _                         -> None
+
+
 let getKillers_cands me c bgp cands =
   match cands, Misc.exists_maybe is_bot_killer cands with 
   | [], _ ->
@@ -281,12 +270,12 @@ let underApproxCubes me  (p:pred) (q:pred) (rs: ('a * pred) list) : 'a option =
     else None
   end rs
 
-*)
+}}} *)
 
 let getKillers_cands me c p q rs =
   let env    = C.senv_of_t c in
   let contra = fun p -> TP.is_contra me.tpc env p in
-  Misc.exists_maybe begin fun (f, fp) ->
+  Misc.map_partial begin fun (f, fp) ->
     if contra (A.pAnd [p; fp; q]) && not (contra (A.pAnd [p; fp]))
     then Some f
     else None
@@ -295,9 +284,8 @@ let getKillers_cands me c p q rs =
 let getKillers_fact (me: t) (f: fact) = 
   let n, cid     = killinfo me f                            in
   let c          = IM.safeFind cid me.cm "Cex.getKillers 3" in
-  match killerCands me c n with []  -> (cid, None) | iks -> 
+  match killerCands me c n with []  -> (cid, []) | iks -> 
     let bgps       = C.preds_of_lhs (solutionAt me n) c     in
-                     (* |> (++) [A.pNot (killedPred me c f)]   *) 
     let killedp    = A.pNot (killedPred me c f)             in 
     let (j, cands) = getKillStep me c (A.pAnd bgps) iks     in
     let bgps'      = iks 
@@ -305,10 +293,29 @@ let getKillers_fact (me: t) (f: fact) =
                    |> Misc.flap   (snd <+> List.map snd)    in 
     (cid, getKillers_cands me c (A.pAnd (bgps ++ bgps')) killedp cands)
 
-let rec explain me acc f = 
-  match getKillers_fact me f with
-  | cid, Some (x', f') -> explain me ((x', f', cid) :: acc) f' 
-  | _  , None          -> acc
+let rec explain me f =
+  let cid, xfs = getKillers_fact me f in
+  List.map (fun (x',f') -> Cause (x', f', cid, explain me f')) xfs
 
+(********************************************************************)
+(*********************** API ****************************************)
+(********************************************************************)
+
+(* API *)
+let create s cs ctrace lifespan tpc =
+  let scm    = scm_of_ctrace ctrace in
+  { tpc      = tpc 
+  ; s        = s 
+  ; cm       = cs |>: Misc.pad_fst C.id_of_t |> IM.of_list 
+  ; n        = 1 + Misc.list_max 0 (IM.domain scm)
+  ; ctrace   = IM.map Misc.sort_and_compact ctrace 
+  ; lifespan = lifespan
+  ; fsm      = fsm_of_lifespan lifespan
+  ; scm      = scm
+  }  
+
+(* API *)
 let explain me c = 
-  explain me [] (Conc (C.id_of_t c))
+  let cid0 = C.id_of_t c in
+  let f0   = Conc cid0   in
+  Cause (Sy.of_string "ERROR", f0, cid0, explain me f0)

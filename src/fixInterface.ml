@@ -395,9 +395,9 @@ let t_valid_ptr ct =
   let vv  = Sy.value_variable so in
   let evv = A.eVar vv in
   t_pred ct vv (A.pOr [A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one);
-                       A.pAnd [A.pAtom (evv, A.Ne, A.zero);
-                               A.pAtom (FA.eApp_bbegin evv, A.Le, evv);
-                               A.pAtom (evv, A.Lt, FA.eApp_bend evv)]])
+                       A.pAnd [(* A.pAtom (evv, A.Ne, A.zero)
+                              ; *) A.pAtom (FA.eApp_bbegin evv, A.Le, evv)
+                              ; A.pAtom (evv, A.Lt, FA.eApp_bend evv)]])
 
 let t_start_ptr ct =
   let so  = sort_of_prectype ct in

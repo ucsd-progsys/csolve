@@ -74,6 +74,10 @@ string * LOC(L) string_succ(slist INST(SL, L) * REF(V = (BLOCK_BEGIN([V]) + 4)) 
         return (slist *) 0;
 
     sl = (slist **)s - 1;
+
+
+    csolve_validptr_lo (sl);
+    csolve_validptr_hi (sl); 
     sl = sl->next;
 
     if (sl == (slist *) 0)
