@@ -126,6 +126,11 @@ let rec pprint_many_box s f ppf = function
   | x::[]  -> Format.fprintf ppf "%a" f x
   | x::xs' -> (Format.fprintf ppf "%a%s@\n" f x s; pprint_many_box s f ppf xs')
 *)
+let rec pprint_many_prefix sep base f ppf = function
+  | x::xs -> Format.fprintf ppf "(%s %a %a)" 
+               sep f x (pprint_many_prefix sep base f) xs
+  | []    -> Format.fprintf ppf "%a" f base
+
 
 let rec pprint_many_box brk s f ppf = function
   | []              -> ()

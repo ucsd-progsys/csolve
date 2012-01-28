@@ -64,6 +64,7 @@ let sorted_quals                = ref false (* -sortedquals *)
 let true_unconstrained          = ref true  (* -true_unconstrained *)
 let do_nothing                  = ref false (* -nop *)
 let dump_imp                    = ref false (* -imp *)
+let dump_smtlib                 = ref false (* -smtlib *)
 let dump_simp                   = ref ""    (* -simp *)
 let prune_live                  = ref false (* -prunelive *)
 let print_nontriv               = ref false (* -print_nontriv *)
@@ -323,6 +324,10 @@ let arg_spec =
    ("-imp",
     Arg.Set dump_imp,
     " print constraints as IMP program (experimental)"
+   );
+   ("-smtlib",
+    Arg.Set dump_smtlib,
+    " print constraints as SMTLIB query (experimental)"
    );
    ("-prunelive",
     Arg.Set prune_live,

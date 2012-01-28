@@ -83,10 +83,22 @@ let dump_solve ac =
 (*****************************************************************)
 
 let dump_imp a = 
-  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ 
-   List.map (fun c -> Cg.Wfc c) a.Cg.ws)
+  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ List.map (fun c -> Cg.Wfc c) a.Cg.ws)
   |> ToImp.render F.std_formatter
   |> fun _ -> exit 1 
+
+(*****************************************************************)
+(********************* Generate SMTLIB Query *********************)
+(*****************************************************************)
+
+let dump_smtlib a = 
+  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ List.map (fun c -> Cg.Wfc c) a.Cg.ws)
+  |> Misc.flip ToSmtLib.render 
+  |> Misc.with_out_formatter !Co.out_file
+  >| exit 1 
+
+     
+
 
 (*****************************************************************)
 (***************** Generate Simplified Constraints ***************)
@@ -128,6 +140,8 @@ let main () =
   let cfg  = usage |> Toplevel.read_inputs |> snd in 
   if !Co.dump_imp then 
     dump_imp cfg 
+  else if !Co.dump_smtlib then
+    dump_smtlib cfg
   else if !Co.dump_simp <> "" then 
     dump_simp cfg
   else

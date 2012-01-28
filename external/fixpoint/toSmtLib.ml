@@ -30,13 +30,13 @@ module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
+module So = A.Sort
 module SM = Sy.SMap
 module SS = Sy.SSet
 module C  = FixConstraint
 module Cg = FixConfig
 (*module BS = BNstats*)
 
-open Imp
 open Misc.Ops
 
 
@@ -69,23 +69,108 @@ type kmap
 (************* Rendering SMTLIB to String ********************************)
 (*************************************************************************)
 
+(* Printing as C syntax *)
+
+let print_brel ppf = function
+  | A.Eq -> F.fprintf ppf "="
+  | A.Ne -> F.fprintf ppf "!="
+  | A.Gt -> F.fprintf ppf ">"
+  | A.Ge -> F.fprintf ppf ">="
+  | A.Lt -> F.fprintf ppf "<"
+  | A.Le -> F.fprintf ppf "<="
+
+let print_bop ppf = function
+  | A.Plus  -> F.fprintf ppf "+"
+  | A.Minus -> F.fprintf ppf "-"
+  | A.Times -> F.fprintf ppf "*"
+  | A.Div   ->  F.fprintf ppf "/"
+
+let rec print_pred ppf pred =
+  match P.unwrap pred with
+  | A.True ->
+      F.fprintf ppf "true"
+  | A.False ->
+      F.fprintf ppf "false"
+  | A.Atom (e1, A.Ne, e2) ->
+      F.fprintf ppf "(not (= %a %a))" 
+        print_expr e1 
+        print_expr e2
+  | A.Atom (e1, r, e2) ->
+      F.fprintf ppf "(%a %a %a)" 
+        print_brel r 
+        print_expr e1 
+        print_expr e2
+  | A.And ps ->
+      Misc.pprint_many_prefix "and" A.pTrue print_pred ppf ps
+  | A.Or ps ->
+      Misc.pprint_many_prefix "or" A.pFalse print_pred ppf ps
+  | A.Not p ->
+      F.fprintf ppf "(not %a)" print_pred p
+  | A.Imp (p1, p2) ->
+      F.fprintf ppf "(implies %a %a)" 
+        print_pred p1 
+        print_pred p2
+  | A.Iff (p1, p2) ->
+      print_pred ppf (A.pAnd [A.pImp (p1, p2); A.pImp (p2, p1)])
+  | A.Bexp e ->
+      print_expr ppf e
+  | _ -> assertf "ERROR: ToSmtLib.print_pred %s" (P.to_string pred)
+      
+and print_expr ppf expr =
+  match E.unwrap expr with
+  | A.Con c ->
+      F.fprintf ppf "%a" A.Constant.print c
+  | A.Var v ->
+      F.fprintf ppf "%a" Sy.print v
+  | A.App (f, es) ->
+      F.fprintf ppf "(%a %a)" 
+        Sy.print f
+        (Misc.pprint_many false " " print_expr) es
+  | A.Bin (e1, op, e2) ->
+      F.fprintf ppf "(%a %a %a)"
+        print_bop  op
+        print_expr e1
+        print_expr e2
+  | A.Ite (p, e1, e2) ->
+      F.fprintf ppf "(ite %a %a %a)"
+        print_pred p
+        print_expr e1
+        print_expr e2
+  | _ -> assertf "ERROR: ToSmtLib.print_expr %s" (E.to_string expr)
+
+let rec print_sort ppf t = match So.func_of_t t with
+  | Some (ts, t) -> 
+      Format.fprintf ppf "%a %a"
+        (Misc.pprint_many false " " print_sort) ts
+        print_sort t
+  | None 
+  when So.is_bool t -> 
+    Format.fprintf ppf "Bool"
+  | _ -> 
+    Format.fprintf ppf "Int"
+
 let print_vdef ppf (x, t) = 
-  failwith "TODO"
+  Format.fprintf ppf ":extrafuns ((%a %a))"
+    Sy.print x
+    print_sort t
 
 let print_kdef ppf (kf, xts) = 
-  failwith "TODO"
+  Format.fprintf ppf ":extrapreds ((%a %a))"
+    Sy.print kf
+    (Misc.pprint_many false " " print_sort) (List.map snd xts)
 
 let print_cstr ppf = function 
-  | (p, None)   -> failwith "TODO"
-  | (p, Some q) -> failwith "TODO"
+  | (p, None)   -> 
+      Format.fprintf ppf ":assumption\n(implies (%a) false)\n"
+      print_pred p
+  | (p, Some q) -> 
+      Format.fprintf ppf ":assumption\n(implies (%a) (%a))\n"
+      print_pred p
+      print_pred q
 
 let print ppf smt = 
   Format.fprintf ppf 
-    "(benchmark unknown
-     :status unsat
-     :logic AUFLIA
-     %a\n%a\n%a\n
-     )"
+    "(benchmark unknown\n:status unsat\n:logic AUFLIA\n%a\n%a\n%a\n)"
     (Misc.pprint_many true "\n" print_vdef) smt.vars
     (Misc.pprint_many true "\n" print_kdef) smt.kvars
     (Misc.pprint_many true "\n" print_cstr) smt.cstrs
@@ -116,7 +201,7 @@ let update_vmap vm (x, t) =
   end (SM.maybe_find x vm);
   SM.add x t vm
 
-let add_var_to_vmap vm c : SM.t =
+let add_var_to_vmap vm c =
   let vvl = C.vv_of_reft (C.lhs_of_t c) in
   let vvr = C.vv_of_reft (C.rhs_of_t c) in
   let _   = asserts (vvl = vvr) "Different VVs in Constr: %d" (C.id_of_t c) in
@@ -129,7 +214,7 @@ let add_var_to_vmap vm c : SM.t =
 
 let check_no_subs wid suks = 
   asserts 
-    (List.for_all (fst <+> Su.is_empty) suks) 
+    (List.for_all (fst <+> A.Subst.is_empty) suks) 
     "NonTriv Subst wid=%d" wid
 
 let join vds vds' = 
@@ -142,8 +227,8 @@ let join vds vds' =
 
 let update_kmap vdefs km k : kmap =
   match SM.maybe_find k km with
-  | None        -> SM.add k vdefs km
-  | Some vdefs' -> SM.add k (join vdefs vdefs') km
+  | None            -> SM.add k (k, vdefs) km
+  | Some (_,vdefs') -> SM.add k (k, join vdefs vdefs') km
 
 let add_wf_to_kmap km wf =
   let vdefs = vdefs_of_env (C.env_of_wf wf) (C.reft_of_wf wf) in
@@ -163,27 +248,27 @@ let make_kmap defs : kmap =
 (*************************************************************************)
 
 let pred_of_kdef (kf, xts) =
-  A.eApp (kf, List.map (fst <+> A.eVar) xts)  
+  A.pBexp <| A.eApp (kf, List.map (fst <+> A.eVar) xts)  
 
 let soln_of_kmap km k =
-  pred_of_kdef <| SM.safeFind k km "soln_of_kmap"
+  [pred_of_kdef <| SM.safeFind k km "soln_of_kmap"]
 
 let tx_constraint s c =
   let lps     = C.preds_of_lhs s c in
   let v,t,ras = C.rhs_of_t c       in
   foreach ras begin function 
-    | Conc p -> (A.pAnd ((A.pNot p) :: lps), None)
-    | ra     -> (A.pAnd lps, Some (C.preds_of_refa s ta))
+    | C.Conc p -> (A.pAnd ((A.pNot p) :: lps), None)
+    | ra     -> (A.pAnd lps, Some (A.pAnd (C.preds_of_refa s ra)))
   end
 
-let tx_defs (defs : FixConfig.t list) : smtlib = 
+let tx_defs defs = 
   let km  = defs |> make_kmap in
   let s   = soln_of_kmap km   in 
   let cs  = defs |> Misc.map_partial (function Cg.Cst x -> Some x | _ -> None) 
-                 |> Misc.map canonize_vv in
-  { vars  = SS.elements <| List.fold_left add_vars SS.empty cs
+                 (* |> Misc.map canonize_vv *) in
+  { vars  = SM.to_list <| List.fold_left add_var_to_vmap SM.empty cs
   ; kvars = SM.range km
-  ; cstrs = Misc.map (tx_constraint s) cs 
+  ; cstrs = Misc.flap (tx_constraint s) cs 
   }
 
 
@@ -192,5 +277,5 @@ let tx_defs (defs : FixConfig.t list) : smtlib =
 (*************************************************************************)
 
 let render ppf defs =
-  defs |> defs_to_smt 
+  defs |> tx_defs 
        |> F.fprintf ppf "%a" print
