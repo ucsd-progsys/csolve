@@ -3,6 +3,37 @@
    ./csolve --counterexamples ../tests/negtests/cex0.c
 
 
+Counterexamples:
+n_make_string: (k_144/False(VV)) @ 139
+                 ---> i_make_string__SSA__phi_9: (k_184/False(VV)) @ 142
+                 ---> str_make_string__SSA__phi_9: (k_185/PI(VV, i_make_string__SSA__phi_9, str_make_string__SSA__phi_9)) @ 135
+                 ---> VV: (k_143/P4(VV)) @ 168
+                 ---> tmp___0_main__SSA__blk_0_1: (k_178/P4(VV)) @ 157
+                 ---> n_new_strings: (k_132/False(VV)) @ 76
+                 ---> tmp_new_strings__SSA__phi_3: (k_203/PosP(VV)) @ 68
+                 ---> VV: (k_131/P4(VV)) @ 151
+                 ---> tmp___4_main__SSA__blk_0_1: (k_179/P4(VV)) @ 187
+                 ---> s_string_succ: (k_122/Begin(VV)) @ 19
+../tests/postests/stringlist.c:77:
+
+
+render.py (or whatever)
+
+cex   = { code   : string
+        ; traces : [trace]
+        ; quals  : [{name: string; pred: string}]
+        }
+
+trace = { steps   : [step]
+        ; errline : int 
+        }
+
+step  = { var  : string
+        ; kvar : string
+        ; qual : string
+        ; line : int 
+        }
+
 
 1. PRETTIFY (to be continued)
 
