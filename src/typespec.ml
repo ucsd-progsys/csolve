@@ -159,8 +159,12 @@ let ptrReftypeOfSlocAttrs l tb ats =
                 I.top
               else ptrIndexOfPredAttrs tb pred ats in
     FI.t_spec_pred (Ct.Ref (l, index)) vv pred
+
 let ptrReftypeOfAttrs tb ats =
-  ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
+  if C.hasAttribute CM.anyRefAttribute ats then
+    Ct.ARef (* if annotated with ANYREF, ignore all other annotations *)
+  else
+    ptrReftypeOfSlocAttrs (slocOfAttrs ats) tb ats
     
 let fptrReftOfAttrs tb ats =
   let pred = fptrPredOfAttrs (Some tb) ats in
@@ -170,14 +174,17 @@ let fptrReftOfAttrs tb ats =
   FI.t_spec_pred (Ct.FRef (Ct.null_fun,index)) vv pred
 
 let intReftypeOfAttrs width ats =
-  let pred  = predOfAttrs None ats in
-  let index = if C.hasAttribute CM.ignoreIndexAttribute  ats then
-                I.top
-              else I.data_index_of_pred vv pred in
-    FI.t_spec_pred
-      (Ct.Int (width, index))
-      vv
-      pred
+  if C.hasAttribute CM.anyTypeAttribute ats then
+    Ct.Any (* if annotated with ANY, ignore all other annotations *)
+  else
+    let pred  = predOfAttrs None ats in
+    let index = if not <| C.hasAttribute CM.useIndexAttribute ats then
+                  I.top
+                else I.data_index_of_pred vv pred in
+      FI.t_spec_pred
+        (Ct.Int (width, index))
+        vv
+        pred
 
 (******************************************************************************)
 (***************************** Effect Annotations *****************************)
@@ -265,14 +272,16 @@ let attributeAppliesToInstance (C.Attr (n, _)) =
   not <| List.mem n [CM.instantiateAttribute; CM.slocAttribute; CM.layoutAttribute]
 
 let rec normalizeType = function
+  | C.TComp ({C.cattr = cats} as ci, ats) ->
+    C.TComp ({ci with C.cattr = []}, cats @ ats)
+  | C.TNamed ({C.ttype = C.TComp _ as t}, ats) ->
+    t |> normalizeType |> C.typeAddAttributes ats
   | C.TNamed ({C.ttype = t}, ats) ->
     let instr = new typeInstantiator ats in
          t
       |> normalizeType
       |> C.visitCilType (instr :> C.cilVisitor)
       |> C.typeAddAttributes (List.filter attributeAppliesToInstance ats)
-  | C.TComp ({C.cattr = cats} as ci, ats) ->
-    C.TComp ({ci with C.cattr = []}, cats @ ats)
   | t -> ensureSlocAttrs t
 
 let argType (x, t, ats) =
@@ -336,16 +345,19 @@ let rec refctypeOfCilType mem t = match normalizeType t with
     (*   | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType f, (i, r)) *)
     (* end *)
   | C.TPtr (t, ats)      ->
-    begin match CM.typeName t with
-      | Some n when SM.mem n mem -> begin
-             ats
-          |> ptrReftypeOfAttrs t
-          |> function
-             | (Ct.Ref (s, _) as t) -> RCt.subs [s, SM.find n mem] t
-             | _                    -> assert false
-        end
-      | _ -> ptrReftypeOfAttrs t ats
-    end
+    if C.hasAttribute CM.anyRefAttribute ats then
+      Ct.ARef (* create an anyref even if the type is named *)
+    else
+      begin match CM.typeName t with
+        | Some n when SM.mem n mem -> begin
+               ats
+            |> ptrReftypeOfAttrs t
+            |> function
+               | (Ct.Ref (s, _) as t) -> RCt.subs [s, SM.find n mem] t
+               | _                    -> assert false
+          end
+        | _ -> ptrReftypeOfAttrs t ats
+      end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
 and heapRefctypeOfCilType mem t =

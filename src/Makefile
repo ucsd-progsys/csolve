@@ -22,7 +22,7 @@ CFLAGS=-cflags -dtypes \
        -cflags -I,$(Z3HOME)/ocaml \
        -cflags -I,$(OCAMLGRAPHHOME) \
        -cflags -g \
-       -cflags "-w a" \
+       -cflags "-w aevyz" \
        -cflags -thread
 
 TARGETS=csolve.native

@@ -134,7 +134,8 @@ let top sol xs =
 let refine sol c =
   let rhs = F.rhs_of_t c in
   let t = F.sort_of_reft (F.lhs_of_t c) in
-  let lhsVal = index_of_reft (F.env_of_t c) (read_bind sol) (F.lhs_of_t c) in
+  let env = F.env_of_t c |> Misc.flip apply_grd (F.grd_of_t c) in
+  let lhsVal = index_of_reft env (read_bind sol) (F.lhs_of_t c) in
   let refineK sol k =
     let (kt,oldK) = read_store sol t k in
     let _ = match kt with
@@ -148,6 +149,7 @@ let refine sol c =
 	d_index lhsVal
 	d_index (ix_of_kstore oldK)
 	d_index (ix_of_kstore newK) in
+      let _ = Format.print_flush () in
 	()
     in
       if (Asm.mem k sol) && List.hd oldK.ks = List.hd newK.ks
@@ -163,7 +165,10 @@ let refine sol c =
 let unsat sol c =
   (* Make sure that lhs <= k for each k in rhs *)
   let rhsKs = F.rhs_of_t c |> F.kvars_of_reft  in
-  let lhsVal = index_of_reft (F.env_of_t c) (read_bind sol) (F.lhs_of_t c) in
+  let env = F.env_of_t c |> Misc.flip apply_grd (F.grd_of_t c)in
+  let lhsVal = index_of_reft env (read_bind sol) (F.lhs_of_t c) in
+  (* let rhsVal = index_of_reft env (read_bind sol) (F.rhs_of_t c) in *)
+       (* not (is_subindex lhsVal rhsVal) *)
   let onlyK (sub, sym) = (* true if the constraint is unsatisfied *)
     not (is_subindex lhsVal (read_bind sol sym))
   in

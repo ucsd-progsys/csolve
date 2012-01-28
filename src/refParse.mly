@@ -101,7 +101,7 @@ let currentLoc () =
 %token PLUSMINUS
 %token TIMES 
 %token QM DOT ASGN
-%token INT BOOL FPTR PTR FUNC
+%token INT BOOL LFUN PTR FUNC
 %token SRT AXM CST WF SOL QUL
 %token ENV GRD LHS RHS REF FREF TOP
 %token FINAL
@@ -179,7 +179,7 @@ publ:
 
 globalslocbind:
     sloc publ indbinds {
-      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+      ($1, $2, SData (RCt.LDesc.create Ct.dummy_ldinfo $3), currentLoc ())
     }
   | sloc publ funtyp {
       ($1, $2, SFun $3, currentLoc ())
@@ -213,7 +213,7 @@ slocbindsne:
 
 slocbind:
     sloc MAPSTO indbinds   {
-      ($1, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+      ($1, SData (RCt.LDesc.create Ct.dummy_ldinfo $3), currentLoc ())
     }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
   ;
@@ -365,7 +365,7 @@ sortsne:
 sort:
   | INT                                 { So.t_int }
   | PTR                                 { So.t_ptr (So.Lvar 0) }
-  | FPTR                                { So.t_fptr }
+  | PTR LPAREN LFUN RPAREN              { So.t_ptr (So.LFun) }
   | PTR LPAREN Num RPAREN               { So.t_ptr (So.Lvar $3) }
   ;
 

@@ -98,6 +98,7 @@ module Reft = struct
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
   let top          = Index.top, reft_of_top 
+  let ref_of_any   = Index.ind_of_any, reft_of_top
 end
 
 (******************************************************************************)
@@ -109,17 +110,22 @@ type finality =
   | Nonfinal
 
 type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
-type structinfo = {stype : Cil.typ option} 
+type ldinfo     = {stype : Cil.typ option; any: bool} 
 
 let dummy_fieldinfo  = {fname = None; ftype = None}
-let dummy_structinfo = {stype = None}
+let dummy_ldinfo = {stype = None; any = false}
+let any_ldinfo   = {stype = None; any = true }
+let any_fldinfo  = {fname = None; ftype = None}
 
 type 'a prectype =
-  | Int  of int * 'a          (* fixed-width integer *)
-  | Ref  of Sloc.t * 'a       (* reference *)
+  | Int  of int * 'a           (* fixed-width integer *)
+  | Ref  of Sloc.t * 'a        (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
+  | ARef                       (* a dynamic "blackhole" reference *)
+  | Any                        (* the variable-width type of a "blackhole" *)
 
-and 'a prefield = { pftype     : 'a prectype
+
+and 'a prefield = {  pftype     : 'a prectype
                    ; pffinal    : finality
                    ; pfloc      : C.location
                    ; pfinfo     : fieldinfo }
@@ -129,7 +135,7 @@ and effectptr  = Reft.t prectype
 and effectset = effectptr SLM.t
 
 and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
-                   ; plinfo     : structinfo }
+                  ; plinfo     : ldinfo }
 
 and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
 
@@ -170,16 +176,18 @@ let d_fieldinfo () = function
   | _ ->
       P.nil (* RJ: screws up the autospec printer. P.dprintf "/* FIELDINFO ??? */" *)
 
-let d_structinfo () = function
+let d_ldinfo () = function
   | { stype = Some t } -> 
       P.dprintf "/* %a */" Cil.d_type t
   | _ -> 
       P.nil
 
-let d_prectype d_refinement () = function
-      | Int (n, r) -> P.dprintf "int(%d, %a)" n d_refinement r
-      | Ref (s, r) -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
+let rec d_prectype d_refinement () = function
+      | Int (n, r)  -> P.dprintf "int(%d, %a)" n d_refinement r
+      | Ref (s, r)  -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
+      | ARef        -> P.dprintf "aref(%a)" S.d_sloc Sloc.sloc_of_any
+      | Any         -> P.dprintf "any"
 
 let d_refctype = d_prectype Reft.d_refinement
 
@@ -189,8 +197,8 @@ let d_storelike d_binding =
   SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
 
 let prectype_subs subs = function
-  | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
-  | pct        -> pct
+  | Ref  (s, i) -> Ref (S.Subst.apply subs s, i)
+  | pct         -> pct
 
 module EffectSet = struct
   type t = effectset
@@ -297,11 +305,13 @@ module SIGS (T : CTYPE_DEFS) = struct
     exception TypeDoesntFit of Index.t * T.ctype * t
 
     val empty         : t
+    val any           : t
     val eq            : t -> t -> bool
     val is_empty      : t -> bool
+    val is_any        : t -> bool
     val is_read_only  : t -> bool
     val add           : Index.t -> T.field -> t -> t
-    val create        : structinfo -> (Index.t * T.field) list -> t
+    val create        : ldinfo -> (Index.t * T.field) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -315,8 +325,9 @@ module SIGS (T : CTYPE_DEFS) = struct
     val indices       : t -> Index.t list
     val bindings      : t -> (Index.t * T.field) list
 
-    val set_structinfo : t -> structinfo -> t
-    val get_structinfo : t -> structinfo
+    val set_ldinfo : t -> ldinfo -> t
+    val get_ldinfo : t -> ldinfo
+    val set_stype  : t -> Cil.typ option -> t
 
     val d_ldesc       : unit -> t -> P.doc
   end
@@ -482,11 +493,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
+      | ARef | Any -> T.R.top
 
     let rec map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
       | FRef(g, x) -> FRef (map_func f g, f x)
+      | ARef      -> ARef
+      | Any       -> Any    
     and map_field f ({pftype = typ} as pfld) =
       {pfld with pftype = map f typ}
     and map_desc f {plfields = flds; plinfo = info} =
@@ -500,16 +514,20 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	        sto_out  = map_sto f stout}
 
     let d_ctype () = function
-      | Int (n, i) -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
-      | Ref (s, i) -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
+      | Int (n, i)  -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
+      | Ref (s, i)  -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
+      | ARef        -> P.dprintf "aref(%a)" S.d_sloc S.sloc_of_any
+      | Any         -> P.dprintf "any"  
 
     let width = function
       | Int (n, _) -> n
-      | _      -> CM.int_width
+      | Any        -> 0
+      | _          -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
+      | ARef       -> Some S.sloc_of_any
       | _          -> None
 
     let subs subs = function
@@ -518,13 +536,17 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     exception NoLUB of t * t
 
-    let is_subctype pct1 pct2 =
+    let is_subctype pct1 pct2 =                        
       match pct1, pct2 with
         | Int (n1, r1), Int (n2, r2) when n1 = n2    -> T.R.is_subref r1 r2
         | Ref (s1, r1), Ref (s2, r2) when S.eq s1 s2 -> T.R.is_subref r1 r2
 	  (* not sure what the semantics are here
 	     should is_subctype be called on the arguments of f1/f2 etc? *)
-	| FRef (f1, r1), FRef (f2, r2) when f1 = f2 -> T.R.is_subref r1 r2
+	      | FRef (f1, r1), FRef (f2, r2) when f1 = f2  -> T.R.is_subref r1 r2
+        | ARef, ARef                                 -> true
+        | Any, Any                                   -> true
+        | Int _, Any                                 -> true
+        | Any, Int _                                 -> true
         | _                                          -> false
 
     let of_const c =
@@ -551,8 +573,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       extrema_in i1 pct1 i2 pct2 || extrema_in i2 pct2 i1 pct1
 
     let is_void = function
-      | Int (0, _) -> true
-      | _          -> false
+      | Int (0, _) | Any     -> true
+      | _                    -> false
   end
 
   (******************************************************************************)
@@ -612,7 +634,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     exception TypeDoesntFit of Index.t * CType.t * t
 
     let empty =
-      { plfields = [] ; plinfo = dummy_structinfo }
+      { plfields = [] ; plinfo = dummy_ldinfo }
+
+    let any =
+      { plfields = [] ; plinfo = any_ldinfo   }
 
     let eq {plfields = cs1} {plfields = cs2} =
       Misc.same_length cs1 cs2 &&
@@ -620,8 +645,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           (fun (i1, f1) (i2, f2) -> i1 = i2 && Field.type_of f1 = Field.type_of f2)
           cs1 cs2
 
-    let is_empty {plfields = flds} =
-      flds = []
+    let is_any {plinfo = inf} =
+      inf.any
+
+    let is_empty ld =
+      ld.plfields = [] && not(is_any ld)
 
     let is_read_only {plfields = flds} =
       List.for_all (fun (_, {pffinal = fnl}) -> fnl = Final) flds
@@ -650,8 +678,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let mem i {plfields = flds} =
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
 
-    let find i {plfields = flds} =
-      List.filter (fun (i2, _) -> N.overlaps i i2) flds
+    let find i ld =
+      if is_any ld then
+        [i, {pftype = Any;          pffinal = Nonfinal;
+             pfloc  = C.locUnknown; pfinfo  = any_fldinfo}]
+      else
+        List.filter (fun (i2, _) -> N.overlaps i i2) ld.plfields
 
     let rec foldn_aux f n b = function
       | []               -> b
@@ -687,11 +719,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let indices ld =
       ld |> bindings |>: fst
 
-    let get_structinfo {plinfo = si} =
+    let get_ldinfo {plinfo = si} =
       si
 
-    let set_structinfo ld si =
+    let set_ldinfo ld si =
       {ld with plinfo = si}
+
+    let set_stype ld st =
+      {ld with plinfo = {ld.plinfo with stype = st}}
 
     let d_ldesc () {plfields = flds} =
       P.dprintf "@[%t@]"
@@ -720,10 +755,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
+      (* specialcase AnyLocs HERE *)
     module Data = struct
       let add (ds, fs) l ld =
         let _ = assert (not (SLM.mem l fs)) in
+        if not (l = Sloc.sloc_of_any) then
           (SLM.add l ld ds, fs)
+        else
+          (ds, fs)
 
       let bindings (ds, _) =
         SLM.to_list ds
@@ -735,7 +774,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SLM.mem l ds
 
       let find (ds, _) l =
-        SLM.find l ds
+        if (l = Sloc.sloc_of_any) then
+          LDesc.any 
+        else
+          SLM.find l ds
 
       let find_or_empty sto l =
         try find sto l with Not_found -> LDesc.empty
@@ -824,7 +866,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
-      | _          -> true
+      | ARef       -> false
+      | Int _ | Any | FRef _ -> true
 
     let rec reachable_aux sto visited l =
       if SS.mem l visited then
@@ -881,6 +924,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub)
         | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub s1 s2
         | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub)
+        | ARef, ARef                            -> (sto, sub)
+        | Ref (s, _), ARef                      -> anyfy_location sto sub s
+        | ARef, Ref (s, _)                      -> anyfy_location sto sub s
+        | Any, Any                              -> (sto, sub)
+        | Any, Int _                            -> (sto, sub)
+        | Int _, Any                            -> (sto, sub)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -912,6 +961,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                 S.d_sloc_info s1 S.d_sloc_info s2 d_store sto
         else ()
 
+      and anyfy_location sto sub s =
+        if s = S.sloc_of_any then
+          (sto, sub)
+        else
+          let sub = S.Subst.extend s S.sloc_of_any sub in
+          if Function.mem sto s || Data.mem sto s then
+            (subs sub (remove sto s), sub)
+          else
+            (subs sub sto, sub)
+
       and unify_locations sto sub s1 s2 =
         if not (S.eq s1 s2) then
           let _   = assert_unifying_same_location_type sto sub s1 s2 in
@@ -921,11 +980,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
             else if Data.mem sto s1 || Data.mem sto s2 then
               unify_data_locations sto sub s1 s2
             else (subs sub sto, sub)
-            else (sto, sub)
+          else (sto, sub)
 
       and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
         | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
+        | Ref (s, _), ARef | ARef, Ref(s, _)        -> anyfy_location sto sub s
+        | Any , Int _ | Int _, Any                  -> (sto, sub)
         | ct1, ct2                                  ->
           fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -1192,7 +1253,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
-module I          = Make (IndexTypes)
+module I    = Make (IndexTypes)
 
 type ctype  = I.CType.t
 type cfun   = I.CFun.t
@@ -1266,7 +1327,8 @@ let refdesc_find i rd =
 let addr_of_refctype loc = function
   | Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, i)
-  | cr ->
+  | ARef -> (Sloc.sloc_of_any, Index.ind_of_any)
+  | cr   ->
       let s = cr  |> d_refctype () |> P.sprint ~width:80 in
       let l = loc |> Cil.d_loc () |> P.sprint ~width:80 in
       let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
@@ -1299,6 +1361,8 @@ let refstore_write loc sto rct rct' =
 let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
+  | ARef             -> ARef
+  | Any              -> Any  
   | f -> RCt.CType.map fst f
 
 (* API *)
@@ -1313,6 +1377,7 @@ let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r))
   | FRef (_,(_,r)) -> r
+  | Any | ARef -> reft_of_top
 
 (**********************************************************************)
 

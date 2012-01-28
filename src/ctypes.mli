@@ -37,12 +37,14 @@ module IndexRefinement : CTYPE_REFINEMENT with type t = Index.t
 module Reft            : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
 
 type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
-type structinfo = {stype : Cil.typ option} 
+type ldinfo     = {stype : Cil.typ option; any  : bool} 
 
 val dummy_fieldinfo  : fieldinfo
-val dummy_structinfo : structinfo
+val dummy_ldinfo : ldinfo
+val any_ldinfo   : ldinfo
+
 val d_fieldinfo      : unit -> fieldinfo -> Pretty.doc
-val d_structinfo     : unit -> structinfo -> Pretty.doc
+val d_ldinfo         : unit -> ldinfo -> Pretty.doc
 
 type finality =
   | Final
@@ -55,9 +57,11 @@ type 'a preldesc
 type 'a prestore
 
 type 'a prectype =
-  | Int of int * 'a         (* fixed-width integer *)
-  | Ref of Sloc.t * 'a      (* reference *)
+  | Int of int * 'a            (* fixed-width integer *)
+  | Ref of Sloc.t * 'a         (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
+  | ARef                       (* a dynamic "blackhole" reference *)
+  | Any                        (* the any-width type of a "blackhole" *)
 
 and  effectptr  = Reft.t prectype
 
@@ -158,11 +162,13 @@ module type S = sig
     exception TypeDoesntFit of Index.t * CType.t * t
 
     val empty         : t
+    val any           : t
     val eq            : t -> t -> bool
     val is_empty      : t -> bool
+    val is_any        : t -> bool
     val is_read_only  : t -> bool
     val add           : Index.t -> Field.t -> t -> t
-    val create        : structinfo -> (Index.t * Field.t) list -> t
+    val create        : ldinfo -> (Index.t * Field.t) list -> t
     val remove        : Index.t -> t -> t
     val mem           : Index.t -> t -> bool
     val referenced_slocs : t -> Sloc.t list
@@ -176,8 +182,9 @@ module type S = sig
     val indices       : t -> Index.t list
     val bindings      : t -> (Index.t * Field.t) list
 
-    val set_structinfo : t -> structinfo -> t
-    val get_structinfo : t -> structinfo
+    val set_ldinfo     : t -> ldinfo -> t
+    val get_ldinfo     : t -> ldinfo
+    val set_stype      : t -> Cil.typ option -> t
 
     val d_ldesc       : unit -> t -> Pretty.doc
   end

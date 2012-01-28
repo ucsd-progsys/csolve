@@ -203,7 +203,7 @@ void env_free(env_t * LOC(L) env, env_t * LOC(L) *envs, int pages[], int page_pr
     mem_check(envs, pages, page_protected);
 }
 
-int page_alloc(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
+int page_alloc(env_t * LOC(L) env, int NONNEG USE_INDEX vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int pp;
     int tmp; // RECHECK ISSUE
@@ -229,7 +229,7 @@ int page_alloc(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int page
     return 0;
 }
 
-void page_unmap(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
+void page_unmap(env_t * LOC(L) env, int NONNEG USE_INDEX vp, env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int tmp; // RECHECK ISSUE
 
@@ -242,7 +242,7 @@ void page_unmap(env_t * LOC(L) env, int NONNEG vp, env_t * LOC(L) *envs, int pag
     mem_check(envs, pages, page_protected);
 }
 
-int page_map(env_t * LOC(L) srcenv, int NONNEG srcvp, env_t * LOC(L) dstenv, int NONNEG dstvp,
+int page_map(env_t * LOC(L) srcenv, int NONNEG USE_INDEX srcvp, env_t * LOC(L) dstenv, int NONNEG USE_INDEX dstvp,
              env_t * LOC(L) *envs, int pages[], int page_protected[])
 {
     int tmp, tmp2; // RECHECK ISSUE

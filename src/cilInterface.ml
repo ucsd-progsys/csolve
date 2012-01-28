@@ -156,6 +156,7 @@ let rec convert_cilexp  = function
       P (A.pNot (pred_of_cilexp e)) 
   | Cil.BinOp (op, e1, e2, _) -> 
       convert_cilbinexp (op, e1, e2)
+  (* any casts go somewhere around HERE *)
   | Cil.CastE (Cil.TInt (_,_), e) ->
       let e' = match convert_cilexp e with 
                | E e' -> e' 

@@ -192,7 +192,7 @@ let decorate_refldesc slocm sloc ld =
   if SLM.mem sloc slocm then 
     let ty   = SLM.find sloc slocm in 
     let fldm = unfold_ciltyp ty in
-    ld |> Misc.flip RCt.LDesc.set_structinfo {Ct.stype = Some ty}
+    ld |> Misc.flip RCt.LDesc.set_stype (Some ty)
        |> RCt.LDesc.mapn begin fun i _ pf -> 
             try RCt.Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
               let _ = E.warn "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a \n" 
@@ -289,7 +289,8 @@ let d_ann_field () (i, fld) =
   | _ -> 
       PP.dprintf "%a ??? %a" d_binder (I i) d_ann_ref (RCt.Field.type_of fld)
 
-let d_structinfo () = function
+      (* fix HERE *)
+let d_ldinfo () = function
   | {Ct.stype = Some t } -> CM.d_type_noattrs () t
   | _                    -> PP.nil
 
@@ -297,7 +298,7 @@ let d_structinfo () = function
 let d_ann_refldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
   RCt.LDesc.bindings ld
   |> PP.dprintf "%a %a |-> %a" 
-        d_structinfo (RCt.LDesc.get_structinfo ld)
+        d_ldinfo (RCt.LDesc.get_ldinfo ld)
         Sloc.d_sloc l (CM.d_many_braces true d_ann_field) 
 
 let stitch_args fn cf = function 

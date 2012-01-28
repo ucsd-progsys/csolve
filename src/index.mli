@@ -15,6 +15,7 @@ type t =
 type tIndex = t      
       
 val top          : t
+val ind_of_any   : t
 val nonneg       : t
 val is_unbounded : t -> bool
 val period       : t -> int option
@@ -53,3 +54,4 @@ val index_of_reft      : FixConstraint.envt ->
                          t
 val ref_index_of_pred  : Ast.Symbol.t -> Ast.pred -> t
 val data_index_of_pred : Ast.Symbol.t -> Ast.pred -> t
+val apply_grd          : FixConstraint.envt -> Ast.pred -> FixConstraint.envt

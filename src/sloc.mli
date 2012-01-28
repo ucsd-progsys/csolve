@@ -33,8 +33,11 @@ val canonical      : t -> t
 (* val fresh_abstract : unit -> t *)
 val fresh_abstract : slocinfo -> t
 
+val sloc_of_any    : t
 val fresh_concrete : t -> t
 val is_abstract    : t -> bool
+val is_concrete    : t -> bool
+val is_any         : t -> bool
 val compare        : t -> t -> int
 val eq             : t -> t -> bool
 val to_slocinfo    : t -> slocinfo
@@ -47,6 +50,7 @@ val slm_bindings   : 'a SlocMap.t -> (t * 'a) list
 
 type sloc = t
 
+(* substitutions of the form (sfrom, sto) *)
 module Subst : sig
   type t = (sloc * sloc) list
 

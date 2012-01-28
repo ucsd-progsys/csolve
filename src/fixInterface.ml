@@ -28,15 +28,15 @@
 module IM = Misc.IntMap
 module F  = Format
 module ST = Ssa_transform
-module  C = FixConstraint
+module C  = FixConstraint
 
-module  A = Ast
-module  P = A.Predicate
-module  E = A.Expression
+module A  = Ast
+module P  = A.Predicate
+module E  = A.Expression
 module Sy = A.Symbol
 module Su = A.Subst
 module So = A.Sort
-module  Q = Qualifier
+module Q  = Qualifier
 
 module CI = CilInterface
 module Ct = Ctypes
@@ -103,24 +103,31 @@ let reft_of_reft r t' =
 
 let sort_of_prectype = function
   | Ct.Ref (l,_)  -> FA.so_ref l
-  | Ct.FRef _ -> FA.so_fref
-  | _             -> FA.so_int
+  | Ct.FRef _     -> FA.so_fref
+  | Ct.ARef       -> FA.so_ref Sloc.sloc_of_any
+  | Ct.Any        -> FA.so_int  (* MK: i *think* this should be ok *)
+  | Ct.Int _      -> FA.so_int
 
 let spec_sort_of_prectype = function
   | Ct.Ref _  -> FA.so_ref Sloc.none
   | Ct.FRef _ -> FA.so_fref
-  | _         -> FA.so_int
+  | Ct.ARef   -> FA.so_ref Sloc.sloc_of_any
+  | Ct.Any    -> FA.so_int
+  | Ct.Int _  -> FA.so_int
 
-let replace_reft r = function
+let replace_reft r c = match c with
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
   | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r))
   | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
+  | Ct.ARef | Ct.Any _  -> c
 
 
 let rec refctype_of_reft_ctype r = function
   | Ct.Int  (w,k) -> Ct.Int (w, (k, r)) 
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o,r))
+  | Ct.ARef  -> Ct.ARef
+  | Ct.Any   -> Ct.Any  
 
 (*
 let refctype_of_reft_ctype r = function
@@ -132,6 +139,9 @@ and spec_refctype_of_reft_ctype r = function
   | Ct.Int  (w,k) -> Ct.Int (w, (k, r))
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o, r))
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, r))
+  | Ct.ARef  -> Ct.ARef
+  | Ct.Any   -> Ct.Any  
+
 and refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
       let r = C.make_reft FA.vv_int So.t_int (f t) in
@@ -146,6 +156,8 @@ and refctype_of_ctype f = function
       let vv = Sy.value_variable so in
       let r  = C.make_reft vv so (f t) in
       Ct.FRef (refcfun_of_cfun g, (x,r))
+  | Ct.ARef  -> Ct.ARef
+  | Ct.Any   -> Ct.Any  
 and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
 
@@ -398,15 +410,17 @@ let t_start_ptr ct =
 
 let is_reference cenv x =
   if YM.mem x FA.builtinm then (* TBD: REMOVE GROSS HACK *)
-    false
+    false                      
   else if not (ce_mem x cenv) then
     false
   else match ce_find x cenv with 
-    | Ct.Ref (_,(_,_)) -> true
+    | Ct.Ref (_,(_,_))  -> true
     | Ct.FRef (_,(_,_)) -> true      
-    | _                -> false
+    | Ct.ARef           -> true
+    | Ct.Any   | Ct.Int _ -> false
 
 let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
+
 
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   let refs = P.support p |> List.filter (is_reference cenv) in
@@ -414,7 +428,7 @@ let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
   | (Ct.Ref (_,_)), [x] | (Ct.FRef (_,_)), [x] ->
       let singleton = is_singleton vv p = Some (A.eVar x)  in
       let x         = A.eVar x  in
-      let evv        = A.eVar vv in
+      let evv       = A.eVar vv in
       let unchecked =
         if e |> typeOf |> CM.is_unchecked_ptr_type then 
          [(A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one))]

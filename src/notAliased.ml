@@ -27,8 +27,11 @@ module NotAliased = struct
     S.eq cl1 cl2 && S.eq al1 al2
 
   let make cl al =
-    assert (S.is_abstract al && not (S.is_abstract cl));
-    (cl, al)
+    begin
+      assert ((S.is_abstract al || not (S.is_abstract cl)) ||
+              (not (S.is_any al) && not (S.is_any cl)));
+      (cl, al)
+    end
 
   let d_not_aliased () (cl, al) =
     P.dprintf "%a / %a" S.d_sloc cl S.d_sloc al
