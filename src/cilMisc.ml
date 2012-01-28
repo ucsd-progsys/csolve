@@ -322,6 +322,8 @@ let ignoreIndexAttribute    = "csolve_ignore_index"
 let useIndexAttribute       = "csolve_use_index"
 let ignoreBoundAttribute    = "csolve_ignore_bound"
 let effectAttribute         = "csolve_effect"
+let anyRefAttribute         = "csolve_any_ref"
+let anyTypeAttribute        = "csolve_any_type"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"

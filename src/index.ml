@@ -58,6 +58,8 @@ type tIndex = t
 
 let top = ICClass {lb = None; ub = None; c = 0; m = 1}
 
+let ind_of_any = top
+
 let nonneg = ICClass {lb = Some 0; ub = None; c = 0; m = 1}
 
 let d_index () = function

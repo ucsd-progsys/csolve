@@ -15,6 +15,7 @@ type t =
 type tIndex = t      
       
 val top          : t
+val ind_of_any   : t
 val nonneg       : t
 val is_unbounded : t -> bool
 val period       : t -> int option

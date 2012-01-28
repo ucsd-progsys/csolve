@@ -98,6 +98,7 @@ module Reft = struct
   let is_subref    = fun ir1 ir2 -> assert false
   let of_const     = fun c -> assert false
   let top          = Index.top, reft_of_top 
+  let ref_of_any   = Index.ind_of_any, reft_of_top
 end
 
 (******************************************************************************)
@@ -183,7 +184,7 @@ let rec d_prectype d_refinement () = function
       | Int (n, r)  -> P.dprintf "int(%d, %a)" n d_refinement r
       | Ref (s, r)  -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
-      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc (Sloc.fresh_any ())
+      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc Sloc.sloc_of_any
       | Any i       -> P.dprintf "any(%d)" i
 
 let d_refctype = d_prectype Reft.d_refinement
@@ -511,7 +512,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | Int (n, i)  -> P.dprintf "int(%d, %a)" n T.R.d_refinement i
       | Ref (s, i)  -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
-      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc (S.fresh_any ())
+      | ARef        -> P.dprintf "anyref(%a)" S.d_sloc S.sloc_of_any
       | Any (i)     -> P.dprintf "any(%d)" i
 
     let width = function
@@ -521,7 +522,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     
     let sloc = function
       | Ref (s, _) -> Some s
-      | ARef       -> Some (S.fresh_any ())
+      | ARef       -> Some S.sloc_of_any
       | _          -> None
 
     let subs subs = function
@@ -565,9 +566,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       extrema_in i1 pct1 i2 pct2 || extrema_in i2 pct2 i1 pct1
 
     let is_void = function
-      | Int (0, _) -> true
-      | Any (0)    -> true
-      | _          -> false
+      | Int (0, _) | Any (0) -> true
+      | _                    -> false
   end
 
   (******************************************************************************)
@@ -735,6 +735,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
+      (* specialcase AnyLocs HERE *)
     module Data = struct
       let add (ds, fs) l ld =
         let _ = assert (not (SLM.mem l fs)) in
@@ -839,7 +840,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
-      | _          -> true
+      | ARef       -> false
+      | Int _ | Any _ | FRef _ -> true
 
     let rec reachable_aux sto visited l =
       if SS.mem l visited then
@@ -896,6 +898,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub)
         | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub s1 s2
         | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub)
+        | ARef, ARef                            -> (sto, sub)
+        | Any i, Any j when i = j               -> (sto, sub)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -1207,7 +1211,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
 
-module I          = Make (IndexTypes)
+module I    = Make (IndexTypes)
 
 type ctype  = I.CType.t
 type cfun   = I.CFun.t
@@ -1281,7 +1285,8 @@ let refdesc_find i rd =
 let addr_of_refctype loc = function
   | Ref (cl, (i,_)) when not (Sloc.is_abstract cl) ->
       (cl, i)
-  | cr ->
+  | ARef -> (Sloc.sloc_of_any, Index.ind_of_any)
+  | cr   ->
       let s = cr  |> d_refctype () |> P.sprint ~width:80 in
       let l = loc |> Cil.d_loc () |> P.sprint ~width:80 in
       let _ = asserti false "addr_of_refctype: bad arg %s at %s \n" s l in
@@ -1314,6 +1319,8 @@ let refstore_write loc sto rct rct' =
 let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
+  | ARef             -> ARef
+  | Any n            -> Any n
   | f -> RCt.CType.map fst f
 
 (* API *)
@@ -1328,6 +1335,7 @@ let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r))
   | FRef (_,(_,r)) -> r
+  | Any _ | ARef -> reft_of_top
 
 (**********************************************************************)
 

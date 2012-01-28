@@ -30,6 +30,8 @@
 #define SHAPE_IGNORE_BOUND CSOLVE_ATTR (csolve_ignore_bound)
 #define IGNORE_INDEX       CSOLVE_ATTR (csolve_ignore_index)
 #define USE_INDEX          CSOLVE_ATTR (csolve_use_index)
+#define ANYREF             CSOLVE_ATTR (csolve_any_ref)
+#define ANY                CSOLVE_ATTR (csolve_any_type)
 
 #define FINAL              CSOLVE_ATTR (csolve_final)
 #define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
