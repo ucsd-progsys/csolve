@@ -83,9 +83,9 @@ let dump_solve ac =
 (*****************************************************************)
 
 let dump_imp a = 
-  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ List.map (fun c -> Cg.Wfc c) a.Cg.ws)
-  |> ToImp.mk_program
-  |> F.fprintf F.std_formatter "%a" Imp.print_program_as_c 
+  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ 
+   List.map (fun c -> Cg.Wfc c) a.Cg.ws)
+  |> ToImp.render F.std_formatter
   |> fun _ -> exit 1 
 
 (*****************************************************************)
