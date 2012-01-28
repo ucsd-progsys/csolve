@@ -28,7 +28,7 @@ module SM = Ast.Symbol.SMap
 module Co = Constants 
 module C  = FixConstraint
 module F  = Format
-module Si = (* Simplify *) Simplification
+module Si = Simplification
 
 open Misc.Ops
 
@@ -41,11 +41,13 @@ let dump cs ws =
 
 let usage = "Usage: fixtop <options> [source-files]\noptions are:"
 
+let main () = print_string "Hello World \n"
+
+(*
 let main () =
   let fs, config = Toplevel.read_inputs usage in
   let cs = config.C.cs in
   let ws = config.C.ws in
-(*  let fs, (_,_,cs,ws,_,_,sol) = Toplevel.read_inputs usage in *)
   let cs = 
     if !Co.simplify_t then
       Misc.map_partial begin fun t -> 
@@ -111,5 +113,6 @@ let main () =
 	      close_out oc
 	| None -> ()
     end
+*)
 
 let _ = main ()

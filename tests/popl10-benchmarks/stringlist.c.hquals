@@ -1,5 +1,5 @@
 qualif AtOffset(v: ptr) : v = ~a + ~b
-//qualif AtPlus4(v: ptr)  : v = (BLOCK_BEGIN([v]) + 4)
+qualif AtPlus4(v: ptr)  : v = (BLOCK_BEGIN([v]) + 4)
 qualif SIZE(v: ptr)     : v != 0 => BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8
 
 //Only needed if validptr requires ptr != 0

@@ -37,3 +37,8 @@ fixtop:
 
 horn:
 	ocamlbuild -r $(LIBS) $(OFLAGS) hornToInterproc.native
+
+toplevel:
+	ocamlbuild -r $(LIBS) $(OFLAGS)  fixLex.cmo fixParse.cmo fixtop.cmo
+	ocamlmktop _build/fixLex.cmo _build/fixParse.cmo _build/fixtop.cmo -o _build/fixpoint.top
+
