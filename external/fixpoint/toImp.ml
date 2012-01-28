@@ -37,7 +37,10 @@ module Cg = FixConfig
 
 open Misc.Ops
 
-(* open Imp *)
+(**********************************************************************)
+(************* Datatypes for IMP Representation ***********************)
+(**********************************************************************)
+
 (* vars are always in lex order *)
 (* We can have at most one set of temporaries in scope at a time
  * so we share names and mark temporaries *)
@@ -64,6 +67,10 @@ type instr = Assm of A.pred list
 type block = instr list
 
 type program = decl list * block list
+
+(**********************************************************************)
+(************* Datatypes for IMP Representation ***********************)
+(**********************************************************************)
 
 (* Convenience *)
 
@@ -95,7 +102,9 @@ let collect_apps_from_block block =
 let collect_apps_from_program (_, blocks) =
   Misc.flap collect_apps_from_block blocks
 
-(* IMP printing *)
+(*************************************************************************)
+(************* Rendering IMP to String ***********************************)
+(*************************************************************************)
 
 let print_var ppf = function 
   | PVar v -> F.fprintf ppf "%a" Sy.print v
@@ -243,10 +252,11 @@ let generate_uf (name, numargs) =
   "int " ^ (Sy.to_string name) ^ "(" ^ (mkargs (numargs-1) "int") ^ ") {}"
 
 let prologue =
-  ["void error() { ERROR: goto ERROR; }";
-  "void diverge() { DIV: goto DIV; }";
-  "int nondet() { int x; return x; }";
-  "int main() {"]
+  [ "void error() { ERROR: goto ERROR; }"
+  ; "void diverge() { DIV: goto DIV; }"
+  ; "int nondet() { int x; return x; }"
+  ; "int main() {"
+  ]
 
 let epilogue =
   ["return 0; }"]
@@ -255,7 +265,6 @@ let print_program_as_c ppf ((decls, blocks) as program) =
   F.fprintf ppf "@[%a@.%a@.%a@.%a@.%a@.@]"
     print_list (collect_apps_from_program program |> List.map generate_uf)
     print_list prologue
-    (*Misc.pprint_many false "\n\n" (fun ppf s -> F.fprintf ppf "%s" s)*) 
     (Misc.pprint_many false "\n" print_decl_as_c) decls
     (Misc.pprint_many false "\n" print_block_as_c) blocks
     print_list epilogue
@@ -263,20 +272,30 @@ let print_program_as_c ppf ((decls, blocks) as program) =
 let check_imp (decls, instrs) = true
 (* Translation from fixpoint to IMP *)
 
+(*************************************************************************)
+(************* Converting FixConfig.deft to SMTLIB ***********************)
+(*************************************************************************)
+
 (* Declarations *)
 
 let filter_wfs cs =
-  Misc.maybe_list (List.map (function Cg.Wfc x -> Some x | _ -> None) cs)
+  (* Misc.maybe_list (List.map (function Cg.Wfc x -> Some x | _ -> None) cs) *)
+  Misc.map_partial (function Cg.Wfc x -> Some x | _ -> None) cs
 
 let filter_subt cs =
-  Misc.maybe_list (List.map (function Cg.Cst x -> Some x | _ -> None) cs)
+  Misc.map_partial (function Cg.Cst x -> Some x | _ -> None) cs
+  (* Misc.maybe_list (List.map (function Cg.Cst x -> Some x | _ -> None) cs)
+   *)
 
 let wf_to_decls wf =
-  let vars  =
-    List.map fst (C.bindings_of_env (C.env_of_wf wf)) |>
-    Misc.sort_and_compact in
+  let vars  = wf |> C.env_of_wf
+                 |> C.bindings_of_env
+                 |> List.map fst
+                 |> Misc.sort_and_compact
+  in
   let kvars = C.kvars_of_reft (C.reft_of_wf wf) in
-  (List.map (fun k -> RDecl (snd k, vars)) kvars, List.map (fun v -> PDecl v) vars)
+  ( List.map (fun k -> RDecl (snd k, vars)) kvars
+  , List.map (fun v -> PDecl v) vars)
 
 let constraints_to_decls cs =
   let decls = List.map wf_to_decls (filter_wfs cs) in

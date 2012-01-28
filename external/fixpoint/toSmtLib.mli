@@ -22,5 +22,3 @@
  *)
 
 val render : Format.formatter -> FixConfig.deft list -> unit
-
-

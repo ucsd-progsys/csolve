@@ -62,7 +62,7 @@ module Sort :
     val func_of_t   : t -> (t list * t) option
     val ptr_of_t    : t -> loc option
  
- (* val compat      : t -> t -> bool *)
+    val compat      : t -> t -> bool
     val unify       : t list -> t list -> sub option
     val apply       : sub -> t -> t
   end
