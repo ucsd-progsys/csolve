@@ -50,6 +50,8 @@ val wellformed_pred  : envt -> Ast.pred -> bool
 val preds_of_refa    : soln -> refa -> Ast.pred list
 val preds_of_reft    : soln -> reft -> Ast.pred list
 val preds_of_lhs     : soln -> t -> Ast.pred list
+val preds_of_lhs_nofilter : soln -> t -> Ast.pred list
+
 val vars_of_t        : soln -> t -> Ast.Symbol.t list
 val is_tauto         : t -> bool
 

@@ -217,15 +217,16 @@ let wellformed_pred env =
     false
 *)
 
-
-
-
-
 (* API *)
-let preds_of_lhs f c = 
+let preds_of_lhs_nofilter f c = 
   let envps = preds_of_envt f c.nontriv in
   let r1ps  = preds_of_reft f c.lhs in
   (c.iguard :: envps) ++ r1ps
+  (* >> (Format.printf "preds_of_lhs %d = %a\n" (Misc.get_option (-1) c.ido) (Misc.pprint_many_brackets false P.print))  *)
+
+(* API *)
+let preds_of_lhs f c =
+  preds_of_lhs_nofilter f c
   |> List.filter (wellformed_pred (SM.add (fst3 c.lhs) c.lhs c.full))
   (* >> (Format.printf "preds_of_lhs %d = %a\n" (Misc.get_option (-1) c.ido) (Misc.pprint_many_brackets false P.print))  *)
 

@@ -54,7 +54,10 @@ type kdef
   = Sy.t * (vdef list)
 
 type cstr
-  = A.pred * rpred option
+  = { lhs : A.pred 
+    ; rhs : rpred option
+    ; id  : int 
+    }
 
 type smtlib 
   = { vars  : vdef list
@@ -159,14 +162,13 @@ let print_kdef ppf (kf, xts) =
     Sy.print kf
     (Misc.pprint_many false " " print_sort) (List.map snd xts)
 
-let print_cstr ppf = function 
-  | (p, None)   -> 
-      Format.fprintf ppf ":assumption\n(implies (%a) false)\n"
-      print_pred p
-  | (p, Some q) -> 
-      Format.fprintf ppf ":assumption\n(implies (%a) (%a))\n"
-      print_pred p
-      print_pred q
+let print_rhs ppf = function
+  | None   -> Format.fprintf ppf "false"
+  | Some p -> Format.fprintf ppf "%a" print_pred p
+
+let print_cstr ppf c = 
+  Format.fprintf ppf "\n; cid = %d\n:assumption\n(implies (%a) %a)\n"
+    c.id print_pred c.lhs print_rhs c.rhs
 
 let print ppf smt = 
   Format.fprintf ppf 
@@ -231,7 +233,9 @@ let update_kmap vdefs km k : kmap =
   | Some (_,vdefs') -> SM.add k (k, join vdefs vdefs') km
 
 let add_wf_to_kmap km wf =
-  let vdefs = vdefs_of_env (C.env_of_wf wf) (C.reft_of_wf wf) in
+  let vdefs = vdefs_of_env (C.env_of_wf wf) (C.reft_of_wf wf) 
+              |> List.filter (snd <+> So.is_func <+> not)
+  in
   C.reft_of_wf wf
   |> C.kvars_of_reft  
   >> check_no_subs (C.id_of_wf wf) 
@@ -252,13 +256,21 @@ let pred_of_kdef (kf, xts) =
 
 let soln_of_kmap km k =
   [pred_of_kdef <| SM.safeFind k km "soln_of_kmap"]
+  >> (Format.printf "soln_of_kmap: k = %a ps = %a \n" Sy.print k (Misc.pprint_many false " " P.print))
 
 let tx_constraint s c =
-  let lps     = C.preds_of_lhs s c in
+  let cid     = C.id_of_t c in
+  let lps     = C.preds_of_lhs_nofilter s c 
+                >> (Format.printf "preds_of_lhs: cid = %d ps = %a \n" cid (Misc.pprint_many false " " P.print))
+  in
   let v,t,ras = C.rhs_of_t c       in
   foreach ras begin function 
-    | C.Conc p -> (A.pAnd ((A.pNot p) :: lps), None)
-    | ra     -> (A.pAnd lps, Some (A.pAnd (C.preds_of_refa s ra)))
+    | C.Conc p -> { lhs = A.pAnd ((A.pNot p) :: lps)
+                  ; rhs = None 
+                  ; id = cid }
+    | ra       -> { lhs = A.pAnd lps
+                  ; rhs = Some (A.pAnd (C.preds_of_refa s ra))
+                  ; id = cid}
   end
 
 let tx_defs defs = 
