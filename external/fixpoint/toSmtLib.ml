@@ -37,7 +37,7 @@ module C  = FixConstraint
 module Cg = FixConfig
 (*module BS = BNstats*)
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 (*************************************************************************)

@@ -4,7 +4,7 @@ module E = Ast.Expression
 module Sy = Ast.Symbol
 module Su = Ast.Subst
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 let rec defs_of_pred (edefs, pdefs) ((p, _) as pred) = 
   match p with

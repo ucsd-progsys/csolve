@@ -28,9 +28,14 @@ module SM = Ast.Symbol.SMap
 module Co = Constants 
 module C  = FixConstraint
 module F  = Format
-module Si = Simplification
-
+(*module Si = Simplification *)
+module Misc = FixMisc 
 open Misc.Ops
+
+let _ = FixLex.token (Lexing.from_string "int");;
+
+let parse_string f = f FixLex.token <.> Lexing.from_string 
+
 
 let dump cs ws =
   Format.printf "Printing Out Parsed Constraints \n \n \n" ;

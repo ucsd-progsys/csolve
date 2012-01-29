@@ -20,8 +20,8 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
-open Misc.Ops
-module SS = Misc.StringSet
+open FixMisc.Ops
+module SS = FixMisc.StringSet
 
 (******* This module contains globals representing "flags" **************)
 let annotsep_name       = "\n\n=+=\n\n"

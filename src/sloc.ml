@@ -22,9 +22,9 @@
  *)
 
 module P = Pretty
-module M = Misc
+module M = FixMisc
 
-open Misc.Ops
+open M.Ops
 
 type slocid = int
 type slocinfo = CilMisc.srcinfo list
@@ -39,7 +39,7 @@ let to_slocinfo = function
   | Concrete (_, _, i) -> i 
   | AnyLoc             -> []
  
-let (fresh_slocid, reset_fresh_slocid) = Misc.mk_int_factory ()
+let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
 
 let refresh = function
   | Abstract (_, i)      -> Abstract (fresh_slocid (), i)
@@ -124,7 +124,7 @@ module ComparableSloc =
 
 module SlocSet = Set.Make(ComparableSloc)
 
-module SlocMap = Misc.EMap (ComparableSloc)
+module SlocMap = M.EMap (ComparableSloc)
 
 let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k,v)::acc) conc []
 

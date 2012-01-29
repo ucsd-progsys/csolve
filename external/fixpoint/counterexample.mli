@@ -36,7 +36,7 @@ type step     = int
 type lifespan = (step * Qualifier.t list) list Ast.Symbol.SMap.t 
 
 (* [cid |-> i0,...] cid is selected at steps i0... by solver *)
-type ctrace  = step list Misc.IntMap.t 
+type ctrace  = step list FixMisc.IntMap.t 
 
 type cex     
 

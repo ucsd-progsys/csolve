@@ -22,7 +22,7 @@
  *)
 
 open Ctypes
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 module C  = Cil
 module E  = Errormsg

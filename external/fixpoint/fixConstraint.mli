@@ -78,7 +78,7 @@ val lookup_env       : envt -> Ast.Symbol.t -> reft option
    to_string c
 
    to print a list of constraints cs do: 
-   Format.printf "%a" (Misc.pprint_many true "\n" (C.print_t None)) cs
+   Format.printf "%a" (FixMisc.pprint_many true "\n" (C.print_t None)) cs
    *)
 
 val print_env        : soln option -> Format.formatter -> envt -> unit

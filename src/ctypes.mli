@@ -298,12 +298,12 @@ module type S = sig
     val add_fun_loc  : Sloc.t -> CFun.t * specType -> t -> t
     
     val store   : t -> Store.t
-    val funspec : t -> (T.cfun * specType) Misc.StringMap.t
-    val varspec : t -> (T.ctype * specType) Misc.StringMap.t
+    val funspec : t -> (T.cfun * specType) FixMisc.StringMap.t
+    val varspec : t -> (T.ctype * specType) FixMisc.StringMap.t
     val locspectypes : t -> specType Sloc.SlocMap.t
 
-    val make    : (T.cfun * specType) Misc.StringMap.t -> 
-                  (T.ctype * specType) Misc.StringMap.t -> 
+    val make    : (T.cfun * specType) FixMisc.StringMap.t -> 
+                  (T.ctype * specType) FixMisc.StringMap.t -> 
                   Store.t ->
                   specType Sloc.SlocMap.t ->
                   t

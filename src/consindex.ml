@@ -24,6 +24,7 @@
 (* This file is part of the liquidC Project.*)
 
 
+module Misc = FixMisc 
 module BS = BNstats
 module  P = Pretty
 module  C = FixConstraint

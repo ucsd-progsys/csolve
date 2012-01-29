@@ -24,14 +24,12 @@
 
 (* This file is part of the CSolve Project.*)
 
-module F  = Frontc
-module CK = Check
-module E  = Errormsg
-module A  = Ast
-module SM = Misc.StringMap
-module SS = Misc.StringSet
-module Sy = Ast.Symbol
-module BS = BNstats
+module F   = Frontc
+module CK  = Check
+module E   = Errormsg
+module A   = Ast
+module Sy  = Ast.Symbol
+module BS  = BNstats
 module C   = FixConstraint
 module P   = Pretty
 module FI  = FixInterface
@@ -42,7 +40,12 @@ module U   = Unix
 module S   = Sys
 module CM  = CilMisc
 
+module Misc = FixMisc 
+module SM = Misc.StringMap
+module SS = Misc.StringSet
+
 open Misc.Ops
+
 open Pretty
 
 type outfile = { 

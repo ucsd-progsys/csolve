@@ -26,7 +26,7 @@ module Q   = Qualifier
 module C   = FixConstraint
 module So  = Ast.Sort
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 exception UnmappedKvar of Ast.Symbol.t
 

@@ -38,7 +38,7 @@ module Ci = Cindex
 module PP = Prepass
 module Cg = FixConfig
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 let mydebug = false 

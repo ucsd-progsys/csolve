@@ -32,8 +32,8 @@ val cons_of_decs :  CilTag.o
 val cons_of_scis :  CilTag.o 
                  -> FixInterface.cilenv 
                  -> Ctypes.refstore 
-                 -> Ssa_transform.t Misc.StringMap.t 
-                 -> Shape.t Misc.StringMap.t option 
+                 -> Ssa_transform.t FixMisc.StringMap.t 
+                 -> Shape.t FixMisc.StringMap.t option 
                  -> Consindex.t 
                  -> Consindex.t
 

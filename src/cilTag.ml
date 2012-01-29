@@ -24,6 +24,8 @@
 (* This file is part of the liquidC Project.*)
 module ST  = Ssa_transform
 module H   = Hashtbl
+
+module Misc = FixMisc 
 module SM  = Misc.StringMap
 module SIM = Misc.EMap (struct type t = string * int 
                                let compare x y = compare x y 

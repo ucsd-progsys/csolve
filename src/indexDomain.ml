@@ -34,7 +34,7 @@ module F   = FixConstraint
 module FAI = FixAstInterface
 
 open Ix  
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 (* Instead of mapping k variables below to single indices, instead
    keep around some previously mapped indices *)

@@ -25,6 +25,7 @@
 
 (************** Interface between LiquidC and Fixpoint *************)
 
+module Misc = FixMisc 
 module IM = Misc.IntMap
 module F  = Format
 module ST = Ssa_transform

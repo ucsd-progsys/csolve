@@ -32,9 +32,9 @@ class t:
   end
 *)
 
-val annot_shape  : Shape.t Misc.StringMap.t 
-                 -> Ssa_transform.t Misc.StringMap.t 
-                 -> Ctypes.refcfun Misc.StringMap.t
+val annot_shape  : Shape.t FixMisc.StringMap.t 
+                 -> Ssa_transform.t FixMisc.StringMap.t 
+                 -> Ctypes.refcfun FixMisc.StringMap.t
                  -> unit
 val annot_var    : FixAstInterface.name -> Ctypes.refctype -> unit
 val annot_sto    : string -> Ctypes.refstore -> unit

@@ -33,8 +33,9 @@
 (* random touch *)
 
 module F  = Format
-module SM = Misc.StringMap
+module Misc = FixMisc
 open Misc.Ops
+module SM = Misc.StringMap
 
 let mydebug = false
 

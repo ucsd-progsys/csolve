@@ -35,9 +35,9 @@ module So = Ast.Sort
 module Su = Ast.Subst
 module SM = Sy.SMap
 module SS = Sy.SSet
-module IM = Misc.IntMap
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
+module IM = Misc.IntMap
 open Ast
 
 let mydebug = false

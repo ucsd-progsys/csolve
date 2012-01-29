@@ -4,7 +4,7 @@ module StrStrSet = Set.Make (struct type t = StrSet.t let compare = StrSet.compa
 
 module S2 = StrSet
 module S3 = StrStrSet
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 module V = struct

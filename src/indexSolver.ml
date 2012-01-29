@@ -7,7 +7,7 @@ module T   = Toplevel
 module ID  = IndexDomain
 module SID = Solve.Make (ID)
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 (*****************************************************************)
 (********************* Hooking into Solver ***********************)

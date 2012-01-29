@@ -70,7 +70,7 @@
 
 open Pretty
 open Cil
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 module E = Errormsg
 module H = Hashtbl
 

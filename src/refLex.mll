@@ -27,7 +27,7 @@
   open E
   open RefParse 
 	      
-  open Misc.Ops
+  open FixMisc.Ops
 
   let lexerror msg lexbuf = 
     E.error (Lexing.lexeme_start lexbuf) msg
@@ -89,9 +89,9 @@ rule token = parse
   | ">"		        { GT }
   | "=>"                { IMPL }
   | "A"(digit)+	        { let str = Lexing.lexeme lexbuf in 
-                          ABS (Misc.suffix_of_string str 1 |> int_of_string) } 
+                          ABS (FixMisc.suffix_of_string str 1 |> int_of_string) } 
   | "C"(digit)+	        { let str = Lexing.lexeme lexbuf in 
-                          CONC (Misc.suffix_of_string str 1 |> int_of_string) }
+                          CONC (FixMisc.suffix_of_string str 1 |> int_of_string) }
   | "mod"               { MOD }
   | "int"               { INT }
   | "ptr"               { PTR }

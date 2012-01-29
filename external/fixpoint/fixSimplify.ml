@@ -23,7 +23,6 @@
 
 module BS = BNstats
 module Co = Constants
-module IM = Misc.IntMap
 module C  = FixConstraint
 module P  = Ast.Predicate
 module E  = Ast.Expression
@@ -33,6 +32,8 @@ module Su = Ast.Subst
 module SM = Ast.Symbol.SMap
 module SS = Ast.Symbol.SSet
 
+module Misc = FixMisc 
+module IM = Misc.IntMap
 open Misc.Ops
 open Ast
 

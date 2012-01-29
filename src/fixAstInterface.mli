@@ -43,4 +43,4 @@ val eff_read            : name
 val eff_write           : name
 
 
-module NameMap          : Misc.EMapType with type key = name 
+module NameMap          : FixMisc.EMapType with type key = name 

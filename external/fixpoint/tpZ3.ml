@@ -28,11 +28,10 @@ module A  = Ast
 module Sy = A.Symbol
 module So = A.Sort
 module SM = Sy.SMap
-module SSM = Misc.StringMap
 module P  = A.Predicate
 module E  = A.Expression
-open Misc.Ops
-
+module Misc = FixMisc open Misc.Ops
+module SSM = Misc.StringMap
 module Prover : ProverArch.PROVER = struct
 
 let mydebug = false 

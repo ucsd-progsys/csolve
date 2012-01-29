@@ -30,6 +30,7 @@ module RCt = Ct.RefCTypes
 module PP  = Pretty
 module E   = Errormsg
 
+module Misc = FixMisc 
 module SS  = Misc.StringSet
 module SM  = Misc.StringMap
 module NM  = FA.NameMap

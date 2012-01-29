@@ -3,7 +3,7 @@
 module C  = FixConstraint
 module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 (* Andrey: TODO get rid of grd in t? grd p is a binding v:{v:b|p} *)

@@ -23,6 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
+module Misc = FixMisc 
 module A  = Ast
 module CM = CilMisc
 module CI = CilInterface
@@ -40,6 +41,8 @@ module Co = Constants
 module P  = A.Predicate 
 module Q  = Qualifier
 module E  = Errormsg
+
+
 
 open Misc.Ops
 

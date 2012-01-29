@@ -28,14 +28,15 @@ module E  = Errormsg
 module S  = Ssa
 module IH = Inthash
 module VS = Usedef.VS
-module IM = Misc.IntMap
 module H  = Hashtbl
 module Co = Constants
 module CM = CilMisc
 
 open Cil
-open Misc.Ops
+module Misc = FixMisc 
+module IM = Misc.IntMap
 
+open Misc.Ops
 let mydebug = false 
 
 (**************************************************************************

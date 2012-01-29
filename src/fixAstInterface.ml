@@ -25,6 +25,8 @@
 
 (************** Interface between CSolve and Fixpoint *************)
 
+
+module Misc = FixMisc 
 module IM = Misc.IntMap
 module F  = Format
 module ST = Ssa_transform
@@ -47,6 +49,7 @@ module LM = Sloc.SlocMap
 module CM = CilMisc
 module VM = CM.VarMap
 module RCt = Ctypes.RefCTypes
+
 
 open Misc.Ops
 open Cil

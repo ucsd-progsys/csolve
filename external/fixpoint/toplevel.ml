@@ -3,7 +3,7 @@ module SM = Ast.Symbol.SMap
 module Co = Constants 
 module C  = FixConstraint
 module F  = Format
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 (*

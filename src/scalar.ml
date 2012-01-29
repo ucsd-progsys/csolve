@@ -23,6 +23,7 @@
 
 (* This file is part of the CSolve Project.*)
 
+module Misc = FixMisc 
 module A  = Ast
 
 module CM = CilMisc

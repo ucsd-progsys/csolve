@@ -36,7 +36,7 @@ module CM = CilMisc
 module Ct = Ctypes
 module FA = FixAstInterface
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 open Cil
 
 (****************************************************************)

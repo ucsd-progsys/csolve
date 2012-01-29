@@ -8,7 +8,7 @@ module P = Ast.Predicate
 module E = Ast.Expression
 module StrMap = Map.Make (struct type t = string let compare = compare end)
 module StrSet = Set.Make (struct type t = string let compare = compare end)
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 let raw_true = "1=1"
 let raw_false = "0=1"

@@ -107,8 +107,8 @@ type dec =
   | FunDec of string * Cil.fundec * Cil.location
   | VarDec of Cil.varinfo * Cil.location * Cil.init option
 
-module VarSet: Misc.ESetType with type elt = Cil.varinfo
-module VarMap: Misc.EMapType with type key = Cil.varinfo
+module VarSet: FixMisc.ESetType with type elt = Cil.varinfo
+module VarMap: FixMisc.EMapType with type key = Cil.varinfo
 
 module VarMapPrinter: sig
   val d_map : ?dmaplet:(Pretty.doc -> Pretty.doc -> Pretty.doc) ->

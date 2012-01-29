@@ -23,6 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
+module Misc = FixMisc 
 module E  = Errormsg
 module ST = Ssa_transform
 

@@ -28,8 +28,8 @@ val scalarinv_of_scim :
   Ctypes.refspec ->  
   CilTag.o ->
   FixInterface.cilenv ->
-  Ssa_transform.t Misc.StringMap.t ->
-  Ctypes.ctype CilMisc.VarMap.t Misc.StringMap.t
+  Ssa_transform.t FixMisc.StringMap.t ->
+  Ctypes.ctype CilMisc.VarMap.t FixMisc.StringMap.t
 
 (* TESTING only *)
 val test: 
@@ -37,6 +37,6 @@ val test:
   Ctypes.refspec ->  
   CilTag.o ->
   FixInterface.cilenv ->
-  Ssa_transform.t Misc.StringMap.t ->
-  Shape.t Misc.StringMap.t ->
+  Ssa_transform.t FixMisc.StringMap.t ->
+  Shape.t FixMisc.StringMap.t ->
   unit

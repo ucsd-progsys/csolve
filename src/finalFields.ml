@@ -6,6 +6,7 @@
    that yet.
 *)
 
+module Misc = FixMisc
 module S  = Sloc
 module CT = Ctypes.I
 module LD = CT.LDesc

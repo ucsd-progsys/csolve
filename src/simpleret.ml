@@ -26,7 +26,7 @@
 (******************************************************************************)
 
 open Cil
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 class returnVisitor fd = object(self)
   inherit nopCilVisitor

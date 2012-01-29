@@ -24,7 +24,7 @@ module Sy = Ast.Symbol
 module P  = Ast.Predicate 
 module Su = Ast.Subst
 module C  = FixConstraint
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 type rd = Bnd of Sy.t * Su.t | Lhs of Su.t | Grd | Junk
 

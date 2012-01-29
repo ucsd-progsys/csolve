@@ -21,6 +21,7 @@
  *
  *)
 
+module Misc = FixMisc
 module M   = Misc
 module P   = Pretty
 module E   = Errormsg

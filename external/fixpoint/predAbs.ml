@@ -46,8 +46,8 @@ module H   = Hashtbl
 module PH  = A.Predicate.Hash
 
 module Cx  = Counterexample
+module Misc = FixMisc 
 module IM  = Misc.IntMap
-
 open Misc.Ops
 
 let mydebug = true 

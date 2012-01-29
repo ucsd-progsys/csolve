@@ -49,4 +49,4 @@ val inst      : t -> (Ast.Symbol.t * Ast.expr) list -> t
 val print     : Format.formatter -> t -> unit
 val print_args: Format.formatter -> t -> unit
 
-module QSet : Misc.ESetType with type elt = t
+module QSet : FixMisc.ESetType with type elt = t

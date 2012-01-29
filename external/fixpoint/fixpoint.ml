@@ -38,7 +38,7 @@ module PA  = PredAbs
 module SPA = Solve.Make (PA)
 module Cg  = FixConfig
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 (*****************************************************************)
 (********************* Hooking into Solver ***********************)

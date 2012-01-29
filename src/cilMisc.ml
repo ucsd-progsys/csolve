@@ -28,6 +28,8 @@
 (******************************************************************************)
 
 module E  = Errormsg 
+
+module Misc = FixMisc 
 module M  = Misc
 module SM = Misc.StringMap
 

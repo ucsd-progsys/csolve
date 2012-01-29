@@ -23,6 +23,7 @@
 
 (* This file is part of the liquidC Project.*)
 
+module Misc = FixMisc
 module IIM = Misc.IntIntMap
 module LM  = Sloc.SlocMap
 module SM  = Misc.StringMap

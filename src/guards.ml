@@ -25,7 +25,7 @@ module P = Pretty
 module E = Errormsg
 
 open Cil
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 (* Assume: all guards are from "if" statements. *)
 let mydebug = false

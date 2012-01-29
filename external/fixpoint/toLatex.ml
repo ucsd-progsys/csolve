@@ -2,7 +2,7 @@
 
 module C = FixConstraint
 module Su = Ast.Subst
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 (* print linebreak after each connective in constraint *)
 let c_linebreak = ref true

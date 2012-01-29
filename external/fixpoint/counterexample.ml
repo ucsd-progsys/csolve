@@ -28,8 +28,11 @@
 module F  = Format
 module BS = BNstats
 module C  = FixConstraint
+
+module Misc = FixMisc 
 module IM = Misc.IntMap
 module IS = Misc.IntSet
+
 module A  = Ast
 module Sy = A.Symbol
 module SM = Sy.SMap 

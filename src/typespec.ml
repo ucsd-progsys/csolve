@@ -1,7 +1,7 @@
 module C   = Cil
 module E   = Errormsg
 module P   = Pretty
-module M   = Misc
+module M   = FixMisc
 module SM  = M.StringMap
 module CM  = CilMisc
 module VS  = CM.VarSet
@@ -499,7 +499,7 @@ let declarationsOfFile file =
   |> List.partition (fun v -> C.isFunctionType v.C.vtype)
   |> M.app_snd (List.map (fun v -> {v with C.vtype = ensureSlocAttrs v.C.vtype}))
 
-let isBuiltin = Misc.is_prefix "__builtin"
+let isBuiltin = FixMisc.is_prefix "__builtin"
 
 let specTypeOfFun v =
   if C.hasAttribute CM.checkTypeAttribute v.C.vattr then Ct.IsSubtype else Ct.HasShape
@@ -585,7 +585,7 @@ let writeSpecOfFile file outfilename =
    (* ignore <| E.log "DONE: Generating Specs \n" *)
   let _ = E.log "DONE: Generating Specs \n" in
   Ctypes.RefCTypes.Spec.make 
-    (Misc.StringMap.of_list f)
-    (Misc.StringMap.of_list t)
+    (FixMisc.StringMap.of_list f)
+    (FixMisc.StringMap.of_list t)
     sto st
     

@@ -4,7 +4,7 @@ module BS = BNstats
 module Co = Constants 
 module SM = Misc.StringMap 
 module H  = Ast.Horn
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 
 let tmpname1 = "tmp"

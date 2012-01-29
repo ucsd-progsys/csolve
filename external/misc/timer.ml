@@ -20,7 +20,7 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
-open Misc.Ops
+open FixMisc.Ops
 
 type t = {
   name          : string; 
@@ -54,6 +54,6 @@ let print_event ppf = function
 let print ppf t = 
   Format.fprintf ppf "Timer %s :: @[%a@] \n" 
     t.name 
-    (Misc.pprint_many false "" print_event) (to_events t) 
+    (FixMisc.pprint_many false "" print_event) (to_events t) 
 
 

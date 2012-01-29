@@ -23,6 +23,8 @@
  *)
 
 {
+  module Misc = FixMisc
+  
   open Misc.Ops
   module E = Errorline
   open E

@@ -1,5 +1,7 @@
 %{
-module A   = Ast
+
+  module Misc = FixMisc
+  module A   = Ast
 module So  = Ast.Sort
 module Sy  = A.Symbol
 module SM  = Misc.StringMap

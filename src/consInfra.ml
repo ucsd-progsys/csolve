@@ -27,6 +27,7 @@
 (************* Constraint Generation Infrastructure ****************)
 (*******************************************************************)
 
+module Misc = FixMisc 
 module Cs  = Constants
 module ST  = Ssa_transform
 module IM  = Misc.IntMap

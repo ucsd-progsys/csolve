@@ -1,4 +1,4 @@
-module M   = Misc
+module M   = FixMisc
 module P   = Pretty
 module F   = FixConstraint
 module A   = Ast  

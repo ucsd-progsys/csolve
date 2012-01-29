@@ -35,11 +35,12 @@ module Q  = Qualifier
 module PH = A.Predicate.Hash
 module Sy = A.Symbol
 module SM = Sy.SMap
-module IM = Misc.IntMap 
 module C  = FixConstraint
 
-open Misc.Ops
+module Misc = FixMisc 
+module IM = Misc.IntMap 
 
+open Misc.Ops
 let mydebug = false 
 
 (***************************************************************)

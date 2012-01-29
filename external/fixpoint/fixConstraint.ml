@@ -31,10 +31,10 @@ module Sy = A.Symbol
 module SM = Sy.SMap
 module BS = BNstats
 module Su = Ast.Subst
-module MSM = Misc.StringMap
 module Co  = Constants
+module Misc = FixMisc 
+module MSM = Misc.StringMap
 open Misc.Ops
-
 
 type tag  = int list * string
 type id   = int
@@ -242,17 +242,30 @@ let print_refineatom ppf = function
   | Conc p       -> F.fprintf ppf "%a" P.print p
   | Kvar (su, k) -> F.fprintf ppf "%a%a" Sy.print k Su.print su
 
+(*
 (* API *)
 let print_ras so ppf = function 
   | []  -> F.fprintf ppf "true"
   | ras -> begin match so with 
-             | None   ->
+            | None   ->
                F.fprintf ppf "%a" (Misc.pprint_many_box false "" "; " "" print_refineatom) ras 
              | Some s -> let ps = Misc.flap (preds_of_refa s) ras in
                          (match ps with 
                          | [] -> F.fprintf ppf "[]" 
                          | _  -> F.fprintf ppf "%a" P.print (A.pAnd ps))
            end
+*)
+
+(* API *)
+let print_ras so ppf ras = match so with
+  | None  -> 
+      Misc.pprint_many_box false "[" "; " "]" print_refineatom ppf ras
+  | Some s -> 
+      begin match Misc.flap (preds_of_refa s) ras with 
+            | [] -> F.fprintf ppf "[]"
+            | ps -> F.fprintf ppf "[%a]" P.print (A.pAnd ps)
+      end
+
 
 (* API *)
 let print_reft_pred so ppf (v,_,ras) =
@@ -260,7 +273,7 @@ let print_reft_pred so ppf (v,_,ras) =
     Sy.print v 
     (print_ras so) ras
 
-  (*
+(*
 let print_reft_pred so ppf = function
   | (v,_,[])  -> F.fprintf ppf "@[{%a | true }@]" Sy.print v
   | (v,_,ras) -> F.fprintf ppf "@[{%a | @[%a@]}@]" Sy.print v (print_ras so) ras

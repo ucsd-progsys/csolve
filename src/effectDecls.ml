@@ -3,7 +3,7 @@ module C  = Cil
 
 module SS = Ast.Symbol.SSet
 
-open Misc.Ops
+module Misc = FixMisc open Misc.Ops
 
 type t = FA.name 
 

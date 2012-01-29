@@ -47,6 +47,7 @@ let create_qual name vv = Qualifier.create (Sy.of_string name) (Sy.of_string vv)
 
 %start defs 
 %start sols
+%start reft 
 
 %type <FixConfig.deft list>     defs
 %type <FixConfig.deft>          def
@@ -60,7 +61,7 @@ let create_qual name vv = Qualifier.create (Sy.of_string name) (Sy.of_string vv)
 %type <A.expr>                  expr
 %type <C.t>                     cstr
 %type <C.envt>                  env
-%type <C.reft>                  reft
+%type <FixConstraint.reft>      reft
 %type <C.refa list>             refas, refasne
 %type <C.refa>                  refa
 %type <Su.t>                    subs
