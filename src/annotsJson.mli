@@ -18,7 +18,6 @@
  * AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS 
  * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION 
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- *
  *)
 
 (* This file is part of the CSolve Project.*)
@@ -27,5 +26,3 @@ val dump_annots :  Qualifier.t list
                 -> Annots.binding list 
                 -> FixConstraint.soln
                 -> unit
-
-

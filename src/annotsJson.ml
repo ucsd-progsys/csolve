@@ -24,9 +24,15 @@
 (* This file is part of the CSolve Project.*)
 
 
+module Misc= FixMisc
+
 (* Data Types and Printers for the JSON representation of Csolve results *)
 module Co = Constants
-open FixMisc.Ops
+module PP = Pretty
+module SM = Misc.StringMap
+module IM = Misc.IntMap
+
+open Misc.Ops
 
 type qdef  = string
 type pred  = string 
@@ -51,22 +57,61 @@ type annot =
 
 type json = 
   { errors   : error list
-  ; qualDef  : qdef FixMisc.StringMap.t
+  ; qualDef  : qdef SM.t
   ; genAnnot : annot
-  ; annot    : (annot FixMisc.IntMap.t) FixMisc.StringMap.t 
+  ; annot    : (annot IM.t) SM.t 
   } 
+
+(*******************************************************************)
+(************* Render JSON as Pretty.doc ***************************)
+(*******************************************************************)
+
+let d_many f () xs   = PP.seq (PP.text ", ") (f ()) xs
+let d_kv f () (k, v) = PP.dprintf "%s : %a" k f v
+let d_kvs f () kvs   = PP.dprintf "{ %a }" (d_many (d_kv f)) kvs 
+
+
+(***************** Serializing Arrays and Maps **************************)
+
+let d_array f () = PP.dprintf "[ %a ]" (d_many f) 
+let d_sm f ()    = SM.to_list <+> d_kvs f ()
+let d_im f ()    = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
+
+(***************** Serializing String Aliases ***************************)
+
+let d_qdef () = PP.text
+let d_expr () = PP.text
+let d_act  () = PP.text 
+let d_pred () = PP.text
+
+(***************** Serializing Specialized Records **********************) 
+
+let d_error () e = 
+  PP.dprintf "{ line : %d }" e.line
+
+let d_qual () q =
+  PP.dprintf "{ name : %s, args : %a, url : %a }" 
+    q.name 
+    (d_array d_expr) q.args
+    d_act q.url
+
+let d_annot () a =
+  PP.dprintf "{ quals : %a, conc : %a }"
+    (d_array d_qual) a.quals
+    d_pred a.conc
+
+let d_json () x = 
+  PP.dprintf "{ errors : %a, qualDef : %a, genAnnot : %a, annot : %a }"
+    (d_array d_error)     x.errors
+    (d_sm d_qdef)         x.qualDef
+    d_annot               x.genAnnot
+    (d_sm (d_im d_annot)) x.annot
 
 (*******************************************************************)
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
 let bindsToJson qs binds so = failwith "TODO"
-
-(*******************************************************************)
-(************* Render JSON as Pretty.doc ***************************)
-(*******************************************************************)
-
-let d_json () (js: json) : Pretty.doc = failwith "TODO"
 
 (*******************************************************************)
 (************* API *************************************************)
@@ -76,7 +121,5 @@ let d_json () (js: json) : Pretty.doc = failwith "TODO"
 let dump_annots qs binds so : unit =
   let f = !Co.csolve_file_prefix^".json" in
   let d = d_json () <| bindsToJson qs binds so in
-  FixMisc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
-
-
+  Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
 
