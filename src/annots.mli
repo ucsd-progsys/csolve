@@ -32,13 +32,18 @@ class t:
   end
 *)
 
-val annot_shape  : Shape.t FixMisc.StringMap.t 
-                 -> Ssa_transform.t FixMisc.StringMap.t 
-                 -> Ctypes.refcfun FixMisc.StringMap.t
-                 -> unit
-val annot_var    : FixAstInterface.name -> Ctypes.refctype -> unit
-val annot_sto    : string -> Ctypes.refstore -> unit
-val clear        : unit -> unit
-val dump_annots  : FixConstraint.soln option -> unit
-val dump_infspec : CilMisc.dec list -> FixConstraint.soln -> unit
+type binding = TVar of FixAstInterface.name * (Ctypes.refctype * Cil.typ)
+             | TFun of string * (Ctypes.refcfun  * Cil.fundec)
+             | TSto of string * Ctypes.refstore 
+             | TSSA of string * Ssa_transform.vmap_t
 
+val annot_shape   : Shape.t FixMisc.StringMap.t 
+                  -> Ssa_transform.t FixMisc.StringMap.t 
+                  -> Ctypes.refcfun FixMisc.StringMap.t
+                  -> unit
+val annot_var     : FixAstInterface.name -> Ctypes.refctype -> unit
+val annot_sto     : string -> Ctypes.refstore -> unit
+val clear         : unit -> unit
+val dump_annots   : FixConstraint.soln option -> unit
+val dump_infspec  : CilMisc.dec list -> FixConstraint.soln -> unit
+val dump_bindings : unit -> binding list

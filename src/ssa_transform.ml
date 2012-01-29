@@ -57,14 +57,16 @@ let mydebug = false
 type regindex = Def of int * int                (* block, position *)
               | Phi of int                      (* block *)
 
+type vmap_t   = (string * string * int, string) Hashtbl.t
+
 type t = { 
-  fdec  : fundec;
-  cfg   : S.cfgInfo;                                                   
-  phis  : (varinfo * (int * varinfo) list) list array; (*  block |-> (var, (block, var) list) list *)
-  ifs   : Guards.ginfo array;
-  gdoms : (int * (bool option)) array;
-  edoms : ((int * int), bool) Hashtbl.t;
-  vmapt : (string * string * int, string) Hashtbl.t; 
+    fdec  : fundec
+  ; cfg   : S.cfgInfo
+  ; phis  : (varinfo * (int * varinfo) list) list array (*  block |-> (var, (block, var) list) list *) 
+  ; ifs   : Guards.ginfo array
+  ; gdoms : (int * (bool option)) array
+  ; edoms : ((int * int), bool) Hashtbl.t
+  ; vmapt : vmap_t
 }
 
 let ssas = "__SSA__"

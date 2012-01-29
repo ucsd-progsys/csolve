@@ -77,8 +77,6 @@ let d_sloc_typ_varss () (sloc, tvss) =
     (List.length tvss)
     d_typ_varss tvss
 
-
-
 (*******************************************************************)
 (****************** Representation for Bindings ********************)
 (*******************************************************************)
@@ -86,6 +84,7 @@ let d_sloc_typ_varss () (sloc, tvss) =
 type binding = TVar of FA.name * (Ct.refctype * Cil.typ)
              | TFun of string  * (Ct.refcfun  * Cil.fundec)
              | TSto of string  * Ct.refstore 
+             | TSSA of string  * ST.vmap_t
 
 let report_bad_binding = function 
   | TVar (x, (cr, _)) ->
@@ -139,25 +138,6 @@ let sloc_typem_of_shape sh =
 (*** Decorating refldesc, refstore, refcfun with Cil Information ***)
 (*******************************************************************)
 
-  (*
-let unfold_ciltyp = function
-  | Cil.TComp (ci, _) -> 
-      asserti ci.Cil.cstruct "TBD: unfold_ciltyp: unions";
-      ci.Cil.cfields 
-      |> List.map (fun fi -> {Ct.fname = Some fi.Cil.fname; Ct.ftype = Some fi.Cil.ftype})
-      |> Misc.index_from 0
-      |> IM.of_list
-  | ty -> IM.single 0 {Ct.fname = None; Ct.ftype = Some ty}
-
-let d_ciltypm () m =
-  m |> IM.to_list 
-    |> CM.d_many_braces true (CM.d_pair (fun _ -> Pretty.num) Ct.d_fieldinfo) () 
-
-let unfold_ciltyp x = 
-  x |> unfold_ciltyp
-    >> (E.log "Annots.unfold_ciltyp %a@!%a@!" Cil.d_type x d_ciltypm) 
-*)
-
 let fieldinfo_of_cilfield prefix fi = 
   { Ct.fname = Some (prefix ^ fi.Cil.fname); Ct.ftype = Some fi.Cil.ftype }
 
@@ -172,7 +152,6 @@ and unfold_fieldinfo prefix fi =
       unfold_compinfo (prefix ^  fi.Cil.fname ^ ".") ci
   | _ ->
       [fieldinfo_of_cilfield prefix fi]
-
 
 let unfold_compinfo pfx ci = 
   unfold_compinfo pfx ci 
@@ -258,7 +237,6 @@ let d_bind_orig () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
-
 let d_ann_ref () = function
   | Ct.Ref (l,_) -> PP.dprintf "REF(%a)" Sloc.d_sloc l
   | _            -> PP.nil
@@ -289,8 +267,8 @@ let d_ann_field () (i, fld) =
       d_ann_var () (I i, RCt.Field.type_of fld, t)
   | _ -> 
       PP.dprintf "%a ??? %a" d_binder (I i) d_ann_ref (RCt.Field.type_of fld)
-
       (* fix HERE *)
+
 let d_ldinfo () = function
   | {Ct.stype = Some t } -> CM.d_type_noattrs () t
   | _                    -> PP.nil
@@ -348,8 +326,6 @@ let d_bind_raw () = function
   | TFun (f, _) -> PP.dprintf "function %s" f
   | TSto (f, _) -> PP.dprintf "funstore %s" f
 
-
-
 (*******************************************************************)
 (************************ Write to File ****************************)
 (*******************************************************************)
@@ -396,14 +372,15 @@ class annotations = object (self)
   val vart          = H.create 37
   val funt          = H.create 37
   val stot          = H.create 37
-  val mutable fssam = (SM.empty : ((string * string * int, string) Hashtbl.t) SM.t)
+  val mutable fssam = (SM.empty : ST.vmap_t SM.t)
   val mutable flocm = (SM.empty : (Cil.typ SLM.t) SM.t)
   val mutable fdecm = (SM.empty : Cil.fundec SM.t)
 
-  method private get_binds () : binding list = 
+  method get_binds () : binding list = 
     (   (List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt))
      ++ (List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot))
      ++ (List.map (fun (x,y) -> TVar (x, y)) (Misc.hashtbl_to_list vart))
+     ++ (List.map (fun (x,y) -> TSSA (x, y)) (SM.to_list fssam))
     ) >> wwhen mydebug (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
 
 
@@ -440,6 +417,7 @@ class annotations = object (self)
 
   method dump_annots so =
     self#get_binds () 
+    |> Misc.filter (function TSSA (_, _) -> false | _ -> true)
     |> Misc.maybe_apply (Misc.map <.> apply_solution) so
     |> (PP.d_list Co.annotsep_name d_bind () <*> Misc.flap kts_of_bind)
     |> (generate_annots <**> generate_tags)
@@ -461,66 +439,10 @@ end
 let annr = ref (new annotations)
 
 (* API *)
-let annot_shape  = fun x y z  -> (!annr)#set_shape x y z 
-let annot_sto    = fun x y    -> (!annr)#add_sto x y
-let annot_var    = fun x y    -> (!annr)#add_var x y
-let clear        = fun _      -> annr := new annotations 
-let dump_annots  = fun so     -> (!annr)#dump_annots so
-let dump_infspec = fun decs s -> (!annr)#dump_infspec decs s
-
-(* {{{ Junk from old Cil-Ctype Surgery
-
- (* YUCK!!! Global State. *)
-let shaper    = ref []
-
-
-(* API *)
-let stitch_shapes_ctypes cil shm = 
-  let _ = assertf "deprecated: stitch_shapes_ctypes" in
-  Misc.write_to_file (!Constants.csolve_file_prefix ^ ".shape") "SHAPE INFORMATION";
-  SM.iter begin fun fn shp ->
-    shp.Shape.vtyps
-    >> (fun xs -> shaper := List.rev_append xs !shaper)
-    |> Misc.kgroupby (snd <+> Ct.I.CType.sloc)
-    |> Misc.map_partial (function (Some x, y) -> Some (x, y) | _ -> None) 
-    |> List.map (Misc.app_snd (List.map fst))
-    |> List.map (Misc.app_snd (Misc.kgroupby (fun v -> v.Cil.vtype)))
-    |> PP.docList ~sep:(PP.dprintf "@!") (d_sloc_typ_varss ()) ()
-    |> PP.concat (PP.text ("\n\n\nSTITCH SHAPE: "^fn^"\n"))
-    |> PP.sprint ~width:80
-    |> (Misc.append_to_file (!Constants.csolve_file_prefix ^ ".shape")) 
-  end shm
-  (* ; E.log "EXIT: stitch_shapes_ctypes"; exit 0 *)
-(**************************************************************************)
-(**************************************************************************)
-
-(***** Step 2: Find the Cil-Fields for the indexes of each Ldesc ********)
-type cilinfo  = { name : string option; ty   : Cil.typ option }
-
-let d_cilinfo () ci = 
-  Pretty.dprintf "%a %a" 
-    (Pretty.docOpt (Cil.d_type ())) ci.ty
-    (Pretty.docOpt Pretty.text) ci.name 
-
-module CilReft = struct
-  type t = Ct.Index.t * FixConstraint.reft * cilinfo 
-  let d_refinement () (ix, r, ci) =
-    Pretty.dprintf "%a [%a] %a;@!" d_cilinfo ci Ct.Index.d_index ix Ct.d_reft r
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Ct.Index.top, Ct.reft_of_top, { name = None; ty = None } 
-end
-
-module CilCTypes   = Ct.Make (CilReft)
-
-let fields_of_store (sto : Ct.refldesc SLM.t) (stt : Cil.typ SLM.t) : CilCTypes.LDesc.t SLM.t =
-  SLM.mapi begin fun sloc ld -> 
-    if SLM.mem sloc stt then 
-      decorate_ldesc ld (SLM.find sloc stt)
-    else assertf "ERROR: cannot determine ciltyp for" sloc
-  end sto
-
-}}} *)
-
-
-
+let annot_shape   = fun x y z   -> (!annr)#set_shape x y z 
+let annot_sto     = fun x y     -> (!annr)#add_sto x y
+let annot_var     = fun x y     -> (!annr)#add_var x y
+let clear         = fun _       -> annr := new annotations 
+let dump_infspec  = fun decs s  -> (!annr)#dump_infspec decs s
+let dump_annots   = fun so      -> (!annr)#dump_annots so
+let dump_bindings = fun ()      -> (!annr)#get_binds ()

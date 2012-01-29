@@ -189,7 +189,7 @@ let idx_solve me fn qs =
 (* API *)
 let solve me fn qs =
   (if !Constants.prune_index then some <| idx_solve me fn qs else None)
-  |>  ac_solve d_predAbs me fn (get_cstrs me) qs None
+  |> ac_solve d_predAbs me fn (get_cstrs me) qs None
   |> Misc.app_fst d_predAbs.min_read
   
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int

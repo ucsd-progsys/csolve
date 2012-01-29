@@ -171,6 +171,7 @@ let quals_of_file fname =
       |> Lexing.from_channel
       |> FixParse.defs FixLex.token
       |> Misc.map_partial (function FixConfig.Qul p -> Some p | _ -> None)
+      |> Qualifier.normalize
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
