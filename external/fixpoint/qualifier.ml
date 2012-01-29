@@ -205,27 +205,18 @@ let check_def_deps qm =
   end
 
 let order_by_defs qm qs = 
-  let _    = print_now "Q.order_by_defs 1 \n" in
   let is   = Misc.range 0 (List.length qs)                                      in
-  let _    = print_now "Q.order_by_defs 2 \n" in
   let qis  = List.combine qs is                                                 in
-  let _    = print_now "Q.order_by_defs 3 \n" in
   let i2q  = qis  |>: Misc.swap |> IM.of_list  |> Misc.flip IM.find             in
-  let _    = print_now "Q.order_by_defs 4 \n" in
   let i2s  = i2q <+> name_of_t <+> Sy.to_string                                 in  
-  let _    = print_now "Q.order_by_defs 5 \n" in
   let n2i  = qis  |>: Misc.app_fst name_of_t |> SM.of_list 
              |> (fun m n -> SM.safeFind n m "order_by_defs") in
    
-  let _    = print_now "Q.order_by_defs 6 \n" in
   let qnams= qs |>: name_of_t |> SS.of_list in
   let deps = qs |>: make_def_deps qnams >> check_def_deps qm                       in
-  let _    = print_now "Q.order_by_defs 7 \n" in
   let ijs  = deps |> Misc.flap (fun (n, fargs) -> fargs |>: (fun (f,_) -> (n, f)))   
                   |> List.map (Misc.map_pair n2i)                               in
-  let _    = print_now "Q.order_by_defs 8 \n" in
   let irs  = Fcommon.scc_rank "qualifier-deps" i2s is ijs                       in 
-  let _    = print_now "Q.order_by_defs 9 \n" in
   Misc.fsort snd irs 
   |>: (fst <+> i2q)
 (*   >> (F.printf "ORDERED QUALS:\n%a\n" (Misc.pprint_many true "\n" print)) *)
@@ -245,16 +236,12 @@ let expand_def qm p = match p with
     
 (* this MUST precede any renaming as renaming can screw up name resolution *)
 let compile_definitions qs = 
-  let _    = print_now "Q.compile_definitions 0 \n" in
   let qm   = List.fold_left (fun qm q -> SM.adds q.name [q] qm) SM.empty qs in
-  let _    = print_now "Q.compile_definitions 1 \n" in
   let qs'  = order_by_defs qm qs                                       in 
-  let _    = print_now "Q.compile_definitions 2 \n" in
   List.fold_left begin fun qm q -> 
     let q' = {q with pred = P.map (expand_def qm) id q.pred } in
     SM.adds q.name [q'] qm
   end SM.empty qs'
-  >> (fun _ -> print_now "Q.compile_definitions 3\n")
   |> SM.range |> Misc.flatten
 
 (**************************************************************************)
@@ -280,15 +267,10 @@ let uniquely_rename qs =
 
 (* API *)
 let normalize qs =
-  qs >> (fun _ -> print_now "Q.normalize 0\n")
-     |> Misc.flap expand_qual
-     >> (fun _ -> print_now "Q.normalize 1\n")
+  qs |> Misc.flap expand_qual
      |> compile_definitions
-     >> (fun _ -> print_now "Q.normalize 2\n")
      |> remove_duplicates
-     >> (fun _ -> print_now "Q.normalize 3\n")
      |> uniquely_rename
-     >> (fun _ -> print_now "Q.normalize 4\n")
 
 
 (**************************************************************************)

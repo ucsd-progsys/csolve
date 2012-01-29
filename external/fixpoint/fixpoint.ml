@@ -91,13 +91,12 @@ let dump_imp a =
 (********************* Generate SMTLIB Query *********************)
 (*****************************************************************)
 
-let dump_smtlib a = 
-  (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ List.map (fun c -> Cg.Wfc c) a.Cg.ws)
-  |> Misc.flip ToSmtLib.render 
-  |> Misc.with_out_formatter !Co.out_file
-  >| exit 1 
-
-     
+let dump_smtlib a =
+  let _  = print_now "DUMP_SMTLIB!!!" in
+  let xs = (List.map (fun c -> Cg.Cst c) a.Cg.cs ++ List.map (fun c -> Cg.Wfc c) a.Cg.ws) in
+  let _  = print_now ("BEGIN: Dump SMTLIB" ^ !Co.out_file) in
+  let _  = Misc.with_out_formatter !Co.out_file (fun ppf -> ToSmtLib.render ppf xs) in
+  exit 1 
 
 
 (*****************************************************************)
@@ -141,6 +140,7 @@ let main () =
   if !Co.dump_imp then 
     dump_imp cfg 
   else if !Co.dump_smtlib then
+    let _    = print_now "HERE, whats going on!!!" in
     dump_smtlib cfg
   else if !Co.dump_simp <> "" then 
     dump_simp cfg
