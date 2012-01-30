@@ -1,0 +1,118 @@
+<html>
+  <head>
+    <title>Csolve</title>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/pyg_default.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="css/csolve.css" />
+    <!--<script src="js/jquery.js" type="text/javascript"></script>
+    <script src="js/jquery.tools.min.js"></script>-->
+	<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+    <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+    <script src="js/csolve.js"></script>
+    <script> var csolveData = { errors : [  ], qualDef : { ZeroP : (v = 0), Zero : (v = 0), WordSize8 : ((v != 0) => ((BLOCK_END([v]) - v) >= 8)), WordSize4 : ((v != 0) => ((BLOCK_END([v]) - v) >= 4)), Valid : && [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))], UpperBd : (v < BLOCK_END([v])), Unchecked : (UNCHECKED([v]) = 1), SizeGt : ((BLOCK_BEGIN([v]) + ~AA0) <= BLOCK_END([v])), RestGt : ((v + (4 * ~AA0)) <= BLOCK_END([v])), PosZP : (0 <= v), PosZ : (0 <= v), PosP : (0 < v), Pos : (0 < v), NullTerm : ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)), NullOrValid : ((v != 0) => && [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))]), NullOrBegin : ((v != 0) => (v = BLOCK_BEGIN([v]))), NoWrite : (EWRITE != 1), NoRead : (EREAD != 1), Lt : (v < ~AA0), LowerBd : (BLOCK_BEGIN([v]) <= v), Le : (v <= ~AA0), Ge0 : (v >= ~a), Ge : (v >= ~AA0), GT : (v > ~AA0), False : (1 = 0), EqEnd : (BLOCK_END([v]) = BLOCK_END([~a])), EqBuf : && [(BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])) ; (BLOCK_END([v]) = BLOCK_END([~a]))], EqBegin : (BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])), Eq0 : (v = ~a), Eq : (v = ~AA0), Begin : (v = BLOCK_BEGIN([v])) }, genAnnot : { quals : [  ], conc : [  ] }, annot : { x_main : { 21 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 19 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 15 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 12 : { quals : [  ], conc : [ true ] }, 11 : { quals : [  ], conc : [ true ] }, 8 : { quals : [  ], conc : [ true ] } }, a_main : { 17 : { quals : [  ], conc : [ (VV = 999) ] }, 15 : { quals : [  ], conc : [ (VV = ((x_main__SSA__phi_5 >= 0) ? 1 : 0)) ] } } } }; </script>
+  
+    <style>
+      .tooltip {
+        white-space: normal;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #FFFFAA; 
+        border: 2px solid #FFAD33;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
+
+/* style the trigger elements 
+#demo img {
+	border:100;
+	cursor:pointer;
+	margin:0 8px;
+  }
+  */
+
+</style>
+  </head>
+  <body>
+    
+    <script id="dummyTemplate" type="text/x-jquery-tmpl"> 
+      <div class="tooltip">
+        ${myname} at ${myline} 
+      </div>
+    </script>
+
+    <script id="varTooltipTemplate" type="text/x-jquery-tmpl"> 
+      <span class="tooltip">
+        ${name} @@ ${line}
+        {{each(i, qual) quals}}
+        <span class="qualbind" title="${qualDef(qual.name)}">
+           <a href="${qual.url}">${qual.name}(${qual.args})</a>
+        </span>
+        {{/each}}
+      </span>
+    </script>
+
+<!--
+${name} @ ${line} 
+<span class="qualbind" title="${qualDef(qual.name)}"></span>
+
+<script id="HIDEvarTooltipTemplate" type="text/x-jquery-tmpl"> 
+      <div class="tooltip">
+        Variable: ${name} Line: ${line} Qual: ${oq.name}
+      <ul>
+        {{each(i, qual) quals}}
+        <li>
+          <span class="qualbind" title="${qualDef(qual.name)}">
+            <a href="${qual.url}">${qual.name}(${qual.args})</a>
+          </span>
+        </li>
+        {{/each}}
+      </ul> 
+      </div>
+    </script>
+    -->
+
+    <hr>
+    Line Numbers: <div id="showlines">Hide</div> 
+    <hr>
+    Your Last Click:<div id="msg"></div>
+    <hr>
+    
+    <div class="highlight" style="width: 500px; height: 300px; overflow: auto; padding: 5px;">
+    <div class="highlight"><pre><span class="line" num=1><span class="linenum" num=1>1:</span><span class="cp">#include &lt;stdlib.h&gt;</span></span>
+<span class="line" num=2><span class="linenum" num=2>2:</span></span>
+<span class="line" num=3><span class="linenum" num=3>3:</span><span class="kt">void</span> <span class="n">main</span><span class="p">(){</span></span>
+<span class="line" num=4><span class="linenum" num=4>4:</span>  <span class="kt">int</span> <span class="n">x</span><span class="p">;</span></span>
+<span class="line" num=5><span class="linenum" num=5>5:</span>  <span class="kt">int</span> <span class="n">a</span><span class="p">;</span></span>
+<span class="line" num=6><span class="linenum" num=6>6:</span>  <span class="kt">int</span> <span class="n">b</span><span class="p">;</span></span>
+<span class="line" num=7><span class="linenum" num=7>7:</span></span>
+<span class="line" num=8><span class="linenum" num=8>8:</span>  <span class="n">x</span> <span class="o">=</span> <span class="n">nondet</span><span class="p">();</span></span>
+<span class="line" num=9><span class="linenum" num=9>9:</span></span>
+<span class="line" num=10><span class="linenum" num=10>10:</span></span>
+<span class="line" num=11><span class="linenum" num=11>11:</span>  <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span></span>
+<span class="line" num=12><span class="linenum" num=12>12:</span>    <span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="n">x</span><span class="p">;</span></span>
+<span class="line" num=13><span class="linenum" num=13>13:</span>  <span class="p">}</span></span>
+<span class="line" num=14><span class="linenum" num=14>14:</span></span>
+<span class="line" num=15><span class="linenum" num=15>15:</span>  <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">);</span></span>
+<span class="line" num=16><span class="linenum" num=16>16:</span>  </span>
+<span class="line" num=17><span class="linenum" num=17>17:</span>  <span class="n">a</span> <span class="o">=</span> <span class="mi">999</span><span class="p">;</span></span>
+<span class="line" num=18><span class="linenum" num=18>18:</span></span>
+<span class="line" num=19><span class="linenum" num=19>19:</span>  <span class="n">csolve_assert</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">);</span></span>
+<span class="line" num=20><span class="linenum" num=20>20:</span></span>
+<span class="line" num=21><span class="linenum" num=21>21:</span>  <span class="n">csolve_assert</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">);</span></span>
+<span class="line" num=22><span class="linenum" num=22>22:</span></span>
+<span class="line" num=23><span class="linenum" num=23>23:</span>  <span class="k">return</span><span class="p">;</span> </span>
+<span class="line" num=24><span class="linenum" num=24>24:</span><span class="p">}</span></span>
+<span class="line" num=25><span class="linenum" num=25>25:</span></span></pre></div>
+
+    </div>
+
+  </body>
+</html>

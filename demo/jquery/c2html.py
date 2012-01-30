@@ -28,7 +28,7 @@ from string import Template
 lineTplt = Template("<span class=\"line\" num=$linenum><span class=\"linenum\" num=$linenum>$linenum:</span>$line</span>")
 srcTplt  = "templates/source.html"
 tgtTplt  = "templates/csolve.html" 
-tgtFile  = "csolve.html"
+#tgtFile  = "csolve.html"
 
 ##################### Generic IO Helpers #########################
 
@@ -66,6 +66,10 @@ def addLineNumbers(src, html):
 
 ##################### Plugging Into Templates #########################
 
+def tgtFile(srcFile):
+  return (srcFile + ".html")
+
+
 def main(srcFile, jsonFile):
   src     = readFrom(srcFile)
   srcHtml = highlight(src, CLexer(stripall=False), HtmlFormatter())
@@ -73,7 +77,7 @@ def main(srcFile, jsonFile):
   srcJson = readFrom(jsonFile)
   tplt    = Template(readFrom(tgtTplt))
   tgt     = tplt.substitute(srcHtml = srcHtml, srcJson = srcJson)
-  writeTo(tgtFile, tgt)
+  writeTo(tgtFile(srcFile), tgt)
 
 #############################################################################
 
