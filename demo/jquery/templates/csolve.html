@@ -52,11 +52,11 @@
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       $${ctype}[
-      <ul class="flatcsv">
+      <ul class="qualargs">
         <span></span>  
       {{each(i, q) quals}}
       <li><span class="qualbind">
-        <ul class="flatcsv">{{tmpl(q) "#qnameTemplate"}}({{tmpl(q.qargs) "#qargTemplate"}})</ul>
+        <ul class="qualargs">{{tmpl(q) "#qnameTemplate"}}({{tmpl(q.qargs) "#qargTemplate"}})</ul>
          </span>
       </li>
       {{/each}}
@@ -118,14 +118,15 @@ var movies = [
 { Name: "City Hunter", Languages: [{name : "Mandarin"}, {name: "Cantonese"} ] }
 ];
 </script>
--->
 
 <hr>
- This is a flatcsv(<ul class="flatcsv"><li>Cat</li><li>Dog</li><li>Mouse</li></ul>).
+ This is a qualargs(<ul class="qualargs"><li>Cat</li><li>Dog</li><li>Mouse</li></ul>).
 
-<ul class="flatcsv"> 
+<ul class="qualargs"> 
 Lets do this again!(<li>cat</li><li>dog</li><li>mouse</li>)
 </ul>
+
+-->
 
 <hr>
     Line Numbers: <div id="showlines">Hide</div> 

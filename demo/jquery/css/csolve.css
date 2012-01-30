@@ -21,24 +21,52 @@ a:active {}
 .green    { color: green; }
 .error    { background-color: #fee; }
 
-ul.flatcsv { display:inline;} 
-    
-ul.flatcsv span { display:inline;} 
+/********* Rendering Qual Parameters ************/
 
-ul.flatcsv li { display:inline; }
+ul.qualargs { display:inline;} 
     
-ul.flatcsv li::before{
-  content:", ";
+ul.qualargs span { display:inline;} 
+
+ul.qualargs li { display:inline; }
+    
+ul.qualargs li::before {
+  content: ", ";
   white-space:normal;
 }
  
-ul.flatcsv li:nth-child(2)::before{
-  content:"";
+ul.qualargs li:nth-child(2)::before {
+  content: "";
 }
-ul.flatcsv li:first-child::before{
-  content:"";
+ul.qualargs li:first-child::before {
+  content: "";
 }
 
-ul.flatcsv + *{
+ul.qualargs + *{
   clear:left;
 }  
+
+/********* Rendering Fun Parameters ************/
+    
+ table.funargs {
+   display:inline-table;
+   vertical-align:top;
+ } 
+    
+ table.funargs tr {
+  display:inline;
+ }
+    
+ table.funargs tr td::before{
+  content: ", ";
+  white-space:pre;
+ }
+    
+ table.funargs tr:first-child td::before{
+  content: "( ";
+ }
+ 
+ table.funargs tr:last-child::after{
+  content: ")";
+ }   
+
+ /****************************************/    

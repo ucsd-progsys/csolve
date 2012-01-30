@@ -2,16 +2,22 @@ RUN WITH:
 
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
-
-. Print FUNCTION types (DONE, but not SUPER PRETTY)
-    >> in ML   : render annotf
-    >> in HTML : create funTooltipTemplate (nested template, reuse quals?)
-    >> in JS   : isFun, annotFun 
-
 HEREHEREHEREHERE
+. Clean up fun-args using CSS
+    >> inline-table
 
-. Hover over qualname expands to full definition.
-    >> with cleaned up var names, but NON-hyperlinked vars
+. Hover over qualname expands to information
+    >> full definition.
+
+. Add Anchor To each line number
+    >> Why? So we can hop to a line directly.
+    >> on error (slice)
+    >> var-def
+
+. Hover over qualArg expands to information
+    >> click jumps to line number
+
+>> with cleaned up var names, but NON-hyperlinked vars
 
 . Cleanup Variable names
     >> EQ(X,Y
@@ -19,11 +25,6 @@ HEREHEREHEREHERE
     >> Link to line.
 
 
-
-. Add Anchor To each line number
-    >> Why? So we can hop to a line directly.
-    >> on error (slice)
-    >> var-def
 
 . Add error slicing.
    Error: Root + lines in slice
