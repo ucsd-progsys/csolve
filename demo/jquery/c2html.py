@@ -19,15 +19,17 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import sys
+import os, sys, shutil
 from pygments import highlight
 from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
 
+
+baseDir  = sys.path[0]
+srcTplt  = baseDir + "/templates/source.html"
+tgtTplt  = baseDir + "/templates/csolve.html" 
 lineTplt = Template("<span class=\"line\" num=$linenum><span class=\"linenum\" num=$linenum>$linenum:</span>$line</span>")
-srcTplt  = "templates/source.html"
-tgtTplt  = "templates/csolve.html" 
 #tgtFile  = "csolve.html"
 
 ##################### Generic IO Helpers #########################
@@ -83,8 +85,10 @@ def main(srcFile, jsonFile):
 
 try: 
   srcFile  = sys.argv[1]
-  try: 
-    jsonFile = sys.argv[2]
-  except: jsonFile = srcFile + ".json"
-except: print "Usage: ./c2html.py <inFile.c> [inFile.json]"
-main(srcFile, jsonFile)
+  jsonFile = srcFile + ".json"
+  main(srcFile, jsonFile)
+  srcDir   = os.path.dirname(srcFile)
+  shutil.copytree(baseDir + "/css", srcDir + "/css")
+  shutil.copytree(baseDir + "/js", srcDir + "/js")
+except: 
+  print "Error in c2html. Usage: ./c2html.py inFile.c" 

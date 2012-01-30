@@ -234,8 +234,15 @@ let cil_of_file file =
        >> rename_locals 
 
 let dump_annots qs tgr s' cs' =
+  (* 1. Dump Text Annots *)
   Annots.dump_annots (Some s');
-  AnnotsJson.dump_annots qs tgr s' cs' (Annots.dump_bindings ())
+  (* 2. Dump JSON Annots *)
+  AnnotsJson.dump_annots qs tgr s' cs' (Annots.dump_bindings ());
+  (* 3. Render HTML *)
+  Printf.sprintf "%s %s" (Co.get_c2html ()) !Co.csolve_file_prefix
+  |> Sys.command
+  |> (function 0   -> E.log "DONE: Generated Annotated HTML" 
+             | err -> E.warn "Failed To Generate Annotated Html %d" err)
 
 let liquidate file =
   let log       = open_out "csolve.log" in

@@ -24,9 +24,10 @@ open FixMisc.Ops
 module SS = FixMisc.StringSet
 
 (******* This module contains globals representing "flags" **************)
+let lib_path            = Sys.argv.(0) |> Filename.dirname |> ref
 let annotsep_name       = "\n\n=+=\n\n"
 let global_name         = "GLOBAL"
-let lib_path            = Sys.argv.(0) |> Filename.dirname |> ref
+
 
 let file: string option ref = ref None         (* last commandline param*)
 let csolve_file_prefix  = ref "csolve"         (* where to find/place csolve-related files *)
@@ -364,8 +365,10 @@ let is_prefix p s =
 (*************** Paths for builtin specs, quals etc ***************)
 (******************************************************************)
 
-let get_lib_squals      = fun () -> Filename.concat !lib_path "lib.squals"
-let get_lib_hquals      = fun () -> Filename.concat !lib_path "lib.hquals"
-let get_lib_spec        = fun () -> Filename.concat !lib_path "lib.spec"
-let get_lib_h           = fun () -> Filename.concat !lib_path "lib.h"
-let get_csolve_h        = fun () -> Filename.concat !lib_path "../lib/csolve.h"
+let get_lib_squals = fun () -> Filename.concat !lib_path "lib.squals"
+let get_lib_hquals = fun () -> Filename.concat !lib_path "lib.hquals"
+let get_lib_spec   = fun () -> Filename.concat !lib_path "lib.spec"
+let get_lib_h      = fun () -> Filename.concat !lib_path "lib.h"
+let get_csolve_h   = fun () -> Filename.concat !lib_path "../lib/csolve.h"
+let get_c2html     = fun () -> Filename.concat !lib_path "../demo/jquery/c2html.py"
+
