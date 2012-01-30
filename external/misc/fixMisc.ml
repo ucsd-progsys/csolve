@@ -32,6 +32,8 @@
 
 module Ops = struct
 
+  type ('a, 'b) either = Left of 'a | Right of 'b
+
   let (>|) _ x = x
 
   let (|>) x f = f x
@@ -198,6 +200,10 @@ let curry   = fun f x y   -> f (x,y)
 let uncurry = fun f (x,y) -> f x y
 let flip    = fun f x y   -> f y x
 
+let maybe_bool = function
+  | Some _ -> true
+  | None   -> false
+
 module type EMapType = sig
   include Map.S
   val extendWith : (key -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
@@ -216,6 +222,7 @@ module type EMapType = sig
   val safeAdd    : key -> 'a -> 'a t -> string -> 'a t
   val maybe_find : key -> 'a t -> 'a option
   val single     : key -> 'a -> 'a t
+  val map_partial: ('a -> 'b option) -> 'a t -> 'b t
 end
 
 module type ESetType = sig
@@ -250,7 +257,6 @@ module EMap (K: EOrderedType) =
     (* in 3.12 *)
     let filter (f: key -> 'a -> bool) (m: 'a t) : 'a t =  
       fold (fun x y m -> if f x y then add x y m else m) m empty 
-
     
     let of_list (kvs : (key * 'a) list) = 
       List.fold_left (fun m (k, v) -> add k v m) empty kvs
@@ -305,6 +311,8 @@ module EMap (K: EOrderedType) =
         in failwith err
       else add k v m
 
+    let map_partial f m = 
+      fold (fun x yo m -> match yo with Some y -> add x y m | _ -> m) (map f m) empty 
   end
 
 module type KeyValType =
@@ -1013,6 +1021,12 @@ let tr_partition f xs =
     else (xs, z::ys)
   end ([],[]) xs
 
+let either_partition f xs =
+  List.fold_left begin fun (xs, ys) z -> 
+    match f z with
+    | Left x  -> (x::xs, ys)
+    | Right y -> (xs, y::ys)
+  end ([], []) xs
 
 (* these do odd things with order for performance 
  * it is possible that fast is a misnomer *)
@@ -1166,9 +1180,6 @@ let array_combine a1 a2 =
 
 let compose f g a = f (g a)
 
-let maybe_bool = function
-  | Some _ -> true
-  | None   -> false
 
 let rec gcd (a: int) (b: int): int =
   if b = 0 then a else gcd b (a mod b)

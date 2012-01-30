@@ -27,10 +27,15 @@
 module Misc= FixMisc
 
 (* Data Types and Printers for the JSON representation of Csolve results *)
-module Co = Constants
-module PP = Pretty
-module SM = Misc.StringMap
-module IM = Misc.IntMap
+module Co  = Constants
+module PP  = Pretty
+module A   = Ast
+module Sy  = A.Symbol
+module SM  = Sy.SMap
+module SSM = Misc.StringMap
+module IM  = Misc.IntMap
+module C   = FixConstraint
+module Q   = Qualifier
 
 open Misc.Ops
 
@@ -38,6 +43,7 @@ type qdef  = string
 type pred  = string 
 type expr  = string
 type act   = string
+type ctyp  = string
 
 type error = 
   { line : int
@@ -51,16 +57,19 @@ type qual  =
   }
 
 type annot = 
-  { quals : qual list
+  { ctype : ctyp
+  ; quals : qual list
   ; conc  : pred list 
   }
 
 type json = 
   { errors   : error list
-  ; qualDef  : qdef SM.t
+  ; qualDef  : qdef SSM.t
   ; genAnnot : annot
-  ; annot    : (annot IM.t) SM.t 
+  ; annot    : (annot IM.t) SSM.t 
   } 
+
+let junkUrl = ""
 
 (*******************************************************************)
 (************* Render JSON as Pretty.doc ***************************)
@@ -74,7 +83,7 @@ let d_kvs f () kvs   = PP.dprintf "{ %a }" (d_many (d_kv f)) kvs
 (***************** Serializing Arrays and Maps **************************)
 
 let d_array f () = PP.dprintf "[ %a ]" (d_many f) 
-let d_sm f ()    = SM.to_list <+> d_kvs f ()
+let d_sm f ()    = SSM.to_list <+> d_kvs f ()
 let d_im f ()    = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
 
 (***************** Serializing String Aliases ***************************)
@@ -107,11 +116,49 @@ let d_json () x =
     d_annot               x.genAnnot
     (d_sm (d_im d_annot)) x.annot
 
+
+(*******************************************************************)
+(************* Build Map from var-line -> ssavar *******************)
+(*******************************************************************)
+
+let mkCtype = CilMisc.pretty_to_string CilMisc.d_type_noattrs
+let mkPred  = Ast.Predicate.to_string
+let mkQual  = fun (f,es) -> { name = Sy.to_string f
+                            ; args = List.map A.Expression.to_string es
+                            ; url = junkUrl }
+
+let deconstruct_pApp = function
+  | A.Bexp (A.App (f, es), _), _ -> Some (f, es)
+  | _                            -> None
+
+let annot_of_vinfo s ((cr : Ctypes.refctype), (ct : Cil.typ)) : annot =
+  let cs, ks = cr |> Ctypes.reft_of_refctype 
+                  |> thd3
+                  |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
+  let qs, cs'= ks |> Misc.flap (fun (su, k) -> (s k) |> List.map (Misc.flip A.substs_pred su))
+                  |> Misc.either_partition (fun p -> match deconstruct_pApp p with Some z -> Left z | _ -> Right p) in
+  { ctype = mkCtype ct 
+  ; quals = List.map mkQual qs 
+  ; conc  = List.map mkPred (cs ++ cs')      
+  }
+
+let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
+  let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
+  let put x n y m = SSM.add x (IM.add n y (get x m)) m               in
+  bs |> Misc.map_partial (function Annots.TSSA (_, y) -> Some y | _ -> None)
+     |> Misc.flap Misc.hashtbl_to_list
+     |> List.fold_left begin fun m ((x, file, line), xssa) ->
+          put x line (FixAstInterface.name_of_string xssa) m 
+        end SSM.empty
+
+let mkSyInfoMap bs =
+  bs |> Misc.map_partial (function Annots.TVar (x, y) -> Some (x, y) | _ -> None)
+     |> SM.of_list
+
 (*******************************************************************)
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
-    (* HEREHEREHEREHERE
 let error_of_constraint tgr c = 
   c |> FixConstraint.tag_of_t 
     |> CilTag.t_of_tag
@@ -122,23 +169,34 @@ let mkErrors tgr =
   List.map (error_of_constraint tgr)
 
 let mkQualdef q = 
-  failwith "TODO"
-let qn = Sy.to_string <| Q.name_of_t q in
-  let qd = P.to_string  <| Q.pred_of_t q in
+  let qn = Sy.to_string <| Q.name_of_t q in
+  let qd = A.Predicate.to_string  <| Q.pred_of_t q in
   (qn, qd)
 
 let mkQualdefm qs =
-  SM.of_list <| List.map mkQualdef qs
+  SSM.of_list <| List.map mkQualdef qs
+
+  (*
+let mkAnnot s bs =
+  bs |> mkVarLineReftMap
+     |> SSM.map (IM.map (annot_of_reft s))
+ *)
+
+let mkAnnot s bs =
+  let xm = mkSyInfoMap bs in
+  bs |> mkVarLineSsavarMap
+     |> SSM.map (IM.map_partial (fun x ->
+          Misc.maybe_map (annot_of_vinfo s) (SM.maybe_find x xm)
+        ))
+
 
 let bindsToJson qs tgr s' cs' binds =
   { errors   = mkErrors tgr cs'
   ; qualDef  = mkQualdefm qs
-  ; genAnnot = { quals = []; conc = [] }
+  ; genAnnot = { ctype = "(void *)"; quals = []; conc = [] }
   ; annot    = mkAnnot s' binds
   }
-*)
 
-let bindsToJson _ = failwith "TODO"
 (*******************************************************************)
 (************* API *************************************************)
 (*******************************************************************)
