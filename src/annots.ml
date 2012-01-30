@@ -414,6 +414,7 @@ class annotations = object (self)
 
   method private add_fun f cf = 
     Misc.maybe_iter begin fun locm ->
+      print_now ("ADD FUN " ^ f ^ "\n");
       H.replace funt f (decorate_refcfun locm f cf, self#get_fun_dec f)
     end (self#get_flocm f)
 

@@ -60,7 +60,15 @@ var annotVarLine = function(v, i) {
 
 var annotFun = function(fn) {
   if (fn in csolveData.funAnnot) {
-    return csolveData.funAnnot[fn];
+    var a = csolveData.funAnnot[fn];
+    if (a.args.length == 0) {
+      a.argZero = true;
+    } else if (a.args.length == 1) {
+      a.argOne  = true;
+    } else {
+      a.argMany = true;
+    }
+    return a;
   }
   return null;
 }
@@ -154,6 +162,6 @@ $(document).ready(function(){
     hilitError(this); 
   });
 
-  $( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
+  //$( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
 });
 

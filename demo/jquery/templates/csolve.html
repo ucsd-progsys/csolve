@@ -41,60 +41,71 @@
 </style>
   </head>
   <body>
-    
-    <script id="dummyTemplate" type="text/x-jquery-tmpl"> 
-      <div class="tooltip">
-        $${myname} at $${myline} 
-      </div>
+    <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
+      $${ctype}[
+      {{each(i, q) quals}}
+      <span class="qualbind" title="$${q.qfull}">
+         <a href="$${q.qurl}">$${q.qname}($${q.qargs})</a>
+      </span>
+      {{/each}}
+      {{each(i, p) conc}}
+      <span class="concbind">$${p}</span>
+      {{/each}}
+      ] $${vname} 
     </script>
 
     <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
-        $${ctype}[
-        {{each(i, q) quals}}
-        <span class="qualbind" title="$${q.qfull}">
-           <a href="$${q.qurl}">$${q.qname}($${q.qargs})</a>
-        </span>
-        {{/each}}
-        {{each(i, p) conc}}
-        <span class="concbind">$${p}</span>
-        {{/each}}
-        ] $${vname}
+      {{tmpl "#annotvTemplate"}} 
       </span>
     </script>
-    
+
     <script id="annotfTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
-        <tr>{{tmpl(ret) "#annotvTooltipTemplate"}}</tr>
-        <tr>$${fname} (<table>  
-                      {{each(i, v) args}}
-                      <tr>{{tmpl(v) "#annotvTooltipTemplate"}}</tr>
-                      {{/each}}
-                  </table>)
-        </tr>
+        <table>
+          <tr><td>{{tmpl(ret) "#annotvTemplate"}}</td></tr>
+          <tr><td>$${fname}
+              {{if argZero}}
+              ()
+              {{/if}}
+              {{if argOne}}
+              ({{tmpl(args)  "#annotvTemplate"}})
+              {{/if}}
+              {{if argMany}}
+              (<table>
+                {{each(i, arg) args}}
+                <tr><td></td><td>{{tmpl(arg)  "#annotvTemplate"}}</td></tr>
+                {{/each}}
+              </table>
+              )
+              {{/if}}
+          </td></tr>
+        </table>
       </span>
     </script>
     
-<script id="movieTemplate" type="text/x-jquery-tmpl"> 
+    <!--
+    <script id="movieTemplate" type="text/x-jquery-tmpl"> 
     <tr>
         <td>$${Name}</td>
         <td>{{tmpl(Languages) "#languageTemplate"}}</td>
     </tr>
-</script>
+  </script>
 
 <script id="languageTemplate" type="text/x-jquery-tmpl"> 
-    <em>$${Name}</em>
+    <em>$${name}</em>
 </script>
 
 <table><tbody id="movieList"></tbody></table>
 
 <script>
 var movies = [
-    { Name: "Meet Joe Black", Languages: ["English", "French"] },
-    { Name: "The Mighty", Languages: ["English"] },
-    { Name: "City Hunter", Languages: ["Mandarin", "Cantonese"] }
+{ Name: "Meet Joe Black", Languages: [ {name: "English"}, {name: "French"}] },
+{ Name: "The Mighty", Languages: [ {name : "English"}] },
+{ Name: "City Hunter", Languages: [{name : "Mandarin"}, {name: "Cantonese"} ] }
 ];
 </script>
+-->
 
 <hr>
     Line Numbers: <div id="showlines">Hide</div> 

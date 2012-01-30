@@ -83,12 +83,7 @@ h3 { margin: 5px 0; }
 .blue { color: blue; }
 .green { color: green; }
 
-#rating {
-	border: 1px solid black;
-	margin: 5px;
-	padding: 5px;
-}
-
+/* 
 table {
 	border: 1px solid #666;
 	margin: 20px 0 20px 0 !important;
@@ -116,6 +111,7 @@ tr a {
 	color: rgb(102, 102, 102);
 	text-decoration: none;
 }
+
 tr a:hover {
 	text-decoration: underline;
 }
@@ -133,6 +129,7 @@ dl {
 	margin: 5px;
 }
 
+*/
 
 .error {
 	background-color: #fee;
