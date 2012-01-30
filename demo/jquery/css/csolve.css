@@ -14,6 +14,39 @@ a:visited {}
 a:hover {}
 a:active {}
 
+/*********** From JSFIDDLE normalize.css *******************/
+
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td { 
+	margin:0;
+	padding:0;
+}
+
+table {
+	border-collapse:collapse;
+	border-spacing:0;
+}
+fieldset,img { 
+	border:0;
+}
+address,caption,cite,code,dfn,em,strong,th,var {
+	font-style:normal;
+	font-weight:normal;
+}
+ol, ul {
+	list-style:none;
+}
+caption,th {
+	text-align:left;
+}
+h1,h2,h3,h4,h5,h6 {
+	font-size:100%;
+	font-weight:normal;
+}
+q:before,q:after {
+	content:'';
+}
+abbr,acronym { border:0;}
+
 .errLine  { background-color: #FF9999; }
 .red      { background-color: red; }
 .yellow   { background-color: yellow; }
@@ -23,20 +56,30 @@ a:active {}
 
 /********* Rendering Qual Parameters ************/
 
-ul.qualargs { display:inline;} 
+ul.qualargs { 
+    display:inline;   
+} 
     
 ul.qualargs span { display:inline;} 
 
-ul.qualargs li { display:inline; }
-    
+ul.qualargs li span.qarg { 
+    display:inline; 
+    white-space: nowrap;
+    margin: -5px;
+}
+
+ul.qualargs, ul.qualargs li { 
+    display:inline; 
+    white-space: nowrap;
+    margin: -3px;
+}
+
 ul.qualargs li::before {
   content: ", ";
   white-space:normal;
 }
- 
-ul.qualargs li:nth-child(2)::before {
-  content: "";
-}
+
+
 ul.qualargs li:first-child::before {
   content: "";
 }
@@ -44,17 +87,44 @@ ul.qualargs li:first-child::before {
 ul.qualargs + *{
   clear:left;
 }  
-
-/********* Rendering Fun Parameters ************/
     
- table.funargs {
+/***** Rendering Types, Refinements, Vars, Etc. ************/
+
+span.funname {
+   font-weight: bold;
+   color: black;
+} 
+
+span.typename {
+  color: green; 
+  font-weight: bold;
+  font-style: italic;
+} 
+
+span.concbind, span.qname, span.qarg {
+  color: blue; 
+} 
+
+/********************* Rendering Fun Parameters ************/
+
+
+table.funargs tr {
+  display:inline;
+}
+
+table.funargs tr td {
+  display:inline;
+}
+
+
+table.funargs {
    display:inline-table;
    vertical-align:top;
  } 
     
- table.funargs tr {
+table.funargs tr {
   display:inline;
- }
+}
     
  table.funargs tr td::before{
   content: ", ";

@@ -41,30 +41,37 @@
 </style>
   </head>
   <body>
-    
+
+
+
+
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
       <span class="qname" title="$${qfull}">$${qname}</span>
+      <span class="tooltip">$${qfull}</span>
     </script> 
 
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      <li><span class="qarg">$${qargname}</span></li>
+      <span class="qarg">$${qargname}</span>
     </script>
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
-      $${ctype}[
+      <span><span class="typename">$${ctype}</span>&#123;</span>
       <ul class="qualargs">
-        <span></span>  
       {{each(i, q) quals}}
-      <li><span class="qualbind">
-        <ul class="qualargs">{{tmpl(q) "#qnameTemplate"}}({{tmpl(q.qargs) "#qargTemplate"}})</ul>
-         </span>
+      <li><span>{{tmpl(q) "#qnameTemplate"}}&#40;
+         <ul class="qualargs">
+           {{each(j,qa) q.qargs}}
+           <li>{{tmpl(qa) "#qargTemplate"}}</li>
+           {{/each}}
+         </ul>
+          )
       </li>
       {{/each}}
       </ul>
       {{each(i, p) conc}}
       <span class="concbind">$${p}</span>
       {{/each}}
-      ] $${vname} 
+    } $${vname} 
     </script>
 
     <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 
@@ -75,10 +82,18 @@
 
     <script id="annotfTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
-        <table>
-          <tr><td>{{tmpl(ret) "#annotvTemplate"}}</td></tr>
-          <tr><td>$${fname}
-              {{if argZero}}
+        {{tmpl(ret) "#annotvTemplate"}}<br>
+        <span class="funname">$${fname}</span>
+              <table class="funargs"> 
+                {{each(i, arg) args}}
+                <tr><td>{{tmpl(arg)  "#annotvTemplate"}}</td></tr>
+                {{/each}}
+              </table>
+      </span>
+    </script>
+    
+    <!--
+    {{if argZero}}
               ()
               {{/if}}
               {{if argOne}}
@@ -92,14 +107,8 @@
               </table>
               )
               {{/if}}
-          </td></tr>
-        </table>
-      </span>
-    </script>
-    
-    <!--
     <script id="movieTemplate" type="text/x-jquery-tmpl"> 
-    <tr>
+      <tr>
         <td>$${Name}</td>
         <td>{{tmpl(Languages) "#languageTemplate"}}</td>
     </tr>
