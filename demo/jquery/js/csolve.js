@@ -101,6 +101,21 @@ var isErrorLine = function(i){
   return (i in csolveData.errorLines);
 };
 
+
+var linkOfLine  = function(n){ 
+  return str(n); 
+};
+
+var varOfVarid  = function(varid) {
+  return csolveData.varDef[varid];
+};
+
+var linkOfVarId = function(varid) {
+  var v = varOfVarid(varid);
+  if (v) { return linkOfLine(v.varLoc.line); };
+  return null;
+};
+
 /****************************************************************/
 /**************** Highlighting Lines ****************************/
 /****************************************************************/
@@ -185,6 +200,7 @@ $(document).ready(function(){
   $(window).hashchange(function(){
     hilitCurrent(getHashLine());
   });
+
 
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){

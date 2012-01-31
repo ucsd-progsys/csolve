@@ -3,9 +3,7 @@
     <title>Csolve</title>
     <link rel="stylesheet" type="text/css" media="screen" href="css/pyg_default.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="css/csolve.css" />
-    <!--<script src="js/jquery.js" type="text/javascript"></script>
-    <script src="js/jquery.tools.min.js"></script>-->
-	<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+   <script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
     <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
     <script src="js/jquery.ba-hashchange.min.js"></script>
     <script src="js/csolve.js"></script>
@@ -14,16 +12,36 @@
 <body>
 
 
+    <script id="locLinkTemplate" type="text/x-jquery-tmpl"> 
+      {{if line}}
+         <a class='locLink' href="#$${linkOfLine(line)}">$${line}</a>
+      {{/if}
+    </script> 
+
+    <script id="qargVarTemplate" type="text/x-jquery-tmpl">
+      {{if varLoc}}
+        {{tmpl(varLoc) "#locLinkTemplate"}} 
+      {{else}}
+        {{each(j, vid) varDeps}}
+          {{tmpl(varOfVarid(vid).varLoc) "#locLinkTemplate"}}
+        {{/each}}
+      {{/if}}
+    </script> 
+    
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
       <span class='qname'>$${qname}</span>
       <span class="tooltip2">$${qfull}</span>
     </script> 
 
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      <a class='qarg' href="#$${qargline.line}">$${qargname}</a>
-      <span class="tooltip3">$${qarginfo}</span>
+      <a class='qarg' href="#$${linkOfVarId(qargid)}">$${qargname}</a>
+      {{if qargid}}
+        <span class="tooltip3">
+        {{tmpl(varOfVarid(qargid)) "#qargVarTemplate"}}
+        </span>
+      {{/if}}
     </script>
-
+        
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       <span><span class='typename'>$${ctype}</span>&#123;</span>
       <ul class='qualargs'>
