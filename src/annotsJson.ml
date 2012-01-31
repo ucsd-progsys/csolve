@@ -204,13 +204,13 @@ let d_json () x =
 (*******************************************************************)
 
 (* TODO: rename locals to drop SSA/fun-name *)
-let d_exp_tidy = Cil.d_exp
+let d_cilexp_tidy = Cil.d_exp
 
 let doc_of_instr = function
   | Cil.Set ((Cil.Var v, Cil.NoOffset), e, _) -> 
      PP.dprintf "%a" (* v.Cil.vname *) d_cilexp_tidy e
   | Cil.Call (Some (Cil.Var v, Cil.NoOffset), fe, es, _) ->
-     PP.dprintf "%s <- %a(%a)" (* v.Cil.vname *) d_cilexp_tidy fe  (d_many d_cilexp_tidy) es
+     PP.dprintf "%a(%a)" (* v.Cil.vname *) d_cilexp_tidy fe  (d_many d_cilexp_tidy) es
 
 let expr_of_instr = PP.sprint ~width:80 <.> doc_of_instr
 
