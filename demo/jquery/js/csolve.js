@@ -117,6 +117,7 @@ var varOfvarid = function (vid) {
   };
   return null;
 };
+
 /*
 var getLiner = {
   getLine : function(x) { 
@@ -131,7 +132,12 @@ var getLiner = {
             }
 }
 */
-var qargVar = { getVar : varOfvarid };
+
+var qargVar = { 
+  getVar : function(x){ 
+             return varOfvarid(x.qargid); 
+           }
+};
 
 var varLocLink = {
    getLine : function(loc){ return loc.line; } 

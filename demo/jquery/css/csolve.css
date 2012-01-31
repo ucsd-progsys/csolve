@@ -60,6 +60,13 @@ ul.qualargs {
   display:inline;
 }  */
 
+
+ul.qualargs li span.qarg { 
+    display:inline; 
+    white-space: nowrap;
+    margin: -5px;
+}
+
 ul.qualargs li a.qarg { 
     display:inline; 
     white-space: nowrap;
@@ -82,6 +89,12 @@ ul.qualargs li:first-child::before {
   content: "";
 }
 
+/*
+ul.qualargs li:last-child::after {
+  content: ")";
+}
+*/
+
 ul.qualargs + *{
   clear:left;
 }  
@@ -99,7 +112,8 @@ span.typename {
   font-style: italic;
 } 
 
-span.concbind, span.qname, a.qarg {
+ 
+span.concbind, span.qname, a.qarg, span.qarg {
   color: blue; 
   text-decoration   : none;
 } 
