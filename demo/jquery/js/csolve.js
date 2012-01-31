@@ -163,7 +163,7 @@ $(document).ready(function(){
   });
  
   //Set tooltips for each qualargname (shows: var-def-info) 
-  $("span[class='qarg']").tooltip({
+  $("a[class='qarg']").tooltip({
       position : 'right'
     , offset   : [-190, -95]
     , delay    : 50

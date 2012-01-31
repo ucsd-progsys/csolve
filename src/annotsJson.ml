@@ -46,13 +46,14 @@ type expr  = string
 type act   = string
 type ctyp  = string
 
-type error = 
+type srcLoc = 
   { line : int
   ; file : string 
   }
 
 type qarg = 
   { qargname : expr
+  ; qargline : srcLoc 
   ; qarginfo : string } 
 
 type qual  =
@@ -76,7 +77,7 @@ type annotf =
   }
 
 type json = 
-  { errors   : error list
+  { errors   : srcLoc list
   ; qualDef  : qdef SSM.t
   ; genAnnot : annotv
   ; varAnnot : (annotv IM.t) SSM.t 
@@ -114,7 +115,7 @@ let d_ctype = d_str
 
 let d_binder () b = PP.dprintf "\"%a\"" An.d_binder b
 
-let d_error () e = 
+let d_srcLoc () e = 
   PP.dprintf "{ line : %d }" e.line
 
 let d_qarg () a = 
@@ -168,7 +169,7 @@ let d_json () x =
    , varAnnot : @[%a@] 
    , funAnnot : @[%a@]
    }"
-    (d_array d_error)      x.errors
+    (d_array d_srcLoc)      x.errors
     (d_sm d_qdef)          x.qualDef
     (d_annotv)             x.genAnnot
     (d_sm (d_im d_annotv)) x.varAnnot
@@ -181,7 +182,7 @@ let d_json () x =
 
 let qarg_of_expr e = 
   { qargname = A.Expression.to_string e
-  ; qarginfo = "QARG INFO: TODO" 
+(* HEREHEREHERE ; qarginfo = "QARG INFO: TODO"  *)
   }
 
 let mkCtype = CilMisc.pretty_to_string CilMisc.d_type_noattrs
@@ -238,14 +239,14 @@ let mkSyInfoMap bs =
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
-let error_of_constraint tgr c = 
+let srcLoc_of_constraint tgr c = 
   c |> FixConstraint.tag_of_t 
     |> CilTag.t_of_tag
     |> CilTag.loc_of_t tgr
     |> (fun l -> { line = l.Cil.line; file = l.Cil.file })
 
 let mkErrors tgr = 
-  List.map (error_of_constraint tgr)
+  List.map (srcLoc_of_constraint tgr)
 
 let mkQualdef q = 
   let qn = Sy.to_string <| Q.name_of_t q in

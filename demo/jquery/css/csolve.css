@@ -9,13 +9,6 @@ h3 { font-size: 130%; }
 h4 { font-size: 120%; }
 h5 { font-size: 110%; }
 
-a, a:link {}
-a:visited {}
-a:active {}
-a:hover {}
-
-
-
 /*********** From JSFIDDLE normalize.css *******************/
 
 body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td { 
@@ -67,7 +60,7 @@ ul.qualargs {
   display:inline;
 }  */
 
-ul.qualargs li span.qarg { 
+ul.qualargs li a.qarg { 
     display:inline; 
     white-space: nowrap;
     margin: -5px;
@@ -106,8 +99,9 @@ span.typename {
   font-style: italic;
 } 
 
-span.concbind, span.qname, span.qarg {
+span.concbind, span.qname, a.qarg {
   color: blue; 
+  text-decoration   : none;
 } 
 
 /********************* Rendering Fun Parameters ************/
@@ -213,6 +207,7 @@ a, a:link {}
 a:visited {}
 a:active {}
 a:hover {}
+
 
 a.linenum {
   width             : 500px; 
