@@ -11,41 +11,36 @@
   </head>
 <body>
 
-
-<!--
     <script id="locLinkTemplate" type="text/x-jquery-tmpl"> 
-      {{if line}}
-         <a class='locLink' href="#$${linkOfLine(line)}">$${line}</a>
+      {{if $$item.getLine($$item.data)}}
+         <a class='locLink'
+           href="#$${$$item.getLine($$item)}">$${$$item.getLine($$item.data)}</a>
       {{/if}
     </script> 
 
-    -->
-    
     <script id="qargVarTemplate" type="text/x-jquery-tmpl">
-      <!--
       {{if varLoc}}
-        {{tmpl(varLoc) "#locLinkTemplate"}} 
+        {{tmpl(varLoc, varLocLink) "#locLinkTemplate"}} 
       {{else}}
-        {{each(j, vid) varDeps}}
-          {{tmpl(varOfVarid(vid).varLoc) "#locLinkTemplate"}}
+        {{each(j, varid) varDeps}}
+          {{tmpl(varid, varidLink) "#locLinkTemplate"}}
         {{/each}}
       {{/if}}
-      -->
     </script> 
-    
+
+    <script id="qargTemplate" type="text/x-jquery-tmpl"> 
+      <a class='qarg' href="#$${$$item.getLine(qargid)}">$${qargname}</a>
+      {{if $$item.getVar($$item.data.qargid)}}
+      <span class="tooltip3">
+          {{tmpl($$item.getVar($$item.data.qargid)) "#qargVarTemplate"}}
+      </span>
+      {{/if}}
+    </script>
+
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
       <span class='qname'>$${qname}</span>
       <span class="tooltip2">$${qfull}</span>
     </script> 
-    
-    <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      <a class='qarg' href="#$${linkOfVarId(qargid)}">$${qargname}</a>
-      {{if qargid}}
-        <span class="tooltip3">
-        {{tmpl(varOfVarid(qargid)) "#qargVarTemplate"}}
-        </span>
-      {{/if}}
-    </script>
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       <span><span class='typename'>$${ctype}</span>&#123;</span>

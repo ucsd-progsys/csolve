@@ -2,6 +2,11 @@
 /************* Miscellaneous Globals ****************************/
 /****************************************************************/
 
+var goober = function(n) { 
+  return { bob: (n + 5).toString() };
+}
+
+
 var lineSpans   = {};   //index of ALL line spans
 var currentLine = null;
 var toggleText  = { 'Hide': 'Show', 'Show': 'Hide' };
@@ -102,6 +107,46 @@ var isErrorLine = function(i){
 };
 
 
+/****************************************************************/
+/************ Dressing Up the Templates *************************/ 
+/****************************************************************/
+
+var varOfvarid = function (vid) { 
+  if (vid in csolveData.varDef) {
+    return csolveData.varDef[vid];
+  };
+  return null;
+};
+/*
+var getLiner = {
+  getLine : function(x) { 
+              if ("line" in x) { 
+                return x.line;
+              };
+              var v = varOfvarid(x);
+              if (v) {
+                return v.varLoc.line;
+              };
+              return null;
+            }
+}
+*/
+var qargVar = { getVar : varOfvarid };
+
+var varLocLink = {
+   getLine : function(loc){ return loc.line; } 
+};
+
+var varidLink = {
+  getLine : function(vid){ 
+              var v = varOfVarid(vid); 
+              if (v) { return v.varLoc.line; };
+              return null;
+            }
+};
+
+
+/*
 var linkOfLine  = function(n){ 
   return n.toString(); 
 };
@@ -115,7 +160,7 @@ var linkOfVarId = function(varid) {
   if (v) { return linkOfLine(v.varLoc.line); };
   return null;
 };
-
+*/
 /****************************************************************/
 /**************** Highlighting Lines ****************************/
 /****************************************************************/
@@ -200,8 +245,7 @@ $(document).ready(function(){
   $(window).hashchange(function(){
     hilitCurrent(getHashLine());
   });
-
-
+  
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
   //  $(this).hide("slow");
@@ -217,7 +261,6 @@ $(document).ready(function(){
   //  $("#msg").text("Function " + getVarInfo(this));
   //});
 
-  //$( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
 
   //Click "selects" a line
   //$("a[class='linenum']").click(function(evt){

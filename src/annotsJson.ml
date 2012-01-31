@@ -61,7 +61,7 @@ type vardef  =
 
 type qarg = 
   { qargname : expr 
-  ; qargid   : varid option (* or inline vardef here *) 
+  ; qargid   : varid option
   } 
 
 type qual  =
