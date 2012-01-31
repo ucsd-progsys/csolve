@@ -54,13 +54,14 @@ type srcLoc =
 
 type vardef  = 
   { varId   : varid
+  ; varName : string 
   ; varLoc  : srcLoc option
   ; varExpr : expr   option
   ; varDeps : varid list 
   }
 
 type qarg = 
-  { qargname : expr 
+  { qargname : string 
   ; qargid   : varid option
   } 
 
@@ -131,11 +132,13 @@ let d_srcLoc () e =
 let d_vardef () d = 
   PP.dprintf "{ varLoc  : %a
               , varId   : %a
+              , varName : %a
               , varExpr : %a
               , varDeps : %a 
               }"
   (d_opt d_srcLoc)  d.varLoc
   (d_varid)         d.varId
+  d_str             d.varName
   (d_opt d_expr)    d.varExpr
   (d_array d_varid) d.varDeps
 
@@ -144,7 +147,7 @@ let d_qarg () a =
   "{ qargname : %a
    , qargid   : %a
    }" 
-   d_expr  a.qargname
+   d_str           a.qargname
    (d_opt d_varid) a.qargid
 
 let d_pred () p =
@@ -228,6 +231,10 @@ let srcLoc_of_constraint tgr c =
 (************* Build Map from var-line -> ssavar *******************)
 (*******************************************************************)
 
+let abbrev_binder abbrev = function
+  | An.S x -> An.S (abbrev x)
+  | b      -> b
+
 let abbrev_expr abbrev = function
   | A.Var x, _ -> x |> Sy.to_string |> abbrev |> Sy.of_string |> A.eVar
   | e -> e 
@@ -239,9 +246,8 @@ let qarg_of_expr abbrev e =
   ; qargid   = if s = s' then None else Some s 
   } 
 
-
-
 let mkCtype  = CilMisc.pretty_to_string CilMisc.d_type_noattrs
+
 let mkQual a = fun (f, es) -> 
   { qname = Sy.to_string f
   ; qargs = List.map (qarg_of_expr a) es
@@ -263,7 +269,7 @@ let annot_of_vbind abbrev s (x, (cr, ct)) =
   let cs      = cs ++ cs'
                    |> List.filter (not <.> A.Predicate.is_tauto)
                    |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
-  { vname = x
+  { vname = abbrev_binder abbrev x
   ; ctype = mkCtype ct 
   ; quals = List.map (mkQual abbrev) qs
   ; conc  = cs
@@ -298,27 +304,29 @@ let mkAbbrev bs =
      |> Misc.hashtbl_of_list
      |> (fun t -> (fun s -> try Hashtbl.find t s with Not_found -> s))
 
-
 let mkSyInfoMap bs =
   bs |> Misc.map_partial (function An.TVar (An.N x, y) -> Some (x, y) | _ -> None)
      |> SM.of_list
 
 let varid_of_varinfo v = v.Cil.vname
 
-let vardef_of_rhss v rs =
+let vardef_of_rhss abbrev v rs =
+  let vid   = varid_of_varinfo v in
   let vs_es = Misc.either_partition begin function 
                 | (_, An.AsgnV v') -> Left v'
                 | (l, An.AsgnE e)  -> Right (l, e)
               end rs                                 
   in match vs_es with
   | ([], [(l, e)]) ->
-    { varId   = varid_of_varinfo v 
+    { varId   = vid
+    ; varName = abbrev vid 
     ; varLoc  = Some (srcLoc_of_location l)
     ; varExpr = Some (expr_of_instr e)
     ; varDeps = [] 
     }
   | (vs, []) ->
-    { varId   = varid_of_varinfo v 
+    { varId   = vid
+    ; varName = abbrev vid 
     ; varLoc  = None
     ; varExpr = None 
     ; varDeps = List.map varid_of_varinfo vs 
@@ -326,9 +334,9 @@ let vardef_of_rhss v rs =
   | _ -> 
       Errormsg.s <| Errormsg.error "vardef_of_rhss: v=%s" v.Cil.vname
 
-let mkVarDef (bs : An.binding list) =
+let mkVarDef abbrev (bs : An.binding list) =
   bs |> Misc.map_partial (function An.TAsg (v, rs) -> Some (v, rs) | _ -> None)
-     |> Misc.map (fun (v, rs) -> (v.Cil.vname, vardef_of_rhss v rs))
+     |> Misc.map (fun (v, rs) -> (v.Cil.vname, vardef_of_rhss abbrev v rs))
      |> SSM.of_list
 
 (*******************************************************************)
@@ -368,7 +376,7 @@ let bindsToJson qs tgr s cs binds =
   let abbrev = mkAbbrev binds in
   { errors   = mkErrors tgr cs
   ; qualDef  = mkQualdefm qs
-  ; varDef   = mkVarDef binds
+  ; varDef   = mkVarDef abbrev binds
   ; genAnnot = junkAnnot
   ; varAnnot = mkVarAnnot abbrev s binds
   ; funAnnot = mkFunAnnot abbrev s binds 

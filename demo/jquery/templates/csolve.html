@@ -10,24 +10,41 @@
     <script> var csolveData = $srcJson; </script>
   </head>
 <body>
-
+  
+  
+  <!--
     <script id="locLinkTemplate" type="text/x-jquery-tmpl"> 
       {{if $$item.getLine($$item.data)}}
          <a class='locLink' href="#$${$$item.getLine($$item)}">$${$$item.getLine($$item.data)}</a>
       {{/if}}
     </script> 
 
+     {{tmpl(varLoc, varLocLink) "#locLinkTemplate"}}
+        {{tmpl(varid, varidLink) "#locLinkTemplate"}}
+    -->
+
     <script id="qargVarTemplate" type="text/x-jquery-tmpl">
       {{if varLoc}}
-        {{tmpl(varLoc, varLocLink) "#locLinkTemplate"}} 
+         <a class='locLink' href="#$${varLoc.line}">$${varLoc.line}</a>
       {{else}}
         {{each(j, varid) varDeps}}
-          {{tmpl(varid, varidLink) "#locLinkTemplate"}}
+         <a class='locLink' href="#$${lineOfvarid(varid)}">$${lineOfvarid(varid)}</a>
         {{/each}}
       {{/if}}
     </script> 
-         
+     
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
+      {{if varOfvarid(qargid)}}
+        <span class='qarg expandNext'>$${qargname}</span>
+        <span class='qarglinks'>
+         @ {{tmpl(varOfvarid(qargid)) "#qargVarTemplate"}}
+        </span>
+      {{else}}
+        <span class='qarg'>$${qargname}</span>
+      {{/if}}
+    </script>    
+
+    <script id="qargTemplateOLD" type="text/x-jquery-tmpl"> 
       {{if varOfvarid(qargid)}}
       <a class='qarg' href="#$${varOfvarid(qargid).varLoc.line}">$${qargname}</a>
         <span class="tooltip3">
@@ -50,7 +67,7 @@
       <li><span>{{tmpl(q) "#qnameTemplate"}}&#40;
          <ul class='qualargs'>
            {{each(j, qa) q.qargs}}
-             <li>{{tmpl(qa, qargVar) "#qargTemplate"}}</li>
+             <li>{{tmpl(qa) "#qargTemplate"}}</li>
            {{/each}}
          </ul>)
       </li>
@@ -59,7 +76,7 @@
       {{each(i, p) conc}}
       <span class='concbind'>$${p}</span>
       {{/each}}
-    &#125; $${vname} 
+    &#125; $${varnameOfvarid(vname)} 
     </script>
 
     <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 

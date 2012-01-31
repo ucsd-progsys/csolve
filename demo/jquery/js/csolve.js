@@ -111,36 +111,27 @@ var isErrorLine = function(i){
 /************ Dressing Up the Templates *************************/ 
 /****************************************************************/
 
+
 var varOfvarid = function (vid) { 
-  if (vid in csolveData.varDef) {
-    return csolveData.varDef[vid];
-  };
+  if (vid in csolveData.varDef) { return csolveData.varDef[vid]; };
   return null;
 };
 
-/*
-var getLiner = {
-  getLine : function(x) { 
-              if ("line" in x) { 
-                return x.line;
-              };
-              var v = varOfvarid(x);
-              if (v) {
-                return v.varLoc.line;
-              };
-              return null;
-            }
-}
-*/
-
-var qargVar = { 
-  getVar : function(x){ 
-             return varOfvarid(x.qargid); 
-           }
+var varnameOfvarid = function (vid) {
+  var v = varOfvarid(vid);
+  if (v) { return v.varName; };
+  return vid;
 };
 
+var lineOfvarid = function(vid) {
+  var v = varOfvarid(vid);
+  if (v) { return v.varLoc.line; };
+  return null;
+}
+
+/*
 var varLocLink = {
-   getLine : function(loc){ return loc.line; } 
+  getLine : function(loc){ return loc.line; } 
 };
 
 var varidLink = {
@@ -150,23 +141,8 @@ var varidLink = {
               return null;
             }
 };
-
-
-/*
-var linkOfLine  = function(n){ 
-  return n.toString(); 
-};
-
-var varOfVarid  = function(varid) {
-  return csolveData.varDef[varid];
-};
-
-var linkOfVarId = function(varid) {
-  var v = varOfVarid(varid);
-  if (v) { return linkOfLine(v.varLoc.line); };
-  return null;
-};
 */
+
 /****************************************************************/
 /**************** Highlighting Lines ****************************/
 /****************************************************************/
@@ -189,10 +165,14 @@ var hilitCurrent = function(line){
 /****************************************************************/
 
 $(document).ready(function(){
+  
+  //Toggling Line Numbers
   $("#showlines").click(function(){
     $("a[class='linenum']").slideToggle(); 
     $(this).text(toggleText[$(this).text()]);
   });
+
+
 
   //Hover-Highlights Variables and Functions
   $("span[class='n']").hover(yellowOn, yellowOff);
@@ -247,6 +227,12 @@ $(document).ready(function(){
     lineSpans[getLine(this)] = this;
   });
 
+  //Toggling Line Numbers
+  $("span[class~='expandNext']").click(function(){
+    $(this).next().slideToggle();
+  });
+  
+  
   //Highlight Line using url hash: http://benalman.com/projects/jquery-hashchange-plugin/
   $(window).hashchange(function(){
     hilitCurrent(getHashLine());

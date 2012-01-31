@@ -1,17 +1,5 @@
-RUN WITH:
-
-  /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
-  
-  . On qual-arg-var click, SHOW/HIDE links for further jumping.
-  
-  . TEST SSA Joins of x (qargid definition)
-
-  . Cleanup Variable names
-    >> EQ(VV, x, y) instead of EQ(VV, x_max, y_max)
-    >> ML:   replace "vname" everywhere in binding with {qargname, qargid} 
-    >> HTML: replace $${vname} with $${vname.qargname} 
-
+. TEST SSA Joins of x (qargid definition)
 
 . Add error slicing.
-   Error: Root + lines in slice
-   Slice: Hide all lines EXCEPT slice
+    Error: Root + lines in slice
+    Slice: Hide all lines EXCEPT slice

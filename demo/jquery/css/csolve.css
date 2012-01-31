@@ -55,11 +55,12 @@ abbr,acronym { border:0;}
 ul.qualargs { 
     display:inline;   
 } 
-    
-/* ul.qualargs span { 
-  display:inline;
-}  */
 
+span.qarglinks {
+    display: none;
+    white-space: nowrap;
+    background-color: white;
+}
 
 ul.qualargs li span.qarg { 
     display:inline; 
@@ -224,7 +225,6 @@ a:hover {}
 
 
 a.linenum {
-  width             : 500px; 
   color             : #C1CDCD ;
   font-style        : italic;
   text-decoration   : none;
