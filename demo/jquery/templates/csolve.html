@@ -11,9 +11,28 @@
     <script> var csolveData = $srcJson; </script>
   
     <style>
+      
+    .tooltip3 {
+        white-space: nowrap;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #CCFFFF; 
+        border: 2px solid #0000FF;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
 
     .tooltip2 {
-        white-space: normal;
+        white-space: nowrap;
         border-radius: 5px 5px;
         -moz-border-radius: 5px; 
         -webkit-border-radius: 5px; 
@@ -32,7 +51,7 @@
       }
 
       .tooltip {
-        white-space: normal;
+        white-space: nowrap;
         border-radius: 5px 5px;
         -moz-border-radius: 5px; 
         -webkit-border-radius: 5px; 
@@ -49,9 +68,9 @@
         padding: 0.8em 1em;
         font-family: "Andale Mono", Consolas, monospace;
       }
-</style>
+    </style>
   </head>
-  <body>
+<body>
 
 
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
@@ -61,6 +80,7 @@
 
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
       <span class='qarg'>$${qargname}</span>
+      <span class="tooltip3">$${qarginfo}</span>
     </script>
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 

@@ -133,7 +133,7 @@ $(document).ready(function(){
     };
   });
 
-  //Link tooltips for each identifier
+  //Set tooltips for each identifier (shows: reftype)
   $("span[class='n']").tooltip({
       position : 'top right'
     , offset   : [10, -10]
@@ -141,27 +141,37 @@ $(document).ready(function(){
     , effect   : 'slide'
   });
  
+  //Set tooltips for each qualname (shows: expanded qual-def) 
   $("span[class='qname']").tooltip({
       position : 'right'
     , offset   : [-190, -95]
     , delay    : 50
     , effect   : 'slide'
   });
-  
+ 
+  //Set tooltips for each qualargname (shows: var-def-info) 
+  $("span[class='qarg']").tooltip({
+      position : 'right'
+    , offset   : [-190, -95]
+    , delay    : 50
+    , effect   : 'slide'
+  });
+ 
+
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
   //  $(this).hide("slow");
   //});
 
   //Show Variable Info on click
-  $("span[class='n']").click(function(event){
-    $("#msg").text("Variable " + getVarInfo(this));
-  });
+  //$("span[class='n']").click(function(event){
+  //  $("#msg").text("Variable " + getVarInfo(this));
+  //});
 
   //Show Function Info on click
-  $("span[class='nf']").click(function(event){
-    $("#msg").text("Function " + getVarInfo(this));
-  });
+  //$("span[class='nf']").click(function(event){
+  //  $("#msg").text("Function " + getVarInfo(this));
+  //});
 
   //Color ErrorLines
   makeErrorLines();
