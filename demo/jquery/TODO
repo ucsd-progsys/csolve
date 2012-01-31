@@ -27,6 +27,7 @@ RUN WITH:
 
 . Hover over qualArg expands to information
     >> click jumps to line number
+    ** TODO: add line number href to csolve.html template
 
 >> with cleaned up var names, but NON-hyperlinked vars
 

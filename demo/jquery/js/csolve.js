@@ -29,6 +29,16 @@ var getLine = function(x){
   return $(x).closest("span[class='line']").attr("num"); 
 };
 
+var getHashLine = function(){
+  var hash = location.hash;
+  if (hash){
+    var lineName = hash.substring(1);
+    var line     = lineSpans[lineName];
+    return line;
+  };
+  return null;
+};
+
 var getVarInfo = function(x){ 
   return (getVarName(x) + " at line: " + getLine(x)); 
 };
@@ -41,12 +51,10 @@ var qualDef = function(n){
   return (csolveData.qualDef[n]); 
 };
 
-
 var genericAnnotVarLine = function(v, i){
   var a = csolveData.genAnnot;
   a.name = "No Information for " + v;
   return a;
-
 } 
 
 var annotVarLine = function(v, i) {
@@ -104,8 +112,7 @@ var hilitError = function(line){
   };
 };
 
-var hilitCurrent = function(x){
-  var line = $(x).closest("span[class='line']"); 
+var hilitCurrent = function(line){
   $(line).addClass("curLine");
   if (currentLine) { $(currentLine).removeClass("curLine"); };
   currentLine = line;
@@ -169,28 +176,15 @@ $(document).ready(function(){
     hilitError(this); 
   });
 
-  //Click "selects" a line
-  $("a[class='linenum']").click(function(evt){
-    hilitCurrent(this);
-  });
-
   //Create LineSpans
-  $("span[class='line'").each(function(){
-    var lineName = $(this).attr("name");
-    lineSpans[lineName] = this;
+  $("span[class='line']").each(function(){
+    lineSpans[getLine(this)] = this;
   });
 
-  //Re-highlight Line (Hash) Change
-  //HEREHEREHERE: need to download from
-  //http://benalman.com/projects/jquery-hashchange-plugin/
+  //Highlight Line using url hash: http://benalman.com/projects/jquery-hashchange-plugin/
   $(window).hashchange(function(){
-    hash = location.hash;
-    if (hash){ // hash is not # 
-      var lineName = hash.substring(1);
-      var line     = lineSpans[lineName];
-      hilitCurrent(line); 
-    }
-  }
+    hilitCurrent(getHashLine());
+  });
 
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
@@ -208,6 +202,11 @@ $(document).ready(function(){
   //});
 
   //$( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
+
+  //Click "selects" a line
+  //$("a[class='linenum']").click(function(evt){
+  //  hilitCurrent(this);
+  //});
 
 });
 
