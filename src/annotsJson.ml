@@ -148,11 +148,11 @@ let d_qarg () a =
    (d_opt d_varid) a.qargid
 
 let d_pred () p =
-  PP.dprintf "%s" (A.Predicate.to_string p)
+  PP.dprintf "\"%s\"" (A.Predicate.to_string p)
 
 let d_qual () q =
   PP.dprintf 
-  "{ qname : %a, 
+  "{ qname : %a 
    , qargs : @[%a@] 
    , qfull : @[%a@]
    , qurl  : @[%a@]

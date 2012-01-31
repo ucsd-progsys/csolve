@@ -12,13 +12,17 @@
 <body>
 
 
+<!--
     <script id="locLinkTemplate" type="text/x-jquery-tmpl"> 
       {{if line}}
          <a class='locLink' href="#$${linkOfLine(line)}">$${line}</a>
       {{/if}
     </script> 
 
+    -->
+    
     <script id="qargVarTemplate" type="text/x-jquery-tmpl">
+      <!--
       {{if varLoc}}
         {{tmpl(varLoc) "#locLinkTemplate"}} 
       {{else}}
@@ -26,13 +30,14 @@
           {{tmpl(varOfVarid(vid).varLoc) "#locLinkTemplate"}}
         {{/each}}
       {{/if}}
+      -->
     </script> 
     
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
       <span class='qname'>$${qname}</span>
       <span class="tooltip2">$${qfull}</span>
     </script> 
-
+    
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
       <a class='qarg' href="#$${linkOfVarId(qargid)}">$${qargname}</a>
       {{if qargid}}
@@ -41,7 +46,7 @@
         </span>
       {{/if}}
     </script>
-        
+
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       <span><span class='typename'>$${ctype}</span>&#123;</span>
       <ul class='qualargs'>
@@ -52,7 +57,6 @@
            <li>{{tmpl(qa) "#qargTemplate"}}</li>
            {{/each}}
          </ul>
-          )
       </li>
       {{/each}}
       </ul>

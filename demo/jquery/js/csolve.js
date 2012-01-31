@@ -103,7 +103,7 @@ var isErrorLine = function(i){
 
 
 var linkOfLine  = function(n){ 
-  return str(n); 
+  return n.toString(); 
 };
 
 var varOfVarid  = function(varid) {
