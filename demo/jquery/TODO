@@ -15,13 +15,26 @@ RUN WITH:
 
 . Hover over qualArg expands to information
     >> click jumps to line number
-    HEREHEREHERE
     ** TODO(ML): .qargline field to qarg record
                  .qarginfo field to qarg record.
 
 . Hover over qualname expands to information
     >> full definition.
-    ** TODO(ML): populate .qfull of to be defined.
+
+    foreach varid x:
+      csolveData.varDef[x].varExpr : null or defining expression
+      csolveData.varDef[x].varLoc  : null or defining location of x 
+      csolveData.varDef[x].varDeps : SSA joins of x
+
+    foreach q in quals:
+        q.qname is the name of the qual
+        q.qfull is the expanded string for predicate
+        q.qargs.qargname : short name of qarg 
+        q.qargs.qargid   : null or varid of actual variable
+    HEREHEREHERE
+    //render qargname in annot
+    //render csolveData.varDef[qargid] for qarg hover (e.g. for click to jump to varLoc)
+    //render qfull for qname hover
 
 . Cleanup Variable names
     >> EQ(VV, x, y) instead of EQ(VV, x_max, y_max)
