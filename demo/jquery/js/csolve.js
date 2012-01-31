@@ -140,6 +140,13 @@ $(document).ready(function(){
     , delay    : 50
     , effect   : 'slide'
   });
+ 
+  $("span[class='qname']").tooltip({
+      position : 'right'
+    , offset   : [-190, -95]
+    , delay    : 50
+    , effect   : 'slide'
+  });
   
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){

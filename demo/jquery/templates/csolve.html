@@ -11,6 +11,26 @@
     <script> var csolveData = $srcJson; </script>
   
     <style>
+
+    .tooltip2 {
+        white-space: normal;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #D4FFBF; 
+        border: 2px solid #008000;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
+
       .tooltip {
         white-space: normal;
         border-radius: 5px 5px;
@@ -29,37 +49,26 @@
         padding: 0.8em 1em;
         font-family: "Andale Mono", Consolas, monospace;
       }
-
-/* style the trigger elements 
-#demo img {
-	border:100;
-	cursor:pointer;
-	margin:0 8px;
-  }
-  */
-
 </style>
   </head>
   <body>
 
 
-
-
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
-      <span class="qname" title="$${qfull}">$${qname}</span>
-      <span class="tooltip">$${qfull}</span>
+      <span class='qname'>$${qname}</span>
+      <span class="tooltip2">$${qfull}</span>
     </script> 
 
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      <span class="qarg">$${qargname}</span>
+      <span class='qarg'>$${qargname}</span>
     </script>
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
-      <span><span class="typename">$${ctype}</span>&#123;</span>
-      <ul class="qualargs">
+      <span><span class='typename'>$${ctype}</span>&#123;</span>
+      <ul class='qualargs'>
       {{each(i, q) quals}}
       <li><span>{{tmpl(q) "#qnameTemplate"}}&#40;
-         <ul class="qualargs">
+         <ul class='qualargs'>
            {{each(j,qa) q.qargs}}
            <li>{{tmpl(qa) "#qargTemplate"}}</li>
            {{/each}}
@@ -69,7 +78,7 @@
       {{/each}}
       </ul>
       {{each(i, p) conc}}
-      <span class="concbind">$${p}</span>
+      <span class='concbind'>$${p}</span>
       {{/each}}
     } $${vname} 
     </script>
@@ -83,8 +92,8 @@
     <script id="annotfTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
         {{tmpl(ret) "#annotvTemplate"}}<br>
-        <span class="funname">$${fname}</span>
-              <table class="funargs"> 
+        <span class='funname'>$${fname}</span>
+              <table class='funargs'> 
                 {{each(i, arg) args}}
                 <tr><td>{{tmpl(arg)  "#annotvTemplate"}}</td></tr>
                 {{/each}}
