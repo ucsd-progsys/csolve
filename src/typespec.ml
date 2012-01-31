@@ -90,6 +90,12 @@ let roomForPred tb =
 
 let nonnullRoomForPred tb =
   A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), roomForPred tb)
+    
+let nonnullRoomForFunc =
+  A.pImp (A.pAtom (evv, A.Ne, A.eInt 0), 
+          A.pAtom (A.eBin (FA.eApp_bend evv, A.Minus, evv),
+                   A.Gt,
+                   A.eInt 0))
 
 let nonnullPred = A.pAtom (evv, A.Gt, A.eInt 0)
 
@@ -138,7 +144,7 @@ let defaultPredsOfAttrs tbo ats = match tbo with
 let defaultFptrPredsOfAttrs tbo ats = match tbo with
   | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
     let tb = annotatedPointerBaseType ats tb in
-      [nonnullPred; eqBlockBeginPred]
+      [nonnullPred; nonnullRoomForFunc;eqBlockBeginPred]
   | _ -> []
   
 let predOfAttrs tbo ats =
