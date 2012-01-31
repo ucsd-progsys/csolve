@@ -38,10 +38,12 @@ module SLM = Sloc.SlocMap
 module IM  = Misc.IntMap
 module ST  = Ssa_transform
 module CM  = CilMisc
+module VM  = CM.VarMap
 
 open Misc.Ops
 
 let mydebug = false
+
 
 (*******************************************************************)
 (****************** Random Printers for Debugging ******************)
@@ -81,12 +83,14 @@ let d_sloc_typ_varss () (sloc, tvss) =
 (****************** Representation for Bindings ********************)
 (*******************************************************************)
 
+type rhs     = AsgnE of Cil.instr | AsgnV of Cil.varinfo 
 type binder  = N of FA.name | S of string | I of Index.t | Nil
 type vbind   = binder * (Ctypes.refctype * Cil.typ)
 type binding = TVar of vbind 
-             | TFun of string  * (Ct.refcfun  * Cil.fundec)
-             | TSto of string  * Ct.refstore 
-             | TSSA of string  * ST.vmap_t
+             | TFun of string      * (Ct.refcfun  * Cil.fundec)
+             | TSto of string      * Ct.refstore 
+             | TSSA of string      * ST.vmap_t
+             | TAsg of Cil.varinfo * ((Cil.location * rhs) list)
 
 let report_bad_binding = function 
   | TVar (N x, (cr, _)) ->
@@ -379,15 +383,17 @@ class annotations = object (self)
   val vart          = H.create 37
   val funt          = H.create 37
   val stot          = H.create 37
+  val mutable asgnm = VM.empty 
   val mutable fssam = (SM.empty : ST.vmap_t SM.t)
   val mutable flocm = (SM.empty : (Cil.typ SLM.t) SM.t)
   val mutable fdecm = (SM.empty : Cil.fundec SM.t)
 
   method get_binds () : binding list = 
-    (   (List.map (fun (x,y) -> TFun (x, y)) (Misc.hashtbl_to_list funt))
-     ++ (List.map (fun (x,y) -> TSto (x, y)) (Misc.hashtbl_to_list stot))
+    (   (List.map (fun (x,y) -> TFun (x, y))   (Misc.hashtbl_to_list funt))
+     ++ (List.map (fun (x,y) -> TSto (x, y))   (Misc.hashtbl_to_list stot))
      ++ (List.map (fun (x,y) -> TVar (N x, y)) (Misc.hashtbl_to_list vart))
-     ++ (List.map (fun (x,y) -> TSSA (x, y)) (SM.to_list fssam))
+     ++ (List.map (fun (x,y) -> TSSA (x, y))   (SM.to_list fssam))
+     ++ (List.map (fun (x,y) -> TAsg (x, y))   (VM.to_list asgnm))
     ) >> wwhen mydebug (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
 
 
@@ -406,6 +412,9 @@ class annotations = object (self)
     flocm <- SM.map (sloc_typem_of_shape) shm;
     SM.iter self#add_fun cfm
 
+  method add_asgn x l z =
+    asgnm <- VM.adds x [(l, z)] asgnm
+  
   method add_var x ct =
     Misc.maybe_iter begin fun v ->
       (* E.log "Annots.add_var %a \n" FA.d_name x; *)
@@ -425,7 +434,7 @@ class annotations = object (self)
 
   method dump_annots so =
     self#get_binds () 
-    |> Misc.filter (function TSSA (_, _) -> false | _ -> true)
+    |> Misc.filter (function TSSA (_, _) | TAsg (_,_) -> false | _ -> true)
     |> Misc.maybe_apply (Misc.map <.> apply_solution) so
     |> (PP.d_list Co.annotsep_name d_bind () <*> Misc.flap kts_of_bind)
     |> (generate_annots <**> generate_tags)
@@ -450,6 +459,7 @@ let annr = ref (new annotations)
 let annot_shape   = fun x y z   -> (!annr)#set_shape x y z 
 let annot_sto     = fun x y     -> (!annr)#add_sto x y
 let annot_var     = fun x y     -> (!annr)#add_var x y
+let annot_asgn    = fun x l z   -> (!annr)#add_asgn x l z
 let clear         = fun _       -> annr := new annotations 
 let dump_infspec  = fun decs s  -> (!annr)#dump_infspec decs s
 let dump_annots   = fun so      -> (!annr)#dump_annots so

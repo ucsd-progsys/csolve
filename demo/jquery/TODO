@@ -2,35 +2,26 @@ RUN WITH:
 
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
-
 . Add Anchor To each line number
     >> mouse over line number highlights line
         >> c2html.py  : add anchors
-
         >> csolve.css : add class so yellow line-num-hover
-        
         >> csolve.js  : add code so on line-num click,
                         yellow added to parent line class,
                         removed from "previous" class.
          
     >> click on line number selects line (fixes highlight)
     >> back button jumps to previous line you were at
-    
-        HEREHEREHEREHERE
-    >> Why? So we can hop to a line directly.
-    >> on error (slice)
-    >> var-def
+
+. Hover over qualArg expands to information
+    >> click jumps to line number
+    HEREHEREHERE
+    ** TODO(ML): .qargline field to qarg record
+                 .qarginfo field to qarg record.
 
 . Hover over qualname expands to information
     >> full definition.
     ** TODO(ML): populate .qfull of to be defined.
-
-. Hover over qualArg expands to information
-    >> click jumps to line number
-    ** TODO(ML): .qargline field to qarg record
-                 .qarginfo field to qarg record.
-
->> with cleaned up var names, but NON-hyperlinked vars
 
 . Cleanup Variable names
     >> EQ(VV, x, y) instead of EQ(VV, x_max, y_max)

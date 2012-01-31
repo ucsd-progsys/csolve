@@ -46,6 +46,7 @@ module ES = Ct.EffectSet
 module ED = EffectDecls
 module Cs = Constants
 module Sh = Shape
+module An = Annots
 
 open Misc.Ops
 open Cil
@@ -233,7 +234,7 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
        when not v1.Cil.vglob && CM.is_fun v2 ->
       let cr, cds, wfs = cons_of_fptr me loc tag grd effs (pre_env, sto, tago) env (Lval lval) rv
       in
-    (extend_env me v1 cr env, sto, Some tag), cds, wfs
+      (extend_env me v1 cr env, sto, Some tag), cds, wfs
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
       let cr, cds = cons_of_rval me loc tag grd effs (pre_env, sto, tago) env rv in
@@ -464,6 +465,15 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
   | _ -> 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
+let cons_of_annotinstr me i grd effs wld (annots, ffm, instr) =
+  cons_of_annotinstr me i grd effs wld (annots, ffm, instr)
+  >> begin fun _ -> match instr with 
+        | Set ((Var v, NoOffset), _, _)
+        | Call (Some (Var v, NoOffset), _, _, _) 
+        ->  An.annot_asgn v (get_instrLoc instr) (An.AsgnE instr)
+        | _ -> ()
+     end 
+
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   (* let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in *)
   let ct   = Ct.ctype_of_refctype cr in
@@ -677,39 +687,20 @@ let cons_of_block me = if CF.has_shape me then cons_of_block me else scalarcons_
 (********************** Constraints for (cfg)edge  **************************)
 (****************************************************************************)
 
-(* {{{
-let tcons_of_phis me phia =
-  let iasgns = Misc.array_to_index_list phia in 
-  Misc.flap_pair begin fun (i, asgns) ->
-    let envi,_,_   = CF.outwld_of_block me i in
-    let asgns'     = Misc.transpose asgns in
-    Misc.flap_pair begin fun (j, vvjs) ->
-      let pj       = CF.guard_of_block me j (Some i) in
-      let locj     = CF.location_of_block me j in
-      let tagj     = CF.tag_of_instr me j 0 locj in
-      let envj,_,_ = CF.outwld_of_block me j in
-      let nnjs     = Misc.map (Misc.map_pair FI.name_of_varinfo) vvjs in
-      Misc.flap_pair begin fun (v, vj) ->
-        let envj   = weaken_undefined me false envj v in
-        let n, nj  = Misc.map_pair FI.name_of_varinfo (v, vj) in
-        let lhs    = if not (CF.is_undefined me vj) then FI.t_name envj nj else  
-                       FI.ce_find nj envj |> FI.ctype_of_refctype |> FI.t_true in
-        let rhs    = FI.ce_find n envi |> FI.t_subs_names nnjs in
-        FI.make_cs envj pj lhs rhs None tagj locj 
-      end vvjs 
-    end asgns' 
-  end iasgns 
-}}} *)
-
 let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
   Misc.flap_pair begin fun (vj, vi) ->
-    let envi = weaken_undefined me false envi vj in
-    let lhs  = let ni = FA.name_of_varinfo vi in
-               if not (CF.is_undefined me vi) then FI.t_name envi ni else  
-                  FI.ce_find ni envi |> Ct.ctype_of_refctype |> FI.t_true in
-    let rhs  = let nj = FA.name_of_varinfo vj in
+    let envi = weaken_undefined me false envi vj          in
+    let lhs  = let ni = FA.name_of_varinfo vi             in
+               if (CF.is_undefined me vi) then 
+                 FI.ce_find ni envi 
+                 |> Ct.ctype_of_refctype 
+                 |> FI.t_true
+               else FI.t_name envi ni                     in 
+    let rhs  = let nj = FA.name_of_varinfo vj             in
                FI.ce_find nj envj |> FI.t_subs_names subs in
-    let cs = FI.make_cs envi grdij lhs rhs None tagi loci in cs
+    let cs = FI.make_cs envi grdij lhs rhs None tagi loci in 
+    let _  = An.annot_asgn vj loci (An.AsgnV vi)          in
+    cs
   end vjvis
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =

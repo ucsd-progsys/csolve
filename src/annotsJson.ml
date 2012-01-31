@@ -45,16 +45,24 @@ type pred  = string
 type expr  = string
 type act   = string
 type ctyp  = string
+type varid = string
 
 type srcLoc = 
   { line : int
   ; file : string 
   }
 
+type vardef  = 
+  { varId   : varid
+  ; varLoc  : srcLoc option
+  ; varExpr : expr   option
+  ; varDeps : varid list 
+  }
+
 type qarg = 
-  { qargname : expr
-  ; qargline : srcLoc 
-  ; qarginfo : string } 
+  { qargname : expr 
+  ; qargid   : varid option (* or inline vardef here *) 
+  } 
 
 type qual  =
   { qname : string
@@ -79,10 +87,11 @@ type annotf =
 type json = 
   { errors   : srcLoc list
   ; qualDef  : qdef SSM.t
+  ; varDef   : vardef SSM.t 
   ; genAnnot : annotv
   ; varAnnot : (annotv IM.t) SSM.t 
   ; funAnnot : annotf SSM.t
-  } 
+  }
 
 let junkUrl   = ""
 let junkAnnot = { vname = An.Nil; ctype = "(void *)"; quals = []; conc = [] }
@@ -98,10 +107,11 @@ let d_kv f () (k, v) = PP.dprintf "%a : %a" d_str k f v
 
 (***************** Serializing Maps and Arrays **************************)
 
-let d_kvs f () kvs   = PP.dprintf "{ @[%a@] }" (d_many (d_kv f)) kvs 
-let d_array f ()     = PP.dprintf "[ @[%a@] ]" (d_many f) 
-let d_sm f ()        = SSM.to_list <+> d_kvs f ()
-let d_im f ()        = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
+let d_kvs f () kvs = PP.dprintf "{ @[%a@] }" (d_many (d_kv f)) kvs 
+let d_array f ()   = PP.dprintf "[ @[%a@] ]" (d_many f) 
+let d_sm f ()      = SSM.to_list <+> d_kvs f ()
+let d_im f ()      = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
+let d_opt f ()     = function None -> PP.text "null" | Some x -> PP.dprintf "%a" f x
 
 (***************** Serializing String Aliases ***************************)
 
@@ -110,6 +120,7 @@ let d_expr  = d_str
 let d_act   = d_str
 let d_pred  = d_str
 let d_ctype = d_str
+let d_varid = d_str
 
 (***************** Serializing Specialized Records **********************) 
 
@@ -118,25 +129,36 @@ let d_binder () b = PP.dprintf "\"%a\"" An.d_binder b
 let d_srcLoc () e = 
   PP.dprintf "{ line : %d }" e.line
 
+let d_vardef () d = 
+  PP.dprintf "{ varLoc  : %a
+              , varId   : %a
+              , varExpr : %a
+              , varDeps : %a 
+              }"
+  (d_opt d_srcLoc)  d.varLoc
+  (d_varid)         d.varId
+  (d_opt d_expr)    d.varExpr
+  (d_array d_varid) d.varDeps
+
 let d_qarg () a = 
   PP.dprintf
   "{ qargname : %a
-   , qarginfo : %a
+   , qargid   : %a
    }" 
-   d_expr a.qargname
-   d_str a.qarginfo
+   d_expr  a.qargname
+   (d_opt d_varid) a.qargid
 
 let d_qual () q =
   PP.dprintf 
   "{ qname : %a, 
-     qargs : @[%a@], 
-     qurl  : @[%a@],
-     qfull : @[%a@]
+   , qargs : @[%a@] 
+   , qfull : @[%a@]
+   , qurl  : @[%a@]
    }" 
     d_str            q.qname 
     (d_array d_qarg) q.qargs
-    d_act            q.qurl
     d_pred           q.qfull
+    d_act            q.qurl
 
 let d_annotv () a =
   PP.dprintf 
@@ -165,39 +187,65 @@ let d_json () x =
   PP.dprintf 
   "{ errors   : @[%a@]
    , qualDef  : @[%a@]
+   , varDef   : @[%a@]
    , genAnnot : @[%a@]
    , varAnnot : @[%a@] 
    , funAnnot : @[%a@]
    }"
-    (d_array d_srcLoc)      x.errors
+    (d_array d_srcLoc)     x.errors
     (d_sm d_qdef)          x.qualDef
+    (d_sm d_vardef)        x.varDef
     (d_annotv)             x.genAnnot
     (d_sm (d_im d_annotv)) x.varAnnot
     (d_sm d_annotf)        x.funAnnot
 
+(*******************************************************************)
+(************* Conversions *****************************************) 
+(*******************************************************************)
 
+(* TODO: rename locals to drop SSA/fun-name *)
+let d_exp_tidy = Cil.d_exp
+
+let doc_of_instr = function
+  | Cil.Set ((Cil.Var v, Cil.NoOffset), e, _) -> 
+     PP.dprintf "%a" (* v.Cil.vname *) d_cilexp_tidy e
+  | Cil.Call (Some (Cil.Var v, Cil.NoOffset), fe, es, _) ->
+     PP.dprintf "%s <- %a(%a)" (* v.Cil.vname *) d_cilexp_tidy fe  (d_many d_cilexp_tidy) es
+
+let expr_of_instr = PP.sprint ~width:80 <.> doc_of_instr
+
+let srcLoc_of_location l = { line = l.Cil.line; file = l.Cil.file }
+
+let srcLoc_of_constraint tgr c = 
+  c |> FixConstraint.tag_of_t 
+    |> CilTag.t_of_tag
+    |> CilTag.loc_of_t tgr
+    |> srcLoc_of_location 
+ 
 (*******************************************************************)
 (************* Build Map from var-line -> ssavar *******************)
 (*******************************************************************)
 
-let qarg_of_expr e = 
-  { qargname = A.Expression.to_string e
-(* HEREHEREHERE ; qarginfo = "QARG INFO: TODO"  *)
-  }
+let qarg_of_expr abbrev e =
+  let s = A.Expression.to_string e  in
+  let s' = abbrev s                 in
+  { qargname = abbrev s
+  ; qargid   = if s = s' then None else Some s 
+  } 
 
-let mkCtype = CilMisc.pretty_to_string CilMisc.d_type_noattrs
-let mkPred  = Ast.Predicate.to_string
-let mkQual  = fun (f, es) -> { qname = Sy.to_string f
-                             ; qargs = List.map qarg_of_expr  es
-                             ; qfull = "FULL-EXPANDED-DEF"
-                             ; qurl  = junkUrl }
+let mkCtype  = CilMisc.pretty_to_string CilMisc.d_type_noattrs
+let mkPred   = Ast.Predicate.to_string
+let mkQual a = fun (f, es) -> { qname = Sy.to_string f
+                              ; qargs = List.map (qarg_of_expr a) es
+                              ; qfull = "TODO: EXPANDED-DEF"
+                              ; qurl  = junkUrl }
 
 let deconstruct_pApp = function
   | A.Bexp (A.App (f, es), _), _ -> Some (f, es)
   | _                            -> None
 
 
-let annot_of_vbind s (x, (cr, ct)) =
+let annot_of_vbind abbrev s (x, (cr, ct)) =
   let cs, ks  = cr |> Ctypes.reft_of_refctype 
                    |> thd3
                    |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
@@ -208,14 +256,14 @@ let annot_of_vbind s (x, (cr, ct)) =
                    |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
   { vname = x
   ; ctype = mkCtype ct 
-  ; quals = List.map mkQual qs
+  ; quals = List.map (mkQual abbrev) qs
   ; conc  = List.map mkPred cs
   }
 
-let annot_of_finfo s (fn, (cf, fd)) =
+let annot_of_finfo abbrev s (fn, (cf, fd)) =
   (fn, cf, fd) 
   |> Annots.deconstruct_fun 
-  |> List.map (annot_of_vbind s) 
+  |> List.map (annot_of_vbind abbrev s) 
   |> (function (ret::args) -> { fname = An.S fn; args = args; ret = ret })
 
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
@@ -231,20 +279,54 @@ let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
           put x line (FixAstInterface.name_of_string xssa) m 
         end SSM.empty
 
+let mkAbbrev bs =
+  bs |> Misc.flap begin function
+          | An.TSSA (fn, t) -> 
+              t |> Misc.hashtbl_to_list 
+                |> Misc.map (fun ((s,_,_), s') -> (s', CilMisc.unrename_local fn s))
+          | _ -> []
+        end
+     |> Misc.hashtbl_of_list
+     |> (fun t -> (fun s -> try Hashtbl.find t s with Not_found -> s))
+
+
 let mkSyInfoMap bs =
   bs |> Misc.map_partial (function An.TVar (An.N x, y) -> Some (x, y) | _ -> None)
      |> SM.of_list
+
+let varid_of_varinfo v = v.Cil.vname
+
+let vardef_of_rhss v rs =
+  let vs_es = Misc.either_partition begin function 
+                | (_, An.AsgnV v') -> Left v'
+                | (l, An.AsgnE e)  -> Right (l, e)
+              end rs                                 
+  in match vs_es with
+  | ([], [(l, e)]) ->
+    { varId   = varid_of_varinfo v 
+    ; varLoc  = Some (srcLoc_of_location l)
+    ; varExpr = Some (expr_of_instr e)
+    ; varDeps = [] 
+    }
+  | (vs, []) ->
+    { varId   = varid_of_varinfo v 
+    ; varLoc  = None
+    ; varExpr = None 
+    ; varDeps = List.map varid_of_varinfo vs 
+    }
+  | _ -> 
+      Errormsg.s <| Errormsg.error "vardef_of_rhss: v=%s" v.Cil.vname
+
+let mkVarDef (bs : An.binding list) =
+  bs |> Misc.map_partial (function An.TAsg (v, rs) -> Some (v, rs) | _ -> None)
+     |> Misc.map (fun (v, rs) -> (v.Cil.vname, vardef_of_rhss v rs))
+     |> SSM.of_list
 
 (*******************************************************************)
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
-let srcLoc_of_constraint tgr c = 
-  c |> FixConstraint.tag_of_t 
-    |> CilTag.t_of_tag
-    |> CilTag.loc_of_t tgr
-    |> (fun l -> { line = l.Cil.line; file = l.Cil.file })
-
+  
 let mkErrors tgr = 
   List.map (srcLoc_of_constraint tgr)
 
@@ -256,26 +338,31 @@ let mkQualdef q =
 let mkQualdefm qs =
   SSM.of_list <| List.map mkQualdef qs
 
-let mkVarAnnot s bs =
+let mkVarAnnot abbrev s bs =
   let xm = mkSyInfoMap bs in
   bs |> mkVarLineSsavarMap
-     |> SSM.map (IM.map_partial (fun x ->
+     |> SSM.map begin IM.map_partial (fun x ->
           Misc.maybe_map 
-            (fun z -> annot_of_vbind s (An.N x, z)) 
+            (fun z -> annot_of_vbind abbrev s (An.N x, z)) 
             (SM.maybe_find x xm)
-        ))
+          )
+        end 
 
-let mkFunAnnot s bs =
+let mkFunAnnot abbrev s bs =
   bs |> Misc.map_partial (function Annots.TFun (f, x) -> Some (f, x) | _ -> None)  
      |> SSM.of_list
-     |> SSM.mapi (fun fn x -> annot_of_finfo s (fn, x))
+     |> SSM.mapi (fun fn x -> annot_of_finfo abbrev s (fn, x))
+
+
 
 let bindsToJson qs tgr s cs binds =
+  let abbrev = mkAbbrev binds in
   { errors   = mkErrors tgr cs
   ; qualDef  = mkQualdefm qs
+  ; varDef   = mkVarDef binds
   ; genAnnot = junkAnnot
-  ; varAnnot = mkVarAnnot s binds
-  ; funAnnot = mkFunAnnot s binds 
+  ; varAnnot = mkVarAnnot abbrev s binds
+  ; funAnnot = mkFunAnnot abbrev s binds 
   }
 
 (*******************************************************************)

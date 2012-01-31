@@ -54,6 +54,7 @@ let mydebug = false
  * vmap_t: (string * string * int, string) H.t; var,file,line |-> ssavar  *
  **************************************************************************)
 
+
 type regindex = Def of int * int                (* block, position *)
               | Phi of int                      (* block *)
 
@@ -179,17 +180,18 @@ let init_cfgInfo fdec =
   let s0 = try List.hd fdec.sbody.bstmts 
            with _ -> E.s (E.bug "Function %s with no body" fdec.svar.vname) in
   let _  = asserts (s0.sid = 0) "ERROR: First block index nonzero" in
-  { S.name         = fdec.svar.vname;
-    S.start        = s0.sid;
-    S.size         = n;
-    S.successors   = Array.make n [];
-    S.predecessors = Array.make n [];
-    S.blocks       = Array.make n { S.bstmt     = s0; 
-                                    S.instrlist = [];
-                                    S.reachable = true;
-                                    S.livevars  = [] };
-    S.nrRegs       = 0;
-    S.regToVarinfo = Array.make 0 dummyFunDec.svar;}
+  { S.name         = fdec.svar.vname
+  ; S.start        = s0.sid
+  ; S.size         = n
+  ; S.successors   = Array.make n []
+  ; S.predecessors = Array.make n []
+  ; S.blocks       = Array.make n { S.bstmt     = s0
+                                  ; S.instrlist = []
+                                  ; S.reachable = true
+                                  ; S.livevars  = [] }
+  ; S.nrRegs       = 0
+  ; S.regToVarinfo = Array.make 0 dummyFunDec.svar
+  ; }
 
 let mk_cfg fdec = 
   let cfg  = init_cfgInfo fdec in
@@ -203,15 +205,15 @@ let mk_cfg fdec =
 
 let mk_out_name cfg =
   let out_t = H.create 117 in
-  Array.iteri
-    (fun i b ->
-      List.iter 
-        (fun (r, j) -> if j=i then H.replace out_t (i, r) (Phi i))
-        b.S.livevars;
-      let wrs = Misc.flap (fun (ls,_) -> Misc.sort_and_compact ls) b.S.instrlist in
-      let cm  = Misc.count_map wrs in
-      IM.iter (fun r k -> H.replace out_t (i, r) (Def (i, k))) cm)
-    cfg.S.blocks;
+  Array.iteri begin fun i b ->
+    List.iter begin fun (r, j) -> 
+      if j=i then H.replace out_t (i, r) (Phi i)
+    end b.S.livevars;
+    b.S.instrlist
+    |> Misc.flap (fst <+> Misc.sort_and_compact)
+    |> Misc.count_map
+    |> IM.iter (fun r k -> H.replace out_t (i, r) (Def (i, k)))
+  end cfg.S.blocks;
   out_t
 
 let out_name cfg out_t k = 
@@ -230,7 +232,7 @@ let mk_renamed_var fdec var_t v ri =
       | Phi 0 -> v 
       | _     -> makeLocalVar fdec (mk_ssa_name v.vname ri) v.vtype in
     let _ = v'.vattr = v.vattr in
-    let _    = H.replace var_t (v.vname, ri) v' in
+    let _ = H.replace var_t (v.vname, ri) v' in
     v'
 
 let log_renamed_var vmap_t loc v v' = 
@@ -354,7 +356,7 @@ let fdec_to_ssa_cfg fdec loc =
   let _             = if mydebug then print_blocks cfg in
   let out_t         = mk_out_name cfg in
   let var_t         = H.create 117 in
-  let vmap_t        = H.create 37 in
+  let vmap_t        = (H.create 37 : vmap_t) in
   let phis          = Array.mapi (add_phis fdec cfg out_t var_t r2v) cfg.S.blocks in
   let _             = visitCilFunction (new ssaVisitor fdec cfg out_t var_t v2r vmap_t) fdec in
   let ifs, gds, eds = mk_gdominators fdec cfg in

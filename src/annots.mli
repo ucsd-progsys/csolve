@@ -33,6 +33,7 @@ class t:
 *)
 
 
+type rhs    = AsgnE of Cil.instr | AsgnV of Cil.varinfo 
 type binder = N of FixAstInterface.name | S of string | I of Index.t | Nil
 
 type vbind  = binder * (Ctypes.refctype * Cil.typ)
@@ -41,6 +42,7 @@ type binding = TVar of vbind
              | TFun of string * (Ctypes.refcfun  * Cil.fundec)
              | TSto of string * Ctypes.refstore 
              | TSSA of string * Ssa_transform.vmap_t
+             | TAsg of Cil.varinfo * ((Cil.location * rhs) list)
 
 val d_binder : unit -> binder -> Pretty.doc
 val deconstruct_fun : (string * Ctypes.refcfun * Cil.fundec) -> vbind list
@@ -52,6 +54,7 @@ val annot_shape   : Shape.t FixMisc.StringMap.t
                   -> unit
 val annot_var     : FixAstInterface.name -> Ctypes.refctype -> unit
 val annot_sto     : string -> Ctypes.refstore -> unit
+val annot_asgn    : Cil.varinfo -> Cil.location -> rhs -> unit 
 val clear         : unit -> unit
 val dump_annots   : FixConstraint.soln option -> unit
 val dump_infspec  : CilMisc.dec list -> FixConstraint.soln -> unit
