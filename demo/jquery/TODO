@@ -4,13 +4,14 @@ RUN WITH:
 
 HEREHEREHEREHERE
 
-. Hover over qualname expands to information
-    >> full definition.
-
 . Add Anchor To each line number
     >> Why? So we can hop to a line directly.
     >> on error (slice)
     >> var-def
+
+. Hover over qualname expands to information
+    >> full definition.
+    ** TODO: generate information in ML
 
 . Hover over qualArg expands to information
     >> click jumps to line number
@@ -18,9 +19,9 @@ HEREHEREHEREHERE
 >> with cleaned up var names, but NON-hyperlinked vars
 
 . Cleanup Variable names
-    >> EQ(X,Y
-
-    >> Link to line.
+    >> EQ(VV, x, y) instead of EQ(VV, x_max, y_max)
+    >> hover displays var-def information
+    >> click jumps to definition line
 
 
 
