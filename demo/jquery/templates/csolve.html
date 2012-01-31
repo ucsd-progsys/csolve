@@ -29,11 +29,11 @@
     </script> 
 
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      <a class='qarg' href="#$${$$item.getLine(qargid)}">$${qargname}</a>
       {{if $$item.getVar($$item.data.qargid)}}
-      <span class="tooltip3">
-          {{tmpl($$item.getVar($$item.data.qargid)) "#qargVarTemplate"}}
-      </span>
+        <a class='qarg'>$${qargname}</a>
+        <span class="tooltip3">{{tmpl($$item.getVar($$item.data.qargid)) "#qargVarTemplate"}}</span>
+      {{else}}
+        <span class='qarg'>$${qargname}</span>
       {{/if}}
     </script>
 
