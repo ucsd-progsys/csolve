@@ -11,8 +11,10 @@ h5 { font-size: 110%; }
 
 a, a:link {}
 a:visited {}
-a:hover {}
 a:active {}
+a:hover {}
+
+
 
 /*********** From JSFIDDLE normalize.css *******************/
 
@@ -47,6 +49,7 @@ q:before,q:after {
 }
 abbr,acronym { border:0;}
 
+.curLine  { background-color: yellow; }
 .errLine  { background-color: #FF9999; }
 .red      { background-color: red; }
 .yellow   { background-color: yellow; }
@@ -141,4 +144,87 @@ table.funargs tr {
   content: ")";
  }   
 
- /****************************************/    
+ /*************** Rendering Qual-Arg Tooltips *************************/    
+    
+    .tooltip3 {
+        white-space: nowrap;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #CCFFFF; 
+        border: 2px solid #0000FF;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
+
+ /*************** Rendering Qual-Def Tooltips *************************/    
+
+    .tooltip2 {
+        white-space: nowrap;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #D4FFBF; 
+        border: 2px solid #008000;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
+
+ /*************** Rendering Reftype Tooltips *************************/    
+
+      .tooltip {
+        white-space: nowrap;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        /* position: relative; */
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: #FFFFAA; 
+        border: 2px solid #FFAD33;
+        padding: 0.8em 1em;
+        font-family: "Andale Mono", Consolas, monospace;
+      }
+ 
+/*************** Rendering Line Numbers/Anchors *************************/   
+
+a, a:link {}
+a:visited {}
+a:active {}
+a:hover {}
+
+a.linenum {
+  width             : 500px; 
+  color             : #C1CDCD ;
+  font-style        : italic;
+  text-decoration   : none;
+}
+
+a.linenum:active {
+ background-color: yellow;
+}
+
+a.linenum:hover {
+  background-color: yellow;
+}

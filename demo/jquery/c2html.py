@@ -32,7 +32,7 @@ baseDir  = sys.path[0]
 jsonFile = srcFile + ".json"
 srcTplt  = baseDir + "/templates/source.html"
 tgtTplt  = baseDir + "/templates/csolve.html" 
-lineTplt = Template("<span class=\"line\" num=$linenum><a class=\"linenum\" num=$linenum name=\"$linenum\">$linenum:</a>$line</span>")
+lineTplt = Template("<span class=\"line\" num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
 
 
 ##################### Generic IO Helpers #########################
@@ -62,11 +62,18 @@ def numBlanks(s):
       break
   return k
 
+def padLineNum(size, i):
+  isize = len(str(i))
+  pad   = "&nbsp;" * (size - isize)
+  return (pad + str(i))
+
 def addLineNumbers(src, html):
   s    = html[28:-13] 
   ins  = ["" for i in range(numBlanks(src))] + s.split("\n")
   n    = len(ins)
-  outs = [lineTplt.substitute(linenum = i, line = l) for (i, l) in zip(range(1, n+1), ins)]
+  size = len(str(n))
+  args = [(i, padLineNum(size, i), l) for (i, l) in zip(range(1, n+1), ins)]
+  outs = [lineTplt.substitute(linenum = i, padlinenum = si, line = l) for (i, si, l) in args]
   return (html[:28] + "\n".join(outs) + html[-13:])
 
 ##################### Plugging Into Templates #########################

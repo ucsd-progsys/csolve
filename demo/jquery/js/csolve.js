@@ -2,7 +2,9 @@
 /************* Miscellaneous Globals ****************************/
 /****************************************************************/
 
-var toggleText = { 'Hide': 'Show', 'Show': 'Hide' };
+var lineSpans   = {};   //index of ALL line spans
+var currentLine = null;
+var toggleText  = { 'Hide': 'Show', 'Show': 'Hide' };
 
 /****************************************************************/
 /************* CSS Helpers **************************************/
@@ -23,12 +25,12 @@ var getVarName = function(x){
   return $(x).text();
 };
 
-var getVarLine = function(x){ 
+var getLine = function(x){ 
   return $(x).closest("span[class='line']").attr("num"); 
 };
 
 var getVarInfo = function(x){ 
-  return (getVarName(x) + " at line: " + getVarLine(x)); 
+  return (getVarName(x) + " at line: " + getLine(x)); 
 };
 
 /****************************************************************/
@@ -92,26 +94,30 @@ var isErrorLine = function(i){
 };
 
 /****************************************************************/
-/**************** Accessing csolveData Information **************/
+/**************** Highlighting Lines ****************************/
 /****************************************************************/
 
 var hilitError = function(line){ 
   var lineNum = $(line).attr("num"); 
   if (isErrorLine(lineNum)) {
     $(line).addClass("errLine");
-    //if ($(line).attr("num") in csolveData.errorLines) {
   };
+};
+
+var hilitCurrent = function(x){
+  var line = $(x).closest("span[class='line']"); 
+  $(line).addClass("curLine");
+  if (currentLine) { $(currentLine).removeClass("curLine"); };
+  currentLine = line;
 };
 
 /****************************************************************/
 /**************** Top Level Rendering ***************************/
 /****************************************************************/
 
-
 $(document).ready(function(){
-
   $("#showlines").click(function(){
-    $("span[class='linenum']").slideToggle(); 
+    $("a[class='linenum']").slideToggle(); 
     $(this).text(toggleText[$(this).text()]);
   });
 
@@ -123,7 +129,7 @@ $(document).ready(function(){
   //http://flowplayer.org/tools/demos/tooltip/any-html.html
   $("span[class='n']").each(function(){
     var name    = getVarName(this);
-    var lineNum = getVarLine(this);
+    var lineNum = getLine(this);
     var annot   = annotFun(name);
     if (annot) {
       $("#annotfTooltipTemplate").tmpl(annot).insertAfter(this);
@@ -156,7 +162,35 @@ $(document).ready(function(){
     , delay    : 50
     , effect   : 'slide'
   });
- 
+
+  //Color ErrorLines
+  makeErrorLines();
+  $("span[class='line']").each(function(){ 
+    hilitError(this); 
+  });
+
+  //Click "selects" a line
+  $("a[class='linenum']").click(function(evt){
+    hilitCurrent(this);
+  });
+
+  //Create LineSpans
+  $("span[class='line'").each(function(){
+    var lineName = $(this).attr("name");
+    lineSpans[lineName] = this;
+  });
+
+  //Re-highlight Line (Hash) Change
+  //HEREHEREHERE: need to download from
+  //http://benalman.com/projects/jquery-hashchange-plugin/
+  $(window).hashchange(function(){
+    hash = location.hash;
+    if (hash){ // hash is not # 
+      var lineName = hash.substring(1);
+      var line     = lineSpans[lineName];
+      hilitCurrent(line); 
+    }
+  }
 
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
@@ -173,12 +207,7 @@ $(document).ready(function(){
   //  $("#msg").text("Function " + getVarInfo(this));
   //});
 
-  //Color ErrorLines
-  makeErrorLines();
-  $("span[class='line']").each(function(){ 
-    hilitError(this); 
-  });
-
   //$( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
+
 });
 
