@@ -67,7 +67,7 @@ type qarg =
 type qual  =
   { qname : string
   ; qargs : qarg list
-  ; qfull : pred
+  ; qfull : A.pred option
   ; qurl  : act
   }
 
@@ -75,7 +75,7 @@ type annotv =
   { vname  : An.binder
   ; ctype  : ctyp
   ; quals  : qual list
-  ; conc   : pred list 
+  ; conc   : A.pred list 
   }
 
 type annotf = 
@@ -118,7 +118,6 @@ let d_opt f ()     = function None -> PP.text "null" | Some x -> PP.dprintf "%a"
 let d_qdef  = d_str 
 let d_expr  = d_str 
 let d_act   = d_str
-let d_pred  = d_str
 let d_ctype = d_str
 let d_varid = d_str
 
@@ -148,6 +147,9 @@ let d_qarg () a =
    d_expr  a.qargname
    (d_opt d_varid) a.qargid
 
+let d_pred () p =
+  PP.dprintf "%s" (A.Predicate.to_string p)
+
 let d_qual () q =
   PP.dprintf 
   "{ qname : %a, 
@@ -157,7 +159,7 @@ let d_qual () q =
    }" 
     d_str            q.qname 
     (d_array d_qarg) q.qargs
-    d_pred           q.qfull
+    (d_opt d_pred)   q.qfull
     d_act            q.qurl
 
 let d_annotv () a =
@@ -226,6 +228,10 @@ let srcLoc_of_constraint tgr c =
 (************* Build Map from var-line -> ssavar *******************)
 (*******************************************************************)
 
+let abbrev_expr abbrev = function
+  | A.Var x, _ -> x |> Sy.to_string |> abbrev |> Sy.of_string |> A.eVar
+  | e -> e 
+
 let qarg_of_expr abbrev e =
   let s = A.Expression.to_string e  in
   let s' = abbrev s                 in
@@ -233,12 +239,15 @@ let qarg_of_expr abbrev e =
   ; qargid   = if s = s' then None else Some s 
   } 
 
+
+
 let mkCtype  = CilMisc.pretty_to_string CilMisc.d_type_noattrs
-let mkPred   = Ast.Predicate.to_string
-let mkQual a = fun (f, es) -> { qname = Sy.to_string f
-                              ; qargs = List.map (qarg_of_expr a) es
-                              ; qfull = "TODO: EXPANDED-DEF"
-                              ; qurl  = junkUrl }
+let mkQual a = fun (f, es) -> 
+  { qname = Sy.to_string f
+  ; qargs = List.map (qarg_of_expr a) es
+  ; qfull = Q.expandPred f (List.map (abbrev_expr a) es)
+  ; qurl  = junkUrl 
+  }
 
 let deconstruct_pApp = function
   | A.Bexp (A.App (f, es), _), _ -> Some (f, es)
@@ -257,7 +266,7 @@ let annot_of_vbind abbrev s (x, (cr, ct)) =
   { vname = x
   ; ctype = mkCtype ct 
   ; quals = List.map (mkQual abbrev) qs
-  ; conc  = List.map mkPred cs
+  ; conc  = cs
   }
 
 let annot_of_finfo abbrev s (fn, (cf, fd)) =

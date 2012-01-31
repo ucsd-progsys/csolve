@@ -25,6 +25,7 @@
 (**
  * This module implements a module for representing and manipulating Qualifiers.
  * *)
+module Co = Constants
 
 module F = Format
 
@@ -55,6 +56,7 @@ type q = { name    : Sy.t
            (* when args = Some es, es = vv'::[e1;...;en]
               where vv' is the applied vv and e1...en are the args applied to ~A1,...,~An *)
          }
+
 
 type t = q      (* to appease the functor gods. *)
 
@@ -265,13 +267,45 @@ let uniquely_rename qs =
   end SM.empty qs 
   |> snd
 
+
+let check_dup t q = 
+  try 
+    let q' = Hashtbl.find t q.name in
+    if (pred_of_t q' = pred_of_t q) then () else
+      Format.printf "WARNING: duplicate qualifiers after normalization! (q = %a) (q' = %a)"
+        print q 
+        print q'
+  with Not_found -> ()
+
+let qualifMap_set, qualifMap_get = 
+  let t = Hashtbl.create 37 in
+  ( (fun qs -> Hashtbl.clear t; List.iter (fun q -> check_dup t q; Hashtbl.replace t q.name q) qs)
+  , (fun n -> try Some (Hashtbl.find t  n) 
+              with Not_found -> (Format.printf "qualifMap_get fails on %a" Sy.print n; assert false) 
+    )
+  )
+
+let ticker = ref 0
+
 (* API *)
 let normalize qs =
   qs |> Misc.flap expand_qual
      |> compile_definitions
      |> remove_duplicates
      |> uniquely_rename
+     >> qualifMap_set
+(*   >> (fun qs -> ticker += 1; Co.logPrintf "normalize (%d):\n%a" (!ticker) 
+        (Misc.pprint_many true "\n" print) qs; flush stdout) *)
 
+(* API *)
+let expandPred n es = 
+  n |> qualifMap_get
+    |> Misc.maybe_map begin fun q ->
+         let xs = List.map fst <| args_of_t q in
+         Misc.combine "expandPred" xs es 
+         |> Ast.Subst.of_list 
+         |> Ast.substs_pred (pred_of_t q)
+       end
 
 (**************************************************************************)
 (********************************** Create ********************************)
