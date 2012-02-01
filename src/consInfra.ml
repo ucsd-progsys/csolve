@@ -61,11 +61,11 @@ type t_sh = {
 type t    = {
   tgr     : CilTag.o;
   sci     : ST.t;
-  ws      : C.wf list;
-  cs      : C.t list;
+  ws      : C.wf list;                                   (* wf constrs *)
+  cs      : C.t list;                                    (* sub constrs *)
   ds      : C.dep list;
   wldm    : wld IM.t;
-  gnv     : FI.cilenv; 
+  gnv     : FI.cilenv;                                   (* ctype environment *)
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;

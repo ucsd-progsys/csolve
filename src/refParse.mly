@@ -179,7 +179,7 @@ publ:
 
 globalslocbind:
     sloc publ indbinds {
-      ($1, $2, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+      ($1, $2, SData (RCt.LDesc.create Ct.dummy_ldinfo $3), currentLoc ())
     }
   | sloc publ funtyp {
       ($1, $2, SFun $3, currentLoc ())
@@ -213,7 +213,7 @@ slocbindsne:
 
 slocbind:
     sloc MAPSTO indbinds   {
-      ($1, SData (RCt.LDesc.create Ct.dummy_structinfo $3), currentLoc ())
+      ($1, SData (RCt.LDesc.create Ct.dummy_ldinfo $3), currentLoc ())
     }
   | sloc MAPSTO funtyp                  { ($1, SFun $3, currentLoc ()) }
   ;

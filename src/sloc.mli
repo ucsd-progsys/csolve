@@ -50,6 +50,7 @@ val slm_bindings   : 'a SlocMap.t -> (t * 'a) list
 
 type sloc = t
 
+(* substitutions of the form (sfrom, sto) *)
 module Subst : sig
   type t = (sloc * sloc) list
 

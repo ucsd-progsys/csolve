@@ -62,7 +62,6 @@ open Cil
 
 let mydebug = false
 
-(* MK: may i propose the name 'ctypenv'? *)
 type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
               ; venv  : Ct.refctype YM.t (* variable reftype environment  *)
               ; live  : FA.name YM.t     (* "live" name for each variable *) 

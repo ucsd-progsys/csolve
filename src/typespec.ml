@@ -330,7 +330,6 @@ let instantiateStruct ats tcs =
   let instr = new typeInstantiator ats in
     List.map (M.app_thd3 <| C.visitCilType (instr :> C.cilVisitor)) tcs
 
-    (* generate any refs and any types here *)
 let rec refctypeOfCilType mem t = match normalizeType t with
   | C.TVoid ats          -> intReftypeOfAttrs 0 ats
   | C.TInt (ik,   ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ik) ats

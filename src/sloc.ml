@@ -53,8 +53,11 @@ let refresh = function
 let fresh_abstract i = Abstract (fresh_slocid (), i)
 
 let fresh_concrete abs =
-  let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
-    Concrete (fresh_slocid (), aid, info)
+  if abs = AnyLoc then
+    AnyLoc
+  else
+    let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
+      Concrete (fresh_slocid (), aid, info)
 
 let sloc_of_any = AnyLoc
 

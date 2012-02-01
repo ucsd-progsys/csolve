@@ -159,14 +159,19 @@ let pred_of_index_ref i =
 
 (* API *)
 let pred_of_ctype = function
-  | Ct.Ref (_, ix) -> pred_of_index_ref ix
-  | Ct.Int (_, ix) -> pred_of_index_int ix
+  | Ct.Ref  (_, ix) -> pred_of_index_ref ix
+  | Ct.FRef (_, ix) -> pred_of_index_ref ix
+  | Ct.Int  (_, ix) -> pred_of_index_int ix
+  | Ct.ARef         -> pred_of_index_ref Index.ind_of_any
+  | Ct.Any  _       -> pred_of_index_int Index.ind_of_any
 
 (* API *)
 let non_null_pred_of_ctype = function
-  | Ct.Ref (_, ix) -> non_null_pred_of_index_ref ix
+  | Ct.Ref  (_, ix) -> non_null_pred_of_index_ref ix
   | Ct.FRef (_, ix) -> non_null_pred_of_index_ref ix
-  | Ct.Int (_, ix) -> pred_of_index_int ix
+  | Ct.Int  (_, ix) -> pred_of_index_int ix
+  | Ct.ARef         -> non_null_pred_of_index_ref Index.ind_of_any
+  | Ct.Any  _       -> pred_of_index_int Index.ind_of_any
 
 (*
 let pred_of_index = function
