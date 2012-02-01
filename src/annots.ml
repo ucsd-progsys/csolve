@@ -423,8 +423,13 @@ class annotations = object (self)
 
   method private add_fun f cf = 
     Misc.maybe_iter begin fun locm ->
-      print_now ("ADD FUN " ^ f ^ "\n");
-      H.replace funt f (decorate_refcfun locm f cf, self#get_fun_dec f)
+      let _   = print_now ("ADD FUN " ^ f ^ "\n") in
+      let fd  = self#get_fun_dec f                in
+      let cf  = decorate_refcfun locm f cf        in
+      let _   = deconstruct_fun (f, cf, fd)       
+                |>: (function (N n, (ct, _)) -> self#add_var n ct
+                            | (S x, (ct, _)) -> self#add_var (FA.name_of_string x) ct)
+      in H.replace funt f (cf, fd)
     end (self#get_flocm f)
 
   method add_sto f st = 
