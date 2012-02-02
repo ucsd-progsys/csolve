@@ -590,7 +590,7 @@ let name_of_sloc_index l i =
 
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') ->
-    if not (RCt.Store.Data.mem sto l) then [] else
+    if not (RCt.Store.mem sto l) then [] else
       let is  = l |> Ct.refstore_get sto |> RCt.LDesc.indices in
       let ns  = List.map (name_of_sloc_index l)  is in
       let ns' = List.map (name_of_sloc_index l') is in
@@ -599,13 +599,13 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-    RCt.Store.Data.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+    RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
 let effectset_subs_locs lsubs sto effs =
   let subs = subs_of_lsubs lsubs sto in
     ES.apply ((t_subs_locs lsubs) <+> (t_subs_names subs)) effs
 
-let subs_refctype sto lsubs substrs cr =
+let subs_refctype (sto,vars) lsubs substrs cr =
   let subs = List.map (Misc.map_pair FA.name_of_string) substrs ++ subs_of_lsubs lsubs sto in
     cr |> t_subs_locs lsubs
        |> t_subs_names subs
@@ -738,10 +738,10 @@ exception InvalidDeref
 
 let find_unfolded_loc l sto =
   try
-    RCt.Store.Data.find sto l
+    RCt.Store.find sto l
   with Not_found ->
     try
-      l |> Sloc.canonical |> RCt.Store.Data.find sto
+      l |> Sloc.canonical |> RCt.Store.find sto
     with Not_found -> raise InvalidDeref
 
 let field_of_address sto (l, i) =
@@ -835,17 +835,15 @@ let d_ldbinds () llds =
 let d_lcfbinds () lcfs = 
     Pretty.seq ~sep:(Pretty.text ",") ~doit:(d_cfbind ()) ~elements:lcfs
 
-let d_bindings () (llds, lcfs) = 
-  Pretty.dprintf "DATABINDS: @[%a@];@!FUNBINDS: @[%a@]" 
+let d_bindings () llds = 
+  Pretty.dprintf "DATABINDS: @[%a@]"
     d_ldbinds llds
-    d_lcfbinds lcfs
 
 let d_slocs () ls =
   Pretty.seq ~sep:(Pretty.text ",") ~doit:(Sloc.d_sloc()) ~elements:ls
 
-let slocs_of_bindings (lds, lfs) = 
-  (List.map fst lds ++ List.map fst lfs) 
-  |> Misc.sort_and_compact
+let slocs_of_bindings lds = 
+  List.map fst lds |> Misc.sort_and_compact
 
 let d_bindings () x  = x |> slocs_of_bindings |> d_slocs ()
 
@@ -879,7 +877,7 @@ let rec make_wfs ce sto rct =
 
 and make_wfs_effect env sto l eptr =
   let env = l
-         |> RCt.Store.Data.find_or_empty sto
+         |> RCt.Store.find_or_empty sto
          |> sloc_binds_of_refldesc l
          |> List.filter (not <.> Ix.is_periodic <.> snd)
          |> List.map fst
@@ -892,8 +890,7 @@ and make_wfs_effectset env sto effs =
   |> List.concat
 
 and make_wfs_refstore env full_sto sto =
-  RCt.Store.Function.fold_locs (fun l rft ws -> make_wfs_fn env rft ++ ws) [] sto ++
-    RCt.Store.Data.fold_locs begin fun l rd ws ->
+    RCt.Store.fold_locs begin fun l rd ws ->
       let ncrs = sloc_binds_of_refldesc l rd in
       let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
                       |> List.map fst
@@ -906,13 +903,14 @@ and make_wfs_refstore env full_sto sto =
     end [] sto
 
 and make_wfs_fn cenv rft =
+  let sto_in, sto_out = fst rft.Ct.sto_in, fst rft.Ct.sto_out in
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
   let env'  = ce_adds cenv args in
-  let retws = make_wfs env' rft.Ct.sto_out rft.Ct.ret in
-  let argws = Misc.flap (fun (_, rct) -> make_wfs env' rft.Ct.sto_in rct) args in
-  let inws  = make_wfs_refstore env' rft.Ct.sto_in rft.Ct.sto_in in
-  let outws = make_wfs_refstore env' rft.Ct.sto_out rft.Ct.sto_out in
-  let effws = make_wfs_effectset env' rft.Ct.sto_out rft.Ct.effects in
+  let retws = make_wfs env' sto_out rft.Ct.ret in
+  let argws = Misc.flap (fun (_, rct) -> make_wfs env' sto_in rct) args in
+  let inws  = make_wfs_refstore env' sto_in sto_in in
+  let outws = make_wfs_refstore env' sto_out sto_out in
+  let effws = make_wfs_effectset env' sto_out rft.Ct.effects in
   Misc.tr_rev_flatten [retws ; argws ; inws ; outws; effws]
 
 let make_dep pol xo yo =
@@ -970,8 +968,8 @@ let make_cs_assert_effectsets_disjoint_aux env p sto effs1 effs2 tago tag =
   |> ES.domain
   |> List.map begin fun l ->
        let eff1, eff2 = M.map_pair (M.flip ES.find l) (effs1, effs2) in
-         if RCt.Store.Data.mem sto l then
-           let ld = RCt.Store.Data.find sto l in
+         if RCt.Store.mem sto l then
+           let ld = RCt.Store.find sto l in
              with_refldesc_ncrs_env_subs env (l, ld) (l, ld) begin fun _ env _ ->
                make_cs_assert_effects_disjoint env p eff1 eff2 tago tag
              end
@@ -983,9 +981,9 @@ let make_cs_effect_weaken_type env p sto erct eff eptr tago tag =
   let cl = erct |> RCt.CType.sloc |> M.maybe in
   let al = Sloc.canonical cl in
     with_effects_in_env env begin fun env ->
-      if RCt.Store.Data.mem sto cl then
-        let lhsld = (cl, RCt.Store.Data.find sto cl) in
-        let rhsld = (al, RCt.Store.Data.find sto al) in
+      if RCt.Store.mem sto cl then
+        let lhsld = (cl, RCt.Store.find sto cl) in
+        let rhsld = (al, RCt.Store.find sto al) in
           with_refldesc_ncrs_env_subs env lhsld rhsld begin fun _ env subs ->
             make_cs_aux env p erct (t_subs_names subs eptr) tago tag
           end
@@ -1013,18 +1011,19 @@ let make_cs_subtyping_bind_pairs polarity binds1 binds2 f =
     |> List.map f
     |> Misc.splitflatten
 
-let make_cs_effectset_binds polarity env p (sldes1, sfnes1) (sldes2, sfnes2) tago tag =
+let make_cs_effectset_binds polarity env p sldes1 sldes2 tago tag =
   make_cs_subtyping_bind_pairs polarity sldes1 sldes2 begin fun ((l1, (ld1, eff1)), (l2, (ld2, eff2))) ->
     make_cs_data_effect env p (l1, ld1) (l2, ld2) eff1 eff2 tago tag
-  end +++
-  make_cs_subtyping_bind_pairs polarity sfnes1 sfnes2 begin fun ((l1, (_, eff1)), (l2, (_, eff2))) ->
-    make_cs_function_effect env p eff1 eff2 tago tag
-  end
+  end 
+  (* +++ *)
+  (* make_cs_subtyping_bind_pairs polarity sfnes1 sfnes2 begin fun ((l1, (_, eff1)), (l2, (_, eff2))) -> *)
+  (*   make_cs_function_effect env p eff1 eff2 tago tag *)
+  (* end *)
 
 let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
   make_cs_effectset_binds true env p
-    (RCt.Store.join_effects (RCt.Store.abstract sto1) effs1)
-    (RCt.Store.join_effects (RCt.Store.abstract sto2) effs2)
+    (RCt.Store.join_effects (RCt.Store.abstract (fst sto1)) effs1)
+    (RCt.Store.join_effects (RCt.Store.abstract (fst sto2)) effs2)
     tago
     tag
 
@@ -1082,32 +1081,32 @@ and make_cs_refstore env p st1 st2 polarity tago tag loc =
 *)  make_cs_refstore_binds
       env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
 
-and make_cs_refstore_binds env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
+and make_cs_refstore_binds env p slds1 slds2 polarity tago tag loc =
   Misc.splitflatten
-    [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc;
-     make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc]
+    [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc]
+     (* make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc] *)
 
 and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity slds1 slds2 begin fun (sld1, sld2) ->
     make_cs_refldesc env p sld1 sld2 tago tag
   end
 
-and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
-  make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) ->
-    let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in
-      if Ct.I.CFun.same_shape cf1 cf2 then
-        make_cs_refcfun env p fun1 fun2 tag loc
-      else Errormsg.s <|
-          Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!"
-            Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2
-  end
+(* and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc = *)
+(*   make_cs_subtyping_bind_pairs polarity sfuns1 sfuns2 begin fun ((_, fun1), (_, fun2)) -> *)
+(*     let cf1, cf2 = M.map_pair Ct.cfun_of_refcfun (fun1, fun2) in *)
+(*       if Ct.I.CFun.same_shape cf1 cf2 then *)
+(*         make_cs_refcfun env p fun1 fun2 tag loc *)
+(*       else Errormsg.s <| *)
+(*           Cil.error "Cannot subtype differently-shaped functions:@!%a@!<:@!%a@!@!" *)
+(*             Ct.I.CFun.d_cfun cf1 Ct.I.CFun.d_cfun cf2 *)
+(*   end *)
 
 and make_cs_refcfun env p rf rf' tag loc =
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
-  let hi, ho      = Ct.stores_of_refcfun rf in
-  let hi',ho'     = Ct.stores_of_refcfun rf' in
+  let hi, ho      = Ct.stores_of_refcfun rf |> Misc.map_pair fst in
+  let hi',ho'     = Ct.stores_of_refcfun rf'|> Misc.map_pair fst in
   let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
                         |> ce_adds env in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
@@ -1242,7 +1241,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = Sloc.SlocMap.find cl ffm in
     if Ix.IndexSet.mem i ffs then
-      let ld  = RCt.Store.Data.find sto cl in
+      let ld  = RCt.Store.find sto cl in
       let fld = ld |> RCt.LDesc.find i |> List.hd |> snd in
       let ld  = RCt.LDesc.remove i ld in
       let sct = fld |> strengthen_final_field ffs ptrname i |> RCt.Field.type_of in
@@ -1250,7 +1249,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
       let env = ce_adds env [(fn, sct)] in
       let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final Ct.dummy_fieldinfo in
       let ld  = RCt.LDesc.add i fld ld in
-        (env, RCt.Store.Data.add sto cl ld)
+        (env, RCt.Store.add sto cl ld)
     else
       (env, sto)
 

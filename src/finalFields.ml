@@ -44,7 +44,7 @@ module Intraproc (X: Context) = struct
   (******************************************************************************)
 
   let find_stored_indices al i =
-    al |> CT.Store.Data.find_or_empty X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
+    al |> CT.Store.find_or_empty X.shp.Sh.store |> CT.LDesc.find i |> List.map fst
 
   let locs_of_lval = function
     | (C.Mem e, _) ->
@@ -100,7 +100,7 @@ module Intraproc (X: Context) = struct
     let ffmcallee = SM.find fname X.ffmm |> fst in
       List.iter begin function
         | RA.New (scallee, scaller) ->
-            assert (CT.Store.Function.mem X.shp.Sh.store scaller || IS.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
+            assert (IS.subset (LM.find scaller ffm) (LM.find scallee ffmcallee))
         | _ -> ()
       end annots
 
@@ -151,7 +151,7 @@ module Intraproc (X: Context) = struct
        annots
     |> List.fold_left begin fun ffm -> function
 	 | RA.New (scallee, scaller) ->
-             if CT.Store.Data.mem X.shp.Sh.store scaller && not (List.mem scaller X.glocs) then
+             if CT.Store.mem X.shp.Sh.store scaller && not (List.mem scaller X.glocs) then
 	       let callee_ffm = SM.find fname X.ffmm |> fst in
                  LM.add scaller (IS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
              else ffm
@@ -233,7 +233,7 @@ module Intraproc (X: Context) = struct
       (ffmsa, not (fixed ffmsa ffmsa'))
 
   let with_all_fields_final sto ffm =
-    CT.Store.Data.fold_locs begin fun l ld ffm ->
+    CT.Store.fold_locs begin fun l ld ffm ->
       LM.add l (LD.fold (fun pls pl _ -> IS.add pl pls) IS.empty ld) ffm
     end ffm sto
 
@@ -282,12 +282,12 @@ module Interproc = struct
     end ffmm (ffmm, false)
 
   let spec_final_fields (cf, _) =
-    CT.Store.Data.fold_locs begin fun l ld ffm ->
+    CT.Store.fold_locs begin fun l ld ffm ->
       LM.add l (LD.fold (fun ffs pl fld -> if F.is_final fld then IS.add pl ffs else ffs) IS.empty ld) ffm
-    end LM.empty cf.Ctypes.sto_out
+    end LM.empty (fst cf.Ctypes.sto_out)
 
   let shape_init_final_fields shp =
-    CT.Store.Data.fold_locs begin fun l ld ffm ->
+    CT.Store.fold_locs begin fun l ld ffm ->
       LM.add l (LD.fold (fun ffs pl fld -> IS.add pl ffs) IS.empty ld) ffm
     end LM.empty shp.Sh.store
 
@@ -302,9 +302,9 @@ module Interproc = struct
       {shp with
          Sh.ffmsa = SM.find fname ffmm |> snd;
          Sh.store =
-          CT.Store.Data.fold_locs begin fun l ld sto ->
+          CT.Store.fold_locs begin fun l ld sto ->
             let ffs = SM.find fname ffmm |> fst |> LM.find l in
-              CT.Store.Data.add sto l begin
+              CT.Store.add sto l begin
                 LD.mapn begin fun _ i fld ->
                   if IS.mem i ffs then
                     F.set_finality fld Ctypes.Final
@@ -323,8 +323,8 @@ module Interproc = struct
 end
 
 let check_location_finality fname l spec_store ld =
-  if CT.Store.Data.mem spec_store l then
-    let spec_ld = CT.Store.Data.find spec_store l in
+  if CT.Store.mem spec_store l then
+    let spec_ld = CT.Store.find spec_store l in
       LD.iter begin fun i fld ->
            spec_ld
         |> LD.find i
@@ -340,9 +340,9 @@ let check_location_finality fname l spec_store ld =
 let check_finality_specs fspecm shpm =
   SM.iter begin fun fname shp ->
     let cf = SM.find fname fspecm |> fst in
-      CT.Store.Data.fold_locs begin fun l ld _ ->
-        check_location_finality fname l cf.Ctypes.sto_in ld;
-        check_location_finality fname l cf.Ctypes.sto_out ld
+      CT.Store.fold_locs begin fun l ld _ ->
+        check_location_finality fname l (fst cf.Ctypes.sto_in) ld;
+        check_location_finality fname l (fst cf.Ctypes.sto_out) ld
       end () shp.Sh.store
   end shpm
 

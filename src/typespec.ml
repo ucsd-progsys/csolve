@@ -361,7 +361,7 @@ and heapRefctypeOfCilType mem t =
               | rct    -> rct
 
 and addReffieldToStore sub sto s i rfld =
-  if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.Data.ensure_sloc sto s) else
+  if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.(* Data. *)ensure_sloc sto s) else
     rfld |> RU.add_field sto sub s i |> M.swap
 
 and componentsOfTypeAux t = match normalizeType t with
@@ -399,7 +399,7 @@ and closeTypeInStoreAux mem sub sto t = match normalizeType t with
       List.fold_left
         begin fun (sub, sto) (fn, i, t) ->
           let sub, sto = closeTypeInStoreAux mem sub sto t in
-            if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub s |> M.swap else
+            (* if C.isFunctionType t then t |> preRefcfunOfType |> RU.add_fun sto sub s |> M.swap else *)
                  t
               >> assertStoreTypeWellFormed
               |> heapRefctypeOfCilType mem
@@ -428,17 +428,17 @@ and preRefcfunOfType t =
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
   let effs               = effectSetOfAttrs (allOutStore |> RS.domain |> M.negfilter (M.flip List.mem glocs)) ats in
-    RCf.make argrcts glocs allInStore retrct allOutStore effs
+    RCf.make argrcts glocs (allInStore,[]) retrct (allOutStore,[]) effs
 
 let updateGlobalStore sub gsto gstoUpd =
-     (sub, List.fold_right (M.flip RS.Data.ensure_sloc) (RS.Data.domain gstoUpd) gsto)
-  |> M.flip (RS.Data.fold_fields
+     (sub, List.fold_right (M.flip RS.ensure_sloc) (RS.domain gstoUpd) gsto)
+  |> M.flip (RS.fold_fields
                (fun (sub, sto) s i f -> addReffieldToStore sub sto s i f))
       gstoUpd
   |> M.swap
-  |> M.flip (RS.Function.fold_locs
-               (fun s rcf (sto, sub) -> RU.add_fun sto sub s rcf))
-      gstoUpd
+  (* |> M.flip (RS.Function.fold_locs *)
+  (*              (fun s rcf (sto, sub) -> RU.add_fun sto sub s rcf)) *)
+  (*     gstoUpd *)
 
 let assertNoDuplicateEffects sub effs =
      effs
@@ -460,23 +460,27 @@ let substEffectSet sub effs =
       (ES.domain effs)
 
 let rec refcfunOfPreRefcfun sub gsto prcf =
-  let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
+  let gsto, aostof, sub = refstoreOfPreRefstore sub gsto (fst prcf.Ct.sto_out) in
+  let ihvs, ohvs        = (snd prcf.Ct.sto_out, snd prcf.Ct.sto_in) in
   let gstof, ostof      = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
-  let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
+  let istof, _          = RS.partition (RS.mem (fst prcf.Ct.sto_in)) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
   let effs              = substEffectSet sub prcf.Ct.effects in
-    (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof; Ct.effects = effs} sub,
+    (RCf.subs {prcf with Ct.globlocs = globs; 
+                         Ct.sto_in = istof, ihvs; 
+                         Ct.sto_out = ostof, ohvs; 
+                         Ct.effects = effs} sub,
      gsto,
      sub)
 
-and refstoreOfPreRefstore sub gsto sto =
-     sto
-  |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) ->
-       let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in
-         (gsto, RU.add_fun sto sub s rcf)
-     end (gsto, (RS.data sto, S.Subst.empty))
-  |> fun (gsto, (sto, sub)) -> (gsto, sto, sub)
+and refstoreOfPreRefstore sub gsto sto = (gsto, sto, sub)
+     (* sto *)
+  (* |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) -> *)
+  (*      let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in *)
+  (*        (gsto, RU.add_fun sto sub s rcf) *)
+  (*    end (gsto, (RS.data sto, S.Subst.empty)) *)
+  (* |> fun (gsto, (sto, sub)) -> (gsto, sto, sub) *)
 
 (******************************************************************************)
 (******************************* Gathering Specs ******************************)
@@ -554,14 +558,14 @@ let specsOfDecs funs vars =
 
 let writeSpec (funspec, varspec, storespec, sts) outfilename =
   let oc = open_out outfilename in
-    Ctypes.RefCTypes.Store.Data.fold_locs begin fun l ld _ ->
+    Ctypes.RefCTypes.Store.(* Data. *)fold_locs begin fun l ld _ ->
       Pretty.fprintf oc "loc %a %a %a\n\n"
         S.d_sloc l Ct.d_specTypeRel (SLM.find l sts) RLD.d_ldesc ld |> ignore
     end () storespec;
-    Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ ->
-      Pretty.fprintf oc "loc %a %a@!  @[%a@]@!@!"
-        S.d_sloc l Ct.d_specTypeRel (SLM.find l sts) RCf.d_cfun cf |> ignore
-    end () storespec;
+    (* Ctypes.RefCTypes.Store.Function.fold_locs begin fun l cf _ -> *)
+    (*   Pretty.fprintf oc "loc %a %a@!  @[%a@]@!@!" *)
+    (*     S.d_sloc l Ct.d_specTypeRel (SLM.find l sts) RCf.d_cfun cf |> ignore *)
+    (* end () storespec; *)
     List.iter begin fun (vn, (ct, spt)) ->
       Pretty.fprintf oc "%s %a @[%a@]\n\n" vn Ctypes.d_specTypeRel spt Ctypes.RefCTypes.CType.d_ctype ct |> ignore
     end varspec;
