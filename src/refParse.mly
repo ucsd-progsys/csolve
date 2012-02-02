@@ -28,8 +28,7 @@ let store_of_slocbinds sbs =
   List.fold_left begin fun sto (x, y, loc) ->
     let _ = assert_location_unbound x sto loc in
       match y with
-        | SData ld  -> RCt.Store.Data.add sto x ld
-        | SFun f    -> RCt.Store.Function.add sto x f
+        | SData ld  -> RCt.Store.add sto x ld
   end RCt.Store.empty sbs
 
 let abs_sloctable = Hashtbl.create 17
@@ -125,7 +124,6 @@ specs:
                                           let _             = assert_location_unbound l (RCt.Spec.store $1) loc in
                                             match sp with
                                               | SData sp -> RCt.Spec.add_data_loc l (sp, st) $1
-                                              | SFun sp  -> RCt.Spec.add_fun_loc l (sp, st) $1
                                         }
   ;
 

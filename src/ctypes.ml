@@ -138,7 +138,7 @@ and effectset = effectptr SLM.t
 and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                   ; plinfo     : ldinfo }
 
-and 'a prestore = 'a preldesc Sloc.SlocMap.t * 'a precfun Sloc.SlocMap.t
+and 'a prestore = 'a preldesc Sloc.SlocMap.t
 
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
@@ -224,8 +224,7 @@ module EffectSet = struct
   let add effs l eff =
     SLM.add l eff effs
 
-  let domain effs =
-    SLM.domain effs
+  let domain effs = SLM.domain effs
 
   let d_effect () eptr =
     d_refctype () eptr
@@ -337,12 +336,12 @@ module SIGS (T : CTYPE_DEFS) = struct
     type t = T.store
 
     val empty        : t
-    val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list * (Sloc.t * 'a precfun) list
+    val bindings     : 'a prestore -> (Sloc.t * 'a preldesc) list
     val abstract     : t -> t
     val join_effects :
       t ->
       effectset ->
-      (Sloc.t * (T.ldesc * effectptr)) list * (Sloc.t * (T.cfun * effectptr)) list
+      (Sloc.t * (T.ldesc * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
     val closed       : t -> t -> bool
@@ -363,32 +362,19 @@ module SIGS (T : CTYPE_DEFS) = struct
     val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
 
-    val data         : t -> t
-
     val d_store_addrs: unit -> t -> P.doc
     val d_store      : unit -> t -> P.doc
 
-    module Data: sig
       val add           : t -> Sloc.t -> T.ldesc -> t
-      val bindings      : t -> (Sloc.t * T.ldesc) list
-      val domain        : t -> Sloc.t list
-      val mem           : t -> Sloc.t -> bool
+      (* val bindings      : 'a prestore -> (Sloc.t * 'a preldesc) list *)
+      (* val domain        : t -> Sloc.t list *)
+      (* val mem           : t -> Sloc.t -> bool *)
       val ensure_sloc   : t -> Sloc.t -> t
       val find          : t -> Sloc.t -> T.ldesc
       val find_or_empty : t -> Sloc.t -> T.ldesc
-      val map           : (T.ctype -> T.ctype) -> t -> t
+      (* val map           : (T.ctype -> T.ctype) -> t -> t *)
       val fold_fields   : ('a -> Sloc.t -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
       val fold_locs     : (Sloc.t -> T.ldesc -> 'a -> 'a) -> 'a -> t -> 'a
-    end
-
-    module Function: sig
-      val add       : 'a prestore -> Sloc.t -> 'a precfun -> 'a prestore
-      val bindings  : 'a prestore -> (Sloc.t * 'a precfun) list
-      val domain    : t -> Sloc.t list
-      val mem       : 'a prestore -> Sloc.t -> bool
-      val find      : 'a prestore -> Sloc.t -> 'a precfun
-      val fold_locs : (Sloc.t -> 'b precfun -> 'a -> 'a) -> 'a -> 'b prestore -> 'a
-    end
 
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t
@@ -396,7 +382,6 @@ module SIGS (T : CTYPE_DEFS) = struct
       val unify_ctype_locs : t -> Sloc.Subst.t -> T.ctype -> T.ctype -> t * Sloc.Subst.t
       val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> T.field -> t * Sloc.Subst.t
-      val add_fun          : t -> Sloc.Subst.t -> Sloc.t -> T.cfun -> t * Sloc.Subst.t
     end
   end
 
@@ -435,7 +420,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val add_fun : bool -> string -> T.cfun * specType -> t -> t
     val add_var : bool -> string -> T.ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> T.ldesc * specType -> t -> t
-    val add_fun_loc  : Sloc.t -> T.cfun * specType -> t -> t
+    (* val add_fun_loc  : Sloc.t -> T.cfun * specType -> t -> t *)
     val store   : t -> T.store
     val funspec : t -> (T.cfun * specType) Misc.StringMap.t
     val varspec : t -> (T.ctype * specType) Misc.StringMap.t
@@ -506,8 +491,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       {pfld with pftype = map f typ}
     and map_desc f {plfields = flds; plinfo = info} =
       {plfields = List.map (id <**> map_field f) flds; plinfo = info}
-    and map_sto f (desc, func) = (Sloc.SlocMap.map (map_desc f) desc,
-				  Sloc.SlocMap.map (map_func f) func)
+    and map_sto f d = Sloc.SlocMap.map (map_desc f) d
     and map_func f ({args=args; ret=ret; sto_in=stin; sto_out=stout} as g) =
 	{g with args    = List.map (id <**> (map f)) args;
 	        ret     = map f ret;
@@ -714,9 +698,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Some l -> l :: rls
       end [] ld
 
-    let bindings {plfields = flds} =
-      flds
-
     let indices ld =
       ld |> bindings |>: fst
 
@@ -742,39 +723,32 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
   and Store: SIG.STORE = struct
     type t = T.store
 
-    let empty = (SLM.empty, SLM.empty)
+    let empty = SLM.empty
 
-    let map_data f =
-      f |> Field.map_type |> LDesc.map |> SLM.map
+    (* let map_data f = *)
+    (*   f |> Field.map_type |> LDesc.map |> SLM.map *)
 
-    let map_function f =
-      SLM.map (CFun.map f)
-
-    let map_ldesc f (ds, fs) =
-      (SLM.mapi f ds, SLM.map (CFun.map_ldesc f) fs)
+    let map_ldesc f ds = SLM.mapi f ds
 
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
       (* specialcase AnyLocs HERE *)
-    module Data = struct
-      let add (ds, fs) l ld =
-        let _ = assert (not (SLM.mem l fs)) in
+      let add ds l ld =
         if not (l = Sloc.sloc_of_any) then
-          (SLM.add l ld ds, fs)
+          SLM.add l ld ds
         else
-          (ds, fs)
+          ds
 
-      let bindings (ds, _) =
+      let bindings ds =
         SLM.to_list ds
 
-      let domain (ds, _) =
+      let domain ds =
         SLM.domain ds
 
-      let mem (ds, _) l =
-        SLM.mem l ds
+      let mem ds l = SLM.mem l ds
 
-      let find (ds, _) l =
+      let find ds l =
         if (l = Sloc.sloc_of_any) then
           LDesc.any 
         else
@@ -783,87 +757,46 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let find_or_empty sto l =
         try find sto l with Not_found -> LDesc.empty
 
-      let ensure_sloc sto l =
-        l |> find_or_empty sto |> add sto l
+      let ensure_sloc sto l = l |> find_or_empty sto |> add sto l
 
-      let map f (ds, fs) =
-        (map_data f ds, fs)
-
-      let fold_fields f b (ds, fs) =
+      let fold_fields f b ds =
         SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
 
-      let fold_locs f b (ds, fs) =
+      let fold_locs f b ds =
         SLM.fold f ds b
-    end
 
-    module Function = struct
-      let add (ds, fs) l cf =
-        let _ = assert (not (SLM.mem l ds)) in
-        let _ = assert (Sloc.is_abstract l) in
-          (ds, SLM.add l cf fs)
+      let map f ds = f |> Field.map_type |> LDesc.map |> Misc.flip SLM.map ds
+          
+    let map_variances f_co f_contra ds = map f_co ds
 
-      let bindings (_, fs) =
-        SLM.to_list fs
+      let bindings ds =
+        SLM.to_list ds
 
-      let domain (_, fs) =
-        SLM.domain fs
-
-      let mem (_, fs) l =
-        SLM.mem l fs
-
-      let find (_, fs) l =
-        SLM.find l fs
-
-      let fold_locs f b (_, fs) =
-        SLM.fold f fs b
-    end
-
-    let map_variances f_co f_contra (ds, fs) =
-      (map_data f_co ds, SLM.map (CFun.map_variances f_co f_contra) fs)
-
-    let map f (ds, fs) =
-      (map_data f ds, map_function f fs)
-
-    let bindings sto =
-      (Data.bindings sto, Function.bindings sto)
-
-    let abstract (ds, fs) =
-      (restrict_slm_abstract ds, restrict_slm_abstract fs)
+    let abstract ds = restrict_slm_abstract ds
 
     let join_effects sto effs =
-      ((sto |> Data.bindings |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))),
-       (sto |> Function.bindings |>: fun (l, fn) -> (l, (fn, EffectSet.find effs l))))
+      sto 
+      |> bindings 
+      |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))
 
-    let domain sto =
-      Data.domain sto ++ Function.domain sto
+      let domain ds = SLM.domain ds
 
-    let mem (ds, fs) s =
-      SLM.mem s ds || SLM.mem s fs
+    let mem ds s = SLM.mem s ds
 
-    let subs_slm_dom subs m =
+    let subs_addrs subs m =
       SLM.fold (fun l d m -> SLM.add (S.Subst.apply subs l) d m) m SLM.empty
 
-    let subs_addrs subs (ds, fs) =
-      (subs_slm_dom subs ds, subs_slm_dom subs fs)
+    let subs subs ds =
+      SLM.map (LDesc.subs subs) ds |> subs_addrs subs
 
-    let subs subs (ds, fs) =
-      (SLM.map (LDesc.subs subs) ds, fs |> SLM.map (M.flip CFun.subs subs)) |> subs_addrs subs
+    let remove ds l = SLM.remove l ds
 
-    let remove (ds, fs) l =
-      (SLM.remove l ds, SLM.remove l fs)
+    let upd ds1 ds2 = SLM.fold SLM.add ds2 ds1
 
-    let upd (ds1, fs1) (ds2, fs2) =
-      (SLM.fold SLM.add ds2 ds1, SLM.fold SLM.add fs2 fs1)
-
-    let partition_map f m =
+    let partition f m =
       SLM.fold begin fun l d (m1, m2) ->
         if f l then (SLM.add l d m1, m2) else (m1, SLM.add l d m2)
       end m (SLM.empty, SLM.empty)
-
-    let partition f (ds, fs) =
-      let ds1, ds2 = partition_map f ds in
-      let fs1, fs2 = partition_map f fs in
-        ((ds1, fs1), (ds2, fs2))
 
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
@@ -873,11 +806,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let rec reachable_aux sto visited l =
       if SS.mem l visited then
         visited
-      else if Function.mem sto l then
-        SS.add l visited
       else begin
            l
-        |> Data.find sto
+        |> find sto
         |> LDesc.referenced_slocs
         |> List.fold_left (reachable_aux sto) (SS.add l visited)
       end
@@ -890,30 +821,20 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> partition (ls |> M.flap (reachable sto) |> M.sort_and_compact |> M.flip List.mem)
       |> fst
 
-    let rec closed globstore ((_, fs) as sto) =
-      Data.fold_fields
-        (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto &&
-        SLM.fold (fun _ cf c -> c && CFun.well_formed globstore cf) fs true
+    let rec closed globstore sto = 
+      fold_fields
+        (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto
 
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
 
-    let indices (ds, fs) =
-      slm_acc_list LDesc.indices ds ++ slm_acc_list CFun.indices fs
-
-    let data (ds, _) =
-      (ds, SLM.empty)
+    let indices ds = slm_acc_list LDesc.indices ds
 
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 
-    let d_store () (ds, fs) =
-      if fs = SLM.empty then
+    let d_store () ds =
         P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
-      else if ds = SLM.empty then
-        P.dprintf "[@[%a@]]" (d_storelike CFun.d_cfun) fs
-      else
-        P.dprintf "[@[%a;@!%a@]]" (d_storelike LDesc.d_ldesc) ds (d_storelike CFun.d_cfun) fs
 
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -935,32 +856,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
       and unify_data_locations sto sub s1 s2 =
-        let ld1, ld2 = M.map_pair (Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
+        let ld1, ld2 = M.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
         let sto      = remove sto s1 in
-        let sto      = ld2 |> Data.add sto s2 |> subs sub in
+        let sto      = ld2 |> add sto s2 |> subs sub in
           LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
 
-      and unify_fun_locations sto sub s1 s2 =
-        if Function.mem sto s1 then
-          let cf1 = CFun.subs (Function.find sto s1) sub in
-          let sto = s1 |> remove sto |> subs sub in
-          if Function.mem sto s2 then
-            let cf2 = CFun.subs (Function.find sto s2) sub in
-            if CFun.same_shape cf1 cf2 then
-              (sto, sub)
-            else
-              fail sub sto <|
-                  C.error "Trying to unify locations %a, %a with different function types:@!@!%a: %a@!@!%a: %a@!"
-                    S.d_sloc_info s1 S.d_sloc_info s2 S.d_sloc_info s1 CFun.d_cfun cf1 S.d_sloc_info s2 CFun.d_cfun cf2
-          else (Function.add sto s2 cf1, sub)
-        else (subs sub sto, sub)
-
-      and assert_unifying_same_location_type sto sub s1 s2 =
-        if (Function.mem sto s1 && Data.mem sto s2) ||
-          (Data.mem sto s1 && Function.mem sto s2) then
-            fail sub sto <| C.error "Trying to unify data and function locations (%a, %a) in store@!%a@!"
-                S.d_sloc_info s1 S.d_sloc_info s2 d_store sto
-        else ()
 
       and anyfy_location sto sub s =
         if s = S.sloc_of_any then
@@ -974,14 +874,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
       and unify_locations sto sub s1 s2 =
         if not (S.eq s1 s2) then
-          let _   = assert_unifying_same_location_type sto sub s1 s2 in
           let sub = S.Subst.extend s1 s2 sub in
-            if Function.mem sto s1 || Function.mem sto s2 then
-              unify_fun_locations sto sub s1 s2
-            else if Data.mem sto s1 || Data.mem sto s2 then
+          if mem sto s1 || mem sto s2 then
               unify_data_locations sto sub s1 s2
-            else (subs sub sto, sub)
-          else (sto, sub)
+          else (subs sub sto, sub)
+        else (sto, sub)
 
       and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
@@ -993,7 +890,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
       and unify_overlap sto sub s i =
         let s  = S.Subst.apply sub s in
-        let ld = Data.find_or_empty sto s in
+        let ld = find_or_empty sto s in
           match LDesc.find i ld with
             | []                         -> (sto, sub)
             | ((_, fstfld) :: _) as olap ->
@@ -1001,7 +898,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                    ld
                 |> List.fold_right (fst <+> LDesc.remove) olap
                 |> LDesc.add i fstfld
-                |> Data.add sto s
+                |> add sto s
                 |> fun sto ->
                      List.fold_left
                        (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
@@ -1016,27 +913,18 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
               let sto, sub = unify_overlap sto sub s i in
               let s        = S.Subst.apply sub s in
               let fld      = Field.subs sub fld in
-              let ld       = Data.find_or_empty sto s in
+              let ld       = find_or_empty sto s in
                 begin match LDesc.find i ld with
-                  | []          -> (ld |> LDesc.add i fld |> Data.add sto s, sub)
+                  | []          -> (ld |> LDesc.add i fld |> add sto s, sub)
                   | [(_, fld2)] -> unify_fields sto sub fld fld2
                   | _           -> assert false
                 end
           end
         with e ->
           C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a"
-            Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;
+            Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (find_or_empty sto s) |> ignore;
           raise e
 
-      let add_fun sto sub l cf =
-        let l = S.Subst.apply sub l in
-          if not (Data.mem sto l) then
-            if Function.mem sto l then
-              let _ = assert (CFun.same_shape cf (Function.find sto l)) in
-                (sto, sub)
-            else (Function.add sto l cf, sub)
-          else fail sub sto <| C.error "Attempting to store function in location %a, which contains: %a@!"
-                 S.d_sloc_info l LDesc.d_ldesc (Data.find sto l)
     end
   end
 
@@ -1121,7 +1009,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | []      -> ord
       | l :: ls ->
           if not (List.mem l ord) then
-            let ls = if Store.Data.mem sto l then ls @ (l |> Store.Data.find sto |> LDesc.referenced_slocs) else ls in
+            let ls = if Store.mem sto l then ls @ (l |> Store.find sto |> LDesc.referenced_slocs) else ls in
               order_locs_aux sto (l :: ord) ls
           else order_locs_aux sto ord ls
 
@@ -1150,11 +1038,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         let cf1, cf2 = normalize_names cf1 cf2 (fun _ _ _ ct -> ct) (fun _ _ _ ct -> ct) in
           List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
        && cf1.ret = cf2.ret
-       && Store.Data.fold_locs begin fun l ld b ->
-            b && Store.Data.mem cf2.sto_out l && LDesc.eq ld (Store.Data.find cf2.sto_out l)
-          end true cf1.sto_out
-       && Store.Function.fold_locs begin fun l cf b ->
-              b && Store.Function.mem cf2.sto_out l && same_shape cf (Store.Function.find cf2.sto_out l)
+       && Store.fold_locs begin fun l ld b ->
+            b && Store.mem cf2.sto_out l && LDesc.eq ld (Store.find cf2.sto_out l)
           end true cf1.sto_out
 
     let well_formed globstore cf =
@@ -1199,11 +1084,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (funspec, Misc.sm_protected_add b vn sp varspec, storespec, storetypes)
 
     let add_data_loc l (ld, st) (funspec, varspec, storespec, storetypes) =
-      (funspec, varspec, Store.Data.add storespec l ld, SLM.add l st storetypes)
+      (funspec, varspec, Store.add storespec l ld, SLM.add l st storetypes)
 
-    let add_fun_loc l (cf, st) (funspec, varspec, storespec, storetypes) =
-      (funspec, varspec, Store.Function.add storespec l cf, SLM.add l st storetypes)
-      
     let funspec (fs, _, _, _)        = fs
     let varspec (_, vs, _, _)        = vs
     let store (_, _, sto, _)         = sto
@@ -1218,13 +1100,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let d_spec () sp =
       let lspecs = locspectypes sp in
-      [ (Store.Data.fold_locs (fun l ld acc ->
+      [ (Store.fold_locs (fun l ld acc ->
           P.concat acc (P.dprintf "loc %a %a %a\n\n"
                           Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) LDesc.d_ldesc ld)
-         ) P.nil (store sp))
-      ; (Store.Function.fold_locs (fun l cf acc ->
-          P.concat acc  (P.dprintf "loc %a %a@!  @[%a@]@!@!"
-                           Sloc.d_sloc l d_specTypeRel (SLM.find l lspecs) CFun.d_cfun cf)
          ) P.nil (store sp))
       ; (P.seq (P.text "\n\n") (fun (vn, (ct, _)) -> 
           P.dprintf "%s :: @[%a@]" vn CType.d_ctype ct
@@ -1265,8 +1143,8 @@ type ctemap = I.ctemap
 let null_fun      = {args = [];
                      ret  = Int (0, N.top);
                      globlocs = [];
-                     sto_in = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
-                     sto_out = Sloc.SlocMap.empty,Sloc.SlocMap.empty;
+                     sto_in = I.Store.empty;
+                     sto_out = I.Store.empty;
                      effects = SLM.empty}
   
 let void_ctype   = Int  (0, N.top)
@@ -1305,12 +1183,12 @@ let d_refcfun      = RCt.CFun.d_cfun
 let refstore_partition = RCt.Store.partition
 
 let refstore_set sto l rd =
-  try RCt.Store.Data.add sto l rd with Not_found -> 
+  try RCt.Store.add sto l rd with Not_found -> 
     assertf "refstore_set"
 
 let refstore_get sto l =
-  try RCt.Store.Data.find sto l with Not_found ->
-    (Errormsg.error "Cannot find location %a in store\n" Sloc.d_sloc l;   
+  try RCt.Store.find sto l with Not_found ->
+    (Errormsg.error "Cannot find location %a in store %a\n" Sloc.d_sloc l RCt.Store.d_store sto;
      asserti false "refstore_get"; assert false)
 
 let refldesc_subs rd f =
@@ -1338,7 +1216,7 @@ let addr_of_refctype loc = function
 let ac_refstore_read loc sto cr = 
   let (l, ix) = addr_of_refctype loc cr in 
      l
-  |> RCt.Store.Data.find sto 
+  |> RCt.Store.find sto 
   |> refdesc_find ix
 
 (* API *)
@@ -1353,10 +1231,10 @@ let is_soft_ptr loc sto cr =
 let refstore_write loc sto rct rct' = 
   let (cl, ix) = addr_of_refctype loc rct in
   let _  = assert (not (Sloc.is_abstract cl)) in
-  let ld = RCt.Store.Data.find sto cl in
+  let ld = RCt.Store.find sto cl in
   let ld = RCt.LDesc.remove ix ld in
   let ld = RCt.LDesc.add ix (RCt.Field.create Nonfinal dummy_fieldinfo rct') ld in
-  RCt.Store.Data.add sto cl ld
+  RCt.Store.add sto cl ld
 
 (* API *)
 let ctype_of_refctype = function

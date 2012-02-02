@@ -353,10 +353,7 @@ let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
       let ct = ctype_of_varinfo shp.Sh.vtyps v in
-        begin match ct with
-          | Ct.Ref (l, _) when Ct.I.Store.Function.mem shp.Sh.store l -> ct
-          | _ -> strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
-        end
+         strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> Ct.vtype_to_ctype v.Cil.vtype
 
@@ -426,7 +423,7 @@ let extend_wld_with_clocs me j loc tag wld =
           (env, (Ct.refstore_get sto cl |> Ct.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
-      |> Misc.flip (Ct.RefCTypes.Store.Data.fold_locs begin fun cl ld wld ->
+      |> Misc.flip (Ct.RefCTypes.Store.fold_locs begin fun cl ld wld ->
           fst <| FI.extend_world csto cl cl false id loc tag wld
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"

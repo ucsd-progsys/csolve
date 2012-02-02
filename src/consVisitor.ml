@@ -159,7 +159,7 @@ let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
     | Ct.Ref (l, _) as rct, cds ->
-      let ld2 = RS.Data.find sto l in
+      let ld2 = RS.find sto l in
       let ld1 = RL.map (RF.map_type FI.t_nullterm_refctype) ld2 in
         (rct, cds +++ FI.make_cs_refldesc env grd (l, ld1) (l, ld2) tago tag loc)
     | _ -> assert false
@@ -291,10 +291,10 @@ let env_of_retbind me loc grd tag lsubs subs env sto lvo cr =
   | _  when !Cs.safe  -> assertf "env_of_retbind"
   | _                 -> (env, [], [], [])
 
-let filter_poly_effects_binds (ldebs, fnebs) ns =
+let filter_poly_effects_binds ldebs ns =
   let polys        = Misc.map_partial (function Refanno.NewC (_, _, l) -> Some l | _ -> None) ns in
   let filter binds = M.negfilter (fst <+> M.flip List.mem polys) binds in
-    (filter ldebs, filter fnebs)
+    filter ldebs
 
 let instantiate_poly_clocs me env grd loc tag' ((_, st', _) as wld) ns =
   let asto = CF.get_astore me in
@@ -319,13 +319,13 @@ let renamed_store_bindings lsubs subs st =
      st
   |> rename_store lsubs subs
   |> RS.bindings
-  |> fun (slds, sfuns) -> (rename_binds_slocs lsubs slds, rename_binds_slocs lsubs sfuns)
+  |> fun slds -> rename_binds_slocs lsubs slds
 
 let renamed_store_effects_bindings lsubs subs effs st =
   let st   = rename_store lsubs subs st in
   let effs = effs |> FI.effectset_subs_locs lsubs st |> FI.effectset_subs FI.t_subs_exps subs in
      RS.join_effects st effs
-  |> fun (slds, sfuns) -> (rename_binds_slocs lsubs slds, rename_binds_slocs lsubs sfuns)
+  |> fun slds -> rename_binds_slocs lsubs slds
 
 let store_domain_subst_groups lsubs sto =
      sto
@@ -356,7 +356,7 @@ let check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs sto =
   |> List.iter begin function
      | [_]   -> ()
      | lsubs ->
-       if not <| List.for_all (fst <+> RS.Data.find sto <+> Ct.RefCTypes.LDesc.is_read_only) lsubs then
+       if not <| List.for_all (fst <+> RS.find sto <+> Ct.RefCTypes.LDesc.is_read_only) lsubs then
          call_subst_error loc "non-final" f call ecrs lsubs subs
     end
 
@@ -370,9 +370,8 @@ let check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs sto =
      | lsubs -> call_subst_error loc "concrete" f call ecrs lsubs subs
      end
 
-let store_bindings_of_store_effects (ldbs, fnbs) =
-  let split xs = List.map (fun (l, (b, _)) -> (l, b)) xs in
-    (split ldbs, split fnbs)
+let store_bindings_of_store_effects ldbs =
+  List.map (fun (l, (b, _)) -> (l, b)) ldbs
 
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
@@ -394,16 +393,14 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let ostebs           = frt.Ct.sto_out
                       >> check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs
                       |> renamed_store_effects_bindings lsubs subs frt.Ct.effects in
-  let ostslds,ostsfuns = store_bindings_of_store_effects ostebs in
+  let ostslds          = store_bindings_of_store_effects ostebs in
   let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
-  let oastbs           = (oaslds, ostsfuns) in
-  
   let cs2,_               = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
-  let cs3,_               = FI.make_cs_refstore_binds env grd oastbs stbs  false None tag' loc in
+  let cs3,_               = FI.make_cs_refstore_binds env grd oaslds stbs  false None tag' loc in
   let ds3                 = [FI.make_dep false (Some tag') None] in 
 
   let st'                 = List.fold_left begin fun st (sloc, ld) ->
-                              if RS.Data.mem st sloc then st else RS.Data.add st sloc ld
+                              if RS.mem st sloc then st else RS.add st sloc ld
                             end st ocslds in
 
   let stebs               = RS.join_effects st' effs in

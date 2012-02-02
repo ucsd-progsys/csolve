@@ -147,7 +147,7 @@ class exprConstraintVisitor (et, fs, sub, sto) = object (self)
       | Ref (s, i) ->
         let sto, sub = UStore.unify_overlap !sto !sub s i in
         let s        = S.Subst.apply sub s in
-          begin match s |> Store.Data.find_or_empty sto |> LDesc.find i |>: (snd <+> Field.type_of) with
+          begin match s |> Store.find_or_empty sto |> LDesc.find i |>: (snd <+> Field.type_of) with
             | []   ->
               E.s <| C.error "Reading location (%a, %a) before writing data to it@!" S.d_sloc s Index.d_index i
             | [ct] ->
@@ -198,9 +198,9 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let sto           = cfi.sto_out
                    |> Store.domain
-                   |> List.filter (Store.Data.mem cfi.sto_out)
-                   |> List.fold_left Store.Data.ensure_sloc sto in
-  let sto, sub      = Store.Data.fold_fields begin fun (sto, sub) s i fld ->
+                   |> List.filter (Store.mem cfi.sto_out)
+                   |> List.fold_left Store.ensure_sloc sto in
+  let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
@@ -356,8 +356,8 @@ let constrain_fun fs cf ve sto sci =
 
 let check_out_store_complete sto_out_formal sto_out_actual =
      sto_out_actual
-  |> Store.Data.fold_fields begin fun ok l i fld ->
-       if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
+  |> Store.fold_fields begin fun ok l i fld ->
+       if Store.mem sto_out_formal l && l |> Store.find sto_out_formal |> LDesc.find i = [] then begin
          C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
            S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
          false
@@ -439,10 +439,9 @@ let assert_call_no_physical_subtyping fe f store gst annots =
     List.iter begin function
       | RA.New (scallee, scaller) ->
           let sto = if Store.mem store scaller then store else gst in
-            if not (Store.Function.mem sto scaller) then
               assert_location_inclusion
-                scaller (Store.Data.find sto scaller)
-                scallee (Store.Data.find cf.sto_out scallee)
+                scaller (Store.find sto scaller)
+                scallee (Store.find cf.sto_out scallee)
       | _ -> ()
     end annots
 

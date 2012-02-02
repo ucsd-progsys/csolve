@@ -122,10 +122,10 @@ let rename_funspec scim spec =
 (******************************************************************************)
 
 let finalize_store shp_sto sto =
-  Ctypes.I.Store.Data.fold_locs begin fun l ld sto ->
+  Ctypes.I.Store.fold_locs begin fun l ld sto ->
     try
-      let shp_ld = Ctypes.I.Store.Data.find shp_sto l in
-        Ctypes.I.Store.Data.add sto l begin
+      let shp_ld = Ctypes.I.Store.find shp_sto l in
+        Ctypes.I.Store.add sto l begin
           Ctypes.I.LDesc.mapn begin fun _ pl fld ->
             match Ctypes.I.LDesc.find pl shp_ld with
               | [(_, shp_fld)] -> Ctypes.I.Field.set_finality fld (Ctypes.I.Field.get_finality shp_fld)
@@ -133,7 +133,7 @@ let finalize_store shp_sto sto =
           end ld
         end
     with Not_found ->
-      Ctypes.I.Store.Data.add sto l ld
+      Ctypes.I.Store.add sto l ld
   end sto sto
 
 let finalize_funtypes shm cnv =
