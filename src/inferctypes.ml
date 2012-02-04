@@ -32,6 +32,7 @@ module ST  = Ssa_transform
 module RA  = Refanno
 module S   = Sloc
 module SLM = S.SlocMap
+module SS  = S.SlocSet
 module CM  = CilMisc
 module VM  = CM.VarMap
 module SM  = M.StringMap
@@ -221,8 +222,11 @@ let constrain_return et fs sub sto rtv = function
       else
         E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
+      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
       let sub, sto = constrain_exp et fs sub sto e in
+      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
       let sto, sub = unify_and_check_subtype sto sub (et#ctype_of_exp e) rtv in
+      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
@@ -319,6 +323,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
+  let _ = Pretty.printf "sto: %a\n" Store.d_store sto in
   let sub, sto     = constrain_phis ve phis sub sto in
   let et           = new exprTyper (ve,fs) in
   let blocks       = cfg.Ssa.blocks in
@@ -393,7 +398,8 @@ let unified_instantiation_error () (s1, s2) =
 let check_sol_aux cf vars gst em bas sub sto whole_store =
   (* We check that instantiation annotations are WF as we check calls in consVisitor *)
   let _ = check_slocs_distinct global_alias_error sub (Store.domain gst) in
-  let _ = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
+  let slocs = CFun.quantified_locs cf in
+  let _ = check_slocs_distinct quantification_error sub slocs in
   let _ = whole_store |> Store.domain |> check_slocs_distinct global_quantification_error sub in
     ()
 

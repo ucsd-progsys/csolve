@@ -367,7 +367,10 @@ and heapRefctypeOfCilType mem t =
               | rct    -> rct
 
 and addReffieldToStore sub sto s i rfld =
-  if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.ensure_sloc sto s) else
+  (* if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.ensure_sloc sto s) else *)
+  if rfld |> RFl.type_of |> RCt.width = 0 then 
+    (sub, RS.ensure_var sto (* |> Misc.flip RS.ensure_sloc s) *) )
+  else
     rfld |> RU.add_field sto sub s i |> M.swap
 
 and componentsOfTypeAux t = match normalizeType t with
@@ -509,7 +512,7 @@ let globalSpecOfFuns sub gsto funs =
      let _      = C.currentLoc := v.C.vdecl in
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
-         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto in
+         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto |> (Misc.app_fst3 RCf.quantify_svars) in
            (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)

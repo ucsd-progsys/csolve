@@ -71,6 +71,7 @@ and  'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)
+      quant_svars : Heapvar.t list;
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
@@ -227,6 +228,7 @@ module type S = sig
     (* val domain        : t -> Sloc.t list *)
     (* val mem           : t -> Sloc.t -> bool *)
     val ensure_sloc   : t -> Sloc.t -> t
+    val ensure_var    : t -> t
     val find          : t -> Sloc.t -> LDesc.t
     val find_or_empty : t -> Sloc.t -> LDesc.t
       
@@ -262,8 +264,11 @@ module type S = sig
       (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
+    val quantify_svars  : t -> t
     val quantified_locs : t -> Sloc.t list
+    val quantified_svars : t -> Heapvar.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
+    val instantiate_store : CilMisc.srcinfo -> t -> t * (Heapvar.t * Store.t) list
     val make            : (string * CType.t) list -> Sloc.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list 
