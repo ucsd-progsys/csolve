@@ -16,7 +16,6 @@ qualif WordSize4(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 4)
 qualif WordSize8(v:ptr)  : (v != 0) => ((BLOCK_END([v]) - v) >= 8)
 
 
-
 //RJ: don't know what the next comment means.
 //Commented out for tests/ft/ft_full.c, uncomment after that
 qualif Eq(v:int)         : v =  _
@@ -31,27 +30,9 @@ qualif RestGt(v:ptr)     : ((v + (4 * _)) <= BLOCK_END([v]))
 qualif EqBegin(v:ptr,~a:ptr) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])
 qualif EqEnd(v:ptr,~a:ptr)   : BLOCK_END([v]) = BLOCK_END([~a])
 qualif EqBuf(v:ptr,~a:ptr)   : && [ EqBegin(v, ~a); EqEnd(v, ~a) ]
-qualif EqBeginFP(v:ptr,~a:ptr) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])
 qualif Ge(v: ptr, ~a:ptr)    : v >= ~a 
 qualif Eq(v: ptr, ~a:ptr)    : v =  ~a
 
-qualif SizeGtFP(v:fptr)  : BLOCK_BEGIN([v]) + _ <= BLOCK_END([v])
-qualif RestGtFP(v:fptr)  : ((v + (4 * _)) <= BLOCK_END([v]))
-qualif EqEndFP(v:fptr,~a:fptr)   : BLOCK_END([v]) = BLOCK_END([~a])
-qualif EqBufFP(v:fptr,~a:fptr)   : && [ EqBeginFP(v, ~a); EqEndFP(v, ~a) ]
-qualif GeFP(v: fptr, ~a:fptr)    : v >= ~a 
-qualif EqFP(v: fptr, ~a:fptr)    : v =  ~a
-qualif ZeroFP(v:fptr)        : v = 0
-qualif PosFP(v:fptr)         : 0 < v
-qualif PosZFP(v:fptr)        : 0 <= v
-qualif BeginFP(v:fptr)       : v = BLOCK_BEGIN([v])
-qualif LowerBdFP(v:fptr)     : BLOCK_BEGIN([v]) <= v
-qualif UpperBdFP(v:fptr)     : v < BLOCK_END([v])
-qualif NullOrValidFP(v:fptr) : (v != 0) => (ValidFP(v))
-qualif NullOrBeginFP(v:fptr) : (v != 0) => (BeginFP(v))
-qualif ValidFP(v:fptr)       : && [ PosFP(v); LowerBdFP(v); UpperBdFP(v) ]
-qualif UncheckedFP(v:fptr)   : UNCHECKED([v]) = 1
-qualif FPSize(v:fptr)  : (v != 0) => ((BLOCK_END([v]) - v) > 0)
 qualif NullTerm(v: int) : (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
 
 // Generally useful for effect tracking

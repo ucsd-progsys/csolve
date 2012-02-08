@@ -411,7 +411,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs)
+  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), wfs
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with
