@@ -175,7 +175,7 @@ let fptrReftOfAttrs tb ats =
 
 let intReftypeOfAttrs width ats =
   if C.hasAttribute CM.anyTypeAttribute ats then
-    Ct.Any (width) (* if annotated with ANY, ignore all other annotations *)
+    Ct.Any (* if annotated with ANY, ignore all other annotations *)
   else
     let pred  = predOfAttrs None ats in
     let index = if not <| C.hasAttribute CM.useIndexAttribute ats then

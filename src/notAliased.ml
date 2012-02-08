@@ -28,8 +28,8 @@ module NotAliased = struct
 
   let make cl al =
     begin
-      assert ((S.is_abstract al && not (S.is_abstract cl)) ||
-              (S.is_any al      && S.is_any cl));
+      assert ((S.is_abstract al || not (S.is_abstract cl)) ||
+              (not (S.is_any al) && not (S.is_any cl)));
       (cl, al)
     end
 

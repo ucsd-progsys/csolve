@@ -105,14 +105,14 @@ let sort_of_prectype = function
   | Ct.Ref (l,_)  -> FA.so_ref l
   | Ct.FRef _     -> FA.so_fref
   | Ct.ARef       -> FA.so_ref Sloc.sloc_of_any
-  | Ct.Any _      -> FA.so_int
+  | Ct.Any        -> FA.so_int  (* MK: i *think* this should be ok *)
   | Ct.Int _      -> FA.so_int
 
 let spec_sort_of_prectype = function
   | Ct.Ref _  -> FA.so_ref Sloc.none
   | Ct.FRef _ -> FA.so_fref
   | Ct.ARef   -> FA.so_ref Sloc.sloc_of_any
-  | Ct.Any _  -> FA.so_int
+  | Ct.Any    -> FA.so_int
   | Ct.Int _  -> FA.so_int
 
 let replace_reft r c = match c with
@@ -127,7 +127,7 @@ let rec refctype_of_reft_ctype r = function
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, reft_of_reft r (FA.so_ref l)))
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o,r))
   | Ct.ARef  -> Ct.ARef
-  | Ct.Any i -> Ct.Any i
+  | Ct.Any   -> Ct.Any  
 
 (*
 let refctype_of_reft_ctype r = function
@@ -140,7 +140,7 @@ and spec_refctype_of_reft_ctype r = function
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o, r))
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, r))
   | Ct.ARef  -> Ct.ARef
-  | Ct.Any i -> Ct.Any i
+  | Ct.Any   -> Ct.Any  
 
 and refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
@@ -157,7 +157,7 @@ and refctype_of_ctype f = function
       let r  = C.make_reft vv so (f t) in
       Ct.FRef (refcfun_of_cfun g, (x,r))
   | Ct.ARef  -> Ct.ARef
-  | Ct.Any i -> Ct.Any i
+  | Ct.Any   -> Ct.Any  
 and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
 
@@ -417,7 +417,7 @@ let is_reference cenv x =
     | Ct.Ref (_,(_,_))  -> true
     | Ct.FRef (_,(_,_)) -> true      
     | Ct.ARef           -> true
-    | Ct.Any _ | Ct.Int _ -> false
+    | Ct.Any   | Ct.Int _ -> false
 
 let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 

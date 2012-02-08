@@ -115,13 +115,15 @@ type ldinfo     = {stype : Cil.typ option; any: bool}
 let dummy_fieldinfo  = {fname = None; ftype = None}
 let dummy_ldinfo = {stype = None; any = false}
 let any_ldinfo   = {stype = None; any = true }
+let any_fldinfo  = {fname = None; ftype = None}
 
 type 'a prectype =
   | Int  of int * 'a           (* fixed-width integer *)
   | Ref  of Sloc.t * 'a        (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
   | ARef                       (* a dynamic "blackhole" reference *)
-  | Any  of int                (* the variable-width type of a "blackhole" *)
+  | Any                        (* the variable-width type of a "blackhole" *)
+
 
 and 'a prefield = {  pftype     : 'a prectype
                    ; pffinal    : finality
@@ -185,7 +187,7 @@ let rec d_prectype d_refinement () = function
       | Ref (s, r)  -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
       | ARef        -> P.dprintf "aref(%a)" S.d_sloc Sloc.sloc_of_any
-      | Any i       -> P.dprintf "any(%d)" i
+      | Any         -> P.dprintf "any"
 
 let d_refctype = d_prectype Reft.d_refinement
 
@@ -491,14 +493,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
-      | ARef | Any _ -> T.R.top
+      | ARef | Any -> T.R.top
 
     let rec map f = function
       | Int (i, x) -> Int (i, f x)
       | Ref (l, x) -> Ref (l, f x)
       | FRef(g, x) -> FRef (map_func f g, f x)
       | ARef      -> ARef
-      | Any (i)   -> Any (i)
+      | Any       -> Any    
     and map_field f ({pftype = typ} as pfld) =
       {pfld with pftype = map f typ}
     and map_desc f {plfields = flds; plinfo = info} =
@@ -516,12 +518,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | Ref (s, i)  -> P.dprintf "ref(%a, %a)" S.d_sloc s T.R.d_refinement i
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
       | ARef        -> P.dprintf "aref(%a)" S.d_sloc S.sloc_of_any
-      | Any (i)     -> P.dprintf "any(%d)" i
+      | Any         -> P.dprintf "any"  
 
     let width = function
       | Int (n, _) -> n
-      | Any i      -> i
-      | _      -> CM.int_width
+      | Any        -> 0
+      | _          -> CM.int_width
     
     let sloc = function
       | Ref (s, _) -> Some s
@@ -542,9 +544,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	     should is_subctype be called on the arguments of f1/f2 etc? *)
 	      | FRef (f1, r1), FRef (f2, r2) when f1 = f2  -> T.R.is_subref r1 r2
         | ARef, ARef                                 -> true
-        | Any i, Any j when i = j                    -> true
-        | Int (i, _), Any j when i = j               -> true
-        | Any i, Int (j, _) when i = j               -> true
+        | Any, Any                                   -> true
+        | Int _, Any                                 -> true
+        | Any, Int _                                 -> true
         | _                                          -> false
 
     let of_const c =
@@ -571,7 +573,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       extrema_in i1 pct1 i2 pct2 || extrema_in i2 pct2 i1 pct1
 
     let is_void = function
-      | Int (0, _) | Any (0) -> true
+      | Int (0, _) | Any     -> true
       | _                    -> false
   end
 
@@ -676,8 +678,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let mem i {plfields = flds} =
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
 
-    let find i {plfields = flds} =
-      List.filter (fun (i2, _) -> N.overlaps i i2) flds
+    let find i ld =
+      if is_any ld then
+        [i, {pftype = Any;          pffinal = Nonfinal;
+             pfloc  = C.locUnknown; pfinfo  = any_fldinfo}]
+      else
+        List.filter (fun (i2, _) -> N.overlaps i i2) ld.plfields
 
     let rec foldn_aux f n b = function
       | []               -> b
@@ -861,7 +867,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
       | ARef       -> false
-      | Int _ | Any _ | FRef _ -> true
+      | Int _ | Any | FRef _ -> true
 
     let rec reachable_aux sto visited l =
       if SS.mem l visited then
@@ -921,9 +927,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | ARef, ARef                            -> (sto, sub)
         | Ref (s, _), ARef                      -> anyfy_location sto sub s
         | ARef, Ref (s, _)                      -> anyfy_location sto sub s
-        | Any i, Any j when i = j               -> (sto, sub)
-        | Any i, Int (j, _) when i = j          -> (sto, sub)
-        | Int (i, _), Any j when i = j          -> (sto, sub)
+        | Any, Any                              -> (sto, sub)
+        | Any, Int _                            -> (sto, sub)
+        | Int _, Any                            -> (sto, sub)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -979,6 +985,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
         | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
+        | Ref (s, _), ARef | ARef, Ref(s, _)        -> anyfy_location sto sub s
+        | Any , Int _ | Int _, Any                  -> (sto, sub)
         | ct1, ct2                                  ->
           fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -1354,7 +1362,7 @@ let ctype_of_refctype = function
   | Int (x, (y, _))  -> Int (x, y) 
   | Ref (x, (y, _))  -> Ref (x, y)
   | ARef             -> ARef
-  | Any n            -> Any n
+  | Any              -> Any  
   | f -> RCt.CType.map fst f
 
 (* API *)
@@ -1369,7 +1377,7 @@ let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r))
   | FRef (_,(_,r)) -> r
-  | Any _ | ARef -> reft_of_top
+  | Any | ARef -> reft_of_top
 
 (**********************************************************************)
 

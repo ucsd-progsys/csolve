@@ -61,7 +61,7 @@ type 'a prectype =
   | Ref of Sloc.t * 'a         (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
   | ARef                       (* a dynamic "blackhole" reference *)
-  | Any  of int                (* the variable-width type of a "blackhole" *)
+  | Any                        (* the any-width type of a "blackhole" *)
 
 and  effectptr  = Reft.t prectype
 
