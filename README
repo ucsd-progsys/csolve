@@ -320,6 +320,19 @@ that str points to an array of characters, use the ARRAY annotation:
 
   int strlen (char * ARRAY str)
 
+Almost always, every use of a structure or typedef'd type instantiates
+the locations contained within the type. The sole exception is when a
+structure type is used in a typedef, as in
+
+  typedef struct foo foo;
+
+In this case, whatever locations are quantified in struct foo will
+also be quantified in foo. This is syntactic sugar which keeps you
+from having to "re-export" all the locations L in struct foo using
+INST(L, L) in the typedef, i.e.,
+
+  typedef struct foo INST(L, L) foo;
+
 CSolve attempts to take explicitly-provided array bounds into account
 when determining the layout of a heap. In some cases this may be
 undesirable; for example, in the structure

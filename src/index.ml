@@ -379,6 +379,76 @@ and index_of_reft env sol is_int (v,t,refas) =
   List.fold_left glb top
     (List.map (index_of_refa env sol v (ckint t)) refas)
 
+let int_bindings_of ((e1,_),op,(e2,_)) = 
+  let vv = As.value_variable A.Sort.t_int in
+  match e1, op, e2 with
+  | A.Var v1, op, A.Var v2 -> 
+    [(v1, (vv, A.Sort.t_int, [F.Conc (A.pAtom  (A.eVar vv,op,A.eVar v2))]))]
+      (* Let this be a reminder: THIS creates a cycle! *)
+     (* (v2, (vv, A.Sort.t_int, [F.Conc (A.pAtom  (A.eVar v1,op,A.eVar vv))]))]  *)
+     |> Asm.of_list
+  | A.Var v1, op, (A.Con (A.Constant.Int n)) -> 
+    let reft = (vv, A.Sort.t_int, [F.Conc (A.pAtom (A.eVar vv,op,A.eInt n))]) in
+    [(v1,reft)]
+     |> Asm.of_list
+  | _ -> Asm.empty 
+  
+let apply_int_grd_bs_pred vv eq n = function
+  | A.Atom ((A.Var v, _),
+             A.Eq,
+            (A.Ite ((A.Atom (e1, op, e2), _),
+                    (A.Con (A.Constant.Int tn),_),
+                    (A.Con (A.Constant.Int fn),_)),_)),_
+    when v = vv && (n = tn or n = fn) ->
+      if ((n = tn) && eq) or ((n = fn) && (not eq)) then
+        int_bindings_of (e1, op, e2)
+      (* else if (n = tn && (not eq)) then *)
+      (*   int_bindings_of (e1, A.neg_brel op, e2) *)
+      else
+        Asm.empty
+  | _ -> Asm.empty
+    
+let concat_refs (v,s,refas) ((v',s',refas') as reft') =
+  let rs = List.map begin function
+    | F.Conc p -> 
+      F.Conc (A.pAnd (p :: F.preds_of_reft F.empty_solution reft'))
+    | k -> k
+  end refas
+  in (v,s,rs ++ refas')
+    
+let join_envs env env' = Asm.fold (fun v reft env ->
+  Asm.add v (concat_refs (Asm.find v env) reft) env) env' env
+    
+let apply_int_grd_bs_refas env vv eq n refas =
+  List.map begin function
+      | F.Conc p -> apply_int_grd_bs_pred vv eq n p |> Asm.to_list
+      | _ -> []
+  end refas
+  |> (List.concat <+> Asm.of_list)
+                          
+let apply_grd2 env (p,_) = match p with
+  | A.Atom ((A.Var v,_), A.Ne, (A.Con (A.Constant.Int n), _))
+  | A.Atom ((A.Con (A.Constant.Int n),_), A.Ne, (A.Var v,_))
+    -> (match F.lookup_env env v with
+        | Some (vv, t, refas) when t = A.Sort.t_int -> 
+          apply_int_grd_bs_refas env vv false n refas
+        | _ -> Asm.empty)
+  | A.Atom ((A.Var v,_), A.Eq, (A.Con (A.Constant.Int n), _))
+  | A.Atom ((A.Con (A.Constant.Int n),_), A.Eq, (A.Var v,_))
+    -> (match F.lookup_env env v with
+        | Some (vv, t, refas) when t = A.Sort.t_int -> 
+          apply_int_grd_bs_refas env vv true n refas
+        | _ -> Asm.empty)
+  | _ -> Asm.empty
+    
+let apply_grd env = function
+  | (A.And ps, _) as p -> 
+    List.map (apply_grd2 env <+> Asm.to_list) ps
+   |> List.concat 
+   |> Asm.of_list
+   |> join_envs env
+  | p -> apply_grd2 env p |> join_envs env
+  
 let index_of_reft env sol ((v,t,refas) as reft) =
   index_of_reft env sol (ckint t) reft
 
@@ -387,7 +457,3 @@ let data_index_of_pred vv p =
 
 let ref_index_of_pred vv p =
   index_of_pred Asm.empty (fun _ -> IBot) vv asref p
-    
-    
-
-

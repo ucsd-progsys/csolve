@@ -45,7 +45,7 @@ string *new_string(int n, char c) {
 typedef struct _slist {
     struct _slist  * next;
     string * LOC(SL) s;
-} INST(SL, SL) slist;
+} slist;
 
 slist *new_strings(int n) {
     string *s;

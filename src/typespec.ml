@@ -272,14 +272,16 @@ let attributeAppliesToInstance (C.Attr (n, _)) =
   not <| List.mem n [CM.instantiateAttribute; CM.slocAttribute; CM.layoutAttribute]
 
 let rec normalizeType = function
+  | C.TComp ({C.cattr = cats} as ci, ats) ->
+    C.TComp ({ci with C.cattr = []}, cats @ ats)
+  | C.TNamed ({C.ttype = C.TComp _ as t}, ats) ->
+    t |> normalizeType |> C.typeAddAttributes ats
   | C.TNamed ({C.ttype = t}, ats) ->
     let instr = new typeInstantiator ats in
          t
       |> normalizeType
       |> C.visitCilType (instr :> C.cilVisitor)
       |> C.typeAddAttributes (List.filter attributeAppliesToInstance ats)
-  | C.TComp ({C.cattr = cats} as ci, ats) ->
-    C.TComp ({ci with C.cattr = []}, cats @ ats)
   | t -> ensureSlocAttrs t
 
 let argType (x, t, ats) =

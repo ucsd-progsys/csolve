@@ -13,9 +13,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG n) CHECK_TYPE {
+  for (; n-- && *s != '\0'; s++)
+    *s = tolower (*s);
+}
+
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
-char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
+char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
   strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
 {
   for (; n-- && *s != '\0'; s++)
@@ -24,60 +29,52 @@ char * ARRAY LOC(L) NNREF(&& [V >= s; V < s + n; PEQBLOCK(s)])
   return NULL;
 }
 
-// Typedef params inst automatically? (i.e., avoid having to reabstract typedef like this?)
-typedef struct _field {
+typedef struct _csval {
   int                 len;
   char * ARRAY LOC(L) str;
-  struct _field *     next;
-} INST(L, L) field;
+  struct _csval *     next;
+} csval;
 
-
-field INST(L, S) * revstrnfields (char * ARRAY LOC(S) s, int n) {
-  field *last = NULL;
+csval INST(L, S) * revstrncsvals (char * ARRAY LOC(S) s, int n) {
+  csval *last = NULL;
   while (n > 0) {
-    field *f    = (field *) malloc (sizeof (field));
-    f->next     = last;
-    f->str      = s;
+    csval *v    = (csval *) malloc (sizeof (csval));
+    v->next     = last;
+    v->str      = s;
     char *comma = strnchr (s, n, ',');
 
     if (!comma) {
-      f->len = n;
-      return f;
+      comma = s + n - 1;
     }
-    // would prefer to just do comma = s + n - 1,
-    // but breaks shape inference because we can't prove the ref offset is positive any more
     // would probably let us reorganize the code to do linked list stuff last
 
     *comma     = '\0';
-    f->len     = comma - s;
-    n         -= f->len + 1;
+    v->len     = comma - s;
+    n         -= v->len + 1;
     s          = comma + 1;
-    last       = f;
+    last       = v;
   }
 
   return last;
 }
 
-void strntolower (char * ARRAY s, int n) {
-  for (int i = 0; i < n && *s != '\0'; i++)
-    s[i] = tolower (s[i]);
-}
-
-void lowercase_fields (field *f) {
-  while (f) {
-    strntolower (f->str, f->len);
-    f = f->next;
+void lowercase_csvals (csval *v) {
+  while (v) {
+    strntolower (v->str, v->len);
+    v = v->next;
   }
 }
 
-void driver () {
+int main () {
   int len    = nondetpos ();
   char *line = (char *) malloc (len);
   for (int i = 0; i < len - 1; i++)
     line[i] = nondetpos ();
 
-  field *fs = revstrnfields (line, len);
-  lowercase_fields (fs);
+  csval *vs = revstrncsvals (line, len);
+  lowercase_csvals (vs);
+
+  return 0;
 }
 
 // END CAV PORTION

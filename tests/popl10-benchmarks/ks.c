@@ -31,7 +31,7 @@ struct _ModuleList {
    ModuleRecPtr INST(L, L) head ;
    ModuleRecPtr INST(L, L) tail ;
 };
-typedef struct _ModuleList INST(L, L) ModuleList;
+typedef struct _ModuleList ModuleList;
 typedef ModuleList *ModuleListPtr;
 enum __anonenum_Groups_1 {
     GroupA = 0,
