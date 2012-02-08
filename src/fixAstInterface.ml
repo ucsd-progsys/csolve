@@ -135,6 +135,10 @@ let uf_bend    = name_of_string "BLOCK_END"
 let uf_skolem  = name_of_string "SKOLEM" 
 let uf_uncheck = name_of_string "UNCHECKED"
 let uf_deref   = name_of_string "DEREF"
+let eff_read   = name_of_string "EREAD"
+let eff_write  = name_of_string "EWRITE"
+
+
 
 (* API *)
 let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
@@ -150,7 +154,10 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_bend,    C.make_reft vv_bls so_bls [])
                   ;(uf_skolem,  C.make_reft vv_skl so_skl [])
                   ;(uf_uncheck, C.make_reft vv_pun so_pun [])
-                  ;(uf_deref,   C.make_reft vv_drf so_drf [])]
+                  ;(uf_deref,   C.make_reft vv_drf so_drf [])
+                  ;(eff_read,   C.make_reft vv_int so_int [])
+                  ;(eff_write,  C.make_reft vv_int so_int [])
+                  ]
                   |> YM.of_list
 
 let quals_of_file fname =

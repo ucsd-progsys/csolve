@@ -21,7 +21,6 @@ val sorts               : Ast.Sort.t list
 val axioms              : Ast.pred list
 val builtinm            : FixConstraint.reft Ast.Symbol.SMap.t
 
-
 val eApp_bbegin         : Ast.expr -> Ast.expr 
 val eApp_bend           : Ast.expr -> Ast.expr 
 val eApp_uncheck        : Ast.expr -> Ast.expr 
@@ -39,5 +38,9 @@ val maybe_deref         : Ast.expr -> Ast.expr option
 
 val sloc_of_string      : string -> Sloc.t
 val string_of_sloc      : Sloc.t -> string 
+
+val eff_read            : name
+val eff_write           : name
+
 
 module NameMap          : Misc.EMapType with type key = name 

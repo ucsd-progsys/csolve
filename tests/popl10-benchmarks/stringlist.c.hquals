@@ -1,4 +1,4 @@
-qualif PI(v: ptr)   : v = ~a + ~b
-qualif P4(v: ptr)   : v = (BLOCK_BEGIN([v]) + 4)
-qualif BBGZ(v: ptr) : (BLOCK_BEGIN([v])) > 0
-qualif SIZE(v: ptr) : v != 0 => BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8
+qualif AtOffset(v: ptr) : v = ~a + ~b
+qualif AtPlus4(v: ptr)  : v = (BLOCK_BEGIN([v]) + 4)
+qualif BeginPos(v: ptr) : (BLOCK_BEGIN([v])) > 0
+qualif SIZE(v: ptr)     : v != 0 => BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8

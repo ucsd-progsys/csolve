@@ -1,11 +1,11 @@
 qualif A(v:int) : ~a <= v 
 qualif A(v:ptr) : ~a <= v 
 qualif A(v:int) : v <= 1
-qualif A(v:ptr) : (v - ~a) = (4 * (@nsa - @len))
+qualif A(v:ptr,~a:ptr) : (v - ~a) = (4 * (@nsa - @len))
 
 qualif A(v:ptr) : (2 * (v - @outp)) = 4 * ((@buf - 1) + @nsa - @len)
 qualif A(v:ptr) : (2 * (v - @outp)) = 4 * ((0 - @buf) + @nsa - (@len - 1))
 qualif A(v:ptr) : (2 * (v - @inp)) = 4 * ((@buf) + @nsa - @len)
 qualif A(v:ptr) : (2 * (v - @inp)) = 4 * ((1 - @buf) + @nsa - (@len - 1))
 
-qualif PointerDiff(v:ptr): ((~a - v) mod 4) = 0
+qualif PointerDiff(v:ptr,~a:ptr): ((~a - v) mod 4) = 0
