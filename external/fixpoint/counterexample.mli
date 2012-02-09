@@ -28,7 +28,6 @@
 type t 
 
 type kvar     = Ast.Symbol.t
-
 type fact     = Abs of kvar * Qualifier.t | Conc of FixConstraint.id
 type step     = int 
 
@@ -41,7 +40,7 @@ type ctrace  = step list Misc.IntMap.t
 
 (* [((k1,q1), c1);...;((kn,qn),cn)] 
  * where each k_i+1, q_i+1, c_i+1 is the "cause" for why k_i, q_i is killed *)
-type cex     = (Ast.Symbol.t * fact * FixConstraint.id) list
+type cex     (* = (Ast.Symbol.t * fact * FixConstraint.id) list *)
 
 val create  :  FixConstraint.soln       (* assumes           *) 
             -> FixConstraint.t list     (* all constraints   *)

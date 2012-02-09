@@ -63,6 +63,9 @@ type ctrace  = step list IM.t
 (* [((x1,k1,q1), c1);...;((xn,kn,qn),cn)] 
  * where each k_i+1, q_i+1, c_i+1 is the "cause" for why k_i, q_i is killed *)
 type cex     = (Sy.t * fact * C.id) list
+(*
+type cex     = Cause of Sy.t * fact * C.id * cex list
+*)
 
 let print_fact ppf = function
   | Abs (k, q) -> F.fprintf ppf "(%a/%a)" Sy.print k Q.print_args q
