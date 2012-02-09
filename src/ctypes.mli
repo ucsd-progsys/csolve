@@ -218,8 +218,11 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
+    val sub_store_var : t -> Heapvar.t * t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
+    val abstract_empty_slocs : t -> t
+    val add_var      : t -> Heapvar.t -> t
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
@@ -268,8 +271,8 @@ module type S = sig
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Heapvar.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val instantiate_store : CilMisc.srcinfo -> t -> t * (Heapvar.t * Store.t) list
-    val make            : (string * CType.t) list -> Sloc.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
+    val instantiate_store : t -> CType.t option -> CType.t list -> Store.t -> Sloc.Subst.t -> t
+    val make            : (string * CType.t) list -> Sloc.t list -> Heapvar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list 
   end

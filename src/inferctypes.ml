@@ -193,26 +193,40 @@ let unify_and_check_subtype sto sub ct1 ct2 =
     end;
     (sto, sub)
 
+(* Notes: 
+   - Applying wrong substitutions/substitutions too early?
+   - Checking for membership should be OK if there is a heap var? Or not? Double check this.
+*)
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cf in
+  let cfi           = CFun.instantiate_store cf None cts sto sub in
+  let _ = Pretty.printf "Instantiated: \n%a\n with \n%a\n" CFun.d_cfun cf CFun.d_cfun cfi in
+  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cfi in
+  let _ = Pretty.printf "loc inst cfun: %a\n" CFun.d_cfun cfi in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
+  let _ = Pretty.printf "0. sto: %a sub: %a isub %a\n" Store.d_store sto Sloc.Subst.d_subst sub Sloc.Subst.d_subst isub in
+  let _ = List.iter (Pretty.printf "arg[%a]\n" Ct.d_ctype <+> const ()) cts in 
   let sto           = cfi.sto_out
                    |> Store.domain
-                   |> List.filter (Store.mem cfi.sto_out)
+                   (* |> List.filter (Store.mem cfi.sto_out) *)
                    |> List.fold_left Store.ensure_sloc sto in
+  let _ = Pretty.printf "1. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
   let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
+  let _ = Pretty.printf "2. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
                         unify_and_check_subtype sto sub cta ctf
                       end (sto, sub) cts cfi.args in
+  let _ = Pretty.printf "3. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
+  let _ = Pretty.printf "4. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
         let sto, sub = unify_and_check_subtype sto sub (Ct.subs isub cf.ret) ctlv in
+  let _ = Pretty.printf "5. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -251,6 +265,7 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let sub, sto = constrain_exp et fs sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
+      let _ = Pretty.printf "%a := %a\n" Ct.d_ctype ct1 Ct.d_ctype ct2 in
       let _        = assert_store_type_correct lv ct2 in
       let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
         ([] :: bas, sub, sto)
@@ -444,6 +459,7 @@ let assert_call_no_physical_subtyping fe f store gst annots =
   let cf, _ = VM.find f fe in
     List.iter begin function
       | RA.New (scallee, scaller) ->
+        if Store.mem cf.sto_out scallee then
           let sto = if Store.mem store scaller then store else gst in
               assert_location_inclusion
                 scaller (Store.find sto scaller)

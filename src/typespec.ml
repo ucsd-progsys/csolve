@@ -367,10 +367,10 @@ and heapRefctypeOfCilType mem t =
               | rct    -> rct
 
 and addReffieldToStore sub sto s i rfld =
-  (* if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.ensure_sloc sto s) else *)
-  if rfld |> RFl.type_of |> RCt.width = 0 then 
-    (sub, RS.ensure_var sto (* |> Misc.flip RS.ensure_sloc s) *) )
-  else
+  if rfld |> RFl.type_of |> RCt.width = 0 then (sub, RS.ensure_sloc sto s) else
+  (* if rfld |> RFl.type_of |> RCt.width = 0 then  *)
+  (*   (sub, RS.ensure_var sto (\* |> Misc.flip RS.ensure_sloc s) *\) ) *)
+  (* else *)
     rfld |> RU.add_field sto sub s i |> M.swap
 
 and componentsOfTypeAux t = match normalizeType t with
@@ -436,7 +436,7 @@ and preRefcfunOfType t =
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
   let effs               = effectSetOfAttrs (allOutStore |> RS.domain |> M.negfilter (M.flip List.mem glocs)) ats in
-    RCf.make argrcts glocs allInStore retrct allOutStore effs
+    RCf.make argrcts glocs [] allInStore retrct allOutStore effs
 
 let updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.ensure_sloc) (RS.domain gstoUpd) gsto)
@@ -469,7 +469,9 @@ let substEffectSet sub effs =
 
 let rec refcfunOfPreRefcfun sub gsto prcf =
   let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
-  let gstof, ostof      = RS.partition (M.flip List.mem prcf.Ct.globlocs) aostof in
+  let gstof, ostof      = aostof
+                          |> RS.partition (M.flip List.mem prcf.Ct.globlocs)
+                          |> Misc.app_snd RS.abstract_empty_slocs in
   let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in

@@ -154,7 +154,9 @@ module Intraproc (X: Context) = struct
 	 | RA.New (scallee, scaller) ->
              if CT.Store.mem X.shp.Sh.store scaller && not (List.mem scaller X.glocs) then
 	       let callee_ffm = SM.find fname X.ffmm |> fst in
+               if LM.mem scallee callee_ffm then
                  LM.add scaller (IS.inter (LM.find scaller ffm) (LM.find scallee callee_ffm)) ffm
+               else ffm
              else ffm
 	 | _ -> ffm
        end ffm

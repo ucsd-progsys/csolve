@@ -138,7 +138,8 @@ funtyp:
     INST    refstore
     OUTST   refstore
     EFFECTS effectset {
-      Ct.RefCTypes.CFun.make $2 $6 $8 $4 $10 $12
+      (* This needs to change *)
+      Ct.RefCTypes.CFun.make $2 $6 [] $8 $4 $10 $12
     }
     ;
 

@@ -363,9 +363,12 @@ module SIGS (T : CTYPE_DEFS) = struct
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
+    val sub_store_var : t -> Heapvar.t * t -> t
     val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
-
+    val abstract_empty_slocs : t -> t
+    val add_var          : t -> Heapvar.t -> t
+        
     val d_store_addrs: unit -> t -> P.doc
     val d_store      : unit -> t -> P.doc
 
@@ -413,8 +416,8 @@ module SIGS (T : CTYPE_DEFS) = struct
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> H.t list
     val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
-    val instantiate_store : CM.srcinfo -> t -> t * (H.t * T.store) list
-    val make            : (string * T.ctype) list -> S.t list -> T.store -> T.ctype -> T.store -> effectset -> t
+    val instantiate_store : t -> T.ctype option -> T.ctype list -> T.store -> S.Subst.t -> t
+    val make            : (string * T.ctype) list -> S.t list -> Heapvar.t list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val indices         : t -> Index.t list
   end
@@ -808,6 +811,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           if f l then (SLM.add l d m1, m2) else (m1, SLM.add l d m2)
         end ds (SLM.empty, SLM.empty)
       in ((ds', vs), (ds'', vs))
+      
 
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
@@ -836,7 +840,20 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let rec closed globstore sto = 
       fold_fields
         (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto
-
+        
+    let abstract_empty_slocs sto = 
+      fold_locs
+        (fun s ld sto -> 
+          if S.is_abstract s && LDesc.is_empty ld then 
+           remove sto s |> ensure_var
+          else
+            sto) sto sto
+            
+    let add_var (s,vs) v =
+    (* Should we check here for two variables? OR check later when we
+       get two mappings in the heap? Deferred for now... *)
+      (s, v::vs)
+        
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
 
@@ -850,6 +867,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         P.dprintf "[@[%a@]]*@[%a@]" (d_storelike LDesc.d_ldesc) ds d_varstore vs
       else
         P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
+          
+    let sub_store_var (sto,vs) (var, substo) = 
+      List.fold_left begin fun (sto,vs) v -> 
+        if v = var then (upd (sto,vs) substo) else (sto, vs++[v])
+      end (sto,[]) vs 
           
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -874,7 +896,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         let ld1, ld2 = M.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
         let sto      = remove sto s1 in
         let sto      = ld2 |> add sto s2 |> subs sub in
-          LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
+        LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
 
 
       and anyfy_location sto sub s =
@@ -891,7 +913,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         if not (S.eq s1 s2) then
           let sub = S.Subst.extend s1 s2 sub in
           if mem sto s1 || mem sto s2 then
-              unify_data_locations sto sub s1 s2
+            unify_data_locations sto sub s1 s2
           else (subs sub sto, sub)
         else (sto, sub)
 
@@ -906,19 +928,19 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       and unify_overlap sto sub s i =
         let s  = S.Subst.apply sub s in
         let ld = find_or_empty sto s in
-          match LDesc.find i ld with
-            | []                         -> (sto, sub)
-            | ((_, fstfld) :: _) as olap ->
-              let i = olap |>: fst |> List.fold_left Index.lub i in
-                   ld
-                |> List.fold_right (fst <+> LDesc.remove) olap
-                |> LDesc.add i fstfld
-                |> add sto s
-                |> fun sto ->
-                     List.fold_left
-                       (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
-                       (sto, sub)
-                       olap
+        match LDesc.find i ld with
+          | []                         -> (sto, sub)
+          | ((_, fstfld) :: _) as olap ->
+            let i = olap |>: fst |> List.fold_left Index.lub i in
+            ld
+          |> List.fold_right (fst <+> LDesc.remove) olap
+          |> LDesc.add i fstfld
+          |> add sto s
+          |> fun sto ->
+            List.fold_left
+              (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
+              (sto, sub)
+              olap
 
       and add_field sto sub s i fld =
         try
@@ -929,17 +951,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
               let s        = S.Subst.apply sub s in
               let fld      = Field.subs sub fld in
               let ld       = find_or_empty sto s in
-                begin match LDesc.find i ld with
-                  | []          -> (ld |> LDesc.add i fld |> add sto s, sub)
-                  | [(_, fld2)] -> unify_fields sto sub fld fld2
-                  | _           -> assert false
-                end
+              begin match LDesc.find i ld with
+                | []          -> (ld |> LDesc.add i fld |> add sto s, sub)
+                | [(_, fld2)] -> unify_fields sto sub fld fld2
+                | _           -> assert false
+              end
           end
         with e ->
           C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a"
             Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (find_or_empty sto s) |> ignore;
           raise e
-
     end
   end
 
@@ -950,11 +971,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     type t = T.cfun
 
     (* API *)
-    let make args globs sin reto sout effs =
+    let make args globs svars sin reto sout effs =
       { args     = args;
         ret      = reto;
         globlocs = globs;
-        quant_svars = [];
+        quant_svars = svars; 
         sto_in   = sin;
         sto_out  = sout;
         effects  = effs;
@@ -1027,9 +1048,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       P.dprintf "@[%a%a%a%a%a@]" d_quantifiers ft d_argret ft d_globlocs ft d_stores ft d_effectset ft
 
     let capturing_subs cf sub =
+      Pretty.printf "capturing_subs subs: %a\n" S.Subst.d_subst sub ;
       let apply_sub = CType.subs sub in
         make (List.map (M.app_snd apply_sub) cf.args)
              (List.map (S.Subst.apply sub) cf.globlocs)
+             cf.quant_svars
              (Store.subs sub cf.sto_in)
              (apply_sub cf.ret)
              (Store.subs sub cf.sto_out)
@@ -1100,10 +1123,36 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let build_uniq xs ys = 
         List.fold_left (fun xs y -> if List.mem y xs then xs else y::xs) xs ys in
       {cf with quant_svars = build_uniq (snd cf.sto_out) (snd cf.sto_in) }
-          
-    let instantiate_store srcinf cf = 
-      let qsvars = quantified_svars cf in
-      (cf, [])
+        
+    let instantiate_store cf _ argcts sto sub =
+      let _ = Pretty.printf "sto: %a\n, cf.sto_out %a\n" Store.d_store sto Store.d_store cf.sto_out in
+      let formlocs,actlocs = 
+        (List.map snd cf.args, argcts)
+        |> M.map_pair (M.map_partial (CType.subs sub <+> CType.sloc)) in
+      let sub = List.fold_left2 begin fun sub formal actual -> 
+                  S.Subst.extend actual formal sub
+               end sub formlocs actlocs
+      in
+      let _ = Pretty.printf "subs' %a\n" S.Subst.d_subst sub in
+      let substo = actlocs
+               |> List.filter (Store.mem cf.sto_out <+> not)
+               (* |> List.filter (Store.mem gsto <+> not) *)
+               |> Store.restrict sto
+               |> Store.subs sub
+               (* |> List.fold_left SS.add SS.empty *)
+               (* |> SS.elements *)
+      in
+      if Store.domain substo <> [] && cf.quant_svars = [] then
+        let _ = Pretty.printf "substo: %a\n" Store.d_store substo in
+        assertf "Missing slocs in non-polymorphic store!"
+      else if Store.domain substo = [] then
+        cf
+      else
+        let subv sto = Store.sub_store_var sto (List.hd cf.quant_svars, substo) in
+        {cf with 
+          sto_in = subv cf.sto_in;
+          sto_out = subv cf.sto_out;
+          quant_svars = List.tl cf.quant_svars}
   end
 
   (******************************************************************************)
