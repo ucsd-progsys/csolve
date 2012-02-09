@@ -1,0 +1,65 @@
+Globally, a lot of the examples compare argc and optind. How to
+incorporate this reasoning?
+
+Not clear that the spec for quote_n is correct.
+
+* means shape only
++ means with serious work left to be done
+;( means blocked on some feature
+? means in-progress
+
+true
+false
+sum
+sync
+logname
+hostid
+unlink
++ yes
+whoami
+link
+dirname
+hostname
+ - double-check; it had weird optind stuff going on and maybe shouldn't have worked
+tty
++ groups
++ nproc
+  - Uses optarg and getopt. There is a dependency between c, the return value of optarg, the input option structure, and the global variable optarg. Should show that optarg is not null depending on the value of c.
+basename    [AB] (with lcc_check_pos uncommented)
+* tsort
+* mkfifo    [RJ]
+libstdbuf   [RJ]   
+sleep       [RJ]    -- dependent-addrof issue
+;( users    [AB]
+ - requires nested arrays
+getlimits   [AB]
+ - revisit once contextual types are in
+ - Need to check csolve_check_pos here
+readlink
+* setuidgid
+ - NUL-terminated array
+;( nice
+ - NUL-terminated array
++ mknod [PMR]
+  - One part of the code checks argv[optind][0] == 'p', then
+    another part uses that test; however, we can't propagate that
+    info because we can't show that argv[optind] is final, as that
+    location is global. (pmr_argchar)
+  - We have to fold optind at all function calls because it's in a global
+    location, which means we have to manually constant fold for some
+    reasoning. (pmr_optind)
+  - Complex control flow involving case switches and gotos gets us into
+    a situation where the guards imply a fact is true at a block, but no
+    guard *dominates* that block, so we have to make a witness variable
+    for the fact. (pmr_case_witness)
+;( uptime [MK]
+  - Contains a non-flat struct in a non-trivial way
+? tac-mem [AB]
+? nohup [PMR]
+? rmdir [PMR]
+? runcon [AB]
+  - selinux.h is defined with nops that most likely trick csolve into thinking
+    Sections of code are not executed. There is certainly more work to be done here.
+? chroot [AB]
+echo [AB]
+? env [MK]

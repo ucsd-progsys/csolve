@@ -1,0 +1,22 @@
+include ../../config.make
+
+LIBS=-libs unix,str,graph
+
+DIRS=-I misc
+
+IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) 
+
+LFLAGS=-lflags -cc,g++ 
+#\
+#       -lflags -cclib,-L$(OCAMLLIBHOME) \
+       -lflags -cclib,-lstdc++
+
+#LFLAGS=-lflags -cclib,-L$(OCAMLLIBHOME) 
+
+CFLAGS=-cflags -dtypes \
+       -cflags -I,$(OCAMLGRAPHHOME)
+
+OFLAGS=$(DIRS) $(IFLAGS) $(LFLAGS) $(CFLAGS)
+
+all:
+	ocamlbuild -quiet -r $(LIBS) $(OFLAGS) fixtop.native

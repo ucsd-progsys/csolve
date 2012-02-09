@@ -1,0 +1,7 @@
+#!/bin/bash
+
+./config.status
+cp -f src/version-csolve.h src/version.h
+cd lib
+export INCLUDES=-I../../lib
+make -f Makefile.csolve

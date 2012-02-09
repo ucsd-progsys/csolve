@@ -1,0 +1,3 @@
+qualif VALIDINDEX(v: int): v + ~A < BLOCK_END([~A])
+qualif CHARVALS(v: int): v <= 255
+qualif LOCBOUNDS(v: ptr): BLOCK_END([v]) - BLOCK_BEGIN([v]) >= 768

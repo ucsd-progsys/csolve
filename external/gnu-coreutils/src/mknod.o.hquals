@@ -1,0 +1,2 @@
+qualif EXP  (v: int) : || [v = 4; && [v = 2; || [@argc <= @pmr_optind; @pmr_argchar = 112]]]
+qualif CASE (v: int) : @pmr_argchar != 112

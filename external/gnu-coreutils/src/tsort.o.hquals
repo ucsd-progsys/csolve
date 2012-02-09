@@ -1,0 +1,2 @@
+qualif ITEMSIZE(v: ptr)       : (v != 0) => ((BLOCK_END([v]) - BLOCK_BEGIN([v])) = 28)
+qualif TOKENBUFFERSZ (v: ptr) : (v != 0) => ((v + ~A) <= BLOCK_END([v]))

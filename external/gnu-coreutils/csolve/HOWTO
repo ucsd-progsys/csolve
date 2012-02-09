@@ -1,0 +1,36 @@
+How To Check coreutils Programs With csolve
+===========================================
+
+First, configure to build with csolve:
+
+  ./csolve.configure
+
+Then change into the src/ directory and invoke "make.csolve" with the
+name of the object file for program you want to build, e.g.,
+
+  ./make.csolve true
+
+(Highly technical note: this compiles true.o, not the final executable
+true, to avoid having to build and link in libraries in the lib/
+subdirectory.)
+
+Debugging Tip: Checking Programs With A coreutils Build Environment
+-------------------------------------------------------------------
+
+If you want to check a program with the same build environment as used
+for coreutils programs, you can simply drop an arbitrarily-named file
+in the src/ directory and invoke make.csolve with it, as in
+
+  cp tsort.c patsFooBar.c
+  ./make.csolve patsFooBar
+
+This is helpful, for example, if you are trying to debug a program
+(tsort.c) in this case and you don't want to mutate it in place but
+rather make a copy and tweak that.
+
+Version Control
+===============
+
+Please modify the programs in place. This will make it easy to look at
+the git logs later and see how the source program was modified, if at
+all, from the original version.

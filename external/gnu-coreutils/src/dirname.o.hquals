@@ -1,0 +1,2 @@
+qualif DotLen(v:ptr) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) = 2
+qualif Len(v: ptr)   : (BLOCK_END([v]) - v) > ~a

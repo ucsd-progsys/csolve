@@ -1,0 +1,4 @@
+#!/bin/bash
+
+CSCC="`pwd`/../../../src/csolve -m32"
+make -f Makefile.csolve CC="$CSCC" $1.o
