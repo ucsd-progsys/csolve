@@ -454,7 +454,7 @@ Copyright (C) 2009 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/rjhala/research/csolve/external/gnu-coreutils'
+ac_pwd='${PWD}'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
@@ -717,12 +717,12 @@ S["MAN"]="chroot.1 hostid.1 nice.1 who.1 users.1 pinky.1 uptime.1 stty.1 df.1 st
 "printenv.1 printf.1 ptx.1 pwd.1 readlink.1 rm.1 rmdir.1 runcon.1 seq.1 sha1sum.1 sha224sum.1 sha256sum.1 sha384sum.1 sha512sum.1 shred.1 shuf.1 slee"\
 "p.1 sort.1 split.1 stat.1 sum.1 sync.1 tac.1 tail.1 tee.1 test.1 timeout.1 touch.1 tr.1 true.1 truncate.1 tsort.1 tty.1 uname.1 unexpand.1 uniq.1 un"\
 "link.1 vdir.1 wc.1 whoami.1 yes.1 "
-S["HELP2MAN"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run help2man"
+S["HELP2MAN"]="${SHELL} ${PWD}/build-aux/missing --run help2man"
 S["LIBTESTS_LIBDEPS"]=""
 S["LIBCOREUTILS_LTLIBDEPS"]=" "
 S["LIBCOREUTILS_LIBDEPS"]=" "
 S["YIELD_LIB"]="-lrt"
-S["abs_aux_dir"]="/home/rjhala/research/csolve/external/gnu-coreutils/build-aux"
+S["abs_aux_dir"]="${PWD}/build-aux"
 S["INET_PTON_LIB"]=""
 S["LOCALE_TR_UTF8"]="none"
 S["gltests_WITNESS"]="IN_COREUTILS_GNULIB_TESTS"
@@ -1560,7 +1560,7 @@ S["AM_BACKSLASH"]="\\"
 S["AM_DEFAULT_VERBOSITY"]="0"
 S["am__untar"]="${AMTAR} xf -"
 S["am__tar"]="${AMTAR} chof - \"$$tardir\""
-S["AMTAR"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run tar"
+S["AMTAR"]="${SHELL} ${PWD}/build-aux/missing --run tar"
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
 S["AWK"]="gawk"
@@ -1568,12 +1568,12 @@ S["mkdir_p"]="/bin/mkdir -p"
 S["MKDIR_P"]="/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]=""
-S["install_sh"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/install-sh"
-S["MAKEINFO"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run makeinfo"
-S["AUTOHEADER"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoheader"
-S["AUTOMAKE"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run automake-1.11a"
-S["AUTOCONF"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoconf"
-S["ACLOCAL"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run aclocal-1.11a"
+S["install_sh"]="${SHELL} ${PWD}/build-aux/install-sh"
+S["MAKEINFO"]="${SHELL} ${PWD}/build-aux/missing --run makeinfo"
+S["AUTOHEADER"]="${SHELL} ${PWD}/build-aux/missing --run autoheader"
+S["AUTOMAKE"]="${SHELL} ${PWD}/build-aux/missing --run automake-1.11a"
+S["AUTOCONF"]="${SHELL} ${PWD}/build-aux/missing --run autoconf"
+S["ACLOCAL"]="${SHELL} ${PWD}/build-aux/missing --run aclocal-1.11a"
 S["VERSION"]="UNKNOWN"
 S["PACKAGE"]="coreutils"
 S["CYGPATH_W"]="echo"
