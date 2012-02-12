@@ -76,6 +76,7 @@ li { margin-left: 10px; }
 
 h3 { margin: 5px 0; }
 
+.errLine  { background-color: #FF9999; }
 .red      { background-color: red; }
 .yellow   { background-color: yellow; }
 

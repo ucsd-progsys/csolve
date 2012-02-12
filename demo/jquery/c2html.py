@@ -25,7 +25,7 @@ from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
 
-lineTplt = Template("<span class=\"line\" num=\"$linenum\"><span class=\"linenum\" num=\"$linenum\">$linenum:</span>$line</span>")
+lineTplt = Template("<span class=\"line\" num=$linenum><span class=\"linenum\" num=$linenum>$linenum:</span>$line</span>")
 srcTplt  = "templates/source.html"
 tgtTplt  = "templates/csolve.html" 
 tgtFile  = "csolve.html"
@@ -66,14 +66,21 @@ def addLineNumbers(src, html):
 
 ##################### Plugging Into Templates #########################
 
-def main(srcFile):
+def main(srcFile, jsonFile):
   src     = readFrom(srcFile)
   srcHtml = highlight(src, CLexer(stripall=False), HtmlFormatter())
   srcHtml = addLineNumbers(src, srcHtml)
-  writeTo(tgtFile, Template(readFrom(tgtTplt)).substitute(srcHtml = srcHtml)) 
+  srcJson = readFrom(jsonFile)
+  tplt    = Template(readFrom(tgtTplt))
+  tgt     = tplt.substitute(srcHtml = srcHtml, srcJson = srcJson)
+  writeTo(tgtFile, tgt)
 
 #############################################################################
 
-try: srcFile = sys.argv[1]
-except: print "Usage: ./c2html.py <infile.c>"
-main(sys.argv[1])
+try: 
+  srcFile  = sys.argv[1]
+  try: 
+    jsonFile = sys.argv[2]
+  except: jsonFile = srcFile + ".json"
+except: print "Usage: ./c2html.py <inFile.c> [inFile.json]"
+main(srcFile, jsonFile)
