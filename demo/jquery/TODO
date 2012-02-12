@@ -2,8 +2,6 @@ RUN WITH:
 
 /usr/local/bin/python c2html.py stringlist.c
 
-
-
 1. Rig pygments so that it takes in C file and produces:
     * each line is      
       <span line="%d"> ... </span>
@@ -23,6 +21,8 @@ RUN WITH:
 4. On click of var
     * write var-name, line in scoreboard
 
+HEREHEREHERE (Start Parsing JSON, get c2html to mix json+html?)
+
 5. Extend Templatized Demo with ErrorLines (list of ints)
-    * each int is shaded red (error-class in css, do a jQuery  addClass)
+    * each int is shaded red (error-class in css, do a jQuery addClass)
 

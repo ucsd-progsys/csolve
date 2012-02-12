@@ -1,28 +1,43 @@
-var redOn     = function(){$(this).addClass("red");};
-var redOff    = function(){$(this).removeClass("red");};
-var yellowOn  = function(){$(this).addClass("yellow");};
-var yellowOff = function(){$(this).removeClass("yellow");};
+var redOn      = function(){$(this).addClass("red");};
+var redOff     = function(){$(this).removeClass("red");};
+var yellowOn   = function(){$(this).addClass("yellow");};
+var yellowOff  = function(){$(this).removeClass("yellow");};
+
+var getVarName = function(x){ return $(x).text();};
+var getVarLine = function(x){ return $(x).closest("span[class='line']").attr("num"); }
+var getVarInfo = function(x){ return (getVarName(x) + " at line: " + getVarLine(x)); }
+var toggleText = { 'Hide': 'Show', 'Show': 'Hide' };
 
 $(document).ready(function(){
  
-  //$("a[href*='ucsd.edu']").click(function(event){
-  //  event.preventDefault();
+  $("#showlines").click(function(){
+    $("span[class='linenum']").slideToggle(); 
+    $(this).text(toggleText[$(this).text()]);
+  });
+
+  //$("span[class='line']").hover(yellowOn, yellowOff);
+  //prepend('DOG');
+  //"<span class=\"num\">" + $(this).attr("num") + ":</span>");
+
+  //Hover-Highlights Variables and Functions
+  $("span[class='n']").hover(yellowOn, yellowOff);
+  $("span[class='nf']").hover(yellowOn, yellowOff);
+
+  //Nuke identifiers on click
+  //$("span[class='n']").click(function(event){
   //  $(this).hide("slow");
   //});
 
-  $("a[href*='ucsd.edu']").hover(redOn, redOff);
- 
-  $("span[class='line']").hover(yellowOn, yellowOff);
+  //Show Variable Info on click
+  $("span[class='n']").click(function(event){
+    $("#msg").text("Variable " + getVarInfo(this));
+  });
 
-//  $("span[class*='line']").hover(
-//      function(){$(this).addClass("green");}
-//     ,function(){$(this).removeClass("green");}
-//  );
-//
-//  $("span[class*='line']").hover(
-//      function(){$(this).addClass("green");}
-//     ,function(){$(this).removeClass("green");}
-//  );
+  //Show Function Info on click
+  $("span[class='nf']").click(function(event){
+    $("#msg").text("Function " + getVarInfo(this));
+  });
+
 
 });
 

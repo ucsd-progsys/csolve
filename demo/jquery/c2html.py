@@ -25,9 +25,10 @@ from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
 
-srcTplt = "templates/source.html"
-tgtTplt = "templates/csolve.html" 
-tgtFile = "csolve.html"
+lineTplt = Template("<span class=\"line\" num=\"$linenum\"><span class=\"linenum\" num=\"$linenum\">$linenum:</span>$line</span>")
+srcTplt  = "templates/source.html"
+tgtTplt  = "templates/csolve.html" 
+tgtFile  = "csolve.html"
 
 ##################### Generic IO Helpers #########################
 
@@ -43,9 +44,6 @@ def writeTo(file, s):
   f.close()
 
 ################ Add Line Numbers To Pygment Output ######################
-
-def addLineNumber(i, line):
-  return ("<span class=\"line\" num=\"%d\">%s</span>" % (i, line))
 
 def isBlank(s):
   return (len(s.split()) == 0)
@@ -63,29 +61,19 @@ def addLineNumbers(src, html):
   s    = html[28:-13] 
   ins  = ["" for i in range(numBlanks(src))] + s.split("\n")
   n    = len(ins)
-  outs = [addLineNumber(i, l) for (i, l) in zip(range(1, n+1), ins)]
+  outs = [lineTplt.substitute(linenum = i, line = l) for (i, l) in zip(range(1, n+1), ins)]
   return (html[:28] + "\n".join(outs) + html[-13:])
 
 ##################### Plugging Into Templates #########################
-
-def addHeaderFooter(html):
-  css = "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"pyg_default.css\" />\n"
-  return (css + html)
 
 def main(srcFile):
   src     = readFrom(srcFile)
   srcHtml = highlight(src, CLexer(stripall=False), HtmlFormatter())
   srcHtml = addLineNumbers(src, srcHtml)
- 
-  #Write Source File (HTML)
-  htmlFile = srcFile + ".html"
-  writeTo(htmlFile, Template(readFrom(srcTplt)).substitute(srcHtml = srcHtml)) 
+  writeTo(tgtFile, Template(readFrom(tgtTplt)).substitute(srcHtml = srcHtml)) 
 
-  #Write Target File (HTML)
-  writeTo(tgtFile, Template(readFrom(tgtTplt)).substitute(srcHtmlFile = htmlFile)) 
+#############################################################################
 
-
-#try:
+try: srcFile = sys.argv[1]
+except: print "Usage: ./c2html.py <infile.c>"
 main(sys.argv[1])
-#except:
-#  print "Usage: ./c2html.py <infile.c>"

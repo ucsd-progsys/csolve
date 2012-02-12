@@ -1,10 +1,21 @@
 <html>
   <head>
     <title>Csolve</title>
+    <link rel="stylesheet" type="text/css" media="screen" href="pyg_default.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="csolve.css" />
     <script src="jquery.js" type="text/javascript"></script>
+    <script src="csolve.js"></script>
   </head>
   <body>
-    <iframe id="source" src="$srcHtmlFile" width="400" height="300" scrolling="auto" frameborder="1"/>
+    
+    <hr>
+    Line Numbers: <div id="showlines">Hide</div> 
+    <hr>
+    Your Last Click:<div id="msg"></div>
+    <hr>
+    <div class="highlight" style="width: 500px; height: 300px; overflow: auto; padding: 5px;">
+    $srcHtml
+    </div>
+
   </body>
 </html>
