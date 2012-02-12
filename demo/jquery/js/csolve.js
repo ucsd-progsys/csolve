@@ -30,8 +30,7 @@ var getVarInfo = function(x){
 };
 
 var hilitError = function(line){ 
-  if ($(line).attr("num") in csolveData.errorLines) 
-  {
+  if ($(line).attr("num") in csolveData.errorLines) {
     $(line).addClass("errLine");
   };
 };
