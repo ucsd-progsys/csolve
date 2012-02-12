@@ -76,7 +76,9 @@ li { margin-left: 10px; }
 
 h3 { margin: 5px 0; }
 
-.red { background-color: red; }
+.red      { background-color: red; }
+.yellow   { background-color: yellow; }
+
 .blue { color: blue; }
 .green { color: green; }
 
@@ -130,10 +132,10 @@ dl {
 	margin: 5px;
 }
 
-.highlight {
-	border: 5px dotted #eee;
-}
 
 .error {
 	background-color: #fee;
 }
+
+
+

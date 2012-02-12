@@ -23,9 +23,16 @@ import sys
 from pygments import highlight
 from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
+from string import Template
+
+srcTplt = "templates/source.html"
+tgtTplt = "templates/csolve.html" 
+tgtFile = "csolve.html"
+
+##################### Generic IO Helpers #########################
 
 def readFrom(file):
-  f  = open(infile, "r")
+  f  = open(file, "r")
   rv = f.read()
   f.close()
   return rv
@@ -34,6 +41,8 @@ def writeTo(file, s):
   f  = open(file, "w")
   f.write(s)
   f.close()
+
+################ Add Line Numbers To Pygment Output ######################
 
 def addLineNumber(i, line):
   return ("<span class=\"line\" num=\"%d\">%s</span>" % (i, line))
@@ -57,21 +66,26 @@ def addLineNumbers(src, html):
   outs = [addLineNumber(i, l) for (i, l) in zip(range(1, n+1), ins)]
   return (html[:28] + "\n".join(outs) + html[-13:])
 
-def addCSS(html):
+##################### Plugging Into Templates #########################
+
+def addHeaderFooter(html):
   css = "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"pyg_default.css\" />\n"
   return (css + html)
+
+def main(srcFile):
+  src     = readFrom(srcFile)
+  srcHtml = highlight(src, CLexer(stripall=False), HtmlFormatter())
+  srcHtml = addLineNumbers(src, srcHtml)
  
+  #Write Source File (HTML)
+  htmlFile = srcFile + ".html"
+  writeTo(htmlFile, Template(readFrom(srcTplt)).substitute(srcHtml = srcHtml)) 
 
-def main(infile, outfile):
-  src  = readFrom(infile)
-  html = highlight(src, CLexer(stripall=False), HtmlFormatter())
-  html = addLineNumbers(src, html)
-  html = addCSS(html)
-  writeTo(outfile, html)
+  #Write Target File (HTML)
+  writeTo(tgtFile, Template(readFrom(tgtTplt)).substitute(srcHtmlFile = htmlFile)) 
 
-try:
-  infile  = sys.argv[1]
-  outfile = sys.argv[2]
-  main(infile, outfile)
-except:
-  print "Usage: ./c2html.py <infile.c> <outfile.html>"
+
+#try:
+main(sys.argv[1])
+#except:
+#  print "Usage: ./c2html.py <infile.c>"
