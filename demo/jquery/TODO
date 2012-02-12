@@ -1,0 +1,23 @@
+
+1. Rig pygments so that it takes in C file and produces:
+    * each line is      
+      <span line="%d"> ... </span>
+    * each variable is  
+      <span class="n" name="%s">...</span> 
+    * each function is 
+      <span class="nf" name=%s">...</name>
+    
+2. Use jQuery to write a templatized demo with
+    * Highlighted Source
+
+3. On mouseover Highlight
+    * var      (all spans with class="n")
+    * fun-use 
+    * fun-def  (all spans with class="nf")
+
+4. On click of var
+    * write var-name, line in scoreboard
+
+5. Extend Templatized Demo with ErrorLines (list of ints)
+    * each int is shaded red (error-class in css, do a jQuery  addClass)
+

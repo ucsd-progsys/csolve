@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 # Copyright (c) 2009 The Regents of the University of California. All rights reserved.
 #
 # Permission is hereby granted, without written agreement and without
@@ -27,13 +27,14 @@ from pygments.formatters import HtmlFormatter
 def main(infile, outfile):
   code = open(infile, "r")
   out  = open(outfile, "w")
-  print highlight(code.read(), CLexer(), HtmlFormatter(), out)
+  highlight(code.read(), CLexer(), HtmlFormatter(), out)
   code.close()
   out.close()
 
 try:
   infile  = sys.argv[1]
   outfile = sys.argv[2]
-  main(infile, outfile)
+  print infile, outfile
+ #main(infile, outfile)
 except:
-  print "Usage: ./c2html2.py <infile.c> <outfile.html>"
+  print "Usage: ./c2html.py <infile.c> <outfile.html>"

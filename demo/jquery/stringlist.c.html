@@ -1,0 +1,108 @@
+
+
+<link rel="stylesheet" type="text/css" media="screen" href="pyg_default.css" />
+
+
+
+<div class="highlight"><pre><span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;csolve.h&gt;</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">ARRAY</span> <span class="nf">make_string</span><span class="p">(</span><span class="kt">int</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="kt">char</span> <span class="o">*</span><span class="n">str0</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">));</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">str</span>  <span class="o">=</span> <span class="n">str0</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">*</span><span class="n">str</span><span class="o">++</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">str0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="kt">int</span>  <span class="n">len</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">ARRAY</span> <span class="n">str</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">string</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">init_string</span><span class="p">(</span><span class="n">string</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">len</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">s</span><span class="o">-&gt;</span><span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">string</span> <span class="o">*</span><span class="nf">new_string</span><span class="p">(</span><span class="kt">int</span> <span class="n">n</span><span class="p">,</span> <span class="kt">char</span> <span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">string</span> <span class="o">*</span><span class="n">s</span><span class="p">;</span>
+    <span class="kt">char</span>   <span class="o">*</span><span class="n">str</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">s</span>      <span class="o">=</span> <span class="p">(</span><span class="n">string</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">string</span><span class="p">));</span>
+    <span class="n">s</span><span class="o">-&gt;</span><span class="n">len</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
+    <span class="n">s</span><span class="o">-&gt;</span><span class="n">str</span> <span class="o">=</span> <span class="n">make_string</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+
+    <span class="n">init_string</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">s</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">_slist</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="n">_slist</span>  <span class="o">*</span> <span class="n">next</span><span class="p">;</span>
+    <span class="n">string</span> <span class="o">*</span> <span class="n">LOC</span><span class="p">(</span><span class="n">SL</span><span class="p">)</span> <span class="n">s</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">slist</span><span class="p">;</span>
+
+<span class="n">slist</span> <span class="o">*</span><span class="nf">new_strings</span><span class="p">(</span><span class="kt">int</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">string</span> <span class="o">*</span><span class="n">s</span><span class="p">;</span>
+    <span class="n">slist</span>  <span class="o">*</span><span class="n">sl</span><span class="p">,</span> <span class="o">*</span><span class="n">t</span><span class="p">;</span>
+    <span class="n">string</span> <span class="o">*</span><span class="n">str</span><span class="p">;</span>
+
+    <span class="n">sl</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">s</span>       <span class="o">=</span> <span class="p">(</span><span class="n">string</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">string</span><span class="p">));</span>
+        <span class="n">s</span><span class="o">-&gt;</span><span class="n">len</span>  <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+        <span class="n">s</span><span class="o">-&gt;</span><span class="n">str</span>  <span class="o">=</span> <span class="n">make_string</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+
+        <span class="n">t</span>       <span class="o">=</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">slist</span><span class="p">));</span>
+        <span class="n">t</span><span class="o">-&gt;</span><span class="n">s</span>    <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+        <span class="n">t</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">sl</span><span class="p">;</span>
+        <span class="n">sl</span>      <span class="o">=</span> <span class="n">t</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">sl</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">string</span> <span class="o">*</span> <span class="nf">LOC</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="n">string_succ</span><span class="p">(</span><span class="n">slist</span> <span class="n">INST</span><span class="p">(</span><span class="n">SL</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">*</span> <span class="n">REF</span><span class="p">(</span><span class="n">V</span> <span class="o">=</span> <span class="p">(</span><span class="n">BLOCK_BEGIN</span><span class="p">([</span><span class="n">V</span><span class="p">])</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">slist</span> <span class="o">*</span><span class="n">sl</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="n">slist</span> <span class="o">**</span><span class="p">)</span><span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+
+
+    <span class="n">csolve_validptr_lo</span> <span class="p">(</span><span class="n">sl</span><span class="p">);</span>
+    <span class="n">csolve_validptr_hi</span> <span class="p">(</span><span class="n">sl</span><span class="p">);</span> 
+    <span class="n">sl</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">sl</span> <span class="o">==</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">s</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">main</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">str</span> <span class="o">=</span> <span class="n">make_string</span><span class="p">(</span><span class="n">nondetpos</span><span class="p">());</span>
+    <span class="n">new_string</span> <span class="p">(</span><span class="n">nondetpos</span><span class="p">(),</span> <span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">nondetpos</span><span class="p">());</span>
+    <span class="n">slist</span> <span class="o">*</span><span class="n">sls</span> <span class="o">=</span> <span class="n">new_strings</span><span class="p">(</span><span class="n">nondetpos</span><span class="p">());</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">sls</span> <span class="o">==</span> <span class="p">(</span><span class="n">slist</span> <span class="o">*</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span><span class="p">;</span>
+
+    <span class="n">string</span> <span class="o">*</span><span class="n">s</span> <span class="o">=</span> <span class="n">string_succ</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sls</span><span class="o">-&gt;</span><span class="n">s</span><span class="p">);</span>
+    <span class="c1">// csolve_assert(0); // Sanity</span>
+    <span class="c1">// init_string(s, 0);</span>
+<span class="p">}</span>
+</pre></div>
+
