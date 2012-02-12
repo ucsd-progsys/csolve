@@ -1,3 +1,8 @@
+RUN WITH:
+
+/usr/local/bin/python c2html.py stringlist.c
+
+
 
 1. Rig pygments so that it takes in C file and produces:
     * each line is      
