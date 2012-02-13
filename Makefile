@@ -1,6 +1,13 @@
 all:
 	./build.sh
 
+configure:
+	./configure
+	cd external/gnu-coreutils && ./csolve.configure && cd ../../
+
+test:
+	cd src && ./regrtest.py -t 24
+
 clean:
 	cd src && make clean
 	cd external/cil && make clean
