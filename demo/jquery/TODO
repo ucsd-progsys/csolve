@@ -3,3 +3,7 @@ RUN WITH:
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
 
+1. Mouse Over Idents Shows Reft:
+    Conc
+    Abs  --> MouseOver qualname shows its definition.
+

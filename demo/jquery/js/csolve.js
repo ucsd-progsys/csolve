@@ -49,6 +49,25 @@ var isErrorLine = function(i){
 };
 
 /****************************************************************/
+/********** Generating Identifier Annotation Tooltips ***********/ 
+/****************************************************************/
+
+var varToolTipTplt = 
+   "<div id=\"vartooltip\" class=\"tooltip\" ident=${name} num=${line}>" 
+ + "${name} on line ${line}" 
+ + "This is a <a href=\"http://www.google.com\">hyperlink.</a>" 
+ + "</div>"
+ ;
+
+/* Compile markup string as a named template */
+$.template("varToolTipTplt", varToolTipTplt);
+
+/* Render the named template */
+$("#showBtn" ).click(function() {
+  $("#movieList").empty();
+  $.tmpl("movieTemplate", movies).appendTo( "#movieList" );
+});
+/****************************************************************/
 /**************** Accessing csolveData Information **************/
 /****************************************************************/
 
@@ -63,7 +82,25 @@ $(document).ready(function(){
   //Hover-Highlights Variables and Functions
   $("span[class='n']").hover(yellowOn, yellowOff);
   $("span[class='nf']").hover(yellowOn, yellowOff);
+ 
+  //Generate tooltips for each ident, place after ident 
+  //http://flowplayer.org/tools/demos/tooltip/any-html.html
+  $("span[class='n']").each(function(){
+    //HEREHEREHERE: get name
+    //HEREHEREHERE: get line
+    //HEREHEREHERE: create TT from template
+    //HEREHEREHERE: insert after this
+  });
 
+  //Link tooltips for each identifier
+  $("span[class='n']").tooltip({
+  /*  tip      : '#vartooltip', */ 
+      position : 'top right'
+    , offset   : [0, 15]
+    , delay    : 50
+    , effect   : 'slide'
+  });
+  
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
   //  $(this).hide("slow");

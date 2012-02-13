@@ -1,13 +1,67 @@
 <html>
   <head>
     <title>Csolve</title>
-    <link rel="stylesheet" type="text/css" media="screen" href="pyg_default.css" />
-    <link rel="stylesheet" type="text/css" media="screen" href="csolve.css" />
-    <script src="jquery.js" type="text/javascript"></script>
-    <script src="csolve.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/pyg_default.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="css/csolve.css" />
+    <!--<script src="js/jquery.js" type="text/javascript"></script>
+    <script src="js/jquery.tools.min.js"></script>-->
+	<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+    <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+    <script src="js/csolve.js"></script>
     <script> var csolveData = $srcJson; </script>
+  
+    <style>
+
+      .tooltip {
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); 
+        -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
+        display:none; /* block; */
+        position: relative; 
+        left: 1em; top: 2em; 
+        z-index: 99;
+        margin-left: 5; 
+        background: transparent #FFFFAA; 
+        border: 2px solid #FFAD33;
+        padding: 0.8em 1em;
+        font-family:"Lucida Grande","bitstream vera sans","trebuchet ms",sans-serif,verdana;
+      
+      }
+
+/* style the trigger elements 
+#demo img {
+	border:100;
+	cursor:pointer;
+	margin:0 8px;
+  }
+  */
+
+</style>
   </head>
   <body>
+    <!--<div id="varTooltips" class="hidden"></div>-->
+    <script id="varTooltipTemplate" type="text/x-jquery-tmpl"> 
+      <li> 
+      Variable: ${name} Line: ${num}
+      <ul>
+        {{each (i, qual) Qualifiers}}
+        <li>
+          <span class="qualbind" title="${qualDef(qual.name)}">
+            <a href="${qual.url}">${qual.name}(${qual.args})</a>
+          </span>
+        </li>
+        {{/each}}
+      </ul>
+      </li>
+    </script>
+
+    <div id="vartooltip" class="tooltip">
+      This is a <a href="http://www.google.com">hyperlink.</a>
+    </div>
+
 
     <hr>
     Line Numbers: <div id="showlines">Hide</div> 
