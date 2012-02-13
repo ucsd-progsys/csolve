@@ -3,6 +3,7 @@ RUN WITH:
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
 
+HEREHEREHERE (see js/csolve.js for details)
 1. Mouse Over Idents Shows Reft:
     Conc
     Abs  --> MouseOver qualname shows its definition.

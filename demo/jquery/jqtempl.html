@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+table { border-collapse:collapse; margin:8px; background-color:#f8f8f8; }
+table td { border:1px solid blue; padding:3px; }
+</style>
+  <script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+  <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+</head>
+<body>
+  
+<button id="showBtn">Show movies</button><br/>
+
+<ul id="movieList"></ul>
+<script id="movieTemplate" type="text/x-jquery-tmpl"> 
+<li> 
+  Title: ${Name}.
+  <ul>
+  {{each Languages}}
+  <li> ${$index + 1}: <em>${$value}. </em> </li>
+  {{/each}}
+   </ul>
+</li>
+</script>
+
+<script>
+
+var movies = [
+    { Name: "Meet Joe Black", Languages: ["French"] },
+    { Name: "The Mighty", Languages: [] },
+    { Name: "City Hunter", Languages: ["Mandarin", "Cantonese"] }
+];
+
+/* Render the named template */
+$("#showBtn" ).click(function() {
+  $("#movieList").empty();
+  $( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
+});
+</script>
+
+</body>
+</html>
+
