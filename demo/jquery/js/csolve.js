@@ -29,19 +29,31 @@ var getVarInfo = function(x){
   return (getVarName(x) + " at line: " + getVarLine(x)); 
 };
 
-var hilitError = function(line){ 
-  if ($(line).attr("num") in csolveData.errorLines) {
-    $(line).addClass("errLine");
-  };
-};
-
 /****************************************************************/
 /**************** Accessing csolveData Information **************/
 /****************************************************************/
 
-var annotVarLine = function(v, line) {
-  try { return csolveData.annot[v][line] }
-  catch(err) { return null };
+var qualDef = function(n){ 
+  return ("This is qualifier " + n); 
+};
+
+var annotVarLine = function(v, i) {
+  var q1 = { name : "Pos"
+           , args : ["VV", "x", "y", "z"] 
+           , url  : "http://www.google.com" };
+
+  var q2 = { name : "Neg"
+           , args : ["VV", "x"]
+           , url  : "http://nytimes.com" };
+  
+  return { name   : v
+         , line   : i
+         , oq     : q1
+         , quals  : [q1, q2 ] /* ["cat", "dog", "mouse"] */ 
+         }; 
+  //REAL
+  //try { return csolveData.annot[v][line] }
+  //catch(err) { return null };
 };
 
 var isErrorLine = function(i){
@@ -49,26 +61,19 @@ var isErrorLine = function(i){
 };
 
 /****************************************************************/
-/********** Generating Identifier Annotation Tooltips ***********/ 
-/****************************************************************/
-
-var varToolTipTplt = 
-   "<div id=\"vartooltip\" class=\"tooltip\" ident=${name} num=${line}>" 
- + "${name} on line ${line}" 
- + "This is a <a href=\"http://www.google.com\">hyperlink.</a>" 
- + "</div>"
- ;
-
-/* Compile markup string as a named template */
-$.template("varToolTipTplt", varToolTipTplt);
-
-/* Render the named template */
-$("#showBtn" ).click(function() {
-  $("#movieList").empty();
-  $.tmpl("movieTemplate", movies).appendTo( "#movieList" );
-});
-/****************************************************************/
 /**************** Accessing csolveData Information **************/
+/****************************************************************/
+
+var hilitError = function(line){ 
+  var lineNum = $(line).attr("num"); 
+  if (isErrorLine(lineNum)) {
+    $(line).addClass("errLine");
+    //if ($(line).attr("num") in csolveData.errorLines) {
+  };
+};
+
+/****************************************************************/
+/**************** Top Level Rendering ***************************/
 /****************************************************************/
 
 
@@ -86,17 +91,16 @@ $(document).ready(function(){
   //Generate tooltips for each ident, place after ident 
   //http://flowplayer.org/tools/demos/tooltip/any-html.html
   $("span[class='n']").each(function(){
-    //HEREHEREHERE: get name
-    //HEREHEREHERE: get line
-    //HEREHEREHERE: create TT from template
-    //HEREHEREHERE: insert after this
+    var name    = getVarName(this);
+    var lineNum = getVarLine(this);
+    var annot   = annotVarLine(name, lineNum); 
+    $("#varTooltipTemplate").tmpl(annot).insertAfter(this);
   });
 
   //Link tooltips for each identifier
   $("span[class='n']").tooltip({
-  /*  tip      : '#vartooltip', */ 
       position : 'top right'
-    , offset   : [0, 15]
+    , offset   : [10, -10]
     , delay    : 50
     , effect   : 'slide'
   });

@@ -11,8 +11,8 @@
     <script> var csolveData = $srcJson; </script>
   
     <style>
-
       .tooltip {
+        white-space: normal;
         border-radius: 5px 5px;
         -moz-border-radius: 5px; 
         -webkit-border-radius: 5px; 
@@ -20,15 +20,14 @@
         -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
         -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
         display:none; /* block; */
-        position: relative; 
+        /* position: relative; */
         left: 1em; top: 2em; 
         z-index: 99;
         margin-left: 5; 
-        background: transparent #FFFFAA; 
+        background: #FFFFAA; 
         border: 2px solid #FFAD33;
         padding: 0.8em 1em;
-        font-family:"Lucida Grande","bitstream vera sans","trebuchet ms",sans-serif,verdana;
-      
+        font-family: "Andale Mono", Consolas, monospace;
       }
 
 /* style the trigger elements 
@@ -42,32 +41,50 @@
 </style>
   </head>
   <body>
-    <!--<div id="varTooltips" class="hidden"></div>-->
+    
+    <script id="dummyTemplate" type="text/x-jquery-tmpl"> 
+      <div class="tooltip">
+        $${myname} at $${myline} 
+      </div>
+    </script>
+
     <script id="varTooltipTemplate" type="text/x-jquery-tmpl"> 
-      <li> 
-      Variable: ${name} Line: ${num}
+      <span class="tooltip">
+        $${name} @ $${line}
+        {{each(i, qual) quals}}
+        <span class="qualbind" title="$${qualDef(qual.name)}">
+           <a href="$${qual.url}">$${qual.name}($${qual.args})</a>
+        </span>
+        {{/each}}
+      </span>
+    </script>
+
+<!--
+$${name} @ $${line} 
+<span class="qualbind" title="$${qualDef(qual.name)}"></span>
+
+<script id="HIDEvarTooltipTemplate" type="text/x-jquery-tmpl"> 
+      <div class="tooltip">
+        Variable: $${name} Line: $${line} Qual: $${oq.name}
       <ul>
-        {{each (i, qual) Qualifiers}}
+        {{each(i, qual) quals}}
         <li>
-          <span class="qualbind" title="${qualDef(qual.name)}">
-            <a href="${qual.url}">${qual.name}(${qual.args})</a>
+          <span class="qualbind" title="$${qualDef(qual.name)}">
+            <a href="$${qual.url}">$${qual.name}($${qual.args})</a>
           </span>
         </li>
         {{/each}}
-      </ul>
-      </li>
+      </ul> 
+      </div>
     </script>
-
-    <div id="vartooltip" class="tooltip">
-      This is a <a href="http://www.google.com">hyperlink.</a>
-    </div>
-
+    -->
 
     <hr>
     Line Numbers: <div id="showlines">Hide</div> 
     <hr>
     Your Last Click:<div id="msg"></div>
     <hr>
+    
     <div class="highlight" style="width: 500px; height: 300px; overflow: auto; padding: 5px;">
     $srcHtml
     </div>

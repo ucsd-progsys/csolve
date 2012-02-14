@@ -3,8 +3,19 @@ RUN WITH:
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
 
-HEREHEREHERE (see js/csolve.js for details)
 1. Mouse Over Idents Shows Reft:
     Conc
     Abs  --> MouseOver qualname shows its definition.
+
+HEREHEREHERE (see js/csolve.js for details)
+above works for hardwired definition.
+
+2. Read qual-defs from csolveData (trivial)
+
+3. Add error slicing.
+    Error: Root + lines in slice
+    Slice: Hide all lines EXCEPT slice
+
+4. Rig fixpoint so it GENERATES csolveData
+
 
