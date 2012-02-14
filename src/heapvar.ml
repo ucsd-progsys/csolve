@@ -27,8 +27,22 @@ open Misc.Ops
 
 type t = HVar of int
     
-let d_hvar () (HVar n) = P.text <| "H" ^ string_of_int n
+let d_hvar () (HVar n) = P.text <| "h" ^ string_of_int n
+    
+let compare (HVar n) (HVar m) = compare n m
     
 let (fresh_heapvar, reset_fresh_heapvar) = 
   let (fresh_heapvar_id, reset_fresh_heapvar_ids) = Misc.mk_int_factory ()
   in (fresh_heapvar_id <+> (fun i -> HVar i), reset_fresh_heapvar_ids) 
+  
+type hvar = t
+    
+module ComparableHeapvar =
+  struct
+    type t = hvar
+    let compare = compare
+    let print = CilMisc.pretty_to_format d_hvar
+  end
+  
+module HeapvarMap = 
+  Misc.EMap (ComparableHeapvar)

@@ -192,41 +192,59 @@ let unify_and_check_subtype sto sub ct1 ct2 =
       raise (UStore.UnifyFailure (sub, sto))
     end;
     (sto, sub)
+      
+let check_poly_inclusion s1 s2 sub = 
+  let s1vars, s2vars = Store.vars s1, Store.vars s2 in
+  if List.exists (fun v -> not (List.mem v s2vars)) s1vars then begin
+    C.error "Stores %a and %a do not match in their free variables@!"
+      Store.d_store s1 Store.d_store s2;
+      raise (UStore.UnifyFailure (sub, s1))
+  end;
+  ()
 
 (* Notes: 
-   - Applying wrong substitutions/substitutions too early?
    - Checking for membership should be OK if there is a heap var? Or not? Double check this.
 *)
 let constrain_app i (fs, _) et cf sub sto lvo args =
+  (* let _ = Pretty.printf "0. sto: %a sub: %a" Store.d_store sto Sloc.Subst.d_subst sub in *)
   let cts, sub, sto = constrain_args et fs sub sto args in
   let cfi           = CFun.instantiate_store cf None cts sto sub in
   let _ = Pretty.printf "Instantiated: \n%a\n with \n%a\n" CFun.d_cfun cf CFun.d_cfun cfi in
   let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cfi in
-  let _ = Pretty.printf "loc inst cfun: %a\n" CFun.d_cfun cfi in
+  (* let _ = Pretty.printf "loc inst cfun: %a\n" CFun.d_cfun cfi in *)
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
-  let _ = Pretty.printf "0. sto: %a sub: %a isub %a\n" Store.d_store sto Sloc.Subst.d_subst sub Sloc.Subst.d_subst isub in
-  let _ = List.iter (Pretty.printf "arg[%a]\n" Ct.d_ctype <+> const ()) cts in 
+  (* let _ = Pretty.printf "1. sto: %a sub: %a isub %a\n" Store.d_store sto Sloc.Subst.d_subst sub Sloc.Subst.d_subst isub in *)
+  (* let _ = List.iter (Pretty.printf "arg[%a]\n" Ct.d_ctype <+> const ()) cts in  *)
   let sto           = cfi.sto_out
                    |> Store.domain
                    (* |> List.filter (Store.mem cfi.sto_out) *)
                    |> List.fold_left Store.ensure_sloc sto in
-  let _ = Pretty.printf "1. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
+  let _ = Pretty.printf "1. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in 
   let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
-  let _ = Pretty.printf "2. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
+  (* let _ = Pretty.printf "2. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-                        unify_and_check_subtype sto sub cta ctf
-                      end (sto, sub) cts cfi.args in
-  let _ = Pretty.printf "3. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
+    let _ = match Ct.sloc (Ct.subs sub ctf), Ct.sloc (Ct.subs sub cta) with
+      | Some callee, Some caller ->
+        (* Pretty.printf "Callee: %a Caller %a\n" Sloc.d_sloc callee Sloc.d_sloc caller; *)
+        assert ((not <| Store.mem sto callee) || Store.mem sto caller)
+      | None, None -> ()
+    in
+    unify_and_check_subtype sto sub cta ctf
+  end (sto, sub) cts cfi.args in
+  (* Since at this point we're implicitly checking that cfi.sto is
+     contained in sto, check that free variables in cfi.sto are
+     contained in sto *)
+  let _ = check_poly_inclusion cfi.sto_out sto sub in
+    (* let _ = Pretty.printf "4. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-  let _ = Pretty.printf "4. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
         let sto, sub = unify_and_check_subtype sto sub (Ct.subs isub cf.ret) ctlv in
-  let _ = Pretty.printf "5. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in
+  (* let _ = Pretty.printf "5. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -338,7 +356,6 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
-  let _ = Pretty.printf "sto: %a\n" Store.d_store sto in
   let sub, sto     = constrain_phis ve phis sub sto in
   let et           = new exprTyper (ve,fs) in
   let blocks       = cfg.Ssa.blocks in
@@ -444,47 +461,52 @@ let assert_location_inclusion l1 ld1 l2 ld2 =
       if LDesc.mem pl ld2 then () else raise (LocationMismatch (l1, ld1, l2, ld2))
     end () ld1
 
-let revert_to_spec_locs sub whole_store sto em bas ve =
+(* Function could be polymorphic, and some locs may not be
+   in the store. So at least get the locations mentioned in
+   arguments *)
+let revert_to_spec_locs sub whole_store minslocs sto em bas ve =
   let revsub = whole_store
             |> Store.domain
+            |> List.append minslocs
+            |> Misc.sort_and_compact 
             |> List.fold_left (fun revsub s -> S.Subst.extend (S.Subst.apply sub s) s revsub) [] in
   let sto    = Store.subs revsub sto in
   let sub    = S.Subst.compose revsub sub in
   let ve     = VM.map (Ct.subs sub) ve in
   let em     = I.ExpMap.map (Ct.subs sub) em in
   let bas    = Array.map (RA.subs sub) bas in
-    (sto, em, bas, ve)
+  (sto, em, bas, ve)
 
 let assert_call_no_physical_subtyping fe f store gst annots =
   let cf, _ = VM.find f fe in
-    List.iter begin function
-      | RA.New (scallee, scaller) ->
-        if Store.mem cf.sto_out scallee then
-          let sto = if Store.mem store scaller then store else gst in
-              assert_location_inclusion
-                scaller (Store.find sto scaller)
-                scallee (Store.find cf.sto_out scallee)
-      | _ -> ()
-    end annots
+  List.iter begin function
+    | RA.New (scallee, scaller) ->
+      if Store.mem cf.sto_out scallee then
+        let sto = if Store.mem store scaller then store else gst in
+        assert_location_inclusion
+          scaller (Store.find sto scaller)
+          scallee (Store.find cf.sto_out scallee)
+    | _ -> ()
+  end annots
 
 let assert_no_physical_subtyping fe cfg anna sub ve store gst =
   try
     Array.iteri begin fun i b ->
       match b.Ssa.bstmt.C.skind with
         | C.Instr is ->
-            List.iter2 begin fun i annots ->
-              let _  = C.currentLoc := C.get_instrLoc i in
-                match i with
-                  | C.Call (_, C.Lval (C.Var f, _), _, _) -> assert_call_no_physical_subtyping fe f store gst annots
-                  | _                                     -> ()
-            end is anna.(i)
+          List.iter2 begin fun i annots ->
+            let _  = C.currentLoc := C.get_instrLoc i in
+            match i with
+              | C.Call (_, C.Lval (C.Var f, _), _, _) -> assert_call_no_physical_subtyping fe f store gst annots
+              | _                                     -> ()
+          end is anna.(i)
         | _ -> ()
     end cfg.Ssa.blocks
   with LocationMismatch (l1, ld1, l2, ld2) ->
     let _ = failure_dump sub ve store in
     let _ = flush stdout; flush stderr in
-      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
-               S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
+    E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+        S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
 let fref_lookup args v = function
   | (FRef _) as t -> (try List.assoc v args with Not_found -> t)
@@ -495,7 +517,7 @@ let replace_formal_frefs {args = args} vm =
   |> CM.vm_to_list
   |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
   |> CM.vm_of_list
-               
+      
 let infer_shape fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_frefs cf vm in
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
@@ -504,21 +526,23 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
   let _                     = check_sol cf ve gst em bas sub sto whole_store in
-  let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store sto em bas ve in
+  let minslocs              = cf.ret::List.map snd cf.args 
+                           |> Misc.map_partial Ct.sloc in
+  let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store minslocs sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.fold (fun vi vt vtyps -> if vi.C.vglob then vtyps else VM.add vi vt vtyps) vtyps VM.empty in
   let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-    {Sh.vtyps   = CM.vm_to_list vtyps;
-     Sh.etypm   = em;
-     Sh.store   = sto;
-     Sh.anna    = annot;
-     Sh.conca   = conca;
-     Sh.theta   = theta;
-     Sh.nasa    = nasa;
-     Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
+  {Sh.vtyps   = CM.vm_to_list vtyps;
+   Sh.etypm   = em;
+   Sh.store   = sto;
+   Sh.anna    = annot;
+   Sh.conca   = conca;
+   Sh.theta   = theta;
+   Sh.nasa    = nasa;
+   Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
 
 let declared_funs cil =
   C.foldGlobals cil begin fun fs -> function

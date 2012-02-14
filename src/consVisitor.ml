@@ -384,7 +384,6 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
                     let cr, (cs2, _) = cons_of_rval me loc tag grd effs (pre_mem_env, st, tago) pre_mem_env e in
                       (cs ++ cs2, cr)
                   end [] es in
-    (* let fref_wfs = Misc.flap begin function | Ct.FRef (f, r) -> FI.make_wfs_fn env f | _ -> [] end ecrs in *)
   let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
   let stbs             = RS.bindings st in
   let istbs            = frt.Ct.sto_in

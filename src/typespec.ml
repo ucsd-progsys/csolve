@@ -339,11 +339,11 @@ let rec refctypeOfCilType mem t = match normalizeType t with
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs t ats
   | C.TPtr (C.TFun _ as f, ats) ->
-    let (Ct.FRef (_, r)) = fptrReftOfAttrs t ats
-    in Ct.FRef (preRefcfunOfType f, r)
-    (* begin match ptrReftypeOfAttrs t ats with *)
-    (*   | Ct.Ref (_, (i,r)) -> Ct.FRef (preRefcfunOfType f, (i, r)) *)
-    (* end *)
+    let (Ct.FRef (_, r)) = fptrReftOfAttrs t ats in
+    let f' = preRefcfunOfType f
+          |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty
+          |> fst3
+    in Ct.FRef (f', r)
   | C.TPtr (t, ats)      ->
     if C.hasAttribute CM.anyRefAttribute ats then
       Ct.ARef (* create an anyref even if the type is named *)
@@ -438,7 +438,7 @@ and preRefcfunOfType t =
   let effs               = effectSetOfAttrs (allOutStore |> RS.domain |> M.negfilter (M.flip List.mem glocs)) ats in
     RCf.make argrcts glocs [] allInStore retrct allOutStore effs
 
-let updateGlobalStore sub gsto gstoUpd =
+and updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.ensure_sloc) (RS.domain gstoUpd) gsto)
   |> M.flip (RS.fold_fields
                (fun (sub, sto) s i f -> addReffieldToStore sub sto s i f))
@@ -448,7 +448,7 @@ let updateGlobalStore sub gsto gstoUpd =
   (*              (fun s rcf (sto, sub) -> RU.add_fun sto sub s rcf)) *)
   (*     gstoUpd *)
 
-let assertNoDuplicateEffects sub effs =
+and assertNoDuplicateEffects sub effs =
      effs
   |> ES.domain
   |> List.map (fun l -> (l, S.Subst.apply sub l))
@@ -459,28 +459,57 @@ let assertNoDuplicateEffects sub effs =
                     S.d_sloc l1 S.d_sloc l2
        with Not_found -> ()
 
-let substEffectSet sub effs =
+and substEffectSet sub effs =
   let _    = assertNoDuplicateEffects sub effs in
   let effs = ES.apply (RCt.subs sub) effs in
     List.fold_left
       (fun neweffs l -> ES.add neweffs (S.Subst.apply sub l) (ES.find effs l))
       ES.empty
       (ES.domain effs)
+      
+(* and restrictFreeStoreVars vs cts =  *)
+(*   let restrictStoreVars vs f =  *)
+(*   let cfs = List.map cts.Ct.args  *)
+(*          |> begin function  *)
+(*              | n, FRef (f, s) -> (a, FRef () *)
+(*              | a -> a *)
+(*          end *)
+(*   in *)
+      
+and replaceFreeVars vs cts = 
+  let replaceFree f = 
+    let qvs = f.Ct.quant_svars in
+    let replace sto = 
+      List.fold_left (fun sto v -> RS.ensure_var v sto) sto vs
+      |> RS.filter_vars (Misc.flip List.mem (vs++qvs)) 
+    in {f with Ct.sto_in = replace f.Ct.sto_in;
+               Ct.sto_out = replace f.Ct.sto_out}
+  in
+  List.map begin function
+    | (s, Ct.FRef (f, r)) -> (s, Ct.FRef (replaceFree f, r))
+    | ct -> ct 
+  end cts
 
-let rec refcfunOfPreRefcfun sub gsto prcf =
+and refcfunOfPreRefcfun sub gsto prcf =
   let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
   let gstof, ostof      = aostof
                           |> RS.partition (M.flip List.mem prcf.Ct.globlocs)
                           |> Misc.app_snd RS.abstract_empty_slocs in
+  let vs                = RS.vars ostof in
   let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
   let effs              = substEffectSet sub prcf.Ct.effects in
-    (RCf.subs {prcf with Ct.globlocs = globs; Ct.sto_in = istof; Ct.sto_out = ostof; Ct.effects = effs} sub,
+    (RCf.subs {prcf with Ct.globlocs = globs; 
+                         Ct.args = replaceFreeVars vs prcf.Ct.args;
+                         Ct.sto_in = istof; 
+                         Ct.sto_out = ostof; 
+                         Ct.effects = effs} sub,
      gsto,
      sub)
 
-and refstoreOfPreRefstore sub gsto sto = (gsto, sto, sub)
+and refstoreOfPreRefstore sub gsto sto = 
+  (gsto, sto, sub)
   (*    sto *)
   (* |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) -> *)
   (*      let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in *)
