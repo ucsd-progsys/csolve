@@ -34,27 +34,42 @@ var getVarInfo = function(x){
 /****************************************************************/
 
 var qualDef = function(n){ 
-  return ("This is qualifier " + n); 
+  return (csolveData.qualDef[n]); 
 };
+
+
+var genericAnnotVarLine = function(v, i){
+  var a = csolveData.genAnnot;
+  a.name = "No Information for " + v;
+  return a;
+
+} 
 
 var annotVarLine = function(v, i) {
-  var q1 = { name : "Pos"
-           , args : ["VV", "x", "y", "z"] 
-           , url  : "http://www.google.com" };
-
-  var q2 = { name : "Neg"
-           , args : ["VV", "x"]
-           , url  : "http://nytimes.com" };
-  
-  return { name   : v
-         , line   : i
-         , oq     : q1
-         , quals  : [q1, q2 ] /* ["cat", "dog", "mouse"] */ 
-         }; 
-  //REAL
-  //try { return csolveData.annot[v][line] }
-  //catch(err) { return null };
+  var a = genericAnnotVarLine(v, i);
+  if (v in csolveData.annot) {
+    if (i in csolveData.annot[v]) {
+      a = csolveData.annot[v][i];
+    }
+  }
+  a.line = i;
+  return a;
 };
+
+
+var listExists = function(f, xs){
+  for (var i = 0; i < xs.length; i++) {
+    if (f(xs[i])){ return true; };
+  };
+  return false;
+}
+
+var makeErrorLines = function(){
+  csolveData.errorLines = {};
+  for (j in csolveData.errors) {
+    csolveData.errorLines[csolveData.errors[j].line] = true;
+  };
+}
 
 var isErrorLine = function(i){
   return (i in csolveData.errorLines);
@@ -121,6 +136,7 @@ $(document).ready(function(){
   });
 
   //Color ErrorLines
+  makeErrorLines();
   $("span[class='line']").each(function(){ 
     hilitError(this); 
   });

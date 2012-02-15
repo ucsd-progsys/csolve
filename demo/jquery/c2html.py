@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python
 # Copyright (c) 2009-12 The Regents of the University of California. All rights reserved.
 #
 # Permission is hereby granted, without written agreement and without

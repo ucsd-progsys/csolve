@@ -7,10 +7,11 @@ RUN WITH:
     Conc
     Abs  --> MouseOver qualname shows its definition.
 
+2. from csolveData (trivial)
+
 HEREHEREHERE (see js/csolve.js for details)
 above works for hardwired definition.
 
-2. Read qual-defs from csolveData (trivial)
 
 3. Add error slicing.
     Error: Root + lines in slice
