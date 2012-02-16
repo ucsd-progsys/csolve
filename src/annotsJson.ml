@@ -111,6 +111,7 @@ let d_json () x =
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
+    (* HEREHEREHEREHERE
 let error_of_constraint tgr c = 
   c |> FixConstraint.tag_of_t 
     |> CilTag.t_of_tag
@@ -121,7 +122,8 @@ let mkErrors tgr =
   List.map (error_of_constraint tgr)
 
 let mkQualdef q = 
-  let qn = Sy.to_string <| Q.name_of_t q in
+  failwith "TODO"
+let qn = Sy.to_string <| Q.name_of_t q in
   let qd = P.to_string  <| Q.pred_of_t q in
   (qn, qd)
 
@@ -134,7 +136,9 @@ let bindsToJson qs tgr s' cs' binds =
   ; genAnnot = { quals = []; conc = [] }
   ; annot    = mkAnnot s' binds
   }
-  
+*)
+
+let bindsToJson _ = failwith "TODO"
 (*******************************************************************)
 (************* API *************************************************)
 (*******************************************************************)
