@@ -233,9 +233,9 @@ let cil_of_file file =
        >> mk_cfg 
        >> rename_locals 
 
-let dump_annots qs s' =
+let dump_annots qs tgr s' cs' =
   Annots.dump_annots (Some s');
-  AnnotsJson.dump_annots qs (Annots.dump_bindings ()) s'
+  AnnotsJson.dump_annots qs tgr s' cs' (Annots.dump_bindings ())
 
 let liquidate file =
   let log       = open_out "csolve.log" in
@@ -254,7 +254,7 @@ let liquidate file =
   let _         = E.log "DONE: constraint generation \n" in
   let s', cs'   = Consindex.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
-  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs s' in
+  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs tgr s' cs' in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs s' in
   let _         = print_unsat_locs tgr s' cs' in
   let _         = BS.print log "\nCSolve Time \n" in

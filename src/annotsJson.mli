@@ -23,6 +23,8 @@
 (* This file is part of the CSolve Project.*)
 
 val dump_annots :  Qualifier.t list 
-                -> Annots.binding list 
+                -> CilTag.o 
                 -> FixConstraint.soln
+                -> FixConstraint.t list
+                -> Annots.binding list 
                 -> unit

@@ -39,9 +39,9 @@ type pred  = string
 type expr  = string
 type act   = string
 
-
 type error = 
-  { line : int 
+  { line : int
+  ; file : string 
   }
 
 type qual  =
@@ -52,7 +52,7 @@ type qual  =
 
 type annot = 
   { quals : qual list
-  ; conc  : pred 
+  ; conc  : pred list 
   }
 
 type json = 
@@ -98,7 +98,7 @@ let d_qual () q =
 let d_annot () a =
   PP.dprintf "{ quals : %a, conc : %a }"
     (d_array d_qual) a.quals
-    d_pred a.conc
+    (d_array d_pred) a.conc
 
 let d_json () x = 
   PP.dprintf "{ errors : %a, qualDef : %a, genAnnot : %a, annot : %a }"
@@ -111,15 +111,37 @@ let d_json () x =
 (************* Convert Bindings to JSON ****************************)
 (*******************************************************************)
 
-let bindsToJson qs binds so = failwith "TODO"
+let error_of_constraint tgr c = 
+  c |> FixConstraint.tag_of_t 
+    |> CilTag.t_of_tag
+    |> CilTag.loc_of_t tgr
+    |> (fun l -> { line = l.Cil.line; file = l.Cil.file })
 
+let mkErrors tgr = 
+  List.map (error_of_constraint tgr)
+
+let mkQualdef q = 
+  let qn = Sy.to_string <| Q.name_of_t q in
+  let qd = P.to_string  <| Q.pred_of_t q in
+  (qn, qd)
+
+let mkQualdefm qs =
+  SM.of_list <| List.map mkQualdef qs
+
+let bindsToJson qs tgr s' cs' binds =
+  { errors   = mkErrors tgr cs'
+  ; qualDef  = mkQualdefm qs
+  ; genAnnot = { quals = []; conc = [] }
+  ; annot    = mkAnnot s' binds
+  }
+  
 (*******************************************************************)
 (************* API *************************************************)
 (*******************************************************************)
 
 (* API *)
-let dump_annots qs binds so : unit =
+let dump_annots qs tgr s' cs' binds : unit =
   let f = !Co.csolve_file_prefix^".json" in
-  let d = d_json () <| bindsToJson qs binds so in
+  let d = d_json () <| bindsToJson qs tgr s' cs' binds in
   Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
 
