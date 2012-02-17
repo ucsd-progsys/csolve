@@ -50,34 +50,16 @@
 
     <script id="varTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
-        $${name} @@ $${line}
         {{each(i, qual) quals}}
         <span class="qualbind" title="$${qualDef(qual.name)}">
            <a href="$${qual.url}">$${qual.name}($${qual.args})</a>
         </span>
         {{/each}}
+        {{each(i, p) conc}}
+        <span class="concbind">$${p}</span>
+        {{/each}}
       </span>
     </script>
-
-<!--
-$${name} @ $${line} 
-<span class="qualbind" title="$${qualDef(qual.name)}"></span>
-
-<script id="HIDEvarTooltipTemplate" type="text/x-jquery-tmpl"> 
-      <div class="tooltip">
-        Variable: $${name} Line: $${line} Qual: $${oq.name}
-      <ul>
-        {{each(i, qual) quals}}
-        <li>
-          <span class="qualbind" title="$${qualDef(qual.name)}">
-            <a href="$${qual.url}">$${qual.name}($${qual.args})</a>
-          </span>
-        </li>
-        {{/each}}
-      </ul> 
-      </div>
-    </script>
-    -->
 
     <hr>
     Line Numbers: <div id="showlines">Hide</div> 

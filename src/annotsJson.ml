@@ -145,15 +145,20 @@ let deconstruct_pApp = function
   | _                            -> None
 
 let annot_of_vinfo s ((cr : Ctypes.refctype), (ct : Cil.typ)) : annot =
-  let cs, ks = cr |> Ctypes.reft_of_refctype 
-                  |> thd3
-                  |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
-  let qs, cs'= ks |> Misc.flap (fun (su, k) -> (s k) |> List.map (Misc.flip A.substs_pred su))
-                  |> Misc.either_partition (fun p -> match deconstruct_pApp p with Some z -> Left z | _ -> Right p) in
+  let cs, ks  = cr |> Ctypes.reft_of_refctype 
+                   |> thd3
+                   |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
+  let qs, cs' = ks |> Misc.flap (fun (su, k) -> (s k) |> List.map (Misc.flip A.substs_pred su))
+                   |> Misc.either_partition (fun p -> match deconstruct_pApp p with Some z -> Left z | _ -> Right p) in
+  let cs      = cs ++ cs'
+                   |> List.filter (not <.> A.Predicate.is_tauto)
+                   |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
   { ctype = mkCtype ct 
-  ; quals = List.map mkQual qs 
-  ; conc  = List.map mkPred (cs ++ cs')      
+  ; quals = List.map mkQual qs
+  ; conc  = List.map mkPred cs
   }
+
+
 
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
   let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
