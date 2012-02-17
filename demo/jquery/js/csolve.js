@@ -108,8 +108,13 @@ $(document).ready(function(){
   $("span[class='n']").each(function(){
     var name    = getVarName(this);
     var lineNum = getVarLine(this);
-    var annot   = annotVarLine(name, lineNum); 
-    $("#varTooltipTemplate").tmpl(annot).insertAfter(this);
+    if (isFun(name)){
+      var annot   = annotFun(name);
+      $("#funTooltipTemplate").tmpl(annot).insertAfter(this);
+    } else {
+      var annot   = annotVarLine(name, lineNum); 
+      $("#varTooltipTemplate").tmpl(annot).insertAfter(this);
+    };
   });
 
   //Link tooltips for each identifier

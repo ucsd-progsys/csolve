@@ -3,20 +3,17 @@ RUN WITH:
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
 
-. Single binary (csolve foo.c) generates the HTML
-   >> Binary calls c2html.py
-   >> Copies the css, js from the relevant directories
-
 HEREHEREHEREHERE
 
-. Render "Concrete" predicates too.
+. Print FUNCTION types
+    >> in ML   : render annotf
+    >> in HTML : create funTooltipTemplate (nested template, reuse quals?)
+    >> in JS   : isFun, annotFun 
 
 . Add Anchor To each line number
 
 . Cleanup Variable names
         >> Link to line.
-
-. Print FUNCTION types
 
 . Add error slicing.
    Error: Root + lines in slice

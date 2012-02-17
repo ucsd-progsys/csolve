@@ -36,6 +36,7 @@ module SSM = Misc.StringMap
 module IM  = Misc.IntMap
 module C   = FixConstraint
 module Q   = Qualifier
+module An  = Annots
 
 open Misc.Ops
 
@@ -51,25 +52,34 @@ type error =
   }
 
 type qual  =
-  { name : string
-  ; args : expr list
-  ; url  : act
+  { qname : string
+  ; qargs : expr list
+  ; qfull : pred
+  ; qurl  : act
   }
 
-type annot = 
-  { ctype : ctyp
-  ; quals : qual list
-  ; conc  : pred list 
+type annotv = 
+  { binder : An.binder
+  ; ctype  : ctyp
+  ; quals  : qual list
+  ; conc   : pred list 
+  }
+
+type annotf = 
+  { args : annotv list
+  ; ret  : annotv
   }
 
 type json = 
   { errors   : error list
   ; qualDef  : qdef SSM.t
-  ; genAnnot : annot
-  ; annot    : (annot IM.t) SSM.t 
+  ; genAnnot : annotv
+  ; varAnnot : (annotv IM.t) SSM.t 
+  ; funAnnot : annotf SSM.t
   } 
 
-let junkUrl = ""
+let junkUrl   = ""
+let junkAnnot = { binder = An.Nil; ctype = "(void *)"; quals = []; conc = [] }
 
 (*******************************************************************)
 (************* Render JSON as Pretty.doc ***************************)
@@ -93,41 +103,61 @@ let d_qdef  = d_str
 let d_expr  = d_str 
 let d_act   = d_str
 let d_pred  = d_str
+let d_ctype = d_str
 
 (***************** Serializing Specialized Records **********************) 
+
+let d_binder () b = PP.dprintf "\"%a\"" An.d_binder b
 
 let d_error () e = 
   PP.dprintf "{ line : %d }" e.line
 
 let d_qual () q =
   PP.dprintf 
-  "{ name : %a, 
-     args : @[%a@], 
-     url  : @[%a@] 
+  "{ qname : %a, 
+     qargs : @[%a@], 
+     qurl  : @[%a@],
+     qfull : @[%a@]
    }" 
-    d_str q.name 
-    (d_array d_expr) q.args
-    d_act q.url
+    d_str            q.qname 
+    (d_array d_expr) q.qargs
+    d_act            q.qurl
+    d_pred           q.qfull
 
-let d_annot () a =
+let d_annotv () a =
   PP.dprintf 
-  "{ quals : @[%a@]
-   , conc  : @[%a@] 
+  "{ binder : @[%a@]
+   , ctype  : @[%a@]
+   , quals  : @[%a@]
+   , conc   : @[%a@] 
    }"
+    d_binder         a.binder
+    d_ctype          a.ctype
     (d_array d_qual) a.quals
     (d_array d_pred) a.conc
+
+let d_annotf () f =
+  PP.dprintf 
+  "{ args : @[%a@]
+   , ret  : @[%a@] 
+   }"
+   (d_array d_annotv) f.args
+   d_annotv           f.ret
+
 
 let d_json () x = 
   PP.dprintf 
   "{ errors   : @[%a@]
    , qualDef  : @[%a@]
    , genAnnot : @[%a@]
-   , annot    : @[%a@] 
+   , varAnnot : @[%a@] 
+   , funAnnot : @[%a@]
    }"
-    (d_array d_error)     x.errors
-    (d_sm d_qdef)         x.qualDef
-    d_annot               x.genAnnot
-    (d_sm (d_im d_annot)) x.annot
+    (d_array d_error)      x.errors
+    (d_sm d_qdef)          x.qualDef
+    (d_annotv)             x.genAnnot
+    (d_sm (d_im d_annotv)) x.varAnnot
+    (d_sm d_annotf)        x.funAnnot
 
 
 (*******************************************************************)
@@ -136,15 +166,17 @@ let d_json () x =
 
 let mkCtype = CilMisc.pretty_to_string CilMisc.d_type_noattrs
 let mkPred  = Ast.Predicate.to_string
-let mkQual  = fun (f,es) -> { name = Sy.to_string f
-                            ; args = List.map A.Expression.to_string es
-                            ; url = junkUrl }
+let mkQual  = fun (f,es) -> { qname = Sy.to_string f
+                            ; qargs = List.map A.Expression.to_string es
+                            ; qfull = "FULL-EXPANDED-DEF"
+                            ; qurl  = junkUrl }
 
 let deconstruct_pApp = function
   | A.Bexp (A.App (f, es), _), _ -> Some (f, es)
   | _                            -> None
 
-let annot_of_vinfo s ((cr : Ctypes.refctype), (ct : Cil.typ)) : annot =
+
+let annot_of_vbind s (x, (cr, ct)) =
   let cs, ks  = cr |> Ctypes.reft_of_refctype 
                    |> thd3
                    |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
@@ -153,12 +185,17 @@ let annot_of_vinfo s ((cr : Ctypes.refctype), (ct : Cil.typ)) : annot =
   let cs      = cs ++ cs'
                    |> List.filter (not <.> A.Predicate.is_tauto)
                    |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
-  { ctype = mkCtype ct 
-  ; quals = List.map mkQual qs
-  ; conc  = List.map mkPred cs
+  { binder = x
+  ; ctype  = mkCtype ct 
+  ; quals  = List.map mkQual qs
+  ; conc   = List.map mkPred cs
   }
 
-
+let annot_of_finfo s (fn, (cf, fd)) =
+  (fn, cf, fd) 
+  |> Annots.deconstruct_fun 
+  |> List.map (annot_of_vbind s) 
+  |> (function (ret::args) -> { args = args; ret = ret })
 
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
   let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
@@ -174,7 +211,7 @@ let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
         end SSM.empty
 
 let mkSyInfoMap bs =
-  bs |> Misc.map_partial (function Annots.TVar (x, y) -> Some (x, y) | _ -> None)
+  bs |> Misc.map_partial (function An.TVar (An.N x, y) -> Some (x, y) | _ -> None)
      |> SM.of_list
 
 (*******************************************************************)
@@ -198,25 +235,26 @@ let mkQualdef q =
 let mkQualdefm qs =
   SSM.of_list <| List.map mkQualdef qs
 
-  (*
-let mkAnnot s bs =
-  bs |> mkVarLineReftMap
-     |> SSM.map (IM.map (annot_of_reft s))
- *)
-
-let mkAnnot s bs =
+let mkVarAnnot s bs =
   let xm = mkSyInfoMap bs in
   bs |> mkVarLineSsavarMap
      |> SSM.map (IM.map_partial (fun x ->
-          Misc.maybe_map (annot_of_vinfo s) (SM.maybe_find x xm)
+          Misc.maybe_map 
+            (fun z -> annot_of_vbind s (An.N x, z)) 
+            (SM.maybe_find x xm)
         ))
 
+let mkFunAnnot s bs =
+  bs |> Misc.map_partial (function Annots.TFun (f, x) -> Some (f, x) | _ -> None)  
+     |> SSM.of_list
+     |> SSM.mapi (fun fn x -> annot_of_finfo s (fn, x))
 
-let bindsToJson qs tgr s' cs' binds =
-  { errors   = mkErrors tgr cs'
+let bindsToJson qs tgr s cs binds =
+  { errors   = mkErrors tgr cs
   ; qualDef  = mkQualdefm qs
-  ; genAnnot = { ctype = "(void *)"; quals = []; conc = [] }
-  ; annot    = mkAnnot s' binds
+  ; genAnnot = junkAnnot
+  ; varAnnot = mkVarAnnot s binds
+  ; funAnnot = mkFunAnnot s binds 
   }
 
 (*******************************************************************)

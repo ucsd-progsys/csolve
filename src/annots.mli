@@ -32,10 +32,18 @@ class t:
   end
 *)
 
-type binding = TVar of FixAstInterface.name * (Ctypes.refctype * Cil.typ)
+
+type binder = N of FixAstInterface.name | S of string | I of Index.t | Nil
+
+type vbind  = binder * (Ctypes.refctype * Cil.typ)
+
+type binding = TVar of vbind 
              | TFun of string * (Ctypes.refcfun  * Cil.fundec)
              | TSto of string * Ctypes.refstore 
              | TSSA of string * Ssa_transform.vmap_t
+
+val d_binder : unit -> binder -> Pretty.doc
+val deconstruct_fun : (string * Ctypes.refcfun * Cil.fundec) -> vbind list
 
 val annot_shape   : Shape.t FixMisc.StringMap.t 
                   -> Ssa_transform.t FixMisc.StringMap.t 
