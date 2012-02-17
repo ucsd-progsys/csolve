@@ -133,6 +133,7 @@ module type S = sig
     val width            : t -> int
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
+    val subs_store_var   : T.store Heapvar.HeapvarMap.t -> t -> t
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
@@ -218,13 +219,14 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val subs_store_var : t Heapvar.HeapvarMap.t * Heapvar.t Heapvar.HeapvarMap.t -> t -> t
+    val subs_store_var : t Heapvar.HeapvarMap.t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Heapvar.t -> t
     val vars         : t -> Heapvar.t list
     val filter_vars  : (Heapvar.t -> bool) -> t -> t
+    val concrete_part : t -> t
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
@@ -274,9 +276,10 @@ module type S = sig
     val quantified_svars : t -> Heapvar.t list
     val free_svars      : t -> Heapvar.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val instantiate_store : t -> CType.t option -> CType.t list -> Store.t -> Sloc.Subst.t -> t
+    val instantiate_store : t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (T.store Heapvar.HeapvarMap.t)
     val make            : (string * CType.t) list -> Sloc.t list -> Heapvar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
+    val subs_store_var  : T.store Heapvar.HeapvarMap.t -> t -> t
     val indices         : t -> Index.t list 
   end
 

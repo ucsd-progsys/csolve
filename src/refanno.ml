@@ -62,6 +62,7 @@ type annotation =
   | Ins  of string * Sloc.t * Sloc.t    (* ptr var, ALoc, CLoc *)
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
+  | HInst of Heapvar.t * Ctypes.store
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
@@ -109,6 +110,7 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | Ins  (v, s1, s2)  -> Ins  (v, app s1, app s2)
       | New  (s1, s2)     -> New  (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
+      | _ -> a
 
 (* API *)
 let subs (sub: S.Subst.t): block_annotation -> block_annotation =
@@ -129,6 +131,8 @@ let d_annotation () = function
       Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | NewC (cl, al, cl') -> 
       Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
+  | HInst (v, sto) -> 
+    Pretty.dprintf "HInst(%a -> %a)" Heapvar.d_hvar v Ctypes.I.Store.d_store sto
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 
@@ -347,6 +351,7 @@ let concretize_new theta j k conc = function
       else  (* x is is_concrete *)
         let cl = cloc_of_position theta y (j,k,i) in
         instantiate (fun (y, cl) -> NewC (x,y,cl)) conc y cl Write
+  | i, HInst (v,s) -> (conc, [HInst (v,s)])
   | _, _ -> assertf "concretize_new 2"
 
 let concretize_malloc theta j k conc x y =

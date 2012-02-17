@@ -131,8 +131,10 @@ let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribut
 
 let defaultPredsOfAttrs tbo ats = match tbo with
   | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
-    let tb = annotatedPointerBaseType ats tb in
-      [nonnullRoomForPred tb; nonnullPred; eqBlockBeginPred]
+    begin match annotatedPointerBaseType ats tb with
+      | C.TVoid l -> [nonnullPred; eqBlockBeginPred]
+      | b -> [nonnullRoomForPred b; nonnullPred; eqBlockBeginPred]
+    end
   | _ -> []
 
 let defaultFptrPredsOfAttrs tbo ats = match tbo with
@@ -477,6 +479,7 @@ and substEffectSet sub effs =
 (*   in *)
       
 and replaceFreeVars vs cts = 
+  if vs = [] then cts else 
   let replaceFree f = 
     let qvs = f.Ct.quant_svars in
     let replace sto = 

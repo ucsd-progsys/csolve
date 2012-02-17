@@ -20,35 +20,14 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *
  *)
-module P = Pretty
-module M = Misc
-  
-open Misc.Ops
 
-type t = HVar of int
-    
-let d_hvar () (HVar n) = P.text <| "h" ^ string_of_int n
-    
-let compare (HVar n) (HVar m) = compare n m
-    
-let (fresh_heapvar, reset_fresh_heapvar) = 
-  let (fresh_heapvar_id, reset_fresh_heapvar_ids) = Misc.mk_int_factory ()
-  in (fresh_heapvar_id <+> (fun i -> HVar i), reset_fresh_heapvar_ids) 
+type t
   
-type hvar = t
-    
-module ComparableHeapvar =
-  struct
-    type t = hvar
-    let compare = compare
-    let print = CilMisc.pretty_to_format d_hvar
-  end
-  
-module HeapvarMap = 
-  Misc.EMap (ComparableHeapvar)
+module HeapvarMap : Misc.EMapType with type key = t
 
-let d_hmap d_a () m = m
-                   |> HeapvarMap.to_list
-                   |> P.dprintf "[@[%a@]]"
-                       (P.d_list ", " (fun () (v, a) -> P.dprintf "%a -> %a" d_hvar v d_a a))
+val compare             : t -> t -> int
+val fresh_heapvar       : unit -> t
+val reset_fresh_heapvar : unit -> unit
   
+val d_hvar              : unit -> t -> Pretty.doc
+val d_hmap              : (unit -> 'a -> Pretty.doc) -> unit -> 'a HeapvarMap.t -> Pretty.doc

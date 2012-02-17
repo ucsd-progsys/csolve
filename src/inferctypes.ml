@@ -39,10 +39,12 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Sh  = Shape
 module FF  = FinalFields
+module H   = Heapvar
+module HM  = H.HeapvarMap
 
+open Misc.Ops
 open Ctypes
 open ShapeInfra
-open M.Ops
 
 module LDesc  = I.LDesc
 module Store  = I.Store
@@ -206,45 +208,43 @@ let check_poly_inclusion s1 s2 sub =
    - Checking for membership should be OK if there is a heap var? Or not? Double check this.
 *)
 let constrain_app i (fs, _) et cf sub sto lvo args =
-  (* let _ = Pretty.printf "0. sto: %a sub: %a" Store.d_store sto Sloc.Subst.d_subst sub in *)
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let cfi           = CFun.instantiate_store cf None cts sto sub in
-  let _ = Pretty.printf "Instantiated: \n%a\n with \n%a\n" CFun.d_cfun cf CFun.d_cfun cfi in
+  let cfi, hsub     = CFun.instantiate_store cf cts sto sub in
+  let _ = Pretty.printf "Instantiated function @[%a@]@! with@! @[%a@]@!"
+    CFun.d_cfun cf CFun.d_cfun cfi in
   let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cfi in
-  (* let _ = Pretty.printf "loc inst cfun: %a\n" CFun.d_cfun cfi in *)
+  (* let _ = Pretty.printf "sub: %a sto: %a\n" S.Subst.d_subst sub Store.d_store sto in *)
+  (* let _ = Pretty.printf "Instantiated function @!@[%a@]@! with@!@[%a@]@!" *)
+    (* CFun.d_cfun cf CFun.d_cfun cfi in *)
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
-  (* let _ = Pretty.printf "1. sto: %a sub: %a isub %a\n" Store.d_store sto Sloc.Subst.d_subst sub Sloc.Subst.d_subst isub in *)
-  (* let _ = List.iter (Pretty.printf "arg[%a]\n" Ct.d_ctype <+> const ()) cts in  *)
+  let annot         = annot ++ List.map (fun (vfrom, sto) -> RA.HInst (vfrom, sto)) (HM.to_list hsub) in
   let sto           = cfi.sto_out
                    |> Store.domain
-                   (* |> List.filter (Store.mem cfi.sto_out) *)
                    |> List.fold_left Store.ensure_sloc sto in
-  let _ = Pretty.printf "1. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in 
   let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
-  (* let _ = Pretty.printf "2. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
+  (* let _ = Pretty.printf "asdf..." in *)
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-    let _ = match Ct.sloc (Ct.subs sub ctf), Ct.sloc (Ct.subs sub cta) with
-      | Some callee, Some caller ->
-        (* Pretty.printf "Callee: %a Caller %a\n" Sloc.d_sloc callee Sloc.d_sloc caller; *)
-        assert ((not <| Store.mem sto callee) || Store.mem sto caller)
-      | None, None -> ()
-    in
-    unify_and_check_subtype sto sub cta ctf
+    (* let _ = match Ct.sloc (Ct.subs sub ctf), Ct.sloc (Ct.subs sub cta) with *)
+    (*   | Some callee, Some caller -> *)
+    (*     Pretty.printf "Sto: %a Callee: %a Caller %a\n" Store.d_store sto Sloc.d_sloc callee Sloc.d_sloc caller; *)
+    (*     assert ((not <| Store.mem sto callee) || Store.mem sto caller) *)
+    (*   | None, None -> () *)
+    (* in *)
+    unify_and_check_subtype sto sub (Ct.subs_store_var hsub cta) ctf
   end (sto, sub) cts cfi.args in
+  (* let _ = Pretty.printf "...fdsa\n" in *)
   (* Since at this point we're implicitly checking that cfi.sto is
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
-    (* let _ = Pretty.printf "4. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
         let sto, sub = unify_and_check_subtype sto sub (Ct.subs isub cf.ret) ctlv in
-  (* let _ = Pretty.printf "5. sto: %a sub: %a\n" Store.d_store sto Sloc.Subst.d_subst sub in *)
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -254,11 +254,8 @@ let constrain_return et fs sub sto rtv = function
       else
         E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
-      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
       let sub, sto = constrain_exp et fs sub sto e in
-      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
       let sto, sub = unify_and_check_subtype sto sub (et#ctype_of_exp e) rtv in
-      (* let _ = Pretty.printf ">> sub: %a, sto: %a\n" Sloc.Subst.d_subst sub Store.d_store sto in *)
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
@@ -283,7 +280,6 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let sub, sto = constrain_exp et fs sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
-      let _ = Pretty.printf "%a := %a\n" Ct.d_ctype ct1 Ct.d_ctype ct2 in
       let _        = assert_store_type_correct lv ct2 in
       let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
         ([] :: bas, sub, sto)
@@ -352,15 +348,15 @@ class exprMapVisitor (et) = object (self)
 end
 
 let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
-  let _            = C.currentLoc := fd.C.svar.C.vdecl in
-  let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
-                       UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
-                     end (sto, S.Subst.empty) cf.args fd.C.sformals in
-  let sub, sto     = constrain_phis ve phis sub sto in
-  let et           = new exprTyper (ve,fs) in
-  let blocks       = cfg.Ssa.blocks in
-  let bas          = Array.make (Array.length blocks) [] in
-  let sub, sto     =
+  let _              = C.currentLoc := fd.C.svar.C.vdecl in
+  let sto, sub       = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
+                         UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
+                       end (sto, S.Subst.empty) cf.args fd.C.sformals in
+  let sub, sto       = constrain_phis ve phis sub sto in
+  let et             = new exprTyper (ve,fs) in
+  let blocks         = cfg.Ssa.blocks in
+  let bas            = Array.make (Array.length blocks) [] in
+  let sub, sto =
     M.array_fold_lefti begin fun i (sub, sto) b ->
       let ba, sub, sto = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;

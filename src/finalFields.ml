@@ -176,7 +176,7 @@ module Intraproc (X: Context) = struct
     List.fold_left begin fun ffm -> function
       | RA.Gen (cl, al) | RA.WGen (cl, al)      -> LM.add cl (LM.find al ffm) ffm
       | RA.Ins (_, _, cl) | RA. NewC (_, _, cl) -> LM.remove cl ffm
-      | RA.New _                                -> ffm
+      | RA.New _ | RA.HInst _                   -> ffm
     end ffm annots
 
   let process_instr na i annots (ffm, ffms) =

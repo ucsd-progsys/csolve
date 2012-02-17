@@ -46,6 +46,8 @@ module ES = Ct.EffectSet
 module ED = EffectDecls
 module Cs = Constants
 module Sh = Shape
+module H = Heapvar
+module HM = H.HeapvarMap
 
 open Misc.Ops
 open Cil
@@ -62,14 +64,30 @@ let group_annots xs =
     | Refanno.WGen _  
     | Refanno.Gen _  -> (a::gs, is, ns)
     | Refanno.Ins _  -> (gs, a::is, ns)
+    | Refanno.HInst _
     | Refanno.New _  
     | Refanno.NewC _ -> (gs, is, a::ns)
   end ([], [], []) xs
 
 let lsubs_of_annots ns = 
-  List.map (function Refanno.New (x,y)    -> (x, y)
-                   | Refanno.NewC (x,_,y) -> (x, y)
+  Misc.map_partial (function Refanno.New (x,y)    -> Some (x, y)
+                   | Refanno.NewC (x,_,y) -> Some (x, y)
+                   | Refanno.HInst _ ->  None
                    | _               -> assertf "cons_of_call: bad ns") ns
+    
+let hsubs_of_annots env ns = 
+  let hsubs = 
+    List.fold_left begin fun hsub annot -> 
+      begin match annot with 
+        | Refanno.HInst (v, sto) -> 
+          let _ = assert (not (HM.mem v hsub)) in
+          HM.add v sto hsub
+        | _ -> hsub
+      end
+    end HM.empty ns
+    |> HM.map (RS.map FI.t_fresh)
+  in hsubs, 
+     HM.fold (fun _ s wfs -> wfs ++ FI.make_wfs_refstore env s s) hsubs []
 
 let weaken_undefined me rm env v = 
   let n = FA.name_of_varinfo v in
@@ -372,8 +390,14 @@ let check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs sto =
 
 let store_bindings_of_store_effects ldbs =
   List.map (fun (l, (b, _)) -> (l, b)) ldbs
-
+    
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
+  let hsubs,hwfs = hsubs_of_annots env ns in
+  let _ = Pretty.printf "hsubs: %a\n" (Heapvar.d_hmap RS.d_store) hsubs in
+  
+  let frt       = RCf.subs_store_var hsubs frt in
+  let call      = (lvo, frt, es) in
+  let _ = Pretty.printf "cfun: %a\n" RCf.d_cfun frt in
   let args      = frt |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let lsubs     = lsubs_of_annots ns in
   let args, es  = bindings_of_call loc args es in
@@ -395,6 +419,8 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let ostslds          = store_bindings_of_store_effects ostebs in
   let oaslds,ocslds    = List.partition (fst <+> Sloc.is_abstract) ostslds in
   let cs2,_               = FI.make_cs_refstore_binds env grd stbs   istbs true  None tag  loc in
+  
+  let _ = Format.printf "cs2: %a" (Misc.pprint_many true "\n" (FixConstraint.print_t None)) cs2 in
   let cs3,_               = FI.make_cs_refstore_binds env grd oaslds stbs  false None tag' loc in
   let ds3                 = [FI.make_dep false (Some tag') None] in 
 
@@ -408,7 +434,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt) in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), wfs
+  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (hwfs++wfs)
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with
