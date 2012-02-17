@@ -25,12 +25,15 @@ from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
 
-
+srcFile  = os.path.abspath(sys.argv[1])
+tgtFile  = srcFile + ".html"
+srcDir   = os.path.dirname(srcFile)
 baseDir  = sys.path[0]
+jsonFile = srcFile + ".json"
 srcTplt  = baseDir + "/templates/source.html"
 tgtTplt  = baseDir + "/templates/csolve.html" 
 lineTplt = Template("<span class=\"line\" num=$linenum><span class=\"linenum\" num=$linenum>$linenum:</span>$line</span>")
-#tgtFile  = "csolve.html"
+
 
 ##################### Generic IO Helpers #########################
 
@@ -68,9 +71,13 @@ def addLineNumbers(src, html):
 
 ##################### Plugging Into Templates #########################
 
-def tgtFile(srcFile):
-  return (srcFile + ".html")
-
+def copyDir(off):
+  srcDir = baseDir + "/" + off
+  dstDir = srcDir  + "/" + off
+  if os.path.exists(dstDir):
+    pass
+  else:
+    shutil.copytree(srcDir, dstDir)
 
 def main(srcFile, jsonFile):
   src     = readFrom(srcFile)
@@ -79,16 +86,18 @@ def main(srcFile, jsonFile):
   srcJson = readFrom(jsonFile)
   tplt    = Template(readFrom(tgtTplt))
   tgt     = tplt.substitute(srcHtml = srcHtml, srcJson = srcJson)
-  writeTo(tgtFile(srcFile), tgt)
+  writeTo(tgtFile, tgt)
 
 #############################################################################
 
 try: 
-  srcFile  = sys.argv[1]
-  jsonFile = srcFile + ".json"
+  print "c2html src=", srcFile, " srcDir=", srcDir
   main(srcFile, jsonFile)
-  srcDir   = os.path.dirname(srcFile)
-  shutil.copytree(baseDir + "/css", srcDir + "/css")
-  shutil.copytree(baseDir + "/js", srcDir + "/js")
+  copyDir("css")
+  copyDir("js")
 except: 
+  print "Unexpected error:", sys.exc_info()[0]
   print "Error in c2html. Usage: ./c2html.py inFile.c" 
+  raise
+
+
