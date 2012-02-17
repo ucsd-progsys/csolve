@@ -59,15 +59,16 @@ type qual  =
   }
 
 type annotv = 
-  { binder : An.binder
+  { vname  : An.binder
   ; ctype  : ctyp
   ; quals  : qual list
   ; conc   : pred list 
   }
 
 type annotf = 
-  { args : annotv list
-  ; ret  : annotv
+  { fname  : An.binder 
+  ; args   : annotv list
+  ; ret    : annotv
   }
 
 type json = 
@@ -79,7 +80,7 @@ type json =
   } 
 
 let junkUrl   = ""
-let junkAnnot = { binder = An.Nil; ctype = "(void *)"; quals = []; conc = [] }
+let junkAnnot = { vname = An.Nil; ctype = "(void *)"; quals = []; conc = [] }
 
 (*******************************************************************)
 (************* Render JSON as Pretty.doc ***************************)
@@ -126,21 +127,23 @@ let d_qual () q =
 
 let d_annotv () a =
   PP.dprintf 
-  "{ binder : @[%a@]
+  "{ vname  : @[%a@]
    , ctype  : @[%a@]
    , quals  : @[%a@]
    , conc   : @[%a@] 
    }"
-    d_binder         a.binder
+    d_binder         a.vname
     d_ctype          a.ctype
     (d_array d_qual) a.quals
     (d_array d_pred) a.conc
 
 let d_annotf () f =
   PP.dprintf 
-  "{ args : @[%a@]
-   , ret  : @[%a@] 
+  "{ fname : @[%a@]
+   , args  : @[%a@]
+   , ret   : @[%a@] 
    }"
+   d_binder           f.fname
    (d_array d_annotv) f.args
    d_annotv           f.ret
 
@@ -185,17 +188,17 @@ let annot_of_vbind s (x, (cr, ct)) =
   let cs      = cs ++ cs'
                    |> List.filter (not <.> A.Predicate.is_tauto)
                    |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
-  { binder = x
-  ; ctype  = mkCtype ct 
-  ; quals  = List.map mkQual qs
-  ; conc   = List.map mkPred cs
+  { vname = x
+  ; ctype = mkCtype ct 
+  ; quals = List.map mkQual qs
+  ; conc  = List.map mkPred cs
   }
 
 let annot_of_finfo s (fn, (cf, fd)) =
   (fn, cf, fd) 
   |> Annots.deconstruct_fun 
   |> List.map (annot_of_vbind s) 
-  |> (function (ret::args) -> { args = args; ret = ret })
+  |> (function (ret::args) -> { fname = An.S fn; args = args; ret = ret })
 
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
   let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 

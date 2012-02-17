@@ -48,7 +48,7 @@
       </div>
     </script>
 
-    <script id="varTooltipTemplate" type="text/x-jquery-tmpl"> 
+    <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
         {{each(i, qual) quals}}
         <span class="qualbind" title="$${qualDef(qual.name)}">
@@ -60,6 +60,20 @@
         {{/each}}
       </span>
     </script>
+    
+    <script id="annotfTooltipTemplate" type="text/x-jquery-tmpl"> 
+      <span class="tooltip">
+        <tr>{{tmpl(ret) "#annotvTooltipTemplate"}}</tr>
+        <tr>$${fname} (<table>  
+                      {{each(i, v) args}}
+                      <tr>{{tmpl(v) "#annotvTooltipTemplate"}}</tr>
+                      {{/each}}
+                  </table>)
+        </tr>
+      </span>
+    </script>
+    
+
 
     <hr>
     Line Numbers: <div id="showlines">Hide</div> 

@@ -110,10 +110,10 @@ $(document).ready(function(){
     var lineNum = getVarLine(this);
     if (isFun(name)){
       var annot   = annotFun(name);
-      $("#funTooltipTemplate").tmpl(annot).insertAfter(this);
+      $("#annotfTooltipTemplate").tmpl(annot).insertAfter(this);
     } else {
       var annot   = annotVarLine(name, lineNum); 
-      $("#varTooltipTemplate").tmpl(annot).insertAfter(this);
+      $("#annotvTooltipTemplate").tmpl(annot).insertAfter(this);
     };
   });
 

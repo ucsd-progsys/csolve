@@ -3,10 +3,10 @@ RUN WITH:
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
 
-HEREHEREHEREHERE
-
 . Print FUNCTION types
     >> in ML   : render annotf
+
+HEREHEREHEREHERE
     >> in HTML : create funTooltipTemplate (nested template, reuse quals?)
     >> in JS   : isFun, annotFun 
 
