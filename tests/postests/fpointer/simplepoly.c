@@ -1,11 +1,11 @@
 #include <csolve.h>
 
-void* LOC(L) id(void * LOC(L) x)
+void* LOC(L) id(void* LOC(L) x)
 { 
   return x; 
 }
 
-void apply(void *p, void * LOC(L) (*fptr)(void * LOC(L) x))  CHECK_TYPE
+void apply(void * LOC(L) p, void* LOC(L) (*fptr)(void* LOC(L) x))
 {
   fptr(p);
 }
