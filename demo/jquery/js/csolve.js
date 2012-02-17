@@ -17,6 +17,8 @@ var yellowOff  = function () { $(this).removeClass("yellow"); };
 /************* Accessing Selected Span Information **************/
 /****************************************************************/
 
+var helloYou = "Hello";
+
 var getVarName = function(x){ 
   return $(x).text();
 };
@@ -47,15 +49,21 @@ var genericAnnotVarLine = function(v, i){
 
 var annotVarLine = function(v, i) {
   var a = genericAnnotVarLine(v, i);
-  if (v in csolveData.annot) {
-    if (i in csolveData.annot[v]) {
-      a = csolveData.annot[v][i];
+  if (v in csolveData.varAnnot) {
+    if (i in csolveData.varAnnot[v]) {
+      a = csolveData.varAnnot[v][i];
     }
   }
   a.line = i;
   return a;
 };
 
+var annotFun = function(fn) {
+  if (fn in csolveData.funAnnot) {
+    return csolveData.funAnnot[fn];
+  }
+  return null;
+}
 
 var listExists = function(f, xs){
   for (var i = 0; i < xs.length; i++) {
@@ -108,11 +116,11 @@ $(document).ready(function(){
   $("span[class='n']").each(function(){
     var name    = getVarName(this);
     var lineNum = getVarLine(this);
-    if (isFun(name)){
-      var annot   = annotFun(name);
+    var annot   = annotFun(name);
+    if (annot) {
       $("#annotfTooltipTemplate").tmpl(annot).insertAfter(this);
     } else {
-      var annot   = annotVarLine(name, lineNum); 
+      annot = annotVarLine(name, lineNum); 
       $("#annotvTooltipTemplate").tmpl(annot).insertAfter(this);
     };
   });
@@ -146,5 +154,6 @@ $(document).ready(function(){
     hilitError(this); 
   });
 
+  $( "#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
 });
 

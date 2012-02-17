@@ -19,7 +19,7 @@
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION
 # TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
-import os, sys, shutil
+import os, sys, distutils.dir_util #shutil
 from pygments import highlight
 from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
@@ -72,12 +72,14 @@ def addLineNumbers(src, html):
 ##################### Plugging Into Templates #########################
 
 def copyDir(off):
-  srcDir = baseDir + "/" + off
-  dstDir = srcDir  + "/" + off
-  if os.path.exists(dstDir):
-    pass
-  else:
-    shutil.copytree(srcDir, dstDir)
+  inDir  = baseDir + "/" + off
+  outDir = srcDir  + "/" + off
+  distutils.dir_util.copy_tree(inDir, outDir)
+  print "c2Html: copyDir from ", inDir, " To ", outDir
+  ##if os.path.exists(dstDir):
+  ##  pass
+  ##else:
+  ##  shutil.copytree(srcDir, dstDir)
 
 def main(srcFile, jsonFile):
   src     = readFrom(srcFile)

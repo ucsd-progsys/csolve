@@ -50,14 +50,16 @@
 
     <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 
       <span class="tooltip">
-        {{each(i, qual) quals}}
-        <span class="qualbind" title="$${qualDef(qual.name)}">
-           <a href="$${qual.url}">$${qual.name}($${qual.args})</a>
+        $${ctype}[
+        {{each(i, q) quals}}
+        <span class="qualbind" title="$${q.qfull}">
+           <a href="$${q.qurl}">$${q.qname}($${q.qargs})</a>
         </span>
         {{/each}}
         {{each(i, p) conc}}
         <span class="concbind">$${p}</span>
         {{/each}}
+        ] $${vname}
       </span>
     </script>
     
@@ -73,9 +75,28 @@
       </span>
     </script>
     
+<script id="movieTemplate" type="text/x-jquery-tmpl"> 
+    <tr>
+        <td>$${Name}</td>
+        <td>{{tmpl(Languages) "#languageTemplate"}}</td>
+    </tr>
+</script>
 
+<script id="languageTemplate" type="text/x-jquery-tmpl"> 
+    <em>$${Name}</em>
+</script>
 
-    <hr>
+<table><tbody id="movieList"></tbody></table>
+
+<script>
+var movies = [
+    { Name: "Meet Joe Black", Languages: ["English", "French"] },
+    { Name: "The Mighty", Languages: ["English"] },
+    { Name: "City Hunter", Languages: ["Mandarin", "Cantonese"] }
+];
+</script>
+
+<hr>
     Line Numbers: <div id="showlines">Hide</div> 
     <hr>
     Your Last Click:<div id="msg"></div>
