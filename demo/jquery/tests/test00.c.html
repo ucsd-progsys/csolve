@@ -8,7 +8,56 @@
 	<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
     <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
     <script src="js/csolve.js"></script>
-    <script> var csolveData = { errors : [  ], qualDef : { ZeroP : (v = 0), Zero : (v = 0), WordSize8 : ((v != 0) => ((BLOCK_END([v]) - v) >= 8)), WordSize4 : ((v != 0) => ((BLOCK_END([v]) - v) >= 4)), Valid : && [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))], UpperBd : (v < BLOCK_END([v])), Unchecked : (UNCHECKED([v]) = 1), SizeGt : ((BLOCK_BEGIN([v]) + ~AA0) <= BLOCK_END([v])), RestGt : ((v + (4 * ~AA0)) <= BLOCK_END([v])), PosZP : (0 <= v), PosZ : (0 <= v), PosP : (0 < v), Pos : (0 < v), NullTerm : ((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)), NullOrValid : ((v != 0) => && [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))]), NullOrBegin : ((v != 0) => (v = BLOCK_BEGIN([v]))), NoWrite : (EWRITE != 1), NoRead : (EREAD != 1), Lt : (v < ~AA0), LowerBd : (BLOCK_BEGIN([v]) <= v), Le : (v <= ~AA0), Ge0 : (v >= ~a), Ge : (v >= ~AA0), GT : (v > ~AA0), False : (1 = 0), EqEnd : (BLOCK_END([v]) = BLOCK_END([~a])), EqBuf : && [(BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])) ; (BLOCK_END([v]) = BLOCK_END([~a]))], EqBegin : (BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])), Eq0 : (v = ~a), Eq : (v = ~AA0), Begin : (v = BLOCK_BEGIN([v])) }, genAnnot : { quals : [  ], conc : [  ] }, annot : { x_main : { 21 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 19 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 15 : { quals : [ { name : Eq, args : [ VV, x_main__SSA__phi_5 ], url :  }, { name : Ge, args : [ VV, x_main__SSA__blk_0_1 ], url :  }, { name : PosZ, args : [ VV ], url :  } ], conc : [  ] }, 12 : { quals : [  ], conc : [ true ] }, 11 : { quals : [  ], conc : [ true ] }, 8 : { quals : [  ], conc : [ true ] } }, a_main : { 17 : { quals : [  ], conc : [ (VV = 999) ] }, 15 : { quals : [  ], conc : [ (VV = ((x_main__SSA__phi_5 >= 0) ? 1 : 0)) ] } } } }; </script>
+    <script> var csolveData = { errors   : [  ]
+   , qualDef  : { "ZeroP" : "(v = 0)", "Zero" : "(v = 0)", "WordSize8" : "((v != 0) => ((BLOCK_END([v]) - v) >= 8))", "WordSize4" : "((v != 0) => ((BLOCK_END([v]) - v) >= 4))", "Valid" : "&& [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))]", "UpperBd" : "(v < BLOCK_END([v]))", "Unchecked" : "(UNCHECKED([v]) = 1)", "SizeGt" : "((BLOCK_BEGIN([v]) + ~AA0) <= BLOCK_END([v]))", "RestGt" : "((v + (4 * ~AA0)) <= BLOCK_END([v]))", "PosZP" : "(0 <= v)", "PosZ" : "(0 <= v)", "PosP" : "(0 < v)", "Pos" : "(0 < v)", "NullTerm" : "((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0))", "NullOrValid" : "((v != 0) => && [(0 < v) ; (BLOCK_BEGIN([v]) <= v) ; (v < BLOCK_END([v]))])", "NullOrBegin" : "((v != 0) => (v = BLOCK_BEGIN([v])))", "NoWrite" : "(EWRITE != 1)", "NoRead" : "(EREAD != 1)", "Lt" : "(v < ~AA0)", "LowerBd" : "(BLOCK_BEGIN([v]) <= v)", "Le" : "(v <= ~AA0)", "Ge0" : "(v >= ~a)", "Ge" : "(v >= ~AA0)", "GT" : "(v > ~AA0)", "False" : "(1 = 0)", "EqEnd" : "(BLOCK_END([v]) = BLOCK_END([~a]))", "EqBuf" : "&& [(BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a])) ; (BLOCK_END([v]) = BLOCK_END([~a]))]", "EqBegin" : "(BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]))", "Eq0" : "(v = ~a)", "Eq" : "(v = ~AA0)", "Begin" : "(v = BLOCK_BEGIN([v]))" }
+   , genAnnot : { quals : [  ]
+                   , conc  : [  ] 
+                   }
+   , annot    : { "x" : { "21" : { quals : [ { name : "Eq", 
+                                                  args : [ "VV", "x_main__SSA__phi_5" ], 
+                                                  url  : "" 
+                                                }, { name : "Ge", 
+                                                  args : [ "VV", "x_main__SSA__blk_0_1" ], 
+                                                  url  : "" 
+                                                }, { name : "PosZ", 
+                                                  args : [ "VV" ], 
+                                                  url  : "" 
+                                                } ]
+                             , conc  : [  ] 
+                             }, "19" : { quals : [ { name : "Eq", 
+                                                        args : [ "VV", "x_main__SSA__phi_5" ], 
+                                                        url  : "" 
+                                                      }, { name : "Ge", 
+                                                        args : [ "VV", "x_main__SSA__blk_0_1" ], 
+                                                        url  : "" 
+                                                      }, { name : "PosZ", 
+                                                        args : [ "VV" ], 
+                                                        url  : "" 
+                                                      } ]
+                             , conc  : [  ] 
+                             }, "15" : { quals : [ { name : "Eq", 
+                                                        args : [ "VV", "x_main__SSA__phi_5" ], 
+                                                        url  : "" 
+                                                      }, { name : "Ge", 
+                                                        args : [ "VV", "x_main__SSA__blk_0_1" ], 
+                                                        url  : "" 
+                                                      }, { name : "PosZ", 
+                                                        args : [ "VV" ], 
+                                                        url  : "" 
+                                                      } ]
+                             , conc  : [  ] 
+                             }, "12" : { quals : [  ]
+                             , conc  : [ "true" ] 
+                             }, "11" : { quals : [  ]
+                             , conc  : [ "true" ] 
+                             }, "8" : { quals : [  ]
+                             , conc  : [ "true" ] 
+                             } }, "a" : { "17" : { quals : [  ]
+                                             , conc  : [ "(VV = 999)" ] 
+                                             }, "15" : { quals : [  ]
+                                             , conc  : [ "(VV = ((x_main__SSA__phi_5 >= 0) ? 1 : 0))" ] 
+                                             } } } 
+   }; </script>
   
     <style>
       .tooltip {

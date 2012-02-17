@@ -75,23 +75,24 @@ let junkUrl = ""
 (************* Render JSON as Pretty.doc ***************************)
 (*******************************************************************)
 
-let d_many f () xs   = PP.seq (PP.text ", ") (f ()) xs
-let d_kv f () (k, v) = PP.dprintf "%s : %a" k f v
-let d_kvs f () kvs   = PP.dprintf "{ %a }" (d_many (d_kv f)) kvs 
+let d_str () s       = PP.dprintf "\"%s\"" s 
+let d_many f () xs   = PP.d_list ", " f () xs
+let d_kv f () (k, v) = PP.dprintf "%a : %a" d_str k f v
 
 
-(***************** Serializing Arrays and Maps **************************)
+(***************** Serializing Maps and Arrays **************************)
 
-let d_array f () = PP.dprintf "[ %a ]" (d_many f) 
-let d_sm f ()    = SSM.to_list <+> d_kvs f ()
-let d_im f ()    = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
+let d_kvs f () kvs   = PP.dprintf "{ @[%a@] }" (d_many (d_kv f)) kvs 
+let d_array f ()     = PP.dprintf "[ @[%a@] ]" (d_many f) 
+let d_sm f ()        = SSM.to_list <+> d_kvs f ()
+let d_im f ()        = IM.to_list <+> Misc.map (Misc.app_fst string_of_int) <+> d_kvs f ()
 
 (***************** Serializing String Aliases ***************************)
 
-let d_qdef () = PP.text
-let d_expr () = PP.text
-let d_act  () = PP.text 
-let d_pred () = PP.text
+let d_qdef  = d_str 
+let d_expr  = d_str 
+let d_act   = d_str
+let d_pred  = d_str
 
 (***************** Serializing Specialized Records **********************) 
 
@@ -99,18 +100,30 @@ let d_error () e =
   PP.dprintf "{ line : %d }" e.line
 
 let d_qual () q =
-  PP.dprintf "{ name : %s, args : %a, url : %a }" 
-    q.name 
+  PP.dprintf 
+  "{ name : %a, 
+     args : @[%a@], 
+     url  : @[%a@] 
+   }" 
+    d_str q.name 
     (d_array d_expr) q.args
     d_act q.url
 
 let d_annot () a =
-  PP.dprintf "{ quals : %a, conc : %a }"
+  PP.dprintf 
+  "{ quals : @[%a@]
+   , conc  : @[%a@] 
+   }"
     (d_array d_qual) a.quals
     (d_array d_pred) a.conc
 
 let d_json () x = 
-  PP.dprintf "{ errors : %a, qualDef : %a, genAnnot : %a, annot : %a }"
+  PP.dprintf 
+  "{ errors   : @[%a@]
+   , qualDef  : @[%a@]
+   , genAnnot : @[%a@]
+   , annot    : @[%a@] 
+   }"
     (d_array d_error)     x.errors
     (d_sm d_qdef)         x.qualDef
     d_annot               x.genAnnot
@@ -145,8 +158,12 @@ let annot_of_vinfo s ((cr : Ctypes.refctype), (ct : Cil.typ)) : annot =
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
   let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
   let put x n y m = SSM.add x (IM.add n y (get x m)) m               in
-  bs |> Misc.map_partial (function Annots.TSSA (_, y) -> Some y | _ -> None)
-     |> Misc.flap Misc.hashtbl_to_list
+  bs |> Misc.flap begin function 
+          | Annots.TSSA (fn, t) -> 
+             t |>  Misc.hashtbl_to_list 
+               |>: Misc.app_fst (Misc.app_fst3 (CilMisc.unrename_local fn))
+          | _ -> []
+        end
      |> List.fold_left begin fun m ((x, file, line), xssa) ->
           put x line (FixAstInterface.name_of_string xssa) m 
         end SSM.empty

@@ -2,21 +2,21 @@ RUN WITH:
 
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
 
+HEREHEREHEREHERE
 
-1. Mouse Over Idents Shows Reft:
-    Conc
-    Abs  --> MouseOver qualname shows its definition.
+. Single binary (csolve foo.c) generates the HTML
+   >> Binary calls c2html.py
+   >> Copies the css, js from the relevant directories
 
-2. from csolveData (trivial)
+. Render "Concrete" predicates too.
 
-HEREHEREHERE (see js/csolve.js for details)
-above works for hardwired definition.
+. Add Anchor To each line number
 
+. Cleanup Variable names
+        >> Link to line.
 
-3. Add error slicing.
-    Error: Root + lines in slice
-    Slice: Hide all lines EXCEPT slice
+. Print FUNCTION types
 
-4. Rig fixpoint so it GENERATES csolveData
-
-
+. Add error slicing.
+   Error: Root + lines in slice
+   Slice: Hide all lines EXCEPT slice
