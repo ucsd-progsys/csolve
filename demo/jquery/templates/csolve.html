@@ -41,13 +41,26 @@
 </style>
   </head>
   <body>
+    
+    <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
+      <span class="qname" title="$${qfull}">$${qname}</span>
+    </script> 
+
+    <script id="qargTemplate" type="text/x-jquery-tmpl"> 
+      <li><span class="qarg">$${qargname}</span></li>
+    </script>
+
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       $${ctype}[
+      <ul class="flatcsv">
+        <span></span>  
       {{each(i, q) quals}}
-      <span class="qualbind" title="$${q.qfull}">
-         <a href="$${q.qurl}">$${q.qname}($${q.qargs})</a>
-      </span>
+      <li><span class="qualbind">
+        <ul class="flatcsv">{{tmpl(q) "#qnameTemplate"}}({{tmpl(q.qargs) "#qargTemplate"}})</ul>
+         </span>
+      </li>
       {{/each}}
+      </ul>
       {{each(i, p) conc}}
       <span class="concbind">$${p}</span>
       {{/each}}
@@ -106,6 +119,13 @@ var movies = [
 ];
 </script>
 -->
+
+<hr>
+ This is a flatcsv(<ul class="flatcsv"><li>Cat</li><li>Dog</li><li>Mouse</li></ul>).
+
+<ul class="flatcsv"> 
+Lets do this again!(<li>cat</li><li>dog</li><li>mouse</li>)
+</ul>
 
 <hr>
     Line Numbers: <div id="showlines">Hide</div> 

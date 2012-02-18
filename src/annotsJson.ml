@@ -51,9 +51,13 @@ type error =
   ; file : string 
   }
 
+type qarg = 
+  { qargname : expr
+  ; qarginfo : string } 
+
 type qual  =
   { qname : string
-  ; qargs : expr list
+  ; qargs : qarg list
   ; qfull : pred
   ; qurl  : act
   }
@@ -113,6 +117,14 @@ let d_binder () b = PP.dprintf "\"%a\"" An.d_binder b
 let d_error () e = 
   PP.dprintf "{ line : %d }" e.line
 
+let d_qarg () a = 
+  PP.dprintf
+  "{ qargname : %a
+   , qarginfo : %a
+   }" 
+   d_expr a.qargname
+   d_str a.qarginfo
+
 let d_qual () q =
   PP.dprintf 
   "{ qname : %a, 
@@ -121,7 +133,7 @@ let d_qual () q =
      qfull : @[%a@]
    }" 
     d_str            q.qname 
-    (d_array d_expr) q.qargs
+    (d_array d_qarg) q.qargs
     d_act            q.qurl
     d_pred           q.qfull
 
@@ -167,12 +179,17 @@ let d_json () x =
 (************* Build Map from var-line -> ssavar *******************)
 (*******************************************************************)
 
+let qarg_of_expr e = 
+  { qargname = A.Expression.to_string e
+  ; qarginfo = "QARG INFO: TODO" 
+  }
+
 let mkCtype = CilMisc.pretty_to_string CilMisc.d_type_noattrs
 let mkPred  = Ast.Predicate.to_string
-let mkQual  = fun (f,es) -> { qname = Sy.to_string f
-                            ; qargs = List.map A.Expression.to_string es
-                            ; qfull = "FULL-EXPANDED-DEF"
-                            ; qurl  = junkUrl }
+let mkQual  = fun (f, es) -> { qname = Sy.to_string f
+                             ; qargs = List.map qarg_of_expr  es
+                             ; qfull = "FULL-EXPANDED-DEF"
+                             ; qurl  = junkUrl }
 
 let deconstruct_pApp = function
   | A.Bexp (A.App (f, es), _), _ -> Some (f, es)
