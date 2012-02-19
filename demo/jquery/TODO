@@ -5,6 +5,10 @@ RUN WITH:
 HEREHEREHEREHERE
 
 . Add Anchor To each line number
+    >> mouse over line number highlights line
+    >> click on line number selects line (fixes highlight)
+    >> back button jumps to previous line you were at
+    
     >> Why? So we can hop to a line directly.
     >> on error (slice)
     >> var-def
