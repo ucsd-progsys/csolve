@@ -276,7 +276,7 @@ module type S = sig
     val quantified_svars : t -> Heapvar.t list
     val free_svars      : t -> Heapvar.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val instantiate_store : t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (T.store Heapvar.HeapvarMap.t)
+    val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (T.store Heapvar.HeapvarMap.t)
     val make            : (string * CType.t) list -> Sloc.t list -> Heapvar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : T.store Heapvar.HeapvarMap.t -> t -> t

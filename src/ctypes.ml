@@ -422,7 +422,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val quantified_svars : t -> H.t list
     val free_svars      : t -> H.t list
     val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
-    val instantiate_store : t -> T.ctype list -> T.store -> S.Subst.t -> (t * T.store HM.t)
+    val instantiate_store : CM.srcinfo -> t -> T.ctype list -> T.store -> S.Subst.t -> (t * T.store HM.t)
     val make            : (string * T.ctype) list -> S.t list -> Heapvar.t list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : T.store HM.t -> t -> t
@@ -720,6 +720,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Some l -> l :: rls
       end [] ld
 
+    let bindings {plfields = flds} =
+      flds
+
     let indices ld =
       ld |> bindings |>: fst
 
@@ -758,9 +761,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (* specialcase AnyLocs HERE *)
       let add (ds, vs) l ld =
         if not (l = Sloc.sloc_of_any) then
-          SLM.add l ld ds
+          (SLM.add l ld ds, vs)
         else
-          ds
+          (ds, vs)
 
 
     let mem (ds, vs) l = SLM.mem l ds
@@ -927,7 +930,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           (sto, sub)
         else
           let sub = S.Subst.extend s S.sloc_of_any sub in
-          if Function.mem sto s || Data.mem sto s then
+          if mem sto s then
             (subs sub (remove sto s), sub)
           else
             (subs sub sto, sub)
@@ -1123,14 +1126,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
+      let _ = Pretty.printf "well_formed: %a\n%a\n"
+        Store.d_store globstore d_cfun cf in
       let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
              Store.closed globstore cf.sto_in
           && Store.closed globstore cf.sto_out
           && List.for_all (Store.mem globstore) cf.globlocs
           && not (cf.sto_out |> Store.domain |> List.exists (M.flip List.mem cf.globlocs))
-          && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
-          && Store.ctype_closed cf.ret whole_outstore
+          (* && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args *)
+          (* && Store.ctype_closed cf.ret whole_outstore *)
 
     let indices cf =
       Store.indices cf.sto_out
@@ -1163,9 +1168,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       {cf with quant_svars = svars }
         
     let subs_store_var subs cf =
-      let _ = Pretty.printf "subs pre: %a\n" (H.d_hmap Store.d_store) subs in
       (* let subs = HM.filter (fun v _ -> not <| List.mem v cf.quant_svars) subs in *)
-      let _ = Pretty.printf "subs post: %a\n" (H.d_hmap Store.d_store) subs in
       let sto_in = Store.subs_store_var subs cf.sto_in in
       let sto_out = Store.subs_store_var subs cf.sto_out in
       let top_of_l l = 
@@ -1209,15 +1212,25 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         HM.add v sto hsub
         
-    let rec subs_of_args v cf args sto sub = 
+    let rec subs_of_args srcinfo v slocs cf args sto sub = 
       List.fold_left2 begin fun hsub f a -> 
         begin match CType.subs sub f, CType.subs sub a with
           | Ref (l1, _), Ref (l2, _) -> 
             let l2st = Store.subs sub sto |> M.flip Store.restrict [l2] in
-            safe_update_hsub v l2st hsub sub
+            let newsub = Store.domain l2st
+                      |> List.fold_left begin fun sub s ->
+                        if List.mem s slocs then
+                          sub
+                        else
+                          (s, Sloc.fresh_abstract [srcinfo])::sub
+                      end sub
+            in
+            safe_update_hsub v (Store.subs newsub l2st) hsub sub
           | FRef (f, _), FRef (g, _) ->
             let sub = lsubs_of_args f (List.map snd g.args) sub in
-            let st = subs_of_args v f (List.map snd g.args) g.sto_out sub
+	    let slocs' = M.map_partial (snd <+> CType.subs sub <+> CType.sloc) f.args in
+	    let slocs  = Misc.sort_and_compact (slocs ++ slocs') in
+            let st = subs_of_args srcinfo v slocs f (List.map snd g.args) g.sto_out sub
                   |> HM.find v
             in
             safe_update_hsub v st hsub sub
@@ -1225,13 +1238,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         end 
       end HM.empty (List.map snd cf.args) args
                
-    and instantiate_store cf argcts sto sub =
+    and instantiate_store srcinfo cf argcts sto sub =
       if cf.quant_svars = [] then (cf, HM.empty) else
         let formlocs,actlocs = 
           (List.map snd cf.args, argcts)
           |> M.map_pair (M.map_partial (CType.subs sub <+> CType.sloc)) in
         let sub = lsubs_of_args cf argcts sub in
-        let substo = subs_of_args (List.hd cf.quant_svars) cf argcts sto sub in
+        let substo = subs_of_args srcinfo (List.hd cf.quant_svars) formlocs cf argcts sto sub in
         let vars    = List.tl cf.quant_svars in
         let subvars = List.fold_left begin fun (sub, vs) v ->
                         if vs = [] then 

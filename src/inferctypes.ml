@@ -209,13 +209,13 @@ let check_poly_inclusion s1 s2 sub =
 *)
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let cfi, hsub     = CFun.instantiate_store cf cts sto sub in
+  let srcinfo = CM.srcinfo_of_instr i (Some !C.currentLoc) in
+  let cfi, hsub     = CFun.instantiate_store srcinfo cf cts sto sub in
   let _ = Pretty.printf "Instantiated function @[%a@]@! with@! @[%a@]@!"
     CFun.d_cfun cf CFun.d_cfun cfi in
-  let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some !C.currentLoc)) cfi in
-  (* let _ = Pretty.printf "sub: %a sto: %a\n" S.Subst.d_subst sub Store.d_store sto in *)
-  (* let _ = Pretty.printf "Instantiated function @!@[%a@]@! with@!@[%a@]@!" *)
-    (* CFun.d_cfun cf CFun.d_cfun cfi in *)
+  let cfi, isub     = CFun.instantiate srcinfo cfi in
+  let _ = Pretty.printf "Instantiated function @[%a@]@! with@! @[%a@]@!"
+    CFun.d_cfun cf CFun.d_cfun cfi in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let annot         = annot ++ List.map (fun (vfrom, sto) -> RA.HInst (vfrom, sto)) (HM.to_list hsub) in
   let sto           = cfi.sto_out
@@ -239,6 +239,8 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
+  (* let _ = Pretty.printf "sub: %a sto: %a\n" S.Subst.d_subst sub Store.d_store sto in *)
+  (* let _ = asserts (CFun.well_formed sto cfi ) "Instantiated function is not well-formed!" in *)
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
