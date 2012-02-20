@@ -23,7 +23,7 @@
 
 type t
   
-module HeapvarMap : Misc.EMapType with type key = t
+module HeapvarMap : FixMisc.EMapType with type key = t
 
 val compare             : t -> t -> int
 val fresh_heapvar       : unit -> t

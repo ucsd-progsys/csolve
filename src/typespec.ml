@@ -484,7 +484,7 @@ and replaceFreeVars vs cts =
     let qvs = f.Ct.quant_svars in
     let replace sto = 
       List.fold_left (fun sto v -> RS.ensure_var v sto) sto vs
-      |> RS.filter_vars (Misc.flip List.mem (vs++qvs)) 
+      |> RS.filter_vars (M.flip List.mem (vs++qvs)) 
     in {f with Ct.sto_in = replace f.Ct.sto_in;
                Ct.sto_out = replace f.Ct.sto_out}
   in
@@ -497,7 +497,7 @@ and refcfunOfPreRefcfun sub gsto prcf =
   let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
   let gstof, ostof      = aostof
                           |> RS.partition (M.flip List.mem prcf.Ct.globlocs)
-                          |> Misc.app_snd RS.abstract_empty_slocs in
+                          |> M.app_snd RS.abstract_empty_slocs in
   let vs                = RS.vars ostof in
   let istof, _          = RS.partition (RS.mem prcf.Ct.sto_in) ostof in
   let gsto, sub         = updateGlobalStore sub gsto gstof in
@@ -546,7 +546,7 @@ let globalSpecOfFuns sub gsto funs =
      let _      = C.currentLoc := v.C.vdecl in
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
-         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto |> (Misc.app_fst3 RCf.quantify_svars) in
+         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto |> (M.app_fst3 RCf.quantify_svars) in
            (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)

@@ -21,9 +21,9 @@
  *
  *)
 module P = Pretty
-module M = Misc
+module M = FixMisc
   
-open Misc.Ops
+open M.Ops
 
 type t = HVar of int
     
@@ -32,7 +32,7 @@ let d_hvar () (HVar n) = P.text <| "h" ^ string_of_int n
 let compare (HVar n) (HVar m) = compare n m
     
 let (fresh_heapvar, reset_fresh_heapvar) = 
-  let (fresh_heapvar_id, reset_fresh_heapvar_ids) = Misc.mk_int_factory ()
+  let (fresh_heapvar_id, reset_fresh_heapvar_ids) = M.mk_int_factory ()
   in (fresh_heapvar_id <+> (fun i -> HVar i), reset_fresh_heapvar_ids) 
   
 type hvar = t
@@ -45,7 +45,7 @@ module ComparableHeapvar =
   end
   
 module HeapvarMap = 
-  Misc.EMap (ComparableHeapvar)
+  M.EMap (ComparableHeapvar)
 
 let d_hmap d_a () m = m
                    |> HeapvarMap.to_list
