@@ -1,43 +1,16 @@
 RUN WITH:
 
   /usr/local/bin/python c2html.py stringlist.c [stringlist.c.json]
+  
+  . On qual-arg-var click, SHOW/HIDE links for further jumping.
+  
+  . TEST SSA Joins of x (qargid definition)
 
-. Add Anchor To each line number
-    >> mouse over line number highlights line
-        >> c2html.py  : add anchors
-        >> csolve.css : add class so yellow line-num-hover
-        >> csolve.js  : add code so on line-num click,
-                        yellow added to parent line class,
-                        removed from "previous" class.
-         
-    >> click on line number selects line (fixes highlight)
-    >> back button jumps to previous line you were at
-
-. Hover over qualArg expands to information
-    >> click jumps to line number
-    ** TODO(ML): .qargline field to qarg record
-                 .qarginfo field to qarg record.
-
-. Hover over qualname expands to information
-    >> full definition.
-
-    foreach varid x:
-      csolveData.varDef[x].varExpr : null or defining expression
-      csolveData.varDef[x].varLoc  : null or defining location of x 
-      csolveData.varDef[x].varDeps : SSA joins of x
-
-    foreach q in quals:
-        q.qname is the name of the qual
-        q.qfull is the expanded string for predicate
-        q.qargs.qargname : short name of qarg 
-        q.qargs.qargid   : null or varid of actual variable
-    HEREHEREHERE
-    //render qargname in annot
-    //render csolveData.varDef[qargid] for qarg hover (e.g. for click to jump to varLoc)
-    //render qfull for qname hover
-
-. Cleanup Variable names
+  . Cleanup Variable names
     >> EQ(VV, x, y) instead of EQ(VV, x_max, y_max)
+    >> ML:   replace "vname" everywhere in binding with {qargname, qargid} 
+    >> HTML: replace $${vname} with $${vname.qargname} 
+
 
 . Add error slicing.
    Error: Root + lines in slice

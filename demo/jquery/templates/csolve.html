@@ -26,11 +26,13 @@
         {{/each}}
       {{/if}}
     </script> 
-
+         
     <script id="qargTemplate" type="text/x-jquery-tmpl"> 
-      {{if $$item.getVar($$item.data)}}
-        <a class='qarg'>$${qargname}</a>
-        <span class="tooltip3">{{tmpl($$item.getVar($$item.data), qargVar) "#qargVarTemplate"}}</span>
+      {{if varOfvarid(qargid)}}
+      <a class='qarg' href="#$${varOfvarid(qargid).varLoc.line}">$${qargname}</a>
+        <span class="tooltip3">
+          {{tmpl(varOfvarid(qargid)) "#qargVarTemplate"}}
+        </span>
       {{else}}
         <span class='qarg'>$${qargname}</span>
       {{/if}}
