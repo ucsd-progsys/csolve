@@ -48,7 +48,7 @@
       <li><span>{{tmpl(q) "#qnameTemplate"}}&#40;
          <ul class='qualargs'>
            {{each(j, qa) q.qargs}}
-           <li>{{tmpl(qa, qargVar) "#qargTemplate"}}</li>
+             <li>{{tmpl(qa, qargVar) "#qargTemplate"}}</li>
            {{/each}}
          </ul>)
       </li>
@@ -57,7 +57,7 @@
       {{each(i, p) conc}}
       <span class='concbind'>$${p}</span>
       {{/each}}
-    } $${vname} 
+    &#125; $${vname} 
     </script>
 
     <script id="annotvTooltipTemplate" type="text/x-jquery-tmpl"> 
