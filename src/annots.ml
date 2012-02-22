@@ -416,8 +416,8 @@ class annotations = object (self)
     asgnm <- VM.adds x [(l, z)] asgnm
   
   method add_var x ct =
+    E.log "Annots.add_var %a \n" FA.d_name x;
     Misc.maybe_iter begin fun v ->
-      (* E.log "Annots.add_var %a \n" FA.d_name x; *)
       H.replace vart x (ct, v.Cil.vtype);
     end (FA.varinfo_of_name x)
 
@@ -428,7 +428,9 @@ class annotations = object (self)
       let cf  = decorate_refcfun locm f cf        in
       let _   = deconstruct_fun (f, cf, fd)       
                 |>: (function (N n, (ct, _)) -> self#add_var n ct
-                            | (S x, (ct, _)) -> self#add_var (FA.name_of_string x) ct)
+                            | (S x, (ct, _)) -> self#add_var (FA.name_of_string x) ct
+                            | _              -> ()
+                    )
       in H.replace funt f (cf, fd)
     end (self#get_flocm f)
 
