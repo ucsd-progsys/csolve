@@ -102,21 +102,27 @@ let lhs_ks c =
 let rhs_ks c =
   c |> C.rhs_of_t |> reft_ks 
 
+let make_kread_map cm = 
+  cm |> IM.to_list 
+     |> Misc.flap (fun (id, c) -> lhs_ks c |>: (fun k -> (k, id)))
+     |> SM.of_alist 
+     (* >> SM.iter (fun k ids -> Co.bprintf mydebug "ReadIn %a := %a\n" Ast.Symbol.print k Misc.pprint_pretty_ints ids) *)
+  
 let make_deps cm = 
-  let get = fun km k -> try SM.find k km with Not_found -> [] in
-  let upd = fun id km k -> SM.add k (id::(get km k)) km in
-  let km  = IM.fold (fun id c vm -> List.fold_left (upd id) vm (lhs_ks c)) cm SM.empty in
-            (* >> SM.iter (fun k ids -> Co.bprintf mydebug "ReadIn %a := %a\n" Ast.Symbol.print k Misc.pprint_pretty_ints ids) *)
-  IM.fold begin fun id c acc ->
+  let km = make_kread_map cm in
+  cm |> IM.to_list
+     |> Misc.flap (fun (id, c) -> rhs_ks c |> Misc.flap (fun k -> SM.finds k km |>: (fun id' -> (id, id'))))
+     |> Misc.pad_fst IM.of_alist 
+(* >> (fst <+> IM.iter (fun i js -> Co.bprintf mydebug "DepsOf (id = %d) = @[%a@]\n" i Misc.pprint_pretty_ints js)) *)
+
+(* IM.fold begin fun id c acc ->
     List.fold_left begin fun (dm, deps) k -> 
-      let rd_ids = get km k in
+      let rd_ids = SM.finds k km in
       let deps'  = List.map (fun rd_id -> (id, rd_id)) rd_ids in
-(*    let _      = Co.bprintf mydebug "Constraint %d writes %a which is read in [%a]\n" id
- *    Ast.Symbol.print k Misc.pprint_pretty_ints rd_ids in *)
       (IM.adds id rd_ids dm, (deps' ++ deps)) 
     end acc (rhs_ks c) 
-  end cm (IM.empty,[])
-(* >> (fst <+> IM.iter (fun i js -> Co.bprintf mydebug "DepsOf (id = %d) = @[%a@]\n" i Misc.pprint_pretty_ints js)) *)
+   end cm (IM.empty, [])
+ *)
 
 (***********************************************************************)
 (************* Adjusting Dependencies with Provided Tag-Deps ***********)
@@ -161,16 +167,6 @@ let make_rankm cm ranks =
               ; tag   = C.tag_of_t c})
     |> IM.of_list
     
-(*
-  List.fold_left begin fun rm (id, r) -> 
-    let c = IM.find id cm in
-    IM.add id {id    = id; 
-               scc   = r; 
-               simpl = (not !Co.psimple) || (C.is_simple c); 
-               tag   = C.tag_of_t c;} rm
-  end IM.empty ranks 
-*)
-
 let make_roots rankm ijs =
   let sccs = rankm |> IM.to_list |> Misc.map (fun (_,r) -> r.scc) in 
   let sccm = List.fold_left (fun is scc -> IS.add scc is) IS.empty sccs in
@@ -180,9 +176,6 @@ let make_roots rankm ijs =
     if ir <> jr then IS.remove jr sccm else sccm
   end sccm ijs
 
-let im_findall i im = try IM.find i im with Not_found -> []
-
-let is_addall im is = List.fold_left (IS.add |> Misc.flip) im is
 
 (* A constraint c is non-live if its rhs is a k variable that is not
  * (transitively) read. 
@@ -190,19 +183,18 @@ let is_addall im is = List.fold_left (IS.add |> Misc.flip) im is
  * lives := Pre*(roots) where Pre* is refl-trans-clos of the depends-on relation *)
 
 let make_lives cm real_deps =
-  let dm = List.fold_left (fun im (i, j) -> IM.add j (i :: (im_findall j im)) im) IM.empty real_deps in
-  let js = IM.fold (fun i c roots -> if C.is_conc_rhs c then i::roots else roots) cm [] in
-  let js = is_addall IS.empty js in
+  let dm = real_deps |>: Misc.swap |> IM.of_alist in
+  let js = cm |> IM.filter (fun _ -> C.is_conc_rhs) |> IM.domain |> IS.of_list  in
   (js, IS.empty)
   |> Misc.fixpoint begin fun (js, vm) ->
        let vm = IS.fold (fun j vm -> IS.add j vm) js vm in
-       let js =
-         IS.fold begin fun j js ->
-              im_findall j dm 
-              |> List.filter (fun j -> not (IS.mem j vm)) 
-              |> is_addall js
-         end js IS.empty
-       in ((js, vm), js != IS.empty)
+       let js = IS.fold begin fun j js ->
+                  IM.finds j dm 
+                  |> List.filter (fun j -> not (IS.mem j vm)) 
+                  |> IS.of_list
+                  |> IS.union js
+                end js IS.empty
+       in ((js, vm), not (IS.is_empty js))
      end
   |> (fst <+> snd) 
   >> (IS.cardinal <+> Printf.printf "#Live Constraints: %d \n") 
@@ -332,3 +324,28 @@ let roots me =
 (* API *)
 let winit me = 
   roots me |> wpush me WH.empty  
+
+
+
+(***************************************************************)
+(*********** A Operations for Constraint Cones *****************)
+(***************************************************************)
+
+let cone dm =
+  let rec go seen cid = 
+    if IS.mem cid seen then Ast.Cone.Empty else
+      let seen' = IS.add cid seen in
+      match IM.finds cid dm with
+      | []    -> Ast.Cone.Empty
+      | cids' -> Ast.Cone.Cone (List.map (Misc.pad_snd (go seen')) cids')
+  in go IS.empty
+
+let data_sliced_deps cs = 
+  cs |>  FixSimplify.WeakFixpoint.simplify_ts
+     |>: Misc.pad_fst C.id_of_t 
+     |>  IM.of_list 
+     |>  make_deps 
+     |>  fst 
+  
+(* API *)
+let data_cones cs = cs |> data_sliced_deps |> cone

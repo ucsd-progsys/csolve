@@ -63,6 +63,11 @@ open Cil
 
 let mydebug = false
 
+type result = { soln   : FixConstraint.soln
+              ; unsats : FixConstraint.t list
+              ; ucones : (FixConstraint.tag Ast.Cone.t) list
+              }
+
 type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
               ; venv  : Ct.refctype YM.t (* variable reftype environment  *)
               ; live  : FA.name YM.t     (* "live" name for each variable *) 

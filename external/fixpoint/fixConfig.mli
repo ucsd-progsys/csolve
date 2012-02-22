@@ -48,6 +48,11 @@ module type DOMAIN = sig
   val mkbind       : qbind -> bind
 end
 
+
+module type SIMPLIFIER = sig
+  val simplify_ts: FixConstraint.t list -> FixConstraint.t list
+end
+
 val empty     : 'a cfg 
 val create    : deft list -> qbind cfg
 val print     : Format.formatter -> 'a cfg -> unit

@@ -31,6 +31,7 @@ module  C = FixConstraint
 module CM = CilMisc
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
+module IM = Misc.IntMap
 module  Q = Qualifier 
 
 module FA = FixAstInterface
@@ -51,6 +52,12 @@ let mydebug = false
 (****************************************************************)
 (********************** Constraint Indexing *********************)
 (****************************************************************)
+
+type result = 
+  { solution   : FixConstraint.soln
+  ; unsatCs    : FixConstraint.t list
+  ; unsatCones : (CilTag.t * CilTag.t Ast.Cone.t) list
+  }
 
 type t = {
   scim : Ssa_transform.t SM.t;
@@ -186,11 +193,25 @@ let idx_solve me fn qs =
   |> fst
   |> d_indexAbs.read
 
+let make_cones me ucs =
+  let cs = get_cstrs me |> snd3                                    in
+  let cm = cs |>: Misc.pad_fst C.id_of_t |> IM.of_list             in
+  let f  = Cindex.data_cones cs                                    in
+  foreach ucs begin fun c -> 
+    c |> C.id_of_t 
+      |> f 
+      |> (Ast.Cone.map (fun i -> C.tag_of_t <| IM.safeFind i cm "make_cones")) 
+      |> (fun z -> Ast.Cone.Cone [(C.tag_of_t c, z)])
+  end
+
 (* API *)
 let solve me fn qs =
   (if !Constants.prune_index then some <| idx_solve me fn qs else None)
   |> ac_solve d_predAbs me fn (get_cstrs me) qs None
-  |> Misc.app_fst d_predAbs.min_read
+  |> (fun (x, ucs) ->  
+       { FI.soln   = d_predAbs.min_read x
+       ; FI.unsats = ucs
+       ; FI.ucones = make_cones me ucs })
   
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
 
@@ -240,22 +261,3 @@ let scalar_solve me fn fp (* qs *) =
   |> SM.map (List.map (fun (v, cr) -> (v, index_of_refc s v cr)))
   |> SM.map CM.vm_of_list
     
-(* {{{
-let solve (d_create, d_save, d_solve, d_read) me fn qs = 
-  let ws     = get_wfs me in
-  let cs     = get_cs me in
-  let ds     = get_deps me in
-  let env    = YM.map FixConstraint.sort_of_reft FA.builtinm in
-  let cfg    = config FA.sorts env FA.axioms 4 ds cs ws qs in
-  let ctx, s = BS.time "Qual Inst" d_create cfg in
-  let _      = Errormsg.log "DONE: qualifier instantiation \n" in
-  let _      = BS.time "save in" (d_save (fn^".in.fq") ctx) s in
-  let s',cs' = BS.time "Cons: Solve" (d_solve ctx) s in 
-  let _      = Errormsg.log "DONE: constraint solving \n" in
-  let _      = BS.time "save out" (d_save (fn^".out.fq") ctx) s' in
-  (d_read s'), cs'
-
-(* API *)
-let solve = solve d_predAbs 
-
-}}} *)

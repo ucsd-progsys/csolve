@@ -133,6 +133,9 @@ let create_raw ts env ps a ds cs ws qs assm =
   ; assm = assm
   }
 
+module type SIMPLIFIER = sig
+  val simplify_ts: FixConstraint.t list -> FixConstraint.t list
+end
 
 module type DOMAIN = sig
   type t

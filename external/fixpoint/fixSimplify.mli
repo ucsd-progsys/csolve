@@ -21,5 +21,8 @@
  *
  *)
 
-val simplify_ts : FixConstraint.t list -> FixConstraint.t list
 
+module WeakFixpoint : FixConfig.SIMPLIFIER 
+include FixConfig.SIMPLIFIER
+
+(* val simplify_ts : FixConstraint.t list -> FixConstraint.t list *)

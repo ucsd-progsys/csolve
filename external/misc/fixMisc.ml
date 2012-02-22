@@ -341,7 +341,7 @@ module IntMap =
   end)
 
 module IntSet =
-  Set.Make
+  ESet
   (struct
     type t = int
     let compare i1 i2 =
@@ -1087,6 +1087,7 @@ let join f xs ys =
   let ys' = List.map (fun y -> (f y, y)) ys |> List.sort compare in
   fuse [] xs' ys'
 
+
 let kgroupby (f: 'a -> 'b) (xs: 'a list): ('b * 'a list) list =
   let t        = Hashtbl.create 17 in
   let lookup x = try Hashtbl.find t x with Not_found -> [] in
@@ -1096,6 +1097,8 @@ let kgroupby (f: 'a -> 'b) (xs: 'a list): ('b * 'a list) list =
   end xs;
   (* build cluster *)
   Hashtbl.fold (fun k xs xxs -> (k, xs) :: xxs) t []
+
+
 
 let groupby (f: 'a -> 'b) (xs: 'a list): 'a list list =
   kgroupby f xs |> List.map (snd <+> List.rev)

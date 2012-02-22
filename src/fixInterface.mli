@@ -32,6 +32,10 @@ module AlocMap : sig
 end
 *)
 
+type result = { soln   : FixConstraint.soln
+              ; unsats : FixConstraint.t list
+              ; ucones : (FixConstraint.tag Ast.Cone.t) list
+              }
 
 type cilenv
 

@@ -39,6 +39,14 @@ module SM = Misc.StringMap
 
 let mydebug = false
 
+module Cone = struct
+  type 'a t = Empty | Cone of ('a * 'a t) list
+
+  let rec map f = function 
+    | Empty    -> Empty
+    | Cone xcs -> Cone (List.map (f <**> map f) xcs)
+end 
+
 module Sort =
   struct
     type loc = 

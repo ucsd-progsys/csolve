@@ -92,6 +92,7 @@ type json =
   ; genAnnot : annotv
   ; varAnnot : (annotv IM.t) SSM.t 
   ; funAnnot : annotf SSM.t
+  ; cones    : (srcLoc Ast.Cone.t) list
   }
 
 let junkUrl   = ""
@@ -188,6 +189,14 @@ let d_annotf () f =
    d_annotv           f.ret
 
 
+let rec d_cone () = function
+  | A.Cone.Empty    
+  -> PP.text "null"
+  | A.Cone.Cone xcs 
+  -> d_array begin fun () (l, c) ->
+       PP.dprintf "{ line : %d, file : \"%s\", cone : %a }" l.line l.file d_cone c
+     end () xcs
+
 let d_json () x = 
   PP.dprintf 
   "{ errors   : @[%a@]
@@ -196,6 +205,7 @@ let d_json () x =
    , genAnnot : @[%a@]
    , varAnnot : @[%a@] 
    , funAnnot : @[%a@]
+   , cones    : @[%a@]
    }"
     (d_array d_srcLoc)     x.errors
     (d_sm d_qdef)          x.qualDef
@@ -203,6 +213,7 @@ let d_json () x =
     (d_annotv)             x.genAnnot
     (d_sm (d_im d_annotv)) x.varAnnot
     (d_sm d_annotf)        x.funAnnot
+    (d_array d_cone)       x.cones
 
 (*******************************************************************)
 (************* Conversions *****************************************) 
@@ -370,16 +381,17 @@ let mkFunAnnot abbrev s bs =
      |> SSM.of_list
      |> SSM.mapi (fun fn x -> annot_of_finfo abbrev s (fn, x))
 
+let mkCones = List.map (Ast.Cone.map srcLoc_of_location)
 
-
-let bindsToJson qs tgr s cs binds =
+let bindsToJson qs tgr s cs cones binds =
   let abbrev = mkAbbrev binds in
   { errors   = mkErrors tgr cs
   ; qualDef  = mkQualdefm qs
   ; varDef   = mkVarDef abbrev binds
   ; genAnnot = junkAnnot
   ; varAnnot = mkVarAnnot abbrev s binds
-  ; funAnnot = mkFunAnnot abbrev s binds 
+  ; funAnnot = mkFunAnnot abbrev s binds
+  ; cones    = mkCones cones  
   }
 
 (*******************************************************************)
@@ -387,8 +399,8 @@ let bindsToJson qs tgr s cs binds =
 (*******************************************************************)
 
 (* API *)
-let dump_annots qs tgr s' cs' binds : unit =
+let dump_annots qs tgr s' cs' cones binds : unit =
   let f = !Co.csolve_file_prefix^".json" in
-  let d = d_json () <| bindsToJson qs tgr s' cs' binds in
+  let d = d_json () <| bindsToJson qs tgr s' cs' cones binds in
   Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
 

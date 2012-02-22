@@ -34,6 +34,7 @@ module C   = FixConstraint
 module P   = Pretty
 module FI  = FixInterface
 module Co  = Constants
+module Ci  = Consindex
 module Sp  = Ctypes.RefCTypes.Spec
 module RCt = Ctypes.RefCTypes
 module U   = Unix
@@ -149,7 +150,7 @@ let spec_of_file outprefix file =
     Typespec.writeSpecOfFile file specfile
     |> Ctypes.RefCTypes.Spec.map begin fun rct ->
         Ctypes.ctype_of_refctype rct
-        |> Misc.flip FixInterface.t_ctype_refctype rct
+        |> Misc.flip FI.t_ctype_refctype rct
     end
     (* specfile |> parseOneSpec |> Misc.maybe *)
 
@@ -208,17 +209,19 @@ let parseOneFile (fname: string) : Cil.file =
   * simplify boolean expressions *)
 let mydebug = false 
 
-let location_of_constraint tgr = 
-  FixConstraint.tag_of_t <+> CilTag.t_of_tag <+> CilTag.loc_of_t tgr
+let loc_of_tag tgr = 
+  CilTag.t_of_tag <+> CilTag.loc_of_t tgr
 
-let print_unsat_locs tgr s ucs =
-  let ucs = Misc.fsort (location_of_constraint tgr) ucs in
-  List.iter begin fun c ->
-    printf "\n%a:\n\n%a\n" 
-      Cil.d_loc (location_of_constraint tgr c) 
-      (fun () -> FixConstraint.print_t (Some s) |> CilMisc.doc_of_formatter) c
-    |> ignore
-  end ucs
+let loc_of_cstr tgr = FixConstraint.tag_of_t <+> loc_of_tag tgr
+
+let print_unsat_locs tgr res =
+  res.FI.unsats 
+    |> Misc.fsort (loc_of_cstr tgr)
+    |> List.iter begin fun c -> 
+         printf "\n%a:\n\n%a\n" Cil.d_loc (loc_of_cstr tgr c) 
+         (fun () -> FixConstraint.print_t (Some res.FI.soln) |> CilMisc.doc_of_formatter) c
+         |> ignore
+       end
 
 let cil_of_file file =
   file |> Simplemem.simplemem 
@@ -233,11 +236,15 @@ let cil_of_file file =
        >> mk_cfg 
        >> rename_locals 
 
-let dump_annots qs tgr s' cs' =
+let dump_annots qs tgr res =
+  let s     = res.FI.soln                                           in
+  let cs    = res.FI.unsats                                         in
+  let cones = res.FI.ucones |>: (Ast.Cone.map (loc_of_tag tgr))     in 
+  let binds = Annots.dump_bindings ()                               in
   (* 1. Dump Text Annots *)
-  Annots.dump_annots (Some s');
+  Annots.dump_annots (Some s);
   (* 2. Dump JSON Annots *)
-  AnnotsJson.dump_annots qs tgr s' cs' (Annots.dump_bindings ());
+  AnnotsJson.dump_annots qs tgr s cs cones binds;
   (* 3. Render HTML *)
   Printf.sprintf "%s %s" (Co.get_c2html ()) !Co.csolve_file_prefix
   |> Sys.command
@@ -259,13 +266,13 @@ let liquidate file =
   let _         = E.log "DONE: spec parsing \n" in
   let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
   let _         = E.log "DONE: constraint generation \n" in
-  let s', cs'   = Consindex.solve ci fn qs in
+  let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
-  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs tgr s' cs' in
-  let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs s' in
-  let _         = print_unsat_locs tgr s' cs' in
+  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs tgr res in
+  let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs res.FI.soln in
+  let _         = print_unsat_locs tgr res in
   let _         = BS.print log "\nCSolve Time \n" in
-  match cs' with 
+  match res.FI.unsats with 
   | [] -> let _ = printf "\nSAFE\n"   in cil
   | _  -> let _ = printf "\nUNSAFE\n" in exit 1
 

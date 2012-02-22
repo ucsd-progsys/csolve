@@ -154,11 +154,11 @@ let print_brel_as_c ppf = function
   | A.Le -> F.fprintf ppf "<="
 
 let print_bop_as_c ppf = function
-  | A.Plus -> F.fprintf ppf "+"
+  | A.Plus  -> F.fprintf ppf "+"
   | A.Minus -> F.fprintf ppf "-"
   | A.Times -> F.fprintf ppf "*"
-  | A.Div ->  F.fprintf ppf "/"
-
+  | A.Div   ->  F.fprintf ppf "/"
+  
 let rec print_predicate_as_c ppf pred =
   match P.unwrap pred with
   | A.True ->

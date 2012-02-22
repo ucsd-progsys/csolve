@@ -43,4 +43,12 @@ val wpop         : t -> wkl -> FixConstraint.t option * wkl
 val winit        : t -> wkl
 
 (** printing *)
-val print        : Format.formatter -> t -> unit  
+val print        : Format.formatter -> t -> unit 
+
+
+(***************************************************************)
+(*********** Some Operations for Constraint Cones **************)
+(***************************************************************)
+
+val data_cones: FixConstraint.t list -> FixConstraint.id -> FixConstraint.id Ast.Cone.t
+
