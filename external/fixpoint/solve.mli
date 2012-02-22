@@ -24,6 +24,7 @@ module type SOLVER = sig
   val read      : soln -> FixConstraint.soln
   val min_read  : soln -> FixConstraint.soln
   val read_bind : soln -> Ast.Symbol.t -> bind
+  val cone      : t -> FixConstraint.id -> FixConstraint.tag Ast.Cone.t
   (* val meet   : soln -> soln -> soln *)
 
 end

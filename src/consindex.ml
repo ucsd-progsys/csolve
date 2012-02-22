@@ -121,13 +121,14 @@ let print so () me =
 *)
 
 
-type ('a, 'b, 'c, 'd, 'e) domain = 
+type ('a, 'b, 'c, 'd, 'e, 'f) domain = 
   { create      : 'a 
   ; save        : 'b
   ; solve       : 'c
   ; read        : 'd
   ; min_read    : 'd
   ; read_bind   : 'e
+  ; cone        : 'f
   }
 
 
@@ -138,6 +139,7 @@ let d_predAbs =
   ; read      = SPA.read
   ; min_read  = SPA.min_read
   ; read_bind = SPA.read_bind
+  ; cone      = SPA.cone  
   }
 
 let d_indexAbs = 
@@ -147,6 +149,7 @@ let d_indexAbs =
   ; read      = SIA.read
   ; min_read  = SIA.min_read
   ; read_bind = SIA.read_bind
+  ; cone      = SPA.cone  
   }
 
 let dump_counterexamples = function
@@ -169,9 +172,9 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let _         = dump_counterexamples cx                           in
   if !Constants.check_is
   then match cs' with
-	   | [] -> (s', cs')
-	   | _ -> failwith ("ac_solve: "^fn)
-  else s',cs'
+       | [] -> (s', cs', [])
+       | _  -> failwith ("ac_solve: "^fn)
+  else s', cs', List.map (C.id_of_t <+> dd.cone ctx) cs'
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in
@@ -180,7 +183,7 @@ let filter_cstrs dd s fp (ws, cs) =
 
 let ac_scalar_solve dd me fn fp (ws, cs, ds) = (*  (eqs, _, _) = *)
   Misc.with_ref_at Constants.slice false begin fun () ->
-    ac_solve dd me (fn^".eq")  (ws, cs, ds) [] (* eqs *) None None |> fst
+    ac_solve dd me (fn^".eq")  (ws, cs, ds) [] (* eqs *) None None |> fst3
   end
 
 let get_cstrs me = 
@@ -190,9 +193,10 @@ let get_cstrs me =
 
 let idx_solve me fn qs = 
   BS.time "index solution" (ac_solve d_indexAbs me (fn^".index") (get_cstrs me) qs None) None
-  |> fst
+  |> fst3
   |> d_indexAbs.read
 
+  (*
 let make_cones me ucs =
   let cs = get_cstrs me |> snd3                                    in
   let cm = cs |>: Misc.pad_fst C.id_of_t |> IM.of_list             in
@@ -203,15 +207,16 @@ let make_cones me ucs =
       |> (Ast.Cone.map (fun i -> C.tag_of_t <| IM.safeFind i cm "make_cones")) 
       |> (fun z -> Ast.Cone.Cone [(C.tag_of_t c, z)])
   end
+*)
 
 (* API *)
 let solve me fn qs =
   (if !Constants.prune_index then some <| idx_solve me fn qs else None)
   |> ac_solve d_predAbs me fn (get_cstrs me) qs None
-  |> (fun (x, ucs) ->  
+  |> (fun (x, ucs, cones) ->  
        { FI.soln   = d_predAbs.min_read x
        ; FI.unsats = ucs
-       ; FI.ucones = make_cones me ucs })
+       ; FI.ucones = cones })
   
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
 

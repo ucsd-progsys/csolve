@@ -62,6 +62,7 @@ module type SOLVER = sig
   val read      : soln -> FixConstraint.soln
   val min_read  : soln -> FixConstraint.soln
   val read_bind : soln -> Ast.Symbol.t -> bind
+  val cone      : t -> FixConstraint.id -> FixConstraint.tag Ast.Cone.t
   (* val meet   : soln -> soln -> soln  *)
 end
 
@@ -238,5 +239,8 @@ let save fname me s =
   F.fprintf ppf "@[%a@] \n" (Misc.pprint_many true "\n" (C.print_wf None)) me.ws;
   F.fprintf ppf "@[%a@] \n" Dom.print s;
   close_out oc
+
+(* API *)
+let cone me = Cindex.data_cones (Ci.to_list me.sri)
 
 end

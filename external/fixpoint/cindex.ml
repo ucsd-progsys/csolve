@@ -344,7 +344,7 @@ let rec cone_size = function
       let ns = List.map (snd <+> cone_size) xcs in
       List.fold_left (+) (List.length ns) ns
 
-let cone dm =
+let cone (cm, dm) =
   let rec go seen cid = 
     if IS.mem cid seen then Ast.Cone.Empty else
       let seen' = IS.add cid seen in
@@ -352,16 +352,16 @@ let cone dm =
       | []    -> Ast.Cone.Empty
       | cids' -> Ast.Cone.Cone (List.map (Misc.pad_snd (go seen')) cids')
   in begin fun id -> 
-        go IS.empty id 
+           (Ast.Cone.Cone [(id, go IS.empty id)])
+        |> (Ast.Cone.map (fun i -> C.tag_of_t <| IM.safeFind i cm "Cindex.cone")) 
         >> (fun c -> Format.printf "CONE: %d size=%d height=%d" id (cone_size c) (cone_height c))
      end
 
 let data_sliced_deps cs = 
-  cs |>  FixSimplify.WeakFixpoint.simplify_ts
-     |>: Misc.pad_fst C.id_of_t 
-     |>  IM.of_list 
-     |>  make_deps 
-     |>  fst 
+  let cs = FixSimplify.WeakFixpoint.simplify_ts cs      in
+  let cm = cs |>: Misc.pad_fst C.id_of_t |>  IM.of_list in
+  let dm = make_deps cm |> fst                          in
+  (cm, dm)
   
 (* API *)
 let data_cones cs = cs |> data_sliced_deps |> cone
