@@ -454,7 +454,7 @@ Copyright (C) 2010 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/jhala/research/csolve/external/gnu-coreutils'
+ac_pwd='/home/rjhala/research/csolve/external/gnu-coreutils'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
@@ -654,20 +654,20 @@ S["gl_LTLIBOBJS"]=" argmatch.lo asnprintf.lo asprintf.lo backupfile.lo basename.
 "fcntl.lo fd-safer.lo fflush.lo file-type.lo filemode.lo filenamecat.lo filenamecat-lgpl.lo fopen-safer.lo fprintftime.lo fpurge.lo freopen-safer.lo "\
 "fseeko.lo fsusage.lo fts.lo futimens.lo getcwd.lo gethrxtime.lo getndelim2.lo getpass.lo gettime.lo getugroups.lo hard-locale.lo hash.lo human.lo i-"\
 "ring.lo idcache.lo isapipe.lo isnanl.lo linkat.lo long-options.lo md5.lo memcasecmp.lo memcoll.lo mgetgroups.lo mkancesdirs.lo mkdir-p.lo mkstemp-sa"\
-"fer.lo modechange.lo mountlist.lo mpsort.lo open-safer.lo openat-proc.lo openat-safer.lo opendir-safer.lo physmem.lo pipe-safer.lo posixtm.lo posixv"\
-"er.lo printf-args.lo printf-parse.lo quote.lo quotearg.lo readtokens.lo readutmp.lo remove.lo root-dev-ino.lo safe-read.lo safe-write.lo same.lo sav"\
-"e-cwd.lo savedir.lo selinux-at.lo settime.lo sha1.lo sha256.lo sha512.lo sig2str.lo strftime.lo stripslash.lo tempname.lo userspec.lo utimecmp.lo ut"\
-"imens.lo utimensat.lo vasnprintf.lo vasprintf.lo vfprintf.lo vprintf.lo write-any-file.lo xgetcwd.lo xmalloc.lo xnanosleep.lo xstrtod.lo xstrtol.lo "\
-"xstrtol-error.lo xstrtold.lo xstrtoul.lo yesno.lo"
+"fer.lo modechange.lo mountlist.lo mpsort.lo nanosleep.lo open-safer.lo openat-proc.lo openat-safer.lo opendir-safer.lo physmem.lo pipe-safer.lo posi"\
+"xtm.lo posixver.lo printf-args.lo printf-parse.lo quote.lo quotearg.lo readtokens.lo readutmp.lo remove.lo root-dev-ino.lo safe-read.lo safe-write.l"\
+"o same.lo save-cwd.lo savedir.lo selinux-at.lo settime.lo sha1.lo sha256.lo sha512.lo sig2str.lo strftime.lo stripslash.lo tempname.lo userspec.lo u"\
+"timecmp.lo utimens.lo utimensat.lo vasnprintf.lo vasprintf.lo vfprintf.lo vprintf.lo write-any-file.lo xgetcwd.lo xmalloc.lo xnanosleep.lo xstrtod.l"\
+"o xstrtol.lo xstrtol-error.lo xstrtold.lo xstrtoul.lo yesno.lo"
 S["gl_LIBOBJS"]=" argmatch.o asnprintf.o asprintf.o backupfile.o basename.o basename-lgpl.o c-strtod.o c-strtold.o canon-host.o canonicalize.o chdir-long.o cloexec.o"\
 " close-stream.o closein.o closeout.o creat-safer.o cycle-check.o dirchownmod.o dirname.o dirname-lgpl.o dup-safer.o exclude.o fcntl.o fd-safer.o ffl"\
 "ush.o file-type.o filemode.o filenamecat.o filenamecat-lgpl.o fopen-safer.o fprintftime.o fpurge.o freopen-safer.o fseeko.o fsusage.o fts.o futimens"\
 ".o getcwd.o gethrxtime.o getndelim2.o getpass.o gettime.o getugroups.o hard-locale.o hash.o human.o i-ring.o idcache.o isapipe.o isnanl.o linkat.o l"\
-"ong-options.o md5.o memcasecmp.o memcoll.o mgetgroups.o mkancesdirs.o mkdir-p.o mkstemp-safer.o modechange.o mountlist.o mpsort.o open-safer.o opena"\
-"t-proc.o openat-safer.o opendir-safer.o physmem.o pipe-safer.o posixtm.o posixver.o printf-args.o printf-parse.o quote.o quotearg.o readtokens.o rea"\
-"dutmp.o remove.o root-dev-ino.o safe-read.o safe-write.o same.o save-cwd.o savedir.o selinux-at.o settime.o sha1.o sha256.o sha512.o sig2str.o strft"\
-"ime.o stripslash.o tempname.o userspec.o utimecmp.o utimens.o utimensat.o vasnprintf.o vasprintf.o vfprintf.o vprintf.o write-any-file.o xgetcwd.o x"\
-"malloc.o xnanosleep.o xstrtod.o xstrtol.o xstrtol-error.o xstrtold.o xstrtoul.o yesno.o"
+"ong-options.o md5.o memcasecmp.o memcoll.o mgetgroups.o mkancesdirs.o mkdir-p.o mkstemp-safer.o modechange.o mountlist.o mpsort.o nanosleep.o open-s"\
+"afer.o openat-proc.o openat-safer.o opendir-safer.o physmem.o pipe-safer.o posixtm.o posixver.o printf-args.o printf-parse.o quote.o quotearg.o read"\
+"tokens.o readutmp.o remove.o root-dev-ino.o safe-read.o safe-write.o same.o save-cwd.o savedir.o selinux-at.o settime.o sha1.o sha256.o sha512.o sig"\
+"2str.o strftime.o stripslash.o tempname.o userspec.o utimecmp.o utimens.o utimensat.o vasnprintf.o vasprintf.o vfprintf.o vprintf.o write-any-file.o"\
+" xgetcwd.o xmalloc.o xnanosleep.o xstrtod.o xstrtol.o xstrtol-error.o xstrtold.o xstrtoul.o yesno.o"
 S["CONFIG_INCLUDE"]="lib/config.h"
 S["am__EXEEXT_FALSE"]=""
 S["am__EXEEXT_TRUE"]="#"
@@ -679,13 +679,13 @@ S["XGETTEXT_EXTRA_OPTIONS"]=" --flag=error:3:c-format --flag=error_at_line:5:c-f
 "-keyword='proper_name_utf8:1,\"This is a proper name. See the gettext manual, section Names.\"' --flag=asprintf:2:c-format --flag=vasprintf:2:c-format"\
 " --flag=verror:3:c-format --flag=verror_at_line:5:c-format --flag=xprintf:1:c-format --flag=xvprintf:1:c-format --flag=xfprintf:2:c-format --flag=xv"\
 "fprintf:2:c-format --flag=xasprintf:1:c-format"
-S["MSGMERGE"]=":"
-S["XGETTEXT_015"]=":"
-S["XGETTEXT"]=":"
-S["GMSGFMT_015"]=":"
-S["MSGFMT_015"]=":"
-S["GMSGFMT"]=":"
-S["MSGFMT"]=":"
+S["MSGMERGE"]="/usr/bin/msgmerge"
+S["XGETTEXT_015"]="/usr/bin/xgettext"
+S["XGETTEXT"]="/usr/bin/xgettext"
+S["GMSGFMT_015"]="/usr/bin/msgfmt"
+S["MSGFMT_015"]="/usr/bin/msgfmt"
+S["GMSGFMT"]="/usr/bin/msgfmt"
+S["MSGFMT"]="/usr/bin/msgfmt"
 S["GETTEXT_MACRO_VERSION"]="0.17"
 S["USE_NLS"]="yes"
 S["CONFIG_STATUS_DEPENDENCIES"]="$(top_srcdir)/src/Makefile.am"
@@ -723,12 +723,12 @@ S["MAN"]="chroot.1 hostid.1 nice.1 who.1 users.1 pinky.1 uptime.1 stty.1 df.1 st
 "printenv.1 printf.1 ptx.1 pwd.1 readlink.1 rm.1 rmdir.1 runcon.1 seq.1 sha1sum.1 sha224sum.1 sha256sum.1 sha384sum.1 sha512sum.1 shred.1 shuf.1 slee"\
 "p.1 sort.1 split.1 stat.1 sum.1 sync.1 tac.1 tail.1 tee.1 test.1 timeout.1 touch.1 tr.1 true.1 truncate.1 tsort.1 tty.1 uname.1 unexpand.1 uniq.1 un"\
 "link.1 vdir.1 wc.1 whoami.1 yes.1 "
-S["HELP2MAN"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run help2man"
+S["HELP2MAN"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run help2man"
 S["LIBTESTS_LIBDEPS"]=""
 S["LIBCOREUTILS_LTLIBDEPS"]=" "
 S["LIBCOREUTILS_LIBDEPS"]=" "
 S["YIELD_LIB"]="-lrt"
-S["abs_aux_dir"]="/home/jhala/research/csolve/external/gnu-coreutils/build-aux"
+S["abs_aux_dir"]="/home/rjhala/research/csolve/external/gnu-coreutils/build-aux"
 S["INET_PTON_LIB"]=""
 S["LOCALE_TR_UTF8"]="none"
 S["gltests_WITNESS"]="IN_COREUTILS_GNULIB_TESTS"
@@ -834,7 +834,7 @@ S["NEXT_SYS_SELECT_H"]="<sys/select.h>"
 S["REPLACE_SELECT"]="0"
 S["GNULIB_SELECT"]="1"
 S["REPLACE_TIMEGM"]="GNULIB_PORTCHECK"
-S["REPLACE_NANOSLEEP"]="0"
+S["REPLACE_NANOSLEEP"]="1"
 S["REPLACE_MKTIME"]="0"
 S["REPLACE_LOCALTIME_R"]="0"
 S["HAVE_TIMEGM"]="1"
@@ -950,11 +950,11 @@ S["NEXT_LANGINFO_H"]="<langinfo.h>"
 S["REPLACE_NL_LANGINFO"]="0"
 S["HAVE_NL_LANGINFO"]="1"
 S["GNULIB_NL_LANGINFO"]="1"
-S["UINT64_MAX_EQ_ULONG_MAX"]="0"
+S["UINT64_MAX_EQ_ULONG_MAX"]="1"
 S["UINT32_MAX_LT_UINTMAX_MAX"]="1"
-S["INT64_MAX_EQ_LONG_MAX"]="0"
+S["INT64_MAX_EQ_LONG_MAX"]="1"
 S["INT32_MAX_LT_INTMAX_MAX"]="1"
-S["PRIPTR_PREFIX"]="\"\""
+S["PRIPTR_PREFIX"]="\"l\""
 S["NEXT_AS_FIRST_DIRECTIVE_INTTYPES_H"]="<inttypes.h>"
 S["NEXT_INTTYPES_H"]="<inttypes.h>"
 S["HAVE_DECL_STRTOUMAX"]="1"
@@ -1533,13 +1533,13 @@ S["LIB_ACL"]=""
 S["GL_COND_LIBTOOL_FALSE"]=""
 S["GL_COND_LIBTOOL_TRUE"]="#"
 S["host_os"]="linux-gnu"
-S["host_vendor"]="pc"
-S["host_cpu"]="i686"
-S["host"]="i686-pc-linux-gnu"
+S["host_vendor"]="unknown"
+S["host_cpu"]="x86_64"
+S["host"]="x86_64-unknown-linux-gnu"
 S["build_os"]="linux-gnu"
-S["build_vendor"]="pc"
-S["build_cpu"]="i686"
-S["build"]="i686-pc-linux-gnu"
+S["build_vendor"]="unknown"
+S["build_cpu"]="x86_64"
+S["build"]="x86_64-unknown-linux-gnu"
 S["LN_S"]="ln -s"
 S["RANLIB"]="ranlib"
 S["EGREP"]="/bin/grep -E"
@@ -1566,7 +1566,7 @@ S["AM_BACKSLASH"]="\\"
 S["AM_DEFAULT_VERBOSITY"]="0"
 S["am__untar"]="${AMTAR} xf -"
 S["am__tar"]="${AMTAR} chof - \"$$tardir\""
-S["AMTAR"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run tar"
+S["AMTAR"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run tar"
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
 S["AWK"]="gawk"
@@ -1574,12 +1574,12 @@ S["mkdir_p"]="/bin/mkdir -p"
 S["MKDIR_P"]="/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]=""
-S["install_sh"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/install-sh"
-S["MAKEINFO"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run makeinfo"
-S["AUTOHEADER"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoheader"
-S["AUTOMAKE"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run automake-1.11a"
-S["AUTOCONF"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoconf"
-S["ACLOCAL"]="${SHELL} /home/jhala/research/csolve/external/gnu-coreutils/build-aux/missing --run aclocal-1.11a"
+S["install_sh"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/install-sh"
+S["MAKEINFO"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run makeinfo"
+S["AUTOHEADER"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoheader"
+S["AUTOMAKE"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run automake-1.11a"
+S["AUTOCONF"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run autoconf"
+S["ACLOCAL"]="${SHELL} /home/rjhala/research/csolve/external/gnu-coreutils/build-aux/missing --run aclocal-1.11a"
 S["VERSION"]="UNKNOWN"
 S["PACKAGE"]="coreutils"
 S["CYGPATH_W"]="echo"
@@ -1934,7 +1934,6 @@ D["MALLOC_0_IS_NONNULL"]=" 1"
 D["HAVE_MBRTOWC"]=" 1"
 D["HAVE_MAP_ANONYMOUS"]=" 1"
 D["HAVE_DECL_MEMRCHR"]=" 1"
-D["_FILE_OFFSET_BITS"]=" 64"
 D["HAVE_RAW_DECL_SELECT"]=" 1"
 D["HAVE_COMPOUND_LITERALS"]=" 1"
 D["HAVE_TM_GMTOFF"]=" 1"
@@ -2175,6 +2174,7 @@ D["HAVE_SYS_MOUNT_H"]=" 1"
 D["HAVE_MNTENT_H"]=" 1"
 D["HAVE_GETMNTENT"]=" 1"
 D["MOUNTED_GETMNTENT1"]=" 1"
+D["HAVE_BUG_BIG_NANOSLEEP"]=" 1"
 D["GNULIB_TEST_NANOSLEEP"]=" 1"
 D["HAVE_RAW_DECL_GETADDRINFO"]=" 1"
 D["HAVE_RAW_DECL_FREEADDRINFO"]=" 1"

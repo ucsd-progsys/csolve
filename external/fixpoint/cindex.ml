@@ -38,7 +38,7 @@ module P  = Ast.Predicate
 
 open Misc.Ops
 
-let mydebug = false
+let mydebug = true 
 
 (***********************************************************************)
 (***************** Index Data Structures and Accessors *****************)
@@ -106,14 +106,14 @@ let make_kread_map cm =
   cm |> IM.to_list 
      |> Misc.flap (fun (id, c) -> lhs_ks c |>: (fun k -> (k, id)))
      |> SM.of_alist 
-     (* >> SM.iter (fun k ids -> Co.bprintf mydebug "ReadIn %a := %a\n" Ast.Symbol.print k Misc.pprint_pretty_ints ids) *)
+     >> SM.iter (fun k ids -> Co.bprintf mydebug "ReadIn %a := %a\n" Ast.Symbol.print k Misc.pprint_pretty_ints ids) 
   
 let make_deps cm = 
   let km = make_kread_map cm in
   cm |> IM.to_list
      |> Misc.flap (fun (id, c) -> rhs_ks c |> Misc.flap (fun k -> SM.finds k km |>: (fun id' -> (id, id'))))
      |> Misc.pad_fst IM.of_alist 
-(* >> (fst <+> IM.iter (fun i js -> Co.bprintf mydebug "DepsOf (id = %d) = @[%a@]\n" i Misc.pprint_pretty_ints js)) *)
+      >> (fst <+> IM.iter (fun i js -> Co.bprintf mydebug "DepsOf (id = %d) = @[%a@]\n" i Misc.pprint_pretty_ints js)) 
 
 (* IM.fold begin fun id c acc ->
     List.fold_left begin fun (dm, deps) k -> 
@@ -358,9 +358,9 @@ let cone (cm, dm) =
      end
 
 let data_sliced_deps cs = 
-  let cs = FixSimplify.WeakFixpoint.simplify_ts cs      in
-  let cm = cs |>: Misc.pad_fst C.id_of_t |>  IM.of_list in
-  let dm = make_deps cm |> fst                          in
+  let cs = FixSimplify.WeakFixpoint.simplify_ts cs          in
+  let cm = cs |>: Misc.pad_fst C.id_of_t |>  IM.of_list     in
+  let dm = make_deps cm |> snd |>: Misc.swap |> IM.of_alist in
   (cm, dm)
   
 (* API *)

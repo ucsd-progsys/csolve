@@ -714,7 +714,7 @@
 #define HAVE_BTOWC 1
 
 /* Define to 1 if nanosleep mishandles large arguments. */
-/* #undef HAVE_BUG_BIG_NANOSLEEP */
+#define HAVE_BUG_BIG_NANOSLEEP 1
 
 /* Define to 1 if strtold conforms to C99. */
 #define HAVE_C99_STRTOLD 1
@@ -3302,7 +3302,7 @@
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
-#define _FILE_OFFSET_BITS 64
+/* #undef _FILE_OFFSET_BITS */
 
 /* enable compile-time and run-time bounds-checking, and some warnings */
 /* #undef _FORTIFY_SOURCE */
