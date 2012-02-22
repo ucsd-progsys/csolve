@@ -331,6 +331,19 @@ let winit me =
 (*********** A Operations for Constraint Cones *****************)
 (***************************************************************)
 
+let rec cone_height = function
+  | Ast.Cone.Empty    -> 
+      0
+  | Ast.Cone.Cone xcs -> 
+      xcs |> List.map (snd <+> cone_height <+> (+) 1) |> Misc.list_max 0
+
+let rec cone_size = function
+  | Ast.Cone.Empty    ->
+      0
+  | Ast.Cone.Cone xcs -> 
+      let ns = List.map (snd <+> cone_size) xcs in
+      List.fold_left (+) (List.length ns) ns
+
 let cone dm =
   let rec go seen cid = 
     if IS.mem cid seen then Ast.Cone.Empty else
@@ -338,7 +351,10 @@ let cone dm =
       match IM.finds cid dm with
       | []    -> Ast.Cone.Empty
       | cids' -> Ast.Cone.Cone (List.map (Misc.pad_snd (go seen')) cids')
-  in go IS.empty
+  in begin fun id -> 
+        go IS.empty id 
+        >> (fun c -> Format.printf "CONE: %d size=%d height=%d" id (cone_size c) (cone_height c))
+     end
 
 let data_sliced_deps cs = 
   cs |>  FixSimplify.WeakFixpoint.simplify_ts
