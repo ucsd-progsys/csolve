@@ -296,6 +296,7 @@ let stitch_args fn cf = function
       end cf.Ct.args
 
 let deconstruct_fun (f, cf, fd) =
+  let _                = List.map FA.name_of_varinfo fd.Cil.sformals in 
   let ret, argso, _, _ = Cil.splitFunctionTypeVI fd.Cil.svar in
   let xoctts           = stitch_args f cf argso              in
   (Nil, (cf.Ct.ret, ret)) ::  xoctts
