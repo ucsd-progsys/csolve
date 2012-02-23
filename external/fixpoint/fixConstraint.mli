@@ -23,12 +23,15 @@
 
 (* This module implements basic datatypes and operations on constraints *)
 
+
 type t                  (* NEVER EVER expose! *) 
 type wf                 (* NEVER EVER expose! *)
 type dep                (* NEVER EVER expose! dependencies between constraints *)
 
 type tag  = int list * string (* for ordering: must have same dim, lexico-ordered *)
 type id   = int         (* for identifying: must be unique *) 
+
+exception BadConstraint of (id * tag * string)
 
 type soln = Ast.Symbol.t -> Ast.pred list
 type refa = Conc of Ast.pred | Kvar of Ast.Subst.t * Ast.Symbol.t

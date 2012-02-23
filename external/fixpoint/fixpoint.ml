@@ -49,15 +49,20 @@ let print_raw_cs ppf = function
   | cs -> F.fprintf ppf "UNSAT [%s] \n \n \n" (Misc.map_to_string (C.id_of_t <+> string_of_int) cs)
 
 let save_raw fname cs s = 
-  let oc  = open_out fname in
-  let ppf = F.formatter_of_out_channel oc in
-  let _   = print_now ("Fixpoint: save_raw into file = " ^ fname ^ " : BEGIN \n") in
-  F.fprintf ppf "%a \n" print_raw_cs cs; 
-  F.fprintf ppf "%a \n" PA.print s;
-  F.fprintf ppf "@.";
-  F.print_flush ();
-  close_out oc;
-  print_now "Fixpoint: save_raw: END \n"
+  Misc.with_out_formatter fname begin fun ppf ->
+    F.fprintf ppf "%a \n" print_raw_cs cs; 
+    F.fprintf ppf "%a \n" PA.print s;
+    F.fprintf ppf "@.";
+    F.print_flush ()
+  end
+
+let save_crash fname (id, tag, msg) =
+  Misc.with_out_formatter fname begin fun ppf ->
+    F.fprintf ppf "Crash\n";
+    F.fprintf ppf "%d\n" id;
+    F.fprintf ppf "%a\n" C.print_tag tag;
+    F.fprintf ppf "%s\n" msg;
+  end
 
 let solve ac  = 
   let _         = print_now "Fixpoint: Creating  CI\n" in
@@ -71,12 +76,17 @@ let solve ac  =
   cs'
 
 let dump_solve ac = 
-  let cs' = solve { ac with Cg.bm = SM.map PA.mkbind ac.Cg.bm } in
-  let _   = BNstats.print stdout "Fixpoint Solver Time \n" in
-  match cs' with 
-  | [] -> (F.printf "\nSAT\n" ; exit 0)
-  | _  -> (F.printf "\nUNSAT\n" ; exit 1)
-
+  try 
+    let cs' = solve { ac with Cg.bm = SM.map PA.mkbind ac.Cg.bm } in
+    let _   = BNstats.print stdout "Fixpoint Solver Time \n" in
+    match cs' with 
+    | [] -> (F.printf "\nSAT\n" ; exit 0)
+    | _  -> (F.printf "\nUNSAT\n" ; exit 1)
+  with (C.BadConstraint (id, tag, msg)) -> begin
+    Format.printf "Fixpoint: Bad Constraint! id = %d (%s) tag = %a \n" 
+    id msg C.print_tag tag;
+    save_crash !Co.out_file (id, tag, msg)
+  end
 
 (*****************************************************************)
 (********************* Generate Imp Program **********************)

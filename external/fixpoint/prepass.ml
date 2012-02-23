@@ -47,7 +47,6 @@ let mydebug = false
 (*********** Input Constraint & Solution Validation ************)
 (***************************************************************)
 
-exception Out_of_scope of Ast.Symbol.t 
 
 (* 3a. check that lhs/rhs have same sort *)
 let phase3a = 
@@ -123,7 +122,7 @@ let validate_vars env msg vs =
   List.iter begin fun v -> 
     if not(SM.mem v env) then 
       let _ = F.printf "ERROR: out_of_scope variable %a (%s)" Sy.print v (Lazy.force msg) in
-      raise (Out_of_scope v)
+      failwith ("Out_of_scope: "^(Sy.to_string v))
   end vs 
 
 let validate_pred env msg p = 
@@ -170,9 +169,11 @@ let phase5 s cs =
       BS.time "valid rhs" (validate_reft s env (lazy (msg^"\n BAD RHS"))) rhs;
       true
     with ex -> begin 
-      Format.printf "Phase5: exn = %s on constraint: %a \n" 
-        (Printexc.to_string ex) (C.print_t None) c; 
-      raise ex
+      let id  = C.id_of_t c           in
+      let tag = C.tag_of_t c          in
+      let msg = Printexc.to_string ex in
+      Format.printf "Phase5: exn = %s on constraint: %a \n" msg (C.print_t None) c;
+      raise (C.BadConstraint (id, tag, msg))
     end
   end cs
 
