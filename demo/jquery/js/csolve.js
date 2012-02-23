@@ -52,6 +52,10 @@ var getVarInfo = function(x){
 /**************** Accessing csolveData Information **************/
 /****************************************************************/
 
+var errorCones = function () {
+  return csolveData.cones.map(function(x){ return x[0]; });
+};
+
 var qualDef = function(n){ 
   return (csolveData.qualDef[n]); 
 };
@@ -111,6 +115,12 @@ var isErrorLine = function(i){
 /************ Dressing Up the Templates *************************/ 
 /****************************************************************/
 
+var expanderSymbol = function( tmplItem ) {
+  if (!("expanded" in tmplItem.data)) {
+    tmplItem.data.expanded = false;
+  };
+  return tmplItem.data.expanded ? "-" : "+";
+};
 
 var varOfvarid = function (vid) { 
   if (vid in csolveData.varDef) { return csolveData.varDef[vid]; };
@@ -129,22 +139,8 @@ var lineOfvarid = function(vid) {
   return null;
 }
 
-/*
-var varLocLink = {
-  getLine : function(loc){ return loc.line; } 
-};
-
-var varidLink = {
-  getLine : function(vid){ 
-              var v = varOfVarid(vid); 
-              if (v) { return v.varLoc.line; };
-              return null;
-            }
-};
-*/
-
 /****************************************************************/
-/**************** Highlighting Lines ****************************/
+/**************** Changing Display On Click Etc. ****************/
 /****************************************************************/
 
 var hilitError = function(line){ 
@@ -159,6 +155,12 @@ var hilitCurrent = function(line){
   if (currentLine) { $(currentLine).removeClass("curLine"); };
   currentLine = line;
 };
+
+var toggleCone = function(x){
+  var tmplItem = $.tmplItem(x);
+  tmplItem.data.expanded = !tmplItem.data.expanded;
+  tmplItem.update(); 
+}
 
 /****************************************************************/
 /**************** Top Level Rendering ***************************/
@@ -237,6 +239,13 @@ $(document).ready(function(){
   $(window).hashchange(function(){
     hilitCurrent(getHashLine());
   });
+  
+  //Render Cones
+  $("#conesTemplate").tmpl(errorCones()).appendTo("#errorcones") ;
+  $("#errorcones").delegate(".coneExpand", "click", function(){ toggleCone(this);});
+
+  //$("#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
+
   
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){

@@ -22,8 +22,25 @@
      {{tmpl(varLoc, varLocLink) "#locLinkTemplate"}}
         {{tmpl(varid, varidLink) "#locLinkTemplate"}}
     -->
+    
+    <script id="coneTemplate" type="text/x-jquery-tmpl">
+    <li> 
+      <a class='coneLink' href="#$${line}">$${line}</a>
+      {{if cone}}
+      <span class='coneExpand'>$${expanderSymbol($$item)}</span>
+         {{if expanded}}
+         <ul>{{tmpl(cone) "#coneTemplate"}}</ul>
+         {{/if}}
+      {{/if}}
+    </li>
+  </script>
+  <script id="conesTemplate" type="text/x-jquery-tmpl">
+    <ul>{{tmpl($$item.data) "#coneTemplate"}}</ul>
+  </script>
 
-    <script id="qargVarTemplate" type="text/x-jquery-tmpl">
+
+
+  <script id="qargVarTemplate" type="text/x-jquery-tmpl">
       {{if varLoc}}
          <a class='locLink' href="#$${varLoc.line}">$${varLoc.line}</a>
       {{else}}
@@ -96,12 +113,21 @@
               </table>
       </span>
     </script>
-
-<hr>
+    
+    <!--
+    <hr>
     Line Numbers: <div id="showlines">Hide</div> 
     <hr>
     Your Last Click:<div id="msg"></div>
     <hr>
+    -->
+
+    <hr>
+    <h1>Errors</h1>
+      <div id="errorcones"></div>
+
+    <hr>
+    <h1>Source</h1>
     
     <div class="highlight" style="width: 500px; height: 300px; overflow: auto; padding: 5px;">
     $srcHtml
