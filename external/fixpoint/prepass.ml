@@ -54,9 +54,9 @@ let phase3a =
     let (vv1,t1,_) = C.lhs_of_t c in
     let (vv2,t2,_) = C.rhs_of_t c in
     if not (vv1 = vv2 && t1 = t2) then 
-      let _ = Format.printf "Invalid Constraints 3a (LHS/RHS sort mismatch) in \n %a " (C.print_t None) c in
-      let _ = 0/0 in 
-      () 
+      let msg = "Invalid Constraints 3a (LHS/RHS sort mismatch)" in
+      let _   = Format.printf "%s in \n %a " msg (C.print_t None) c in
+      raise (C.BadConstraint (C.id_of_t c, C.tag_of_t c, msg))
   end
 
 (* 3b. check that sorts are consistent across constraints. 
@@ -113,8 +113,9 @@ let phase3b cs =
 
 (* 4. check that each tag has the same arity [a] *)
 let phase4 a = 
-  List.iter begin fun c -> 
-    asserts (a = List.length (fst (C.tag_of_t c))) "Invalid Constraints 4"
+  List.iter begin fun c ->
+    if (a = List.length (fst (C.tag_of_t c))) then () else
+      raise (C.BadConstraint (C.id_of_t c, C.tag_of_t c, "Tag Arity Error"))
   end
 
 (* 5. check that all refinements are well-formed *)

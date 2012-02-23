@@ -60,6 +60,8 @@ let save_crash fname (id, tag, msg) =
   Misc.with_out_formatter fname begin fun ppf ->
     F.fprintf ppf "CRASH %d (%s)\n" id msg;
     F.fprintf ppf "//%a\n" C.print_tag tag;
+    F.fprintf ppf "@.";
+    F.print_flush ()
   end
 
 let solve ac  = 
@@ -83,7 +85,7 @@ let dump_solve ac =
   with (C.BadConstraint (id, tag, msg)) -> begin
     Format.printf "Fixpoint: Bad Constraint! id = %d (%s) tag = %a \n" 
     id msg C.print_tag tag;
-    save_crash !Co.out_file (id, tag, msg)
+    save_crash !Co.out_file (id, tag, msg); 
   end
 
 (*****************************************************************)
