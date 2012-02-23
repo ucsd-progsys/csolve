@@ -247,6 +247,48 @@ let make_kmap defs : kmap =
   |> Misc.map_partial (function Cg.Wfc x -> Some x | _ -> None)
   |> List.fold_left add_wf_to_kmap SM.empty
 
+
+
+let mkFreshI, _   = Misc.mk_int_factory ()
+let mkFresh cid x = Sy.of_string (Format.sprintf "%s_smt_%d_%d" (Sy.to_string x) cid (mkFreshI ()))
+
+(*
+let fresh_vars cid p =
+  let t   = Hashtbl.create 17 in
+  let fe  = fun e -> match e with 
+              | A.Var x, _ when Hashtbl.mem t x -> 
+                 x |> mkFresh cid >> Hashtbl.add t x |> A.eVar
+              | _ -> e in
+  let p' = A.Predicate.map id fe p in
+  let l' = Misc.hashtbl_keys t 
+           |> Misc.flap begin fun x -> 
+                foreach (Hashtbl.find_all t x) begin fun x' ->
+                  A.pEqual ((A.eVar x), (A.eVar x'))
+                end
+              end
+           |> A.pAnd in
+  l', p'
+
+  *)
+
+let fresh_vars cid es = 
+  let t   = Hashtbl.create 17 in
+  let es' = List.map begin fun e -> match e with
+            | (A.Var x, _) ->
+                if Hashtbl.mem t x then
+                  x |> mkFresh cid >> Hashtbl.add t x |> A.eVar
+                else let _ = Hashtbl.add t x x in e 
+            | _ -> failwith "ERROR fresh_vars"
+            end es in
+  let l' = Misc.hashtbl_keys t 
+           |> Misc.flap begin fun x -> 
+                foreach (Hashtbl.find_all t x) begin fun x' ->
+                  A.pEqual ((A.eVar x), (A.eVar x'))
+                end
+              end
+           |> A.pAnd in
+  l', es'
+
 (*************************************************************************)
 (************* Translating using the KMap ********************************)
 (*************************************************************************)
@@ -259,19 +301,26 @@ let soln_of_kmap km k =
   >> (Format.printf "soln_of_kmap: k = %a ps = %a \n" Sy.print k (Misc.pprint_many false " " P.print))
 
 let tx_constraint s c =
-  let cid     = C.id_of_t c in
-  let lps     = C.preds_of_lhs_nofilter s c 
-                >> (Format.printf "preds_of_lhs: cid = %d ps = %a \n" cid (Misc.pprint_many false " " P.print))
-  in
-  let v,t,ras = C.rhs_of_t c       in
-  foreach ras begin function 
-    | C.Conc p -> { lhs = A.pAnd ((A.pNot p) :: lps)
-                  ; rhs = None 
-                  ; id = cid }
-    | ra       -> { lhs = A.pAnd lps
-                  ; rhs = Some (A.pAnd (C.preds_of_refa s ra))
-                  ; id = cid}
-  end
+  let cid     = C.id_of_t c                 in
+  let lps     = C.preds_of_lhs_nofilter s c in
+  let v,t,ras = C.rhs_of_t c                in
+  ras |>: begin function 
+            | C.Conc p -> { lhs = A.pAnd ((A.pNot p) :: lps)
+                          ; rhs = None 
+                          ; id = cid }
+            | ra       -> { lhs = A.pAnd lps
+                          ; rhs = (match C.preds_of_refa s ra with 
+                                  | [p] -> Some p 
+                                  | _   -> failwith "tx_constraint")
+                          ; id = cid}
+          end
+      |>: begin function
+            | { rhs = Some (A.Bexp (A.App (f, es),_), _) } as c' ->
+                let eqp, es' = fresh_vars cid es in
+                let r'       = A.pBexp (A.eApp (f, es')) in 
+                {c' with lhs = A.pAnd [eqp; c'.lhs]; rhs = Some r' }
+            |  c' -> c'
+          end
 
 let tx_defs defs = 
   let km  = defs |> make_kmap in

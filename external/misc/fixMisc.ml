@@ -764,7 +764,7 @@ let sm_protected_add fail k v sm =
 let hashtbl_to_list_all t = 
   hashtbl_keys t |> map (Hashtbl.find_all t) 
 
-let clone x n = 
+let clone x n =
   let rec f n xs = if n <= 0 then xs else f (n-1) (x::xs) in
   f n []
 
