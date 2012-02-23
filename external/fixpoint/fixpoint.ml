@@ -58,10 +58,8 @@ let save_raw fname cs s =
 
 let save_crash fname (id, tag, msg) =
   Misc.with_out_formatter fname begin fun ppf ->
-    F.fprintf ppf "Crash\n";
-    F.fprintf ppf "%d\n" id;
-    F.fprintf ppf "%a\n" C.print_tag tag;
-    F.fprintf ppf "%s\n" msg;
+    F.fprintf ppf "CRASH %d (%s)\n" id msg;
+    F.fprintf ppf "//%a\n" C.print_tag tag;
   end
 
 let solve ac  = 
