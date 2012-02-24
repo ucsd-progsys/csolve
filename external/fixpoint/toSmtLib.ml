@@ -247,31 +247,12 @@ let make_kmap defs : kmap =
   |> Misc.map_partial (function Cg.Wfc x -> Some x | _ -> None)
   |> List.fold_left add_wf_to_kmap SM.empty
 
-
-
 let mkFreshI, _   = Misc.mk_int_factory ()
-let mkFresh cid x = Sy.of_string (Format.sprintf "%s_smt_%d_%d" (Sy.to_string x) cid (mkFreshI ()))
+let mkFresh cid x = 
+  Sy.of_string (Format.sprintf "%s_smt_%d_%d" (Sy.to_string x) cid (mkFreshI ())) 
+  >> (fun x' -> Format.printf "fresh_var: %a \n" Sy.print x')
 
-(*
-let fresh_vars cid p =
-  let t   = Hashtbl.create 17 in
-  let fe  = fun e -> match e with 
-              | A.Var x, _ when Hashtbl.mem t x -> 
-                 x |> mkFresh cid >> Hashtbl.add t x |> A.eVar
-              | _ -> e in
-  let p' = A.Predicate.map id fe p in
-  let l' = Misc.hashtbl_keys t 
-           |> Misc.flap begin fun x -> 
-                foreach (Hashtbl.find_all t x) begin fun x' ->
-                  A.pEqual ((A.eVar x), (A.eVar x'))
-                end
-              end
-           |> A.pAnd in
-  l', p'
-
-  *)
-
-let fresh_vars cid es = 
+let fresh_vars env cid es = 
   let t   = Hashtbl.create 17 in
   let es' = List.map begin fun e -> match e with
             | (A.Var x, _) ->
@@ -282,11 +263,13 @@ let fresh_vars cid es =
             end es in
   let l' = Misc.hashtbl_keys t 
            |> Misc.flap begin fun x -> 
+                let so = SM.safeFind x env "toSmtLib.fresh_vars" in
                 foreach (Hashtbl.find_all t x) begin fun x' ->
-                  A.pEqual ((A.eVar x), (A.eVar x'))
+                  (x', so), A.pEqual ((A.eVar x), (A.eVar x'))
                 end
               end
-           |> A.pAnd in
+           |> List.split
+           |> Misc.app_snd A.pAnd in
   l', es'
 
 (*************************************************************************)
@@ -316,10 +299,10 @@ let tx_constraint s c =
           end
       |>: begin function
             | { rhs = Some (A.Bexp (A.App (f, es),_), _) } as c' ->
-                let eqp, es' = fresh_vars cid es in
-                let r'       = A.pBexp (A.eApp (f, es')) in 
-                {c' with lhs = A.pAnd [eqp; c'.lhs]; rhs = Some r' }
-            |  c' -> c'
+                let (xts, eqp), es' = fresh_vars (C.senv_of_t c) cid es in
+                let r'              = A.pBexp (A.eApp (f, es')) in 
+                (xts, {c' with lhs = A.pAnd [eqp; c'.lhs]; rhs = Some r' })
+            |  c' -> ([], c')
           end
 
 let tx_defs defs = 
@@ -327,9 +310,10 @@ let tx_defs defs =
   let s   = soln_of_kmap km   in 
   let cs  = defs |> Misc.map_partial (function Cg.Cst x -> Some x | _ -> None) 
                  (* |> Misc.map canonize_vv *) in
-  { vars  = SM.to_list <| List.fold_left add_var_to_vmap SM.empty cs
+  let xts,cs' = List.split <| Misc.flap (tx_constraint s) cs in
+  { vars  = Misc.flatten xts ++ (SM.to_list <| List.fold_left add_var_to_vmap SM.empty cs) 
   ; kvars = SM.range km
-  ; cstrs = Misc.flap (tx_constraint s) cs 
+  ; cstrs = cs'
   }
 
 
