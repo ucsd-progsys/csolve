@@ -33,8 +33,9 @@ module CM  = CilMisc
 module FC  = FixConstraint
 module SM  = M.StringMap
 module SLM = S.SlocMap
-module H   = Heapvar
-module HM  = Heapvar.HeapvarMap
+module Sv  = Svar
+module SVM = Sv.SvarMap
+module SVS = Sv.SvarSet
   
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
@@ -140,13 +141,13 @@ and effectset = effectptr SLM.t
 and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
                   ; plinfo     : ldinfo }
 
-and 'a prestore = 'a preldesc Sloc.SlocMap.t * (H.t list)
+and 'a prestore = 'a preldesc Sloc.SlocMap.t * (Sv.t list)
 
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : S.t list;                     (* unquantified locations *)
-      quant_svars : H.t list;
+      quant_svars : Sv.t list;
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
@@ -161,7 +162,7 @@ type 'a prespec = ('a precfun * specType) Misc.StringMap.t
                 * ('a prectype * specType) Misc.StringMap.t 
                 * 'a prestore
                 * specType SLM.t
-
+  
 let d_specTypeRel () = function
   | HasShape  -> P.text "::"
   | IsSubtype -> P.text "<:"
@@ -197,7 +198,7 @@ let d_refctype = d_prectype Reft.d_refinement
 
 let d_effectinfo = d_refctype
   
-let d_varstore () lst = Pretty.seq ~sep:(Pretty.text " ") ~doit:(fun h -> H.d_hvar () h) ~elements:lst
+let d_varstore () lst = Pretty.seq ~sep:(Pretty.text " ") ~doit:(fun h -> Sv.d_svar () h) ~elements:lst
 
 let d_storelike d_binding =
   SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
@@ -237,6 +238,51 @@ module EffectSet = struct
   let d_effectset () effs =
     P.dprintf "{@[%a@]}" (d_storelike d_effect) effs
 end
+  
+module StoreSubst = struct
+    open SVM
+    type elt = SS.t * SVS.t 
+	  
+    type t = elt SVM.t
+	
+    let (empty:t) = empty
+
+    let lookup v sub =
+      try find v sub with Not_found -> (SS.empty, SVS.empty)
+	
+    let extend_sset v ss sub = 
+      let (slocs, svars) = lookup v sub in
+      add v (SS.union slocs ss, svars) sub
+	
+    let extend_vset v vs sub =
+      let (slocs, svars) = lookup v sub in
+      add v (slocs, SVS.union svars vs) sub
+	
+    let extend v sub sub' = 
+      let (slocs, svars) = lookup v sub in
+      let (slocs', svars') = lookup v sub' in
+      add v (SS.union slocs slocs', SVS.union svars svars') sub'
+	
+    let mem = mem 
+	
+    let subs sub t = 
+      let sub_ss sub ss = ss |> SS.elements |> List.map (S.Subst.apply sub)
+	|> List.fold_left (M.flip SS.add) SS.empty
+      in
+      SVM.map (fun (ss,vs) -> (sub_ss sub ss, vs)) t
+	
+    let to_list = to_list
+
+    module SMP = P.MakeMapPrinter(SVM)
+      
+    let d_value () (ss,vs) = 
+      P.dprintf "(%a, %a)" S.d_slocset ss Sv.d_svarset vs
+	
+    let d_storesubst () svm = 
+      SMP.d_map "; " Sv.d_svar d_value () svm
+end
+  
+module StS = StoreSubst
 
 module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
@@ -282,7 +328,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val width       : t -> int
     val sloc        : t -> Sloc.t option
     val subs        : Sloc.Subst.t -> t -> t
-    val subs_store_var : T.store HM.t -> t -> t
+    val subs_store_var : StoreSubst.t -> T.store -> t -> t
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
@@ -365,13 +411,13 @@ module SIGS (T : CTYPE_DEFS) = struct
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val subs_store_var : t HM.t -> t -> t
+    val subs_store_var : StoreSubst.t -> t -> t -> t
     val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
-    val add_var      : t -> Heapvar.t -> t
-    val vars         : t -> Heapvar.t list
-    val filter_vars  : (Heapvar.t -> bool) -> t -> t
+    val add_var      : t -> Sv.t -> t
+    val vars         : t -> Sv.t list
+    val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
         
     val d_store_addrs: unit -> t -> P.doc
@@ -382,7 +428,7 @@ module SIGS (T : CTYPE_DEFS) = struct
       (* val domain        : t -> Sloc.t list *)
       (* val mem           : t -> Sloc.t -> bool *)
     val ensure_sloc   : t -> Sloc.t -> t
-    val ensure_var    : Heapvar.t -> t -> t
+    val ensure_var    : Sv.t -> t -> t
     val find          : t -> Sloc.t -> T.ldesc
     val find_or_empty : t -> Sloc.t -> T.ldesc
       (* val map           : (T.ctype -> T.ctype) -> t -> t *)
@@ -419,13 +465,13 @@ module SIGS (T : CTYPE_DEFS) = struct
     val same_shape      : t -> t -> bool
     val quantify_svars  : t -> t
     val quantified_locs : t -> Sloc.t list
-    val quantified_svars : t -> H.t list
-    val free_svars      : t -> H.t list
+    val quantified_svars : t -> Sv.t list
+    val free_svars      : t -> Sv.t list
     val instantiate     : CM.srcinfo -> t -> t * S.Subst.t
-    val instantiate_store : CM.srcinfo -> t -> T.ctype list -> T.store -> S.Subst.t -> (t * T.store HM.t)
-    val make            : (string * T.ctype) list -> S.t list -> Heapvar.t list -> T.store -> T.ctype -> T.store -> effectset -> t
+    val instantiate_store : CM.srcinfo -> t -> T.ctype list -> T.store -> S.Subst.t -> (t * StoreSubst.t)
+    val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
-    val subs_store_var  : T.store HM.t -> t -> t
+    val subs_store_var  : StoreSubst.t -> T.store -> t -> t
     val indices         : t -> Index.t list
   end
 
@@ -537,8 +583,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
       | pct        -> pct
         
-    let subs_store_var subs = function
-      | FRef (f, i) -> FRef (CFun.subs_store_var subs f, i)
+    let subs_store_var subs sto = function
+      | FRef (f, i) -> FRef (CFun.subs_store_var subs sto f, i)
       | pct -> pct
 
     exception NoLUB of t * t
@@ -857,7 +903,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto
         
     let abstract_empty_slocs sto = 
-      let v = Heapvar.fresh_heapvar () in
+      let v = Sv.fresh_svar () in
       fold_locs
         (fun s ld sto -> 
           if S.is_abstract s && LDesc.is_empty ld then 
@@ -890,14 +936,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
           
-    let subs_store_var subs (sto,vs) = 
-      List.fold_left begin fun (sto,vs) v -> 
-        if HM.mem v subs then 
-          (upd (sto,vs) (HM.find v subs)) 
+    let subs_store_var subs fromsto (insto,vs) = 
+      List.fold_left begin fun (sto, vs) v -> 
+        if StS.mem v subs then
+      	  let (slocs,vars) = StS.lookup v subs in
+	  let (conc,_)     = SS.elements slocs |> restrict fromsto in
+          (upd (sto,vs) (conc, SVS.elements vars))
         else
           (sto, v :: vs)
-      end (sto,[]) vs 
-      |> Misc.app_snd (List.sort H.compare)
+      end (insto,[]) vs
+      |> Misc.app_snd (List.sort Sv.compare)
           
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -1001,7 +1049,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       { args     = args;
         ret      = reto;
         globlocs = globs;
-        quant_svars = List.sort Heapvar.compare svars; 
+        quant_svars = List.sort Sv.compare svars; 
         sto_in   = sin;
         sto_out  = sout;
         effects  = effs;
@@ -1150,7 +1198,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       
     let rec free_svars cf = 
       let vs = Store.vars cf.sto_out
-             |> List.filter (not <.> Misc.flip List.mem cf.quant_svars)
+            |> List.filter (not <.> Misc.flip List.mem cf.quant_svars)
       in
       let free  = function
         | FRef (f, _) -> free_svars f
@@ -1167,14 +1215,15 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (* in *)
       {cf with quant_svars = svars }
         
-    let subs_store_var subs cf =
-      (* let subs = HM.filter (fun v _ -> not <| List.mem v cf.quant_svars) subs in *)
-      let sto_in = Store.subs_store_var subs cf.sto_in in
-      let sto_out = Store.subs_store_var subs cf.sto_out in
+    let subs_store_var subs sto cf =
+      (* let subs = SVM.filter (fun v _ -> not <| List.mem v cf.quant_svars) subs in *)
+      let _ = Pretty.printf "sub: %a\n" StoreSubst.d_storesubst subs in
+      let sto_in = Store.subs_store_var subs sto cf.sto_in in
+      let sto_out = Store.subs_store_var subs sto cf.sto_out in
       let top_of_l l = 
         let so = Ast.Sort.t_ptr (Ast.Sort.Loc (Sloc.to_string l)) in 
         let vv = Ast.Symbol.value_variable so in
-        (Index.top, FC.make_reft vv so [])
+        (Index.top, FC.make_reft vv so [FC.Conc Ast.pTrue])
       in
       let effects = Store.fold_locs begin fun s _ fx ->
         if (not (SLM.mem s fx)) && Sloc.is_abstract s then 
@@ -1184,15 +1233,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       end cf.effects sto_out
       in
       {cf with 
-        args = CType.subs_store_var subs
+        args = CType.subs_store_var subs cf.sto_out
             |> M.app_snd
             |> M.flip List.map cf.args;
-        quant_svars = List.filter (not <.> M.flip HM.mem subs) cf.quant_svars;
+        quant_svars = List.filter (not <.> M.flip SVM.mem subs) cf.quant_svars;
         sto_in = sto_in;
         sto_out = sto_out;
         effects = effects;
       }
-            
         
     let lsubs_of_args f args sub = 
       let flocs, alocs = 
@@ -1203,60 +1251,77 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       end sub flocs alocs
         
     let safe_update_hsub v sto hsub sub = 
-      if HM.mem v hsub then
+      if SVM.mem v hsub then
         let st' = Store.fold_fields begin fun (sto, sub') s i fld ->
           Store.Unify.add_field sto sub' s i fld
-        end (HM.find v hsub, sub) sto
+        end (SVM.find v hsub, sub) sto
         in
-        HM.add v (fst st') hsub
+        SVM.add v (fst st') hsub
       else
-        HM.add v sto hsub
+        SVM.add v sto hsub
         
     let rec subs_of_args srcinfo v slocs cf args sto sub = 
-      List.fold_left2 begin fun hsub f a -> 
-        begin match CType.subs sub f, CType.subs sub a with
+      (* 	Sloc.Subst.d_subst sub Store.d_store (Store.subs sub sto) *)
+      (* in *)
+      List.fold_left2 begin fun ssub f a -> 
+        (* begin match CType.subs sub f, CType.subs sub a with *)
+	let _ = Pretty.printf "cf: %a\n sto: %a\n" d_cfun cf Store.d_store (Store.subs sub sto) in
+	(* let ss = SS.empty in *)
+	begin match CType.subs sub f, CType.subs sub a with
           | Ref (l1, _), Ref (l2, _) -> 
-            let l2st = Store.subs sub sto |> M.flip Store.restrict [l2] in
-            let newsub = Store.domain l2st
-                      |> List.fold_left begin fun sub s ->
-                        if List.mem s slocs then
-                          sub
-                        else
-                          (s, Sloc.fresh_abstract [srcinfo])::sub
-                      end sub
-            in
-            safe_update_hsub v (Store.subs newsub l2st) hsub sub
+	    let _ = Pretty.printf "%a := %a\n" S.d_sloc l1 S.d_sloc l2 in
+            (* let l2slocs = *) Store.subs sub sto
+                       |> M.flip Store.restrict [l2]
+		       |> Store.domain 
+		       |> List.fold_left begin fun ss s -> 
+			 SS.add s ss
+			 (* if List.mem s slocs then *)
+			 (*   SS.add s ss *)
+			 (* else *)
+			 (*   SS.add (Sloc.fresh_abstract [srcinfo]) ss *)
+		       end SS.empty
+		       |> fun ss -> StS.extend_sset v ss ssub
+	    (* in *)
+            (* let newsub = SS.elements l2slocs *)
+            (*           |> List.fold_left begin fun sub s -> *)
+            (*             if List.mem s slocs then *)
+            (*               sub *)
+            (*             else *)
+            (*               (s, Sloc.fresh_abstract [srcinfo])::sub *)
+            (*           end sub *)
+            (* in *)
           | FRef (f, _), FRef (g, _) ->
             let sub = lsubs_of_args f (List.map snd g.args) sub in
 	    let slocs' = M.map_partial (snd <+> CType.subs sub <+> CType.sloc) f.args in
 	    let slocs  = Misc.sort_and_compact (slocs ++ slocs') in
             let st = subs_of_args srcinfo v slocs f (List.map snd g.args) g.sto_out sub
-                  |> HM.find v
             in
-            safe_update_hsub v st hsub sub
-          | _ -> hsub 
+	    StS.extend v st ssub
+            (* safe_update_hsub v st hsub sub *)
+          | _ -> ssub
         end 
-      end HM.empty (List.map snd cf.args) args
+      end StS.empty (List.map snd cf.args) args
                
     and instantiate_store srcinfo cf argcts sto sub =
-      if cf.quant_svars = [] then (cf, HM.empty) else
+      if cf.quant_svars = [] then (cf, SVM.empty) else
         let formlocs,actlocs = 
           (List.map snd cf.args, argcts)
           |> M.map_pair (M.map_partial (CType.subs sub <+> CType.sloc)) in
-        let sub = lsubs_of_args cf argcts sub in
-        let substo = subs_of_args srcinfo (List.hd cf.quant_svars) formlocs cf argcts sto sub in
+        let lsub   = lsubs_of_args cf argcts sub in
+        let substo = subs_of_args srcinfo (List.hd cf.quant_svars) formlocs cf argcts sto lsub in
         let vars    = List.tl cf.quant_svars in
-        let subvars = List.fold_left begin fun (sub, vs) v ->
-                        if vs = [] then 
-                          ((v, Store.empty)::sub, []) 
-                        else 
-                          ((v,(SLM.empty,vs))::sub, List.tl vs) 
-                      end ([], (snd sto)) vars
-                   |> fst 
-                   |> HM.of_list 
-        in
-        let sub    = HM.extend substo subvars in
-        (subs_store_var sub {cf with quant_svars = []}, sub)
+	(* let substo *)
+        (* let subvars = List.fold_left begin fun (sub, vs) v -> *)
+        (*                 if vs = [] then  *)
+        (*                   ((v, Store.empty)::sub, [])  *)
+        (*                 else  *)
+        (*                   ((v,(SLM.empty,vs))::sub, List.tl vs)  *)
+        (*               end ([], (snd sto)) vars *)
+        (*            |> fst  *)
+        (*            |> SVM.of_list  *)
+        (* in *)
+        (* let substo    = SVM.extend substo subvars in *)
+        (subs_store_var substo sto {cf with quant_svars = []}, substo)
             
   end
 
