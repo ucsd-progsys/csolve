@@ -24,6 +24,12 @@
 type t
   
 module HeapvarMap : FixMisc.EMapType with type key = t
+(* module ComparableHeapvar = *)
+(*   struct *)
+(*     type t = hvar *)
+(*     let compare = compare *)
+(*     let print = CilMisc.pretty_to_format d_hvar *)
+(*   end *)
 
 val compare             : t -> t -> int
 val fresh_heapvar       : unit -> t

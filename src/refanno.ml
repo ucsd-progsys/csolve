@@ -24,10 +24,12 @@
 (* This file is part of the liquidC Project.*)
 
 module Misc = FixMisc
+module M = Misc
 module IIM = Misc.IntIntMap
 module LM  = Sloc.SlocMap
 module SM  = Misc.StringMap
 module S   = Sloc
+  
 
 open Cil
 open Misc.Ops
@@ -62,7 +64,7 @@ type annotation =
   | Ins  of string * Sloc.t * Sloc.t    (* ptr var, ALoc, CLoc *)
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
-  | HInst of Heapvar.t * Ctypes.store
+  | HInst of Ctypes.StoreSubst.t
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
@@ -110,7 +112,7 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | Ins  (v, s1, s2)  -> Ins  (v, app s1, app s2)
       | New  (s1, s2)     -> New  (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
-      | HInst (v, s) -> HInst (v, Ctypes.I.Store.subs sub s)
+      | HInst s -> HInst (Ctypes.StoreSubst.subs sub s)
       | _ -> a
 
 (* API *)
@@ -132,8 +134,8 @@ let d_annotation () = function
       Pretty.dprintf "New(%a->%a) " Sloc.d_sloc al Sloc.d_sloc cl 
   | NewC (cl, al, cl') -> 
       Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
-  | HInst (v, sto) -> 
-    Pretty.dprintf "HInst(%a -> %a)" Heapvar.d_hvar v Ctypes.I.Store.d_store sto
+  | HInst ss -> 
+    Pretty.dprintf "HInst(%a)" Ctypes.StoreSubst.d_storesubst ss
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 
@@ -352,7 +354,7 @@ let concretize_new theta j k conc = function
       else  (* x is is_concrete *)
         let cl = cloc_of_position theta y (j,k,i) in
         instantiate (fun (y, cl) -> NewC (x,y,cl)) conc y cl Write
-  | i, HInst (v,s) -> (conc, [HInst (v,s)])
+  | i, HInst s -> (conc, [HInst s])
   | _, _ -> assertf "concretize_new 2"
 
 let concretize_malloc theta j k conc x y =

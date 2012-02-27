@@ -75,19 +75,16 @@ let lsubs_of_annots ns =
                    | Refanno.HInst _ ->  None
                    | _               -> assertf "cons_of_call: bad ns") ns
     
-let hsubs_of_annots env ns = 
-  let hsubs = 
-    List.fold_left begin fun hsub annot -> 
-      begin match annot with 
-        | Refanno.HInst (v, sto) -> 
-          let _ = assert (not (HM.mem v hsub)) in
-          HM.add v sto hsub
+let hsubs_of_annots env ns =
+  let hsubs =
+    List.fold_left begin fun hsub annot ->
+      begin match annot with
+        | Refanno.HInst s -> s
         | _ -> hsub
       end
-    end HM.empty ns
-    |> HM.map (RS.map FI.t_fresh)
-  in hsubs, 
-     HM.fold (fun _ s wfs -> wfs ++ FI.make_wfs_refstore env s s) hsubs []
+    end Ct.StoreSubst.empty ns
+    (* |> HM.map (RS.map FI.t_fresh) *)
+  in hsubs, []
 
 let weaken_undefined me rm env v = 
   let n = FA.name_of_varinfo v in
@@ -393,11 +390,36 @@ let check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs sto =
 let store_bindings_of_store_effects ldbs =
   List.map (fun (l, (b, _)) -> (l, b)) ldbs
     
+let slocs_of_bindings lds = 
+  List.map fst lds
+  |> Misc.sort_and_compact
+
+let d_slocs () ls =
+  Pretty.seq ~sep:(Pretty.text ",") ~doit:(Sloc.d_sloc()) ~elements:ls
+
+let d_bindings () x  = x |> slocs_of_bindings |> d_slocs ()
+    
+let d_ldbind () (l, ld) =
+  Pretty.dprintf "[%a |-> %a]" Sloc.d_sloc l Ctypes.RefCTypes.LDesc.d_ldesc ld
+
+let d_cfbind () (l, cf) = 
+  Pretty.dprintf "[%a |-> %a]" Sloc.d_sloc l Ctypes.RefCTypes.CFun.d_cfun cf 
+
+let d_ldbinds () llds = 
+    Pretty.seq ~sep:(Pretty.text "\n") ~doit:(d_ldbind ()) ~elements:llds
+
+let d_lcfbinds () lcfs = 
+    Pretty.seq ~sep:(Pretty.text ",") ~doit:(d_cfbind ()) ~elements:lcfs
+
+let d_bindings () llds = 
+  Pretty.dprintf "DATABINDS: @[%a@]" 
+    d_ldbinds llds
+    
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
   let hsubs,inst_wfs = hsubs_of_annots env ns in
-  let frt'      = RCf.subs_store_var hsubs frt in
+  let frt'      = RCf.subs_store_var hsubs st frt in
   (* let inst_wfs  = FI.make_wfs_fn env frt' in *)
   (* This is implied by well-formedness constraints on the instantiated function *)
   (* let inst_cs,inst_deps = FI.make_cs_refcfun env grd frt frt' tag loc in *)
@@ -412,10 +434,10 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
                   end [] es in
   let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
   let stbs             = RS.bindings st in
-let _ 	 = Pretty.printf "sto with lsubs: %a\n" (RS.d_store) (RS.subs lsubs frt'.Ct.sto_in) in
   let istbs            = frt'.Ct.sto_in
                       >> check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs
                       |> renamed_store_bindings lsubs subs in
+  let _ = Pretty.printf "instantiated: %a\n" RCf.d_cfun frt' in
   let ostebs           = frt'.Ct.sto_out
                       >> check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs
                       |> renamed_store_effects_bindings lsubs subs frt'.Ct.effects in
@@ -436,7 +458,7 @@ let _ 	 = Pretty.printf "sto with lsubs: %a\n" (RS.d_store) (RS.subs lsubs frt'.
   let retctype            = Ct.ret_of_refcfun frt' in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt') in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (inst_wfs++wfs)
+  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), ((* inst_wfs++*)wfs)
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with

@@ -1264,32 +1264,17 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (* 	Sloc.Subst.d_subst sub Store.d_store (Store.subs sub sto) *)
       (* in *)
       List.fold_left2 begin fun ssub f a -> 
-        (* begin match CType.subs sub f, CType.subs sub a with *)
 	let _ = Pretty.printf "cf: %a\n sto: %a\n" d_cfun cf Store.d_store (Store.subs sub sto) in
-	(* let ss = SS.empty in *)
 	begin match CType.subs sub f, CType.subs sub a with
           | Ref (l1, _), Ref (l2, _) -> 
 	    let _ = Pretty.printf "%a := %a\n" S.d_sloc l1 S.d_sloc l2 in
-            (* let l2slocs = *) Store.subs sub sto
-                       |> M.flip Store.restrict [l2]
-		       |> Store.domain 
-		       |> List.fold_left begin fun ss s -> 
-			 SS.add s ss
-			 (* if List.mem s slocs then *)
-			 (*   SS.add s ss *)
-			 (* else *)
-			 (*   SS.add (Sloc.fresh_abstract [srcinfo]) ss *)
-		       end SS.empty
-		       |> fun ss -> StS.extend_sset v ss ssub
-	    (* in *)
-            (* let newsub = SS.elements l2slocs *)
-            (*           |> List.fold_left begin fun sub s -> *)
-            (*             if List.mem s slocs then *)
-            (*               sub *)
-            (*             else *)
-            (*               (s, Sloc.fresh_abstract [srcinfo])::sub *)
-            (*           end sub *)
-            (* in *)
+            Store.subs sub sto
+            |> M.flip Store.restrict [l2]
+	    |> Store.domain 
+	    |> List.fold_left begin fun ss s -> 
+	      SS.add s ss
+	    end SS.empty
+	    |> fun ss -> StS.extend_sset v ss ssub
           | FRef (f, _), FRef (g, _) ->
             let sub = lsubs_of_args f (List.map snd g.args) sub in
 	    let slocs' = M.map_partial (snd <+> CType.subs sub <+> CType.sloc) f.args in
@@ -1297,7 +1282,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
             let st = subs_of_args srcinfo v slocs f (List.map snd g.args) g.sto_out sub
             in
 	    StS.extend v st ssub
-            (* safe_update_hsub v st hsub sub *)
           | _ -> ssub
         end 
       end StS.empty (List.map snd cf.args) args
@@ -1310,17 +1294,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         let lsub   = lsubs_of_args cf argcts sub in
         let substo = subs_of_args srcinfo (List.hd cf.quant_svars) formlocs cf argcts sto lsub in
         let vars    = List.tl cf.quant_svars in
-	(* let substo *)
-        (* let subvars = List.fold_left begin fun (sub, vs) v -> *)
-        (*                 if vs = [] then  *)
-        (*                   ((v, Store.empty)::sub, [])  *)
-        (*                 else  *)
-        (*                   ((v,(SLM.empty,vs))::sub, List.tl vs)  *)
-        (*               end ([], (snd sto)) vars *)
-        (*            |> fst  *)
-        (*            |> SVM.of_list  *)
-        (* in *)
-        (* let substo    = SVM.extend substo subvars in *)
         (subs_store_var substo sto {cf with quant_svars = []}, substo)
             
   end

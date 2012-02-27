@@ -71,7 +71,7 @@ and  'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)
-      quant_svars : Heapvar.t list;
+      quant_svars : Svar.t list;
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
@@ -100,6 +100,21 @@ sig
   val domain      : t -> Sloc.t list
 
   val d_effectset : unit -> effectset -> Pretty.doc
+end
+  
+module StoreSubst:
+sig
+    type elt = Sloc.SlocSet.t * Svar.SvarSet.t
+    type t = elt Svar.SvarMap.t
+	
+    val empty                : t
+    val lookup               : Svar.t -> t -> elt
+    val extend_sset          : Svar.t -> Sloc.SlocSet.t -> t -> t
+    val extend_vset          : Svar.t -> Svar.SvarSet.t -> t -> t
+    val extend               : Svar.t -> t -> t -> t
+    val subs                 : Sloc.Subst.t -> t -> t
+    val to_list              : t -> (Svar.SvarMap.key * elt) list
+    val d_storesubst         : unit -> t -> Pretty.doc
 end
 
 module type CTYPE_DEFS = sig
@@ -133,7 +148,7 @@ module type S = sig
     val width            : t -> int
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
-    val subs_store_var   : T.store Heapvar.HeapvarMap.t -> t -> t
+    val subs_store_var   : StoreSubst.t -> T.store -> t -> t
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
@@ -219,13 +234,13 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val subs_store_var : t Heapvar.HeapvarMap.t -> t -> t
+    val subs_store_var : StoreSubst.t -> t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
-    val add_var      : t -> Heapvar.t -> t
-    val vars         : t -> Heapvar.t list
-    val filter_vars  : (Heapvar.t -> bool) -> t -> t
+    val add_var      : t -> Svar.t -> t
+    val vars         : t -> Svar.t list
+    val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t
 
     val d_store_addrs: unit -> t -> Pretty.doc
@@ -235,7 +250,7 @@ module type S = sig
     (* val domain        : t -> Sloc.t list *)
     (* val mem           : t -> Sloc.t -> bool *)
     val ensure_sloc   : t -> Sloc.t -> t
-    val ensure_var    : Heapvar.t -> t -> t
+    val ensure_var    : Svar.t -> t -> t
     val find          : t -> Sloc.t -> LDesc.t
     val find_or_empty : t -> Sloc.t -> LDesc.t
       
@@ -273,13 +288,13 @@ module type S = sig
     val same_shape      : t -> t -> bool
     val quantify_svars  : t -> t
     val quantified_locs : t -> Sloc.t list
-    val quantified_svars : t -> Heapvar.t list
-    val free_svars      : t -> Heapvar.t list
+    val quantified_svars : t -> Svar.t list
+    val free_svars      : t -> Svar.t list
     val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (T.store Heapvar.HeapvarMap.t)
-    val make            : (string * CType.t) list -> Sloc.t list -> Heapvar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
+    val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (StoreSubst.t)
+    val make            : (string * CType.t) list -> Sloc.t list -> Svar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
-    val subs_store_var  : T.store Heapvar.HeapvarMap.t -> t -> t
+    val subs_store_var  : StoreSubst.t -> T.store -> t -> t
     val indices         : t -> Index.t list 
   end
 
@@ -395,7 +410,7 @@ val index_of_ctype      : ctype -> Index.t
 
 val ctype_of_refctype   : refctype -> ctype
 val reft_of_refctype    : refctype -> FixConstraint.reft
-val free_svars          : refctype -> Heapvar.t list
+val free_svars          : refctype -> Svar.t list
 val cfun_of_refcfun     : refcfun  -> cfun
 val store_of_refstore   : refstore -> store
 val cspec_of_refspec    : refspec  -> cspec
