@@ -1,0 +1,3 @@
+qualif ONE(v:ptr) : v + (4 * _) <= BLOCK_END([v])
+qualif MPTR(v:ptr) : v = ~a + (4 * _)
+qualif TWO(v:ptr) : v + (4 * _) < BLOCK_END([v])
