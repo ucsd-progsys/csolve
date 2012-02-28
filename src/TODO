@@ -6,10 +6,20 @@ InferCtypes Errors
 ------------------
 
 Begin by constructing the following:
-   
+
+
+setSrcLval :: loc -> lval -> lval
+setSrcExp  :: loc -> expr -> expr
+getSrcExp  :: loc -> expr -> expr
+getSrcLval :: loc -> lval -> lval
+
+    target              source 
+    ------              ------
+    loc, lval   --->    lval
+    loc, expr   --->    expr 
+
     HEREHEREHERE
     varinfo |-> vdescr containing original source expr (HACK CIL)
-
     ldesc   |-> populated with the original ctyp fill fname, ftype fields
     Sloc.t  |-> "access" path (expr/doc) for original C expression.
                 If sloc is "owned by" a particular varinfo then use vdescr

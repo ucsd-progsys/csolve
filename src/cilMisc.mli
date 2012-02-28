@@ -151,16 +151,7 @@ val is_funptr: Cil.varinfo    -> bool
 val is_scalar: Cil.varinfo -> bool
 val is_reference: Cil.typ  ->bool
 
-type srcinfo
 
-val d_srcinfo         : unit -> srcinfo -> Pretty.doc
-
-val srcinfo_of_lval     : Cil.lval -> Cil.location option -> srcinfo
-val srcinfo_of_type     : Cil.typ  -> Cil.location option -> srcinfo
-val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
-val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
-val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
-val srcinfo_of_string   : string -> srcinfo
 
 val is_pure_function    : string -> bool
 val is_cil_tempvar      : string -> bool
@@ -194,3 +185,20 @@ val exprStripAttrs : Cil.exp  -> Cil.exp
 val varExprMap  : Cil.file -> Cil.exp VarMap.t
 
 
+(****************** Preserving Source Maps *************************)
+
+type srcinfo
+
+val d_srcinfo         : unit -> srcinfo -> Pretty.doc
+
+val srcinfo_of_lval     : Cil.lval -> Cil.location option -> srcinfo
+val srcinfo_of_type     : Cil.typ  -> Cil.location option -> srcinfo
+val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
+val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
+val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
+val srcinfo_of_string   : string -> srcinfo
+
+val setSrcLval          : Cil.location -> Cil.lval -> Cil.lval -> unit
+val setSrcExpr          : Cil.location -> Cil.expr -> Cil.expr -> unit
+val getSrcLval          : Cil.location -> Cil.lval -> Cil.lval 
+val getSrcExpr          : Cil.location -> Cil.expr -> Cil.expr
