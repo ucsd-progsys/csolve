@@ -263,6 +263,8 @@ let e_cil_effect_true = Cil.one
 let p_effect_var_true evar =
   A.pEqual (evar, A.eInt 1)
 
+(* TODO: factor this out to take not just a variable v but instead a general
+   ctype that we can sauce up with an effect *)
 let ra_singleton_effect eff v ct =
   let vv     = ct |> vv_of_prectype |> A.eVar in
   let others = ED.getEffects () 
@@ -1000,7 +1002,7 @@ let make_cs_assert_effectsets_disjoint_aux env p sto effs1 effs2 tago tag =
      end
   |> M.splitflatten
 
-let make_cs_effect_weaken_type env p sto erct eff eptr tago tag =
+let make_cs_effect_weaken_type env p sto erct eptr tago tag =
   let cl = erct |> RCt.CType.sloc |> M.maybe in
   let al = Sloc.canonical cl in
     with_effects_in_env env begin fun env ->
@@ -1014,7 +1016,7 @@ let make_cs_effect_weaken_type env p sto erct eff eptr tago tag =
     end
 
 let make_cs_effect_weaken_var env p sto v eff eptr tago tag =
-  make_cs_effect_weaken_type env p sto (t_singleton_effect env v eff) eff eptr tago tag
+  make_cs_effect_weaken_type env p sto (t_singleton_effect env v eff) eptr tago tag
 
 let make_cs_data_effect env p sld1 sld2 eptr1 eptr2 tago tag =
   with_effects_in_env env begin fun env ->
@@ -1171,8 +1173,8 @@ let make_cs_effect_weaken_var env p sto v eff eptr tago tag loc =
     assert false
 
 (* API *)
-let make_cs_effect_weaken_type env p sto erct eff eptr tago tag loc =
-  try make_cs_effect_weaken_type env p sto erct eff eptr tago tag with ex ->
+let make_cs_effect_weaken_type env p sto erct eptr tago tag loc =
+  try make_cs_effect_weaken_type env p sto erct eptr tago tag with ex ->
     let _ = Cil.errorLoc loc "make_cs_effect_weaken_type fails with: %s" (Printexc.to_string ex) in
     let _ = asserti false "make_cs_effect_weaken_type" in
     assert false

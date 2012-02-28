@@ -161,7 +161,7 @@ val make_cs             : cilenv -> Ast.pred ->
 
 val make_cs_effect_weaken_type :
                           cilenv -> Ast.pred ->
-                          Ctypes.refstore -> Ctypes.refctype -> EffectDecls.t -> Ctypes.effectptr ->
+                          Ctypes.refstore -> Ctypes.refctype -> Ctypes.effectptr ->
                           CilTag.t option -> CilTag.t -> Cil.location -> 
                           FixConstraint.t list * FixConstraint.dep list
 

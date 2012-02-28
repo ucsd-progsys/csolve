@@ -116,7 +116,7 @@ let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function
                          | Index.IInt n ->
                            let eptr = Ct.Ref (aloc, Index.top) |> FI.t_ptr_offset n in
                              FI.make_cs_effect_weaken_type
-                               env grd sto eptr ED.readEffect (ES.find effs aloc) tago tag loc
+                               env grd sto eptr (ES.find effs aloc) tago tag loc
                          | _ -> ([], [])
                        end
                     |> M.splitflatten in
