@@ -30,7 +30,6 @@ module SlocMap: FixMisc.EMapType with type key = t
 
 val none           : t
 val canonical      : t -> t
-(* val fresh_abstract : unit -> t *)
 val fresh_abstract : slocinfo -> t
 
 val sloc_of_any    : t
