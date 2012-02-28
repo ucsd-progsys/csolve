@@ -7,8 +7,6 @@
  * =============================================================================
  */
 
-#define __MAKE_SEQ
-
 #include <cpj.h>
 
 //#include <assert.h>
@@ -98,12 +96,10 @@ work (args_t* args, int i, int npoints)
     }
 }
 
-
 /* =============================================================================
  * normal_exec
  * =============================================================================
  */
-
 float ** 
 normal_exec (//int       nthreads,
              float **     feature,    /* in: [npoints][nfeatures] */
@@ -148,9 +144,8 @@ normal_exec (//int       nthreads,
     args->new_centers_len = new_centers_len;
     args->new_centers     = new_centers;
   
-
     foreach (i, 0, npoints)
-        membership[i] = -1;
+      membership[i] = -1;
     endfor 
     
     do {
@@ -184,7 +179,6 @@ normal_exec (//int       nthreads,
 
     return clusters;
 }
-
 
 /* =============================================================================
  *

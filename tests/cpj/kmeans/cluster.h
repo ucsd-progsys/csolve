@@ -77,7 +77,7 @@ cluster_exec (
     //int      nthreads,              /* in: number of threads*/
     int    REF(V > 0) numObjects,     /* number of input objects */
     int    REF(V > 0) numAttributes,  /* size of attribute of each object */
-    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes*numObjects)
+    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes)
          * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /* [numObjects][numAttributes] */
     int    use_zscore_transform,
     int    REF(V > 0)  min_nclusters, /* testing k range from min to max */
@@ -86,7 +86,7 @@ cluster_exec (
     int    /*FINAL abakst: Hrm, this needs to be dealt with*/ 
            REF(&&[V >= min_nclusters;V <= max_nclusters])     
           *best_nclusters,     /* out: number between min and max */
-    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes*min_nclusters) 
+    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes) 
          * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*min_nclusters)
          /* abakst: this is actually what we want:
 	    SIZE_GE(4*DEREF([best_nclusters])) */
