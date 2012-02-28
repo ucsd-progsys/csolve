@@ -101,7 +101,14 @@
 //#include "random.h"
 #include "util.h"
 //#include "tm.h"
-
+ 
+/*
+typedef struct clusters { 
+  int REF(V > 0) numAttributes;
+  int REF(V > 0) best_nclusters;
+  FLOAT2D(best_nclusters, numAttributes) cluster_centres;
+} clusters_t;
+*/
 
 /* =============================================================================
  * extractMoments
@@ -167,15 +174,15 @@ zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
  */
 clusters_t *
 cluster_exec (
-    //int      nthreads,              /* in: number of threads*/
-    int    numObjects,                /* number of input objects */
-    int    numAttributes,             /* size of attribute of each object */
-    float * ARRAY * ARRAY attributes, /* [numObjects][numAttributes] */
-    int    use_zscore_transform,
-    int    min_nclusters,             /* testing k range from min to max */
-    int    max_nclusters,
-    float  threshold,                 /* in:   */
-    int *  ARRAY cluster_assign       /* out: [numObjects] */
+    //int      nthreads,            /* in: number of threads*/
+    int      numObjects,            /* number of input objects */
+    int      numAttributes,         /* size of attribute of each object */
+    float ** attributes,            /* [numObjects][numAttributes] */
+    int      use_zscore_transform,
+    int      min_nclusters,         /* testing k range from min to max */
+    int      max_nclusters,
+    float    threshold,             /* in:   */
+    int *    cluster_assign         /* out: [numObjects] */
 ) CHECK_TYPE
 {
     int itime;

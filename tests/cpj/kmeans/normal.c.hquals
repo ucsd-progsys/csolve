@@ -1,5 +1,5 @@
 //qualif BUFBNDS(v:ptr, a:int, b:int) : BLOCK_BEGIN([v]) + (4 * ~a * ~b) <= BLOCK_END([v])
 //qualif LINEBNDS(v:ptr) : BLOCK_BEGIN([v]) + MAX_LINE_LENGTH = BLOCK_END([v])
-qualif ONE(v:ptr) : v + (4 * _) < BLOCK_END([v])
+//qualif ONE(v:ptr) : v + (4 * _) < BLOCK_END([v])
 qualif TWO(v:ptr) : BLOCK_BEGIN([v]) + 32 = BLOCK_END([v])
 qualif MPTR(v:ptr) : v = ~a + (4 * _)

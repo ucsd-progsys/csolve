@@ -69,11 +69,14 @@
 
 #include "common.h"
 
+/* RJ: UNCOMMENT to verify kmeans.c, RECOMMENT to verify cluster.c */
+
 typedef struct clusters { 
   int REF(V > 0) numAttributes;
   int REF(V > 0) best_nclusters;
   FLOAT2D(best_nclusters, numAttributes) cluster_centres;
 } clusters_t;
+
 
 /* =============================================================================
  * cluster_exec
