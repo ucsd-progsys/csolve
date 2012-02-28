@@ -403,7 +403,6 @@ let dump_annots qs tgr s' cs' cones binds : unit =
   let d = d_json () <| bindsToJson qs tgr s' cs' cones binds in
   Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
 
-(* API *)
 let dump_html qs tgr s' cs' cones binds : unit =
   (* 1. Dump JSON Annots *)
   dump_annots qs tgr s' cs' cones binds;
@@ -412,4 +411,10 @@ let dump_html qs tgr s' cs' cones binds : unit =
   |> (function 0 -> Errormsg.log  "DONE: Generated Annotated HTML" 
              | e -> Errormsg.warn "WARNING: Failed To Generate Annotated Html %d" e)
 
+(* API *)
+let dump_html qs tgr s' cs' cones binds : unit = 
+  if Misc.is_suffix ".c" !Co.csolve_file_prefix then
+    dump_html qs tgr s' cs' cones binds
+  else
+    ignore <| Errormsg.log "SKIP: Multiple Files: Not generating Annotated HTML."
 
