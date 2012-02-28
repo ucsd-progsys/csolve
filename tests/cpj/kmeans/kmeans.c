@@ -121,9 +121,9 @@
 extern double global_time OKEXTERN;
 
 // pmr: Stub for polymorphic memcpy
-extern void *pmr_memcpy_float (float * ARRAY SIZE_GE(n) dest,
-                               float * ARRAY SIZE_GE(n) src,
-                               size_t REF(V >= 0) n) OKEXTERN;
+//extern void *pmr_memcpy_float (float * ARRAY SIZE_GE(n) dest,
+//                               float * ARRAY SIZE_GE(n) src,
+//                               size_t REF(V >= 0) n) OKEXTERN;
 
 // pmr: stub for polymorphic read
 extern ssize_t pmr_read_floats (int __fd,
@@ -163,10 +163,10 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
     int     min_nclusters = 4;
     char*   filename = 0;
     float* buf;
-    float* ARRAY * attributes;
     float** cluster_centres = NULL;
     int     i;
     int     j;
+    cluster_t *clusters = NULL;
     int     best_nclusters;
     int*    cluster_assign;
     int     numAttributes;
@@ -195,7 +195,7 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
                       threshold = atof(optarg);
                       break;
             case 'm': CSOLVE_ASSUME (optarg);
-                      max_nclusters = atoi(optarg);
+                      max_nclusters = atoi(optarg); //RJ: ATOI see foo.c
                       break;
             case 'n': CSOLVE_ASSUME (optarg);
                       min_nclusters = atoi(optarg);
@@ -243,22 +243,18 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         // pmr: These were originally reads, changed to nondets,
         // must be positive by contract
         numObjects    = nondetpos ();
-        numAttributes = nondetpos ();
+        numAttributes = 1 + nondetpos (); // minimum of 2 
 
-        CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
-        CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
+        // pmr: Prod z3
+        int size = csolve_times(numObjects, numAttributes) ;
 
-        /* Allocate space for attributes[] and read attributes of all objects */
-        buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
+        //CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
+        //CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
+
+        buf = (float*)malloc(size * sizeof(float));
         assert(buf);
-        attributes = (float**)malloc(numObjects * sizeof(float*));
-        assert(attributes);
-        attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float));
-        assert(attributes[0]);
-        for (i = 1; i < numObjects; i++) {
-            attributes[i] = attributes[i-1] + numAttributes;
-        }
-        pmr_read_floats(infile, buf, (numObjects * numAttributes * sizeof(float)));
+
+        pmr_read_floats(infile, buf, (size * sizeof(float)));
         close(infile);
     } else {
         FILE *infile;
@@ -284,23 +280,18 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         }
 
         // pmr: Contract
-        CSOLVE_ASSUME (numAttributes > 0);
+        CSOLVE_ASSUME (numAttributes > 1);
         CSOLVE_ASSUME (numObjects > 0);
 
         // pmr: Prod z3
-        CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
-        CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
+        int size = csolve_times(numObjects, numAttributes) ;
 
-        /* Allocate space for attributes[] and read attributes of all objects */
-        buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
+        //CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
+        //CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
+
+        buf = (float*)malloc(size * sizeof(float));
         assert(buf);
-        attributes = (float**)malloc(numObjects * sizeof(float*));
-        assert(attributes);
-        attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float));
-        assert(attributes[0]);
-        for (i = 1; i < numObjects; i++) {
-            attributes[i] = attributes[i-1] + numAttributes;
-        }
+        
         rewind(infile);
         i = 0;
         while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -308,13 +299,17 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
                 continue;
             }
             for (j = 0; j < numAttributes; j++) {
-                buf[i] = atof(strtok(NULL, " ,\t\n"));
+                if (i < size) { 
+                  buf[i] = atof(strtok(NULL, " ,\t\n")); //RJ: BUFFER OVERFLOW
+                }
                 i++;
             }
         }
         fclose(infile);
     }
 
+    float * ARRAY * ARRAY attributes = init_float2d(numObjects, numAttributes);
+    
     //TM_STARTUP(nthreads);
     //thread_startup(nthreads);
 
@@ -332,27 +327,32 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
          * Since zscore transform may perform in cluster() which modifies the
          * contents of attributes[][], we need to re-store the originals
          */
-        pmr_memcpy_float(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
+        copy_float2d(numObjects, numAttributes, attributes, buf);
 
-        cluster_centres = NULL;
-        cluster_exec(//nthreads,
-                     numObjects,
-                     numAttributes,
-                     attributes,           /* [numObjects][numAttributes] */
-                     use_zscore_transform, /* 0 or 1 */
-                     min_nclusters,        /* pre-define range from min to max */
-                     max_nclusters,
-                     threshold,
-                     &best_nclusters,      /* return: number between min and max */
-                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
-                     cluster_assign);      /* return: [numObjects] cluster id for each object */
-
+        //cluster_centres = NULL;
+        clusters = cluster_exec(//nthreads,
+                                numObjects,
+                                numAttributes,
+                                attributes,           /* [numObjects][numAttributes] */
+                                use_zscore_transform, /* 0 or 1 */
+                                min_nclusters,        /* pre-define range from min to max */
+                                max_nclusters,
+                                threshold,
+                                //&best_nclusters,      /* return: number between min and max */
+                                //&cluster_centres,     /* return: [best_nclusters][numAttributes] */
+                                cluster_assign);      /* return: [numObjects] cluster id for each object */
     }
+
+    csolve_assert(clusters);
+    CSOLVE_ASSUME(clusters);
+    best_nclusters = clusters ->best_nclusters;
+    cluster_centres = clusters->cluster_centres;
 
 #ifdef GNUPLOT_OUTPUT
     {
-        FILE** fptr;
+        FILE** ARRAY fptr;
         char outFileName[1024];
+        csolve_assert(0 < best_nclusters);
         fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
         for (i = 0; i < best_nclusters; i++) {
             sprintf(outFileName, "group.%d", i);
@@ -377,7 +377,7 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         FILE* cluster_centre_file;
         FILE* clustering_file;
         char outFileName[1024];
-
+        csolve_assert(0 < best_nclusters);
         sprintf(outFileName, "%s.cluster_centres", filename);
         cluster_centre_file = fopen(outFileName, "w");
         for (i = 0; i < best_nclusters; i++) {
