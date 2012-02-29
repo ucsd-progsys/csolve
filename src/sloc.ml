@@ -44,9 +44,30 @@ let to_slocinfo = function
 
 let to_ciltyp = to_slocinfo <+> CilMisc.typ_of_srcinfos
 
-let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
-let fresh_slocid z = fresh_slocid () >> (fun i -> Hashtbl.add slocinfot i z) 
+let to_string = function
+  | Abstract (lid)    -> "A" ^ string_of_int lid
+  | Concrete (lid, _) -> "C" ^ string_of_int lid
+  | AnyLoc            -> "ANY"
 
+let d_sloc () = function
+  | Abstract lid        -> P.text <| "A" ^ string_of_int lid
+  | Concrete (lid, aid) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+  | AnyLoc              -> P.text <| "ANY"
+
+let d_slocinfo () z =
+  CilMisc.d_many_brackets false CilMisc.d_srcinfo () z 
+
+let d_sloc_info () x = 
+  P.dprintf "%a %a" d_sloc x d_slocinfo (to_slocinfo x)
+
+let fresh_slocid = 
+  let (fresh, _) = M.mk_int_factory () in
+  begin fun z -> 
+    fresh () 
+    >> (fun i -> Hashtbl.add slocinfot i z)
+    >> (fun i -> ignore <| print_now (Printf.sprintf "fresh_slocid: %d --> %s\n" i (CilMisc.pretty_to_string d_slocinfo z)))
+
+  end
 
 let sloc_of_any = AnyLoc
 
@@ -93,21 +114,6 @@ let is_any      = function
   | AnyLoc     -> true
   | Abstract _ -> false
   | Concrete _ -> false
-
-let to_string = function
-  | Abstract (lid)    -> "A" ^ string_of_int lid
-  | Concrete (lid, _) -> "C" ^ string_of_int lid
-  | AnyLoc            -> "ANY"
-
-let d_sloc () = function
-  | Abstract lid        -> P.text <| "A" ^ string_of_int lid
-  | Concrete (lid, aid) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
-  | AnyLoc              -> P.text <| "ANY"
-
-let d_sloc_info () x = 
-  P.dprintf "%a %a"
-    d_sloc x
-    (CilMisc.d_many_brackets false CilMisc.d_srcinfo) (to_slocinfo x)
 
 (* API *)
 let fresh_abstract i = Abstract (fresh_slocid [i])
