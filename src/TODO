@@ -9,7 +9,6 @@ HEREHEREHERE:
     * Iterate on error messages
     * Pull in cleaned expressions/instr/stmts using VarExprMap and friends
 
-
 Counterexamples (to be continued) 
 ---------------------------------
 

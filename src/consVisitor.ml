@@ -98,14 +98,14 @@ let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function
       ((env, sto', tago), cds)
 
   | Refanno.WGen  (cloc, aloc) ->
-      let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (WGen)!" in
       let ld1    = (cloc, Ct.refstore_get sto cloc) in
       let ld2    = (aloc, Ct.refstore_get sto aloc) in
       let sto'   = RS.remove sto cloc in
       ((env, sto', tago), ([], []))
 
   | Refanno.Ins (ptr, aloc, cloc) ->
-      let _          = CM.assertLoc loc (not (RS.mem sto cloc)) "cons_of_annot: (Ins)!" in
+      let _          =
+        CM.assertLoc loc ((cloc = Sloc.sloc_of_any) || (not (RS.mem sto cloc))) "cons_of_annot: (Ins)!" in
       let strengthen = strengthen_instantiated_aloc ffm ptr aloc in
       let wld',_     = FI.extend_world sto aloc cloc false strengthen loc tag (env, sto, tago) in
       let cs         = aloc
@@ -216,6 +216,11 @@ let is_bot_ptr me env v =
     | Ct.Ref (_, (Index.IBot, _)) -> true
     | _                           -> false
 
+let is_any_ptr me env v =
+  match var_addr me env v with
+    | Ct.ARef -> true
+    | _       -> false
+
 let cons_of_fptr me loc tag grd effs (env, sto, tago) post_mem_env lval rv =
   let (Ct.FRef (rf, r) as cr),cds1 =
     cons_of_rval me loc tag grd effs (env,sto,tago) post_mem_env rv
@@ -249,6 +254,7 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
   | (Mem ev, _), e ->
     let v = CilMisc.referenced_var_of_exp ev in
       if is_bot_ptr me env v then (env, sto, Some tag), ([], []), [] else
+      if is_any_ptr me env v then (env, sto, Some tag), ([], []), [] else
       let addr = var_addr me env v in
       let cr', cds1  = cons_of_rval me loc tag grd effs (pre_env, sto, tago) pre_env e in
       let wfs = match cr' with

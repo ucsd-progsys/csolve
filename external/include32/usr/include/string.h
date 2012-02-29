@@ -349,8 +349,8 @@ extern char *strstr (__const char *__haystack, __const char *__needle)
 
 
 /* Divide S into tokens separated by characters in DELIM.  */
-extern char * ARRAY LOC(L) NNVALIDPTR
-     strtok (char * ARRAY LOC(L) NNVALIDPTR __restrict __s,
+extern char NULLTERMSTR * ARRAY LOC(L) NNVALIDPTR
+     strtok (char NULLTERMSTR * ARRAY LOC(L) NNVALIDPTR __restrict __s,
              __const char * ARRAY VALIDPTR __restrict __delim)
      __THROW __nonnull ((2)) OKEXTERN;
 __END_NAMESPACE_STD

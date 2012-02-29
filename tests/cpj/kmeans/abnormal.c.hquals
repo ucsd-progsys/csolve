@@ -1,0 +1,5 @@
+qualif TWO(v:ptr) : BLOCK_BEGIN([v]) + 32 = BLOCK_END([v])
+qualif StructvVal(v:ptr) : ~x = (DEREF([BLOCK_BEGIN([v])]) : int)
+qualif StructBnd(v:ptr) : ~x + 4*(DEREF([BLOCK_BEGIN([v])]) : int)<= BLOCK_END([x])
+qualif StructBnd(v:ptr) : ~x + 4*(DEREF([BLOCK_BEGIN([v])+4]) : int)<= BLOCK_END([x])
+qualif StructBnd(v:ptr) : ~x + 4*(DEREF([BLOCK_BEGIN([v])+8]) : int)<= BLOCK_END([x])

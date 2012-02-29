@@ -67,6 +67,8 @@
 #define NNSTART           NNREF(PSTART)
 #define SIZE(n)           REF(PSIZE(n))
 #define SIZE_GE(n)        REF(PSIZE_GE(n))
+#define NNSIZE(n)         NNREF(PSIZE(n))
+#define NNSIZE_GE(n)      NNREF(PSIZE_GE(n))
 #define OFFSET(n)         REF(POFFSET(n))
 #define OFFSET_GE(n)      REF(POFFSET_GE(n))
 #define NONNEG            REF(V >= 0)

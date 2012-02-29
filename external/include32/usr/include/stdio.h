@@ -607,8 +607,8 @@ __BEGIN_NAMESPACE_STD
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern char * ARRAY LOC(L) REF(V != 0 => V = __s)
-     fgets (char * VALIDPTR ARRAY SIZE_GE(__n) LOC(L) __restrict __s,
+extern char NULLTERMSTR * ARRAY LOC(L) REF(V != 0 => V = __s)
+     fgets (char NULLTERMSTR * VALIDPTR ARRAY SIZE_GE(__n) LOC(L) __restrict __s,
             int __n,
             CSOLVE_IO_FILE_PTR __restrict __stream)
      __wur OKEXTERN;
