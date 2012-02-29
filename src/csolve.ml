@@ -258,8 +258,8 @@ let print_unsat_locs tgr res =
   print_result tgr res stdout;
   Misc.with_out_file (!Co.csolve_file_prefix ^ ".out") (print_result tgr res)
 
-let cil_of_file file =
-  file |> Psimplemem.simplemem 
+let cil_transform_phase_1 file =
+  file |> Simplemem.simplemem 
        >> CilMisc.unfloat 
        >> CilMisc.Pheapify.doVisit 
        >> Psimplify.simplify
