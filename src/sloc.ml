@@ -41,6 +41,9 @@ let to_slocinfo = function
  
 let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
 
+let fresh_slocid () = fresh_slocid () >> (fun i -> print_now (Printf.sprintf "fresh_slocid: %d \n" i))
+
+
 let refresh = function
   | Abstract (_, i)      -> Abstract (fresh_slocid (), i)
   | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
