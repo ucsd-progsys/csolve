@@ -112,8 +112,8 @@ class exprTyper (ve, fe) = object (self)
   val fe  = ref fe
   val fce = fixenv_of_ctypeenv ve
 
-  method ctype_of_exp e =
-    Misc.do_memo tbl self#ctype_of_exp_aux e e
+  method ctype_of_exp loc e =
+    Misc.do_memo tbl self#ctype_of_exp_aux (loc, e) e
 
   (* pmr: This is a major hack: the index solver solves for indices,
    * which it turns into predicates, which we're here turning back
@@ -122,7 +122,7 @@ class exprTyper (ve, fe) = object (self)
    * Instead, index inference should return a map from expressions to
    * indices, much like the real solver returns a map from expressions
    * to refined types. We can then avoid this redundancy. *)
-  method private ctype_of_exp_aux loc e =
+  method private ctype_of_exp_aux (loc, e) =
     let ct = self#base_ctype_of_exp loc e in
       match e with
         | C.Lval _ -> ct
