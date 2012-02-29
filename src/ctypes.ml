@@ -990,6 +990,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
       and unify_locations sto sub s1 s2 =
         if not (S.eq s1 s2) then
+          let _ = print_now (Printf.sprintf "unify_locations TRUE s1 = %s s2 = %s \n" (CilMisc.pretty_to_string S.d_sloc s1) (CilMisc.pretty_to_string S.d_sloc s2)) in
           let _   = assert_unifying_same_location_type sto sub s1 s2 in
           let sub = S.Subst.extend s1 s2 sub in
             if Function.mem sto s1 || Function.mem sto s2 then
