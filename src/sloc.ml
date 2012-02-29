@@ -45,7 +45,7 @@ let to_slocinfo = function
 let to_ciltyp = to_slocinfo <+> CilMisc.typ_of_srcinfos
 
 let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
-let fresh_slocid z = fresh_slocid () >> M.flip (Hashtbl.add slocinfot) z 
+let fresh_slocid z = fresh_slocid () >> (fun i -> Hashtbl.add slocinfot i z) 
 
 
 let sloc_of_any = AnyLoc
