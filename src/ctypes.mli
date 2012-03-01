@@ -148,7 +148,7 @@ module type S = sig
     val width            : t -> int
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
-    val subs_store_var   : StoreSubst.t -> T.store -> t -> t
+    val subs_store_var   : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
@@ -234,7 +234,7 @@ module type S = sig
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
-    val subs_store_var : StoreSubst.t -> t -> t -> t
+    val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> t -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
@@ -290,11 +290,11 @@ module type S = sig
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Svar.t list
     val free_svars      : t -> Svar.t list
-    val instantiate     : CilMisc.srcinfo -> t -> t * Sloc.Subst.t
-    val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (StoreSubst.t)
+    val instantiate     : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> t * Sloc.Subst.t * StoreSubst.t
+    (* val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (StoreSubst.t) *)
     val make            : (string * CType.t) list -> Sloc.t list -> Svar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
-    val subs_store_var  : StoreSubst.t -> T.store -> t -> t
+    val subs_store_var  : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
     val indices         : t -> Index.t list 
   end
 

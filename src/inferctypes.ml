@@ -209,11 +209,13 @@ let check_poly_inclusion s1 s2 sub =
 *)
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
-  let srcinfo = CM.srcinfo_of_instr i (Some !C.currentLoc) in
-  let cfi, isub     = CFun.instantiate srcinfo cf in
-  let cfi, hsub     = CFun.instantiate_store srcinfo cfi cts sto sub in
+  let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
+  let _ = Pretty.printf "constrain_app sub: %a\n" S.Subst.d_subst sub in
+  let cfi, isub, hsub  = CFun.instantiate srcinfo cf (List.map (I.CType.subs sub) cts) sto in
+  (* let cfi, hsub     = CFun.instantiate_store srcinfo cfi cts sto sub in *)
   let _ = Pretty.printf "Instantiated function @[%a@]@! with@! @[%a@]@!"
     CFun.d_cfun cf CFun.d_cfun cfi in
+  let _ = Pretty.printf "isub: %a\n" S.Subst.d_subst isub in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let annot         = RA.HInst hsub :: annot in
   let sto           = cfi.sto_out
@@ -230,7 +232,7 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
     (*     assert ((not <| Store.mem sto callee) || Store.mem sto caller) *)
     (*   | None, None -> () *)
     (* in *)
-    unify_and_check_subtype sto sub (Ct.subs_store_var hsub sto cta) ctf
+    unify_and_check_subtype sto sub (Ct.subs_store_var hsub isub sto cta) ctf
   end (sto, sub) cts cfi.args in
   (* let _ = Pretty.printf "...fdsa\n" in *)
   (* Since at this point we're implicitly checking that cfi.sto is

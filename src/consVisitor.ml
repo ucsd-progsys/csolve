@@ -209,6 +209,7 @@ let cons_of_rval me loc tag grd effs (env, sto, tago) post_mem_env = function
         | Ct.FRef (f, r) as rct, cds ->
           let f'   = FI.t_fresh_fn f in
           let rct = Ct.FRef (f', r) in
+	  let _ = Pretty.printf "f': %a\n" RCf.d_cfun f' in
           (rct,cds +++ FI.make_cs_refcfun env grd (FI.ce_find_fn v.vname env) f' tag loc)
         | _ -> assert false
       end
@@ -250,6 +251,10 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
        when not v1.Cil.vglob && CM.is_fun v2 ->
       let cr, cds, wfs = cons_of_fptr me loc tag grd effs (pre_env, sto, tago) env (Lval lval) rv
       in
+      let _ = Pretty.printf "cr: %a\n" RT.d_ctype cr in
+  (* let _ =   *)
+  (*  Format.printf "%a" (FixMisc.pprint_many true "\n" (FixConstraint.print_t None)) (fst cds) *)
+  (* in *)
     (extend_env me v1 cr env, sto, Some tag), cds, wfs
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
@@ -418,14 +423,18 @@ let d_bindings () llds =
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
+  let lsubs     = lsubs_of_annots ns in
   let hsubs,inst_wfs = hsubs_of_annots env ns in
-  let frt'      = RCf.subs_store_var hsubs st frt in
+  let _ = Pretty.printf "hsub: %a\n" Ctypes.StoreSubst.d_storesubst hsubs in
+  let _ = Pretty.printf "st: %a\nlsubs: %a\n" RS.d_store st Sloc.Subst.d_subst lsubs in
+  let frt'      = RCf.subs_store_var hsubs lsubs st frt in
   (* let inst_wfs  = FI.make_wfs_fn env frt' in *)
   (* This is implied by well-formedness constraints on the instantiated function *)
   (* let inst_cs,inst_deps = FI.make_cs_refcfun env grd frt frt' tag loc in *)
   let call      = (lvo, frt', es) in
   let args      = frt' |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
-  let lsubs     = lsubs_of_annots ns in
+  let _ = Pretty.printf "instantiated: %a\n" RCf.d_cfun frt in
+  let _ = Pretty.printf "as: %a\n" RCf.d_cfun frt' in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
   let cs0, ecrs = Misc.mapfold begin fun cs e ->
@@ -437,7 +446,6 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let istbs            = frt'.Ct.sto_in
                       >> check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs
                       |> renamed_store_bindings lsubs subs in
-  let _ = Pretty.printf "instantiated: %a\n" RCf.d_cfun frt' in
   let ostebs           = frt'.Ct.sto_out
                       >> check_inst_concrete_slocs_distinct loc f call ecrs lsubs subs
                       |> renamed_store_effects_bindings lsubs subs frt'.Ct.effects in
@@ -458,6 +466,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt' in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt') in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
+  let _ = Pretty.printf "done\n" in
   wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), ((* inst_wfs++*)wfs)
 
 
