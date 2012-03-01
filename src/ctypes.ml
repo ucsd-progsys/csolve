@@ -1199,6 +1199,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       Store.indices cf.sto_out
 	
     let subs_store_var subs lsubs sto cf =
+      (* Only sub the locations that are in the store substitution *)
       let lsubs = SVM.fold (fun _ (ss,_) s -> SS.union ss s) subs SS.empty 
                |> SS.elements
 	       |> (fun ss -> List.filter (snd <+> M.flip List.mem ss) lsubs)
@@ -1218,7 +1219,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           fx
       end (EffectSet.subs lsubs cf.effects) sto_out
       in
-      {cf with 
+      {cf with
         args = CType.subs_store_var subs lsubs sto
             |> M.app_snd
             |> M.flip List.map cf.args;
@@ -1290,6 +1291,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       	 (* sub, substo) *)
 	
     let rec sto_of_args srcinfo cf args gsto sub =
+      let _ = Pretty.printf "sto_of_args cfun: %a\ncfun's store:%a\n"
+	d_cfun cf Store.d_store cf.sto_out
+      in
       let _ = Pretty.printf "sto_of_args gsto: %a\n" Store.d_store gsto in
       List.fold_left2 begin fun (sub,sto) t t' ->
 	let _ = Pretty.printf "sto_of_args: %a <: %a\n\tsto: %a\n\tsub: %a\n"
@@ -1302,24 +1306,19 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	    let _ = Pretty.printf "usub: %a usto: %a\n"
 	      S.Subst.d_subst usub Store.d_store usto
 	    in
-	    let sto'  = Store.restrict usto [lsub] in 
+	    let sto'  = Store.restrict usto [lsub] 
+	             |> Store.upd sto in 
 	    let _ = Pretty.printf "sub': %a sto': %a\n"
 	      S.Subst.d_subst sub' Store.d_store sto'
 	    in
 	    (sub', sto')
 	  | FRef (f,_), FRef (g,_) ->
-	    (* let f = instantiate *)
-      (* let qslocs    = quantified_locs f in *)
-      (* let instslocs = List.map (fun _ -> S.fresh_abstract [srcinfo]) qslocs in *)
-      (* let isub       = List.combine qslocs instslocs in *)
-      (* let sub = S.Subst.compose isub sub in *)
-      (* let f = subs f sub in *)
 	    let args = List.map snd g.args in
 	    let (sub', sto') = sto_of_args srcinfo f args (Store.upd gsto f.sto_out) sub in
 	    let _ = Pretty.printf "sub': %a sto': %a\n"
 	      S.Subst.d_subst sub' Store.d_store sto'
 	    in
-	    (sub', sto')
+	    (sub', Store.upd sto sto')
 	  | _ -> (sub, sto)
 	end
       end (sub, Store.empty) (List.map snd cf.args) args
@@ -1342,11 +1341,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let sub       = List.combine qslocs instslocs in
       let cf = subs cf sub in
       let cf = {cf with args = List.map (M.app_snd <| subs_frefs sub) cf.args;
-	                ret  = subs_frefs sub cf.ret}
-      in
-      let _ = Pretty.printf "Instantiate:%a\n\tsto: %a\n\targs: %a\n"
-	d_cfun cf Store.d_store sto (Pretty.d_list ", " CType.d_ctype) args
-      in
+	                ret  = subs_frefs sub cf.ret} in
       let (cf, isub, hsub) = instantiate_store srcinf cf args sto sub in
       (cf, S.Subst.compose isub sub, hsub)
           

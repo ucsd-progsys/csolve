@@ -217,7 +217,11 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
     CFun.d_cfun cf CFun.d_cfun cfi in
   let _ = Pretty.printf "isub: %a\n" S.Subst.d_subst isub in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
-  let annot         = RA.HInst hsub :: annot in
+  let annot         = if hsub <> StoreSubst.empty then 
+                        RA.HInst hsub :: annot 
+                      else
+                        annot
+  in
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.fold_left Store.ensure_sloc sto in

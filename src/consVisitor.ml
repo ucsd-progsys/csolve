@@ -428,6 +428,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let _ = Pretty.printf "hsub: %a\n" Ctypes.StoreSubst.d_storesubst hsubs in
   let _ = Pretty.printf "st: %a\nlsubs: %a\n" RS.d_store st Sloc.Subst.d_subst lsubs in
   let frt'      = RCf.subs_store_var hsubs lsubs st frt in
+  (* let inst_wfs = [] in *)
   (* let inst_wfs  = FI.make_wfs_fn env frt' in *)
   (* This is implied by well-formedness constraints on the instantiated function *)
   (* let inst_cs,inst_deps = FI.make_cs_refcfun env grd frt frt' tag loc in *)
