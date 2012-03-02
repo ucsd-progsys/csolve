@@ -291,7 +291,6 @@ module type S = sig
     val quantified_svars : t -> Svar.t list
     val free_svars      : t -> Svar.t list
     val instantiate     : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> t * Sloc.Subst.t * StoreSubst.t
-    (* val instantiate_store : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> Sloc.Subst.t -> t * (StoreSubst.t) *)
     val make            : (string * CType.t) list -> Sloc.t list -> Svar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
@@ -308,7 +307,6 @@ module type S = sig
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t
-    (* val add_fun_loc  : Sloc.t -> CFun.t * specType -> t -> t *)
     
     val store   : t -> Store.t
     val funspec : t -> (T.cfun * specType) FixMisc.StringMap.t

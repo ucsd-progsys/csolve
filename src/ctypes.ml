@@ -471,9 +471,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Sv.t list
     val free_svars      : t -> Sv.t list
-    (* val instantiate     : CM.srcinfo -> t -> t * S.Subst.t *)
     val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * StoreSubst.t)
-    (* val instantiate_store : CM.srcinfo -> t -> T.ctype list -> T.store -> S.Subst.t -> (t * Sloc.Subst.t * StoreSubst.t) *)
     val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
@@ -1228,121 +1226,57 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         sto_out = sto_out;
         effects = effects;
       }
-	
-    (* let rec sto_of_args srcinfo v slocs cf args gsto sub =  *)
-    (*   (\* 	Sloc.Subst.d_subst sub Store.d_store (Store.subs sub sto) *\) *)
-    (*   (\* in *\) *)
-    (*   let _ = Pretty.printf "cf: %a\ngsto: %a\n" d_cfun cf Store.d_store gsto in *)
-    (*   List.fold_left2 begin fun (rsto, sub) f a ->  *)
-    (* 	let _ = Pretty.printf "current sub: %a\n" S.Subst.d_subst sub in *)
-    (* 	begin match f, a with *)
-    (*       | Ref (l1, _), Ref (l2, _) ->  *)
-    (* 	    (\* if Store.mem cf.sto_out l1 then (rsto, sub) else *\) *)
-    (* 	    let _ = Pretty.printf "rsto: %a\n" Store.d_store rsto in *)
-    (* 	    let _ = Pretty.printf "%a := %a\n" S.d_sloc l1 S.d_sloc l2 in *)
-    (* 	    let (tsto, tsub) = Store.Unify.unify_ctype_locs gsto sub f a in *)
-    (* 	    let _ = Pretty.printf "tsto: %a\ntsub: %a\n" Store.d_store tsto S.Subst.d_subst tsub in *)
-    (*         let (sto', sub') = gsto  *)
-    (*                 |> M.flip Store.restrict [l2] *)
-    (* 	            |> fun s -> Store.fold_fields begin fun (sto, sub) s i fld -> *)
-    (* 		      Store.Unify.add_field sto sub s i fld  *)
-    (* 		    end (s,tsub) rsto *)
-    (* 	    in *)
-    (* 	    (sto', tsub) *)
-    (*       | FRef (f, _), FRef (g, _) -> *)
-    (* 	    let args = List.map (snd <+> CType.subs sub) f.args in *)
-    (* 	    sto_of_args srcinfo v [] g args (Store.upd g.sto_out rsto) sub *)
-    (* 	    |> M.app_fst (Store.fold_fields begin fun sto s i fld -> *)
-    (* 	      Store.Unify.add_field sto sub s i fld |> fst *)
-    (* 	    end rsto) *)
-    (*       | _ -> (rsto, sub) *)
-    (*     end  *)
-    (*   end (Store.empty, sub) (List.map snd cf.args) args *)
-               
-    (* and instantiate_store srcinfo cf argcts sto lsub =  *)
-    (*   let _ = Pretty.printf "instantiate sub: %a\n" S.Subst.d_subst lsub in *)
-    (*   if cf.quant_svars = [] then (cf, lsub, StS.empty) else *)
-    (*   	let poly_locs = List.map snd cf.args *)
-    (*   	             |> M.map_partial CType.sloc *)
-    (*                  |> List.filter (not <.> Store.mem cf.sto_out) *)
-    (*   	in *)
-    (*   	let v      = List.hd cf.quant_svars in *)
-    (*     let vars   = List.tl cf.quant_svars in *)
-    (*   	(\* let args = List.map (CType.subs sub) argcts in *\) *)
-    (* 	(\* let args = argcts in *\) *)
-    (*     let sto,sub = sto_of_args srcinfo v [] cf argcts sto lsub in *)
-    (*   	let _ = Pretty.printf "inst sto: %a\n" Store.d_store sto in *)
-    (*   	let _ = Pretty.printf "inst subs: %a\n" S.Subst.d_subst sub in *)
-    (*   	let ss = List.fold_left (M.flip SS.add) SS.empty (Store.domain sto) in *)
-    (*   	let substo = StS.extend_sset v ss StS.empty in *)
-    (*   	let cf = capturing_subs cf sub in *)
-    (* 	let cf = {cf with quant_svars = []}(\* ; *\) *)
-    (* 	  (\* args = List.map (M.app_snd (subs_frefs sub)) cf.args}  *\) *)
-    (* 	in *)
-    (* 	(subs_store_var substo sub sto cf, sub, substo) *)
- 
-        (* let lsub   = lsubs_of_args cf argcts sub in *)
-      	(* cf, sto, sub, StS.extend_sset v Store.domain sto StS.empty *)
-      	(* cf, StS.empty *)
-        (* let substo = subs_of_args srcinfo v [] cf argcts sto lsub in *)
-        (* (subs_store_var substo sto *)
-      	(*    {cf with quant_svars = []; *)
-      	(*             args = List.map (M.app_snd (subs_frefs sub)) cf.args}, *)
-      	 (* sub, substo) *)
+	  
+    let instantiate_locs srcinf cf = 
+      let qslocs    = quantified_locs cf in
+      let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
+      List.combine qslocs instslocs
 	
     let rec sto_of_args srcinfo cf args gsto sub =
-      let _ = Pretty.printf "sto_of_args cfun: %a\ncfun's store:%a\n"
-	d_cfun cf Store.d_store cf.sto_out
-      in
-      let _ = Pretty.printf "sto_of_args gsto: %a\n" Store.d_store gsto in
       List.fold_left2 begin fun (sub,sto) t t' ->
-	let _ = Pretty.printf "sto_of_args: %a <: %a\n\tsto: %a\n\tsub: %a\n"
-	  CType.d_ctype t' CType.d_ctype t Store.d_store sto S.Subst.d_subst sub
-	in
 	begin match CType.subs sub t', CType.subs sub t with
 	  | Ref (lsub, _), Ref (lsuper, _) -> 
 	    let sub' = S.Subst.extend lsuper lsub sub in
 	    let usto, usub = Store.Unify.unify_ctype_locs gsto sub t t' in
-	    let _ = Pretty.printf "usub: %a usto: %a\n"
-	      S.Subst.d_subst usub Store.d_store usto
-	    in
 	    let sto'  = Store.restrict usto [lsub] 
 	             |> Store.upd sto in 
-	    let _ = Pretty.printf "sub': %a sto': %a\n"
-	      S.Subst.d_subst sub' Store.d_store sto'
-	    in
 	    (sub', sto')
 	  | FRef (f,_), FRef (g,_) ->
+	    let sub   = S.Subst.compose (instantiate_locs srcinfo f) sub in
+	    let f     = subs f sub in
+	    let f     = 
+	      {f with args = List.map (M.app_snd <| subs_frefs sub) f.args;
+	              ret  = subs_frefs sub f.ret} 
+	    in
 	    let args = List.map snd g.args in
-	    let (sub', sto') = sto_of_args srcinfo f args (Store.upd gsto f.sto_out) sub in
-	    let _ = Pretty.printf "sub': %a sto': %a\n"
-	      S.Subst.d_subst sub' Store.d_store sto'
+	    let (sub', sto') = 
+	      sto_of_args srcinfo f args (Store.upd gsto f.sto_out) sub 
 	    in
 	    (sub', Store.upd sto sto')
 	  | _ -> (sub, sto)
 	end
       end (sub, Store.empty) (List.map snd cf.args) args
-	  
-    and instantiate_store srcinfo cf args sto sub =
+	
+    let instantiate_store srcinfo cf args sto =
       if cf.quant_svars = [] then (cf, S.Subst.empty, StS.empty) else
+      	let non_poly_locs = cf.sto_out |> Store.domain in
 	let v = List.hd cf.quant_svars in
 	let rest = List.tl cf.quant_svars in
 	let cf   = {cf with quant_svars = rest} in
 	let (sub,sto)  = sto_of_args srcinfo cf args sto S.Subst.empty in
 	let ssub = Store.domain sto
+	        |> List.filter (not <.> M.flip List.mem non_poly_locs)
                 |> List.fold_left (M.flip SS.add) SS.empty
 		|> fun sset -> StS.extend_sset v sset StS.empty in
 	let cf = subs_store_var ssub sub sto cf in
 	(cf, sub, ssub)
     
-    and instantiate srcinf cf args sto =
-      let qslocs    = quantified_locs cf in
-      let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
-      let sub       = List.combine qslocs instslocs in
+    let instantiate srcinf cf args sto =
+      let sub = instantiate_locs srcinf cf in
       let cf = subs cf sub in
       let cf = {cf with args = List.map (M.app_snd <| subs_frefs sub) cf.args;
 	                ret  = subs_frefs sub cf.ret} in
-      let (cf, isub, hsub) = instantiate_store srcinf cf args sto sub in
+      let (cf, isub, hsub) = instantiate_store srcinf cf args sto in
       (cf, S.Subst.compose isub sub, hsub)
           
     let quantified_svars cf = cf.quant_svars

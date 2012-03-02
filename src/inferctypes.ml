@@ -210,12 +210,7 @@ let check_poly_inclusion s1 s2 sub =
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
-  let _ = Pretty.printf "constrain_app sub: %a\n" S.Subst.d_subst sub in
   let cfi, isub, hsub  = CFun.instantiate srcinfo cf (List.map (I.CType.subs sub) cts) sto in
-  (* let cfi, hsub     = CFun.instantiate_store srcinfo cfi cts sto sub in *)
-  let _ = Pretty.printf "Instantiated function @[%a@]@! with@! @[%a@]@!"
-    CFun.d_cfun cf CFun.d_cfun cfi in
-  let _ = Pretty.printf "isub: %a\n" S.Subst.d_subst isub in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let annot         = if hsub <> StoreSubst.empty then 
                         RA.HInst hsub :: annot 
@@ -228,23 +223,13 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
   let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
-  (* let _ = Pretty.printf "asdf..." in *)
   let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-    (* let _ = match Ct.sloc (Ct.subs sub ctf), Ct.sloc (Ct.subs sub cta) with *)
-    (*   | Some callee, Some caller -> *)
-    (*     Pretty.printf "Sto: %a Callee: %a Caller %a\n" Store.d_store sto Sloc.d_sloc callee Sloc.d_sloc caller; *)
-    (*     assert ((not <| Store.mem sto callee) || Store.mem sto caller) *)
-    (*   | None, None -> () *)
-    (* in *)
     unify_and_check_subtype sto sub (Ct.subs_store_var hsub isub sto cta) ctf
   end (sto, sub) cts cfi.args in
-  (* let _ = Pretty.printf "...fdsa\n" in *)
   (* Since at this point we're implicitly checking that cfi.sto is
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
-  (* let _ = Pretty.printf "sub: %a sto: %a\n" S.Subst.d_subst sub Store.d_store sto in *)
-  (* let _ = asserts (CFun.well_formed sto cfi ) "Instantiated function is not well-formed!" in *)
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
@@ -279,7 +264,6 @@ let find_function et fs sub sto = function
       | _ -> assert false
 
 let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
-  let _ = Pretty.printf "constrain_instr pre sto: %a\n" Store.d_store sto in
   let _ = C.currentLoc := C.get_instrLoc i in
   match i with
   | C.Set (lv, e, _) ->
@@ -302,10 +286,7 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
 
 let constrain_instr env et annots i =
   try
-    let _ = Pretty.printf "instr: %a\n" C.dn_instr i in
-    let ((_,_,s) as r) = constrain_instr_aux env et annots i in
-    let _ = Pretty.printf "constrain_instr post sto: %a\n" Store.d_store s in
-    r
+    constrain_instr_aux env et annots i
   with ex -> E.s <| C.error "(%s) Failed constraining instruction:@!%a@!@!"
                (Printexc.to_string ex) C.d_instr i
 
