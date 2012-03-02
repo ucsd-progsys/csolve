@@ -1206,13 +1206,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let sto_in = Store.subs_store_var subs lsubs sto cf.sto_in in
       let sto_out = Store.subs_store_var subs lsubs sto cf.sto_out in
       let top_of_l l = 
-        let so = Ast.Sort.t_ptr (Ast.Sort.Loc (Sloc.to_string l)) in 
+        let so = Ast.Sort.t_ptr (Ast.Sort.Loc (S.to_string l)) in
         let vv = Ast.Symbol.value_variable so in
         (Index.top, FC.make_reft vv so [FC.Conc Ast.pTrue])
       in
       let effects = Store.fold_locs begin fun s _ fx ->
-        if (not (SLM.mem s fx)) && Sloc.is_abstract s then 
-          SLM.add s (Ref (s, (top_of_l s))) fx
+        if (not (SLM.mem s fx)) && S.is_abstract s then 
+          SLM.add s (Ref (s, (top_of_l S.none))) fx
         else
           fx
       end (EffectSet.subs lsubs cf.effects) sto_out
@@ -1268,6 +1268,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	        |> List.filter (not <.> M.flip List.mem non_poly_locs)
                 |> List.fold_left (M.flip SS.add) SS.empty
 		|> fun sset -> StS.extend_sset v sset StS.empty in
+	(* let sub = sub  *)
+	(*        |> List.filter (not <.> M.flip List.mem non_poly_locs <.> fst) *)
+        (* in   *)
 	let cf = subs_store_var ssub sub sto cf in
 	(cf, sub, ssub)
     
