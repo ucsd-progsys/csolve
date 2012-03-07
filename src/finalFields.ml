@@ -77,6 +77,7 @@ module Intraproc (X: Context) = struct
   let check_lval_set ffm na lval =
     match locs_of_lval lval with
       | None             -> ()
+      | Some (_, al, _) when al = Sloc.sloc_of_any -> () 
       | Some (cl, al, i) ->
            find_stored_indices al i
         |> List.iter begin fun pl ->
