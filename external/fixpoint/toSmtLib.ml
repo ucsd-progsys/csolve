@@ -252,7 +252,8 @@ let make_kmap defs : kmap =
 let mkFreshI, _   = Misc.mk_int_factory ()
 let mkFresh cid x = 
   Sy.of_string (Format.sprintf "%s_smt_%d_%d" (Sy.to_string x) cid (mkFreshI ())) 
-  >> (fun x' -> Format.printf "fresh_var: %a \n" Sy.print x')
+(*  >> (fun x' -> Format.printf "fresh_var: %a \n" Sy.print x')
+ *)
 
 let fresh_vars env cid es = 
   let t   = Hashtbl.create 17 in
