@@ -139,6 +139,8 @@ and print_expr ppf expr =
         print_pred p
         print_expr e1
         print_expr e2
+  | A.Cst (e, _) ->
+      F.fprintf ppf "%a" print_expr e
   | _ -> assertf "ERROR: ToSmtLib.print_expr %s" (E.to_string expr)
 
 let rec print_sort ppf t = match So.func_of_t t with
