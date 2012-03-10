@@ -284,7 +284,8 @@ let pred_of_kdef (kf, xts) =
 
 let soln_of_kmap km k =
   [pred_of_kdef <| SM.safeFind k km "soln_of_kmap"]
-  >> (Format.printf "soln_of_kmap: k = %a ps = %a \n" Sy.print k (Misc.pprint_many false " " P.print))
+  (* >> (Format.printf "soln_of_kmap: k = %a ps = %a \n" Sy.print k (Misc.pprint_many false " " P.print))
+   *)
 
 let tx_constraint s c =
   let cid     = C.id_of_t c                 in
