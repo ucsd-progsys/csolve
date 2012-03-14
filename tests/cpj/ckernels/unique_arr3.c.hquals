@@ -1,0 +1,2 @@
+qualif EQ3(v:int) : v = 3
+qualif OBJLINK(v:ptr) : (v != 0) => ((DEREF([v]) : int) = (VVADDR - BLOCK_BEGIN([VVADDR])))
