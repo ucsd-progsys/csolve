@@ -174,7 +174,9 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
   then match cs' with
        | [] -> (s', cs', [])
        | _  -> failwith ("ac_solve: "^fn)
-  else s', cs', List.map (C.id_of_t <+> dd.cone ctx) cs'
+  else s', cs', (if !Constants.cex
+                 then List.map (C.id_of_t <+> dd.cone ctx) cs' 
+                 else [])
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in
