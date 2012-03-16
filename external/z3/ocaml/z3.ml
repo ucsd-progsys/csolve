@@ -91,6 +91,7 @@ and enum_6 =
   | OP_SET_DIFFERENCE
   | OP_SET_COMPLEMENT
   | OP_SET_SUBSET
+  | OP_AS_ARRAY
   | OP_BNUM
   | OP_BIT1
   | OP_BIT0
@@ -136,6 +137,8 @@ and enum_6 =
   | OP_BASHR
   | OP_ROTATE_LEFT
   | OP_ROTATE_RIGHT
+  | OP_EXT_ROTATE_LEFT
+  | OP_EXT_ROTATE_RIGHT
   | OP_INT2BV
   | OP_BV2INT
   | OP_CARRY
@@ -193,7 +196,6 @@ and enum_6 =
   | OP_RA_SELECT
   | OP_RA_CLONE
   | OP_FD_LT
-  | OP_FD_LE
   | OP_UNINTERPRETED
 and decl_kind = enum_6
 and enum_7 =
@@ -225,8 +227,20 @@ external set_param_value : config -> string -> string -> unit
 external mk_context : config -> context
 	= "camlidl_z3_Z3_mk_context"
 
+external mk_context_rc : config -> context
+	= "camlidl_z3_Z3_mk_context_rc"
+
+external set_logic : context -> string -> bool
+	= "camlidl_z3_Z3_set_logic"
+
 external del_context : context -> unit
 	= "camlidl_z3_Z3_del_context"
+
+external inc_ref : context -> ast -> unit
+	= "camlidl_z3_Z3_inc_ref"
+
+external dec_ref : context -> ast -> unit
+	= "camlidl_z3_Z3_dec_ref"
 
 external trace_to_file : context -> string -> bool
 	= "camlidl_z3_Z3_trace_to_file"
@@ -513,6 +527,12 @@ external mk_rotate_left : context -> int -> ast -> ast
 external mk_rotate_right : context -> int -> ast -> ast
 	= "camlidl_z3_Z3_mk_rotate_right"
 
+external mk_ext_rotate_left : context -> ast -> ast -> ast
+	= "camlidl_z3_Z3_mk_ext_rotate_left"
+
+external mk_ext_rotate_right : context -> ast -> ast -> ast
+	= "camlidl_z3_Z3_mk_ext_rotate_right"
+
 external mk_int2bv : context -> int -> ast -> ast
 	= "camlidl_z3_Z3_mk_int2bv"
 
@@ -618,7 +638,7 @@ external mk_exists : context -> int -> pattern array -> sort array -> symbol arr
 external mk_quantifier : context -> bool -> int -> pattern array -> sort array -> symbol array -> ast -> ast
 	= "camlidl_z3_Z3_mk_quantifier_bytecode" "camlidl_z3_Z3_mk_quantifier"
 
-external mk_quantifier_ex : context -> bool -> int -> symbol -> symbol -> pattern array -> int -> ast array -> sort array -> symbol array -> ast -> ast
+external mk_quantifier_ex : context -> bool -> int -> symbol -> symbol -> pattern array -> ast array -> sort array -> symbol array -> ast -> ast
 	= "camlidl_z3_Z3_mk_quantifier_ex_bytecode" "camlidl_z3_Z3_mk_quantifier_ex"
 
 external mk_forall_const : context -> int -> app array -> pattern array -> ast -> ast
@@ -695,6 +715,12 @@ external get_quantifier_num_patterns : context -> ast -> int
 
 external get_quantifier_pattern_ast : context -> ast -> int -> pattern
 	= "camlidl_z3_Z3_get_quantifier_pattern_ast"
+
+external get_quantifier_num_no_patterns : context -> ast -> int
+	= "camlidl_z3_Z3_get_quantifier_num_no_patterns"
+
+external get_quantifier_no_pattern_ast : context -> ast -> int -> ast
+	= "camlidl_z3_Z3_get_quantifier_no_pattern_ast"
 
 external get_quantifier_bound_name : context -> ast -> int -> symbol
 	= "camlidl_z3_Z3_get_quantifier_bound_name"
@@ -804,6 +830,24 @@ external get_pattern : context -> pattern -> int -> ast
 external simplify : context -> ast -> ast
 	= "camlidl_z3_Z3_simplify"
 
+external update_term : context -> ast -> ast array -> ast
+	= "camlidl_z3_Z3_update_term"
+
+external substitute : context -> ast -> ast array -> ast array -> ast
+	= "camlidl_z3_Z3_substitute"
+
+external substitute_vars : context -> ast -> ast array -> ast
+	= "camlidl_z3_Z3_substitute_vars"
+
+external sort_to_ast : context -> sort -> ast
+	= "camlidl_z3_Z3_sort_to_ast"
+
+external func_decl_to_ast : context -> func_decl -> ast
+	= "camlidl_z3_Z3_func_decl_to_ast"
+
+external pattern_to_ast : context -> pattern -> ast
+	= "camlidl_z3_Z3_pattern_to_ast"
+
 external app_to_ast : context -> app -> ast
 	= "camlidl_z3_Z3_app_to_ast"
 
@@ -882,10 +926,10 @@ external get_model_constant : context -> model -> int -> func_decl
 external eval_func_decl : context -> model -> func_decl -> bool * ast
 	= "camlidl_z3_Z3_eval_func_decl"
 
-external is_array_value : context -> ast -> bool * int
+external is_array_value : context -> model -> ast -> bool * int
 	= "camlidl_z3_Z3_is_array_value"
 
-external get_array_value : context -> ast -> ast array -> ast array -> ast array * ast array * ast
+external get_array_value : context -> model -> ast -> ast array -> ast array -> ast array * ast array * ast
 	= "camlidl_z3_Z3_get_array_value"
 
 external get_model_num_funcs : context -> model -> int
@@ -993,6 +1037,12 @@ external parse_z3_string : context -> string -> ast
 external parse_z3_file : context -> string -> ast
 	= "camlidl_z3_Z3_parse_z3_file"
 
+external parse_smtlib2_string : context -> string -> symbol array -> sort array -> symbol array -> func_decl array -> ast
+	= "camlidl_z3_Z3_parse_smtlib2_string_bytecode" "camlidl_z3_Z3_parse_smtlib2_string"
+
+external parse_smtlib2_file : context -> string -> symbol array -> sort array -> symbol array -> func_decl array -> ast
+	= "camlidl_z3_Z3_parse_smtlib2_file_bytecode" "camlidl_z3_Z3_parse_smtlib2_file"
+
 external get_version : unit -> int * int * int * int
 	= "camlidl_z3_Z3_get_version"
 
@@ -1052,6 +1102,18 @@ external theory_get_num_apps : theory -> int
 
 external theory_get_app : theory -> int -> ast
 	= "camlidl_z3_Z3_theory_get_app"
+
+external datalog_add_rule : context -> ast -> symbol -> unit
+	= "camlidl_z3_Z3_datalog_add_rule"
+
+external datalog_query : context -> ast -> ast
+	= "camlidl_z3_Z3_datalog_query"
+
+external datalog_set_predicate_representation : context -> func_decl -> symbol array -> unit
+	= "camlidl_z3_Z3_datalog_set_predicate_representation"
+
+external datalog_parse_file : context -> string -> unit
+	= "camlidl_z3_Z3_datalog_parse_file"
 
 
 
@@ -1170,6 +1232,8 @@ type sort_refined =
   | Sort_bv of int
   | Sort_array of (sort * sort)
   | Sort_datatype of datatype_constructor_refined array
+  | Sort_relation
+  | Sort_finite_domain
   | Sort_unknown of symbol;;
 
 let sort_refine c ty =
@@ -1181,6 +1245,8 @@ let sort_refine c ty =
   | BV_SORT -> Sort_bv (get_bv_sort_size c ty)
   | ARRAY_SORT -> Sort_array (get_array_sort_domain c ty, get_array_sort_range c ty)
   | DATATYPE_SORT -> Sort_datatype (get_datatype_sort c ty)
+  | RELATION_SORT -> Sort_relation 
+  | FINITE_DOMAIN_SORT -> Sort_finite_domain
   | UNKNOWN_SORT -> Sort_unknown (get_sort_name c ty);;
 
 let get_pattern_terms c p = 

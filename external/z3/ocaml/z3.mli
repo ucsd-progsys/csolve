@@ -91,6 +91,7 @@ and enum_6 =
   | OP_SET_DIFFERENCE
   | OP_SET_COMPLEMENT
   | OP_SET_SUBSET
+  | OP_AS_ARRAY
   | OP_BNUM
   | OP_BIT1
   | OP_BIT0
@@ -136,6 +137,8 @@ and enum_6 =
   | OP_BASHR
   | OP_ROTATE_LEFT
   | OP_ROTATE_RIGHT
+  | OP_EXT_ROTATE_LEFT
+  | OP_EXT_ROTATE_RIGHT
   | OP_INT2BV
   | OP_BV2INT
   | OP_CARRY
@@ -193,7 +196,6 @@ and enum_6 =
   | OP_RA_SELECT
   | OP_RA_CLONE
   | OP_FD_LT
-  | OP_FD_LE
   | OP_UNINTERPRETED
 and decl_kind = enum_6
 and enum_7 =
@@ -354,6 +356,9 @@ and ast_print_mode = enum_8
 
    - OP_SET_SUBSET Subset predicate between two Boolean arrays. The relation is binary.
 
+   - OP_AS_ARRAY An array value that behaves as the function graph of the
+                    function passed as parameter.
+
    - OP_BNUM Bit-vector numeral.
 
    - OP_BIT1 One bit bit-vector.
@@ -443,6 +448,10 @@ and ast_print_mode = enum_8
    - OP_ROTATE_LEFT Left rotation.
 
    - OP_ROTATE_RIGHT Right rotation.
+
+   - OP_EXT_ROTATE_LEFT (extended) Left rotation. Similar to OP_ROTATE_LEFT, but it is a binary operator instead of a parametric one.
+
+   - OP_EXT_ROTATE_RIGHT (extended) Right rotation. Similar to OP_ROTATE_RIGHT, but it is a binary operator instead of a parametric one.
 
    - OP_INT2BV Coerce integer to bit-vector. NB. This function
        is not supported by the decision procedures. Only the most
@@ -802,6 +811,61 @@ and ast_print_mode = enum_8
 
          - gcd-test - Indicates an integer linear arithmetic lemma that uses a gcd test.
 
+
+      - OP_RA_STORE: Insert a record into a relation.
+        The function takes n+1 arguments, where the first argument is the relation and the remaining n elements 
+        correspond to the n columns of the relation.
+
+      - OP_RA_EMPTY: Creates the empty relation. 
+        
+      - OP_RA_IS_EMPTY: Tests if the relation is empty.
+
+      - OP_RA_JOIN: Create the relational join.
+
+      - OP_RA_UNION: Create the union or convex hull of two relations. 
+        The function takes two arguments.
+
+      - OP_RA_WIDEN: Widen two relations.
+        The function takes two arguments.
+
+      - OP_RA_PROJECT: Project the columns (provided as numbers in the parameters).
+        The function takes one argument.
+
+      - OP_RA_FILTER: Filter (restrict) a relation with respect to a predicate.
+        The first argument is a relation. 
+        The second argument is a predicate with free de-Brujin indices
+        corresponding to the columns of the relation.
+        So the first column in the relation has index 0.
+
+      - OP_RA_NEGATION_FILTER: Intersect the first relation with respect to negation
+        of the second relation (the function takes two arguments).
+        Logically, the specification can be described by a function
+
+           target = filter_by_negation(pos, neg, columns)
+
+        where columns are pairs c1, d1, .., cN, dN of columns from pos and neg, such that
+        target are elements in x in pos, such that there is no y in neg that agrees with
+        x on the columns c1, d1, .., cN, dN.
+
+    
+      - OP_RA_RENAME: rename columns in the relation. 
+        The function takes one argument.
+        The parameters contain the renaming as a cycle.
+         
+      - OP_RA_COMPLEMENT: Complement the relation.
+
+      - OP_RA_SELECT: Check if a record is an element of the relation.
+        The function takes n+1 arguments, where the first argument is a relation,
+        and the remaining n arguments correspond to a record.
+
+      - OP_RA_CLONE: Create a fresh copy (clone) of a relation. 
+        
+        
+        
+        
+
+      - OP_FD_LT: A less than predicate over the finite domain FINITE_DOMAIN_SORT.
+
     *)
 
 *)
@@ -874,7 +938,7 @@ external set_param_value : config -> string -> string -> unit
        {2 {L Create context}}
     *)
 (**
-       Summary: Create a logical context using the given configuration. 
+       Summary: Create a context using the given configuration. 
     
        After a context is created, the configuration cannot be changed.
        All main interaction with Z3 happens in the context of a context.
@@ -890,12 +954,58 @@ external mk_context : config -> context
 	= "camlidl_z3_Z3_mk_context"
 
 (**
+       Summary: Create a context using the given configuration.
+       This function is similar to {!Z3.mk_context}. However,
+       in the context returned by this function, the user
+       is responsible for managing ast reference counters.
+       Managing reference counters is a burden and error-prone,
+       but allows the user to use the memory more efficiently. 
+       The user must invoke {!Z3.inc_ref} for any ast returned
+       by Z3, and {!Z3.dec_ref} whenever the ast is not needed
+       anymore. This idiom is similar to the one used in
+       BDD (binary decision diagrams) packages such as CUDD.
+
+       Remark: sort, func_decl, app, pattern are
+       ast's.
+ 
+       After a context is created, the configuration cannot be changed.
+       All main interaction with Z3 happens in the context of a context.
+    *)
+external mk_context_rc : config -> context
+	= "camlidl_z3_Z3_mk_context_rc"
+
+(**
+       Summary: Set the SMTLIB logic to be used in the given logical context.
+       It is incorrect to invoke this function after invoking
+       {!Z3.check}, {!Z3.check_and_get_model}, {!Z3.check_assumptions} and {!Z3.push}.
+       Return TRUE if the logic was changed successfully, and FALSE otherwise.
+    *)
+external set_logic : context -> string -> bool
+	= "camlidl_z3_Z3_set_logic"
+
+(**
        Summary: Delete the given logical context.
 
        - {b See also}: {!Z3.mk_config}
     *)
 external del_context : context -> unit
 	= "camlidl_z3_Z3_del_context"
+
+(**
+       Summary: Increment the reference counter of the given AST.
+       The context c should have been created using {!Z3.mk_context_rc}.
+       This function is a NOOP if c was created using {!Z3.mk_context}.
+    *)
+external inc_ref : context -> ast -> unit
+	= "camlidl_z3_Z3_inc_ref"
+
+(**
+       Summary: Decrement the reference counter of the given AST.
+       The context c should have been created using {!Z3.mk_context_rc}.
+       This function is a NOOP if c was created using {!Z3.mk_context}.
+    *)
+external dec_ref : context -> ast -> unit
+	= "camlidl_z3_Z3_dec_ref"
 
 (**
        Summary: Enable trace messages to a file
@@ -960,6 +1070,14 @@ external toggle_warning_messages : bool -> unit
 external update_param_value : context -> string -> string -> unit
 	= "camlidl_z3_Z3_update_param_value"
 
+(**
+       Summary: Get a configuration parameter.
+      
+       Returns false if the parameter value does not exist.
+
+       - {b See also}: {!Z3.mk_config}
+       - {b See also}: {!Z3.set_param_value}
+    *)
 (**
        {2 {L Symbols}}
     *)
@@ -1910,6 +2028,10 @@ external mk_repeat : context -> int -> ast -> ast
        It is equivalent to multiplication by {e 2^x } where x is the value of the
        third argument.
 
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
+
        The nodes t1 and t2 must have the same bit-vector sort.
     *)
 external mk_bvshl : context -> ast -> ast -> ast
@@ -1921,6 +2043,10 @@ external mk_bvshl : context -> ast -> ast -> ast
 
        It is equivalent to unsigned int division by {e 2^x } where x is the
        value of the third argument.
+
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
 
        The nodes t1 and t2 must have the same bit-vector sort.
     *)
@@ -1934,6 +2060,10 @@ external mk_bvlshr : context -> ast -> ast -> ast
        It is like logical shift right except that the most significant
        bits of the result always copy the most significant bit of the
        second argument.
+
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
        
        The nodes t1 and t2 must have the same bit-vector sort.
     *)
@@ -1957,6 +2087,24 @@ external mk_rotate_left : context -> int -> ast -> ast
     *)
 external mk_rotate_right : context -> int -> ast -> ast
 	= "camlidl_z3_Z3_mk_rotate_right"
+
+(**
+       Summary: \[ [ mk_ext_rotate_left c t1 t2 ] \]
+       Rotate bits of t1 to the left t2 times.
+       
+       The nodes t1 and t2 must have the same bit-vector sort.
+    *)
+external mk_ext_rotate_left : context -> ast -> ast -> ast
+	= "camlidl_z3_Z3_mk_ext_rotate_left"
+
+(**
+       Summary: \[ [ mk_ext_rotate_right c t1 t2 ] \]
+       Rotate bits of t1 to the right t2 times.
+       
+       The nodes t1 and t2 must have the same bit-vector sort.
+    *)
+external mk_ext_rotate_right : context -> ast -> ast -> ast
+	= "camlidl_z3_Z3_mk_ext_rotate_right"
 
 (**
        Summary: \[ [ mk_int2bv c n t1 ] \]
@@ -2395,7 +2543,7 @@ external mk_quantifier : context -> bool -> int -> pattern array -> sort array -
        - {b See also}: {!Z3.mk_forall}
        - {b See also}: {!Z3.mk_exists}
     *)
-external mk_quantifier_ex : context -> bool -> int -> symbol -> symbol -> pattern array -> int -> ast array -> sort array -> symbol array -> ast -> ast
+external mk_quantifier_ex : context -> bool -> int -> symbol -> symbol -> pattern array -> ast array -> sort array -> symbol array -> ast -> ast
 	= "camlidl_z3_Z3_mk_quantifier_ex_bytecode" "camlidl_z3_Z3_mk_quantifier_ex"
 
 (**
@@ -2637,6 +2785,22 @@ external get_quantifier_num_patterns : context -> ast -> int
     *)
 external get_quantifier_pattern_ast : context -> ast -> int -> pattern
 	= "camlidl_z3_Z3_get_quantifier_pattern_ast"
+
+(**
+       Summary: Return number of no_patterns used in quantifier.
+       
+       - {b Precondition}: get_ast_kind a == QUANTIFIER_AST
+    *)
+external get_quantifier_num_no_patterns : context -> ast -> int
+	= "camlidl_z3_Z3_get_quantifier_num_no_patterns"
+
+(**
+       Summary: Return i'th no_pattern.
+       
+       - {b Precondition}: get_ast_kind a == QUANTIFIER_AST
+    *)
+external get_quantifier_no_pattern_ast : context -> ast -> int -> ast
+	= "camlidl_z3_Z3_get_quantifier_no_pattern_ast"
 
 (**
        Summary: Return symbol of the i'th bound variable.
@@ -2986,8 +3150,53 @@ external simplify : context -> ast -> ast
 	= "camlidl_z3_Z3_simplify"
 
 (**
+       {2 {L Modifiers}}
+    *)
+(**
+       Summary: Update the arguments of term a using the arguments args.
+       The number of arguments num_args should coincide 
+       with the number of arguments to a.
+       If a is a quantifier, then num_args has to be 1.
+    *)
+external update_term : context -> ast -> ast array -> ast
+	= "camlidl_z3_Z3_update_term"
+
+(**
+       Summary: Substitute every occurrence of {e from[i] } in a with {e to[i] }, for i smaller than num_exprs.
+       The result is the new AST. The arrays from and to must have size num_exprs.
+       For every i smaller than num_exprs, we must have that sort of {e from[i] } must be equal to sort of {e to[i] }.
+    *)
+external substitute : context -> ast -> ast array -> ast array -> ast
+	= "camlidl_z3_Z3_substitute"
+
+(**
+       Summary: Substitute the free variables in a with the expressions in to.
+       For every i smaller than num_exprs, the variable with de-Bruijn index i is replaced with term {e to[i] }.
+    *)
+external substitute_vars : context -> ast -> ast array -> ast
+	= "camlidl_z3_Z3_substitute_vars"
+
+(**
        {2 {L Coercions}}
     *)
+(**
+       Summary: Convert a sort into ast. This is just type casting.
+    *)
+external sort_to_ast : context -> sort -> ast
+	= "camlidl_z3_Z3_sort_to_ast"
+
+(**
+       Summary: Convert a func_decl into ast. This is just type casting.
+    *)
+external func_decl_to_ast : context -> func_decl -> ast
+	= "camlidl_z3_Z3_func_decl_to_ast"
+
+(**
+       Summary: Convert a pattern into ast. This is just type casting.
+    *)
+external pattern_to_ast : context -> pattern -> ast
+	= "camlidl_z3_Z3_pattern_to_ast"
+
 (**
        Summary: Convert a APP_AST into an AST. This is just type casting.
     *)
@@ -3044,8 +3253,11 @@ external get_num_scopes : context -> int
 
 (**
        Summary: Persist AST through num_scopes pops.
+       This function is only relevant if c was created using {!Z3.mk_context}.
+       If c was created using {!Z3.mk_context_rc}, this function is a NOOP.
        
-       Normally, references to terms are no longer valid when 
+       Normally, for contexts created using {!Z3.mk_context}, 
+       references to terms are no longer valid when 
        popping scopes beyond the level where the terms are created.
        If you want to reference a term below the scope where it
        was created, use this method to specify how many pops
@@ -3119,6 +3331,10 @@ external check : context -> lbool
        
               The unsatisfiable core is a subset of the assumptions, so the array has the same size as the assumptions.
               The core array is not populated if core_size is set to 0.
+
+       - {b Precondition}: assumptions comprises of propositional literals.
+            In other words, you cannot use compound formulas for assumptions, 
+            but should use propositional variables or negations of propositional variables.
               
        - {b See also}: {!Z3.check}
        - {b See also}: {!Z3.del_model}
@@ -3299,7 +3515,7 @@ external eval_func_decl : context -> model -> func_decl -> bool * ast
        Determine whether the term encodes an array value.       
        Return the number of entries mapping to non-default values of the array.
     *)
-external is_array_value : context -> ast -> bool * int
+external is_array_value : context -> model -> ast -> bool * int
 	= "camlidl_z3_Z3_is_array_value"
 
 (**
@@ -3309,7 +3525,7 @@ external is_array_value : context -> ast -> bool * int
 
        - {b Precondition}: TRUE == is_array_value c v &num_entries       
     *)
-external get_array_value : context -> ast -> ast array -> ast array -> ast array * ast array * ast
+external get_array_value : context -> model -> ast -> ast array -> ast array -> ast array * ast array * ast
 	= "camlidl_z3_Z3_get_array_value"
 
 (**
@@ -3455,16 +3671,12 @@ external get_model_func_entry_value : context -> model -> int -> int -> ast
 
        The evaluation may fail for the following reasons:
 
-       - t contains a quantifier or bound variable. 
+       - t contains a quantifier.
 
-       - the model m is partial, that is, it doesn't have a complete interpretation for free functions. 
-         That is, the option {e PARTIAL_MODELS=true } was used.
-
-       - the evaluator doesn't have support for some interpreted operator.
+       - the model m is partial, that is, it doesn't have a complete interpretation for uninterpreted functions. 
+         That is, the option {e MODEL_PARTIAL=true } was used.
 
        - t is type incorrect.
-
-       - The result of an intepreted operator in t is undefined (e.g. division by zero).
     *)
 external eval : context -> model -> ast -> bool * ast
 	= "camlidl_z3_Z3_eval"
@@ -3721,6 +3933,22 @@ external parse_z3_file : context -> string -> ast
 	= "camlidl_z3_Z3_parse_z3_file"
 
 (**
+       Summary: \[ [ parse_smtlib2_string c str ] \]
+       Parse the given string using the SMT-LIB2 parser. 
+              
+       It returns a formula comprising of the conjunction of assertions in the scope
+       (up to push/pop) at the end of the string.
+     *)
+external parse_smtlib2_string : context -> string -> symbol array -> sort array -> symbol array -> func_decl array -> ast
+	= "camlidl_z3_Z3_parse_smtlib2_string_bytecode" "camlidl_z3_Z3_parse_smtlib2_string"
+
+(**
+       Summary: Similar to {!Z3.parse_smtlib2_string}, but reads the benchmark from a file.
+    *)
+external parse_smtlib2_file : context -> string -> symbol array -> sort array -> symbol array -> func_decl array -> ast
+	= "camlidl_z3_Z3_parse_smtlib2_file_bytecode" "camlidl_z3_Z3_parse_smtlib2_file"
+
+(**
        {2 {L Miscellaneous}}
     *)
 (**
@@ -3889,6 +4117,56 @@ external theory_get_num_apps : theory -> int
 external theory_get_app : theory -> int -> ast
 	= "camlidl_z3_Z3_theory_get_app"
 
+(** 
+        {2 {L Fixedpoint and Datalog facilities}}
+    *)
+(** 
+       Summary: Add a universal Horn clause as a named rule.
+       The horn_rule should be of the form:
+ 
+       {v 
+           horn_rule ::= (forall (bound-vars) horn_rule)
+                      |  (=> atoms horn_rule)
+                      |  atom
+        v}
+    *)
+external datalog_add_rule : context -> ast -> symbol -> unit
+	= "camlidl_z3_Z3_datalog_add_rule"
+
+(** 
+        Summary: Pose a query against the asserted rules.
+
+        The query returns a formula that encodes the set of
+        satisfying instances for the query.
+
+        {v 
+           query ::= (exists (bound-vars) query)
+                 |  literals 
+         v}
+
+    *)
+external datalog_query : context -> ast -> ast
+	= "camlidl_z3_Z3_datalog_query"
+
+(**
+       Summary: Configure the predicate representation.
+
+       It sets the predicate to use a set of domains given by the list of symbols.
+       The domains given by the list of symbols must belong to a set
+       of built-in domains.
+    *)
+external datalog_set_predicate_representation : context -> func_decl -> symbol array -> unit
+	= "camlidl_z3_Z3_datalog_set_predicate_representation"
+
+(**
+         Summary: Parse a file in Datalog format and process the queries in it.
+    *)
+external datalog_parse_file : context -> string -> unit
+	= "camlidl_z3_Z3_datalog_parse_file"
+
+(**
+         Summary: The following utilities allows adding user-defined domains.
+    *)
 
 
 (** {2 {L ML Extensions}} *)
@@ -4130,6 +4408,8 @@ type sort_refined =
   | Sort_bv of int
   | Sort_array of (sort * sort)
   | Sort_datatype of datatype_constructor_refined array
+  | Sort_relation
+  | Sort_finite_domain
   | Sort_unknown of symbol
 
 (**

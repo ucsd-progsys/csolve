@@ -35,6 +35,10 @@ Notes:
 #define __out
 #endif
 
+#ifndef __out_z
+#define __out_z
+#endif
+
 #ifndef __ecount
 #define __ecount(num_args)
 #endif 
