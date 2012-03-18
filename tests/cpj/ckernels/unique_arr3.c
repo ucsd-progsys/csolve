@@ -1,47 +1,26 @@
-//testing contextual types for object uniqueness
-
 #include <csolve.h>
 #include <stdlib.h>
 
-#define OBJLINK ((DEREF([V]) : int) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+#define NINTS 3
 
-typedef struct _obj {
-  int FINAL id;
-} obj;
+void test (int ** ARRAY arr) {
+  int *x = arr[1];
 
-void
-alloc_objs(obj *
-               * ARRAY VALIDPTR START SIZE(4*sz) arr,
-	   int  REF(V >= 0)                       sz)
-/* /\* CHECK_TYPE *\/ */
-{
-  int x = 0;
-  for(int i = 0; i < sz; i++)
-  {
-    if (arr[i] != NULL) {
-      csolve_assert(arr[i]->id >= 3);
-      /* csolve_assert(arr[i]->id == 4*i); */
-    }
+  if (x != NULL) {
+    csolve_assert (*x == 1);
   }
 }
 
-/* extern void do_thing(obj * START * ARRAY START VALIDPTR arr) OKEXTERN; */
-
-void main(int REF(V >= 0) sz)
-{
-  /* int sz = 5; */
-  obj **arr = malloc(sizeof(*arr)*sz);
-  
-  for (int i = 0; i < sz; i++) {
-    obj *x = malloc(sizeof(*x));
-    x->id = 3;
-    //    x->id = 4*i;
+void main () {
+  int **arr = malloc (NINTS * sizeof (*arr));
+  int *x    = NULL;
+ 
+  for (int i = 0; i < NINTS; i++) {
+    x      = malloc (sizeof (*x));
+    // Where the hell is the constraint for this write??
+    *x     = i;
     arr[i] = x;
   }
-  
-  
-  /* validptr(arr); */
-  /* do_thing(arr); */
-  
-   alloc_objs(arr, sz);
+
+  test (arr);
 }
