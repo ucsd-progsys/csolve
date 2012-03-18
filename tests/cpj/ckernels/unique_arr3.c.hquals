@@ -1,5 +1,2 @@
 qualif SZ(v: ptr) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 12
-qualif IDEREF(v:ptr) : (v != 0) => ((DEREF([v]) : int) = (DEREF([v]) : int))
-qualif OBJLINK2(v:ptr) : (v != 0) => (VVADDR - BLOCK_BEGIN([VVADDR]) >= 0)
-
-// qualif OBJLINK(v:ptr) : (v != 0) => (4 * ((DEREF([v]) : int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+qualif EQDEREF(v:ptr) : (v != 0) => ((4 * (DEREF([v]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
