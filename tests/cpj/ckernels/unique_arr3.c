@@ -1,7 +1,7 @@
 #include <csolve.h>
 #include <stdlib.h>
 
-#define NINTS 3
+#define NINTS 1
 
 int ** ARRAY create () {
   int **arr = malloc(NINTS * sizeof (int*));
