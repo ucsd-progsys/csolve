@@ -3,24 +3,23 @@
 
 #define NINTS 3
 
-void test (int ** ARRAY arr) {
+int ** ARRAY create () {
+  int **arr = malloc(NINTS * sizeof (int*));
+  int i     = nondetnn ();
+  CSOLVE_ASSUME (i < NINTS);
+  int *x    = malloc (sizeof (int));
+  *x        = i;
+  arr[i]    = x;
+
+  return arr;
+}
+
+void main () {
+  int **arr = create ();
+
   int *x = arr[1];
 
   if (x != NULL) {
     csolve_assert (*x == 1);
   }
-}
-
-void main () {
-  int **arr = malloc (NINTS * sizeof (*arr));
-  int *x    = NULL;
- 
-  for (int i = 0; i < NINTS; i++) {
-    x      = malloc (sizeof (*x));
-    // Where the hell is the constraint for this write??
-    *x     = i;
-    arr[i] = x;
-  }
-
-  test (arr);
 }
