@@ -184,10 +184,11 @@ let constrain_args et fs sub sto es =
       (et#ctype_of_exp e :: cts, sub, sto)
   end es ([], sub, sto)
 
-let unify_and_check_subtype sto sub ct1 ct2 =
+let unify_and_check_subtype sto sub e ct1 ct2 =
   let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
     if not (Index.is_subindex (Ct.refinement ct1) (Ct.refinement ct2)) then begin
-      C.error "Expression has type %a, expected a subtype of %a@!" Ct.d_ctype ct1 Ct.d_ctype ct2;
+      C.error "Expression %a has type %a, expected a subtype of %a@!"
+        C.d_exp e Ct.d_ctype ct1 Ct.d_ctype ct2;
       raise (UStore.UnifyFailure (sub, sto))
     end;
     (sto, sub)
@@ -203,15 +204,15 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
   let sto, sub      = Store.Data.fold_fields begin fun (sto, sub) s i fld ->
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
-  let sto, sub      = List.fold_left2 begin fun (sto, sub) cta (_, ctf) ->
-                        unify_and_check_subtype sto sub cta ctf
-                      end (sto, sub) cts cfi.args in
+  let sto, sub      = List.fold_left2 begin fun (sto, sub) (ea, cta) (_, ctf) ->
+                        unify_and_check_subtype sto sub ea cta ctf
+                      end (sto, sub) (List.combine args cts) cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval lv in
         let sub, sto = constrain_lval et sub sto lv in
-        let sto, sub = unify_and_check_subtype sto sub (Ct.subs isub cf.ret) ctlv in
+        let sto, sub = unify_and_check_subtype sto sub (C.Lval lv) (Ct.subs isub cf.ret) ctlv in
           (annot, sub, sto)
 
 let constrain_return et fs sub sto rtv = function
@@ -222,7 +223,7 @@ let constrain_return et fs sub sto rtv = function
         E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
       let sub, sto = constrain_exp et fs sub sto e in
-      let sto, sub = unify_and_check_subtype sto sub (et#ctype_of_exp e) rtv in
+      let sto, sub = unify_and_check_subtype sto sub e (et#ctype_of_exp e) rtv in
         ([], sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
