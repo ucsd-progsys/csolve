@@ -141,6 +141,7 @@ let setLogChannel lc =
   logFormatter := Format.formatter_of_out_channel lc
 
 let logPrintf a  = Format.fprintf !logFormatter a
+let blogPrintf b = if b then logPrintf else nprintf
 let cLogPrintf l = if ck_olev l then logPrintf else nprintf
 
 (*****************************************************************)
