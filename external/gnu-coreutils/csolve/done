@@ -1,7 +1,6 @@
 Globally, a lot of the examples compare argc and optind. How to
 incorporate this reasoning?
-
-Not clear that the spec for quote_n is correct.
+aot clear that the spec for quote_n is correct.
 
 * means shape only
 + means with serious work left to be done
@@ -63,3 +62,13 @@ readlink
 ? chroot [AB]
 echo [AB]
 ? env [MK]
+? chgrp [RJ]
+
+---- Inbox/TODO -------------------------------------
+
+chksum
+kill
+fold
+base64
+chown
+
