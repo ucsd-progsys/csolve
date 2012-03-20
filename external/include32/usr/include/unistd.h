@@ -355,7 +355,11 @@ extern int close (int __fd) OKEXTERN;
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern ssize_t read (int __fd, void *__buf, size_t __nbytes) __wur;
+extern ssize_t REF(V >= -1)
+  read (int __fd,
+        void * SIZE_GE(__nbytes) __buf,
+        size_t REF(V >= 0) __nbytes)
+  __wur OKEXTERN;
 
 /* Write N bytes of BUF to FD.  Return the number written, or -1.
 
