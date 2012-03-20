@@ -872,8 +872,9 @@ let with_out_file file f =
     close_out oc
 *)
 
-let with_out_file file f = file |> open_out >> f |> close_out
+let display_tick () = Printf.printf "."
 
+let with_out_file file f = file |> open_out >> f |> close_out
 
 let write_to_file f s =
   with_out_file f (fun oc -> output_string oc s)

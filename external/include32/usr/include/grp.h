@@ -66,7 +66,7 @@ extern void setgrent (void);
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern void endgrent (void);
+extern void endgrent (void) OKEXTERN;
 
 /* Read an entry from the group-file stream, opening it if necessary.
 

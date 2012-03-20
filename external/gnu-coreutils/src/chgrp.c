@@ -44,7 +44,7 @@
 
 /* The argument to the --reference option.  Use the group ID of this file.
    This file must exist.  */
-static char *reference_file;
+static char NULLTERMSTR * NNSTRINGPTR LOC(OPTARG_LOC) reference_file;
 
 /* For long options that have no equivalent short option, use a
    non-character as a pseudo short option, starting with CHAR_MAX + 1.  */
@@ -76,7 +76,7 @@ static struct option const long_options[] =
 /* Return the group ID of NAME, or -1 if no name was specified.  */
 
 static gid_t
-parse_group (const char *name)
+parse_group (const char * STRINGPTR name)
 {
   gid_t gid = -1;
 
@@ -164,7 +164,11 @@ Examples:\n\
 }
 
 int
-main (int argc, char **argv)
+//main (int argc, char **argv)
+main (int REF(V > 0) argc, 
+      char NULLTERMSTR * STRINGPTR SIZE_GE(1) LOC(PROGRAM_NAME_LOC)
+                       * START NONNULL ARRAY SIZE(argc * 4) argv)
+  CHECK_TYPE GLOBAL(PROGRAM_NAME_LOC)
 {
   bool preserve_root = false;
   gid_t gid;
@@ -181,6 +185,7 @@ main (int argc, char **argv)
   int optc;
 
   initialize_main (&argc, &argv);
+  /* If nonzero, force silence (no error messages). */
   set_program_name (argv[0]);
   setlocale (LC_ALL, "");
   bindtextdomain (PACKAGE, LOCALEDIR);
@@ -288,7 +293,7 @@ main (int argc, char **argv)
     }
   else
     {
-      char *group_name = argv[optind++];
+      char * group_name = argv[optind++];
       chopt.group_name = (*group_name ? group_name : NULL);
       gid = parse_group (group_name);
     }

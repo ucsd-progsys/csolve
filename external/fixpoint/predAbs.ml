@@ -50,7 +50,7 @@ module Misc = FixMisc
 module IM  = Misc.IntMap
 open Misc.Ops
 
-let mydebug = true 
+let mydebug = false 
 
 module Q2S = Misc.ESet (struct
   type t = Sy.t * Sy.t
@@ -592,6 +592,7 @@ let inst_vars env =
       |> List.map fst 
 
 let inst_ext qs wf = 
+  let _    = Misc.display_tick () in
   let r    = C.reft_of_wf wf in 
   let ks   = C.kvars_of_reft r |> List.map snd in
   let env  = C.env_of_wf wf in
@@ -610,7 +611,8 @@ let inst_ext qs wf =
     Misc.trace msg (inst_ext qs) wf 
   else inst_ext qs wf
 
-let inst ws qs = 
+let inst ws qs =
+  let _ = Printf.printf "BEGIN: qual instantiation" in
   Misc.flap (inst_ext qs) ws 
   >> (fun _ -> Co.blogPrintf mydebug "\n\nvarmatch_ctr = %d \n\n" !varmatch_ctr)
   |> Misc.kgroupby fst 

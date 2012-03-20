@@ -59,28 +59,28 @@ struct Chown_option
   bool force_silent;
 
   /* The name of the user to which ownership of the files is being given. */
-  char *user_name;
+  char * STRINGPTR LOC(L) user_name;
 
   /* The name of the group to which ownership of the files is being given. */
-  char *group_name;
+  char * STRINGPTR LOC(L) group_name;
 };
 
 void
-chopt_init (struct Chown_option *);
+chopt_init (struct Chown_option *) OKEXTERN;
 
 void
-chopt_free (struct Chown_option *);
+chopt_free (struct Chown_option *) OKEXTERN;
 
-char *
-gid_to_name (gid_t);
+char * STRINGPTR 
+gid_to_name (gid_t) OKEXTERN;
 
 char *
 uid_to_name (uid_t);
 
 bool
-chown_files (char **files, int bit_flags,
+chown_files (char * STRINGPTR LOC(K) * ARRAY files, int bit_flags,
              uid_t uid, gid_t gid,
              uid_t required_uid, gid_t required_gid,
-             struct Chown_option const *chopt);
+             struct Chown_option const INST(L,K) *chopt) OKEXTERN;
 
 #endif /* CHOWN_CORE_H */

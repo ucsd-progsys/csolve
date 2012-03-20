@@ -483,3 +483,80 @@ struct node <A0, C0> {
   struct node * <A0> right;
 }
 
+
+
+
+
+CoreUtils Notes
+---------------
+
+Tedious Error Messages.
+
+chgrp.c:166: Error: Global locations A9[] and A16[] get unified in function body
+    
+    > Name at least one "owning reference" for each A9, A16
+
+chgrp.c:311: Error: Call unifies non-final locations which are distinct in callee ([A63 -> A14, A59 -> A14]):
+    
+    > big dump at physical-type level, we want C type level.
+
+
+
+chown_files ::
+  arg       (files : ref(A58, {0 + 4*} , {VV | [true]}),
+             bit_flags : int(4, {true} , {VV | [true]}),
+             uid : int(4, {true} , {VV | [true]}),
+             gid : int(4, {true} , {VV | [true]}),
+             required_uid : int(4, {true} , {VV | [true]}),
+             required_gid : int(4, {true} , {VV | [true]}),
+             chopt : ref(A60, {0} , {VV | [&& [ ((VV != 0) => ((BLOCK_END([VV]) - VV) >= 24))
+                                              ; (VV > 0)
+                                              ; (VV = BLOCK_BEGIN([VV]))]]}))
+  ret       int(1, {true} , {VV | [true]})
+  global    []
+  store_in  [A58 |-> {0 + 4*}: ref(A59, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                             ; (BLOCK_BEGIN([VV]) <= VV)
+                                                             ; (VV > 0)]]});
+             A59 |-> {0 + 1*}: int(1, {true} , {VV | [true]});
+             A60 |-> {0}: int(4, {true} , {VV | [true]}),
+                     {4}: int(1, {true} , {VV | [true]}),
+                     {8}: ref(A61, {0} , {VV | [&& [ ((VV != 0) => ((BLOCK_END([VV]) - VV) >= 12))
+                                                   ; (VV > 0)
+                                                   ; (VV = BLOCK_BEGIN([VV]))]]}),
+                     {12}: int(1, {true} , {VV | [true]}),
+                     {13}: int(1, {true} , {VV | [true]}),
+                     {16}: ref(A62, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                         ; (BLOCK_BEGIN([VV]) <= VV)
+                                                         ; (VV > 0)]]}),
+                     {20}: ref(A63, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                         ; (BLOCK_BEGIN([VV]) <= VV)
+                                                         ; (VV > 0)]]});
+             A61 |-> {0}: int(4, {true} , {VV | [true]}),
+                     {4}: int(8, {true} , {VV | [true]});
+             A62 |-> {0 + 1*}: int(1, {true} , {VV | [true]});
+             A63 |-> {0 + 1*}: int(1, {true} , {VV | [true]})]
+  store_out [A58 |-> {0 + 4*}: ref(A59, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                             ; (BLOCK_BEGIN([VV]) <= VV)
+                                                             ; (VV > 0)]]});
+             A59 |-> {0 + 1*}: int(1, {true} , {VV | [true]});
+             A60 |-> {0}: int(4, {true} , {VV | [true]}),
+                     {4}: int(1, {true} , {VV | [true]}),
+                     {8}: ref(A61, {0} , {VV | [&& [ ((VV != 0) => ((BLOCK_END([VV]) - VV) >= 12))
+                                                   ; (VV > 0)
+                                                   ; (VV = BLOCK_BEGIN([VV]))]]}),
+                     {12}: int(1, {true} , {VV | [true]}),
+                     {13}: int(1, {true} , {VV | [true]}),
+                     {16}: ref(A62, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                         ; (BLOCK_BEGIN([VV]) <= VV)
+                                                         ; (VV > 0)]]}),
+                     {20}: ref(A63, {0 + 1*} , {VV | [&& [ (VV < BLOCK_END([VV]))
+                                                         ; (BLOCK_BEGIN([VV]) <= VV)
+                                                         ; (VV > 0)]]});
+             A61 |-> {0}: int(4, {true} , {VV | [true]}),
+                     {4}: int(8, {true} , {VV | [true]});
+             A62 |-> {0 + 1*}: int(1, {true} , {VV | [true]});
+             A63 |-> {0 + 1*}: int(1, {true} , {VV | [true]})]
+
+
+// last field of chopt
+// some cell of files

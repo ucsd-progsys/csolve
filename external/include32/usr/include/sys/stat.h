@@ -208,8 +208,8 @@ __BEGIN_DECLS
 
 #ifndef __USE_FILE_OFFSET64
 /* Get file attributes for FILE and put them in BUF.  */
-extern int stat (__const char *__restrict __file,
-		 struct stat *__restrict __buf) __THROW __nonnull ((1, 2));
+extern int stat (__const char *__restrict NONNULL STRINGPTR __file,
+		 struct stat *__restrict NONNULL __buf) __THROW __nonnull ((1, 2)) OKEXTERN;
 
 /* Get file attributes for the file, device, pipe, or socket
    that file descriptor FD is open on and put them in BUF.  */

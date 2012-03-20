@@ -417,9 +417,9 @@ class annotations = object (self)
     asgnm <- VM.adds x [(l, z)] asgnm
   
   method add_var x ct =
-    E.log "Annots.add_var(a) %a \n" FA.d_name x;
+    (if mydebug then E.log "Annots.add_var(a) %a \n" FA.d_name x); 
     Misc.maybe_iter begin fun v ->
-      E.log "Annots.add_var(b) %s \n" v.Cil.vname;
+      (if mydebug then E.log "Annots.add_var(b) %s \n" v.Cil.vname); 
       H.replace vart x (ct, v.Cil.vtype);
     end (FA.varinfo_of_name x)
 

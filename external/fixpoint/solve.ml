@@ -137,6 +137,7 @@ let refine_constraint s c =
 
 let rec acsolve me w s =
   let _ = log_iter_stats me s in
+  let _ = Misc.display_tick () in
   match Ci.wpop me.sri w with 
   | (None,_) -> 
       let _ = Timer.log_event me.tt (Some "Finished") in 

@@ -375,7 +375,7 @@ let get_c2html      = fun () -> Filename.concat !lib_path "../demo/jquery/c2html
 
 (* TODO: FIX SHADY HACK *)
 let set_csolve_file_prefix fn =
-  let fn' = (Filename.chop_extension fn)^".c"    in
+  let fn' = try (Filename.chop_extension fn)^".c" with _ -> fn   in
   if Filename.check_suffix fn ".o" && Sys.file_exists fn' then 
     csolve_file_prefix := fn'
   else 

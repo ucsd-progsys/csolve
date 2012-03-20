@@ -265,7 +265,7 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
 let constrain_instr env et annots i =
   try
     constrain_instr_aux env et annots i
-  with ex -> E.s <| C.error "(%s) Failed constraining instruction:@!%a@!@!"
+  with ex -> E.s <| C.error "Exception (%s) \nFailed constraining instruction:@!%a@!@!"
                (Printexc.to_string ex) C.d_instr i
 
 let constrain_instrs env et is sub sto =

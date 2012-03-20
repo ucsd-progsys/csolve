@@ -455,7 +455,7 @@ function are safe.  This is accomplished using the OKEXTERN attribute.
 
 Thus, a proper declaration for the divide function would be
 
-  extern int divide (int x, int REF(V != 0) y);
+  extern int divide (int x, int REF(V != 0) y) OKEXTERN;
 
 The above discussion applies equally to extern variable declarations.
 

@@ -214,14 +214,27 @@ let loc_of_tag tgr =
 
 let loc_of_cstr tgr = FixConstraint.tag_of_t <+> loc_of_tag tgr
 
-let print_unsat_locs tgr res =
+let print_result_short tgr res oc = match res.FI.unsats with 
+  | [] -> fprintf oc "*************************** SAFE *************************************"
+  | cs -> fprintf oc "*************************** ERRORS %a ********************************"
+            (d_list ", " Cil.d_loc) (List.map (loc_of_cstr tgr) cs)
+ 
+let print_result_long tgr res oc =
   res.FI.unsats 
-    |> Misc.fsort (loc_of_cstr tgr)
-    |> List.iter begin fun c -> 
-         printf "\n%a:\n\n%a\n" Cil.d_loc (loc_of_cstr tgr c) 
-         (fun () -> FixConstraint.print_t (Some res.FI.soln) |> CilMisc.doc_of_formatter) c
-         |> ignore
-       end
+  |> Misc.fsort (loc_of_cstr tgr)
+  |> List.iter begin fun c -> 
+       fprintf oc "\n%a:\n\n%a\n" Cil.d_loc (loc_of_cstr tgr c) 
+       (fun () -> FixConstraint.print_t (Some res.FI.soln) |> CilMisc.doc_of_formatter) c
+       |> ignore
+     end
+
+let print_result tgr res oc = 
+  print_result_long tgr res oc;
+  print_result_short tgr res oc
+
+let print_unsat_locs tgr res =
+  print_result tgr res stdout;
+  Misc.with_out_file (!Co.csolve_file_prefix ^ ".out") (print_result tgr res)
 
 let cil_of_file file =
   file |> Simplemem.simplemem 
