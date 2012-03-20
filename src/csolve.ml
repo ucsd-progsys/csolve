@@ -243,13 +243,8 @@ let dump_annots qs tgr res =
   let binds = Annots.dump_bindings ()                               in
   (* 1. Dump Text Annots *)
   Annots.dump_annots (Some s);
-  (* 2. Dump JSON Annots *)
-  AnnotsJson.dump_annots qs tgr s cs cones binds;
-  (* 3. Render HTML *)
-  Printf.sprintf "%s %s" (Co.get_c2html ()) !Co.csolve_file_prefix
-  |> Sys.command
-  |> (function 0   -> E.log "DONE: Generated Annotated HTML" 
-             | err -> E.warn "Failed To Generate Annotated Html %d" err)
+  (* 2. Dump HTML Annots *)
+  AnnotsJson.dump_html qs tgr s cs cones binds
 
 let liquidate file =
   let log       = open_out "csolve.log" in
@@ -342,7 +337,7 @@ let theMain () =
           "--mergedout", Arg.String (openFile "merged output"
                                        (fun oc -> mergedChannel := Some oc)),
               " specify the name of the merged file";
-          "--csolveprefix", Arg.Set_string Co.csolve_file_prefix,
+          "--csolveprefix", Arg.String Co.set_csolve_file_prefix,
               " specify prefix to use for spec, hquals, ssa, annot files"
         ] @ blankLine :: List.map (Misc.app_fst3 (fun s -> "-" ^ s)) Constants.arg_spec in
   begin

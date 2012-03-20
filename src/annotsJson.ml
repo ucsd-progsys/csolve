@@ -398,9 +398,18 @@ let bindsToJson qs tgr s cs cones binds =
 (************* API *************************************************)
 (*******************************************************************)
 
-(* API *)
 let dump_annots qs tgr s' cs' cones binds : unit =
   let f = !Co.csolve_file_prefix^".json" in
   let d = d_json () <| bindsToJson qs tgr s' cs' cones binds in
   Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
+
+(* API *)
+let dump_html qs tgr s' cs' cones binds : unit =
+  (* 1. Dump JSON Annots *)
+  dump_annots qs tgr s' cs' cones binds;
+  (* 2. Render HTML *)
+  Sys.command (Printf.sprintf "%s %s" (Co.get_c2html ()) (!Co.csolve_file_prefix))
+  |> (function 0 -> Errormsg.log  "DONE: Generated Annotated HTML" 
+             | e -> Errormsg.warn "WARNING: Failed To Generate Annotated Html %d" e)
+
 

@@ -366,10 +366,17 @@ let is_prefix p s =
 (*************** Paths for builtin specs, quals etc ***************)
 (******************************************************************)
 
-let get_lib_squals = fun () -> Filename.concat !lib_path "lib.squals"
-let get_lib_hquals = fun () -> Filename.concat !lib_path "lib.hquals"
-let get_lib_spec   = fun () -> Filename.concat !lib_path "lib.spec"
-let get_lib_h      = fun () -> Filename.concat !lib_path "lib.h"
-let get_csolve_h   = fun () -> Filename.concat !lib_path "../lib/csolve.h"
-let get_c2html     = fun () -> Filename.concat !lib_path "../demo/jquery/c2html.py"
+let get_lib_squals  = fun () -> Filename.concat !lib_path "lib.squals"
+let get_lib_hquals  = fun () -> Filename.concat !lib_path "lib.hquals"
+let get_lib_spec    = fun () -> Filename.concat !lib_path "lib.spec"
+let get_lib_h       = fun () -> Filename.concat !lib_path "lib.h"
+let get_csolve_h    = fun () -> Filename.concat !lib_path "../lib/csolve.h"
+let get_c2html      = fun () -> Filename.concat !lib_path "../demo/jquery/c2html.py"
 
+(* TODO: FIX SHADY HACK *)
+let set_csolve_file_prefix fn =
+  let fn' = (Filename.chop_extension fn)^".c"    in
+  if Filename.check_suffix fn ".o" && Sys.file_exists fn' then 
+    csolve_file_prefix := fn'
+  else 
+    csolve_file_prefix := fn

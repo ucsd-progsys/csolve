@@ -22,6 +22,7 @@
 
 (* This file is part of the CSolve Project.*)
 
+(*
 val dump_annots :  Qualifier.t list 
                 -> CilTag.o 
                 -> FixConstraint.soln
@@ -29,3 +30,13 @@ val dump_annots :  Qualifier.t list
                 -> (Cil.location Ast.Cone.t) list
                 -> Annots.binding list 
                 -> unit
+*)
+
+val dump_html   :  Qualifier.t list 
+                -> CilTag.o 
+                -> FixConstraint.soln
+                -> FixConstraint.t list
+                -> (Cil.location Ast.Cone.t) list
+                -> Annots.binding list 
+                -> unit
+

@@ -1,20 +1,11 @@
 PENDING
 =======
 
+* HEREHEREHERE get coreutils working with cex/infertypes
+    > do benchmarks on coreutils
+
 * Counterexamples 
     > status: need interactive GUI
-
-* Prettify
-    > status: cleanup how variables are rendered
-
-CURRENT: SMTLIB format
-======================
-
-
-
-PENDING
-=======
-
 
 0. Counterexamples (to be continued) 
 ------------------------------------
@@ -29,26 +20,6 @@ STATUS: alas, for c you get crap like this:
    ** could try cubes of size 2, 3, 4 but thats getting expensive
    ** probably want some interactive thing which lets you generate
       counterexamples for specific facts, which are navigated to ... sigh.
-
-GUI
----
-render.py (or whatever)
-
-cex   = { code   : string
-        ; traces : [trace]
-        ; quals  : [{name: string; pred: string}]
-        }
-
-trace = { steps   : [step]
-        ; errline : int 
-        }
-
-step  = { var  : string
-        ; kvar : string
-        ; qual : string
-        ; line : int 
-        }
-
 
 1. PRETTIFY (to be continued)
 
