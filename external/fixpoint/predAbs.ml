@@ -699,9 +699,9 @@ let binds_of_quals ws qs =
   qs
   (* |> Q.normalize *)
   >> (fun qs -> Co.logPrintf "Using Quals: \n%a" (Misc.pprint_many true "\n" Q.print) qs; flush !Co.logChannel)
-  >> (fun _ -> Printf.printf "BEGIN: Qualifier Instantiation \n")
+  >> (fun _ -> print_now "\nBEGIN: Qualifier Instantiation\n")
   |> BS.time "Qual Inst" (inst ws) 
-  >> (fun _ -> Printf.printf "DONE: Qualifier Instantiation \n")
+  >> (fun _ -> print_now "\nDONE: Qualifier Instantiation\n")
   (* >> List.iter ppBinding *)
   |> SM.of_list 
 
