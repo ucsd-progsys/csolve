@@ -612,7 +612,7 @@ let inst_ext qs wf =
 
 let inst ws qs = 
   Misc.flap (inst_ext qs) ws 
-  >> (fun _ -> Co.bprintf mydebug "\n\nvarmatch_ctr = %d \n\n" !varmatch_ctr)
+  >> (fun _ -> Co.blogPrintf mydebug "\n\nvarmatch_ctr = %d \n\n" !varmatch_ctr)
   |> Misc.kgroupby fst 
   |> Misc.map (Misc.app_snd (List.map snd)) 
 
@@ -695,10 +695,10 @@ let apply_facts cs kf me =
 let binds_of_quals ws qs =
   qs
   (* |> Q.normalize *)
-  >> (fun qs -> Co.logPrintf "Using Quals: \n%a" (Misc.pprint_many true "\n" Q.print) qs; flush stdout)
-  >> (fun _ -> Co.bprintflush mydebug "BEGIN: Qualifier Instantiation \n")
+  >> (fun qs -> Co.logPrintf "Using Quals: \n%a" (Misc.pprint_many true "\n" Q.print) qs; flush !Co.logChannel)
+  >> (fun _ -> Co.blogPrintf mydebug "BEGIN: Qualifier Instantiation \n")
   |> BS.time "Qual Inst" (inst ws) 
-  >> (fun _ -> Co.bprintflush mydebug "DONE: Qualifier Instantiation \n")
+  >> (fun _ -> Co.blogPrintf mydebug "DONE: Qualifier Instantiation \n")
   (* >> List.iter ppBinding *)
   |> SM.of_list 
 

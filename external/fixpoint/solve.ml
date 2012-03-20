@@ -218,10 +218,10 @@ let create cfg kf =
             |> BS.time  "Constant EnvWF" (List.map (C.add_consts_wf gts))
             |> PP.validate_wfs in
   let s   = if !Constants.dump_simp <> "" then Dom.empty else Dom.create cfg kf in
-  let _   = print_now "DONE: Dom.create\n" in
+  let _   = Co.logPrintf "DONE: Dom.create\n" in
   let _   = Ci.to_list sri
             |> BS.time "Validate" (PP.validate cfg.Cg.a (Dom.read s)) in
-  let _   = print_now "DONE: PP.validate \n" in
+  let _   = Co.logPrintf "DONE: PP.validate \n" in
   ({ sri          = sri
    ; ws           = ws
    (* stat *)
@@ -229,7 +229,7 @@ let create cfg kf =
    ; stat_refines = ref 0
    ; stat_cfreqt  = Hashtbl.create 37
    }, s)
-   >> (fun _ -> print_now "DONE: Solve.create\n")
+   >> (fun _ -> Co.logPrintf "DONE: Solve.create\n")
 
 (* API *)
 let save fname me s =

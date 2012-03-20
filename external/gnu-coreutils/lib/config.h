@@ -35,16 +35,16 @@
 
 /* Define to 1 if chown fails to change ctime when at least one argument was
    not -1. */
-#define CHOWN_CHANGE_TIME_BUG 1
+/* #undef CHOWN_CHANGE_TIME_BUG */
 
 /* Define if chown is not POSIX compliant regarding IDs of -1. */
 /* #undef CHOWN_FAILS_TO_HONOR_ID_OF_NEGATIVE_ONE */
 
 /* Define if chown modifies symlinks. */
-#define CHOWN_MODIFIES_SYMLINK 1
+/* #undef CHOWN_MODIFIES_SYMLINK */
 
 /* Define to 1 if chown mishandles trailing slash. */
-#define CHOWN_TRAILING_SLASH_BUG 1
+/* #undef CHOWN_TRAILING_SLASH_BUG */
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -99,7 +99,7 @@
 /* #undef DOUBLE_SLASH_IS_DISTINCT_ROOT */
 
 /* Define if struct dirent has a member d_ino that actually works. */
-/* #undef D_INO_IN_DIRENT */
+#define D_INO_IN_DIRENT 1
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
@@ -111,7 +111,7 @@
 
 /* Define to 1 if your platform has fchownat, but it cannot perform lchown
    tasks. */
-#define FCHOWNAT_NOFOLLOW_BUG 1
+/* #undef FCHOWNAT_NOFOLLOW_BUG */
 
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
 /* #undef FCNTL_DUPFD_BUGGY */
@@ -714,7 +714,7 @@
 #define HAVE_BTOWC 1
 
 /* Define to 1 if nanosleep mishandles large arguments. */
-/* #undef HAVE_BUG_BIG_NANOSLEEP */
+#define HAVE_BUG_BIG_NANOSLEEP 1
 
 /* Define to 1 if strtold conforms to C99. */
 #define HAVE_C99_STRTOLD 1
@@ -1574,7 +1574,7 @@
 
 /* Define to 1 if getcwd works, except it sometimes fails when it shouldn't,
    setting errno to ERANGE, ENAMETOOLONG, or ENOENT. */
-/* #undef HAVE_PARTLY_WORKING_GETCWD */
+#define HAVE_PARTLY_WORKING_GETCWD 1
 
 /* Define to 1 if you have the `pathconf' function. */
 #define HAVE_PATHCONF 1
@@ -2784,10 +2784,10 @@
 #define HAVE_WORKING_FORK 1
 
 /* Define to 1 if O_NOATIME works. */
-#define HAVE_WORKING_O_NOATIME 0
+#define HAVE_WORKING_O_NOATIME 1
 
 /* Define to 1 if O_NOFOLLOW works. */
-#define HAVE_WORKING_O_NOFOLLOW 0
+#define HAVE_WORKING_O_NOFOLLOW 1
 
 /* Define if utimes works properly. */
 #define HAVE_WORKING_UTIMES 1
@@ -2862,7 +2862,7 @@
 /* Define to 1 if `link(2)' dereferences symbolic links, 0 if it creates hard
    links to symlinks, -1 if it depends on the variable __xpg4, and -2 if
    unknown. */
-#define LINK_FOLLOWS_SYMLINKS 1
+#define LINK_FOLLOWS_SYMLINKS 0
 
 /* FIXME */
 /* #undef LOCALTIME_CACHE */
@@ -2872,7 +2872,7 @@
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
-/* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
+#define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
 
 /* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
    */
@@ -3078,11 +3078,11 @@
 
 /* Define if rename does not work when the destination file exists, as on
    Cygwin 1.5 or Windows. */
-#define RENAME_DEST_EXISTS_BUG 1
+/* #undef RENAME_DEST_EXISTS_BUG */
 
 /* Define if rename fails to leave hard links alone, as on NetBSD 1.6 or
    Cygwin 1.5. */
-#define RENAME_HARD_LINK_BUG 1
+/* #undef RENAME_HARD_LINK_BUG */
 
 /* Define if rename does not correctly handle slashes on the destination
    argument, such as on Solaris 10 or NetBSD 1.6. */
@@ -3302,7 +3302,7 @@
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
-#define _FILE_OFFSET_BITS 64
+/* #undef _FILE_OFFSET_BITS */
 
 /* enable compile-time and run-time bounds-checking, and some warnings */
 /* #undef _FORTIFY_SOURCE */
@@ -3357,7 +3357,7 @@
 
 /* Define to rpl_ if the getopt replacement functions and variables should be
    used. */
-/* #undef __GETOPT_PREFIX */
+#define __GETOPT_PREFIX rpl_
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #define __PROTOTYPES 1

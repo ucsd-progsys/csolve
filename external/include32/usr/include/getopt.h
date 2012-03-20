@@ -151,8 +151,10 @@ struct option
 /* Many other libraries have conflicting prototypes for getopt, with
    differences in the consts, in stdlib.h.  To avoid compilation
    errors, only prototype getopt for the GNU C library.  */
-extern int getopt (int ___argc, char *const *___argv, const char *__shortopts)
-       __THROW;
+extern int getopt (int REF(V > 0) ___argc,
+                   char NULLTERMSTR FINAL * ARRAY VALIDPTR const * ARRAY VALIDPTR SIZE_GE(4 * ___argc) ___argv,
+                   const char NULLTERMSTR FINAL * ARRAY VALIDPTR __shortopts)
+       __THROW OKEXTERN;
 
 # if defined __need_getopt && defined __USE_POSIX2 \
   && !defined __USE_POSIX_IMPLICITLY && !defined __USE_GNU

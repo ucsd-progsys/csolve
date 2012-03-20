@@ -143,8 +143,8 @@ extern size_t __ctype_get_mb_cur_max (void) __THROW __wur;
 
 __BEGIN_NAMESPACE_STD
 /* Convert a string to a floating-point number.  */
-extern double atof (__const char *__nptr)
-     __THROW __attribute_pure__ __nonnull ((1)) __wur;
+extern double atof (__const char NULLTERMSTR * ARRAY VALIDPTR __nptr)
+     __THROW __attribute_pure__ __nonnull ((1)) __wur OKEXTERN;
 /* Convert a string to an integer.  */
 
 // Original

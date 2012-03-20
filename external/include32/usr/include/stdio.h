@@ -746,7 +746,7 @@ extern long int ftell (FILE *__stream) __wur;
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern void rewind (FILE *__stream);
+extern void rewind (CSOLVE_IO_FILE_PTR __stream) OKEXTERN;
 __END_NAMESPACE_STD
 
 /* The Single Unix Specification, Version 2, specifies an alternative,

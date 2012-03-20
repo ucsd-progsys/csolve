@@ -43,7 +43,9 @@ module Misc = FixMisc open Misc.Ops
 (*************************************************************************)
 (************* Datatypes for SMTLIB Representation ***********************)
 (*************************************************************************)
-
+(*
+type sort = Int | Bool | Func of (sort list * sort)
+*)
 type rpred  
   = A.pred                      (* Bexp (App (k, es)) *) 
 
@@ -86,7 +88,8 @@ let print_bop ppf = function
   | A.Plus  -> F.fprintf ppf "+"
   | A.Minus -> F.fprintf ppf "-"
   | A.Times -> F.fprintf ppf "*"
-  | A.Div   ->  F.fprintf ppf "/"
+  | A.Div   -> F.fprintf ppf "/"
+  | A.Mod   -> F.fprintf ppf "mod"
 
 let rec print_pred ppf pred =
   match P.unwrap pred with
