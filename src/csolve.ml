@@ -215,9 +215,14 @@ let loc_of_tag tgr =
 let loc_of_cstr tgr = FixConstraint.tag_of_t <+> loc_of_tag tgr
 
 let print_result_short tgr res oc = match res.FI.unsats with 
-  | [] -> fprintf oc "*************************** SAFE *************************************"
-  | cs -> fprintf oc "*************************** ERRORS %a ********************************"
-            (d_list ", " Cil.d_loc) (List.map (loc_of_cstr tgr) cs)
+  | [] -> 
+        fprintf oc "*************************************************************"
+      ; fprintf oc "********************** SAFE *********************************"
+      ; fprintf oc "*************************************************************"
+  | cs -> 
+        fprintf oc "*************************************************************"
+      ; fprintf oc "** ERRORS %a ********************************" (d_list ", " Cil.d_loc) (List.map (loc_of_cstr tgr) cs)
+      ; fprintf oc "*************************************************************"
  
 let print_result_long tgr res oc =
   res.FI.unsats 

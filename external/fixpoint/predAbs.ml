@@ -612,11 +612,12 @@ let inst_ext qs wf =
   else inst_ext qs wf
 
 let inst ws qs =
-  let _ = Printf.printf "BEGIN: qual instantiation" in
   Misc.flap (inst_ext qs) ws 
   >> (fun _ -> Co.blogPrintf mydebug "\n\nvarmatch_ctr = %d \n\n" !varmatch_ctr)
   |> Misc.kgroupby fst 
   |> Misc.map (Misc.app_snd (List.map snd)) 
+
+
 
 (*************************************************************************)
 (*************************** Creation ************************************)
@@ -698,9 +699,9 @@ let binds_of_quals ws qs =
   qs
   (* |> Q.normalize *)
   >> (fun qs -> Co.logPrintf "Using Quals: \n%a" (Misc.pprint_many true "\n" Q.print) qs; flush !Co.logChannel)
-  >> (fun _ -> Co.blogPrintf mydebug "BEGIN: Qualifier Instantiation \n")
+  >> (fun _ -> Printf.printf "BEGIN: Qualifier Instantiation \n")
   |> BS.time "Qual Inst" (inst ws) 
-  >> (fun _ -> Co.blogPrintf mydebug "DONE: Qualifier Instantiation \n")
+  >> (fun _ -> Printf.printf "DONE: Qualifier Instantiation \n")
   (* >> List.iter ppBinding *)
   |> SM.of_list 
 

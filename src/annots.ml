@@ -425,7 +425,7 @@ class annotations = object (self)
 
   method private add_fun f cf = 
     Misc.maybe_iter begin fun locm ->
-      let _   = print_now ("ADD FUN " ^ f ^ "\n") in
+      let _   = if mydebug then E.log "ADD FUN %s \n" f  in
       let fd  = self#get_fun_dec f                in
       let cf  = decorate_refcfun locm f cf        in
       let _   = deconstruct_fun (f, cf, fd)       
