@@ -326,6 +326,9 @@ let ignoreBoundAttribute    = "csolve_ignore_bound"
 let effectAttribute         = "csolve_effect"
 let anyRefAttribute         = "csolve_any_ref"
 let anyTypeAttribute        = "csolve_any_type"
+let hasRoomAttribute        = "csolve_has_room"         (* TODO: subsume roomForAttribute *)
+let nonnullHasRoomAttribute = "csolve_nonnull_has_room" (* TODO: subsume nonnullRoomForAttribute *)
+
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"

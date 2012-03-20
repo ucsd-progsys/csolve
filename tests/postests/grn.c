@@ -1,6 +1,9 @@
 #include <stdlib.h>
 
-extern struct group * NNVALIDPTR NNSTART getgrnam (char * STRINGPTR __name) OKEXTERN;
+extern struct group * NNOK getgrnam (char * STRINGPTR __name) OKEXTERN;
+
+
+//extern struct group * NNSTART NNVALIDPTR NNROOM_FOR(struct group) getgrnam (char * STRINGPTR __name) OKEXTERN;
 
 struct group
   {
