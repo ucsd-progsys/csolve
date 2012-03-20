@@ -226,12 +226,13 @@ let constrain_return et fs sub sto rtv = function
       let sto, sub = unify_and_check_subtype sto sub e (et#ctype_of_exp e) rtv in
         ([], sub, sto)
 
-let assert_type_is_heap_storable heap_ct ct =
-  assert (Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct))
-
-let assert_store_type_correct lv ct = match lv with
-  | (C.Mem _, _) -> assert_type_is_heap_storable (lv |> C.typeOfLval |> fresh_heaptype) ct
-  | _            -> ()
+let assert_store_type_correct lv e ct = match lv with
+  | (C.Mem _, _) ->
+    let heap_ct = lv |> C.typeOfLval |> fresh_heaptype in
+      if not <| Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct) then
+        E.s <| C.error "Expression %a has type %a, expected type %a\n\n"
+          C.d_exp e d_ctype ct d_ctype heap_ct
+  | _ -> ()
 
 let find_function et fs sub sto = function
   | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
@@ -248,7 +249,7 @@ let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
       let sub, sto = constrain_exp et fs sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
-      let _        = assert_store_type_correct lv ct2 in
+      let _        = assert_store_type_correct lv e ct2 in
       let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
