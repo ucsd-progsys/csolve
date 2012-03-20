@@ -43,6 +43,7 @@ module SPA = Solve.Make (PA)
 module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 module Cx = Counterexample
+module Co = Constants
 
 open Misc.Ops
 open Cil
@@ -72,10 +73,10 @@ type bind = PA.bind
 (* API *)
 let create (ws, cs, des, ds) = 
   { scim  = SM.empty
-  ; wfm   = SM.empty |> SM.add Constants.global_name ws
-  ; cm    = SM.empty |> SM.add Constants.global_name cs
-  ; defm  = SM.empty |> SM.add Constants.global_name des
-  ; depm  = SM.empty |> SM.add Constants.global_name ds }
+  ; wfm   = SM.empty |> SM.add Co.global_name ws
+  ; cm    = SM.empty |> SM.add Co.global_name cs
+  ; defm  = SM.empty |> SM.add Co.global_name des
+  ; depm  = SM.empty |> SM.add Co.global_name ds }
 
 (* API *)
 let add me fn sci (ws, cs, des, ds) =
@@ -156,6 +157,10 @@ let dump_counterexamples = function
   | []  -> ()
   | cxs -> Format.printf "Counterexamples:\n%a" (Misc.pprint_many true "\n" Cx.print_cex) cxs 
 
+let cones dd ctx cs' = match !Co.cex with
+  | false -> []
+  | true  -> List.map (C.id_of_t <+> dd.cone ctx) cs' 
+
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
   let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in
@@ -170,13 +175,8 @@ let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let _         = BS.time "save out" (dd.save (fn^".out.fq") ctx) s' in
   let _         = Errormsg.log "DONE: saving output constraints \n" in
   let _         = dump_counterexamples cx                           in
-  if !Constants.check_is
-  then match cs' with
-       | [] -> (s', cs', [])
-       | _  -> failwith ("ac_solve: "^fn)
-  else s', cs', (if !Constants.cex
-                 then List.map (C.id_of_t <+> dd.cone ctx) cs' 
-                 else [])
+  let _         = asserts ((not !Co.check_is) || cs' = []) "ERROR: failed index constraint %s" fn in 
+  s', cs', cones dd ctx cs' 
 
 let filter_cstrs dd s fp (ws, cs) = 
   let sol = dd.read s in
@@ -184,7 +184,7 @@ let filter_cstrs dd s fp (ws, cs) =
   (Misc.filter (fr <.> C.reft_of_wf) ws, Misc.filter (fr <.> C.rhs_of_t) cs)
 
 let ac_scalar_solve dd me fn fp (ws, cs, ds) = (*  (eqs, _, _) = *)
-  Misc.with_ref_at Constants.slice false begin fun () ->
+  Misc.with_ref_at Co.slice false begin fun () ->
     ac_solve dd me (fn^".eq")  (ws, cs, ds) [] (* eqs *) None None |> fst3
   end
 
@@ -198,7 +198,7 @@ let idx_solve me fn qs =
   |> fst3
   |> d_indexAbs.read
 
-  (*
+(*
 let make_cones me ucs =
   let cs = get_cstrs me |> snd3                                    in
   let cm = cs |>: Misc.pad_fst C.id_of_t |> IM.of_list             in
@@ -213,7 +213,7 @@ let make_cones me ucs =
 
 (* API *)
 let solve me fn qs =
-  (if !Constants.prune_index then some <| idx_solve me fn qs else None)
+  (if !Co.prune_index then some <| idx_solve me fn qs else None)
   |> ac_solve d_predAbs me fn (get_cstrs me) qs None
   |> (fun (x, ucs, cones) ->  
        { FI.soln   = d_predAbs.min_read x
@@ -234,7 +234,7 @@ let scalar_solve me fn fp (* qs *) =
   in
   (* let qst = ScalarCtypes.partition_scalar_quals qs in *)
   let s   = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me) (* qst *) in
-  let _ = if !Constants.check_is then
+  let _ = if !Co.check_is then
     let apply sol (vv,t,ras) =
       (vv,t,List.map
 	 (fun ra ->
