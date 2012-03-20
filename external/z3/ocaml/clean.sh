@@ -7,3 +7,4 @@ rm -f *.lib
 
 rm -f ../lib/libz3.so
 rm -f ../lib/libz3.a
+rm -f ../lib/libz3.dylib

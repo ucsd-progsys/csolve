@@ -43,12 +43,10 @@ then
   echo Error: Found a non-linux environment.
   exit 1
 fi
-########################## Fill in these fields
-OCAMLLIB=$OCAMLLIB
 ##########################
 cd external/cil/; ./configure; make; make check; cd ../../
 cd external/ocamlgraph/; ./configure; make; cd ../../
-cd external/z3/ocaml; ./build-lib.sh $OCAMLLIB; cd ../../../
+cd external/z3/ocaml; ./build-lib.sh; cd ../../../
 cd src; make; cd ../
 EOF
 

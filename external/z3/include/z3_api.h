@@ -100,11 +100,14 @@ typedef int Z3_bool;
    \conly \brief Z3 string type. It is just an alias for <tt>const char *</tt>.
 */
 typedef const char * Z3_string;
+typedef Z3_string * Z3_string_ptr;
 #else
 /**
    \conly \brief Z3 string type. It is just an alias for <tt>[string] const char *</tt>.
 */
 #define Z3_string [string] const char *
+/* hack to make the IDL compiler happy */
+#define Z3_string_ptr const char * *
 #endif // CAMLIDL
     
 #ifndef CAMLIDL
@@ -283,6 +286,9 @@ typedef enum
    - Z3_OP_SET_COMPLEMENT Set complement of a Boolean array. The function is unary.
 
    - Z3_OP_SET_SUBSET Subset predicate between two Boolean arrays. The relation is binary.
+
+   - Z3_OP_AS_ARRAY An array value that behaves as the function graph of the
+                    function passed as parameter.
 
    - Z3_OP_BNUM Bit-vector numeral.
 
@@ -736,6 +742,61 @@ typedef enum
 
          - gcd-test - Indicates an integer linear arithmetic lemma that uses a gcd test.
 
+
+      - Z3_OP_RA_STORE: Insert a record into a relation.
+        The function takes \c n+1 arguments, where the first argument is the relation and the remaining \c n elements 
+        correspond to the \c n columns of the relation.
+
+      - Z3_OP_RA_EMPTY: Creates the empty relation. 
+        
+      - Z3_OP_RA_IS_EMPTY: Tests if the relation is empty.
+
+      - Z3_OP_RA_JOIN: Create the relational join.
+
+      - Z3_OP_RA_UNION: Create the union or convex hull of two relations. 
+        The function takes two arguments.
+
+      - Z3_OP_RA_WIDEN: Widen two relations.
+        The function takes two arguments.
+
+      - Z3_OP_RA_PROJECT: Project the columns (provided as numbers in the parameters).
+        The function takes one argument.
+
+      - Z3_OP_RA_FILTER: Filter (restrict) a relation with respect to a predicate.
+        The first argument is a relation. 
+        The second argument is a predicate with free de-Brujin indices
+        corresponding to the columns of the relation.
+        So the first column in the relation has index 0.
+
+      - Z3_OP_RA_NEGATION_FILTER: Intersect the first relation with respect to negation
+        of the second relation (the function takes two arguments).
+        Logically, the specification can be described by a function
+
+           target = filter_by_negation(pos, neg, columns)
+
+        where columns are pairs c1, d1, .., cN, dN of columns from pos and neg, such that
+        target are elements in x in pos, such that there is no y in neg that agrees with
+        x on the columns c1, d1, .., cN, dN.
+
+    
+      - Z3_OP_RA_RENAME: rename columns in the relation. 
+        The function takes one argument.
+        The parameters contain the renaming as a cycle.
+         
+      - Z3_OP_RA_COMPLEMENT: Complement the relation.
+
+      - Z3_OP_RA_SELECT: Check if a record is an element of the relation.
+        The function takes \c n+1 arguments, where the first argument is a relation,
+        and the remaining \c n arguments correspond to a record.
+
+      - Z3_OP_RA_CLONE: Create a fresh copy (clone) of a relation. 
+        \conly The function is logically the identity, but
+        \conly in the context of a register machine allows 
+        \conly for #Z3_OP_RA_UNION to perform destructive updates to the first argument.
+        
+
+      - Z3_OP_FD_LT: A less than predicate over the finite domain Z3_FINITE_DOMAIN_SORT.
+
     *)
 
 */
@@ -781,6 +842,7 @@ typedef enum {
     Z3_OP_SET_DIFFERENCE,
     Z3_OP_SET_COMPLEMENT,
     Z3_OP_SET_SUBSET,
+    Z3_OP_AS_ARRAY,
 
     Z3_OP_BNUM = 0x400,
     Z3_OP_BIT1,
@@ -898,7 +960,8 @@ typedef enum {
     Z3_OP_RA_SELECT,
     Z3_OP_RA_CLONE,
     Z3_OP_FD_LT,
-    Z3_OP_FD_LE,
+
+
     Z3_OP_UNINTERPRETED
 } Z3_decl_kind;
 
@@ -958,6 +1021,7 @@ typedef enum {
    \conly - Z3_FILE_ACCESS_ERRROR: A file could not be accessed.
    \conly - Z3_INVALID_USAGE:   API call is invalid in the current state.
    \conly - Z3_INTERNAL_FATAL: An error internal to Z3 occurred. 
+   \conly - Z3_DEC_REF_ERROR: Trying decrement the reference counter of an AST that was deleted or the reference counter was not initialized with #Z3_inc_ref.
 */
 typedef enum
 {
@@ -971,7 +1035,8 @@ typedef enum
     Z3_MEMOUT_FAIL,
     Z3_FILE_ACCESS_ERROR,
     Z3_INTERNAL_FATAL,
-    Z3_INVALID_USAGE
+    Z3_INVALID_USAGE,
+    Z3_DEC_REF_ERROR
 } Z3_error_code;
 
 
@@ -1037,6 +1102,8 @@ extern "C" {
        \sa Z3_mk_config
     */
     void Z3_API Z3_set_param_value(__in Z3_config c, __in_z Z3_string param_id, __in_z Z3_string param_value);
+
+
     /*@}*/
 
     /**
@@ -1045,7 +1112,7 @@ extern "C" {
     /*@{*/
 
     /**
-       \brief Create a logical context using the given configuration. 
+       \brief Create a context using the given configuration. 
     
        After a context is created, the configuration cannot be changed.
        All main interaction with Z3 happens in the context of a \c Z3_context.
@@ -1060,12 +1127,54 @@ extern "C" {
     Z3_context Z3_API Z3_mk_context(__in Z3_config c);
 
     /**
+       \brief Create a context using the given configuration.
+       This function is similar to #Z3_mk_context. However,
+       in the context returned by this function, the user
+       is responsible for managing Z3_ast reference counters.
+       Managing reference counters is a burden and error-prone,
+       but allows the user to use the memory more efficiently. 
+       The user must invoke #Z3_inc_ref for any Z3_ast returned
+       by Z3, and #Z3_dec_ref whenever the Z3_ast is not needed
+       anymore. This idiom is similar to the one used in
+       BDD (binary decision diagrams) packages such as CUDD.
+
+       Remark: Z3_sort, Z3_func_decl, Z3_app, Z3_pattern are
+       Z3_ast's.
+ 
+       After a context is created, the configuration cannot be changed.
+       All main interaction with Z3 happens in the context of a \c Z3_context.
+    */
+    Z3_context Z3_API Z3_mk_context_rc(__in Z3_config c);
+
+    /**
+       \brief Set the SMTLIB logic to be used in the given logical context.
+       It is incorrect to invoke this function after invoking
+       #Z3_check, #Z3_check_and_get_model, #Z3_check_assumptions and #Z3_push.
+       Return \c Z3_TRUE if the logic was changed successfully, and \c Z3_FALSE otherwise.
+    */
+    Z3_bool Z3_API Z3_set_logic(__in Z3_context c, __in_z Z3_string logic);
+    
+    /**
        \brief Delete the given logical context.
 
        \sa Z3_mk_config
     */
     void Z3_API Z3_del_context(__in Z3_context c);
     
+    /**
+       \brief Increment the reference counter of the given AST.
+       The context \c c should have been created using #Z3_mk_context_rc.
+       This function is a NOOP if \c c was created using #Z3_mk_context.
+    */
+    void Z3_API Z3_inc_ref(__in Z3_context c, __in Z3_ast a);
+
+    /**
+       \brief Decrement the reference counter of the given AST.
+       The context \c c should have been created using #Z3_mk_context_rc.
+       This function is a NOOP if \c c was created using #Z3_mk_context.
+    */
+    void Z3_API Z3_dec_ref(__in Z3_context c, __in Z3_ast a);
+
     /**
        \brief Enable trace messages to a file
 
@@ -1122,6 +1231,19 @@ extern "C" {
        \sa Z3_set_param_value
     */
     void Z3_API Z3_update_param_value(__in Z3_context c, __in_z Z3_string param_id, __in_z Z3_string param_value);
+
+    /**
+       \brief Get a configuration parameter.
+      
+       Returns false if the parameter value does not exist.
+
+       \sa Z3_mk_config
+       \sa Z3_set_param_value
+    */
+
+#ifndef CAMLIDL
+    Z3_bool Z3_API Z3_get_param_value(__in Z3_context c, __in_z Z3_string param_id, __out_z Z3_string_ptr param_value);
+#endif
 
     /*@}*/
 
@@ -2078,6 +2200,10 @@ extern "C" {
        It is equivalent to multiplication by <tt>2^x</tt> where \c x is the value of the
        third argument.
 
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
+
        The nodes \c t1 and \c t2 must have the same bit-vector sort.
     */
     Z3_ast Z3_API Z3_mk_bvshl(__in Z3_context c, __in Z3_ast t1, __in Z3_ast t2);
@@ -2088,6 +2214,10 @@ extern "C" {
 
        It is equivalent to unsigned division by <tt>2^x</tt> where \c x is the
        value of the third argument.
+
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
 
        The nodes \c t1 and \c t2 must have the same bit-vector sort.
     */
@@ -2100,6 +2230,10 @@ extern "C" {
        It is like logical shift right except that the most significant
        bits of the result always copy the most significant bit of the
        second argument.
+
+       NB. The semantics of shift operations varies between environments. This 
+       definition does not necessarily capture directly the semantics of the 
+       programming language or assembly architecture you are modeling.
        
        The nodes \c t1 and \c t2 must have the same bit-vector sort.
     */
@@ -2842,6 +2976,19 @@ extern "C" {
     Z3_bool Z3_API Z3_get_numeral_int64(__in Z3_context c, __in Z3_ast v, __out __int64* i);
 #endif // CAMLIDL
 
+#ifndef CAMLIDL
+    /**
+       \brief \mlh get_numeral_rational_int64 c x y\endmlh
+       Similar to #Z3_get_numeral_string, but only succeeds if
+       the value can fit as a reational number as machine __int64 int. Return Z3_TRUE if the call succeeded.
+
+       \pre Z3_get_ast_kind(c, v) == Z3_NUMERAL_AST
+
+       \sa Z3_get_numeral_string
+    */
+    Z3_bool Z3_API Z3_get_numeral_rational_int64(__in Z3_context c, __in Z3_ast v, __out __int64* num, __out __int64* den);
+#endif // CAMLIDL
+
     /**
        \brief Return Z3_L_TRUE if \c a is true, Z3_L_FALSE if it is false, and Z3_L_UNDEF otherwise.
     */
@@ -3248,17 +3395,67 @@ extern "C" {
     /*@}*/
 
     /**
+       @name Modifiers
+    */
+    /*@{*/
+
+    /**
+       \brief Update the arguments of term \c a using the arguments \c args.
+       The number of arguments \c num_args should coincide 
+       with the number of arguments to \c a.
+       If \c a is a quantifier, then num_args has to be 1.
+    */
+    Z3_ast Z3_API Z3_update_term(__in Z3_context c, __in Z3_ast a, __in unsigned num_args, __in_ecount(num_args) Z3_ast args[]);
+
+    /**
+       \brief Substitute every occurrence of <tt>from[i]</tt> in \c a with <tt>to[i]</tt>, for \c i smaller than \c num_exprs.
+       The result is the new AST. The arrays \c from and \c to must have size \c num_exprs.
+       For every \c i smaller than \c num_exprs, we must have that sort of <tt>from[i]</tt> must be equal to sort of <tt>to[i]</tt>.
+    */
+    Z3_ast Z3_API Z3_substitute(__in Z3_context c, 
+                                __in Z3_ast a, 
+                                __in unsigned num_exprs, 
+                                __in_ecount(num_exprs) Z3_ast from[], 
+                                __in_ecount(num_exprs) Z3_ast to[]);
+
+    /**
+       \brief Substitute the free variables in \c a with the expressions in \c to.
+       For every \c i smaller than \c num_exprs, the variable with de-Bruijn index \c i is replaced with term <tt>to[i]</tt>.
+    */
+    Z3_ast Z3_API Z3_substitute_vars(__in Z3_context c, 
+                                     __in Z3_ast a, 
+                                     __in unsigned num_exprs, 
+                                     __in_ecount(num_exprs) Z3_ast to[]);
+    
+    /*@}*/
+
+    
+
+    /**
        @name Coercions
     */
     /*@{*/
-   
+
+    /**
+       \brief Convert a Z3_sort into Z3_ast. This is just type casting.
+    */
+    Z3_ast Z3_API Z3_sort_to_ast(__in Z3_context c, __in Z3_sort s);
     
+    /**
+       \brief Convert a Z3_func_decl into Z3_ast. This is just type casting.
+    */
+    Z3_ast Z3_API Z3_func_decl_to_ast(__in Z3_context c, __in Z3_func_decl f);
+    
+    /**
+       \brief Convert a Z3_pattern into Z3_ast. This is just type casting.
+    */
+    Z3_ast Z3_API Z3_pattern_to_ast(__in Z3_context c, __in Z3_pattern p);
+
     /**
        \brief Convert a APP_AST into an AST. This is just type casting.
     */
     Z3_ast Z3_API Z3_app_to_ast(__in Z3_context c, __in Z3_app a);
-    
-    
+
     /**
        \brief Convert an AST into a APP_AST. This is just type casting.
        
@@ -3307,12 +3504,14 @@ extern "C" {
        \sa Z3_pop
     */
     unsigned Z3_API Z3_get_num_scopes(__in Z3_context c);
-
-
+    
     /**
        \brief Persist AST through num_scopes pops.
+       This function is only relevant if \c c was created using #Z3_mk_context.
+       If \c c was created using #Z3_mk_context_rc, this function is a NOOP.
        
-       Normally, references to terms are no longer valid when 
+       Normally, for contexts created using #Z3_mk_context, 
+       references to terms are no longer valid when 
        popping scopes beyond the level where the terms are created.
        If you want to reference a term below the scope where it
        was created, use this method to specify how many pops
@@ -3320,7 +3519,6 @@ extern "C" {
        The num_scopes should be at most equal to the number of
        calls to Z3_push subtracted with the calls to Z3_pop.
     */
-       
     void Z3_API Z3_persist_ast(__in Z3_context c, __in Z3_ast a, __in unsigned num_scopes);
 
 
@@ -3384,6 +3582,10 @@ extern "C" {
        \param core pointer to an array receiveing unsatisfiable core. 
               The unsatisfiable core is a subset of the assumptions, so the array has the same size as the assumptions.
               The \c core array is not populated if \c core_size is set to 0.
+
+       \pre assumptions comprises of propositional literals.
+            In other words, you cannot use compound formulas for assumptions, 
+            but should use propositional variables or negations of propositional variables.
               
        \sa Z3_check
        \sa Z3_del_model
@@ -3576,7 +3778,7 @@ extern "C" {
        Determine whether the term encodes an array value.       
        Return the number of entries mapping to non-default values of the array.
     */
-    Z3_bool Z3_API Z3_is_array_value(__in Z3_context c, __in Z3_ast v, __out unsigned* num_entries);
+    Z3_bool Z3_API Z3_is_array_value(__in Z3_context c, __in Z3_model m, __in Z3_ast v, __out unsigned* num_entries);
 
 
     /**
@@ -3587,6 +3789,7 @@ extern "C" {
        \pre Z3_TRUE == Z3_is_array_value(c, v, &num_entries)       
     */
     void Z3_API Z3_get_array_value(__in Z3_context c, 
+                                   __in Z3_model m,
                                    __in Z3_ast v,
                                    __in unsigned num_entries,
                                    __inout_ecount(num_entries) Z3_ast indices[],
@@ -3668,7 +3871,7 @@ extern "C" {
        This function returns the j-th entry of this map.
       
        An entry represents the value of a function given a set of arguments.
-       \conly That is: it has the following format \<tt>f(args[0],...,args[num_args - 1]) = val</tt>.
+       \conly That is: it has the following format <tt>f(args[0],...,args[num_args - 1]) = val</tt>.
 
        \mlonly \remark Consider using {!Z3.get_model_funcs}. \endmlonly
 
@@ -3693,7 +3896,7 @@ extern "C" {
        This function returns the j-th entry of this map.
       
        An entry represents the value of a function given a set of arguments.
-       \conly That is: it has the following format \<tt>f(args[0],...,args[num_args - 1]) = val</tt>.
+       \conly That is: it has the following format <tt>f(args[0],...,args[num_args - 1]) = val</tt>.
 
        \mlonly \remark Consider using {!Z3.get_model_funcs}. \endmlonly
 
@@ -3720,7 +3923,7 @@ extern "C" {
        This function returns the j-th entry of this map.
       
        An entry represents the value of a function given a set of arguments.
-       \conly That is: it has the following format \<tt>f(args[0],...,args[num_args - 1]) = val</tt>.
+       \conly That is: it has the following format <tt>f(args[0],...,args[num_args - 1]) = val</tt>.
 
        \mlonly \remark Consider using {!Z3.get_model_funcs}. \endmlonly
 
@@ -3743,16 +3946,12 @@ extern "C" {
 
        The evaluation may fail for the following reasons:
 
-       - \c t contains a quantifier or bound variable. 
+       - \c t contains a quantifier.
 
-       - the model \c m is partial, that is, it doesn't have a complete interpretation for free functions. 
-         That is, the option <tt>PARTIAL_MODELS=true</tt> was used.
-
-       - the evaluator doesn't have support for some interpreted operator.
+       - the model \c m is partial, that is, it doesn't have a complete interpretation for uninterpreted functions. 
+         That is, the option <tt>MODEL_PARTIAL=true</tt> was used.
 
        - \c t is type incorrect.
-
-       - The result of an intepreted operator in \c t is undefined (e.g. division by zero).
     */
     Z3_bool Z3_API Z3_eval(__in Z3_context c, __in Z3_model m, __in Z3_ast t, __out Z3_ast * v);
 
@@ -4022,6 +4221,35 @@ extern "C" {
     */
     Z3_ast Z3_API Z3_parse_z3_file(__in Z3_context c, __in_z Z3_string file_name);
 
+    /**
+       \brief \mlh parse_smtlib2_string c str \endmlh
+       Parse the given string using the SMT-LIB2 parser. 
+              
+       It returns a formula comprising of the conjunction of assertions in the scope
+       (up to push/pop) at the end of the string.
+     */
+    Z3_ast Z3_API Z3_parse_smtlib2_string(__in Z3_context c, 
+                                          __in_z Z3_string str,
+                                          __in unsigned num_sorts,
+                                          __in_ecount(num_sorts) Z3_symbol sort_names[],
+                                          __in_ecount(num_sorts) Z3_sort sorts[],
+                                          __in unsigned num_decls,
+                                          __in_ecount(num_decls) Z3_symbol decl_names[],
+                                          __in_ecount(num_decls) Z3_func_decl decls[]  
+                                          );
+    
+    /**
+       \brief Similar to #Z3_parse_smtlib2_string, but reads the benchmark from a file.
+    */
+    Z3_ast Z3_API Z3_parse_smtlib2_file(__in Z3_context c, 
+                                        __in_z Z3_string file_name,
+                                          __in unsigned num_sorts,
+                                          __in_ecount(num_sorts) Z3_symbol sort_names[],
+                                          __in_ecount(num_sorts) Z3_sort sorts[],
+                                          __in unsigned num_decls,
+                                          __in_ecount(num_decls) Z3_symbol decl_names[],
+                                          __in_ecount(num_decls) Z3_func_decl decls[]    
+                                        );
 
 
 #ifndef CAMLIDL
@@ -4486,6 +4714,102 @@ extern "C" {
        \see Z3_theory_get_num_apps
     */
     Z3_ast Z3_API Z3_theory_get_app(__in Z3_theory t, __in unsigned i);
+
+    /*@}*/
+
+    
+    /** 
+        @name Fixedpoint and Datalog facilities
+    */
+    /*@{*/
+    /** 
+       \brief Add a universal Horn clause as a named rule.
+       The \c horn_rule should be of the form:
+ 
+       \code
+           horn_rule ::= (forall (bound-vars) horn_rule)
+                      |  (=> atoms horn_rule)
+                      |  atom
+       \endcode
+    */
+    void Z3_API Z3_datalog_add_rule(__in Z3_context c, __in Z3_ast horn_rule, __in Z3_symbol name);
+    
+    /** 
+        \brief Pose a query against the asserted rules.
+
+        The query returns a formula that encodes the set of
+        satisfying instances for the query.
+
+        \code
+           query ::= (exists (bound-vars) query)
+                 |  literals 
+        \endcode
+
+    */
+    Z3_ast Z3_API Z3_datalog_query(__in Z3_context c,  __in Z3_ast q);
+
+    /**
+       \brief Configure the predicate representation.
+
+       It sets the predicate to use a set of domains given by the list of symbols.
+       The domains given by the list of symbols must belong to a set
+       of built-in domains.
+    */
+
+    void Z3_API Z3_datalog_set_predicate_representation(
+        __in Z3_context c, __in Z3_func_decl f, 
+        __in unsigned num_relations, 
+        __in_ecount(num_relations) Z3_symbol const relation_kinds[]);
+
+    /**
+         \brief Parse a file in Datalog format and process the queries in it.
+    */
+    void Z3_API Z3_datalog_parse_file(__in Z3_context c, Z3_string filename);
+
+    /**
+         \brief The following utilities allows adding user-defined domains.
+    */
+
+#ifndef CAMLIDL
+    typedef void Z3_datalog_reduce_assign_callback_fptr(
+        __in Z3_context, __in Z3_func_decl, 
+        __in unsigned, __in Z3_ast const [], 
+        __in unsigned, __in Z3_ast const []); 
+
+    typedef void Z3_datalog_reduce_app_callback_fptr(
+        __in Z3_context, __in Z3_func_decl, 
+        __in unsigned, __in Z3_ast const [], 
+        __out Z3_ast*);
+
+
+    /**
+         \brief Initialize the context with a user-defined state.
+
+    */
+    void Z3_API Z3_datalog_init(__in Z3_context c, __in void* state);
+
+    /**
+         \brief Retrieve the user-define state.
+    */
+    void* Z3_API Z3_datalog_get_context(__in Z3_context c);
+    
+
+    /**
+         \brief Register a callback to destructive updates.
+
+         Registers are identified with terms encoded as fresh constants,          
+    */
+    void Z3_API Z3_datalog_set_reduce_assign_callback(
+        __in Z3_context c, __in Z3_datalog_reduce_assign_callback_fptr cb);
+
+    /**
+         \brief Register a callback for buildling terms based on 
+         the relational operators.
+    */
+    void Z3_API Z3_datalog_set_reduce_app_callback(
+        __in Z3_context c, __in Z3_datalog_reduce_app_callback_fptr cb);
+
+#endif
 
     /*@}*/
     

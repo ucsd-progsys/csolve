@@ -12,6 +12,8 @@ IFLAGS=-lflags -I,$(OCAMLGRAPHHOME) \
 LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-L$(Z3HOME)/lib \
        -lflags -cclib,-lz3 \
+       -lflags -cclib,-lperfcount \
+       -lflags -cclib,-lgomp \
        -lflags -cclib,-lstdc++ \
        -lflags -cclib,-lz3stubs \
        -lflags -cclib,-lcamlidl \

@@ -387,6 +387,8 @@ module ExprHashconsStruct = struct
 	      ip1 == ip2 && te1 == te2 && ee1 == ee2
       | Fld (s1, e1), Fld (s2, e2) ->
           s1 = s2 && e1 == e2
+      | Cst (e1, s1), Cst (e2, s2) ->
+          s1 = s2 && e1 == e2
       | _ -> 
           false
   
