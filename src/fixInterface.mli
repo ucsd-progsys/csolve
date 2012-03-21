@@ -40,6 +40,7 @@ type result = { soln   : FixConstraint.soln
 type cilenv
 
 val pred_of_refctype    : FixConstraint.soln -> Cil.varinfo -> Ctypes.refctype -> Ast.pred
+val sort_of_prectype    : 'a Ctypes.prectype -> Ast.Sort.t
 val ce_rem              : FixAstInterface.name -> cilenv -> cilenv 
 val ce_mem              : FixAstInterface.name -> cilenv -> bool 
 val ce_empty            : cilenv

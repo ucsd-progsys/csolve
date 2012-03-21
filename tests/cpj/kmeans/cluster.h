@@ -74,20 +74,25 @@
  */
 int
 cluster_exec (
-    //int      nthreads,             /* in: number of threads*/
-    int      numObjects,           /* number of input objects */
-    int      numAttributes,        /* size of attribute of each object */
-    float**  attributes,           /* [numObjects][numAttributes] */
-    int      use_zscore_transform,
-    int      min_nclusters,        /* testing k range from min to max */
-    int      max_nclusters,
-    float    threshold,            /* in:   */
-    int*     best_nclusters,       /* out: number between min and max */
-    float*** cluster_centres,      /* out: [best_nclusters][numAttributes] */
-    int*     cluster_assign       /* out: [numObjects] */
-);
-
-
+    //int      nthreads,              /* in: number of threads*/
+    int    REF(V > 0) numObjects,     /* number of input objects */
+    int    REF(V > 0) numAttributes,  /* size of attribute of each object */
+    float* START ARRAY VALIDPTR SIZE_GE(4*numAttributes)
+         * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /* [numObjects][numAttributes] */
+    int    use_zscore_transform,
+    int    REF(V > 0)  min_nclusters, /* testing k range from min to max */
+    int    REF(V >= min_nclusters) max_nclusters,
+    float  REF(V > 0) threshold,      /* in:   */
+    int    /*FINAL abakst: Hrm, this needs to be dealt with*/ 
+           REF(&&[V >= min_nclusters;V <= max_nclusters])     
+          *best_nclusters,     /* out: number between min and max */
+    float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes) 
+         * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*min_nclusters)
+         /* abakst: this is actually what we want:
+	    SIZE_GE(4*DEREF([best_nclusters])) */
+         * START VALIDPTR ROOM_FOR(float**) cluster_centres,    /* out: [best_nclusters][numAttributes] */
+    int*   ARRAY VALIDPTR SIZE_GE(4*numObjects) cluster_assign       /* out: [numObjects] */
+) OKEXTERN;
 #endif /* CLUSTER_H */
 
 
