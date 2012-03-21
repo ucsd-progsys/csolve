@@ -486,9 +486,38 @@ struct node <A0, C0> {
 CoreUtils Notes
 ---------------
 
+
+
+
+
 dump vdescr from varinfo (what do they hold? can we get nicer errors than:
 
 tests/cpj/kmeans/normal.c
+
+--------------------------------------------------------------------------
+TOTALLY INSCRUTABLE!!!
+
+normal.c:186: Error: Cannot unify ref(A11, {0}) and ref(A242, {0 + 4*})
+
+normal.c:186: Error: Can't fit 
+{0 + 4*}: ref(A11, {0})
+  in location
+A241[instr: #line 186
+     work(args__csolve_heapify___normal_exec__SSA__blk_1_1, i___1_normal_exec__SSA__blk_61_1); at normal.c:186] |-> {0 + 4*}: ref(A242, {0 + 4*})
+
+normal.c:186: Error: Can't fit 
+{0}: ref(A10, {0 + 4*})
+  in location
+A240[instr: #line 186
+     work(args__csolve_heapify___normal_exec__SSA__blk_1_1, i___1_normal_exec__SSA__blk_61_1); at normal.c:186] |-> {0}: ref(A241, {0 + 4*}),
+                                                                                                                    {4}: int(4, {true}),
+                                                                                                                    {8}: int(4, {true}),
+                                                                                                                    {12}: int(4, {true}),
+                                                                                                                    {16}: ref(A243, {0 + 4*}),
+                                                                                                                    {20}: ref(A244, {0 + 4*}),
+                                                                                                                    {24}: ref(A246, {0 + 4*}),
+                                                                                                                    {28}: ref(A248, {0 + 4*})
+
 
 --------------------------------------------------------------------------
 

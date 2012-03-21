@@ -90,9 +90,10 @@ work (args_t* args, int i)
  * normal_exec
  * =============================================================================
  */
+
 float * ARRAY * ARRAY
 normal_exec (//int       nthreads,
-             float * ARRAY * ARRAY feature,    /* in: [npoints][nfeatures] */
+             float * ARRAY * ARRAY START feature,    /* in: [npoints][nfeatures] */
              int          nfeatures,
              int          npoints,
              int          nclusters,
