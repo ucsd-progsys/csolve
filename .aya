@@ -1,13 +1,3 @@
-./external/fixpoint/*
-./external/cil/obj/*
-./external/cil/src/*
-./external/cil/ocamlutil/*
-./external/cil/test/*
-./external/cil/debian/*
-./external/cil/doc/*
-./external/ocamlgraph/*
-./external/z3/lib/libz3-*
-./external/z3/bin/*
 ./doc/*
 **/_build/*.cm*
 ./benchmarks/*
@@ -18,7 +8,6 @@
 *.dll
 *.cm*
 *.exe
-*.ml*
 *.autospec
 *.fq
 *.vmap
