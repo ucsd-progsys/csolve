@@ -124,6 +124,7 @@ module type S = sig
     exception NoLUB of t * t
 
     val refinement       : t -> T.R.t
+    val set_refinement   : t -> T.R.t -> t
     val map              : ('a -> 'b) -> 'a prectype -> 'b prectype
     val map_func         : ('a -> 'b) -> 'a precfun -> 'b precfun
     val d_ctype          : unit -> t -> Pretty.doc

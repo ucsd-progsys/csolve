@@ -32,6 +32,11 @@ module Cs = Constants
 module S  = Sloc
 module N  = Index
 module Ct = I.CType
+module FI = FixInterface
+module FA = FixAstInterface
+module FC = FixConstraint
+module A  = Ast
+module Sy = A.Symbol
 
 let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
@@ -60,75 +65,96 @@ let fresh_heaptype (t: C.typ): ctype =
         |> Ctypes.ctype_of_refctype
       | _ -> halt <| C.bug "Unimplemented fresh_heaptype: %a@!@!" C.d_type t
 
-let rec apply_binop: C.binop -> C.typ -> ctype -> ctype -> ctype = function
-  | C.PlusA                                 -> apply_arithmetic Index.plus
-  | C.MinusA                                -> apply_arithmetic Index.minus
-  | C.Mult                                  -> apply_arithmetic Index.mult
-  | C.Div                                   -> apply_arithmetic Index.div
-  | C.PlusPI | C.IndexPI                    -> apply_ptrarithmetic (fun i1 x i2 -> Index.plus i1 (Index.scale x i2))
-  | C.MinusPI                               -> apply_ptrarithmetic (fun i1 x i2 -> Index.minus i1 (Index.scale x i2))
-  | C.MinusPP                               -> apply_ptrminus
-  | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne -> apply_rel
-  | C.LAnd | C.LOr                          -> apply_logical
-  | C.Mod                                   -> apply_unknown
-  | C.BAnd | C.BOr | C.BXor                 -> apply_unknown
-  | C.Shiftlt | C.Shiftrt                   -> apply_unknown
-  | bop                                     -> E.s <| C.bug "Unimplemented apply_binop: %a@!@!" C.d_binop bop
+let rec base_ctype_of_binop_result = function
+  | C.PlusA | C.MinusA | C.Mult | C.Div                     -> base_ctype_of_arith_result
+  | C.PlusPI | C.IndexPI | C.MinusPI                        -> base_ctype_of_ptrarith_result
+  | C.MinusPP                                               -> base_ctype_of_ptrminus_result
+  | C.Lt | C.Gt | C.Le | C.Ge | C.Eq | C.Ne                 -> base_ctype_of_rel_result
+  | C.LAnd | C.LOr                                          -> base_ctype_of_logical_result
+  | C.Mod | C.BAnd | C.BOr | C.BXor | C.Shiftlt | C.Shiftrt -> base_ctype_of_bitop_result
+  | bop -> E.s <| C.bug "Unimplemented base_ctype_of_binop_result: %a@!@!" C.d_binop bop
 
-and apply_arithmetic f rt ctv1 ctv2 = match ctv1, ctv2 with
-  | Int (n1, i1), Int (n2, i2) -> Int (CM.typ_width rt, f i1 i2)
-  | _                          -> E.s <| C.bug "Type mismatch in apply_arithmetic@!@!"
-
-and apply_ptrarithmetic f pt ctv1 ctv2 = match C.unrollType pt, ctv1, ctv2 with
-  | C.TPtr (t, _), Ref (s, i1), Int (n, i2) when n = CM.int_width -> Ref (s, f i1 (CM.typ_width t) i2)
-  | _                                                             -> E.s <| C.bug "Type mismatch in constrain_ptrarithmetic@!@!"
-
-and apply_ptrminus (pt: C.typ) (_: ctype) (_: ctype): ctype =
-  Int (CM.typ_width !C.upointType, Index.top)
-
-and apply_rel (_: C.typ) (_: ctype) (_: ctype): ctype =
-  Int (CM.int_width, Index.nonneg)
-
-and apply_logical (_: C.typ) (_: ctype) (_: ctype): ctype =
-  Int (CM.int_width, Index.nonneg)
-
-and apply_unknown (rt: C.typ) (_: ctype) (_: ctype): ctype =
+and base_ctype_of_arith_result rt _ _ =
   Int (CM.typ_width rt, Index.top)
 
-and apply_unop (rt: C.typ): C.unop -> ctype = function
-  | C.LNot -> Int (CM.typ_width rt, Index.nonneg)
-  | C.BNot -> Int (CM.typ_width rt, Index.top)
-  | C.Neg  -> Int (CM.typ_width rt, Index.top)
+and base_ctype_of_ptrarith_result pt ctv1 ctv2 = match C.unrollType pt, ctv1, ctv2 with
+  | C.TPtr _, Ref (s, _), Int (n, _) when n = CM.int_width -> Ref (s, Index.top)
+  | _ -> E.s <| C.bug "Type mismatch in base_ctype_of_ptrarith_result@!@!"
+
+and base_ctype_of_ptrminus_result _ _ _ =
+  Int (CM.typ_width !C.upointType, Index.top)
+
+and base_ctype_of_rel_result _ _ _ =
+  Int (CM.int_width, Index.nonneg)
+
+and base_ctype_of_logical_result _ _ _ =
+  Int (CM.int_width, Index.nonneg)
+
+and base_ctype_of_bitop_result rt _ _ =
+  Int (CM.typ_width rt, Index.top)
+
+and base_ctype_of_unop_result rt = function
+  | C.BNot | C.Neg -> Int (CM.typ_width rt, Index.top)
+  | C.LNot         -> Int (CM.typ_width rt, Index.nonneg)
+
+let reft_of_ctype ct =
+  let vv, p = ScalarCtypes.non_null_pred_of_ctype ct in
+    FC.make_reft vv (FI.sort_of_prectype ct) [FC.Conc p]
+
+let fixenv_of_ctypeenv ve =
+  VM.fold
+    (fun v ct fe -> Sy.SMap.add (Sy.of_string v.C.vname) (reft_of_ctype ct) fe)
+    ve Sy.SMap.empty
 
 class exprTyper (ve,fe) = object (self)
   val tbl = Hashtbl.create 17
-  val fe = ref fe
+  val fe  = ref fe
+  val fce = fixenv_of_ctypeenv ve
 
   method ctype_of_exp e =
-    (* let _ = Pretty.printf "ctype_of_exp: %a@!" Cil.d_exp e in *)
     Misc.do_memo tbl self#ctype_of_exp_aux e e
 
-  method private ctype_of_exp_aux = function
-    | C.Const c                     -> Ct.of_const c
-    | C.Lval lv | C.StartOf lv      -> self#ctype_of_raw_lval lv
-    | C.UnOp (uop, e, t)            -> apply_unop t uop
-    | C.BinOp (bop, e1, e2, t)      -> apply_binop bop t (self#ctype_of_exp e1) (self#ctype_of_exp e2)
-    | C.CastE (C.TPtr (C.TFun _ as f,_),
-               C.Const c) -> self#ctype_of_constfptr f c
-    | C.CastE (C.TPtr _, C.Const c) -> self#ctype_of_constptr c
-    | C.CastE (ct, e)               -> self#ctype_of_cast ct e
-    | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
-    | C.AddrOf lv                   -> self#ctype_of_addrof lv
-    | e                             -> E.s <| C.error "Unimplemented ctype_of_exp_aux: %a@!@!" C.d_exp e
+  (* pmr: This is a major hack: the index solver solves for indices,
+   * which it turns into predicates, which we're here turning back
+   * into predicates.
+   *
+   * Instead, index inference should return a map from expressions to
+   * indices, much like the real solver returns a map from expressions
+   * to refined types. We can then avoid this redundancy. *)
+  method private ctype_of_exp_aux e =
+    let ct = self#base_ctype_of_exp e in
+      match e with
+        | C.Lval _ -> ct
+        | _        ->
+          let so   = FI.sort_of_prectype ct in
+          let vv   = Sy.value_variable so in
+          let p    = e |> CilInterface.reft_of_cilexp vv |> snd in
+          let reft = FC.make_reft vv so [FC.Conc p] in
+          let idx  = N.glb (Ct.refinement ct) (N.index_of_reft fce (fun _ -> assert false) reft) in
+            Ct.set_refinement ct idx
 
-  method private ctype_of_constfptr f c = match c with
+  method private base_ctype_of_exp = function
+    | C.Const c                     -> Ct.of_const c
+    | C.Lval lv | C.StartOf lv      -> self#base_ctype_of_raw_lval lv
+    | C.UnOp (uop, e, t)            -> base_ctype_of_unop_result t uop
+    | C.BinOp (bop, e1, e2, t)      -> base_ctype_of_binop_result bop t (self#ctype_of_exp e1) (self#ctype_of_exp e2)
+    | C.CastE (C.TPtr (C.TFun _ as f,_), C.Const c) ->
+      self#base_ctype_of_constfptr f c
+    | C.CastE (C.TPtr _, C.Const c) -> self#base_ctype_of_constptr c
+    | C.CastE (ct, e)               -> self#base_ctype_of_cast ct e
+    | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
+    | C.AddrOf lv                   -> self#base_ctype_of_addrof lv
+    | e                             -> E.s <| C.error "Unimplemented base_ctype_of_exp: %a@!@!" C.d_exp e
+
+  method private base_ctype_of_constfptr f c = match c with
     | C.CInt64 (v, ik, so)
         when v = Int64.zero ->
         let fspec = Typespec.preRefcfunOfType f in
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
                          (Ctypes.RefCTypes.CType.map fst) fspec,
                        Index.IBot)
-  method private ctype_of_constptr c = match c with  
+
+  method private base_ctype_of_constptr c = match c with
     | C.CStr _ ->
         let s = S.fresh_abstract [CM.srcinfo_of_constant c None] in 
         Ref (s, Index.IInt 0)
@@ -139,24 +165,22 @@ class exprTyper (ve,fe) = object (self)
     | _ -> 
         E.s <| C.error "Cannot cast non-zero, non-string constant %a to pointer@!@!" C.d_const c
 
-  method private ctype_of_raw_lval = function
+  method private base_ctype_of_raw_lval = function
     | C.Var v, C.NoOffset         -> asserti (VM.mem v ve) "Cannot_find: %s" v.C.vname; VM.find v ve
     | (C.Mem e, C.NoOffset) as lv -> lv |> C.typeOfLval |> fresh_heaptype
-    | lv                          -> E.s <| C.bug "ctype_of_lval got lval with offset: %a@!@!" C.d_lval lv
+    | lv                          -> E.s <| C.bug "base_ctype_of_lval got lval with offset: %a@!@!" C.d_lval lv
 
   method ctype_of_lval lv =
     self#ctype_of_exp (C.Lval lv)
 
-
-  method private ctype_of_addrof = function
+  method private base_ctype_of_addrof = function
     | C.Var v, C.NoOffset when CM.is_fun v ->
       let fspec,_ = VM.find v !fe in
       FRef (fspec, Index.IInt 0)
     | lv -> 
-        E.s <| C.error "Unimplemented ctype_of_addrof: %a@!@!" C.d_lval lv
+        E.s <| C.error "Unimplemented base_ctype_of_addrof: %a@!@!" C.d_lval lv
 
-
-  method private ctype_of_cast ct e =
+  method private base_ctype_of_cast ct e =
     let ctv = self#ctype_of_exp e in
       match C.unrollType ct, C.unrollType <| C.typeOf e with
         | C.TInt (ik, _), C.TPtr _   -> Int (C.bytesSizeOfInt ik, Index.nonneg)
