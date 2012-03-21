@@ -72,24 +72,6 @@
  * cluster_exec
  * =============================================================================
  */
-/* int */
-/* cluster_exec ( */
-/*     //int      nthreads,                 /\* in: number of threads*\/ */
-/*     int    REF(V > 0) numObjects,     /\* number of input objects *\/ */
-/*     int    REF(V > 0) numAttributes,  /\* size of attribute of each object *\/ */
-/*     float* START ARRAY VALIDPTR SIZE_GE(4*numAttributes) */
-/*          * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /\* [numObjects][numAttributes] *\/ */
-/*     int    use_zscore_transform, */
-/*     int    REF(V > 0)  min_nclusters, /\* testing k range from min to max *\/ */
-/*     int    REF(V >= min_nclusters) max_nclusters, */
-/*     float  REF(V > 0) threshold,            /\* in:   *\/ */
-/*     int    /\*FINAL*\/ REF(&&[V >= min_nclusters;V <= max_nclusters])      */
-/*           *best_nclusters,     /\* out: number between min and max *\/ */
-/*     float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)  */
-/*     * ARRAY START VALIDPTR SIZE_GE(4*min_nclusters)/\* SIZE_GE(4*DEREF([best_nclusters])) *\/ */
-/*     * START VALIDPTR ROOM_FOR(float**) cluster_centres,     /\* out: [best_nclusters][numAttributes] *\/ */
-/*     int*   ARRAY VALIDPTR SIZE_GE(4*numObjects) cluster_assign       /\* out: [numObjects] *\/ */
-/* ) OKEXTERN; */
 int
 cluster_exec (
     //int      nthreads,              /* in: number of threads*/
