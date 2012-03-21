@@ -127,9 +127,9 @@ class exprTyper (ve,fe) = object (self)
           let p    = e |> CilInterface.reft_of_cilexp vv |> snd in
           let reft = FC.make_reft vv so [FC.Conc p] in
           let idx  = N.glb (Ct.refinement ct) (N.index_of_reft fce (fun _ -> assert false) reft) in
-            let res = Ct.map (const idx) ct in
-            let _ = Pretty.printf "EXPRESSION %a@!Type: %a@!Pred: %s@!Index: %a@!@!"
-                      C.d_exp e Ct.d_ctype ct (A.Predicate.to_string p) Index.d_index idx in
+            let res = Ct.set_refinement ct idx in
+            let _ = Pretty.printf "EXPRESSION %a@!Type: %a@!Pred: %s@!Index: %a@!Enhanced: %a@!@!"
+                      C.d_exp e Ct.d_ctype ct (A.Predicate.to_string p) Index.d_index idx Ct.d_ctype res in
               res
 
   method private base_ctype_of_exp = function
@@ -180,7 +180,7 @@ class exprTyper (ve,fe) = object (self)
         E.s <| C.error "Unimplemented base_ctype_of_addrof: %a@!@!" C.d_lval lv
 
   method private base_ctype_of_cast ct e =
-    let ctv = self#base_ctype_of_exp e in
+    let ctv = self#ctype_of_exp e in
       match C.unrollType ct, C.unrollType <| C.typeOf e with
         | C.TInt (ik, _), C.TPtr _   -> Int (C.bytesSizeOfInt ik, Index.nonneg)
         | C.TInt (ik, _), C.TFloat _ -> Int (C.bytesSizeOfInt ik, Index.top)

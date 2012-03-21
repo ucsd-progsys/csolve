@@ -269,18 +269,19 @@ module SIGS (T : CTYPE_DEFS) = struct
 
     exception NoLUB of t * t
 
-    val refinement  : t -> T.refinement
-    val map         : ('a -> 'b) -> 'a prectype -> 'b prectype
-    val map_func    : ('a -> 'b) -> 'a precfun -> 'b precfun
-    val d_ctype     : unit -> t -> P.doc
-    val of_const    : Cil.constant -> t
-    val is_subctype : t -> t -> bool
-    val width       : t -> int
-    val sloc        : t -> Sloc.t option
-    val subs        : Sloc.Subst.t -> t -> t
-    val eq          : t -> t -> bool
-    val collide     : Index.t -> t -> Index.t -> t -> bool
-    val is_void     : t -> bool
+    val refinement     : t -> T.refinement
+    val set_refinement : t -> T.refinement -> t
+    val map            : ('a -> 'b) -> 'a prectype -> 'b prectype
+    val map_func       : ('a -> 'b) -> 'a precfun -> 'b precfun
+    val d_ctype        : unit -> t -> P.doc
+    val of_const       : Cil.constant -> t
+    val is_subctype    : t -> t -> bool
+    val width          : t -> int
+    val sloc           : t -> Sloc.t option
+    val subs           : Sloc.Subst.t -> t -> t
+    val eq             : t -> t -> bool
+    val collide        : Index.t -> t -> Index.t -> t -> bool
+    val is_void        : t -> bool
   end
 
   module type FIELD = sig
@@ -495,6 +496,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
       | ARef | Any -> T.R.top
+
+    let set_refinement ct r = match ct with
+      | Int (w, _)  -> Int (w, r)
+      | Ref (s, _)  -> Ref (s, r)
+      | FRef (f, _) -> FRef (f, r)
+      | ARef        -> ARef
+      | Any         -> Any
 
     let rec map f = function
       | Int (i, x) -> Int (i, f x)
