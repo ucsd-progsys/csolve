@@ -107,14 +107,17 @@
  * extractMoments
  * =============================================================================
  */
-static float*
-extractMoments (float *data, int num_elts, int num_moments)
+static float* ARRAY START VALIDPTR SIZE_GE(4*num_moments)
+extractMoments (float * ARRAY START VALIDPTR SIZE_GE(4*num_elts) data,
+                int     REF(V >= 0)                         num_elts, 
+                int     REF(V >= 0)                      num_moments)
 {
     int i;
     int j;
     float* moments;
 
     moments = (float*)calloc(num_moments, sizeof(float));
+    
     assert(moments);
     for (i = 0; i < num_elts; i++) {
         moments[0] += data[i];
@@ -137,9 +140,10 @@ extractMoments (float *data, int num_elts, int num_moments)
  * =============================================================================
  */
 static void
-zscoreTransform (float** data, /* in & out: [numObjects][numAttributes] */
-                 int     numObjects,
-                 int     numAttributes)
+zscoreTransform (float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)
+                      * ARRAY START VALIDPTR SIZE_GE(4*numObjects) data, /* in & out: [numObjects][numAttributes] */
+                 int    REF(V > 0)                          numObjects,
+                 int    REF(V > 0)                       numAttributes)
 {
     float* single_variable;
     float* moments;
@@ -162,25 +166,31 @@ zscoreTransform (float** data, /* in & out: [numObjects][numAttributes] */
     free(single_variable);
 }
 
-
 /* =============================================================================
  * cluster_exec
  * =============================================================================
  */
 int
 cluster_exec (
-    //int      nthreads,             /* in: number of threads*/
-    int      numObjects,           /* number of input objects */
-    int      numAttributes,        /* size of attribute of each object */
-    float**  attributes,           /* [numObjects][numAttributes] */
-    int      use_zscore_transform,
-    int      min_nclusters,        /* testing k range from min to max */
-    int      max_nclusters,
-    float    threshold,            /* in:   */
-    int*     best_nclusters,       /* out: number between min and max */
-    float*** cluster_centres,      /* out: [best_nclusters][numAttributes] */
-    int*     cluster_assign        /* out: [numObjects] */
-)
+    //int      nthreads,              /* in: number of threads*/
+    int    REF(V > 0) numObjects,     /* number of input objects */
+    int    REF(V > 0) numAttributes,  /* size of attribute of each object */
+    float* START ARRAY VALIDPTR SIZE_GE(4*numAttributes)
+         * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /* [numObjects][numAttributes] */
+    int    use_zscore_transform,
+    int    REF(V > 0)  min_nclusters, /* testing k range from min to max */
+    int    REF(V >= min_nclusters) max_nclusters,
+    float  REF(V > 0) threshold,      /* in:   */
+    int    /*FINAL abakst: Hrm, this needs to be dealt with*/ 
+           REF(&&[V >= min_nclusters;V <= max_nclusters])     
+          *best_nclusters,     /* out: number between min and max */
+    float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes) 
+         * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*min_nclusters)
+         /* abakst: this is actually what we want:
+	    SIZE_GE(4*DEREF([best_nclusters])) */
+         * START VALIDPTR ROOM_FOR(float**) cluster_centres,    /* out: [best_nclusters][numAttributes] */
+    int*   ARRAY VALIDPTR SIZE_GE(4*numObjects) cluster_assign       /* out: [numObjects] */
+) CHECK_TYPE 
 {
     int itime;
     int nclusters;
@@ -188,7 +198,7 @@ cluster_exec (
     float** tmp_cluster_centres;
     //random_t* randomPtr;
 
-    membership = (int*)malloc(numObjects * sizeof(int));
+    membership = malloc(numObjects * sizeof(int));
     assert(membership);
 
     //randomPtr = random_alloc();
@@ -216,23 +226,23 @@ cluster_exec (
                                           membership);
                                           //randomPtr);
 
-            //if (*cluster_centres) {
-            //    free((*cluster_centres)[0]);
-            //    free(*cluster_centres);
-            //}
+	/* if (*cluster_centres) { */
+	/*   for (int i = 0; i < nclusters - 1; i++) */
+	/*     free((*cluster_centres)[i]); */
+	/*   free(*cluster_centres); */
+	/* } */
 
-            *cluster_centres = tmp_cluster_centres;
-            *best_nclusters = nclusters;
+	*cluster_centres = tmp_cluster_centres;
+	*best_nclusters = nclusters;
 
         itime++;
     } /* nclusters */
 
-    //free(membership);
+    free(membership);
     //random_free(randomPtr);
 
     return 0;
 }
-
 
 /* =============================================================================
  *
