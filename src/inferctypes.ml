@@ -78,6 +78,11 @@ type ctvemap = I.ctemap
 (******************************* Error Reporting ******************************)
 (******************************************************************************)
 
+let d_vartypes_long () vars =
+  P.docList 
+    ~sep:(P.dprintf "@!") 
+    (fun (v, ct) -> P.dprintf "%s [%t]: %a" v.C.vname (fun () -> v.C.vdescr) Ct.d_ctype ct) () vars
+
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
 
