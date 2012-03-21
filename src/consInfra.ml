@@ -103,8 +103,8 @@ let is_origcilvar v =
 
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
-             >> (Pretty.printf "scalarenv_of_fdec %s : @[%a@]\n" fdec.svar.vname Ct.d_refcfun)
-             |>  Ct.args_of_refcfun
+    (*         >> (Pretty.printf "scalarenv_of_fdec %s : @[%a@]\n" fdec.svar.vname Ct.d_refcfun)
+*)           |>  Ct.args_of_refcfun
 	         |>: (Misc.app_snd (fun c -> match c with
 				   | Ct.Ref (_,(_,reft)) ->
                       Ct.Ref (Sloc.none, (Ix.top, reft))
@@ -118,8 +118,8 @@ let scalarenv_of_fdec gnv fdec =
              |> Misc.map (FA.name_of_varinfo <*> (fun v -> FI.t_true (Ctypes.vtype_to_ctype v.Cil.vtype)))
   in
   args ++ locs
-  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n" (Ast.Symbol.to_string n) Ct.d_refctype rct)
-  |> FI.ce_adds gnv
+(*  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n" (Ast.Symbol.to_string n) Ct.d_refctype rct)
+*)  |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
