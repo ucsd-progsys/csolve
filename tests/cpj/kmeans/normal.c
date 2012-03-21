@@ -55,10 +55,10 @@ work (args_t* args, int i)
     int index;
     int j;
 
-    index = common_findNearestPoint(feature[i],
-                                    nfeatures,
-                                    clusters,
-                                    nclusters);
+    /* index = common_findNearestPoint(feature[i], */
+    /*                                 nfeatures, */
+    /*                                 clusters, */
+    /*                                 nclusters); */
     /*
      * If membership changes, increase delta by 1.
      * membership[i] cannot be changed by other threads
@@ -122,20 +122,20 @@ normal_exec (//int       nthreads,
     clusters[0] = (float*)malloc(nclusters * nfeatures * sizeof(float));
     //csolve_assert(clusters[0]);
     for (i = 1; i < nclusters; i++) {
-        clusters[i] = clusters[i-1] + nfeatures;
+      clusters[i] = malloc(nfeatures*sizeof(float));//clusters[i-1] + nfeatures;
     }
 
-    /* Randomly pick cluster centers */
-    for (i = 0; i < nclusters; i++) {
-        int n = nondet() % npoints; //(int)(random_generate(randomPtr) % npoints);
-        for (j = 0; j < nfeatures; j++) {
-            clusters[i][j] = feature[n][j];
-        }
-    }
+//    /* Randomly pick cluster centers */
+//    for (i = 0; i < nclusters; i++) {
+//        int n = nondet() % npoints; //(int)(random_generate(randomPtr) % npoints);
+//        for (j = 0; j < nfeatures; j++) {
+//            clusters[i][j] = feature[n][j];
+//        }
+//    }
 
-    foreach (i, 0, npoints)
-        membership[i] = -1;
-    endfor 
+//    foreach (i, 0, npoints)
+//        membership[i] = -1;
+//    endfor 
 
     /*
      * Need to initialize new_centers_len and new_centers[0] to all 0.
@@ -189,16 +189,16 @@ normal_exec (//int       nthreads,
 
         delta = global_delta;
 
-        /* Replace old cluster centers with new_centers */
-        for (i = 0; i < nclusters; i++) {
-            for (j = 0; j < nfeatures; j++) {
-                if (new_centers_len[i] > 0) {
-                    clusters[i][j] = new_centers[i][j] / *new_centers_len[i];
-                }
-                new_centers[i][j] = 0.0;   /* set back to 0 */
-            }
-            *new_centers_len[i] = 0;   /* set back to 0 */
-        }
+        /* /\* Replace old cluster centers with new_centers *\/ */
+        /* for (i = 0; i < nclusters; i++) { */
+        /*     for (j = 0; j < nfeatures; j++) { */
+        /*         if (new_centers_len[i] > 0) { */
+        /*             clusters[i][j] = new_centers[i][j] / *new_centers_len[i]; */
+        /*         } */
+        /*         new_centers[i][j] = 0.0;   /\* set back to 0 *\/ */
+        /*     } */
+        /*     *new_centers_len[i] = 0;   /\* set back to 0 *\/ */
+        /* } */
 
         delta /= npoints;
 

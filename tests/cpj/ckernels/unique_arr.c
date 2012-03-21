@@ -3,13 +3,14 @@
 #include <csolve.h>
 #include <stdlib.h>
 
-const int sz = 5;
+/* const int sz = 5; */
+#define sz 5
 
 typedef struct _obj obj;
 
 struct _obj {
   //int x;
-  int FINAL id;
+  int FINAL REF(V >= 0) id;
 };
 
 //int main(int argc, char ** argv)
@@ -36,20 +37,21 @@ alloc_obj(int REF(v >= 0) i)
   return o;
 }
 
-void alloc_objs(obj * /* REF(VV != 0 => VV.id = vvind) */ * START ARRAY NONNULL arr)
+void alloc_objs(obj * NNSTART NNVALIDPTR/* REF(VV != 0 => VV.id = vvind) */ * START ARRAY NONNULL arr)
 {
 //  foreach(i in 0 to sz)
 //    arr[i] = alloc_obj(i);
-  for (int i = 0; i <  sz; i++){
-    obj * o = alloc_obj(i);
-    csolve_assert (o->id == i);
+  for (int i = 0; i < sz; i++){
+    obj *o = alloc_obj(i);
+    /* csolve_assert (o->id == i); */
+    csolve_assert (o->id >= 0);
     arr[i] = o;
   }
 }
 
-obj * /* REF(VV.id = vvind) */ * START ARRAY NONNULL alloc_arr()
+obj * NNSTART NNVALIDPTR/* REF(VV.id = vvind) */ * START ARRAY NONNULL alloc_arr() 
 {
-  obj * * arr = malloc(sizeof(obj*) * sz);
+  obj **arr = malloc(sizeof(obj*) * sz);
   alloc_objs(arr);
   return arr;
 }
@@ -57,11 +59,13 @@ obj * /* REF(VV.id = vvind) */ * START ARRAY NONNULL alloc_arr()
 int main(int argc, char ** argv)
 {
   obj ** arr = alloc_arr();
-  csolve_assert (arr);
+  csolve_assert (arr != NULL);
   for (int j = 0; j < sz; j++) {
       obj * a = arr[j];
-      if (a != 0)
-        csolve_assert (arr[j]->id >= 0);
+      if (a != 0) {
+        /* csolve_assert (arr[j]->id >= 0); */
+	csolve_assert(a->id >= 0);
+      }
       //csolve_assert (arr[j]->x);
   }
 
@@ -69,7 +73,7 @@ int main(int argc, char ** argv)
 //    arr[i] -> x = i;
 
   //arr[i] :: {v: ptr(l2) | vv.id = i}
-  //l2: (0: int 
+  //l2: (0: int
 
 //  foreach(i in 0 to sz)
 //    arr[i] -> x = -i;

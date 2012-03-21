@@ -92,6 +92,7 @@
  * =============================================================================
  */
 
+#include <csolve.h>
 
 #include <assert.h>
 #include <fcntl.h>
@@ -111,7 +112,7 @@
 
 #define MAX_LINE_LENGTH 1000000 /* max input is 400000 one digit input + spaces */
 
-extern double global_time;
+extern double global_time OKEXTERN;
 
 
 /* =============================================================================
@@ -119,7 +120,7 @@ extern double global_time;
  * =============================================================================
  */
 void
-usage (char* argv0)
+usage (char * ANYREF str) //CHECK_TYPE
 {
     char* help =
         "Usage: %s [switches] -i filename\n"
@@ -130,7 +131,7 @@ usage (char* argv0)
         "       -z             : don't zscore transform data\n"
         "       -t threshold   : threshold value\n"
         "       -p nproc       : number of threads\n";
-    fprintf(stderr, help, argv0);
+    fprintf(stderr, help, str);
     exit(-1);
 }
 
@@ -139,7 +140,11 @@ usage (char* argv0)
  * main
  * =============================================================================
  */
-MAIN(argc, argv)
+int
+main (int REF(V > 0) argc, 
+      char NULLTERMSTR * STRINGPTR SIZE_GE(1) LOC(PROGRAM_NAME_LOC)
+                       * START NONNULL ARRAY SIZE(argc * 4) argv)
+  CHECK_TYPE GLOBAL(PROGRAM_NAME_LOC)
 {
     int     max_nclusters = 13;
     int     min_nclusters = 4;
@@ -165,9 +170,9 @@ MAIN(argc, argv)
     //GOTO_REAL();
 
     line = (char*)malloc(MAX_LINE_LENGTH); /* reserve memory line */
-
     //nthreads = 1;
-    while ((opt = getopt(argc,(char**)argv,"p:i:m:n:t:bz")) != EOF) {
+    while ((opt = getopt(argc, argv,"p:i:m:n:t:bz")) != EOF) {
+      CSOLVE_ASSUME(optarg != NULL);
         switch (opt) {
             case 'i': filename = optarg;
                       break;
@@ -189,43 +194,59 @@ MAIN(argc, argv)
             //          break;
         }
     }
-
-    if (filename == 0)
-        exit(1);
-        //usage((char*)argv[0]);
+    
+    if (filename == 0) {
+        usage((char*)argv[0]);
+	// CSOLVE
+	return 1;
+    }
 
     if (max_nclusters < min_nclusters) {
         fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
-        //usage((char*)argv[0]);
-        exit(1);
+        usage((char*)argv[0]);
+	// CSOLVE
+	return 1;
     }
 
     //SIM_GET_NUM_CPU(nthreads);
 
     numAttributes = 0;
     numObjects = 0;
-
+    
     /*
      * From the input file, get the numAttributes and numObjects
      */
+    //    CSOLVE_ASSUME(isBinaryFile == 0 || isBinaryFile == 1);
+#if 0
     if (isBinaryFile) {
+#endif
+#if 0
         int infile;
-        if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
+        /* if ((infile = open(filename, O_RDONLY, "0600")) == -1) { */
+        if ((infile = open(filename, O_RDONLY)) == -1) {
             fprintf(stderr, "Error: no such file (%s)\n", filename);
             exit(1);
         }
         read(infile, &numObjects, sizeof(int));
         read(infile, &numAttributes, sizeof(int));
+	
+	// CSOLVE: these are required for read. the alternative is to spec
+	// read to allow a null buffer whenever size == 0.
+	CSOLVE_ASSUME(numObjects > 0);
+	CSOLVE_ASSUME(numAttributes > 0);
 
         /* Allocate space for attributes[] and read attributes of all objects */
         buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
         assert(buf);
         attributes = (float**)malloc(numObjects * sizeof(float*));
         assert(attributes);
-        attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float));
-        assert(attributes[0]);
-        for (i = 1; i < numObjects; i++) {
-            attributes[i] = attributes[i-1] + numAttributes;
+	// CSOLVE: revisit this reorg
+        /* attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float)); */
+        /* assert(attributes[0]); */
+        /* for (i = 1; i < numObjects; i++) { */
+        for (i = 0; i < numObjects; i++) {
+	  /* attributes[i] = attributes[i-1] + numAttributes; */
+	  attributes[i] = malloc(sizeof(float *));
         }
         read(infile, buf, (numObjects * numAttributes * sizeof(float)));
         close(infile);
@@ -234,6 +255,8 @@ MAIN(argc, argv)
         if ((infile = fopen(filename, "r")) == NULL) {
             fprintf(stderr, "Error: no such file (%s)\n", filename);
             exit(1);
+	    // CSOLVE
+	    return 1;
         }
         while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
             if (strtok(line, " \t\n") != 0) {
@@ -256,10 +279,12 @@ MAIN(argc, argv)
         assert(buf);
         attributes = (float**)malloc(numObjects * sizeof(float*));
         assert(attributes);
-        attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float));
-        assert(attributes[0]);
-        for (i = 1; i < numObjects; i++) {
-            attributes[i] = attributes[i-1] + numAttributes;
+        /* attributes[0] = (float*)malloc(numObjects * numAttributes * sizeof(float)); */
+        /* assert(attributes[0]); */
+        /* for (i = 1; i < numObjects; i++) { */
+	/*   attributes[i] = (float *)((int)attributes[i-1] + numAttributes); */
+	for (i = 0; i < numObjects; i++) {
+	  attributes[i] = malloc(numAttributes * sizeof(float *));
         }
         rewind(infile);
         i = 0;
@@ -268,47 +293,55 @@ MAIN(argc, argv)
                 continue;
             }
             for (j = 0; j < numAttributes; j++) {
-                buf[i] = atof(strtok(NULL, " ,\t\n"));
+	      //CSOLVE this is unsafe! But do we care...?  buf[i] =
+	      //atof(strtok(NULL, " ,\t\n")); OK maybe that was a
+	      //little histrionic. It's not *really* unsafe because
+	      //numAttributes was determined by calling strtok in the
+	      //same way previously.
+	      char *f = strtok(NULL, " ,\t\n");
+	      if (f != NULL) {
+		float x = atof(f);
+		/* buf[i] = atof(f); */
                 i++;
+	      }
             }
         }
         fclose(infile);
     }
-
+#endif
     //TM_STARTUP(nthreads);
     //thread_startup(nthreads);
 
     /*
      * The core of the clustering
      */
-    cluster_assign = (int*)malloc(numObjects * sizeof(int));
-    assert(cluster_assign);
+    //cluster_assign = (int*)malloc(numObjects * sizeof(int));
+    //assert(cluster_assign);
 
-    nloops = 1;
-    len = max_nclusters - min_nclusters + 1;
+    // nloops = 1;
+    //len = max_nclusters - min_nclusters + 1;
 
-    for (i = 0; i < nloops; i++) {
+ //   for (i = 0; i < nloops; i++) {
         /*
          * Since zscore transform may perform in cluster() which modifies the
          * contents of attributes[][], we need to re-store the originals
          */
-        memcpy(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
+      //        memcpy(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
 
-        cluster_centres = NULL;
-        cluster_exec(//nthreads,
-                     numObjects,
-                     numAttributes,
-                     attributes,           /* [numObjects][numAttributes] */
-                     use_zscore_transform, /* 0 or 1 */
-                     min_nclusters,        /* pre-define range from min to max */
-                     max_nclusters,
-                     threshold,
-                     &best_nclusters,      /* return: number between min and max */
-                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
-                     cluster_assign);      /* return: [numObjects] cluster id for each object */
-
-    }
-
+    //        cluster_centres = NULL;
+        /* cluster_exec(//nthreads, */
+        /*              numObjects, */
+        /*              numAttributes, */
+        /*              NULL,//attributes,           /\* [numObjects][numAttributes] *\/ */
+        /*              use_zscore_transform, /\* 0 or 1 *\/ */
+        /*              min_nclusters,        /\* pre-define range from min to max *\/ */
+        /*              max_nclusters, */
+        /*              threshold, */
+        /*              &best_nclusters,      /\* return: number between min and max *\/ */
+        /*              NULL,//&cluster_centres,     /\* return: [best_nclusters][numAttributes] *\/ */
+        /*              cluster_assign);      /\* return: [numObjects] cluster id for each object *\/ */
+//    }
+#if 0
 //#ifdef GNUPLOT_OUTPUT
 //    {
 //        FILE** fptr;
@@ -387,6 +420,7 @@ MAIN(argc, argv)
 //    thread_shutdown();
 
 //    MAIN_RETURN(0);
+#endif
     return 0;
 }
 
