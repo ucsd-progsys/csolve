@@ -486,7 +486,7 @@ extern void * LOC(!L) START NONNULL SIZE(__size)
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
 extern void *calloc (size_t __nmemb, size_t __size)
-     __THROW __attribute_malloc__ __wur;
+     __THROW __attribute_malloc__ __wur OKEXTERN;
 __END_NAMESPACE_STD
 #endif
 

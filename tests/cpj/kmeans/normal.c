@@ -23,14 +23,14 @@
 double global_time = 0.0;
 
 typedef struct args {
-    float** feature;
-    int     nfeatures;
-    int     npoints;
-    int     nclusters;
-    int*    membership;
-    float** clusters;
-    int**   new_centers_len;
-    float** new_centers;
+    float * ARRAY * ARRAY feature;
+    int                   nfeatures;
+    int                   npoints;
+    int                   nclusters;
+    int * ARRAY           membership;
+    float * ARRAY * ARRAY clusters;
+    int** ARRAY           new_centers_len;
+    float * ARRAY * ARRAY new_centers;
 } args_t;
 
 float global_delta;
@@ -41,17 +41,16 @@ float global_delta;
  * =============================================================================
  */
 static void
-work (void* argPtr, int i)
+work (args_t* args, int i)
 {
-    args_t* args = (args_t*)argPtr;
-    float** feature         = args->feature;
+    float * ARRAY * ARRAY feature         = args->feature;
     int     nfeatures       = args->nfeatures;
     int     npoints         = args->npoints;
     int     nclusters       = args->nclusters;
-    int*    membership      = args->membership;
+    int * ARRAY membership  = args->membership;
     float** clusters        = args->clusters;
-    int**   new_centers_len = args->new_centers_len;
-    float** new_centers     = args->new_centers;
+    int ** ARRAY   new_centers_len = args->new_centers_len;
+    float * ARRAY * ARRAY new_centers     = args->new_centers;
     float delta = 0.0;
     int index;
     int j;
@@ -91,31 +90,36 @@ work (void* argPtr, int i)
  * normal_exec
  * =============================================================================
  */
-float**
+float * ARRAY * ARRAY
 normal_exec (//int       nthreads,
-             float**   feature,    /* in: [npoints][nfeatures] */
-             int       nfeatures,
-             int       npoints,
-             int       nclusters,
-             float     threshold,
-             int*      membership)
+             float * ARRAY * ARRAY feature,    /* in: [npoints][nfeatures] */
+             int          nfeatures,
+             int          npoints,
+             int          nclusters,
+             float        threshold,
+             int * ARRAY  membership)
 //             random_t* randomPtr) /* out: [npoints] */
+    CHECK_TYPE
 {
     int i;
     int j;
     int loop = 0;
-    int** new_centers_len; /* [nclusters]: no. of points in each cluster */
+    int * * ARRAY new_centers_len; /* [nclusters]: no. of points in each cluster */
     float delta;
-    float** clusters;      /* out: [nclusters][nfeatures] */
-    float** new_centers;   /* [nclusters][nfeatures] */
+    float * ARRAY * ARRAY clusters;      /* out: [nclusters][nfeatures] */
+    float * ARRAY * ARRAY new_centers;   /* [nclusters][nfeatures] */
     void* alloc_memory = NULL;
     args_t args;
 
+    //HACK
+    nfeatures = nondetnn ();
+    npoints   = nondetnn ();
+
     /* Allocate space for returning variable clusters[] */
     clusters = (float**)malloc(nclusters * sizeof(float*));
-    assert(clusters);
+    //csolve_assert(clusters);
     clusters[0] = (float*)malloc(nclusters * nfeatures * sizeof(float));
-    assert(clusters[0]);
+    //csolve_assert(clusters[0]);
     for (i = 1; i < nclusters; i++) {
         clusters[i] = clusters[i-1] + nfeatures;
     }
@@ -137,17 +141,31 @@ normal_exec (//int       nthreads,
      * Allocate clusters on different cache lines to reduce false sharing.
      */
     {
-        int cluster_size = sizeof(int) + sizeof(float) * nfeatures;
-        const int cacheLineSize = 32;
-        cluster_size += (cacheLineSize-1) - ((cluster_size-1) % cacheLineSize);
-        alloc_memory = calloc(nclusters, cluster_size);
+        /* JHALA: ORIGINAL CODE, crazy intermingling of int, float array
+         * inside a single block.
+         *      { int len ; float * ARRAY features } 
+         * where the size of the array is dynamic nfeatures -- i.e. dynamic
+         * would be nice to support this, but clearly requires big time
+         * deferred checks */
+        //int cluster_size = sizeof(int) + sizeof(float) * nfeatures;
+        //const int cacheLineSize = 32;
+        //cluster_size += (cacheLineSize-1) - ((cluster_size-1) % cacheLineSize);
+        //alloc_memory = calloc(nclusters, cluster_size);
+        //new_centers_len = (int**) malloc(nclusters * sizeof(int*));
+        //new_centers = (float**) malloc(nclusters * sizeof(float*));
+        ////csolve_assert(alloc_memory && new_centers && new_centers_len);
+        //for (i = 0; i < nclusters; i++) {
+        //  new_centers_len[i] = (int*)((char*)alloc_memory + cluster_size * i);
+        //  new_centers[i] = (float*)((char*)alloc_memory + cluster_size * i + sizeof(int));
+        //}
+                
         new_centers_len = (int**) malloc(nclusters * sizeof(int*));
         new_centers = (float**) malloc(nclusters * sizeof(float*));
-        assert(alloc_memory && new_centers && new_centers_len);
         for (i = 0; i < nclusters; i++) {
-            new_centers_len[i] = (int*)((char*)alloc_memory + cluster_size * i);
-            new_centers[i] = (float*)((char*)alloc_memory + cluster_size * i + sizeof(int));
+          new_centers_len[i] = (int*) malloc(sizeof(int*));
+          new_centers[i]     = (float*) malloc(nfeatures * sizeof(float*));
         }
+
     }
 
     do {

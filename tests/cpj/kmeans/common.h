@@ -87,10 +87,10 @@ common_euclidDist2 (float* pt1, float* pt2, int numdims);
  * =============================================================================
  */
 int
-common_findNearestPoint (float*  pt,        /* [nfeatures] */
-                         int     nfeatures,
-                         float** pts,       /* [npts][nfeatures] */
-                         int     npts);
+common_findNearestPoint (float * ARRAY pt,        /* [nfeatures] */
+                         int  nfeatures,
+                         float * ARRAY * ARRAY pts,       /* [npts][nfeatures] */
+                         int     npts) OKEXTERN;
 
 
 #endif /* COMMON_H */

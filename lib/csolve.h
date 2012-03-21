@@ -118,7 +118,7 @@ extern int REF(V >= 1) USE_INDEX nondetpos () OKEXTERN;
 
 extern int REF(V >= 0) USE_INDEX nondetnn () OKEXTERN;
 
-extern int REF(V >= l) REF(V < u) nondetrange (int l, int REF(l < V) u) OKEXTERN;
+extern int REF(V >= l) REF(V < u) REF(V >= 0) USE_INDEX nondetrange (int l, int REF(l < V) u) OKEXTERN;
 
 // Casts
 //char * LOC(L) STRINGPTR csolve_check_pos(char * LOC(L) VALIDPTR p) CHECK_TYPE

@@ -124,7 +124,11 @@ val new_block_reftype   : (* (Sloc.t -> Sloc.t) -> *) Ctypes.refctype -> Ctypes.
 
 val is_poly_cloc        : Ctypes.refstore -> Sloc.t -> bool
 
-val refcfun_of_cfun : Ctypes.cfun -> Ctypes.refcfun
+val refcfun_of_cfun     : Ctypes.cfun -> Ctypes.refcfun
+
+val refcspec_of_cspec   : Ctypes.cspec -> Ctypes.refspec
+
+
 val refstore_strengthen_addr :
   Cil.location ->
   cilenv ->

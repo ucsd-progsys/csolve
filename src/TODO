@@ -483,12 +483,44 @@ struct node <A0, C0> {
   struct node * <A0> right;
 }
 
-
-
-
-
 CoreUtils Notes
 ---------------
+
+dump vdescr from varinfo (what do they hold? can we get nicer errors than:
+
+tests/cpj/kmeans/normal.c
+
+--------------------------------------------------------------------------
+
+normal.c:154: Error: Expression (int *)__cil_tmp86_normal_exec has type ref(A164, {0 + 1*}), expected type ref(A219, {0})
+
+normal.c:154: Error: Exception (Errormsg.Error) 
+Failed constraining instruction:
+#line 154
+*((int **)mem_41_normal_exec) = (int *)__cil_tmp86_normal_exec;
+
+--------------------------------------------------------------------------
+
+normal.c:154: Error: Failed constrain_fun
+
+
+tests/cpj/kmeans/normal.c
+ 
+     line 46:   float * ARRAY * ARRAY feature         = args->feature;
+
+have already declared the ARRAY ARRAY in args_t why again?!
+
+--------------------------------------------------------------------------
+
+normal.c:186: Error: Failed constrain_fun
+
+normal.c:186: Error: Location mismatch:
+A12[] |-> {0 + 4*}: int(4, {true})
+is not included in
+A16[] |-> {0}: int(4, {true})
+
+
+
 
 Tedious Error Messages.
 

@@ -103,22 +103,22 @@ let is_origcilvar v =
 
 let scalarenv_of_fdec gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
-             |> Ct.args_of_refcfun
-	     |> List.map (Misc.app_snd (fun c -> match c with
-					| Ct.Ref (_,(_,reft)) ->
-					    Ct.Ref (Sloc.none, (Ix.top, reft))
-					| _ -> c))
-             |> List.map (FA.name_of_string <**> FI.t_scalar_refctype) 
+             >> (Pretty.printf "scalarenv_of_fdec %s : @[%a@]\n" fdec.svar.vname Ct.d_refcfun)
+             |>  Ct.args_of_refcfun
+	         |>: (Misc.app_snd (fun c -> match c with
+				   | Ct.Ref (_,(_,reft)) ->
+                      Ct.Ref (Sloc.none, (Ix.top, reft))
+                   | Ct.Int (w, (_, reft)) ->
+                      Ct.Int (w, (Ix.top, reft))
+                   | _ -> c))
+             |>: (FA.name_of_string <**> FI.t_scalar_refctype) 
   in
   let locs = fdec.slocals
              |> List.filter is_origcilvar 
-             |> Misc.map
-		 (FA.name_of_varinfo <*>
-		 (fun v -> FI.t_true (Ctypes.vtype_to_ctype v.Cil.vtype)))
+             |> Misc.map (FA.name_of_varinfo <*> (fun v -> FI.t_true (Ctypes.vtype_to_ctype v.Cil.vtype)))
   in
   args ++ locs
-(*  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n"
-  (Ast.Symbol.to_string n) Ct.d_refctype rct) *)
+  >> List.iter (fun (n,rct) -> ignore <| Pretty.printf "scalarenv_of_fdec: %s := %a \n" (Ast.Symbol.to_string n) Ct.d_refctype rct)
   |> FI.ce_adds gnv
 
 let env_of_fdec shp gnv fdec =

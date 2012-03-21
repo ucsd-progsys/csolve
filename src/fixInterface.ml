@@ -166,6 +166,7 @@ and refctype_of_ctype f = function
   | Ct.Any   -> Ct.Any  
 and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
+let refcspec_of_cspec s = It.Spec.map (refctype_of_ctype (fun _ -> [])) s
 
 let is_base = function
   | TInt _ -> true
