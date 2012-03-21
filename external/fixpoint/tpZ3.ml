@@ -96,6 +96,7 @@ let nb_unsatLHS         = ref 0
 (* let iofb_n = Sy.of_string "_IOFB" *)
 let div_n  = Sy.of_string "_DIV"
 let tag_n  = Sy.of_string "_TAG"
+let mul_n  = Sy.of_string "_MUL"
 
 let axioms = []
 (* THESE CAUSE Z3 to SEG-FAULT (tests/t6.fq), 
@@ -114,6 +115,7 @@ let builtins =
   SM.empty 
   |> SM.add tag_n  (So.t_func 0 [So.t_obj; So.t_int])
   |> SM.add div_n  (So.t_func 0 [So.t_int; So.t_int; So.t_int]) 
+  |> SM.add mul_n  (So.t_func 0 [So.t_int; So.t_int; So.t_int]) 
 (*|> SM.add iofb_n (So.Func (0, [So.Bool; So.Int])) *)
 (*|> SM.add bofi_n (So.Func (0, [So.Int; So.Bool])) *)
 
@@ -231,6 +233,16 @@ and z3App me env p zes =
   let cf = z3Fun me env p t (List.length zes) in
   Z3.mk_app me.c cf (Array.of_list zes)
 
+
+and z3Mul me env = function
+  | ((A.Con (A.Constant.Int i), _), e) 
+  | (e, (A.Con (A.Constant.Int i), _)) ->
+      Z3.mk_mul me.c [|(Z3.mk_int me.c i me.tint); (z3Exp me env e)|] 
+  | (e1, e2) when !Co.uif_multiply -> 
+      z3App me env mul_n (List.map (z3Exp me env) [e1; e2])
+  | (e1, e2) -> 
+      Z3.mk_mul me.c (Array.map (z3Exp me env) [| e1; e2 |])
+
 and z3Exp me env = function
   | A.Con (A.Constant.Int i), _ -> 
       Z3.mk_int me.c i me.tint 
@@ -245,7 +257,7 @@ and z3Exp me env = function
   | A.Bin((A.Con (A.Constant.Int n1), _), A.Times, (A.Con (A.Constant.Int n2), _)),_ ->
       Z3.mk_int me.c (n1 * n2) me.tint
   | A.Bin (e1, A.Times, e2), _ ->
-      Z3.mk_mul me.c (Array.map (z3Exp me env) [|e1; e2|])
+      z3Mul me env (e1, e2)
   | A.Bin (e1, A.Div, e2), _ -> 
       z3App me env div_n (List.map (z3Exp me env) [e1;e2])
   | A.Bin (e, A.Mod, (A.Con (A.Constant.Int i), _)), _ ->

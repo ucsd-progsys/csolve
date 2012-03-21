@@ -84,6 +84,9 @@ let check_is      = ref false           (* -check-indices *)
 let trace_scalar  = ref false           (* -trace-scalar *)
 let prune_index   = ref false           (* -prune-index *)  
 
+(* TODO: MAKE THIS DEFAULT after REGRTESTING *)
+let uif_multiply  = ref false           (* -uif-multiply *) 
+
 (****************************************************************)
 (************* Output levels ************************************)
 (****************************************************************)
@@ -334,7 +337,13 @@ let arg_spec =
    ("-prunelive",
     Arg.Set prune_live,
     " Restrict liquid types to live variables (experimental)"
-   ); 
+   );
+   ("-uif-multiply",
+    Arg.Set uif_multiply,
+    " Encode non-linear multiplication with UIFs (experimental)"
+   );
+
+
    ("-simp",
     Arg.String ((:=) dump_simp),
     " print simplified constraints to save-file (experimental) use [andrey] or [jhala] or [id]"
