@@ -111,8 +111,22 @@
 
 #define MAX_LINE_LENGTH 1000000 /* max input is 400000 one digit input + spaces */
 
-extern double global_time;
+extern double global_time OKEXTERN;
 
+// pmr: Stub for polymorphic memcpy
+extern void *pmr_memcpy_float (float * ARRAY SIZE_GE(n) dest,
+                               float * ARRAY SIZE_GE(n) src,
+                               size_t REF(V >= 0) n) OKEXTERN;
+
+// pmr: stub for polymorphic read
+extern ssize_t pmr_read_int (int __fd,
+                             int * ARRAY SIZE_GE(__nbytes) __buf,
+                             size_t REF(V >= 0) __nbytes) __wur OKEXTERN;
+
+// pmr: stub for polymorphic read
+extern ssize_t pmr_read_floats (int __fd,
+                                float * ARRAY SIZE_GE(__nbytes) __buf,
+                                size_t REF(V >= 0) __nbytes) __wur OKEXTERN;
 
 /* =============================================================================
  * usage
@@ -139,13 +153,15 @@ usage (char* argv0)
  * main
  * =============================================================================
  */
-MAIN(argc, argv)
+int
+main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SIZE(argc * 4) argv)
+  CHECK_TYPE
 {
     int     max_nclusters = 13;
     int     min_nclusters = 4;
     char*   filename = 0;
-    float*  buf;
-    float** attributes;
+    float* ARRAY  buf;
+    float* ARRAY * attributes;
     float** cluster_centres = NULL;
     int     i;
     int     j;
@@ -210,12 +226,14 @@ MAIN(argc, argv)
      */
     if (isBinaryFile) {
         int infile;
-        if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
+        // pmr: Original
+        // if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
+        if ((infile = open(filename, O_RDONLY)) == -1) {
             fprintf(stderr, "Error: no such file (%s)\n", filename);
             exit(1);
         }
-        read(infile, &numObjects, sizeof(int));
-        read(infile, &numAttributes, sizeof(int));
+        pmr_read_int(infile, &numObjects, sizeof(int));
+        pmr_read_int(infile, &numAttributes, sizeof(int));
 
         /* Allocate space for attributes[] and read attributes of all objects */
         buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
@@ -227,7 +245,7 @@ MAIN(argc, argv)
         for (i = 1; i < numObjects; i++) {
             attributes[i] = attributes[i-1] + numAttributes;
         }
-        read(infile, buf, (numObjects * numAttributes * sizeof(float)));
+        pmr_read_floats(infile, buf, (numObjects * numAttributes * sizeof(float)));
         close(infile);
     } else {
         FILE *infile;
@@ -292,44 +310,44 @@ MAIN(argc, argv)
          * Since zscore transform may perform in cluster() which modifies the
          * contents of attributes[][], we need to re-store the originals
          */
-        memcpy(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
+        pmr_memcpy_float(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
 
         cluster_centres = NULL;
-        cluster_exec(//nthreads,
-                     numObjects,
-                     numAttributes,
-                     attributes,           /* [numObjects][numAttributes] */
-                     use_zscore_transform, /* 0 or 1 */
-                     min_nclusters,        /* pre-define range from min to max */
-                     max_nclusters,
-                     threshold,
-                     &best_nclusters,      /* return: number between min and max */
-                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
-                     cluster_assign);      /* return: [numObjects] cluster id for each object */
+//        cluster_exec(//nthreads,
+//                     numObjects,
+//                     numAttributes,
+//                     attributes,           /* [numObjects][numAttributes] */
+//                     use_zscore_transform, /* 0 or 1 */
+//                     min_nclusters,        /* pre-define range from min to max */
+//                     max_nclusters,
+//                     threshold,
+//                     &best_nclusters,      /* return: number between min and max */
+//                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
+//                     cluster_assign);      /* return: [numObjects] cluster id for each object */
 
     }
 
-//#ifdef GNUPLOT_OUTPUT
-//    {
-//        FILE** fptr;
-//        char outFileName[1024];
-//        fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
-//        for (i = 0; i < best_nclusters; i++) {
-//            sprintf(outFileName, "group.%d", i);
-//            fptr[i] = fopen(outFileName, "w");
-//        }
-//        for (i = 0; i < numObjects; i++) {
-//            fprintf(fptr[cluster_assign[i]],
-//                    "%6.4f %6.4f\n",
-//                    attributes[i][0],
-//                    attributes[i][1]);
-//        }
-//        for (i = 0; i < best_nclusters; i++) {
-//            fclose(fptr[i]);
-//        }
-//        free(fptr);
-//    }
-//#endif /* GNUPLOT_OUTPUT */
+#ifdef GNUPLOT_OUTPUT
+    {
+        FILE** fptr;
+        char outFileName[1024];
+        fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
+        for (i = 0; i < best_nclusters; i++) {
+            sprintf(outFileName, "group.%d", i);
+            fptr[i] = fopen(outFileName, "w");
+        }
+        for (i = 0; i < numObjects; i++) {
+            fprintf(fptr[cluster_assign[i]],
+                    "%6.4f %6.4f\n",
+                    attributes[i][0],
+                    attributes[i][1]);
+        }
+        for (i = 0; i < best_nclusters; i++) {
+            fclose(fptr[i]);
+        }
+        free(fptr);
+    }
+#endif /* GNUPLOT_OUTPUT */
 
 #ifdef OUTPUT_TO_FILE
     {
@@ -374,11 +392,11 @@ MAIN(argc, argv)
 
     printf("Time: %lg seconds\n", global_time);
 
-    free(cluster_assign);
-    free(attributes);
-    free(cluster_centres[0]);
-    free(cluster_centres);
-    free(buf);
+    // free(cluster_assign);
+    // free(attributes);
+    // free(cluster_centres[0]);
+    // free(cluster_centres);
+    // free(buf);
 
 //    TM_SHUTDOWN();
 
