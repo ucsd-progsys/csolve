@@ -95,6 +95,16 @@ let nonnullPred = A.pAtom (evv, A.Gt, A.eInt 0)
 
 let eqBlockBeginPred = A.pAtom (evv, A.Eq, FA.eApp_bbegin evv)
 
+let hasRoomPredsOfAttrs tbo ats =
+  match tbo with None -> [] | Some tb -> 
+    FixMisc.map_partial begin function 
+      | C.Attr (an, _) when an = CM.hasRoomAttribute ->
+          Some (roomForPred tb)
+      | C.Attr (an, _) when an = CM.nonnullHasRoomAttribute ->
+          Some (nonnullRoomForPred tb)
+      | _ -> None
+    end ats
+
 let roomForPredsOfAttrs ats =
       ats
   |>  List.filter (function C.Attr (an, _) -> an = CM.roomForAttribute || an = CM.nonnullRoomForAttribute)
@@ -115,11 +125,14 @@ let rawPredsOfAttrs ats =
   |>: predOfString
 
 let pointerLayoutAttributes =
-  [CM.arrayAttribute;
-   CM.predAttribute;
-   CM.roomForAttribute;
-   CM.nonnullRoomForAttribute;
-   CM.ignoreBoundAttribute]
+  [ CM.arrayAttribute
+  ; CM.predAttribute
+  ; CM.roomForAttribute
+  ; CM.nonnullRoomForAttribute
+  ; CM.hasRoomAttribute
+  ; CM.nonnullHasRoomAttribute
+  ; CM.ignoreBoundAttribute
+  ]
 
 let hasOneAttributeOf of_ats ats =
   List.exists (M.flip C.hasAttribute ats) of_ats
@@ -142,10 +155,15 @@ let defaultFptrPredsOfAttrs tbo ats = match tbo with
   | _ -> []
   
 let predOfAttrs tbo ats =
-  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultPredsOfAttrs tbo ats)
+  A.pAnd (rawPredsOfAttrs ats         ++ 
+          roomForPredsOfAttrs ats     ++ 
+          hasRoomPredsOfAttrs tbo ats ++
+          defaultPredsOfAttrs tbo ats)
 
 let fptrPredOfAttrs tbo ats =
-  A.pAnd (rawPredsOfAttrs ats ++ roomForPredsOfAttrs ats ++ defaultFptrPredsOfAttrs tbo ats)
+  A.pAnd (rawPredsOfAttrs ats     ++ 
+          roomForPredsOfAttrs ats ++ 
+          defaultFptrPredsOfAttrs tbo ats)
     
 let ptrIndexOfPredAttrs tb pred ats =
   let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in

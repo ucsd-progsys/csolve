@@ -36,7 +36,7 @@
 #define USE_INDEX          CSOLVE_ATTR (csolve_use_index)
 #define ANYREF             CSOLVE_ATTR (csolve_any_ref)
 #define ANY                CSOLVE_ATTR (csolve_any_type)
-
+#define NULL               CSOLVE_ATTR (csolve_null_or_ok)
 #define FINAL              CSOLVE_ATTR (csolve_final)
 #define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
 #define GLOBAL(l)          CSOLVE_ATTR (csolve_global_loc (#l))
@@ -44,9 +44,12 @@
 #define CHECK_TYPE         CSOLVE_ATTR (csolve_check_type)
 
 #define INST(l, k)         CSOLVE_ATTR (csolve_inst_sloc (#l, #k))
-
 #define ROOM_FOR(t)        CSOLVE_ATTR (csolve_room_for (sizeof(t)))
 #define NNROOM_FOR(t)      CSOLVE_ATTR (csolve_nonnull_room_for (sizeof(t)))
+
+#define HASROOM            CSOLVE_ATTR (csolve_has_room)
+#define NNHASROOM          CSOLVE_ATTR (csolve_nonnull_has_room)
+
 
 #define EFFECT(l, p)       CSOLVE_ATTR (csolve_effect (#l, #p))
 
@@ -71,6 +74,8 @@
 #define STRINGPTR         ARRAY VALIDPTR
 #define NNSTRINGPTR       ARRAY NNVALIDPTR
 #define ARRAYSTART        ARRAY START VALIDPTR
+#define OK                START VALIDPTR HASROOM
+#define NNOK              NNSTART NNVALIDPTR NNHASROOM          
 
 #define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
 
