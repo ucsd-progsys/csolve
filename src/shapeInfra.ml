@@ -46,10 +46,10 @@ let rec typealias_attrs: C.typ -> C.attributes = function
 let fresh_heaptype (t: C.typ): ctype =
   let ats1 = typealias_attrs t in
     match C.unrollType t with
-      | C.TInt (ik, _)                           -> Int (C.bytesSizeOfInt ik, N.top)
-      | C.TEnum (ei, _)                          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
-      | C.TFloat _                               -> Int (CM.typ_width t, N.top)
-      | C.TVoid _                                -> void_ctype
+      | C.TInt (ik, _)           -> Int (C.bytesSizeOfInt ik, N.top)
+      | C.TEnum (ei, _)          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
+      | C.TFloat _               -> Int (CM.typ_width t, N.top)
+      | C.TVoid _                -> void_ctype
       | C.TPtr (C.TFun _ as f,_) ->
         let fspec = Typespec.preRefcfunOfType f in
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
@@ -159,10 +159,10 @@ class exprTyper (ve,fe) = object (self)
   method private ctype_of_cast ct e =
     let ctv = self#ctype_of_exp e in
       match C.unrollType ct, C.unrollType <| C.typeOf e with
-        | C.TInt (ik, _), C.TPtr _     -> Int (C.bytesSizeOfInt ik, Index.nonneg)
-        | C.TInt (ik, _), C.TFloat _   -> Int (C.bytesSizeOfInt ik, Index.top)
-        | C.TFloat (fk, _), _          -> Int (CM.bytesSizeOfFloat fk, Index.top)
-        | C.TInt (ik, _), C.TInt _     ->
+        | C.TInt (ik, _), C.TPtr _   -> Int (C.bytesSizeOfInt ik, Index.nonneg)
+        | C.TInt (ik, _), C.TFloat _ -> Int (C.bytesSizeOfInt ik, Index.top)
+        | C.TFloat (fk, _), _        -> Int (CM.bytesSizeOfFloat fk, Index.top)
+        | C.TInt (ik, _), C.TInt _   ->
           begin match ctv with
             | Int (n, ie) ->
               let iec =
