@@ -160,7 +160,7 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
     int     max_nclusters = 13;
     int     min_nclusters = 4;
     char*   filename = 0;
-    float* ARRAY  buf;
+    float* buf;
     float* ARRAY * attributes;
     float** cluster_centres = NULL;
     int     i;
@@ -189,11 +189,14 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
                       break;
             case 'b': isBinaryFile = 1;
                       break;
-            case 't': threshold = atof(optarg);
+            case 't': CSOLVE_ASSUME (optarg);
+                      threshold = atof(optarg);
                       break;
-            case 'm': max_nclusters = atoi(optarg);
+            case 'm': CSOLVE_ASSUME (optarg);
+                      max_nclusters = atoi(optarg);
                       break;
-            case 'n': min_nclusters = atoi(optarg);
+            case 'n': CSOLVE_ASSUME (optarg);
+                      min_nclusters = atoi(optarg);
                       break;
             case 'z': use_zscore_transform = 0;
                       break;
@@ -206,8 +209,10 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         }
     }
 
-    if (filename == 0)
+    if (filename == 0) {
         exit(1);
+        return 0;
+    }
         //usage((char*)argv[0]);
 
     if (max_nclusters < min_nclusters) {
@@ -235,6 +240,10 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         pmr_read_int(infile, &numObjects, sizeof(int));
         pmr_read_int(infile, &numAttributes, sizeof(int));
 
+        // pmr: Annotated, but these are a contract
+        CSOLVE_ASSUME (numObjects > 0);
+        CSOLVE_ASSUME (numAttributes > 0);
+
         /* Allocate space for attributes[] and read attributes of all objects */
         buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
         assert(buf);
@@ -252,6 +261,7 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         if ((infile = fopen(filename, "r")) == NULL) {
             fprintf(stderr, "Error: no such file (%s)\n", filename);
             exit(1);
+            return 0;
         }
         while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
             if (strtok(line, " \t\n") != 0) {
@@ -313,17 +323,17 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         pmr_memcpy_float(attributes[0], buf, (numObjects * numAttributes * sizeof(float)));
 
         cluster_centres = NULL;
-//        cluster_exec(//nthreads,
-//                     numObjects,
-//                     numAttributes,
-//                     attributes,           /* [numObjects][numAttributes] */
-//                     use_zscore_transform, /* 0 or 1 */
-//                     min_nclusters,        /* pre-define range from min to max */
-//                     max_nclusters,
-//                     threshold,
-//                     &best_nclusters,      /* return: number between min and max */
-//                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
-//                     cluster_assign);      /* return: [numObjects] cluster id for each object */
+        cluster_exec(//nthreads,
+                     numObjects,
+                     numAttributes,
+                     attributes,           /* [numObjects][numAttributes] */
+                     use_zscore_transform, /* 0 or 1 */
+                     min_nclusters,        /* pre-define range from min to max */
+                     max_nclusters,
+                     threshold,
+                     &best_nclusters,      /* return: number between min and max */
+                     &cluster_centres,     /* return: [best_nclusters][numAttributes] */
+                     cluster_assign);      /* return: [numObjects] cluster id for each object */
 
     }
 
