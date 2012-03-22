@@ -10,12 +10,14 @@ int main(){
   char * ghost0    = (char *)  malloc(dimx * dimy * sizeof(char));
 
   char * ghost = ghost0;
-  
+ 
+
   int i = 0;
 
   CSOLVE_ASSUME (0 <= (i * dimy));
   CSOLVE_ASSUME (ghost == ghost0 + (i * dimy));
  
+  
   // Also works
   for (int i = 0; i < dimx; i++){
     csolve_assert(ghost == ghost0 + (i * dimy)); 

@@ -33,6 +33,7 @@
 #define ARRAY              CSOLVE_ATTR (array)
 #define SHAPE_IGNORE_BOUND CSOLVE_ATTR (csolve_ignore_bound)
 #define IGNORE_INDEX       CSOLVE_ATTR (csolve_ignore_index)
+#define IGNORE_REF_INDEX   IGNORE_INDEX REF(0 = 0) 
 #define USE_INDEX          CSOLVE_ATTR (csolve_use_index)
 #define ANYREF             CSOLVE_ATTR (csolve_any_ref)
 #define ANY                CSOLVE_ATTR (csolve_any_type)
@@ -42,7 +43,6 @@
 #define GLOBAL(l)          CSOLVE_ATTR (csolve_global_loc (#l))
 #define OKEXTERN           CSOLVE_ATTR (csolve_extern_ok)
 #define CHECK_TYPE         CSOLVE_ATTR (csolve_check_type)
-
 #define INST(l, k)         CSOLVE_ATTR (csolve_inst_sloc (#l, #k))
 #define ROOM_FOR(t)        CSOLVE_ATTR (csolve_room_for (sizeof(t)))
 #define NNROOM_FOR(t)      CSOLVE_ATTR (csolve_nonnull_room_for (sizeof(t)))
@@ -76,6 +76,7 @@
 #define ARRAYSTART        ARRAY START VALIDPTR
 #define OK                START VALIDPTR HASROOM
 #define NNOK              NNSTART NNVALIDPTR NNHASROOM          
+#define SOMEPTR           REF(0 = 0)
 
 #define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
 
@@ -106,9 +107,9 @@ extern void csolve_validptr_hi (void * REF(PVALIDHI) IGNORE_INDEX) OKEXTERN;
 
 extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
 
-extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void * IGNORE_INDEX p) OKEXTERN;
+extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void * IGNORE_REF_INDEX p) OKEXTERN;
 
-extern void * REF(V = BLOCK_END([p])) csolve_block_end (void * IGNORE_INDEX p) OKEXTERN;
+extern void * REF(V = BLOCK_END([p])) csolve_block_end (void * IGNORE_REF_INDEX p) OKEXTERN;
 
 extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
@@ -132,5 +133,10 @@ extern int REF(&& [V >= a; V >= b; V >= 0; V <= a + b]) bor (int REF(V >= 0) a, 
 extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
 
 extern int REF(&& [V < m; V >= 0; V <= a]) csolve_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
+
+extern int REF(&& [ (V = (x * y)); (V = (y * x)); V > 0 ; V > x; V > y; (((x * y) + y) = ((x + 1) * y)); (((x * y) + x) = (x * (y + 1)))]) csolve_times (int REF(V > 0) IGNORE_INDEX x, int REF(V > 0) IGNORE_INDEX y) OKEXTERN;
+
+
+
 
 #endif
