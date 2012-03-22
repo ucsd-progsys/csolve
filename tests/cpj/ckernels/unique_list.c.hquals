@@ -1,0 +1,2 @@
+qualif SZ(v: ptr) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 12
+qualif EQDEREF(v:ptr) : (v != 0) => ((4 * (DEREF([v]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))

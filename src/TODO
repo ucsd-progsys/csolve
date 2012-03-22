@@ -1,6 +1,23 @@
 PENDING
 =======
 
+Failed 10 tests: ../tests/postests/adpcm.c,
+../tests/postests/coreutils/dirname.sh,
+../tests/postests/coreutils/echo.sh,
+../tests/postests/coreutils/hostname.sh,
+../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
+../tests/postests/coreutils/sum.sh, ../tests/postests/cpj/idea_test.c,
+../tests/postests/cpj/parallel_for.c, ../tests/postests/full_adpcm.sh
+
+Exceptions thrown on 10 tests: ../tests/postests/adpcm.c,
+../tests/postests/coreutils/dirname.sh,
+../tests/postests/coreutils/echo.sh,
+../tests/postests/coreutils/hostname.sh,
+../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
+../tests/postests/coreutils/sum.sh, ../tests/postests/cpj/idea_test.c,
+../tests/postests/cpj/parallel_for.c, ../tests/postests/full_adpcm.sh
+
+
 * HEREHEREHERE get coreutils working with cex/infertypes
     > do benchmarks on coreutils
 

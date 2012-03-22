@@ -78,6 +78,11 @@ type ctvemap = I.ctemap
 (******************************* Error Reporting ******************************)
 (******************************************************************************)
 
+let d_vartypes_long () vars =
+  P.docList 
+    ~sep:(P.dprintf "@!") 
+    (fun (v, ct) -> P.dprintf "%s [%t]: %a" v.C.vname (fun () -> v.C.vdescr) Ct.d_ctype ct) () vars
+
 let d_vartypes () vars =
   P.docList ~sep:(P.dprintf "@!") (fun (v, ct) -> P.dprintf "%s: %a" v.C.vname Ct.d_ctype ct) () vars
 
@@ -464,7 +469,7 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
   with LocationMismatch (l1, ld1, l2, ld2) ->
     let _ = failure_dump sub ve store in
     let _ = flush stdout; flush stderr in
-      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a@!@!"
                S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
 let fref_lookup args v = function

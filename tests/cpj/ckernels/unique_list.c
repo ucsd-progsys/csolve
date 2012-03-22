@@ -1,4 +1,6 @@
 //testing contextual types for object uniqueness
+#include <csolve.h>
+#include <stdlib.h>
 
 extern const int sz;
 
@@ -8,6 +10,12 @@ struct _list {
   int x;
   list * n;
   int FINAL id;
+}
+
+list* alloc_node(int i)
+{
+ list* o = malloc(sizeof(list)); 
+ o.id = i;
 }
 
 int main(int argc, char ** argv)
@@ -23,12 +31,5 @@ int main(int argc, char ** argv)
     cur->next = alloc_node(i); 
     //cur :: { v: ptr(l1,.) | v.id = i}
     //l1 -> (4: {v: ptr(l2,.) | v = NULL || v.id = i + 1 ^ v != vvaddr - 4})
-  cut -> next = null;
-}
-
-
-list* alloc_node(int i)
-{
- list* o = malloc(sizeof(list)); 
- o.id = i;
+  cur -> next = null;
 }
