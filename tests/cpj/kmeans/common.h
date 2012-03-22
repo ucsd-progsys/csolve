@@ -63,6 +63,7 @@
  * =============================================================================
  */
 
+#include <csolve.h>
 
 #ifndef COMMON_H
 #define COMMON_H 1
@@ -72,6 +73,7 @@
 #  define FLT_MAX 3.40282347e+38
 #endif
 
+#define FTUPLE(n) ARRAY START VALIDPTR SIZE_GE(4*(n))
 
 /* =============================================================================
  * common_euclidDist2
@@ -79,7 +81,9 @@
  * =============================================================================
  */
 float
-common_euclidDist2 (float* pt1, float* pt2, int numdims);
+common_euclidDist2 (float* FTUPLE(numdims) pt1, 
+                    float* FTUPLE(numdims) pt2, 
+                    int    REF(V >= 0)     numdims); 
 
 
 /* =============================================================================
@@ -87,11 +91,11 @@ common_euclidDist2 (float* pt1, float* pt2, int numdims);
  * =============================================================================
  */
 int
-common_findNearestPoint (float * ARRAY pt,        /* [nfeatures] */
-                         int  nfeatures,
-                         float * ARRAY * ARRAY pts,       /* [npts][nfeatures] */
-                         int     npts) OKEXTERN;
-
+common_findNearestPoint (float*  FTUPLE(nfeatures) pt,        /* [nfeatures] */
+                         int     REF(V >= 0) nfeatures,
+                         float*  FTUPLE(nfeatures) 
+                              *  FTUPLE(npts) pts,       /* [npts][nfeatures] */
+                         int     REF(V >= 0) npts);
 
 #endif /* COMMON_H */
 

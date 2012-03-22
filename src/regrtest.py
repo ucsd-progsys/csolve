@@ -93,4 +93,4 @@ parser.disable_interspersed_args()
 options, args = parser.parse_args()
 
 runner = rtest.TestRunner (Config (options.opts, testdirs, logfile, options.threadcount))
-runner.run ()
+exit (runner.run ())

@@ -63,6 +63,7 @@
  * =============================================================================
  */
 
+#include <csolve.h>
 
 #include "common.h"
 
@@ -73,7 +74,10 @@
  * =============================================================================
  */
 float
-common_euclidDist2 (float* pt1, float* pt2, int numdims)
+common_euclidDist2 (float* FTUPLE(numdims) pt1, 
+                    float* FTUPLE(numdims) pt2, 
+                    int    REF(V >= 0)     numdims) 
+  CHECK_TYPE
 {
     int i;
     float ans = 0.0F;
@@ -91,10 +95,12 @@ common_euclidDist2 (float* pt1, float* pt2, int numdims)
  * =============================================================================
  */
 int
-common_findNearestPoint (float*  pt,        /* [nfeatures] */
-                         int     nfeatures,
-                         float** pts,       /* [npts][nfeatures] */
-                         int     npts)
+common_findNearestPoint (float*  ARRAY START VALIDPTR SIZE_GE(nfeatures*4) pt,        /* [nfeatures] */
+                         int     REF(V >= 0) nfeatures,
+                         float* ARRAY START VALIDPTR SIZE_GE(nfeatures*4) 
+                              * ARRAY START VALIDPTR SIZE_GE(npts*4) pts,       /* [npts][nfeatures] */
+                         int     REF(V >= 0) npts)
+  CHECK_TYPE
 {
     int index = -1;
     int i;

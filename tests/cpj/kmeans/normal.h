@@ -73,23 +73,25 @@
 
 
 extern double global_parallelTime;
-#define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*(n))
+#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
+#define NNINTARR NNFLOATARR
 
 
 /* =============================================================================
  * normal_exec
  * =============================================================================
  */
-float* FLOATARR(nfeatures) * FLOATARR(nclusters) 
+float* FLOATARR(nfeatures*nclusters)* START FLOATARR(nclusters)
 normal_exec (//int       nthreads,
-	     float *FLOATARR(nfeatures) 
-	           *FLOATARR(npoints)   feature, /* in: [npoints][nfeatures] */ 
-	     int    REF(V > 0)          nfeatures,
-	     int    REF(V > 0)          npoints,
-	     int    REF(V > 0)          nclusters,
-             float  REF(V > 0)          threshold,
-             int  * ARRAY NNVALIDPTR NNSTART SIZE_GE(4*npoints) 
-                                        membership) OKEXTERN;
+	     float *FLOATARR(nfeatures*npoints)
+	           *START FLOATARR(npoints)   feature,/* 
+						       * in:[npoints][nfeatures]
+                                                       */ 
+	     int    REF(V > 0)                nfeatures,
+	     int    REF(V > 0)                npoints,
+	     int    REF(V > 0)                nclusters,
+             float  REF(V > 0)                threshold,
+             int   *NNSTART NNINTARR(npoints) membership) OKEXTERN;
              //random_t* randomPtr); /* out: [npoints] */
 #endif /* NORMAL_H */
 
