@@ -1,3 +1,10 @@
+// pmr: TODO
+// - Pare down assumptions
+// - A lot of code is ifdef'd out - bring it back in?
+// - Why were frees commented?
+// - Some code was commented to begin with - what was that?
+// - Diff against original checkin
+
 /* =============================================================================
  *
  * kmeans.c
@@ -119,11 +126,6 @@ extern void *pmr_memcpy_float (float * ARRAY SIZE_GE(n) dest,
                                size_t REF(V >= 0) n) OKEXTERN;
 
 // pmr: stub for polymorphic read
-extern ssize_t pmr_read_int (int __fd,
-                             int * ARRAY SIZE_GE(__nbytes) __buf,
-                             size_t REF(V >= 0) __nbytes) __wur OKEXTERN;
-
-// pmr: stub for polymorphic read
 extern ssize_t pmr_read_floats (int __fd,
                                 float * ARRAY SIZE_GE(__nbytes) __buf,
                                 size_t REF(V >= 0) __nbytes) __wur OKEXTERN;
@@ -237,12 +239,14 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
             fprintf(stderr, "Error: no such file (%s)\n", filename);
             exit(1);
         }
-        pmr_read_int(infile, &numObjects, sizeof(int));
-        pmr_read_int(infile, &numAttributes, sizeof(int));
 
-        // pmr: Annotated, but these are a contract
-        CSOLVE_ASSUME (numObjects > 0);
-        CSOLVE_ASSUME (numAttributes > 0);
+        // pmr: These were originally reads, changed to nondets,
+        // must be positive by contract
+        numObjects    = nondetpos ();
+        numAttributes = nondetpos ();
+
+        CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
+        CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
 
         /* Allocate space for attributes[] and read attributes of all objects */
         buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
@@ -278,6 +282,14 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
                 break;
             }
         }
+
+        // pmr: Contract
+        CSOLVE_ASSUME (numAttributes > 0);
+        CSOLVE_ASSUME (numObjects > 0);
+
+        // pmr: Prod z3
+        CSOLVE_ASSUME (numObjects * numAttributes > numObjects);
+        CSOLVE_ASSUME (numObjects * numAttributes > numAttributes);
 
         /* Allocate space for attributes[] and read attributes of all objects */
         buf = (float*)malloc(numObjects * numAttributes * sizeof(float));
