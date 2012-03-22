@@ -68,28 +68,32 @@
 #ifndef NORMAL_H
 #define NORMAL_H 1
 
-
+#include <csolve.h>
 //#include "random.h"
 
 
 extern double global_parallelTime;
+#define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*(n))
+#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
+#define NNINTARR NNFLOATARR
 
 
 /* =============================================================================
  * normal_exec
  * =============================================================================
  */
-float**
+float* FLOATARR(nfeatures*nclusters)* START FLOATARR(nclusters)
 normal_exec (//int       nthreads,
-             float**   feature,    /* in: [npoints][nfeatures] */
-             int       nfeatures,
-             int       npoints,
-             int       nclusters,
-             float     threshold,
-             int*      membership);
+	     float *FLOATARR(nfeatures*npoints)
+	           *START FLOATARR(npoints)   feature,/* 
+						       * in:[npoints][nfeatures]
+                                                       */ 
+	     int    REF(V > 0)                nfeatures,
+	     int    REF(V > 0)                npoints,
+	     int    REF(V > 0)                nclusters,
+             float  REF(V > 0)                threshold,
+             int   *NNSTART NNINTARR(npoints) membership) OKEXTERN;
              //random_t* randomPtr); /* out: [npoints] */
-
-
 #endif /* NORMAL_H */
 
 

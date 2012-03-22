@@ -107,10 +107,8 @@
  * extractMoments
  * =============================================================================
  */
-static float* ARRAY START VALIDPTR SIZE_GE(4*num_moments)
-extractMoments (float * ARRAY START VALIDPTR SIZE_GE(4*num_elts) data,
-                int     REF(V >= 0)                         num_elts, 
-                int     REF(V >= 0)                      num_moments)
+static float* ARRAY 
+extractMoments (float *ARRAY data, int num_elts, int num_moments)
 {
     int i;
     int j;
@@ -140,10 +138,8 @@ extractMoments (float * ARRAY START VALIDPTR SIZE_GE(4*num_elts) data,
  * =============================================================================
  */
 static void
-zscoreTransform (float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)
-                      * ARRAY START VALIDPTR SIZE_GE(4*numObjects) data, /* in & out: [numObjects][numAttributes] */
-                 int    REF(V > 0)                          numObjects,
-                 int    REF(V > 0)                       numAttributes)
+zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
+/* data in & out: [numObjects][numAttributes] */
 {
     float* single_variable;
     float* moments;
@@ -154,7 +150,7 @@ zscoreTransform (float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)
     assert(single_variable);
     for (i = 0; i < numAttributes; i++) {
         for (j = 0; j < numObjects; j++) {
-            single_variable[j] = data[j][i];
+	  single_variable[j] = data[j][i];
         }
         moments = extractMoments(single_variable, numObjects, 2);
         moments[1] = (float)sqrt((double)moments[1]);
@@ -165,7 +161,6 @@ zscoreTransform (float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)
     }
     free(single_variable);
 }
-
 /* =============================================================================
  * cluster_exec
  * =============================================================================
@@ -173,24 +168,24 @@ zscoreTransform (float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes)
 int
 cluster_exec (
     //int      nthreads,              /* in: number of threads*/
-    int    REF(V > 0) numObjects,     /* number of input objects */
-    int    REF(V > 0) numAttributes,  /* size of attribute of each object */
-    float* START ARRAY VALIDPTR SIZE_GE(4*numAttributes)
+    int    REF(V >= 1) numObjects,     /* number of input objects */
+    int    REF(V >= 1) numAttributes,  /* size of attribute of each object */
+    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes*numObjects)
          * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /* [numObjects][numAttributes] */
     int    use_zscore_transform,
-    int    REF(V > 0)  min_nclusters, /* testing k range from min to max */
+    int    REF(V >= 1)  min_nclusters, /* testing k range from min to max */
     int    REF(V >= min_nclusters) max_nclusters,
     float  REF(V > 0) threshold,      /* in:   */
-    int    /*FINAL abakst: Hrm, this needs to be dealt with*/ 
-           REF(&&[V >= min_nclusters;V <= max_nclusters])     
+    int    /*FINAL abakst: Hrm, this needs to be dealt with*/
+           REF(&&[V >= min_nclusters;V <= max_nclusters])
           *best_nclusters,     /* out: number between min and max */
-    float* ARRAY START VALIDPTR SIZE_GE(4*numAttributes) 
+    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes*min_nclusters)
          * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*min_nclusters)
          /* abakst: this is actually what we want:
 	    SIZE_GE(4*DEREF([best_nclusters])) */
          * START VALIDPTR ROOM_FOR(float**) cluster_centres,    /* out: [best_nclusters][numAttributes] */
     int*   ARRAY VALIDPTR SIZE_GE(4*numObjects) cluster_assign       /* out: [numObjects] */
-) CHECK_TYPE 
+) CHECK_TYPE
 {
     int itime;
     int nclusters;
@@ -198,6 +193,14 @@ cluster_exec (
     float** tmp_cluster_centres;
     //random_t* randomPtr;
 
+    CSOLVE_ASSUME(numAttributes < numAttributes*numObjects);
+    
+    /* CSOLVE_ASSUME(numObjects * numAttributes > numObjects); */
+    /* CSOLVE_ASSUME(numObjects * numAttributes > numAttributes); */
+    
+    /* CSOLVE_ASSUME(numAttributes * min_nclusters  > min_nclusters); */
+    
+    
     membership = malloc(numObjects * sizeof(int));
     assert(membership);
 
@@ -214,9 +217,10 @@ cluster_exec (
      * From min_nclusters to max_nclusters, find best_nclusters
      */
     for (nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) {
-
-        //random_seed(randomPtr, 7);
-
+    
+      CSOLVE_ASSUME(numAttributes*nclusters >= numAttributes*min_nclusters);
+      
+        /* //random_seed(randomPtr, 7); */
         tmp_cluster_centres = normal_exec(//nthreads,
                                           attributes,
                                           numAttributes,
