@@ -107,9 +107,9 @@ extern void csolve_validptr_hi (void * REF(PVALIDHI) IGNORE_INDEX) OKEXTERN;
 
 extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
 
-extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void * IGNORE_REF_INDEX p) OKEXTERN;
+extern void * LOC(L) REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void * LOC(L) IGNORE_REF_INDEX p) OKEXTERN;
 
-extern void * REF(V = BLOCK_END([p])) csolve_block_end (void * IGNORE_REF_INDEX p) OKEXTERN;
+extern void * LOC(L) REF(V = BLOCK_END([p])) csolve_block_end (void * LOC(L) IGNORE_REF_INDEX p) OKEXTERN;
 
 extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
@@ -134,9 +134,17 @@ extern int REF(&& [V <= b; V >= 0]) band (int a, int REF(V >= 0) b) OKEXTERN;
 
 extern int REF(&& [V < m; V >= 0; V <= a]) csolve_mod (int REF(V >= 0) IGNORE_INDEX a, int REF(V > 0) IGNORE_INDEX m) OKEXTERN;
 
-extern int REF(&& [ (V = (x * y)); (V = (y * x)); V > 0 ; V > x; V > y; (((x * y) + y) = ((x + 1) * y)); (((x * y) + x) = (x * (y + 1)))]) csolve_times (int REF(V > 0) IGNORE_INDEX x, int REF(V > 0) IGNORE_INDEX y) OKEXTERN;
+extern int REF(&& [ (V = (x * y))
+                  ; (V = (y * x))
+                  ; (((x * y) + y) = ((x + 1) * y))
+                  ; (((x * y) + x) = (x * (y + 1)))
+                  ; ((&&[(x > 0); (y > 0)]) => (&&[(V >= x); (V >= y)]))
+                  ; ((x = 0) => (V = 0))
+                  ; ((y = 0) => (V = 0))
+                  ]) USE_INDEX 
+  csolve_times (int x, int y) OKEXTERN;
 
-
-
+extern int REF((a * c) <= (b * c)) USE_INDEX 
+  csolve_axiom_times_mono (int REF(0 <= V) a, int REF(a <= V) b, int REF(0 <= V) c) OKEXTERN;
 
 #endif
