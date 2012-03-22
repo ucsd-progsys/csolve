@@ -469,7 +469,7 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
   with LocationMismatch (l1, ld1, l2, ld2) ->
     let _ = failure_dump sub ve store in
     let _ = flush stdout; flush stderr in
-      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
+      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a@!@!"
                S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
 let fref_lookup args v = function

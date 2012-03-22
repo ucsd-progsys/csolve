@@ -1,0 +1,5 @@
+qualif SZ(v: ptr)     : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 12
+qualif GZ(v: int)     : v > 0
+qualif EQZERO(v: ptr) : 4*(DEREF[v]: int) = 0
+qualif NEXT(v: ptr)   : (v != 0) => 4*(DEREF[(4*(DEREF[v]: int)]: int) = 4*(DEREF[v]: int) + 1
+qualif EQDEREF(v:ptr) : (v != 0) => ((4 * (DEREF([v]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
