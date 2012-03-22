@@ -219,10 +219,10 @@ let print_result_short tgr res oc = match res.FI.unsats with
         fprintf oc "*********************************************************\n"
       ; fprintf oc "********************** SAFE *****************************\n"
       ; fprintf oc "*********************************************************\n"
-  | cs -> 
+  | cs ->
+        let cs = Misc.fsort (loc_of_cstr tgr) cs in 
         fprintf oc "**********************************************************\n"
-
-      ; (cs |>: loc_of_cstr tgr |>: fprintf oc "** ERROR %a ******************\n" Cil.d_loc)
+      ; (cs |>: loc_of_cstr tgr |>: fprintf oc "******** ERROR %a \n" Cil.d_loc)
       ; fprintf oc "**********************************************************\n"
  
 let print_result_long tgr res oc =

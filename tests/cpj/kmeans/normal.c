@@ -91,14 +91,14 @@ work (args_t* args, int i)
  * =============================================================================
  */
 
-float * ARRAY * ARRAY
+float * * 
 normal_exec (//int       nthreads,
-             float * ARRAY * ARRAY START feature,    /* in: [npoints][nfeatures] */
+             float * * feature,    /* in: [npoints][nfeatures] */
              int          nfeatures,
              int          npoints,
              int          nclusters,
              float        threshold,
-             int * ARRAY  membership)
+             int * membership)
 //             random_t* randomPtr) /* out: [npoints] */
     CHECK_TYPE
 {
@@ -112,9 +112,8 @@ normal_exec (//int       nthreads,
     void* alloc_memory = NULL;
     args_t args;
 
-    //HACK
-    nfeatures = nondetnn ();
-    npoints   = nondetnn ();
+
+    csolve_assert(nfeatures > 0);
 
     /* Allocate space for returning variable clusters[] */
     clusters = (float**)malloc(nclusters * sizeof(float*));
@@ -127,7 +126,7 @@ normal_exec (//int       nthreads,
 
     /* Randomly pick cluster centers */
     for (i = 0; i < nclusters; i++) {
-        int n = nondet() % npoints; //(int)(random_generate(randomPtr) % npoints);
+        int n = nondetrange(0, npoints); //(int)(random_generate(randomPtr) % npoints);
         for (j = 0; j < nfeatures; j++) {
             clusters[i][j] = feature[n][j];
         }

@@ -106,9 +106,9 @@ extern void csolve_validptr_hi (void * REF(PVALIDHI) IGNORE_INDEX) OKEXTERN;
 
 extern int csolve_assert (int REF(V != 0) p) OKEXTERN;
 
-extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void *p) OKEXTERN;
+extern void * REF(V = BLOCK_BEGIN([p])) csolve_block_begin (void * IGNORE_INDEX p) OKEXTERN;
 
-extern void * REF(V = BLOCK_END([p])) csolve_block_end (void *p) OKEXTERN;
+extern void * REF(V = BLOCK_END([p])) csolve_block_end (void * IGNORE_INDEX p) OKEXTERN;
 
 extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
