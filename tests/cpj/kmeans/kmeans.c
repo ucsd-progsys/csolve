@@ -308,7 +308,11 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
                 continue;
             }
             for (j = 0; j < numAttributes; j++) {
-                buf[i] = atof(strtok(NULL, " ,\t\n"));
+                // Original code makes this assumption; justification?
+                char *pmr_str = strtok(NULL, " ,\t\n");
+                CSOLVE_ASSUME (pmr_str != NULL);
+                // buf[i] =
+                atof(pmr_str);
                 i++;
             }
         }
