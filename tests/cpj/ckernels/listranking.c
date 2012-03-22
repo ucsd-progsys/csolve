@@ -122,9 +122,9 @@ void runWork(list l, int sz)
 
 int main(char ** argv, int argc)
 {
-  list * l;
+  list *  l;
   int  ** idxs;
-  int    sz;
+  int     sz;
 
   if (argc < 1 || argc > 4)
     return 1;

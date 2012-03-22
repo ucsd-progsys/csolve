@@ -1,0 +1,2 @@
+//qualif Size2d(v:ptr, ~a:int, ~b:int): v = (BLOCK_BEGIN([v]) + (~a * ~b))
+qualif Size2d(v:ptr, @ghost0:ptr, @i:int, @xdim:int): v = (@ghost0 + (@i * @xdim))

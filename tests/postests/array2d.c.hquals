@@ -1,0 +1,5 @@
+//qualif Size2d(v:ptr, ~a:int, ~b:int): v = (BLOCK_BEGIN([v]) + (~a * ~b))
+
+qualif Size2d(v:ptr, @ghost0:ptr, @i:int, @dim:int): v = (@ghost0 + (@i * @dim))
+qualif Room2d(v:ptr, @dim:int): (v + @dim) <= BLOCK_END([v])
+
