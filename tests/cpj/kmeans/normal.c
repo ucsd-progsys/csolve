@@ -70,7 +70,7 @@ work (args_t* args, int i)
                                     clusters,
                                     nclusters);
     csolve_assert(0 <= index);
-    csolve_assert(index < npoints);
+    csolve_assert(index < nclusters);
 
     /*
      * If membership changes, increase delta by 1.
