@@ -83,10 +83,7 @@ extern double global_parallelTime;
  */
 float* FLOATARR(nfeatures*nclusters)* START FLOATARR(nclusters)
 normal_exec (//int       nthreads,
-	     float *FLOATARR(nfeatures*npoints)
-	           *START FLOATARR(npoints)   feature,/* 
-						       * in:[npoints][nfeatures]
-                                                       */ 
+	     float *FLOATARR(nfeatures*npoints) *START FLOATARR(npoints)   feature,/*  in:[npoints][nfeatures] */ 
 	     int    REF(V > 0)                nfeatures,
 	     int    REF(V > 0)                npoints,
 	     int    REF(V > 0)                nclusters,
