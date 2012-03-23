@@ -77,6 +77,7 @@
 #define FTUPLE(n) START FLOATARR(n)
 #define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
 #define NNINTARR NNFLOATARR
+#define FLOAT2D(x, y) float * FLOATARR(y) * START FLOATARR(x)
 
 /* =============================================================================
  * common_euclidDist2
