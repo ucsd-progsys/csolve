@@ -1,0 +1,8 @@
+qualif NODESZ(v:ptr) : BLOCK_BEGIN([v]) + 20 <= BLOCK_END([v])
+qualif NODESZ(v:ptr) : (v != 0) => (BLOCK_BEGIN([v]) + 20 <= BLOCK_END([v]))
+
+qualif INTARR(v:ptr) : BLOCK_BEGIN([v]) + (4 * (~i+1)) <= BLOCK_END([v])
+
+qualif SZLTONE(v:int) : v < @sz - 1
+
+qualif PERMARR(v: int): && [v >= 0; v < ~sz]
