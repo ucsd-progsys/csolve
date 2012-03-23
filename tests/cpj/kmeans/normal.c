@@ -54,6 +54,9 @@ work (args_t* args, int i)
     
     float** clusters        = args->clusters;
 
+
+    csolve_assert(0 <= i);
+    csolve_assert(i <= npoints);
     csolve_assert(clusters);
     
     int ** ARRAY   new_centers_len    = args->new_centers_len;
@@ -66,6 +69,9 @@ work (args_t* args, int i)
                                     nfeatures,
                                     clusters,
                                     nclusters);
+    csolve_assert(0 <= index);
+    csolve_assert(index < npoints);
+
     /*
      * If membership changes, increase delta by 1.
      * membership[i] cannot be changed by other threads
