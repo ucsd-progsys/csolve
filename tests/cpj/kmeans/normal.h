@@ -73,6 +73,7 @@
 
 
 extern double global_parallelTime;
+#define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*n)
 #define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
 #define NNINTARR NNFLOATARR
 
