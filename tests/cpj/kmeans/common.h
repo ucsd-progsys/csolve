@@ -85,8 +85,8 @@
  * =============================================================================
  */
 float
-common_euclidDist2 (float* FTUPLE(numdims) pt1, 
-                    float* FTUPLE(numdims) pt2, 
+common_euclidDist2 (float* FLOATARR(numdims) pt1,
+                    float* FLOATARR(numdims) pt2, 
                     int    REF(V >= 0)     numdims); 
 
 

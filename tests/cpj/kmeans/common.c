@@ -74,8 +74,8 @@
  * =============================================================================
  */
 float
-common_euclidDist2 (float* FTUPLE(numdims) pt1, 
-                    float* FTUPLE(numdims) pt2, 
+common_euclidDist2 (float* FLOATARR(numdims) pt1, 
+                    float* FLOATARR(numdims) pt2, 
                     int    REF(V >= 0)     numdims) 
   CHECK_TYPE
 {
@@ -94,12 +94,12 @@ common_euclidDist2 (float* FTUPLE(numdims) pt1,
  * common_findNearestPoint
  * =============================================================================
  */
-int
-common_findNearestPoint (float*  ARRAY START VALIDPTR SIZE_GE(nfeatures*4) pt,        /* [nfeatures] */
-                         int     REF(V >= 0) nfeatures,
-                         float* ARRAY START VALIDPTR SIZE_GE(nfeatures*4) 
-                              * ARRAY START VALIDPTR SIZE_GE(npts*4) pts,       /* [npts][nfeatures] */
-                         int     REF(V >= 0) npts)
+int REF(&& [(0 <= V); (V < npts)])
+common_findNearestPoint (float* FTUPLE(nfeatures) pt, /* [nfeatures] */
+                         int    REF(V >= 0) nfeatures,
+                         float* FLOATARR(nfeatures)
+			      * FTUPLE(npts) pts,
+                         int     REF(V > 0) npts)
   CHECK_TYPE
 {
     int index = 0; //-1; //Ranjit: BUG. I bet.
@@ -113,6 +113,7 @@ common_findNearestPoint (float*  ARRAY START VALIDPTR SIZE_GE(nfeatures*4) pt,  
         dist = common_euclidDist2(pt, pts[i], nfeatures);  /* no need square root */
         if ((dist / max_dist) < limit) {
             max_dist = dist;
+	    csolve_assert(i < npts);
             index = i;
             if (max_dist == 0) {
                 break;
