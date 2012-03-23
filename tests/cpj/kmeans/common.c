@@ -94,12 +94,12 @@ common_euclidDist2 (float* FLOATARR(numdims) pt1,
  * common_findNearestPoint
  * =============================================================================
  */
-int REF(&& [(0 <= V); (V < npts)])
+int REF(|| [&& [(0 < V); (V < npts)]; (V = 0)])
 common_findNearestPoint (float* FTUPLE(nfeatures) pt, /* [nfeatures] */
                          int    REF(V >= 0) nfeatures,
                          float* FLOATARR(nfeatures)
 			      * FTUPLE(npts) pts,
-                         int     REF(V > 0) npts)
+                         int    REF(V > 0) npts)
   CHECK_TYPE
 {
     int index = 0; //-1; //Ranjit: BUG. I bet.
