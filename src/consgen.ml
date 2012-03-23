@@ -70,7 +70,7 @@ let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
 
 (* TBD: UGLY *)
-let mk_gnv f spec decs (cenv : Ct.refcfun SM.t) =
+let mk_gnv f spec decs cenv =
   let fundecs = declared_names decs (function CM.FunDec (fn,_, _) -> Some fn | _ -> None) in
   let vardecs = declared_names decs (function CM.VarDec (v, _, _) -> Some v.vname | _ -> None) in
   let gnv0 = spec 
@@ -83,9 +83,9 @@ let mk_gnv f spec decs (cenv : Ct.refcfun SM.t) =
   |> List.map begin fun (fn, ft) ->
        (fn, if SS.mem fn fundecs then
               let effs = ft.Ct.sto_out
-                      |> Ct.RefCTypes.Store.domain
+                      |> Ct.I.Store.domain
                       |> List.fold_left (fun effs l -> ES.add effs l <| FI.e_fresh l) ES.empty in
-                {(FI.map_fn f ft) with Ct.effects = effs}
+                {(ft |> FI.refcfun_of_cfun |> FI.map_fn f) with Ct.effects = effs}
             else spec |> CS.funspec |> SM.find fn |> fst)
      end
   |> FI.ce_adds_fn gnv0
@@ -186,17 +186,13 @@ let create cil spec decs =
   let _      = E.log "\nDONE: TAG initialization\n" in
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
-  let cnv0   = spec (* |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec *)
-               |> CS.funspec
-               |> SM.map fst in
-  let spec0  = spec (* Ctypes.I.Spec.map FI.t_true_refctype spec *) in
+  let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
+  let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
   let shm    = shapem_of_scim cil spec scim vim in
   (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
-  let gnv    = cnv0 |> SM.map Ct.cfun_of_refcfun 
-                    |> finalize_funtypes shm 
-                    |> SM.map FI.refcfun_of_cfun 
+  let gnv    = cnv0 |> finalize_funtypes shm
                     |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in 
   let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in
   let _      = E.log "\nDONE: SHAPE infer \n" in
