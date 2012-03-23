@@ -23,14 +23,17 @@
 double global_time = 0.0;
 
 typedef struct args {
-    float * ARRAY * ARRAY feature;
-    int                   nfeatures;
-    int                   npoints;
-    int                   nclusters;
-    int * ARRAY           membership;
-    float * ARRAY * ARRAY clusters;
-    int** ARRAY           new_centers_len;
-    float * ARRAY * ARRAY new_centers;
+  float * START FLOATARR(nfeatures*npoints) 
+        * START FLOATARR(npoints)   feature;   /*  in:[npoints][nfeatures] */ 
+  int   REF(V > 0)                  nfeatures;
+  int   REF(V > 0)                  npoints;
+  int   REF(V > 0)                  nclusters;
+  int   * START FLOATARR(npoints)     membership;
+  float * FLOATARR(nfeatures) 
+        * FTUPLE(npoints)           clusters;     
+  int  ** START FLOATARR(nclusters)   new_centers_len;
+  float * FLOATARR(nfeatures) 
+        * START FLOATARR(nclusters) new_centers;
 } args_t;
 
 float global_delta;
@@ -43,7 +46,7 @@ float global_delta;
 static void
 work (args_t* args, int i)
 {
-    float * ARRAY * ARRAY feature         = args->feature;
+    float * * feature       = args->feature;
     int     nfeatures       = args->nfeatures;
     int     npoints         = args->npoints;
     int     nclusters       = args->nclusters;

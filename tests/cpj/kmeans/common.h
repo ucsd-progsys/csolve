@@ -73,7 +73,10 @@
 #  define FLT_MAX 3.40282347e+38
 #endif
 
-#define FTUPLE(n) ARRAY START VALIDPTR SIZE_GE(4*(n))
+#define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*n)
+#define FTUPLE(n) START FLOATARR(n)
+#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
+#define NNINTARR NNFLOATARR
 
 /* =============================================================================
  * common_euclidDist2
@@ -93,9 +96,9 @@ common_euclidDist2 (float* FTUPLE(numdims) pt1,
 int
 common_findNearestPoint (float*  FTUPLE(nfeatures) pt,        /* [nfeatures] */
                          int     REF(V >= 0) nfeatures,
-                         float*  FTUPLE(nfeatures) 
+                         float*  FLOATARR(nfeatures) 
                               *  FTUPLE(npts) pts,       /* [npts][nfeatures] */
-                         int     REF(V >= 0) npts);
+                         int     REF(V >= 0) npts) OKEXTERN;
 
 #endif /* COMMON_H */
 
