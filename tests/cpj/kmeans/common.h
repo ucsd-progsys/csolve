@@ -93,7 +93,7 @@ common_euclidDist2 (float* FTUPLE(numdims) pt1,
  * common_findNearestPoint
  * =============================================================================
  */
-int
+int REF(&&[(0 <= V); (V < npts)])
 common_findNearestPoint (float*  FTUPLE(nfeatures) pt,        /* [nfeatures] */
                          int     REF(V >= 0) nfeatures,
                          float*  FLOATARR(nfeatures) 

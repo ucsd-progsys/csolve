@@ -90,7 +90,7 @@ normal_exec (//int       nthreads,
 	     int    REF(V > 0)                npoints,
 	     int    REF(V > 0)                nclusters,
          float  REF(V > 0)                threshold,
-         int   *NNSTART NNINTARR(npoints) membership) OKEXTERN;
+         int   *START FLOATARR(npoints) membership) OKEXTERN;
              //random_t* randomPtr); /* out: [npoints] */
 #endif /* NORMAL_H */
 

@@ -102,7 +102,7 @@ common_findNearestPoint (float*  ARRAY START VALIDPTR SIZE_GE(nfeatures*4) pt,  
                          int     REF(V >= 0) npts)
   CHECK_TYPE
 {
-    int index = -1;
+    int index = 0; //-1; //Ranjit: BUG. I bet.
     int i;
     float max_dist = FLT_MAX;
     const float limit = 0.99999;
