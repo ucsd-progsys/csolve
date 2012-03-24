@@ -114,9 +114,9 @@ void run_cycle(char* STRINGPTR plain1,
 
 void buildTestData(int array_rows,
                    char  *ARRAY plain1,
-                   short *ARRAY userkey,
-                   int   *ARRAY z,
-                   int   *ARRAY dk)
+                   short *ARRAY START userkey,
+                   int   *ARRAY START z,
+                   int   *ARRAY START dk)
 {
   // Generate user key randomly; eight 16-bit values in an array.
 

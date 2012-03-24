@@ -1032,7 +1032,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                 end
           end
         with e ->
-          C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a"
+          C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a@!"
             Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;
           raise e
 
