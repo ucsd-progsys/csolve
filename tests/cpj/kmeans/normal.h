@@ -69,18 +69,11 @@
 #define NORMAL_H 1
 
 #include <csolve.h>
+#include "common.h"
 //#include "random.h"
 
 
 extern double global_parallelTime;
-#define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*n)
-#define INTARR FLOATARR 
-#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
-#define NNINTARR NNFLOATARR
-#define FLOAT2D(x, y) float * FLOATARR(y) * START FLOATARR(x)
-
-
-
 /* =============================================================================
  * normal_exec
  * =============================================================================
