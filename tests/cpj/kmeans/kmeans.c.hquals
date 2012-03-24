@@ -1,0 +1,1 @@
+qualif ARRAYSZ(v: ptr): (BLOCK_END([v]) - BLOCK_START([v])) = (@numAttributes * @numObjects * 4)
