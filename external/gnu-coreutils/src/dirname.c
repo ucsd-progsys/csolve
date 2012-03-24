@@ -117,6 +117,9 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR LOC(PROGRAM_NAME_LOC) * 
       result = /* & */ dot; // pmr: Altered
       len = 1;
     }
+  
+  int hack = 1;
+  CSOLVE_ASSUME((hack * len) == len);
 
   fwrite (result, 1, len, stdout);
   putchar ('\n');
