@@ -1,1 +1,16 @@
-qualif ARRAYSZ(v: ptr): (BLOCK_END([v]) - BLOCK_START([v])) = (@numAttributes * @numObjects * 4)
+//SPEC STRUCT SIZE 
+qualif ARRAYSZ(v: ptr): ((v != 0) => ((BLOCK_END([v]) - v) >= 12))
+
+//SPEC ARRAY SIZE (from normal.c.hquals)
+qualif ONE(v:ptr) : v + (4 * _) <= BLOCK_END([v])
+
+//SPEC
+qualif Gt1(v:int) : v > 1
+
+//SPEC 2D-ARRAY SIZE
+qualif THREE(v:ptr) : v + (4 * (@numObj * @numAttr)) <= BLOCK_END([v])
+
+//Pointer Initialized in loop 
+qualif NZInit(v: ptr): ((_ > 0) => (v != 0))
+
+

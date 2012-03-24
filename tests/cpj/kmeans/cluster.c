@@ -101,7 +101,14 @@
 //#include "random.h"
 #include "util.h"
 //#include "tm.h"
-
+ 
+/*
+typedef struct clusters { 
+  int REF(V > 0) numAttributes;
+  int REF(V > 0) best_nclusters;
+  FLOAT2D(best_nclusters, numAttributes) cluster_centres;
+} clusters_t;
+*/
 
 /* =============================================================================
  * extractMoments
@@ -165,26 +172,17 @@ zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
  * cluster_exec
  * =============================================================================
  */
-int
+clusters_t *
 cluster_exec (
-    //int      nthreads,              /* in: number of threads*/
-    int    REF(V >= 1) numObjects,     /* number of input objects */
-    int    REF(V >= 1) numAttributes,  /* size of attribute of each object */
-    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes)
-         * START ARRAY VALIDPTR SIZE_GE(4*numObjects) attributes, /* [numObjects][numAttributes] */
-    int    use_zscore_transform,
-    int    REF(V >= 1)  min_nclusters, /* testing k range from min to max */
-    int    REF(V >= min_nclusters) max_nclusters,
-    float  REF(V > 0) threshold,      /* in:   */
-    int    /*FINAL abakst: Hrm, this needs to be dealt with*/
-           REF(&&[V >= min_nclusters;V <= max_nclusters])
-          *best_nclusters,     /* out: number between min and max */
-    float* ARRAY VALIDPTR SIZE_GE(4*numAttributes)
-         * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*min_nclusters)
-         /* abakst: this is actually what we want:
-	    SIZE_GE(4*DEREF([best_nclusters])) */
-         * START VALIDPTR ROOM_FOR(float**) cluster_centres,    /* out: [best_nclusters][numAttributes] */
-    int*   ARRAY VALIDPTR SIZE_GE(4*numObjects) cluster_assign       /* out: [numObjects] */
+    //int      nthreads,            /* in: number of threads*/
+    int      numObjects,            /* number of input objects */
+    int      numAttributes,         /* size of attribute of each object */
+    float ** attributes,            /* [numObjects][numAttributes] */
+    int      use_zscore_transform,
+    int      min_nclusters,         /* testing k range from min to max */
+    int      max_nclusters,
+    float    threshold,             /* in:   */
+    int *    cluster_assign         /* out: [numObjects] */
 ) CHECK_TYPE
 {
     int itime;
@@ -192,6 +190,8 @@ cluster_exec (
     int* membership = 0;
     float** tmp_cluster_centres;
     //random_t* randomPtr;
+
+    clusters_t * retval = (clusters_t *) malloc(sizeof(clusters_t));
 
     //    CSOLVE_ASSUME(numAttributes < numAttributes*numObjects);
     
@@ -236,16 +236,17 @@ cluster_exec (
 	/*   free(*cluster_centres); */
 	/* } */
 
-	*cluster_centres = tmp_cluster_centres;
-	*best_nclusters = nclusters;
 
-        itime++;
+	retval->cluster_centres = tmp_cluster_centres;
+	retval->best_nclusters  = nclusters;
+    
+    itime++;
     } /* nclusters */
 
     free(membership);
     //random_free(randomPtr);
 
-    return 0;
+    return retval;
 }
 
 /* =============================================================================

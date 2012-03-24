@@ -18,7 +18,6 @@
 #include "normal.h"
 #include "util.h"
 
-extern FLOAT2D(x, y) init_float2d(int REF(V > 0) x, int REF(V > 0) y) OKEXTERN;
 
 double global_time = 0.0;
 

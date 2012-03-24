@@ -1,0 +1,2 @@
+//NNStruct
+qualif NZInit(v: ptr): ((_ > 0) => (v != 0))
