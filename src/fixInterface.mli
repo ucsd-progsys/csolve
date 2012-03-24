@@ -109,6 +109,7 @@ val t_fresh_fn          : Ctypes.refcfun -> Ctypes.refcfun
 val t_subs_names        : (FixAstInterface.name * FixAstInterface.name) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_exps         : (FixAstInterface.name * Cil.exp) list -> Ctypes.refctype -> Ctypes.refctype
 val t_subs_locs         : Sloc.Subst.t -> Ctypes.refctype -> Ctypes.refctype
+val t_singleton_effect  : Ctypes.refctype -> EffectDecls.t -> Ctypes.refctype
 
 val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 

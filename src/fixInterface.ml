@@ -350,7 +350,7 @@ let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 let t_ptr_offset offset = refctype_of_ctype <| ra_ptr_offset offset
 
-let t_singleton_effect env rct eff =
+let t_singleton_effect rct eff =
   let effr = ED.getEffects ()
           |> M.negfilter ((=) eff)
           |> List.map (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
@@ -1010,7 +1010,7 @@ let make_cs_effect_weaken_type env p sto erct eptr tago tag =
 let make_cs_effect_weaken_var env p sto v eff eptr tago tag =
   let vn  = FA.name_of_varinfo v in
   let rct = t_equal (Ct.ctype_of_refctype <| ce_find vn env) vn in
-    make_cs_effect_weaken_type env p sto (t_singleton_effect env rct eff) eptr tago tag
+    make_cs_effect_weaken_type env p sto (t_singleton_effect rct eff) eptr tago tag
 
 let make_cs_data_effect env p sld1 sld2 eptr1 eptr2 tago tag =
   with_effects_in_env env begin fun env ->
