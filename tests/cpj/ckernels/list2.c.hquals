@@ -14,9 +14,9 @@ qualif NNSIZE(v: ptr) : (v != 0) => (v + (4 * ~i) <= BLOCK_END([v]))
 qualif LSTPTRA(v: ptr) : v = (DEREF([~x]) : ptr)
 qualif LSTPTRB(v: ptr) : v = BLOCK_BEGIN([v]) + (4 * _)
 qualif LSTPTRC(v: ptr) : v = BLOCK_BEGIN([v]) + 4
-qualif LSTPTRD(v: ptr) : v = BLOCK_BEGIN([v]) + 8
-qualif LSTPTRE(v: ptr) : v = BLOCK_BEGIN([v]) + 12
-qualif LSTPTRF(v: ptr) : v = BLOCK_BEGIN([v]) + 16
 
-qualif LSTPTRG(v: ptr) : v = BLOCK_BEGIN([v]) + 20
-qualif SZ(v:ptr) : v < BLOCK_BEGIN([v]) + 4
+qualif SZB(v:ptr) : BLOCK_BEGIN([v]) + 8 <= BLOCK_END([v])
+
+qualif ADDRWR(v:ptr) : v = (DEREF([~x]) : ptr)
+
+qualif A(v:ptr) : VVADDR = DEREF([~x]) + 4
