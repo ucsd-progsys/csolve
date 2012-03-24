@@ -263,17 +263,6 @@ let e_cil_effect_true = Cil.one
 let p_effect_var_true evar =
   A.pEqual (evar, A.eInt 1)
 
-(* TODO: factor this out to take not just a variable v but instead a general
-   ctype that we can sauce up with an effect *)
-let ra_singleton_effect eff v ct =
-  let vv     = ct |> vv_of_prectype |> A.eVar in
-  let others = ED.getEffects () 
-               |> M.negfilter ((=) eff) 
-               |> List.map (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
-  in [C.Conc (A.pAnd <| [ (eff |> ED.nameOfEffect |> A.eVar |> p_effect_var_true)
-                        ; (A.pEqual (vv, A.eVar v)) 
-                        ] ++ others)]
-
 let ra_skolem, get_skolems =
   let xr = ref 0 in
     (fun ct -> vv_of_prectype ct |> ra_singleton (FA.eApp_skolem (A.eInt (xr =+ 1))))
@@ -322,6 +311,13 @@ let ra_fptr_footprint env v =
   let vv   = Sy.value_variable so in
     (vv, so, [C.Conc (p_fptr_footprint vv v)])
 
+let strengthen_refctype mkreft rct =
+  let reft = Ct.reft_of_refctype rct in
+  let vv   = C.vv_of_reft reft in
+  let so   = C.sort_of_reft reft in
+  let ras  = C.ras_of_reft reft in
+  replace_reft (C.make_reft vv so (mkreft rct @ ras)) rct
+
 (******************************************************************************)
 (************************ Address-Dependent Refinements ***********************)
 (******************************************************************************)
@@ -354,9 +350,12 @@ let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
 let t_ptr_offset offset = refctype_of_ctype <| ra_ptr_offset offset
 
-let t_singleton_effect env v eff =
-  let vn = FA.name_of_varinfo v in
-    refctype_of_ctype (ra_singleton_effect eff vn) (Ct.ctype_of_refctype <| ce_find vn env)
+let t_singleton_effect env rct eff =
+  let effr = ED.getEffects ()
+          |> M.negfilter ((=) eff)
+          |> List.map (ED.nameOfEffect <+> A.eVar <+> p_effect_var_true <+> A.pNot)
+          |> fun ps -> [C.Conc (A.pAnd <| (eff |> ED.nameOfEffect |> A.eVar |> p_effect_var_true) :: ps)]
+  in strengthen_refctype (const effr) rct
 
 let t_addr          = fun l  -> t_true <| Ct.Ref (l, Ix.top)
 
@@ -509,13 +508,6 @@ let t_ctype_refctype ct rct =
     | Ct.FRef (f, _), Ct.FRef (_, y) -> Ct.FRef (f, y)
     | _ -> rct'
 
-let strengthen_refctype mkreft rct =
-  let reft = Ct.reft_of_refctype rct in
-  let vv   = C.vv_of_reft reft in
-  let so   = C.sort_of_reft reft in
-  let ras  = C.ras_of_reft reft in
-  replace_reft (C.make_reft vv so (mkreft rct @ ras)) rct
-    
 
 let refctype_subs f nzs = 
   nzs |> Misc.map (Misc.app_snd f) 
@@ -1016,7 +1008,9 @@ let make_cs_effect_weaken_type env p sto erct eptr tago tag =
     end
 
 let make_cs_effect_weaken_var env p sto v eff eptr tago tag =
-  make_cs_effect_weaken_type env p sto (t_singleton_effect env v eff) eptr tago tag
+  let vn  = FA.name_of_varinfo v in
+  let rct = t_equal (Ct.ctype_of_refctype <| ce_find vn env) vn in
+    make_cs_effect_weaken_type env p sto (t_singleton_effect env rct eff) eptr tago tag
 
 let make_cs_data_effect env p sld1 sld2 eptr1 eptr2 tago tag =
   with_effects_in_env env begin fun env ->
