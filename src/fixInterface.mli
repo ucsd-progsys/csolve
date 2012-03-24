@@ -86,7 +86,7 @@ val t_scalar            : Ctypes.ctype -> Ctypes.refctype
 val t_fresh             : Ctypes.ctype -> Ctypes.refctype
 val t_true              : Ctypes.ctype -> Ctypes.refctype
 val t_zero              : Ctypes.ctype -> Ctypes.refctype
-val t_ptr_offset        : int -> Ctypes.ctype -> Ctypes.refctype
+val t_field_at_block_of : string -> int -> Ctypes.ctype -> Ctypes.refctype
 val t_true_refctype     : Ctypes.refctype -> Ctypes.refctype
 val t_false_refctype    : Ctypes.refctype -> Ctypes.refctype
 val t_zero_refctype     : Ctypes.refctype -> Ctypes.refctype

@@ -245,9 +245,13 @@ let ra_singleton e vv =
 let ra_zero    = vv_of_prectype <+> ra_singleton A.zero
 let ra_equal v = vv_of_prectype <+> ra_singleton (A.eVar v)
 
-let ra_ptr_offset offset ct =
+let ra_field_at_block_of v offset ct =
   let vv = vv_of_prectype ct in
-  ra_singleton (A.eBin (FA.eApp_bbegin (A.eVar vv), A.Plus, A.eCon (A.Constant.Int offset))) vv
+  ra_singleton
+    (A.eBin (FA.eApp_bbegin (v |> Sy.of_string |> A.eVar),
+             A.Plus,
+             A.eCon (A.Constant.Int offset)))
+    vv
 
 (* [C.Conc (A.pEqual (evv,  (A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset)))  ))] *)
     
@@ -348,7 +352,8 @@ let t_true          = fun ct -> refctype_of_ctype ra_true ct
 let t_zero          = fun ct -> refctype_of_ctype ra_zero ct
 let t_equal         = fun ct v -> refctype_of_ctype (ra_equal v) ct
 let t_skolem        = fun ct -> refctype_of_ctype ra_skolem ct 
-let t_ptr_offset offset = refctype_of_ctype <| ra_ptr_offset offset
+
+let t_field_at_block_of v offset = refctype_of_ctype <| ra_field_at_block_of v offset
 
 let t_singleton_effect rct eff =
   let effr = ED.getEffects ()

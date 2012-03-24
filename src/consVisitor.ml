@@ -114,9 +114,8 @@ let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function
                     |> M.negfilter (Index.is_periodic)
                     |> List.map begin function
                          | Index.IInt n ->
-                           (* TODO: Add that it's in the same block as the unfolded pointer *)
                            let eptr = Ct.Ref (aloc, Index.top)
-                                   |> FI.t_ptr_offset n
+                                   |> FI.t_field_at_block_of ptr n
                                    |> M.flip FI.t_singleton_effect ED.readEffect in
                              FI.make_cs_effect_weaken_type env grd sto eptr (ES.find effs aloc) tago tag loc
                          | _ -> ([], [])
