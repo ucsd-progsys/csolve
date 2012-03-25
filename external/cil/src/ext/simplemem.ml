@@ -59,10 +59,12 @@ let rec array_to_pointer tau =
   | _ -> tau
 
 (* create a temporary variable in the current function *)
-let make_temp tau = 
-  let tau = array_to_pointer tau in 
+let make_temp e = 
+  let desc = d_lval () (Mem e, NoOffset) in
+  let tau  = typeOf e                    in
+  let tau  = array_to_pointer tau        in 
   match !thefunc with
-    Some(fundec) -> makeTempVar fundec ~name:("mem_") tau
+    Some(fundec) -> makeTempVar fundec ~name:("mem_") ~descr:desc tau
   | None -> failwith "simplemem: temporary needed outside a function"
 
 (* separate loffsets into "scalar addition parts" and "memory parts" *)
@@ -86,7 +88,7 @@ let rec handle_lvalue (lb,lo) =
       handle_loffset (lb,s) m 
   | Mem(e) -> 
       begin
-        let new_vi = make_temp (typeOf e) in
+        let new_vi = make_temp e in
         assignment_list := (Set((Var(new_vi),NoOffset),e,!currentLoc)) 
           :: !assignment_list ;
         handle_loffset (Mem(Lval(Var(new_vi),NoOffset)),NoOffset) lo
@@ -105,8 +107,8 @@ class simpleVisitor = object
     thefunc := Some(fundec) ;
     DoChildren
 
-  method vlval lv = ChangeDoChildrenPost(lv,
-      (fun lv -> handle_lvalue lv))
+  method vlval lv = 
+    ChangeDoChildrenPost(lv, (fun lv -> handle_lvalue lv))
 
   method vexpr = function
     | SizeOf _ | SizeOfE _ | AlignOf _ | AlignOfE _ | SizeOfStr _ ->

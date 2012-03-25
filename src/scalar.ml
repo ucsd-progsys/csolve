@@ -86,7 +86,7 @@ let ix_binds_of_spec spec fn : (string * Ix.t) list =
 let close_formals args (formals : Cil.varinfo list) : Ix.t VM.t -> Ix.t VM.t = 
   formals
   |> List.map (fun v -> (v, List.assoc v.Cil.vname args))
-  |> CM.vm_of_list 
+  |> VM.of_list 
   |> VM.fold (fun k v acc -> VM.add k v acc)
 
 let close_locals locals vm =

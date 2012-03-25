@@ -257,7 +257,7 @@ let d_binder () = function
 let d_vbind () (b, (ct, t)) =
   let (_,_,ras) as r = Ct.reft_of_refctype ct in
   PP.dprintf "%a %a %a %a" 
-    CM.d_type_noattrs t
+    Cil.d_type (CM.typStripAttrs t)
     d_ann_ref ct
     d_binder b 
     (CM.d_formatter (FixConstraint.print_ras None)) ras
@@ -275,7 +275,7 @@ let d_ann_field () (i, fld) =
       (* fix HERE *)
 
 let d_ldinfo () = function
-  | {Ct.stype = Some t } -> CM.d_type_noattrs () t
+  | {Ct.stype = Some t } -> Cil.d_type () (CM.typStripAttrs t)
   | _                    -> PP.nil
 
 

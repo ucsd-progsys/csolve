@@ -469,7 +469,7 @@ let t_exp cenv ct e =
 let ptrs_of_exp e = 
   let xm = ref VM.empty in
   let _  = CM.iterExprVars e (fun v -> xm := VM.add v () !xm) in
-  !xm |> CM.vm_to_list |>: fst |> (List.filter (fun v -> CM.is_reference v.Cil.vtype))
+  !xm |> VM.to_list |>: fst |> (List.filter (fun v -> CM.is_reference v.Cil.vtype))
 
 let t_exp_scalar_ptr vv e = (* TODO: REMOVE UNSOUND AND SHADY HACK *)
   e |> ptrs_of_exp 

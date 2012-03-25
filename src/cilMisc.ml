@@ -43,6 +43,32 @@ type dec =
   | FunDec of string * Cil.fundec * location
   | VarDec of Cil.varinfo * location * init option
 
+(***************************************************************************)
+(************************ Name Related Hackery *****************************)
+(***************************************************************************)
+
+let is_pure_function s =
+  s = "validptr" || 
+  s = "csolve_assert" || 
+  s = "csolve_assume"
+
+let is_cil_tempvar s = 
+     Misc.is_prefix "__cil_tmp" s 
+  || Misc.is_prefix "mem_" s 
+
+let suffix_of_fn = fun fn -> "_" ^ fn
+
+let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+
+let unrename_local fn vn = 
+  let s = suffix_of_fn fn in 
+  if not (Misc.is_suffix s vn) then vn else 
+    String.sub vn 0 (String.length vn - (String.length s))
+
+(***************************************************************************)
+(************************ varinfo Maps  ************************************)
+(***************************************************************************)
+
 module ComparableVar =
   struct
     type t            = varinfo
@@ -55,6 +81,11 @@ module ComparableVar =
 let pretty_to_string f x = f () x |> Pretty.sprint ~width:80 
 
 let pretty_to_format f ppf x = Format.fprintf ppf "%s" (f () x |> Pretty.sprint ~width:80)
+
+
+(***************************************************************************)
+(******************** Source Location Information **************************)
+(***************************************************************************)
 
 type srcinfo = (* note *) string * (* provenance *) location 
 
@@ -92,9 +123,8 @@ let isCompoundType t = match unrollType t with
 
 let fresh_arg_name, _ = M.mk_string_factory "ARG"
 
-
 (******************************************************************************)
-(************************ Printing Types Without Attributes *******************)
+(********************** Stripping Attributes, Casts, etc. *********************) 
 (******************************************************************************)
 
 class removeAttrVisitor = object(self)
@@ -102,10 +132,22 @@ class removeAttrVisitor = object(self)
   method vattr _ = ChangeTo []
 end
 
-let d_type_noattrs () t =
-  t |> visitCilType (new removeAttrVisitor :> cilVisitor) |> d_type ()
+let typStripAttrs (t: Cil.typ) : Cil.typ =
+  visitCilType (new removeAttrVisitor :> cilVisitor) t
 
+let exprStripAttrs (e: Cil.exp) : Cil.exp =
+  visitCilExpr (new removeAttrVisitor :> cilVisitor) e 
 
+class removeCastVisitor = object(self)
+  inherit nopCilVisitor
+  method vexpr = function
+    | CastE (_, e) -> ChangeDoChildrenPost (e, id) 
+    | _            -> DoChildren  
+end
+
+let exprStripCasts (e: Cil.exp) : Cil.exp = 
+  visitCilExpr (new removeCastVisitor :> cilVisitor) e 
+  
 (******************************************************************************)
 (************************ Ensure Expression/Lval Purity ***********************)
 (******************************************************************************)
@@ -138,12 +180,12 @@ end
 let purifyFunction (fd: fundec) =
   fd.sbody <- visitCilBlock (new purifyVisitor fd :> cilVisitor) fd.sbody
 
-let doGlobal = function
-  | GFun (fd, _) -> purifyFunction fd
-  | _            -> ()
-
 let purify file =
-  iterGlobals file doGlobal
+  iterGlobals file begin function
+    | GFun (fd, _) -> purifyFunction fd
+    | _            -> ()
+  end
+
 
 (**********************************************************)
 (********** Check Expression/Lval Purity ******************)
@@ -410,14 +452,16 @@ module VarMapPrinter = Pretty.MakeMapPrinter(VarMap)
 let vm_print_keys vm =
   VarMapPrinter.d_map ~dmaplet:(fun d1 _ -> d1) ", " d_var (fun () _ -> Pretty.nil) vm
 
+(*
 let vm_of_list xs =
   List.fold_left (M.flip (M.uncurry VarMap.add)) VarMap.empty xs
 
 let vm_to_list vm =
   VarMap.fold (fun v x xs -> (v, x) :: xs) vm []
 
-let vm_union vm1 vm2 =
-  VarMap.fold (fun k v vm -> VarMap.add k v vm) vm1 vm2
+let vm_union vm1 vm2 = VarMap.extend vm2 vm1 
+*)
+
 
 let definedHere vi =
   vi.vdecl.line > 0 && vi.vstorage != Extern
@@ -860,25 +904,49 @@ end
 
 let noBlockAttrPrinter = new noBlockAttrPrinterClass
 
-(************************ Name Related Hackery ********************************)
+(******************************************************************************)
+(***************** Reconstructing Original Source from Temps ******************)
+(******************************************************************************)
 
-let is_pure_function s =
-  s = "validptr" || 
-  s = "csolve_assert" || 
-  s = "csolve_assume"
+class substVisitor (su : Cil.exp VarMap.t) = object(self)
+  inherit nopCilVisitor
+  method vlval = function
+    | (Var v, off) when VarMap.mem v su -> 
+        ChangeTo (Mem (VarMap.find v su), off)
+    | _   -> 
+        DoChildren
 
-let is_cil_tempvar s = 
-  Misc.is_prefix "__cil_tmp" s || 
-  Misc.is_prefix "mem_" s
+end
 
-let suffix_of_fn = fun fn -> "_" ^ fn
+(* API *)
+let substCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
+  visitCilExpr (new substVisitor su) e 
 
-let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+let updVarMap sur v e =
+  let e = e |> exprStripAttrs |> exprStripCasts |> substCilExpr !sur in
+  sur := VarMap.add v e !sur 
 
-let unrename_local fn vn = 
-  let s = suffix_of_fn fn in 
-  if not (Misc.is_suffix s vn) then vn else 
-    String.sub vn 0 (String.length vn - (String.length s))
+class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
+  inherit nopCilVisitor
+  method vinst = function
+    | Set ((Var v, NoOffset), e, _) when is_cil_tempvar v.vname ->
+        updVarMap sur v e; DoChildren
+    | _ -> 
+        DoChildren
+end
+
+let d_varExpr () (v, e) = 
+  Pretty.dprintf "%a <- %a" d_var v Cil.d_exp e
+
+let d_varExprMap () m = 
+  d_many_brackets true d_varExpr () (VarMap.to_list m)
+
+(* API *)
+let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
+  let sur = ref VarMap.empty                       in
+  let _   = visitCilFile (new tmpVarVisitor sur) f in
+  let _   = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
+  !sur
 
 
 

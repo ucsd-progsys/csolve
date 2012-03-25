@@ -91,6 +91,53 @@ let noStringConstantsBasics = ref false
 
 exception BitfieldAccess
 
+
+(* Add, watching for a zero *)
+let add_int (e1: exp) (e2: exp) =
+  if isZero (constFold true e2) then e1 else BinOp(PlusA, e1, e2, !upointType)
+
+(* Add, watching for a zero *)
+let add (e1: exp) (e2: exp) =
+  if isZero (constFold true e2) then e1 else BinOp(PlusPI, e1, e2, charPtrType)
+
+(* Convert an offset to an integer, and possibly a residual bitfield offset*)
+let rec offsetToInt (t: typ) (* The type of the host *) (off: offset) : exp * offset =
+  match off with
+  | NoOffset -> 
+      zero, NoOffset
+  | Field(fi, off') -> begin
+        let start =
+          try
+            let start, _ = bitsOffset t (Field(fi, NoOffset)) in
+            start
+          with SizeOfError (whystr, t') ->
+            E.s (E.bug "%a: Cannot compute sizeof: %s: %a"
+                   d_loc !currentLoc whystr d_type t')
+        in
+        if start land 7 <> 0 then begin
+          (* We have a bitfield *)
+          assert (off' = NoOffset);
+          zero, Field(fi, off')
+        end else begin
+          let next, restoff = offsetToInt fi.ftype off' in
+          add_int (integer (start / 8)) next,  restoff
+        end
+    end
+    | Index(ei, off') -> begin
+        let telem = match unrollType t with
+          TArray(telem, _, _) -> telem
+        | _ -> E.s (bug "Simplify: simplifyLval: index on a non-array")
+        in
+        let next, restoff = offsetToInt telem off' in
+        add_int
+          (BinOp(Mult, ei, SizeOf telem, !upointType)) 
+          next,
+        restoff
+    end
+
+
+
+
 (* Turn an expression into a three address expression (and queue some
  * instructions in the process) *)
 let rec makeThreeAddress
@@ -159,53 +206,13 @@ and makeBasic (setTemp: taExp -> bExp) (e: exp) : bExp =
     setTemp e' (* Put it into a temporary otherwise *)
   end
 
-and simplifyLval 
-    (setTemp: taExp -> bExp) 
-    (lv: lval) : lval =
-  let add_int (e1: exp) (e2: exp) =
-    (* Add, watching for a zero *)
-    if isZero (constFold true e2) then e1 else BinOp(PlusA, e1, e2, !upointType)
-  in
-  (* Convert an offset to an integer, and possibly a residual bitfield offset*)
-  let rec offsetToInt
-      (t: typ) (* The type of the host *)
-      (off: offset) : exp * offset =
-    match off with
-      NoOffset -> zero, NoOffset
-    | Field(fi, off') -> begin
-        let start =
-          try
-            let start, _ = bitsOffset t (Field(fi, NoOffset)) in
-            start
-          with SizeOfError (whystr, t') ->
-            E.s (E.bug "%a: Cannot compute sizeof: %s: %a"
-                   d_loc !currentLoc whystr d_type t')
-        in
-        if start land 7 <> 0 then begin
-          (* We have a bitfield *)
-          assert (off' = NoOffset);
-          zero, Field(fi, off')
-        end else begin
-          let next, restoff = offsetToInt fi.ftype off' in
-          add_int (integer (start / 8)) next,  restoff
-        end
-    end
-    | Index(ei, off') -> begin
-        let telem = match unrollType t with
-          TArray(telem, _, _) -> telem
-        | _ -> E.s (bug "Simplify: simplifyLval: index on a non-array")
-        in
-        let next, restoff = offsetToInt telem off' in
-        add_int
-          (BinOp(Mult, ei, SizeOf telem, !upointType)) 
-          next,
-        restoff
-    end
-  in
-  (* Add, watching for a zero *)
-  let add (e1: exp) (e2: exp) =
-    if isZero (constFold true e2) then e1 else BinOp(PlusPI, e1, e2, charPtrType)
-  in
+and simplifyLval (setTemp: taExp -> bExp) (lv: lval) : lval =
+  let loc = !currentLoc                  in
+  let lv' = simplifyLval_real setTemp lv in
+  let _   = ignore (E.log "\nsimplifyLval: loc = %a in = %a, out = %a\n" d_loc loc d_lval lv d_lval lv') in
+  lv'
+
+and simplifyLval_real (setTemp: taExp -> bExp) (lv: lval) : lval =
   let tres = TPtr(typeOfLval lv, []) in
   let typeForCast restOff: typ =
     (* in (e+i)-> restoff, what should we cast e+i to? *)
@@ -263,7 +270,7 @@ class threeAddressVisitor (fi: fundec) = object (self)
   inherit nopCilVisitor
 
   method private makeTemp (e1: exp) : exp =
-    let t = makeTempVar fi (typeOf e1) in
+    let t = makeTempVar fi (typeOf e1) ~descr:(d_exp () e1) in
     (* Add this instruction before the current statement *)
     self#queueInstr [Set(var t, e1, !currentLoc)];
     Lval(var t)
@@ -450,7 +457,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
       | None ->
           E.s (bug "You can't create a temporary if you're not in a function.")
     in
-    let t = makeTempVar fi (typeOf e1) in
+    let t = makeTempVar fi (typeOf e1) ~descr:(d_exp () e1) in
     (* Add this instruction before the current statement *)
     self#queueInstr [Set(var t, e1, !currentLoc)];
     Lval(var t)
@@ -656,7 +663,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
                visitCilType (self : #cilVisitor :> cilVisitor) form.vtype;
             let form' =
               splitOneVar form
-                          (fun s t -> makeTempVar func ~insert:false ~name:s t)
+                          (fun s t -> makeTempVar func ~insert:false ~descr:(text form.vname) ~name:s t)
             in
             (* Now it is a good time to check if we actually can split this
              * one *)
@@ -677,7 +684,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
         l.vtype <- visitCilType (self :> cilVisitor) l.vtype;
         (* Now see if we must split it *)
         if not (H.mem dontSplitLocals l.vname) then begin
-          ignore (splitOneVar l (fun s t -> makeTempVar func ~name:s t))
+          ignore (splitOneVar l (fun s t -> makeTempVar func ~name:s ~descr:(text l.vname) t))
         end)
       func.slocals;
     (* Now visit the body and change references to these variables *)

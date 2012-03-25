@@ -253,7 +253,9 @@ let cil_of_file file =
        >> CilMisc.CopyGlobal.doVisit
        >> CilMisc.NameNullPtrs.doVisit
        >> mk_cfg 
-       >> rename_locals 
+       >> rename_locals
+       >> (CilMisc.varExprMap <+> ignore)
+
 
 let dump_annots qs tgr res =
   let s     = res.FI.soln                                           in

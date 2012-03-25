@@ -1,31 +1,24 @@
 PENDING
 =======
 
-Failed 10 tests: ../tests/postests/adpcm.c,
-../tests/postests/coreutils/dirname.sh,
-../tests/postests/coreutils/echo.sh,
-../tests/postests/coreutils/hostname.sh,
-../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
-../tests/postests/coreutils/sum.sh, ../tests/postests/cpj/idea_test.c,
-../tests/postests/cpj/parallel_for.c, ../tests/postests/full_adpcm.sh
 
-Exceptions thrown on 10 tests: ../tests/postests/adpcm.c,
-../tests/postests/coreutils/dirname.sh,
-../tests/postests/coreutils/echo.sh,
-../tests/postests/coreutils/hostname.sh,
-../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
-../tests/postests/coreutils/sum.sh, ../tests/postests/cpj/idea_test.c,
-../tests/postests/cpj/parallel_for.c, ../tests/postests/full_adpcm.sh
+InferCtypes Errors
+------------------
+
+Begin by constructing the following:
+   
+    HEREHEREHERE
+    varinfo |-> vdescr containing original source expr (HACK CIL)
+
+    ldesc   |-> populated with the original ctyp fill fname, ftype fields
+    Sloc.t  |-> "access" path (expr/doc) for original C expression.
+                If sloc is "owned by" a particular varinfo then use vdescr
 
 
-* HEREHEREHERE get coreutils working with cex/infertypes
-    > do benchmarks on coreutils
 
-* Counterexamples 
-    > status: need interactive GUI
 
-0. Counterexamples (to be continued) 
-------------------------------------
+Counterexamples (to be continued) 
+---------------------------------
 
 STATUS: alas, for c you get crap like this:
    Counterexamples:
@@ -73,23 +66,6 @@ prunelive OR removing constant-propped vars from WF-envs kills:
 because some interesting constant term (e.g. n4_stale = n/4)
 is required in a qualifier... all the above are pretty contrived
 (and shift-related.)
-
-GOAL: variable dest_strncpy__SSA__phi_57 ::
-
-char * REF(ZZ) dest [ Valid(VV)
-                    ; GtLb(VV) 
-                    ; Eq0(VV, dest) 
-                    ; EqBuf(VV, $dest) 
-                    ; Ge0(VV, $dest) 
-                    ; Pad(VV, c) 
-                    ; Pad(VV, n) 
-                    ; RestGt(VV, c) 
-                    ; SizeGt(VV, c) 
-                    ; SizeGt(VV, 'm4) 
-                    ; SizeGt(VV, 'n4) 
-                    ; SizeGt(VV, n4) 
-                    ; SizeGt(VV, $n)  
-                    ; SizeGt(VV, n) ]  
 
 ***************************************************************************
 
