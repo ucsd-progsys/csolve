@@ -20,3 +20,6 @@ qualif SZB(v:ptr) : BLOCK_BEGIN([v]) + 8 <= BLOCK_END([v])
 qualif ADDRWR(v:ptr) : v = (DEREF([~x]) : ptr)
 
 qualif A(v:ptr) : VVADDR = DEREF([~x]) + 4
+qualif THING(v:ptr) : v = DEREF([VVADDR]) + 4
+
+qualif P(v:ptr) : (4*(DEREF([BLOCK_BEGIN([v])]) : int)) + 4 = (VVADDR - BLOCK_BEGIN([VVADDR]))
