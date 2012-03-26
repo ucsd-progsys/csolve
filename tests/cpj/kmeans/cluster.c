@@ -101,13 +101,6 @@
 //#include "random.h"
 #include "util.h"
 //#include "tm.h"
-/*
-typedef struct clusters { 
-  int REF(V > 0) numAttributes;
-  int REF(V > 0) best_nclusters;
-  FLOAT2D(best_nclusters, numAttributes) cluster_centres;
-} clusters_t;
-*/
 
 /* =============================================================================
  * extractMoments
@@ -151,7 +144,6 @@ zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
     int i;
     int j;
 
-    /* CSOLVE_ASSUME(numAttributes < numAttributes*numObjects); */
     single_variable = (float*)calloc(numObjects, sizeof(float));
        assert(single_variable);
     for (i = 0; i < numAttributes; i++) {
@@ -192,7 +184,6 @@ cluster_exec (
     //random_t* randomPtr;
 
     clusters_t * retval = NULL;
-    CSOLVE_ASSUME(numAttributes < numAttributes*numObjects);
     
     membership = malloc(numObjects * sizeof(int));
     assert(membership);
@@ -203,15 +194,14 @@ cluster_exec (
     if (use_zscore_transform) {
         zscoreTransform(attributes, numObjects, numAttributes);
     }
-    itime = 0;
     
+    itime = 0;
+    nclusters = min_nclusters;
 
     /*
      * From min_nclusters to max_nclusters, find best_nclusters
      */
-    for (nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) {
-    
-      CSOLVE_ASSUME(numAttributes*nclusters >= numAttributes*min_nclusters);
+    do {
       
         /* //random_seed(randomPtr, 7); */
         tmp_cluster_centres = normal_exec(//nthreads,
@@ -222,23 +212,13 @@ cluster_exec (
                                           threshold,
                                           membership);
                                           //randomPtr);
-	if(retval) {
-	  free(retval);
-	} else {
-	  retval = (clusters_t *) malloc(sizeof(clusters_t));
-	  retval->best_nclusters  = nclusters;
-	  retval->numAttributes   = numAttributes;
-	  retval->cluster_centres = tmp_cluster_centres;
-	}
-    
-    	/* if (*cluster_centres) { */
-    	/*   for (int i = 0; i < nclusters - 1; i++) */
-    	/*     free((*cluster_centres)[i]); */
-    	/*   free(*cluster_centres); */
-    	/* } */
-
-    itime++;
-    } /* nclusters */
+	nclusters++;
+	itime++;
+    } while (nclusters <= max_nclusters);/* nclusters */
+    retval = (clusters_t *) malloc(sizeof(clusters_t));
+    retval->best_nclusters  = nclusters-1;
+    retval->numAttributes   = numAttributes;
+    retval->cluster_centres = tmp_cluster_centres; 
 
     free(membership);
     //random_free(randomPtr);

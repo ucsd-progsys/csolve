@@ -1,9 +1,2 @@
-//qualif BUFBNDS(v:ptr) : v + (4 * (~x * ~y))  <= BLOCK_END([v])
-//qualif BUFBNDS(v:ptr) : v + (4 * ~x)  <= BLOCK_END([v])
-//qualif BUFBNDS(v:ptr) : v + (4 * (@numA * @min))   <= BLOCK_END([v])
-//qualif BUFBNDS(v:ptr) : v + (4 * (@numA * @nclus)) <= BLOCK_END([v])
-//
-//qualif STRUCTSZ(v:ptr) : BLOCK_BEGIN([v]) + 12 = BLOCK_END([v])
-//qualif DINT(v:ptr) : ~x = (DEREF([v]) : int)
 //SPEC STRUCT SIZE 
 qualif ARRAYSZ(v: ptr): ((v != 0) => (BLOCK_BEGIN([v]) + 12 <= BLOCK_END([v])))

@@ -82,7 +82,7 @@ typedef struct clusters {
  * cluster_exec
  * =============================================================================
  */
-clusters_t * NNSTART NNVALIDPTR NNROOM_FOR(clusters_t)//OK
+clusters_t * START VALIDPTR ROOM_FOR(clusters_t)//OK
 cluster_exec (
     //int      nthreads,              /* in: number of threads*/
     int    REF(V > 0) numObjects,     /* number of input objects */

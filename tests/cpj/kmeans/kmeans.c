@@ -273,10 +273,7 @@ int do_work( int numObjects, int numAttributes
                                 cluster_assign);      /* return: [numObjects] cluster id for each object */
     }
 
-    if(clusters == NULL) return 1;
-    
     csolve_assert(clusters);
-    //CSOLVE_ASSUME(clusters);
     
     best_nclusters = clusters->best_nclusters;
     cluster_centres = clusters->cluster_centres;
@@ -288,16 +285,17 @@ int do_work( int numObjects, int numAttributes
         csolve_assert(0 < best_nclusters);
         fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
         for (i = 0; i < best_nclusters; i++) {
-            sprintf(outFileName, "group.%d", i);
-            fptr[i] = fopen(outFileName, "w");
+	  sprintf(outFileName, "group.%d", i);
+	  fptr[i] = fopen(outFileName, "w");
         }
         for (i = 0; i < numObjects; i++) {
-            fprintf(fptr[cluster_assign[i]],
+	  fprintf(cluster_assign[i]],
                     "%6.4f %6.4f\n",
                     attributes[i][0],
                     attributes[i][1]);
         }
         for (i = 0; i < best_nclusters; i++) {
+	  if(fptr[i] != NULL)
             fclose(fptr[i]);
         }
         free(fptr);
