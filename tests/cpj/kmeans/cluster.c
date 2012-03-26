@@ -101,7 +101,6 @@
 //#include "random.h"
 #include "util.h"
 //#include "tm.h"
- 
 /*
 typedef struct clusters { 
   int REF(V > 0) numAttributes;
@@ -139,12 +138,11 @@ extractMoments (float *ARRAY data, int num_elts, int num_moments)
     return moments;
 }
 
-
 /* =============================================================================
  * zscoreTransform
  * =============================================================================
  */
-static void
+/* static  */void
 zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
 /* data in & out: [numObjects][numAttributes] */
 {
@@ -153,11 +151,12 @@ zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
     int i;
     int j;
 
+    /* CSOLVE_ASSUME(numAttributes < numAttributes*numObjects); */
     single_variable = (float*)calloc(numObjects, sizeof(float));
-    assert(single_variable);
+       assert(single_variable);
     for (i = 0; i < numAttributes; i++) {
         for (j = 0; j < numObjects; j++) {
-	  single_variable[j] = data[j][i];
+    	  single_variable[j] = data[j][i];
         }
         moments = extractMoments(single_variable, numObjects, 2);
         moments[1] = (float)sqrt((double)moments[1]);
@@ -168,38 +167,32 @@ zscoreTransform (float *ARRAY *ARRAY data, int numObjects, int numAttributes)
     }
     free(single_variable);
 }
+
 /* =============================================================================
  * cluster_exec
  * =============================================================================
  */
-clusters_t *
+clusters_t * //OK
 cluster_exec (
-    //int      nthreads,            /* in: number of threads*/
-    int      numObjects,            /* number of input objects */
-    int      numAttributes,         /* size of attribute of each object */
-    float ** attributes,            /* [numObjects][numAttributes] */
-    int      use_zscore_transform,
-    int      min_nclusters,         /* testing k range from min to max */
-    int      max_nclusters,
-    float    threshold,             /* in:   */
-    int *    cluster_assign         /* out: [numObjects] */
-) CHECK_TYPE
+    //int      nthreads,              /* in: number of threads*/
+    int    REF(V > 0) numObjects,     /* number of input objects */
+    int    REF(V > 0) numAttributes,  /* size of attribute of each object */
+    FLOAT2D(numObjects, numAttributes) attributes,  /* [numObjects][numAttributes] */
+    int    use_zscore_transform,
+    int    REF(V > 0)  min_nclusters, /* testing k range from min to max */
+    int    REF(V >= min_nclusters) max_nclusters,
+    float  REF(V > 0) threshold,      /* in:   */
+    INTARR(numObjects) cluster_assign /* out: [numObjects] */
+	      ) CHECK_TYPE
 {
     int itime;
     int nclusters;
     int* membership = 0;
-    float** tmp_cluster_centres;
+    float** tmp_cluster_centres = NULL;
     //random_t* randomPtr;
 
-    clusters_t * retval = (clusters_t *) malloc(sizeof(clusters_t));
-
-    //    CSOLVE_ASSUME(numAttributes < numAttributes*numObjects);
-    
-    /* CSOLVE_ASSUME(numObjects * numAttributes > numObjects); */
-    /* CSOLVE_ASSUME(numObjects * numAttributes > numAttributes); */
-    
-    /* CSOLVE_ASSUME(numAttributes * min_nclusters  > min_nclusters); */
-    
+    clusters_t * retval = NULL;
+    CSOLVE_ASSUME(numAttributes < numAttributes*numObjects);
     
     membership = malloc(numObjects * sizeof(int));
     assert(membership);
@@ -210,8 +203,8 @@ cluster_exec (
     if (use_zscore_transform) {
         zscoreTransform(attributes, numObjects, numAttributes);
     }
-
     itime = 0;
+    
 
     /*
      * From min_nclusters to max_nclusters, find best_nclusters
@@ -229,17 +222,21 @@ cluster_exec (
                                           threshold,
                                           membership);
                                           //randomPtr);
-
-	/* if (*cluster_centres) { */
-	/*   for (int i = 0; i < nclusters - 1; i++) */
-	/*     free((*cluster_centres)[i]); */
-	/*   free(*cluster_centres); */
-	/* } */
-
-
-	retval->cluster_centres = tmp_cluster_centres;
-	retval->best_nclusters  = nclusters;
+	if(retval) {
+	  free(retval);
+	} else {
+	  retval = (clusters_t *) malloc(sizeof(clusters_t));
+	  retval->best_nclusters  = nclusters;
+	  retval->numAttributes   = numAttributes;
+	  retval->cluster_centres = tmp_cluster_centres;
+	}
     
+    	/* if (*cluster_centres) { */
+    	/*   for (int i = 0; i < nclusters - 1; i++) */
+    	/*     free((*cluster_centres)[i]); */
+    	/*   free(*cluster_centres); */
+    	/* } */
+
     itime++;
     } /* nclusters */
 
@@ -248,7 +245,6 @@ cluster_exec (
 
     return retval;
 }
-
 /* =============================================================================
  *
  * End of cluster.c

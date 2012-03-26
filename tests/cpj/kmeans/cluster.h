@@ -74,7 +74,7 @@
 typedef struct clusters { 
   int REF(V > 0) numAttributes;
   int REF(V > 0) best_nclusters;
-  FLOAT2D(best_nclusters, numAttributes) cluster_centres;
+  NNFLOAT2D(best_nclusters, numAttributes) cluster_centres;
 } clusters_t;
 
 
@@ -82,7 +82,8 @@ typedef struct clusters {
  * cluster_exec
  * =============================================================================
  */
-clusters_t * OK
+/* clusters_t * OK NNSTART NNVALIDPTR  */
+clusters_t * NNSTART NNVALIDPTR //OK
 cluster_exec (
     //int      nthreads,              /* in: number of threads*/
     int    REF(V > 0) numObjects,     /* number of input objects */
