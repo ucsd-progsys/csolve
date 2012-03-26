@@ -273,9 +273,12 @@ int do_work( int numObjects, int numAttributes
                                 cluster_assign);      /* return: [numObjects] cluster id for each object */
     }
 
+    if(clusters == NULL) return 1;
+    
     csolve_assert(clusters);
-    CSOLVE_ASSUME(clusters);
-    best_nclusters = clusters ->best_nclusters;
+    //CSOLVE_ASSUME(clusters);
+    
+    best_nclusters = clusters->best_nclusters;
     cluster_centres = clusters->cluster_centres;
 
 #ifdef GNUPLOT_OUTPUT

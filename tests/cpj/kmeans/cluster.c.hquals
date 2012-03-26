@@ -5,3 +5,5 @@
 //
 //qualif STRUCTSZ(v:ptr) : BLOCK_BEGIN([v]) + 12 = BLOCK_END([v])
 //qualif DINT(v:ptr) : ~x = (DEREF([v]) : int)
+//SPEC STRUCT SIZE 
+qualif ARRAYSZ(v: ptr): ((v != 0) => (BLOCK_BEGIN([v]) + 12 <= BLOCK_END([v])))
