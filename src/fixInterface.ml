@@ -776,6 +776,8 @@ let address_of_ref = function
 let rec address_of_expr cenv sto e = match E.unwrap e with
   | A.Var p            -> address_of_ref <| ce_find p cenv
   | A.Cst (e, _)       -> address_of_expr cenv sto e
+  | A.App (sy, [e]) when sy = FA.uf_bbegin ->
+      (e |> fst |> address_of_expr cenv sto, Index.of_int 0)
   | A.Bin (e1, op, e2) ->
     let n    = match E.unwrap e2 with A.Con (A.Constant.Int n) -> n | _ -> raise InvalidDeref in
     let n    = match op with A.Plus -> n | A.Minus -> -n | _ -> raise InvalidDeref in
