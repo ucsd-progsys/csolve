@@ -255,7 +255,6 @@ and simplifyLval_real (setTemp: taExp -> bExp) (lv: lval) : lval =
   | Var v, off ->
       (Var v, simplifyOffset setTemp off)
 
-      (* prettycil hack *)
 
 (* Simplify an offset and make sure it has only three address expressions in
  * indices *)
