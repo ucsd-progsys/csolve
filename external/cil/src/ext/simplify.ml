@@ -256,7 +256,7 @@ class threeAddressVisitor (fi: fundec) = object (self)
   inherit nopCilVisitor
 
   method private makeTemp (e1: exp) : exp = 
-    let t = makeTempVar fi (typeOf e1) in
+    let t = makeTempVar fi (typeOf e1) ~descr:(d_exp () e1) in
     (* Add this instruction before the current statement *)
     self#queueInstr [Set(var t, e1, !currentLoc)];
     Lval(var t)
@@ -433,7 +433,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
       | None -> 
           E.s (bug "You can't create a temporary if you're not in a function.")
     in
-    let t = makeTempVar fi (typeOf e1) in
+    let t = makeTempVar fi (typeOf e1) ~descr:(d_exp () e1) in
     (* Add this instruction before the current statement *)
     self#queueInstr [Set(var t, e1, !currentLoc)];
     Lval(var t)
@@ -639,7 +639,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
                visitCilType (self : #cilVisitor :> cilVisitor) form.vtype;
             let form' = 
               splitOneVar form 
-                          (fun s t -> makeTempVar func ~insert:false ~name:s t)
+                          (fun s t -> makeTempVar func ~insert:false ~descr:(text form.vname) ~name:s t)
             in
             (* Now it is a good time to check if we actually can split this 
              * one *)
@@ -660,7 +660,7 @@ class splitVarVisitorClass(func:fundec option) : cilVisitor = object (self)
         l.vtype <- visitCilType (self :> cilVisitor) l.vtype;
         (* Now see if we must split it *)
         if not (H.mem dontSplitLocals l.vname) then begin
-          ignore (splitOneVar l (fun s t -> makeTempVar func ~name:s t))
+          ignore (splitOneVar l (fun s t -> makeTempVar func ~name:s ~descr:(text l.vname) t))
         end) 
       func.slocals;
     (* Now visit the body and change references to these variables *)

@@ -85,9 +85,9 @@ val anyTypeAttribute        : string
 val hasRoomAttribute        : string
 val nonnullHasRoomAttribute : string
 
-val has_array_attr     : Cil.attributes -> bool
-val has_pos_attr       : Cil.attributes -> bool
-val has_unchecked_attr : Cil.attributes -> bool
+val has_array_attr          : Cil.attributes -> bool
+val has_pos_attr            : Cil.attributes -> bool
+val has_unchecked_attr      : Cil.attributes -> bool
 
 val is_cobegin_block        : Cil.stmt -> bool
 val is_foreach_block        : Cil.stmt -> bool
@@ -104,7 +104,9 @@ val bprintf : bool -> ('a, unit, Pretty.doc) format -> 'a
 val definedHere : Cil.varinfo -> bool
 
 val d_var                   : unit -> Cil.varinfo -> Pretty.doc
-val d_type_noattrs          : unit -> Cil.typ -> Pretty.doc
+
+(* val d_type_noattrs          : unit -> Cil.typ -> Pretty.doc
+ *)
 
 type dec =
   | FunDec of string * Cil.fundec * Cil.location
@@ -122,9 +124,10 @@ end
 val assertLoc : Cil.location -> bool -> ('a, unit, Pretty.doc) format -> 'a
 
 val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
-val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
-val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list
-val vm_union      : 'a VarMap.t -> 'a VarMap.t -> 'a VarMap.t
+(* val vm_of_list    : (Cil.varinfo * 'a) list -> 'a VarMap.t
+   val vm_to_list    : 'a VarMap.t -> (Cil.varinfo * 'a) list
+   val vm_union      : 'a VarMap.t -> 'a VarMap.t -> 'a VarMap.t
+*)
 (*
 val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
@@ -185,3 +188,9 @@ module Pheapify: Visitor
 val dec_of_global : Cil.global -> dec option
 
 val noBlockAttrPrinter : Cil.cilPrinter
+
+val typStripAttrs  : Cil.typ  -> Cil.typ
+val exprStripAttrs : Cil.exp  -> Cil.exp
+val varExprMap  : Cil.file -> Cil.exp VarMap.t
+
+

@@ -4860,7 +4860,6 @@ let makeTempVar fdec ?(insert = true) ?(name = "__cil_tmp")
   vi.vdescrpure <- descrpure;
   vi
 
-    
 (* Set the formals and re-create the function name based on the information*)
 let setFormals (f: fundec) (forms: varinfo list) = 
   f.sformals <- forms; (* Set the formals *)

@@ -266,5 +266,5 @@ let scalar_solve me fn fp (* qs *) =
   in
     me.defm
   |> SM.map (List.map (fun (v, cr) -> (v, index_of_refc s v cr)))
-  |> SM.map CM.vm_of_list
+  |> SM.map CM.VarMap.of_list
     

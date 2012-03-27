@@ -344,7 +344,7 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
 let failure_dump sub ve sto =
   let _ = P.printf "@!Locals:@!" in
   let _ = P.printf "=======@!" in
-  let _ = P.printf "%a@!" d_vartypes (ve |> CM.VarMap.map (Ct.subs sub) |> CM.vm_to_list) in
+  let _ = P.printf "%a@!" d_vartypes (ve |> VM.map (Ct.subs sub) |> VM.to_list) in
   let _ = P.printf "@!Store:@!" in
   let _ = P.printf "======@!" in
   let _ = P.printf "%a@!@!" Store.d_store (Store.subs sub sto) in
@@ -478,15 +478,15 @@ let fref_lookup args v = function
 
 let replace_formal_frefs {args = args} vm =
   vm
-  |> CM.vm_to_list
+  |> VM.to_list
   |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
-  |> CM.vm_of_list
+  |> VM.of_list
                
 let infer_shape fe ve gst scim (cf, sci, vm) =
-  let vm                    = replace_formal_frefs cf vm in
-  let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
-  let sto                   = Store.upd cf.sto_out gst in
-  let em, bas, sub, sto     = constrain_fun fe cf ve sto sci in
+  let vm                    = replace_formal_frefs cf vm           in
+  let ve                    = fresh_local_slocs <| VM.extend vm ve in
+  let sto                   = Store.upd cf.sto_out gst             in
+  let em, bas, sub, sto     = constrain_fun fe cf ve sto sci       in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
   let _                     = check_sol cf ve gst em bas sub sto whole_store in
@@ -497,7 +497,7 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-    {Sh.vtyps   = CM.vm_to_list vtyps;
+    {Sh.vtyps   = VM.to_list vtyps;
      Sh.etypm   = em;
      Sh.store   = sto;
      Sh.anna    = annot;
@@ -521,7 +521,7 @@ let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;
   let _ = P.printf "%a@!@!" CFun.d_cfun cf in
   let _ = P.printf "Locals:@!" in
   let _ = P.printf "-------@!@!" in
-  let _ = P.printf "%a@!@!" d_vartypes locals in
+  let _ = P.printf "%a@!@!" d_vartypes_long locals in
   let _ = P.printf "Store:@!" in
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" Store.d_store st in

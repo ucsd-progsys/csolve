@@ -257,7 +257,7 @@ let qarg_of_expr abbrev e =
   ; qargid   = if s = s' then None else Some s 
   } 
 
-let mkCtype  = CilMisc.pretty_to_string CilMisc.d_type_noattrs
+let mkCtype  = CilMisc.pretty_to_string (fun () t -> Cil.d_type () (CilMisc.typStripAttrs t))
 
 let mkQual a = fun (f, es) -> 
   { qname = Sy.to_string f
