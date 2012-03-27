@@ -931,11 +931,34 @@ let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
 (******************** Source Location Information **************************)
 (***************************************************************************)
 
-type srcinfo = (* note *) string * (* provenance *) location 
+type srcinfo 
+  = Raw of string
+  | Lvl of lval     * location 
+  | Typ of typ      * location
+  | Exp of exp      * location
+  | Con of constant * location
+  | Var of varinfo  * location
+  | Ins of instr    * location 
 
-let d_srcinfo () (str, loc) =
-  Pretty.dprintf "%s at %a" str d_loc loc
+let d_srcinfo () = function
+  | Raw s        -> Pretty.dprintf "%s" s
+  | Lvl (l, loc) -> Pretty.dprintf "%a at %a" d_lval l  d_loc loc
+  | Typ (t, loc) -> Pretty.dprintf "%a at %a" d_type t  d_loc loc
+  | Exp (e, loc) -> Pretty.dprintf "%a at %a" d_exp  e  d_loc loc
+  | Con (c, loc) -> Pretty.dprintf "%a at %a" d_const c d_loc loc
+  | Var (v, loc) -> Pretty.dprintf "%a at %a" d_var v   d_loc loc
+  | Ins (i, loc) -> Pretty.dprintf "%a at %a" d_instr i d_loc loc
 
+
+let srcinfo_of_lval     = fun l lo -> Lvl (l, Misc.get_option !currentLoc lo)
+let srcinfo_of_type     = fun t lo -> Typ (t, Misc.get_option !currentLoc lo)
+let srcinfo_of_constant = fun c lo -> Con (c, Misc.get_option !currentLoc lo)
+let srcinfo_of_instr    = fun i lo -> Ins (i, Misc.get_option !currentLoc lo)
+let srcinfo_of_var      = fun v lo -> Var (v, Misc.get_option !currentLoc lo)
+let srcinfo_of_expr     = fun e lo -> Exp (e, Misc.get_option !currentLoc lo)
+let srcinfo_of_string   = fun s    -> Raw s 
+
+(*
 let mk_srcinfo prefix d_x x lo =
   let str = prefix ^ (pretty_to_string d_x x) in
   let loc = Misc.get_option !currentLoc lo in
@@ -948,6 +971,7 @@ let srcinfo_of_instr    = mk_srcinfo "instr: " d_instr
 let d_varinfo () v      = d_lval () (Var v, NoOffset)
 let srcinfo_of_var      = mk_srcinfo "var: " d_varinfo  
 let srcinfo_of_string s = ("str: "^s, locUnknown)
+*)
 
 
 

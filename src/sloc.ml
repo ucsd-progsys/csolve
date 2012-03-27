@@ -46,22 +46,24 @@ let refresh = function
   | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
   | AnyLoc               -> AnyLoc
 
-(* let fresh_abstract () = 
-  Abstract (fresh_slocid ())
-*)
+(* API *)
+let fresh_abstract i = Abstract (fresh_slocid (), [i])
 
-let fresh_abstract i = Abstract (fresh_slocid (), i)
+(* API *)
+let copy_concrete = function
+  | AnyLoc          -> AnyLoc
+  | Abstract (i, z) -> Concrete (fresh_slocid (), i, z)
+  | _               -> assert false
 
-let fresh_concrete abs =
-  if abs = AnyLoc then
-    AnyLoc
-  else
-    let (aid, info) = match abs with Abstract (aid,z) -> (aid, z) | _ -> assert false in
-      Concrete (fresh_slocid (), aid, info)
+(* API *)
+let copy_abstract z' = function
+  | AnyLoc          -> AnyLoc
+  | Abstract (_, z) -> Abstract (fresh_slocid (), z ++ z')
+  | _               -> assert false
 
 let sloc_of_any = AnyLoc
 
-let none = fresh_abstract []
+let none = fresh_abstract (CilMisc.srcinfo_of_string "none")
 
 let canonical = function
   | Abstract _ as al  -> al

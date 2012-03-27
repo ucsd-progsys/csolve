@@ -5,8 +5,7 @@ PENDING
 InferCtypes Errors
 ------------------
 
-Begin by constructing the following:
-
+1. Begin by constructing the following:
 
 setSrcLval :: loc -> lval -> lval
 setSrcExp  :: loc -> expr -> expr
@@ -17,6 +16,20 @@ getSrcLval :: loc -> lval -> lval
     ------              ------
     loc, lval   --->    lval
     loc, expr   --->    expr 
+
+2. val Sloc.fresh_abstract: src_info -> Sloc.t
+   -- force sloc creation to require a Cil.typ
+
+3. split Typespec.getSloc into two parts,
+    getSloc (which FINDS a previous sloc)
+    defSloc (which DEFINES a sloc if undefined).
+   The latter must take in a Cil.typ, so it can call fresh_abstract.
+
+4. update typespec.ml appropriately threading Cil.typ throughout.
+
+5. inferctypes:
+    fresh_local_slocs
+
 
     HEREHEREHERE
     varinfo |-> vdescr containing original source expr (HACK CIL)

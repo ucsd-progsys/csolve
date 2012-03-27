@@ -199,6 +199,6 @@ val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
 val srcinfo_of_string   : string -> srcinfo
 
 val setSrcLval          : Cil.location -> Cil.lval -> Cil.lval -> unit
-val setSrcExpr          : Cil.location -> Cil.expr -> Cil.expr -> unit
+val setSrcExpr          : Cil.location -> Cil.exp -> Cil.exp -> unit
 val getSrcLval          : Cil.location -> Cil.lval -> Cil.lval 
-val getSrcExpr          : Cil.location -> Cil.expr -> Cil.expr
+val getSrcExpr          : Cil.location -> Cil.exp -> Cil.exp

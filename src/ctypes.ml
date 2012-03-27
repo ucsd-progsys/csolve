@@ -564,7 +564,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           | C.CInt64 (v, ik, _) -> Int (C.bytesSizeOfInt ik, r)
           | C.CChr c            -> Int (CM.int_width, r)
           | C.CReal (_, fk, _)  -> Int (CM.bytesSizeOfFloat fk, r)
-          | C.CStr s            -> Ref (S.fresh_abstract [CM.srcinfo_of_constant c None] , r)
+          | C.CStr s            -> Ref (S.fresh_abstract (CM.srcinfo_of_constant c None) , r)
           | _                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 
     let eq pct1 pct2 =
@@ -1145,7 +1145,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let normalize_names cf1 cf2 f fe =
       let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
-      let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
+      let fresh_locs   = List.map (Sloc.copy_abstract []) ls1 in
       let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
       let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
       let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
@@ -1181,7 +1181,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let instantiate srcinf cf =
       let qslocs    = quantified_locs cf in
-      let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
+      let instslocs = List.map (S.copy_abstract [srcinf]) qslocs in
       let sub       = List.combine qslocs instslocs in
         (subs cf sub, sub)
   end

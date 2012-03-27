@@ -243,13 +243,13 @@ let soln_init cfg anna =
 
 let cloc_of_v theta al v =
 (*  let _  = Pretty.printf "cloc_of_v theta = %a \n" d_theta theta in *)
-  Misc.do_memo theta Sloc.fresh_concrete al v.vname 
+  Misc.do_memo theta Sloc.copy_concrete al v.vname 
 (*  >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc *)
 
 
 let cloc_of_position theta al (j,k,i) = 
   Printf.sprintf "#%d#%d#%d" j k i
-  |> Misc.do_memo theta Sloc.fresh_concrete al
+  |> Misc.do_memo theta Sloc.copy_concrete al
 (*  >> Pretty.printf "cloc_of_position: position = (%d,%d,%d) cl = %a \n" j k i Sloc.d_sloc
 *)
 

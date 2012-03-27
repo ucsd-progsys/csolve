@@ -21,26 +21,34 @@
  *
  *)
 
-type slocinfo = CilMisc.srcinfo list
 
 type t
 
 module SlocSet: Set.S with type elt = t
 module SlocMap: FixMisc.EMapType with type key = t
 
+val sloc_of_any    : t
 val none           : t
 val canonical      : t -> t
-val fresh_abstract : slocinfo -> t
 
-val sloc_of_any    : t
-val fresh_concrete : t -> t
+val fresh_abstract : CilMisc.srcinfo -> t
+val copy_abstract  : CilMisc.srcinfo list -> t -> t
+val copy_concrete  : t -> t
+
+(*
+type slocinfo = CilMisc.srcinfo list
+val fresh_abstract : slocinfo -> t 
+val to_slocinfo    : t -> slocinfo 
+*)
+
 val is_abstract    : t -> bool
 val is_concrete    : t -> bool
 val is_any         : t -> bool
 val compare        : t -> t -> int
 val eq             : t -> t -> bool
-val to_slocinfo    : t -> slocinfo
+
 val to_string      : t -> string
+
 val d_sloc         : unit -> t -> Pretty.doc
 val d_sloc_info    : unit -> t -> Pretty.doc
 val d_slocmap      : (unit -> 'a -> Pretty.doc) -> unit -> 'a SlocMap.t -> Pretty.doc
