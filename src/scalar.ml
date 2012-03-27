@@ -118,7 +118,7 @@ let ctype_of_var_index v ix =
   | Cil.TVoid _             -> Ct.void_ctype
   | Cil.TPtr ((Cil.TFun _) as f,_) ->
     let f,x,y    = f |> Cil.typeAddAttributes v.Cil.vattr
-                     |> Typespec.preRefcfunOfType
+                     |> Typespec.preRefcfunOfType v.Cil.vdecl
                      |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
     Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) f, ix)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)

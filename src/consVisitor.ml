@@ -483,7 +483,7 @@ let scalarcons_of_binding me loc tag (j, env) grd j v cr =
   (j+1, extend_env me v cr env), (cs, ds, [(v, cr')])
 
 let declared_ptr_type v =
-  v.vtype |> ShapeInfra.fresh_heaptype |> FI.t_scalar 
+  v.vtype |> ShapeInfra.fresh_heaptype v.vdecl |> FI.t_scalar 
 
 let scalarcons_of_instr me i grd (j, env) instr = 
   let _   = if mydebug then (ignore <| Pretty.printf "scalarcons_of_instr: %a \n" d_instr instr) in
@@ -817,7 +817,7 @@ let cons_of_var_init tag loc sto v vtyp = function
       let t_var       = v.vtype |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp) in
       let cs1, _      = FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc in
       let aloc, r     = match vtyp with Ct.Ref (al, r) -> (al, r) | _ -> assert false in
-      let cloc        = Sloc.fresh_concrete aloc in
+      let cloc        = Sloc.copy_concrete aloc in
       let ctptr       = Ct.Ref (cloc, r) in
       let env, sto, _ = fst <| FI.extend_world sto aloc cloc true id loc tag (FI.ce_empty, sto, None) in
       let sto, cs2    = cons_of_init (sto, []) tag loc env cloc v.vtype ctptr init in

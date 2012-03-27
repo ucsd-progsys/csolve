@@ -583,7 +583,7 @@ let infer_shapes cil spec scis =
            |>: (fun f -> (f, globalFunEntryEnv spec f))    
            |> VM.of_list in
   let xm = SM.range scis     
-           |>: (fun sci -> (sci.ST.fdec.C.svar, sci)) 
+           |>: (fun (_,sci,_) -> (sci.ST.fdec.C.svar, sci)) 
            |> VM.of_list in
   scis |> SM.map (infer_shape fe ve (CSpec.store spec) xm)
        |> FinalFields.infer_final_fields spec scis 
