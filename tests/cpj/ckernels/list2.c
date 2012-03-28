@@ -15,10 +15,7 @@ CHECK_TYPE
 {
   foreach(i, 0, sz)
     struct node *n = l[i];
-    // This is unsafe
     int b = n->id;
     n->foo = 3;
-    // This is safe
-    /* int b = n->id; */
   endfor
 }
