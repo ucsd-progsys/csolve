@@ -9,7 +9,8 @@ void work() {
 
 void main() {
 	foreach(i, 0, 10)
-          // global++; UNSAFE
+          //UNSAFE
+          //global++;
           work();
         endfor
 }
