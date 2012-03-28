@@ -37,6 +37,7 @@ module IM  = Misc.IntMap
 module C   = FixConstraint
 module Q   = Qualifier
 module An  = Annots
+module Ct  = Ctypes
 
 open Misc.Ops
 
@@ -73,14 +74,14 @@ type qual  =
   }
 
 type annotv = 
-  { vname  : An.binder
+  { vname  : Ct.binder
   ; ctype  : ctyp
   ; quals  : qual list
   ; conc   : A.pred list 
   }
 
 type annotf = 
-  { fname  : An.binder 
+  { fname  : Ct.binder 
   ; args   : annotv list
   ; ret    : annotv
   }
@@ -96,7 +97,7 @@ type json =
   }
 
 let junkUrl   = ""
-let junkAnnot = { vname = An.Nil; ctype = "(void *)"; quals = []; conc = [] }
+let junkAnnot = { vname = Ct.Nil; ctype = "(void *)"; quals = []; conc = [] }
 
 (*******************************************************************)
 (************* Render JSON as Pretty.doc ***************************)
@@ -125,7 +126,7 @@ let d_varid = d_str
 
 (***************** Serializing Specialized Records **********************) 
 
-let d_binder () b = PP.dprintf "\"%a\"" An.d_binder b
+let d_binder () b = PP.dprintf "\"%a\"" Ct.d_binder b
 
 let d_srcLoc () e = 
   PP.dprintf "{ line : %d }" e.line
@@ -243,7 +244,7 @@ let srcLoc_of_constraint tgr c =
 (*******************************************************************)
 
 let abbrev_binder abbrev = function
-  | An.S x -> An.S (abbrev x)
+  | Ct.S x -> Ct.S (abbrev x)
   | b      -> b
 
 let abbrev_expr abbrev = function
@@ -272,7 +273,7 @@ let deconstruct_pApp = function
 
 
 let annot_of_vbind abbrev s (x, (cr, ct)) =
-  let cs, ks  = cr |> Ctypes.reft_of_refctype 
+  let cs, ks  = cr |> Ct.reft_of_refctype 
                    |> thd3
                    |> Misc.either_partition (function C.Conc p -> Left p | C.Kvar (su,k) -> Right (su, k)) in
   let qs, cs' = ks |> Misc.flap (fun (su, k) -> (s k) |> List.map (Misc.flip A.substs_pred su))
@@ -290,7 +291,7 @@ let annot_of_finfo abbrev s (fn, (cf, fd)) =
   (fn, cf, fd) 
   |> Annots.deconstruct_fun 
   |> List.map (annot_of_vbind abbrev s) 
-  |> (function (ret::args) -> { fname = An.S fn; args = args; ret = ret })
+  |> (function (ret::args) -> { fname = Ct.S fn; args = args; ret = ret })
 
 let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
   let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
@@ -316,7 +317,7 @@ let mkAbbrev bs =
      |> (fun t -> (fun s -> try Hashtbl.find t s with Not_found -> s))
 
 let mkSyInfoMap bs =
-  bs |> Misc.map_partial (function An.TVar (An.N x, y) -> Some (x, y) | _ -> None)
+  bs |> Misc.map_partial (function An.TVar (Ct.N x, y) -> Some (x, y) | _ -> None)
      |> SM.of_list
 
 let varid_of_varinfo v = v.Cil.vname
@@ -371,7 +372,7 @@ let mkVarAnnot abbrev s bs =
   bs |> mkVarLineSsavarMap
      |> SSM.map begin IM.map_partial (fun x ->
           Misc.maybe_map 
-            (fun z -> annot_of_vbind abbrev s (An.N x, z)) 
+            (fun z -> annot_of_vbind abbrev s (Ct.N x, z)) 
             (SM.maybe_find x xm)
           )
         end 

@@ -21,8 +21,7 @@
  *
  *)
 
-module Misc = FixMisc
-module M   = Misc
+module Misc = FixMisc 
 module P   = Pretty
 module E   = Errormsg
 module S   = Sloc
@@ -31,12 +30,14 @@ module N   = Index
 module C   = Cil
 module CM  = CilMisc
 module FC  = FixConstraint
-module SM  = M.StringMap
+module SM  = Misc.StringMap
 module SLM = S.SlocMap
 
 module SLMPrinter = P.MakeMapPrinter(SLM)
 
-open M.Ops
+open Misc.Ops
+
+let mydebug = false
 
 (******************************************************************************)
 (*********************************** Indices **********************************)
@@ -71,6 +72,24 @@ module IndexRefinement = struct
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 end
+
+(******************************************************************************)
+(************************* Binders ********************************************)
+(******************************************************************************)
+
+type binder  = N of Ast.Symbol.t
+             | S of string 
+             | I of Index.t 
+             | Nil
+
+let d_binder () = function 
+  | N n -> P.text (Ast.Symbol.to_string n)
+  | S s -> P.text s
+  | I i -> P.dprintf "@@%a" Index.d_index i
+  | Nil -> P.nil
+
+
+
 
 (******************************************************************************)
 (************************* Refctypes and Friends ******************************)
@@ -201,6 +220,41 @@ let prectype_subs subs = function
   | Ref  (s, i) -> Ref (S.Subst.apply subs s, i)
   | pct         -> pct
 
+let fieldinfo_of_cilfield prefix v = 
+  { fname = Some (prefix ^ v.Cil.fname)
+  ; ftype = Some v.Cil.ftype 
+  }
+
+let rec unfold_compinfo prefix ci = 
+  let _  = asserti ci.Cil.cstruct "TBD: unfold_compinfo: unions" in
+  ci.Cil.cfields |> Misc.flap (unfold_fieldinfo prefix)
+
+and unfold_fieldinfo prefix fi = 
+  match Cil.unrollType fi.Cil.ftype with
+  | Cil.TComp (ci, _) -> 
+     unfold_compinfo (prefix ^  fi.Cil.fname ^ ".") ci
+  | _ -> [fieldinfo_of_cilfield prefix fi]
+
+let unfold_compinfo pfx ci = 
+  unfold_compinfo pfx ci 
+  >> wwhen mydebug (E.log "unfold_compinfo: pfx = <%s> result = %a\n"  pfx (CM.d_many_braces false d_fieldinfo))
+
+let unfold_ciltyp = function 
+  | Cil.TComp (ci,_) ->
+      unfold_compinfo "" ci
+      |> Misc.index_from 0 
+      |> Misc.IntMap.of_list 
+      |> (fun im _ i -> Misc.IntMap.find i im)
+  | Cil.TArray (t',_,_) ->
+      (fun _ i -> { fname = None ; ftype = Some t'})
+  | t -> 
+      (fun _ i -> { fname = None; ftype = Some t}) 
+
+
+
+
+
+
 module EffectSet = struct
   type t = effectset
 
@@ -210,7 +264,7 @@ module EffectSet = struct
     SLM.map f effs
 
   let maplisti f effs =
-    effs |> SLM.to_list |>: M.uncurry f
+    effs |> SLM.to_list |>: Misc.uncurry f
 
   let subs sub effs =
     apply (prectype_subs sub) effs
@@ -327,11 +381,14 @@ module SIGS (T : CTYPE_DEFS) = struct
     val indices       : t -> Index.t list
     val bindings      : t -> (Index.t * T.field) list
 
-    val set_ldinfo : t -> ldinfo -> t
-    val get_ldinfo : t -> ldinfo
-    val set_stype  : t -> Cil.typ option -> t
-
-    val d_ldesc       : unit -> t -> P.doc
+    val set_ldinfo    : t -> ldinfo -> t
+    val get_ldinfo    : t -> ldinfo
+    val set_stype     : t -> Cil.typ option -> t
+    (* val d_ldesc       : unit -> t -> P.doc *)
+    val decorate      : Sloc.t -> Cil.typ -> t -> t
+    
+    val d_vbind       : unit -> (binder * (T.ctype * Cil.typ)) -> P.doc
+    val d_sloc_ldesc  : unit -> (Sloc.t * t) -> P.doc
   end
 
   module type STORE = sig
@@ -573,7 +630,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | _                          -> pct1 = pct2
 
     let index_overlaps_type i i2 pct =
-      M.foldn (fun b n -> b || N.overlaps i (N.offset n i2)) (width pct) false
+      Misc.foldn (fun b n -> b || N.overlaps i (N.offset n i2)) (width pct) false
 
     let extrema_in i1 pct1 i2 pct2 =
       index_overlaps_type i1 i2 pct2 || index_overlaps_type (N.offset (width pct1 - 1) i1) i2 pct2
@@ -666,7 +723,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let fits i fld {plfields = cs} =
       let t = Field.type_of fld in
       let w = CType.width t in
-        M.get_option w (N.period i) >= w &&
+        Misc.get_option w (N.period i) >= w &&
           not (List.exists (fun (i2, fld2) -> CType.collide i t i2 (Field.type_of fld2)) cs)
 
     let rec insert_field ((i, _) as fld) = function
@@ -682,7 +739,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       {ld with plfields = List.filter (fun (i2, _) -> not (i = i2)) ld.plfields}
 
     let create si flds =
-      List.fold_right (M.uncurry add) flds {empty with plinfo = si}
+      List.fold_right (Misc.uncurry add) flds {empty with plinfo = si}
 
     let mem i {plfields = flds} =
       List.exists (fun (i2, _) -> N.is_subindex i i2) flds
@@ -705,7 +762,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       foldn (fun _ b i fld -> f b i fld) b flds
 
     let mapn f ld =
-      {ld with plfields = M.mapi (fun n (i, fld) -> (i, f n i fld)) ld.plfields}
+      {ld with plfields = Misc.mapi (fun n (i, fld) -> (i, f n i fld)) ld.plfields}
 
     let map f flds =
       mapn (fun _ _ fld -> f fld) flds
@@ -745,6 +802,53 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
             (fun (i, fld) -> P.dprintf "%a: %a" Index.d_index i Field.d_field fld)
             flds
         end
+
+    let decorate l ty ld =
+      let fldm = unfold_ciltyp ty in
+      ld |> Misc.flip set_stype (Some ty)
+         |> mapn begin fun i _ pf -> 
+              try Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
+                let _ = E.warn "WARNING: decorate : %a bad idx %d, ld=%a, t=%a \n" 
+                        Sloc.d_sloc l i d_ldesc ld Cil.d_type ty
+                in pf
+            end
+
+    let d_ref () = function
+      | Ref (l,_) -> P.dprintf "REF(%a)" Sloc.d_sloc l
+      | _         -> P.nil
+
+    let d_vbind () (b, (ct, t)) =
+      P.dprintf "%a %a %a %a" 
+        Cil.d_type (CM.typStripAttrs t)
+        d_ref ct
+        d_binder b 
+        T.R.d_refinement (CType.refinement ct) 
+
+    let d_ann_field () (i, fld) = 
+      match Field.get_fieldinfo fld with
+      | { fname = Some fldname; ftype = Some t } ->
+          d_vbind () (S fldname, (Field.type_of fld, t))
+      | { ftype = Some t } ->
+          d_vbind () (I i, (Field.type_of fld, t))
+      | _ -> P.dprintf "%a ??? %a" d_binder (I i) d_ref (Field.type_of fld)
+
+    let d_ldinfo () = function
+      | {stype = Some t} -> Cil.d_type () (CM.typStripAttrs t)
+      | _                -> P.nil
+
+    let d_sloc_ldesc () (l, ld) =
+      P.dprintf "%a %a |-> %a" 
+        d_ldinfo ld.plinfo
+        Sloc.d_sloc l 
+        (CM.d_many_braces true d_ann_field) (bindings ld)
+    
+    (* API *)
+    let d_sloc_ldesc () ((l : Sloc.t), (ld: t)) =
+      let ld = match ld.plinfo.stype, Sloc.to_ciltyp l with 
+               | None, Some ty -> decorate l ty ld 
+               | _             -> ld 
+      in d_sloc_ldesc () (l, ld)
+        
   end
 
   and Store: SIG.STORE = struct
@@ -855,7 +959,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (subs_slm_dom subs ds, subs_slm_dom subs fs)
 
     let subs subs (ds, fs) =
-      (SLM.map (LDesc.subs subs) ds, fs |> SLM.map (M.flip CFun.subs subs)) |> subs_addrs subs
+      (SLM.map (LDesc.subs subs) ds, fs |> SLM.map (Misc.flip CFun.subs subs)) |> subs_addrs subs
 
     let remove (ds, fs) l =
       (SLM.remove l ds, SLM.remove l fs)
@@ -895,7 +999,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let restrict sto ls =
          sto
-      |> partition (ls |> M.flap (reachable sto) |> M.sort_and_compact |> M.flip List.mem)
+      |> partition (ls |> Misc.flap (reachable sto) |> Misc.sort_and_compact |> Misc.flip List.mem)
       |> fst
 
     let rec closed globstore ((_, fs) as sto) =
@@ -943,7 +1047,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
       and unify_data_locations sto sub s1 s2 =
-        let ld1, ld2 = M.map_pair (Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
+        let ld1, ld2 = Misc.map_pair (Data.find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
         let sto      = remove sto s1 in
         let sto      = ld2 |> Data.add sto s2 |> subs sub in
           LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
@@ -991,7 +1095,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
             else (subs sub sto, sub)
           else (sto, sub)
 
-      and unify_fields sto sub fld1 fld2 = match M.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
+      and unify_fields sto sub fld1 fld2 = match Misc.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
         | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
         | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
         | Ref (s, _), ARef | ARef, Ref(s, _)        -> anyfy_location sto sub s
@@ -1033,7 +1137,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           end
         with e ->
           C.error "Can't fit @!%a: %a@!  in location@!%a |-> %a@!"
-            Index.d_index i Field.d_field fld S.d_sloc_info s LDesc.d_ldesc (Data.find_or_empty sto s) |> ignore;
+            Index.d_index i 
+            Field.d_field fld 
+            S.d_sloc_info s 
+            LDesc.d_ldesc (Data.find_or_empty sto s) 
+          |> ignore;
           raise e
 
       let add_fun sto sub l cf =
@@ -1115,7 +1223,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let capturing_subs cf sub =
       let apply_sub = CType.subs sub in
-        make (List.map (M.app_snd apply_sub) cf.args)
+        make (List.map (Misc.app_snd apply_sub) cf.args)
              (List.map (S.Subst.apply sub) cf.globlocs)
              (Store.subs sub cf.sto_in)
              (apply_sub cf.ret)
@@ -1135,26 +1243,26 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let ordered_locs ({args = args; ret = ret; sto_out = sto} as cf) =
       let ord = (CType.sloc ret :: List.map (snd <+> CType.sloc) args)
-             |> M.maybe_list
+             |> Misc.maybe_list
              |> order_locs_aux sto []
-             |> M.mapi (fun i x -> (x, i)) in
-      cf |> quantified_locs |> M.fsort (M.flip List.assoc ord)
+             |> Misc.mapi (fun i x -> (x, i)) in
+      cf |> quantified_locs |> Misc.fsort (Misc.flip List.assoc ord)
 
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
 
     let normalize_names cf1 cf2 f fe =
-      let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
+      let ls1, ls2     = Misc.map_pair ordered_locs (cf1, cf2) in
       let fresh_locs   = List.map (Sloc.copy_abstract []) ls1 in
-      let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
+      let lsub1, lsub2 = Misc.map_pair (Misc.flip List.combine fresh_locs) (ls1, ls2) in
       let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
-      let asub1, asub2 = M.map_pair (List.map fst <+> M.flip List.combine fresh_args) (cf1.args, cf2.args) in
-      let cf1, cf2     = M.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
+      let asub1, asub2 = Misc.map_pair (List.map fst <+> Misc.flip List.combine fresh_args) (cf1.args, cf2.args) in
+      let cf1, cf2     = Misc.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
         (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1) |> apply_effects (fe cf1.sto_out lsub1 asub1),
          capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2) |> apply_effects (fe cf2.sto_out lsub2 asub2))
 
     let rec same_shape cf1 cf2 =
-      M.same_length (quantified_locs cf1) (quantified_locs cf2) && M.same_length cf1.args cf2.args &&
+      Misc.same_length (quantified_locs cf1) (quantified_locs cf2) && Misc.same_length cf1.args cf2.args &&
         let cf1, cf2 = normalize_names cf1 cf2 (fun _ _ _ ct -> ct) (fun _ _ _ ct -> ct) in
           List.for_all2 (fun (_, a) (_, b) -> a = b) cf1.args cf2.args
        && cf1.ret = cf2.ret
@@ -1172,7 +1280,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
              Store.closed globstore cf.sto_in
           && Store.closed globstore cf.sto_out
           && List.for_all (Store.mem globstore) cf.globlocs
-          && not (cf.sto_out |> Store.domain |> List.exists (M.flip List.mem cf.globlocs))
+          && not (cf.sto_out |> Store.domain |> List.exists (Misc.flip List.mem cf.globlocs))
           && List.for_all (fun (_, ct) -> Store.ctype_closed ct whole_instore) cf.args
           && Store.ctype_closed cf.ret whole_outstore
 
@@ -1195,8 +1303,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let empty = (SM.empty, SM.empty, Store.empty, SLM.empty)
 
     let map f (funspec, varspec, storespec, storetypes) =
-      (SM.map (f |> CFun.map |> M.app_fst) funspec,
-       SM.map (f |> M.app_fst) varspec,
+      (SM.map (f |> CFun.map |> Misc.app_fst) funspec,
+       SM.map (f |> Misc.app_fst) varspec,
        Store.map f storespec,
        storetypes)
 

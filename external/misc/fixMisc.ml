@@ -945,7 +945,15 @@ let maybe_cons m xs = match m with
 let maybe_list xs = 
   List.fold_right maybe_cons xs []
 
+let rec list_first_maybe f = function
+  | x::xs -> begin match f x with 
+              | Some y -> Some y 
+              | _      -> list_first_maybe f xs
+             end
+  | []    -> None
 
+let list_find_maybe f xs =
+  try some <| List.find f xs with Not_found -> None
 
 let list_assoc_maybe k kvs =
   try Some (List.assoc k kvs) with Not_found -> None

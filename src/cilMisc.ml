@@ -949,7 +949,6 @@ let d_srcinfo () = function
   | Var (v, loc) -> Pretty.dprintf "%a at %a" d_var v   d_loc loc
   | Ins (i, loc) -> Pretty.dprintf "%a at %a" d_instr i d_loc loc
 
-
 let srcinfo_of_lval     = fun l lo -> Lvl (l, Misc.get_option !currentLoc lo)
 let srcinfo_of_type     = fun t lo -> Typ (t, Misc.get_option !currentLoc lo)
 let srcinfo_of_constant = fun c lo -> Con (c, Misc.get_option !currentLoc lo)
@@ -973,12 +972,28 @@ let srcinfo_of_var      = mk_srcinfo "var: " d_varinfo
 let srcinfo_of_string s = ("str: "^s, locUnknown)
 *)
 
+let srcInfot : ((location * string), srcinfo) Hashtbl.t = Hashtbl.create 37 
 
+let lvalKey loc lv = loc, pretty_to_string d_lval lv
+let exprKey loc e  = loc, pretty_to_string d_exp e
 
-let setSrcLval loc lv lvSrc = failwith "TBD: setSrcLval"
-let setSrcExpr loc e eSrc   = failwith "TBD: setSrcExpr"
-let getSrcLval loc lv       = failwith "TBD: getSrcLval"
-let getSrcExpr loc e        = failwith "TBD: getSrcExpr"
+let setSrcLval loc lv lvSrc = 
+  Hashtbl.add srcInfot (lvalKey loc lv) <| srcinfo_of_lval lvSrc (Some loc) 
 
+let setSrcExpr loc e eSrc =
+  Hashtbl.add srcInfot (exprKey loc e) <| srcinfo_of_expr eSrc (Some loc) 
 
+let lval_of_srcinfos = Misc.list_first_maybe (function Lvl (x, _) -> Some x | _ -> None)
+let exp_of_srcinfos  = Misc.list_first_maybe (function Exp (x, _) -> Some x | _ -> None)
+let typ_of_srcinfos  = Misc.list_first_maybe (function Typ (x, _) -> Some x | _ -> None)
+
+let getSrcLval loc lv =
+  lvalKey loc lv 
+  |> Hashtbl.find_all srcInfot 
+  |> lval_of_srcinfos
+
+let getSrcExpr loc e = 
+  exprKey loc e 
+  |> Hashtbl.find_all srcInfot 
+  |> exp_of_srcinfos
 

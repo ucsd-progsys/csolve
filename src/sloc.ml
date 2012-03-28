@@ -38,7 +38,15 @@ let to_slocinfo = function
   | Abstract (_, i)    -> i
   | Concrete (_, _, i) -> i 
   | AnyLoc             -> []
- 
+
+let to_ciltyp = function
+  | Abstract (_, xs) | Concrete (_, _, xs) -> 
+      CilMisc.typ_of_srcinfos xs
+  | _ -> 
+      Some Cil.voidType
+
+
+
 let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
 
 let refresh = function

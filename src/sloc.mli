@@ -35,6 +35,7 @@ val fresh_abstract : CilMisc.srcinfo -> t
 val copy_abstract  : CilMisc.srcinfo list -> t -> t
 val copy_concrete  : t -> t
 
+
 (*
 type slocinfo = CilMisc.srcinfo list
 val fresh_abstract : slocinfo -> t 
@@ -48,6 +49,7 @@ val compare        : t -> t -> int
 val eq             : t -> t -> bool
 
 val to_string      : t -> string
+val to_ciltyp      : t -> Cil.typ option
 
 val d_sloc         : unit -> t -> Pretty.doc
 val d_sloc_info    : unit -> t -> Pretty.doc

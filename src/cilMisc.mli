@@ -198,7 +198,12 @@ val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
 val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
 val srcinfo_of_string   : string -> srcinfo
 
+val typ_of_srcinfos     : srcinfo list -> Cil.typ option
+val exp_of_srcinfos     : srcinfo list -> Cil.exp option
+val lval_of_srcinfos    : srcinfo list -> Cil.lval option
+
 val setSrcLval          : Cil.location -> Cil.lval -> Cil.lval -> unit
 val setSrcExpr          : Cil.location -> Cil.exp -> Cil.exp -> unit
-val getSrcLval          : Cil.location -> Cil.lval -> Cil.lval 
-val getSrcExpr          : Cil.location -> Cil.exp -> Cil.exp
+val getSrcLval          : Cil.location -> Cil.lval -> Cil.lval option
+val getSrcExpr          : Cil.location -> Cil.exp -> Cil.exp option
+

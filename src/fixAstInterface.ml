@@ -27,10 +27,10 @@
 
 
 module Misc = FixMisc 
-module IM = Misc.IntMap
-module F  = Format
-module ST = Ssa_transform
-module  C = FixConstraint
+module IM   = Misc.IntMap
+module F    = Format
+module ST   = Ssa_transform
+module  C   = FixConstraint
 
 module  A = Ast
 module  P = A.Predicate
