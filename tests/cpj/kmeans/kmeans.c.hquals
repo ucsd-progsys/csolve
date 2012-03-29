@@ -9,8 +9,10 @@ qualif Gt1(v:int) : v > 1
 
 //SPEC 2D-ARRAY SIZE
 qualif THREE(v:ptr) : v + (4 * (@numObj * @numAttr)) <= BLOCK_END([v])
+qualif THREE(v:ptr) : v + (4 * (@numAttr * @numObj)) <= BLOCK_END([v])
+qualif THREE(v:ptr) : v + (4 * ~x) <= BLOCK_END([v])
 
 //Pointer Initialized in loop 
 qualif NZInit(v: ptr): ((_ > 0) => (v != 0))
 
-
+qualif Times(v: int) : v = (@numObj*@numAttr)

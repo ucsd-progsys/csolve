@@ -6,7 +6,6 @@
  *
  * =============================================================================
  */
-
 #include <cpj.h>
 
 //#include <assert.h>
@@ -20,48 +19,31 @@
 
 
 double global_time = 0.0;
-
-typedef struct args {
-  float * START FLOATARR(nfeatures*npoints) 
-        * START FLOATARR(npoints)   feature;   /*  in:[npoints][nfeatures] */ 
-  int   REF(V > 0)                  nfeatures;
-  int   REF(V > 0)                  npoints;
-  int   REF(V > 0)                  nclusters;
-  int   * START FLOATARR(npoints)   membership;
-  FLOAT2D(npoints, nfeatures)       clusters;
-  int   * START FLOATARR(nclusters) new_centers_len;
-  FLOAT2D(nclusters, nfeatures)     new_centers;
-} args_t;
-
 float global_delta;
-
 
 /* =============================================================================
  * work
  * =============================================================================
  */
-static void
-work (args_t* args, int i, int npoints)
+void
+work (float *ARRAY *ARRAY START feature,
+      int   *ARRAY membership,
+      float *ARRAY *ARRAY START clusters,
+      int   *ARRAY START new_centers_len,
+      float *ARRAY *ARRAY START new_centers,
+      int nfeatures,
+      int npoints,
+      int nclusters,
+      int i)
 {
-    float * * feature       = args->feature;
-    int     nfeatures       = args->nfeatures;
-    int     npoints         = args->npoints;
-    int     nclusters       = args->nclusters;
-    int * ARRAY membership  = args->membership;
-    
-    float** clusters        = args->clusters;
-
-
     csolve_assert(0 <= i);
     csolve_assert(i < npoints);
     csolve_assert(clusters);
     
-    int * ARRAY   new_centers_len    = args->new_centers_len;
-    float * ARRAY * ARRAY new_centers = args->new_centers;
     float delta = 0.0;
     int index;
     int j;
-
+    index = 0;
     index = common_findNearestPoint(feature[i],
                                     nfeatures,
                                     clusters,
@@ -69,10 +51,8 @@ work (args_t* args, int i, int npoints)
     csolve_assert(0 <= index);
     csolve_assert(index < nclusters);
 
-    /*
-     * If membership changes, increase delta by 1.
-     * membership[i] cannot be changed by other threads
-     */
+    /* If membership changes, increase delta by 1. */
+    /* membership[i] cannot be changed by other threads */
     if (membership[i] != index) {
         delta += 1.0;
     }
@@ -80,21 +60,10 @@ work (args_t* args, int i, int npoints)
     /* Assign the membership to object i */
     /* membership[i] can't be changed by other thread */
     membership[i] = index;
-
-    /* Update new cluster centers : sum of objects located within */
-    new_centers_len[index] = new_centers_len[index] + 1;
-
-    //ACCUMULATE
-    { atomic
-      for (j = 0; j < nfeatures; j++)
-          new_centers[index][j] = new_centers[index][j] + feature[i][j];
-    } 
-
-    { atomic
-      global_delta = global_delta + delta;
-    }
+   
+    accumulator(delta, index, i, nfeatures, npoints, nclusters,
+    		feature, new_centers_len, new_centers, &global_delta);
 }
-
 /* =============================================================================
  * normal_exec
  * =============================================================================
@@ -123,7 +92,7 @@ normal_exec (//int       nthreads,
     for (i = 0; i < nclusters; i++) {
       new_centers_len[i] = 0; 
     }
-  
+    
     /* Randomly pick cluster centers */
     for (i = 0; i < nclusters; i++) {
       int n = nondetrange(0, npoints); 
@@ -132,16 +101,6 @@ normal_exec (//int       nthreads,
         clusters[i][j] = foo;
       }
     }
-
-    args_t *args          = malloc(sizeof(args_t)); 
-    args->feature         = feature;
-    args->nfeatures       = nfeatures;
-    args->npoints         = npoints;
-    args->nclusters       = nclusters;
-    args->membership      = membership;
-    args->clusters        = clusters;
-    args->new_centers_len = new_centers_len;
-    args->new_centers     = new_centers;
   
     foreach (i, 0, npoints)
       membership[i] = -1;
@@ -150,11 +109,17 @@ normal_exec (//int       nthreads,
     do {
         delta = 0.0;
         global_delta = delta;
-        
         foreach (i, 0, npoints)
-          csolve_assert(i < npoints);//work(args, i, npoints);
-        endfor
-
+	  work(feature, 
+	       membership, 
+	       clusters, 
+	       new_centers_len, 
+	       new_centers,
+	       nfeatures,
+	       npoints,
+	       nclusters,
+	       i);
+	endfor
         delta = global_delta;
 
         /* Replace old cluster centers with new_centers */
