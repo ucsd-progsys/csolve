@@ -173,25 +173,25 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
   
   csolve_assert(buf);
 
-  /* if (isBinaryFile) { */
-  /*    int infile; */
-  /*    // pmr: Original */
-  /*    // if ((infile = open(filename, O_RDONLY, "0600")) == -1) { */
-  /*    if ((infile = open(filename, O_RDONLY)) == -1) { */
-  /*      fprintf(stderr, "Error: no such file (%s)\n", filename); */
-  /*      exit(1); */
-  /*      return 0; */
-  /*    } */
-  /*    pmr_read_floats(infile, buf, (size * sizeof(float))); */
-  /*    close(infile); */
+  if (isBinaryFile) {
+     int infile;
+     // pmr: Original
+     // if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
+     if ((infile = open(filename, O_RDONLY)) == -1) {
+       fprintf(stderr, "Error: no such file (%s)\n", filename);
+       exit(1); CSOLVE_ASSUME(0);
+       return 0;
+     }
+     pmr_read_floats(infile, buf, (size * sizeof(float)));
+     close(infile);
     
-  /*  } else  */{
+   } else{
       
      FILE *infile;
      if ((infile = fopen(filename, "r")) == NULL) {
         fprintf(stderr, "Error: no such file (%s)\n", filename);
-        /* exit(1); CSOLVE_ASSUME(0); */
-        /* return 0; */
+        exit(1); CSOLVE_ASSUME(0);
+        return 0;
      }
      CSOLVE_ASSUME(infile != NULL);
      rewind(infile);
