@@ -245,16 +245,14 @@ let ra_singleton e vv =
 let ra_zero    = vv_of_prectype <+> ra_singleton A.zero
 let ra_equal v = vv_of_prectype <+> ra_singleton (A.eVar v)
 
-let ra_field_at_block_of v offset ct =
-  let vv = vv_of_prectype ct in
-  ra_singleton
-    (A.eBin (FA.eApp_bbegin (v |> Sy.of_string |> A.eVar),
-             A.Plus,
-             A.eCon (A.Constant.Int offset)))
-    vv
+let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 
-(* [C.Conc (A.pEqual (evv,  (A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset)))  ))] *)
-    
+let ra_field_at_block_of v offset ct =
+    let evv = ct |> vv_of_prectype |> A.eVar in
+    let ev  = v |> Sy.of_string |> A.eVar in
+      [ C.Conc (A.pEqual (evv, (A.eBin (FA.eApp_bbegin evv, A.Plus, A.eCon (A.Constant.Int offset)))))
+      ; C.Conc (mk_eq_uf FA.eApp_bbegin evv ev)
+      ; C.Conc (mk_eq_uf FA.eApp_bend   evv ev)]
 
 let ra_deref ct base offset =
   let so  = sort_of_prectype ct in
@@ -431,8 +429,6 @@ let is_reference cenv x =
     | Ct.FRef (_,(_,_)) -> true      
     | Ct.ARef           -> true
     | Ct.Any   | Ct.Int _ -> false
-
-let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
 
 
 let t_exp_ptr cenv e ct vv so p = (* TBD: REMOVE UNSOUND AND SHADY HACK *)
