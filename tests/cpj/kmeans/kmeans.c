@@ -162,41 +162,38 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
   int i, j;
 
   int size = csolve_times(numObjects, numAttributes) ;
-  float * ARRAY buf = (float *) malloc(size * sizeof(float));
+  float *buf = (float *) malloc(size * sizeof(float));
 
-
-  csolve_assert(size > 0);
   csolve_assert(numAttributes > 0);
   csolve_assert(numObjects > 0);
+  csolve_assert(size > 0);
   csolve_assert(buf + size <= csolve_block_end(buf));
-
-
 
   char * line = (char*)malloc(MAX_LINE_LENGTH); /* reserve memory line */
   
   csolve_assert(buf);
 
-  if (isBinaryFile) {
-     int infile;
-     // pmr: Original
-     // if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
-     if ((infile = open(filename, O_RDONLY)) == -1) {
-       fprintf(stderr, "Error: no such file (%s)\n", filename);
-       exit(1); CSOLVE_ASSUME(0); csolve_assert(0);
-       return 0;
-     }
-     pmr_read_floats(infile, buf, (size * sizeof(float)));
-     close(infile);
+  /* if (isBinaryFile) { */
+  /*    int infile; */
+  /*    // pmr: Original */
+  /*    // if ((infile = open(filename, O_RDONLY, "0600")) == -1) { */
+  /*    if ((infile = open(filename, O_RDONLY)) == -1) { */
+  /*      fprintf(stderr, "Error: no such file (%s)\n", filename); */
+  /*      exit(1); */
+  /*      return 0; */
+  /*    } */
+  /*    pmr_read_floats(infile, buf, (size * sizeof(float))); */
+  /*    close(infile); */
     
-   } else {
+  /*  } else  */{
       
      FILE *infile;
      if ((infile = fopen(filename, "r")) == NULL) {
         fprintf(stderr, "Error: no such file (%s)\n", filename);
-        exit(1); CSOLVE_ASSUME(0); csolve_assert(0);
-        return 0;
+        /* exit(1); CSOLVE_ASSUME(0); */
+        /* return 0; */
      }
-       
+     CSOLVE_ASSUME(infile != NULL);
      rewind(infile);
      i = 0;
      while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -205,11 +202,11 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
        }
        for (j = 0; j < numAttributes; j++) {
          if (i < size) { //RJ: BUFFER OVERFLOW
-           // Original code makes this assumption; justification?
+           //Original code makes this assumption; justification?
            char *pmr_str = strtok(NULL, " ,\t\n");
            CSOLVE_ASSUME (pmr_str != NULL);
            float tmp = atof(pmr_str);
-           buf[i] = tmp; 
+           buf[i] = tmp;
          }
          i++;
        }
@@ -274,8 +271,8 @@ int do_work( int numObjects, int numAttributes
     }
 
     csolve_assert(clusters);
-    CSOLVE_ASSUME(clusters);
-    best_nclusters = clusters ->best_nclusters;
+    
+    best_nclusters = clusters->best_nclusters;
     cluster_centres = clusters->cluster_centres;
 
 #ifdef GNUPLOT_OUTPUT
@@ -285,16 +282,17 @@ int do_work( int numObjects, int numAttributes
         csolve_assert(0 < best_nclusters);
         fptr = (FILE**)malloc(best_nclusters * sizeof(FILE*));
         for (i = 0; i < best_nclusters; i++) {
-            sprintf(outFileName, "group.%d", i);
-            fptr[i] = fopen(outFileName, "w");
+	  sprintf(outFileName, "group.%d", i);
+	  fptr[i] = fopen(outFileName, "w");
         }
         for (i = 0; i < numObjects; i++) {
-            fprintf(fptr[cluster_assign[i]],
+	  fprintf(cluster_assign[i]],
                     "%6.4f %6.4f\n",
                     attributes[i][0],
                     attributes[i][1]);
         }
         for (i = 0; i < best_nclusters; i++) {
+	  if(fptr[i] != NULL)
             fclose(fptr[i]);
         }
         free(fptr);
@@ -458,9 +456,9 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
             if (strtok(line, " \t\n") != 0) {
                 /* Ignore the id (first attribute): numAttributes = 1; */
-                while (strtok(NULL, " ,\t\n") != NULL) {
-                    numAttributes++;
-                }
+                /* while (strtok(NULL, " ,\t\n") != NULL) { */
+                /*     numAttributes++; */
+                /* } */
                 break;
             }
         }
