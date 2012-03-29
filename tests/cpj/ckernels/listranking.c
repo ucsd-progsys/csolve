@@ -21,24 +21,11 @@ typedef struct node
   struct node * NNVALIDNODE savedRankNext;
 };
 
-//idxs: initialize turns this into a random permutation of the set [0,sz)
-//l   : an array of list nodes. becomes a randomized forest of lists
-typedef struct list
-{
-  int REF(V > 0) FINAL sz;
-  struct node  * VALIDNODE 
-    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
-    REF(&& [DEREF([DEREF([V + 4]): ptr]) >= 0; DEREF([DEREF([V + 4]): ptr]) < sz])
-    * START SIZE_GE(4*sz) ARRAY FINAL l;
-  int          * REF(&& [V >= 0; V < sz])
-    * START SIZE_GE(4*sz) ARRAY FINAL idxs;
-};
-
-void initRank(struct node * VALIDNODE this)
-{
-  this -> rank = (this -> next == this) ? 0 : 1;
-  this -> rankNbr = this -> next;
-}
+//void initRank(struct node * VALIDNODE this)
+//{
+//  this -> rank = (this -> next == this) ? 0 : 1;
+//  this -> rankNbr = this -> next;
+//}
 
 //void updateNbrRank(node * VALIDNODE this)
 //{
@@ -76,29 +63,29 @@ void initRank(struct node * VALIDNODE this)
 //  return l;
 //}
  
-void rank(struct node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
-          int REF(V > 0) sz)
-{
-  //initialize the nodes for ranking
-  /* foreach(i, 0, sz) */
-  for(int i = 0; i < sz; i++)
-    //initRank(l[i]);
-    l[i];
-  /* endfor */
-
-  //repeat log2(nodes.length) times
-//  int i = log2(sz);
-//  while (i-- > 0) {
-//    /* foreach(j, 0, sz) */
-//  for(int j = 0; j < sz; j++)
-//      updateNbrRank(l[j]);
-//    /* endfor */
-//    /* foreach(j, 0, sz) */
-//  for(int j = 0; j < sz; j++)
-//      updateRank(l[j]);
-//    /* endfor */
-//  }
-}
+//void rank(struct node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
+//          int REF(V > 0) sz)
+//{
+//  //initialize the nodes for ranking
+//  /* foreach(i, 0, sz) */
+//  for(int i = 0; i < sz; i++)
+//    //initRank(l[i]);
+//    l[i];
+//  /* endfor */
+//
+//  //repeat log2(nodes.length) times
+////  int i = log2(sz);
+////  while (i-- > 0) {
+////    /* foreach(j, 0, sz) */
+////  for(int j = 0; j < sz; j++)
+////      updateNbrRank(l[j]);
+////    /* endfor */
+////    /* foreach(j, 0, sz) */
+////  for(int j = 0; j < sz; j++)
+////      updateRank(l[j]);
+////    /* endfor */
+////  }
+//}
 
 ///* void swp(int * ARRAY START VALIDPTR SIZE_GE(4*(i+1)) SIZE_GE(4*(j+1)) a,  */
 ///*     int REF(V >= 0) i, int REF(V >= 0) j) */
@@ -165,8 +152,18 @@ void rank(struct node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
 //    idxs,
 //    int REF(V > 0) sz) OKEXTERN;
 
+//AND THIS
 extern
-  struct list * VALIDPTR REF((DEREF([V]): int) = sz) VALIDPTR initialize(int REF(V > 0) sz) OKEXTERN;
+  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
+      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
+
+//extern
+//  struct node * VALIDNODE
+//    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+//    REF(&& [(DEREF([DEREF([V + 4]): ptr]): int) >= 0; (DEREF([DEREF([V + 4]): ptr]): int) < sz])
+//  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
+//      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
+
 
 
 /* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
@@ -177,11 +174,11 @@ extern
 /* } */
 
  
-void runWork(struct node * VALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
-             int REF(V > 0) sz)
-{
-  rank(l, sz);
-}
+//void runWork(struct node * VALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
+//             int REF(V > 0) sz)
+//{
+//  rank(l, sz);
+//}
 
 
 /* MK NOTES
@@ -191,14 +188,13 @@ void runWork(struct node * VALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
  *     -yes, DPJ needs the array index to prove uniqueness
  * */
  
-//ABAKST: Fix this
 int main(char ** argv, int argc)
-  /* CHECK_TYPE */
+  CHECK_TYPE
 {
-  int sz;
-  struct list * k;
-  //node **  l;
-  //int  *idxs;
+  int sz = 0;
+  struct node   *l;
+  int        *idxs;
+  int arrr;
 
    if (argc < 1 || argc > 4)
      return 1;
@@ -210,14 +206,14 @@ int main(char ** argv, int argc)
 
   if (sz <= 0) return 0;
 
-  // we extern the effect of the allocation algorithm via initialize
-  // which we extern
-  /* l    = malloc(sizeof(*l)); */
-  /* idxs = malloc(sizeof(*idxs)); */
+  //LOOK AT THIS PAT
+  idxs = initialize_idxs(sz);
+  arrr = idxs[0];
+  csolve_assert(arrr < sz);
 
-  k = initialize(sz);
+  //l    = initialize_list(idxs, sz);
   //runTest(*l, *idxs, sz);  
-  runWork(k -> l, sz);
+  //runWork(l, sz);
   
   return 0;
 }

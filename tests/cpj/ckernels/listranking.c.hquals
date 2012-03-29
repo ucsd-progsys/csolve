@@ -5,4 +5,6 @@ qualif INTARR(v:ptr) : BLOCK_BEGIN([v]) + (4 * (~i+1)) <= BLOCK_END([v])
 
 qualif SZLTONE(v:int) : v < @sz - 1
 
-qualif PERMARR(v: int): && [v >= 0; v < ~sz]
+//qualif PERMARR(v: int): && [v >= 0; v < ~sz]
+qualif LTSZ(v: int)     : v < ~sz
+qualif GT0(v: int)      : v >= 0
