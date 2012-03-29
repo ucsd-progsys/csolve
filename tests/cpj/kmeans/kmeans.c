@@ -135,7 +135,7 @@ extern ssize_t pmr_read_floats (int __fd,
  * =============================================================================
  */
 void
-usage (char* argv0)
+usage (char * ARRAY argv0)
 {
     char* help =
         "Usage: %s [switches] -i filename\n"
@@ -147,7 +147,8 @@ usage (char* argv0)
         "       -t threshold   : threshold value\n"
         "       -p nproc       : number of threads\n";
     fprintf(stderr, help, argv0);
-    exit(-1);
+    /* exit(-1); */
+    /* CSOLVE_ASSUME(0); */
 }
 
 /* =============================================================================
@@ -421,15 +422,17 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
     }
 
     if (filename == 0) {
-        exit(1);
-        return 0;
+      usage(argv[0]);
+      exit(1);
+      return 0;
     }
-        //usage((char*)argv[0]);
+    //usage(argv[0]);
 
     if (max_nclusters < min_nclusters) {
-        fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
-        //usage((char*)argv[0]);
-        exit(1);
+      fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
+      usage(argv[0]);
+      exit(1);
+      return 1;
     }
 
     //SIM_GET_NUM_CPU(nthreads);
@@ -456,9 +459,9 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
         while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
             if (strtok(line, " \t\n") != 0) {
                 /* Ignore the id (first attribute): numAttributes = 1; */
-                /* while (strtok(NULL, " ,\t\n") != NULL) { */
-                /*     numAttributes++; */
-                /* } */
+                while (strtok(NULL, " ,\t\n") != NULL) {
+                    numAttributes++;
+                }
                 break;
             }
         }
