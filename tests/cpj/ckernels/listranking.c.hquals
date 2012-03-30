@@ -1,17 +1,12 @@
-//qualif NODESZ(v:ptr) : BLOCK_BEGIN([v]) + 20 <= BLOCK_END([v])
-//qualif NODESZ(v:ptr) : (v != 0) => (BLOCK_BEGIN([v]) + 20 <= BLOCK_END([v]))
-
-qualif NODEID(v:ptr) : (4*(DEREF([v]) : int)) = ((VVADDR - BLOCK_BEGIN([VVADDR])) : int)
-qualif INODEID(v:ptr) : (4*(DEREF([v]) : int)) = ~i
-qualif IDNODE(v:int,n:ptr) : v = 4*(DEREF([~n]) : int)
-qualif NotListPtrA(v: ptr) : ((DEREF([BLOCK_BEGIN([v])]) : int) = ~i)
-qualif EQI(v:int) : v = ~i
-
+qualif NODESZ(v:ptr) : BLOCK_BEGIN([v]) + 24 <= BLOCK_END([v])
+qualif NODESZ(v:ptr) : (v != 0) => (BLOCK_BEGIN([v]) + 24 <= BLOCK_END([v]))
 qualif INTARR(v:ptr) : BLOCK_BEGIN([v]) + (4 * (~i+1)) <= BLOCK_END([v])
 
-qualif SZLTONE(v:int) : v < @sz - 1
+qualif NODEID(v:ptr) : (4*(DEREF([v]) : int)) = ((VVADDR - BLOCK_BEGIN([VVADDR])) : int)
+qualif INODEID(v:ptr, ~i:int) : (4*(DEREF([v]) : int)) = ~i
+qualif NotListPtrA(v: ptr, ~i:int) : ((DEREF([BLOCK_BEGIN([v])]) : int) = ~i)
+
+//qualif SZLTONE(v:int) : v < @sz - 1
 
 
 qualif PERMARR(v: int): && [v >= 0; v < ~sz]
-//qualif LTSZ(v: int)     : v < ~sz
-//qualif GT0(v: int)      : v >= 0

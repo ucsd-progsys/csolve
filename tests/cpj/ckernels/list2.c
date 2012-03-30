@@ -16,6 +16,7 @@ CHECK_TYPE
   foreach(i, 0, sz)
     struct node *n = l[i];
     int b = n->id;
+    csolve_assert(b == i);
     n->foo = 3;
   endfor
 }

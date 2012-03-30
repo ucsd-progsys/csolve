@@ -11,7 +11,7 @@ extern int log2(int REF(V > 0) n) OKEXTERN;
 #define VALIDNODE START VALIDPTR ROOM_FOR(struct node)
 #define NODEID    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
 #define NODENX    REF(&& [(DEREF([DEREF([V + 4]): ptr]): int) >= 0; (DEREF([DEREF([V + 4]): ptr]): int) < sz])
-#define GOODNODE  VALIDNODE NODEID NODENX
+#define GOODNODE  NODEID VALIDNODE
 #define NNVALIDNODE NNSTART NNVALIDPTR NNROOM_FOR(struct node)
 
 typedef struct node
@@ -66,15 +66,18 @@ typedef struct node
 //  return l;
 //}
  
-void rank(struct node * GOODNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
+void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
           int REF(V > 0) sz)
+  CHECK_TYPE
 {
   //initialize the nodes for ranking
   foreach(i, 0, sz)
-  //for(int i = 0; i < sz; i++)
+  //for(int i = 0; i < sz; i++) {
     //initRank(l[i]);
     struct node * n = l[i];
+    int b = n -> id;
     n -> rank = 5;
+  //}
   endfor
 
   //repeat log2(nodes.length) times
@@ -161,65 +164,65 @@ void rank(struct node * GOODNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
 //  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
 //      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
 
-extern
-  struct node * GOODNODE
-  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
-//  for some reason i can't get the right type out of initialize_idxs
-//      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
-      initialize_list(int REF(V > 0) sz) OKEXTERN;
-
-
-
-/* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
-/* { */
-/*   /\* int i; *\/ */
-/*   /\* for(i = 0; i < sz; i++) *\/ */
-/*   /\*   csolve_assert (l[idxs[i]] -> rank == sz-i-1); *\/ */
-/* } */
-
- 
-void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
-             int REF(V > 0) sz)
-{
-  rank(l, sz);
-}
-
-
-/* MK NOTES
- * 1) how much of initialization can we _not_ extern?
- *     -quite a bit actually
- * 2) can we do without the ghost field? (ie, is the array index always in scope?)
- *     -only if we have another way of attaching the array index to the node ptr
- * */
- 
-int main(char ** argv, int argc)
-  CHECK_TYPE
-{
-  int sz;
-  struct node   *l;
-//  int        *idxs;
-//  int arrr;
-
-   if (argc < 1 || argc > 4)
-     return 1;
-
-  if (argc >= 3)
-    sz = nondetpos(); //atoi(argv[2]);
-  else
-    exit(1);
-
-  if (sz <= 0) return 0;
-
-  //LOOK AT THIS PAT
-//  idxs = initialize_idxs(sz);
-//  arrr = idxs[0];
-// csolve_assert(arrr < sz);
-
-//  l    = initialize_list(idxs, sz);
-  l    = initialize_list(sz);
-  //runTest(*l, *idxs, sz);  
-  runWork(l, sz);
-  
-  return 0;
-}
-
+//extern
+//  struct node * GOODNODE
+//  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
+////  for some reason i can't get the right type out of initialize_idxs
+////      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
+//      initialize_list(int REF(V > 0) sz) OKEXTERN;
+//
+//
+//
+///* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
+///* { */
+///*   /\* int i; *\/ */
+///*   /\* for(i = 0; i < sz; i++) *\/ */
+///*   /\*   csolve_assert (l[idxs[i]] -> rank == sz-i-1); *\/ */
+///* } */
+//
+// 
+//void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
+//             int REF(V > 0) sz)
+//{
+//  rank(l, sz);
+//}
+//
+//
+///* MK NOTES
+// * 1) how much of initialization can we _not_ extern?
+// *     -quite a bit actually
+// * 2) can we do without the ghost field? (ie, is the array index always in scope?)
+// *     -only if we have another way of attaching the array index to the node ptr
+// * */
+// 
+//int main(char ** argv, int argc)
+//  CHECK_TYPE
+//{
+//  int sz;
+//  struct node   *l;
+////  int        *idxs;
+////  int arrr;
+//
+//   if (argc < 1 || argc > 4)
+//     return 1;
+//
+//  if (argc >= 3)
+//    sz = nondetpos(); //atoi(argv[2]);
+//  else
+//    exit(1);
+//
+//  if (sz <= 0) return 0;
+//
+//  //LOOK AT THIS PAT
+////  idxs = initialize_idxs(sz);
+////  arrr = idxs[0];
+//// csolve_assert(arrr < sz);
+//
+////  l    = initialize_list(idxs, sz);
+//  l    = initialize_list(sz);
+//  //runTest(*l, *idxs, sz);  
+//  runWork(l, sz);
+//  
+//  return 0;
+//}
+//
