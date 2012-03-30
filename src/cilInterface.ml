@@ -207,7 +207,7 @@ and expr_of_cilexp e =
 let is_int_to_uint_cast (ct, e) = 
   match Cil.unrollType ct, Cil.unrollType <| Cil.typeOf e with
   | (Cil.TInt (ik, _), Cil.TInt (ik', _)) 
-    when (not (Cil.isSigned ik) && (Cil.isSigned ik')) -> true
+    when (not (Cil.isSigned ik)) && Cil.isSigned ik' -> true
   | _ -> false
 
 let catch_convert_exp s e =
@@ -239,10 +239,7 @@ let reft_of_cilexp vv e =
       A.pTrue
 
   | Cil.CastE (ct, e) when is_int_to_uint_cast (ct, e) ->
-      let _  = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in
-      let e' = catch_convert_exp "ag_reft3" e in
-        A.pOr [A.pAnd [A.pAtom (e', A.Ge, A.zero); A.pAtom (A.eVar vv, A.Eq, e')];
-               A.pAnd [A.pAtom (e', A.Lt, A.zero); A.pAtom (A.eVar vv, A.Gt, A.zero)]]
+      A.pTrue
 
   | Cil.CastE (_, _)
   | Cil.Const (Cil.CInt64 (_,_,_))
@@ -348,6 +345,13 @@ let assume_guarantee_reft_of_cilexp vv e = match e with
       let abse2' = A.eIte (A.pAtom (A.zero, A.Le, e2'), e2', A.eBin (A.zero, A.Minus, e2')) in
       let ap     = A.pAtom (e2', A.Ne, A.zero) in
       let gp     = A.pAnd [A.pAtom (A.zero, A.Le, A.eVar vv); A.pAtom (A.eVar vv, A.Lt, abse2')] in
+      Some (ap, gp)
+
+  | Cil.CastE (ct, e) when is_int_to_uint_cast (ct, e) ->
+      let _  = Errormsg.log "UINTCAST: %a \n" Cil.d_exp e in
+      let e' = catch_convert_exp "ag_reft3" e in
+      let ap = A.pAtom (e', A.Ge, A.zero) in
+      let gp = A.pAtom (A.eVar vv, A.Eq, e') in
       Some (ap, gp)
 
   | _ -> None
