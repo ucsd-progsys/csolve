@@ -9,19 +9,22 @@ extern float REF(&& [V >= 0; V <= 1]) rnd(int seed) OKEXTERN;
 extern int log2(int REF(V > 0) n) OKEXTERN;
 
 #define VALIDNODE START VALIDPTR ROOM_FOR(struct node)
+#define NODEID    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+#define NODENX    REF(&& [(DEREF([DEREF([V + 4]): ptr]): int) >= 0; (DEREF([DEREF([V + 4]): ptr]): int) < sz])
+#define GOODNODE  VALIDNODE NODEID NODENX
 #define NNVALIDNODE NNSTART NNVALIDPTR NNROOM_FOR(struct node)
 
 typedef struct node
 { 
   csolve_ghost FINAL id; 
-  struct node * VALIDNODE FINAL next; //is this always cyclic?
+  struct node * VALIDNODE FINAL next;
   struct node * NNVALIDNODE rankNbr;
   int rank;
   int savedRank;
   struct node * NNVALIDNODE savedRankNext;
 };
 
-//void initRank(struct node * VALIDNODE this)
+//void initRank(struct node * VALIDNODE NONNULL this)
 //{
 //  this -> rank = (this -> next == this) ? 0 : 1;
 //  this -> rankNbr = this -> next;
@@ -63,29 +66,30 @@ typedef struct node
 //  return l;
 //}
  
-//void rank(struct node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
-//          int REF(V > 0) sz)
-//{
-//  //initialize the nodes for ranking
-//  /* foreach(i, 0, sz) */
-//  for(int i = 0; i < sz; i++)
-//    //initRank(l[i]);
-//    l[i];
-//  /* endfor */
-//
-//  //repeat log2(nodes.length) times
-////  int i = log2(sz);
-////  while (i-- > 0) {
-////    /* foreach(j, 0, sz) */
-////  for(int j = 0; j < sz; j++)
-////      updateNbrRank(l[j]);
-////    /* endfor */
-////    /* foreach(j, 0, sz) */
-////  for(int j = 0; j < sz; j++)
-////      updateRank(l[j]);
-////    /* endfor */
-////  }
-//}
+void rank(struct node * GOODNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
+          int REF(V > 0) sz)
+{
+  //initialize the nodes for ranking
+  foreach(i, 0, sz)
+  //for(int i = 0; i < sz; i++)
+    //initRank(l[i]);
+    struct node * n = l[i];
+    n -> rank = 5;
+  endfor
+
+  //repeat log2(nodes.length) times
+//  int i = log2(sz);
+//  while (i-- > 0) {
+//    /* foreach(j, 0, sz) */
+//  for(int j = 0; j < sz; j++)
+//      updateNbrRank(l[j]);
+//    /* endfor */
+//    /* foreach(j, 0, sz) */
+//  for(int j = 0; j < sz; j++)
+//      updateRank(l[j]);
+//    /* endfor */
+//  }
+}
 
 ///* void swp(int * ARRAY START VALIDPTR SIZE_GE(4*(i+1)) SIZE_GE(4*(j+1)) a,  */
 ///*     int REF(V >= 0) i, int REF(V >= 0) j) */
@@ -152,17 +156,17 @@ typedef struct node
 //    idxs,
 //    int REF(V > 0) sz) OKEXTERN;
 
-//AND THIS
-extern
-  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
-      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
-
+////AND THIS
 //extern
-//  struct node * VALIDNODE
-//    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
-//    REF(&& [(DEREF([DEREF([V + 4]): ptr]): int) >= 0; (DEREF([DEREF([V + 4]): ptr]): int) < sz])
-//  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
+//  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
+//      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
+
+extern
+  struct node * GOODNODE
+  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
+//  for some reason i can't get the right type out of initialize_idxs
 //      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
+      initialize_list(int REF(V > 0) sz) OKEXTERN;
 
 
 
@@ -174,27 +178,27 @@ extern
 /* } */
 
  
-//void runWork(struct node * VALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
-//             int REF(V > 0) sz)
-//{
-//  rank(l, sz);
-//}
+void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
+             int REF(V > 0) sz)
+{
+  rank(l, sz);
+}
 
 
 /* MK NOTES
  * 1) how much of initialization can we _not_ extern?
  *     -quite a bit actually
  * 2) can we do without the ghost field? (ie, is the array index always in scope?)
- *     -yes, DPJ needs the array index to prove uniqueness
+ *     -only if we have another way of attaching the array index to the node ptr
  * */
  
 int main(char ** argv, int argc)
   CHECK_TYPE
 {
-  int sz = 0;
+  int sz;
   struct node   *l;
-  int        *idxs;
-  int arrr;
+//  int        *idxs;
+//  int arrr;
 
    if (argc < 1 || argc > 4)
      return 1;
@@ -207,13 +211,14 @@ int main(char ** argv, int argc)
   if (sz <= 0) return 0;
 
   //LOOK AT THIS PAT
-  idxs = initialize_idxs(sz);
-  arrr = idxs[0];
-  csolve_assert(arrr < sz);
+//  idxs = initialize_idxs(sz);
+//  arrr = idxs[0];
+// csolve_assert(arrr < sz);
 
-  //l    = initialize_list(idxs, sz);
+//  l    = initialize_list(idxs, sz);
+  l    = initialize_list(sz);
   //runTest(*l, *idxs, sz);  
-  //runWork(l, sz);
+  runWork(l, sz);
   
   return 0;
 }
