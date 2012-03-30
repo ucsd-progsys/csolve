@@ -24,11 +24,11 @@ typedef struct node
   struct node * NNVALIDNODE savedRankNext;
 };
 
-//void initRank(struct node * VALIDNODE NONNULL this)
-//{
-//  this -> rank = (this -> next == this) ? 0 : 1;
-//  this -> rankNbr = this -> next;
-//}
+void initRank(struct node * GOODNODE this, int i)
+{
+  this -> rank = (this -> next == this) ? 0 : 1;
+  this -> rankNbr = this -> next;
+}
 
 //void updateNbrRank(node * VALIDNODE this)
 //{
@@ -73,10 +73,10 @@ void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
   //initialize the nodes for ranking
   foreach(i, 0, sz)
   //for(int i = 0; i < sz; i++) {
-    //initRank(l[i]);
-    struct node * n = l[i];
-    int b = n -> id;
-    n -> rank = 5;
+    initRank(l[i], i);
+    //struct node * n = l[i];
+    //int b = n -> id;
+    //n -> rank = 5;
   //}
   endfor
 
