@@ -77,14 +77,12 @@ void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
   //repeat log2(nodes.length) times
   int i = log2(sz);
   while (i-- > 0) {
-  foreach(j, 0, sz)
-    //for(int j = 0; j < sz; j++)
-    updateNbrRank(l[j], j);
-  endfor
-  foreach(j, 0, sz)
-    //for(int j = 0; j < sz; j++)
-    updateRank(l[j], j);
-  endfor
+    foreach(j, 0, sz)
+      updateNbrRank(l[j], j);
+    endfor
+    foreach(j, 0, sz)
+      updateRank(l[j], j);
+    endfor
   }
 }
 
@@ -145,18 +143,14 @@ void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
 /*     lst[j] -> next = lst[j]; */
 /* } */
 
-////AND THIS
-//extern
-//  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
-//      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
+extern
+  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
+      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
 
 extern
   struct node * GOODNODE
   * START VALIDPTR SIZE_GE(4*sz) ARRAY 
-//  for some reason i can't get the right type out of initialize_idxs
-//      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
-      initialize_list(int REF(V > 0) sz) OKEXTERN;
-
+      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
 
 
 ///* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
@@ -165,22 +159,21 @@ extern
 ///*   /\* for(i = 0; i < sz; i++) *\/ */
 ///*   /\*   csolve_assert (l[idxs[i]] -> rank == sz-i-1); *\/ */
 ///* } */
-//
-// 
+
+ 
 void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
              int REF(V > 0) sz)
 {
   rank(l, sz);
 }
 
+struct node * GOODNODE * START VALIDPTR SIZE_GE(4*sz) ARRAY
+  initialize(int REF(V > 0) sz)
+{
+  int * idxs = initialize_idxs(sz);
+  return initialize_list(idxs, sz);
+}
 
-/* MK NOTES
- * 1) how much of initialization can we _not_ extern?
- *     -quite a bit actually
- * 2) can we do without the ghost field? (ie, is the array index always in scope?)
- *     -only if we have another way of attaching the array index to the node ptr
- * */
- 
 int main(char ** argv, int argc)
   CHECK_TYPE
 {
@@ -199,13 +192,7 @@ int main(char ** argv, int argc)
 
   if (sz <= 0) return 0;
 
-  //LOOK AT THIS PAT
-//  idxs = initialize_idxs(sz);
-//  arrr = idxs[0];
-// csolve_assert(arrr < sz);
-
-//  l    = initialize_list(idxs, sz);
-  l    = initialize_list(sz);
+  l    = initialize(sz);
   //runTest(*l, *idxs, sz);  
   runWork(l, sz);
   
