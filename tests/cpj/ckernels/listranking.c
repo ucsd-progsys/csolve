@@ -17,7 +17,7 @@ extern int log2(int REF(V > 0) n) OKEXTERN;
 typedef struct node
 { 
   csolve_ghost FINAL id; 
-  struct node * VALIDNODE FINAL next;
+  struct node * VALIDNODE   next;
   struct node * NNVALIDNODE rankNbr;
   int rank;
   int savedRank;
@@ -65,6 +65,10 @@ void updateRank(struct node * GOODNODE this, int i)
 //
 //  return l;
 //}
+
+extern
+  struct node * GOODNODE * VALIDPTR START SIZE_GE(4*sz) ARRAY newList(int REF(V > 0) sz) 
+  OKEXTERN;
  
 void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
           int REF(V > 0) sz)
@@ -94,30 +98,29 @@ void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
 ///*   a[j] = a[i]; */
 ///*   a[i] = tmp; */
 ///* } */
-//
-////NOTE NONSTANDARD INITIALIZATION
-// int REF(&& [V >= 0; V < sz]) * ARRAY START VALIDPTR SIZE_GE(4*sz) permutation(int REF(V > 0) sz) CHECK_TYPE
-//{
-//  int i;
-//  int tmp;
-//  int * result = /* UNQ  */malloc(sizeof(int) * sz);  
-//
-//  for(i = 0; i < sz; i++)
-//    result[i] = i;
-//  for (i = 0; i < sz; i++)
-//  {
-//    int j = rnd(10) * sz;
-//    int k = rnd(10) * sz;
-//    CSOLVE_ASSUME(j < sz && j >= 0);
-//    CSOLVE_ASSUME(k < sz && k >= 0);
-//    tmp = result[k];
-//    result[k] = result[j];
-//    result[j] = tmp;
-//    /* swp(result, j, k); */
-//  }
-//
-//  return result; 
-//}
+
+int REF(&& [V >= 0; V < sz]) * ARRAY START VALIDPTR SIZE_GE(4*sz) permutation(int REF(V > 0) sz)
+{
+  int i;
+  int tmp;
+  int * result = malloc(sizeof(int) * sz);  
+
+  for(i = 0; i < sz; i++)
+    result[i] = i;
+  for (i = 0; i < sz; i++)
+  {
+    int j = rnd(10) * sz;
+    int k = rnd(10) * sz;
+    CSOLVE_ASSUME(j < sz && j >= 0);
+    CSOLVE_ASSUME(k < sz && k >= 0);
+    tmp = result[k];
+    result[k] = result[j];
+    result[j] = tmp;
+    /* swp(result, j, k); */
+  }
+
+  return result; 
+}
  
 //NOTE TWO STAGE INITIALIZATION of list
 /* void initialize(node * NNVALIDNODE */
@@ -143,15 +146,32 @@ void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
 /*     lst[j] -> next = lst[j]; */
 /* } */
 
-extern
-  int REF(&& [V >= 0; V < sz]) * START SIZE_GE(4*sz) VALIDPTR ARRAY
-      initialize_idxs(int REF(V > 0) sz) OKEXTERN;
+struct node * GOODNODE
+            * START VALIDPTR SIZE_GE(4*sz) ARRAY
+              initialize(int REF(V > 0) sz)
+{
+  int i,j,k;
+
+  struct node **l    = newList(sz);
+  int          *idxs = permutation(sz);
+
+  for(i = 0; i < sz - 1; i++)
+  {
+    if(l[j = idxs[i]] && l[k = idxs[i+1]])
+      l[j] -> next = l[k];
+  }
+
+  if(l[j = idxs[sz-1]])
+    l[j] -> next = l[j];
+
+  return l;
+}
+
 
 extern
   struct node * GOODNODE
   * START VALIDPTR SIZE_GE(4*sz) ARRAY 
       initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
-
 
 ///* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
 ///* { */
@@ -167,23 +187,20 @@ void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
   rank(l, sz);
 }
 
-struct node * GOODNODE * START VALIDPTR SIZE_GE(4*sz) ARRAY
-  initialize(int REF(V > 0) sz)
-{
-  int * idxs = initialize_idxs(sz);
-  return initialize_list(idxs, sz);
-}
+//struct node * GOODNODE * START VALIDPTR SIZE_GE(4*sz) ARRAY
+//  initialize(int REF(V > 0) sz)
+//{
+//  int * idxs = permutation(sz);
+//  return initialize_list(idxs, sz);
+//}
 
 int main(char ** argv, int argc)
-  CHECK_TYPE
 {
   int sz;
   struct node   *l;
-//  int        *idxs;
-//  int arrr;
 
-   if (argc < 1 || argc > 4)
-     return 1;
+  if (argc < 1 || argc > 4)
+    return 1;
 
   if (argc >= 3)
     sz = nondetpos(); //atoi(argv[2]);
