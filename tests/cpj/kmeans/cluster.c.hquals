@@ -1,2 +1,2 @@
 //SPEC STRUCT SIZE 
-qualif ARRAYSZ(v: ptr): ((v != 0) => (BLOCK_BEGIN([v]) + 12 <= BLOCK_END([v])))
+qualif ArraySz(v: ptr): ((v != 0) => (BLOCK_BEGIN([v]) + 12 <= BLOCK_END([v])))
