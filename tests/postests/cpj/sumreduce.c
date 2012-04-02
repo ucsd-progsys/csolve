@@ -39,7 +39,7 @@ int reduce(int * ARRAY a, int len, int seqLen)
 }
 
 int main( int REF(V > 0) argc
-        , char * STRINGPTR * START NONNULL ARRAY SIZE(argc * 4) args) CHECK_TYPE
+        , char NULLTERMSTR  * STRINGPTR * START NONNULL ARRAY SIZE(argc * 4) args) CHECK_TYPE
 {
   
   

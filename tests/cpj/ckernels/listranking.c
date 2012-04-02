@@ -3,35 +3,40 @@
 
 const int DEF_SIZE;
 
+typedef int csolve_ghost; 
+
 extern float REF(&& [V >= 0; V <= 1]) rnd(int seed) OKEXTERN;
 extern int log2(int REF(V > 0) n) OKEXTERN;
 
 #define VALIDNODE START VALIDPTR ROOM_FOR(struct node)
+#define NODEID    REF((4 * (DEREF([V]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+#define NODENX    REF(&& [(DEREF([DEREF([V + 4]): ptr]): int) >= 0; (DEREF([DEREF([V + 4]): ptr]): int) < sz])
+#define GOODNODE  NODEID VALIDNODE
 #define NNVALIDNODE NNSTART NNVALIDPTR NNROOM_FOR(struct node)
 
 typedef struct node
 { 
-  int FINAL id;
-  struct node * NNVALIDNODE next; 
+  csolve_ghost FINAL id; 
+  struct node * VALIDNODE   next;
   struct node * NNVALIDNODE rankNbr;
   int rank;
   int savedRank;
   struct node * NNVALIDNODE savedRankNext;
-} node;
+};
 
-void initRank(node * VALIDNODE this) CHECK_TYPE
+void initRank(struct node * GOODNODE this, int i)
 {
   this -> rank = (this -> next == this) ? 0 : 1;
   //this -> rankNbr = this -> next;
 }
 
-void updateNbrRank(node * VALIDNODE this) CHECK_TYPE
+void updateNbrRank(struct node * GOODNODE this, int i)
 {
   this -> savedRank = this -> rank;
   this -> savedRankNext = this -> rankNbr;
 }
   
-void updateRank(node * VALIDNODE this) CHECK_TYPE
+void updateRank(struct node * GOODNODE this, int i)
 {
   if (this -> rankNbr != this -> savedRankNext)
   {
@@ -40,77 +45,65 @@ void updateRank(node * VALIDNODE this) CHECK_TYPE
   }
 }
 
-/* //typedef node ** ARRAY list; */
-/* node * VALIDNODE LOC(L)  */
-/* root(node *LOC(L) VALIDNODE */
-/*           *ARRAY START VALIDPTR ROOM_FOR(struct node *) l) NO_OP */
-/* { */
-/*   return l[0]; */
-/* } */
+////typedef node ** ARRAY list;
+//node * VALIDNODE LOC(L) 
+//root(node *LOC(L) VALIDNODE
+//          *ARRAY START VALIDPTR ROOM_FOR(struct node *) l) CHECK_TYPE
+//{
+//  return l[0];
+//}
+// 
+//node* NNVALIDNODE * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*sz)
+//  newList(int REF(V > 0) sz) CHECK_TYPE
+//{
+//  node** l = /* UNQ */ malloc(sizeof(*l) * sz);
+//  //  foreach (i, 0, sz)
+//  for (int i = 0; i < sz; i++) {
+//    l[i] = malloc(sizeof(**l));
+//  }
+//  //  endfor
+//
+//  return l;
+//}
 
-node* newNode(int i)
-{
-  node *n;
-  
-  n = malloc(sizeof(*n));
-  n->id = i;
-  
-  return n;
-}
-
+extern
+  struct node * GOODNODE * VALIDPTR START SIZE_GE(4*sz) ARRAY newList(int REF(V > 0) sz) 
+  OKEXTERN;
  
-node *VALIDNODE 
-     *ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz)
-newList(int REF(V > 0) sz)
-{
-  node** l = /* UNQ */ malloc(sizeof(*l) * sz);
-  /* foreach (i, 0, sz) */
-  for(int i = 0; i < sz; i++) {
-    node *n = malloc(sizeof(*n));
-    n->id = i;
-    csolve_assert(n->id == i);
-    l[i] = n;
-  }
-  /* endfor */
-
-  return l;
-}
-
-void rank(node * NNVALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, int REF(V > 0) sz)
+void rank(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
+          int REF(V > 0) sz)
 {
   //initialize the nodes for ranking
   foreach(i, 0, sz)
-    if(l[i])	
-      initRank(l[i]);
+    initRank(l[i], i);
   endfor
 
-  /* //repeat log2(nodes.length) times */
-  /* int i = log2(sz); */
-  /* while (i-- > 0) { */
-  /*   foreach(j, 0, sz) */
-  /*     if(l[j]) */
-  /* 	updateNbrRank(l[j]); */
-  /*   endfor */
-  /*   foreach(j, 0, sz) */
-  /*     if(l[j]) */
-  /* 	updateRank(l[j]); */
-  /*   endfor */
-  /* } */
+  //repeat log2(nodes.length) times
+  int i = log2(sz);
+  while (i-- > 0) {
+    foreach(j, 0, sz)
+      updateNbrRank(l[j], j);
+    endfor
+    foreach(j, 0, sz)
+      updateRank(l[j], j);
+    endfor
+  }
 }
 
-/* void swp(int * ARRAY a, int i, int j) */
-/* { */
-/*   int tmp = a[j]; */
-/*   a[j] = a[i]; */
-/*   a[i] = tmp; */
-/* } */
+///* void swp(int * ARRAY START VALIDPTR SIZE_GE(4*(i+1)) SIZE_GE(4*(j+1)) a,  */
+///*     int REF(V >= 0) i, int REF(V >= 0) j) */
+///* void swp(int * ARRAY a, int i, int j) CHECK_TYPE */
+///* { */
+///*   int tmp = a[j]; */
+///*   a[j] = a[i]; */
+///*   a[i] = tmp; */
+///* } */
 
-//NOTE NONSTANDARD INITIALIZATION
- int REF(&& [V >= 0; V < sz]) * ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) permutation(int REF(V > 0) sz) 
+int REF(&& [V >= 0; V < sz]) * ARRAY START VALIDPTR SIZE_GE(4*sz) permutation(int REF(V > 0) sz)
 {
   int i;
   int tmp;
-  int * result = /* UNQ  */malloc(sizeof(int) * sz);  
+  int * result = malloc(sizeof(int) * sz);  
 
   for(i = 0; i < sz; i++)
     result[i] = i;
@@ -151,48 +144,77 @@ void initialize(node * NNVALIDNODE
     }
   }
   
-  if((j = idxslst[sz-1]) < sz && lst[j])
-    lst[j] -> next = lst[j];
-}
-
-/* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
-/* { */
-/*   /\* int i; *\/ */
-/*   /\* for(i = 0; i < sz; i++) *\/ */
-/*   /\*   csolve_assert (l[idxs[i]] -> rank == sz-i-1); *\/ */
+/*   if(lst[j = idxslst[sz-1]]) */
+/*     lst[j] -> next = lst[j]; */
 /* } */
 
+struct node * GOODNODE
+            * START VALIDPTR SIZE_GE(4*sz) ARRAY
+              initialize(int REF(V > 0) sz)
+{
+  int i,j,k;
+
+  struct node **l    = newList(sz);
+  int          *idxs = permutation(sz);
+
+  for(i = 0; i < sz - 1; i++)
+  {
+    if(l[j = idxs[i]] && l[k = idxs[i+1]])
+      l[j] -> next = l[k];
+  }
+
+  if(l[j = idxs[sz-1]])
+    l[j] -> next = l[j];
+
+  return l;
+}
+
+
+extern
+  struct node * GOODNODE
+  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
+      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
+
+///* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
+///* { */
+///*   /\* int i; *\/ */
+///*   /\* for(i = 0; i < sz; i++) *\/ */
+///*   /\*   csolve_assert (l[idxs[i]] -> rank == sz-i-1); *\/ */
+///* } */
+
  
-void runWork(node * NNVALIDNODE * ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) l, int REF(V > 0) sz) 
+void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
+             int REF(V > 0) sz)
 {
   if(l) {
     rank(l, sz);
   }
 }
-//ABAKST: Fix this
-/* int main(char ** argv, int argc)  */
-  /* NO_OP */
-int main()
+
+//struct node * GOODNODE * START VALIDPTR SIZE_GE(4*sz) ARRAY
+//  initialize(int REF(V > 0) sz)
+//{
+//  int * idxs = permutation(sz);
+//  return initialize_list(idxs, sz);
+//}
+
+int main(char ** argv, int argc)
 {
   int sz;
-  node **l;
-  int *idxs;
+  struct node   *l;
 
-  /* if (argc < 1 || argc > 4) */
-  /*   return 1; */
+  if (argc < 1 || argc > 4)
+    return 1;
 
-  /* if (argc >= 3) */
-  /*   sz = atoi(argv[2]); */
-  /* else */
-  /*   exit(1); */
-  sz = nondetpos();
+  if (argc >= 3)
+    sz = nondetpos(); //atoi(argv[2]);
+  else
+    exit(1);
+
   if (sz <= 0) return 0;
 
-  l   = newList(sz);
-  idxs = permutation(sz);
-  
-  initialize(l, idxs, sz);
-  // runTest(*l, *idxs, sz);
+  l    = initialize(sz);
+  //runTest(*l, *idxs, sz);  
   runWork(l, sz);
   
   return 0;

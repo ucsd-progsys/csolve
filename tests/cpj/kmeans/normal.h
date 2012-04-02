@@ -74,6 +74,29 @@
 
 
 extern double global_parallelTime;
+
+#define FLOAT2D_LOC(x, y, l, m)				\
+  float * ARRAY VALIDPTR SIZE_GE(4*y) LOC(m)		\
+        * ARRAY START VALIDPTR SIZE_GE(4*x) LOC(l)
+extern //atomic
+  void accumulator(float delta,
+                   int REF(V >= 0) REF(V < nclusters) index,
+                   int REF(V >= 0) REF(V < npoints)   i,
+                   int REF(V > 0)                     nfeatures,
+                   int REF(V > 0)                     npoints,
+                   int REF(V > 0)                     nclusters,
+		   FLOAT2D_LOC(npoints, nfeatures, A, B) feature,
+                   int  * ARRAY START SIZE_GE(4*nclusters) LOC(C) new_centers_len,
+		   FLOAT2D_LOC(nclusters, nfeatures, D, E) new_centers,
+                   float* LOC(F) global_delta)
+EFFECT(A, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(B, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(C, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(D, &&[ACCUMULATE != 1; EREAD != 1; EWRITE != 1])
+EFFECT(E, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+EFFECT(F, &&[ACCUMULATE = 1; EREAD != 1; EWRITE != 1])
+OKEXTERN;
+
 /* =============================================================================
  * normal_exec
  * =============================================================================

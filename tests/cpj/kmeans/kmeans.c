@@ -135,7 +135,7 @@ extern ssize_t pmr_read_floats (int __fd,
  * =============================================================================
  */
 void
-usage (char* argv0)
+usage (char * ARRAY argv0)
 {
     char* help =
         "Usage: %s [switches] -i filename\n"
@@ -147,7 +147,8 @@ usage (char* argv0)
         "       -t threshold   : threshold value\n"
         "       -p nproc       : number of threads\n";
     fprintf(stderr, help, argv0);
-    exit(-1);
+    /* exit(-1); */
+    /* CSOLVE_ASSUME(0); */
 }
 
 /* =============================================================================
@@ -162,15 +163,12 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
   int i, j;
 
   int size = csolve_times(numObjects, numAttributes) ;
-  float * ARRAY buf = (float *) malloc(size * sizeof(float));
+  float *buf = (float *) malloc(size * sizeof(float));
 
-
-  csolve_assert(size > 0);
   csolve_assert(numAttributes > 0);
   csolve_assert(numObjects > 0);
+  csolve_assert(size > 0);
   csolve_assert(buf + size <= csolve_block_end(buf));
-
-
 
   char * line = (char*)malloc(MAX_LINE_LENGTH); /* reserve memory line */
   
@@ -182,21 +180,21 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
      // if ((infile = open(filename, O_RDONLY, "0600")) == -1) {
      if ((infile = open(filename, O_RDONLY)) == -1) {
        fprintf(stderr, "Error: no such file (%s)\n", filename);
-       exit(1); CSOLVE_ASSUME(0); csolve_assert(0);
+       exit(1); CSOLVE_ASSUME(0);
        return 0;
      }
      pmr_read_floats(infile, buf, (size * sizeof(float)));
      close(infile);
     
-   } else {
+   } else{
       
      FILE *infile;
      if ((infile = fopen(filename, "r")) == NULL) {
         fprintf(stderr, "Error: no such file (%s)\n", filename);
-        exit(1); CSOLVE_ASSUME(0); csolve_assert(0);
+        exit(1); CSOLVE_ASSUME(0);
         return 0;
      }
-       
+     CSOLVE_ASSUME(infile != NULL);
      rewind(infile);
      i = 0;
      while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -205,11 +203,11 @@ float * ARRAY read_buf(int numObjects, int numAttributes, int isBinaryFile, char
        }
        for (j = 0; j < numAttributes; j++) {
          if (i < size) { //RJ: BUFFER OVERFLOW
-           // Original code makes this assumption; justification?
+           //Original code makes this assumption; justification?
            char *pmr_str = strtok(NULL, " ,\t\n");
            CSOLVE_ASSUME (pmr_str != NULL);
            float tmp = atof(pmr_str);
-           buf[i] = tmp; 
+           buf[i] = tmp;
          }
          i++;
        }
@@ -424,15 +422,17 @@ main (int REF(V > 0) argc, char NULLTERMSTR * STRINGPTR * START NONNULL ARRAY SI
     }
 
     if (filename == 0) {
-        exit(1);
-        return 0;
+      usage(argv[0]);
+      exit(1);
+      return 0;
     }
-        //usage((char*)argv[0]);
+    //usage(argv[0]);
 
     if (max_nclusters < min_nclusters) {
-        fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
-        //usage((char*)argv[0]);
-        exit(1);
+      fprintf(stderr, "Error: max_clusters must be >= min_clusters\n");
+      usage(argv[0]);
+      exit(1);
+      return 1;
     }
 
     //SIM_GET_NUM_CPU(nthreads);
