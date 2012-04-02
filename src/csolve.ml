@@ -45,9 +45,9 @@ module Misc = FixMisc
 module SM = Misc.StringMap
 module SS = Misc.StringSet
 
+open Pretty
 open Misc.Ops
 
-open Pretty
 
 type outfile = { 
   fname: string;
@@ -60,13 +60,29 @@ let mydebug = false
 (****************** TBD: CIL Prepasses *********************************)
 (***********************************************************************)
 
+let dump_globals cil = 
+  Cil.iterGlobals cil (fun g -> ignore <| Pretty.printf "GLOBAL: %a\n" Cil.d_global g)
+
 let rename_locals cil =
-  Cil.iterGlobals cil
-  (function Cil.GFun(fd,_) -> 
-    let fn   = fd.Cil.svar.Cil.vname in
-    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.slocals;
-    List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.sformals
+  Cil.iterGlobals cil begin function 
+    | Cil.GFun(fd,_) -> 
+        let fn = fd.Cil.svar.Cil.vname in
+        List.iter begin fun v -> 
+          v.Cil.vname <- CM.rename_local fn v.Cil.vname
+        end (fd.Cil.slocals ++ fd.Cil.sformals)
+    | _ ->  ()
+  end;
+  Cil.visitCilFile (new Cil.nopCilVisitor) cil (* rebuild type-sig with new formals *)
+
+  (* 
+      let _  = List.iter (fun v -> ) fd.Cil.slocals in
+      let _  = List.iter (fun v -> v.Cil.vname <- CM.rename_local fn v.Cil.vname) fd.Cil.sformals in 
+    let _  = fd.Cil.sformals
+             |>: (fun v -> Cil.copyVarinfo v (CM.rename_local fn v.Cil.vname))
+             |> Cil.setFormals fd 
+    ()
   | _ -> ())
+*)
 
 let parse_file fname =
   let _ = ignore (E.log "Parsing %s\n" fname) in
@@ -178,7 +194,7 @@ let incremental_decs fns decs =
     | _                 -> true
   end decs
 
-let obligations outprefix file cil =
+let obligations outprefix file =
   let spec = spec_of_file outprefix file in
   let decs = decs_of_file file in
   (if SS.is_empty !Co.inccheck then 
@@ -255,7 +271,7 @@ let cil_of_file file =
        >> mk_cfg 
        >> rename_locals
        >> (CilMisc.varExprMap <+> ignore)
-
+       (* >> dump_globals *)
 
 let dump_annots qs tgr res =
   let s     = res.FI.soln                                           in
@@ -271,6 +287,8 @@ let liquidate file =
   let log       = open_out "csolve.log" in
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
+  let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix) file in
+  let _         = E.log "DONE: spec parsing \n" in
   let cil       = BS.time "Parse: source" cil_of_file file in
   let _         = EffectDecls.parseEffectDecls cil in
   let _         = E.log "DONE: cil parsing \n" in
@@ -278,9 +296,7 @@ let liquidate file =
   let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
-  let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix file) cil in
-  let _         = E.log "DONE: spec parsing \n" in
-  let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
+ let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
