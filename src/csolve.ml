@@ -258,7 +258,7 @@ let print_unsat_locs tgr res =
   print_result tgr res stdout;
   Misc.with_out_file (!Co.csolve_file_prefix ^ ".out") (print_result tgr res)
 
-let cil_of_file file =
+let cil_transform_phase_1 file =
   file |> Simplemem.simplemem 
        >> CilMisc.unfloat 
        >> CilMisc.Pheapify.doVisit 
@@ -268,8 +268,10 @@ let cil_of_file file =
        >> CilMisc.purify 
        >> CilMisc.CopyGlobal.doVisit
        >> CilMisc.NameNullPtrs.doVisit
-       >> mk_cfg 
-       >> rename_locals
+       >> mk_cfg
+
+let cil_transform_phase_2 file = 
+  file >> rename_locals
        >> (CilMisc.varExprMap <+> ignore)
        (* >> dump_globals *)
 
@@ -283,16 +285,19 @@ let dump_annots qs tgr res =
   (* 2. Dump HTML Annots *)
   AnnotsJson.dump_html qs tgr s cs cones binds
 
-let liquidate file =
+let liquidate cil =
   let log       = open_out "csolve.log" in
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
-  let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix) file in
+  
+  let cil       = BS.time "Cil: phase 1" cil_transform_phase_1 cil in
+  let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix) cil in
   let _         = E.log "DONE: spec parsing \n" in
-  let cil       = BS.time "Parse: source" cil_of_file file in
+  let cil       = BS.time "Cil: phase 2" cil_transform_phase_2 cil in
+
   let _         = EffectDecls.parseEffectDecls cil in
   let _         = E.log "DONE: cil parsing \n" in
-  let fn        = !Co.csolve_file_prefix (* file.Cil.fileName *) in
+  let fn        = !Co.csolve_file_prefix  in
   let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
