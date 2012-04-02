@@ -15,6 +15,38 @@ Begin by constructing the following:
                 If sloc is "owned by" a particular varinfo then use vdescr
 
 
+Failed 20 tests: ../tests/postests/argv-final-val.c,
+../tests/postests/coreutils/dirname.sh,
+../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/groups.sh,
+../tests/postests/coreutils/hostid.sh,
+../tests/postests/coreutils/hostname.sh,
+../tests/postests/coreutils/link.sh,
+../tests/postests/coreutils/logname.sh,
+../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
+../tests/postests/coreutils/readlink.sh,
+../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh,
+../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh,
+../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh,
+../tests/postests/cpj/sumreduce.c, ../tests/postests/ks.c,
+../tests/postests/mst.c
+
+Exceptions thrown on 20 tests: ../tests/postests/argv-final-val.c,
+../tests/postests/coreutils/dirname.sh,
+../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/groups.sh,
+../tests/postests/coreutils/hostid.sh,
+../tests/postests/coreutils/hostname.sh,
+../tests/postests/coreutils/link.sh,
+../tests/postests/coreutils/logname.sh,
+../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
+../tests/postests/coreutils/readlink.sh,
+../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh,
+../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh,
+../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh,
+../tests/postests/cpj/sumreduce.c, ../tests/postests/ks.c,
+../tests/postests/mst.c
+
+
+
 
 
 Counterexamples (to be continued) 
