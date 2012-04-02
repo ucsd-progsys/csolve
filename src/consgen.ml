@@ -105,7 +105,8 @@ let rename_args rf sci =
   let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
   let effs'    = FI.effectset_subs FI.t_subs_names subs rf.Ctypes.effects in
-  Ctypes.RefCTypes.CFun.make args' rf.Ctypes.globlocs rf.Ctypes.quant_svars hi' ret' ho' effs'
+  Ctypes.RefCTypes.CFun.make 
+    args' rf.Ctypes.globlocs rf.Ctypes.quant_svars rf.Ctypes.quant_tvars hi' ret' ho' effs'
 
 let rename_funspec scim spec =
   spec 

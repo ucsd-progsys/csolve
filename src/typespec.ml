@@ -346,6 +346,7 @@ let rec refctypeOfCilType mem t = match normalizeType t with
           |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty
           |> fst3
     in Ct.FRef (f', r)
+  | C.TPtr (t, ats) when is_zero_width mem t ats -> Ct.TVar (Ct.fresh_tvar ())
   | C.TPtr (t, ats)      ->
     if C.hasAttribute CM.anyRefAttribute ats then
       Ct.ARef (* create an anyref even if the type is named *)
@@ -361,6 +362,11 @@ let rec refctypeOfCilType mem t = match normalizeType t with
         | _ -> ptrReftypeOfAttrs t ats
       end
   | _ -> assertf "refctypeOfCilType: non-base!"
+
+and is_zero_width mem t ats =
+    match annotatedPointerBaseType ats t |> componentsOfType with
+      | [(_, _, t)] -> refctypeOfCilType mem t |> RCt.width = 0
+      | _ -> false
 
 and heapRefctypeOfCilType mem t =
      t
@@ -427,7 +433,8 @@ and preRefstoreOfTypes ts =
 
 (* Converts function type t to a refcfun, but the store includes
    contents for global locations. This is fixed by
-   refcfunOfPreRefcfun. *)
+   refcfunOfPreRefcfun.
+*)
 and preRefcfunOfType t =
   let ret, argso, _, ats = t |> C.unrollType |> C.splitFunctionType in
   let ret                = normalizeType ret in
@@ -438,7 +445,7 @@ and preRefcfunOfType t =
   let allInStore         = RS.restrict allOutStore (M.map_partial (snd <+> RCt.sloc) argrcts) in
   let glocs              = ats |> CM.getStringAttrs CM.globalAttribute |>: getSloc |> M.flap (RS.reachable allOutStore) in
   let effs               = effectSetOfAttrs (allOutStore |> RS.domain |> M.negfilter (M.flip List.mem glocs)) ats in
-    RCf.make argrcts glocs [] allInStore retrct allOutStore effs
+    RCf.make argrcts glocs [] [] allInStore retrct allOutStore effs
 
 and updateGlobalStore sub gsto gstoUpd =
      (sub, List.fold_right (M.flip RS.ensure_sloc) (RS.domain gstoUpd) gsto)
@@ -546,7 +553,7 @@ let globalSpecOfFuns sub gsto funs =
      let _      = C.currentLoc := v.C.vdecl in
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
-         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto |> (M.app_fst3 RCf.quantify_svars) in
+         let rcf, gsto, sub = ty |> preRefcfunOfType |> refcfunOfPreRefcfun sub gsto |> (M.app_fst3 RCf.generalize) in
            (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)

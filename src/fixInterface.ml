@@ -129,6 +129,7 @@ let rec refctype_of_reft_ctype r = function
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o,r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 
 (*
 let refctype_of_reft_ctype r = function
@@ -142,6 +143,7 @@ and spec_refctype_of_reft_ctype r = function
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 
 and refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->

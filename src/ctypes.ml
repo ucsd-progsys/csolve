@@ -121,12 +121,18 @@ let dummy_ldinfo = {stype = None; any = false}
 let any_ldinfo   = {stype = None; any = true }
 let any_fldinfo  = {fname = None; ftype = None}
 
+let tvar_prefix = "t"
+type tvar = int
+    
+let fresh_tvar = M.mk_int_factory () |> fst
+
 type 'a prectype =
   | Int  of int * 'a           (* fixed-width integer *)
   | Ref  of Sloc.t * 'a        (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
   | ARef                       (* a dynamic "blackhole" reference *)
   | Any                        (* the variable-width type of a "blackhole" *)
+  | TVar of tvar               (* type variables *)
 
 
 and 'a prefield = {  pftype     : 'a prectype
@@ -148,6 +154,7 @@ and 'a precfun =
       ret         : 'a prectype;                  (* return *)
       globlocs    : S.t list;                     (* unquantified locations *)
       quant_svars : Sv.t list;
+      quant_tvars : tvar list;
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
@@ -186,20 +193,23 @@ let d_ldinfo () = function
       P.dprintf "/* %a */" Cil.d_type t
   | _ -> 
       P.nil
-
+	
 let rec d_prectype d_refinement () = function
       | Int (n, r)  -> P.dprintf "int(%d, %a)" n d_refinement r
       | Ref (s, r)  -> P.dprintf "ref(%a, %a)" S.d_sloc s d_refinement r
       | FRef (f, r) -> P.dprintf "fref(<TBD>, %a)" d_refinement r
       | ARef        -> P.dprintf "aref(%a)" S.d_sloc Sloc.sloc_of_any
       | Any         -> P.dprintf "any"
+      | TVar t      -> P.dprintf "%s%d" tvar_prefix t
+
+let d_lst fn () lst = Pretty.seq ~sep:(Pretty.text " ") ~doit:fn ~elements:lst
+let d_varstore = d_lst (fun h -> Sv.d_svar () h)
+let d_tvars    = d_lst (fun t -> Pretty.dprintf "%s%d" tvar_prefix t)
 
 let d_refctype = d_prectype Reft.d_refinement
 
 let d_effectinfo = d_refctype
   
-let d_varstore () lst = Pretty.seq ~sep:(Pretty.text " ") ~doit:(fun h -> Sv.d_svar () h) ~elements:lst
-
 let d_storelike d_binding =
   SLMPrinter.docMap ~sep:(P.dprintf ";@!") (fun l d -> P.dprintf "%a |-> %a" S.d_sloc l d_binding d)
 
@@ -467,12 +477,13 @@ module SIGS (T : CTYPE_DEFS) = struct
       (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
-    val quantify_svars  : t -> t
+    (* val quantify_svars  : t -> t *)
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Sv.t list
+    val generalize      : t -> t
     val free_svars      : t -> Sv.t list
     val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * StoreSubst.t)
-    val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> T.store -> T.ctype -> T.store -> effectset -> t
+    val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> tvar list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
     val indices         : t -> Index.t list
@@ -546,7 +557,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
-      | ARef | Any -> T.R.top
+      | ARef | Any | TVar _ -> T.R.top
 
     let rec map f = function
       | Int (i, x) -> Int (i, f x)
@@ -554,6 +565,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | FRef(g, x) -> FRef (map_func f g, f x)
       | ARef      -> ARef
       | Any       -> Any    
+      | TVar t    -> TVar t
     and map_field f ({pftype = typ} as pfld) =
       {pfld with pftype = map f typ}
     and map_desc f {plfields = flds; plinfo = info} =
@@ -571,10 +583,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | FRef (g, i) -> P.dprintf "fref(@[%a,@!%a@])" CFun.d_cfun g T.R.d_refinement i
       | ARef        -> P.dprintf "aref(%a)" S.d_sloc S.sloc_of_any
       | Any         -> P.dprintf "any"  
+      | TVar t      -> P.dprintf "%s%d" tvar_prefix t
 
     let width = function
       | Int (n, _) -> n
       | Any        -> 0
+      | TVar t     -> 0
       | _          -> CM.int_width
     
     let sloc = function
@@ -603,6 +617,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Any, Any                                   -> true
         | Int _, Any                                 -> true
         | Any, Int _                                 -> true
+	| TVar t1, TVar t2                           -> t1 = t2
         | _                                          -> false
 
     let of_const c =
@@ -1048,11 +1063,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     type t = T.cfun
 
     (* API *)
-    let make args globs svars sin reto sout effs =
+    let make args globs svars tvars sin reto sout effs =
       { args     = args;
         ret      = reto;
         globlocs = globs;
         quant_svars = List.sort Sv.compare svars; 
+	quant_tvars = List.sort compare tvars;
         sto_in   = sin;
         sto_out  = sout;
         effects  = effs;
@@ -1063,6 +1079,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         ret      = f_co ft.ret;
         globlocs = ft.globlocs;
         quant_svars = ft.quant_svars;
+	quant_tvars = ft.quant_tvars;
         sto_in   = Store.map_variances f_contra f_co ft.sto_in;
         sto_out  = Store.map_variances f_co f_contra ft.sto_out;
         effects  = ft.effects;
@@ -1116,14 +1133,21 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let d_effectset () ft =
       P.dprintf "effects   %a" EffectSet.d_effectset ft.effects
         
-    let d_quantifiers () ft =
+    let d_qsvars () ft =
       if ft.quant_svars <> [] then
         P.dprintf "forall %a.\n" d_varstore ft.quant_svars
       else
         P.dprintf ""
+	  
+    let d_qtvars () ft = 
+      if ft.quant_tvars <> [] then
+	P.dprintf "forall %a.\n" d_tvars ft.quant_tvars
+      else
+	P.dprintf ""
 
     let d_cfun () ft  =
-      P.dprintf "@[%a%a%a%a%a@]" d_quantifiers ft d_argret ft d_globlocs ft d_stores ft d_effectset ft
+      P.dprintf "@[%a%a%a%a%a%a@]" 
+	d_qsvars ft d_qtvars ft d_argret ft d_globlocs ft d_stores ft d_effectset ft
 
     let rec capturing_subs cf sub =
       (* let apply_sub = CType.subs sub in *)
@@ -1131,6 +1155,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         make (List.map (M.app_snd apply_sub) cf.args)
              (List.map (S.Subst.apply sub) cf.globlocs)
              cf.quant_svars
+	     cf.quant_tvars
              (Store.subs sub cf.sto_in)
              (apply_sub cf.ret)
              (Store.subs sub cf.sto_out)
@@ -1273,36 +1298,61 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         (* in   *)
 	let cf = subs_store_var ssub sub sto cf in
 	(cf, sub, ssub)
-    
+ 
+    let instantiate_tvars srcinf cf args =
+      (* I think any return value should have to share the same variable
+	 as some input argument *)
+     List.fold_left2 begin fun formal actual sub ->
+       (* need to check things: -the var is quantified -for two
+	  different subs, the types should be the unification? least upper bound? *)
+       begin match actual with
+	 | TVar t -> (t, actual)::sub
+	 | _      -> sub
+       end
+     end [] (List.map snd cf.args) args
+
     let instantiate srcinf cf args sto =
       let sub = instantiate_locs srcinf cf in
       let cf = subs cf sub in
       let cf = {cf with args = List.map (M.app_snd <| subs_frefs sub) cf.args;
-	                ret  = subs_frefs sub cf.ret} in
+	ret  = subs_frefs sub cf.ret} in
       let (cf, isub, hsub) = instantiate_store srcinf cf args sto in
       (cf, S.Subst.compose isub sub, hsub)
-          
+        
     let quantified_svars cf = cf.quant_svars
       
     let rec free_svars cf = 
       let vs = Store.vars cf.sto_out
-            |> List.filter (not <.> Misc.flip List.mem cf.quant_svars)
+      |> List.filter (not <.> Misc.flip List.mem cf.quant_svars)
       in
       let free  = function
         | FRef (f, _) -> free_svars f
         | _ -> []
       in cf.args |> Misc.flap (free <.> snd) |> List.append vs |> Misc.sort_and_compact
-       
+	  
     let quantify_svars cf = 
       let svars = free_svars cf
-                   |> List.append (snd cf.sto_out ++ snd cf.sto_in)
-                   |> M.sort_and_compact
+      |> List.append (snd cf.sto_out ++ snd cf.sto_in)
+      |> M.sort_and_compact
       in
-      (* let build_uniq xs ys =  *)
-      (*   List.fold_left (fun xs y -> if List.mem y xs then xs else y::xs) xs ys  *)
-      (* in *)
       {cf with quant_svars = svars }
-        
+	
+    let rec free_tvars cf = 
+      let free = function
+	| FRef (f, _) -> free_tvars f
+	| _ -> []
+      in
+      let vars = function
+        | TVar t -> Some t
+	| _      -> None
+      in
+      cf.ret::List.map snd cf.args
+      |> M.map_partial vars 
+      |> M.sort_and_compact
+	  
+    let quantify_tvars cf = {cf with quant_tvars = free_tvars cf}
+      
+    let generalize cf = cf |> quantify_svars |> quantify_tvars
         
     let lsubs_of_args f args sub = 
       let flocs, alocs = 
@@ -1321,7 +1371,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SVM.add v (fst st') hsub
       else
         SVM.add v sto hsub
-        
+          
   end
 
   (******************************************************************************)
@@ -1405,6 +1455,7 @@ let null_fun      = {args = [];
                      ret  = Int (0, N.top);
                      globlocs = [];
                      quant_svars = [];
+		     quant_tvars = [];
                      sto_in = I.Store.empty;
                      sto_out = I.Store.empty;
                      effects = SLM.empty}
@@ -1504,6 +1555,7 @@ let ctype_of_refctype = function
   | Ref (x, (y, _))  -> Ref (x, y)
   | ARef             -> ARef
   | Any              -> Any  
+  | TVar t           -> TVar t
   | f -> RCt.CType.map fst f
     
 (* API *)
@@ -1523,7 +1575,7 @@ let reft_of_refctype = function
   | Int (_,(_,r)) 
   | Ref (_,(_,r))
   | FRef (_,(_,r)) -> r
-  | Any | ARef -> reft_of_top
+  | Any | ARef | TVar _ -> reft_of_top
 
 (**********************************************************************)
 

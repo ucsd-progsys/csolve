@@ -56,12 +56,17 @@ type 'a preldesc
 
 type 'a prestore
 
+type tvar
+  
+val fresh_tvar : unit -> tvar
+    
 type 'a prectype =
   | Int of int * 'a            (* fixed-width integer *)
   | Ref of Sloc.t * 'a         (* reference *)
   | FRef of ('a precfun) * 'a  (* function reference *)
   | ARef                       (* a dynamic "blackhole" reference *)
   | Any                        (* the any-width type of a "blackhole" *)
+  | TVar of tvar               (* type variables *)
 
 and  effectptr  = Reft.t prectype
 
@@ -72,6 +77,7 @@ and  'a precfun =
       ret         : 'a prectype;                  (* return *)
       globlocs    : Sloc.t list;                  (* unquantified locations *)
       quant_svars : Svar.t list;
+      quant_tvars : tvar list;
       sto_in      : 'a prestore;                  (* in store *)
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
@@ -286,12 +292,22 @@ module type S = sig
       (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
-    val quantify_svars  : t -> t
+    (* val quantify_svars  : t -> t *)
+    (* val quantify_tvars  : t -> t *)
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Svar.t list
+    val generalize      : t -> t
     val free_svars      : t -> Svar.t list
     val instantiate     : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> t * Sloc.Subst.t * StoreSubst.t
-    val make            : (string * CType.t) list -> Sloc.t list -> Svar.t list -> Store.t -> CType.t -> Store.t -> effectset -> t
+    val make            : (string * CType.t) list -> 
+                          Sloc.t list -> 
+                          Svar.t list -> 
+                          tvar list -> 
+                          Store.t -> 
+                          CType.t -> 
+                          Store.t -> 
+                          effectset -> 
+                          t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
     val indices         : t -> Index.t list 
