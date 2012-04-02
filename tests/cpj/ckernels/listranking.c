@@ -11,6 +11,7 @@ extern int log2(int REF(V > 0) n) OKEXTERN;
 
 typedef struct node
 { 
+  int FINAL id;
   struct node * NNVALIDNODE next; 
   struct node * NNVALIDNODE rankNbr;
   int rank;
@@ -18,11 +19,10 @@ typedef struct node
   struct node * NNVALIDNODE savedRankNext;
 } node;
 
-
 void initRank(node * VALIDNODE this) CHECK_TYPE
 {
   this -> rank = (this -> next == this) ? 0 : 1;
-  this -> rankNbr = this -> next;
+  //this -> rankNbr = this -> next;
 }
 
 void updateNbrRank(node * VALIDNODE this) CHECK_TYPE
@@ -40,53 +40,65 @@ void updateRank(node * VALIDNODE this) CHECK_TYPE
   }
 }
 
-//typedef node ** ARRAY list;
-node * VALIDNODE LOC(L) 
-root(node *LOC(L) VALIDNODE
-          *ARRAY START VALIDPTR ROOM_FOR(struct node *) l) CHECK_TYPE
+/* //typedef node ** ARRAY list; */
+/* node * VALIDNODE LOC(L)  */
+/* root(node *LOC(L) VALIDNODE */
+/*           *ARRAY START VALIDPTR ROOM_FOR(struct node *) l) NO_OP */
+/* { */
+/*   return l[0]; */
+/* } */
+
+node* newNode(int i)
 {
-  return l[0];
+  node *n;
+  
+  n = malloc(sizeof(*n));
+  n->id = i;
+  
+  return n;
 }
+
  
-node* NNVALIDNODE * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*sz)
-  newList(int REF(V > 0) sz) CHECK_TYPE
+node *VALIDNODE 
+     *ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz)
+newList(int REF(V > 0) sz)
 {
   node** l = /* UNQ */ malloc(sizeof(*l) * sz);
-  //  foreach (i, 0, sz)
-  for (int i = 0; i < sz; i++) {
-    l[i] = malloc(sizeof(**l));
+  /* foreach (i, 0, sz) */
+  for(int i = 0; i < sz; i++) {
+    node *n = malloc(sizeof(*n));
+    n->id = i;
+    csolve_assert(n->id == i);
+    l[i] = n;
   }
-  //  endfor
+  /* endfor */
 
   return l;
 }
- 
-void rank(node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
-    int REF(V > 0) sz) CHECK_TYPE
+
+void rank(node * NNVALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, int REF(V > 0) sz)
 {
   //initialize the nodes for ranking
-  /* foreach(i, 0, sz) */
-  for(int i = 0; i < sz; i++)
-    initRank(l[i]);
-  /* endfor */
+  foreach(i, 0, sz)
+    if(l[i])	
+      initRank(l[i]);
+  endfor
 
-  //repeat log2(nodes.length) times
-  int i = log2(sz);
-  while (i-- > 0) {
-    /* foreach(j, 0, sz) */
-  for(int j = 0; j < sz; j++)
-      updateNbrRank(l[j]);
-    /* endfor */
-    /* foreach(j, 0, sz) */
-  for(int j = 0; j < sz; j++)
-      updateRank(l[j]);
-    /* endfor */
-  }
+  /* //repeat log2(nodes.length) times */
+  /* int i = log2(sz); */
+  /* while (i-- > 0) { */
+  /*   foreach(j, 0, sz) */
+  /*     if(l[j]) */
+  /* 	updateNbrRank(l[j]); */
+  /*   endfor */
+  /*   foreach(j, 0, sz) */
+  /*     if(l[j]) */
+  /* 	updateRank(l[j]); */
+  /*   endfor */
+  /* } */
 }
 
-/* void swp(int * ARRAY START VALIDPTR SIZE_GE(4*(i+1)) SIZE_GE(4*(j+1)) a,  */
-/*     int REF(V >= 0) i, int REF(V >= 0) j) */
-/* void swp(int * ARRAY a, int i, int j) CHECK_TYPE */
+/* void swp(int * ARRAY a, int i, int j) */
 /* { */
 /*   int tmp = a[j]; */
 /*   a[j] = a[i]; */
@@ -94,7 +106,7 @@ void rank(node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
 /* } */
 
 //NOTE NONSTANDARD INITIALIZATION
- int REF(&& [V >= 0; V < sz]) * ARRAY START VALIDPTR SIZE_GE(4*sz) permutation(int REF(V > 0) sz) CHECK_TYPE
+ int REF(&& [V >= 0; V < sz]) * ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) permutation(int REF(V > 0) sz) 
 {
   int i;
   int tmp;
@@ -118,36 +130,30 @@ void rank(node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
 }
  
 //NOTE TWO STAGE INITIALIZATION of list
-/* void initialize(node * NNVALIDNODE */
-/*                      * ARRAY NNSTART NNVALIDPTR SIZE_GE(4*sz) */
-/*                      * l, */
-/*                 int REF(&& [V >= 0; V < sz]) */
-/*                     * NNSTART NNVALIDPTR SIZE_GE(4*sz) ARRAY */
-/*                     * idxs, */
-/*                 int REF(V > 0) sz) CHECK_TYPE */
-/* { */
-/*   int i,j,k; */
+void initialize(node * NNVALIDNODE
+		* ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) lst,
+                     /* * l, */
+                int REF(&& [(V >= 0); (V < sz)])
+		* ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) idxslst,
+                    /* * idxs, */
+                int REF(V > 0) sz)
+{
+  int i,j,k;
 
-/*   node ** lst   = *l    = newList(sz); */
-/*   int *idxslst = *idxs = permutation(sz); */
+  /* node ** lst   = *l   = newList(sz); */
+  /* int *idxslst = *idxs = permutation(sz); */
    
-/*   for(i = 0; i < sz - 1; i++) */
-/*   { */
-/*     if(lst[j = idxslst[i]] && lst[k = idxslst[i+1]])  */
-/*       lst[j] -> next = lst[k]; */
-/*   } */
+  for(i = 0; i < sz - 1; i++)
+  {
+    if(idxslst[i] < sz && idxslst[i+1] < sz) {
+      if(lst[j = idxslst[i]] && lst[k = idxslst[i+1]])
+      	lst[j] -> next = lst[k];
+    }
+  }
   
-/*   if(lst[j = idxslst[sz-1]]) */
-/*     lst[j] -> next = lst[j]; */
-/* } */
- extern
-   void initialize(node * //NNVALIDNODE
-    * ARRAY //NNSTART NNVALIDPTR //SIZE_GE(4*sz)
-                     * l,
-    int //REF(&& [V >= 0; V < sz])
-    * ARRAY NNSTART //NNVALIDPTR //SIZE_GE(4*sz)// ARRAY
-                    * idxs,
-    int REF(V > 0) sz) OKEXTERN;
+  if((j = idxslst[sz-1]) < sz && lst[j])
+    lst[j] -> next = lst[j];
+}
 
 /* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
 /* { */
@@ -157,21 +163,20 @@ void rank(node * VALIDNODE * ARRAY VALIDPTR START SIZE_GE(4*sz) l,
 /* } */
 
  
-void runWork(node * VALIDNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l, 
-             int REF(V > 0) sz)
- CHECK_TYPE
+void runWork(node * NNVALIDNODE * ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) l, int REF(V > 0) sz) 
 {
-  rank(l, sz);
+  if(l) {
+    rank(l, sz);
+  }
 }
- 
 //ABAKST: Fix this
 /* int main(char ** argv, int argc)  */
-  /* CHECK_TYPE */
+  /* NO_OP */
 int main()
 {
   int sz;
-  node **  l;
-  int  *idxs;
+  node **l;
+  int *idxs;
 
   /* if (argc < 1 || argc > 4) */
   /*   return 1; */
@@ -183,13 +188,12 @@ int main()
   sz = nondetpos();
   if (sz <= 0) return 0;
 
-  /* l    = malloc(sizeof(*l)); */
-  /* idxs = malloc(sizeof(*idxs)); */
-
-  initialize(&l, &idxs, sz);
-  //  runTest(*l, *idxs, sz);  
-  // runWork(*l, sz);
+  l   = newList(sz);
+  idxs = permutation(sz);
+  
+  initialize(l, idxs, sz);
+  // runTest(*l, *idxs, sz);
+  runWork(l, sz);
   
   return 0;
 }
-

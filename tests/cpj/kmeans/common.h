@@ -76,9 +76,10 @@
 #define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*n)
 #define INTARR FLOATARR
 #define FTUPLE(n) START FLOATARR(n)
-#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
+#define NNFLOATARR(n) ARRAY NNVALIDPTR NNSIZE_GE(4*n)
 #define NNINTARR NNFLOATARR
 #define FLOAT2D(x, y) float * FLOATARR(y) * START FLOATARR(x)
+#define NNFLOAT2D(x, y) float * FLOATARR(y) * NNSTART NNFLOATARR(x)
 
 extern FLOAT2D(x, y) init_float2d(int REF(V > 0) x, int REF(V > 0) y) OKEXTERN;
 extern void *copy_float2d( int REF(V > 0) x, int REF(V > 0) y, FLOAT2D(x, y) dest, FLOATARR(x * y) src) OKEXTERN;

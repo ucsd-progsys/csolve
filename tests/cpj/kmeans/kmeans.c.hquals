@@ -12,5 +12,3 @@ qualif THREE(v:ptr) : v + (4 * (@numObj * @numAttr)) <= BLOCK_END([v])
 
 //Pointer Initialized in loop 
 qualif NZInit(v: ptr): ((_ > 0) => (v != 0))
-
-
