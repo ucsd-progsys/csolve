@@ -27,7 +27,7 @@ typedef struct node
 void initRank(struct node * GOODNODE this, int i)
 {
   this -> rank = (this -> next == this) ? 0 : 1;
-  //this -> rankNbr = this -> next;
+  this -> rankNbr = this -> next;
 }
 
 void updateNbrRank(struct node * GOODNODE this, int i)
@@ -122,32 +122,6 @@ int REF(&& [V >= 0; V < sz]) * ARRAY START VALIDPTR SIZE_GE(4*sz) permutation(in
   return result; 
 }
  
-//NOTE TWO STAGE INITIALIZATION of list
-void initialize(node * NNVALIDNODE
-		* ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) lst,
-                     /* * l, */
-                int REF(&& [(V >= 0); (V < sz)])
-		* ARRAY NNSTART NNVALIDPTR NNSIZE_GE(4*sz) idxslst,
-                    /* * idxs, */
-                int REF(V > 0) sz)
-{
-  int i,j,k;
-
-  /* node ** lst   = *l   = newList(sz); */
-  /* int *idxslst = *idxs = permutation(sz); */
-   
-  for(i = 0; i < sz - 1; i++)
-  {
-    if(idxslst[i] < sz && idxslst[i+1] < sz) {
-      if(lst[j = idxslst[i]] && lst[k = idxslst[i+1]])
-      	lst[j] -> next = lst[k];
-    }
-  }
-  
-/*   if(lst[j = idxslst[sz-1]]) */
-/*     lst[j] -> next = lst[j]; */
-/* } */
-
 struct node * GOODNODE
             * START VALIDPTR SIZE_GE(4*sz) ARRAY
               initialize(int REF(V > 0) sz)
@@ -169,12 +143,6 @@ struct node * GOODNODE
   return l;
 }
 
-
-extern
-  struct node * GOODNODE
-  * START VALIDPTR SIZE_GE(4*sz) ARRAY 
-      initialize_list(int REF(V >= 0) REF(V < sz) * START SIZE_GE(4*sz) VALIDPTR ARRAY idxs, int REF(V > 0) sz) OKEXTERN;
-
 ///* void runTest(node ** ARRAY l, int * ARRAY idxs, int sz) */
 ///* { */
 ///*   /\* int i; *\/ */
@@ -190,13 +158,6 @@ void runWork(struct node * GOODNODE * ARRAY START VALIDPTR SIZE_GE(4*sz) l,
     rank(l, sz);
   }
 }
-
-//struct node * GOODNODE * START VALIDPTR SIZE_GE(4*sz) ARRAY
-//  initialize(int REF(V > 0) sz)
-//{
-//  int * idxs = permutation(sz);
-//  return initialize_list(idxs, sz);
-//}
 
 int main(char ** argv, int argc)
 {
