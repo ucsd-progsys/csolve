@@ -764,14 +764,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
-      (* specialcase AnyLocs HERE *)
     module Data = struct
       let add (ds, fs) l ld =
-        let _ = assert (not (SLM.mem l fs)) in
-        if not (l = Sloc.sloc_of_any) then
-          (SLM.add l ld ds, fs)
-        else
+        let _ = assert ((l = Sloc.sloc_of_any) || (not (SLM.mem l fs))) in
+        if (l = Sloc.sloc_of_any) then
           (ds, fs)
+        else
+          (SLM.add l ld ds, fs)
 
       let bindings (ds, _) =
         SLM.to_list ds
@@ -780,7 +779,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SLM.domain ds
 
       let mem (ds, _) l =
-        SLM.mem l ds
+        if (l = Sloc.sloc_of_any) then
+          true
+        else
+          SLM.mem l ds
 
       let find (ds, _) l =
         if (l = Sloc.sloc_of_any) then
@@ -846,7 +848,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       Data.domain sto ++ Function.domain sto
 
     let mem (ds, fs) s =
-      SLM.mem s ds || SLM.mem s fs
+      if (s = Sloc.sloc_of_any) then
+        true
+      else
+        SLM.mem s ds || SLM.mem s fs
 
     let subs_slm_dom subs m =
       SLM.fold (fun l d m -> SLM.add (S.Subst.apply subs l) d m) m SLM.empty
@@ -858,7 +863,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (SLM.map (LDesc.subs subs) ds, fs |> SLM.map (M.flip CFun.subs subs)) |> subs_addrs subs
 
     let remove (ds, fs) l =
-      (SLM.remove l ds, SLM.remove l fs)
+      if (l = Sloc.sloc_of_any) then
+        (ds, fs)
+      else
+        (SLM.remove l ds, SLM.remove l fs)
 
     let upd (ds1, fs1) (ds2, fs2) =
       (SLM.fold SLM.add ds2 ds1, SLM.fold SLM.add fs2 fs1)

@@ -98,14 +98,14 @@ let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function
       ((env, sto', tago), cds)
 
   | Refanno.WGen  (cloc, aloc) ->
-      let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (WGen)!" in
       let ld1    = (cloc, Ct.refstore_get sto cloc) in
       let ld2    = (aloc, Ct.refstore_get sto aloc) in
       let sto'   = RS.remove sto cloc in
       ((env, sto', tago), ([], []))
 
   | Refanno.Ins (ptr, aloc, cloc) ->
-      let _          = CM.assertLoc loc (not (RS.mem sto cloc)) "cons_of_annot: (Ins)!" in
+      let _          =
+        CM.assertLoc loc ((cloc = Sloc.sloc_of_any) || (not (RS.mem sto cloc))) "cons_of_annot: (Ins)!" in
       let strengthen = strengthen_instantiated_aloc ffm ptr aloc in
       let wld',_     = FI.extend_world sto aloc cloc false strengthen loc tag (env, sto, tago) in
       let cs         = aloc

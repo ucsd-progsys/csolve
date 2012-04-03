@@ -101,7 +101,7 @@ let to_string = function
 let d_sloc () = function
   | Abstract (lid,_)      -> P.text <| "A" ^ string_of_int lid
   | Concrete (lid, aid,_) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
-  | AnyLoc                -> P.text <| "ANY"
+  | AnyLoc                -> P.text <| "ANYLOC"
 
 let d_sloc_info () x = 
   let idoc = x |> to_slocinfo |> P.dprintf "[@[%a@]]" (P.d_list ", " CilMisc.d_srcinfo) in
