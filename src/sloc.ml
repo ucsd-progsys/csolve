@@ -54,24 +54,8 @@ let refresh = function
   | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
   | AnyLoc               -> AnyLoc
 
-(* API *)
-let fresh_abstract i = Abstract (fresh_slocid (), [i])
-
-(* API *)
-let copy_concrete = function
-  | AnyLoc          -> AnyLoc
-  | Abstract (i, z) -> Concrete (fresh_slocid (), i, z)
-  | _               -> assert false
-
-(* API *)
-let copy_abstract z' = function
-  | AnyLoc          -> AnyLoc
-  | Abstract (_, z) -> Abstract (fresh_slocid (), z ++ z')
-  | _               -> assert false
-
 let sloc_of_any = AnyLoc
 
-let none = fresh_abstract (CilMisc.srcinfo_of_string "none")
 
 let canonical = function
   | Abstract _ as al  -> al
@@ -120,7 +104,23 @@ let d_sloc_info () x =
     d_sloc x
     (CilMisc.d_many_brackets false CilMisc.d_srcinfo) (to_slocinfo x)
 
+(* API *)
+let fresh_abstract i = Abstract (fresh_slocid (), [i])
 
+(* API *)
+let copy_concrete = function
+  | AnyLoc          -> AnyLoc
+  | Abstract (i, z) -> Concrete (fresh_slocid (), i, z)
+  | _               -> assert false
+
+(* API *)
+let copy_abstract z' = function
+  | AnyLoc          -> AnyLoc
+  | Abstract (_, z) -> Abstract (fresh_slocid (), z ++ z')
+  | l               -> let _ = asserti false "copy_abstract %s" (to_string l) in assert false
+
+
+let none = fresh_abstract (CilMisc.srcinfo_of_string "none")
 
 (******************************************************************************)
 (******************************* Maps Over Slocs ******************************)
@@ -140,7 +140,7 @@ module SlocSet = Set.Make(ComparableSloc)
 
 module SlocMap = M.EMap (ComparableSloc)
 
-let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k,v)::acc) conc []
+let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k, v) :: acc) conc []
 
 module SMP = P.MakeMapPrinter(SlocMap)
 
