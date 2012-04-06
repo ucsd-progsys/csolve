@@ -1,43 +1,14 @@
 PENDING
 =======
 
-
 InferCtypes Errors
 ------------------
 
-1. Begin by constructing the following:
+HEREHEREHERE: 
 
-setSrcLval :: loc -> lval -> lval
-setSrcExp  :: loc -> expr -> expr
-getSrcExp  :: loc -> expr -> expr
-getSrcLval :: loc -> lval -> lval
-
-    target              source 
-    ------              ------
-    loc, lval   --->    lval
-    loc, expr   --->    expr 
-
-2. val Sloc.fresh_abstract: src_info -> Sloc.t
-   -- force sloc creation to require a Cil.typ
-
-3. split Typespec.getSloc into two parts,
-    getSloc (which FINDS a previous sloc)
-    defSloc (which DEFINES a sloc if undefined).
-   The latter must take in a Cil.typ, so it can call fresh_abstract.
-
-4. update typespec.ml appropriately threading Cil.typ throughout.
-
-5. inferctypes:
-    fresh_local_slocs
-
-
-    HEREHEREHERE
-    varinfo |-> vdescr containing original source expr (HACK CIL)
-    ldesc   |-> populated with the original ctyp fill fname, ftype fields
-    Sloc.t  |-> "access" path (expr/doc) for original C expression.
-                If sloc is "owned by" a particular varinfo then use vdescr
-
-
+    * regressionTests
+    * Iterate on error messages
+    * Pull in cleaned expressions/instr/stmts using VarExprMap and friends
 
 
 Counterexamples (to be continued) 
