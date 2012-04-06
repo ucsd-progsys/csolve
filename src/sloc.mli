@@ -34,12 +34,6 @@ val fresh_abstract : CilMisc.srcinfo -> t
 val copy_abstract  : CilMisc.srcinfo list -> t -> t
 val copy_concrete  : t -> t
 
-(*
-type slocinfo = CilMisc.srcinfo list
-val fresh_abstract : slocinfo -> t 
-val to_slocinfo    : t -> slocinfo 
-*)
-
 val is_abstract    : t -> bool
 val is_concrete    : t -> bool
 val is_any         : t -> bool

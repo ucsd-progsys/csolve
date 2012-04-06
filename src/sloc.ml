@@ -30,45 +30,52 @@ type slocid = int
 type slocinfo = CilMisc.srcinfo list
 
 type t =
-  | Abstract of slocid * slocinfo 
-  | Concrete of slocid * (* abstract counterpart *) slocid * slocinfo
+  | Abstract of slocid (* * slocinfo *) 
+  | Concrete of slocid * (* abstract counterpart *) slocid (* * slocinfo *)
   | AnyLoc 
 
+let slocinfot : (int, slocinfo) Hashtbl.t = Hashtbl.create 39
+let slocinfo i = try Hashtbl.find slocinfot i with Not_found -> assertf "Unknown Sloc %d" i
+
 let to_slocinfo = function
-  | Abstract (_, i)    -> i
-  | Concrete (_, _, i) -> i 
-  | AnyLoc             -> []
+  | Abstract i       
+  | Concrete (i,_) -> slocinfo i 
+  | AnyLoc         -> []
 
-let to_ciltyp = function
-  | Abstract (_, xs) | Concrete (_, _, xs) -> 
-      CilMisc.typ_of_srcinfos xs
-  | _ -> 
-      Some Cil.voidType
-
-
+let to_ciltyp = to_slocinfo <+> CilMisc.typ_of_srcinfos
 
 let (fresh_slocid, reset_fresh_slocid) = M.mk_int_factory ()
+let fresh_slocid z = fresh_slocid () >> M.flip (Hashtbl.add slocinfot) z 
 
+
+let sloc_of_any = AnyLoc
+
+let refresh = function
+  | Abstract i        -> Abstract (fresh_slocid (slocinfo i))
+  | Concrete (i, ida) -> Concrete (fresh_slocid (slocinfo i), ida)
+  | AnyLoc            -> AnyLoc
+
+(*
 let refresh = function
   | Abstract (_, i)      -> Abstract (fresh_slocid (), i)
   | Concrete (_, ida, i) -> Concrete (fresh_slocid (), ida, i)
   | AnyLoc               -> AnyLoc
-
-let sloc_of_any = AnyLoc
-
+*)
 
 let canonical = function
   | Abstract _ as al  -> al
-  | Concrete (_, aid, z) -> Abstract (aid, z)
+  | Concrete (_, aid) -> Abstract aid
   | AnyLoc            -> AnyLoc
 
-
+(*
 let strip_info = function
   | Abstract (x,_)   -> Abstract (x, [])
   | Concrete (x,y,_) -> Concrete (x, y, [])
   | AnyLoc           -> AnyLoc
 
-let compare l1 l2 = compare (strip_info l1) (strip_info l2)
+*)
+
+let compare l1 l2 = compare l1 l2 (* (strip_info l1) (strip_info l2) *)
 
 let eq l1 l2 = compare l1 l2 = 0
 
@@ -88,36 +95,34 @@ let is_any      = function
   | Concrete _ -> false
 
 let to_string = function
-  | Abstract (lid, _)   -> "A" ^ string_of_int lid
-  | Concrete (lid, _,_) -> "C" ^ string_of_int lid
-  | AnyLoc              -> "ANY"
+  | Abstract (lid)    -> "A" ^ string_of_int lid
+  | Concrete (lid, _) -> "C" ^ string_of_int lid
+  | AnyLoc            -> "ANY"
 
 let d_sloc () = function
-  | Abstract (lid,_)      -> P.text <| "A" ^ string_of_int lid
-  | Concrete (lid, aid,_) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
-  | AnyLoc                -> P.text <| "ANY"
+  | Abstract lid        -> P.text <| "A" ^ string_of_int lid
+  | Concrete (lid, aid) -> P.text <| "C" ^ string_of_int lid ^ "[A" ^ string_of_int aid ^ "]"
+  | AnyLoc              -> P.text <| "ANY"
 
 let d_sloc_info () x = 
-(*  let idoc = x |> to_slocinfo |> P.dprintf "[@[%a@]]" (P.d_list ", " CilMisc.d_srcinfo) in
-  P.concat (d_sloc () x) idoc
- *) P.dprintf "%a %a"
+  P.dprintf "%a %a"
     d_sloc x
     (CilMisc.d_many_brackets false CilMisc.d_srcinfo) (to_slocinfo x)
 
 (* API *)
-let fresh_abstract i = Abstract (fresh_slocid (), [i])
+let fresh_abstract i = Abstract (fresh_slocid [i])
 
 (* API *)
 let copy_concrete = function
-  | AnyLoc          -> AnyLoc
-  | Abstract (i, z) -> Concrete (fresh_slocid (), i, z)
-  | _               -> assert false
+  | AnyLoc     -> AnyLoc
+  | Abstract i -> Concrete (fresh_slocid (slocinfo i), i)
+  | _          -> assert false
 
 (* API *)
 let copy_abstract z' = function
   | AnyLoc          -> AnyLoc
-  | Abstract (_, z) -> Abstract (fresh_slocid (), z ++ z')
-  | l               -> let _ = asserti false "copy_abstract %s" (to_string l) in assert false
+  | Abstract i   
+  | Concrete (i, _) -> Abstract (fresh_slocid (z' ++ (slocinfo i)))
 
 
 let none = fresh_abstract (CilMisc.srcinfo_of_string "none")

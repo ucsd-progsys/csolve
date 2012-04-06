@@ -19,9 +19,5 @@ int main(){
     root      = tmp;
   }
 
-  /*for(tmp = root; tmp != (node_t*) 0; tmp = tmp->next){
-      csolve_assert(tmp->data >= 0);
-      csolve_assert(tmp->data < 1000);
-  }*/
   return 0;
 }
