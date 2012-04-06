@@ -384,7 +384,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val set_ldinfo    : t -> ldinfo -> t
     val get_ldinfo    : t -> ldinfo
     val set_stype     : t -> Cil.typ option -> t
-    (* val d_ldesc       : unit -> t -> P.doc *)
+    val d_ldesc       : unit -> t -> P.doc
     val decorate      : Sloc.t -> Cil.typ -> t -> t
     
     val d_vbind       : unit -> (binder * (T.ctype * Cil.typ)) -> P.doc

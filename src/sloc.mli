@@ -21,7 +21,6 @@
  *
  *)
 
-
 type t
 
 module SlocSet: Set.S with type elt = t
@@ -34,7 +33,6 @@ val canonical      : t -> t
 val fresh_abstract : CilMisc.srcinfo -> t
 val copy_abstract  : CilMisc.srcinfo list -> t -> t
 val copy_concrete  : t -> t
-
 
 (*
 type slocinfo = CilMisc.srcinfo list

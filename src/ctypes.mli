@@ -194,7 +194,7 @@ module type S = sig
     val set_ldinfo     : t -> ldinfo -> t
     val get_ldinfo     : t -> ldinfo
     val set_stype      : t -> Cil.typ option -> t
-    (* val d_ldesc       : unit -> t -> Pretty.doc *)
+    val d_ldesc       : unit -> t -> Pretty.doc
     val decorate      : Sloc.t -> Cil.typ -> t -> t
     val d_vbind       : unit -> (binder * (CType.t * Cil.typ)) -> Pretty.doc
     val d_sloc_ldesc  : unit -> (Sloc.t * t) -> Pretty.doc

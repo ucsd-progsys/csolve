@@ -114,8 +114,12 @@ let d_sloc () = function
   | AnyLoc                -> P.text <| "ANY"
 
 let d_sloc_info () x = 
-  let idoc = x |> to_slocinfo |> P.dprintf "[@[%a@]]" (P.d_list ", " CilMisc.d_srcinfo) in
+(*  let idoc = x |> to_slocinfo |> P.dprintf "[@[%a@]]" (P.d_list ", " CilMisc.d_srcinfo) in
   P.concat (d_sloc () x) idoc
+ *) P.dprintf "%a %a"
+    d_sloc x
+    (CilMisc.d_many_brackets false CilMisc.d_srcinfo) (to_slocinfo x)
+
 
 
 (******************************************************************************)

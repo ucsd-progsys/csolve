@@ -44,6 +44,7 @@ val pretty_to_format : (unit -> 'a -> Pretty.doc) -> (Format.formatter -> 'a -> 
 val concat_docs      : Pretty.doc list -> Pretty.doc
 val d_many_parens    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_many_braces    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
+val d_many_brackets  : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_opt            : (unit -> 'a -> Pretty.doc) -> unit -> 'a option -> Pretty.doc
 val d_pair           : (unit -> 'a -> Pretty.doc) -> (unit -> 'b -> Pretty.doc) -> unit -> ('a * 'b)
 -> Pretty.doc

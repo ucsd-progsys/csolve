@@ -154,13 +154,13 @@ class exprConstraintVisitor (loc, et, fs, sub, sto) = object (self)
         let s        = S.Subst.apply sub s in
           begin match s |> Store.Data.find_or_empty sto |> LDesc.find i |>: (snd <+> Field.type_of) with
             | []   ->
-              E.s <| C.error "Reading location (%a, %a) before writing data to it@!" S.d_sloc s Index.d_index i
+              E.s <| C.error "Reading location (%a, %a) before writing data to it@!" S.d_sloc s Index.d_index i (* TODO: prettycil *)
             | [ct] ->
               if (ct, ctmem) |> M.map_pair Ct.refinement |> M.uncurry Index.is_subindex then
                 UStore.unify_ctype_locs sto sub ctmem ct |> M.swap |> self#set_sub_sto
               else
                 E.s <| C.error "In-heap type %a not a subtype of expected type %a@!"
-                         Ct.d_ctype ct Ct.d_ctype ctmem
+                         Ct.d_ctype ct Ct.d_ctype ctmem (* TODO: prettycil *)
             | _ -> assert false
           end
       | _ -> E.s <| C.bug "constraining mem gave back non-ref type@!"
@@ -193,7 +193,7 @@ let unify_and_check_subtype sto sub e ct1 ct2 =
   let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
     if not (Index.is_subindex (Ct.refinement ct1) (Ct.refinement ct2)) then begin
       C.error "Expression %a has type %a, expected a subtype of %a@!"
-        C.d_exp e Ct.d_ctype ct1 Ct.d_ctype ct2;
+        C.d_exp e Ct.d_ctype ct1 Ct.d_ctype ct2; (* TODO: prettycil *)
       raise (UStore.UnifyFailure (sub, sto))
     end;
     (sto, sub)
@@ -237,7 +237,7 @@ let assert_store_type_correct loc lv e ct = match lv with
     let heap_ct = lv |> C.typeOfLval |> fresh_heaptype loc in
       if not <| Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct) then
         E.s <| C.error "Expression %a has type %a, expected type %a\n\n"
-          C.d_exp e d_ctype ct d_ctype heap_ct
+          C.d_exp e d_ctype ct d_ctype heap_ct (* TODO: prettycil *)
   | _ -> ()
 
 let find_function loc et fs sub sto = function
@@ -368,8 +368,10 @@ let check_out_store_complete sto_out_formal sto_out_actual =
      sto_out_actual
   |> Store.Data.fold_fields begin fun ok l i fld ->
        if Store.mem sto_out_formal l && l |> Store.Data.find sto_out_formal |> LDesc.find i = [] then begin
-         C.error "Actual store has binding %a |-> %a: %a, missing from spec for %a\n\n" 
-           S.d_sloc_info l Index.d_index i Field.d_field fld S.d_sloc_info l |> ignore;
+         ignore <| C.error "Location %a field %a: %a in actual store, but missing from spec."
+                     S.d_sloc_info l 
+                     Index.d_index i 
+                     Field.d_field fld; (* TODO: prettycil *) 
          false
        end else
          ok
@@ -385,20 +387,16 @@ let check_slocs_distinct error sub slocs =
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 let global_alias_error () (s1, s2) =
-  C.error "Global locations %a and %a get unified in function body"
-  S.d_sloc_info s1 S.d_sloc_info s2
+  C.error "Separate Global locations unified in function body (%a, %a)"
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
 
 let quantification_error () (s1, s2) =
-  C.error "Quantified locations %a and %a get unified in function body" 
-  S.d_sloc_info s1 S.d_sloc_info s2
+  C.error "Separate quantified locations unified in function body (%a, %a)" 
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
 
 let global_quantification_error () (s1, s2) =
-  C.error "Global and quantified locations get unified in function body (%a, %a)" 
-  S.d_sloc_info s1 S.d_sloc_info s2
-
-let unified_instantiation_error () (s1, s2) =
-  C.error "Call unifies locations which are separate in callee (%a, %a)" 
-  S.d_sloc_info s1 S.d_sloc_info s2
+  C.error "Separate global location and quantified location unified in function body (%a, %a)" 
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
 
 let check_sol_aux cf vars gst em bas sub sto whole_store =
   (* We check that instantiation annotations are WF as we check calls in consVisitor *)
@@ -407,13 +405,17 @@ let check_sol_aux cf vars gst em bas sub sto whole_store =
   let _ = whole_store |> Store.domain |> check_slocs_distinct global_quantification_error sub in
     ()
 
-let check_sol cf vars gst em bas sub sto =
+let check_sol v cf vars gst em bas sub sto =
   try check_sol_aux cf vars gst em bas sub sto with e ->
-       halt
-    <| C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
+    halt <| C.error "Failed checking store for function %a declared at %a\n"
+              CM.d_var v C.d_loc v.C.vdecl
+    
+    (* RJ: The rest has rather too much information and is likely unnecessary
+    C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
         Store.d_store sto
         CFun.d_cfun cf
-        Store.d_store gst
+        Store.d_store gst (* TODO: prettycil *)
+    *)
 
 let fresh_sloc_of v = function
   | Ref (s, i) ->
@@ -476,8 +478,11 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
   with LocationMismatch (l1, ld1, l2, ld2) ->
     let _ = failure_dump sub ve store in
     let _ = flush stdout; flush stderr in
-      E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a@!@!"
-               S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
+      E.s <| C.error "Location mismatch between %a and %a:\n%a \nis not included in\n%a @!@!"
+               S.d_sloc_info l1 
+               S.d_sloc_info l2 
+               LDesc.d_sloc_ldesc (l1, ld1) 
+               LDesc.d_sloc_ldesc (l2, ld2) (* TODO: prettycil *)
 
 let fref_lookup args v = function
   | (FRef _) as t -> (try List.assoc v args with Not_found -> t)
@@ -496,7 +501,7 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let em, bas, sub, sto     = constrain_fun fe cf ve sto sci       in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
-  let _                     = check_sol cf ve gst em bas sub sto whole_store in
+  let _                     = check_sol sci.ST.fdec.C.svar cf ve gst em bas sub sto whole_store in
   let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
