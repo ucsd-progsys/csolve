@@ -152,11 +152,11 @@ extern double atof (__const char NULLTERMSTR * ARRAY VALIDPTR __nptr)
 /*      __THROW __attribute_pure__ __nonnull ((1)) __wur; */
 
 // CSOLVE
-extern int atoi (__const char * ARRAY VALIDPTR __nptr)
+extern int atoi (__const char NULLTERMSTR * ARRAY VALIDPTR __nptr)
      __THROW __attribute_pure__ __nonnull ((1)) __wur OKEXTERN;
 
 /* Convert a string to a long integer.  */
-extern long int atol (__const char * ARRAY VALIDPTR __nptr)
+extern long int atol (__const char NULLTERMSTR * ARRAY VALIDPTR __nptr)
      __THROW __attribute_pure__ __nonnull ((1)) __wur OKEXTERN;
 __END_NAMESPACE_STD
 

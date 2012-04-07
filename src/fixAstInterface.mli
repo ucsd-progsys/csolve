@@ -21,6 +21,8 @@ val sorts               : Ast.Sort.t list
 val axioms              : Ast.pred list
 val builtinm            : FixConstraint.reft Ast.Symbol.SMap.t
 
+val uf_bbegin           : Ast.Symbol.t
+
 val eApp_bbegin         : Ast.expr -> Ast.expr 
 val eApp_bend           : Ast.expr -> Ast.expr 
 val eApp_uncheck        : Ast.expr -> Ast.expr 

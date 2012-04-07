@@ -1,5 +1,12 @@
-qualif SZ(v: ptr)     : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 12
-qualif GZ(v: int)     : v > 0
-qualif EQZERO(v: ptr) : 4*(DEREF[v]: int) = 0
-qualif NEXT(v: ptr)   : (v != 0) => 4*(DEREF[(4*(DEREF[v]: int)]: int) = 4*(DEREF[v]: int) + 1
-qualif EQDEREF(v:ptr) : (v != 0) => ((4 * (DEREF([v]): int)) = (VVADDR - BLOCK_BEGIN([VVADDR])))
+qualif SZ(v: ptr) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= 12
+
+qualif IBND(v:int) : v < @sz
+
+qualif LSTSZ(v: ptr) : v + (4 * @i) <= BLOCK_END([v])
+qualif LSTSZ(v: ptr) : BLOCK_BEGIN([v]) + (4*@sz) <= BLOCK_END([v])
+
+qualif EQDEREF(v:ptr) : (v != 0) => ((4 * (DEREF([v]): int)) = ((VVADDR - BLOCK_BEGIN([VVADDR])) : int))
+
+qualif IDDEREF(v: ptr) : ~a = (DEREF([v]) : int)
+
+qualif EQDEREF(v:ptr) : (DEREF([DEREF([v]) + 4]) : int) = ((DEREF([VVADDR + 4]) : int) + 1)

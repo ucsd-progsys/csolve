@@ -63,6 +63,7 @@
  * =============================================================================
  */
 
+#include <cpj.h>
 #include <csolve.h>
 
 #ifndef COMMON_H
@@ -73,12 +74,16 @@
 #  define FLT_MAX 3.40282347e+38
 #endif
 
+CSOLVE_EFFECT(ACCUMULATE)
+CSOLVE_EFFECTS_COMMUTE(ACCUMULATE, ACCUMULATE)
+
 #define FLOATARR(n) ARRAY VALIDPTR SIZE_GE(4*n)
 #define INTARR FLOATARR
 #define FTUPLE(n) START FLOATARR(n)
-#define NNFLOATARR(n) ARRAY NNVALIDPTR SIZE_GE(4*n)
+#define NNFLOATARR(n) ARRAY NNVALIDPTR NNSIZE_GE(4*n)
 #define NNINTARR NNFLOATARR
 #define FLOAT2D(x, y) float * FLOATARR(y) * START FLOATARR(x)
+#define NNFLOAT2D(x, y) float * FLOATARR(y) * NNSTART NNFLOATARR(x)
 
 extern FLOAT2D(x, y) init_float2d(int REF(V > 0) x, int REF(V > 0) y) OKEXTERN;
 extern void *copy_float2d( int REF(V > 0) x, int REF(V > 0) y, FLOAT2D(x, y) dest, FLOATARR(x * y) src) OKEXTERN;
@@ -98,11 +103,15 @@ common_euclidDist2 (float* FLOATARR(numdims) pt1,
  * =============================================================================
  */
 int REF(|| [&& [(0 < V); (V < npts)];(V = 0)])
-common_findNearestPoint (float*  FTUPLE(nfeatures) pt,        /* [nfeatures] */
-                         int     REF(V >= 0) nfeatures,
-                         float*  FLOATARR(nfeatures) 
-                              *  FTUPLE(npts) pts,       /* [npts][nfeatures] */
-                         int     REF(V > 0) npts) OKEXTERN;
+common_findNearestPoint(float* LOC(A) FLOATARR(nfeatures) pt, /* [nfeatures] */
+                        int     REF(V >= 0) nfeatures,
+                        float *LOC(B) FLOATARR(nfeatures) 
+			      *LOC(C) FTUPLE(npts) pts, /* [npts][nfeatures] */
+                        int     REF(V > 0) npts) 
+     EFFECT(A, &&[ACCUMULATE != 1; EREAD = 1; EWRITE != 1])
+     EFFECT(B, &&[ACCUMULATE != 1; EREAD = 1; EWRITE != 1])
+     EFFECT(C, &&[ACCUMULATE != 1; EREAD = 1; EWRITE != 1])
+OKEXTERN;
 
 #endif /* COMMON_H */
 
