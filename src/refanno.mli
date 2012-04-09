@@ -35,6 +35,8 @@ type annotation =
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
   | HInst of Ctypes.StoreSubst.t
+  | TNew of Ctypes.tvar * Ctypes.tvar
+  | TInst of Ctypes.I.CType.TVarInst.t
 
 (* 1. block_annotation length = block length,
  * 2. annotations _precede_ corresponding instr 

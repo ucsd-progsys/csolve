@@ -65,6 +65,8 @@ type annotation =
   | New  of Sloc.t * Sloc.t             (* Xloc, Yloc *) 
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
   | HInst of Ctypes.StoreSubst.t
+  | TNew of Ctypes.tvar * Ctypes.tvar
+  | TInst of Ctypes.I.CType.TVarInst.t
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
@@ -113,6 +115,8 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | New  (s1, s2)     -> New  (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
       | HInst s -> HInst (Ctypes.StoreSubst.subs sub s)
+      | TInst inst -> TInst (inst |>: (M.app_snd (Ctypes.I.CType.subs sub)))
+      | TNew  (f,t) -> TNew (f,t)
       | _ -> a
 
 (* API *)
@@ -135,7 +139,12 @@ let d_annotation () = function
   | NewC (cl, al, cl') -> 
       Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
   | HInst ss -> 
-    Pretty.dprintf "HInst(%a)" Ctypes.StoreSubst.d_storesubst ss
+      Pretty.dprintf "HInst(%a)" Ctypes.StoreSubst.d_subst ss
+  | TNew (f, t) ->
+      Pretty.dprintf "TNew(%a->%a)" Ctypes.d_tvar f Ctypes.d_tvar t
+  | TInst i ->
+      Pretty.dprintf "TInst (%a)" Ctypes.I.CType.TVarInst.d_inst i
+       
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 
@@ -355,6 +364,8 @@ let concretize_new theta j k conc = function
         let cl = cloc_of_position theta y (j,k,i) in
         instantiate (fun (y, cl) -> NewC (x,y,cl)) conc y cl Write
   | i, HInst s -> (conc, [HInst s])
+  | i, TInst x -> (conc, [TInst x])
+  | i, TNew (t, f) -> (conc, [TNew (t,f)])
   | _, _ -> assertf "concretize_new 2"
 
 let concretize_malloc theta j k conc x y =

@@ -364,14 +364,12 @@ let rec refctypeOfCilType abstr mem t = match normalizeType t with
       end
   | _ -> assertf "refctypeOfCilType: non-base!"
 
-and is_zero_width mem t ats = 
+and is_zero_width mem t ats =
+  if slocOfAttrs ats |> Sloc.is_relative
     match annotatedPointerBaseType ats t |> componentsOfType with
-      | [(_, _, t)] when slocOfAttrs ats |> Sloc.is_abstract -> 
-        refctypeOfCilType false mem t |> RCt.width = 0
+      | [(_, _, t)] -> refctypeOfCilType false mem t |> RCt.width = 0
       | _ -> false
-    
 
-        
 and heapRefctypeOfCilType mem t =
      t
   |> refctypeOfCilType false mem

@@ -121,8 +121,10 @@ let dummy_ldinfo = {stype = None; any = false}
 let any_ldinfo   = {stype = None; any = true }
 let any_fldinfo  = {fname = None; ftype = None}
 
-let tvar_prefix = "t"
 type tvar = int
+    
+let tvar_prefix = "t"
+let d_tvar () n = Pretty.dprintf "%s%d" tvar_prefix n
     
 let fresh_tvar = M.mk_int_factory () |> fst
 
@@ -252,10 +254,53 @@ module EffectSet = struct
   let d_effectset () effs =
     P.dprintf "{@[%a@]}" (d_storelike d_effect) effs
 end
+      
+module TVarElt = struct
+  type t = tvar
+  let refresh _ = fresh_tvar ()
+  let d_t () t = Pretty.dprintf "%s%d" tvar_prefix t
+end
+      
+module TVarSubst = Substitution.Make(TVarElt)
+  
+module type INST_ELT = sig
+  type t
+  val d_t : unit -> t prectype -> Pretty.doc
+end
+  
+module type INST_TYPE = sig
+  type e
+  type t = (tvar * e prectype) list
+  val empty     : t
+  val mem       : tvar -> t -> bool
+  val lookup    : tvar -> t -> e prectype
+  val apply     : t -> e prectype -> e prectype
+  val map_binds : (e prectype -> e prectype) -> t -> t
+  val extend    : tvar -> e prectype -> t -> t
+  val d_inst    : unit -> t -> Pretty.doc
+end
+  
+module VarInst (T : INST_ELT) : INST_TYPE with type e = T.t = struct
+  type e = T.t
+  type t = (tvar * e prectype) list
+      
+  let empty  = []
+  let mem    = List.mem_assoc
+  let lookup = List.assoc
+  let apply sub = function
+    | TVar t when mem t sub -> lookup t sub
+    | ct -> ct
+  let map_binds f = List.map (M.app_snd f)
+  let extend t ct sub =
+    (t, ct) :: List.remove_assoc t (map_binds (apply [(t,ct)]) sub)
+  let d_inst () lst =
+    P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (f,t) ->
+      P.dprintf "%s%d -> %a" tvar_prefix f T.d_t t)) lst
+end
   
 module StoreSubst = struct
     open SVM
-    type elt = SS.t * SVS.t 
+    type elt = SS.t * SVS.t
 	  
     type t = elt SVM.t
 	
@@ -264,7 +309,7 @@ module StoreSubst = struct
     let lookup v sub =
       try find v sub with Not_found -> (SS.empty, SVS.empty)
 	
-    let extend_sset v ss sub = 
+    let extend_sset v ss sub =
       let (slocs, svars) = lookup v sub in
       add v (SS.union slocs ss, svars) sub
 	
@@ -272,16 +317,16 @@ module StoreSubst = struct
       let (slocs, svars) = lookup v sub in
       add v (slocs, SVS.union svars vs) sub
 	
-    let extend v sub sub' = 
+    let extend v sub sub' =
       let (slocs, svars) = lookup v sub in
       let (slocs', svars') = lookup v sub' in
       add v (SS.union slocs slocs', SVS.union svars svars') sub'
 	
-    let mem = mem 
+    let mem = mem
 	
-    let subs sub t = 
+    let subs sub t =
       let sub_ss sub ss = ss |> SS.elements |> List.map (S.Subst.apply sub)
-	|> List.fold_left (M.flip SS.add) SS.empty
+        |> List.fold_left (M.flip SS.add) SS.empty
       in
       SVM.map (fun (ss,vs) -> (sub_ss sub ss, vs)) t
 	
@@ -289,10 +334,10 @@ module StoreSubst = struct
 
     module SMP = P.MakeMapPrinter(SVM)
       
-    let d_value () (ss,vs) = 
+    let d_value () (ss,vs) =
       P.dprintf "(%a, %a)" S.d_slocset ss Sv.d_svarset vs
 	
-    let d_storesubst () svm = 
+    let d_subst () svm =
       SMP.d_map "; " Sv.d_svar d_value () svm
 end
   
@@ -330,7 +375,9 @@ module ReftTypes  = MakeTypes (Reft)
 module SIGS (T : CTYPE_DEFS) = struct
   module type CTYPE = sig
     type t = T.ctype
-
+        
+    module TVarInst : INST_TYPE with type e = T.refinement
+        
     exception NoLUB of t * t
 
     val refinement  : t -> T.refinement
@@ -343,6 +390,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val sloc        : t -> Sloc.t option
     val subs        : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
+    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
@@ -426,6 +474,7 @@ module SIGS (T : CTYPE_DEFS) = struct
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> t -> t -> t
+    val subs_tvar    : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
@@ -460,7 +509,9 @@ module SIGS (T : CTYPE_DEFS) = struct
 
   module type CFUN = sig
     type t = T.cfun
-
+        
+    (* module TVarSubst : Substitution.S with type e = tvar *)
+        
     val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val map_variances   : ('a prectype -> 'b prectype) ->
@@ -482,10 +533,11 @@ module SIGS (T : CTYPE_DEFS) = struct
     val quantified_svars : t -> Sv.t list
     val generalize      : t -> t
     val free_svars      : t -> Sv.t list
-    val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * StoreSubst.t)
+    val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * TVarSubst.t * (tvar * T.ctype) list * StoreSubst.t)
     val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> tvar list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
+    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val indices         : t -> Index.t list
   end
 
@@ -554,7 +606,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
   module rec CType: SIG.CTYPE = struct
     type t = T.ctype
-
+        
     let refinement = function
       | Int (_, r) | Ref (_, r) | FRef (_, r) -> r
       | ARef | Any | TVar _ -> T.R.top
@@ -603,6 +655,17 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let subs_store_var subs lsubs sto = function
       | FRef (f, i) -> FRef (CFun.subs_store_var subs lsubs sto f, i)
       | pct -> pct
+        
+    module TVarElt : INST_ELT with type t = T.refinement = struct
+      type t = T.refinement
+      let d_t = d_ctype
+    end
+      
+    module TVarInst : INST_TYPE with type e = T.refinement = VarInst(TVarElt)
+        
+    let subs_tvar rename inst = function 
+      | TVar t -> TVarInst.apply inst <| TVar (TVarSubst.apply rename t)
+      | ct -> ct
 
     exception NoLUB of t * t
 
@@ -965,6 +1028,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       end (insto,[]) vs
       |> Misc.app_snd (List.sort Sv.compare)
           
+    let subs_tvar rename tinst sto =
+      map (CType.subs_tvar rename tinst) sto
+          
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
 
@@ -981,6 +1047,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Any, Any                              -> (sto, sub)
         | Any, Int _                            -> (sto, sub)
         | Int _, Any                            -> (sto, sub)
+        | TVar t1, TVar t2         when t1 = t2 -> (sto, sub)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
 
@@ -1061,7 +1128,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
   (******************************************************************************)
   and CFun: SIG.CFUN = struct
     type t = T.cfun
-
+        
     (* API *)
     let make args globs svars tvars sin reto sout effs =
       { args     = args;
@@ -1135,13 +1202,15 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         
     let d_qsvars () ft =
       if ft.quant_svars <> [] then
-        P.dprintf "forall %a.\n" d_varstore ft.quant_svars
+        (* P.dprintf "forall %a.\n" d_varstore ft.quant_svars *)
+        P.dprintf "∀ %a.\n" d_varstore ft.quant_svars
       else
         P.dprintf ""
 	  
     let d_qtvars () ft = 
       if ft.quant_tvars <> [] then
-	P.dprintf "forall %a.\n" d_tvars ft.quant_tvars
+	(* P.dprintf "forall %a.\n" d_tvars ft.quant_tvars *)
+	P.dprintf "∀ %a.\n" d_tvars ft.quant_tvars
       else
 	P.dprintf ""
 
@@ -1251,7 +1320,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         sto_out = sto_out;
         effects = effects;
       }
-	  
+        
+    let subs_tvar rename tinst cf = 
+      let sub = CType.subs_tvar rename tinst in
+      {cf with ret   = sub cf.ret;
+              args   = cf.args |>: M.app_snd sub;
+              sto_in = Store.map sub cf.sto_in;
+              sto_out = Store.map sub cf.sto_out;
+              quant_tvars = List.filter (not <.> M.flip CType.TVarInst.mem tinst) cf.quant_tvars;
+      }
+           
     let instantiate_locs srcinf cf = 
       let qslocs    = quantified_locs cf in
       let instslocs = List.map (fun _ -> S.fresh_abstract [srcinf]) qslocs in
@@ -1299,25 +1377,48 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	let cf = subs_store_var ssub sub sto cf in
 	(cf, sub, ssub)
  
+    let is_quant_tvar t cf = List.mem t cf.quant_tvars
+      
+    (* let subtvars sub cf =  *)
+    (*   let subfn = function *)
+    (*     | TVar t -> TVar (TVarSubst.apply sub t) *)
+    (*     | ct -> ct *)
+    (*   in *)
+    (*   let cf' = map subfn cf in *)
+    (*   (\* sure, why not for now.... *\) *)
+    (*   {cf' with quant_tvars = List.map (TVarSubst.apply sub) cf'.quant_tvars} *)
+        
     let instantiate_tvars srcinf cf args =
       (* I think any return value should have to share the same variable
 	 as some input argument *)
-     List.fold_left2 begin fun formal actual sub ->
-       (* need to check things: -the var is quantified -for two
-	  different subs, the types should be the unification? least upper bound? *)
-       begin match actual with
-	 | TVar t -> (t, actual)::sub
-	 | _      -> sub
-       end
-     end [] (List.map snd cf.args) args
+      (* Make sure that function pointers do not have quantified tvars *)
+      let rename = cf.quant_tvars 
+                   |>: (fun _ -> fresh_tvar ())
+                   |> List.combine cf.quant_tvars 
+      in
+      let inst = List.fold_left2 begin fun sub formal actual ->
+        (* need to check things: -the var is quantified -for two
+	   different subs, the types should be the unification? least
+	   upper bound? the first one? *)
+        (* Don't forget to get fresh names for tvars here *)
+        begin match formal with
+	  | TVar t when is_quant_tvar t cf 
+              -> CType.TVarInst.extend (TVarSubst.apply rename t) actual sub
+	  | _      -> sub
+        end
+      end [] (List.map snd cf.args) args in
+      let _ = Pretty.printf "Renamed: %a\n" TVarSubst.d_subst rename in
+      let _ = Pretty.printf "Sub: %a\n" CType.TVarInst.d_inst inst in
+      (cf |> subs_tvar rename inst, rename, inst)
 
     let instantiate srcinf cf args sto =
       let sub = instantiate_locs srcinf cf in
       let cf = subs cf sub in
       let cf = {cf with args = List.map (M.app_snd <| subs_frefs sub) cf.args;
 	ret  = subs_frefs sub cf.ret} in
+      let (cf, tsub, tinst) = instantiate_tvars srcinf cf args in
       let (cf, isub, hsub) = instantiate_store srcinf cf args sto in
-      (cf, S.Subst.compose isub sub, hsub)
+      (cf, S.Subst.compose isub sub, tsub, tinst, hsub)
         
     let quantified_svars cf = cf.quant_svars
       

@@ -58,6 +58,8 @@ type 'a prestore
 
 type tvar
   
+val d_tvar : unit -> tvar -> Pretty.doc
+  
 val fresh_tvar : unit -> tvar
     
 type 'a prectype =
@@ -108,6 +110,18 @@ sig
   val d_effectset : unit -> effectset -> Pretty.doc
 end
   
+module type INST_TYPE = sig
+  type e
+  type t = (tvar * e prectype) list
+  val empty     : t
+  val mem       : tvar -> t -> bool
+  val lookup    : tvar -> t -> e prectype
+  val apply     : t -> e prectype -> e prectype
+  val map_binds : (e prectype -> e prectype) -> t -> t
+  val extend    : tvar -> e prectype -> t -> t
+  val d_inst    : unit -> t -> Pretty.doc
+end
+
 module StoreSubst:
 sig
     type elt = Sloc.SlocSet.t * Svar.SvarSet.t
@@ -120,8 +134,10 @@ sig
     val extend               : Svar.t -> t -> t -> t
     val subs                 : Sloc.Subst.t -> t -> t
     val to_list              : t -> (Svar.SvarMap.key * elt) list
-    val d_storesubst         : unit -> t -> Pretty.doc
+    val d_subst              : unit -> t -> Pretty.doc
 end
+  
+module TVarSubst : Substitution.S with type e = tvar
 
 module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
@@ -142,7 +158,9 @@ module type S = sig
   module CType:
   sig
     type t = T.ctype
-
+        
+    module TVarInst : INST_TYPE with type e = T.refinement
+        
     exception NoLUB of t * t
 
     val refinement       : t -> T.R.t
@@ -155,6 +173,7 @@ module type S = sig
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
     val subs_store_var   : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
+    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
@@ -241,6 +260,7 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> t -> t -> t
+    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
@@ -275,7 +295,7 @@ module type S = sig
   module CFun:
   sig
     type t = T.cfun
-
+      
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val map_variances   : ('a prectype -> 'b prectype) ->
@@ -298,7 +318,7 @@ module type S = sig
     val quantified_svars : t -> Svar.t list
     val generalize      : t -> t
     val free_svars      : t -> Svar.t list
-    val instantiate     : CilMisc.srcinfo -> t -> CType.t list -> Store.t -> t * Sloc.Subst.t * StoreSubst.t
+    val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * TVarSubst.t * (tvar * T.ctype) list * StoreSubst.t)
     val make            : (string * CType.t) list -> 
                           Sloc.t list -> 
                           Svar.t list -> 
@@ -310,6 +330,7 @@ module type S = sig
                           t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
+    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val indices         : t -> Index.t list 
   end
 

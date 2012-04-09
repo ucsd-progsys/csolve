@@ -142,38 +142,48 @@ let d_slocset () ss =
 (***************************** Slocs Substitutions ****************************)
 (******************************************************************************)
 
-module Subst = struct
-  type t = (sloc * sloc) list
-
-  let empty = []
-
-  let d_subst (): t -> P.doc =
-    P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto))
-
-  let apply (sub: t) (s: sloc): sloc =
-    try List.assoc s sub with Not_found -> s
-
-  let extend (sfrom: sloc) (sto: sloc) (sub: t): t =
-    let sub = List.map (apply [(sfrom, sto)] |> M.app_snd) sub in
-      if not (List.mem_assoc sfrom sub) then
-        (sfrom, sto) :: sub
-      else
-        sub
-
-  let compose (sub1: t) (sub2: t): t =
-    let sub = List.map (apply sub1 |> M.app_snd) sub2 in
-      List.fold_left begin fun sub (sfrom, sto) ->
-        if not (List.mem_assoc sfrom sub2) then
-          (sfrom, sto) :: sub
-        else
-          sub
-      end sub sub1
-
-  let avoid sub ls =
-       sub
-    |> List.filter (fst <+> M.flip List.mem ls)
-    |> List.map (fun (f, t) -> (f, if List.mem t ls then refresh t else t))
-
-  let slocs (sub: t): sloc list =
-    List.split sub |> M.uncurry (@) |> M.sort_and_compact
+module SlocElt = struct
+  type t = sloc
+  let refresh  = refresh
+  let d_t = d_sloc
 end
+
+module Subst = struct 
+  include Substitution.Make(SlocElt)
+  let slocs = es
+end
+(* module Subst = struct *)
+(*   type t = (sloc * sloc) list *)
+
+(*   let empty = [] *)
+
+(*   let d_subst (): t -> P.doc = *)
+(*     P.dprintf "[@[%a@]]" (P.d_list ", " (fun () (sfrom, sto) -> P.dprintf "%a -> %a" d_sloc sfrom d_sloc sto)) *)
+
+(*   let apply (sub: t) (s: sloc): sloc = *)
+(*     try List.assoc s sub with Not_found -> s *)
+
+(*   let extend (sfrom: sloc) (sto: sloc) (sub: t): t = *)
+(*     let sub = List.map (apply [(sfrom, sto)] |> M.app_snd) sub in *)
+(*       if not (List.mem_assoc sfrom sub) then *)
+(*         (sfrom, sto) :: sub *)
+(*       else *)
+(*         sub *)
+
+(*   let compose (sub1: t) (sub2: t): t = *)
+(*     let sub = List.map (apply sub1 |> M.app_snd) sub2 in *)
+(*       List.fold_left begin fun sub (sfrom, sto) -> *)
+(*         if not (List.mem_assoc sfrom sub2) then *)
+(*           (sfrom, sto) :: sub *)
+(*         else *)
+(*           sub *)
+(*       end sub sub1 *)
+
+(*   let avoid sub ls = *)
+(*        sub *)
+(*     |> List.filter (fst <+> M.flip List.mem ls) *)
+(*     |> List.map (fun (f, t) -> (f, if List.mem t ls then refresh t else t)) *)
+
+(*   let slocs (sub: t): sloc list = *)
+(*     List.split sub |> M.uncurry (@) |> M.sort_and_compact *)
+(* end *)

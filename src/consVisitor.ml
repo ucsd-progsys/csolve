@@ -52,7 +52,7 @@ module HM = H.HeapvarMap
 open Misc.Ops
 open Cil
 
-let mydebug = false 
+let mydebug = true
 
 (****************************************************************************)
 (***************************** Misc. Helpers ********************************)
@@ -66,14 +66,35 @@ let group_annots xs =
     | Refanno.Ins _  -> (gs, a::is, ns)
     | Refanno.HInst _
     | Refanno.New _  
+    | Refanno.TNew _
+    | Refanno.TInst _
     | Refanno.NewC _ -> (gs, is, a::ns)
   end ([], [], []) xs
 
 let lsubs_of_annots ns = 
   Misc.map_partial (function Refanno.New (x,y)    -> Some (x, y)
                    | Refanno.NewC (x,_,y) -> Some (x, y)
+                   | Refanno.TNew _ 
+                   | Refanno.TInst _
                    | Refanno.HInst _ ->  None
                    | _               -> assertf "cons_of_call: bad ns") ns
+    
+let tsubs_of_annots ns =
+  Misc.map_partial (function Refanno.TNew (x,y) -> Some (x,y)
+                   | Refanno.New _ 
+                   | Refanno.NewC _
+                   | Refanno.TNew _ 
+                   | Refanno.TInst _
+                   | Refanno.HInst _ ->  None) ns
+    
+let tinst_of_annots ns = 
+  Misc.map_partial (function Refanno.TInst inst -> Some inst
+                   | Refanno.New _ 
+                   | Refanno.NewC _
+                   | Refanno.TNew _ 
+                   | Refanno.TInst _
+                   | Refanno.HInst _ ->  None) ns
+  |> M.only_one "More than one TVar instantiation at call site"
     
 let hsubs_of_annots env ns =
     List.fold_left begin fun hsub annot ->
@@ -411,12 +432,27 @@ let d_bindings () llds =
   Pretty.dprintf "DATABINDS: @[%a@]" 
     d_ldbinds llds
     
+let instantiate_fun env st frt ns =
+  let lsubs = lsubs_of_annots ns in
+  let hsubs = hsubs_of_annots env ns in
+  let tsubs = tsubs_of_annots ns in
+  let tinst = tinst_of_annots ns 
+  in
+  let frt   = FI.t_fresh_fn frt
+           |> (match tinst with 
+               | Some inst ->  
+                    (List.map (M.app_snd FI.t_true) inst)
+                 |> RCf.subs_tvar tsubs
+               | None -> fun x -> x)
+           |> RCf.subs_store_var hsubs lsubs st 
+  in
+  (frt, lsubs, FI.make_wfs_fn env frt)
+    
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-  let lsubs     = lsubs_of_annots ns in
-  let hsubs     = hsubs_of_annots env ns in
-  let frt'      = RCf.subs_store_var hsubs lsubs st frt in
+  let (frt', lsubs, inst_wfs) = instantiate_fun pre_mem_env st frt ns in
+  let inst_cs,_   = FI.make_cs_refcfun pre_mem_env grd frt frt' tag loc in
   let call      = (lvo, frt', es) in
   let args      = frt' |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let args, es  = bindings_of_call loc args es in
@@ -450,7 +486,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt' in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt') in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), wfs
+  wld', (inst_cs ++ cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs++inst_wfs)
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with

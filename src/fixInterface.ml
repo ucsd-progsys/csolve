@@ -99,8 +99,7 @@ let reft_of_reft r t' =
     |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
                         | C.Kvar (s, k) -> C.Kvar (Su.extend s (vv, evv'), k))
     |> C.make_reft vv' t'
-(*    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
-*)
+   (* >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None)  *)
 
 let sort_of_prectype = function
   | Ct.Ref (l,_)  -> FA.so_ref l
@@ -108,6 +107,7 @@ let sort_of_prectype = function
   | Ct.ARef       -> FA.so_ref Sloc.sloc_of_any
   | Ct.Any        -> FA.so_int  (* MK: i *think* this should be ok *)
   | Ct.Int _      -> FA.so_int
+  | Ct.TVar _     -> FA.so_ref Sloc.sloc_of_any
 
 let spec_sort_of_prectype = function
   | Ct.Ref _  -> FA.so_ref Sloc.none
@@ -115,6 +115,7 @@ let spec_sort_of_prectype = function
   | Ct.ARef   -> FA.so_ref Sloc.sloc_of_any
   | Ct.Any    -> FA.so_int
   | Ct.Int _  -> FA.so_int
+  | Ct.TVar _ -> FA.so_ref Sloc.none
 
 let replace_reft r c = match c with
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
@@ -161,6 +162,7 @@ and refctype_of_ctype f = function
       Ct.FRef (refcfun_of_cfun g, (x,r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
 

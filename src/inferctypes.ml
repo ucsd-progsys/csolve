@@ -53,6 +53,8 @@ module Ct     = I.CType
 module CFun   = I.CFun
 module Field  = I.Field
 module CSpec  = I.Spec 
+  
+let mydebug = true
 
 (******************************************************************************)
 (******************************** Environments ********************************)
@@ -204,19 +206,26 @@ let check_poly_inclusion s1 s2 sub =
   end;
   ()
 
-(* Notes: 
-   - Checking for membership should be OK if there is a heap var? Or not? Double check this.
-*)
+let cond_add_annot cond a annots = if cond then a :: annots else annots
+    
 let constrain_app i (fs, _) et cf sub sto lvo args =
   let cts, sub, sto = constrain_args et fs sub sto args in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
-  let cfi, isub, hsub  = CFun.instantiate srcinfo cf (List.map (I.CType.subs sub) cts) sto in
-  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
-  let annot         = if hsub <> StoreSubst.empty then 
-                        RA.HInst hsub :: annot 
-                      else
-                        annot
+  let cfi, isub, tsub, tinst, hsub = 
+    CFun.instantiate srcinfo cf (List.map (I.CType.subs sub) cts) sto in
+  let _ = if mydebug then Pretty.printf "@[%a%a@]\n" CFun.d_cfun cf CFun.d_cfun cfi else Pretty.printf "" in
+  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub 
+                   |> List.append (tsub |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
+                   |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)
+                   |> cond_add_annot (tinst <> Ct.TVarInst.empty) (RA.TInst tinst)
   in
+
+(* in *)
+(*   let annot         = if hsub <> StoreSubst.empty then  *)
+(*                         RA.HInst hsub :: annot  *)
+(*                       else *)
+(*                         annot *)
+(*   in *)
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.fold_left Store.ensure_sloc sto in
