@@ -88,7 +88,8 @@ let tsubs_of_annots ns =
                    | Refanno.HInst _ ->  None) ns
     
 let tinst_of_annots ns = 
-  Misc.map_partial (function Refanno.TInst inst -> Some inst
+  Misc.map_partial (function Refanno.TInst inst -> 
+                    Some (List.map (M.app_snd FI.t_fresh) inst)
                    | Refanno.New _ 
                    | Refanno.NewC _
                    | Refanno.TNew _ 
@@ -432,21 +433,35 @@ let d_bindings () llds =
   Pretty.dprintf "DATABINDS: @[%a@]" 
     d_ldbinds llds
     
+let wfs_of_tinsto env f = function
+  | None -> []
+  | Some inst -> 
+    let env' = Ct.args_of_refcfun f
+            |> List.map (M.app_fst Ast.Symbol.of_string)
+            |> FI.ce_adds env in
+    let sto = Ct.stores_of_refcfun f |> fst in
+    List.map snd inst |> M.flap (FI.make_wfs env' sto)
+        
 let instantiate_fun me env st frt ns =
   let lsubs = lsubs_of_annots ns in
   let hsubs = hsubs_of_annots env ns in
   let tsubs = tsubs_of_annots ns in
   let tinst = tinst_of_annots ns 
   in
-  let frt'  = (* FI.t_fresh_fn  *)frt
-           |> (match tinst with
-               | Some inst ->
-                    (List.map (M.app_snd FI.t_fresh) inst)
-                 |> RCf.inst_tvar tsubs
-               | None -> fun x -> x)
-           |> RCf.subs_store_var hsubs lsubs st
+  (* let frt' = (\* FI.t_fresh_fn  *\)frt *)
+  (*          |> (match tinst with *)
+  (*              | Some inst -> *)
+  (*                |> RCf.inst_tvar tsubs *)
+  (*              | None -> fun x -> x) *)
+  (*          |> RCf.subs_store_var hsubs lsubs st *)
+  (* in *)
+  let frt' = match tinst with 
+    | Some inst -> RCf.inst_tvar tsubs inst frt
+    | None -> frt
   in
-  let wfs = FI.make_wfs_fn (CF.globalenv_of_t me) frt' in
+  let frt' = RCf.subs_store_var hsubs lsubs st frt' in
+  let wfs = wfs_of_tinsto env frt' tinst in
+  (* let wfs = FI.make_wfs_fn (CF.globalenv_of_t me) frt' in *)
   (frt', lsubs, wfs)
     
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
