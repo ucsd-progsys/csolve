@@ -213,19 +213,12 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
   let cfi, isub, tsub, tinst, hsub = 
     CFun.instantiate srcinfo cf (List.map (I.CType.subs sub) cts) sto in
-  let _ = if mydebug then Pretty.printf "@[%a%a@]\n" CFun.d_cfun cf CFun.d_cfun cfi else Pretty.printf "" in
+  let _ = if mydebug then Pretty.printf "@[%a\n===>\n%a@]\n" CFun.d_cfun cf CFun.d_cfun cfi else Pretty.printf "" in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub 
                    |> List.append (tsub |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
                    |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)
                    |> cond_add_annot (tinst <> Ct.TVarInst.empty) (RA.TInst tinst)
   in
-
-(* in *)
-(*   let annot         = if hsub <> StoreSubst.empty then  *)
-(*                         RA.HInst hsub :: annot  *)
-(*                       else *)
-(*                         annot *)
-(*   in *)
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.fold_left Store.ensure_sloc sto in
@@ -504,18 +497,29 @@ let assert_no_physical_subtyping fe cfg anna sub ve store gst =
     E.s <| C.error "Location mismatch:\n%a |-> %a\nis not included in\n%a |-> %a\n"
         S.d_sloc_info l1 LDesc.d_ldesc ld1 S.d_sloc_info l2 LDesc.d_ldesc ld2
 
-let fref_lookup args v = function
-  | (FRef _) as t -> (try List.assoc v args with Not_found -> t)
-  | t -> t
+        
+let replace_formal_tvar ct = function
+  | (TVar _) as t -> t
+  | _ -> ct
 
-let replace_formal_frefs {args = args} vm =
+let ref_lookup args v = function
+  | (FRef _) as t -> 
+    (try List.assoc v args with Not_found -> t)
+  | (Ref _) as t -> 
+    (try List.assoc v args |> replace_formal_tvar t with Not_found -> t)
+  | ct -> ct
+
+(* This seems to be necessary, since we dump the formal parameters
+   into the body of the function. These expressions may have a Ref type
+   when they should really have a TVar type *)
+let replace_formal_refs {args = args} vm =
   vm
   |> CM.vm_to_list
-  |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
+  |> List.map (fun (v,t) -> (v, ref_lookup args v.Cil.vname t))
   |> CM.vm_of_list
       
 let infer_shape fe ve gst scim (cf, sci, vm) =
-  let vm                    = replace_formal_frefs cf vm in
+  let vm                    = replace_formal_refs cf vm in
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
   let sto                   = Store.upd cf.sto_out gst in
   let em, bas, sub, sto     = constrain_fun fe cf ve sto sci in
@@ -523,7 +527,7 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let whole_store           = Store.upd cf.sto_out gst in
   let _                     = check_sol cf ve gst em bas sub sto whole_store in
   let minslocs              = cf.ret::List.map snd cf.args 
-                           |> Misc.map_partial Ct.sloc in
+  |> Misc.map_partial Ct.sloc in
   let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store minslocs sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in

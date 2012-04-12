@@ -78,6 +78,13 @@ let slocOfAttrs ats =
      ats
   |> slocNameOfAttrs
   |> getSloc
+      
+let rec getTvar = 
+  let tvarTable = Hashtbl.create 17 in
+  fun s -> M.do_memo tvarTable Ct.fresh_tvar () s
+      
+let tvarOfAttrs ats = 
+  ats |> slocNameOfAttrs |> getTvar
 
 let finalityOfAttrs ats =
   if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
@@ -347,7 +354,7 @@ let rec refctypeOfCilType abstr mem t = match normalizeType t with
           |> fst3
     in Ct.FRef (f', r)
   | C.TPtr (t, ats) when abstr && is_zero_width mem t ats -> 
-    Ct.TVar (Ct.fresh_tvar ())
+    Ct.TVar (tvarOfAttrs ats) (* (Ct.fresh_tvar ()) *)
   | C.TPtr (t, ats)      ->
     if C.hasAttribute CM.anyRefAttribute ats then
       Ct.ARef (* create an anyref even if the type is named *)

@@ -67,6 +67,7 @@ type t    = {
   ds      : C.dep list;
   wldm    : wld IM.t;
   gnv     : FI.cilenv;                                   (* ctype environment *)
+  global_env : FI.cilenv;
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
@@ -77,6 +78,8 @@ type t    = {
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
   (* bindm   : (FI.cilenv * Ast.pred * FI.refctype) YM.t *)
 }
+    
+let globalenv_of_t me = me.global_env
 
 let ctype_of_local locals v =
   try List.assoc v locals with 
@@ -521,6 +524,7 @@ let create tgr gnv gst sci sho =
   ; des     = []
   ; wldm    = IM.empty
   ; gnv     = env
+  ; global_env = gnv
   ; formalm = formalm
   ; undefm  = make_undefm formalm sci.ST.phis
   ; edgem   = edge_asgnm_of_phia sci.ST.phis

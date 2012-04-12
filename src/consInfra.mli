@@ -24,8 +24,10 @@
 (* This file is part of the liquidC Project.*)
 
 type t
-
+  
 type wld = FixInterface.cilenv * Ctypes.refstore * CilTag.t option
+    
+val globalenv_of_t : t -> FixInterface.cilenv
 
 
 val inenv_of_block      : t -> int -> FixInterface.cilenv

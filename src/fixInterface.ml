@@ -121,7 +121,7 @@ let replace_reft r c = match c with
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
   | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r))
   | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
-  | Ct.ARef | Ct.Any _  -> c
+  | Ct.ARef | Ct.Any _ | Ct.TVar _ -> c
 
 
 let rec refctype_of_reft_ctype r = function
@@ -422,6 +422,7 @@ let is_reference cenv x =
     | Ct.Ref (_,(_,_))  -> true
     | Ct.FRef (_,(_,_)) -> true      
     | Ct.ARef           -> true
+    | Ct.TVar _         -> true
     | Ct.Any   | Ct.Int _ -> false
 
 let mk_eq_uf = fun f x y -> A.pAtom (f x, A.Eq, f y)
@@ -1082,10 +1083,12 @@ and make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag loc =
 
 (* API *)
 and make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
+  let _ = Pretty.printf "open make_cs_tuple..." in
   Misc.map2 begin fun cr1 cr2 ->
     make_cs env grd cr1 (rename_refctype lsubs subs cr2) tago tag loc
   end cr1s cr2s 
   |> Misc.splitflatten
+      >> (fun _ -> Pretty.printf "closed.\n")
 
 
 and make_cs_refstore env p st1 st2 polarity tago tag loc =
@@ -1117,6 +1120,7 @@ and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
 
 and make_cs_refcfun env p rf rf' tag loc =
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
+  let _ = Pretty.printf "make_cs_refcfun:\n%a\n%a\n" RCt.CFun.d_cfun rf RCt.CFun.d_cfun rf' in
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
   let hi, ho      = Ct.stores_of_refcfun rf in

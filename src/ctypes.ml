@@ -390,7 +390,8 @@ module SIGS (T : CTYPE_DEFS) = struct
     val sloc        : t -> Sloc.t option
     val subs        : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
-    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar   : TVarSubst.t -> t -> t
+    val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
@@ -474,7 +475,8 @@ module SIGS (T : CTYPE_DEFS) = struct
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> t -> t -> t
-    val subs_tvar    : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar    : TVarSubst.t -> t -> t
+    val inst_tvar    : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val ctype_closed : T.ctype -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
@@ -537,7 +539,8 @@ module SIGS (T : CTYPE_DEFS) = struct
     val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> tvar list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
-    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar   : TVarSubst.t -> t -> t
+    val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val indices         : t -> Index.t list
   end
 
@@ -646,6 +649,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let sloc = function
       | Ref (s, _) -> Some s
       | ARef       -> Some S.sloc_of_any
+      (* | TVar t     -> Some S.none *)
       | _          -> None
 
     let subs subs = function
@@ -662,9 +666,15 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     end
       
     module TVarInst : INST_TYPE with type e = T.refinement = VarInst(TVarElt)
+      
+    let subs_tvar rename = function
+      | TVar t -> TVar (TVarSubst.apply rename t)
+      | FRef (f, r) -> FRef (CFun.subs_tvar rename f, r)
+      | ct -> ct
         
-    let subs_tvar rename inst = function 
+    let inst_tvar rename inst = function 
       | TVar t -> TVarInst.apply inst <| TVar (TVarSubst.apply rename t)
+      | FRef (f, r) -> FRef (CFun.inst_tvar rename inst f, r)
       | ct -> ct
 
     exception NoLUB of t * t
@@ -1028,8 +1038,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       end (insto,[]) vs
       |> Misc.app_snd (List.sort Sv.compare)
           
-    let subs_tvar rename tinst sto =
-      map (CType.subs_tvar rename tinst) sto
+    let subs_tvar rename sto =
+      map (CType.subs_tvar rename) sto
+          
+    let inst_tvar rename tinst sto =
+      map (CType.inst_tvar rename tinst) sto
           
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -1236,6 +1249,17 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let subs cf sub =
       cf |> quantified_locs |> S.Subst.avoid sub |> capturing_subs cf
+          
+    let subs_tvar rename cf = 
+      let apply_sub = CType.subs_tvar rename in
+      make (List.map (M.app_snd apply_sub) cf.args)
+           cf.globlocs
+           cf.quant_svars
+          (cf.quant_tvars |>: TVarSubst.apply rename)
+          (Store.subs_tvar rename cf.sto_in)
+          (apply_sub cf.ret)
+          (Store.subs_tvar rename cf.sto_out)
+           cf.effects
 
     let rec order_locs_aux sto ord = function
       | []      -> ord
@@ -1254,7 +1278,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
-
+        
+    let drop_extra_locs (ls1, ls2) = 
+      let n1 = List.length ls1 in
+      let n2 = List.length ls2 in
+      let _ = Pretty.printf "***WARNING: may drop some locations that SHOULD be freshed??***\n" in
+      if n1 > n2 then 
+        (M.drop (n1 - n2) ls1, ls2)
+      else
+        (ls1, M.drop (n2 - n1) ls2)
+           
     let normalize_names cf1 cf2 f fe =
       let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
       let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
@@ -1321,8 +1354,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         effects = effects;
       }
         
-    let subs_tvar rename tinst cf = 
-      let sub = CType.subs_tvar rename tinst in
+    let inst_tvar rename tinst cf = 
+      let sub = CType.inst_tvar rename tinst in
       {cf with ret   = sub cf.ret;
               args   = cf.args |>: M.app_snd sub;
               sto_in = Store.map sub cf.sto_in;
@@ -1379,14 +1412,29 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
  
     let is_quant_tvar t cf = List.mem t cf.quant_tvars
       
-    (* let subtvars sub cf =  *)
-    (*   let subfn = function *)
-    (*     | TVar t -> TVar (TVarSubst.apply sub t) *)
-    (*     | ct -> ct *)
-    (*   in *)
-    (*   let cf' = map subfn cf in *)
-    (*   (\* sure, why not for now.... *\) *)
-    (*   {cf' with quant_tvars = List.map (TVarSubst.apply sub) cf'.quant_tvars} *)
+    let assert_ok_tvar_subst = function
+      | FRef _
+      | Int _  -> assert false
+      | _ -> ()
+        
+    let tvarinst_of_args cf args = 
+      let rec inst_of_args fromas toas = 
+        List.fold_left2 begin fun sub formal actual ->
+          begin match formal, actual with
+            | a, TVar t
+            | TVar t, a when is_quant_tvar t cf ->
+              let _ = assert_ok_tvar_subst a in
+              CType.TVarInst.extend t a sub
+            | FRef (g, _), FRef (g', _) ->
+              inst_of_args (List.map snd g'.args) (List.map snd g.args)
+              |> (List.fold_left begin fun sub' (f, t) ->
+                CType.TVarInst.extend f t sub'
+              end sub)
+            | _ -> sub
+          end
+        end [] fromas toas
+      in
+      inst_of_args (List.map snd cf.args) args
         
     let instantiate_tvars srcinf cf args =
       (* I think any return value should have to share the same variable
@@ -1396,20 +1444,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                    |>: (fun _ -> fresh_tvar ())
                    |> List.combine cf.quant_tvars 
       in
-      let inst = List.fold_left2 begin fun sub formal actual ->
-        (* need to check things: -the var is quantified -for two
-	   different subs, the types should be the unification? least
-	   upper bound? the first one? *)
-        (* Don't forget to get fresh names for tvars here *)
-        begin match formal with
-	  | TVar t when is_quant_tvar t cf 
-              -> CType.TVarInst.extend (TVarSubst.apply rename t) actual sub
-	  | _      -> sub
-        end
-      end [] (List.map snd cf.args) args in
+      let inst = tvarinst_of_args (subs_tvar rename cf) (args |>: CType.subs_tvar rename) in
+      (* end [] (List.map snd cf.args) args in *)
       let _ = Pretty.printf "Renamed: %a\n" TVarSubst.d_subst rename in
       let _ = Pretty.printf "Sub: %a\n" CType.TVarInst.d_inst inst in
-      (cf |> subs_tvar rename inst, rename, inst)
+      (cf |> inst_tvar rename inst, rename, inst)
 
     let instantiate srcinf cf args sto =
       let sub = instantiate_locs srcinf cf in
@@ -1439,17 +1478,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       {cf with quant_svars = svars }
 	
     let rec free_tvars cf = 
-      let free = function
-	| FRef (f, _) -> free_tvars f
-	| _ -> []
-      in
-      let vars = function
-        | TVar t -> Some t
-	| _      -> None
-      in
-      cf.ret::List.map snd cf.args
-      |> M.map_partial vars 
+      let vars = function 
+        | TVar t -> [t]
+        | FRef (f, _) -> free_tvars f
+        | _ -> [] in
+      cf.ret::List.map snd cf.args 
+      |> M.flap vars
       |> M.sort_and_compact
+      |> M.filter (not <.> Misc.flip List.mem cf.quant_tvars)
 	  
     let quantify_tvars cf = {cf with quant_tvars = free_tvars cf}
       

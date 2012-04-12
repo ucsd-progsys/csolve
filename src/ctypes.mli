@@ -173,7 +173,8 @@ module type S = sig
     val sloc             : t -> Sloc.t option
     val subs             : Sloc.Subst.t -> t -> t
     val subs_store_var   : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
-    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar   : TVarSubst.t -> t -> t
+    val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val eq               : t -> t -> bool
     val collide          : Index.t -> t -> Index.t -> t -> bool
     val is_void          : t -> bool
@@ -260,7 +261,8 @@ module type S = sig
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
     val subs         : Sloc.Subst.t -> t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> t -> t -> t
-    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar   : TVarSubst.t -> t -> t
+    val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val ctype_closed : CType.t -> t -> bool
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
@@ -330,7 +332,8 @@ module type S = sig
                           t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var  : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
-    val subs_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
+    val subs_tvar   : TVarSubst.t -> t -> t
+    val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val indices         : t -> Index.t list 
   end
 

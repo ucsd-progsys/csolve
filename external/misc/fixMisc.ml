@@ -485,6 +485,11 @@ let list_max_with msg f = function
 let rec take_max n = function
   | x :: xs when n > 0 -> x :: take_max (n - 1) xs
   | _                  -> []
+    
+let rec drop n = function
+  | x :: xs when n > 0 -> drop (n - 1) xs
+  | []      when n > 0 -> assertf "ERROR: dropped too many"
+  | xs -> xs
 
 let getf a i fmt = 
   try a.(i) with ex -> assertf fmt
