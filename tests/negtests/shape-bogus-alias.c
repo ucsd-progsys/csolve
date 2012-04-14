@@ -1,10 +1,12 @@
-void foop (int *x, char *c) {
+#include <csolve.h>
+
+void foop (int *x, int *c) {
+    *x = 0;
+    *c = 1;
 }
 
-int main () {
-    int *p;
-
-    foop (p, (char *) p);
+int main (int *p) CHECK_TYPE {
+    foop (p, p);
 
     return 0;
 }
