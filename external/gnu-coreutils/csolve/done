@@ -62,7 +62,7 @@ readlink
 ? chroot [AB]
 echo [AB]
 ? env [MK]
-? chgrp [RJ]
+? chgrp [RJ] -- past shape inferE?
 
 ---- Inbox/TODO -------------------------------------
 

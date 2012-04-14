@@ -273,7 +273,7 @@ let cil_transform_phase_1 file =
 let cil_transform_phase_2 file = 
   file >> rename_locals
        >> (CilMisc.varExprMap <+> ignore)
-       (* >> dump_globals *)
+    (* >> dump_globals *)
 
 let dump_annots qs tgr res =
   let s     = res.FI.soln                                           in
@@ -285,7 +285,14 @@ let dump_annots qs tgr res =
   (* 2. Dump HTML Annots *)
   AnnotsJson.dump_html qs tgr s cs cones binds
 
+let dumpFile cil = 
+  let log = open_out "csolve.save.c" in
+  let _   = Cil.dumpFile CilMisc.noBlockAttrPrinter log "csolve.save.c"  cil in
+  let _   = close_out log in
+  ()
+
 let liquidate cil =
+  let _         = dumpFile cil in
   let log       = open_out "csolve.log" in
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
@@ -301,7 +308,7 @@ let liquidate cil =
   let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
- let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
+  let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in

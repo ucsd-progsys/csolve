@@ -65,8 +65,7 @@ let fresh_slocid =
   begin fun z -> 
     fresh () 
     >> (fun i -> Hashtbl.add slocinfot i z)
-    >> (fun i -> ignore <| print_now (Printf.sprintf "fresh_slocid: %d --> %s\n" i (CilMisc.pretty_to_string d_slocinfo z)))
-
+    (* >> (fun i -> ignore <| print_now (Printf.sprintf "fresh_slocid: %d --> %s\n" i (CilMisc.pretty_to_string d_slocinfo z))) *)
   end
 
 let sloc_of_any = AnyLoc
