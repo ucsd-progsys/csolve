@@ -25,16 +25,35 @@ from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
 
-srcFile  = os.path.abspath(sys.argv[1])
-tgtFile  = srcFile + ".html"
-srcDir   = os.path.dirname(srcFile)
-baseDir  = sys.path[0]
-jsonFile = srcFile + ".json"
-tgtTplt  = baseDir + "/templates/csolve.html" 
-lineTplt = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
+
+from optparse import OptionParser
+
+def getOptions():
+  p = OptionParser()
+  p.add_option("-j", "--json"
+              , dest="json", help="name of json file"
+              , default="undefined", metavar="FILE")
+  p.add_option("-o", "--out"
+              , dest="out", help="name of output html"
+              , default="out.html", metavar="FILE")
+  (options, args) = p.parse_args()
+  print "Json File:", options.json
+  print "Html File:", options.out
+  print "Source Files:", args
+  return (options, args)
+
+(opts, srcFiles) = getOptions()
+tgtFile          = opts.out
+jsonFile         = opts.json
+srcDir           = os.path.dirname(tgtFile)
+baseDir          = sys.path[0]
+tgtTplt          = baseDir + "/templates/csolve.html"
+
+#lineTplt         = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
+lineTplt         = Template("<span class='line' file=$file num=$linenum><a class='linenum' href= \"#$linenum\" file=$file num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
 
 
-##################### Generic IO Helpers #########################
+########################### Generic IO Helpers ###########################
 
 def readFrom(file):
   f  = open(file, "r")
@@ -82,10 +101,6 @@ def copyDir(off):
   outDir = srcDir  + "/" + off
   distutils.dir_util.copy_tree(inDir, outDir)
   print "c2Html: copyDir from ", inDir, " To ", outDir
-  ##if os.path.exists(dstDir):
-  ##  pass
-  ##else:
-  ##  shutil.copytree(srcDir, dstDir)
 
 def main(srcFile, jsonFile):
   src     = readFrom(srcFile)
@@ -98,14 +113,12 @@ def main(srcFile, jsonFile):
 
 #############################################################################
 
-try: 
-  print "c2html src=", srcFile, " srcDir=", srcDir
-  main(srcFile, jsonFile)
-  copyDir("css")
-  copyDir("js")
-except: 
-  print "Unexpected error:", sys.exc_info()[0]
-  print "Error in c2html. Usage: ./c2html.py inFile.c" 
-  raise
-
-
+###try: 
+###  print "c2html src=", srcFile, " srcDir=", srcDir
+###  main(srcFile, jsonFile)
+###  copyDir("css")
+###  copyDir("js")
+###except: 
+###  print "Unexpected error:", sys.exc_info()[0]
+###  print "Error in c2html. Usage: ./c2html.py inFile.c" 
+###  raise
