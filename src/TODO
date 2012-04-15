@@ -34,7 +34,9 @@ Multi-file Errors
 
 etc.
 
-* Hack c2html.py to take in 
+THIS IS WHERE WE ARE
+
+* Hack cs2html.py to take in 
     - list of source-files (*c, *h etc.)
     - process each file ASNOW 
         - but add file name <h2>filename</h2> at start
