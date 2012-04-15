@@ -202,19 +202,19 @@ let d_json () x =
   PP.dprintf 
   "{ errors   : @[%a@]
    , qualDef  : @[%a@]
+   , cones    : @[%a@]
    , varDef   : @[%a@]
    , genAnnot : @[%a@]
    , varAnnot : @[%a@] 
    , funAnnot : @[%a@]
-   , cones    : @[%a@]
    }"
     (d_array d_srcLoc)     x.errors
     (d_sm d_qdef)          x.qualDef
+    (d_array d_cone)       x.cones
     (d_sm d_vardef)        x.varDef
     (d_annotv)             x.genAnnot
     (d_sm (d_im d_annotv)) x.varAnnot
     (d_sm d_annotf)        x.funAnnot
-    (d_array d_cone)       x.cones
 
 (*******************************************************************)
 (************* Conversions *****************************************) 

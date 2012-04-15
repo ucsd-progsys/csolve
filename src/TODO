@@ -1,30 +1,53 @@
 PENDING
 =======
 
-InferCtypes Errors
-------------------
-
-../tests/postests/argv-final-val.c,
-../tests/postests/coreutils/dirname.sh,
-../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/groups.sh,
-../tests/postests/coreutils/hostid.sh,
-../tests/postests/coreutils/hostname.sh,
-../tests/postests/coreutils/link.sh,
-../tests/postests/coreutils/logname.sh,
-../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
-../tests/postests/coreutils/readlink.sh,
-../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh,
-../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh,
-../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh,
-../tests/postests/cpj/sumreduce.c, ../tests/postests/ks.c,
-../tests/postests/mst.c
-
-
-HEREHEREHERE: 
-
     * regressionTests
     * Iterate on error messages
     * Pull in cleaned expressions/instr/stmts using VarExprMap and friends
+
+* chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
+
+Multi-file Errors
+-----------------
+
+- flatten into single html file.
+
+//sort by file-size?
+
+/* file1.c */
+    1:
+    2:
+    3:
+    ...
+
+/* file2.c */
+    1:
+    2:
+    3:
+    ...
+
+/* file3.c */
+    1:
+    2:
+    3:
+    ...
+
+etc.
+
+* Hack c2html.py to take in 
+    - list of source-files (*c, *h etc.)
+    - process each file ASNOW 
+        - but add file name <h2>filename</h2> at start
+        - but wrap line number span with filename
+    - cat the above into a SINGLE giant html chunk
+    - put in JSON ASNOW
+
+* Hack csolve.js to replace all "line" links with "line+file" links
+    - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
+
+* Hack annotJson.ml so that
+    - filename is rendered with srcLoc everywhere
+
 
 Counterexamples (to be continued) 
 ---------------------------------
