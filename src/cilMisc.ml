@@ -597,6 +597,9 @@ let source_files file : string list =
     Hashtbl.replace t (get_globalLoc g).file ()
   end;
   Misc.hashtbl_keys t
+  |> List.partition (Misc.is_suffix ".h")
+  |> (fun (hs, cs) -> cs ++ hs)
+
 
 (****************************************************************************************)
 (************** Error Message Wrappers **************************************************)
