@@ -18,15 +18,17 @@ Multi-file HTML
     - cat the above into a SINGLE giant html chunk
     - put in JSON ASNOW
 
-
 * Hack annotJson.ml so that
     - filename is rendered with srcLoc everywhere
-    
-    HEREHEREHERE
-    files: ["foo.c", "bar.c", "baz.h"]
 
 * Hack csolve.js to replace all "line" links with "line+file" links
     - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
+
+HEREHEREHEREHERE
+
+* TESTING
+
+external/gnu-coreutils/src/make.csolve chgrp
 
 
 Counterexamples (to be continued) 
