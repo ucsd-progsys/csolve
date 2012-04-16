@@ -10,19 +10,7 @@
     <script> var csolveData = $srcJson; </script>
   </head>
 <body>
-  
-  
-  <!--
-    <script id="locLinkTemplate" type="text/x-jquery-tmpl"> 
-      {{if $$item.getLine($$item.data)}}
-         <a class='locLink' href="#$${$$item.getLine($$item)}">$${$$item.getLine($$item.data)}</a>
-      {{/if}}
-    </script> 
-
-     {{tmpl(varLoc, varLocLink) "#locLinkTemplate"}}
-        {{tmpl(varid, varidLink) "#locLinkTemplate"}}
-    -->
-    
+      
     <script id="coneTemplate" type="text/x-jquery-tmpl">
     <li> 
       <a class='coneLink' href="#$${line}">$${line}</a>
@@ -42,10 +30,10 @@
 
   <script id="qargVarTemplate" type="text/x-jquery-tmpl">
       {{if varLoc}}
-         <a class='locLink' href="#$${varLoc.line}">$${varLoc.line}</a>
+         <a class='locLink' href="#$${anchorOfvarLoc(varLoc)}">$${varLoc.line}</a>
       {{else}}
         {{each(j, varid) varDeps}}
-         <a class='locLink' href="#$${lineOfvarid(varid)}">$${lineOfvarid(varid)}</a>
+         <a class='locLink' href="#$${anchorOfvarid(varid)}">$${lineOfvarid(varid)}</a>
         {{/each}}
       {{/if}}
     </script> 
@@ -61,24 +49,10 @@
       {{/if}}
     </script>    
 
-    <script id="qargTemplateOLD" type="text/x-jquery-tmpl"> 
-      {{if varOfvarid(qargid)}}
-      <a class='qarg' href="#$${varOfvarid(qargid).varLoc.line}">$${qargname}</a>
-        <span class="tooltip3">
-          {{tmpl(varOfvarid(qargid)) "#qargVarTemplate"}}
-        </span>
-      {{else}}
-        <span class='qarg'>$${qargname}</span>
-      {{/if}}
-    </script>
-
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
       <span class='qname'>$${qname}</span>
       <span class="tooltip2">$${qfull}</span>
     </script> 
-
-    <!--(<ul class='qualargs'>{{each(j, qa) q.qargs}}<li>{{tmpl(qa) "#qargTemplate"}}</li>{{/each}}</ul>)
-    -->
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       <span><span class='typename'>$${ctype}</span>&#123;</span>

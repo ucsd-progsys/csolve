@@ -91,10 +91,10 @@ type json =
   ; qualDef  : qdef SSM.t
   ; varDef   : vardef SSM.t 
   ; genAnnot : annotv
-  ; varAnnot : (annotv IM.t) SSM.t 
+  ; varAnnot : ((annotv IM.t) IM.t) SSM.t 
   ; funAnnot : annotf SSM.t
   ; cones    : (srcLoc Ast.Cone.t) list
-  ; files    : int SSM.t
+  ; files    : string list 
   }
 
 let junkUrl   = ""
@@ -198,13 +198,6 @@ let rec d_cone () = function
        PP.dprintf "{ loc : %a, cone : %a }" d_srcLoc l d_cone c
      end () xcs
 
-let d_files () fm = 
-  fm |> SSM.to_list 
-     |> Misc.fsort snd 
-     |>: fst 
-     |> d_array (fun () -> PP.dprintf "\"%s\"") ()
-
-
 let d_json () x = 
   PP.dprintf 
   "{ errors   : @[%a@]
@@ -221,9 +214,9 @@ let d_json () x =
     (d_array d_cone)       x.cones
     (d_sm d_vardef)        x.varDef
     (d_annotv)             x.genAnnot
-    (d_sm (d_im d_annotv)) x.varAnnot
+    (d_sm (d_im (d_im d_annotv))) x.varAnnot
     (d_sm d_annotf)        x.funAnnot
-    d_files                x.files
+    (d_array (fun () -> PP.dprintf "\"%s\"")) x.files
 
 (*******************************************************************)
 (************* Conversions *****************************************) 
@@ -237,11 +230,13 @@ let srcLoc_of_location, files =
   ( fun l -> { line = l.Cil.line; file = fileId l.Cil.file } )
 *)
 
+let fid_of_FileMap fm f = 
+  try SSM.find f fm with Not_found -> 
+    Errormsg.s <| Errormsg.error "fid_of_FileMap: unknown file %s" f 
+ 
 let srcLoc_of_location fm l =
-  let f   = l.Cil.file in 
-  let fid = try SSM.find f fm with Not_found -> 
-    Errormsg.s <| Errormsg.error "srcLoc_of_location: unknown file %s" f 
-  in { line = l.Cil.line; file = fid }
+ { line = l.Cil.line
+ ; file = fid_of_FileMap fm l.Cil.file }
 
 (* TODO: rename locals to drop SSA/fun-name *)
 let d_cilexp_tidy = Cil.d_exp
@@ -314,9 +309,12 @@ let annot_of_finfo abbrev s (fn, (cf, fd)) =
   |> List.map (annot_of_vbind abbrev s) 
   |> (function (ret::args) -> { fname = Ct.S fn; args = args; ret = ret })
 
-let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
-  let get x m     = if SSM.mem x m then (SSM.find x m) else IM.empty in 
-  let put x n y m = SSM.add x (IM.add n y (get x m)) m               in
+let mkVarLineSsavarMap fm bs =
+  let put x fn n y m = 
+    let fm = try SSM.find x  m with Not_found -> IM.empty in
+    let lm = try IM.find fn fm with Not_found -> IM.empty  in
+    SSM.add x (IM.add fn (IM.add n y lm) fm) m
+  in
   bs |> Misc.flap begin function 
           | Annots.TSSA (fn, t) -> 
              t |>  Misc.hashtbl_to_list 
@@ -324,7 +322,9 @@ let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
           | _ -> []
         end
      |> List.fold_left begin fun m ((x, file, line), xssa) ->
-          put x line (FixAstInterface.name_of_string xssa) m 
+          let fn   = fid_of_FileMap fm file              in 
+          let name = FixAstInterface.name_of_string xssa in 
+          put x fn line name m 
         end SSM.empty
 
 let mkFileMap fs =
@@ -393,15 +393,16 @@ let mkQualdef q =
 let mkQualdefm qs =
   SSM.of_list <| List.map mkQualdef qs
 
-let mkVarAnnot abbrev s bs =
+let mkVarAnnot fm abbrev s bs =
   let xm = mkSyInfoMap bs in
-  bs |> mkVarLineSsavarMap
-     |> SSM.map begin IM.map_partial (fun x ->
+  bs |> mkVarLineSsavarMap fm
+     |> SSM.map begin IM.map begin IM.map_partial (fun x ->
           Misc.maybe_map 
             (fun z -> annot_of_vbind abbrev s (Ct.N x, z)) 
             (SM.maybe_find x xm)
           )
-        end 
+          end
+        end
 
 let mkFunAnnot abbrev s bs =
   bs |> Misc.map_partial (function Annots.TFun (f, x) -> Some (f, x) | _ -> None)  
@@ -417,10 +418,10 @@ let bindsToJson files qs tgr s cs cones binds =
   ; qualDef  = mkQualdefm qs
   ; varDef   = mkVarDef fm abbrev binds
   ; genAnnot = junkAnnot
-  ; varAnnot = mkVarAnnot abbrev s binds
+  ; varAnnot = mkVarAnnot fm abbrev s binds
   ; funAnnot = mkFunAnnot abbrev s binds
   ; cones    = mkCones fm cones  
-  ; files    = fm
+  ; files    = files 
   }
 
 (*******************************************************************)

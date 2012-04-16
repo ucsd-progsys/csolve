@@ -6,7 +6,6 @@ var goober = function(n) {
   return { bob: (n + 5).toString() };
 }
 
-
 var lineSpans   = {};   //index of ALL line spans
 var currentLine = null;
 var toggleText  = { 'Hide': 'Show', 'Show': 'Hide' };
@@ -31,21 +30,28 @@ var getVarName = function(x){
 };
 
 var getLine = function(x){ 
-  return $(x).closest("span[class='line']").attr("num"); 
+  var sp = $(x).closest("span[class='line']")
+  var fn = sp.attr("file");
+  var ln = sp.attr("num"); 
+  return [fn, ln];
 };
 
 var getHashLine = function(){
   var hash = location.hash;
   if (hash){
-    var lineName = hash.substring(1);
-    var line     = lineSpans[lineName];
-    return line;
+    var fl = hash.substring(1)
+                 .split("-")
+                 .map(function(z){return parseInt(z)});
+    return lineSpans[fl];
   };
   return null;
 };
 
 var getVarInfo = function(x){ 
-  return (getVarName(x) + " at line: " + getLine(x)); 
+  var fln      = getLine(x);
+  var fileName = getFile(fln[0]);
+  var line     = fln[1];
+  return (getVarName(x) + " at line: " + line + " file: " + fileName); 
 };
 
 /****************************************************************/
@@ -60,20 +66,22 @@ var qualDef = function(n){
   return (csolveData.qualDef[n]); 
 };
 
-var genericAnnotVarLine = function(v, i){
-  var a = csolveData.genAnnot;
+var genericAnnotVarLine = function(v, file, line){
+  var a  = csolveData.genAnnot;
   a.name = "No Information for " + v;
+  a.file = file;
+  a.line = line;
   return a;
 } 
 
-var annotVarLine = function(v, i) {
-  var a = genericAnnotVarLine(v, i);
+var annotVarLine = function(v, file, line) {
+  var a = genericAnnotVarLine(v, file, line);
   if (v in csolveData.varAnnot) {
-    if (i in csolveData.varAnnot[v]) {
-      a = csolveData.varAnnot[v][i];
+    if (file in csolveData.varAnnot[v]) {
+      if (line in csolveData.varAnnot[v][file]) {
+      a = csolveData.varAnnot[v][file][line];
     }
   }
-  a.line = i;
   return a;
 };
 
@@ -102,7 +110,9 @@ var listExists = function(f, xs){
 var makeErrorLines = function(){
   csolveData.errorLines = {};
   for (j in csolveData.errors) {
-    csolveData.errorLines[csolveData.errors[j].line] = true;
+    var loc = csolveData.errors[j];
+    var fln = [loc.file, loc.line];
+    csolveData.errorLines[fln] = true;
   };
 }
 
@@ -110,6 +120,11 @@ var isErrorLine = function(i){
   return (i in csolveData.errorLines);
 };
 
+var getFile = function(fi){
+  var fn = csolveData.files[fi];
+  if (fn) { return fn; }
+  return "Unknown File!";
+}
 
 /****************************************************************/
 /************ Dressing Up the Templates *************************/ 
@@ -123,7 +138,9 @@ var expanderSymbol = function( tmplItem ) {
 };
 
 var varOfvarid = function (vid) { 
-  if (vid in csolveData.varDef) { return csolveData.varDef[vid]; };
+  if (vid in csolveData.varDef) { 
+    return csolveData.varDef[vid]; 
+  };
   return null;
 };
 
@@ -135,7 +152,25 @@ var varnameOfvarid = function (vid) {
 
 var lineOfvarid = function(vid) {
   var v = varOfvarid(vid);
-  if (v) { return v.varLoc.line; };
+  if (v && v.varLoc) { 
+    return v.varLoc.line; 
+  };
+  return null;
+}
+
+var anchorOfvarLoc = function(loc) {
+  if (loc){
+    return (loc.file.toString() + "-" + loc.line.toString());
+  };
+  return null;
+}
+
+var anchorOfvarid = function(vid) {
+  var v = varOfvarid(vid);
+  if (v) {
+    if (v && v.varLoc) {
+    return anchorOfvarLoc(v.varLoc);
+  };
   return null;
 }
 
@@ -144,8 +179,10 @@ var lineOfvarid = function(vid) {
 /****************************************************************/
 
 var hilitError = function(line){ 
-  var lineNum = $(line).attr("num"); 
-  if (isErrorLine(lineNum)) {
+  var fn  = $(line).attr("file");
+  var ln  = $(line).attr("num"); 
+  var fln = [fn, ln];
+  if (isErrorLine(fln)) {
     $(line).addClass("errLine");
   };
 };
@@ -174,22 +211,22 @@ $(document).ready(function(){
     $(this).text(toggleText[$(this).text()]);
   });
 
-
-
   //Hover-Highlights Variables and Functions
   $("span[class='n']").hover(yellowOn, yellowOff);
   $("span[class='nf']").hover(yellowOn, yellowOff);
  
-  //Generate tooltips for each ident, place after ident 
+  //Generate tooltips for each identifier, place after identifier 
   //http://flowplayer.org/tools/demos/tooltip/any-html.html
   $("span[class='n']").each(function(){
     var name    = getVarName(this);
     var lineNum = getLine(this);
+    var file    = lineNum[0];
+    var line    = lineNum[1];
     var annot   = annotFun(name);
     if (annot) {
       $("#annotfTooltipTemplate").tmpl(annot).insertAfter(this);
     } else {
-      annot = annotVarLine(name, lineNum); 
+      annot = annotVarLine(name, file, line); 
       $("#annotvTooltipTemplate").tmpl(annot).insertAfter(this);
     };
   });
@@ -243,25 +280,21 @@ $(document).ready(function(){
   //Render Cones
   $("#conesTemplate").tmpl(errorCones()).appendTo("#errorcones") ;
   $("#errorcones").delegate(".coneExpand", "click", function(){ toggleCone(this);});
-
-  //$("#movieTemplate" ).tmpl( movies ).appendTo( "#movieList" );
-
   
   //Nuke identifiers on click
   //$("span[class='n']").click(function(event){
   //  $(this).hide("slow");
   //});
 
-  //Show Variable Info on click
-  //$("span[class='n']").click(function(event){
-  //  $("#msg").text("Variable " + getVarInfo(this));
-  //});
+  Show Variable Info on click
+  $("span[class='n']").click(function(event){
+    $("#msg").text("Variable " + getVarInfo(this));
+  });
 
   //Show Function Info on click
   //$("span[class='nf']").click(function(event){
   //  $("#msg").text("Function " + getVarInfo(this));
   //});
-
 
   //Click "selects" a line
   //$("a[class='linenum']").click(function(evt){
