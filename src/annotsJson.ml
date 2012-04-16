@@ -50,7 +50,7 @@ type varid = string
 
 type srcLoc = 
   { line : int
-  ; file : string 
+  ; file : int 
   }
 
 type vardef  = 
@@ -94,6 +94,7 @@ type json =
   ; varAnnot : (annotv IM.t) SSM.t 
   ; funAnnot : annotf SSM.t
   ; cones    : (srcLoc Ast.Cone.t) list
+  ; files    : int SSM.t
   }
 
 let junkUrl   = ""
@@ -129,7 +130,7 @@ let d_varid = d_str
 let d_binder () b = PP.dprintf "\"%a\"" Ct.d_binder b
 
 let d_srcLoc () e = 
-  PP.dprintf "{ line : %d }" e.line
+  PP.dprintf "{ line : %d, file : %d }" e.line e.file
 
 let d_vardef () d = 
   PP.dprintf "{ varLoc  : %a
@@ -189,14 +190,20 @@ let d_annotf () f =
    (d_array d_annotv) f.args
    d_annotv           f.ret
 
-
 let rec d_cone () = function
   | A.Cone.Empty    
   -> PP.text "null"
   | A.Cone.Cone xcs 
   -> d_array begin fun () (l, c) ->
-       PP.dprintf "{ line : %d, file : \"%s\", cone : %a }" l.line l.file d_cone c
+       PP.dprintf "{ loc : %a, cone : %a }" d_srcLoc l d_cone c
      end () xcs
+
+let d_files () fm = 
+  fm |> SSM.to_list 
+     |> Misc.fsort snd 
+     |>: fst 
+     |> d_array (fun () -> PP.dprintf "\"%s\"") ()
+
 
 let d_json () x = 
   PP.dprintf 
@@ -207,6 +214,7 @@ let d_json () x =
    , genAnnot : @[%a@]
    , varAnnot : @[%a@] 
    , funAnnot : @[%a@]
+   , files    : @[%a@]
    }"
     (d_array d_srcLoc)     x.errors
     (d_sm d_qdef)          x.qualDef
@@ -215,10 +223,25 @@ let d_json () x =
     (d_annotv)             x.genAnnot
     (d_sm (d_im d_annotv)) x.varAnnot
     (d_sm d_annotf)        x.funAnnot
+    d_files                x.files
 
 (*******************************************************************)
 (************* Conversions *****************************************) 
 (*******************************************************************)
+
+(*
+let srcLoc_of_location, files =
+  let t = Hashtbl.create 7 in
+  let n = ref 0            in
+  let fileId f = FixMisc.do_memo ft (fun _ -> n =+ 1) f f in
+  ( fun l -> { line = l.Cil.line; file = fileId l.Cil.file } )
+*)
+
+let srcLoc_of_location fm l =
+  let f   = l.Cil.file in 
+  let fid = try SSM.find f fm with Not_found -> 
+    Errormsg.s <| Errormsg.error "srcLoc_of_location: unknown file %s" f 
+  in { line = l.Cil.line; file = fid }
 
 (* TODO: rename locals to drop SSA/fun-name *)
 let d_cilexp_tidy = Cil.d_exp
@@ -231,13 +254,11 @@ let doc_of_instr = function
 
 let expr_of_instr = PP.sprint ~width:80 <.> doc_of_instr
 
-let srcLoc_of_location l = { line = l.Cil.line; file = l.Cil.file }
-
-let srcLoc_of_constraint tgr c = 
+let srcLoc_of_constraint fm tgr c = 
   c |> FixConstraint.tag_of_t 
     |> CilTag.t_of_tag
     |> CilTag.loc_of_t tgr
-    |> srcLoc_of_location 
+    |> srcLoc_of_location fm
  
 (*******************************************************************)
 (************* Build Map from var-line -> ssavar *******************)
@@ -306,6 +327,11 @@ let mkVarLineSsavarMap bs : (Sy.t IM.t) SSM.t =
           put x line (FixAstInterface.name_of_string xssa) m 
         end SSM.empty
 
+let mkFileMap fs =
+  Misc.range 0 (List.length fs) 
+  |> List.combine fs 
+  |> SSM.of_list
+
 let mkAbbrev bs =
   bs |> Misc.flap begin function
           | An.TSSA (fn, t) -> 
@@ -322,7 +348,7 @@ let mkSyInfoMap bs =
 
 let varid_of_varinfo v = v.Cil.vname
 
-let vardef_of_rhss abbrev v rs =
+let vardef_of_rhss fm abbrev v rs =
   let vid   = varid_of_varinfo v in
   let vs_es = Misc.either_partition begin function 
                 | (_, An.AsgnV v') -> Left v'
@@ -332,7 +358,7 @@ let vardef_of_rhss abbrev v rs =
   | ([], [(l, e)]) ->
     { varId   = vid
     ; varName = abbrev vid 
-    ; varLoc  = Some (srcLoc_of_location l)
+    ; varLoc  = Some (srcLoc_of_location fm l)
     ; varExpr = Some (expr_of_instr e)
     ; varDeps = [] 
     }
@@ -346,9 +372,9 @@ let vardef_of_rhss abbrev v rs =
   | _ -> 
       Errormsg.s <| Errormsg.error "vardef_of_rhss: v=%s" v.Cil.vname
 
-let mkVarDef abbrev (bs : An.binding list) =
+let mkVarDef fm abbrev (bs : An.binding list) =
   bs |> Misc.map_partial (function An.TAsg (v, rs) -> Some (v, rs) | _ -> None)
-     |> Misc.map (fun (v, rs) -> (v.Cil.vname, vardef_of_rhss abbrev v rs))
+     |> Misc.map (fun (v, rs) -> (v.Cil.vname, vardef_of_rhss fm abbrev v rs))
      |> SSM.of_list
 
 (*******************************************************************)
@@ -356,8 +382,8 @@ let mkVarDef abbrev (bs : An.binding list) =
 (*******************************************************************)
 
   
-let mkErrors tgr = 
-  List.map (srcLoc_of_constraint tgr)
+let mkErrors fm tgr = 
+  List.map (srcLoc_of_constraint fm tgr)
 
 let mkQualdef q = 
   let qn = Sy.to_string <| Q.name_of_t q in
@@ -382,40 +408,56 @@ let mkFunAnnot abbrev s bs =
      |> SSM.of_list
      |> SSM.mapi (fun fn x -> annot_of_finfo abbrev s (fn, x))
 
-let mkCones = List.map (Ast.Cone.map srcLoc_of_location)
+let mkCones fm = List.map (Ast.Cone.map (srcLoc_of_location fm))
 
-let bindsToJson qs tgr s cs cones binds =
+let bindsToJson files qs tgr s cs cones binds =
+  let fm     = mkFileMap files in
   let abbrev = mkAbbrev binds in
-  { errors   = mkErrors tgr cs
+  { errors   = mkErrors fm tgr cs
   ; qualDef  = mkQualdefm qs
-  ; varDef   = mkVarDef abbrev binds
+  ; varDef   = mkVarDef fm abbrev binds
   ; genAnnot = junkAnnot
   ; varAnnot = mkVarAnnot abbrev s binds
   ; funAnnot = mkFunAnnot abbrev s binds
-  ; cones    = mkCones cones  
+  ; cones    = mkCones fm cones  
+  ; files    = fm
   }
 
 (*******************************************************************)
 (************* API *************************************************)
 (*******************************************************************)
 
-let dump_annots qs tgr s' cs' cones binds : unit =
-  let f = !Co.csolve_file_prefix^".json" in
-  let d = d_json () <| bindsToJson qs tgr s' cs' cones binds in
-  Misc.with_out_file f (fun oc -> Pretty.fprint ~width:80 oc d)
+let json_file () = !Co.csolve_file_prefix^".json"
+let html_file () = !Co.csolve_file_prefix^".html"
 
-let dump_html qs tgr s' cs' cones binds : unit =
+let dump_annots files qs tgr s' cs' cones binds : unit =
+  Misc.with_out_file (json_file ()) begin fun oc -> 
+    bindsToJson files qs tgr s' cs' cones binds
+    |> d_json ()
+    |> Pretty.fprint ~width:80 oc
+  end
+
+let srcs_to_html files = 
+  let c2html = Co.get_c2html ()                                        in
+  let json   = json_file ()                                            in
+  let html   = html_file ()                                            in
+  let srcs   = String.concat " " files                                 in 
+  Sys.command <| Printf.sprintf "%s -j %s -o %s %s" c2html json html srcs
+ 
+(* API *)
+let dump_html files qs tgr s' cs' cones binds : unit =
   (* 1. Dump JSON Annots *)
-  dump_annots qs tgr s' cs' cones binds;
+  dump_annots files qs tgr s' cs' cones binds;
   (* 2. Render HTML *)
-  Sys.command (Printf.sprintf "%s %s" (Co.get_c2html ()) (!Co.csolve_file_prefix))
+  srcs_to_html files
+  (* 3. Wave Goodbye *)
   |> (function 0 -> Errormsg.log  "DONE: Generated Annotated HTML" 
              | e -> Errormsg.warn "WARNING: Failed To Generate Annotated Html %d" e)
 
-(* API *)
-let dump_html qs tgr s' cs' cones binds : unit = 
+(*
+let dump_html files qs tgr s' cs' cones binds : unit = 
   if Misc.is_suffix ".c" !Co.csolve_file_prefix then
     dump_html qs tgr s' cs' cones binds
   else
     ignore <| Errormsg.log "SKIP: Multiple Files: Not generating Annotated HTML."
-
+*)

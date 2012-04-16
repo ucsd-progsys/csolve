@@ -133,7 +133,8 @@ val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
 *)
-val reachable: Cil.file -> string -> bool
+val reachable     : Cil.file -> string -> bool
+val source_files  : Cil.file -> string list
 
 val iterExprs: Cil.file -> (Cil.exp -> bool) -> unit
 (*

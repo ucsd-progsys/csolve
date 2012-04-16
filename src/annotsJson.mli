@@ -32,7 +32,8 @@ val dump_annots :  Qualifier.t list
                 -> unit
 *)
 
-val dump_html   :  Qualifier.t list 
+val dump_html   :  string list
+                -> Qualifier.t list 
                 -> CilTag.o 
                 -> FixConstraint.soln
                 -> FixConstraint.t list

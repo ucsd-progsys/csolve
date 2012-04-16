@@ -7,48 +7,24 @@ PENDING
 
 * chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
 
-Multi-file Errors
------------------
-
-- flatten into single html file.
-
-//sort by file-size?
-
-/* file1.c */
-    1:
-    2:
-    3:
-    ...
-
-/* file2.c */
-    1:
-    2:
-    3:
-    ...
-
-/* file3.c */
-    1:
-    2:
-    3:
-    ...
-
-etc.
-
-THIS IS WHERE WE ARE
+Multi-file HTML
+---------------
 
 * Hack cs2html.py to take in 
     - list of source-files (*c, *h etc.)
     - process each file ASNOW 
         - but add file name <h2>filename</h2> at start
-        - but wrap line number span with filename
+        - but wrap line number span with fileIDX-lineIDX 
     - cat the above into a SINGLE giant html chunk
     - put in JSON ASNOW
 
-* Hack csolve.js to replace all "line" links with "line+file" links
-    - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
+HEREHEREHEREHEREHERE
 
 * Hack annotJson.ml so that
     - filename is rendered with srcLoc everywhere
+
+* Hack csolve.js to replace all "line" links with "line+file" links
+    - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
 
 
 Counterexamples (to be continued) 

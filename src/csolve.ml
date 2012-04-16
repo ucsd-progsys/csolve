@@ -273,17 +273,17 @@ let cil_transform_phase_1 file =
 let cil_transform_phase_2 file = 
   file >> rename_locals
        >> (CilMisc.varExprMap <+> ignore)
-    (* >> dump_globals *)
 
-let dump_annots qs tgr res =
+let dump_annots cil qs tgr res =
   let s     = res.FI.soln                                           in
   let cs    = res.FI.unsats                                         in
   let cones = res.FI.ucones |>: (Ast.Cone.map (loc_of_tag tgr))     in 
   let binds = Annots.dump_bindings ()                               in
+  let files = CilMisc.source_files cil                              in
   (* 1. Dump Text Annots *)
   Annots.dump_annots (Some s);
   (* 2. Dump HTML Annots *)
-  AnnotsJson.dump_html qs tgr s cs cones binds
+  AnnotsJson.dump_html files qs tgr s cs cones binds
 
 let dumpFile cil = 
   let log = open_out "csolve.save.c" in
@@ -312,7 +312,7 @@ let liquidate cil =
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
-  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs tgr res in
+  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots cil qs tgr res in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs res.FI.soln in
   let _         = print_unsat_locs tgr res in
   let _         = BS.print log "\nCSolve Time \n" in

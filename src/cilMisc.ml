@@ -573,6 +573,9 @@ let fdec_of_name cil fn =
   |> List.filter (function GFun (f,_) -> f.svar.vname = fn | _ -> false)
   |> (function GFun (f,_) :: _ -> f.svar | _ ->  assertf "fdec_of_name: Unknown function: %s \n" fn)
 
+
+
+
 let reachable cil =
   match !Constants.root with 
   | "" -> 
@@ -586,6 +589,14 @@ let reachable cil =
       |> SM.of_list
       |> Misc.flip SM.mem 
 
+
+(* API *)
+let source_files file : string list = 
+  let t = Hashtbl.create 7 in
+  iterGlobals file begin fun g -> 
+    Hashtbl.replace t (get_globalLoc g).file ()
+  end;
+  Misc.hashtbl_keys t
 
 (****************************************************************************************)
 (************** Error Message Wrappers **************************************************)
