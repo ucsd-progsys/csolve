@@ -94,7 +94,7 @@ def padLineNum(size, i):
   pad   = "&nbsp;" * (size - isize)
   return (pad + str(i))
 
-def lineToHtml(fi, fn, li, pad, line):
+def lineToHtml(fi, li, pad, line):
   anch = anchTplt.substitute(filenum = fi, linenum = li)
   return lineTplt.substitute(filenum = fi, linenum = li, padlinenum = pad, lineanch = anch, line = line)
 

@@ -443,8 +443,10 @@ let srcs_to_html files =
   let json   = json_file ()                                            in
   let html   = html_file ()                                            in
   let srcs   = String.concat " " files                                 in 
-  Sys.command <| Printf.sprintf "%s -j %s -o %s %s" c2html json html srcs
- 
+  Printf.sprintf "%s -j %s -o %s %s" c2html json html srcs
+  >> (fun cmd -> print_now ("Generate HTML: "^cmd^"\n"))
+  |> Sys.command
+
 (* API *)
 let dump_html files qs tgr s' cs' cones binds : unit =
   (* 1. Dump JSON Annots *)
