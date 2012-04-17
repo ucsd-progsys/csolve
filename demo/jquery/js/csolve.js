@@ -45,7 +45,9 @@ var getHashLine = function () {
 
 var getFile = function (fi) {
   var fn = csolveData.files[fi];
-  if (fn) { return fn; }
+  if (fn) { 
+    return fn; 
+  };
   return "Unknown File!";
 };
 
@@ -81,9 +83,10 @@ var annotVarLine = function (v, file, line) {
   if (v in csolveData.varAnnot) {
     if (file in csolveData.varAnnot[v]) {
       if (line in csolveData.varAnnot[v][file]) {
-      a = csolveData.varAnnot[v][file][line];
-    }
-  }
+        a = csolveData.varAnnot[v][file][line];
+      };
+    };
+  };
   return a;
 };
 
@@ -96,18 +99,20 @@ var annotFun = function (fn) {
       a.argOne  = true;
     } else {
       a.argMany = true;
-    }
+    };
     return a;
   }
   return null;
-}
+};
 
 var listExists = function (f, xs) {
   for (var i = 0; i < xs.length; i++) {
-    if (f(xs[i])){ return true; };
+    if (f(xs[i])){ 
+      return true; 
+    };
   };
   return false;
-}
+};
 
 var makeErrorLines = function () {
   csolveData.errorLines = {};
@@ -116,7 +121,7 @@ var makeErrorLines = function () {
     var fln = [loc.file, loc.line];
     csolveData.errorLines[fln] = true;
   };
-}
+};
 
 var isErrorLine = function (i) {
   return (i in csolveData.errorLines);
@@ -152,23 +157,22 @@ var lineOfvarid = function (vid) {
     return v.varLoc.line; 
   };
   return null;
-}
+};
 
 var anchorOfvarLoc = function (loc) {
   if (loc){
     return (loc.file.toString() + "-" + loc.line.toString());
   };
   return null;
-}
+};
 
 var anchorOfvarid = function (vid) {
   var v = varOfvarid(vid);
-  if (v) {
-    if (v && v.varLoc) {
+  if (v && v.varLoc) {
     return anchorOfvarLoc(v.varLoc);
   };
   return null;
-}
+};
 
 /****************************************************************/
 /**************** Changing Display On Click Etc. ****************/
@@ -193,7 +197,7 @@ var toggleCone = function (x) {
   var tmplItem = $.tmplItem(x);
   tmplItem.data.expanded = !tmplItem.data.expanded;
   tmplItem.update(); 
-}
+};
 
 /****************************************************************/
 /**************** Top Level Rendering ***************************/
