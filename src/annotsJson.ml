@@ -132,18 +132,22 @@ let d_binder () b = PP.dprintf "\"%a\"" Ct.d_binder b
 let d_srcLoc () e = 
   PP.dprintf "{ line : %d, file : %d }" e.line e.file
 
+let exprString = CilMisc.pretty_to_string (d_opt d_expr) <+> String.escaped
+
 let d_vardef () d = 
   PP.dprintf "{ varLoc  : %a
               , varId   : %a
               , varName : %a
-              , varExpr : %a
+              , varExpr : %s
               , varDeps : %a 
               }"
   (d_opt d_srcLoc)  d.varLoc
   (d_varid)         d.varId
   d_str             d.varName
-  (d_opt d_expr)    d.varExpr
+  (exprString       d.varExpr)
   (d_array d_varid) d.varDeps
+
+
 
 let d_qarg () a = 
   PP.dprintf
