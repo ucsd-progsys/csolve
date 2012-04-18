@@ -10,21 +10,26 @@ PENDING
 Multi-file HTML
 ---------------
 
-* Hack cs2html.py to take in 
-    - list of source-files (*c, *h etc.)
-    - process each file ASNOW 
-        - but add file name <h2>filename</h2> at start
-        - but wrap line number span with fileIDX-lineIDX 
-    - cat the above into a SINGLE giant html chunk
-    - put in JSON ASNOW
-
-* Hack annotJson.ml so that
-    - filename is rendered with srcLoc everywhere
-
-* Hack csolve.js to replace all "line" links with "line+file" links
-    - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
-
 HEREHEREHEREHERE
+
+- Extend VarExprMap to write a function cleanup: 
+    Cil.expr -> Cil.expr 
+    st.
+    cleanup(*(x+4)) =====>  x->data
+
+- Nice error messages: line 223, dereference 
+    *tmp78
+  
+  where cleanup(*tmp78) =====> x->foo->bar
+  render error: 
+  
+    line 223, dereference x->foo->bar not safe.
+
+- Persistent Windows on Variable Click (with same info as hover)
+
+- Links to definitions (like CTAGS): for all globvars, funs, vars(?)
+
+
 
 * TESTING
 
