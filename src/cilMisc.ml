@@ -931,35 +931,43 @@ end
 
 let fieldOfTypeIndex = 
   let t = Hashtbl.create 37 in
-  begin function ((TPtr ((TComp (ci,_) as ty), _)), n) ->
-    if Hashtbl.mem t (ci.cname, 0) then 
-      try Some (Hashtbl.find t (ci.cname, n)) with Not_found -> None
-    else
-      ci.cfields 
-      |> List.map  (fun fi -> (bytesOffset ty (Field (fi, NoOffset)), fi))
-      >> List.iter (fun (n, fi) -> Hashtbl.add t (ci.cname, n) fi)
-      |> Misc.list_assoc_maybe n
+  begin fun (ty', n) ->
+    match unrollTypeDeep ty' with
+    | TPtr ((TComp (ci,_) as ty), _) ->
+       if Hashtbl.mem t (ci.cname, 0) then 
+         try Some (Hashtbl.find t (ci.cname, n)) with Not_found -> None
+       else begin
+         ci.cfields
+         |> List.map  (fun fi -> (bytesOffset ty (Field (fi, NoOffset)), fi))
+         >> List.iter (fun (n, fi) -> E.log "fieldsAt: %s at %d is %s \n" ci.cname n fi.fname)
+         >> List.iter (fun (n, fi) -> Hashtbl.add t (ci.cname, n) fi)
+         |> Misc.list_assoc_maybe n
+       end
+    | _ -> None
   end
+
+let d_field () fi = Pretty.dprintf "%s" fi.fname
+
+(*
+let fieldOfTypeIndex (ty, n) = 
+  fieldOfTypeIndex (ty, n)
+  >> E.log "fieldOfTypeIndex: ty = %a, n = %d, fio = %a \n" d_type ty n (d_opt d_field) 
+*)
 
 let prettyDerefVar su v = 
   match VarMap.maybe_find v su with
-  (* | Some (BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)) ->
-      (* IF v ---> (_)e + n) THEN *v ===> "e -> fld where fld = FLD(typOf(e), n) *)
-      begin match fieldOfTypeIndex (typeOf e, n) with 
+  | Some (BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)) ->
+      (* IF v ---> (_)e + n) THEN *v ===> e -> fld where fld = FLD(typOf(e), n) *)
+      begin match fieldOfTypeIndex (typeOf e, Int64.to_int n) with 
              | Some fld -> Some (Mem e, Field (fld, NoOffset))
              | _        -> None
-      end 
-      *)
-  | _ -> 
-      (* IF v ---> ??? THEN *v ===> "v -> fld where fld = FLD(typOf(v), 0) *)
+      end
+  | None -> 
+      (* IF v ---> ??? THEN *v ===> v -> fld where fld = FLD(typOf(v), 0) *)
       begin match fieldOfTypeIndex (v.vtype, 0) with 
              | Some fld -> Some (Mem (Lval (Var v, NoOffset)), Field (fld, NoOffset))
              | _        -> None
       end 
-  | None    -> E.s <| E.error "What the fck: thisd asdkasdjaosdij asdasdad" 
- (* | Some _  -> E.s <| E.error "adfaf;afpaf"
-    | Some e  -> E.s <| Errormsg.error "prettyDerefVar: v = %s, e = %a" v.vname d_exp e 
-  *)
 
 class prettyLvalMapVisitor su lvmr = object(self)
   inherit nopCilVisitor
@@ -968,9 +976,8 @@ class prettyLvalMapVisitor su lvmr = object(self)
     -> begin match prettyDerefVar su v with 
              | Some lv' ->  
                  let _ = lvmr := VarMap.adds v [lv'] !lvmr in
-                 let _ = Errormsg.log "prettyLval: lv = %a, lv' = %a \n" 
-                         d_lval lv d_lval lv' 
-                 in SkipChildren
+                 (* let _ = E.log "prettyLval: lv = %a, lv' = %a \n" d_lval lv d_lval lv' *)
+                 SkipChildren
              | _        -> 
                  SkipChildren
        end
