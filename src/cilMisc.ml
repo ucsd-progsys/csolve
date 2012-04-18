@@ -899,16 +899,15 @@ let noBlockAttrPrinter = new noBlockAttrPrinterClass
 
 (******************************************************************************)
 (***************** Reconstructing Original Source from Temps ******************)
-(******************************************************************************)
+(************************************************************************)
 
 class substVisitor (su : Cil.exp VarMap.t) = object(self)
   inherit nopCilVisitor
-  method vlval = function
-    | (Var v, off) when VarMap.mem v su -> 
-        ChangeTo (Mem (VarMap.find v su), off)
-    | _   -> 
+  method vexpr = function
+    | Lval (Var v, NoOffset) when VarMap.mem v su ->
+        ChangeTo (VarMap.find v su)
+    | _ -> 
         DoChildren
-
 end
 
 (* API *)
@@ -916,8 +915,10 @@ let substCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
   visitCilExpr (new substVisitor su) e 
 
 let updVarMap sur v e =
-  let e = e |> exprStripAttrs |> exprStripCasts |> substCilExpr !sur in
-  sur := VarMap.add v e !sur 
+  e |> exprStripAttrs 
+    (* |> exprStripCasts *) 
+    |> substCilExpr !sur
+    |> (fun e -> sur := VarMap.add v e !sur)
 
 class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
   inherit nopCilVisitor
@@ -928,6 +929,57 @@ class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
         DoChildren
 end
 
+let fieldOfTypeIndex = 
+  let t = Hashtbl.create 37 in
+  begin function ((TPtr ((TComp (ci,_) as ty), _)), n) ->
+    if Hashtbl.mem t (ci.cname, 0) then 
+      try Some (Hashtbl.find t (ci.cname, n)) with Not_found -> None
+    else
+      ci.cfields 
+      |> List.map  (fun fi -> (bytesOffset ty (Field (fi, NoOffset)), fi))
+      >> List.iter (fun (n, fi) -> Hashtbl.add t (ci.cname, n) fi)
+      |> Misc.list_assoc_maybe n
+  end
+
+let prettyDerefVar su v = 
+  match VarMap.maybe_find v su with
+  (* | Some (BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)) ->
+      (* IF v ---> (_)e + n) THEN *v ===> "e -> fld where fld = FLD(typOf(e), n) *)
+      begin match fieldOfTypeIndex (typeOf e, n) with 
+             | Some fld -> Some (Mem e, Field (fld, NoOffset))
+             | _        -> None
+      end 
+      *)
+  | _ -> 
+      (* IF v ---> ??? THEN *v ===> "v -> fld where fld = FLD(typOf(v), 0) *)
+      begin match fieldOfTypeIndex (v.vtype, 0) with 
+             | Some fld -> Some (Mem (Lval (Var v, NoOffset)), Field (fld, NoOffset))
+             | _        -> None
+      end 
+  | None    -> E.s <| E.error "What the fck: thisd asdkasdjaosdij asdasdad" 
+ (* | Some _  -> E.s <| E.error "adfaf;afpaf"
+    | Some e  -> E.s <| Errormsg.error "prettyDerefVar: v = %s, e = %a" v.vname d_exp e 
+  *)
+
+class prettyLvalMapVisitor su lvmr = object(self)
+  inherit nopCilVisitor
+  method vlval lv = match lv with 
+    | Mem (CastE (_, (Lval (Var v, NoOffset)))), NoOffset (* *((T) x) *)
+    -> begin match prettyDerefVar su v with 
+             | Some lv' ->  
+                 let _ = lvmr := VarMap.adds v [lv'] !lvmr in
+                 let _ = Errormsg.log "prettyLval: lv = %a, lv' = %a \n" 
+                         d_lval lv d_lval lv' 
+                 in SkipChildren
+             | _        -> 
+                 SkipChildren
+       end
+    | _ -> 
+       DoChildren
+end
+
+
+
 let d_varExpr () (v, e) = 
   Pretty.dprintf "%a <- %a" d_var v Cil.d_exp e
 
@@ -936,9 +988,11 @@ let d_varExprMap () m =
 
 (* API *)
 let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
-  let sur = ref VarMap.empty                       in
-  let _   = visitCilFile (new tmpVarVisitor sur) f in
-  let _   = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
+  let sur  = ref VarMap.empty                                      in
+  let _    = visitCilFile (new tmpVarVisitor sur) f                in
+  let lvmr = ref VarMap.empty                                      in
+  let _    = visitCilFile (new prettyLvalMapVisitor !sur lvmr) f   in 
+  let _    = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
   !sur
 
 (***************************************************************************)

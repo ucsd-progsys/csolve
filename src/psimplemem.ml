@@ -76,6 +76,12 @@ let rec separate_loffsets lo =
       Field(fi,s) , m
   | Index(_) -> NoOffset, lo
 
+let addOffsetLval_DEBUG o lv =
+  let lv' = addOffsetLval o lv in
+  let _   = Errormsg.log "addOffsetLval : o = %a, lv = %a, lv' = %a \n" 
+            (d_offset Pretty.nil) o d_lval lv d_lval lv' 
+  in lv' 
+
 (* Recursively decompose the lvalue so that what is under a "Mem()"
  * constructor is put into a temporary variable. *)
 let rec handle_lvalue (lb,lo) = 
@@ -96,8 +102,16 @@ let rec handle_lvalue (lb,lo) =
 and handle_loffset lv lo = 
   match lo with
     NoOffset -> lv
-  | Field(f,o) -> handle_loffset (addOffsetLval (Field(f,NoOffset)) lv) o
-  | Index(exp,o) -> handle_loffset (addOffsetLval (Index(exp,NoOffset)) lv) o
+  | Field(f,o) ->  handle_loffset (addOffsetLval_DEBUG (Field(f,NoOffset)) lv) o
+  | Index(exp,o) -> handle_loffset (addOffsetLval_DEBUG (Index(exp,NoOffset)) lv) o
+
+
+let handle_lvalue_DEBUG lv = 
+  let lv' = handle_lvalue lv in
+  let _   = Errormsg.log "handle_lvalue: lv = %a, lv' = %a \n" 
+            d_lval lv d_lval lv' 
+  in lv' 
+
 
 (* the transformation is implemented as a Visitor *)
 class simpleVisitor = object 
@@ -108,7 +122,7 @@ class simpleVisitor = object
     DoChildren
 
   method vlval lv = 
-    ChangeDoChildrenPost(lv, (fun lv -> handle_lvalue lv))
+    ChangeDoChildrenPost(lv, (fun lv -> handle_lvalue_DEBUG lv))
 
   method vexpr = function
     | SizeOf _ | SizeOfE _ | AlignOf _ | AlignOfE _ | SizeOfStr _ ->
