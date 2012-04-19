@@ -999,6 +999,7 @@ class substVisitor (su : Cil.exp VarMap.t) = object(self)
         DoChildren
 end
 
+(* API *)
 let reSugarCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
   e |> visitCilExpr (new substVisitor su)
     |> visitCilExpr (new fieldDerefVisitor)
