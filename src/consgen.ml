@@ -26,7 +26,6 @@
 module Misc = FixMisc 
 module E  = Errormsg
 module ST = Ssa_transform
-
 module FI = FixInterface 
 module FA = FixAstInterface 
 module CF = ConsInfra
@@ -179,11 +178,7 @@ let is_loc_type_fixed sts l = match Sloc.SlocMap.find l sts with
   | Ctypes.HasShape | Ctypes.IsSubtype -> false
 
 (* API *)
-let create cil spec decs =
-  let scim   = ST.scim_of_decs decs  in
-  let _      = E.log "\nDONE: SSA conversion \n" in
-  let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
-  let _      = E.log "\nDONE: TAG initialization\n" in
+let create cil spec decs scim tgr =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
   let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
@@ -203,7 +198,6 @@ let create cil spec decs =
   let sts    = CS.locspectypes spec in
   let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
   let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
-  (* let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in *)
-  (tgr, cons_of_decs tgr spec gnv gst decs
-        |> Consindex.create
-        |> cons_of_scis tgr gnv gst scim (Some shm))
+  cons_of_decs tgr spec gnv gst decs
+  |> Consindex.create
+  |> cons_of_scis tgr gnv gst scim (Some shm)

@@ -184,8 +184,10 @@ val noBlockAttrPrinter : Cil.cilPrinter
 
 val typStripAttrs  : Cil.typ  -> Cil.typ
 val exprStripAttrs : Cil.exp  -> Cil.exp
-val varExprMap  : Cil.file -> Cil.exp VarMap.t
+(* val varExprMap     : Cil.file -> Cil.exp VarMap.t *)
 
+val reSugarExp     : Cil.exp VarMap.t -> Cil.exp -> Cil.exp
+val varExprMap     : Cil.fundec list -> Cil.exp VarMap.t
 
 (****************** Preserving Source Maps *************************)
 

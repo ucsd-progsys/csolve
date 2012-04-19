@@ -37,10 +37,10 @@ open Misc.Ops
 
 type t = FixConstraint.tag (* {v: int list | len v = 4 && Hashtbl.mem invt v} *)
                            (* Each t is a [callgraph rank; block_id; instr_id; fname_id] *)
-type o = {
-  funm : int SM.t;
-  blkm : int SIM.t;
-}
+type o = { vem  : Cil.exp CilMisc.VarMap.t
+         ; funm : int SM.t
+         ; blkm : int SIM.t; 
+         }
 
 let invt : (t, Cil.location * string * int) H.t = H.create 37
 
@@ -124,6 +124,8 @@ let fname_of_t  = fun me t -> H.find invt t |> snd3
 let block_of_t  = fun me t -> H.find invt t |> thd3
 let tag_of_t    = fun t -> t
 let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t 
+let reSugar     = fun me -> CilMisc.reSugarExp me.vem 
+
 
 (* API *)
 let make_t me loc fn blk instr =
@@ -141,5 +143,14 @@ let make_global_t =
       ([!glob_index; -1; -1; -1], "global")
       >> Misc.flip (H.replace invt) (loc, "global", 0)
 
+let make_vem scis = 
+  scis |>: (fun sci -> sci.Ssa_transform.fdec) |> CilMisc.varExprMap
+
+
 (* API *)
-let create = fun scis -> {funm = create_funm scis; blkm = create_blkm scis;}
+let create scis = 
+  { vem  = make_vem scis  
+  ; funm = create_funm scis
+  ; blkm = create_blkm scis
+  }
+

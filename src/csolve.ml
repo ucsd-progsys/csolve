@@ -39,8 +39,8 @@ module Sp  = Ctypes.RefCTypes.Spec
 module RCt = Ctypes.RefCTypes
 module U   = Unix
 module S   = Sys
+module ST = Ssa_transform
 module CM  = CilMisc
-
 module Misc = FixMisc 
 module SM = Misc.StringMap
 module SS = Misc.StringSet
@@ -272,7 +272,7 @@ let cil_transform_phase_1 file =
 
 let cil_transform_phase_2 file = 
   file >> rename_locals
-       >> (CilMisc.varExprMap <+> ignore)
+       (* >> (CilMisc.varExprMap <+> ignore) *)
 
 let dump_annots cil qs tgr res =
   let s     = res.FI.soln                                           in
@@ -308,7 +308,11 @@ let liquidate cil =
   let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
-  let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
+  let scim      = ST.scim_of_decs decs  in 
+  let _         = E.log "\nDONE: SSA conversion \n" in
+  let tgr       = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
+  let _         = E.log "\nDONE: TAG initialization\n" in
+  let ci        = BS.time "Cons: Generate" (Consgen.create cil spec decs scim) tgr in
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in

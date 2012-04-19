@@ -239,7 +239,7 @@ let apply sol (vv,t,ras) =
   let p2i = if So.is_int t then Sc.pred_of_index_int else Sc.non_null_pred_of_index_ref in
   ras |>: begin function 
             | C.Kvar (subs, k) -> 
-                d_indexAbs.read_bind sol 
+                d_indexAbs.read_bind sol k 
                 |> p2i 
                 |> snd
                 |> (fun p -> C.Conc (Ast.substs_pred p su)) 
@@ -257,7 +257,7 @@ let apply_cstr s c =
     None
     (C.tag_of_t c)
 
-let scalar_solution_check me s =
+let scalar_solution_check me fn fp s =
   let cs' = me.cm |> SM.map (List.map (apply_cstr s))
                   |> SM.to_list 
                   |> List.map snd 
@@ -269,7 +269,7 @@ let scalar_solution_check me s =
 
 let scalar_solve me fn fp =
   let s = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me)  in
-  let _ = if !Co.check_is then scalar_solution_check me s     in
+  let _ = if !Co.check_is then scalar_solution_check me fn fp s     in
   me.defm
   |> SM.map (List.map (fun (v, cr) -> (v, index_of_refc s v cr)))
   |> SM.map CM.VarMap.of_list

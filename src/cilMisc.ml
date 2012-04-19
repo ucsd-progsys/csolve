@@ -1000,14 +1000,14 @@ class substVisitor (su : Cil.exp VarMap.t) = object(self)
 end
 
 (* API *)
-let reSugarCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
+let reSugarExp (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
   e |> visitCilExpr (new substVisitor su)
     |> visitCilExpr (new fieldDerefVisitor)
 
 let updVarMap sur v e =
   e |> exprStripAttrs 
     (* |> exprStripCasts *) 
-    |> reSugarCilExpr !sur
+    |> reSugarExp !sur
     |> (fun e -> sur := VarMap.add v e !sur)
 
 class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
@@ -1029,6 +1029,14 @@ let d_varExprMap () m =
 let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
   let sur  = ref VarMap.empty                                      in
   let _    = visitCilFile (new tmpVarVisitor sur) f                in
+  let _    = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
+  !sur
+
+(* API *)
+let varExprMap (fs: Cil.fundec list) : Cil.exp VarMap.t =
+  let sur  = ref VarMap.empty                                      in
+  let vis  = new tmpVarVisitor sur                                 in
+  let _    = List.iter (ignore <.> visitCilFunction vis) fs        in
   let _    = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
   !sur
 
