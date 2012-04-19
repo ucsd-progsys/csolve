@@ -10,18 +10,9 @@ PENDING
 Multi-file HTML
 ---------------
 
+(CilTag.reSugar tgr e) will render CLEAN versions of e
+
 HEREHEREHEREHERE
-
-
-*((struct node **)((char *)tmp_main + 4))
-
-        =====> tmp_main->next
-
-- Extend VarExprMap to write a function cleanup: 
-    Cil.expr -> Cil.expr 
-    st.
-    cleanup(*(x+4)) =====>  x->data
-
 - Nice error messages: line 223, dereference 
     *tmp78
   
