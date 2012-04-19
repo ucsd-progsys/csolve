@@ -29,7 +29,12 @@ module IIM = Misc.IntIntMap
 module LM  = Sloc.SlocMap
 module SM  = Misc.StringMap
 module S   = Sloc
+<<<<<<< HEAD
   
+=======
+module Ct  = Ctypes
+module Hf  = Heapfun
+>>>>>>> heapfun interface stuff
 
 open Cil
 open Misc.Ops
@@ -67,6 +72,8 @@ type annotation =
   | HInst of Ctypes.StoreSubst.t
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.IndexTypes.TVarInst.t
+  | HIns of Ct.refstore * Hf.ref_fapp (* [h / f(<l>, <p>)] *)
+  | HGen of Ct.refstore * Hf.ref_fapp (* [f(<l>, <p>) / h] *)
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t

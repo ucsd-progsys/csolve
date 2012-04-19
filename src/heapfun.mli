@@ -22,19 +22,3 @@
  *
  *)
 
-
-type fapp         = Ast.Sy.t * param list * Ctypes.ldesc list
-
-and 'a predef     = int * int * 'a predef_rhs
-
-and 'a predef_rhs = (quantifier list) * 'a Ctypes.prestore
-
-and 'a hfenv      = ('a predef) Ast.Symbol.Map
-
-and  quantifier   =
-    QConc of sloc * cloc
-  | QAbs  of sloc * sloc
-
-type 
-
-val ref_of_fdef : 

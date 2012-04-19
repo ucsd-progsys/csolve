@@ -157,6 +157,8 @@ let cons_of_annot me loc tag grd ffm effs (env, sto, tago) = function
                     |> M.splitflatten in
       (wld', cs)
 
+  | HGen _ | HIns _ -> assertf "cons_of_annot: HGen/HIns"
+
   | _ -> assertf "cons_of_annot: New/NewC" 
 
 let cons_of_annots me loc tag grd wld ffm effs annots =
