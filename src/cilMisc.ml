@@ -1029,7 +1029,6 @@ let d_varExprMap () m =
 let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
   let sur  = ref VarMap.empty                                      in
   let _    = visitCilFile (new tmpVarVisitor sur) f                in
-  let lvmr = ref VarMap.empty                                      in
   let _    = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
   !sur
 
