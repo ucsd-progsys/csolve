@@ -12,6 +12,11 @@ Multi-file HTML
 
 HEREHEREHEREHERE
 
+
+*((struct node **)((char *)tmp_main + 4))
+
+        =====> tmp_main->next
+
 - Extend VarExprMap to write a function cleanup: 
     Cil.expr -> Cil.expr 
     st.
@@ -35,39 +40,9 @@ HEREHEREHEREHERE
 external/gnu-coreutils/src/make.csolve chgrp
 
 ./csolve tests/postests/ll0.c
-VAR EXPR MAP:
-[ __cil_tmp22_main <- *(*(*tmp_main + 4))
-; __cil_tmp21_main <- *tmp_main
-; __cil_tmp20_main <- *tmp_main
-; __cil_tmp19_main <- *tmp_main + 4
-; __cil_tmp18_main <- tmp_main
-; __cil_tmp17_main <- *(*(*tmp_main)) < 1000
-; __cil_tmp16_main <- *(*tmp_main)
-; __cil_tmp15_main <- *(*(*tmp_main)) >= 0
-; __cil_tmp14_main <- *(*tmp_main)
 
-HEREHEREHERE: why the extra derefs?
-; __cil_tmp13_main <- *tmp_main != *(*0)
-                   <- cil_tmp_13 
-    __cil_tmp13_main = __cil_tmp12_main != __cil_tmp11_main;
-; __cil_tmp12_main <- tmp_main
-; __cil_tmp11_main <- *0
 
-#line 23
-    __cil_tmp10_main = (node_t * __attribute__((__nullptr2__)) )0;
-#line 23
-    __cil_tmp11_main = (unsigned int )__cil_tmp10_main;
-#line 23
-    __cil_tmp12_main = (unsigned int )tmp_main__SSA__phi_13;
-#line 23
-    __cil_tmp13_main = __cil_tmp12_main != __cil_tmp11_main;
-#
-; __cil_tmp10_main <- 0
-; __cil_tmp9_main <- *tmp_main + 4
-; __cil_tmp8_main <- tmp_main
-; __cil_tmp7_main <- tmp_main
-; __cil_tmp6_main <- 8U
-; __cil_tmp5_main <- i_main < 1000]
+
 
 Counterexamples (to be continued) 
 ---------------------------------

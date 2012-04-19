@@ -899,35 +899,7 @@ let noBlockAttrPrinter = new noBlockAttrPrinterClass
 
 (******************************************************************************)
 (***************** Reconstructing Original Source from Temps ******************)
-(************************************************************************)
-
-class substVisitor (su : Cil.exp VarMap.t) = object(self)
-  inherit nopCilVisitor
-  method vexpr = function
-    | Lval (Var v, NoOffset) when VarMap.mem v su ->
-        ChangeTo (VarMap.find v su)
-    | _ -> 
-        DoChildren
-end
-
-(* API *)
-let substCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
-  visitCilExpr (new substVisitor su) e 
-
-let updVarMap sur v e =
-  e |> exprStripAttrs 
-    (* |> exprStripCasts *) 
-    |> substCilExpr !sur
-    |> (fun e -> sur := VarMap.add v e !sur)
-
-class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
-  inherit nopCilVisitor
-  method vinst = function
-    | Set ((Var v, NoOffset), e, _) when is_cil_tempvar v.vname ->
-        updVarMap sur v e; DoChildren
-    | _ -> 
-        DoChildren
-end
+(******************************************************************************)
 
 let fieldOfTypeIndex = 
   let t = Hashtbl.create 37 in
@@ -939,7 +911,7 @@ let fieldOfTypeIndex =
        else begin
          ci.cfields
          |> List.map  (fun fi -> (bytesOffset ty (Field (fi, NoOffset)), fi))
-         >> List.iter (fun (n, fi) -> E.log "fieldsAt: %s at %d is %s \n" ci.cname n fi.fname)
+         (* >> List.iter (fun (n, fi) -> E.log "fieldsAt: %s at %d is %s \n" ci.cname n fi.fname) *)
          >> List.iter (fun (n, fi) -> Hashtbl.add t (ci.cname, n) fi)
          |> Misc.list_assoc_maybe n
        end
@@ -948,11 +920,25 @@ let fieldOfTypeIndex =
 
 let d_field () fi = Pretty.dprintf "%s" fi.fname
 
-(*
+(* {{{
 let fieldOfTypeIndex (ty, n) = 
   fieldOfTypeIndex (ty, n)
   >> E.log "fieldOfTypeIndex: ty = %a, n = %d, fio = %a \n" d_type ty n (d_opt d_field) 
-*)
+
+let rec sexyDeref eTop = match eTop with 
+  | Lval (Mem (CastE (_, ( BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  | Lval (Mem (CastE (_, ( BinOp (PlusPI, e, (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  -> let e' =  sexyDeref e in
+     begin match fieldOfTypeIndex (typeOf e, Int64.to_int n) with 
+             | Some fld -> Lval (Mem e', Field (fld, NoOffset))
+             | _        -> eTop  
+     end
+  | Lval (Mem (CastE (_, e)), NoOffset) (* *((T) e) *) 
+  -> let e' =  sexyDeref e in
+     begin match fieldOfTypeIndex (typeOf e, 0) with 
+             | Some fld -> Lval (Mem e', Field (fld, NoOffset))
+             | _        -> eTop  
+     end
 
 let prettyDerefVar su v = 
   match VarMap.maybe_find v su with
@@ -969,23 +955,68 @@ let prettyDerefVar su v =
              | _        -> None
       end 
 
-class prettyLvalMapVisitor su lvmr = object(self)
+class prettyLvalMapVisitor su = object(self)
   inherit nopCilVisitor
   method vlval lv = match lv with 
     | Mem (CastE (_, (Lval (Var v, NoOffset)))), NoOffset (* *((T) x) *)
     -> begin match prettyDerefVar su v with 
-             | Some lv' ->  
-                 let _ = lvmr := VarMap.adds v [lv'] !lvmr in
-                 (* let _ = E.log "prettyLval: lv = %a, lv' = %a \n" d_lval lv d_lval lv' *)
-                 SkipChildren
+             | Some lv' -> 
+                 ChangeTo lv'
              | _        -> 
-                 SkipChildren
+                 DoChildren 
        end
     | _ -> 
        DoChildren
 end
 
+}}} *)
 
+let fieldDerefTx eTop = match eTop with 
+  | Lval (Mem (CastE (_, ( BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  | Lval (Mem (CastE (_, ( BinOp (PlusPI, e, (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  -> begin match fieldOfTypeIndex (typeOf e, Int64.to_int n) with 
+             | Some fld -> Lval (Mem e, Field (fld, NoOffset))
+             | _        -> eTop  
+     end
+  | Lval (Mem (CastE (_, e)), NoOffset) (* *((T) e) *) 
+  -> begin match fieldOfTypeIndex (typeOf e, 0) with 
+             | Some fld -> Lval (Mem e, Field (fld, NoOffset))
+             | _        -> eTop  
+     end
+  | _ -> eTop
+
+class fieldDerefVisitor = object(self)
+  inherit nopCilVisitor
+  method vexpr e = ChangeDoChildrenPost (e, fieldDerefTx)
+end
+
+class substVisitor (su : Cil.exp VarMap.t) = object(self)
+  inherit nopCilVisitor
+  method vexpr = function
+    | Lval (Var v, NoOffset) when VarMap.mem v su ->
+        ChangeTo (VarMap.find v su)
+    | _ -> 
+        DoChildren
+end
+
+let reSugarCilExpr (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
+  e |> visitCilExpr (new substVisitor su)
+    |> visitCilExpr (new fieldDerefVisitor)
+
+let updVarMap sur v e =
+  e |> exprStripAttrs 
+    (* |> exprStripCasts *) 
+    |> reSugarCilExpr !sur
+    |> (fun e -> sur := VarMap.add v e !sur)
+
+class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)
+  inherit nopCilVisitor
+  method vinst = function
+    | Set ((Var v, NoOffset), e, _) when is_cil_tempvar v.vname ->
+        updVarMap sur v e; DoChildren
+    | _ -> 
+        DoChildren
+end
 
 let d_varExpr () (v, e) = 
   Pretty.dprintf "%a <- %a" d_var v Cil.d_exp e
@@ -998,7 +1029,6 @@ let varExprMap (f: Cil.file) : Cil.exp VarMap.t =
   let sur  = ref VarMap.empty                                      in
   let _    = visitCilFile (new tmpVarVisitor sur) f                in
   let lvmr = ref VarMap.empty                                      in
-  let _    = visitCilFile (new prettyLvalMapVisitor !sur lvmr) f   in 
   let _    = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap !sur in
   !sur
 
