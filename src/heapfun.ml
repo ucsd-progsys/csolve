@@ -24,19 +24,17 @@
 type fname    = string
 type refVar   = string
 
-type 'a fapp  =
-  fname * loc_param list * 'a list
+type 'a fapp  = fname * Sloc.t list * 'a list
 
 type ref_fapp = FixConstraint.reft fapp
 
-and loc_param = Sloc.t 
+type intr         = Sloc.t * Sloc.t
 
-and 'a def    =
-  loc_formal list * 'a list * 'a def_rhs
-
-and loc_formal   = Sloc.t
-and 'a def_rhs   = intr * ('a Ctypes.prestore)
-and intr         = Sloc.t * Sloc.t
+type 'a def    = { loc_params : Sloc.t list 
+                 ; ref_params : 'a list 
+                 ; unfolds    : intr list
+                 ; rhs        : 'a Ctypes.prestore
+                 }
 
 type ref_def  = FixConstraint.reft def
 type var_def  = refVar def

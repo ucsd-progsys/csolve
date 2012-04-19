@@ -167,7 +167,8 @@ and effectptr  = Reft.t prectype
 and effectset = effectptr SLM.t
 
 and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
-                  ; plinfo     : ldinfo }
+                  ; plinfo     : ldinfo 
+                  }
 
 and 'a prestore = 'a preldesc Sloc.SlocMap.t
                 * Sv.t list
