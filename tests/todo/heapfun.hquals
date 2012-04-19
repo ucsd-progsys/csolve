@@ -1,0 +1,7 @@
+def bnd(l, c) := Conc(l, l_j). l_j -> c
+def lst(l, l', c) := Conc(l, l_j). l_j -> c; +c: ptr(l')
+
+def cls(l, c) := lst(l, l)              //cyclic list
+def als(l, c) := Abs(l, l'). lst(l, l') //acyclic list
+
+
