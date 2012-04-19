@@ -188,9 +188,9 @@ val exprStripAttrs : Cil.exp  -> Cil.exp
 
 val varExprMap     : Cil.fundec list -> Cil.exp VarMap.t
 
-
-val reSugar_lval : Cil.exp VarMap.t -> Cil.lval -> Cil.lval
-val reSugar_exp : Cil.exp VarMap.t -> Cil.exp -> Cil.exp
+val reSugar_lval  : Cil.exp VarMap.t -> Cil.lval  -> Cil.lval
+val reSugar_exp   : Cil.exp VarMap.t -> Cil.exp   -> Cil.exp
+val reSugar_instr : Cil.exp VarMap.t -> Cil.instr -> Cil.instr
 
 (****************** Preserving Source Maps *************************)
 

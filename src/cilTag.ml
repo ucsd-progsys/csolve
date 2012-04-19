@@ -136,21 +136,22 @@ let block_of_t   = fun me t -> H.find invt t |> thd3
 let tag_of_t     = fun t -> t
 let t_of_tag     = fun t -> asserti (H.mem invt t) "bad tag!"; t 
 
+(*
 let reSugar_exp  me e = visitCilExpr (new reSugarVisitor me) e
 let reSugar_instr me i = 
   match visitCilInstr (new reSugarVisitor me) i with 
   | [i'] -> i'
   | _    -> E.s <| E.error "Unexpected reSugar_inst: %a" d_instr i
 
-
 let reSugar_instr me i = 
-  let i' = reSugar_instr me i in
+  let i' = CilMisc.reSugar_instr me.vem i in
   let _  = Pretty.printf "reSugar: i = %a ; i' = %a \n" d_instr i d_instr i' in
   i'
+*)
 
 (* API *)
-let d_exp_reSugar me () e = Cil.d_exp () (reSugar_exp me e)
-let d_instr_reSugar me () e = Cil.d_instr () (reSugar_instr me e)
+let d_exp_reSugar me ()   = Cil.d_exp ()   <.> (CilMisc.reSugar_exp me.vem)
+let d_instr_reSugar me () = Cil.d_instr () <.> (CilMisc.reSugar_instr me.vem)
 
 (* API *)
 let make_t me loc fn blk instr =
