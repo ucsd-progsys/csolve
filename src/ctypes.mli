@@ -141,8 +141,9 @@ module TVarSubst : Substitution.S with type e = tvar
 
 module type CTYPE_DEFS = sig
   module R : CTYPE_REFINEMENT
-
   type refinement = R.t
+      
+  module TVarInst : INST_TYPE with type e = refinement
 
   type ctype = refinement prectype
   type field = refinement prefield
@@ -150,6 +151,7 @@ module type CTYPE_DEFS = sig
   type store = refinement prestore
   type cfun  = refinement precfun
   type spec  = refinement prespec
+  type tvinst = TVarInst.t
 end
 
 module type S = sig
@@ -158,8 +160,6 @@ module type S = sig
   module CType:
   sig
     type t = T.ctype
-        
-    module TVarInst : INST_TYPE with type e = T.refinement
         
     exception NoLUB of t * t
 
@@ -288,7 +288,7 @@ module type S = sig
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t
 
-      val unify_ctype_locs : t -> Sloc.Subst.t -> CType.t -> CType.t -> t * Sloc.Subst.t
+      val unify_ctype_locs : t -> Sloc.Subst.t -> T.TVarInst.t -> CType.t -> CType.t -> t * Sloc.Subst.t * T.TVarInst.t
       val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
       val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t
     end
@@ -318,6 +318,7 @@ module type S = sig
     (* val quantify_tvars  : t -> t *)
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Svar.t list
+    val quantified_tvars : t -> tvar list
     val generalize      : t -> t
     val free_svars      : t -> Svar.t list
     val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * TVarSubst.t * (tvar * T.ctype) list * StoreSubst.t)
@@ -402,6 +403,7 @@ type cfun   = I.CFun.t
 type store  = I.Store.t
 type cspec  = I.Spec.t
 type ctemap = I.ctemap
+type tvinst = IndexTypes.tvinst
     
 val null_fun     : Index.t precfun
 

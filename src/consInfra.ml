@@ -87,6 +87,7 @@ let ctype_of_local locals v =
 
 let strengthen_cloc = function
   | ct, None 
+  | (Ctypes.TVar _ as ct) , _
   | (Ctypes.Int (_, _) as ct), _ 
   | (Ctypes.Any _ as ct), _ 
   | (Ctypes.ARef as ct), _ -> ct

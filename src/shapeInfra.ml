@@ -177,5 +177,5 @@ class exprTyper (ve,fe) = object (self)
               in Int (C.bytesSizeOfInt ik, iec)
             | _ -> E.s <| C.error "Got bogus type in int-int cast@!@!"
           end
-        | _ -> ctv
+        | _ -> let _ = Pretty.printf "ctype_of_cast %a %a(%a)@!" C.d_plaintype ct Ct.d_ctype ctv C.d_plainexp e in ctv
 end

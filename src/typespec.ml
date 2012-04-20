@@ -353,7 +353,7 @@ let rec refctypeOfCilType abstr mem t = match normalizeType t with
           |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty
           |> fst3
     in Ct.FRef (f', r)
-  | C.TPtr (t, ats) when abstr && is_zero_width mem t ats -> 
+  | C.TPtr (t, ats) when abstr && is_zero_width mem t ats ->
     Ct.TVar (tvarOfAttrs ats) (* (Ct.fresh_tvar ()) *)
   | C.TPtr (t, ats)      ->
     if C.hasAttribute CM.anyRefAttribute ats then
@@ -374,9 +374,8 @@ let rec refctypeOfCilType abstr mem t = match normalizeType t with
 and is_zero_width mem t ats = 
     match annotatedPointerBaseType ats t |> componentsOfType with
       | [(_, _, t)] when slocOfAttrs ats |> Sloc.is_abstract -> 
-        refctypeOfCilType false mem t |> RCt.width = 0
+        (refctypeOfCilType false mem t |> RCt.width) = 0
       | _ -> false
-    
 
         
 and heapRefctypeOfCilType mem t =

@@ -936,8 +936,13 @@ and make_wfs_fn cenv rft =
 let make_dep pol xo yo =
   (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
            |> Misc.uncurry (C.make_dep pol)
+               
+let assert_equal_tvars ct1 ct2 = match ct1, ct2 with
+  | Ct.TVar t1, Ct.TVar t2 -> asserts (t1 = t2) "uninstantiated non-equal type vars"
+  | _ -> ()
 
 let make_cs_aux cenv p rct1 rct2 tago tag =
+  let _ = assert_equal_tvars rct1 rct2 in
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
@@ -1054,7 +1059,7 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
      end ncrs
      |> Misc.splitflatten
   end 
-
+    
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
 (*  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
@@ -1083,7 +1088,6 @@ and make_cs_assert_effectsets_disjoint env p sto effs1 effs2 tago tag loc =
 
 (* API *)
 and make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
-  let _ = Pretty.printf "open make_cs_tuple..." in
   Misc.map2 begin fun cr1 cr2 ->
     make_cs env grd cr1 (rename_refctype lsubs subs cr2) tago tag loc
   end cr1s cr2s 

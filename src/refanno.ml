@@ -66,7 +66,7 @@ type annotation =
   | NewC of Sloc.t * Sloc.t * Sloc.t    (* XLoc, Aloc, CLoc *) 
   | HInst of Ctypes.StoreSubst.t
   | TNew of Ctypes.tvar * Ctypes.tvar
-  | TInst of Ctypes.I.CType.TVarInst.t
+  | TInst of Ctypes.IndexTypes.TVarInst.t
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
@@ -143,7 +143,7 @@ let d_annotation () = function
   | TNew (f, t) ->
       Pretty.dprintf "TNew(%a->%a)" Ctypes.d_tvar f Ctypes.d_tvar t
   | TInst i ->
-      Pretty.dprintf "TInst (%a)" Ctypes.I.CType.TVarInst.d_inst i
+      Pretty.dprintf "TInst (%a)" Ctypes.IndexTypes.TVarInst.d_inst i
        
 
 let d_annotations () anns = 
