@@ -97,7 +97,7 @@ let _DEBUG_print_ve s ve =
   end ve; 
   P.printf " END\n"
 
-let constrain_lval loc et sub sto = function
+let constrain_lval tgr loc et sub sto = function
   | (C.Var v, C.NoOffset)       -> (sub, sto)
   | (C.Mem e, C.NoOffset) as lv ->
     begin match et#ctype_of_exp loc e with
@@ -111,7 +111,7 @@ let constrain_lval loc et sub sto = function
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
 
-class exprConstraintVisitor (loc, et, fs, sub, sto) = object (self)
+class exprConstraintVisitor (tgr, loc, et, fs, sub, sto) = object (self)
   inherit C.nopCilVisitor
 
   val sto = ref sto
@@ -167,7 +167,7 @@ class exprConstraintVisitor (loc, et, fs, sub, sto) = object (self)
 
   method private constrain_exp = function
     | C.Lval ((C.Mem e, C.NoOffset) as lv) -> self#constrain_mem (et#ctype_of_lval loc lv) e
-    | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval loc et !sub !sto |> self#set_sub_sto
+    | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval tgr loc et !sub !sto |> self#set_sub_sto
     | C.Const c as e                       -> self#constrain_const e c
     | C.UnOp (uop, e, t)                   -> ()
     | C.BinOp (bop, e1, e2, t)             -> ()
@@ -178,18 +178,18 @@ class exprConstraintVisitor (loc, et, fs, sub, sto) = object (self)
     | e                                    -> E.s <| C.error "Unimplemented constrain_exp: %a@!@!" C.d_exp e
 end
 
-let constrain_exp loc et fs sub sto e =
-  let ecv = new exprConstraintVisitor (loc, et, fs, sub, sto) in
+let constrain_exp tgr loc et fs sub sto e =
+  let ecv = new exprConstraintVisitor (tgr, loc, et, fs, sub, sto) in
   let _   = C.visitCilExpr (ecv :> C.cilVisitor) e in
     ecv#get_sub_sto
 
-let constrain_args (loc : Cil.location) et fs sub sto es =
+let constrain_args tgr loc et fs sub sto es =
   List.fold_right begin fun e (cts, sub, sto) ->
-    let sub, sto = constrain_exp loc et fs sub sto e in
+    let sub, sto = constrain_exp tgr loc et fs sub sto e in
       ((et#ctype_of_exp loc e) :: cts, sub, sto)
   end es ([], sub, sto)
 
-let unify_and_check_subtype sto sub e ct1 ct2 =
+let unify_and_check_subtype tgr sto sub e ct1 ct2 =
   let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
     if not (Index.is_subindex (Ct.refinement ct1) (Ct.refinement ct2)) then begin
       C.error "Expression %a has type %a, expected a subtype of %a@!"
@@ -198,9 +198,9 @@ let unify_and_check_subtype sto sub e ct1 ct2 =
     end;
     (sto, sub)
 
-let constrain_app i (fs, _) et cf sub sto lvo args =
+let constrain_app tgr i (fs, _) et cf sub sto lvo args =
   let loc           = C.get_instrLoc i                      in
-  let cts, sub, sto = constrain_args loc et fs sub sto args in
+  let cts, sub, sto = constrain_args tgr loc et fs sub sto args in
   let cfi, isub     = CFun.instantiate (CM.srcinfo_of_instr i (Some loc)) cf in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub in
   let sto           = cfi.sto_out
@@ -211,28 +211,28 @@ let constrain_app i (fs, _) et cf sub sto lvo args =
                         UStore.add_field sto sub s i fld
                       end (sto, sub) cfi.sto_out in
   let sto, sub      = List.fold_left2 begin fun (sto, sub) (ea, cta) (_, ctf) ->
-                        unify_and_check_subtype sto sub ea cta ctf
+                        unify_and_check_subtype tgr sto sub ea cta ctf
                       end (sto, sub) (List.combine args cts) cfi.args in
     match lvo with
       | None    -> (annot, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval loc lv in
-        let sub, sto = constrain_lval loc et sub sto lv in
-        let sto, sub = unify_and_check_subtype sto sub (C.Lval lv) (Ct.subs isub cf.ret) ctlv in
+        let sub, sto = constrain_lval tgr loc et sub sto lv in
+        let sto, sub = unify_and_check_subtype tgr sto sub (C.Lval lv) (Ct.subs isub cf.ret) ctlv in
           (annot, sub, sto)
 
-let constrain_return loc et fs sub sto rtv = function
+let constrain_return tgr loc et fs sub sto rtv = function
     | None ->
       if Ct.is_void rtv then
         ([], sub, sto)
       else
         E.s <| C.error "Returning void value for non-void function\n\n"
     | Some e ->
-      let sub, sto = constrain_exp loc et fs sub sto e in
-      let sto, sub = unify_and_check_subtype sto sub e (et#ctype_of_exp loc e) rtv in
+      let sub, sto = constrain_exp tgr loc et fs sub sto e in
+      let sto, sub = unify_and_check_subtype tgr sto sub e (et#ctype_of_exp loc e) rtv in
         ([], sub, sto)
 
-let assert_store_type_correct loc lv e ct = match lv with
+let assert_store_type_correct tgr loc lv e ct = match lv with
   | (C.Mem _, _) ->
     let heap_ct = lv |> C.typeOfLval |> fresh_heaptype loc in
       if not <| Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct) then
@@ -247,53 +247,53 @@ let find_function loc et fs sub sto = function
       | FRef (f, _) -> f
       | _ -> assert false
 
-let constrain_instr_aux ((fs, _) as env) et (bas, sub, sto) i =
+let constrain_instr_aux tgr ((fs, _) as env) et (bas, sub, sto) i =
   let loc = C.get_instrLoc i    in
   let _   = C.currentLoc := loc in
   match i with
   | C.Set (lv, e, _) ->
-      let sub, sto = constrain_lval loc et sub sto lv in
-      let sub, sto = constrain_exp loc et fs sub sto e in
+      let sub, sto = constrain_lval tgr loc et sub sto lv in
+      let sub, sto = constrain_exp tgr loc et fs sub sto e in
       let ct1      = et#ctype_of_lval loc lv in
       let ct2      = et#ctype_of_exp loc e in
-      let _        = assert_store_type_correct loc lv e ct2 in
+      let _        = assert_store_type_correct tgr loc lv e ct2 in
       let sto, sub = UStore.unify_ctype_locs sto sub ct1 ct2 in
         ([] :: bas, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
-      let _, sub, sto = constrain_args loc et fs sub sto args in
+      let _, sub, sto = constrain_args tgr loc et fs sub sto args in
         ([] :: bas, sub, sto)
   | C.Call (lvo, C.Lval lv, args, _) ->
       let cf           = find_function loc et fs sub sto lv in
-      let ba, sub, sto = constrain_app i env et cf sub sto lvo args in
+      let ba, sub, sto = constrain_app tgr i env et cf sub sto lvo args in
         (ba :: bas, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr env et annots i =
+let constrain_instr tgr env et annots i =
   try
-    constrain_instr_aux env et annots i
+    constrain_instr_aux tgr env et annots i
   with ex -> E.s <| C.error "Exception (%s) \nFailed constraining instruction:@!%a@!@!"
                (Printexc.to_string ex) C.d_instr i
 
-let constrain_instrs env et is sub sto =
-  let bas, sub, sto = List.fold_left (constrain_instr env et) ([], sub, sto) is in
+let constrain_instrs tgr env et is sub sto =
+  let bas, sub, sto = List.fold_left (constrain_instr tgr env et) ([], sub, sto) is in
     (List.rev ([] :: bas), sub, sto)
 
-let constrain_stmt ((fs, _) as env) et rtv s sub sto =
+let constrain_stmt tgr ((fs, _) as env) et rtv s sub sto =
   let loc = C.get_stmtLoc s.C.skind in
   let _   = C.currentLoc :=  loc    in
     match s.C.skind with
-      | C.Instr is          -> constrain_instrs env et is sub sto
-      | C.If (e, _, _, _)   -> let sub, sto = constrain_exp loc et fs sub sto e in ([], sub, sto)
+      | C.Instr is          -> constrain_instrs tgr env et is sub sto
+      | C.If (e, _, _, _)   -> let sub, sto = constrain_exp tgr loc et fs sub sto e in ([], sub, sto)
       | C.Break _           -> ([], sub, sto)
       | C.Continue _        -> ([], sub, sto)
       | C.Goto _            -> ([], sub, sto)
       | C.Block _           -> ([], sub, sto)       (* we'll visit this later as we iterate through blocks *)
       | C.Loop (_, _, _, _) -> ([], sub, sto)       (* ditto *)
-      | C.Return (rexp, _)  -> constrain_return loc et fs sub sto rtv rexp
+      | C.Return (rexp, _)  -> constrain_return tgr loc et fs sub sto rtv rexp
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
-let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
+let constrain_phi_defs tgr ve (sub, sto) (vphi, vdefs) =
   let _ = C.currentLoc := vphi.C.vdecl in
        vdefs
     |> List.fold_left begin fun (sto, sub) (_, vdef) ->
@@ -301,10 +301,12 @@ let constrain_phi_defs ve (sub, sto) (vphi, vdefs) =
        end (sto, sub)
     |> M.swap
 
-let constrain_phis ve phis sub sto =
-  Array.to_list phis |> List.flatten |> List.fold_left (constrain_phi_defs ve) (sub, sto)
+let constrain_phis tgr ve phis sub sto =
+  Array.to_list phis 
+  |> List.flatten 
+  |> List.fold_left (constrain_phi_defs tgr ve) (sub, sto)
 
-class exprMapVisitor (et) = object (self)
+class exprMapVisitor et = object (self)
   inherit C.nopCilVisitor
 
   val em: ctemap ref = ref I.ExpMap.empty
@@ -324,18 +326,18 @@ class exprMapVisitor (et) = object (self)
     C.DoChildren
 end
 
-let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
+let constrain_fun tgr fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _            = C.currentLoc := fd.C.svar.C.vdecl in
   let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
                      end (sto, S.Subst.empty) cf.args fd.C.sformals in
-  let sub, sto     = constrain_phis ve phis sub sto in
-  let et           = new exprTyper (ve,fs) in
+  let sub, sto     = constrain_phis tgr ve phis sub sto in
+  let et           = new exprTyper (ve, fs) in
   let blocks       = cfg.Ssa.blocks in
   let bas          = Array.make (Array.length blocks) [] in
   let sub, sto     =
     M.array_fold_lefti begin fun i (sub, sto) b ->
-      let ba, sub, sto = constrain_stmt (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
+      let ba, sub, sto = constrain_stmt tgr (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
         (sub, sto) 
     end (sub, sto) blocks
@@ -496,11 +498,11 @@ let replace_formal_frefs {args = args} vm =
   |> List.map (fun (v,t) -> (v, fref_lookup args v.Cil.vname t))
   |> VM.of_list
                
-let infer_shape fe ve gst scim (cf, sci, vm) =
+let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_frefs cf vm           in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in
   let sto                   = Store.upd cf.sto_out gst             in
-  let em, bas, sub, sto     = constrain_fun fe cf ve sto sci       in
+  let em, bas, sub, sto     = constrain_fun tgr fe cf ve sto sci       in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
   let _                     = check_sol sci.ST.fdec.C.svar cf ve gst em bas sub sto whole_store in
@@ -584,7 +586,7 @@ let globalVarEnv spec cil =
 
 
 (* API *)
-let infer_shapes cil spec scis =
+let infer_shapes cil tgr spec scis =
   let ve = globalVarEnv spec cil in
   let fe = declared_funs cil 
            |>: (fun f -> (f, globalFunEntryEnv spec f))    
@@ -592,7 +594,7 @@ let infer_shapes cil spec scis =
   let xm = SM.range scis     
            |>: (fun (_,sci,_) -> (sci.ST.fdec.C.svar, sci)) 
            |> VM.of_list in
-  scis |> SM.map (infer_shape fe ve (CSpec.store spec) xm)
-       |> FinalFields.infer_final_fields spec scis 
+  scis |> SM.map (infer_shape tgr fe ve (CSpec.store spec) xm)
+       |> FinalFields.infer_final_fields tgr spec scis 
        >> print_shapes spec
 

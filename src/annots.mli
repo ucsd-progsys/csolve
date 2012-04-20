@@ -22,16 +22,6 @@
  *)
 
 (* This file is part of the liquidC Project.*)
-(*
-class t:
-  object
-    method add_var      : FixAstInterface.name -> Ctypes.refctype -> unit
-    method add_sto      : string -> Ctypes.refstore -> unit
-    method dump_annots  : FixConstraint.soln option -> unit
-    method dump_infspec : CilMisc.dec list -> FixConstraint.soln -> unit
-  end
-*)
-
 
 type rhs    = AsgnE of Cil.instr | AsgnV of Cil.varinfo 
 

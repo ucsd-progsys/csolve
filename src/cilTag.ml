@@ -24,7 +24,7 @@
 (* This file is part of the liquidC Project.*)
 module ST  = Ssa_transform
 module H   = Hashtbl
-
+module E   = Errormsg
 module Misc = FixMisc 
 module SM  = Misc.StringMap
 module SIM = Misc.EMap (struct type t = string * int 
@@ -115,16 +115,33 @@ let create_blkm scis =
        |> List.fold_left (fun bm (k,r) -> SIM.add k r bm) SIM.empty  
 
 (**********************************************************)
+(******************** ReSugar       ***********************)
+(**********************************************************)
+
+class reSugarVisitor me = object(self)
+  inherit nopCilVisitor
+  method vexpr e = ChangeTo (CilMisc.reSugarExp me.vem e)
+end
+
+(**********************************************************)
 (******************** API Accessors ***********************)
 (**********************************************************)
 
+
 (* API *)
-let loc_of_t    = fun me t -> H.find invt t |> fst3
-let fname_of_t  = fun me t -> H.find invt t |> snd3
-let block_of_t  = fun me t -> H.find invt t |> thd3
-let tag_of_t    = fun t -> t
-let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t 
-let reSugar     = fun me -> CilMisc.reSugarExp me.vem 
+let loc_of_t     = fun me t -> H.find invt t |> fst3
+let fname_of_t   = fun me t -> H.find invt t |> snd3
+let block_of_t   = fun me t -> H.find invt t |> thd3
+let tag_of_t     = fun t -> t
+let t_of_tag     = fun t -> asserti (H.mem invt t) "bad tag!"; t 
+
+(* API *)
+let reSugar_exp  me e = visitCilExpr (new reSugarVisitor me) e
+let reSugar_inst me i = 
+  match visitCilInstr (new reSugarVisitor me) i with 
+  | [i'] -> i'
+  | _    -> E.s <| E.error "Unexpected reSugar_inst: %a" d_instr i
+
 
 
 (* API *)

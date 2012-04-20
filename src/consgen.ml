@@ -51,7 +51,7 @@ let mydebug = false
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim cil spec scim vim =
+let shapem_of_scim cil tgr spec scim vim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = Ctypes.cfun_of_refcfun rf in
@@ -63,7 +63,7 @@ let shapem_of_scim cil spec scim vim =
   (* >> (fst <+> Misc.sm_print_keys "builtins") *)
   (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
   |> snd
-  |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
+  |> Inferctypes.infer_shapes cil tgr (Ctypes.cspec_of_refspec spec) 
 
 let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
@@ -185,8 +185,7 @@ let create cil spec decs scim tgr =
   let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
-  let shm    = shapem_of_scim cil spec scim vim in
-  (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
+  let shm    = shapem_of_scim cil tgr spec scim vim in
   let gnv    = cnv0 |> finalize_funtypes shm
                     |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in 
   let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in
