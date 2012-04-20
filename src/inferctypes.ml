@@ -263,7 +263,8 @@ let constrain_return et fs tsub sub sto rtv = function
         ([], tsub, sub, sto)
 
 let assert_type_is_heap_storable heap_ct ct =
-  let _ = Pretty.printf "heap_ct %a ct %a" d_ctype heap_ct d_ctype ct in
+  let _ = Pretty.printf "assert_type_is_heap_storable %a %a@!"
+    d_ctype heap_ct d_ctype ct in
   assert (Index.is_subindex (Ct.refinement ct) (Ct.refinement heap_ct))
 
 let assert_store_type_correct lv ct = match lv with
@@ -295,10 +296,12 @@ let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
           | _ -> ()
         end
       in
-      let _        = assert_store_type_correct lv ct2 in
-            let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in
-            let _ = Pretty.printf "%a := %a @[%a@]\n" Ct.d_ctype ct1 Ct.d_ctype ct2 Store.d_store sto in
+      let _ = Pretty.printf "INSTRUCTION: %a@!" C.dn_instr i in
+      let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in
+      let _ = Pretty.printf "%a := %a @[%a@]\n" Ct.d_ctype ct1 Ct.d_ctype ct2 Store.d_store sto in
+      (* let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in *)
       let sto, sub, tsub = UStore.unify_ctype_locs sto sub tsub ct1 ct2 in
+      let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in
         ([] :: bas, tsub, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in

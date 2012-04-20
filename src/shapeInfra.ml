@@ -115,6 +115,7 @@ class exprTyper (ve,fe) = object (self)
     | C.BinOp (bop, e1, e2, t)      -> apply_binop bop t (self#ctype_of_exp e1) (self#ctype_of_exp e2)
     | C.CastE (C.TPtr (C.TFun _ as f,_),
                C.Const c) -> self#ctype_of_constfptr f c
+    | C.CastE (C.TPtr (C.TVoid _,_), C.Const c) -> self#ctype_of_void_constptr c
     | C.CastE (C.TPtr _, C.Const c) -> self#ctype_of_constptr c
     | C.CastE (ct, e)               -> self#ctype_of_cast ct e
     | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
@@ -128,6 +129,11 @@ class exprTyper (ve,fe) = object (self)
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
                          (Ctypes.RefCTypes.CType.map fst) fspec,
                        Index.IBot)
+            
+  method private ctype_of_void_constptr c = match c with
+    | C.CInt64 (v, ik, so) when v = Int64.zero -> Ctypes.TVar (Ctypes.fresh_tvar ())
+    | _ -> self#ctype_of_constptr c
+      
   method private ctype_of_constptr c = match c with  
     | C.CStr _ ->
         let s = S.fresh_abstract [CM.srcinfo_of_constant c None] in 

@@ -1079,13 +1079,15 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
       and unify_tvars sub sto tsub t1 t2 = 
+        let _ = Pretty.printf "unify_tvars sub: %a store: %a@!" 
+          S.Subst.d_subst sub d_store sto in
         match all_subs sub tsub t1, all_subs sub tsub t2 with
           | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) when r1 = r2 -> 
             unify_ctype_locs sto sub tsub t1 t2
           | TVar t1', TVar t2'       -> sto, sub, T.TVarInst.extend t1' (TVar t2') tsub
           | TVar t', ((Ref _) as r) 
           | ((Ref _) as r), TVar t'  -> sto, sub, T.TVarInst.extend t' r tsub
-          | ct1, ct2 -> fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
+          | ct1, ct2 -> fail sub sto <| C.error "Cannot unify (tvar-inst'd) %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
 
       and unify_data_locations sto sub s1 s2 =

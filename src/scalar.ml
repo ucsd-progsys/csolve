@@ -122,7 +122,7 @@ let ctype_of_var_index v ix =
                      |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
     Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) f, ix)
   | Cil.TPtr (t', ats) when Typespec.is_zero_width SM.empty t' ats ->
-    (* let _ = Pretty.printf "so this happened: %s:%a\n" v.Cil.vname Cil.d_plaintype v.Cil.vtype  in *)
+    let _ = Pretty.printf "so this happened: %s:%a\n" v.Cil.vname Cil.d_plaintype v.Cil.vtype  in
     Ct.TVar (Ct.fresh_tvar ())
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
