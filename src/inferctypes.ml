@@ -269,21 +269,53 @@ let constrain_instr_aux tgr ((fs, _) as env) et (bas, sub, sto) i =
         (ba :: bas, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
 
-let constrain_instr tgr env et annots i =
+
+let check_sub_injective_on_locset on_error sub locs =
+  let tm = ref SLM.empty in
+    List.iter begin fun l ->
+      let tl = S.Subst.apply sub l in
+        if SLM.mem tl !tm then
+          E.s <| on_error l (SLM.find tl !tm)
+        else tm := SLM.add tl l !tm
+    end locs
+
+let qloc_unification_error s1 s2 =
+  C.error "Separate quantified locations unified in function body (%a, %a)"
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
+
+let gloc_unification_error s1 s2 =
+  C.error "Separate Global locations unified in function body (%a, %a)"
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
+
+let gloc_qloc_unification_error s1 s2 =
+  C.error "Separate global location and quantified location unified in function body (%a, %a)"
+  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
+
+let check_locs_disjoint_under_sub sub glocs qlocs gqlocs =
+  check_sub_injective_on_locset qloc_unification_error sub qlocs;
+  check_sub_injective_on_locset gloc_unification_error sub glocs;
+  (* If global locs are disjoint and quantified locs are disjoint,
+     then a pair that's not disjoint must consist of one global loc
+     and one quantified loc *)
+  check_sub_injective_on_locset gloc_qloc_unification_error sub gqlocs
+
+let constrain_instr tgr glocs qlocs gqlocs env et annots i =
   try
-    constrain_instr_aux tgr env et annots i
+    let bas, sub, sto = constrain_instr_aux tgr env et annots i in
+      check_locs_disjoint_under_sub sub glocs qlocs gqlocs;
+      (bas, sub, sto)
   with ex -> E.s <| C.error "Exception (%s) \nFailed constraining instruction:@!%a@!@!"
                (Printexc.to_string ex) C.d_instr i
 
-let constrain_instrs tgr env et is sub sto =
-  let bas, sub, sto = List.fold_left (constrain_instr tgr env et) ([], sub, sto) is in
+let constrain_instrs tgr glocs qlocs gqlocs env et is sub sto =
+  let bas, sub, sto = List.fold_left (constrain_instr tgr glocs qlocs gqlocs env et) ([], sub, sto) is in
     (List.rev ([] :: bas), sub, sto)
 
-let constrain_stmt tgr ((fs, _) as env) et rtv s sub sto =
+let constrain_stmt tgr glocs qlocs gqlocs ((fs, _) as env) et rtv s sub sto =
   let loc = C.get_stmtLoc s.C.skind in
   let _   = C.currentLoc :=  loc    in
     match s.C.skind with
-      | C.Instr is          -> constrain_instrs tgr env et is sub sto
+      | C.Instr is          -> constrain_instrs tgr glocs qlocs gqlocs env et is sub sto
       | C.If (e, _, _, _)   -> let sub, sto = constrain_exp tgr loc et fs sub sto e in ([], sub, sto)
       | C.Break _           -> ([], sub, sto)
       | C.Continue _        -> ([], sub, sto)
@@ -326,7 +358,7 @@ class exprMapVisitor et = object (self)
     C.DoChildren
 end
 
-let constrain_fun tgr fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
+let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _            = C.currentLoc := fd.C.svar.C.vdecl in
   let sto, sub     = List.fold_left2 begin fun (sto, sub) (_, fct) bv ->
                        UStore.unify_ctype_locs sto sub (VM.find bv ve) fct
@@ -335,9 +367,12 @@ let constrain_fun tgr fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} 
   let et           = new exprTyper (ve, fs) in
   let blocks       = cfg.Ssa.blocks in
   let bas          = Array.make (Array.length blocks) [] in
+  let qlocs        = CFun.quantified_locs cf in
+  let glocs        = Store.domain gst in
+  let gqlocs       = qlocs ++ glocs in
   let sub, sto     =
     M.array_fold_lefti begin fun i (sub, sto) b ->
-      let ba, sub, sto = constrain_stmt tgr (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
+      let ba, sub, sto = constrain_stmt tgr glocs qlocs gqlocs (fs, ve) et cf.ret b.Ssa.bstmt sub sto in
         Array.set bas i ba;
         (sub, sto) 
     end (sub, sto) blocks
@@ -389,37 +424,6 @@ let check_slocs_distinct error sub slocs =
   with Not_found -> ()
 
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
-
-let global_alias_error () (s1, s2) =
-  C.error "Separate Global locations unified in function body (%a, %a)"
-  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
-
-let quantification_error () (s1, s2) =
-  C.error "Separate quantified locations unified in function body (%a, %a)" 
-  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
-
-let global_quantification_error () (s1, s2) =
-  C.error "Separate global location and quantified location unified in function body (%a, %a)" 
-  S.d_sloc_info s1 S.d_sloc_info s2 (* TODO: prettycil, render sloc-types *)
-
-let check_sol_aux cf vars gst em bas sub sto whole_store =
-  (* We check that instantiation annotations are WF as we check calls in consVisitor *)
-  let _ = check_slocs_distinct global_alias_error sub (Store.domain gst) in
-  let _ = check_slocs_distinct quantification_error sub (CFun.quantified_locs cf) in
-  let _ = whole_store |> Store.domain |> check_slocs_distinct global_quantification_error sub in
-    ()
-
-let check_sol v cf vars gst em bas sub sto =
-  try check_sol_aux cf vars gst em bas sub sto with e ->
-    halt <| C.error "Failed checking store for function %a declared at %a\n"
-              CM.d_var v C.d_loc v.C.vdecl
-    
-    (* RJ: The rest has rather too much information and is likely unnecessary
-    C.error "Failed checking store typing:\nStore:\n%a\n\ndoesn't match expected type:\n\n%a\n\nGlobal store:\n\n%a\n\n"
-        Store.d_store sto
-        CFun.d_cfun cf
-        Store.d_store gst (* TODO: prettycil *)
-    *)
 
 let fresh_sloc_of v = function
   | Ref (s, i) ->
@@ -502,10 +506,9 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_frefs cf vm           in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in
   let sto                   = Store.upd cf.sto_out gst             in
-  let em, bas, sub, sto     = constrain_fun tgr fe cf ve sto sci       in
+  let em, bas, sub, sto     = constrain_fun tgr gst fe cf ve sto sci   in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
-  let _                     = check_sol sci.ST.fdec.C.svar cf ve gst em bas sub sto whole_store in
   let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
