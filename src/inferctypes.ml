@@ -305,7 +305,9 @@ let constrain_instr tgr glocs qlocs gqlocs env et annots i =
       check_locs_disjoint_under_sub sub glocs qlocs gqlocs;
       (bas, sub, sto)
   with ex -> E.s <| C.error "Exception (%s) \nFailed constraining instruction:@!%a@!@!"
-               (Printexc.to_string ex) C.d_instr i
+               (Printexc.to_string ex) C.d_instr i (* PRETTYCIL MULTIHTML HEREHEREHEREHERE JHALA *)
+
+
 
 let constrain_instrs tgr glocs qlocs gqlocs env et is sub sto =
   let bas, sub, sto = List.fold_left (constrain_instr tgr glocs qlocs gqlocs env et) ([], sub, sto) is in
