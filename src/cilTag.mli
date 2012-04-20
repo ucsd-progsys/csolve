@@ -34,6 +34,12 @@ val block_of_t    : o -> t -> int
 val tag_of_t      : t -> FixConstraint.tag
 val t_of_tag      : FixConstraint.tag -> t  (* breaks representation hiding! *)
 
+(*
 val reSugar_exp   : o -> Cil.exp -> Cil.exp
 val reSugar_inst  : o -> Cil.instr -> Cil.instr
+*)
+
+
+val d_exp_reSugar : o -> unit -> Cil.exp -> Pretty.doc
+val d_instr_reSugar : o -> unit -> Cil.instr -> Pretty.doc
 

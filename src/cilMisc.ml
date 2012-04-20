@@ -971,6 +971,7 @@ end
 
 }}} *)
 
+(*
 let fieldDerefTx eTop = match eTop with 
   | Lval (Mem (CastE (_, ( BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
   | Lval (Mem (CastE (_, ( BinOp (PlusPI, e, (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
@@ -985,9 +986,32 @@ let fieldDerefTx eTop = match eTop with
      end
   | _ -> eTop
 
+*)
+
+let fieldDerefTx lv = match lv with 
+  | (Mem (CastE (_, ( BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  | (Mem (CastE (_, ( BinOp (PlusPI, e, (Const (CInt64 (n, _, _))), _)))), NoOffset) (* *((T) e + N) *) 
+  | (Mem (BinOp (PlusPI, (CastE (_, e)), (Const (CInt64 (n, _, _))), _)), NoOffset) (* *((T) e + N) *) 
+  | (Mem (BinOp (PlusPI, e, (Const (CInt64 (n, _, _))), _)), NoOffset) (* *((T) e + N) *) 
+
+-> begin match fieldOfTypeIndex (typeOf e, Int64.to_int n) with 
+             | Some fld -> (Mem e, Field (fld, NoOffset))
+             | _        -> lv 
+     end
+  | (Mem (CastE (_, e)), NoOffset) (* *((T) e) *) 
+  | (Mem e, NoOffset) (* *((T) e) *) 
+  -> begin match fieldOfTypeIndex (typeOf e, 0) with 
+             | Some fld -> (Mem e, Field (fld, NoOffset))
+             | _        -> lv 
+     end
+  | _ -> lv 
+
+
 class fieldDerefVisitor = object(self)
   inherit nopCilVisitor
-  method vexpr e = ChangeDoChildrenPost (e, fieldDerefTx)
+  (* method vexpr e  = ChangeDoChildrenPost (e, fieldDerefTx) *)
+  method vlval lv = ChangeDoChildrenPost (lv, fieldDerefTx)
+
 end
 
 class substVisitor (su : Cil.exp VarMap.t) = object(self)
@@ -1000,14 +1024,20 @@ class substVisitor (su : Cil.exp VarMap.t) = object(self)
 end
 
 (* API *)
-let reSugarExp (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
+let reSugar_exp (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
   e |> visitCilExpr (new substVisitor su)
     |> visitCilExpr (new fieldDerefVisitor)
+
+(* API*)
+let reSugar_lval (su: Cil.exp VarMap.t) lv =
+  lv |> visitCilLval (new substVisitor su)
+     |> visitCilLval (new fieldDerefVisitor)
+
 
 let updVarMap sur v e =
   e |> exprStripAttrs 
     (* |> exprStripCasts *) 
-    |> reSugarExp !sur
+    |> reSugar_exp !sur
     |> (fun e -> sur := VarMap.add v e !sur)
 
 class tmpVarVisitor (sur : (Cil.exp VarMap.t) ref) = object(self)

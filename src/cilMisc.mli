@@ -186,8 +186,11 @@ val typStripAttrs  : Cil.typ  -> Cil.typ
 val exprStripAttrs : Cil.exp  -> Cil.exp
 (* val varExprMap     : Cil.file -> Cil.exp VarMap.t *)
 
-val reSugarExp     : Cil.exp VarMap.t -> Cil.exp -> Cil.exp
 val varExprMap     : Cil.fundec list -> Cil.exp VarMap.t
+
+
+val reSugar_lval : Cil.exp VarMap.t -> Cil.lval -> Cil.lval
+val reSugar_exp : Cil.exp VarMap.t -> Cil.exp -> Cil.exp
 
 (****************** Preserving Source Maps *************************)
 
