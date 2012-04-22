@@ -257,8 +257,7 @@ let expr_of_instr = PP.sprint ~width:80 <.> doc_of_instr
 
 let srcLoc_of_constraint fm tgr c = 
   c |> FixConstraint.tag_of_t 
-    |> CilTag.t_of_tag
-    |> CilTag.loc_of_t tgr
+    |> CilTag.loc_of_tag tgr
     |> srcLoc_of_location fm
  
 (*******************************************************************)

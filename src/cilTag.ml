@@ -61,6 +61,8 @@ let make_cinfo loc fn block cause =
   ; block = block
   ; cause = cause
   }
+ 
+
 
 (**********************************************************)
 (**************** Call Graph SCC Order ********************)
@@ -136,13 +138,16 @@ let create_blkm scis =
 (******************** API Accessors ***********************)
 (**********************************************************)
 
+let t_of_tag     = fun t -> asserti (H.mem invt t) "bad tag!"; t 
 
 (* API *)
-let loc_of_t     = fun me t -> (H.find invt t).loc
-let fname_of_t   = fun me t -> (H.find invt t).fname
-let block_of_t   = fun me t -> (H.find invt t).block 
+let loc_of_tag   = fun me t -> (H.find invt t).loc
+let cause_of_tag = fun me t -> (H.find invt t).cause
 let tag_of_t     = id 
-let t_of_tag     = fun t -> asserti (H.mem invt t) "bad tag!"; t 
+
+(*let fname_of_t   = fun me t -> (H.find invt t).fname
+  let block_of_t   = fun me t -> (H.find invt t).block 
+*)
 
 (* API *)
 let d_exp_reSugar me ()   = Cil.d_exp ()   <.> (CilMisc.reSugar_exp me.vem)
@@ -157,6 +162,7 @@ let make_t me loc fn blk instr cause =
     Errormsg.error "CilTag.make_t: bad args fn=%s, blk=%d" fn blk;
     assertf "CilTag.make_t"
 
+(* API *)
 let make_global_t =
   let glob_index = ref (-1) in
     fun me loc cause ->
@@ -174,4 +180,12 @@ let create scis =
   ; funm = create_funm scis
   ; blkm = create_blkm scis
   }
+
+(* API *)
+let d_cause me () = function
+  | Raw s       -> Pretty.dprintf "Raw   %s" s
+  | Call e      -> Pretty.dprintf "Call  %a" Cil.d_exp e
+  | Deref e     -> Pretty.dprintf "Deref %a" Cil.d_exp e
+  | Spec (s, v) -> Pretty.dprintf "Spec %s %s" s v.Cil.vname
+
 

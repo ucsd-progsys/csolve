@@ -35,11 +35,18 @@ val create        : Ssa_transform.t list -> o
 val make_t        : o -> Cil.location -> string -> int -> int -> cause -> t
 val make_global_t : o -> Cil.location -> cause -> t
 
+(*
 val loc_of_t      : o -> t -> Cil.location
 val fname_of_t    : o -> t -> string
 val block_of_t    : o -> t -> int
-val tag_of_t      : t -> FixConstraint.tag
 val t_of_tag      : FixConstraint.tag -> t  (* breaks representation hiding! *)
+*)
+
+val loc_of_tag    : o -> FixConstraint.tag -> Cil.location
+val cause_of_tag  : o -> FixConstraint.tag -> cause
+val d_cause       : o -> unit -> cause -> Pretty.doc
+
+val tag_of_t      : t -> FixConstraint.tag
 val d_exp_reSugar : o -> unit -> Cil.exp -> Pretty.doc
 val d_instr_reSugar : o -> unit -> Cil.instr -> Pretty.doc
 
