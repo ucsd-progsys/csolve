@@ -8,8 +8,8 @@ struct s {
 };
 
 void register_cb(char * ARRAY LOC(STR) str,
-		 void * LOC(L) p,
-                 void (* START VALIDPTR cb)(char * ARRAY LOC(STR), void * LOC(L)))
+		 void * VAR(a) p,
+                 void (* START VALIDPTR cb)(char * ARRAY LOC(STR), void * VAR(a)))
 {
   cb(str, p); 
 }

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 extern
-void fun(void *a)
+void fun(void * VAR(a) a)
   OKEXTERN;
 
 void main(void)

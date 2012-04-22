@@ -82,9 +82,15 @@ let slocOfAttrs ats =
 let rec getTvar = 
   let tvarTable = Hashtbl.create 17 in
   fun s -> M.do_memo tvarTable Ct.fresh_tvar () s
+    
+let tvarNameOfAttrs ats =
+     ats
+  |> CM.getStringAttrs CM.typeVarAttribute
+  |> M.ex_one "Type does not have a single type variable"
       
 let tvarOfAttrs ats = 
-  ats |> slocNameOfAttrs |> getTvar
+  ats |> tvarNameOfAttrs |> getTvar
+  (* ats |> slocNameOfAttrs |> getTvar *)
 
 let finalityOfAttrs ats =
   if C.hasAttribute CM.finalAttribute ats then Ct.Final else Ct.Nonfinal
@@ -353,8 +359,10 @@ let rec refctypeOfCilType abstr mem t = match normalizeType t with
           |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty
           |> fst3
     in Ct.FRef (f', r)
-  | C.TPtr (t, ats) when abstr && is_zero_width mem t ats ->
-    Ct.TVar (tvarOfAttrs ats) (* (Ct.fresh_tvar ()) *)
+  (* | C.TPtr (t, ats) when abstr && is_zero_width mem t ats -> *)
+  (*   Ct.TVar (tvarOfAttrs ats) (\* (Ct.fresh_tvar ()) *\) *)
+  | C.TPtr (t, ats) when C.hasAttribute CM.typeVarAttribute ats ->
+      Ct.TVar (tvarOfAttrs ats)
   | C.TPtr (t, ats)      ->
     if C.hasAttribute CM.anyRefAttribute ats then
       Ct.ARef (* create an anyref even if the type is named *)

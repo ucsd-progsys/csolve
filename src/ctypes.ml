@@ -1063,7 +1063,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let all_subs sub tsub ct = ct|> T.TVarInst.apply tsub |> CType.subs sub 
 
       let rec unify_ctype_locs sto sub tsub ct1 ct2 = 
-        match CType.subs sub ct1, CType.subs sub ct2 with
+        match all_subs sub tsub ct1, all_subs sub tsub ct2 with
+        (* match CType.subs sub ct1, CType.subs sub ct2 with *)
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub, tsub)
         | Ref (s1, _), Ref (s2, _)              -> lift_third (unify_locations sto sub s1 s2) tsub
         | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub, tsub)
@@ -1073,8 +1074,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Any, Any                              -> (sto, sub, tsub)
         | Any, Int _                            -> (sto, sub, tsub)
         | Int _, Any                            -> (sto, sub, tsub)
-        | TVar _ as tv, ct'                     -> unify_tvars sub sto tsub tv ct'
-        | ct', (TVar _ as tv)                   -> unify_tvars sub sto tsub ct' tv
+        | TVar t1, TVar t2 when t1 = t2         -> (sto, sub, tsub)
+        (* | TVar _ as tv, ct'                     -> unify_tvars sub sto tsub tv ct' *)
+        (* | ct', (TVar _ as tv)                   -> unify_tvars sub sto tsub ct' tv *)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
@@ -1082,7 +1084,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         let _ = Pretty.printf "unify_tvars sub: %a store: %a@!" 
           S.Subst.d_subst sub d_store sto in
         match all_subs sub tsub t1, all_subs sub tsub t2 with
-          | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) when r1 = r2 -> 
+          | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) (* when r1 = r2 *)-> 
             unify_ctype_locs sto sub tsub t1 t2
           | TVar t1', TVar t2'       -> sto, sub, T.TVarInst.extend t1' (TVar t2') tsub
           | TVar t', ((Ref _) as r) 
@@ -1633,6 +1635,7 @@ let rec vtype_to_ctype v = if Cil.isArithmeticType v
   then scalar_ctype
   else match v with
     | Cil.TNamed ({C.ttype = v'},_) -> vtype_to_ctype v'
+    (* | Cil.TPtr (Cil.TVoid _, _) -> TVar (fresh_tvar ()) *)
     | Cil.TPtr (Cil.TFun _, _) -> fptr_ctype
     | _ -> ptr_ctype
 

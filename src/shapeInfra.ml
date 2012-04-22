@@ -44,6 +44,7 @@ let rec typealias_attrs: C.typ -> C.attributes = function
    whatever int shape is on the heap always includes 0, which is
    sufficient and unproblematic so far. *)
 let fresh_heaptype (t: C.typ): ctype =
+  let _ = Pretty.printf "fresh_heaptype(%a)@!" C.d_plaintype t in
   let ats1 = typealias_attrs t in
     match C.unrollType t with
       | C.TInt (ik, _)                           -> Int (C.bytesSizeOfInt ik, N.top)
@@ -55,6 +56,9 @@ let fresh_heaptype (t: C.typ): ctype =
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
                          (Ctypes.RefCTypes.CType.map fst) fspec,
                        Index.of_int 0)
+      (* | C.TPtr ((C.TVoid _) as tb, ats) -> Ctypes.TVar (Typespec.tvarOfAttrs ats) *)
+      | C.TPtr (tb, ats) when C.hasAttribute CM.typeVarAttribute ats ->
+        Ctypes.TVar (Typespec.tvarOfAttrs ats)
       | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
            Typespec.ptrReftypeOfSlocAttrs (S.fresh_abstract [CM.srcinfo_of_type t None]) tb ats
         |> Ctypes.ctype_of_refctype
@@ -131,7 +135,7 @@ class exprTyper (ve,fe) = object (self)
                        Index.IBot)
             
   method private ctype_of_void_constptr c = match c with
-    | C.CInt64 (v, ik, so) when v = Int64.zero -> Ctypes.TVar (Ctypes.fresh_tvar ())
+    (* | C.CInt64 (v, ik, so) when v = Int64.zero -> Ctypes.TVar (Ctypes.fresh_tvar ()) *)
     | _ -> self#ctype_of_constptr c
       
   method private ctype_of_constptr c = match c with  

@@ -1,7 +1,7 @@
 #include <csolve.h>
 
-void* LOC(L)
-foo(void* LOC(L) x, void* LOC(L) y)
+void* VAR(a)
+foo(void* VAR(a) x, void* VAR(a) y)
 {
 	x = y;
 	return x;

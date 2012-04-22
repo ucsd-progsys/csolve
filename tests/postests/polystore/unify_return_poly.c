@@ -1,7 +1,7 @@
 #include <csolve.h>
 
-void* LOC(L)
-foo (void* LOC(L) x) CHECK_TYPE
+void* VAR(a)
+foo (void* VAR(a) x) CHECK_TYPE
 {
   return x;
 }

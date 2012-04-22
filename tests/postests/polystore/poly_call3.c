@@ -12,9 +12,9 @@ struct t {
   short z;
 };
 
-void register_cb(void * LOC(K) s,
-		 void * LOC(L) t,
-                 void (* START VALIDPTR cb)(void * LOC(K), void * LOC(L)))
+void register_cb(void * VAR(K) s,
+		 void * VAR(L) t,
+                 void (* START VALIDPTR cb)(void * VAR(K), void * VAR(L)))
 {
   cb(s,t); 
 }

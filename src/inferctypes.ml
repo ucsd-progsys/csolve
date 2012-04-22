@@ -277,6 +277,11 @@ let find_function et fs tsub sub sto = function
     match e |> et#ctype_of_exp |> Ct.subs sub with
       | FRef (f, _) -> f
       | _ -> assert false
+        
+
+let unify_tvars tsub ct1 ct2 = match TVarInst.apply tsub ct1, TVarInst.apply tsub ct2 with
+  | (TVar t, ct2') -> TVarInst.extend t ct2 tsub
+  | _ -> tsub
 
 let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
   let _ = C.currentLoc := C.get_instrLoc i in
@@ -286,22 +291,12 @@ let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
       let tsub, sub, sto = constrain_exp et fs tsub sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
-      let _ =
-        begin match ct1, ct2 with
-          | (Ref(l, r) as p), TVar t
-          | TVar t, (Ref(l, r) as p) -> 
-            (* let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in *)
-            (* let _ = Pretty.printf "%a := %a @[%a@]\n" Ct.d_ctype ct1 Ct.d_ctype ct2 Store.d_store sto in *)
-            ()
-          | _ -> ()
-        end
-      in
+      let tsub     = unify_tvars tsub ct1 ct2 in
       let _ = Pretty.printf "INSTRUCTION: %a@!" C.dn_instr i in
       let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in
       let _ = Pretty.printf "%a := %a @[%a@]\n" Ct.d_ctype ct1 Ct.d_ctype ct2 Store.d_store sto in
-      (* let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in *)
-      let sto, sub, tsub = UStore.unify_ctype_locs sto sub tsub ct1 ct2 in
       let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in
+      let sto, sub, tsub = UStore.unify_ctype_locs sto sub tsub ct1 ct2 in
         ([] :: bas, tsub, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in

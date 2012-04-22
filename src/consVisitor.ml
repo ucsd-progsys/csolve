@@ -272,6 +272,7 @@ let cons_of_set me loc tag grd ffm pre_env effs (env, sto, tago) = function
   (* v := e, where v is local *)
   | (Var v, NoOffset), rv when not v.Cil.vglob ->
       let cr, cds = cons_of_rval me loc tag grd effs (pre_env, sto, tago) env rv in
+      let _ = Pretty.printf "cr: %a@!" RT.d_ctype cr in
       (extend_env me v cr env, sto, Some tag), cds, []
 
   (* v := e, where v is global *)
@@ -442,7 +443,7 @@ let wfs_of_tinsto env f = function
     let sto = Ct.stores_of_refcfun f |> fst in
     List.map snd inst |> M.flap (FI.make_wfs env' sto)
         
-let instantiate_fun me env st frt ns =
+let instantiate_fun me env sto frt ns =
   let lsubs = lsubs_of_annots ns in
   let hsubs = hsubs_of_annots env ns in
   let tsubs = tsubs_of_annots ns in
@@ -456,11 +457,10 @@ let instantiate_fun me env st frt ns =
   (* in *)
   let frt' = match tinst with 
     | Some inst ->
-      let _ = Pretty.printf "uhhhhh tsubs: %a tinst: %a@!" Ctypes.TVarSubst.d_subst tsubs Ctypes.ReftTypes.TVarInst.d_inst inst in
       RCf.inst_tvar tsubs inst frt
     | None -> frt
   in
-  let frt' = RCf.subs_store_var hsubs lsubs st frt' in
+  let frt' = RCf.subs_store_var hsubs lsubs sto frt' in
   let wfs = wfs_of_tinsto env frt' tinst in
   (* let wfs = FI.make_wfs_fn (CF.globalenv_of_t me) frt' in *)
   (frt', lsubs, wfs)
@@ -558,7 +558,7 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
       E.s <| E.error "TBD: cons_of_instr: %a \n" d_instr instr
 
 let scalarcons_of_binding me loc tag (j, env) grd j v cr =
-  (* let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in *)
+  let _      = Pretty.printf "scalarcons_of_binding: [v=%s] [cr=%a] \n" v.Cil.vname Ct.d_refctype cr in
   let ct   = Ct.ctype_of_refctype cr in
   let cr'    = FI.t_fresh ct in
   let cs, ds = FI.make_cs env grd cr cr' None tag loc in
@@ -580,6 +580,7 @@ let scalarcons_of_instr me i grd (j, env) instr =
 
   | Set ((Var v, NoOffset), e, _) 
     when (not v.vglob) && CM.is_pure_expr CM.StringsArePure e ->
+    let _ = Pretty.printf "type: %a@!" Cil.d_plaintype (e |> Cil.typeOf) in
       FI.t_exp_scalar v e 
       |> scalarcons_of_binding me loc tag (j, env) grd j v 
 

@@ -6,10 +6,10 @@ struct s {
   char *y;
 };
 
-void register_cb(void * LOC(L) p,
-                 void (* START VALIDPTR cb)(void * LOC(L)))
+void register_cb(void * VAR(a) p,
+                 void (* START VALIDPTR cb)(void * VAR(a)))
 {
-  cb(p); 
+  cb(p);
 }
 
 void process_s(struct s *p)
