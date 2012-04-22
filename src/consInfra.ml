@@ -276,9 +276,8 @@ let annotstmt_of_block me i =
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
-let tag_of_instr me block_id instr_id loc msgo = 
-  let msg = Misc.maybe_default msgo (get_fname me) in
-  CilTag.make_t me.tgr loc msg block_id instr_id
+let tag_of_instr me block_id instr_id loc cause = 
+  CilTag.make_t me.tgr loc (get_fname me) block_id instr_id cause
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
@@ -466,9 +465,10 @@ let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
       (me.gnv, get_astore me, None)
   | j ->
-      let loc          = location_of_block me j in
-      let msgo         = Some (Printf.sprintf "%s : entry" (get_fname me)) in
-      let tag          = tag_of_instr me j 0 loc msgo in
+      let loc   = location_of_block me j in
+      let msgo  = Some (Printf.sprintf "%s : entry" (get_fname me)) in
+      let cause = CilTag.Raw "ConsInfra.inwld_of_block" in
+      let tag   = tag_of_instr me j 0 loc cause in 
       (inenv_of_block me j, get_astore me, Some tag)
       |> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)
 
@@ -504,7 +504,9 @@ let create_shapeo tgr gnv env gst sci = function
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let aeffs   = fresh_abstract_effectset astore in
       let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
-      let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl sci.ST.fdec.svar.vname 0 0 in
+      let cause   = CilTag.Raw "ConsInfra.create_shapeo" in
+      let fn      = sci.ST.fdec.svar.vname in
+      let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl fn 0 0 cause in
       let loc     = sci.ST.fdec.svar.vdecl in
       let ws      = FI.make_wfs_refstore env lastore lastore ++ FI.make_wfs_effectset env lastore aeffs in
       let irf     = FI.ce_find_fn sci.ST.fdec.svar.vname gnv in
