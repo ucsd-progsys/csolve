@@ -23,7 +23,7 @@
 
 module Sl = Sloc
 module FC = FixConstraint
-module SSS = Sloc.SlocSloc
+module SSS = Sloc.SlocSlocSet
 
 type refVar   = string
 
@@ -44,12 +44,11 @@ type   env   = var_def HfMap.t
 let intr_is_conc (l1, l2) = Sloc.is_abstract l1 && Sloc.is_concrete l2
 let intr_is_abs  (l1, l2) = Sloc.is_abstract l1 && Sloc.is_abstract l2
 
-let test_env    = HfMap.add "list" def_of_list HfMap.empty
+(*let test_env    = HfMap.add "list" def_of_list HfMap.empty
 
 let def_of_list = ()
 
 let d_ref_fapp = ()
 let d_ref_def  = ()
-
-
+*)
 
