@@ -40,7 +40,7 @@ val effectset_of_block      : t -> int -> Ctypes.effectset
 val location_of_block   : t -> int -> Cil.location
 val annotstmt_of_block  : t -> int -> Refanno.block_annotation * Shape.final_fields_annot * Cil.stmt
 val stmt_of_block       : t -> int -> Cil.stmt
-val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.t
+val tag_of_instr        : t -> int -> int -> Cil.location -> string option -> CilTag.t
 val phis_of_block       : t -> int -> Cil.varinfo list
 val guard_of_block      : t -> int -> int option -> Ast.pred
 val csto_of_block       : t -> int -> Ctypes.refstore

@@ -276,8 +276,9 @@ let annotstmt_of_block me i =
 let location_of_block me i =
   Cil.get_stmtLoc (stmt_of_block me i).skind 
 
-let tag_of_instr me block_id instr_id loc = 
-  CilTag.make_t me.tgr loc (get_fname me) block_id instr_id
+let tag_of_instr me block_id instr_id loc msgo = 
+  let msg = Misc.maybe_default msgo (get_fname me) in
+  CilTag.make_t me.tgr loc msg block_id instr_id
 
 let rec doms_of_block gdoms acc i =
   if i <= 0 then acc else
@@ -466,7 +467,8 @@ let inwld_of_block me = function
       (me.gnv, get_astore me, None)
   | j ->
       let loc          = location_of_block me j in
-      let tag          = tag_of_instr me j 0 loc in
+      let msgo         = Some (Printf.sprintf "%s : entry" (get_fname me)) in
+      let tag          = tag_of_instr me j 0 loc msgo in
       (inenv_of_block me j, get_astore me, Some tag)
       |> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)
 

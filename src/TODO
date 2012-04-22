@@ -1,25 +1,41 @@
 PENDING
 =======
 
-    * regressionTests
-    * Iterate on error messages
-    * Pull in cleaned expressions/instr/stmts using VarExprMap and friends
-
 * chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
 
-Multi-file HTML
----------------
+Multi-file HTML (branch: multihtml)
+-----------------------------------
 
-(CilTag.reSugar tgr e) will render CLEAN versions of e
+To render CLEAN versions of x
+    
+    CilTag.d_instr_reSugar x
+    CilTag.d_exp_reSugar x
+    CilTag.d_lval_reSugar x
 
-HEREHEREHEREHERE
-- Nice error messages: line 223, dereference 
+HEREHEREHEREHEREHERE
+Nice error messages: line 223, dereference 
     *tmp78
   
-  where cleanup(*tmp78) =====> x->foo->bar
-  render error: 
+  where cleanup(*tmp78) =====> x->foo->bar render error: 
   
     line 223, dereference x->foo->bar not safe.
+
+To achieve this, fix the type errors in consVisitor that have to do with
+
+    ConsInfra.tag_of_instr
+
+Which now takes an extra parameter for string messages Add type:
+
+    type cause = Nothing | Msg of string | CallExp of Cil.exp | Spec of ... etc
+
+    val tag_of_instr: me i j loc cause -> tag
+
+    have a backwards map from tag to cause
+
+    render cause on error...?
+
+
+
 
 - Persistent Windows on Variable Click (with same info as hover)
 
