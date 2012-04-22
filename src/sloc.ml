@@ -150,6 +150,82 @@ module SlocSet = Set.Make(ComparableSloc)
 
 module SlocMap = M.EMap (ComparableSloc)
 
+module SlocSlocSet =
+  struct
+    module M  = SlocMap
+    type t    = sloc list M.t
+    type elt  = sloc * sloc
+
+    let empty         = M.empty
+    let is_empty t    = empty = t
+
+    let rec mem (s, s') t =
+      if eq s s' then
+        true
+      else if (M.mem s t) then
+        List.exists (fun s' -> mem (s, s') t) (M.find s t)
+      else
+        false
+
+    let rec find s t =
+      if (M.mem s t) then
+        List.fold_left (fun ss s -> ss @ find s t) [] <|
+        M.find s t
+      else 
+        []
+
+    let add (s, s') t =
+      M.add s (find s t) t
+
+    let remove (s, s') t =
+      assert false
+
+    let singleton (s, s') =
+      M.add s [s'] M.empty
+
+    let union t t' =
+      M.fold (fun s l tt -> M.add s ((M.find s t) @ l) tt) t t'
+
+    let inter t t' =
+      assert false
+    let diff t t' =
+      assert false
+    let compare t t' =
+      assert false
+    let equal t t' =
+      assert false
+    let filter p t =
+      assert false
+    let partition f t =
+      assert false
+    let cardinal t =
+      assert false
+    let elements t =
+      assert false
+    let min_elt t =
+      assert false
+    let max_elt t =
+      assert false
+    let choose t =
+      assert false
+    let split t =
+      assert false
+    let of_list t =
+      assert false
+    let exists f t =
+      assert false
+    let for_all f t =
+      assert false
+    let fold f a t =
+      assert false
+    let iter f t =
+      assert false
+    let subset f t =
+      assert false
+  end
+
+    
+
 let slm_bindings = fun conc -> SlocMap.fold (fun k v acc -> (k, v) :: acc) conc []
 
 module SMP = P.MakeMapPrinter(SlocMap)

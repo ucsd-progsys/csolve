@@ -21,20 +21,19 @@
  *
  *)
 
-type fname    = string
+module Sl = Sloc
+module FC = FixConstraint
+module SSS = Sloc.SlocSloc
+
 type refVar   = string
 
-type 'a fapp  = fname * Sloc.t list * 'a list
+type intr        = Sloc.t * Sloc.t
 
-type ref_fapp = FixConstraint.reft fapp
-
-type intr         = Sloc.t * Sloc.t
-
-type 'a def    = { loc_params : Sloc.t list 
-                 ; ref_params : 'a list 
-                 ; unfolds    : intr list
-                 ; rhs        : 'a Ctypes.prestore
-                 }
+type 'a def      = { loc_params : Sloc.t list 
+                   ; ref_params :     'a list 
+                   ; unfolds    :   intr list
+                   ; rhs        : 'a Ctypes.prestore
+                   }
 
 type ref_def  = FixConstraint.reft def
 type var_def  = refVar def
@@ -42,10 +41,12 @@ type var_def  = refVar def
 module HfMap = FixMisc.StringMap
 type   env   = var_def HfMap.t
 
-let intr_is_conc (l1, l2) = Sloc.is_abstract l1 and Sloc.is_concrete l2
-let intr_is_abs  (l1, l2) = Sloc.is_abstract l1 and Sloc.is_abstract l2
+let intr_is_conc (l1, l2) = Sloc.is_abstract l1 && Sloc.is_concrete l2
+let intr_is_abs  (l1, l2) = Sloc.is_abstract l1 && Sloc.is_abstract l2
 
 let test_env    = HfMap.add "list" def_of_list HfMap.empty
+
+let def_of_list = ()
 
 let d_ref_fapp = ()
 let d_ref_def  = ()

@@ -25,6 +25,7 @@ type t
 
 module SlocSet: Set.S with type elt = t
 module SlocMap: FixMisc.EMapType with type key = t
+module SlocSlocSet: FixMisc.ESetType with type elt = t*t
 
 val sloc_of_any    : t
 val none           : t

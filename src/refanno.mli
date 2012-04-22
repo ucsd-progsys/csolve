@@ -37,8 +37,8 @@ type annotation =
   | HInst of Ctypes.StoreSubst.t
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.tvinst
-  | HIns of Ctypes.refstore * Heapfun.ref_fapp (* [h / f(<l>, <p>)] *)
-  | HGen of Ctypes.refstore * Heapfun.ref_fapp (* [f(<l>, <p>) / h] *)
+  | HIns of Sloc.t * Sloc.t list        (* [Aloc, [loc]] *)
+  | HGen of Sloc.t * Sloc.t list        (* [[loc], Aloc] *)
 
 (* 1. block_annotation length = block length,
  * 2. annotations _precede_ corresponding instr 
