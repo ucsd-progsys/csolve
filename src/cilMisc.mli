@@ -133,7 +133,8 @@ val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
 *)
-val reachable: Cil.file -> string -> bool
+val reachable     : Cil.file -> string -> bool
+val source_files  : Cil.file -> string list
 
 val iterExprs: Cil.file -> (Cil.exp -> bool) -> unit
 (*
@@ -157,7 +158,7 @@ val is_reference: Cil.typ  ->bool
 val is_pure_function    : string -> bool
 val is_cil_tempvar      : string -> bool
 val rename_local        : string -> string -> string
-val unrename_local      : string -> string -> string
+val unrename_local      : (* string -> *) string -> string
 
 module type Summarizer =
 sig
@@ -183,8 +184,13 @@ val noBlockAttrPrinter : Cil.cilPrinter
 
 val typStripAttrs  : Cil.typ  -> Cil.typ
 val exprStripAttrs : Cil.exp  -> Cil.exp
-val varExprMap  : Cil.file -> Cil.exp VarMap.t
+(* val varExprMap     : Cil.file -> Cil.exp VarMap.t *)
 
+val varExprMap     : Cil.fundec list -> Cil.exp VarMap.t
+
+val reSugar_lval  : Cil.exp VarMap.t -> Cil.lval  -> Cil.lval
+val reSugar_exp   : Cil.exp VarMap.t -> Cil.exp   -> Cil.exp
+val reSugar_instr : Cil.exp VarMap.t -> Cil.instr -> Cil.instr
 
 (****************** Preserving Source Maps *************************)
 

@@ -1285,6 +1285,9 @@ let find_first_true f lo hi =
   else if not (f hi) then None 
   else go lo hi
 
+let safeHead msg = function
+  | [x] -> x
+  | _   -> failwith ("ERROR: safeHead" ^ msg) 
 
 let safeApply pp f x = match f x with
   | Some y -> y

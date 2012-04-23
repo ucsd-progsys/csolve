@@ -24,9 +24,33 @@ from pygments import highlight
 from pygments.lexers import CLexer
 from pygments.formatters import HtmlFormatter
 from string import Template
-
-
 from optparse import OptionParser
+
+baseDir          = sys.path[0]
+tgtTplt          = baseDir + "/templates/csolve.html"
+#lineTplt         = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
+lineSpan         = "<span class='line' file=$filenum num=$linenum>" + \
+                   "<a class='linenum' href= \"$lineanch\" file=$filenum num=$linenum name=\"$lineanch\">$padlinenum:&nbsp;</a>" + \
+                   "$line</span>"
+lineTplt         = Template(lineSpan)
+anchTplt         = Template("#$filenum-$linenum")
+
+#headTplt         = "/***********************************************************************/" + \
+#                   "/***** Source $filenum: $filename *********/"
+
+
+def headSrc(fileNum, fileName):
+  str   = "/*** Source %d: %s " % (fileNum, fileName)
+  if len(str) > 79: 
+    str += "*/"
+  else:
+    str += "*" * (79 - len(str)) + "/"
+  stars = "/" + "*" * (len(str) - 2) + "/"
+  return "\n".join([stars, str, stars])
+
+
+
+########################### Generic IO Helpers ###########################
 
 def getOptions():
   p = OptionParser()
@@ -36,24 +60,9 @@ def getOptions():
   p.add_option("-o", "--out"
               , dest="out", help="name of output html"
               , default="out.html", metavar="FILE")
-  (options, args) = p.parse_args()
-  print "Json File:", options.json
-  print "Html File:", options.out
-  print "Source Files:", args
-  return (options, args)
-
-(opts, srcFiles) = getOptions()
-tgtFile          = opts.out
-jsonFile         = opts.json
-srcDir           = os.path.dirname(tgtFile)
-baseDir          = sys.path[0]
-tgtTplt          = baseDir + "/templates/csolve.html"
-
-#lineTplt         = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
-lineTplt         = Template("<span class='line' file=$file num=$linenum><a class='linenum' href= \"#$linenum\" file=$file num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
-
-
-########################### Generic IO Helpers ###########################
+  (opts, args)  = p.parse_args()
+  opts.srcFiles = args
+  return opts
 
 def readFrom(file):
   f  = open(file, "r")
@@ -85,40 +94,62 @@ def padLineNum(size, i):
   pad   = "&nbsp;" * (size - isize)
   return (pad + str(i))
 
-def addLineNumbers(src, html):
+def lineToHtml(fi, li, pad, line):
+  anch = anchTplt.substitute(filenum = fi, linenum = li)
+  return lineTplt.substitute(filenum = fi, linenum = li, padlinenum = pad, lineanch = anch, line = line)
+
+def addLineNumbers(srcIndex, src, html):
   s    = html[28:-13] 
   ins  = ["" for i in range(numBlanks(src))] + s.split("\n")
   n    = len(ins)
   size = len(str(n))
   args = [(i, padLineNum(size, i), l) for (i, l) in zip(range(1, n+1), ins)]
-  outs = [lineTplt.substitute(linenum = i, padlinenum = si, line = l) for (i, si, l) in args]
+  outs = [lineToHtml(srcIndex, i, si, l) for (i, si, l) in args]
   return (html[:28] + "\n".join(outs) + html[-13:])
 
 ##################### Plugging Into Templates #########################
 
-def copyDir(off):
+def copyDir(destDir, off):
   inDir  = baseDir + "/" + off
-  outDir = srcDir  + "/" + off
+  outDir = destDir + "/" + off
   distutils.dir_util.copy_tree(inDir, outDir)
-  print "c2Html: copyDir from ", inDir, " To ", outDir
+  print "cs2Html: copyDir from ", inDir, " To ", outDir
 
-def main(srcFile, jsonFile):
-  src     = readFrom(srcFile)
-  srcHtml = highlight(src, CLexer(stripall=False), HtmlFormatter())
-  srcHtml = addLineNumbers(src, srcHtml)
-  srcJson = readFrom(jsonFile)
+def rawSrcToHtml(src):
+  return highlight(src, CLexer(stripall=False), HtmlFormatter())
+
+def srcToHtml(srcIndex, srcFile):
+  src      = readFrom(srcFile)
+  html     = rawSrcToHtml(src)
+  srcHtml  = addLineNumbers(srcIndex, src, html)
+  head     = headSrc(srcIndex, srcFile)
+  headHtml = rawSrcToHtml(head)
+  #headTplt.substitute(filenum = srcIndex, filename = srcFile)
+  return (headHtml + srcHtml) 
+
+def srcsToHtml(srcFiles):
+  n     = len(srcFiles)
+  htmls = [srcToHtml(i, f) for (i, f) in zip(range(len(srcFiles)), srcFiles)]
+  return "\n\n\n".join(htmls)
+
+def main():
+  opts    = getOptions()
+  print "cs2html", "Json:", opts.json, "Sources:", opts.srcFiles, "Html:", opts.out 
+  tgtFile = os.path.abspath(opts.out)
+  srcDir  = os.path.dirname(tgtFile)
+  srcHtml = srcsToHtml(opts.srcFiles) 
+  srcJson = readFrom(opts.json)
   tplt    = Template(readFrom(tgtTplt))
   tgt     = tplt.substitute(srcHtml = srcHtml, srcJson = srcJson)
   writeTo(tgtFile, tgt)
+  copyDir(srcDir, "css")
+  copyDir(srcDir, "js")
 
 #############################################################################
 
-###try: 
-###  print "c2html src=", srcFile, " srcDir=", srcDir
-###  main(srcFile, jsonFile)
-###  copyDir("css")
-###  copyDir("js")
-###except: 
-###  print "Unexpected error:", sys.exc_info()[0]
-###  print "Error in c2html. Usage: ./c2html.py inFile.c" 
-###  raise
+try: 
+  main()
+except: 
+  print "Unexpected error:", sys.exc_info()[0]
+  print "Error in c2html. Usage: ./cs2html.py -j inFile.json -o outFile.html file1.c file2.c fileN.c" 
+  raise

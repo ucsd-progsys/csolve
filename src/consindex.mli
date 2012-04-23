@@ -36,9 +36,6 @@ val add         :  t
                 -> Ssa_transform.t
                 -> FixConstraint.wf list * FixConstraint.t list * (Cil.varinfo * Ctypes.refctype) list * FixConstraint.dep list 
                 -> t
-(*
-val print       : FixConstraint.soln option -> unit -> t -> Pretty.doc
-*)
 
 val solve       :  t 
                 -> string 
@@ -48,5 +45,4 @@ val solve       :  t
 val scalar_solve: t
                 -> string
                 -> (Ast.Symbol.t -> Ast.pred -> bool)
-                (* -> Qualifier.t list *)
                 -> (Index.t CilMisc.VarMap.t) FixMisc.StringMap.t

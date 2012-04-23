@@ -26,7 +26,6 @@
 module Misc = FixMisc 
 module E  = Errormsg
 module ST = Ssa_transform
-
 module FI = FixInterface 
 module FA = FixAstInterface 
 module CF = ConsInfra
@@ -52,7 +51,7 @@ let mydebug = false
 (*************** Processing SCIs and Globals *******************************)
 (***************************************************************************)
 
-let shapem_of_scim cil spec scim vim =
+let shapem_of_scim cil tgr spec scim vim =
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = Ctypes.cfun_of_refcfun rf in
@@ -64,7 +63,7 @@ let shapem_of_scim cil spec scim vim =
   (* >> (fst <+> Misc.sm_print_keys "builtins") *)
   (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
   |> snd
-  |> Inferctypes.infer_shapes cil (Ctypes.cspec_of_refspec spec) 
+  |> Inferctypes.infer_shapes cil tgr (Ctypes.cspec_of_refspec spec) 
 
 let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
@@ -179,19 +178,14 @@ let is_loc_type_fixed sts l = match Sloc.SlocMap.find l sts with
   | Ctypes.HasShape | Ctypes.IsSubtype -> false
 
 (* API *)
-let create cil spec decs =
-  let scim   = ST.scim_of_decs decs  in
-  let _      = E.log "\nDONE: SSA conversion \n" in
-  let tgr    = scim |> SM.to_list |> Misc.map snd |> CilTag.create in
-  let _      = E.log "\nDONE: TAG initialization\n" in
+let create cil spec decs scim tgr =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
   let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
   let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
-  let shm    = shapem_of_scim cil spec scim vim in
-  (* let _      = Annots.stitch_shapes_ctypes cil shm in *)
+  let shm    = shapem_of_scim cil tgr spec scim vim in
   let gnv    = cnv0 |> finalize_funtypes shm
                     |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in 
   let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in
@@ -203,7 +197,6 @@ let create cil spec decs =
   let sts    = CS.locspectypes spec in
   let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
   let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
-  (* let _      = Errormsg.log "CREATE SPEC = %a" CS.d_spec spec in *)
-  (tgr, cons_of_decs tgr spec gnv gst decs
-        |> Consindex.create
-        |> cons_of_scis tgr gnv gst scim (Some shm))
+  cons_of_decs tgr spec gnv gst decs
+  |> Consindex.create
+  |> cons_of_scis tgr gnv gst scim (Some shm)

@@ -24,7 +24,7 @@
 (* This file is part of the liquidC Project.*)
 module ST  = Ssa_transform
 module H   = Hashtbl
-
+module E   = Errormsg
 module Misc = FixMisc 
 module SM  = Misc.StringMap
 module SIM = Misc.EMap (struct type t = string * int 
@@ -32,36 +32,56 @@ module SIM = Misc.EMap (struct type t = string * int
                                let print ppf (s, i) = Format.fprintf ppf "(%s, %d)" s i
                         end)
 
-open Cil
+(* open Cil *)
 open Misc.Ops
 
 type t = FixConstraint.tag (* {v: int list | len v = 4 && Hashtbl.mem invt v} *)
                            (* Each t is a [callgraph rank; block_id; instr_id; fname_id] *)
-type o = {
-  funm : int SM.t;
-  blkm : int SIM.t;
-}
+type o = { vem  : Cil.exp CilMisc.VarMap.t
+         ; funm : int SM.t
+         ; blkm : int SIM.t; 
+         }
 
-let invt : (t, Cil.location * string * int) H.t = H.create 37
+type cause = Raw   of string 
+           | Call  of Cil.exp 
+           | Deref of Cil.exp 
+           | Spec  of string * Cil.varinfo
+
+
+type cinfo = { loc   : Cil.location
+             ; fname : string
+             ; block : int
+             ; cause : cause }
+
+let invt : (t, cinfo) H.t = H.create 37
+
+let make_cinfo loc fn block cause = 
+  { loc   = loc 
+  ; fname = fn
+  ; block = block
+  ; cause = cause
+  }
+ 
+
 
 (**********************************************************)
 (**************** Call Graph SCC Order ********************)
 (**********************************************************)
 
 class calleeVisitor calleesr = object(self)
-  inherit nopCilVisitor
+  inherit Cil.nopCilVisitor
     method vinst = function
-    | Call (_, Lval ((Var v), NoOffset), _, _) ->
-        calleesr := v.vname :: !calleesr; DoChildren
-    | _ -> DoChildren
+    | Cil.Call (_, Cil.Lval ((Cil.Var v), Cil.NoOffset), _, _) ->
+        calleesr := v.Cil.vname :: !calleesr; Cil.DoChildren
+    | _ -> Cil.DoChildren
 end
 
 let callgraph_of_scis scis = 
   Misc.flap begin fun sci ->
     let fd  = sci.ST.fdec in
-    let fn  = fd.svar.vname in
+    let fn  = fd.Cil.svar.Cil.vname in
     let vsr = ref [] in
-    let _   = visitCilFunction (new calleeVisitor vsr) fd in
+    let _   = Cil.visitCilFunction (new calleeVisitor vsr) fd in
     Misc.map (fun v -> (fn, v)) !vsr
   end scis 
 
@@ -76,7 +96,7 @@ let fn_to_i, i_to_fn =
    (fun i  -> Misc.do_catch "CilTag.i_to_fn!" (H.find i_fn_t) i))
 
 let create_funm scis =
-  let is = Misc.map (fun sci -> fn_to_i sci.ST.fdec.svar.vname) scis in 
+  let is = Misc.map (fun sci -> fn_to_i sci.ST.fdec.Cil.svar.Cil.vname) scis in 
   scis |> callgraph_of_scis
        |> Misc.map (Misc.map_pair fn_to_i)
        |> Fcommon.scc_rank "callgraph" (fun i -> Printf.sprintf "%d:%s" i (i_to_fn i)) is 
@@ -104,7 +124,7 @@ let edges_of_sci sci : (int * int) list =
   |> Misc.negfilter (is_backedge sci)
 
 let blockranks_of_sci sci : ((string * int) * int) list =
-  let fn = sci.ST.fdec.svar.vname in
+  let fn = sci.ST.fdec.Cil.svar.Cil.vname in
   let is = Misc.array_to_index_list sci.ST.cfg.Ssa.successors |> Misc.map fst in
   sci |> edges_of_sci
       |> Fcommon.scc_rank ("blocks-"^fn) string_of_int is
@@ -118,28 +138,54 @@ let create_blkm scis =
 (******************** API Accessors ***********************)
 (**********************************************************)
 
-(* API *)
-let loc_of_t    = fun me t -> H.find invt t |> fst3
-let fname_of_t  = fun me t -> H.find invt t |> snd3
-let block_of_t  = fun me t -> H.find invt t |> thd3
-let tag_of_t    = fun t -> t
-let t_of_tag    = fun t -> asserti (H.mem invt t) "bad tag!"; t 
+let t_of_tag     = fun t -> asserti (H.mem invt t) "bad tag!"; t 
 
 (* API *)
-let make_t me loc fn blk instr =
+let loc_of_tag   = fun me t -> (H.find invt t).loc
+let cause_of_tag = fun me t -> (H.find invt t).cause
+let tag_of_t     = id 
+
+(*let fname_of_t   = fun me t -> (H.find invt t).fname
+  let block_of_t   = fun me t -> (H.find invt t).block 
+*)
+
+(* API *)
+let d_exp_reSugar me ()   = Cil.d_exp ()   <.> (CilMisc.reSugar_exp me.vem)
+let d_instr_reSugar me () = Cil.d_instr () <.> (CilMisc.reSugar_instr me.vem)
+
+(* API *)
+let make_t me loc fn blk instr cause =
   try
     ([SM.find fn me.funm; SIM.find (fn, blk) me.blkm; (0 - instr); fn_to_i fn], fn)
-    >> Misc.flip (H.replace invt) (loc, fn, blk)
+    >> Misc.flip (H.replace invt) (make_cinfo loc fn blk cause)
   with Not_found ->
     Errormsg.error "CilTag.make_t: bad args fn=%s, blk=%d" fn blk;
     assertf "CilTag.make_t"
 
+(* API *)
 let make_global_t =
   let glob_index = ref (-1) in
-    fun me loc ->
+    fun me loc cause ->
       glob_index := !glob_index - 1;
       ([!glob_index; -1; -1; -1], "global")
-      >> Misc.flip (H.replace invt) (loc, "global", 0)
+      >> Misc.flip (H.replace invt) (make_cinfo loc "global" 0 cause)
+
+let make_vem scis = 
+  scis |>: (fun sci -> sci.Ssa_transform.fdec) |> CilMisc.varExprMap
+
 
 (* API *)
-let create = fun scis -> {funm = create_funm scis; blkm = create_blkm scis;}
+let create scis = 
+  { vem  = make_vem scis  
+  ; funm = create_funm scis
+  ; blkm = create_blkm scis
+  }
+
+(* API *)
+let d_cause me () = function
+  | Raw s       -> Pretty.dprintf "Raw   %s" s
+  | Call e      -> Pretty.dprintf "Call  %a" Cil.d_exp e
+  | Deref e     -> Pretty.dprintf "Deref %a" Cil.d_exp e
+  | Spec (s, v) -> Pretty.dprintf "Spec %s %s" s v.Cil.vname
+
+

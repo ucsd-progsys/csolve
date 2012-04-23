@@ -376,7 +376,7 @@ let get_lib_hquals  = fun () -> Filename.concat !lib_path "lib.hquals"
 let get_lib_spec    = fun () -> Filename.concat !lib_path "lib.spec"
 let get_lib_h       = fun () -> Filename.concat !lib_path "lib.h"
 let get_csolve_h    = fun () -> Filename.concat !lib_path "../lib/csolve.h"
-let get_c2html      = fun () -> Filename.concat !lib_path "../demo/jquery/c2html.py"
+let get_c2html      = fun () -> Filename.concat !lib_path "../demo/jquery/cs2html.py"
 
 (* TODO: FIX SHADY HACK *)
 let set_csolve_file_prefix fn = csolve_file_prefix := fn

@@ -1,52 +1,38 @@
 PENDING
 =======
 
-    * regressionTests
-    * Iterate on error messages
-    * Pull in cleaned expressions/instr/stmts using VarExprMap and friends
-
 * chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
 
-Multi-file Errors
------------------
+Multi-file HTML (branch: multihtml)
+-----------------------------------
 
-- flatten into single html file.
+HEREHEREHEREHERE:
+GLERER
+    Go through the "Raw String" and replace with meaningful errors
+    corresponding to the function calls, derefs etc.
 
-//sort by file-size?
+    Hard because of fun-call subtyping?
 
-/* file1.c */
-    1:
-    2:
-    3:
-    ...
+Nice error messages: line 223, dereference 
 
-/* file2.c */
-    1:
-    2:
-    3:
-    ...
+  *tmp78
+  
+  where reSugar (*tmp78) =====> x->foo->bar render error: 
+  
+    line 223, dereference x->foo->bar not safe.
 
-/* file3.c */
-    1:
-    2:
-    3:
-    ...
+- Persistent Windows on Variable Click (with same info as hover)
 
-etc.
+- Links to definitions (like CTAGS): for all globvars, funs, vars(?)
 
-* Hack c2html.py to take in 
-    - list of source-files (*c, *h etc.)
-    - process each file ASNOW 
-        - but add file name <h2>filename</h2> at start
-        - but wrap line number span with filename
-    - cat the above into a SINGLE giant html chunk
-    - put in JSON ASNOW
 
-* Hack csolve.js to replace all "line" links with "line+file" links
-    - so instead of jumping to span-for-line-12, you can jump to span-for-line-12-file-"foo.c"
+* TESTING
 
-* Hack annotJson.ml so that
-    - filename is rendered with srcLoc everywhere
+external/gnu-coreutils/src/make.csolve chgrp
+
+./csolve tests/postests/ll0.c
+
+
 
 
 Counterexamples (to be continued) 

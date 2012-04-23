@@ -39,8 +39,9 @@ module Sp  = Ctypes.RefCTypes.Spec
 module RCt = Ctypes.RefCTypes
 module U   = Unix
 module S   = Sys
+module ST = Ssa_transform
 module CM  = CilMisc
-
+module T   = CilTag
 module Misc = FixMisc 
 module SM = Misc.StringMap
 module SS = Misc.StringSet
@@ -214,21 +215,24 @@ let parseOneFile (fname: string) : Cil.file =
   (* PARSE and convert to CIL *)
   if !Cilutil.printStages then ignore (E.log "Parsing %s\n" fname);
   let cil = F.parse fname () in
-  
     (* sm: remove unused temps to cut down on gcc warnings  *)
     (* (Stats.time "usedVar" Rmtmps.removeUnusedTemps cil);  *)
     (* (trace "sm" (dprintf "removing unused temporaries\n")); *)
     (Rmtmps.removeUnusedTemps cil);
     cil
- (* Pre-passes from blastCilInterface.ml:
-  * one return value
-  * simplify boolean expressions *)
+
 let mydebug = false 
 
-let loc_of_tag tgr = 
-  CilTag.t_of_tag <+> CilTag.loc_of_t tgr
+(*
+let loc_of_tag tgr = T.t_of_tag <+> T.loc_of_t tgr
+*)
 
-let loc_of_cstr tgr = FixConstraint.tag_of_t <+> loc_of_tag tgr
+let loc_of_cstr tgr = FixConstraint.tag_of_t <+> T.loc_of_tag tgr
+
+let d_cstr_error tgr () c = 
+  let loc, cause = FixConstraint.tag_of_t c
+                   |> (T.loc_of_tag tgr <*> T.cause_of_tag tgr)
+  in Pretty.dprintf "%a %a" Cil.d_loc loc (T.d_cause tgr) cause
 
 let print_result_short tgr res oc = match res.FI.unsats with 
   | [] -> 
@@ -238,15 +242,16 @@ let print_result_short tgr res oc = match res.FI.unsats with
   | cs ->
         let cs = Misc.fsort (loc_of_cstr tgr) cs in 
         fprintf oc "**********************************************************\n"
-      ; (cs |>: loc_of_cstr tgr |>: fprintf oc "******** ERROR %a \n" Cil.d_loc)
+      ; (cs |>: fprintf oc "******** ERROR %a \n" (d_cstr_error tgr))
       ; fprintf oc "**********************************************************\n"
+ (* ; (cs |>: loc_of_cstr tgr |>: fprintf oc "******** ERROR %a \n" Cil.d_loc) *)   
  
 let print_result_long tgr res oc =
   res.FI.unsats 
   |> Misc.fsort (loc_of_cstr tgr)
   |> List.iter begin fun c -> 
        fprintf oc "\n%a:\n\n%a\n" Cil.d_loc (loc_of_cstr tgr c) 
-       (fun () -> FixConstraint.print_t (Some res.FI.soln) |> CilMisc.doc_of_formatter) c
+       (fun () -> FixConstraint.print_t (Some res.FI.soln) |> CM.doc_of_formatter) c
        |> ignore
      end
 
@@ -259,35 +264,35 @@ let print_unsat_locs tgr res =
   Misc.with_out_file (!Co.csolve_file_prefix ^ ".out") (print_result tgr res)
 
 let cil_transform_phase_1 file =
-  file |> Simplemem.simplemem 
-       >> CilMisc.unfloat 
-       >> CilMisc.Pheapify.doVisit 
+  file |> Psimplemem.simplemem 
+       >> CM.unfloat 
+       >> CM.Pheapify.doVisit 
        >> Psimplify.simplify
        >> Simpleret.simpleret 
        >> Rmtmps.removeUnusedTemps 
-       >> CilMisc.purify 
-       >> CilMisc.CopyGlobal.doVisit
-       >> CilMisc.NameNullPtrs.doVisit
+       >> CM.purify 
+       >> CM.CopyGlobal.doVisit
+       >> CM.NameNullPtrs.doVisit
        >> mk_cfg
 
 let cil_transform_phase_2 file = 
   file >> rename_locals
-       >> (CilMisc.varExprMap <+> ignore)
-    (* >> dump_globals *)
+       (* >> (CM.varExprMap <+> ignore) *)
 
-let dump_annots qs tgr res =
-  let s     = res.FI.soln                                           in
-  let cs    = res.FI.unsats                                         in
-  let cones = res.FI.ucones |>: (Ast.Cone.map (loc_of_tag tgr))     in 
-  let binds = Annots.dump_bindings ()                               in
+let dump_annots cil qs tgr res =
+  let s     = res.FI.soln                                         in
+  let cs    = res.FI.unsats                                       in
+  let cones = res.FI.ucones |>: (Ast.Cone.map (T.loc_of_tag tgr)) in 
+  let binds = Annots.dump_bindings ()                             in
+  let files = CM.source_files cil                                 in
   (* 1. Dump Text Annots *)
   Annots.dump_annots (Some s);
   (* 2. Dump HTML Annots *)
-  AnnotsJson.dump_html qs tgr s cs cones binds
+  AnnotsJson.dump_html files qs tgr s cs cones binds
 
 let dumpFile cil = 
   let log = open_out "csolve.save.c" in
-  let _   = Cil.dumpFile CilMisc.noBlockAttrPrinter log "csolve.save.c"  cil in
+  let _   = Cil.dumpFile CM.noBlockAttrPrinter log "csolve.save.c"  cil in
   let _   = close_out log in
   ()
 
@@ -308,11 +313,15 @@ let liquidate cil =
   let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
-  let tgr, ci   = BS.time "Cons: Generate" (Consgen.create cil spec) decs in
+  let scim      = ST.scim_of_decs decs  in 
+  let _         = E.log "\nDONE: SSA conversion \n" in
+  let tgr       = scim |> SM.to_list |> Misc.map snd |> T.create in
+  let _         = E.log "\nDONE: TAG initialization\n" in
+  let ci        = BS.time "Cons: Generate" (Consgen.create cil spec decs scim) tgr in
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci fn qs in
   let _         = E.log "DONE SOLVING" in
-  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots qs tgr res in
+  let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots cil qs tgr res in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs res.FI.soln in
   let _         = print_unsat_locs tgr res in
   let _         = BS.print log "\nCSolve Time \n" in
@@ -335,7 +344,7 @@ let rec processOneFile (cil: Cil.file) =
     | Some c ->
         (* Note GCC gets mad if we print block attributes *)
         Stats.time "printCIL" 
-	(Cil.dumpFile CilMisc.noBlockAttrPrinter c.fchan c.fname) cil);
+	(Cil.dumpFile CM.noBlockAttrPrinter c.fchan c.fname) cil);
 
     let _ = liquidate cil in
     if !E.hadErrors then
