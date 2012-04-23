@@ -323,7 +323,7 @@ let mkVarLineSsavarMap fm bs =
   bs |> Misc.flap begin function 
           | Annots.TSSA (fn, t) -> 
              t |>  Misc.hashtbl_to_list 
-               |>: Misc.app_fst (Misc.app_fst3 (CilMisc.unrename_local fn))
+               |>: Misc.app_fst (Misc.app_fst3 (CilMisc.unrename_local (*fn*)))
           | _ -> []
         end
      |> List.fold_left begin fun m ((x, file, line), xssa) ->
@@ -341,7 +341,7 @@ let mkAbbrev bs =
   bs |> Misc.flap begin function
           | An.TSSA (fn, t) -> 
               t |> Misc.hashtbl_to_list 
-                |> Misc.map (fun ((s,_,_), s') -> (s', CilMisc.unrename_local fn s))
+                |> Misc.map (fun ((s,_,_), s') -> (s', CilMisc.unrename_local (* fn *) s))
           | _ -> []
         end
      |> Misc.hashtbl_of_list

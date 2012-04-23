@@ -288,7 +288,7 @@ let generate_vmap fssam =
       |> Misc.hashtbl_to_list
       |> Misc.sort_and_compact 
       |> List.iter begin fun ((vname, file, line), ssaname) ->
-           let vname = CM.unrename_local fn vname
+           let vname = CM.unrename_local (* fn *) vname
            in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
          end
     end fssam 

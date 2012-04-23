@@ -58,12 +58,24 @@ let is_cil_tempvar s =
 
 let suffix_of_fn = fun fn -> "_" ^ fn
 
-let rename_local = fun fn vn -> vn ^ (suffix_of_fn fn)
+let origName_t   = Hashtbl.create 37
+
+let rename_local fn vn = 
+  (vn ^ (suffix_of_fn fn))
+  >> Misc.flip (Hashtbl.add origName_t) (fn, vn) 
+
 
 let unrename_local fn vn = 
   let s = suffix_of_fn fn in 
   if not (Misc.is_suffix s vn) then vn else 
     String.sub vn 0 (String.length vn - (String.length s))
+
+let unrename_local vn =
+  try 
+    snd <| Hashtbl.find origName_t vn
+  with Not_found -> 
+    let _ = E.warn "Unknown local:%s" vn in
+    vn
 
 (***************************************************************************)
 (************************ varinfo Maps  ************************************)
@@ -1093,6 +1105,13 @@ class substVisitor (su : Cil.exp VarMap.t) = object(self)
         DoChildren
 end
 
+class varUnlocalizeVisitor = object(self)
+  inherit nopCilVisitor
+  
+  method vvrbl v = 
+    ChangeTo (copyVarinfo v (unrename_local v.Cil.vname))
+end
+
 (*
 class transitiveSubstVisitor (su: Cil.exp VarMap.t) = object(self)
   inherit nopCilVisitor
@@ -1158,24 +1177,36 @@ let varExprMap (fs: Cil.fundec list) : Cil.exp VarMap.t =
   let _   = Pretty.printf "\nVAR EXPR MAP:\n%a" d_varExprMap su' in
   su'
 
+let reSugarVisitors su = [ new substVisitor su
+                         ; new fieldDerefVisitor 
+                         ; new varUnlocalizeVisitor
+                         ]
+
+let visitCilInstrOne = fun vis -> visitCilInstr vis <+> Misc.safeHead "visitCilInstrOne"
+let seqVisits        = fun f visitors x -> List.fold_left (fun acc vis -> f vis acc) x visitors 
+
 (* API*)
-let reSugar_lval (su: Cil.exp VarMap.t) lv =
-  lv |> visitCilLval (new substVisitor su)
-     |> visitCilLval (new fieldDerefVisitor)
+let reSugar_lval  = seqVisits visitCilLval     <.> reSugarVisitors
+let reSugar_exp   = seqVisits visitCilExpr     <.> reSugarVisitors
+let reSugar_instr = seqVisits visitCilInstrOne <.> reSugarVisitors
+
+(* 
+let reSugar_lval su lv = 
+   lv |> visitCilLval (new substVisitor su)
+      |> visitCilLval (new fieldDerefVisitor)
 
 (* API *)
 let reSugar_exp (su: Cil.exp VarMap.t) (e: Cil.exp) : Cil.exp =
   e |> visitCilExpr (new substVisitor su)
     |> visitCilExpr (new fieldDerefVisitor)
-
+  
 (* API *)
 let reSugar_instr (su: Cil.exp VarMap.t) i = 
-  i |> visitCilInstr (new substVisitor su)
-    |> Misc.safeHead "reSugar_instr 0"
-    |> visitCilInstr (new fieldDerefVisitor)
-    |> Misc.safeHead "reSugar_instr 1"
-    >> (fun i' -> ignore <| Pretty.printf "reSugar: i = %a ; i' = %a \n" d_instr i d_instr i')
-
+  i |> visitCilInstrOne (new substVisitor su)
+    |> visitCilInstrOne (new fieldDerefVisitor)
+    (* >> (fun i' -> ignore <| Pretty.printf "reSugar: i = %a ; i' = %a \n" d_instr i d_instr i')
+    *)
+ *)
 (***************************************************************************)
 (******************** Source Location Information **************************)
 (***************************************************************************)

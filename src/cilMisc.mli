@@ -158,7 +158,7 @@ val is_reference: Cil.typ  ->bool
 val is_pure_function    : string -> bool
 val is_cil_tempvar      : string -> bool
 val rename_local        : string -> string -> string
-val unrename_local      : string -> string -> string
+val unrename_local      : (* string -> *) string -> string
 
 module type Summarizer =
 sig

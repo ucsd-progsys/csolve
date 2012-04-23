@@ -44,8 +44,8 @@
 
 /* The argument to the --reference option.  Use the group ID of this file.
    This file must exist.  */
-static char NULLTERMSTR * NNSTRINGPTR reference_file;
-//GOOD static char NULLTERMSTR * NNSTRINGPTR LOC(OPTARG_LOC) reference_file;
+//BAD static char NULLTERMSTR * NNSTRINGPTR reference_file;
+static char NULLTERMSTR * NNSTRINGPTR LOC(OPTARG_LOC) reference_file;
 
 /* For long options that have no equivalent short option, use a
    non-character as a pseudo short option, starting with CHAR_MAX + 1.  */
