@@ -44,7 +44,6 @@ let rec typealias_attrs: C.typ -> C.attributes = function
    whatever int shape is on the heap always includes 0, which is
    sufficient and unproblematic so far. *)
 let fresh_heaptype (t: C.typ): ctype =
-  let _ = Pretty.printf "fresh_heaptype(%a)@!" C.d_plaintype t in
   let ats1 = typealias_attrs t in
     match C.unrollType t with
       | C.TInt (ik, _)                           -> Int (C.bytesSizeOfInt ik, N.top)
@@ -58,7 +57,7 @@ let fresh_heaptype (t: C.typ): ctype =
                        Index.of_int 0)
       (* | C.TPtr ((C.TVoid _) as tb, ats) -> Ctypes.TVar (Typespec.tvarOfAttrs ats) *)
       | C.TPtr (tb, ats) when C.hasAttribute CM.typeVarAttribute ats ->
-        Ctypes.TVar (Typespec.tvarOfAttrs ats)
+        Ctypes.TVar (Ctypes.fresh_tvar ()) (* (Typespec.tvarOfAttrs ats) *)
       | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
            Typespec.ptrReftypeOfSlocAttrs (S.fresh_abstract [CM.srcinfo_of_type t None]) tb ats
         |> Ctypes.ctype_of_refctype
@@ -187,5 +186,5 @@ class exprTyper (ve,fe) = object (self)
               in Int (C.bytesSizeOfInt ik, iec)
             | _ -> E.s <| C.error "Got bogus type in int-int cast@!@!"
           end
-        | _ -> let _ = Pretty.printf "ctype_of_cast %a %a(%a)@!" C.d_plaintype ct Ct.d_ctype ctv C.d_plainexp e in ctv
+        | _ -> ctv 
 end

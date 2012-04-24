@@ -125,7 +125,7 @@ let ctype_of_var_index v ix =
   (*   let _ = Pretty.printf "so this happened: %s:%a\n" v.Cil.vname Cil.d_plaintype v.Cil.vtype  in *)
   (*   Ct.TVar (Ct.fresh_tvar ()) *)
   | Cil.TPtr (tb, ats) when Cil.hasAttribute CM.typeVarAttribute ats ->
-    Ctypes.TVar (Typespec.tvarOfAttrs ats)
+    Ctypes.TVar (Ctypes.fresh_tvar ())(* (Typespec.tvarOfAttrs ats) *)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
   | _                       -> assert false

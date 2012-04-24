@@ -451,12 +451,13 @@ let instantiate_fun me env sto frt ns =
   let tinst = tinst_of_annots ns in
   let frt' = RCf.subs_store_var hsubs lsubs sto frt in
   let frt', wfs = apply_inst (CF.globalenv_of_t me) tsubs lsubs (fst <| Ct.stores_of_refcfun frt') tinst frt' in
+  let _ = Format.printf "my wfs: %a\n" (Misc.pprint_many true "\n" (FixConstraint.print_wf None)) wfs in
   (frt', lsubs, wfs)
     
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let tag       = CF.tag_of_instr me i j     loc in
   let tag'      = CF.tag_of_instr me i (j+1) loc in
-  let (frt', lsubs, inst_wfs) = instantiate_fun me env st frt ns in
+  let (frt', lsubs, inst_wfs) = instantiate_fun me pre_mem_env st frt ns in
   let _ = if mydebug then Pretty.printf "frt' := @[%a\n%a@]\n" RCf.d_cfun frt RCf.d_cfun frt' else Pretty.printf "" in
   let call      = (lvo, frt', es) in
   let args      = frt' |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
@@ -492,7 +493,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt' in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt') in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++ cs1 ++  cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs ++ inst_wfs) 
+  wld', (cs0 ++  cs1 ++  cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs ++ inst_wfs) 
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with

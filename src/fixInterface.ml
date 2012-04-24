@@ -873,9 +873,14 @@ let is_live_name livem n =
   match FA.base_of_name n with
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
-
+      
+  
+let filter_tvar n rct env = match rct with
+  | Ct.TVar _ -> env | rct -> YM.add n (Ct.reft_of_refctype rct) env
+    
 let env_of_cilenv {venv = vnv} = 
   FA.builtinm
+  (* |> YM.fold filter_tvar vnv *)
   |> YM.fold (fun n rct env -> YM.add n (Ct.reft_of_refctype rct) env) vnv
   |> canon_env
 

@@ -217,7 +217,8 @@ let check_poly_inclusion s1 s2 sub =
 let cond_add_annot cond a annots = if cond then a :: annots else annots
     
 let constrain_app i (fs, _) et cf tsub sub sto lvo args =
-  let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in
+  let _ = Pretty.printf "constrain_app@!" in
+  let _ = Pretty.printf "sto: %a@!" Store.d_store sto in
   let cts, tsub, sub, sto = constrain_args et fs tsub sub sto args in
   let cts = cts |>: (I.CType.subs sub <.> TVarInst.apply tsub) in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
@@ -243,6 +244,7 @@ let constrain_app i (fs, _) et cf tsub sub sto lvo args =
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
+  let _ = Pretty.printf "sto: %a@!" Store.d_store sto in
     match lvo with
       | None    -> (annot, tsub, sub, sto)
       | Some lv ->
@@ -280,7 +282,7 @@ let find_function et fs tsub sub sto = function
         
 
 let unify_tvars tsub ct1 ct2 = match TVarInst.apply tsub ct1, TVarInst.apply tsub ct2 with
-  | (TVar t, ct2') -> TVarInst.extend t ct2 tsub
+  | (TVar t, ct2') -> TVarInst.extend t ct2' tsub
   | _ -> tsub
 
 let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
@@ -291,12 +293,13 @@ let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
       let tsub, sub, sto = constrain_exp et fs tsub sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
+      let _ = Pretty.printf "*** %a ***@!" C.dn_instr i in
       let tsub     = unify_tvars tsub ct1 ct2 in
-      let _ = Pretty.printf "INSTRUCTION: %a@!" C.dn_instr i in
-      let _ = Pretty.printf "current tsub: %a@!" TVarInst.d_inst tsub in
-      let _ = Pretty.printf "%a := %a @[%a@]\n" Ct.d_ctype ct1 Ct.d_ctype ct2 Store.d_store sto in
       let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in
+      let _ = Pretty.printf "ct1: %a ct2: %a@!" Ct.d_ctype ct1 Ct.d_ctype (TVarInst.apply tsub ct2) in
+      let _ = Pretty.printf "set sto %a@!" Store.d_store sto in
       let sto, sub, tsub = UStore.unify_ctype_locs sto sub tsub ct1 ct2 in
+      let _ = Pretty.printf "set sto unified %a@!" Store.d_store sto in
         ([] :: bas, tsub, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in
@@ -337,8 +340,6 @@ let constrain_phi_defs ve (tsub, sub, sto) (vphi, vdefs) =
        vdefs
     |> List.fold_left begin fun (sto, sub, tsub) (_, vdef) ->
       let ct1,ct2 = VM.find vdef ve, VM.find vphi ve in
-      let _ = Pretty.printf "ct1: %a ct2: %a@!" Ct.d_ctype ct1 Ct.d_ctype ct2 in
-      let _ = Pretty.printf "ct1: %a ct2: %a@!" Ct.d_ctype (TVarInst.apply tsub ct1) Ct.d_ctype (TVarInst.apply tsub ct2) in
          UStore.unify_ctype_locs sto sub tsub (VM.find vdef ve) (VM.find vphi ve)
        end (sto, sub, tsub)
     |> (fun (sto, sub, tsub) -> (tsub, sub, sto))
@@ -369,9 +370,9 @@ end
 let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   let _              = C.currentLoc := fd.C.svar.C.vdecl in
   let sto, sub, tsub = List.fold_left2 begin fun (sto, sub, tsub) (_, fct) bv ->
+    let tsub = unify_tvars tsub (VM.find bv ve) fct in
                          UStore.unify_ctype_locs sto sub tsub (VM.find bv ve) fct
                        end (sto, S.Subst.empty, TVarInst.empty) cf.args fd.C.sformals in
-  let _ = Pretty.printf "constrain_fun tsub: %a@!" TVarInst.d_inst tsub in
   let tsub, sub, sto = constrain_phis ve phis tsub sub sto in
   let et             = new exprTyper (ve,fs) in
   let blocks         = cfg.Ssa.blocks in
@@ -385,7 +386,6 @@ let constrain_fun fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = cfg} =
   in
   let emv = new exprMapVisitor (et) in
   let _   = C.visitCilFunction (emv :> C.cilVisitor) fd in
-  let _ = Pretty.printf "constrain_fun tsub final: %a@!" TVarInst.d_inst tsub in
   (emv#get_em, bas, tsub, sub, sto)
 
 let failure_dump sub ve sto =
@@ -499,7 +499,6 @@ let revert_to_spec_locs sub whole_store minslocs sto em bas ve =
             |> List.append minslocs
             |> Misc.sort_and_compact 
             |> List.fold_left (fun revsub s -> S.Subst.extend (S.Subst.apply sub s) s revsub) [] in
-  let _ = Pretty.printf "sub: %a revsub: %a@!" S.Subst.d_subst sub S.Subst.d_subst revsub in
   let sto    = Store.subs revsub sto in
   let sub    = S.Subst.compose revsub sub in
   let ve     = VM.map (Ct.subs sub) ve in
@@ -573,15 +572,12 @@ let infer_shape fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_refs cf vm in
   let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in
   let sto                   = Store.upd cf.sto_out gst in
-  (* let _ = Pretty.printf "fn: %a@!" CFun.d_cfun cf in *)
-  (* let _ = Pretty.printf "ve: %a@!" (CM.VarMapPrinter.d_map ", " CM.d_var Ct.d_ctype) ve in *)
   let em, bas, tsub, sub, sto= constrain_fun fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
   let _                     = check_sol cf ve gst em bas tsub sub sto whole_store in
   let minslocs              = cf.ret::List.map snd cf.args 
   |> Misc.map_partial Ct.sloc in
-  let _ = Pretty.printf "final tsub: %a@!" TVarInst.d_inst tsub in
   let sto, em, ve        = inst_all_tvars cf tsub sto em ve in
   let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store minslocs sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in

@@ -1081,8 +1081,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
       and unify_tvars sub sto tsub t1 t2 = 
-        let _ = Pretty.printf "unify_tvars sub: %a store: %a@!" 
-          S.Subst.d_subst sub d_store sto in
         match all_subs sub tsub t1, all_subs sub tsub t2 with
           | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) (* when r1 = r2 *)-> 
             unify_ctype_locs sto sub tsub t1 t2
@@ -1338,8 +1336,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let well_formed globstore cf =
       (* pmr: also need to check sto_out includes sto_in, possibly subtyping *)
-      let _ = Pretty.printf "well_formed: %a\n%a\n"
-        Store.d_store globstore d_cfun cf in
       let whole_instore  = Store.upd cf.sto_in globstore in
       let whole_outstore = Store.upd cf.sto_out globstore in
              Store.closed globstore cf.sto_in
@@ -1398,7 +1394,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       List.combine qslocs instslocs
 	
     let rec sto_of_args srcinfo cf args gsto sub tsub =
-      let _ = Pretty.printf "sto_of_args sto: %a sub: %a@!" Store.d_store gsto S.Subst.d_subst sub in
       List.fold_left2 begin fun (sub,sto) t t' ->
 	begin match CType.subs sub t', CType.subs sub t with
 	  | Ref (lsub, _), Ref (lsuper, _) -> 
@@ -1418,9 +1413,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	    let (sub', sto') = 
 	      sto_of_args srcinfo f args (Store.upd gsto f.sto_out) sub tsub
 	    in
-            let _ = Pretty.printf "sto_of_args fref case: sto' %a sub' %a applied yields %a@!"
-              Store.d_store sto' S.Subst.d_subst sub' Store.d_store (Store.subs sub' sto') 
-            in
             (sub', Store.subs sub' sto')
 	    (* (sub', Store.upd sto (Store.subs sub' sto')) *)
 	  | _ -> (sub, sto)
@@ -1433,17 +1425,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	let v = List.hd cf.quant_svars in
 	let rest = List.tl cf.quant_svars in
 	let cf   = {cf with quant_svars = rest} in
-        let _ = Pretty.printf "instantiate_store of %a@!" d_cfun cf in
-        let _ = Pretty.printf "instantiate_store args: %a@!" 
-          (Pretty.d_list ", " CType.d_ctype) args in
-        let _ = Pretty.printf "instantiate_store sto %a@!" Store.d_store sto in
 	let (sub,sto)  = sto_of_args srcinfo cf args sto S.Subst.empty T.TVarInst.empty in
 	let ssub = Store.domain sto
 	        |> List.filter (not <.> M.flip List.mem non_poly_locs)
                 |> List.fold_left (M.flip SS.add) SS.empty
 		|> fun sset -> StS.extend_sset v sset StS.empty in
-        let _ = Pretty.printf "instantiate_store subst: %a@!"
-          StS.d_subst ssub in
 	let cf = subs_store_var ssub sub sto cf in
 	(cf, sub, ssub)
  
@@ -1482,8 +1468,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                    |> List.combine cf.quant_tvars 
       in
       let inst = tvarinst_of_args (subs_tvar rename cf) (args |>: CType.subs_tvar rename) in
-      let _ = Pretty.printf "Renamed: %a\n" TVarSubst.d_subst rename in
-      let _ = Pretty.printf "Sub: %a\n" T.TVarInst.d_inst inst in
       (cf |> inst_tvar rename inst, rename, inst)
 
     let instantiate srcinf cf args sto =

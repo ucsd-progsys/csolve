@@ -430,8 +430,6 @@ let reft_of_wf       = snd4
 let id_of_wf         = function (_,_,Some i,_) -> i | _ -> assertf "C.id_of_wf"
 let filter_of_wf     = fth4
   
-  
-(* I guess not everyone is using 3.12 *)
 let intersect_maps m1 m2 = SM.filter begin fun k elt ->
   SM.mem k m2 && SM.find k m2 = elt
 end m1
