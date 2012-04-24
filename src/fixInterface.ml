@@ -931,7 +931,7 @@ and make_wfs_fn cenv rft =
   let inws  = make_wfs_refstore env' rft.Ct.sto_in rft.Ct.sto_in in
   let outws = make_wfs_refstore env' rft.Ct.sto_out rft.Ct.sto_out in
   let effws = make_wfs_effectset env' rft.Ct.sto_out rft.Ct.effects in
-  Misc.tr_rev_flatten [retws ; argws ; inws ; outws; effws]
+  Misc.tr_rev_flatten [retws ; argws ; inws ; outws; effws] |> C.reduce_wfs
 
 let make_dep pol xo yo =
   (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
@@ -942,13 +942,18 @@ let assert_equal_tvars ct1 ct2 = match ct1, ct2 with
   | _ -> ()
 
 let make_cs_aux cenv p rct1 rct2 tago tag =
-  let _ = assert_equal_tvars rct1 rct2 in
   let env    = env_of_cilenv cenv in
   let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
   let ds     = [] (* add_deps tago tag *) in
   cs, ds
+    
+let make_cs_aux cenv p rct1 rct2 tago tag =
+  let _ = assert_equal_tvars rct1 rct2 in
+  match rct1, rct2 with
+    | Ct.TVar t, _ | _, Ct.TVar t -> ([],[])
+    | _ -> make_cs_aux cenv p rct1 rct2 tago tag
 
 let make_cs_assert_disjoint env p cr1 cr2 tago tag =
   make_cs_aux env p (meet_refctype cr1 cr2) (t_false_refctype cr2) tago tag
@@ -1062,8 +1067,8 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
     
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
-(*  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
- *) try
+ (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in  *)
+ try
       let cs = make_cs_aux cenv p rct1 rct2 tago tag in
       begin match rct1, rct2 with
         | Ct.FRef (f,_), Ct.FRef (g,_) ->

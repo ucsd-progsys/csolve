@@ -74,6 +74,7 @@ let is_simple_refatom = function
 let is_tauto_refatom  = function 
   | Conc p -> P.is_tauto p 
   |  _ -> false
+  
 
 (* API *)
 let fresh_kvar = 
@@ -428,6 +429,22 @@ let env_of_wf        = fst4
 let reft_of_wf       = snd4
 let id_of_wf         = function (_,_,Some i,_) -> i | _ -> assertf "C.id_of_wf"
 let filter_of_wf     = fth4
+    
+let intersect_env = SM.merge begin fun k e1o e2o ->
+  match e1o, e2o with 
+    | Some a, Some b when a = b -> Some a
+    | _ -> None
+end
+  
+let intersect_wfs (e1, r1, id1, qf1) (e2, r2, id2, qf2) =
+  let _ = assert (r1 = r2) in
+  let env = intersect_env e1 e2 in
+  (env, r1, id1, fun x -> (qf1 x && qf2 x))
+    
+let reduce_wfs wfs = 
+  wfs 
+  |> Misc.groupby reft_of_wf 
+  |>: (fun wfs -> List.fold_left intersect_wfs (List.hd wfs) (List.tl wfs))
 
 
 (* API *)

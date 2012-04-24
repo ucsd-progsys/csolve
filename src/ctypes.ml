@@ -663,7 +663,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let sloc = function
       | Ref (s, _) -> Some s
       | ARef       -> Some S.sloc_of_any
-      (* | TVar t     -> Some S.none *)
+      | TVar t     -> Some S.none
       | _          -> None
 
     let subs subs = function
@@ -1309,8 +1309,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
         
+    let rec pad_names = function
+      | ([], [])          -> []
+      | (l::ls1, [])      -> (l, Sloc.fresh_abstract <| Sloc.to_slocinfo l)::pad_names (ls1, [])
+      | ([], l::ls2)      -> (Sloc.fresh_abstract <| Sloc.to_slocinfo l, l)::pad_names ([], ls2)
+      | (l::ls1, l'::ls2) -> (l,l')::pad_names(ls1, ls2)
+        
     let normalize_names cf1 cf2 f fe =
-      let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) in
+      let ls1, ls2     = M.map_pair ordered_locs (cf1, cf2) 
+                      |> pad_names 
+                      |> List.split in
       let fresh_locs   = List.map (Sloc.to_slocinfo <+> Sloc.fresh_abstract) ls1 in
       let lsub1, lsub2 = M.map_pair (M.flip List.combine fresh_locs) (ls1, ls2) in
       let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
