@@ -30,7 +30,6 @@ tgtFile  = srcFile + ".html"
 srcDir   = os.path.dirname(srcFile)
 baseDir  = sys.path[0]
 jsonFile = srcFile + ".json"
-srcTplt  = baseDir + "/templates/source.html"
 tgtTplt  = baseDir + "/templates/csolve.html" 
 lineTplt = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
 

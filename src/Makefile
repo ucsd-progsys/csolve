@@ -17,7 +17,7 @@ LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-lstdc++ \
        -lflags -cclib,-lz3stubs \
        -lflags -cclib,-lcamlidl \
-       -lflags -g
+       -lflags -cclib,-fopenmp
 
 CFLAGS=-cflags -dtypes \
        -cflags -I,$(CILHOME) \

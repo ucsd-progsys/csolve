@@ -1,0 +1,4 @@
+qualif POS(v:int): v >= 0
+qualif GT(v:int): v >= ~a
+qualif EQ1(v:int): v < 1000
+qualif SZ(v:ptr): v != 0 => BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8

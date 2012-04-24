@@ -140,7 +140,15 @@ let rec offsetToInt (t: typ) (* The type of the host *) (off: offset) : exp * of
 
 (* Turn an expression into a three address expression (and queue some
  * instructions in the process) *)
-let rec makeThreeAddress
+let rec makeThreeAddress setTemp e  = 
+  let loc = !currentLoc                     in
+  let e'  = makeThreeAddress_real setTemp e in
+  let _   = if not (e == e') then
+            ignore (E.log "\nsimplifyExpr: loc = %a in = %a, out = %a\n" 
+                    d_loc loc d_exp e d_exp e') 
+  in e'
+
+and makeThreeAddress_real
     (setTemp: taExp -> bExp) (* Given an expression save it into a temp and
                               * return that temp *)
     (e: exp) : taExp =

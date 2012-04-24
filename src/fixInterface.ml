@@ -943,8 +943,7 @@ let make_cs_aux cenv p rct1 rct2 tago tag =
   let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
   let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
   let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
-  let ds     = [] (* add_deps tago tag *) in
-  cs, ds
+  cs, [] 
 
 let make_cs_assert_disjoint env p cr1 cr2 tago tag =
   make_cs_aux env p (meet_refctype cr1 cr2) (t_false_refctype cr2) tago tag

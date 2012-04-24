@@ -84,8 +84,7 @@ let d_sloc_typ_varss () (sloc, tvss) =
 (*******************************************************************)
 
 type rhs     = AsgnE of Cil.instr | AsgnV of Cil.varinfo 
-type binder  = N of FA.name | S of string | I of Index.t | Nil
-type vbind   = binder * (Ctypes.refctype * Cil.typ)
+type vbind   = Ct.binder * (Ct.refctype * Cil.typ)
 type binding = TVar of vbind 
              | TFun of string      * (Ct.refcfun  * Cil.fundec)
              | TSto of string      * Ct.refstore 
@@ -93,7 +92,7 @@ type binding = TVar of vbind
              | TAsg of Cil.varinfo * ((Cil.location * rhs) list)
 
 let report_bad_binding = function 
-  | TVar (N x, (cr, _)) ->
+  | TVar (Ct.N x, (cr, _)) ->
       E.warn "\nBad TVar for %s :: \n\n@[%a@]" (FA.string_of_name x) Ct.d_refctype cr
   | TFun (fn, (cf, _)) ->
       E.warn "\nBad TFun for %s ::\n\n@[%a@]" fn Ct.d_refcfun cf
@@ -144,51 +143,13 @@ let sloc_typem_of_shape sh =
 (*** Decorating refldesc, refstore, refcfun with Cil Information ***)
 (*******************************************************************)
 
-let fieldinfo_of_cilfield prefix fi = 
-  { Ct.fname = Some (prefix ^ fi.Cil.fname); Ct.ftype = Some fi.Cil.ftype }
-
-let rec unfold_compinfo prefix ci = 
-  let _  = asserti ci.Cil.cstruct "TBD: unfold_compinfo: unions" in
-  ci.Cil.cfields 
-  |> Misc.flap (unfold_fieldinfo prefix)
-
-and unfold_fieldinfo prefix fi = 
-  match Cil.unrollType fi.Cil.ftype with
-  | Cil.TComp (ci, _) ->
-      unfold_compinfo (prefix ^  fi.Cil.fname ^ ".") ci
-  | _ ->
-      [fieldinfo_of_cilfield prefix fi]
-
-let unfold_compinfo pfx ci = 
-  unfold_compinfo pfx ci 
-  >> wwhen mydebug (E.log "unfold_compinfo: pfx = <%s> result = %a\n"  pfx (CM.d_many_braces false Ct.d_fieldinfo))
-
-let unfold_ciltyp = function 
-  | Cil.TComp (ci,_) ->
-      unfold_compinfo "" ci
-      |> Misc.index_from 0 
-      |> IM.of_list 
-      |> (fun im _ i -> IM.find i im)
-  | Cil.TArray (t',_,_) ->
-      (fun _ i -> { Ct.fname = None ; Ct.ftype = Some t'})
-  | t -> 
-      (fun _ i -> { Ct.fname = None; Ct.ftype = Some t}) 
-
 let decorate_refldesc slocm sloc ld =  
-  if SLM.mem sloc slocm then 
-    let ty   = SLM.find sloc slocm in 
-    let fldm = unfold_ciltyp ty in
-    ld |> Misc.flip RCt.LDesc.set_stype (Some ty)
-       |> RCt.LDesc.mapn begin fun i _ pf -> 
-            try RCt.Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
-              let _ = E.warn "WARNING: Annots.decorate_refldesc: %a bad idx %d, ld=%a, t=%a \n" 
-                              Sloc.d_sloc sloc i RCt.LDesc.d_ldesc ld Cil.d_type ty
-              in pf
-          end
-  else begin 
-    ignore <| Errormsg.log "WARNING: Annots.decorate_ldesc: unknown cil info for %a \n" Sloc.d_sloc sloc; 
-    ld
-  end
+  match SLM.maybe_find sloc slocm with
+  | Some ty -> RCt.LDesc.decorate sloc ty ld
+  | _       -> begin Errormsg.log "WARNING: Annots.decorate_ldesc: unknown cil info for %a \n" 
+                       Sloc.d_sloc sloc
+                     |> ignore; ld
+               end
 
 let has_fldtype fld = 
   Misc.maybe_bool (RCt.Field.get_fieldinfo fld).Ct.ftype
@@ -219,7 +180,7 @@ let decorate_refcfun slocm f cf =
 (*******************************************************************)
 
 let kts_of_bind = function
-  | TVar (N n, _) ->
+  | TVar (Ct.N n, _) ->
       let x    = FA.string_of_name n in
       [x, ("variable "^x)]
   | TFun (f, _) -> 
@@ -230,7 +191,7 @@ let kts_of_bind = function
       |> List.map (fun s -> (s, s^" |->")) 
 
 let d_bind_orig () = function
-  | TVar (N n, (cr,_)) ->
+  | TVar (Ct.N n, (cr,_)) ->
       Pretty.dprintf "variable %s ::\n\n@[%a@] " 
       (FA.string_of_name n) Ct.d_refctype cr
   | TFun (f, (cf,_)) -> 
@@ -243,47 +204,6 @@ let d_bind_orig () = function
 (*********************** Rendering (Hybrid) ************************)
 (*******************************************************************)
 
-let d_ann_ref () = function
-  | Ct.Ref (l,_) -> PP.dprintf "REF(%a)" Sloc.d_sloc l
-  | _            -> PP.nil
-
-
-let d_binder () = function 
-  | N n -> FA.d_name () n
-  | S s -> Pretty.text s
-  | I i -> Pretty.dprintf "@@%a" Index.d_index i
-  | Nil -> Pretty.nil
-
-let d_vbind () (b, (ct, t)) =
-  let (_,_,ras) as r = Ct.reft_of_refctype ct in
-  PP.dprintf "%a %a %a %a" 
-    Cil.d_type (CM.typStripAttrs t)
-    d_ann_ref ct
-    d_binder b 
-    (CM.d_formatter (FixConstraint.print_ras None)) ras
-    (* OR, with VV binder, Ct.d_reft r *)
-
-let d_ann_field () (i, fld) = 
-  let ct = RCt.Field.type_of fld in
-  match RCt.Field.get_fieldinfo fld with
-  | { Ct.fname = Some fldname; Ct.ftype = Some t } ->
-      d_vbind () (S fldname, (RCt.Field.type_of fld, t ))
-  | { Ct.ftype = Some t } ->
-      d_vbind () (I i, (RCt.Field.type_of fld, t))
-  | _ -> 
-      PP.dprintf "%a ??? %a" d_binder (I i) d_ann_ref (RCt.Field.type_of fld)
-      (* fix HERE *)
-
-let d_ldinfo () = function
-  | {Ct.stype = Some t } -> Cil.d_type () (CM.typStripAttrs t)
-  | _                    -> PP.nil
-
-
-let d_ann_refldesc () ((l : Sloc.t), (ld: Ct.refldesc)) =
-  RCt.LDesc.bindings ld
-  |> PP.dprintf "%a %a |-> %a" 
-        d_ldinfo (RCt.LDesc.get_ldinfo ld)
-        Sloc.d_sloc l (CM.d_many_braces true d_ann_field) 
 
 let stitch_args fn cf = function 
   | None -> 
@@ -291,7 +211,7 @@ let stitch_args fn cf = function
   | Some yts -> 
       let m = SM.of_list <| List.map (fun (y,t,_) -> (y,t)) yts in
       Misc.map_partial begin fun (x, ct) ->
-        try  Some (S x, (ct, SM.find x m)) 
+        try  Some (Ct.S x, (ct, SM.find x m)) 
         with Not_found -> None 
       end cf.Ct.args
 
@@ -299,16 +219,14 @@ let deconstruct_fun (f, cf, fd) =
   let _                = List.map FA.name_of_varinfo fd.Cil.sformals in 
   let ret, argso, _, _ = Cil.splitFunctionTypeVI fd.Cil.svar in
   let xoctts           = stitch_args f cf argso              in
-  (Nil, (cf.Ct.ret, ret)) ::  xoctts
+  (Ct.Nil, (cf.Ct.ret, ret)) ::  xoctts
 
 let d_ann_fun () (f, cf, fd) =
-  (* let ret, argso, _, _ = Cil.splitFunctionTypeVI fd.Cil.svar in
-     let xoctts           = stitch_args f cf argso              in *)
   let rt :: xoctts = deconstruct_fun (f, cf, fd) in 
   CM.concat_docs 
     [ PP.dprintf "function %s ::@!@!" f
-    ; PP.dprintf "%a@!"     d_vbind rt (* (Nil, cf.Ct.ret, ret) *)
-    ; PP.dprintf "%s %a @!" f (CM.d_many_parens true d_vbind) xoctts 
+    ; PP.dprintf "%a@!"     RCt.LDesc.d_vbind rt 
+    ; PP.dprintf "%s %a @!" f (CM.d_many_parens true RCt.LDesc.d_vbind) xoctts 
     (* ; effects *)
     ]
 
@@ -317,12 +235,12 @@ let d_ann_stores () ((f: string), (stos: Ct.refstore list)) =
   |> Misc.flap (fst <.> Ct.RefCTypes.Store.bindings) (* ignore funptrs *)
   |> Misc.kgroupby (fst <+> Sloc.to_string)
   |> Misc.flap snd
-  |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" d_ann_refldesc)
+  |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" RCt.LDesc.d_sloc_ldesc)
 
 let d_bind_hybrid () = function 
-  | TVar (N x, (ct, t)) -> 
+  | TVar (Ct.N x, (ct, t)) -> 
       PP.dprintf "variable %a ::@!@!@[%a@]@!@!" 
-        FA.d_name x d_vbind (N x, (ct, t))
+        FA.d_name x RCt.LDesc.d_vbind (Ct.N x, (ct, t))
   | TFun (f, (cf, fundec)) ->
       CM.concat_docs 
         [ d_ann_fun () (f, cf, fundec) 
@@ -334,7 +252,7 @@ let d_bind_hybrid () = function
 let d_bind = (* d_bind_orig *) d_bind_hybrid
 
 let d_bind_raw () = function
-  | TVar (N x, _) -> PP.dprintf "variable %a" FA.d_name x 
+  | TVar (Ct.N x, _) -> PP.dprintf "variable %a" FA.d_name x 
   | TFun (f, _) -> PP.dprintf "function %s" f
   | TSto (f, _) -> PP.dprintf "funstore %s" f
 
@@ -370,7 +288,7 @@ let generate_vmap fssam =
       |> Misc.hashtbl_to_list
       |> Misc.sort_and_compact 
       |> List.iter begin fun ((vname, file, line), ssaname) ->
-           let vname = CM.unrename_local fn vname
+           let vname = CM.unrename_local (* fn *) vname
            in  Printf.fprintf oc "%s \t %s \t %d \t %s \n" vname file line ssaname
          end
     end fssam 
@@ -392,7 +310,7 @@ class annotations = object (self)
   method get_binds () : binding list = 
     (   (List.map (fun (x,y) -> TFun (x, y))   (Misc.hashtbl_to_list funt))
      ++ (List.map (fun (x,y) -> TSto (x, y))   (Misc.hashtbl_to_list stot))
-     ++ (List.map (fun (x,y) -> TVar (N x, y)) (Misc.hashtbl_to_list vart))
+     ++ (List.map (fun (x,y) -> TVar (Ct.N x, y)) (Misc.hashtbl_to_list vart))
      ++ (List.map (fun (x,y) -> TSSA (x, y))   (SM.to_list fssam))
      ++ (List.map (fun (x,y) -> TAsg (x, y))   (VM.to_list asgnm))
     ) >> wwhen mydebug (List.length <+> E.log "\n\nAnnots.dump_annots (%d)\n\n" (*PP.d_list "\n" d_bind_raw*))
@@ -429,8 +347,8 @@ class annotations = object (self)
       let fd  = self#get_fun_dec f                in
       let cf  = decorate_refcfun locm f cf        in
       let _   = deconstruct_fun (f, cf, fd)       
-                |>: (function (N n, (ct, _)) -> self#add_var n ct
-                            | (S x, (ct, _)) -> self#add_var (FA.name_of_string x) ct
+                |>: (function (Ct.N n, (ct, _)) -> self#add_var n ct
+                            | (Ct.S x, (ct, _)) -> self#add_var (FA.name_of_string x) ct
                             | _              -> ()
                     )
       in H.replace funt f (cf, fd)

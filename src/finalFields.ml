@@ -348,7 +348,7 @@ let check_finality_specs fspecm shpm =
       end () shp.Sh.store
   end shpm
 
-let infer_final_fields spec scis shpm =
+let infer_final_fields tgr spec scis shpm =
      shpm
   |> Interproc.final_fields spec scis
   >> check_finality_specs (Ctypes.I.Spec.funspec spec)

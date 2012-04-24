@@ -1,50 +1,36 @@
 PENDING
 =======
 
+* chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
 
-InferCtypes Errors
-------------------
+Multi-file HTML (branch: multihtml)
+-----------------------------------
 
-Begin by constructing the following:
-   
-    HEREHEREHERE
-    varinfo |-> vdescr containing original source expr (HACK CIL)
+HEREHEREHEREHERE:
+    
+    Go through the "Raw String" and replace with meaningful errors
+    corresponding to the function calls, derefs etc.
 
-    ldesc   |-> populated with the original ctyp fill fname, ftype fields
-    Sloc.t  |-> "access" path (expr/doc) for original C expression.
-                If sloc is "owned by" a particular varinfo then use vdescr
+    Hard because of fun-call subtyping?
+
+Nice error messages: line 223, dereference 
+
+  *tmp78
+  
+  where reSugar (*tmp78) =====> x->foo->bar render error: 
+  
+    line 223, dereference x->foo->bar not safe.
+
+- Persistent Windows on Variable Click (with same info as hover)
+
+- Links to definitions (like CTAGS): for all globvars, funs, vars(?)
 
 
-Failed 20 tests: ../tests/postests/argv-final-val.c,
-../tests/postests/coreutils/dirname.sh,
-../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/groups.sh,
-../tests/postests/coreutils/hostid.sh,
-../tests/postests/coreutils/hostname.sh,
-../tests/postests/coreutils/link.sh,
-../tests/postests/coreutils/logname.sh,
-../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
-../tests/postests/coreutils/readlink.sh,
-../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh,
-../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh,
-../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh,
-../tests/postests/cpj/sumreduce.c, ../tests/postests/ks.c,
-../tests/postests/mst.c
+* TESTING
 
-Exceptions thrown on 20 tests: ../tests/postests/argv-final-val.c,
-../tests/postests/coreutils/dirname.sh,
-../tests/postests/coreutils/echo.sh, ../tests/postests/coreutils/groups.sh,
-../tests/postests/coreutils/hostid.sh,
-../tests/postests/coreutils/hostname.sh,
-../tests/postests/coreutils/link.sh,
-../tests/postests/coreutils/logname.sh,
-../tests/postests/coreutils/mknod.sh, ../tests/postests/coreutils/nproc.sh,
-../tests/postests/coreutils/readlink.sh,
-../tests/postests/coreutils/sum.sh, ../tests/postests/coreutils/sync.sh,
-../tests/postests/coreutils/tty.sh, ../tests/postests/coreutils/unlink.sh,
-../tests/postests/coreutils/whoami.sh, ../tests/postests/coreutils/yes.sh,
-../tests/postests/cpj/sumreduce.c, ../tests/postests/ks.c,
-../tests/postests/mst.c
+external/gnu-coreutils/src/make.csolve chgrp
 
+./csolve tests/postests/ll0.c
 
 
 

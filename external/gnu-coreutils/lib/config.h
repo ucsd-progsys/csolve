@@ -3357,7 +3357,7 @@
 
 /* Define to rpl_ if the getopt replacement functions and variables should be
    used. */
-/* #undef __GETOPT_PREFIX */
+#define __GETOPT_PREFIX rpl_
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #define __PROTOTYPES 1

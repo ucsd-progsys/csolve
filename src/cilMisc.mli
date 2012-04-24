@@ -44,6 +44,7 @@ val pretty_to_format : (unit -> 'a -> Pretty.doc) -> (Format.formatter -> 'a -> 
 val concat_docs      : Pretty.doc list -> Pretty.doc
 val d_many_parens    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_many_braces    : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
+val d_many_brackets  : bool -> (unit -> 'a -> Pretty.doc) -> unit -> 'a list -> Pretty.doc
 val d_opt            : (unit -> 'a -> Pretty.doc) -> unit -> 'a option -> Pretty.doc
 val d_pair           : (unit -> 'a -> Pretty.doc) -> (unit -> 'b -> Pretty.doc) -> unit -> ('a * 'b)
 -> Pretty.doc
@@ -132,7 +133,8 @@ val vm_print_keys : unit -> 'a VarMap.t -> Pretty.doc
 val sccs : Cil.file -> Cil.varinfo list list 
 val reach: Cil.file -> Cil.varinfo -> Cil.varinfo list
 *)
-val reachable: Cil.file -> string -> bool
+val reachable     : Cil.file -> string -> bool
+val source_files  : Cil.file -> string list
 
 val iterExprs: Cil.file -> (Cil.exp -> bool) -> unit
 (*
@@ -151,21 +153,12 @@ val is_funptr: Cil.varinfo    -> bool
 val is_scalar: Cil.varinfo -> bool
 val is_reference: Cil.typ  ->bool
 
-type srcinfo
 
-val d_srcinfo         : unit -> srcinfo -> Pretty.doc
-
-val srcinfo_of_lval     : Cil.lval -> Cil.location option -> srcinfo
-val srcinfo_of_type     : Cil.typ  -> Cil.location option -> srcinfo
-val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
-val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
-val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
-val srcinfo_of_string   : string -> srcinfo
 
 val is_pure_function    : string -> bool
 val is_cil_tempvar      : string -> bool
 val rename_local        : string -> string -> string
-val unrename_local      : string -> string -> string
+val unrename_local      : (* string -> *) string -> string
 
 module type Summarizer =
 sig
@@ -191,6 +184,33 @@ val noBlockAttrPrinter : Cil.cilPrinter
 
 val typStripAttrs  : Cil.typ  -> Cil.typ
 val exprStripAttrs : Cil.exp  -> Cil.exp
-val varExprMap  : Cil.file -> Cil.exp VarMap.t
+(* val varExprMap     : Cil.file -> Cil.exp VarMap.t *)
 
+val varExprMap     : Cil.fundec list -> Cil.exp VarMap.t
+
+val reSugar_lval  : Cil.exp VarMap.t -> Cil.lval  -> Cil.lval
+val reSugar_exp   : Cil.exp VarMap.t -> Cil.exp   -> Cil.exp
+val reSugar_instr : Cil.exp VarMap.t -> Cil.instr -> Cil.instr
+
+(****************** Preserving Source Maps *************************)
+
+type srcinfo
+
+val d_srcinfo         : unit -> srcinfo -> Pretty.doc
+
+val srcinfo_of_lval     : Cil.lval -> Cil.location option -> srcinfo
+val srcinfo_of_type     : Cil.typ  -> Cil.location option -> srcinfo
+val srcinfo_of_constant : Cil.constant -> Cil.location option -> srcinfo
+val srcinfo_of_var      : Cil.varinfo -> Cil.location option -> srcinfo
+val srcinfo_of_instr    : Cil.instr -> Cil.location option -> srcinfo
+val srcinfo_of_string   : string -> srcinfo
+
+val typ_of_srcinfos     : srcinfo list -> Cil.typ option
+val exp_of_srcinfos     : srcinfo list -> Cil.exp option
+val lval_of_srcinfos    : srcinfo list -> Cil.lval option
+
+val setSrcLval          : Cil.location -> Cil.lval -> Cil.lval -> unit
+val setSrcExpr          : Cil.location -> Cil.exp -> Cil.exp -> unit
+val getSrcLval          : Cil.location -> Cil.lval -> Cil.lval option
+val getSrcExpr          : Cil.location -> Cil.exp -> Cil.exp option
 

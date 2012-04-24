@@ -24,7 +24,8 @@
 (* This file is part of the liquidC Project.*)
 
 val infer_shapes: 
-  Cil.file -> 
-  Ctypes.cspec -> 
-  (Ctypes.cfun * Ssa_transform.t * Ctypes.ctype CilMisc.VarMap.t) FixMisc.StringMap.t -> 
-  Shape.t FixMisc.StringMap.t
+     Cil.file 
+  -> CilTag.o 
+  -> Ctypes.cspec 
+  -> (Ctypes.cfun * Ssa_transform.t * Ctypes.ctype CilMisc.VarMap.t) FixMisc.StringMap.t 
+  -> Shape.t FixMisc.StringMap.t

@@ -29,6 +29,7 @@ module BS = BNstats
 module  P = Pretty
 module  C = FixConstraint
 module CM = CilMisc
+module So = Ast.Sort
 module YM = Ast.Symbol.SMap
 module SM = Misc.StringMap
 module IM = Misc.IntMap
@@ -44,6 +45,7 @@ module SIA = Solve.Make (IndexDomain)
 module Ix = Index  
 module Cx = Counterexample
 module Co = Constants
+module Sc = ScalarCtypes
 
 open Misc.Ops
 open Cil
@@ -222,49 +224,53 @@ let solve me fn qs =
   
 let value_var = Ast.Symbol.value_variable Ast.Sort.t_int
 
-let scalar_solve me fn fp (* qs *) =
-  let index_of_refc s v cr =
-    Ctypes.reft_of_refctype cr
-  |> C.ras_of_reft
-  |> List.map (fun ra ->
-		 match ra with
-		   | C.Conc p -> ScalarCtypes.index_of_var v (cr, p)
-		   | C.Kvar (subs, k) -> IndexDomain.read_bind s k)
-  |> List.fold_left Index.glb Index.top
-  in
-  (* let qst = ScalarCtypes.partition_scalar_quals qs in *)
-  let s   = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me) (* qst *) in
-  let _ = if !Co.check_is then
-    let apply sol (vv,t,ras) =
-      (vv,t,List.map
-	 (fun ra ->
-	    match ra with
-	      | C.Conc p -> ra
-	      | C.Kvar (subs, k) ->
-		  let pred = d_indexAbs.read_bind sol k
-	                     |> (if Ast.Sort.is_int t 		      
-				 then ScalarCtypes.pred_of_index_int
-				 else ScalarCtypes.non_null_pred_of_index_ref)
-			     |> snd
-		  in
-		    Ast.Subst.of_list [(value_var, Ast.eVar vv)]
-	            |> Ast.substs_pred pred
-                    |> fun p -> C.Conc p) ras)
-    in
-    let cs' = me.cm |> SM.map (List.map (fun c -> C.make_t
-					   (Ast.Symbol.SMap.map (apply s) (C.env_of_t c))
-					   (C.grd_of_t c)
-					   (apply s (C.lhs_of_t c))
-					   (apply s (C.rhs_of_t c))
-					   None(* (C.id_of_t c) *)
-					   (C.tag_of_t c)))
-                    |> SM.to_list |> List.map snd |> List.concat
-    in
-    let _ = Pretty.printf "Checking indices...\n" in
-    let s' = ac_scalar_solve d_predAbs me fn fp (get_wfs me, cs', get_deps me) (* qst *) in
-    let _ = Pretty.printf "Indices look sound\n" in ()
-  in
-    me.defm
+let index_of_refc s v cr =
+  cr 
+  |>  Ctypes.reft_of_refctype
+  |>  C.ras_of_reft
+  |>: begin function 
+       | C.Conc p         -> Sc.index_of_var v (cr, p)
+       | C.Kvar (subs, k) -> IndexDomain.read_bind s k
+      end
+  |>  List.fold_left Index.glb Index.top
+
+let apply sol (vv,t,ras) =
+  let su  = Ast.Subst.of_list [(value_var, Ast.eVar vv)] in
+  let p2i = if So.is_int t then Sc.pred_of_index_int else Sc.non_null_pred_of_index_ref in
+  ras |>: begin function 
+            | C.Kvar (subs, k) -> 
+                d_indexAbs.read_bind sol k 
+                |> p2i 
+                |> snd
+                |> (fun p -> C.Conc (Ast.substs_pred p su)) 
+            | C.Conc _ as ra  -> ra
+          end
+      |> (fun ras' -> (vv, t, ras'))
+
+
+let apply_cstr s c = 
+  C.make_t 
+    (YM.map (apply s) (C.env_of_t c)) 
+    (C.grd_of_t c)
+    (apply s (C.lhs_of_t c))
+    (apply s (C.rhs_of_t c))
+    None
+    (C.tag_of_t c)
+
+let scalar_solution_check me fn fp s =
+  let cs' = me.cm |> SM.map (List.map (apply_cstr s))
+                  |> SM.to_list 
+                  |> List.map snd 
+                  |> List.concat in
+  let _   = Pretty.printf "Checking indices...\n" in
+  let s'  = ac_scalar_solve d_predAbs me fn fp (get_wfs me, cs', get_deps me)  in
+  let _   = Pretty.printf "Indices look sound\n" in 
+  ()
+
+let scalar_solve me fn fp =
+  let s = ac_scalar_solve d_indexAbs me fn fp (get_cstrs me)  in
+  let _ = if !Co.check_is then scalar_solution_check me fn fp s     in
+  me.defm
   |> SM.map (List.map (fun (v, cr) -> (v, index_of_refc s v cr)))
   |> SM.map CM.VarMap.of_list
     
