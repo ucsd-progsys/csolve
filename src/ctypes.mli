@@ -264,8 +264,10 @@ module type S = sig
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map2         : ('a prectype -> 'a prectypes -> 'b prectype) ->
-                       'a prestore -> 'b prestore
+    (*val map2         : ('a prectype -> 'a prectypes -> 'b prectype) ->
+                       'a prestore -> 'a prestore -> 'b prestore
+    val iter2        : ('a prectype -> 'a prectype -> unit) ->
+                       'a prestore -> 'a prestore -> unit *)
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->

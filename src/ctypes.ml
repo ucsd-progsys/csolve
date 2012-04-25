@@ -1088,8 +1088,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let map f (ds, fs, _) =
         (map_data f ds, fs, [])
 
-      let map2  f (ds fs, _) =
-        (map2_data f ds, fs, [])
+      let map2 f (ds, fs, _) (ds', fs', _) =
+        (map2_data f ds ds', fs, [])
 
       let fold_fields f b (ds, fs, _) =
         SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
