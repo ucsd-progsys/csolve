@@ -217,14 +217,11 @@ let check_poly_inclusion s1 s2 sub =
 let cond_add_annot cond a annots = if cond then a :: annots else annots
     
 let constrain_app i (fs, _) et cf tsub sub sto lvo args =
-  let _ = Pretty.printf "constrain_app@!" in
-  let _ = Pretty.printf "sto: %a@!" Store.d_store sto in
   let cts, tsub, sub, sto = constrain_args et fs tsub sub sto args in
   let cts = cts |>: (I.CType.subs sub <.> TVarInst.apply tsub) in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
   let cfi, isub, tinsti, tinst, hsub = 
     CFun.instantiate srcinfo cf cts sto in
-  let _ = if mydebug then Pretty.printf "@[%a\n===>\n%a@]\n" CFun.d_cfun cf CFun.d_cfun cfi else Pretty.printf "" in
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub 
                    |> List.append (tinsti |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
                    |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)
@@ -244,7 +241,6 @@ let constrain_app i (fs, _) et cf tsub sub sto lvo args =
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
-  let _ = Pretty.printf "sto: %a@!" Store.d_store sto in
     match lvo with
       | None    -> (annot, tsub, sub, sto)
       | Some lv ->
@@ -293,13 +289,9 @@ let constrain_instr_aux ((fs, _) as env) et (bas, tsub, sub, sto) i =
       let tsub, sub, sto = constrain_exp et fs tsub sub sto e in
       let ct1      = et#ctype_of_lval lv in
       let ct2      = et#ctype_of_exp e in
-      let _ = Pretty.printf "*** %a ***@!" C.dn_instr i in
       let tsub     = unify_tvars tsub ct1 ct2 in
       let _        = assert_store_type_correct lv (TVarInst.apply tsub ct2) in
-      let _ = Pretty.printf "ct1: %a ct2: %a@!" Ct.d_ctype ct1 Ct.d_ctype (TVarInst.apply tsub ct2) in
-      let _ = Pretty.printf "set sto %a@!" Store.d_store sto in
       let sto, sub, tsub = UStore.unify_ctype_locs sto sub tsub ct1 ct2 in
-      let _ = Pretty.printf "set sto unified %a@!" Store.d_store sto in
         ([] :: bas, tsub, sub, sto)
   | C.Call (None, C.Lval (C.Var f, C.NoOffset), args, _) when CM.isVararg f.C.vtype ->
       let _ = CM.g_errorLoc !Cs.safe !C.currentLoc "constrain_instr cannot handle vararg call: %a@!@!" CM.d_var f |> CM.g_halt !Cs.safe in

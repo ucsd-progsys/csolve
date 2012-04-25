@@ -117,13 +117,10 @@ let ctype_of_var_index v ix =
   | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
   | Cil.TVoid _             -> Ct.void_ctype
   | Cil.TPtr ((Cil.TFun _) as f,_) ->
-    let f,x,y    = f |> Cil.typeAddAttributes v.Cil.vattr
-                     |> Typespec.preRefcfunOfType
-                     |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
+    let f,x,y = f |> Cil.typeAddAttributes v.Cil.vattr
+                  |> Typespec.preRefcfunOfType
+                  |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
     Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) f, ix)
-  (* | Cil.TPtr (t', ats) when Typespec.is_zero_width SM.empty t' ats -> *)
-  (*   let _ = Pretty.printf "so this happened: %s:%a\n" v.Cil.vname Cil.d_plaintype v.Cil.vtype  in *)
-  (*   Ct.TVar (Ct.fresh_tvar ()) *)
   | Cil.TPtr (tb, ats) when Cil.hasAttribute CM.typeVarAttribute ats ->
     Ctypes.TVar (Ctypes.fresh_tvar ())(* (Typespec.tvarOfAttrs ats) *)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
