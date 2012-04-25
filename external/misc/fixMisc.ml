@@ -829,6 +829,10 @@ let maybe_one = function
   | [x] -> Some x
   | _   -> None
 
+let maybe_hd  = function
+  | x :: _ -> Some x
+  | _      -> None
+
 
 let int_of_bool b = if b then 1 else 0
 
@@ -977,6 +981,11 @@ let mapi f xs =
   xs |> fold_lefti (fun i acc x -> (f i x) :: acc) [] 
      |> snd |> List.rev
 
+let map2i f xs ys =
+  List.combine xs ys
+    |> fold_lefti (fun i acc (x, y) -> f x y :: acc) []
+    |> snd |> List.rev
+
 let index_from n xs = 
   let is = range n (n + List.length xs) in
   List.combine is xs
@@ -1030,6 +1039,14 @@ let flap3 f xs ys zs =
 let combine msg xs ys =
   let _ = asserts (List.length xs = List.length ys) "%s" msg in
   List.combine xs ys
+
+let prefix_from p =
+  List.map (fun s -> (p, s))
+
+let combine_prefix lls =
+     List.combine prefs lls
+  |> List.map prefix_from
+  |> List.flatten
 
 let combine3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs

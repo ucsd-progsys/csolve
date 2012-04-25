@@ -70,6 +70,10 @@ val d_tvar : unit -> tvar -> Pretty.doc
   
 val fresh_tvar : unit -> tvar
     
+type 'a hf_appl  = string * Sloc.t list * 'a list
+
+type ref_hf_appl = FixConstraint.reft hf_appl
+
 type 'a prectype =
   | Int of int * 'a            (* fixed-width integer *)
   | Ref of Sloc.t * 'a         (* reference *)
@@ -260,6 +264,8 @@ module type S = sig
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map2         : ('a prectype -> 'a prectypes -> 'b prectype) ->
+                       'a prestore -> 'b prestore
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
