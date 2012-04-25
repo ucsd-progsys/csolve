@@ -58,3 +58,5 @@ clean:
 
 vitags:
 	otags -vi *.ml fixpoint/*.ml misc/*.ml ../external/cil/src/*.ml
+etags:
+	otags *.ml fixpoint/*.ml misc/*.ml ../external/cil/src/*.ml

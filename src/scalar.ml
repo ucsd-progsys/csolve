@@ -111,7 +111,7 @@ let close scim spec sim =
 let ctype_of_var_index v ix =
   let _ = Cil.currentLoc := v.Cil.vdecl in
   let t = Cil.unrollType v.Cil.vtype in
-  match t with
+  match (Typespec.ensureSlocAttrs t)  with
   | Cil.TInt (ik, _)        -> Ct.Int (Cil.bytesSizeOfInt ik, ix)
   | Cil.TEnum (ei, _)       -> Ct.Int (Cil.bytesSizeOfInt ei.Cil.ekind, ix)
   | Cil.TFloat _            -> Ct.Int (CM.typ_width t, ix)
@@ -121,6 +121,8 @@ let ctype_of_var_index v ix =
                      |> Typespec.preRefcfunOfType v.Cil.vdecl
                      |> Typespec.refcfunOfPreRefcfun Sloc.Subst.empty (Ct.RefCTypes.Store.empty) in
     Ct.FRef (Ct.RefCTypes.CFun.map (Ct.RefCTypes.CType.map fst) f, ix)
+  | Cil.TPtr (tb, ats) when Cil.hasAttribute CM.typeVarAttribute ats ->
+    Ctypes.TVar (Ctypes.fresh_tvar ())(* (Typespec.tvarOfAttrs ats) *)
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
   | _                       -> assert false

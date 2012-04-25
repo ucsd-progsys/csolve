@@ -232,7 +232,7 @@ let d_ann_fun () (f, cf, fd) =
 
 let d_ann_stores () ((f: string), (stos: Ct.refstore list)) =
   stos 
-  |> Misc.flap (fst <.> Ct.RefCTypes.Store.bindings) (* ignore funptrs *)
+  |> Misc.flap (Ct.RefCTypes.Store.bindings) (* ignore funptrs *)
   |> Misc.kgroupby (fst <+> Sloc.to_string)
   |> Misc.flap snd
   |> PP.dprintf "funstore %s ::@!@!%a" f (PP.d_list "\n\n" RCt.LDesc.d_sloc_ldesc)

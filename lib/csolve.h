@@ -38,6 +38,8 @@
 #define ANYREF             CSOLVE_ATTR (csolve_any_ref)
 #define ANY                CSOLVE_ATTR (csolve_any_type)
 #define NULL               CSOLVE_ATTR (csolve_null_or_ok)
+#define VAR(a)             CSOLVE_ATTR (csolve_type_var (#a))
+
 #define FINAL              CSOLVE_ATTR (csolve_final)
 #define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
 #define GLOBAL(l)          CSOLVE_ATTR (csolve_global_loc (#l))

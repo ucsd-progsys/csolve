@@ -61,10 +61,11 @@ type context = {
   annot : RA.block_annotation array;
 }
 
+(* abakst come back to this *)
 let process_annot na = function
   | RA.Gen (cl, al) | RA.WGen (cl, al) -> NASet.remove (NotAliased.make cl al) na
   | RA.NewC (_, al, cl)                -> NASet.add (NotAliased.make cl al) na
-  | RA.New _ | RA.Ins _                -> na
+  | RA.New _ | RA.Ins _ | RA.HInst _ | RA.TNew _ | RA.TInst _  -> na
 
 let process_set ctx na = function
   | C.Mem _, e when not (C.isConstant e) ->

@@ -208,7 +208,7 @@ and makeBasic (setTemp: taExp -> bExp) (e: exp) : bExp =
       Lval (Mem a', NoOffset)
 
   | AddrOf lv when not(!simplAddrOf) -> e'
-
+  | CastE (TPtr ((TFun _), _), _)  -> e'
   | _ -> begin
     if dump then ignore (E.log "Placing %a into a temporary\n" d_plainexp e');
     setTemp e' (* Put it into a temporary otherwise *)

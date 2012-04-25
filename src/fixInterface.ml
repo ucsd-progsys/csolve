@@ -104,8 +104,7 @@ let reft_of_reft r t' =
     |> List.map (function C.Conc p      -> C.Conc (P.subst p vv evv') 
                         | C.Kvar (s, k) -> C.Kvar (Su.extend s (vv, evv'), k))
     |> C.make_reft vv' t'
-(*    >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None) 
-*)
+   (* >> F.printf "reft_of_reft: r = %a, t' = %a, r' = %a \n" (C.print_reft None) r So.print t' (C.print_reft None)  *)
 
 let sort_of_prectype = function
   | Ct.Ref (l,_)  -> FA.so_ref l
@@ -113,6 +112,7 @@ let sort_of_prectype = function
   | Ct.ARef       -> FA.so_ref Sloc.sloc_of_any
   | Ct.Any        -> FA.so_int  (* MK: i *think* this should be ok *)
   | Ct.Int _      -> FA.so_int
+  | Ct.TVar _     -> FA.so_ref Sloc.sloc_of_any
 
 let spec_sort_of_prectype = function
   | Ct.Ref _  -> FA.so_ref Sloc.none
@@ -120,12 +120,13 @@ let spec_sort_of_prectype = function
   | Ct.ARef   -> FA.so_ref Sloc.sloc_of_any
   | Ct.Any    -> FA.so_int
   | Ct.Int _  -> FA.so_int
+  | Ct.TVar _ -> FA.so_ref Sloc.none
 
 let replace_reft r c = match c with
   | Ct.Int (w, (i, _))  -> Ct.Int (w, (i, r))
   | Ct.FRef (f, (i, _)) -> Ct.FRef (f, (i, r))
   | Ct.Ref (l, (i, _))  -> Ct.Ref (l, (i, reft_of_reft r (FA.so_ref l)))
-  | Ct.ARef | Ct.Any _  -> c
+  | Ct.ARef | Ct.Any _ | Ct.TVar _ -> c
 
 
 let rec refctype_of_reft_ctype r = function
@@ -134,6 +135,7 @@ let rec refctype_of_reft_ctype r = function
   | Ct.FRef (f,o) -> Ct.FRef (refcfun_of_cfun f, (o,r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 
 (*
 let refctype_of_reft_ctype r = function
@@ -147,6 +149,7 @@ and spec_refctype_of_reft_ctype r = function
   | Ct.Ref  (l,o) -> Ct.Ref (l, (o, r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 
 and refctype_of_ctype f = function
   | Ct.Int (i, x) as t ->
@@ -164,6 +167,7 @@ and refctype_of_ctype f = function
       Ct.FRef (refcfun_of_cfun g, (x,r))
   | Ct.ARef  -> Ct.ARef
   | Ct.Any   -> Ct.Any  
+  | Ct.TVar t -> Ct.TVar t
 and refcfun_of_cfun f = It.CFun.map (refctype_of_ctype (fun _ -> [])) f
 
 let refcspec_of_cspec s = It.Spec.map (refctype_of_ctype (fun _ -> [])) s
@@ -428,6 +432,7 @@ let is_reference cenv x =
     | Ct.Ref (_,(_,_))  -> true
     | Ct.FRef (_,(_,_)) -> true      
     | Ct.ARef           -> true
+    | Ct.TVar _         -> true
     | Ct.Any   | Ct.Int _ -> false
 
 
@@ -606,7 +611,7 @@ let name_of_sloc_index l i =
 
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') ->
-    if not (RCt.Store.Data.mem sto l) then [] else
+    if not (RCt.Store.mem sto l) then [] else
       let is  = l |> Ct.refstore_get sto |> RCt.LDesc.indices in
       let ns  = List.map (name_of_sloc_index l)  is in
       let ns' = List.map (name_of_sloc_index l') is in
@@ -615,7 +620,7 @@ let subs_of_lsubs lsubs sto =
 
 let refstore_subs_locs lsubs sto =
   let subs = subs_of_lsubs lsubs sto in
-    RCt.Store.Data.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
+    RCt.Store.map ((t_subs_locs lsubs) <+> (t_subs_names subs)) sto
 
 let effectset_subs_locs lsubs sto effs =
   let subs = subs_of_lsubs lsubs sto in
@@ -754,10 +759,10 @@ exception InvalidDeref
 
 let find_unfolded_loc l sto =
   try
-    RCt.Store.Data.find sto l
+    RCt.Store.find sto l
   with Not_found ->
     try
-      l |> Sloc.canonical |> RCt.Store.Data.find sto
+      l |> Sloc.canonical |> RCt.Store.find sto
     with Not_found -> raise InvalidDeref
 
 let field_of_address sto (l, i) =
@@ -854,16 +859,15 @@ let d_ldbinds () llds =
 let d_lcfbinds () lcfs = 
     Pretty.seq ~sep:(Pretty.text ",") ~doit:(d_cfbind ()) ~elements:lcfs
 
-let d_bindings () (llds, lcfs) = 
-  Pretty.dprintf "DATABINDS: @[%a@];@!FUNBINDS: @[%a@]" 
+let d_bindings () llds = 
+  Pretty.dprintf "DATABINDS: @[%a@]" 
     d_ldbinds llds
-    d_lcfbinds lcfs
 
 let d_slocs () ls =
   Pretty.seq ~sep:(Pretty.text ",") ~doit:(Sloc.d_sloc()) ~elements:ls
 
-let slocs_of_bindings (lds, lfs) = 
-  (List.map fst lds ++ List.map fst lfs) 
+let slocs_of_bindings lds = 
+  List.map fst lds
   |> Misc.sort_and_compact
 
 let d_bindings () x  = x |> slocs_of_bindings |> d_slocs ()
@@ -873,9 +877,14 @@ let is_live_name livem n =
   match FA.base_of_name n with
   | None    -> true
   | Some bn -> if YM.mem bn livem then n = YM.find bn livem else true
-
+      
+  
+let filter_tvar n rct env = match rct with
+  | Ct.TVar _ -> env | rct -> YM.add n (Ct.reft_of_refctype rct) env
+    
 let env_of_cilenv {venv = vnv} = 
   FA.builtinm
+  (* |> YM.fold filter_tvar vnv *)
   |> YM.fold (fun n rct env -> YM.add n (Ct.reft_of_refctype rct) env) vnv
   |> canon_env
 
@@ -898,7 +907,7 @@ let rec make_wfs ce sto rct =
 
 and make_wfs_effect env sto l eptr =
   let env = l
-         |> RCt.Store.Data.find_or_empty sto
+         |> RCt.Store.find_or_empty sto
          |> sloc_binds_of_refldesc l
          |> List.filter (not <.> Ix.is_periodic <.> snd)
          |> List.map fst
@@ -911,18 +920,17 @@ and make_wfs_effectset env sto effs =
   |> List.concat
 
 and make_wfs_refstore env full_sto sto =
-  RCt.Store.Function.fold_locs (fun l rft ws -> make_wfs_fn env rft ++ ws) [] sto ++
-    RCt.Store.Data.fold_locs begin fun l rd ws ->
-      let ncrs = sloc_binds_of_refldesc l rd in
-      let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
-                      |> List.map fst
-                      |> ce_adds env in
-      let env_addr = ce_adds env' [(vv_addr, t_addr l)] in
-      let ws1  = Misc.flap
-                   (fun ((_,cr),i) -> make_wfs (M.choose (Ix.is_periodic i) env_addr env') full_sto cr)
-                   ncrs in
-        ws1 ++ ws
-    end [] sto
+  RCt.Store.fold_locs begin fun l rd ws ->
+    let ncrs = sloc_binds_of_refldesc l rd in
+    let env' = ncrs |> List.filter (not <.> Ix.is_periodic <.> snd) 
+                    |> List.map fst
+                    |> ce_adds env in
+    let env_addr = ce_adds env' [(vv_addr, t_addr l)] in
+    let ws1  = Misc.flap
+      (fun ((_,cr),i) -> make_wfs (M.choose (Ix.is_periodic i) env_addr env') full_sto cr)
+      ncrs in
+    ws1 ++ ws
+  end [] sto
 
 and make_wfs_fn cenv rft =
   let args  = List.map (Misc.app_fst Sy.of_string) rft.Ct.args in
@@ -932,18 +940,33 @@ and make_wfs_fn cenv rft =
   let inws  = make_wfs_refstore env' rft.Ct.sto_in rft.Ct.sto_in in
   let outws = make_wfs_refstore env' rft.Ct.sto_out rft.Ct.sto_out in
   let effws = make_wfs_effectset env' rft.Ct.sto_out rft.Ct.effects in
-  Misc.tr_rev_flatten [retws ; argws ; inws ; outws; effws]
+  Misc.tr_rev_flatten [retws ; argws ; inws ; outws; effws] |> C.reduce_wfs
 
 let make_dep pol xo yo =
   (xo, yo) |> Misc.map_pair (Misc.maybe_map CilTag.tag_of_t)
            |> Misc.uncurry (C.make_dep pol)
+               
+let assert_equal_tvars ct1 ct2 = match ct1, ct2 with
+  | Ct.TVar t1, Ct.TVar t2 -> asserts (t1 = t2) "uninstantiated non-equal type vars"
+  | _ -> ()
 
 let make_cs_aux cenv p rct1 rct2 tago tag =
-  let env    = env_of_cilenv cenv in
-  let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) (rct1, rct2) in
-  let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
-  let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
-  cs, [] 
+  let _ = assert_equal_tvars rct1 rct2 in
+  match rct1, rct2 with
+    | Ct.TVar t, _ | _, Ct.TVar t -> ([],[])
+    | _ -> (* make_cs_aux cenv p rct1 rct2 tago tag *)
+      let env    = env_of_cilenv cenv in
+      let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) 
+                                 (rct1, rct2) in
+      let r1     = if !Co.simplify_t then strengthen_reft env r1 else r1 in
+      let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
+      cs, []
+    
+(* let make_cs_aux cenv p rct1 rct2 tago tag = *)
+(*   let _ = assert_equal_tvars rct1 rct2 in *)
+(*   match rct1, rct2 with *)
+(*     | Ct.TVar t, _ | _, Ct.TVar t -> ([],[]) *)
+(*     | _ -> make_cs_aux cenv p rct1 rct2 tago tag *)
 
 let make_cs_assert_disjoint env p cr1 cr2 tago tag =
   make_cs_aux env p (meet_refctype cr1 cr2) (t_false_refctype cr2) tago tag
@@ -988,8 +1011,8 @@ let make_cs_assert_effectsets_disjoint_aux env p sto effs1 effs2 tago tag =
   |> ES.domain
   |> List.map begin fun l ->
        let eff1, eff2 = M.map_pair (M.flip ES.find l) (effs1, effs2) in
-         if RCt.Store.Data.mem sto l then
-           let ld = RCt.Store.Data.find sto l in
+         if RCt.Store.mem sto l then
+           let ld = RCt.Store.find sto l in
              with_refldesc_ncrs_env_subs env (l, ld) (l, ld) begin fun _ env _ ->
                make_cs_assert_effects_disjoint env p eff1 eff2 tago tag
              end
@@ -1001,9 +1024,9 @@ let make_cs_effect_weaken_type env p sto erct eptr tago tag =
   let cl = erct |> RCt.CType.sloc |> M.maybe in
   let al = Sloc.canonical cl in
     with_effects_in_env env begin fun env ->
-      if RCt.Store.Data.mem sto cl then
-        let lhsld = (cl, RCt.Store.Data.find sto cl) in
-        let rhsld = (al, RCt.Store.Data.find sto al) in
+      if RCt.Store.mem sto cl then
+        let lhsld = (cl, RCt.Store.find sto cl) in
+        let rhsld = (al, RCt.Store.find sto al) in
           with_refldesc_ncrs_env_subs env lhsld rhsld begin fun _ env subs ->
             make_cs_aux env p erct (t_subs_names subs eptr) tago tag
           end
@@ -1033,12 +1056,9 @@ let make_cs_subtyping_bind_pairs polarity binds1 binds2 f =
     |> List.map f
     |> Misc.splitflatten
 
-let make_cs_effectset_binds polarity env p (sldes1, sfnes1) (sldes2, sfnes2) tago tag =
+let make_cs_effectset_binds polarity env p sldes1 sldes2 tago tag =
   make_cs_subtyping_bind_pairs polarity sldes1 sldes2 begin fun ((l1, (ld1, eff1)), (l2, (ld2, eff2))) ->
     make_cs_data_effect env p (l1, ld1) (l2, ld2) eff1 eff2 tago tag
-  end +++
-  make_cs_subtyping_bind_pairs polarity sfnes1 sfnes2 begin fun ((l1, (_, eff1)), (l2, (_, eff2))) ->
-    make_cs_function_effect env p eff1 eff2 tago tag
   end
 
 let make_cs_effectset env p sto1 sto2 effs1 effs2 tago tag =
@@ -1059,11 +1079,11 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
      end ncrs
      |> Misc.splitflatten
   end 
-
+    
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
-(*  let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" d_refctype rct1 d_refctype rct2 in
- *) try
+ (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in  *)
+ try
       let cs = make_cs_aux cenv p rct1 rct2 tago tag in
       begin match rct1, rct2 with
         | Ct.FRef (f,_), Ct.FRef (g,_) ->
@@ -1093,7 +1113,6 @@ and make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
   end cr1s cr2s 
   |> Misc.splitflatten
 
-
 and make_cs_refstore env p st1 st2 polarity tago tag loc =
  (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
            polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
@@ -1102,10 +1121,9 @@ and make_cs_refstore env p st1 st2 polarity tago tag loc =
 *)  make_cs_refstore_binds
       env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
 
-and make_cs_refstore_binds env p (slds1, sfuns1) (slds2, sfuns2) polarity tago tag loc =
+and make_cs_refstore_binds env p slds1 slds2 polarity tago tag loc =
   Misc.splitflatten
-    [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc;
-     make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc]
+    [make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc]
 
 and make_cs_refstore_data_binds env p slds1 slds2 polarity tago tag loc =
   make_cs_subtyping_bind_pairs polarity slds1 slds2 begin fun (sld1, sld2) ->
@@ -1124,6 +1142,7 @@ and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
 
 and make_cs_refcfun env p rf rf' tag loc =
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
+  (* let _ = Pretty.printf "make_cs_refcfun:\n%a\n%a\n" RCt.CFun.d_cfun rf RCt.CFun.d_cfun rf' in *)
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
   let ocr, ocr'   = Misc.map_pair Ct.ret_of_refcfun (rf, rf') in
   let hi, ho      = Ct.stores_of_refcfun rf in
@@ -1262,7 +1281,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
   let _     = assert (not (Sloc.is_abstract cl)) in
   let ffs   = Sloc.SlocMap.find cl ffm in
     if Ix.IndexSet.mem i ffs then
-      let ld  = RCt.Store.Data.find sto cl in
+      let ld  = RCt.Store.find sto cl in
       let fld = ld |> RCt.LDesc.find i |> List.hd |> snd in
       let ld  = RCt.LDesc.remove i ld in
       let sct = fld |> strengthen_final_field ffs ptrname i |> RCt.Field.type_of in
@@ -1270,7 +1289,7 @@ let refstore_strengthen_addr loc env sto ffm ptrname addr =
       let env = ce_adds env [(fn, sct)] in
       let fld = t_equal (Ct.ctype_of_refctype sct) fn |> RCt.Field.create Ct.Final Ct.dummy_fieldinfo in
       let ld  = RCt.LDesc.add i fld ld in
-        (env, RCt.Store.Data.add sto cl ld)
+        (env, RCt.Store.add sto cl ld)
     else
       (env, sto)
 

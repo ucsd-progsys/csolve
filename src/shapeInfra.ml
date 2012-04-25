@@ -60,6 +60,9 @@ let fresh_heaptype loc (t: C.typ): ctype =
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
                          (Ctypes.RefCTypes.CType.map fst) fspec,
                        Index.of_int 0)
+      (* | C.TPtr ((C.TVoid _) as tb, ats) -> Ctypes.TVar (Typespec.tvarOfAttrs ats) *)
+      | C.TPtr (tb, ats) when C.hasAttribute CM.typeVarAttribute ats ->
+        Ctypes.TVar (Ctypes.fresh_tvar ()) (* (Typespec.tvarOfAttrs ats) *)
       | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
           let sl = S.fresh_abstract (CM.srcinfo_of_type t (Some loc)) in
           Typespec.ptrReftypeOfSlocAttrs sl tb ats
@@ -153,7 +156,7 @@ class exprTyper (ve, fe) = object (self)
           Ctypes.FRef (Ctypes.RefCTypes.CFun.map
                          (Ctypes.RefCTypes.CType.map fst) fspec,
                        Index.IBot)
-
+            
   method private base_ctype_of_constptr loc c = match c with
     | C.CStr _ ->
         let s = S.fresh_abstract (CM.srcinfo_of_constant c (Some loc)) in 
@@ -201,5 +204,5 @@ class exprTyper (ve, fe) = object (self)
               in Int (C.bytesSizeOfInt ik, iec)
             | _ -> E.s <| C.error "Got bogus type in int-int cast@!@!"
           end
-        | _ -> ctv
+        | _ -> ctv 
 end

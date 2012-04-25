@@ -67,6 +67,7 @@ type t    = {
   ds      : C.dep list;
   wldm    : wld IM.t;
   gnv     : FI.cilenv;                                   (* ctype environment *)
+  global_env : FI.cilenv;
   formalm : unit SM.t;
   undefm  : unit SM.t;
   edgem   : (Cil.varinfo * Cil.varinfo) list IIM.t;
@@ -77,6 +78,8 @@ type t    = {
   (* phibt   : (string, (FI.name * FI.refctype)) Hashtbl.t; *)
   (* bindm   : (FI.cilenv * Ast.pred * FI.refctype) YM.t *)
 }
+    
+let globalenv_of_t me = me.global_env
 
 let ctype_of_local locals v =
   try List.assoc v locals with 
@@ -84,6 +87,7 @@ let ctype_of_local locals v =
 
 let strengthen_cloc = function
   | ct, None 
+  | (Ctypes.TVar _ as ct) , _
   | (Ctypes.Int (_, _) as ct), _ 
   | (Ctypes.Any _ as ct), _ 
   | (Ctypes.ARef as ct), _ -> ct
@@ -353,10 +357,7 @@ let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
       let ct = ctype_of_varinfo shp.Sh.vtyps v in
-        begin match ct with
-          | Ct.Ref (l, _) when Ct.I.Store.Function.mem shp.Sh.store l -> ct
-          | _ -> strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
-        end
+         strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> Ct.vtype_to_ctype v.Cil.vtype
 
@@ -426,7 +427,7 @@ let extend_wld_with_clocs me j loc tag wld =
           (env, (Ct.refstore_get sto cl |> Ct.refstore_set st cl), t)
          end) incls
       (* Add fresh bindings for "joined" conc-locations *)
-      |> Misc.flip (Ct.RefCTypes.Store.Data.fold_locs begin fun cl ld wld ->
+      |> Misc.flip (Ct.RefCTypes.Store.fold_locs begin fun cl ld wld ->
           fst <| FI.extend_world csto cl cl false id loc tag wld
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
@@ -528,6 +529,7 @@ let create tgr gnv gst sci sho =
   ; des     = []
   ; wldm    = IM.empty
   ; gnv     = env
+  ; global_env = gnv
   ; formalm = formalm
   ; undefm  = make_undefm formalm sci.ST.phis
   ; edgem   = edge_asgnm_of_phia sci.ST.phis

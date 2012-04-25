@@ -79,6 +79,7 @@ let is_simple_refatom = function
 let is_tauto_refatom  = function 
   | Conc p -> P.is_tauto p 
   |  _ -> false
+  
 
 (* API *)
 let fresh_kvar = 
@@ -274,9 +275,10 @@ let print_ras so ppf ras = match so with
 
 
 (* API *)
-let print_reft_pred so ppf (v,_,ras) =
-  F.fprintf ppf "@[{%a | %a}@]"
+let print_reft_pred so ppf (v,t,ras) =
+  F.fprintf ppf "@[{%a:%a | %a}@]"
     Sy.print v 
+    Ast.Sort.print t
     (print_ras so) ras
 
 (*
@@ -432,6 +434,20 @@ let env_of_wf        = fst4
 let reft_of_wf       = snd4
 let id_of_wf         = function (_,_,Some i,_) -> i | _ -> assertf "C.id_of_wf"
 let filter_of_wf     = fth4
+  
+let intersect_maps m1 m2 = SM.filter begin fun k elt ->
+  SM.mem k m2 && SM.find k m2 = elt
+end m1
+  
+let intersect_wfs (e1, r1, id1, qf1) (e2, r2, id2, qf2) =
+  let _ = assert (r1 = r2) in
+  let env = intersect_maps e1 e2 in
+  (env, r1, id1, fun x -> (qf1 x && qf2 x))
+    
+let reduce_wfs wfs = 
+  wfs 
+  |> Misc.groupby reft_of_wf 
+  |>: (fun wfs -> List.fold_left intersect_wfs (List.hd wfs) (List.tl wfs))
 
 
 (* API *)
