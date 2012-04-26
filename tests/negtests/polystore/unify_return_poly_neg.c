@@ -1,7 +1,7 @@
 #include <csolve.h>
 
-void *
-foo (void *x) CHECK_TYPE
+void * VAR(a)
+foo (void * VAR(b) x) CHECK_TYPE
 {
   return x;
 }

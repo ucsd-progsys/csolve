@@ -1,6 +1,6 @@
 #include <csolve.h>
 
-void test(void * LOC(L) x, void * LOC(L) y)
+void test(void * VAR(a) x, void * VAR(a) y)
 {
   csolve_assert(x == y);
 }

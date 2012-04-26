@@ -6,8 +6,8 @@ struct s {
   char *y;
 };
 
-void register_cb(void * LOC(L) p,
-                 void (* START VALIDPTR cb)(void * LOC(L)))
+void register_cb(void * VAR(L) p,
+                 void (* START VALIDPTR cb)(void * VAR(L)))
 {
   cb(p); 
 }

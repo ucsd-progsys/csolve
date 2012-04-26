@@ -1,7 +1,7 @@
 #include <csolve.h>
 
-void *
-foo(void *x, void *y)
+void * VAR(R)
+foo(void * VAR(A) x, void * VAR(B) y)
 {
 	x = y;
 	return x;
