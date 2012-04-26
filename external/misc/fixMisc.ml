@@ -116,6 +116,28 @@ end
 
 open Ops
 
+let sort_and_compact ls =
+  let rec _sorted_compact l = 
+    match l with
+	h1::h2::tl ->
+	  let rest = _sorted_compact (h2::tl) in
+	    if h1 = h2 then rest else h1::rest
+      | tl -> tl
+  in
+    _sorted_compact (List.sort compare ls)   
+
+let sort_and_compact xs = 
+  List.sort compare xs 
+  |> List.fold_left 
+       (fun ys x -> match ys with
+        | y::_ when x=y -> ys
+        | _::_          -> x::ys
+        | []            -> [x])
+       [] 
+  |> List.rev
+
+
+
 let trace s f x =
   let _ = print_now <| Printf.sprintf "BEGIN: %s \n" s in
   let r = f x in
@@ -223,6 +245,7 @@ module type EMapType = sig
   val maybe_find : key -> 'a t -> 'a option
   val single     : key -> 'a -> 'a t
   val map_partial: ('a -> 'b option) -> 'a t -> 'b t
+  val map2       : ('a option -> 'a option -> 'b) -> 'a t -> 'a t -> 'b t
 end
 
 module type ESetType = sig
@@ -313,6 +336,14 @@ module EMap (K: EOrderedType) =
 
     let map_partial f m = 
       fold (fun x yo m -> match yo with Some y -> add x y m | _ -> m) (map f m) empty 
+
+    let map2 f m m' =
+      let find = maybe_find in
+      domain m @ domain m' 
+        |> sort_and_compact
+        |> List.map (fun k -> k, f (find k m) (find k m'))
+        |> of_list
+
   end
 
 module type KeyValType =
@@ -679,26 +710,6 @@ let fsort f xs =
      |> List.sort cmp 
      |> map snd
 
-let sort_and_compact ls =
-  let rec _sorted_compact l = 
-    match l with
-	h1::h2::tl ->
-	  let rest = _sorted_compact (h2::tl) in
-	    if h1 = h2 then rest else h1::rest
-      | tl -> tl
-  in
-    _sorted_compact (List.sort compare ls)   
-
-let sort_and_compact xs = 
-  List.sort compare xs 
-  |> List.fold_left 
-       (fun ys x -> match ys with
-        | y::_ when x=y -> ys
-        | _::_          -> x::ys
-        | []            -> [x])
-       [] 
-  |> List.rev
-
 let hashtbl_to_list t = 
   Hashtbl.fold (fun x y l -> (x,y)::l) t []
 
@@ -983,7 +994,7 @@ let mapi f xs =
 
 let map2i f xs ys =
   List.combine xs ys
-    |> fold_lefti (fun i acc (x, y) -> f x y :: acc) []
+    |> fold_lefti (fun i acc (x, y) -> (f i x y) :: acc) []
     |> snd |> List.rev
 
 let index_from n xs = 
@@ -1040,13 +1051,11 @@ let combine msg xs ys =
   let _ = asserts (List.length xs = List.length ys) "%s" msg in
   List.combine xs ys
 
-let prefix_from p =
+let assoc_with p =
   List.map (fun s -> (p, s))
 
-let combine_prefix lls =
-     List.combine prefs lls
-  |> List.map prefix_from
-  |> List.flatten
+let combine_prefix prefixes =
+  flap2 assoc_with
 
 let combine3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs

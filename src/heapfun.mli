@@ -24,16 +24,15 @@
 
 type refVar
 
-type intr = Slot.t list
+type intrs = Sloc.t list
 
 type 'a def
 
 type ref_def = FixConstraint.reft def
 type var_def = refVar def
 
-module HfMap = FixMisc.StringMap
-type     env = var_def HfMap.t
+type     env = var_def FixMisc.StringMap.t
 
-val wf_def : 'a def -> bool
+(*val wf_def : 'a def -> bool
 
-val apply_in_env : Ctypes.hf_appl -> intr list -> env -> Ctypes.refstore
+val apply_in_env : Ctypes.hf_appl -> intr list -> env -> Ctypes.refstore*)

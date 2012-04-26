@@ -486,7 +486,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val subs          : Sloc.Subst.t -> t -> t
     val map_type      : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
     val map2_type     : ('a prectype -> 'a prectype -> 'b prectype) ->
-                        'a prefield -> 'b prefield
+                         'a prefield -> 'a prefield -> 'b prefield
     val d_field       : unit -> t -> P.doc
   end
 
@@ -511,8 +511,8 @@ module SIGS (T : CTYPE_DEFS) = struct
     val fold          : ('a -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
     val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
-    val map2          : ('a prefield -> 'b prefield) ->
-                        'a preldesc -> 'a preldesc -> 'b preldesc
+    val map2          : ('a prefield -> 'a prefield -> 'b prefield) ->
+                         'a preldesc -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> T.field -> unit) -> t -> unit
     val indices       : t -> Index.t list
@@ -931,8 +931,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let map2n f ld1 ld2 =
       let ld1p, ld2p = ld1.plfields, ld2.plfields in
-      {ld with plfields =
-        Misc.map2i (fun n (i, fld1, fld2) -> (i, f n i fld1 fld2)) ld1p ld2p}
+      {ld1 with plfields =
+        Misc.map2i (fun n (i, fld1) (_, fld2) -> (i, f n i fld1 fld2)) ld1p ld2p}
 
     let map f flds =
       mapn (fun _ _ fld -> f fld) flds
@@ -1035,7 +1035,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map_ldesc f (ds, vs, _) = SLM.mapi f ds, vs, []
 
     let map2_data f =
-      f |> Field.map2_type |> LDesc.map2 |> SLM.map2
+      f |> Field.map2_type
+        |> LDesc.map2
+        |> (fun f -> function Some a, Some b -> f a b
+                            | _     , Some b -> b
+                            | Some a, _      -> a)
+        |> Misc.curry
+        |> SLM.map2
 
     let map_data f =
       f |> Field.map_type |> LDesc.map |> SLM.map

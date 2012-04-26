@@ -21,25 +21,25 @@
  *
  *)
 
-module E  = ErrorMsg
 module M  = FixMisc
 module Sl = Sloc
 module Ct = Ctypes
 module FC = FixConstraint
-module SlS  = Sl.Subs
+module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
-module CtS  = Ct.Reft.Store
-module CtD  = Ct.Reft.Store.Data
+module CtR  = Ct.RefCTypes
+module CtS  = CtR.Store
+module CtD  = CtS.Data
 
 (* Heap Functions. Let us assume that exactly the first location argument is bound *)
 
 type refVar      = string
 
-type intrs       = Sloc.t list
+type intrs       = Sl.t list
 
-type 'a def      = { loc_params : Sloc.t list 
-                   ; ref_params :     'a list 
-                   ; unfolds    :  intrs list
+type 'a def      = { loc_params :  Sl.t list 
+                   ; ref_params :    'a list 
+                   ; unfolds    : intrs list
                    ; rhs        : 'a Ctypes.prestore
                    }
 
@@ -49,10 +49,9 @@ type var_def  = refVar  def
 module HfMap = M.StringMap
 type   env   = var_def HfMap.t
 
-let formal_locs_of_def def = def.loc_params 
+(*let formal_locs_of_def def = def.loc_params 
 let formal_vars_of_def def = def.ref_params
 let unfolds_of_def     def = def.unfolds
-
 
 let wf_def { loc_params = ls
            ; ref_params = rs
@@ -113,4 +112,4 @@ let def_of_list a =
 let d_ref_def =
 let d_var_def =*)
 
-
+*)

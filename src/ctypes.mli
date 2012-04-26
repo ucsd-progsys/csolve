@@ -47,9 +47,9 @@ module Reft            : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.
 type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
 type ldinfo     = {stype : Cil.typ option; any  : bool} 
 
-val dummy_fieldinfo  : fieldinfo
-val dummy_ldinfo : ldinfo
-val any_ldinfo   : ldinfo
+val dummy_fieldinfo : fieldinfo
+val dummy_ldinfo    : ldinfo
+val any_ldinfo      : ldinfo
 
 val d_fieldinfo      : unit -> fieldinfo -> Pretty.doc
 val d_ldinfo         : unit -> ldinfo -> Pretty.doc
@@ -208,6 +208,8 @@ module type S = sig
     val create       : finality -> fieldinfo -> CType.t -> t
     val subs         : Sloc.Subst.t -> t -> t
     val map_type     : ('a prectype -> 'b prectype) -> 'a prefield -> 'b prefield
+    val map2_type    : ('a prectype -> 'a prectype -> 'b prectype) ->
+                        'a prefield -> 'a prefield -> 'b prefield
     val d_field      : unit -> t -> Pretty.doc
   end
 
@@ -233,6 +235,8 @@ module type S = sig
     val fold          : ('a -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val subs          : Sloc.Subst.t -> t -> t
     val map           : ('a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
+    val map2          : ('a prefield -> 'a prefield -> 'b prefield) ->
+                         'a preldesc -> 'a preldesc -> 'b preldesc
     val mapn          : (int -> Index.t -> 'a prefield -> 'b prefield) -> 'a preldesc -> 'b preldesc
     val iter          : (Index.t -> Field.t -> unit) -> t -> unit
     val indices       : t -> Index.t list
