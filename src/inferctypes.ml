@@ -40,8 +40,6 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Sh  = Shape
 module FF  = FinalFields
-module H   = Heapvar
-module HM  = H.HeapvarMap
 
 open Misc.Ops
 open Ctypes
