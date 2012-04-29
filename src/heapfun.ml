@@ -21,19 +21,25 @@
  *
  *)
 
+module P  = Pretty
 module M  = FixMisc
 module Sl = Sloc
 module Ct = Ctypes
 module FC = FixConstraint
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
-module CtR  = Ct.RefCTypes
-module CtS  = CtR.Store
+module CtI  = Ct.I
+module CtS  = CtI.Store
 module CtD  = CtS.Data
+module CtCt = CtI.CType
+
+open M.Ops
 
 (* Heap Functions. Let us assume that exactly the first location argument is bound *)
 
-type refVar      = string
+module VR  = Ct.VarRefinement
+module RVT = Ct.RefVarTypes
+module RVS = Ct.Make(RVT)
 
 type intrs       = Sl.t list
 
@@ -44,34 +50,49 @@ type 'a def      = { loc_params :  Sl.t list
                    }
 
 type ref_def  = FC.reft def
-type var_def  = refVar  def
+type var_def  = VR.t def
 
 module HfMap = M.StringMap
 type   env   = var_def HfMap.t
 
-(*let formal_locs_of_def def = def.loc_params 
-let formal_vars_of_def def = def.ref_params
-let unfolds_of_def     def = def.unfolds
+let flocs_of def = def.loc_params
+let frefs_of def = def.ref_params
+let unfs_of  def = def.unfolds
+let rhs_of   def = def.rhs
 
-let wf_def { loc_params = ls
+(*let wf_def { loc_params = ls
            ; ref_params = rs
-           ; unfolds    = is
+           ; unfolds    = ins
            ; rhs        = h } =
-  List.length ls              = List.length is and
-  (apply ("", ls, rs) is def) = h
+  List.length ls = List.length ins and
+  apply ("", ls, rs) ins def = h*)
 
-let apply_in_env ((f, _, _) as app) ins env =
+(*let apply_in_env ((f, _, _) as app) ins env =
   HfMap.get f env |>
   apply app ins 
+*)
+(*let apply_rs_to_hp rs rhs =
+  CtS.map (List.assoc rs |> CtC.map) rhs*)
 
-let apply_rs_to_hp rs rhs =
-  CtS.map (List.assoc rs |> CtC.map) rhs
+(*let rv_to_rs rs = rs |> M.flip List.assoc |> CtCt.map
 
-let apply_hf ((f, sls, rls) as appl) ins def =
-  let rs, ls = M.combine_prefix def.loc_params sls, List.combine def.ref_params rls in
-  List.fold_left (M.flip SlSS.add) SlSS.empty ls,
-  (SlS.apply def.rhs sls |> apply_rs_to_hp rs)
+let apply_rs_to_hp rs = (rv_to_rs rs) |> CtS.map*)
 
+let rec ind_of_rv = function
+  | Ct.Int (d, (_, i))  -> Ct.Int(d, i)
+  | Ct.Ref (s, (_, i))  -> Ct.Ref(s, i)
+  | Ct.FRef (f, (_, i)) -> Ct.FRef((RVS.CFun.map ind_of_rv f), i)
+  | Ct.ARef -> Ct.ARef
+  | Ct.Any  -> Ct.Any
+
+let apply_hf_shape (_, sls, _) ins def =
+  let ls, is = def |> flocs_of |> M.flip List.combine sls,
+               def |> unfs_of  |> M.flip M.flapcombine ins in
+  let hp     = def |> rhs_of   |> RVS.Store.map ind_of_rv
+                               |> CtS.subs (ls @ is) in
+  let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
+    deps, hp
+(*
 (*let invert_env l hf ins env =
   SlSS.find hf env |> invert_hf_from_hp l hf ins
 

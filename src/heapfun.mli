@@ -22,16 +22,22 @@
  *
  *)
 
-type refVar
-
 type intrs = Sloc.t list
 
 type 'a def
 
 type ref_def = FixConstraint.reft def
-type var_def = refVar def
+type var_def = Ctypes.VarRefinement.t def
 
 type     env = var_def FixMisc.StringMap.t
+
+val flocs_of : 'a def -> Sloc.t list
+val frefs_of : 'a def -> 'a list
+val unfs_of  : 'a def -> intrs list
+val rhs_of   : 'a def -> 'a Ctypes.prestore
+
+val apply_hf_shape : Ctypes.ind_hf_appl -> intrs list -> var_def ->
+                     Sloc.SlocSlocSet.t * Ctypes.store
 
 (*val wf_def : 'a def -> bool
 

@@ -41,7 +41,11 @@ module type CTYPE_REFINEMENT = sig
   val d_refinement : unit -> t -> Pretty.doc
 end
 
+type refVar = string
+
 module IndexRefinement : CTYPE_REFINEMENT with type t = Index.t
+module VarRefinement   :
+  CTYPE_REFINEMENT with type t = refVar * IndexRefinement.t
 module Reft            : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
 
 type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
@@ -73,6 +77,7 @@ val fresh_tvar : unit -> tvar
 type 'a hf_appl  = string * Sloc.t list * 'a list
 
 type ref_hf_appl = FixConstraint.reft hf_appl
+type ind_hf_appl = Index.t hf_appl
 
 type 'a prectype =
   | Int of int * 'a            (* fixed-width integer *)
@@ -411,8 +416,9 @@ end
 
 module Make (T: CTYPE_DEFS) : S with module T = T
 
-module IndexTypes : CTYPE_DEFS with module R = IndexRefinement
-module I          : S with module T = IndexTypes
+module IndexTypes  : CTYPE_DEFS with module R = IndexRefinement
+module RefVarTypes : CTYPE_DEFS with module R = VarRefinement
+module I           : S with module T = IndexTypes
 
 val d_specTypeRel : unit -> specType -> Pretty.doc
 val specTypeMax   : specType -> specType -> specType

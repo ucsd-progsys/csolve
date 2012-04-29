@@ -53,6 +53,8 @@ module IndexSetPrinter = P.MakeSetPrinter (N.IndexSet)
 (****************************** Type Refinements ******************************)
 (******************************************************************************)
 
+type refVar = string
+
 module type CTYPE_REFINEMENT = sig
   type t
   val is_subref    : t -> t -> bool
@@ -75,6 +77,17 @@ module IndexRefinement = struct
     | C.CStr _            -> Index.IInt 0
     | c                   -> halt <| E.bug "Unimplemented ctype_of_const: %a@!@!" C.d_const c
 end
+
+module VarRefinement = struct
+  module IR = IndexRefinement
+  type t = refVar * IR.t
+  let du                = "None"
+  let top               = (du, IR.top)
+  let is_subref x y     = IR.is_subref (snd x) (snd y)
+  let of_const x        = (du, IR.of_const x)
+  let d_refinement () x = P.dprintf "(%s, %a)" (fst x) IR.d_refinement (snd x)
+end
+
 
 (******************************************************************************)
 (************************* Binders ********************************************)
@@ -176,6 +189,7 @@ and 'a prestore = 'a preldesc Sloc.SlocMap.t
 and 'a hf_appl  = string * Sloc.t list * 'a list
 
 and ref_hf_appl = FixConstraint.reft hf_appl
+and ind_hf_appl = Index.t hf_appl
 
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
@@ -445,8 +459,9 @@ module MakeTypes (R : CTYPE_REFINEMENT): CTYPE_DEFS with module R = R = struct
   type tvinst = TVarInst.t
 end
 
-module IndexTypes = MakeTypes (IndexRefinement)
-module ReftTypes  = MakeTypes (Reft)
+module IndexTypes  = MakeTypes (IndexRefinement)
+module RefVarTypes = MakeTypes (VarRefinement)
+module ReftTypes   = MakeTypes (Reft)
 
 module SIGS (T : CTYPE_DEFS) = struct
   module type CTYPE = sig

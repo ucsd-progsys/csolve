@@ -1054,8 +1054,11 @@ let combine msg xs ys =
 let assoc_with p =
   List.map (fun s -> (p, s))
 
-let combine_prefix prefixes =
-  flap2 assoc_with
+let combine_prefix prefs =
+  flap2 assoc_with prefs
+
+let flapcombine lls =
+  flap2 (fun x y -> List.combine x y) lls
 
 let combine3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs
