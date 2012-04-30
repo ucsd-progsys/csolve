@@ -60,23 +60,15 @@ let frefs_of def = def.ref_params
 let unfs_of  def = def.unfolds
 let rhs_of   def = def.rhs
 
-(*let wf_def { loc_params = ls
+(*let wf app def =
+  wd_def def and wf
+
+let wf_def { loc_params = ls
            ; ref_params = rs
            ; unfolds    = ins
            ; rhs        = h } =
   List.length ls = List.length ins and
   apply ("", ls, rs) ins def = h*)
-
-(*let apply_in_env ((f, _, _) as app) ins env =
-  HfMap.get f env |>
-  apply app ins 
-*)
-(*let apply_rs_to_hp rs rhs =
-  CtS.map (List.assoc rs |> CtC.map) rhs*)
-
-(*let rv_to_rs rs = rs |> M.flip List.assoc |> CtCt.map
-
-let apply_rs_to_hp rs = (rv_to_rs rs) |> CtS.map*)
 
 let rec ind_of_rv = function
   | Ct.Int (d, (_, i))  -> Ct.Int(d, i)
@@ -92,31 +84,50 @@ let apply_hf_shape (_, sls, _) ins def =
                                |> CtS.subs (ls @ is) in
   let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
     deps, hp
-(*
-(*let invert_env l hf ins env =
-  SlSS.find hf env |> invert_hf_from_hp l hf ins
 
-let invert_hf_from_hp l hf ins def h =
+let apply_in_env ((f, _, _) as app) ins env =
+  HfMap.find f env |>
+  apply_hf_shape app ins 
+
+
+
+(*let invert_env l hf ins env =
+  SlSS.find hf env |> invert_hf_from_hp l hf ins*)
+
+(*let invert_hf_from_hp l hf ins def h =
   let fls, frs, fils, rhs =
     def.loc_params, def.ref_params, def.unfolds, def.rhs in
   let loc_map = ld_looks_like l h rhs in
-  (hf, looks_like rhs h, [])
+  (hf, looks_like rhs h, [])*)
    
   (* h(l) <: h'(l) *)
-let rec data_looks_like l (ds, _, _) (ds, _, _) = 
-  (fun x -> CtD. x (CtD.find l ds) (CtD.find l ds'))
-  <| (function (Ref(l1, i1, r1), Ref(l2, _, _)) -> Ref(l1, i1, r1)
+  (*
+let rec data_infer_subs l l' d1 d2 = 
+  let ld1, ld2 = RVS.Store.find l d1, RVS.Store.find l' d2 in
+  let subs = ldesc_infer_subs ld1 l2 in
+  
+     hfunctio(n (Ref(l1, i1, r1), Ref(l2, _, _)) -> Ref(l1, i1, r1)
+ 
+
+and heap_infer_subs l l' (d1, _, hf1) (d2, _, hf2)  =
+  let hf1, hf2 = proj l hf1, proj l' hf2 in
+  let subs = data_infer_subs l l' d1 d2 in
+  let subs = subs @ hf_infer_subs hf1 hf2
+
+and app_infer_subs (_, _, hf1) (_, _, hf2) =
+
+and ldesc_infer_subs ld1 ld2 =
   *)
 
-let binding_of l hfs =
-  let hf =
-    M.only_one "binding_of: too many binds of location"
-      <| M.flip List.filter hfs
-      <| (function x :: _ -> x = l | _ -> false) in
-  let hfs = function None -> hfs | Some x -> List.remove x hfs in
-    (hf, hfs hf)
+let binding_of l =
+  List.find (function (_, k :: _, _) -> k = l | _ -> false)
 
-let ins l (_, _, hfs) ls env =
+let binds l hfs =
+  try
+    binding_of l hfs; true
+  with Not_found -> false
+
+(*let ins l (_, _, hfs) ls env =
   let (hf, hfs) = binding_of l hfs in
   match hf with
     | Some hf -> apply_in_env hf ls env |> H.append hfs 

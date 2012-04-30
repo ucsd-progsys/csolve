@@ -121,7 +121,7 @@ let fresh_abstract i = Abstract (fresh_slocid [i])
 let copy_concrete = function
   | AnyLoc     -> AnyLoc
   | Abstract i -> Concrete (fresh_slocid (slocinfo i), i)
-  | _          -> assert false
+  | _          -> assertf "not implemented"
 
 (* API *)
 let copy_abstract z' = function
@@ -178,7 +178,7 @@ module SlocSlocSet =
       M.add s (find s t) t
 
     let remove (s, s') t =
-      assert false
+      assertf "not implemented"
 
     let singleton (s, s') =
       M.add s [s'] M.empty
@@ -187,41 +187,41 @@ module SlocSlocSet =
       M.fold (fun s l tt -> M.add s ((M.find s t) @ l) tt) t t'
 
     let inter t t' =
-      assert false
+      assertf "not implemented"
     let diff t t' =
-      assert false
+      assertf "not implemented"
     let compare t t' =
-      assert false
+      assertf "not implemented"
     let equal t t' =
-      assert false
+      assertf "not implemented"
     let filter p t =
-      assert false
+      assertf "not implemented"
     let partition f t =
-      assert false
+      assertf "not implemented"
     let cardinal t =
-      assert false
+      assertf "not implemented"
     let elements t =
-      assert false
+      assertf "not implemented"
     let min_elt t =
-      assert false
+      assertf "not implemented"
     let max_elt t =
-      assert false
+      assertf "not implemented"
     let choose t =
-      assert false
+      assertf "not implemented"
     let split t =
-      assert false
+      assertf "not implemented"
     let of_list t =
-      assert false
+      assertf "not implemented"
     let exists f t =
-      assert false
+      assertf "not implemented"
     let for_all f t =
-      assert false
+      assertf "not implemented"
     let fold f a t =
-      assert false
+      assertf "not implemented"
     let iter f t =
-      assert false
+      assertf "not implemented"
     let subset f t =
-      assert false
+      assertf "not implemented"
   end
 
     

@@ -1074,51 +1074,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         (ds, vs, hf)
 
-(*    module Data = struct
-      let add (ds, fs, _) l ld =
-        let _ = assert ((l = Sloc.sloc_of_any) || (not (SLM.mem l fs))) in
-        if (l = Sloc.sloc_of_any) then
-          (ds, fs, [])
-        else
-          (SLM.add l ld ds, fs, [])
+    let bindings (ds, _, _) =
+      SLM.to_list ds
 
-      let bindings (ds, _, _) =
-        SLM.to_list ds
-
-      let domain (ds, _, _) =
-        SLM.domain ds
-
-      let mem (ds, _, _) l =
-        if (l = Sloc.sloc_of_any) then
-          true
-        else
-          SLM.mem l ds
-
-      let find (ds, _, _) l =
-        if (l = Sloc.sloc_of_any) then
-          LDesc.any 
-        else
-          SLM.find l ds
-
-      let find_or_empty sto l =
-        try find sto l with Not_found -> LDesc.empty
-
-      let ensure_sloc sto l =
-        l |> find_or_empty sto |> add sto l
-
-      let map f (ds, fs, _) =
-        (map_data f ds, fs, [])
-
-      let map2 f (ds, fs, _) (ds', fs', _) =
-        (map2_data f ds ds', fs, [])
-
-      let fold_fields f b (ds, fs, _) =
-        SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
-
-      let fold_locs f b (ds, fs, _) =
-        SLM.fold f ds b
-    end
-  *)
+    let domain (ds, _, _) =
+      SLM.domain ds
 
     let mem (ds, _, _) l =
       if (l = Sloc.sloc_of_any) then
@@ -1126,7 +1086,40 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         SLM.mem l ds
 
-    let find (ds, vs, _) l =
+    let find (ds, _, _) l =
+      if (l = Sloc.sloc_of_any) then
+        LDesc.any 
+      else
+        SLM.find l ds
+
+    let find_or_empty sto l =
+      try find sto l with Not_found -> LDesc.empty
+
+    let ensure_sloc sto l =
+      l |> find_or_empty sto |> add sto l
+
+    let map f (ds, vs, hfs) =
+      (map_data f ds, vs, hfs)
+
+    let map2 f (ds, vs, hfs) (ds', _, _) =
+      (map2_data f ds ds', vs, hfs)
+
+    let fold_fields f b (ds, _, _) =
+      SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
+
+    let fold_locs f b (ds, _, _) =
+      SLM.fold f ds b
+
+    let mem (ds, _, hfs) l =
+      if (l = Sloc.sloc_of_any) then
+        true
+      else if SLM.mem l ds then
+        true
+      else 
+        (*Heapfun.binds l ds*)
+        false
+
+    let find (ds, _, _) l =
       if (l = Sloc.sloc_of_any) then
         LDesc.any 
       else
