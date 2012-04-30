@@ -1067,12 +1067,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
-    let add (ds, vs, _) l ld =
+    let add (ds, vs, hf) l ld =
       (* let _ = assert ((l = Sloc.sloc_of_any) || SLM.mem l ds) in *)
       if not (l = Sloc.sloc_of_any) then
-        (SLM.add l ld ds, vs)
+        (SLM.add l ld ds, vs, hf)
       else
-        (ds, vs)
+        (ds, vs, hf)
 
 (*    module Data = struct
       let add (ds, fs, _) l ld =
@@ -1137,7 +1137,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let ensure_sloc sto l = l |> find_or_empty sto |> add sto l
         
-    let ensure_var v ((ds, vs, +) as sto) = 
+    let ensure_var v ((ds, vs, _) as sto) = 
       if List.mem v vs then sto else 
         (ds, Misc.sort_and_compact (v::vs), [])
 
@@ -1158,7 +1158,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map f (ds, vs, _) =
       (map_data f ds, vs, [])
 
-    let bindings (ds, vs) = SLM.to_list ds
+    let bindings (ds, _, _) = SLM.to_list ds
 
     let abstract (ds, vs, hfs) = (restrict_slm_abstract ds, vs, hfs)
 
@@ -1167,7 +1167,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> bindings 
       |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))
 
-    let domain (ds, vs) = SLM.domain ds
+    let domain (ds, _, _) = SLM.domain ds
 
     let mem (ds, vs, _) s =
       if (s = Sloc.sloc_of_any) then
@@ -1257,16 +1257,16 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
 
-    let indices (ds, vs) = slm_acc_list LDesc.indices ds
+    let indices (ds, _, _) = slm_acc_list LDesc.indices ds
           
     let subs_store_var subs lsubs fromsto (insto, vs, hf) = 
       List.fold_left begin fun (sto, vs, hf) v -> 
         if StS.mem v subs then
       	  let (slocs, vars) = StS.lookup v subs in
-	  let (conc,_)     = SS.elements slocs |> restrict fromsto in
-          (upd (sto, vs, hf) (conc, SVS.elements vars))
-        else
-          (sto, v :: vs)
+	        let (conc, _, _)     = SS.elements slocs |> restrict fromsto in
+            (upd (sto, vs, hf) (conc, SVS.elements vars, hf))
+      else
+          (sto, v :: vs, hf)
       end (insto, [], []) vs
       |> Misc.app_snd3 (List.sort Sv.compare)
           
@@ -1281,10 +1281,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     (* TODO MK: dump vars and heapfuns *)
     let d_store () (ds, _, _) =
-      else if ds = SLM.empty then
-        P.dprintf "[@[%a@]]" (d_storelike CFun.d_cfun) fs
-      else
-        P.dprintf "[@[%a;@!%a@]]" (d_storelike LDesc.d_ldesc) ds
+      P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
 
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -1730,7 +1727,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	  
     let quantify_svars cf = 
       let svars = free_svars cf
-      |> List.append (snd cf.sto_out ++ snd cf.sto_in)
+      |> List.append (snd3 cf.sto_out ++ snd3 cf.sto_in)
       |>Misc.sort_and_compact
       in
       {cf with quant_svars = svars }

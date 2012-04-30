@@ -30,7 +30,7 @@ module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
 module CtI  = Ct.I
 module CtS  = CtI.Store
-module CtD  = CtS.Data
+(*module CtD  = CtS.Data*)
 module CtCt = CtI.CType
 
 open M.Ops

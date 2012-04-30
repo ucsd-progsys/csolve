@@ -29,12 +29,8 @@ module IIM = Misc.IntIntMap
 module LM  = Sloc.SlocMap
 module SM  = Misc.StringMap
 module S   = Sloc
-<<<<<<< HEAD
-  
-=======
 module Ct  = Ctypes
 module Hf  = Heapfun
->>>>>>> heapfun interface stuff
 
 open Cil
 open Misc.Ops
