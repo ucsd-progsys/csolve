@@ -364,7 +364,8 @@ let assertExternDeclarationsValid vs =
 (***************** Conversion from CIL Types to Refined Types *****************)
 (******************************************************************************)
 
-let alreadyClosedType mem t = match CM.typeName t with
+let alreadyClosedType mem (t, ats) = 
+    match annotatedPointerBaseType ats t |> CM.typeName with
   | Some n -> SM.mem n mem
   | _      -> false
 
@@ -379,12 +380,8 @@ let rec refctypeOfCilType abstr (srcloc : Cil.location) mem t = match normalizeT
   | C.TEnum (ei,  ats)   -> intReftypeOfAttrs (C.bytesSizeOfInt ei.C.ekind) ats
   | C.TArray (t, _, ats) -> ptrReftypeOfAttrs srcloc t ats
   | C.TPtr (C.TFun _ as f, ats) ->
-    let (Ct.FRef (_, r)) = fptrReftOfAttrs t ats
-    in Ct.FRef (preRefcfunOfType srcloc f |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty |> fst3, r)
-    (* let f' = preRefcfunOfType f *)
-    (*       |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty *)
-    (*       |> fst3 *)
-    (* in Ct.FRef (f', r) *)
+    let (Ct.FRef (_, r)) = fptrReftOfAttrs t ats in
+    Ct.FRef (preRefcfunOfType srcloc f |> refcfunOfPreRefcfun Sloc.Subst.empty RS.empty |> fst3, r)
   (* | C.TPtr (t, ats) when abstr && is_zero_width mem t ats -> *)
   (*   Ct.TVar (tvarOfAttrs ats) (\* (Ct.fresh_tvar ()) *\) *)
   | C.TPtr (t, ats) when C.hasAttribute CM.typeVarAttribute ats ->
@@ -393,7 +390,7 @@ let rec refctypeOfCilType abstr (srcloc : Cil.location) mem t = match normalizeT
     if C.hasAttribute CM.anyRefAttribute ats then
       Ct.ARef (* create an anyref even if the type is named *)
     else
-      begin match CM.typeName t with
+      begin match annotatedPointerBaseType ats t |> CM.typeName with
         | Some n when SM.mem n mem -> begin
             ptrReftypeOfAttrs srcloc t ats
             |> function
@@ -403,12 +400,6 @@ let rec refctypeOfCilType abstr (srcloc : Cil.location) mem t = match normalizeT
         | _ -> ptrReftypeOfAttrs srcloc t ats
       end
   | _ -> assertf "refctypeOfCilType: non-base!"
-
-(* and is_zero_width srcloc mem t ats =  *)
-(*     match annotatedPointerBaseType ats t |> componentsOfType with *)
-(*       | [(_, _, t)] when slocOfAttrs srcloc ats |> Sloc.is_abstract ->  *)
-(*         (refctypeOfCilType false srcloc mem t |> RCt.width) = 0 *)
-(*       | _ -> false *)
         
 and heapRefctypeOfCilType srcloc mem t =
      t
@@ -448,7 +439,7 @@ and componentsOfField t f =
 
 and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeType t with
   | C.TPtr (C.TFun _, _) -> (sub, sto)
-  | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
+  | C.TPtr (tb, ats) when alreadyClosedType mem (tb, ats) -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs (CM.srcinfo_of_type tb (Some srcloc)) ats in
     let tb     = annotatedPointerBaseType ats tb in
@@ -464,7 +455,7 @@ and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeT
               |> FI.t_subs_names fldsub
               |> RFl.create (t |> C.typeAttrs |> finalityOfAttrs) {Ct.fname = Some fn; Ct.ftype = None} (* Some t, but doesn't parse *)
               |> addReffieldToStore sub sto s i
-        end (sub, sto) tcs
+        end (sub, sto) tcs 
   | _ -> (sub, sto)
 
 and closeTypeInStore srcloc sub sto t =
@@ -579,7 +570,9 @@ let globalSpecOfFuns sub gsto funs =
      let srcloc = v.C.vdecl                 in 
      let fn, ty = (v.C.vname, C.typeAddAttributes v.C.vattr v.C.vtype) in
        if C.isFunctionType ty && not (isBuiltin fn) then
-         let rcf, gsto, sub = ty |> preRefcfunOfType srcloc |> refcfunOfPreRefcfun sub gsto |> (M.app_fst3 RCf.generalize) in
+         let rcf, gsto, sub = ty |> preRefcfunOfType srcloc 
+                                 |> refcfunOfPreRefcfun sub gsto 
+                                 |> (M.app_fst3 RCf.generalize) in
            (M.sm_protected_add false fn (rcf, specTypeOfFun v) funm, gsto, sub)
        else (funm, gsto, sub)
      end (SM.empty, gsto, sub)

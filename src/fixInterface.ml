@@ -1076,7 +1076,7 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
     
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
- let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in
+ (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in  *)
  try
       let cs = make_cs_aux cenv p rct1 rct2 tago tag in
       begin match rct1, rct2 with
