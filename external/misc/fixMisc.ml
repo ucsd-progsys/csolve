@@ -78,39 +78,39 @@ module Ops = struct
 
   let foreach xs f = List.map f xs
 
-let asserts p fmt =
-  Printf.ksprintf (fun x -> if not p then failwith x) fmt
-
-let asserti = asserts
-  (*
-let asserti p fmt = 
-  Printf.ksprintf (fun x -> if not p then (print_string (x^"\n"); ignore(0/0)) else ()) fmt
-*)
-
-let assertf fmt =
-  Printf.ksprintf failwith fmt
-
-let halt _ =
-  assert false
-
-let fst3 (x,_,_) = x
-let snd3 (_,x,_) = x
-let thd3 (_,_,x) = x
-
-let fst4 (x, _, _, _) = x
-let snd4 (_, x, _, _) = x
-let thd4 (_, _, x, _) = x
-let fth4 (_, _, _, x) = x
-
-let withfst3 (_,y,z) x = (x,y,z)
-let withsnd3 (x,_,z) y = (x,y,z)
-let withthd3 (x,y,_) z = (x,y,z)
-
-let print_now s = 
-  print_string s;
-  flush stdout
-
-let some = fun x -> Some x
+  let asserts p fmt =
+    Printf.ksprintf (fun x -> if not p then failwith x) fmt
+  
+  let asserti = asserts
+    (*
+  let asserti p fmt = 
+    Printf.ksprintf (fun x -> if not p then (print_string (x^"\n"); ignore(0/0)) else ()) fmt
+  *)
+  
+  let assertf fmt =
+    Printf.ksprintf failwith fmt
+  
+  let halt _ =
+    assert false
+  
+  let fst3 (x,_,_) = x
+  let snd3 (_,x,_) = x
+  let thd3 (_,_,x) = x
+  
+  let fst4 (x, _, _, _) = x
+  let snd4 (_, x, _, _) = x
+  let thd4 (_, _, x, _) = x
+  let fth4 (_, _, _, x) = x
+  
+  let withfst3 (_,y,z) x = (x,y,z)
+  let withsnd3 (x,_,z) y = (x,y,z)
+  let withthd3 (x,y,_) z = (x,y,z)
+  
+  let print_now s = 
+    print_string s;
+    flush stdout
+  
+  let some = fun x -> Some x
 
 end
 

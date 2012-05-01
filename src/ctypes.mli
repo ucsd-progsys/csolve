@@ -74,11 +74,6 @@ val d_tvar : unit -> tvar -> Pretty.doc
   
 val fresh_tvar : unit -> tvar
     
-type 'a hf_appl  = string * Sloc.t list * 'a list
-
-type ref_hf_appl = FixConstraint.reft hf_appl
-type ind_hf_appl = Index.t hf_appl
-
 type 'a prectype =
   | Int of int * 'a            (* fixed-width integer *)
   | Ref of Sloc.t * 'a         (* reference *)
@@ -101,6 +96,11 @@ and  'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
     }
+
+type 'a hf_appl  = string * Sloc.t list * 'a list
+
+type ref_hf_appl = FixConstraint.reft hf_appl
+type ind_hf_appl = Index.t hf_appl
 
 type specType =
   | HasShape
@@ -274,10 +274,6 @@ module type S = sig
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map2         : ('a prectype -> 'a prectype -> 'b prectype) ->
-                       'a prestore -> 'a prestore -> 'b prestore
-    val iter2        : ('a prectype -> 'a prectype -> unit) ->
-                       'a prestore -> 'a prestore -> unit
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
@@ -299,6 +295,7 @@ module type S = sig
     val vars         : t -> Svar.t list
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t
+    val hfuns        : t -> T.refinement hf_appl list
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
@@ -313,6 +310,8 @@ module type S = sig
       
     val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
+
+    (*val same_shape    : t -> t -> bool*)
 
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t

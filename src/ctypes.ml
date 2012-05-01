@@ -560,10 +560,6 @@ module SIGS (T : CTYPE_DEFS) = struct
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
-    val map2         : ('a prectype -> 'a prectype -> 'b prectype) ->
-                        'a prestore -> 'a prestore -> 'b prestore
-    val iter2        : ('a prectype -> 'a prectype -> unit) ->
-                        'a prestore -> 'a prestore -> unit
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
@@ -585,6 +581,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val vars         : t -> Sv.t list
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
+    val hfuns        : t -> T.refinement hf_appl list
         
     val d_store_addrs: unit -> t -> P.doc
     val d_store      : unit -> t -> P.doc
@@ -1063,8 +1060,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map2_data f =
       f |> Field.map2_type
         |> LDesc.map2
-        |> (fun f -> function Some a, Some b -> f a b
-                            | _ -> assertf "map2_data: shapes differ")
+        |> begin fun f -> function Some a, Some b -> f a b
+            | _ -> assertf "map2_data: shapes differ" end
         |> Misc.curry
         |> SLM.map2
 
@@ -1111,11 +1108,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map f (ds, vs, hfs) =
       (map_data f ds, vs, hfs)
 
-    let map2 f (ds, vs, _) (ds', _, _) =
-      (map2_data f ds ds', vs, [])
-
-    let iter2 f (ds, _, _) (ds', _, _) =
-      map2_data (fun x1 x2 -> f x1 x2; x1) ds ds'; ()
+    let hfuns (_, _, hfs) = hfs
 
     let fold_fields f b (ds, _, _) =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b

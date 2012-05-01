@@ -44,7 +44,7 @@ module RVS = Ct.Make(RVT)
 type intrs       = Sl.t list
 
 type 'a def      = { loc_params :  Sl.t list 
-                   ; ref_params :    'a list 
+                   ; ref_params : 'a list 
                    ; unfolds    : intrs list
                    ; rhs        : 'a Ctypes.prestore
                    }
@@ -85,7 +85,7 @@ let apply_hf_shape (_, sls, _) ins def =
   let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
     deps, hp
 
-let apply_in_env ((f, _, _) as app) ins env =
+let apply_hf_in_env ((f, _, _) as app) ins env =
   HfMap.find f env |>
   apply_hf_shape app ins 
 
@@ -100,9 +100,8 @@ let apply_in_env ((f, _, _) as app) ins env =
   let loc_map = ld_looks_like l h rhs in
   (hf, looks_like rhs h, [])*)
    
-  (* h(l) <: h'(l) *)
 
-let heap_infer_subs h1 h2 =
+(*let heap_infer_subs h1 h2 =
   let subs = ref [] in 
   let upd = function
     | (Some x, Some y) -> subs := (x,y) :: !subs
@@ -111,7 +110,7 @@ let heap_infer_subs h1 h2 =
     let _ = assert (CtIC.same_shape t1 t2) in
     M.map_pair CtIC.sloc (t1, t2) |> upd in
   CtIS.iter2 f h1 h2; !subs
-
+  *)
 
 let binding_of l =
   List.find (function (_, k :: _, _) -> k = l | _ -> false)
@@ -126,7 +125,7 @@ let binds l hfs =
   match hf with
     | Some hf -> apply_in_env hf ls env |> H.append hfs 
     | None    -> (SlSS.empty, hfs)
-  
+(*  
 (*let gen l (ds, _, hfs) ls env =
   let _  = assert CtD.mem l ds in
   CtD.find l ds
@@ -138,4 +137,4 @@ let def_of_list a =
 let d_ref_def =
 let d_var_def =*)
 
-*)
+*)*)
