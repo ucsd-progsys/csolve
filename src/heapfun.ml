@@ -29,9 +29,9 @@ module FC = FixConstraint
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
 module CtI  = Ct.I
-module CtS  = CtI.Store
-(*module CtD  = CtS.Data*)
-module CtCt = CtI.CType
+module CtIS = CtI.Store
+module CtIF = CtI.Field
+module CtIC = CtI.CType
 
 open M.Ops
 
@@ -81,7 +81,7 @@ let apply_hf_shape (_, sls, _) ins def =
   let ls, is = def |> flocs_of |> M.flip List.combine sls,
                def |> unfs_of  |> M.flip M.flapcombine ins in
   let hp     = def |> rhs_of   |> RVS.Store.map ind_of_rv
-                               |> CtS.subs (ls @ is) in
+                               |> CtIS.subs (ls @ is) in
   let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
     deps, hp
 
@@ -101,23 +101,17 @@ let apply_in_env ((f, _, _) as app) ins env =
   (hf, looks_like rhs h, [])*)
    
   (* h(l) <: h'(l) *)
-  (*
-let rec data_infer_subs l l' d1 d2 = 
-  let ld1, ld2 = RVS.Store.find l d1, RVS.Store.find l' d2 in
-  let subs = ldesc_infer_subs ld1 l2 in
-  
-     hfunctio(n (Ref(l1, i1, r1), Ref(l2, _, _)) -> Ref(l1, i1, r1)
- 
 
-and heap_infer_subs l l' (d1, _, hf1) (d2, _, hf2)  =
-  let hf1, hf2 = proj l hf1, proj l' hf2 in
-  let subs = data_infer_subs l l' d1 d2 in
-  let subs = subs @ hf_infer_subs hf1 hf2
+let heap_infer_subs h1 h2 =
+  let subs = ref [] in 
+  let upd = function
+    | (Some x, Some y) -> subs := (x,y) :: !subs
+    | _ -> () in
+  let f t1 t2 =
+    let _ = assert (CtIC.same_shape t1 t2) in
+    M.map_pair CtIC.sloc (t1, t2) |> upd in
+  CtIS.iter2 f h1 h2; !subs
 
-and app_infer_subs (_, _, hf1) (_, _, hf2) =
-
-and ldesc_infer_subs ld1 ld2 =
-  *)
 
 let binding_of l =
   List.find (function (_, k :: _, _) -> k = l | _ -> false)

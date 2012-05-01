@@ -485,6 +485,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
+    val same_shape  : t -> t -> bool
   end
 
   module type FIELD = sig
@@ -559,6 +560,10 @@ module SIGS (T : CTYPE_DEFS) = struct
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
     val map          : ('a prectype -> 'b prectype) -> 'a prestore -> 'b prestore
+    val map2         : ('a prectype -> 'a prectype -> 'b prectype) ->
+                        'a prestore -> 'a prestore -> 'b prestore
+    val iter2        : ('a prectype -> 'a prectype -> unit) ->
+                        'a prestore -> 'a prestore -> unit
     val map_variances : ('a prectype -> 'b prectype) ->
                         ('a prectype -> 'b prectype) ->
                         'a prestore ->
@@ -817,6 +822,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let is_void = function
       | Int (0, _) | Any     -> true
       | _                    -> false
+
+    let same_shape = begin function
+      | Int _, Int _ | Ref _, Ref _ | FRef _, FRef _
+      | ARef _, ARef _ | Any _, Any _ | TVar _, TVar _ -> true
+      | _ -> false end
+        |> Misc.curry
   end
 
   (******************************************************************************)
@@ -856,7 +867,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let map2_type f fld1 fld2 =
       {fld1 with pftype = f <| (type_of <| fld1)
-                            <| (type_of <| fld1)}
+                            <| (type_of <| fld2)}
 
     let subs sub =
       map_type (CType.subs sub)
@@ -1053,8 +1064,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       f |> Field.map2_type
         |> LDesc.map2
         |> (fun f -> function Some a, Some b -> f a b
-                            | _     , Some b -> b
-                            | Some a, _      -> a)
+                            | _ -> assertf "map2_data: shapes differ")
         |> Misc.curry
         |> SLM.map2
 
@@ -1101,8 +1111,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let map f (ds, vs, hfs) =
       (map_data f ds, vs, hfs)
 
-    let map2 f (ds, vs, hfs) (ds', _, _) =
-      (map2_data f ds ds', vs, hfs)
+    let map2 f (ds, vs, _) (ds', _, _) =
+      (map2_data f ds ds', vs, [])
+
+    let iter2 f (ds, _, _) (ds', _, _) =
+      map2_data (fun x1 x2 -> f x1 x2; x1) ds ds'; ()
 
     let fold_fields f b (ds, _, _) =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
@@ -1148,8 +1161,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       
     let map_variances f_co f_contra ds = map f_co ds
 
-    let map f (ds, vs, _) =
-      (map_data f ds, vs, [])
+(*    let map f (ds, vs, _) =
+      (map_data f ds, vs, [])*)
 
     let bindings (ds, _, _) = SLM.to_list ds
 
@@ -1192,12 +1205,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let upd (ds1, vs1, hf1) (ds2, vs2, hf2) =
       (SLM.fold SLM.add ds2 ds1, vs1 ++ vs2, hf1 ++ hf2)
 
-    let partition f (ds, vs, _) =
+    let partition f (ds, vs, hfs) =
       let (ds', ds'') = 
         SLM.fold begin fun l d (m1, m2) ->
           if f l then (SLM.add l d m1, m2) else (m1, SLM.add l d m2)
-        end ds (SLM.empty, SLM.empty)
-      in ((ds', vs, []), (ds'', vs, []))
+        end ds (SLM.empty, SLM.empty) in
+      let (hfs', hfs'') =
+        List.partition (function (_, l :: _, _) -> f l | _ -> false) hfs in
+      ((ds', vs, hfs'), (ds'', [], hfs''))
       
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
