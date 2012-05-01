@@ -37,11 +37,21 @@ module FA = FixAstInterface
 module FC = FixConstraint
 module A  = Ast
 module Sy = A.Symbol
+module RS = RefCTypes.Store
+module RT = RefCTypes.CType
+module RF = RefCTypes.CFun
+module Ts = Typespec
 
 let rec typealias_attrs: C.typ -> C.attributes = function
   | C.TNamed (ti, a) -> a @ typealias_attrs ti.C.ttype
   | _                -> []
-
+    
+    
+let fref_of_ctype loc f = 
+  f |> Ts.preRefcfunOfType loc 
+    |> Ts.refcfunOfPreRefcfun S.Subst.empty RS.empty
+    |> (fun (f,_,_) -> FRef (RF.map (RT.map fst) f, N.of_int 0))
+      
 (* Note that int refinements always have to include the constant index
    0.  This is because we need to account for the fact that malloc
    allocates a block of zeroes - it would be tedious to account for
@@ -55,11 +65,8 @@ let fresh_heaptype loc (t: C.typ): ctype =
       | C.TEnum (ei, _)          -> Int (C.bytesSizeOfInt ei.C.ekind, N.top)
       | C.TFloat _               -> Int (CM.typ_width t, N.top)
       | C.TVoid _                -> void_ctype
-      | C.TPtr (C.TFun _ as f,_) ->
-        let fspec = Typespec.preRefcfunOfType loc f in
-          Ctypes.FRef (Ctypes.RefCTypes.CFun.map
-                         (Ctypes.RefCTypes.CType.map fst) fspec,
-                       Index.of_int 0)
+      | C.TPtr (C.TFun _ as f,_) -> fref_of_ctype loc f
+      (* Will need this once we do inference *)
       (* | C.TPtr ((C.TVoid _) as tb, ats) -> Ctypes.TVar (Typespec.tvarOfAttrs ats) *)
       | C.TPtr (tb, ats) when C.hasAttribute CM.typeVarAttribute ats ->
         Ctypes.TVar (Ctypes.fresh_tvar ()) (* (Typespec.tvarOfAttrs ats) *)
@@ -142,8 +149,8 @@ class exprTyper (ve, fe) = object (self)
     | C.Lval lv | C.StartOf lv      -> self#base_ctype_of_raw_lval loc lv
     | C.UnOp (uop, e, t)            -> base_ctype_of_unop_result t uop
     | C.BinOp (bop, e1, e2, t)      -> base_ctype_of_binop_result bop t (self#ctype_of_exp loc e1) (self#ctype_of_exp loc e2)
-    | C.CastE (C.TPtr (C.TFun _ as f,_), C.Const c) -> self#base_ctype_of_constfptr loc f c
-    | C.CastE (C.TPtr _, C.Const c) -> self#base_ctype_of_constptr loc c
+    | C.CastE (C.TPtr (C.TFun _ as f,_), C.Const c) -> (Pretty.printf "thing!\n"; self#base_ctype_of_constfptr loc f c)
+    | C.CastE (C.TPtr _, C.Const c) -> (Pretty.printf "other thing :(\n"; self#base_ctype_of_constptr loc c)
     | C.CastE (ct, e)               -> self#base_ctype_of_cast loc ct e
     | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
     | C.AddrOf lv                   -> self#base_ctype_of_addrof lv
@@ -151,11 +158,13 @@ class exprTyper (ve, fe) = object (self)
 
   method private base_ctype_of_constfptr loc f c = match c with
     | C.CInt64 (v, ik, so)
-        when v = Int64.zero ->
-        let fspec = Typespec.preRefcfunOfType loc f in
-          Ctypes.FRef (Ctypes.RefCTypes.CFun.map
-                         (Ctypes.RefCTypes.CType.map fst) fspec,
-                       Index.IBot)
+        when v = Int64.zero -> 
+      fref_of_ctype loc f |> Misc.flip Ct.set_refinement Index.IBot
+      (* let CTypes.FRef (f, _) =  *)
+      (*   let fspec = Typespec.preRefcfunOfType loc f in *)
+      (*     Ctypes.FRef (Ctypes.RefCTypes.CFun.map *)
+      (*                    (Ctypes.RefCTypes.CType.map fst) fspec, *)
+      (*                  Index.IBot) *)
             
   method private base_ctype_of_constptr loc c = match c with
     | C.CStr _ ->

@@ -520,15 +520,6 @@ and substEffectSet sub effs =
       ES.empty
       (ES.domain effs)
       
-(* and restrictFreeStoreVars vs cts =  *)
-(*   let restrictStoreVars vs f =  *)
-(*   let cfs = List.map cts.Ct.args  *)
-(*          |> begin function  *)
-(*              | n, FRef (f, s) -> (a, FRef () *)
-(*              | a -> a *)
-(*          end *)
-(*   in *)
-      
 and replaceFreeVars vs cts = 
   if vs = [] then cts else 
   let replaceFree f = 
@@ -545,8 +536,7 @@ and replaceFreeVars vs cts =
   end cts
 
 and refcfunOfPreRefcfun sub gsto prcf =
-  let gsto, aostof, sub = refstoreOfPreRefstore sub gsto prcf.Ct.sto_out in
-  let gstof, ostof      = aostof
+  let gstof, ostof      = prcf.Ct.sto_out
                           |> RS.partition (M.flip List.mem prcf.Ct.globlocs)
                           |> M.app_snd RS.abstract_empty_slocs in
   let vs                = RS.vars ostof in
@@ -561,15 +551,6 @@ and refcfunOfPreRefcfun sub gsto prcf =
                          Ct.effects = effs} sub,
      gsto,
      sub)
-
-and refstoreOfPreRefstore sub gsto sto = 
-  (gsto, sto, sub)
-  (*    sto *)
-  (* |> RS.Function.fold_locs begin fun s prcf (gsto, (sto, sub)) -> *)
-  (*      let rcf, gsto, sub = refcfunOfPreRefcfun sub gsto prcf in *)
-  (*        (gsto, RU.add_fun sto sub s rcf) *)
-  (*    end (gsto, (sto, S.Subst.empty)) *)
-  (* |> fun (gsto, (sto, sub)) -> (gsto, sto, sub) *)
 
 (******************************************************************************)
 (******************************* Gathering Specs ******************************)
@@ -640,8 +621,7 @@ let storeTypeSpecs varSpec gsto =
      end varSpec
 
 let specsOfDecs funs vars =
-  let sub, pgsto        = vars |>: (fun v -> (v.C.vdecl, v.C.vtype)) |> preRefstoreOfTypes in
-  let gsto, _, sub      = pgsto |> refstoreOfPreRefstore sub pgsto in
+  let sub, gsto        = vars |>: (fun v -> (v.C.vdecl, v.C.vtype)) |> preRefstoreOfTypes in
   let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
   let vspecs            = varSpecOfVars sub vars in
     (fspecs, vspecs, gsto, storeTypeSpecs vspecs gsto)

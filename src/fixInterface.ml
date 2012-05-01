@@ -954,7 +954,7 @@ let make_cs_aux cenv p rct1 rct2 tago tag =
   let _ = assert_equal_tvars rct1 rct2 in
   match rct1, rct2 with
     | Ct.TVar t, _ | _, Ct.TVar t -> ([],[])
-    | _ -> (* make_cs_aux cenv p rct1 rct2 tago tag *)
+    | _ ->
       let env    = env_of_cilenv cenv in
       let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) 
                                  (rct1, rct2) in
@@ -962,12 +962,6 @@ let make_cs_aux cenv p rct1 rct2 tago tag =
       let cs     = [C.make_t env p r1 r2 None (CilTag.tag_of_t tag)] in
       cs, []
     
-(* let make_cs_aux cenv p rct1 rct2 tago tag = *)
-(*   let _ = assert_equal_tvars rct1 rct2 in *)
-(*   match rct1, rct2 with *)
-(*     | Ct.TVar t, _ | _, Ct.TVar t -> ([],[]) *)
-(*     | _ -> make_cs_aux cenv p rct1 rct2 tago tag *)
-
 let make_cs_assert_disjoint env p cr1 cr2 tago tag =
   make_cs_aux env p (meet_refctype cr1 cr2) (t_false_refctype cr2) tago tag
 
@@ -1082,7 +1076,7 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
     
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
- (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in  *)
+ let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in
  try
       let cs = make_cs_aux cenv p rct1 rct2 tago tag in
       begin match rct1, rct2 with
