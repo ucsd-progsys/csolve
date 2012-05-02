@@ -68,8 +68,8 @@ type annotation =
   | HInst of Ctypes.StoreSubst.t
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.IndexTypes.TVarInst.t
-  | HIns of Sloc.t * Sloc.t list        (* [h / f(<l>, <p>)] *)
-  | HGen of Sloc.t list * Sloc.t        (* [h / f(<l>, <p>)] *)
+  | HIns of Sloc.t * Heapfun.intrs list        (* [h / f(<l>, <p>)] *)
+  | HGen of Sloc.t list * Heapfun.intrs list        (* [h / f(<l>, <p>)] *)
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t

@@ -292,6 +292,7 @@ module type S = sig
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Svar.t -> t
+    val add_app      : t -> T.refinement hf_appl -> t
     val vars         : t -> Svar.t list
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t
@@ -310,8 +311,6 @@ module type S = sig
       
     val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
-
-    (*val same_shape    : t -> t -> bool*)
 
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t

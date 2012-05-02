@@ -485,7 +485,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val eq          : t -> t -> bool
     val collide     : Index.t -> t -> Index.t -> t -> bool
     val is_void     : t -> bool
-    val same_shape  : t -> t -> bool
+    val same_shape   : t -> t -> bool
   end
 
   module type FIELD = sig
@@ -578,6 +578,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Sv.t -> t
+    val add_app      : t -> T.refinement hf_appl -> t
     val vars         : t -> Sv.t list
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
@@ -1205,7 +1206,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         end ds (SLM.empty, SLM.empty) in
       let (hfs', hfs'') =
         List.partition (function (_, l :: _, _) -> f l | _ -> false) hfs in
-      ((ds', vs, hfs'), (ds'', [], hfs''))
+      ((ds', [], hfs'), (ds'', vs, hfs''))
       
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
@@ -1248,6 +1249,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     (* Should we check here for two variables? OR check later when we
        get two mappings in the heap? Deferred for now... *)
       (s, v::vs, hf)
+
+    let add_app (s, vs, hfs) hf = (s, vs, hf :: hfs)
         
     let vars (_, vs, _) = vs
       
@@ -1276,7 +1279,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           
     let inst_tvar rename tinst sto =
       map (CType.inst_tvar rename tinst) sto
-          
+
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 

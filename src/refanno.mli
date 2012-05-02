@@ -37,8 +37,8 @@ type annotation =
   | HInst of Ctypes.StoreSubst.t
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.tvinst
-  | HIns of Sloc.t * Sloc.t list        (* [Aloc, [loc]] *)
-  | HGen of Sloc.t list * Sloc.t        (* [[loc], Aloc] *)
+  | HIns of Sloc.t * Heapfun.intrs list        (* [Aloc, [loc]] *)
+  | HGen of Sloc.t list * Heapfun.intrs list   (* [[loc], Aloc] *)
 
 (* 1. block_annotation length = block length,
  * 2. annotations _precede_ corresponding instr 

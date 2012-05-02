@@ -86,10 +86,18 @@ let apply_hf_shape (_, sls, _) ins def =
     deps, hp
 
 let apply_hf_in_env ((f, _, _) as app) ins env =
-  HfMap.find f env |>
-  apply_hf_shape app ins 
+  HfMap.find f env |> apply_hf_shape app ins
 
-
+let fold_hf_on_hp ls ins h hf env =
+  let binds   = match ls with
+    | l :: _ -> l :: List.flatten ins 
+    | _      -> List.flatten ins in
+  let (h, h') = CtIS.partition (fun l -> List.mem l binds) h in
+  let  appl   = (hf, ls, []) in
+  let happl   = apply_hf_in_env appl ins env in
+  let _       = if (snd happl != h) then
+    assertf "fold_hf_on_hp: can't fold on heap" in 
+    CtIS.add_app h' appl
 
 (*let invert_env l hf ins env =
   SlSS.find hf env |> invert_hf_from_hp l hf ins*)
