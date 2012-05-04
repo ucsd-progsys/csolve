@@ -34,6 +34,7 @@ val canonical      : t -> t
 val fresh_abstract : CilMisc.srcinfo -> t
 val copy_abstract  : CilMisc.srcinfo list -> t -> t
 val copy_concrete  : t -> t
+val copy_fresh     : t -> t
 
 val is_abstract    : t -> bool
 val is_concrete    : t -> bool

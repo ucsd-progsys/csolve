@@ -129,6 +129,11 @@ let copy_abstract z' = function
   | Abstract i   
   | Concrete (i, _) -> Abstract (fresh_slocid (z' ++ (slocinfo i)))
 
+(* API *)
+let copy_fresh = function
+  | AnyLoc          -> AnyLoc
+  | Abstract i      -> Abstract (M.get_unique ())
+  | Concrete (i, j) -> Concrete (M.get_unique (), j)
 
 let none = fresh_abstract (CilMisc.srcinfo_of_string "none")
 
@@ -152,6 +157,7 @@ module SlocMap = M.EMap (ComparableSloc)
 
 module SlocSlocSet =
   struct
+    module Misc = M
     module M  = SlocMap
     type t    = sloc list M.t
     type elt  = sloc * sloc
@@ -178,7 +184,9 @@ module SlocSlocSet =
       M.add s (find s t) t
 
     let remove (s, s') t =
-      assertf "not implemented"
+      M.find s t |>
+      List.filter (fun d -> d != s') |>
+      Misc.flip (M.add s) t
 
     let singleton (s, s') =
       M.add s [s'] M.empty
@@ -186,9 +194,10 @@ module SlocSlocSet =
     let union t t' =
       M.fold (fun s l tt -> M.add s ((M.find s t) @ l) tt) t t'
 
-    let inter t t' =
-      assertf "not implemented"
     let diff t t' =
+      assertf "not implemented"
+
+    let inter t t' =
       assertf "not implemented"
     let compare t t' =
       assertf "not implemented"

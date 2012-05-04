@@ -88,6 +88,7 @@ let apply_hf_shape (_, sls, _) ins def =
 let apply_hf_in_env ((f, _, _) as app) ins env =
   HfMap.find f env |> apply_hf_shape app ins
 
+  (* remove dependencies *)
 let fold_hf_on_hp ls ins h hf env =
   let binds   = match ls with
     | l :: _ -> l :: List.flatten ins 
@@ -99,50 +100,27 @@ let fold_hf_on_hp ls ins h hf env =
     assertf "fold_hf_on_hp: can't fold on heap" in 
     CtIS.add_app h' appl
 
-(*let invert_env l hf ins env =
-  SlSS.find hf env |> invert_hf_from_hp l hf ins*)
-
-(*let invert_hf_from_hp l hf ins def h =
-  let fls, frs, fils, rhs =
-    def.loc_params, def.ref_params, def.unfolds, def.rhs in
-  let loc_map = ld_looks_like l h rhs in
-  (hf, looks_like rhs h, [])*)
-   
-
-(*let heap_infer_subs h1 h2 =
-  let subs = ref [] in 
-  let upd = function
-    | (Some x, Some y) -> subs := (x,y) :: !subs
-    | _ -> () in
-  let f t1 t2 =
-    let _ = assert (CtIC.same_shape t1 t2) in
-    M.map_pair CtIC.sloc (t1, t2) |> upd in
-  CtIS.iter2 f h1 h2; !subs
-  *)
-
 let binding_of l =
   List.find (function (_, k :: _, _) -> k = l | _ -> false)
+
+let arg_of l =
+  List.partition (fun (_, ls, _) -> List.mem l ls)
 
 let binds l hfs =
   try
     binding_of l hfs; true
   with Not_found -> false
 
-(*let ins l (_, _, hfs) ls env =
-  let (hf, hfs) = binding_of l hfs in
-  match hf with
-    | Some hf -> apply_in_env hf ls env |> H.append hfs 
-    | None    -> (SlSS.empty, hfs)
-(*  
-(*let gen l (ds, _, hfs) ls env =
-  let _  = assert CtD.mem l ds in
-  CtD.find l ds
-  *)
+let ins l sto deps ls ins env =
+  let binding_fun  = CtIS.hfuns sto |> binding_of l |> fst3 in
+  (*let ins          = binding_fun |> Misc.flap HfMap.find env |>
+                     unfs_of |> Sl.copy_fresh in*)
+  let (deps', unfolded_sto) =
+    apply_hf_in_env (binding_fun, ls, []) ins env in
+  SlSS.union deps deps', CtIS.upd sto unfolded_sto 
 
-(*
-let def_of_list a =
+let gen l hf sto deps ls ins env =
+  let deps = M.combine_prefix ls ins |>
+             List.fold_left (M.flip SlSS.remove) deps in
+  deps, fold_hf_on_hp ls ins sto hf env 
 
-let d_ref_def =
-let d_var_def =*)
-
-*)*)
