@@ -149,8 +149,8 @@ class exprTyper (ve, fe) = object (self)
     | C.Lval lv | C.StartOf lv      -> self#base_ctype_of_raw_lval loc lv
     | C.UnOp (uop, e, t)            -> base_ctype_of_unop_result t uop
     | C.BinOp (bop, e1, e2, t)      -> base_ctype_of_binop_result bop t (self#ctype_of_exp loc e1) (self#ctype_of_exp loc e2)
-    | C.CastE (C.TPtr (C.TFun _ as f,_), C.Const c) -> (Pretty.printf "thing!\n"; self#base_ctype_of_constfptr loc f c)
-    | C.CastE (C.TPtr _, C.Const c) -> (Pretty.printf "other thing :(\n"; self#base_ctype_of_constptr loc c)
+    | C.CastE (C.TPtr (C.TFun _ as f,_), C.Const c) -> self#base_ctype_of_constfptr loc f c
+    | C.CastE (C.TPtr _, C.Const c) -> self#base_ctype_of_constptr loc c
     | C.CastE (ct, e)               -> self#base_ctype_of_cast loc ct e
     | C.SizeOf t                    -> Int (CM.int_width, Index.IInt (CM.typ_width t))
     | C.AddrOf lv                   -> self#base_ctype_of_addrof lv
