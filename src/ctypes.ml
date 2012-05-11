@@ -575,8 +575,8 @@ module SIGS (T : CTYPE_DEFS) = struct
       exception UnifyFailure of Sloc.Subst.t * t
 
       val unify_ctype_locs : t -> Sloc.Subst.t -> T.TVarInst.t -> T.ctype -> T.ctype -> t * Sloc.Subst.t * T.TVarInst.t
-      val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
-      val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> T.field -> t * Sloc.Subst.t
+      val unify_overlap    : t -> Sloc.Subst.t -> T.TVarInst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t * T.TVarInst.t
+      val add_field        : t -> Sloc.Subst.t -> T.TVarInst.t -> Sloc.t -> Index.t -> T.field -> t * Sloc.Subst.t * T.TVarInst.t
     end
   end
 
@@ -691,6 +691,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       | Ref (s, _)  -> Ref (s, r)
       | FRef (f, _) -> FRef (f, r)
       | ARef        -> ARef
+      | TVar t      -> TVar t
       | Any         -> Any
 
     let rec map f = function
@@ -722,7 +723,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let width = function
       | Int (n, _) -> n
       | Any        -> 0
-      | TVar t     -> 0
       | _          -> CM.int_width
     
     let sloc = function
@@ -1066,7 +1066,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> bindings 
       |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))
 
-    let domain (ds, vs) = SLM.domain ds
+    let domain ((ds, vs) as s ) =
+      fold_fields (fun cts _ _ ct -> (Field.type_of ct)::cts) [] s
+      |> Misc.map_partial CType.sloc
+      |> List.append (SLM.domain ds)
+      |> Misc.sort_and_compact
 
     let mem (ds, vs) s =
       if (s = Sloc.sloc_of_any) then
@@ -1189,8 +1193,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         match all_subs sub tsub ct1, all_subs sub tsub ct2 with
         (* match CType.subs sub ct1, CType.subs sub ct2 with *)
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub, tsub)
-        | Ref (s1, _), Ref (s2, _)              -> lift_third (unify_locations sto sub s1 s2) tsub
-        | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub, tsub)
+        (* | Ref (s1, _), Ref (s2, _)              -> lift_third (unify_locations sto sub s1 s2) tsub *)
+        | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub tsub s1 s2
+        | FRef (f1,_), FRef(f2,_)               -> unify_frefs sto sub tsub f1 f2
+        (* | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub, tsub) *)
         | ARef, ARef                            -> (sto, sub, tsub)
         | Ref (s, _), ARef                      -> lift_third (anyfy_location sto sub s) tsub
         | ARef, Ref (s, _)                      -> lift_third (anyfy_location sto sub s) tsub
@@ -1198,27 +1204,44 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Any, Int _                            -> (sto, sub, tsub)
         | Int _, Any                            -> (sto, sub, tsub)
         | TVar t1, TVar t2 when t1 = t2         -> (sto, sub, tsub)
-        (* | TVar _ as tv, ct'                     -> unify_tvars sub sto tsub tv ct' *)
-        (* | ct', (TVar _ as tv)                   -> unify_tvars sub sto tsub ct' tv *)
+        | TVar t1, TVar t2                      -> (sto, sub, T.TVarInst.extend t1 (TVar t2) tsub)
+        (* | TVar _ as tv, ct'                  -> unify_tvars sub sto tsub tv ct' *)
+        (* | ct', (TVar _ as tv)                -> unify_tvars sub sto tsub ct' tv *)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
       and unify_tvars sub sto tsub t1 t2 = 
         match all_subs sub tsub t1, all_subs sub tsub t2 with
-          | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) (* when r1 = r2 *)-> 
-            unify_ctype_locs sto sub tsub t1 t2
+          (* | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) (\* when r1 = r2 *\)->  *)
+          (*   unify_ctype_locs sto sub tsub t1 t2 *)
           | TVar t1', TVar t2'       -> sto, sub, T.TVarInst.extend t1' (TVar t2') tsub
-          | TVar t', ((Ref _) as r) 
-          | ((Ref _) as r), TVar t'  -> sto, sub, T.TVarInst.extend t' r tsub
+          (* | TVar t', ((Ref _) as r)  *)
+          (* | ((Ref _) as r), TVar t'  -> sto, sub, T.TVarInst.extend t' r tsub *)
           | ct1, ct2 -> fail sub sto <| C.error "Cannot unify (tvar-inst'd) %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
-
-      and unify_data_locations sto sub s1 s2 =
+      and unify_frefs sto sub tsub f1 f2 = 
+        try
+          let f1', f2' = CFun.normalize_names 
+            f1 f2 (fun _ _ _ ct -> ct) (fun _ _ _ ct -> ct) in
+          let a1s, a2s = (f1'.ret::List.map snd f1'.args, f2'.ret::List.map snd f2'.args)
+                      |> Misc.map_pair 
+                          (Misc.map_partial (function (TVar t) -> Some (TVar t) | _ -> None)) in
+          List.fold_left2 (fun (sto, sub, tsub) a1 a2 ->
+            unify_tvars sub sto tsub a1 a2) (sto, sub, tsub) a1s a2s
+          >> (fun (sto,sub,tsub) -> (f1', f2') 
+                                |> Misc.map_pair (CFun.inst_tvar [] tsub)
+                                |> (fun (f1, f2) -> assert (CFun.same_shape f1 f2)))
+            
+        with _ -> C.error "Cannot unify locations of %a and %a@!" 
+                      CFun.d_cfun f1 CFun.d_cfun f2
+                  |> fail sub sto
+                                 
+      and unify_data_locations sto sub tsub s1 s2 =
         let ld1, ld2 =Misc.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
         let sto      = remove sto s1 in
         let sto      = ld2 |> add sto s2 |> subs sub in
-        LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
-
+        LDesc.fold (fun (sto, sub, tsub) i f -> 
+          add_field sto sub tsub s2 i f) (sto, sub, tsub) ld1
 
       and anyfy_location sto sub s =
         if s = S.sloc_of_any then
@@ -1230,27 +1253,30 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           else
             (subs sub sto, sub)
 
-      and unify_locations sto sub s1 s2 =
+      and unify_locations sto sub tsub s1 s2 =
         if not (S.eq s1 s2) then
           let sub = S.Subst.extend s1 s2 sub in
           if mem sto s1 || mem sto s2 then
-            unify_data_locations sto sub s1 s2
-          else (subs sub sto, sub)
-        else (sto, sub)
+            unify_data_locations sto sub tsub s1 s2
+          else (subs sub sto, sub, tsub)
+        else (sto, sub, tsub)
 
-      and unify_fields sto sub fld1 fld2 = match Misc.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
-        | ct1, ct2                   when ct1 = ct2 -> (sto, sub)
-        | Ref (s1, i1), Ref (s2, i2) when i1 = i2   -> unify_locations sto sub s1 s2
-        | Ref (s, _), ARef | ARef, Ref(s, _)        -> anyfy_location sto sub s
-        | Any , Int _ | Int _, Any                  -> (sto, sub)
-        | ct1, ct2                                  ->
+      and unify_fields sto sub tsub fld1 fld2 = 
+        match Misc.map_pair (Field.type_of <+> CType.subs sub) (fld1, fld2) with
+        | ct1, ct2                 when ct1 = ct2 -> (sto, sub, tsub)
+        | Ref (s1, i1),
+          Ref (s2, i2) when i1 = i2   -> unify_locations sto sub tsub s1 s2
+        | Ref (s, _), ARef | ARef, Ref(s, _)      -> 
+          lift_third (anyfy_location sto sub s) tsub
+        | (TVar t1 as ct1), (TVar t2 as ct2)      -> unify_tvars sub sto tsub ct1 ct2
+        | Any , Int _ | Int _, Any                -> (sto, sub, tsub)
+        | ct1, ct2                                ->
           fail sub sto <| C.error "Cannot unify %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
-
-      and unify_overlap sto sub s i =
+      and unify_overlap sto sub tsub s i =
         let s  = S.Subst.apply sub s in
         let ld = find_or_empty sto s in
         match LDesc.find i ld with
-          | []                         -> (sto, sub)
+          | []                         -> (sto, sub, tsub)
           | ((_, fstfld) :: _) as olap ->
             let i = olap |>: fst |> List.fold_left Index.lub i in
             ld
@@ -1259,22 +1285,23 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           |> add sto s
           |> fun sto ->
             List.fold_left
-              (fun (sto, sub) (_, olfld) -> unify_fields sto sub fstfld olfld)
-              (sto, sub)
+              (fun (sto, sub, tsub) (_, olfld) -> 
+                unify_fields sto sub tsub fstfld olfld)
+              (sto, sub, tsub)
               olap
 
-      and add_field sto sub s i fld =
+      and add_field sto sub tsub s i fld =
         try
           begin match i with
-            | N.IBot                 -> (sto, sub)
+            | N.IBot                 -> (sto, sub, tsub)
             | N.ICClass _ | N.IInt _ ->
-              let sto, sub = unify_overlap sto sub s i in
+              let sto, sub, tsub = unify_overlap sto sub tsub s i in
               let s        = S.Subst.apply sub s in
               let fld      = Field.subs sub fld in
               let ld       = find_or_empty sto s in
               begin match LDesc.find i ld with
-                | []          -> (ld |> LDesc.add i fld |> add sto s, sub)
-                | [(_, fld2)] -> unify_fields sto sub fld fld2
+                | []          -> (ld |> LDesc.add i fld |> add sto s, sub, tsub)
+                | [(_, fld2)] -> unify_fields sto sub tsub fld fld2
                 | _           -> assert false
               end
           end
@@ -1620,7 +1647,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let quantify_svars cf = 
       let svars = free_svars cf
       |> List.append (snd cf.sto_out ++ snd cf.sto_in)
-      |>Misc.sort_and_compact
+      |> Misc.sort_and_compact
       in
       {cf with quant_svars = svars }
 	
@@ -1629,8 +1656,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | TVar t -> [t]
         | FRef (f, _) -> free_tvars f
         | _ -> [] in
+      let store_vars = Store.fold_fields 
+        (fun vs _ _ fld -> Field.type_of fld |> vars |> List.append vs) [] cf.sto_out in
       cf.ret::List.map snd cf.args 
       |>Misc.flap vars
+      |>List.append store_vars
       |>Misc.sort_and_compact
       |>Misc.filter (not <.> Misc.flip List.mem cf.quant_tvars)
 	  
@@ -1648,11 +1678,11 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         
     let safe_update_hsub v sto hsub sub = 
       if SVM.mem v hsub then
-        let st' = Store.fold_fields begin fun (sto, sub') s i fld ->
-          Store.Unify.add_field sto sub' s i fld
-        end (SVM.find v hsub, sub) sto
+        let st',_,_ = Store.fold_fields (fun (sto, sub', tsub) s i fld ->
+          Store.Unify.add_field sto sub' tsub s i fld)
+          (SVM.find v hsub, sub, T.TVarInst.empty) sto
         in
-        SVM.add v (fst st') hsub
+        SVM.add v st' hsub
       else
         SVM.add v sto hsub
   end
@@ -1748,13 +1778,15 @@ let void_ctype   = Int  (0, N.top)
 let ptr_ctype    = Ref  (S.none, N.top)
 let scalar_ctype = Int  (0, N.top)
 let fptr_ctype   = FRef (null_fun, N.top)
+let tvar_ctype    = TVar (fresh_tvar ())
 
 let rec vtype_to_ctype v = if Cil.isArithmeticType v
   then scalar_ctype
   else match v with
     | Cil.TNamed ({C.ttype = v'},_) -> vtype_to_ctype v'
-    (* | Cil.TPtr (Cil.TVoid _, _) -> TVar (fresh_tvar ()) *)
     | Cil.TPtr (Cil.TFun _, _) -> fptr_ctype
+    | Cil.TPtr (Cil.TVoid _, ats) 
+        when Cil.hasAttribute CM.typeVarAttribute ats -> tvar_ctype
     | _ -> ptr_ctype
 
 

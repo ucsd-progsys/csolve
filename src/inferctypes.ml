@@ -102,16 +102,16 @@ let _DEBUG_print_ve s ve =
   end ve; 
   P.printf " END\n"
 
-let constrain_lval tgr loc et sub sto = function
-  | (C.Var v, C.NoOffset)       -> (sub, sto)
+let constrain_lval tgr loc et tsub sub sto = function
+  | (C.Var v, C.NoOffset)       -> (tsub, sub, sto)
   | (C.Mem e, C.NoOffset) as lv ->
     begin match et#ctype_of_exp loc e with
       | Ref (s, i) ->
            lv
         |> et#ctype_of_lval loc
         |> Field.create Nonfinal dummy_fieldinfo
-        |> UStore.add_field sto sub s i
-        |> M.swap
+        |> UStore.add_field sto sub tsub s i
+        |> (fun (s1, s2, s3) -> (s3, s2, s1))
       | _ -> E.s <| C.bug "constraining ref lval gave back non-ref type in constrain_lval@!@!"
     end
   | lv -> E.s <| C.bug "constrain_lval got lval with offset: %a@!@!" C.d_lval lv
@@ -141,9 +141,9 @@ class exprConstraintVisitor (tgr, loc, et, fs, tsub, sub, sto) = object (self)
       begin match et#ctype_of_exp loc e with
         | Ref (s, _) ->
              Field.create Nonfinal dummy_fieldinfo (Int (1, Index.top))
-          |> UStore.add_field !sto !sub s Index.nonneg
-          |> M.swap
-          |> self#lift_sub_sto
+          |> UStore.add_field !sto !sub !tsub s Index.nonneg
+          |> (fun (s1,s2,s3) -> (s3,s2,s1)) (* M.swap *)
+          (* |> self#lift_sub_sto *)
           |> self#set_sub_sto
         | _ -> assert false
       end
@@ -160,14 +160,14 @@ class exprConstraintVisitor (tgr, loc, et, fs, tsub, sub, sto) = object (self)
   method private constrain_mem ctmem e =
     match et#ctype_of_exp loc e with
       | Ref (s, i) ->
-        let sto, sub = UStore.unify_overlap !sto !sub s i in
+        let sto, sub, tsub = UStore.unify_overlap !sto !sub !tsub s i in
         let s        = S.Subst.apply sub s in
           begin match s |> Store.find_or_empty sto |> LDesc.find i |>: (snd <+> Field.type_of) with
             | []   ->
               E.s <| C.error "Reading location (%a, %a) before writing data to it@!" S.d_sloc s Index.d_index i (* TODO: prettycil *)
             | [ct] ->
               if (ct, ctmem) |> M.map_pair Ct.refinement |> M.uncurry Index.is_subindex then
-                let sto,sub,tsub = UStore.unify_ctype_locs sto sub !tsub ctmem ct in 
+                let sto,sub,tsub = UStore.unify_ctype_locs sto sub tsub ctmem ct in 
                 self#set_sub_sto (tsub, sub, sto)
               else
                 E.s <| C.error "In-heap type %a not a subtype of expected type %a@!"
@@ -178,8 +178,8 @@ class exprConstraintVisitor (tgr, loc, et, fs, tsub, sub, sto) = object (self)
 
   method private constrain_exp = function
     | C.Lval ((C.Mem e, C.NoOffset) as lv) -> self#constrain_mem (et#ctype_of_lval loc lv) e
-    | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval tgr loc et !sub !sto 
-                                                 |> self#lift_sub_sto |>self#set_sub_sto
+    | C.Lval lv | C.StartOf lv             -> lv |> constrain_lval tgr loc et !tsub !sub !sto 
+                                                 |> (* self#lift_sub_sto |>  *)self#set_sub_sto
     | C.Const c as e                       -> self#constrain_const e c
     | C.UnOp (uop, e, t)                   -> ()
     | C.BinOp (bop, e1, e2, t)             -> ()
@@ -236,9 +236,9 @@ let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
   let sto           = cfi.sto_out
                    |> Store.domain
                    |> List.fold_left Store.ensure_sloc sto in
-  let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
-                        UStore.add_field sto sub s i fld
-                      end (sto, sub) cfi.sto_out in
+  let sto, sub, tsub  = Store.fold_fields begin fun (sto, sub, tsub) s i fld ->
+                        UStore.add_field sto sub tsub s i fld
+                      end (sto, sub, tsub) cfi.sto_out in
   let sto, sub, tsub = List.fold_left2 begin fun (sto, sub, tsub) (ea, cta) (_, ctf) ->
     (* unify_and_check_subtype sto sub tsub (Ct.subs_store_var hsub isub sto cta) ctf *)
     unify_and_check_subtype tgr sto sub tsub ea (TVarInst.apply tsub cta) ctf
@@ -251,7 +251,7 @@ let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
       | None    -> (annot, tsub, sub, sto)
       | Some lv ->
         let ctlv     = et#ctype_of_lval loc lv in
-        let sub, sto = constrain_lval tgr loc et sub sto lv in
+        let tsub, sub, sto = constrain_lval tgr loc et tsub sub sto lv in
         let sto, sub, tsub = unify_and_check_subtype tgr sto sub tsub (C.Lval lv) (Ct.subs isub cf.ret) ctlv in
           (annot, tsub, sub, sto)
 
@@ -290,7 +290,7 @@ let constrain_instr_aux tgr ((fs, _) as env) et (bas, tsub, sub, sto) i =
   let _ = C.currentLoc := loc in
   match i with
   | C.Set (lv, e, _) ->
-      let sub, sto = constrain_lval tgr loc et sub sto lv in
+      let tsub, sub, sto = constrain_lval tgr loc et tsub sub sto lv in
       let tsub, sub, sto = constrain_exp tgr loc et fs tsub sub sto e in
       let ct1      = et#ctype_of_lval loc lv in
       let ct2      = et#ctype_of_exp loc e in
@@ -469,7 +469,16 @@ let check_tvars_distinct error tsub tvars =
     let t1, t2 = Misc.find_pair (fun t1 t2 -> M.map_pair (TVarInst.apply tsub) (TVar t1, TVar t2) |> M.uncurry (=)) tvars in
     halt <| C.error "%a\n\n" error (t1, t2)
   with Not_found -> ()
+    
+let partial_insts tsub t = match TVarInst.apply tsub (TVar t) with
+  | TVar _ -> None
+  | ct     -> Some (t, ct)
 
+let check_tvars_uninst error tsub tvars =
+  match Misc.map_partial (partial_insts tsub) tvars with 
+    | [] -> ()
+    | i::insts -> halt <| C.error "%a\n\n" error i
+      
 type soln = store * ctype VM.t * ctvemap * RA.block_annotation array
 
 let fresh_sloc_of v = function
@@ -577,7 +586,10 @@ let replace_formal_refs {args = args} vm =
 let tvar_q_error () (t1, t2) =
   C.error "Quantified variables %a and %a get unified in function body"
     d_tvar t1 d_tvar t2
-
+    
+let quant_tvar_inst_error () (t,ct) = 
+  C.error "Quantified variable %a less polymorphic than expected [%a]"
+    d_tvar t Ct.d_ctype ct
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_refs cf vm            in
@@ -587,8 +599,10 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
-  let _ =                     CFun.quantified_tvars cf |> 
-                              check_tvars_distinct tvar_q_error tsub in
+  let _ =                     CFun.quantified_tvars cf 
+                              |> check_tvars_distinct tvar_q_error tsub in
+  let _ =                     CFun.quantified_tvars cf 
+                              |> check_tvars_uninst quant_tvar_inst_error tsub in
   (* let _                     = check_sol cf ve gst em bas tsub sub sto whole_store in *)
   let minslocs              = cf.ret::List.map snd cf.args 
   |> Misc.map_partial Ct.sloc in

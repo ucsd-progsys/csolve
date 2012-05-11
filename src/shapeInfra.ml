@@ -69,7 +69,7 @@ let fresh_heaptype loc (t: C.typ): ctype =
       (* Will need this once we do inference *)
       (* | C.TPtr ((C.TVoid _) as tb, ats) -> Ctypes.TVar (Typespec.tvarOfAttrs ats) *)
       | C.TPtr (tb, ats) when C.hasAttribute CM.typeVarAttribute ats ->
-        Ctypes.TVar (Ctypes.fresh_tvar ()) (* (Typespec.tvarOfAttrs ats) *)
+        Ctypes.TVar (Ctypes.fresh_tvar ()) 
       | C.TPtr (tb, ats) | C.TArray (tb, _, ats) as t ->
           let sl = S.fresh_abstract (CM.srcinfo_of_type t (Some loc)) in
           Typespec.ptrReftypeOfSlocAttrs sl tb ats

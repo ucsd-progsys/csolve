@@ -128,7 +128,7 @@ let ctype_of_var_index v ix =
                      |> Ts.refcfunOfPreRefcfun SS.empty (RS.empty) in
     Ct.FRef (RF.map (RT.map fst) f, ix)
   | Cil.TPtr (tb, ats) when Cil.hasAttribute CM.typeVarAttribute ats ->
-    Ctypes.TVar (Ctypes.fresh_tvar ())(* (Typespec.tvarOfAttrs ats) *)
+    Ctypes.TVar (Ctypes.fresh_tvar ())
   | Cil.TPtr _ | Cil.TArray _ -> Ct.Ref (Sloc.none, ix)
   | _  when !Constants.safe -> halt <| Cil.error "Scalar.ctype_of_ciltype_index %s" v.Cil.vname
   | _                       -> assert false

@@ -7,9 +7,7 @@ struct fun_struct {
 
 void cmp(struct fun_struct *s) CHECK_TYPE
 {
-  int x = 0;
-  
-  if (s->fptr || x) {
+  if (s->fptr != NULL) {
   } else {
     csolve_assert(0);
   }

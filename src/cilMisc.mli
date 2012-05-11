@@ -83,6 +83,7 @@ val effectAttribute         : string
 val anyRefAttribute         : string
 val anyTypeAttribute        : string
 val typeVarAttribute        : string
+val instantiateTypeVarAttribute : string
 
 val hasRoomAttribute        : string
 val nonnullHasRoomAttribute : string

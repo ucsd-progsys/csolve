@@ -300,8 +300,8 @@ module type S = sig
       exception UnifyFailure of Sloc.Subst.t * t
 
       val unify_ctype_locs : t -> Sloc.Subst.t -> T.TVarInst.t -> CType.t -> CType.t -> t * Sloc.Subst.t * T.TVarInst.t
-      val unify_overlap    : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t
-      val add_field        : t -> Sloc.Subst.t -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t
+      val unify_overlap    : t -> Sloc.Subst.t -> T.TVarInst.t -> Sloc.t -> Index.t -> t * Sloc.Subst.t * T.TVarInst.t
+      val add_field        : t -> Sloc.Subst.t -> T.TVarInst.t -> Sloc.t -> Index.t -> Field.t -> t * Sloc.Subst.t * T.TVarInst.t
     end
   end
 

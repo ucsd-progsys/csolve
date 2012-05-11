@@ -22,6 +22,7 @@ module RCf = Ctypes.RefCTypes.CFun
 module RSp = Ctypes.RefCTypes.Spec
 module RU  = RS.Unify
 module ES  = Ctypes.EffectSet
+module TI  = Ctypes.ReftTypes.TVarInst
 
 open M.Ops
 
@@ -263,6 +264,7 @@ let effectSetOfAttrs ls ats =
 (******************************************************************************)
 
 let freshSlocName, _ = M.mk_string_factory "LOC"
+let freshTvarName, _ = M.mk_string_factory "T"
 
 class slocEnsurer = object
   inherit C.nopCilVisitor
@@ -293,19 +295,75 @@ class typeInstantiator (ats) = object (self)
       | _ -> None
     end ats
 
-  method private ensureSubst s =
-    if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub
+  val mutable tsub =
+    M.map_partial begin function
+      | C.Attr (n, [C.AStr tfrom; C.AStr tto])
+          when n = CM.instantiateTypeVarAttribute ->
+        Some (tfrom, tto)
+      | _ -> None
+    end ats
 
+  (* method private ensureSubst s = *)
+  (*   if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub *)
+      
+  (* method private ensureTvarSubst t =  *)
+  (*   if not <| List.mem_assoc t tsub then tsub <- (t, freshTvarName ()) :: tsub *)
+      
+  method private ensureSub sub assign fresh s = 
+    if not <| List.mem_assoc s sub then assign (s, fresh ()) (* sub <- (s, fresh ()) :: sub *)
+      
+  method private ensureSubst = 
+    self#ensureSub sub (fun p -> sub <- p::sub) freshSlocName
+      
+  method private ensureTvarSubst = 
+    self#ensureSub tsub (fun p -> tsub <- p::tsub) freshTvarName
+      
+  method private changeInstAttr attr f t sub = 
+    C.ChangeTo [C.Attr (attr, [C.AStr f; C.AStr (List.assoc t sub)])]
+      
+  method private changeAttr attr s sub = 
+    C.ChangeTo [C.Attr (attr, [C.AStr (List.assoc s sub)])]
+      
   method vattr = function
     | C.Attr (n, [C.AStr nfrom; C.AStr nto])
         when n = CM.instantiateAttribute ->
       self#ensureSubst nto;
-      C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])]
+      self#changeInstAttr CM.instantiateAttribute nfrom nto sub
     | C.Attr (n, [C.AStr sloc])
         when n = CM.slocAttribute ->
       self#ensureSubst sloc;
-      C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])]
+      self#changeAttr CM.slocAttribute sloc sub
+    | C.Attr (n, [C.AStr tfrom; C.AStr tto])
+        when n = CM.instantiateTypeVarAttribute ->
+      self#ensureTvarSubst tto;
+      self#changeInstAttr CM.instantiateTypeVarAttribute tfrom tto tsub
+    | C.Attr (n, [C.AStr tvar])
+        when n = CM.typeVarAttribute ->
+      self#ensureTvarSubst tvar;
+      self#changeAttr CM.typeVarAttribute tvar tsub
     | _ -> C.DoChildren
+
+  (* method vattr = function *)
+  (*   (\* Slocs *\) *)
+  (*   | C.Attr (n, [C.AStr nfrom; C.AStr nto]) *)
+  (*       when n = CM.instantiateAttribute -> *)
+  (*     self#ensureSubst nto; *)
+  (*     C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])] *)
+  (*   | C.Attr (n, [C.AStr sloc]) *)
+  (*       when n = CM.slocAttribute -> *)
+  (*     self#ensureSubst sloc; *)
+  (*     C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])] *)
+  (*   (\* tvars *\) *)
+  (*   | C.Attr (n, [C.AStr tfrom; C.AStr tto]) *)
+  (*       when n = CM.instantiateTypeVarAttribute -> *)
+  (*     self#ensureTvarSubst tto; *)
+  (*     C.ChangeTo [C.Attr (CM.instantiateTypeVarAttribute, *)
+  (*                         [C.AStr tfrom; C.AStr (List.assoc tto tsub)])] *)
+  (*   | C.Attr (n, [C.AStr tvar]) *)
+  (*       when n = CM.typeVarAttribute -> *)
+  (*     self#ensureTvarSubst tvar; *)
+  (*     C.ChangeTo [C.Attr (CM.typeVarAttribute, [C.AStr (List.assoc tvar tsub)])] *)
+  (*   | _ -> C.DoChildren *)
 end
 
 let attributeAppliesToInstance (C.Attr (n, _)) =
@@ -412,7 +470,7 @@ and addReffieldToStore sub sto s i rfld =
   (* if rfld |> RFl.type_of |> RCt.width = 0 then  *)
   (*   (sub, RS.ensure_var sto (\* |> Misc.flip RS.ensure_sloc s) *\) ) *)
   (* else *)
-    rfld |> RU.add_field sto sub s i |> M.swap
+    rfld |> RU.add_field sto sub TI.empty s i |> (fun (s1, s2, _) ->  M.swap (s1,s2))
 
 and componentsOfTypeAux t = match normalizeType t with
   | C.TArray (t, b, ats) ->
