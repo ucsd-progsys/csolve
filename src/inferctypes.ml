@@ -444,10 +444,19 @@ let constrain_fun fs cf ve sto sci =
 (**************************** Local Shape Inference ***************************)
 (******************************************************************************)
 
+let all_slocs s = 
+  Store.fold_fields (fun cts _ _ ct -> (Field.type_of ct)::cts) [] s
+  |> Misc.map_partial Ct.sloc
+  |> List.append (Store.domain s)
+  |> Misc.sort_and_compact
+
 let check_out_store_complete sto_out_formal sto_out_actual =
+  let all_formal = all_slocs sto_out_formal in
      sto_out_actual
+  |> Store.abstract_empty_slocs
   |> Store.fold_fields begin fun ok l i fld ->
-       if Store.mem sto_out_formal l && l |> Store.find sto_out_formal |> LDesc.find i = [] then begin
+    try
+       if List.mem l all_formal && l |> Store.find sto_out_formal |> LDesc.find i = [] then begin
          ignore <| C.error "Location %a field %a: %a in actual store, but missing from spec."
                      S.d_sloc_info l 
                      Index.d_index i 
@@ -455,9 +464,13 @@ let check_out_store_complete sto_out_formal sto_out_actual =
          false
        end else
          ok
+    with Not_found -> 
+        C.error "Location %a not in the domain of the spec (perhaps it is a polymorphic location)."
+                                    S.d_sloc_info l
+      |> ignore; false
      end true
   |> fun x -> assert x
-
+    
 let check_slocs_distinct error sub slocs =
   try
     let s1, s2 = Misc.find_pair (fun s1 s2 -> M.map_pair (S.Subst.apply sub) (s1, s2) |> M.uncurry S.eq) slocs in
@@ -502,14 +515,10 @@ let assert_location_inclusion l1 ld1 l2 ld2 =
     LDesc.fold begin fun _ pl _ ->
       if LDesc.mem pl ld2 then () else raise (LocationMismatch (l1, ld1, l2, ld2))
     end () ld1
-
-(* Function could be polymorphic, and some locs may not be
-   in the store. So at least get the locations mentioned in
-   arguments *)
-let revert_to_spec_locs sub whole_store minslocs sto em bas ve =
+      
+let revert_to_spec_locs sub whole_store sto em bas ve =
   let revsub = whole_store
-            |> Store.domain
-            |> List.append minslocs
+            |> all_slocs
             |> Misc.sort_and_compact 
             |> List.fold_left (fun revsub s -> S.Subst.extend (S.Subst.apply sub s) s revsub) [] in
   let sto    = Store.subs revsub sto in
@@ -604,10 +613,8 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _ =                     CFun.quantified_tvars cf 
                               |> check_tvars_uninst quant_tvar_inst_error tsub in
   (* let _                     = check_sol cf ve gst em bas tsub sub sto whole_store in *)
-  let minslocs              = cf.ret::List.map snd cf.args 
-  |> Misc.map_partial Ct.sloc in
-  let sto, em, ve        = inst_all_tvars cf tsub sto em ve in
-  let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store minslocs sto em bas ve in
+  let sto, em, ve           = inst_all_tvars cf tsub sto em ve in
+  let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 

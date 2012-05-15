@@ -1022,12 +1022,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         (ds, vs)
 
-    let mem (ds, _) l =
-      if (l = Sloc.sloc_of_any) then
-        true
-      else
-        SLM.mem l ds
-
     let find (ds, vs) l =
       if (l = Sloc.sloc_of_any) then
         LDesc.any 
@@ -1040,7 +1034,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let ensure_sloc sto l = l |> find_or_empty sto |> add sto l
         
     let ensure_var v ((ds, vs) as sto) = 
-      if List.mem v vs then sto else 
+      if List.mem v vs then sto else
         (ds, Misc.sort_and_compact (v::vs))
 
     let fold_fields f b (ds, vs) =
@@ -1066,11 +1060,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> bindings 
       |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))
 
-    let domain ((ds, vs) as s ) =
-      fold_fields (fun cts _ _ ct -> (Field.type_of ct)::cts) [] s
-      |> Misc.map_partial CType.sloc
-      |> List.append (SLM.domain ds)
-      |> Misc.sort_and_compact
+    let domain ((ds, vs) as s ) = SLM.domain ds
 
     let mem (ds, vs) s =
       if (s = Sloc.sloc_of_any) then
