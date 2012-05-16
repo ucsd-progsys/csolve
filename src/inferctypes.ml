@@ -597,7 +597,7 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 
-  let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg (Store.domain gst) em bas in
+  let annot, conca, theta   = RA.annotate_cfg sci.ST.cfg sto (Store.domain gst) em bas in
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
   {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
@@ -638,6 +638,10 @@ let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;
   let _ = P.printf "------@!@!" in
   let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
     ()
+
+let d_shape () sh =
+  let _ = print_shape "shape dump" null_fun Store.empty sh in
+  P.printf ""
 
 let print_shapes spec shpm =
   let funspec, storespec = CSpec.funspec spec, CSpec.store spec in

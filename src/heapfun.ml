@@ -124,3 +124,6 @@ let gen l hf sto deps ls ins env =
              List.fold_left (M.flip SlSS.remove) deps in
   deps, fold_hf_on_hp ls ins sto hf env 
 
+let shape_in_env hf ls env =
+  let ins = HfMap.find hf env |> unfs_of |> M.combine_replace ls in
+  apply_hf_in_env (hf, ls, []) ins env

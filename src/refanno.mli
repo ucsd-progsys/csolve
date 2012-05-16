@@ -38,7 +38,7 @@ type annotation =
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.tvinst
   | HIns of Sloc.t * Heapfun.intrs list        (* [Aloc, [loc]] *)
-  | HGen of Sloc.t list * Heapfun.intrs list   (* [[loc], Aloc] *)
+  | HGen of string * Sloc.t list * Heapfun.intrs list   (* [[loc], Aloc] *)
 
 (* 1. block_annotation length = block length,
  * 2. annotations _precede_ corresponding instr 
@@ -60,6 +60,7 @@ val subs : Sloc.Subst.t -> block_annotation -> block_annotation
  *         2. map from edges (i,j) to (gen)-annots for that edge
  *         3. map from variable names to concrete locations *)
 val annotate_cfg: Ssa.cfgInfo -> 
+                  Ctypes.store ->
                   Sloc.t list -> 
                   Ctypes.ctemap -> 
                   block_annotation array -> 

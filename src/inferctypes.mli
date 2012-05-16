@@ -29,3 +29,5 @@ val infer_shapes:
   -> Ctypes.cspec 
   -> (Ctypes.cfun * Ssa_transform.t * Ctypes.ctype CilMisc.VarMap.t) FixMisc.StringMap.t 
   -> Shape.t FixMisc.StringMap.t
+
+val d_shape : unit -> Shape.t -> Pretty.doc

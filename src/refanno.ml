@@ -32,6 +32,8 @@ module S   = Sloc
 module Ct  = Ctypes
 module Hf  = Heapfun
 
+module Store = Ct.I.Store
+
 open Cil
 open Misc.Ops
 
@@ -69,7 +71,7 @@ type annotation =
   | TNew of Ctypes.tvar * Ctypes.tvar
   | TInst of Ctypes.IndexTypes.TVarInst.t
   | HIns of Sloc.t * Heapfun.intrs list        (* [h / f(<l>, <p>)] *)
-  | HGen of Sloc.t list * Heapfun.intrs list        (* [h / f(<l>, <p>)] *)
+  | HGen of string * Sloc.t list * Heapfun.intrs list        (* [h / f(<l>, <p>)] *)
 
 type block_annotation = annotation list list
 type ctab = (string, Sloc.t) Hashtbl.t
@@ -265,6 +267,10 @@ let cloc_of_v theta al v =
   Misc.do_memo theta Sloc.copy_concrete al v.vname 
 (*  >> Pretty.printf "cloc_of_v: v = %s cl = %a \n" v.vname Sloc.d_sloc *)
 
+(*let fresh_locs_of_v theta al v =
+  Sloc.
+  *)
+
 
 let cloc_of_position theta al (j,k,i) = 
   Printf.sprintf "#%d#%d#%d" j k i
@@ -302,11 +308,17 @@ let tagm_of_aloc conc al =
 let clocs_of_aloc conc al =
   al |> tagm_of_aloc conc |> Sloc.slm_bindings |>: fst
 
+let unset_rw conc l =
+  LM.remove l conc
+
 let set_rw conc al cl rw =
   LM.add al (LM.add cl (tag_fresh rw) (tagm_of_aloc conc al)) conc
 
+let get_rw conc l =
+  LM.find l conc
+
 let generalize conc al =
-  (LM.remove al conc,
+  (unset_rw conc al,
    LM.fold begin fun cl (_, op) gens ->
      match op with
        | Write -> Gen (cl, al) :: gens
@@ -326,14 +338,16 @@ let instantiate f conc al cl rw =
 (******************************** Visitors ************************************)
 (******************************************************************************)
 
-let annotate_set ctm theta conc = function
+let annotate_set sto ctm theta conc = function
   (* v1 := *v2 *)
   | (Var v1, _), Lval (Mem e, _) ->
       let v2 = CilMisc.referenced_var_of_exp e in
       let al = sloc_of_expr ctm e |> Misc.maybe in
-      let cl = cloc_of_v theta al v2 in
-      instantiate (fun (x,y) -> Ins (v2.vname,x,y)) conc al cl Read
-
+      if Store.concrete_part sto |> Misc.flip Store.mem al then
+        let cl = cloc_of_v theta al v2 in
+          instantiate (fun (x,y) -> Ins (v2.vname,x,y)) conc al cl Read
+      else
+        conc, []  
 
   (* v := e *)
   | (Var v, _), e ->
@@ -342,13 +356,16 @@ let annotate_set ctm theta conc = function
         |> Misc.maybe_iter (Hashtbl.replace theta v.vname) 
         |> fun _ -> (conc, [])
 
-  (* *v := _ *)
+  (* *v := _ *)  (* if *v = h(l,...) then insert unf(l), fresh ins *)
   | (Mem e, _), _ ->
       let v = CilMisc.referenced_var_of_exp e in
       let al = sloc_of_expr ctm e |> Misc.maybe in
-      let cl = cloc_of_v theta al v in
-      instantiate (fun (x,y) -> Ins (v.vname,x,y)) conc al cl Write
-  
+      if Store.concrete_part sto |> Misc.flip Store.mem al then
+        let cl = cloc_of_v theta al v in
+          instantiate (fun (x,y) -> Ins (v.vname,x,y)) conc al cl Write
+      else
+        conc, []
+
   (* Uh, oh! *)
   | lv, e -> 
       Errormsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
@@ -393,7 +410,7 @@ let sloc_of_ret ctm theta (conc, anns) = function
       assertf "sloc_of_ret"
 
 (* kns : (k, New (al,_) list), with distinct al *)
-let annotate_instr globalslocs ctm theta j (conc:cncm) = function
+let annotate_instr sto globalslocs ctm theta j (conc:cncm) = function
   | (_, ns), Cil.Call (_, Lval ((Var fv), NoOffset), _,_) 
     when CilMisc.is_pure_function fv.vname ->
       conc, ns 
@@ -417,7 +434,7 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
       conc_anns
 
   | _, Cil.Set (lv, e, _) -> 
-      annotate_set ctm theta conc (lv, e)
+      annotate_set sto ctm theta conc (lv, e)
 
   | _, instr ->
       Errormsg.error "annotate_instr: %a" Cil.d_instr instr;
@@ -427,14 +444,14 @@ let annotate_instr globalslocs ctm theta j (conc:cncm) = function
 (******************************** Fixpoint ***********************************)
 (*****************************************************************************)
 
-let annotate_block globalslocs ctm theta j anns instrs (conc0 : cncm) =
+let annotate_block sto globalslocs ctm theta j anns instrs (conc0 : cncm) =
   let _ = if mydebug then ignore <| Pretty.printf "annotate_block  %d : CONC = %a \n" j d_conc conc0 in
   let _ = asserts (List.length anns = 1 + List.length instrs) "annotate_block: %d" j in
   let ianns = Misc.numbered_list (Misc.chop_last anns) in
   List.combine ianns instrs
-  |> Misc.mapfold (annotate_instr globalslocs ctm theta j) conc0 
+  |> Misc.mapfold (annotate_instr sto globalslocs ctm theta j) conc0 
 
-let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool = 
+let annot_iter cfg sto globalslocs ctm theta anna (sol : soln) : soln * bool = 
 (*let _    = Pretty.printf "annot_iter: PRE theta = %a \n" d_theta theta in*)
   let sol' = Array.copy sol in 
   let sol' = Misc.array_fold_lefti begin fun j sol' (_, ans) ->
@@ -442,7 +459,7 @@ let annot_iter cfg globalslocs ctm theta anna (sol : soln) : soln * bool =
                    |> Misc.map_partial (Array.get sol' <+> fst)
                    |> conc_of_predecessors in
       let conc', ans' = match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
-                   | Instr is -> annotate_block globalslocs ctm theta j anna.(j) is conc
+                   | Instr is -> annotate_block sto globalslocs ctm theta j anna.(j) is conc
                    | _        -> conc, ans in
       let _    = Array.set sol' j (Some conc', ans') in
       sol'
@@ -457,13 +474,13 @@ let d_conca' () (cfg, conca') =
   let conca  = Array.map (List.map (Array.get conca') <+> conc_of_predecessors) cfg.Ssa.predecessors in
   d_conca () (Misc.array_combine conca conca')
 
-let check_sol cfg globalslocs ctm theta anna (sol:soln) =
+let check_sol cfg sto globalslocs ctm theta anna (sol:soln) =
   let _ = (cfg, Array.map (fst <+> Misc.maybe) sol) 
           |> Pretty.printf "check_sol PRE:\n %a \n" d_conca' in
-  let sol', b = annot_iter cfg globalslocs ctm theta anna sol in
+  let sol', b = annot_iter cfg sto globalslocs ctm theta anna sol in
   let _ = (cfg, Array.map (fst <+> Misc.maybe) sol') 
           |> Pretty.printf "check_sol POST:\n %b : %a \n" b d_conca' in
-  let sol'', b = annot_iter cfg globalslocs ctm theta anna sol' in
+  let sol'', b = annot_iter cfg sto globalslocs ctm theta anna sol' in
   let _ = (cfg, Array.map (fst <+> Misc.maybe) sol'') 
           |> Pretty.printf "check_sol POSTPOST:\n %b : %a \n" b d_conca' in
   ()
@@ -475,10 +492,10 @@ let annots_of_sol cfg sol =
   (annota, (Misc.array_combine conca conca'))
 
 (* API *)
-let annotate_cfg cfg globalslocs ctm anna =
+let annotate_cfg cfg sto globalslocs ctm anna =
   let theta = Hashtbl.create 17 in
   soln_init cfg anna 
-  |> Misc.fixpoint (annot_iter cfg globalslocs ctm theta anna)
+  |> Misc.fixpoint (annot_iter cfg sto globalslocs ctm theta anna)
   |> fst
 (*>> check_sol cfg globalslocs ctm theta anna *)
   |> annots_of_sol cfg

@@ -1057,6 +1057,13 @@ let assoc_with p =
 let combine_prefix prefs =
   flap2 assoc_with prefs
 
+let replace_with l =
+  List.map (fun _ -> l)
+
+let combine_replace xs ys =
+  List.combine xs ys
+  |> List.map (uncurry replace_with)
+
 let flapcombine lls =
   flap2 (fun x y -> List.combine x y) lls
 
