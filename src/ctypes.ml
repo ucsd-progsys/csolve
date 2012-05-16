@@ -1857,8 +1857,11 @@ let null_fun      = {args = [];
                      effects = SLM.empty}
   
 let void_ctype   = Int  (0, N.top)
+let ptr_ctype_of = (fun s -> Ref (s, N.top))
 let ptr_ctype    = Ref  (S.none, N.top)
+
 let scalar_ctype = Int  (0, N.top)
+let int_ctype    = Int  (4, N.top)
 let fptr_ctype   = FRef (null_fun, N.top)
 
 let rec vtype_to_ctype v = if Cil.isArithmeticType v

@@ -510,3 +510,4 @@ let cloc_of_varinfo theta v =
   with Not_found -> 
     (* let _ = Errormsg.log "cloc_of_varinfo: unknown %s" v.vname in *)
     None
+

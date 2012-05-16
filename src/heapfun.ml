@@ -23,15 +23,18 @@
 
 module P  = Pretty
 module M  = FixMisc
+module I  = Index
 module Sl = Sloc
 module Ct = Ctypes
 module FC = FixConstraint
+module CM = CilMisc
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
 module CtI  = Ct.I
 module CtIS = CtI.Store
 module CtIF = CtI.Field
 module CtIC = CtI.CType
+module CtIL = CtI.LDesc
 
 open M.Ops
 
@@ -43,7 +46,7 @@ module RVS = Ct.Make(RVT)
 
 type intrs       = Sl.t list
 
-type 'a def      = { loc_params :  Sl.t list 
+type 'a def      = { loc_params : Sl.t list 
                    ; ref_params : 'a list 
                    ; unfolds    : intrs list
                    ; rhs        : 'a Ctypes.prestore
@@ -51,6 +54,7 @@ type 'a def      = { loc_params :  Sl.t list
 
 type ref_def  = FC.reft def
 type var_def  = VR.t def
+type ind_def  = CtI.T.refinement def
 
 module HfMap = M.StringMap
 type   env   = var_def HfMap.t
@@ -59,6 +63,21 @@ let flocs_of def = def.loc_params
 let frefs_of def = def.ref_params
 let unfs_of  def = def.unfolds
 let rhs_of   def = def.rhs
+
+
+let def_of_intlist =
+  let nm = "intlist" in
+  let l  = Sl.fresh_abstract (CM.srcinfo_of_string "intlist_def") in
+  let (lj, l') = (Sl.copy_concrete l, Sl.copy_fresh l) in
+  let ld = CtIL.create {Ct.stype = None; Ct.any = false} 
+    [(I.of_int 0, CtIF.create Ct.Final    Ct.dummy_fieldinfo Ct.int_ctype);
+     (I.of_int 4, CtIF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.ptr_ctype_of l'))] in
+  let ap = (nm, [l'], []) in
+  { loc_params = [l]
+  ; ref_params = []
+  ; unfolds    = [[lj; l']]
+  ; rhs        = CtIS.add CtIS.empty lj ld |> M.flip CtIS.add_app ap
+  }
 
 (*let wf app def =
   wd_def def and wf

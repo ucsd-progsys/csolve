@@ -437,6 +437,8 @@ val null_fun     : Index.t precfun
 
 val void_ctype   : ctype
 val ptr_ctype    : ctype
+val ptr_ctype_of : Sloc.t -> ctype
+val int_ctype    : ctype
 val scalar_ctype : ctype
 val fptr_ctype   : ctype
 
