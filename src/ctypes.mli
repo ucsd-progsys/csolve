@@ -442,7 +442,7 @@ val int_ctype    : ctype
 val scalar_ctype : ctype
 val fptr_ctype   : ctype
 
-val vtype_to_ctype : Cil.typ -> ctype  
+val vtype_to_ctype : Cil.typ -> ctype
 
 val d_ctype      : unit -> ctype -> Pretty.doc
 

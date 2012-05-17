@@ -43,6 +43,10 @@ open M.Ops
 module VR  = Ct.VarRefinement
 module RVT = Ct.RefVarTypes
 module RVS = Ct.Make(RVT)
+module RVSS = RVS.Store
+module RVSF = RVS.Field
+module RVSC = RVS.CType
+module RVSL = RVS.LDesc
 
 type intrs       = Sl.t list
 
@@ -66,18 +70,22 @@ let rhs_of   def = def.rhs
 
 
 let def_of_intlist =
+  let nrf = ("", I.top) in
   let nm = "intlist" in
   let l  = Sl.fresh_abstract (CM.srcinfo_of_string "intlist_def") in
   let (lj, l') = (Sl.copy_concrete l, Sl.copy_fresh l) in
-  let ld = CtIL.create {Ct.stype = None; Ct.any = false} 
-    [(I.of_int 0, CtIF.create Ct.Final    Ct.dummy_fieldinfo Ct.int_ctype);
-     (I.of_int 4, CtIF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.ptr_ctype_of l'))] in
+  let ld = RVSL.create {Ct.stype = None; Ct.any = false} 
+    [(I.of_int 0, RVSF.create Ct.Final    Ct.dummy_fieldinfo (Ct.Int(4, nrf)));
+     (I.of_int 4, RVSF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.Ref(l', nrf)))] in
   let ap = (nm, [l'], []) in
   { loc_params = [l]
   ; ref_params = []
   ; unfolds    = [[lj; l']]
-  ; rhs        = CtIS.add CtIS.empty lj ld |> M.flip CtIS.add_app ap
+  ; rhs        = RVSS.add RVSS.empty lj ld |> M.flip RVSS.add_app ap
   }
+
+let test_env =
+  HfMap.add "intlist" def_of_intlist HfMap.empty
 
 (*let wf app def =
   wd_def def and wf

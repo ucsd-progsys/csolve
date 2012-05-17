@@ -37,7 +37,8 @@ val frefs_of : 'a def -> 'a list
 val unfs_of  : 'a def -> intrs list
 val rhs_of   : 'a def -> 'a Ctypes.prestore
 
-val def_of_intlist : ind_def
+val def_of_intlist : var_def
+val test_env : env
 
 val apply_hf_in_env : Ctypes.ind_hf_appl -> intrs list -> env ->
                       Sloc.SlocSlocSet.t * Ctypes.store
