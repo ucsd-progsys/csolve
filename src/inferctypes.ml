@@ -274,12 +274,13 @@ let assert_store_type_correct tgr loc lv e ct = match lv with
           C.d_exp e d_ctype ct d_ctype heap_ct (* TODO: prettycil *)
   | _ -> ()
 
+let find_function_fref loc sub ct = match Ct.subs sub ct with    
+  | FRef (f, _) -> f
+  | _ -> assert false
+
 let find_function loc et fs tsub sub sto = function
   | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
-  | C.Mem e, C.NoOffset ->
-    match Ct.subs sub <| et#ctype_of_exp loc e with
-      | FRef (f, _) -> f
-      | _ -> assert false
+  | C.Mem e, C.NoOffset -> find_function_fref loc sub <| et#ctype_of_exp loc e
 
 let unify_tvars tsub ct1 ct2 = match TVarInst.apply tsub ct1, TVarInst.apply tsub ct2 with
   | (TVar t, ct2') -> TVarInst.extend t ct2' tsub
@@ -599,11 +600,20 @@ let tvar_q_error () (t1, t2) =
 let quant_tvar_inst_error () (t,ct) = 
   C.error "Quantified variable %a less polymorphic than expected [%a]"
     d_tvar t Ct.d_ctype ct
+    
+let generalize_fref = function
+  | FRef (f, r) -> FRef (CFun.generalize f, r) 
+  | ct -> ct
+    
+let generalize_frefs fdec =
+  let tl = CM.top_level_fn_assgns fdec in
+  VM.mapi (fun v ct -> if CM.VarSet.mem v tl then generalize_fref ct else ct)
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
-  let vm                    = replace_formal_refs cf vm            in
-  let ve                    = fresh_local_slocs <| VM.extend vm ve in 
-  (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
+  let vm                    = replace_formal_refs cf vm in
+  let ve                    =  VM.extend vm ve
+                            |> fresh_local_slocs
+                            |> generalize_frefs sci.ST.fdec in
   let sto                   = Store.upd cf.sto_out gst             in
   let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in

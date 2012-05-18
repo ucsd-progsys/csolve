@@ -113,7 +113,7 @@ let isCompoundType t = match unrollType t with
   | _                  -> false
 
 let fresh_arg_name, _ = M.mk_string_factory "ARG"
-
+  
 (******************************************************************************)
 (********************** Stripping Attributes, Casts, etc. *********************) 
 (******************************************************************************)
@@ -694,6 +694,53 @@ module FunPtrDetector : Summarizer =
       let _  = visitCilFile (rv :> cilVisitor) cil in
       {has_prop = rv#get_has_funptr; metric = rv#get_funptrness}
   end
+  
+(******************************************************************************)
+(**********************  Generalizing function pointers ***********************) 
+(******************************************************************************)
+
+class fptrAssgnVisitor (g:VarSet.t) = object(self)
+  inherit nopCilVisitor
+    
+  val glob = ref g 
+    
+  method private update_glob v g = 
+    if g then 
+      glob := VarSet.add v !glob
+    else 
+      glob := VarSet.remove v !glob
+        
+  method private vinst_aux = function
+    | v, (Cil.AddrOf (Cil.Var v', Cil.NoOffset)) 
+      when is_fun v' -> self#update_glob v v'.Cil.vglob
+    | v, (Cil.Lval (Cil.Mem (Cil.CastE (_, Cil.Lval (Cil.Var v', _))), _))
+    | v, (Cil.CastE (_, Cil.Lval(Cil.Var v',_)))
+    | v, (Cil.Lval (Cil.Mem (Cil.Lval (Cil.Var v', _)), _))
+    | v, (Cil.Lval (Cil.Var v',_)) ->
+      self#update_glob v (VarSet.mem v' !glob)
+    | v, e -> ()
+      (* Pretty.printf "%a%b := %a@!" *)
+      (* Cil.d_plaintype v.Cil.vtype (is_funptr v) (Cil.printExp Cil.plainCilPrinter) e; assert false *)
+      
+  method vinst = function
+    | Cil.Set ((Cil.Var v, _), e, _) when is_funptr v -> self#vinst_aux (v, e); DoChildren
+    | _ -> DoChildren
+      
+  method get_glob = !glob
+      
+end
+  
+let top_level_fn_assgns cil = 
+  let fav = new fptrAssgnVisitor VarSet.empty in
+  let _   = visitCilFunction (fav :> cilVisitor) cil in
+  let glob = fav#get_glob in
+  let rec iterate glob = 
+    let fav = new fptrAssgnVisitor glob in
+    let _ = visitCilFunction (fav :> cilVisitor) cil in
+    let glob' = fav#get_glob in
+    if VarSet.equal glob glob' then glob else iterate glob' 
+  in 
+  iterate glob
 
 (***************************************************************************************)
 (*************** Cil Visitors **********************************************************)

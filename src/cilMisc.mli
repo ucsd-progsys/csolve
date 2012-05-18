@@ -161,6 +161,7 @@ val is_pure_function    : string -> bool
 val is_cil_tempvar      : string -> bool
 val rename_local        : string -> string -> string
 val unrename_local      : (* string -> *) string -> string
+val top_level_fn_assgns : Cil.fundec -> VarSet.t
 
 module type Summarizer =
 sig
