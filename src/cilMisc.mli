@@ -87,6 +87,8 @@ val typeVarAttribute        : string
 val hasRoomAttribute        : string
 val nonnullHasRoomAttribute : string
 
+val heapfunAppliesAttribute           : string
+
 val has_array_attr          : Cil.attributes -> bool
 val has_pos_attr            : Cil.attributes -> bool
 val has_unchecked_attr      : Cil.attributes -> bool

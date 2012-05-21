@@ -153,6 +153,9 @@ let pointerLayoutAttributes =
   ; CM.ignoreBoundAttribute
   ]
 
+let heapfunAttributes =
+  [ CM.heapfunAppliesAttribute ]
+
 let hasOneAttributeOf of_ats ats =
   List.exists (M.flip C.hasAttribute ats) of_ats
 
@@ -257,6 +260,17 @@ let effectSetOfAttrs ls ats =
          if ES.mem effs l then effs else ES.add effs l <| trueEffectPtr l
        end
      end (List.map S.canonical ls)
+
+(******************************************************************************)
+(***************************** Heapfun Attributes *****************************)
+(******************************************************************************)
+
+(* MK: is it possible to vararg this? *)
+let hf_appOfAttr l = function
+  | C.Attr (s, [C.AStr hf]) when s = CM.heapfunAppliesAttribute ->
+    Some (hf, [l], [])
+  | _ ->
+    None
 
 (******************************************************************************)
 (***************************** Type Preprocessing *****************************)
@@ -446,11 +460,20 @@ and componentsOfField t f =
   let off = C.Field (f, C.NoOffset) |> CM.bytesOffset t |> I.of_int in
     f.C.ftype |> componentsOfType |>: (M.app_snd3 <| I.plus off)
 
+and add_app_to_sto sto l ats =
+  if hasOneAttributeOf heapfunAttributes ats then
+    List.map (hf_appOfAttr l) ats
+    |> M.maybe_list
+    |> M.ex_one "add_app_to_sto: wrong number of annotated heap functions"
+    |> RS.add_app sto
+  else sto
+
 and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeType t with
   | C.TPtr (C.TFun _, _) -> (sub, sto)
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs (CM.srcinfo_of_type tb (Some srcloc)) ats in
+    let sto    = add_app_to_sto sto s ats in
     let tb     = annotatedPointerBaseType ats tb in
     let mem    = match CM.typeName tb with Some n -> SM.add n s mem | _ -> mem in
     let tcs    = tb |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfPointerContents t) in
@@ -470,6 +493,7 @@ and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeT
 and closeTypeInStore srcloc sub sto t =
   closeTypeInStoreAux srcloc SM.empty sub sto t
 
+(* MK: this function closes types by adding locs to heap *)
 and preRefstoreOfTypes srcloc_ts =
   List.fold_left begin fun (sub, sto) (srcloc, t) -> 
     closeTypeInStore srcloc sub sto t

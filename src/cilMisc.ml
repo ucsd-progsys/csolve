@@ -377,6 +377,9 @@ let coroutineAttribute   = "csolve_coroutine"
 let foreachIterAttribute = "csolve_foreach_iter"
 let foreachAttribute     = "csolve_foreach"
 
+let heapfunAppliesAttribute = "csolve_heapfun"
+
+
 let block_has_attribute a b =
   hasAttribute a b.battrs
 
