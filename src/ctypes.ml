@@ -583,6 +583,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
     val hfuns        : t -> T.refinement hf_appl list
+    val cnc          : t -> T.ldesc SLM.t
         
     val d_store_addrs: unit -> t -> P.doc
     val d_store      : unit -> t -> P.doc
@@ -642,6 +643,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val subs_tvar   : TVarSubst.t -> t -> t
     val inst_tvar   : TVarSubst.t -> T.tvinst -> t -> t
     val indices         : t -> Index.t list
+    val map_stores  : (T.store -> T.store) -> t -> t
   end
 
   module type SPEC = sig
@@ -650,6 +652,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
+    val map_stores : (T.store -> T.store) -> t -> t
     val add_fun : bool -> string -> T.cfun * specType -> t -> t
     val add_var : bool -> string -> T.ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> T.ldesc * specType -> t -> t
@@ -1110,6 +1113,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (map_data f ds, vs, hfs)
 
     let hfuns (_, _, hfs) = hfs
+
+    let cnc (ds, _, _) = ds
 
     let fold_fields f b (ds, _, _) =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
@@ -1767,6 +1772,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SVM.add v (fst st') hsub
       else
         SVM.add v sto hsub
+
+     let map_stores f ({sto_in = sin; sto_out = sout} as t) =
+       {t with sto_in = f sin; sto_out = f sout}      
   end
 
   (******************************************************************************)
@@ -1817,6 +1825,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           P.dprintf "%s ::@!  @[%a@]\n\n" fn CFun.d_cfun cf
          ) (funspec sp |> SM.to_list)) ]
       |> List.fold_left P.concat P.nil
+
+    let map_stores f (cfs, ctv, gl, s) = 
+      let g   = CFun.map_stores f in
+      let cfs = Misc.StringMap.fold begin
+        fun fn cf fs -> Misc.StringMap.add fn (Misc.app_fst g cf) fs end
+          Misc.StringMap.empty cfs in
+      (cfs, ctv, (f gl), s)
   end
 
   (******************************************************************************)

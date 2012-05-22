@@ -297,6 +297,7 @@ module type S = sig
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t
     val hfuns        : t -> T.refinement hf_appl list
+    val cnc          : t -> T.ldesc Sloc.SlocMap.t
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
@@ -363,6 +364,7 @@ module type S = sig
     val subs_tvar   : TVarSubst.t -> t -> t
     val inst_tvar   : TVarSubst.t -> (tvar * T.refinement prectype) list -> t -> t
     val indices         : t -> Index.t list 
+    val map_stores     : (Store.t -> Store.t) -> t -> t
   end
 
   module Spec:
@@ -372,6 +374,7 @@ module type S = sig
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
+    val map_stores : (T.store -> T.store) -> t -> t
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t

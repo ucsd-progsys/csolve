@@ -35,6 +35,8 @@ module CtIS = CtI.Store
 module CtIF = CtI.Field
 module CtIC = CtI.CType
 module CtIL = CtI.LDesc
+module CtISp = CtI.Spec
+module CtICF = CtI.CFun
 
 open M.Ops
 
@@ -154,3 +156,12 @@ let gen l hf sto deps ls ins env =
 let shape_in_env hf ls env =
   let ins = HfMap.find hf env |> unfs_of |> M.combine_replace ls in
   apply_hf_in_env (hf, ls, []) ins env
+
+let expand_sto_shape sto env =
+   CtIS.hfuns sto
+   |> List.fold_left begin fun sto (hf, ls, _) -> shape_in_env hf ls env
+                                               |> snd
+                                               |> CtIS.upd sto end sto
+
+let expand_cspec_shape cspec env =
+   CtISp.map_stores ((M.flip expand_sto_shape) env) cspec

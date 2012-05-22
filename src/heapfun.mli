@@ -30,7 +30,7 @@ type ref_def = FixConstraint.reft def
 type var_def = Ctypes.VarRefinement.t def
 type ind_def = Ctypes.I.T.refinement def
 
-type env = var_def FixMisc.StringMap.t
+type env  = var_def FixMisc.StringMap.t
 
 val flocs_of : 'a def -> Sloc.t list
 val frefs_of : 'a def -> 'a list
@@ -49,3 +49,4 @@ val fold_hf_on_hp : Sloc.t list -> intrs list -> Ctypes.store ->
 val shape_in_env : string -> Sloc.t list -> env ->
                    Sloc.SlocSlocSet.t * Ctypes.store
                    
+val expand_cspec_shape : Ctypes.cspec -> env -> Ctypes.cspec
