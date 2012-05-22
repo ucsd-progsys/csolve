@@ -52,6 +52,8 @@ let mydebug = false
 (***************************************************************************)
 
 let shapem_of_scim cil tgr spec scim vim =
+  let cspec = Ctypes.cspec_of_refspec spec
+           |> M.flip Heapfun.expand_cspec_shape Heapfun.test_env in
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = Ctypes.cfun_of_refcfun rf in
@@ -63,7 +65,7 @@ let shapem_of_scim cil tgr spec scim vim =
   (* >> (fst <+> Misc.sm_print_keys "builtins") *)
   (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
   |> snd
-  |> Inferctypes.infer_shapes cil tgr (Ctypes.cspec_of_refspec spec) 
+  |> Inferctypes.infer_shapes cil tgr cspec
 
 let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
