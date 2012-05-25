@@ -723,6 +723,8 @@ let hashtbl_invert t =
   |> List.iter (fun (x,y) -> Hashtbl.replace t' y x) 
   |> fun _ -> t'
 
+let hashtbl_maybe_find t k =
+  try Some (Hashtbl.find t k) with Not_found -> None
 
 let distinct xs = 
  List.length xs = List.length (sort_and_compact xs)

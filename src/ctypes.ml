@@ -579,6 +579,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Sv.t -> t
     val add_app      : t -> T.refinement hf_appl -> t
+    val rem_app      : t -> S.t -> t
     val vars         : t -> Sv.t list
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
@@ -1255,7 +1256,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
        get two mappings in the heap? Deferred for now... *)
       (s, v::vs, hf)
 
-    let add_app (s, vs, hfs) hf = (s, vs, hf :: hfs)
+    let add_app (s, vs, hfs) hf =
+      let hfs = if not (List.mem hf hfs) then hf :: hfs else hfs in
+        (s, vs, hfs)
+
+    let rem_app t l =
+      List.filter (function (_, k :: _, _) -> false | _ -> true)
+      |> Misc.flip Misc.app_thd3 t
         
     let vars (_, vs, _) = vs
       

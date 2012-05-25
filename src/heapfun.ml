@@ -117,6 +117,9 @@ let apply_hf_shape (_, sls, _) ins def =
 let apply_hf_in_env ((f, _, _) as app) ins env =
   HfMap.find f env |> apply_hf_shape app ins
 
+let apply_hf_sto l hsto sto =
+  CtIS.upd hsto sto |> CtIS.rem_app l
+
   (* remove dependencies *)
 let fold_hf_on_hp ls ins h hf env =
   let binds   = match ls with
@@ -127,13 +130,17 @@ let fold_hf_on_hp ls ins h hf env =
   let happl   = apply_hf_in_env appl ins env in
   let _       = if (snd happl != h) then
     assertf "fold_hf_on_hp: can't fold on heap" in 
-    CtIS.add_app h' appl
+  let ins     = M.flatten ins in
+    List.fold_left CtIS.rem_app h' ins
+    |> M.flip CtIS.add_app appl
+
 
 let binding_of l =
   List.find (function (_, k :: _, _) -> k = l | _ -> false)
 
 let arg_of l =
   List.partition (fun (_, ls, _) -> List.mem l ls)
+
 
 let binds l hfs =
   try
@@ -156,12 +163,21 @@ let gen l hf sto deps ls ins env =
 let shape_in_env hf ls env =
   let ins = HfMap.find hf env |> unfs_of |> M.combine_replace ls in
   apply_hf_in_env (hf, ls, []) ins env
+  |> snd
 
+(* MK: this is wrong; technically needs to be Misc.fixpointed *)
 let expand_sto_shape sto env =
-   CtIS.hfuns sto
+  CtIS.hfuns sto
    |> List.fold_left begin fun sto (hf, ls, _) -> shape_in_env hf ls env
-                                               |> snd
                                                |> CtIS.upd sto end sto
 
 let expand_cspec_shape cspec env =
-   CtISp.map_stores ((M.flip expand_sto_shape) env) cspec
+  CtISp.map_stores (M.flip expand_sto_shape env) cspec
+
+let contract_sto_shape sto env =
+  CtIS.hfuns sto
+  |> List.map (fun (_, l :: _, _) -> l)
+  |> List.fold_left CtIS.remove sto
+
+let contract_cspec_shape cspec env =
+  CtISp.map_stores (M.flip contract_sto_shape env) cspec

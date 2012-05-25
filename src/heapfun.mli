@@ -47,6 +47,6 @@ val fold_hf_on_hp : Sloc.t list -> intrs list -> Ctypes.store ->
                     string -> env -> Ctypes.store
 
 val shape_in_env : string -> Sloc.t list -> env ->
-                   Sloc.SlocSlocSet.t * Ctypes.store
+                   Ctypes.store
                    
 val expand_cspec_shape : Ctypes.cspec -> env -> Ctypes.cspec

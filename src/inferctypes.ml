@@ -31,6 +31,7 @@ module Cs  = Constants
 module E   = Errormsg
 module ST  = Ssa_transform
 module RA  = Refanno
+module HRA = Hrefanno
 module S   = Sloc
 module SLM = S.SlocMap
 module SS  = S.SlocSet
@@ -608,6 +609,10 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
    Sh.theta   = theta;
    Sh.nasa    = nasa;
    Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
+
+let infer_shape tgr fe ve gst scim (cf, sci, vm) =
+     infer_shape tgr fe ve gst scim (cf, sci, vm)
+  |> HRA.annotate_cfg sci.ST.cfg gst
 
 let declared_funs cil =
   C.foldGlobals cil begin fun fs -> function
