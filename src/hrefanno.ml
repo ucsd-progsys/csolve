@@ -45,19 +45,53 @@ let acp = Array.copy
 let hcp = Hashtbl.copy
 
 type unf  = Sl.t list list
-type appm = (Sl.t * Ct.ind_hf_appl * unf) SLM.t
+type app  =
+  | App of Sl.t * Ct.ind_hf_appl * unf
+  | Cnc of Sl.t
 
-let hf_of_appm l =
-  SLM.find l |> snd3 |> fst3
+let concretizes l = function
+  | Cnc (l') -> Sloc.eq l l'
+  | App (_, _, unf) ->
+      List.flatten unf
+      |> M.list_contains Sl.eq l
 
-let ls_of_appm l =
-  SLM.find l |> snd3 |> snd3
+type appm = app SLM.t
 
-let unf_of_appm l =
-  SLM.find l |> thd3
+let maybe_app = function
+  | App x -> Some x
+  | _     -> None
+
+let maybe_cnc = function
+  | Cnc l -> Some l
+  | _     -> None
+
+let find_app l appm =
+  SLM.find l
+  |> maybe_app
+  |> M.maybe
+
+let find_cnc l appm =
+  SLM.find l
+  |> maybe_cnc
+  |> M.maybe
+
+let hf_of_appm l appm =
+  find_app l appm
+  |> snd3 |> fst3
+
+let ls_of_appm l appm =
+  find_app l appm
+  |> snd3 |> snd3
+
+let unf_of_appm l appm =
+  find_app l appm
+  |> thd3
+
+let app_cnc_of_appm l appm =
+  find_app l appm |> fst3
 
 let cnc_of_appm l =
-  SLM.find l |> fst3
+  find_cnc l appm
 
 type me = (string, Sl.t) Hashtbl.t * (string, Sl.t) Hashtbl.t
 
@@ -169,16 +203,50 @@ let sloc_of_deref sto ctm me appm em =
         | _          -> assert false
     | None   -> assert false
 
-let abs_of_conc appm l =
-  SLM.filter (fun x y -> 
+let abs_of_conc l appm =
+  SLM.to_list appm
+  |> List.filter (fun (_, y) -> concretizes l y)
+  |> M.ex_one
 
 let slocs_of_deref sto ctm me appm em =
   match sloc_of_deref sto ctm me appm em with
   | None ->  (None, None) 
   | Some l when Sl.is_conc l ->
-      (abs_of_conc appm l, Some l)
+      (abs_of_conc l appm, Some l)
   | Some l with Sl.is_abs l  -> (Some l, None)
   | _ -> assert false
+
+(*let annotate_read sto ctm gst annom = function
+  | Lval (Mem e) ->
+    (* unfold, please cnc into var_of e *)
+  | e ->
+    let v = CM.referenced_var_of e in
+    let l = sloc_of_v sm v in
+    match l with
+    | Some l -> (Dirty, l)
+    | None   -> (Clean, l)
+    (* pass back a location to propogate unfolding info *)
+    *)
+
+let annotate_set sto gst ctm me appm (lv, e, _) =
+  match lv, e with
+  (* v := *v1 *)
+  | (C.Var v, _), Lval (C.Mem e, _) ->
+    let al  = al_of_expr ctm me e |> M.maybe in 
+    let (anno, sto, gst, me, appm) =
+      annotate_read sto gst ctm me appm e in
+    let (dal, dcl) = slocs_of_deref sto gst me appm e in
+    let _ = set_al me v dal; maybe_set_cl me v dcl in
+    (anno, sto, gst, me, appm)
+
+  (* v := e *)
+  | (C.Var v, _), e ->
+    let _ = al_of_expr ctm me e |> maybe_set_al me v in
+    let _ = cl_of_expr ctm me e |> maybe_set_cl me v in
+    ([], sto, gst, me, appm)
+
+  | (C.Mem e1, _), LVal (C.Mem e, _) -> assert false
+  | (C.Mem e1, _), e2, _ -> assert false
 
 let annotate_instr sto ctm gst annom = function 
   | C.Set s  -> annotate_set sto gst annom s
@@ -192,34 +260,6 @@ let annotate_instr sto ctm gst annom = function
                           C.instr ->
                           Ct.store * Ct.store * annom *)
 
-let annotate_read sto ctm gst annom = function
-  | Lval (Mem e) ->
-    (* unfold, please cnc into var_of e *)
-  | e ->
-    let v = CM.referenced_var_of e in
-    let l = sloc_of_v sm v in
-    match l with
-    | Some l -> (Dirty, l)
-    | None   -> (Clean, l)
-    (* pass back a location to propogate unfolding info *)
-
-let annotate_set sto gst ctm me appm (lv, e, _) =
-  match lv, e with
-  (* v := *v1 *)
-  | (C.Var v, _), Lval (C.Mem e, _) ->
-    let al  = al_of_expr ctm me e |> M.maybe in 
-    let (anno, sto, gst, me, appm) =
-      annotate_read sto gst ctm me appm e in
-    let (dal, dcl) = slocs_of_deref sto gst me appm e in
-    let _ = set_al me v dal; maybe_set_cl me v dcl in
-    (anno, sto, gst, me, appm)
-  (* v := e *)
-  | (C.Var v, _), e ->
-    let _ = al_of_expr ctm me e |> maybe_set_al me v in
-    let _ = cl_of_expr ctm me e |> maybe_set_cl me v in
-    ([], sto, gst, me, appm)
-  | (C.Mem e1, _), LVal (C.Mem e, _) -> assert false
-  | (C.Mem e1, _), e2, _ -> assert false
 
 
 let annotate_block j sto gst annom =

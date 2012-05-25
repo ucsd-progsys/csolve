@@ -472,6 +472,11 @@ let list_somes xs =
         end []
      |> List.rev
 
+let list_contains eq x l =
+  try 
+    List.find (eq x) l; true
+  with Not_found -> false
+
 (* let map_partial f = list_somes <.> List.map f  *)
 
 let map_partial f xs =
