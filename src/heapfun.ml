@@ -118,7 +118,7 @@ let apply_hf_in_env ((f, _, _) as app) ins env =
   HfMap.find f env |> apply_hf_shape app ins
 
 let apply_hf_sto l hsto sto =
-  CtIS.upd hsto sto |> CtIS.rem_app l
+  CtIS.upd hsto sto |> M.flip CtIS.rem_app l
 
   (* remove dependencies *)
 let fold_hf_on_hp ls ins h hf env =

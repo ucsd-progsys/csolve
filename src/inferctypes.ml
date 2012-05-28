@@ -612,7 +612,7 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
      infer_shape tgr fe ve gst scim (cf, sci, vm)
-  |> HRA.annotate_cfg sci.ST.cfg gst
+  |> HRA.annotate_cfg sci.ST.cfg
 
 let declared_funs cil =
   C.foldGlobals cil begin fun fs -> function
