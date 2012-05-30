@@ -70,6 +70,11 @@ let frefs_of def = def.ref_params
 let unfs_of  def = def.unfolds
 let rhs_of   def = def.rhs
 
+let fresh_unfs_of_hf cl hf env = 
+  HfMap.find hf env
+  |> unfs_of
+  |> M.map_nested Sl.copy_fresh
+  |> M.map_fst (M.map_fst (fun _ -> cl))
 
 let def_of_intlist =
   let nrf = ("", I.top) in

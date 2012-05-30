@@ -635,6 +635,12 @@ let map2 f xs ys =
 let map f xs = 
   List.rev_map f xs |> List.rev
 
+let map_nested f lls = List.map (List.map f) lls
+
+let map_fst f = function
+  | x :: xs -> f x :: xs
+  | [] -> []
+
 let flatten xss =
   xss
   |> List.fold_left (fun acc xs -> xs ++ acc) []

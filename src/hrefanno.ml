@@ -30,6 +30,7 @@ module RA = Refanno
 module Ct = Ctypes
 module FC = FixConstraint
 module CM = CilMisc
+module Hf = Heapfun
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
 module SLM  = Sl.SlocMap
@@ -64,16 +65,12 @@ type me = (string, Sl.t) Hashtbl.t * (string, Sl.t) Hashtbl.t
 
 let cl_of_me = snd
 let al_of_me = fst
-
-let set_cl me v =
-  cl_of_me me
-  |> Hashtbl.replace
-  <| v.vname
-
-let set_al me v =
-  al_of_me me
-  |> Hashtbl.replace
-  <| v.vname
+let get_l me v = v.vname |> M.hashtbl_maybe_find me
+let set_l me v = v.vname |> Hashtbl.replace me
+let get_al me = al_of_me me |> get_l
+let get_cl me = cl_of_me me |> get_l
+let set_cl me = cl_of_me me |> set_l
+let set_al me = al_of_me me |> set_l
 
 let maybe_set_cl me v = function
   | Some cl -> set_cl me v cl
@@ -82,16 +79,6 @@ let maybe_set_cl me v = function
 let maybe_set_al me v = function
   | Some al -> set_al me v al
   | _ -> ()
-
-let get_al me v =
-  al_of_me me
-  |> M.hashtbl_maybe_find
-  <| v.vname
-    
-let get_cl me v =
-  cl_of_me me
-  |> M.hashtbl_maybe_find
-  <| v.vname
 
 let always_get_cl me al v =
   match get_cl me v with
@@ -114,32 +101,59 @@ let ind_of_expr ctm e =
   with Not_found -> Pretty.printf "(Could not find %a\n\n" Cil.d_exp e;
   assert false
 
+let is_unf appm al = try
+    SLM.find al appm
+    |> (function App(cl, _, _) -> Some cl 
+               | Cnc cl        -> Some cl)
+  with Not_found -> None 
+
+let is_unf_by appm al cl =
+  is_unf appm al
+  |> function Some cl' -> Sl.eq cl cl' | None -> false
+
+let generalize_cnc sto al cl =
+  ([RA.Gen (cl, al)], CtIS.remove sto cl)
+
+let generalize_hf sto cl (hf, ls, _) ins env =
+  let sto' = Hf.fold_hf_on_hp ls ins sto hf env in
+  ([RA.HGen (hf, ls, ins)], sto')
+
 let generalize sto gst ctm me appm al =
-  assert false
+  let _   = assert (SLM.mem al appm) in 
+  let env = Hf.test_env in
+  let (ann, sto) = match SLM.find al appm with
+  | App (cl, app, ins)  -> generalize_hf sto cl app ins env
+  | Cnc cl              -> generalize_cnc sto al cl in
+  (ann, sto, gst, me, SLM.remove al appm)
 
-let instantiate sto gst ctm me appm al cl = 
-  assert false 
+let instantiate_cnc sto me appm v al =
+  let cl = Sl.copy_concrete al in
+  let _  = set_cl me v cl in
+  let sto' = CtIS.find sto al |> CtIS.add sto cl in
+  ([RA.Ins (v.vname, cl, al)], sto', SLM.add al (Cnc cl) appm)
 
-let instantiate_cnc sto sm icl rw =
-  assert false
-(*  let scl               = Sl.copy_concrete icl in
-  let sto'              = CtIS.find sto icl |> CtIS.add sto scl in
-  let _                 = set_sm sm v scl in
-  (RA.Ins (icl, scl), sto', Some scl)
-  *)
-
-let instantiate_hf sto sm am icl rw =
-  assert false
-(*  let env               = Hf.test_env in
-  let (hf, _, _) as app = Hf.binding_of icl hfs in
-  let ins               = Hf.fresh_ins hf env in
+let instantiate_hf sto appm me env v al cl =
+  let (hf, _, _) as app = CtIS.hfuns sto |> Hf.binding_of al in
+  let ins               = Hf.fresh_unfs_of_hf cl hf env in
   let (dep, sto')       = Hf.apply_hf_in_env app ins env in
-  let sto''             = Hf.apply_hf_sto l sto' sto in
-  let scl               = CtIS.domain sto' |> M.ex_one in
-  let _                 = set_sm sm v scl
-  let _                 = set_am am scl (app, ins)
-  (RA.HIns (icl, ins), sto'', Some scl)
-  *)
+  let _                 = set_cl me v cl in
+  let appm'             = SLM.add al (App(cl, app, ins)) appm in
+  ([RA.HIns (cl, ins)], sto', appm)
+
+let instantiate_aux sto gst ctm me appm v al cl = 
+  let hf_env = Hf.test_env in
+  begin if CtIS.hfuns sto |> Hf.binds al then
+    instantiate_hf sto appm me hf_env v al cl
+  else
+     instantiate_cnc sto me appm v al end
+  |> (fun (ann, sto, appm) -> (ann, sto, gst, me, appm))
+
+let instantiate sto gst ctm me appm v al cl =
+  let (ann, sto, gst, me, appm) =
+    if is_unf_by appm al cl then
+      generalize sto gst ctm me appm al
+    else ([], sto, gst, me, appm) in
+  instantiate_aux sto gst ctm me appm v al cl
 
 let is_deref = function
   | Lval (Mem _, _) -> true
@@ -209,17 +223,7 @@ let annotate_read sto gst ctm me appm e =
   let v  = CM.referenced_var_of_exp e in
   let al = al_of_expr ctm me e |> M.maybe in
   let cl = possibly_fresh_cl_of_expr me e in
-  if SLM.mem al appm then
-    begin
-      if SLM.find al appm |> concretizes cl then
-        ([], sto, gst, me, appm)
-      else
-        let (ann1, sto, gst, me, appm) = generalize sto gst ctm me appm al in
-        let (ann2, sto, gst, me, appm) = instantiate sto gst ctm me appm al cl in
-        (ann1 ++ ann2, sto, gst, me, appm)
-    end
-  else
-    instantiate sto gst ctm me appm al cl
+    instantiate sto gst ctm me appm v al cl
 
 let annotate_set sto gst ctm me appm = function
   (* v := *v1 *)
