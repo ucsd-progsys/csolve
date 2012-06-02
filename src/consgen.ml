@@ -104,7 +104,8 @@ let rename_args rf sci =
   let hi', ho' = rf |> Ctypes.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
   let effs'    = FI.effectset_subs FI.t_subs_names subs rf.Ctypes.effects in
-  Ctypes.RefCTypes.CFun.make args' rf.Ctypes.globlocs hi' ret' ho' effs'
+  Ctypes.RefCTypes.CFun.make 
+    args' rf.Ctypes.globlocs rf.Ctypes.quant_svars rf.Ctypes.quant_tvars hi' ret' ho' effs'
 
 let rename_funspec scim spec =
   spec 
@@ -121,10 +122,10 @@ let rename_funspec scim spec =
 (******************************************************************************)
 
 let finalize_store shp_sto sto =
-  Ctypes.I.Store.Data.fold_locs begin fun l ld sto ->
+  Ctypes.I.Store.fold_locs begin fun l ld sto ->
     try
-      let shp_ld = Ctypes.I.Store.Data.find shp_sto l in
-        Ctypes.I.Store.Data.add sto l begin
+      let shp_ld = Ctypes.I.Store.find shp_sto l in
+        Ctypes.I.Store.add sto l begin
           Ctypes.I.LDesc.mapn begin fun _ pl fld ->
             match Ctypes.I.LDesc.find pl shp_ld with
               | [(_, shp_fld)] -> Ctypes.I.Field.set_finality fld (Ctypes.I.Field.get_finality shp_fld)
@@ -132,7 +133,7 @@ let finalize_store shp_sto sto =
           end ld
         end
     with Not_found ->
-      Ctypes.I.Store.Data.add sto l ld
+      Ctypes.I.Store.add sto l ld
   end sto sto
 
 let finalize_funtypes shm cnv =
