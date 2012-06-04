@@ -1,0 +1,1 @@
+qualif BigStruct(v:ptr) : BLOCK_BEGIN([v]) + 12 = BLOCK_END([v])

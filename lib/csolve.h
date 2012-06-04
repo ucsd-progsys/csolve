@@ -38,12 +38,15 @@
 #define ANYREF             CSOLVE_ATTR (csolve_any_ref)
 #define ANY                CSOLVE_ATTR (csolve_any_type)
 #define NULL               CSOLVE_ATTR (csolve_null_or_ok)
+#define VAR(a)             CSOLVE_ATTR (csolve_type_var (#a))
+
 #define FINAL              CSOLVE_ATTR (csolve_final)
 #define LOC(l)             CSOLVE_ATTR (csolve_sloc (#l))
 #define GLOBAL(l)          CSOLVE_ATTR (csolve_global_loc (#l))
 #define OKEXTERN           CSOLVE_ATTR (csolve_extern_ok)
 #define CHECK_TYPE         CSOLVE_ATTR (csolve_check_type)
 #define INST(l, k)         CSOLVE_ATTR (csolve_inst_sloc (#l, #k))
+#define INST_VAR(t, u)     CSOLVE_ATTR (csolve_inst_tvar (#t, #u))
 #define ROOM_FOR(t)        CSOLVE_ATTR (csolve_room_for (sizeof(t)))
 #define NNROOM_FOR(t)      CSOLVE_ATTR (csolve_nonnull_room_for (sizeof(t)))
 

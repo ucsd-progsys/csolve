@@ -167,6 +167,7 @@ let pred_of_ctype = function
   | Ct.Int  (_, ix) -> pred_of_index_int ix
   | Ct.ARef         -> pred_of_index_ref Index.ind_of_any
   | Ct.Any  _       -> pred_of_index_int Index.ind_of_any
+  | Ct.TVar t       -> pred_of_index_int Index.top
 
 (* API *)
 let non_null_pred_of_ctype = function
@@ -175,6 +176,7 @@ let non_null_pred_of_ctype = function
   | Ct.Int  (_, ix) -> pred_of_index_int ix
   | Ct.ARef         -> non_null_pred_of_index_ref Index.ind_of_any
   | Ct.Any  _       -> pred_of_index_int Index.ind_of_any
+  | Ct.TVar t       -> pred_of_index_int Index.top
 
 (*
 let pred_of_index = function

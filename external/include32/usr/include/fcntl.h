@@ -73,7 +73,7 @@ extern int fcntl (int __fd, int __cmd, ...);
 extern int open (__const char NULLTERMSTR * FINAL STRINGPTR __file, int __oflag, ...) __nonnull ((1)) OKEXTERN;
 #else
 # ifdef __REDIRECT
-extern int __REDIRECT (open, (__const char * ARRAY VALIDPTR __file, int __oflag, ...), open64) OKEXTERN
+extern int __REDIRECT (open, (__const char NULLTERMSTR * FINAL STRINGPTR __file, int __oflag, ...), open64) OKEXTERN
      __nonnull ((1));
 # else
 #  define open open64

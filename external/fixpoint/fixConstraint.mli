@@ -130,6 +130,8 @@ val env_of_wf        : wf -> envt
 val reft_of_wf       : wf -> reft
 val id_of_wf         : wf -> id 
 val filter_of_wf     : wf -> (Qualifier.t -> bool)
+  
+val reduce_wfs       : wf list -> wf list
 
 val make_dep         : bool -> tag option -> tag option -> dep
 val matches_deps     : dep list -> tag * tag -> bool
