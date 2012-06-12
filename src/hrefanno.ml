@@ -241,8 +241,17 @@ let annotate_set sto gst ctm me appm = function
     let _ = cl_of_expr me e     |> maybe_set_cl me v in
     ([], sto, gst, me, appm)
 
-  | (Mem e1, _), Lval (Mem e, _) -> assert false
-  | (Mem e1, _), e2 -> assert false
+  | (Mem e1, _), e2 when expr_has_ptr_type ctm e2 ->
+      let al, cl = al_of_expr me e2, possibly_fresh_cl_of_expr me e2 in
+      let (anno, sto, gst, me, appm) =
+        annotate_write 
+
+  | (Mem e1, _), _ ->
+      annotate_write sto gst me appm e1
+
+  | lv, e ->
+      ErrorMsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
+      assertf "annotate_set: unknown set"
 
 let annotate_instr sto gst ctm me appm = function 
   | Set (lv, e, _) -> annotate_set sto gst ctm me appm (lv, e)
@@ -257,7 +266,7 @@ let annotate_instr sto gst ctm me appm = function
                           Ct.store * Ct.store * annom *)
 
 let annotate_block j sto gst annom =
-  assert false
+   
   (* val annotate_block : int ->
                           Ct.store ->
                           Ct.store ->
@@ -266,17 +275,17 @@ let annotate_block j sto gst annom =
                           instr ->
                           Ct.store * Ct.store * annom * ranno *)
 
+let fold_all appm = assert false
 
-(*let annot_iter cfg sh globalslocs anna =
+let annot_iter cfg sh globalslocs anna =
   let do_block j (_, ans) =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
     | Instr is -> annotate_block sto globalslocs ctm theta j anna.(j) is
     | _        -> ans in
-  Misc.array_fold_lefti do_block [] sol*)
+  Misc.array_fold_lefti do_block [] sol
 
 let annotate_cfg cfg shp =
-  assert false
-(*  let anna, conca, theta, sto, ctm = acp shp.anna, acp shp.conca,
+  let anna, conca, theta, sto, ctm = acp shp.anna, acp shp.conca,
                                      hcp shp.theta, shp.sto, shp.ctemap in
-  let sm = Hashtbl.create 16 in
-  annot_iter  *)
+  let me = (Hashtbl.create 16, Hashtbl.create 16)
+  annotate_iter anna ctm sto me
