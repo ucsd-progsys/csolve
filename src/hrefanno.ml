@@ -225,6 +225,12 @@ let annotate_read sto gst ctm me appm e =
   let cl = possibly_fresh_cl_of_expr me e in
     instantiate sto gst ctm me appm v al cl
 
+let annotate_write sto gst ctm me appm e cl =
+  let v    = CM.referenced_var_of_exp e in
+  let al   = al_of_expr ctm me e |> M.maybe in
+  let sto' = CtIS.upd
+  let cl   = possibly_fresh_cl_of_expr me e in
+
 let annotate_set sto gst ctm me appm = function
   (* v := *v1 *)
   | (Var v, _), Lval (Mem e, _) ->
@@ -242,9 +248,10 @@ let annotate_set sto gst ctm me appm = function
     ([], sto, gst, me, appm)
 
   | (Mem e1, _), e2 when expr_has_ptr_type ctm e2 ->
-      let al, cl = al_of_expr me e2, possibly_fresh_cl_of_expr me e2 in
+      let al = al_of_expr me e2 in
+      let cl, il = possibly_fresh_cl_of_expr e2, ind_of_expr e2 in
       let (anno, sto, gst, me, appm) =
-        annotate_write 
+        annotate_write sto gst me appm e1 (cl, il) in
 
   | (Mem e1, _), _ ->
       annotate_write sto gst me appm e1
