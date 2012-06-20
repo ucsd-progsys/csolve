@@ -29,7 +29,6 @@ module Sl = Sloc
 module RA = Refanno
 module Ct = Ctypes
 module FC = FixConstraint
-module CI = ConsInfra
 module CM = CilMisc
 module Hf = Heapfun
 module SlS  = Sl.Subst
@@ -294,10 +293,10 @@ let annotate_block j sto gst annom =
 
 let fold_all appm = assert false
 
-let annot_iter cfg sto ctm sh gst anna =
+let annot_iter cfg sto ctm me anna =
   let do_block j (_, ans) =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
-    | Instr is -> annotate_block sto gst ctm j anna.(j) is
+    | Instr is -> annotate_block sto ctm j anna.(j) is
     | _        -> ans in
   assert false
   (*M.array_fold_lefti do_block []*)
@@ -305,4 +304,4 @@ let annot_iter cfg sto ctm sh gst anna =
 let annotate_cfg cfg shp =
   let anna, sto, ctm = acp shp.anna, shp.store, shp.etypm in
   let me = (Hashtbl.create 16, Hashtbl.create 16) in
-  annot_iter cfg anna ctm sto me
+  annot_iter cfg sto ctm me anna
