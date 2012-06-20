@@ -29,6 +29,7 @@ module Sl = Sloc
 module RA = Refanno
 module Ct = Ctypes
 module FC = FixConstraint
+module CI = ConsInfra
 module CM = CilMisc
 module Hf = Heapfun
 module SlS  = Sl.Subst
@@ -44,6 +45,7 @@ module CtICF = CtI.CFun
 
 open Cil
 open M.Ops
+open Shape
 
 let acp = Array.copy
 let hcp = Hashtbl.copy
@@ -166,6 +168,11 @@ let ctm_sloc_of_expr ctm e =
     | _             -> None
   with Not_found -> Pretty.printf "Could not find %a\n\n" d_exp e; assert false
 
+let ctm_ct_of_expr ctm e =
+  try
+    CtI.ExpMap.find e ctm
+  with Not_found -> Pretty.printf "Could not find %a\n\n" d_exp e; assert false
+
 let al_of_expr ctm me e =
   let _   = assert (not (is_deref e)) in
   let v   = CM.referenced_var_of_exp e in
@@ -225,11 +232,14 @@ let annotate_read sto gst ctm me appm e =
   let cl = possibly_fresh_cl_of_expr me e in
     instantiate sto gst ctm me appm v al cl
 
-let annotate_write sto gst ctm me appm e cl =
-  let v    = CM.referenced_var_of_exp e in
-  let al   = al_of_expr ctm me e |> M.maybe in
-  let sto' = CtIS.upd
-  let cl   = possibly_fresh_cl_of_expr me e in
+let annotate_write sto gst ctm me appm e ct =
+  let v     = CM.referenced_var_of_exp e in
+  let al    = al_of_expr ctm me e |> M.maybe in
+  let cl    = possibly_fresh_cl_of_expr me e in
+  let il    = ind_of_expr ctm e in
+    instantiate sto gst ctm me appm v al cl
+  (* check subtyping of ct vs sto' |> find |> cl |> find |> il *)
+
 
 let annotate_set sto gst ctm me appm = function
   (* v := *v1 *)
@@ -247,17 +257,17 @@ let annotate_set sto gst ctm me appm = function
     let _ = cl_of_expr me e     |> maybe_set_cl me v in
     ([], sto, gst, me, appm)
 
-  | (Mem e1, _), e2 when expr_has_ptr_type ctm e2 ->
-      let al = al_of_expr me e2 in
-      let cl, il = possibly_fresh_cl_of_expr e2, ind_of_expr e2 in
-      let (anno, sto, gst, me, appm) =
-        annotate_write sto gst me appm e1 (cl, il) in
+  (* *v1 := *v2 shouldn't be possible *)
+  | (Mem e1, _), Lval (Mem e2, _) ->
+      assert false
 
-  | (Mem e1, _), _ ->
-      annotate_write sto gst me appm e1
+  (* *v := e *)
+  | (Mem e1, _), e ->
+      let ct = ctm_ct_of_expr ctm e in 
+        annotate_write sto gst ctm me appm e1 ct
 
   | lv, e ->
-      ErrorMsg.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
+      E.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
       assertf "annotate_set: unknown set"
 
 let annotate_instr sto gst ctm me appm = function 
@@ -273,7 +283,7 @@ let annotate_instr sto gst ctm me appm = function
                           Ct.store * Ct.store * annom *)
 
 let annotate_block j sto gst annom =
-   
+  assert false 
   (* val annotate_block : int ->
                           Ct.store ->
                           Ct.store ->
@@ -284,15 +294,15 @@ let annotate_block j sto gst annom =
 
 let fold_all appm = assert false
 
-let annot_iter cfg sh globalslocs anna =
+let annot_iter cfg sto ctm sh gst anna =
   let do_block j (_, ans) =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
-    | Instr is -> annotate_block sto globalslocs ctm theta j anna.(j) is
+    | Instr is -> annotate_block sto gst ctm j anna.(j) is
     | _        -> ans in
-  Misc.array_fold_lefti do_block [] sol
+  assert false
+  (*M.array_fold_lefti do_block []*)
 
 let annotate_cfg cfg shp =
-  let anna, conca, theta, sto, ctm = acp shp.anna, acp shp.conca,
-                                     hcp shp.theta, shp.sto, shp.ctemap in
-  let me = (Hashtbl.create 16, Hashtbl.create 16)
-  annotate_iter anna ctm sto me
+  let anna, sto, ctm = acp shp.anna, shp.store, shp.etypm in
+  let me = (Hashtbl.create 16, Hashtbl.create 16) in
+  annot_iter cfg anna ctm sto me
