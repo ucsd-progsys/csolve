@@ -1,18 +1,31 @@
+#include <csolve.h>
+#include <cpj.h>
+#include <stdlib.h>
+
+
 typedef struct list {
   struct list * n;
   int id;
-}; 
+};
 
-struct list * / unq(L, 0:int) NNVALIDPTR mk(int len) / emp
+int main(int argc, char ** argv)
 {
-  if (len <= 0)
-    return NULL;
+  test(); 
 
-  struct list * l;
-  struct list * root = l = malloc();
-  root -> next = malloc();
+  return 0;
+}
 
-  return root;
+struct list * INTLIST test()
+{
+//  if (len <= 0)
+//    return NULL;
+//
+//  struct list * l;
+//  struct list * root = l = malloc();
+//  root -> next = malloc();
+//
+//  return root;
+  return NULL;
 }
 
 

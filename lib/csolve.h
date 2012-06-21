@@ -52,7 +52,8 @@
 #define HASROOM            CSOLVE_ATTR (csolve_has_room)
 #define NNHASROOM          CSOLVE_ATTR (csolve_nonnull_has_room)
 
-
+#define HREF(hf)           CSOLVE_ATTR (csolve_heapfun (#hf))
+#define INTLIST               HREF(intlist)
 #define EFFECT(l, p)       CSOLVE_ATTR (csolve_effect (#l, #p))
 
 // Hack: CIL doesn't allow types as attribute parameters, so we

@@ -471,6 +471,10 @@ let get_option d = function
   | Some x -> x 
   | None   -> d
 
+let list_make n a =
+  let rec r n l = if n <= 0 then l else r (n-1) (a::l) in
+    r n []
+
 let list_somes xs =
   xs |> List.fold_left begin fun acc -> function 
           | Some x -> x :: acc 

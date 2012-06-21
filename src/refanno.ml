@@ -503,7 +503,15 @@ let annotate_cfg cfg sto globalslocs ctm anna =
 
 (* API *)
 let dummy_annotate_cfg cfg sto globalslocs ctm anna =
-  (anna, Array.make 0 (LM.empty, LM.empty), Hashtbl.create 1)
+  let nblocks = Array.length cfg.Ssa.blocks in
+  let _ = Array.iteri begin fun i a ->
+    match cfg.Ssa.blocks.(i).Ssa.bstmt.skind with
+    | Instr is -> List.length is
+                  |> fun x -> if List.length a != x then
+                       anna.(i) <- M.list_make x []
+                     else ()
+    |  _         -> () end anna in
+  (anna, Array.make nblocks (LM.empty, LM.empty), Hashtbl.create 1)
 
 (* API *)
 let cloc_of_varinfo theta v =
