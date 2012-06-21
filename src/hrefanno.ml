@@ -262,7 +262,9 @@ let annotate_set sto gst ctm me appm = function
     (anno, sto, gst, me, appm)
 
   (* v := e *)
-  | (Var v, _), e ->
+  | (Var v, _), e when expr_has_ptr_type ctm e ->
+    let e = e >> (CilMisc.is_pure_expr CilMisc.StringsArePure <+>
+      (fun b -> asserts b "impure expr")) in
     let _ = al_of_expr ctm me e |> maybe_set_al me v in
     let _ = cl_of_expr me e     |> maybe_set_cl me v in
     ([], sto, gst, me, appm)
@@ -276,6 +278,10 @@ let annotate_set sto gst ctm me appm = function
   | (Mem e1, _), e ->
       let ct = ctm_ct_of_expr ctm e in 
         annotate_write sto gst ctm me appm e1 ct
+
+  (* v := e | e is constant *)
+  | (Var v, _), _ ->
+    ([], sto, gst, me, appm)
 
   | lv, e ->
       E.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
