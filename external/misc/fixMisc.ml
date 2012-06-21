@@ -101,6 +101,12 @@ module Ops = struct
   let snd4 (_, x, _, _) = x
   let thd4 (_, _, x, _) = x
   let fth4 (_, _, _, x) = x
+
+  let fst5 (x, _, _, _, _) = x
+  let snd5 (_, x, _, _, _) = x
+  let thd5 (_, _, x, _, _) = x
+  let fth5 (_, _, _, x, _) = x
+  let fft5 (_, _, _, _, x) = x
   
   let withfst3 (_,y,z) x = (x,y,z)
   let withsnd3 (x,_,z) y = (x,y,z)

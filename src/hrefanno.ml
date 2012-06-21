@@ -287,23 +287,7 @@ let annotate_instr sto gst ctm me appm = function
   | Call _         -> assert false
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
-  (* val annotate_instr : Ct.store ->
-                          Ct.store ->
-                          annom ->
-                          C.instr ->
-                          Ct.store * Ct.store * annom *)
-
-let annotate_block j sto gst annom =
-  assert false 
-  (* val annotate_block : int ->
-                          Ct.store ->
-                          Ct.store ->
-                          annom ->
-                          ranno ->
-                          instr ->
-                          Ct.store * Ct.store * annom * ranno *)
-
-let folds_at_end_of_block annots appm =
+let folds_for_open_annots annots appm =
   List.concat annots
   |> List.fold_left begin fun l -> function
     | RA.Ins  (_, _, a)
@@ -311,29 +295,39 @@ let folds_at_end_of_block annots appm =
     | _           -> l end []
   |> List.map (mk_fold appm)
 
-let folded_annots_of_block_anno annots appm =
-  folds_at_end_of_block annots appm 
+let fold_at_end_of_block annots appm =
+  folds_for_open_annots annots appm 
   |> M.flip M.append_to_last annots
+
+let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
+  (annos ++ [annos'], sto, gst, me, appm)
+
+let annotate_block sto gst ctm me is =
+  List.fold_left begin fun ((_, sto, gst, me, appm) as wld) instr ->
+    annotate_instr sto gst ctm me appm instr
+    |> upd_wld wld end ([], sto, gst, me, SLM.empty) is
+  |> fun (ans, _, _, _, appm) -> fold_at_end_of_block ans appm
+
+let annot_iter cfg sto ctm me anna =
+  let nblocks    = Array.length cfg.Ssa.blocks in
+  let do_block j =
+    match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
+    | Instr is -> anna.(j) <- anna.(j) ++ annotate_block sto CtIS.empty ctm me is
+    | _        -> () in
+  M.range 0 nblocks
+  |> List.iter do_block
+
+let build_join_store_of_blocks sto anna = sto
 
 let nil_cnca_of_sto sto =
   CtIS.domain sto
   |> List.fold_left (fun c x -> SLM.add x SLM.empty c) SLM.empty
 
-let annot_iter cfg sto ctm me anna =
-  let do_block j (_, ans) =
-    match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
-    | Instr is -> annotate_block sto ctm j anna.(j) is
-    | _        -> ans in
-  assert false
-  (*M.array_fold_lefti do_block []*)
-
-let build_join_store_of_blocks sto anna = assert false
-
 let annotate_cfg cfg shp =
   let nblocks        = Array.length cfg.Ssa.blocks in
   let anna, sto, ctm = acp shp.anna, shp.store, shp.etypm in
   let me             = (Hashtbl.create 16, Hashtbl.create 16) in
-  let anna, _        = annot_iter cfg sto ctm me anna in
+  let _              = annot_iter cfg sto ctm me anna in
   let sto            = build_join_store_of_blocks sto anna in
   let conca          = (* nil out cnca *)
     M.map_pair nil_cnca_of_sto (sto, sto)

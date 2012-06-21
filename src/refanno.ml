@@ -502,6 +502,10 @@ let annotate_cfg cfg sto globalslocs ctm anna =
   |> fun (annota, conca) -> (annota, conca, theta)
 
 (* API *)
+let dummy_annotate_cfg cfg sto globalslocs ctm anna =
+  (anna, Array.make 0 (LM.empty, LM.empty), Hashtbl.create 1)
+
+(* API *)
 let cloc_of_varinfo theta v =
   try
     let l = Hashtbl.find theta v.vname in

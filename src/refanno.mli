@@ -66,6 +66,13 @@ val annotate_cfg: Ssa.cfgInfo ->
                   block_annotation array -> 
 		  block_annotation array * (cncm * cncm) array * ctab
 
+val dummy_annotate_cfg: Ssa.cfgInfo ->
+                        Ctypes.store ->
+                        Sloc.t list ->
+                        Ctypes.ctemap ->
+                        block_annotation array ->
+      block_annotation array * (cncm * cncm) array * ctab
+
 (*
    1. A : block * block -> annot list
    2. B : block -> annot list list
