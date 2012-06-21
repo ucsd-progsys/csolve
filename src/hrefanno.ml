@@ -52,10 +52,10 @@ let hcp = Hashtbl.copy
 type unf  = Sl.t list list
 type app  =
   | App of Sl.t * Ct.ind_hf_appl * unf
-  | Cnc of Sl.t
+  | Cnc of Sl.t * string
 
 let concretizes l = function
-  | Cnc (l') -> Sloc.eq l l'
+  | Cnc (l', vn) -> Sloc.eq l l'
   | App (_, _, unf) ->
       List.flatten unf
       |> M.list_contains Sl.eq l
@@ -104,34 +104,45 @@ let ind_of_expr ctm e =
 
 let is_unf appm al = try
     SLM.find al appm
-    |> (function App(cl, _, _) -> Some cl 
-               | Cnc cl        -> Some cl)
+    |> (function App (cl, _, _) -> Some cl 
+               | Cnc (cl, _)    -> Some cl)
   with Not_found -> None 
 
 let is_unf_by appm al cl =
   is_unf appm al
   |> function Some cl' -> Sl.eq cl cl' | None -> false
 
-let generalize_cnc sto al cl =
-  ([RA.Gen (cl, al)], CtIS.remove sto cl)
+let mk_fold_cnc al cl = RA.Gen (cl, al)
 
-let generalize_hf sto cl (hf, ls, _) ins env =
+let mk_fold_hf (hf, ls, _) unf = RA.HGen (hf, ls, unf) 
+
+let mk_fold appm al =
+  SLM.find al appm
+  |> begin function
+    | Cnc (cl, _) -> mk_fold_cnc cl al
+    | App (_, appl, unf) -> mk_fold_hf appl unf end
+
+let generalize_cnc sto al cl =
+  ([mk_fold_cnc al cl], CtIS.remove sto cl)
+
+let generalize_hf sto cl ((hf, ls, _) as appl) ins env =
   let sto' = Hf.fold_hf_on_hp ls ins sto hf env in
-  ([RA.HGen (hf, ls, ins)], sto')
+  ([mk_fold_hf appl ins], sto')
 
 let generalize sto gst ctm me appm al =
   let _   = assert (SLM.mem al appm) in 
   let env = Hf.test_env in
   let (ann, sto) = match SLM.find al appm with
   | App (cl, app, ins)  -> generalize_hf sto cl app ins env
-  | Cnc cl              -> generalize_cnc sto al cl in
+  | Cnc (cl, _)         -> generalize_cnc sto al cl in
   (ann, sto, gst, me, SLM.remove al appm)
 
 let instantiate_cnc sto me appm v al =
-  let cl = Sl.copy_concrete al in
-  let _  = set_cl me v cl in
+  let cl   = Sl.copy_concrete al in
+  let _    = set_cl me v cl in
   let sto' = CtIS.find sto al |> CtIS.add sto cl in
-  ([RA.Ins (v.vname, cl, al)], sto', SLM.add al (Cnc cl) appm)
+  let vn   = v.vname in
+  ([RA.Ins (vn, cl, al)], sto', SLM.add al (Cnc (cl, vn)) appm)
 
 let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app = CtIS.hfuns sto |> Hf.binding_of al in
@@ -258,7 +269,8 @@ let annotate_set sto gst ctm me appm = function
 
   (* *v1 := *v2 shouldn't be possible *)
   | (Mem e1, _), Lval (Mem e2, _) ->
-      assert false
+      E.error "annotate_set: lv = *%a, e=*%a" Cil.d_exp e1 Cil.d_exp e2;
+      assertf "annotate_set: illegal looking set?"
 
   (* *v := e *)
   | (Mem e1, _), e ->
@@ -291,7 +303,21 @@ let annotate_block j sto gst annom =
                           instr ->
                           Ct.store * Ct.store * annom * ranno *)
 
-let fold_all appm = assert false
+let folds_at_end_of_block annots appm =
+  List.concat annots
+  |> List.fold_left begin fun l -> function
+    | RA.Ins  (_, _, a)
+    | RA.HIns (a, _) -> if SLM.mem a appm then a::l else l
+    | _           -> l end []
+  |> List.map (mk_fold appm)
+
+let folded_annots_of_block_anno annots appm =
+  folds_at_end_of_block annots appm 
+  |> M.flip M.append_to_last annots
+
+let nil_cnca_of_sto sto =
+  CtIS.domain sto
+  |> List.fold_left (fun c x -> SLM.add x SLM.empty c) SLM.empty
 
 let annot_iter cfg sto ctm me anna =
   let do_block j (_, ans) =
@@ -301,7 +327,26 @@ let annot_iter cfg sto ctm me anna =
   assert false
   (*M.array_fold_lefti do_block []*)
 
+let build_join_store_of_blocks sto anna = assert false
+
 let annotate_cfg cfg shp =
+  let nblocks        = Array.length cfg.Ssa.blocks in
   let anna, sto, ctm = acp shp.anna, shp.store, shp.etypm in
-  let me = (Hashtbl.create 16, Hashtbl.create 16) in
-  annot_iter cfg sto ctm me anna
+  let me             = (Hashtbl.create 16, Hashtbl.create 16) in
+  let anna, _        = annot_iter cfg sto ctm me anna in
+  let sto            = build_join_store_of_blocks sto anna in
+  let conca          = (* nil out cnca *)
+    M.map_pair nil_cnca_of_sto (sto, sto)
+    |> Array.make nblocks in 
+  let shp'           = {
+    vtyps = shp.vtyps;
+    etypm = shp.etypm;
+    store = sto;
+    anna  = anna;
+    conca = conca;
+    theta = shp.theta;
+    nasa  = acp shp.nasa;
+    ffmsa = acp shp.ffmsa; }
+  in shp'
+
+  

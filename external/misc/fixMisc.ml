@@ -477,6 +477,10 @@ let list_contains eq x l =
     List.find (eq x) l; true
   with Not_found -> false
 
+let rec append_to_last l = function
+  | x :: [] -> (x ++ l) :: []
+  | x :: ll -> x :: (append_to_last l ll)
+
 (* let map_partial f = list_somes <.> List.map f  *)
 
 let map_partial f xs =
