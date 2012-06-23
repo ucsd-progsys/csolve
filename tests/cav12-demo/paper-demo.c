@@ -30,12 +30,12 @@ char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
 }
 
 typedef struct _csval {
-  int                 len;
-  char * ARRAY LOC(L) str;
-  struct _csval *     next;
+  int                     len;
+  char * STRINGPTR LOC(L) str;
+  struct _csval *         next;
 } csval;
 
-csval INST(L, S) * revstrncsvals (char * ARRAY LOC(S) s, int n) {
+csval INST(L, S) * revstrncsvals (char * STRINGPTR LOC(S) s, int n) {
   csval *last = NULL;
   while (n > 0) {
     csval *v    = (csval *) malloc (sizeof (csval));
