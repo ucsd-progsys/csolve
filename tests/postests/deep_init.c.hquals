@@ -1,3 +1,2 @@
 qualif isOne(v: int)      : v = 1
 qualif isTwo(v: int)      : v = 2
-qualif structSize(v: ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 12
