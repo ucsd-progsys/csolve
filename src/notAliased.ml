@@ -62,6 +62,8 @@ type context = {
 }
 
 (* abakst come back to this *)
+
+(* NA just building NA relations between NewCs and Gens *)
 let process_annot na = function
   | RA.Gen (cl, al) | RA.WGen (cl, al) -> NASet.remove (NotAliased.make cl al) na
   | RA.NewC (_, al, cl)                -> NASet.add (NotAliased.make cl al) na

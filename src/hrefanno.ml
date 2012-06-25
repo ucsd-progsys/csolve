@@ -86,6 +86,10 @@ let always_get_cl me al v =
   | Some l -> l
   | None -> let l = Sl.copy_concrete al in
       begin set_cl me v l; l end
+
+let var_of_lv = function
+  | (Var v, _) -> v
+  | lv -> E.error "var_of_lv: %a" d_lval lv; assertf "var_of_lv"
   
 let expr_has_ptr_type ctm e =
   try
@@ -183,16 +187,27 @@ let ctm_ct_of_expr ctm e =
     CtI.ExpMap.find e ctm
   with Not_found -> Pretty.printf "Could not find %a\n\n" d_exp e; assert false
 
+let ref_v_of_expr ctm e =
+  let rec v_rec = function
+    | Lval (Var v, _) as e when isPointerType v.vtype ->
+        Some (v, ctm_sloc_of_expr ctm e |> M.maybe)
+    | BinOp (_, e1, e2, _) -> begin
+        match (v_rec e1, v_rec e2) with
+        | (None, None) -> None
+        | (None, vl) | (vl, None)  -> vl
+        | (Some (v, l) as vl, Some (_, l')) when Sl.eq l l' -> vl
+        | _ -> assert false end
+    | CastE (_, e) -> v_rec e
+    | _ -> None in
+  v_rec e
+
 let al_of_expr ctm me e =
-  let _   = assert (not (is_deref e)) in
-  let v   = CM.referenced_var_of_exp e in
-  let icl = ctm_sloc_of_expr ctm e in
-  let scl = get_al me v in
-  match icl, scl with
-  | None, _            -> None
-  | Some icl, Some scl -> Some scl
-  | Some icl, None     -> set_al me v icl; Some icl
-  | _ -> assert false
+  match ref_v_of_expr ctm e with
+  | None -> None
+  | Some (v, ctal) -> begin
+      match get_al me v with
+      | Some al -> Some al 
+      | None    -> Some (ctal >> set_al me v) end
 
 let cl_of_expr me = function
   | Lval (Var v, _) -> get_cl me v
@@ -287,10 +302,46 @@ let annotate_set sto gst ctm me appm = function
       E.error "annotate_set: lv = %a, e = %a" Cil.d_lval lv Cil.d_exp e;
       assertf "annotate_set: unknown set"
 
-let annotate_instr sto gst ctm me appm = function 
+let conc_malloc me x y v =
+  match get_al me v with
+  | Some al -> always_get_cl me al v
+  | None    -> set_cl me v y; always_get_cl me y v
+
+let annotate_instr ans sto gst ctm me appm = function 
   | Set (lv, e, _) -> annotate_set sto gst ctm me appm (lv, e)
-  | Call _         -> assert false
-  | Call _         -> assert false
+
+  | Call (_, Lval ((Var fv), NoOffset), _,_) 
+    when CilMisc.is_pure_function fv.vname ->
+      ([], sto, gst, me, appm) 
+
+  | Call (_, Lval ((Var fv), _), _, _) when fv.vname = "csolve_fold_all" ->
+      E.error "csolve_fold_all unsupported"; assert false
+
+      (* Shape inference only creates an aloc for this malloc. we need to create
+       * a cloc*)
+      (* when i make this cloc, do i need to materialize it in the store? *)
+      (* i may actually need to replace the New annot with the NewC annot... *)
+  | Call (rv, Lval ((Var fv), NoOffset), _, _) when fv.vname = "malloc" ->
+      let v = (rv |> M.maybe) |> var_of_lv in
+      let newC = begin match ans with 
+        | [RA.New (x, y)] -> [RA.NewC (x, y, conc_malloc me x y v)]
+        | _            -> 
+          E.error "annotate_malloc"; assertf "annotate_malloc" end in
+      (newC, sto, gst, me, appm)
+
+  | Call (rv,_,_,_) -> begin
+      match rv, ans with
+      | None, []  -> ([], sto, gst, me, appm)
+      | None, ans -> assert false
+      | _         ->
+          E.error "Unsupported function call"; assertf "annotate_instr_call"
+  end
+    (*let ins         = Misc.numbered_list ns in
+      let conc, anns  = Misc.mapfold (concretize_new theta j k) conc ins in
+      let conc, anns' = Misc.mapfold generalize conc globalslocs in
+      let conc_anns   = conc, Misc.flatten (anns ++ anns') in
+      let _           = lvo |>> sloc_of_ret ctm theta conc_anns in
+      conc_anns*)
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
 let folds_for_open_annots annots appm =
@@ -308,17 +359,20 @@ let fold_at_end_of_block annots appm =
 let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
   (annos ++ [annos'], sto, gst, me, appm)
 
-let annotate_block sto gst ctm me is =
-  List.fold_left begin fun ((_, sto, gst, me, appm) as wld) instr ->
-    annotate_instr sto gst ctm me appm instr
-    |> upd_wld wld end ([], sto, gst, me, SLM.empty) is
+let annotate_block annj sto gst ctm me is =
+  List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans instr ->
+    annotate_instr ans sto gst ctm me appm instr
+    |> upd_wld wld end ([], sto, gst, me, SLM.empty) annj is
   |> fun (ans, _, _, _, appm) -> fold_at_end_of_block ans appm
 
 let annot_iter cfg sto ctm me anna =
   let nblocks    = Array.length cfg.Ssa.blocks in
   let do_block j =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
-    | Instr is -> anna.(j) <- anna.(j) ++ annotate_block sto CtIS.empty ctm me is
+    | Instr is ->
+        let annj = anna.(j) in
+        annotate_block annj sto CtIS.empty ctm me is
+        |> (fun x -> anna.(j) <- List.map2 (++) annj x)
     | _        -> () in
   M.range 0 nblocks
   |> List.iter do_block
