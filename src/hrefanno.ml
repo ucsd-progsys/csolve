@@ -89,7 +89,7 @@ let always_get_cl me al v =
 
 let var_of_lv = function
   | (Var v, _) -> v
-  | lv -> E.error "var_of_lv: %a" d_lval lv; assertf "var_of_lv"
+  | lv -> E.error "var_of_lv"; assertf "var_of_lv"
   
 let expr_has_ptr_type ctm e =
   try
@@ -142,6 +142,7 @@ let generalize sto gst ctm me appm al =
   (ann, sto, gst, me, SLM.remove al appm)
 
 let instantiate_cnc sto me appm v al =
+  let cl   = always_get_cl me al in
   let cl   = Sl.copy_concrete al in
   let _    = set_cl me v cl in
   let sto' = CtIS.find sto al |> CtIS.add sto cl in
@@ -303,9 +304,38 @@ let annotate_set sto gst ctm me appm = function
       assertf "annotate_set: unknown set"
 
 let conc_malloc me x y v =
+  let _ = assert (Sl.is_abstract x) in
+  let _ = assert (Sl.is_abstract y) in
   match get_al me v with
   | Some al -> always_get_cl me al v
   | None    -> set_cl me v y; always_get_cl me y v
+
+let conc_lv ctm me = function 
+  | (Var v, _) as lv ->
+      get_al me v
+      |>> (fun al -> Some (always_get_cl me al v))
+  | lv ->
+      Errormsg.error "sloc_of_ret";
+      assertf "sloc_of_ret"
+
+let gen_ann_if_new ctm gst me (sto, appm) = function
+  | RA.New (x, y) as nan ->
+    let _= asserts (Sl.is_abstract y) "concretize_new" in
+    if Sl.is_abstract x then
+      if is_unf appm y |> M.maybe_bool then
+        let (ann, sto, gst, me, appm) =
+          generalize sto gst ctm me appm y in
+        (sto, appm), ann ++ [nan]
+      else
+        (sto, appm), [nan] 
+    else (* x is concrete *)
+        assertf "conc_ann_if_new"
+   (*     let cl = always_get_cl me y in
+        let (ann, sto, gst, me, appm) = 
+          instantiate sto gst ctm me appm v y cl in
+        let ann = RA.NewC(x, y, cl) |> M.chop_last ann in
+        ann, (sto, appm) *)
+  | ann           -> (sto, appm), [ann]
 
 let annotate_instr ans sto gst ctm me appm = function 
   | Set (lv, e, _) -> annotate_set sto gst ctm me appm (lv, e)
@@ -319,23 +349,23 @@ let annotate_instr ans sto gst ctm me appm = function
 
       (* Shape inference only creates an aloc for this malloc. we need to create
        * a cloc*)
-      (* when i make this cloc, do i need to materialize it in the store? *)
       (* i may actually need to replace the New annot with the NewC annot... *)
   | Call (rv, Lval ((Var fv), NoOffset), _, _) when fv.vname = "malloc" ->
-      let v = (rv |> M.maybe) |> var_of_lv in
-      let newC = begin match ans with 
-        | [RA.New (x, y)] -> [RA.NewC (x, y, conc_malloc me x y v)]
+      let v = (rv |> M.maybe) |> var_of_lv in (* this might not work *)
+      let newC, (al, cl) = begin match ans with 
+        | [RA.New (x, y)] ->
+            let cl = conc_malloc me x y v in
+            [RA.NewC (x, y, cl)], (y, cl)
         | _            -> 
           E.error "annotate_malloc"; assertf "annotate_malloc" end in
-      (newC, sto, gst, me, appm)
+      let (anns, sto, gst, me, appm) = instantiate sto gst ctm me appm v al cl in
+      (newC ++ anns, sto, gst, me, appm)
 
-  | Call (rv,_,_,_) -> begin
-      match rv, ans with
-      | None, []  -> ([], sto, gst, me, appm)
-      | None, ans -> assert false
-      | _         ->
-          E.error "Unsupported function call"; assertf "annotate_instr_call"
-  end
+  | Call (rv,_,_,_) ->
+      let (sto, appm), anns = M.mapfold (gen_ann_if_new ctm gst me) (sto, appm) ans in
+      let anns = List.concat anns in
+      let _ = rv |>> conc_lv ctm me |> ignore in
+      (anns, sto, gst, me, appm) 
     (*let ins         = Misc.numbered_list ns in
       let conc, anns  = Misc.mapfold (concretize_new theta j k) conc ins in
       let conc, anns' = Misc.mapfold generalize conc globalslocs in
@@ -359,20 +389,23 @@ let fold_at_end_of_block annots appm =
 let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
   (annos ++ [annos'], sto, gst, me, appm)
 
-let annotate_block annj sto gst ctm me is =
-  List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans instr ->
-    annotate_instr ans sto gst ctm me appm instr
-    |> upd_wld wld end ([], sto, gst, me, SLM.empty) annj is
-  |> fun (ans, _, _, _, appm) -> fold_at_end_of_block ans appm
+let annotate_block anns sto gst ctm me is =
+  let _    = assert (List.length anns = List.length is) in
+  let init = ([], sto, gst, me, SLM.empty) in
+  List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans ins ->
+    annotate_instr ans sto gst ctm me appm ins
+    |> upd_wld wld end init anns is
+  (*|> fun (ans, _, _, _, appm) -> fold_at_end_of_block ans appm*)
+  |> fst5
 
 let annot_iter cfg sto ctm me anna =
   let nblocks    = Array.length cfg.Ssa.blocks in
   let do_block j =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
     | Instr is ->
-        let annj = anna.(j) in
-        annotate_block annj sto CtIS.empty ctm me is
-        |> (fun x -> anna.(j) <- List.map2 (++) annj x)
+        annotate_block anna.(j) sto CtIS.empty ctm me is
+        |> M.m2append anna.(j)
+        |> Array.set anna j
     | _        -> () in
   M.range 0 nblocks
   |> List.iter do_block

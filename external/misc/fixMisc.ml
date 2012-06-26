@@ -50,9 +50,9 @@ module Ops = struct
 
   let (+=) x n = x := !x + n; !x
 
-  let (++) = List.rev_append
+  let (++)  = List.rev_append
 
-  let (+++)= fun (x1s, y1s) (x2s, y2s) -> (x1s ++ x2s, y1s ++ y2s)
+  let (+++) = fun (x1s, y1s) (x2s, y2s) -> (x1s ++ x2s, y1s ++ y2s)
 
   let id = fun x -> x
 
@@ -674,6 +674,8 @@ let splitflatten3 xsyszss =
 
 let flap f xs =
   xs |> List.rev_map f |> flatten |> List.rev
+
+let m2append xs ys = List.map2 List.append xs ys
 
 let flap_pair f = splitflatten <.> map f
 

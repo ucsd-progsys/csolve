@@ -579,7 +579,6 @@ let tvar_q_error () (t1, t2) =
   C.error "Quantified variables %a and %a get unified in function body"
     d_tvar t1 d_tvar t2
 
-
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
@@ -610,17 +609,6 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
    Sh.nasa    = nasa;
    Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
 
-let infer_shape tgr fe ve gst scim (cf, sci, vm) =
-     infer_shape tgr fe ve gst scim (cf, sci, vm)
-  |> HRA.annotate_cfg sci.ST.cfg
-
-let declared_funs cil =
-  C.foldGlobals cil begin fun fs -> function
-    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
-    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
-    | _                                                   -> fs
-  end []
-
 let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa} =
   let _ = P.printf "%s@!" fname in
   let _ = P.printf "============@!@!" in
@@ -647,6 +635,19 @@ let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;
 let d_shape () sh =
   let _ = print_shape "shape dump" null_fun Store.empty sh in
   P.printf ""
+
+let infer_shape tgr fe ve gst scim (cf, sci, vm) =
+     infer_shape tgr fe ve gst scim (cf, sci, vm)
+  >> d_shape ()
+  |> HRA.annotate_cfg sci.ST.cfg
+  >> d_shape ()
+
+let declared_funs cil =
+  C.foldGlobals cil begin fun fs -> function
+    | C.GFun (fd, _)                                      -> fd.C.svar :: fs
+    | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
+    | _                                                   -> fs
+  end []
 
 let print_shapes spec shpm =
   let funspec, storespec = CSpec.funspec spec, CSpec.store spec in
