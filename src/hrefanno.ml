@@ -147,7 +147,7 @@ let instantiate_cnc sto me appm v al =
   let _    = set_cl me v cl in
   let sto' = CtIS.find sto al |> CtIS.add sto cl in
   let vn   = v.vname in
-  ([RA.Ins (vn, cl, al)], sto', SLM.add al (Cnc (cl, vn)) appm)
+  ([RA.Ins (vn, al, cl)], sto', SLM.add al (Cnc (cl, vn)) appm)
 
 let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app = CtIS.hfuns sto |> Hf.binding_of al in
@@ -369,7 +369,7 @@ let annotate_instr ans sto gst ctm me appm = function
 let folds_for_open_annots annots appm =
   List.concat annots
   |> List.fold_left begin fun l -> function
-    | RA.Ins  (_, _, a)
+    | RA.Ins  (_, a, _)
     | RA.HIns (a, _) -> if SLM.mem a appm then a::l else l
     | _           -> l end []
   |> List.map (mk_fold appm)
