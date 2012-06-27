@@ -49,6 +49,8 @@ val tag_dirty : tag -> bool
 val tag_eq : tag -> tag -> bool
 val d_conca: unit -> (cncm * cncm) array -> Pretty.doc 
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
+val d_annotations: unit -> annotation list -> Pretty.doc
+val d_block_annotation: unit -> annotation list list -> Pretty.doc
 val d_ctab: unit -> ctab -> Pretty.doc 
 
 val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)

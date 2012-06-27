@@ -354,3 +354,12 @@ let infer_final_fields tgr spec scis shpm =
      shpm
   |> Interproc.final_fields spec scis
   >> check_finality_specs (Ctypes.I.Spec.funspec spec)
+
+let dummy_infer_final_fields tgr spec scis shpm =
+  SM.map (fun shp ->
+    let nblocks = Array.length shp.Sh.anna in
+    let ffs     = Interproc.shape_init_final_fields shp in
+    let ffmsa   = Array.create nblocks (ffs, []) in
+    let _       = Array.iteri begin fun i a ->
+      ffmsa.(i) <- (ffs, Misc.list_make (List.length a) ffs) end shp.Sh.anna in
+    {shp with Sh.ffmsa = ffmsa}) shpm

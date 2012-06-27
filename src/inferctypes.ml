@@ -580,6 +580,7 @@ let tvar_q_error () (t1, t2) =
     d_tvar t1 d_tvar t2
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
+  let _                     = E.error "INFER_SHAPE" in (* DEBUG *)
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
@@ -597,9 +598,13 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 
+  let _                     = E.error "DUMMY_REFANNO" in (* DEBUG *)
   let annot, conca, theta   = RA.dummy_annotate_cfg sci.ST.cfg sto (Store.domain gst) em bas in
+  let _                     = E.error "DUMMY_REFANNO_DONE" in (* DEBUG *)
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
+  let _                     = E.error "NON_ALIASING" in (* DEBUG *)
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
+  let _                     = E.error "NON_ALIASING_DONE" in (* DEBUG *)
   {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
    Sh.etypm   = em;
    Sh.store   = sto;
@@ -638,9 +643,11 @@ let d_shape () sh =
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
      infer_shape tgr fe ve gst scim (cf, sci, vm)
-  >> d_shape ()
+  >> P.printf "%a" d_shape
+  >> (fun _ -> E.error "HREFANNO" (* DEBUG *))
   |> HRA.annotate_cfg sci.ST.cfg
-  >> d_shape ()
+  >> (fun _ -> E.error "HREFANNO_DONE" (* DEBUG *))
+  >> P.printf "%a" d_shape
 
 let declared_funs cil =
   C.foldGlobals cil begin fun fs -> function
@@ -692,6 +699,8 @@ let infer_shapes cil tgr spec scis =
            |>: (fun (_,sci,_) -> (sci.ST.fdec.C.svar, sci)) 
            |> VM.of_list in
   scis |> SM.map (infer_shape tgr fe ve (CSpec.store spec) xm)
-       |> FinalFields.infer_final_fields tgr spec scis 
+       >> (fun _ -> E.error "FINAL_FIELDS")
+       |> FinalFields.dummy_infer_final_fields tgr spec scis 
+       >> (fun _ -> E.error "FINAL_FIELDS_DONE")
        >> print_shapes spec
 

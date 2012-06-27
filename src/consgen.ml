@@ -54,6 +54,7 @@ let mydebug = false
 let shapem_of_scim cil tgr spec scim vim =
   let cspec = Ctypes.cspec_of_refspec spec
            |> M.flip Heapfun.expand_cspec_shape Heapfun.test_env in
+  let _ = E.error "LOADED HEAPFUN ENV" in (* DEBUG *)
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->
        let cf = Ctypes.cfun_of_refcfun rf in

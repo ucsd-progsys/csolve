@@ -144,12 +144,16 @@ let d_annotation () = function
   | NewC (cl, al, cl') -> 
       Pretty.dprintf "NewC(%a->%a->%a) " Sloc.d_sloc cl Sloc.d_sloc al Sloc.d_sloc cl'
   | HInst ss -> 
-      Pretty.dprintf "HInst(%a)" Ctypes.StoreSubst.d_subst ss
+      Pretty.dprintf "HVarInst(%a)" Ctypes.StoreSubst.d_subst ss
   | TNew (f, t) ->
       Pretty.dprintf "TNew(%a->%a)" Ctypes.d_tvar f Ctypes.d_tvar t
   | TInst i ->
       Pretty.dprintf "TInst (%a)" Ctypes.IndexTypes.TVarInst.d_inst i
-       
+  | HIns (l, lls) ->
+      Pretty.dprintf "HfunInstantiate(%a->...)" Sloc.d_sloc l
+  | HGen (v, ls, lls) ->
+      Pretty.dprintf "HfunGeneralize(%s:%a->...)" v Sloc.d_sloc (List.hd ls) 
+  | _ -> assertf "d_annotation"
 
 let d_annotations () anns = 
   Pretty.seq (Pretty.text ", ") 

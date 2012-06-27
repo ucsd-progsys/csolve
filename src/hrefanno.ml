@@ -203,23 +203,19 @@ let ref_v_of_expr ctm e =
   v_rec e
 
 let al_of_expr ctm me e =
-  match ref_v_of_expr ctm e with
-  | None -> None
-  | Some (v, ctal) -> begin
+  ref_v_of_expr ctm e
+  |>> fun (v, ctal) ->
       match get_al me v with
       | Some al -> Some al 
-      | None    -> Some (ctal >> set_al me v) end
+      | None    -> Some (ctal >> set_al me v)
 
-let cl_of_expr me = function
-  | Lval (Var v, _) -> get_cl me v
-  | _ -> None
+let cl_of_expr ctm me e =
+  ref_v_of_expr ctm e
+  |>> (fun x -> fst x |> get_cl me)
 
-let possibly_fresh_cl_of_expr me = function
-  | Lval (Var v, _) ->
-    get_al me v
-    |> M.maybe
-    |> (fun x -> always_get_cl me x v)
-  | _ -> assert false
+let possibly_fresh_cl_of_expr ctm me e =
+  let v = ref_v_of_expr ctm e |> M.maybe |> fst in
+  get_al me v |> M.maybe |> fun x -> always_get_cl me x v
 
 let abs_of_conc_from_app l = function
   | (al, Cnc _) -> al  
@@ -255,13 +251,13 @@ let slocs_of_deref sto gst ctm me appm em =
 let annotate_read sto gst ctm me appm e =
   let v  = CM.referenced_var_of_exp e in
   let al = al_of_expr ctm me e |> M.maybe in
-  let cl = possibly_fresh_cl_of_expr me e in
+  let cl = possibly_fresh_cl_of_expr ctm me e in
     instantiate sto gst ctm me appm v al cl
 
 let annotate_write sto gst ctm me appm e ct =
   let v     = CM.referenced_var_of_exp e in
   let al    = al_of_expr ctm me e |> M.maybe in
-  let cl    = possibly_fresh_cl_of_expr me e in
+  let cl    = possibly_fresh_cl_of_expr ctm me e in
   let il    = ind_of_expr ctm e in
     instantiate sto gst ctm me appm v al cl
   (* check subtyping of ct vs sto' |> find |> cl |> find |> il *)
@@ -282,7 +278,7 @@ let annotate_set sto gst ctm me appm = function
     let e = e >> (CilMisc.is_pure_expr CilMisc.StringsArePure <+>
       (fun b -> asserts b "impure expr")) in
     let _ = al_of_expr ctm me e |> maybe_set_al me v in
-    let _ = cl_of_expr me e     |> maybe_set_cl me v in
+    let _ = cl_of_expr ctm me e     |> maybe_set_cl me v in
     ([], sto, gst, me, appm)
 
   (* *v1 := *v2 shouldn't be possible *)
@@ -363,15 +359,11 @@ let annotate_instr ans sto gst ctm me appm = function
 
   | Call (rv,_,_,_) ->
       let (sto, appm), anns = M.mapfold (gen_ann_if_new ctm gst me) (sto, appm) ans in
+      (*let conc, anns' = Misc.mapfold generalize conc globalslocs in*)
       let anns = List.concat anns in
       let _ = rv |>> conc_lv ctm me |> ignore in
       (anns, sto, gst, me, appm) 
-    (*let ins         = Misc.numbered_list ns in
-      let conc, anns  = Misc.mapfold (concretize_new theta j k) conc ins in
-      let conc, anns' = Misc.mapfold generalize conc globalslocs in
-      let conc_anns   = conc, Misc.flatten (anns ++ anns') in
-      let _           = lvo |>> sloc_of_ret ctm theta conc_anns in
-      conc_anns*)
+
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
 let folds_for_open_annots annots appm =
@@ -405,6 +397,7 @@ let annot_iter cfg sto ctm me anna =
     | Instr is ->
         annotate_block anna.(j) sto CtIS.empty ctm me is
         |> M.m2append anna.(j)
+        >> P.printf "%a" RA.d_block_annotation
         |> Array.set anna j
     | _        -> () in
   M.range 0 nblocks
