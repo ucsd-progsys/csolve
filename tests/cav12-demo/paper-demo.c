@@ -13,15 +13,15 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-void strntolower (char * STRINGPTR SIZE_GE(n) s, int NONNEG n) CHECK_TYPE {
+void strntolower (char * SIZE_GE(n) s, int NONNEG n) CHECK_TYPE {
   for (; n-- && *s != '\0'; s++)
     *s = tolower (*s);
 }
 
 // Show unannotated version first, with code, then show extern decl - in its own module
 // Also show only the quals we need to verify this first
-char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
-  strnchr (char * STRINGPTR LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
+char * LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
+  strnchr (char * LOC(L) SIZE_GE(n) s, int NONNEG n, char c) CHECK_TYPE
 {
   for (; n-- && *s != '\0'; s++)
     if (*s == c) return s;
@@ -30,12 +30,12 @@ char * NNSTRINGPTR LOC(L) NNREF(&& [s <= V; V < s + n; PEQBLOCK(s)])
 }
 
 typedef struct _csval {
-  int                     len;
-  char * STRINGPTR LOC(L) str;
-  struct _csval *         next;
+  int            len;
+  char *  LOC(L) str;
+  struct _csval *next;
 } csval;
 
-csval INST(L, S) * revstrncsvals (char * STRINGPTR LOC(S) s, int n) {
+csval INST(L, S) * revstrncsvals (char * LOC(S) s, int n) {
   csval *last = NULL;
   while (n > 0) {
     csval *v    = (csval *) malloc (sizeof (csval));
@@ -46,7 +46,6 @@ csval INST(L, S) * revstrncsvals (char * STRINGPTR LOC(S) s, int n) {
     if (!comma) {
       comma = s + n - 1;
     }
-    // would probably let us reorganize the code to do linked list stuff last
 
     *comma     = '\0';
     v->len     = comma - s;
