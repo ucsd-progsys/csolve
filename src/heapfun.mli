@@ -40,9 +40,6 @@ val rhs_of   : 'a def -> 'a Ctypes.prestore
 val def_of_intlist : var_def
 val test_env : env
 
-val binding_of : Sloc.t -> 'a Ctypes.hf_appl list -> 'a Ctypes.hf_appl
-val binds      : Sloc.t -> 'a Ctypes.hf_appl list -> bool
-
 val fresh_unfs_of_hf : Sloc.t -> string -> env -> intrs list
 
 val apply_hf_in_env : Ctypes.ind_hf_appl -> intrs list -> env ->

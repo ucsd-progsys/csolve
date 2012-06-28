@@ -289,10 +289,24 @@ let unfold_ciltyp = function
   | t -> 
       (fun _ i -> { fname = None; ftype = Some t}) 
 
+let hf_appl_binds l = function
+  | (_, k :: _, _) -> k = l
+  | _ -> false
 
+let hf_appl_binding_of l hfs =
+  try Some (List.find (hf_appl_binds l) hfs)
+  with Not_found -> None
 
+let hf_appl_arg_of l =
+  List.partition (fun (_, ls, _) -> List.mem l ls)
 
+let hf_appl_fakemap f (hf, ls, rs) =
+  let rs = List.map (fun r -> f (Int (0, r))) rs  
+        |> List.map (function Int (_, r) -> r) in
+  (hf, ls, rs)
 
+let hf_appls_fakemap f =
+  List.map (hf_appl_fakemap f)
 
 module EffectSet = struct
   type t = effectset
@@ -1129,8 +1143,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else if SLM.mem l ds then
         true
       else 
-        (*Heapfun.binds l ds*)
-        false
+        List.exists (hf_appl_binds l) hfs
 
     let find (ds, _, _) l =
       if (l = Sloc.sloc_of_any) then
@@ -1153,16 +1166,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let fold_locs f b (ds, vs, _) =
       SLM.fold f ds b
 
-    let map f (ds, vs, _) = (f 
+    let map f (ds, vs, hfs) = (f 
                          |> Field.map_type 
                          |> LDesc.map 
                          |> Misc.flip SLM.map ds,
-                         vs, [])
+                         vs, hf_appls_fakemap f hfs)
       
     let map_variances f_co f_contra ds = map f_co ds
-
-(*    let map f (ds, vs, _) =
-      (map_data f ds, vs, [])*)
 
     let bindings (ds, _, _) = SLM.to_list ds
 
@@ -1202,6 +1212,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       else
         (SLM.remove l ds, vs, hfs)
 
+    (* MK: appending isn't quite right but good enough for now *)
     let upd (ds1, vs1, hf1) (ds2, vs2, hf2) =
       (SLM.fold SLM.add ds2 ds1, vs1 ++ vs2, hf1 ++ hf2)
 
@@ -1295,9 +1306,24 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 
-    (* TODO MK: dump vars and heapfuns *)
-    let d_store () (ds, _, _) =
-      P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
+    let d_vars () vs =
+      P.seq (P.text ",") (Sv.d_svar ()) vs
+
+    let d_hf_ls () ls =
+      P.seq (P.text ",") (Sloc.d_sloc ()) ls
+
+    let d_hf_rs () rs =
+      P.seq (P.text ",") (T.R.d_refinement ()) rs
+
+    let d_hf_appl () (hf, ls, rs) =
+      P.printf "@[%s(%a:%a)@]" hf d_hf_ls ls d_hf_rs rs
+
+    let d_hfs () hfs =
+      P.seq (P.text ",") (d_hf_appl ()) hfs
+
+    let d_store () (ds, vs, hfs) =
+      P.dprintf "[@[%a@?%a@?%a@]]" (d_storelike LDesc.d_ldesc) ds
+                                   d_vars vs d_hfs hfs
 
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t

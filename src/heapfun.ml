@@ -139,21 +139,11 @@ let fold_hf_on_hp ls ins h hf env =
     List.fold_left CtIS.rem_app h' ins
     |> M.flip CtIS.add_app appl
 
-
-let binding_of l =
-  List.find (function (_, k :: _, _) -> k = l | _ -> false)
-
-let arg_of l =
-  List.partition (fun (_, ls, _) -> List.mem l ls)
-
-
-let binds l hfs =
-  try
-    binding_of l hfs; true
-  with Not_found -> false
-
 let ins l sto deps ls ins env =
-  let binding_fun  = CtIS.hfuns sto |> binding_of l |> fst3 in
+  let binding_fun  = CtIS.hfuns sto
+                  |> Ct.hf_appl_binding_of l
+                  |> M.maybe
+                  |> fst3 in
   (*let ins          = binding_fun |> Misc.flap HfMap.find env |>
                      unfs_of |> Sl.copy_fresh in*)
   let (deps', unfolded_sto) =
@@ -173,11 +163,11 @@ let shape_in_env hf ls env =
 (* MK: this is wrong; technically needs to be Misc.fixpointed *)
 let expand_sto_shape sto env =
   CtIS.hfuns sto
-   |> List.fold_left begin fun sto (hf, ls, _) -> shape_in_env hf ls env
-                                               |> CtIS.upd sto end sto
-
+  |> List.fold_left begin fun sto (hf, ls, _) ->
+       shape_in_env hf ls env |> CtIS.upd sto end sto
+                                               
 let expand_cspec_shape cspec env =
-  CtISp.map_stores (M.flip expand_sto_shape env) cspec
+  CtISp.map_stores (fun x -> expand_sto_shape x env) cspec
 
 let contract_sto_shape sto env =
   CtIS.hfuns sto
@@ -185,4 +175,4 @@ let contract_sto_shape sto env =
   |> List.fold_left CtIS.remove sto
 
 let contract_cspec_shape cspec env =
-  CtISp.map_stores (M.flip contract_sto_shape env) cspec
+  CtISp.map_stores (fun x -> contract_sto_shape x env) cspec

@@ -466,14 +466,18 @@ and add_app_to_sto sto l ats =
     |> M.maybe_list
     |> M.ex_one "add_app_to_sto: wrong number of annotated heap functions"
     |> RS.add_app sto
+    >> (fun _ -> E.error "good news! HEAPFUN") (* DEBUG *)
   else sto
 
 and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeType t with
   | C.TPtr (C.TFun _, _) -> (sub, sto)
   | C.TPtr (tb, _) when alreadyClosedType mem tb -> (sub, sto)
+  | C.TPtr (tb, ats) | C.TArray (tb, _, ats)
+    when hasOneAttributeOf heapfunAttributes ats ->
+      let s = slocOfAttrs (CM.srcinfo_of_type tb (Some srcloc)) ats in
+    (sub, add_app_to_sto sto s ats)
   | C.TPtr (tb, ats) | C.TArray (tb, _, ats)     ->
     let s      = slocOfAttrs (CM.srcinfo_of_type tb (Some srcloc)) ats in
-    let sto    = add_app_to_sto sto s ats in
     let tb     = annotatedPointerBaseType ats tb in
     let mem    = match CM.typeName tb with Some n -> SM.add n s mem | _ -> mem in
     let tcs    = tb |> componentsOfType |>: M.app_snd3 (I.plus <| indexOfPointerContents t) in

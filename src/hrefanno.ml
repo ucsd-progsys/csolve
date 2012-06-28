@@ -150,7 +150,8 @@ let instantiate_cnc sto me appm v al =
   ([RA.Ins (vn, al, cl)], sto', SLM.add al (Cnc (cl, vn)) appm)
 
 let instantiate_hf sto appm me env v al cl =
-  let (hf, _, _) as app = CtIS.hfuns sto |> Hf.binding_of al in
+  let (hf, _, _) as app =
+    CtIS.hfuns sto |> Ct.hf_appl_binding_of al |> M.maybe in
   let ins               = Hf.fresh_unfs_of_hf cl hf env in
   let (dep, sto')       = Hf.apply_hf_in_env app ins env in
   let _                 = set_cl me v cl in
@@ -159,7 +160,7 @@ let instantiate_hf sto appm me env v al cl =
 
 let instantiate_aux sto gst ctm me appm v al cl = 
   let hf_env = Hf.test_env in
-  begin if CtIS.hfuns sto |> Hf.binds al then
+  begin if CtIS.hfuns sto |> List.exists (Ct.hf_appl_binds al) then
     instantiate_hf sto appm me hf_env v al cl
   else
      instantiate_cnc sto me appm v al end

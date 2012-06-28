@@ -102,6 +102,11 @@ type 'a hf_appl  = string * Sloc.t list * 'a list
 type ref_hf_appl = FixConstraint.reft hf_appl
 type ind_hf_appl = Index.t hf_appl
 
+val hf_appl_binding_of : Sloc.t -> 'a hf_appl list -> 'a hf_appl option
+val hf_appl_binds      : Sloc.t -> 'a hf_appl -> bool
+val hf_appl_arg_of     : Sloc.t -> 'a hf_appl list
+              -> 'a hf_appl list * 'a hf_appl list
+
 type specType =
   | HasShape
   | IsSubtype

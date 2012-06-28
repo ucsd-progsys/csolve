@@ -8,7 +8,7 @@ typedef struct list {
   struct list * START NNVALIDPTR n;
 };
 
-int main(struct list * START NNVALIDPTR l)
+int main(struct list * INTLIST START NNVALIDPTR l)
 {
   if (l == NULL)
     return 0;
