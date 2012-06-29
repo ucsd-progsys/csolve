@@ -298,7 +298,8 @@ module type S = sig
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Svar.t -> t
     val add_app      : t -> T.refinement hf_appl -> t
-    val rem_app      : t -> Sloc.t -> t
+    val rem_app      : t -> string -> Sloc.t -> t
+    val rem_loc      : t -> Sloc.t -> t 
     val vars         : t -> Svar.t list
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t

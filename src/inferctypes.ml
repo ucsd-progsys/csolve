@@ -585,6 +585,7 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
   let sto                   = Store.upd cf.sto_out gst             in
+  let _                     = P.eprintf "%a" Store.d_store sto     in
   let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
@@ -604,7 +605,7 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
   let _                     = E.error "NON_ALIASING" in (* DEBUG *)
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-  let _                     = E.error "NON_ALIASING_DONE" in (* DEBUG *)
+  let _                     = E.error "NON_ALIASING_DONE" in (* DEBUG *) 
   {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
    Sh.etypm   = em;
    Sh.store   = sto;
@@ -699,8 +700,6 @@ let infer_shapes cil tgr spec scis =
            |>: (fun (_,sci,_) -> (sci.ST.fdec.C.svar, sci)) 
            |> VM.of_list in
   scis |> SM.map (infer_shape tgr fe ve (CSpec.store spec) xm)
-       >> (fun _ -> E.error "FINAL_FIELDS")
        |> FinalFields.dummy_infer_final_fields tgr spec scis 
-       >> (fun _ -> E.error "FINAL_FIELDS_DONE")
        >> print_shapes spec
 

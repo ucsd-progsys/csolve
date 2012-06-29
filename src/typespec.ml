@@ -668,7 +668,7 @@ let storeTypeSpecs varSpec gsto =
      end varSpec
 
 let specsOfDecs funs vars =
-  let sub, pgsto        = vars |>: (fun v -> (v.C.vdecl, v.C.vtype)) |> preRefstoreOfTypes in
+  let sub, pgsto        = vars  |>: (fun v -> (v.C.vdecl, v.C.vtype)) |> preRefstoreOfTypes in
   let gsto, _, sub      = pgsto |> refstoreOfPreRefstore sub pgsto in
   let fspecs, gsto, sub = globalSpecOfFuns sub gsto funs in
   let vspecs            = varSpecOfVars sub vars in
