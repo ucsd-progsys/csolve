@@ -307,6 +307,7 @@ module type S = sig
 
     val d_store_addrs: unit -> t -> Pretty.doc
     val d_store      : unit -> t -> Pretty.doc
+    val d_store_hfs  : unit -> t -> Pretty.doc
 
     val add           : t -> Sloc.t -> LDesc.t -> t
     (* val domain        : t -> Sloc.t list *)

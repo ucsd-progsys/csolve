@@ -162,12 +162,16 @@ let shape_in_env hf ls env =
 
 (* MK: this is wrong; technically needs to be Misc.fixpointed *)
 let expand_sto_shape sto env =
-  CtIS.hfuns sto
+  sto
+  >> P.eprintf "@[HEAPFUNS: %a@]@!@^" CtIS.d_store_hfs
+  |> CtIS.hfuns 
   |> List.fold_left begin fun sto (hf, ls, _) ->
-       shape_in_env hf ls env |> CtIS.upd sto end sto
+      shape_in_env hf ls env >> P.eprintf "@[STORE_ITER:%a@]@!@^" CtIS.d_store |> CtIS.upd sto end sto
                                                
 let expand_cspec_shape cspec env =
-  CtISp.map_stores (fun x -> expand_sto_shape x env) cspec
+  P.eprintf "@[SPEC_PASSED: %a@]" CtISp.d_spec cspec;
+  CtISp.map_stores (fun x -> x >> P.eprintf "@[STORE: %a@]" CtIS.d_store) cspec
+  (*CtISp.map_stores (fun x -> expand_sto_shape x env) cspec*)
 
 let contract_sto_shape sto env =
   CtIS.hfuns sto

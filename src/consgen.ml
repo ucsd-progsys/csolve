@@ -53,8 +53,9 @@ let mydebug = false
 
 let shapem_of_scim cil tgr spec scim vim =
   let cspec = Ctypes.cspec_of_refspec spec
-           |> M.flip Heapfun.expand_cspec_shape Heapfun.test_env
-           >> P.printf "%a" Ct.I.Spec.d_spec in
+              >> P.eprintf "@[SPEC1: %a@]@!@^" Ct.I.Spec.d_spec
+              |> (fun x -> Heapfun.expand_cspec_shape x Heapfun.test_env)
+              >> P.eprintf "@[SPEC2: %a@]@!@^" Ct.I.Spec.d_spec in
   let _ = E.error "LOADED HEAPFUN ENV" in (* DEBUG *)
   (SM.empty, SM.empty)
   |> SM.fold begin fun fn (rf, _) (bm, fm) ->

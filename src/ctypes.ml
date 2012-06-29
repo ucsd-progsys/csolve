@@ -602,6 +602,7 @@ module SIGS (T : CTYPE_DEFS) = struct
         
     val d_store_addrs: unit -> t -> P.doc
     val d_store      : unit -> t -> P.doc
+    val d_store_hfs  : unit -> t -> P.doc
 
     val add           : t -> Sloc.t -> T.ldesc -> t
       (* val bindings      : 'a prestore -> (Sloc.t * 'a preldesc) list *)
@@ -1316,7 +1317,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       P.seq (P.text ",") (T.R.d_refinement ()) rs
 
     let d_hf_appl () (hf, ls, rs) =
-      P.printf "@[%s(%a:%a)@]" hf d_hf_ls ls d_hf_rs rs
+      P.dprintf "@[%s(%a:%a)@]" hf d_hf_ls ls d_hf_rs rs
 
     let d_hfs () hfs =
       P.seq (P.text ",") (d_hf_appl ()) hfs
@@ -1324,6 +1325,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let d_store () (ds, vs, hfs) =
       P.dprintf "[@[%a@?%a@?%a@]]" (d_storelike LDesc.d_ldesc) ds
                                    d_vars vs d_hfs hfs
+
+    let d_store_hfs () sto =
+      hfuns sto |> P.dprintf "@[%a@]" d_hfs
 
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
@@ -1807,6 +1811,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         SVM.add v sto hsub
 
      let map_stores f ({sto_in = sin; sto_out = sout} as t) =
+       let _ = assertf "adfafdasdfasdfasdf" in
        {t with sto_in = f sin; sto_out = f sout}      
   end
 
@@ -1860,10 +1865,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> List.fold_left P.concat P.nil
 
     let map_stores f (cfs, ctv, gl, s) = 
-      let g   = CFun.map_stores f in
+      let g   = CFun.map_stores f |> Misc.app_fst in
       let cfs = Misc.StringMap.fold begin
-        fun fn cf fs -> Misc.StringMap.add fn (Misc.app_fst g cf) fs end
-          Misc.StringMap.empty cfs in
+        fun fn cf fs -> Misc.StringMap.add fn (g cf) fs end
+          cfs Misc.StringMap.empty in
       (cfs, ctv, (f gl), s)
   end
 
