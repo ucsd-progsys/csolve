@@ -286,6 +286,7 @@ module type S = sig
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
+    val sh_upd       : t -> t -> t
     val upd          : t -> t -> t
       (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
           overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
@@ -299,7 +300,6 @@ module type S = sig
     val add_var      : t -> Svar.t -> t
     val add_app      : t -> T.refinement hf_appl -> t
     val rem_app      : t -> string -> Sloc.t -> t
-    val rem_loc      : t -> Sloc.t -> t 
     val vars         : t -> Svar.t list
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t

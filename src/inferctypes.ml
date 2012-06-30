@@ -581,9 +581,12 @@ let tvar_q_error () (t1, t2) =
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = E.error "INFER_SHAPE" in (* DEBUG *)
+  let _                     = P.eprintf "%a@!" Ctypes.I.CFun.d_cfun cf in
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
+  let _                     = VM.iter (fun s sl -> P.eprintf "%s:%a@!"
+                              s.C.vname Ct.d_ctype sl; ()) vm in
   let sto                   = Store.upd cf.sto_out gst             in
   let _                     = P.eprintf "%a" Store.d_store sto     in
   let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in

@@ -289,12 +289,14 @@ let unfold_ciltyp = function
   | t -> 
       (fun _ i -> { fname = None; ftype = Some t}) 
 
+let hf_appl_restrict f hfs =
+  List.filter (function (_, l :: _, _) -> f l) hfs
+
 let hf_appl_binds l = function
   | (_, k :: _, _) -> Sloc.eq k l 
   | _ -> false
 
 let hf_appls_bind l =
-  let _ = P.eprintf "%a" Sloc.d_sloc l in
   List.exists (hf_appl_binds l)
 
 let hf_appl_binding_of l hfs =
@@ -318,8 +320,11 @@ let hf_appl_fakemap f (hf, ls, rs) =
 let hf_appls_fakemap f =
   List.map (hf_appl_fakemap f)
 
+let hf_appl_bloc = function
+  (_, l :: _, _) -> l
+
 let hf_appls_domain hfs =
-  hfs |>: (function (_, k :: _, _) -> k)
+  hfs |>: hf_appl_bloc
 
 module EffectSet = struct
   type t = effectset
@@ -594,6 +599,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val map_ldesc    : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a prestore -> 'a prestore
     val partition    : (Sloc.t -> bool) -> t -> t * t
     val remove       : t -> Sloc.t -> t
+    val sh_upd       : t -> t -> t
     val upd          : t -> t -> t
   (** [upd st1 st2] returns the store obtained by adding the locations from st2 to st1,
       overwriting the common locations of st1 and st2 with the blocks appearing in st2 *)
@@ -607,7 +613,6 @@ module SIGS (T : CTYPE_DEFS) = struct
     val add_var      : t -> Sv.t -> t
     val add_app      : t -> T.refinement hf_appl -> t
     val rem_app      : t -> string -> S.t -> t
-    val rem_loc      : t -> S.t -> t
     val vars         : t -> Sv.t list
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
@@ -1089,7 +1094,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     (* let map_data f = *)
     (*   f |> Field.map_type |> LDesc.map |> SLM.map *)
 
-    let map_ldesc f (ds, vs, _) = SLM.mapi f ds, vs, []
+    let map_ldesc f (ds, vs, hf) = SLM.mapi f ds, vs, hf
 
     let map2_data f =
       f |> Field.map2_type
@@ -1108,6 +1113,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let restrict_slm_abstract m =
       SLM.filter (fun l -> const <| S.is_abstract l) m
 
+    let hfuns (_, _, hfs) = hfs
+
+    let cnc (ds, _, _) = ds
+
+    let vars (_, vs, _) = vs
+
+    let concrete_part (sto, _, _) = (sto, [], [])
+
     let add (ds, vs, hf) l ld =
       (* let _ = assert ((l = Sloc.sloc_of_any) || SLM.mem l ds) in *)
       if not (l = Sloc.sloc_of_any) then
@@ -1119,7 +1132,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       SLM.to_list ds
 
     let domain (ds, _, hfs) =
-      SLM.domain ds ++ hf_appls_domain hfs
+         SLM.domain ds ++ hf_appls_domain hfs
+      |> Misc.sort_and_compact
 
     let mem (ds, _, hfs) l =
       Sloc.eq l Sloc.sloc_of_any
@@ -1136,11 +1150,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       try find sto l with Not_found -> LDesc.empty
 
     let ensure_sloc sto l =
-      l |> find_or_empty sto |> add sto l
-
-    let hfuns (_, _, hfs) = hfs
-
-    let cnc (ds, _, _) = ds
+      if hfuns sto |> hf_appls_bind l then
+        sto
+      else 
+        find_or_empty sto l |> add sto l
 
     let fold_fields f b (ds, _, _) =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
@@ -1148,20 +1161,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let fold_locs f b (ds, _, _) =
       SLM.fold f ds b
 
-    let find_or_empty sto l =
-      try find sto l with Not_found -> LDesc.empty
-
-    let ensure_sloc sto l = l |> find_or_empty sto |> add sto l
-        
-    let ensure_var v ((ds, vs, _) as sto) = 
+    let ensure_var v ((ds, vs, hf) as sto) = 
       if List.mem v vs then sto else 
-        (ds, Misc.sort_and_compact (v::vs), [])
-
-    let fold_fields f b (ds, vs, _) =
-      SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
-
-    let fold_locs f b (ds, vs, _) =
-      SLM.fold f ds b
+        (ds, Misc.sort_and_compact (v::vs), hf)
 
     let map f (ds, vs, hfs) = (f 
                          |> Field.map_type 
@@ -1169,43 +1171,70 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                          |> Misc.flip SLM.map ds,
                          vs, hf_appls_fakemap f hfs)
       
-    let map_variances f_co f_contra ds = map f_co ds
+    let map_variances f_co f_contra sto = map f_co sto
 
     let bindings (ds, _, _) = SLM.to_list ds
 
-    let abstract (ds, vs, hfs) = (restrict_slm_abstract ds, vs, hfs)
+    let abstract (ds, vs, hfs) =
+      (restrict_slm_abstract ds, vs, hf_appl_restrict Sloc.is_abstract hfs)
 
     let join_effects sto effs =
       sto 
       |> bindings 
       |>: fun (l, ld) -> (l, (ld, EffectSet.find effs (S.canonical l)))
 
-    let subs_addrs subs m =
+    let subs_addrs_ds subs m =
       SLM.fold (fun l d m -> SLM.add (S.Subst.apply subs l) d m) m SLM.empty
 
     let subs subs (ds, vs, hfs) =
-      (SLM.map (LDesc.subs subs) ds |> subs_addrs subs, vs, hf_appls_subs subs hfs)
+      (SLM.map (LDesc.subs subs) ds |> subs_addrs_ds subs, vs, hf_appls_subs subs hfs)
         
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
 
-    let d_store () (ds, vs, _) =
-      if vs <> [] then
-        P.dprintf "[@[%a@]]*@[%a@]" (d_storelike LDesc.d_ldesc) ds d_varstore vs
+    let d_hf_ls () ls =
+      P.seq (P.text ",") (Sloc.d_sloc ()) ls
+
+    let d_hf_rs () rs =
+      P.seq (P.text ",") (T.R.d_refinement ()) rs
+
+    let d_hf_appl () (hf, ls, rs) =
+      P.dprintf "@[%s(%a;%a)@]" hf d_hf_ls ls d_hf_rs rs
+
+    let d_hfs () hfs =
+      P.seq (P.text ",") (d_hf_appl ()) hfs
+
+    let d_store () (ds, vs, hfs) =
+      if vs <> [] && hfs <> [] then
+        P.dprintf "[@[%a@]]*@[%a@]*@[%a@]"
+        (d_storelike LDesc.d_ldesc) ds d_varstore vs d_hfs hfs
+      else if vs = [] then
+        P.dprintf "[@[%a@]]*@[%a@]"
+        (d_storelike LDesc.d_ldesc) ds d_hfs hfs
+      else if hfs = [] then
+        P.dprintf "[@[%a@]]*@[%a@]"
+        (d_storelike LDesc.d_ldesc) ds d_varstore vs
       else
         P.dprintf "[@[%a@]]" (d_storelike LDesc.d_ldesc) ds
 
-    let remove (ds, vs, hfs) l =
-      if (l = Sloc.sloc_of_any) then
-        (ds, vs, hfs)
-      else
-        (SLM.remove l ds, vs, hfs)
+    let d_store_hfs () (_, _, hfs) =
+      P.dprintf "@[%a@]" d_hfs hfs
 
-    let upd (ds1, vs1, hf1) (ds2, vs2, hf2) =
+    let remove ((ds, vs, hfs) as sto) l =
+      if (l = Sloc.sloc_of_any) then sto
+      else hfs
+        |> List.filter (function (_, k :: _, _) -> not (Sloc.eq l k) | _ -> true)
+        |> fun x -> SLM.remove l ds, vs, x
+
+    let sh_upd (ds1, vs1, hf1) (ds2, vs2, hf2) =
       (SLM.fold SLM.add ds2 ds1, vs1 ++ vs2, hf1 ++ hf2)
       |> Misc.app_snd3 Misc.sort_and_compact
       |> Misc.app_thd3 Misc.sort_and_compact
 
+    let upd s1 s2 = sh_upd s1 s2
+      >> begin fun x -> asserts (domain x |> Misc.is_unique)
+           "Store.upd: duplicate heap function binds" end
+            
     (* this may very well not be the right thing to do with vs *)
     let partition f (ds, vs, hfs) =
       let (ds', ds'') = 
@@ -1218,8 +1247,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       
     let ctype_closed t sto = match t with
       | Ref (l, _) -> mem sto l
-      | ARef       -> false
-      | Int _ | Any | FRef _ -> true
+      | Int _ | Any | FRef _ | ARef -> true
 
     (* with the addition of hfuns this is quite conservative now, but
      * good enough as long as l is bound by an hfun *)
@@ -1242,6 +1270,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> partition (ls |> Misc.flap (reachable sto) |> Misc.sort_and_compact |> Misc.flip List.mem)
       |> fst
 
+    (* MK: suspicious *)
     let rec closed globstore sto = 
       fold_fields
         (fun c _ _ fld -> c && ctype_closed (Field.type_of fld) (upd globstore sto)) true sto
@@ -1264,17 +1293,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       if not (List.mem hf hfs) then hf :: hfs else hfs
 
     let rem_app (s, vs, hfs) hf l = s, vs,
-      List.filter (function (hfk, k :: _, _) -> hfk != hf || l != k | _ -> true) hfs
-
-    let rem_loc (s, vs, hfs) l = SLM.remove l s, vs,
-      List.filter (function (_, k :: _, _) -> l != k | _ -> true) hfs
-        
-    let vars (_, vs, _) = vs
+      List.filter begin function | (hfk, k :: _, _) ->
+                                    hfk != hf || not (Sloc.eq l k)
+                                 | _ -> true end hfs
+       
       
     let filter_vars p sto = Misc.app_snd3 (List.filter p) sto
       
-    let concrete_part (sto, _, _) = (sto, [], [])
-        
     let slm_acc_list f m =
       SLM.fold (fun _ d acc -> f d ++ acc) m []
 
@@ -1282,14 +1307,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           
     let subs_store_var subs lsubs fromsto (insto, vs, hf) = 
       List.fold_left begin fun (sto, vs, hf) v -> 
-        if StS.mem v subs then
-      	  let (slocs, vars) = StS.lookup v subs in
-	        let (conc, _, _)     = SS.elements slocs |> restrict fromsto in
-            (upd (sto, vs, hf) (conc, SVS.elements vars, hf))
-      else
-          (sto, v :: vs, hf)
-      end (insto, [], []) vs
-      |> Misc.app_snd3 (List.sort Sv.compare)
+             if StS.mem v subs then
+      	       let (slocs, vars) = StS.lookup v subs in
+	             let (conc, _, _)  = SS.elements slocs |> restrict fromsto in
+                 (upd (sto, vs, hf) (conc, SVS.elements vars, hf))
+             else
+               (sto, v :: vs, hf) end (insto, [], hf) vs
+      |> Misc.app_snd3 Misc.sort_and_compact
           
     let subs_tvar rename sto =
       map (CType.subs_tvar rename) sto
@@ -1297,31 +1321,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let inst_tvar rename tinst sto =
       map (CType.inst_tvar rename tinst) sto
 
-    let d_store_addrs () st =
-      P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
-
-    let d_vars () vs =
-      P.seq (P.text ",") (Sv.d_svar ()) vs
-
-    let d_hf_ls () ls =
-      P.seq (P.text ",") (Sloc.d_sloc ()) ls
-
-    let d_hf_rs () rs =
-      P.seq (P.text ",") (T.R.d_refinement ()) rs
-
-    let d_hf_appl () (hf, ls, rs) =
-      P.dprintf "@[%s(%a;%a)@]" hf d_hf_ls ls d_hf_rs rs
-
-    let d_hfs () hfs =
-      P.seq (P.text ",") (d_hf_appl ()) hfs
-
-    let d_store () (ds, vs, hfs) =
-      P.dprintf "[@[@[%a@]@?@[%a@]@!@[%a@]@]]" (d_storelike LDesc.d_ldesc) ds
-                                   d_vars vs d_hfs hfs
-
-    let d_store_hfs () sto =
-      hfuns sto |> P.dprintf "@[%a@]" d_hfs
-
+    
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t
 

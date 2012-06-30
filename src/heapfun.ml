@@ -78,12 +78,13 @@ let fresh_unfs_of_hf cl hf env =
 
 let def_of_intlist =
   let nrf = ("", I.top) in
+  let nr0 = ("", I.of_int 0) in
   let nm = "intlist" in
   let l  = Sl.fresh_abstract (CM.srcinfo_of_string "intlist_def") in
   let (lj, l') = (Sl.copy_concrete l, Sl.copy_fresh l) in
   let ld = RVSL.create {Ct.stype = None; Ct.any = false} 
     [(I.of_int 0, RVSF.create Ct.Final    Ct.dummy_fieldinfo (Ct.Int(4, nrf)));
-     (I.of_int 4, RVSF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.Ref(l', nrf)))] in
+     (I.of_int 4, RVSF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.Ref(l', nr0)))] in
   let ap = (nm, [l'], []) in
   { loc_params = [l]
   ; ref_params = []
@@ -119,8 +120,8 @@ let apply_hf_shape (_, sls, _) ins def =
   let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
     deps, hp
 
-let apply_hf_in_env ((f, _, _) as app) ins env =
-  HfMap.find f env
+let apply_hf_in_env ((hf, _, _) as app) ins env =
+  HfMap.find hf env
   |> apply_hf_shape app ins
 
   (* remove dependencies *)
@@ -134,16 +135,15 @@ let fold_hf_on_hp ls ins h hf env =
   let _       = if (snd happl != h) then
     assertf "fold_hf_on_hp: can't fold on heap" in 
   let ins     = M.flatten ins in
-    List.fold_left CtIS.rem_loc h' ins
+    List.fold_left CtIS.remove h' ins
     |> M.flip CtIS.add_app appl
 
 let ins l sto deps ls ins env =
-  let binding_fun  = CtIS.hfuns sto
-                  |> Ct.hf_appl_binding_of l
-                  |> M.maybe
-                  |> fst3 in
-  (*let ins          = binding_fun |> Misc.flap HfMap.find env |>
-                     unfs_of |> Sl.copy_fresh in*)
+  let binding_fun =
+       CtIS.hfuns sto
+    |> Ct.hf_appl_binding_of l
+    |> M.maybe
+    |> fst3 in
   let (deps', unfolded_sto) =
     apply_hf_in_env (binding_fun, ls, []) ins env in
   SlSS.union deps deps', CtIS.upd sto unfolded_sto 
@@ -154,19 +154,18 @@ let gen l hf sto deps ls ins env =
   deps, fold_hf_on_hp ls ins sto hf env 
 
 let shape_in_env hf ls env =
-  let ins = HfMap.find hf env |> unfs_of |> M.combine_replace ls in
-  apply_hf_in_env (hf, ls, []) ins env
-  |> snd
+  let ins =
+       HfMap.find hf env
+    |> unfs_of
+    |> M.combine_replace ls in
+  apply_hf_in_env (hf, ls, []) ins env |> snd
 
 (* MK: this is wrong; technically needs to be Misc.fixpointed *)
 let expand_sto_shape sto env =
-  sto
-  |> CtIS.hfuns 
+     CtIS.hfuns sto 
   |> List.fold_left begin fun sto (hf, ls, _) ->
-      let l = List.hd ls in
-      shape_in_env hf ls env
-      |> CtIS.upd sto
-      |> fun x -> CtIS.rem_app x hf l end sto
+      (List.hd ls |> CtIS.remove sto, shape_in_env hf ls env)
+      |> M.uncurry CtIS.sh_upd end sto
                                                
 let expand_cspec_shape cspec env =
   CtISp.map_stores (fun x -> expand_sto_shape x env) cspec
