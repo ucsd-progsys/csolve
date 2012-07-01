@@ -36,8 +36,8 @@ module M  = Misc
 module P  = Pretty
 module CM = CilMisc
 module Ct = Ctypes
-module CS = Ctypes.RefCTypes.Spec
-module RS = Ctypes.RefCTypes.Store
+module CS = Ct.RefCTypes.Spec
+module RS = Ct.RefCTypes.Store
 module Cs = Constants
 module ES = Ct.EffectSet
 
@@ -52,20 +52,17 @@ let mydebug = false
 (***************************************************************************)
 
 let shapem_of_scim cil tgr spec scim vim =
-  let cspec = Ctypes.cspec_of_refspec spec
+  let cspec = Ct.cspec_of_refspec spec
               |> (fun x -> Heapfun.expand_cspec_shape x Heapfun.test_env) in
-  (SM.empty, SM.empty)
-  |> SM.fold begin fun fn (rf, _) (bm, fm) ->
-       let cf = Ctypes.cfun_of_refcfun rf in
-       if SM.mem fn scim then
-         let _ = asserts (SM.mem fn vim) "shapem_of_scim" in
-         (bm, (SM.add fn (cf, SM.find fn scim, SM.find fn vim) fm))
-       else (SM.add fn cf bm, fm)
-     end (CS.funspec spec)
-  (* >> (fst <+> Misc.sm_print_keys "builtins") *)
-  (* >> (snd <+> Misc.sm_print_keys "non-builtins") *)
-  |> snd
+  try
+     Ct.I.Spec.funspec cspec
+  |> SM.to_list
+  |> List.partition (fun (fn, _) -> SM.mem fn scim)
+  |> fst 
+  |>: (fun (fn, cf) -> (fn, (fst cf, SM.find fn scim, SM.find fn vim)))
+  |> SM.of_list
   |> Inferctypes.infer_shapes cil tgr cspec
+  with Not_found -> assertf "shapem_of_scim"
 
 let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty
@@ -97,17 +94,17 @@ let mk_gnv f spec decs cenv =
 
 let rename_args rf sci =
   let fn       = sci.ST.fdec.Cil.svar.Cil.vname in
-  let xrs      = Ctypes.args_of_refcfun rf in
+  let xrs      = Ct.args_of_refcfun rf in
   let ys       = sci.ST.fdec.Cil.sformals |> List.map (fun v -> v.Cil.vname) in
   let _        = asserts (List.length xrs = List.length ys) "rename_args: bad spec for %s" fn in
   let subs     = Misc.map2 (fun (x,_) y -> Misc.map_pair FA.name_of_string (x,y)) xrs ys in
   let args'    = Misc.map2 (fun (x, rt) y -> (y, FI.t_subs_names subs rt)) xrs ys in
-  let ret'     = rf |> Ctypes.ret_of_refcfun |> FI.t_subs_names subs in
-  let hi', ho' = rf |> Ctypes.stores_of_refcfun
+  let ret'     = rf |> Ct.ret_of_refcfun |> FI.t_subs_names subs in
+  let hi', ho' = rf |> Ct.stores_of_refcfun
                     |> Misc.map_pair (FI.refstore_subs FI.t_subs_names subs) in
-  let effs'    = FI.effectset_subs FI.t_subs_names subs rf.Ctypes.effects in
-  Ctypes.RefCTypes.CFun.make 
-    args' rf.Ctypes.globlocs rf.Ctypes.quant_svars rf.Ctypes.quant_tvars hi' ret' ho' effs'
+  let effs'    = FI.effectset_subs FI.t_subs_names subs rf.Ct.effects in
+  Ct.RefCTypes.CFun.make 
+    args' rf.Ct.globlocs rf.Ct.quant_svars rf.Ct.quant_tvars hi' ret' ho' effs'
 
 let rename_funspec scim spec =
   spec 
@@ -124,18 +121,18 @@ let rename_funspec scim spec =
 (******************************************************************************)
 
 let finalize_store shp_sto sto =
-  Ctypes.I.Store.fold_locs begin fun l ld sto ->
+  Ct.I.Store.fold_locs begin fun l ld sto ->
     try
-      let shp_ld = Ctypes.I.Store.find shp_sto l in
-        Ctypes.I.Store.add sto l begin
-          Ctypes.I.LDesc.mapn begin fun _ pl fld ->
-            match Ctypes.I.LDesc.find pl shp_ld with
-              | [(_, shp_fld)] -> Ctypes.I.Field.set_finality fld (Ctypes.I.Field.get_finality shp_fld)
+      let shp_ld = Ct.I.Store.find shp_sto l in
+        Ct.I.Store.add sto l begin
+          Ct.I.LDesc.mapn begin fun _ pl fld ->
+            match Ct.I.LDesc.find pl shp_ld with
+              | [(_, shp_fld)] -> Ct.I.Field.set_finality fld (Ct.I.Field.get_finality shp_fld)
               | _              -> fld
           end ld
         end
     with Not_found ->
-      Ctypes.I.Store.add sto l ld
+      Ct.I.Store.add sto l ld
   end sto sto
 
 let finalize_funtypes shm cnv =
@@ -144,8 +141,8 @@ let finalize_funtypes shm cnv =
       SM.add
         fname
         {cf with
-           Ctypes.sto_in  = finalize_store shp.Shape.store cf.Ctypes.sto_in;
-           Ctypes.sto_out = finalize_store shp.Shape.store cf.Ctypes.sto_out}
+           Ct.sto_in  = finalize_store shp.Shape.store cf.Ct.sto_in;
+           Ct.sto_out = finalize_store shp.Shape.store cf.Ct.sto_out}
         cnv
   end shm cnv
 
@@ -177,20 +174,20 @@ let print_sccs sccs =
 }}} *)
 
 let is_loc_type_fixed sts l = match Sloc.SlocMap.find l sts with
-  | Ctypes.HasType                     -> true
-  | Ctypes.HasShape | Ctypes.IsSubtype -> false
+  | Ct.HasType                     -> true
+  | Ct.HasShape | Ct.IsSubtype -> false
 
 (* API *)
 let create cil spec decs scim tgr =
   let spec   = rename_funspec scim spec in
   let _      = E.log "\nDONE: SPEC rename \n" in
-  let cnv0   = spec |> Ctypes.cspec_of_refspec |> Ctypes.I.Spec.funspec |> SM.map fst in
-  let spec0  = Ctypes.I.Spec.map FI.t_true_refctype spec in
+  let cnv0   = spec |> Ct.cspec_of_refspec |> Ct.I.Spec.funspec |> SM.map fst in
+  let spec0  = Ct.I.Spec.map FI.t_true_refctype spec in
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
   let shm    = shapem_of_scim cil tgr spec scim vim in
   let gnv    = cnv0 |> finalize_funtypes shm
-                    |> mk_gnv (Ctypes.ctype_of_refctype <+> FI.t_fresh) spec decs in 
+                    |> mk_gnv (Ct.ctype_of_refctype <+> FI.t_fresh) spec decs in 
   let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in
   let _      = E.log "\nDONE: SHAPE infer \n" in
   let _      = if !Cs.ctypes_only then exit 0 else () in
@@ -198,7 +195,7 @@ let create cil spec decs scim tgr =
   let _      = E.log "\nDONE: Global Environment \n" in
   let ssto   = CS.store spec in
   let sts    = CS.locspectypes spec in
-  let gst    = ssto |> Ctypes.store_of_refstore |> FI.refstore_fresh "global" in
+  let gst    = ssto |> Ct.store_of_refstore |> FI.refstore_fresh "global" in
   let gst    = ssto |> RS.partition (is_loc_type_fixed sts) |> fst |> RS.upd gst in
   cons_of_decs tgr spec gnv gst decs
   |> Consindex.create

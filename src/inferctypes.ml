@@ -405,6 +405,7 @@ let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = c
                         let tsub = unify_tvars tsub (VM.find bv ve) fct in
                         UStore.unify_ctype_locs sto sub tsub (VM.find bv ve) fct
                       end (sto, S.Subst.empty, TVarInst.empty) cf.args fd.C.sformals in
+  let _              = P.eprintf "@[@!asdf: %a@!@]" Ctypes.I.Store.d_store sto in
   let tsub, sub, sto = constrain_phis tgr ve phis tsub sub sto in
   let et             = new exprTyper (ve,fs) in
   let blocks         = cfg.Ssa.blocks in
@@ -581,7 +582,6 @@ let tvar_q_error () (t1, t2) =
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = E.error "INFER_SHAPE" in (* DEBUG *)
-  let _                     = P.eprintf "%a@!" Ctypes.I.CFun.d_cfun cf in
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
