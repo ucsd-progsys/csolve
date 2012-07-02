@@ -154,16 +154,16 @@ let pointerLayoutAttributes =
   ; CM.ignoreBoundAttribute
   ]
 
-let hasOneAttributeOf of_ats ats =
-  List.exists (M.flip C.hasAttribute ats) of_ats
-
 let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
   | []                          -> tb
   | [C.Attr (_, [C.ASizeOf t])] -> t
   | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
 
+let hasPointerLayoutAttribute ats =
+  List.exists (M.flip C.hasAttribute ats) pointerLayoutAttributes
+
 let defaultPredsOfAttrs tbo ats = match tbo with
-  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+  | Some tb when not (hasPointerLayoutAttribute ats) ->
     begin match annotatedPointerBaseType ats tb with
       | C.TVoid l -> [nonnullPred; eqBlockBeginPred]
       | b -> [nonnullRoomForPred b; nonnullPred; eqBlockBeginPred]
@@ -171,7 +171,7 @@ let defaultPredsOfAttrs tbo ats = match tbo with
   | _ -> []
 
 let defaultFptrPredsOfAttrs tbo ats = match tbo with
-  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+  | Some tb when not (hasPointerLayoutAttribute ats) ->
     let tb = annotatedPointerBaseType ats tb in
       [nonnullPred; eqBlockBeginPred]
   | _ -> []
@@ -186,12 +186,23 @@ let fptrPredOfAttrs tbo ats =
   A.pAnd (rawPredsOfAttrs ats     ++ 
           roomForPredsOfAttrs ats ++ 
           defaultFptrPredsOfAttrs tbo ats)
-    
+
+let isStringPointerType tb ats = match C.unrollTypeDeep tb with
+  | C.TInt (C.IChar, _) -> true
+  | _                   -> false
+
+let isArrayPointerType tb ats =
+  CM.has_array_attr ats ||
+    (isStringPointerType tb ats
+       && not (C.hasAttribute CM.layoutAttribute ats
+                 || C.hasAttribute CM.singleAttribute ats))
+
 let ptrIndexOfPredAttrs tb pred ats =
-  let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
+  let hasArray, hasPred = (isArrayPointerType tb ats, C.hasAttribute CM.predAttribute ats) in
+  let hasSingle         = C.hasAttribute CM.singleAttribute ats in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
   let predIndex         = if hasPred then I.ref_index_of_pred vv pred else I.top in
-    if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
+    if (hasArray || hasPred) && not hasSingle then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfSlocAttrs l tb ats =
   let pred  = predOfAttrs (Some tb) ats in
@@ -361,10 +372,10 @@ let nameArg x =
   if x = "" then CM.fresh_arg_name () else x
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (tb, b, ats)                       -> indexOfArrayElements tb b ats
-  | C.TPtr (tb, ats) when CM.has_array_attr ats -> indexOfArrayElements tb None ats
-  | C.TPtr _                                    -> I.of_int 0
-  | _                                           -> assert false
+  | C.TArray (tb, b, ats)                           -> indexOfArrayElements tb b ats
+  | C.TPtr (tb, ats) when isArrayPointerType tb ats -> indexOfArrayElements tb None ats
+  | C.TPtr _                                        -> I.of_int 0
+  | _                                               -> assert false
 
 (******************************************************************************)
 (****************** Checking Type Annotation Well-Formedness ******************)

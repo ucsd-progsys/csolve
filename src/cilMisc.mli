@@ -66,6 +66,7 @@ val getStringAttrs     : string -> Cil.attributes -> string list
 val setStringAttr      : string -> string -> Cil.attributes -> Cil.attributes
 
 val arrayAttribute          : string
+val singleAttribute         : string
 val finalAttribute          : string
 val slocAttribute           : string
 val globalAttribute         : string

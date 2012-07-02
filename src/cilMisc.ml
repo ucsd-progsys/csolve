@@ -345,6 +345,7 @@ let setStringAttr name s ats =
 
 (* Must be "array" because CIL inserts these itself. *)
 let arrayAttribute          = "array"
+let singleAttribute         = "csolve_single"
 let finalAttribute          = "csolve_final"
 let slocAttribute           = "csolve_sloc"
 let globalAttribute         = "csolve_global_loc"
