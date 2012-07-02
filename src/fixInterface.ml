@@ -501,7 +501,10 @@ let t_name {venv = vnv} n =
 (* API *)
 let map_fn = RCt.CFun.map 
 let t_fresh_fn x =
-  RCt.CFun.map (Ct.ctype_of_refctype <+> t_fresh)  x
+  let f = RCt.CFun.map (Ct.ctype_of_refctype <+> t_fresh) x in
+  let _,ho = Ct.stores_of_refcfun f in
+  let hi   = RCt.Store.restrict ho (M.map_partial (snd <+> RCt.CType.sloc) f.Ct.args) in
+  {f with Ct.sto_in = hi}
 (* let refcargs_of_refargs *)
 (* let refcfun_of_refcfun fto ffrom = *)
 
@@ -609,6 +612,7 @@ let rename_refctype lsubs subs cr =
 let name_of_sloc_index l i = 
   FA.name_of_string <| Sloc.to_string l ^ "#" ^ Ix.repr i
 
+(* API *)
 let subs_of_lsubs lsubs sto = 
   Misc.tr_rev_flap begin fun (l, l') ->
     if not (RCt.Store.mem sto l) then [] else
@@ -694,7 +698,7 @@ let canon_sort t =
   (match So.ptr_of_t t with
    | Some (So.Loc s) -> s |> FA.sloc_of_string |> Sloc.canonical |> FA.so_ref 
    | _               -> t)
-(*  >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" So.print t So.print t') *)
+ (* >> (fun t' -> Format.printf "canon_sort: t = %a, t' = %a \n" So.print t So.print t') *)
 
 let canon_reft r = 
   let t  = C.sort_of_reft r in
@@ -952,8 +956,10 @@ let assert_equal_tvars ct1 ct2 = match ct1, ct2 with
 
 let make_cs_aux cenv p rct1 rct2 tago tag =
   let _ = assert_equal_tvars rct1 rct2 in
+ (* let _ = Pretty.printf "make_cs_aux: rct1 = %a, rct2 = %a \n" RCt.CType.d_ctype rct1 RCt.CType.d_ctype rct2 in *)
   match rct1, rct2 with
-    | Ct.TVar t, _ | _, Ct.TVar t -> ([],[])
+    | Ct.TVar t, _ 
+    | _, Ct.TVar t -> ([],[])
     | _ ->
       let env    = env_of_cilenv cenv in
       let r1, r2 = Misc.map_pair (Ct.reft_of_refctype <+> canon_reft) 
@@ -1076,7 +1082,8 @@ let make_cs_refldesc env p sld1 sld2 tago tag =
     
 (* API *)
 let rec make_cs cenv p rct1 rct2 tago tag loc =
- (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in  *)
+ (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" Ct.d_refctype rct1 Ct.d_refctype rct2 in *)
+ (* let _ = Pretty.printf "make_cs: rct1 = %a, rct2 = %a \n" RCt.CType.d_ctype rct1 RCt.CType.d_ctype rct2 in *)
  try
       let cs = make_cs_aux cenv p rct1 rct2 tago tag in
       begin match rct1, rct2 with
@@ -1105,13 +1112,13 @@ and make_cs_tuple env grd lsubs subs cr1s cr2s tago tag loc =
   Misc.map2 begin fun cr1 cr2 ->
     make_cs env grd cr1 (rename_refctype lsubs subs cr2) tago tag loc
   end cr1s cr2s 
-  |> Misc.splitflatten
+    |> Misc.splitflatten
 
 and make_cs_refstore env p st1 st2 polarity tago tag loc =
- (* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
-           polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
-  let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
-  let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
+(* let _  = Pretty.printf "make_cs_refstore: pol = %b, st1 = %a, st2 = %a, loc = %a \n"
+   polarity Ct.d_prestore_addrs st1 Ct.d_prestore_addrs st2 Cil.d_loc loc in
+   let _  = Pretty.printf "st1 = %a \n" d_refstore st1 in
+   let _  = Pretty.printf "st2 = %a \n" d_refstore st2 in  
 *)  make_cs_refstore_binds
       env p (RCt.Store.bindings st1) (RCt.Store.bindings st2) polarity tago tag loc
 
@@ -1135,6 +1142,7 @@ and make_cs_refstore_fun_binds env p sfuns1 sfuns2 polarity tago tag loc =
   end
 
 and make_cs_refcfun env p rf rf' tag loc =
+  (* let _ = Pretty.printf "make_cs_refcfun:\n%a\n%a\n" RCt.CFun.d_cfun rf RCt.CFun.d_cfun rf' in *)
   let rf, rf'     = RCt.CFun.normalize_names rf rf' subs_refctype subs_refctype in
   (* let _ = Pretty.printf "make_cs_refcfun:\n%a\n%a\n" RCt.CFun.d_cfun rf RCt.CFun.d_cfun rf' in *)
   let it, it'     = Misc.map_pair Ct.args_of_refcfun (rf, rf') in
@@ -1146,7 +1154,7 @@ and make_cs_refcfun env p rf rf' tag loc =
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
   (* contravariant inputs *)
       (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
-  +++ (make_cs_refstore env p hi' hi true None tag loc) 
+  +++ (make_cs_refstore env p hi' hi true None tag loc)
   (* covariant outputs *)
   +++ (make_cs env p ocr ocr' None tag loc)
   +++ (make_cs_refstore env p ho ho' true None tag loc)

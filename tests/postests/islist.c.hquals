@@ -1,5 +1,3 @@
-qualif SZ4(v: ptr): (v != 0) => (BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4)
-qualif SZ8(v: ptr): (v != 0) => (BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8)
 qualif EVa(v: ptr): (v != 0) => ((DEREF([(DEREF([v]): ptr)]): int) < DEREF([@v + 4]))
 qualif SRT(v: ptr): (v != 0) => ((DEREF([v + 4]): int) > ~A)
 qualif SDR(v: ptr): (BLOCK_END([(DEREF([v]): ptr)]) = (BLOCK_BEGIN([(DEREF([v]): ptr)]) + 8))

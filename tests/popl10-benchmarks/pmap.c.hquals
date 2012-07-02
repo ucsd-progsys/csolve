@@ -1,15 +1,4 @@
 qualif PPage(v:int) : v < 1000
 qualif VPage(v:int) : v < 2000
 
-//hand optimized
-//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([@pag]) 
-//qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([@pag]) 
-//qualif SIZE(v:int) : BLOCK_END([v]) = BLOCK_BEGIN([@pag]) + 4000
-
-//unoptimized
-//qualif BEGIN(v:int) : BLOCK_BEGIN([v]) = BLOCK_BEGIN([~a]) 
-//qualif END(v:int) : BLOCK_END([v]) = BLOCK_END([~a]) 
-//qualif SIZE(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([~a]) + 4000
 qualif SIZE(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4000
-
-qualif ETSZ(v:ptr) : v != 0 => BLOCK_END([v]) = BLOCK_BEGIN([v]) + 8012

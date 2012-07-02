@@ -154,16 +154,16 @@ let pointerLayoutAttributes =
   ; CM.ignoreBoundAttribute
   ]
 
-let hasOneAttributeOf of_ats ats =
-  List.exists (M.flip C.hasAttribute ats) of_ats
-
 let annotatedPointerBaseType ats tb = match C.filterAttributes CM.layoutAttribute ats with
   | []                          -> tb
   | [C.Attr (_, [C.ASizeOf t])] -> t
   | ats                         -> E.s <| C.error "Bad layout on pointer: %a@!" C.d_attrlist ats
 
+let hasPointerLayoutAttribute ats =
+  List.exists (M.flip C.hasAttribute ats) pointerLayoutAttributes
+
 let defaultPredsOfAttrs tbo ats = match tbo with
-  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+  | Some tb when not (hasPointerLayoutAttribute ats) ->
     begin match annotatedPointerBaseType ats tb with
       | C.TVoid l -> [nonnullPred; eqBlockBeginPred]
       | b -> [nonnullRoomForPred b; nonnullPred; eqBlockBeginPred]
@@ -171,7 +171,7 @@ let defaultPredsOfAttrs tbo ats = match tbo with
   | _ -> []
 
 let defaultFptrPredsOfAttrs tbo ats = match tbo with
-  | Some tb when not (hasOneAttributeOf pointerLayoutAttributes ats) ->
+  | Some tb when not (hasPointerLayoutAttribute ats) ->
     let tb = annotatedPointerBaseType ats tb in
       [nonnullPred; eqBlockBeginPred]
   | _ -> []
@@ -186,12 +186,23 @@ let fptrPredOfAttrs tbo ats =
   A.pAnd (rawPredsOfAttrs ats     ++ 
           roomForPredsOfAttrs ats ++ 
           defaultFptrPredsOfAttrs tbo ats)
-    
+
+let isStringPointerType tb ats = match C.unrollTypeDeep tb with
+  | C.TInt (C.IChar, _) -> true
+  | _                   -> false
+
+let isArrayPointerType tb ats =
+  CM.has_array_attr ats ||
+    (isStringPointerType tb ats
+       && not (C.hasAttribute CM.layoutAttribute ats
+                 || C.hasAttribute CM.singleAttribute ats))
+
 let ptrIndexOfPredAttrs tb pred ats =
-  let hasArray, hasPred = (CM.has_array_attr ats, C.hasAttribute CM.predAttribute ats) in
+  let hasArray, hasPred = (isArrayPointerType tb ats, C.hasAttribute CM.predAttribute ats) in
+  let hasSingle         = C.hasAttribute CM.singleAttribute ats in
   let arrayIndex        = if hasArray then indexOfArrayElements tb None ats else I.top in
   let predIndex         = if hasPred then I.ref_index_of_pred vv pred else I.top in
-    if hasArray || hasPred then I.glb arrayIndex predIndex else I.of_int 0
+    if (hasArray || hasPred) && not hasSingle then I.glb arrayIndex predIndex else I.of_int 0
 
 let ptrReftypeOfSlocAttrs l tb ats =
   let pred  = predOfAttrs (Some tb) ats in
@@ -302,15 +313,9 @@ class typeInstantiator (ats) = object (self)
         Some (tfrom, tto)
       | _ -> None
     end ats
-
-  (* method private ensureSubst s = *)
-  (*   if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub *)
-      
-  (* method private ensureTvarSubst t =  *)
-  (*   if not <| List.mem_assoc t tsub then tsub <- (t, freshTvarName ()) :: tsub *)
       
   method private ensureSub sub assign fresh s = 
-    if not <| List.mem_assoc s sub then assign (s, fresh ()) (* sub <- (s, fresh ()) :: sub *)
+    if not <| List.mem_assoc s sub then assign (s, fresh ())
       
   method private ensureSubst = 
     self#ensureSub sub (fun p -> sub <- p::sub) freshSlocName
@@ -342,28 +347,6 @@ class typeInstantiator (ats) = object (self)
       self#ensureTvarSubst tvar;
       self#changeAttr CM.typeVarAttribute tvar tsub
     | _ -> C.DoChildren
-
-  (* method vattr = function *)
-  (*   (\* Slocs *\) *)
-  (*   | C.Attr (n, [C.AStr nfrom; C.AStr nto]) *)
-  (*       when n = CM.instantiateAttribute -> *)
-  (*     self#ensureSubst nto; *)
-  (*     C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])] *)
-  (*   | C.Attr (n, [C.AStr sloc]) *)
-  (*       when n = CM.slocAttribute -> *)
-  (*     self#ensureSubst sloc; *)
-  (*     C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])] *)
-  (*   (\* tvars *\) *)
-  (*   | C.Attr (n, [C.AStr tfrom; C.AStr tto]) *)
-  (*       when n = CM.instantiateTypeVarAttribute -> *)
-  (*     self#ensureTvarSubst tto; *)
-  (*     C.ChangeTo [C.Attr (CM.instantiateTypeVarAttribute, *)
-  (*                         [C.AStr tfrom; C.AStr (List.assoc tto tsub)])] *)
-  (*   | C.Attr (n, [C.AStr tvar]) *)
-  (*       when n = CM.typeVarAttribute -> *)
-  (*     self#ensureTvarSubst tvar; *)
-  (*     C.ChangeTo [C.Attr (CM.typeVarAttribute, [C.AStr (List.assoc tvar tsub)])] *)
-  (*   | _ -> C.DoChildren *)
 end
 
 let attributeAppliesToInstance (C.Attr (n, _)) =
@@ -389,10 +372,10 @@ let nameArg x =
   if x = "" then CM.fresh_arg_name () else x
 
 let indexOfPointerContents t = match t |> C.unrollType |> flattenArray with
-  | C.TArray (tb, b, ats)                       -> indexOfArrayElements tb b ats
-  | C.TPtr (tb, ats) when CM.has_array_attr ats -> indexOfArrayElements tb None ats
-  | C.TPtr _                                    -> I.of_int 0
-  | _                                           -> assert false
+  | C.TArray (tb, b, ats)                           -> indexOfArrayElements tb b ats
+  | C.TPtr (tb, ats) when isArrayPointerType tb ats -> indexOfArrayElements tb None ats
+  | C.TPtr _                                        -> I.of_int 0
+  | _                                               -> assert false
 
 (******************************************************************************)
 (****************** Checking Type Annotation Well-Formedness ******************)
@@ -457,7 +440,7 @@ let rec refctypeOfCilType abstr (srcloc : Cil.location) mem t = match normalizeT
           end
         | _ -> ptrReftypeOfAttrs srcloc t ats
       end
-  | _ -> assertf "refctypeOfCilType: non-base!"
+  | _ -> (Pretty.printf "type: %a@!" Cil.d_plaintype t; assertf "refctypeOfCilType: non-base!")
         
 and heapRefctypeOfCilType srcloc mem t =
      t

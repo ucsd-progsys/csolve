@@ -258,7 +258,7 @@ let unfold_compinfo pfx ci =
   >> wwhen mydebug (E.log "unfold_compinfo: pfx = <%s> result = %a\n"  pfx (CM.d_many_braces false d_fieldinfo))
 
 let unfold_ciltyp = function 
-  | Cil.TComp (ci,_) ->
+  | (Cil.TComp (ci,_)) as typ ->
       unfold_compinfo "" ci
       |> Misc.index_from 0 
       |> Misc.IntMap.of_list 
@@ -594,6 +594,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val apply_effects   : (effectptr -> effectptr) -> t -> t
     val well_formed     : T.store -> t -> bool
+    val ordered_locs    : t -> Sloc.t list
     val normalize_names :
       t ->
       t ->
@@ -608,6 +609,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val generalize      : t -> t
     val free_svars      : t -> Sv.t list
     val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * TVarSubst.t * (tvar * T.ctype) list * StoreSubst.t)
+    val sub_uqlocs      : Sloc.Subst.t -> t -> t
     val make            : (string * T.ctype) list -> S.t list -> Sv.t list -> tvar list -> T.store -> T.ctype -> T.store -> effectset -> t
     val subs            : t -> Sloc.Subst.t -> t
     val subs_store_var : StoreSubst.t -> Sloc.Subst.t -> T.store -> t -> t
@@ -733,6 +735,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let subs subs = function
       | Ref (s, i) -> Ref (S.Subst.apply subs s, i)
+      | FRef (f, i) -> FRef (CFun.subs f subs, i)
       | pct        -> pct
         
     let subs_store_var subs lsubs sto = function
@@ -1183,10 +1186,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         match all_subs sub tsub ct1, all_subs sub tsub ct2 with
         (* match CType.subs sub ct1, CType.subs sub ct2 with *)
         | Int (n1, _), Int (n2, _) when n1 = n2 -> (sto, sub, tsub)
-        (* | Ref (s1, _), Ref (s2, _)              -> lift_third (unify_locations sto sub s1 s2) tsub *)
         | Ref (s1, _), Ref (s2, _)              -> unify_locations sto sub tsub s1 s2
         | FRef (f1,_), FRef(f2,_)               -> unify_frefs sto sub tsub f1 f2
-        (* | FRef (f1,_), FRef(f2,_)  when CFun.same_shape f1 f2 -> (sto, sub, tsub) *)
         | ARef, ARef                            -> (sto, sub, tsub)
         | Ref (s, _), ARef                      -> lift_third (anyfy_location sto sub s) tsub
         | ARef, Ref (s, _)                      -> lift_third (anyfy_location sto sub s) tsub
@@ -1195,18 +1196,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         | Int _, Any                            -> (sto, sub, tsub)
         | TVar t1, TVar t2 when t1 = t2         -> (sto, sub, tsub)
         | TVar t1, TVar t2                      -> (sto, sub, T.TVarInst.extend t1 (TVar t2) tsub)
-        (* | TVar _ as tv, ct'                  -> unify_tvars sub sto tsub tv ct' *)
-        (* | ct', (TVar _ as tv)                -> unify_tvars sub sto tsub ct' tv *)
         | ct1, ct2                              -> 
           fail sub sto <| C.error "Cannot unify locations of %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
       and unify_tvars sub sto tsub t1 t2 = 
         match all_subs sub tsub t1, all_subs sub tsub t2 with
-          (* | (Ref (s1, r1) as t1), (Ref (s2, r2) as t2) (\* when r1 = r2 *\)->  *)
-          (*   unify_ctype_locs sto sub tsub t1 t2 *)
           | TVar t1', TVar t2'       -> sto, sub, T.TVarInst.extend t1' (TVar t2') tsub
-          (* | TVar t', ((Ref _) as r)  *)
-          (* | ((Ref _) as r), TVar t'  -> sto, sub, T.TVarInst.extend t' r tsub *)
           | ct1, ct2 -> fail sub sto <| C.error "Cannot unify (tvar-inst'd) %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
       and unify_frefs sto sub tsub f1 f2 = 
@@ -1217,12 +1212,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                       |> Misc.map_pair 
                           (Misc.map_partial (function (TVar t) -> Some (TVar t) | _ -> None)) in
           List.fold_left2 (fun (sto, sub, tsub) a1 a2 ->
-            unify_tvars sub sto tsub a1 a2) (sto, sub, tsub) a1s a2s
-          >> (fun (sto,sub,tsub) -> (f1', f2') 
-                                |> Misc.map_pair (CFun.inst_tvar [] tsub)
-                                |> (fun (f1, f2) -> assert (CFun.same_shape f1 f2)))
-            
-        with _ -> C.error "Cannot unify locations of %a and %a@!" 
+            (* Here we only want to instantiate tvars to other tvars *)
+            unify_tvars sub sto tsub a1 a2) (sto, sub, []) a1s a2s
+          |> (fun (sto,sub,ti) -> 
+            let _ = (f1', f2') |> Misc.map_pair (CFun.inst_tvar [] ti) 
+                               |> (fun (f1, f2) -> assert (CFun.same_shape f1 f2)) in
+              (sto, sub, List.fold_left (fun i (t, t') -> T.TVarInst.extend t t' i) tsub ti))
+        with _ -> C.error "Cannot unify locations of functions:@!%a@!and:@!%a@!" 
                       CFun.d_cfun f1 CFun.d_cfun f2
                   |> fail sub sto
                                  
@@ -1422,6 +1418,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let subs cf sub =
       cf |> quantified_locs |> S.Subst.avoid sub |> capturing_subs cf
           
+    let tvarinst_slocs = Misc.map_partial (snd <+> CType.sloc) 
+                     <+> List.filter ((<>) Sloc.none)
+          
     let subs_tvar rename cf = 
       let apply_sub = CType.subs_tvar rename in
       make (List.map (Misc.app_snd apply_sub) cf.args)
@@ -1433,6 +1432,12 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           (Store.subs_tvar rename cf.sto_out)
            cf.effects
 
+    let rec pad_names = function
+      | ([], [])          -> []
+      | (l::ls1, [])      -> (l, Sloc.copy_abstract [] l)::pad_names (ls1, [])
+      | ([], l::ls2)      -> (Sloc.copy_abstract [] l, l)::pad_names ([], ls2)
+      | (l::ls1, l'::ls2) -> (l,l')::pad_names(ls1, ls2)
+        
     let rec order_locs_aux sto ord = function
       | []      -> ord
       | l :: ls ->
@@ -1446,29 +1451,41 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
              |> Misc.maybe_list
              |> order_locs_aux sto []
              |> Misc.mapi (fun i x -> (x, i)) in
-      cf |> quantified_locs |> Misc.fsort (Misc.flip List.assoc ord)
+      cf.sto_out |> Store.domain |> Misc.flap (Store.reachable sto) |> Misc.fsort (Misc.flip List.assoc ord)
+      (* cf |> quantified_locs |> Misc.fsort (Misc.flip List.assoc ord) *)
+                  (* |> pad_names *)
+                  (* |> List.split in *)
+      
 
     let replace_arg_names anames cf =
       {cf with args = List.map2 (fun an (_, t) -> (an, t)) anames cf.args}
         
-    let rec pad_names = function
-      | ([], [])          -> []
-      | (l::ls1, [])      -> (l, Sloc.copy_abstract [] l)::pad_names (ls1, [])
-      | ([], l::ls2)      -> (Sloc.copy_abstract [] l, l)::pad_names ([], ls2)
-      | (l::ls1, l'::ls2) -> (l,l')::pad_names(ls1, ls2)
+    let sub_of_locs cf1 cf2 l1 l2 = 
+      match List.mem l1 cf1.globlocs, List.mem l2 cf2.globlocs with
+        | true, true   -> (None, None)
+        | false, true  -> Some (l1, l2), None
+        | true, false  -> None, Some (l2, l1)
+        | false, false -> 
+          let s = Sloc.copy_abstract [] l1 in 
+          Some (l1, s), Some(l2, s)
+            
+    let subs_of_loclist cf1 cf2 ls1 ls2 = 
+      let make_subs = sub_of_locs cf1 cf2 in
+      List.fold_left2 (fun s l1 l2 -> make_subs l1 l2::s) [] ls1 ls2
+        |> List.split
+        |> Misc.map_pair Misc.list_somes
+            
+    let globalize_locs ls cf = {cf with globlocs = ls |> Misc.sort_and_compact}
         
     let normalize_names cf1 cf2 f fe =
-      let ls1, ls2    = Misc.map_pair ordered_locs (cf1, cf2) 
-                      |> pad_names 
-                      |> List.split in
-      let fresh_locs   = List.map (Sloc.copy_abstract []) ls1 in
-      let lsub1, lsub2 = Misc.map_pair (Misc.flip List.combine fresh_locs) (ls1, ls2) in
+      let ls1, ls2 = Misc.map_pair ordered_locs (cf1, cf2) in
+      let lsub1, lsub2 = subs_of_loclist cf1 cf2 ls1 ls2 in
       let fresh_args   = List.map (fun _ -> CM.fresh_arg_name ()) cf1.args in
       let asub1, asub2 = Misc.map_pair (List.map fst <+> Misc.flip List.combine fresh_args) (cf1.args, cf2.args) in
       let cf1, cf2     = Misc.map_pair (replace_arg_names fresh_args) (cf1, cf2) in
         (capturing_subs cf1 lsub1 |> map (f cf1.sto_out lsub1 asub1) |> apply_effects (fe cf1.sto_out lsub1 asub1),
          capturing_subs cf2 lsub2 |> map (f cf2.sto_out lsub2 asub2) |> apply_effects (fe cf2.sto_out lsub2 asub2))
-
+        
     let rec same_shape cf1 cf2 =
       Misc.same_length (quantified_locs cf1) (quantified_locs cf2) && Misc.same_length cf1.args cf2.args &&
         let cf1, cf2 = normalize_names cf1 cf2 (fun _ _ _ ct -> ct) (fun _ _ _ ct -> ct) in
@@ -1491,16 +1508,27 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let indices cf =
       Store.indices cf.sto_out
+        
+    let glocs_of_ssub ssub sto =
+      SVM.fold (fun _ (ss,_) s -> SS.union ss s) ssub SS.empty 
+        |> SS.elements
+        |> Misc.flap (Store.reachable sto) 
+        |> Misc.sort_and_compact
 	
     let subs_store_var subs lsubs sto cf =
       (* Only sub the locations that are in the store substitution *)
       let lsubs = SVM.fold (fun _ (ss,_) s -> SS.union ss s) subs SS.empty 
                |> SS.elements
-	       |> (fun ss -> List.filter (snd <+>Misc.flip List.mem ss) lsubs)
+	       |> (fun ss -> List.filter (snd <+> Misc.flip List.mem ss) lsubs)
       in
       let cf = capturing_subs cf lsubs in
-      let sto_in = Store.subs_store_var subs lsubs sto cf.sto_in in
+      let args = CType.subs_store_var subs lsubs sto
+              |> Misc.app_snd
+              |> Misc.flip List.map cf.args 
+      in
+      let sto_in  = Store.subs_store_var subs lsubs sto cf.sto_in in
       let sto_out = Store.subs_store_var subs lsubs sto cf.sto_out in
+      let glocs = glocs_of_ssub subs sto in
       let top_of_l l = 
         let so = Ast.Sort.t_ptr (Ast.Sort.Loc (S.to_string l)) in
         let vv = Ast.Symbol.value_variable so in
@@ -1514,22 +1542,43 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       end (EffectSet.subs lsubs cf.effects) sto_out
       in
       {cf with
-        args = CType.subs_store_var subs lsubs sto
-            |>Misc.app_snd
-            |>Misc.flip List.map cf.args;
-        quant_svars = List.filter (not <.>Misc.flip SVM.mem subs) cf.quant_svars;
+        args = args;
+        quant_svars = List.filter (not <.> Misc.flip SVM.mem subs) cf.quant_svars;
+        globlocs = (cf.globlocs ++ glocs) |> Misc.sort_and_compact;
         sto_in = sto_in;
         sto_out = sto_out;
         effects = effects;
       }
         
+    let rec free_tvars cf = 
+      let vars = function 
+        | TVar t -> [t]
+        | FRef (f, _) -> free_tvars f
+        | _ -> [] in
+      let store_vars = Store.fold_fields 
+        (fun vs _ _ fld -> Field.type_of fld |> vars |> List.append vs) [] cf.sto_out in
+      cf.ret::List.map snd cf.args 
+      |> Misc.flap vars
+      |> List.append store_vars
+      |> Misc.sort_and_compact
+      |> Misc.filter (not <.> Misc.flip List.mem cf.quant_tvars)
+        
     let inst_tvar rename tinst cf = 
-      let sub = CType.inst_tvar rename tinst in
-      {cf with ret   = sub cf.ret;
-              args   = cf.args |>:Misc.app_snd sub;
-              sto_in = Store.map sub cf.sto_in;
-              sto_out = Store.map sub cf.sto_out;
-              quant_tvars = List.filter (not <.> Misc.flip T.TVarInst.mem tinst) cf.quant_tvars;
+      let all_tvars = free_tvars cf ++ cf.quant_tvars |>: TVarSubst.apply rename in
+      let tinst = tinst 
+               |> List.filter (Misc.flip List.mem all_tvars <.> fst) in
+      let sub = tinst |> CType.inst_tvar rename in
+      let quant = cf.quant_tvars
+              |>: TVarSubst.apply rename
+              |>  List.filter (not <.> Misc.flip T.TVarInst.mem tinst) in
+      {cf with 
+        ret         = sub cf.ret;
+        globlocs    = cf.globlocs ++ tvarinst_slocs tinst 
+                      |> Misc.sort_and_compact;
+        args        = cf.args |>: Misc.app_snd sub;
+        sto_in      = Store.map sub cf.sto_in;
+        sto_out     = Store.map sub cf.sto_out;
+        quant_tvars = quant;
       }
            
     let instantiate_locs srcinf cf = 
@@ -1537,41 +1586,58 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let instslocs = List.map (S.copy_abstract [srcinf]) qslocs in
       List.combine qslocs instslocs
 	
-    let rec sto_of_args srcinfo cf args gsto sub tsub =
-      List.fold_left2 begin fun (sub,sto) t t' ->
-	begin match CType.subs sub t', CType.subs sub t with
-	  | Ref (lsub, _), Ref (lsuper, _) -> 
-	    let sub' = S.Subst.extend lsuper lsub sub in
-	    let usto, usub, tsub = Store.Unify.unify_ctype_locs gsto sub tsub t t' in
-	    let sto'  = Store.restrict usto [lsub] 
-	             |> Store.upd sto in 
-	    (sub', sto')
-	  | FRef (f,_), FRef (g,_) ->
-	    let sub   = S.Subst.compose (instantiate_locs srcinfo f) sub in
-	    let f     = subs f sub in
-	    let f     = 
-	      {f with args = List.map (Misc.app_snd <| subs_frefs sub) f.args;
-	              ret  = subs_frefs sub f.ret} 
-	    in
-	    let args = List.map snd g.args in
-	    let (sub', sto') = 
-	      sto_of_args srcinfo f args (Store.upd gsto f.sto_out) sub tsub
-	    in
-            (sub', Store.subs sub' sto')
-	    (* (sub', Store.upd sto (Store.subs sub' sto')) *)
-	  | _ -> (sub, sto)
-	end
-      end (sub, Store.empty) (List.map snd cf.args) args
+    let fresh_fref_locs srcinfo sub = function
+      | FRef (f, r) -> 
+        let sub = S.Subst.compose (instantiate_locs srcinfo f) sub in
+        (sub, FRef (subs f sub, r))
+      | ct -> (sub, ct)
+        
+    let sto_of_arg sto sub tsub = function
+      | Ref (l, _) -> Store.restrict sto [l]
+      | FRef (f, _) -> assert false
+      | _ -> Store.empty
+        
+    let rec arg_subs tsub sub sto (t,t') = 
+      match Misc.map_pair (CType.subs sub) (t,t') with
+      | Ref (l, _), Ref (l', _) when l <> l' ->
+        Store.Unify.unify_ctype_locs sto sub tsub t t'
+      | FRef (f, _), FRef (g, _)             -> 
+        let fargs, gargs = Misc.map_pair (List.map snd) (f.args, g.args) in
+        let sto          = Store.upd sto (Store.subs sub g.sto_out) in
+        List.combine fargs gargs 
+        |> List.fold_left (fun (sto,sub,tsub) (fa,ga) -> 
+                              arg_subs tsub sub sto (ga,fa)) (sto, sub, tsub)
+      | _                                    -> (sto, sub, tsub)
+        
+    let collect_slocs cfs = 
+      Misc.flap begin function
+        | FRef (f, _) -> List.map CType.sloc (f.ret::(f.args |>: snd))
+        | ct -> [CType.sloc ct]
+      end cfs |> Misc.list_somes
+        
+    (* above should return a reduced sub *)
+    let sto_of_args srcinfo globals cf args gsto sub tsub = 
+      let sub, args = args 
+                 |>: (CType.subs sub <+> fresh_fref_locs srcinfo sub)
+                 |>  (List.fold_left (fun (sub, cts) (sub', ct) -> 
+                   S.Subst.compose sub sub', ct::cts) ([], []))
+                 |> Misc.app_snd List.rev in
+      let (store,sub,tsub) = 
+        List.combine (cf.args |>: snd) args
+      |> List.fold_left (fun (store, sub, tsub) p -> arg_subs tsub sub store p) (gsto, sub, tsub) in
+      let store = collect_slocs args
+              |> Store.restrict store in
+      (tsub, sub, store)
 	
-    let instantiate_store srcinfo cf args sto =
+    let instantiate_store srcinfo globals cf args sto =
       if cf.quant_svars = [] then (cf, S.Subst.empty, StS.empty) else
       	let non_poly_locs = cf.sto_out |> Store.domain in
 	let v = List.hd cf.quant_svars in
 	let rest = List.tl cf.quant_svars in
 	let cf   = {cf with quant_svars = rest} in
-	let (sub,sto)  = sto_of_args srcinfo cf args sto S.Subst.empty T.TVarInst.empty in
+        let (tsub,sub,sto) = sto_of_args srcinfo globals cf args sto S.Subst.empty T.TVarInst.empty in
 	let ssub = Store.domain sto
-	        |> List.filter (not <.>Misc.flip List.mem non_poly_locs)
+	        |> List.filter (not <.> Misc.flip List.mem non_poly_locs)
                 |> List.fold_left (Misc.flip SS.add) SS.empty
 		|> fun sset -> StS.extend_sset v sset StS.empty in
 	let cf = subs_store_var ssub sub sto cf in
@@ -1602,7 +1668,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         end [] fromas toas
       in
       inst_of_args (List.map snd cf.args) args
-        
+	
     let instantiate_tvars srcinf cf args =
       (* I think any return value should have to share the same variable
 	 as some input argument *)
@@ -1616,12 +1682,22 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
     let instantiate srcinf cf args sto =
       let sub = instantiate_locs srcinf cf in
+      let globals = cf.globlocs in
       let cf = subs cf sub in
       let cf = {cf with args = List.map (Misc.app_snd <| subs_frefs sub) cf.args;
 	                 ret = subs_frefs sub cf.ret} in
       let (cf, tsub, tinst) = instantiate_tvars srcinf cf args in
-      let (cf, isub, hsub) = instantiate_store srcinf cf args sto in
-      (cf, S.Subst.compose isub sub, tsub, tinst, hsub)
+      let (cf, isub, hsub) = instantiate_store srcinf globals cf args sto in
+      (cf, S.Subst.compose isub sub, tsub, T.TVarInst.map_binds (CType.subs isub) tinst, hsub)
+        
+    let sub_uqlocs sub f = 
+      let qlocs    = quantified_locs f in
+      let globlocs = sub 
+                  |> List.filter (fst <+> Misc.flip List.mem qlocs)
+                  |>: snd 
+      in
+      let f = capturing_subs f sub in
+      {f with globlocs = globlocs}
         
     let quantified_svars cf = cf.quant_svars
       
@@ -1640,19 +1716,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       |> Misc.sort_and_compact
       in
       {cf with quant_svars = svars }
-	
-    let rec free_tvars cf = 
-      let vars = function 
-        | TVar t -> [t]
-        | FRef (f, _) -> free_tvars f
-        | _ -> [] in
-      let store_vars = Store.fold_fields 
-        (fun vs _ _ fld -> Field.type_of fld |> vars |> List.append vs) [] cf.sto_out in
-      cf.ret::List.map snd cf.args 
-      |>Misc.flap vars
-      |>List.append store_vars
-      |>Misc.sort_and_compact
-      |>Misc.filter (not <.> Misc.flip List.mem cf.quant_tvars)
 	  
     let quantify_tvars cf = {cf with quant_tvars = free_tvars cf}
       

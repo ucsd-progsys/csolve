@@ -11,4 +11,3 @@ qualif NUM(v:int) : v <= 6
 qualif NUM(v:int) : v <= 7
 qualif NUM(v:int) : v <= 8
 qualif NUM(v:int) : v <= 15
-qualif STSZ(v:ptr) : BLOCK_END([v]) = BLOCK_BEGIN([v]) + 4

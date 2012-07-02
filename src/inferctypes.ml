@@ -218,17 +218,54 @@ let check_poly_inclusion s1 s2 sub =
       raise (UStore.UnifyFailure (sub, s1))
   end;
   ()
-
+    
+let instantiate_locs g f gl fl =
+  if List.mem gl <| CFun.quantified_locs g
+    && not (List.mem fl <| CFun.quantified_locs f) 
+    (* && List.mem fl (f.sto_out |> Store.domain)  *)then
+    Some (gl, fl)
+  else
+    None
+      
+let rec pad_names = function
+  | ([], [])          -> []
+  | (l::ls1, [])      -> (l, Sloc.copy_abstract [] l)::pad_names (ls1, [])
+  | ([], l::ls2)      -> (Sloc.copy_abstract [] l, l)::pad_names ([], ls2)
+  | (l::ls1, l'::ls2) -> (l,l')::pad_names(ls1, ls2)
+    
+let subs_of_fref_args sub fcts acts = 
+  (* g <: f *)
+    List.fold_left2 begin fun sub ct1 ct2 ->   
+      match ct1, ct2 with 
+        | FRef (f, _), FRef (g, r) -> 
+          let gls, fls = M.map_pair CFun.ordered_locs (g,f) |> pad_names |> List.split in
+          List.fold_left2 
+          (fun s gl fl -> instantiate_locs g f gl fl::s) [] gls fls
+        |> M.list_somes 
+        |> M.flip Sloc.Subst.compose sub
+        | _ -> sub
+    end sub fcts acts
+      
+let instantiate_fref_args sub fcts acts = 
+  let sub = subs_of_fref_args sub fcts acts in
+  let acts = acts 
+         |>: begin function 
+             | FRef (f, r) -> FRef (CFun.sub_uqlocs sub f, r) 
+             | ct -> ct 
+         end
+  in 
+  (acts, sub)
+  
 let cond_add_annot cond a annots = if cond then a :: annots else annots
     
 let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
   let loc                 = C.get_instrLoc i in
   let cts, tsub, sub, sto = constrain_args tgr loc et fs tsub sub sto args in
-  let cts = cts |>: (I.CType.subs sub <.> TVarInst.apply tsub) in
+  let cts = cts |>: (Ct.subs sub <.> TVarInst.apply tsub) in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
-  let cfi, isub, tinsti, tinst, hsub = 
-    CFun.instantiate srcinfo cf cts sto in
-  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub 
+  let cfi, isub, tinsti, tinst, hsub = CFun.instantiate srcinfo cf cts sto in
+  let cts, isub     = instantiate_fref_args isub (cfi.args |>: snd) cts  in
+  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub
                    |> List.append (tinsti |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
                    |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)
                    |> cond_add_annot (tinst <> TVarInst.empty) (RA.TInst tinst)
@@ -240,12 +277,8 @@ let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
                         UStore.add_field sto sub tsub s i fld
                       end (sto, sub, tsub) cfi.sto_out in
   let sto, sub, tsub = List.fold_left2 begin fun (sto, sub, tsub) (ea, cta) (_, ctf) ->
-    (* unify_and_check_subtype sto sub tsub (Ct.subs_store_var hsub isub sto cta) ctf *)
     unify_and_check_subtype tgr sto sub tsub ea (TVarInst.apply tsub cta) ctf
   end (sto, sub, tsub) (List.combine args cts) cfi.args in
-  (* Since at this point we're implicitly checking that cfi.sto is
-     contained in sto, check that free variables in cfi.sto are
-     contained in sto *)
   let _ = check_poly_inclusion cfi.sto_out sto sub in
     match lvo with
       | None    -> (annot, tsub, sub, sto)
@@ -274,12 +307,13 @@ let assert_store_type_correct tgr loc lv e ct = match lv with
           C.d_exp e d_ctype ct d_ctype heap_ct (* TODO: prettycil *)
   | _ -> ()
 
+let find_function_fref loc sub ct = match Ct.subs sub ct with    
+  | FRef (f, _) -> f
+  | _ -> assert false
+
 let find_function loc et fs tsub sub sto = function
   | C.Var f, C.NoOffset -> fs |> VM.find f |> fst
-  | C.Mem e, C.NoOffset ->
-    match Ct.subs sub <| et#ctype_of_exp loc e with
-      | FRef (f, _) -> f
-      | _ -> assert false
+  | C.Mem e, C.NoOffset -> find_function_fref loc sub <| et#ctype_of_exp loc e
 
 let unify_tvars tsub ct1 ct2 = match TVarInst.apply tsub ct1, TVarInst.apply tsub ct2 with
   | (TVar t, ct2') -> TVarInst.extend t ct2' tsub
@@ -599,13 +633,22 @@ let tvar_q_error () (t1, t2) =
 let quant_tvar_inst_error () (t,ct) = 
   C.error "Quantified variable %a less polymorphic than expected [%a]"
     d_tvar t Ct.d_ctype ct
+    
+let generalize_fref = function
+  | FRef (f, r) -> FRef (CFun.generalize f, r) 
+  | ct -> ct
+    
+let generalize_frefs fdec =
+  let tl = CM.top_level_fn_assgns fdec in
+  VM.mapi (fun v ct -> if CM.VarSet.mem v tl then generalize_fref ct else ct)
 
 let infer_shape tgr fe ve gst scim (cf, sci, vm) =
-  let vm                    = replace_formal_refs cf vm            in
-  let ve                    = fresh_local_slocs <| VM.extend vm ve in 
-  (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
+  let vm                    = replace_formal_refs cf vm in
+  let ve                    =  VM.extend vm ve
+                            |> fresh_local_slocs
+                            |> generalize_frefs sci.ST.fdec in
   let sto                   = Store.upd cf.sto_out gst             in
-  let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in
+  let em, bas, tsub, sub, sto = constrain_fun tgr gst fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
   let _ =                     CFun.quantified_tvars cf 
