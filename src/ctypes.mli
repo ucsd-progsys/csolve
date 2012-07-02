@@ -318,6 +318,7 @@ module type S = sig
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val apply_effects   : (effectptr -> effectptr) -> t -> t
     val well_formed     : Store.t -> t -> bool
+    val ordered_locs    : t -> Sloc.t list
     val normalize_names :
       t ->
       t ->
@@ -325,14 +326,13 @@ module type S = sig
       (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
     val same_shape      : t -> t -> bool
-    (* val quantify_svars  : t -> t *)
-    (* val quantify_tvars  : t -> t *)
     val quantified_locs : t -> Sloc.t list
     val quantified_svars : t -> Svar.t list
     val quantified_tvars : t -> tvar list
     val generalize      : t -> t
     val free_svars      : t -> Svar.t list
     val instantiate     : CilMisc.srcinfo -> t -> T.ctype list -> T.store -> (t * Sloc.Subst.t * TVarSubst.t * (tvar * T.ctype) list * StoreSubst.t)
+    val sub_uqlocs      : Sloc.Subst.t -> t -> t
     val make            : (string * CType.t) list -> 
                           Sloc.t list -> 
                           Svar.t list -> 

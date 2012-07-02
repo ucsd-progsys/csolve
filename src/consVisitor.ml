@@ -83,18 +83,14 @@ let tsubs_of_annots ns =
   Misc.map_partial (function Refanno.TNew (x,y) -> Some (x,y)
                    | Refanno.New _ 
                    | Refanno.NewC _
-                   | Refanno.TNew _ 
                    | Refanno.TInst _
                    | Refanno.HInst _ ->  None) ns
     
 let tinst_of_annots ns = 
-  Misc.map_partial (function Refanno.TInst inst -> 
-                    (* Some (List.map (M.app_snd FI.t_fresh) inst) *)
-   Some inst
+  Misc.map_partial (function Refanno.TInst inst -> Some inst
                    | Refanno.New _ 
                    | Refanno.NewC _
                    | Refanno.TNew _ 
-                   | Refanno.TInst _
                    | Refanno.HInst _ ->  None) ns
   |> M.only_one "More than one TVar instantiation at call site"
     
@@ -264,8 +260,9 @@ let cons_of_fptr me loc tag grd effs (env, sto, tago) post_mem_env lval rv =
   match t_exp_with_cs me loc tago tag grd env lval with
     | Ct.FRef (f, r') as crf,cds2 ->
       let f' = FI.t_fresh_fn f in
-      let crf = Ct.FRef (f', r) in (* ABAKST I don't think this is right... *)
-      let wfs1, wfs2 = FI.make_wfs_fn env f', FI.make_wfs_fn env rf in
+      let crf = Ct.FRef (f', r) in 
+      let genv = CF.globalenv_of_t me in
+      let wfs1, wfs2 = Misc.map_pair (FI.make_wfs_fn genv) (f', rf) in
       let cds3 = FI.make_cs_refcfun env grd rf f' tag loc in
       (crf, cds1+++cds2+++cds3, wfs1++wfs2)
     | _ -> assert false
@@ -447,23 +444,50 @@ let wfs_of_inst env sto =
 let apply_inst env tsub sub sto inst frt = match inst with
   | None -> (frt, [])
   | Some i -> 
-    let refi = List.map (M.app_snd (RT.subs sub <.> FI.t_fresh)) i in
+    let refi = List.map (M.app_snd (Ct.I.CType.subs sub <+> FI.t_fresh)) i in
     (frt |> RCf.inst_tvar tsub refi, wfs_of_inst env sto refi)
-        
-let instantiate_fun me env sto frt ns =
-  let lsubs = lsubs_of_annots ns in
-  let hsubs = hsubs_of_annots env ns in
-  let tsubs = tsubs_of_annots ns in
-  let tinst = tinst_of_annots ns in
-  let frt' = RCf.subs_store_var hsubs lsubs sto frt in
-  let frt', wfs = apply_inst (CF.globalenv_of_t me) tsubs lsubs (fst <| Ct.stores_of_refcfun frt') tinst frt' in
-  (frt', lsubs, wfs)
+      
+let insts_of_annots env ns = 
+  (lsubs_of_annots ns, 
+   hsubs_of_annots env ns, 
+   tsubs_of_annots ns,
+   tinst_of_annots ns)
+    
+let lsubs_of_insts (l,_,_,_) = l
+    
+let instantiate_tvars me env frt (lsubs,_,tsubs,tinst) = 
+  let frt', wfs = apply_inst (CF.globalenv_of_t me) tsubs lsubs (fst <| Ct.stores_of_refcfun frt) tinst frt in
+  (frt', wfs)
+    
+let instantiate_store me env grd tag tago loc sto frt (lsubs,hsubs,_,_) = 
+  let sto' = RS.map (Ct.ctype_of_refctype <+> FI.t_fresh) sto in
+  let wfs = FI.make_wfs_refstore env sto' sto' in
+  let cs,_  = FI.make_cs_refstore env grd sto sto' true tago tag loc in
+  RCf.subs_store_var hsubs lsubs sto' frt, cs, wfs
+    
+let sto_of_fref = function
+  | Ct.FRef (f,_) -> Some (Ct.stores_of_refcfun f |> snd)
+  | _ -> None
+    
+let sto_of_args cts = 
+     M.map_partial sto_of_fref cts
+  |> List.fold_left RS.upd RS.empty
+      
+let instantiate_frefs lsubs cts = 
+  cts |>: begin function
+    | Ct.FRef (f, r) -> 
+      let subs = FI.subs_of_lsubs lsubs f.Ct.sto_out in
+      let f = RCf.sub_uqlocs lsubs f 
+           |> RCf.map (FI.t_subs_locs lsubs <+> FI.t_subs_names subs) in
+          Ct.FRef (f, r)
+    | ct -> ct end
     
 let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, es) as call) ns =
   let tag       = CF.tag_of_instr me i j     loc (T.Raw "cons_of_call: in") in
   let tag'      = CF.tag_of_instr me i (j+1) loc (T.Raw "cons_of_call: out") in
-  let (frt', lsubs, inst_wfs) = instantiate_fun me pre_mem_env st frt ns in
-  let call      = (lvo, frt', es) in
+  let insts     = insts_of_annots pre_mem_env ns in
+  let lsubs     = lsubs_of_insts insts in
+  let (frt', inst_wfs) = instantiate_tvars me pre_mem_env frt insts in
   let args      = frt' |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
@@ -471,8 +495,12 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
                     let cr, (cs2, _) = cons_of_rval me loc tag grd effs (pre_mem_env, st, tago) pre_mem_env e in
                       (cs ++ cs2, cr)
                   end [] es in
+  let ecrs = instantiate_frefs lsubs ecrs in
+  let frt',scs,swfs     = instantiate_store me pre_mem_env grd tag tago loc (RS.upd st (sto_of_args ecrs)) frt' insts in
+  let args = frt' |> Ct.args_of_refcfun in
   let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
   let stbs             = RS.bindings st in
+  let call             = (lvo, frt', es) in
   let istbs            = frt'.Ct.sto_in
                       >> check_inst_slocs_distinct_or_read_only loc f call ecrs lsubs subs
                       |> renamed_store_bindings lsubs subs in
@@ -495,7 +523,7 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let retctype            = Ct.ret_of_refcfun frt' in
   let env', cs5, ds5, wfs = env_of_retbind me loc grd tag' lsubs subs env st' lvo (Ct.ret_of_refcfun frt') in
   let wld', cs6           = instantiate_poly_clocs me env grd loc tag' (env', st', Some tag') ns in
-  wld', (cs0 ++  cs1 ++  cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (wfs ++ inst_wfs) 
+  wld', (scs ++ cs0 ++ cs1 ++ cs2 ++ cs3 ++ cs4 ++ cs5 ++ cs6, ds5), (swfs ++ wfs ++ inst_wfs) 
 
 
 let cons_of_ptrcall me loc i j grd effs pre_mem_env ((env, sto, tago) as wld) (lvo, e, es) ns = match e with

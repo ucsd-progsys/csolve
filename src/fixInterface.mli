@@ -113,6 +113,11 @@ val t_singleton_effect  : Ctypes.refctype -> EffectDecls.t -> Ctypes.refctype
 
 val name_of_sloc_index  : Sloc.t -> Index.t -> FixAstInterface.name
 
+val subs_of_lsubs : 
+  Sloc.Subst.t ->
+  Ctypes.refstore ->
+  (FixAstInterface.name * FixAstInterface.name) list
+    
 val rename_refctype :
   Sloc.Subst.t ->
   (Ast.Symbol.t * Cil.exp) list ->

@@ -1,9 +1,11 @@
 #include <csolve.h>
 #include <stdlib.h>
 
+#define csolvestr char NULLTERMSTR *ARRAY STRINGPTR
+
 struct s {
   int x;
-  char *y;
+  csolvestr y;
 };
 
 void register_cb(void * VAR(a) p,
@@ -12,16 +14,20 @@ void register_cb(void * VAR(a) p,
   cb(p);
 }
 
-void process_s(struct s *p)
+void process_s(struct s * LOC(L) s)
 {
-  if (p) {
-    p->x = 1;
-    p->y = "one";
-  }
+  if (s) {
+    s->x = 1;
+    s->y = "one";
+  } 
 }
 
 void main()
 {
   struct s s1;
-  register_cb(&s1, process_s);
+  if (nondet()) {
+    register_cb(&s1, process_s);
+  } else {
+    register_cb(NULL, process_s);
+  }
 }

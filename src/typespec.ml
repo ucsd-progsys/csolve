@@ -302,15 +302,9 @@ class typeInstantiator (ats) = object (self)
         Some (tfrom, tto)
       | _ -> None
     end ats
-
-  (* method private ensureSubst s = *)
-  (*   if not <| List.mem_assoc s sub then sub <- (s, freshSlocName ()) :: sub *)
-      
-  (* method private ensureTvarSubst t =  *)
-  (*   if not <| List.mem_assoc t tsub then tsub <- (t, freshTvarName ()) :: tsub *)
       
   method private ensureSub sub assign fresh s = 
-    if not <| List.mem_assoc s sub then assign (s, fresh ()) (* sub <- (s, fresh ()) :: sub *)
+    if not <| List.mem_assoc s sub then assign (s, fresh ())
       
   method private ensureSubst = 
     self#ensureSub sub (fun p -> sub <- p::sub) freshSlocName
@@ -342,28 +336,6 @@ class typeInstantiator (ats) = object (self)
       self#ensureTvarSubst tvar;
       self#changeAttr CM.typeVarAttribute tvar tsub
     | _ -> C.DoChildren
-
-  (* method vattr = function *)
-  (*   (\* Slocs *\) *)
-  (*   | C.Attr (n, [C.AStr nfrom; C.AStr nto]) *)
-  (*       when n = CM.instantiateAttribute -> *)
-  (*     self#ensureSubst nto; *)
-  (*     C.ChangeTo [C.Attr (CM.instantiateAttribute, [C.AStr nfrom; C.AStr (List.assoc nto sub)])] *)
-  (*   | C.Attr (n, [C.AStr sloc]) *)
-  (*       when n = CM.slocAttribute -> *)
-  (*     self#ensureSubst sloc; *)
-  (*     C.ChangeTo [C.Attr (CM.slocAttribute, [C.AStr (List.assoc sloc sub)])] *)
-  (*   (\* tvars *\) *)
-  (*   | C.Attr (n, [C.AStr tfrom; C.AStr tto]) *)
-  (*       when n = CM.instantiateTypeVarAttribute -> *)
-  (*     self#ensureTvarSubst tto; *)
-  (*     C.ChangeTo [C.Attr (CM.instantiateTypeVarAttribute, *)
-  (*                         [C.AStr tfrom; C.AStr (List.assoc tto tsub)])] *)
-  (*   | C.Attr (n, [C.AStr tvar]) *)
-  (*       when n = CM.typeVarAttribute -> *)
-  (*     self#ensureTvarSubst tvar; *)
-  (*     C.ChangeTo [C.Attr (CM.typeVarAttribute, [C.AStr (List.assoc tvar tsub)])] *)
-  (*   | _ -> C.DoChildren *)
 end
 
 let attributeAppliesToInstance (C.Attr (n, _)) =
@@ -457,7 +429,7 @@ let rec refctypeOfCilType abstr (srcloc : Cil.location) mem t = match normalizeT
           end
         | _ -> ptrReftypeOfAttrs srcloc t ats
       end
-  | _ -> assertf "refctypeOfCilType: non-base!"
+  | _ -> (Pretty.printf "type: %a@!" Cil.d_plaintype t; assertf "refctypeOfCilType: non-base!")
         
 and heapRefctypeOfCilType srcloc mem t =
      t

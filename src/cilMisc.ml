@@ -1146,10 +1146,10 @@ class substVisitor (su : Cil.exp VarMap.t) = object(self)
           ChangeTo (VarMap.find v su)
         else DoChildren
     | Lval (Var v, _) ->
-        let _ = Pretty.printf "vexpr sees and skips var %s \n" v.vname in
+       let _ = Pretty.printf "vexpr sees and skips var %s \n" v.vname in
         DoChildren
     | e' ->
-        let _ = Pretty.printf "vexpr sees and skips %a \n" d_plainexp e' in
+       let _ = Pretty.printf "vexpr sees and skips %a \n" d_plainexp e' in
         DoChildren
 end
 
@@ -1191,7 +1191,7 @@ let checkSubst su e e' =
  
 let oneSubst su e = 
   visitCilExpr (new substVisitor su) e 
-  >> (ignore <.> Pretty.printf "oneSubst e = %a e' = %a\n" d_exp e d_exp)
+ >> (ignore <.> Pretty.printf "oneSubst e = %a e' = %a\n" d_exp e d_exp)
  (*  >> (checkSubst su e) 
  *)
 
@@ -1199,7 +1199,7 @@ let doDerefs =
   visitCilExpr (new fieldDerefVisitor)
 
 let rec transSubst su e = 
-  let _ = Pretty.printf "transSubst %a\n" d_exp e in  
+  let _ = Pretty.printf "transSubst %a\n" d_exp e in
   if not (VarSet.is_empty (possibleSubst su e))
   then let e' =  (oneSubst su e) in
        transSubst su e'
