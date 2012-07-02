@@ -54,6 +54,8 @@ module Sort =
       | Lvar of int
       | LFun 
 
+    type tycon = string
+
     type t =
       | Int
       | Bool
@@ -62,6 +64,7 @@ module Sort =
       | Ptr of loc              (* c-pointer *)
       | Func of int * t list    (* type-var-arity, in-types @ [out-type] *)
       | Num                     (* kind, for numeric tyvars -- ptr(loc(s)) -- *)
+      | App of tycon * t list   (* type constructors *)
 
     type sub = { locs: (int * string) list; 
                  vars: (int * t) list; }
@@ -84,6 +87,11 @@ module Sort =
     let t_ptr       = fun l -> Ptr l
     let t_func      = fun i ts -> Func (i, ts)
 
+    let tycon_re    = Str.regexp "[A-Z][0-9 a-z A-Z '.']"
+    let tycon       = function | s when Str.string_match tycon_re s 0 -> s  
+                               | s -> assertf "Error: Invalid tycon: %s" s 
+
+    let t_app c ts  = App (c, ts)
 
     let loc_to_string = function
       | Loc s  -> s
@@ -100,6 +108,9 @@ module Sort =
       | Func (n, ts) -> ts |> List.map to_string 
                            |> String.concat " ; " 
                            |> Printf.sprintf "func(%d, [%s])" n 
+      | App (c, ts)  -> ts |> List.map to_string 
+                           |> String.concat " " 
+                           |> Printf.sprintf "%s %s" c 
 
     let to_string_short = function
       | Func _ -> "func"
@@ -119,6 +130,7 @@ module Sort =
 
     let rec map f = function 
       | Func (n, ts) -> Func (n, List.map (map f) ts)
+      | App  (c, ts) -> App  (c, List.map (map f) ts)
       | t            -> f t
 
     let rec fold f b = function
@@ -151,6 +163,8 @@ module Sort =
       | Ptr l -> Some l
       | _     -> None
 
+    (* Sleazy Hack for C pointers. Make this go away... *)
+
     let compat t1 t2 = match t1, t2 with
       | Int, (Ptr _) -> true
       | (Ptr _), Int -> true
@@ -172,7 +186,7 @@ module Sort =
     let lookup_var = fun s i -> try Some (List.assoc i s.vars) with Not_found -> None
     let lookup_loc = fun s j -> try Some (List.assoc j s.locs) with Not_found -> None
     
-    let unifyt s = function 
+    let rec unifyt s = function 
       | Num,_ | _, Num -> None
       | (Var i), ct 
         when ct != Bool -> 
@@ -190,17 +204,21 @@ module Sort =
           | Some _                 -> None
           | None                   -> Some {s with locs = (j,cl) :: s.locs}
           end
-      | (t1, t2) when t1 = t2 -> Some s
-      (*
-      | Int, Int | Bool, Bool | Obj, Obj -> 
+      
+      | App (c1, t1s), App (c2, t2s) 
+        when c1 = c2 && List.length t1s = List.length t2s ->
+          Misc.maybe_fold unifyt s (List.combine t1s t2s)
+      
+      | (t1, t2) when t1 = t2 -> 
           Some s
-      *)
       | _        -> None
+   
+    let empty_sub = {vars = []; locs = []}
     
     let unify ats cts =
       let _ = asserts (List.length ats = List.length cts) "ERROR: unify sorts" in
       List.combine ats cts 
-      |> Misc.maybe_fold unifyt {vars = []; locs = []}
+      |> Misc.maybe_fold unifyt empty_sub
 (*      >> (fun so -> Printf.printf "unify: [%s] ~ [%s] = %s \n" 
                       (String.concat "; " (List.map to_string ats))
                       (String.concat "; " (List.map to_string cts))

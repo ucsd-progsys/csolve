@@ -33,6 +33,7 @@
 (*******************************************************)
 (********************** Base Logic  ********************)
 (*******************************************************)
+
 module Cone : sig 
   type 'a t = Empty | Cone of ('a * 'a t) list
   val map : ('a -> 'b) -> 'a t -> 'b t
@@ -45,12 +46,15 @@ module Sort :
       | Lvar of int
       | LFun
 
+    type tycon
     type t    
     type sub
-    
+   
+    val tycon       : string -> tycon
+
     val to_string   : t -> string
     val print       : Format.formatter -> t -> unit
-    
+   
     val t_num       : t
     val t_obj       : t
     val t_bool      : t
@@ -58,11 +62,12 @@ module Sort :
     val t_generic   : int -> t
     val t_ptr       : loc -> t
     val t_func      : int -> t list -> t
+    val t_app       : tycon -> t list -> t
     (* val t_fptr      : t *)
    
     val is_bool     : t -> bool
     val is_int      : t -> bool
-    val is_func      : t -> bool
+    val is_func     : t -> bool
     val func_of_t   : t -> (t list * t) option
     val ptr_of_t    : t -> loc option
  

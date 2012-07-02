@@ -118,6 +118,7 @@ sort:
   | TVAR LPAREN Num RPAREN              { So.t_generic $3 }
   | FUNC LPAREN sorts RPAREN            { So.t_func 0 $3  }
   | FUNC LPAREN Num COMMA sorts RPAREN  { So.t_func $3 $5 }
+  | Id sorts                            { So.t_app (So.tycon $1) $2 }
   ;
 
 
