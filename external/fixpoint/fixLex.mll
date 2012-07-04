@@ -54,7 +54,6 @@ let capital  = ['A'-'Z']
 let small    = ['a'-'z' '$' '_']
 let ws       = [' ' '\009' '\012']
 let pathname = ['a'-'z' 'A'-'Z' '0'-'9' '.' '/' '\\' '-']
-let tycon    = [A-Z][0-9 a-z A-Z '.']
 
 rule token = parse
     ['\r''\t'' ']       { token lexbuf}
@@ -129,7 +128,6 @@ rule token = parse
   | "reft"              { REF }
   | "@"                 { TVAR } 
   | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }
-  | tycon               { Tycon (Lexing.lexeme lexbuf) }          
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
   | '''[^''']*'''       { let str = Lexing.lexeme lexbuf in
 			  let len = String.length str in

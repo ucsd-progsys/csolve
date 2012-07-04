@@ -310,11 +310,9 @@ let expandPred n es =
 (**************************************************************************)
 (********************************** Create ********************************)
 (**************************************************************************)
- 
-(* Rename to ensure unique names 
-let subst_vv v' q =
-  { q with vvar = v' ; pred = P.subst q.pred q.vvar (eVar v')} 
-*)
+
+let generalize_sorts vts = 76 (* Takes v1,t1 ; v2,t2 ; and replaces all ptr(LOC)
+with a type variable in the  memo-style *)
 
 let close_params vts p =
   p |> P.support
@@ -324,9 +322,10 @@ let close_params vts p =
 
 (* API *)
 let create n v t vts p =
-  let p    = P.map id (canonizer vts) p in
-  let vts  = close_params vts p         in 
-  let _    = asserts (Misc.distinct vts) "Error: Q.create duplicate params %s \n" (Sy.to_string n)
+  let p          = P.map id (canonizer vts) p    in
+  let vts        = close_params vts p            in
+  let (v,t)::vts = generalize_sorts ((v,t)::vts) in
+  let _          = asserts (Misc.distinct vts) "Error: Q.create duplicate params %s \n" (Sy.to_string n)
   in { name   = n 
      ; vvar   = v
      ; vsort  = t
