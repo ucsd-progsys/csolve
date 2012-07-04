@@ -17,6 +17,7 @@ let create_qual name vv = Qualifier.create (Sy.of_string name) (Sy.of_string vv)
 %}
 
 %token <string> Id
+%token <string> Tycon
 %token <int> Num
 %token TVAR 
 %token TAG ID 
@@ -106,10 +107,17 @@ sortsne:
   | sort SEMI sortsne                   { $1 :: $3 }
   ;
 
+tyconargsne: 
+  | sort                                { [$1] }
+  | sort tyconargsne                    { $1 :: $2 }
+  ;
+
 sort:
   | INT                                 { So.t_int }
   | BOOL                                { So.t_bool }
-  | Id LPAREN sorts RPAREN              { So.t_app (So.tycon $1) $3 }
+  | Tycon LPAREN sorts RPAREN           { So.t_app (So.tycon $1) $3 }
+  | Tycon                               { So.t_app (So.tycon $1) [] }
+  | Tycon tyconargsne                   { So.t_app (So.tycon $1) $2 }
   | PTR                                 { So.t_ptr (So.Lvar 0) }
   | PTR LPAREN LFUN RPAREN              { So.t_ptr (So.LFun) }
   | PTR LPAREN Num RPAREN               { So.t_ptr (So.Lvar $3) }

@@ -88,9 +88,8 @@ module Sort =
     let t_func      = fun i ts -> Func (i, ts)
 
     let tycon_re    = Str.regexp "[A-Z][0-9 a-z A-Z '.']"
-    let tycon s     = s (* function | s when Str.string_match tycon_re s 0 -> s  
-                                    | s -> assertf "Error: Invalid tycon: %s" s 
-                         *)
+    let tycon       = function | s when Str.string_match tycon_re s 0 -> s  
+                               | s -> assertf "Error: Invalid tycon: %s" s 
 
     let t_app c ts  = App (c, ts)
 

@@ -32,7 +32,19 @@
 
   let lexerror msg lexbuf = 
     E.error (Lexing.lexeme_start lexbuf) msg
-      
+ 
+  (* 
+  let int_of_lexbuf lb = 
+    let str = Lexing.lexeme lb in
+    let len = String.length str in
+    let zero = Char.code '0' in
+    let rec accum a d =
+      let acc c = a + (d * ((Char.code c) - zero)) in
+      function 0 -> let c = str.[0] in
+			  	    if c='-' then - a else (acc c)
+		     | i -> accum (acc str.[i]) (d * 10) (i - 1)
+    in accum 0 1 (len-1) 
+   *)
 }
 
 let digit    = ['0'-'9' '-']
@@ -42,7 +54,7 @@ let capital  = ['A'-'Z']
 let small    = ['a'-'z' '$' '_']
 let ws       = [' ' '\009' '\012']
 let pathname = ['a'-'z' 'A'-'Z' '0'-'9' '.' '/' '\\' '-']
-(* let hcid     = ['0'-'9' ',' '-' '[' ']'] *)
+let tycon    = [A-Z][0-9 a-z A-Z '.']
 
 rule token = parse
     ['\r''\t'' ']       { token lexbuf}
@@ -115,20 +127,10 @@ rule token = parse
   | "lhs"               { LHS }
   | "rhs"               { RHS }
   | "reft"              { REF }
-  | "@"                { TVAR } 
-  | (digit)+	        { let str = Lexing.lexeme lexbuf in
-			  let len = String.length str in
-			  let zero = Char.code '0' in
-			  let rec accum a d =
-			    let acc c = a + (d * ((Char.code c) - zero)) in
-			    function
-			      0 -> let c = str.[0] in
-				   if c='-' then - a else (acc c)
-			    | i -> accum (acc str.[i]) (d * 10) (i - 1)
-			  in
-			  Num (accum 0 1 (len-1)) }
+  | "@"                 { TVAR } 
+  | (digit)+	        { Num (int_of_string (Lexing.lexeme lexbuf)) }
+  | tycon               { Tycon (Lexing.lexeme lexbuf) }          
   | (alphlet)letdig*	{ Id    (Lexing.lexeme lexbuf) }
-
   | '''[^''']*'''       { let str = Lexing.lexeme lexbuf in
 			  let len = String.length str in
 			  Id (String.sub str 1 (len-2)) }
