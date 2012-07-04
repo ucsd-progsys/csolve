@@ -74,6 +74,7 @@ module Sort :
     val compat      : t -> t -> bool
     val unify       : t list -> t list -> sub option
     val apply       : sub -> t -> t
+    val generalize  : t list -> t list
   end
 
 module Symbol : 

@@ -171,9 +171,8 @@ module Sort =
       | Int, (Ptr _) -> true
       | (Ptr _), Int -> true
       | _            -> t1 = t2
-    
 
-    (*
+    (* {{{ 
     let concretize ts = function 
       | Func (n, ats) when n = List.length ts -> 
           Func (n, List.map (subs_tvar ts) ats)
@@ -182,7 +181,7 @@ module Sort =
 
     let is_monotype t = 
       fold (fun b t -> b && (match t with Var _ -> false | _ -> true)) true t
-    *)
+    }}} *)
 
 
     let lookup_var = fun s i -> try Some (List.assoc i s.vars) with Not_found -> None
@@ -234,6 +233,34 @@ module Sort =
           | Ptr (Lvar j) -> (match lookup_loc s j with Some l -> Ptr (Loc l) | _ -> t)
           | _            -> t
       end
+
+    let rec fold f acc t = match t with
+      | Var _ | Int  | Bool | Obj | Num | Ptr _ 
+        -> f acc t 
+      | Func (_, ts) | App (_, ts) 
+        -> List.fold_left (fold f) (f acc t) ts 
+      
+    let vars_of_t = fold begin fun acc -> function 
+      | Var i -> i :: acc 
+      | _     -> acc
+    end []
+    
+    let locs_of_t = fold begin fun acc -> function 
+      | Ptr (Loc l) -> l :: acc 
+      | _           -> acc
+    end []
+    
+    let subst_locs_vars lim = map begin function
+      | Ptr (Loc l) when SM.mem l lim -> Var (SM.find l lim)
+      | t                             -> t
+    end
+
+    (* API *)
+    let generalize ts = 
+      let locs = ts |> Misc.flap locs_of_t |> Misc.sort_and_compact       in
+      let idx  = ts |> Misc.flap vars_of_t |> Misc.list_max (-1) |> (+) 1 in 
+      let lim  = Misc.index_from idx locs |>: Misc.swap |> SM.of_list          in
+      List.map (subst_locs_vars lim) ts
 
   end
 

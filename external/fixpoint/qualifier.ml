@@ -307,12 +307,15 @@ let expandPred n es =
          |> Ast.substs_pred (pred_of_t q)
        end
 
-(**************************************************************************)
-(********************************** Create ********************************)
-(**************************************************************************)
+(*********************************************************************)
+(***************************** Create ********************************)
+(*********************************************************************)
 
-let generalize_sorts vts = 76 (* Takes v1,t1 ; v2,t2 ; and replaces all ptr(LOC)
-with a type variable in the  memo-style *)
+
+let generalize_sorts vts = 
+  let vs, ts = List.split vts   in
+  let ts'    = So.generalize ts in
+  List.combine vs ts'
 
 let close_params vts p =
   p |> P.support
