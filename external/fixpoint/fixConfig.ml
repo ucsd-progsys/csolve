@@ -64,25 +64,10 @@ let get_arity = function
   | []   -> Constants.logPrintf "WARNING: NO CONSTRAINTS!"; 0
   | c::_ -> c |> FixConstraint.tag_of_t |> fst |> List.length
 
-(* {{{ 
-let qual_rename i q = 
-  Q.rename ((Q.name_of_t q)^(string_of_int i)) q
-
-let sift_quals ds = 
-  ds |> Misc.map_partial (function Qul q -> Some q | _ -> None)
-     |> List.fold_left begin fun (i, m) q -> 
-          let n       = Q.name_of_t q in
-          let (i',q') = if MSM.mem n m then (i+1, qual_rename i q) else (i, q) in
-          (i', MSM.add (Q.name_of_t q') q' m)
-        end (0, MSM.empty)
-     >> (fun (i, _) -> if i <> 0 then Constants.logPrintf "WARNING: duplicate qualifier names")
-     |> snd
-}}} *)
-
-let sift_quals ds = 
-  ds |> Misc.map_partial (function Qul q -> Some q | _ -> None)
-     >> (fun _ -> print_now "BEGIN: Q.normalize\n")
+let sift_quals qs = 
+  qs >> (fun _ -> print_now "BEGIN: Q.normalize\n")
      |> Q.normalize 
+     (* >> (Format.printf "Normalized Quals: \n%a" (Misc.pprint_many true "\n" Q.print)) *)
      >> (fun _ -> print_now "DONE: Q.normalize\n")
      |> Misc.map (Misc.pad_fst Q.name_of_t)
      |> SM.of_list
@@ -111,13 +96,23 @@ let fes2q qm (f, es) =
     |> Misc.flip (Misc.combine "FixConfig.fes2q") es
     |> Q.inst q 
 
+let normalize_defts ds =
+  let qs, ds' = Misc.either_partition begin function 
+                  | Qul q -> Left q
+                  | d     -> Right d
+                end ds                            in
+  let qm      = sift_quals qs                     in
+  let ds''    = qm |>  SM.range 
+                   |>: (fun q -> Qul q)
+                   |>  (++) ds'                   in
+  (qm, ds'')
+
 (* API *)
 let create ds =
-  let qm  = sift_quals ds in
-  ds |> List.fold_left (extend (fes2q qm)) empty
-     |> (fun cfg -> {cfg with a  = get_arity cfg.cs})
-     |> (fun cfg -> {cfg with ws = C.add_wf_ids cfg.ws})
-
+  let qm, ds' = normalize_defts ds in
+  ds' |> List.fold_left (extend (fes2q qm)) empty
+      |> (fun cfg -> {cfg with a  = get_arity cfg.cs})
+      |> (fun cfg -> {cfg with ws = C.add_wf_ids cfg.ws})
 
 (* API *)
 let create_raw ts env ps a ds cs ws qs assm = 
