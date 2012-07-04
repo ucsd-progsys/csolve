@@ -188,6 +188,7 @@ module Sort =
     
     let rec unifyt s = function 
       | Num,_ | _, Num -> None
+      | ct, (Var i) 
       | (Var i), ct 
         when ct != Bool -> 
           begin match lookup_var s i with 
@@ -219,11 +220,11 @@ module Sort =
       let _ = asserts (List.length ats = List.length cts) "ERROR: unify sorts" in
       List.combine ats cts 
       |> Misc.maybe_fold unifyt empty_sub
-(*      >> (fun so -> Printf.printf "unify: [%s] ~ [%s] = %s \n" 
+      (* >> (fun so -> Printf.printf "unify: [%s] ~ [%s] = %s \n" 
                       (String.concat "; " (List.map to_string ats))
                       (String.concat "; " (List.map to_string cts))
                       (match so with None -> "NONE" | Some s -> sub_to_string s))
-*)
+       *)
 
     let apply s = 
       map begin fun t -> match t with

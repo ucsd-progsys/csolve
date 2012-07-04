@@ -566,9 +566,10 @@ let print_valid_binding ppf (x,y) =
 let print_valid_bindings ppf xys =
   F.printf "[%a]" (Misc.pprint_many false "" print_valid_binding) xys
 
-let wellformed_qual f = A.sortcheck_pred f <.> Q.pred_of_t 
-(*  >> (F.printf "\nwellformed: q = @[%a@] in env = @[%a@] result %b\n"  
-        Q.print q (C.print_env None) env) *)
+let wellformed_qual wf f q = 
+  q |> Q.pred_of_t 
+    |> A.sortcheck_pred f
+    (* >> (F.printf "\nwellformed: id = %d q = @[%a@] result %b\n" (C.id_of_wf wf) Q.print q) *)
 
 let inst_qual env ys evv (q : Q.t) : Q.t list =
   let vve = (Q.vv_of_t q, evv) in
@@ -578,12 +579,12 @@ let inst_qual env ys evv (q : Q.t) : Q.t list =
   | xts ->
       xts
       (* >> F.printf "\n\nparams q = %a: %a" Q.print q print_params) *) 
-      |> List.map (valid_bindings env ys)              (* candidate bindings    *)
-      |> Misc.product                                  (* generate combinations *) 
-      |> List.filter is_valid_binding                  (* remove bogus bindings *)
+      |> List.map (valid_bindings env ys)                   (* candidate bindings    *)
+      |> Misc.product                                       (* generate combinations *) 
+      |> List.filter is_valid_binding                       (* remove bogus bindings *)
       (* >> (List.iter (F.printf "\ninst_binds = %a\n" print_valid_bindings)) *)
       |> List.rev_map (List.map (Misc.app_snd A.eVar))      (* instantiations        *)
-      |> List.rev_map (fun xes -> Q.inst q (vve::xes))   (* quals *)
+      |> List.rev_map (fun xes -> Q.inst q (vve::xes))      (* quals *)
       (* >> (F.printf "\n\ninst_qual q = %a: %a" Q.print q (Misc.pprint_many true "" Q.print)) *)
 
 let inst_vars env = 
@@ -602,18 +603,18 @@ let inst_ext qs wf =
   let env' = Misc.maybe_map C.sort_of_reft <.> C.lookup_env (SM.add vv r env) in
   qs |> List.filter (Q.sort_of_t <+> sort_compat t)
      |> Misc.flap   (inst_qual env ys (A.eVar vv))
-     |> Misc.filter (wellformed_qual env' <&&> C.filter_of_wf wf)
+     |> Misc.filter (wellformed_qual wf env' <&&> C.filter_of_wf wf)
      |> Misc.cross_product ks
 
 let inst_ext qs wf =
   if mydebug then 
     let msg = Printf.sprintf "inst_ext wf id = %d" (C.id_of_wf wf) in
-    Misc.trace msg (inst_ext qs) wf 
+    Misc.trace msg (inst_ext qs) wf
+    >> (List.length <+> F.printf "\n\ninst_ext wfid = %d: size = %d\n"  (C.id_of_wf wf))
   else inst_ext qs wf
 
 let inst ws qs =
   Misc.flap (inst_ext qs) ws 
-  >> (fun _ -> Co.blogPrintf mydebug "\n\nvarmatch_ctr = %d \n\n" !varmatch_ctr)
   |> Misc.kgroupby fst 
   |> Misc.map (Misc.app_snd (List.map snd)) 
 
@@ -629,7 +630,7 @@ let create_qleqs ts sm ps consts qs =
   else Q2S.empty
 
 let create ts sm ps consts assm qs bm =
- { m      = bm
+ {  m     = bm
   ; assm  = assm
   ; qm    = qs |>: Misc.pad_fst Q.name_of_t |> SM.of_list
   ; qleqs = Misc.with_ref_at Constants.strictsortcheck false 
