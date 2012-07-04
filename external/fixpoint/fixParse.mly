@@ -117,16 +117,15 @@ sortsne:
 
 tyconargsne: 
   | bsort                               { [$1] }
-  | LPAREN sort RPAREN                  { [$2] }
   | bsort tyconargsne                   { $1 :: $2 }
-  | LPAREN sort LPAREN tyconargsne      { $2 :: $4 }
   ;
 
 sort:
   | bsort                               { $1 }
   | Id tyconargsne                      { So.t_app (So.tycon $1) $2 }
   | LB sort RB                          { So.t_app (So.tycon "List") [$2] }
- ;
+ 
+  ;
 
 bsort:
   | INT                                 { So.t_int }
@@ -141,6 +140,7 @@ bsort:
   | FUNC LPAREN sorts RPAREN            { So.t_func 0 $3  }
   | FUNC LPAREN Num COMMA sorts RPAREN  { So.t_func $3 $5 }
   | Id                                  { So.t_ptr (So.Loc $1) }
+  | LPAREN sort RPAREN                  { $2 }
   ; 
 
 
