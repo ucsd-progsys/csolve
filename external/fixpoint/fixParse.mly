@@ -125,6 +125,7 @@ tyconargsne:
 sort:
   | bsort                               { $1 }
   | Id tyconargsne                      { So.t_app (So.tycon $1) $2 }
+  | LB sort RB                          { So.t_app (So.tycon "List") [$2] }
  ;
 
 bsort:

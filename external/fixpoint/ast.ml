@@ -106,13 +106,18 @@ module Sort =
       | Bool         -> "bool"
       | Obj          -> "obj"
       | Num          -> "num"
-      | Ptr l        -> Printf.sprintf "ptr(%s)" (loc_to_string l)
+      | Ptr l        -> loc_to_string l 
+                        (* Printf.sprintf "ptr(%s)" (loc_to_string l) *)
       | Func (n, ts) -> ts |> List.map to_string 
                            |> String.concat " ; " 
                            |> Printf.sprintf "func(%d, [%s])" n 
-      | App (c, ts)  -> ts |> List.map to_string 
+      | App (c, ts)  -> ts |> List.map to_string_arg 
                            |> String.concat " " 
                            |> Printf.sprintf "%s %s" c 
+    
+    and to_string_arg t = match t with 
+      | App (_, _) -> Printf.sprintf "(%s)" (to_string t)
+      | _          -> to_string t
 
     let to_string_short = function
       | Func _ -> "func"
