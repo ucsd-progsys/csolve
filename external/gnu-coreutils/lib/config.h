@@ -3032,7 +3032,7 @@
 /* #undef PACKAGE_PACKAGER_VERSION */
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GNU coreutils UNKNOWN-dirty"
+#define PACKAGE_STRING "GNU coreutils UNKNOWN"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "coreutils"
@@ -3041,7 +3041,7 @@
 #define PACKAGE_URL "http://www.gnu.org/software/coreutils/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "UNKNOWN-dirty"
+#define PACKAGE_VERSION "UNKNOWN"
 
 /* the number of pending output bytes on stream `fp' */
 /* #undef PENDING_OUTPUT_N_BYTES */
@@ -3270,7 +3270,7 @@
 #define USE_XATTR 0
 
 /* Version number of package */
-#define VERSION "UNKNOWN-dirty"
+#define VERSION "UNKNOWN"
 
 /* Define to 1 if unsetenv returns void instead of int. */
 /* #undef VOID_UNSETENV */
@@ -3357,7 +3357,7 @@
 
 /* Define to rpl_ if the getopt replacement functions and variables should be
    used. */
-#define __GETOPT_PREFIX rpl_
+/* #undef __GETOPT_PREFIX */
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #define __PROTOTYPES 1
