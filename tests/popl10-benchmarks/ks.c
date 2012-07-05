@@ -917,65 +917,65 @@ int main(int argc, char NULLTERMSTR * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(
     goto PURGATORY;
   }
   validptr((void *)(argv + 1));
-  ReadNetList(*(argv + 1), numModules, numNets, (float * ARRAY )GP,
-              (float * ARRAY )D, (float * ARRAY )cost,
-              (Groups * ARRAY )moduleToGroup, groupA, groupB,
-              swapToA, swapToB, (NetPtr * ARRAY )modules, (ModulePtr * ARRAY )nets);
-  NetsToModules(numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-                (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-                groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-                (ModulePtr * ARRAY )nets);
-  ComputeNetCosts(numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-                  (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-                  groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-                  (ModulePtr * ARRAY )nets);
-  InitLists(numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-            (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-            groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-            (ModulePtr * ARRAY )nets);
+  ReadNetList(*(argv + 1), numModules, numNets, GP,
+              D, cost,
+              moduleToGroup, groupA, groupB,
+              swapToA, swapToB, modules, nets);
+  NetsToModules(numModules, numNets, GP, D,
+                cost, moduleToGroup,
+                groupA, groupB, swapToA, swapToB, modules,
+                nets);
+  ComputeNetCosts(numModules, numNets, GP, D,
+                  cost, moduleToGroup,
+                  groupA, groupB, swapToA, swapToB, modules,
+                  nets);
+  InitLists(numModules, numNets, GP, D,
+            cost, moduleToGroup,
+            groupA, groupB, swapToA, swapToB, modules,
+            nets);
   lastGMax = (float )0;
   while (1) {
     ComputeDs(groupA, (enum __anonenum_Groups_1 )0, (enum __anonenum_Groups_1 )2,
-              numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-              (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-              groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-              (ModulePtr * ARRAY )nets);
-    ComputeDs(groupB, (enum __anonenum_Groups_1 )1, (enum __anonenum_Groups_1 )3,
-              numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-              (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-              groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-              (ModulePtr * ARRAY )nets);
+              numModules, numNets, GP, D,
+              cost, moduleToGroup,
+              groupA, groupB, swapToA, swapToB, modules,
+              nets);
+    ComputeDs(groupB, 1, 3,
+              numModules, numNets, GP, D,
+              cost, moduleToGroup,
+              groupA, groupB, swapToA, swapToB, modules,
+              nets);
     p = 0UL;
     while (p < *numModules / 2UL) {
       validptr((void *)(GP + p));
-      *(GP + p) = FindMaxGpAndSwap(numModules, numNets, (float * ARRAY )GP,
-                                   (float * ARRAY )D, (float * ARRAY )cost,
-                                   (Groups * ARRAY )moduleToGroup,
-                                   groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-                                   (ModulePtr * ARRAY )nets);
+      *(GP + p) = FindMaxGpAndSwap(numModules, numNets, GP,
+                                   D, cost,
+                                   moduleToGroup,
+                                   groupA, groupB, swapToA, swapToB, modules,
+                                   nets);
       p ++;
     }
-    gMax = FindGMax(& iMax, numModules, numNets, (float * ARRAY )GP,
-                    (float * ARRAY )D, (float * ARRAY )cost,
-                    (Groups * ARRAY )moduleToGroup, groupA, groupB,
-                    swapToA, swapToB, (NetPtr * ARRAY )modules,
-                    (ModulePtr * ARRAY )nets);
+    gMax = FindGMax(& iMax, numModules, numNets, GP,
+                    D, cost,
+                    moduleToGroup, groupA, groupB,
+                    swapToA, swapToB, modules,
+                    nets);
     if (lastGMax == gMax) {
 
     }
     lastGMax = gMax;
     if ((double )gMax > 0.0) {
-      SwapSubsetAndReset(iMax, numModules, numNets, (float * ARRAY )GP,
-                         (float * ARRAY )D, (float * ARRAY )cost,
-                         (Groups * ARRAY )moduleToGroup, groupA,
-                         groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-                         (ModulePtr * ARRAY )nets);
+      SwapSubsetAndReset(iMax, numModules, numNets, GP,
+                         D, cost,
+                         moduleToGroup, groupA,
+                         groupB, swapToA, swapToB, modules,
+                         nets);
     }
-    PrintResults(0, numModules, numNets, (float * ARRAY )GP,
-                 (float * ARRAY )D, (float * ARRAY )cost,
-                 (Groups * ARRAY )moduleToGroup, groupA, groupB,
-                 swapToA, swapToB, (NetPtr * ARRAY )modules,
-                 (ModulePtr * ARRAY )nets);
+    PrintResults(0, numModules, numNets, GP,
+                 D, cost,
+                 moduleToGroup, groupA, groupB,
+                 swapToA, swapToB, modules,
+                 nets);
     if (! ((double )gMax > 0.0)) {
       break;
     }
@@ -1000,10 +1000,10 @@ int main(int argc, char NULLTERMSTR * ARRAY VALIDPTR * START NONNULL ARRAY SIZE(
     *(moduleToGroup + mr->module) = (enum __anonenum_Groups_1 )1;
     mr = mr->next;
   }
-  PrintResults(1, numModules, numNets, (float * ARRAY )GP, (float * ARRAY )D,
-               (float * ARRAY )cost, (Groups * ARRAY )moduleToGroup,
-               groupA, groupB, swapToA, swapToB, (NetPtr * ARRAY )modules,
-               (ModulePtr * ARRAY )nets);
+  PrintResults(1, numModules, numNets, GP, D,
+               cost, moduleToGroup,
+               groupA, groupB, swapToA, swapToB, modules,
+               nets);
   exit(0);
   return (0);
 }
