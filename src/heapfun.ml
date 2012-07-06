@@ -138,7 +138,7 @@ let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
   let bound_by_exp x = List.mem x bound_locs in
   let (exp, sto)     = CtIS.partition bound_by_exp sto in
   let desired_exp    = apply_hf_in_env app ins env |> snd in
-  let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in
+  (*let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in*)
   (* MK: 1) there should be a Store.eq,
    *     2) this should be heap subtyping *)
      sto
@@ -156,7 +156,8 @@ let ins l sto deps ls ins env =
 
 let gen ((hf, ls, _) as app) ins deps sto env =
   let deps = M.combine_prefix ls ins |>
-             List.fold_left (M.flip SlSS.remove) deps in
+             List.fold_left begin fun deps ll ->
+               try SlSS.remove ll deps with Not_found -> deps end deps in
   let sto  = fold_hf_on_sto (hf, ls, []) ins sto env in
   deps, sto
 
@@ -191,13 +192,14 @@ let split_cspec_stores g cspec env =
   (* this should actually return an opaque type so the invariant can be
    * maintained *)
 let expand_cspec_stores cspec env =
-  split_cspec_stores (fun x -> fst x |> CtIS.sto_of_hfs) cspec env,
-  split_cspec_stores snd cspec env
+  let hfspec =
+    split_cspec_stores (fun x -> fst x |> CtIS.sto_of_hfs) cspec env in
+  let exspec =
+    split_cspec_stores snd cspec env in
+  hfspec, exspec
 
-let contract_shpm_stores hfspec env shpm =
-     shpm
-  |> SM.to_list
-  |> List.map begin fun (fn, sh) ->
-    let hfs = CtISp.find_cf hfspec fn in
-    {sh with Sh.store = contract_store sh hfs env} end
-  |> SM.of_list
+let hfs_of_fun_in_hfspec hfspec fn =
+     CtISp.find_cf hfspec fn
+  |> fst
+  |> CtICF.sto_in
+  |> CtIS.hfuns

@@ -433,10 +433,10 @@ let annotate_cfg cfg shp =
     ffmsa = acp shp.ffmsa; }
   in shp'
 
-let annotate_shpm scis shpm =
+let annotate_shpm scim shpm =
   SM.fold begin fun fn shp shpm ->
     let anno =
-         SM.find fn scis
+         SM.find fn scim
       |> (fun x -> annotate_cfg x.ST.cfg) in
     SM.add fn (anno shp) shpm end shpm SM.empty
 

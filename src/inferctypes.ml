@@ -667,10 +667,13 @@ let globalVarEnv spec cil =
     | _ -> ve
   end VM.empty
 
+let contract_shp_stores hfs sh env =
+    {sh with Sh.store = Heapfun.contract_store sh.Sh.store hfs env}
+
 (* API *)
 let infer_shapes cil tgr spec scim vim =
-  let hfenv     = Heapfun.test_env in
-  let hfs, spec = Heapfun.expand_cspec_stores spec hfenv in
+  let hfenv        = Heapfun.test_env in
+  let hfspec, spec = Heapfun.expand_cspec_stores spec hfenv in
   let ve     = globalVarEnv spec cil in
   let fe     = declared_funs cil 
             |>: (fun f -> (f, globalFunEntryEnv spec f))
@@ -679,12 +682,14 @@ let infer_shapes cil tgr spec scim vim =
             |>: (fun sci -> (sci.ST.fdec.C.svar, sci)) 
             |> VM.of_list in
   let sm     = SM.domain scim
-            |> List.map begin fun fn -> fn,
-                infer_shape tgr fe ve (CSpec.store spec) spec scim vim fn end
-            |> SM.of_list
-            |> Heapfun.contract_shpm_stores hfs hfenv in
+            |> List.map begin fun fn ->
+                (fn, infer_shape tgr fe ve (CSpec.store spec) spec scim vim fn) end
+            |> List.map begin fun (fn, sh) ->
+                  Heapfun.hfs_of_fun_in_hfspec hfspec fn
+               |> fun x -> (fn, contract_shp_stores x sh hfenv) end
+            |> SM.of_list in
      sm
   (*>> (fun x -> ("main", SM.find "main" x) |> P.printf "%a" d_shape)
   >> (fun _ -> assertf "asdf")*)
-  |> HRA.annotate_shpm (SM.map snd3 scis)
-  |> FinalFields.dummy_infer_final_fields tgr spec scis
+  |> HRA.annotate_shpm scim
+  |> FinalFields.dummy_infer_final_fields tgr spec

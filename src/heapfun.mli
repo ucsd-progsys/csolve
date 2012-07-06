@@ -58,6 +58,7 @@ val gen : 'a Ctypes.hf_appl -> intrs list ->
 val shape_in_env : string -> Sloc.t list -> env ->
                    Ctypes.store
                    
-val expand_cspec_stores : Ctypes.cspec -> env -> hfspec * Ctypes.cspec
-val contract_shpm_stores : hfspec -> env -> Shape.t Misc.StringMap.t ->
-                                            Shape.t Misc.StringMap.t
+val expand_cspec_stores  : Ctypes.cspec -> env -> hfspec * Ctypes.cspec
+val contract_store       : Ctypes.store -> Ctypes.I.T.refinement Ctypes.hf_appl list
+                                        -> env -> Ctypes.store    
+val hfs_of_fun_in_hfspec : hfspec -> string -> Ctypes.I.T.refinement Ctypes.hf_appl list

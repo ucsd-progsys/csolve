@@ -40,6 +40,7 @@ module CS = Ct.RefCTypes.Spec
 module RS = Ct.RefCTypes.Store
 module Cs = Constants
 module ES = Ct.EffectSet
+module CSpec = Ct.I.Spec
 
 open Misc.Ops
 open Cil
@@ -57,7 +58,7 @@ let shapem_of_scim cil tgr spec scim vim =
            |> SM.domain
            |> List.partition (Misc.flip SM.mem scim)
            |> fst in
-  let vim   = SM.proj (fun fn _ -> List.mem fn fns) vim in
+  let vim   = SM.proj vim (fun fn _ -> List.mem fn fns) in
   Inferctypes.infer_shapes cil tgr cspec scim vim
 
 let declared_names decs is_decl =

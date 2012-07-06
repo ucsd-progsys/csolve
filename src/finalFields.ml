@@ -355,7 +355,7 @@ let infer_final_fields tgr spec scis shpm =
   |> Interproc.final_fields spec scis
   >> check_finality_specs (Ctypes.I.Spec.funspec spec)
 
-let dummy_infer_final_fields tgr spec scis shpm =
+let dummy_infer_final_fields tgr spec shpm =
   SM.map (fun shp ->
     let nblocks = Array.length shp.Sh.anna in
     let ffs     = Interproc.shape_init_final_fields shp in
