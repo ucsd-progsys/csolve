@@ -171,11 +171,13 @@ let instantiate_aux sto gst ctm me appm v al cl =
   |> (fun (ann, sto, appm) -> (ann, sto, gst, me, appm))
 
 let instantiate sto gst ctm me appm v al cl =
-  let (ann, sto, gst, me, appm) =
     if is_unf_by appm al cl then
-      generalize sto gst ctm me appm al
-    else ([], sto, gst, me, appm) in
-  instantiate_aux sto gst ctm me appm v al cl
+      ([], sto, gst, me, appm)
+    else if SLM.mem al appm then
+      let (anno, sto, gst, me, appm) = generalize sto gst ctm me appm al in
+        instantiate_aux sto gst ctm me appm v al cl
+    else
+      instantiate_aux sto gst ctm me appm v al cl
 
 let is_deref = function
   | Lval (Mem _, _) -> true
@@ -236,13 +238,13 @@ let abs_of_conc l appm =
   |> abs_of_conc_from_app l
 
 let sloc_of_deref sto gst ctm me appm em =
-  match al_of_expr ctm me em with
+  match cl_of_expr ctm me em with
     | Some l -> 
         let i = ind_of_expr ctm em |> M.maybe in
         begin match CtIS.find sto l |> CtIL.find i with
         | [(_, fld)] -> CtIF.sloc_of fld
         | _          -> assert false end
-    | None   -> assert false
+    | None  -> assert false
 
 let slocs_of_deref sto gst ctm me appm em =
   match sloc_of_deref sto gst ctm me appm em with

@@ -44,13 +44,6 @@ val test_env : env
 
 val fresh_unfs_of_hf : Sloc.t -> string -> env -> intrs list
 
-(*val apply_hf_in_env : Ctypes.ind_hf_appl -> intrs list -> env ->
-                      Sloc.SlocSlocSet.t * Ctypes.store
-
-val fold_hf_on_sto : 'a Ctypes.hf_appl -> intrs list ->
-                     Ctypes.store -> env -> Ctypes.store
-                     *)
-
 val gen : 'a Ctypes.hf_appl -> intrs list -> 
           Sloc.SlocSlocSet.t -> Ctypes.store ->
           env -> Sloc.SlocSlocSet.t * Ctypes.store
