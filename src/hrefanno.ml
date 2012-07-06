@@ -156,7 +156,8 @@ let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app =
     CtIS.hfuns sto |> Ct.hf_appl_binding_of al |> M.maybe in
   let ins    = Hf.fresh_unfs_of_hf cl hf env in
-  let _, sto = Hf.gen app ins SlSS.empty sto env in
+  let _, sto = Hf.ins al [al] ins SlSS.empty sto env in
+  let _ = P.printf "%a" CtIS.d_store sto in
   let _      = set_cl me v cl in
   let appm   = SLM.add al (App(cl, app, ins)) appm in
   ([RA.HIns (cl, ins)], sto, appm)

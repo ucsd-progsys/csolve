@@ -689,7 +689,5 @@ let infer_shapes cil tgr spec scim vim =
                |> fun x -> (fn, contract_shp_stores x sh hfenv) end
             |> SM.of_list in
      sm
-  (*>> (fun x -> ("main", SM.find "main" x) |> P.printf "%a" d_shape)
-  >> (fun _ -> assertf "asdf")*)
   |> HRA.annotate_shpm scim
   |> FinalFields.dummy_infer_final_fields tgr spec

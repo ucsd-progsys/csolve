@@ -144,15 +144,15 @@ let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
      sto
   |> M.flip CtIS.add_app app
 
-let ins l sto deps ls ins env =
-  let binding_fun =
+let ins l ls ins deps sto env =
+  let (hf, ls', _) =
        CtIS.hfuns sto
     |> Ct.hf_appl_binding_of l
-    |> M.maybe
-    |> fst3 in
-  let (deps', unfolded_sto) =
-    apply_hf_in_env (binding_fun, ls, []) ins env in
-  SlSS.union deps deps', CtIS.upd sto unfolded_sto 
+    |> M.maybe in
+  apply_hf_in_env (hf, ls, []) ins env
+  |> M.app_fst (SlSS.union deps)
+  |> M.app_snd (CtIS.remove sto l |> CtIS.upd)
+
 
 let gen ((hf, ls, _) as app) ins deps sto env =
   let deps = M.combine_prefix ls ins |>

@@ -55,6 +55,10 @@ val gen : 'a Ctypes.hf_appl -> intrs list ->
           Sloc.SlocSlocSet.t -> Ctypes.store ->
           env -> Sloc.SlocSlocSet.t * Ctypes.store
 
+val ins : Sloc.t -> Sloc.t list -> intrs list -> 
+          Sloc.SlocSlocSet.t -> Ctypes.store -> env ->
+          Sloc.SlocSlocSet.t * Ctypes.store
+
 val shape_in_env : string -> Sloc.t list -> env ->
                    Ctypes.store
                    
