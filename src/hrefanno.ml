@@ -24,6 +24,7 @@
 module E  = Errormsg
 module P  = Pretty
 module M  = FixMisc
+module SM = M.StringMap
 module I  = Index
 module Sl = Sloc
 module RA = Refanno
@@ -31,6 +32,7 @@ module Ct = Ctypes
 module FC = FixConstraint
 module CM = CilMisc
 module Hf = Heapfun
+module ST = Ssa_transform
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
 module SLM  = Sl.SlocMap
@@ -129,9 +131,10 @@ let mk_fold appm al =
 let generalize_cnc sto al cl =
   ([mk_fold_cnc al cl], CtIS.remove sto cl)
 
-let generalize_hf sto cl ((hf, ls, _) as appl) ins env =
-  let sto' = Hf.fold_hf_on_hp ls ins sto hf env in
-  ([mk_fold_hf appl ins], sto')
+let generalize_hf sto cl ((hf, ls, _) as app) ins env =
+  let _      = asserts (cl = List.hd ls) "generalize_hf" in
+  let _, sto = Hf.gen app ins SlSS.empty sto env in
+  ([mk_fold_hf app ins], sto)
 
 let generalize sto gst ctm me appm al =
   let _   = assert (SLM.mem al appm) in 
@@ -152,11 +155,11 @@ let instantiate_cnc sto me appm v al =
 let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app =
     CtIS.hfuns sto |> Ct.hf_appl_binding_of al |> M.maybe in
-  let ins               = Hf.fresh_unfs_of_hf cl hf env in
-  let (dep, sto')       = Hf.apply_hf_in_env app ins env in
-  let _                 = set_cl me v cl in
-  let appm'             = SLM.add al (App(cl, app, ins)) appm in
-  ([RA.HIns (cl, ins)], sto', appm)
+  let ins    = Hf.fresh_unfs_of_hf cl hf env in
+  let _, sto = Hf.gen app ins SlSS.empty sto env in
+  let _      = set_cl me v cl in
+  let appm   = SLM.add al (App(cl, app, ins)) appm in
+  ([RA.HIns (cl, ins)], sto, appm)
 
 let instantiate_aux sto gst ctm me appm v al cl = 
   let hf_env = Hf.test_env in
@@ -430,4 +433,12 @@ let annotate_cfg cfg shp =
     ffmsa = acp shp.ffmsa; }
   in shp'
 
-  
+let annotate_shpm scis shpm =
+  SM.fold begin fun fn shp shpm ->
+    let anno =
+         SM.find fn scis
+      |> (fun x -> annotate_cfg x.ST.cfg) in
+    SM.add fn (anno shp) shpm end shpm SM.empty
+
+
+ 

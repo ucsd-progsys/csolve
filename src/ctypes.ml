@@ -588,6 +588,7 @@ module SIGS (T : CTYPE_DEFS) = struct
       (Sloc.t * (T.ldesc * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
+    val sto_of_hfs   : T.R.t hf_appl list -> t
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
@@ -649,6 +650,8 @@ module SIGS (T : CTYPE_DEFS) = struct
         
     (* module TVarSubst : Substitution.S with type e = tvar *)
         
+    val sto_in          : t -> T.R.t prestore
+    val sto_out         : t -> T.R.t prestore
     val d_cfun          : unit -> t -> P.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val map_variances   : ('a prectype -> 'b prectype) ->
@@ -658,9 +661,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val map_ldesc       : (Sloc.t -> 'a preldesc -> 'a preldesc) -> 'a precfun -> 'a precfun
     val apply_effects   : (effectptr -> effectptr) -> t -> t
     val well_formed     : T.store -> t -> bool
-    val normalize_names :
-      t ->
-      t ->
+    val normalize_names : t -> t ->
       (T.store -> Sloc.Subst.t -> (string * string) list -> T.ctype -> T.ctype) ->
       (T.store -> Sloc.Subst.t -> (string * string) list -> effectptr -> effectptr) ->
       t * t
@@ -691,6 +692,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     val add_fun : bool -> string -> T.cfun * specType -> t -> t
     val add_var : bool -> string -> T.ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> T.ldesc * specType -> t -> t
+    val find_cf : t -> string -> T.cfun * specType
     (* val add_fun_loc  : Sloc.t -> T.cfun * specType -> t -> t *)
     val store   : t -> T.store
     val funspec : t -> (T.cfun * specType) Misc.StringMap.t
@@ -1094,6 +1096,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     (* let map_data f = *)
     (*   f |> Field.map_type |> LDesc.map |> SLM.map *)
 
+    let sto_of_hfs hfs = (SLM.empty, [], hfs)
+
     let map_ldesc f (ds, vs, hf) = SLM.mapi f ds, vs, hf
 
     let map2_data f =
@@ -1465,6 +1469,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         effects  = ft.effects;
       }
 
+    let sto_in  t = t.sto_in
+    let sto_out t = t.sto_out
+
     let map f ft =
       map_variances f f ft
 
@@ -1830,11 +1837,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let add_data_loc l (ld, st) (funspec, varspec, storespec, storetypes) =
       (funspec, varspec, Store.add storespec l ld, SLM.add l st storetypes)
 
+
     let funspec (fs, _, _, _)        = fs
     let varspec (_, vs, _, _)        = vs
     let store (_, _, sto, _)         = sto
     let locspectypes (_, _, _, lsts) = lsts
     let make w x y z                 = (w, x, y, z)
+
+    let find_cf t fn = funspec t |> SM.find fn 
 
     let add (funspec, varspec, storespec, storetypes) spec =  
           spec

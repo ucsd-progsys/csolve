@@ -275,6 +275,7 @@ module type S = sig
       (Sloc.t * (T.ldesc * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
+    val sto_of_hfs   : T.R.t hf_appl list -> t
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
@@ -334,6 +335,9 @@ module type S = sig
   sig
     type t = T.cfun
       
+    val sto_in          : t -> T.R.t prestore
+    val sto_out         : t -> T.R.t prestore
+
     val d_cfun          : unit -> t -> Pretty.doc
     val map             : ('a prectype -> 'b prectype) -> 'a precfun -> 'b precfun
     val map_variances   : ('a prectype -> 'b prectype) ->
@@ -386,6 +390,7 @@ module type S = sig
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t
+    val find_cf: t -> string -> CFun.t * specType
     
     val store   : t -> Store.t
     val funspec : t -> (T.cfun * specType) FixMisc.StringMap.t

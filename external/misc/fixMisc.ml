@@ -243,6 +243,7 @@ module type EMapType = sig
   val domain     : 'a t -> key list
   val range      : 'a t -> 'a list
   val join       : 'a t -> 'b t -> ('a * 'b) t
+  val proj       : 'a t -> (key -> 'a -> bool) -> 'a t
   val adds       : key -> 'a list -> 'a list t -> 'a list t
   val of_alist   : (key * 'a) list -> 'a list t
   val finds      : key -> 'a list t -> 'a list
@@ -303,6 +304,10 @@ module EMap (K: EOrderedType) =
 
     let domain m =
       fold (fun k _ acc -> k :: acc) m []
+
+    let proj (m: 'a t) f: ('a t) =
+      fold begin fun key v m' -> if f key v then
+        add key v m' else m' end m empty
 
     let range (m : 'a t) : 'a list = 
       fold (fun _ v acc -> v :: acc) m []

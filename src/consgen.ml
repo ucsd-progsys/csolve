@@ -52,17 +52,13 @@ let mydebug = false
 (***************************************************************************)
 
 let shapem_of_scim cil tgr spec scim vim =
-  let cspec = Ct.cspec_of_refspec spec
-              |> (fun x -> Heapfun.expand_cspec_shape x Heapfun.test_env) in
-  try
-     Ct.I.Spec.funspec cspec
-  |> SM.to_list
-  |> List.partition (fun (fn, _) -> SM.mem fn scim)
-  |> fst 
-  |>: (fun (fn, cf) -> (fn, (fst cf, SM.find fn scim, SM.find fn vim)))
-  |> SM.of_list
-  |> Inferctypes.infer_shapes cil tgr cspec
-  with Not_found -> assertf "shapem_of_scim"
+  let cspec = Ct.cspec_of_refspec spec in
+  let fns   = CSpec.funspec cspec
+           |> SM.domain
+           |> List.partition (Misc.flip SM.mem scim)
+           |> fst in
+  let vim   = SM.proj (fun fn _ -> List.mem fn fns) vim in
+  Inferctypes.infer_shapes cil tgr cspec scim vim
 
 let declared_names decs is_decl =
   decs |> M.map_partial is_decl |> List.fold_left (M.flip SS.add) SS.empty

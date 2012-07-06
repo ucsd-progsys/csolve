@@ -24,6 +24,7 @@
 module P  = Pretty
 module M  = FixMisc
 module I  = Index
+module SM = M.StringMap
 module Sl = Sloc
 module Ct = Ctypes
 module FC = FixConstraint
@@ -64,6 +65,8 @@ type ind_def  = CtI.T.refinement def
 
 module HfMap = M.StringMap
 type   env   = var_def HfMap.t
+
+type hfspec  = CtISp.t
 
 let flocs_of def = def.loc_params
 let frefs_of def = def.ref_params
@@ -121,22 +124,25 @@ let apply_hf_shape (_, sls, _) ins def =
     deps, hp
 
 let apply_hf_in_env ((hf, _, _) as app) ins env =
-  HfMap.find hf env
+     HfMap.find hf env
   |> apply_hf_shape app ins
 
   (* remove dependencies *)
-let fold_hf_on_hp ls ins h hf env =
-  let binds   = match ls with
-    | l :: _ -> l :: List.flatten ins 
-    | _      -> List.flatten ins in
-  let (h, h') = CtIS.partition (fun l -> List.mem l binds) h in
-  let  appl   = (hf, ls, []) in
-  let happl   = apply_hf_in_env appl ins env in
-  let _       = if (snd happl != h) then
-    assertf "fold_hf_on_hp: can't fold on heap" in 
-  let ins     = M.flatten ins in
-    List.fold_left CtIS.remove h' ins
-    |> M.flip CtIS.add_app appl
+(* in the current implementation we're going to assume
+ * that the only argument that can be bound to an ldesc
+ * in the expansion of an hfun is the first argument.
+ * BUT, any introduced location could be bound to an
+ * ldesc. *)
+let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
+  let bound_locs     = List.hd ls :: List.flatten ins in
+  let bound_by_exp x = List.mem x bound_locs in
+  let (exp, sto)     = CtIS.partition bound_by_exp sto in
+  let desired_exp    = apply_hf_in_env app ins env |> snd in
+  let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in
+  (* MK: 1) there should be a Store.eq,
+   *     2) this should be heap subtyping *)
+     sto
+  |> M.flip CtIS.add_app app
 
 let ins l sto deps ls ins env =
   let binding_fun =
@@ -148,35 +154,50 @@ let ins l sto deps ls ins env =
     apply_hf_in_env (binding_fun, ls, []) ins env in
   SlSS.union deps deps', CtIS.upd sto unfolded_sto 
 
-let gen l hf sto deps ls ins env =
+let gen ((hf, ls, _) as app) ins deps sto env =
   let deps = M.combine_prefix ls ins |>
              List.fold_left (M.flip SlSS.remove) deps in
-  deps, fold_hf_on_hp ls ins sto hf env 
+  let sto  = fold_hf_on_sto (hf, ls, []) ins sto env in
+  deps, sto
+
+let unfs_of_ident ls hf env =
+     HfMap.find hf env
+  |> unfs_of
+  |> M.combine_replace ls
 
 let shape_in_env hf ls env =
-  let ins =
-       HfMap.find hf env
-    |> unfs_of
-    |> M.combine_replace ls in
-  apply_hf_in_env (hf, ls, []) ins env |> snd
+     unfs_of_ident ls hf env 
+  |> (fun x -> apply_hf_in_env (hf, ls, []) x env)
+  |> snd
 
-(* MK: this is wrong; technically needs to be Misc.fixpointed *)
+(* MK: this is wrong; TODO Misc.fixpoint this *)
 let expand_sto_shape sto env =
      CtIS.hfuns sto 
-  |> List.fold_left begin fun sto (hf, ls, _) ->
-      (List.hd ls |> CtIS.remove sto, shape_in_env hf ls env)
-      |> M.uncurry CtIS.sh_upd end sto
-                                               
-let expand_cspec_shape cspec env =
-  CtISp.map_stores (fun x -> expand_sto_shape x env) cspec
+  |> List.fold_left begin fun (aps, sto) ((hf, ls, _) as app) ->
+      let sto' =
+        (List.hd ls |> CtIS.remove sto, shape_in_env hf ls env)
+        |> M.uncurry CtIS.sh_upd in
+      (app :: aps, sto') end ([], sto)
 
-let contract_sto_shape sto env =
-  CtIS.hfuns sto
-  |> List.map (fun (_, l :: _, _) -> l)
-  |> List.fold_left CtIS.remove sto
+let contract_store sto hfs env =
+  List.fold_left begin fun sto ((hf, ls, _) as app) ->
+       unfs_of_ident ls hf env
+    |> (fun x -> fold_hf_on_sto app x sto env) end sto hfs
 
-let contract_cspec_shape cspec env =
-  CtISp.map_stores (fun x -> contract_sto_shape x env) cspec
+let split_cspec_stores g cspec env =
+  CtISp.map_stores (fun x -> expand_sto_shape x env |> g) cspec
 
-(*let contract_shp_shapes shpm env =
-  SM.fold*)
+(* MK: hfs are NOT order-invariant. they are a recording of expansions made *)
+  (* this should actually return an opaque type so the invariant can be
+   * maintained *)
+let expand_cspec_stores cspec env =
+  split_cspec_stores (fun x -> fst x |> CtIS.sto_of_hfs) cspec env,
+  split_cspec_stores snd cspec env
+
+let contract_shpm_stores hfspec env shpm =
+     shpm
+  |> SM.to_list
+  |> List.map begin fun (fn, sh) ->
+    let hfs = CtISp.find_cf hfspec fn in
+    {sh with Sh.store = contract_store sh hfs env} end
+  |> SM.of_list

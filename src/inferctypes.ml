@@ -53,6 +53,7 @@ module Ct     = I.CType
 module CFun   = I.CFun
 module Field  = I.Field
 module CSpec  = I.Spec 
+module CStore = I.Store
 module TVarInst = IndexTypes.TVarInst 
   
 let mydebug = true
@@ -405,7 +406,6 @@ let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = c
                         let tsub = unify_tvars tsub (VM.find bv ve) fct in
                         UStore.unify_ctype_locs sto sub tsub (VM.find bv ve) fct
                       end (sto, S.Subst.empty, TVarInst.empty) cf.args fd.C.sformals in
-  let _              = P.eprintf "@[@!asdf: %a@!@]" Ctypes.I.Store.d_store sto in
   let tsub, sub, sto = constrain_phis tgr ve phis tsub sub sto in
   let et             = new exprTyper (ve,fs) in
   let blocks         = cfg.Ssa.blocks in
@@ -580,15 +580,14 @@ let tvar_q_error () (t1, t2) =
   C.error "Quantified variables %a and %a get unified in function body"
     d_tvar t1 d_tvar t2
 
-let infer_shape tgr fe ve gst scim (cf, sci, vm) =
-  let _                     = E.error "INFER_SHAPE" in (* DEBUG *)
+let infer_shape tgr fe ve gst spec scim vim fn =
+  let cf                    = CSpec.find_cf spec fn |> fst         in
+  let vm                    = SM.find fn vim                       in
+  let sci                   = SM.find fn scim                      in
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
-  let _                     = VM.iter (fun s sl -> P.eprintf "%s:%a@!"
-                              s.C.vname Ct.d_ctype sl; ()) vm in
   let sto                   = Store.upd cf.sto_out gst             in
-  let _                     = P.eprintf "%a" Store.d_store sto     in
   let em, bas, tsub, sub, sto= constrain_fun tgr gst fe cf ve sto sci in
   let _                     = C.currentLoc := sci.ST.fdec.C.svar.C.vdecl in
   let whole_store           = Store.upd cf.sto_out gst in
@@ -602,13 +601,9 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 
-  let _                     = E.error "DUMMY_REFANNO" in (* DEBUG *)
   let annot, conca, theta   = RA.dummy_annotate_cfg sci.ST.cfg sto (Store.domain gst) em bas in
-  let _                     = E.error "DUMMY_REFANNO_DONE" in (* DEBUG *)
   let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
-  let _                     = E.error "NON_ALIASING" in (* DEBUG *)
   let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
-  let _                     = E.error "NON_ALIASING_DONE" in (* DEBUG *) 
   {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
    Sh.etypm   = em;
    Sh.store   = sto;
@@ -618,40 +613,25 @@ let infer_shape tgr fe ve gst scim (cf, sci, vm) =
    Sh.nasa    = nasa;
    Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
 
-let print_shape fname cf gst {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa} =
-  let _ = P.printf "%s@!" fname in
-  let _ = P.printf "============@!@!" in
-  let _ = P.printf "Signature:@!" in
-  let _ = P.printf "----------@!@!" in
-  let _ = P.printf "%a@!@!" CFun.d_cfun cf in
-  let _ = P.printf "Locals:@!" in
-  let _ = P.printf "-------@!@!" in
-  let _ = P.printf "%a@!@!" d_vartypes_long locals in
-  let _ = P.printf "Store:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" Store.d_store st in
-  let _ = P.printf "Global Store:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" Store.d_store gst in
-  let _ = P.printf "Annotations:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" RA.d_block_annotation_array annot in
-  let _ = P.printf "Final Fields:@!" in
-  let _ = P.printf "------@!@!" in
-  let _ = P.printf "%a@!@!" FinalFields.d_final_fields ffmsa in
-    ()
+let d_shape ()
+  (fname, {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa}) =
+  P.dprintf
+   "@[Shape of %s@!============@!@!Locals:@!-------@!@!%a@!@!
+      Store:@!--------@!@!%a@!@!===========@!Annotations:
+      @!--------@!@!%a@!@!===========
+      @!Final Fields@!--------@!@!%a@!@!@]"
+      fname
+      d_vartypes_long locals
+      Store.d_store st      
+      RA.d_block_annotation_array annot
+      FinalFields.d_final_fields ffmsa
 
-let d_shape () sh =
-  let _ = print_shape "shape dump" null_fun Store.empty sh in
-  P.printf ""
-
-let infer_shape tgr fe ve gst scim (cf, sci, vm) =
-     infer_shape tgr fe ve gst scim (cf, sci, vm)
-  >> P.printf "%a" d_shape
-  >> (fun _ -> E.error "HREFANNO" (* DEBUG *))
-  |> HRA.annotate_cfg sci.ST.cfg
-  >> (fun _ -> E.error "HREFANNO_DONE" (* DEBUG *))
-  >> P.printf "%a" d_shape
+let d_funsig () (fn, cf, gst) =
+  P.dprintf "@[Sig of %s@!----------@!@!%a@!@!============@!Global
+  Store:@!--------@!@!%a@!@!==============@!@!@]"
+    fn
+    CFun.d_cfun cf
+    CStore.d_store gst
 
 let declared_funs cil =
   C.foldGlobals cil begin fun fs -> function
@@ -659,11 +639,6 @@ let declared_funs cil =
     | C.GVarDecl (vi, _) when C.isFunctionType vi.C.vtype -> vi :: fs
     | _                                                   -> fs
   end []
-
-let print_shapes spec shpm =
-  let funspec, storespec = CSpec.funspec spec, CSpec.store spec in
-    if !Cs.verbose_level >= Cs.ol_ctypes || !Cs.ctypes_only then
-      SM.iter (fun fname shp -> print_shape fname (SM.find fname funspec |> fst) storespec shp) shpm
 
 let _DEBUG_ADD vi ct ve = 
   let _   = _DEBUG_print_ve "DEBUG ADD: BEFORE" ve in
@@ -692,17 +667,24 @@ let globalVarEnv spec cil =
     | _ -> ve
   end VM.empty
 
-
 (* API *)
-let infer_shapes cil tgr spec scis =
-  let ve = globalVarEnv spec cil in
-  let fe = declared_funs cil 
-           |>: (fun f -> (f, globalFunEntryEnv spec f))    
-           |> VM.of_list in
-  let xm = SM.range scis     
-           |>: (fun (_,sci,_) -> (sci.ST.fdec.C.svar, sci)) 
-           |> VM.of_list in
-  scis |> SM.map (infer_shape tgr fe ve (CSpec.store spec) xm)
-       |> FinalFields.dummy_infer_final_fields tgr spec scis 
-       >> print_shapes spec
-
+let infer_shapes cil tgr spec scim vim =
+  let hfenv     = Heapfun.test_env in
+  let hfs, spec = Heapfun.expand_cspec_stores spec hfenv in
+  let ve     = globalVarEnv spec cil in
+  let fe     = declared_funs cil 
+            |>: (fun f -> (f, globalFunEntryEnv spec f))
+            |> VM.of_list in
+  let xm     = SM.range scim
+            |>: (fun sci -> (sci.ST.fdec.C.svar, sci)) 
+            |> VM.of_list in
+  let sm     = SM.domain scim
+            |> List.map begin fun fn -> fn,
+                infer_shape tgr fe ve (CSpec.store spec) spec scim vim fn end
+            |> SM.of_list
+            |> Heapfun.contract_shpm_stores hfs hfenv in
+     sm
+  (*>> (fun x -> ("main", SM.find "main" x) |> P.printf "%a" d_shape)
+  >> (fun _ -> assertf "asdf")*)
+  |> HRA.annotate_shpm (SM.map snd3 scis)
+  |> FinalFields.dummy_infer_final_fields tgr spec scis
