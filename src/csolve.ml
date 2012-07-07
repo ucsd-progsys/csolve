@@ -291,17 +291,17 @@ let dump_annots cil qs tgr res =
   AnnotsJson.dump_html files qs tgr s cs cones binds
 
 let dumpFile cil = 
-  let log = open_out "csolve.save.c" in
-  let _   = Cil.dumpFile CM.noBlockAttrPrinter log "csolve.save.c"  cil in
+  let log = open_out (!Co.csolve_file_prefix ^ ".csolve.save.c") in
+  let _   = Cil.dumpFile CM.noBlockAttrPrinter log ".csolve.save.c"  cil in
   let _   = close_out log in
   ()
 
 let liquidate cil =
   let _         = dumpFile cil in
-  let log       = open_out "csolve.log" in
+  let log       = open_out (!Co.csolve_file_prefix ^ ".log") in
   let _         = E.logChannel := log in
   let _         = Co.setLogChannel log in
-  
+
   let cil       = BS.time "Cil: phase 1" cil_transform_phase_1 cil in
   let spec,decs = BS.time "Parse: spec" (obligations !Co.csolve_file_prefix) cil in
   let _         = E.log "DONE: spec parsing \n" in
@@ -309,8 +309,8 @@ let liquidate cil =
 
   let _         = EffectDecls.parseEffectDecls cil in
   let _         = E.log "DONE: cil parsing \n" in
-  let fn        = !Co.csolve_file_prefix  in
-  let qfs       = (fn ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
+  let _         = Co.save_file := !Co.csolve_file_prefix ^ ".out.fq" in
+  let qfs       = (!Co.csolve_file_prefix ^ ".hquals") :: if !Co.no_lib_hquals then [] else [Co.get_lib_hquals ()] in
   let qs        = GenQuals.quals_of_cil cil ++ Misc.flap FixAstInterface.quals_of_file qfs in
   let _         = E.log "DONE: qualifier parsing \n" in
   let scim      = ST.scim_of_decs decs  in 
@@ -319,7 +319,7 @@ let liquidate cil =
   let _         = E.log "\nDONE: TAG initialization\n" in
   let ci        = BS.time "Cons: Generate" (Consgen.create cil spec decs scim) tgr in
   let _         = E.log "DONE: constraint generation \n" in
-  let res       = Ci.solve ci fn qs in
+  let res       = Ci.solve ci !Co.csolve_file_prefix qs in
   let _         = E.log "DONE SOLVING" in
   let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots cil qs tgr res in
   let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs res.FI.soln in
