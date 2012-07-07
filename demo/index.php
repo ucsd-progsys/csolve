@@ -76,7 +76,12 @@ function writeTextFile($fname,$fld){
 <html>
 <head>
   <title>CSolve Demo</title>
-
+  <link rel="stylesheet" type="text/css" media="screen" href="css/pyg_default.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/csolve.css" />
+  <script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
+  <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+  <script src="js/jquery.ba-hashchange.min.js"></script>
+  <script src="js/csolve.js"></script>
 </head>
 <body>
   <h1>CSolve Demo</h1>
