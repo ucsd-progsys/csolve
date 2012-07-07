@@ -122,10 +122,10 @@ def srcToHtml(srcIndex, srcFile):
   src      = readFrom(srcFile)
   html     = rawSrcToHtml(src)
   srcHtml  = addLineNumbers(srcIndex, src, html)
-  head     = headSrc(srcIndex, srcFile)
-  headHtml = rawSrcToHtml(head)
+  #head     = headSrc(srcIndex, srcFile)
+  #headHtml = rawSrcToHtml(head)
   #headTplt.substitute(filenum = srcIndex, filename = srcFile)
-  return (headHtml + srcHtml) 
+  return (srcHtml)
 
 def srcsToHtml(srcFiles):
   n     = len(srcFiles)

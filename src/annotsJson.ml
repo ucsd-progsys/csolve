@@ -457,7 +457,7 @@ let dump_html files qs tgr s' cs' cones binds : unit =
   (* 1. Dump JSON Annots *)
   dump_annots files qs tgr s' cs' cones binds;
   (* 2. Render HTML *)
-  srcs_to_html files
+  srcs_to_html [List.hd files]
   (* 3. Wave Goodbye *)
   |> (function 0 -> Errormsg.log  "DONE: Generated Annotated HTML" 
              | e -> Errormsg.warn "WARNING: Failed To Generate Annotated Html %d" e)
