@@ -36,7 +36,7 @@ function getWarns($logfile){
 
 function getAnnots($htmlfile){
   $annothtml = "<h3> Annotated Program </h3>" ;
-  $annothtml = $annothtml."Click on variable to see inferred types." ;
+  $annothtml = $annothtml."Hover over variable to see inferred type." ;
   $annothtml = $annothtml.(file_get_contents($htmlfile));
   return $annothtml;
 }
