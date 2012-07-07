@@ -1,6 +1,5 @@
 <?
-$logfile = "log";
-$flag = 0;
+$entered_program = 0;
 $demo = "demo_test01p";
 
 $category = array(
@@ -57,31 +56,28 @@ function writeTextFile($fname,$fld){
   }
 
   if($_POST['programform'] == "1") {
-    $tc    = time() . ".c" ;
+    $tc    = tempnam ("/tmp/csolve-demo", "csolve-demo") . ".c";
     $tann  = $tc    . ".annot";
     $thq   = $tc    . ".hquals";
     $thtml = $tc    . ".html"; 
+    $log   = $tc    . ".log";
     writeTextFile($tc,  'program');
     writeTextFile($thq, 'qualifiers');
-    $wd = "/var/www/liquid/cdemo/";
-    shell_exec("LD_LIBRARY_PATH=".$wd."lib ".$wd."main.native ".$tc." > ".$logfile." 2>&1");
-    shell_exec("/usr/bin/source-highlight --src-lang c --line-number -i ".$tc." -o ".$thtml);
-    shell_exec($wd."c2html.py ".$tc);
+    $out = shell_exec("../src/csolve ".$tc." > ".$log." 2>&1");
     $annothtml = getAnnots($thtml);
-    $warnhtml  = getWarns($logfile);
-    $loghtml   = "<a href=\"".$logfile."\"> <h3>Log</h3> </a>";
-    $flag = 1;
+    // $loghtml   = "<a href=\"".$logfile."\"> <h3>Log</h3> </a>";
+    $entered_program = 1;
     //shell_exec("rm -f ".$tc."*");
   }
 ?>
 
 <html>
 <head>
-  <title>Csolve Demo</title>
+  <title>CSolve Demo</title>
 
 </head>
 <body>
-  <h1>Csolve Demo</h1>
+  <h1>CSolve Demo</h1>
   <hr />
 
 <h3>Pick a demo</h3>
@@ -100,7 +96,6 @@ function writeTextFile($fname,$fld){
 ?>   
 <input name='chooseform' type='hidden' value='1'>
 <input type='submit' value='choose'>
-<input type='button' value='reset' onclick='window.location = "<? echo $_SERVER['PHP_SELF']; ?>"'>
 </select>
 </form>
 
@@ -110,7 +105,7 @@ function writeTextFile($fname,$fld){
 <h3>Logical Qualifiers</h3>
 <textarea name='qualifiers' rows='5' cols='80'>
 <?
-  if($flag == 1) {
+  if($entered_program == 1) {
     echo (getRawTextFromField('qualifiers'));
   }
   else {
@@ -123,7 +118,7 @@ function writeTextFile($fname,$fld){
 
 <textarea name='program' rows='20' cols='80'>
 <?
-  if($flag == 1) {
+  if($entered_program == 1) {
     echo (getRawTextFromField('program'));
   }
   else {
@@ -138,10 +133,6 @@ function writeTextFile($fname,$fld){
 </p></form>
 
 <hr />
-<? echo $warnhtml ?>
-<hr />
 <? echo $annothtml ?>
-<hr />
-<? echo $loghtml ?>
 </body>
 </html>
