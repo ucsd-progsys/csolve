@@ -56,14 +56,16 @@ function writeTextFile($fname,$fld){
   }
 
   if($_POST['programform'] == "1") {
-    $tc    = tempnam ("/tmp/csolve-demo", "csolve-demo") . ".c";
-    $tann  = $tc    . ".annot";
-    $thq   = $tc    . ".hquals";
-    $thtml = $tc    . ".html"; 
-    $log   = $tc    . ".log";
+    $tb    = tempnam ("/tmp/csolve-demo", "csolve-demo-");
+    $tc    = $tb    . ".c";
+    $tobj  = $tb    . ".o";
+    $tann  = $tobj  . ".annot";
+    $thq   = $tobj  . ".hquals";
+    $thtml = $tobj  . ".html";
+    $log   = $tobj  . ".log";
     writeTextFile($tc,  'program');
     writeTextFile($thq, 'qualifiers');
-    $out = shell_exec("../src/csolve ".$tc." > ".$log." 2>&1");
+    $out = shell_exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1");
     $annothtml = getAnnots($thtml);
     // $loghtml   = "<a href=\"".$logfile."\"> <h3>Log</h3> </a>";
     $entered_program = 1;
