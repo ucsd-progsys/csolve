@@ -188,9 +188,8 @@ let contract_store sto hfs env =
 let split_cspec_stores g cspec env =
   CtISp.map_stores (fun x -> expand_sto_shape x env |> g) cspec
 
-(* MK: hfs are NOT order-invariant. they are a recording of expansions made *)
-  (* this should actually return an opaque type so the invariant can be
-   * maintained *)
+(* MK: hfs are NOT order-invariant. they are a recording of expansions made
+ * type is opaque to enforce this invariant *)
 let expand_cspec_stores cspec env =
   let hfspec =
     split_cspec_stores (fun x -> fst x |> CtIS.sto_of_hfs) cspec env in

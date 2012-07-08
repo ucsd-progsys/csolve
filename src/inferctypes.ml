@@ -614,22 +614,19 @@ let infer_shape tgr fe ve gst spec scim vim fn =
    Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
 
 let d_shape ()
-  (fname, {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa}) =
+  {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa} =
   P.dprintf
-   "@[Shape of %s@!============@!@!Locals:@!-------@!@!%a@!@!
-      Store:@!--------@!@!%a@!@!===========@!Annotations:
+   "@[Locals:@!-------@!@!%a@!@!Store:@!--------@!@!%a@!@!===========@!Annotations:
       @!--------@!@!%a@!@!===========
       @!Final Fields@!--------@!@!%a@!@!@]"
-      fname
       d_vartypes_long locals
       Store.d_store st      
       RA.d_block_annotation_array annot
       FinalFields.d_final_fields ffmsa
 
-let d_funsig () (fn, cf, gst) =
-  P.dprintf "@[Sig of %s@!----------@!@!%a@!@!============@!Global
+let d_funsig () (cf, gst) =
+  P.dprintf "@[%a@!@!============@!Global
   Store:@!--------@!@!%a@!@!==============@!@!@]"
-    fn
     CFun.d_cfun cf
     CStore.d_store gst
 
@@ -691,3 +688,4 @@ let infer_shapes cil tgr spec scim vim =
      sm
   |> HRA.annotate_shpm scim
   |> FinalFields.dummy_infer_final_fields tgr spec
+  >> (fun x -> SM.find "main" x |> P.printf "@[main: %a@]" d_shape)

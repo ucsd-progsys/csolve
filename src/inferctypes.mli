@@ -31,5 +31,5 @@ val infer_shapes:
   -> Ctypes.ctype CilMisc.VarMap.t FixMisc.StringMap.t
   -> Shape.t FixMisc.StringMap.t
 
-val d_shape: unit -> string * Shape.t -> Pretty.doc
-val d_funsig: unit -> string * Ctypes.cfun * Ctypes.store -> Pretty.doc
+val d_shape: unit -> Shape.t -> Pretty.doc
+val d_funsig: unit -> Ctypes.cfun * Ctypes.store -> Pretty.doc

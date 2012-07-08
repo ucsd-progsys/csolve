@@ -157,7 +157,6 @@ let instantiate_hf sto appm me env v al cl =
     CtIS.hfuns sto |> Ct.hf_appl_binding_of al |> M.maybe in
   let ins    = Hf.fresh_unfs_of_hf cl hf env in
   let _, sto = Hf.ins al [al] ins SlSS.empty sto env in
-  let _ = P.printf "%a" CtIS.d_store sto in
   let _      = set_cl me v cl in
   let appm   = SLM.add al (App(cl, app, ins)) appm in
   ([RA.HIns (cl, ins)], sto, appm)
@@ -373,29 +372,31 @@ let annotate_instr ans sto gst ctm me appm = function
 
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
-let folds_for_open_annots annots appm =
-  List.concat annots
-  |> List.fold_left begin fun l -> function
+let fold_if_open appm res = function
     | RA.Ins  (_, a, _)
-    | RA.HIns (a, _) -> if SLM.mem a appm then a::l else l
-    | _           -> l end []
-  |> List.map (mk_fold appm)
+    | RA.HIns (a, _) ->
+        if SLM.mem a appm then 
+          mk_fold appm a :: res
+        else
+          res
+    | _              -> res
 
-let fold_at_end_of_block annots appm =
-  folds_for_open_annots annots appm 
-  |> M.flip M.append_to_last annots
+let fold_all_open_locs ans appm =
+     List.concat ans
+  |> List.rev
+  |> List.fold_left (fold_if_open appm) []
+  |> fun x -> M.append_to_last x ans
 
 let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
   (annos ++ [annos'], sto, gst, me, appm)
 
 let annotate_block anns sto gst ctm me is =
-  let _    = assert (List.length anns = List.length is) in
   let init = ([], sto, gst, me, SLM.empty) in
   List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans ins ->
     annotate_instr ans sto gst ctm me appm ins
     |> upd_wld wld end init anns is
-  (*|> fun (ans, _, _, _, appm) -> fold_at_end_of_block ans appm*)
-  |> fst5
+  |> fun (ans, _, _, _, appm) -> fold_all_open_locs ans appm
+  >> (fun ans -> asserts (List.length ans = List.length is) "annotate_block")
 
 let annot_iter cfg sto ctm me anna =
   let nblocks    = Array.length cfg.Ssa.blocks in
@@ -404,7 +405,7 @@ let annot_iter cfg sto ctm me anna =
     | Instr is ->
         annotate_block anna.(j) sto CtIS.empty ctm me is
         |> M.m2append anna.(j)
-        >> P.printf "%a" RA.d_block_annotation
+        (*>> P.printf "%a" RA.d_block_annotation*)
         |> Array.set anna j
     | _        -> () in
   M.range 0 nblocks
