@@ -1,3 +1,4 @@
+/*
 h1, h2, h3, h4, h5, h6 {
 	margin: 0;
 	padding: 0;
@@ -8,6 +9,12 @@ h2 { font-size: 140%; }
 h3 { font-size: 130%; }
 h4 { font-size: 120%; }
 h5 { font-size: 110%; }
+
+*/
+
+.hidden {
+  display: none;
+}
 
 /*********** From JSFIDDLE normalize.css *******************/
 
@@ -32,10 +39,6 @@ ol, ul {
 }
 caption,th {
 	text-align:left;
-}
-h1,h2,h3,h4,h5,h6 {
-	font-size:100%;
-	font-weight:normal;
 }
 q:before,q:after {
 	content:'';

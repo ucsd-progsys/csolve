@@ -34,13 +34,6 @@ function getWarns($logfile){
   return $warns; 
 }
 
-function getAnnots($htmlfile){
-  $annothtml = "<h3> Annotated Program </h3>" ;
-  $annothtml = $annothtml."Hover over variable to see inferred type." ;
-  $annothtml = $annothtml.(file_get_contents($htmlfile));
-  return $annothtml;
-}
-
 function getRawTextFromField($fld){
   return stripslashes($_POST[$fld]);
 }
@@ -75,10 +68,8 @@ function getFieldOrFile ($entered_program, $field, $filename) {
     writeTextFile($tc,  'program');
     writeTextFile($thq, 'qualifiers');
     $out = shell_exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1");
-    $annothtml = getAnnots($thtml);
-    // $loghtml   = "<a href=\"".$logfile."\"> <h3>Log</h3> </a>";
+    $annothtml = file_get_contents ($thtml);
     $entered_program = 1;
-    //shell_exec("rm -f ".$tc."*");
   }
 ?>
 
@@ -87,6 +78,7 @@ function getFieldOrFile ($entered_program, $field, $filename) {
   <title>CSolve Demo</title>
   <link rel="stylesheet" type="text/css" media="screen" href="css/pyg_default.css" />
   <link rel="stylesheet" type="text/css" media="screen" href="css/csolve.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="http://goto.ucsd.edu/csolve/style.css" />
   <script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>
   <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
   <script src="js/jquery.ba-hashchange.min.js"></script>
@@ -110,17 +102,21 @@ function getFieldOrFile ($entered_program, $field, $filename) {
       }
     }
   </script>
-  <style type="text/css">
-    .hidden {
-      display: none;
-    }
-  </style>
 </head>
 <body>
-  <h1>CSolve Demo</h1>
-  <hr />
+  <div id="title">CSolve Demo</div>
+  <div id="subtitle">Liquid Types-Based C Program Verifier</div>
 
-<h3>Pick a demo</h3>
+<? if ($entered_program) { ?>
+  <? echo ($annothtml); ?>
+
+  <input id="logButton" type='button' value='Show Log' onClick='toggleVisible ("log"); toggleValue ("logButton", "Show Log", "Hide Log")' />
+  <div id="log" style="font-family:monospace; width: 60em; display: none;">
+    <? echo (nl2br ($out)); ?>
+  </div>
+<? } ?>
+
+<h1>Pick a demo</h1>
 
 <form action='<? echo $_SERVER['PHP_SELF']; ?>' 
       method='post'><p>
@@ -135,7 +131,7 @@ function getFieldOrFile ($entered_program, $field, $filename) {
   } 
 ?>   
 <input name='chooseform' type='hidden' value='1'>
-<input type='submit' value='choose'>
+<input type='submit' value='Choose'>
 </select>
 </form>
 
@@ -149,16 +145,16 @@ function getFieldOrFile ($entered_program, $field, $filename) {
       method='post'
       onSubmit='setTextAreaValue ("program", editor); setTextAreaValue ("qualifiers", qualEditor)'><p>
 
-<h3>Predicate Templates</h3>
+<h1>Predicate Templates</h1>
 
-<div id="qualifiers-editor" style="position: relative; width: 60em; height: 10em"><?
+<div id="qualifiers-editor" style="position: relative; width: 40em; height: 10em"><?
   echo (getFieldOrFile ($entered_program, 'qualifiers', $demo.".c.hquals"));
 ?></div>
 <textarea id='qualifiers' name='qualifiers' class="hidden"></textarea>
 
-<h3>C Program</h3>
+<h1>C Program</h1>
 
-<div id="program-editor" style="position: relative; width: 60em; height: 30em"><?
+<div id="program-editor" style="position: relative; width: 40em; height: 30em"><?
   echo (getFieldOrFile ($entered_program, 'program', $demo.".c"));
 ?></div>
 <textarea id='program' name='program' class="hidden"></textarea>
@@ -175,16 +171,8 @@ function getFieldOrFile ($entered_program, $field, $filename) {
 <br />
 
 <input name='programform' type='hidden' value='1'>
-<input type='submit' value='csolve'>
+<input type='submit' value='CSolve'>
 </p></form>
 
-<hr />
-<? echo $annothtml; ?>
-
-<hr />
-  <input id="logButton" type='button' value='Show Log' onClick='toggleVisible ("log"); toggleValue ("logButton", "Show Log", "Hide Log")' />
-  <div id="log" style="font-family:monospace; width: 60em; display: none;">
-    <? echo (nl2br ($out)); ?>
-  </div>
 </body>
 </html>
