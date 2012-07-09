@@ -135,6 +135,12 @@ function getFieldOrFile ($entered_program, $field, $filename) {
 </select>
 </form>
 
+<p>Each demo consists of a C program and the predicate templates
+required to verify its safety.</p>
+
+<p>You may also try your own programs, in which case you may want to refer
+to the <a href="readme.html">CSolve README</a>.</p>
+
 <script>
   function setTextAreaValue (id, editor) {
     document.getElementById (id).value = editor.getSession ().getValue ();
