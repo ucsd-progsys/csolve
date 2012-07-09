@@ -25,11 +25,15 @@ var getVarName = function (x) {
   return $(x).text();
 };
 
+var getLineId = function (line) {
+  var fn = $(line).attr("file");
+  var ln = $(line).attr("num");
+  return [fn, ln];
+}
+
 var getLine = function (x) { 
   var sp = $(x).closest("span[class='line']");
-  var fn = sp.attr("file");
-  var ln = sp.attr("num"); 
-  return [fn, ln];
+  return getLineId(sp);
 };
 
 var getHashLine = function () {
@@ -119,13 +123,17 @@ var makeErrorLines = function () {
   for (j in csolveData.errors) {
     var loc = csolveData.errors[j].loc;
     var fln = [loc.file, loc.line];
-    csolveData.errorLines[fln] = true;
+    csolveData.errorLines[fln] = csolveData.errors[j].text;
   };
 };
 
 var isErrorLine = function (i) {
   return (i in csolveData.errorLines);
 };
+
+var getErrorText = function (line) {
+  return csolveData.errorLines[getLineId(line)];
+}
 
 /****************************************************************/
 /************ Dressing Up the Templates *************************/ 
@@ -184,6 +192,11 @@ var hilitError = function (line) {
   var fln = [fn, ln];
   if (isErrorLine(fln)) {
     $(line).addClass("errLine");
+    var errorId = fn + "_" + ln;
+    $(line).click (function () { $("#" + errorId).toggle (); });
+    $("<pre id='" + errorId + "' class='errorConstraint'>"
+        + getErrorText(line)
+        + "</pre>").insertAfter(line);
   };
 };
 

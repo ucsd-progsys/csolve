@@ -137,7 +137,7 @@ let d_srcLoc () e =
 let d_error () (l, s) =
   PP.dprintf "{ loc : %a, text : \"%s\" }"
     d_srcLoc l
-    ""
+    (Misc.replace_substring "\n" "<br />" s)
 
 let exprString e = 
   e |> CilMisc.pretty_to_string (d_opt d_expr) 
