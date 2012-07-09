@@ -123,10 +123,18 @@ let mk_fold_cnc al cl = RA.Gen (cl, al)
 let mk_fold_hf (hf, ls, _) unf = RA.HGen (hf, ls, unf) 
 
 let mk_fold appm al =
-  SLM.find al appm
-  |> begin function
+  match SLM.find al appm with
     | Cnc (cl, _) -> mk_fold_cnc cl al
-    | App (_, appl, unf) -> mk_fold_hf appl unf end
+    | App (_, appl, unf) -> mk_fold_hf appl unf
+
+let mk_unfold_cnc vn cl al = RA.Ins (vn, cl, al)
+
+let mk_unfold_hf al intrs = RA.HIns (al, intrs)
+
+let mk_unfold al appm =
+  match SLM.find al appm with
+    | Cnc (cl, vn) -> mk_unfold_cnc vn cl al 
+    | App (_, appl, unf) -> mk_unfold_hf al unf
 
 let generalize_cnc sto al cl =
   ([mk_fold_cnc al cl], CtIS.remove sto cl)
@@ -143,14 +151,14 @@ let generalize sto gst ctm me appm al =
   | App (cl, app, ins)  -> generalize_hf sto cl app ins env
   | Cnc (cl, _)         -> generalize_cnc sto al cl in
   (ann, sto, gst, me, SLM.remove al appm)
-
+ 
 let instantiate_cnc sto me appm v al =
   let cl   = always_get_cl me al in
   let cl   = Sl.copy_concrete al in
   let _    = set_cl me v cl in
   let sto' = CtIS.find sto al |> CtIS.add sto cl in
   let vn   = v.vname in
-  ([RA.Ins (vn, al, cl)], sto', SLM.add al (Cnc (cl, vn)) appm)
+  ([mk_unfold_cnc vn al cl], sto', SLM.add al (Cnc (cl, vn)) appm)
 
 let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app =
@@ -159,7 +167,7 @@ let instantiate_hf sto appm me env v al cl =
   let _, sto = Hf.ins al [al] ins SlSS.empty sto env in
   let _      = set_cl me v cl in
   let appm   = SLM.add al (App(cl, app, ins)) appm in
-  ([RA.HIns (cl, ins)], sto, appm)
+  ([mk_unfold_hf al ins], sto, appm)
 
 let instantiate_aux sto gst ctm me appm v al cl = 
   let hf_env = Hf.test_env in
