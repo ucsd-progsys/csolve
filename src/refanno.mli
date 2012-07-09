@@ -23,10 +23,10 @@
 
 (* This file is part of the liquidC Project.*)
 
-type tag
+(*type tag
 type tagm = tag Sloc.SlocMap.t
 type cncm = tagm Sloc.SlocMap.t
-type ctab 
+type ctab *)
 
 type annotation = 
   | Gen  of Sloc.t * Sloc.t             (* CLoc, ALoc *)
@@ -45,35 +45,36 @@ type annotation =
  * 3. gens for end of block placed on out-edges of block *) 
 type block_annotation = annotation list list
 
-val tag_dirty : tag -> bool
+(*val tag_dirty : tag -> bool
 val tag_eq : tag -> tag -> bool
-val d_conca: unit -> (cncm * cncm) array -> Pretty.doc 
+val d_conca: unit -> (cncm * cncm) array -> Pretty.doc *)
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
 val d_annotations: unit -> annotation list -> Pretty.doc
 val d_block_annotation: unit -> annotation list list -> Pretty.doc
-val d_ctab: unit -> ctab -> Pretty.doc 
+(*val d_ctab: unit -> ctab -> Pretty.doc*)
 
-val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
-val clocs_of_aloc  : cncm -> Sloc.t -> Sloc.t list
+(*val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
+val clocs_of_aloc  : cncm -> Sloc.t -> Sloc.t list*)
 val subs : Sloc.Subst.t -> block_annotation -> block_annotation
 
 (* input: cfg with n blocks of length l_i ... l_n
  * output: 1. array of block annotations of length l_i ... l_n
  *         2. map from edges (i,j) to (gen)-annots for that edge
- *         3. map from variable names to concrete locations *)
+ *         3. map from variable names to concrete locations 
 val annotate_cfg: Ssa.cfgInfo -> 
                   Ctypes.store ->
                   Sloc.t list -> 
                   Ctypes.ctemap -> 
                   block_annotation array -> 
-		  block_annotation array * (cncm * cncm) array * ctab
+		  block_annotation array * (cncm * cncm) array * ctab*)
 
-val dummy_annotate_cfg: Ssa.cfgInfo ->
+(*val dummy_annotate_cfg: Ssa.cfgInfo ->
                         Ctypes.store ->
                         Sloc.t list ->
                         Ctypes.ctemap ->
                         block_annotation array ->
       block_annotation array * (cncm * cncm) array * ctab
+      *)
 
 (*
    1. A : block * block -> annot list

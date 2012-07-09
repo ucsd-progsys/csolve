@@ -45,11 +45,10 @@ val stmt_of_block       : t -> int -> Cil.stmt
 val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.cause -> CilTag.t
 val phis_of_block       : t -> int -> Cil.varinfo list
 val guard_of_block      : t -> int -> int option -> Ast.pred
-val csto_of_block       : t -> int -> Ctypes.refstore
+(*val csto_of_block       : t -> int -> Ctypes.refstore*)
 val succs_of_block      : t -> int -> int list
-val csto_of_block       : t -> int -> Ctypes.refstore
 val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
-val annots_of_edge      : t -> int -> int -> Refanno.annotation list
+(*val annots_of_edge      : t -> int -> int -> Refanno.annotation list*)
 
 val add_cons            :
   FixConstraint.wf list *

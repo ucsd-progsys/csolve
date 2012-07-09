@@ -8,7 +8,7 @@
    of pairs of locations such that ci and ai must not alias,
    i.e., no pointer to an ai can alias ci.
 *)
-module Misc = FixMisc
+(*module Misc = FixMisc
 module S  = Sloc
 module P  = Pretty
 module M  = Misc
@@ -139,4 +139,4 @@ let non_aliased_locations cfg ctem conca annot =
     |> Misc.fixpoint (non_aliased_iter ctx)
     >> (fst <+> dump_not_aliased)
     |> fst
-    |> Array.map fst
+    |> Array.map fst*)

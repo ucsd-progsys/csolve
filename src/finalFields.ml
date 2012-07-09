@@ -50,7 +50,8 @@ module Intraproc (X: Context) = struct
   let locs_of_lval = function
     | (C.Mem e, _) ->
         let vi = CilMisc.referenced_var_of_exp e in
-        let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in
+        (*let cl = vi |> RA.cloc_of_varinfo X.shp.Sh.theta |> M.maybe in*)
+        let cl = assert false in
         let al = Sloc.canonical cl in
           begin match CT.ExpMap.find e X.shp.Sh.etypm with
             | Ctypes.Ref (_, i) -> Some (cl, al, i)
@@ -82,7 +83,8 @@ module Intraproc (X: Context) = struct
            find_stored_indices al i
         |> List.iter begin fun pl ->
              assert (not (LM.mem cl ffm) || not (IS.mem pl (LM.find cl ffm)));
-             assert (NA.NASet.mem (cl, al) na || (not (IS.mem pl (LM.find al ffm))))
+             (*assert (NA.NASet.mem (cl, al) na || (not (IS.mem pl (LM.find al
+              * ffm))))*)
            end
 
   let check_block_set ffm ffm' na i =
@@ -124,7 +126,7 @@ module Intraproc (X: Context) = struct
       let ffm, ffms = ffmsa.(i) in
       let _         = List.fold_left check_final_inclusion LM.empty ffms in
       let _         = List.iter (check_pred_inclusion ffmsa ffm) (X.cfg.Ssa.predecessors.(i)) in
-      let _         = check_block_sets b ffm ffms (X.shp.Sh.nasa.(i)) in
+(*      let _         = check_block_sets b ffm ffms (X.shp.Sh.nasa.(i)) in*)
       let _         = check_block_calls b ffm ffms (X.shp.Sh.anna.(i)) in
         ()
     end X.cfg.Ssa.blocks
@@ -143,10 +145,10 @@ module Intraproc (X: Context) = struct
     match locs_of_lval lval with
       | Some (cl, al, i) ->
           let ffm = kill_field_index cl al i ffm in
-            if NA.NASet.mem (cl, al) na then
+            (*if NA.NASet.mem (cl, al) na then
               ffm
             else
-              kill_field_index al al i ffm
+              kill_field_index al al i ffm*) assert false
       | None -> ffm
 
   let process_call na annots fname lvo ffm =
@@ -197,7 +199,8 @@ module Intraproc (X: Context) = struct
   let add_succ_generalized_clocs conc_out succ_conc_in ffm =
     LM.fold begin fun al _ ffm ->
          al
-      |> RA.clocs_of_aloc conc_out
+      (*|> RA.clocs_of_aloc conc_out*)
+      |> assert false
       |> List.fold_left begin fun ffm cl ->
            if LM.mem al succ_conc_in && LM.mem cl (LM.find al succ_conc_in) then
              ffm
@@ -207,19 +210,23 @@ module Intraproc (X: Context) = struct
     end conc_out ffm
 
   let merge_succs init_ffm ffmsa i =
-    let conc_out = snd X.shp.Sh.conca.(i) in
+    (*let conc_out = snd X.shp.Sh.conca.(i) in*)
+    let conc_out = assert false in
       match X.cfg.Ssa.successors.(i) with
         | []    -> add_succ_generalized_clocs conc_out LM.empty init_ffm
         | succs ->
              succs
           |> List.map (fun j -> ffmsa.(j) |> fst)
           |> M.list_reduce "merge_succs" meet_finals
-          |> List.fold_right (fun j ffm -> add_succ_generalized_clocs conc_out (fst X.shp.Sh.conca.(j)) ffm) succs
+          (*|> List.fold_right (fun j ffm -> add_succ_generalized_clocs conc_out
+           * (fst X.shp.Sh.conca.(j)) ffm) succs*)
+          |> assert false
 
   let process_block init_ffm ffmsa i =
     let ffm = merge_succs init_ffm ffmsa i in
       match X.cfg.Ssa.blocks.(i).Ssa.bstmt.C.skind with
-        | C.Instr is -> M.fold_right3 process_instr (X.shp.Sh.nasa.(i)) is X.shp.Sh.anna.(i) (ffm, [])
+        | C.Instr is -> (*M.fold_right3 process_instr (X.shp.Sh.nasa.(i)) is
+        X.shp.Sh.anna.(i) (ffm, [])*) assert false
         | _          -> (ffm, [])
 
   let fixed ffmsa ffmsa' =
@@ -262,7 +269,7 @@ module Intraproc (X: Context) = struct
 
   let final_fields () =
     let init_ffm = () |> init_abstract_finals |> init_concrete_finals X.shp.Sh.anna in
-         Array.make (Array.length X.shp.Sh.nasa) (init_ffm, [])
+         (*Array.make (Array.length X.shp.Sh.nasa) (init_ffm, [])*) assert false
       |> M.fixpoint (iter_finals init_ffm)
       >> sanity_check_finals
       |> fst
@@ -304,7 +311,7 @@ module Interproc = struct
   let set_nonfinal_fields shpm ffmm =
     SM.mapi begin fun fname shp ->
       {shp with
-         Sh.ffmsa = SM.find fname ffmm |> snd;
+         (*Sh.ffmsa = SM.find fname ffmm |> snd;*)
          Sh.store =
           CT.Store.fold_locs begin fun l ld sto ->
             let ffs = SM.find fname ffmm |> fst |> LM.find l in
@@ -355,11 +362,11 @@ let infer_final_fields tgr spec scis shpm =
   |> Interproc.final_fields spec scis
   >> check_finality_specs (Ctypes.I.Spec.funspec spec)
 
-let dummy_infer_final_fields tgr spec shpm =
-  SM.map (fun shp ->
+let dummy_infer_final_fields tgr spec shpm = assert false
+(*  SM.map (fun shp ->
     let nblocks = Array.length shp.Sh.anna in
     let ffs     = Interproc.shape_init_final_fields shp in
     let ffmsa   = Array.create nblocks (ffs, []) in
     let _       = Array.iteri begin fun i a ->
       ffmsa.(i) <- (ffs, Misc.list_make (List.length a) ffs) end shp.Sh.anna in
-    {shp with Sh.ffmsa = ffmsa}) shpm
+    {shp with Sh.ffmsa = ffmsa}) shpm*)

@@ -55,7 +55,7 @@ type wld = FI.cilenv * Ct.refstore * CilTag.t option
 type t_sh = {
   astore  : Ct.refstore;
   aeffs   : ES.t;
-  cstoa   : (Ct.refstore * Sloc.t list * Refanno.cncm) array; 
+  (*cstoa   : (Ct.refstore * Sloc.t list * Refanno.cncm) array; *)
   shp     : Shape.t;
 }
 
@@ -95,7 +95,8 @@ let strengthen_cloc = function
 
 let strengthen_refs theta v (vn, cr) =
   let ct  = Ct.ctype_of_refctype cr in
-  let clo = Refanno.cloc_of_varinfo theta v in
+  (*let clo = Refanno.cloc_of_varinfo theta v in*)
+  let clo = assert false in
   let ct' = strengthen_cloc (ct, clo) in
   let cr' = FI.t_ctype_refctype ct' cr in 
   (vn, cr')
@@ -128,7 +129,8 @@ let scalarenv_of_fdec gnv fdec =
 let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
              |> Ct.args_of_refcfun 
-             |> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals
+             (*|> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals*)
+             |> assert false
              |> List.map (Misc.app_fst FA.name_of_string)
   in
   let locs = fdec.slocals 
@@ -174,7 +176,7 @@ let make_undefm formalm phia =
   |> List.fold_left (fun um v -> SM.add v.vname () um) SM.empty
 
 let eq_tagcloc (cl,t) (cl',t') = 
-   Sloc.eq cl cl' && Refanno.tag_eq t t'
+   Sloc.eq cl cl' (*&& Refanno.tag_eq t t'*)
 
 (*
 let add_binding x env grd r me =
@@ -205,17 +207,17 @@ let partition_diff_bindings cfrom cto =
   LM.fold begin fun al ctabto (diff, same) ->
     let ctabfrom = try LM.find al cfrom with Not_found -> LM.empty in
       LM.fold begin fun cl t (diff, same) ->
-        try
+        (*try
           if Refanno.tag_eq t (LM.find cl ctabfrom) then
             (diff, (al, cl) :: same)
           else
             ((al, cl) :: diff, same)
         with Not_found ->
-          ((al, cl) :: diff, same)
+          ((al, cl) :: diff, same)*) assert false
       end ctabto (diff, same)
   end cto ([], [])
 
-let cstoa_of_annots fname gdoms conca astore =
+(*let cstoa_of_annots fname gdoms conca astore =
   let emp = Ct.RefCTypes.Store.empty in
   Array.mapi begin fun i (conc,conc') ->
     let idom, _ = gdoms.(i) in
@@ -231,6 +233,7 @@ let cstoa_of_annots fname gdoms conca astore =
                         |> FI.refstore_fresh fname 
       in (sto, inclocs, conc')
   end conca
+  *)
 
 let edge_asgnm_of_phia phia =
   Misc.array_to_index_list phia
@@ -271,7 +274,7 @@ let length_of_stmt stmt = match stmt.skind with
 let annotstmt_of_block me i = 
   match me.shapeo with 
   | Some {shp = shp} ->  
-      (shp.Sh.anna.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)
+      (*(shp.Sh.anna.(i), shp.Sh.ffmsa.(i), stmt_of_block me i)*) assert false
 (*  | None     -> 
       let stmt = stmt_of_block me i in
       ((stmt |> length_of_stmt |> Misc.clone []), [], stmt)
@@ -312,10 +315,10 @@ let guard_of_block me i jo =
       Ast.pAnd [p; p']
 
 let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
-let csto_of_block  = fun {shapeo = Some shp} i -> shp.cstoa.(i) |> fst3 
+(*let csto_of_block  = fun {shapeo = Some shp} i -> shp.cstoa.(i) |> fst3 *)
 let asgns_of_edge  = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -> []
 
-let annots_of_edge me i j =
+(*let annots_of_edge me i j =
   match me with 
   | {shapeo = Some shp} ->
       let iconc'         = shp.cstoa.(i) |> thd3 in
@@ -329,6 +332,7 @@ let annots_of_edge me i j =
         end tagm acc
       end iconc' []  
   (* | _ -> [] *)
+  *)
 
 (*
 let is_formal fdec v =
@@ -357,7 +361,8 @@ let ctype_of_varinfo me v =
   match me.shapeo with 
   | Some {shp = shp} ->
       let ct = ctype_of_varinfo shp.Sh.vtyps v in
-         strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)
+         (*strengthen_cloc (ct, Refanno.cloc_of_varinfo shp.Sh.theta v)*) assert
+         false
       (* >> Pretty.printf "ctype_of_varinfo v = %s, ct = %a \n" v.vname Ctypes.d_ctype ct *)
   | _ -> Ct.vtype_to_ctype v.Cil.vtype
 
@@ -416,7 +421,7 @@ let inenv_of_block me i =
       |> FI.ce_adds env0 
   end
 
-let extend_wld_with_clocs me j loc tag wld =
+(*let extend_wld_with_clocs me j loc tag wld =
   match me with
   | {shapeo = Some shp} ->
       let _, sto, _    = idom_of_block me j |> outwld_of_block me in 
@@ -431,6 +436,7 @@ let extend_wld_with_clocs me j loc tag wld =
           fst <| FI.extend_world csto cl cl false id loc tag wld
          end) csto
   | _ -> assertf "extend_wld_with_clocs: shapeo = None"
+  *)
 
 let fresh_abstract_effectset asto =
      asto
@@ -471,7 +477,8 @@ let inwld_of_block me = function
       let cause = CilTag.Raw "ConsInfra.inwld_of_block" in
       let tag   = tag_of_instr me j 0 loc cause in 
       (inenv_of_block me j, get_astore me, Some tag)
-      |> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)
+      (*|> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)*)
+      |> assert false
 
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0
@@ -504,7 +511,8 @@ let create_shapeo tgr gnv env gst sci = function
       let lastore = FI.refstore_fresh sci.ST.fdec.svar.vname shp.Sh.store in
       let astore  = Ct.RefCTypes.Store.upd gst lastore in
       let aeffs   = fresh_abstract_effectset astore in
-      let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms shp.Sh.conca astore in
+      (*let cstoa   = cstoa_of_annots sci.ST.fdec.svar.vname sci.ST.gdoms
+       * shp.Sh.conca astore in*)
       let cause   = CilTag.Raw "ConsInfra.create_shapeo" in
       let fn      = sci.ST.fdec.svar.vname in
       let tag     = CilTag.make_t tgr sci.ST.fdec.svar.vdecl fn 0 0 cause in
@@ -515,7 +523,8 @@ let create_shapeo tgr gnv env gst sci = function
       let cs1, ds1 = FI.make_cs_refstore env Ast.pTrue istore lastore false None tag loc in
       let cs2, ds2 = FI.make_cs_effectset env Ast.pTrue lastore istore aeffs irf.Ct.effects None tag loc in
       let cs3, ds3 = FI.make_cs_effectset env Ast.pTrue lastore lastore (ES.apply FI.t_false_refctype aeffs) aeffs None tag loc in
-      ws, cs1 ++ cs2 ++ cs3, ds1 ++ ds2 ++ ds3, Some { astore  = astore; cstoa = cstoa; shp = shp; aeffs = aeffs }
+      ws, cs1 ++ cs2 ++ cs3, ds1 ++ ds2 ++ ds3, Some { astore  = astore; (*cstoa
+      = cstoa;*) shp = shp; aeffs = aeffs }
 
 let create tgr gnv gst sci sho = 
   let formalm = formalm_of_fdec sci.ST.fdec in

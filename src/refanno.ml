@@ -170,7 +170,7 @@ let d_block_annotation_array =
     ~sep:(Pretty.text "\n")
     (fun i x -> Pretty.dprintf "block %i: @[%a@]" i d_block_annotation x) 
 
-(* API *)
+(*(* API *)
 let d_ctab () t = 
   let vcls = Misc.hashtbl_to_list t in
   Pretty.seq (Pretty.text "\n") 
@@ -504,6 +504,7 @@ let annotate_cfg cfg sto globalslocs ctm anna =
 (*>> check_sol cfg globalslocs ctm theta anna *)
   |> annots_of_sol cfg
   |> fun (annota, conca) -> (annota, conca, theta)
+  *)
 
 (* API *)
 let dummy_annotate_cfg cfg sto globalslocs ctm anna =
@@ -517,6 +518,7 @@ let dummy_annotate_cfg cfg sto globalslocs ctm anna =
     |  _         -> () end anna in
   (anna, Array.make nblocks (LM.empty, LM.empty), Hashtbl.create 1)
 
+  (*
 (* API *)
 let cloc_of_varinfo theta v =
   try
@@ -526,4 +528,4 @@ let cloc_of_varinfo theta v =
   with Not_found -> 
     (* let _ = Errormsg.log "cloc_of_varinfo: unknown %s" v.vname in *)
     None
-
+*)

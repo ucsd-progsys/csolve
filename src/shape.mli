@@ -6,7 +6,7 @@ type t =
    store   : Ctypes.store;                         (* store ctypes *)
    anna    : Refanno.block_annotation array;
    (* next three lines do not have long to live *)
-   conca   : (Refanno.cncm * Refanno.cncm) array;
+  (* conca   : (Refanno.cncm * Refanno.cncm) array;
    theta   : Refanno.ctab;
    nasa    : NotAliased.NASet.t list array;
-   ffmsa   : final_fields_annot array}
+   ffmsa   : final_fields_annot array*)}

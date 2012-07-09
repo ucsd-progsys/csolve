@@ -438,11 +438,7 @@ let annotate_cfg cfg shp =
     vtyps = shp.vtyps;
     etypm = shp.etypm;
     store = sto;
-    anna  = anna;
-    conca = conca;
-    theta = shp.theta;
-    nasa  = acp shp.nasa;
-    ffmsa = acp shp.ffmsa; }
+    anna  = anna; }
   in shp'
 
 let annotate_shpm scim shpm =

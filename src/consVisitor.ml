@@ -687,14 +687,15 @@ let wcons_of_block_effects me loc sto i =
 
 let wcons_of_block me loc (_, sto, _) i des =
   let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
-  let csto = if CF.has_shape me then CF.csto_of_block me i else RS.empty in
+(*  let csto = if CF.has_shape me then CF.csto_of_block me i else RS.empty in*)
   let tag  = CF.tag_of_instr me i 0 loc (T.Raw "wcons_of_block") in
   let phis = CF.phis_of_block me i in
   let env  = CF.inenv_of_block me i in
   let wenv = phis |> List.fold_left (weaken_undefined me true) env in
   let ws1  = phis |> List.map  (fun v -> FI.ce_find  (FA.name_of_varinfo v) env)
                   |> Misc.flap (fun cr -> FI.make_wfs wenv sto cr) in
-  let ws2  = FI.make_wfs_refstore wenv (RS.upd sto csto) csto in
+ (* let ws2  = FI.make_wfs_refstore wenv (RS.upd sto csto) csto in*)
+  let ws2  = assert false in
   let ws3  = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv sto cr) in
   let ws4  = wcons_of_block_effects me loc sto i in
   ws1 ++ ws2 ++ ws3 ++ ws4
@@ -793,12 +794,14 @@ let var_cons_of_edge me envi loci tagi grdij envj subs vjvis =
   end vjvis
 
 let gen_cons_of_edge me iwld' loci tagi grdij i j =
-  CF.annots_of_edge me i j
+  (*CF.annots_of_edge me i j*) assert false
   |> cons_of_annots me loci tagi grdij iwld' Sloc.SlocMap.empty ES.empty
   |> snd
 
 let join_cons_of_edge me (envi, isto', _) loci tagi grdij subs i j =
-  let rsto   = CF.csto_of_block me j |> FI.refstore_subs FI.t_subs_names subs  in 
+  (*let rsto   = CF.csto_of_block me j |> FI.refstore_subs FI.t_subs_names subs
+   * in *)
+  let rsto   = assert false in
   let lsto,_ = Ct.refstore_partition (fun cl -> RS.mem rsto cl) isto' in
   FI.make_cs_refstore envi grdij lsto rsto true None tagi loci
 
@@ -847,8 +850,6 @@ let log_of_sci sci sho =
     let _ = Pretty.printf "cons_of_sci: %s \n" sci.ST.fdec.Cil.svar.Cil.vname in
     match sho with None -> () | Some sh ->
       let _ = Pretty.printf "%a\n" Refanno.d_block_annotation_array sh.Sh.anna in
-      let _ = Pretty.printf "%a\n" Refanno.d_conca sh.Sh.conca in
-      let _ = Pretty.printf "%a" Refanno.d_ctab sh.Sh.theta in 
       let _ = Pretty.printf "ICstore = %a\n" Ct.I.Store.d_store_addrs sh.Sh.store in
       ()
 

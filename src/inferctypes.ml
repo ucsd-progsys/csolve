@@ -601,28 +601,30 @@ let infer_shape tgr fe ve gst spec scim vim fn =
   let _                     = check_out_store_complete whole_store sto in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 
-  let annot, conca, theta   = RA.dummy_annotate_cfg sci.ST.cfg sto (Store.domain gst) em bas in
-  let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in
-  let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em conca annot in
+(*  let annot, conca, theta   = RA.dummy_annotate_cfg sci.ST.cfg sto
+ *  (Store.domain gst) em bas in*)
+  (*let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot
+   * sub ve sto gst in*)
+(*  let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em
+ *  conca annot in*)
   {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
    Sh.etypm   = em;
    Sh.store   = sto;
-   Sh.anna    = annot;
-   Sh.conca   = conca;
+   Sh.anna    = Array.make 0 []; }
+(*   Sh.conca   = conca;
    Sh.theta   = theta;
    Sh.nasa    = nasa;
-   Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields *)}
+   Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields
+   *)}*)
 
 let d_shape ()
-  {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot; Sh.ffmsa = ffmsa} =
+  {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;} =
   P.dprintf
    "@[Locals:@!-------@!@!%a@!@!Store:@!--------@!@!%a@!@!===========@!Annotations:
-      @!--------@!@!%a@!@!===========
-      @!Final Fields@!--------@!@!%a@!@!@]"
+     @!--------@!@!%a@!@!===========@!@]"
       d_vartypes_long locals
       Store.d_store st      
       RA.d_block_annotation_array annot
-      FinalFields.d_final_fields ffmsa
 
 let d_funsig () (cf, gst) =
   P.dprintf "@[%a@!@!============@!Global
@@ -687,5 +689,5 @@ let infer_shapes cil tgr spec scim vim =
             |> SM.of_list in
      sm
   |> HRA.annotate_shpm scim
-  |> FinalFields.dummy_infer_final_fields tgr spec
+  (*|> FinalFields.dummy_infer_final_fields tgr spec*)
   >> (fun x -> SM.find "main" x |> P.printf "@[main: %a@]" d_shape)
