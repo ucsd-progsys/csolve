@@ -91,11 +91,28 @@ function getFieldOrFile ($entered_program, $field, $filename) {
   <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
   <script src="js/jquery.ba-hashchange.min.js"></script>
   <script src="js/csolve.js"></script>
+  <script>
+    function toggleVisible (id) {
+      var elem = document.getElementById (id);
+      if (elem.style.display == "block") {
+        elem.style.display = "none";
+      } else {
+        elem.style.display = "block";
+      }
+    }
+
+    function toggleValue (id, val1, val2) {
+      var elem = document.getElementById (id);
+      if (elem.value == val1) {
+        elem.value = val2;
+      } else {
+        elem.value = val1;
+      }
+    }
+  </script>
   <style type="text/css">
     .hidden {
-      visibility: hidden;
-      height: 0;
-      width: 0;
+      display: none;
     }
   </style>
 </head>
@@ -162,6 +179,12 @@ function getFieldOrFile ($entered_program, $field, $filename) {
 </p></form>
 
 <hr />
-<? echo $annothtml ?>
+<? echo $annothtml; ?>
+
+<hr />
+  <input id="logButton" type='button' value='Show Log' onClick='toggleVisible ("log"); toggleValue ("logButton", "Show Log", "Hide Log")' />
+  <div id="log" style="font-family:monospace; width: 60em; display: none;">
+    <? echo (nl2br ($out)); ?>
+  </div>
 </body>
 </html>
