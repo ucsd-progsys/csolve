@@ -117,7 +117,7 @@ var listExists = function (f, xs) {
 var makeErrorLines = function () {
   csolveData.errorLines = {};
   for (j in csolveData.errors) {
-    var loc = csolveData.errors[j];
+    var loc = csolveData.errors[j].loc;
     var fln = [loc.file, loc.line];
     csolveData.errorLines[fln] = true;
   };
