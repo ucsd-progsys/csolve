@@ -58,11 +58,15 @@ let mydebug = false
 (***************************** Misc. Helpers ********************************)
 (****************************************************************************)
 
+(* MK: i'm like 90% sure we can't reorder these things anymore, but we'll see *)
+(* why are they even being reordered in the first place? *)
 let group_annots xs = 
   List.fold_left begin fun (gs, is, ns) a -> 
     match a with 
     | Refanno.WGen _  
+    | Refanno.HGen _ 
     | Refanno.Gen _  -> (a::gs, is, ns)
+    | Refanno.HIns _ 
     | Refanno.Ins _  -> (gs, a::is, ns)
     | Refanno.HInst _
     | Refanno.New _  
