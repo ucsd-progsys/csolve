@@ -1,12 +1,11 @@
 <?
 $entered_program = 0;
-$demo = "demo_test01p";
 
 $category = array(
-  "test01p" 	=> "demo_test01p", 
+  "stringlist" 	=> "stringlist",
 );
 
-$category = str_replace(" ", " ", $category);
+$demo = "stringlist";
 
 function getWarns($logfile){
   $warns = "";
@@ -67,7 +66,9 @@ function getFieldOrFile ($entered_program, $field, $filename) {
     $log   = $tobj  . ".log";
     writeTextFile($tc,  'program');
     writeTextFile($thq, 'qualifiers');
-    $out = shell_exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1");
+    $status = 0;
+    $out    = array();
+    exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1", $out, $status);
     $annothtml = file_get_contents ($thtml);
     $entered_program = 1;
   }
@@ -107,8 +108,25 @@ function getFieldOrFile ($entered_program, $field, $filename) {
   <div id="title">CSolve Demo</div>
   <div id="subtitle">Liquid Types-Based C Program Verifier</div>
 
-<? if ($entered_program) { ?>
-  <? echo ($annothtml); ?>
+<? if ($entered_program) {
+  if ($status == 0) {
+?>
+    <div id="result">
+      <img src="safe.png" class="resultImg" />
+      Safe
+    </div>
+<?
+  } else {
+?>
+    <div id="result">
+      <img src="unsafe.png" class="resultImg" />
+      Unsafe
+    </div>
+<?
+  }
+
+  echo ($annothtml);
+?>
 
   <input id="logButton" type='button' value='Show Log' onClick='toggleVisible ("log"); toggleValue ("logButton", "Show Log", "Hide Log")' />
   <div id="log" style="font-family:monospace; width: 60em; display: none;">
@@ -153,14 +171,14 @@ to the <a href="readme.html">CSolve README</a>.</p>
 
 <h1>Predicate Templates</h1>
 
-<div id="qualifiers-editor" style="position: relative; width: 40em; height: 10em"><?
+<div id="qualifiers-editor" style="position: relative; width: 52em; height: 10em"><?
   echo (getFieldOrFile ($entered_program, 'qualifiers', $demo.".c.hquals"));
 ?></div>
 <textarea id='qualifiers' name='qualifiers' class="hidden"></textarea>
 
 <h1>C Program</h1>
 
-<div id="program-editor" style="position: relative; width: 40em; height: 30em"><?
+<div id="program-editor" style="position: relative; width: 52em; height: 30em"><?
   echo (getFieldOrFile ($entered_program, 'program', $demo.".c"));
 ?></div>
 <textarea id='program' name='program' class="hidden"></textarea>
