@@ -1,3 +1,8 @@
+// The following program illustrates a variety of functions for manipulating
+// Pascal-style strings and lists of such.
+//
+// All array accesses in this file are verified safe by CSolve.
+
 #include <stdlib.h>
 #include <csolve.h>
 

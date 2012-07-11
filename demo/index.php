@@ -2,10 +2,13 @@
 $entered_program = 0;
 
 $category = array(
+  "arraysum" 	=> "arraysum",
+  "csv" 	=> "csv",
   "stringlist" 	=> "stringlist",
+  "sumreduce" 	=> "sumreduce",
 );
 
-$demo = "stringlist";
+$demo = "csv";
 
 function getWarns($logfile){
   $warns = "";
@@ -169,19 +172,19 @@ to the <a href="readme.html">CSolve README</a>.</p>
       method='post'
       onSubmit='setTextAreaValue ("program", editor); setTextAreaValue ("qualifiers", qualEditor)'><p>
 
-<h1>Predicate Templates</h1>
-
-<div id="qualifiers-editor" style="position: relative; width: 52em; height: 10em"><?
-  echo (getFieldOrFile ($entered_program, 'qualifiers', $demo.".c.hquals"));
-?></div>
-<textarea id='qualifiers' name='qualifiers' class="hidden"></textarea>
-
 <h1>C Program</h1>
 
 <div id="program-editor" style="position: relative; width: 52em; height: 30em"><?
   echo (getFieldOrFile ($entered_program, 'program', $demo.".c"));
 ?></div>
 <textarea id='program' name='program' class="hidden"></textarea>
+
+<h1>Predicate Templates</h1>
+
+<div id="qualifiers-editor" style="position: relative; width: 52em; height: 10em"><?
+  echo (getFieldOrFile ($entered_program, 'qualifiers', $demo.".c.hquals"));
+?></div>
+<textarea id='qualifiers' name='qualifiers' class="hidden"></textarea>
 
 <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="ace/mode-c_cpp.js" type="text/javascript" charset="utf-8"></script>

@@ -1,0 +1,8 @@
+qualif LEN(v: ptr, ~a: int, ~b: int) : (BLOCK_END([v]) - BLOCK_BEGIN([v])) >= (~a + ~b)
+
+qualif WRITEEFF(v: ptr, ~a: int, ~b: int) : ~a + ~b <= v
+qualif WRITELEFT(v: ptr, ~a: ptr, ~b: int, ~c: int) : v [ < ; >= ] ~a + (~b + ~c)
+
+qualif MOD(v: int)    : (v mod 8) = @i
+qualif MOD(v: ptr)    : (EWRITE = 1) => && [((v - @a) mod 8) = @i; v < (@a + @stride)]
+qualif MOD(v: ptr)    : (EREAD = 1) => (v >= (@a + @stride))
