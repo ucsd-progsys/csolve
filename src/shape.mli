@@ -10,3 +10,9 @@ type t =
    theta   : Refanno.ctab;
    nasa    : NotAliased.NASet.t list array;
    ffmsa   : final_fields_annot array*)}
+
+val create : Ssa_transform.t ->
+             (Cil.varinfo * Ctypes.ctype) list ->
+             Ctypes.ctemap ->
+             Ctypes.store -> t
+             

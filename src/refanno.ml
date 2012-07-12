@@ -150,9 +150,14 @@ let d_annotation () = function
   | TInst i ->
       Pretty.dprintf "TInst (%a)" Ctypes.IndexTypes.TVarInst.d_inst i
   | HIns (l, lls) ->
-      Pretty.dprintf "HfunInstantiate(%a->...)" Sloc.d_sloc l
+         List.hd lls
+      |> List.hd
+      |> Pretty.dprintf "HfunInstantiate(%a->%a)" Sloc.d_sloc l Sloc.d_sloc
   | HGen (v, ls, lls) ->
-      Pretty.dprintf "HfunGeneralize(%s:%a->...)" v Sloc.d_sloc (List.hd ls) 
+         List.hd lls
+      |> List.hd
+      |> fun x -> Pretty.dprintf "HfunGeneralize(%s:%a->%a)"
+                  v Sloc.d_sloc x Sloc.d_sloc (List.hd ls)
   | _ -> assertf "d_annotation"
 
 let d_annotations () anns = 
@@ -504,7 +509,7 @@ let annotate_cfg cfg sto globalslocs ctm anna =
 (*>> check_sol cfg globalslocs ctm theta anna *)
   |> annots_of_sol cfg
   |> fun (annota, conca) -> (annota, conca, theta)
-  *)
+ 
 
 (* API *)
 let dummy_annotate_cfg cfg sto globalslocs ctm anna =
@@ -518,7 +523,7 @@ let dummy_annotate_cfg cfg sto globalslocs ctm anna =
     |  _         -> () end anna in
   (anna, Array.make nblocks (LM.empty, LM.empty), Hashtbl.create 1)
 
-  (*
+  
 (* API *)
 let cloc_of_varinfo theta v =
   try

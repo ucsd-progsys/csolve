@@ -607,10 +607,7 @@ let infer_shape tgr fe ve gst spec scim vim fn =
    * sub ve sto gst in*)
 (*  let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em
  *  conca annot in*)
-  {Sh.vtyps   = VM.to_list vtyps; (* CM.vm_to_list vtyps; *)
-   Sh.etypm   = em;
-   Sh.store   = sto;
-   Sh.anna    = Array.make 0 []; }
+    Sh.create sci (VM.to_list vtyps) em sto
 (*   Sh.conca   = conca;
    Sh.theta   = theta;
    Sh.nasa    = nasa;
@@ -691,3 +688,4 @@ let infer_shapes cil tgr spec scim vim =
   |> HRA.annotate_shpm scim
   (*|> FinalFields.dummy_infer_final_fields tgr spec*)
   >> (fun x -> SM.find "main" x |> P.printf "@[main: %a@]" d_shape)
+  >> (fun _ -> assertf "done")

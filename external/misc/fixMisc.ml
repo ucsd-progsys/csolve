@@ -591,6 +591,10 @@ let app_fst3   = fun f (a, b, c)    -> (f a, b, c)
 let app_snd3   = fun f (a, b, c)    -> (a, f b, c)
 
 let app_thd3   = fun f (a, b, c)    -> (a, b, f c)
+
+let app_fst5   = fun f (a, b, c, d, e) -> (f a, b, c, d, e)
+let app_snd5   = fun f (a, b, c, d, e) -> (a, f b, c, d, e)
+
 let pad_snd    = fun f x            -> (x, f x)
 let pad_fst    = fun f y            -> (f y, y)
 let tmap2      = fun (f, g) x       -> (f x, g x)

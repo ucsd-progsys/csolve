@@ -8,22 +8,19 @@ typedef struct list {
   struct list * START NNVALIDPTR n;
 };
 
-extern struct list * INTLIST START NNVALIDPTR magic() OKEXTERN;
-
-int main(int argc, char ** argv)
+int main(struct list * START INTLIST LOC(L) NNVALIDPTR l1,
+         struct list * START INTLIST LOC(L) NNVALIDPTR l2)
 {
-  test(magic()); 
+  if (l1 == NULL || l2 == NULL)
+    return 0;
+
+  while (l1 && l2)
+  {
+    l1 = l1 -> n;
+    l2 = l2 -> n;
+  }
 
   return 0;
-}
-
-void test(struct list * START INTLIST NNVALIDPTR l)
-{
-  if (l == NULL)
-    return;
-
-  while (l != NULL)
-    l = l -> n;
 }
 
 

@@ -5,26 +5,25 @@
 
 typedef struct list {
   int id;
-  struct list * VALIDPTR n;
+  struct list * START NNVALIDPTR n;
 };
+
+extern struct list * INTLIST START NNVALIDPTR magic() OKEXTERN;
 
 int main(int argc, char ** argv)
 {
-  test(); 
+  test(magic()); 
 
   return 0;
 }
 
-struct list * INTLIST test()
+void test(struct list * START INTLIST NNVALIDPTR l)
 {
-  if (len <= 0)
-    return NULL;
+  if (l == NULL)
+    return;
 
-  struct list * l;
-  struct list * root = l = malloc();
-  root -> next = malloc();
-
-  return root;
+  while (l != NULL)
+    l = l -> n;
 }
 
 

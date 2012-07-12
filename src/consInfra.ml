@@ -478,7 +478,6 @@ let inwld_of_block me = function
       let tag   = tag_of_instr me j 0 loc cause in 
       (inenv_of_block me j, get_astore me, Some tag)
       (*|> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)*)
-      |> assert false
 
 let is_reachable_block me i = 
   i = 0 || idom_of_block me i >= 0

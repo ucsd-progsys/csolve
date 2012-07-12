@@ -116,7 +116,9 @@ let is_unf appm al = try
 
 let is_unf_by appm al cl =
   is_unf appm al
-  |> function Some cl' -> Sl.eq cl cl' | None -> false
+  |> function
+     | Some cl' -> Sl.eq cl cl'
+     | None -> false
 
 let mk_fold_cnc al cl = RA.Gen (cl, al)
 
@@ -140,14 +142,15 @@ let generalize_cnc sto al cl =
   ([mk_fold_cnc al cl], CtIS.remove sto cl)
 
 let generalize_hf sto cl ((hf, ls, _) as app) ins env =
-  let _      = asserts (cl = List.hd ls) "generalize_hf" in
+  let _      = asserts (cl = (List.hd ins |> List.hd)) "generalize_hf" in
   let _, sto = Hf.gen app ins SlSS.empty sto env in
   ([mk_fold_hf app ins], sto)
 
 let generalize sto gst ctm me appm al =
   let _   = assert (SLM.mem al appm) in 
   let env = Hf.test_env in
-  let (ann, sto) = match SLM.find al appm with
+  let (ann, sto) =
+    match SLM.find al appm with
   | App (cl, app, ins)  -> generalize_hf sto cl app ins env
   | Cnc (cl, _)         -> generalize_cnc sto al cl in
   (ann, sto, gst, me, SLM.remove al appm)
@@ -178,13 +181,17 @@ let instantiate_aux sto gst ctm me appm v al cl =
   |> (fun (ann, sto, appm) -> (ann, sto, gst, me, appm))
 
 let instantiate sto gst ctm me appm v al cl =
-    if is_unf_by appm al cl then
-      ([], sto, gst, me, appm)
-    else if SLM.mem al appm then
-      let (anno, sto, gst, me, appm) = generalize sto gst ctm me appm al in
-        instantiate_aux sto gst ctm me appm v al cl
-    else
-      instantiate_aux sto gst ctm me appm v al cl
+  let _ = asserts (Sl.is_abstract al) "instantiate" in
+  let _ = asserts (Sl.is_concrete cl) "instantiate" in
+  let _ = P.printf "@[INST_STORE(%a): %a@]@!@!" Sl.d_sloc cl CtIS.d_store sto in
+  if is_unf_by appm al cl then
+    ([], sto, gst, me, appm)
+  else if SLM.mem al appm then
+    let (ann, sto,gst,me,appm) = generalize sto gst ctm me appm al in
+    let (ann',sto,gst,me,appm) = instantiate_aux sto gst ctm me appm v al cl in
+      (ann ++ ann', sto, gst, me, appm)
+  else
+    instantiate_aux sto gst ctm me appm v al cl
 
 let is_deref = function
   | Lval (Mem _, _) -> true
@@ -195,12 +202,14 @@ let ctm_sloc_of_expr ctm e =
     match CtI.ExpMap.find e ctm with
     | Ct.Ref (s, _) -> Some s
     | _             -> None
-  with Not_found -> Pretty.printf "Could not find %a\n\n" d_exp e; assert false
+  with Not_found ->
+    Pretty.printf "Could not find %a\n\n" d_exp e; assert false
 
 let ctm_ct_of_expr ctm e =
   try
     CtI.ExpMap.find e ctm
-  with Not_found -> Pretty.printf "Could not find %a\n\n" d_exp e; assert false
+  with Not_found ->
+    Pretty.printf "Could not find %a\n\n" d_exp e; assert false
 
 let ref_v_of_expr ctm e =
   let rec v_rec = function
@@ -380,31 +389,32 @@ let annotate_instr ans sto gst ctm me appm = function
 
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
-let fold_if_open appm res = function
+let fold_if_open (res, appm) = function
     | RA.Ins  (_, a, _)
     | RA.HIns (a, _) ->
         if SLM.mem a appm then 
-          mk_fold appm a :: res
+          mk_fold appm a :: res, SLM.remove a appm
         else
-          res
-    | _              -> res
+          res, appm
+    | _              -> res, appm
 
 let fold_all_open_locs ans appm =
      List.concat ans
   |> List.rev
-  |> List.fold_left (fold_if_open appm) []
+  |> List.fold_left fold_if_open ([], appm)
+  |> fst
   |> fun x -> M.append_to_last x ans
 
 let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
-  (annos ++ [annos'], sto, gst, me, appm)
+  (annos' :: annos, sto, gst, me, appm)
 
 let annotate_block anns sto gst ctm me is =
   let init = ([], sto, gst, me, SLM.empty) in
   List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans ins ->
     annotate_instr ans sto gst ctm me appm ins
     |> upd_wld wld end init anns is
-  |> fun (ans, _, _, _, appm) -> fold_all_open_locs ans appm
-  >> (fun ans -> asserts (List.length ans = List.length is) "annotate_block")
+  |> M.app_fst5 List.rev
+  |> (fun (ans, _, _, _, appm) -> fold_all_open_locs ans appm)
 
 let annot_iter cfg sto ctm me anna =
   let nblocks    = Array.length cfg.Ssa.blocks in
@@ -413,7 +423,6 @@ let annot_iter cfg sto ctm me anna =
     | Instr is ->
         annotate_block anna.(j) sto CtIS.empty ctm me is
         |> M.m2append anna.(j)
-        (*>> P.printf "%a" RA.d_block_annotation*)
         |> Array.set anna j
     | _        -> () in
   M.range 0 nblocks
@@ -447,6 +456,3 @@ let annotate_shpm scim shpm =
          SM.find fn scim
       |> (fun x -> annotate_cfg x.ST.cfg) in
     SM.add fn (anno shp) shpm end shpm SM.empty
-
-
- 

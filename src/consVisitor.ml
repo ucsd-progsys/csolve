@@ -695,7 +695,7 @@ let wcons_of_block me loc (_, sto, _) i des =
   let ws1  = phis |> List.map  (fun v -> FI.ce_find  (FA.name_of_varinfo v) env)
                   |> Misc.flap (fun cr -> FI.make_wfs wenv sto cr) in
  (* let ws2  = FI.make_wfs_refstore wenv (RS.upd sto csto) csto in*)
-  let ws2  = assert false in
+  let ws2  = FI.make_wfs_refstore wenv sto sto in
   let ws3  = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv sto cr) in
   let ws4  = wcons_of_block_effects me loc sto i in
   ws1 ++ ws2 ++ ws3 ++ ws4
