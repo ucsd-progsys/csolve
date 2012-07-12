@@ -307,7 +307,32 @@ class annotations = object (self)
   val mutable flocm = (SM.empty : (Cil.typ SLM.t) SM.t)
   val mutable fdecm = (SM.empty : Cil.fundec SM.t)
 
+  method private eq_var_of_reft = function
+    | (vv, _, [FixConstraint.Conc p]) ->
+      begin match Ast.Predicate.unwrap p with
+        | Ast.Atom (e1, Ast.Eq, e2) ->
+          begin match Ast.Expression.unwrap e1, Ast.Expression.unwrap e2 with
+            | Ast.Var v1, Ast.Var v2 when v1 = vv -> Some v2
+            | _                                   -> None
+          end
+        | _ -> None
+      end
+    | _ -> None
+
+  method private telescope_binds () =
+       vart
+    |> Misc.hashtbl_to_list
+    |> List.iter begin fun (v, ((rct, _) as vbind)) ->
+         match rct |> Ctypes.reft_of_refctype |> self#eq_var_of_reft with
+           | Some v' ->
+             if Hashtbl.mem vart v' then
+               Hashtbl.replace vart v (Hashtbl.find vart v')
+             else ()
+           | None -> ()
+       end
+
   method get_binds () : binding list = 
+    self#telescope_binds ();
     (   (List.map (fun (x,y) -> TFun (x, y))   (Misc.hashtbl_to_list funt))
      ++ (List.map (fun (x,y) -> TSto (x, y))   (Misc.hashtbl_to_list stot))
      ++ (List.map (fun (x,y) -> TVar (Ct.N x, y)) (Misc.hashtbl_to_list vart))
