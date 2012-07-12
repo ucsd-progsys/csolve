@@ -10,32 +10,6 @@ $category = array(
 
 $demo = "csv";
 
-function getWarns($logfile){
-  $warns = "";
-  $wflag  = 0;
-  $fh = fopen($logfile, 'r');
-  while (!feof($fh)){
-    $s = fgets($fh);
-    if (strpos($s,"exec:") !== false){
-      $wflag = 0;
-    }
-    if ($wflag == 1){
-      $warns = $warns . $s;
-    }
-    if (strpos($s,"Errors") !== false){
-      $wflag = 1;
-    }
-
-  }
-  fclose($fh);
-  if ($warns == ""){
-    $warns = "<h3>Program Safe</h3>";
-  } else {
-    $warns = "<h3>Warnings</h3> <pre> ".$warns."</pre>";
-  }
-  return $warns; 
-}
-
 function getRawTextFromField($fld){
   return stripslashes($_POST[$fld]);
 }
@@ -55,10 +29,6 @@ function getFieldOrFile ($entered_program, $field, $filename) {
   }
 }
 
-  if($_POST['chooseform'] == "1") {
-    $demo = $category[$_POST['choosedemo']]; 
-  }
-
   if($_POST['programform'] == "1") {
     $tb    = tempnam ("/tmp/csolve-demo", "csolve-demo-");
     $tc    = $tb    . ".c";
@@ -74,6 +44,10 @@ function getFieldOrFile ($entered_program, $field, $filename) {
     exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1", $out, $status);
     $annothtml = file_get_contents ($thtml);
     $entered_program = 1;
+  }
+
+  if($_POST['chooseform'] == "1" || $entered_program) {
+    $demo = $category[$_POST['demo']];
   }
 ?>
 
@@ -140,20 +114,19 @@ function getFieldOrFile ($entered_program, $field, $filename) {
 <h1>Pick a demo</h1>
 
 <form action='<? echo $_SERVER['PHP_SELF']; ?>' 
-      method='post'><p>
-
-<select name="choosedemo">
-<? foreach ($category as $key => $value){
+      method='post'>
+<select name="demo">
+<? foreach ($category as $key => $value) {
      if ($value == $demo) { 
-       echo '<OPTION selected = "yes" value='.$key.'> '.$key.''; 
+       echo '<option selected = "yes" value='.$key.'>'.$key.'</option>';
      } else{
-       echo '<OPTION value='.$key.'> '.$key.''; 
+       echo '<option value='.$key.'> '.$key.'</option>';
      }
   } 
 ?>   
+</select>
 <input name='chooseform' type='hidden' value='1'>
 <input type='submit' value='Choose'>
-</select>
 </form>
 
 <p>Each demo consists of a C program and the predicate templates
@@ -197,8 +170,9 @@ to the <a href="readme.html">CSolve README</a>.</p>
 
 <br />
 
-<input name='programform' type='hidden' value='1'>
-<input type='submit' value='CSolve'>
+<input name='demo' type='hidden' value='<? echo ($demo); ?>' />
+<input name='programform' type='hidden' value='1' />
+<input type='submit' value='CSolve' />
 </p></form>
 
 </body>
