@@ -36,7 +36,8 @@ configured, change into the src/ directory and run
 
   ./regrtest.py
 
-All tests should pass. (The regression tests may take some time to run;
+All tests should pass, though some warnings may be displayed.
+(The regression tests may take some time to run;
 if you have multiple cores, pass the flag "-t n" to run the tests in
 n separate threads.)
 
