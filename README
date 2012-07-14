@@ -4,7 +4,8 @@ CSolve
 Prerequisites
 -------------
 
-CSolve requires a recent OCaml compiler and the CamlIDL library.
+CSolve requires a recent OCaml compiler, the GNU multiprecision library,
+and the CamlIDL library.
 
 CSolve can only be compiled on Linux at the moment.
 
