@@ -688,4 +688,5 @@ let infer_shapes cil tgr spec scim vim =
   |> HRA.annotate_shpm scim
   (*|> FinalFields.dummy_infer_final_fields tgr spec*)
   >> (fun x -> SM.find "main" x |> P.printf "@[main: %a@]" d_shape)
+  >> (fun x -> SM.find "magic" x |> P.printf "@[magic: %a@]" d_shape)
   >> (fun _ -> assertf "done")

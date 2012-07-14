@@ -347,13 +347,8 @@ let gen_ann_if_new ctm gst me (sto, appm) = function
         (sto, appm), ann ++ [nan]
       else
         (sto, appm), [nan] 
-    else (* x is concrete *)
+    else 
         assertf "conc_ann_if_new"
-   (*     let cl = always_get_cl me y in
-        let (ann, sto, gst, me, appm) = 
-          instantiate sto gst ctm me appm v y cl in
-        let ann = RA.NewC(x, y, cl) |> M.chop_last ann in
-        ann, (sto, appm) *)
   | ann           -> (sto, appm), [ann]
 
 let annotate_instr ans sto gst ctm me appm = function 
