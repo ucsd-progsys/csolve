@@ -435,15 +435,10 @@ let annotate_cfg cfg shp =
   let me             = (Hashtbl.create 16, Hashtbl.create 16) in
   let _              = annot_iter cfg sto ctm me anna in
   let sto            = build_join_store_of_blocks sto anna in
-  let conca          = (* nil out cnca *)
-    M.map_pair nil_cnca_of_sto (sto, sto)
-    |> Array.make nblocks in 
-  let shp'           = {
-    vtyps = shp.vtyps;
+  { vtyps = shp.vtyps;
     etypm = shp.etypm;
     store = sto;
     anna  = anna; }
-  in shp'
 
 let annotate_shpm scim shpm =
   SM.fold begin fun fn shp shpm ->

@@ -45,16 +45,16 @@ type annotation =
  * 3. gens for end of block placed on out-edges of block *) 
 type block_annotation = annotation list list
 
-(*val tag_dirty : tag -> bool
-val tag_eq : tag -> tag -> bool
-val d_conca: unit -> (cncm * cncm) array -> Pretty.doc *)
+val mk_new   : Sloc.t * Sloc.t -> annotation
+val mk_tnew  : Ctypes.tvar * Ctypes.tvar -> annotation
+val maybe_mk_hinst : Ctypes.StoreSubst.t -> annotation option
+val maybe_mk_tvari : Ctypes.tvinst -> annotation option
+
+
+
 val d_block_annotation_array: unit -> block_annotation array -> Pretty.doc 
 val d_annotations: unit -> annotation list -> Pretty.doc
 val d_block_annotation: unit -> annotation list list -> Pretty.doc
-(*val d_ctab: unit -> ctab -> Pretty.doc*)
-
-(*val cloc_of_varinfo: ctab -> Cil.varinfo -> Sloc.t option (* CLoc *)
-val clocs_of_aloc  : cncm -> Sloc.t -> Sloc.t list*)
 val subs : Sloc.Subst.t -> block_annotation -> block_annotation
 
 (* input: cfg with n blocks of length l_i ... l_n

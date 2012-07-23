@@ -55,7 +55,10 @@ val ins : Sloc.t -> Sloc.t list -> intrs list ->
 val shape_in_env : string -> Sloc.t list -> env ->
                    Ctypes.store
                    
-val expand_cspec_stores  : Ctypes.cspec -> env -> hfspec * Ctypes.cspec
+val expand_cspec_stores  : Ctypes.cspec -> (string -> bool) -> env -> hfspec * Ctypes.cspec
 val contract_store       : Ctypes.store -> Ctypes.I.T.refinement Ctypes.hf_appl list
                                         -> env -> Ctypes.store    
-val hfs_of_fun_in_hfspec : hfspec -> string -> Ctypes.I.T.refinement Ctypes.hf_appl list
+val hfs_of_fun_in_hfspec : hfspec -> 
+                           Sloc.Subst.t ->
+                           string ->
+                           Ctypes.I.T.refinement Ctypes.hf_appl list

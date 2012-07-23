@@ -74,6 +74,8 @@ module Ops = struct
 
   let (<&&>) f g = fun x -> f x && g x
 
+  let (?:) xs x = function Some x -> xs ++ [x] | None -> xs
+
   let failure fmt = Printf.ksprintf failwith fmt
 
   let foreach xs f = List.map f xs
@@ -975,6 +977,10 @@ let rec maybe_chain x d = function
               | Some y -> y 
               | None -> maybe_chain x d fs)
   | []    -> d
+
+let maybe_append xs ys = List.fold_left begin fun xs ->
+  function Some y -> xs ++ [y] | None -> xs end xs ys
+
 
 let lines_of_file filename = 
   let lines = ref [] in

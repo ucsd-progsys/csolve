@@ -17,19 +17,21 @@ type t =
    nasa    : NotAliased.NASet.t list array;
    ffmsa   : final_fields_annot array*)}
 
-let create sci vtyps etypm sto =
+let create sci vtyps etypm sto bas =
   let cfg     = sci.Ssa_transform.cfg in
   let nblocks = Array.length cfg.Ssa.blocks in
-  let res     = {vtyps = vtyps;
-                 etypm = etypm;
-                 store = sto;
-                 anna  = Array.create nblocks [];} in
+  {  vtyps = vtyps;
+     etypm = etypm;
+     store = sto;
+     anna  = bas; }
+                   
+                   (*Array.create nblocks [];} in
   let _ = Array.iteri begin fun i _ ->
     match cfg.Ssa.blocks.(i).Ssa.bstmt.skind with
     | Instr is -> List.length is
                |> fun x -> res.anna.(i) <- M.list_make x []
     |  _       -> () end res.anna in
-  res
+  res*)
  
 
 

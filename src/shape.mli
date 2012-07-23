@@ -14,5 +14,7 @@ type t =
 val create : Ssa_transform.t ->
              (Cil.varinfo * Ctypes.ctype) list ->
              Ctypes.ctemap ->
-             Ctypes.store -> t
-             
+             Ctypes.store ->
+             Refanno.block_annotation array ->
+             t
+            

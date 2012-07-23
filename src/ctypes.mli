@@ -316,6 +316,7 @@ module type S = sig
     (* val mem           : t -> Sloc.t -> bool *)
     val ensure_sloc   : t -> Sloc.t -> t
     val ensure_var    : Svar.t -> t -> t
+    val ensure_skeleton: t -> t -> t
     val find          : t -> Sloc.t -> LDesc.t
     val find_or_empty : t -> Sloc.t -> LDesc.t
       
@@ -386,7 +387,8 @@ module type S = sig
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val map_stores : (T.store -> T.store) -> t -> t
+    val map_stores    : (T.store -> T.store) -> t -> t
+    val map_stores_fn : (string option  -> T.store -> T.store) -> t -> t
     val add_fun : bool -> string -> CFun.t * specType -> t -> t
     val add_var : bool -> string -> CType.t * specType -> t -> t
     val add_data_loc : Sloc.t -> LDesc.t * specType -> t -> t

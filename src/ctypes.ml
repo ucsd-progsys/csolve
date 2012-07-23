@@ -400,7 +400,7 @@ module VarInst (T : INST_ELT) : INST_TYPE with type e = T.t = struct
   let mem    = List.mem_assoc
   let lookup = List.assoc
     
-  let apply inst =  function
+  let apply inst = function
     | TVar t when mem t inst -> lookup t inst
     | ct -> ct
       
@@ -630,6 +630,7 @@ module SIGS (T : CTYPE_DEFS) = struct
       (* val mem           : t -> Sloc.t -> bool *)
     val ensure_sloc   : t -> Sloc.t -> t
     val ensure_var    : Sv.t -> t -> t
+    val ensure_skeleton: t -> t -> t
     val find          : t -> Sloc.t -> T.ldesc
     val find_or_empty : t -> Sloc.t -> T.ldesc
       (* val map           : (T.ctype -> T.ctype) -> t -> t *)
@@ -688,7 +689,8 @@ module SIGS (T : CTYPE_DEFS) = struct
     val empty   : t
 
     val map : ('a prectype -> 'b prectype) -> 'a prespec -> 'b prespec
-    val map_stores : (T.store -> T.store) -> t -> t
+    val map_stores    : (T.store -> T.store) -> t -> t
+    val map_stores_fn : (string option -> T.store -> T.store) -> t -> t
     val add_fun : bool -> string -> T.cfun * specType -> t -> t
     val add_var : bool -> string -> T.ctype * specType -> t -> t
     val add_data_loc : Sloc.t -> T.ldesc * specType -> t -> t
@@ -1153,11 +1155,35 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let find_or_empty sto l =
       try find sto l with Not_found -> LDesc.empty
 
+    let add_app (s, vs, hfs) hf = s, vs,
+      if not (List.mem hf hfs) then hf :: hfs else hfs
+
+    let rem_app (s, vs, hfs) hf l = s, vs,
+      List.filter begin function | (hfk, k :: _, _) ->
+                                    hfk != hf || not (Sloc.eq l k)
+                                 | _ -> true end hfs
+ 
     let ensure_sloc sto l =
       if hfuns sto |> hf_appls_bind l then
         sto
       else 
         find_or_empty sto l |> add sto l
+
+    let ensure_slocs sto1 sto2 =
+         concrete_part sto2
+      |> domain
+      |> List.fold_left ensure_sloc sto1
+
+    let ensure_fun sto1 hf =
+      add_app sto1 hf
+
+    let ensure_funs sto1 sto2 =
+         hfuns sto2
+      |> List.fold_left ensure_fun sto1
+
+    let ensure_skeleton sto1 sto2 =
+         ensure_slocs sto1 sto2
+      |> Misc.flip ensure_funs sto2
 
     let fold_fields f b (ds, _, _) =
       SLM.fold (fun l ld b -> LDesc.fold (fun b i pct -> f b l i pct) b ld) ds b
@@ -1293,14 +1319,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
        get two mappings in the heap? Deferred for now... *)
       (s, v::vs, hf)
 
-    let add_app (s, vs, hfs) hf = s, vs,
-      if not (List.mem hf hfs) then hf :: hfs else hfs
-
-    let rem_app (s, vs, hfs) hf l = s, vs,
-      List.filter begin function | (hfk, k :: _, _) ->
-                                    hfk != hf || not (Sloc.eq l k)
-                                 | _ -> true end hfs
-       
+      
       
     let filter_vars p sto = Misc.app_snd3 (List.filter p) sto
       
@@ -1872,6 +1891,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         fun fn cf fs -> Misc.StringMap.add fn (g cf) fs end
           cfs Misc.StringMap.empty in
       (cfs, ctv, (f gl), s)
+
+    let map_stores_fn f (cfs, ctv, gl, s) = 
+      let g fn = CFun.map_stores (f (Some (fn))) |> Misc.app_fst in
+      let cfs  = Misc.StringMap.fold begin
+        fun fn cf fs -> Misc.StringMap.add fn (g fn cf) fs end
+          cfs Misc.StringMap.empty in
+      (cfs, ctv, (f None gl), s)
+
   end
 
   (******************************************************************************)

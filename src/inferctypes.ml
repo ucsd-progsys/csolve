@@ -223,28 +223,23 @@ let check_poly_inclusion s1 s2 sub =
 
 let cond_add_annot cond a annots = if cond then a :: annots else annots
     
-let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
-  let loc                 = C.get_instrLoc i in
+let constrain_app tgr instr (fs, _) et cf tsub sub sto lvo args =
+  let loc                 = C.get_instrLoc instr in
   let cts, tsub, sub, sto = constrain_args tgr loc et fs tsub sub sto args in
-  let cts = cts |>: (I.CType.subs sub <.> TVarInst.apply tsub) in
-  let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
-  let cfi, isub, tinsti, tinst, hsub = 
-    CFun.instantiate srcinfo cf cts sto in
-  let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub 
-                   |> List.append (tinsti |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
-                   |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)
-                   |> cond_add_annot (tinst <> TVarInst.empty) (RA.TInst tinst)
-  in
-  let sto           = cfi.sto_out
-                   |> Store.domain
-                   |> List.fold_left Store.ensure_sloc sto in
-  let sto, sub      = Store.fold_fields begin fun (sto, sub) s i fld ->
-                        UStore.add_field sto sub s i fld
-                      end (sto, sub) cfi.sto_out in
-  let sto, sub, tsub = List.fold_left2 begin fun (sto, sub, tsub) (ea, cta) (_, ctf) ->
-    (* unify_and_check_subtype sto sub tsub (Ct.subs_store_var hsub isub sto cta) ctf *)
+  let cts                 = cts |>: (I.CType.subs sub <.> TVarInst.apply tsub) in
+  let srcinfo             = CM.srcinfo_of_instr instr (Some !C.currentLoc) in
+  let cfi, isub, tinsti, tinst, hsub = CFun.instantiate srcinfo cf cts sto in
+  let annot               = (isub |>: RA.mk_new)
+                         |> List.append (tinsti |>: RA.mk_tnew)
+                         |> M.flip M.maybe_append [RA.maybe_mk_hinst hsub]
+                         |> M.flip M.maybe_append [RA.maybe_mk_tvari tinst] in
+  let sto                 = Store.ensure_skeleton sto cfi.sto_out in
+  let sto, sub            = Store.fold_fields begin fun (sto, sub) s i fld ->
+                              UStore.add_field sto sub s i fld end (sto, sub) cfi.sto_out in
+  (* this shit be crazy *)
+  let sto, sub, tsub      = List.fold_left2 begin fun (sto, sub, tsub) (ea, cta) (_, ctf) ->
     unify_and_check_subtype tgr sto sub tsub ea (TVarInst.apply tsub cta) ctf
-  end (sto, sub, tsub) (List.combine args cts) cfi.args in
+      end (sto, sub, tsub) (List.combine args cts) cfi.args in
   (* Since at this point we're implicitly checking that cfi.sto is
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
@@ -292,7 +287,7 @@ let constrain_instr_aux tgr ((fs, _) as env) et (bas, tsub, sub, sto) i =
   let _ = C.currentLoc := loc in
   match i with
   | C.Set (lv, e, _) ->
-      let sub, sto = constrain_lval tgr loc et sub sto lv in
+      let sub, sto       = constrain_lval tgr loc et sub sto lv in
       let tsub, sub, sto = constrain_exp tgr loc et fs tsub sub sto e in
       let ct1      = et#ctype_of_lval loc lv in
       let ct2      = et#ctype_of_exp loc e in
@@ -305,7 +300,7 @@ let constrain_instr_aux tgr ((fs, _) as env) et (bas, tsub, sub, sto) i =
       let _, tsub, sub, sto = constrain_args tgr loc et fs tsub sub sto args in
         ([] :: bas, tsub, sub, sto)
   | C.Call (lvo, C.Lval lv, args, _) ->
-      let cf           = find_function loc et fs tsub sub sto lv in
+      let cf                 = find_function loc et fs tsub sub sto lv in
       let ba, tsub, sub, sto = constrain_app tgr i env et cf tsub sub sto lvo args in
         (ba :: bas, tsub, sub, sto)
   | i -> E.s <| C.bug "Unimplemented constrain_instr: %a@!@!" C.dn_instr i
@@ -349,7 +344,8 @@ let constrain_instr tgr glocs qlocs gqlocs env et annots i =
 
 let constrain_instrs tgr glocs qlocs gqlocs env et is tsub sub sto =
   let bas, tsub, sub, sto = List.fold_left (constrain_instr tgr glocs qlocs gqlocs env et) ([], tsub, sub, sto) is in
-    (List.rev ([] :: bas), tsub, sub, sto)
+    (*List.rev ([] :: bas), tsub, sub, sto*)
+    (bas, tsub, sub, sto)
 
 let constrain_stmt tgr glocs qlocs gqlocs ((fs, _) as env) et rtv s tsub sub sto =
   let loc = C.get_stmtLoc s.C.skind in
@@ -416,7 +412,7 @@ let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = c
   let tsub, sub, sto =
     M.array_fold_lefti begin fun i (tsub, sub, sto) b ->
       let ba, tsub, sub, sto = constrain_stmt tgr glocs qlocs gqlocs (fs, ve) et cf.ret b.Ssa.bstmt tsub sub sto in
-        Array.set bas i ba;
+        bas.(i) <- ba;
         (tsub, sub, sto) 
     end (tsub, sub, sto) blocks
   in
@@ -432,15 +428,6 @@ let failure_dump sub ve sto =
   let _ = P.printf "======@!" in
   let _ = P.printf "%a@!@!" Store.d_store (Store.subs sub sto) in
     C.error "Failed constrain_fun@!"
-
-(* RJ: NUKING FOR BACKTRACE 
-let constrain_fun fs cf ve sto sci =
-  try
-    constrain_fun fs cf ve sto sci
-  with
-    | UStore.UnifyFailure (sub, sto) -> E.s <| failure_dump sub ve sto
-    | _                              -> E.s <| failure_dump S.Subst.empty ve sto
-*)
 
 (******************************************************************************)
 (**************************** Local Shape Inference ***************************)
@@ -596,23 +583,18 @@ let infer_shape tgr fe ve gst spec scim vim fn =
   (* let _                     = check_sol cf ve gst em bas tsub sub sto whole_store in *)
   let minslocs              = cf.ret::List.map snd cf.args 
   |> Misc.map_partial Ct.sloc in
-  let sto, em, ve        = inst_all_tvars cf tsub sto em ve in
+  let sto, em, ve           = inst_all_tvars cf tsub sto em ve in
   let sto, em, bas, vtyps   = revert_to_spec_locs sub whole_store minslocs sto em bas ve in
   let _                     = check_out_store_complete whole_store sto in
+  let _                     = P.printf "unsubbed? %a@!" CStore.d_store sto in
+  let _                     = P.printf "sub is %a@!" Sloc.Subst.d_subst sub in
   let sto                   = List.fold_left Store.remove sto (Store.domain gst) in
   let vtyps                 = VM.filter (fun vi _ -> not vi.C.vglob) vtyps in 
-(*  let annot, conca, theta   = RA.dummy_annotate_cfg sci.ST.cfg sto
- *  (Store.domain gst) em bas in*)
-  (*let _                     = assert_no_physical_subtyping fe sci.ST.cfg annot
-   * sub ve sto gst in*)
+  (*let _                     =
+    assert_no_physical_subtyping fe sci.ST.cfg annot sub ve sto gst in *)
 (*  let nasa                  = NotAliased.non_aliased_locations sci.ST.cfg em
  *  conca annot in*)
-    Sh.create sci (VM.to_list vtyps) em sto
-(*   Sh.conca   = conca;
-   Sh.theta   = theta;
-   Sh.nasa    = nasa;
-   Sh.ffmsa   = Array.create 0 (SLM.empty, []); (* filled in by finalFields
-   *)}*)
+    (sub, Sh.create sci (VM.to_list vtyps) em sto bas)
 
 let d_shape ()
   {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;} =
@@ -664,12 +646,12 @@ let globalVarEnv spec cil =
   end VM.empty
 
 let contract_shp_stores hfs sh env =
-    {sh with Sh.store = Heapfun.contract_store sh.Sh.store hfs env}
+  {sh with Sh.store = Heapfun.contract_store sh.Sh.store hfs env}
 
 (* API *)
 let infer_shapes cil tgr spec scim vim =
   let hfenv        = Heapfun.test_env in
-  let hfspec, spec = Heapfun.expand_cspec_stores spec hfenv in
+  let hfspec, spec = Heapfun.expand_cspec_stores spec (fun x -> SM.mem x scim) hfenv in
   let ve     = globalVarEnv spec cil in
   let fe     = declared_funs cil 
             |>: (fun f -> (f, globalFunEntryEnv spec f))
@@ -680,13 +662,20 @@ let infer_shapes cil tgr spec scim vim =
   let sm     = SM.domain scim
             |> List.map begin fun fn ->
                 (fn, infer_shape tgr fe ve (CSpec.store spec) spec scim vim fn) end
-            |> List.map begin fun (fn, sh) ->
-                  Heapfun.hfs_of_fun_in_hfspec hfspec fn
-               |> fun x -> (fn, contract_shp_stores x sh hfenv) end
+            |> List.map begin fun (fn, (sub, sh)) ->
+                        Heapfun.hfs_of_fun_in_hfspec hfspec sub fn
+                     |> fun x -> (fn, contract_shp_stores x sh hfenv) end
             |> SM.of_list in
-     sm
-  |> HRA.annotate_shpm scim
+  HRA.annotate_shpm scim sm
   (*|> FinalFields.dummy_infer_final_fields tgr spec*)
-  >> (fun x -> SM.find "main" x |> P.printf "@[main: %a@]" d_shape)
-  >> (fun x -> SM.find "magic" x |> P.printf "@[magic: %a@]" d_shape)
+  >> begin fun _ ->    CSpec.funspec spec
+                    |> SM.find "magic"
+                    |> fst
+                    |> P.printf "@[magic: %a@]@!" CFun.d_cfun end
+  >> begin fun _ ->    CSpec.funspec spec
+                    |> SM.find "main"
+                    |> fst
+                    |> P.printf "@[mainx: %a@]@!" CFun.d_cfun end
+  >> begin fun x ->    SM.find "main" x
+                    |> P.printf "@[main: %a@]" d_shape end
   >> (fun _ -> assertf "done")

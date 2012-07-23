@@ -82,6 +82,22 @@ type soln = (cncm option * block_annotation) array
 
 module TagMPrinter = Pretty.MakeMapPrinter (Sloc.SlocMap)
 
+(* Constructor helpers *)
+
+let mk_new  (x,y)       = New  (x, y)
+let mk_tnew (x, y)      = TNew (x, y)
+let maybe_mk_hinst x    =
+  if (x = Ct.StoreSubst.empty) then
+    None
+  else
+    some (HInst x)
+
+let maybe_mk_tvari x =
+  if (x = Ct.IndexTypes.TVarInst.empty) then 
+    None
+  else
+    some (TInst x)
+
 (************************************************************************************)
 (****************** (DAG) Orderered Iterating Over CFGs *****************************)
 (************************************************************************************)

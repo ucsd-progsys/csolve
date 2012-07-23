@@ -172,7 +172,7 @@ let shape_in_env hf ls env =
   |> snd
 
 (* MK: this is wrong; TODO Misc.fixpoint this *)
-let expand_sto_shape sto env =
+let expand_sto_shape env sto =
      CtIS.hfuns sto 
   |> List.fold_left begin fun (aps, sto) ((hf, ls, _) as app) ->
       let sto' =
@@ -185,20 +185,22 @@ let contract_store sto hfs env =
        unfs_of_ident ls hf env
     |> (fun x -> fold_hf_on_sto app x sto env) end sto hfs
 
-let split_cspec_stores g cspec env =
-  CtISp.map_stores (fun x -> expand_sto_shape x env |> g) cspec
+let split_cspec_stores sel spl cspec =
+  CtISp.map_stores_fn begin fun n x ->
+    if sel n then x |> spl |> fst |> CtIS.sto_of_hfs else CtIS.empty end cspec,
+  CtISp.map_stores_fn begin fun n x ->
+    if sel n then x |> spl |> snd                    else x          end cspec
 
 (* MK: hfs are NOT order-invariant. they are a recording of expansions made
  * type is opaque to enforce this invariant *)
-let expand_cspec_stores cspec env =
-  let hfspec =
-    split_cspec_stores (fun x -> fst x |> CtIS.sto_of_hfs) cspec env in
-  let exspec =
-    split_cspec_stores snd cspec env in
-  hfspec, exspec
+let expand_cspec_stores cspec f env =
+  let g x _ = f x in
+    split_cspec_stores (fun x -> M.maybe_apply g x false) (expand_sto_shape env) cspec
 
-let hfs_of_fun_in_hfspec hfspec fn =
+let hfs_of_fun_in_hfspec hfspec sub fn =
      CtISp.find_cf hfspec fn
   |> fst
   |> CtICF.sto_in
+  |> CtIS.subs sub
+  >> P.printf "subbed: %a" CtIS.d_store
   |> CtIS.hfuns
