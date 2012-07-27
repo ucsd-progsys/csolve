@@ -228,6 +228,7 @@ let p_update me ks kqs =
   end (false, me.m) ks
   |> Misc.app_snd (fun m -> { me with m = m })  
 
+
 (* API *)
 let top s ks = 
   ks (* |> List.partition (fun k -> SM.mem k s.m)
@@ -235,82 +236,6 @@ let top s ks =
      |> fst *)
      |> Misc.flip (p_update s) []
      |> snd
-
-
-
-(************************************************************)
-(*********************** Profile/Stats **********************)
-(************************************************************)
-
-let print_m ppf s = 
-  SM.to_list s.m 
-  |> List.iter begin fun (k, ds) ->
-       ds >>  F.fprintf ppf "solution: %a := [%a] \n\n"  Sy.print k pprint_ds
-      (*  |>: fst
-          >>  F.fprintf ppf "//solution: %a := [%a] \n\n"  Sy.print k pprint_ps *)
-          |> ignore
-     end 
- 
-let print_qs ppf s = 
-  SM.range s.qm
-  >> (fun _ -> F.fprintf ppf "//QUALIFIERS \n\n")
-  |> F.fprintf ppf "%a" (Misc.pprint_many true "\n" Q.print)
-(*  |> List.iter (F.fprintf ppf "%a" Q.print) 
- *) |> ignore
-
-(* API *)
-let print ppf s = s >> print_m ppf >> print_qs ppf |> ignore
-
-     
-let botInt qs = if List.exists (Q.pred_of_t <+> P.is_contra) qs then 1 else 0
-
-(* API *)
-let print_stats ppf me =
-  let (sum, max, min, bot) =   
-    (SM.fold (fun _ qs x -> (+) x (List.length qs)) me.m 0,
-     SM.fold (fun _ qs x -> max x (List.length qs)) me.m min_int,
-     SM.fold (fun _ qs x -> min x (List.length qs)) me.m max_int,
-     SM.fold (fun _ qs x -> x + botInt qs) me.m 0) in
-  let n   = SM.length me.m in
-  let avg = (float_of_int sum) /. (float_of_int n) in
-  F.fprintf ppf "# Vars: (Total=%d, False=%d) Quals: (Total=%d, Avg=%f, Max=%d, Min=%d)\n" 
-    n bot sum avg max min;
-  F.fprintf ppf "#Iteration Profile = (si=%d tp=%d unsatLHS=%d emptyRHS=%d) \n"
-    !(me.stat_simple_refines) !(me.stat_tp_refines)
-    !(me.stat_unsatLHS) !(me.stat_emptyRHS);
-  F.fprintf ppf "#Queries: umatch=%d, match=%d, ask=%d, valid=%d\n" 
-    !(me.stat_umatches) !(me.stat_matches) !(me.stat_imp_queries)
-    !(me.stat_valid_queries);
-  F.fprintf ppf "%a" TP.print_stats me.tpc
-
-(* API *)
-let save fname s =
-  let oc  = open_out fname in
-  let ppf = F.formatter_of_out_channel oc in
-  F.fprintf ppf "@[%a@] \n" print s;
-  close_out oc
-
-let key_of_quals qs = 
-  qs |> List.map P.to_string 
-     |> List.sort compare
-     |> String.concat ","
-
-(* API *)
-let mkbind = id (* Misc.flatten <+> Misc.sort_and_compact *)
-
-(* API *)
-let dump s = 
-  s.m 
-  |> SM.to_list 
-  |> List.map (snd <+> List.map Q.pred_of_t)
-  |> Misc.groupby key_of_quals
-  |> List.map begin function 
-     | [] -> assertf "impossible" 
-     | (ps::_ as pss) -> Co.cprintf Co.ol_solve 
-                         "SolnCluster: preds %d = size %d \n"
-                         (List.length ps) (List.length pss)
-     end
-  |> ignore
 
 (***************************************************************)
 (************************** Refinement *************************)
@@ -441,28 +366,19 @@ let pred_of_bind q =
   then pred_of_bind_name q 
   else pred_of_bind_raw q 
 
-let min_read s k = 
-  if SM.mem k s.m then 
+(* API *)
+let min_binds s ds = Misc.rootsBy (def_leq s) ds
+let min_read s k   = SM.finds k s.m |> min_binds s |>: pred_of_bind
+let min_read s k   = if !Co.minquals then min_read s k else read s k
+let min_read s k   = BS.time "min_read" (min_read s) k
+
+  (* if SM.mem k s.m then 
     SM.find k s.m 
     |> Misc.rootsBy (def_leq s)
     |> List.map pred_of_bind
   else []
+  *)
 
-(*
-let min_read s k = 
-  if SM.mem k s.m then 
-    SM.find k s.m 
-    |> Misc.rootsBy (def_leq s)  
-    |> List.map fst 
-  else []
-*)
-
-let min_read s k =
-  if !Co.minquals then min_read s k else read s k
-
-(* API *)
-let min_read s k =
-  BS.time "min_read" (min_read s) k
 
 let close_env qs sm =
   qs |> Misc.flap   (Q.pred_of_t <+> P.support) 
@@ -736,5 +652,76 @@ let ctr_examples me cs ucs =
   let cx = Cx.create (read me) cs me.ctrace me.lifespan me.tpc in 
   List.map (Cx.explain cx) ucs
 
+
+(*******************************************************************************)
+(******************************** Profile/Stats ********************************)
+(*******************************************************************************)
+
+let print_m ppf s = 
+  SM.iter begin fun k ds ->
+    ds |> (<?>) (!Co.minquals) (min_binds s)
+       |> F.fprintf ppf "solution: %a := [%a] \n\n"  Sy.print k pprint_ds 
+  end s.m 
+ 
+let print_qs ppf s = 
+  SM.range s.qm
+  >> (fun _ -> F.fprintf ppf "//QUALIFIERS \n\n")
+  |> F.fprintf ppf "%a" (Misc.pprint_many true "\n" Q.print)
+(*  |> List.iter (F.fprintf ppf "%a" Q.print) 
+ *) |> ignore
+
+(* API *)
+let print ppf s = s >> print_m ppf >> print_qs ppf |> ignore
+
+     
+let botInt qs = if List.exists (Q.pred_of_t <+> P.is_contra) qs then 1 else 0
+
+(* API *)
+let print_stats ppf me =
+  let (sum, max, min, bot) =   
+    (SM.fold (fun _ qs x -> (+) x (List.length qs)) me.m 0,
+     SM.fold (fun _ qs x -> max x (List.length qs)) me.m min_int,
+     SM.fold (fun _ qs x -> min x (List.length qs)) me.m max_int,
+     SM.fold (fun _ qs x -> x + botInt qs) me.m 0) in
+  let n   = SM.length me.m in
+  let avg = (float_of_int sum) /. (float_of_int n) in
+  F.fprintf ppf "# Vars: (Total=%d, False=%d) Quals: (Total=%d, Avg=%f, Max=%d, Min=%d)\n" 
+    n bot sum avg max min;
+  F.fprintf ppf "#Iteration Profile = (si=%d tp=%d unsatLHS=%d emptyRHS=%d) \n"
+    !(me.stat_simple_refines) !(me.stat_tp_refines)
+    !(me.stat_unsatLHS) !(me.stat_emptyRHS);
+  F.fprintf ppf "#Queries: umatch=%d, match=%d, ask=%d, valid=%d\n" 
+    !(me.stat_umatches) !(me.stat_matches) !(me.stat_imp_queries)
+    !(me.stat_valid_queries);
+  F.fprintf ppf "%a" TP.print_stats me.tpc
+
+(* API *)
+let save fname s =
+  let oc  = open_out fname in
+  let ppf = F.formatter_of_out_channel oc in
+  F.fprintf ppf "@[%a@] \n" print s;
+  close_out oc
+
+let key_of_quals qs = 
+  qs |> List.map P.to_string 
+     |> List.sort compare
+     |> String.concat ","
+
+(* API *)
+let mkbind = id (* Misc.flatten <+> Misc.sort_and_compact *)
+
+(* API *)
+let dump s = 
+  s.m 
+  |> SM.to_list 
+  |> List.map (snd <+> List.map Q.pred_of_t)
+  |> Misc.groupby key_of_quals
+  |> List.map begin function 
+     | [] -> assertf "impossible" 
+     | (ps::_ as pss) -> Co.cprintf Co.ol_solve 
+                         "SolnCluster: preds %d = size %d \n"
+                         (List.length ps) (List.length pss)
+     end
+  |> ignore
 
 
