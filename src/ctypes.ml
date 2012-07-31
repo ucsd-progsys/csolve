@@ -1382,13 +1382,18 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
           | ((Ref _) as r), TVar t'  -> sto, sub, T.TVarInst.extend t' r tsub
           | ct1, ct2 -> fail sub sto <| C.error "Cannot unify (tvar-inst'd) %a and %a@!" CType.d_ctype ct1 CType.d_ctype ct2
               
-
       and unify_data_locations sto sub s1 s2 =
-        let ld1, ld2 =Misc.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
+        let hf1, hf2 = Misc.map_pair begin fun x ->
+                         hfuns sto |> hf_appl_binding_of x end (s1, s2)
+                    |> (function (Some hf, None) -> (Some hf, Some hf)
+                               | hfs             -> hfs)
+                    |> Misc.map_pair (fun x -> x |>> ((hf_appl_sub sub) <+> some)) in
+        let ld1, ld2 = Misc.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
         let sto      = remove sto s1 in
         let sto      = ld2 |> add sto s2 |> subs sub in
+        let sto      = match hf2 with Some hf -> add_app sto hf | _ -> sto in
         LDesc.fold (fun (sto, sub) i f -> add_field sto sub s2 i f) (sto, sub) ld1
-
+       
 
       and anyfy_location sto sub s =
         if s = S.sloc_of_any then
@@ -1402,8 +1407,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
       and unify_locations sto sub s1 s2 =
         if not (S.eq s1 s2) then
-          let sub = S.Subst.extend s1 s2 sub in
-          if mem sto s1 || mem sto s2 then
+          let sub  = S.Subst.extend s1 s2 sub in
+          let dsto = concrete_part sto in
+          if mem dsto s1 || mem dsto s2 then
             unify_data_locations sto sub s1 s2
           else (subs sub sto, sub)
         else (sto, sub)

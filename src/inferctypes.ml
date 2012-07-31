@@ -402,6 +402,7 @@ let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = c
                         let tsub = unify_tvars tsub (VM.find bv ve) fct in
                         UStore.unify_ctype_locs sto sub tsub (VM.find bv ve) fct
                       end (sto, S.Subst.empty, TVarInst.empty) cf.args fd.C.sformals in
+  let _ = P.printf "asdf: %a@!" Store.d_store sto in
   let tsub, sub, sto = constrain_phis tgr ve phis tsub sub sto in
   let et             = new exprTyper (ve,fs) in
   let blocks         = cfg.Ssa.blocks in
@@ -679,7 +680,7 @@ let infer_shapes cil tgr spec scim vim =
                  let hfs = Ctypes.hf_appls_sub sub hfs (* BRUTE FORCE *)
                         |> fun x -> List.fold_left begin fun h s ->
                              h ++ (h |> (Ctypes.hf_appls_sub s)) end x anns in
-                 let sh  = contract_shp_stores hfs sh hfenv in
+                 (*let sh  = contract_shp_stores hfs sh hfenv in*)
                  SM.add fn sh sm end SM.empty sm in
   let _ = sm >> begin fun _ ->  CSpec.funspec spec
                     |> SM.find "main"
