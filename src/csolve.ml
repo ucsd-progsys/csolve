@@ -285,6 +285,7 @@ let dump_annots cil qs tgr res =
   let cones = res.FI.ucones |>: (Ast.Cone.map (T.loc_of_tag tgr)) in 
   let binds = Annots.dump_bindings ()                             in
   let files = CM.source_files cil                                 in
+  let files = if !Co.web_demo then [List.hd files] else files     in
   (* 1. Dump Text Annots *)
   Annots.dump_annots (Some s);
   (* 2. Dump HTML Annots *)

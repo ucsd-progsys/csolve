@@ -458,7 +458,8 @@ let srcs_to_html files =
   let json   = json_file ()                                            in
   let html   = html_file ()                                            in
   let srcs   = String.concat " " files                                 in 
-  Printf.sprintf "%s -j %s -o %s %s" c2html json html srcs
+  let web    = if !Co.web_demo then "-w" else ""                       in
+  Printf.sprintf "%s -j %s -o %s %s %s" c2html json html web srcs
   >> (fun cmd -> print_now ("Generate HTML: "^cmd^"\n"))
   |> Sys.command
 
@@ -467,7 +468,7 @@ let dump_html files qs tgr s' cs' cones binds : unit =
   (* 1. Dump JSON Annots *)
   dump_annots files qs tgr s' cs' cones binds;
   (* 2. Render HTML *)
-  srcs_to_html [List.hd files]
+  srcs_to_html files
   (* 3. Wave Goodbye *)
   |> (function 0 -> Errormsg.log  "DONE: Generated Annotated HTML" 
              | e -> Errormsg.warn "WARNING: Failed To Generate Annotated Html %d" e)

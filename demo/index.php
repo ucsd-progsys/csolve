@@ -41,7 +41,7 @@ function getFieldOrFile ($entered_program, $field, $filename) {
     writeTextFile($thq, 'qualifiers');
     $status = 0;
     $out    = array();
-    exec("../src/csolve -c ".$tc." -o ".$tobj." 2>&1", $out, $status);
+    exec("../src/csolve -c --web-demo ".$tc." -o ".$tobj." 2>&1", $out, $status);
     $annothtml = file_get_contents ($thtml);
     $entered_program = 1;
   }
