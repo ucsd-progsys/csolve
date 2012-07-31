@@ -18,3 +18,4 @@ val create : Ssa_transform.t ->
              Refanno.block_annotation array ->
              t
             
+val anns_of_shp : t -> Refanno.annotation list

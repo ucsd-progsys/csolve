@@ -177,13 +177,18 @@ let instantiate_aux sto gst ctm me appm v al cl =
   begin if CtIS.hfuns sto |> List.exists (Ct.hf_appl_binds al) then
     instantiate_hf sto appm me hf_env v al cl
   else
+     let _ = if not (CtIS.mem sto al) then P.printf "%a in %a@!" Sl.d_sloc al
+                CtIS.d_store sto |> ignore in
+     let _ = asserts (CtIS.concrete_part sto
+                   |> M.flip CtIS.mem al) "instantiate_aux" in
      instantiate_cnc sto me appm v al end
   |> (fun (ann, sto, appm) -> (ann, sto, gst, me, appm))
 
 let instantiate sto gst ctm me appm v al cl =
   let _ = asserts (Sl.is_abstract al) "instantiate" in
   let _ = asserts (Sl.is_concrete cl) "instantiate" in
-  let _ = P.printf "@[INST_STORE(%a): %a@]@!@!" Sl.d_sloc cl CtIS.d_store sto in
+  (*let _ = P.printf "@[INST_STORE(%a): %a@]@!@!" Sl.d_sloc cl CtIS.d_store sto
+   * in*)
   if is_unf_by appm al cl then
     ([], sto, gst, me, appm)
   else if SLM.mem al appm then

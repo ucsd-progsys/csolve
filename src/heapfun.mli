@@ -32,8 +32,6 @@ type ind_def = Ctypes.I.T.refinement def
 
 type env  = var_def FixMisc.StringMap.t
 
-type hfspec
-
 val flocs_of : 'a def -> Sloc.t list
 val frefs_of : 'a def -> 'a list
 val unfs_of  : 'a def -> intrs list
@@ -55,10 +53,8 @@ val ins : Sloc.t -> Sloc.t list -> intrs list ->
 val shape_in_env : string -> Sloc.t list -> env ->
                    Ctypes.store
                    
-val expand_cspec_stores  : Ctypes.cspec -> (string -> bool) -> env -> hfspec * Ctypes.cspec
-val contract_store       : Ctypes.store -> Ctypes.I.T.refinement Ctypes.hf_appl list
+val expand_cspec_stores  : Ctypes.cspec -> env ->
+                           Ctypes.cspec * Ctypes.ind_hf_appl list
+
+val contract_store       : Ctypes.store -> Ctypes.ind_hf_appl list
                                         -> env -> Ctypes.store    
-val hfs_of_fun_in_hfspec : hfspec -> 
-                           Sloc.Subst.t ->
-                           string ->
-                           Ctypes.I.T.refinement Ctypes.hf_appl list

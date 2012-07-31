@@ -306,11 +306,11 @@ let hf_appl_binding_of l hfs =
 let hf_appl_arg_of l =
   List.partition (fun (_, ls, _) -> List.mem l ls)
 
-let hf_appl_subs  subs (hf, ls, rs) =
-  hf, List.map (Sloc.Subst.apply subs) ls, rs
+let hf_appl_sub sub (hf, ls, rs) =
+  hf, List.map (Sloc.Subst.apply sub) ls, rs
 
-let hf_appls_subs subs hfs =
-  List.map (hf_appl_subs subs) hfs 
+let hf_appls_sub sub hfs =
+  List.map (hf_appl_sub sub) hfs 
 
 let hf_appl_fakemap f (hf, ls, rs) =
   let rs = List.map (fun r -> f (Int (0, r))) rs  
@@ -1217,7 +1217,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       SLM.fold (fun l d m -> SLM.add (S.Subst.apply subs l) d m) m SLM.empty
 
     let subs subs (ds, vs, hfs) =
-      (SLM.map (LDesc.subs subs) ds |> subs_addrs_ds subs, vs, hf_appls_subs subs hfs)
+      (SLM.map (LDesc.subs subs) ds |> subs_addrs_ds subs, vs, hf_appls_sub subs hfs)
         
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)

@@ -135,9 +135,9 @@ let annotation_subs (sub: S.Subst.t) (a: annotation): annotation =
       | Ins  (v, s1, s2)  -> Ins  (v, app s1, app s2)
       | New  (s1, s2)     -> New  (app s1, app s2)
       | NewC (s1, s2, s3) -> NewC (app s1, app s2, app s3)
-      | HInst s -> HInst (Ctypes.StoreSubst.subs sub s)
-      | TInst inst -> TInst (inst |>: (M.app_snd (Ctypes.I.CType.subs sub)))
-      | TNew  (f,t) -> TNew (f,t)
+      | HInst s           -> HInst (Ctypes.StoreSubst.subs sub s)
+      | TInst inst        -> TInst (inst |>: (M.app_snd (Ctypes.I.CType.subs sub)))
+      | TNew  (f,t)       -> TNew (f,t)
       | _ -> a
 
 (* API *)

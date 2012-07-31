@@ -52,6 +52,8 @@ module Ops = struct
 
   let (++)  = List.rev_append
 
+  let (|>:++) xs f = (List.map f xs) ++ xs
+
   let (+++) = fun (x1s, y1s) (x2s, y2s) -> (x1s ++ x2s, y1s ++ y2s)
 
   let id = fun x -> x
@@ -1003,6 +1005,11 @@ let map_lines_of_file infile outfile f =
   with End_of_file -> 
     (close_in ic; close_out oc)
 
+let map_and_accum mapper f init accum x =
+  let (acc, reg) = let r = ref init in
+    (fun x -> r := accum !r x), (fun () -> !r) in
+  mapper (f acc) x, reg ()
+
 let maybe_cons m xs = match m with
   | None -> xs
   | Some x -> x :: xs
@@ -1075,7 +1082,6 @@ let rec map4 f ws xs ys zs = match ws, xs, ys, zs with
   | [], [], [], []                     -> []
   | w :: ws, x :: xs, y :: ys, z :: zs -> f w x y z :: map4 f ws xs ys zs
   | _                                  -> asserti false "map4"; assert false
-
 
 let rec perms es =
   match es with

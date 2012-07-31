@@ -66,8 +66,6 @@ type ind_def  = CtI.T.refinement def
 module HfMap = M.StringMap
 type   env   = var_def HfMap.t
 
-type hfspec  = CtISp.t
-
 let flocs_of def = def.loc_params
 let frefs_of def = def.ref_params
 let unfs_of  def = def.unfolds
@@ -135,10 +133,10 @@ let apply_hf_in_env ((hf, _, _) as app) ins env =
  * ldesc. *)
 let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
   let bound_locs     = List.hd ls :: List.flatten ins in
-  let bound_by_exp x = List.mem x bound_locs in
-  let (exp, sto)     = CtIS.partition bound_by_exp sto in
-  let desired_exp    = apply_hf_in_env app ins env |> snd in
-  (*let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in*)
+  let bound_by_exp   = fun x -> List.mem x bound_locs in
+  let (sto, exp)     = CtIS.partition bound_by_exp sto in
+  (*let desired_exp    = apply_hf_in_env app ins env |> snd in
+  let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in*)
   (* MK: 1) there should be a Store.eq,
    *     2) this should be heap subtyping *)
      sto
@@ -185,22 +183,9 @@ let contract_store sto hfs env =
        unfs_of_ident ls hf env
     |> (fun x -> fold_hf_on_sto app x sto env) end sto hfs
 
-let split_cspec_stores sel spl cspec =
-  CtISp.map_stores_fn begin fun n x ->
-    if sel n then x |> spl |> fst |> CtIS.sto_of_hfs else CtIS.empty end cspec,
-  CtISp.map_stores_fn begin fun n x ->
-    if sel n then x |> spl |> snd                    else x          end cspec
-
-(* MK: hfs are NOT order-invariant. they are a recording of expansions made
- * type is opaque to enforce this invariant *)
-let expand_cspec_stores cspec f env =
-  let g x _ = f x in
-    split_cspec_stores (fun x -> M.maybe_apply g x false) (expand_sto_shape env) cspec
-
-let hfs_of_fun_in_hfspec hfspec sub fn =
-     CtISp.find_cf hfspec fn
-  |> fst
-  |> CtICF.sto_in
-  |> CtIS.subs sub
-  >> P.printf "subbed: %a" CtIS.d_store
-  |> CtIS.hfuns
+let expand_cspec_stores cspec env =
+     M.map_and_accum CtISp.map_stores begin fun acc sto ->
+          expand_sto_shape env sto
+       |> M.app_fst acc
+       |> snd end [] (++) cspec
+  |> M.app_snd M.sort_and_compact

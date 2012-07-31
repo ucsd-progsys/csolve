@@ -25,13 +25,6 @@ let create sci vtyps etypm sto bas =
      store = sto;
      anna  = bas; }
                    
-                   (*Array.create nblocks [];} in
-  let _ = Array.iteri begin fun i _ ->
-    match cfg.Ssa.blocks.(i).Ssa.bstmt.skind with
-    | Instr is -> List.length is
-               |> fun x -> res.anna.(i) <- M.list_make x []
-    |  _       -> () end res.anna in
-  res*)
- 
-
-
+let anns_of_shp t = Array.to_list t.anna
+                 |> List.concat
+                 |> List.concat
