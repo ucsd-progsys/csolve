@@ -2,13 +2,14 @@
 $entered_program = 0;
 
 $category = array(
-  "arraysum" 	=> "arraysum",
-  "csv" 	=> "csv",
+  "arraysum"    => "arraysum",
+  "csv"         => "csv",
+  "mergesort"   => "mergesort",
   "stringlist" 	=> "stringlist",
-  "sumreduce" 	=> "sumreduce",
+  "sumreduce"   => "sumreduce",
 );
 
-$demo = "csv";
+$demo = "stringlist";
 
 function getRawTextFromField($fld){
   return stripslashes($_POST[$fld]);
@@ -41,7 +42,7 @@ function getFieldOrFile ($entered_program, $field, $filename) {
     writeTextFile($thq, 'qualifiers');
     $status = 0;
     $out    = array();
-    exec("../src/csolve -c --web-demo ".$tc." -o ".$tobj." 2>&1", $out, $status);
+    exec("../src/csolve --web-demo -c ".$tc." -o ".$tobj." 2>&1", $out, $status);
     $annothtml = file_get_contents ($thtml);
     $entered_program = 1;
   }

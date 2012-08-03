@@ -21,7 +21,16 @@ h5 { font-size: 110%; }
   margin-left  : 0;
   padding-left : 2em;
   border-left  : 1em solid #ccc;
-};
+}
+
+#result {
+  font-weight: bold;
+  font-size: 175%;
+}
+
+.resultImg {
+  height: 1.75ex;
+}
 
 /*********** From JSFIDDLE normalize.css *******************/
 

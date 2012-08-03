@@ -18,8 +18,7 @@ void initialize(int * ARRAY a, int len) {
   endfor
 }
 
-int reduce(int * ARRAY a, int len, int seqLen)
-{
+int reduce(int * ARRAY a, int len, int seqLen) {
   int i = 0;
 
   if (len == 0) return 0;
@@ -30,8 +29,8 @@ int reduce(int * ARRAY a, int len, int seqLen)
     int tmp1, tmp2, h = len/2;
 
     cobegin
-      tmp1 = reduce(a, h, seqLen);
-      tmp2 = reduce(a + h, len - h, seqLen);
+      rtn(tmp1 = reduce(a, h, seqLen));
+      rtn(tmp2 = reduce(a + h, len - h, seqLen));
     coend
 
     result = tmp1 + tmp2;
