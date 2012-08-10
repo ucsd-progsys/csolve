@@ -41,6 +41,7 @@ module SM  = M.StringMap
 module FI  = FixInterface
 module Sh  = Shape
 module FF  = FinalFields
+module Hf  = Heapfun
 
 open Misc.Ops
 open Ctypes
@@ -242,7 +243,6 @@ let constrain_app tgr instr (fs, _) et cf tsub sub sto lvo args =
   (* Since at this point we're implicitly checking that cfi.sto is
      contained in sto, check that free variables in cfi.sto are
      contained in sto *)
-  let _ = P.printf "skel: %a@!" CStore.d_store sto in
   let _ = check_poly_inclusion cfi.sto_out sto sub in
     match lvo with
       | None    -> (annot, tsub, sub, sto)
@@ -402,7 +402,6 @@ let constrain_fun tgr gst fs cf ve sto {ST.fdec = fd; ST.phis = phis; ST.cfg = c
                         let tsub = unify_tvars tsub (VM.find bv ve) fct in
                         UStore.unify_ctype_locs sto sub tsub (VM.find bv ve) fct
                       end (sto, S.Subst.empty, TVarInst.empty) cf.args fd.C.sformals in
-  let _ = P.printf "asdf: %a@!" Store.d_store sto in
   let tsub, sub, sto = constrain_phis tgr ve phis tsub sub sto in
   let et             = new exprTyper (ve,fs) in
   let blocks         = cfg.Ssa.blocks in
@@ -568,10 +567,9 @@ let tvar_q_error () (t1, t2) =
   C.error "Quantified variables %a and %a get unified in function body"
     d_tvar t1 d_tvar t2
 
-let infer_shape tgr fe ve gst spec scim vim fn =
+let infer_shape tgr fe ve gst spec vim fn sci =
   let cf                    = CSpec.find_cf spec fn |> fst         in
   let vm                    = SM.find fn vim                       in
-  let sci                   = SM.find fn scim                      in
   let vm                    = replace_formal_refs cf vm            in
   let ve                    = fresh_local_slocs <| VM.extend vm ve in 
   (* let ve                    = vm |> CM.vm_union ve |> fresh_local_slocs in *)
@@ -595,6 +593,43 @@ let infer_shape tgr fe ve gst spec scim vim fn =
  *  conca annot in*)
     (sub, Sh.create sci (VM.to_list vtyps) em sto bas)
 
+let subst_of_ann = function
+  | RA.New (x, y) -> Some (x, y)
+  | RA.NewC (x, y, _) -> Some (x, y)
+  | _ -> None
+
+let hfs_instr env cfm sub ann = function
+  | C.Call (_, C.Lval ((C.Var fv), C.NoOffset), _,_) ->
+      let ann = ann |>: subst_of_ann |> Misc.maybe_list in
+         SM.find fv.C.vname cfm
+      |> fun cf -> cf.Ctypes.sto_out
+      |> Hf.expand_sto_shape env
+      |> fst
+      |>++ Ctypes.hf_appls_sub sub
+      |>++ Ctypes.hf_appls_sub ann
+  | _ -> []
+
+let hfs_block env cfm (sub,ann) j block =
+  match block.Ssa.bstmt.C.skind with
+  | C.Instr is -> Misc.map2 (hfs_instr env cfm sub) ann.(j) is |> List.flatten
+  | _ -> []
+
+let hfs_cfg cfg cfm ((sub,ann) as sann) isto env =
+  let blocks          = cfg.Ssa.blocks in
+  let hfs_of_isto     = Hf.expand_sto_shape env isto
+                     |> fst
+                     |>++ Ctypes.hf_appls_sub sub in
+       Array.mapi (hfs_block env cfm sann) blocks 
+    |> (fun x -> hfs_of_isto :: Array.to_list x)
+    |> List.concat
+    |> Misc.sort_and_compact
+
+let infer_hfs sannm cfm env fn sci =
+  let cfg     = sci.Ssa_transform.cfg in
+  let cf      = SM.find fn cfm in
+  let sann = SM.find fn sannm in
+    hfs_cfg cfg cfm sann cf.sto_in env
+
 let d_shape ()
   {Sh.vtyps = locals; Sh.store = st; Sh.anna = annot;} =
   P.dprintf
@@ -617,13 +652,6 @@ let declared_funs cil =
     | _                                                   -> fs
   end []
 
-let _DEBUG_ADD vi ct ve = 
-  let _   = _DEBUG_print_ve "DEBUG ADD: BEFORE" ve in
-  let _   = P.printf "DEBUG ADD: bind %s := %a \n" vi.Cil.vname Ct.d_ctype ct in
-  let ve' = VM.add vi ct ve in
-  let _   = _DEBUG_print_ve "DEBUG ADD: AFTER" ve' in
-  ve'
-
 let globalVarSpec spec v loc =
   try  
     CSpec.varspec spec |> SM.find v.C.vname |> fst
@@ -636,60 +664,49 @@ let globalFunEntryEnv spec v =
   with Not_found ->
     halt <| C.errorLoc v.C.vdecl "Could not find spec for function %a\n" CM.d_var v
 
-let globalVarEnv spec cil = 
+let globalVarEnv cil spec = 
   C.foldGlobals cil begin fun ve -> function
     | C.GVarDecl (vi, loc) | C.GVar (vi, _, loc) when not (C.isFunctionType vi.C.vtype) ->
        VM.add vi (globalVarSpec spec vi loc) ve
     | _ -> ve
   end VM.empty
 
-let subst_of_ann = function
-  | RA.New (x, y) -> Some (x, y)
-  | RA.NewC (x, y, _) -> Some (x, y)
-  | _ -> None
+let globalFunEnv cil spec =
+      declared_funs cil
+  |>: (fun f -> (f, globalFunEntryEnv spec f))
+  |> VM.of_list
 
-let contract_shp_stores hfs sh env =
+  (*let xm     = SM.range scim
+            |>: (fun sci -> (sci.ST.fdec.C.svar, sci)) 
+            |> VM.of_list in*)
+
+let contract_shp env _ ssh hfs =
+  let (_, sh) = Misc.maybe ssh in
+  let hfs     = Misc.maybe hfs in
   {sh with Sh.store = Heapfun.contract_store sh.Sh.store hfs env}
+
+let annas = SM.map (fun sh -> sh.Sh.anna)
 
 (* API *)
 let infer_shapes cil tgr spec scim vim =
-  let hfenv        = Heapfun.test_env in
-  let spec, hfs    = Heapfun.expand_cspec_stores spec hfenv in
-  let ve     = globalVarEnv spec cil in
-  let fe     = declared_funs cil 
-            |>: (fun f -> (f, globalFunEntryEnv spec f))
-            |> VM.of_list in
-  let xm     = SM.range scim
-            |>: (fun sci -> (sci.ST.fdec.C.svar, sci)) 
-            |> VM.of_list in
-  let sm     = SM.domain scim
-            |> List.map begin fun fn -> fn,
-               infer_shape tgr fe ve (CSpec.store spec) spec scim vim fn end in
-(*  let anns   = List.fold_left begin fun anns (_, (_, sh)) ->
-                     sh.Sh.anna |> Array.to_list
-                                |> List.concat
-                                |> List.append anns end [] sm 
-                 |>: (fun x -> x |>: subst_of_ann |> M.maybe_list) in
-*)
-  let sm     = List.fold_left begin fun sm (fn, (sub, sh)) ->
-                 let _ = P.printf "subst: %a@!" Sloc.Subst.d_subst sub in
-                 let anns = sh.Sh.anna |> Array.to_list
-                                       |> List.concat
-                                       |>: (fun x -> x |>: subst_of_ann |>
-                                       M.maybe_list) in
-                 let hfs = Ctypes.hf_appls_sub sub hfs (* BRUTE FORCE *)
-                        |> fun x -> List.fold_left begin fun h s ->
-                             h ++ (h |> (Ctypes.hf_appls_sub s)) end x anns in
-                 (*let sh  = contract_shp_stores hfs sh hfenv in*)
-                 SM.add fn sh sm end SM.empty sm in
-  let _ = sm >> begin fun _ ->  CSpec.funspec spec
-                    |> SM.find "main"
-                    |> fst
-                    |> P.printf "@[main: %a@]@!" CFun.d_cfun end
+  let hfenv       = Hf.test_env in
+  let xspec       = Hf.expand_cspec_stores spec hfenv in
+  let fsp         = CSpec.funspec spec |> SM.map fst in
+  let ve, fe, gst =
+    globalVarEnv cil xspec, globalFunEnv cil xspec, CSpec.store xspec in
+  let xsm         = SM.mapk  (infer_shape tgr fe ve gst xspec vim) scim in
+  let xsann       = SM.map   (fun (sub, sh) -> sub, sh.Sh.anna) xsm in
+  let sm          = SM.mapk  (infer_hfs xsann fsp hfenv) scim
+                 |> SM.map2k (contract_shp hfenv) xsm in
+  let _ = sm
+       |> SM.find "test"
+       |> P.printf "@[test: %a@]@!" d_shape in
+  (*sm
   >> begin fun x ->    SM.find "main" x
-                    |> P.printf "@[main: %a@]" d_shape end in
-  HRA.annotate_shpm scim sm
-  (*|> FinalFields.dummy_infer_final_fields tgr spec*)
+                    |> P.printf "@[main: %a@]@!" d_shape end*)
+  assertf "done"
+  (*HRA.annotate_shpm scim sm
+  |> FinalFields.dummy_infer_final_fields tgr spec*)
   (*>> begin fun _ ->    CSpec.funspec spec
                     |> SM.find "magic"
                     |> fst
@@ -697,7 +714,6 @@ let infer_shapes cil tgr spec scim vim =
   >> begin fun _ ->    CSpec.funspec spec
                     |> SM.find "test"
                     |> fst
-                    |> P.printf "@[test: %a@]@!" CFun.d_cfun end*)
+                    |> P.printf "@[test: %a@]@!" CFun.d_cfun end
   >> begin fun x ->    SM.find "test" x
-                    |> P.printf "@[test: %a@]" d_shape end
-  >> (fun _ -> assertf "done")
+                    |> P.printf "@[test: %a@]" d_shape end*)

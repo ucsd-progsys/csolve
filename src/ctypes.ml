@@ -574,6 +574,7 @@ module SIGS (T : CTYPE_DEFS) = struct
     
     val d_vbind       : unit -> (binder * (T.ctype * Cil.typ)) -> P.doc
     val d_sloc_ldesc  : unit -> (Sloc.t * t) -> P.doc
+
   end
 
   module type STORE = sig
@@ -636,6 +637,8 @@ module SIGS (T : CTYPE_DEFS) = struct
       (* val map           : (T.ctype -> T.ctype) -> t -> t *)
     val fold_fields   : ('a -> Sloc.t -> Index.t -> T.field -> 'a) -> 'a -> t -> 'a
     val fold_locs     : (Sloc.t -> T.ldesc -> 'a -> 'a) -> 'a -> t -> 'a
+
+    val eq            : t -> t -> bool
 
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t
@@ -1344,6 +1347,13 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let inst_tvar rename tinst sto =
       map (CType.inst_tvar rename tinst) sto
 
+    let eq_ds =
+      SLM.equal LDesc.eq
+
+    let eq (ds1, vs1, hfs1) (ds2, vs2, hfs2) =
+      let (vs1, vs2) = Misc.map_pair Misc.sort_and_compact (vs1, vs2) in
+      let (hfs1, hfs2) = Misc.map_pair Misc.sort_and_compact (hfs1, hfs2) in
+      vs1 = vs2 && hfs1 = hfs2 && eq_ds ds1 ds2
     
     module Unify = struct
       exception UnifyFailure of S.Subst.t * t

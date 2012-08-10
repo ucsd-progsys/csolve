@@ -54,6 +54,8 @@ module Ops = struct
 
   let (|>:++) xs f = (List.map f xs) ++ xs
 
+  let (|>++) xs f = (f xs) ++ xs
+
   let (+++) = fun (x1s, y1s) (x2s, y2s) -> (x1s ++ x2s, y1s ++ y2s)
 
   let id = fun x -> x
@@ -248,6 +250,7 @@ module type EMapType = sig
   val range      : 'a t -> 'a list
   val join       : 'a t -> 'b t -> ('a * 'b) t
   val proj       : 'a t -> (key -> 'a -> bool) -> 'a t
+  val mapk       : (key -> 'a -> 'b) -> 'a t -> 'b t
   val adds       : key -> 'a list -> 'a list t -> 'a list t
   val of_alist   : (key * 'a) list -> 'a list t
   val finds      : key -> 'a list t -> 'a list
@@ -257,6 +260,7 @@ module type EMapType = sig
   val single     : key -> 'a -> 'a t
   val map_partial: ('a -> 'b option) -> 'a t -> 'b t
   val map2       : ('a option -> 'a option -> 'b) -> 'a t -> 'a t -> 'b t
+  val map2k      : (key -> 'a option -> 'b option -> 'c) -> 'a t -> 'b t -> 'c t
 end
 
 module type ESetType = sig
@@ -309,6 +313,9 @@ module EMap (K: EOrderedType) =
     let domain m =
       fold (fun k _ acc -> k :: acc) m []
 
+    let mapk f m =
+      fold (fun k a acc -> f k a |> fun x -> add k x acc) m empty
+
     let proj (m: 'a t) f: ('a t) =
       fold begin fun key v m' -> if f key v then
         add key v m' else m' end m empty
@@ -357,6 +364,13 @@ module EMap (K: EOrderedType) =
       domain m @ domain m' 
         |> sort_and_compact
         |> List.map (fun k -> k, f (find k m) (find k m'))
+        |> of_list
+
+    let map2k f m m' =
+      let find = maybe_find in
+      domain m @ domain m'
+        |> sort_and_compact
+        |> List.map (fun k -> k, f k (find k m) (find k m'))
         |> of_list
 
   end

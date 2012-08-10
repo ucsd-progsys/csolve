@@ -53,8 +53,9 @@ val ins : Sloc.t -> Sloc.t list -> intrs list ->
 val shape_in_env : string -> Sloc.t list -> env ->
                    Ctypes.store
                    
-val expand_cspec_stores  : Ctypes.cspec -> env ->
-                           Ctypes.cspec * Ctypes.ind_hf_appl list
+val expand_sto_shape     : env -> Ctypes.store -> Ctypes.ind_hf_appl list * Ctypes.store
+
+val expand_cspec_stores  : Ctypes.cspec -> env -> Ctypes.cspec
 
 val contract_store       : Ctypes.store -> Ctypes.ind_hf_appl list
                                         -> env -> Ctypes.store    

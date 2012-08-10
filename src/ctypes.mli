@@ -324,6 +324,8 @@ module type S = sig
     val fold_fields   : ('a -> Sloc.t -> Index.t -> Field.t -> 'a) -> 'a -> t -> 'a
     val fold_locs     : (Sloc.t -> LDesc.t -> 'a -> 'a) -> 'a -> t -> 'a
 
+    val eq            : t -> t -> bool
+
     module Unify: sig
       exception UnifyFailure of Sloc.Subst.t * t
 

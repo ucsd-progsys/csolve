@@ -132,16 +132,16 @@ let apply_hf_in_env ((hf, _, _) as app) ins env =
  * BUT, any introduced location could be bound to an
  * ldesc. *)
 let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
-  let bound_locs     = List.hd ls :: List.flatten ins in
-  let bound_by_exp   = fun x -> List.mem x bound_locs in
-  let (sto, exp)     = CtIS.partition bound_by_exp sto in
-  (*let desired_exp    = apply_hf_in_env app ins env |> snd in
-  let _              = asserts (exp = desired_exp) "fold_hf_on_sto" in*)
-  (* MK: 1) there should be a Store.eq,
-   *     2) this should be heap subtyping *)
-     sto
-  |> M.flip CtIS.add_app app
-
+  let bound_locs     = List.hd ls :: List.flatten ins
+                    |> M.sort_and_compact in
+  let (exp, sto')    = CtIS.partition (M.flip List.mem bound_locs) sto in
+  let desired_exp    = apply_hf_in_env app ins env |> snd in
+    if (CtIS.eq exp desired_exp) then
+      CtIS.add_app sto' app
+    else
+      sto
+  (* MK: this should be heap subtyping *)
+ 
 let ins l ls ins deps sto env =
   let (hf, ls', _) =
        CtIS.hfuns sto
@@ -188,4 +188,4 @@ let expand_cspec_stores cspec env =
           expand_sto_shape env sto
        |> M.app_fst acc
        |> snd end [] (++) cspec
-  |> M.app_snd M.sort_and_compact
+  |> fst
