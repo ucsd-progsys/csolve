@@ -71,13 +71,14 @@ let prune_live                  = ref false (* -prunelive *)
 let print_nontriv               = ref false (* -print_nontriv *)
 let heapify_nonarrays           = ref true  (* heapify all stack variables *)
 let timeout                     = ref (-1)
-let lfp                         = ref true (* -nolfp *)
+let lfp                         = ref true  (* -nolfp *)
 let slice                       = ref true  (* -slice  *)
 let no_lib_hquals               = ref false (* -no-lib-hquals *)
 let web_demo                    = ref false (* -web-demo *)
+let simple                      = ref true  (* -simple  *) 
+
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
-let simple        = ref true            (* -simple  *) 
 let dump_graph    = ref false           (* -dgraph :: this probably caused the dsolve solver to dump the constraint graph *)
 let dropcalls     = ref false           (* -dropcalls *)
 let adjdeps       = ref true            (* -origdeps *)
@@ -218,6 +219,9 @@ let arg_spec =
    ("-root",
     Arg.String (fun s -> root := s),
     " Use root function []");
+   ( "-nosimple"
+   , Arg.Clear simple
+   , " Directly propagate qualifiers for simple constraints (K1 <: K2) [true]");
    ("-psimple", 
     Arg.Set psimple, 
     " prioritize simple constraints [true]");
