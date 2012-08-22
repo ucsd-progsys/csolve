@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <link rel="stylesheet" href="http://goto.ucsd.edu/csolve/style.css" type="text/css" />
+</head>
+<body>
+<h1 id="csolve">CSolve</h1>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>CSolve requires a recent OCaml compiler and the CamlIDL library.</p>
+<p>CSolve can only be compiled on Linux at the moment.</p>
+<h2 id="checking-out-of-git">Checking Out Of Git</h2>
+<p>To clone CSolve from git:</p>
+<p>git clone goto.ucsd.edu:/git/csolve cd csolve</p>
+<h2 id="configuring-and-compiling">Configuring and Compiling</h2>
+<p>To begin building CSolve, run the following commands in the root directory of the source distribution:</p>
+<ol style="list-style-type: decimal">
+<li>./configure (on a mac: ./configure.mac)</li>
+<li>./build.sh</li>
+</ol>
+<p>To build CSolve after this step, run make in the src/ directory.</p>
+<h2 id="testing-csolve">Testing CSolve</h2>
+<p>To ensure that everything compiled successfully and CSolve is properly configured, change into the src/ directory and run</p>
+<p>./regrtest.py</p>
+<p>All tests should pass. (The regression tests may take some time to run; if you have multiple cores, pass the flag &quot;-t n&quot; to run the tests in n separate threads.)</p>
+<h2 id="running-csolve-csolve">Running CSolve: csolve</h2>
+<p>The CSolve executable, csolve, is used just like gcc. There are two common use cases:</p>
+<ul>
+<li><p>Running on a single file Simply run</p>
+<p>csolve code.c</p></li>
+</ul>
+<p>to typecheck and compile code.c. csolve will read qualifiers from code.c.hquals.</p>
+<p>csolve will do one of the following:</p>
+<ol style="list-style-type: decimal">
+<li><p>Output SAFE and compile the file The program is memory- and assertion-safe: all pointer dereferences (including array accesses) are within the bounds of an allocated region and all assertions pass. Additionally, all function calls satisfy the specified preconditions.</p></li>
+<li><p>Output UNSAFE and halt The program may contain memory safety, assertion, or function precondition violations. The locations of the errors are printed, as well as the constraints that fail.</p></li>
+</ol>
+<p>csolve takes the same arguments as gcc. In particular, if you do not want to fully compile code.c - for example, if code.c would not link because it contains references to &quot;dummy&quot; functions - then add the -c flag to stop before linking:</p>
+<pre><code>csolve -c code.c</code></pre>
+<p>Additionally, CSolve-specific options can be found by</p>
+<pre><code>csolve --help</code></pre>
+<ul>
+<li><p>Compiling an entire source tree To use csolve to compile an entire project - first compiling C source to object files, then compiling those object files into an executable - invoke csolve using the --merge flag:</p>
+<p>csolve --merge -c foo.c csolve --merge -c boo.c csolve --merge -o fooboo foo.o boo.o</p></li>
+</ul>
+<p>csolve will read qualifiers from fooboo.hquals.</p>
+<h2 id="important-options">Important Options</h2>
+<ul>
+<li>Verbosity can be set using the &quot;--v=n&quot; flag, where n is a numeric verbosity level. See the output of --help.</li>
+</ul>
+<h2 id="writing-logical-qualifier-files">Writing Logical Qualifier Files</h2>
+<p>To typecheck programs, CSolve uses logical qualifier files that contain &quot;hints&quot; about how to typecheck the program, called logical qualifiers, or qualifiers for short. Each qualifier is a predicate expressing some property of program values. To make these qualifiers easier to express, they may contain wildcards that range over the names of variables in the program. We begin with examples before defining the syntax of qualifiers. Further examples can be found in src/lib.hquals.</p>
+<p>EXAMPLES</p>
+<p>qualif EQZ(v: int): v = 0</p>
+<p>A qualifier named EQZ which expresses that &quot;this&quot; value (v) is an integer which is equal to 0.</p>
+<p>qualif GT(v: int): v &gt; x</p>
+<p>A qualifier named GT which expresses that &quot;this&quot; value (v) is an integer which is greater than the value of the variable named x.</p>
+<p>qualif GT(v: int): v &gt; @prefix</p>
+<p>A qualifier named GT which expresses that &quot;this&quot; value (v) is an integer which is greater than the value of some variable whose name begins with @prefix.</p>
+<p>qualif GT(v: int): v &gt; ~a</p>
+<p>A qualifier named GT which expresses that &quot;this&quot; value (v) is an integer which is greater than the value of some program variable.</p>
+<p>qualif NONNULL(v: ptr): v != 0</p>
+<p>A qualifier named NONNULL which expresses that &quot;this&quot; value (v) is a pointer which is not NULL (i.e., equal to 0).</p>
+<p>qualif UB(v:ptr): v &lt; BLOCK_END([v])</p>
+<p>A qualifier named UB which expresses that &quot;this&quot; value (v) is a pointer which is less than the pointer that points to the end of the block that v points to (BLOCK_END([v])).</p>
+<p>SYNTAX</p>
+<p>Qualifiers are of the form</p>
+<p>qualif NAME(v: TYPE): PREDICATE</p>
+<p>NAME can be any alphanumeric string; it has no semantic interpretation. TYPE is either &quot;ptr&quot; or &quot;int&quot;, and determines whether this predicate applies to values v which are pointers or integers, respectively. PREDICATE is a logical predicate over the value variable v, the program variables, and wildcard variables, containing the following constructs:</p>
+<ul>
+<li><p>Integer constants (0, -2, etc.)</p></li>
+<li><p>Program variables (x, y, i, etc.)</p></li>
+<li><p>Metavariables ranging over program variables (~a, ~b, etc.)</p></li>
+<li><p>Anonymous wildcards over program variables (_)</p></li>
+<li><p>Metavariables ranging over program variables with a prefix @prefix instantiates to prefix1, prefix2, etc.</p></li>
+<li><p>Binary comparisons x # y where # in {&lt;, &lt;=, =, !=, =&gt;, &gt;}</p></li>
+<li><p>Arithmetic expressions x # y where # in {+, -, *} Arithmetic expressions must be linear.</p></li>
+<li><p>Conjunctions &amp;&amp; [p; q] where p and q are predicates Generally the brackets may contain a semicolon-separated list of predicates.</p></li>
+<li><p>Disjunctions || [p; q] where p and q are predicates Generally the brackets may contain a semicolon-separated list of predicates.</p></li>
+<li><p>Implications p =&gt; q where p and q are predicates</p></li>
+<li><p>Parenthesized expressions</p></li>
+</ul>
+<h2 id="vim-csolve-mode">VIM CSolve Mode</h2>
+<p>There is a rudimentary vim mode for viewing the output of a csolved-file.</p>
+<ol style="list-style-type: decimal">
+<li>Add the following to your .vimrc</li>
+</ol>
+<p>pyfile /path/to/csolve/utils/csolve.py map <C-s> :python printLiquidType(&quot;normal&quot;)<CR> vmap <C-s> :python printLiquidType(&quot;visual&quot;)<CR> map <C-p> :python parseLiquidType()<CR></p>
+<ol start="2" style="list-style-type: decimal">
+<li><p>You must run csolve in the directory where the file foo.c is. path/to/csolve foo.c</p></li>
+<li><p>Now, in that directory, open foo.c (in Vim)</p></li>
+<li><p>Hit Ctrl-p to parse the annotations file</p></li>
+<li><p>Hit Ctrl-s when your mouse is above identifier [foo] to see the refinements for [foo].</p></li>
+<li><p>Hit Ctrl-] (tag-style) to jump into a definition (once you are in the types-window)</p></li>
+<li><p>Hit Ctrl-t (tag-style) to pop back from a definition.</p></li>
+</ol>
+<h1 id="function-and-value-specifications">Function and Value Specifications</h1>
+<p>CSolve uses specifications for functions and values to determine</p>
+<ol style="list-style-type: decimal">
+<li>the layout of both the global heap and the heap within each function contained in the program,</li>
+<li>what invariants the programmer wishes to enforce about functions and values contained in the program, and</li>
+<li>what invariants are true of external functions and variables, i.e., those declared with the &quot;extern&quot; qualifier, as well as the heap layout of external functions and the global heap segment reachable from an external global variable.</li>
+</ol>
+<p>In the absence of external function and variable declarations, CSolve attempts to guess reasonable specifications for the layout of the global and function-specific heaps and infers function invariants, covering cases 1 and 2 above. In the event that the heap layout guesses are unsatisfactory, if additional invariants need to be stated, or there are external definitions, the programmer must provide CSolve with annotations that override its guesses or state explicit invariants.</p>
+<p>To use the explicit specification mechanism, include csolve.h in every file that contains specifications, like so:</p>
+<p>#include <csolve.h></p>
+<h2 id="specifying-heap-layout">Specifying Heap Layout</h2>
+<p>In this section, we discuss annotations which affect <em>only</em> how CSolve determines the layout of a (global or function-specific) heap; some annotations in the next section on specifying invariants also affect how CSolve determines the layout of the heap.</p>
+<p>When determining the layout of a function-specific heap, CSolve assumes that all arguments and the return value, if they are pointers, occupying disjoint sections of the heap. For example, given the function prototype</p>
+<p>int *swap (int *x, int *y)</p>
+<p>CSolve assumes that x, y, and the return value all occupy distinct heap locations, i.e., they can never be aliased. To indicate that x and y may alias, use the &quot;LOC&quot; annotation with a location name:</p>
+<p>int *swap (int * LOC(L) x, int * LOC(L) y)</p>
+<p>By default, CSolve assumes that the location L is local to swap's heap. To indicate that L is a global location (i.e., may alias global pointers), use the GLOBAL annotation on the function's signature:</p>
+<p>int *swap (int * LOC(L) x, int * LOC(L) y) GLOBAL(L)</p>
+<p>Similarly, in structure declarations, CSolve assumes that each pointer within a structure points to a disjoint location in memory. For example, in</p>
+<p>typedef struct { int *x; int *y; } pair;</p>
+<p>the integers x and y are presumed to reside in disjoint regions of memory and may never alias. As is the case with function parameters, we can explicitly name the locations x and y point to to indicate potential aliasing:</p>
+<p>struct pair { int * LOC(L) x; int * LOC(L) y; };</p>
+<p>The location L is now a parameter of the struct definition. In the function prototype</p>
+<p>int setx (struct pair *p, int *x)</p>
+<p>the location L in the defintion of pair will be instantiated to a fresh location, i.e., one distinct from all other locations. We can instantiate L with a specific location to indicate potential aliasing, for example, between x and p-&gt;x and p-&gt;y:</p>
+<p>int setx (struct pair INST(L, K) *p, int * LOC(K) x)</p>
+<p>Above, the locations of p-&gt;x and p-&gt;y, which are L inside the structure defintion, are instantiated to location K, which is the location given to the contents of parameter x.</p>
+<p>Similarly, types specified with typedefs are parameterized on their locations, so that in the definition</p>
+<p>typedef int * LOC(L) intptr;</p>
+<p>the location L is a paraemeter of the type intptr.</p>
+<p>By default, CSolve assumes that a pointer to a location points to a single element of the pointer's base type. For example, the function</p>
+<p>int *swap (int * LOC(L) x, int * LOC(L) y) GLOBAL(L)</p>
+<p>is assumed to take pointers x and y to single integers. To indicate that a pointer points to an array of elements, use the ARRAY annotation:</p>
+<p>int quicksort (int * ARRAY ns)</p>
+<p>The exception to this rule is the type char *, which is assumed by default to point to an array of characters:</p>
+<p>int strlen (char *str) // str is assumed to point to an array</p>
+<p>If you actually mean that a character pointer should point to a single character, use the SINGLE annotation:</p>
+<p>void setchar (char * SINGLE c, char d)</p>
+<p>Almost always, every use of a structure or typedef'd type instantiates the locations contained within the type. The sole exception is when a structure type is used in a typedef, as in</p>
+<p>typedef struct foo foo;</p>
+<p>In this case, whatever locations are quantified in struct foo will also be quantified in foo. This is syntactic sugar which keeps you from having to &quot;re-export&quot; all the locations L in struct foo using INST(L, L) in the typedef, i.e.,</p>
+<p>typedef struct foo INST(L, L) foo;</p>
+<p>CSolve attempts to take explicitly-provided array bounds into account when determining the layout of a heap. In some cases this may be undesirable; for example, in the structure</p>
+<p>typedef struct { int len; char str[0]; } string;</p>
+<p>we do not want CSolve to assume that string really has a zero-length array at its end. In this case, we use the SHAPE_IGNORE_BOUND annotation:</p>
+<p>typedef struct { int len; char (SHAPE_IGNORE_BOUND str)[0]; } string;</p>
+<p>In some cases --- for example, with external function declarations --- we may need to indicate that a function does not modify the contents of a heap location. We do this with a FINAL annotation on the pointer base type or field in question. For example, the function</p>
+<p>void readPointer (int FINAL *p)</p>
+<p>is annotated to indicate that it does not modify the data pointed to by P.</p>
+<p>In some cases, the declared base type of a pointer does not match the actual contents of memory at that location. For example, suppose we have the function</p>
+<p>typedef struct _intlist intlist;</p>
+<p>struct _intlist { int i; intlist *next; };</p>
+<p>int *getNextInt (int *i) { return (int *) ((intlist *) i)-&gt;next; }</p>
+<p>While the declared type of i is int *, i's location actually contains an intlist structure. To indicate this fact to CSolve, use the LAYOUT annotation with the actual type of the store's contents at that location:</p>
+<p>int *getNextInt (int * LAYOUT(intlist) i) { return (int *) ((intlist *) i)-&gt;next; }</p>
+<h2 id="specifying-invariants">Specifying Invariants</h2>
+<p>The annotation REF(p) is used to refine a type to values that satisfy both the base type and predicate p. For example, the declaration of a positive integer is written</p>
+<p>int REF(V &gt; 0) i;</p>
+<p>By default, refinement predicates in locally-defined function and global variable types are ignored; the types of these entities are inferred and no checking against the user-provided predicates is performed. To override this, attach the CHECK_TYPE attribute to the declaration.</p>
+<p>For example, consider the declaration</p>
+<p>int REF(&amp;&amp; [V &gt;= x; v &gt;= 0]) abs (int x) CHECK_TYPE { return x &lt; 0 ? -x : x; }</p>
+<p>CSolve will verify that this function takes an integer x and returns a nonnegative integer that is at least as large as x.</p>
+<p>CSolve will conjoin all refinements attached to a type, so that an alternate prototype for the above function is</p>
+<p>int REF(V &gt;= x) REF(v &gt;= 0) abs (int x)</p>
+<p>The file lib/csolve.h contains a number of convenient macros for defining refinement predicates as well as shorthands for refinements, e.g.,</p>
+<p>#define NONNEG REF(V &gt;= 0)</p>
+<p>The annotation ROOM_FOR(t) indicates that a pointer points to the start of a region which has enough space to fit an object of type t:</p>
+<p>void fclose (FILE * ... ROOM_FOR(FILE) f)</p>
+<p>The annotation NNROOM_FOR(t) is the same as ROOM_FOR(t), but allows the pointer to optionally be NULL.</p>
+<p>Pointer types t * without annotations will get the default annotation</p>
+<p>NONNULL NNROOM_FOR(t) REF(V = BLOCK_BEGIN([V]))</p>
+<h2 id="external-declarations">External Declarations</h2>
+<p>Note that the function declaration</p>
+<p>extern int divide (int x, int y);</p>
+<p>is a valid specification to CSolve; it simply says that there exists a function, divide, which takes two integer parameters and returns an integer. However, CSolve cannot see the definition of divide and so cannot ensure that this liberal specification is enough to ensure the safety of all uses of divide and, indeed, if divide is defined in the obvious way then this specification is too liberal.</p>
+<p>This illustrates a common situation with library functions: they are declared extern, but the trivial preconditions guessed by CSolve do not ensure that they are used safely, and yet their absence from the source code means that CSolve is unable to detect this inconsistency. Thus, we must somehow indicate that an extern function declaration corresponds to a valid specification for that function, i.e., that the programmer has somehow verified that type-conforming uses of the function are safe. This is accomplished using the OKEXTERN attribute.</p>
+<p>Thus, a proper declaration for the divide function would be</p>
+<p>extern int divide (int x, int REF(V != 0) y) OKEXTERN;</p>
+<p>The above discussion applies equally to extern variable declarations.</p>
+<h2 id="finding-examples">Finding Examples</h2>
+<p>Useful example annotations can be found in lib/csolve.h and external/include32/stdlib.h.</p>
+<h1 id="incremental-checking">Incremental Checking</h1>
+<p>To make interactive use pleasant, CSolve has an incremental checking option, in which a subset of target functions is analyzed using the previously inferred types for the rest of the program. (The mode ALSO checks that the target functions behave as inferred previously -- thus ensuring that the target functions are analyzed under appropriate preconditions.)</p>
+<ol style="list-style-type: decimal">
+<li><p>Run the whole program check as usual, e.g.</p>
+<pre><code>csolve file.c </code></pre></li>
+<li><p>Now you can tweak individual functions say, and just have them be re-checked against the specifications (&quot;summaries&quot; for all the other functions) inferred in Step 1:</p>
+<pre><code>csolve --inccheck=FUN1 ... --inccheck=FUNk file.c</code></pre></li>
+</ol>
+<p>Will only re-analyze FUN1,...,FUNk (the C functions you wish to re-check.)</p>
+<p>For example,</p>
+<pre><code>    csolve pmapdistilled.c</code></pre>
+<p>takes about 50s to finish the analysis, but</p>
+<pre><code>    csolve --inccheck=page_getfree pmap_distilled.c</code></pre>
+<p>returns in a couple of seconds.</p>
+</body>
+</html>

@@ -1,0 +1,2 @@
+qualif AtOffset(v: ptr) : v = ~a + ~b
+qualif AtPlus4(v: ptr)  : v = (BLOCK_BEGIN([v]) + 4)

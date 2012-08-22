@@ -1,0 +1,5 @@
+qualif MERGEREADS(V: ptr)                  : || [&& [@a <= V; V < (@a + (4 * @lena))]; && [@b <= V; V < (@b + (4 * @lenb))]]
+qualif SUM2(V:int)                         : V = (@i + @j)
+qualif SIZE(V:ptr)                         : BLOCK_END([V]) >= V + 4 * (@lena + @lenb)
+qualif BUFEFFECT(V: ptr, ~a: ptr, ~b: int) : V [ = ; <; >= ] (~a + (4 * ([1; 3] * ~b)))
+qualif MERGELEFT(V: ptr, ~a:int, ~b:int)   : V [ < ; >= ] (@c + (4 * (~a + ~b)))

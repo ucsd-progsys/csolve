@@ -27,7 +27,6 @@ from string import Template
 from optparse import OptionParser
 
 baseDir          = sys.path[0]
-tgtTplt          = baseDir + "/templates/csolve.html"
 #lineTplt         = Template("<span class='line' num=$linenum><a class='linenum' href= \"#$linenum\" num=$linenum name=\"$linenum\">$padlinenum:&nbsp;</a>$line</span>")
 lineSpan         = "<span class='line' file=$filenum num=$linenum>" + \
                    "<a class='linenum' href= \"$lineanch\" file=$filenum num=$linenum name=\"$lineanch\">$padlinenum:&nbsp;</a>" + \
@@ -60,6 +59,10 @@ def getOptions():
   p.add_option("-o", "--out"
               , dest="out", help="name of output html"
               , default="out.html", metavar="FILE")
+  p.add_option("-w", "--web-demo"
+              , dest="isWebDemo"
+              , action="store_true"
+              , default=False)
   (opts, args)  = p.parse_args()
   opts.srcFiles = args
   return opts
@@ -118,18 +121,20 @@ def copyDir(destDir, off):
 def rawSrcToHtml(src):
   return highlight(src, CLexer(stripall=False), HtmlFormatter())
 
-def srcToHtml(srcIndex, srcFile):
+def srcToHtml(isWebDemo, srcIndex, srcFile):
   src      = readFrom(srcFile)
   html     = rawSrcToHtml(src)
   srcHtml  = addLineNumbers(srcIndex, src, html)
-  head     = headSrc(srcIndex, srcFile)
-  headHtml = rawSrcToHtml(head)
-  #headTplt.substitute(filenum = srcIndex, filename = srcFile)
-  return (headHtml + srcHtml) 
+  if (isWebDemo):
+    return (srcHtml)
+  else:
+    head     = headSrc(srcIndex, srcFile)
+    headHtml = rawSrcToHtml(head)
+    return (headHtml + srcHtml)
 
-def srcsToHtml(srcFiles):
+def srcsToHtml(isWebDemo, srcFiles):
   n     = len(srcFiles)
-  htmls = [srcToHtml(i, f) for (i, f) in zip(range(len(srcFiles)), srcFiles)]
+  htmls = [srcToHtml(isWebDemo, i, f) for (i, f) in zip(range(len(srcFiles)), srcFiles)]
   return "\n\n\n".join(htmls)
 
 def main():
@@ -137,9 +142,13 @@ def main():
   print "cs2html", "Json:", opts.json, "Sources:", opts.srcFiles, "Html:", opts.out 
   tgtFile = os.path.abspath(opts.out)
   srcDir  = os.path.dirname(tgtFile)
-  srcHtml = srcsToHtml(opts.srcFiles) 
+  srcHtml = srcsToHtml(opts.isWebDemo, opts.srcFiles) 
   srcJson = readFrom(opts.json)
-  tplt    = Template(readFrom(tgtTplt))
+  if (opts.isWebDemo):
+    tpltFile = baseDir + "/templates/web-csolve.html"
+  else:
+    tpltFile = baseDir + "/templates/csolve.html"
+  tplt = Template(readFrom(tpltFile))
   tgt     = tplt.substitute(srcHtml = srcHtml, srcJson = srcJson)
   writeTo(tgtFile, tgt)
   copyDir(srcDir, "css")

@@ -1,0 +1,2 @@
+qualif RELSTR(v: ptr, ~a: int): (v + ~a) <= BLOCK_END([v])
+qualif TRACKSTR(v: ptr, ~a: ptr, ~b: int, ~c: int): v = (~a + (~b - ~c))

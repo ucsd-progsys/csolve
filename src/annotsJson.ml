@@ -53,6 +53,8 @@ type srcLoc =
   ; file : int 
   }
 
+type error = srcLoc * string
+
 type vardef  = 
   { varId   : varid
   ; varName : string 
@@ -87,7 +89,7 @@ type annotf =
   }
 
 type json = 
-  { errors   : srcLoc list
+  { errors   : error list
   ; qualDef  : qdef SSM.t
   ; varDef   : vardef SSM.t 
   ; genAnnot : annotv
@@ -131,6 +133,11 @@ let d_binder () b = PP.dprintf "\"%a\"" Ct.d_binder b
 
 let d_srcLoc () e = 
   PP.dprintf "{ line : %d, file : %d }" e.line e.file
+
+let d_error () (l, s) =
+  PP.dprintf "{ loc : %a, text : \"%s\" }"
+    d_srcLoc l
+    (Misc.replace_substring "\n" "<br />" s)
 
 let exprString e = 
   e |> CilMisc.pretty_to_string (d_opt d_expr) 
@@ -215,7 +222,7 @@ let d_json () x =
    , funAnnot : @[%a@]
    , files    : @[%a@]
    }"
-    (d_array d_srcLoc)     x.errors
+    (d_array d_error)      x.errors
     (d_sm d_qdef)          x.qualDef
     (d_array d_cone)       x.cones
     (d_sm d_vardef)        x.varDef
@@ -259,7 +266,10 @@ let srcLoc_of_constraint fm tgr c =
   c |> FixConstraint.tag_of_t 
     |> CilTag.loc_of_tag tgr
     |> srcLoc_of_location fm
- 
+
+let error_of_constraint fm tgr c =
+  (srcLoc_of_constraint fm tgr c, FixConstraint.to_string c)
+
 (*******************************************************************)
 (************* Build Map from var-line -> ssavar *******************)
 (*******************************************************************)
@@ -388,7 +398,7 @@ let mkVarDef fm abbrev (bs : An.binding list) =
 
   
 let mkErrors fm tgr = 
-  List.map (srcLoc_of_constraint fm tgr)
+  List.map (error_of_constraint fm tgr)
 
 let mkQualdef q = 
   let qn = Sy.to_string <| Q.name_of_t q in
@@ -448,7 +458,8 @@ let srcs_to_html files =
   let json   = json_file ()                                            in
   let html   = html_file ()                                            in
   let srcs   = String.concat " " files                                 in 
-  Printf.sprintf "%s -j %s -o %s %s" c2html json html srcs
+  let web    = if !Co.web_demo then "-w" else ""                       in
+  Printf.sprintf "%s -j %s -o %s %s %s" c2html json html web srcs
   >> (fun cmd -> print_now ("Generate HTML: "^cmd^"\n"))
   |> Sys.command
 

@@ -121,7 +121,7 @@ let phase4 a =
 (* 5. check that all refinements are well-formed *)
 let validate_vars env msg vs = 
   List.iter begin fun v -> 
-    if not(SM.mem v env) then 
+    if not (SM.mem v env) then 
       let _ = F.printf "ERROR: out_of_scope variable %a (%s)" Sy.print v (Lazy.force msg) in
       failwith ("Out_of_scope: "^(Sy.to_string v))
   end vs 
@@ -135,37 +135,12 @@ let validate_reft s env msg ((vv,t,_) as r) =
   r |> BS.time "preds_of_reft" (C.preds_of_reft s)
     |> List.iter (validate_pred env msg)
 
-(*
-let validate_binding s env msg x r =
-  let msg = lazy (Format.sprintf "%s binding for %s " (Lazy.force msg) (Sy.to_string x)) in
-  validate_reft s env msg r
-
-let phase5 s cs =
-  Misc.filter begin fun c ->
-    try
-      let msg  = C.to_string c in
-      let env  = C.env_of_t c in
-      let lhs  = C.lhs_of_t c in
-      let rhs  = C.rhs_of_t c in
-
-      BS.time "valid binds" (SM.iter (validate_binding s env (lazy (msg^"\n BAD ENV")))) env;
-      BS.time "valid lhs" (validate_reft s env (lazy (msg^"\n BAD LHS"))) lhs;
-      BS.time "valid rhs" (validate_reft s env (lazy (msg^"\n BAD RHS"))) rhs;
-      true
-    with ex -> begin 
-      Format.printf "Phase5: exn = %s on constraint: %a \n" 
-        (Printexc.to_string ex) (C.print_t None) c; 
-      raise ex
-    end
-  end cs
-*)
-
 let phase5 s cs =
   Misc.filter begin fun c ->
     try
       let msg  = C.to_string c in
       let env  = C.senv_of_t c in
-      let rhs  = C.rhs_of_t c in
+      let rhs  = C.rhs_of_t c  in
       List.iter (validate_pred env (lazy (msg^" BAD LHS"))) (C.preds_of_lhs s c);
       BS.time "valid rhs" (validate_reft s env (lazy (msg^"\n BAD RHS"))) rhs;
       true
