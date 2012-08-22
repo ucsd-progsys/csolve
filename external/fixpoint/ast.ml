@@ -1131,7 +1131,8 @@ and sortcheck_op f (e1, op, e2) =
   -> Some Sort.Int
 
   | _ -> None
- 
+
+
 and sortcheck_rel f (e1, r, e2) =
   let t1o, t2o = (e1,e2) |> Misc.map_pair (sortcheck_expr f) in
   match r, t1o, t2o with

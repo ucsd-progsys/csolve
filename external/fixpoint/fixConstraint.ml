@@ -216,25 +216,27 @@ let preds_of_envt f env =
 let wellformed_pred env = 
   A.sortcheck_pred (Misc.maybe_map snd3 <.> Misc.flip SM.maybe_find env)
 
-(*
-  Misc.do_catch_ret "FixConstraint.wellformed: wellformed_pred" 
-    (A.sortcheck_pred (fun x -> snd3 (SM.safeFind x env "wellformed_pred"))) 
-    p 
-    false
-*)
-
 (* API *)
 let preds_of_lhs_nofilter f c = 
   let envps = preds_of_envt f c.nontriv in
   let r1ps  = preds_of_reft f c.lhs in
   (c.iguard :: envps) ++ r1ps
-  (* >> (Format.printf "preds_of_lhs %d = %a\n" (Misc.get_option (-1) c.ido) (Misc.pprint_many_brackets false P.print))  *)
+(* 
+let preds_of_lhs f c =
+  preds_of_lhs_nofilter f c
+  |> List.filter (wellformed_pred (SM.add (fst3 c.lhs) c.lhs c.full)) 
+*)
 
 (* API *)
 let preds_of_lhs f c =
-  preds_of_lhs_nofilter f c
-  |> List.filter (wellformed_pred (SM.add (fst3 c.lhs) c.lhs c.full))
-  (* >> (Format.printf "preds_of_lhs %d = %a\n" (Misc.get_option (-1) c.ido) (Misc.pprint_many_brackets false P.print))  *)
+  let env   = SM.add (fst3 c.lhs) c.lhs c.full in
+  let wfp p = wellformed_pred env p 
+              >> (fun b -> if not b then F.eprintf "WARNING: Malformed Lhs Pred (%a)\n" P.print p) in
+  let ps    = preds_of_lhs_nofilter f c        in
+  let ps'   = List.filter wfp ps               in
+  if !Co.strictsortcheck && List.length ps != List.length ps' 
+  then raise (BadConstraint (Misc.maybe c.ido, c.tag, "Malformed Lhs Pred"))
+  else ps
 
 (* API *)
 let vars_of_t f ({rhs = r2} as c) =

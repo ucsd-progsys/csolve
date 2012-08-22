@@ -22,6 +22,7 @@
 
 (* This file is part of the LiquidC Project *)
 
+module F  = Format
 module Co = Constants
 module BS = BNstats
 module A  = Ast
@@ -61,21 +62,21 @@ type t = {
 (*************************************************************************)
 
 let pprint_decl ppf = function
-  | Vbl (x, t) 	-> Format.fprintf ppf "%a:%a" Sy.print x So.print t 
-  | Barrier 	-> Format.fprintf ppf "----@." 
-  | Fun (s, i) 	-> Format.fprintf ppf "%a[%i]" Sy.print s i
+  | Vbl (x, t) 	-> F.fprintf ppf "%a:%a" Sy.print x So.print t 
+  | Barrier 	-> F.fprintf ppf "----@." 
+  | Fun (s, i) 	-> F.fprintf ppf "%a[%i]" Sy.print s i
 
 let dump_ast_type me a = 
   Z3.get_sort me.c a  
   |> Z3.sort_to_string me.c  
-  |> Format.printf "@[z3%s@]@."
+  |> F.printf "@[z3%s@]@."
 
 let dump_ast me a =
   Z3.ast_to_string me.c a
-  |> Format.printf "@[%s@]@." 
+  |> F.printf "@[%s@]@." 
 
 let dump_decls me =
-  Format.printf "Vars: %a" (Misc.pprint_many true "," pprint_decl) me.vars       
+  F.printf "Vars: %a" (Misc.pprint_many true "," pprint_decl) me.vars       
 
 (************************************************************************)
 (***************************** Stats Counters  **************************)
@@ -163,7 +164,7 @@ let z3Var_memo me env x =
     (fun () -> 
       let t   = x |> varSort env |> z3VarType me in
       let sym = fresh "z3v" 
-                (* >> Format.printf "z3Var_memo: %a :->  %s\n" Sy.print x *)
+                (* >> F.printf "z3Var_memo: %a :->  %s\n" Sy.print x *)
                 |> Z3.mk_string_symbol me.c in 
       let rv  = Const (Z3.mk_const me.c sym t) in
       let _   = me.vars <- vx :: me.vars in 
@@ -212,7 +213,11 @@ let is_z3_int me a =
 exception Z3RelTypeError
 
 let rec z3Rel me env (e1, r, e2) =
-  if A.sortcheck_pred (Misc.flip SM.maybe_find env) (A.pAtom (e1, r, e2)) then 
+  let p  = A.pAtom (e1, r, e2)                                in
+  let ok = A.sortcheck_pred (Misc.flip SM.maybe_find env) p   in 
+  (* let _  = F.printf "z3Rel: e = %a, res = %b \n" P.print p ok in
+     let _  = F.print_flush ()                                   in *)
+  if ok then 
     let a1, a2 = Misc.map_pair (z3Exp me env) (e1, e2) in 
     match r with 
     | A.Eq -> Z3.mk_eq me.c a1 a2 
@@ -222,9 +227,9 @@ let rec z3Rel me env (e1, r, e2) =
     | A.Lt -> Z3.mk_lt me.c a1 a2
     | A.Le -> Z3.mk_le me.c a1 a2
   else begin 
-    SM.iter (fun s t -> Format.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
-    Format.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
-    Format.print_flush ();
+    SM.iter (fun s t -> F.printf "@[%a :: %a@]@." Sy.print s So.print t) env;
+    F.printf "@[%a@]@.@." P.print (A.pAtom (e1, r, e2));
+    F.print_flush ();
     raise Z3RelTypeError
   end
 
@@ -314,7 +319,7 @@ let z3Pred me env p =
   try 
     let p = BS.time "fixdiv" A.fixdiv p in
     BS.time "z3Pred" (z3Pred me env) p
-  with ex -> (Format.printf "z3Pred: error converting %a\n" P.print p) ; raise ex 
+  with ex -> (F.printf "z3Pred: error converting %a\n" P.print p) ; raise ex 
 
 
 let z3Distinct me env = 
@@ -485,7 +490,7 @@ let set_filter (me: t) (env: So.t SM.t) (vv: Sy.t) ps qs =
 
 (* API *)
 let print_stats ppf me =
-  Format.fprintf ppf
+  F.fprintf ppf
     "TP stats: sets=%d, pushes=%d, pops=%d, unsats=%d, queries=%d, count=%d, unsatLHS=%d \n" 
     !nb_set !nb_push !nb_pop !nb_unsat !nb_query (List.length me.vars) !nb_unsatLHS
 

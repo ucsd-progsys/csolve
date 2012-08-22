@@ -78,8 +78,8 @@ module Ops = struct
 
   let foreach xs f = List.map f xs
 
-let asserts p fmt =
-  Printf.ksprintf (fun x -> if not p then failwith x) fmt
+  let asserts p fmt =
+    Printf.ksprintf (fun x -> if not p then failwith x) fmt
 
 let asserti = asserts
   (*
@@ -109,6 +109,13 @@ let withthd3 (x,y,_) z = (x,y,z)
 let print_now s = 
   print_string s;
   flush stdout
+
+let print_now_error msg =
+  prerr_string msg;
+  flush stderr
+
+
+
 
 let some = fun x -> Some x
 
