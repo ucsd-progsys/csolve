@@ -74,6 +74,7 @@ let timeout                     = ref (-1)
 let lfp                         = ref true (* -nolfp *)
 let slice                       = ref true  (* -slice  *)
 let no_lib_hquals               = ref false (* -no-lib-hquals *)
+let web_demo                    = ref false (* -web-demo *)
 (* JHALA: what do these do ? *)
 let psimple       = ref true            (* -psimple *)
 let simple        = ref true            (* -simple  *) 
@@ -360,6 +361,9 @@ let arg_spec =
    ("-no-lib-hquals",
     Arg.Set(no_lib_hquals),
     " don't use qualifier library in type inference");
+   ("-web-demo",
+    Arg.Set(web_demo),
+    " set HTML output to web demo mode");
   ]
 
 
