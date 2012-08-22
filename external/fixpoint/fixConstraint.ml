@@ -28,6 +28,7 @@ module A  = Ast
 module E  = A.Expression
 module P  = A.Predicate
 module Sy = A.Symbol
+module So = A.Sort
 module SM = Sy.SMap
 module BS = BNstats
 module Su = Ast.Subst
@@ -221,14 +222,9 @@ let preds_of_lhs_nofilter f c =
   let envps = preds_of_envt f c.nontriv in
   let r1ps  = preds_of_reft f c.lhs in
   (c.iguard :: envps) ++ r1ps
-(* 
-let preds_of_lhs f c =
-  preds_of_lhs_nofilter f c
-  |> List.filter (wellformed_pred (SM.add (fst3 c.lhs) c.lhs c.full)) 
-*)
 
-(* API *)
-let preds_of_lhs f c =
+
+(* let preds_of_lhs f c =
   let env   = SM.add (fst3 c.lhs) c.lhs c.full in
   let wfp p = wellformed_pred env p 
               >> (fun b -> if not b then F.eprintf "WARNING: Malformed Lhs Pred (%a)\n" P.print p) in
@@ -237,6 +233,21 @@ let preds_of_lhs f c =
   if !Co.strictsortcheck && List.length ps != List.length ps' 
   then raise (BadConstraint (Misc.maybe c.ido, c.tag, "Malformed Lhs Pred"))
   else ps
+*)
+
+let report_wellformed env c p wf = 
+  if not wf then
+    let msg = F.sprintf "WARNING: Malformed Lhs Pred (%s)\n" (P.to_string p)                  in 
+    let _   = F.eprintf "%s" msg                                                              in 
+    let _   = SM.iter (fun s (_,t,_) -> F.eprintf "@[%a :: %a@]@." Sy.print s So.print t) env in
+    let _   = F.eprintf "@[%a@]@.@." P.print p                                                in
+    if !Co.strictsortcheck then raise (BadConstraint (Misc.maybe c.ido, c.tag, msg))
+
+(* API *)
+let preds_of_lhs f c = 
+  let env = SM.add (fst3 c.lhs) c.lhs c.full in
+  preds_of_lhs_nofilter f c 
+  |> List.filter (fun p -> wellformed_pred env p >> report_wellformed env c p)
 
 (* API *)
 let vars_of_t f ({rhs = r2} as c) =
