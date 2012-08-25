@@ -196,7 +196,7 @@ module Sort =
       | Num,_ | _, Num -> None
       | ct, (Var i) 
       | (Var i), ct 
-        when ct != Bool -> 
+        (* when ct != Bool *) -> 
           begin match lookup_var s i with 
           | Some ct' when ct = ct' -> Some s
           | Some _                 -> None
